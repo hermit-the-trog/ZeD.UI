@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_MailProto.lua
 -- ============================================================================
--- MAIL: WHAT BOTH SIDES AGREE ON (punch list 104; the director, Nov 7 2026: "email back then, you would dial in to connect,
--- to send and receive. So most of it was done offline."). The module, every limit, the checks on typed words. Pure Lua,
--- ASCII, nothing client-only at load: this file also runs on a dedicated server.
+-- MAIL: WHAT BOTH SIDES AGREE ON. The module name, every limit, and the checks on typed words. The model is early-90s
+-- dial-up email: connect to send and receive, hang up, read and write offline. Shared: this file loads on the client
+-- and on a dedicated server alike, so nothing client-only at file scope. Pure Lua, pure ASCII.
 --
 -- The shape (ZeD_ServerMail.lua, ZeD_Mail.lua, ZeD_MailStore.lua):
 --   the server keeps each player's mail until it is handed over, and no longer. Joining is the dial-in: the client says
@@ -11,14 +11,16 @@
 --   Everything read or written on the desk at the main menu is the copy on the player's own computer.
 -- ============================================================================
 
+-- for ZeD.Tk.clean: mail checks typed words with the ticket protocol's scrubber
 require "ZeD/ZeD_TicketProto"
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Ml = ZeD.Ml or {}
 local Ml = ZeD.Ml
 
-Ml.MOD = "ZeDP"
-Ml.PROTO = 1
+Ml.MOD = "ZeDP"             -- the module on every mail command
+Ml.PROTO = 1                -- the mail protocol's version; the server states it in the hello (ml) and the dial-in's answer
 
 -- every limit in one place, so they can become server settings later
 Ml.L = {
@@ -31,15 +33,16 @@ Ml.L = {
     SEND_MS = 2000,             -- between two letters from one player
     HOUR_MAX = 60,              -- letters from one player in any hour
     HOUR_MS = 3600000,
-    DIAL_MS = 5000,
+    DIAL_MS = 5000,             -- between two dial-ins from one player
     BATCH = 10,                 -- letters in one handover
     CIDS = 40,                  -- each sender's last letter numbers, so a letter sent again after a lost answer is not delivered twice
     CID_MAX = 32,
     MUTES_MAX = 200,            -- names one player mutes; past it the list is refused
-    MUTE_MS = 2000,
+    MUTE_MS = 2000,             -- between two mute lists from one player
 }
 
--- one line: a username, a subject. nil if not words, empty after trimming, or longer than max
+--- one line: a username, a subject; line breaks become spaces. nil if not given a string, empty after trimming, or
+-- longer than max
 function Ml.line(s, max)
     local c = ZeD.Tk.clean(s)
     if not c then return nil end
@@ -48,14 +51,14 @@ function Ml.line(s, max)
     return c
 end
 
--- a letter's words: several lines, trimmed, not empty, at most TEXT_MAX
+--- a letter's words: several lines, trimmed, not empty, at most TEXT_MAX; nil otherwise
 function Ml.text(s)
     local c = ZeD.Tk.clean(s)
     if not c or c == "" or #c > Ml.L.TEXT_MAX then return nil end
     return c
 end
 
--- a subject may be left empty
+--- a subject may be left empty: nil and "" pass as "". Otherwise one line, at most SUBJ_MAX, or nil
 function Ml.subject(s)
     if s == nil or s == "" then return "" end
     local c = ZeD.Tk.clean(s)
@@ -65,7 +68,8 @@ function Ml.subject(s)
     return c
 end
 
--- a client's number for one letter: letters, digits, "-" and "_", at most CID_MAX
+--- a client's number for one letter, so one resent after a lost answer is caught: letters, digits, "-" and "_", at
+-- most CID_MAX
 function Ml.cid(s)
     if type(s) ~= "string" or s == "" or #s > Ml.L.CID_MAX then return nil end
     if string.find(s, "[^%w%-_]") then return nil end

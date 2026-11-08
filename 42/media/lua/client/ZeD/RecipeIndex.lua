@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/RecipeIndex.lua
 -- ============================================================================
--- THE RECIPES THE GAME SHOWS (punch list 109, Nov 7 2026: "what can I make with this" and "what each skill
--- level unlocks"). Read live from the game, and only what the game itself would list for the character:
+-- THE RECIPES THE GAME SHOWS: client; the data behind "what can I make with this" and "what each skill
+-- level unlocks". Read live from the game, and only what the game itself would list for the character:
 --   * a recipe that must be learned, not learned, with the world's "See Not Known Recipes" (SeeNotLearntRecipe)
 --     off, is not shown (the game's own rule: Item.getUsedInRecipes(character) on 42.21);
 --   * a recipe whose OnAddToMenu check fails is not shown, as the game's crafting window drops it (its list
@@ -9,7 +9,7 @@
 -- The item card reads the game's own list for the item (its script item's getUsedInRecipes(character)). The
 -- skill card reads an index of the levels the recipes need (and, with ZeD setup's "Recipes skills teach" on,
 -- the levels the game teaches them at by itself: Vanilla Access on, Vanilla and Vanilla Plus off as the game,
--- Custom the player's pick; the director, Nov 7 2026), built once and again when the game's recipe count
+-- Custom the player's pick), built once and again when the game's recipe count
 -- changes (a check at most every few seconds) or a game starts. The Craft and Journal tabs ask RI.visible too.
 --
 -- Known or Unknown is what the Craft tab's card says: learned (when it must be learned) and every skill at its

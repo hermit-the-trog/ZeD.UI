@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StationPopout.lua
 -- ============================================================================
--- AN APPLIANCE IN ITS OWN WINDOW (director, Oct 25 2026: the appliance faces
--- should "have option to pop out on their own centered panel")
+-- AN APPLIANCE IN ITS OWN WINDOW (client; organism — a ZeD_Window subclass)
 --
 -- The Craft tab's oven or microwave view (StationAppliance.render, without its
 -- station select) in a ZeD window centred on the screen, at the largest whole zoom
@@ -9,11 +8,12 @@
 -- tab shows "In its own window" and Bring it back meanwhile. The window closes
 -- with its close box, B or Escape, and by itself when the station is no longer
 -- the one in use (walking away releases it, as in the tab).
--- Mouse: as in the tab (a knob's left half turns it down, the right half up; the
--- wheel turns it). Controller: up / down walk the controls in reading order, left /
--- right turn a knob (or walk), A presses, B closes. With ZeD setup's Devices row on Simple the
--- window holds the plain card (StationAppliance.lua) at ZeD's own size; its controls are the face's, so the
--- mouse, the wheel and the controller work on it unchanged.
+-- Mouse: as in the tab (a knob's left half turns it down, the right half up;
+-- the wheel turns it). Controller: up / down walk the controls in reading
+-- order, left / right turn a knob (or walk), A presses, B closes.
+-- With ZeD setup's Devices row on Simple the window holds the plain card
+-- (StationAppliance.lua) at ZeD's own size; its controls are the face's, so
+-- the mouse, the wheel and the controller work on it unchanged.
 -- ============================================================================
 require "ZeD/StationAppliance"
 ZeD.StationPopout = ZeD.StationPopout or {}
@@ -23,6 +23,8 @@ SP.windows = SP.windows or {}
 
 local MAX_W_SHARE, MAX_H_SHARE = 0.45, 0.8  -- of the screen: the plate's zoom stops where it would pass these (a third or so of a 4K screen at 3x)
 
+-- SA.render expects a scrollbar on its state; this window never scrolls, so it
+-- gets a stand-in that does nothing.
 local function stubScroll()
     return { visible = false, scrollPos = 0, setScrollPos = function() end, setBarSize = function() end, draw = function() end }
 end
@@ -68,6 +70,7 @@ function ZeD_StationPopout:zoomFor(des)
     if not des then return k0 end
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
     local k = k0
+    -- (the plate gets 0.6 of the height share: the window's body also holds the lines under it)
     while des.w * (k + 1) <= sw * MAX_W_SHARE and des.h * (k + 1) <= sh * MAX_H_SHARE * 0.6 do k = k + 1 end
     return k
 end
@@ -115,12 +118,16 @@ function ZeD_StationPopout:prerender()
         self:setX(math.floor((getCore():getScreenWidth() - w) / 2))
         self:setY(math.floor((getCore():getScreenHeight() - h) / 2))
     end
+    -- ZeD_Window.prerender puts its own minimum size back every frame; this
+    -- window sizes itself to the plate, so the minimums are zeroed either side
     self.minimumWidth, self.minimumHeight = 0, 0
     ZeD_Window.prerender(self)
     self.minimumWidth, self.minimumHeight = 0, 0
+    -- a draw that fails logs once and closes the window, instead of failing every frame
     local ok, total = pcall(SA.render, self, { _playerObj = p }, margin, tbH, w - 2 * margin, bodyH, self.state, cur,
         { noHeader = true, k = k, fid = self:focusId(), markOpts = self._markOpts })
     if not ok then ZeD.logOnce("station pop-out", total); self:close(); return end
+    -- the view returns the height its content needs; the next frame sizes the window to it
     if total and total ~= self._bodyH then self._bodyH = total end
 end
 
@@ -147,6 +154,7 @@ function ZeD_StationPopout:update()
     ZeD_Window.update(self)
     if not self:getIsVisible() then return end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
+    -- (SP.qaJoy: the controller look without a controller, for testing)
     self.joyfocus = (jd and jd.focus == self) and jd or (SP.qaJoy and self or nil)
 end
 
@@ -227,6 +235,8 @@ function ZeD_StationPopout:onJoypadDirRight() self:turnOrMove(1) end
 -- ---------------------------------------------------------------------------
 -- ENTRY
 -- ---------------------------------------------------------------------------
+--- Pop the bound appliance out (StationAppliance's pop-out key). One window
+--- per player, reused; the controller's focus moves onto it.
 function SP.open(player, st)
     if not (player and st) then return nil end
     local pn = player:getPlayerNum()
@@ -249,6 +259,7 @@ function SP.open(player, st)
     return win
 end
 
+--- Bring it back (the tab's key): close the player's pop-out if it is on screen.
 function SP.close(player)
     local pn = player and player:getPlayerNum() or 0
     local win = SP.windows[pn]
@@ -257,7 +268,7 @@ end
 
 function SP.get(pn) return SP.windows[pn or 0] end
 
--- Escape from anywhere (the prompts' key hook asks): the pop-out on screen closes
+--- Escape from anywhere (the prompts' key hook asks): the pop-out on screen closes.
 function SP.takeEscape()
     for _, win in pairs(SP.windows) do
         if win and win:isReallyVisible() then win:close(); return true end

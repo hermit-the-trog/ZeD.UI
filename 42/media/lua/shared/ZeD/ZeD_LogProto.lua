@@ -1,17 +1,20 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_LogProto.lua
 -- ============================================================================
--- THE LOG'S PROTOCOL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 4; MP_SERVER_PART_DESIGN.md, A5 and A6). What both sides agree on: the
--- module, the kinds, the windows of time, every limit, what a filter keeps, and how a line another mod wrote is read. Pure
--- Lua, ASCII, nothing client-only at load: this file also runs on a dedicated server.
+-- THE LOG'S PROTOCOL: what both sides agree on. The module name, the kinds, the windows of time, every limit, what a
+-- filter keeps, and how a line another mod wrote is read. The second half turns a line's codes into words, one reading for
+-- three readers: the card in the viewer's language, and the server's Find and notes in plain English (Lg.EN).
+-- Shared: this file loads on the client and on a dedicated server alike, so nothing client-only at file scope. Pure Lua,
+-- pure ASCII.
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Lg = ZeD.Lg or {}
 local Lg = ZeD.Lg
 
-Lg.MOD = "ZeDL"
+Lg.MOD = "ZeDL"             -- the module on every log command
 
--- THE DIRECTOR'S QUESTIONS, answered the careful way, each kept to one switch (MP_SERVER_PART_DESIGN.md, the last section)
+-- DESIGN CHOICES that could go either way, answered the careful way, each kept to one switch
 -- VIEW_CAP: who reads the log? The game gives its own PvP log to PVPLogTool and its user log to ReadUserLog; ZeD's log holds
 -- both sorts of thing and answers griefing tickets, so it goes to whoever answers tickets. Lines from the game's PvP log also
 -- need PVPLogTool, the game's own test for them.
@@ -22,29 +25,33 @@ Lg.VIEW_CAP = "AnswerTickets"
 -- on record is logged too, in a ring of its own (VEH_MAX), so scavenging can't push out ZeD's other lines.
 Lg.OWN_CAR_LINES = false
 
--- the chips, in the drawing's order; "other" has no chip and shows under All (a line another mod wrote). The drawing is from before
--- community: its chip stands with the kinds always there, ahead of Container, the one that comes and goes
+-- the filter chips, in the card's order; "other" has no chip and shows under All (a line another mod wrote). Community
+-- stands with the kinds always there, ahead of Container, the one chip that comes and goes with the server's Container
+-- log setting. KINDS keeps the order, KIND answers "is this one?"
 Lg.KINDS = { "admin", "safehouse", "faction", "vehicle", "pvp", "ticket", "community", "container" }
 Lg.KIND = {}
 for _, k in ipairs(Lg.KINDS) do Lg.KIND[k] = true end
 Lg.OTHER = "other"
 -- the log's own word for the claims pass: its lines go under Safehouse
 Lg.KIND_OF = { claims = "safehouse" }
+--- the chip a stored kind shows under: the claims pass's lines under safehouse, every other kind as itself
 function Lg.kindOf(k) return Lg.KIND_OF[k] or k end
 
+-- the windows of time a read may name: the last hour, today (the UTC date), the last three days. WHENS keeps the
+-- card's order
 Lg.WHEN = { hour = true, today = true, d3 = true }
 Lg.WHENS = { "hour", "today", "d3" }
 Lg.DEFAULT_WHEN = "today"
 
-Lg.AROUND_BEFORE = 10800            -- three hours before a ticket was filed, seconds
-Lg.AROUND_AFTER = 1800              -- half an hour after
+Lg.AROUND_BEFORE = 10800            -- a ticket's Around view: from three hours before it was filed, seconds
+Lg.AROUND_AFTER = 1800              -- to half an hour after
 
 Lg.L = {
     ROWS = 25,                      -- lines in one page
     NAMES_MAX = 100,                -- names on the Who list
-    FIND_MAX = 64,
+    FIND_MAX = 64,                  -- characters in one Find
     QUERY_MS = 400,                 -- between one account's reads
-    NOTE_MS = 1000,
+    NOTE_MS = 1000,                 -- between two log lines made into ticket notes
     PVP_MAX = 400,                  -- the game's PvP lines kept, oldest out: a fight must not push ZeD's own lines out
     TAP_MAX = 300,                  -- lines from other mods kept, oldest out: any client can write these
     TAP_TEXT = 200,                 -- one such line, cut to this
@@ -59,30 +66,31 @@ Lg.L = {
     SETTLE_S = 86400,               -- how long a new driver holds a car before it counts as theirs
     DRIVERS_MAX = 3000,             -- cars remembered, oldest out
     POLL_S = 10,                    -- how often the server looks for who is driving, and reads the game's PvP log
-    HOOK_MISS = 3,                  -- actions made with no wrap of ours ever reached: the fallback (A6, E2) goes on
+    HOOK_MISS = 3,                  -- a class's actions made with none reaching our wrap on the class: the fallback goes on,
+                                    -- and each new action of that class carries the wrap itself
     HOOK_WAIT_S = 120,              -- and this long since the first: an action still under way has reached nothing yet
     CODES_MAX = 16,                 -- codes one Find sends
-    CODE_TEXT = 40,
+    CODE_TEXT = 40,                 -- characters in one of those codes
     MISSED_MAX = 3,                 -- names the Around line says the ticket's nearby list missed
 }
 
--- a client's word for a time window, as the first second it keeps. Today is the UTC date, as the card's dates are (E5)
+--- a client's word for a time window, as the first second it keeps. Today is the UTC date, as the card's dates are
 function Lg.since(when, now)
     if when == "hour" then return now - 3600 end
     if when == "d3" then return now - 259200 end
     return math.floor(now / 86400) * 86400
 end
 
--- the words a Find looks through, lower case. say: the line in words (Lg.lineWords), so Find reaches what the card shows as
--- well as the codes
+--- the words a Find looks through, lower case. say: the line in words (Lg.lineWords), so Find reaches what the card shows as
+--- well as the codes
 function Lg.hay(l, say)
     local p = { l.who or "", l.what or "", l.target or "", l.text or "", l.car or "", l.part or "", l.lg or "", l.by or "", l.via or "", say or "" }
     if l.x then p[#p + 1] = tostring(l.x) .. " x " .. tostring(l.y) end
     return string.lower(table.concat(p, " "))
 end
 
--- does this line pass the filter? q: kind (a chip), who, since, untilT, near { x, y, r }, find (lower case); hay, a function that
--- gives a line's words; codes, what the viewer's own words for find came to (Lg.findCodes)
+--- does this line pass the filter? q: kind (a chip), who, since, untilT, near { x, y, r }, find (lower case); hay, a function that
+--- gives a line's words; codes, what the viewer's own words for find came to (Lg.findCodes)
 function Lg.keep(l, q)
     if q.kind and Lg.kindOf(l.kind) ~= q.kind then return false end
     if q.who and l.who ~= q.who and l.target ~= q.who and l.by ~= q.who and l.via ~= q.who then return false end
@@ -100,7 +108,7 @@ function Lg.keep(l, q)
     return true
 end
 
--- newest first; s settles a tie in the same second
+--- the sort for a page: newest first; s, the order lines were written in, settles a tie in the same second
 function Lg.newest(a, b)
     if a.t ~= b.t then return a.t > b.t end
     return (a.s or 0) > (b.s or 0)
@@ -110,19 +118,19 @@ end
 -- the Steam ID; PerkLog the same for logins and levels. Both reach the game's files, and the Log leaves them out
 Lg.GAME_LOGGERS = { ClientActionLog = true, PerkLog = true }
 
--- a client's whole number, kept only inside the map
+-- a number from a client's text, kept only inside lo .. hi (the map's edges, or the floors); nil otherwise
 local function inMap(n, lo, hi)
     n = tonumber(n)
     if not n or n < lo or n > hi then return nil end
     return n
 end
 
--- a line another mod wrote, as the game's ClientActionLog writes them: [steamid][type][username][x,y,z][extra]. Nothing here
--- is proof, so nothing here decides anything but where the line shows. Any client can send this text and it runs on the
--- server's main loop, so it is cut first and read with plain finds in one pass, never a pattern over the whole line.
--- Returns type, user, x, y, z, rest; any may be nil. rest is what the card may print: the fields after the place, or with no
--- place the line without a leading all-digit field. A place lives in x, y and z alone and a Steam ID is left out, so the
--- rule on a higher role's place holds for these lines and no ID reaches a reader
+--- a line another mod wrote, as the game's ClientActionLog writes them: [steamid][type][username][x,y,z][extra]. Nothing here
+--- is proof, so nothing here decides anything but where the line shows. Any client can send this text and it runs on the
+--- server's main loop, so it is cut first and read with plain finds in one pass, never a pattern over the whole line.
+--- Returns type, user, x, y, z, rest; any may be nil. rest is what the card may print: the fields after the place, or with no
+--- place the line without a leading all-digit field. A place lives in x, y and z alone and a Steam ID is left out, so the
+--- rule on a higher role's place holds for these lines and no ID reaches a reader
 function Lg.tapParse(text)
     text = string.sub(text, 1, 2 * Lg.L.TAP_TEXT)
     local f, ends, n, at = {}, {}, 0, 1
@@ -149,8 +157,9 @@ function Lg.tapParse(text)
     return nil, nil, nil, nil, nil, text
 end
 
--- which chip a logger's line shows under
+-- a logger named for a chip shows under it
 local TAP_KIND = { vehicle = "vehicle", safehouse = "safehouse", pvp = "pvp", admin = "admin" }
+--- which chip a logger's line shows under: its logger's own chip, else vehicle when the type word says Vehicle, else other
 function Lg.tapKind(logger, kindWord)
     local k = TAP_KIND[string.lower(logger or "")]
     if k then return k end
@@ -158,7 +167,7 @@ function Lg.tapKind(logger, kindWord)
     return Lg.OTHER
 end
 
--- a logger's name with its case and punctuation ignored, for the test that it isn't ZeD's own
+--- a logger's name with its case and punctuation ignored, for the test that it isn't ZeD's own
 function Lg.plainName(s)
     return (string.gsub(string.lower(s), "[^%a]", ""))
 end
@@ -194,7 +203,8 @@ Lg.CLAIM = { claim = "UI_ZeD_Log_V_Claim", release = "UI_ZeD_Log_V_Release", ["c
     ["claim gone: burnt"] = "UI_ZeD_Log_V_ClaimBurnt", ["claim gone: that car is gone"] = "UI_ZeD_Log_V_ClaimGone",
     ["refused: parts"] = "UI_ZeD_Log_V_NoParts", ["refused: drive"] = "UI_ZeD_Log_V_NoDrive", ["refused: tow"] = "UI_ZeD_Log_V_NoTow" }
 Lg.HOUSE_NO = { ["refused: dismantle"] = "UI_ZeD_Log_S_NoDismantle", ["refused: destroy"] = "UI_ZeD_Log_S_NoDestroy" }
--- lines that carry the car's place with whoever they name anywhere, or off the server. They say nothing of who stood there
+-- lines that carry the car's place while whoever they name may be anywhere, or off the server. They say nothing of who
+-- stood there, so a ticket's nearby list leaves them out
 Lg.NOT_THERE = { release = true, ["claim lapsed"] = true, ["claim gone: burnt"] = true, ["claim gone: that car is gone"] = true }
 -- what ZeD_ServerExtras.lua puts after a container line in the file. The words here say it in the viewer's language
 Lg.TOLD = " (reported by their game)"
@@ -287,7 +297,7 @@ end
 function WHAT.safehouse(r, c) return claimWords(r, c, false) end
 function WHAT.faction(r, c) return claimWords(r, c, true) end
 
--- a take a player's own game reported: the only kind of line that isn't the server's own word, and the words say so
+-- a take a player's own game reported: the only kind of ZeD line that isn't the server's own word, and the words say so
 function WHAT.container(r, c)
     if r.what ~= "took" then return nil end
     local s = tostring(r.text)
@@ -321,6 +331,7 @@ function WHAT.community(r, c)
     return c.w(Lg.COMMUNITY[what], id, quoted(oneLine(words)))
 end
 
+-- the admin lines' words, by code. Lg.ADMIN also tells ZeD_Log.lua which admin lines can name a player
 local LEN_WORD = { permanent = "UI_ZeD_Adm_LenPerm", h1 = "UI_ZeD_Adm_Len1h", d1 = "UI_ZeD_Adm_Len1d", d3 = "UI_ZeD_Adm_Len3d", w1 = "UI_ZeD_Adm_Len1w" }
 local ROLE_ACT = { add = "UI_ZeD_Log_A_RoleAdd", save = "UI_ZeD_Log_A_RoleSave", delete = "UI_ZeD_Log_A_RoleDelete",
     default = "UI_ZeD_Log_A_RoleDefault", up = "UI_ZeD_Log_A_RoleUp", down = "UI_ZeD_Log_A_RoleDown" }
@@ -346,7 +357,7 @@ ADMIN["ban"] = function(r, c)
 end
 ADMIN["unban"] = function(r, c) return c.w("UI_ZeD_Log_A_Unban", banTarget(r, c)) end
 ADMIN["ban lifted"] = function(r, c) return c.w("UI_ZeD_Log_A_Lifted", banTarget(r, c)) end
--- via: the staff client whose look at the game's user list showed it (the server's lines from before this build have none)
+-- via: the staff client whose look at the game's user list showed it (lines an older ZeD wrote have none)
 ADMIN["ban lifted in the game"] = function(r, c)
     if r.via then return c.w("UI_ZeD_Log_A_LiftedGameBy", banTarget(r, c), tostring(r.via)) end
     return c.w("UI_ZeD_Log_A_LiftedGame", banTarget(r, c))
@@ -400,7 +411,8 @@ local function rawWords(r)
     return s
 end
 
--- what the line says happened, after the name of who did it
+--- what the line says happened, after the name of who did it. A reading that throws or finds no words falls back to the
+--- code as the server wrote it, so one odd line never breaks a page
 function Lg.lineWords(r, c)
     local fn = WHAT[r.k or Lg.kindOf(r.kind)]
     if r.src ~= "tap" and fn then
@@ -410,14 +422,14 @@ function Lg.lineWords(r, c)
     return rawWords(r)
 end
 
--- who did it. The server's own lines carry a name no account can hold (Tk.SYS); a tapped line's name is only what it claims
+--- who did it. The server's own lines carry a name no account can hold (Tk.SYS); a tapped line's name is only what it claims
 function Lg.whoWords(r, c)
     if r.who == ZeD.Tk.SYS and r.src ~= "tap" then return c.w("UI_ZeD_Log_TheServer") end
     return tostring(r.who or "")
 end
 
 -- the English the server writes for itself: the game's language files can't be counted on for a mod's keys on a dedicated
--- server. These are the EN file's words (log_sim.lua holds them to it)
+-- server. These are the EN file's words; the log QA sim (ZeDUI/tools/qa/log_sim.lua) fails if the two drift apart
 Lg.EN = {
     UI_ZeD_Log_TheServer = "Server:", UI_ZeD_Log_AnAddress = "a hidden address", UI_ZeD_Log_ACar = "car", UI_ZeD_Log_APart = "a part",
     UI_ZeD_Log_CarOf = "%1's %2", UI_ZeD_Log_CarNone = "a %1",
@@ -464,6 +476,7 @@ Lg.EN = {
     UI_ZeD_Adm_LenPerm = "Permanent", UI_ZeD_Adm_Len1h = "1 hour", UI_ZeD_Adm_Len1d = "1 day", UI_ZeD_Adm_Len3d = "3 days", UI_ZeD_Adm_Len1w = "1 week",
 }
 
+--- a key in the server's English, its %1, %2 ... filled from the arguments; a key with no words here comes back as itself
 function Lg.enWords(key, ...)
     local args = { ... }
     return (string.gsub(Lg.EN[key] or key, "%%(%d)", function(n) return tostring(args[tonumber(n)]) end))
@@ -486,6 +499,8 @@ for code, key in pairs(Lg.REPORT) do CODE_KEY[code] = key end
 for code, key in pairs(Lg.COMMUNITY) do CODE_KEY[code] = key end
 CODE_KEY.took = "UI_ZeD_Log_Took"
 
+--- the codes whose words in the viewer's language (w, the client's text lookup) hold the Find text: at most CODES_MAX,
+--- nil when none
 function Lg.findCodes(find, w)
     local low = string.lower(find)
     local out, n = {}, 0
@@ -501,7 +516,8 @@ function Lg.findCodes(find, w)
     return (n > 0) and out or nil
 end
 
--- "11-05 20:26 UTC": a note's time, in words the server can write itself (E5)
+--- "11-05 20:26 UTC": a note's time, in words the server can write itself. The game's os.date reads real time in UTC, as
+--- far as its bytecode says, so the stamp says UTC, as the card's dates do
 function Lg.stamp(t)
     local ok, d = pcall(os.date, "*t", t)
     if not ok or type(d) ~= "table" then return tostring(t) end

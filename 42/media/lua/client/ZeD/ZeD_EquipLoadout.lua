@@ -1,12 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_EquipLoadout.lua
 -- ============================================================================
--- THE EQUIP TAB'S LOADOUTS: THE BAR, THE GHOSTS, THE TO-DO (handoff
--- equip_doll_v4_loadouts, parts B4 and B6; mockup frames r2_03, r2_04, r2_05,
--- r2_07; the director: "Loadout lists should live in the journal tab. They can
--- be applied/stocked in the equipment tab")
+-- THE EQUIP TAB'S LOADOUTS: THE BAR, THE GHOSTS, THE TO-DO
+-- Client. A renderer the Character window's Equip tab calls, no class of its
+-- own. Loadout lists live in the Journal tab; here is where one is applied
+-- and stocked.
 --
 --   * The bar in a Loadouts fold under the doll and the lists, shut until opened
---     (Oct 30 2026; it was pinned under Equipped; both views, rows of 38 units on surface 2): the
+--     (both views, rows of 38 units on surface 2): the
 --     outfit (a check when every piece is worn), the loadout, the days (1 to 30),
 --     "ready 4 of 9" (it opens the to-do), Restock with its total time (Unpack
 --     when you are home from a trip), Save (what I wear as an outfit, what I
@@ -25,10 +25,10 @@
 --     and over the limit says by how much, the heaviest supply and the most days
 --     that fit, with Make it N days. Home from a trip: Loot, Leftovers, Stays on
 --     you. Taking the last of something asks first, in the band at the foot.
--- The columns of the wider mockup stack at 480. One scroll for the to-do.
+-- The wide layout's columns stack at 480. One scroll for the to-do.
 -- Hit zones stamped each frame into win._elZones (drawer coords); the Character
 -- window routes clicks, the wheel and the controller (ids "el:...") here.
--- With Loadouts and outfits off (Settings.lua; director, Oct 30 2026) the fold
+-- With Loadouts and outfits off (Settings.lua) the fold
 -- measures 0, nothing is drawn or stamped, no ghost shows on the doll, the to-do
 -- does not open and a press finds nothing (L.on() at each way in).
 -- ============================================================================
@@ -506,9 +506,9 @@ function EL.drawBar(panel, win, x, y, w)
 end
 
 -- ---------------------------------------------------------------------------
--- THE FOLD: the bar under the doll and the lists, shut until opened (Oct 30 2026,
--- the director: "It's a highly requested feature but also not used a lot. This will
--- be used at a base then out in the world the other stuff is most useful"). Shut, the
+-- THE FOLD: the bar under the doll and the lists, shut until opened. Loadouts
+-- are a base activity, rarely wanted out in the world, so the fold stays out
+-- of the way of the rest of the tab. Shut, the
 -- heading names the loadout picked and how ready it is; open, the bar sits under it.
 -- Shut is the default; the choice is kept per player for the session.
 -- ---------------------------------------------------------------------------
@@ -524,7 +524,7 @@ end
 -- the heading's words on its right while shut: the loadout and how ready it is, else the outfit.
 -- The ready count is the plan's when it is fresh (the doll's ghosts keep it so); else it is counted
 -- from what is on you alone (kept a second), the plan's own rule (a line is ready when it is on you in
--- its place), so the shut fold never walks the building (perf review, Nov 7 2026).
+-- its place), so the shut fold never walks the building.
 local function readyCount(win, p, o, lo, days)
     local s = st(win)
     local now = getTimestampMs()

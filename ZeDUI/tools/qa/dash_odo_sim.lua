@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/dash_odo_sim.lua  (Nov 7 2026, Build): the dashes' odometers and trip odometers with no game running
--- (punch list 92; ZeDUI/HANDOFF_design_dash_roadworthy_20261106.md). The real ZeD_PixelParts.lua, ZeD_Plate.lua,
+-- (punch list 92; docs/handoffs/HANDOFF_design_dash_roadworthy_20261106.md). The real ZeD_PixelParts.lua, ZeD_Plate.lua,
 -- DashPx.lua and ZeD_Dashboard.lua run on Lua 5.1 stubs of the game, a car and a panel that writes down every draw.
 --   WHEELS  the drums' figures: zero padded, rolled over past the last wheel, the tenths; the tenths wheel holds for 80%
 --           of each tenth and then turns over, clipped to its window; the LCD kind right-aligned, capitals for lower case

@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_HintStrip.lua
 -- ============================================================================
--- THE HINT STRIP (the director, Nov 4 2026: one quiet strip for keyboard and controller alike, "E Open door |
--- Right-click More"; ZeD setup: Always (the default), First hours, Off; ZeDUI/SURVIVAL_GUIDE_DRAFT.md). It shows
--- what you can do with what is in front of you, in the game's own words and by the game's own rules
+-- THE HINT STRIP: one quiet strip for keyboard and controller alike, "E Open door | Right-click More". Client-side
+-- HUD panel, plus a wrap on the game's ISButtonPrompt; ZeD setup picks Always (the default), First hours or Off. It
+-- shows what you can do with what is in front of you, in the game's own words and by the game's own rules
 -- (ISButtonPrompt: the controller prompt's getBest* functions), so it says only what the game would do.
 --
 --   On a controller   the game works out its prompts every tick (getButtonPrompts(pn)); the strip reads them and
@@ -82,10 +82,8 @@ end
 -- ---------------------------------------------------------------------------
 -- the prompts
 -- ---------------------------------------------------------------------------
--- what the game's Interact key does on a keyboard (the controller's A does more: lights, stoves, devices; those are
--- in the right-click menu on a keyboard)
--- (doors and windows: the game sets their prompt with no function, the Java does the press; known by their words,
--- QA Nov 4 2026)
+-- (doors and windows: the game sets their prompt with no function — the Java does the press — so those
+-- are known by their words)
 local DOOR_WORDS = nil
 local function doorWords(text)
     if not DOOR_WORDS then
@@ -96,6 +94,8 @@ local function doorWords(text)
     end
     return text ~= nil and DOOR_WORDS[tostring(text)] == true
 end
+-- what the game's Interact key does on a keyboard (the controller's A does more: lights, stoves, devices; those are
+-- in the right-click menu on a keyboard)
 local function keyDoes(fn, text)
     local P = ISButtonPrompt
     if fn == nil then return doorWords(text) end
@@ -221,7 +221,7 @@ function ZeD_HintStripHUD:render()
 end
 
 -- ---------------------------------------------------------------------------
--- the game's corner prompt is not drawn while the strip shows a controller's prompts; uses are counted
+-- the game's corner prompt is not drawn while the strip is on for a player on a controller; uses are counted
 -- ---------------------------------------------------------------------------
 function H.replacing(pn) return mode() ~= "off" and not (ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on()) and onPad(pn) end
 
@@ -234,7 +234,7 @@ local function hookPrompt()
         if self.player ~= nil and H.replacing(self.player) then return end
         return _pre(self, ...)
     end
-    -- (a press of A, X or Y in the world: that hint's use; the game's own handler runs as before)
+    -- (a press of A, X, Y or B in the world: that hint's use; the game's own handler runs as before)
     for _, pair in ipairs({ { "onAPress", "aFunc", "aPrompt" }, { "onXPress", "xFunc", "xPrompt" }, { "onYPress", "yFunc", "yPrompt" },
                             { "onBPress", "bFunc", "bPrompt" } }) do
         local orig = P[pair[1]]

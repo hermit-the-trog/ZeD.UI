@@ -2,7 +2,7 @@
 
 Answer to Design's question "which do you want?" (1: fix one scale, 2: a face per zoom step, 3: something else).
 **The director's answer: neither 1 nor 2.** Each plate fills its card at every scale, the way text and buttons do
-("scale scales everything"). This adds to `ZeDUI/PLATE_SIZES_SPEC.md`; everything in it not named here stands.
+("scale scales everything"). This adds to `docs/specs/PLATE_SIZES_SPEC.md`; everything in it not named here stands.
 
 ## What stays
 

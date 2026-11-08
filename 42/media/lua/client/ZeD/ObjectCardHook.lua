@@ -1,6 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardHook.lua
 -- ============================================================================
--- OBJECT CARD: BUTCHER HOOK (HOOK_MAP row 22; mockup zed_animal_cards_v1.html)
+-- OBJECT CARD: BUTCHER HOOK (HOOK_MAP row 22)
+-- Client; one card kind for ZeD.ObjectCards (ObjectCards.lua draws the frame,
+-- this def fills it).
 -- Vanilla's Butcher Hook window becomes a work card in the World window's
 -- card drawer:
 --   * empty hook: Dead animals nearby (within 2 tiles of you or carried) with
@@ -297,7 +299,7 @@ function def.icon(t)
     if a and ZeD.AnimalsData then return getTexture(ZeD.AnimalsData.resolvePortrait(a)) end
     return OC.spriteIcon(t.obj)
 end
--- the state tag: its words, and the colour of its square mark (none for a plain tag)
+--- The state tag: its words, and the colour of its square mark (none for a plain tag).
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
@@ -308,7 +310,7 @@ function def.pill(t)
     return ZeD.tr("UI_ZeD_Hook_PillOnHook"), T.positive
 end
 
--- the card goes: the hook stops reporting to it, the figure goes with it
+--- The card goes: the hook stops reporting to it, the figure goes with it.
 function def.onClose(t, card)
     if t.obj then pcall(function() t.obj:setLuaHook(nil) end) end
     if card and card._hookAvatar then

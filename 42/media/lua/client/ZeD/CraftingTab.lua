@@ -1,15 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/CraftingTab.lua
 -- ============================================================================
--- CRAFTING TAB — Thin wrapper over CraftingCore.
--- Owns: catalog building (eager, game start), gatherData (skill+learn checks),
--- gatherDetail (batch qty via HandcraftLogic), startCraft (HandcraftLogic exec).
+-- CRAFTING TAB — client; the World window's Craft tab, a thin wrapper over
+-- CraftingCore. Owns: catalog building (eager, game start), gatherData
+-- (skill + learn checks), gatherDetail (the start check and the batch's most,
+-- via HandcraftLogic), startCraft (one ISHandcraftAction per craft).
 -- All rendering, filtering, pin management, state machine → CraftingCore.
+-- Before touching startCraft: it builds each ISHandcraftAction field by
+-- field, because the action's own new() crashes on the inputs ZeD leaves
+-- empty (CRAFT EXECUTION, below).
 --
--- Stations (HOOK_MAP rows 1, 14): the tab works by hand or at a station. In
--- Hand mode, recipes that need a station keep their place with the station
--- as a tag and are not craftable; bound to a bench, the list is the bench's
--- recipes and CRAFT works at it (vanilla's lock and walk-to); bound to a
--- drying rack or an oven the tab shows that machine's own view instead.
+-- Stations: the tab works by hand or at a station. In Hand mode, recipes
+-- that need a station keep their place with the station as a tag and are
+-- not craftable; bound to a bench, the list is the bench's recipes and CRAFT
+-- works at it (vanilla's lock and walk-to); bound to a drying rack or an oven
+-- the tab shows that machine's own view instead (StationMachine,
+-- StationAppliance, StationGeneral).
 -- ============================================================================
 
 require "ZeD/CraftingCore"
@@ -21,8 +26,9 @@ ZeD.CraftingTab = {}
 local CC = ZeD.CraftingCore
 
 -- ============================================================================
--- STATIC RECIPE CATALOG — built ONCE at game load via OnGameStart event.
--- Pre-bakes all expensive Java bridge calls so per-frame work is pure Lua.
+-- STATIC RECIPE CATALOG — built ONCE at game load via OnGameStart event (or
+-- by the first gatherData, should that come first). Pre-bakes all expensive
+-- Java bridge calls so per-frame work is pure Lua.
 -- ============================================================================
 
 local _catalog       = nil   -- grouped by category
@@ -85,8 +91,8 @@ local function buildCatalog()
         pcall(function() iconTex = recipe:getIconTexture() end)
 
         -- Pre-bake description: the recipe's Tooltip (a translation key; vanilla's info box reads it the
-        -- same way). Until Nov 1 2026 this asked for getDescription, which the game's recipes do not have,
-        -- so the header's description slot stayed empty (punch list 49).
+        -- same way). Not getDescription: the game's recipes do not have it, and asking for it leaves the
+        -- header's description slot empty.
         local description = nil
         if recipe.getTooltip then
             pcall(function()
@@ -173,7 +179,7 @@ Events.OnGameStart.Add(onGameStart)
 -- The recipe list and categories for a bench: the catalog entries the bench
 -- makes, in catalog order. Cached per station.
 local _benchSource = {}
-local ROWS_MS = 1000   -- the rows' refresh (was 30 frames: 2.4-4x as often at 144-240 Hz)
+local ROWS_MS = 1000   -- the rows' refresh (once a second on the clock, not per frame)
 local function benchSource(bench)
     local c = _benchSource[bench.key]
     if c then return c.list, c.cats, c.short end
@@ -210,6 +216,8 @@ local function boundBench(playerObj)
     return nil
 end
 
+--- The tab's recipes ({ recipes, categories, flatRecipes }): the catalog, or the bound
+--- bench's part of it, with each recipe's skill and learned checks; rebuilt every 30 frames.
 function ZeD.CraftingTab.gatherData(playerObj, win)
     buildCatalog()
     if not _flatRecipes then return { recipes = {}, categories = _categories, flatRecipes = _flatRecipes } end
@@ -221,7 +229,7 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         win._craftCacheKey = srcKey
     end
 
-    -- Throttled: every ROWS_MS (was 30 frames), at once when the cache was dropped
+    -- Throttled: every ROWS_MS, at once when the cache was dropped
     local prev = win._craftCache
     if not CC.due(win, "_craftRowsAt", ROWS_MS, not prev) then
         return prev
@@ -232,8 +240,8 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
     local boundCase = bench and ZeD.textCase(boundShort) or nil
 
     -- The rows are rewritten in place (CC.refreshRow), one table per recipe kept for the tab, into one
-    -- data table kept while the cache stands (the review's item 3); a dropped cache starts a new one,
-    -- and nothing carries into it, as before.
+    -- data table kept while the cache stands; a dropped cache starts a new one,
+    -- and nothing carries into it.
     local data = prev
     if not data then
         data = { recipes = {} }
@@ -246,7 +254,7 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
     local n, changed = 0, prev == nil
 
     -- only the recipes the game would list for the character (RecipeIndex.visible: See Not Known Recipes off
-    -- hides a must-learn recipe not learned; a failed OnAddToMenu check hides one; punch list 109 review)
+    -- hides a must-learn recipe not learned; a failed OnAddToMenu check hides one)
     local RI = ZeD.RecipeIndex
     for _, entry in ipairs(source) do
       if not RI or RI.visible(playerObj, entry.recipe, "craft") then
@@ -310,12 +318,12 @@ end
 
 -- The check vanilla's HandcraftStart makes before it queues a craft (a HandcraftLogic with the
 -- bench, the containers, then the recipe, canPerformCurrentRecipe). ISHandcraftAction:start asks
--- it again only for hand-picked inputs; ZeD's actions have none, so a craft the check would
--- refuse ran its time, made nothing (performCurrentRecipe failed) and was counted at the press.
--- The list's craftable answer is vanilla's per-recipe cache (CC.logicScan), refreshed every
--- 1.2 s: Craft stood enabled on a stale answer, at Required 1/4 (the outside review of beta 7,
--- item 8). Returns true / false, or nil when the game would not answer (the button then goes
--- by the list's answer, as before); and the batch's most.
+-- it again only for hand-picked inputs; ZeD's actions have none, so without this a craft the
+-- check would refuse runs its time, makes nothing (performCurrentRecipe fails) and is counted at
+-- the press. The list's craftable answer is vanilla's per-recipe cache (CC.logicScan), refreshed
+-- every 1.2 s: on that alone Craft can stand enabled on a stale answer (Required 1/4).
+-- Returns true / false, or nil when the game would not answer (the button then goes by the
+-- list's answer); and the batch's most.
 -- The check also wants the player within 3 tiles of the bench (isCharacterInRangeOfWorkbench,
 -- for a station recipe and an any-surface one), but ZeD keeps a bench bound out to its leash
 -- (Stations.lua: 4.5 tiles, more from a right-click across the room) and Craft walks there
@@ -341,8 +349,8 @@ end
 -- An any-surface recipe in Hand mode: the table or counter it is made on, found as vanilla's
 -- craft window finds it (ISEntityUI.FindCraftSurface, 2 squares). nil when there is none (the
 -- start check then refuses, as vanilla's does), at a bench (the bench is the surface) or for
--- a recipe that needs no surface. Before, ZeD passed no surface, so the start check refused
--- every any-surface recipe in Hand mode.
+-- a recipe that needs no surface. Without a surface the start check refuses every any-surface
+-- recipe in Hand mode.
 local function craftSurface(playerObj, entry, bench)
     if bench or not entry.needSurface then return nil end
     if not (ISEntityUI and ISEntityUI.FindCraftSurface) then return nil end
@@ -374,9 +382,11 @@ local function gatherDetail(rd, playerObj, win)
 end
 
 -- ============================================================================
--- CRAFT EXECUTION — HandcraftLogic + batch
+-- CRAFT EXECUTION — the start check (HandcraftLogic), then the batch
 -- ============================================================================
 
+--- Craft (the band's button, the pad's A): queues state.qty crafts of the selected
+--- recipe, after the start check and a walk to the bench or the table.
 function ZeD.CraftingTab.startCraft(win, state)
     local playerObj = win._playerObj
     if not playerObj then return end
@@ -526,6 +536,8 @@ local function stationView(win)
     return nil, st
 end
 
+--- The tab's frame (the World window's renderer for "craft"): a bound station's own view
+--- (a machine, an appliance, a general station), else the recipe list through CraftingCore.
 function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     local state = getState(win)
     if ZeD.Stations and win._playerObj then ZeD.Stations.validate(win._playerObj) end
@@ -541,8 +553,9 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     local data = ZeD.CraftingTab.gatherData(win._playerObj, win)
 
     -- Can each recipe be made now? Vanilla's crafting logic answers for every
-    -- recipe at once (CC.logicScan); the old quick scan only covers recipes it
-    -- could not answer. A changed answer re-filters the list.
+    -- recipe at once (CC.logicScan); the quick scan (CC.backgroundIngredientScan,
+    -- every 5 s) only covers recipes it could not answer. A changed
+    -- answer re-filters the list.
     local bench = boundBench(win._playerObj)
     local benchKey = bench and tostring(bench.obj) or "hand"
     -- (a new bench or none: asked again at once, not up to 1.2 s later)
@@ -550,7 +563,7 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     if CC.logicScan(data, win, "craft", function()
         return HandcraftLogic.new(win._playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
     end, bench ~= nil) then state.filterDirty = true end   -- (at a bench: the full set every scan)
-    -- (the quick scan: at once, then every 5 s; was 300 frames)
+    -- (the quick scan: at once, then every 5 s)
     if CC.due(win, "_craftScanAt", 5000) then
         CC.backgroundIngredientScan(data, win, "craft")
     end
@@ -571,6 +584,7 @@ end
 -- CLICK HANDLER
 -- ============================================================================
 
+--- A press in the tab: the station view's, else CraftingCore's.
 function ZeD.CraftingTab.onClick(win, x, y)
     local state = getState(win)
     local view, st = stationView(win)
@@ -582,6 +596,7 @@ end
 -- RIGHT-CLICK HANDLER
 -- ============================================================================
 
+--- A right-click: pins or unpins a recipe row (a station view takes it and does nothing).
 function ZeD.CraftingTab.onRightClick(win, x, y)
     local state = getState(win)
     if stationView(win) then return true end
@@ -592,6 +607,7 @@ end
 -- MOUSE WHEEL HANDLER
 -- ============================================================================
 
+--- The wheel: the station view's, else CraftingCore's.
 function ZeD.CraftingTab.onMouseWheel(win, del, x, y)
     local T = ZeD.T
     local state = getState(win)
@@ -600,7 +616,7 @@ function ZeD.CraftingTab.onMouseWheel(win, del, x, y)
     return CC.onMouseWheel(state, del, x, y, 0, T.px(CC.DRAWER_W))
 end
 
--- Gamepad focusables for the World window (recipe view or station view).
+--- Gamepad focusables for the World window (recipe view or station view).
 function ZeD.CraftingTab.buildFocusables(win)
     local state = win and win._craftState
     if not state then return {} end
@@ -609,7 +625,7 @@ function ZeD.CraftingTab.buildFocusables(win)
     return CC.buildFocusables(win, state, "craft", "ZeD_CraftPins", ZeD.CraftingTab.startCraft)
 end
 
--- Focus-refresh key: changes whenever the station view's controls move.
+--- Focus-refresh key: changes whenever the station select or the station view's controls move.
 function ZeD.CraftingTab.focusKey(win)
     local state = win and win._craftState
     if not state then return nil end
@@ -623,6 +639,7 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Puts the tab's renderer in the World window's table (WORLD_TAB_RENDERERS).
 function ZeD.CraftingTab.register(dispatchTable)
     dispatchTable["craft"] = ZeD.CraftingTab.render
 end

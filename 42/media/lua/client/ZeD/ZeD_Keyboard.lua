@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Keyboard.lua
 -- ============================================================================
 -- THE KEYBOARD — vanilla's on-screen keyboard (a controller on a text field)
--- as a ZeD window. Approved with the prompts (Oct 15 2026; mockup
--- ZeDUI/mockups/zed_dialogs_v1.html, scene Keyboard; HOOK_MAP row 28).
+-- as a ZeD window. Client-side organism, made as one set with ZeD's prompts
+-- (ZeD_Prompt.lua).
 --
 -- Vanilla's keys and button map, on ZeD keys: X deletes, Y is a space, LT
 -- (held) is shift, L3 caps, RT accepts, B cancels, LB / RB move the caret,
@@ -15,7 +15,9 @@
 -- of the screen with its own line showing the field's text.
 --
 -- OnScreenKeyboard (vanilla's API: Show, IsVisible, Hide, GetCurrentText and
--- .instance) is pointed at this one by Overrides/Prompts.lua.
+-- .instance) is pointed at this one by Overrides/Prompts.lua; in safe mode the
+-- game's own keyboard shows instead. It holds the controller itself, not
+-- through ZeD's FocusManager.
 -- ============================================================================
 
 require "ISUI/ISTextEntryBox"
@@ -32,7 +34,7 @@ local KB = ZeD.Keyboard
 local U = { KEY_W = 30, KEY_H = 28, GAP = 6, PAD = 10, LINE_H = 30, GAP_TO_PROMPT = 8, BOTTOM = 16, MARGIN = 8, FN_PAD = 8 }
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
@@ -119,11 +121,12 @@ function ZeD_Keyboard:upperOn()
 end
 
 -- ---------------------------------------------------------------------------
--- A question's field that opens on a default (a name to keep or change: a preset, a build, a list, a save): the
--- default is selected, so the first key typed replaces it instead of adding to it (the outside review, Nov 7 2026).
--- The field remembers its default, and the controller's keyboard selects it again when it opens on the field while
--- the default still stands. Every ZeD name question calls this after setting its text.
+-- a name question's default, selected
 -- ---------------------------------------------------------------------------
+--- A question's field that opens on a default (a name to keep or change: a preset, a build, a list, a save): the
+--- default is selected, so the first key typed replaces it instead of adding to it. The field remembers its
+--- default, and the controller's keyboard selects it again when it opens on the field while the default still
+--- stands. Every ZeD name question calls this (as ZeD.selectDefault) after setting its text.
 function KB.selectDefault(e)
     if not e then return end
     local ok, t = pcall(function() return e:getInternalText() end)
@@ -135,6 +138,8 @@ ZeD.selectDefault = KB.selectDefault
 -- ---------------------------------------------------------------------------
 -- vanilla's instance API (OnScreenKeyboard.Show / Hide / GetCurrentText call these)
 -- ---------------------------------------------------------------------------
+--- Opens the keyboard on textEntryBox for playerNum, joypadData's controller holding it. Returns
+--- itself (Overrides/Prompts.lua's OnScreenKeyboard.Show hands it back).
 function ZeD_Keyboard:show(playerNum, textEntryBox, joypadData)
     self.playerNum = playerNum
     self.textEntryBox = textEntryBox
@@ -169,23 +174,28 @@ function ZeD_Keyboard:show(playerNum, textEntryBox, joypadData)
     return self
 end
 
+--- The field's text as it stands.
 function ZeD_Keyboard:getCurrentText()
     local e = self.textEntryBox
     return e and e:getInternalText() or ""
 end
 
+--- Done: the text stays, and the field hears that its text changed.
 function ZeD_Keyboard:accept()
     local e = self.textEntryBox
     if e and e.javaObject then e.javaObject:onTextChange() end
     self:hide()
 end
 
+--- Cancel: the field goes back to the text it opened with.
 function ZeD_Keyboard:cancel()
     local e = self.textEntryBox
     if e and self._orig ~= nil then e:setText(self._orig) end
     self:hide()
 end
 
+--- Puts the keyboard away: the character may move again, the field is focused again, and the
+--- controller goes back to what held it before (or to the field).
 function ZeD_Keyboard:hide()
     local ms = MainScreen and MainScreen.instance
     if ms and ms.inGame and self.setBlockMovement then
@@ -216,7 +226,7 @@ function ZeD_Keyboard:typeChar(ch)
     queueCharEvent(ch)
 end
 
--- a field on several lines where RT should end the typing (a ticket's card): the key's word has to say so too
+--- A field on several lines where RT should end the typing (a ticket's card): the key's word has to say so too.
 function ZeD_Keyboard:setSingleLine()
     self._multi = false
     self._rows = buildRows(false, self._masked)
@@ -381,9 +391,12 @@ function ZeD_Keyboard:prerender()
     local T = ZeD.T
     local e = self.textEntryBox
     if not (e and e:isReallyVisible()) then self:hide(); return end
+    -- (the Character window's accent, as the prompts wear it)
     local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     self._accentKey = cw and cw._accentKey or nil
-    self.minimumWidth, self.minimumHeight = 0, 0   -- see ZeD_Prompt:prerender
+    -- no minimum size: ZeD_Window.prerender sets the big windows' minimum every frame, and the
+    -- engine holds an element to it (as in ZeD_Prompt:prerender)
+    self.minimumWidth, self.minimumHeight = 0, 0
     self:layout()
     self:bringToTop()
     ZeD_Window.prerender(self)
@@ -591,6 +604,7 @@ end
 -- ---------------------------------------------------------------------------
 -- module: one keyboard, made on first use
 -- ---------------------------------------------------------------------------
+--- The one keyboard (made the first time it is asked for).
 function KB.get()
     if not KB.instance then
         local k = ZeD_Keyboard:new()
@@ -601,17 +615,19 @@ function KB.get()
     return KB.instance
 end
 
+--- True while the keyboard is up on a field.
 function KB.isVisible()
     local k = KB.instance
     return k ~= nil and k.textEntryBox ~= nil and k:isReallyVisible()
 end
 
--- is the keyboard up for this prompt's field?
+--- True while the keyboard is up on this prompt's field.
 function KB.isFor(prompt)
     local k = KB.instance
     return k ~= nil and k.textEntryBox ~= nil and prompt ~= nil and k.textEntryBox == prompt.entry
 end
 
+--- Puts the keyboard away, if it is up.
 function KB.hide()
     if KB.isVisible() then KB.instance:hide() end
 end

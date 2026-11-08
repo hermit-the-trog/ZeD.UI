@@ -88,7 +88,7 @@ the house rule that vanilla wording wins when the meaning matches.
 - American spelling, and no middle dots.
 
 ## Answers back
-Write the answers to `ZeDUI/MP_DECISIONS.md`, with any mockups under `ZeDUI/mockups/` (the name and version in
+Write the answers to `docs/specs/MP_DECISIONS.md`, with any mockups under `ZeDUI/mockups/` (the name and version in
 the file name). Then tell Build "read the multiplayer decisions". Build turns them into punch list items and builds
 them in that order: the Server tab and the PvP marker, then chat, then Admin. QA checks each on the local server
 (`ZeDUI/tools/qa/mp_server.ps1 -Start`, `zedqa_run.ps1 -Mp`).

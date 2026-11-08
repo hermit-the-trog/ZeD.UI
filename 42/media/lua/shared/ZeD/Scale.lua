@@ -1,23 +1,31 @@
+-- ZeD-UI/42/media/lua/shared/ZeD/Scale.lua
 -- ============================================================================
--- ZeD.Scale — the root scale of the whole UI (S124, true scaling, phase 1)
+-- ZeD.Scale — the root scale of the whole UI, the layer under the tokens
 -- ============================================================================
--- Director's rule (Oct 13 2026): the UI adapts to the resolution by itself;
--- the engine's font-size option is only an extra multiplier on top.
+-- The rule: the UI adapts to the resolution by itself; the engine's font-size
+-- option is only an extra multiplier on top.
 --
 -- Design base: a 1920x1080 screen is 1.0. Every layout number in ZeD is a
 -- DESIGN UNIT (1 unit = 1 px at 1080p); multiply by ZeD.Scale.root() at draw
 -- time (ZeD.Scale.px does that with rounding). A 4K screen lands at 2.0, 1440p
 -- at 1.33, a 720p window at 0.75 (clamped).
 --
--- Text: the engine draws any font at any zoom (ISUIElement:drawTextZoomed,
--- Q138) and distance-field atlases stay crisp (Q139). ZeD.Text wraps that so
--- organisms never touch UIFont sizes directly: zoom = root scale, width =
--- MeasureStringX * zoom.
+-- Text: the engine draws any font at any zoom (ISUIElement:drawTextZoomed) and
+-- distance-field atlases stay crisp. ZeD.Text wraps that so organisms never
+-- touch UIFont sizes directly: zoom = root scale, width = MeasureStringX * zoom.
+-- The one thing to know before touching it: this file also replaces the global
+-- getTextManager with ZeD.TM (at the bottom), so every measure of a ZeD role
+-- font, vanilla's included, comes back zoomed.
+--
+-- Shared: this file loads on the client and on a dedicated server alike, so
+-- nothing client-only at file scope. A server process loads no fonts, and
+-- X.noFonts (below) keeps the font work off there.
 --
 -- QA: ZeD.Scale.override = 1.0 / 1.333 / 2.0 forces the root scale; call
 -- ZeD.Scale.refresh() afterwards (or wait a second).
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Scale = ZeD.Scale or {}
 local S = ZeD.Scale
@@ -33,16 +41,17 @@ S.userScale = S.userScale or nil
 -- Engine font-size option. getOptionFontSize() is the options combo's own
 -- 1-based index: 1 = 16px, 2 = 19px, 3 = 26px, 4 = 33px, 5 = 38px,
 -- 6 = "Scale with window height" (the game's default). It does not touch ZeD
--- fonts (Q140), so it becomes the user's taste knob. 19px (the rig's setting,
--- where the approved look was tuned), 26px and the adaptive choice are
--- neutral; 16px shrinks the UI a step, 33px and 38px grow it. (Until Oct 20
--- 2026 this table was keyed 0..5, so every fixed size read the step above it
--- and 38px fell back to neutral.)
+-- fonts, so it becomes the player's taste knob. 19px (the setting the look was
+-- tuned at), 26px and the adaptive choice are neutral; 16px shrinks the UI a
+-- step, 33px and 38px grow it. Keyed 1..6 to match the combo: keyed 0..5,
+-- every fixed size would read the step above it and 38px would fall back to
+-- neutral.
 S.USER_MUL = { [1] = 0.85, [2] = 1.0, [3] = 1.0, [4] = 1.15, [5] = 1.3, [6] = 1.0 }
 
 S._root = nil
 S._tick = 0
 
+--- the engine font-size option's multiplier (USER_MUL), 1.0 when it can't be read
 function S.userMul()
     local ok, opt = pcall(function() return getCore():getOptionFontSize() end)
     if ok and opt ~= nil and S.USER_MUL[opt] then return S.USER_MUL[opt] end
@@ -50,16 +59,16 @@ function S.userMul()
 end
 
 -- ---------------------------------------------------------------------------
--- THE UI SCALE CAP (Oct 31 2026, punch list 39). The director: "NO ONE IS EVER
--- GOING TO PLAY AT 2X on 720p. It's way too big to fit more than 5 words." His
--- pick: cap the UI scale to what fits. On a small screen ZeD setup's UI scale
--- slider stops at the largest step whose windows still fit; Auto stays the default.
+-- THE UI SCALE CAP. Nobody plays at 2x on a 720p screen: the windows are too big
+-- to fit more than a few words. So the UI scale is capped to what fits: on a small
+-- screen ZeD setup's UI scale slider stops at the largest step whose windows still
+-- fit; Auto stays the default.
 --  1. A fixed step FITS when, at that step times the text size's multiplier
 --     (Large: 1.15 on every T.px), one window at its narrowest useful width fits in
 --     half the screen's width (both windows are capped there): the tab strip 36 +
---     the inventory's minimum beside a full card 180 (Nov 1 2026, punch list 42 a.:
---     alone it keeps 200, beside a full card it gives way to 180) + the full card 480 +
---     the container strip 36 = 732 units. And the screen's height holds the windows' minimum useful height:
+--     the inventory's minimum beside a full card 180 (alone it keeps 200; beside a
+--     full card it gives way to 180) + the full card 480 + the container strip 36 =
+--     732 units. And the screen's height holds the windows' minimum useful height:
 --     the title bar (26 units, Large 30, root scale only, as Tokens' SP() sizes it)
 --     + a tab strip of 6 tabs (6 x 36) + the help line (22). The engine font-size
 --     multiplier (USER_MUL) does not apply to a fixed step (S.compute hands
@@ -85,6 +94,7 @@ S.FIT_TAB_U   = 36
 S.FIT_HELP_U  = 22
 S.FIT_STEPS   = { 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0 }   -- (Settings.lua's fixed steps)
 
+--- the screen's width and height in px; 1920 x 1080 when the game can't say
 function S.screenSize()
     local w, h = 1920, S.BASE_H
     pcall(function() w = getCore():getScreenWidth(); h = getCore():getScreenHeight() end)
@@ -93,7 +103,7 @@ function S.screenSize()
     return w, h
 end
 
--- What Auto picks for a screen this tall: the height over the base, clamped, times the font-size knob.
+--- What Auto picks for a screen this tall: the height over the base, clamped, times the font-size knob.
 function S.autoScale(h)
     local r = (h or S.BASE_H) / S.BASE_H
     if r < S.MIN then r = S.MIN elseif r > S.MAX then r = S.MAX end
@@ -107,7 +117,7 @@ local function textSizeFit()
     return (sz and sz.scale) or 1, (sz and sz.titleBarH) or 26
 end
 
--- Does fixed step v fit a w x h screen (rule 1)?
+--- Does fixed step v fit a w x h screen (rule 1)? w and h default to this screen
 function S.stepFits(v, w, h)
     if not (w and h) then w, h = S.screenSize() end
     local k, titleU = textSizeFit()
@@ -116,7 +126,7 @@ function S.stepFits(v, w, h)
     return titleU * v + (S.FIT_TABS * S.FIT_TAB_U + S.FIT_HELP_U) * sc <= h
 end
 
--- The largest fixed step offered on this screen (rule 2).
+--- The largest fixed step offered on this screen (rule 2).
 function S.fitCap(w, h)
     if not (w and h) then w, h = S.screenSize() end
     local auto = S.autoScale(h)
@@ -128,22 +138,23 @@ function S.fitCap(w, h)
     return cap or S.MAX
 end
 
--- true when fixed step v is above this screen's cap (dimmed and inert in the menus).
+--- true when fixed step v is above this screen's cap (dimmed and inert in the menus).
 function S.stepTooBig(v)
     return type(v) == "number" and v > S.fitCap() + 1e-6
 end
 
--- The smallest fixed step offered (the director, Nov 2 2026, punch list 58: 0.5x did not look right at scale, so it
--- is not offered in the beta; bring it back after the beta for players who want smaller windows). The step stays in
--- the list, because combos save by position: a saved 0.5 draws at the floor and keeps its saved value.
+-- The smallest fixed step offered: 0.5x does not look right at scale, so it is not offered in the beta. The step
+-- stays in the list, because combos save by position: a saved 0.5 draws at the floor and keeps its saved value.
+-- TODO: offer 0.5 again after the beta, for players who want smaller windows.
 S.STEP_FLOOR = 0.75
+--- true for a step below the floor: kept in the list, not offered
 function S.stepRetired(v)
     return type(v) == "number" and v < S.STEP_FLOOR - 1e-6
 end
 
--- Raw computation: screen height over the base, clamped, times the user knob.
--- A fixed step above the cap draws at the cap (S.userScale itself is left as saved).
--- (S.computeGame is the game's scale; S.compute below adds the main menu's clamp.)
+--- Raw computation: screen height over the base, clamped, times the user knob.
+--- A fixed step above the cap draws at the cap (S.userScale itself is left as saved).
+--- (S.computeGame is the game's scale; S.compute below adds the main menu's clamp.)
 function S.computeGame()
     if S.override then return S.override end
     if S.userScale then
@@ -161,10 +172,9 @@ function S.computeGame()
 end
 
 -- ---------------------------------------------------------------------------
--- THE MAIN MENU'S SCALE (Nov 1 2026, the director's pick on Design's
--- HANDOFF_small_screens_20261029.md, section 2; punch list 48). While the desk is up
--- and no game is loaded the root is at least 1.0, so the menu's type meets Valve's
--- readable size on a Steam Deck, and at most sMax / 4, where sMax is the largest whole
+-- THE MAIN MENU'S SCALE. While the desk is up and no game is loaded the root
+-- is at least 1.0, so the menu's type meets Valve's readable size on a Steam
+-- Deck, and at most sMax / 4, where sMax is the largest whole
 -- multiple of the desk picture whose monitor (240 x 180 px) fits the screen: 4 on a Deck
 -- or at 720p, 6 at 1080p, 12 at 4K. The game's own scale (S.computeGame, with the fit
 -- cap) is untouched: a Deck plays at 0.75 and reads its menu at 1.0. At 1080p and up
@@ -174,11 +184,13 @@ end
 -- ---------------------------------------------------------------------------
 S.menuUp = S.menuUp or nil
 S.MENU_TUBE_W, S.MENU_TUBE_H = 240, 180
+--- the main menu's largest root scale on a w x h screen (this screen by default): sMax / 4
 function S.menuMax(w, h)
     if not (w and h) then w, h = S.screenSize() end
     local sMax = math.max(1, math.floor(math.min(w / S.MENU_TUBE_W, h / S.MENU_TUBE_H)))
     return sMax / 4
 end
+--- the root scale as it stands now: the game's, clamped while the main menu is up
 function S.compute()
     local r = S.computeGame()
     if S.override then return r end
@@ -190,21 +202,21 @@ function S.compute()
     return r
 end
 
--- Cached root scale (recomputed every 30 ticks, on resolution change, and on refresh()).
+--- Cached root scale (recomputed every 30 ticks, on resolution change, and on refresh()).
 function S.root()
     if S._root == nil then S._root = S.compute() end
     return S._root
 end
 
+--- work the root scale out again now, and return it
 function S.refresh() S._root = S.compute(); return S._root end
 
--- Design units -> screen pixels (rounded).
+--- Design units -> screen pixels (rounded).
 function S.px(v) return math.floor(v * S.root() + 0.5) end
 
 -- ---------------------------------------------------------------------------
--- Even at every step (director, Oct 21 2026: keep the in-between scales and make
--- the UI crisp at any of them). Text and layout keep the exact scale; three
--- things snap to whole pixels:
+-- EVEN AT EVERY STEP: the in-between scales stay, and the UI is crisp at any of
+-- them. Text and layout keep the exact scale; three things snap to whole pixels:
 --   * pixel art draws at a whole zoom, the nearest whole number to the scale
 --     (1.75 -> 2, 1.25 -> 1, exactly .5 rounds up), and the layout around a
 --     prop uses the size it is drawn at;
@@ -215,32 +227,33 @@ function S.px(v) return math.floor(v * S.root() + 0.5) end
 --     so neighbours share edges and repeated rows never drift.
 -- At exactly 1x and 2x every helper returns what T.px / S.px did.
 -- ---------------------------------------------------------------------------
--- The whole zoom pixel art draws at for scale s (default: the root scale), never below 1.
+--- The whole zoom pixel art draws at for scale s (default: the root scale), never below 1.
 function S.artZoom(s)
     local k = math.floor((s or S.root()) + 0.5 + 1e-6)
     if k < 1 then k = 1 end
     return k
 end
--- One design unit of line, in whole screen px (>= 1).
+--- One design unit of line, in whole screen px (>= 1).
 function S.hair(s)
     local v = math.floor((s or S.root()) + 0.5)
     if v < 1 then v = 1 end
     return v
 end
--- A line `units` design units thick (default 1): a whole multiple of the hairline, >= 1 px.
+--- A line `units` design units thick (default 1): a whole multiple of the hairline, >= 1 px.
 function S.line(units, s)
     local v = math.floor((units or 1) * S.hair(s) + 0.5)
     if v < 1 then v = 1 end
     return v
 end
--- A rectangle in design units -> screen px with snapped edges: x0 = px(x), x1 = px(x + w),
--- size = x1 - x0 (and the same down). Returns x, y, w, h.
+--- A rectangle in design units -> screen px with snapped edges: x0 = px(x), x1 = px(x + w),
+--- size = x1 - x0 (and the same down). Returns x, y, w, h.
 function S.snapRect(x, y, w, h, s)
     s = s or S.root()
     local x0, y0 = math.floor(x * s + 0.5), math.floor(y * s + 0.5)
     return x0, y0, math.floor((x + w) * s + 0.5) - x0, math.floor((y + h) * s + 0.5) - y0
 end
 
+-- the root scale is worked out again every 30 ticks (about half a second), and on the next ask after a resolution change
 if Events then
     if Events.OnTick then
         Events.OnTick.Add(function()
@@ -260,19 +273,20 @@ ZeD.Text = ZeD.Text or {}
 local X = ZeD.Text
 
 -- A role font entry is { font = UIFont.*, px = N } (ZeD.Font.*); plain UIFont values work too.
+-- uifont (X.uifont): the UIFont inside either one
 local function uifont(f)
     if type(f) == "table" then return f.font end
     return f
 end
 X.uifont = uifont
 
--- Nominal size (px) at which the engine draws a font entry at zoom 1. SDF faces are normalised
--- by the engine; calibrate from the reported font height against the atlas line height.
+--- Nominal size (px) at which the engine draws a font entry at zoom 1. SDF faces are normalised
+--- by the engine; calibrate from the reported font height against the atlas line height.
 function X.nominal(f)
     if type(f) ~= "table" then return nil end
     if f.nominal then return f.nominal end
     if f.sdf and f.face then
-        -- measured Oct 13: the engine draws a distance-field atlas at its native face size at zoom 1
+        -- measured: the engine draws a distance-field atlas at its native face size at zoom 1
         -- (32 px face -> 10 x "H" = 223 px for the body role), so the nominal IS the face size
         f.nominal = f.face
     else
@@ -280,10 +294,10 @@ function X.nominal(f)
     end
     return f.nominal
 end
--- Zoom for an explicit design px on a 64 px distance-field face (free-size text: licence name, radio frequency).
--- When the game's fonts stand in for ZeD's (X.fallback, below) the default face is the stand-in's.
+--- Zoom for an explicit design px on a 64 px distance-field face (free-size text: licence name, radio frequency).
+--- When the game's fonts stand in for ZeD's (X.fallback, below) the default face is the stand-in's.
 function X.zoomPx(px, face) return px * S.root() / (face or X.freeFace or 64) end
--- Zoom that draws entry f `px` pixels tall (its design px times the root scale, usually).
+--- Zoom that draws entry f `px` pixels tall (its design px times the root scale, usually).
 function X.zoomFor(f, px)
     local n = X.nominal(f)
     if not n or n <= 0 then return 1 end
@@ -291,7 +305,9 @@ function X.zoomFor(f, px)
 end
 
 -- The engine TextManager, captured once (the global getTextManager is replaced below by the proxy).
+-- Kept on S, so a reload of this file never captures the proxy instead.
 S._realGetTextManager = S._realGetTextManager or getTextManager
+--- the engine's own TextManager: measures with no zoom
 function X.realTM() return S._realGetTextManager() end
 
 -- ---------------------------------------------------------------------------
@@ -299,8 +315,8 @@ function X.realTM() return S._realGetTextManager() end
 -- draws its font at the font's native pixel size: it has no zoom. So typed
 -- text follows the scale by switching faces: the Fira body face baked at
 -- 13 / 15 (Small / Large) and 18 / 26 px (Dialogue and Intro: two slots no
--- vanilla text uses. Oct 16 2026: they were four Sdf slots, which are the
--- printed newspapers' faces; those went back to the game), as bitmap faces:
+-- vanilla text uses; the Sdf slots stay the game's, since they hold the
+-- printed newspapers' faces), as bitmap faces:
 -- media/fonts/generate_entry_fonts.py + EN/fonts.txt). The pick is the face
 -- closest to the scaled body size (body role px x root).
 -- ---------------------------------------------------------------------------
@@ -336,7 +352,7 @@ local function entryFaces()
     return faces
 end
 
--- The UIFont a text entry should use right now.
+--- The UIFont a text entry should use right now.
 function X.entryFont()
     local T = ZeD.T
     local bodyPx = (T and T.fontPx and T.fontF2 and T.fontPx[T.fontF2]) or 13
@@ -351,9 +367,9 @@ function X.entryFont()
     return best
 end
 
--- The entry face closest to `px` design pixels at the current scale (a larger
--- hand than the body: the notebook's page). Returns the font and its line height
--- in screen px, which is the text box's own line pitch.
+--- The entry face closest to `px` design pixels at the current scale (a larger
+--- hand than the body: the notebook's page). Returns the font and its line height
+--- in screen px, which is the text box's own line pitch.
 function X.entryFontAt(px)
     local target = px * S.root()
     local best, bestD = UIFont and UIFont.Small, nil
@@ -364,8 +380,8 @@ function X.entryFontAt(px)
     return best, X.realTM():getFontHeight(best)
 end
 
--- Keep a ZeD text entry on the scaled face and the theme's text colours.
--- Cheap enough to call every frame: it only touches Java on a change.
+--- Keep a ZeD text entry on the scaled face and the theme's text colours.
+--- Cheap enough to call every frame: it only touches Java on a change.
 function X.fitEntry(entry)
     if not (entry and entry.javaObject) then return end
     local f = X.entryFont()
@@ -462,9 +478,9 @@ local function fontSetName()
     return lang .. (dys and ", Dyslexic font on" or "")
 end
 
--- Checks the role slots and points ZeD.Font.sdf either at ZeD's atlases or at the
--- game's stand-in. Returns X.fallback. ZeD.applyTheme calls it before it registers
--- the role fonts; the tick below repeats it until the fonts have loaded.
+--- Checks the role slots and points ZeD.Font.sdf either at ZeD's atlases or at the
+--- game's stand-in. Returns X.fallback. ZeD.applyTheme calls it before it registers
+--- the role fonts; the tick below repeats it until the fonts have loaded.
 function X.checkRoleFonts()
     local F = ZeD.Font and ZeD.Font.sdf
     if X.noFonts or not (F and UIFont) then return X.fallback end
@@ -512,13 +528,13 @@ function X.checkRoleFonts()
     return X.fallback
 end
 
--- The game font a role of `px` design px draws in while X.fallback is on (native size, no zoom).
--- Target: the line height the role has on ZeD's atlas (face 64, line 77) at the current scale.
+--- The game font a role of `px` design px draws in while X.fallback is on (native size, no zoom).
+--- Target: the line height the role has on ZeD's atlas (face 64, line 77) at the current scale.
 function X.roleFallbackFont(px)
     return gameFontNear(X.realTM(), (px or 13) * S.root() * 77 / 64)
 end
 
--- Width / height in SCREEN px of `str` drawn at `zoom` (explicit zoom: measured on the raw manager).
+--- Width / height in SCREEN px of `str` drawn at `zoom` (explicit zoom: measured on the raw manager).
 function X.width(f, str, zoom)
     str = tostring(str)
     if type(f) == "table" and f.sdf then
@@ -527,12 +543,13 @@ function X.width(f, str, zoom)
     end
     return X.realTM():MeasureStringX(uifont(f), str) * (zoom or 1)
 end
+--- the font's line height in screen px at `zoom`
 function X.height(f, zoom)
     return X.realTM():getFontHeight(uifont(f)) * (zoom or 1)
 end
 
--- Draw `str` on element `el` at screen px (x, y) with `zoom`; align "l" | "c" | "r" around x.
--- Returns the drawn width in screen px.
+--- Draw `str` on element `el` at screen px (x, y) with `zoom`; align "l" | "c" | "r" around x.
+--- Returns the drawn width in screen px.
 function X.draw(el, f, str, x, y, zoom, r, g, b, a, align)
     str = tostring(str); zoom = zoom or 1
     local w = X.width(f, str, zoom)
@@ -549,13 +566,13 @@ function X.draw(el, f, str, x, y, zoom, r, g, b, a, align)
 end
 
 -- ---------------------------------------------------------------------------
--- Zoom for a font value (phase 2): the five ZeD role fonts are registered by
+-- Zoom for a font value: the five ZeD role fonts are registered by
 -- ZeD.applyTheme in ZeD.T.fontPx / fontFace; everything else (vanilla fonts) is 1.
 -- ---------------------------------------------------------------------------
--- (kept per font while the token table and the root scale stay: every text draw and measure asks;
--- Oct 22 2026, the drawing-cost work)
+-- (kept per font while the token table and the root scale stay: every text draw and measure asks)
 local _zoom = { T = false, root = false, z = {} }
 X._zoom = _zoom   -- (the lean text draw reads it inline: Overrides/TextScale.lua)
+--- the zoom a font draws at now: a role font's px times the root over its face, 1 for anything else
 function X.zoomOf(font)
     if font == nil then return 1 end
     local T = ZeD.T
@@ -572,7 +589,7 @@ function X.zoomOf(font)
 end
 
 -- ---------------------------------------------------------------------------
--- Text in scripts ZeD's fonts do not carry (Nov 1 2026; a folder named in Chinese drew "??").
+-- Text in scripts ZeD's fonts do not carry (a folder named in Chinese would draw "??").
 -- Fira covers Latin, Greek and Cyrillic. ZeD's font lists (EN, PL, RU fonts.txt) put the game's
 -- own Chinese and Japanese faces (zomboidMediumChinese / zomboidMediumJapanese, 23 px bitmaps
 -- from the game's media/fonts) on two slots nothing else draws with: Cred1 (ZeD's spare Chicago,
@@ -583,8 +600,8 @@ end
 -- once per face. With the game's own fonts on the roles (Chinese, Japanese, Korean, Thai
 -- language; X.fallback) nothing changes: those already draw their language.
 -- Not covered: Korean and Thai letters (no free slot).
--- Simplified Chinese (director, Nov 1 2026): the game's Chinese face is a traditional set (U+56FE,
--- the second letter of "map", drew blank), so ZeD's lists now put Noto Sans SC on Cred1 instead: a 32 px
+-- Simplified Chinese: the game's Chinese face is a traditional set (U+56FE, the second letter of
+-- "map", draws blank in it), so ZeD's lists put Noto Sans SC on Cred1 instead: a 32 px
 -- distance-field face (42/media/fonts/sdf/notoSC.fnt, ZeDUI/tools/fonts/bake_sdf_sc.py) with ASCII,
 -- Latin-1, the 3,755 GB2312 level-1 letters and CJK punctuation. One face draws a whole string, so
 -- a letter outside that set (a rare or traditional one) draws blank unless the Japanese face draws
@@ -657,7 +674,7 @@ local function sfScan(str)
     return best
 end
 
--- The face entry ({ font, em, base }) that draws `str` in place of ZeD's role fonts, or false.
+--- The face entry ({ font, em, base }) that draws `str` in place of ZeD's role fonts, or false.
 function X.scriptFont(str)
     if not SF.ready then
         if not X._fontsSettled then return false end
@@ -674,8 +691,8 @@ function X.scriptFont(str)
     return v
 end
 
--- For a role font drawn at zoom z: the face, its zoom and the y shift that draw `str`, or nil
--- when the role font draws it itself. face: the role atlas's face px (64).
+--- For a role font drawn at zoom z: the face, its zoom and the y shift that draw `str`, or nil
+--- when the role font draws it itself. face: the role atlas's face px (64).
 function X.scriptSwap(str, z, face)
     local e = X.scriptFont(str)
     if not e then return nil end
@@ -684,7 +701,7 @@ function X.scriptSwap(str, z, face)
     return e.font, zz, z * f * ZED_BASE - e.base * zz
 end
 
--- Width in screen px of `str` in role font `font` at zoom z, in the face that draws it.
+--- Width in screen px of `str` in role font `font` at zoom z, in the face that draws it.
 function X.roleWidth(font, str, z)
     if z ~= 1 then
         local T = ZeD.T
@@ -695,15 +712,16 @@ function X.roleWidth(font, str, z)
 end
 
 -- ---------------------------------------------------------------------------
--- ZeD.TM — the text manager seen by ZeD code (every getTextManager() in the
--- mod's own files was rewritten to ZeD.TM). Measurements of the role fonts are
+-- ZeD.TM — the text manager seen by ZeD code (ZeD files measure with ZeD.TM; one
+-- that still calls getTextManager() gets the same proxy, since the global is
+-- replaced at the bottom). Measurements of the role fonts are
 -- multiplied by their zoom so layout math matches the zoomed draws; anything
 -- else passes through to the engine's TextManager.
 -- ---------------------------------------------------------------------------
 ZeD.TM = ZeD.TM or {}
 local TM = ZeD.TM
--- Widths and heights are kept (Oct 22 2026, the drawing-cost work: every panel measures the same
--- strings every frame, each measure three Java calls). A kept value is exactly what the engine
+-- Widths and heights are kept, because every panel measures the same strings every frame,
+-- each measure three Java calls. A kept value is exactly what the engine
 -- answered for that font and string; the store starts over whenever an answer could differ: a
 -- new token table (theme, accent, text size, UI scale, the role fonts moving to the game's own),
 -- another root scale, another language, the game's font-size option, a resolution change. Nothing
@@ -729,8 +747,8 @@ local function mcOn()
     end
     return true
 end
--- For caches built on measures (ZeD.Atoms.truncateText): a number that changes whenever the kept
--- measures start over, or nil while measures are not kept (the fonts still loading)
+--- For caches built on measures (ZeD.Atoms.truncateText): a number that changes whenever the kept
+--- measures start over, or nil while measures are not kept (the fonts still loading)
 function X.measureEpoch()
     if not mcOn() then return nil end
     return MC.epoch
@@ -739,6 +757,7 @@ if Events then
     if Events.OnPreUIDraw then Events.OnPreUIDraw.Add(mcFrame) end
     if Events.OnResolutionChange then Events.OnResolutionChange.Add(function() mcReset(); MC.T = false end) end
 end
+--- a string's width in screen px, zoomed for a role font; kept, as above
 function TM:MeasureStringX(font, str)
     if type(str) ~= "string" then str = tostring(str) end
     -- (mcOn's test inline: this runs a few hundred times a frame)
@@ -766,9 +785,11 @@ function TM:MeasureStringX(font, str)
     MC.n = MC.n + 1
     return v
 end
+--- a string's height in screen px, zoomed for a role font (not kept)
 function TM:MeasureStringY(font, str)
     return X.realTM():MeasureStringY(font, tostring(str)) * X.zoomOf(font)
 end
+--- a font's line height in screen px, zoomed for a role font; kept, as above
 function TM:getFontHeight(font)
     if font == nil or not mcOn() then
         return X.realTM():getFontHeight(font) * X.zoomOf(font)
@@ -780,8 +801,8 @@ function TM:getFontHeight(font)
     end
     return v
 end
--- getFontFromEnum(font):getLineHeight() is how vanilla panels (ISRichTextPanel) size their lines:
--- for a zoomed font hand back a thin proxy whose getLineHeight is zoomed, everything else passes through.
+--- getFontFromEnum(font):getLineHeight() is how vanilla panels (ISRichTextPanel) size their lines:
+--- for a zoomed font hand back a thin proxy whose getLineHeight is zoomed, everything else passes through.
 function TM:getFontFromEnum(font)
     local real = X.realTM():getFontFromEnum(font)
     local z = X.zoomOf(font)

@@ -1,13 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuOptionsSub.lua
 -- ============================================================================
--- TWO OPTIONS SUB-PAGES (VANILLA_WINDOWS_20261107.md A5, A6; the director,
--- Nov 7 2026: every vanilla window replaced)
+-- TWO OPTIONS SUB-PAGES. Client-side; extends the ZeD_MMOptions organism
+-- (ZeD_MainMenuOptions.lua) with two pages that replace whole vanilla screens,
+-- part of replacing every vanilla window.
 --
--- ZeD's Options window (ZeD_MainMenuOptions.lua, on the monitor and over the
--- world in game) handed two of vanilla's screens over whole. They are pages of
--- the same window now, with Back to the page they came from:
+-- Two of vanilla's screens that ZeD's Options window (ZeD_MainMenuOptions.lua,
+-- on the monitor and over the world in game) would otherwise hand over whole
+-- are pages of the same window here, with Back to the page they came from:
 --
--- BUTTON MAP AND TEST (Controls > Button map and test; was vanilla's
+-- BUTTON MAP AND TEST (Controls > Button map and test; in place of vanilla's
 --   controller page with ISControllerBindingsEditorPanel and
 --   ISControllerTestPanel). On the left a pad drawn in ZeD's lines with ZeD's
 --   own button pictures (ZeD_PadGlyphs, the pad set the glyph setting picks):
@@ -20,13 +21,16 @@
 --   off it. Edits run on vanilla's bindings and its editor's own hand-off
 --   (onJoypadButtonBindingEdited: a fixed preset becomes a new one, Apply
 --   saves). The preset, button style, dead zone and the controllers in use
---   stay rows on the Controls page, as before.
+--   stay rows on the Controls page.
 -- ADVANCED GAME SOUNDS (Audio > Advanced, only when the game's advanced sound
---   options are on; was ISGameSounds). The game's sound categories down the
---   left, each sound with a volume slider (0 to 200 percent in steps of 5,
---   as vanilla) and Play / Stop to hear it. Leaving the page saves the
---   volumes as vanilla's Close did (GameSounds.saveINI).
+--   options are on; in place of ISGameSounds). The game's sound categories
+--   down the left, each sound with a volume slider (0 to 200 percent in steps
+--   of 5, as vanilla) and Play / Stop to hear it. Leaving the page saves the
+--   volumes as vanilla's Close does (GameSounds.saveINI).
 --
+-- The window's methods this file takes over keep their originals once as
+-- O._zedBase_*; while no sub-page is open (self.sub is nil) each one hands
+-- straight back to its original.
 -- Safe mode: ZeD's Options never shows, so vanilla's pages do.
 -- ============================================================================
 
@@ -193,7 +197,7 @@ function O:closeSub()
     self._subList, self._catsBox = nil, nil
 end
 
--- the controller page's editor and test: this window's own page now
+-- the controller page's editor and test: a page of this window, in place of vanilla's
 function O:openVanillaController() self:openSub("pad") end
 
 function O:onShow()

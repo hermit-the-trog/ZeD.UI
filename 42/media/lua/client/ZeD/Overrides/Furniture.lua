@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Furniture.lua
 -- ============================================================================
--- FURNITURE HOOKS — HOOK_MAP row 15
+-- FURNITURE HOOKS (override, client)
 --   * Moveables mode: ZeD.FurnitureTab hooks ISMoveableCursor.setInfoPanel
 --     (to read what the cursor reads) and ISMoveableInfoWindow.render (quiet
 --     while the Furniture tab is up), and opens the tab for a cursor started
@@ -12,7 +12,8 @@
 --     menu and on a ground item's menu.
 -- Vanilla runs only when ZeD declines (no World window, item gone). While
 -- safe mode is on (SafeMode.lua) vanilla runs every time and the extra menu
--- options stay out, as the engine has it.
+-- options stay out, as the engine has it. The perform hook sets _zedHooked
+-- before wrapping, so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

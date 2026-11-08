@@ -1,14 +1,15 @@
+-- ZeD-UI/42/media/lua/client/ZeD/Overrides/ScreenIcons.lua
 -- ============================================================================
--- Overrides/ScreenIcons.lua — the vanilla top-left function buttons go away (S124)
+-- THE VANILLA TOP-LEFT FUNCTION BUTTONS GO AWAY (override, client)
 -- ============================================================================
--- Director (Oct 13 2026): "the left over function icons on the left top of the
--- screen need to hide or go. we cover all those functions in our windows."
+-- ZeD's windows cover every one of those functions, so the leftover icons
+-- only duplicate them.
 -- ISEquippedItem (ISUI/ISEquippedItem.lua) is the left-edge HUD column: the two
 -- equipped-hand slots, then a button per vanilla window (inventory, health,
 -- crafting, build, furniture, forage, zones, map) plus debug / multiplayer
 -- buttons. The window buttons are hidden here: each opens a vanilla surface
 -- that a ZeD tab owns. The hand slots stay until the ZeD screen-icons surface
--- replaces the whole column (HOOK_MAP row 6). Debug and multiplayer buttons are
+-- replaces the whole column. Debug and multiplayer buttons are
 -- left alone (dev / MP only, no ZeD equivalent), as is any button another mod
 -- added to the column. The Tutorial keeps the whole column: its first lesson
 -- blinks the heart button.

@@ -1,11 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/AnimalsData.lua
 -- ============================================================================
--- ANIMALS DATA — live getters, skill gate, portrait resolver, action icons.
--- Central access point for all animal data reads. Every UI element in the
--- Animals tab pulls through here — never calls engine getters directly.
+-- ANIMALS DATA — client; the Animals tab's read layer.
+-- Live getters, skill gate, portrait resolver, action icons. Every UI element
+-- in the Animals tab pulls through here — never calls engine getters directly.
+-- The game's Java side can throw; reads here sit in pcall, so a missing method
+-- or a dead animal comes back as nil/0, never a crash.
 --
--- API correction (S84): hunger is on the Stats object (0.0–1.0 scale),
--- NOT on getData(). Thirst has a direct shortcut animal:getThirst().
+-- Hunger lives on the Stats object (0.0–1.0 scale), NOT on getData().
+-- Thirst has a direct shortcut, animal:getThirst().
 -- ============================================================================
 
 require "ZeD/Tr"

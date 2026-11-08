@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/InfoCards.lua
 -- ============================================================================
--- OBJECT INFO HOOKS — HOOK_MAP rows 11 and 12
+-- OBJECT INFO HOOKS (override, client)
 -- Vanilla's "Info" option on a generator, a campfire, a barbecue or fireplace
 -- and a farm plot opens the ZeD object card in the World window's drawer
 -- instead of the small vanilla info windows:
@@ -9,7 +9,8 @@
 --     ISFarmingMenu.onInfo) open the card at once: no walk, no info cursor;
 --   * the info timed actions' perform is the fallback for any other caller.
 -- Vanilla runs only when ZeD declines (no World window, object not found),
--- and every time while safe mode is on (SafeMode.lua).
+-- and every time while safe mode is on (SafeMode.lua). Each hook sets a
+-- _zed* flag before wrapping, so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

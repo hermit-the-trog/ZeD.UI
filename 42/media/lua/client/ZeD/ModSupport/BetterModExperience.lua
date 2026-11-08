@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/BetterModExperience.lua
 -- ============================================================================
 -- SUPPORT FOR BETTER MOD EXPERIENCE (mod id BetterModExperience, Workshop
--- 3834902827, by coldfeudal). Written Nov 7 2026 from the mod's own code
--- (compatibility round 6: the director picked it for support).
+-- 3834902827, by coldfeudal). Client.
 --
 -- What the mod does, file by file:
 --   * BME_Sorting / BME_ModMenus: the active mod list is sorted by the game's
@@ -48,6 +47,7 @@
 
 local MOD_ID = "BetterModExperience"
 
+-- Is the mod on? An id from getActivatedMods() can carry a leading backslash.
 local function modOn()
     local list = getActivatedMods and getActivatedMods()
     if not list then return false end

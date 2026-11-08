@@ -1,17 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/RtvFace.lua
 -- ============================================================================
--- THE ORDINARY RADIOS', THE CD PLAYER'S AND THE TVS' FACES — the radio tab
--- (RadioTab.lua) draws them in place of the drawn chassis. Handoff
--- ZeDUI/HANDOFF_radio_tv_laundry_20261030.md, approved by the director Oct 30
--- 2026 ("Looks good. No changes. Get it ready for code").
+-- THE ORDINARY RADIOS', THE CD PLAYER'S AND THE TVS' FACES — client; the
+-- radio tab (RadioTab.lua) draws them in place of the drawn chassis.
+-- One thing to know: ZeD.Rtv is a face driver with TwoWayFace.lua's
+-- interface (plateId, read, drawFace, hitAt, press, secondary, turn,
+-- holdable, holdTick, turnMult, slotW, PAD), so the radio tab and
+-- PlainFace.lua drive either one the same way: keep the two in step.
 --
--- Seven faces, plates in PhysPx.lua (ZeDUI/tools/physpx/d_rtv.py, d_rtv_make.py)
--- drawn by the shared plate template (ZeD_Plate.lua), as the walkies are:
+-- Seven faces. Their plates are baked into PhysPx.lua (generated from the
+-- designs in ZeDUI/tools/physpx/d_rtv.py and d_rtv_make.py: never edit the
+-- plates by hand) and drawn by the shared plate template (ZeD_Plate.lua), as
+-- the walkies are:
 --   radio_black, radio_red, radio_handbuilt, cd_player   the half card
 --   tv_widescreen, tv_black, tv_antique                   the full card
 -- picked by the item's full type (PhysPx.rtv.items). A radio or TV placed in a
--- house wears the face of the item it turns into when picked up (director, Oct
--- 30 2026): a radio dropped on the floor by its item, a placed set by its tile's
+-- house wears the face of the item it turns into when picked up:
+-- a radio dropped on the floor by its item, a placed set by its tile's
 -- CustomItem, else by its tile: each item's WorldObjectSprite, the four turns of
 -- a set being four tiles in a row. A radio with no face (a modded one) keeps
 -- the simple card (RadioTab.drawSimple).
@@ -103,6 +107,8 @@ local function stepOf(t, ms, m)
 end
 local function clamp01(v) if v < 0 then return 0 elseif v > 1 then return 1 end; return v end
 
+--- A face's facts (R.INFO) and whether it is a TV, by plate id; a width or narrow suffix ("@392", "_n") is
+--- ignored, so every width of a face answers the same.
 function R.basePid(pid) return P.baseId(pid) end
 function R.info(pid) return R.INFO[P.baseId(pid)] end
 function R.isTv(pid) local i = R.info(pid); return i ~= nil and i.tv == true end
@@ -145,7 +151,7 @@ local function itemOfSprite(name)
     return _spriteItem[head .. "_" .. tostring(n - n % 4)] or _spriteItem[name]
 end
 
--- the face's plate id for a radio (an item, or a set in the world), nil when it has none (a two-way set, a modded radio)
+--- The face's plate id for a radio (an item, or a set in the world), nil when it has none (a two-way set, a modded radio).
 function R.plateId(dev, dd)
     local X = ZeD.PhysPx
     local items = X and X.rtv and X.rtv.items
@@ -173,7 +179,7 @@ function R.plateId(dev, dd)
     return id
 end
 
--- for a radio tab entry ({ radioInstance, deviceData }): its plate id and plate
+--- For a radio tab entry ({ radioInstance, deviceData }): its plate id and plate, or nil, nil.
 function R.plateFor(entry)
     if not (entry and entry.radioInstance) then return nil, nil end
     local id = R.plateId(entry.radioInstance, entry.deviceData)
@@ -181,7 +187,7 @@ function R.plateFor(entry)
     return id, ZeD.PhysPx.plates[id]
 end
 
--- a radio's face for the half card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): the widest of its widths whose
+-- a radio's face for the half card: the widest of its widths whose
 -- PANEL at zoom k fits the half card's room (220 units less the scrollbar); its id, plate and panel width (plate
 -- px), nil when none fits (the hand-built radio at 0.75 and 1.5: no 154 face)
 function R.halfFace(pid, k)
@@ -191,8 +197,8 @@ function R.halfFace(pid, k)
     return id, ZeD.PhysPx.plates[id], pw
 end
 
--- the face to draw in the tab: a TV the widest that fits roomPx (its narrow face where the main one does not); a
--- radio its half-card face, else (no face fits the half card) the widest that fits the full card
+--- The face to draw in the tab: a TV the widest that fits roomPx (its narrow face where the main one does not); a
+--- radio its half-card face, else (no face fits the half card) the widest that fits the full card.
 function R.pickFace(pid, roomPx, k)
     local X = ZeD.PhysPx
     if R.isTv(pid) then
@@ -207,9 +213,9 @@ function R.pickFace(pid, roomPx, k)
     return pid, X.plates[pid]
 end
 
--- the width (screen px) the tab wants for a face (the window makes it the half card or the full card): a radio its
--- panel at zoom k where one fits the half card, else the full card; a TV its plate (its narrow face where that is
--- wider than limit)
+--- The width (screen px) the tab wants for a face (the window makes it the half card or the full card): a radio its
+--- panel at zoom k where one fits the half card, else the full card; a TV its plate (its narrow face where that is
+--- wider than limit).
 function R.wantW(pid, des, k, limit)
     local T = ZeD.T
     local sb = T.sp.scrollbarW
@@ -225,7 +231,8 @@ function R.wantW(pid, des, k, limit)
     return T.px(R.FULL_W)
 end
 
--- the space a face takes in the tab (plate px): a radio its panel (the face and 10 either side), a TV its own width
+--- The space a face takes in the tab (plate px): a width's own panel (`fill`) where it has one, else a radio its
+--- panel (the face and 10 either side), a TV its own width.
 function R.slotW(des)
     if des.fill and des.fill >= des.w then return des.fill end
     if R.isTv(des.base or des.plate) then return des.w end
@@ -239,6 +246,7 @@ end
 -- ---------------------------------------------------------------------------
 R.TV_FREQ = { triple_n = 200, wbln = 201, life = 203, turbo = 204, paws = 205, kpa = 206, mvc = 207, nst = 208, bmc = 209, gbc = 210 }
 local _stops = nil
+-- the twelve stops, built once: { i, id (nil on the last two), number = 2..13, freq }
 function R.stops()
     if _stops then return _stops end
     _stops = {}
@@ -300,7 +308,7 @@ function R.onDeviceText(_guid, _codes, _x, _y, _z, line, dev)
     if c and c.t then c.lines = (c.lines or 0) + 1 end
 end
 if Events and Events.OnDeviceText and not R._hooked then
-    R._hooked = true
+    R._hooked = true   -- (once: a Lua reload of this file never adds a second listener)
     Events.OnDeviceText.Add(function(...) pcall(R.onDeviceText, ...) end)
 end
 
@@ -333,6 +341,8 @@ end
 -- ---------------------------------------------------------------------------
 -- READ: what the face shows (nil when the radio has no device data)
 -- ---------------------------------------------------------------------------
+--- The radio's state as the face and the plain card show it: power, battery, channel, volume, presets, signal,
+--- headphones, the disc or tape and its clock. Nil when the radio has no device data.
 function R.read(dev)
     local dd = _get(dev, "getDeviceData", nil)
     if not dd then return nil end
@@ -353,7 +363,7 @@ function R.read(dev)
     for i, p in ipairs(st.presets) do if p.freq == st.channel then st.presetIdx = i; break end end
     st.name = O.chanName(st.channel)
     -- on air: the game's flag is true only at the moment a line arrives, so a station also counts while it has shown a
-    -- line in the last HEARD_MS (QA, Nov 2 2026: 98.0 NNR read "no signal" between lines)
+    -- line in the last HEARD_MS (without this, 98.0 NNR read "no signal" between its lines)
     st.signal = _get(dd, "isReceivingSignal", false)
     if not st.signal then
         local h = R._heard[st.key]
@@ -377,8 +387,8 @@ function R.read(dev)
     return st
 end
 
--- the TV's channel as the screen shows it (see the header): "picture", "snow", "bars", "signoff", "standby", and the
--- stop the channel is on (nil off the dial)
+--- The TV's channel as the screen shows it (see the header): "picture", "snow", "bars", "signoff", "standby", and the
+--- stop the channel is on (nil off the dial).
 function R.air(st)
     local t = now()
     local z = R._zap[st.key]
@@ -409,8 +419,8 @@ local function hms(ms)
     return string.format("%d:%02d:%02d", math.floor(s / 3600) % 10, math.floor(s / 60) % 60, s % 60)
 end
 
--- (the plain card, PlainFace.lua, reads what the face reads: the signal light's steps, the clocks as the glass
--- prints them, and the lines the set has shown)
+--- (the plain card, PlainFace.lua, reads what the face reads: the signal light's steps, the clocks as the glass
+--- prints them, and the lines the set has shown)
 R.SIGNAL = SIGNAL
 R.elapsed, R.hms = elapsed, hms
 function R.heardLines(st)
@@ -418,8 +428,8 @@ function R.heardLines(st)
     return h and h.lines or nil
 end
 
--- the plate's own facts, kept on the plate: its screen, its tape slot, the progress line's length, and whether its
--- power is the volume knob's push / pull (the antique set: two areas on one place)
+--- The plate's own facts, kept on the plate: its screen, its tape slot, the progress line's length, and whether its
+--- power is the volume knob's push / pull (the antique set: two areas on one place).
 local function factsOf(des)
     local c = des._rtv
     if c then return c end
@@ -609,6 +619,7 @@ local function drawScreen(cv, des, sp, st)
     if id then drawLogo(cv, sp, id, tube) end
 end
 
+-- what the plate template leaves to this file: the tape in its slot (a line of its colour), the screen while on
 local function drawExtras(cv, des, st)
     local f = factsOf(des)
     if f.tape and st.hasMedia then P.rect(cv, f.tape.x, f.tape.y, f.tape.w, 1, P.color(f.tape.color)) end
@@ -620,6 +631,7 @@ end
 --   face = { dev, pid, des, focusId (the controller's), hoverId (the mouse's), pressId (a key held down) }
 -- The antique set's power and volume share the knob: one control, "volpwr" (pressed: power; turned: volume).
 -- ---------------------------------------------------------------------------
+--- Draw the face as above; returns its controls (hits) and the state it read, or {} and nil with no device data.
 function R.drawFace(panel, x, y, k, face)
     local T = ZeD.T
     local st = R.read(face.dev)
@@ -648,7 +660,7 @@ function R.drawFace(panel, x, y, k, face)
     return hits, st
 end
 
--- the controls in the order the controller meets them: power first (where focus lands), then reading order
+--- The controls in the order the controller meets them: power first (where focus lands), then reading order.
 function R.focusOrder(hits, k)
     local out = TW.readingOrder(hits, k)
     for i, h in ipairs(out) do
@@ -656,7 +668,7 @@ function R.focusOrder(hits, k)
     end
     return out
 end
-R.hitAt = TW.hitAt
+R.hitAt = TW.hitAt   -- (the hits have the two-way faces' shape, so their hit test serves)
 
 -- ---------------------------------------------------------------------------
 -- ACTIONS (chr = the character, dev = the radio; at = { x, y } on the screen, where a list opens)
@@ -756,8 +768,8 @@ function R.chStep(chr, dev, st, dir, wrap)
     local s = R.stopOf(st.channel)
     local i
     if wrap then
-        -- (wrap: down on the first stop goes to the last, up on the last to the first; director, Oct 30 2026, punch
-        -- list 23. Kahlua's % keeps a negative dividend's sign, so -1 % n is -1 here: add n before taking it)
+        -- (wrap: down on the first stop goes to the last, up on the last to the first. Kahlua's % keeps a
+        -- negative dividend's sign, so -1 % n is -1 here: add n before taking it)
         local n = #stops
         i = s and (((s.i - 1 + dir + n) % n) + 1) or (dir > 0 and 1 or n)
     else
@@ -767,14 +779,15 @@ function R.chStep(chr, dev, st, dir, wrap)
     return O.setChannel(chr, dev, stops[i].freq)
 end
 
--- a knob turned one click (dir +1 / -1); mult = the fast-turn multiplier
+--- A knob turned one click (dir +1 / -1); mult = the fast-turn multiplier.
 function R.turn(chr, dev, id, dir, mult)
     if id == "vol" or id == "volpwr" then O.volStep(chr, dev, dir, false)
     elseif id == "tune" then O.tuneStep(chr, dev, dir, mult or 1)
     elseif id == "channel" then local st = R.read(dev); if st then R.chStep(chr, dev, st, dir, false) end end
 end
 
--- the press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half)
+--- The press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half);
+--- at = where a list opens.
 function R.press(chr, dev, id, dx, at)
     local st = R.read(dev)
     if not (st and id) then return end
@@ -793,7 +806,7 @@ function R.press(chr, dev, id, dx, at)
     elseif id == "play" then O.playStop(chr, dev) end
 end
 
--- the second meaning (X, a hold, a right-click)
+--- The second meaning (X, a hold, a right-click): a preset key stores, a knob turns down.
 function R.secondary(chr, dev, id)
     local st = R.read(dev)
     if not (st and id) then return end
@@ -801,13 +814,13 @@ function R.secondary(chr, dev, id)
     elseif id == "tune" or id == "vol" or id == "volpwr" or id == "channel" then R.turn(chr, dev, id, -1) end
 end
 
--- presets act on the release (a hold stores instead); a key that may open a list acts on the release too, or the
--- release would close the list it opened
+--- Presets act on the release (a hold stores instead); a key that may open a list acts on the release too, or the
+--- release would close the list it opened.
 function R.holdable(id) return id:match("^p%d$") ~= nil end
 local ON_RELEASE = { slot = true, eject = true, phones = true, battery = true }
 function R.onRelease(id) return R.holdable(id) or ON_RELEASE[id] == true end
 
--- a held press past O.HOLD_MS does its second meaning once; hold = { id, t0, fired }
+--- A held press past O.HOLD_MS does its second meaning once; hold = { id, t0, fired }.
 function R.holdTick(hold, chr, dev)
     if hold and not hold.fired and R.holdable(hold.id) and now() - hold.t0 >= O.HOLD_MS then
         hold.fired = true
@@ -815,7 +828,8 @@ function R.holdTick(hold, chr, dev)
     end
 end
 
--- the tuning knob's speed for a held D-pad or a spun wheel
+--- The tuning knob's speed for a held D-pad or a spun wheel: five times as fast once the streak of quick clicks
+--- reaches 8.
 function R.turnMult(pid, streak)
     return (streak >= 8 and 5) or 1
 end

@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/RadioWindow.lua
 -- ============================================================================
--- RADIO WINDOW OVERRIDE (S115)
+-- RADIO WINDOW OVERRIDE (client)
 -- Suppress vanilla ISRadioWindow's auto-open behavior. ZeD-UI's RadioTab
--- (S115) renders the radio chassis inline in the Character/World Window
+-- renders the radio chassis inline in the Character/World Window
 -- drawer; the legacy floating ISRadioWindow popup is redundant and breaks
 -- the "complete UI, not a skin" project rule by stealing focus and covering
 -- the ZeD chrome whenever a radio is equipped.
@@ -11,9 +11,9 @@
 -- in RadioCom/ISRadioWindow.lua:412-413. We unregister both handlers at boot
 -- once vanilla has finished loading.
 --
--- EVERY OTHER WAY IN (Nov 7 2026, VANILLA_WINDOWS_20261107.md row B1; the
--- director: "every route opens ZeD's existing radio card now"): every caller of
--- ISRadioWindow.activate goes through the wrapper below to ZeD.WorldRoutes.radio:
+-- EVERY OTHER WAY IN — every route opens ZeD's existing radio card: every
+-- caller of ISRadioWindow.activate goes through the wrapper below to
+-- ZeD.WorldRoutes.radio:
 --   * left-click on a TV or radio within 1.5 tiles (ISObjectClickHandler.doClick)
 --   * right-click Device Options on a TV, house radio, placed radio or carried
 --     radio (ISRadioAndTvMenu.openTvPanel / openRadioPanel, from the world menu
@@ -25,11 +25,13 @@
 -- A radio item goes to the Character window's Radio tab, the car's radio from
 -- a front seat comes up close, anything else goes to the World window's Radio
 -- tab, each on that device. The game's window opens only when ZeD can't show it.
--- The dedicated TV and house radio faces come when design draws them.
+-- The dedicated TV and house radio faces are still to be drawn; until then
+-- those devices use the radio card too.
 --
--- While ZeD's safe mode is on, vanilla's handler is put back (the popup opens
--- on equip again), every route opens the game's window, and both are taken off
--- once more when safe mode goes off.
+-- The activate wrapper keeps the vanilla function once (_zedRoute), so a Lua
+-- reload never wraps the wrapper. While ZeD's safe mode is on, vanilla's
+-- handler is put back (the popup opens on equip again), every route opens the
+-- game's window, and both are taken off once more when safe mode goes off.
 -- ============================================================================
 
 require "ZeD/SafeMode"
@@ -94,9 +96,9 @@ end
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(hookActivate) end
 hookActivate()
 
--- S115b: replace vanilla's auto-open behavior with our own — when the player
--- equips a radio, if the ZeD Character Window is open, refresh its radio list so
--- the Radio tab shows at once. It doesn't switch to the tab or open the window.
+-- In place of vanilla's auto-open — when the player equips a radio, if the
+-- ZeD Character Window is open, refresh its radio list so the Radio tab shows
+-- at once. It doesn't switch to the tab or open the window.
 local function onEquipRadioAutoSwitch(player, item)
     if ZeD.Safe.on() then return end
     if player == nil or player ~= getPlayer() then return end
@@ -110,9 +112,10 @@ local function onEquipRadioAutoSwitch(player, item)
     if ZeD.RadioTab and ZeD.RadioTab.buildEquippedRadios then
         charWin._radios = ZeD.RadioTab.buildEquippedRadios(player)
     end
-    -- (Until Oct 30 2026 this also made Radio the active tab and picked the first radio, but never opened the drawer,
-    -- so from Loot or an item card the tab lit with no card. Director, Oct 30 2026: equipping a radio does nothing to
-    -- the tab; the player opens the Radio tab when they want it. The list refresh above still shows the tab at once.)
+    -- (Deliberately nothing more: equipping a radio does not touch the tab; the player opens
+    -- the Radio tab when they want it. An earlier version also made Radio the active tab and
+    -- picked the first radio, but never opened the drawer, so from Loot or an item card the
+    -- tab lit with no card. The list refresh above still shows the tab at once.)
 end
 
 Events.OnEquipPrimary.Add(onEquipRadioAutoSwitch)

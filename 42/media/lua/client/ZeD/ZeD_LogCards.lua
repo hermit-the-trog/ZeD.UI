@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_LogCards.lua
 -- ============================================================================
--- THE LOG CARD (ZeDUI/MP_ADMIN_SCOPE.md, Phase 4; the drawing is mockups/zed_logs_v1.html). Drawing and input only:
--- ZeD_Log.lua is the model. The card runs on the ticket cards' engine (ZeD_TicketCards.lua): the back bar, the scroll, the
+-- THE LOG CARD. Client side, drawing and input only: ZeD_Log.lua is the model. Sizes and places follow the card's design
+-- drawing ("as drawn" below). The card runs on the ticket cards' engine (ZeD_TicketCards.lua): the back bar, the scroll, the
 -- fields, the pick list and the pad stops are all that file's, and the buttons are the admin cards' (ZeD_AdminCards.lua).
 --   the Admin tab's row   LC.homeRow: the Log card, or the game's own PvP log without the server part
 --   the ticket card's row LC.aroundFact: Around ticket #14, the same card with a place and a time on it
@@ -11,8 +11,8 @@
 -- A control that cannot be used stays on the card, gray, and says why. All player text is drawn with drawText, never through
 -- the game's rich text. Simple mode draws this same card.
 --
--- QA: ZeD.Logs.qaHold, qaLink (ZeD_Log.lua) and LC.qaOpen(win, st, around), LC.qaPick(st, s).
--- ZeDUI/tools/qa/mp_log_cards.lua walks every state of the drawing with these.
+-- Test hooks: ZeD.Logs.qaHold, qaLink (ZeD_Log.lua) and LC.qaOpen(win, st, around), LC.qaPick(st, s), LC.qaSet(st, field,
+-- value). The test script ZeDUI/tools/qa/mp_log_cards.lua walks every state of the card with these.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -508,7 +508,9 @@ function P.open(win, st, card)
     F.push(win, st, card)
 end
 
+--- Opens the Log card (from the Admin tab's row).
 function LC.open(win, st) P.open(win, st, { from = "adm:tk:sum:log" }) end
+--- Opens the Log card around ticket id: the same card with a place and a time on it.
 function LC.openAround(win, st, id) P.open(win, st, { from = "tk:around", around = id }) end
 
 -- the game's own PvP log, with no server part to hold ZeD's: its card (ZeD_AdminTools.lua; More tools has the same card)
@@ -519,6 +521,8 @@ function P.gameLog(win, st)
     if not ok then ZeD.logOnce("log card: the game's PvP log", err) end
 end
 
+--- The Admin tab's row, added to L through the admin cards' parts (AP.summary): the Log card, or the game's
+--- own PvP log without the server part.
 function LC.homeRow(L, st, AP)
     L[#L + 1] = { k = "head", text = tr("UI_ZeD_Log_Title") }
     if Lm.live() then
@@ -528,7 +532,7 @@ function LC.homeRow(L, st, AP)
     end
 end
 
--- the ticket card's row. A ticket with no place has nothing to look around: gray, with why
+--- The ticket card's row. A ticket with no place has nothing to look around: gray, with why.
 function LC.aroundFact(items, st, data)
     local c = { id = "around", text = tr("UI_ZeD_Log_Show"), help = tr("UI_ZeD_Log_HelpShow", data.id),
         live = function(cc)
@@ -542,7 +546,7 @@ function LC.aroundFact(items, st, data)
 end
 
 -- ---------------------------------------------------------------------------
--- QA
+-- TEST HOOKS (for the test script named in the header)
 -- ---------------------------------------------------------------------------
 function LC.qaOpen(win, st, around)
     st.card = nil

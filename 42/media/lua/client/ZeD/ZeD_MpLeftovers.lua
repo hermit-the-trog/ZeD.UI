@@ -1,20 +1,22 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MpLeftovers.lua
 -- ============================================================================
--- MULTIPLAYER WINDOWS THE GAME STILL OPENED (ZeDUI/VANILLA_WINDOWS_20261107.md, group C). Each through the game's own
--- data and calls; each falls back to the game's own window in safe mode or when ZeD's cannot be built.
+-- MULTIPLAYER WINDOWS THE GAME STILL OPENED, IN ZeD'S LOOK. Client; overrides of four of the game's multiplayer
+-- windows. Each goes through the game's own data and calls; each falls back to the game's own window in safe mode or
+-- when ZeD's cannot be built.
 --
---   C4  SERVER SAVING   the game's "Server saving game. Please wait." box (ISServerSavingMessage, OnServerStartSaving /
---                       OnServerFinishSaving): a notice in Messages, as every ZeD notice is.
---   C5  MARK SHARING    the map mark's Sharing (ISWorldMapSharing, from MapsTab.lua's mark menu): a form card in the
---                       map's drawer, at the map's right edge: Private, Everyone or Other; under Other, Faction, Safehouse and the players by name. Done
---                       hands the choice to the mark as the game's panel does (symbol:setSharing).
---   C15 EDIT ITEM       the admin's Edit item (ISItemEditorUI.OpenPanel, from the inventory menu): the item's card in edit
---                       mode, the game's own list of fields (ISItemEditPanel:initElements) as field rows, Save in the band;
---                       Save runs the game's own saveAll and, on a server, its InvMngUpdateItem.
---   C16 ADMIN MESSAGE   the game's admin pop-up (ISAdminMessage, OnAdminMessage; ZeD_Tickets.lua passes on what is not a
---                       ticket note): a note in Messages, with Teleport on it where the game's had "Teleport?".
--- C1 and C3 are the pause window's pages (ZeD_MainMenuPlayers.lua), C2 the Server tab's card (ServerTab.lua), C17 the
--- desk screen after a disconnect (ZeD_LeftScreen.lua).
+--   SERVER SAVING   the game's "Server saving game. Please wait." box (ISServerSavingMessage, OnServerStartSaving /
+--                   OnServerFinishSaving): a notice in Messages, as every ZeD notice is.
+--   MARK SHARING    the map mark's Sharing (ISWorldMapSharing, from MapsTab.lua's mark menu): a form card in the
+--                   map's drawer, at the map's right edge: Private, Everyone or Other; under Other, Faction, Safehouse and the players by name. Done
+--                   hands the choice to the mark as the game's panel does (symbol:setSharing).
+--   EDIT ITEM       the admin's Edit item (ISItemEditorUI.OpenPanel, from the inventory menu): the item's card in edit
+--                   mode, the game's own list of fields (ISItemEditPanel:initElements) as field rows, Save in the band;
+--                   Save runs the game's own saveAll and, on a server, its InvMngUpdateItem.
+--   ADMIN MESSAGE   the game's admin pop-up (ISAdminMessage, OnAdminMessage; ZeD_Tickets.lua passes on what is not a
+--                   ticket note): a note in Messages, with Teleport on it where the game's had "Teleport?".
+-- The other multiplayer windows live elsewhere: the players list and Invite friends are the pause window's pages
+-- (ZeD_MainMenuPlayers.lua), the players' read-only server options the Server tab's card (ServerTab.lua), and the
+-- kicked or disconnected screen ZeD's desk (ZeD_LeftScreen.lua).
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -41,9 +43,9 @@ local function words(s)
 end
 
 -- ---------------------------------------------------------------------------
--- C4: SERVER SAVING, A NOTICE IN MESSAGES (the director's standing rule: every ZeD notice is a bubble out of the belt's
--- Messages icon and is kept in Messages, never a box at the top of the screen or in a corner; the bubble itself is
--- Messages' own drawing). The finish needs nothing: the note stays in Messages as a record
+-- SERVER SAVING, A NOTICE IN MESSAGES. Every ZeD notice is a bubble out of the belt's Messages icon and is kept in
+-- Messages, never a box at the top of the screen or in a corner; the bubble itself is Messages' own drawing. The finish
+-- needs nothing: the note stays in Messages as a record
 -- ---------------------------------------------------------------------------
 function L.savingStart()
     local MS = ZeD.Messages
@@ -70,7 +72,7 @@ if not L.savingHooked and ISServerSavingMessage and Events.OnServerStartSaving t
 end
 
 -- ---------------------------------------------------------------------------
--- C16: AN ADMIN MESSAGE, AS A NOTE IN MESSAGES (false: the game's pop-up instead)
+-- AN ADMIN MESSAGE, AS A NOTE IN MESSAGES (false: the game's pop-up instead)
 -- ---------------------------------------------------------------------------
 -- the game's message is rich text: its tags (<LINE>, <RGB:1,0,0>, <SIZE:medium>) are left out of the plain note
 function L.plain(s)
@@ -81,6 +83,9 @@ function L.plain(s)
     return (string.gsub(s, "^%s+", ""))
 end
 
+--- An admin message as a note in Messages; a place (x above -1, with y and z)
+--- puts Teleport on it. Returns false when it can't (safe mode, no Messages, no
+--- player): ZeD_Tickets.lua then lets the game's pop-up show.
 function L.adminMessage(message, x, y, z)
     if safeOn() then return false end
     local MS = ZeD.Messages
@@ -91,7 +96,8 @@ function L.adminMessage(message, x, y, z)
     return ok
 end
 
--- the note's Teleport: the game's own answer to its "Teleport?" (ISAdminMessage:onClick, YES)
+--- The note's Teleport (Messages calls it with the note's { x, y, z }): the
+--- game's own answer to its "Teleport?" (ISAdminMessage:onClick, YES).
 function L.teleport(tp)
     if not tp then return end
     if isClient() then
@@ -103,7 +109,7 @@ function L.teleport(tp)
 end
 
 -- ---------------------------------------------------------------------------
--- C5: SHARING A MAP MARK
+-- SHARING A MAP MARK
 -- ---------------------------------------------------------------------------
 -- the players to pick from: everyone online (the scoreboard), then anyone the mark is shared with who is not on now
 function L.sharePlayers(sym)
@@ -189,7 +195,10 @@ function L.shareRows(sym, s)
     return rows
 end
 
--- opens the card for the mark; false when it can't (the game's panel opens instead)
+--- Open the Sharing card for a mark: mp is the map it was picked on, fromPad
+--- whether the controller opened it (then the controller's focus goes back to
+--- the window it came from when the card closes). Returns false when it can't,
+--- and the game's panel opens instead. The open card is L.shareCard.
 function L.openSharing(mp, sym, fromPad)
     if safeOn() or not (ZeD.FormCard and sym and isClient()) then return false end
     if L.shareCard and not L.shareCard._done then L.shareCard:finish() end
@@ -198,7 +207,7 @@ function L.openSharing(mp, sym, fromPad)
     local s = L.shareState(sym, api)
     if not (s.can or s.canHide) then return false end
     local pn = (mp and mp.playerObj and safe(function() return mp.playerObj:getPlayerNum() end, 0)) or (mp and mp.playerNum) or 0
-    -- a card in the map's drawer (VANILLA_WINDOWS C5): in the panel that holds the map, at the map's right edge. While
+    -- a card in the map's drawer: in the panel that holds the map, at the map's right edge. While
     -- the map is not on screen (another tab, the window shut or rolled up) there is no drawer to be in: the card closes
     local function dock()
         local holder = mp and mp.parent
@@ -236,7 +245,7 @@ function L.openSharing(mp, sym, fromPad)
 end
 
 -- ---------------------------------------------------------------------------
--- C15: THE ADMIN'S EDIT ITEM (the game's own fields and save)
+-- THE ADMIN'S EDIT ITEM (the game's own fields and save)
 -- ---------------------------------------------------------------------------
 local TYPE_NUMBER, TYPE_STRING, TYPE_COLOR = 1, 2, 3     -- (ISItemEditPanel's own)
 

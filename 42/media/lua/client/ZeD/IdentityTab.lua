@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/IdentityTab.lua
 -- ============================================================================
--- IDENTITY TAB: the character's card + traits, two styles at two widths.
+-- IDENTITY TAB — client; the Character window's Identity tab ("identity" in its
+-- tab dispatch table): the character's card + traits, two styles at two widths.
 --   Immersive: the Kentucky operator's license, wide (photo left, fields right)
 --     or narrow (laid out like Tennessee's vertical card).
 --   Simple: ZeD components on the theme's surface, wide or narrow.
@@ -10,9 +11,10 @@
 -- read at every render; the width picks wide or narrow (isTall).
 -- The license keeps a fixed palette; its colored words are the player's accent
 -- darkened for the cream (kyAccent). Simple and the traits use ZeD theme tokens.
+-- Each layout's heights come from one place the measure and the draw share, at
+-- the width as if a scroll bar shows, so the two always agree.
 --
--- Design: ZeDUI/mockups/zed_identity_v2.html (punch list 89). The art comes from
--- ZeDUI/tools/identity/ky_header.py.
+-- The license's pixel art comes from ZeDUI/tools/identity/ky_header.py.
 -- QA: ZeD.IdentityTab.qaLayout "tall" / "wide", qaStyle "immersive" / "simple",
 -- qaTrend "steady" / "up" / "upup" / "down", qaProf a profession id ("base:burglar").
 -- ============================================================================
@@ -104,7 +106,7 @@ local TRAIT_COL_GAP = 12 -- between the two columns of traits
 local CARD_RADIUS = { 10, 7, 5, 4, 3, 2, 2, 1, 1, 1 }
 
 local function fillRoundedCard(panel, x, y, w, h, r, g, b, a)
-    local T = ZeD.T  -- S124 scale: design row i covers [T.px(i - 1), T.px(i)) so rows tile without gaps
+    local T = ZeD.T  -- design row i covers [T.px(i - 1), T.px(i)) so rows tile without gaps
     -- Top rounded rows
     for i, inset in ipairs(CARD_RADIUS) do
         panel:drawRect(x + T.px(inset), y + T.px(i - 1), w - T.px(inset) * 2, T.px(i) - T.px(i - 1), a, r, g, b)
@@ -126,7 +128,7 @@ local function borderRoundedCard(panel, x, y, w, h, r, g, b, a)
     -- Top bevel outline (1px edge, not full scanlines)
     for i, inset in ipairs(CARD_RADIUS) do
         local row = T.px(i - 1)
-        local rowH = T.px(i) - row  -- S124 scale: design row i covers [T.px(i - 1), T.px(i))
+        local rowH = T.px(i) - row  -- design row i covers [T.px(i - 1), T.px(i))
         if i == 1 then
             -- Outermost row: full scanline (the tip of the bevel)
             panel:drawRect(x + T.px(inset), y + row, w - T.px(inset) * 2, rowH, a, r, g, b)
@@ -365,6 +367,9 @@ end
 -- DATA AGGREGATION
 -- ============================================================================
 
+--- Everything the card and the traits show, read once from the player (placeholders
+--- without one), and the strings the cards draw, made here rather than each frame.
+--- The kill-count QA scripts read it too.
 function ZeD.IdentityTab.gatherData(playerObj)
     local data = {
         surname    = ZeD.tr("UI_ZeD_Identity_Unknown"),
@@ -693,7 +698,7 @@ local function drawNameRow(panel, data, name, x, y, w, px, ink, sign)
 end
 
 -- A field's two lines: the label (F1) and the value (F4), each at least the body
--- line, so a larger text never draws a value over its label (Oct 31 2026, break-it E5)
+-- line, so a larger text never draws a value over its label
 local function fieldLineHs()
     local T, tm = ZeD.T, ZeD.TM
     local bodyFH = tm:getFontHeight(T.fontF2)
@@ -714,7 +719,7 @@ local function setPhoto(win, x, y, w, h, expanded, zx, zy, zw, zh)
 end
 
 -- ============================================================================
--- THE WIDE LICENSE (mockup licenseWide)
+-- THE WIDE LICENSE (photo and seal left, name and fields right)
 -- ============================================================================
 
 local function wideRightH()
@@ -834,9 +839,9 @@ local function renderLicenseWide(panel, win, data, x, drawY, w)
 end
 
 -- ============================================================================
--- WIDE OR NARROW (Oct 31 2026, punch list 36, the director: "make a vertical version of
--- the ID"). Below a width the wide card's two-column fields are narrower than their longest
--- label (they would read "..."); there the card stands up. Simple follows the same width.
+-- WIDE OR NARROW. Below a width the wide card's two-column fields are narrower than their
+-- longest label (they would read "..."); there the card stands up, a vertical version of
+-- the ID. Simple follows the same width.
 -- QA: ZeD.IdentityTab.qaLayout = "tall" or "wide" forces one (nil: by the width);
 -- win._idTall says which one drew.
 -- ============================================================================
@@ -877,7 +882,7 @@ end
 ZeD.IdentityTab.isTall = isTall
 
 -- ============================================================================
--- THE NARROW LICENSE (mockup licenseNarrow, Tennessee's layout)
+-- THE NARROW LICENSE (Tennessee's layout)
 -- ============================================================================
 
 -- the small rows: { label key, field of data.small [, second label key, second field] }
@@ -892,10 +897,10 @@ local TALL_SMALL = {
 
 -- Every height of the narrow card, one place for the measure and the draw. w is the width the
 -- tab measures at (as if a scroll bar shows), so the height never hangs on the bar. The photo
--- is 44% of the width and 3:4, stretched to the column beside it when that is taller (as the
--- mockup draws it), up to 1:2, the model's own shape (renderLicenseTall). The half card is
--- narrower than the mockup's window, so what the wider card sets on one line stacks there: ISS
--- and EXP over their dates, the small rows' pairs one to a row. One table, refilled at each call.
+-- is 44% of the width and 3:4, stretched to the column beside it when that is taller, up to
+-- 1:2, the model's own shape (renderLicenseTall). On the half card what a wider card sets on
+-- one line stacks when it won't fit: ISS and EXP over their dates, the small rows' pairs one
+-- to a row. One table, refilled at each call.
 local _tm = {}
 local function tallMetrics(data, w)
     local T, tm = ZeD.T, ZeD.TM
@@ -1153,8 +1158,8 @@ local function renderLicenseTall(panel, win, data, x, drawY, w, layoutW)
 end
 
 -- ============================================================================
--- SIMPLE, WIDE AND NARROW (mockup plainWide, plainNarrow): ZeD's own components on the
--- theme's surface; label / value rows, labels in the accent, no rules
+-- SIMPLE, WIDE AND NARROW: ZeD's own components on the theme's surface; label / value
+-- rows, labels in the accent, no rules
 -- ============================================================================
 
 local function simpleRowH()
@@ -1210,7 +1215,7 @@ end
 -- Simple's rows at width w, one place for the measure and the draw: { label, lines, lineW, beside }
 -- and h, the rows' whole height. A row is the label with the value beside it while the two fit;
 -- else the value goes under the label, right-aligned (the half card). Kept with the data, which
--- is made anew every half second, so nothing is measured every frame.
+-- is made anew every 30 frames (half a second at 60 fps), so nothing is measured every frame.
 local function simpleRows(data, w)
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local c = data._rows
@@ -1407,8 +1412,8 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local rh = traitRowH()
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
-    -- its description on hover and on controller focus (mockup zed_traits_tab_v1: the
-    -- no-mod scene's descriptions belong here); the zone is kept for both
+    -- its description shows on hover and on controller focus (drawTraitHint); the
+    -- zone is kept for both
     local key = "identity:trait:" .. tostring(trait.name)
     local zones = win._idTraitZones
     zones[#zones + 1] = { x = tx, y = ty, w = tw, h = rh, id = key, name = trait.name, desc = trait.desc }
@@ -1536,15 +1541,15 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     end
     local data = win._identityCache
 
-    -- Pinned tab header (37px, not in scroll content)
+    -- Pinned tab header (37 design units, not in scroll content)
     local tabHeaderH = M.getTabHeaderH()
 
-    -- S104 (Q100): stamp the disclosure hit-zone EARLY — mirrors SkillsTab
-    -- and HealthTab. Tab header becomes a disclosure that toggles the
-    -- license photo between bust (collapsed) and full-body (expanded). The
-    -- focusable builder in ZeD_CharacterWindow reads _identityFigureZone
-    -- each frame; stamping at the top guarantees the first prerender after
-    -- a tab switch sees valid bounds and the disclosure lands in element[1].
+    -- Stamp the disclosure hit-zone EARLY, as SkillsTab and HealthTab do. The
+    -- tab header is a disclosure that toggles the license photo between bust
+    -- (collapsed) and full-body (expanded). The focusable builder in
+    -- ZeD_CharacterWindow reads _identityFigureZone each frame; a zone stamped
+    -- at the end of render is still nil on the first prerender after a tab
+    -- switch, so stamping at the top is what puts the disclosure in element[1].
     win._identityFigureZone = { x = x, y = y, w = w, h = tabHeaderH }
 
     -- ================================================================
@@ -1554,12 +1559,12 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local scrollW = T.sp.scrollbarW
 
     -- Hair and beard (ZeD_HairBeard.lua): a fold under the license; Cut sits in it, beside its
-    -- Hair | Beard switch. The card has no footer band (nothing on the whole card to do; Oct 30 2026).
+    -- Hair | Beard switch. The card has no footer band (nothing on the whole card to do).
     local HB = ZeD.HairBeard
     local hbL = HB and HB.layout(win, w - T.sp.scrollbarW) or nil
     local zoneHH = hbL and hbL.h or 0
 
-    -- wide or narrow by the width (punch list 36), measured as if a scroll bar shows; the
+    -- wide or narrow by the width, measured as if a scroll bar shows; the
     -- heights hang on this width alone, so they agree with the draw with or without the bar
     local layoutW = w - T.sp.scrollbarW
     local tall = isTall(layoutW)
@@ -1589,12 +1594,13 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
 
-    -- S104: grid-scroll pseudo-zone (Thermal parity). Identity content is
-    -- pure readout — license card + traits list — so no individual row is
-    -- focusable. Instead, a single pseudo-focusable covers the visible
-    -- region below the tab header; D-pad up/down scrolls, and at bounds
-    -- falls through to cone nav back to the disclosure above. Stamped
-    -- only when scroll is actually needed; otherwise nil (builder skips).
+    -- The grid-scroll pseudo-zone, as on the Thermal tab: one stop over the
+    -- visible region below the tab header; D-pad up/down scrolls, and at the
+    -- ends it falls through to the spatial pick, back to the disclosure above.
+    -- The tab's own stops (the Hair and beard rows, each trait:
+    -- IdentityTab.focusables) take its place; ZeD_CharacterWindow falls back
+    -- to this zone only when IdentityTab.focusables is missing. Stamped only
+    -- when scroll is actually needed; otherwise nil (builder skips).
     if needsScroll then
         win._identityGridScrollZone = { x = x, y = scrollY, w = contentW, h = scrollH }
     else
@@ -1643,8 +1649,8 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     if win._placeIdentityModel then win._placeIdentityModel(w) end
 
     -- Pinned tab header: the disclosure arrow turns with _identityPhotoExpanded
-    -- (collapsed = bust, right-pointing; expanded = full body, down). L/R tree-nav
-    -- (gamepad), the header click (mouse) and a click on the photo all toggle it.
+    -- (collapsed = bust, right-pointing; expanded = full body, down). A on it
+    -- (controller), the header click (mouse) and a click on the photo all toggle it.
     -- The hover wash and the controller's mark come with the molecule.
     local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH)
     if hdrHover and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Identity_HelpHeader")) end
@@ -1708,7 +1714,8 @@ function ZeD.IdentityTab.followFocus(win, scroll, viewY, viewH, contentH)
     if newOff ~= off then scroll:setScrollPos(newOff / maxOff) end
 end
 
--- the controller's stops below the disclosure: Hair and beard's, then each trait
+--- The controller's stops below the disclosure: Hair and beard's, then each trait
+--- (ZeD_CharacterWindow's Identity aggregator puts the disclosure first).
 function ZeD.IdentityTab.focusables(win)
     local out = {}
     if ZeD.HairBeard then
@@ -1720,8 +1727,8 @@ function ZeD.IdentityTab.focusables(win)
     return out
 end
 
--- a click in the tab's content (the hair rows, the switch, Out of reach, Cut); the photo's
--- frame around the model picks the photo as the model does
+--- A click in the tab's content (the hair rows, the switch, Out of reach, Cut); the photo's
+--- frame around the model picks the photo as the model does. True when the click was the tab's.
 function ZeD.IdentityTab.onClick(win, x, y)
     if ZeD.HairBeard ~= nil and ZeD.HairBeard.onClick(win, x, y) then return true end
     local z, v = win._identityPhotoZone, win._idView
@@ -1735,7 +1742,7 @@ function ZeD.IdentityTab.onClick(win, x, y)
     return false
 end
 
--- what moves the stops, for the window's rebuild check
+--- What moves the stops, as one string, for the window's rebuild check.
 function ZeD.IdentityTab.scrollKey(win)
     local sc = win._identityScroll
     return tostring(sc and sc.scrollPos or 0) .. ":" .. (ZeD.HairBeard and ZeD.HairBeard.key(win) or "")
@@ -1747,6 +1754,8 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Put the tab's renderer in a window's tab dispatch table (the Character
+--- window's, under "identity").
 function ZeD.IdentityTab.register(dispatchTable)
     dispatchTable["identity"] = ZeD.IdentityTab.render
 end

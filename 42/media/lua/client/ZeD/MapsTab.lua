@@ -1,10 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/MapsTab.lua
 -- ============================================================================
--- MAPS TAB — World Window standalone tab.
+-- MAPS TAB — client; the World Window's map tab.
 -- Embedded UIWorldMap with stash map markers, flyer location dots,
--- user-placed marks (15 icons, 5 inks, text notes). Since Oct 20 2026 the
--- marks live in vanilla's own map store and the engine draws them
--- (MapNotes.lua); the old modData.ZeD_MapAnnotations is only a backup.
+-- user-placed marks (15 icons, 5 inks, text notes). The marks live in
+-- vanilla's own map store and the engine draws them (MapNotes.lua); the
+-- old modData.ZeD_MapAnnotations is only a backup.
 -- ============================================================================
 
 require "ZeD/MapNotes"
@@ -22,7 +22,7 @@ ZeD.MapsTab = ZeD.MapsTab or {}
 local Ext = ZeD.MapsTabExt   -- other pieces on the map: MapsTabExt.lua (ZeD.MapsTab.addExtension)
 
 -- ============================================================================
--- CONSTANTS — duplicated from JournalTab (may diverge)
+-- CONSTANTS — the marks, the inks, and the toolbar's sizes
 -- ============================================================================
 
 -- (key: the mark's name, its toolbar button's hint)
@@ -284,7 +284,7 @@ end
 
 -- ============================================================================
 -- SURVEY / COLOR / PAPER — System 7 radio buttons on the card's band (its
--- left; Oct 30 2026) where they fit; else a pop-up menu, whose list opens up
+-- left) where they fit; else a pop-up menu, whose list opens up
 -- from its box over the map. These open and shut that list, and take a click
 -- while it is open.
 -- ============================================================================
@@ -346,7 +346,7 @@ end
 
 local ZeD_WorldMap = ISUIElement:derive("ZeD_WorldMap")
 -- (its outlines scale with the UI like every ZeD element; it is local, so TextScale's
--- class list cannot reach it; code audit Oct 17 2026)
+-- class list cannot reach it)
 ZeD_WorldMap.zedScaled = true
 
 function ZeD_WorldMap:new(x, y, w, h, playerObj)
@@ -376,14 +376,14 @@ function ZeD_WorldMap:instantiate()
     if self.playerObj then pcall(ZeD.MapNotes.migrate, self.playerObj) end
 
     -- Configure: top-down, no debug, fog-of-war ("HideUnvisited", as vanilla's in-game map sets
-    -- it in ISWorldMap:initDataAndStyle; the engine's default is off, and this read
-    -- "HideUnvisitedAreas" until Oct 15 2026, a name the engine does not have: the whole county
+    -- it in ISWorldMap:initDataAndStyle; the engine's default is off. This once read
+    -- "HideUnvisitedAreas", a name the engine does not have: the whole county
     -- showed whatever the character had explored)
     self.mapAPI:setBoolean("Isometric", false)
     self.mapAPI:setBoolean("DebugInfo", false)
     self.mapAPI:setBoolean("HideUnvisited", true)
-    -- the game's own dots for players, as the server allows (Oct 26 2026, the
-    -- map mods pass; Players On Map draws its own squares and names over them)
+    -- the game's own dots for players, as the server allows (the Players On
+    -- Map mod draws its own squares and names over them)
     pcall(function()
         self.mapAPI:setBoolean("Players", true)
         if isClient() then self.mapAPI:setBoolean("RemotePlayers", true) end
@@ -407,9 +407,7 @@ function ZeD_WorldMap:instantiate()
     self:createChildren()
 end
 
--- THE THREE MAPS (director, Oct 15 2026: "the paper map used in the location selection ...
--- options to show both the paper map and ingame map?"; Oct 19 2026: "there should be two
--- survey maps, one in color"). SURVEY is vanilla's in-game map (its data, streets and
+-- THE THREE MAPS. SURVEY is vanilla's in-game map (its data, streets and
 -- style); COLOR is the same ground as the base map's colour picture (pyramid.zip, the
 -- aerial look); PAPER is the illustrated county map the spawn screen shows (the base map's
 -- spawnSelectImagePyramid, laid out in world squares: not as detailed up close, but fun to
@@ -427,7 +425,7 @@ local function paperFile()
 end
 ZeD.MapsTab.hasPaper = function() return paperFile() ~= nil end
 
--- S124: the label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
+-- The label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
 -- with the root so street and town names, and the player's notes, grow with the rest of the UI.
 local function scaleLabels(mp)
     pcall(function()
@@ -590,7 +588,7 @@ end
 -- engine's render thread may at that moment still be drawing this map's last
 -- frame from those same lists (WorldMapPyramidStyleLayer.renderVisibleCells
 -- reads the picture list unguarded; emptied under it, it throws an
--- IndexOutOfBoundsException, regression Oct 20 2026). So a map that is on
+-- IndexOutOfBoundsException). So a map that is on
 -- screen is restyled only once it has been left out of RESTYLE_HOLD frames:
 -- ZeD.MapsTab.render keeps it hidden till then (_restyleStep) and restyles it
 -- there. A map not drawn lately is restyled at once. self.style is the style
@@ -699,7 +697,7 @@ end
 
 local function _openSharing(mp, sym, fromPad)
     if not _canShare(sym) then return end
-    -- ZeD's card for it (ZeD_MpLeftovers.lua, VANILLA_WINDOWS C5): Private, Everyone or Other, with Done; the game's
+    -- ZeD's card for it (ZeD_MpLeftovers.lua): Private, Everyone or Other, with Done; the game's
     -- panel below only when the card can't open (safe mode)
     local Lo = ZeD.MpLeftovers
     if Lo and Lo.openSharing then
@@ -990,11 +988,11 @@ end
 
 -- Read the currently-focused ring element if focus belongs to the owning
 -- window. Returns nil when another window has focus, or when the ring isn't
--- initialized yet. Used to drive gamepad-only overlays without leaking them
--- into KBM sessions.
--- S123: the map can live in the World drawer OR in the unfolded pop-out
--- window. Focus-dependent paint (cursor, toolbar cues) must read whichever
--- of the two currently owns FocusManager focus.
+-- initialized yet. Used to drive controller-only overlays without leaking
+-- them into mouse play.
+-- The map can live in the World drawer OR in the unfolded pop-out window;
+-- focus-dependent paint (cursor, toolbar cues) must read whichever of the
+-- two currently owns FocusManager focus.
 local function _focusOwner(win)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if not Focus or not win then return nil end
@@ -1089,7 +1087,7 @@ end
 
 -- Render the gamepad crosshair + tool preview at the gp cursor position.
 -- Only runs when the canvas cursor pseudo-focusable is the focused ring
--- element; otherwise the crosshair would bleed into KBM sessions.
+-- element; otherwise the crosshair would bleed into mouse play.
 function ZeD_WorldMap:renderGamepadCursor()
     local win = self._parentWin
     if not win then return end
@@ -1105,8 +1103,7 @@ function ZeD_WorldMap:renderGamepadCursor()
     local ac = T.accent
 
     -- Crosshair — two short orthogonal segments + a small gap in the middle
-    -- so the exact pixel the cursor points at is never obscured. Pattern
-    -- parallels AnimalsTab line 757 (idle-phase tile highlight).
+    -- so the exact pixel the cursor points at is never obscured.
     local arm   = T.px(8)    -- arm length in pixels
     local gap   = T.px(3)    -- half-gap (no pixels drawn within `gap` of center)
     -- Horizontal arms
@@ -1135,7 +1132,7 @@ function ZeD_WorldMap:render()
     self._gpCursorLive = false
     -- what sits ON the map (stash icons, flyer pins and their pulse, previews, the
     -- extensions' marks) is clipped to the map: a pin by the edge never hangs over
-    -- the toolbar or the tab strip (Oct 27 2026). One clip, set and cleared here:
+    -- the toolbar or the tab strip. One clip, set and cleared here:
     -- nothing inside sets its own (stencils do not nest).
     self:setStencilRect(0, 0, self:getWidth(), self:getHeight())
     if self._paperItem then
@@ -1163,12 +1160,12 @@ end
 -- Built from the library: icon buttons for the marks, the note and the unfold
 -- (the hover wash, a hint with the name, help words, the solid active look for
 -- the tool in hand), the inks as swatches with the same hover and controller
--- mark. Since Oct 30 2026 (director, punch list 21) the toolbar is the card's
--- header strip, one standard row: the fold arrow, the six stamps, Aa, the inks,
--- full view at the far right; Survey / Color / Paper (System 7 radio buttons, or
--- a pop-up menu where they do not fit) are the band's (THE BAND). A mark or ink the character
--- lacks the pen for takes the library's disabled look: the help line gives
--- vanilla's reason, and a press still says it over the character's head.
+-- mark. The toolbar is the card's header strip, one standard row: the fold
+-- arrow, the six stamps, Aa, the inks, full view at the far right; Survey /
+-- Color / Paper (System 7 radio buttons, or a pop-up menu where they do not
+-- fit) are the band's (THE BAND). A mark or ink the character lacks the pen
+-- for takes the library's disabled look: the help line gives vanilla's
+-- reason, and a press still says it over the character's head.
 
 local UNFOLD_ICON, FOLD_ICON = "expand", "contract"   -- ZeD pixel icons
 local RADIO_GAP, CHOICE_GAP = 4, 10   -- design units: a radio to its words, between choices (the sort strip's)
@@ -1323,7 +1320,7 @@ local function _styleBoxW()
     return widest + T.px(6) * 2 + T.px(5) + T.px(4)
 end
 
--- Survey / Color / Paper on the band's left (director, Oct 30 2026), from
+-- Survey / Color / Paper on the band's left, from
 -- leftX and ending no later than maxX: the radio buttons when they fit, else
 -- the pop-up menu's box, else nothing. Only when the base map carries its
 -- illustration.
@@ -1400,7 +1397,7 @@ local function _markGrid(panel, win, x, gy, w, pins, why, focId, hov, noteFolded
 end
 
 -- the header row's width after the fold arrow: np stamps spaced g, the note and its
--- line (note), ni inks (Oct 31 2026, break-it E6)
+-- line (note), ni inks
 local function _toolRowW(bs, btnGap, inkW, g, np, ni, note)
     local v = np * (bs + g) + g
     if note then v = v + bs + btnGap * 4 + ZeD.T.hair end
@@ -1428,12 +1425,12 @@ local function renderMapToolbar(panel, win, x, y, w)
     local markWhy = (not ink.write) and "Tooltip_Map_CantWrite" or nil
     local by = y + math.floor((rowH - bs) / 2)
 
-    -- What fits left of full view (Oct 31 2026, break-it E6: at 1280x720, UI scale 2.0,
-    -- Large text the row ran under full view). The stamps close up their spaces first;
+    -- What fits left of full view (at 1280x720 with UI scale 2.0 and Large text
+    -- the row would run under it). The stamps close up their spaces first;
     -- then pinned stamps fold away from the end (each is still in the full set under
     -- the fold arrow); then the note ("Aa", it leads the full set then); the inks go
-    -- last, from the end, and the ink in use never goes (Oct 31 2026, punch list 36, the
-    -- director's pick: the ink in use always shows). Nothing is half drawn.
+    -- last, from the end, and the ink in use never goes: it always shows.
+    -- Nothing is half drawn.
     local nPins, nInk = 0, #MAP_COLORS
     for _, pid in ipairs(pins) do if MAP_ICON_BY_ID[pid] then nPins = nPins + 1 end end
     local chevW = math.max(T.px(8), math.floor(ZeD.TM:getFontHeight(T.fontF1) * 0.7)) + T.px(6)
@@ -1478,9 +1475,9 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + colSz + btnGap
     end
 
-    -- right end: the unfold button (full view). Nothing else on the header strip
-    -- (director, Oct 30 2026): Survey / Color / Paper, the key and the list are
-    -- the band's (renderMapBand); the second toolbar row they took is gone.
+    -- right end: the unfold button (full view). Nothing else on the header
+    -- strip: Survey / Color / Paper, the key and the list are the band's
+    -- (renderMapBand).
     local ux = x + w - T.px(4) - bs
     _unfoldButton(panel, win, ux, by, bs, focId, hov)
     local totalH = rowH
@@ -1518,7 +1515,7 @@ local function renderMapToolbar(panel, win, x, y, w)
 end
 
 -- ============================================================================
--- THE BAND (director, Oct 30 2026; punch list 21)
+-- THE BAND
 -- ============================================================================
 -- The card's one band at its foot (ZeD.Molecules.drawBand): Survey / Color /
 -- Paper on the left, the extensions' buttons on the right (the map key, mods'
@@ -1610,7 +1607,7 @@ end
 function ZeD.MapsTab.render(panel, win, x, y, w, h)
     local T = ZeD.T
 
-    -- S123: while the map is unfolded into the pop-out, the drawer shows a
+    -- While the map is unfolded into the pop-out, the drawer shows a
     -- fold-back placeholder instead of a second live map (the Java UIWorldMap
     -- is owned by exactly one panel at a time). The whole of it is one stop for
     -- the controller (it folds the map back), so it carries the mark.
@@ -1630,8 +1627,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     if not win._mapPopout then win._mapFoldZone = nil end
 
     if _mapBlocked(panel, win, x, y, w, h) then return end
-    -- (the header strip inherits the drawer's background, as every tab's header
-    -- strip; Oct 30 2026, it was a surface of its own)
+    -- (the header strip inherits the drawer's background, as every tab's
+    -- header strip)
 
     -- Lazy-create inline text entry for map annotations
     if not win._mapTextEntry then
@@ -1708,7 +1705,7 @@ end
 -- ============================================================================
 
 function ZeD.MapsTab.onClick(win, x, y)
-    -- S123: clicks on the drawer placeholder while unfolded -> fold back.
+    -- clicks on the drawer placeholder while unfolded -> fold back
     if win._mapPopout and not win._mapClickFromPopout then
         local z = win._mapFoldZone
         if z and x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
@@ -1721,7 +1718,7 @@ function ZeD.MapsTab.onClick(win, x, y)
     if _styleMenuClick(win, x, y) then return end
     -- the extensions' controls: toolbar buttons and rows, the key, the side list
     if Ext.onClick(win, x, y) then return end
-    -- S123: unfold / fold button
+    -- unfold / fold button
     if win._mapPopoutZone then
         local z = win._mapPopoutZone
         if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
@@ -1819,8 +1816,8 @@ end
 -- FOCUSABLE BUILDER — ring elements for the World window's worldTabContent
 -- ============================================================================
 -- Called each frame from ZeD_WorldWindow's per-frame refresh when the Maps
--- tab is active. Returns elements for LB/RB/D-pad navigation across (Oct 30
--- 2026: header, map, band):
+-- tab is active. Returns elements for LB/RB/D-pad navigation across the
+-- header, the map and the band:
 --   [disclosure → pinned tool icons → text tool → colors → unfold →
 --    (if expanded) grid tool icons → the extensions' rows, key, side list →
 --    canvas cursor → Survey / Color / Paper → the band's buttons (key, list)
@@ -1885,7 +1882,7 @@ function ZeD.MapsTab.buildFocusables(win)
     if not win then return {} end
     local elements = {}
 
-    -- S123: while unfolded, the drawer exposes a single "fold" target so A
+    -- While unfolded, the drawer exposes a single "fold" target so A
     -- on the placeholder brings the map back. The pop-out builds its own
     -- elements through _renderPopout (flag set while it does).
     if win._mapPopout and not win._mapBuildingForPopout then
@@ -1934,7 +1931,7 @@ function ZeD.MapsTab.buildFocusables(win)
                 onCancel = function(w, _el) _closeStyleMenu(w, true); return true end,
             }
         end
-        -- (Oct 30 2026, punch list 21 a-f: modal: Up / Down stop at its ends, Left / Right do nothing)
+        -- (the list is modal: Up / Down stop at its ends, Left / Right do nothing)
         elements._menuRows = true
         return elements
     end
@@ -1971,7 +1968,7 @@ function ZeD.MapsTab.buildFocusables(win)
         end
     end
 
-    -- 3b. S123: unfold / fold button (full view, the header's far right).
+    -- 3b. Unfold / fold button (full view, the header's far right).
     if win._mapPopoutZone then
         local pz = win._mapPopoutZone
         elements[#elements + 1] = {
@@ -1994,9 +1991,8 @@ function ZeD.MapsTab.buildFocusables(win)
     -- 4. Canvas cursor pseudo-focusable (between the header and the band). Bounds = the map
     -- panel's bbox inside the content panel, so cone-nav from toolbar
     -- elements naturally drops onto the canvas when the user D-pads down.
-    -- D-pad WHILE this element is focused is intercepted at win-level and
-    -- routed to ZeD.MapsTab.gpMoveCursor — see ZeD_WorldWindow joypadDir
-    -- handlers.
+    -- The D-pad keeps navigating while it is focused; the left stick moves
+    -- the cursor and the triggers zoom (_mapPadTick, every tick).
     local mp = win._worldMapPanel
     if mp then
         elements[#elements + 1] = {
@@ -2020,20 +2016,16 @@ function ZeD.MapsTab.buildFocusables(win)
             onContextMenu = function(w, _el)
                 ZeD.MapsTab.gpContextMenuAtCursor(w)
             end,
-            -- Oct 19 2026 (the nav audit; director: "the map tab was
-            -- particularly unfriendly to my logic"): the D-pad no longer
-            -- moves the cursor. It moved it from S113 on, so on the map the
-            -- D-pad stopped navigating (only B got out). Now the D-pad
-            -- navigates here as everywhere; the left stick moves the cursor
-            -- (pushing it at an edge pans the map) and the triggers zoom,
-            -- as the footer says.
+            -- The D-pad does not move the cursor: it navigates here as it
+            -- does everywhere (when it moved the cursor instead, the map
+            -- trapped the controller and only B got out). The left stick
+            -- moves the cursor (pushing it at an edge pans the map) and the
+            -- triggers zoom, as the footer says.
             onCancel = function(w, _el)
-                -- B tap: if a tool is armed, exit tool mode and consume B.
-                -- Otherwise (no tool), escape the cursor entirely by jumping
-                -- focus to the first non-cursor toolbar element above. The
-                -- cursor's onDpadDir intercepts ALL D-pad presses for cursor
-                -- movement, so without this escape the user is stuck on the
-                -- canvas with no way to reach the toolbar (S113c QA finding).
+                -- B tap: a tool in hand goes down first (and takes the B).
+                -- Otherwise escape the cursor by jumping focus to the first
+                -- non-cursor toolbar element above, so B is always a way off
+                -- the canvas.
                 if w._mapActiveTool then
                     w._mapActiveTool = nil
                     w._mapEdit = nil
@@ -2074,14 +2066,14 @@ function ZeD.MapsTab.buildFocusables(win)
 end
 
 -- ============================================================================
--- GAMEPAD HELPERS — exported for ring wiring and win-level D-pad intercept
+-- GAMEPAD HELPERS — exported for ring wiring and the cursor's per-tick input
 -- ============================================================================
 -- The Maps tab registers a canvas-cursor pseudo-focusable in the world
--- window's ring. When that element is focused, D-pad is intercepted at the
--- World window level and routed to gpMoveCursor — it nudges the cursor in
--- panel-local pixels, and when the cursor approaches a viewport margin it
--- pans the world instead so the cursor sits at the margin and the map
--- scrolls underneath (classic "scrolloff" pattern).
+-- window's ring. While that element is focused, _mapPadTick feeds the left
+-- stick into gpMoveCursor — it nudges the cursor in panel-local pixels, and
+-- when the cursor approaches a viewport margin it pans the world instead so
+-- the cursor sits at the margin and the map scrolls underneath (classic
+-- "scrolloff" pattern).
 
 local MAP_GP_STEP_PX       = 6    -- cursor pixels per D-pad press (held: speeds up to MAP_GP_STEP_MAX)
 local MAP_GP_STEP_MAX      = 40   -- cursor pixels per press once the D-pad has been held a while
@@ -2188,8 +2180,7 @@ function ZeD.MapsTab.gpContextMenuAtCursor(win)
 end
 
 -- Step per D-pad press: small for a tap, growing while the D-pad is held
--- (presses closer than 250 ms apart are the hold's repeats). Director, Oct 15
--- 2026: "Map is really hard to use on controller".
+-- (presses closer than 250 ms apart are the hold's repeats).
 local _gpStep = { t = 0, n = 0 }
 function ZeD.MapsTab.gpCursorStep()
     local T = ZeD.T
@@ -2259,7 +2250,7 @@ end
 if Events and Events.OnTick then Events.OnTick.Add(_mapPadTick) end
 
 -- ============================================================================
--- POP-OUT (S123) -- "unfold" the map into a large centred window.
+-- POP-OUT -- "unfold" the map into a large centred window.
 --
 -- Mode, not a new feature: the pop-out reuses the SAME toolbar, tools,
 -- colours, pins, annotations, cursor and gamepad wiring as the drawer. The
@@ -2468,8 +2459,8 @@ function ZeD.MapsTab.closePopout(win, keepWorld)
         return
     end
     pcall(function() getSoundManager():playUISound("UIActivateTab") end)
-    -- the controller lands back on the unfold button it left from (Oct 19 2026
-    -- nav audit: it landed on the tab column)
+    -- the controller lands back on the unfold button it left from, not on
+    -- the tab column
     if Focus and Focus.focusByIdSoon then
         Focus.claimFocus(win)
         Focus.focusByIdSoon(win, "worldTabContent", "map:popout")

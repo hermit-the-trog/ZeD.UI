@@ -1,6 +1,6 @@
 -- ZeDQAShim/42/media/lua/server/ZeDQAShim/QARole.lua   DEV ONLY, never stage, never upload.
 -- ============================================================================
--- What lets QA test the server's own permission checks (ZeDUI/MP_SERVER_PART_DESIGN.md, Part D). A -debug client may
+-- What lets QA test the server's own permission checks (docs/specs/MP_SERVER_PART_DESIGN.md, Part D). A -debug client may
 -- only join as an admin, and the server refuses /setaccesslevel on the logged-in account, so the test client asks here:
 --   ZeDQA.role {name}    runs setRole on the sender's server object, the role the server part reads. The connection's
 --                        role stays, so the -debug client stays on. "ZeDQA role" comes back with the role's name.

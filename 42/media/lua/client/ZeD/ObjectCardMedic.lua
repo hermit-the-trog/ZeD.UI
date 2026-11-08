@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardMedic.lua
 -- ============================================================================
--- OBJECT CARD: MEDICAL CHECK OF ANOTHER PLAYER (HOOK_MAP row 17; the director, Nov 7 2026: B11 as
--- a World window card). Right-click a player > Medical Check: they say yes (the game's own question,
+-- OBJECT CARD: MEDICAL CHECK OF ANOTHER PLAYER (card definition, client)
+-- Right-click a player > Medical Check: they say yes (the game's own question,
 -- a ZeD prompt), the game's ISMedicalCheckAction runs, and where vanilla's perform opens its health
 -- panel on them (ISHealthPanel in a collapsible window) this card opens instead (Overrides/
 -- TradeMedic.lua). It is ZeD's Health tab on the patient:

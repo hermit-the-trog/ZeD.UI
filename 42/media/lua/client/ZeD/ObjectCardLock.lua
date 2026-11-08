@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardLock.lua
 -- ============================================================================
--- OBJECT CARD: PADLOCKS (HOOK_MAP row 25; mockup zed_padlock_codes_v1.html)
+-- OBJECT CARD: PADLOCKS (card definition, client)
 -- Vanilla sets and opens a combination padlock in ISDigitalCode, a small
 -- pop-up mid-screen (three text boxes with ^ and v). This card replaces it in
 -- the World window's card drawer for any object that takes a padlock (the
@@ -15,8 +15,8 @@
 --     closes); every try is vanilla's own 20-tick action, right or wrong;
 --   * key padlocks on the same card (vanilla's Use / Remove Padlock).
 -- A verb the character cannot do yet is hidden with what it needs (hidden actions).
--- The code is never stored for the player (director, Oct 14 2026: vanilla
--- keeps no record, and neither do we).
+-- The code is never stored for the player: vanilla keeps no record, and
+-- neither do we.
 -- ============================================================================
 
 require "ZeD/ObjectCards"
@@ -49,7 +49,7 @@ local LOCK_W, LOCK_H = 236, 214
 local FLASH_MS = 6000
 
 -- half = true: the half card (220), like the recipe preview, not the full object card (480) every
--- kind gets by default (ZeD_WorldWindow reads def.half; punch list 99). The padlock's own shape spans
+-- kind gets by default (ZeD_WorldWindow reads def.half). The padlock's own shape spans
 -- 186 of LOCK_W's 236 units (the rest is margin), so it fits the half card's body (200, or 186 beside
 -- a scrollbar); the facts stack (fact below), the busy band puts its words on a row of their own, and
 -- the card's header and verbs fit themselves to the half card (ObjectCards drawHeader / drawVerbs).
@@ -549,7 +549,7 @@ local function band(card, x, y, w, t, player)
     local ac = T.accent
     local f1 = T.fontF1
     local busyText = A.textCase(d.busyText or "")
-    -- the row with the bar, the percent and Stop; in the half card (punch list 99) the busy words get rows
+    -- the row with the bar, the percent and Stop; in the half card the busy words get rows
     -- of their own above it, wrapped to the band, so neither the words nor the bar is squeezed out at 220
     local rowH = math.max(T.px(32), T.buttonH + T.px(8))
     local stacked = w < T.px(300)
@@ -596,7 +596,7 @@ local function band(card, x, y, w, t, player)
     return h
 end
 
--- One fact: the label in the accent, its value beside it. In the half card (220; punch list 99) a
+-- One fact: the label in the accent, its value beside it. In the half card (220) a
 -- value column 96 in is too narrow for most values, so there the label sits on its own row and the
 -- value wraps under it across the whole body. Returns the height drawn.
 local function fact(card, x, y, w, label, value, dotC)

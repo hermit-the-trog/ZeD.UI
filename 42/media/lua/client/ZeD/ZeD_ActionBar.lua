@@ -1,12 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ActionBar.lua
 -- ============================================================================
--- THE ACTION BAR — the progress bar over the character's head (Oct 19 2026;
--- mockup ZeDUI/mockups/zed_action_bar_v2.html, approved "ship it").
+-- THE ACTION BAR — the progress bar over the character's head (client; hooks on
+-- ISBaseTimedAction, and one HUD layer per local player that draws it).
 --
 -- Vanilla: every timed action puts a plain bar over the head, drawn by the engine
 -- (Options > Action Progress Bar Size, 100-400%), restarting for every item of a
 -- queue. ZeD switches the engine's bar off as each action is created and draws its
--- own in the same spot, in one of two ways (Options > Mods > ZeD UI > Action bar):
+-- own in the same spot, in one of two ways (Options > Mods > ZeD UI > Action bar,
+-- where VERBOSE is called Detailed):
 --
 --   VERBOSE (default)  two lines in the HUD's pixel faces (ZeD/PixelFonts.lua):
 --                      the action in the 5 x 7 face in the accent with the queue
@@ -31,11 +32,11 @@
 -- Pixel art: drawn in design units on whole multiples (ZeD.Px canvas, k = the root
 -- scale as a whole multiple x vanilla's size option), so every pixel stays square.
 --
--- Oct 24 2026 (mockup ZeDUI/mockups/zed_bubbles_v1, "Bubbles are good. Themed yes."):
 -- VERBOSE is drawn inside a rounded thought bubble with a trail of three small
 -- bubbles down to the head, and what the character says over their head is drawn
 -- by the same layer as a speech balloon (ZeD/ZeD_Bubbles.lua: the shapes and the
--- speech hook). Speaking while the bar is up puts the balloon beside it.
+-- speech hook), as are the overhead notes ZeD_HaloText.lua hands over. Speaking
+-- while the bar is up puts the balloon beside it.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -53,7 +54,7 @@ local P = ZeD.Px
 -- ---------------------------------------------------------------------------
 -- tuning
 -- ---------------------------------------------------------------------------
-AB.HEAD_Z = 0.62          -- the top of the hair above the feet, in floors (measured in game Oct 19 2026: 119 of 192 px)
+AB.HEAD_Z = 0.62          -- the top of the hair above the feet, in floors (measured in game: 119 of 192 px)
 AB.GAP = 6                -- design units between the head and the bar
 AB.END_HOLD = 450         -- ms the done / stopped state holds before it fades
 AB.END_FADE = 350         -- ms of fade after that
@@ -125,7 +126,8 @@ AB.LABELS = {
     ISInflateTire = "INFLATING", ISDeflateTire = "DEFLATING", ISTakeEngineParts = "TAKING PARTS", ISTakeBricks = "TAKING BRICKS",
     ISPadlockAction = "LOCKING", ISPadlockByCodeAction = "LOCKING", ISPickAxeGroundCoverItem = "DIGGING UP",
     ISPickUpGroundCoverItem = "PICKING UP",
-    -- the rest of vanilla (Oct 19 2026: the class names alone gave OVENING, HORNING...)
+    -- the rest of vanilla, each named by hand: guessed from the class name (AB.autoLabel), most would
+    -- read WORKING and some oddly (ISOpenCloseCurtain: OPENING CLOSE)
     AIAttachLureAction = "ATTACHING LURE", AIRemoveLureAction = "REMOVING LURE", AddChumToWaterAction = "CHUMMING",
     CreateChumFromGroundSandAction = "MAKING CHUM", HealthPanelAction = "TREATING",
     ISActivateCarBatteryChargerAction = "SWITCHING ON", ISAddAnimalInTrailer = "LOADING", ISAddBaitToFishNetAction = "BAITING",
@@ -213,7 +215,7 @@ function AB.autoLabel(typeName)
 end
 -- A food item with a verb of its own (the game's CustomContextMenu: a cigarette is smoked, a juice
 -- box drunk, gum chewed) still goes through the game's eat action; the bar says the item's verb, as
--- the game's own progress bar does (director, Oct 24 2026: "Seems weird the character would be eating a cig").
+-- the game's own progress bar does, so nobody is seen "eating" a cigarette.
 local FOOD_VERBS = { Smoke = "UI_ZeD_Act_FoodSmoke", Drink = "UI_ZeD_Act_FoodDrink", Take = "UI_ZeD_Act_FoodTake",
                      Sniff = "UI_ZeD_Act_FoodSniff", Chew = "UI_ZeD_Act_FoodChew" }
 local function foodVerbKey(action)
@@ -258,7 +260,7 @@ local ITEM_FIELDS = { "item", "book", "food", "clothing", "weapon", "gun", "band
 -- the regular face by ZeD.Px.text. So nothing is stripped or turned into plain letters here.
 function AB.clean(s)
     s = tostring(s or "")
-    -- vanilla's "Book: Far From Home": the title, not the category (seen in game Oct 19 2026)
+    -- vanilla's "Book: Far From Home": the title, not the category
     local after = s:match("^[^:]+:%s+(.+)$")
     if after and after ~= "" then s = after end
     s = ZeD.upper(s)
@@ -288,6 +290,7 @@ end
 -- ---------------------------------------------------------------------------
 -- the engine's bar off, ours on: hooks on the base timed action
 -- ---------------------------------------------------------------------------
+-- (hooked once: AB survives a Lua reload, so a reload never wraps the wrapper)
 if not AB._hooked then
     AB._hooked = true
     local origCreate = ISBaseTimedAction.create
@@ -342,7 +345,7 @@ end
 
 -- how many items an action still has to do: B42's item transfer merges the transfers queued after it into
 -- one action (queueList: one step per entry, light items of a kind moved up to 20 at a time) and resets its
--- progress for every step (Oct 19 2026, seen in game: a six-item move read 1/1)
+-- progress for every step (counted as one action, a six-item move would read 1/1)
 local function itemsOf(a)
     local ql = a.queueList
     if type(ql) == "table" and #ql > 0 then
@@ -524,7 +527,8 @@ function AB.verboseWidth(st)
     return math.max(60, math.max(w1, w2))
 end
 
--- the plain box (before the thought bubble; kept for the outside-the-game test)
+-- the plain box, no thought bubble: nothing in the game draws it; ZeDUI/tools/qa/test_actionbar.py
+-- renders it outside the game
 function AB.drawVerbose(cv, T, st, a, ms)
     local W, H = AB.sizeVerbose(st)
     R(cv, 0, 0, W, H, T.borderS, a); R(cv, 1, 1, W - 2, H - 2, ZeD.Bubbles.solid.surf1, a)
@@ -533,11 +537,10 @@ end
 
 -- the verbose layout with its top-left at (px, py), bw wide: L1 / R1 in the 5 x 7 face ("57t": accented capitals
 -- at full height, their marks in the two rows above py, which the box and the bubble leave free), L2 / R2 in the
--- 3 x 5 face 11 below ("35t", the same, its marks in the two rows over it: the director, Nov 3 2026, "Yes, 2 px
--- taller", so the item name reads MAÇÃ, not MAÇA), the bar 18 below. The bar is the windows' framed strip (director, Oct 27 2026: "Make the
--- belt hands' condition ring and the action bar's progress line the same chunky framed strip as the other
--- status bars"): a 1-unit T.borderS frame, the solid base well, a flat fill BAR_H - 2 tall inside the frame;
--- the queue's steps divide it with frame-coloured lines
+-- 3 x 5 face 11 below ("35t", the same: its marks in the two rows over it, so the item name reads MAÇÃ, not
+-- MAÇA), the bar 18 below. The bar is the same chunky framed strip as the windows' status bars and the belt
+-- hands' condition ring: a 1-unit T.borderS frame, the solid base well, a flat fill BAR_H - 2 tall inside the
+-- frame; the queue's steps divide it with frame-coloured lines
 AB.BAR_H = 6
 function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
     local L1, R1, L2, R2 = AB.verboseText(st)
@@ -617,7 +620,7 @@ function ZeD_ActionBarLayer:drawRect(x, y, w, h, a, r, g, b)
     ISUIElement.drawRect(self, x, y, w, h, a * (self._zedAlpha or 1), r, g, b)
 end
 
--- the multiple: ZeD's root scale as a whole number, times vanilla's size option (1-4)
+--- The multiple: ZeD's root scale as a whole number, times vanilla's size option (1-4).
 function AB.k()
     local root = (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1
     local opt = 1
@@ -625,7 +628,7 @@ function AB.k()
     return P.k(root) * math.max(1, math.min(4, opt))
 end
 
--- the top of the head on screen (UI coordinates)
+--- The top of the head on screen (UI coordinates).
 function AB.headScreen(pn, chr)
     local x, y, z = chr:getX(), chr:getY(), chr:getZ()
     local sx = isoToScreenX(pn, x, y, z + AB.HEAD_Z)

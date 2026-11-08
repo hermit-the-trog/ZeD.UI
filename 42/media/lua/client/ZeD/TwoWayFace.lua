@@ -1,15 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/TwoWayFace.lua
 -- ============================================================================
--- THE TWO-WAY RADIOS' FACES — shared by the radio tab (RadioTab.lua) and full
--- view (TwoWayFull.lua). Handoff ZeDUI/HANDOFF_twoway_20261025.md, mockup
--- ZeDUI/mockups/zed_twoway_v1 (director, Oct 25 2026: "mock up the walkie
--- talkie faces, to replace the ones in the radio tab", then "faces only, no
--- antenna or mic. clicking full view will show without. full view is like the
--- watch, no window frame").
+-- THE TWO-WAY RADIOS' FACES (client) — shared by the radio tab (RadioTab.lua)
+-- and the full view (TwoWayFull.lua). The faces replace the radio tab's plain
+-- controls; they are faces only, no antenna or mic in the art, and the full
+-- view is frameless, like the watch.
 --
 -- A radio whose device data is two-way (deviceData:getIsTwoWay()) is drawn as
--- its own pixel-art face, a plate in PhysPx.lua (ZeDUI/tools/physpx/d_walkie.py)
--- drawn by the shared plate template (ZeD_Plate.lua), as the car radios are:
+-- its own pixel-art face: a plate in PhysPx.lua (a generated file; its source
+-- is ZeDUI/tools/physpx/d_walkie.py) drawn by the shared plate template
+-- (ZeD_Plate.lua), as the car radios are:
 -- five walkies, the makeshift walkie and the ManPack (200 x 360 / 200 x 280,
 -- in a 220 panel), three tabletop ham sets (400 x 172). Live on each: the
 -- display, the knob pointers, the TX lamp, the hams' band marker and RANGE.
@@ -23,6 +22,8 @@
 --   mic   push to talk: the mic latched live, again to mute it
 --   mute, scan   as on the car          p1..p6  (army ham) a memory at once
 --   lamp  the display's backlight for 5 s (Tactical, US Army)
+-- Nothing is kept here between calls: each one reads the radio afresh
+-- (TW.read), and ZeD_RadioOps holds what lasts (flashes, scans, the lamp).
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -40,7 +41,7 @@ local P = ZeD.Px
 local PL = ZeD.Plate
 
 TW.PANEL_W = 220          -- a walkie's panel: the item card's compact width (plate px); the face sits in it, 10 either side
-TW.HALF_W = 220           -- the half card (units): a walkie's tab (director, Oct 25 2026; two card widths, Oct 29)
+TW.HALF_W = 220           -- the half card's width (units): the room a walkie's tab gets
 TW.PAD = 10               -- the space round a face (plate px)
 TW.PRESS_SHADE = 0.35     -- a held key's shade
 
@@ -50,8 +51,9 @@ ZeD.trDefaults({
     UI_ZeD_Radio_FullView = "Full view", UI_ZeD_Radio_CloseFullView = "Close full view", UI_ZeD_RadioPrompt_Lamp = "Light",
 })
 
--- per face: the brand the tab's footer names (the maker's mark, printed as on the set; a hand-built set has none),
--- whether it is a base set, and its display's kind (what TW.reading fills in)
+-- per face: whether it is a base set, and its display's kind (what TW.reading
+-- fills in). brand is the maker's mark as printed on the set (a hand-built set
+-- has none); nothing draws it today — the face art already carries it.
 TW.INFO = {
     walkie_toy       = { brand = "TOYS-R-MINE",          kind = "toy" },
     walkie_valutech  = { brand = "VALUTECH",             kind = "walkie" },
@@ -65,6 +67,8 @@ TW.INFO = {
     ham_makeshift    = { brand = "",                     kind = "hamchar", base = true },
 }
 
+-- o:m() or default when the method is missing, throws or returns nil. The
+-- game's Java side can throw; pcall turns a crash into a value we can test.
 local function _inv(o, m) return o[m](o) end
 local function _get(o, m, default)
     if o == nil or o[m] == nil then return default end
@@ -74,6 +78,7 @@ local function _get(o, m, default)
 end
 TW._get = _get
 local function now() return getTimestampMs() end
+-- a plate's texture by file name, from PhysPx's texture folder
 local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 TW.plateTex = plateTex
 
@@ -95,9 +100,9 @@ local function droppedItem(obj)
     return nil
 end
 
--- the face's plate id for a radio (an item, or a set in the world), nil when it is not a two-way radio. An item by
--- its full type; a placed set by the item it was placed from (its tile's CustomItem) or else its tile; a radio
--- dropped on the floor by its item. A modded two-way borrows the ValuTech walkie (in the hands) or the civilian ham.
+--- The face's plate id for a radio (an item, or a set in the world), nil when it is not a two-way radio. An item by
+--- its full type; a placed set by the item it was placed from (its tile's CustomItem) or else its tile; a radio
+--- dropped on the floor by its item. A modded two-way borrows the ValuTech walkie (in the hands) or the civilian ham.
 function TW.plateId(dev, dd)
     local X = ZeD.PhysPx
     local tw = X and X.twoway
@@ -126,7 +131,7 @@ function TW.plateId(dev, dd)
     return id
 end
 
--- for a radio tab entry ({ radioInstance, deviceData }): its plate id and plate
+--- For a radio tab entry ({ radioInstance, deviceData }): its plate id and plate.
 function TW.plateFor(entry)
     if not (entry and entry.radioInstance) then return nil, nil end
     local id = TW.plateId(entry.radioInstance, entry.deviceData)
@@ -134,34 +139,34 @@ function TW.plateFor(entry)
     return id, ZeD.PhysPx.plates[id]
 end
 
--- a ham set's narrow face (mockup zed_ham_narrow_v1, approved Oct 25 2026): the same set rearranged into a walkie's
--- width, drawn where the radio tab cannot hold the wide one at the plates' whole zoom. Its controls are the wide set's.
+--- A ham set's narrow face: the same set rearranged into a walkie's width, drawn where the radio tab cannot
+--- hold the wide one at the plates' whole zoom. Its controls are the wide set's.
 function TW.narrowOf(pid)
     local X = ZeD.PhysPx
     local id = X and X.twoway and X.twoway.narrow and X.twoway.narrow[pid]
     if id and X.plates[id] then return id, X.plates[id] end
     return nil, nil
 end
--- the wide set a face belongs to (a narrow face's own set, a width's own face; any other face is its own)
+--- The wide set a face belongs to (a narrow face's own set, a width's own face; any other face is its own).
 function TW.basePid(pid)
     local X = ZeD.PhysPx
-    if type(pid) == "string" then pid = pid:gsub("@%d+$", "") end   -- "walkie_toy@180" (Oct 30 2026)
+    if type(pid) == "string" then pid = pid:gsub("@%d+$", "") end   -- a width variant's id: "walkie_toy@180"
     for wide, narrow in pairs((X and X.twoway and X.twoway.narrow) or {}) do if narrow == pid then return wide end end
     return pid
 end
 function TW.info(pid) return TW.INFO[TW.basePid(pid)] end
 
+--- True for a tabletop ham set's face (wide or narrow).
 function TW.isBase(pid) local i = TW.info(pid); return i and i.base == true end
--- the space a face takes in the tab (plate px): a walkie's panel (a width's own, `fill`; else the 220 one), a
--- ham set's own width
+--- The space a face takes in the tab (plate px): a walkie's panel (a width's own, `fill`; else the 220 one), a
+--- ham set's own width.
 function TW.slotW(des)
     if des.fill and des.fill >= des.w then return des.fill end
     return math.max(des.w, TW.PANEL_W)
 end
--- a walkie's face for the half card (Oct 30 2026, HANDOFF_plates_fill_20261030.md; punch list item 2: the tab was
--- designed half width): the widest of its widths whose PANEL at zoom k fits the half card's room (220 units less
--- the scrollbar). Returns its id, its plate and the panel's width (plate px); nil when none fits (the tab is then
--- the full card with today's face).
+--- A walkie's face for the half card (the tab is designed half width): the widest of its widths whose PANEL at
+--- zoom k fits the half card's room (220 units less the scrollbar). Returns its id, its plate and the panel's
+--- width (plate px); nil when none fits (the tab is then the full card with today's face).
 function TW.halfFace(pid, k)
     local T = ZeD.T
     local id, pw = P.pickWidth(pid, T.px(TW.HALF_W) - T.sp.scrollbarW, k)
@@ -201,7 +206,7 @@ end
 
 local function freq2(hz) return string.format("%.2f", (hz or 0) / 1000) end
 
--- the display's fields (ZeD_Plate's radioDisplay), nil while the set is off (the glass stays blank)
+--- The display's fields (ZeD_Plate's radioDisplay), nil while the set is off (the glass stays blank).
 function TW.reading(st, kind)
     if not (st and st.on) then return nil end
     local preset = st.presetIdx and st.presets[st.presetIdx]
@@ -236,7 +241,7 @@ local function isDark()
     return W._isDark(gt:getTimeOfDay() or 12) == true
 end
 
--- what the face's live parts read (the plate template's state)
+--- What the face's live parts read (the plate template's state).
 function TW.plateState(st, pid)
     local ps = {}
     local info = TW.info(pid) or TW.INFO.walkie_valutech
@@ -259,13 +264,13 @@ end
 -- ---------------------------------------------------------------------------
 -- ACTIONS (vanilla's radio code through ZeD_RadioOps; chr = the character, dev = the radio)
 -- ---------------------------------------------------------------------------
--- a knob turned one click (dir +1 / -1); mult = the fast-turn multiplier
+--- A knob turned one click (dir +1 / -1); mult = the fast-turn multiplier.
 function TW.turn(chr, dev, id, dir, mult)
     if id == "vol" then O.volStep(chr, dev, dir, false)
     elseif id == "tune" then O.tuneStep(chr, dev, dir, mult or 1) end
 end
 
--- the press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half)
+--- The press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half).
 function TW.press(chr, dev, id, dx)
     local st = TW.read(dev)
     if not st then return end
@@ -282,7 +287,7 @@ function TW.press(chr, dev, id, dx)
     elseif id == "lamp" then O.lamp(dev); pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
 end
 
--- the second meaning (X, a hold, a right-click); owner = what the naming box answers to
+--- The second meaning (X, a hold, a right-click); owner = what the naming box answers to.
 function TW.secondary(chr, dev, id, owner)
     local st = TW.read(dev)
     if not st then return end
@@ -291,10 +296,10 @@ function TW.secondary(chr, dev, id, owner)
     elseif id == "tune" or id == "vol" then TW.turn(chr, dev, id, -1) end
 end
 
--- presses that act on the release (a hold does the second meaning instead)
+--- Presses that act on the release (a hold does the second meaning instead).
 function TW.holdable(id) return id == "mem" or id:match("^p%d$") ~= nil end
 
--- a held press past O.HOLD_MS does its second meaning once; hold = { id, t0, fired }
+--- A held press past O.HOLD_MS does its second meaning once; hold = { id, t0, fired }.
 function TW.holdTick(hold, chr, dev, owner)
     if hold and not hold.fired and TW.holdable(hold.id) and now() - hold.t0 >= O.HOLD_MS then
         hold.fired = true
@@ -302,7 +307,7 @@ function TW.holdTick(hold, chr, dev, owner)
     end
 end
 
--- what A and X do on a control (the controller strip's words), nil = nothing
+--- What A does on a control (the controller strip's words), nil = nothing.
 function TW.labelA(id)
     if not id or id == "tune" then return nil end
     if id == "vol" then return getText("IGUI_RadioPower") end
@@ -312,6 +317,7 @@ function TW.labelA(id)
     if id == "mic" then return getText("IGUI_RadioMicrophone") end
     return ZeD.tr(K[id] or "UI_ZeD_RadioPrompt_Press")
 end
+--- What X does on a control (store a memory, name the channel), nil = nothing.
 function TW.labelX(id)
     if not id then return nil end
     if id:match("^p%d$") then return ZeD.tr("UI_ZeD_RadioPrompt_Store") end
@@ -319,7 +325,7 @@ function TW.labelX(id)
     return nil
 end
 
--- MEM held: name the channel (stored first if it is not yet), in vanilla's text box (the ZeD prompt)
+--- MEM held: name the channel (stored first if it is not yet), in vanilla's text box (the ZeD prompt).
 function TW.nameChannel(chr, dev, owner)
     local st = TW.read(dev)
     if not (st and chr) then return end
@@ -340,6 +346,7 @@ function TW.nameChannel(chr, dev, owner)
     if JoypadState.players[pn + 1] then setJoypadFocus(pn, box) end
     return box
 end
+-- the naming box's answer: OK renames memory idx; any other button leaves it
 function TW.onNamed(target, button, idx)
     if not (button and button.internal == "OK") then return end
     local text = button.parent and button.parent.entry and button.parent.entry:getText() or ""
@@ -369,7 +376,7 @@ end
 -- A key wears the library's looks (the pointer's wash, the controller's focus mark); a knob keeps its
 -- ring, which is the knob's own light.
 -- ---------------------------------------------------------------------------
-local OWN_FOCUS = { focused = true }
+local OWN_FOCUS = { focused = true }   -- face.own: no ZeD window to ask, so the mark takes the key as focused (still pad-only)
 function TW.drawFace(panel, x, y, k, face)
     local T = ZeD.T
     local st = TW.read(face.dev)
@@ -393,7 +400,7 @@ function TW.drawFace(panel, x, y, k, face)
     return hits, st
 end
 
--- the control under a point (panel px), nil when none
+--- The control under a point (panel px), nil when none.
 function TW.hitAt(hits, x, y)
     for i = #(hits or {}), 1, -1 do
         local h = hits[i]
@@ -402,7 +409,7 @@ function TW.hitAt(hits, x, y)
     return nil
 end
 
--- the controls in reading order (top to bottom, then left to right; rows 12 plate px apart)
+--- The controls in reading order (top to bottom, then left to right; rows 12 plate px apart).
 function TW.readingOrder(hits, k)
     local out = {}
     for i, h in ipairs(hits or {}) do out[i] = h end
@@ -415,7 +422,7 @@ function TW.readingOrder(hits, k)
     return out
 end
 
--- the nearest control in a direction (centre to centre, straight lines preferred), as the car radio walks its face
+--- The nearest control in a direction (centre to centre, straight lines preferred), as the car radio walks its face.
 function TW.nearest(hits, cur, dx, dy)
     if not cur then return nil end
     local cx, cy = cur.x + cur.w / 2, cur.y + cur.h / 2
@@ -434,13 +441,14 @@ function TW.nearest(hits, cur, dx, dy)
     return best
 end
 
--- the tuning knob's speed for a held D-pad or a spun wheel (a ham set's dial runs faster)
+--- The tuning knob's speed for a held D-pad or a spun wheel (a ham set's dial runs faster).
 function TW.turnMult(pid, streak)
     if TW.isBase(pid) then return (streak >= 10 and 25) or (streak >= 4 and 5) or 1 end
     return (streak >= 8 and 5) or 1
 end
 
--- (no footer: the director, Nov 2 2026, punch list 69: the walkie and ham faces lose their printed foot, the brand and
--- "2-WAY PORTABLE"; the brand is already on the graphic. RadioTab.lua draws the face alone while TW.footer is nil.)
+-- (no footer: the faces carry no printed foot — no brand line, no "2-WAY
+-- PORTABLE"; the face art already carries the brand. RadioTab.lua draws the
+-- face alone while TW.footer is nil.)
 
 return TW

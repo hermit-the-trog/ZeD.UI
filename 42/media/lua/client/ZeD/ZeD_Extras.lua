@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Extras.lua
 -- ============================================================================
--- THE SERVER EXTRAS, THE CLIENT'S MODEL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 6). No drawing: ZeD_ExtrasCards.lua reads this and
+-- THE SERVER EXTRAS, THE CLIENT'S MODEL. Client, no drawing: ZeD_ExtrasCards.lua reads this and
 -- calls it. The server decides everything; this holds what it said, and sends what the cards ask.
 --
 -- Without the server part E.set stays nil and nothing here does anything: the extras are ZeD's, and the game has no version

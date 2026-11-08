@@ -1,6 +1,10 @@
 -- ZeD-UI/42/media/lua/server/Items/ZeD_WatchLoot.lua
 -- ============================================================================
--- Loot for the watches ZeD-UI adds (director, Oct 16 2026).
+-- LOOT FOR THE WATCHES ZeD-UI ADDS. A server-folder file with no isServer() test: it
+-- runs wherever the game builds its loot tables, single player included (isServer() is
+-- false there, so a test would leave the Timez out). No command goes over the wire;
+-- players meet the Timez as an item in the containers the game fills. Pure Lua, pure ASCII.
+--
 -- The steel Timez turns up wherever vanilla's Dress watch does, as often as it
 -- does: in every loot list that names WristWatch_Left_DigitalDress, the Timez
 -- goes in right after it with the same weight.

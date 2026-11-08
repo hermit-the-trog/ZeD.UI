@@ -1,8 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Organisms.lua
 -- ============================================================================
--- ORGANISM COMPONENTS
--- Complete UI assemblies built from atoms and molecules.
--- Seven organisms: Window, ScrollList, TabPanel, ItemGrid, Modal, ContextMenu, ScrollPanel.
+-- ORGANISM COMPONENTS (client)
+-- Complete UI assemblies built from atoms and molecules. Six organisms:
+-- Window (O1, with its overlay), ScrollList (O2), TabPanel (O3), ItemGrid (O4),
+-- Modal (O5) and ScrollPanel (O7); O6, the context menu, lives in its own
+-- file now (ZeD_ContextMenu.lua).
 --
 -- These are the rooms of the building. Every game panel is composed from
 -- one or more of these organisms. They read from ZeD.T (the active palette)
@@ -132,13 +134,12 @@ end
 
 -- The window box at the right end of the title bar: the close box's size and look, three
 -- lines inside. Every ZeD window has one (noWindowBox = true leaves it out).
--- THE PIN (Nov 4 2026, a regression fixed for beta 4: the director, and Lahy-uh-bil-i-tee's report "can you not have
--- it act like the original menu? where it hides when not in use"). A window with autoCollapse behaves as the game's
+-- THE PIN. Vanilla's inventory pages hide when not in use; ZeD dropped that from
+-- its first version, and autoCollapse brings it back. A window with autoCollapse behaves as the game's
 -- inventory pages do with a mouse (ISInventoryPage, ISPlayerDataObject): unpinned at first, it rolls up to its title
 -- bar a moment after the pointer leaves it (at once while aiming) and rolls down when the pointer is over its title
 -- bar; the pin box beside the window box keeps it open. With a controller it is always open (the game pins its
--- pages for a controller). The roll-up is ZeD's window shade. When this was taken out is older than the repository
--- (its first commit, v0.1.96, already had "No vanilla pin/collapse, stubs only"), so no commit can be named.
+-- pages for a controller). The roll-up is ZeD's window shade.
 local COLLAPSE_MS = 2000
 function ZeD_Window:pinRect()
     if not self.autoCollapse then return nil end
@@ -164,8 +165,8 @@ function ZeD_Window:_autoCollapse()
     local pn = self.playerNum or 0
     local pad = JoypadState and JoypadState.players and JoypadState.players[pn + 1] ~= nil
     local now = getTimestampMs()
-    -- (an item dragged in either window: the windows stay as they are until it is dropped, but for one: Nov 6 2026,
-    -- FAIV's report, a rolled window took no drop, its lists hidden, and the hover below never ran with the button held.
+    -- (an item dragged in either window: the windows stay as they are until it is dropped, but for one —
+    -- a rolled window took no drop, its lists hidden, and the hover below never ran with the button held.
     -- An item held over a rolled window's title bar rolls that window down, once, so its list shows (the bar itself takes the
     -- drop as that list, rolled or not: InventoryRenderer.handleDrop). The game rolls every page down at any drag, ISInventoryPage:update; here only the window aimed at: a window that opens at
     -- every drag covers the world a floor drop was aimed at, and a release over a window never drops to the floor.)
@@ -222,7 +223,7 @@ end
 -- Public WindowShade toggle. Collapses to title bar on true; expands to prior
 -- height on false. Idempotent (no-op if already in target state). Shared by
 -- the title-bar double-click path AND FocusManager's windowshade-on-stick
--- trigger (S95). Children are hidden/restored so content doesn't render
+-- trigger. Children are hidden/restored so content doesn't render
 -- underneath the collapsed title bar; the overlay that draws the frame stays.
 -- The height the window shows and takes the pointer in: its title bar while shaded or collapsed
 function ZeD_Window:shownHeight()
@@ -239,11 +240,11 @@ function ZeD_Window:setWindowShaded(shaded)
     if shaded then
         self.preShadeHeight = self.height
         -- (the game's onResize lifts a window to its minimum height after every setHeight: a shaded
-        -- window's minimum is its title bar, or the roll-up kept the full frame, QA Nov 4 2026)
+        -- window's minimum is its title bar, or the roll-up would keep the full frame)
         self.minimumHeight = tbH
         self:setHeight(tbH)
         -- (and as the game's inventory does when it rolls up, ISInventoryPage: the engine draws and takes the
-        -- pointer for the title bar only, whatever the height; QA Nov 4 2026 still read the full height after
+        -- pointer for the title bar only, whatever the height; the full height still read back after
         -- the line above, so this holds whatever sets it back)
         self:setMaxDrawHeight(tbH)
         local children = self:getChildren()
@@ -259,7 +260,7 @@ function ZeD_Window:setWindowShaded(shaded)
         self.minimumHeight = T.minWinH
         self:clearMaxDrawHeight()
         self:setHeight(self.preShadeHeight or T.px(300))
-        -- (Nov 6 2026, FAIV's report: a rolled window draws no strip, so its container list is as old as the roll-up. The
+        -- (a rolled window draws no strip, so its container list is as old as the roll-up. The
         -- first frame down reads it afresh, not the next count of 30: no rows of a container left behind, no drop into one.)
         self._containerTimer = 30
         local children = self:getChildren()
@@ -695,7 +696,7 @@ function ZeD_Window:_drawFrame()
 end
 
 -- ============================================================================
--- S123: CAPABILITY-DRIVEN BUTTON PROMPTS
+-- CAPABILITY-DRIVEN BUTTON PROMPTS
 -- The help line's prompts are derived from the focused element's callbacks,
 -- never hand-authored: A if onActivate, hold-A if onHoldActivate, X if
 -- onContextMenu (or onReset), B if onCancel, Y always (window pair). Labels
@@ -720,14 +721,14 @@ local PROMPT_LABELS = {
     ["craft:row"]       = { a = "UI_ZeD_Prompt_Recipe" },
     ["jrecipe:row"]     = { a = "UI_ZeD_Prompt_Recipe" },
     ["build:row"]       = { a = "UI_ZeD_Prompt_Recipe" },
-    ["health:start"]    = { a = "UI_ZeD_Prompt_Start" },   -- Oct 30 2026: the Health band's Start (the exercise buttons went)
+    ["health:start"]    = { a = "UI_ZeD_Prompt_Start" },   -- the Health band's Start (the exercise buttons went)
     ["skill:"]          = { a = "UI_ZeD_Prompt_Pin" },
     ["equipslot"]       = { a = "UI_ZeD_Prompt_Card" },
     ["equippart"]       = { a = "UI_ZeD_Prompt_Card" },
     ["cancel_band"]     = { a = "UI_Cancel" },
 }
 
--- L3 / R3 (Oct 23 2026) lead the prompts while the pad is on an item list: the
+-- L3 / R3 lead the prompts while the pad is on an item list: the
 -- leftmost go first when the help line is narrow, so A, X and Y outlast them
 local function _addListPrompts(win, prompts)
     local z = win._focusRing and win._focusIdx and win._focusRing[win._focusIdx]
@@ -906,8 +907,8 @@ end
 function ZeD_Window:_drawHelpLine(p, w, h, lit)
     -- The engine runs update() only every 100 ms, apart from drawing: a stamp made there was gone
     -- by the next frame drawn, and the line blinked between the window box's words and the status
-    -- line (Oct 30 2026, the director's mouse pass). The boxes' hover (watched each frame,
-    -- _watchBoxes) and what update() found (_updHelp, the Reader's) are stamped here instead.
+    -- line. The boxes' hover (watched each frame, _watchBoxes) and what update() found
+    -- (_updHelp, the Reader's) are stamped here instead.
     if not self._helpText then
         local uh = (self._wboxHover and ZeD.tr("UI_ZeD_WinMenu_Help"))
             or (self._closeHover and ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) or self._updHelp
@@ -1178,11 +1179,11 @@ function ZeD_Window:onMouseDown(x, y)
     local tbH = self:titleBarHeight()
     if y < tbH and y > 0 then
         -- WindowShade: double-click title bar to collapse/expand.
-        -- Use getTimestampMs() which is available everywhere in PZ.
+        -- getTimestampMs() is available everywhere in PZ.
         local now = getTimestampMs()
         if self._lastTitleClick and (now - self._lastTitleClick) < 500 then
             -- Double-click detected — toggle WindowShade via the public method
-            -- (S95: shared with FocusManager's windowshade-on-stick path).
+            -- (shared with FocusManager's windowshade-on-stick path).
             self:setWindowShaded(not self.windowShaded)
             self._lastTitleClick = nil  -- reset so triple-click doesn't re-trigger
             self.moving = false
@@ -1270,12 +1271,12 @@ local function resetChar(charWin, defW, defH, gap, screenW)
     charWin._drawerMode = nil
     charWin._accentKey = nil
     if S then S.syncWindowAccent(charWin) end   -- the option, the next open and the saved copy follow
-    -- Reset inventory drawer state (S78 two-drawer)
+    -- Reset inventory drawer state (the two-drawer layout)
     charWin._invDrawerOpen    = true
     charWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
     charWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
     charWin._prevDesiredW     = nil
-    charWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
+    charWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- _baseInvW is stored in design units (the window files T.px it at use)
     -- Clear MC
     charWin._mcSelected = {}
     charWin._mcColStates = {}
@@ -1304,12 +1305,12 @@ local function resetWorld(worldWin, defW, defH, gap, screenW)
     worldWin._drawerMode = nil
     worldWin._accentKey = nil
     if S then S.syncWindowAccent(worldWin) end
-    -- Reset inventory drawer state (S78 two-drawer)
+    -- Reset inventory drawer state (the two-drawer layout)
     worldWin._invDrawerOpen    = true
     worldWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
     worldWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
     worldWin._prevDesiredW     = nil
-    worldWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: design units, as above
+    worldWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- design units, as above
     -- Clear MC
     worldWin._mcSelected = {}
     worldWin._mainVisible = true
@@ -1336,8 +1337,8 @@ function ZeD_Window.resetLayout(which)
     end
     if charWin then resetChar(charWin, defW, defH, gap, screenW) end
     if worldWin then resetWorld(worldWin, defW, defH, gap, screenW) end
-    -- the controller's stops follow the reset to Loot (Nov 1 2026, punch list 45: the stops of the
-    -- tab that was showing stayed registered, and a Right from the strip landed on one not drawn)
+    -- the controller's stops follow the reset to Loot (the stops of the tab that was
+    -- showing stayed registered, and a Right from the strip landed on one not drawn)
     if charWin and ZeD_CharacterWindow.syncRing then ZeD_CharacterWindow.syncRing(charWin) end
     if worldWin and ZeD_WorldWindow.syncRing then ZeD_WorldWindow.syncRing(worldWin) end
 end
@@ -1377,8 +1378,8 @@ end
 
 -- ---------------------------------------------------------------------------
 -- The close box, the window box and the resize edges answer the raw mouse in
--- update(), with absolute coordinates: child panels can't eat these clicks.
--- (WHAT_CODE_DID.md quirk #1)
+-- update(), with absolute coordinates: child panels can't eat these clicks,
+-- and the engine's own mouse events are unreliable for nested children.
 -- ---------------------------------------------------------------------------
 -- No window above this one holds the pointer: the engine's own picking, as for a click.
 -- (The main menu's windows answer for themselves: the desk's glass lies over them, ZeD_MMWindow)
@@ -1390,7 +1391,7 @@ function ZeD_Window:pointerOn() return self:isMouseOver() end
 -- window drawn above this one: they arm on the frame the button went down only, while
 -- pointerOn says no window above holds the pointer. The engine runs update() only every
 -- 100 ms (its UI tick, 42.22), so a quick click could fall between two updates and the box
--- missed it (Oct 30 2026, the director's mouse pass): the boxes are watched on every frame
+-- missed it: the boxes are watched on every frame
 -- drawn too (_drawTop), and what a release on them asks for waits in _boxDo for update(),
 -- so a window never closes and a menu never opens in the middle of a draw.
 function ZeD_Window:_watchBoxes()
@@ -1492,18 +1493,17 @@ function ZeD_Window:close()
 end
 
 -- ============================================================================
--- JOYPAD DISPATCH (S93 — Layer 3 plumbing shims)
+-- JOYPAD DISPATCH
 -- ============================================================================
 -- ZeD_Window derives from ISPanel directly (NOT from ZeD_Panel), so it needs
 -- its own copy of the joypad stubs — inheritance from ZeD_Panel's stubs
--- doesn't reach here. See PZAPI-KB Q80 on duck-typed joypad dispatch:
--- the engine calls these method names on whatever joypadData.focus points
--- at, without requiring ISPanelJoypad inheritance.
+-- doesn't reach here. The engine duck-types joypad dispatch: it calls these
+-- method names on whatever joypadData.focus points at, without requiring
+-- ISPanelJoypad inheritance.
 --
 -- Each stub gates on "is this window the focused one per FocusManager?"
--- and delegates to the central dispatcher. Focus.dispatchJoypad* is a no-op
--- in S93 — button presses are silently swallowed while a ZeD window has
--- focus. S94 fills in real button translation + focus-stack routing.
+-- and hands the press to the central dispatcher (Input/FocusManager.lua),
+-- which turns buttons into actions and routes them to the focused element.
 -- ============================================================================
 
 function ZeD_Window:onJoypadDown(button, joypadData)
@@ -1546,9 +1546,10 @@ end
 -- O2: SCROLLABLE LIST
 -- ============================================================================
 -- Derives from ISPanel (NOT ISScrollingListBox) to avoid vanilla scrollbar.
--- Uses ZeD_ScrollbarState as a plain Lua state table for scrolling.
--- All mouse interaction uses absolute coordinates via update().
--- (WHAT_CODE_DID.md quirks #1, #2, #3)
+-- Uses ZeD_ScrollbarState as a plain Lua state table for scrolling: a child
+-- panel scrollbar would miss clicks, since the engine's mouse events are
+-- unreliable for nested children. All mouse interaction uses absolute
+-- coordinates via update().
 -- ============================================================================
 
 ZeD_ScrollList = ISPanel:derive("ZeD_ScrollList")
@@ -2185,13 +2186,13 @@ end
 
 
 -- ============================================================================
--- O6: CONTEXT MENU — REMOVED S88
+-- O6: CONTEXT MENU — MOVED TO ITS OWN FILE
 -- ============================================================================
--- The original O6 was a small vertical dropdown used briefly in S25-S26 for
--- internal ZeD menus (theme picker, etc.). No callers remained by S87. The
--- ZeD_ContextMenu class name is now claimed by the unified strip menu organism
--- in its own file: 42/media/lua/client/ZeD/ZeD_ContextMenu.lua (S88).
--- See CONTEXT_MENU_SPEC.md for the new design.
+-- The original O6 was a small vertical dropdown used briefly for internal
+-- ZeD menus (the theme picker and the like); when nothing called it any more
+-- it was removed. The ZeD_ContextMenu class name now belongs to the unified
+-- strip menu organism in its own file:
+-- 42/media/lua/client/ZeD/ZeD_ContextMenu.lua.
 
 
 -- ============================================================================
@@ -2203,7 +2204,7 @@ end
 --
 -- The parent panel owns all interaction via update() with absolute
 -- screen coordinates — never relies on self:isMouseOver() or
--- self:getMouseX() for nested panels (PZ quirk #1 from WHAT_CODE_DID.md).
+-- self:getMouseX(), which are unreliable for nested panels in PZ.
 --
 -- Your draw callback: onDrawContent(self, offsetY, contentWidth)
 --   • offsetY is negative (scroll offset), add it to all y positions
@@ -2299,9 +2300,8 @@ function ZeD_ScrollPanel:render()
 end
 
 -- ---------------------------------------------------------------------------
--- INPUT: Use update() with absolute screen coordinates for all mouse
+-- INPUT: update() with absolute screen coordinates for all mouse
 -- interaction. This avoids PZ's broken nested-panel event dispatch.
--- (WHAT_CODE_DID.md quirk #1 and #3)
 -- ---------------------------------------------------------------------------
 function ZeD_ScrollPanel:update()
     ISPanel.update(self)

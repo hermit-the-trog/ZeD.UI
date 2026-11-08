@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SandboxNotes.lua
 -- ============================================================================
--- SANDBOX OPTIONS IN GAME: what changing each setting does to a running save
--- (director, Oct 24 2026; mockup zed_sandbox_ingame_v1; ZeD_SandboxInGame.lua)
+-- SANDBOX OPTIONS IN GAME: what changing each setting does to a running save.
+-- Client data, read by the in-game sandbox window (ZeD_SandboxInGame.lua);
+-- most of the file is generated lists of vanilla's sandbox option names.
 --
 -- For every vanilla sandbox setting:
 --   WHEN  "now"  takes effect as soon as it is applied
@@ -19,8 +20,8 @@
 -- The words: UI_ZeD_SbxSave_<name> (on this save) and UI_ZeD_SbxTip_<name> (a tip),
 -- the name's dots as underscores; a setting without its own words takes its
 -- section's (UI_ZeD_SbxSecSave_ / UI_ZeD_SbxSecTip_ + the section's raw title),
--- then the WHEN's (UI_ZeD_SbxWhen_<when>). Checked against the game's code; the
--- notes behind each are in SANDBOX_INGAME_SPEC.md.
+-- then the WHEN's (UI_ZeD_SbxWhen_<when>). Each WHEN and RISK was checked
+-- against the game's code.
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -32,7 +33,7 @@ N.RISK = {}
 
 local function set(t, v, names) for _, n in ipairs(names) do t[n] = v end end
 
--- BEGIN GENERATED (scratchpad integrate.py from the Oct 24 2026 code reading; SANDBOX_INGAME_SPEC.md section 6)
+-- BEGIN GENERATED (from that reading of the game's code: one list per WHEN, then per RISK)
 set(N.WHEN, "fix", {
     "StartMonth", "StartDay", "StartTime", "ZombieConfig.ZombiesCountBeforeDelete", "WaterShut", "ElecShut",
     "Basement.SpawnFrequency", "ErosionSpeed", "StartYear" })
@@ -77,13 +78,15 @@ N.LABEL = {
     WaterShut = "UI_ZeD_Sbx_LabelWaterRange", ElecShut = "UI_ZeD_Sbx_LabelPowerRange",
 }
 
+--- a setting's WHEN ("now" when not named here) and its RISK ("" when none)
 function N.when(name) return N.WHEN[name] or "now" end
 function N.risk(name) return N.RISK[name] or "" end
 
 local function key(name) return (tostring(name):gsub("%.", "_")) end
 local function tr(k) local t = ZeD.tr(k); if t == k then return nil end; return t end
 
--- this setting's words for "on this save", and its tip (nil when none)
+--- this setting's words for "on this save" (its own, else its section's, else its WHEN's), and its tip (nil
+--- when none)
 function N.save(name, section)
     return tr("UI_ZeD_SbxSave_" .. key(name)) or (section and tr("UI_ZeD_SbxSecSave_" .. key(section)))
         or ZeD.tr("UI_ZeD_SbxWhen_" .. N.when(name))

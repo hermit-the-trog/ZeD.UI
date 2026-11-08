@@ -1,9 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/MapsTabExt.lua
 -- ============================================================================
--- MAPS TAB EXTENSIONS (Oct 26 2026; mockup zed_map_overlays_v1, approved "as
--- recommended" Oct 26 2026). ZeD's map is its own (ZeD_WorldMap in MapsTab.lua),
--- not the game's ISWorldMap, so what other mods hang on the game's map never
--- shows in it. This is the one general way in for them: a support file
+-- MAPS TAB EXTENSIONS -- client. ZeD's map is its own (ZeD_WorldMap in
+-- MapsTab.lua), not the game's ISWorldMap, so what other mods hang on the
+-- game's map never shows in it. This is the one general way in for them: a support file
 -- (ModSupport/<mod id>.lua) or a ZeD piece of its own (MapsTabKey.lua, the map
 -- key) registers an extension, and the Maps tab draws its pieces in places kept
 -- for them, in the drawer and in the unfolded Map window alike, with the mouse
@@ -115,7 +114,7 @@ function E.putDownAll(win)
 end
 
 -- ---------------------------------------------------------------------------
--- THE BAND'S BUTTONS (the card's band, at its right; on the toolbar until Oct 30 2026)
+-- THE BAND'S BUTTONS (the card's band, at its right)
 -- ---------------------------------------------------------------------------
 -- The controls are the library's: a band button is an icon button (its name
 -- in the hint, what it does in the help line), a row's button a push button with
@@ -195,7 +194,7 @@ local function btnW(b, h)
 end
 
 -- The extensions' buttons from x on, 4u apart, on the card's band at its right
--- (director, Oct 30 2026: the map key and the list there, the band's actions);
+-- (the map key and the list live there: the band holds the actions);
 -- returns the x after the last. Their zones carry band = true (the controller
 -- reaches them after the map). noLead: no line before them.
 function E.drawButtons(panel, win, x, y, h, focId, noLead)
@@ -389,8 +388,7 @@ end
 -- with the hover wash, the selected wash and the controller's mark, a System 7
 -- checkbox or a square status mark, prose in F2, an icon button to delete, a
 -- scrollbar when it runs long. The question before a delete (Cancel and Delete)
--- is the card's band while it is asked (E.drawAsk, from MapsTab.lua; Oct 30 2026,
--- it was the list's own foot).
+-- is the card's band while it is asked (E.drawAsk, from MapsTab.lua).
 local ROW_PAD   = 8    -- design units: the text inset, and the gap after a row's mark
 local ROW_TOP   = 6    -- design units: above the first line of a row (and below its last)
 local SECTION_H = 20   -- design units: M.drawSectionHeader's height
@@ -646,8 +644,8 @@ function E.askH(win, w)
     return h
 end
 
--- The question before a delete in place of the card's band (Oct 30 2026, punch
--- list 21: as every question elsewhere), from y (the card's bottom - E.askH) on
+-- The question before a delete in place of the card's band (as every question
+-- elsewhere), from y (the card's bottom - E.askH) on
 -- `panel`, the tab's own coordinates. False while none is asked.
 function E.drawAsk(panel, win, x, y, w, focId)
     local ask = win._mapSideAsk

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/MapNotes.lua
 -- ============================================================================
--- MAP NOTES (Oct 20 2026; director: "as its own careful task") -- the marks
--- and notes the player puts on ZeD's map live in vanilla's own store: the
+-- MAP NOTES -- client. The marks and notes the player puts on ZeD's map
+-- live in vanilla's own store: the
 -- world map's MapItem (MapItem.getSingleton()), through the same symbols API
 -- vanilla's map uses (ISWorldMapSymbols: addTexture, addTranslatedText,
 -- removeSymbolByIndex, and in multiplayer sendRemoveSymbol / sendModifySymbol). So a
@@ -16,10 +16,9 @@
 -- symbols: addSymbol / addNote take that map's api (panelAPI), the rest take
 -- the api the mark came from. The world store is never touched by a paper map.
 --
--- Until Oct 20 2026 ZeD kept its marks in the character's modData
--- (ZeD_MapAnnotations). migrate() copies them into the store once per
--- character (ZeD_MapNotesMoved marks it done) and leaves the old list as it
--- was, as a backup.
+-- ZeD once kept its marks in the character's modData (ZeD_MapAnnotations).
+-- migrate() copies them into the store once per character (ZeD_MapNotesMoved
+-- marks it done) and leaves the old list as it was, as a backup.
 -- ============================================================================
 
 ZeD = ZeD or {}

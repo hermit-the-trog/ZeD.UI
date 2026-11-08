@@ -1,30 +1,30 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/PostDeath.lua
 -- ============================================================================
--- AFTER DEATH (HOOK_MAP row 19; mockup zed_fish_sleep_death_v5, director Oct
--- 16 2026: "I like the stop one, but with the grave stone icon. Shut down,
--- let's just leave it as are you sure?")
+-- AFTER DEATH (override, client)
 --
 -- Vanilla's ISPostDeathUI stays the host: vanilla makes it on death, keeps it
 -- in ISPostDeathUI.instance (the respawn screen removes it, or shows it again
 -- on Cancel), waits its three seconds, and its own handlers do the work
 -- (onRespawn, onExit, onConfirmQuitToDesktop). What it draws is ZeD's: a
--- System 7 Stop alert with a gravestone. "Glen Finnegan died." and when; the
--- record in a System 7 list (vanilla's own lines: how long, zombies killed,
--- the game mode; then kills by kind, the best skills, the last line of the
--- log); Shut down | Main menu | Restart (the default, outlined). Shut down
--- asks "Are you sure?" in the same alert. Vanilla's rules stay: Restart only
--- when the game allows a respawn (greyed in the challenge mode), Main menu
--- and Shut down only when every player on this screen is dead.
+-- System 7 Stop alert with a gravestone. The character's name ("... died.")
+-- and when; the record in a System 7 list (vanilla's own lines: how long,
+-- zombies killed, the game mode; then kills by kind, the best skills, the
+-- last line of the log); Shut down | Main menu | Restart (the default,
+-- outlined). Shut down asks "Are you sure?" in the same alert. Vanilla's
+-- rules stay: Restart only when the game allows a respawn (greyed in the
+-- challenge mode), Main menu and Shut down only when every player on this
+-- screen is dead.
 -- Restart is vanilla's respawn (CoopCharacterCreation); Overrides/Respawn.lua
 -- puts the desk up over the world for it, and the next survivor is made in
--- ZeD's Spawn, Traits and Looks windows (director, Nov 7 2026: "back to the
--- desk"). Back from the first of them comes back here.
+-- ZeD's Spawn, Traits and Looks windows. Back from the first of them comes
+-- back here.
 -- Controller: A Restart, X Main menu, B Shut down (vanilla's own mapping);
 -- asking, A Shut down, B Cancel. Return presses the default.
--- While ZeD's safe mode is on, the screen is vanilla's again: its three
--- buttons (built the first time they are needed), its size and place, its
--- scrolling lines and its controller mapping. It turns back into the alert
--- when safe mode goes off.
+-- Vanilla's methods are kept once in ISPostDeathUI._zedOrig, so a Lua reload
+-- never wraps the wrapper. While ZeD's safe mode is on, the screen is
+-- vanilla's again: its three buttons (built the first time they are needed),
+-- its size and place, its scrolling lines and its controller mapping. It
+-- turns back into the alert when safe mode goes off.
 -- ============================================================================
 
 require "ISUI/ISPostDeathUI"
@@ -164,7 +164,7 @@ end
 Events.OnPlayerDeath.Add(function(playerObj) pcall(D.capture, playerObj) end)
 
 -- ---------------------------------------------------------------------------
--- THE GRAVESTONE: a 32 x 32, 1-bit System 7 icon (mockup v5), as runs of black
+-- THE GRAVESTONE: a 32 x 32, 1-bit System 7 icon, stored as runs of black
 -- ---------------------------------------------------------------------------
 local GRAVE = nil
 local RIP = {

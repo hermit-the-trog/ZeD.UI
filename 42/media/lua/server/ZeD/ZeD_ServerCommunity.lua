@@ -1,17 +1,23 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerCommunity.lua
 -- ============================================================================
--- COMMUNITY, THE SERVER'S SIDE (ZeDUI/MP_ADMIN_SCOPE.md, Phase 5). The message of the day, the rules, the appeal line, the
--- two ticks, the news, and who has agreed. Everything is decided here, from the player the event gives, never from a
--- client's word.
+-- COMMUNITY, THE SERVER'S SIDE. Server only (the first line); pure Lua, pure ASCII. The message of the day, the rules, the
+-- appeal line, the two ticks (ask players to agree as they join; ask again when the rules change), the news, and who has
+-- agreed. Everything is decided here, from the player the event gives, never from a client's word.
 --
--- The table has a secret random name, as the tickets' does (A2), and is never transmitted. viewFor builds the one thing a
--- client receives, field by field: the words anyone on the server may read, whether this player is asked to agree, and for
--- those who may write, the two ticks. Who else has agreed never leaves the server.
+-- What crosses the wire: the community model on the client (client/ZeD/ZeD_Community.lua, drawn by ZeD_CommunityCards.lua)
+-- sends m_get, m_agree, m_save, m_post, m_pin and m_del on module Cm.MOD. Back comes the board as m_view (to the one who
+-- asked, or to everyone online after a change), an ack for every command but m_get (the tickets' t_ack), and a first view
+-- inside the hello's reply (cm).
+--
+-- The table has a secret random name, as the tickets' does (any logged-in client can read a global mod data table it can
+-- name), and is never transmitted. viewFor builds the one thing a client receives, field by field: the words anyone on the
+-- server may read, whether this player is asked to agree, and for those who may write, the two ticks. Who else has agreed
+-- never leaves the server.
 --
 -- Until a player asked at joining agrees, every ZeD command from them is refused (Srv.gates.rules): tickets, claims,
 -- community, extras, log, dash, admin. Only the hello, a_hi, m_get and m_agree stay open. Who was asked is the server's own
 -- record, made at the first word from them or at its own walk of the players online, so a client that never says hello is
--- caught all the same. Server Lua cannot remove a player (A7), so after Cm.L.ASKED_MS unanswered a Kick is owed, made by a
+-- caught all the same. Server Lua cannot remove a player, so after Cm.L.ASKED_MS unanswered a Kick is owed, made by a
 -- staff client or the host helper, with one line in the log staff read. The agreement itself is this server's record of what a
 -- client said: a modified client can still send m_agree without showing the screen, and nothing on the server can tell.
 --
@@ -83,7 +89,7 @@ local function open()
     md.agreed = md.agreed or {}       -- lower-case username -> { rev, t }
     md.agreedN = md.agreedN or 0
     if md.ask == nil then md.ask = false end
-    if md.reask == nil then md.reask = true end   -- (as the drawing has it, ticked)
+    if md.reask == nil then md.reask = true end   -- (ticked by default)
     if md.schema > SCHEMA then
         T.frozen = true              -- data from a newer ZeD: read it, never change it
     end
@@ -182,7 +188,8 @@ local function pushAll(md, p)
     Srv.to(p, Cm.MOD, "m_view", viewFor(md, p))
 end
 
--- the appeal line for a player who has to leave (ZeD_ServerAdmin.lua: a banned player gets it with the reason)
+--- The appeal line for a player who has to leave, or nil when there is none (ZeD_ServerAdmin.lua: a banned player gets it
+--- with the reason).
 function Srv.appealLine()
     local md = open()
     if md.appeal == "" then return nil end
@@ -391,7 +398,7 @@ reg("m_del", { cap = CAP_NEWS, limit = CL.PIN_MS }, function(p, a, rid)
 end)
 
 -- ---------------------------------------------------------------------------
--- THE CLOCK: OnTickEvenPaused, as the admin tools' (A1)
+-- THE CLOCK: OnTickEvenPaused, as the admin tools' (it fires on an empty server too, where the game clock stops)
 -- ---------------------------------------------------------------------------
 -- this connection's record: made at the first word from them (the hello or any command) or at the server's own walk. Asked
 -- is fixed then: nobody is asked mid-play
@@ -405,7 +412,8 @@ local function hereOf(md, user, t)
     return e
 end
 
--- still to answer the rules they were asked at joining (ZeD_ServerAdmin.lua: a Kick owed for them waits only while this holds)
+--- Still to answer the rules they were asked at joining (ZeD_ServerAdmin.lua: a Kick owed for them waits only while this
+--- holds).
 function Srv.rulesUnanswered(user)
     local md = T.md
     if not md or type(user) ~= "string" then return false end

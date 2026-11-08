@@ -1,16 +1,21 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerAdmin.lua
 -- ============================================================================
--- THE ADMIN TOOLS, THE SERVER'S SIDE (ZeDUI/MP_ADMIN_SCOPE.md, Phase 2; MP_SERVER_PART_DESIGN.md, A3, A7 and E7). Every
--- power is decided here, from the player the event gives, never from a client's word. A client that passes gets an ack,
--- and only then makes the game's call: server Lua cannot kick, ban or set a role (A7), so that call goes from the acting
--- staff client.
+-- THE ADMIN TOOLS, THE SERVER'S SIDE. Server only (the first line); pure Lua, pure ASCII. Every power is decided here,
+-- from the player the event gives, never from a client's word. A client that passes gets an ack, and only then makes the
+-- game's call: server Lua cannot kick, ban or set a role, so that call goes from the acting staff client.
+--
+-- What crosses the wire: the admin tools' model on the client (client/ZeD/ZeD_Admin.lua) sends the a_ commands on module
+-- Adm.MOD (a_ban, a_kick, a_card ...). Back come an ack for each (the tickets' t_ack), the lists (a_players, a_card, a_bans,
+-- a_repeats, a_mutes) and the pushes: a_owed (a game call for a staff client to make, answered by a_done), a_look (read the
+-- game's user list for these names, answered by a_looked), a_leave and a_stay (a banned player's screen), a_note (word for
+-- staff), a_powersoff, and a_srvmsg (a repeating message, to everyone).
 --
 -- Ban calls that must wait or must not be lost (a player reading the reason first, an unban with the actor gone) sit in
 -- md.owed and go to a staff client online until that client says it is done. Each is tied to its ban: unbanned or lifted,
 -- the call goes with it, and one whose author lost the power or whose target rose above it is dropped at send time.
 --
--- Every ban is the game's ban too (the director, Nov 7 2026): the game's own ban, enforced by the server at login, is owed
--- at once, timed or not, and a timed one's unban is owed at its end. A timed ban may run past its time while nobody can make
+-- Every ban is the game's ban too: the game's own ban, enforced by the server at login, is owed at once, timed or not,
+-- and a timed one's unban is owed at its end. A timed ban may run past its time while nobody can make
 -- that call, never short. ZeD's row stays the record (reason, end, who) and still shows the leave screen. A client's "done"
 -- is not proof: a banned player the server still finds on after VERIFY_S means the ban did not take, and it is asked for
 -- again (REOWE_MAX times, each with a log line); a Steam ID ban is read back from the game's own list. A banned client that
@@ -22,11 +27,12 @@
 -- A mute owes the game's voice ban whenever its player is on and this session has not made it (the game's voice ban is held
 -- for the connection only), so a player muted while off has it when they come on; unmuted first, it is dropped.
 -- With the host helper on (ZeD_ServerHelper.lua) the calls it can make go to it as well, so they land with no staff online.
--- Repeating messages run here too, on OnTickEvenPaused (A1): the game clock stops on an empty server.
+-- Repeating messages run here too, on OnTickEvenPaused: the game clock stops on an empty server.
 --
--- The table has a secret random name, as the tickets' does (A2), and is never transmitted. Views are allowlists. Every
--- action goes through Srv.adminLog into the server part's one log (Srv.action): a line in the ZeD log and a line in md.log,
--- which the Log view reads (ZeD_ServerLog.lua). The ring here holds every kind of line, not only these.
+-- The table has a secret random name, as the tickets' does (any logged-in client can read a global mod data table it can
+-- name), and is never transmitted. Views are allowlists. Every action goes through Srv.adminLog into the server part's one
+-- log (Srv.action): a line in the ZeD log and a line in md.log, which the Log view reads (ZeD_ServerLog.lua). The ring here
+-- holds every kind of line, not only these.
 -- ============================================================================
 if not isServer() then return end
 
@@ -135,10 +141,10 @@ end
 local function today() return Srv.day() end
 
 -- where a new line goes. A ring of AL.LOG_MAX, oldest out, but one account never pushes out another's: past its share a
--- new line takes the place of that account's own oldest (s says the order; Phase 4 sorts by it). A kill goes last, so an
--- account can't write its own evidence off the ring with a run of lesser lines. A container line is the player's own game
--- talking, so it has a smaller share and replaces only its own kind: no client's reports push out what the server saw.
--- nil: there's no room for it
+-- new line takes the place of that account's own oldest (s says the order; the Log view sorts by time, then s). A kill
+-- goes last, so an account can't write its own evidence off the ring with a run of lesser lines. A container line is the
+-- player's own game talking, so it has a smaller share and replaces only its own kind: no client's reports push out what
+-- the server saw. nil: there's no room for it
 local function ringSlot(log, who, kind)
     local mine, oldest, oldestKill, told, oldestTold = 0, nil, nil, 0, nil
     for i = 1, log.n do
@@ -163,6 +169,7 @@ local function ringSlot(log, who, kind)
     return log.at
 end
 
+--- The ring's half of Srv.action (ZeD_ServerCore.lua): the line, with its real time and in-game day, into md.log.
 function Srv.actionStore(kind, who, what, target, detail, x, y, z, ex)
     local md = open()
     if T.frozen then return end
@@ -175,7 +182,7 @@ function Srv.actionStore(kind, who, what, target, detail, x, y, z, ex)
     log[slot] = row
 end
 
--- what the Log view reads the ring through
+--- What the Log view reads the ring through (ZeD_ServerLog.lua): the table, and whether it is frozen.
 function Srv.logTable() return open() end
 function Srv.logFrozen() return T.frozen == true end
 
@@ -197,7 +204,7 @@ local function roleNamed(name)
     return nil
 end
 
--- (A3: the field may be null)
+-- (getRole may answer null)
 local function roleName(o)
     local r = o:getRole()
     return r and r:getName() or nil
@@ -225,8 +232,8 @@ local function rank(r)
 end
 Srv.rank = rank                  -- (ZeD_ServerCommunity.lua: a news post keeps its writer's)
 
--- is this name's role above p's? The Log view keeps such a player's places to themselves, as the Player card does. A name
--- with no role to read is not above anyone
+--- Is this name's role above p's? The Log view keeps such a player's places to themselves, as the Player card does. A name
+--- with no role to read is not above anyone.
 function Srv.outranks(p, user)
     return rank(roleOf(open(), user)) > rank(p:getRole())
 end
@@ -395,12 +402,12 @@ local function noteStaff(args)
     end)
 end
 
--- p: who is asking. Their tickets are staff's (A3: AnswerTickets), and the place of a role above theirs stays its own
+-- p: who is asking. Their tickets are staff's (the AnswerTickets capability), and the place of a role above theirs stays its own
 local function cardView(md, user, p)
     local o = Srv.player(user)
     local rec = md.players[user]
-    -- an account that is off shows only to a role with the game's power for the full list, as in a_players (the director,
-    -- Nov 6 2026). Guarded the same way: a game without the power shows no one who is off
+    -- an account that is off shows only to a role with the game's power for the full list, as in a_players. Guarded the
+    -- same way: a game without the power shows no one who is off
     local closed = false
     if not o then
         local allCap = Capability and Capability.SeeNetworkUsers
@@ -756,7 +763,7 @@ local function reportStay(md, user, b, told, now)
 end
 
 -- ---------------------------------------------------------------------------
--- THE GAME'S UNBAN WINS (the director, Nov 7 2026): staff who lift a ban in the game's own admin panel or with /unbanuser
+-- THE GAME'S UNBAN WINS: staff who lift a ban in the game's own admin panel or with /unbanuser
 -- have lifted it. ZeD closes its row, owes no ban again, gates no more, and says so in the log. Only on the game's own word
 -- that it held the ban and holds it no more, never on a login, a leaving or a client's "done":
 --   a Steam ID  the game's list (isSteamIdBanned) read with it after the ban, then twice without it, OFF_GAP_S apart
@@ -981,8 +988,8 @@ end
 --   v 2: the Steam ID the game is given is only one staff typed (sidGame). A name's row kept its player's client's word in sid,
 --        and beta 7 named it to the game too: that is never asked for again (a pending call for it goes), and one that may have
 --        gone is still lifted with the row (sidLift), as it was made
---   a standing timed row without the game's ban (beta 7 made timed bans ZeD's alone) owes the game's ban now, as one made
---   today does, so the old bans hold too: the name, the typed Steam ID. Never the IP: that needs the player on
+--   a standing timed row without the game's ban (beta 7 made timed bans ZeD's alone) owes the game's ban now, as a new one
+--   does, so the old bans hold too: the name, the typed Steam ID. Never the IP: that needs the player on
 function Srv.upgradeBans(md)
     local now = getTimestamp()
     local ids = {}
@@ -1019,7 +1026,7 @@ function Srv.upgradeBans(md)
 end
 
 -- ---------------------------------------------------------------------------
--- THE CLOCK: OnTickEvenPaused fires with nobody on (A1), and getTimestamp is real time
+-- THE CLOCK: OnTickEvenPaused fires with nobody on, and getTimestamp is real time
 -- ---------------------------------------------------------------------------
 local function snap(md, o, user, now)
     local rec = md.players[user]
@@ -1275,7 +1282,7 @@ reg("a_players", { cap = CAP.SeePlayersConnected, limit = AL.PLAYERS_MS }, funct
         n = n + 1
         rows[n] = { u = u, on = true, role = roleName(o) }
     end)
-    -- offline accounts take the game's own power for the full list (the director, Nov 6 2026), so a role that sees who is
+    -- offline accounts take the game's own power for the full list, so a role that sees who is
     -- connected sees no more here than in the game's window
     local off, c = {}, 0
     local allCap = Capability and Capability.SeeNetworkUsers
@@ -1379,7 +1386,7 @@ reg("a_mute", { cap = CAP.BanUnbanUser }, function(p, a, rid)
         if n >= AL.MUTES_MAX then Srv.ack(p, rid, false, "full"); return end
     end
     if on then md.mutes[key] = p:getUsername() else md.mutes[key] = nil end
-    -- the game's voice ban: on now, this client makes it with the ack (M.mute); off, it is owed when they are next on
+    -- the game's voice ban: on now, this client makes it with the ack (M.mute, in ZeD_Admin.lua); off, it is owed when they are next on
     -- (walkPlayers). Unmuted, one still owed goes, and an online player's client lifts it with the ack
     T.voiced[key] = (on and onlineAs(user) ~= nil) or nil
     if not on then
@@ -1406,7 +1413,7 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
     if a.user == p:getUsername() then Srv.ack(p, rid, false, "self"); return end
-    -- an account that is off takes the game's power for every account, as its card does (the director, Nov 6 2026).
+    -- an account that is off takes the game's power for every account, as its card does.
     -- Asked before "unknown", so the answer is the same whether the name is an account or not
     if not Srv.player(a.user) then
         local allCap = Capability and Capability.SeeNetworkUsers
@@ -1551,7 +1558,7 @@ reg("a_ban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, functi
     md.bans[id] = b
     local wait = o and AL.LEAVE_S or 0
     if o then tellLeave(o, b, getTimestamp()) end
-    -- the game's ban, timed or not (the director, Nov 7 2026): enforced by the server at login. A timed one is lifted at its end
+    -- the game's ban, timed or not: enforced by the server at login. A timed one is lifted at its end
     -- (liftDue). Online, it waits LEAVE_S so they read the reason first; the game's ban kicks them, so no Kick goes with it
     oweBan(md, b, target, kind, wait, me)
     if untilT then b.gameBan = true end
@@ -1768,7 +1775,8 @@ end)
 -- ---------------------------------------------------------------------------
 -- OPENING
 -- ---------------------------------------------------------------------------
--- a Kick owed for another part (the join rules): reason "" is the game's own words. nil when one already waits or the table is frozen
+--- A Kick owed for another part (the join rules): reason "" is the game's own words. nil when one already waits or the
+--- table is frozen.
 function Srv.oweKick(user, reason, why)
     local md = open()
     if T.frozen then return nil end

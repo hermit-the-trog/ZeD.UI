@@ -9,7 +9,7 @@ Text tokens, filled in game from the player's own bindings and controller (ZeD_S
   {lit:Esc}                a key named as written
 Two-ways rows: (mouse-and-keyboard text, controller text). ways_from: the game topics whose own two-ways rows a
 page shows (their title keys), for game actions, so the buttons are the game's own.
-Source of the words: ZeDUI/SURVIVAL_GUIDE_CHAPTERS.md (Build's draft for the director, Nov 4 2026).
+Source of the words: docs/plans/SURVIVAL_GUIDE_CHAPTERS.md (Build's draft for the director, Nov 4 2026).
 """
 import json, os
 

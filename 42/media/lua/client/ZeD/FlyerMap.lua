@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/FlyerMap.lua
 -- ============================================================================
--- THE FLYER MAP (Oct 19 2026, director: "thats it! its the flyer map! how can
--- we use that in a cool way?" ... "your recs")
+-- THE FLYER MAP - client; read flyers pin their places on the map.
 --
 -- Every newspaper ad, flyer and brochure the character has READ marks its
 -- places on the Maps tab (vanilla's rule: ISWorldMap:renderPrintMedia shows
@@ -46,7 +45,7 @@ local function key(id, j, k) return tostring(id) .. ":" .. j .. ":" .. k end
 -- Visits: the character standing inside a place marks it (every piece's places,
 -- read or not, so reading one later shows the tick at once)
 -- ---------------------------------------------------------------------------
--- (Nov 7 2026, perf review #15) every place's rectangle and key, worked out once per definitions
+-- Every place's rectangle and key, worked out once per definitions
 -- table (built again on a new game, or if the table is replaced), not walked with "location" .. j
 -- each second: { x1, x2 + 1, y1, y2 + 1, key } flat, five numbers-and-key per place
 local _rects, _rectsFrom = nil, nil
@@ -101,7 +100,7 @@ end
 -- ---------------------------------------------------------------------------
 -- The pins on a map panel (mp: ZeD_WorldMap; its mapAPI and playerObj)
 -- ---------------------------------------------------------------------------
-local function fit()   -- the pins' whole zoom: the nearest whole number to the scale (T.art; Oct 21 2026)
+local function fit()   -- the pins' whole zoom: the nearest whole number to the scale (T.art)
     local T = ZeD.T
     return T.art or math.max(1, math.floor((T.scale or 1) + 0.5))
 end
@@ -143,7 +142,7 @@ function F.layout(mp)
     return pins
 end
 
--- the pin under a panel point (the topmost: drawn last)
+--- The pin under a panel point (the topmost: drawn last).
 function F.hit(mp, x, y)
     local pins = mp._flyerPins
     if not pins then return nil end
@@ -156,6 +155,7 @@ function F.hit(mp, x, y)
     return nil
 end
 
+--- Draws every pin (a tick over the visited ones), then the Show-on-map pulse.
 function F.draw(mp)
     local pins = F.layout(mp)
     local ck = fit()
@@ -187,12 +187,12 @@ function F.draw(mp)
     end
 end
 
--- The hover card (the mouse, or the controller's map cursor): the library's
--- detail card look (ZeD.Atoms.drawHoverShell: surface 1, solid, a 1u frame and
--- System 7's hard shadow; the title in F4, the lines in F2), after the shared
--- hover delay. It sits beside the pin and stays on the map, so it is drawn here
--- rather than at the pointer: a status line carries its square mark (been there:
--- solid, not yet: hollow).
+--- The hover card (the mouse, or the controller's map cursor): the library's
+--- detail card look (ZeD.Atoms.drawHoverShell: surface 1, solid, a 1u frame and
+--- System 7's hard shadow; the title in F4, the lines in F2), after the shared
+--- hover delay. It sits beside the pin and stays on the map, so it is drawn here
+--- rather than at the pointer: a status line carries its square mark (been there:
+--- solid, not yet: hollow).
 function F.drawCard(mp)
     local T, A = ZeD.T, ZeD.Atoms
     local p = nil
@@ -262,14 +262,14 @@ function F.meta(id)
     return m
 end
 
--- open the pinned piece in the reader
+--- Opens the pinned piece in the reader.
 function F.open(mp, p)
     if not (p and mp.playerObj and ZeD.Reader and ZeD.Reader.openPrintId) then return false end
     pcall(function() getSoundManager():playUISound("UIActivateButton") end)
     return ZeD.Reader.openPrintId(mp.playerObj, p.id)
 end
 
--- a Show on map landed here: pulse it
+--- A Show on map landed here: pulse it.
 function F.flash(x, y)
     if not (x and y) then return end
     F._flash = { x = x, y = y, t0 = getTimestampMs() }

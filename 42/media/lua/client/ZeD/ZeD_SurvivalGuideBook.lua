@@ -1,20 +1,26 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua
 -- ============================================================================
--- THE SURVIVAL GUIDE, the Full look: "Survive the Apocalypse" by Stevie Whetstone, Second Edition (Doidbros and
--- Buzzlord, Division of Survival Emergency Publications, 1987). The director, Nov 3 2026: a printed manual "just
--- bought from the bookstore. Book Naked": no marks; set like a 1983 bookstore survival guide (chapter openers in
--- heavy italic capitals over a photo, a bold Title Case line, serif text) with the 1990 survival magazine's grey bar
--- and ruled charts on the rules pages; no drop caps. Mockup: ZeDUI/mockups/zed_survival_guide_v7.html.
+-- THE SURVIVAL GUIDE, the Immersive look: "Survive the Apocalypse", Second Edition, an in-world 1987 paperback (its
+-- author and publisher are the UI_ZeD_Guide_Book* strings). Client; an organism (a full-screen panel over the
+-- dimmed game). A printed manual just bought from the bookstore: no marks; set like a 1983 bookstore survival guide
+-- (chapter openers in heavy italic capitals over a photo, a bold Title Case line, serif text) with a 1990 survival
+-- magazine's grey bar and ruled charts on the rules pages; no drop caps.
 --
--- The same topics, text, clips and numbers as the window (ZeD_SurvivalGuide.lua, which opens this one when ZeD
--- setup's Survival guide row is Full). One topic a page, two a spread; a topic with The Rules in Numbers has them on
--- the page after it; a topic too long for its page runs on to the next. Before the chapters: the title page, then
--- the contents over as many pages as it needs, the last facing the introduction with the author's photo (a blank
--- left-hand page between them when the contents takes an even count: the publisher's house ad, as old paperbacks ran
--- up front). The title page faces the copyright page, the publisher's small print (punch list 103).
+-- The same topics, text, clips and numbers as the window (ZeD_SurvivalGuide.lua, which opens this one while ZeD
+-- setup's Survival guide is Immersive). Topics flow from page to page, two pages a spread; a topic with The Rules in
+-- Numbers starts a left page with its rules page facing it; a topic too long for its page runs on to the next.
+-- Before the chapters: the title page, then the contents over as many pages as it needs, the last facing the
+-- introduction with the author's photo (when the contents takes an even count, a left-hand page comes between them:
+-- the publisher's house ad, as old paperbacks ran up front). The title page faces the copyright page, the
+-- publisher's small print.
 --
--- Faces: the game's own distance-field faces, drawn at any size with drawTextZoomed (as ZeD_PrintPage.lua):
--- Old Standard TT for the text, Roberto Sans Bold Italic for the headings, Open Sans for the small sans lines.
+-- Faces: the game's own distance-field faces, drawn at any size through the game's text atoms (THE TEXT LAYER
+-- below; drawTextZoomed, as ZeD_PrintPage.lua uses, only when the atoms are missing): Old Standard TT for the text,
+-- Roberto Sans Bold Italic for the headings, Open Sans for the small sans lines.
+--
+-- Before touching the layout: B.paginate lays the whole book out once per reading (the pages, the contents, the
+-- ads' deal) and drawing only reads it, so turning the pages never reshuffles; a new scale, text size or device
+-- lays it out again (ZeD_GuideBook:layout).
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -45,8 +51,8 @@ local U = {
     TEXT = 12.5, LEAD = 1.42, CAP = 10, FOLIO = 9, CHAP = 13, OPEN = 30, TITLE = 22, DECK = 14,
     BAR = 19, STRIP_GAP = 10,
 }
--- The type follows ZeD's text size like every ZeD surface (QA, Nov 3 2026: Large text never reached the book):
--- each size below is its Small size times the text-size preset (T.scale over the root scale); long topics run on.
+-- The type follows ZeD's text size like every ZeD surface: each size below is its Small size times the text-size
+-- preset (T.scale over the root scale); long topics run on.
 local BASE_TYPE = { TEXT = 12.5, CAP = 10, FOLIO = 9, CHAP = 13, OPEN = 30, TITLE = 22, DECK = 14, BAR = 19 }
 local TM_ = 1
 local function applyType()
@@ -59,7 +65,7 @@ local function applyType()
 end
 B.applyType = applyType   -- (for ZeDUI/tools/qa/guide_ads_sim.lua: the text size without the panel)
 
--- the guide's ads (design, Nov 6 2026): media/textures/ZeD/guide/ads/<name>.png, 2x art; sizes in design px
+-- the guide's ads: media/textures/ZeD/guide/ads/<name>.png, 2x art; sizes in design px
 ZeD.GuideAds = {
     size = { full = { 440, 628 }, half = { 440, 310 }, third = { 440, 205 }, quarter = { 215, 310 } },
     full = { "full_ready_prep", "full_greenes_grocery", "full_crossroads_mall" },
@@ -68,7 +74,7 @@ ZeD.GuideAds = {
     third = { "third_maps_unlimited", "third_salt_river_bait", "third_pioneer_girls", "third_knob_creek_hunting",
               "third_aa_ron_hunting", "third_west_point_range", "third_nails_and_nuts", "third_time_4_sport",
               "third_zippee_market", "third_phils_pawn", "third_hit_vids", "third_rolling_fork_camp",
-              -- (batch 5, Nov 7: the 32 more thirds, in GUIDE_ADS_PLAN.md's lineup order)
+              -- (32 more thirds, kept in their planned lineup order)
               "third_gas_2_go", "third_nolans_used_cars", "third_car_fixation", "third_louisville_motorshop",
               "third_echo_creek_feed_seed", "third_brott_cattle_farm", "third_thumbs_of_green", "third_five_alarm_chili",
               "third_mendys_eatery", "third_knox_distillery", "third_first_baptist_bake_sale", "third_rusty_rifle",
@@ -82,7 +88,8 @@ ZeD.GuideAds = {
                 "quarter_purrfect_barkner", "quarter_motorbikes_and_more", "quarter_wizards_keep",
                 "quarter_juke_box_bowling", "quarter_seat_yourself_furniture" },
 }
--- the room left at the top of the screen for the game's "Game Paused" box (QA: it sat over the book at the Deck)
+-- the room left at the top of the screen for the game's "Game Paused" box (on a Steam Deck's screen it would
+-- otherwise sit over the book)
 local TOP = 34
 
 local INK = { r = 0.137, g = 0.165, b = 0.227 }
@@ -110,18 +117,17 @@ local function spaceW(f, px)
     if not _spaces[k] then _spaces[k] = math.max(realTM():MeasureStringX(f.font, "a a") - realTM():MeasureStringX(f.font, "aa"), f.size * 0.25) end
     return _spaces[k] * zoom(f, px)
 end
--- text with its baseline at y
 -- THE TEXT LAYER. Lua's drawTextZoomed draws a distance-field face without the game's SDF shader, so the game's
--- faces come out soft with a dark halo (QA, Nov 3 2026, punch list 83). The game's own text atoms (PZAPI's
--- UI.Text, AtomUIText) draw through that shader, so the book's words are a pool of them, laid over the pages
--- each frame at screen positions, one for each run of words; the panel draws everything else.
+-- faces come out soft with a dark halo. The game's own text atoms (PZAPI's UI.Text, AtomUIText) draw through that
+-- shader, so the book's words are a pool of them, laid over the pages each frame at screen positions, one for each
+-- run of words; the panel draws everything else.
 local LAYER = { root = nil, pool = {}, n = 0, panel = nil }
 local function layerReady()
     if LAYER.root then return true end
     if not (PZAPI and PZAPI.UI and PZAPI.UI.Node and PZAPI.UI.Text) then return false end
     local ok = pcall(function()
         -- (a one-pixel root, never handed to the UIManager: an atom root there draws under ZeD's always-on-top
-        -- book whatever is raised (QA, Nov 3 2026). The book draws it itself, after its own drawing, in render.)
+        -- book whatever is raised. The book draws it itself, after its own drawing, in render.)
         local UI = PZAPI.UI
         local root = UI.Node{ x = 0, y = 0, width = 1, height = 1 }
         UI._setParentChildRelationship(root)
@@ -168,6 +174,7 @@ function B.layerHide()
 end
 function B.layerToTop() if LAYER.root and LAYER.root.javaObj then pcall(function() LAYER.root.javaObj:bringToTop() end) end end
 
+-- text with its baseline at y: through the text layer while it serves this panel, else drawTextZoomed
 local function drawAt(panel, f, s, x, baseY, px, c, a)
     local z = zoom(f, px)
     local y = baseY - f.base * z
@@ -221,12 +228,11 @@ local function wrapWords(words, f, px, widthFor, start, indent)
     return lines, n
 end
 
--- a line, justified unless it ends its paragraph
 -- a line, ragged right; each run of words between the game's small pictures is one string
 local function drawLine(panel, f, px, l, x, baseY, c)
     local sp = spaceW(f, px)
     local gaps = #l.items - 1
-    -- (ragged right: the text atoms space words by whole spaces, so justifying doubled some gaps; QA, Nov 3 2026)
+    -- (ragged right: the text atoms space words by whole spaces, so justifying doubled some gaps; extraN stays 0)
     local extraN = 0
     local xx = x + l.indent
     local runX, run = xx, nil
@@ -282,10 +288,9 @@ local function bodyLines(t, f, px, w)
 end
 
 -- ---------------------------------------------------------------------------
--- THE ADS (design, Nov 6 2026, punch list 98; ZeDUI/HANDOFF_design_guide_ads_20261106.md): the back pages of a 1987
--- paperback. A whole page the layout leaves over takes a full-page ad (the publisher's house ad, drawn in Lua and
--- translated, is one of them), and when they have run out the smaller ads as a filler over its text block; a flow
--- page a third or more empty takes the largest that fits. Each ad at most once
+-- THE ADS: the back pages of a 1987 paperback. A whole page the layout leaves over takes a full-page ad (the
+-- publisher's house ad, drawn in Lua and translated, is one of them), and when they have run out the smaller ads as
+-- a filler over its text block; a flow page a third or more empty takes the largest that fits. Each ad at most once
 -- a book: a slot with no ad left falls through to the next step, and at the end comes the ruled NOTES block.
 -- The deal is made once each time the pages are laid out (B.paginate), never while drawing, so turning the pages
 -- never reshuffles; a new layout (text size, pad or keyboard wording, language) deals again from the same seed, so
@@ -308,7 +313,7 @@ local function pmNext(x)
 end
 B.pmNext = pmNext
 
--- a string to a seed: each character folded in, kept below 2^24 so the next h * 33 stays below 2^31
+--- A string to a seed: each character folded in, kept below 2^24 so the next h * 33 stays below 2^31.
 function B.hashSeed(s)
     s = tostring(s or "")
     local h = 5381
@@ -319,10 +324,11 @@ function B.hashSeed(s)
     return pmNext(h + 1)                 -- (+1: the generator's seed must not be 0)
 end
 
--- WHAT "A BOOK" IS. The Full look's book is the F1 guide, one panel a player (B.books[pn]); no guide item lies in
+-- WHAT "A BOOK" IS. The Immersive look's book is the F1 guide, one panel a player (B.books[pn]); no guide item lies in
 -- the world to carry an ID in its modData. So a book is a character in a save: the seed is the save's name and the
 -- character's name, hashed. It needs nothing written (player modData written by a client may not last in
 -- multiplayer), reads the same after a reload, and a new character or another save prints other back pages.
+--- The ads' seed for player pn's book, as above.
 function B.adSeed(pn)
     local parts = {}
     pcall(function() parts[#parts + 1] = tostring(getWorld():getWorld()) end)
@@ -346,9 +352,9 @@ local function shuffled(list, x)
     return out, x
 end
 
--- the book's deck: each size's list shuffled from the seed (the house ad among the full pages); `at` counts what
--- each list has dealt. houseUpFront: the house ad already has its page in the front matter (B.paginate), so it
--- leaves the full pages' list after the shuffle; the others keep their order and every other list is as it was.
+--- The book's deck: each size's list shuffled from the seed (the house ad among the full pages); `at` counts what
+--- each list has dealt. houseUpFront: the house ad already has its page in the front matter (B.paginate), so it
+--- leaves the full pages' list after the shuffle; the others keep their order and every other list is as it was.
 function B.adDeck(seed, houseUpFront)
     local A = ZeD.GuideAds
     local x = pmNext(pmNext(seed or 1))   -- (two steps in: neighboring seeds part ways)
@@ -431,16 +437,16 @@ local function planFiller(d, y0, y1, u, checkH, st)
     return plan
 end
 
--- The deal, in page order: a whole page its full ad (p.ad: a name or "house"; false when they have run out, and the
--- page is then a filler over its whole text block, p.filler), each filler its plan (it.ads on a flow page's filler
--- item, p.filler.ads at a rules page's foot or on a whole page). textW_ the text block's width.
 -- (a whole page's text block runs from the top margin to where a full ad ends, 6 over the foot)
 local WHOLE_FOOT = U.PH - U.FOOT - 6
--- The feet of rules pages behind a spoiler bar are dealt last, from what is left: their ads stay hidden until the
--- reader shows the numbers, so they never take an ad a page in plain sight would then go without. (Whether a table
--- is a spoiler is fixed by the layout, not by whether its numbers are shown now, so showing them never deals again.)
--- The front matter's left-hand page before the introduction (p.front, B.paginate) is the house ad already: it is
--- not dealt, and the house ad leaves the deck so no later page repeats it.
+--- The deal, in page order: a whole page its full ad (p.ad: a name or "house"; false when they have run out, and the
+--- page is then a filler over its whole text block, p.filler), each filler its plan (it.ads on a flow page's filler
+--- item, p.filler.ads at a rules page's foot or on a whole page). textW_ the text block's width.
+--- The feet of rules pages behind a spoiler bar are dealt last, from what is left: their ads stay hidden until the
+--- reader shows the numbers, so they never take an ad a page in plain sight would then go without. (Whether a table
+--- is a spoiler is fixed by the layout, not by whether its numbers are shown now, so showing them never deals again.)
+--- The front matter's left-hand page before the introduction (p.front, B.paginate) is the house ad already: it is
+--- not dealt, and the house ad leaves the deck so no later page repeats it.
 function B.dealAds(bk, pages, u, textW_)
     local front = false
     for _, p in ipairs(pages) do if p.front then front = true; break end end
@@ -457,9 +463,10 @@ function B.dealAds(bk, pages, u, textW_)
             st.full = st.full + 1
             if not a then
                 st.fullMiss = st.fullMiss + 1
-                -- (no full ad left: the whole text block as a filler, the smaller ads before NOTES. QA, Nov 7 2026:
-                -- at Large text with pad wording 6 whole pages had 4 full ads, and 2 printed NOTES while halves and
-                -- quarters went unused)
+                -- (no full ad left: the whole text block as a filler, the smaller ads before NOTES. There are 4
+                -- full ads, the house ad among them; at Large text with the controller's wording the layout can
+                -- leave 6 whole pages, and the last 2 would otherwise print NOTES while halves and quarters went
+                -- unused)
                 p.filler = { y = U.MT * u, y1 = WHOLE_FOOT * u }
                 p.filler.ads = planFiller(d, p.filler.y, p.filler.y1, u, nil, st)
             end
@@ -487,8 +494,8 @@ function B.dealAds(bk, pages, u, textW_)
     return st
 end
 
--- one line on how far the ads went at this layout (QA's count: whether 66 ads cover every slot). Logged in -debug
--- each time it changes, so a text size or wording change shows its own count in console.txt.
+--- One line on how far the ads went at this layout (the count that says whether 66 ads cover every slot). Logged
+--- in -debug each time it changes, so a text size or wording change shows its own count in console.txt.
 function B.adReport(bk)
     local st = bk and bk.adStats
     if not st then return "no deal" end
@@ -531,14 +538,14 @@ local function drawAd(panel, name, size, x, y, u)
     return x0 + w
 end
 
--- the page list for a reading of the topics (front matter, then a page a topic and its rules page)
--- The pages, as a flow (the director, Nov 3 2026: topics share a page): a chapter opens on a fresh page with its
--- heading, the clip and the line under it; each later topic follows on the same page under its own heading when its
--- heading, clip and three lines still fit, else on the next; a long topic runs on. A topic with The Rules in Numbers
--- starts a left page and its rules page faces it. Each page is a list of placed items (baselines and tops in px).
 local RULE_ROWS = 22   -- a rules page's rows at most (a longer table runs on)
 -- the printed number of the page at index i (the title page is the first right-hand page, ii)
 local function printed(i) return i + 1 end
+--- The page list for a reading of the topics (bk.pages): the front matter, then the chapters as a flow, topics
+--- sharing pages: a chapter opens on a fresh page with its heading, the clip and the line under it; each later topic
+--- follows on the same page under its own heading when its heading, clip and three lines still fit, else on the next;
+--- a long topic runs on. A topic with The Rules in Numbers starts a left page and its rules page faces it. Each page
+--- is a list of placed items (baselines and tops in px). Ends by dealing the ads (B.dealAds).
 function B.paginate(bk, u)
     local px = function(n) return n * u end
     -- (the front matter as the chapters are laid out: the contents' own pages are counted after them, below)
@@ -548,23 +555,23 @@ function B.paginate(bk, u)
     local lineH = px(U.TEXT) * U.LEAD
     local bottom = px(U.PH - U.FOOT - U.MT)
     -- a chapter opener's clip spans the text; every other topic's is two-thirds of it, centred, so two short
-    -- topics share a page (the director, Nov 4 2026)
+    -- topics share a page
     local clipW = { [true] = textW_, [false] = math.floor(textW_ * 2 / 3) }
     local clipH = { [true] = math.floor(textW_ / 2), [false] = math.floor(textW_ / 3) }
     local page, y = nil, 0
     bk.sectionPage, bk.pageOf = {}, {}
-    -- (the publisher fills its pages, the director, Nov 4 2026: "publishers [don't] like printing blank pages. It
-    -- costs more money, so they generally fill the content"): a flow page a third or more empty takes a filler, from
-    -- 16 under where its text ends to the foot. fillerRoom: that filler's height for a page ending at endY, or nil.
+    -- (the publisher fills its pages: a blank page is paper paid for and wasted): a flow page a third or more
+    -- empty takes a filler, from 16 under where its text ends to the foot. fillerRoom: that filler's height for a
+    -- page ending at endY, or nil.
     local room = bottom - px(U.MT)
     local function fillerRoom(endY)
         if bottom - endY >= room / 3 then return bottom - (endY + px(16)) end
         return nil
     end
-    -- THE FIRST DAYS CHECKLIST prints once, in its chapter (the director, Nov 7 2026: "I want the text to print"):
-    -- at the head of the first of the chapter's fillers with the room for it, as before; when none has the room
-    -- (Small text: QA, Nov 7 2026), as a block of its own at the chapter's end, on a new page if the last has no
-    -- room, so it is never split, never over the text and never twice. Decided when the chapter is done (below).
+    -- THE FIRST DAYS CHECKLIST always prints, once, in its chapter: at the head of the first of the chapter's
+    -- fillers with the room for it; when none has the room (at Small text, say), as a block of its own at the
+    -- chapter's end, on a new page if the last has no room, so it is never split, never over the text and never
+    -- twice. Decided when the chapter is done (below).
     -- (measured in a pcall: if it throws, the book lays out without the checklist block, it never closes)
     local checkOk, checkH = pcall(bk.drawChecklist, bk, 0, textW_, 0, u, true)
     if not checkOk then ZeD.logOnce("survival guide checklist", checkH); checkH = nil end
@@ -599,8 +606,8 @@ function B.paginate(bk, u)
     end
     local function body(t, si, s)
         -- the two ways (ZeD.Guide.twoWays): a small ruled table, its heads, then a line an action. On a controller it
-        -- leads the topic (the director, Nov 4 2026, "Option 3"); on a keyboard it follows the text and keeps the
-        -- text's last two lines with it (QA: a box stood alone at the top of the next page)
+        -- leads the topic; on a keyboard it follows the text and keeps the text's last two lines with it, so the box
+        -- never stands alone at the top of the next page
         local ways = ZeD.Guide.twoWays and ZeD.Guide.twoWays(t)
         local rowH = px(U.TEXT) * 1.45
         local wl, need = {}, 0
@@ -643,7 +650,7 @@ function B.paginate(bk, u)
         if padFirst then box() end
         local lines = bodyLines(t, F.text, px(U.TEXT), textW_)
         for i, l in ipairs(lines) do
-            -- (a topic's last line never alone atop a page: the line before goes with it, QA Nov 4 2026)
+            -- (a topic's last line never alone atop a page: the line before goes with it)
             local keep = (i == #lines - 1) and (2 * lineH) or lineH
             if ways and not padFirst and i == math.max(1, #lines - 1) then keep = (#lines - i + 1) * lineH + need end
             if y + keep > bottom then newPage(si, s, false) end
@@ -658,9 +665,8 @@ function B.paginate(bk, u)
             local first = ti == 1
             local rf = ZeD.Guide.Rules and ZeD.Guide.Rules[t.titleKey]
             if rf then
-                -- (the page that makes room is a full-page ad, never a blank page: the director, Nov 4 2026,
-                -- "options for callouts and advertisement styling. Look more built by a large publisher"; which
-                -- ad is dealt when the pages are done, B.dealAds)
+                -- (the page that makes room is a full-page ad, never a blank page, as a large publisher's book
+                -- would have it; which ad is dealt when the pages are done, B.dealAds)
                 if (#pages + 1) % 2 == 0 then pages[#pages + 1] = { kind = "ad" } end
                 -- a fresh left page (a blank before it if need be), so the rules page faces it
                 newPage(si, s, first)
@@ -708,7 +714,7 @@ function B.paginate(bk, u)
                     local n, per = #rules.rows, RULE_ROWS
                     local long = 0
                     for _, row in ipairs(rules.rows) do long = math.max(long, #tostring(row[#rules.cols] or "")) end
-                    if long > 28 then per = 16 end   -- (QA: 16 still fit on the Deck at Large text)
+                    if long > 28 then per = 16 end   -- (16 still fit on a Steam Deck at Large text)
                     local parts = math.max(1, math.ceil(n / per))
                     for c = 1, parts do
                         local part = rules
@@ -747,9 +753,9 @@ function B.paginate(bk, u)
     -- THE CONTENTS, now the chapters' pages are known (B.contentsLayout): as many pages as its rows need after the
     -- title page, then the introduction on a right-hand page, facing the last contents page when their count is odd
     -- and after a left-hand page when it is even (as a printer would). That left-hand page is the publisher's house ad
-    -- (the director, Nov 7 2026: old paperbacks ran an "also from this publisher" ad up front; p.front, so the deal
-    -- leaves it be and never repeats the house ad later, B.dealAds). It is no text page: no chapter, topic or contents
-    -- row points at it, and it has no section for the thumbs. The front matter is always an even
+    -- (old paperbacks ran an "also from this publisher" ad up front; p.front, so the deal leaves it be and never
+    -- repeats the house ad later, B.dealAds). It is no text page: no chapter, topic or contents row points at it,
+    -- and it has no section for the thumbs. The front matter is always an even
     -- count, so the chapters keep their sides; every page moves on by what the contents added (shift), and the rows
     -- print the numbers of the pages as they end up (laid out again while the shift grows: a wider number can wrap).
     local shift, cpages = 0, nil
@@ -820,7 +826,7 @@ function ZeD_GuideBook:readTopics(u)
     -- (the ads' seed: this character in this save, read again each time since a split-screen seat can change hands)
     self._adSeed = B.adSeed(self.playerNum)
     B.paginate(self, u)
-    -- (in -debug, the ads' count for this layout when it changes: QA's question of whether 66 ads cover the book)
+    -- (in -debug, the ads' count for this layout when it changes: whether 66 ads cover the book)
     local ok, dbg = pcall(isDebugEnabled)
     if ok and dbg then
         local okR, line = pcall(B.adReport, self)
@@ -833,7 +839,8 @@ function ZeD_GuideBook:unit()
     local T = ZeD.T
     local pn = self.playerNum
     -- The page takes the screen's scale (T.px also carries the text size, which only the type takes), and on a
-    -- small screen it grows to fill the screen, up to its 1080p size: a book is read, not glanced at (QA, the Deck).
+    -- small screen it grows to fill the screen, up to its 1080p size: a book is read, not glanced at (a Steam Deck's
+    -- screen, say).
     local root = T.root or (T.px(100) / 100)
     local cap = math.max(root, 1)
     local wUnits = U.PW * 2 + U.EDGE * 2 + 20
@@ -948,7 +955,7 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
             local c2, c3 = tx + math.floor(tw_ / 3), tx + math.floor(tw_ * 2 / 3)
             local s = U.TEXT * u * 1.05
             if r.label then
-                -- (a long binding name cut to its column: QA, "Toggle Clothing Protection Panel")
+                -- (a long binding name cut to its column: "Toggle Clothing Protection Panel", say)
                 local lab, lim = r.label, math.floor(tw_ / 3) - 8 * u
                 if textW(F.text, lab, U.TEXT * u) > lim then
                     while #lab > 1 and textW(F.text, lab .. "...", U.TEXT * u) > lim do lab = lab:sub(1, #lab - 1) end
@@ -996,7 +1003,7 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u, dry)
     end
     yy = yy + barH + U.TEXT * u
     local r = p.rules
-    -- a spoiler (the director, Nov 4 2026): a grey bar to show the numbers, and a line on why they are hidden
+    -- a spoiler: a grey bar to show the numbers, and a line on why they are hidden
     if draw and ZeD.Guide.spoilHidden(p.topic, p.ri or 1, r) then
         local bh = U.TEXT * u * 2.2
         yy = yy + U.TEXT * u
@@ -1062,7 +1069,7 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u, dry)
     end
     local ry = y0 + hl * cpx * 1.25 + 5 * u
     if draw then self:drawRect(tx + pad, ry, inner, math.max(1, 1.5 * u), 1, INK.r, INK.g, INK.b) end
-    -- (the last column wraps in the room left; the row takes its lines: QA, the Deck ran them off the page)
+    -- (the last column wraps in the room left; the row takes its lines, or on a Steam Deck they run off the page)
     local lastW = math.max(40 * u, tx + pad + inner - colX[ncol])
     for _, row in ipairs(r.rows) do
         ry = ry + cpx * 1.5
@@ -1088,9 +1095,11 @@ end
 -- A FILLER (what the publisher prints where the text leaves room): the shops' ads dealt for it (THE ADS, above),
 -- then a ruled NOTES block as a real manual leaves for its owner.
 
--- the First Days checklist (the director, Nov 4 2026: tick-box checklists, the FEMA pamphlets' way): a framed box, its
--- head, the items each with an empty tick box; returns its height
+-- the First Days checklist, a tick-box list in the FEMA pamphlets' way: a framed box, its head, the items each with
+-- an empty tick box
 local CHECK_N = 7
+--- Draw the First Days checklist at (tx, by), tw_ wide; returns its height. measureOnly: draws nothing, returns the
+--- height alone.
 function ZeD_GuideBook:drawChecklist(tx, tw_, by, u, measureOnly)
     local px = U.TEXT * u
     local lineH = px * U.LEAD
@@ -1135,7 +1144,7 @@ local function drawNotes(self, tx, tw_, y0, y1, u)
     end
 end
 
--- a filler f ({ y, y1, ads }, from the page's top at y) as dealt: the checklist, the ads, NOTES (planFiller)
+--- A filler f ({ y, y1, ads }, from the page's top at y) as dealt: the checklist, the ads, NOTES (planFiller).
 function ZeD_GuideBook:drawFiller(tx, tw_, y, f, u)
     local S = ZeD.GuideAds.size
     for _, b in ipairs(f.ads or {}) do
@@ -1179,8 +1188,8 @@ function ZeD_GuideBook:drawTitlePage(x, y, w, u)
     drawCentre(self, F.sans, "1987", cx, by + 33 * u, 11 * u, INK)
 end
 
--- a contents page p (B.contentsLayout) at index pi: its heading and rows as laid out; each row drawn goes on the
--- list the mouse picks from (_contentsRows, made again each frame), with the page it sits on
+--- A contents page p (B.contentsLayout) at index pi: its heading and rows as laid out; each row drawn goes on the
+--- list the mouse picks from (_contentsRows, made again each frame), with the page it sits on.
 function ZeD_GuideBook:drawContentsPage(p, x, y, w, u, hover, pi)
     local m = U.M * u
     local tx, tw_ = x + m, w - m * 2
@@ -1231,10 +1240,10 @@ end
 -- THE PUBLISHER'S HOUSE AD: a full-page mail-order ad in the 1980s survival magazines' manner, for the publisher's
 -- own (fictional) titles, in the game's language. A heavy frame, the headline, a deck, a paragraph, the titles with
 -- tick boxes, a price box and a coupon with a dashed edge.
--- Every line keeps inside the frame (QA, Nov 7 2026: the deck ran past both sides at Large text and in German at
--- Small, and the price filled its box edge to edge at Large): each part wraps to the frame's inner width (the titles
+-- Every line keeps inside the frame (unwrapped, the deck runs past both sides at Large text and in German at Small,
+-- and the price fills its box edge to edge at Large): each part wraps to the frame's inner width (the titles
 -- to their box, the price to its own), centered parts in even lines; the price box is its words plus half the price's
--- size each side (never under its old 92). When the wrapped words would push the coupon past the frame, the gaps
+-- size each side (never under 92). When the wrapped words would push the coupon past the frame, the gaps
 -- close up first (the same proportions, down to 55%); then a part that wrapped steps down one size (the deck, the
 -- titles, the coupon, the paragraph, the headline, in that order). Name and Address wrap to leave a writing line;
 -- a headline word too wide for the frame takes the headline a size down before it is cut. Laid out once for a
@@ -1377,20 +1386,20 @@ local function adWrapEven(text, f, px, maxW)
     return adWrap(text, f, px, hi)
 end
 
--- THE COPYRIGHT PAGE (design, Nov 7 2026, punch list 103; ZeDUI/HANDOFF_design_guide_copyright_20261107.md): the
--- first left-hand page, facing the title page, set as the znix manual's (ZeDUI/workshop/gallery/title_spread.py) in
--- the publisher's dry register. The small print sits low, as copyright pages set it: one block in the body face a
--- step under the body size (U.CAP), left aligned and ragged over the full text-block width, its last line's
--- descender on the text block's foot (U.PH - U.FOOT), so Large text grows it upward and never past the foot. The
--- znix page's spacing: 1 after the title and the edition, 9 after the "by" line, 7 between paragraphs, 4 more
--- before "Printed in" and the printing line straight under it (all times the text size). Wrapped with adWrap, which
--- cuts Chinese, Japanese and Thai between characters. No folio (drawPage returns before it, as for the title page).
+-- THE COPYRIGHT PAGE: the first left-hand page, facing the title page, in the publisher's dry register, spaced to
+-- match the copyright page in the mod's Workshop gallery pictures. The small print sits low, as copyright pages set
+-- it: one block in the body face a step under the body size (U.CAP), left aligned and ragged over the full
+-- text-block width, its last line's descender on the text block's foot (U.PH - U.FOOT), so Large text grows it
+-- upward and never past the foot. The spacing: 1 after the title and the edition, 9 after the "by" line, 7 between
+-- paragraphs, 4 more before "Printed in" and the printing line straight under it (in tenths of the type's size).
+-- Wrapped with adWrap, which cuts Chinese, Japanese and Thai between characters. No folio (drawPage returns before
+-- it, as for the title page).
 local COPY_KEYS = { "UI_ZeD_Guide_BookTitle", "UI_ZeD_Guide_BookSub1", "UI_ZeD_Guide_BookSub2", "UI_ZeD_Guide_BookEdition",
                     "UI_ZeD_Guide_CopyBy", "UI_ZeD_Guide_Copy1", "UI_ZeD_Guide_Copy2", "UI_ZeD_Guide_Copy3",
                     "UI_ZeD_Guide_Copy4", "UI_ZeD_Guide_Copy5" }
 local COPY_DESC = 0.25   -- (the face's descender, a quarter of its size: the block's bottom under its last baseline)
--- the block at page width w and unit u: { lines = { { s, w, y = baseline from the page's top } }, px, top, bottom }
--- (in the improbable case the block would rise over the top margin, its size steps down until it fits)
+--- The block at page width w and unit u: { lines = { { s, w, y = baseline from the page's top } }, px, top, bottom }
+--- (in the improbable case the block would rise over the top margin, its size steps down until it fits)
 function B.copyrightLayout(w, u)
     local t = {}
     for i, k in ipairs(COPY_KEYS) do t[i] = tr(k) end
@@ -1447,14 +1456,13 @@ function ZeD_GuideBook:drawCopyrightPage(x, y, w, u)
     for _, l in ipairs(L.lines) do drawAt(self, F.text, l.s, tx, y + l.y, L.px, INK) end
 end
 
--- THE CONTENTS (the director, Nov 7 2026: "2-3 pages, however many pages it needs. I'm sure it'll expand"): the
--- sections come from the game's guide and ZeD's chapters at run time, so their count is not fixed. A row for each
--- section that has a page (numOf(s), its printed number, or nil for none), laid out at the text size and in the
--- wording into as many pages as it needs, whole rows only, none past the body text's bottom. A row: the chapter's
--- number and title (wrapped to the text block), its blurb wrapped to the room before its page number (QA, Nov 7
--- 2026: at Large text some languages' blurbs ran into their numbers), the dotted leader and the number on the
--- blurb's last line. A later page heads with the contents title and the book's "continued", as the rules pages do.
--- Places in px at u from the page's top; B.paginate places the pages, drawContentsPage draws them.
+--- THE CONTENTS, on as many pages as it needs: the sections come from the game's guide and ZeD's chapters at run
+--- time, so their count is not fixed. A row for each section that has a page (numOf(s), its printed number, or nil
+--- for none), laid out at the text size and in the wording, whole rows only, none past the body text's bottom. A
+--- row: the chapter's number and title (wrapped to the text block), its blurb wrapped to the room before its page
+--- number (else at Large text some languages' blurbs run into their numbers), the dotted leader and the number on
+--- the blurb's last line. A later page heads with the contents title and the book's "continued", as the rules pages
+--- do. Places in px at u from the page's top; B.paginate places the pages, drawContentsPage draws them.
 function B.contentsLayout(bk, u, numOf)
     local cu = u * TM_
     local tw_ = (U.PW - U.M * 2) * u
@@ -1677,8 +1685,8 @@ local function houseAdTry(w, u, g, sz, down)
     return L
 end
 
--- the ad's layout at page width w and unit u: the list of what to draw, from the page's corner
-local AD_DOWN = { "deck", "items", "coupon", "body", "head" }
+local AD_DOWN = { "deck", "items", "coupon", "body", "head" }   -- (in turn, each a size down if it wrapped)
+--- The house ad's layout at page width w and unit u: the list of what to draw, from the page's corner.
 function B.houseAdLayout(w, u)
     local sz = { head = U.OPEN * u, deck = U.DECK * u, body = U.TEXT * u, items = U.TEXT * u, coupon = U.CAP * u * 1.1, price = U.DECK * u }
     local down = { head = U.TITLE * u, deck = U.TEXT * u, items = U.CAP * u * 1.1, coupon = U.CAP * u, body = U.CAP * u * 1.1 }
@@ -1720,6 +1728,7 @@ function ZeD_GuideBook:houseAd(w, u)
     return c.L
 end
 
+--- The publisher's house ad on a whole page at (x, y), w wide, from the layout ZeD_GuideBook:houseAd keeps.
 function ZeD_GuideBook:drawAdPage(x, y, w, u)
     local L = self:houseAd(w, u)
     for _, o in ipairs(L.ops) do
@@ -1975,8 +1984,10 @@ function ZeD_GuideBook:update()
 end
 
 -- ---------------------------------------------------------------------------
--- ENTRY (ZeD.Guide.open sends here while the Full look is chosen)
+-- ENTRY (ZeD.Guide.open sends here while the Immersive look is chosen)
 -- ---------------------------------------------------------------------------
+--- Open player pn's book on a topic (an id, tostring of a SurvivalGuideEntry, or a title key), else at its first
+--- spread. The game pauses while it is open, and the game's "Game Paused" box is hidden.
 function B.open(pn, want)
     pn = pn or 0
     local bk = B.books[pn]
@@ -2017,11 +2028,13 @@ function B.open(pn, want)
     return bk
 end
 
+--- True while player pn's book is open.
 function B.isOpen(pn)
     local bk = B.books[pn or 0]
     return bk ~= nil and bk:isReallyVisible()
 end
 
+--- Close player pn's book: the game runs again, its "Game Paused" box as it was, the controller back where it was.
 function B.close(pn)
     local bk = B.books[pn or 0]
     if not bk then return end

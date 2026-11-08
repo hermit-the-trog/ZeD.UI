@@ -1,15 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SurvivalGuide.lua
 -- ============================================================================
--- THE SURVIVAL GUIDE (F1), the Simple look (ZeDUI/SURVIVAL_GUIDE_DRAFT.md; mockup
--- ZeDUI/mockups/zed_survival_guide_v7.html; director Nov 3 2026: "You are go for build").
+-- THE SURVIVAL GUIDE (F1), the Simple look. Client; an organism (a ZeD window), and the
+-- guide's shared parts on ZeD.Guide.
 --
--- A ZeD window in place of the game's guide (HOOK_MAP row 18): the game's sections and
+-- A ZeD window in place of the game's guide: the game's sections and
 -- topics on the left (Find at the top, sections that fold), the chosen topic on the right
 -- (its clip, the game's own text, and The Rules in Numbers where the game keeps rules in
 -- numbers), a band at the foot (the game's "Show the guide on startup", Previous, Next) and
--- the window's help line. Everything shown is read from the game: SurvivalGuideEntry for the
--- topics, text and clips; the game's own files for the numbers (the director's line, Nov 3:
--- the game's rules as numbers, never your world's secrets).
+-- the window's help line. The game's part is read from the game: SurvivalGuideEntry for the
+-- topics, text and clips; the game's own files and this world's settings for the numbers:
+-- the game's rules as numbers, never this world's secrets (a shutoff's range, never the day
+-- it rolled). ZeD's own chapters (ZeD_GuideChapters.lua) follow the game's.
+--
+-- Before touching a shared part: ZeD_SurvivalGuideBook.lua, the Immersive look, reads the topics,
+-- their words, the inline pictures, the two ways and the rules through ZeD.Guide, so a change
+-- here shows in both looks.
 --
 -- The game's behaviour is kept: F1 and the controller's Help wheel toggle it, it opens by
 -- itself on a new game while "Show the guide on startup" is ticked, the game pauses while it
@@ -42,8 +47,8 @@ local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
 -- (the game's measure leaves out spaces at the end of a string: measure them with a letter after)
 local function twFull(font, s) return tw(font, s .. "x") - tw(font, "x") end
--- the width a run takes on the line, for the fit test: the larger of the two measures (QA, Nov 3 2026: on a Thai line
--- ending in a vowel mark the "x" trick came out 2 px short of the run measured as drawn)
+-- the width a run takes on the line, for the fit test: the larger of the two measures (on a Thai line ending in a
+-- vowel mark the "x" trick comes out 2 px short of the run measured as drawn)
 local function twFit(font, s) return math.max(tw(font, s), twFull(font, s)) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
@@ -59,11 +64,9 @@ end
 -- ---------------------------------------------------------------------------
 -- THE GAME'S TOPICS (SurvivalGuideEntry, in the game's order)
 -- ---------------------------------------------------------------------------
--- A controller's button pictures in the game's text (<IMAGE:...XBOX_A.png...>) become the
--- button's name in brackets until the guide draws ZeD's own button pictures.
--- The game's text puts small pictures in its lines (<IMAGE:media/ui/...png,w,h>: a menu's icon, a
--- controller button). They become a marker (\1 path \1) that the reader passes through as text, and the
--- layout draws the picture in the line, a line's height square (QA, Nov 3 2026: "[Build_On_48]").
+-- The game's text puts small pictures in its lines (<IMAGE:media/ui/...png,w,h>: a menu's icon such as
+-- Build_On_48, a controller button such as XBOX_A.png). They become a marker (\1 path \1) that the reader passes
+-- through as text, and the layout draws the game's picture in the line, a line's height square.
 local MARK = "\1"
 local function inlineImages(s)
     return (s:gsub("<%s*[Ii][Mm][Aa][Gg][Ee]%s*:%s*([^,>]+)[^>]*>", function(path)
@@ -71,12 +74,14 @@ local function inlineImages(s)
     end))
 end
 
--- KEYS AND BUTTONS IN THE TEXT (the director, Nov 4 2026: the guide follows the device you use: your own keys on
--- a keyboard, that controller's buttons on a controller, Xbox, PlayStation, Nintendo or Steam Deck). ZeD fills the
--- game's %1 %2 ... itself (entryText below) with markers the layout draws in the line: "key:<name>" a key cap (the
--- key's name in a frame, as the controller strip draws a key), "pad:<role>" ZeD's own button picture in the set the
--- glyph setting picks (ZeD_PadGlyphs), any other path a picture from the game. One object per marker, kept.
+-- KEYS AND BUTTONS IN THE TEXT: the guide follows the device you use: your own keys on a keyboard, that
+-- controller's buttons on a controller (Xbox, PlayStation, Nintendo or Steam Deck). ZeD fills the game's %1 %2 ...
+-- itself (entryText below) with markers the layout draws in the line: "key:<name>" a key cap (the key's name in a
+-- frame, as the controller strip draws a key), "pad:<role>" ZeD's own button picture in the set the glyph setting
+-- picks (ZeD_PadGlyphs), any other path a picture from the game. One object per marker, kept.
 local _inl = {}
+--- What a marker's path stands for: { key = name }, { pad = { role } } or { tex = picture }; nil for a picture the
+--- game doesn't have.
 local function inlineTex(path)
     local o = _inl[path]
     if o == nil then
@@ -93,7 +98,7 @@ local function inlineTex(path)
     return o or nil
 end
 
--- an inline thing's width at a line height s
+--- An inline thing's width at a line height s.
 local function inlineW(o, s)
     if o.tex then return s end
     local T = ZeD.T
@@ -107,7 +112,7 @@ local function inlineW(o, s)
     return s
 end
 
--- draws one in a line, s tall at (x, y); ink the text's colour; pal the button pictures' colours (nil: ZeD.T)
+--- Draws one in a line, s tall at (x, y); ink the text's colour; pal the button pictures' colours (nil: ZeD.T).
 local function inlineDraw(panel, o, x, y, s, ink, pal)
     if o.tex then panel:drawTextureScaledAspect(o.tex, x, y, s, s, 1, 1, 1, 1); return end
     local T = ZeD.T
@@ -154,9 +159,10 @@ local function argFor(k)
     return s
 end
 
--- TWO WAYS (the director, Nov 4 2026: every page that teaches an action closes with "Mouse and keyboard |
--- Controller", one short line per action). Read from the entry itself: the game gives each topic its keyboard keys
--- and its controller buttons as two lists in the same order (the %1 %2 of its two texts), so row n pairs the two.
+-- TWO WAYS: every page that teaches an action has a "Mouse and keyboard | Controller" box, one short line per
+-- action, after the words (before them on a controller). Read from the entry itself: the game gives each topic
+-- its keyboard keys and its controller buttons as two lists in the same order (the %1 %2 of its two texts), so
+-- row n pairs the two.
 -- A row's name is the game's own name for the binding (UI_optionscreen_binding_<name>, translated by the game);
 -- a mouse button or a picture has no name of its own and the row shows its keys only. Rows that are only pictures
 -- (the game's sidebar icons) and repeats are left out; a topic with no keys has no box.
@@ -259,19 +265,20 @@ local function twoWays(t)
     end
     return (#rows > 0) and rows or nil
 end
+-- (the book draws the same rows: ZeD.Guide.twoWays(topic))
 W.twoWays = twoWays
 
 local STANDIN = {}
 for i = 1, 9 do STANDIN[i] = "\2" .. i .. "\2" end
 
--- an entry's text for the device in use: the controller's own words and buttons (description_joypad) when the player
--- is on a controller and the game has them, else the keyboard's words and keys. nil: an entry the game hides.
+--- An entry's text for the device in use: the controller's own words and buttons (description_joypad) when the
+--- player is on a controller and the game has them, else the keyboard's words and keys. nil: an entry the game hides.
 local function entryText(e, joy)
     local desc = e:getDescription()
     if not desc then return nil end
     local raw, keys = nil, nil
-    -- (the game's text has %1$s ... for its keys: it is asked with stand-ins \2 n \2 (asked with none, it warned
-    -- once a topic, QA Nov 4 2026), which are then filled with ZeD's markers)
+    -- (the game's text has %1$s ... for its keys: it is asked with stand-ins \2 n \2 (asked with none, the game logs
+    -- a warning once a topic), which are then filled with ZeD's markers)
     local S = STANDIN
     if joy then
         raw = getTextOrNull(desc .. "_joypad", S[1], S[2], S[3], S[4], S[5], S[6], S[7], S[8], S[9])
@@ -288,7 +295,7 @@ local function entryText(e, joy)
     return (raw:gsub("%%(%d)", function(d) return args[tonumber(d or "")] or "" end))
 end
 
--- Japanese and Chinese line breaking (kinsoku, QA Nov 4 2026: a "。" started a line): these never start a line
+-- Japanese and Chinese line breaking (kinsoku: a "。" must never start a line): these never start a line
 -- (closing marks, the long-vowel mark, small kana) and these never end one (opening marks); by code point, since
 -- non-ASCII literals do not survive in a .lua file
 local NO_START, NO_END = {}, {}
@@ -311,10 +318,9 @@ local function wrapRuns(para, font, maxW)
             local ww = twFull(font, word)
             if ww > maxW then
                 -- a word wider than the line (Japanese, Chinese, Korean and Thai write a sentence without
-                -- spaces: QA, Nov 3 2026) breaks between its characters (Kahlua strings are UTF-16: one
-                -- character per sub)
+                -- spaces) breaks between its characters (Kahlua strings are UTF-16: one character per sub)
                 -- Thai: a letter keeps its vowel and tone marks, and a leading vowel keeps the letter after it
-                -- (QA: "อีก" broke after its vowel mark)
+                -- (the "ี" of "อีก" stays on its letter)
                 local piece, lead = "", false
                 for k = 1, #word do
                     local ch = word:sub(k, k)
@@ -357,7 +363,7 @@ local function wrapRuns(para, font, maxW)
                 if last.text:sub(-1) == " " then text = text:gsub("^%s+", "") end
                 local joined = last.text .. text
                 -- the run measured whole, its trailing space aside: pieces measured one by one add up a pixel or
-                -- two short of the joined line (QA, Nov 3 2026: a Thai line 2 px past the measure)
+                -- two short of the joined line (on Thai, enough to run 2 px past the measure)
                 if last.x + twFit(font, (joined:gsub("%s+$", ""))) > maxW then
                     push()
                     text = at.text:gsub("^%s+", "")
@@ -381,7 +387,7 @@ local function wrapRuns(para, font, maxW)
     return lines
 end
 
--- the topic's text as paragraphs (the game's <LINE> breaks), plain words
+--- The topic's text as paragraphs (the game's <LINE> breaks), plain words; inline pictures kept as markers.
 local function paragraphs(text)
     local out = {}
     local P = ZeD.Prompt
@@ -399,7 +405,8 @@ local function paragraphs(text)
     return out
 end
 
--- the sections and their topics; rebuilt on each open (the controller changes the words)
+--- The sections and their topics, then byId and the flat list in reading order; rebuilt on each open (the
+--- controller changes the words). joy: the player is on a controller.
 local function readTopics(joy)
     local sections, byId, flat = {}, {}, {}
     local ok, entries = pcall(function() return SurvivalGuideEntry.getAll() end)
@@ -444,7 +451,7 @@ end
 -- {mouse:0} {lit:Esc} (ZeDUI/tools/guide/chapters.py)
 function W.fillTokens(s)
     s = tostring(s or "")
-    -- (one capture, split here: Kahlua hands a second capture to the function as nil, QA Nov 4 2026)
+    -- (one capture, split here: Kahlua hands a second capture to the function as nil)
     return (s:gsub("{(%a+:[^}]+)}", function(tok)
         tok = tostring(tok or "")
         local c = tok:find(":", 1, true)
@@ -472,10 +479,11 @@ W.Rules = Rules
 
 -- A topic's rules: Rules[titleKey]() gives one table ({ cols, rows, notes, title?, spoiler? }) or a list of them.
 -- A table with spoiler = true (a world's setting some players would rather find out for themselves: the shutoff,
--- the helicopter, the infection's timing; the director, Nov 4 2026) shows a grey bar, "Show the numbers", until the
+-- the helicopter, the infection's timing) shows a grey bar, "Show the numbers", until the
 -- player asks (a click, or A); it stays shown while the guide is open (W.spoil, emptied when the guide opens).
 W.spoil = W.spoil or {}
 W._rulesC = W._rulesC or {}
+--- A topic's rules tables as a list, worked out once while the guide is open (W._rulesC); nil when it has none.
 function W.rulesList(t)
     local rf = t and Rules[t.titleKey]
     if not rf then return nil end
@@ -487,6 +495,7 @@ function W.rulesList(t)
     W._rulesC[t.titleKey] = (#r > 0) and r or false
     return (#r > 0) and r or nil
 end
+-- the same list, worked out afresh at each call (no cache)
 function W._rulesListRaw(t)
     local rf = t and Rules[t.titleKey]
     if not rf then return nil end
@@ -495,6 +504,7 @@ function W._rulesListRaw(t)
     if r.cols then return { r } end
     return (#r > 0) and r or nil
 end
+--- A rules table's key in W.spoil (its topic and its number), and whether it is still behind its bar.
 function W.spoilKey(t, i) return tostring(t and t.titleKey) .. "#" .. tostring(i) end
 function W.spoilHidden(t, i, tb) return tb.spoiler and not W.spoil[W.spoilKey(t, i)] end
 -- shows every hidden table of a topic; true when there was one
@@ -550,7 +560,8 @@ Rules.SurvivalGuide_skill_books_title = function()
         for _, g in ipairs(others) do r[#r + 1] = pct(g.m[v]) end
         rows[#rows + 1] = r
     end
-    -- the multipliers as plain numbers (the director, Nov 3 2026: "people don't understand what [x3] means")
+    -- the multipliers as plain numbers: a bare "x3" says little to most players, so they show as percents and a
+    -- note works one through (what an action worth 10 XP gives)
     local m1 = tonumber(main.m[1]) or 1
     local notes = { tr("UI_ZeD_Guide_SB_Percent", pct(m1), tostring(math.floor(10 * m1 + 0.5))),
                     tr("UI_ZeD_Guide_SB_Covers"), tr("UI_ZeD_Guide_SB_Partial") }
@@ -559,9 +570,9 @@ Rules.SurvivalGuide_skill_books_title = function()
 end
 
 -- ---------------------------------------------------------------------------
--- MORE RULES (the director, Nov 4 2026: your body, food and health, skills and traits, things you run). Every number
--- read from the game or this world's settings (research: what Lua can read in 42.22); what cannot be read that way is
--- left out. A world's settings that some players would rather find out sit behind the spoiler bar.
+-- MORE RULES: your body, food and health, skills and traits, things you run. Every number read from the game or
+-- this world's settings (as far as Lua can read them in 42.22); what cannot be read that way is left out. A world's
+-- settings that some players would rather find out sit behind the spoiler bar.
 -- ---------------------------------------------------------------------------
 local function sbOpt(name)
     local ok, o = pcall(function() return getSandboxOptions():getOptionByName(name) end)
@@ -674,7 +685,7 @@ end
 
 -- Food and water: how long the food you carry keeps and what it gives (its script); this world's rot and fridge
 -- settings named, not multiplied in (the game's multipliers are not readable)
--- (rules hang on a topic, never a chapter's opener: QA Nov 4 2026, the tables never showed)
+-- (rules hang on a topic, never a chapter's opener: an opener is no topic, so its tables would never show)
 Rules.SurvivalGuide_eating_drinking_title = function()
     local p = getSpecificPlayer(0)
     if not p then return nil end
@@ -811,7 +822,7 @@ function ZeD_GuideWindow:createChildren()
     self._findField = f
 end
 
--- true while this player is on a controller (the guide's words and buttons follow it as it changes)
+--- True while this player is on a controller (the guide's words and buttons follow it as it changes).
 function W.onPad(pn)
     return JoypadState and JoypadState.players and JoypadState.players[(pn or 0) + 1] ~= nil or false
 end
@@ -935,8 +946,8 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         y = y + box.h
     end
     end
-    -- (on a controller the two ways come first, above the game's words, which often speak of the mouse: the
-    -- director, Nov 4 2026, "Option 3"; the same on every page, so a controller player always finds it there)
+    -- (on a controller the two ways come first, above the game's words, which often speak of the mouse; the
+    -- same on every page, so a controller player always finds it there)
     local padFirst = W.onPad(self.playerNum)
     if padFirst then waysBox(); y = y + px(U.PARA_GAP) * 2 end
     for i, para in ipairs(paragraphs(t.text)) do
@@ -1012,7 +1023,7 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         box.ruleY = ry
         ry = ry + px(4)
         for ri, r in ipairs(rules.rows) do
-            -- (the last column wraps in the room left: "Carving +1, Foraging +1, Knapping +1, Maintenance +1", QA)
+            -- (the last column wraps in the room left: "Carving +1, Foraging +1, Knapping +1, Maintenance +1")
             local lastW = math.max(px(40), cx + cw - pad - colX[ncol])
             local lastLines = A.wrapText(r[ncol] or "", T.fontF2, lastW)
             if #lastLines == 0 then lastLines = { "" } end
@@ -1050,8 +1061,8 @@ function ZeD_GuideWindow:layout()
     local tbH = self:titleBarHeight()
     local pn = self.playerNum
     -- The reading measure: about 66 letters of the body text a line, never wider than the clip, and the
-    -- window as wide as that needs (the director, Nov 3 2026: no gap beside the clip, and not too many
-    -- words on a line for the eye to track). Large text keeps the same letters a line.
+    -- window as wide as that needs: no gap beside the clip, and not too many words on a line for the eye
+    -- to track. Large text keeps the same letters a line.
     local sbW0 = T.sp.scrollbarW
     local measure = math.min(px(U.CLIP_W), tw(T.fontF2, MEASURE_SAMPLE:sub(1, U.MEASURE_CHARS)))
     g.measure = measure
@@ -1182,14 +1193,14 @@ function ZeD_GuideWindow:drawClip(it, t)
         local core = getCore()
         if core:getOptionDoVideoEffects() then
             local ok, v = pcall(getVideo, t.video, CLIP_SRC_W, CLIP_SRC_H)
-            -- (a clip the game loads but cannot play shows its still: QA, sg_aiming.bik)
+            -- (a clip the game loads but cannot play shows its still, as sg_aiming.bik does)
             local valid = false
             if ok and v then pcall(function() valid = v:isValid() end) end
             if ok and v and valid then self._clip = v end
         end
         if not self._clip then
             -- the game ships no stills for its guide clips: ZeD's own, one frame of each clip
-            -- (ZeDUI/tools/guide/make_stills.py; the director, Nov 3 2026: "A still from each clip")
+            -- (made by ZeDUI/tools/guide/make_stills.py)
             local base = tostring(t.video):match("([^/\\]+)%.%w+$") or tostring(t.video):match("([^/\\]+)$") or ""
             self._still = getTexture("media/textures/ZeD/guide/" .. base .. ".png")
         end
@@ -1670,8 +1681,8 @@ W.inlineW = inlineW
 W.inlineDraw = inlineDraw
 W.entryText = entryText
 
--- The Full look is the book, "Survive the Apocalypse" (ZeD setup, Full or simple: Survival guide). The book's
--- faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
+-- The Immersive look is the book, "Survive the Apocalypse" (ZeD setup's Survival guide: Immersive or Simple). The
+-- book's faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
 -- Chinese, Japanese, Korean, Thai or Arabic shows the window.
 local NO_BOOK_LANGS = { CN = true, CH = true, JP = true, KO = true, TH = true, AR = true }
 function W.useBook()
@@ -1682,7 +1693,8 @@ function W.useBook()
     return true
 end
 
--- open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window
+--- Open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window. Every open
+--- hides the spoilers again and reads the rules afresh.
 function W.open(pn, want)
     W.spoil = {}
     W._rulesC = {}
@@ -1729,6 +1741,7 @@ end
 
 function W.get(pn) return W.windows[pn or 0] end
 
+--- F1: close the open guide (window or book), else open it on the topic for what the player is doing.
 function W.toggle(pn)
     local win = W.windows[pn or 0]
     if win and win:isReallyVisible() then win:close(); return end
@@ -1737,6 +1750,7 @@ function W.toggle(pn)
     W.open(pn, W.contextTopicKey())
 end
 
+--- Escape closes an open guide, window or book (ZeD.EscapeTakers); true when it took the key.
 function W.takeEscape()
     for _, win in pairs(W.windows) do
         if win and win:isReallyVisible() then win:close(); return true end
@@ -1749,7 +1763,7 @@ ZeD.EscapeTakers = ZeD.EscapeTakers or {}
 ZeD.EscapeTakers.guide = W.takeEscape
 
 -- ---------------------------------------------------------------------------
--- THE GAME'S ENTRY POINTS (HOOK_MAP row 18): F1, the Help wheel, openEntry, the first run
+-- THE GAME'S ENTRY POINTS: F1, the Help wheel, openEntry, the first run
 -- ---------------------------------------------------------------------------
 local function blocked()
     if MainScreen and MainScreen.instance and MainScreen.instance:isVisible() then return true end

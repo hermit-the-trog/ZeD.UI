@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/AutoHideHotbar.lua
 -- ============================================================================
 -- SUPPORT FOR AUTO-HIDE HOTBAR (mod id AutoHideHotbar, Workshop 3835479468,
--- by mercifulviper). Nov 7 2026.
+-- by mercifulviper). Client.
 --
 -- The mod hides the game's hotbar until the pointer comes near it or a hotbar
 -- key (1-9) is pressed, with its own look (fade, slide, peek...), timing and
@@ -12,8 +12,8 @@
 --
 -- Under ZeD the game's hotbar is parked off-screen (Overrides/Belt.lua) and the
 -- belt (ZeD_Belt.lua) shows the hotbar's slots, with the hands, the watch and
--- the Messages note on the same strip. The director (Nov 7 2026): the mod hides
--- the belt's item slots only; the hands, the watch and the Messages note stay.
+-- the Messages note on the same strip. The mod therefore hides the belt's item
+-- slots only; the hands, the watch and the Messages note stay.
 -- So the slots (with the strap and buckle that carry them) hide and come back
 -- the way the mod hides the hotbar, and the rest of the belt stays where it is.
 -- The mod publishes the call for this,

@@ -1,9 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_PutBack.lua
 -- ============================================================================
--- PUTTING THINGS BACK AFTER AN ACTION (director, Oct 24 2026: "an option to
--- automatically putting things back in the container they were in after
--- using for a game action, like changing a tire will take the pump and jack
--- out of a trunk and put it back after"; QUICK_CHORDS_SPEC.md section 4)
+-- PUTTING THINGS BACK AFTER AN ACTION. Client; an override that wraps
+-- vanilla's ISTimedActionQueue (add, onCompleted, resetQueue). Changing a
+-- tire takes the jack and the pump out of the trunk; with this on, they go
+-- back into the trunk after.
 --
 -- ZeD setup, "Put things back after an action" (Settings.lua putBack; off for
 -- a new player). When on: the game queues an action as a run in one go (move
@@ -50,7 +50,7 @@ Events.OnTick.Add(function() tick = tick + 1 end)
 local runs = {}       -- character -> the run being queued this tick
 local byMain = {}     -- main action -> its run
 PB.queuing = false    -- (ZeD's own moves back are never noted as a run)
--- (QA: zedqa_put_back.lua sets PB.debug for a line per step)
+-- (a test hook: zedqa_put_back.lua sets PB.debug for a line per step)
 local function trace(s) if PB.debug then print("[ZeD] PutBack: " .. s) end end
 
 local function itemsOf(inv)
@@ -140,10 +140,12 @@ local function finish(run)
     end)
     PB.queuing = false
     if not ok then print("[ZeD] PutBack: " .. tostring(err)) end
-    PB.last = { backs = #backs, equips = run.equips }   -- (QA)
+    PB.last = { backs = #backs, equips = run.equips }   -- (the last run's result, for zedqa_put_back.lua)
     trace("  " .. #backs .. " back, " .. #gone .. " used up")
 end
 
+-- wraps the queue once: it runs at load and again at game boot, and the _zedPutBack flag on vanilla's table
+-- keeps the second call from wrapping the wrapper
 local function apply()
     if not ISTimedActionQueue or ISTimedActionQueue._zedPutBack then return end
     ISTimedActionQueue._zedPutBack = true
