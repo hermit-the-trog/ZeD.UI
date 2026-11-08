@@ -568,7 +568,7 @@ function ZeD_Watch:prerender()
         if sy >= 0 then W._speedY = sy; pcall(sc.setY, sc, -4000) end
         -- Single player keeps their flag on (parked, they still draw nowhere): the game's own Pause on Focus
         -- Loss (Options, Display; on by default) pauses only while the speed controls are "really visible"
-        -- (IngameState.onDisplayFocusLost, 42.22), so hidden here they silently turned it off (punch list
+        -- (IngameState.onDisplayFocusLost, 42.21), so hidden here they silently turned it off (punch list
         -- 109). A server's stay hidden: there they do nothing.
         W.parkSpeed(sc)
     end

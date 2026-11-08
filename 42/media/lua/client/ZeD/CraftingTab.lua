@@ -232,7 +232,11 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         end
     end
 
+    -- only the recipes the game would list for the character (RecipeIndex.visible: See Not Known Recipes off
+    -- hides a must-learn recipe not learned; a failed OnAddToMenu check hides one; punch list 109 review)
+    local RI = ZeD.RecipeIndex
     for _, entry in ipairs(source) do
+      if not RI or RI.visible(playerObj, entry.recipe, "craft") then
         -- Skill check
         local hasSkill = true
         local playerLevel = 0
@@ -274,6 +278,7 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
             ingredients  = nil,
             missingCount = 0,
         }
+      end
     end
 
     local data = { recipes = recipes, categories = categories, flatRecipes = source }

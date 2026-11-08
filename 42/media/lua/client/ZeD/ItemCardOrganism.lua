@@ -1193,23 +1193,28 @@ local function drawInLists(card, item, x, y, w, compact)
     return cy - y
 end
 
--- What the character can make with the item (punch list 109): the recipes that take it, read live from the
--- game's recipes (ZeD.RecipeIndex), each Known or Unknown as the Craft tab's card says it, known first. A
--- press (or A) opens the recipe in the Craft or Build tab; past MAKES_MAX the last row opens the Craft tab
--- with the item in its search. Nothing when no recipe takes it. Returns the height.
+-- What the character can make with the item (punch list 109): the game's own list of the recipes the item goes
+-- into, as it would list them for the character (ZeD.RecipeIndex: its script item's getUsedInRecipes, the world's
+-- See Not Known Recipes, each recipe's OnAddToMenu check), each Known or Unknown as the Craft tab's card says it,
+-- known first. A press (or A) opens the recipe in the Craft or Build tab; past MAKES_MAX the last row opens the
+-- Craft tab with the item in its search. Nothing when no recipe takes it. Its title is a section the controller's
+-- Down scrolls to (getDisclosureYs), and only rows inside the body (viewTop..viewBot, card-local) are controller
+-- stops: a row scrolled out of sight is never one. Returns the height.
 local MAKES_MAX = 6
 local MAKES_MS = 1000
-local function drawMakes(card, item, x, y, w, compact)
+local function drawMakes(card, item, x, y, w, compact, viewTop, viewBot)
     card._makeRects = {}
+    card._makesSecY = nil
     local RI = ZeD.RecipeIndex
     if not RI then return 0 end
     local ft = safeGet(item, "getFullType")
-    if not ft then return 0 end
+    local si = safeGet(item, "getScriptItem")
+    if not (ft and si) then return 0 end
     local p = getSpecificPlayer(card.playerNum or 0)
     local c = card._makesCache
     local t = getTimestampMs and getTimestampMs() or 0
     if not c or c.ft ~= ft or t >= c.at then
-        local ok, rows, more = pcall(RI.forCard, p, ft, MAKES_MAX)
+        local ok, rows, more = pcall(RI.forCard, p, si, MAKES_MAX)
         c = { ft = ft, at = t + MAKES_MS, rows = ok and rows or {}, more = ok and more or 0 }
         card._makesCache = c
     end
@@ -1217,6 +1222,7 @@ local function drawMakes(card, item, x, y, w, compact)
     local M, T = ZeD.Molecules, ZeD.T
     local gap = math.max(compact and T.px(14) or T.px(16), math.floor((T.fontF4H or ZeD.TM:getFontHeight(T.fontF4)) * 1.0))
     local cy = y + gap
+    card._makesSecY = card:getAbsoluteY() + cy
     cy = cy + M.drawFactsTitle(card, x, cy, w, ZeD.tr("UI_ZeD_Card_MakesTitle"), compact)
     cy = cy + M.drawFactsRuleThick(card, x, cy, w) + T.px(2)
     local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
@@ -1230,7 +1236,8 @@ local function drawMakes(card, item, x, y, w, compact)
         end
         local f = card.focusFor and card:focusFor(id) or nil
         if f and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(card, x, cy, w, h, f) end
-        card._makeRects[#card._makeRects + 1] = { x = ax + x, y = ay + cy, w = w, h = h, id = id, press = onPress }
+        card._makeRects[#card._makeRects + 1] = { x = ax + x, y = ay + cy, w = w, h = h, id = id, press = onPress,
+            inView = ZeD.ItemCard.rowInView(cy, h, viewTop, viewBot) }
         cy = cy + h
     end
     for i, r in ipairs(c.rows) do
@@ -1420,14 +1427,15 @@ function ZeD_ItemCard:renderBody(ctx)
         -- the loadouts and outfits it is on (Oct 29 2026, loadouts B3)
         contentH = (contentH or 0) + drawInLists(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)
         -- what the character can make with it (punch list 109)
-        contentH = (contentH or 0) + drawMakes(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)
+        contentH = (contentH or 0) + drawMakes(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact,
+            self._headH, self._headH + bodyH)
         -- what the character can't do yet: NEEDS lines / the folded row, after the content
         contentH = (contentH or 0) + drawCareNeeds(self, bodyX, bodyY - scrollOff + (contentH or 0), innerW, maintVerbs, hiddenVerbs)
         self._contentH = (contentH or 0) + bodyPad * 2
         self:clearStencilRect()
     else
         self._moreRowRect, self._moreVerbRects, self._moreVerbs = nil, nil, nil
-        self._makeRects = nil
+        self._makeRects, self._makesSecY = nil, nil
     end
 
     -- 5) The care verbs' band - drawn AFTER body so it sits at the foot, under

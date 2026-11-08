@@ -11,6 +11,12 @@ game's own focus pause. One test resolution (4K at 1.75x), plus the guide at 136
 - The Known / Unknown on a row matches the Craft tab's card for that recipe (learn one from a magazine: it turns
   Known within a second, without reopening the card).
 - An item no recipe takes (a key, a rock if none): no section, no empty title.
+- What the game hides stays hidden: a world with the sandbox's See Not Known Recipes off lists no must-learn recipe
+  the character hasn't learned, on the item card, the skill card, the Craft tab or the Journal's recipes; with it on
+  they show as Unknown. The debug piano never shows outside debug. Compare a saw's card with the game's own
+  crafting window filtered to the saw.
+- Controller: scroll the card so "Used to make" is half out of sight; Down never lands on a row you can't see, it
+  scrolls the card on to the section, and the rows become stops as they come into view.
 - Click a row: the World window's Craft tab opens with that recipe selected. A build recipe (a wall from planks)
   opens the Build tab on it. Click "N more": the Craft tab with the item's name in the search.
 - Controller: from the card's verbs, D-pad down reaches the rows; the focus mark sits on the row; A opens as a click
@@ -49,5 +55,5 @@ game's own focus pause. One test resolution (4K at 1.75x), plus the guide at 136
 ## Not built (the game does not give it to Lua)
 
 - Moodle thresholds: the numbers live in MoodleStat (zombie.characters.Moodles), which the game does not expose to
-  Lua on 42.22 (not in LuaManager's exposer, and no exposed method returns one). Moodles.getMoodleLevel gives only
+  Lua on 42.21 (not in LuaManager's exposer, and no exposed method returns one). Moodles.getMoodleLevel gives only
   the level. No page was made.
