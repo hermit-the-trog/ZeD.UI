@@ -1173,6 +1173,8 @@ local function moreGroups(st, hidden)
     return groups
 end
 
+--- Lays the section out for a width w: returns { items, h }, its pieces in content coordinates.
+--- Also where the rows are read again (every REFRESH_FRAMES frames) and a running cut is watched.
 function HB.layout(win, w)
     local T = ZeD.T
     local st = state(win)
@@ -1372,7 +1374,8 @@ local function drawHeads(panel, win, st, it, y, wants, view)
     end
 end
 
--- Hair | Beard: two System 7 radio buttons (one of two), each half pressable
+-- Hair | Beard: one System 7 radio button per part partsOf gives (Make Up joins while make-up is
+-- carried or worn; no Beard for a woman), one of them on, each part's share of the row pressable
 local function drawParts(panel, win, st, it, y, mx, my)
     local T, A = ZeD.T, ZeD.Atoms
     local halves = partsOf(st)
@@ -1550,6 +1553,8 @@ local function drawRow(panel, win, st, it, y, mx, my, wants, view)
         ink.r, ink.g, ink.b, (ink.a or 1) * nameA, T.fontF2)
 end
 
+--- Draws the laid-out section L on panel at (x, top), inside the view viewY..viewY + viewH, and
+--- sets the 3D figures over the frames that show. Also keeps this frame's click zones.
 function HB.draw(panel, win, L, x, top, w, viewY, viewH)
     local T = ZeD.T
     local st = state(win)

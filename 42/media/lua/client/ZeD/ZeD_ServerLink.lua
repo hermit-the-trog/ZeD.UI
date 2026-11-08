@@ -1,23 +1,24 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ServerLink.lua
 -- ============================================================================
--- THE LINK TO THE SERVER PART (ZeDUI/MP_SERVER_PART_DESIGN.md, B9). ZeD.ServerPart: is the server part here, what may
+-- THE LINK TO THE SERVER PART - client; a helper with no window. ZeD.ServerPart: is the server part here, what may
 -- this player do, and the one way to talk to it. Only on a server: in single player nothing here runs.
 --   present   nil while unknown, true once the server answered, false after three asks with no answer. A late answer
 --             still flips it true.
---   v         the server's protocol, so later phases can test v >= n. Each side ignores commands it does not know.
+--   v         the server's protocol, so a newer feature can test v >= n. Each side ignores commands it does not know.
 --   staff     AnswerTickets; admin: RolesWrite. The server decides every command regardless; these only draw buttons.
---   adm       the server part holds the admin tools (Phase 2)
---   lg        the server part holds the log (Phase 4)
---   cm        the server part holds community (Phase 5): the rules, the news. A server without it shows none of this
---   ml        the server part keeps mail (punch list 104); ZeD_Mail.lua reads it and dials in
--- The hello's a.ex, the server extras (Phase 6), goes to ZeD_Extras.lua, and a.cm to ZeD_Community.lua; each part of the
+--   adm       the server part holds the admin tools
+--   lg        the server part holds the log
+--   cm        the server part holds community: the rules, the news. A server without it shows none of this
+--   ml        (in the hello only, not kept here) the server part keeps mail; ZeD_Mail.lua reads it and dials in
+-- The hello's a.ex, the server extras, goes to ZeD_Extras.lua, and a.cm to ZeD_Community.lua; each part of the
 -- server's is on its own, so any of them can be missing from a hello.
 --   frozen    the server part is up and refuses writes (its data is from a newer ZeD)
---   forceOff  QA: behave as if no server part answered
+--   forceOff  for the test scripts: behave as if no server part answered
 -- Hello goes out at every OnCreatePlayer, a respawn included. send reads getPlayer() at each call: the object from
 -- before a death is not the one to hand sendClientCommand. A caller acting for one split-screen player hands that
 -- player (send's fourth argument): the game sends the player's index with the command (GameClient.sendClientCommand,
--- checked on 42.21), so the server sees that player, not the first (the dash's miles, known issue Nov 7 2026).
+-- checked on 42.21), so the server sees that player, not the first (the dash's miles ask goes this way; without it a
+-- second player's car would be asked about as the first player's).
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"

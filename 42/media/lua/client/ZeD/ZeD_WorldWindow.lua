@@ -2769,12 +2769,14 @@ end
 -- Floor pinned top, sort row, scrollable container list below.
 -- ============================================================================
 
--- A container viewed from another tab (the strip's click
--- there, win._viewedContainer) wins over the selection in the list, and nothing but that strip ever set it back, so the
--- title and the rows once stayed on it after any other selection — a list stale until the window closed.
--- It holds only over the selected container it was picked on, by
--- the object (win._viewedOver), and ends with that selection, however the selection moved. Coming back to Loot, where the
--- strip selects, the list stays where it is and the viewed container becomes the selection, so the strip lights one.
+-- A container viewed from another tab (a strip click there sets
+-- win._viewedContainer) wins over the list's selection, but only while the
+-- selection is still the container it was picked over (win._viewedOver, by
+-- the object): however the selection moves, the view ends with it. (Ended by
+-- nothing but that strip, the title and the rows would stay on the viewed
+-- container until the window closed.) Back on Loot, where the strip selects,
+-- the viewed container becomes the selection, so the list stays where it is
+-- and the strip lights its button.
 local function _holdWorldView(win)
     local view = win._viewedContainer
     if not view then return end
@@ -2888,11 +2890,11 @@ local function drawWorldContainerStrip(self, win, content)
             content._inventory = activeCnt.inventory
         end
 
-        -- S115: refresh world radios in player range + clamp browse index.
-        -- Wave cache prunes against the new key set (entry.cacheKey is built
-        -- from world coords by RadioTab.buildWorldRadios — stable identity).
+        -- The radios in reach for the Radio tab, with the browse index kept in
+        -- range. The wave cache drops radios no longer listed (entry.cacheKey is
+        -- built from world coords by RadioTab.buildWorldRadios — stable identity).
         win._radios = ZeD.RadioTab.buildWorldRadios(win._playerObj)
-        -- S124: vehicles in reach for the Vehicle tab (same 30-frame timer)
+        -- vehicles in reach for the Vehicle tab (same 30-frame timer)
         if ZeD.MechanicsTab and ZeD.MechanicsTab.refresh then pcall(ZeD.MechanicsTab.refresh, win) end
         if #win._radios == 0 then
             win._radioIdx = 1
@@ -2976,7 +2978,7 @@ local function drawWorldContainerStrip(self, win, content)
 
         -- other mods' marks on the button (StripDecorators.lua); before the badge below so the badge stays on top
         ZeD.StripDecorators.run(self, win, "world", floorCnt, 0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
-        -- S108 v2 QA: MC badge for floor when shown as a column in MC mode.
+        -- MC badge for floor when shown as a column in MC mode.
         -- Floor is at the LAST colSel position when mainVisible=true, so its
         -- badge = #_mcSelected + 1. Doesn't appear in _mcSelected itself
         -- (floor toggle = visibility, not membership), so position derived
@@ -3058,8 +3060,8 @@ local function drawWorldContainerStrip(self, win, content)
         scrollOff = 0
         win._stripScrollOffset = 0
     end
-    -- Oct 23 2026: where the buttons sit (panel-local), for the controller's
-    -- stops (_buildWorldLootFocusables)
+    -- Where the buttons sit (panel-local), for the controller's stops
+    -- (_buildWorldLootFocusables)
     do
         local L = win._stripLay or {}
         win._stripLay = L

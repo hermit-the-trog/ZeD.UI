@@ -216,10 +216,12 @@ end
 -- ---------------------------------------------------------------------------
 -- slices: what vanilla gave, read the strip's way
 -- ---------------------------------------------------------------------------
+--- A slice's kind: a place (no text, no picture: an empty spot kept in the ring), off (no
+--- command: drawn stippled), or Back (vanilla's back picture).
 function W.isPlace(slice) return slice and not slice.text and not slice.texture end
 function W.isOff(slice) return slice and not W.isPlace(slice) and not (slice.command and slice.command[1]) end
 function W.isBack(slice) return slice and texName(slice.texture):find("emotes/back", 1, true) ~= nil end
--- the game's mini-map commands: ZeD's wheels leave them out (looked up at call time)
+--- The game's mini-map commands: ZeD's wheels leave them out (looked up at call time).
 function W.isMiniMapCommand(command)
     local M = ISMiniMap
     return command ~= nil and M ~= nil and (command == M.ToggleMiniMap or command == M.FocusMiniMap)
@@ -267,12 +269,13 @@ function W.sliceAt(menu, dx, dy)
     if n == 0 then return -1 end
     local step = 360 / math.max(n, 2)
     local deg = math.deg(math.atan2(dy, dx))
-    local a = (deg + 90 + step / 2 + 360) % 360   -- (the 360 first: Kahlua's % keeps the sign, and the top left came out dead)
+    local a = (deg + 90 + step / 2 + 360) % 360   -- (the 360 first: Kahlua's % keeps a negative sign, which left the top-left slices unpickable)
     local i = math.floor(a / step) + 1
     if i < 1 or i > n or W.isPlace(menu.slices[i]) then return -1 end
     return i
 end
 
+--- The slice under the pointer (x, y in the wheel's own pixels), or -1 in the dead zone or on a place.
 function W.sliceFromMouse(menu, x, y)
     local _, _, r, cx, cy = W.geom(menu)
     local dx, dy = x - cx, y - cy
@@ -280,6 +283,7 @@ function W.sliceFromMouse(menu, x, y)
     return W.sliceAt(menu, dx, dy)
 end
 
+--- The slice the right stick of pad `id` points at, or -1 (no pad, the stick under STICK, a place).
 function W.sliceFromJoypad(menu, id)
     if not id or id < 0 then return -1 end
     local ok, ax, ay = pcall(function() return getJoypadAimingAxisX(id), getJoypadAimingAxisY(id) end)
@@ -288,7 +292,7 @@ function W.sliceFromJoypad(menu, id)
     return W.sliceAt(menu, ax, ay)
 end
 
--- room for the ring and the balloon; the wheel keeps its centre when it grows
+--- Room for the ring and the balloon; the wheel keeps its centre when it grows.
 function W.fit(menu)
     local T = ZeD.T
     if not (T and T.px) then return end
@@ -336,6 +340,7 @@ local function drawCell(menu, x, y, cell, icon, slice, active)
     end
 end
 
+--- The whole wheel: the ring line and hub, every cell, the balloon, and the D-pad wheels' crumb and prompts.
 function W.draw(menu)
     local T = ZeD.T
     if not (T and T.px) then return end
@@ -448,9 +453,9 @@ function W.drawUnder(menu, cx, y)
     end
 end
 
--- the pointed slice, from the stick (a controller holds the wheel) or the mouse
+--- The pointed slice, from the stick (a controller holds the wheel) or the mouse.
 function W.update(menu)
-    if W.qaPoint then menu._zedPoint = W.qaPoint; return end   -- QA: a pointed slice without a pointer (zedqa_wheels.lua)
+    if W.qaPoint then menu._zedPoint = W.qaPoint; return end   -- (QA scripts point a slice with no pointer: ZeDUI/tools/qa/zedqa_wheels.lua)
     local st = menu._zedDpad
     if st and st.driven then return end   -- (a D-pad wheel on a stick: ZeD_WheelGesture points it, every frame)
     if menu.joyfocus then
@@ -460,7 +465,7 @@ function W.update(menu)
     end
 end
 
--- a category being opened names the next wheel (the emote categories)
+--- A category being opened names the next wheel (the emote categories).
 function W.noteChoice(menu, slice)
     if W.hasSub(slice) then
         W._pendingTitle, W._pendingFor = (lines(slice.text)[1]), menu

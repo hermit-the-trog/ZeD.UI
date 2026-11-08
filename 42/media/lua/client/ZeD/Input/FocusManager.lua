@@ -1978,11 +1978,6 @@ local function _holdTicks(jid)
             _xElement  = nil
         end
     end
-
-    -- (D) Aiming escape. Right-stick magnitude² > threshold → hide pair.
-    -- No lock state (Y-hold-lock retired S113); always fires when active.
-    -- Iterate connected controllers (Q89) and compute right-stick magnitude².
-    -- NO math.abs() on axis values (Q90) — we use ax²+ay² which is always >=0.
 end
 
 local function _onTick()
@@ -1999,7 +1994,7 @@ local function _onTick()
         return
     end
 
-    -- Oct 23 2026: never focus with nothing lit. A fresh window lands on its
+    -- Never focus with nothing lit. A fresh window lands on its
     -- list's first row once the rows exist; focus left on a zone that went
     -- away (a card closed, a tab emptied) moves to the list (Focus.ensureEntry)
     if _focusedWindow and (_focusedWindow._focusPendingEntry or not _focusLive(_focusedWindow)) then
@@ -2021,6 +2016,13 @@ local function _onTick()
     _holdTicks(jid)   -- (before the no-pad return: QA's hook drives the holds with no pad bound)
     if not jid then return end
 
+    -- (D) Aiming escape. Right-stick magnitude² > threshold → roll up every
+    -- registered window and release focus. No lock state (the Y-hold lock is
+    -- gone); it fires whenever active, outside the grace after a claim.
+    -- Walk the connected controllers by index: getControllerAxisValue wants
+    -- the int index, not joypadData.controller (a Lua table). No math.abs()
+    -- on axis reads — on drivers whose triggers rest at -1 it reads a resting
+    -- trigger as fully pulled; the stick's ax²+ay² is never negative anyway.
     local aimThSq = _aimingThresholdSq()
     local maxMagSq = 0
     local n = (getControllerCount and getControllerCount()) or 0

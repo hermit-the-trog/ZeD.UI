@@ -1728,9 +1728,11 @@ end
 -- Called each frame from the per-window panel-focusable dispatcher
 -- (_buildPanelFocusables in Char, _buildWorldPanelFocusables in World) when
 -- the Radio tab is active. Returns elements for LB/RB/D-pad navigation in
--- click-router scan order so cone-nav L→R / U→D feels natural:
+-- click-router scan order so cone-nav L→R / U→D feels natural; for the
+-- simple card:
 --   [browsePrev, browseNext, power, seek-, seek+, vol-, vol+,
 --    preset:1..N, presetAdd, cd:1..7 (Premium only)]
+-- and for a face, the order its own builder below gives.
 -- Mouse and gamepad share the same panel-local rect zones (_radioPwrZone,
 -- _radioSeekBtnZones, _radioPresetZones, etc.) populated by the chassis
 -- molecules each render — builder + render stay in lock-step.
@@ -1818,15 +1820,17 @@ local function _plainFocusables(win, tw)
     return elements
 end
 
+--- The controller's stops on the radio tab (both windows call it while the tab is up): the plain card's, an
+--- ordinary radio's or a TV's face, a two-way face, else the simple card's stamped zones.
 function ZeD.RadioTab.buildFocusables(win)
     if not win then return {} end
-    -- an ordinary radio's or a TV's face (above)
     local rtw = win._radioTw
     local rcur = win._radios and win._radios[win._radioIdx or 1]
     -- the plain card (Devices: Simple): its rows top to bottom, then its footer band (above)
     if rtw and rtw.drv and rtw.drv.plain and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
         return _plainFocusables(win, rtw)
     end
+    -- an ordinary radio's or a TV's face (above)
     if rtw and rtw.drv == ZeD.Rtv and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
         return _rtvFocusables(win, rtw)
     end
@@ -1979,8 +1983,8 @@ function ZeD.RadioTab.buildFocusables(win)
         function(w) _presetToggleAssign(w) end)
 
     -- ---- CD transport (Premium-only) ------------------------------------
-    -- _radioCDZones is unset on ValuTech, so the if-guard cleanly skips the
-    -- loop without phantom rects ever entering the focusable list.
+    -- The rects cdPlayerModule stamped; only the Premium chassis draws it, and
+    -- nothing else sets or clears _radioCDZones.
     if win._radioCDZones then
         for i = 1, #win._radioCDZones do
             local btn = i

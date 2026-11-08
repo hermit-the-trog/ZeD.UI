@@ -1,19 +1,21 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ModOptionsOwners.lua
 -- ============================================================================
--- WHICH MOD MADE WHICH OPTIONS (director, Oct 24 2026: "can the mod manager also
--- show a mods individual settings in that mods info when selected from the list
--- of mods?"; mockup zed_mods_settings_picks_v1)
+-- WHICH MOD MADE WHICH OPTIONS, so the Mods screen can show a mod's own
+-- settings in its info when the mod is picked from the list. Shared, and a wrap
+-- on two of vanilla's functions: PZAPI.ModOptions create and load.
 --
 -- A mod makes its options with PZAPI.ModOptions:create(id, name), and the id is
--- the mod's own choice: of 114 subscribed mods with options only 47 used their
--- mod id. So the Mods screen asks who called: the mod folder of the file that
--- called create (the call stack, as ZeD.Messages.caller reads it).
+-- the mod's own choice: in a sample of 114 Workshop mods with options, only 47
+-- used their mod id. So the Mods screen asks who called: the mod folder of the
+-- file that called create (the call stack, as ZeD.Messages.caller reads it).
 --
 -- The wrap has to be in place before any mod's options are made, and vanilla's
 -- client/PZAPI/ModOptions.lua builds PZAPI.ModOptions afresh. This file is in
 -- shared (every shared file runs before the client ones), so it watches the
 -- PZAPI table: when vanilla sets PZAPI.ModOptions, then its create and load,
--- each is wrapped as it lands.
+-- each is wrapped as it lands. Shared files load on a dedicated server too, so
+-- nothing client-only runs at file scope: there vanilla's client file never
+-- loads, and the watch waits on a table that never comes.
 --
 -- The wrapped load also notes every option's value the first time the game reads
 -- the saved values (ModOptions.ini): before that read the values are the ones the
@@ -24,14 +26,17 @@
 --   ZeD.ModOptionsOwners.forMod(modId)       that mod's options objects, in vanilla's order
 --   ZeD.ModOptionsOwners.default(optionsId, optionId)  the declared value, or nil
 -- ============================================================================
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.ModOptionsOwners = ZeD.ModOptionsOwners or {}
 local O = ZeD.ModOptionsOwners
 O.byId = O.byId or {}          -- optionsId -> mod id
 O.defaults = O.defaults or {}  -- optionsId -> { optionId -> value }
 
+-- The game's Java side can throw; pcall turns a crash into a nil we can test.
 local function safe(fn, ...) local ok, r = pcall(fn, ...); if ok then return r end return nil end
 local function norm(p) return ("/" .. tostring(p or "")):gsub("\\", "/"):lower() end
+-- the mod folder a file path sits in, "/mods/<folder>/", lower case with forward slashes; nil outside one
 local function rootOf(path)
     local p = norm(path)
     local a, b = p:find("/mods/[^/]+/")
@@ -56,8 +61,9 @@ local function readRoots()
     end
 end
 
-local SELF = "modoptionsowners"
--- the mod whose file is calling (ZeD counts: ZeD's own options are ZeD's)
+local SELF = "modoptionsowners"   -- this file's own name: its frames are skipped on the walk up the stack
+--- the mod whose file is calling, by walking the call stack to the first frame outside this file; nil when no frame
+--- sits in an active mod's folder (ZeD counts: ZeD's own options are ZeD's)
 function O.caller()
     if not (getCurrentCoroutine and getCallframeTop and getCoroutineCallframeStack and getFilenameOfCallframe) then return nil end
     if not roots then readRoots() end
@@ -75,6 +81,7 @@ function O.caller()
     return nil
 end
 
+-- a value to keep: a table is copied one level deep, without its functions and Java objects
 local function copy(v)
     if type(v) ~= "table" then return v end
     local t = {}
@@ -106,6 +113,7 @@ local function noteDefaults(mo)
     end
 end
 
+-- put fn on ModOptions under key, wrapped: create first notes who called, load first notes the declared values
 local function wrap(mo, key, fn)
     rawset(mo, key, fn)
     if key == "create" then
@@ -122,6 +130,8 @@ local function wrap(mo, key, fn)
     end
 end
 
+-- wrap create and load if they are there now, and catch them as they land later (a metatable on ModOptions). A table that
+-- already has a metatable is left alone, which also keeps a reload from wrapping twice
 local function watchModOptions(mo)
     if type(mo) ~= "table" or getmetatable(mo) then return end
     for _, k in ipairs({ "create", "load" }) do
