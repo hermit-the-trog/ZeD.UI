@@ -476,7 +476,7 @@ end
 
 local _typeToFigure, _typeToFigureFrom = nil, nil   -- BodyPartType -> figure name, per BODY_PART_TYPES
 
--- opts (Nov 7 2026, the medical check of another player; nil for your own Health tab):
+-- opts (the medical check of another player; nil for your own Health tab):
 --   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
 --   bodyDamage   the body to read: on a server another player's is their remote copy
 --                (getBodyDamageRemote, as vanilla's health panel reads it), else getBodyDamage

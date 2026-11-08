@@ -58,7 +58,7 @@ OC.CARD_W  = 480     -- design units
 -- "in three" (OC.REFRESH - 3, 50 ms) keep their meaning.
 OC.REFRESH = 15      -- 60ths of a second between data refreshes
 OC.BROWSE_EVERY = 60 -- 60ths of a second between nearby-object scans
-OC.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+OC.DOT = "|"   -- the separator: ZeD OS's pipe, never a middle dot
 OC.kinds = OC.kinds or {}
 
 -- Safe Java / Lua method call: nil when the method is missing or throws.

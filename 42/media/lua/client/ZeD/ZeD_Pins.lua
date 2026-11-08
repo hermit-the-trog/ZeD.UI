@@ -168,7 +168,7 @@ function P.stats(p)
     local out = {}
     for _, e in ipairs(list(p)) do
         -- the pin's words with a name (nil: the number alone); the title bar takes the longest form that
-        -- fits, then shorter ones (QA, Nov 4 2026: pins were dropped where a shorter form would have fitted)
+        -- fits, then shorter ones (otherwise pins drop where a shorter form would fit)
         local mode, pd, key, a1, a2, color, full = nil, nil, nil, nil, nil, nil, nil
         if e.k == "skill" then
             pd = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and ZeD.SkillsTab.getPinData(p, e.id)

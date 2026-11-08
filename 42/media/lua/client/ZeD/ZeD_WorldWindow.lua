@@ -4750,10 +4750,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- The World window's tab stops, the per-frame refresh of the worldTabContent zone (kept out of
     -- content._focusRefresh so the controller can ask for it between frames: win._focusFresh)
     content._tabStopsRefresh = function(self, Focus)
-        -- S98/S99 per-frame refresh for worldTabContent zone. Runs for
-        -- tab-specific non-inv content only (forage stances, animals
-        -- submodes, S107: craft + build CC zones, S112: maps toolbar +
-        -- canvas cursor). Loot no longer lands here (invrows live in
+        -- Per-frame refresh for the worldTabContent zone. Runs for
+        -- tab-specific content that is not an item list (forage stances,
+        -- animals submodes, the craft and build zones, the maps toolbar
+        -- and canvas cursor). Loot no longer lands here (invrows live in
         -- worldMainInv).
         if Focus and win._focusRing and (
                  win._activeTab == "forage" or
@@ -6050,8 +6050,8 @@ end
 
 -- ----------------------------------------------------------------------------
 -- A container's column in the Loot tab's multi-column view, by its ItemContainer,
--- as a click on its icon in the container strip does (Oct 21 2026: the Workshop
--- gallery shows several containers open side by side; the QA scripts drive it
+-- as a click on its icon in the container strip does (the Workshop gallery
+-- shows several containers open side by side, and the QA scripts drive it
 -- from here). The container list only holds what is in reach and rebuilds every
 -- 30 frames, so a fresh one may need a moment. Returns true when it was found.
 -- ----------------------------------------------------------------------------
