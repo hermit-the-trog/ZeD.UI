@@ -1,0 +1,45 @@
+# ZeDUI/tools/qa/b8_mp_two.txt  (Nov 7 2026, QA; beta 8): the scripts of the two-player multiplayer run, in the order batch_b8_mp.ps1 runs them.
+# NOT for zedqa_run.ps1: it names scripts for BOTH clients (the "bob" ones run on the second client, some at its main menu), and the batch
+# reads the tag and timeout (seconds) of each from here (zedqa_run -Check would refuse the front-end ones by design).
+# Format as every manifest: script | tag | timeout=seconds.   side: A = the admin client (mp_client2.ps1 -Main -Run), B = bob's (mp_client2.ps1 -Run)
+#
+# --- setup
+mp_p2_newchar.lua | pnc | timeout=120                            # B (main menu): the existing script, a new account's character
+zedqa_b8_mp_stage.lua | b8st | timeout=120                  # A: bob brought over, items given, the jacket worn, the knife held
+# --- CHECK_trade_medic_20261107.md
+zedqa_b8_mp_bob_trade.lua | b8bt | timeout=480              # B: answers the five requests, plays bob
+zedqa_b8_mp_trade.lua | b8tr | timeout=600                  # A: trade steps 1 to 13, 15, 16
+zedqa_b8_mp_bob_medic.lua | b8bm | timeout=500              # B: the wound, three Yes answers
+zedqa_b8_mp_medic.lua | b8md | timeout=500                  # A: the medical check, First Aid 0 and 5, the bandage, distance, safe mode
+# --- CHECK_admin_player_claims_20261107.md
+zedqa_b8_mp_bob_claims.lua | b8bc | timeout=900             # B: claims a house, makes a faction, watches
+zedqa_b8_mp_claims.lua | b8cl | timeout=900                 # A: C6 stats card, C7 inventory card, C8 staff claim cards
+# --- CHECK_admin_tools_20261107.md and CHECK_mp_leftovers_20261107.md
+zedqa_b8_mp_admin_tools.lua | b8at | timeout=900            # A: Users, Statistics, PvP log, Climate, Zones, server sandbox
+zedqa_b8_mp_leftovers.lua | b8lo | timeout=300              # A: Players page, options card, saving note, Edit item, admin message
+# --- CHECK_desk_notes_mail_20261107.md (live half)
+zedqa_b8_mp_bob_mail.lua | b8bml | timeout=300              # B
+zedqa_b8_mp_mail.lua | b8ml | timeout=300                   # A
+# --- the kick and the desk (C17, then the desk's notes at bob's main menu)
+zedqa_b8_mp_bob_leave_kick.lua | b8bl | timeout=180         # B: reads the Disconnected screen after a kick, presses Exit
+zedqa_b8_mp_kick.lua | b8kk | timeout=120                   # A: kicks bob (only bob)
+zedqa_b8_mp_bob_desk.lua | b8bd | timeout=240               # B (main menu): sticky, CletusWorks, Documents, caps, ProtoPOP3 Mail Outbox
+# --- bans (E-rules: timed ban as the game's ban, the game's unban wins)
+zedqa_b8_mp_bob_rejoin.lua | b8br | timeout=60              # B (main menu): connect to the test server again
+zedqa_b8_mp_bob_leave_ban.lua | b8bq | timeout=240          # B: reads the banned screen, presses Exit
+zedqa_b8_mp_bans.lua | b8bn | timeout=1500                  # A: 1-hour ban, ZeD's Unban, then a second ban lifted by the game's /unbanuser
+# --- offline voice mute, join rules, mail for an offline player
+zedqa_b8_mp_mute_set.lua | b8mus | timeout=90               # A: bob muted while off the server
+zedqa_b8_mp_mail_offline_send.lua | b8mos | timeout=90      # A: a letter for bob while he is off
+zedqa_b8_mp_rules_gate.lua | b8ru | timeout=1100            # A: rules on, bob joins fresh, restored
+zedqa_b8_mp_bob_join_gate.lua | b8bj | timeout=200          # B: the join screen, a command refused, agrees, let in
+zedqa_b8_mp_bob_mail_offline.lua | b8bmo | timeout=400      # B: the offline letter arrives, the desk Outbox goes up
+zedqa_b8_mp_mail_offline_read.lua | b8mor | timeout=300     # A: bob's desk letter arrived
+zedqa_b8_mp_mute_after.lua | b8mua | timeout=1500           # A: the voice ban owed again on a second connection, then unmute
+# --- only with -Slow (about 7 more minutes)
+zedqa_b8_mp_rules_kick.lua | b8rk | timeout=1500            # A: rules on, bob joins and does not answer, the owed Kick is made
+zedqa_b8_mp_bob_join_silent.lua | b8bs2 | timeout=200       # B: does not answer
+# --- the host helper session (second server start with RCON; skipped without Python or with -NoHelper)
+zedqa_b8_mp_helper.lua | b8hp | timeout=1500                # A
+# --- always at the end, and by hand after a stopped run
+zedqa_b8_mp_cleanup.lua | b8cu | timeout=120                # A: puts back bans, mutes, claims, zones, rules

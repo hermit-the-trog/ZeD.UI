@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/b8_menus_review_mp.txt  (Nov 7 2026, QA): multiplayer client as the local test server's admin.
+#   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/b8_menus_review_mp.txt
+# Offline Mute and the whisper line (outside review items 9 and 10), then the admin / server windows of VANILLA_WINDOWS section C.
+zedqa_b8_social_mp.lua | b8so | timeout=120
+zedqa_b8_windows_mp.lua | b8vm | timeout=300
