@@ -1073,18 +1073,21 @@ local function tickCasual(p, run)
     if run.held and run.held == sig then return end
     run.held = nil
     run.reachSig = sig
-    -- over what you can carry: no more takes (what is on you still goes in place)
-    local over = p:getInventoryWeight() >= p:getMaxWeight()
+    -- over what you can carry: no more takes (what is on you still goes in place). Each take queued here counts
+    -- toward the load, so one batch never carries past the limit (it was weighed once per batch)
+    local load, most = p:getInventoryWeight(), p:getMaxWeight()
     local now, full, far = {}, false, false
     for _, j in ipairs(jobs) do
         local k = tostring(j.item and j.item:getID()) .. "|" .. j.kind
         local here = (not j.sq) or R.inReach(p, j.sq)
         if not here then far = true end
         if here and run.tried[k] ~= sig then
-            if over and j.src then full = true
+            local w = (j.src and j.item) and weightOf(j.item) or 0
+            if j.src and load + w > most then full = true
             else
                 run.tried[k] = sig
                 now[#now + 1] = j
+                load = load + w
             end
         end
     end

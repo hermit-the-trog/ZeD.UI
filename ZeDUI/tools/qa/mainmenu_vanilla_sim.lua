@@ -942,6 +942,38 @@ MainOptions.onGameSounds(mainOptions)
 check("A6 ZeD's Options not up: the game's own screen", called("vanilla onGameSounds") ~= nil)
 
 -- ============================================================================
+-- IN GAME: a hidden window never takes a press (the game runs update() on hidden
+-- children too, and the in-game Options and Sandbox windows share MM.ctx)
+-- ============================================================================
+do
+    m.inGame = true
+    local hidden = ZeD_MMOptions:new(true)
+    local shown = ZeD_MMOptions:new(true)
+    hidden:setVisible(false)
+    shown:setVisible(true)
+    local fired = 0
+    shown._hits = { { id = "apply", x = 0, y = 0, w = 200, h = 200, fn = function() fired = fired + 1 end } }
+    hidden._hits = {}
+    local mdown = false
+    local oldDown, oldMX, oldMY = ZeD.MouseTick.down, getMouseX, getMouseY
+    ZeD.MouseTick.down = function() return mdown end
+    getMouseX = function() return 50 end
+    getMouseY = function() return 50 end
+    MM.ctx.open, MM.ctx.press, MM.ctx.wasDown, MM.ctx.hot = nil, nil, false, nil
+    local function tick() hidden:update(); shown:update() end   -- (the hidden one first, as the game orders them)
+    tick()
+    mdown = true; tick()
+    mdown = false; tick()
+    check("in game: a press on the shown window fires though a hidden one updates first", fired == 1, fired)
+    -- the other order too: the shown window first
+    mdown = true; shown:update(); hidden:update()
+    mdown = false; shown:update(); hidden:update()
+    check("in game: a hidden window updating after leaves the press alone", fired == 2, fired)
+    ZeD.MouseTick.down, getMouseX, getMouseY = oldDown, oldMX, oldMY
+    m.inGame = false
+end
+
+-- ============================================================================
 -- SAFE MODE: no desk, every screen the game's own
 -- ============================================================================
 MM.root = nil

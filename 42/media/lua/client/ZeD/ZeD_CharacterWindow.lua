@@ -16,6 +16,7 @@ require "ISUI/ISPanel"
 require "ISUI/ISMouseDrag"
 require "ISUI/ISUI3DModel"
 require "ZeD/WindowCurtain"
+require "ZeD/WindowHalves"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
@@ -171,9 +172,10 @@ local function saveCharState(win)
         w = baseW,
         h = ((win.windowShaded and win.preShadeHeight) or win:getHeight()) / sc,   -- (a rolled-up window: its unrolled height)
         anchorRightEdge = anchor,
-        activeTab  = win._activeTab,
-        drawerMode = win._drawerMode,
-        drawerOpen = win._drawerOpen,
+        -- (a drawer its half folded opens again on its tab, WindowHalves)
+        activeTab  = ZeD.Halves.foldedTab(win) or win._activeTab,
+        drawerMode = ZeD.Halves.foldedTab(win) and "tab" or win._drawerMode,
+        drawerOpen = ZeD.Halves.foldedTab(win) and true or win._drawerOpen,
         accentKey  = win._accentKey,
     }
 end
@@ -3869,20 +3871,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     )
     win:initialise()
     win:addToUIManager()
-    -- the game's own roll-up when not in use (ZeD_Window:_autoCollapse); the pin kept with the character
+    -- the game's own roll-up when not in use, each half on its own (WindowHalves, attached with the
+    -- curtain below); the pins kept with the character
     win.autoCollapse = true
-    pcall(function()
-        local md = getSpecificPlayer(playerNum):getModData()
-        md.ZeD_WinPinned = md.ZeD_WinPinned or {}
-        win.pinned = md.ZeD_WinPinned.char == true
-    end)
-    win.onPinChange = function(_, on)
-        pcall(function()
-            local md = getSpecificPlayer(playerNum):getModData()
-            md.ZeD_WinPinned = md.ZeD_WinPinned or {}
-            md.ZeD_WinPinned.char = on
-        end)
-    end
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
     win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the doll, the equipment tab, the roll-up)
@@ -4462,10 +4453,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._placeIdentityModel = function(drawerW)
         local T = ZeD.T
         local pr = win._identityPhotoRect
-        if not (pr and drawerW > 0 and win._drawerMode == "tab" and win._activeTab == "identity"
-                and not win._drawerItem) then
+        if not (pr and drawerW > 0 and win._drawerMode == "tab" and win._activeTab == "identity") then
             return false
         end
+        -- an open item card lies over the tab's right part: the model (no clip reaches it) shows while clear of the card
+        if win._drawerItem and pr.x + pr.w > getTargetDrawerW(win) - T.px(ITEM_CARD_W) then return false end
         -- A model can't be clipped (its own UI element; stencils don't reach it), so clamp it
         -- to the card's scroll view: top below the pinned tab header, bottom above the view's
         -- end (else it draws over the status line at small sizes). _idView is the view
@@ -6422,6 +6414,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
             Focus.setZoneFocusable(win, "charContainerStrip", el ~= nil)
         end,
     })
+    -- Halves (WindowHalves.lua): the drawer (left) and the inventory (right) each roll up
+    -- and pin on their own; the pins sit at the title bar's two ends
+    ZeD.Halves.attach(win, { key = "char", side = "left", strip = "_tabStripPanel", zone = "charTitlePins" })
 
     -- ----------------------------------------------------------------
     -- MOUSE HANDLERS — the list's clicks, selection, drags, scroll and right-click

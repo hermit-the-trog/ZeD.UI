@@ -117,6 +117,8 @@ Stub.setVisible, Stub.addToUIManager, Stub.removeFromUIManager = noop, noop, noo
 Stub.onGainJoypadFocus, Stub.onLoseJoypadFocus, Stub.onJoypadButtonReleased = noop, noop, noop
 Stub.onJoypadDirUp, Stub.onJoypadDirDown, Stub.onJoypadDirLeft, Stub.onJoypadDirRight = noop, noop, noop, noop
 function Stub:isVisible() return false end
+-- (the game's updateJoypadFocus names a new focus with ui:toString(): without it, it threw every frame and never settled)
+function Stub:toString() return "ZeD controller join stand-in" end
 function Stub:isReallyVisible() return false end
 function Stub:getJoypadNavigateStartDelay() return 250 end
 -- A: Messages on the note, with this controller; B: let go (the next A files the note again)
@@ -169,6 +171,7 @@ function PJ.disconnectedStub(playerNum)
     s.addToUIManager = function() PJ._kbm = nil; PJ.unplugged(playerNum) end
     s.removeFromUIManager = function() PJ.replugged(playerNum) end
     s.isReallyVisible = function() return false end
+    s.toString = function() return "ZeD controller unplugged stand-in" end
     s.useKeyboardMouse = function() ISJoypadDisconnectedUI.setKeyboardMouseActivated() end
     return s
 end

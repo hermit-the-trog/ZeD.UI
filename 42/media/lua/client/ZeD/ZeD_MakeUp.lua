@@ -61,6 +61,14 @@ function MU.carried(p)
     return by, n
 end
 
+-- still the player's to use: carried (bags included) and not used up. The item the Make Up option came from, and the
+-- item a row was made with, are asked again each time: dropped, stored or used up, they are no longer the tool
+function MU.held(p, it)
+    if not (p and it) then return false end
+    if not p:getInventory():containsRecursive(it) then return false end
+    return not it.getCurrentUses or (it:getCurrentUses() or 1) > 0
+end
+
 -- the make-up worn: { item, def } in the order the character wears it
 function MU.worn(p)
     local out = {}
@@ -135,6 +143,7 @@ end
 function MU.rows(p, prefer)
     local rows = {}
     if not p then return rows end
+    if prefer and not MU.held(p, prefer) then prefer = nil end
     local carried, nCarried = MU.carried(p)
     local worn = MU.worn(p)
     if nCarried == 0 and #worn == 0 then return rows end
@@ -155,7 +164,11 @@ function MU.rows(p, prefer)
                     rows[#rows + 1] = { key = "m:a:" .. ft, part = "makeup", style = ft, label = MU.spotName(d), ok = okM,
                         reason = (not okM) and why or nil, req = "none", grp = cat, verb = "Apply", kind = "makeup",
                         tool = use:getDisplayName(), toolItem = use, mk = { wear = ft },
-                        run = function(pl) ISTimedActionQueue.add(ISApplyMakeUp:new(pl, use, ft)) end }
+                        run = function(pl)
+                            -- (the game's action checks nothing: an item gone since the rows were made applies nothing)
+                            if not MU.held(pl, use) then return end
+                            ISTimedActionQueue.add(ISApplyMakeUp:new(pl, use, ft))
+                        end }
                 end
             end
         end

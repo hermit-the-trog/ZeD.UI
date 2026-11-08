@@ -1843,6 +1843,42 @@ do
     check("the next staff client lifts it", has(c2.game, "UnBan:Torch:") and not has(c2.game, "UnBanSteamID:76561198000000321:"))
 end
 
+section("a timed ban's end gives back the role the game's unban takes away")
+do
+    local a, ca = boot()
+    local u = player("Gemma", "gm")
+    clientJoin(u)
+    nolimit(a)
+    say(a, "a_ban", { user = "Gemma", reason = "Spawned a car", len = "h1" })
+    check("acks", okOf(a))
+    check("the row keeps the role it had", md().bans[1] and md().bans[1].role == "gm")
+    advance(20000)
+    offline(a)   -- (nobody on to make the calls: they wait in the table)
+    W.clock = W.clock + 3600 * 1000 + 5000
+    advance(2000)
+    local un, sr = owedOf("UnBan", "Gemma"), owedOf("SetRole", "Gemma")
+    check("at its end: the unban, then the role back after it", un ~= nil and sr ~= nil and sr.reason == "gm" and sr.after == un.id)
+    W.clients.Hermit = nil
+    a = player("Hermit", "admin")
+    ca = clientJoin(a)
+    advance(4000)
+    local iu, ir = nil, nil
+    for i, s in ipairs(ca.game) do
+        if s == "UnBan:Gemma:" then iu = i end
+        if s == "SetRole:Gemma:gm" then ir = i end
+    end
+    check("the staff client makes both, the unban first", iu ~= nil and ir ~= nil and iu < ir, tostring(iu) .. " " .. tostring(ir))
+    -- a plain user gets no role call
+    local v = player("Plain", "user")
+    clientJoin(v)
+    nolimit(a)
+    say(a, "a_ban", { user = "Plain", reason = "x", len = "h1" })
+    advance(20000)
+    W.clock = W.clock + 3600 * 1000 + 5000
+    advance(2000)
+    check("a user's unban owes no role", owedOf("SetRole", "Plain") == nil and not has(ca.game, "SetRole:Plain:"))
+end
+
 section("a client can't steer a Steam ID ban onto a neighbor's account")
 do
     local a, ca = boot()

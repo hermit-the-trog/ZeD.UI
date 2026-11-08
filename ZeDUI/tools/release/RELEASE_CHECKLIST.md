@@ -15,6 +15,9 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
    them with the page text; they go in `42/media/lua/client/ZeD/MenuNote.lua` and are committed. The beta number
    at the top comes from the version by itself.
 5. **Stage.**
+   - Before staging, check the corkboard note is this build's: `git diff <last tag> -- 42/media/lua/client/ZeD/MenuNote.lua`
+     must not be empty (beta 8 shipped with beta 7's note), and `42/mod.info`'s modversion must already be the new
+     version, so the note's heading reads it in QA's checks and pictures, not only in the staged copy.
    - `pwsh -File ZeDUI/tools/release/stage_workshop.ps1 -DryRun` lists what would go up and what is left out.
    - `pwsh -File ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-t1` builds `Zomboid/Workshop/ZeD-UI/`.
    
@@ -39,7 +42,7 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 13. **Change note:** Claude fills it in too, from `ZeDUI/workshop/tester_changenote_<version>.txt` (what changed since the last tester build): `Zomboid/Lua/ZeD_workshop.txt` holds `picked=ZeD-UI`, then `note ZeD-UI`, then each line of the note after a `|`. The window shows it in the change note box, and clears it once Steam says the upload went through.
 14. **Upload**, then **Upload** again to confirm in the strip. Wait for the result. The first time, Steam may ask you to accept the Workshop agreement on the item's page before anyone else can see it.
 15. Open the item in Steam and check that it is still hidden and the size is about 35 MB. Don't subscribe on this computer: the copy in `Zomboid/mods` is already there, and two copies of the same mod clash.
-16. Remove `Zomboid/Workshop/ZeD-UI/Contents` after the upload and the check in step 15 (`workshop.txt` and `preview.png` stay). Then tag the staging commit (`git tag -a v<version> <commit> -m "Tester build <version>, uploaded <date>"`, `git push origin v<version>`) and refresh the backup: a new dated folder under `D:\ZeD-UI backup\` with `zed_backups`, the Workshop item folder and the QA save (standing rule, director, Oct 28 2026). Push main at the end of every session. The staged copy has the same mod id as the dev mod, and the game loads the Workshop folder first, so it would shadow the dev mod with a copy that has no QA bridge. Stage again right before the next upload.
+16. Remove `Zomboid/Workshop/ZeD-UI/Contents` after the upload and the check in step 15 (`workshop.txt` and `preview.png` stay). Then tag the staging commit (`git tag -a v<version> <commit> -m "Tester build <version>, uploaded <date>"`, `git push origin v<version>`) and refresh the backup: a new dated folder under `D:\ZeD-UI backup\` with `zed_backups`, the Workshop item folder and the QA save (standing rule, director, Oct 28 2026). Push main at the end of every session. The dev copy in `Zomboid/mods` wins over the staged copy (same mod id), so a normal game run tests the dev mod: test the stage from its own `-cachedir` (ZomboidStaged). Stage again right before the next upload.
 
 16b. **The animated thumbnail** (director, Nov 3 2026; punch list 81). The Upload put the still back as the
     thumbnail; this sets the animated one (`ZeDUI/workshop/thumbnail/year_1993_animated.gif`, frame 1 is the still).
@@ -50,6 +53,15 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
       reads the item id from workshop.txt and sends the preview only (no files, no page text).
     - The first time, on the unlisted test item (`-ItemId <id>`), checking its files and page text are untouched.
     - Check the item page, the Workshop grid and the Steam app show it moving; sign the Steam client back in.
+
+16c. **Start the next cycle** (director, Nov 8 2026: "create that note at the beginning of each build cycle instead
+    of doing it at the end ... when I open up the app, I can see the notes"). Right after the upload and the tag,
+    QA's first message to Build starts the next build:
+    - bump `42/mod.info`'s modversion to the next version (the corkboard heading reads it);
+    - set `42/media/lua/client/ZeD/MenuNote.lua`'s five lines (ten characters each, capitals) from the punch list and
+      the director's plan for that build, shown to the director for approval before they're committed.
+    The note can change during the cycle if the plan does; step 5's pre-staging check and the release check's picture
+    still confirm it before staging.
 
 17. **Pin a discussion** on the item page called "Bug reports" (Discussions > Start a new discussion, then Pin), and link it at the top of the description.
 18. **Add the gallery images.** The game uploads only preview.png. On the item page in Steam (the browser or the Steam client), choose Add/edit images & videos and add the JPGs from ZeDUI/workshop/shots/out in their numbered order (each is under 1 MB). Do this once per build that changes the screenshots.

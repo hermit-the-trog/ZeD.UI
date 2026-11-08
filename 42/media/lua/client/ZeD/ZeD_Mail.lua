@@ -153,6 +153,7 @@ function M.dial()
     K.requestOn(Ml.MOD, "p_dial", { mutes = M.mutes() }, function(a)
         if a.ok then
             M.state = "on"
+            MS.epoch(b, a.ep)   -- (before any letter of this dial-in comes down: the ack is sent first)
             MS.dialed(b)
             if not M.noted then
                 M.noted = true

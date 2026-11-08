@@ -15,12 +15,14 @@
 -- Bans and the join rules: every command is Srv.register's, so ZeD's gates (Srv.gates, ZeD_ServerCore.lua) shut a
 -- banned player, or one who has not agreed to the rules, out of mail as out of the rest.
 --
---   p_dial   the dial-in: this player can be mailed from now on; the first batch of their waiting letters comes down
+--   p_dial   the dial-in: this player can be mailed from now on; the first batch of their waiting letters comes down;
+--            the answer carries ep, the table's own word (a client holding another forgets its letter numbers)
 --   p_got    { ids }: the client has these; the server forgets them and sends the next batch
 --   p_mute   { names }: the players this player muted (their own list, ZeD_Chat.lua). Their letters are no longer
 --            delivered, and any already waiting go. The sender is told nothing: the answer is the same ok as a letter
 --            delivered
---   p_send   { to, subj, text, cid }: a letter. To any player seen on this server since mail came (online or not).
+--   p_send   { to, subj, text, cid }: a letter. To any player seen on this server since mail came, or met by ZeD's admin
+--            table before it (online or not).
 --            Refusals: "to" (nobody by that name here), "text", "subj", "wait" (Ml.L.SEND_MS), "hour" (Ml.L.HOUR_MAX),
 --            "frozen". A cid already delivered answers ok again and delivers nothing (an answer that was lost).
 -- Caps, each oldest first: INBOX_MAX letters waiting for one player, CHARS_MAX words in all, KNOWN_MAX players.
@@ -91,6 +93,10 @@ local function open()
         md.schema = md.schema + 1
     end
     if T.frozen then Srv.fileLine("admin", Tk.SYS, "mail table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
+    -- the table's own random word, sent with every dial-in. A wiped table (or a new save on the same address) starts its
+    -- letter numbers at 1 again; a client that sees a new word forgets the numbers it already holds, or it would take
+    -- the new letters for ones it has and drop them
+    if not T.frozen and not md.epoch then md.epoch = tostring(getRandomUUID()) end
     T.md = md
     return md
 end
@@ -126,6 +132,25 @@ local function know(md, p)
         md.mutes[oldest] = nil
         md.hours[oldest] = nil
     end
+end
+
+-- someone who has not joined since mail came but whom ZeD's admin table met before (its players: everyone who joined
+-- since that table began, by their exact name): known from now on, as if they had joined. nil when nobody by that name
+local function knownFromAdmin(md, to)
+    if T.frozen or not Srv.openAdmin then return nil end
+    local ok, amd = pcall(Srv.openAdmin)
+    local players = ok and type(amd) == "table" and amd.players or nil
+    if type(players) ~= "table" then return nil end
+    local name = players[to] and to or nil
+    if not name then
+        local want = low(to)
+        for user in pairs(players) do
+            if type(user) == "string" and low(user) == want then name = user; break end
+        end
+    end
+    if not name then return nil end
+    know(md, { getUsername = function() return name end })
+    return md.known[low(name)]
 end
 
 -- ---------------------------------------------------------------------------
@@ -213,7 +238,7 @@ reg("p_dial", { limit = ML.DIAL_MS }, function(p, a, rid)
     know(md, p)
     if a.mutes ~= nil and not T.frozen then applyMutes(md, p, a.mutes) end
     local b = boxOf(md, low(p:getUsername()), false)
-    Srv.ack(p, rid, true, nil, { waiting = b and b.n or 0, frozen = T.frozen and true or nil, v = Ml.PROTO })
+    Srv.ack(p, rid, true, nil, { waiting = b and b.n or 0, frozen = T.frozen and true or nil, v = Ml.PROTO, ep = md.epoch })
     sendBatch(md, p)
 end)
 
@@ -347,7 +372,7 @@ reg("p_send", { limit = ML.SEND_MS, mark = false }, function(p, a, rid)
     end
     if not text then Srv.ack(p, rid, false, "text", { cid = cid }); return end
     if not subj then Srv.ack(p, rid, false, "subj", { cid = cid }); return end
-    local dest = to and md.known[low(to)] or nil
+    local dest = to and (md.known[low(to)] or knownFromAdmin(md, to)) or nil
     if not dest then Srv.ack(p, rid, false, "to", { cid = cid }); return end
     if not hourRoom(md, k) then Srv.ack(p, rid, false, "hour", { cid = cid }); return end
     Srv.mark(p, "p_send")

@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_b8a_password.lua | b8apw | timeout=300
