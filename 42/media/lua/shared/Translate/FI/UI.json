@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Avaa Valmista-välilehden tämä esine haussa.",
     "UI_ZeD_Skills_UnlockHead": "Reseptit, jotka vaativat kunkin tason",
     "UI_ZeD_Skills_UnlockLevel": "Taso %1",
-    "UI_ZeD_Skills_UnlockMore": "ja %1 muuta"
+    "UI_ZeD_Skills_UnlockMore": "ja %1 muuta",
+    "UI_ZeD_Settings_AutoLearn": "Taitojen opettamat reseptit",
+    "UI_ZeD_Settings_AutoLearnTip": "Taitokortti näyttää myös reseptit, jotka peli opettaa itsestään, kun taito saavuttaa tason. Pois: kuten pelissä, joka ei kerro.",
+    "UI_ZeD_Skills_TaughtHead": "Opitaan itsestään kullakin tasolla"
 }

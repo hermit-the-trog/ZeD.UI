@@ -175,7 +175,7 @@ G.ZED_GROUPS = {
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
         { "ammoBox", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "dashLamps", "onoff" },
         { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "haloBubble", "onoff" }, { "hintStrip", "radio" }, { "putBack", "onoff" },
-        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "loadouts", "onoff" },
+        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "autoLearn", "onoff" }, { "loadouts", "onoff" },
         -- (director, Oct 30 2026: Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },

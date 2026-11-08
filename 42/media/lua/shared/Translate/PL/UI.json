@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Otwiera kartę Wytwarzanie z tym przedmiotem w wyszukiwaniu.",
     "UI_ZeD_Skills_UnlockHead": "Przepisy wymagające każdego poziomu",
     "UI_ZeD_Skills_UnlockLevel": "Poziom %1",
-    "UI_ZeD_Skills_UnlockMore": "i jeszcze %1"
+    "UI_ZeD_Skills_UnlockMore": "i jeszcze %1",
+    "UI_ZeD_Settings_AutoLearn": "Przepisy uczone przez umiejętności",
+    "UI_ZeD_Settings_AutoLearnTip": "Karta umiejętności pokazuje też przepisy, których gra uczy sama, gdy umiejętność osiągnie poziom. Wył.: jak w grze, która tego nie mówi.",
+    "UI_ZeD_Skills_TaughtHead": "Uczone samoczynnie na każdym poziomie"
 }

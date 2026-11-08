@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Öffnet den Reiter Herstellen mit diesem Gegenstand in der Suche.",
     "UI_ZeD_Skills_UnlockHead": "Rezepte, die jede Stufe brauchen",
     "UI_ZeD_Skills_UnlockLevel": "Stufe %1",
-    "UI_ZeD_Skills_UnlockMore": "und %1 weitere"
+    "UI_ZeD_Skills_UnlockMore": "und %1 weitere",
+    "UI_ZeD_Settings_AutoLearn": "Rezepte, die Fertigkeiten lehren",
+    "UI_ZeD_Settings_AutoLearnTip": "Die Fertigkeitskarte zeigt auch die Rezepte, die dir das Spiel von selbst beibringt, wenn eine Fertigkeit eine Stufe erreicht. Aus: wie im Spiel, das es nicht sagt.",
+    "UI_ZeD_Skills_TaughtHead": "Von selbst gelernt auf jeder Stufe"
 }

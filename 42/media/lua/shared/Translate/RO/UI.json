@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Deschide fila Meșteșug cu acest obiect în căutare.",
     "UI_ZeD_Skills_UnlockHead": "Rețete care cer fiecare nivel",
     "UI_ZeD_Skills_UnlockLevel": "Nivelul %1",
-    "UI_ZeD_Skills_UnlockMore": "și încă %1"
+    "UI_ZeD_Skills_UnlockMore": "și încă %1",
+    "UI_ZeD_Settings_AutoLearn": "Rețete învățate prin abilități",
+    "UI_ZeD_Settings_AutoLearnTip": "Cardul abilității arată și rețetele pe care jocul ți le învață singur când o abilitate atinge un nivel. Oprit: ca jocul, care nu spune.",
+    "UI_ZeD_Skills_TaughtHead": "Învățate singure la fiecare nivel"
 }

@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "이 아이템으로 검색한 제작 탭을 엽니다.",
     "UI_ZeD_Skills_UnlockHead": "레벨별로 필요한 레시피",
     "UI_ZeD_Skills_UnlockLevel": "레벨 %1",
-    "UI_ZeD_Skills_UnlockMore": "외 %1개"
+    "UI_ZeD_Skills_UnlockMore": "외 %1개",
+    "UI_ZeD_Settings_AutoLearn": "기술이 가르치는 레시피",
+    "UI_ZeD_Settings_AutoLearnTip": "기술이 특정 레벨에 도달하면 게임이 자동으로 가르쳐 주는 레시피도 기술 카드에 표시합니다. 끔: 알려 주지 않는 게임과 같습니다.",
+    "UI_ZeD_Skills_TaughtHead": "레벨별 자동 습득"
 }

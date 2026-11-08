@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Opens the Craft tab with this item in its search.",
     "UI_ZeD_Skills_UnlockHead": "Recipes that need each level",
     "UI_ZeD_Skills_UnlockLevel": "Level %1",
-    "UI_ZeD_Skills_UnlockMore": "and %1 more"
+    "UI_ZeD_Skills_UnlockMore": "and %1 more",
+    "UI_ZeD_Settings_AutoLearn": "Recipes skills teach",
+    "UI_ZeD_Settings_AutoLearnTip": "The skill card also lists the recipes the game teaches you by itself when a skill reaches a level. Off: as the game, which does not say.",
+    "UI_ZeD_Skills_TaughtHead": "Learned by itself at each level"
 }

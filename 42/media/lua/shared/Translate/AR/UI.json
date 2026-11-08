@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "يفتح تبويب الصناعة مع هذا الغرض في البحث.",
     "UI_ZeD_Skills_UnlockHead": "الوصفات التي تحتاج كل مستوى",
     "UI_ZeD_Skills_UnlockLevel": "المستوى %1",
-    "UI_ZeD_Skills_UnlockMore": "و%1 أخرى"
+    "UI_ZeD_Skills_UnlockMore": "و%1 أخرى",
+    "UI_ZeD_Settings_AutoLearn": "وصفات تعلّمها المهارات",
+    "UI_ZeD_Settings_AutoLearnTip": "تعرض بطاقة المهارة أيضًا الوصفات التي تعلّمك إياها اللعبة تلقائيًا عند بلوغ المهارة مستوى ما. إيقاف: كما في اللعبة، التي لا تذكرها.",
+    "UI_ZeD_Skills_TaughtHead": "تُتعلَّم تلقائيًا عند كل مستوى"
 }

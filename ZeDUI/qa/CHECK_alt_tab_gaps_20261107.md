@@ -26,6 +26,11 @@ game's own focus pause. One test resolution (4K at 1.75x), plus the guide at 136
 - A skill no recipe needs (Sprinting, Fitness): no lines; a skill at 10: no lines.
 - With Skill Recovery Journal or Clear Skill Sheet on: their lines come first, these after.
 - Controller focus on a row: the same card under the row.
+- Recipes the game teaches by itself (ZeD setup, Additions, "Recipes skills teach"): Vanilla and Vanilla Plus
+  leave it off and the card shows no "Learned by itself at each level" block; Vanilla Access turns it on and the
+  block follows the needs block (Carpentry below its auto-learn levels). Turn the switch by hand: the preset reads
+  Custom, and picking Custom again brings the pick back. A Vanilla Access player from before this build still reads
+  Vanilla Access after loading (not Custom).
 
 ## 3. Pause when the window loses focus
 
