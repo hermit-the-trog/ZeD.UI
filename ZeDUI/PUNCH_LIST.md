@@ -3028,4 +3028,6 @@ Items QA has confirmed in the game in full (their history stays in place above; 
 114. **The main menu desk's sticky note can be dragged and closed (the director, Nov 8 2026, beta 9).** "Being able to
     drag the note around to other spots on the desktop or close it would be nice." Drag it anywhere on the desktop with
     its place kept, a way to close it, and a way to bring it back. Design questions (where the close sits, how it comes
-    back, controller) go to the director as multiple choice before building.
+    back, controller) go to the director as multiple choice before building. Ruled Nov 8: a small X close box in the
+    note's corner (System 7 style); a 'Show note' item in the desk's menu bar brings it back where it last was; on a
+    pad the note is a stop, A picks it up, the D-pad moves it, A puts it down, Y closes it.
