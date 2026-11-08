@@ -14,7 +14,9 @@
 --   frozen    the server part is up and refuses writes (its data is from a newer ZeD)
 --   forceOff  QA: behave as if no server part answered
 -- Hello goes out at every OnCreatePlayer, a respawn included. send reads getPlayer() at each call: the object from
--- before a death is not the one to hand sendClientCommand.
+-- before a death is not the one to hand sendClientCommand. A caller acting for one split-screen player hands that
+-- player (send's fourth argument): the game sends the player's index with the command (GameClient.sendClientCommand,
+-- checked on 42.21), so the server sees that player, not the first (the dash's miles, known issue Nov 7 2026).
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -33,9 +35,10 @@ local round = nil                    -- { at = when it started, sent = how many 
 
 local function now() return getTimestampMs() end
 
-function S.send(module, command, args)
+function S.send(module, command, args, player)
     if not isClient() then return false end
-    local p = getPlayer()
+    local p = player
+    if not (p and p.isLocalPlayer and p:isLocalPlayer()) then p = getPlayer() end
     if not p then return false end
     sendClientCommand(p, module, command, args or {})
     return true

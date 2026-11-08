@@ -22,8 +22,12 @@
 --           since a tenth asks once; stopped, an older copy at the same odometer never undoes a press; the driver's
 --           figures the server sends the other seats go on their copy only, junk and another car's dropped, and a
 --           driver keeps their own; a passenger asks for them as it sits down, again every 2 s until they come,
---           three times at most, and the driver never asks; the ash tray on a server stays in the game's memory, never on
---           the car's modData (the server's sends wipe what only the client wrote), and single player keeps it there
+--           three times at most, and the driver never asks; the ash tray is the car's (modData ZeD_ash): on a server
+--           the press shows at once and asks the server (DP.ASH, its shape checked), whose copy, sent out, keeps it;
+--           single player keeps it on the car's modData
+--   SPLIT   split-screen (known issue Nov 7 2026): each local player gets a dash of their own; the second player's
+--           driver sends as themselves (the server takes only the driver's); the other seats' figures and a refusal
+--           reach the right player's dash; the controller goes to the first player's dash only
 --   HOT     the hot lamp lights in the key-on bulb check; the Simple dash's Temperature bar goes red only when hot
 --   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
 --           option is read at most once a second
@@ -171,8 +175,8 @@ end
 -- the link to the server part (ZeD_ServerLink.lua's S.send): each command is written down, and a send of the figures
 -- (DP.ODO, not a passenger's ask) counted on its car; and the routes the dash hands the server's answers to (S.on)
 local CARS, SENT, ROUTES = {}, {}, {}
-ZeD.ServerPart = { send = function(module, command, args)
-    SENT[#SENT + 1] = { module = module, command = command, args = args }
+ZeD.ServerPart = { send = function(module, command, args, player)
+    SENT[#SENT + 1] = { module = module, command = command, args = args, player = player }
     local car = CARS[args and args.veh]
     if car and command == ZeD.DashProto.ODO then car.sent = car.sent + 1 end
     return true
@@ -254,7 +258,7 @@ local function frame(ms)
     return LOG
 end
 local function frames(n, ms) for _ = 1, n do frame(ms) end end
-local function newDash() inst = ZeD_Dashboard:new(0); D._instance = inst; return inst end
+local function newDash() inst = ZeD_Dashboard:new(0); D._instance = inst; D._instances = { [0] = inst }; return inst end
 local function st() return inst._st end
 local function drive(design, t)
     t = t or {}
@@ -935,17 +939,26 @@ do
     check("single player: a passenger never asks", asks() == a0 + 5, asks() - a0)
     env.client = true
 
-    -- the ash tray on a server: in this game's memory, never the car's modData, so the server's sends can't undo it
+    -- the ash tray on a server: the car's, one tray a car (known issue Nov 7 2026: it was each player's, for the
+    -- session). The press shows at once on this copy and asks the server, which writes its own and sends the car out
     local ac = drive("luxury", { keysIn = true, running = true, kmh = 0, id = 31, md = { ZeD_odo = 10, ZeD_trip = 0 } })
     frame(250)
     local ash0 = st().ashIsOpen
+    local nSent = #SENT
     inst:_fire("ash", false)
     frame(250)
     check("on a server the ash tray opens or shuts", st().ashIsOpen == not ash0, tostring(st().ashIsOpen))
-    check("and stays off the car's modData", ac.md.ZeD_ash == nil)
-    ac.md = { ZeD_odo = 10, ZeD_trip = 0 }                -- (the server sends the car: the client's copy replaced)
+    check("and shows on this copy of the car at once", ac.md.ZeD_ash == not ash0, tostring(ac.md.ZeD_ash))
+    local ashCmd = nil
+    for i = nSent + 1, #SENT do if SENT[i].command == ZeD.DashProto.ASH then ashCmd = SENT[i] end end
+    check("the press asks the server for the car's tray", ashCmd ~= nil and ashCmd.module == ZeD.DashProto.MOD
+        and ashCmd.args.veh == 31 and ashCmd.args.open == not ash0 and ashCmd.player == CHR, ashCmd and tostring(ashCmd.args.open))
+    ac.md = { ZeD_odo = 10, ZeD_trip = 0, ZeD_ash = not ash0 }   -- (the server took it and sent the car out)
     frame(250)
-    check("the server's send doesn't put it back", st().ashIsOpen == not ash0)
+    check("the server's copy keeps it", st().ashIsOpen == not ash0)
+    ac.md = { ZeD_odo = 10, ZeD_trip = 0, ZeD_ash = ash0 }       -- (another seat shut it again: the server's send)
+    frame(250)
+    check("another seat's press, sent out by the server, shows here", st().ashIsOpen == ash0)
     env.client = false
     local sc = drive("luxury", { keysIn = true, running = true, kmh = 0, id = 32, md = { ZeD_odo = 10, ZeD_trip = 0 } })
     frame(250)
@@ -964,10 +977,102 @@ do
         local a = c.args
         if c.command == ZeD.DashProto.ASK then
             if not ZeD.DashProto.okVeh(a.veh) then junk = junk + 1 end
+        elseif c.command == ZeD.DashProto.ASH then
+            if not ZeD.DashProto.okAsh(a) then junk = junk + 1 end
         elseif not (c.command == ZeD.DashProto.ODO and ZeD.DashProto.okVeh(a.veh) and ZeD.DashProto.okMiles(a.odo)
             and ZeD.DashProto.okMiles(a.trip) and type(a.show) == "boolean" and a.trip <= a.odo) then junk = junk + 1 end
     end
     check("every command sent is one the server takes the shape of", #SENT > 0 and junk == 0, junk)
+    env.client = false
+end
+
+-- ---------------------------------------------------------------------------
+section("SPLIT")
+-- ---------------------------------------------------------------------------
+do
+    env.client = true
+    -- two local players: the first a passenger in car 51, the second at the wheel of car 52; then both in car 53
+    local cars = {}
+    local function chr(pn)
+        return { getVehicle = function() return cars[pn] end, getPlayerNum = function() return pn end,
+            isLocalPlayer = function() return true end,
+            getInventory = function() return { haveThisKeyId = function() return true end } end }
+    end
+    local P0, P1 = chr(0), chr(1)
+    local PLAYERS = { [0] = P0, [1] = P1 }
+    local saveGSP = getSpecificPlayer
+    getSpecificPlayer = function(pn) return PLAYERS[pn] end
+    local saveNew = ZeD_Panel.new
+    ZeD_Panel.new = function(cls, x, y, w, h)
+        local o = saveNew(cls, x, y, w, h)
+        o.initialise, o.addToUIManager = noop, noop
+        return o
+    end
+    D._instance, D._instances = nil, {}
+    local c51 = newCar({ id = 51, script = SCRIPT.nyala, keysIn = true, running = true, kmh = 0, md = { ZeD_odo = 300, ZeD_trip = 1 } })
+    local c52 = newCar({ id = 52, script = SCRIPT.nyala, keysIn = true, running = true, kmh = 0, md = { ZeD_odo = 700, ZeD_trip = 2 } })
+    c51.isDriver = function(self, p) return p == self.driverChr end
+    c52.isDriver = function(self, p) return p == self.driverChr end
+    c52.driverChr = P1
+    cars[0], cars[1] = c51, c52
+    D.show(P0)
+    D.show(P1)
+    local d0, d1 = D.getInstance(0), D.getInstance(1)
+    check("each local player gets a dash of their own", d0 ~= nil and d1 ~= nil and d0 ~= d1, tostring(d1))
+    check("the second player's dash is theirs", d1 and d1.playerNum == 1)
+    check("the first player's dash is still the one the other parts know", D._instance == d0 and D.getInstance() == d0)
+    local function pre(d) clock = clock + 250; if d and d:isVisible() then d:prerender() end end
+    for _ = 1, 4 do pre(d0); pre(d1) end
+    -- the second player drives: their miles go to the server as them
+    local n0 = #SENT
+    c52.kmh = 100
+    for _ = 1, 40 do pre(d0); pre(d1) end          -- (10 s at 100 km/h: well past a tenth)
+    local mine, other = 0, 0
+    for i = n0 + 1, #SENT do
+        local c = SENT[i]
+        if c.command == ZeD.DashProto.ODO and c.args.veh == 52 then
+            if c.player == P1 then mine = mine + 1 else other = other + 1 end
+        end
+    end
+    check("the second player's miles are sent as the second player", mine > 0 and other == 0, mine .. "/" .. other)
+    check("and counted on their car", (c52.md.ZeD_odo or 0) > 700, c52.md.ZeD_odo)
+    -- the first player rides in car 51: the server's figures for 51 reach their dash's copy, not the driver's car
+    local route = ROUTES[ZeD.DashProto.MOD]
+    route(ZeD.DashProto.FIG, { veh = 51, odo = 333, trip = 3, show = false })
+    check("figures for the first player's car reach it", c51.md.ZeD_odo == 333, c51.md.ZeD_odo)
+    local odo52 = c52.md.ZeD_odo
+    route(ZeD.DashProto.FIG, { veh = 52, odo = 10, trip = 0, show = false })
+    check("figures for a car a local player drives are not taken (its driver keeps their own)", c52.md.ZeD_odo == odo52)
+    -- the first player's passenger ask goes as them
+    local askBy = nil
+    for i = n0 + 1, #SENT do if SENT[i].command == ZeD.DashProto.ASK and SENT[i].args.veh == 51 then askBy = SENT[i].player end end
+    check("the first player's ask goes as the first player", askBy == P0, tostring(askBy))
+    -- the server refuses the second player's figures: its answer reaches the second player's dash
+    local o1 = d1 and d1._odoMine and d1._odoMine.odo or 0
+    route(ZeD.DashProto.SYNC, { veh = 52, odo = o1 + 40, trip = 1, sent = o1 })
+    pre(d1)
+    check("a refusal reaches the driver's dash, the second player's", d1._odoMine and near(d1._odoMine.odo, o1 + 40, 0.01), d1._odoMine and d1._odoMine.odo)
+    -- the second player as a passenger of car 53, the first at its wheel: the second player asks as themselves
+    local c53 = newCar({ id = 53, script = SCRIPT.nyala, keysIn = true, running = true, kmh = 0, md = { ZeD_odo = 900, ZeD_trip = 0 } })
+    c53.isDriver = function(self, p) return p == self.driverChr end
+    c53.driverChr = P0
+    cars[0], cars[1] = c53, c53
+    local n1 = #SENT
+    for _ = 1, 3 do pre(d0); pre(d1) end
+    local ask1 = nil
+    for i = n1 + 1, #SENT do if SENT[i].command == ZeD.DashProto.ASK and SENT[i].args.veh == 53 then ask1 = SENT[i].player end end
+    check("the second player's ask goes as the second player", ask1 == P1, tostring(ask1))
+    local o53 = c53.md.ZeD_odo
+    route(ZeD.DashProto.FIG, { veh = 53, odo = o53 - 5, trip = 0, show = false })
+    check("figures for a car this client drives (another seat's) are not taken", c53.md.ZeD_odo == o53)
+    -- the controller: the first player's dash only (the focus follows the first player's pad)
+    check("the second player's dash never takes the pad", D.canTakePad(P1) == false)
+    -- each player's leaving hides their own dash
+    cars[1] = nil
+    D.hide(P1)
+    check("the second player out: their dash hides, the first's stays", d1 ~= nil and d0 ~= nil and not d1:isVisible() and d0:isVisible())
+    getSpecificPlayer = saveGSP
+    ZeD_Panel.new = saveNew
     env.client = false
 end
 

@@ -3269,6 +3269,8 @@ end
 
 function ZeD_WorldWindow.toggle(playerNum)
     playerNum = playerNum or 0
+    -- (split-screen: another player's press never opens or closes the first player's window, ZeD.windowsFor)
+    if not ZeD.windowsFor(playerNum) then return end
 
     if _worldWin then
         ZeD_WorldWindow._endZoneDraw()
@@ -3321,6 +3323,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
+    win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the roll-up and the cards)
 
     _worldWin = win
 
@@ -5703,6 +5706,7 @@ end
 -- ============================================================================
 
 function ZeD_WorldWindow.open(playerNum)
+    if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: the game's own, ZeD.windowsFor)
     -- (never for a dead character; code audit Oct 17 2026)
     local p = getSpecificPlayer(playerNum or 0)
     if p and p:isDead() then return end
@@ -5728,6 +5732,7 @@ end
 -- the active tab (or opens the drawer on the Loot view).
 function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not entry then return false end
+    if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _worldWin then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
         if not ok then return false end
@@ -5839,6 +5844,7 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
 end
 
 function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
+    if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _worldWin then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
         if not ok then return false end

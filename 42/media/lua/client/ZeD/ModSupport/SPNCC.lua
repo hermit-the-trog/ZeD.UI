@@ -1183,6 +1183,7 @@ ZeD_CharacterWindow.addTab({
 -- open the Character window on this tab (the D-pad wheel's way: press the tab once the window is up)
 function S.openTab(playerNum)
     playerNum = playerNum or 0
+    if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: ZeD's windows are the first player's)
     if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggle(playerNum) end
     local tries = 0
     local function tick()
