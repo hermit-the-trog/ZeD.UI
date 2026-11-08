@@ -244,8 +244,17 @@ end
 -- ---------------------------------------------------------------------------
 -- Finding the worn watch
 -- ---------------------------------------------------------------------------
-local function _wornWatch(player)
-    local worn = _safe(function() return player:getWornItems() end, nil)
+-- obj:fname() for pcall without a new closure: pcall(_invoke, obj, "isAlarmSet")
+local function _invoke(obj, fname) return obj[fname](obj) end
+local function _callOr(obj, fname, default)
+    local ok, v = pcall(_invoke, obj, fname)
+    if ok then return v end
+    return default
+end
+W._callOr = _callOr
+
+local function _wornScan(player)
+    local worn = _callOr(player, "getWornItems", nil)
     if not worn then return nil end
     local other, otherLoc
     for i = 0, worn:size() - 1 do               -- a Java list: 0-based, :get / :size
@@ -259,6 +268,34 @@ local function _wornWatch(player)
         end
     end
     return other, otherLoc
+end
+
+-- The worn watch is looked up once per character per UI draw (perf review Nov 7 2026, item 11: the watch's
+-- prerender, W.beltWatch and the belt's layout each walked the worn items every frame). Clothes change in the
+-- game's update, never while the UI draws (UIManager.render: OnPreUIDraw, every element, OnPostUIDraw), so
+-- within one draw the answer is the same; outside a draw every call looks again.
+local _memo, _memoN, _drawing = {}, 0, false
+local function _memoClear()
+    for i = 1, _memoN do local e = _memo[i]; e.p, e.item, e.loc = nil, nil, nil end
+    _memoN = 0
+end
+local function _wornWatch(player)
+    if not _drawing then return _wornScan(player) end
+    for i = 1, _memoN do
+        local e = _memo[i]
+        if e.p == player then return e.item, e.loc end
+    end
+    local item, loc = _wornScan(player)
+    _memoN = _memoN + 1
+    local e = _memo[_memoN]
+    if not e then e = {}; _memo[_memoN] = e end
+    e.p, e.item, e.loc = player, item, loc
+    return item, loc
+end
+W._wornWatch = _wornWatch
+if Events.OnPreUIDraw and Events.OnPostUIDraw then
+    Events.OnPreUIDraw.Add(function() _memoClear(); _drawing = true end)
+    Events.OnPostUIDraw.Add(function() _drawing = false; _memoClear() end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -342,7 +379,7 @@ function W.miniState(player, item)
     local ok24, v24 = pcall(function() return getCore():getOptionClock24Hour() end)
     _mini.fmt24 = not (ok24 and v24 == false)
     _mini.speed = _speed()
-    _mini.armed = _safe(function() return item:isAlarmSet() end, false) and true or false
+    _mini.armed = _callOr(item, "isAlarmSet", false) and true or false
     local inst = W._instance
     _mini.lit = inst ~= nil and getTimestampMs() < (inst._litUntil or 0)
     _mini.night = _isDark(gt:getTimeOfDay() or _mini.hour) and true or false   -- a CaZio's bulb keeps the night under it
@@ -410,15 +447,26 @@ function ZeD_Watch:_layout(frameW, frameH, k)
 end
 
 -- this frame's click areas from the plate (only the enabled ones), in screen pixels
+-- (perf review Nov 7 2026, item 11: the enabled controls are read straight from the plate's hits, as
+-- ZeD.Plate.controls lists them, into click areas reused frame to frame, so a frame makes no new tables)
 function ZeD_Watch:_hitsFrom(des, st, k)
-    local ctl = ZeD.Plate.controls(des, st, self._ctl)
-    local hits = self._hit
-    for i = #hits, 1, -1 do hits[i] = nil end
-    for i = 1, #ctl do
-        local c = ctl[i]
-        if c.enabled then hits[#hits + 1] = { id = c.id, x = c.x * k, y = c.y * k, w = c.w * k, h = c.h * k } end
+    local hits, pool = self._hit, self._hitPool
+    if not pool then pool = {}; self._hitPool = pool end
+    local n = 0
+    local list = des.hits
+    if list then
+        for _, h in ipairs(list) do
+            -- Plate.controls: a "look" area is not a control; one with needs is enabled while st[needs] is
+            if (h.kind or "press") ~= "look" and (h.needs == nil or st[h.needs]) then
+                n = n + 1
+                local hr = pool[n]
+                if not hr then hr = {}; pool[n] = hr end
+                hr.id, hr.x, hr.y, hr.w, hr.h = h.id, h.x * k, h.y * k, h.w * k, h.h * k
+                hits[n] = hr
+            end
+        end
     end
-    for i = #ctl, 1, -1 do ctl[i] = nil end      -- Plate.controls appends: start empty next frame
+    for i = #hits, n + 1, -1 do hits[i] = nil end
 end
 
 -- ---------------------------------------------------------------------------
@@ -617,8 +665,8 @@ function ZeD_Watch:prerender()
     end
     if not self._belt then self._popped = false end
     if W.simple() then
-        local armedS = _safe(function() return item:isAlarmSet() end, false) and true or false
-        local hourS = _safe(function() return item:getHour() end, 6) or 6
+        local armedS = _callOr(item, "isAlarmSet", false) and true or false
+        local hourS = _callOr(item, "getHour", 6) or 6
         if self._belt then
             local now = getTimestampMs()
             if self:isMouseOver() or self._dragAt or self._setOpen then self._popTouched = now
@@ -636,8 +684,8 @@ function ZeD_Watch:prerender()
         elseif now - (self._popTouched or now) > W.POP_IDLE_MS then W.togglePop(false); return end
     end
 
-    local armed = _safe(function() return item:isAlarmSet() end, false) and true or false
-    local alarmHour = _safe(function() return item:getHour() end, 6) or 6
+    local armed = _callOr(item, "isAlarmSet", false) and true or false
+    local alarmHour = _callOr(item, "getHour", 6) or 6
     local gt = getGameTime()
     local st = self._st
     st.hour, st.minute = gt:getHour(), gt:getMinutes()

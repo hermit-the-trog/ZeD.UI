@@ -2523,8 +2523,10 @@ function MM.openMods()
     inst.returnToUI = m
 end
 
--- the wheel goes to whichever list view is up
-local _wheel = MM.wheel
+-- the wheel goes to whichever list view is up (the wheel under it kept once, as Mail keeps its own: a reload of this file
+-- wraps that same one again, not its own last wrapper; Nov 8 2026)
+local _wheel = MM._modsWheelBase or MM.wheel
+MM._modsWheelBase = _wheel
 function MM.wheel(del)
     if MM.view == "mods" and MM.root and MM.root.modsWin then return MM.root.modsWin:wheel(del) end
     return _wheel(del)

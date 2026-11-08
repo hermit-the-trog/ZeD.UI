@@ -119,11 +119,16 @@ function JC:update()
         self.out:SetText(s)
     end
     -- the suggestion: the nearest global function to the line's word
+    -- (as UIDebugConsole.update() in the jar: the suggestion is worked out only when the line's LENGTH differs from the one
+    -- it last worked on; an emptied line hides the box and leaves that length where it was. QA round 3.)
     local t = self.cmd.text
-    if t ~= "" and ("getPlayer"):sub(1, #t) == t then
-        self.sug.visible = true
-        self.sug:SetText("IsoPlayer getPlayer")
-        self.prevSuggestion = "getPlayer"
+    if #t ~= (self.inputlength or 0) and t ~= "" then
+        self.inputlength = #t
+        if ("getPlayer"):sub(1, #t) == t then
+            self.sug.visible = true
+            self.sug:SetText("IsoPlayer getPlayer")
+            self.prevSuggestion = "getPlayer"
+        end
     elseif t == "" then
         self.sug.visible = false
     end
@@ -804,6 +809,91 @@ PIECE = false
 frame()
 check("switch off again: ZeD's back", DC.isOpen() and JC.x <= PARKED)
 DC.close()
+
+-- Nov 8 round 1 (3a): a runtime error typed into the console comes as bare stack frames after the [USER] line, with no
+-- ERROR or Exception header; a frame outside a block starts one, the frames after it stay in it
+do
+    local text = "[USER] getPl.x.y()\nLua(Vanilla).console(console:1)\nse.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1689)\n"
+        .. "java.lang.RuntimeException: boom\nLOG  : General  f:1> fine\nsay hi\n"
+    local pl, n = DC.parse(text)
+    check("bare frames: the Lua( line starts an error", pl[2].err == true and pl[2].b == 2)
+    check("bare frames: the se.krka line stays in the block", pl[3].err == true and pl[3].b == 2)
+    check("bare frames: the java. line stays in the block", pl[4].err == true and pl[4].b == 2)
+    check("bare frames: one error counted", n == 1, n)
+    check("bare frames: the [USER] line and the lines after are plain", not pl[1].err and not pl[5].err and not pl[6].err)
+    local solo, n2 = DC.parse("se.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1689)\n")
+    check("bare frames: a se.krka line alone starts one", solo[1].err == true and n2 == 1)
+    local solo2, n3 = DC.parse("java.lang.RuntimeException: Object tried to call nil\n")
+    check("bare frames: a java. line alone starts one", solo2[1].err == true and n3 == 1)
+    local fine, n4 = DC.parse("LOG  : General  f:1> hello\n[USER] x\n")
+    check("bare frames: plain lines are no error", n4 == 0)
+end
+-- (3b) a line mirrored into the game's command line has its suggestion that same call: the game's update() ran
+do
+    JC.visible = true
+    JC.sug.visible = false
+    JC.sug:SetText("")
+    DC._mirrored = nil
+    local before = JC.updates
+    DC.mirror("getPl")
+    check("mirror: the game's line holds the text", JC.cmd.text == "getPl")
+    check("mirror: the game's update ran for it, twice (the line one longer first)", JC.updates == before + 2, JC.updates - before)
+    check("mirror: the suggestion is there at once", DC.suggestion() == "IsoPlayer getPlayer", DC.suggestion())
+    DC.mirror("getPl")
+    check("mirror: the same text again runs nothing", JC.updates == before + 2)
+    DC.mirror("")
+    check("mirror: an empty line does not run update", JC.updates == before + 2)
+    -- round 2: the game's suggestion is its NEAREST function by edit distance, left standing when nothing is found;
+    -- "getPl" got "getCell" on 42.21. Never taken as a completion, never shown as one.
+    DC.mirror("getPl")
+    JC.sug.visible = true
+    JC.sug:SetText("IsoCell getCell")
+    JC.prevSuggestion = "getCell"
+    check("stale: a nearest word that does not start with the typed one is not offered", DC.suggestion() == nil, DC.suggestion())
+    check("stale: Tab does not put it into the line", DC.complete("getPl") == nil and JC.cmd.text == "getPl", JC.cmd.text)
+    JC.sug:SetText("IsoPlayer getPlayer")
+    JC.prevSuggestion = "getPlayer"
+    check("fits: a word that starts with it is offered", DC.suggestion() == "IsoPlayer getPlayer")
+    check("fits: Tab takes it", DC.complete("getPl") == "getPlayer()", JC.cmd.text)
+    check("fits: case does not matter", DC.fits("IsoPlayer getPlayer", { getText = function() return "GETPL" end }) == true)
+    check("fits: after a colon the word after it", DC.fits("void setX", { getText = function() return "a:setX" end }) == true
+        and DC.fits("void setX", { getText = function() return "a:getY" end }) == false)
+    check("fits: a line ending in a bracket takes any", DC.fits("void x", { getText = function() return "f(" end }) == true)
+    -- round 3: a line of the same length as the one the game last worked on got no suggestion (its length test), and the
+    -- emptied line in between hid the box without resetting it
+    DC.mirror("")
+    JC.sug.visible = false
+    JC.sug:SetText("")
+    JC.inputlength = 7                -- ("getPlay" was the last the game worked on)
+    DC.mirror("getPlay")
+    check("same length as the last the game worked on: the suggestion is still there", DC.suggestion() == "IsoPlayer getPlayer", DC.suggestion())
+    DC.mirror("")
+    JC.sug.visible = false
+    DC.mirror("getPlay")
+    check("the same word typed again after an emptied line: the suggestion is there", DC.suggestion() == "IsoPlayer getPlayer", DC.suggestion())
+    check("and the line is what was typed, with no space left on it", JC.cmd.text == "getPlay", JC.cmd.text)
+    -- an update that throws leaves the line as typed and says so once
+    local realUpdate, realLog, logged = JC.update, ZeD.logOnce, 0
+    ZeD.logOnce = function() logged = logged + 1 end
+    JC.update = function() error("boom") end
+    DC._mirrored = nil
+    DC.mirror("getP")
+    ZeD.logOnce = realLog
+    check("a failing game update leaves the line as typed and is logged", JC.cmd.text == "getP" and logged == 1, JC.cmd.text)
+    JC.update = realUpdate
+    DC.mirror("")
+end
+do
+    -- the tab turned into four spaces by DC.parse: the frames still start and hold an error
+    local pl, n = DC.parse("[USER] x()\n\tLua(Vanilla).console(console:1)\n\tse.krka.kahlua.vm.KahluaThread.tableget(K.java:1)\n\tjava.lang.RuntimeException: boom\nnext\n")
+    check("indented frames: start one error", pl[2].err == true and pl[2].b == 2 and n == 1, n)
+    check("indented frames: the rest stay in it", pl[3].err and pl[3].b == 2 and pl[4].err and pl[4].b == 2)
+    check("indented frames: the line after is plain", not pl[5].err)
+    local solo, n2 = DC.parse("    Lua(Vanilla).console(console:1)\n")
+    check("indented frame alone starts one", solo[1].err == true and n2 == 1)
+    local s3, n3 = DC.parse("    se.krka.kahlua.vm.X(k.java:1)\n    java.lang.Y: z\n")
+    check("indented se.krka and java. lines are one block", n3 == 1 and s3[2].b == 1, n3)
+end
 
 check("the game's console never on the screen while ZeD's was open", onScreenWhileOpen == 0, onScreenWhileOpen)
 check("nothing logged", #LOGGED == 0, LOGGED[1])

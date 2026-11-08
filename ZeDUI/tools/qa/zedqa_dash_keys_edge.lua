@@ -174,6 +174,10 @@ for _, e in ipairs(CARS) do
         local ok = stage(n, script)
         local moving = false
         local function okM() return ok() and not moving end
+        act(function()   -- (Nov 8 QA: a key still in the ignition from the seat step made the first click start the engine, a different car each run: key out, settle, then click)
+            if ok() then pcall(function() if cur:isKeysInIgnition() then cur:setKeysInIgnition(false) end end) end
+        end)
+        waitMs(500)
         act(function()
             if not ok() then return end
             if design() ~= n then err(n .. " design " .. tostring(design()) .. ", want " .. n) end

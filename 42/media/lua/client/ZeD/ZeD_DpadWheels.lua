@@ -651,7 +651,7 @@ D.B.zed = function(p, pn)
     -- (the game's own way is a key)
     local DCon = ZeD.DebugConsole
     if DCon and DCon.exists and DCon.exists() then
-        out[#out + 1] = { name = tr("UI_ZeD_Console_Title"), icon = "bug", detail = tr("UI_ZeD_Console_WheelDetail"),
+        out[#out + 1] = { name = tr("UI_ZeD_Console_Title"), icon = "pencil", detail = tr("UI_ZeD_Console_WheelDetail"),
                           run = function(pl, pn2) DCon.open(pn2) end }
     end
     return out

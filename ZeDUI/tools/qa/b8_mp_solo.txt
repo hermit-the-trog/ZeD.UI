@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/b8_mp_solo.txt  (Nov 7 2026, QA; beta 8): the multiplayer checks that need only the admin client on the local test server (no second player).
+#   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Mode windowed -Width 1280 -Height 800 -Manifest ZeDUI/tools/qa/b8_mp_solo.txt
+# (ZEDQA_NOSTEAM=1, Lua/zedqa.lock free, no other game running.) The admin tools: Users, Statistics, PvP log, Climate, Zones, the server sandbox
+# window (CHECK_admin_tools_20261107.md). The cleanup after it puts back any ban, mute, claim, zone or rule a stopped run left.
+# The two-player checks are batch_b8_mp.ps1 (b8_mp_two.txt).
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_b8_mp_admin_tools.lua | b8at | timeout=900
+zedqa_b8_mp_cleanup.lua | b8cu | timeout=120

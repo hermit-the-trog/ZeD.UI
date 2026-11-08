@@ -4,7 +4,7 @@ While rewriting every comment in 42/media/lua, the agents read each file in full
 
 ## Batch 30 (shared protos)
 1. Tk.parse doc contradicted code: returns ANY all-caps bracketed word as kind, never checks isKind itself — callers must filter (sameTicket does). Doc fixed to match code.
-2. Tk.FILE_FULL_TEXT=false disagrees with ZeDUI/MP_SERVER_PART_DESIGN.md E13 ("filed in full for now, as scoped"). Code ships the private stub. Doc stale or constant flipped — user to resolve.
+2. Tk.FILE_FULL_TEXT=false disagrees with docs/specs/MP_SERVER_PART_DESIGN.md E13 ("filed in full for now, as scoped"). Code ships the private stub. Doc stale or constant flipped — user to resolve.
 3. canReply/canAnswer/canClose are three identical expressions behind one REPLY_AT_ANSWERED switch — flipping it changes player reply window AND both staff gates together.
 4. Tk.name truncates by bytes (NAME_MAX=64); non-ASCII username could be cut mid-character. Cosmetic.
 ## Batch 05 (admin/animals/atoms)

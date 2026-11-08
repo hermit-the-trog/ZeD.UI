@@ -173,6 +173,24 @@ function DC.mirror(text)
     if not (P.ok and P.cmd) or DC._mirrored == text then return end
     DC._mirrored = text
     pcall(function() P.cmd:SetText(text) end)
+    -- (the game fills its suggestion box in its own update(), when the line's length has changed; it is run now, so the
+    -- suggestion is there for Tab and for the help line in this same frame, never a frame late or not at all)
+    -- (QA round 3, from UIDebugConsole.update() in the jar: it works the suggestion out only when the LENGTH of the line
+    -- differs from the length it last worked on, and an emptied line does not reset that length. So a line of the same
+    -- length as an earlier one got nothing, and the box stayed empty. The line is shown one character longer first, so
+    -- the second update always sees a changed length and does the work for the line as it is.)
+    if P.jc and text ~= "" then
+        local ok, err = pcall(function()
+            P.cmd:SetText(text .. " ")
+            P.jc:update()
+            P.cmd:SetText(text)
+            P.jc:update()
+        end)
+        if not ok then
+            pcall(function() P.cmd:SetText(text) end)   -- (the line is what was typed, whatever failed)
+            ZeD.logOnce("lua console suggestion", tostring(err))
+        end
+    end
 end
 
 -- may this player run a line? (the game's own test on Enter: on a server, the role's capability or the co-op host)
@@ -221,8 +239,22 @@ function DC.suggestion()
         if not s:isVisible() then return nil end
         return s:getText()
     end)
-    if ok and t and t ~= "" then return tostring(t) end
+    if ok and t and t ~= "" and DC.fits(tostring(t), P.cmd) then return tostring(t) end
     return nil
+end
+
+-- The game's suggestion is the NEAREST global function by edit distance (UIDebugConsole.SuggestionEngine, Levenshtein),
+-- not a completion: "getPl" gets "getCell" (3 edits) before "getPlayer" (4). It is also left standing when the line
+-- changes to one it finds nothing for. A suggestion is taken as a completion only when its name starts with the word
+-- typed after the last ":" or ".", so a nearest-but-unrelated one is never put into the line.
+function DC.fits(sug, cmd)
+    local line = ""
+    pcall(function() line = tostring(cmd:getText() or "") end)
+    local word = line:match("([%w_]*)$") or ""
+    if word == "" then return true end
+    local name = sug:match("([%w_]+)%s*$")
+    if not name then return false end
+    return name:sub(1, #word):lower() == word:lower()
 end
 
 -- Tab: the game's own key handler takes the suggestion into its line; the line comes back
@@ -230,6 +262,7 @@ function DC.complete(text)
     local jc = P.jc
     if not (jc and P.ok) then return nil end
     DC.mirror(text)
+    if not DC.suggestion() then return nil end   -- (none, or the game's nearest word is not a completion of the line)
     local ok, t = pcall(function()
         jc:onOtherKey(TAB_KEY)
         return P.cmd:getText()
@@ -255,6 +288,8 @@ local function startsError(s)
     if s:find("^ERROR") or s:find("^SEVERE") or s:find("^%s*STACK TRACE") then return true end
     if s:find("console[\"%]]*:%d+:") then return true end
     if s:find("Exception") and not s:find("^LOG") then return true end
+    -- a runtime error typed into the console comes as bare stack frames after the [USER] line, with no header
+    if s:find("^%s*Lua%(") or s:find("^%s*se%.krka") or s:find("^%s*java%.") then return true end
     return false
 end
 -- a line that goes on with the error above it (its trace)
@@ -262,7 +297,7 @@ local function continuesError(s)
     if s == "" then return false end
     if s:find("^%s") then return true end
     if s:find("^STACK TRACE") or s:find("^%-%-%-%-") or s:find("%-%-%-%-%-%-%-%-%-%-$") then return true end
-    if s:find("^Callframe") or s:find("^function: ") or s:find("^Caused by") or s:find("^java%.") or s:find("^se%.krka") then return true end
+    if s:find("^Lua%(") or s:find("^Callframe") or s:find("^function: ") or s:find("^Caused by") or s:find("^java%.") or s:find("^se%.krka") then return true end
     return false
 end
 

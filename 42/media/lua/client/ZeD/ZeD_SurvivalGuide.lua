@@ -1306,14 +1306,14 @@ function ZeD_GuideWindow:prerender()
                     end
                 end
             end
-        elseif it.kind == "ways" then
+        elseif it.kind == "ways" and it.x and it.y and it.w and it.h and it.headY and it.heads and it.colX then
             local by = it.y + oy
             A.frame(self, it.x, by, it.w, it.h, T.border)
             local hx1, hx2 = it.colX[2], it.colX[3]
             if it.texty then hx1, hx2 = it.halfX[1], it.halfX[2] end
             self:drawText(it.heads[1], hx1, it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
             self:drawText(it.heads[2], hx2, it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
-            A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false)
+            if it.ruleY then A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false) end   -- (a spoiler-hidden box has no table, so no rule)
             for _, r in ipairs(it.rows) do
                 local ry = r.y + oy
                 if r.kbLines then
@@ -1341,7 +1341,7 @@ function ZeD_GuideWindow:prerender()
                     end
                 end
             end
-        elseif it.kind == "rules" then
+        elseif it.kind == "rules" and it.x and it.y and it.w and it.h then
             local by = it.y + oy
             local s2 = T.surf2
             if s2 then self:drawRect(it.x, by, it.w, it.h, s2.a or 1, s2.r, s2.g, s2.b) end
@@ -1372,11 +1372,12 @@ function ZeD_GuideWindow:prerender()
             for _, c in ipairs(it.cells) do
                 if not c.head then self:drawText(c.text, c.x, c.y + oy, th.r, th.g, th.b, th.a or 1, T.fontF2) end
             end
-            A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false)
+            if it.ruleY then A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false) end   -- (a spoiler-hidden box has no table, so no rule)
             for _, n in ipairs(it.notes) do
-                local ny = n.y + oy
-                if n.bullet then self:drawRect(n.x, ny + math.floor(fh(T.fontF2) / 2) - px(2), px(4), px(4), tc.a or 1, tc.r, tc.g, tc.b) end
-                self:drawText(n.text, n.x + px(12), ny, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+                local ny = (n.x and n.y) and (n.y + oy) or nil
+                -- a note the layout never placed (no x or y) is skipped, never added
+                if ny and n.bullet then self:drawRect(n.x, ny + math.floor(fh(T.fontF2) / 2) - px(2), px(4), px(4), tc.a or 1, tc.r, tc.g, tc.b) end
+                if ny then self:drawText(n.text, n.x + px(12), ny, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2) end
             end
         end
     end

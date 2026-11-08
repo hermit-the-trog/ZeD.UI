@@ -164,7 +164,7 @@ local function installGame(activeMods)
     isGamePaused = function() return false end
     getSpecificPlayer = function() return player end
     getPlayer = function() return player end
-    getPlayerContextMenu = function() return MENU end
+    getPlayerContextMenu = function() return MENU or {} end   -- (the game keeps one per player from the start; a dead player has none)
     getTexture = function() return nil end
     getScriptManager = function() return { FindItem = function() return nil end } end
     updateJoypadFocus = function(pad) pad.updated = true end

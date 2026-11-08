@@ -1,0 +1,48 @@
+0.3.0-beta8
+
+Survival guide
+- A copyright page opens the book, and 32 more Knox County ads fill its spaces.
+- Facts the game keeps hidden open with a find: the TV schedule from TV Monthly, and infection odds. Vanilla Access shows them.
+- Recipes show what each one is used to make, each skill level shows what it unlocks, and skills list the recipes they teach.
+
+Servers
+- Timed bans are the game's own ban, and the join rules turn away or kick a player who doesn't agree.
+- An optional host helper lets a server carry out ZeD's bans and kicks.
+- The game's own unban wins over ZeD's.
+- Admins get player stats, inventories and claims, plus user, PvP log, climate, sandbox and zone tools.
+- Trading and the medical check open in ZeD.
+- The kicked screen says why, with a way back to the menu.
+
+Windows
+- Every window the game opened on its own now opens in ZeD: the main menu's mod download, invites, world select, terms, controller map and advanced sounds; TV and radio; animal info; paper maps in ZeD's map.
+- After a death, Restart goes to the desk.
+- Every notice, controller plugged in or unplugged included, is a bubble out of the Messages icon.
+- Make-up sits with hair.
+- One phrase for the two looks everywhere: Immersive or Simple, Detailed or Simple.
+- The game pauses again when you switch away from it, as it does without ZeD.
+- A radio in a bag opens in the Radio tab.
+
+Desk
+- CletusWorks keeps its notes in a Documents folder, and ProtoPOP3 Mail sends and receives.
+- The debug Lua console is drawn by ZeD (debug mode).
+
+Mods
+- Seven more mods are supported, among them hotbar, icon and menu mods, and Wounds Overhaul works with the Health tab.
+- When another mod replaces one of ZeD's screens, ZeD steps aside and hands that screen back.
+
+Speed
+- Restock, Craft and Build, the inventory list, Animals, the item card, moodles, the watch and the World window do far less work each frame. The once-a-second stutters are gone.
+
+Fixes
+- Holding A on a locked container opens the lock instead of the container.
+- An item card closes when its item is gone.
+- The Equipment tab shows the outermost layer: a jacket over a sweater shows the jacket.
+- Mail shows the real reason a letter was refused.
+- The controller map closes on B.
+- ZeD picks comes back with ZeD-GUI whichever way it's turned off and on.
+- Split-screen: a second local player gets the game's own windows plus their own belt and dash, and dash miles save on a server.
+- French and Hungarian month names are right.
+
+Known issues
+- Trading on a server: the offer list can show things you are wearing, holding or have marked as favorite.
+- Medical check on a server: after you bandage another player, your view of them may not show the bandage.

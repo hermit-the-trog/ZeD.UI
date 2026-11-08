@@ -177,6 +177,7 @@ end
 local function examineMenu(playerObj, bodyPart, panel, x, y)
     local num = playerObj:getPlayerNum()
     local context = ISContextMenu.get(num, x + panel:getAbsoluteX(), y + panel:getAbsoluteY())
+    if not context then return end                          -- (no menu for this player: the character is gone)
     context:addOption(ZeD.tr("UI_ZeD_Health_Examine"), playerObj, onExamine, bodyPart)
     local note = context:addOption(unexamined(), nil)
     note.notAvailable = true

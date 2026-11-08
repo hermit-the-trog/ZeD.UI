@@ -46,8 +46,27 @@ CC.STRIP_H          = 20    -- a strip row's height (the alternatives strip is 2
 CC.MAX_PINS        = 8
 CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
 
--- Throttle intervals (frames)
-local CONTAINER_INTERVAL = 90
+-- Throttle intervals (ms; were 90 frames, Nov 7 2026)
+local CONTAINER_MS = 1500
+
+-- Time-based throttles (Nov 7 2026, the outside performance review, item 12): a frame count ran
+-- 2.4-4x as often at 144-240 Hz, and timers made together fired together. CC.due(win, key, ms, force)
+-- is true the first time, when forced, or once ms have passed since it was last true; win[key] holds
+-- the next time it is due (nil it to force the next call). The first wait is cut by a phase that steps
+-- with each new timer (golden-ratio spread, up to half the interval), so windows and tabs fall out of step.
+local _phaseN = 0
+function CC.due(win, key, ms, force)
+    local now = getTimestampMs()
+    local at = win[key]
+    if at and not force and now < at then return false end
+    if at == nil then
+        _phaseN = _phaseN + 1
+        win[key] = now + ms - math.floor(ms * 0.5 * ((_phaseN * 0.618034) % 1))
+    else
+        win[key] = now + ms
+    end
+    return true
+end
 
 -- The category pop-up list (CC.renderCatDropdownOverlay): a row's height and the
 -- rows shown before it scrolls (hoisted: the header and the band place it too)
@@ -307,10 +326,40 @@ end
 -- rd.fromLogic, and the quick scan above leaves them alone.
 -- ============================================================================
 local LOGIC_EVERY_MS = 1200
+local LOGIC_FULL_MS  = 6000
 
---- makeLogic makes the tab's logic (a HandcraftLogic or BuildLogic), kept on the
---- window. Returns true when any recipe's status changed (the caller re-filters).
-function CC.logicScan(data, win, prefix, makeLogic)
+-- What the game's per-recipe answers rest on, read cheaply (Nov 7 2026, the outside performance review,
+-- item 2): each container in reach with its item count and weight, the recipes known, every skill level,
+-- the player's square. While it reads the same, setContainers / setRecipes (the game recomputes every
+-- recipe) are not called again; they still are every LOGIC_FULL_MS, for what it does not see (an item's
+-- condition, freshness or heat).
+-- Returns the numbers as one string, and the square (compared as an object, as the containers are:
+-- ItemContainer's toString is its type and owner, not which one it is).
+local function logicSig(playerObj, containers)
+    local parts = {}
+    for i = 0, containers:size() - 1 do
+        local c = containers:get(i)
+        parts[#parts + 1] = tostring(c:getItems():size())
+        parts[#parts + 1] = tostring(c:getContentsWeight())
+    end
+    local kr = playerObj:getKnownRecipes()
+    parts[#parts + 1] = tostring(kr and kr:size() or -1)
+    local pl = PerkFactory.PerkList
+    for i = 0, pl:size() - 1 do parts[#parts + 1] = tostring(playerObj:getPerkLevel(pl:get(i))) end
+    return table.concat(parts, "|"), playerObj:getCurrentSquare()
+end
+
+-- The same containers, in the same order, as the list the logic was last given.
+local function sameContainers(a, b)
+    if not a or a:size() ~= b:size() then return false end
+    for i = 0, b:size() - 1 do
+        if a:get(i) ~= b:get(i) then return false end
+    end
+    return true
+end
+
+-- always: skip the signature and set the recipes in full every scan (the Craft tab at a bench).
+function CC.logicScan(data, win, prefix, makeLogic, always)
     local recipes = data and data.recipes
     if not recipes or #recipes == 0 or not makeLogic then return false end
     local now = getTimestampMs()
@@ -318,6 +367,7 @@ function CC.logicScan(data, win, prefix, makeLogic)
     if win[atKey] and now - win[atKey] < LOGIC_EVERY_MS then return false end
     win[atKey] = now
     local lKey, dKey = "_" .. prefix .. "Logic", "_" .. prefix .. "LogicData"
+    local sKey = "_" .. prefix .. "LogicSig"
     local logic = win[lKey]
     if not logic then
         local ok, l = pcall(makeLogic)
@@ -326,23 +376,36 @@ function CC.logicScan(data, win, prefix, makeLogic)
             return false
         end
         logic = l
-        win[lKey], win[dKey] = logic, nil
+        win[lKey], win[dKey], win[sKey] = logic, nil, nil
     end
     local ok = pcall(function()
-        -- the containers as they are now (and the quick scan's cache follows them),
-        -- then the recipes: setting them fills the per-recipe cache from those containers
+        -- the containers as they are now (and the quick scan's cache and the Craft button's start check
+        -- follow them), then the recipes: setting them fills the per-recipe cache from those containers
         local containers = CC.buildContainers(win._playerObj)
         win["_" .. prefix .. "Containers"] = containers
         win["_" .. prefix .. "TypeCache"] = nil
-        logic:setContainers(containers)
+        -- the list is made again only when the rows' recipes change (data.listId: the tabs keep one
+        -- data table and its rows and mark a change of membership; a table without it keys on itself)
         local lk = "_" .. prefix .. "LogicList"
-        if win[dKey] ~= data or not win[lk] then
+        local listId = data.listId or data
+        if win[dKey] ~= listId or not win[lk] then
             local list = ArrayList.new()
             for _, rd in ipairs(recipes) do if rd.entry.recipe then list:add(rd.entry.recipe) end end
             win[lk] = list
-            win[dKey] = data
+            win[dKey] = listId
+            win[sKey] = nil
         end
-        logic:setRecipes(win[lk])
+        -- (always: a bench bound, whose fuel, heat or fluid the signature cannot see; set every scan, as before)
+        local okS, sig, sq = false, nil, nil
+        if not always then okS, sig, sq = pcall(logicSig, win._playerObj, containers) end
+        if not okS then sig = nil end
+        local fKey, qKey, ckKey = "_" .. prefix .. "LogicFullAt", "_" .. prefix .. "LogicSq", "_" .. prefix .. "LogicConts"
+        if always or sig == nil or win[sKey] ~= sig or win[qKey] ~= sq or not sameContainers(win[ckKey], containers)
+           or not win[fKey] or now - win[fKey] >= LOGIC_FULL_MS then
+            logic:setContainers(containers)
+            logic:setRecipes(win[lk])
+            win[sKey], win[qKey], win[ckKey], win[fKey] = sig, sq, containers, now
+        end
     end)
     if not ok then
         -- (the game would not answer, so its last answers no longer stand: the quick scan and
@@ -353,12 +416,12 @@ function CC.logicScan(data, win, prefix, makeLogic)
         return false
     end
     local changed = false
+    local getInfo = logic.getCachedRecipeInfo   -- (pcall'd with its arguments: no closure per recipe)
     for _, rd in ipairs(recipes) do
         local r = rd.entry.recipe
         if r and rd.status ~= "station" then
-            local info = nil
-            pcall(function() info = logic:getCachedRecipeInfo(r) end)
-            if info then
+            local okI, info = pcall(getInfo, logic, r)
+            if okI and info then
                 local st
                 if not info:isValid() then st = "locked"
                 elseif info:isCanPerform() then st = "craftable"
@@ -373,9 +436,11 @@ function CC.logicScan(data, win, prefix, makeLogic)
     return changed
 end
 
---- The tabs rebuild their recipe rows every 30 frames (learned recipes, skills,
---- the bench): the last craftable / missing answer carries over to the new rows
---- until the next scan, so the list does not empty and refill between scans.
+-- The tabs refresh their recipe rows every second (learned recipes, skills,
+-- the bench): the last craftable / missing answer carries over to the new rows
+-- until the next scan, so the list does not empty and refill between scans.
+-- (Craft and Build now refresh their rows in place and carry the answer there,
+-- CC.refreshRow; this stays for a caller with two lists.)
 function CC.carryStatus(oldData, newData)
     if not (oldData and newData and oldData.recipes and newData.recipes) then return end
     local prev = {}
@@ -386,6 +451,83 @@ function CC.carryStatus(oldData, newData)
            and (o.status == "craftable" or o.status == "missing") then
             rd.status, rd.fromLogic = o.status, true
         end
+    end
+end
+
+-- ============================================================================
+-- RECIPE ROWS IN PLACE (Nov 7 2026, the outside performance review, item 3)
+-- Craft and Build rewrote a new table per recipe each refresh (with a closure
+-- for isRecipeKnown, a perk lookup and two case conversions each, then a name
+-- map to carry the game's answers). Each recipe now keeps one row table (a pool
+-- per tab, keyed by the catalog entry), rewritten in place with what a new row
+-- held; the game's craftable / missing answer carries exactly as carryStatus
+-- carried it: only from the row as it stood in the last list.
+-- ============================================================================
+
+-- The pool and this refresh's generation (rows stamped with the last one were in the last list).
+function CC.rowsBegin(win, prefix)
+    local pk, gk = "_" .. prefix .. "RowPool", "_" .. prefix .. "RowGen"
+    local pool = win[pk]
+    if not pool then pool = {}; win[pk] = pool end
+    local gen = (win[gk] or 0) + 1
+    win[gk] = gen
+    return pool, gen
+end
+
+-- One recipe's row, rewritten. prevGen: the generation of the list the tab held (nil: none,
+-- nothing carries). status: from the skill, learned and station checks.
+function CC.refreshRow(pool, entry, gen, prevGen, status, hasSkill, learned, playerLevel)
+    local rd = pool[entry]
+    if not rd then rd = {}; pool[entry] = rd end
+    local carry = prevGen ~= nil and rd._gen == prevGen and rd.fromLogic
+        and status ~= "locked" and status ~= "station"
+        and (rd.status == "craftable" or rd.status == "missing")
+    rd._gen = gen
+    rd.entry = entry
+    if carry then
+        rd.fromLogic = true
+    else
+        rd.status, rd.fromLogic = status, nil
+    end
+    rd.hasSkill, rd.learned, rd.playerLevel = hasSkill, learned, playerLevel
+    -- (a new row had none of what the selected recipe's detail gather writes)
+    rd.ingredients, rd.missingCount, rd.skills, rd.craftTime = nil, 0, nil, nil
+    rd.canStart, rd.maxBatchQty = nil, nil
+    return rd
+end
+
+-- A skill's level, asked of the game once per refresh (levels: that refresh's map).
+function CC.perkLevelOf(levels, playerObj, skillName)
+    local lv = levels[skillName]
+    if lv == nil then
+        lv = 0
+        local perkType = CC.getPerkType(skillName)
+        if perkType and perkType ~= Perks.None then
+            lv = playerObj:getPerkLevel(perkType)
+        end
+        levels[skillName] = lv
+    end
+    return lv
+end
+
+-- The rows written into data.recipes (n of them): a changed membership gets a new data.listId
+-- (CC.logicScan makes its recipe list again) and a new name index (first row of each name, as
+-- the linear search found it).
+function CC.rowsEnd(data, n, changed)
+    local recipes = data.recipes
+    for i = #recipes, n + 1, -1 do
+        recipes[i] = nil
+        changed = true
+    end
+    if changed or not data.byName then
+        local byName = {}
+        for i = 1, n do
+            local rd = recipes[i]
+            local nm = rd.entry.name
+            if nm ~= nil and byName[nm] == nil then byName[nm] = rd end
+        end
+        data.byName = byName
+        data.listId = {}
     end
 end
 
@@ -909,12 +1051,10 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     local entry = rd.entry
 
     -- Build containers if needed (lazy, throttled)
-    local timerKey = "_" .. prefix .. "ContainerTimer"
+    -- (win["_<prefix>ContainerAt"] = nil forces the next gather)
     local contKey  = "_" .. prefix .. "Containers"
     local cacheKey = "_" .. prefix .. "TypeCache"
-    win[timerKey] = (win[timerKey] or 0) + 1
-    if win[timerKey] >= CONTAINER_INTERVAL or not win[contKey] then
-        win[timerKey] = 0
+    if CC.due(win, "_" .. prefix .. "ContainerAt", CONTAINER_MS, not win[contKey]) then
         win[contKey] = CC.buildContainers(playerObj)
         win[cacheKey] = nil  -- invalidate type cache on container refresh
     end
@@ -2149,7 +2289,7 @@ function CC.startPickedCraft(win, state)
     -- (the Craft tab's caches, as its startCraft clears them: 90 = CONTAINER_INTERVAL,
     -- so the next frame gathers the containers again)
     win._craftCache = nil
-    win["_craftContainerTimer"] = 90
+    win["_craftContainerAt"] = nil
     win["_craftTypeCache"] = nil
     return true
 end
@@ -2704,12 +2844,17 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     local panesH = h - (curY - y) - bandH
 
     -- The picked recipe: the card shows it, the band's amount and Craft / Build act on it
+    -- (Craft and Build keep a name index, data.byName; the Journal's list is searched)
     local selRd = nil
     if state.selected then
-        for _, rd in ipairs(data.recipes) do
-            if rd.entry.name == state.selected then
-                selRd = rd
-                break
+        if data.byName then
+            selRd = data.byName[state.selected]
+        else
+            for _, rd in ipairs(data.recipes) do
+                if rd.entry.name == state.selected then
+                    selRd = rd
+                    break
+                end
             end
         end
     end

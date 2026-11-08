@@ -1,0 +1,190 @@
+== 2026-11-08 06:52 beta 8 multiplayer checks, two players, the admin at 1280x800
+06:52:43 set PlayerSafehouse=true
+06:52:43 set AdminSafehouse=true
+06:52:43 set DoLuaChecksum=false
+06:52:43 set SafehouseAllowNonResidential=true
+06:52:43 set FactionDaySurvivedToCreate=0
+06:52:43 started the server, PID 94916; waiting for it to be ready
+06:53:15 ready after 32 s
+06:53:15 server up
+06:54:22 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
+06:55:08 second client joining as bob
+06:55:30 -- bob runs mp_p2_newchar.lua
+06:57:31 TIMEOUT
+06:57:48 bob in game
+06:57:54 -- admin runs zedqa_b8_mp_stage.lua
+06:58:10 ZEDQA b8st PASS this is a multiplayer client
+06:58:10 ZEDQA b8st NOTE the admin is zedqa, First Aid level 7
+06:58:10 ZEDQA b8st PASS the server's items arrived on the admin client
+06:58:10 ZEDQA b8st PASS an apple
+06:58:10 ZEDQA b8st PASS nails (5)
+06:58:10 ZEDQA b8st PASS pencils for the 20-item limit (198)
+06:58:10 ZEDQA b8st PASS the watch is marked favorite
+06:58:10 ZEDQA b8st PASS the jacket is worn
+06:58:10 ZEDQA b8st PASS the knife is in hand
+06:58:10 ZEDQA b8st PASS a bandage sits in the backpack (10)
+06:58:10 ZEDQA b8st PASS a bandage sits in the main inventory (10)
+06:58:10 ZEDQA b8st PASS bob is on the server
+06:58:11 ZEDQA b8st PASS bob stands within 3 tiles of the admin (0.0)
+06:58:11 ZEDQA b8st 12 passed, 0 failed
+06:58:11 ZEDQA b8st DONE
+06:58:11 -- bob starts zedqa_b8_mp_bob_trade.lua in the background
+06:58:19 -- admin runs zedqa_b8_mp_trade.lua
+06:59:11 ZEDQA b8tr PASS bob is on the server
+06:59:11 ZEDQA b8tr PASS ZeD's trade can open (World window is ZeD's, not safe mode)
+06:59:11 ZEDQA b8tr PASS 1: Trade with bob opened ZeD's trade card
+06:59:11 ZEDQA b8tr PASS 1: the card is in the World window's drawer
+06:59:11 ZEDQA b8tr PASS 1: the red box waits for bob's answer (Waiting for bob's answer.)
+06:59:11 ZEDQA b8tr PASS 1: Accept deal is grayed (Waiting for bob's answer.)
+06:59:11 ZEDQA b8tr PASS 1: the game's guard is up (no inventory context menu while trading)
+06:59:11 ZEDQA b8tr PASS 2: bob said Yes; the waiting box is gone
+06:59:11 ZEDQA b8tr NOTE groups: Apple (Fresh):7, Bandage:10, Diet Cola (Pop Can):3, Digital Watch:9, Firefighter Axe:1, Hunting Knife:9, ID Card: Bette Shah:1, Leather Jacket:9, Nails:10, Pencil:20, Rag:10, Small Backpack:9, Bette Shah's Key Ring:1
+06:59:11 ZEDQA b8tr PASS 3: the apple is listed
+06:59:11 ZEDQA b8tr PASS 3: nails are listed
+06:59:11 ZEDQA b8tr PASS 3: the ripped sheets (Rag on 42.21) are listed
+06:59:11 ZEDQA b8tr FAIL 3: worn, held and favorite things are not listed
+06:59:11 ZEDQA b8tr PASS 3: only the main inventory's bandage is listed, not the backpack's (10)
+06:59:11 ZEDQA b8tr PASS 4: the apple goes on the offer
+06:59:11 ZEDQA b8tr PASS 4: the apple and the nails are on the offer (11)
+06:59:11 ZEDQA b8tr PASS 5: the offer holds exactly 20 items (20)
+06:59:11 ZEDQA b8tr PASS 5: the 21st Add is refused
+06:59:11 ZEDQA b8tr PASS 5: the card says why (Can't add more than 20 items to an offer.)
+06:59:11 ZEDQA b8tr PASS 5: an offered thing moved into the backpack comes off the offer (19)
+06:59:11 ZEDQA b8tr PASS 5: the offer is back to the apple and the nails (11)
+06:59:11 ZEDQA b8tr PASS 6: Seal offer is ticked
+06:59:11 ZEDQA b8tr PASS 6: Accept deal stays grayed until both are sealed (Both offers must be sealed before the trade can be accepted.)
+06:59:11 ZEDQA b8tr PASS 7: bob's added item unsealed the admin's offer
+06:59:11 ZEDQA b8tr PASS 7: the log lists bob's add (bob added Diet Cola (Pop Can) to their offer.)
+06:59:11 ZEDQA b8tr PASS 8: both offers are sealed
+06:59:11 ZEDQA b8tr PASS 8: Accept deal is lit
+06:59:11 ZEDQA b8tr PASS 8: Accept deal closes the card
+06:59:11 ZEDQA b8tr PASS 8: the items swapped in the admin's inventory (the server moved them) (apple 7->6, nails 10->0, pop 3->4)
+06:59:11 ZEDQA b8tr PASS 8: the guard is down after the deal
+06:59:11 ZEDQA b8tr PASS 9: the second trade opened and bob answered
+06:59:11 ZEDQA b8tr PASS 9: 'Too far away from bob!' once 4 tiles apart (Too far away from bob!)
+06:59:11 ZEDQA b8tr PASS 9: every control but Close is grayed (Accept deal is)
+06:59:11 ZEDQA b8tr PASS 9: the far box clears when the admin walks back
+06:59:11 ZEDQA b8tr PASS 11: after the Loot tab the trade card is back at once
+06:59:11 ZEDQA b8tr PASS 11: with the World window shut the trade is still open (bob is not told)
+06:59:11 ZEDQA b8tr PASS 11: opening the window again shows the trade card
+06:59:11 ZEDQA b8tr MANUAL 11: an item card over the trade, a generator's Info card over it, and a shut window opening by itself when bob adds an item
+06:59:11 ZEDQA b8tr PASS 10: Cancel closes the card
+06:59:11 ZEDQA b8tr PASS 12: bob said No: 'bob refused to trade with you.' (bob refused to trade with you.)
+06:59:12 ZEDQA b8tr PASS 12: the guard let go at once
+06:59:12 ZEDQA b8tr PASS 13: the admin closes the card before bob answers
+06:59:12 ZEDQA b8tr PASS 15: the fifth trade opened and bob answered
+06:59:12 ZEDQA b8tr PASS 15: safe mode on ends the ZeD trade as Cancel
+06:59:12 ZEDQA b8tr PASS 15: the admin can right-click and move items at once
+06:59:12 ZEDQA b8tr MANUAL 14: Safe mode on, then Trade with bob: the game's own trading window on both sides
+06:59:12 ZEDQA b8tr MANUAL 16: bob's Cancel is read on bob's client (b8bt prints it)
+06:59:12 ZEDQA b8tr MANUAL controller pass, 4K 1.75x and Deck pictures: look at zqa_b8_trade_*.png
+06:59:12 ZEDQA b8tr 42 passed, 1 failed
+06:59:12 ZEDQA b8tr DONE
+06:59:32 ZEDQA b8bt NOTE request 1 from zedqa: yes
+06:59:32 ZEDQA b8bt PASS bob's prompt names the admin (request 1)
+06:59:32 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt PASS 2: bob's card has no waiting box
+06:59:32 ZEDQA b8bt PASS 2: bob's World window opened on the trade card
+06:59:32 ZEDQA b8bt NOTE bob's card: his 11 your 0 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt PASS 4: the admin's offer shows on bob's card, read only (11)
+06:59:32 ZEDQA b8bt PASS 4: the line and the Trade Log say what was added (zedqa added Nails to their offer.)
+06:59:32 ZEDQA b8bt NOTE bob's card: his 20 your 0 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt NOTE bob's card: his 19 your 0 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt NOTE bob's card: his 11 your 0 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt NOTE bob's card: his 11 your 0 sealed false otherSealed true block nil
+06:59:32 ZEDQA b8bt PASS 6: bob sees that the admin sealed
+06:59:32 ZEDQA b8bt PASS 7: bob's added Pop is on his offer (1)
+06:59:32 ZEDQA b8bt NOTE bob's card: his 11 your 1 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt NOTE bob's card: his 11 your 1 sealed false otherSealed true block nil
+06:59:32 ZEDQA b8bt PASS 8: bob seals his offer
+06:59:32 ZEDQA b8bt NOTE bob's card: his 11 your 1 sealed true otherSealed true block nil
+06:59:32 ZEDQA b8bt NOTE bob's trade 1 is over; items: apple 3, nails 40, pop 7
+06:59:32 ZEDQA b8bt PASS 8: bob has the admin's apple after the deal (3)
+06:59:32 ZEDQA b8bt PASS 8: bob has the admin's nails after the deal (40)
+06:59:32 ZEDQA b8bt NOTE 8: bob has 7 pop left (the admin side checks that the pop arrived there; bob may have started with more than one)
+06:59:32 ZEDQA b8bt NOTE request 2 from zedqa: yes
+06:59:32 ZEDQA b8bt PASS bob's prompt names the admin (request 2)
+06:59:32 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt PASS 9: bob's card also says too far away (Too far away from zedqa!)
+06:59:32 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block zedqa closed their trading window.
+06:59:32 ZEDQA b8bt PASS 10: bob's card says the admin closed their trading window (zedqa closed their trading window.)
+06:59:32 ZEDQA b8bt NOTE bob's trade 2 is over; items: apple 4, nails 50, pop 6
+06:59:32 ZEDQA b8bt NOTE request 3 from zedqa: no
+06:59:32 ZEDQA b8bt PASS bob's prompt names the admin (request 3)
+06:59:32 ZEDQA b8bt NOTE request 4 from zedqa: gone
+06:59:32 ZEDQA b8bt PASS bob's prompt names the admin (request 4)
+06:59:32 ZEDQA b8bt NOTE request 5 from zedqa: yes
+06:59:32 ZEDQA b8bt PASS bob's prompt names the admin (request 5)
+06:59:32 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block nil
+06:59:32 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block zedqa closed their trading window.
+06:59:32 ZEDQA b8bt PASS 16: bob cancels; his card closes
+06:59:32 ZEDQA b8bt PASS all five requests were answered (requests seen 5)
+06:59:32 ZEDQA b8bt PASS the first trade completed on bob's side
+06:59:32 ZEDQA b8bt 19 passed, 0 failed
+06:59:32 ZEDQA b8bt DONE
+06:59:32 -- bob starts zedqa_b8_mp_bob_medic.lua in the background
+06:59:40 -- admin runs zedqa_b8_mp_medic.lua
+07:01:03 ZEDQA b8md PASS bob is on the server
+07:01:03 ZEDQA b8md PASS ZeD's medical card can open on the admin's World window
+07:01:03 ZEDQA b8md NOTE the admin's First Aid level 7
+07:01:03 ZEDQA b8md PASS 1: the check ran and ZeD's medical card opened
+07:01:03 ZEDQA b8md PASS 2: the game's health panel did not open
+07:01:03 ZEDQA b8md PASS 2: the card is in the World window's drawer
+07:01:03 ZEDQA b8md PASS 2: bob's body was read into the card
+07:01:03 ZEDQA b8md PASS 2: the left hand is in the injury list (Left Hand)
+07:01:03 ZEDQA b8md NOTE hand conditions at level 7: Bleeding/danger; Deep Wound (Severe)/danger
+07:01:03 ZEDQA b8md PASS 2: it reads Deep wound (Bleeding/danger; Deep Wound (Severe)/danger)
+07:01:03 ZEDQA b8md PASS 2: the summary counts an injured part (1)
+07:01:03 ZEDQA b8md PASS 2: no red box near bob
+07:01:03 ZEDQA b8md NOTE First Aid now 7
+07:01:03 ZEDQA b8md PASS 3: the admin is First Aid 5 or better (7)
+07:01:03 ZEDQA b8md PASS 3: the second check opened the card
+07:01:03 ZEDQA b8md NOTE hand conditions at level 7: Bleeding/danger; Deep Wound (Severe)/danger
+07:01:03 ZEDQA b8md PASS 3: the severity word shows at First Aid 5 (Bleeding/danger; Deep Wound (Severe)/danger)
+07:01:03 ZEDQA b8md NOTE bob's pain on the card: nil
+07:01:03 ZEDQA b8md PASS 5: the treatment menu opens for the left hand (table 0x2003363610{ character=IsoPlayer{  Name:null,  ID:7 }, otherPlayer=IsoPlayer{  Name:null,  ID:5 }, actions=table 0x731042169, getDoctor=closure 0x32134997, getPatient=closure 0x1689461986, getAbsoluteX=closure 0x1423138649, getAbsoluteY=closure 0x1777812899, checkItems=closure 0x980743991, checkContainerItems=closure 0x1201492143 })
+07:01:03 ZEDQA b8md NOTE the hand's menu: Bandage
+07:01:03 ZEDQA b8md PASS 5: the menu offers Bandage (1)
+07:01:03 ZEDQA b8md PASS 5: the menu lists the game's treatments
+07:01:03 ZEDQA b8md FAIL 5: the hand shows Bandaged on the admin's copy of bob's body (not within 40 s)
+07:01:03 ZEDQA b8md NOTE hand after the bandage: Bleeding/danger; Deep Wound (Severe)/danger
+07:01:03 ZEDQA b8md FAIL 5: the row turns to Bandaged on the card (Bleeding/danger; Deep Wound (Severe)/danger)
+07:01:03 ZEDQA b8md FAIL 5: the menu now offers Remove bandage (Bandage)
+07:01:03 ZEDQA b8md PASS 7: 3 tiles away the card stays with 'Too far away from bob!' (Too far away from bob!)
+07:01:03 ZEDQA b8md PASS 7: walking back clears the red box and fills the list again
+07:01:03 ZEDQA b8md PASS 10: closing the World window ends the check (the card is gone)
+07:01:03 ZEDQA b8md PASS 10: the card stays gone when the window opens again
+07:01:03 ZEDQA b8md PASS 9: in safe mode ZeD's medical card steps aside
+07:01:03 ZEDQA b8md PASS 9: the game's own health panel opened in safe mode
+07:01:03 ZEDQA b8md PASS 9: no ZeD card in safe mode
+07:01:03 ZEDQA b8md MANUAL 4: hover a figure part or an injury row; the right column shows that part
+07:01:03 ZEDQA b8md MANUAL 6: paused (single player), 8: split screen, the controller walk (A opens the menu, B closes), and 4K and Deck pictures
+07:01:03 ZEDQA b8md 23 passed, 3 failed
+07:01:03 ZEDQA b8md DONE
+07:01:03 ZEDQA b8bm PASS bob has a deep wound on the left hand (true)
+07:01:03 ZEDQA b8bm NOTE bob's left hand: bandaged false, deep wound true
+07:01:03 ZEDQA b8bm PASS 1: bob's prompt asks for a medical check, request 1 (zedqa)
+07:01:03 ZEDQA b8bm PASS 1: bob's prompt asks for a medical check, request 2 (zedqa)
+07:01:03 ZEDQA b8bm PASS 1: bob's prompt asks for a medical check, request 3 (zedqa)
+07:01:03 ZEDQA b8bm PASS bob answered all three medical check requests (3)
+07:01:03 ZEDQA b8bm FAIL 5: bob's hand showed the bandage
+07:01:03 ZEDQA b8bm NOTE bob's body put back to full health
+07:01:03 ZEDQA b8bm 5 passed, 1 failed
+07:01:03 ZEDQA b8bm DONE
+07:01:03 session 1 done
+07:01:03 -- admin runs zedqa_b8_mp_cleanup.lua
+07:01:23 ZEDQA b8cu PASS no ZeD ban row on bob is left (false)
+07:01:23 ZEDQA b8cu PASS bob is not banned in the game (user)
+07:01:23 ZEDQA b8cu PASS bob is not muted
+07:01:23 ZEDQA b8cu PASS bob holds no safehouse and no faction
+07:01:23 ZEDQA b8cu PASS no B8 rules are left on the join screen
+07:01:23 ZEDQA b8cu 5 passed, 0 failed
+07:01:23 ZEDQA b8cu DONE
+07:01:25 second client stopped
+07:01:31 closed; the server's database, settings and sandbox file and the admin's mod options are put back
+07:01:31 TOTAL: 106 PASS, 5 FAIL, 6 MANUAL items printed
+07:01:31 FAILED: 06:59:11 ZEDQA b8tr FAIL 3: worn, held and favorite things are not listed
+07:01:31 FAILED: 07:01:03 ZEDQA b8md FAIL 5: the hand shows Bandaged on the admin's copy of bob's body (not within 40 s)
+07:01:31 FAILED: 07:01:03 ZEDQA b8md FAIL 5: the row turns to Bandaged on the card (Bleeding/danger; Deep Wound (Severe)/danger)
+07:01:31 FAILED: 07:01:03 ZEDQA b8md FAIL 5: the menu now offers Remove bandage (Bandage)
+07:01:31 FAILED: 07:01:03 ZEDQA b8bm FAIL 5: bob's hand showed the bandage

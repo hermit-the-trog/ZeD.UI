@@ -652,30 +652,169 @@ local function topStatsForItem(item)
 end
 
 -- ---------------------------------------------------------------------------
--- State mirror - apply ItemActionManager's active-action color to the
--- top-stat row whose mirrorKey matches. Mutates `rows` in place.
+-- B7: state mirror - apply ItemActionManager's active-action color to the
+-- top-stat row whose mirrorKey matches. Returns the rows to draw: `rows`
+-- itself when no row changes, else a new list where the matching rows are
+-- copies (the card keeps `rows` in its model for a moment: never written to).
 -- "cooking"   → COOKED row becomes warn (active) or bad (danger/burning)
 -- "reading"   → PROGRESS row becomes warn-ish during read
 -- "repairing" → CONDITION row becomes warn-ish during repair
 -- ---------------------------------------------------------------------------
 local function mirrorActiveStateOnRows(item, rows)
     local mgr = ZeD.ItemActionManager
-    if not mgr or not item or not rows then return end
+    if not mgr or not item or not rows then return rows end
     local action = mgr.getActiveAction(item)
-    if not action then return end
+    if not action then return rows end
     local kind   = action.kind  or action.label  -- accept either field
     local danger = action.mode == "danger"
     local mirror
     if kind and kind:lower():find("cook")    then mirror = "cooked"    end
     if kind and kind:lower():find("read")    then mirror = "progress"  end
     if kind and kind:lower():find("repair")  then mirror = "condition" end
-    if not mirror then return end
-    for _, r in ipairs(rows) do
+    if not mirror then return rows end
+    local out = nil
+    for i, r in ipairs(rows) do
         if r.mirrorKey == mirror then
-            r.valueClass = danger and "bad" or "warn"
-            r.dotColor   = nil
+            if not out then
+                out = {}
+                for j = 1, #rows do out[j] = rows[j] end
+            end
+            local c = {}
+            for k, v in pairs(r) do c[k] = v end
+            c.valueClass = danger and "bad" or "warn"
+            c.dotColor   = nil
+            out[i] = c
         end
     end
+    return out or rows
+end
+
+-- ---------------------------------------------------------------------------
+-- THE CARD'S MODEL (Nov 7 2026, the outside performance review, item 9).
+-- What the card says about its item (the marks, the header verbs, the top
+-- stats, the facts panel, the kind) was built again every frame: dozens of
+-- pcalls, translations and tables a frame while a card shows. The card keeps
+-- them for MODEL_MS, and builds them again at once when anything they show
+-- changes: another item, player or source (worn or held, in the inventory, in
+-- a container, on the ground), the item moving container, its condition, the
+-- favorite mark, its uses, fluid (and a fluid container sealed or opened) or rounds, a bite eaten, food cooked, burnt or gone off, the
+-- pages read, a bag's contents, an action starting
+-- or ending (ItemActionManager.gen), a mark set (ActionStrip.gen), a loadout
+-- changed (Lists.gen) or the switch, a mod's facts panel registered
+-- (ItemFactsPanel.gen), the language or the test language, the theme or the
+-- text size (a new ZeD.T); setItem and the fold toggles drop it (ItemCard.lua,
+-- self._model = nil). What must move every frame is drawn live as before: the
+-- progress band, the name, the zones, the care verbs, "Used to make" (its own
+-- second), the hover and the focus. The kept tables are never written to: the
+-- draw puts help and focus on the verbs each frame (the same words each time),
+-- and the active action's colors go on copies of the rows (above).
+-- ---------------------------------------------------------------------------
+local MODEL_MS = 250
+
+-- The cheap readings that say the model is out of date (into `out`, 1..n):
+-- each is one getter, against the dozens a build takes.
+local function liveProbe(item, m, out)
+    out[1] = safeGet(item, "getContainer")
+    out[2] = safeGet(item, "getCondition")
+    out[3] = safeGet(item, "isFavorite")   -- the favorite mark, toggled from the card or the list
+    local n = 3
+    if m.pFood then
+        -- a bite eaten, and the cooked / burnt / fresh / rotten rows (cooking, ageing)
+        out[n + 1] = safeGet(item, "getHungerChange")
+        out[n + 2] = safeGet(item, "isCooked")
+        out[n + 3] = safeGet(item, "isBurnt")
+        out[n + 4] = safeGet(item, "isRotten")
+        out[n + 5] = safeGet(item, "isFresh")
+        n = n + 5
+    end
+    if m.pUses then n = n + 1; out[n] = safeGet(item, "getUsedDelta") end
+    if m.pFluid then
+        local fc = safeGet(item, "getFluidContainer")
+        n = n + 1; out[n] = fc and safeGet(fc, "getAmount")
+        -- sealed or opened (InventoryItem.isSealed; read only for a fluid container)
+        n = n + 1; out[n] = safeGet(item, "isSealed")
+    end
+    if m.pAmmo then n = n + 1; out[n] = safeGet(item, "getCurrentAmmoCount") end
+    if m.pRead then
+        local p = getPlayer and getPlayer()
+        n = n + 1; out[n] = p and m.ft and safeGet(p, "getAlreadyReadPages", m.ft)
+        n = n + 1; out[n] = safeGet(item, "getAlreadyReadPages")
+    end
+    if m.pInv then
+        local inv = safeGet(item, "getInventory")
+        local its = inv and safeGet(inv, "getItems")
+        n = n + 1; out[n] = inv and safeGet(inv, "getContentsWeight")
+        n = n + 1; out[n] = its and safeGet(its, "size")
+    end
+    return n
+end
+
+-- the generations kept outside the card that the model hangs on (nil when a module is not loaded)
+local function gens()
+    local IAM, AS, FP, L = ZeD.ItemActionManager, ZeD.ActionStrip, ZeD.ItemFactsPanel, ZeD.Lists
+    local listsOn = false
+    if L and L.on then
+        local ok, v = pcall(L.on)
+        listsOn = ok and v and true or false
+    end
+    local testOn = false
+    if ZeD.trTestOn then
+        local ok, v = pcall(ZeD.trTestOn)
+        testOn = ok and v and true or false
+    end
+    return IAM and IAM.gen, AS and AS.gen, FP and FP.gen, L and L.gen, listsOn,
+        ZeD.T, ZeD._trGen, testOn
+end
+
+local function buildModel(card, item, ctx, playerNum, now, g1, g2, g3, g4, g5, g6, g7, g8)
+    local m = {
+        item = item, ctx = ctx, pn = playerNum, at = now,
+        g1 = g1, g2 = g2, g3 = g3, g4 = g4, g5 = g5, g6 = g6, g7 = g7, g8 = g8,
+    }
+    m.cat    = categoryOf(item)
+    m.marks  = readMarks(item, playerNum)
+    m.verbs  = headerVerbsForContext(ctx, item)
+    m.stats  = topStatsForItem(item)
+    m.facts  = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item) or nil
+    local fk = m.facts and m.facts._key
+    m.ft     = safeGet(item, "getFullType")
+    m.pFood  = (m.cat == "Food" or fk == "nutrition") or nil
+    m.pUses  = (m.cat == "Drainable") or nil
+    m.pFluid = (m.cat == "Fluid") or nil
+    m.pAmmo  = (m.cat == "Firearm") or nil
+    m.pRead  = (m.cat == "Literature" or fk == "reading") or nil
+    m.pInv   = (m.cat == "Container" or fk == "container") or nil
+    m.live   = {}
+    m.nLive  = liveProbe(item, m, m.live)
+    card._model = m
+    return m
+end
+
+local _probe = {}
+--- The card's model of its item now: kept, or built again (see above).
+function ZeD_ItemCard:_cardModel(item, ctx)
+    local playerNum = self.playerNum
+    local now = getTimestampMs and getTimestampMs() or nil
+    local g1, g2, g3, g4, g5, g6, g7, g8 = gens()
+    local m = self._model
+    if now == nil or not m or m.item ~= item or m.ctx ~= ctx or m.pn ~= playerNum
+        or now - m.at >= MODEL_MS or now < m.at
+        or m.g1 ~= g1 or m.g2 ~= g2 or m.g3 ~= g3 or m.g4 ~= g4 or m.g5 ~= g5
+        or m.g6 ~= g6 or m.g7 ~= g7 or m.g8 ~= g8 then
+        return buildModel(self, item, ctx, playerNum, now or 0, g1, g2, g3, g4, g5, g6, g7, g8)
+    end
+    local n = liveProbe(item, m, _probe)
+    local same = n == m.nLive
+    if same then
+        for i = 1, n do
+            if _probe[i] ~= m.live[i] then same = false; break end
+        end
+    end
+    for i = 1, n do _probe[i] = nil end
+    if not same then
+        return buildModel(self, item, ctx, playerNum, now, g1, g2, g3, g4, g5, g6, g7, g8)
+    end
+    return m
 end
 
 -- ---------------------------------------------------------------------------
@@ -736,7 +875,7 @@ end
 -- BODY: clothing - 480w grid + zones + DefenseFacts always-expanded;
 --                  220w list + zones + DefenseFacts behind a disclosure.
 -- ---------------------------------------------------------------------------
-local function renderClothingBody(card, item, x, y, w, compact, scrollOff, contentClipBot)
+local function renderClothingBody(card, item, x, y, w, compact, scrollOff, contentClipBot, model)
     local T  = ZeD.T
     local M  = ZeD.Molecules
     local tm = ZeD.TM
@@ -748,8 +887,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
     local cy = y
 
     -- Top stats (icon + 2-col grid at 480w; single-col list at 220w)
-    local rows = topStatsForItem(item)
-    mirrorActiveStateOnRows(item, rows)
+    local rows = mirrorActiveStateOnRows(item, model.stats)
     if compact then
         cy = cy + M.drawTopStatsList(card, x, cy, w, rows)
     else
@@ -987,7 +1125,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
 
     -- Defense Facts panel via registry. At 220w it's behind a disclosure
     -- (zones competing for vertical); at 480w always-expanded.
-    local panel = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item)
+    local panel = model.facts
     if panel then
         local discKey = "facts_defense"
         local hasDisc = compact and panel.hasDisclosure
@@ -1044,7 +1182,7 @@ end
 -- BODY: generic (food / weapon / book / container / drainable / etc.)
 -- Always-expanded Facts panel; no zone list.
 -- ---------------------------------------------------------------------------
-local function renderGenericBody(card, item, x, y, w, compact, scrollOff, contentClipBot)
+local function renderGenericBody(card, item, x, y, w, compact, scrollOff, contentClipBot, model)
     local T  = ZeD.T
     local M  = ZeD.Molecules
     local tm = ZeD.TM
@@ -1054,8 +1192,7 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
     local cy = y
 
     -- Top stats
-    local rows = topStatsForItem(item)
-    mirrorActiveStateOnRows(item, rows)
+    local rows = mirrorActiveStateOnRows(item, model.stats)
     if compact then
         cy = cy + M.drawTopStatsList(card, x, cy, w, rows)
     else
@@ -1065,7 +1202,7 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
     cy = cy + sectionGap
 
     -- Facts panel via registry
-    local panel = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item)
+    local panel = model.facts
     if panel then
         cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or ZeD.tr("UI_ZeD_Card_Facts"), compact) or 0)
         cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + T.px(2)
@@ -1264,7 +1401,8 @@ function ZeD_ItemCard:renderBody(ctx)
 
     local item     = self.item
     local sourceCx = (ctx and ctx.sourceContext) or self.sourceContext or "inventory"
-    local marks    = (ctx and ctx.marks) or readMarks(item, self.playerNum)
+    local model    = self:_cardModel(item, sourceCx)   -- (kept a moment: THE CARD'S MODEL)
+    local marks    = (ctx and ctx.marks) or model.marks
     local compact  = select(1, widthPreset(w))
     local mgr      = ZeD.ItemActionManager
     local action   = mgr and mgr.getActiveAction(item) or nil
@@ -1285,12 +1423,12 @@ function ZeD_ItemCard:renderBody(ctx)
     local cy = 0
 
     -- 1) Back bar (header verbs from source context).
-    -- The narrow card keeps one primary verb (UNEQUIP / EQUIP / TAKE) plus
-    -- MORE; 480w shows the whole cluster (e.g. UNEQUIP + DROP + MORE).
-    -- The item name is intentionally NOT in the back-bar - it lives on
-    -- its own full-width row below, so long names don't truncate and the
-    -- row can take the rename press.
-    local headerVerbs = headerVerbsForContext(sourceCx, item)
+    -- v15 220w spec shows ONE primary verb only (UNEQUIP / EQUIP / TAKE).
+    -- 480w shows primary + 1 secondary (e.g. UNEQUIP + DROP).
+    -- Item name is intentionally OMITTED from the back-bar - it lives on
+    -- its own full-width row below so long names don't truncate and the
+    -- row can host a rename input in a future iteration.
+    local headerVerbs = model.verbs
     if compact and #headerVerbs > 1 then
         local primary
         for _, v in ipairs(headerVerbs) do
@@ -1415,16 +1553,16 @@ function ZeD_ItemCard:renderBody(ctx)
         local bodyX, bodyY = bodyPad, self._headH + bodyPad
         local scrollOff = self._scrollPixels or 0
         local innerW = bodyW - bodyPad * 2
-        local cat = categoryOf(item)
+        local cat = model.cat
         local contentH
         if cat == "Clothing" then
             contentH = renderClothingBody(self, item,
                 bodyX, bodyY - scrollOff, innerW, compact, scrollOff,
-                self._headH + bodyH)
+                self._headH + bodyH, model)
         else
             contentH = renderGenericBody(self, item,
                 bodyX, bodyY - scrollOff, innerW, compact, scrollOff,
-                self._headH + bodyH)
+                self._headH + bodyH, model)
         end
         -- the loadouts and outfits it is on
         contentH = (contentH or 0) + drawInLists(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)

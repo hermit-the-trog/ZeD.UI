@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/b8_seven_manifest.txt (Nov 7 2026): the seven supported mods together (b8_seven_mods.txt), ZeD last (batch_b8_mods.ps1)
+# b8hud: nothing handed back + belt (Item Condition Restored, Mask Filter Indicator, Auto-Hide Hotbar); b8menu: Better Item Transfer, Clear Skill Sheet, Better Folders, Better Mod Experience
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
+zedqa_b8_seven_hud.lua | b8hud | timeout=240
+zedqa_b8_seven_menus.lua | b8menu | timeout=200
+zedqa_ctxlist.lua | cl | timeout=120
+zedqa_ctx_bit.lua | cbt | timeout=90

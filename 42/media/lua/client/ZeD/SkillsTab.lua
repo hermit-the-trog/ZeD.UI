@@ -22,6 +22,34 @@ require "ZeD/Tr"
 ZeD = ZeD or {}
 ZeD.SkillsTab = {}
 
+-- (Nov 7 2026, perf review #12) the tab's data refreshes run on the clock, not on frames drawn: 15
+-- and 30 frames were 250 and 500 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once
+-- periodMs has passed since owner[key] (or on the first call, or forced: the cache was dropped). The
+-- runs keep a beat of periodMs; a forced run, or one after a gap (the tab not drawn, the section
+-- scrolled away), starts the period again, as the frame count went back to 0. A window's first run starts at its
+-- own phase (owner._zedPhase, shared by the tabs of one window), so windows opened together don't
+-- refresh on the same frame. Only differences of the clock are taken (no %: it is past 2^31).
+local function dueMs(owner, key, periodMs, force)
+    local now = getTimestampMs()
+    local last = owner[key]
+    if not force and last and now >= last and now - last < periodMs then return false end
+    if last == nil then
+        local ph = owner._zedPhase
+        if not ph then
+            ZeD._throttleN = (ZeD._throttleN or 0) + 1
+            local g = ZeD._throttleN * 0.6180339887
+            ph = g - math.floor(g)
+            owner._zedPhase = ph
+        end
+        owner[key] = now - math.floor(ph * periodMs)
+    elseif force or now < last or now - last >= periodMs * 2 then
+        owner[key] = now               -- (forced, or after a gap: the period starts again)
+    else
+        owner[key] = last + periodMs   -- (on the beat: a late frame doesn't stretch the next period)
+    end
+    return true
+end
+
 -- The controller's mark options for the element with this id: set only when the
 -- window is the focused one, the controller is in use and that element has the focus.
 local _focusOpts = {}
@@ -958,10 +986,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local pad    = M.getTabPad()      -- 8px outer pad
     local padTop = M.getTabPadTop()   -- 8px top pad below pinned header
 
-    -- Throttled data refresh
-    win._skillsTimer = (win._skillsTimer or 0) + 1
-    if win._skillsTimer >= 15 or not win._skillsCache then
-        win._skillsTimer = 0
+    -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
+    if dueMs(win, "_skillsAt", 250, not win._skillsCache) then
         win._skillsCache = ZeD.SkillsTab.gatherData(win._playerObj)
     end
     local data = win._skillsCache
@@ -1035,10 +1061,13 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         colCounts[minCol] = colCounts[minCol] + #group.skills + 1
     end
 
-    -- Training data (separate throttle — literature changes less often)
-    win._trainingTimer = (win._trainingTimer or 0) + 1
-    if win._trainingTimer >= 30 or not win._trainingCache then
-        win._trainingTimer = 0
+    -- Training data (separate throttle — literature changes less often: 500 ms on the clock, 30
+    -- frames at 60 FPS). The first gather is here, as the measure below needs the rows; the later
+    -- ones wait for the draw (perf review #12), where they run only while some of the section is in
+    -- the scroll view: the walk of the inventory and every skill book is skipped while the section
+    -- is scrolled away (the rows always come from the same catalog, so the measure is the same).
+    if not win._trainingCache then
+        dueMs(win, "_trainingAt", 500, true)
         win._trainingCache = ZeD.SkillsTab.gatherTrainingData(win._playerObj)
     end
     local training = win._trainingCache
@@ -1276,6 +1305,12 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         col2X = x + pad + colW + colGap
     end
     local trainingStartY = zoneABottom + (gridExpanded and xpGridH or 0)
+    -- (the training refresh: due, and the section shows in the scroll view)
+    if trainingStartY < scrollY + scrollH and trainingStartY + trainingH > scrollY
+       and dueMs(win, "_trainingAt", 500) then
+        win._trainingCache = ZeD.SkillsTab.gatherTrainingData(win._playerObj)
+        training = win._trainingCache
+    end
     local tmZones, tmActualH = drawTrainingSection(
         panel, trainingStartY, col1X, cw, col1X, col2X, colW, colGap,
         training, win._trainingExpanded, secH, bodyH, rowH, rowGap,

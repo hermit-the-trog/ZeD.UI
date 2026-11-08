@@ -177,13 +177,16 @@ step(20, function()
     open("right")
     D.enter(pn, entry(ZeD.tr("UI_ZeD_Wheel_Map")))
     local st = D.state[pn]
-    local e = st.path[#st.path].entries[2]
-    if e.off then say("World > Map > Mini-map is off: " .. tostring(e.off)) else D.take(pn, e) end
+    local e = st.path[#st.path].entries[2]   -- (Nov 8: beta 8 took the mini-map slices out of the Map wheel, so e is nil)
+    if not e then say("Map wheel has no Mini-map slice (taken out in beta 8): skipped"); miniWas = nil
+    elseif e.off then say("World > Map > Mini-map is off: " .. tostring(e.off)) else D.take(pn, e) end
     closeAll()
 end)
 step(20, function()
     local mm = getPlayerMiniMap(pn)
-    if mm then
+    if miniWas == nil then
+        say("no Mini-map slice to check")
+    elseif mm then
         check(mm:isReallyVisible() ~= miniWas, "World > Map > Mini-map turned the mini-map " .. (miniWas and "off" or "on"))
         ISMiniMap.ToggleMiniMap(pn)   -- (back as it was)
     else

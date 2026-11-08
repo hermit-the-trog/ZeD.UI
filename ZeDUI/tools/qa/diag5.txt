@@ -1,0 +1,4 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_b8_focus.lua | b8fo | timeout=180
+zedqa_b8_focus2.lua | b8f2 | timeout=180

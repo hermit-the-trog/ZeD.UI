@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/b8_guide_cards.txt  (Nov 8 2026, QA): the beta 8 guide pieces and cards, single player, 4K at 1.75x
+# (CHECK_alt_tab_gaps, CHECK_hidden_facts, CHECK_forms_phrase, CHECK_known_issues single-player parts, the guide's copyright page, contents, TV/radio rules page and 32 new third ads)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
+zedqa_b8_recipes.lua | b8rc | timeout=420
+zedqa_b8_focus.lua | b8fo | timeout=180
+zedqa_b8_hidden.lua | b8hf | timeout=420
+zedqa_b8_forms.lua | b8fm | timeout=180
+zedqa_b8_known.lua | b8ki | timeout=120
+zedqa_b8_guide.lua | b8gd | timeout=600

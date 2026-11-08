@@ -1537,11 +1537,68 @@ end
 -- WORD WRAP (shared utility)
 -- Splits text into lines that fit within maxW pixels.
 -- Handles paragraph breaks (\n) and returns a table of strings.
+-- The answers are kept per font, width and text while the measures behind them are
+-- (ZeD.Text.measureEpoch; Nov 7 2026, the outside performance review: the detail card, the
+-- help balloon, the needs lines and the moodle note wrapped the same words every frame, and
+-- every trial line went into the measure store). The width is kept by its whole pixel along
+-- with the measures that decided the answer (the widest trial line that fit, the narrowest
+-- that did not), so a width moving inside that pixel (a drawer or a resize on its way) gets
+-- the kept answer only when those measures decide it the same way; otherwise it is wrapped
+-- again. Two generations of WT_MAX answers. The table handed back is SHARED: read it, never
+-- write into it (copy it first).
+-- (The trial lines are still measured whole, never as words added up: kerning and the face a
+-- string is drawn in (ZeD.Text.scriptFont) make a line's width more than its words' sum.)
 -- ============================================================================
 
+local wrapRaw
+local WT_MAX = 2000
+local WT = { cur = {}, old = {}, n = 0, epoch = nil, hits = 0, misses = 0 }
+ZeD.Atoms._wrapMemo = WT   -- (QA: ZeDUI/tools/qa/wrap_memo_sim.lua reads the counts)
+
+local function wtFind(gen, font, cell, text, maxW)
+    local byF = gen[font]
+    local byW = byF and byF[cell]
+    local e = byW and byW[text]
+    if e and (e.fit == nil or e.fit <= maxW) and (e.over == nil or e.over > maxW) then return e end
+    return nil
+end
+
 function ZeD.Atoms.wrapText(text, font, maxW)
+    local X = ZeD.Text
+    local epoch = X and X.measureEpoch and X.measureEpoch() or nil
+    if epoch == nil or font == nil or type(text) ~= "string" or type(maxW) ~= "number" or maxW ~= maxW then
+        return (wrapRaw(text, font, maxW))
+    end
+    if epoch ~= WT.epoch then WT.cur, WT.old, WT.n, WT.epoch = {}, {}, 0, epoch end
+    local cell = math.floor(maxW)
+    local e = wtFind(WT.cur, font, cell, text, maxW)
+    if e then
+        WT.hits = WT.hits + 1
+        return e.lines
+    end
+    e = wtFind(WT.old, font, cell, text, maxW)
+    if e then
+        WT.hits = WT.hits + 1
+    else
+        WT.misses = WT.misses + 1
+        local lines, fit, over = wrapRaw(text, font, maxW)
+        e = { lines = lines, fit = fit, over = over }
+    end
+    if WT.n >= WT_MAX then WT.old, WT.cur, WT.n = WT.cur, {}, 0 end
+    local byF = WT.cur[font]
+    if not byF then byF = {}; WT.cur[font] = byF end
+    local byW = byF[cell]
+    if not byW then byW = {}; byF[cell] = byW end
+    byW[text] = e
+    WT.n = WT.n + 1
+    return e.lines
+end
+
+-- The wrap itself. Also returns the widest trial line that fit and the narrowest that did not.
+wrapRaw = function(text, font, maxW)
     local lines = {}
     if not text or text == "" then return lines end
+    local fit, over
 
     for paragraph in text:gmatch("[^\n]+") do
         local words = {}
@@ -1549,10 +1606,13 @@ function ZeD.Atoms.wrapText(text, font, maxW)
         local line = ""
         for _, word in ipairs(words) do
             local test = line == "" and word or (line .. " " .. word)
-            if ZeD.TM:MeasureStringX(font, test) > maxW then
+            local tw = ZeD.TM:MeasureStringX(font, test)
+            if tw > maxW then
+                if over == nil or tw < over then over = tw end
                 if line ~= "" then lines[#lines + 1] = line end
                 line = word
             else
+                if fit == nil or tw > fit then fit = tw end
                 line = test
             end
         end
@@ -1560,55 +1620,80 @@ function ZeD.Atoms.wrapText(text, font, maxW)
     end
 
     if #lines == 0 then lines[1] = text end
-    return lines
+    return lines, fit, over
 end
 
 --- Truncate text with ellipsis ("...") to fit within maxW pixels.
 --- Uses binary search for efficiency.
 -- The answers are kept per font, width and text while the measures behind them are
--- (ZeD.Text.measureEpoch): every list cuts the same names to the same widths
--- every frame. Past TT_MAX answers the store starts over.
+-- (ZeD.Text.measureEpoch; Oct 22 2026, the drawing-cost work: every list cuts the same
+-- names to the same widths every frame). Past TT_MAX answers the store starts over.
+-- The width is kept by its whole pixel (Nov 7 2026, the outside performance review: a drawer or a
+-- resize on its way asks with a new fraction every frame) along with the measures that decided
+-- the answer; a width inside that pixel gets the kept answer only when every one of those
+-- comparisons comes out the same for it (ttSame), so the cut is never wider than the true maxW.
 local truncateRaw
 local TT_MAX = 4000
 local _tt, _ttN, _ttEpoch = {}, 0, nil
+local function ttSame(e, maxW)
+    if e.full then return e.w <= maxW end
+    if not (e.w > maxW) then return false end
+    if e.dots then return maxW <= e.ell end
+    if maxW <= e.ell then return false end
+    local target = maxW - e.ell
+    return (e.fit == nil or e.fit <= target) and (e.over == nil or e.over > target)
+end
 function ZeD.Atoms.truncateText(text, font, maxW)
     if maxW <= 0 then return "" end
     local X = ZeD.Text
     local epoch = X and X.measureEpoch and X.measureEpoch() or nil
-    if epoch == nil or font == nil or type(text) ~= "string" then return truncateRaw(text, font, maxW) end
+    if epoch == nil or font == nil or type(text) ~= "string" then return (truncateRaw(text, font, maxW)) end
     if epoch ~= _ttEpoch or _ttN >= TT_MAX then _tt, _ttN, _ttEpoch = {}, 0, epoch end
+    local cell = math.floor(maxW)
     local byF = _tt[font]
     if not byF then byF = {}; _tt[font] = byF end
-    local byW = byF[maxW]
-    if not byW then byW = {}; byF[maxW] = byW end
-    local s = byW[text]
-    if s == nil then
-        s = truncateRaw(text, font, maxW)
-        byW[text] = s
+    local byW = byF[cell]
+    if not byW then byW = {}; byF[cell] = byW end
+    local e = byW[text]
+    if e == nil or not ttSame(e, maxW) then
+        local s, rec = truncateRaw(text, font, maxW)
+        rec.s = s
+        e = rec
+        byW[text] = e
         _ttN = _ttN + 1
     end
-    return s
+    return e.s
 end
+-- The cut itself. Also returns what decided it: the text's width (w) and whether it fit (full);
+-- the dots' width (ell) and whether only the dots fit (dots); the widest start that fit before
+-- the dots (fit) and the narrowest that did not (over).
 truncateRaw = function(text, font, maxW)
-    if maxW <= 0 then return "" end
+    if maxW <= 0 then return "", {} end
     local tm = ZeD.TM
-    if tm:MeasureStringX(font, text) <= maxW then return text end
+    local w = tm:MeasureStringX(font, text)
+    if w <= maxW then return text, { w = w, full = true } end
     local ellW = tm:MeasureStringX(font, "...")
-    if maxW <= ellW then return "..." end
+    if maxW <= ellW then return "...", { w = w, ell = ellW, dots = true } end
     local target = maxW - ellW
+    local fit, over
     local lo, hi = 1, #text
     while lo < hi do
         local mid = math.floor((lo + hi + 1) / 2)
-        if tm:MeasureStringX(font, string.sub(text, 1, mid)) <= target then
+        local pw = tm:MeasureStringX(font, string.sub(text, 1, mid))
+        if pw <= target then
+            if fit == nil or pw > fit then fit = pw end
             lo = mid
         else
+            if over == nil or pw < over then over = pw end
             hi = mid - 1
         end
     end
-    return string.sub(text, 1, lo) .. "..."
+    return string.sub(text, 1, lo) .. "...", { w = w, ell = ellW, fit = fit, over = over }
 end
 
 function ZeD.ActionStrip.setState(item, key, value, playerNum)
+    -- a mark set: the item card builds its model again (ItemCardOrganism.lua)
+    ZeD.ActionStrip.gen = (ZeD.ActionStrip.gen or 0) + 1
     if key == "fav" then
         _safeGet(item, "setFavorite", value, true)
     elseif key == "protect" then

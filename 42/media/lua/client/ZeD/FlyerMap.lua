@@ -45,6 +45,31 @@ local function key(id, j, k) return tostring(id) .. ":" .. j .. ":" .. k end
 -- Visits: the character standing inside a place marks it (every piece's places,
 -- read or not, so reading one later shows the tick at once)
 -- ---------------------------------------------------------------------------
+-- (Nov 7 2026, perf review #15) every place's rectangle and key, worked out once per definitions
+-- table (built again on a new game, or if the table is replaced), not walked with "location" .. j
+-- each second: { x1, x2 + 1, y1, y2 + 1, key } flat, five numbers-and-key per place
+local _rects, _rectsFrom = nil, nil
+local function placeRects(defs)
+    if _rectsFrom == defs and _rects then return _rects end
+    local out = {}
+    for id, d in pairs(defs) do
+        for j = 1, 5 do
+            local locs = d["location" .. j]
+            if not locs then break end
+            for k, r in ipairs(locs) do
+                out[#out + 1] = r.x1
+                out[#out + 1] = r.x2 + 1
+                out[#out + 1] = r.y1
+                out[#out + 1] = r.y2 + 1
+                out[#out + 1] = key(id, j, k)
+            end
+        end
+    end
+    _rects, _rectsFrom = out, defs
+    return out
+end
+Events.OnGameStart.Add(function() _rects, _rectsFrom = nil, nil end)
+
 local _lastCheck = 0
 local function checkVisits(player)
     if not (player and PrintMediaDefinitions and PrintMediaDefinitions.MiscDetails) then return end
@@ -54,17 +79,12 @@ local function checkVisits(player)
     if player:getZ() < -8 then return end
     local x, y = player:getX(), player:getY()
     local seen = nil
-    for id, d in pairs(PrintMediaDefinitions.MiscDetails) do
-        for j = 1, 5 do
-            local locs = d["location" .. j]
-            if not locs then break end
-            for k, r in ipairs(locs) do
-                if x >= r.x1 and x <= r.x2 + 1 and y >= r.y1 and y <= r.y2 + 1 then
-                    seen = seen or player:getModData()
-                    seen.ZeD_FlyerSeen = seen.ZeD_FlyerSeen or {}
-                    seen.ZeD_FlyerSeen[key(id, j, k)] = true
-                end
-            end
+    local rc = placeRects(PrintMediaDefinitions.MiscDetails)
+    for i = 1, #rc, 5 do
+        if x >= rc[i] and x <= rc[i + 1] and y >= rc[i + 2] and y <= rc[i + 3] then
+            seen = seen or player:getModData()
+            seen.ZeD_FlyerSeen = seen.ZeD_FlyerSeen or {}
+            seen.ZeD_FlyerSeen[rc[i + 4]] = true
         end
     end
 end

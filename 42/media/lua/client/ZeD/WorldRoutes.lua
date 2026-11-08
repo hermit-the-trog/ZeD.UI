@@ -230,7 +230,18 @@ WR.indexOf = indexOf
 local function radioItem(chr, item)
     local RT = ZeD.RadioTab
     if not (RT and RT.buildEquippedRadios and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab) then return false end
-    if not indexOf(RT.buildEquippedRadios(chr), item) then return false end   -- not carried where the tab looks
+    if not indexOf(RT.buildEquippedRadios(chr), item) then
+        -- not in the hands or on the back: one in a bag or the inventory is pinned for the tab (RadioTab lists it
+        -- as "Carried" while it stays on the player); one on the floor or in a world container is not ours
+        local okC, mine = pcall(function()
+            local c = item:getContainer()
+            return c ~= nil and c:isInCharacterInventory(chr)
+        end)
+        if not (okC and mine) then return false end
+        RT._carried = RT._carried or {}
+        RT._carried[pnOf(chr)] = item
+        if not indexOf(RT.buildEquippedRadios(chr), item) then return false end
+    end
     if not freeFor(charWin(), chr) then return false end
     local pn = pnOf(chr)
     pairForPad(pn)
