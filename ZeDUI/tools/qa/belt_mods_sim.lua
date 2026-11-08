@@ -885,6 +885,51 @@ end
 msbUnspy(spied)
 env.messages = 0
 
+-- QA's in-game sequence (zedqa_minsidebar.lua), the pointer told to the belt as the script does it (an instance
+-- getMouseX / getMouseY relative to the belt; the desktop cursor stays far away, as it does in game): away, back on the
+-- belt, inside and outside the margin, and the frames Animation Speed takes
+do
+    hud = msbStage()
+    MS = ZeD.ModSupport.MinimalSidebar     -- (a fresh game: the file's table is a new one)
+    local sp = msbSpy()
+    local function point(rx, ry) hud.getMouseX = function() return rx end; hud.getMouseY = function() return ry end end
+    local function frames(pred, max) for n = 1, max do msbSeen = {}; frame(); if pred() then return n end end return nil end
+    local function fadeNow() return MS.state[0].fade end
+    env.mouseX, env.mouseY = -5000, -5000       -- (the real cursor: away for the whole sequence)
+    point(hud._w / 2, hud._h / 2)
+    msbRun(3)
+    check("MSB2 the belt starts shown with the pointer told to be on it", fadeNow() == 1)
+    point(-5000, -5000)
+    check("MSB2 away: the fade runs out", frames(function() return fadeNow() < 0.02 end, 90) ~= nil)
+    point(hud._w / 2, hud._h / 2)
+    local back = frames(function() return fadeNow() > 0.98 end, 90)
+    check("MSB2 on the belt: it comes back (" .. tostring(back) .. " frames)", back ~= nil)
+    msbRun(60)
+    check("MSB2 the slots and both hands are drawn at 1 again",msbAlpha("slot") == 1 and msbAlpha("hand", "s") == 1)
+    point(hud._w / 2, -30)
+    msbRun(60)
+    check("MSB2 30 units above the belt (inside the margin): still shown", fadeNow() > 0.98, fadeNow())
+    point(hud._w / 2, -80)
+    check("MSB2 80 units above (outside): faded again", frames(function() return fadeNow() < 0.02 end, 90) ~= nil)
+    -- Animation Speed, frames from the pointer leaving to the fade passing a half (QA: 0.5x counted 1, 5.0x counted 1)
+    for _, c in ipairs({ { 1, 12, 16 }, { 10, 1, 2 } }) do
+        msbOpts.AnimationSpeed = c[1]
+        point(hud._w / 2, hud._h / 2)
+        local up = frames(function() return fadeNow() > 0.98 end, 120)
+        check("MSB2 speed item " .. c[1] .. ": shown again (" .. tostring(up) .. " frames)", up ~= nil)
+        point(-5000, -5000)
+        local n = frames(function() return fadeNow() < 0.5 end, 60)
+        check("MSB2 speed item " .. c[1] .. ": half faded after " .. tostring(n) .. " frames (" .. c[2] .. " to " .. c[3] .. ")", n ~= nil and n >= c[2] and n <= c[3])
+    end
+    msbOpts.AnimationSpeed = 2
+    -- the script lets go: the belt reads the cursor again
+    hud.getMouseX, hud.getMouseY = nil, nil
+    env.mouseX, env.mouseY = hud._x + hud._w / 2, hud._y + hud._h / 2
+    check("MSB2 the told pointer let go: the cursor is read again", frames(function() return fadeNow() > 0.98 end, 90) ~= nil)
+    msbUnspy(sp)
+    env.messages = 0
+end
+
 -- ---------------------------------------------------------------------------
 section("BIT: Better Item Transfer's first options read")
 -- ---------------------------------------------------------------------------
