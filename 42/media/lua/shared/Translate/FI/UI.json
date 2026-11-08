@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Uusi siemen",
     "UI_ZeD_Spawn_PromptNewSeed": "Uusi siemen",
     "UI_ZeD_Spawn_RandomDesc": "Satunnaisesti valittu kaupunki, kun painat \"Seuraava\".",
+    "UI_ZeD_Spawn_RandomNone": "Täällä ei ole kaupunkia, jonka satunnainen voisi valita. Valitse yksi luettelosta.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Aloituspaikka",
     "UI_ZeD_Station_AnySurface": "Mikä vain",
     "UI_ZeD_Station_Fallback": "Työpiste",

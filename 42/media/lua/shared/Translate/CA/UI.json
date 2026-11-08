@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Llavor nova",
     "UI_ZeD_Spawn_PromptNewSeed": "Llavor nova",
     "UI_ZeD_Spawn_RandomDesc": "Una població triada a l'atzar quan prems \"Següent\".",
+    "UI_ZeD_Spawn_RandomNone": "Aquí no hi ha cap poble que l'atzar pugui triar. Tria'n un de la llista.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Lloc d'aparició",
     "UI_ZeD_Station_AnySurface": "Qualsevol lloc",
     "UI_ZeD_Station_Fallback": "Estació",

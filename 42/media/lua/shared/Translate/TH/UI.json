@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "ซีดใหม่",
     "UI_ZeD_Spawn_PromptNewSeed": "ซีดใหม่",
     "UI_ZeD_Spawn_RandomDesc": "เมืองที่สุ่มเลือกเมื่อกด \"ต่อไป\"",
+    "UI_ZeD_Spawn_RandomNone": "ที่นี่ไม่มีเมืองให้สุ่มเลือก โปรดเลือกเมืองจากรายการ",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  จุดเกิด",
     "UI_ZeD_Station_AnySurface": "พื้นผิวใดก็ได้",
     "UI_ZeD_Station_Fallback": "จุดทำงาน",

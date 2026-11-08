@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Nueva semilla",
     "UI_ZeD_Spawn_PromptNewSeed": "Otra semilla",
     "UI_ZeD_Spawn_RandomDesc": "Un pueblo elegido al azar al presionar \"Siguiente\".",
+    "UI_ZeD_Spawn_RandomNone": "Aquí no hay ningún pueblo que se pueda elegir al azar. Elige uno de la lista.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Zona de aparición",
     "UI_ZeD_Station_AnySurface": "Cualquiera",
     "UI_ZeD_Station_Fallback": "Estación",

@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Új seed",
     "UI_ZeD_Spawn_PromptNewSeed": "Új seed",
     "UI_ZeD_Spawn_RandomDesc": "Véletlenszerűen választott város, amikor a \"Tovább\" gombra nyomsz.",
+    "UI_ZeD_Spawn_RandomNone": "Itt nincs olyan város, amelyet a véletlen kiválaszthatna. Válassz egyet a listából.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Kezdőhely",
     "UI_ZeD_Station_AnySurface": "Bármely felület",
     "UI_ZeD_Station_Fallback": "Munkahely",
