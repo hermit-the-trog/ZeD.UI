@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "這臺伺服器無法接收信件舉報。",
     "UI_ZeD_Mail_Connecting": "正在連接... 發送 %1，接收 %2",
     "UI_ZeD_Tk_ReportedLetter": "被舉報的信",
-    "UI_ZeD_Tk_LetterWhose": "與玩家收到時一致。",
+    "UI_ZeD_Tk_LetterWhose": "與檢舉者螢幕上顯示的一樣。伺服器不保留信件的副本。",
     "UI_ZeD_Card_MakesTitle": "可用於製作",
     "UI_ZeD_Card_MakesHelp": "在製作或建造分頁中開啟配方。",
     "UI_ZeD_Card_MakesMore": "還有 %1 個",

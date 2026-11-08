@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Bu sunucu bir mektup bildirimi alamaz.",
     "UI_ZeD_Mail_Connecting": "Bağlanılıyor... %1 gönderiliyor, %2 alınıyor",
     "UI_ZeD_Tk_ReportedLetter": "Bildirilen mektup",
-    "UI_ZeD_Tk_LetterWhose": "Oyuncunun aldığı haliyle.",
+    "UI_ZeD_Tk_LetterWhose": "Bildirenin ekranında göründüğü gibi. Sunucu mektupların kopyasını tutmaz.",
     "UI_ZeD_Card_MakesTitle": "Şunu yapmakta kullanılır",
     "UI_ZeD_Card_MakesHelp": "Tarifi Üretim veya İnşa sekmesinde açar.",
     "UI_ZeD_Card_MakesMore": "%1 tane daha",

@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Deze server kan geen melding van een brief aannemen.",
     "UI_ZeD_Mail_Connecting": "Verbinden... %1 versturen, %2 ontvangen",
     "UI_ZeD_Tk_ReportedLetter": "De gemelde brief",
-    "UI_ZeD_Tk_LetterWhose": "Zoals de speler hem ontving.",
+    "UI_ZeD_Tk_LetterWhose": "Zoals hij op het scherm van de melder stond. De server bewaart geen kopie van brieven.",
     "UI_ZeD_Card_MakesTitle": "Gebruikt om te maken",
     "UI_ZeD_Card_MakesHelp": "Opent het recept op het tabblad Maken of Bouwen.",
     "UI_ZeD_Card_MakesMore": "nog %1",

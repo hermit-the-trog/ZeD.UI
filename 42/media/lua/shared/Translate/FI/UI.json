@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Tämä palvelin ei ota vastaan ilmoitusta kirjeestä.",
     "UI_ZeD_Mail_Connecting": "Yhdistetään... lähetetään %1, vastaanotetaan %2",
     "UI_ZeD_Tk_ReportedLetter": "Ilmoitettu kirje",
-    "UI_ZeD_Tk_LetterWhose": "Sellaisena kuin pelaaja sen sai.",
+    "UI_ZeD_Tk_LetterWhose": "Sellaisena kuin se näkyi ilmoittajan näytöllä. Palvelin ei säilytä kirjeistä kopiota.",
     "UI_ZeD_Card_MakesTitle": "Käytetään valmistamaan",
     "UI_ZeD_Card_MakesHelp": "Avaa reseptin Valmista- tai Rakenna-välilehdellä.",
     "UI_ZeD_Card_MakesMore": "%1 muuta",

@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "This server cannot take a report of a letter.",
     "UI_ZeD_Mail_Connecting": "Connecting... sending %1, receiving %2",
     "UI_ZeD_Tk_ReportedLetter": "The reported letter",
-    "UI_ZeD_Tk_LetterWhose": "As the player received it.",
+    "UI_ZeD_Tk_LetterWhose": "As it showed on the reporter's screen. The server keeps no copy of letters.",
     "UI_ZeD_Card_MakesTitle": "Used to make",
     "UI_ZeD_Card_MakesHelp": "Opens the recipe in the Craft or Build tab.",
     "UI_ZeD_Card_MakesMore": "%1 more",
