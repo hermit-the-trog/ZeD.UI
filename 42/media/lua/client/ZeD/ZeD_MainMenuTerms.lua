@@ -74,7 +74,9 @@ function ZeD_MMTerms:pctx() if self.boot then return self.ctx end; return MM.ctx
 
 function ZeD_MMTerms:onShow()
     self.scroll = 0
-    self.focusId = "accept"
+    -- the pad lands on View terms of service, as the game's window did: agreeing is never one press away
+    -- (director's call, Nov 7 2026)
+    self.focusId = "terms"
 end
 
 function ZeD_MMTerms:leave()
@@ -237,7 +239,7 @@ function ZeD_MMTerms:update()
 end
 function ZeD_MMTerms:onMouseDown(x, y) return true end
 function ZeD_MMTerms:onMouseUp(x, y) return true end
-function ZeD_MMTerms:onGainJoypadFocus(joypadData) self.joyfocus = joypadData; self.padSeen = true; if not self.focusId then self.focusId = "accept" end end
+function ZeD_MMTerms:onGainJoypadFocus(joypadData) self.joyfocus = joypadData; self.padSeen = true; if not self.focusId then self.focusId = "terms" end end
 function ZeD_MMTerms:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
 function ZeD_MMTerms:onJoypadDown(button, joypadData)
     self.padSeen = true

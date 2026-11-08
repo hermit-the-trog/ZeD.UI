@@ -9,7 +9,7 @@ answers, the controller lands on a sensible button and can reach every one, B (o
 says what the button under the pointer does. Then once with **safe mode on** (Options > Mods > ZeD UI): the game's own
 window must show instead, and work.
 
-Sim (no game): `lua51 ZeDUI/tools/qa/mainmenu_vanilla_sim.lua` (159 checks; it runs the game's own screens from the
+Sim (no game): `lua51 ZeDUI/tools/qa/mainmenu_vanilla_sim.lua` (161 checks; it runs the game's own screens from the
 install). It proves the routing, not the look.
 
 ## 1. Server Workshop items (joining a server whose Workshop mods you lack)
@@ -68,7 +68,7 @@ install). It proves the routing, not the look.
   Back**; Accept goes on to the main menu (and the window must not come back on the next start); Quit quits.
   Mouse and pad both. If it shows the game's own window instead (a gray panel with Spiffo the judge), say so: that
   means ZeD's files were not loaded yet at that moment.
-- Pad: lands on Accept; left / right walk the answers; up / down scroll the text.
+- Pad: lands on View terms of service (never on Accept, as the game's own window); left / right walk the answers; up / down scroll the text.
 - Also: Y on any other monitor window (Connecting, a New Game step) no longer jumps to the terms; only the main
   window's Y does (its footer says Legal).
 
