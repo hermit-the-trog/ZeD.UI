@@ -1,0 +1,35 @@
+0.3.0-beta9
+
+Windows
+- Dual pinning: each half of the Character and World windows rolls up on its own when the pointer leaves, and each half has its own pin in the title bar. Keep the map pinned open while the rest rolls away.
+- Aiming rolls up only the unpinned halves. A rolled half comes back after the pointer rests on its bar for a moment.
+- On a controller, both pins are stops on the title bar; A pins and unpins.
+- Windows and menus that opened behind others now open on top: server options, the unfolded paper map, and the window menu over the Lua console.
+- The Identity portrait stays visible beside an item card when there's room.
+
+Context menu
+- In the List style, a submenu that opens over its parent menu no longer closes when you point at it.
+
+Dashboards
+- With Metric units, every odometer and trip shows kilometers. The car still keeps its miles.
+
+Mods
+- Minimal Sidebar is supported: ZeD's belt fades the way the mod fades the game's sidebar, with its speed and on/off option.
+
+Servers
+- A timed ban gives the player their old role back when it ends.
+- Mail no longer loses letters after the server's mail store starts over, and letters reach players the server has met before.
+- A reported letter's card says the server keeps no copy of letters.
+
+Desk and devices
+- A quick double-click on a desk icon opens it.
+- Rename in CletusWorks and Documents selects the old name, so typing replaces it.
+- Reply in game quotes the letter, as the desk's Mail does.
+- After a death, the desk's menu no longer offers CletusWorks or Mail.
+
+Fixes
+- An idle second controller no longer throws errors.
+- Make-up checks you still have the item before applying.
+- Casual Restock stops at the weight limit.
+- The Lua console (debug mode): the typed line matches the console's lines, drags reliably, and keeps every click.
+- Copied bug reports leave out your user name, from beta 8a.
