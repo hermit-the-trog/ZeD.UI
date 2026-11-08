@@ -5209,3 +5209,169 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Log_T_RepClosed` | `closed the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 49 |
 | `UI_ZeD_Log_T_RepSpam` | `marked the report on %1 as spam, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
 | `UI_ZeD_Log_T_RepDeleted` | `deleted the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 50 |
+## Admin tools (C9 to C14)
+
+Staff-only cards that take over the game's admin windows. Button and tag lengths are estimates from the English.
+
+| Key | English | Where | Max |
+|---|---|---|---|
+| `UI_ZeD_Adm_Users` | `Users` | Admin tab, staff only: the Users and account cards | 24 |
+| `UI_ZeD_Adm_UsersSum` | `Accounts, passwords and the whitelist` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpMoreCard` | `Opens this tool's card.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUsers` | `Every account on this server, online first. Pick one for its whitelist, password and the game's bans.` | Admin tab, staff only: the Users and account cards | 24 |
+| `UI_ZeD_Adm_HelpUserRow` | `Opens this account: its whitelist, password and the game's bans.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UsersFindHint` | `A name, a role, a banned IP or Steam ID` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUsersFind` | `Keeps the accounts whose name, role, banned IP or banned Steam ID holds these words.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_AddUserLine` | `Puts a name on the server's whitelist with an empty password.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_AddUserHint` | `Their username` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpAddUser` | `Adds this name to the whitelist with an empty password, as the game's Users List does.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserAdded` | `Sent: %1 goes on the whitelist.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_WriteUserName` | `Write a username first.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserExists` | `%1 has an account already.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUsersBans` | `The game's banned IPs and Steam IDs are on the Bans card, with ZeD's bans.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_SteamId` | `Steam ID` | Admin tab, staff only: the Users and account cards | 24 |
+| `UI_ZeD_Adm_Account` | `Account` | Admin tab, staff only: the Users and account cards | 24 |
+| `UI_ZeD_Adm_HelpUserCard` | `%1's account: role, whitelist, points, password and the game's bans. Kick, warnings and the rest are on the Player card.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserDelAsk` | `Delete %1's account? Their user log and map go with it. This can't be undone.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserDel` | `Deletes the account, its user log and what its map has seen, as the game's Users List does.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserPassAsk` | `Reset %1's password? It is left empty.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserPass` | `Empties the account's password.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserTotpAsk` | `Reset %1's TOTP secret?` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserTotp` | `Clears the account's TOTP secret, the key behind an authenticator app's codes.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserBanIpAsk` | `Ban %1's IP? Nobody joins from it until it is unbanned.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserBanIp` | `The game's ban on the IP this account joins from. Only while they are online.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserUnbanIpAsk` | `Unban %1's IP?` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserUnbanIp` | `Lifts the game's ban on this account's IP.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserBanSidAsk` | `Ban %1's Steam ID? That Steam account can't join until it is unbanned.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserBanSid` | `The game's ban on this account's Steam ID. Only while they are online.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserUnbanSidAsk` | `Unban %1's Steam ID?` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserUnbanSid` | `Lifts the game's ban on this account's Steam ID.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_PassLine` | `A new password for %1. They sign in with it from now on.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_PassHint` | `The new password` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpUserSetPass` | `Sets the account's password, as the game's Users List does.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_WritePass` | `Write the new password first.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_GameBans` | `The game's bans` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_GameBansLine` | `By IP or by Steam ID, with no reason or length. A ban with a reason is on the Player card.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserSent` | `Sent to the server. The list shows it when the server answers.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_UserGone` | `%1's account is gone.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_HelpKeepUser` | `Leaves the account as it is.` | Admin tab, staff only: the Users and account cards | - |
+| `UI_ZeD_Adm_SlideLeast` | `It is at its lowest.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_SlideMost` | `It is at its highest.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpSlide` | `Press on the bar to set it, or step it with - and +.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_StatLine` | `The game's own numbers, every second, for your client and for the server.` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatClient` | `Client` | Admin tab, staff only: the Statistics card (a table: name, client, server) | 24 |
+| `UI_ZeD_Adm_StatServer` | `Server` | Admin tab, staff only: the Statistics card (a table: name, client, server) | 24 |
+| `UI_ZeD_Adm_StatShow` | `Show` | Admin tab, staff only: the Statistics card (a table: name, client, server) | 24 |
+| `UI_ZeD_Adm_HelpStatShow` | `Shows or hides this table.` | Admin tab, staff only: the Statistics card (a table: name, client, server) | 24 |
+| `UI_ZeD_Adm_HelpStatsCard` | `The game's statistics for your client and the server. They flow only while this card shows.` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatPerf` | `Performance` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatMemFree` | `Free memory (MB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatMemUsed` | `Used memory (MB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatMemTotal` | `Total memory (MB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatMemMax` | `Most memory (MB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatFps` | `Frames a second` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatNet` | `Network` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatRxP` | `Packets in` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatTxP` | `Packets out` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatRxKb` | `Received (KB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatTxKb` | `Sent (KB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatRakRx` | `RakNet received (KB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatRakTx` | `RakNet sent (KB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatRakResent` | `RakNet sent again (KB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatRakLoss` | `RakNet loss (%%)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatVoipRx` | `Voice received (KB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatVoipTx` | `Voice sent (KB)` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatGame` | `Characters` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatPlayers` | `Players connected` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatAnimObj` | `Animal objects` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatAnimInst` | `Animal instances` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatAnimOwned` | `Animals owned` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatZedTotal` | `Zombies in all` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatZedLoaded` | `Zombies loaded` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatZedSim` | `Zombies simulated` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_StatZedCulled` | `Zombies culled` | Admin tab, staff only: the Statistics card (a table: name, client, server) | - |
+| `UI_ZeD_Adm_HelpPvp` | `The game's own PvP log: hits and kills between players. Pick a line for Go there.` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_HelpPvpOpt` | `A server option: every PvP line goes to chat, or to the server's log file. It holds for every client once this card closes.` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_PvpNone` | `No PvP lines yet.` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_PvpPlace` | `%1 x %2, floor %3` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_PvpCount` | `%1 lines` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_PvpClearAsk` | `Clear every line of the PvP log?` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_HelpPvpClear` | `Clears the game's PvP log.` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_HelpPvpKeep` | `Keeps the lines.` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_PvpCleared` | `The PvP log is cleared.` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_HelpClimate` | `The climate's override values. Nothing changes until Apply. The weather below acts at once.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpClimTick` | `Ticked, this value overrides the climate once you apply.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_Kph` | `%1 kph` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_TempCF` | `%1 C / %2 F` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpSnow` | `What falls is snow. Only with precipitation ticked.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_SnowNeedsPrecip` | `Tick precipitation first.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_Outside` | `Light outside` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_Inside` | `Light inside` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_Red` | `Red` | Admin tab, staff only: the climate control card | 24 |
+| `UI_ZeD_Adm_Green` | `Green` | Admin tab, staff only: the climate control card | 24 |
+| `UI_ZeD_Adm_Blue` | `Blue` | Admin tab, staff only: the climate control card | 24 |
+| `UI_ZeD_Adm_Alpha` | `Alpha` | Admin tab, staff only: the climate control card | 24 |
+| `UI_ZeD_Adm_Revert` | `Revert` | Admin tab, staff only: the climate control card | 24 |
+| `UI_ZeD_Adm_HelpClimRevert` | `Puts back the values the server has.` | Admin tab, staff only: the climate control card | 24 |
+| `UI_ZeD_Adm_NotApplied` | `Not applied yet.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpClimApply` | `Sends every value to the server, as the game's Climate page does.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_ClimateSent` | `Applied: the server has the climate's values.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_WeatherNow` | `Weather running: %1 hours long, %2%% done` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_WeatherSent` | `Sent to the server.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpWeatherStop` | `Ends the weather that is running now.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_Hours` | `%1 hours` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpWeatherDur` | `How long the weather lasts, with an hour to start and an hour to end.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpWeatherTrigger` | `Starts this weather at once, for that long.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpWeatherStr` | `How strong the weather period is.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpWeatherFront` | `A warm front brings changeable weather, a cold front calm weather.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpWeatherGen` | `Starts a whole weather period of this strength and front.` | Admin tab, staff only: the climate control card | - |
+| `UI_ZeD_Adm_HelpZones` | `Non-PvP zones and safe zones. Pick a zone for Go there and Remove.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_HelpZoneAdding` | `Name the zone and pick its area: on the map, or with the corners where you stand. It shows on the ground, blue, or red where it overlaps.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZonesNone` | `No non-PvP zones.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneCorners` | `%1 x %2 to %3 x %4` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneSizeN` | `size %1` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_HelpZoneRow` | `Pick for Go there and Remove.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_HelpZoneGo` | `Teleports you to the middle of the zone.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneRemove` | `Remove` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_HelpZoneRemove` | `Removes this non-PvP zone. Players can hurt each other there again.` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_HelpZoneKeep` | `Keeps the zone.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneRemoved` | `Removed %1.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_HelpZoneSee` | `Shows the non-PvP zones on the ground around you.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_AddPvp` | `Add a non-PvP zone` | Admin tab, staff only: the PvP log card | 24 |
+| `UI_ZeD_Adm_AddPvpLine` | `An area where players can't hurt each other.` | Admin tab, staff only: the PvP log card | - |
+| `UI_ZeD_Adm_AddSafe` | `Add a safe zone` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_AddSafeLine` | `A safehouse claimed for a player who is online, as the game's Add Safezone does.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_SafeZones` | `Safe zones` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_SafeZonesLine` | `Every claim is in the Admin tab's Safehouses list.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneOneAtATime` | `One zone at a time: finish or cancel the one being added.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneDefault` | `Zone #%1` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_SafeDefault` | `Safezone #%1` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneNameHint` | `The zone's name` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneOwner` | `Owner` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_ZoneOwnerHint` | `Their username` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneArea` | `Area` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_ZoneSize` | `%1 by %2 squares` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneNoArea` | `No area yet.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZonePicking` | `Picking on the map: drag over the area in the Maps tab.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZonePickMap` | `Pick on the map` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_HelpZonePickMap` | `Opens the Maps tab: drag over the area, and this card comes back with it.` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_ZoneCorner1` | `Corner here` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_ZoneCorner2` | `Other corner here` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_HelpZoneCorner` | `A corner where your character stands, as the game's windows set it.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneCornerFirst` | `Set the first corner first.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneNoMap` | `The world map is off on this server.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneWriteName` | `Write a name first.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneTooSmall` | `The area is too small.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneWriteOwner` | `Write the owner's username first.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneOwnerOff` | `%1 isn't online. The owner must be.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneOverlapSafe` | `The area overlaps a safehouse.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZoneAdded` | `Sent: %1.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_HelpZoneAdd` | `Adds the zone, as the game's window does.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_HelpZoneCancel` | `Stops adding this zone.` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Adm_ZonePickCancel` | `Cancel pick` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_HelpZonePickCancel` | `Stops picking and goes back to the zones card.` | Admin tab, staff only: the zones card and the map's zone pick | 24 |
+| `UI_ZeD_Adm_ZoneBanner` | `Drag over the zone's area` | Admin tab, staff only: the zones card and the map's zone pick | - |
+| `UI_ZeD_Sbx_StatServer` | `This server` | Sandbox options window, opened from the Admin tab on a server. %1 is a count phrase (3 changes) | 24 |
+| `UI_ZeD_Sbx_AskServer` | `Send %1 to the server?` | Sandbox options window, opened from the Admin tab on a server. %1 is a count phrase (3 changes) | - |
+| `UI_ZeD_Sbx_SentServer` | `Sent %1 to the server. Every player gets them.` | Sandbox options window, opened from the Admin tab on a server. %1 is a count phrase (3 changes) | - |
+| `UI_ZeD_Sbx_HistServer` | `Nothing sent yet. Every change you send is listed here until you leave the server.` | Sandbox options window, opened from the Admin tab on a server. %1 is a count phrase (3 changes) | - |
