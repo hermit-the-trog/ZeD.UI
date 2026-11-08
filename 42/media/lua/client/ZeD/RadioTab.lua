@@ -88,6 +88,7 @@ function ZeD.RadioTab.locationName(tag)
     if tag == "Secondary" then return ZeD.tr("UI_ZeD_Radio_LocSecondary") end
     if tag == "Back" then return ZeD.tr("UI_ZeD_Radio_LocBack") end
     if tag == "Floor" then return getText("ContextMenu_Floor") end
+    if tag == "Carried" then return getText("IGUI_InventoryTooltip") end   -- in a bag or the inventory (WorldRoutes.lua)
     if tag == "Vehicle" then return getText("UI_optionscreen_binding_Vehicle") end   -- a car's device part (WorldRoutes.lua)
     return tag or ""
 end
@@ -135,6 +136,16 @@ function ZeD.RadioTab.buildEquippedRadios(playerObj)
     -- on the player's back register too.
     if playerObj.getClothingItem_Back then
         tryAdd(playerObj:getClothingItem_Back(), "Back")
+    end
+    -- a radio opened from a bag or the inventory (WorldRoutes.radio pins it): listed while it stays on the player
+    local pin = ZeD.RadioTab._carried and ZeD.RadioTab._carried[playerObj:getPlayerNum()]
+    if pin then
+        local okC, still = pcall(function()
+            local c = pin:getContainer()
+            return c ~= nil and c:isInCharacterInventory(playerObj)
+        end)
+        if okC and still and not ZeD.RadioTab.indexOf(out, pin) then tryAdd(pin, "Carried") end
+        if not (okC and still) then ZeD.RadioTab._carried[playerObj:getPlayerNum()] = nil end
     end
 
     return out

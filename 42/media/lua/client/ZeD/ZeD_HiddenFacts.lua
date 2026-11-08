@@ -63,12 +63,12 @@ F.player = player
 -- the title ItemCodeOnCreate.onCreateTVMagazine gives the issue)
 local function readLiterature(p, prefix)
     local ok, found = pcall(function()
-        local it = p:getReadLiterature():keySet():iterator()
-        while it:hasNext() do
-            local key = tostring(it:next())
-            if key:sub(1, #prefix) == prefix then return true end
-        end
-        return false
+        -- 42.21: a Java HashMap; Kahlua cannot call keySet() or iterator() on it, nor pairs() it. tostring(map) works
+        -- and reads "[key=n, key=n]", so the key is found in that text.
+        local map = p:getReadLiterature()
+        if not map or map:isEmpty() then return false end
+        local text = tostring(map)
+        return (text:find("[" .. prefix, 1, true) or text:find(", " .. prefix, 1, true)) and true or false
     end)
     return ok and found or false
 end
@@ -285,7 +285,13 @@ end
 F.DAYS = 7
 -- one TV channel's shows that teach, into out; true when the channel had a script to read
 local function channelShows(ch, now, today, days, out)
-    local sc = ch:IsTv() and ch:getCurrentScript()
+    if not ch:IsTv() then return false end
+    -- 42.21: RadioScriptManager.Load clears every channel's active script and only a RADIO_SAVE.txt line sets it again,
+    -- so on a save without one (or one that says "none") getCurrentScript is nil on every channel although the
+    -- channel still holds its scripts. Each channel's own "main" script (RadioData.xml startscript, keyed by name in
+    -- the channel) is the daily programme, so that one is read when nothing is active.
+    local sc = ch:getCurrentScript()
+    if not sc and ch.getRadioScript then sc = ch:getRadioScript("main") end
     if not sc then return false end
     local base = sc:getStartDayStamp()
     local bl = sc:getBroadcastList()

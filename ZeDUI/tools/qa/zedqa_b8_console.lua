@@ -212,7 +212,7 @@ step(5, function()
     local list = (B and B.zed) and B.zed(p, pn) or {}
     local last = list[#list]
     check(last ~= nil and last.name == ZeD.tr("UI_ZeD_Console_Title"), "pad 1: the ZeD wheel's last slice is the Lua console (" .. tostring(last and last.name) .. ")")
-    check(last ~= nil and last.icon == "bug", "pad 1: with the bug icon")
+    check(last ~= nil and last.icon == "pencil", "pad 1: with the pencil icon")
 end)
 
 -- ===== 12. the switch "Safe mode: Lua console"
