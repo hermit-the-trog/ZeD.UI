@@ -122,12 +122,12 @@ local function skillNameW(name, font)
     return w
 end
 
--- A row's spacing (punch list 35 again, Oct 31 2026): the bar already gave way to its least
--- (the Deck's shot: 21 px, its ten 1-unit segments), but the two ~96u columns there leave a
+-- A row's spacing: the bar gives way first, down to its least
+-- (on the Deck's screen: 21 px, its ten 1-unit segments), but the two ~96u columns there leave a
 -- name ~36u. When even the bar at its least leaves the longest name short, the level badge
 -- closes to its number ("10" and 2u either side) and the spaces round the name to 3u, the
 -- row's right margin to 2u. One choice for the whole grid, so the names stay in line.
--- One column when two would cut a name (the director's pick, Oct 31 2026, punch list 35): true
+-- One column when two would cut a name: true
 -- when a column of the two-column grid, at the usual spacing and the bar at its least, is
 -- narrower than the longest skill name needs. The one column then holds every name and its
 -- full bar, and scrolls.
@@ -320,7 +320,7 @@ function ZeD.SkillsTab.gatherData(playerObj)
 end
 
 -- ============================================================================
--- TRAINING MATERIALS — CIO-style skill book catalog
+-- TRAINING MATERIALS — the skill book catalog
 -- Groups ALL literature by trained skill. Four statuses: read/reading/collected/missing.
 -- Static catalog cached at module level (script items never change mid-game).
 -- ============================================================================
@@ -444,7 +444,7 @@ function ZeD.SkillsTab.gatherTrainingData(playerObj)
 end
 
 -- ============================================================================
--- ROW EXTRAS (Oct 26 2026) -- the general way for another mod's support file
+-- ROW EXTRAS -- the general way for another mod's support file
 -- (ModSupport/<mod id>.lua) to add to the skill grid without touching this
 -- file again. Nothing here draws anything until an extra is added, so the tab
 -- is exactly as built without one. An extra is a table:
@@ -462,11 +462,11 @@ end
 --              text = "...", value = "...", total = true | nil } }, note = "..." }:
 --              the row's hover card (mouse over a row, or the controller's
 --              focus on it) shows the skill's level and these lines
---   tag(playerObj, perk, skill)          (Nov 7 2026, Clear Skill Sheet)
+--   tag(playerObj, perk, skill)          (Clear Skill Sheet reads it)
 --           -> nil, or { text = "...", color = {r,g,b} }: a row tag beside the
---              boost tag, left of it (the director, Nov 7 2026: beside it, not in
---              its place); the first extra that answers wins
---   cardLines(playerObj, perk, skill)    (Nov 7 2026, Clear Skill Sheet)
+--              boost tag, left of it — never in its place; the first extra
+--              that answers wins
+--   cardLines(playerObj, perk, skill)    (Clear Skill Sheet reads it)
 --           -> nil, or a list of lines as card's: added under any extra's card
 --              lines, and a card of their own when no extra has one
 -- First used by ModSupport/SkillRecoveryJournal.lua.
@@ -557,7 +557,7 @@ end
 
 -- Draw a row's tags right to left from x (the bar's left edge); returns where the name must
 -- stop. A tag after the first is drawn only while the name keeps minNameW of room (at the
--- least "A...", the rule the bar follows: punch list 35).
+-- least "A...", the rule the bar follows).
 local function drawRowTags(panel, playerObj, skill, x, y, rowH, nameX, minNameW)
     local T = ZeD.T
     local nameR = x
@@ -674,7 +674,7 @@ local function measureColumnHeight(colGroups, rowH, headerH, groupGap, rowGap)
 end
 
 -- ============================================================================
--- TRAINING MATERIALS — CIO-STYLE MEASUREMENT & RENDERING
+-- TRAINING MATERIALS — MEASUREMENT & RENDERING
 -- Collapsed row: [chevron] [skill label] [status dots...]
 -- Expanded row:  [badge pill] [book title]
 -- Four statuses: read (green), reading (yellow), collected (red), missing (ghost)
@@ -711,7 +711,7 @@ local function truncTextRaw(str, font, maxW)
     return string.sub(str, 1, lo) .. "..."
 end
 
--- (Oct 29 2026, the drawing-cost pass) the answer is kept per font, room and string:
+-- (a drawing-cost fix) the answer is kept per font, room and string:
 -- the binary search above asked the measurer up to eight times per row per frame
 -- (about 140 measures a frame on the stocked character). Dropped with the token
 -- table or the root scale, as ZeD.TM drops its own; the strings come translated, so a
@@ -812,7 +812,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
 
     cy = cy + legRowH + T.px(2)
 
-    -- ── Split groups into 2 columns (simple half-split like CIO) ──
+    -- ── Split groups into 2 columns (a plain half-split) ──
     local half = math.ceil(#training / 2)
     local col1 = {}
     local col2 = {}
@@ -834,7 +834,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             local expandKey = columnKey .. "_" .. skillGroup.label
             local isExpanded = expandedMap and expandedMap[expandKey]
             local dispName = skillGroup.disp or skillGroup.label
-            -- (Oct 29 2026) a row wholly outside the scroll view is laid out, not drawn
+            -- a row wholly outside the scroll view is laid out, not drawn
             local vis = (not view) or ((dy + collapsedRowH > view.y) and (dy < view.y + view.h))
 
             -- the row's hover wash, then the controller's mark (under the words)
@@ -960,14 +960,14 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     end
     local data = win._skillsCache
 
-    -- S103 — cache last frame's row/chevron zones BEFORE we clear/overwrite
+    -- cache last frame's row/chevron zones BEFORE we clear/overwrite
     -- them mid-render. Scroll-follow (below) reads these to find the focused
     -- element's absolute y for scroll-to-viewport math. One-frame lag is
     -- imperceptible (same trick HealthTab uses for injury scroll-follow).
     local lastSkillRowZones = win._skillRowZones or {}
     local lastTrainingZones = win._trainingGroupZones or {}
 
-    -- S103 — resolve the focused element once per frame for the scroll-follow
+    -- resolve the focused element once per frame for the scroll-follow
     -- below (the marks themselves are asked of the library per element: focusOf).
     local focusedSkillName = nil
     local focusedTrainingId = nil
@@ -988,7 +988,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
-    -- Skill row dimensions (matching CIO: F.hgtSmall + 8); a row extra's lane
+    -- Skill row dimensions (the row font's height + 8); a row extra's lane
     -- (ZeD.SkillsTab.addExtras) adds its own band under it
     local baseRowH = secH + T.px(8)
     local laneH = extrasLaneH()
@@ -1000,8 +1000,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- Pinned tab header (37px, not in scroll content)
     local tabHeaderH = M.getTabHeaderH()
 
-    -- S103: stamp the disclosure hit-zone EARLY (was at end of render) so the
-    -- very first prerender after a tab-switch sees valid bounds and the
+    -- the disclosure hit-zone is stamped EARLY, not at the end of render, so
+    -- the very first prerender after a tab-switch sees valid bounds and the
     -- disclosure focusable builds into element[1]. Without this, the first
     -- frame of Skills returns [skill rows, chevrons] only, idx=1 lands on
     -- the first skill row, and the disclosure-first entry point is missed.
@@ -1017,7 +1017,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local colGap = T.sp.sm
 
     -- Distribute groups across 2 columns (load-balanced by skill count); all in the first when
-    -- two columns would cut a name (punch list 35; the width taken as if the scroll bar shows)
+    -- two columns would cut a name (the width taken as if the scroll bar shows)
     win._skillsOneCol = skillsOneColumn(data.categories, math.floor((w - scrollW - pad * 2 - colGap) / 2), T.fontF2)
     local columns = { {}, {} }
     local colCounts = { 0, 0 }
@@ -1043,8 +1043,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local col2H = measureColumnHeight(columns[2], rowH, headerH, groupGap, rowGap)
     local xpGridH = math.max(col1H, col2H)
     local trainingH = measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap, headerH, groupGap, win._trainingExpanded)
-    -- Oct 23 2026 (the pad audit: the tab's last rows sat past the end of the
-    -- scroll): the range covers what the last frame really drew too
+    -- the tab's last rows once sat past the end of the scroll:
+    -- the range covers what the last frame really drew too
     trainingH = math.max(trainingH, (#(training or {}) > 0) and (win._skillsTrainDrawnH or 0) or 0)
     local gridExpanded = win._skillsGridExpanded
     -- the extras' block at the top of the scroll (width: the scroll's, less its bar)
@@ -1073,7 +1073,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- colW accounts for outer pad on both sides within contentW
     local colW = win._skillsOneCol and cw or math.floor((cw - colGap) / 2)
 
-    -- S103 gamepad scroll-follow. When the focused ring element is a skill
+    -- gamepad scroll-follow. When the focused ring element is a skill
     -- row or training chevron, adjust scroll.scrollPos BEFORE scrollOff is
     -- computed so the focused element stays in the viewport. Reads last
     -- frame's stamped zone geometry (cached at render top).
@@ -1144,7 +1144,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local font = T.fontF2
     local barW, barH = A.rowBarW(), A.fillBarCompactH()   -- (each row's level bar)
     local barMin = math.min(barW, A.fillBarMinW(10))          -- (its least: ten 1-unit segments)
-    local fit = skillRowFit(columns, colW, barMin, font)      -- (the badge and spaces, punch list 35)
+    local fit = skillRowFit(columns, colW, barMin, font)      -- (the badge and spaces: the spacing rule above)
     local col1X = x + pad
     local col2X = x + pad + colW + colGap
 
@@ -1154,7 +1154,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     if gridExpanded then
 
-    -- (Oct 29 2026, the drawing-cost pass) rows wholly above or below the scroll view
+    -- (the drawing-cost fix again) rows wholly above or below the scroll view
     -- are laid out but not drawn: the stencil clipped them before, at the full cost of
     -- their draws (the Skills tab was 4.8 ms a frame at 4K on the stocked character)
     local bandTop, bandBot = scrollY, scrollY + scrollH
@@ -1206,8 +1206,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
                     -- The level bar at the right: ten segments, one per level (its help line: the XP to the next).
                     -- A name short of room takes it from the bar first, down to the bar's least; the
-                    -- level number (the badge) stays (Oct 31 2026, punch list 35, the director's pick:
-                    -- at 1280x720, UI scale 2.0, Large text the names read "A...")
+                    -- level number (the badge) stays (without this, at 1280x720,
+                    -- UI scale 2.0, Large text, the names read "A...")
                     local nameX = startX + fit.badge + fit.gap
                     local rowBar = barW
                     local over = skillNameW(skill.name, font) - (startX + colWidth - fit.edge - barW - fit.gap - nameX)

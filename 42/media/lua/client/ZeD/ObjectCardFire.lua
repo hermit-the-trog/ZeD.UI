@@ -1,13 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardFire.lua
 -- ============================================================================
--- OBJECT CARD: FIRES (HOOK_MAP row 12; mockup zed_info_cards_v1.html)
+-- OBJECT CARD: FIRES (HOOK_MAP row 12)
+-- Client; one card kind for ZeD.ObjectCards (ObjectCards.lua draws the frame,
+-- this def fills it).
 -- One fire card for campfires, charcoal barbecues and fireplaces: fuel as time
 -- left on a strip that ends at the sandbox maximum, Add fuel (what you carry
 -- that burns and the time each piece adds), Light with (the methods vanilla
 -- offers), what is on the fire with the item card's cooking reading, and
 -- smouldering as a third state. Put out, Light and Add fuel are shown only
--- when they make sense and can be done (hidden actions). The propane barbecue gets its own plate: the
--- game's Jorge Foreguy cart grill in pixel art (director, Oct 16 2026; the
+-- when they make sense and can be done (hidden actions). The propane barbecue
+-- gets its own plate: the game's Jorge Foreguy cart grill in pixel art (the
 -- shared plate template ZeD_Plate.lua draws it from PhysPx.lua): the burner
 -- knobs' pointers, the flames' glow under the hood, the lid thermometer, the
 -- tank gauge and the tank in the cart. The centre knob and the red igniter
@@ -66,8 +68,8 @@ end
 
 local def = { id = "fire" }
 
--- Accepts a campfire (its Lua object or the IsoObject) or a barbecue /
--- fireplace IsoObject.
+--- Accepts a campfire (its Lua object or the IsoObject) or a barbecue /
+--- fireplace IsoObject.
 function def.resolve(player, obj)
     if not obj then return nil end
     local sq = call(obj, "getSquare")
@@ -287,7 +289,7 @@ end
 
 function def.title(t) return t.d and t.d.name or ZeD.tr("UI_ZeD_Fire_Fire") end
 function def.icon(t) return t.d and t.d.tex or nil end
--- the state tag: its words, and the colour of the square mark before them (none for a plain tag)
+--- The state tag: its words, and the colour of the square mark before them (none for a plain tag).
 function def.pill(t)
     local T = ZeD.T
     local d = t.d

@@ -1,8 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/TestInventory.lua
 -- ============================================================================
--- F6 TEST WINDOW — dev-only proving ground for InventoryRenderer.
--- Not required for production — safe to remove from Workshop builds.
--- Extracted renderer module to InventoryRenderer.lua.
+-- F6 TEST WINDOW (client, dev-only) — the smallest harness around
+-- InventoryRenderer: one ZeD window and a panel wired straight to the
+-- renderer's exports, nothing else. The Character and World windows grew out
+-- of this file; it stays so a renderer change can be tried on F6 without
+-- opening either. Not part of a release — safe to remove from Workshop builds.
 -- ============================================================================
 
 require "ZeD/InventoryRenderer"
@@ -74,11 +76,11 @@ local function toggleTestInventory()
     content._selectedContainers = {1}   -- start with main inventory
     content._activeCol  = 1             -- which column has focus
 
-    -- Initialize column states
     content._colStates = {}
     rebuildColStates(content)
 
-    -- Bind initial single-column state
+    -- The renderer's single-column path reads these off the panel itself, so
+    -- mirror the first column's state there.
     local cs = content._colStates[1]
     content._inventory       = cs.inventory
     content._selectedItems   = cs.selectedItems
@@ -104,7 +106,8 @@ local function toggleTestInventory()
     content._dragSourceCol  = nil
     content._dragSourceInv  = nil
 
-    -- Draw hooks: multi-column dispatcher replaces renderItemList
+    -- Draw hooks: the multi-column dispatcher draws the body, the drag ghost
+    -- draws over it.
     content._onPrerender = renderMultiColumnContent
     content._onRender = function(self) self._drag:drawGhost(self) end
 

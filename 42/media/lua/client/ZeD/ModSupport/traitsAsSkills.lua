@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/traitsAsSkills.lua
 -- ============================================================================
--- SUPPORT FOR TRAITS AS SKILLS (mod id traitsAsSkills, Workshop 3784847437).
--- Client. The mod's trait ladders become a Traits tab in ZeD's Character window.
+-- SUPPORT FOR TRAITS AS SKILLS (mod id traitsAsSkills, Workshop 3784847437, by
+-- GersonRess). Client. The mod's trait ladders become a Traits tab in ZeD's
+-- Character window.
 --
 -- The mod turns traits into ladders that level up and down with play and puts a
 -- Traits tab in the game's Character window, which ZeD never shows. This is that

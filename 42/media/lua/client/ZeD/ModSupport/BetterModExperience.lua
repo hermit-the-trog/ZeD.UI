@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/BetterModExperience.lua
 -- ============================================================================
 -- SUPPORT FOR BETTER MOD EXPERIENCE (mod id BetterModExperience, Workshop
--- 3834902827). Client.
+-- 3834902827, by coldfeudal). Client.
 --
 -- What the mod does, file by file:
 --   * BME_Sorting / BME_ModMenus: the active mod list is sorted by the game's

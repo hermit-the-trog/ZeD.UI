@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/Clear_SkillSheet.lua
 -- ============================================================================
--- SUPPORT FOR CLEAR SKILL SHEET (mod id Clear_SkillSheet, Workshop 3834856444).
--- Client.
+-- SUPPORT FOR CLEAR SKILL SHEET (mod id Clear_SkillSheet, Workshop 3834856444,
+-- by m4as). Client.
 --
 -- What the mod does: it redraws the game's skills page (it replaces the
 -- methods of ISCharacterInfo, the game's Skills view, at load time) as two

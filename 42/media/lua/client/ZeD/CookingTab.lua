@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/CookingTab.lua
 -- ============================================================================
--- COOKING TAB — Character window, contextual (punch list 80; ZeDUI/COOKING_TAB_DRAFT.md,
--- the director's picks Nov 3 2026: "Go with your recs and we will tune it")
+-- COOKING TAB — client; a Character window tab that only shows in context.
 --
 -- The second way to make the game's pot-and-pan dishes (its evolved recipes: stews,
 -- soups, stir-fries, salads, sandwiches, pies, drinks...), which are otherwise
@@ -92,7 +91,7 @@ local function catalog()
         -- from scratch only: a recipe that adds to a dish already made (base == its result) is left to the game
         if not hidden and base ~= result then
             -- one dish per name: the game's Stir fry, Stir fry Griddle Pan and Stir fry Forged are one
-            -- Stir-fry, made in whichever of them is at hand (QA, Nov 3 2026)
+            -- Stir-fry, made in whichever of them is at hand
             local label = labelOf(r)
             local key = CAT.keyOfLabel[label]
             CAT.keyOf[r] = key
@@ -131,7 +130,7 @@ end
 
 local function containersFor(chr)
     -- (the game's list reads the player's inventory pages; at quit the window draws once after they
-    -- are gone, and the game's function prints its error even under pcall: QA, Nov 3 2026)
+    -- are gone, and the game's function prints its error even under pcall)
     local pn = chr:getPlayerNum()
     local ok0, ready = pcall(function() return getPlayerInventory(pn) ~= nil and getPlayerLoot(pn) ~= nil end)
     if not (ok0 and ready) then return ZeD.CraftingCore.buildContainers(chr) end
@@ -235,7 +234,7 @@ local function ingredients(s, chr)
                 if not g then
                     local spice = false
                     -- as the game's own menu reads it: a food's own isSpice, the script's only for a non-food
-                    -- (the script says spice for many vegetables: QA saw a stir-fry take five, Nov 3 2026)
+                    -- (the script says spice for many vegetables; read that way a stir-fry took five)
                     pcall(function()
                         if instanceof(it, "Food") then spice = it:isSpice() else spice = it:getScriptItem():isSpice() end
                     end)
@@ -267,7 +266,7 @@ local function ingredients(s, chr)
         end
     end
     -- every item of each kind in reach, in the same state as the one the game offers (the game's list
-    -- may hold one of each kind; the count and Make need them all: QA, Nov 3 2026)
+    -- may hold one of each kind; the count and Make need them all)
     local function same(a, b)
         if not instanceof(a, "Food") then return true end
         return a:isRotten() == b:isRotten() and a:isFrozen() == b:isFrozen() and a:isBurnt() == b:isBurnt()
@@ -351,8 +350,8 @@ function ZeD_CookAdd:start()
 end
 function ZeD_CookAdd:complete()
     -- the dish as it is now: in 42.22 an action's complete() runs after the next one's isValidStart()
-    -- and start() (QA's diagnostic, 2026-11-03_cook80_diag.md), so the next add began on the plain pot
-    -- and made a second stew; the completes run in queue order, so the chain is right here
+    -- and start(), so the next add would begin on the plain pot and make a second stew; the
+    -- completes run in queue order, so the chain is right here
     self.baseItem = self.chain.base
     local ok = ISAddItemInRecipe.complete(self)
     self.chain.base = self.baseItem
@@ -360,10 +359,10 @@ function ZeD_CookAdd:complete()
 end
 
 -- ----------------------------------------------------------------------------
--- Make on a server (QA's multiplayer check, Nov 5 2026; the director: fixed for Beta 4). The server builds an
--- action's own half from its Lua type and runs its complete() there; ZeD_CookAdd lives in this client file, so the
--- server did not know it and the add stopped at once (no stew, the ingredients untouched). The game's own
--- ISAddItemInRecipe works there (QA: mp_cook_vanilla.lua). So on a server each ingredient is the game's own action,
+-- Make on a server. The server builds an action's own half from its Lua type and runs its complete() there;
+-- ZeD_CookAdd lives in this client file, so the server does not know it and the add stops at once (no stew,
+-- the ingredients untouched). The game's own ISAddItemInRecipe works there.
+-- So on a server each ingredient is the game's own action,
 -- and before each one after the first a short wait of ZeD's own (client only, no complete(), as ZeDOpenCardAction)
 -- finds the dish the last add left and queues the next add onto it: the first add turns the base into another item
 -- (a pot of water becomes a pot of stew, with a new id), made on the server and sent back.
@@ -1004,7 +1003,7 @@ function CK.render(panel, win, x, y, w, h)
     local inR = (not isGamepad()) and not s.popup and mx >= rx and mx < x + w and my >= top and my < top + bodyH
     -- The Character window clips its drawer with a stencil, and PZ stencils do not nest: a column's own
     -- clip, once cleared, leaves its rect marked apart from the drawer's, so what draws over it later
-    -- (the open Dish and Sort lists) was hidden there (QA, Nov 3 2026). After each column the drawer's
+    -- (the open Dish and Sort lists) would be hidden there. After each column the drawer's
     -- clip is laid again over the whole tab.
     local function relayClip()
         panel:clearStencilRect()

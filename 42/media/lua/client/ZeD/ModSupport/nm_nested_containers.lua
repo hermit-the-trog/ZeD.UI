@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/nm_nested_containers.lua
 -- ============================================================================
 -- SUPPORT FOR [B42] NESTED CONTAINERS (mod id nm_nested_containers, Workshop
--- 3410947298). Client. Bags inside bags get ZeD container buttons of their own.
+-- 3410947298, by Nikku Miru). Client. Bags inside bags get ZeD container
+-- buttons of their own.
 --
 -- The mod gives a bag carried inside another container a container button of
 -- its own in the game's inventory and loot windows (its Nested.lua, on the

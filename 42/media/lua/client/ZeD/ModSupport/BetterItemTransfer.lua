@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/BetterItemTransfer.lua
 -- ============================================================================
 -- SUPPORT FOR BETTER ITEM TRANSFER (mod id BetterItemTransfer, Workshop
--- 3830103302). Client.
+-- 3830103302, by SuperOl3g). Client.
 --
 -- The mod rearranges the item right-click menu (where to take or move items,
 -- exact amounts, its own icons) and its options are in Options > Mods. Its menu

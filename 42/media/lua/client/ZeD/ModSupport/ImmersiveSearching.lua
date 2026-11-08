@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/ImmersiveSearching.lua
 -- ============================================================================
 -- SUPPORT FOR IMMERSIVE SEARCHING [B42MP] (mod id ImmersiveSearching, Workshop
--- 3760450908; its add-on OpenAllContainersISCompat needs nothing here). Client.
+-- 3760450908, by kitsuneyuki (yuckyfox); its add-on OpenAllContainersISCompat
+-- needs nothing here). Client.
 --
 -- The mod hides a container's things until the character searches it, a timed
 -- action of its own (ImmersiveSearching_ISSearch: its sound, its animation,

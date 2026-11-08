@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/WoundsOverhaul.lua
 -- ============================================================================
--- SUPPORT FOR WOUNDS OVERHAUL [B42] (mod id WoundsOverhaul, Workshop 3775026731).
--- Client. What follows about the mod was read from its own code, version 0.6.2.
+-- SUPPORT FOR WOUNDS OVERHAUL [B42] (mod id WoundsOverhaul, Workshop 3775026731,
+-- by looo6). Client. What follows about the mod was read from its own code,
+-- version 0.6.2.
 --
 -- What the mod does: "the Health tab becomes an examination". A limb has to be
 -- looked at before the game names what is on it or offers to treat it (on its

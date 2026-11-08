@@ -351,8 +351,8 @@ local function tryFixingManager(card)
             end
         end
     end
-    -- No fixer in the bags: the character says what the repair needs (the
-    -- greyed verb still answers a press with its reason, cohesion spec 9)
+    -- No fixer in the bags: the character says what the repair needs (a
+    -- greyed verb still answers a press with its reason)
     noteNeeds(card, "repair")
 end
 
@@ -397,8 +397,9 @@ local function sharpenRecipe(player, item)
     return nil
 end
 
--- SHARPEN: vanilla's own (ISFirearmRadialMenu.sharpenWeapon): the whetstone
--- recipe, else the poor one with a file; it ran a repair before (Oct 19 2026).
+-- SHARPEN: the same recipes vanilla's radial menu runs
+-- (ISFirearmRadialMenu.sharpenWeapon): the whetstone one, else the poor one
+-- with a file. A sharpen, never a repair.
 VERB_DISPATCH.sharpen = function(card)
     local player = getSpecificPlayer(card.playerNum)
     if not (player and card.item) then return end
@@ -412,7 +413,7 @@ end
 
 -- WASH: vanilla's own wash (ISWorldObjectContextMenu.onWashClothing: walks to
 -- the water, uses soap when you carry it) at the nearest water within two
--- tiles; none in reach says so (Oct 19 2026: the button did nothing).
+-- tiles; none in reach says so instead of doing nothing.
 VERB_DISPATCH.wash = function(card)
     local player = getSpecificPlayer(card.playerNum)
     if not (player and card.item) then return end
@@ -423,7 +424,7 @@ VERB_DISPATCH.wash = function(card)
 end
 
 -- ---------------------------------------------------------------------------
--- WHAT A CARE VERB NEEDS (conditional disclosure, cohesion spec 9a)
+-- WHAT A CARE VERB NEEDS (conditional disclosure)
 -- For each care verb of the card (Wash, Repair, Pad, Sharpen): can it be done
 -- now (canDo), does it make sense now (sensible: Repair on a garment with no
 -- holes, or on a weapon in full condition, does not: the verb is gone), what it
@@ -699,7 +700,7 @@ function ZeD_ItemCard:new(x, y, width, height, mode, playerNum)
     o.toggleHover  = nil;  o.toggleWasDown  = false;  o.toggleRects = {}
     o.verbHover    = nil;  o.verbWasDown    = false;  o.verbRects   = {}
     o._verbDefs    = {}
-    -- Fold state (per-type disclosure toggles, persisted via modData)
+    -- Fold state (per-disclosure-key toggles, persisted via modData)
     o._foldStates    = {}        -- {clothing_zones=bool, food_nutrition=bool, food_ingredients=bool}
     o._foldHitRects  = {}        -- rebuilt each frame: {x,y,w,h,key}
     o._headH         = 0         -- cached sticky head height
@@ -744,9 +745,9 @@ function ZeD_ItemCard:_onZonePress(zoneIdx, zone, rect)
     if not parts or zoneIdx > parts:size() then return end
     local part = parts:get(zoneIdx - 1)  -- Java 0-indexed
 
-    -- Oct 15 2026 (Inspect routed here, Overrides/Garment.lua): the dock opens
-    -- vanilla's own tailoring choices for the part (which fabric, patch every
-    -- hole, remove one patch or all), in the ZeD list under the dock. The
+    -- The dock opens vanilla's own tailoring choices for the part (which
+    -- fabric, patch every hole, remove one patch or all), in the ZeD list
+    -- under the dock (ZeD.Garment.tailorMenu, Overrides/Garment.lua). The
     -- one-press repair below stays as the fallback.
     if ZeD.Garment and ZeD.Garment.tailorMenu then
         local x = rect and rect.x or (self:getAbsoluteX() + math.floor(self:getWidth() / 2))
@@ -826,7 +827,7 @@ function ZeD_ItemCard:_cancelRename()
 end
 
 -- ---------------------------------------------------------------------------
--- PROGRESS BAND CANCEL DISPATCH (S122 Phase B9)
+-- PROGRESS BAND CANCEL DISPATCH
 -- Stops the active TimedAction for self.item via the action ref carried in
 -- the ItemActionManager descriptor. ISBaseTimedAction.forceStop is the
 -- canonical cancellation method; falls back to clearing the player's
@@ -848,8 +849,8 @@ function ZeD_ItemCard:_dispatchProgressCancel()
         -- safe — the user explicitly clicked cancel.
         local p = getSpecificPlayer(self.playerNum or 0)
         if p and ISTimedActionQueue and ISTimedActionQueue.queues then
-            local q = ISTimedActionQueue.getTimedActionQueue(p)  -- S123: queues are keyed by character, not playerNum
-            -- S123: never forceStop queued-but-unstarted actions — vanilla's
+            local q = ISTimedActionQueue.getTimedActionQueue(p)  -- queues are keyed by character, not playerNum
+            -- Never forceStop queued-but-unstarted actions — vanilla's
             -- ISBaseTimedAction:forceStop indexes self.action, which is nil
             -- until start(), and throws. ISTimedActionQueue:clearQueue is the
             -- vanilla-safe way to drop the whole queue.
@@ -862,11 +863,11 @@ function ZeD_ItemCard:_dispatchProgressCancel()
 end
 
 -- ---------------------------------------------------------------------------
--- HEADER VERB DISPATCH (S121 Phase B8)
--- Maps the v15 back-bar verb label to the corresponding vanilla
--- ISInventoryPaneContextMenu handler, then re-fires updateDrawer so the card
--- closes / re-opens correctly when item state changes (equip → unequip flips
--- sourceContext → cluster shifts).
+-- HEADER VERB DISPATCH
+-- Maps a back-bar verb id to the matching vanilla ISInventoryPaneContextMenu
+-- handler. After a verb lands and the item's state changes (equip → the
+-- item is now worn), the verb cluster follows on the next render through
+-- _effectiveContext below.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_dispatchHeaderVerb(label)
     local item = self.item
@@ -880,10 +881,11 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
     if not item:getContainer() then return end
 
     -- Vanilla helpers expect an array of items (they run getActualItems on it
-    -- to unpack stacks). Every name below was verified against the Oct 6 2026
-    -- stable sources (S123). The pre-S123 names (onWear, onEquipPrimary,
-    -- onEquipWeapon, OnReadBook, OnRead) never existed in stable, so the
-    -- `if CM.x then` guards turned EQUIP and READ into silent no-ops.
+    -- to unpack stacks). Every CM name below is verified against vanilla's
+    -- own Lua (B42 stable). Plausible-looking names (onWear, onEquipPrimary,
+    -- onEquipWeapon, OnReadBook, OnRead) do not exist there, and behind the
+    -- `if CM.x then` guards a wrong name turns EQUIP or READ into a silent
+    -- no-op - so verify, never guess.
     local items = {item}
     local CM = ISInventoryPaneContextMenu
 
@@ -949,7 +951,7 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         if ISInventoryPane and ISInventoryPane.doContextualDblClick then
             ISInventoryPane.doContextualDblClick(stub, item)
         end
-    -- Oct 19 2026 (the single-path audit): verbs only the context menu had
+    -- the verbs vanilla keeps in the context menu only
     elseif label == "DRINK" then
         if CM.onDrinkFluid then CM.onDrinkFluid(item, 1, player, nil, item) end
     elseif label == "WEAR" then
@@ -972,13 +974,13 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
 end
 
 -- ---------------------------------------------------------------------------
--- LIVE SOURCE CONTEXT (S123)
+-- LIVE SOURCE CONTEXT
 -- The window stamps self.sourceContext once, at selection time. After a verb
--- fires (EQUIP → item now worn; TAKE → item now in the backpack) the stamp is
--- stale, so the verb cluster kept showing the verb that was just used until
--- the user re-selected the row. This re-derives the context from the item's
--- actual state each render. The stored stamp is only the fallback for items
--- whose state can't be read (world items with no container, nil item).
+-- fires (EQUIP → item now worn; TAKE → item now in the backpack) that stamp
+-- is stale and the cluster would keep offering the verb just used, so the
+-- context is re-derived from the item's actual state each render. The stored
+-- stamp is only the fallback for items whose state can't be read (world
+-- items with no container, nil item).
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_effectiveContext()
     local ctx  = self.sourceContext or "inventory"
@@ -1006,14 +1008,15 @@ function ZeD_ItemCard:_effectiveContext()
 end
 
 -- ---------------------------------------------------------------------------
--- FOLD STATE: per-type disclosure toggles, persisted via player modData
+-- FOLD STATE: the disclosure toggles, persisted per disclosure key in player
+-- modData - one setting for all items, not one per item.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_loadFoldStates()
     local player = getSpecificPlayer(self.playerNum)
     if not player then self._foldStates = {}; return end
     local md = player:getModData()
     -- Detail zones default OPEN on first encounter — the drawer card IS the
-    -- inspector (per design: no separate inspect window). Once the user toggles,
+    -- inspector (there is no separate inspect window). Once the user toggles,
     -- their preference persists via modData.
     local function foldDefault(key, def)
         local v = md["ZeD_fold_" .. key]
@@ -1054,7 +1057,9 @@ function ZeD_ItemCard:_getPrimaryBar(item)
 end
 
 -- ---------------------------------------------------------------------------
--- HEIGHT CALCULATIONS: sticky head + scrollable body
+-- HEIGHT CALCULATIONS: sticky head + scrollable body. These sum the old
+-- card layout: prerender uses them only outside drawer mode, and
+-- _toggleFold still clamps scroll with them.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_calcHeadH()
     if not self.item then return 0 end
@@ -1188,10 +1193,10 @@ end
 
 -- ---------------------------------------------------------------------------
 -- THE POINTER: action strip interaction (toggle buttons + verb buttons, both modes)
--- These controls poll the raw mouse. The engine runs update() only every 100 ms
--- (42.22), so a click that fell between two updates did nothing (Oct 30 2026, the
--- director: "clicking back on an item card does nothing"): they are polled at the
--- end of every frame drawn (render), against the rects that frame stamped.
+-- These controls poll the raw mouse. The engine runs update() only every
+-- 100 ms (42.22), so a click can fall between two updates and land on
+-- nothing: they are polled at the end of every frame drawn (render),
+-- against the rects that frame stamped.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:update()
     ISPanel.update(self)
@@ -1200,10 +1205,11 @@ end
 function ZeD_ItemCard:_pointer()
     if not self.item then return end
 
-    -- S121 (Phase B8): back-bar click dispatch. _backBarRects is stamped by
-    -- renderBody each frame: .back = back-arrow rect, .verbs[i] = header
-    -- verb rects (right-aligned, drawn right-to-left so [1] is leftmost
-    -- after primary). Verb labels come from ZeD.ItemCard.headerVerbsForContext.
+    -- Back-bar click dispatch. _backBarRects is stamped by renderBody each
+    -- frame: .back = the back key's rect (the card's X), .verbs[i] matches
+    -- headerVerbs[i] (the cluster is right-aligned: the last entry, MORE,
+    -- sits at the right edge; the primary leftmost of the cluster). Verb
+    -- labels come from ZeD.ItemCard.headerVerbsForContext.
     do
         local mxAbs   = getMouseX()
         local myAbs   = getMouseY()
@@ -1293,7 +1299,7 @@ function ZeD_ItemCard:_pointer()
     self.verbHover    = newVerbHover
     self.verbWasDown  = down and (newVerbHover ~= nil)
 
-    -- The mark strip's Lists button (loadouts B3): released on it, the lists' pop-up
+    -- The mark strip's Lists button: released on it, the lists' pop-up
     do
         local r = self._listsRect
         local inL = r and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h or false
@@ -1381,13 +1387,13 @@ function ZeD_ItemCard:prerender()
     self.colGap = ZeD.T.sp.sm
     self.iconSz = ZeD.T.cardIconSz
 
-    -- S121: in drawer mode, the card always fills its parent (the itemDrawer
-    -- panel sized to win body). renderBody stamps `self._headH` and
-    -- `self._contentH` based on actual v15 chrome + body composition; the
-    -- scrollbar is configured against THOSE values one frame later. Legacy
-    -- _calcHeadH / _calcBodyH (pre-S121 ItemCard layout assumptions) is
-    -- skipped here — calling it would shrink the card to the OLD layout's
-    -- content height and clip Defense Facts + lower zone groups.
+    -- In drawer mode the card always fills its parent (the itemDrawer panel
+    -- sized to the window body). renderBody stamps `self._headH` and
+    -- `self._contentH` from the real chrome + body composition; the
+    -- scrollbar is configured against THOSE values one frame later. The
+    -- legacy _calcHeadH / _calcBodyH sums are skipped here — they describe
+    -- the old card layout, and would shrink the card to the old content
+    -- height and clip Defense Facts + lower zone groups.
     if self.item then
         if self.mode == "drawer" and self.parent then
             -- _fillH: a host that keeps a strip under the card (the Equip tab's layer strip)
@@ -1463,9 +1469,9 @@ local function buildZoneConfigs(item)
     local zones  = getClothingZones(item)
     local cfgs   = {}
     for _, zone in ipairs(zones) do
-        -- Pristine + clean zones get NO dock — drawZoneRow will collapse the
-        -- bottom row entirely (no "OK" filler row). Only build a dock when there
-        -- IS something to communicate (TORN/WORN flag or active patch).
+        -- Pristine + clean zones get NO dock entry — their row shows "-" in
+        -- the flag column and a greyed dock cell. Only build a dock when
+        -- there IS something to communicate (TORN/WORN flag or active patch).
         local dock = nil
         if zone.condIconKey or zone.flagText then
             local dockFlag  = zone.flagText or "-"
@@ -1485,7 +1491,7 @@ local function buildZoneConfigs(item)
             soiledCfg = { blood = math.floor(zone.bloodPct * 100) }
         end
         -- Action key derived from condIconKey so render-time dispatch + greying
-        -- doesn't have to re-walk getClothingZones (avoids double Q119 pcall log).
+        -- doesn't have to re-walk getClothingZones (and double its pcall cost).
         local actionKey = nil
         if     zone.condIconKey == "fashion-004-needle" then actionKey = "repair"
         elseif zone.condIconKey == "sewing--pliers"     then actionKey = "remove-patch"

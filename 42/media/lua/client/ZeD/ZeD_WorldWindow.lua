@@ -1,12 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_WorldWindow.lua
 -- ============================================================================
--- WORLD WINDOW — "the world and its stuff"
--- Action tab waterfall + placeholder cards + multi-container columns.
--- Container strip LEFT, item list CENTER, drawer RIGHT, action tabs RIGHT EDGE.
--- Ctrl+Click containers for MC columns. XFER strips + cross-column drag-drop.
+-- WORLD WINDOW — "the world and its stuff". Client; organism: a plain
+-- ZeD_Window shell with ZeD_Panel panes, the Character window's mirror.
+-- Container strip LEFT, item list CENTER, drawer RIGHT, action tabs RIGHT
+-- EDGE. A click on a strip container opens it as a column beside the others
+-- (MC: multi-container); XFER strips and cross-column drag-drop move items.
 --
--- Does NOT touch ISInventoryPage. Does NOT register with Java UIManager.
--- Plain ZeD_Window shell with ZeD_Panel content area.
+-- Does NOT touch ISInventoryPage, and never registers with Java's UIManager
+-- (that pairing can't be undone from Lua) — vanilla's loot page is hidden
+-- behind this window instead.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -40,7 +42,7 @@ require "ZeD/ContainerGates"
 ZeD = ZeD or {}
 ZeD_WorldWindow = {}
 
--- Shared renderer functions (lazy-init after TestInventory loads)
+-- The shared list renderer (ZeD.InventoryRenderer), cached on first use
 local R = nil
 local function getR()
     if not R then R = ZeD.InventoryRenderer end
@@ -49,39 +51,39 @@ end
 
 -- ============================================================================
 -- CONSTANTS
--- S124 scale: every constant below is a DESIGN UNIT (1 px at 1080p). Each use
--- goes through T.px(...) at call time; never add them to screen px unwrapped.
+-- Every constant below is a DESIGN UNIT (1 px at 1080p). Each use goes
+-- through T.px(...) at call time; never add them to screen px unwrapped.
 -- ============================================================================
 
 local CONTAINER_STRIP_W    = 36
 local CONTAINER_BTN_SZ     = 36
 local STRIP_SCROLL_ROW_H   = 16
--- The drawer is one of two widths and no other (director, Oct 29 2026: "a full card and a half card"; a
--- third width bumps the cards into each other). ITEM_CARD_W is the half card: the item card is drawn at it,
+-- The drawer is one of two widths and no other — a full card and a half card;
+-- a third width bumps the cards into each other. ITEM_CARD_W is the half card: the item card is drawn at it,
 -- and DRAWER_W (the width a small window steps down to) is the same number. TAB_DRAWER_W and
 -- OBJECT_CARD_W are the full card.
 local ITEM_CARD_W          = 220
 local DRAWER_W             = ITEM_CARD_W
 local TAB_DRAWER_W         = 480
--- The inventory's minimum width beside an open full card (director, Nov 1 2026, punch list 42 a.; the
--- same number and reasons as ZeD_CharacterWindow's INV_MIN_BESIDE_CARD): alone the inventory keeps 200
+-- The inventory's minimum width beside an open full card (the same number and
+-- reasons as ZeD_CharacterWindow's INV_MIN_BESIDE_CARD): alone the inventory keeps 200
 -- units, beside a full card it gives way down to 180 before the tab drops to the half card.
 local INV_MIN_BESIDE_CARD  = 180
-local OBJECT_CARD_W        = 480   -- S124 object cards (generator, fires, farm plots)
+local OBJECT_CARD_W        = 480   -- object cards (generator, fires, farm plots)
 local DRAWER_PX_SPEED      = 260 * 8   -- ~2080 design units/sec, matches char window; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local ACTION_TAB_STRIP_W   = 36
 local ACTION_TAB_BTN_SZ    = 36
--- Tab strip separator (matches CharacterWindow). Moved up from line ~207 in
--- S94 because _buildWorldTabBarElements references these — forward-local refs
--- capture nil in Kahlua (common mistake #16).
-local TAB_SEP_H            = 0   -- separator off (director, Oct 22 2026: the tab borders already divide them)
+-- Tab strip separator (matches CharacterWindow). Declared this early because
+-- _buildWorldTabBarElements reads them — in Kahlua a closure captures a local
+-- declared below it as nil.
+local TAB_SEP_H            = 0   -- separator off: the tab borders already divide them
 local TAB_SEP_MAR          = 0
 
--- S124 object cards: drop the object card from the drawer. Hoisted above all
--- consumers (tab switches, MC entry, item selection, the public close).
+-- Drop the object card from the drawer. Declared above all its consumers
+-- (tab switches, MC entry, item selection, the public close).
 local function dropObjectCard(win)
     if not win or not win._drawerObject then return end
-    -- a pinned card (the trade, the director Nov 7 2026) stays through tab switches, item cards and the
+    -- a pinned card (the trade) stays through tab switches, item cards and the
     -- like; only its own close (closeObjectCard: the close key, B, Cancel) takes it away
     local pd = win._drawerObject.def
     if pd and pd.pinned and not win._forceDrop then
@@ -96,28 +98,29 @@ local function dropObjectCard(win)
     end
 end
 
--- Action tab definitions — group 2 reserved for contextual tabs
+-- Action tab definitions — group 1 the core tabs, group 2 the world-state
+-- pages (some only visible in context)
 local WORLD_TABS = {
     -- key = ZeD's word for the tab, vkey = vanilla's own where it has the same word; the
     -- tab's name is read where it is shown (ZeD_WorldWindow.tabLabel), so the language applies
     { id = "loot",   key = "UI_ZeD_World_TabLoot", group = 1, glyph = "L", iconName = "loot-tab-white" },
     { id = "craft",  vkey = "IGUI_CraftingWindow_Title", group = 1, glyph = "C", iconName = "craft-tab-white" },
     { id = "build",  key = "UI_ZeD_World_TabBuilding", group = 1, glyph = "B", iconName = "build-tab-white" },
-    -- S124: Furniture — vanilla's moveables mode (pick up, place, rotate,
+    -- Furniture — vanilla's moveables mode (pick up, place, rotate,
     -- disassemble, repair); opening the tab starts the furniture cursor (ZeD.FurnitureTab)
     { id = "furniture", vkey = "IGUI_CraftingCategories_Furniture", group = 1, glyph = "U", iconName = "move-tab-white" },
     { id = "maps",   key = "UI_ZeD_World_TabMaps", group = 2, glyph = "M", iconName = "map-tab-white" },
     { id = "forage", vkey = "IGUI_ScavengeUI_Title", group = 2, glyph = "F", iconName = "forage-tab-white",
       visible = function(win) return true end },  -- always visible (informational surface)
     { id = "animals", key = "UI_ZeD_World_TabAnimals", group = 2, glyph = "A", iconName = "farm-tab-white" },
-    -- S115: Radio (contextual) — visible when at least one IsoWaveSignal radio
+    -- Radio (contextual) — visible when at least one IsoWaveSignal radio
     -- is reachable in the player's 3x3 grid. Same predicate model as Foraging.
     { id = "radio",  vkey = "IGUI_ItemType_Radio", group = 2, glyph = "R",
       iconName = "radio-tab-white",
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
-    -- S124: Vehicle (contextual) — vehicle mechanics. Visible while a vehicle is
+    -- Vehicle (contextual) — vehicle mechanics. Visible while a vehicle is
     -- within reach or an inspected one is within six tiles (ZeD.MechanicsTab).
     { id = "vehicle", key = "UI_ZeD_World_TabVehicle", group = 2, glyph = "V",
       iconName = "vehicle-tab-white",

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/ItemConditionRestored.lua
 -- ============================================================================
 -- SUPPORT FOR ITEM CONDITION RESTORED (mod id ItemConditionRestored, Workshop
--- 3834708364; it continues the older Item Condition mod). Client.
+-- 3834708364; it continues Item Condition by Qudix). Client.
 --
 -- The mod draws a bar behind each item on the game's hotbar (ISHotbar:render)
 -- and a circle behind the two hand items (ISEquippedItem:render): how much is

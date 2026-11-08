@@ -1,14 +1,17 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Input/FocusManager.lua
 -- ============================================================================
--- LAYER 3 — FocusManager (S113 — FLAT FREE-NAV model)
+-- FOCUS MANAGER — which window holds the pad, and what every button does there.
+-- Client. The heart of the controller stack: InputModeDetector says the pad
+-- is live, BumperChord stands down while a window is focused, ActionMap names
+-- each button's action, SpatialNav picks where a D-pad move lands — this file
+-- owns the focus itself and dispatches everything in between.
 --
--- Replaces the S97 RING model. Per-window zones still exist as a STORAGE
--- abstraction (per-tab builders still call setRingZoneElements / setZoneFocusable
--- — no churn) but D-pad nav is now FLAT across every focusable zone of the
--- focused window. Bumpers no longer cycle zones; they swap between the two
--- always-paired Character/World windows.
+-- Windows store their focusable controls in zones (per-tab builders call
+-- setRingZoneElements / setZoneFocusable), but D-pad nav is FLAT across every
+-- focusable zone of the focused window. Bumpers don't cycle zones; they swap
+-- between the two always-paired Character/World windows.
 --
--- NAV MODEL (design director ruling, locked S113b brainstorm):
+-- NAV MODEL:
 --   LB                       — swap focus to other window (Char ↔ World)
 --   RB                       — swap focus to other window (Char ↔ World)
 --   D-pad up/down/left/right — cone-nav across ALL focusable zones in the focused window
@@ -17,7 +20,7 @@
 --   X                        — fire focused element's onContextMenu (= RMB);
 --                              else onReset if defined (3-option dialogs only)
 --   B                        — fire focused element's onCancel if defined; else NO-OP
---                              (no shade-all fallback; pure contextual cancel)
+--                              (no shade-all fallback; purely contextual cancel)
 --   Y tap                    — toggle paired visibility (open both/hide both/unhide both)
 --   Y hold (>=400ms)         — close BOTH windows (full lifecycle teardown)
 --   Right stick |v|² > 0.81  — instant hide both + focus release (aiming escape)
@@ -33,12 +36,12 @@
 --   focused. Used by: maps canvas cursor (move cursor in panel pixels),
 --   animals zone-draw cursor (move cursor by tile), gridScroll surfaces
 --   (scroll the visible region). Returning false from the callback signals
---   "not handled, fall through to cone-nav" — matches the Q107 onCancel
---   pass-through contract.
+--   "not handled, fall through to cone-nav" — the same pass-through contract
+--   onCancel uses.
 --
 -- WINDOW CONTRACT:
 --   Each window populates w._focusRing (array of zones) and w._focusIdx (1-based
---   current zone index) on open. Zone shape unchanged from S97:
+--   current zone index) on open. Zone shape:
 --     w._focusRing = {
 --       { zone = "tabBar", focusable = true,
 --         elements = { {x, y, w, h, id, onActivate, onContextMenu, onFocus,

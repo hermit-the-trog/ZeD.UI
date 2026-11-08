@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/AutoHideHotbar.lua
 -- ============================================================================
--- SUPPORT FOR AUTO-HIDE HOTBAR (mod id AutoHideHotbar, Workshop 3835479468).
--- Client.
+-- SUPPORT FOR AUTO-HIDE HOTBAR (mod id AutoHideHotbar, Workshop 3835479468,
+-- by mercifulviper). Client.
 --
 -- The mod hides the game's hotbar until the pointer comes near it or a hotbar
 -- key (1-9) is pressed, with its own look (fade, slide, peek...), timing and

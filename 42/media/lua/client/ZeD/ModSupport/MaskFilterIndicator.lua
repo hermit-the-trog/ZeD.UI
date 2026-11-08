@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/MaskFilterIndicator.lua
 -- ============================================================================
 -- SUPPORT FOR MASK FILTER INDICATOR (mod id MaskFilterIndicator, Workshop
--- 3832759095). Client.
+-- 3832759095, by movinow). Client.
 --
 -- While a gas mask, a respirator, an improvised mask or an SCBA (oxygen tank)
 -- is worn, the mod shows a strip above the game's hotbar (MaskFilterIndicatorHUD;
