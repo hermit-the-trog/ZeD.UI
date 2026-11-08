@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_JournalReaders.lua
 -- ============================================================================
--- THE JOURNAL TAB'S QUICK LOOKS AND NOTES (mockup zed_reader_v2; director Oct
--- 16 2026: "Both full and character menu are needed"; papers "Only while
--- carried", unread "Listed dim", the log box "Writes into a notebook")
+-- THE JOURNAL TAB'S QUICK LOOKS AND NOTES. Client side. Quick looks live
+-- beside the full readers (ZeD_Reader), never instead of them.
 --
 -- Two sub-tabs of the Character window's Journal tab, drawn into the drawer:
 --   * Papers: the newspapers, flyers and brochures the character carries, by
@@ -324,7 +323,7 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
         local dc = T.textDim
         panel:drawText(count, lx, cy, dc.r, dc.g, dc.b, dc.a or 1, f3)
         cy = cy + fh(f3) + T.sp.sm
-        -- (the filters, four radio buttons here until Oct 30 2026, are the band's Show pop-up)
+        -- (the filters live in the band's Show pop-up, not as rows up here)
         local hv = T.hover
         A.drawDividerH(panel, x, cy, dw)
         cy = cy + T.px(1)
@@ -529,7 +528,7 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
 end
 
 -- ---------------------------------------------------------------------------
--- PAPERS: the band (Oct 30 2026, punch list 21): Show (All, News, Flyers, On map)
+-- PAPERS: the band. Show (All, News, Flyers, On map)
 -- as a System 7 pop-up menu at the left; its list opens upward over the page.
 -- In a quick look the box is greyed (the list is not shown).
 -- ---------------------------------------------------------------------------
@@ -583,7 +582,7 @@ local function drawPapersBand(panel, win, x, y, w, frozen)
     local cur = ""
     for _, m in ipairs(modes) do if m.id == s.filter then cur = m.label end end
     M.drawPopupMenu(panel, bx, by, bw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", cur), hov or open,
-        (not frozen) and focusOf(win, "jr:show") or nil, frozen, cur)   -- (the choice alone when both do not fit, break-it B2)
+        (not frozen) and focusOf(win, "jr:show") or nil, frozen, cur)   -- (the choice alone when both do not fit)
     if frozen then return end
     zone(win, { id = "show", x = bx, y = by, w = bw, h = bh, fixed = true, fn = function() s.showOpen = true end })
     if not open then return end
@@ -717,7 +716,7 @@ local function bookSub(p, b)
     return ZeD.tr("UI_ZeD_Notebook_SubWritten", kind, n, all)
 end
 
--- the page small: ruled paper as the real sheet is ruled (director, Nov 1 2026, punch list 50): the blue
+-- the page small: ruled paper as the real sheet is ruled: the blue
 -- rules run edge to edge through the red margin, the margin runs the page's full height about a seventh
 -- in, and a blank band one rule tall sits above the first rule; the writing in ink sits on the rules. As
 -- tall as its writing and two more rules (the quick note under it stays in view in a short drawer).
@@ -1034,7 +1033,7 @@ function J.focusables(win)
         end
         if not rowsOnly and #out > 0 then s.land = nil end
     end
-    -- (Oct 30 2026, punch list 21 a-f: the open Show list is modal: Up / Down stop at its ends)
+    -- (the open Show list is modal: Up / Down stop at its ends)
     if rowsOnly and #out > 0 then out._menuRows = true end
     return out
 end

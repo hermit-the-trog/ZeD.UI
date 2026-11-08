@@ -1,12 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StationAppliance.lua
 -- ============================================================================
--- APPLIANCE VIEW — the Craft tab bound to an oven or a microwave (HOOK_MAP 14)
+-- APPLIANCE VIEW — client; the Craft tab bound to an oven or a microwave,
+-- in place of vanilla's oven window.
 -- Each of the game's ovens and microwaves shows its own control panel in pixel
--- art (director, Oct 16 2026: one plate per model, fixed size, centred): the
+-- art (one plate per model, fixed size, centred): the
 -- 1956 green range, the 1962 red range, the 1985 grey range, the 1992 gas
 -- range, the restaurant range, the convection oven, the deep fryer, the 1990
--- touchpad microwave and the 1979 dial microwave (ZeDUI/tools/physpx, data in
--- PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua). The plate is
+-- touchpad microwave and the 1979 dial microwave (plates baked into
+-- PhysPx.lua, a generated file, drawn by the shared plate template ZeD_Plate.lua). The plate is
 -- picked by the object's tile; a modded oven or microwave borrows one.
 --
 -- Every panel drives vanilla's state, nothing more: on / off, the temperature
@@ -114,7 +115,7 @@ local function spriteName(obj)
     local spr = call(obj, "getSprite")
     return spr and call(spr, "getName") or nil
 end
--- a narrow face ("oven_grey_n") or a width ("oven_grey@392", Oct 30 2026) is its main plate's: it routes and
+-- a narrow face ("oven_grey_n") or a width ("oven_grey@392") is its main plate's: it routes and
 -- counts as the main plate does
 local function baseOf(pid) return P.baseId(pid) end
 local function isMwPlate(id) return id:sub(1, 3) == "mw_" end
@@ -480,8 +481,7 @@ end
 
 -- ----------------------------------------------------------------------------
 -- THE PLAIN CARD — the Simple form of the faces (ZeD setup's Devices row, Full
--- or Simple: ZeD.Settings.devicesSimple; the rules the director approved, Nov 2
--- 2026, ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md). It does what the face does and shows
+-- or Simple: ZeD.Settings.devicesSimple). It does what the face does and shows
 -- what it shows; only the art goes. One layout: the readout across the top (the
 -- heat and the timer in large type, a microwave's time and power; the line under
 -- it says what it is doing), then rows of label | value | control in the face's

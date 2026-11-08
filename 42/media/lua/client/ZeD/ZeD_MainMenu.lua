@@ -262,8 +262,8 @@ function MM.leanLayout()
     return c
 end
 
--- The small layout fits the room when the main window, narrowed to the room left of the icon block, still
--- holds the band's buttons and ends inside the monitor, and the icon block's columns stay on the monitor.
+--- The small layout fits the room when the main window, narrowed to the room left of the icon block, still
+--- holds the band's buttons and ends inside the monitor, and the icon block's columns stay on the monitor.
 function MM.smallFits(L)
     local T = ZeD.T
     local blk = MM.iconBlock and MM.iconBlock(L) or nil
@@ -285,8 +285,8 @@ function MM.wantFraming()
     return "lean"
 end
 
--- The framing in use: everything on the desk reads it (the picture, the lights, the needle, the dial, the
--- power button, the bar, the windows, the pop-ups, the glass). It changes only at the bottom of a dip.
+--- The framing in use: everything on the desk reads it (the picture, the lights, the needle, the dial, the
+--- power button, the bar, the windows, the pop-ups, the glass). It changes only at the bottom of a dip.
 function MM.layout()
     if MM._framing == "lean" then return MM.leanLayout() or MM.roomLayout() end
     return MM.roomLayout()
@@ -452,7 +452,7 @@ end
 -- the desk picture, in the game's pixel faces at the desk's own multiple, so a release changes a word list
 -- (MenuNote.lua) and the heading follows the version: no art changes.
 -- ---------------------------------------------------------------------------
--- 0.3.0-beta4: "BETA 4"; 0.3.0-beta3a: "BETA 3A"; a release, 1.0.0: "V1.0"; anything else (the dev copy): "DEV"
+--- 0.3.0-beta4: "BETA 4"; 0.3.0-beta3a: "BETA 3A"; a release, 1.0.0: "V1.0"; anything else (the dev copy): "DEV"
 function MM.noteHeading(v)
     v = tostring(v or "")
     local b = v:match("%-[bB][eE][tT][aA](%w+)$")
@@ -568,7 +568,7 @@ local function drawTiles(p, tiles, tx, ty, tw, th, alpha)
     return true
 end
 
--- The painting fills the tube (cut to its 4:3), lightning over it, then dimmed.
+--- The painting fills the tube (cut to its 4:3), lightning over it, then dimmed.
 function MM.drawWallpaper(p, L, t)
     local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
     -- the new one: Build 42's title video, cut to the tube's 4:3 (its middle, where the room is)
@@ -711,7 +711,7 @@ function MM.switchOff(o)
     MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
 end
 
--- (the desk's update) the switch-off done: vanilla's start goes on to the loading screen
+--- (the desk's update) the switch-off done: vanilla's start goes on to the loading screen
 function MM.powerOffTick()
     local o = MM.powerOff
     if not o then return end
@@ -772,8 +772,8 @@ function MM.modeName(mode)
     return getTextOrNull("IGUI_Gametime_" .. mode) or mode
 end
 
--- A save folder named by date (vanilla's default) reads "<Mode>, <Mon> <D>".
--- The game's own copies keep their tag: "..._crash" -> "Sandbox, Oct 12 (crash)".
+--- A save folder named by date (vanilla's default) reads "<Mode>, <Mon> <D>".
+--- The game's own copies keep their tag: "..._crash" -> "Sandbox, Oct 12 (crash)".
 function MM.saveTitle(name, mode)
     name = tostring(name or "")
     local _, mo, d, rest = name:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)_%d%d%-%d%d%-%d%d(.*)$")
@@ -786,8 +786,8 @@ function MM.saveTitle(name, mode)
     return name
 end
 
--- A save's map list ("Brandenburg, KY;...;Muldraugh, KY"): the whole county reads as
--- Knox Country (vanilla's own name for it); a single map reads as itself.
+--- A save's map list ("Brandenburg, KY;...;Muldraugh, KY"): the whole county reads as
+--- Knox Country (vanilla's own name for it); a single map reads as itself.
 function MM.mapText(mapName)
     local list = tostring(mapName or "Muldraugh, KY")
     if list:find(";") and list:find("Muldraugh, KY", 1, true) then return ZeD.tr("UI_ZeD_MainMenu_KnoxCountry") end
@@ -802,7 +802,7 @@ local function clock12(h, m)
         ZeD.tr(h >= 12 and "UI_ZeD_MainMenu_PM" or "UI_ZeD_MainMenu_AM"))
 end
 
--- getLastPlayedDate's text -> "Oct 14 2026, 7:52 PM" (unknown shapes pass through)
+--- getLastPlayedDate's text -> "Oct 14 2026, 7:52 PM" (unknown shapes pass through)
 function MM.playedText(raw)
     raw = tostring(raw or "")
     local y, mo, d, h, mi = raw:match("(%d%d%d%d)[%-/%.](%d%d?)[%-/%.](%d%d?)[ T_](%d%d?)[:%-](%d%d)")

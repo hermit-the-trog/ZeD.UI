@@ -2,8 +2,8 @@
 -- ============================================================================
 -- OBJECT CARD: GENERATOR (card definition, client)
 -- The generator's own front panel in pixel art, one plate per model: the
--- red 1988 portable, the yellow contractor's set, the
--- blue compact and the 1960s military set (ZeDUI/tools/physpx, data in
+-- red 1988 portable, the yellow contractor's set, the blue compact and the
+-- 1960s military set (ZeDUI/tools/physpx, data in
 -- PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua; the plate is
 -- picked by the generator's item). Live on it: the engine switch and its lamp,
 -- the fuel gauge, the building's cord in the outlet, the OIL lamp (condition

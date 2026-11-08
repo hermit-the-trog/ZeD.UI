@@ -126,21 +126,21 @@ local TAB_BTN_SZ   = 36
 -- layout, hit zones and drawing in step.
 local TAB_SEP_H    = 0
 local TAB_SEP_MAR  = 0
--- The drawer is one of two widths and no other (director, Oct 29 2026: "a full card and a half card"; a
--- third width bumps the cards into each other). ITEM_CARD_W is the half card: the item card is drawn at it,
--- and DRAWER_W (what a tab gets when it asks for less than the full card, and the width a small window steps
--- down to) is the same number. SKILLS_DRAWER_W is the full card.
+-- The drawer is one of two widths and no other — a full card and a half card; a third width bumps the
+-- cards into each other. ITEM_CARD_W is the half card: the item card is drawn at it, and DRAWER_W (what a
+-- tab gets when it asks for less than the full card, and the width a small window steps down to) is the
+-- same number. SKILLS_DRAWER_W is the full card.
 local ITEM_CARD_W       = 220
 local DRAWER_W          = ITEM_CARD_W
 local SKILLS_DRAWER_W   = 480
--- The inventory's minimum width beside an open full card (director, Nov 1 2026, punch list 42 a.: "the
--- inventory gives way first"). The inventory alone keeps its 200-unit minimum; beside a full card it may go
--- down to this when half the screen leaves it no more (it scrolls anyway). On the Steam Deck with Large text
--- the full card, the two strips and 200 units of inventory are 9 px over the half-screen cap; with 180 they
--- fit, so the Deck keeps the full card (the doll's bands, the radios' and machines' full faces). Only below
--- this does a tab drop to the half card. ZeD.Scale.FIT_W_UNITS (the UI scale cap) uses the same number.
+-- The inventory's minimum width beside an open full card: the inventory gives way first. Alone it keeps
+-- its 200-unit minimum; beside a full card it may go down to this when half the screen leaves it no more
+-- (it scrolls anyway). On the Steam Deck with Large text the full card, the two strips and 200 units of
+-- inventory are 9 px over the half-screen cap; with 180 they fit, so the Deck keeps the full card (the
+-- doll's bands, the radios' and machines' full faces). Only below this does a tab drop to the half card.
+-- ZeD.Scale.FIT_W_UNITS (the UI scale cap) uses the same number.
 local INV_MIN_BESIDE_CARD = 180
-local DRAWER_SPEED      = 8    -- units/sec, matches CharacterDrawer pattern
+local DRAWER_SPEED      = 8    -- the slide's pace; only feeds DRAWER_PX_SPEED below
 local DRAWER_PX_SPEED   = 260 * DRAWER_SPEED  -- ~2080 design units/sec; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local CONTAINER_STRIP_W = 36
 local CONTAINER_BTN_SZ  = 36
@@ -157,10 +157,11 @@ local function saveCharState(win)
     local sc = (T and T.scale) or 1
     local md = po:getModData()
     md.ZeD_WinState = md.ZeD_WinState or {}
-    -- Save base width (without drawer) so restore opens at inventory-only size
-    -- S124 scale: persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
+    -- Save base width (without drawer) so restore opens at inventory-only size.
+    -- Persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
     -- _baseInvW already holds design units; positions/heights are screen px and are
-    -- divided here. Pre-S124 saves were written at scale 1.0, so they read back as-is.
+    -- divided here. Saves from before UI scaling were written at scale 1.0, so they
+    -- read back as-is.
     local baseW  = TAB_STRIP_W + (win._baseInvW or 372) + CONTAINER_STRIP_W   -- design units
     local anchor = ((win._anchorRightEdge or (win:getX() + T.px(baseW))) + (win._rolled and win._rollW or 0)) / sc   -- design units (a rolled side: its unrolled right edge)
     md.ZeD_WinState.char = {
