@@ -8,7 +8,8 @@
 --
 -- After every mod has loaded (a game's start, once the game's windows are
 -- built), each ZeD screen with a ZeD setup switch (Settings.lua screenOptions)
--- is checked. When a mod loaded AFTER ZeD has replaced the game's own version
+-- is checked. When a mod (before or after ZeD in the load order; the director,
+-- Nov 7 2026: "Either order") has replaced the game's own version
 -- of that screen, the screen is handed back to the game (and so to that mod)
 -- through its switch, the rest of ZeD kept; a note says so in Messages.
 --
@@ -22,7 +23,7 @@
 --     file is read (getFilenameOfClosure, getModFileReader): a body that calls a
 --     saved copy of the old function (local orig = X.f ... orig(self)) wraps it
 --     and does not count, nor anything this file cannot read or is unsure of.
--- What never counts: the game's own files, ZeD's, a mod loaded before ZeD, a
+-- What never counts: the game's own files (in no mod's folder), ZeD's, a
 -- mod ZeD supports (ModSupport: SUPPORTED below), and a mod that only adds
 -- (context menu options, buttons, tabs under new names, wrapped functions).
 --
@@ -87,18 +88,9 @@ SA.WATCH = {
 }
 SA.ORDER = { "windows", "belt", "charinfo", "dashboard", "wheels" }
 
--- which of those the game has, read as this file loads (after the game's Lua, before any mod loaded after ZeD):
--- a mod giving a class a function the game never had stops nothing of the game's
-SA._had = SA._had or {}
-for _, list in pairs(SA.WATCH) do
-    for _, w in ipairs(list) do
-        local cls = _G[w[1]]
-        for _, method in ipairs(w[2]) do
-            local k = w[1] .. ":" .. method
-            if SA._had[k] == nil then SA._had[k] = type(cls) == "table" and rawget(cls, method) ~= nil end
-        end
-    end
-end
+-- (every function in WATCH is one the game's own media/lua defines, checked against 42.21's files: a mod giving a
+-- class a function the game never had stops nothing of the game's. The list is fixed rather than read as ZeD
+-- loads, since a mod loaded before ZeD has already replaced them by then.)
 
 -- the Character Info window's own pages: the game's name key -> its class (read when checked)
 local PAGES = {
@@ -325,11 +317,12 @@ end
 -- ---------------------------------------------------------------------------
 -- detection
 -- ---------------------------------------------------------------------------
--- the mod behind a function, when it counts: loaded after ZeD, not supported, not ZeD
+-- the mod behind a function, when it counts: any mod in either order (the director, Nov 7 2026: "Either order"),
+-- not supported, not ZeD. The game's own files sit in no mod's folder, so they never count.
 local function counts(mods, zedAt, path)
     if not path or not zedAt then return nil end
     local m = ownerOf(mods, path)
-    if not m or m.id == ZED_ID or m.at <= zedAt or SA.SUPPORTED[m.id] then return nil end
+    if not m or m.id == ZED_ID or SA.SUPPORTED[m.id] then return nil end
     return m
 end
 
@@ -338,7 +331,7 @@ local function checkFunctions(screen, mods, zedAt)
         local cls = _G[w[1]]
         if type(cls) == "table" then
             for _, method in ipairs(w[2]) do
-                local fn = SA._had[w[1] .. ":" .. method] and rawget(cls, method) or nil
+                local fn = rawget(cls, method)
                 local path = fileOf(fn)
                 local m = counts(mods, zedAt, path)
                 if m then

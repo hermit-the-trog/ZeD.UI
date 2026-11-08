@@ -14,11 +14,13 @@ The director's ruling (Nov 7 2026): automatic. When a mod loaded after ZeD has r
 1. **A page of the Character Info window**: the game's window (`getPlayerInfoPanel`) holds, under one of the game's own page names (Info, Skills, Health, Protection, Temperature), a view that is not the game's class or one derived from it. The mod is the one whose file wrote that view's class (`getFilenameOfClosure` on its functions). This is how Wounds Overhaul is found: its examination sits in Health's slot under Health's name.
 2. **A function a screen is built from** (`ISInventoryPage`, `ISInventoryPane`, `ISHotbar`, `ISEquippedItem`, the Character Info classes, `ISVehicleDashboard`, `ISRadialMenu:instantiate`; only functions the game itself has): the current one comes from a mod's file, and that file, read with `getModFileReader`, shows the function never calls the one it replaced. A copy of the old function kept (`local orig = X.f`, `T.old = X.f`) and called in the body (`orig(self)`, `if orig then orig(self) end`, `pcall(orig, ...)`) is wrapping. A dynamic name (`X[name] = ...`), a read this cannot follow, a file it cannot read, or a call to something named orig/old/prev/super/base/wrapped all count as wrapping: when unsure, ZeD keeps its screen.
 
-Never counted: the game's own files, ZeD's own, a mod loaded **before** ZeD (load order is the player's way to keep ZeD's), a mod in ZeD's ModSupport list (`ZeD.StepAside.SUPPORTED`, the 25 MOD_IDs; `ZeD.StepAside.support(id)` adds one), and anything that only adds (menu options, buttons, tabs under new names, wrapped functions, functions the game never had).
+Load order does not matter (the director, Nov 7 2026: "Either order"): a mod before ZeD counts as one after it. The game's own definitions are told apart by their file: `getFilenameOfClosure` points into no mod's folder. WATCH lists only functions the game's own media/lua defines (checked against 42.21), so a mod adding a function the game never had stops nothing.
+
+Never counted: the game's own files, ZeD's own, a mod in ZeD's ModSupport list (`ZeD.StepAside.SUPPORTED`, the 25 MOD_IDs; `ZeD.StepAside.support(id)` adds one), and anything that only adds (menu options, buttons, tabs under new names, wrapped functions, functions the game never had).
 
 `getFilenameOfClosure`, `getFirstLineOfClosure` and `getModFileReader(String, String, boolean)` were checked with javap on 42.21 (`LuaManager$GlobalObject`); the closure calls run only after `instanceof(fn, "LuaClosure")`. No `%f` patterns (Kahlua). No Kahlua debug.getinfo is used.
 
-## Sim: `ZeDUI/tools/qa/step_aside_sim.lua` (184 checks, 0 failed)
+## Sim: `ZeDUI/tools/qa/step_aside_sim.lua` (198 checks, 0 failed)
 Runs the real `SafeMode.lua`, `ZeD_Messages.lua`, `Overrides/CharacterInfo.lua` and `ZeD_StepAside.lua` on Lua 5.1 stubs of the game's classes, and the **real Lua** of Wounds Overhaul (64 files) and the seven mods, each from its Workshop folder in load order with the game's require (anything of the game they ask for that is not stubbed gets an inert stand-in; every file loads without error).
 | Case | Result |
 |---|---|
@@ -28,7 +30,7 @@ Runs the real `SafeMode.lua`, `ZeD_Messages.lua`, `Overrides/CharacterInfo.lua` 
 | Mod set changes | handed back again with a notice |
 | WO removed | the switch goes back to ZeD's, the record forgets it, no notice |
 | Player's own tick | never unticked by ZeD, no line |
-| WO before ZeD | nothing handed back |
+| WO before ZeD | the same hand-back (charinfo, one notice); a fake inventory before ZeD gets the inventory; a wrapper before ZeD gets nothing |
 | The seven | nothing handed back, no notice (with the supported list emptied the reading still finds nothing in them: what they replace reads as calling through) |
 | Fake mod replacing `ISInventoryPage:createChildren` | only the inventory windows, notice names it |
 | Fake mod wrapping inventory and belt with the originals called | nothing |
@@ -44,4 +46,5 @@ Other sims that load the touched files: admin_cards, claim_cards, claims, commun
 - That WO's Health swap has happened by the check (it runs in WO's createChildren once the translations answer; if they did not, WO waits for a prerender the hidden window never gets, and ZeD keeps the screen).
 - The toast's look out of the belt's Messages note, and ZeD setup's "Taken by" line at Large text in every language.
 - Main menu screens: the main menu has no ZeD setup switch of its own, so it is not part of this; a mod replacing the main menu is not detected.
+- A mod before ZeD that replaced a function ZeD itself later replaces (the belt's `ISHotbar:render`) is hidden behind ZeD's: the current function is ZeD's, so that route cannot see it (the Character Info page check does not have this gap).
 - Multiplayer (client side only; the server's mod list is the one checked).

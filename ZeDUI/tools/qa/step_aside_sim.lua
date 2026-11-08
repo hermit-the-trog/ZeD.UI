@@ -13,7 +13,7 @@
 --            page's drawing are found, which is why ZeD supports them)
 --   FAKE     a mod replacing the inventory: only the inventory handed back; a mod that wraps and calls the originals:
 --            nothing
---   ORDER    Wounds Overhaul loaded BEFORE ZeD: nothing handed back
+--   ORDER    Wounds Overhaul loaded BEFORE ZeD (the director, Nov 7 2026: "Either order"): the same hand-back
 --   STICK    unticking the switch takes the screen back and it holds over the next start; a changed mod set asks
 --            again; WO gone gives the screen back to ZeD
 --   READ     the file reading on its own: wrapper shapes (local orig, field copy, "if orig then orig(self) end",
@@ -560,7 +560,17 @@ FILES = {}
 for _, s in ipairs(SCREENS) do OPTS[s].selected = 1 end
 start({ "WoundsOverhaul", "ZeD_UI" })
 ZeD.StepAside.check()
-check("ORDER: a mod loaded before ZeD hands back nothing", handedBack() == "", handedBack())
+check("ORDER: a mod loaded before ZeD gets its screen too", handedBack() == "charinfo" and #NOTES == 1, handedBack())
+FILES = {}
+for _, s in ipairs(SCREENS) do OPTS[s].selected = 1 end
+start({ "FakeInventory", "ZeD_UI" })
+ZeD.StepAside.check()
+check("ORDER: a fake inventory before ZeD too", handedBack() == "windows", handedBack())
+FILES = {}
+for _, s in ipairs(SCREENS) do OPTS[s].selected = 1 end
+start({ "FakeWrapper", "ZeD_UI" })
+ZeD.StepAside.check()
+check("ORDER: a wrapper before ZeD still nothing", handedBack() == "", handedBack())
 
 -- ---------------------------------------------------------------------------
 print("-- SEVEN: the seven mods QA has")
