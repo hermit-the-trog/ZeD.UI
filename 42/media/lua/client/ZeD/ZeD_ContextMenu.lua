@@ -69,7 +69,8 @@ function ZeD_ContextMenu:new(player, anchorMode, anchorX, anchorY, target, actio
         parentDef   = nil,                 -- parent ActionDef when in submenu
     }
 
-    -- Animation state — ZeD drawer style (UIManager.getMillisSinceLastRender accumulator)
+    -- Animation state — eased over time as the drawers are, but on timestamps
+    -- (getTimestampMs progress), not the drawers' per-frame dt accumulator.
     -- All these must start as numbers; _layout uses them in arithmetic on the
     -- very first frame before any target-change detection can initialize them.
     o._animFromOriginX = 0
@@ -153,7 +154,7 @@ function ZeD_ContextMenu:close()
     end
     self._joyfocus = false
 
-    -- S96: return engine focus to FocusManager's tracked window so gamepad
+    -- Return engine focus to FocusManager's tracked window so gamepad
     -- dispatch resumes after context menu dismissal. Without this, engine
     -- focus stays nil and D-pad goes nowhere until a new window is opened.
     -- Defensive nil-check chain: context menu loads before FocusManager in
@@ -256,7 +257,7 @@ function ZeD_ContextMenu:_layout(T)
     local innerW = visibleCount * ctx.cellW + math.max(0, visibleCount - 1) * ctx.gap
     local drilled = #self._ctx.path > 0
     local topBorder = drilled and ctx.drilledBorderTop or T.px(1)
-    local housingW = innerW + T.px(1) * 2   -- S124 scale: 1px left + right border, same as drawContextStrip
+    local housingW = innerW + T.px(1) * 2   -- 1px left + right border, same as drawContextStrip
     local housingH = ctx.cellH + topBorder + T.px(1)
 
     -- Target values for interpolation
@@ -304,13 +305,13 @@ function ZeD_ContextMenu:_layout(T)
         local elapsed = getTimestampMs() - self._animStartMs
         progress = math.min(1.0, elapsed / ctx.animMs)
     end
-    -- Cubic ease-out (matches mockup's cubic-bezier approximation)
+    -- Cubic ease-out
     local p = 1 - (1 - progress) * (1 - progress) * (1 - progress)
     self._currentOriginX = self._animFromOriginX + (self._animToOriginX - self._animFromOriginX) * p
     self._currentStripW  = self._animFromStripW  + (self._animToStripW  - self._animFromStripW)  * p
     self._ctx.trackOriginX = math.floor(self._currentOriginX + 0.5)
 
-    -- S101: when suppress just fired (silent carousel teleport), collapse the
+    -- When suppress just fired (silent carousel teleport), collapse the
     -- from/to ranges so subsequent frames — which use timestamp-based progress
     -- restart at ~0 immediately after the kick — don't interpolate BACK toward
     -- the pre-teleport anchor. Without this, a LEFT press at the first item

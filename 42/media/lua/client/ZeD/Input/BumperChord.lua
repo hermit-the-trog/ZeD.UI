@@ -1,56 +1,57 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Input/BumperChord.lua
 -- ============================================================================
--- LAYER 2 — BumperChord (S92 — Gamepad Phase 2)
+-- BUMPER CHORD — combat zoom on the bumpers while no ZeD window holds the pad.
+-- Client. One floor of the controller stack: InputModeDetector says which
+-- device is live, this file owns LB / RB while nothing is focused, and
+-- FocusManager turns it off (Chord.setEnabled) the moment a window claims
+-- focus — the bumpers then swap windows through ActionMap — and back on at
+-- release. It sees no events: it polls both bumpers every tick with its own
+-- edge detection, so it works with no window open and nothing else on the pad.
 --
--- Native combat-zoom chord. Sits above FocusManager (Layer 3) in dispatch
--- priority so bumpers never reach any UI handler — LB and RB are ours.
---
--- THE CHORD (directions match design director's Steam Input muscle memory):
+-- THE CHORD:
 --   Hold LB, tap RB  -> one zoom-OUT step
 --   Hold RB, tap LB  -> one zoom-IN  step
---   Tap a bumper alone and release it      -> no-op (unowned)
+--   Tap a bumper alone and release it  -> no-op (unowned)
 --
--- NO ARMING TIMEOUT (S92 revision): LB_HELD / RB_HELD persist AS LONG AS
--- that bumper is physically held. Tap the opposite bumper any time during
--- the hold — even seconds later — and the chord fires. The original §6
--- spec had a 250ms arming window; live QA showed that was too strict for
--- natural thumb timing and caused the chord to feel unreliable. Killed it.
+-- NO ARMING TIMEOUT: LB_HELD / RB_HELD persist AS LONG AS that bumper is
+-- physically held. Tap the opposite bumper any time during the hold — even
+-- seconds later — and the chord fires. A 250ms arming window proved too
+-- strict for natural thumb timing and made the chord feel unreliable, so it
+-- went; the model matches Steam Input's own chords (hold indefinitely, tap
+-- opposite to fire).
 --
--- Multi-tap: while primary is still held, every fresh tap of the opposite
--- bumper fires another zoom step (AC-BC1: "multiple taps -> multiple steps").
--- That's the CONSUMED-state re-entry rule; see onTick dispatcher below.
+-- Multi-tap: while the first bumper is still held, every fresh tap of the
+-- opposite bumper fires another zoom step. That's the CONSUMED-state
+-- re-entry rule; see the onTick dispatcher below.
 --
--- WHY NATIVE (not Steam Input): design director's call — "vanilla doesn't do
--- zoom well for gamepad". Mod must be self-sufficient; users shouldn't need
--- to share Steam Input configs to get a sane out-of-box experience. Workshop
--- description will warn to remove existing bumper bindings before install.
+-- WHY NATIVE (not Steam Input): vanilla does zoom poorly on a pad, and the
+-- mod must work out of the box — players shouldn't need to share Steam Input
+-- configs. A player's own bumper bindings will fight the chord and need
+-- clearing.
 --
--- LB/RB ARE INTENTIONALLY ABSENT from ActionMap (see ActionMap.lua:128-143).
--- That's not an oversight — this file owns them directly.
---
--- Public interface (see GAMEPAD_SPEC.md §6):
---   ZeD.Input.Chord.setEnabled(bool)   disable during Layout Mode (Phase 3)
+-- Public interface:
+--   ZeD.Input.Chord.setEnabled(bool)   FocusManager: off at claim, on at release
 --   ZeD.Input.Chord.getState()         -> "IDLE" | "LB_HELD" | "RB_HELD" | "CONSUMED"
 --   ZeD.Input.Chord.isActive()         true while a chord is in progress
 --
 -- Events consumed:
 --   Events.ZeD_InputModeChanged   resets state to IDLE on flip away from gamepad
 --
--- Tokens consumed: none. Previous revision read ZeD.T.gp.chordWindowMs for
--- the arming timeout; that timeout was removed in S92 live QA. Token stays
--- in Tokens.lua for now (no consumers) and can be cleaned up later.
+-- Tokens consumed: none. The arming timeout read ZeD.T.gp.chordWindowMs; the
+-- token still sits in Tokens.lua with no reader and can go.
 --
 -- PERF: zero per-tick allocation. All state lives in file-locals and the
 -- dispatch is a plain if/elseif chain. Fine to run at 120fps indefinitely.
 -- ============================================================================
 
--- Tokens must be loaded before we poll so ZeD.T.gp is populated.
--- require is idempotent in PZ's Kahlua2, safe even if Tokens.lua was already
--- pulled in by a sibling in ZeD/Input/.
+-- Nothing here reads a token since the arming timeout left. The require is
+-- harmless either way: require is idempotent in PZ's Kahlua2, so it's safe
+-- even if Tokens.lua was already pulled in by a sibling in ZeD/Input/.
 require "ZeD/Tokens"
 
 -- Namespace: ZeD.Input.Chord
--- Guard all levels so this file can load in any order relative to siblings.
+-- Reload-safe: loading this file twice reuses the tables instead of wiping
+-- them, and guarding every level lets the Input/ files load in any order.
 ZeD = ZeD or {}
 ZeD.Input = ZeD.Input or {}
 ZeD.Input.Chord = ZeD.Input.Chord or {}
@@ -79,9 +80,9 @@ local _primary = nil
 
 -- Last-tick held state for LB and RB. Edge detection is (down_now AND NOT
 -- down_last) for press edges, (NOT down_now AND down_last) for release edges.
--- JoypadButton.<n>:isDown(id) returns level-triggered (held) state, so we
--- diff it. B42.17+ replacement for removed isJoypadPressed(id, const); see
--- PZAPI-KB Q109 for the full migration table.
+-- B42.17 removed isJoypadPressed(id, const); its replacement,
+-- JoypadButton.<n>:isDown(id), returns level-triggered (held) state, so we
+-- diff it ourselves.
 local _lbDownLast = false
 local _rbDownLast = false
 
@@ -90,10 +91,9 @@ local _rbDownLast = false
 -- of onTick unless this is "gamepad" — no point polling bumpers in KBM mode.
 local _mode = "unknown"
 
--- Layout Mode kill switch. Phase 3 FocusManager will call setEnabled(false)
--- when the user enters Layout Mode (LB/RB are remapped to resize there) and
--- setEnabled(true) on exit. Defaults to true — BumperChord is always-active
--- unless explicitly turned off.
+-- The kill switch. FocusManager calls setEnabled(false) when a window claims
+-- focus (LB / RB swap windows there) and true when focus releases. Defaults
+-- to true — the chord is live unless something turns it off.
 local _enabled = true
 
 -- First-failure latch for the zoom dispatch pcall. If getCore():doZoomScroll
@@ -120,7 +120,7 @@ local function _getJoypadIdx()
 end
 
 -- Log + swap state. One source of truth so every transition shows up in
--- console.txt with the same format (greppable by S92 QA matrix).
+-- console.txt in the same greppable format.
 local function _transition(newState)
     if newState == _state then return end
     local oldState = _state
@@ -137,16 +137,15 @@ local function _reset()
 end
 
 -- Fire one zoom step. direction: +1 = zoom-in, -1 = zoom-out. Matches
--- getCore():doZoomScroll(playerIdx, direction) signature exactly; see
--- vanilla Tutorial/Steps.lua and ISBackButtonWheel.lua for call-site
--- precedent. Wrapped in pcall so a future PZ patch that renames / removes
--- the API doesn't crash our tick handler.
+-- getCore():doZoomScroll(playerIdx, direction) signature exactly; vanilla's
+-- Tutorial/Steps.lua and ISBackButtonWheel.lua are the call-site precedent.
+-- The game's Java side can throw if a future PZ patch renames or removes the
+-- API; pcall turns that crash into a logged miss instead of a dead tick handler.
 local function _fire(direction)
     local label = (direction > 0) and "zoom-in" or "zoom-out"
     print(string.format("[ZeD.Input] chord fire: %s", label))
     local ok, err = pcall(function()
-        -- Player 0 = single-player. Split-screen zoom is a Phase 3+ concern
-        -- and will need per-player chord instances — not in scope for S92.
+        -- Player 0 only. Split-screen zoom would need a chord per player.
         getCore():doZoomScroll(0, direction)
     end)
     if (not ok) and (not _fireErroredOnce) then
@@ -165,15 +164,11 @@ end
 -- would no-op instead of fire. Thumb-roll users would lose half their
 -- intended zooms.
 --
--- NO ARMING TIMEOUT: LB_HELD and RB_HELD states persist as long as that
--- bumper is physically held. The original §6 spec had a 250ms timeout that
--- forced a return to IDLE if no opposite-bumper tap arrived in time; live
--- QA showed that was too strict and made the chord feel unreliable. Model
--- now matches Steam Input's native chord semantics (hold indefinitely, tap
--- opposite to fire).
+-- LB_HELD / RB_HELD persist as long as the bumper is physically held —
+-- there is no arming timeout (see the header for why).
 -- ---------------------------------------------------------------------------
 local function onTick()
-    -- Gate 1: Layout Mode kill switch.
+    -- Gate 1: the kill switch (a focused window owns the bumpers).
     if not _enabled then return end
 
     -- Gate 2: Only run in gamepad mode. KBM players use mouse wheel to zoom;
@@ -186,10 +181,10 @@ local function onTick()
     local joypadIdx = _getJoypadIdx()
     if joypadIdx < 0 then return end
 
-    -- Read current level-triggered state for both bumpers. Q109: B42.17
-    -- removed isJoypadPressed; poll via the JoypadButton.<n>:isDown(id)
-    -- object API. Name-drift trap: LBumper/RBumper -> LeftBump/RightBump
-    -- (not "LBump"/"RBump" which silently no-op).
+    -- Read current level-triggered state for both bumpers (B42.17: poll via
+    -- the JoypadButton.<n>:isDown(id) object API). Name-drift trap:
+    -- LBumper/RBumper -> LeftBump/RightBump (not "LBump"/"RBump" which
+    -- silently no-op).
     local lbDown = JoypadButton.LeftBump:isDown(joypadIdx)
     local rbDown = JoypadButton.RightBump:isDown(joypadIdx)
 
@@ -201,8 +196,8 @@ local function onTick()
 
     if _state == Chord.STATE_IDLE then
         -- Simultaneous LB+RB press on the same tick: resolve as LB-first,
-        -- RB-arrived-same-frame -> fire zoom-out (LB primary). Matches user
-        -- mental model of "the chord fired" without a ghost tick in LB_HELD.
+        -- RB-arrived-same-frame -> fire zoom-out (LB primary). Matches the
+        -- feel of "the chord fired" without a ghost tick in LB_HELD.
         -- Deterministic either way — direction just picked by rule.
         if lbPressEdge and rbPressEdge then
             _primary = "LB"
@@ -237,12 +232,9 @@ local function onTick()
         end
 
     elseif _state == Chord.STATE_CONSUMED then
-        -- CONSUMED re-entry for multi-tap (AC-BC1). Spec diagram shows
-        -- CONSUMED as a terminal state until both bumpers released, but the
-        -- ACs mandate "multiple opposite-bumper taps while primary held ->
-        -- multiple zoom steps". Resolution: fresh opposite-bumper edges fire
-        -- again while primary remains held; stay in CONSUMED. Only exit when
-        -- BOTH bumpers are fully released (clean slate).
+        -- CONSUMED re-entry for multi-tap: a fresh opposite-bumper edge fires
+        -- another step while the first bumper remains held; stay in CONSUMED.
+        -- Only exit when BOTH bumpers are fully released (clean slate).
         if _primary == "LB" and lbDown and rbPressEdge then
             _fire(-1) -- LB-primary = zoom-out
         elseif _primary == "RB" and rbDown and lbPressEdge then
@@ -263,10 +255,10 @@ end
 -- PUBLIC API
 -- ---------------------------------------------------------------------------
 
--- Enable / disable the chord dispatcher. Phase 3 FocusManager calls this
--- with false when Layout Mode activates (LB/RB become resize controls there)
--- and true when it exits. Also callable from console for QA: e.g.
---   ZeD.Input.Chord.setEnabled(false)
+--- Enable / disable the chord dispatcher. FocusManager calls this with false
+--- when a window claims focus (LB / RB become the window swap there) and true
+--- when focus releases. Also callable from console for QA, e.g.
+---   ZeD.Input.Chord.setEnabled(false)
 function Chord.setEnabled(flag)
     -- Normalize truthy/falsy to strict bool for the gate check in onTick.
     _enabled = flag and true or false
@@ -277,16 +269,15 @@ function Chord.setEnabled(flag)
     end
 end
 
--- Current state-machine position. Returns one of STATE_IDLE / STATE_LB_HELD
--- / STATE_RB_HELD / STATE_CONSUMED. Useful from console for AC-BC8
--- verification ("did we terminate in IDLE after that rapid input?").
+--- Current state-machine position. Returns one of STATE_IDLE / STATE_LB_HELD
+--- / STATE_RB_HELD / STATE_CONSUMED. Useful from console: "did we terminate
+--- in IDLE after that rapid input?"
 function Chord.getState()
     return _state
 end
 
--- Convenience: true while a chord is in progress. Equivalent to
--- getState() ~= "IDLE" but reads nicer at call sites that don't care which
--- phase of the chord we're in.
+--- True while a chord is in progress. Equivalent to getState() ~= "IDLE" but
+--- reads nicer at call sites that don't care which phase the chord is in.
 function Chord.isActive()
     return _state ~= Chord.STATE_IDLE
 end
@@ -316,9 +307,8 @@ end
 -- (BumperChord.lua) loads BEFORE InputModeDetector.lua. That means
 -- Events.ZeD_InputModeChanged does NOT yet exist when this top-level runs.
 -- We mirror InputModeDetector's own AddEvent call here to materialize the
--- event table up front — LuaEventManager.AddEvent is idempotent (per the
--- comment at InputModeDetector.lua:346), so calling it twice is safe;
--- InputModeDetector's later call becomes a no-op.
+-- event table up front — LuaEventManager.AddEvent is idempotent, so calling
+-- it twice is safe; InputModeDetector's later call becomes a no-op.
 if LuaEventManager and LuaEventManager.AddEvent then
     LuaEventManager.AddEvent("ZeD_InputModeChanged")
 end
@@ -333,6 +323,5 @@ end
 Events.OnTick.Add(onTick)
 Events.ZeD_InputModeChanged.Add(onModeChanged)
 
--- Diagnostic one-liner so we can confirm the module loaded in-console.
--- Grep target for S92 QA: "BumperChord loaded".
+-- One greppable line so the console confirms the module loaded.
 print("[ZeD.Input] BumperChord loaded - no arming timeout, hold-and-tap model")

@@ -576,17 +576,14 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
     local tierColor  = ZeD.ProtectionTab.tierColor
     local gradeColor = ZeD.ProtectionTab.gradeColor
 
-    -- Defense body is always shown now (no separate disclosure for it).
-    -- The legacy bodyOnly=false call path is unused after the layout switch
-    -- but kept defensive in case external callers still hit it.
+    -- The defense body always shows. Nothing in ZeD calls this with
+    -- bodyOnly=false any more; the header-drawing path stays for safety.
     local headerH = ZeD.Molecules.getTabHeaderH()
 
     local pad = ZeD.Molecules.getTabPad()
     if not bodyOnly then
         M.drawSectionHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Defense"), nil, true, false, T.fontF4, nil, pad, headerH)
     end
-
-    -- (was: gated on expanded; defense body is always rendered now)
 
     -- --- Dashboard content ---
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
@@ -623,7 +620,7 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         A.borderRounded(panel, boxX, boxY, boxW, boxH, bs.r, bs.g, bs.b, bs.a or 1)
 
         local gx = boxX + math.floor((boxW - gradeLetterW) / 2)
-        local gy = boxY + math.floor((boxH - titleFH) / 2)  -- fontF5 centered in box (tune in-game if needed)
+        local gy = boxY + math.floor((boxH - titleFH) / 2)  -- the grade letter (F4) centred in the box
         panel:drawText(protData.grade, gx, gy, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
 
         local lblX = boxX + boxW + T.sp.sm
@@ -760,7 +757,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     end
 
     -- Slot label (truncated to fit column)
-    -- (the short words when the column took them, or the full ones do not fit it: punch list 29)
+    -- (the short words when the column took them, or when the full ones do not fit it)
     local slotRoom = c.slotColW - c.slotPad * 2
     local typeStr = ZeD.EquipmentTab.wordsOf(slot)
     if c.slotShort or tm:MeasureStringX(T.fontF1, typeStr) > slotRoom then
@@ -851,7 +848,7 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local B = ZeD.Belt
     local c = calcEquipColumns(w, win)
-    local DOT = " | "   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+    local DOT = " | "   -- the separator: ZeD's pipe, never a middle dot
     local f1, f2 = T.fontF1, T.fontF2
     local f1h, f2h = tm:getFontHeight(f1), tm:getFontHeight(f2)
     -- sub-header, in the category rows' height and type (sentence case), with no
@@ -860,8 +857,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local lo = T.toneLo
     local hy = y + math.floor((hh - f1h) / 2)
     -- the two heads keep to their own sides: short of room each is cut in its own share, the
-    -- right one gets at most half (Oct 31 2026, punch list 29: on the Deck with Large text
-    -- "The belt | keys" ran into "Slot | what gives it")
+    -- right one gets at most half (with Large text on a narrow card "The belt | keys"
+    -- otherwise runs into "Slot | what gives it")
     local headL = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft"))
     local cap = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadRight"))
     local hRoom = w - c.padX * 2 - T.px(2) - T.px(8)
@@ -929,8 +926,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         if s.inHand then rightEdge = bx - T.px(6) - _beltTagW(inHandTxt) end
         -- the item over the slot and what gives it: the name stops at the
         -- COND column (its bar sits beside it), the slot line runs under both
-        -- (the name stops before the verb too: on the Deck with Large text Detach sat over
-        -- "JS-2000 Sho..."; Oct 31 2026, punch list 29)
+        -- (the name stops before the verb too: with Large text the verb
+        -- otherwise sat over the name)
         local tx = iconX + c.iconW + c.iconGap
         local textW = math.min(x + c.condX - T.px(6), rightEdge - T.px(8)) - tx
         local subW = rightEdge - T.px(8) - tx

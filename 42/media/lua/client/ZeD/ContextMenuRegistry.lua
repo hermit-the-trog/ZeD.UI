@@ -494,6 +494,8 @@ local function resolveIconForName(optionName)
     return nil
 end
 
+--- The icon for an option's name: its texture and, for a ZeD pixel icon, the
+--- icon's id; nil when the map has none.
 Registry.resolveIconForName = resolveIconForName
 
 -- Forget what was read from the translations, so the next menu reads it again.
@@ -536,25 +538,18 @@ end
 
 -- ============================================================================
 -- ACTIONDEF CONSTRUCTION
--- Walks ISContextMenu.options + .subMenus to build the tree format consumed
--- by ZeD_ContextMenu. See CONTEXT_MENU_SPEC ?6 for schema.
---
--- We PRESERVE a reference to the underlying vanilla option table so that:
---   - onSelect can dispatch through the original function
---   - onHighlight callbacks (the game's own outline on what an option acts on, and
---     some mods' server-side gating) can
---     still fire ? the organism calls vanillaRef.onHighlight on selection change
---   - notAvailable / isDisabled / badColor flags stay live if mods mutate them
+-- Walks ISContextMenu.options and their submenus to build the tree the ZeD
+-- menus render. An ActionDef: id, name, category, the icon fields, live
+-- disabled/stateKind/state functions, body (the balloon's text), onFire,
+-- children, and vanillaRef - the vanilla option table itself, kept so:
+--   - onFire can dispatch through the original onSelect
+--   - onHighlight callbacks (the game's own outline on what an option acts
+--     on, and some mods' server-side gating) still fire - the menus tell the
+--     game's menu through Registry.highlight on selection change
+--   - notAvailable / isDisabled / badColor flags stay live when mods mutate
+--     them after the menu is built
 -- ============================================================================
 
--- The row a menu of ours has selected, told to the game's menu: the game's own
--- checkHighlightedOption, so the option's onHighlight gets what the game gives it
--- (option, menu, on/off, its params), the last row is let go first, and the animal
--- rows that ask to be called every frame are. holder is the strip or the list; a nil
--- def lets go of whatever is lit (a menu closing must, or the outline stays on the
--- world object). A row of a submenu lives on that submenu's menu, so leaving one lets
--- the old menu go. (Nov 6 2026: this called onHighlight(option, true), so the object
--- came through nil: no outline in ZeD, and an exception on the rows that index it.)
 local function tellMenu(menu, opt)
     -- an option that throws while it is let go would stay held and every row after it
     -- would throw too: forget it and light the new one
@@ -564,6 +559,15 @@ local function tellMenu(menu, opt)
     end
 end
 
+--- The row a menu of ours has selected, told to the game's menu: the game's own
+--- checkHighlightedOption, so the option's onHighlight gets what the game gives it
+--- (option, menu, on/off, its params), the last row is let go first, and the animal
+--- rows that ask to be called every frame are. Calling onHighlight(option, true)
+--- directly would hand the object through as nil: no outline, and an exception on
+--- the rows that index it. holder is the strip or the list; a nil def lets go of
+--- whatever is lit (a menu closing must, or the outline stays on the world
+--- object). A row of a submenu lives on that submenu's menu, so leaving one lets
+--- the old menu go.
 function Registry.highlight(holder, def)
     local opt = def and def.vanillaRef or nil
     local menu = opt and def._vanillaMenu or nil
