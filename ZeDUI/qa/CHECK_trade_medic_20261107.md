@@ -3,7 +3,7 @@
 The director's B10 and B11 (VANILLA_WINDOWS_20261107.md): both are now World window cards. Trading opens ZeD's trade
 card instead of the game's trading window; a medical check of another player opens ZeD's Health tab on them in the
 card drawer instead of the game's health panel. Nothing here was run in game. The sim
-(`lua51 ZeDUI/tools/qa/trade_medic_sim.lua`, 158 checks) runs the game's own ISTradingUI, ISHealthPanel and
+(`lua51 ZeDUI/tools/qa/trade_medic_sim.lua`, 168 checks) runs the game's own ISTradingUI, ISHealthPanel and
 ISMedicalCheckAction files against ZeD's code; it cannot show what the engine does with real packets, fonts and focus.
 That is this check.
 
@@ -62,6 +62,12 @@ Two real players on the local server kit, as `batch_two_b7.ps1` does it:
 12. **No.** Bob answers No: the admin's box reads "bob refused to trade with you." and Close.
 13. **Bob gives up first.** Admin asks, then closes the card before bob answers: bob's prompt goes away by itself.
 14. **Safe mode.** Turn Safe mode on and trade: the game's own trading window, on both sides as usual.
+15. **Safe mode mid-trade.** With a ZeD trade open, turn Safe mode on (or give the World window back in ZeD setup):
+    the trade ends as Cancel (bob sees it closed) and the admin can right-click the world and move items at once.
+16. **Their close frees you.** Bob cancels: the admin's card keeps "bob closed their trading window." with Close, but
+    the admin can already right-click and move items. Close the card or the World window: the trade is gone.
+17. **Window shut, you try something.** With a trade open and the World window shut, right-click the world or try to
+    move an item: the World window opens on the trade card, so you see why.
 
 Controller (admin on the pad): the card takes the focus when it opens, on the first Add (on Close while blocked). The
 D-pad walks Add / Add all / Remove and the band (Seal offer, Cancel, Accept deal); A presses; B is Cancel (it closes
@@ -91,6 +97,8 @@ the card and ends the trade). Check nothing is a dead stop, and that the focus c
    for a medical check (the first answers Yes on the prompt). The card opens on the World window if it is the doctor's;
    if the World window belongs to the other player, the game's own health panel opens (expected).
 9. **Safe mode.** The game's own health panel.
+10. **Window closed mid-check.** Close the World window during a check: the card is gone and stays gone on reopen;
+    the doctor no longer receives bob's body (console: no further body updates).
 
 Controller: the card opens on the worst injury's row; the D-pad walks the figure's parts and the rows; A opens the
 treatment menu (the game's, focused); B closes the card.

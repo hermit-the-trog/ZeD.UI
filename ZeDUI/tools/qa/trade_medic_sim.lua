@@ -550,7 +550,10 @@ ZeD.tr = function(k, ...) return getText(k, ...) end
 local LOGGED = {}
 ZeD.logOnce = function(k, m) if not LOGGED[k] then LOGGED[k] = true; print("LOG " .. tostring(k) .. ": " .. tostring(m)) end end
 local SAFE = false
-ZeD.Safe = { on = function() return SAFE end }
+local SAFE_HOOKS = {}
+ZeD.Safe = { on = function() return SAFE end, register = function(n, d) SAFE_HOOKS[n] = d end }
+local MENU_BUILT = 0
+ISWorldObjectContextMenu.createMenu = function() MENU_BUILT = MENU_BUILT + 1 end
 ZeD_ScrollbarState = { new = function()
     return { scrollPos = 0, visible = false, setScrollPos = function(s, v) s.scrollPos = v end, setBarSize = function() end, draw = function() end }
 end }
@@ -815,6 +818,11 @@ fire("AcceptedTrade", P2, P1, false)
 check("they said no: blocked with vanilla's words", s3 and s3.blocking == getText("IGUI_TradingUI_RefusedTrade", "Bobby"))
 -- pinned (the director, Nov 7 2026): only Cancel, their close, distance or them leaving end the trade
 if s3 then
+    -- (a refused trade is over once its card goes: the pinned checks run on an accepted one)
+    if s3.open then s3:cancel() end
+    ISWorldObjectContextMenu.onTrade({}, P1, P2)
+    fire("AcceptedTrade", P2, P1, true)
+    s3 = TR.get(P1)
     local function shown() local c = ZeD_WorldWindow.getObjectCard(); return c and c.entry and c.entry.t and c.entry.t.s == s3 and WIN._drawerOpen and WIN._drawerItem == nil end
     clearCalls()
     -- an item card opens over it
@@ -853,6 +861,60 @@ if s3 then
     CARD:close()
     check("pinned: the card's close key still cancels", not s3.open and lastState() == "WindowWasClosed")
 end
+-- review fixes (Nov 7 2026) -----------------------------------------------------------------
+local function openTrade()
+    WIN_OPEN, WIN._playerObj, WIN._drawerObject, WIN._drawerItem, CARD.entry = true, P1, nil, nil, nil
+    ISWorldObjectContextMenu.onTrade({}, P1, P2)
+    fire("AcceptedTrade", P2, P1, true)
+    return TR.get(P1)
+end
+-- 1. safe mode takes over: every ZeD trade ends as Cancel, the game's guards let go
+local s5 = openTrade()
+clearCalls()
+SAFE = true
+for _, h in pairs(SAFE_HOOKS) do if h.leave then pcall(h.leave) end end
+tick(1)
+SAFE = false
+check("safe mode: the ZeD trade ends (Cancel)", s5 and not s5.open and lastState() == "WindowWasClosed")
+check("safe mode: the stand-in leaves ISTradingUI.windows", ISTradingUI.windows[1] == nil)
+-- 1b. the World window given back or another player's: the same, from the session's own frame
+s5 = openTrade()
+clearCalls()
+WIN._playerObj = P2
+tick(1)
+check("the World window no longer this player's: the trade ends", s5 and not s5.open and lastState() == "WindowWasClosed")
+WIN._playerObj = P1
+-- 1c. they closed: the game's guards let go at once, the card keeps their words, then finishes
+s5 = openTrade()
+fire("TradingUIUpdateState", P2, P1, "WindowWasClosed")
+check("they closed: the game no longer finds a trade (guards free)", ISTradingUI.GetUIForPlayer(P1) == nil or not ISTradingUI.isVisible(ISTradingUI.GetUIForPlayer(P1)))
+check("they closed: the card still shows their words", CARD.entry and CARD.entry.t.s == s5 and s5.blocking ~= nil)
+WIN_OPEN = false
+tick(1)
+check("they closed, card gone: the trade is over", s5 and not s5.open)
+-- 2. split screen: never on another player's World window
+s5 = openTrade()
+WIN_OPEN, WIN._drawerObject, CARD.entry, WIN._playerObj = true, nil, nil, P2
+if s5 and s5.reshow then s5:reshow(true) end
+check("split screen: the trade card never opens on the other player's window", WIN._drawerObject == nil)
+WIN._playerObj = P1
+if s5 and s5.open then s5:cancel() end
+-- 4. the window shut: a right-click brings the trade back
+s5 = openTrade()
+WIN_OPEN = false
+ISWorldObjectContextMenu.createMenu(0, 0, 0, {})
+check("window shut: a right-click opens the window on the trade", WIN_OPEN and CARD.entry and CARD.entry.t.s == s5)
+-- 5. the game's handlers, wrapped by a mod before ZeD, never break on the stand-in
+local okV = true
+for ev, f in pairs(VANILLA) do
+    local arg = (ev == "AcceptedTrade" and true) or (ev == "TradingUIAddItem" and newItem("Cup", newContainer())) or (ev == "TradingUIRemoveItem" and 5) or "DealWasSealed"
+    local ok, err = pcall(f, P2, P1, arg)
+    if not ok then okV = false; print("  " .. ev .. ": " .. tostring(err)) end
+end
+check("a mod's wrap of the game's handlers runs safely against ZeD's stand-in", okV)
+if s5 and s5.open then s5:cancel() end
+WIN_OPEN, WIN._drawerObject, CARD.entry = true, nil, nil
+
 -- a narrow card stacks the offers
 ISWorldObjectContextMenu.onTrade({}, P1, P2)
 local s4 = TR.get(P1)
@@ -979,6 +1041,14 @@ if CARD.entry and CARD.entry.def.id == "medic" then
     P1.seated, P2.seated, P1.vehicle, P2.vehicle = false, false, nil, nil
     P2.x = 101.5
 end
+-- 3. the World window closed with the check open: the updates stop
+CARD:close()
+startCheck()
+local rW = P1.recv
+WIN_OPEN = false
+tick(1)
+check("medical check: the World window closed stops the body updates", P1.recv == rW - 1, P1.recv - rW)
+WIN_OPEN, WIN._drawerObject, CARD.entry = true, nil, nil
 -- single player / split screen: the local body, read directly
 CLIENT, MP = false, false
 P2.local_ = true

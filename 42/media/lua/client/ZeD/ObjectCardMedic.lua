@@ -46,7 +46,34 @@ function MC.canOpen(doctor)
 end
 
 function MC.open(doctor, patient)
-    return OC.open(doctor, "medic", patient)
+    local ok = OC.open(doctor, "medic", patient)
+    if ok then
+        local card = ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+        MC.current = card and card.entry and card.entry.t or nil
+    end
+    return ok
+end
+
+-- the check's card gone by any path (the World window closed or toggled away, another card, safe mode):
+-- the doctor stops receiving the patient's body, as vanilla does when its window hides
+local function ended(t)
+    if MC.current == t then MC.current = nil end
+    if t and not t._ended and t.doctor and t.patient then
+        t._ended = true
+        pcall(function() t.doctor:stopReceivingBodyDamageUpdates(t.patient) end)
+    end
+end
+MC.ended = ended
+function MC.tick()
+    local t = MC.current
+    if not t then return end
+    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+    local e = card and card.entry
+    if not (e and e.t == t) then ended(t) end
+end
+if Events and Events.OnTick and not MC._tickAdded then
+    MC._tickAdded = true
+    Events.OnTick.Add(function() MC.tick() end)
 end
 
 local function remote(p) return isClient() and not p:isLocalPlayer() end
@@ -102,7 +129,7 @@ end
 
 -- vanilla's tryStopReceivingBodyDamageUpdates when its window goes
 function def.onClose(t, card)
-    if t.doctor and t.patient then pcall(function() t.doctor:stopReceivingBodyDamageUpdates(t.patient) end) end
+    ended(t)
 end
 
 function def.refresh(t, doctor)

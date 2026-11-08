@@ -94,6 +94,15 @@ function TR.open(player, other, asked)
     el:instantiate()
     el:setVisible(true)
     el.zedTrade = s
+    -- (the fields the game's own trade handlers read, as no-ops: a mod that wrapped one of them before ZeD
+    -- loaded keeps it on the event, and it must find nothing to break here; ZeD's router does the work)
+    local noop = function() end
+    el.hisOfferDatas = { items = {}, addItem = noop, removeItemByIndex = noop }
+    el.yourOfferDatas = { items = {}, addItem = noop, removeItemByIndex = noop }
+    el.sealOffer = { selected = {} }
+    el.setHistoryMessage = noop
+    el.finalizeDeal = noop
+    el.getIndexFromItemId = function() return -1 end
     el.player, el.otherPlayer = player, other
     s.element = el
     TR.sessions[s.index + 1] = s
@@ -125,6 +134,27 @@ function Session:finish()
     local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
     local e = card and card.entry
     if e and e.t and e.t.s == self and ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
+end
+
+-- the trade can no longer go on (they closed, refused or left): the stand-in goes, so the game's
+-- right-click menus and transfers are free again; the card stays with their words until it closes
+function Session:release()
+    if self.released then return end
+    self.released = true
+    pcall(function() self.element:setVisible(false) end)
+    if ISTradingUI and ISTradingUI.windows and ISTradingUI.windows[self.index + 1] == self.element then
+        ISTradingUI.windows[self.index + 1] = nil
+    end
+end
+
+--- End every open ZeD trade as Cancel does (safe mode taking over, the World window given back).
+function TR.endAll()
+    local open = {}
+    for _, s in pairs(TR.sessions) do if s and s.open then open[#open + 1] = s end end
+    for _, s in ipairs(open) do s:cancel() end
+end
+if ZeD.Safe and ZeD.Safe.register then
+    ZeD.Safe.register("trade", { leave = function() TR.endAll() end })
 end
 
 --- Cancel (vanilla's CANCEL button): close, then tell the other player.
@@ -345,10 +375,22 @@ function Session:update()
     if not self.open then return end
     local player = self.player
     if player:isDead() then return end
+    -- ZeD stepped aside (safe mode, the World window given back, or the window now another player's):
+    -- the trade ends as Cancel does, so the game's guards never hold a player with no card to answer them
+    if not TR.canOpen(player) then self:cancel(); return end
+    -- they closed, refused or left: the game's guards let go at once (the card keeps their words and
+    -- Close); once the card is gone too, the trade is over
+    if self.released then
+        local c = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+        local ce = c and c.entry
+        if not (ce and ce.t and ce.t.s == self) then self:cancel() end
+        return
+    end
     if self.flashCD and self.flashCD > 0 then self.flashCD = self.flashCD - 1 end
     local other = getPlayerByOnlineID(self.other:getOnlineID())
     if not other then
         self.blocking = getText("IGUI_TradingUI_ClosedTrade", self.other:getDisguisedDisplayName())
+        self:release()
     end
     if not self.blocking and other and (math.abs(other:getX() - player:getX()) > 2 or
             math.abs(other:getY() - player:getY()) > 2) then
@@ -376,6 +418,8 @@ function Session:reshow(open)
     if not (self.open and ZeD_WorldWindow) then return end
     local win = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     if not win and not open then return end
+    -- (split screen: never on another player's World window)
+    if win and win._playerObj and win._playerObj ~= self.player then return end
     if win then
         local d = win._drawerObject
         if d and d.t and d.t.s == self then
@@ -424,6 +468,7 @@ function TR.onAccepted(otherPlayer, player, accepted)
     s.blocking = nil
     if not accepted then
         s.blocking = getText("IGUI_TradingUI_RefusedTrade", otherPlayer:getDisguisedDisplayName())
+        s:release()
     end
 end
 
@@ -472,6 +517,7 @@ function TR.onState(otherPlayer, player, state)
             -- (their request was still being asked: nothing else, as vanilla)
         elseif s and s.other == otherPlayer then
             s.blocking = getText("IGUI_TradingUI_ClosedTrade", otherPlayer:getDisplayName())
+            s:release()
         end
     end
     if s and s.open then
