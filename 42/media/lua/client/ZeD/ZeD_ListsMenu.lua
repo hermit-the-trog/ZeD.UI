@@ -1,12 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ListsMenu.lua
 -- ============================================================================
--- LOADOUTS AND OUTFITS BY NAME (handoff equip_doll_v4_loadouts, part B3; mockup
--- frames r2_09 and r2_10)
+-- LOADOUTS AND OUTFITS BY NAME: the menus that put an item on a list, and the
+-- name prompt. Client side; the hook on the game's inventory right-click is at
+-- the foot of the right-click section.
 --
 --   * The right-click menu: Save to outfit (worn and wearable things only) and
 --     Save to loadout (anything you can carry). Each opens the saved lists of
 --     that kind by name, a check on the ones the item is already in (picking a
---     checked one takes it out), a rule, then New outfit... / New loadout...,
+--     checked one takes it out), a dividing rule, then New outfit... / New loadout...,
 --     which makes a list with the item on it. They are vanilla options with a
 --     submenu, so both looks show them: the list cascades, the icon strip
 --     drills into the same names (ContextMenuRegistry reads zedCheck / zedPx).
@@ -59,7 +60,7 @@ local function newTitle(kind)
 end
 
 --- Ask a name, then make a list of that kind with the items on it (none: an empty list).
--- done(list) after.
+--- done(list) after.
 function LU.newList(p, kind, items, done)
     if not p then return end
     LU.askName(p:getPlayerNum(), newTitle(kind), L.uniqueName(p, kind), function(name)

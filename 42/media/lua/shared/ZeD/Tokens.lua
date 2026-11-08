@@ -1,12 +1,19 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/Tokens.lua
 -- ============================================================================
--- DESIGN TOKEN ENGINE
+-- DESIGN TOKEN ENGINE: the tokens, the bottom layer every atom, molecule and organism reads.
 -- Single source of truth for every visual value in the mod.
 -- Three independent axes: Base Theme x Accent Color x Text Size
 -- Produces ZeD.T — the active palette that all components reference.
+-- The one thing to know: ZeD.applyTheme builds a NEW ZeD.T on every theme, accent, text-size
+-- or UI-scale change, so code that keeps the old table keeps the old values. Read the palette
+-- fresh every frame (prerender), so a theme change shows up instantly — nothing is cached.
+-- Shared: this file loads on the client and on a dedicated server alike, so nothing
+-- client-only at file scope. On a server the palette is built all the same; only the font
+-- heights are skipped, since a server loads no fonts.
 -- ============================================================================
 
--- Global namespace — everything lives under ZeD
+-- Reload-safe: loading this file twice reuses the table instead of wiping it. Everything ZeD
+-- makes lives under this one global.
 ZeD = ZeD or {}
 
 -- ---------------------------------------------------------------------------
@@ -115,8 +122,8 @@ ZeD.BaseThemes = {
         surf4    = hex("#A6A6A6", 0.97),
         border   = hex("#969696", 1.0),
         borderS  = hex("#767676", 1.0),
-        -- the belt's slot and pouch frame (Oct 26 2026): the strong border stood only 2.3:1 off the slots' fill;
-        -- frameS, the keyline, stands 3:1 off the fill, frameHi, a light line outside it, 3:1 off the leather strap
+        -- the belt's slot and pouch frame: the strong border stands only 2.3:1 off the slots' fill, so
+        -- frameS, the keyline, stands 3:1 off the fill, and frameHi, a light line outside it, 3:1 off the leather strap
         frameS   = hex("#424242", 1.0),
         frameHi  = hex("#D2D2D2", 1.0),
         text     = rgba(0.047, 0.047, 0.047, 0.95),  -- neutral near-black
@@ -295,7 +302,7 @@ ZeD.AccentColors = {
 -- .px   = base pixel size (1x scale) for deriving scale factors
 -- The rest of the system references ZeD.Font.* — never UIFont.* directly.
 --
--- Pairing D: Fira Mono + Fira Sans Condensed (SIL OFL)
+-- The pairing: Fira Mono + Fira Sans Condensed (SIL OFL)
 -- 5 typography roles (F-system):
 --   F1 Chrome  — Fira Mono Bold              (title bars, tabs, button labels)
 --   F2 Body    — Fira Sans Regular            (list rows, content text)
@@ -304,7 +311,8 @@ ZeD.AccentColors = {
 --   F5 Micro   — Fira Sans Cond. Regular     (chips, badges, metadata labels)
 -- ---------------------------------------------------------------------------
 local F = {}
--- Active role fonts (5 roles × 2 size presets = 10)
+-- The bitmap role fonts (5 roles × 2 size presets = 10). ZeD.TextSizes takes each one's px for
+-- its preset; the text itself draws with the distance-field faces in F.sdf below
 F.sec        = { font = UIFont.NewMedium,  px = 11 }  -- F1 Chrome: Fira Mono Bold 11px (small)
 F.secLg      = { font = UIFont.NewSmall,   px = 13 }  -- F1 Chrome: Fira Mono Bold 13px (large)
 F.body       = { font = UIFont.Small,      px = 13 }  -- F2 Body: Fira Sans Regular 13px (small)
@@ -315,14 +323,15 @@ F.head       = { font = UIFont.NewLarge,   px = 15 }  -- F4 Heading: Fira Sans C
 F.headLg     = { font = UIFont.CodeLarge,  px = 17 }  -- F4 Heading: Fira Sans Cond. SemiBold 17px (large)
 F.title      = { font = UIFont.Code,       px =  9 }  -- F5 Micro: Fira Sans Cond. Regular 9px (small)
 F.titleLg    = { font = UIFont.CodeSmall,  px = 11 }  -- F5 Micro: Fira Sans Cond. Regular 11px (large)
--- Reserved slots (4 — speech, TV/radio, HOW YOU DIED, TBD)
-F.rsv1       = { font = UIFont.Cred1,     px = 20 }  -- (Nov 1 2026: Cred1 now holds Noto Sans SC, ZeD's simplified Chinese face, for ZeD.Text.scriptFont; Chicago is off the list)
-F.rsv2       = { font = UIFont.Cred2,     px = 24 }  -- Chicago 24px
-F.rsv3       = { font = UIFont.MainMenu1, px = 16 }  -- Lekton Bold 16px
-F.rsv4       = { font = UIFont.MainMenu2, px = 20 }  -- Lekton Bold 20px
+-- Reserved slots (4 — speech, TV/radio, HOW YOU DIED, TBD). Nothing reads these entries, and each
+-- slot now holds another face (EN/fonts.txt):
+F.rsv1       = { font = UIFont.Cred1,     px = 20 }  -- (Cred1 holds Noto Sans SC, ZeD's simplified Chinese face, for ZeD.Text.scriptFont; Chicago is off the list)
+F.rsv2       = { font = UIFont.Cred2,     px = 24 }  -- (Cred2 holds the F5 Micro distance-field face below; Chicago 24px is off the list)
+F.rsv3       = { font = UIFont.MainMenu1, px = 16 }  -- (MainMenu1 holds the F2 Body distance-field face below; Lekton Bold 16px is off the list)
+F.rsv4       = { font = UIFont.MainMenu2, px = 20 }  -- (MainMenu2 holds the F1 Chrome distance-field face below; Lekton Bold 20px is off the list)
 
--- S124 phase 1: distance-field Fira (crisp at any zoom, Q139) on spare slots. The windows keep the
--- bitmap slots above until phase 2 converts their text path; the HUD props draw with these.
+-- Distance-field Fira (crisp at any zoom) on spare slots: the windows and the HUD props draw with
+-- these, and the bitmap entries above give each text-size preset its px.
 -- face / lineH = the atlas metrics (64 px face, lineH approximate). The engine draws an SDF atlas at its
 -- native face at zoom 1 and its edge smoothing is a fixed band tuned for drawing a face at ~0.4x, so the
 -- face is baked at 64 px: body 13 px x root 2 = 26 px lands at 0.4x (crisp), 1080p at 0.2x (hard-edged).
@@ -353,7 +362,7 @@ ZeD.TextSizes = {
         name       = "Small",
         scale      = 1.00,
         fontF1     = F.sec,          -- F1 Chrome: Fira Mono Bold 11px
-        fontF2     = F.body,         -- F2 Body: Fira Sans Regular 12px
+        fontF2     = F.body,         -- F2 Body: Fira Sans Regular 13px
         fontF3     = F.stat,         -- F3 Data: Fira Mono Regular 11px
         fontF4     = F.head,         -- F4 Heading: Fira Sans Cond. SemiBold 15px
         fontF5     = F.title,        -- F5 Micro: Fira Sans Cond. Regular 9px
@@ -384,7 +393,7 @@ ZeD.TextSizes = {
         name       = "Large",
         scale      = 1.15,
         fontF1     = F.secLg,        -- F1 Chrome: Fira Mono Bold 13px
-        fontF2     = F.bodyLg,       -- F2 Body: Fira Sans Regular 14px
+        fontF2     = F.bodyLg,       -- F2 Body: Fira Sans Regular 15px
         fontF3     = F.statLg,       -- F3 Data: Fira Mono Regular 13px
         fontF4     = F.headLg,       -- F4 Heading: Fira Sans Cond. SemiBold 17px
         fontF5     = F.titleLg,      -- F5 Micro: Fira Sans Cond. Regular 11px
@@ -442,9 +451,9 @@ ZeD.Spacing = {
     gridCellPad   = 6,    -- padding inside grid cells
     titleBoxPad   = 3,    -- knockout box padding around title/stat text
     resizeHotZone = 4,    -- resize detection zone at window edges
-    contextPadH   = 14,   -- DEPRECATED S88 — was used by the vanilla-list skin override; replaced by T.ctx for the new strip menu
-    contextPadV   = 5,    -- DEPRECATED S88 — see above
-    contextSafeM  = 4,    -- DEPRECATED S88 — see above
+    contextPadH   = 14,   -- deprecated: nothing reads it (the vanilla-list skin override did); T.ctx serves the strip menu
+    contextPadV   = 5,    -- deprecated, as above
+    contextSafeM  = 4,    -- deprecated, as above
     textLineGap   = 4,    -- micro-gap between stacked text lines (name → subtitle, name → badges)
     beforeHead    = 8,    -- padding above section headings
     headGap       = 8,    -- gap below section headings
@@ -468,9 +477,9 @@ ZeD.Spacing = {
 }
 
 -- ---------------------------------------------------------------------------
--- CONTEXT MENU TOKENS (S88 — unified horizontal strip)
+-- CONTEXT MENU TOKENS (the unified horizontal strip)
 -- All geometry, motion, and state dims for ZeD_ContextMenu and its molecules.
--- Fixed across themes. Exposed on T.ctx at render time. See CONTEXT_MENU_SPEC §9.
+-- Fixed across themes. Exposed on T.ctx at render time.
 -- ---------------------------------------------------------------------------
 ZeD.Ctx = {
     -- CELL GEOMETRY — the atomic unit of the strip
@@ -512,32 +521,33 @@ ZeD.Ctx = {
 }
 
 -- ---------------------------------------------------------------------------
--- GAMEPAD TOKENS (S91 — Gamepad Phase 1 Infrastructure)
+-- GAMEPAD TOKENS
 -- All geometry, thresholds, and timings for the gamepad input stack.
--- Fixed across themes. Exposed on T.gp at render time. See GAMEPAD_SPEC §11.
+-- Fixed across themes. Exposed on T.gp at render time.
 --
--- Ship the ENTIRE block now even though Phase 1 (InputModeDetector + ActionMap)
--- only reads stickThresh, triggerThresh, cooldownMs. Phases 2-6 read the rest
--- and we don't want to revisit this file every phase.
+-- InputModeDetector reads the detection thresholds, and FocusManager the hold,
+-- repeat and aiming-escape values. The focus ring, the prompts, the Layout Mode
+-- HUD and the strip menus have no reader yet: their values wait here so the
+-- parts that will draw them find them ready.
 -- ---------------------------------------------------------------------------
 ZeD.Gp = {
-    -- FOCUS RING (Layer 3 FocusManager — Phase 3) ----------------------------
+    -- FOCUS RING (no reader yet) ---------------------------------------------
     focusRingW    = 2,        -- border width in pixels around the focused element
     focusRingPad  = 1,        -- inset from element edge so the ring sits inside the border
     focusFillA    = 0.10,     -- inner fill alpha when focused (accent-tinted wash)
 
-    -- BUTTON PROMPTS (Layer 4 GlyphManager — Phase 4) ------------------------
+    -- BUTTON PROMPTS (no reader yet) -----------------------------------------
     promptSize    = 16,       -- standard glyph size for footer prompt strips
     promptSizeSm  = 12,       -- small glyph size for inline / dense contexts
     promptGap     = 4,        -- gap between glyph and its label text
 
-    -- LAYOUT MODE HUD (Layer 3 FocusManager / Layout Mode — Phase 3) ---------
+    -- LAYOUT MODE HUD (no reader yet) ----------------------------------------
     layoutHudH       = 22,    -- banner height when a window enters Layout Mode
     layoutHudY       = 4,     -- banner vertical offset from the title bar
     layoutMoveStep   = 8,     -- pixels per D-pad tap in Layout Mode
     layoutResizeStep = 8,     -- pixels per trigger/bumper tap in Layout Mode
 
-    -- DETECTION THRESHOLDS (Layer 1 InputModeDetector — Phase 1, PHASE 1 USES)
+    -- DETECTION THRESHOLDS (InputModeDetector reads these) -------------------
     -- Mirrored here from InputModeDetector so they can be tweaked at runtime
     -- via console (`ZeD.T.gp.stickThresh = 0.25`) during controller tuning.
     -- The detector reads these from T.gp on every poll, never hardcoded.
@@ -545,14 +555,15 @@ ZeD.Gp = {
     triggerThresh = 0.15,     -- abs(trigger) threshold — filters resting finger weight
     cooldownMs    = 200,      -- minimum ms between mode switches (last-event-wins)
 
-    -- BUMPER CHORD (Layer 2 BumperChord — Phase 2) ---------------------------
-    chordWindowMs = 250,      -- how long after first bumper press to wait for chord completion
+    -- BUMPER CHORD -----------------------------------------------------------
+    chordWindowMs = 250,      -- how long after first bumper press to wait for chord completion. No reader:
+                              -- BumperChord keeps no arming timeout any more, so this can go
 
-    -- HOLD-TO-REPEAT — D-PAD SPATIAL NAV (Layer 3 FocusManager — Phase 3) ----
+    -- HOLD-TO-REPEAT — D-PAD SPATIAL NAV (FocusManager) ----------------------
     holdInitMs    = 250,      -- initial delay before D-pad nav starts auto-repeating
     holdRepeatMs  = 120,      -- interval between auto-repeat ticks once started
 
-    -- AIMING ESCAPE — RIGHT-STICK MAGNITUDE² THRESHOLD (S97 ring model) ------
+    -- AIMING ESCAPE — RIGHT-STICK MAGNITUDE² THRESHOLD (FocusManager) --------
     -- FocusManager polls right-stick every tick while a ZeD window is focused.
     -- When the stick is pushed past this threshold, the window is shaded and
     -- focus is released so gameplay input resumes instantly. Threshold is in
@@ -560,20 +571,20 @@ ZeD.Gp = {
     -- 0.81 ≈ 90% of full deflection on a unit-circle stick.
     aimingThresholdSq = 0.81,
 
-    -- HOLD DETECTION — B-HOLD and Y-HOLD (S90 tap/hold dismiss model) --------
+    -- HOLD DETECTION — B-HOLD and Y-HOLD (the tap/hold dismiss) --------------
     -- Shared threshold for `cancel` (B) and `window_control` (Y) hold actions.
     -- ActionMap declares `holdMs = 400` on those entries; FocusManager reads
-    -- this token to drive the hold timer. Schema-only in Phase 1.
+    -- this token to drive the hold timer.
     holdMs        = 400,
 
-    -- D-PAD STRIP MENUS (new §12, S90 — Phase 3 dispatcher) ------------------
+    -- D-PAD STRIP MENUS (no reader yet) --------------------------------------
     stripAnchorY    = "bottomCenter",  -- symbolic anchor consumed by strip layout
     stripBottomGap  = 24,              -- pixels from screen bottom to strip baseline
     stripDismissMs  = 150,             -- fade-out duration on dismiss
 }
 
 -- ---------------------------------------------------------------------------
--- RADIO CHASSIS TOKENS (S115 — first contextual drawer chassis)
+-- RADIO CHASSIS TOKENS (the first contextual drawer chassis)
 -- Hardware colors — NOT theme-dependent. The chassis is its own visual
 -- language; chrome (window, ring, accent) stays in T.surfX / T.accent.
 --
@@ -640,7 +651,7 @@ ZeD.Radio.lcd.segOff  = hex("#C47015")
 ZeD.Radio.lcd.chipOff = hex("#5A3010")
 
 -- ---------------------------------------------------------------------------
--- READABLE TEXT COLOURS (contrast audit Oct 20 2026)
+-- READABLE TEXT COLOURS
 -- Text tokens are derived from the surfaces they sit on, not picked by hand:
 -- a colour moves only as far toward the surface's contrasting end (white on
 -- dark surfaces, black on light) as it needs to reach the target ratio.
@@ -658,15 +669,15 @@ local function lum(c)
     return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b)
 end
 
--- WCAG contrast ratio of two {r,g,b} colours (alpha ignored)
+--- WCAG contrast ratio of two {r,g,b} colours (alpha ignored)
 function ZeD.contrast(a, b)
     local l1, l2 = lum(a), lum(b)
     if l1 < l2 then l1, l2 = l2, l1 end
     return (l1 + 0.05) / (l2 + 0.05)
 end
 
--- fg moved toward white (up = true) or black in 4% steps until it has minR against
--- every opaque colour in bgs; the first step that passes, so the hue stays as close as it can
+--- fg moved toward white (up = true) or black in 4% steps until it has minR against
+--- every opaque colour in bgs; the first step that passes, so the hue stays as close as it can
 function ZeD.legible(fg, minR, bgs, up)
     local goal = up and 1 or 0
     for i = 0, 25 do
@@ -681,17 +692,17 @@ function ZeD.legible(fg, minR, bgs, up)
     return { r = goal, g = goal, b = goal, a = 1 }
 end
 
--- Ink or paper, whichever reads better on this fill (pure black or white if neither reaches 4.5)
 local INK, PAPER = hex("#0C0C0C"), hex("#F2F0EC")
 local BLACK, WHITE = { r = 0, g = 0, b = 0, a = 1 }, { r = 1, g = 1, b = 1, a = 1 }
+--- Ink or paper, whichever reads better on this fill (pure black or white if neither reaches 4.5)
 function ZeD.textOn(fill)
     local c = (ZeD.contrast(INK, fill) >= ZeD.contrast(PAPER, fill)) and INK or PAPER
     if ZeD.contrast(c, fill) < 4.5 then c = (c == INK) and BLACK or WHITE end
     return c
 end
 
--- The label colours for mod folders and separators (the director, Nov 4 2026: "switch to our accent colors because we
--- are not System 7"): None, then eight of ZeD's own accent colours (Mono left out: a grey label reads as none), named
+-- The label colours for mod folders and separators: ZeD's own accent colours, not System 7's label colours, since ZeD is
+-- not System 7. None, then eight of ZeD's own accent colours (Mono left out: a grey label reads as none), named
 -- with the accent setting's own words. Each theme takes the accent's own variant (light for Light, dark for Dark and
 -- High contrast). P.labels[key] is the colour for marks (the swatches, a folder's picture, a separator's rules), moved
 -- only as far as 3 : 1 needs on the theme's surfaces; P.labelsText[key] is the colour as text (a separator's name),
@@ -724,8 +735,8 @@ local function flatOver(world, s, c, ca)
     return { r = r, g = g, b = b }
 end
 
--- P is a palette with accent, hover, text, surf1, surf2 (ZeD.T, or a window's own accent palette);
--- the base theme supplies the rest. Writes the READABLE_KEYS fields onto P.
+--- P is a palette with accent, hover, text, surf1, surf2 (ZeD.T, or a window's own accent palette);
+--- the base theme supplies the rest. Writes the READABLE_KEYS fields onto P.
 function ZeD.deriveReadable(P, baseKey)
     local base  = ZeD.BaseThemes[baseKey] or ZeD.BaseThemes.dark
     local up    = (baseKey ~= "light")                 -- dark and high contrast text moves toward white
@@ -741,12 +752,13 @@ function ZeD.deriveReadable(P, baseKey)
     }
     local f1 = bgs[1]
 
-    -- the accent as text (list weights, tab labels, titles); was accent at alpha 0.9
+    -- the accent as text (list weights, tab labels, titles): a solid colour that passes 4.7 : 1, rather than
+    -- the accent at alpha 0.9
     local at = ZeD.legible(ac, 4.7, bgs, up)
     P.accentText, P.toneHi = at, at
 
     -- ghost tiers: start dim (45% toward the text colour from the surface, 30% toward the accent),
-    -- then the faintest colour that passes 4.6; was accent at alpha 0.5 / 0.55 (1.5-1.7 : 1)
+    -- then the faintest colour that passes 4.6; rather than the accent at alpha 0.5 / 0.55, which reads only 1.5-1.7 : 1
     local tx = P.text
     local g0 = {
         r = (f1.r + (tx.r - f1.r) * 0.45) * 0.70 + ac.r * 0.30,
@@ -824,7 +836,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- rather than throwing below
     if not ZeD.BaseThemes[ZeD.currentBase]     then ZeD.currentBase   = "dark"   end
     if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = "orange" end
-    -- Medium removed — fall back to small if persisted
+    -- a saved "medium" (a preset that is gone) falls back to small, as does any size that names nothing
     if ZeD.currentSize == "medium" or not ZeD.TextSizes[ZeD.currentSize] then ZeD.currentSize = "small" end
     local base   = ZeD.BaseThemes[ZeD.currentBase]
     local size   = ZeD.TextSizes[ZeD.currentSize]
@@ -954,7 +966,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- Disclosure triangle color: toneNorm at 60% alpha (all expand/collapse chevrons)
     T.arrow    = { r = T.toneNorm.r, g = T.toneNorm.g, b = T.toneNorm.b, a = 0.60 }
 
-    -- Derived readable text colours (contrast audit Oct 20 2026): accentText / toneHi, toneLo /
+    -- Derived readable text colours: accentText / toneHi, toneLo /
     -- textSec / accentDim (stat labels, section labels, category rows), textDim, textOnAccent,
     -- textOnFocus (labels on the 0.55 focus wash) and the *Text variants of the status and soiled
     -- colours. Rebuilt here, on theme or accent change, never per frame.
@@ -962,7 +974,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- Category headers: same fontF1, neutral color (not accent)
     T.textCat  = T.textHead
 
-    -- S124 phase 2: the five role fonts live on the distance-field slots (ZeD.Font.sdf). The preset
+    -- The five role fonts live on the distance-field slots (ZeD.Font.sdf). The preset
     -- keeps its px per role; the root scale multiplies at draw time (Overrides/TextScale.lua routes
     -- ISUIElement text draws through the zoom path, ZeD.TM scales measurements) via ZeD.Text.zoomOf,
     -- which reads T.fontPx / T.fontFace keyed by the UIFont value. Heights are cached further down,
@@ -986,14 +998,14 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
             T.fontFace[e.font] = e.face or 64
         end
     end
-    -- S124: T.scale = root scale (1080p = 1.0, from ZeD.Scale) x the text-size preset. Every px token
+    -- T.scale = root scale (1080p = 1.0, from ZeD.Scale) x the text-size preset. Every px token
     -- below is pre-scaled; literals in layout code go through T.px(units).
     local root = (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1
     local sc = root * (size.scale or 1)
     T.scale = sc
     T.root  = root
     T.px    = function(units) return math.floor(units * sc + 0.5) end
-    -- Even at every step (Oct 21 2026; ZeD.Scale.artZoom / hair / line / snapRect explain the rules):
+    -- Even at every step (ZeD.Scale.artZoom / hair / line / snapRect explain the rules):
     --   T.hair      a 1-unit line in whole px (= T.px(1), >= 1)
     --   T.line(n)   an n-unit line: n hairlines (T.px(n) would mix 3 px two-unit lines with 2 px one-unit ones at 1.5)
     --   T.rect(...) a design-unit rect with snapped edges, its size taken from the edges
@@ -1011,10 +1023,10 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
         return x0, y0, math.floor((x + w) * sc + 0.5) - x0, math.floor((y + h) * sc + 0.5) - y0
     end
     T.art   = (ZeD.Scale and ZeD.Scale.artZoom) and ZeD.Scale.artZoom(sc) or math.max(1, math.floor(sc + 0.5 + 1e-6))
-    -- Oct 19 2026 (Large text audit): a preset value Large sizes for itself (row 34 vs 30, button
-    -- 30 vs 26 ...) takes the root scale only; multiplying it by Large's 1.15 as well grew rows 30%
-    -- for 15% more text (39 px rows) and pushed four rows in twenty off a full bag. Values both
-    -- presets share (the icons) and every literal through T.px still grow with Large.
+    -- A preset value Large sizes for itself (row 34 vs 30, button 30 vs 26 ...) takes the root scale
+    -- only: multiplied by Large's 1.15 as well, rows would grow 30% for 15% more text (39 px rows) and
+    -- push four rows in twenty off a full bag. Values both presets share (the icons) and every literal
+    -- through T.px still grow with Large.
     local small = ZeD.TextSizes.small
     local function SP(key)
         local v = size[key]
@@ -1063,24 +1075,24 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.iconTone  = (ZeD.currentBase == "light") and {r = 0, g = 0, b = 0} or {r = 1, g = 1, b = 1}
 
     -- Spacing is always available (doesn't change with theme)
-    T.sp = {}   -- scaled copy (S124); the static table stays the design-unit source
+    T.sp = {}   -- scaled copy; the static table stays the design-unit source
     for k, v in pairs(ZeD.Spacing) do T.sp[k] = (type(v) == "number") and T.px(v) or v end
     -- the body figure is pixel art (ZeD_BodyFigure.lua): its box is the canvas at the whole zoom it draws at,
-    -- so the Health, Thermal and Equip layouts make room for the size it really is (Oct 21 2026)
+    -- so the Health, Thermal and Equip layouts make room for the size it really is
     T.sp.figureW = ZeD.Spacing.figureW * T.art
     T.sp.figureH = ZeD.Spacing.figureH * T.art
     -- the System 7 groove: a dark and a light hairline (ZeD.Atoms.drawGroove)
     T.grooveH = 2 * T.hair
     -- Context-menu tokens — static, not theme-dependent (see ZeD.Ctx definition above)
-    T.ctx = {}  -- scaled copy (S124); counts and milliseconds stay as they are
+    T.ctx = {}  -- scaled copy; counts and milliseconds stay as they are
     local CTX_NOT_PX = { maxVisible = true, animMs = true, settleDelayMs = true }
     for k, v in pairs(ZeD.Ctx) do T.ctx[k] = (type(v) == "number" and not CTX_NOT_PX[k]) and T.px(v) or v end
     -- Gamepad tokens — static, not theme-dependent (see ZeD.Gp definition above)
-    -- S91: InputModeDetector + ActionMap read T.gp.stickThresh/triggerThresh/cooldownMs
+    -- InputModeDetector reads T.gp's stick, trigger and cooldown values; FocusManager its hold, repeat and aiming ones
     T.gp  = ZeD.Gp
 
     -- Radio chassis tokens — static hardware colors, not theme-dependent.
-    -- S115: first contextual drawer chassis, two tiers (Premium VFD / ValuTech LCD).
+    -- The first contextual drawer chassis, two tiers (Premium VFD / ValuTech LCD).
     T.radio = ZeD.Radio
 
     -- Set the active palette
@@ -1097,8 +1109,8 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     end
     if ZeD.Scale then ZeD.Scale._appliedRoot = root end
 
-    -- Fire a custom event so all open windows can refresh
-    -- (components listen for this to re-read ZeD.T)
+    -- A custom event for windows that want to hear of a new palette. It fires only once some file
+    -- registers OnZeDThemeChanged, and none does: components read ZeD.T fresh every frame instead
     if Events and Events.OnZeDThemeChanged then
         triggerEvent("OnZeDThemeChanged")
     end
@@ -1130,7 +1142,7 @@ end
 -- ---------------------------------------------------------------------------
 -- BUTTON LABELS: sentence case
 -- Every button reads in sentence case ("Load game", "Take all", "New..."),
--- never all caps (director, Oct 16 2026: all caps on buttons is fatiguing).
+-- never all caps: a row of all-caps buttons tires the eye.
 -- Labels are still written in caps, or upper-cased from vanilla's words, in
 -- many places, so the button molecules pass their label through here right
 -- before they measure and draw it:
@@ -1181,8 +1193,10 @@ end
 
 -- An error caught every frame (a draw, a tick) logs once per place and message, not
 -- once a frame: one bad texture or nil field must not flood console.txt.
--- (code audit Oct 17 2026; capped so a message with changing numbers cannot grow it forever)
+-- (capped, so a message with changing numbers cannot grow it forever)
 local _logSeen, _logCount = {}, 0
+--- prints "[ZeD] key: msg" once per key and message, 500 lines at most; every call still counts
+--- toward safe mode's watchdog
 function ZeD.logOnce(key, msg)
     -- every failing frame still counts towards safe mode's watchdog (client/ZeD/SafeMode.lua),
     -- before the dedup below; this file loads first, so it is looked up when called
@@ -1196,6 +1210,7 @@ function ZeD.logOnce(key, msg)
     print("[ZeD] " .. tostring(key) .. ": " .. tostring(msg))
 end
 
+--- a button label in sentence case, by the BUTTON LABELS rules above; nil stays nil
 function ZeD.btnCase(s)
     if s == nil then return s end
     s = tostring(s)
@@ -1214,11 +1229,11 @@ function ZeD.btnCase(s)
     return out
 end
 
--- Words that arrive in capitals at draw time (a heading, a column head, a status word
--- written in caps somewhere upstream) read in sentence case in the windows, by the same
--- rules as the buttons: initials, words with a digit and anything already in mixed case
--- pass through as written. Text printed on the hardware props keeps its caps and does
--- not come here.
+--- Words that arrive in capitals at draw time (a heading, a column head, a status word
+--- written in caps somewhere upstream) read in sentence case in the windows, by the same
+--- rules as the buttons: initials, words with a digit and anything already in mixed case
+--- pass through as written. Text printed on the hardware props keeps its caps and does
+--- not come here.
 function ZeD.textCase(s)
     return ZeD.btnCase(s)
 end

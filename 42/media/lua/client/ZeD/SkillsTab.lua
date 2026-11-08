@@ -372,7 +372,7 @@ local function buildTMCatalog()
                 stripped = clean:match("^" .. label .. "[:%s%-]+%s*(.*)")
             end
             if not stripped then
-                -- Try just removing skill name prefix
+                -- Else strip the skill name prefix alone
                 stripped = clean:match("^" .. label .. "%s+(.*)")
             end
             if stripped and stripped ~= "" then

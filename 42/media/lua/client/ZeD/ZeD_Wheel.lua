@@ -12,7 +12,7 @@
 -- 12 o'clock, the rest clockwise, each 360 / max(n, 2) degrees; a slice with
 -- no text and no picture is an empty place (kept, never drawn or picked). The
 -- pointer's direction (outside a small dead zone) or the right stick picks.
--- Before touching it: W.draw's place, W.sliceAt and ZeD_WheelGesture's
+-- Before touching it: place() in W.draw, W.sliceAt and ZeD_WheelGesture's
 -- G.sector all follow that one rule; change one and change all three, or the
 -- slice drawn under the pointer is not the one that fires.
 --
