@@ -50,6 +50,7 @@ end
 local function openCard(player, clothing)
     if not (ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow) then return false end
     local pn = player:getPlayerNum()
+    if not ZeD.windowsFor(pn) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     local win = ZeD_CharacterWindow.getWindow()
     if not (win and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen()) then
         if JoypadState.players[pn + 1] and ZeD_CharacterWindow.ensureBothOpenForGamepad then

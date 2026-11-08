@@ -295,8 +295,7 @@ ZeD.Safe.register("belt", {
             if eq.offHand then eq.offHand:setVisible(true) end
             if not (ISUIHandler and ISUIHandler.allUIVisible == false) then eq:setVisible(true) end
         end)
-        local hud = B._hud
-        if hud then
+        for _, hud in pairs(B._huds or {}) do
             hud:setVisible(false)
             hud._drawn = false
         end

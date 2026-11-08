@@ -75,3 +75,30 @@ The mod.info names no author; credit it by name and Workshop id until the page g
 
 - Sim: `ZeDUI/tools/qa/compat_r6_sim.lua`, 108 checks. It uses Better Folders' own `VIFState.lua` when the SteamCMD copy is there.
 - In game: `ZeDUI/qa/CHECK_mods-menus_20261107.md`.
+
+## Wounds Overhaul (WoundsOverhaul, 3775026731, by looo6)
+
+Not a round 6 mod: a Workshop comment said ZeD "totally breaks" it, and the director said ZeD will support it. QA's write-up: `ZeDUI/qa/COMPAT_WOUNDS_OVERHAUL_20261107.md`.
+
+**What it adds:** wounds that need looking after (infection stages, sepsis, open fractures, blood loss, stitching by hand). Its health screen is an examination: a limb has to be examined (a timed action that trains First Aid) before the game names what is on it or offers to treat it. That is on its strictest setting, the default.
+
+**With ZeD on, before:**
+- The mod's examination panel lives in the game's Character Info window, which ZeD hides, so nobody could examine.
+- ZeD's Health tab named every wound outright, giving away what the mod hides.
+- The part's menu in ZeD showed only the mod's gray "Something is wrong here.": no way to examine, so no way to treat.
+
+**Now** (`ModSupport/WoundsOverhaul.lua`, through the Health tab's hooks):
+- A part the mod holds back (its own rule, the one its shims for other health screens use) names no wound in ZeD's tab. It keeps what the character knows without looking (pain, stiffness, a bandage, stitches, a splint, a poultice) and shows the mod's line "Something is wrong here." instead. The neck, which the mod never holds back, is named.
+- That part's menu (right-click, or A on the controller) holds Examine and the mod's gray line. Examine is the mod's own examination, started by the mod's own code as its panel starts it (its workload, familiarity, XP rule and one-look-at-a-time rule).
+- Once examined, the wounds are named and the menu is the game's treatments with all of the mod's, opened through the mod's own menu wrap as its panel opens it.
+- The mod's record of a look goes when the wound heals, as on its own panel.
+- New hooks for other mods in the Health tab: `holds` and `openPart` (`ZeD.HealthTab.addExtras`).
+
+**Not carried over:**
+- The mod's own findings (sepsis stages, an open fracture, a burn's degree, a closure's quality) are not listed in ZeD's tab. Its moodles and its own windows still show.
+- After one look, a later wound on that part is named at once (the mod's rule for other health screens); its own panel asks for a second look.
+- Examining another player stays the game's route.
+
+**Checks:**
+- Sim: `ZeDUI/tools/qa/woundsov_sim.lua`, 63 checks. It loads the mod's own Lua from the SteamCMD copy and checks that the old Health tab fails it.
+- In game: `ZeDUI/qa/CHECK_wounds_overhaul_20261107.md`, with QA's `batch_woundsov.ps1` and god mode off.

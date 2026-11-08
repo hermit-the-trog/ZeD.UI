@@ -564,6 +564,8 @@ function D.drawField(panel, win, t, it, x, y, w, h, viewY, viewH, covered)
     if shown and (text ~= "" or focused) then return end
     local c = (text == "") and T.textDim or T.text
     local s = (text == "") and it.hint or text
+    -- (it.mask: a password, starred here as the box itself stars it)
+    if it.mask and text ~= "" then s = string.rep("*", #text) end
     local lh = ZeD.TM:getFontHeight(T.fontF2)
     for i, line in ipairs(D.wrap(s, T.fontF2, math.max(1, w - px(2 * FIELD_PAD + 8)))) do
         panel:drawText(line, x + px(6), y + px(FIELD_PAD) + (i - 1) * lh, c.r, c.g, c.b, c.a or 1, T.fontF2)
@@ -1431,7 +1433,7 @@ end
 -- a report from chat on a card. Every word is what the reporter's client held: the server hears no chat
 function B.reportChat(items, rep)
     if not rep or (rep.n or 0) == 0 then return end
-    B.label(items, tr("UI_ZeD_Tk_ChatAround"))
+    B.label(items, tr(rep.letter and "UI_ZeD_Tk_ReportedLetter" or "UI_ZeD_Tk_ChatAround"))
     for i = 1, rep.n do
         local l = rep[i]
         if l then
@@ -1440,7 +1442,7 @@ function B.reportChat(items, rep)
             items[#items + 1] = { k = "chatline", text = head .. who .. tostring(l.text), mark = l.mark, c = { id = "chat:" .. tostring(i) } }
         end
     end
-    B.sub(items, tr("UI_ZeD_Tk_ChatWhose"))
+    B.sub(items, tr(rep.letter and "UI_ZeD_Tk_LetterWhose" or "UI_ZeD_Tk_ChatWhose"))   -- (a letter: the server did carry it)
 end
 
 function B.ask(st, t)
@@ -1720,8 +1722,16 @@ function D.playerCard(win, author)
     D.statsWindow(win, author)
 end
 
--- the game's stats window, as the Admin tab's Check stats opened it
+-- the player's stats: ZeD's stats card (ZeD_StatsCards.lua) over a card in the Admin tab, or the Admin tab opened on it from
+-- anywhere else; the game's own window only when that tab can't show (no admin tool, the window away)
 function D.statsWindow(win, author)
+    local SC = ZeD.StatsCards
+    local ast = win and win._adminTab
+    if SC and ast and ast.card then
+        SC.openStats(win, ast, author, "tk:pcard")
+        return
+    end
+    if SC and ZeD.AdminTab and ZeD.AdminTab.openNext and ZeD.AdminTab.openNext({ kind = "pstats", user = author }, win and win.playerNum) then return end
     local who = getPlayerFromUsername(author)
     local p = win._playerObj or getPlayer()
     if not (who and p) then return end
@@ -2229,6 +2239,8 @@ function D.backHelp(st, card)
     if from == "roles" then return tr("UI_ZeD_Adm_BackRoles") end
     if from == "player" then return tr("UI_ZeD_Adm_BackPlayer") end
     if from == "staff" then return tr("UI_ZeD_Tk_BackTicket") end
+    if from == "pstats" then return tr("UI_ZeD_St_BackStats") end
+    if from == "pinv" then return tr("UI_ZeD_St_BackInv") end
     if st.screen == "tickets" then return tr("UI_ZeD_Tk_BackTickets") end
     return tr("UI_ZeD_Tk_BackQueue")
 end
@@ -2608,7 +2620,8 @@ function TC.cardStops(win, st)
         elseif k == "field" then
             add(it.c, xi, dy, wi, it.h, it.y)
         elseif k == "fact" and it.c then
-            add(it.c, it.c.sx or (x0 + px(200)), dy, it.c.w, it.c.h, it.y)
+            -- (not drawn yet, under the fold: where it will draw, at the end of the row or after the label)
+            add(it.c, it.c.sx or (it.c.box and (x0 + (it.lw or 0) + px(FACT_GAP)) or (x0 + inner - it.c.w)), dy, it.c.w, it.c.h, it.y)
         elseif k == "btn" then
             add(it.c, x0, dy, it.c.w, it.c.h, it.y)
         elseif k == "msg" then

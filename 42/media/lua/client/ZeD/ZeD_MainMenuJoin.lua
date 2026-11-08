@@ -293,7 +293,7 @@ function ZeD_MMJoin:askServerPassword(server, after)
 end
 
 function ZeD_MMJoin:answerPassword()
-    local text = self.field:getText() or ""
+    local text = self.field:getInternalText() or ""
     if self.confirm == "pwd" then
         local p = self._pwdFor
         self:setConfirm(false)
@@ -418,7 +418,7 @@ function ZeD_MMJoin:accountProblems()
             end
         end
     end
-    if f and not f.account and (self.fPwd:getText() or "") == "" then p.pwd = ZeD.tr("UI_ZeD_Join_ErrNoPassword") end
+    if f and not f.account and (self.fPwd:getInternalText() or "") == "" then p.pwd = ZeD.tr("UI_ZeD_Join_ErrNoPassword") end
     return p
 end
 
@@ -429,7 +429,7 @@ function ZeD_MMJoin:saveServerForm()
     local sv = self.form.server
     local name, addr = (self.fName:getText() or ""):trim(), (self.fAddr:getText() or ""):trim()
     local port = tonumber((self.fPort:getText() or ""):trim()) or 16262
-    local pwd = (self.fSrvPwd:getText() or ""):trim()
+    local pwd = (self.fSrvPwd:getInternalText() or ""):trim()
     if sv then
         sv:setName(name); sv:setIp(addr); sv:setPort(port); sv:setServerPassword(pwd)
         updateServerToAccountList(sv)
@@ -451,7 +451,7 @@ function ZeD_MMJoin:saveAccountForm()
     local f = self.form
     if any(self:accountProblems()) or not m or not f then return end
     local user = (self.fUser:getText() or ""):trim()
-    local pwd = (self.fPwd:getText() or ""):trim()
+    local pwd = (self.fPwd:getInternalText() or ""):trim()
     local acc = f.account
     if acc then
         acc:setUserName(user)
