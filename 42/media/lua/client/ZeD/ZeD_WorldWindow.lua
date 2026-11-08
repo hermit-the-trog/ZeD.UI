@@ -1051,9 +1051,9 @@ _buildWorldPanelFocusables = function(win, content, tabId)
     return {}
 end
 
--- S108 v2 — Per-column MC builder. Each MC column is now its own ring zone
--- (`worldMC1`, `worldMC2`, ..., `worldMCN`) per design director's spec —
--- bumpers cycle ring zones one column at a time. This builder returns
+-- Per-column MC builder. Each open column is its own ring zone
+-- (`worldMC1`, `worldMC2`, ..., `worldMCN`), so the bumpers cycle the
+-- columns one at a time. This builder returns
 -- elements for ONE column identified by `slot` (1..#_mcSelected).
 --
 -- colStates convention: [_mcSelected[1], _mcSelected[2], ..., _mcSelected[K],
@@ -1061,8 +1061,8 @@ end
 -- to the slot-th MC selection.
 --
 -- Element id pattern "mcrow:slot:i" lets the per-zone refresh dedup. Each
--- element shares the World invrow callback shape: A = ZeD context menu, hold
--- A = the double-click's quick use, X = take (floor pre-transfer per Q94).
+-- element shares the World invrow callback shape: A selects (the card opens),
+-- hold A marks, hold X is the quick use, X opens the context menu.
 _buildWorldMCColumnFocusables = function(win, slot)
     if not win or win._activeTab ~= "loot" then return {} end
     if not slot then return {} end
@@ -1111,8 +1111,8 @@ _buildWorldMCColumnFocusables = function(win, slot)
                     w._updateDrawer(cnt)
                 end
             end,
-            -- S113: A = LMB. Stack rep → toggle expand/collapse; non-stack
-            -- item → select (open card drawer). Hold A = double-LMB use.
+            -- A = LMB. Stack rep → toggle expand/collapse; non-stack
+            -- item → select (open card drawer). Hold X = double-LMB use.
             -- X = RMB = vanilla context menu (Take/Move-To via floor-routing
             -- inside ContextMenuRegistry).
             onActivate = function(w, el)
@@ -1126,10 +1126,10 @@ _buildWorldMCColumnFocusables = function(win, slot)
                     return
                 end
                 if cnt and w._updateDrawer then
-                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (punch list 44: the marks drop, every list's)
+                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (a plain select drops the marks, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    -- S117: A toggles the card drawer (mirror Char invrow).
+                    -- A toggles the card drawer (as the Character rows do).
                     if w._drawerItem ~= el.item then
                         sel[el.item] = true
                         cnt._selectedItems   = sel
@@ -1139,11 +1139,11 @@ _buildWorldMCColumnFocusables = function(win, slot)
                         cnt._lastClickedItem = nil
                     end
                     w._updateDrawer(cnt)
-                    -- Oct 23 2026: the card opened: focus onto its primary action
+                    -- the card opened: focus onto its primary action
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "worldItemCard", 2) end
                 end
             end,
-            -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
+            -- the controller's marks: hold A marks, a held A paints, hold X is the quick use,
             -- B clears the marks (its prompt and X's only while marks exist, read each frame)
             onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
             onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,
@@ -1169,9 +1169,9 @@ _buildWorldMCColumnFocusables = function(win, slot)
     end
     -- the column's List | Grid toggle
     for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(cs.viewToggleRects)) do elements[#elements + 1] = e end
-    -- S108 v2 QA: empty MC column needs a placeholder so the zone stays
-    -- focusable. Otherwise bumpers skip empty containers, breaking the
-    -- "each MC col is its own zone" model.
+    -- An empty column needs a placeholder so the zone stays focusable;
+    -- the bumpers would otherwise skip empty containers, breaking the
+    -- "each column is its own zone" model.
     if #elements == 0 then
         elements[1] = {
             x = colX, y = 0, w = colW, h = rowH,
@@ -1193,28 +1193,28 @@ _buildWorldMCColumnFocusables = function(win, slot)
     return elements
 end
 
--- S98 — Clear all _gpFocused* chrome state fields on the World window +
+-- Clear all _gpFocused* chrome state fields on the World window +
 -- content. Called from _syncWorldRingZones after a tab switch. Mirrors the
 -- Character window helper.
 _clearGpFocusState = function(w)
     if not w then return end
     w._gpFocusedRowItem        = nil
-    w._gpFocusedAnimalSubmode  = nil  -- legacy (S96); no longer written
-    w._gpFocusedAnimalRow      = nil  -- S109: roster/butcher row focus
-    w._gpFocusedRadioCtl       = nil  -- S117: radio drawer chassis control id
+    w._gpFocusedAnimalSubmode  = nil  -- nothing writes this any more
+    w._gpFocusedAnimalRow      = nil  -- roster/butcher row focus
+    w._gpFocusedRadioCtl       = nil  -- radio drawer chassis control id
     w._invRowsForContainer     = nil
-    -- S107: CC scroll-follow delta-gate pins (one per CC-driven prefix).
-    -- Fresh tab visit must re-pin on first focus, not inherit the previous
+    -- CraftingCore scroll-follow delta-gate pins (one per prefix). A fresh
+    -- tab visit must re-pin on first focus, not inherit the previous
     -- element's position as "already correct".
     w._lastPinnedRecipeId_craft = nil
     w._lastPinnedRecipeId_build = nil
-    -- S107 QA: clear pending card-jump flag on the per-state CC tabs so a
+    -- Clear the pending card-jump flag on the craft/build states so a
     -- mid-jump tab-switch doesn't force a stale jump on return. Last-row
     -- restore id is left intact — restoring it on re-entry is desirable.
     if w._craftState then w._craftState._gpPendingCardJump = false end
     if w._buildState then w._buildState._gpPendingCardJump = false end
-    -- S108: clear MC zone focus + delta-gate pin on tab-switch / mode reset.
-    -- Mirror of Char's behavior — re-entry to Loot+MC seeds focus to idx 1
+    -- Clear MC zone focus + delta-gate pin on tab-switch / mode reset;
+    -- re-entry to Loot+MC seeds focus to idx 1
     -- via the per-frame refresh's preserveIdx fallback.
     w._gpFocusedMCItem       = nil
     w._gpFocusedMCColIdx     = nil
@@ -1470,7 +1470,7 @@ _buildWorldInvRowFocusables = function(win)
                     return
                 end
                 if cnt and w._updateDrawer then
-                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (punch list 44: the marks drop, every list's)
+                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (a plain select drops the marks, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
                     -- S117: A toggles the card drawer (mirror Char invrow).
@@ -1489,7 +1489,7 @@ _buildWorldInvRowFocusables = function(win)
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "worldItemCard", 2) end
                 end
             end,
-            -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
+            -- the controller's marks: hold A marks, a held A paints, hold X is the quick use,
             -- B clears the marks (its prompt and X's only while marks exist, read each frame)
             onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
             onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,

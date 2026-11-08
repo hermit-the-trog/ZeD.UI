@@ -21,18 +21,18 @@ ZeD = ZeD or {}
 
 ZeD_BodyFigure = ISPanel:derive("ZeD_BodyFigure")
 
--- S124 scale: canvas sizes, layouts and hit rects stay in CANVAS units (= texture px). drawAt()/render() fit the
+-- Scale: canvas sizes, layouts and hit rects stay in CANVAS units (= texture px). drawAt()/render() fit the
 -- canvas into the caller's rect with factor s, and the callers pass scaled rects (T.sp.figureW/H),
 -- so drawn size and hit rects follow the root scale through s. Wrapping these numbers in T.px would double-scale.
 local CANVAS_W = 220
 local CANVAS_H = 260
-local function _canvasFor(fig) return CANVAS_W, CANVAS_H end      -- both sexes share it (Oct 17 2026)
+local function _canvasFor(fig) return CANVAS_W, CANVAS_H end      -- both sexes share it
 local DIR = "media/textures/ZeD/body/"
 local NEAREST = 3
 
 -- the scale the canvas is drawn at in a w x h rect: the largest whole multiple that fits (below 1, as it fits).
 -- The tabs hand it T.sp.figureW x figureH, the canvas at T.art (the nearest whole zoom to the scale: 2 at
--- 1.75, Oct 21 2026), so the figure fills its box at every scale step.
+-- 1.75), so the figure fills its box at every scale step.
 local function _fit(w, h)
     local s = math.min(w / CANVAS_W, h / CANVAS_H)
     if s >= 1 then s = math.floor(s + 1e-6) end
@@ -653,7 +653,7 @@ function ZeD_BodyFigure:drawAt(panel, px, py, pw, ph)
     self:_drawParts(panel, xOff, yOff, s)
 end
 
--- S101 gamepad support: return panel-local rects for every hittable body
+-- Gamepad support: return panel-local rects for every hittable body
 -- part, using the current drawAt transform. Empty list if the figure has
 -- not been drawn yet (first frame after tab switch) — caller drops the
 -- body-part zone entirely rather than stamping phantom rects.

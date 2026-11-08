@@ -1,11 +1,17 @@
 -- ZeD-UI/42/media/lua/client/ZeD/CraftingCore.lua
 -- ============================================================================
--- SHARED MODULE for CraftingTab + BuildingTab + JournalTab (data utilities).
--- Contains: catalog helpers, container scanning, material counting,
--- pin management, craft count tracking, filtering/sorting, text truncation,
--- state machine, rendering, and alt-mode enumeration.
+-- CRAFTING CORE — client; the shared engine behind the recipe tabs. The
+-- Crafting, Building and Cooking tabs, the Journal's Recipes page, the
+-- stations and the object cards all require it. Catalog helpers, container
+-- scanning, material counting, pins, craft counts, filter and sort, text
+-- truncation, the state machine, the drawer's rendering and the alternatives
+-- list.
 --
--- Each consumer passes a `config` table to distinguish Craft vs Build behavior.
+-- Each consumer passes a `config` table (prefix, keys, labels, startAction)
+-- that tells Craft from Build from the Journal's read-only list; per-window
+-- caches live on the window under "_<prefix>..." keys. One thing to know:
+-- the renderers reuse shared option and zone tables to avoid per-frame
+-- garbage — set every field you use, and use what they hand back at once.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -28,7 +34,7 @@ local function cuesOn()
 end
 
 -- ============================================================================
--- CONSTANTS (from CRAFTING_SPEC.md §8 — frozen)
+-- CONSTANTS — the drawer's settled layout numbers (design units)
 -- ============================================================================
 
 CC.DRAWER_W        = 480
@@ -287,10 +293,9 @@ function CC.backgroundIngredientScan(data, win, prefix)
 end
 
 -- ============================================================================
--- VANILLA'S ANSWER (Oct 15 2026, director: "I should only see what I can
--- immediately craft cause all the materials, station and skill passes the
--- check that all is green to craft"). Vanilla's crafting logic (HandcraftLogic
--- / BuildLogic, a BaseCraftingLogic) holds every recipe and caches, per recipe,
+-- VANILLA'S ANSWER — Ready means the game's own all-green check (materials,
+-- station and skill), never ZeD's guess. Vanilla's crafting logic
+-- (HandcraftLogic / BuildLogic, a BaseCraftingLogic) holds every recipe and caches, per recipe,
 -- whether the character could make it now from the containers in reach:
 -- getCachedRecipeInfo(recipe):isValid() (known, skills) and :isCanPerform()
 -- (materials in the right amounts, tools, the bench). The same check greys
@@ -473,7 +478,7 @@ function CC.getCraftCount(player, recipeName, countKey)
 end
 
 --- Get top N frequently crafted recipes (excluding pinned).
--- Returns ordered list of {name, count} tables.
+--- Returns ordered list of {name, count} tables.
 function CC.getTopFrequent(player, flatRecipes, n, pinSet, countKey)
     local md = player:getModData()
     local counts = md[countKey]
@@ -504,7 +509,7 @@ end
 -- ============================================================================
 
 --- Pre-bake input definitions from a recipe object.
--- Returns list of {name, isTool, isKeep, validTypes, altCount} tables.
+--- Returns list of {name, isTool, isKeep, validTypes, altCount} tables.
 function CC.prebakeInputs(recipe)
     local inputDefs = {}
     local ok1, inputs = pcall(function() return recipe:getInputs() end)
@@ -698,8 +703,8 @@ function CC.cycleShow(state, config)
     state.filterDirty = true
 end
 
--- Show one of the choices (the band's Show pop-up; Oct 30 2026, punch list 21: the
--- choices CC.cycleShow steps through, picked from a list)
+-- Show one of the choices (the band's Show pop-up): the same choices
+-- CC.cycleShow steps through, picked from a list
 function CC.setShow(state, id)
     state.show = id
     state.showAll = (id == "all")
@@ -926,7 +931,7 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
             isKeep     = inp.isKeep,
             altCount   = inp.altCount or 0,
             tag        = (inp.isFuel and entry.heatStation) and "FUEL" or inp.tag,
-            iconTex    = nil,  -- individual ingredient icons deferred
+            iconTex    = nil,  -- no per-ingredient icon is looked up here
             validTypes = inp.validTypes,  -- needed for alt enumeration
         }
     end
@@ -966,8 +971,9 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
 end
 
 -- ============================================================================
--- ALT ENUMERATION — iterate player inventory for alternative items
--- Only shows items you HAVE (user decision: inventory-only, not all scripts).
+-- ALT ENUMERATION — the alternative items for one ingredient slot: what is in
+-- reach, grouped by type, then every other type the slot takes (the Owned
+-- only toggle hides those).
 -- ============================================================================
 
 function CC.enumerateAlts(playerObj, containers, inputDef)
@@ -1148,7 +1154,7 @@ end
 -- Tracks real elapsed time via getTimestampMs() for frame-rate independence.
 -- ============================================================================
 
---- Attempt to approximate cubic-bezier(0.4, 0, 0.2, 1) via ease-out cubic.
+-- Approximates cubic-bezier(0.4, 0, 0.2, 1) via ease-out cubic.
 -- Maps linear progress t (0→1) to eased output.
 local function easeOutCubic(t)
     local inv = 1 - t

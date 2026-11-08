@@ -628,7 +628,7 @@ function J.renderPapers(panel, win, x, y, w, h)
     drawPapersBand(panel, win, x, y + bodyH, w, look ~= nil)
 end
 
--- the band's Show list is open (its rows alone hold the controller) / shut it
+--- The band's Show list is open (its rows alone hold the controller).
 function J.listOpen(win)
     local s = st(win)
     return s.showOpen == true and s.showZones ~= nil

@@ -198,7 +198,7 @@ function ZeD.RadioTab.buildWorldRadios(playerObj)
     end
 
     table.sort(out, function(a, b) return a.distance < b.distance end)
-    -- (Nov 7 2026) a device a route opened the tab on (a TV across the room, a car's device part) stays on the
+    -- a device a route opened the tab on (a TV across the room, a car's device part) stays on the
     -- list while it is within the game's reach for its window (WorldRoutes.lua)
     if ZeD.WorldRoutes and ZeD.WorldRoutes.addPinned then out = ZeD.WorldRoutes.addPinned(playerObj, out) end
     return out
@@ -206,8 +206,8 @@ end
 
 -- ============================================================================
 -- WAVE CACHE — cosmetic harmonic sine generator, seeded per radio
--- Spec hard rule #8: signal wave ALWAYS renders, even when powered off. The
--- power state only modulates the line color alpha; layout stays stable.
+-- The signal wave ALWAYS renders, even powered off: the power state only
+-- dims the line color, so the layout never shifts with a switch flip.
 -- ============================================================================
 
 -- Build a 64-column wave from a stable integer seed. Three sine harmonics with
@@ -285,7 +285,7 @@ local function _safeGet(dd, fnName, fallback)
     return v
 end
 
--- PZ stores channel as MHz × 1000 (vanilla RWMGeneral:setInfoLines line 80
+-- PZ stores channel as MHz × 1000 (vanilla RWMGeneral:setInfoLines
 -- displays getChannel()/1000 .. " MHz" — so 88000 = 88 MHz, 96500 = 96.5 MHz).
 -- Always render as MHz with one decimal so the 0.1-step seek granularity is
 -- visible (88.0 → 88.1 → 88.2 ...).
@@ -300,11 +300,12 @@ end
 -- M: radioMainDisplay
 -- The VFD (Premium) or LCD (ValuTech) main display. Brand-conditional palette.
 -- Layout (top to bottom):
---   - status chip row (SIG / 2W / FM / AM) — text-only chips
+--   - status chip row (AM / FM / STEREO) — text-only chips
 --   - BATT (4 segs) + VOL (8 segs) bars
---   - main numeric zone: frequency big + range/distance line
--- Spec hard rule #9: TV CRT uses white, but here we are RADIO — VFD uses cyan
--- family, LCD uses dark-on-amber. NO multi-color displays per chassis tier.
+--   - main zone: the frequency large beside the RANGE / SIG column; the
+--     station name on its own row at the bottom
+-- One display colour per tier (a TV tube is white, but this is a radio): the
+-- VFD stays in the cyan family, the LCD dark-on-amber — never multi-colour.
 ----------------------------------------------------------------------
 function radioMainDisplay(panel, x, y, w, h, brand, dd)
     local T = ZeD.T
@@ -479,7 +480,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- Frequency painted in UIFont.Cred1 (largest standard font ~30px) so the
     -- station number is the visual anchor of the chassis. Unit suffix in mono
     -- F3 alongside the digits. Channel name in F2 below the frequency.
-    local freqFont    = ZeD.Font.sdf.head; local freqZoom = ZeD.Text.zoomPx(30)   -- S124: 30 px design digits on the distance-field heading face (was UIFont.Cred1, 1x only)
+    local freqFont    = ZeD.Font.sdf.head; local freqZoom = ZeD.Text.zoomPx(30)   -- 30 px design digits on the distance-field heading face (UIFont.Cred1 only renders at 1x)
     local unitFont    = T.fontF2
     local channelFont = T.fontF2
     -- Text colors don't gate on power — when the display is off the grey
@@ -523,10 +524,9 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
             freqColor.r, freqColor.g, freqColor.b, freqColor.a or 1.0, unitFont)
     end
 
-    -- Channel name line below the frequency. Future engine API may surface
-    -- a per-channel name (preset name or station identifier); for now we
-    -- show "Unknown Frequency" with a play-arrow prefix as the mockup does.
     -- ============ Station-name row (own line, full width) ============
+    -- The station's name from the engine (getZomboidRadio():getChannelName),
+    -- "Unknown Frequency" where it has none, a play-arrow prefix either way.
     -- Anchored at the bottom edge of the LCD so it spans the full width
     -- (past the data column on the right). Allows long station names like
     -- "Automated Emergency Broadcast System" without colliding with SIG/RANGE.
@@ -560,8 +560,8 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
 
     -- Right-side data column: RANGE / SIG readouts. Vertically centered in
     -- row 3 alongside the frequency block. Each row = label left + right-
-    -- aligned value. (2-WAY removed — this is the AM/FM chassis only;
-    -- shortwave/walkie-talkie chassis surfaces 2-WAY in its own design.)
+    -- aligned value. (This is the AM/FM chassis only: the two-way sets
+    -- carry their 2-WAY readout on their own faces.)
     local dataLabels = {
         { label = ZeD.upper(ZeD.tr("IGUI_RadioStrength")), value = string.format("%d-%d MHz", math.floor(minHz / 1000), math.floor(maxHz / 1000)) },
         { label = ZeD.tr("UI_ZeD_Radio_Sig"),   value = (power and hasSignal) and ZeD.tr("UI_ZeD_Radio_SigGood") or (power and ZeD.tr("UI_ZeD_Radio_SigWeak") or "-") },
@@ -590,7 +590,7 @@ end
 -- M: radioControlStrip
 -- Recessed dark panel containing the power button + SEEK group + VOL group.
 -- All buttons are flat-variant drawButton with chassis tokens.
--- READ-ONLY this session; nothing here mutates state.
+-- It only draws and stamps the click zones; the click router below acts.
 ----------------------------------------------------------------------
 function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     local T = ZeD.T
@@ -761,12 +761,11 @@ function radioPresetBank(panel, x, y, w, h, brand, dd, win)
             if type(mx) == "number" and mx > 0 then maxSlots = mx end
         end
     end
-    -- Cap to 8 visible per mockup.
+    -- At most 8 slots show.
     local visible = math.min(maxSlots, 8)
 
-    -- Add button anchors to the right edge — wider than a numbered slot now
-    -- that it owns the space the old `-` minus button used to occupy.
-    local addBtnW  = btnH * 2 + T.px(6)   -- ~2x square (was sideBtnW + sideBtnW + gap)
+    -- Add button anchors to the right edge, about two slots wide.
+    local addBtnW  = btnH * 2 + T.px(6)   -- ~2 squares
     local addX     = x + w - pad - addBtnW
     -- Available width for the slot row.
     local slotsAreaEnd = addX - T.px(10)
@@ -809,7 +808,7 @@ end
 ----------------------------------------------------------------------
 -- M: radioSignalWave (Premium-only)
 -- 64-column harmonic sine, seeded by entry.cacheKey hash. Renders ALWAYS; power
--- state only multiplies the line color alpha (spec hard rule #8). Drawn as
+-- state only multiplies the line color alpha. Drawn as
 -- thin vertical 1px lines centered on the midline, height = abs(value) * h/2.
 ----------------------------------------------------------------------
 function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuCredits.lua
 -- ============================================================================
--- CREDITS ON THE MONITOR (HOOK_MAP row 26; director, Oct 14 2026: menus
--- delegated, no mockups)
+-- CREDITS ON THE MONITOR: the main menu's credits screen. Client; an organism
+-- (a window on the desk, the "credits" view).
 --
 -- Vanilla's credits (CreditsRoleGroup / CreditsRole, the translators, the
 -- studio logos) as end titles rolling up a framed box in a ZeD window: each

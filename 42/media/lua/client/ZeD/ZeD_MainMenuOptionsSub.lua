@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuOptionsSub.lua
 -- ============================================================================
--- TWO OPTIONS SUB-PAGES (VANILLA_WINDOWS_20261107.md A5, A6; the director,
--- Nov 7 2026: every vanilla window replaced)
+-- TWO OPTIONS SUB-PAGES. Client-side; extends the ZeD_MMOptions organism
+-- (ZeD_MainMenuOptions.lua) with two pages that replace whole vanilla screens,
+-- part of ZeD's rule that no vanilla window ever shows.
 --
 -- ZeD's Options window (ZeD_MainMenuOptions.lua, on the monitor and over the
 -- world in game) handed two of vanilla's screens over whole. They are pages of
