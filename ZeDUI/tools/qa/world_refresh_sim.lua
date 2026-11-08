@@ -16,6 +16,7 @@
 --            the card within 10 frames, the controller's still does with the pad
 --   RADIO    (code flag 2) RadioTab.renderDrawer clears every module's click rects first: a ValuTech after a
 --            Premium has no CD rects, a module the height leaves out has none
+--   LOCK     (bug flag) the strip's hold-A on a locked container opens its lock card, not the container
 -- What it can't show: the game's own timing (OnContainerUpdate's rate, the frame pacing), or how it feels in the game.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/world_refresh_sim.lua [old ZeD_WorldWindow.lua] [old ZeD_CharacterWindow.lua]
 --   (with the old files, e.g. from git show 7f17686e:..., the 30-frame blocks are cut from them, not the copies below)
@@ -623,6 +624,45 @@ do
         hi, tall = true, false
         renderDrawer(nil, 0, 0, 100, 10, win, { deviceData = {} })
         check("RADIO: modules the height leaves out have no rects", win._radioPwrZone == nil and win._radioPresetZones == nil and win._radioCDZones == nil)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+section("LOCK: hold-A on a locked container in the strip (bug flag, Nov 8)")
+-- ---------------------------------------------------------------------------
+do
+    local found, at = {}, 1
+    local key = "            onHoldActivate = function(w, el)\n                local c = w._mainContent"
+    while WW do
+        local a = string.find(WW, key, at, true)
+        if not a then break end
+        local b = string.find(WW, "\n            end,\n", a, true)
+        if not b then break end
+        found[#found + 1] = string.sub(WW, a + 29, b + 16)   -- "function(w, el) ... end,"
+        at = b + 1
+    end
+    check("LOCK: the strip's two hold-A handlers found", #found == 2, #found)
+    for hi, body in ipairs(found) do
+        body = string.gsub(body, ",%s*$", "")
+        local toggles, cards = 0, 0
+        local ZL = { ObjectCardLock = { openFor = function() cards = cards + 1 end } }
+        local function mcToggle() toggles = toggles + 1 end
+        local chunk, err = loadstring("local ZeD, mcToggleWorldContainer = ...\nreturn " .. body)
+        check("LOCK: handler " .. hi .. " compiles", chunk ~= nil, err)
+        if chunk then
+            local h = chunk(ZL, mcToggle)
+            for _, tab in ipairs({ "loot", "craft" }) do
+                local w = { _mainContent = {}, _activeTab = tab, _activeContainer = 3, _playerObj = {},
+                            _containers = { { locked = true, isoObject = {} }, { locked = false }, { isFloor = true } } }
+                toggles, cards = 0, 0
+                h(w, { containerIdx = 1 })
+                check("LOCK: handler " .. hi .. ", " .. tab .. ": a locked container is not opened", toggles == 0 and w._activeContainer == 3)
+                check("LOCK: handler " .. hi .. ", " .. tab .. ": its lock card opens instead", cards == 1)
+                h(w, { containerIdx = 2 })
+                check("LOCK: handler " .. hi .. ", " .. tab .. ": an unlocked one still opens",
+                    (tab == "loot" and toggles == 1) or (tab ~= "loot" and w._activeContainer == 2))
+            end
+        end
     end
 end
 
