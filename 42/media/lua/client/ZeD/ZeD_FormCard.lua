@@ -20,6 +20,8 @@
 --   band(card)  -> { buttons = { { id, text, run, variant, disabled, help } }, ask (a question with its red square) }
 --   cancel(card)   B, Escape and the close box
 --   playerNum
+--   dock()  -> panel, x, y, w, h: the card lives in that panel (a window's drawer) at the right of that box, as tall as
+--             the box allows, instead of on its own over the screen (C5: the map's drawer)
 -- }
 -- ============================================================================
 
@@ -106,6 +108,9 @@ function ZeD_FormCard:layout()
     local T = ZeD.T
     local spec = self.spec
     local w = px(spec.width or U.W)
+    local dp, dx, dy, dw, dh = nil, 0, 0, 0, 0
+    if spec.dock then dp, dx, dy, dw, dh = spec.dock() end
+    if dp then w = math.min(w, dw) end
     local pad = px(U.PAD)
     local tb = self:titleBarHeight()
     local rows = spec.rows(self) or {}
@@ -133,12 +138,19 @@ function ZeD_FormCard:layout()
     self._band = band
     local fixed = tb + headH + pad * 2 + ZeD.Molecules.bandH() + self:footerHeight()
     local maxBody = math.floor(getCore():getScreenHeight() * U.MAX_H) - fixed
+    if dp then maxBody = dh - fixed end
     local viewH = math.max(px(60), math.min(bodyH, maxBody))
     self._view = { x = 0, y = tb + headH + pad, w = w, h = viewH, total = bodyH }
     self._maxScroll = math.max(0, bodyH - viewH)
     self._scroll = math.max(0, math.min(self._scroll, self._maxScroll))
     local h = fixed + viewH
     if self.width ~= w or self.height ~= h then self:setWidth(w); self:setHeight(h) end
+    -- docked: at the right of its box, every frame (the drawer moves and resizes with its window)
+    if dp then
+        local x, yy = dx + dw - w, dy
+        if self.x ~= x or self.y ~= yy then self:setX(x); self:setY(yy) end
+        self._placed = true
+    end
     -- placed once: centered on the spec's point (or the screen), kept on screen
     if not self._placed then
         self._placed = true
@@ -352,7 +364,7 @@ function ZeD_FormCard:finish()
         if e and e.javaObject and e:isFocused() then e:unfocus() end
     end
     self:setVisible(false)
-    self:removeFromUIManager()
+    if self.dockedIn then pcall(function() self.dockedIn:removeChild(self) end) else self:removeFromUIManager() end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     if jd and jd.focus == self then
         jd.focus = self.prevFocus
@@ -380,7 +392,10 @@ function ZeD_FormCard:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then return true end
-    if y < self:titleBarHeight() then self.moving = true; self:bringToTop(); return true end
+    if y < self:titleBarHeight() then
+        if not self.dockedIn then self.moving = true; self:bringToTop() end   -- (a docked card stays in its drawer)
+        return true
+    end
     self._down = self:hitAt(x, y)
     return true
 end
@@ -479,8 +494,14 @@ function FC.open(spec)
     local card = ZeD_FormCard:new(spec)
     card:initialise()
     card:instantiate()
-    card:addToUIManager()
-    card:setAlwaysOnTop(true)
+    local dp = spec.dock and spec.dock() or nil
+    if dp then
+        card.dockedIn = dp
+        dp:addChild(card)            -- (added last: over the map and its pieces)
+    else
+        card:addToUIManager()
+        card:setAlwaysOnTop(true)
+    end
     card:layout()
     local jd = JoypadState and JoypadState.players and JoypadState.players[card.playerNum + 1]
     if jd then

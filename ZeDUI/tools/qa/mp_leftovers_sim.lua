@@ -526,6 +526,7 @@ function ISPanel:isReallyVisible() return self.visible end
 function ISPanel:getChildren() return self.kids end
 function ISTextEntryBox:getInternalText() return self.text end
 function ISTextEntryBox:setOnlyNumbers(on) self.numbers = on end
+function ISPanel:removeChild(c) for i = #self.kids, 1, -1 do if self.kids[i] == c then table.remove(self.kids, i) end end end
 STUBBED["ZeD/PixelFonts"] = true
 STUBBED["ZeD/MenuNote"] = true
 STUBBED["ZeD/Input/SpatialNav"] = true
@@ -649,6 +650,33 @@ fire(pause, "act:kick")
 draws(pause)
 fire(pause, "ask:yes")
 check("the answer sends the game's kick", SENT_CMDS[#SENT_CMDS] == '/kickuser "bob"', SENT_CMDS[#SENT_CMDS])
+-- with ZeD's server part: Kick and Ban open ZeD's Admin player card (it asks for the reason), no command, no question
+do
+    local Ad = ZeD.Admin
+    local realLive = Ad.live
+    Ad.live = function() return true end
+    OPENED = {}
+    local n0 = #SENT_CMDS
+    fire(pause, "act:kick")
+    check("Kick opens ZeD's Admin player card on that player", Ad.openPlayerNext == "bob" and OPENED[#OPENED] == "admin" and #SENT_CMDS == n0
+        and pause._pp.players.ask == nil, tostring(Ad.openPlayerNext))
+    Ad.openPlayerNext = nil
+    MM.act.players()
+    pause:build()
+    fire(pause, "pl:bob")
+    pause:build()
+    fire(pause, "act:banip")
+    check("Ban IP too", Ad.openPlayerNext == "bob" and #SENT_CMDS == n0)
+    Ad.openPlayerNext = nil
+    fire(pause, "act:mute")
+    check("Mute stays a quick action", ISChat.instance.muted.bob == nil)
+    fire(pause, "act:mute")
+    Ad.live = realLive
+    MM.act.players()
+    pause:build()
+    fire(pause, "pl:bob")
+    pause:build()
+end
 before = #SENT_CMDS
 fire(pause, "act:ban")
 draws(pause)
@@ -685,8 +713,16 @@ check("B goes back to the pause list, on the Players button", pause.page == nil 
 print("-- C3 invite")
 local function friend(name, state, id) return { getName = function() return name end, getState = function() return state end, getSteamID = function() return id end, getAvatar = function() return nil end } end
 local G = { invited = {}, isCoopHost = true, listbox = { items = {} }, saved = 0, invitedCalls = {} }
+G.filterEntry = { t = "", setText = function(self, s) self.t = s end, getInternalText = function(self) return self.t end }
 function G.fillList(self)
-    self.listbox.items = { { text = "Ann", item = friend("Ann", "Online", "1") }, { text = "Zed", item = friend("Zed", "Offline", "2") } }
+    -- (the game's: its filter entry's words narrow the list)
+    local f = string.lower(self.filterEntry.t or "")
+    self.listbox.items = {}
+    for _, e in ipairs({ { "Ann", "Online", "1" }, { "Zed", "Offline", "2" } }) do
+        if f == "" or string.find(string.lower(e[1]), f, 1, true) then
+            self.listbox.items[#self.listbox.items + 1] = { text = e[1], item = friend(e[1], e[2], e[3]) }
+        end
+    end
 end
 function G.clickInvite(self) self.invitedCalls[#self.invitedCalls + 1] = self.listbox.items[self.listbox.selected].text end
 function G.toggleAllowDeny(self, i) local id = self.listbox.items[i].item:getSteamID(); self.invited[id] = not self.invited[id] or nil end
@@ -698,6 +734,21 @@ check("Invite opens ZeD's page, not the game's screen", pause.page == "invite" a
 pause:build()
 draws(pause)
 check("the friends in the game's order", specById(pause, "iv:1") and specById(pause, "iv:2"))
+check("a Find field above the friends", specById(pause, "iv:find") ~= nil and specById(pause, "iv:find").y < specById(pause, "iv:1").y)
+check("the field is drawn in it", pause._ivFind ~= nil and pause._ivFind.visible == true)
+pause._ivFind.text = "ze"
+pause._ivFind.onTextChange()
+pause:build()
+check("Find narrows the list through the game's own filter", G.filterEntry.t == "ze" and specById(pause, "iv:2") ~= nil and specById(pause, "iv:1") == nil)
+pause._ivFind.text = "qq"
+pause._ivFind.onTextChange()
+pause:build()
+draws(pause)
+check("no match: its own line, no rows", specById(pause, "iv:1") == nil and specById(pause, "iv:2") == nil)
+pause._ivFind.text = ""
+pause._ivFind.onTextChange()
+pause:build()
+draws(pause)
 check("Invite waits for a pick", specById(pause, "invite") and specById(pause, "invite").disabled == true)
 fire(pause, "iv:1")
 draws(pause)
@@ -708,7 +759,7 @@ fire(pause, "allow")
 check("Allow is the game's toggleAllowDeny", G.invited["1"] == true)
 draws(pause)
 fire(pause, "back")
-check("leaving keeps the game's invited list", G.saved == 1 and pause.page == nil)
+check("leaving keeps the game's invited list, and the Find field goes", G.saved == 1 and pause.page == nil and pause._ivFind.visible == false)
 InviteFriends = nil
 VAN = {}
 MM.act.invite()
@@ -760,24 +811,24 @@ TABS.server.render(panel, win, 0, 0, 420, 700)
 check("and the tab opens the card on its next frame", win._serverTab.card and win._serverTab.card.kind == "srvopts" and SV.openNext == nil)
 
 -- ===========================================================================================
--- C4 SERVER SAVING: ZeD's note, not the game's box
+-- C4 SERVER SAVING: a notice in Messages (the director: every notice is the belt's bubble, kept in Messages)
 -- ===========================================================================================
 print("-- C4 saving")
 check("the game's saving box is off the events", (function()
     for _, fn in ipairs(Events.OnServerStartSaving.list) do if fn == ISServerSavingMessage.showPauseMessage then return false end end
     return #Events.OnServerStartSaving.list >= 1
 end)())
+local seq0 = MS.seq
 for _, fn in ipairs(Events.OnServerStartSaving.list) do fn() end
-check("saving shows ZeD's note", L.savingNote ~= nil and L.savingNote.inUI == true and VAN_SAVING == 0)
-local nok, nerr = pcall(function() L.savingNote:prerender() end)
-check("the note draws", nok, nerr)
-local note = L.savingNote
+local top = MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")] and MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")].items[1]
+check("saving is a notice in Messages, not the game's box nor a panel of its own", top ~= nil and top.text == ZeD.tr("UI_ZeD_Srv_Saving")
+    and MS.seq > seq0 and VAN_SAVING == 0 and ZeD_SavingNote == nil)
 for _, fn in ipairs(Events.OnServerFinishSaving.list) do fn() end
-check("done takes it away", L.savingNote == nil and note.inUI == false and VAN_SAVING == 0)
+check("done leaves the notice kept in Messages", MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")].items[1] == top and VAN_SAVING == 0)
 SAFE = true
 ZeD.Safe.on = function() return SAFE == true end
 for _, fn in ipairs(Events.OnServerStartSaving.list) do fn() end
-check("safe mode: the game's box", VAN_SAVING == 1 and L.savingNote == nil)
+check("safe mode: the game's box", VAN_SAVING == 1)
 for _, fn in ipairs(Events.OnServerFinishSaving.list) do fn() end
 check("and the game's box goes away", VAN_SAVING == 0)
 SAFE = nil
@@ -827,12 +878,19 @@ local function symbol(private, everyone, fac, safe, players)
 end
 for _, fn in ipairs(Events.OnScoreboardUpdate.list) do fn(jl({ "Aretha", "bob" }), jl({ "Aretha", "Bob" }), jl({}), jl({})) end
 local sym = symbol(false, false, true, false, { "gone_guy" })
-local mp = ISPanel:new(100, 100, 600, 400)
+-- the drawer that holds the map, and the map in it
+local drawer = ISPanel:new(0, 0, 640, 520)
+local mp = ISPanel:new(20, 60, 600, 400)
 mp.playerObj = PLAYER
+mp.parent = drawer
+drawer.kids[#drawer.kids + 1] = mp
 check("the card opens on a mark", L.openSharing(mp, sym, false) == true and L.shareCard ~= nil)
 local card = L.shareCard
 card:layout()
 draws(card)
+check("the card is in the map's drawer, not on the screen of its own", card.dockedIn == drawer and drawer.kids[#drawer.kids] == card and card.inUI ~= true)
+check("at the map's right edge, inside the map", card.x + card.width == 620 and card.y == 60 and card.x >= 20 and card.height <= 400,
+    card.x .. "," .. card.y .. " " .. card.width .. "x" .. card.height)
 local function rowById(c, id) for _, r in ipairs(c._rows or {}) do if r.id == id then return r end end return nil end
 check("the mark's sharing as it is: Other, Faction", rowById(card, "other").on and rowById(card, "faction").on and not rowById(card, "safehouse").on)
 check("the players: online, then the one away", rowById(card, "p:bob") and rowById(card, "p:gone_guy") and rowById(card, "p:gone_guy").on, "")
@@ -843,7 +901,7 @@ card:layout()
 card:pressButton(card._band.buttons[2])
 check("Accept hands the choice to the mark as the game's panel does", type(sym.set) == "table" and sym.set.everyone == false and sym.set.faction == true and sym.set.safehouse == true
     and #sym.set.players == 2, type(sym.set) == "table" and #sym.set.players)
-check("and the card is gone", card._done == true and card.inUI == false)
+check("and the card is gone from the drawer", card._done == true and drawer.kids[#drawer.kids] == mp)
 local sym2 = symbol(false, true, false, false)
 L.openSharing(mp, sym2, false)
 card = L.shareCard

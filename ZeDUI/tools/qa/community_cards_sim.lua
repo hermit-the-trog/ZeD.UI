@@ -1401,10 +1401,10 @@ do
     check("a lost server: no appeal line", notes == 0)
     TEXT.UI_Policy_KickReason = TEXT.UI_Policy_KickReason or "You have been kicked from this server for the following reason:"
     CM.onDisconnect(TEXT.UI_Policy_KickReason .. " griefing")
-    check("a kick: the appeal line under the game's words", notes == 1 and CM._last == "discord.gg/knoxsurvivors")
+    check("a kick: no appeal line (a ban's only: the director, Nov 7 2026)", notes == 0)
     A2.leave, A2.leaveAt = { kind = "ban", appeal = "kept with it" }, 5
     CM.onDisconnect("lua-force-disconnect")
-    check("a ban that left: the same, and the screen's model cleared", notes == 2 and CM._last == "kept with it" and A2.leave == nil and A2.leaveAt == nil)
+    check("a ban that left: the appeal line under the game's words, and the screen's model cleared", notes == 1 and CM._last == "kept with it" and A2.leave == nil and A2.leaveAt == nil)
     CM._P.showNote = showNote
     M.isRemoved = real
     coreOf(1280, 720)
