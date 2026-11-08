@@ -170,6 +170,9 @@ local function condTags(panel, conds, x, y, maxW)
     if #conds == 0 then return 0 end
     return by + th
 end
+-- (the same tags and marks on the medical check of another player: ObjectCardMedic.lua)
+ZeD.HealthTab.condTags = condTags
+ZeD.HealthTab.sevColor = sevColor
 
 -- ============================================================================
 -- CONDITION CLASSIFIER
@@ -426,11 +429,15 @@ end
 -- Extended for body figure: partHealth + condsByFigureName.
 -- ============================================================================
 
-function ZeD.HealthTab.gatherData(playerObj)
+-- opts (Nov 7 2026, the medical check of another player; nil for your own Health tab):
+--   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
+--   bodyDamage   the body to read: on a server another player's is their remote copy
+--                (getBodyDamageRemote, as vanilla's health panel reads it), else getBodyDamage
+function ZeD.HealthTab.gatherData(playerObj, opts)
     ensurePartNames()
     ensureBodyPartTypes()
 
-    local bd = playerObj:getBodyDamage()
+    local bd = (opts and opts.bodyDamage) or playerObj:getBodyDamage()
     local parts = bd:getBodyParts()
     local overall = bd:getOverallBodyHealth()
 
@@ -445,8 +452,10 @@ function ZeD.HealthTab.gatherData(playerObj)
         typeToFigure[bp.type] = bp.figure
     end
 
-    -- The viewer is the patient here, so the patient's First Aid is the doctor's
-    local doctorLevel = playerObj:getPerkLevel(Perks.Doctor)
+    -- The viewer is the patient here, so the patient's First Aid is the doctor's (a medical
+    -- check of another player passes the doctor's own)
+    local doctorLevel = (opts and opts.doctorLevel) or playerObj:getPerkLevel(Perks.Doctor)
+    local partByFigure = {}      -- figureName -> the BodyPart (the medical check treats it)
 
     for i = 1, parts:size() do
         local bp = parts:get(i - 1)
@@ -463,6 +472,7 @@ function ZeD.HealthTab.gatherData(playerObj)
 
         -- Store health and conditions for ALL parts (figure needs full map)
         if figureName then
+            partByFigure[figureName] = bp
             partHealth[figureName] = health
             if #conds > 0 then
                 condsByFigureName[figureName] = conds
@@ -485,6 +495,7 @@ function ZeD.HealthTab.gatherData(playerObj)
                 health     = health,
                 conditions = listConds,
                 worstSev   = worstSev,
+                bodyPart   = bp,
             }
         end
     end
@@ -508,6 +519,7 @@ function ZeD.HealthTab.gatherData(playerObj)
         condsByFigureName = condsByFigureName,
         extraByFigureName = extraByFigureName,
         isFemale         = playerObj:isFemale(),
+        partByFigure     = partByFigure,
     }
 end
 
@@ -581,14 +593,22 @@ function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     -- Gamepad path may pass nil drawerPanel/relX/relY — fall back to the
     -- health content panel stashed during render, else the window itself.
     local anchor = drawerPanel or win._healthContentPanel or win
-    local rX = relX or 0
-    local rY = relY or 0
+    ZeD.HealthTab.treat(playerObj, nil, bp, anchor, relX or 0, relY or 0, nil)
+end
 
-    -- Adapter mimicking ISHealthPanel for doBodyPartContextMenu
+-- The game's treatment menu for one body part, through a thin adapter that stands in for
+-- vanilla's ISHealthPanel (ISHealthPanel:doBodyPartContextMenu and its 13 handlers, unchanged):
+-- character = the patient, otherPlayer = the doctor when it is someone else (vanilla's
+-- setOtherPlayer: a medical check of another player), so every handler's getDoctor and getPatient
+-- and the game's own timed actions are vanilla's. blocking = vanilla's blockingMessage (too far
+-- away): the menu is built and kept hidden, as vanilla does. The menu opens at (rx, ry) in the
+-- anchor panel; with a controller it takes the focus as vanilla's does.
+function ZeD.HealthTab.treat(patient, doctor, bp, anchor, rx, ry, blocking)
+    if not (patient and bp and anchor) then return end
     local adapter = {
-        character       = playerObj,
-        otherPlayer     = nil,
-        blockingMessage = nil,
+        character       = patient,
+        otherPlayer     = (doctor ~= nil and doctor ~= patient) and doctor or nil,
+        blockingMessage = blocking,
         actions         = {},
     }
     function adapter:getDoctor() return self.otherPlayer or self.character end
@@ -599,15 +619,19 @@ function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     adapter.checkItems          = ISHealthPanel.checkItems
     adapter.checkContainerItems = ISHealthPanel.checkContainerItems
 
-    -- a mod that opens this part's menu itself (EXTRAS: openPart) has it
-    for _, e in ipairs(ZeD.HealthTab.extras) do
-        if e.openPart then
-            local ok, done = pcall(e.openPart, playerObj, bp, adapter, rX, rY)
-            if ok and done == true then return end
+    -- a mod that opens this part's menu itself (EXTRAS: openPart) has it; only for one's own body (a doctor's
+    -- look at another player stays the game's menu)
+    if doctor == nil or doctor == patient then
+        for _, e in ipairs(ZeD.HealthTab.extras) do
+            if e.openPart then
+                local ok, done = pcall(e.openPart, patient, bp, adapter, rx or 0, ry or 0)
+                if ok and done == true then return adapter end
+            end
         end
     end
 
-    ISHealthPanel.doBodyPartContextMenu(adapter, bp, rX, rY)
+    ISHealthPanel.doBodyPartContextMenu(adapter, bp, rx or 0, ry or 0)
+    return adapter
 end
 
 -- ============================================================================
