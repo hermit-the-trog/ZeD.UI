@@ -171,6 +171,7 @@ end
 
 function S.reread()
     st.nextRead = 0
+    for _, r in pairs(pieceRead) do r.next = 0 end   -- (a piece's switch too: the next tick reads it, never up to READ_MS on)
     sync()
 end
 

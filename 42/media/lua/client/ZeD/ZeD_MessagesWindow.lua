@@ -956,6 +956,19 @@ function W.toastsFor(pn, all)
     return out
 end
 
+-- the first balloon waits for its anchor: before the belt has drawn its Messages note the anchor falls to the bottom
+-- middle with no tail, a wrong spot that shows for a moment. A balloon not yet shown is held while there is no tail
+-- (NOTICE_HOLD_MS at most, then it shows as it is); once shown it stays put. true = hold it this frame.
+W.NOTICE_HOLD_MS = 400
+function W.noticeHold(el, tail, now)
+    if tail or el._noticeShown then
+        el._noticeSince = nil
+        return false
+    end
+    el._noticeSince = el._noticeSince or now
+    return now - el._noticeSince < W.NOTICE_HOLD_MS
+end
+
 function ZeD_MessagesToasts:prerender()
     local T = ZeD.T
     local pn = self.playerNum or 0
@@ -964,11 +977,18 @@ function ZeD_MessagesToasts:prerender()
     if not T or not Bb or #list == 0 or not getPlayer() then
         if self.width > 1 then self:setWidth(1); self:setHeight(1) end
         self._boxes, self._list = {}, {}
+        self._noticeShown, self._noticeSince = nil, nil
         return
     end
     Bb.syncColours(T)
     local k = noticeK()
     local ax, ay, tail = W.noticeAnchor(pn)
+    if W.noticeHold(self, tail, getTimestampMs()) then
+        if self.width > 1 then self:setWidth(1); self:setHeight(1) end
+        self._boxes, self._list = {}, {}
+        return
+    end
+    self._noticeShown = true
     -- each toast's balloon: its head, then where it is from and what it says (the list's own order, oldest first)
     local items = {}
     for i, t in ipairs(list) do

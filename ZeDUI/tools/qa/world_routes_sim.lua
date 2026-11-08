@@ -2,7 +2,7 @@
 -- and livestock zone windows, with no game running (VANILLA_WINDOWS_20261107.md rows B1, B4, B5). It loads the real
 -- ZeD/WorldRoutes.lua, Overrides/RadioWindow.lua and Overrides/Animals.lua, and cuts the Radio tab's list builders and
 -- browse keys out of RadioTab.lua, over fake windows, players, devices and a fake cell.
---   ITEM     a radio in the hands goes to the Character window's Radio tab, on that radio; one in a bag does not
+--   ITEM     a radio in the hands goes to the Character window's Radio tab, on that radio; one in a bag goes there too (CARRIED, listed "Carried"), one on the floor does not
 --   NEAR     a TV in the 3 x 3 goes to the World window's Radio tab, on that TV, listed once
 --   FAR      a TV across the room is pinned into the list (Floor) while within 10 tiles; past 10 the game's window;
 --            walking out drops the pin, walking back does not bring it again
@@ -216,6 +216,27 @@ check("ITEM no World window", ZeD_WorldWindow.win == nil)
 p0.hands.primary = nil
 resetWindows()
 check("ITEM in a bag: the game's window", WR.radio(p0, r) == false)
+-- ITEM carried (Nov 8 round 1, fault 7): a radio in a bag or the inventory opens ZeD's own Radio tab, listed as Carried
+local function container(mine) return { isInCharacterInventory = function(_, chr) return mine and chr == p0 end } end
+resetWindows()
+r.getContainer = function() return container(true) end
+check("CARRIED in a bag: handled", WR.radio(p0, r) == true)
+cw = ZeD_CharacterWindow.win
+check("CARRIED Character window Radio tab", cw and cw._activeTab == "radio")
+local at = cw and ZeD.RadioTab.indexOf(cw._radios, r)
+check("CARRIED listed", at ~= nil and cw._radios[at].locationTag == "Carried", at)
+check("CARRIED on that radio", cw and cw._radioFollow == r and cw._radios[cw._radioIdx].radioInstance == r)
+check("CARRIED no World window", ZeD_WorldWindow.win == nil)
+check("CARRIED stays in later list builds", ZeD.RadioTab.indexOf(ZeD.RadioTab.buildEquippedRadios(p0), r) ~= nil)
+check("CARRIED has its place name", ZeD.RadioTab.locationName("Carried") == "[IGUI_InventoryTooltip]")
+r.getContainer = function() return container(false) end
+check("CARRIED put down: dropped from the list", ZeD.RadioTab.indexOf(ZeD.RadioTab.buildEquippedRadios(p0), r) == nil)
+resetWindows()
+check("CARRIED on the floor or in a world container: the game's window", WR.radio(p0, r) == false)
+r.getContainer = function() return nil end
+check("CARRIED no container: the game's window", WR.radio(p0, r) == false)
+r.getContainer = nil
+ZeD.RadioTab._carried = nil
 
 -- NEAR
 resetWindows()
