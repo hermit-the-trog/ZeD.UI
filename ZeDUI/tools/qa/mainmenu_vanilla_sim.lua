@@ -727,7 +727,12 @@ check("A4 first run: ZeD's window, on its own", bw ~= nil and ISTermsOfServiceUI
 check("A4 first run: the game's window never shows", (function() for el in pairs(UIMANAGER) do if el ~= bw and el.Type == "ISTermsOfServiceUI" then return false end end; return true end)())
 draw(bw, "A4 first run")
 check("A4 first run: no Back", band(bw, "back") == nil and band(bw, "accept") ~= nil)
-bw:onJoypadDown(Joypad.AButton)   -- (A on Accept: the window lands there)
+check("A4 first run: the pad lands on View terms, never on Accept", bw.focusId == "terms", bw.focusId)
+CALLS = {}
+bw:onJoypadDown(Joypad.AButton)
+check("A4 first run: A there opens the terms, accepts nothing", called("overlay") ~= nil and called("setTermsOfServiceVersion") == nil and UIMANAGER[bw] == true)
+bw.focusId = "accept"   -- (the player moves to Accept)
+bw:onJoypadDown(Joypad.AButton)
 check("A4 first run: A accepts, the state goes on", called("state.exit") ~= nil and called("setTermsOfServiceVersion") ~= nil and UIMANAGER[bw] == nil)
 -- accepted already: nothing shows
 CALLS = {}
