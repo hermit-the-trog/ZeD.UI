@@ -40,7 +40,8 @@ R.windows = R.windows or {}
 
 -- design units (1 px at 1080p; T.px scales them)
 local U = { W = 1180, H = 980, PAD = 10, SIDE = 270, GAP = 8, EDGE = 8, HEAD_H = 20,
-            PAGE_W = 700, PAGE_PAD = 40, ROW_PAD = 8 }
+            PAGE_W = 700, PAGE_PAD = 40, ROW_PAD = 8,
+            LABEL_W = 640, LABEL_H = 440 }   -- (a CD's or a tape's label: the words alone, no side column)
 local ZOOMS = { 1, 1.25, 1.5, 2, 2.5, 3 }
 -- the page's paper and ink (a printed page reads the same on every theme)
 local PAPER = { r = 0.91, g = 0.886, b = 0.824 }
@@ -120,6 +121,21 @@ function ZeD_Reader:setPrintMedia(m)
     self.zoomIx, self.panX, self.panY, self.wscroll, self.storyIx = 1, 0, 0, 0, nil
 end
 
+-- a CD's or a video tape's label (Overrides/MediaLabel.lua; the director, Nov 7 2026, vanilla windows B8: the game's
+-- Read label opened ISMediaInfo): the label as a clean page in the words view, the recording's name at its head, who
+-- made it under that, the label's words as paragraphs. No side column, no paper view, no places.
+function ZeD_Reader:setLabel(text, item)
+    self.mode = "label"
+    self.item = item
+    self.media = nil
+    self.labelTitle = R.labelTitle(item)
+    self.page = nil
+    self.words = R.labelWords(text, item)
+    self.places = {}
+    self.view = "words"
+    self.zoomIx, self.panX, self.panY, self.wscroll, self.storyIx = 1, 0, 0, 0, nil
+end
+
 function ZeD_Reader:close()
     -- (a notebook's window closing ends the write action, as vanilla's Cancel does)
     if self.mode == "notebook" then self:endWriting(); return end
@@ -136,8 +152,9 @@ function ZeD_Reader:place()
     local T = ZeD.T
     local sx, sy = getPlayerScreenLeft(self.playerNum), getPlayerScreenTop(self.playerNum)
     local sw, sh = getPlayerScreenWidth(self.playerNum), getPlayerScreenHeight(self.playerNum)
-    local w = math.min(T.px(U.W), sw - T.px(60))
-    local h = math.min(T.px(U.H) + self:footerHeight(), sh - T.px(40))
+    local label = self.mode == "label"
+    local w = math.min(T.px(label and U.LABEL_W or U.W), sw - T.px(60))
+    local h = math.min(T.px(label and U.LABEL_H or U.H) + self:footerHeight(), sh - T.px(40))
     if self.width ~= w or self.height ~= h then
         self:setWidth(w); self:setHeight(h)
         self:setX(sx + math.floor((sw - w) / 2)); self:setY(sy + math.floor((sh - h) / 2))
@@ -150,11 +167,15 @@ function ZeD_Reader:layout()
     local top = self:titleBarHeight() + pad
     local stripH = ZeD.Molecules.bandH()   -- the band, above the window's help line
     local stripY = self.height - self:footerHeight() - stripH
-    local side = T.px(U.SIDE)
     local g = {}
     g.strip = { x = 0, y = stripY, w = self.width, h = stripH }
-    g.side = { x = self.width - pad - side, y = top, w = side, h = stripY - pad - top }
-    g.canvas = { x = pad, y = top, w = g.side.x - pad - pad, h = stripY - pad - top }
+    if self.mode == "label" then
+        g.canvas = { x = pad, y = top, w = self.width - pad - pad, h = stripY - pad - top }
+    else
+        local side = T.px(U.SIDE)
+        g.side = { x = self.width - pad - side, y = top, w = side, h = stripY - pad - top }
+        g.canvas = { x = pad, y = top, w = g.side.x - pad - pad, h = stripY - pad - top }
+    end
     self._g = g
     return g
 end
@@ -162,6 +183,12 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAWING
 -- ---------------------------------------------------------------------------
+-- the piece's name: the printed piece's, or the label's recording
+local function titleOf(self)
+    if self.mode == "label" then return self.labelTitle or "" end
+    return P.title(self.media)
+end
+
 function ZeD_Reader:prerender()
     local T = ZeD.T
     if not T then return end
@@ -170,7 +197,7 @@ function ZeD_Reader:prerender()
     if self.mode == "notebook" then return self:prerenderNotebook() end
     local who = self.character:getDescriptor()
     local name = who and (who:getForename() .. " " .. who:getSurname()) or ""
-    self.title = name .. "  +  " .. P.title(self.media)
+    self.title = name .. "  +  " .. titleOf(self)
     local read = self:isRead()
     self.titleStats = read and { { text = ZeD.tr("UI_ZeD_Reader_StatRead"), color = T.positive } } or {}
     local g = self:layout()
@@ -186,7 +213,7 @@ function ZeD_Reader:prerender()
     if self.view == "paper" and self.page then self:drawPaper(c) else self:drawWords(c) end
     if not self._vanillaPage then P.vanillaHide() end
     self:clearStencilRect()
-    self:drawSide(g.side)
+    if g.side then self:drawSide(g.side) end
     self:drawStrip(g.strip)
 end
 
@@ -229,7 +256,7 @@ function ZeD_Reader:drawWords(c)
         local y = y0 + pad
         local hf = ZeD.Font.sdf.head
         local z = 26 * (T.scale or 1) / (hf.face or 64)
-        local tl = P.title(self.media)
+        local tl = titleOf(self)
         if drawIt then ZeD.Text.draw(self, hf, tl, px + pad, y, z, INK.r, INK.g, INK.b, 1, "l") end
         y = y + math.floor(ZeD.Text.height(hf, z)) + T.px(6)
         if drawIt then self:drawRect(px + pad, y, tw0, T.px(2), 1, INK.r, INK.g, INK.b) end
@@ -311,7 +338,7 @@ end
 
 function ZeD_Reader:isRead()
     local m = self.media
-    if not m then return false end
+    if not m or self.mode == "label" then return false end
     -- (vanilla records a read by the piece's id: Read's complete, addReadPrintMedia)
     local ok, r = pcall(function() return self.character:isPrintMediaRead(m.id) or self.character:isPrintMediaRead(m.title) end)
     return ok and r or false
@@ -1087,6 +1114,73 @@ function R.openPrint(playerObj, item)
     if not (playerObj and P.media(item)) then return false end
     local win = window(playerObj)
     win:setPrint(item)
+    show(win)
+    return true
+end
+
+-- ---------------------------------------------------------------------------
+-- A CD'S OR A TAPE'S LABEL (Overrides/MediaLabel.lua)
+-- ---------------------------------------------------------------------------
+-- the item carrying a label: the game hands its window the label's words alone (ISMediaInfo.openPanel), so the
+-- carried CD or tape whose recording has those words is found again, bags included
+local function walkFor(inv, test, depth)
+    local items = inv and inv:getItems()
+    if not items then return nil end
+    for i = 0, items:size() - 1 do
+        local it = items:get(i)
+        if it then
+            if test(it) then return it end
+            if depth < 3 and instanceof(it, "InventoryContainer") then
+                local found = walkFor(it:getInventory(), test, depth + 1)
+                if found then return found end
+            end
+        end
+    end
+    return nil
+end
+function R.labelItem(playerObj, text)
+    if not (playerObj and text) then return nil end
+    local ok, it = pcall(walkFor, playerObj:getInventory(), function(item)
+        local md = item.getMediaData and item:getMediaData()
+        return md ~= nil and md:getTranslatedExtra() == text
+    end, 0)
+    return ok and it or nil
+end
+
+-- the label's head: the item's own name (as the game lists it), else the recording's, else the game's "Read label"
+function R.labelTitle(item)
+    local n = item and item.getDisplayName and item:getDisplayName()
+    if (not n or n == "") and item and item.getMediaData then
+        local md = item:getMediaData()
+        n = md and md:getTranslatedItemDisplayName()
+    end
+    if not n or n == "" then n = getText("IGUI_media_readLabel") end
+    return n
+end
+
+-- the label as blocks for the words view: who made it (a kicker line), then the label's words, a paragraph per line
+-- (the game's rich-text breaks <LINE> and <BR> start a new one; other markup is dropped)
+function R.labelWords(text, item)
+    local blocks = {}
+    local md = item and item.getMediaData and item:getMediaData()
+    local by = md and md:getTranslatedAuthor()
+    if by and by ~= "" then blocks[#blocks + 1] = { kind = "kicker", text = by } end
+    local s = tostring(text or "")
+    s = s:gsub("<%s*[Ll][Ii][Nn][Ee]%s*>", "\n"):gsub("<%s*[Bb][Rr]%s*>", "\n")
+    s = s:gsub("<[^<>]*>", "")
+    for line in (s .. "\n"):gmatch("([^\n]*)\n") do
+        local t = (line or ""):gsub("^%s+", ""):gsub("%s+$", "")   -- (the game's Lua hands an empty capture over as nil)
+        if t ~= "" then blocks[#blocks + 1] = { kind = "body", text = t } end
+    end
+    return blocks
+end
+
+-- the label in the reader (the game's Read label). False when there is nothing to show: the caller opens the game's
+function R.openLabel(playerObj, text)
+    if not playerObj or text == nil or text == "" then return false end
+    local win = window(playerObj)
+    if win.mode == "notebook" and win:getIsVisible() then return false end   -- (writing in a notebook: the game's)
+    win:setLabel(text, R.labelItem(playerObj, text))
     show(win)
     return true
 end

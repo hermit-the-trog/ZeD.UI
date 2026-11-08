@@ -361,6 +361,9 @@ D.paused = paused
 -- a ZeD window holding the pad (a menu or prompt let the focus go): the press
 -- is that window's, never a wheel (Oct 23 2026, from the belt's D-pad Left)
 local function windowTakes(dir, joypadData)
+    -- (only the first player's pad: ZeD's windows and their focus are theirs, ZeD.windowsFor. Another player's
+    -- D-pad moved the first player's window, split-screen, known issue Nov 7 2026)
+    if not ZeD.windowsFor(joypadData and joypadData.player or 0) then return false end
     local F = ZeD.Input and ZeD.Input.Focus
     local fw = F and F.getFocusedWindow and F.getFocusedWindow()
     if fw and fw:isVisible() and not fw.windowShaded then
@@ -404,7 +407,9 @@ local function apply()
         local orig = ISDPadWheels[fn]
         D.orig[dir] = orig
         ISDPadWheels[fn] = function(joypadData)
-            if D.gameWheels() then return orig(joypadData) end
+            -- (split-screen: the wheels' slices open ZeD's windows, which are the first player's: another player
+            -- has the game's own wheels, ZeD.windowsFor)
+            if D.gameWheels() or not ZeD.windowsFor(joypadData and joypadData.player or 0) then return orig(joypadData) end
             if windowTakes(dir, joypadData) then return end
             if not G.freshPress(dir, joypadData) then return end   -- (the game's repeat of a held direction)
             -- paused: only Here and now opens (Game speed, Play stays in reach)
@@ -420,7 +425,7 @@ local function apply()
         local origAdd = ISBackButtonWheel.addCommands
         D.orig.select = origAdd
         function ISBackButtonWheel:addCommands()
-            if D.gameWheels() then
+            if D.gameWheels() or not ZeD.windowsFor(self.playerNum or 0) then
                 self:setHideWhenButtonReleased(Joypad.Back)   -- (a ZeD wheel on this object may have cleared it)
                 return origAdd(self)
             end
@@ -613,7 +618,7 @@ D.B.zed = function(p, pn)
     local tone = (ZeD.currentBase == "light") and "light" or "dark"
     local ac = ZeD.AccentColors and ZeD.AccentColors[ZeD.currentAccent]
     local function at(keys, labels, k) for i, x in ipairs(keys) do if x == k then return tr(labels[i]) end end return nil end
-    return {
+    local out = {
         { name = tr("UI_ZeD_Settings_BaseTheme"), icon = "theme", detail = at(S.baseKeys, S.baseLabels, ZeD.currentBase), sub = Z.themeWheel },
         { name = tr("UI_ZeD_Settings_AccentColor"), swatch = ac and ac[tone] and ac[tone].accent or nil,
           detail = at(S.accentKeys, S.accentLabels, ZeD.currentAccent), sub = Z.accentWheel },
@@ -642,6 +647,14 @@ D.B.zed = function(p, pn)
         { name = tr("UI_ZeD_Options_GroupZed"), icon = "gears", detail = tr("UI_ZeD_Wheel_ZeDSetupDetail"), run = function(pl, n) D.H.openSetup(pl, n) end },
         { name = tr("UI_ZeD_Settings_SafeMode"), icon = "safemode", detail = tr("UI_ZeD_Wheel_SafeModeDetail"), run = Z.safeMode },
     }
+    -- the Lua console (punch list 106): in debug mode only, while the game's console exists; the controller's way in
+    -- (the game's own way is a key)
+    local DCon = ZeD.DebugConsole
+    if DCon and DCon.exists and DCon.exists() then
+        out[#out + 1] = { name = tr("UI_ZeD_Console_Title"), icon = "bug", detail = tr("UI_ZeD_Console_WheelDetail"),
+                          run = function(pl, pn2) DCon.open(pn2) end }
+    end
+    return out
 end
 
 -- ============================================================================
@@ -652,6 +665,7 @@ local H = D.H
 
 -- the pair open on a Character tab, the pad in the Character window
 function H.charTab(p, pn, id)
+    if not ZeD.windowsFor(pn) then return end   -- (split-screen: ZeD's windows are the first player's)
     if not (ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad) then return end
     pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, pn)
     local tries = 0
@@ -677,6 +691,7 @@ end
 
 -- the pair open on a World tab, the pad in the World window
 function H.worldTab(p, pn, id)
+    if not ZeD.windowsFor(pn) then return end   -- (split-screen: ZeD's windows are the first player's)
     if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, pn) end
     if ZeD_WorldWindow and ZeD_WorldWindow.openTab then pcall(ZeD_WorldWindow.openTab, pn, id) end
     local tries = 0
@@ -997,15 +1012,14 @@ function Wd.tabs(p, pn)
     return out
 end
 
+-- (the director, Nov 7 2026, B7: no mini-map in ZeD's wheels, "the World window's map is the map". Its two
+-- slices were the last two of this inner wheel, so taking them out moves no other slice: World map stays
+-- first and Back stays last, as on every inner wheel. The Map slice keeps its place on the World wheel.)
 function Wd.map(p, pn)
-    local mini = getPlayerMiniMap and getPlayerMiniMap(pn)
-    local noMini = (not mini) and tr("UI_ZeD_Wheel_NoMiniMap") or nil
     local noMap = not (ISWorldMap and ISWorldMap.IsAllowed and ISWorldMap.IsAllowed())
     return {
         { name = getText("IGUI_WorldMap_Toggle"), icon = "map", run = function(pl, n) ISWorldMap.ToggleWorldMap(n) end,
           off = noMap and tr("UI_ZeD_Wheel_NoWorldMap") or nil },
-        { name = getText("IGUI_MiniMap_Toggle"), icon = "minimap", run = function(pl, n) ISMiniMap.ToggleMiniMap(n) end, off = noMini },
-        { name = getText("IGUI_MiniMap_Focus"), icon = "pin", run = function(pl, n) ISMiniMap.FocusMiniMap(n) end, off = noMini },
     }
 end
 

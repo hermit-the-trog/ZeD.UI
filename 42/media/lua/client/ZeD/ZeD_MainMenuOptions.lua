@@ -350,7 +350,7 @@ local function help(r)
         return ZeD.tr("UI_ZeD_Chord_Help", nb, nf, table.concat(words or {}, " \226\128\186 "))
     end
     if r.kind == "key" then t = ZeD.tr("UI_ZeD_Options_HelpKey") end
-    if r.kind == "special" then t = ZeD.tr("UI_ZeD_Options_HelpSpecial") end
+    if r.kind == "special" then t = ZeD.tr("UI_ZeD_Options_HelpPadMap") end   -- (its own page now: ZeD_MainMenuOptionsSub.lua)
     if r.kind == "stepper" then t = ZeD.tr("UI_ZeD_Options_HelpDeadzone") end
     t = t and UI.plain(t) or nil
     -- the groups' marks (ZeD_MainMenuOptionGroups): why it does nothing, where it works, where it lives
@@ -376,6 +376,9 @@ end
 -- the line under a row's name: does nothing / only somewhere / where it lives
 local function underLine(r)
     if r.moot then return ZeD.tr("UI_ZeD_Options_MootUnder") end
+    -- a ZeD screen a mod took (ZeD_StepAside.lua): which mod, while it is handed back
+    local taken = r.zedBack and ZeD.StepAside and ZeD.StepAside.underFor(r.zedBack)
+    if taken then return taken end
     if r.under then return MM.optionGroups.text(r.under) end
     return r.only and MM.optionGroups.text(r.only[1])
 end

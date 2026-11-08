@@ -162,10 +162,16 @@ local function when()
     return t
 end
 
-local function toast(kind, head, name, text)
-    if not toastOn() then return end
-    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS }
-    for i = #M.toasts, 1, -1 do if M.toasts[i].source == name and M.toasts[i].head == head then table.remove(M.toasts, i) end end
+-- pn: the player the notice is for (its balloon comes out of that player's note; nil: player one)
+-- force: shown whatever ZeD setup's notices setting says (a controller plugged in or unplugged: they replace
+-- windows the game always showed)
+local function toast(kind, head, name, text, pn, force)
+    if not force and not toastOn() then return end
+    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS, pn = pn }
+    for i = #M.toasts, 1, -1 do
+        local o = M.toasts[i]
+        if o.source == name and o.head == head and o.pn == pn then table.remove(M.toasts, i) end
+    end
     M.toasts[#M.toasts + 1] = t
     while #M.toasts > 3 do table.remove(M.toasts, 1) end
 end
@@ -240,6 +246,14 @@ function M.adminNote(text, bans)
     return it
 end
 
+-- a notice of ZeD's own (the director, Nov 7 2026: every ZeD notice comes out of Messages): filed under head,
+-- with the toast out of the belt's Messages note
+function M.notice(head, text)
+    local it = M.add(head, "mods", { k = "notice", text = text })
+    toast("warn", head, head, text)
+    return it
+end
+
 -- notes any player can cause: the oldest of this kind goes past its cap, and only that kind
 local function capKind(name, k, max)
     local items = M.sources[name].items
@@ -265,6 +279,25 @@ function M.invite(text)
     return it
 end
 
+-- controllers (the director, Nov 7 2026, vanilla windows B12 and B13; Overrides/Controllers.lua): a controller plugged
+-- in, with the game's join choices as its buttons, or a player's controller unplugged. One note per controller or
+-- player (id): the newest replaces the one before it; never more than PAD_NOTES_MAX. buttons: { label, run } each,
+-- pressed on the note's card (ZeD_MessagesWindow); run returns true when it did what it says.
+local PAD_NOTES_MAX = 8
+function M.pad(id, head, text, buttons, pn)
+    local name = ZeD.tr("UI_ZeD_Pad_Source")
+    local s = M.sources[name]
+    if s then
+        for i = #s.items, 1, -1 do
+            if s.items[i].k == "pad" and s.items[i].pad == id then table.remove(s.items, i) end
+        end
+    end
+    local it = M.add(name, "mods", { k = "pad", pad = id, head = head, text = text, padButtons = buttons })
+    capKind(name, "pad", PAD_NOTES_MAX)
+    toast("warn", head, name, text, pn, true)
+    return it
+end
+
 -- for staff, in place of the game's modal: a ticket came in
 function M.ticketNew()
     local name = getText("UI_userpanel_tickets")
@@ -272,6 +305,37 @@ function M.ticketNew()
     local it = M.add(name, "mods", { k = "ticketnew", text = text })
     capKind(name, "ticketnew", TICKET_NOTES_MAX)
     toast("warn", ZeD.tr("UI_ZeD_Tk_ToastHead"), name, text)
+    return it
+end
+
+-- the game's admin pop-up (ISAdminMessage, ZeDUI/VANILLA_WINDOWS_20261107.md C16) as a note: plain words, and the place
+-- it names (tp = { x, y, z }) for the card's Teleport, where the game's pop-up asked "Teleport?"
+local ADMIN_MSG_MAX = 30
+function M.adminMsg(text, tp)
+    local name = ZeD.tr("UI_ZeD_Adm_NoteHead")
+    local it = M.add(name, "mods", { k = "adminmsg", text = text, tp = tp })
+    capKind(name, "adminmsg", ADMIN_MSG_MAX)
+    toast("warn", name, name, text)
+    return it
+end
+
+-- the server's own word (VANILLA_WINDOWS C4: "saving"), under its own Server heading, an info bubble. One entry per id,
+-- updated in place each time (a save every hour must not pile up notes)
+function M.serverNote(id, text)
+    local name = ZeD.tr("UI_ZeD_Srv_Server")
+    local s = M.sources[name]
+    for _, it in ipairs(s and s.items or {}) do
+        if it.k == "server" and it.id == id then
+            it.text, it.read, it.when = text, false, when()
+            M.seq = M.seq + 1
+            s.at = M.seq
+            toast("info", name, name, text)
+            bump()
+            return it
+        end
+    end
+    local it = M.add(name, "mods", { k = "server", id = id, text = text })
+    toast("info", name, name, text)
     return it
 end
 

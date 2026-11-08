@@ -1,0 +1,13 @@
+/* ZeD-UI: the mod's own sounds. ZeDModemDial: the mail's dial-in, once a connection (punch list 104; made by
+   ZeDUI/tools/sound/make_modem.py from sine waves and noise). Category UI: it follows the game's UI volume. */
+module Base
+{
+    sound ZeDModemDial
+    {
+        category = UI,
+        clip
+        {
+            file = media/sound/ZeD_modem.wav,
+        }
+    }
+}
