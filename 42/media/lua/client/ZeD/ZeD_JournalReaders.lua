@@ -62,6 +62,7 @@ local function st(win)
     return win._jr
 end
 
+--- The sub-tab's scrollbar state, handed out by the Character window's scroll dispatch.
 function J.scroll(win) return st(win).scroll end
 
 -- the live controller focus inside the Character window's tab content (the focused
@@ -149,7 +150,7 @@ local function backButton(panel, win, id, x, y, fn)
 end
 
 -- ---------------------------------------------------------------------------
--- WHAT THE CHARACTER CARRIES (every bag, a scan every half second)
+-- WHAT THE CHARACTER CARRIES (every bag, scanned again about every half second)
 -- ---------------------------------------------------------------------------
 local function scan(inv, papers, seen, books)
     local items = inv:getItems()
@@ -181,6 +182,8 @@ end
 local function gather(win, force)
     local s = st(win)
     s.frame = s.frame + 1
+    -- (s.frame counts asks, not frames: 30 asks is half a second at 60 frames a second on a page
+    -- that asks once a frame; the Journal page's Into asks more often, so it scans sooner)
     if not force and s.carried and s.frame - (s.scanAt or 0) < 30 then return s.carried end
     s.scanAt = s.frame
     local p = win._playerObj
@@ -528,9 +531,9 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
 end
 
 -- ---------------------------------------------------------------------------
--- PAPERS: the band. Show (All, News, Flyers, On map)
--- as a System 7 pop-up menu at the left; its list opens upward over the page.
--- In a quick look the box is greyed (the list is not shown).
+-- PAPERS: the band. Show (All, News, Flyers, On map) as a System 7 pop-up menu at
+-- the left; its list opens upward over the page. In a quick look the box is
+-- greyed (the list is not shown).
 -- ---------------------------------------------------------------------------
 local SHOW_MODES = {}   -- the Show list's choices {id, label}: made once, labels refreshed
 local _papersBand = {}
@@ -610,6 +613,8 @@ local function drawPapersBand(panel, win, x, y, w, frozen)
     end
 end
 
+--- Draws the Papers sub-tab into (x, y, w, h) on the drawer: the list or a quick look, then
+--- the band at the foot. JournalTab calls it each frame the sub-tab shows.
 function J.renderPapers(panel, win, x, y, w, h)
     J._fid = focusedId(win)
     local s = st(win)
@@ -628,7 +633,7 @@ function J.renderPapers(panel, win, x, y, w, h)
     drawPapersBand(panel, win, x, y + bodyH, w, look ~= nil)
 end
 
---- The band's Show list is open (its rows alone hold the controller).
+--- True while the band's Show list is open (its rows alone hold the controller).
 function J.listOpen(win)
     local s = st(win)
     return s.showOpen == true and s.showZones ~= nil
@@ -717,10 +722,10 @@ local function bookSub(p, b)
     return ZeD.tr("UI_ZeD_Notebook_SubWritten", kind, n, all)
 end
 
--- the page small: ruled paper as the real sheet is ruled: the blue
--- rules run edge to edge through the red margin, the margin runs the page's full height about a seventh
--- in, and a blank band one rule tall sits above the first rule; the writing in ink sits on the rules. As
--- tall as its writing and two more rules (the quick note under it stays in view in a short drawer).
+-- the page small: ruled paper as the real sheet is ruled: the blue rules run edge to edge through the
+-- red margin, the margin runs the page's full height about a seventh in, and a blank band one rule tall
+-- sits above the first rule; the writing in ink sits on the rules. As tall as its writing and two more
+-- rules (the quick note under it stays in view in a short drawer).
 local function miniPage(panel, b, page, x, y, w)
     local T = ZeD.T
     local f = T.fontF2
@@ -748,6 +753,8 @@ local function miniPage(panel, b, page, x, y, w)
     return ph
 end
 
+--- Draws the Notebooks sub-tab into (x, y, w, h) on the drawer: the carried books, the page
+--- small with its page bar, and the quick-note field under it. JournalTab calls it each frame.
 function J.renderNotebooks(panel, win, x, y, w, h)
     local T = ZeD.T
     J._fid = focusedId(win)
@@ -855,7 +862,8 @@ function J.renderNotebooks(panel, win, x, y, w, h)
     if not fieldShown and field._entry and field._entry:isFocused() then field._entry:unfocus() end
 end
 
---- The drawer's children follow the sub-tab (called every frame by the Character window).
+--- The drawer's children follow the sub-tab: off Notebooks, the quick-note field hides and lets go
+--- of the keyboard. The Character window calls it every frame.
 function J.syncChildren(win, onNotebooks)
     if not onNotebooks and win._jrNote and win._jrNote:isVisible() then
         if win._jrNote._entry then win._jrNote._entry:unfocus() end
@@ -869,7 +877,8 @@ function J.searchHint(sub)
     return ZeD.tr("UI_ZeD_Papers_Find")
 end
 
---- The search box shows on the lists, not in a quick look.
+--- Whether the search box shows for sub-tab `sub`: on Notebooks (2), and on Papers (3) outside a
+--- quick look.
 function J.searchVisible(win, sub)
     if sub == 3 then return not st(win).paperOpen end
     return sub == 2
@@ -976,6 +985,7 @@ end
 -- ---------------------------------------------------------------------------
 -- INPUT (routed by the Character window's drawer)
 -- ---------------------------------------------------------------------------
+--- A click at (x, y) in drawer coordinates on a Journal sub-tab; true when it was taken.
 function J.onClick(win, x, y)
     -- the Journal's delete question (a band at the foot of the log) takes its own buttons
     local JT = ZeD.JournalTab
@@ -1039,14 +1049,15 @@ function J.focusables(win)
     return out
 end
 
---- Rebuild the controller's elements when the view scrolls or changes.
+--- What moves the controller's elements: when this string changes (the view scrolled or
+--- changed), the Character window rebuilds them.
 function J.scrollKey(win)
     local s = st(win)
     return tostring(s.key) .. ":" .. tostring(s.scroll.scrollPos) .. ":" .. tostring(s.nbId) .. ":" .. tostring(s.filter)
         .. ":" .. tostring(s.showOpen) .. ":" .. tostring(s.paperOpen)
 end
 
---- The log box's Into shows (a notebook is carried to write in).
+--- Whether the log box's Into shows: true while a notebook is carried to write in.
 function J.intoShown(win)
     return #gather(win).books > 0
 end

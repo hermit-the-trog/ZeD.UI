@@ -331,8 +331,7 @@ ZeD.Settings.safeModeOption = safeMode
 -- For checking layouts: ZeD.tr (shared/ZeD/Tr.lua) returns every ZeD phrase about 40%
 -- longer, accented and in brackets, so clipped or overlapping text shows without a real
 -- translation. Tr.lua reads this at most every half second. It went in at the end of the
--- list, as every newer option below did: a combo is saved as its item's position, so new
--- options only ever go at the end.
+-- list, where every new option goes: a combo is saved as its item's position.
 local testLanguage = opts:addComboBox("testLanguage", ZeD.tr("UI_ZeD_Settings_TestLanguage"),
     "UI_ZeD_Settings_TestLanguageTip")   -- the key: the options screen reads it through getText (its text has a % sign, which a second getText of the translated words would choke on)
 testLanguage:addItem(getText("UI_Off"), true)   -- default
@@ -780,6 +779,8 @@ local function setUpAdditions()
     end
 
     local busy = false   -- (a preset being set: the additions' onChange leave the preset alone)
+    --- The preset control set to the preset the live picks make, or Custom (ZeD setup calls it every
+    --- frame, each addition's onChange too).
     function ZeD.Settings.syncAdditionsPreset()
         if busy then return end
         local el = additionsPreset.element
@@ -844,7 +845,7 @@ local function setUpAdditions()
         if o then o:setValue(set.identityStyle) end
     end
 
-    -- the stored values read (the main menu, a game start): the preset set to what they make, and saved
+    --- The stored values read (the main menu, a game start): the preset set to what they make, and saved.
     function ZeD.Settings.reconcileAdditions()
         held = nil
         pcall(repairVanillaAccess)
@@ -948,8 +949,8 @@ textSize.onChangeApply    = onThemeApply
 seeThrough.onChange       = onThemeChange
 seeThrough.onChangeApply  = onThemeApply
 
--- The window box's menu and the Select wheel set these as ZeD setup does, and save at once
--- (no Apply there): see-through re-applies the theme with the new alpha
+--- The window box's menu and the Select wheel set these as ZeD setup does, and save at once
+--- (no Apply there): see-through re-applies the theme with the new alpha
 function ZeD.Settings.setSeeThrough(i)
     i = tonumber(i)
     if not (i and seeKeys[i]) then return end
@@ -1025,9 +1026,9 @@ inputModeLock.onChange = function(_, sel)
     end
 end
 
--- Sync a single window's accent to ModOptions + modData (the window box menu
--- and the windows' own accent pick-up call it).
--- A window with no accent key of its own follows the Accent color option.
+--- Sync a single window's accent to ModOptions + modData (the window box menu
+--- and the windows' own accent pick-up call it).
+--- A window with no accent key of its own follows the Accent color option.
 function ZeD.Settings.syncWindowAccent(win)
     if not win then return end
     local key = win._accentKey
@@ -1148,7 +1149,8 @@ end)
 -- CYCLING HELPER
 -- The next entry of a list, wrapping at the end. The F-key shortcuts that
 -- used it are gone: theme, accent and size cycle through the window box menu
--- and the controller's wheels instead.
+-- and the controller's wheels instead. Nothing in ZeD calls it now; it stays
+-- on ZeD.Settings for anything outside that still might.
 -- ---------------------------------------------------------------------------
 
 local function cycleNext(list, current)

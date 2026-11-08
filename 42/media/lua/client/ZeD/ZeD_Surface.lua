@@ -1,10 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Surface.lua
 -- ============================================================================
--- WINDOW SURFACES AND THE HELP LINE (cohesion spec sections 3.2 and 10)
+-- WINDOW SURFACES AND THE HELP LINE - client; shared draw helpers that every
+-- ZeD window (ZeD_Window, Organisms.lua) and the parts inside it go through.
 --
 -- ZeD.Surface: one layer of see-through everywhere in a window. A band, a
 -- header or a card drawn over the window body would add its own alpha to the
--- body's, so at 60% a window with bands looked striped. A surface drawn with
+-- body's, so at 60% a window with bands would look striped. A surface drawn with
 -- ZeD.Surface.fill instead claims its rect: the window draws its body as its
 -- rect minus the rects claimed in the frame before, so every spot of the
 -- window carries exactly one surface. The claims of a frame are used by the
@@ -14,7 +15,7 @@
 --   ZeD.Surface.fill(panel, x, y, w, h, tokenName)
 --       draws ZeD.T[tokenName] (default "surf2") at the window's alpha in
 --       panel coordinates and claims the rect for the panel's ZeD_Window.
---       A panel outside any ZeD_Window just draws.
+--       A panel outside any ZeD_Window draws and claims nothing.
 --   ZeD.Surface.claim(panel, x, y, w, h)
 --       claims the rect without drawing: a strip drawn on a card that draws
 --       its own body (the card's fill is the one layer there).
@@ -81,7 +82,7 @@ local function popClip()
 end
 
 --- The clip the draw in progress is under, in screen coordinates: { x0, y0, x1, y1 }
--- (read it, do not keep it), or nil when no stencil is set.
+--- (read it, do not keep it), or nil when no stencil is set.
 function S.clip()
     if _clipN <= 0 then return nil end
     return _clips[math.min(_clipN, MAX_CLIPS)]
@@ -113,7 +114,7 @@ if Events then
     if Events.OnPostUIDraw then Events.OnPostUIDraw.Add(S.resetClips) end
 end
 
--- The ZeD_Window a panel lives in (the panel itself when it is one), or nil
+--- The ZeD_Window a panel lives in (the panel itself when it is one), or nil
 function S.windowOf(panel)
     local p = panel
     local guard = 0
@@ -125,8 +126,8 @@ function S.windowOf(panel)
     return nil
 end
 
--- this frame's claims start empty; last frame's become the ones the body skips
--- (ZeD_Window calls it at the top of its own drawing, once a frame)
+--- this frame's claims start empty; last frame's become the ones the body skips
+--- (ZeD_Window calls it at the top of its own drawing, once a frame)
 function S.beginFrame(win)
     local cur = win._srfCur or { n = 0 }
     local prev = win._srfPrev or { n = 0 }
@@ -181,6 +182,7 @@ local function claimRect(panel, x, y, w, h)
     claim(win, math.floor(px0 + 0.5), math.floor(py0 + 0.5), math.floor(px1 + 0.5), math.floor(py1 + 0.5))
 end
 
+--- draw ZeD.T[tokenName] (default "surf2") over (x, y, w, h) and claim it for the panel's window (see the header)
 function S.fill(panel, x, y, w, h, tokenName)
     if not panel or w <= 0 or h <= 0 then return end
     local T = ZeD.T
@@ -190,15 +192,15 @@ function S.fill(panel, x, y, w, h, tokenName)
 end
 
 --- Claim (x, y, w, h) in panel coordinates for the panel's window without drawing it: the
--- window's body leaves it out next frame. For a library strip on a card that draws its own
--- body (one layer there already); the claim is kept to the clip in force, as fill's is.
+--- window's body leaves it out next frame. For a library strip on a card that draws its own
+--- body (one layer there already); the claim is kept to the clip in force, as fill's is.
 function S.claim(panel, x, y, w, h)
     if not panel or not w or not h or w <= 0 or h <= 0 then return end
     claimRect(panel, x, y, w, h)
 end
 
--- the rect (x, y, w, h) minus last frame's claims, drawn in tokenName: the window body
-local bufA, bufB = {}, {}
+local bufA, bufB = {}, {}   -- (the pieces' two scratch lists, swapped and reused: no new tables while drawing)
+--- the rect (x, y, w, h) minus last frame's claims, drawn in tokenName (default "surf1"): the window body
 function S.drawBody(win, x, y, w, h, tokenName)
     if w <= 0 or h <= 0 then return end
     local T = ZeD.T
@@ -247,14 +249,15 @@ end
 -- ----------------------------------------------------------------------------
 -- the help line's words
 -- ----------------------------------------------------------------------------
+--- the help line's words for this frame, while the pointer rests on the element (see the header)
 function H.set(panel, text)
     if text == nil or text == "" then return end
     local win = S.windowOf(panel)
     if win then win._helpText = tostring(text) end
 end
 
--- what the help line says this frame (and forgets the stamp): the pointed element's help,
--- else the window's own status line
+--- what the help line says this frame (and forgets the stamp): the pointed element's help,
+--- else the window's own status line
 function H.take(win)
     local t = win._helpText
     win._helpText = nil

@@ -3698,16 +3698,16 @@ end
 -- ============================================================================
 
 
--- S103: assigned to the forward-declared upvalue (not `local function`) so
--- _buildSkillRowFocusables's onActivate closure (declared earlier in the
--- file) can capture it as an upvalue.
+-- Pin or unpin a skill. Assigned to the forward-declared upvalue (not
+-- `local function`), as skillRowMenu below is, so closures declared earlier
+-- in the file can capture it.
 togglePinSkill = function(win, skillName)
-    -- (ZeD_Pins, Nov 4 2026: every kind of pin in one list, three at most; the row's menu calls it)
+    -- (ZeD_Pins: every kind of pin in one list, three at most)
     ZeD.Pins.toggle(win._playerObj, "skill", skillName)
     win._pinnedSkills = ZeD.Pins.skillNames(win._playerObj)
 end
 
--- a skill row's menu (the director, Nov 4 2026: pin from the menu, never a plain click)
+-- A skill row's menu: a skill is pinned from here, never by a plain click.
 skillRowMenu = function(win, skillName, ax, ay)
     if not skillName then return end
     local pd = ZeD.SkillsTab.getPinData(win._playerObj, skillName)
@@ -3727,7 +3727,7 @@ local function _hideVanilla()
     if vl then vl:setVisible(false) end
 end
 
--- S95 — Gamepad Y button vanilla takeover.
+-- Gamepad Y button vanilla takeover.
 -- When gamepad Y is pressed and no element has joypad focus (exactly our
 -- windowshade-released state), the engine dispatches through
 -- `JoypadControllerData:onPressButtonNoFocus` which ultimately calls
@@ -3758,22 +3758,27 @@ if ISButtonPrompt then
     end
 end
 
+--- True while the Character window is open.
 function ZeD_CharacterWindow.isOpen()
     return _charWin ~= nil
 end
 
--- The controller's stops rebuilt for the tab on show (Reset windows sets Loot without a tab
--- switch: Nov 1 2026, punch list 45, the old tab's stops stayed registered until the next change)
+--- Rebuild the controller's stops for the tab on show. Reset windows
+--- (Organisms.lua) sets Loot without a tab switch, and the old tab's stops
+--- would stay registered until the next change.
 function ZeD_CharacterWindow.syncRing(win)
     win = win or ZeD_CharacterWindow.getWindow()
     if win and win._mainContent and _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, win._mainContent) end
 end
 
+--- The open Character window, or nil (the same as getInstance).
 function ZeD_CharacterWindow.getWindow()
     return _charWin
 end
 
--- The window open on a tab (a ticket note's Open key), as ZeD_WorldWindow.openTab does for its side
+--- The window open on a tab (a ticket note's Open key), as ZeD_WorldWindow.openTab does for its
+--- side. Overrides/CharacterInfo.lua requires this file and defines openTab again (with a third
+--- argument, toggle), so that later definition is the one in use.
 function ZeD_CharacterWindow.openTab(playerNum, tabId)
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _charWin then
@@ -3815,6 +3820,7 @@ end
 -- TOGGLE
 -- ============================================================================
 
+--- Open the Character window for playerNum, or close it (saving its layout) if it is open.
 function ZeD_CharacterWindow.toggle(playerNum)
     playerNum = playerNum or 0
     -- (split-screen: another player's press never opens or closes the first player's window, ZeD.windowsFor)
@@ -3822,8 +3828,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     if _charWin then
         saveCharState(_charWin)
-        -- S93 Layer 3: tear down joypad focus registration before dropping ref.
-        -- releaseFocus + unregisterWindow are each safe to call on an
+        -- Tear down the joypad focus registration before dropping the ref.
+        -- unregisterWindow releases the focus too, and is safe to call on an
         -- unfocused/unregistered window (no-op), so no guards needed.
         if ZeD and ZeD.Input and ZeD.Input.Focus then
             ZeD.Input.Focus.unregisterWindow(_charWin)
@@ -3884,7 +3890,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- grep-able as "Character" no matter what the title happens to read.
     win._zedLabel = "Character"
 
-    -- S98: registerWindow can fire early; ring construction + claimFocus are
+    -- registerWindow can fire early; ring construction + claimFocus are
     -- deferred to after win._containers / win._activeContainer are populated
     -- (further down in this function) so containerStrip elements seed correctly.
     if ZeD and ZeD.Input and ZeD.Input.Focus then
@@ -3894,7 +3900,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- Override close so X-button clears _charWin + hides vanilla
     win.close = function(self)
         saveCharState(self)
-        -- S93 Layer 3: drop joypad focus before teardown. unregisterWindow
+        -- Drop joypad focus before teardown. unregisterWindow
         -- internally calls releaseFocus if this window currently holds it,
         -- so one call handles both concerns.
         if ZeD and ZeD.Input and ZeD.Input.Focus then
@@ -3908,7 +3914,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- Active tab state
     win._activeTab = "loot"
     win._tabScrollOffset = 0
-    win._baseInvW = invW                 -- S124 scale: DESIGN UNITS (T.px() at every use; saved as-is)
+    win._baseInvW = invW                 -- DESIGN UNITS (T.px() at every use; saved as-is)
     win._anchorRightEdge = win:getX() + winW
 
     -- Container state
@@ -3919,7 +3925,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._containerSortMode = "dist"  -- "dist" | "wt" | "type"
     win._containerOrder = nil        -- nil = natural order; set by sort/drag
 
-    -- S115: radio contextual tab state. _kind tells RadioTab.render which
+    -- Radio contextual tab state. _kind tells RadioTab.render which
     -- discovery source to use ("char" -> equipped scan). Refreshed on the
     -- same 30-frame timer as containers (see win._containerTimer block).
     win._kind             = "char"
@@ -3930,13 +3936,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- Multi-container state
     win._mcSelected = {}          -- ordered array of extra container indices (not main)
     win._mcColStates = {}         -- per-column state for renderMultiColumnContent
-    win._mcPrevTab = nil          -- saved tab for snap-back on exit
-    win._mcPrevDrawerMode = nil   -- saved drawer mode for snap-back
+    win._mcPrevTab = nil          -- (these three stay nil: nothing saves or reads them)
+    win._mcPrevDrawerMode = nil
     win._mcPrevDrawerOpen = nil
-    -- S106: gamepad state for charLootMCColumns zone. _gpFocusedMCItem tracks
+    -- Gamepad state for the charMC<n> column zones. _gpFocusedMCItem tracks
     -- the focused Java item for identity preservation across per-frame refresh;
     -- _gpFocusedMCColIdx is its column (for scroll-follow + future per-column
-    -- dispatch); _lastPinnedMCItem is the Q99 delta-gate cache.
+    -- dispatch); _lastPinnedMCItem is the scroll-follow delta gate's cache.
     win._gpFocusedMCItem     = nil
     win._gpFocusedMCColIdx   = nil
     win._lastPinnedMCItem    = nil
@@ -3950,16 +3956,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- Viewed container state — single-select on non-equip tabs
     win._viewedContainer = nil    -- container index override for display (nil = main)
 
-    -- Ring model (S100): 5-zone ring. The defense drawer on Equip tab is
-    -- treated as one logical zone (charTabContent) containing disclosure +
-    -- equipment slots — D-pad navigates within; LB/RB only hops among outer
-    -- zones. Zone order (LB/RB cycle direction):
-    --   charTabBar          always focusable, 7 tab elements
+    -- Ring model: five zones at open, plus one per open Loot column. A tab's
+    -- whole drawer is one logical zone (charTabContent) — e.g. disclosure +
+    -- equipment slots on Equip — D-pad navigates within; LB/RB only hops
+    -- among zones. Zone order (LB/RB cycle direction):
+    --   charTabBar          always focusable, one element per visible tab
     --   charTabContent      per-tab drawer content (disclosure+slots on equip,
-    --                       exercises / pills / skill rows on other tabs)
+    --                       the band / skill rows / ... on other tabs)
+    --   charMC1..charMCN    one per Loot column (added by _rebuildCharMCRingZones)
     --   charMainInv         always the main inventory list (invrows from player inv)
-    --   charItemCard        item card action strip (focusable only in item mode)
-    --   charContainerStrip  focusable on Loot tab, container buttons
+    --   charItemCard        item card action strip (focusable while a card is open)
+    --   charContainerStrip  container buttons, focusable on every tab
     -- Initial _focusIdx = 3 (charMainInv) so Y-tap lands cursor on inv items.
     if ZeD and ZeD.Input and ZeD.Input.Focus then
         local Focus = ZeD.Input.Focus
@@ -3971,22 +3978,23 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         local tabContentEls = _buildPanelFocusables(win, win._mainContent, activeTab) or {}
         local mainInvEls    = _buildInvRowFocusables(win) or {}
-        -- S106: MC columns zone (Loot + multi-column only). Initial build
-        -- returns {} on first open because MC isn't active yet; zone becomes
-        -- focusable when mcToggleContainer fires _syncRingZonesToActiveTab.
+        -- The MC columns' stops (Loot + multi-column only): {} on first open
+        -- (no slot given, no columns yet), and not put in the ring; the
+        -- charMC<n> zones appear when mcToggleContainer fires
+        -- _syncRingZonesToActiveTab.
         local mcColumnEls   = _buildCharacterMCColumnFocusables(win) or {}
         -- Containers reachable on ALL tabs (D-pad cycles + A activates). MC
         -- toggle is Loot-only and enforced inside container onActivate.
         local containerEls  = _buildLootFocusables(win) or {}
 
-        -- S99: uiRange fns declare the horizontal x,w range of each zone on
+        -- uiRange fns declare the horizontal x,w range of each zone on
         -- the window's title bar, used by ZeD_Window's scoped-underline focus
         -- indicator. Dynamic values (drawer width, window width) read live.
         local function _drawerRange(w)
             local T = ZeD.T
             return T.px(TAB_STRIP_W), math.floor(w._drawerEffW or 0)
         end
-        -- S106: main inv zone underline spans ONLY the last (rightmost)
+        -- The main inv zone's underline spans ONLY the last (rightmost)
         -- column when MC is active. Computed from content._colStates so the
         -- cue tracks the dynamic column layout. Falls back to full inv width
         -- when single-column.
@@ -4005,14 +4013,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             return baseX, (w._baseInvW and T.px(w._baseInvW)) or (w:getWidth() - T.px(TAB_STRIP_W) - dw - T.px(CONTAINER_STRIP_W))
         end
 
-        -- S100: charEquipDrawer removed from ring. The defense drawer is now
-        -- a single logical zone — disclosure + equipment slots — held inside
-        -- charTabContent's element list on the Equip tab. LB/RB only hops
-        -- between outer zones (tabBar / drawer / mainInv / MC / card /
-        -- container); D-pad handles intra-drawer navigation.
-        -- S106: charLootMCColumns inserted between charMainInv and charItemCard.
-        -- Focusable only on Loot tab with multi-column MC state. Element list
-        -- synthesized from content._colStates each frame by per-frame refresh.
+        -- The Equip tab's drawer has no zone of its own: its disclosure and
+        -- equipment slots are elements of charTabContent, as every tab's are.
+        -- LB/RB only hops between zones (tabBar / drawer / MC / mainInv /
+        -- card / container); D-pad handles intra-drawer navigation.
         win._focusRing = {
             { zone = "charTabBar",
               focusable = true,
@@ -4023,7 +4027,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
               focusable = #tabContentEls > 0,
               elements = tabContentEls,
               focusedElementIdx = 1,
-              -- (Oct 23 2026: an item card over the drawer hides the tab's controls)
+              -- (an item card over the drawer hides the tab's controls)
               covered = function(w) return w._drawerItem ~= nil end,
               uiRange = _drawerRange },
             { zone = "charMainInv",
@@ -4032,23 +4036,24 @@ function ZeD_CharacterWindow.toggle(playerNum)
               focusedElementIdx = 1,
               landOn = _charInvListLandOn,
               uiRange = _invRange },
-            -- S108 v2: per-column MC zones (charMC1..charMCN) inserted here
-            -- by _rebuildCharMCRingZones() called below. Old single
-            -- charLootMCColumns zone removed.
-            -- S99: Item card action strip. Focusable only when the drawer is
-            -- open in "item" mode (toggled in _updateDrawer + per-frame refresh
-            -- below). Buttons are FAV, PROTECT, UNWANTED + verbs, left-to-right.
+            -- (The per-column MC zones, charMC1..charMCN, are inserted by
+            -- _rebuildCharMCRingZones() below, just BEFORE charMainInv: Loot
+            -- with columns open only, their stops rebuilt from
+            -- content._colStates by the per-frame refresh.)
+            -- Item card action strip. Focusable while a card is open, over the
+            -- inventory or over a tab (the per-frame refresh below). Buttons in
+            -- the card's own order (_buildCardActionFocusables).
             { zone = "charItemCard",
               focusable = false,
               elements = {},
               focusedElementIdx = 1,
-              landOn = Focus.landOnPrimary,   -- (Oct 23 2026: into a card, onto its primary action)
+              landOn = Focus.landOnPrimary,   -- (into a card, onto its primary action)
               uiRange = _drawerRange },
             { zone = "charContainerStrip",
               focusable = #containerEls > 0,
               elements = containerEls,
               focusedElementIdx = (function()
-                  -- S106: seed by containerIdx match (elements are now in
+                  -- Seed by containerIdx match (elements are in
                   -- [main, non-main display-order] layout, not container-index
                   -- order).
                   if not win._activeContainer or #containerEls == 0 then return 1 end
@@ -4063,10 +4068,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
                   return w:getWidth() - T.px(CONTAINER_STRIP_W), T.px(CONTAINER_STRIP_W)
               end },
         }
-        -- S108 v2: build per-column MC zones (no-op if MC inactive at toggle).
+        -- Build the per-column MC zones (no-op while no columns are open).
         _rebuildCharMCRingZones(win)
         win._focusIdx = 3  -- start on charMainInv (invrows)
-        -- Oct 23 2026: entering the window lands on the list's first row once
+        -- Entering the window lands on the list's first row once
         -- it has rows (Focus.ensureEntry; World window parity)
         win._focusEntryZone    = "charMainInv"
         win._focusPendingEntry = true
@@ -4081,7 +4086,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._healthTimer       = 0
     win._healthBodyFigure    = nil
     win._healthHoveredPart   = nil
-    win._healthActivePart    = nil  -- S103 gamepad: resolved part (gp focus overrides mouse hover), mirrors Thermal
+    win._healthActivePart    = nil  -- gamepad: resolved part (gp focus overrides mouse hover), as Thermal's
     win._healthBand          = nil  -- the footer band's rects (HealthTab._renderBand): exercise box, - / +, Start
     win._healthMenuOpen      = false  -- the exercise pop-up list
     win._healthInjuryZones   = nil -- S101 gamepad: stamped each frame by injury draw loop

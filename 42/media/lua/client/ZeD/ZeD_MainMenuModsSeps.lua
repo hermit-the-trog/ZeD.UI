@@ -746,8 +746,8 @@ function ZeD_MMMods:sepTurn(ids, on, together)
             end
         end
     end
-    -- (ZeD picks needs ZeD-GUI: ZeD-GUI off under the separator took picks with it, so note it;
-    -- ZeD-GUI back on, any way, brings picks back)
+    -- (ZeD picks needs ZeD-GUI: if ZeD-GUI went off under the separator, picks went with it;
+    -- picksNoteOff remembers that, so ZeD-GUI back on, any way, brings picks back)
     if not on and self.picksNoteOff then self:picksNoteOff(before) end
     local after = activeSet(m)
     self:sepReconcile(before, after, ids)

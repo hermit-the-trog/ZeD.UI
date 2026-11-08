@@ -1,15 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/CraftingTab.lua
 -- ============================================================================
--- CRAFTING TAB — Thin wrapper over CraftingCore.
--- Owns: catalog building (eager, game start), gatherData (skill+learn checks),
--- gatherDetail (batch qty via HandcraftLogic), startCraft (HandcraftLogic exec).
+-- CRAFTING TAB — client; the World window's Craft tab, a thin wrapper over
+-- CraftingCore. Owns: catalog building (eager, game start), gatherData
+-- (skill + learn checks), gatherDetail (the start check and the batch's most,
+-- via HandcraftLogic), startCraft (one ISHandcraftAction per craft).
 -- All rendering, filtering, pin management, state machine → CraftingCore.
+-- Before touching startCraft: it builds each ISHandcraftAction field by
+-- field, because the action's own new() crashes on the inputs ZeD leaves
+-- empty (CRAFT EXECUTION, below).
 --
--- Stations (HOOK_MAP rows 1, 14): the tab works by hand or at a station. In
--- Hand mode, recipes that need a station keep their place with the station
--- as a tag and are not craftable; bound to a bench, the list is the bench's
--- recipes and CRAFT works at it (vanilla's lock and walk-to); bound to a
--- drying rack or an oven the tab shows that machine's own view instead.
+-- Stations: the tab works by hand or at a station. In Hand mode, recipes
+-- that need a station keep their place with the station as a tag and are
+-- not craftable; bound to a bench, the list is the bench's recipes and CRAFT
+-- works at it (vanilla's lock and walk-to); bound to a drying rack or an oven
+-- the tab shows that machine's own view instead (StationMachine,
+-- StationAppliance, StationGeneral).
 -- ============================================================================
 
 require "ZeD/CraftingCore"

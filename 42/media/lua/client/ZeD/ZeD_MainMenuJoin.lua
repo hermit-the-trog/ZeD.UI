@@ -36,7 +36,7 @@ local MM = ZeD.MainMenu
 local U  = MM.U
 local UI = MM.ui
 
--- design units
+-- the list's share of the body's width; the rest in design units
 local LIST_SHARE = 0.56
 local TABS_H, FIND_H, FILTER_H, COLS_H, ROW_H, SUB_H = 30, 34, 30, 20, 46, 42
 local KV_LABEL_W, KV_ROW_H = 96, 20
@@ -158,7 +158,8 @@ function ZeD_MMJoin:selectedRow(rows)
     return nil
 end
 
--- choosing a row: vanilla's own selection (its Steam details request), the add rows open their forms
+-- choosing a row: vanilla's own selection (its Steam details request), the add rows open their forms; a
+-- second click on the chosen row within 450 ms connects
 function ZeD_MMJoin:pick(r)
     local m = mp()
     if not r or not m then return end
@@ -198,7 +199,7 @@ function ZeD_MMJoin:refresh()
     pcall(function() m:requestServerList() end)
 end
 
--- the seconds left before vanilla allows another refresh (0 = now)
+-- the seconds left before vanilla allows another refresh (0 = now; its wait is 60 s, 5 s in debug mode)
 function ZeD_MMJoin:refreshWait()
     local wait = getDebug() and 5 or 60
     local since = getTimestamp() - (MultiplayerUI.startRefreshTime or 0)
@@ -340,8 +341,10 @@ function ZeD_MMJoin:deleteAccount(account)
     self.sel = nil
 end
 
--- The answer the controller lands on when a question opens: a question that
--- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: removing a server
+-- or an account (or forgetting one) loses work, so it lands on Cancel, and the
+-- answer that does it needs a deliberate move. A password question lands on its
+-- Connect / OK, with the keys already in its field.
 local SAFE_ANSWER = { delServer = "confirm:no", forget = "confirm:no", delAccount = "confirm:no" }
 function ZeD_MMJoin:setConfirm(mode)
     if self.confirm == mode then return end
@@ -533,6 +536,7 @@ function ZeD_MMJoin:render()
     ZeD_Window.render(self)
 end
 
+-- a field shown this frame, with a hit box that focuses it (a field not placed in a frame hides at its end)
 function ZeD_MMJoin:place(e, x, y, w, h)
     UI.styleEntry(e, x, y, w, h)
     if not e:isVisible() then e:setVisible(true) end
@@ -898,6 +902,8 @@ function ZeD_MMJoin:drawForm(x, y, w, h)
     end
 end
 
+-- the band: a question (a password, with its field standing in the band; a removal), a form's Cancel and
+-- Save, or the tab's own buttons
 function ZeD_MMJoin:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 1000
@@ -976,6 +982,7 @@ function ZeD_MMJoin:buildStrip(stripY, stripH, w)
 end
 
 -- CONTROLLER + KEYS + WHEEL --------------------------------------------------------------
+-- the D-pad's focus is the selection: the chosen row follows it and is scrolled into view
 function ZeD_MMJoin:joyDir(dir)
     ZeD_MMWindow.joyDir(self, dir)
     for _, b in ipairs(self._specs) do
@@ -1008,6 +1015,7 @@ function ZeD_MMJoin:keyEscape()
 end
 
 function ZeD_MMJoin:keyOther(key)
+    -- (the Return that finished a field must not also press the band's main button)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     for _, e in ipairs(self._fields) do if e:isFocused() then return false end end
     if self.confirm then return false end
@@ -1160,6 +1168,7 @@ end
 function ZeD_MMConnect:joyB() self:back() end
 function ZeD_MMConnect:keyEscape() self:back(); return true end
 function ZeD_MMConnect:keyOther(key)
+    -- (the Return that sent the code is not a second press)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     return false
 end
@@ -1171,6 +1180,7 @@ function ZeD_MMConnect:getFooterPrompts()
 end
 
 -- ============================================================================
+-- the wheel on "join": an open pop-up first, else the list (each screen chains its view onto MM.wheel)
 local _wheel = MM.wheel
 function MM.wheel(del)
     if MM.view == "join" and MM.root and MM.root.joinWin then

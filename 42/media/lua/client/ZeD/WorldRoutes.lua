@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/WorldRoutes.lua
 -- ============================================================================
--- WORLD DEVICES AND ANIMALS: WHERE THE GAME'S OWN WINDOWS GO (Nov 7 2026,
--- VANILLA_WINDOWS_20261107.md rows B1, B4, B5; the director: "ZeD's card now")
+-- WORLD DEVICES AND ANIMALS: WHERE THE GAME'S OWN WINDOWS GO (client)
 --
 -- The routes that open the game's radio window, its animal info window and its
 -- livestock zone window send the player to the ZeD surface that already shows
@@ -22,14 +21,14 @@
 --                            for its window (10 tiles, ISRadioWindow:update),
 --                            on the player's own floor only: going up or down
 --                            stairs drops the pin, and a device on another
---                            floor opens nothing (Build, Nov 7 2026).
+--                            floor opens nothing.
 --   animal(chr, animal)   -> World window, Animals tab, that animal's view. An
 --                            animal outside the ranch (no zone: a wild one, one
 --                            in a trailer or a hutch outside a zone) keeps the
 --                            game's reach for its window (ISAnimalUI: 5 tiles,
 --                            4 from the hutch or trailer): past it, or once the
 --                            animal is gone, the view steps back. Zone animals
---                            stay in the ranch as before (Build, Nov 7 2026).
+--                            belong to the ranch, which ZeD shows from anywhere.
 --   zone(chr, zone)       -> World window, Animals tab, that zone's view
 --   zoneHelp(pn)          the game's first-time zone note, asked for from the
 --                            zone view's help button: a ZeD note with the
@@ -126,7 +125,7 @@ local function floorOf(o)
 end
 WR.floorOf = floorOf
 
--- true when the device is on the player's floor (Build, Nov 7 2026: the game's window checks x and y only);
+-- true when the device is on the player's floor (the game's window checks x and y only);
 -- a floor that can't be read leaves the game's x and y reach alone
 function WR.sameFloor(chr, dev)
     local pz, dz = floorOf(chr), floorOf(dev)
@@ -172,8 +171,8 @@ function WR.unpin(chr)
     WR.pins[pnOf(chr)] = nil
 end
 
--- the Radio tab's world list (RadioTab.buildWorldRadios) with the pinned device added at the end when the 3 x 3
--- scan missed it; a pin out of reach is dropped, so walking back does not bring it again
+--- The Radio tab's world list (RadioTab.buildWorldRadios) with the pinned device added at the end when the 3 x 3
+--- scan missed it; a pin out of reach is dropped, so walking back does not bring it again.
 function WR.addPinned(chr, out)
     if not chr then return out end
     local pn = pnOf(chr)
@@ -292,6 +291,9 @@ local function carRadio(chr, part)
     return ok
 end
 
+--- The game's radio window for dev, sent to ZeD's card (the header's radio
+--- routes). True when ZeD took it (a device on another floor opens nothing at
+--- all); false opens the game's window instead.
 function WR.radio(chr, dev)
     if not (chr and dev) then return false end
     if instanceof(dev, "Radio") then return radioItem(chr, dev) end
@@ -357,7 +359,8 @@ local function hasZone(animal)
     return ok and dz ~= nil
 end
 
--- the Animals tab asks each frame it draws an animal's view: true when the view must step back (Build, Nov 7 2026)
+--- The Animals tab asks each frame it draws an animal's view: true when the view must step back
+--- (the player left the game's reach for that animal, or it is gone).
 function WR.animalLeft(win, animal)
     local r = win and win._zedAnimalReach
     if not r then return false end
@@ -370,6 +373,8 @@ function WR.animalLeft(win, animal)
     return true
 end
 
+--- The game's animal info window, sent to the Animals tab's view of that animal. True when
+--- ZeD showed it; false opens the game's window instead.
 function WR.animal(chr, animal)
     if not (chr and animal) then return false end
     local win, AT, pn = animalsTab(chr)
@@ -380,6 +385,8 @@ function WR.animal(chr, animal)
     return true
 end
 
+--- The game's livestock zone window (Check zone), sent to the Animals tab's view of that
+--- zone. True when ZeD showed it; false opens the game's window instead.
 function WR.zone(chr, zone)
     if not (chr and zone) then return false end
     local okn, name = pcall(function() return zone:getName() end)
@@ -398,8 +405,8 @@ function WR.zone(chr, zone)
     return true
 end
 
--- the game's first-time zone note's opening line, for the help line over the zone view's help button: its words
--- up to the first <LINE>, the tags taken out (the whole note when it has no <LINE>)
+--- The game's first-time zone note's opening line, for the help line over the zone view's help button: its words
+--- up to the first <LINE>, the tags taken out (the whole note when it has no <LINE>); nil without the text.
 function WR.zoneNoteLead()
     local t = getText and getText("IGUI_Animal_ZoneFirstInfo") or nil
     if type(t) ~= "string" or t == "" or t == "IGUI_Animal_ZoneFirstInfo" then return nil end
@@ -413,8 +420,8 @@ function WR.zoneNoteLead()
     return t
 end
 
--- the game's first-time zone note, asked for (the zone view's help button, Build, Nov 7 2026): a ZeD note
--- with the game's own words; the game's own note (forced) when ZeD's prompt can't be built
+--- The game's first-time zone note, asked for (the zone view's help button): a ZeD note with the
+--- game's own words; the game's own note (forced) when ZeD's prompt can't be built.
 function WR.zoneHelp(pn)
     pn = pn or 0
     local P = ZeD.Prompt
@@ -438,8 +445,9 @@ function WR.zoneHelp(pn)
     return false
 end
 
--- the game's first-time livestock zone note goes with its own zone window: with ZeD's World window up for this
--- player (the zone routes above went there) it is not shown (no first-run pop-ups); asked for (force) it shows
+--- The game's first-time livestock zone note goes with its own zone window: with ZeD's World window up for this
+--- player (the zone routes above went there) it is not shown (no first-run pop-ups); asked for (force) it shows.
+--- True: skip the game's note.
 function WR.skipZoneNote(pn, force)
     if force then return false end
     local win = worldWin()
