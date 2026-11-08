@@ -8,6 +8,10 @@
 -- grep "ZEDQA pre".
 local function say(s) print("ZEDQA pre " .. tostring(s)) end
 
+-- Nov 8 2026: the windows let their controller stops wait while the mouse is in use (Focus.stopsMayWait);
+-- QA scripts read w._focusRing directly, so keep them fresh every frame. Set it to nil to test the waiting itself.
+ZEDQA_FRESH_STOPS = true
+
 -- (punch list 47, Nov 2 2026) the vehicle probe for the 1280x720 bisect: where the character stands, how wide
 -- the loaded chunk grid is and what it covers, and whether a spawn square and its car lie inside it. The
 -- vehicle scripts call it right after their spawn when it exists (a script run alone skips it). One line
