@@ -1,35 +1,33 @@
 -- ZeD-UI/42/media/lua/client/ZeD/EquipDoll.lua
 -- ============================================================================
--- THE EQUIP TAB'S DOLL VIEW (Oct 19 2026, mockup zed_equip_doll_v3.html)
--- Director, Oct 17 2026: "avatar view with lines drawn at right angle to reach
--- the target not as the crow flies and list view are the two we want" ...
--- "yup, make head straight line and I think we have our equipped".
+-- THE EQUIP TAB'S DOLL VIEW - client; data and draw helpers for the Equip
+-- drawer, no class of its own (ZeD_CharacterWindow and EquipmentTab call in;
+-- InventoryRenderer asks takeDrop about drops; ZeD_EquipLoadout, slotForLoc).
 --
 -- The character's own 3D model (the Identity tab's ISUI3DModel, full body)
--- standing on the panel (no frame), the worn slots in a column either side, the
--- hands and the belt's slots in a row below. Beyond the columns a band of small
--- slots each side (Oct 29 2026, mockup zed_equip_doll_v4_loadouts): 38 of them for
--- the rings, the necklaces, the pads and the rest; a drawer too narrow for the
--- bands folds every small slot's item back into its big slot as a layer. Each slot points at a stretch of the body
--- with a right-angle leader line: straight in when the slot is level with its
--- stretch ("if it doesnt need a bend dont make one"), otherwise one turn in its
--- own lane, lanes 16 apart, lower slots nearer the body, so no two lines run
--- side by side or cross.
--- Oct 30 2026 (the director's mouse pass): no leader lines any more, and on the full card the
--- split: the upper body's slots on the left, the back's and the belt and below on the right
--- (SPLIT_BIG and SMALL_ROWS); the spare width of a shrunk doll goes between its parts.
+-- standing on the panel (no frame), the worn slots in a column either side,
+-- the hands and the belt's slots in a row below. Beyond the columns a band of
+-- small slots each side: 38 of them for the rings, the necklaces, the pads
+-- and the rest; a drawer too narrow for the bands folds every small slot's
+-- item back into its big slot as a layer. With the bands showing the big
+-- slots split instead: the upper body's on the left, the back's and the belt
+-- and below on the right (SPLIT_BIG and SMALL_ROWS); the spare width of a
+-- shrunk doll goes between its parts. No leader lines point at the body; each
+-- slot is named under its box.
 --
 -- Selecting a slot opens the same item card a list row opens (the outermost
 -- layer; the card's layer strip steps inward). The list stays the other view;
 -- the choice is a ZeD option (Settings.lua equipView), set by the toggle in the
 -- Equipped heading too.
 --
--- The 3D model and the lines are window children (CharacterWindow): a model
--- can't live in a stencilled panel, and the lines must sit ABOVE the model so
--- their dots land on the body. Everything else draws here, in the drawer.
+-- The 3D model and the line layer are window children (CharacterWindow): a
+-- model can't live in a stencilled panel, and the layer must sit ABOVE the
+-- model. The layer once drew leader lines to the body; now it only asks the
+-- window's overlay for the hover hint. Everything else draws here, in the
+-- drawer.
 --
--- Every number below is a design unit in the mockup's doll (520 wide, 744 with
--- the bands); the doll scales to fit the drawer (never wider than it, at least
+-- Every number below is a design unit of the doll (324 wide, 466 with the
+-- bands); the doll scales to fit the drawer (never wider than it, at least
 -- 0.7 of full size tall, then the tab scrolls).
 -- ============================================================================
 
