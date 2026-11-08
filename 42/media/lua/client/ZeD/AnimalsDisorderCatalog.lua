@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/AnimalsDisorderCatalog.lua
 -- ============================================================================
--- DISORDER CATALOG — maps engine disorder strings to human-readable labels.
--- Three severity tiers control skill-gated reveal:
+-- DISORDER CATALOG — client. Mostly a data table: engine disorder strings
+-- mapped to human-readable labels. Three severity tiers control skill-gated
+-- reveal:
 --   "positive" — always shown when disorders are visible
 --   "severe"   — revealed at Husbandry 7+
 --   "minor"    — revealed at Husbandry 9+
@@ -46,19 +47,13 @@ local CATALOG = {
 
 ZeD.AnimalsDisorderCatalog.CATALOG = CATALOG
 
--- ---------------------------------------------------------------------------
--- lookup(key) — returns catalog entry or nil
--- ---------------------------------------------------------------------------
-
+--- The catalog entry for an engine disorder string, or nil for one we don't know.
 function ZeD.AnimalsDisorderCatalog.lookup(key)
     if not key then return nil end
     return CATALOG[string.lower(tostring(key))]
 end
 
--- ---------------------------------------------------------------------------
--- hasDisorder(animal, disorderKey) — check if animal has a specific disorder
--- ---------------------------------------------------------------------------
-
+--- True when the animal carries the named disorder.
 function ZeD.AnimalsDisorderCatalog.hasDisorder(animal, disorderKey)
     local disorders = animal and animal.getGeneticDisorder and animal:getGeneticDisorder()
     if not disorders then return false end

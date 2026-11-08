@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/AnimalsAlertPoller.lua
 -- ============================================================================
--- ALERT POLLER — EveryOneMinute event hook that pre-computes:
+-- ALERT POLLER — client. An EveryOneMinute event hook that pre-computes:
 --   1. Alert list (urgent conditions across all player animals)
 --   2. Zone summaries (per-zone stats for overview)
 --   3. Totals (species counts, production estimates)
@@ -46,7 +46,7 @@ local function discoverPlayerAnimals(player)
     if not cell then return animals, zoneMap, zoneList end
 
     -- The cell's own list of animals, not a walk over squares: the 151 x 151 walk took 25 to 30 ms on every
-    -- in-game minute, animals or none, and was every slow frame at 4K (QA's multiplayer report, Nov 5 2026).
+    -- in-game minute, animals or none, and was every slow frame at 4K.
     -- The same reach as that walk: the player's floor, within SCAN_RADIUS squares.
     local sq = player:getCurrentSquare()
     if not sq then return animals, zoneMap, zoneList end
@@ -258,6 +258,7 @@ end
 -- REFRESH — synchronous full cache rebuild
 -- ============================================================================
 
+--- Rebuild the whole cache now. The minute hook calls it; the tab calls it on open so the first frame has data.
 function AP.refreshCache()
     local player = getSpecificPlayer(0)
     if not player then return end
