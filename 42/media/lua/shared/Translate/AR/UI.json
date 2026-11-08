@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "EXP x%1",
     "UI_ZeD_CSS_TagBook": "EXP x%1, libro x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 ordena el orden de carga al Aceptar.",
-    "UI_ZeD_BME_NotStarted": "No se inició: %1 encontró un problema en la lista de mods."
+    "UI_ZeD_BME_NotStarted": "No se inició: %1 encontró un problema en la lista de mods.",
+    "UI_ZeD_Card_MakesTitle": "يُستخدم لصنع",
+    "UI_ZeD_Card_MakesHelp": "يفتح الوصفة في تبويب الصناعة أو البناء.",
+    "UI_ZeD_Card_MakesMore": "%1 أخرى",
+    "UI_ZeD_Card_MakesMoreHelp": "يفتح تبويب الصناعة مع هذا الغرض في البحث.",
+    "UI_ZeD_Skills_UnlockHead": "الوصفات التي تحتاج كل مستوى",
+    "UI_ZeD_Skills_UnlockLevel": "المستوى %1",
+    "UI_ZeD_Skills_UnlockMore": "و%1 أخرى"
 }

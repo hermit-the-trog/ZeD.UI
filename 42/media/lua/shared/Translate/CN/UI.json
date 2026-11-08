@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "经验 x%1",
     "UI_ZeD_CSS_TagBook": "经验 x%1，书 x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 会在接受时排序加载顺序。",
-    "UI_ZeD_BME_NotStarted": "未开始：%1 在模组列表中发现问题。"
+    "UI_ZeD_BME_NotStarted": "未开始：%1 在模组列表中发现问题。",
+    "UI_ZeD_Card_MakesTitle": "可用于制作",
+    "UI_ZeD_Card_MakesHelp": "在制作或建造标签页中打开配方。",
+    "UI_ZeD_Card_MakesMore": "还有 %1 个",
+    "UI_ZeD_Card_MakesMoreHelp": "打开制作标签页并搜索此物品。",
+    "UI_ZeD_Skills_UnlockHead": "各等级所需的配方",
+    "UI_ZeD_Skills_UnlockLevel": "等级 %1",
+    "UI_ZeD_Skills_UnlockMore": "还有 %1 个"
 }

@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "TP x%1",
     "UI_ZeD_CSS_TagBook": "TP x%1, könyv x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 az Elfogadáskor rendezi a betöltési sorrendet.",
-    "UI_ZeD_BME_NotStarted": "Nem indult el: %1 hibát talált a modlistában."
+    "UI_ZeD_BME_NotStarted": "Nem indult el: %1 hibát talált a modlistában.",
+    "UI_ZeD_Card_MakesTitle": "Ehhez használható",
+    "UI_ZeD_Card_MakesHelp": "Megnyitja a receptet a Készítés vagy Építés lapon.",
+    "UI_ZeD_Card_MakesMore": "még %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Megnyitja a Készítés lapot ezzel a tárggyal a keresőben.",
+    "UI_ZeD_Skills_UnlockHead": "Receptek, amelyekhez az adott szint kell",
+    "UI_ZeD_Skills_UnlockLevel": "%1. szint",
+    "UI_ZeD_Skills_UnlockMore": "és még %1"
 }

@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "XP x%1",
     "UI_ZeD_CSS_TagBook": "XP x%1, boek x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 sorteert de laadvolgorde bij Accepteren.",
-    "UI_ZeD_BME_NotStarted": "Niet gestart: %1 vond een probleem in de modlijst."
+    "UI_ZeD_BME_NotStarted": "Niet gestart: %1 vond een probleem in de modlijst.",
+    "UI_ZeD_Card_MakesTitle": "Gebruikt om te maken",
+    "UI_ZeD_Card_MakesHelp": "Opent het recept op het tabblad Maken of Bouwen.",
+    "UI_ZeD_Card_MakesMore": "nog %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Opent het tabblad Maken met dit voorwerp in de zoekbalk.",
+    "UI_ZeD_Skills_UnlockHead": "Recepten die elk niveau nodig hebben",
+    "UI_ZeD_Skills_UnlockLevel": "Niveau %1",
+    "UI_ZeD_Skills_UnlockMore": "en nog %1"
 }

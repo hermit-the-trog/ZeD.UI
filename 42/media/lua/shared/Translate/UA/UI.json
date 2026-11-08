@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "ОД x%1",
     "UI_ZeD_CSS_TagBook": "ОД x%1, книга x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 сортує порядок завантаження при натисканні «Прийняти».",
-    "UI_ZeD_BME_NotStarted": "Не запущено: %1 знайшов проблему у списку модів."
+    "UI_ZeD_BME_NotStarted": "Не запущено: %1 знайшов проблему у списку модів.",
+    "UI_ZeD_Card_MakesTitle": "Потрібно для",
+    "UI_ZeD_Card_MakesHelp": "Відкриває рецепт на вкладці «Створення» або «Будівництво».",
+    "UI_ZeD_Card_MakesMore": "ще %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Відкриває вкладку «Створення» з цим предметом у пошуку.",
+    "UI_ZeD_Skills_UnlockHead": "Рецепти, яким потрібен кожен рівень",
+    "UI_ZeD_Skills_UnlockLevel": "Рівень %1",
+    "UI_ZeD_Skills_UnlockMore": "і ще %1"
 }

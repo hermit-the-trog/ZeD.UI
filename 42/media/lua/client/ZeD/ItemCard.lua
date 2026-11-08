@@ -1350,6 +1350,18 @@ function ZeD_ItemCard:_pointer()
     end
     self._zoneDockWasDown = down
 
+    -- The recipes it makes (punch list 109): released on a row, that recipe in the Craft tab
+    do
+        local hit = nil
+        for _, r in ipairs(self._makeRects or {}) do
+            if r.y + r.h > bodyTop and r.y < bodyBot and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h then
+                hit = r
+            end
+        end
+        if self._makeWasDown and not down and hit and hit.press then hit.press() end
+        self._makeWasDown = down and (hit ~= nil)
+    end
+
     -- Scrollbar hover/drag
     if self._sb and self._sb.visible then
         local sbMx = mx - self:getAbsoluteX()
@@ -1749,6 +1761,16 @@ function ZeD_ItemCard:getZoneDockElements()
             id = eid,
             onFocus    = function() card._gpFocusedBtnId = eid end,
             onActivate = function() card:_onZonePress(zIdx, zone, rect) end,
+        }
+    end
+    -- the recipes it makes (punch list 109): A opens the recipe, as a press does
+    for _, rect in ipairs(self._makeRects or {}) do
+        local eid, press = rect.id, rect.press
+        els[#els + 1] = {
+            x = rect.x, y = rect.y, w = rect.w, h = rect.h,
+            id = eid,
+            onFocus    = function() card._gpFocusedBtnId = eid end,
+            onActivate = function() if press then press() end end,
         }
     end
     return els
