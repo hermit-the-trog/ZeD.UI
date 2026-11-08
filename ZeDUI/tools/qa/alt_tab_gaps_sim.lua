@@ -269,9 +269,14 @@ local SETTINGS_SRC = io.open(ROOT .. "42/media/lua/client/ZeD/Settings.lua"):rea
 local presetBlock = SETTINGS_SRC:match("local PRESETS = (%b{})")
 check("Settings.lua has the presets' table", presetBlock ~= nil)
 local PRESETS = presetBlock and loadstring("local OFF, ON = 1, 2; return " .. presetBlock)() or {}
-check("the switch is one of the additions (Custom keeps it)", SETTINGS_SRC:find('"identityStyle", "haloBubble", "autoLearn" }', 1, true) ~= nil)
-check("a Vanilla Access player from before keeps the preset (the switch on)",
-    SETTINGS_SRC:find('"devicesStyle", "watchStyle", "dashStyle", "identityStyle", "autoLearn"', 1, true) ~= nil)
+-- (any order: other additions sit in these lists too)
+local idsBlock = SETTINGS_SRC:match("local IDS = (%b{})") or ""
+check("the switch is one of the additions (Custom keeps it)", idsBlock:find('"autoLearn"', 1, true) ~= nil)
+local migrates = false
+for list in SETTINGS_SRC:gmatch("ipairs(%b())") do
+    if list:find('"devicesStyle"', 1, true) and list:find('"identityStyle"', 1, true) and list:find('"autoLearn"', 1, true) then migrates = true end
+end
+check("a Vanilla Access player from before keeps the preset (the switch on)", migrates)
 local function autoRecipe(name, display, any, all)
     local r = recipe(name, display, { "Base.Plank" }, true, nil)
     local function rs(l) local o = {}; for _, s2 in ipairs(l or {}) do o[#o + 1] = { getPerk = function() return s2[1] end, getLevel = function() return s2[2] end } end; return o end
