@@ -859,8 +859,9 @@ end
 
 -- ---------------------------------------------------------------------------
 -- THE GAME'S MODAL FOR A NEW TICKET (B7): it would cover the screen on each ticket. For staff with the queue it is a
--- note in Messages, at most one in 10 seconds. Any other message passes to the game, and so does this one on a client
--- without AnswerTickets: observer and gm receive it and have no queue to open.
+-- note in Messages, at most one in 10 seconds. Any other message, and this one on a client without AnswerTickets (observer
+-- and gm receive it and have no queue to open), is a plain note in Messages (ZeD_MpLeftovers.lua), the game's pop-up only
+-- in safe mode.
 -- ---------------------------------------------------------------------------
 local function onAdminMessage(message, x, y, z)
     if S.available() and S.staff and Tk.isTicketMessage(message) then
@@ -871,6 +872,10 @@ local function onAdminMessage(message, x, y, z)
         end
         return
     end
+    -- any other: a note in Messages with Teleport where the game asks "Teleport?" (ZeD_MpLeftovers.lua, VANILLA_WINDOWS C16);
+    -- the game's pop-up in safe mode
+    local Lo = ZeD.MpLeftovers
+    if Lo and Lo.adminMessage and Lo.adminMessage(message, x, y, z) then return end
     return ISAdminMessage.AddAdminMessage(message, x, y, z)
 end
 

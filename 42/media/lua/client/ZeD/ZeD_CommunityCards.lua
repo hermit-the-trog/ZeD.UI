@@ -963,13 +963,23 @@ function P.showNote(appeal)
     note:setAlwaysOnTop(true)
 end
 
--- the connection has ended, for whatever reason: nothing of ours may stand over the game's screen, its Exit and Quit
+-- the connection has ended, for whatever reason: ZeD's desk screen in place of the game's (ZeD_LeftScreen.lua; the
+-- director, Nov 7 2026: the reason and, for a ban, the appeal line). Where it cannot stand, nothing of ours may stand over
+-- the game's screen, its Exit and Quit, but the appeal line under the game's words.
 function CM.onDisconnect(reason)
     if CM.joinWin then CM.joinWin:finish() end
     local gone = A2.leave
     A2.leave, A2.leaveAt = nil, nil        -- (the ban screen closes itself when this goes)
-    if not (gone or M.isRemoved(reason)) then return end
-    local appeal = (gone and gone.appeal) or M.appeal()
+    local removed = gone ~= nil or M.isRemoved(reason)
+    local appeal = removed and ((gone and gone.appeal) or M.appeal()) or nil
+    local LS = ZeD.LeftScreen
+    if LS and LS.show then
+        local kind = nil
+        if gone then kind = (gone.kind == "kick") and "kick" or "ban"
+        elseif removed then kind = LS.isBan(reason) and "ban" or "kick" end
+        if LS.show({ reason = reason, kind = kind, appeal = appeal }) then return end
+    end
+    if not removed then return end
     if appeal and ZeD.T then P.showNote(appeal) end
 end
 

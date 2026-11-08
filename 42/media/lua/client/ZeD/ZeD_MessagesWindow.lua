@@ -150,7 +150,7 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             for _, f in ipairs(it.firsts or {}) do
                 for _, l in ipairs(ZeD.Atoms.wrapText(f, T.fontF1, inner)) do lines[#lines + 1] = { text = l, font = T.fontF1, mono = true } end
             end
-        elseif it.k == "ticket" or it.k == "ticketnew" or it.k == "adminnote" or it.k == "invite" then
+        elseif it.k == "ticket" or it.k == "ticketnew" or it.k == "adminnote" or it.k == "adminmsg" or it.k == "invite" then
             -- (a ticket's note carries a username: drawn plain, never read for markup)
             for _, l in ipairs(ZeD.Atoms.wrapText(tostring(it.text or ""), T.fontF2, inner)) do lines[#lines + 1] = { text = l, font = T.fontF2 } end
         else
@@ -181,6 +181,9 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), bans = true, primary = true }
         elseif it.k == "invite" then
             btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), invite = true, primary = true }
+        elseif it.k == "adminmsg" and it.tp then
+            -- (the game's pop-up asked "Teleport?" under a place: ZeD_MpLeftovers.lua sends its own answer)
+            btns[#btns + 1] = { label = btnLabel(getText("UI_Scoreboard_Teleport")), teleport = true, primary = true }
         end
         -- (the card and its buttons, placed; shared by the per-error cards below)
         local function place(cit, clines, cbtns, cTextH)
@@ -382,7 +385,7 @@ function ZeD_MessagesWindow:prerender()
             -- the head: kind (a tag), source, when
             local tagH = px(16)
             local hy = c.y + math.floor((px(U.CARD_HEAD_H) - tagH) / 2)
-            local kindKey = ({ note = "UI_ZeD_Msg_KindNote", ask = "UI_ZeD_Msg_KindAnswered", err = "UI_ZeD_Msg_KindError", ticket = "UI_ZeD_Tk_KindTicket", ticketnew = "UI_ZeD_Tk_KindTicket", adminnote = "UI_ZeD_Adm_NoteHead", invite = "UI_ZeD_Cl_KindInvite" })[it.k] or "UI_ZeD_Msg_KindNote"
+            local kindKey = ({ note = "UI_ZeD_Msg_KindNote", ask = "UI_ZeD_Msg_KindAnswered", err = "UI_ZeD_Msg_KindError", ticket = "UI_ZeD_Tk_KindTicket", ticketnew = "UI_ZeD_Tk_KindTicket", adminnote = "UI_ZeD_Adm_NoteHead", adminmsg = "UI_ZeD_Adm_NoteHead", invite = "UI_ZeD_Cl_KindInvite" })[it.k] or "UI_ZeD_Msg_KindNote"
             local kcol = (it.k == "err" and T.danger) or (it.k == "ask" and (T.warning or ac)) or (T.info or ac)
             -- (a note over your head: good news, bad news or plain, as its mark over the head said)
             if it.k == "halo" then
@@ -502,6 +505,12 @@ function ZeD_MessagesWindow:pressCard(b)
         openThere(self, ZeD_WorldWindow, function()
             if ZeD.AdminCards and ZeD.AdminCards.openNote then ZeD.AdminCards.openNote(b.card.it) end
         end)
+        return
+    end
+    if b.teleport then
+        local it = b.card.it
+        it.read = true
+        if ZeD.MpLeftovers and ZeD.MpLeftovers.teleport then ZeD.MpLeftovers.teleport(it.tp) end
         return
     end
     if b.invite then

@@ -275,6 +275,17 @@ function M.ticketNew()
     return it
 end
 
+-- the game's admin pop-up (ISAdminMessage, ZeDUI/VANILLA_WINDOWS_20261107.md C16) as a note: plain words, and the place
+-- it names (tp = { x, y, z }) for the card's Teleport, where the game's pop-up asked "Teleport?"
+local ADMIN_MSG_MAX = 30
+function M.adminMsg(text, tp)
+    local name = ZeD.tr("UI_ZeD_Adm_NoteHead")
+    local it = M.add(name, "mods", { k = "adminmsg", text = text, tp = tp })
+    capKind(name, "adminmsg", ADMIN_MSG_MAX)
+    toast("warn", name, name, text)
+    return it
+end
+
 -- ---------------------------------------------------------------------------
 -- the notes over your head (the director, Nov 4 2026: "a running log", so a note you missed can be read later;
 -- ZeD_HaloText.lua). One source, newest first, already read (they never raise the unread count or a toast), the
