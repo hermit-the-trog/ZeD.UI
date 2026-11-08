@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: tanda dan catatan dengan warna ini.",
     "UI_ZeD_Map_HelpKey": "Tampilkan atau sembunyikan legenda peta: arti warna di peta Survei.",
     "UI_ZeD_Map_HelpKeyClose": "Tutup legenda peta.",
+    "UI_ZeD_Map_PaperFind": "Cari di peta",
+    "UI_ZeD_Map_HelpPaperFind": "Cari tempat yang ditunjukkan peta ini di peta duniamu.",
     "UI_ZeD_Map_HelpMark": "%1: ambil tanda ini, lalu klik peta untuk meletakkannya.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: ambil tanda ini. Klik kanan menyematkannya ke bilah alat atau melepasnya.",
     "UI_ZeD_Map_HelpMarksClose": "Lipat kumpulan tanda lengkap.",

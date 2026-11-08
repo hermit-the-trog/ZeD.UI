@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: Markierungen und Notizen in dieser Farbe.",
     "UI_ZeD_Map_HelpKey": "Die Legende zeigen oder ausblenden: was die Farben auf der Vermessungskarte bedeuten.",
     "UI_ZeD_Map_HelpKeyClose": "Die Legende schließen.",
+    "UI_ZeD_Map_PaperFind": "Auf der Karte finden",
+    "UI_ZeD_Map_HelpPaperFind": "Den Ort, den diese Karte zeigt, auf deiner Weltkarte finden.",
     "UI_ZeD_Map_HelpMark": "%1: diese Markierung aufnehmen, dann auf die Karte klicken, um sie zu setzen.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: diese Markierung aufnehmen. Rechtsklick heftet sie an die Werkzeugleiste oder löst sie.",
     "UI_ZeD_Map_HelpMarksClose": "Den vollen Markierungssatz einklappen.",

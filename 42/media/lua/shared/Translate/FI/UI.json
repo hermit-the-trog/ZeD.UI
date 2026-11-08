@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: merkit ja merkinnät tällä värillä.",
     "UI_ZeD_Map_HelpKey": "Näytä tai piilota kartan selite: mitä Kartoitus-kartan värit tarkoittavat.",
     "UI_ZeD_Map_HelpKeyClose": "Sulje kartan selite.",
+    "UI_ZeD_Map_PaperFind": "Etsi kartalta",
+    "UI_ZeD_Map_HelpPaperFind": "Etsi tämän kartan näyttämä paikka maailmankartaltasi.",
     "UI_ZeD_Map_HelpMark": "%1: poimi tämä merkki ja napsauta karttaa asettaaksesi sen.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: poimi tämä merkki. Oikea napsautus kiinnittää sen työkalupalkkiin tai poistaa sen sieltä.",
     "UI_ZeD_Map_HelpMarksClose": "Taita koko merkkijoukko pois.",

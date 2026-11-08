@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: bu renkte işaretler ve notlar.",
     "UI_ZeD_Map_HelpKey": "Harita lejantını göster veya gizle: Etüt haritasındaki renklerin anlamı.",
     "UI_ZeD_Map_HelpKeyClose": "Harita lejantını kapat.",
+    "UI_ZeD_Map_PaperFind": "Haritada bul",
+    "UI_ZeD_Map_HelpPaperFind": "Bu haritanın gösterdiği yeri dünya haritanda bul.",
     "UI_ZeD_Map_HelpMark": "%1: bu işareti al, sonra yere koymak için haritaya tıklayın.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: bu işareti al. Sağ tık onu araç çubuğuna sabitler veya kaldırır.",
     "UI_ZeD_Map_HelpMarksClose": "Tüm işaretleri katla.",
