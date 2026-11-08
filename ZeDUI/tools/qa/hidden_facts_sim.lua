@@ -240,13 +240,31 @@ end
 local function newPlayer()
     local p = { md = {}, lit = {}, pages = {} }
     function p:getModData() return self.md end
+    -- the game's HashMap as Kahlua hands it on 42.21 (zedqa_b8_probe, Nov 8): size, isEmpty, containsKey, values and
+    -- tostring work; keySet, iterator, toArray, entrySet, contains and get(0) fail, and pairs() sees nothing (the real
+    -- one throws "Expected a table"). A stub that only fails on the calls is not enough: pairs must find nothing.
     function p:getReadLiterature()
+        local owner = self
         local keys = {}
-        for k in pairs(self.lit) do keys[#keys + 1] = k end
-        return { keySet = function() return { iterator = function()
-            local i = 0
-            return { hasNext = function() return i < #keys end, next = function() i = i + 1; return keys[i] end }
-        end } end }
+        for k in pairs(owner.lit) do keys[#keys + 1] = k end
+        table.sort(keys)
+        local map = {}
+        local fn = {}
+        function fn.size() return #keys end
+        function fn.isEmpty() return #keys == 0 end
+        function fn.containsKey(_, k) return owner.lit[k] ~= nil end
+        function fn.values() return "[]" end
+        return setmetatable(map, {
+            __index = function(_, name)
+                if fn[name] then return fn[name] end
+                return function() error("attempted index: " .. tostring(name) .. " of non-table", 2) end
+            end,
+            __tostring = function()
+                local t = {}
+                for i, k in ipairs(keys) do t[i] = k .. "=" .. tostring(owner.lit[k]) end
+                return "[" .. table.concat(t, ", ") .. "]"
+            end,
+        })
     end
     function p:getAlreadyReadPages(ft) return self.pages[ft] or 0 end
     return p
@@ -587,9 +605,36 @@ tvp = last("SurvivalGuide_television_title")
 check("client, no scripts: says the schedule is not available here", tvp and #tvp.rows == 1 and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVUnavailable,
       tvp and tvp.rows[1] and tvp.rows[1][1])
 check("client, no scripts: never says nothing airs", tvp and tvp.rows[1][1] ~= EN.UI_ZeD_Hidden_TVNone)
+-- 42.21 (QA save, Nov 8): every TV channel has no active script (RadioScriptManager.Load clears them and only a
+-- RADIO_SAVE.txt line sets one) but each still holds its "main" script, found by name with getRadioScript
+local function dormant(name, startDay, list)
+    local sc = { getStartDayStamp = function() return startDay * 1440 end, getBroadcastList = function() return jlist(list) end }
+    return { GetName = function() return name end, IsTv = function() return true end, getCurrentScript = function() return nil end,
+             getRadioScript = function(_, n) if n == "main" then return sc end return nil end }
+end
+setRadio({ dormant("Life and Living TV", 0, { bc(2 * 1440 + 12 * 60, 2 * 1440 + 13 * 60, { "CRP+1" }) }), noScript("Triple-N") }, 2 * 1440)
+s = F.schedule()
+check("no active script, main script held: the schedule reads it", s and #s == 1 and s[1].teaches == "Carpentry" and s[1].channel == "Life and Living TV",
+      s and #s)
+tvp = last("SurvivalGuide_television_title")
+check("no active script, main script held: the page lists the show", tvp and tvp.rows[1] and tvp.rows[1][1] ~= EN.UI_ZeD_Hidden_TVUnavailable)
+setRadio({ dormant("Quiet TV", 0, { bc(0, 60, { "BOR-1" }) }) }, 0)
+tvp = last("SurvivalGuide_television_title")
+check("no active script, nothing teaches: says so, not 'unavailable'", tvp and #tvp.rows == 1 and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVNone)
+if CHANNELS then
+    -- the game's own channels (RadioData.xml) with the active script taken away, as on the QA save
+    local list = {}
+    for i, own in ipairs(CHANNELS) do
+        list[i] = { GetName = own.GetName, IsTv = own.IsTv, getCurrentScript = function() return nil end,
+                    getRadioScript = function(_, n) if n == "main" then return own.script end return nil end }
+    end
+    setRadio(list, 9 * 1440)
+    s = F.schedule()
+    check("the game's channels, none active: the week's schedule still comes", s ~= nil)
+end
 setRadio({}, 0)
 tvp = last("SurvivalGuide_television_title")
-check("no channels at all: not available here", tvp and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVUnavailable)
+check("no channels at all: not available here",tvp and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVUnavailable)
 RADIO = nil
 tvp = last("SurvivalGuide_television_title")
 check("no radio: not available here, no error", tvp and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVUnavailable)
