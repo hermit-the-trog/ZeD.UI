@@ -1,0 +1,100 @@
+# ZeD-UI regression - 2026-11-08 10:12 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-08 10:12:05 |
+| Finished | 2026-11-08 10:13:57 (1 min 51 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta8a |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | ZeDUI/tools/qa/b8a_mp.txt (2 scripts) |
+| Result | **2/2 pass**, 0 warn, 0 fail, 0 timeout |
+| Go numbers | 10009 to 10014 |
+
+Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam -cachedir=C:\Users\you\ZomboidStaged (fullscreen, the director's options.ini)
+- multiplayer: at the main menu, joining 127.0.0.1:16261 as the test server's admin
+- clicked again at 1920,1080 (the bridge had not armed in game after 31 s)
+- the bridge armed in game on the multiplayer server ()
+- quit: quit to the main menu, then to the desktop (go 10013, 10014)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 9 |  |  |
+| 2 | zedqa_b8a_password.lua | b8apw | PASS | 9 | zqa_b8a_pw_typed.png, zqa_b8a_pw_sent.png |  |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 9 s
+
+- go 10011 at 10:13:11
+
+```text
+LOG : Lua f:107 st:70,033,572> [ZeD.QA] state #2 speed=1 paused=false player=10801,10036 grid=19 inCar=false vehicles=1 missing=get
+LOG : Lua f:107 st:70,033,575> [ZeD.QA] windows reset (R)
+LOG : Lua f:107 st:70,033,576> ZEDQA pre moved from 10801,10036,0 to the drag strip
+LOG : Lua f:107 st:70,033,594> ZEDQA pre start
+LOG : Lua f:107 st:70,033,595> [ZeD.QA] run #2 ok=true
+ERROR: General f:188 st:70,037,430 at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+LOG : Lua f:406 st:70,041,557> ZEDQA pre char true world true speed 1 ticks 299 frames 300
+LOG : Lua f:406 st:70,041,558> ZEDQA pre search overlay: enabled false, override false, manager false
+LOG : Lua f:406 st:70,041,559> ZEDQA pre DONE
+```
+
+### 2. zedqa_b8a_password.lua (`ZEDQA b8apw`) - PASS, 9 s
+
+- go 10012 at 10:13:24
+- screenshots: zqa_b8a_pw_typed.png, zqa_b8a_pw_sent.png
+
+```text
+LOG : Lua f:797 st:70,046,232> [ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=14 missing=get
+LOG : Lua f:797 st:70,046,236> [ZeD.QA] windows reset (R)
+LOG : Lua f:797 st:70,046,237> ZEDQA b8apw start
+LOG : Lua f:797 st:70,046,237> [ZeD.QA] run #3 ok=true
+LOG : Lua f:814 st:70,046,542> ZEDQA b8apw PASS the admin may change accounts
+LOG : Lua f:891 st:70,048,048> ZEDQA b8apw PASS the Admin tab has its state
+LOG : Lua f:892 st:70,048,081> ZEDQA b8apw PASS the Users card lists accounts (1)
+LOG : Lua f:894 st:70,048,124> ZEDQA b8apw PASS the test account b8a_dora is there
+LOG : Lua f:918 st:70,048,625> ZEDQA b8apw PASS the account card opens
+LOG : Lua f:1062 st:70,050,627> ZEDQA b8apw PASS the password box is masked
+LOG : Lua f:1123 st:70,051,436> ZEDQA b8apw PASS the box itself shows stars, not the words (************)
+LOG : Lua f:1123 st:70,051,438> ZEDQA b8apw PASS the card reads the typed words (qa-b8a-Pass1)
+LOG : Lua f:1124 st:70,052,483> ZEDQA b8apw PASS the Set password button is live
+LOG : Lua f:1124 st:70,052,686> ZEDQA b8apw PASS the press runs
+LOG : Lua f:1173 st:70,053,484> ZEDQA b8apw PASS Set password called the game for b8a_dora (b8a_dora)
+LOG : Lua f:1173 st:70,053,484> ZEDQA b8apw PASS what was sent is the typed password, not stars (qa-b8a-Pass1)
+LOG : Lua f:1213 st:70,055,048> ZEDQA b8apw PASS the test account is deleted again
+LOG : Lua f:1213 st:70,055,048> ZEDQA b8apw 13 passed, 0 failed
+LOG : Lua f:1213 st:70,055,049> ZEDQA b8apw DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N st:0 at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    1x ERROR: General f:N st:0 at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\you\ZomboidStaged\mods\ZeD-UI\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\you\ZomboidStaged\mods\ZeD-UI\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\you\ZomboidStaged\mods\ZeD-UI\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\you\ZomboidStaged\mods\ZeD-UI\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0 at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N st:0 at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N st:0 at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+```
