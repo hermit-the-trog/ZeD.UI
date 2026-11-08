@@ -134,3 +134,15 @@ These don't need new designs. Each one opens the game's window if ZeD's version 
 - B1 TV and house radio: every route opens ZeD's existing radio card now; the dedicated TV and house radio faces come when design draws them.
 - Bans: when staff lift a ban with the game's own admin panel, the game's unban wins; ZeD closes its row and logs who did it.
 - Mod support next: Auto-Hide Hotbar, Mask Filter Indicator, Item Condition Restored, the Better Item Transfer menu-style fix, Clear Skill Sheet, Better Folders, Better Mod Experience.
+
+## More of the director's decisions (Nov 7 2026, evening; multiple choice)
+
+- B6 heater and air conditioning: the key and the wheel slice go to the dash's own climate controls.
+- B7 mini-map: removed from ZeD's wheels; the World window's map is the map.
+- B10 trading and B11 the medical check of another player: build both as World window cards.
+- B14 paused: the Character window opens while paused, read-only (actions grayed until unpaused).
+- B9 make-up: a card with the character's 3D figure, the make-up spots as a list, Apply or Remove in the footer.
+- C6 to C14 admin tools: all of them become ZeD cards (player stats and inventory, other players' claims, the users list, PvP log, zones, weather, server stats, server sandbox options).
+- C17 kicked or disconnected: ZeD's desk screen with the reason and, for a ban, the appeal line.
+- D1 Tutorial: kept on the desk menu, labeled as the game's own, without mods.
+- Release plan: no upload Nov 7; the next upload by noon Nov 8, packed with as much as can be fixed; full release Dec 1 2026.
