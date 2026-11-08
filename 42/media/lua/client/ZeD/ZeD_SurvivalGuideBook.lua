@@ -1,20 +1,26 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua
 -- ============================================================================
--- THE SURVIVAL GUIDE, the Full look: "Survive the Apocalypse" by Stevie Whetstone, Second Edition (Doidbros and
--- Buzzlord, Division of Survival Emergency Publications, 1987). The director, Nov 3 2026: a printed manual "just
--- bought from the bookstore. Book Naked": no marks; set like a 1983 bookstore survival guide (chapter openers in
--- heavy italic capitals over a photo, a bold Title Case line, serif text) with the 1990 survival magazine's grey bar
--- and ruled charts on the rules pages; no drop caps. Mockup: ZeDUI/mockups/zed_survival_guide_v7.html.
+-- THE SURVIVAL GUIDE, the Immersive look: "Survive the Apocalypse", Second Edition, an in-world 1987 paperback (its
+-- author and publisher are the UI_ZeD_Guide_Book* strings). Client; an organism (a full-screen panel over the
+-- dimmed game). A printed manual just bought from the bookstore: no marks; set like a 1983 bookstore survival guide
+-- (chapter openers in heavy italic capitals over a photo, a bold Title Case line, serif text) with a 1990 survival
+-- magazine's grey bar and ruled charts on the rules pages; no drop caps.
 --
--- The same topics, text, clips and numbers as the window (ZeD_SurvivalGuide.lua, which opens this one when ZeD
--- setup's Survival guide row is Full). One topic a page, two a spread; a topic with The Rules in Numbers has them on
--- the page after it; a topic too long for its page runs on to the next. Before the chapters: the title page, then
--- the contents over as many pages as it needs, the last facing the introduction with the author's photo (a blank
--- left-hand page between them when the contents takes an even count: the publisher's house ad, as old paperbacks ran
--- up front). The title page faces the copyright page, the publisher's small print (punch list 103).
+-- The same topics, text, clips and numbers as the window (ZeD_SurvivalGuide.lua, which opens this one while ZeD
+-- setup's Survival guide is Immersive). Topics flow from page to page, two pages a spread; a topic with The Rules in
+-- Numbers starts a left page with its rules page facing it; a topic too long for its page runs on to the next.
+-- Before the chapters: the title page, then the contents over as many pages as it needs, the last facing the
+-- introduction with the author's photo (when the contents takes an even count, a left-hand page comes between them:
+-- the publisher's house ad, as old paperbacks ran up front). The title page faces the copyright page, the
+-- publisher's small print.
 --
--- Faces: the game's own distance-field faces, drawn at any size with drawTextZoomed (as ZeD_PrintPage.lua):
--- Old Standard TT for the text, Roberto Sans Bold Italic for the headings, Open Sans for the small sans lines.
+-- Faces: the game's own distance-field faces, drawn at any size through the game's text atoms (THE TEXT LAYER
+-- below; drawTextZoomed, as ZeD_PrintPage.lua uses, only when the atoms are missing): Old Standard TT for the text,
+-- Roberto Sans Bold Italic for the headings, Open Sans for the small sans lines.
+--
+-- Before touching the layout: B.paginate lays the whole book out once per reading (the pages, the contents, the
+-- ads' deal) and drawing only reads it, so turning the pages never reshuffles; a new scale, text size or device
+-- lays it out again (ZeD_GuideBook:layout).
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -45,8 +51,8 @@ local U = {
     TEXT = 12.5, LEAD = 1.42, CAP = 10, FOLIO = 9, CHAP = 13, OPEN = 30, TITLE = 22, DECK = 14,
     BAR = 19, STRIP_GAP = 10,
 }
--- The type follows ZeD's text size like every ZeD surface (QA, Nov 3 2026: Large text never reached the book):
--- each size below is its Small size times the text-size preset (T.scale over the root scale); long topics run on.
+-- The type follows ZeD's text size like every ZeD surface: each size below is its Small size times the text-size
+-- preset (T.scale over the root scale); long topics run on.
 local BASE_TYPE = { TEXT = 12.5, CAP = 10, FOLIO = 9, CHAP = 13, OPEN = 30, TITLE = 22, DECK = 14, BAR = 19 }
 local TM_ = 1
 local function applyType()
@@ -59,7 +65,7 @@ local function applyType()
 end
 B.applyType = applyType   -- (for ZeDUI/tools/qa/guide_ads_sim.lua: the text size without the panel)
 
--- the guide's ads (design, Nov 6 2026): media/textures/ZeD/guide/ads/<name>.png, 2x art; sizes in design px
+-- the guide's ads: media/textures/ZeD/guide/ads/<name>.png, 2x art; sizes in design px
 ZeD.GuideAds = {
     size = { full = { 440, 628 }, half = { 440, 310 }, third = { 440, 205 }, quarter = { 215, 310 } },
     full = { "full_ready_prep", "full_greenes_grocery", "full_crossroads_mall" },
@@ -68,7 +74,7 @@ ZeD.GuideAds = {
     third = { "third_maps_unlimited", "third_salt_river_bait", "third_pioneer_girls", "third_knob_creek_hunting",
               "third_aa_ron_hunting", "third_west_point_range", "third_nails_and_nuts", "third_time_4_sport",
               "third_zippee_market", "third_phils_pawn", "third_hit_vids", "third_rolling_fork_camp",
-              -- (batch 5, Nov 7: the 32 more thirds, in GUIDE_ADS_PLAN.md's lineup order)
+              -- (32 more thirds, kept in their planned lineup order)
               "third_gas_2_go", "third_nolans_used_cars", "third_car_fixation", "third_louisville_motorshop",
               "third_echo_creek_feed_seed", "third_brott_cattle_farm", "third_thumbs_of_green", "third_five_alarm_chili",
               "third_mendys_eatery", "third_knox_distillery", "third_first_baptist_bake_sale", "third_rusty_rifle",
@@ -82,7 +88,8 @@ ZeD.GuideAds = {
                 "quarter_purrfect_barkner", "quarter_motorbikes_and_more", "quarter_wizards_keep",
                 "quarter_juke_box_bowling", "quarter_seat_yourself_furniture" },
 }
--- the room left at the top of the screen for the game's "Game Paused" box (QA: it sat over the book at the Deck)
+-- the room left at the top of the screen for the game's "Game Paused" box (on a Steam Deck's screen it would
+-- otherwise sit over the book)
 local TOP = 34
 
 local INK = { r = 0.137, g = 0.165, b = 0.227 }
@@ -110,9 +117,8 @@ local function spaceW(f, px)
     if not _spaces[k] then _spaces[k] = math.max(realTM():MeasureStringX(f.font, "a a") - realTM():MeasureStringX(f.font, "aa"), f.size * 0.25) end
     return _spaces[k] * zoom(f, px)
 end
--- text with its baseline at y
 -- THE TEXT LAYER. Lua's drawTextZoomed draws a distance-field face without the game's SDF shader, so the game's
--- faces come out soft with a dark halo (QA, Nov 3 2026, punch list 83). The game's own text atoms (PZAPI's
+-- faces come out soft with a dark halo. The game's own text atoms (PZAPI's
 -- UI.Text, AtomUIText) draw through that shader, so the book's words are a pool of them, laid over the pages
 -- each frame at screen positions, one for each run of words; the panel draws everything else.
 local LAYER = { root = nil, pool = {}, n = 0, panel = nil }
@@ -121,7 +127,7 @@ local function layerReady()
     if not (PZAPI and PZAPI.UI and PZAPI.UI.Node and PZAPI.UI.Text) then return false end
     local ok = pcall(function()
         -- (a one-pixel root, never handed to the UIManager: an atom root there draws under ZeD's always-on-top
-        -- book whatever is raised (QA, Nov 3 2026). The book draws it itself, after its own drawing, in render.)
+        -- book whatever is raised. The book draws it itself, after its own drawing, in render.)
         local UI = PZAPI.UI
         local root = UI.Node{ x = 0, y = 0, width = 1, height = 1 }
         UI._setParentChildRelationship(root)
@@ -168,6 +174,7 @@ function B.layerHide()
 end
 function B.layerToTop() if LAYER.root and LAYER.root.javaObj then pcall(function() LAYER.root.javaObj:bringToTop() end) end end
 
+-- text with its baseline at y: through the text layer while it serves this panel, else drawTextZoomed
 local function drawAt(panel, f, s, x, baseY, px, c, a)
     local z = zoom(f, px)
     local y = baseY - f.base * z

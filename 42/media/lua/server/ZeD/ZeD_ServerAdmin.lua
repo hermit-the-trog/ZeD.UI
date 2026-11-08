@@ -14,8 +14,8 @@
 -- md.owed and go to a staff client online until that client says it is done. Each is tied to its ban: unbanned or lifted,
 -- the call goes with it, and one whose author lost the power or whose target rose above it is dropped at send time.
 --
--- Every ban is the game's ban too: the game's own ban, enforced by the server at login, is owed
--- at once, timed or not, and a timed one's unban is owed at its end. A timed ban may run past its time while nobody can make
+-- Every ban is the game's ban too: the game's own ban, enforced by the server at login, is owed at once, timed or not,
+-- and a timed one's unban is owed at its end. A timed ban may run past its time while nobody can make
 -- that call, never short. ZeD's row stays the record (reason, end, who) and still shows the leave screen. A client's "done"
 -- is not proof: a banned player the server still finds on after VERIFY_S means the ban did not take, and it is asked for
 -- again (REOWE_MAX times, each with a log line); a Steam ID ban is read back from the game's own list. A banned client that
@@ -30,9 +30,9 @@
 -- Repeating messages run here too, on OnTickEvenPaused: the game clock stops on an empty server.
 --
 -- The table has a secret random name, as the tickets' does (any logged-in client can read a global mod data table it can
--- name), and is never transmitted. Views are allowlists. Every
--- action goes through Srv.adminLog into the server part's one log (Srv.action): a line in the ZeD log and a line in md.log,
--- which the Log view reads (ZeD_ServerLog.lua). The ring here holds every kind of line, not only these.
+-- name), and is never transmitted. Views are allowlists. Every action goes through Srv.adminLog into the server part's one
+-- log (Srv.action): a line in the ZeD log and a line in md.log, which the Log view reads (ZeD_ServerLog.lua). The ring here
+-- holds every kind of line, not only these.
 -- ============================================================================
 if not isServer() then return end
 
@@ -141,10 +141,10 @@ end
 local function today() return Srv.day() end
 
 -- where a new line goes. A ring of AL.LOG_MAX, oldest out, but one account never pushes out another's: past its share a
--- new line takes the place of that account's own oldest (s says the order; the Log view sorts by time, then s). A kill goes last, so an
--- account can't write its own evidence off the ring with a run of lesser lines. A container line is the player's own game
--- talking, so it has a smaller share and replaces only its own kind: no client's reports push out what the server saw.
--- nil: there's no room for it
+-- new line takes the place of that account's own oldest (s says the order; the Log view sorts by time, then s). A kill
+-- goes last, so an account can't write its own evidence off the ring with a run of lesser lines. A container line is the
+-- player's own game talking, so it has a smaller share and replaces only its own kind: no client's reports push out what
+-- the server saw. nil: there's no room for it
 local function ringSlot(log, who, kind)
     local mine, oldest, oldestKill, told, oldestTold = 0, nil, nil, 0, nil
     for i = 1, log.n do
@@ -763,7 +763,7 @@ local function reportStay(md, user, b, told, now)
 end
 
 -- ---------------------------------------------------------------------------
--- THE GAME'S UNBAN WINS (the director, Nov 7 2026): staff who lift a ban in the game's own admin panel or with /unbanuser
+-- THE GAME'S UNBAN WINS: staff who lift a ban in the game's own admin panel or with /unbanuser
 -- have lifted it. ZeD closes its row, owes no ban again, gates no more, and says so in the log. Only on the game's own word
 -- that it held the ban and holds it no more, never on a login, a leaving or a client's "done":
 --   a Steam ID  the game's list (isSteamIdBanned) read with it after the ban, then twice without it, OFF_GAP_S apart
@@ -988,8 +988,8 @@ end
 --   v 2: the Steam ID the game is given is only one staff typed (sidGame). A name's row kept its player's client's word in sid,
 --        and beta 7 named it to the game too: that is never asked for again (a pending call for it goes), and one that may have
 --        gone is still lifted with the row (sidLift), as it was made
---   a standing timed row without the game's ban (beta 7 made timed bans ZeD's alone) owes the game's ban now, as one made
---   today does, so the old bans hold too: the name, the typed Steam ID. Never the IP: that needs the player on
+--   a standing timed row without the game's ban (beta 7 made timed bans ZeD's alone) owes the game's ban now, as a new one
+--   does, so the old bans hold too: the name, the typed Steam ID. Never the IP: that needs the player on
 function Srv.upgradeBans(md)
     local now = getTimestamp()
     local ids = {}
@@ -1026,7 +1026,7 @@ function Srv.upgradeBans(md)
 end
 
 -- ---------------------------------------------------------------------------
--- THE CLOCK: OnTickEvenPaused fires with nobody on (A1), and getTimestamp is real time
+-- THE CLOCK: OnTickEvenPaused fires with nobody on, and getTimestamp is real time
 -- ---------------------------------------------------------------------------
 local function snap(md, o, user, now)
     local rec = md.players[user]
@@ -1282,7 +1282,7 @@ reg("a_players", { cap = CAP.SeePlayersConnected, limit = AL.PLAYERS_MS }, funct
         n = n + 1
         rows[n] = { u = u, on = true, role = roleName(o) }
     end)
-    -- offline accounts take the game's own power for the full list (the director, Nov 6 2026), so a role that sees who is
+    -- offline accounts take the game's own power for the full list, so a role that sees who is
     -- connected sees no more here than in the game's window
     local off, c = {}, 0
     local allCap = Capability and Capability.SeeNetworkUsers
@@ -1386,7 +1386,7 @@ reg("a_mute", { cap = CAP.BanUnbanUser }, function(p, a, rid)
         if n >= AL.MUTES_MAX then Srv.ack(p, rid, false, "full"); return end
     end
     if on then md.mutes[key] = p:getUsername() else md.mutes[key] = nil end
-    -- the game's voice ban: on now, this client makes it with the ack (M.mute); off, it is owed when they are next on
+    -- the game's voice ban: on now, this client makes it with the ack (M.mute, in ZeD_Admin.lua); off, it is owed when they are next on
     -- (walkPlayers). Unmuted, one still owed goes, and an online player's client lifts it with the ack
     T.voiced[key] = (on and onlineAs(user) ~= nil) or nil
     if not on then
@@ -1413,7 +1413,7 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
     if a.user == p:getUsername() then Srv.ack(p, rid, false, "self"); return end
-    -- an account that is off takes the game's power for every account, as its card does (the director, Nov 6 2026).
+    -- an account that is off takes the game's power for every account, as its card does.
     -- Asked before "unknown", so the answer is the same whether the name is an account or not
     if not Srv.player(a.user) then
         local allCap = Capability and Capability.SeeNetworkUsers
@@ -1558,7 +1558,7 @@ reg("a_ban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, functi
     md.bans[id] = b
     local wait = o and AL.LEAVE_S or 0
     if o then tellLeave(o, b, getTimestamp()) end
-    -- the game's ban, timed or not (the director, Nov 7 2026): enforced by the server at login. A timed one is lifted at its end
+    -- the game's ban, timed or not: enforced by the server at login. A timed one is lifted at its end
     -- (liftDue). Online, it waits LEAVE_S so they read the reason first; the game's ban kicks them, so no Kick goes with it
     oweBan(md, b, target, kind, wait, me)
     if untilT then b.gameBan = true end
@@ -1775,7 +1775,8 @@ end)
 -- ---------------------------------------------------------------------------
 -- OPENING
 -- ---------------------------------------------------------------------------
--- a Kick owed for another part (the join rules): reason "" is the game's own words. nil when one already waits or the table is frozen
+--- A Kick owed for another part (the join rules): reason "" is the game's own words. nil when one already waits or the
+--- table is frozen.
 function Srv.oweKick(user, reason, why)
     local md = open()
     if T.frozen then return nil end
