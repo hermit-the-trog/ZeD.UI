@@ -56,6 +56,8 @@ end
 -- true when ZeD has it (the click may land a few ticks later, when the strip has drawn).
 function ZeD_CharacterWindow.openTab(playerNum, tabId, toggle)
     playerNum = playerNum or 0
+    -- (split-screen: another player's page is the game's own window, which toggleView below falls back to)
+    if not ZeD.windowsFor(playerNum) then return false end
     if not getSpecificPlayer(playerNum) then return false end
     if not ZeD_CharacterWindow.isOpen() then
         ZeD_CharacterWindow.toggleBothPaired(playerNum)
