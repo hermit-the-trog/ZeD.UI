@@ -429,6 +429,7 @@ function ZeD_MMNotepad:startRename()
     self.renameEntry:setText(self.doc.name)
     self.renameEntry:setVisible(true)
     editField(self.renameEntry)
+    pcall(function() self.renameEntry:selectAll() end)   -- (typing replaces the old name, as a desktop's rename does)
 end
 
 function ZeD_MMNotepad:rename()

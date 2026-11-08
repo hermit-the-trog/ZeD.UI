@@ -97,6 +97,7 @@ function ZeD_MMDocs:startRename()
     self.renameEntry:setText(n.name)
     self.renameEntry:setVisible(true)
     MM.editField(self.renameEntry)
+    pcall(function() self.renameEntry:selectAll() end)   -- (typing replaces the old name, as a desktop's rename does)
 end
 
 function ZeD_MMDocs:rename()
