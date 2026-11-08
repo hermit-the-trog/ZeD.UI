@@ -9,7 +9,7 @@ answers, the controller lands on a sensible button and can reach every one, B (o
 says what the button under the pointer does. Then once with **safe mode on** (Options > Mods > ZeD UI): the game's own
 window must show instead, and work.
 
-Sim (no game): `lua51 ZeDUI/tools/qa/mainmenu_vanilla_sim.lua` (161 checks; it runs the game's own screens from the
+Sim (no game): `lua51 ZeDUI/tools/qa/mainmenu_vanilla_sim.lua` (163 checks; it runs the game's own screens from the
 install). It proves the routing, not the look.
 
 ## 1. Server Workshop items (joining a server whose Workshop mods you lack)

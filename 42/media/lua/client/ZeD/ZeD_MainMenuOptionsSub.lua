@@ -181,6 +181,7 @@ end
 
 function O:closeSub()
     if not self.sub then return end
+    if self.sub == "pad" and JoypadState then JoypadState.controllerTest = nil end   -- (a pad left testing would stay dead after Back)
     if self.sub == "sounds" then
         self:stopPreview()
         if self._sndChanged then pcall(GameSounds.saveINI); self._sndChanged = false end
@@ -290,7 +291,7 @@ function O:drawPadDiagram(x, y, w, h, els, focusEl)
         for _, r in ipairs(roles) do if focusEl.role == r then return true end end
         return false
     end
-    -- one picture centred on p; its box (lit, framed) around it
+    -- one picture centered on p; its box (lit, framed) around it
     local function spot(role, p, lit, focus)
         local gw = math.max(G.width({ role }, k, set), ph)
         local bx0, by0, bw0, bh0 = p[1] - math.floor(gw / 2) - T.px(3), p[2] - math.floor(ph / 2) - T.px(3), gw + T.px(6), ph + T.px(6)

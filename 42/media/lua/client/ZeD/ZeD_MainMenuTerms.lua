@@ -12,7 +12,7 @@
 --     terms were accepted before the menu could show.
 --   * the first run, or when the game's terms change (TermsOfServiceState,
 --     before the main menu): the same window on its own over the black
---     screen, centred, Accept or Quit only.
+--     screen, centered, Accept or Quit only.
 -- Every answer is vanilla's own function: Accept runs
 -- ISTermsOfServiceUI.onButtonAccept (it stores the game's terms version and
 -- saves the options; the version is local to vanilla's file), the two View
@@ -103,7 +103,7 @@ function ZeD_MMTerms:viewTerms() MM.clickSound(); pcall(ISTermsOfServiceUI.onBut
 function ZeD_MMTerms:viewPrivacy() MM.clickSound(); pcall(ISTermsOfServiceUI.onButton2, nil, nil) end
 function ZeD_MMTerms:quit() MM.clickSound(); ISTermsOfServiceUI.onButtonQuit(nil, nil) end
 
--- the window's place: on the monitor, or centred on the screen at the start
+-- the window's place: on the monitor, or centered on the screen at the start
 function ZeD_MMTerms:place()
     local T = ZeD.T
     if not self.boot then return UI.placeOnTube(self, T.px(DESK_H)) end
@@ -288,6 +288,8 @@ local function bootTerms(javaStateObj)
         ISTermsOfServiceUI.instance = win
         local jd = JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
         if jd and jd.focus == van then jd.focus = win; updateJoypadFocus(jd) end
+        local p1 = JoypadState and JoypadState.players and JoypadState.players[1]
+        if p1 and p1.focus == van then p1.focus = win; updateJoypadFocus(p1) end
         MM.termsBootWin = win
     end)
     if not ok then
