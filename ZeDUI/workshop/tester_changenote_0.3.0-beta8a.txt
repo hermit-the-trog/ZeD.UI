@@ -1,0 +1,6 @@
+0.3.0-beta8a
+
+Fixes
+- In-game Sandbox options respond again: pages, values, Undo, Apply and Close.
+- Set password on the admin Users card sends the password you typed, not the masking stars.
+- Copied bug reports leave out your user name: folder paths read ~ instead. The report ends with a reminder that files like console.txt still have it.
