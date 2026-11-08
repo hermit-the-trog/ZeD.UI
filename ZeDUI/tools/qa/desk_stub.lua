@@ -344,11 +344,12 @@ function D.boot(ROOT, withMail)
         if name == "ZeD/ZeD_MailProto" then return dofile(ROOT .. "42/media/lua/shared/ZeD/ZeD_MailProto.lua") end
         if name == "ZeD/ZeD_TicketProto" then return dofile(ROOT .. "42/media/lua/shared/ZeD/ZeD_TicketProto.lua") end
         if name == "ZeD/ZeD_MailStore" then return dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MailStore.lua") end
-        if name == "ZeD/ZeD_MainMenuDesktop" or name == "ZeD/ZeD_MainMenuNotes" then return nil end
+        if name == "ZeD/ZeD_MainMenuDesktop" or name == "ZeD/ZeD_MainMenuNotes" or name == "ZeD/ZeD_MainMenuDocs" then return nil end
         return nil
     end
     dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuDesktop.lua")
     dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuNotes.lua")
+    dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuDocs.lua")
     if withMail then dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuMail.lua") end
     require = real
 end

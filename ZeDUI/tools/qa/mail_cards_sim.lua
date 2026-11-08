@@ -151,6 +151,33 @@ check("opening it marks it read", MS.unread(b) == unread0 - 1)
 check("its words are drawn", drawn("Read the new rules.", P1))
 check("Reply and Delete in the foot", footOf("mlreply") ~= nil and footOf("mldel") ~= nil)
 check("Reply is the main one, last", TC.qaState(st()).footRects[#TC.qaState(st()).footRects].b.id == "mlreply")
+-- Report (the director, Nov 7 2026): the letter goes to staff as a ticket, its words in the report's lines
+S.cm = true
+draw()
+check("Report is in the foot", footOf("mlrep") ~= nil and not footOf("mlrep").disabled, footOf("mlrep") and footOf("mlrep").why)
+CLIENT = {}
+press("tk:mlrep")
+check("Report asks first and lands on Cancel", TC.qaState(st()).confirm == "report" and footOf("mlrno") ~= nil and footOf("mlryes") ~= nil)
+check("Report's question says staff will read it", ZeD.Help.last == ZeD.tr("UI_ZeD_Mail_HelpReport"), ZeD.Help.last)
+press("tk:mlrno")
+check("Cancel sends nothing", #CLIENT == 0 and TC.qaState(st()).confirm == nil)
+press("tk:mlrep")
+press("tk:mlryes")
+local filed = nil
+for _, c in ipairs(CLIENT) do if c.c == "t_new" then filed = c.a end end
+check("Report files a ticket through ZeD's tickets", filed ~= nil and filed.kind == "GRIEF")
+check("its words name the sender and subject", filed and filed.text == ZeD.tr("UI_ZeD_Mail_ReportText", "Ada", "Rules"), filed and filed.text)
+check("the letter goes as the report's lines, naming the sender", filed and filed.report and filed.report.who == "Ada" and filed.report.n == 1 and filed.report[1].text == "Read the new rules.")
+local long = { from = "Rosa", subj = "", text = string.rep("abc ", 500), t = 1 }
+local rep = MC._P.reportOf(long)
+check("a long letter fits the report's lines, each at most REPORT_TEXT", rep.n <= Tk.LIMITS.REPORT_LINES and #rep[1].text == Tk.LIMITS.REPORT_TEXT)
+local all = ""
+for i = 1, rep.n do all = all .. rep[i].text end
+check("and loses none of a 2000-character letter", all == long.text)
+check("returned mail cannot be reported", MC._P.reportWhy({ returned = true, from = "" }) == ZeD.tr("UI_ZeD_Mail_NoReply"))
+S.cm = false
+check("a server whose tickets keep no reports: gray, and says why", MC._P.reportWhy({ from = "Ned" }) == ZeD.tr("UI_ZeD_Mail_NoReport"))
+S.cm = true
 press("tk:mldel")
 check("Delete asks first", TC.qaState(st()).confirm == true and footOf("mlno") ~= nil and footOf("mlyes") ~= nil)
 press("tk:mlno")

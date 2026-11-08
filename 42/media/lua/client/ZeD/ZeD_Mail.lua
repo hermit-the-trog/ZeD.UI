@@ -77,6 +77,47 @@ end
 -- ---------------------------------------------------------------------------
 -- THE DIAL-IN
 -- ---------------------------------------------------------------------------
+-- the player's own mute list for this server (ZeD_Chat.lua keeps it), as the server takes it: { n, [i] = name }
+function M.mutes()
+    local out = { n = 0 }
+    local Ch = ZeD.Chat
+    if not (Ch and Ch.mutedByMe) then return out end
+    pcall(Ch.mutedByMe, "")                -- (reads the file the first time)
+    for name in pairs(Ch.myMutes or {}) do
+        if out.n >= Ml.L.MUTES_MAX then break end
+        out.n = out.n + 1
+        out[out.n] = name
+    end
+    return out
+end
+
+-- a change to the mute list goes to the server at once (muting someone also stops their mail; the director, Nov 7 2026)
+function M.hookMute()
+    local Ch = ZeD.Chat
+    if not (Ch and Ch.setMuted) or Ch._mailHooked then return end
+    Ch._mailHooked = true
+    local base = Ch.setMuted
+    Ch.setMuted = function(...)
+        local r = base(...)
+        if M.state == "on" and not M.qaHold then pcall(S.send, Ml.MOD, "p_mute", { names = M.mutes() }) end
+        return r
+    end
+end
+
+-- THE MODEM: once a connection, the handshake (our own sound, ZeDUI/tools/sound/make_modem.py, on the game's UI volume)
+-- when the dial-in starts, and "Connecting... sending N, receiving M" as a note over the head when the server answers
+function M.ring()
+    if M.rang then return end
+    M.rang = true
+    pcall(function() getSoundManager():playUISound("ZeDModemDial") end)
+end
+function M.connectNote(sending, receiving)
+    local text = ZeD.tr("UI_ZeD_Mail_Connecting", sending or 0, receiving or 0)
+    M.lastNote = text
+    if ZeD.Bubbles and ZeD.Bubbles.note then pcall(ZeD.Bubbles.note, 0, text) end
+    if ZeD.Messages and ZeD.Messages.halo then pcall(ZeD.Messages.halo, text) end
+end
+
 -- state: nil (not yet), "dialing", "on" (dialed in this connection), "off" (the server said no; why in M.why)
 function M.dial()
     if M.qaHold or not M.live() or M.state == "dialing" then return end
@@ -85,11 +126,17 @@ function M.dial()
     M.state, M.why = "dialing", nil
     M.tries = (M.tries or 0) + 1
     M.got, M.sent = 0, 0
+    M.hookMute()
+    M.ring()
     bump()
-    K.requestOn(Ml.MOD, "p_dial", {}, function(a)
+    K.requestOn(Ml.MOD, "p_dial", { mutes = M.mutes() }, function(a)
         if a.ok then
             M.state = "on"
             MS.dialed(b)
+            if not M.noted then
+                M.noted = true
+                M.connectNote(#MS.load(b).outbox, tonumber(a.waiting) or 0)
+            end
             M.drain()
         elseif a.err == "wait" then
             M.state, M.dialAt = nil, now() + (tonumber(a.left) or 1) * 1000 + 250   -- (a quick rejoin: dial again shortly)
@@ -107,6 +154,7 @@ function M.onHello(a)
     local key = M.serverKey()
     if M._boxKey ~= key then
         M._boxKey, M._box, M.state, M.why, M.sending, M.retryAt, M.stopped, M.tries = key, nil, nil, nil, nil, nil, nil, 0
+        M.rang, M.noted = nil, nil
         M.gotQ = {}
     end
     M.here = a.ml ~= nil

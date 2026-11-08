@@ -69,11 +69,12 @@ function MM.openMail()
     MM.showView("mail")
 end
 
-local MAIL_ITEM = { id = "mail", menu = "UI_ZeD_Mail_Title", open = function() MM.openMail() end }
+-- (the director, Nov 7 2026: the app is "ProtoPOP3 Mail": the icon, the window and the menu; the in-game cards say Mail)
+local MAIL_ITEM = { id = "mail", menu = "UI_ZeD_Mail_AppName", open = function() MM.openMail() end }
 MAIL_ITEM.labelFn = function()
     local n = MM.mailUnread()
     if n > 0 then return tr("UI_ZeD_Mail_IconNew", n) end
-    return tr("UI_ZeD_Mail_Title")
+    return tr("UI_ZeD_Mail_AppName")
 end
 MM.leftApps = MM.leftApps or {}
 do
@@ -284,7 +285,7 @@ function ZeD_MMMail:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local b = self:box()
-    self.title = tr("UI_ZeD_Mail_Title")
+    self.title = tr("UI_ZeD_Mail_AppName")
     self.titleStats = b and { { text = tr("UI_ZeD_Mail_BoxName", b.user, b.server), noMark = true } } or {}
     ZeD_Window.prerender(self)
     local tb = T.titleBarH

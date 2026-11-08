@@ -12,8 +12,9 @@
 -- CLETUSWORKS (the director: named after ClarisWorks, "the all-in-one on every school Mac in 1993"; the desktop
 -- icon reads CletusWorks, the window "CletusWorks Notepad") is a ZeD window on the monitor with one page in it. The
 -- band holds New, Open, Rename, Delete and Save; the page's name is in the title bar's stats and the band's line
--- says whether it is saved. A new page goes on the desktop as an icon when it is first saved; the desktop's icons
--- open their page with a double click (or A). Delete asks in the band, as every question on the desk does, and
+-- says whether it is saved, or that the page is full (N.TEXT_MAX: the box takes no more). A new page becomes a note
+-- when it is first saved. The notes are listed in the desktop's one Documents folder (ZeD_MainMenuDocs.lua; the
+-- director, Nov 7 2026), and Open goes to that list. Delete asks in the band, as every question on the desk does, and
 -- lands on Cancel. Leaving a page with unsaved words (the close box, B, New, Open, another icon) asks "Save
 -- changes?" first: Discard changes, Cancel, Save. Words not saved yet are also kept as a draft (ZeD_DeskNotes), so
 -- a game started from the menu bar loses nothing: the notepad opens with them next time.
@@ -222,6 +223,8 @@ end
 function MM.openNote(id) MM.openNotepad(id) end
 
 local CLETUS_ITEM = { id = "cletusworks", label = "", open = function() MM.openNotepad() end }
+-- (the director, Nov 7 2026: the notes are not icons of their own; one Documents folder lists them all)
+local DOCS_ITEM = { id = "documents", label = "", open = function() MM.openDocs() end }
 
 MM.leftApps = MM.leftApps or {}       -- more apps after CletusWorks (ZeD_MainMenuMail.lua adds Mail)
 local _left = { key = nil, list = nil }
@@ -230,15 +233,13 @@ function MM.leftItems()
     local key = tostring(N.seq) .. ":" .. tostring(#MM.leftApps) .. ":" .. tostring(MSq)
     if _left.key == key and _left.list then return _left.list end
     CLETUS_ITEM.label = tr("UI_ZeD_Desk_CletusWorks")
+    DOCS_ITEM.label = tr("UI_ZeD_Desk_Documents")
     local out = { STICKY_ITEM, CLETUS_ITEM }
     for _, a in ipairs(MM.leftApps) do
-        if a.labelFn then a.label = a.labelFn() end   -- (an app's name can carry a count: Mail (2))
+        if a.labelFn then a.label = a.labelFn() end   -- (an app's name can carry a count: ProtoPOP3 Mail (2))
         out[#out + 1] = a
     end
-    for _, n in ipairs(N.list()) do
-        local id = n.id
-        out[#out + 1] = { id = "note:" .. id, icon = "note", label = n.name, open = function() MM.openNote(id) end }
-    end
+    out[#out + 1] = DOCS_ITEM
     _left.key, _left.list = key, out
     return out
 end
@@ -351,6 +352,7 @@ function ZeD_MMNotepad:onShow()
         if not (want and self.doc and self.doc.id ~= want) then return end
     end
     if self.doc.id and not N.get(self.doc.id) then self.doc.id = nil end   -- (deleted while away: a page not on the desktop)
+    if self.doc.id then self.doc.name = N.get(self.doc.id).name end         -- (renamed in Documents while away)
     if want and want ~= self.doc.id then
         self:leave(function() self:openId(want) end)
     end
@@ -394,14 +396,8 @@ function ZeD_MMNotepad:openItems()
     return items
 end
 
-function ZeD_MMNotepad:doOpen()
-    for _, b in ipairs(self._specs) do
-        if b.id == "open" then
-            MM.openPopup("notes", self:openItems(), { x = self:getAbsoluteX() + b.x, y = self:getAbsoluteY() + b.y, w = b.w, h = b.h }, true)
-            return
-        end
-    end
-end
+-- Open: the Documents window's list (its Open comes back here, through "Save changes?" when the page has unsaved words)
+function ZeD_MMNotepad:doOpen() MM.openDocs("notepad") end
 
 -- the name the rename field holds, or nil and why not
 function ZeD_MMNotepad:renameCheck()
@@ -570,6 +566,7 @@ function ZeD_MMNotepad:prerender()
         local dirty = self:dirty()
         local status, color
         if self.note then status, color = self.note, T.danger
+        elseif #(self.edit:getText() or "") >= N.TEXT_MAX then status, color = tr("UI_ZeD_Desk_NoteFull", N.TEXT_MAX), T.warning
         elseif dirty and d.recovered then status, color = tr("UI_ZeD_Desk_Recovered"), T.warning
         elseif dirty then status, color = tr("UI_ZeD_Desk_NotSaved"), T.warning
         elseif d.id then status, color = tr("UI_ZeD_Desk_Saved"), T.positive

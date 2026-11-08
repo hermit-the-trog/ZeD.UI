@@ -35,6 +35,8 @@ Ml.L = {
     BATCH = 10,                 -- letters in one handover
     CIDS = 40,                  -- each sender's last letter numbers, so a letter sent again after a lost answer is not delivered twice
     CID_MAX = 32,
+    MUTES_MAX = 200,            -- names one player mutes; past it the list is refused
+    MUTE_MS = 2000,
 }
 
 -- one line: a username, a subject. nil if not words, empty after trimming, or longer than max

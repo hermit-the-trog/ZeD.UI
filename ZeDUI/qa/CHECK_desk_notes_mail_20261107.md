@@ -118,3 +118,56 @@ Run from the repo root with Lua 5.1: `lua51 ZeDUI/tools/qa/<sim>.lua`.
    sent") and a Messages note. A modem sound, or a small "connecting" strip on join?
 4. **Mail's name**: CletusWorks has its joke; Mail is plain "Mail". A period name for it?
 5. **Notes sync**: notes are per computer. Should the sticky also be readable in game (the Journal, or the desk)?
+
+## Round two: the director's answers (Nov 7 2026)
+
+Questions 1 to 5 above are answered and built. To stays a typed name, and the sticky note stays on the desk only.
+
+- **The name: "ProtoPOP3 Mail"** on the desktop icon ("ProtoPOP3 Mail (2)" with unread letters), the window's title and
+  the ZeD menu. The in-game cards keep the short word Mail.
+- **Report** (in game, on a received letter's card): Report asks first in the foot and lands on Cancel ("Send this
+  letter to the admins? They will read it."). It files a ticket through ZeD's own tickets (`ZeD.Tickets.ask`, kind
+  Griefing). The ticket's text names the sender and the subject, and the letter goes as the report's lines (the
+  sender named, the words in 300-character pieces, so all 2,000 characters fit in the 11 lines). It is logged like any
+  report: the ticket kind with the sender as the target. The words reach staff only because the player chose this.
+  Report is gray, with its reason, on returned mail and on a server whose tickets keep no reports (no server part, a
+  frozen table, a part from before Phase 5). The game's own tickets are public, so the words never go there. At the
+  desk there is no Report: nothing can be sent from the main menu.
+- **Mute**: ZeD's mute list was the player's alone (ZeD_Chat.lua: "the server never hears of it"). Mail now hands it
+  to the mail part: with the dial-in, before anything comes down, and again at every Mute or Unmute while on (`p_mute`,
+  the whole list, at most 200 names). A letter to someone who muted the sender is not delivered, and the sender gets
+  the same ok, with the same fields, as for any letter, so nothing tells them. Letters already waiting from a newly
+  muted player go. The list sits in the secret table and is never logged.
+- **The dial-in**: a short modem handshake made here by `ZeDUI/tools/sound/make_modem.py`. It uses numpy only: a dial
+  tone, seven DTMF digits, the 2100 Hz answer tone with its phase reversals, a chirp, alternating tones, then filtered
+  noise for the training. No recording from anywhere. It is 4 s, mono 22,050 Hz 16-bit PCM, `media/sound/ZeD_modem.wav`
+  (176 kB), a plain .wav like the game's own clips. `media/scripts/ZeD_Sounds.txt` names it `ZeDModemDial` in the UI
+  category, so it plays on the game's UI volume through `playUISound`. It plays once a connection, when the dial-in
+  starts. When the server answers, "Connecting... sending N, receiving M" goes over the head as a ZeD bubble note
+  (`ZeD.Bubbles.note`) and into Messages' log of over-head notes (`ZeD.Messages.halo`). ZeD shipped no sound of its own
+  before this.
+- **Documents**: notes no longer sit on the desktop one icon each. One Documents folder icon, a lilac folder with two
+  pages baked like the rest, opens a ZeD window. It lists every note, newest saved first, with its name and the date
+  saved. The band holds Rename (a field), Delete (asks, lands on Cancel) and Open (the main one, into CletusWorks,
+  which asks "Save changes?" first). Its line counts "N of 24 notes". CletusWorks' Open goes to the same list, and
+  closing it returns to CletusWorks. A note renamed there is renamed in CletusWorks too. The desktop's left column is
+  now the sticky, CletusWorks, ProtoPOP3 Mail and Documents. `note.png` is still baked and no longer drawn.
+- **Caps**: 24 notes. One note holds 20,000 characters; the box takes no more (`setMaxTextLength`), and at the limit
+  the band says "Full: a note holds 20000 characters." Files edited on disk cannot get round either cap:
+  - the index is read only for ids 1 to 24 and at most 24 notes, however many lines are planted;
+  - a note's file is read no further than 20,000 characters (an oversized one reads as cut there);
+  - the sticky's file stops at 600 characters and the draft's at 20,000.
+
+New words: 12 keys in all 28 languages, plus two changed values (the app's icon name, Open's help).
+
+**Sims after round two (all pass):** desk_notes_sim 63, desk_sim 120, mail_sim 98, mail_cards_sim 5,032, plus the shared
+MP sims and the i18n guard.
+
+**For QA in game, added:** the modem plays through the game's UI volume and only once a connection, and the .wav loads
+from the mod's folder (`file = media/sound/...` in a mod's script). The connecting note over the head on a real join. A
+reported letter on the staff ticket card: its Reported row shows the letter as "the chat around the line" (the frame's
+words for a report), which reads oddly. Mute and Unmute while on, and a muted sender seeing nothing.
+
+**A design question, from round two:** the staff ticket card labels a reported letter's lines with the chat report's
+words ("the chat around it"). Should a letter's report get its own label ("the reported letter")? That would change
+the ticket cards, which are another part's.

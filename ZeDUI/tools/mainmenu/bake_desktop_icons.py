@@ -16,7 +16,8 @@ Writes 42/media/textures/ZeD/mainmenu/icons/<name>.png:
   uploader  the Mod Uploader (the Workshop window: the Mods folder with an up arrow)
   cletusworks  CletusWorks, the notepad (a page of handwriting and a pencil)
   note      a CletusWorks document on the desktop (a page of typed lines)
-  mail      Mail (an envelope and its stamp under a modem's waves)
+  mail      ProtoPOP3 Mail (an envelope and its stamp under a modem's waves)
+  documents Documents (the lilac folder with two pages showing: the notepad's notes)
 
 Usage:  py ZeDUI/tools/mainmenu/bake_desktop_icons.py [--sheet out.png]
 """
@@ -335,9 +336,26 @@ def icon_mail():
     return ic
 
 
+def icon_documents():
+    """the Documents folder (the director, Nov 7 2026: one folder holds the notes): the Mods icon's lilac folder, two
+    typed pages standing up out of it"""
+    ic = Icon()
+    ic.box(8, 3, 22, 18, W)                       # the back page
+    for y in (6, 8, 10):
+        ic.hline(10, 20, y, M)
+    ic.box(11, 6, 26, 20, W)                      # the front page
+    for y in (9, 11, 13, 15):
+        ic.hline(13, 24 if y != 15 else 20, y, M)
+    ic.box(3, 12, 13, 16, F)                      # the folder's tab, then its body over the pages
+    ic.box(3, 15, 28, 28, F)
+    ic.hline(4, 12, 13, W); ic.hline(4, 27, 16, W)
+    ic.rect(4, 25, 27, 27, FD)
+    return ic
+
+
 ICONS = {"pz": icon_pz, "newgame": icon_newgame, "load": icon_load, "join": icon_join,
          "options": icon_options, "mods": icon_mods, "trash": icon_trash, "computer": icon_computer,
-         "uploader": icon_uploader, "cletusworks": icon_cletusworks, "note": icon_note, "mail": icon_mail}
+         "uploader": icon_uploader, "cletusworks": icon_cletusworks, "note": icon_note, "mail": icon_mail, "documents": icon_documents}
 
 
 def main():

@@ -137,8 +137,16 @@ check("the draft is gone", N.draft() == nil)
 check("its words on disk", DISK[N.fileOf(1)] == "Kentucky run:\n1. Muldraugh\n2. the gas station\n")
 MM.showView("desktop")
 D.frame()
-check("its icon on the desktop", D.cell("note:1") ~= nil, ids())
-check("the icon is the document picture", D.cell("note:1") and D.cell("note:1").item.icon == "note")
+check("no icon of its own on the desktop (the director: one Documents folder)", D.cell("note:1") == nil, ids())
+check("the Documents folder is on the desktop", D.cell("documents") ~= nil and D.cell("documents").item.label == "UI_ZeD_Desk_Documents")
+root.icons:open("documents"); D.frame()
+local dw = root.docsWin
+check("the folder opens the Documents window", MM.view == "docs" and dw.title == "UI_ZeD_Desk_Documents")
+check("it lists the note, picked", D.spec(dw, "row:1") ~= nil and dw.sel == 1)
+check("its count against the cap", dw._ask == "UI_ZeD_Desk_DocsCount(1," .. N.MAX .. ")", dw._ask)
+check("Open, Rename, Delete in its band", D.spec(dw, "open") and D.spec(dw, "rename") and D.spec(dw, "delete"))
+dw:close(); D.frame()
+check("closing it goes back to the desktop", MM.view == "desktop")
 
 -- ---------------------------------------------------------------------------
 section("CletusWorks: leaving unsaved words")
@@ -161,24 +169,27 @@ np:close(); D.frame()
 check("the close box asks too", np.confirm == "unsaved")
 D.press(np, "confirm:yes")
 check("Save then closes", MM.view == "desktop" and N.count() == 2)
-D.frame()
-check("two icons", D.cell("note:1") and D.cell("note:2"), ids())
--- opening an icon while another page has unsaved words
-root.icons:open("note:2"); D.frame()
+-- opening a note from Documents while CletusWorks has unsaved words
+MM.openNote(2); D.frame()
 np.edit:type(" more")
-MM._noteWant = nil
-root.icons:open("note:1"); D.frame()
-check("an icon opened over unsaved words asks first", np.confirm == "unsaved" and np.doc.id == 2)
+MM.openDocs(); D.frame()
+dw.sel = 1
+D.press(dw, "open")
+check("a note opened over unsaved words asks first", MM.view == "notepad" and np.confirm == "unsaved" and np.doc.id == 2)
 D.press(np, "confirm:yes")
-check("Save, then the icon's page", np.doc.id == 1 and N.read(2) == "second page more", N.read(2))
+check("Save, then the note asked for", np.doc.id == 1 and N.read(2) == "second page more", N.read(2))
 
 -- ---------------------------------------------------------------------------
-section("CletusWorks: open, rename, delete")
+section("CletusWorks and Documents: open, rename, delete")
 D.press(np, "open")
-check("Open lists the desktop's notes", MM.popup and MM.popup.key == "notes" and #MM.popup.items == 2)
-check("the page open is ticked", MM.popup.items[1].check == true)
-MM.popup.items[2].fn()
-check("a pick opens that page", np.doc.id == 2)
+check("CletusWorks' Open is the Documents list", MM.view == "docs")
+check("newest saved first", D.spec(dw, "row:2") ~= nil)
+dw.sel = 2
+D.press(dw, "open")
+check("its Open opens that page in CletusWorks", MM.view == "notepad" and np.doc.id == 2)
+D.press(np, "open")
+dw:close(); D.frame()
+check("closing the list from CletusWorks goes back to it", MM.view == "notepad")
 D.press(np, "rename")
 D.frame()
 check("Rename puts a field in the band", np.confirm == "rename" and np.renameEntry:isVisible())
@@ -192,20 +203,34 @@ np.renameEntry:setText("Server list")
 D.frame()
 D.press(np, "confirm:yes")
 check("renamed", N.get(2).name == "Server list" and np.doc.name == "Server list" and np.confirm == false)
-MM.showView("desktop"); D.frame()
-check("the icon reads the new name", D.cell("note:2") and D.cell("note:2").item.label == "Server list")
-MM.showView("notepad"); D.frame()
+-- rename in Documents too, and CletusWorks follows it
+MM.openDocs("notepad"); D.frame()
+dw.sel = 2
+D.press(dw, "rename")
+check("Documents' Rename puts a field in its band", dw.confirm == "rename" and dw.renameEntry:isVisible() and dw.focusId == "confirm:no")
+dw.renameEntry:setText("Servers"); D.frame()
+D.press(dw, "confirm:yes")
+check("renamed from Documents", N.get(2).name == "Servers")
+dw:close(); D.frame()
+check("CletusWorks reads the new name", np.doc.name == "Servers")
 D.press(np, "delete")
 D.frame()
-check("Delete asks", np.confirm == "delete" and np._ask == "UI_ZeD_Desk_AskDelete(Server list)")
+check("Delete asks", np.confirm == "delete" and np._ask == "UI_ZeD_Desk_AskDelete(Servers)")
 check("and lands on Cancel", np.focusId == "confirm:no")
 D.press(np, "confirm:yes")
-check("deleted: gone from the desktop, a new page open", N.get(2) == nil and np.doc.id == nil)
-MM.showView("desktop"); D.frame()
-check("its icon is gone", D.cell("note:2") == nil, ids())
+check("deleted, a new page open", N.get(2) == nil and np.doc.id == nil)
+MM.openDocs(); D.frame()
+dw.sel = 1
+D.press(dw, "delete")
+check("Documents' Delete asks and lands on Cancel", dw.confirm == "delete" and dw.focusId == "confirm:no" and dw._ask == "UI_ZeD_Desk_AskDelete(" .. N.get(1).name .. ")")
+D.press(dw, "confirm:no")
+check("Cancel keeps it", N.get(1) ~= nil)
+D.press(dw, "delete"); D.press(dw, "confirm:yes")
+check("deleted from Documents", N.get(1) == nil and N.count() == 0 and D.spec(dw, "open").disabled == true)
+dw:close(); D.frame()
 
 -- ---------------------------------------------------------------------------
-section("CletusWorks: the desktop full, the columns")
+section("CletusWorks: the cap of 24, a full note")
 while not N.full() do N.create(N.freshName("n")) end
 MM.showView("desktop"); D.frame()
 local maxX = 0
@@ -215,10 +240,16 @@ end
 check("the left side never reaches the right column", maxX < right.x, maxX .. " vs " .. right.x)
 local lefts = 0
 for _, c in ipairs(root.icons._cells) do if c.left then lefts = lefts + 1 end end
-check("several columns of files", lefts > 6, lefts)
+check("24 notes still make only the four left items", lefts == (MAIL and 4 or 3), lefts)
+MM.openDocs(); D.frame()
+check("Documents lists all 24", D.spec(dw, "row:24") ~= nil and D.spec(dw, "row:25") == nil)
 MM.showView("notepad"); D.frame()
 D.press(np, "new")
-np.edit:type("one too many")
+np.edit:type(string.rep("z", N.TEXT_MAX + 30))
+D.frame()
+check("the page's box stops at TEXT_MAX", #np.edit:getText() == N.TEXT_MAX and np.edit.maxLen == N.TEXT_MAX)
+check("a full page says so in the band", np._ask == "UI_ZeD_Desk_NoteFull(" .. N.MAX * 0 + N.TEXT_MAX .. ")", np._ask)
+np.edit:setText("one too many")
 D.press(np, "save")
 D.frame()
 check("a full desktop says so in the band", np._ask == "UI_ZeD_Desk_Full(" .. N.MAX .. ")", np._ask)
@@ -245,7 +276,7 @@ local items = MM.menuItems("zed")
 local found = {}
 for _, it in ipairs(items) do if type(it) == "table" and it.text then found[it.text] = it end end
 check("CletusWorks Notepad in the ZeD menu", found["UI_ZeD_Desk_NotepadTitle"] ~= nil)
-if MAIL then check("Mail in the ZeD menu", found["UI_ZeD_Mail_Title"] ~= nil) end
+if MAIL then check("Mail in the ZeD menu", found["UI_ZeD_Mail_AppName"] ~= nil) end
 check("the About block stays first", items[1].about == true)
 
 -- ---------------------------------------------------------------------------
@@ -255,7 +286,7 @@ if MAIL then
     root.icons:open("mail")
     D.frame()
     check("the Mail icon opens its window", MM.view == "mail" and mw ~= nil)
-    check("the window's title", mw.title == "UI_ZeD_Mail_Title")
+    check("the window's title", mw.title == "UI_ZeD_Mail_AppName")
     check("no mailbox: New letter is gray and says how mail comes", D.spec(mw, "new").disabled == true and D.spec(mw, "new").help == "UI_ZeD_Mail_NoBoxesHow")
     check("the band says so", mw._ask == "UI_ZeD_Mail_NoBoxes")
 

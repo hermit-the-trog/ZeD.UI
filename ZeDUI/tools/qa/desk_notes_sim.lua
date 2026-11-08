@@ -171,6 +171,31 @@ check("the first of a doubled id wins", N.get(5) and N.get(5).name == "Good one"
 DISK[N.INDEX_FILE] = nil
 restart()
 check("no index: an empty desktop, no error", N.count() == 0)
+section("files edited on disk cannot get round the caps")
+local idx = { N.HEADER }
+for i = 1, 60 do idx[#idx + 1] = tostring(i) .. "|1|planted " .. i end
+DISK[N.INDEX_FILE] = table.concat(idx, "\n") .. "\n"
+restart()
+check("never more than 24 notes read, however many lines", N.count() == N.MAX, N.count())
+check("no slot past 24 is ever read", (function() for _, n in ipairs(N.list()) do if n.id > N.MAX then return false end end return true end)())
+DISK[N.INDEX_FILE] = N.HEADER .. "\n25|1|slot 25\n40|1|slot 40\n3|1|three\n"
+restart()
+check("ids past 24 in the index are skipped", N.count() == 1 and N.get(3) ~= nil)
+DISK[N.fileOf(3)] = string.rep("q", N.TEXT_MAX * 3) .. "\nmore\n"
+check("an oversized note file reads as cut at TEXT_MAX", #N.read(3) == N.TEXT_MAX)
+DISK[N.STICKY_FILE] = string.rep("s", 5000) .. "\n"
+restart()
+check("an oversized sticky reads as cut at STICKY_MAX", #N.sticky() == N.STICKY_MAX)
+DISK[N.DRAFT_FILE] = "0|big\n" .. string.rep("d", N.TEXT_MAX * 2) .. "\n"
+restart()
+check("an oversized draft reads as cut", N.draft() and #N.draft().text == N.TEXT_MAX)
+check("a full desktop still refuses a 25th after planted lines", (function()
+    DISK[N.INDEX_FILE] = table.concat(idx, "\n") .. "\n"
+    restart()
+    local n, why = N.create("x")
+    return n == nil and why == "full"
+end)())
+
 getFileReader = function() error("disk gone") end
 restart()
 check("a reader that throws: an empty desktop", N.count() == 0 and N.sticky() == "")
