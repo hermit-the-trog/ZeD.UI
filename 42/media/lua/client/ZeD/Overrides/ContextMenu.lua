@@ -1,24 +1,17 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/ContextMenu.lua
 -- ============================================================================
--- CONTEXT MENU HOOK (S88 — rev 2)
+-- CONTEXT MENU OVERRIDE (client)
 --
--- Replaces vanilla ISContextMenu rendering with the ZeD_ContextMenu organism
--- WITHOUT touching the vanilla data model.
+-- Swaps vanilla ISContextMenu rendering for the ZeD_ContextMenu organism
+-- without touching the vanilla data model — the OnFill* events still fire
+-- exactly as vanilla expects, so third-party mods keep populating options.
 --
--- Critical vanilla finding (rev 2): the top-level ISContextMenu is a per-player
+-- The one thing to know: the top-level ISContextMenu is a per-player
 -- SINGLETON cached via getPlayerContextMenu(player). It's added to UIManager
--- ONCE at first use and then reused across RMBs — setVisible(true/false) is
--- the show/hide signal, NOT addToUIManager. So we hook prerender + clear:
---
---   - clear()     → reset _zedSpawned (the per-RMB reset signal; called inside
---                   ISContextMenu.get at the start of each menu open)
---   - prerender() → if options are populated and not yet spawned, build the
---                   ActionDef tree and spawn ZeD_ContextMenu, then move the
---                   vanilla menu offscreen so it never draws. Skip orig
---                   prerender entirely to suppress the vanilla slide anim.
---
--- OnFillWorld/InventoryObjectContextMenu events still fire exactly as
--- vanilla expects, so third-party mods continue to populate options.
+-- ONCE at first use and then reused across right-clicks — setVisible is the
+-- show/hide signal, NOT addToUIManager. So the hooks live in clear() (the
+-- per-right-click reset) and prerender() (first populated frame spawns the
+-- ZeD menu and parks vanilla offscreen).
 -- ============================================================================
 
 require "ISUI/ISContextMenu"
@@ -40,10 +33,10 @@ require "ZeD/SafeMode"
 -- anchor path (focused-row / player-iso), which silently failed to resolve
 -- and dropped the menu to dock-bottom (mid-screen) instead of at the cursor.
 --
--- ZeD.Input.Detector tracks the last-active input device (Jibb Smart rule:
--- mouse CLICKS count as KBM, mouse MOVES don't), so it's the authoritative
--- answer to "which device just triggered this menu?". Defensive nil-chain
--- in case Detector hasn't loaded yet on some early frame.
+-- ZeD.Input.Detector tracks the last-active input device (mouse CLICKS count
+-- as KBM, mouse MOVES don't), so it's the authoritative answer to "which
+-- device just triggered this menu?". Defensive nil-chain in case Detector
+-- hasn't loaded yet on some early frame.
 local function _isGamepadActive()
     local D = ZeD and ZeD.Input and ZeD.Input.Detector
     -- a mouse button went down a moment ago: this menu is the mouse's (a
@@ -70,12 +63,12 @@ local function _playerScreenAnchor(player)
 end
 
 -- Compute the screen anchor for a gamepad-opened inventory context menu.
--- S101: now prefers the ring's live focused element over yMap lookup. The
--- yMap path was fragile — an item could be in items[] but NOT in yMap (off-
--- screen, collapsed-category, or stamp-timing edge cases in non-Loot tabs)
--- which silently dropped the menu to dock-bottom. Reading the focused
--- element's bounds from FocusManager is the authoritative "where is the
--- gamepad cursor right now" and works regardless of render timing.
+-- Prefers the ring's live focused element over yMap lookup. The yMap path
+-- was fragile — an item could be in items[] but NOT in yMap (off-screen,
+-- collapsed-category, or stamp-timing edge cases in non-Loot tabs) which
+-- silently dropped the menu to dock-bottom. Reading the focused element's
+-- bounds from FocusManager is the authoritative "where is the gamepad
+-- cursor right now" and works regardless of render timing.
 --
 -- Order of preference:
 --   1. Focused window's focused zone is charMainInv / worldMainInv → use
@@ -94,7 +87,7 @@ local function _invRowScreenAnchor(items)
             local el  = Focus.getFocusedElement(focWin)
             local cnt = focWin._mainContent
             if el and cnt then
-                local rowH = (ZeD.T and ZeD.T.rowH) or 26  -- S124 scale: T.rowH is pre-scaled; 26 only runs before ZeD.T exists (no T.px then)
+                local rowH = (ZeD.T and ZeD.T.rowH) or 26  -- T.rowH is pre-scaled; the bare 26 only runs before ZeD.T exists
                 -- el.x may be 0 (invrow focusables zero X). Use panel width
                 -- center for the X anchor so the bubble centers on the panel.
                 local ax = cnt:getAbsoluteX() + math.floor(cnt:getWidth() / 2)
@@ -102,9 +95,9 @@ local function _invRowScreenAnchor(items)
                 return ax, ay
             end
         end
-        -- S106: MC zone anchor. Elements carry real x + w per column (cs.renderX
+        -- Multi-column zones: elements carry real x + w per column (cs.renderX
         -- + cs.renderW), so center on the column, not the panel. y is the
-        -- per-row stamp (or rowH fallback) from the MC builder.
+        -- per-row stamp (or rowH fallback) from the multi-column builder.
         if zid == "charLootMCColumns" or zid == "worldLootMCColumns" then
             local el  = Focus.getFocusedElement(focWin)
             local cnt = focWin._mainContent
@@ -179,9 +172,9 @@ function ISWorldObjectContextMenu.createMenu(player, worldobjects, x, y, test)
     local menu = origWorldCreateMenu(player, worldobjects, x, y, test)
     if menu and not test then
         menu._zedTarget = worldobjects
-        -- S99: gamepad anchors at the PLAYER's screen position for world
-        -- objects (instead of dock-bottom). Falls back to dock if we can't
-        -- resolve the player's screen coords.
+        -- Gamepad anchors at the PLAYER's screen position for world objects
+        -- (instead of dock-bottom). Falls back to dock if we can't resolve
+        -- the player's screen coords.
         if _isGamepadActive() then
             local px, py = _playerScreenAnchor(player)
             if px and py then
@@ -207,9 +200,9 @@ function ISWorldObjectContextMenu.createMenu(player, worldobjects, x, y, test)
 end
 
 -- ---------------------------------------------------------------------------
--- INVENTORY RMB PATH — same pattern.
--- S99: gamepad anchors at the selected item's screen row (instead of
--- dock-bottom). Falls back to dock if we can't resolve the row position.
+-- INVENTORY RMB PATH — same pattern. Gamepad anchors at the selected item's
+-- screen row (instead of dock-bottom). Falls back to dock if we can't
+-- resolve the row position.
 -- ---------------------------------------------------------------------------
 local origInvCreateMenu = ISInventoryPaneContextMenu.createMenu
 function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y, origin)
@@ -281,8 +274,8 @@ function ISContextMenu:prerender()
         return
     end
 
-    -- (ZeD's menu could not be made for this right-click: vanilla's menu shows, as it is,
-    -- until the next right-click clears the flag; code audit Oct 17 2026)
+    -- ZeD's menu could not be made for this right-click: vanilla's menu
+    -- shows, as it is, until the next right-click clears the flag.
     if self._zedFailed then return origPrerender(self) end
 
     if self._zedSpawned then
@@ -337,7 +330,7 @@ function ISContextMenu:prerender()
     local anchorX    = self._zedAnchorX or self:getX()
     local anchorY    = self._zedAnchorY or self:getY()
 
-    -- the ZeD option "Context menu": the icon strip or the list (Oct 19 2026)
+    -- The ZeD setting "Context menu" picks the shape: the icon strip or the list.
     local styleOpt = ZeD.Settings and ZeD.Settings.contextStyleOption
     local okS, style = pcall(function() return styleOpt and styleOpt:getValue() end)
     local Cls = (okS and style == 2 and ZeD_ContextList) or ZeD_ContextMenu
@@ -356,7 +349,7 @@ function ISContextMenu:prerender()
     else
         -- If the ZeD organism failed to construct, fall back to vanilla so
         -- the player at least has a functioning context menu. Log the error
-        -- so closeout can capture it for PZAPI-KNOWLEDGE-BANK if recurring.
+        -- once so a recurring failure leaves a trace in the console.
         ZeD.logOnce("ContextMenu organism spawn failed", menuOrErr)
         self._zedFailed = true
         return origPrerender(self)

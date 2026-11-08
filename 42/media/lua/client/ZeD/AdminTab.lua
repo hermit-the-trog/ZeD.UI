@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/AdminTab.lua
 -- ============================================================================
--- THE ADMIN TAB (ZeDUI/MP_ADMIN_SCOPE.md, Phase 2; the drawing is mockups/zed_admin_tools_v1.html)
+-- THE ADMIN TAB — client; an organism.
 -- In the World window, for admins only (the game's own test: the role has an admin tool), on a server only. One list:
 --   TICKETS        the summary, as drawn; its row opens the queue (ZeD_TicketCards.lua: filters, Find, rows, pages) on a
 --                  screen of its own behind st.screen, and a ticket card on top of that behind st.card
@@ -285,8 +285,8 @@ local function backToTab(win, st)
     ZeD.TicketCards._D.focusId(win, st, "adm:tk:sum:tickets")
 end
 
--- a card asked for from outside the tab. what: { kind = "osafe" | "ofac", obj } or { kind = "pstats" | "pinv", user, oid }.
--- True once the tab shows; false if it can't (not staff, the window away): the caller then opens the game's window
+--- A card asked for from outside the tab. what: { kind = "osafe" | "ofac", obj } or { kind = "pstats" | "pinv", user, oid }.
+--- True once the tab shows; false if it can't (not staff, the window away): the caller then opens the game's window.
 function A.openNext(what, playerNum)
     if not A.visible() or not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
     A.next = what
@@ -387,7 +387,7 @@ function A.render(panel, win, x, y, w, h)
     if lineH > 0 then TC._D.drawFootLine(panel, x, y + h - lineH, w, lineH, lineWords) end
     TC.endList(panel, win, st, sy, sy + sh)
     -- (...and that clip comes off here: the tab ends with the clips it started with. One left on
-    -- hid the window's tab strip and footer, as the Ranch page did; punch list 95)
+    -- hides the window's tab strip and footer.)
     panel:clearStencilRect()
 end
 
