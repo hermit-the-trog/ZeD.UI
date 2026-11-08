@@ -11,11 +11,15 @@
 --            switch names WO; ZeD.Safe.on("charinfo") true, the other screens ZeD's
 --   SEVEN    the seven hand back nothing (and with ZeD's supported list emptied, only the ones that really replace a
 --            page's drawing are found, which is why ZeD supports them)
---   FAKE     a mod replacing the inventory: only the inventory handed back; a mod that wraps and calls the originals:
---            nothing
+--   FAKE     a mod replacing the inventory (every core function of ISInventoryPage): only the inventory handed back;
+--            a mod that wraps and calls the originals: nothing
+--   ADDS     the review's false positives, none of which may hand anything back: one copied function (the inventory's
+--            createChildren alone, logged for QA as partial), a copy-edited ISCharacterInfoWindow:createChildren adding
+--            a tab, originals kept in a table (hooks.render(self)), originals named vanilla / og / default
+--            (MyMod.vanilla.render), a hook library's wrapper, an inline function in the first statement
 --   ORDER    Wounds Overhaul loaded BEFORE ZeD (the director, Nov 7 2026: "Either order"): the same hand-back
---   STICK    unticking the switch takes the screen back and it holds over the next start; a changed mod set asks
---            again; WO gone gives the screen back to ZeD
+--   STICK    unticking the switch takes the screen back and it holds over the next start and when an unrelated mod is
+--            added; WO gone gives the screen back to ZeD; WO back asks again
 --   READ     the file reading on its own: wrapper shapes (local orig, field copy, "if orig then orig(self) end",
 --            pcall(orig, ...), a helper's wrapped) are wrapping; a body with no call through is replacing
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/step_aside_sim.lua
@@ -36,7 +40,8 @@ local function check(name, ok, detail)
 end
 local rawPrint = print
 local QUIET = true
-print = function(s) if not QUIET or not tostring(s):find("^%[") then rawPrint(s) end end
+local LOGS = {}
+print = function(s) LOGS[#LOGS + 1] = tostring(s); if not QUIET or not tostring(s):find("^%[") then rawPrint(s) end end
 
 local function readFile(p)
     local f = io.open(p, "rb")
@@ -289,6 +294,7 @@ function ISVehicleDashboard:createChildren() end
 function ISVehicleDashboard:prerender() end
 function ISVehicleDashboard:render() end
 ISRadialMenu = ISPanel:derive("ISRadialMenu")
+function ISRadialMenu:new() end
 function ISRadialMenu:instantiate() end
 function ISRadialMenu:addSlice() end
 ISTimedActionQueue = { add = function() end }
@@ -452,6 +458,12 @@ function ISInventoryPage:createChildren()
         for i = 1, 3 do self.fakeGrid[i] = i end
     end
 end
+function ISInventoryPage:prerender()
+    self:drawRect(0, 0, self.width, self.height, 1, 0, 0, 0)
+end
+ISInventoryPage.render = function(self)
+    for _, c in ipairs(self.fakeGrid or {}) do self:drawText(tostring(c), 0, 0, 1, 1, 1, 1) end
+end
 ]]
 FAKE_SRC[MODS.FakeWrapper.dir .. "/42/media/lua/client/FakeWrapper.lua"] = [[
 local originalRender = ISInventoryPage.render
@@ -533,12 +545,17 @@ check("STICK: it holds at the next start", handedBack() == "" and OPTS.charinfo.
 -- the mod set changes: asked again
 start(before(BASE, "WoundsOverhaul", "LaterMod"))
 ZeD.StepAside.check()
-check("STICK: a changed mod set hands it back again", handedBack() == "charinfo" and #NOTES == 1, handedBack())
+check("STICK: an unrelated mod added does not take it again", handedBack() == "" and #NOTES == 0, handedBack())
 -- WO gone: ZeD's again, without a word
 start(before(BASE, "LaterMod"))
 ZeD.StepAside.check()
 check("STICK: WO gone gives the screen back to ZeD", handedBack() == "" and OPTS.charinfo.selected == 1 and #NOTES == 0, handedBack())
 check("STICK: and the record forgets it", not FILES["ZeD_step_aside.txt"]:find("charinfo", 1, true), FILES["ZeD_step_aside.txt"])
+start(before(BASE, "WoundsOverhaul"))
+ZeD.StepAside.check()
+check("STICK: WO back asks again", handedBack() == "charinfo" and #NOTES == 1, handedBack())
+OPTS.charinfo.selected = 1
+FILES = {}
 -- a switch the player ticked themselves is never unticked by ZeD
 OPTS.belt.selected = 2
 start(before(BASE))
@@ -609,7 +626,7 @@ FILES = {}
 start(before(BASE, "FakeInventory"))
 local ff = ZeD.StepAside.check()
 check("FAKE: replacing the inventory hands back only the inventory", handedBack() == "windows", handedBack())
-check("FAKE: found by ISInventoryPage:createChildren", ff.windows and ff.windows.why == "ISInventoryPage:createChildren", ff.windows and ff.windows.why)
+check("FAKE: found by every core function", ff.windows and ff.windows.why == "ISInventoryPage:createChildren+prerender+render", ff.windows and ff.windows.why)
 check("FAKE: the notice names it", NOTES[1] and NOTES[1].text:find("Fake Inventory", 1, true) and NOTES[1].text:find("inventory windows", 1, true), NOTES[1] and NOTES[1].text)
 -- everything at once, in load order after ZeD
 FILES = {}
@@ -623,6 +640,96 @@ ZeD.StepAside.check()
 check("ALL: WO and the fake inventory, nothing else", handedBack() == "windows,charinfo" and #NOTES == 2, handedBack())
 
 -- ---------------------------------------------------------------------------
+print("-- ADDS: mods that only add never cost a ZeD screen")
+-- ---------------------------------------------------------------------------
+local function adds(name, src, wantLog)
+    FILES = {}
+    for _, s in ipairs(SCREENS) do OPTS[s].selected = 1 end
+    local p = MODS.FakeInventory.dir .. "/42/media/lua/client/FakeInventory.lua"
+    local keepSrc = FAKE_SRC[p]
+    FAKE_SRC[p] = src
+    start(before(BASE, "FakeInventory"))
+    local n0 = #LOGS
+    ZeD.StepAside.check()
+    check("ADDS: " .. name .. ": nothing handed back, no notice", handedBack() == "" and #NOTES == 0, handedBack())
+    if wantLog then
+        local logged = false
+        for i = n0 + 1, #LOGS do if LOGS[i]:find("^%[ZeD%] Step aside: partial") then logged = true end end
+        check("ADDS: " .. name .. ": one line for QA", logged)
+    end
+    FAKE_SRC[p] = keepSrc
+end
+adds("one copied function (the inventory's createChildren)", "function ISInventoryPage:createChildren()\n    self.mine = true\nend\n", true)
+adds("a copy-edited createChildren adding a tab", [=[
+function ISCharacterInfoWindow:createChildren()
+    self.panel = ISTabPanel:new(0, 0, 400, 400)
+    self:addChild(self.panel)
+    self.charScreen = ISCharacterScreen:new(0, 8, 400, 250, self.playerNum)
+    self.panel:addView(getText("IGUI_XP_Info"), self.charScreen)
+    self.characterView = ISCharacterInfo:new(0, 8, 400, 400, self.playerNum)
+    self.panel:addView(getText("IGUI_XP_Skills"), self.characterView)
+    self.healthView = ISHealthPanel:new(getSpecificPlayer(self.playerNum), 0, 8, 400, 400)
+    self.panel:addView(getText("IGUI_XP_Health"), self.healthView)
+    self.protectionView = ISCharacterProtection:new(0, 8, 400, 400, self.playerNum)
+    self.panel:addView(getText("IGUI_XP_Protection"), self.protectionView)
+    self.clothingView = ISClothingInsPanel:new(getSpecificPlayer(self.playerNum), 0, 8, 400, 400)
+    self.panel:addView(getText("IGUI_XP_ClothingIns"), self.clothingView)
+    MyTabPanel = ISPanel:derive("MyTabPanel")
+    self.myView = MyTabPanel:new(0, 8, 400, 400)
+    self.panel:addView("My tab", self.myView)
+end
+]=], true)
+adds("originals kept in a table", [=[
+local hooks = { createChildren = ISInventoryPage.createChildren, prerender = ISInventoryPage.prerender, render = ISInventoryPage.render }
+function ISInventoryPage:createChildren() hooks.createChildren(self); self.extra = 1 end
+function ISInventoryPage:prerender()
+    hooks.prerender(self)
+end
+function ISInventoryPage:render()
+    hooks.render(self)
+end
+]=])
+adds("originals named vanilla, og and default", [=[
+MyMod = { vanilla = {} }
+MyMod.vanilla.createChildren = ISInventoryPage.createChildren
+local og, default_prerender = ISInventoryPage.render, ISInventoryPage.prerender
+function ISInventoryPage:createChildren()
+    MyMod.vanilla.createChildren(self)
+end
+function ISInventoryPage:prerender()
+    default_prerender(self)
+end
+function ISInventoryPage:render()
+    og(self)
+end
+]=])
+adds("a hook library", [=[
+HookLib = {}
+function HookLib.wrap(c, n, fn)
+    local old = c[n]
+    c[n] = function(self, ...) return fn(old, self, ...) end
+end
+for _, n in ipairs({ "createChildren", "prerender", "render" }) do
+    HookLib.wrap(ISInventoryPage, n, function(orig, self) orig(self) end)
+end
+]=])
+adds("an inline function in the first statement", [=[
+local oc, op, orr = ISInventoryPage.createChildren, ISInventoryPage.prerender, ISInventoryPage.render
+local o1 = ISInventoryPage.createChildren
+local o2 = ISInventoryPage.prerender
+local o3 = ISInventoryPage.render
+function ISInventoryPage:createChildren() local cb = function() return 1 end
+    o1(self)
+end
+function ISInventoryPage:prerender() local cb = function() return 2 end
+    o2(self)
+end
+function ISInventoryPage:render() local cb = function() return 3 end
+    o3(self)
+end
+]=])
+
+-- ---------------------------------------------------------------------------
 print("-- READ: the file reading on its own")
 -- ---------------------------------------------------------------------------
 local function shape(name, src, cls, method, wantReplace, unreadable)
@@ -633,9 +740,7 @@ local function shape(name, src, cls, method, wantReplace, unreadable)
     FAKE_SRC[p] = src
     start(before(BASE, "FakeInventory"))
     if unreadable then FAKE_SRC[p] = nil end
-    local f = ZeD.StepAside.detect()
-    local hit = false
-    for _, x in pairs(f) do if x.why == cls .. ":" .. method then hit = true end end
+    local hit = ZeD.StepAside._replaced(cls, method)
     check("READ: " .. name, hit == wantReplace, hit and "found" or "not found")
     FAKE_SRC[p] = keepSrc
 end
@@ -648,8 +753,11 @@ shape("a dynamic name: unsure, so not replacing", "for _, k in ipairs({'render'}
 shape("a long string holding end", "local s = [[ end end ]]\nfunction ISHotbar:render()\n  local t = 'end'\nend\n", "ISHotbar", "render", true)
 shape("an unreadable file: not replacing", "function ISHotbar:render()\nend\n", "ISHotbar", "render", false, true)
 shape("the same, readable: replacing", "function ISHotbar:render()\nend\n", "ISHotbar", "render", true)
--- a function the game never had: nothing of the game's is stopped
-shape("a function the game never had", "function ISHotbar:prerender()\nend\n", "ISHotbar", "prerender", false)
+shape("an inline function in the first statement", "local origR = ISHotbar.render\nfunction ISHotbar:render() local cb = function() return 1 end\n    origR(self)\nend\n", "ISHotbar", "render", false)
+shape("a table-kept original", "local hooks = { render = ISHotbar.render }\nfunction ISHotbar:render()\n    hooks.render(self)\nend\n", "ISHotbar", "render", false)
+shape("MyMod.vanilla.render", "MyMod = { vanilla = {} }\nMyMod.vanilla.render = ISHotbar.render\nfunction ISHotbar:render()\n    MyMod.vanilla.render(self)\nend\n", "ISHotbar", "render", false)
+shape("an original named og", "local a, b = 1, ISHotbar.render\nlocal function og(s) end\nfunction ISHotbar:render()\n    og(self)\nend\n", "ISHotbar", "render", false)
+shape("a hook library's wrapper", "HookLib = {}\nfunction HookLib.wrap(c, n, fn)\n    local old = c[n]\n    c[n] = function(self, ...) return fn(old, self, ...) end\nend\nHookLib.wrap(ISHotbar, \"render\", function(orig, self) orig(self) end)\n", "ISHotbar", "render", false)
 
 QUIET = false
 print("step_aside_sim: " .. checks .. " checks, " .. failed .. " failed")

@@ -18,19 +18,25 @@
 --   * a page of the game's Character Info window (Info, Skills, Health,
 --     Protection, Temperature) now holds a view that is not the game's class
 --     or one derived from it (Wounds Overhaul's examination in Health's place)
---   * one of the game's functions the screen is built from (WATCH below) is now
---     a function from that mod's file that never calls the one it replaced. The
---     file is read (getFilenameOfClosure, getModFileReader): a body that calls a
---     saved copy of the old function (local orig = X.f ... orig(self)) wraps it
---     and does not count, nor anything this file cannot read or is unsure of.
+--   * EVERY core function of the screen's main class (CORE below: its
+--     createChildren with its render and prerender, not one helper) is now a
+--     function from that one mod's files that never calls the one it replaced.
+--     The file is read (getFilenameOfClosure, getModFileReader): a body that
+--     calls a saved copy of the old function (local orig = X.f ... orig(self),
+--     hooks.render(self), MyMod.vanilla.render(self)) wraps it and does not
+--     count, nor anything this file cannot read or is unsure of (no copy kept
+--     under a name it can see, a definition it cannot find, a hook library).
+--   Less than that (one copied and edited function, which is how most mods add
+--   a tab or a button) hands nothing back and says nothing to the player: one
+--   line goes to console.txt ("[ZeD] Step aside: partial ...") for QA.
 -- What never counts: the game's own files (in no mod's folder), ZeD's, a
 -- mod ZeD supports (ModSupport: SUPPORTED below), and a mod that only adds
 -- (context menu options, buttons, tabs under new names, wrapped functions).
 --
 -- The hand-back is the screen's own ZeD setup switch, ticked (the game's own) and
 -- saved, so ZeD setup shows it with "Taken by <mod>" under it. Unticking it is
--- taking the screen back: that holds until the mod set changes
--- (Zomboid/Lua/ZeD_step_aside.txt). A mod that has gone gives its screen back to
+-- taking the screen back: that holds for as long as that same mod is the one
+-- taking it, whatever other mods come and go (Zomboid/Lua/ZeD_step_aside.txt). A mod that has gone gives its screen back to
 -- ZeD the same way.
 --
 --   ZeD.StepAside.check()          detect and apply now (the game start does it)
@@ -60,35 +66,19 @@ for _, id in ipairs({
 }) do SA.SUPPORTED[id] = true end
 function SA.support(id) if id then SA.SUPPORTED[tostring(id):gsub("^\\", "")] = true end end
 
--- the game's functions each screen is built from (only screens with a ZeD setup switch: their names are
--- SafeMode's and Settings.lua's). The watch and the moodles are the game's Java: no Lua to replace.
-SA.WATCH = {
-    windows = {
-        { "ISInventoryPage", { "createChildren", "prerender", "render", "refreshBackpacks", "update" } },
-        { "ISInventoryPane", { "createChildren", "prerender", "render", "renderdetails", "refreshContainer" } },
-    },
-    belt = {
-        { "ISHotbar", { "render", "update", "refresh" } },
-        { "ISEquippedItem", { "prerender", "render" } },
-    },
-    charinfo = {
-        { "ISCharacterInfoWindow", { "createChildren", "render" } },
-        { "ISCharacterScreen", { "prerender", "render" } },
-        { "ISCharacterInfo", { "createChildren", "prerender", "render" } },
-        { "ISHealthPanel", { "createChildren", "prerender", "render" } },
-        { "ISCharacterProtection", { "createChildren", "prerender", "render" } },
-        { "ISClothingInsPanel", { "createChildren", "prerender", "render" } },
-    },
-    dashboard = {
-        { "ISVehicleDashboard", { "createChildren", "prerender", "render" } },
-    },
-    wheels = {
-        { "ISRadialMenu", { "instantiate" } },   -- (the wheel itself is the game's Java)
-    },
+-- each screen's main class and its core functions: a whole-screen takeover replaces ALL of them (only screens with
+-- a ZeD setup switch: their names are SafeMode's and Settings.lua's). The watch and the moodles are the game's Java:
+-- no Lua to replace.
+SA.CORE = {
+    windows = { "ISInventoryPage", { "createChildren", "prerender", "render" } },
+    belt = { "ISHotbar", { "render", "update", "refresh" } },
+    charinfo = { "ISCharacterInfoWindow", { "createChildren", "render" } },
+    dashboard = { "ISVehicleDashboard", { "createChildren", "prerender", "render" } },
+    wheels = { "ISRadialMenu", { "new", "instantiate" } },   -- (the wheel itself is the game's Java)
 }
 SA.ORDER = { "windows", "belt", "charinfo", "dashboard", "wheels" }
 
--- (every function in WATCH is one the game's own media/lua defines, checked against 42.21's files: a mod giving a
+-- (every function in CORE is one the game's own media/lua defines, checked against 42.21's files: a mod giving a
 -- class a function the game never had stops nothing of the game's. The list is fixed rather than read as ZeD
 -- loads, since a mod loaded before ZeD has already replaced them by then.)
 
@@ -238,17 +228,27 @@ local function findWord(s, pat, init, dot, tight)
     end
 end
 
--- the body of the function that starts at (or just after) line `first`: from its "function" keyword to its "end"
-local function bodyAt(text, lineStarts, first)
-    local from = lineStarts[math.max(1, first - 2)] or 1
-    local to = lineStarts[first + 1] or (#text + 1)
-    -- the last "function" keyword before the end of the first line
+-- the body of cls.method's definition that starts at (or just before) line `first`: from its "function" keyword to
+-- its "end". Only a "function" keyword that belongs to the definition itself (function Cls:method( or
+-- Cls.method = function), so an inline function in its first statement is never taken for it; none found: nil
+local function bodyAt(text, lineStarts, first, cls, method)
+    local from = lineStarts[math.max(1, first - 3)] or 1
+    local to = lineStarts[first + 2] or (#text + 1)
+    local ref = esc(cls) .. "%s*[%.:]%s*" .. esc(method)
     local kw
     local s = from
     while true do
-        local a, b = findWord(text, "function", s, false, true)
+        local a, b = findWord(text, ref, s, true, true)
         if not a or a >= to then break end
-        kw, s = a, b + 1
+        s = b + 1
+        local pre = text:sub(math.max(1, a - 30), a - 1)
+        local fa = pre:find("function%s+$")
+        if fa then
+            kw = a - #pre + fa - 1
+        else
+            local x, y = text:find("^%s*=%s*function", b + 1)
+            if x then kw = y - 7 end
+        end
     end
     if not kw then return nil end
     local depth, pos = 0, kw
@@ -280,8 +280,8 @@ local function callsThrough(lines, first, cls, method)
         lines._starts = starts
     end
     local raw, text, starts = lines._raw, lines._text, lines._starts
-    local body = bodyAt(text, starts, first or 1)
-    if not body then return true end
+    local body = bodyAt(text, starts, first or 1, cls, method)
+    if not body then return true end   -- (a hook library, a definition this reading cannot find: unsure)
     -- a dynamic name (Class[name] = ...) or a helper this reading cannot follow: unsure
     if findWord(raw, esc(cls) .. "%s*%[", 1, true) then return true end
     -- the names a copy of the old function was kept under: X = Class.method
@@ -302,12 +302,17 @@ local function callsThrough(lines, first, cls, method)
         end
     end
     for _, nm in ipairs(names) do
-        if findWord(body, esc(nm) .. "%s*%(", 1, true) or body:find("pcall%s*%(%s*" .. esc(nm) .. "%s*[,%)]") then return true end
+        -- (called as it was kept, or by its last part after a dot: hooks.render(self) for render = X.render)
+        local last = nm:match("([%a_][%w_]*)$")
+        if findWord(body, esc(nm) .. "%s*%(", 1, false) or body:find("pcall%s*%(%s*" .. esc(nm) .. "%s*[,%)]")
+            or (last and body:find("%." .. esc(last) .. "%s*%(")) then return true end
     end
     -- a helper's wrapper: the old function came in by another name
     for w in body:gmatch("([%a_][%w_]*)%s*%(") do
         local lw = w:lower()
-        if lw:find("orig") or lw:find("^old") or lw:find("prev") or lw:find("super") or lw:find("^base") or lw:find("wrapped") then
+        if lw:find("orig") or lw:find("^old") or lw:find("prev") or lw:find("super") or lw:find("^base") or lw:find("wrapped")
+            or lw:find("vanilla") or lw == "og" or lw:find("^og_") or lw:find("_og$") or lw:find("default")
+            or lw == "_" .. method:lower() then
             return true
         end
     end
@@ -326,23 +331,45 @@ local function counts(mods, zedAt, path)
     return m
 end
 
+-- true when cls.method is now a function from a counted mod that never calls the one it replaced; also the mod
+local function replacedBy(cls, method, mods, zedAt)
+    local c = _G[cls]
+    if type(c) ~= "table" then return false end
+    local fn = rawget(c, method)
+    local path = fileOf(fn)
+    local m = counts(mods, zedAt, path)
+    if not m then return false end
+    local lines = readModFile(m, path)
+    local first = getFirstLineOfClosure and safe(getFirstLineOfClosure, fn) or nil
+    if lines and first and not callsThrough(lines, first, cls, method) then return true, m end
+    return false
+end
+-- (the sim's way in to the reading of one function)
+function SA._replaced(cls, method)
+    local mods, zedAt = readMods()
+    return (replacedBy(cls, method, mods, zedAt))
+end
+
+-- the screen's main class with EVERY core function replaced by one mod: that mod; fewer: nil, and a line for QA
+SA.partial = SA.partial or {}
 local function checkFunctions(screen, mods, zedAt)
-    for _, w in ipairs(SA.WATCH[screen] or {}) do
-        local cls = _G[w[1]]
-        if type(cls) == "table" then
-            for _, method in ipairs(w[2]) do
-                local fn = rawget(cls, method)
-                local path = fileOf(fn)
-                local m = counts(mods, zedAt, path)
-                if m then
-                    local lines = readModFile(m, path)
-                    local first = getFirstLineOfClosure and safe(getFirstLineOfClosure, fn) or nil
-                    if lines and first and not callsThrough(lines, first, w[1], method) then
-                        return m, w[1] .. ":" .. method
-                    end
-                end
-            end
+    local core = SA.CORE[screen]
+    if not core then return nil end
+    local owner, n, hit = nil, 0, {}
+    for _, method in ipairs(core[2]) do
+        local r, m = replacedBy(core[1], method, mods, zedAt)
+        if r then
+            n = n + 1
+            hit[#hit + 1] = method
+            if owner and owner ~= m then owner = false elseif owner == nil then owner = m end
         end
+    end
+    if n == #core[2] and owner then return owner, core[1] .. ":" .. table.concat(hit, "+") end
+    if n > 0 then
+        local line = "[ZeD] Step aside: partial, " .. core[1] .. ":" .. table.concat(hit, "+") .. " replaced by "
+            .. tostring(owner and owner.id or "more than one mod") .. "; " .. screen .. " kept as ZeD's"
+        SA.partial[screen] = line
+        print(line)
     end
     return nil
 end
@@ -489,7 +516,7 @@ local function notify(screen, name)
     SA.lastNote = text
 end
 
--- the player unticked a screen ZeD had handed back: theirs again, until the mod set changes
+-- the player unticked a screen ZeD had handed back: ZeD's again, while that same mod is the one taking it
 local function noteTakenBack()
     local changed = false
     for sc, s in pairs(rec.set) do
@@ -506,24 +533,24 @@ end
 function SA.check()
     if not rec then load() end
     local found, mods = SA.detect()
-    local sig = signature(mods)
     noteTakenBack()
-    if rec.mods ~= sig then
-        -- the mod set changed: the player's choices go, and a screen whose mod no longer takes it is ZeD's again
-        rec.kept = {}
-        for sc, s in pairs(rec.set) do
-            local f = found[sc]
-            if not (f and f.id == s.id) then
-                if isOn(sc) then setOn(sc, false) end
-                rec.set[sc] = nil
-            end
+    rec.mods = signature(mods)
+    for sc, s in pairs(rec.set) do
+        local f = found[sc]
+        -- a screen whose mod no longer takes it is ZeD's again
+        if not (f and f.id == s.id) then
+            if isOn(sc) then setOn(sc, false) end
+            rec.set[sc] = nil
         end
-        rec.mods = sig
+    end
+    -- a take-back holds while that same mod is the one taking the screen (other mods coming and going change nothing)
+    for sc, id in pairs(rec.kept) do
+        if not (found[sc] and found[sc].id == id) then rec.kept[sc] = nil end
     end
     SA.found = found
     for _, sc in ipairs(SA.ORDER) do
         local f = found[sc]
-        if f and not rec.kept[sc] and not rec.set[sc] and isOn(sc) == false then
+        if f and rec.kept[sc] ~= f.id and not rec.set[sc] and isOn(sc) == false then
             if setOn(sc, true) then
                 rec.set[sc] = { id = f.id, name = f.name }
                 notify(sc, f.name)
