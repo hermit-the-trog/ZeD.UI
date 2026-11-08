@@ -454,12 +454,12 @@ function MS.updatedLoaded()
     return out
 end
 
--- "2 h ago", "3 days ago", "Sep 30"
--- (the month names are the main menu's keys, translated where they show)
+-- the month names are the main menu's keys, translated where they show
 local MONTHS = { "UI_ZeD_MainMenu_MonthJan", "UI_ZeD_MainMenu_MonthFeb", "UI_ZeD_MainMenu_MonthMar",
     "UI_ZeD_MainMenu_MonthApr", "UI_ZeD_MainMenu_MonthMay", "UI_ZeD_MainMenu_MonthJun",
     "UI_ZeD_MainMenu_MonthJul", "UI_ZeD_MainMenu_MonthAug", "UI_ZeD_MainMenu_MonthSep",
     "UI_ZeD_MainMenu_MonthOct", "UI_ZeD_MainMenu_MonthNov", "UI_ZeD_MainMenu_MonthDec" }
+--- A unix time as "2 h ago", "3 days ago" or "Sep 30" ("" for none).
 function MS.ago(secs)
     if not secs or secs <= 0 then return "" end
     local d = getTimestamp() - secs
@@ -471,6 +471,7 @@ function MS.ago(secs)
     return ok and s or ZeD.tr("UI_ZeD_ModScan_AgoDays", math.floor(d / 86400))
 end
 
+--- Bytes as "812 KB", "24 MB" or "1.2 GB" ("" for none).
 function MS.size(bytes)
     if not bytes or bytes <= 0 then return "" end
     if bytes < 1048576 then return string.format("%.0f KB", bytes / 1024) end
@@ -481,7 +482,7 @@ function MS.size(bytes)
     return string.format("%.1f GB", bytes / 1073741824)
 end
 
--- Steam's page for an item: the overlay when it is on, the browser otherwise
+--- Steam's page for an item: the overlay when it is on, the browser otherwise.
 function MS.openInSteam(wid)
     if not wid or wid == "" then return end
     local overlay = false
@@ -490,8 +491,8 @@ function MS.openInSteam(wid)
     else openUrl("https://steamcommunity.com/sharedfiles/filedetails/?id=" .. tostring(wid)) end
 end
 
--- the mods the game loaded (fixed until the next reload, which reloads this file too)
 local loadedSet = nil
+--- Did the game load this mod? (Fixed until the next reload, which reloads this file too.)
 function MS.isLoaded(id)
     if not loadedSet then
         loadedSet = {}

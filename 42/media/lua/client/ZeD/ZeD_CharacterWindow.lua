@@ -1064,22 +1064,17 @@ local _buildInvRowFocusables
 -- _syncRingZonesToActiveTab (see the note there); this marker stays so
 -- nobody re-declares it here, below that closure.
 
--- S95 — Build container strip focusables for the Loot tab. Container strip
--- lives on the RIGHT edge of the window (CONTAINER_STRIP_W wide). One cell
--- per entry in `win._containers` (dynamic — grows when player equips a bag).
--- Coordinates are window-local so the cone algorithm can navigate between
--- tabBar and panel without a frame mismatch.
+-- The container strip's stops. The strip lives on the RIGHT edge of the
+-- window (CONTAINER_STRIP_W wide), one cell per entry in `win._containers`
+-- (dynamic — it grows when the player equips a bag). Coordinates are
+-- panel-local; focusing a container only moves the mark, and A commits
+-- (see the element callbacks below).
 --
--- S95 v3: D-pad now auto-activates the container on focus (onFocus) —
--- matching the tab-strip behavior where D-pad immediately switches tab
--- content. This removes the "press A to commit" step the user found
--- inconsistent. The existing `win._activeContainer` highlight becomes the
--- gamepad cursor indicator.
--- S113c: shared gamepad-drag reorder for Char container strip. Mirrors the
--- mouse drag-and-drop completion path: mutates _containerOrder, clears the
--- sort-by-weight flag, then rebuilds charContainerStrip focusables so the
--- moved container's y-bounds update on next render. Identity preservation
--- by containerIdx keeps the user's focus locked on the dragged container.
+-- First, the pad's drag-reorder, mirroring the mouse drag-and-drop
+-- completion path: mutate _containerOrder, clear the sort-by-weight flag,
+-- then rebuild the charContainerStrip stops so the moved container's
+-- y-bounds update on the next render. Matching by containerIdx keeps the
+-- focus locked on the dragged container.
 local function _gpReorderCharContainer(win, containerIdx, dir)
     if not win or not containerIdx then return end
     local order = win._containerOrder
@@ -1113,8 +1108,8 @@ local function _gpReorderCharContainer(win, containerIdx, dir)
     end
 end
 
--- Oct 23 2026: A on a container goes on to its first item once its rows have
--- drawn (World window parity); an empty one keeps the focus on the button.
+-- A on a container goes on to its first item once its rows have drawn
+-- (World window parity); an empty one keeps the focus on the button.
 local function _focusFirstRowSoon(w, inv)
     local Fo = ZeD.Input and ZeD.Input.Focus
     if not (inv and Fo and Fo.focusSoon) then return end
@@ -1126,17 +1121,17 @@ _buildLootFocusables = function(win)
     local n = #win._containers
     if n == 0 then return {} end
     local T = ZeD.T
-    -- Oct 23 2026: panel-local (the focus manager adds the strip panel's
-    -- offset; window-local put every stop a strip-width right and a
+    -- Panel-local coordinates: the focus manager adds the strip panel's
+    -- offset itself (window-local put every stop a strip-width right and a
     -- body-height low), from the places the strip drew last (win._stripLay)
     local stripX = 0
     local stripY = 0
-    -- S106: match the visual layout of drawContainerStrip exactly. Zone 1
+    -- Match the visual layout of drawContainerStrip exactly. Zone 1
     -- (main) at y=stripY. Zone 2 (sort row) at y=stripY+CONTAINER_BTN_SZ+1,
     -- height 20. Zone 3 (non-main buttons) starts at stripY + CONTAINER_BTN_SZ
-    -- + 1 + 20 (colHdrH). Previous builder used (i-1)*W uniformly, which made
-    -- focusable y-coords mismatch the actual drawn buttons after containers
-    -- were reordered by sort or active-pin.
+    -- + 1 + 20 (colHdrH). A uniform (i-1)*W here made the stops' y-coords
+    -- mismatch the drawn buttons after containers were reordered by sort or
+    -- by hand.
     local colHdrH = T.px(20)
     local L = win._stripLay
     local zone3Y = (L and L.listY) or (stripY + T.px(CONTAINER_BTN_SZ) + T.px(1) + colHdrH)

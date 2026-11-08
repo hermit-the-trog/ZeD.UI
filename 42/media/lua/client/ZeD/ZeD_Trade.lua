@@ -1,9 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Trade.lua
 -- ============================================================================
--- TRADING WITH ANOTHER PLAYER — HOOK_MAP row 18b (the director, Nov 7 2026: B10, "build it as a
--- World window card"). The trade itself: one session per local player, every rule and every call
--- of vanilla's ISTradingUI (media/lua/client/ISUI/ISTradingUI.lua) kept, drawn by the World
--- window's trade card (ObjectCardTrade.lua); the hooks that open it are Overrides/TradeMedic.lua.
+-- TRADING WITH ANOTHER PLAYER — client; the trade itself, built as a World window card rather
+-- than a window of its own. One session per local player, every rule and every call of vanilla's
+-- ISTradingUI (media/lua/client/ISUI/ISTradingUI.lua) kept, drawn by the World window's trade
+-- card (ObjectCardTrade.lua); the hooks that open it are Overrides/TradeMedic.lua.
 --
 -- What vanilla does, and the session does the same:
 --   * Right-click a player > Trade with: the window opens blocked ("Waiting for X's answer."),

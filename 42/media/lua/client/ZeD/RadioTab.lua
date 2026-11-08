@@ -915,7 +915,7 @@ end
 
 ----------------------------------------------------------------------
 -- O: renderPremium — silver Pioneer-style hi-fi chassis assembly
--- Top-down sections with 6-8px padding between (per feedback_padding_preference).
+-- Top-down sections with 6-8px padding between.
 ----------------------------------------------------------------------
 function renderPremium(panel, x, y, w, h, win, radioEntry)
     local T = ZeD.T
@@ -923,7 +923,7 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
     local dd = radioEntry.deviceData
     local cacheKey = radioEntry.cacheKey
 
-    -- Chassis fill — silver, edge-to-edge (spec hard rule #6).
+    -- Chassis fill — silver, edge-to-edge.
     panel:drawRect(x, y, w, h, pt.chassisBg.a or 1.0,
         pt.chassisBg.r, pt.chassisBg.g, pt.chassisBg.b)
 
@@ -958,8 +958,8 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
         cy = cy + displayH + T.px(8)
     end
 
-    -- 4. CD player module — recessed. (Oct 30 2026: no brand strip at the foot; the CD module has
-    -- the room it took)
+    -- 4. CD player module — recessed (no brand strip at the foot: the CD
+    -- module has the room it took)
     local cdH = T.px(64)
     if cy + cdH <= y + h - pad then
         cdPlayerModule(panel, cx, cy, innerW, cdH, dd, win)
@@ -1005,7 +1005,7 @@ function renderValutech(panel, x, y, w, h, win, radioEntry)
         cy = cy + displayH + T.px(8)
     end
 
-    -- 4. (no CD module on ValuTech, and no brand strip at the foot since Oct 30 2026)
+    -- 4. (no CD module on ValuTech, and no brand strip at the foot)
 end
 
 ----------------------------------------------------------------------
@@ -1024,14 +1024,16 @@ function renderDrawer(panel, x, y, w, h, win, radioEntry)
     end
 end
 
--- THE SIMPLE CARD (Oct 30 2026): the drawn chassis, the one way in to it. Its clicks and controller stops are the
+-- THE SIMPLE CARD: the drawn chassis, the one way in to it. Its clicks and controller stops are the
 -- chassis' own (onClick and buildFocusables below, by the rects it stamps on the window).
 function ZeD.RadioTab.drawSimple(panel, x, y, w, h, win, radioEntry)
     renderDrawer(panel, x, y, w, h, win, radioEntry)
 end
 
--- faces or simple cards (punch list item 17: ZeD setup's switch will set this; faces by default). The two-way sets
--- keep their faces either way until the switch is built.
+-- faces or simple cards. TODO: nothing sets this yet, so it stays true; the
+-- planned ZeD setup switch would flip it (faces by default). The two-way sets
+-- keep their faces either way (faceFor reads it only after them). ZeD setup's
+-- Devices row is a different axis: Simple wraps a face as a plain card.
 ZeD.RadioTab.useFaces = true
 
 -- the face a radio tab entry is drawn as: its driver (ZeD.TwoWay or ZeD.Rtv), plate id and plate; nil for the
@@ -1057,7 +1059,7 @@ function ZeD.RadioTab.faceFor(entry)
 end
 
 -- ============================================================================
--- THE TWO-WAY RADIOS (director, Oct 25 2026; handoff ZeDUI/HANDOFF_twoway_20261025.md)
+-- THE TWO-WAY RADIOS
 -- A radio whose device data is two-way is drawn as its own face (TwoWayFace.lua)
 -- in place of the AM/FM chassis: a walkie (or the ManPack) centred in a 220-wide
 -- panel at the content's left edge, a ham set centred across the drawer, at the
