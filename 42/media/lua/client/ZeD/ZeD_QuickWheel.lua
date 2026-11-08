@@ -1,29 +1,27 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_QuickWheel.lua
 -- ============================================================================
--- QUICK USE ON THE CONTROLLER'S D-PAD RIGHT WHEEL (HOOK_MAP row 29)
--- Director, Oct 15 2026: "Add more functions to the radial menus for
--- controller. Like eating, drinking, smoking ... add what is missing or is
--- logical to double the place an action can be triggered, for QOL. What
--- actions should be quick radial actions that require selecting a list of
--- items or interaction with multiple things."
+-- QUICK USE: THE EVERYDAY "PICK ONE OF THE THINGS I CARRY" ACTIONS. Client;
+-- a data module with no UI of its own. The Character wheel on the
+-- controller's D-pad Left (ZeD_DpadWheels.lua) reads its lists and its wound
+-- test, so an action that needs an item picked has a way in beside the
+-- context menu.
 --
--- Vanilla's D-pad Right wheel (the map, the mini-map, zones, the survival
--- guide) gains the everyday "pick one of the things I carry" actions, each
--- only when there is something to pick:
+-- The lists, each shown only when there is something to pick:
 --   Eat          food that feeds you (spoiling soonest first; rotten last)
 --   Drink        water and drinks (vanilla's thirst-sized sip from water)
 --   Smoke        cigarettes and the like (when there is a flame to light them)
 --   Take pills   pill bottles
 --   Read         books, magazines, comics (not when it is too dark)
---   Treat wounds the Health tab, when a wound wants seeing to
--- Picking one fills the same wheel with those items (one slice per kind, the
--- best of it, "x3" when there are more) and a Back slice, the way vanilla's
--- emote wheel opens its groups. Every pick runs vanilla's own context-menu
--- verb (ISInventoryPaneContextMenu: eat / drink / take pill / read), with its
--- rules: items come out of bags first, masks come off, lighters are found.
--- Since Oct 23 2026 these lists feed the Character wheel on D-pad Left
--- (ZeD_DpadWheels.lua, DPAD_WHEELS_SPEC.md); this file no longer adds to the
--- game's D-pad Right wheel, which is the World wheel now.
+-- and the wound test (Q.hurt: bleeding, or an injury with no bandage on it).
+-- A list holds one entry per kind (the best of it, "x3" when there are more).
+-- Every pick runs vanilla's own context-menu verb (ISInventoryPaneContextMenu:
+-- eat / drink / take pill / read), with its rules: items come out of bags
+-- first, masks come off, lighters are found.
+-- The groups can also go on vanilla's own D-pad Right wheel (Q.addGroups,
+-- Q.openGroup: a slice per group, and Treat wounds opening the Health tab when
+-- a wound wants seeing to; picking a group fills the same wheel with its items
+-- and a Back slice, the way vanilla's emote wheel opens its groups), but that
+-- wheel is ZeD's World wheel now and this file adds nothing to it.
 -- ============================================================================
 
 require "ISUI/ISDPadWheels"
@@ -63,7 +61,7 @@ local function drinkWord() DRINK = DRINK or getText("ContextMenu_Drink"); return
 
 local function isSmokable(it) return _safe(function() return it:hasTag(ItemTag.SMOKABLE) end, false) end
 -- what the Smoke action can take: a smokable that is food, as the game's own Smoke row is
--- (another smokable thing went to the game's eat action and broke its duration; Oct 29 2026)
+-- (another smokable thing would go to the game's eat action and break its duration)
 local function isSmoke(it)
     return isSmokable(it) and _safe(function() return instanceof(it, "Food") end, false)
 end
@@ -170,8 +168,8 @@ local function drink(playerObj, it)
         local units = math.min(thirst * 2, amount)
         local percent = amount > 0 and math.max(0.05, units / amount) or 1
         -- vanilla's onDrinkForThirst, line for line, without its last line: on 42.21 that one hands
-        -- ReturnItemToOriginalContainer an `item` the function never had, an error every time
-        -- (QA Oct 24 2026); putting the bottle back is ZeD_PutBack's when the player wants it
+        -- ReturnItemToOriginalContainer an `item` the function never had, an error every time;
+        -- putting the bottle back is ZeD_PutBack's when the player wants it
         ISInventoryPaneContextMenu.transferIfNeeded(playerObj, it)
         local mask = ISInventoryPaneContextMenu.getEatingMask(playerObj, true)
         ISTimedActionQueue.add(ISDrinkFromBottle:new(playerObj, it, percent))
@@ -230,7 +228,8 @@ end
 -- ---------------------------------------------------------------------------
 -- the groups
 -- ---------------------------------------------------------------------------
--- Stuffed: the game lets nothing more be eaten (its tooltip: Tooltip_CantEatMore)
+--- Is the character stuffed (the Well Fed moodle at level 3 or more)? Then the game lets nothing more be
+--- eaten (its tooltip: Tooltip_CantEatMore).
 function Q.tooFull(p) return _safe(function() return p:getMoodles():getMoodleLevel(MoodleType.FOOD_EATEN) >= 3 end, false) end
 local GROUPS = {
     { id = "eat", label = "ContextMenu_Eat", test = isFood, act = eat,
@@ -244,6 +243,8 @@ local GROUPS = {
       off = function(p) return _safe(function() return p:tooDarkToRead() end, false) end },
 }
 
+--- A group's list for the player: { { item, n } }, one entry per kind (its best instance and how many), in the
+--- group's order; empty while the group is off (too full to eat, too dark to read).
 function Q.collect(playerObj, g)
     if g.off and g.off(playerObj) then return {} end
     local list = {}
@@ -300,10 +301,8 @@ function Q.addGroups(menu, playerObj)
     end
 end
 
--- a group by id ("eat", "drink", "smoke", "pills", "read") and the
--- wound test, for the D-pad wheels (ZeD_DpadWheels.lua). Oct 23 2026: the
--- Character wheel (D-pad Left) takes these lists over; this file no longer
--- adds to the game's D-pad Right wheel (DPAD_WHEELS_SPEC section 4).
+--- A group by id ("eat", "drink", "smoke", "pills", "read"), for the Character wheel on D-pad Left
+--- (ZeD_DpadWheels.lua); it reads the wound test, Q.hurt, beside them.
 function Q.group(id)
     for _, g in ipairs(GROUPS) do if g.id == id then return g end end
     return nil

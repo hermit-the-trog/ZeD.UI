@@ -30,7 +30,7 @@ Lm.seq = Lm.seq or 0                  -- bumps on every change (the card re-read
 Lm.qid = Lm.qid or 0                  -- the read being waited for: an older page is dropped
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
---- Marks a change: Lm.seq moves, and the card draws again from the model.
+--- Marks a change: Lm.seq moves, and the card re-reads the model.
 function Lm.bump() Lm.seq = Lm.seq + 1 end
 
 --- True when the server part's log is there to read (or whatever the test hook Lm.qaLink says).
@@ -98,7 +98,9 @@ function CTX.item(fullType)
     return (ok and s) or fullType
 end
 
+--- A line's words, in the viewer's language.
 function Lm.lineText(r) return Lg.lineWords(r, CTX) end
+--- Who did it, in the viewer's language.
 function Lm.whoText(r) return Lg.whoWords(r, CTX) end
 
 -- what the server is to look for besides the typed words (Lg.findCodes); kept, since the card asks at every look
@@ -124,14 +126,14 @@ function Lm.sourceText(r)
     return nil
 end
 
--- the second line of a row: the place, and the source; "" when a line has neither (a faction's has no place with nobody on)
+--- The second line of a row: the place, and the source; "" when a line has neither (a faction's has no place with nobody on).
 function Lm.metaText(r)
     local where, src = Lm.whereText(r), Lm.sourceText(r)
     if where and src then return where .. " | " .. src end
     return where or src or ""
 end
 
--- whose cards a line offers, beyond whoever did it. A ban's target can be an address: there is no card for one
+--- Whose card a line offers, beyond whoever did it. A ban's target can be an address: there is no card for one.
 function Lm.otherName(r)
     if r.src == "tap" or not r.target then return nil end
     if r.k == "pvp" or r.k == "vehicle" then return r.target end
@@ -140,6 +142,7 @@ function Lm.otherName(r)
     return nil
 end
 
+--- The color of a kind's tag.
 function Lm.kindColor(k)
     local T = ZeD.T
     if k == "admin" or k == "pvp" then return T.danger end
