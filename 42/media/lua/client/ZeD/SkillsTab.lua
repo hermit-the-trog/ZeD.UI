@@ -7,6 +7,10 @@
 -- The drawer widens to 480 design px for this tab (the per-tab drawer widths
 -- in ZeD_CharacterWindow). A click on a row pins that skill to the title
 -- bar; other mods add to the rows through ROW EXTRAS, below.
+-- One thing to know: this file draws and stamps hit zones on the window
+-- (win._skillRowZones, win._trainingGroupZones, win._skillsGridZone); the
+-- clicks and the controller's stops that read them live in
+-- ZeD_CharacterWindow.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -122,11 +126,6 @@ local function skillNameW(name, font)
     return w
 end
 
--- A row's spacing: the bar gives way first, down to its least
--- (on the Deck's screen: 21 px, its ten 1-unit segments), but the two ~96u columns there leave a
--- name ~36u. When even the bar at its least leaves the longest name short, the level badge
--- closes to its number ("10" and 2u either side) and the spaces round the name to 3u, the
--- row's right margin to 2u. One choice for the whole grid, so the names stay in line.
 -- One column when two would cut a name: true
 -- when a column of the two-column grid, at the usual spacing and the bar at its least, is
 -- narrower than the longest skill name needs. The one column then holds every name and its
@@ -144,6 +143,11 @@ local function skillsOneColumn(cats, colW2, font)
     return colW2 - T.px(BADGE_W) - T.px(6) * 2 - T.px(4) - barMin < longest
 end
 
+-- A row's spacing: the bar gives way first, down to its least
+-- (on the Deck's screen: 21 px, its ten 1-unit segments), but the two ~96u columns there leave a
+-- name ~36u. When even the bar at its least leaves the longest name short, the level badge
+-- closes to its number ("10" and 2u either side) and the spaces round the name to 3u, the
+-- row's right margin to 2u. One choice for the whole grid, so the names stay in line.
 local _skFit = {}
 local function skillRowFit(columns, colW, barMin, font)
     local T = ZeD.T
@@ -462,17 +466,19 @@ end
 --              text = "...", value = "...", total = true | nil } }, note = "..." }:
 --              the row's hover card (mouse over a row, or the controller's
 --              focus on it) shows the skill's level and these lines
---   tag(playerObj, perk, skill)          (Clear Skill Sheet reads it)
+--   tag(playerObj, perk, skill)          (Clear Skill Sheet's support answers it)
 --           -> nil, or { text = "...", color = {r,g,b} }: a row tag beside the
 --              boost tag, left of it — never in its place; the first extra
 --              that answers wins
---   cardLines(playerObj, perk, skill)    (Clear Skill Sheet reads it)
+--   cardLines(playerObj, perk, skill)    (Clear Skill Sheet's support answers it)
 --           -> nil, or a list of lines as card's: added under any extra's card
 --              lines, and a card of their own when no extra has one
--- First used by ModSupport/SkillRecoveryJournal.lua.
+-- First used by ModSupport/SkillRecoveryJournal.lua; ExpRecovery.lua and
+-- Clear_SkillSheet.lua add theirs the same way.
 -- ============================================================================
 ZeD.SkillsTab.extras = ZeD.SkillsTab.extras or {}
 
+--- Add a mod's extra (the table above) under its id; adding the same id again replaces it in place.
 function ZeD.SkillsTab.addExtras(id, def)
     for i, e in ipairs(ZeD.SkillsTab.extras) do
         if e.id == id then ZeD.SkillsTab.extras[i] = def; def.id = id; return end
@@ -541,7 +547,7 @@ local function extrasTag(playerObj, skill)
     end
     return nil
 end
-ZeD.SkillsTab.extrasTag = extrasTag   -- (the QA scripts read it)
+ZeD.SkillsTab.extrasTag = extrasTag   -- (the QA scripts in ZeDUI/tools/qa read it)
 
 -- A row's tags, the one next to the bar first: the boost tag (the skill's boost), then
 -- an extra's tag beside it. Each { text = "...", color = {r,g,b} | nil, boost = true | nil }.
@@ -569,7 +575,7 @@ local function drawRowTags(panel, playerObj, skill, x, y, rowH, nameX, minNameW)
     end
     return nameR
 end
-ZeD.SkillsTab._drawRowTags = drawRowTags   -- (the sims draw it: compat_r6_sim.lua)
+ZeD.SkillsTab._drawRowTags = drawRowTags   -- (the QA sims draw it: ZeDUI/tools/qa/compat_r6_sim.lua)
 
 -- The row's hover card (the shared detail card): the skill's name as its title, its
 -- level, then the first extra's lines and every extra's cardLines. nil when no extra
@@ -593,7 +599,7 @@ local function skillCard(win, skill)
     end
     if not card and not foot then return nil end
     card = card or { lines = {} }
-    ZeD.SkillsTab._cardShown = skill.name   -- (QA reads which card is up)
+    ZeD.SkillsTab._cardShown = skill.name   -- (the QA scripts read which card is up)
     local T = ZeD.T
     local sub
     if skill.level >= 10 then
@@ -621,7 +627,7 @@ local function skillCard(win, skill)
     end
     return { title = skill.name, lines = lines, maxW = 260 }
 end
-ZeD.SkillsTab._skillCard = skillCard   -- (the sims read it: compat_r6_sim.lua)
+ZeD.SkillsTab._skillCard = skillCard   -- (the QA sims read it: ZeDUI/tools/qa/compat_r6_sim.lua)
 
 -- The card layer: a click-through panel kept as the window's last child (as
 -- ZeD.Atoms.newHintLayer), for the controller's focused row, whose card is drawn at
@@ -713,7 +719,7 @@ end
 
 -- (a drawing-cost fix) the answer is kept per font, room and string:
 -- the binary search above asked the measurer up to eight times per row per frame
--- (about 140 measures a frame on the stocked character). Dropped with the token
+-- (about 140 measures a frame on a well-stocked character). Dropped with the token
 -- table or the root scale, as ZeD.TM drops its own; the strings come translated, so a
 -- language change brings new keys by itself.
 local _trunc = { T = false, root = false, byFont = {} }
@@ -1124,7 +1130,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local curY = drawY
 
     -- ----------------------------------------------------------------
-    -- ZONE B: 2-Column Skill Grid (collapsible)
+    -- ZONE B: 2-Column Skill Grid (collapsible), under zone A at the top of the
+    -- scroll: the extras' block, when an extra has one (zoneABottom is its foot)
     -- ----------------------------------------------------------------
     if gridExpanded and extraHeadH > 0 then
         local hy = curY
@@ -1156,7 +1163,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     -- (the drawing-cost fix again) rows wholly above or below the scroll view
     -- are laid out but not drawn: the stencil clipped them before, at the full cost of
-    -- their draws (the Skills tab was 4.8 ms a frame at 4K on the stocked character)
+    -- their draws (the Skills tab took 4.8 ms a frame at 4K on a well-stocked character)
     local bandTop, bandBot = scrollY, scrollY + scrollH
     local function drawColumn(startX, colWidth, colGroups)
         local cy = zoneABottom
@@ -1294,7 +1301,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     -- Pinned tab header, drawn on top of the scroll content: the hover wash and the
     -- controller's mark on the disclosure come with the molecule
-    -- (_skillsGridZone is stamped at the TOP of render now, not here)
+    -- (_skillsGridZone is stamped at the top of render, not here: see there why)
     local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH)
     if hdrHover then help(win, ZeD.tr("UI_ZeD_Skills_HelpHeader")) end
     M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Skills"), gridExpanded, hdrHover, nil,

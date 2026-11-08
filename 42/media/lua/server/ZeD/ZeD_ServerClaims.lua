@@ -42,7 +42,7 @@ end
 local function safeOf(p) return SafeHouse.hasSafehouse(p) end
 local function factionOf(p) return Faction.getPlayerFaction(p) end
 
--- the safehouse this player runs, or the one they named if they may run any
+-- the player's own safehouse, when they own it or their role may run any safehouse
 local function runsSafe(p)
     local h = safeOf(p)
     if h and (h:isOwner(p) or can(p, CAP_SAFE)) then return h end
@@ -144,8 +144,7 @@ end)
 -- THE LOG: the game's lists compared with what they held last time. Every line says what changed and where; a change that
 -- names no doer (a member gone) says whom it touched. Titles and names are players' words, so each is cut to one short line,
 -- with no | to pass for a field of the line. A safehouse line says where, a faction line names the faction as its target.
--- A change undone between two passes leaves no line, which is the limit of comparing lists:
--- ZeDUI/MP_SERVER_PART_DESIGN.md says so for Phase 4.
+-- A change undone between two passes leaves no line: that is the limit of comparing lists.
 -- ---------------------------------------------------------------------------
 local function short(s) return (string.gsub(string.sub(Tk.name(s or ""), 1, L.LOG_TEXT), "|", "/")) end
 

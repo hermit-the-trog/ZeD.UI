@@ -1642,6 +1642,8 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Put the tab's renderer in a window's tab dispatch table (the Character
+--- window's, under "health").
 function ZeD.HealthTab.register(dispatchTable)
     dispatchTable["health"] = ZeD.HealthTab.render
 end

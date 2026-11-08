@@ -57,7 +57,7 @@ O.KIND_BY_ITEM = {
 }
 O.HAM = { ham = true, army = true, hammake = true }
 
--- The game's Java side can throw; pcall turns a crash (or a nil) into the default we can test.
+-- The game's Java side can throw; pcall turns a crash into the default we can test (a nil answer gives it too).
 local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
 -- the same for one method call with no arguments, without making a closure each time (these run every frame):
 -- o:m(), its value or the default when it fails or gives nil

@@ -320,7 +320,7 @@ local function wrapRuns(para, font, maxW)
                 -- a word wider than the line (Japanese, Chinese, Korean and Thai write a sentence without
                 -- spaces) breaks between its characters (Kahlua strings are UTF-16: one character per sub)
                 -- Thai: a letter keeps its vowel and tone marks, and a leading vowel keeps the letter after it
-                -- (so "อีก" never breaks after its vowel mark)
+                -- (the "ี" of "อีก" stays on its letter)
                 local piece, lead = "", false
                 for k = 1, #word do
                     local ch = word:sub(k, k)
@@ -363,7 +363,7 @@ local function wrapRuns(para, font, maxW)
                 if last.text:sub(-1) == " " then text = text:gsub("^%s+", "") end
                 local joined = last.text .. text
                 -- the run measured whole, its trailing space aside: pieces measured one by one add up a pixel or
-                -- two short of the joined line (a Thai line came out 2 px past the measure)
+                -- two short of the joined line (on Thai, enough to run 2 px past the measure)
                 if last.x + twFit(font, (joined:gsub("%s+$", ""))) > maxW then
                     push()
                     text = at.text:gsub("^%s+", "")
@@ -560,7 +560,8 @@ Rules.SurvivalGuide_skill_books_title = function()
         for _, g in ipairs(others) do r[#r + 1] = pct(g.m[v]) end
         rows[#rows + 1] = r
     end
-    -- the multipliers as plain numbers: a bare "x3" says little, so the note says what 300% gives an action
+    -- the multipliers as plain numbers: a bare "x3" says little to most players, so they show as percents and a
+    -- note works one through (what an action worth 10 XP gives)
     local m1 = tonumber(main.m[1]) or 1
     local notes = { tr("UI_ZeD_Guide_SB_Percent", pct(m1), tostring(math.floor(10 * m1 + 0.5))),
                     tr("UI_ZeD_Guide_SB_Covers"), tr("UI_ZeD_Guide_SB_Partial") }

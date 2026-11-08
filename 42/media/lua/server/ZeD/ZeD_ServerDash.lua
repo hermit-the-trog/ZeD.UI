@@ -1,7 +1,10 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerDash.lua
 -- ============================================================================
--- THE DASH'S ODOMETER, THE SERVER'S SIDE (punch list 92 and 94; ZeDUI/HANDOFF_design_dash_roadworthy_20261106.md;
--- ZeD_DashProto.lua has why). One command, from the driver's client about every tenth of a mile, at a press and as a
+-- THE DASH'S ODOMETER, THE SERVER'S SIDE (ZeD_DashProto.lua has why). Server only (the first line); pure Lua, pure ASCII.
+-- The dashboard (client/ZeD/ZeD_Dashboard.lua) speaks on module DP.MOD: the odometer, as below, and the ash tray (DP.ASH,
+-- at its handler).
+--
+-- One command, from the driver's client about every tenth of a mile, at a press and as a
 -- drive ends: the server writes ZeD_odo, ZeD_trip and ZeD_odoTrip into its own copy of the car's mod data, and nothing
 -- else, so a key another mod keeps only here (Roadworthy's, the extras' claim stamp) stays. Then it sends the three
 -- figures (DP.FIG) to the car's other occupants, the only players who see this car's dash; their dashes write them to

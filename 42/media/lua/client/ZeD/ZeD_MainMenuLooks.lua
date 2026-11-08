@@ -1,15 +1,18 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuLooks.lua
 -- ============================================================================
--- THE CHARACTER'S LOOKS ON THE MONITOR (HOOK_MAP row 26; director, Oct 14
--- 2026: menus delegated, no mockups)
+-- THE CHARACTER'S LOOKS ON THE MONITOR. Client; an organism (a window on the
+-- desk, the "looks" view), built on the Options window (ZeD_MMOptions) and its
+-- rows.
 --
 -- The last step of a new character, as a ZeD window in place of vanilla's
--- CharacterCreationMain, built on the Options window's rows. Vanilla's screen
--- stays built and hidden as the engine: its controls and handlers keep every
--- rule (names re-rolled with the sex, beards for men only, clothing choices
--- from the occupation and traits, tints and fabric types only where the item
--- has them), its saved outfits file is used as it is, and its PLAY starts the
--- game. Its setVisible(true) is redirected here.
+-- CharacterCreationMain. Vanilla's screen stays built and hidden as the
+-- engine: its controls and handlers keep every rule (names re-rolled with the
+-- sex, beards for men only, clothing choices from the occupation and traits,
+-- tints and fabric types only where the item has them), its saved outfits file
+-- is used as it is, and its PLAY starts the game. Its setVisible(true) is
+-- redirected here. After a death, or for a second controller's new player, the
+-- same window builds the next survivor (Overrides/Respawn.lua points
+-- MainScreen's charCreationMain at the game's co-op creation screen).
 --
 --   left   vanilla's own 3D figure, moved into the window: turn it with the
 --          arrows (or drag it, or LB / RB), Idle / Walk / Run under it
@@ -28,7 +31,7 @@ local MM = ZeD.MainMenu
 local U  = MM.U
 local UI = MM.ui
 
--- design units
+-- the figure's share of the body's width; the rest in design units
 local FIGURE_SHARE = 0.34
 local SW, SW_GAP = 22, 6          -- a colour swatch and the gap between swatches
 local TEX_W, TINT_W = 96, 28      -- a clothing row's fabric list box and tint swatch
@@ -37,9 +40,10 @@ local ROW_H = 32
 local function ms() return MainScreen and MainScreen.instance end
 local function looks() local m = ms(); return m and m.charCreationMain end
 local function desc() local m = ms(); return m and m.desc end
-local MARK = string.char(171)
+local MARK = string.char(171)   -- the chosen row's mark in a pop-up (a guillemet)
 
 local function comboText(c, i) local ok, t = pcall(function() return c:getOptionText(i) end); return ok and tostring(t or "") or "" end
+-- vanilla's label without its trailing colon
 local function label(key) return (tostring(getText(key) or ""):gsub(":%s*$", "")) end
 
 -- the clothing slots top to bottom; any other slot follows by name
@@ -64,6 +68,7 @@ local function hairColors()
     return out
 end
 
+-- which swatch a colour is: the nearest one, when it is close enough to be that swatch; else nil
 local function nearest(colors, r, g, b)
     local best, bestD = nil, 1e9
     for i, c in ipairs(colors) do
@@ -77,6 +82,8 @@ end
 -- ============================================================================
 ZeD_MMLooks = ZeD_MMOptions:derive("ZeD_MMLooks")
 
+-- (ZeD_MMWindow's new, not the Options window's: this window's kind is "looks"; the fields below are
+-- the ones the Options window's new sets)
 function ZeD_MMLooks:new()
     local o = ZeD_MMWindow.new(self, "looks")
     o.inGame = false
@@ -104,8 +111,8 @@ function ZeD_MMLooks:createChildren()
 end
 
 -- Return in a name field: the typed name goes to vanilla's field before the caret leaves (syncNames
--- copies ours over only while ours is focused; unfocused first, the old name came back over it), and
--- the same Return does not also press Play
+-- copies ours over only while ours is focused; unfocused first, the old name would come back over it),
+-- and the same Return does not also press Play
 function ZeD_MMLooks:nameEntered(e)
     self._enterAt = MM.now()
     local v = looks()
@@ -201,6 +208,8 @@ function ZeD_MMLooks:rowsNow()
     return rows
 end
 
+-- deliberate no-ops: the Options window tracks changes to undo them, but here vanilla's own controls hold
+-- every choice as it is made, so there is nothing to mark or keep
 function ZeD_MMLooks:isChanged(r) return false end
 function ZeD_MMLooks:anyChanged() return false end
 function ZeD_MMLooks:snapshot() end

@@ -4675,12 +4675,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
             or (win._maxWinW or math.floor(screenW * 0.5))
 
         if drawerDelta ~= 0 then
-            -- S121: card opening in MC mode now expands the window like tab
-            -- mode does, instead of evicting MC columns. The S108 v2 design
-            -- (shrink inv area + FIFO evict oldest MC col when MC + item)
-            -- caused MC to silently collapse on item-select — bad UX after
-            -- the new ItemCard rolled. Always resize per drawerDelta now.
-            -- (Oct 28 2026) the width the cap swallows while the drawer opens is given back while it
+            -- A card opening in MC mode expands the window like tab mode
+            -- does, rather than evicting MC columns up front: shrinking the inv
+            -- area and evicting the oldest column made MC collapse silently on
+            -- an item pick. So the window always resizes by drawerDelta (the
+            -- eviction loop below only drops columns that can't fit).
+            -- The width the cap swallows while the drawer opens is given back while it
             -- closes, so the window returns to its width (the World window does the same)
             -- (a rolled side's width is the full width less the rolled-off part: the cap in those terms)
             local cap = maxW - (win._rolled and (win._rollW or 0) or 0)
@@ -4700,8 +4700,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- The drawer grows leftwards from the anchored right edge. Where that would put the
             -- window past the screen's left edge the engine pins it at 0 (setX keeps a top-level
             -- panel on screen); that pin is remembered as a push, not read as a drag that moves
-            -- the anchor (Nov 1 2026, punch list 42 e., the Character side: on the Deck the first
-            -- full-card open moved the window 4 px right for good). The anchor stays where it was,
+            -- the anchor (read as a drag, on the Steam Deck the first full-card open moved the
+            -- window 4 px right for good). The anchor stays where it was,
             -- so the window lands back on it as the drawer narrows.
             local newX = win._anchorRightEdge - newW
             local pushed = 0
@@ -4732,7 +4732,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 then
             local expectedW = T.px(TAB_STRIP_W) + T.px(win._baseInvW or 372) + T.px(CONTAINER_STRIP_W)
             if win:getWidth() ~= expectedW then
-                -- S124 scale: _baseInvW is stored in design units (screen px / T.scale);
+                -- _baseInvW is stored in design units (screen px / T.scale);
                 -- kept fractional so save/restore round-trips without drift.
                 win._baseInvW = invW / (T.scale or 1)
             end
@@ -4766,7 +4766,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 else
                     local colSel = {}
                     for _, ci in ipairs(win._mcSelected) do colSel[#colSel + 1] = ci end
-                    -- S106: main column = containers[1] (see mcToggleContainer comment).
+                    -- main column = containers[1] (see mcToggleContainer).
                     if win._mainVisible then
                         colSel[#colSel + 1] = 1
                     end
@@ -4777,7 +4777,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     content._activeCol = #colSel
                 end
                 win._invDrawerTargetW = computeInvDrawerTarget(win)
-                -- S108 v2 QA: rebuild per-column ring zones to reflect new
+                -- Rebuild the per-column ring zones to reflect the new
                 -- MC count after FIFO eviction.
                 if _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, content) end
             end
@@ -4788,8 +4788,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         content:setWidth(math.max(invW, 0))
         content:setVisible(invW > 0)
         -- the content's prerender (the controller's stops) does not run while it is hidden: the
-        -- drawer runs the refresh instead (punch list 38, Oct 31 2026: at 1280x720, UI scale 2.0
-        -- every tab but Equip had no stops)
+        -- drawer runs the refresh instead (without it, at 1280x720 and UI scale 2.0 every tab
+        -- but Equip had no stops)
         if invW <= 0 and content._focusRefresh then content._focusRefresh(content) end
 
         -- Container strip stays right of inventory
@@ -4815,7 +4815,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Store divider position for top-Z drawing in itemDrawer
         win._dividerX = (effectiveW > 0 and invW > 0) and (T.px(TAB_STRIP_W) + effectiveW) or nil
 
-        -- Card visibility now managed by ITEM.DRAWER overlay panel
+        -- (the card's visibility is the item drawer overlay's)
         -- Show/hide journal input children (only in Journal sub-tab)
         local showJournal = effectiveW > 0 and win._drawerMode == "tab" and win._activeTab == "journal"
         local showJournalInput = showJournal and (win._journalSubTab or 1) == 1
@@ -4830,10 +4830,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         win._flyerSearch:setVisible(showJournal and JR ~= nil and JR.searchVisible(win, subIdx))
         if JR then JR.syncChildren(win, showJournal and subIdx == 2) end
         if ZeD.JournalLists then ZeD.JournalLists.syncChildren(win, showJournal and subIdx == 5) end
-        -- S67: Journal Maps sub-tab moved to World Window MapsTab.
-        -- Map panel visibility block commented out.
-        -- if win._worldMapPanel then ... end
-        -- if win._mapTextEntry and not showMaps then ... end
+        -- (No map panel here: the Maps page is the World window's, MapsTab.)
 
         -- other mods' tabs place or hide their own window-parented children
         ZeD_CharacterWindow.extFrame(win, effectiveW)
@@ -4851,7 +4848,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
         end
 
-        -- ── Identity avatar positioning (window-parented, Q52) ──────────
+        -- ── Identity avatar positioning (window-parented: see the model's build) ──
         do
             local model = win._identityModel
             if model then
@@ -4908,16 +4905,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     if dollLayer:isVisible() ~= showLines then dollLayer:setVisible(showLines) end
                 end
 
-                -- Q45: must set BOTH Lua and Java visibility
+                -- must set BOTH Lua and Java visibility (the model's Java object keeps its own)
                 model:setVisible(showAvatar)
                 model.javaObject:setVisible(showAvatar)
             end
         end
 
         -- The Equip tab's item card hides every frame here; the Equip tab's own draw (below,
-        -- same frame) shows it again when it is in card mode. Only the Equip tab hid it
-        -- before, so after a tab switch it stayed over the new tab, catching clicks
-        -- (code audit Oct 17 2026).
+        -- same frame) shows it again when it is in card mode. Hidden by the Equip tab
+        -- alone, it stayed over the next tab after a switch, catching clicks.
         if self._equipCard and self._equipCard:isVisible() then self._equipCard:setVisible(false) end
 
         -- Draw drawer background + content (in mc mode, only draw if item card is visible)
@@ -4931,7 +4927,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             local db = T.drawerBg
             self:drawRect(0, 0, effectiveW, dh, db.a, db.r, db.g, db.b)
 
-            -- Card bg now drawn by ITEM.DRAWER overlay panel
+            -- (the card's background is the item drawer overlay's)
 
             -- Tab content (when drawer shows a tab, not an item)
             if win._drawerMode == "tab" and win._activeTab then
@@ -4949,13 +4945,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         coverX = nil
                     end
                     -- (a tab that throws must not repeat its error every frame or leave its own clip
-                    -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
+                    -- set: log once, put the drawer's clip back, draw on)
                     -- (as in the World window: under a card every clear of any tab leaves one clip on,
                     -- since coverClear sets the card's cut again, and a tab may leave one of its own.
                     -- The inventory list's own clear (content._onPrerender) took off one, no more, so a
                     -- tab with two clips under a card, Journal > Recipes with a recipe picked, hid the
                     -- inventory list and all drawn after it. Whatever is left on comes off here; a
-                    -- level tab with no card clears nothing. Punch list 97)
+                    -- level tab with no card clears nothing.)
                     local clipsBefore = self._zedStencilN or 0   -- (the count ZeD_Panel keeps)
                     self._coverClears = 0
                     local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
@@ -5087,7 +5083,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     drawer.onMouseDown = function(self, x, y)
         if win._drawerMode == "tab" then
-            -- S115: radio tab routing — delegate to RadioTab.onClick which
+            -- Radio tab routing — delegate to RadioTab.onClick, which
             -- hit-tests the chassis zones stamped during render.
             if win._activeTab == "radio" then
                 ZeD.RadioTab.onClick(win, x, y)
@@ -5133,7 +5129,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         end
                     end
                 end
-                -- Card mode: detail-zone structural docks (S118 — repair / remove patch)
+                -- Card mode: detail-zone structural docks (repair / remove patch)
                 if win._equipSelected and win._equipDockZones and ZeD.ItemDetail then
                     for _, dz in ipairs(win._equipDockZones) do
                         if x >= dz.x and x <= dz.x + dz.w
@@ -5170,7 +5166,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     if x >= dz.x and x <= dz.x + dz.w
                        and y >= dz.y and y <= dz.y + dz.h then
                         win._equipListExpanded = not win._equipListExpanded
-                        -- S100: per-frame refresh block owns zone focusability
+                        -- The per-frame refresh block owns zone focusability
                         -- + element rebuild; no direct setZoneFocusable call.
                         return true
                     end
@@ -5205,13 +5201,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 if ZeD.EquipmentTab.pressSlot(win, self, x, y) then return true end
             end
             -- Journal header: the Page box opens its list; the open list takes every click
-            -- (Oct 30 2026: the pages were a sub-tab strip)
+            -- (the pages were once a sub-tab strip, hence _journalSubTab)
             if win._activeTab == "journal" and ZeD.JournalTab and ZeD.JournalTab.onHeaderClick
                and ZeD.JournalTab.onHeaderClick(win, x, y) then
                 return true
             end
-            -- S67: Maps sub-tab moved to World Window — all map click handlers removed
-            -- (disclosure chevron, icon tools, color swatches, map pan/drag forward)
+            -- (No map clicks here: the Maps page — disclosure chevron, icon tools,
+            -- color swatches, pan / drag — is the World window's.)
             -- Journal group collapse/expand (only in Journal sub-tab)
             if win._activeTab == "journal" and (win._journalSubTab or 1) == 1 and win._journalGroupZones then
                 for _, zone in ipairs(win._journalGroupZones) do
@@ -5300,10 +5296,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     return true
                 end
             end
-            -- S104: identity tab-header disclosure toggle. Matches the
-            -- gamepad L/R tree-nav — click toggles _identityPhotoExpanded
-            -- and resets custom zoom + scroll, same behavior as the photo
-            -- click on identityModel.onMouseUp.
+            -- Identity tab-header disclosure toggle. Matches the pad's A on
+            -- it — click toggles _identityPhotoExpanded and resets custom
+            -- zoom + scroll, same behavior as the photo click on
+            -- identityModel.onMouseUp.
             if win._activeTab == "identity" and win._identityFigureZone then
                 local fz = win._identityFigureZone
                 if x >= fz.x and x <= fz.x + fz.w
@@ -5314,7 +5310,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     return true
                 end
             end
-            -- (a plain click on a skill row no longer pins it: the row's right-click menu does, Nov 4 2026)
+            -- (a plain click on a skill row does not pin it: the row's right-click menu does)
             -- Training materials expand/collapse click detection
             if win._activeTab == "skills" and win._trainingGroupZones then
                 for _, zone in ipairs(win._trainingGroupZones) do
@@ -5384,8 +5380,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         return true
     end
 
-    -- S67: Map RMB handlers (pin toggle, annotation context menu) removed.
-    -- Maps sub-tab moved to World Window MapsTab.
+    -- (The map's right-click handlers — pin toggle, annotation menu — are the
+    -- World window's, with the Maps page.)
     drawer.onRightMouseDown = function(self, x, y)
         -- a right press calls off an Equip row's drag (as it does the lists')
         ZeD.EquipmentTab.dragCancel(win, self)
@@ -5394,10 +5390,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
         return true
     end
 
-    -- S118: Equipment list RMB → vanilla context menu (parity with inv lists).
-    -- Walks _equipSlotZones (stamped by EquipmentTab.render in list mode) and
+    -- Right-click in the drawer: a skill row's menu, the Loadouts page's,
+    -- Health's treatment menu, a belt row's menu, and on the Equipment list
+    -- the vanilla context menu (parity with inv lists): it walks
+    -- _equipSlotZones (stamped by EquipmentTab.render in list mode) and
     -- spawns the same ZeD-skinned ISInventoryPaneContextMenu.createMenu the
-    -- inventory rows use — gives Drop / Wear / Read / Repair / etc. on the
+    -- inventory rows use — Drop / Wear / Read / Repair / etc. on the
     -- equipped item.
     drawer.onRightMouseUp = function(self, x, y)
         -- a skill row: its menu, Pin to title bar (ZeD_Pins)
@@ -5458,7 +5456,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local function updateDrawer(contentPanel)
         local T = ZeD.T
         local prevMode = win._drawerMode
-        local prevItem = win._drawerItem   -- Oct 23 2026: card-visibility snapshot (World parity)
+        local prevItem = win._drawerItem   -- card-visibility snapshot (World parity)
         local sel = contentPanel._selectedItems
         local count = 0
         local singleItem = nil
@@ -5468,15 +5466,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if count > 1 then break end
         end
         if count == 0 then contentPanel._padMarks = nil end   -- (the marks gone, their rule with them)
-        -- the controller's marks hide the card even at one (punch list 44), as the mouse's many do
+        -- the controller's marks hide the card even at one, as the mouse's many do
         if count == 1 and not contentPanel._padMarks then
             -- Single item selected: show item card (overlay if tab active)
             if singleItem ~= win._drawerItem then
                 win._itemCard:setItem(singleItem)
             end
             win._drawerItem = singleItem
-            -- S121 (Phase C2): wire the new ItemCard organism's sourceContext
-            -- so its back-bar verb cluster resolves correctly per source.
+            -- Wire the ItemCard organism's sourceContext so its back-bar
+            -- verb cluster resolves correctly per source.
             -- "equipped" → UNEQUIP/DROP; "inventory" → EQUIP/EAT/READ/USE +DROP;
             -- "container" → TAKE/EQUIP. Equipped check first since that wins
             -- regardless of which container the item lives in.
@@ -5522,12 +5520,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- If drawerMode == "tab", don't close — deselection doesn't affect tab panels
         end
 
-        -- S99: If we just transitioned OUT of "item" mode and focus was on
+        -- If we just transitioned OUT of "item" mode and focus was on
         -- charItemCard, snap ring focus back to charMainInv. Without this,
         -- setZoneFocusable(false) in the per-frame refresh would auto-rotate
         -- _focusIdx FORWARD to charContainerStrip — not what the user expects
         -- after closing the card from inventory.
-        -- Oct 23 2026: also when a card over a tab closes (its mode stays
+        -- Also when a card over a tab closes (its mode stays
         -- "tab"): B on the card goes back to the row (World window parity)
         if ((prevMode == "item" and win._drawerMode ~= "item")
             or (prevItem ~= nil and win._drawerItem == nil)) and win._focusRing then
@@ -5542,19 +5540,19 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
     end
 
-    -- S98: Expose updateDrawer so gamepad bindings (A on inv row → open card)
+    -- Expose updateDrawer so gamepad bindings (A on inv row → open card)
     -- can trigger drawer state changes via the same path mouse-click uses.
     win._updateDrawer = updateDrawer
 
-    -- S113: D-pad direction wrappers RETIRED. Under flat free-nav, D-pad is
-    -- pure spatial cone-nav across all focusable zones in the focused window.
-    -- The base ZeD_Window:onJoypadDir* methods take over and dispatch directly
-    -- to FocusManager. Behaviors the old wrappers handled now live on elements:
+    -- No D-pad direction wrappers here. Under flat free-nav, D-pad is
+    -- pure spatial cone-nav across all focusable zones in the focused window:
+    -- the base ZeD_Window:onJoypadDir* methods dispatch directly to
+    -- FocusManager. What a wrapper would do lives on the elements:
     --   * Disclosure expand/collapse → A (onActivate toggles, mouse parity)
     --   * Stack expand/collapse      → A (onActivate on stack chevron toggles)
     --   * Item card open             → A on inv row (selects item, drawer opens)
     --   * Item card close            → B (onCancel closes drawer)
-    --   * Card U/D content scroll    → onDpadDir on card action strip elements
+    --   * Card U/D                   → onDpadDir on the card's elements (ZeD_ItemCard:gpDpad)
     --   * GridScroll U/D scrolling   → onDpadDir on the gridScroll pseudo-focusable
     --   * Maps cursor / animals zone-cursor → onDpadDir (WorldWindow elements)
 
@@ -5951,7 +5949,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             for _, ci in ipairs(mcSel) do
                 colSel[#colSel + 1] = ci
             end
-            -- S106: main column = containers[1] (see mcToggleContainer comment).
+            -- main column = containers[1] (see mcToggleContainer).
             if win._mainVisible then
                 colSel[#colSel + 1] = 1
             end
