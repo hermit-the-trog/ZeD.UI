@@ -495,10 +495,9 @@ _buildWorldLootFocusables = function(win)
     return elements
 end
 
--- Oct 23 2026 (director's pad test: "world window is hard to access
--- containers"): the strip's stops were built when the window opened and on a
--- tab switch only, so a crate walked up to afterwards had no stop and the
--- floor's stop went on pointing at the floor's old place in the list (A on it
+-- The strip's stops were once built only when the window opened or a tab
+-- switched, so a crate walked up to afterwards had no stop and the floor's
+-- stop went on pointing at the floor's old place in the list (A on it
 -- opened another container). Rebuilt here whenever the list, its order or its
 -- scroll changes; the focus stays on the same container (by inventory).
 local function _refreshWorldStripFocus(win, Focus)
@@ -525,11 +524,10 @@ local function _refreshWorldStripFocus(win, Focus)
     Focus.setZoneFocusable(win, "worldContainerStrip", #els > 0)
 end
 
--- Oct 23 2026 (director: "if you activate something its hard to get back to
--- where you started from once that action is complete"): the item card closes
--- once its item has left the containers this window shows (taken, eaten,
--- moved), as the Character window's card does when an item leaves the
--- character; focus then goes back to the list, on the row's neighbour.
+-- The item card closes once its item has left the containers this window
+-- shows (taken, eaten, moved), as the Character window's card does when an
+-- item leaves the character; focus then goes back to the list, on the row's
+-- neighbour — the player is back where they started once the action is done.
 -- Checked every 10 frames.
 local function _closeCardIfItemGone(win)
     win._goneTick = (win._goneTick or 0) + 1
@@ -574,8 +572,8 @@ local function _invListLandOn(w, z, dir)
     return z.focusedElementIdx or 1
 end
 
--- S109b — Foraging tab focusables.
--- Composition (header, body, band; Oct 30 2026):
+-- Foraging tab focusables.
+-- Composition (header, body, band):
 --   1. Focus dropdown          — in the header strip; A opens/commits, D-pad
 --                                nav inside, B closes
 --   2. MORE DETAIL disclosure  — A + L/R tree-nav toggles _moreDetailOpen
@@ -585,8 +583,7 @@ end
 --   4. Grid-scroll pseudo      — D-pad U/D scrolls win._forageScroll; at
 --                                bounds falls through to cone nav so user
 --                                escapes back upward
--- Crouch/Aim are read-only status in the band: no stops
--- (feedback_stance_status_only).
+-- Crouch/Aim are read-only status in the band: no stops.
 local function _buildForageFocusables(win)
     if not win then return {} end
     local elements = {}
@@ -673,9 +670,9 @@ local function _buildForageFocusables(win)
         }
     end
 
-    -- 4. GRID SCROLL pseudo (S102 pattern). Only present when content
-    -- overflows. D-pad U/D scrolls win._forageScroll; handler lives in
-    -- onJoypadDirUp/Down below. Bounds span the full viewport width so the
+    -- 4. GRID SCROLL pseudo. Only present when content overflows. D-pad U/D
+    -- scrolls win._forageScroll through the element's own onDpadDir
+    -- below. Bounds span the full viewport width so the
     -- element center-x aligns with the disclosure/dropdown above — keeps
     -- cone-nav UP from the scroll back up to the disclosure working.
     local scroll = win._forageScroll
@@ -688,7 +685,7 @@ local function _buildForageFocusables(win)
             id = "forage:scroll",
             isGridScroll = true,
             -- No onActivate / onFocus — pure scroll surface.
-            -- S113: D-pad U/D scrolls _forageScroll; at limits, fall through
+            -- D-pad U/D scrolls _forageScroll; at limits, fall through
             -- to cone-nav so user can escape upward to disclosure / dropdown.
             onDpadDir = function(w, _el, dir)
                 local sc = w._forageScroll
@@ -707,7 +704,7 @@ local function _buildForageFocusables(win)
     return elements
 end
 
--- S109 — Animals tab focusables: state-machine aggregator.
+-- Animals tab focusables: a state-machine aggregator.
 -- Composition varies by (submode × view):
 --   ranch overview  → [submode pills, Alerts+Totals disclosures, zone cards]
 --   ranch zone      → [submode pills, breadcrumb back, sort btn, roster rows]
@@ -715,23 +712,21 @@ end
 --   butcher overview→ [submode pills, butcher roster rows]
 --   butcher animal  → [submode pills, breadcrumb back]
 --
--- Submode pills use onFocus live-switch (no A-press — feedback_no_confirm_for
--- _no_chain). Disclosures toggle via A (onActivate) AND L/R tree-nav (wired in
--- onJoypadDirLeft/Right below). Rosters + zone cards navigate via AT.navigate.
--- Alerts stay readout-only per design director direction.
--- Zone-create / rename / remove confirmation footers are mouse-only (gamepad
--- can't meaningfully drive drag-to-draw or modal YES/NO text prompts in one
--- shot; deferred).
+-- Submode pills: focus paints, A switches. Disclosures toggle via A
+-- (onActivate) AND L/R tree-nav. Rosters + zone cards navigate via
+-- AT.navigate. Alerts stay readout-only. Zone creation collapses the ring to
+-- one zone-draw stop (below); the zone rename / remove confirmation footers
+-- get no stops here — they take the mouse.
 local function _buildAnimalsFocusables(win)
     if not win then return {} end
     local AT = ZeD and ZeD.AnimalsTab
     if not AT or not AT.getState then return {} end
     local state = AT.getState(win)
 
-    -- S109a: Zone-create mode. Ring collapses to a single zone-draw pseudo-
-    -- focusable; D-pad is intercepted at win-level for cursor movement,
+    -- Zone-create mode. Ring collapses to a single zone-draw pseudo-
+    -- focusable; its onDpadDir moves the ground cursor,
     -- A fires onActivate (phase advance via gpConfirm), B fires onCancel
-    -- (phase back-step via gpCancel — hooked in FocusManager._handleBTap).
+    -- (phase back-step via gpCancel — hooked in FocusManager's B tap).
     -- id includes phase so the ring rebuilds when phase changes (forces
     -- onFocus re-fire / dirty-check).
     local zc = win._zoneCreate
@@ -748,9 +743,7 @@ local function _buildAnimalsFocusables(win)
                 onCancel = function(w)
                     if AT.gpCancel then AT.gpCancel(w) end
                 end,
-                -- S113: D-pad moves the ground cursor by 1 tile per press.
-                -- Element-level onDpadDir replaces the win-level isZoneDraw
-                -- intercept (deleted alongside the joypad direction wrappers).
+                -- D-pad moves the ground cursor by 1 tile per press.
                 onDpadDir = function(w, _el, dir)
                     if not (AT and AT.gpMoveCursor) then return false end
                     if     dir == "left"  then AT.gpMoveCursor(w, -1, 0)
@@ -766,9 +759,9 @@ local function _buildAnimalsFocusables(win)
 
     local elements = {}
 
-    -- 1. Submode pills (always present — live-switch on focus).
+    -- 1. Submode pills (always present).
     -- Active submode first so preserveIdx=1 seeds to the current submode
-    -- (cold tab entry otherwise live-switches back to ranch every time,
+    -- (a cold tab entry otherwise lands back on ranch every time,
     -- losing butcher state).
     local subZones = win._animalsSubmodeZones
     if subZones then
@@ -785,7 +778,7 @@ local function _buildAnimalsFocusables(win)
                 id = "animals:submode:" .. tostring(z.id),
                 isSubmode = true,
                 submodeId = z.id,
-                -- S123: GAMEPAD_SPEC parity with the Journal pills — focus paints,
+                -- as the Journal pills (GAMEPAD_SPEC.md): focus paints,
                 -- A switches the sub-mode.
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
@@ -812,9 +805,9 @@ local function _buildAnimalsFocusables(win)
         }
     end
 
-    -- 2b. HOOK_MAP 20-22: a zone's hutches and troughs, the Butcher view's
-    -- hooks (A opens the card), an animal's hutch, and the genome editor
-    -- (animal cheats). Each list exists only while its view is drawn.
+    -- 2b. Structures (HOOK_MAP.md 20-22): a zone's hutches and troughs, the
+    -- Butcher view's hooks (A opens the card), an animal's hutch, and the
+    -- genome editor (animal cheats). Each list exists only while its view is drawn.
     for _, sz in ipairs(win._animalsStructZones or {}) do
         elements[#elements + 1] = {
             x = sz.x, y = sz.y, w = sz.w, h = sz.h,
@@ -889,17 +882,17 @@ local function _buildAnimalsFocusables(win)
                         if AT.navigate then
                             AT.navigate(w, "zone", el.zoneName, nil)
                         end
-                        -- S109a: land on breadcrumb so back-nav is the
-                        -- natural next action. Otherwise idx-clamp lands
-                        -- the user mid-ring (on sort btn for idx-4 sources).
+                        -- land on the breadcrumb so back-nav is the natural
+                        -- next action; the index clamp otherwise lands the
+                        -- user mid-ring (on the sort button, for one).
                         w._animalsNavFocusTarget = "breadcrumb"
                     end,
                 }
             end
         end
-        -- + CREATE ZONE footer button → enters drag-to-draw zone creation
-        -- mode. Actual drawing step is mouse-only (ground drag), but the
-        -- button itself is reachable via gamepad.
+        -- + CREATE ZONE footer button → enters zone creation. The mouse
+        -- drags the zone out on the ground; the pad draws it through the
+        -- phased zone-draw stop above.
         if win._animalsAddZoneBtn then
             local z = win._animalsAddZoneBtn
             elements[#elements + 1] = {
@@ -924,7 +917,7 @@ local function _buildAnimalsFocusables(win)
                 end,
             }
         end
-        -- Help (Nov 7 2026): the game's zone note, asked for.
+        -- Help: the game's own note on livestock zones.
         if win._animalsZoneHelpZone then
             local z = win._animalsZoneHelpZone
             elements[#elements + 1] = {
@@ -987,9 +980,9 @@ local function _buildAnimalsFocusables(win)
     return elements
 end
 
--- S107 — Crafting tab focusables (World window). Routes through the shared
--- CC.buildFocusables helper with prefix="craft" + ZeD_CraftPins for X-pin
--- + the HandcraftLogic-backed startCraft for the BUILD button. State table
+-- Crafting tab focusables (World window). Routes through the shared
+-- CraftingCore.buildFocusables helper with prefix="craft" + ZeD_CraftPins for
+-- X-pin + the HandcraftLogic-backed startCraft for the BUILD button. State
 -- (`win._craftState`) is created lazily by ZeD.CraftingTab.render on first
 -- frame, so this wrapper returns {} until that state exists.
 local function _buildWorldCraftFocusables(win)

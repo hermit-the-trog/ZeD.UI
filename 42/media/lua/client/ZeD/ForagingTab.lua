@@ -1268,8 +1268,8 @@ function ZeD.ForagingTab.onClick(win, x, y)
     return false
 end
 
+--- The tab has no right-click actions; always false.
 function ZeD.ForagingTab.onRightClick(win, x, y)
-    -- No right-click actions in S71
     return false
 end
 
@@ -1286,6 +1286,7 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Hooks "forage" into the World window's tab dispatch table.
 function ZeD.ForagingTab.register(dispatchTable)
     dispatchTable["forage"] = ZeD.ForagingTab.render
 end
@@ -1297,7 +1298,7 @@ end
 local _origSpotIcon = nil
 
 local function installForageHook()
-    if _origSpotIcon then return end  -- already installed
+    if _origSpotIcon then return end  -- keep vanilla once: a reload never wraps the wrapper
     _origSpotIcon = ISSearchManager.spotIcon
 
     ISSearchManager.spotIcon = function(self, _icon)

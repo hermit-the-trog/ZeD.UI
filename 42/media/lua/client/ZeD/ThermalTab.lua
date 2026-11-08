@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ThermalTab.lua
 -- ============================================================================
--- THERMAL TAB — per-body-part thermoregulation data with 7 switchable views.
--- Layout: body figure (top-left) + Core / Air / Wind readings (top-right) + grid
--- (below); the View pop-up is the footer band (Oct 30 2026, punch list 21).
--- Uses vanilla thermoregulator node iterator + *UI getters.
+-- THERMAL TAB (client) — the Character window's per-body-part thermoregulation
+-- tab, with 7 switchable views.
+-- Layout: body figure (top-left) + Core / Air / Wind readings (top-right) +
+-- grid (below); the View pop-up lives in the footer band.
+-- Reads vanilla's thermoregulator nodes (getNodeForType) and their *UI getters.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -106,13 +107,11 @@ local BODY_PART_TYPES = {
     { type = BodyPartType.Foot_R,      name = "Right Foot" },
 }
 
--- Canonical part order for display (must match BODY_PART_TYPES order)
+-- Display order of the parts: BODY_PART_TYPES' order, by name.
 local PART_ORDER = {}
 for _, bp in ipairs(BODY_PART_TYPES) do
     PART_ORDER[#PART_ORDER + 1] = bp.name
 end
-
--- Figure top padding (Zone A height driven by right column content)
 
 -- ============================================================================
 -- COLOR HELPERS
@@ -130,7 +129,7 @@ local function getThermalColor(pct)
 end
 
 -- ============================================================================
--- DATA GATHERING (uses getNodeForType — proven vanilla pattern)
+-- DATA GATHERING (getNodeForType per part, as vanilla's own panels read it)
 -- ============================================================================
 
 function ZeD.ThermalTab.gatherData(playerObj)
@@ -197,12 +196,12 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local pad  = M.getTabPad()      -- 8px outer pad
     local padTop = M.getTabPadTop() -- 8px top pad below pinned header
 
-    -- Init view state
+    -- The chosen view lives on the window, so it survives leaving the tab.
     if not win._thermalView then win._thermalView = 1 end
 
-    -- (Oct 30 2026, punch list 21 a-f: the View list no longer shuts when a draw comes 300 ms
-    -- late, as a hitch or a screenshot made it; the window shuts it through closeMenu when the
-    -- tab is left, the drawer folds or an item card opens over it)
+    -- (the View list never shuts on a slow frame — a hitch or a screenshot once
+    -- made it blink shut; the window shuts it through closeMenu when the tab is
+    -- left, the drawer folds or an item card opens over it)
 
     -- Throttled data refresh
     win._thermalTimer = (win._thermalTimer or 0) + 1
@@ -212,10 +211,10 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     end
     local data = win._thermalCache
 
-    -- S102 — Resolve "active" body part: gamepad focus on a thermal body-part
-    -- element overrides mouse hover so D-pad through parts live-swaps the
-    -- right-column detail view. Stashed on win so _drawBodyFigure reads the
-    -- same authoritative value for fig.selectedPart (white highlight).
+    -- Resolve the "active" body part: gamepad focus on a part overrides mouse
+    -- hover, so the D-pad through the parts live-swaps the right-column detail
+    -- view. Stashed on win so _drawBodyFigure reads the same value for
+    -- fig.selectedPart (the white highlight).
     -- (the live element: the controller leads only while it is in use)
     local activePart = win._thermalHoveredPart
     do
@@ -247,7 +246,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local gridContentH = ZeD.ThermalTab._measureGridContent(data, w - pad * 2, scrollW)
     local totalContentH = padTop + zoneAH + T.sp.afterLine + gridContentH
 
-    -- Scroll area runs from the pinned header to the footer band (Oct 30 2026: the View pop-up's band)
+    -- Scroll area runs from the pinned header to the footer band (the View pop-up's band)
     local scrollY = y + headerH
     local bandH = M.bandH()
     local bandY = y + h - bandH
@@ -265,10 +264,11 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
 
-    -- Oct 30 2026, punch list 21 a-f: what the body shows between the header and the band (the
-    -- figure's parts outside it are no stops: the window's _inBodyView), and a part the
-    -- controller focuses kept whole in view, by the least scroll (once per focus change)
-    win._thermalBodyRect = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (its own name: _thermalView is the chosen view, 1..7; punch list 21 g)
+    -- The body area between the header and the band: the window's _inBodyView
+    -- reads it (a figure part scrolled out of it is no controller stop), and a
+    -- part the controller focuses is kept whole in view by the least scroll,
+    -- once per focus change.
+    win._thermalBodyRect = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (its own name: _thermalView is the chosen view, 1..7)
     if needsScroll then
         local Focus = ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
@@ -321,20 +321,17 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     ZeD.ThermalTab._renderCardGrid(panel, win, data,
         x + pad, gridY, contentW - pad * 2, gridContentH)
 
-    -- S102 — stamp the grid as a gamepad pseudo-zone (grid rows aren't
-    -- focusable per stats-not-focusable rule, so the whole grid becomes
-    -- one scroll surface). D-pad up/down scrolls the viewport while focused;
-    -- cone nav from pills/body parts lands here spatially.
+    -- The grid as one gamepad pseudo-zone: stat rows are read, not pressed, so
+    -- none is a stop and the whole grid is one scroll surface. D-pad up / down
+    -- scrolls the viewport while it has focus; cone nav from the pills or the
+    -- body parts lands on it spatially.
     --
-    -- S105 fix: stamp the zone whenever there's scrollable content, positioned
-    -- within the viewport even when grid content is scrolled off-screen. User
-    -- reported "cannot virtual scroll while top zone is open" — with figure
-    -- expanded, Zone A occupies the viewport and the grid was below it, so
-    -- the old logic (intersect gridY..gridBot with scrollY..scrollBot) yielded
-    -- a zero-height zone → nil → unreachable focusable. Fix: when scrollable
-    -- content exists, always pin the zone to the bottom 25% of the viewport
-    -- so cone-nav from above can reach it, which then allows D-pad DOWN to
-    -- scroll the grid into view.
+    -- The zone is stamped whenever the content scrolls, even with the grid
+    -- off-screen: with the figure open, zone A can fill the viewport, and a
+    -- zone cut to the grid's visible part would then have no height — and the
+    -- pad no way down. Off-screen, the zone pins to the bottom quarter of the
+    -- viewport as a virtual handle, so cone nav from above can reach it and
+    -- D-pad DOWN scrolls the grid into view.
     if needsScroll then
         local intTop = math.max(gridY, scrollY)
         local intBot = math.min(gridY + gridContentH, scrollY + scrollH)
@@ -380,9 +377,8 @@ end
 
 -- ============================================================================
 -- READINGS (Zone A right side — default, no hover)
--- Core / Air / Wind and the core gauge, beside the figure (Oct 30 2026: they
--- moved up from the top of the grid when the view buttons became the footer
--- band's pop-up). A part under the pointer or the pad swaps them for its details.
+-- Core / Air / Wind and the core gauge, beside the figure. A part under the
+-- pointer or the pad swaps them for its details.
 -- ============================================================================
 
 -- one reading row's height (what ZeD.Molecules.drawStatRow takes)
@@ -414,18 +410,18 @@ function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
 end
 
 -- ============================================================================
--- FOOTER BAND: the View pop-up (Oct 30 2026, punch list 21)
--- "View: Skin temperature" at the left, nothing at the right. The seven views were
--- radio buttons; the list opens upward from the box. The same pattern as Craft's
--- sort pop-up: the open list takes every press; the pad's stops become its rows.
+-- FOOTER BAND: the View pop-up
+-- "View: Skin temperature" at the left, nothing at the right; the list opens
+-- upward from the box. The same pattern as Craft's sort pop-up: the open list
+-- takes every press; the pad's stops become its rows.
 -- ============================================================================
 
 local function inRect(r, x, y)
     return r ~= nil and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h
 end
 
--- the pop-up list: opened by the box, shut by a pick, a click anywhere else or B; the pad
--- returns to the box it came from (_thermalReturnToMenu, read by the tab's focusables)
+--- The pop-up list: opened by the box, shut by a pick, a click anywhere else or B; the pad
+--- returns to the box it came from (_thermalReturnToMenu, read by the tab's focusables)
 function ZeD.ThermalTab.openMenu(win)
     win._thermalMenuOpen = true
     win._thermalMenuZones = nil
@@ -438,8 +434,8 @@ function ZeD.ThermalTab.closeMenu(win, pickIdx)
     win._thermalReturnToMenu = true
 end
 
--- The mouse path through the band: an open list takes every press (a pick or shut it);
--- else the box opens it. Returns true when the press was the band's.
+--- The mouse path through the band: an open list takes every press (a pick or shut it);
+--- else the box opens it. Returns true when the press was the band's.
 function ZeD.ThermalTab.onClick(win, x, y)
     if win._thermalMenuOpen then
         for _, z in ipairs(win._thermalMenuZones or {}) do
