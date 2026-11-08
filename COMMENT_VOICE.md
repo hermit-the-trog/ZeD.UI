@@ -88,7 +88,10 @@ Recurring idioms get the same explanation everywhere, worded once:
 1. Comments only. Code, strings (including every player-facing string), and
    behavior are untouched — byte-identical outside comments.
 2. Never delete information you can't carry over; translate it.
-3. No personal names, usernames, machine paths, or tool/model names.
+3. No personal names, usernames, or machine paths from the project's own
+   development — the team, QA, local machines. Public credit is different:
+   a ModSupport header names the supported mod and its author as the
+   Workshop lists them.
 4. English only.
 5. A comment that would need the project's chat history to make sense isn't
    done yet.

@@ -610,7 +610,7 @@ function ZeD.Settings.guideSimple()
     return ok and v == 2
 end
 
--- ----- THE MODS SCREEN'S FORM (the director, Nov 4 2026: Workshop feedback, a Simple view for newcomers) -----
+-- ----- THE MODS SCREEN'S FORM: a Simple view for newcomers, asked for on the Workshop -----
 -- Detailed: the mods with their IDs, tags, folders, profiles and the load order. Simple: one line a mod (the box, the
 -- name, one mark when something is wrong), the tabs All, On, Off and Problems, and the info pane's About only.
 local modsStyle = opts:addComboBox("modsStyle", ZeD.tr("UI_ZeD_Settings_Mods"), ZeD.tr("UI_ZeD_Settings_ModsTip"))
@@ -622,7 +622,7 @@ function ZeD.Settings.modsSimple()
     return ok and v == 2
 end
 
--- ----- THE IDENTITY CARD'S FORM (the director, Nov 5 2026, punch list 89: "Everything is either immersive or simple") -----
+-- ----- THE IDENTITY CARD'S FORM: everything is either Immersive or Simple -----
 -- Immersive: the Kentucky license. Simple: ZeD components, the same facts on the theme's surface.
 local identityStyle = opts:addComboBox("identityStyle", ZeD.tr("UI_ZeD_Settings_Identity"), ZeD.tr("UI_ZeD_Settings_IdentityTip"))
 identityStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
@@ -672,14 +672,14 @@ do
             o.zedNameKey = key
             -- the item each option starts on (its addItem marked true above): still the default here,
             -- since ModOptions.ini is read later, when vanilla builds its options screen. ZeD setup's
-            -- Defaults button and the help band's "Default:" read it (Oct 21 2026, mockup zed_settings_v2)
+            -- Defaults button and the help band's "Default:" read it
             o.zedDefault = o.selected
         end
     end
 end
 
--- ----- THE ADDITIONS: THREE PRESETS AND CUSTOM (director, Oct 30 2026: "Every added feature can be turned off;
--- off by default for a vanilla run") -----
+-- ----- THE ADDITIONS: THREE PRESETS AND CUSTOM. Every added feature can be
+-- turned off, and every one starts off for a vanilla run. -----
 -- The rules: picking a preset sets every addition at once; changing any addition by hand makes the preset read
 -- Custom; Custom keeps the hand picks, so picking it again goes back to them; existing players keep what they have
 -- saved (the preset reads the one their values match, else Custom). So the preset is never stored on its own
@@ -701,8 +701,8 @@ local function setUpAdditions()
                   "guideStyle", "modsStyle", "identityStyle", "haloBubble" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
-    -- while Loadouts is off). When the "faces or simple cards" switch is built (punch list 17), its id goes in
-    -- IDS and a row here: faces for Vanilla Plus, simple cards for Vanilla Accessible.
+    -- while Loadouts is off). A new addition joins by putting its id in IDS and a row in each preset,
+    -- as the Full-or-simple rows did (Immersive for Vanilla Plus, Simple for Vanilla Accessible).
     local PRESETS = {
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
@@ -818,7 +818,7 @@ local function setUpAdditions()
         if want == CUSTOM then saveCustom(stored) end
     end
 
-    -- Once (the director, Nov 6 2026): beta 6 added the Identity row with no line for it, so a player on Vanilla Access
+    -- A one-time repair: beta 6 added the Identity row with no preset line for it, so a player on Vanilla Access
     -- who ran beta 6 was moved to Custom with the Immersive card. Those values, Vanilla Access in every row but that one,
     -- go back to the preset. The file says it was done, so a later pick of Immersive stays; a new player gets the file too.
     local REPAIR_FILE = "ZeD_presetRepair.txt"
@@ -855,9 +855,9 @@ local function setUpAdditions()
     -- the options window's discard: the hand picks held for Custom go with the rest
     function ZeD.Settings.forgetHeldCustom() held = nil end
 
-    -- A player who had ZeD before Oct 30 2026 has ZeD's lines in ModOptions.ini. An addition that was on for them
-    -- with no line of its own (Loadouts had no switch; a switch newer than their last save) starts on, as they
-    -- had it: "Existing players keep their saved settings". Read here, at file load, before the game reads the
+    -- A player who had ZeD before the additions' switches has ZeD's lines in ModOptions.ini. An addition that
+    -- was on for them with no line of its own (Loadouts had no switch; a switch newer than their last save)
+    -- starts on, as they had it: existing players keep their saved settings. Read here, at file load, before the game reads the
     -- file into the options (a saved line still wins) and after the defaults above were noted.
     local WAS_ON = { "ammoBox", "readMarks", "readNext", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "loadouts" }
     local ok, r = pcall(function() return getFileReader("ModOptions.ini", false) end)
@@ -877,9 +877,9 @@ local function setUpAdditions()
                 local o = opt(id)
                 if o and not has[id] then o:setValue(ON) end
             end
-            -- (beta, Nov 2 2026: the Full or simple rows joined the presets. A player on Vanilla Access, preset item 3,
-            -- from before them gets them Simple, as the preset now asks, instead of the preset reading Custom. The Identity
-            -- row joined in beta 6.)
+            -- (the Full or simple rows joined the presets after the first players had saves. A player on Vanilla
+            -- Access, preset item 3, from before them gets them Simple, as the preset asks, instead of the preset
+            -- reading Custom. The Identity row joined last, in beta 6.)
             if val.additionsPreset == 3 then
                 for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle" }) do
                     local o = opt(id)
@@ -991,8 +991,8 @@ charAccent.onChangeApply  = onCharAccent
 worldAccent.onChange = onWorldAccent
 worldAccent.onChangeApply = onWorldAccent
 
--- Glyph display: store the selection to modData. GlyphManager (Phase 4)
--- will read it; Phase 1 just persists the user's preference.
+-- Glyph display: a copy of the pick kept on the character. Nothing reads the
+-- copy back; ZeD_PadGlyphs reads the option itself (glyphKey, above).
 glyphDisplay.onChange = function(_, sel)
     local key = glyphKeys[tonumber(sel) or glyphDisplay:getValue() or 1] or "auto"
     local player = getSpecificPlayer(0)
@@ -1023,7 +1023,8 @@ inputModeLock.onChange = function(_, sel)
     end
 end
 
--- Sync a single window's accent to ModOptions + modData (called from footer button).
+-- Sync a single window's accent to ModOptions + modData (the window box menu
+-- and the windows' own accent pick-up call it).
 -- A window with no accent key of its own follows the Accent color option.
 function ZeD.Settings.syncWindowAccent(win)
     if not win then return end
@@ -1131,7 +1132,7 @@ Events.OnGameStart.Add(function()
     ZeD.Settings.reconcileAdditions()   -- the additions' preset set to what the saved values make
 end)
 
--- The main menu (Oct 14 2026) draws ZeD windows before any save loads: apply
+-- The main menu draws ZeD windows before any save loads: apply
 -- the mod options there too. Vanilla's own OnMainMenuEnter handler builds the
 -- options screen first, which loads the saved mod options.
 Events.OnMainMenuEnter.Add(function()
@@ -1142,9 +1143,10 @@ Events.OnMainMenuEnter.Add(function()
 end)
 
 -- ---------------------------------------------------------------------------
--- F-KEY SHORTCUTS FOR QUICK CYCLING (dev convenience)
--- These work alongside ModOptions. The MODS tab won't reflect F-key changes
--- until reopened, but the theme updates immediately in-game.
+-- CYCLING HELPER
+-- The next entry of a list, wrapping at the end. The F-key shortcuts that
+-- used it are gone: theme, accent and size cycle through the window box menu
+-- and the controller's wheels instead.
 -- ---------------------------------------------------------------------------
 
 local function cycleNext(list, current)
@@ -1156,5 +1158,3 @@ local function cycleNext(list, current)
     return list[1]
 end
 ZeD.Settings.cycleNext = cycleNext
-
--- F-key handlers removed — theme/accent/size cycling is footer-button-only

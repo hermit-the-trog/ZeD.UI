@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MessagesWindow.lua
 -- ============================================================================
--- THE MESSAGES WINDOW and the toasts (MESSAGES_SPEC.md; mockup
--- ZeDUI/mockups/zed_messages_v1.html, director Oct 24 2026: "notification
--- center works for me"). The store is ZeD_Messages.lua.
+-- THE MESSAGES WINDOW and the toasts: the notification center's face.
+-- Client-side; an organism. The store is ZeD_Messages.lua.
 --
 -- A ZeD window on the player's screen: the sources on the left (From mods,
 -- Errors: a square mark, the name, a count), the chosen source's messages on the
@@ -11,11 +10,10 @@
 -- mod's notes as pop-ups, Delete, Mark all read) and the window's help line under
 -- it (the plain words for what the pointer is over, the controller's prompts).
 -- Mouse and controller (D-pad between the list, the cards' buttons and the band;
--- A presses, B closes). Its notices (until Nov 7 2026 the toasts on the right of
--- the screen) are speech balloons out of the Messages note on the belt for six
--- seconds (the director: "pop up out of the notification icon ... Just all in
--- one place"; ZeD_Bubbles.layoutNoticeBalloons); a click opens the window on
--- that source.
+-- A presses, B closes). Its notices are speech balloons out of the Messages
+-- note on the belt for six seconds, so every notice comes out of the one place
+-- (they were corner toasts once; ZeD_Bubbles.layoutNoticeBalloons); a click
+-- opens the window on that source.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -123,7 +121,7 @@ function ZeD_MessagesWindow:rows()
     for _, s in ipairs(mods) do rows[#rows + 1] = { src = s } end
     if #errs > 0 then rows[#rows + 1] = { head = tr("UI_ZeD_Msg_Errors") } end
     for _, s in ipairs(errs) do rows[#rows + 1] = { src = s } end
-    -- (the notes over your head: ZeD_HaloText, the director, Nov 4 2026)
+    -- (the notes over your head: ZeD_HaloText)
     if halos and #halos > 0 then rows[#rows + 1] = { head = tr("UI_ZeD_Msg_GameNotes") } end
     for _, s in ipairs(halos or {}) do rows[#rows + 1] = { src = s } end
     local cur
@@ -228,7 +226,7 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             cy = cy + ch + px(U.CARD_GAP)
         end
         place(it, lines, btns, textH)
-        -- every kept error its own card, newest first, with its own Copy (the director, Nov 2 2026, punch list 66)
+        -- every kept error its own card, newest first, with its own Copy
         if it.k == "err" then
             local n = #(it.texts or {})
             for i = n, 1, -1 do
@@ -828,7 +826,7 @@ ZeD.EscapeTakers = ZeD.EscapeTakers or {}
 ZeD.EscapeTakers.messages = W.takeEscape
 
 -- ---------------------------------------------------------------------------
--- THE NOTICES: speech balloons out of the Messages note on the belt (the director, Nov 7 2026). An element as big
+-- THE NOTICES: speech balloons out of the Messages note on the belt. An element as big
 -- as the balloons on show, over the note: the newest balloon lowest with its tail down to the note, the older ones
 -- stacked over it. With no note on the screen (a vehicle seat, the belt given back to the game, the UI hidden) they
 -- stand at the bottom middle of player one's screen, over the dash when one shows, without a tail.
@@ -845,7 +843,7 @@ function ZeD_MessagesToasts:new(pn)
     return o
 end
 
--- THE DASH'S NOTE (the director, Nov 7 2026: "every dash gets the same Messages icon"): the belt's Messages note,
+-- THE DASH'S NOTE (every dash gets the same Messages icon): the belt's Messages note,
 -- the same box, paper and count, at the dash's top right corner while driving (the belt hides in a seat), on the
 -- full dash and the Simple one, while Messages keeps anything; a click opens Messages. Notices come out of it then.
 ZeD_DashNote = ISUIElement:derive("ZeD_DashNote")

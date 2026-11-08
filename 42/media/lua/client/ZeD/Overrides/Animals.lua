@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Animals.lua
 -- ============================================================================
--- ANIMAL CARD HOOKS — HOOK_MAP rows 20, 21, 22
+-- ANIMAL CARD HOOKS (override, client)
 -- The hutch, the feeding trough, the butcher hook and an inspected track open
 -- object cards in the World window's card drawer instead of vanilla's windows:
 --   * hutch: ISHutchMenu.onInfo (world menu) opens the card, walking to the
@@ -12,10 +12,12 @@
 --   * tracks: ISInspectAnimalTrackAction:perform (search mode icon, a track on
 --     the ground, a track item).
 -- Vanilla runs only when ZeD declines (no World window, object not found),
--- and every time while safe mode is on (SafeMode.lua).
+-- and every time while safe mode is on (SafeMode.lua). Each hook keeps the
+-- vanilla function once and flags the class (_zedCardHooked and kin), so a
+-- Lua reload never wraps the wrapper.
 --
--- (Nov 7 2026, VANILLA_WINDOWS_20261107.md rows B4, B5) The game's animal info
--- and livestock zone windows go to the Animals tab (ZeD.WorldRoutes):
+-- The game's animal info and livestock zone windows go to the Animals tab
+-- (ZeD.WorldRoutes):
 --   * AnimalContextMenu.onAnimalInfo (right-click an animal > Info, the animal
 --     wheel's Info slice, the hutch window's Info) -> the animal's view;
 --   * ISOpenAnimalInfo:perform (the walk-then-look action of the game's zone

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/traitsAsSkills.lua
 -- ============================================================================
--- SUPPORT FOR TRAITS AS SKILLS (mod id traitsAsSkills, Workshop 3784847437, by GersonRess)
--- Mockup zed_traits_tab_v1, approved "as recommended" Oct 26 2026.
+-- SUPPORT FOR TRAITS AS SKILLS (mod id traitsAsSkills, Workshop 3784847437).
+-- Client. The mod's trait ladders become a Traits tab in ZeD's Character window.
 --
 -- The mod turns traits into ladders that level up and down with play and puts a
 -- Traits tab in the game's Character window, which ZeD never shows. This is that
@@ -10,7 +10,7 @@
 -- progress as the row's fill), ten small steps framed green or red where they hold
 -- a good or bad trait, the trait you have now at the right (a New tag until the tab
 -- has been opened once since it came). Categories fold (section heads); Mind and
--- Physical first, Skills last (the mockup's order). Find and the All | With a trait
+-- Physical first, Skills last. Find and the All | With a trait
 -- radio buttons narrow the list. The details at the foot follow the focused (or
 -- hovered) row:
 -- the whole ladder, the XP to the next level (or the skill it follows, or the
@@ -57,7 +57,7 @@ local TAB_ID = "traits"
 
 -- design units
 local PAD, CAT_H, BADGE_W, NAME_W, STEP_W, STEP_H, STEP_GAP, DET_H, FIND_W, KEY_W = 10, 20, 20, 112, 12, 13, 2, 218, 150, 76
--- the mockup's order: Mind and Physical first, Skills (ladders that follow skills) last
+-- the tab's order: Mind and Physical first, Skills (ladders that follow skills) last
 local CAT_ORDER = { "inteligencia", "physical", "behavior", "social", "trade", "survival", "combat", "other", "skills" }
 
 S.find = ""
@@ -667,7 +667,7 @@ local function drawDetail(panel, win, st, x, y, w, h)
         sc:setScrollPos(0)
     end
     -- one clip, set once the width is known: a second one set inside the first was never cleared
-    -- and hid the tab's header and scrollbar drawn after it (punch list 95). With a scrollbar the
+    -- and hid the tab's header and scrollbar drawn after it. With a scrollbar the
     -- clip stops short of it, so the bar, drawn once the clip is off, still shows.
     panel:setStencilRect(x, y + T.px(1), needs and (w - sbW) or w, innerH)
     local cy = y + T.px(8) - off
@@ -751,6 +751,7 @@ local function followFocus(win, st, viewH, maxOff)
     if newOff ~= off and maxOff > 0 then st.scroll:setScrollPos(newOff / maxOff) end
 end
 
+--- The tab, drawn each frame by the window: credit and summary, the rows, the details at the foot.
 function S.render(panel, win, x, y, w, h)
     local T = ZeD.T
     local st = state(win)
@@ -850,8 +851,8 @@ function S.render(panel, win, x, y, w, h)
         ZeD.HairBeard.hoverCard(panel, win, "tas:step:" .. tostring(sh2.row.id) .. ":" .. tostring(sh2.L),
             tr("UI_ZeD_TAS_StepTitle", sh2.row.name, sh2.L), lines, sh2, false)
     end
-    -- (the tab ends with the clips it started with: one left on hides the window's tab strip and
-    -- footer; punch list 95)
+    -- (the tab ends with the clips it started with: one left on hides the window's tab strip
+    -- and footer)
     panel:clearStencilRect()
     st.rendered = true
 end
@@ -866,6 +867,7 @@ local function setOnly(st, v)
     st.scroll:setScrollPos(0)
 end
 
+--- A press in the tab (window coordinates): scrollbars, the radio pair, heads and rows.
 function S.onClick(win, x, y)
     local st = state(win)
     local sc = st.scroll
@@ -914,7 +916,7 @@ local function editFind(win, st)
     f.input:focus()
 end
 
--- the controller's stops: Find, All | With a trait, each category, each row
+--- The controller's stops: Find, All | With a trait, each category, each row.
 function S.buildFocusables(win)
     local st = win._tas
     if not (st and st.L and st.sy) then return {} end
@@ -957,6 +959,7 @@ function S.buildFocusables(win)
     return out
 end
 
+--- Changes whenever the stops may have moved; the window rebuilds them when it does.
 function S.scrollKey(win)
     local st = win._tas
     if not st then return nil end
@@ -967,7 +970,8 @@ function S.scrollKey(win)
     return tostring(st.off or 0) .. ":" .. tostring(S.only) .. ":" .. tostring(S.find) .. ":" .. n .. ":" .. table.concat(closed, ",")
 end
 
--- every frame, any tab: the Find box shows only on this tab
+--- Every frame from the window (ZeD_CharacterWindow.extFrame), any tab: the Find box
+--- shows only on this tab.
 function S.onWindowFrame(win, drawerW)
     local st = win._tas
     local show = win._activeTab == TAB_ID and win._drawerMode == "tab" and not win._drawerItem and (drawerW or 0) > 0

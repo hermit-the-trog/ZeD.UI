@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StationPopout.lua
 -- ============================================================================
--- AN APPLIANCE IN ITS OWN WINDOW (director, Oct 25 2026: the appliance faces
--- should "have option to pop out on their own centered panel")
+-- AN APPLIANCE IN ITS OWN WINDOW (client; organism — a ZeD_Window subclass)
 --
 -- The Craft tab's oven or microwave view (StationAppliance.render, without its
 -- station select) in a ZeD window centred on the screen, at the largest whole zoom
@@ -227,6 +226,8 @@ function ZeD_StationPopout:onJoypadDirRight() self:turnOrMove(1) end
 -- ---------------------------------------------------------------------------
 -- ENTRY
 -- ---------------------------------------------------------------------------
+--- Pop the bound appliance out (StationAppliance's pop-out key). One window
+--- per player, reused; the controller's focus moves onto it.
 function SP.open(player, st)
     if not (player and st) then return nil end
     local pn = player:getPlayerNum()
@@ -249,6 +250,7 @@ function SP.open(player, st)
     return win
 end
 
+--- Bring it back (the tab's key): close the player's pop-out if it is on screen.
 function SP.close(player)
     local pn = player and player:getPlayerNum() or 0
     local win = SP.windows[pn]
@@ -257,7 +259,7 @@ end
 
 function SP.get(pn) return SP.windows[pn or 0] end
 
--- Escape from anywhere (the prompts' key hook asks): the pop-out on screen closes
+--- Escape from anywhere (the prompts' key hook asks): the pop-out on screen closes.
 function SP.takeEscape()
     for _, win in pairs(SP.windows) do
         if win and win:isReallyVisible() then win:close(); return true end
