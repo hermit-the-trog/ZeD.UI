@@ -1287,6 +1287,12 @@ function ZeD_Prompt:update()
             if jd and jd.focus == self then jf = jd; break end
         end
     end
+    -- at the main menu the controller is no player's yet: the main menu's joypad (a main-menu
+    -- note given its focus: Overrides/Prompts.lua's About Mods, Better Mod Experience's New Game)
+    if not jf and JoypadState and JoypadState.getMainMenuJoypad then
+        local mm = JoypadState.getMainMenuJoypad()
+        if mm and mm.focus == self then jf = mm end
+    end
     if P.qaJoy then jf = P.qaJoy end   -- QA: the controller look without a controller (zedqa_prompts.lua)
     if jf ~= self.joyfocus then
         self.joyfocus = jf

@@ -20,10 +20,12 @@
 -- (ten segments) and the XP of the level in the help line and the row's card.
 -- What it did not show is the rate and the book multiplier, so this file adds
 -- them through the tab's general hook (ZeD.SkillsTab.addExtras):
---   * the row's tag (in place of ZeD's boost tag): "XP x1.33" with the mod's
---     color as the tag's square (a status square, the words in default ink),
---     and ", book x3" while a skill book's multiplier runs. Rows learning below
---     x1 with no boost and no book get no tag, as the boost tag did not.
+--   * a row tag beside ZeD's boost tag (left of it; the director, Nov 7 2026:
+--     beside it, not in its place): "XP x1.33" with the mod's color as the
+--     tag's square (a status square, the words in default ink), and ", book x3"
+--     while a skill book's multiplier runs. Rows learning below x1 with no
+--     boost and no book get no tag. Fitness, Strength and Sprinting never learn
+--     slower than x1, so they read "XP x1" even with no boost (the game's rule).
 --   * the row's card (mouse over the row, or the controller's focus on it):
 --     the mod's own line "XP gain: x1.33" and the game's skill book
 --     multiplier line; the card's head already gives the level and its XP
@@ -32,8 +34,8 @@
 -- color is the tag's square) and the abbreviated numbers (ZeD shows full ones).
 -- The rate is worked out the way the game's XP rules do (the mod does the same,
 -- in its own words); the numbers round to two decimals as the mod's tooltip.
--- The mod's Enable option is honoured: off, this file adds nothing and ZeD's
--- boost tag is back. ZeD stores nothing.
+-- The mod's Enable option is honored: off, this file adds nothing (ZeD's boost
+-- tag stays, as it does with the option on). ZeD stores nothing.
 --
 -- ModSupport/<mod id>.lua returns at once unless that mod is on.
 -- ============================================================================
@@ -156,7 +158,7 @@ end
 -- ---------------------------------------------------------------------------
 local X = {}
 
--- The row's tag: the rate in the mod's color, the book's multiplier after it.
+-- The row's tag (beside the boost tag): the rate in the mod's color, the book's multiplier after it.
 function X.tag(char, perk, skill)
     if not (char and perk) or not S.enabled() then return nil end
     local g = S.gain(char, perk)

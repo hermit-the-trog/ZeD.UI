@@ -119,6 +119,28 @@ tg = ZeD.SkillsTab.extrasTag(char({}, nil, { Cooking = 3 }), skill(P.Cooking))
 check("a book alone: the tag with the book", tg and tg.text == "UI_ZeD_CSS_TagBook:0.25:3" and tg.color == CSS.GRAY, tg and tg.text)
 tg = ZeD.SkillsTab.extrasTag(char({ Axe = 2 }, { PA = true }), skill(P.Axe, 1, 2))
 check("Pacifist on a boosted skill: the tag stays", tg ~= nil)
+tg = ZeD.SkillsTab.extrasTag(plain, skill(P.Fitness))
+check("Fitness at no boost: XP x1 (it never learns slower)", tg and tg.text == "UI_ZeD_CSS_Tag:1" and tg.color == CSS.GREEN, tg and tg.text)
+
+-- the rate tag sits beside ZeD's boost tag, not in its place (the director, Nov 7 2026)
+local tags = ZeD.SkillsTab.rowTags and ZeD.SkillsTab.rowTags(char({ Axe = 2 }), skill(P.Axe, 1, 2)) or {}
+check("a boosted row: two tags", #tags == 2, #tags)
+check("the boost tag next to the bar", tags[1] and tags[1].boost == true and tags[1].text == "UI_ZeD_Skills_Boost:100%", tags[1] and tags[1].text)
+check("the rate tag beside it", tags[2] and tags[2].text == "UI_ZeD_CSS_Tag:1.33", tags[2] and tags[2].text)
+tags = ZeD.SkillsTab.rowTags and ZeD.SkillsTab.rowTags(plain, skill(P.Axe)) or { "x" }
+check("no boost, below x1: no tags", #tags == 0)
+-- drawn: right to left from the bar, the name stops short of both; short of room, the boost tag alone
+ZeD.Molecules = ZeD.Molecules or {}
+local drawn = {}
+ZeD.Molecules.drawTag = function(_, x, y, text) drawn[#drawn + 1] = { x = x, text = text } end
+local draw = ZeD.SkillsTab._drawRowTags
+local nameR = draw and draw({}, char({ Axe = 2 }), skill(P.Axe, 1, 2), 400, 0, 20, 10, 30)
+check("both tags drawn, boost first", #drawn == 2 and drawn[1].text:find("Boost", 1, true) and drawn[2].text:find("CSS", 1, true), #drawn)
+check("the rate tag left of the boost tag", drawn[2] and drawn[1] and drawn[2].x < drawn[1].x)
+check("the name stops at the rate tag", nameR and drawn[2] and nameR == drawn[2].x, nameR)
+drawn = {}
+nameR = draw and draw({}, char({ Axe = 2 }), skill(P.Axe, 1, 2), 400, 0, 20, 300, 30)
+check("short of room: the boost tag alone", #drawn == 1 and drawn[1].text:find("Boost", 1, true), #drawn)
 
 local win = { _playerObj = char({ Axe = 2 }, nil, { Axe = 2 }) }
 local card = ZeD.SkillsTab._skillCard(win, skill(P.Axe, 1, 2))
@@ -146,6 +168,8 @@ table.remove(ZeD.SkillsTab.extras)
 
 ClearSkillSheet = { isEnabled = function() return false end }
 check("the mod's Enable off: no tag", ZeD.SkillsTab.extrasTag(char({ Axe = 2 }), skill(P.Axe, 1, 2)) == nil)
+tags = ZeD.SkillsTab.rowTags and ZeD.SkillsTab.rowTags(char({ Axe = 2 }), skill(P.Axe, 1, 2)) or {}
+check("the mod's Enable off: the boost tag alone", #tags == 1 and tags[1].boost == true, #tags)
 check("the mod's Enable off: no card", ZeD.SkillsTab._skillCard({ _playerObj = char({ Axe = 2 }) }, skill(P.Axe, 1, 2)) == nil)
 ClearSkillSheet = { isEnabled = function() error("boom") end }
 check("the option unreadable: on", ZeD.SkillsTab.extrasTag(char({ Axe = 2 }), skill(P.Axe, 1, 2)) ~= nil)
@@ -161,6 +185,38 @@ check("no provider: nothing asked", CG.any() == false and CG.groupOf({}, nil, ni
 local keys0 = { "Food", "Clothing", "Tool" }
 CG.sortKeys(keys0, true)
 check("no provider: categories sort as before", table.concat(keys0, ",") == "Clothing,Food,Tool")
+check("no provider: no empty groups", CG.keys and #CG.keys(nil, nil, true) == 0)
+
+-- InventoryRenderer's list model (its buildItemModel, cut from the file as it is): the
+-- groups and their order, with the stacking and sorting stubbed
+local function loadModel()
+    local f = io.open(ROOT .. "42/media/lua/client/ZeD/InventoryRenderer.lua", "rb")
+    local src = f:read("*a"); f:close()
+    local a = src:find("local function heldByPlayer", 1, true)
+    local b = src:find("-- The list model for this column's container", 1, true)
+    if not (a and b) then return nil end
+    local chunk = loadstring(src:sub(a, b - 1) .. " return buildItemModel", "buildItemModel")
+    return chunk and chunk() or nil
+end
+local buildModel = loadModel()
+check("the list model cut from InventoryRenderer.lua", buildModel ~= nil)
+makeSorter = function() return function(x, y) return x.id < y.id end end
+stackWeight = function() return 0 end
+ZeD.InventoryRenderer = { catKey = function(it) return it.cat or "Misc" end }
+ZeD.ContainerGates = { get = function() return nil end, keeps = function() return true end }
+local function invOf(things)
+    local t = {}
+    for _, it in ipairs(things) do
+        it.isHidden = it.isHidden or function() return false end
+        it.isEquipped = it.isEquipped or function() return false end
+        t[#t + 1] = it
+    end
+    return { getItems = function() return list(t) end }
+end
+local function model(inv, playerObj, isP, sortCol)
+    if not buildModel then return { catOrder = {}, groups = {} } end
+    return buildModel(inv, playerObj, isP, sortCol or "cat", true, {}, {})
+end
 
 local fh = io.open(VIF_STATE, "r")
 if not fh then
@@ -226,6 +282,28 @@ else
     top.sub.opts[1].fn(top.sub.opts[1].target)
     local st = BF.state(player)
     check("two folders made", st and #st.order == 2, st and #st.order)
+    -- Build's call (Nov 7 2026): a folder with nothing filed is a group row of its own, count 0, as an
+    -- empty container
+    local function ckeys(...) if CG.keys then return CG.keys(...) or {} end return {} end
+    local ek = ckeys(mainInv, player, true)
+    check("empty folders listed, in the mod's order", #ek == 2 and ek[1] == "vif:0:" .. st.order[1] and ek[2] == "vif:0:" .. st.order[2], table.concat(ek, ","))
+    check("not in a bag", #ckeys(bag, player, false) == 0 and #ckeys(bag, player, true) == 0)
+    -- the list: an inventory with a hammer, nothing filed
+    local hammer = { id = 9, cat = "Tool", getFullType = function() return "Base.Hammer" end }
+    player.isEquipped = function() return false end
+    local mInv = invOf({ hammer })
+    player.getInventory = function() return mInv end
+    BF.panes = {}
+    local m = model(mInv, player, true)
+    check("the list: both folders as group rows before the category", table.concat(m.catOrder, ",") == "vif:0:" .. st.order[1] .. ",vif:0:" .. st.order[2] .. ",Tool", table.concat(m.catOrder, ","))
+    check("the folder rows are empty (count 0)", m.groups["vif:0:" .. st.order[1]] and #m.groups["vif:0:" .. st.order[1]] == 0)
+    check("the hammer stays in its category", m.groups.Tool and #m.groups.Tool == 1)
+    m = model(mInv, player, true, "name")
+    check("sorted by name: one flat list, no folder rows", #m.catOrder == 1 and m.catOrder[1] == "Tool", table.concat(m.catOrder, ","))
+    m = model(invOf({ hammer }), player, false)
+    check("the loot side: no folder rows", #m.catOrder == 1, table.concat(m.catOrder, ","))
+    player.getInventory = function() return mainInv end
+    BF.panes = {}
     check("the list told to rebuild", CG.sig(mainInv, player, true) ~= sig0)
     check("saved in the character's modData", md.VirtualInventoryFolders_v1 ~= nil)
     check("a bag's item: no menu", #fill(rope, bag).opts == 0)
@@ -377,11 +455,21 @@ local function active(ids) return { getMods = function() return list(ids) end } 
 local CURRENT = { "a", "b" }
 ActiveMods = { getById = function(id) if id == "currentGame" then return active(CURRENT) end return active({ "a" }) end }
 local prompts = {}
-ISModalDialog = { new = function(_, x, y, w, h, text, yesno)
-    local d = { text = text, yesno = yesno, initialise = noop }
+local function note(kind, x, y, w, h, text, yesno, target, onclick, player)
+    local d = { kind = kind, x = x, y = y, w = w, h = h, text = text, yesno = yesno, player = player, initialise = noop }
     d.addToUIManager = function() prompts[#prompts + 1] = d end
     return d
-end }
+end
+ISModalDialog = { new = function(_, ...) return note("vanilla", ...) end }
+-- ZeD's prompt (ZeD_Prompt.lua's builder), the screen and the main menu's controller
+ZeD_Prompt = {}
+ZeD.Prompt = { question = function(...) return note("zed", ...) end }
+getCore = function() return { getScreenWidth = function() return 1920 end, getScreenHeight = function() return 1080 end } end
+local menuFocus = { name = "the main menu" }
+local mmJoy = { focus = menuFocus }
+local focusUpdates = 0
+JoypadState = { getMainMenuJoypad = function() return mmJoy end }
+updateJoypadFocus = function(jd) if jd == mmJoy then focusUpdates = focusUpdates + 1 end end
 getModInfoByID = function() return { getName = function() return "Better Mod Experience" end } end
 
 dofile(ROOT .. "42/media/lua/client/ZeD/ModSupport/BetterModExperience.lua")
@@ -436,6 +524,23 @@ ZeD_MMNewGame.next(ng)
 check("New Game: held back", played == 1)
 check("New Game: ZeD's note with the reason", #prompts == 1 and prompts[1].yesno == false
     and prompts[1].text:find("UI_ZeD_BME_NotStarted:Better Mod Experience", 1, true) and prompts[1].text:find("bad requires good", 1, true), prompts[1] and prompts[1].text)
+-- the reviewer's block (Nov 7 2026): the note at 0,0 with no controller focus
+local nt = prompts[1] or {}
+check("New Game: ZeD's own prompt, not the game's", nt.kind == "zed", nt.kind)
+check("New Game: the note centered", nt.x == (1920 - 350) / 2 and nt.y == (1080 - 150) / 2, tostring(nt.x) .. "," .. tostring(nt.y))
+check("New Game: no player (the main menu): the focus goes back to the menu's controller", nt.player == nil, tostring(nt.player))
+check("New Game: the main menu's controller holds the note", mmJoy.focus == nt and nt.prevFocus == menuFocus and focusUpdates == 1)
+mmJoy.focus = menuFocus
+ZeD.Safe = { on = function() return true end }
+prompts = {}
+BME.tell({ "bad requires good" })
+nt = prompts[1] or {}
+check("safe mode: the game's note, centered and focused", nt.kind == "vanilla" and nt.x == 785 and mmJoy.focus == nt, nt.kind)
+ZeD.Safe = { on = function() return false end }
+mmJoy.focus = menuFocus
+JoypadState = { getMainMenuJoypad = function() return nil end }
+prompts = {}
+check("no controller: the note still opens", BME.tell({ "x" }) ~= nil and #prompts == 1)
 CURRENT = { "a" }
 
 -- Host
