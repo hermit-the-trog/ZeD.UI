@@ -168,7 +168,10 @@ measure(10, function(n) fastFrames = n end)
 step(5, function()
     say("frames to half: 0.5x = " .. tostring(slowFrames) .. ", 5.0x = " .. tostring(fastFrames))
     check(slowFrames ~= nil and slowFrames >= 8, "0.5x fades slowly (about 14 frames; counted " .. tostring(slowFrames) .. ")")
-    check(fastFrames ~= nil and fastFrames <= 3, "5.0x fades in a frame or two (counted " .. tostring(fastFrames) .. ")")
+    -- (OnRenderTick counts a couple of frames before the belt first draws the parked pointer, so the fast
+    -- speed is judged against the slow one: at least three times quicker, and within a few frames)
+    check(fastFrames ~= nil and slowFrames ~= nil and fastFrames <= 5 and fastFrames * 3 <= slowFrames,
+        "5.0x fades within a few frames, at least 3x faster than 0.5x (counted " .. tostring(fastFrames) .. " vs " .. tostring(slowFrames) .. ")")
     setOpt("AnimationSpeed", 4)
 end)
 
