@@ -17,7 +17,7 @@
 --
 -- Files edited on disk cannot get round the caps: never more than MAX slots are read (ids 1 to MAX only), a note's
 -- file is read no further than TEXT_MAX characters (an oversized one is treated as cut there), the sticky's no further
--- than STICKY_MAX, and the index no further than a few lines past MAX.
+-- than STICKY_MAX, and the index no further than a bounded few lines (four times MAX, plus the header).
 --
 -- Words round-trip exactly: a file is the words and one line break more, read back line by line and joined with line
 -- breaks (the game's reader drops the last). Carriage returns are taken out on the way in.

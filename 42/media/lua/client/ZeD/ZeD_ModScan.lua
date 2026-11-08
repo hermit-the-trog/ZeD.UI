@@ -376,9 +376,10 @@ function MS.wsState(st)
     return "none"
 end
 
--- (translation keys by state; MS.wsText gives the player's words)
+-- translation keys by state
 MS.WS_TEXT = { downloading = "UI_WorkshopServerItemState_Downloading", queued = "UI_ZeD_ModScan_WsQueued", update = "UI_ZeD_ModScan_WsUpdate",
                ok = "UI_ZeD_ModScan_WsOk", missing = "UI_ZeD_ModScan_WsMissing", none = "UI_WorkshopServerItemState_NotSubscribed" }
+--- A Workshop state as the player's words (nil for a state with no line).
 function MS.wsText(state)
     local k = MS.WS_TEXT[state]
     return k and ZeD.tr(k) or nil
@@ -407,6 +408,9 @@ local function onDetails(target, status, info)
     ws.items, ws.order = items, order
 end
 
+--- Ask Steam for every subscribed item's state: at most every 10 s with `open`
+--- (the Mods screen is up), every 30 s otherwise. Steam answers later on the
+--- main thread (onDetails). Only the Mods screen may call this — see the header.
 function MS.wsPoll(open)
     local ws = MS.ws
     if ws.fake then return end
@@ -430,7 +434,7 @@ function MS.wsPoll(open)
     ws.asked = true
 end
 
--- a mod's Workshop item (nil when it is not from the Workshop or Steam has not answered)
+--- A mod's Workshop item (nil when it is not from the Workshop or Steam has not answered).
 function MS.wsFor(modInfo)
     local wid = nil
     pcall(function() wid = modInfo:getWorkshopID() end)

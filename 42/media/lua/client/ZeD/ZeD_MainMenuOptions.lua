@@ -208,7 +208,7 @@ function MM.optionRows(page)
     return out
 end
 
--- the key bindings page: vanilla's own list (MainOptions.keyText), its toggles first
+--- The key bindings page: vanilla's own list (MainOptions.keyText), its toggles first.
 function MM.keyRows(page)
     local rows = {}
     local o = mo()
@@ -237,18 +237,18 @@ local function comboText(c, i)
     local ok, t = pcall(function() return c:getOptionText(i) end)
     t = ok and tostring(t or "") or ""
     -- the language list: ZeD's machine-drafted languages carry a mark, drawn only (the game picks a language by its
-    -- option text, so the option itself stays as the game wrote it; punch list 62)
+    -- option text, so the option itself stays as the game wrote it)
     if t ~= "" and ZeD.isMachineLangText and ZeD.isMachineLangText(t) then t = t .. " " .. ZeD.tr("UI_ZeD_Options_MachineTranslation") end
     return t
 end
 
--- UI scale's steps above what fits this screen (punch list 39, ZeD.Scale.fitCap): dimmed, and no pick takes them
+-- UI scale's steps above what fits this screen (ZeD.Scale.fitCap): dimmed, and no pick takes them
 local function stepOff(c, i)
     local S = ZeD.Settings
     return (S and S.scaleStepOff and S.scaleStepOff(c, i)) or false
 end
 
--- the next step from i in direction dir that is not off (the retired 0.5x sits right after Auto, punch list 58),
+-- the next step from i in direction dir that is not off (the retired 0.5x sits right after Auto),
 -- wrapping round when wrap is set; nil when none is
 local function nextOn(c, i, dir, wrap)
     local n = #(c.options or {})
@@ -310,8 +310,8 @@ local function rowKey(r)
     return nil
 end
 
--- a ZeD setup row that works only while another of ZeD's switches is on (ZeD_MainMenuOptionGroups' needs; director,
--- Oct 30 2026: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
+-- a ZeD setup row that works only while another of ZeD's switches is on (ZeD_MainMenuOptionGroups'
+-- needs: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
 -- dims, takes no click or press, and the controller passes over it; its pick is kept for when the switch comes on.
 local function needsOff(r)
     local id = r.zedNeeds or r.zedNeedsNot   -- (needsNot: the same row, dim while that switch is On)
@@ -365,7 +365,7 @@ local function help(r)
     end
     if r.only then t = join(t, MM.optionGroups.text(r.only[2])) end
     if r.why then t = join(t, MM.optionGroups.text(r.why)) end
-    -- UI scale on a small screen: which steps are off, and why (punch list 39)
+    -- UI scale on a small screen: which steps are off, and why
     if r.labelKey == "UI_ZeD_Settings_UiScale" and ZeD.Settings and ZeD.Settings.scaleTooBigHelp then
         local tb = ZeD.Settings.scaleTooBigHelp()
         if tb then t = join(t, tb) end
@@ -391,8 +391,8 @@ local function rowLabel(r)
 end
 
 -- The name's lines in its column (room px wide, measured in the active font): nil when it fits on one line, else
--- two lines (Oct 26 2026: "Theme, accent and text buttons on windows" was cut short in Large text); past two the
--- second is cut short. The row grows by the second line, as it does for the line under a name.
+-- two lines (a name as long as "Theme, accent and text buttons on windows" was cut short in Large text); past two
+-- the second is cut short. The row grows by the second line, as it does for the line under a name.
 local function labelLines(r, f2, room)
     if r.kind == "header" or r.kind == "note" or r.kind == "desc" or r.kind == "chord" then return nil end
     local label = rowLabel(r)
@@ -796,12 +796,12 @@ function ZeD_MMOptions:openVanillaController(page)
     pcall(function() o.tabs:activateView(getText("UI_optionscreen_controller")) end)
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
--- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: a question that can lose or
+-- write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { back = "confirm:no", discard = "confirm:no" }
 function ZeD_MMOptions:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
@@ -832,7 +832,7 @@ end
 function ZeD_MMOptions:prerender()
     local T = ZeD.T
     self._specs, self._hits = {}, {}
-    -- the additions' preset shows the preset the live picks make, or Custom (Settings.lua; director, Oct 30 2026)
+    -- the additions' preset shows the preset the live picks make, or Custom (Settings.lua)
     if ZeD.Settings and ZeD.Settings.syncAdditionsPreset then pcall(ZeD.Settings.syncAdditionsPreset) end
     local w, h = self:place()
     local pages = self:pages()
@@ -879,6 +879,8 @@ function ZeD_MMOptions:render()
     ZeD_Window.render(self)
 end
 
+--- The left column: Find, then the page list in its own scroll box (Sandbox in game
+--- draws its step list with this too).
 function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     local T = ZeD.T
     local bs, s2 = T.borderS, T.surf2
@@ -896,8 +898,8 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     local kind = self.kind
     self._hits[#self._hits + 1] = { id = kind .. ":find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
                                     fn = function() self.find:focus() end }
-    -- the pages under Find scroll in their own box (a Workshop report, Nov 1 2026: with a long mod list the Sandbox
-    -- step has dozens of pages and they ran off the window, the wheel did nothing). The wheel over the box moves it,
+    -- the pages under Find scroll in their own box (with a long mod list the Sandbox step has
+    -- dozens of pages: they ran off the window and the wheel did nothing). The wheel over the box moves it,
     -- the bar drags, and the picked page comes into view whenever it changes (a bumper, a page shown from elsewhere).
     local top0 = y + fH + T.px(1)
     local vh = y + h - T.px(1) - top0
@@ -939,7 +941,7 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
 end
 
 -- ============================================================================
--- ZeD SETUP'S CONTROLS (Oct 21 2026, mockup ZeDUI/mockups/zed_settings_v2.html)
+-- ZeD SETUP'S CONTROLS
 -- Each of ZeD's own options is still a combo (ModOptions saves its item's number); these
 -- draw it as the control that fits it, and a click picks the item exactly as the drop-down
 -- would (setCombo). Left / right step it (nudge), A moves to the next choice (activateRow).
@@ -985,7 +987,7 @@ local function scaleReadout(r)
     -- a saved step above this screen's cap (picked on a bigger monitor): kept, drawn at the cap
     if stepOff(c, c.selected) then
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
-        -- a retired step (0.5x) draws at the floor in game; the main menu's own root is no guide to that (QA, Nov 2 2026)
+        -- a retired step (0.5x) draws at the floor in game; the main menu's own root is no guide to that
         if ZeD.Settings and ZeD.Settings.scaleStepRetired and ZeD.Settings.scaleStepRetired(c.selected) then
             root = (ZeD.Scale and ZeD.Scale.STEP_FLOOR) or 0.75
         end
@@ -1410,12 +1412,14 @@ function ZeD_MMOptions:drawFoldHead(r, rowId, x, y, w, focused)
     return hot
 end
 
+--- The rows list and the help band. A window built on this one bends it through hooks:
+--- noHelpBand / helpBandH, tagsW / drawRowTags, rowDisabled and drawHelp (Sandbox in game).
 function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local T = ZeD.T
     local bs = T.borderS
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
-    -- the help band: three lines of the body font (Oct 21 2026: two cut the longer ZeD tips short)
+    -- the help band: three lines of the body font (two cut the longer ZeD tips short)
     -- (a window without help text has no band; one with its own band says how tall: Sandbox in game)
     local helpH = self.noHelpBand and 0 or (self.helpBandH and self:helpBandH()) or math.max(T.px(HELP_H), T.px(14) + 3 * (MM.fontH(T.fontF2) + T.px(3)))
     local vy, vh = y + T.px(1), h - helpH - T.px(2)

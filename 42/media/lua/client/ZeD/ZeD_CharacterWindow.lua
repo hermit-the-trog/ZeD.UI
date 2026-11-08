@@ -621,7 +621,7 @@ local function mcToggleContainer(win, content, cIdx)
     win:setX(snapX)
     win._lastSetX = snapX
 
-    -- S108 v2: MC state changed — rebuild per-column charMC<n> zones.
+    -- MC state changed — rebuild the per-column charMC<n> zones.
     -- _syncRingZonesToActiveTab handles the ring restructuring via its
     -- internal call to _rebuildCharMCRingZones. Without this call, new MC
     -- columns never appear in the ring and bumpers skip them.
@@ -666,8 +666,8 @@ local CHAR_TABS = {
     { id = "identity", key = "UI_ZeD_Char_TabIdentity",  group = 2, glyph = "I", iconName = "identy-tab-white" },
     { id = "journal",  key = "UI_ZeD_Char_TabJournal",   group = 2, glyph = "J", iconName = "journal-tab-white" },
     { id = "skills",   vkey = "IGUI_XP_Skills",          group = 2, glyph = "S", iconName = "skills-tab-white" },
-    -- S115: Radio (contextual). Visible only when an equipped/portable radio
-    -- is present on the player. Mirrors World's contextual-tab predicate model.
+    -- Radio is contextual: visible only while the player carries an equipped
+    -- or portable radio. Mirrors the World window's contextual-tab predicate.
     { id = "radio",    key = "UI_ZeD_Char_TabRadio",     group = 2, glyph = "R",
       iconName = "radio-tab-white",
       visible = function(win)
@@ -675,7 +675,7 @@ local CHAR_TABS = {
       end },
 }
 
--- a tab's name in the player's language
+--- A tab's name in the player's language (the D-pad wheels read it too).
 function ZeD_CharacterWindow.tabLabel(tab)
     if tab.label then return tab.label() end
     if tab.vkey then return getText(tab.vkey) end
@@ -685,11 +685,11 @@ end
 -- The title: the character's name, then what the window shows: the open tab ("Angel
 -- Cross  +  Health"), else the bag being viewed ("Angel Cross  +  Fanny Pack") or the
 -- columns (win._titleSub, set by the inventory side). Two parts at most, so it never
--- reads as a path. Built every frame from the window's own prerender (Oct 31 2026,
--- break-it D1: it was built in the inventory side's prerender, which does not run while
--- the tab drawer takes the whole window (1280x720 at UI scale 2.0, Large text), so the
--- title kept the tab open when the side last showed, "Equipment" on every tab). The
--- words are kept until a part changes (no new string a frame).
+-- reads as a path. Built every frame from the window's own prerender — built in the
+-- inventory side's prerender it went stale, since that side does not draw while the
+-- tab drawer takes the whole window (1280x720 at UI scale 2.0, Large text), and the
+-- title kept whatever tab was open when the side last showed. The words are kept
+-- until a part changes (no new string a frame).
 local function composeCharTitle(win)
     local p = win._playerObj
     if win._ttP ~= p then win._ttP, win._ttName = p, charTitleName(p) end
@@ -709,11 +709,13 @@ local function composeCharTitle(win)
     win.title = win._ttOut
 end
 
--- A tab that ZeD's support for another mod adds (ZeD/ModSupport/<mod id>.lua, loaded only
--- when that mod is on). def: id, label(), group, iconName, after (a tab id), visible(win),
--- render(panel, win, x, y, w, h) as the other tabs, and optionally scroll(win) (its
--- ZeD_ScrollbarState), onClick(win, x, y), buildFocusables(win), onWindowFrame(win, drawerW)
--- (every frame, any tab: place or hide window-parented children such as 3D figures).
+--- A tab that another file adds: ZeD's own extras (CookingTab, ServerTab) and
+--- ZeD's support for other mods (ZeD/ModSupport/<mod id>.lua, loaded only when
+--- that mod is on). def: id, label(), group, iconName, after (a tab id),
+--- visible(win), render(panel, win, x, y, w, h) as the other tabs, and
+--- optionally scroll(win) (its ZeD_ScrollbarState), onClick(win, x, y),
+--- buildFocusables(win), onWindowFrame(win, drawerW) (every frame, any tab:
+--- place or hide window-parented children such as 3D figures).
 ZeD_CharacterWindow._extTabs = {}
 function ZeD_CharacterWindow.addTab(def)
     if ZeD_CharacterWindow._extTabs[def.id] then return end
@@ -726,7 +728,8 @@ function ZeD_CharacterWindow.addTab(def)
     end
     table.insert(CHAR_TABS, at, def)
 end
--- (called from the window's own functions, which are near Kahlua's limit of locals)
+-- The added tabs' dispatchers live on the module, not as locals: they are
+-- called from the window's own functions, which are near Kahlua's limit of locals.
 function ZeD_CharacterWindow.extScroll(win)
     local ext = ZeD_CharacterWindow._extTabs[win._activeTab]
     return ext and ext.scroll and ext.scroll(win) or nil
@@ -759,9 +762,9 @@ function ZeD_CharacterWindow.extFrame(win, drawerW)
     end
 end
 
--- S115: contextual-tab visibility dispatch — mirror of ZeD_WorldWindow's
--- isTabVisible. A nil tab.visible means "always show" (default for the
--- pre-existing 7 char tabs). The radio tab opts in by declaring a predicate.
+-- Contextual-tab visibility dispatch — mirror of ZeD_WorldWindow's
+-- isTabVisible. A nil tab.visible means "always show"; a tab that comes and
+-- goes (radio) opts in by declaring a predicate.
 local function isTabVisible(tab, win)
     if not tab.visible then return true end
     return tab.visible(win)
@@ -771,11 +774,11 @@ ZeD_CharacterWindow.TABS = CHAR_TABS
 ZeD_CharacterWindow.isTabVisible = isTabVisible
 
 -- ============================================================================
--- S94 B-NAV — GAMEPAD FOCUS SUPPORT
--- Builds focusable-element lists for FocusManager's cone spatial nav and
--- switches tabs when D-pad cycling lands on a new one. Coordinates are in
--- tab-strip-local space for tabBar elements (FocusManager cone nav uses
--- relative distances, so any consistent frame is fine per frame).
+-- GAMEPAD FOCUS SUPPORT
+-- Builds focusable-element lists ("stops") for FocusManager's cone spatial
+-- nav and switches tabs when D-pad cycling lands on a new one. Coordinates
+-- are in tab-strip-local space for tabBar elements (FocusManager cone nav
+-- uses relative distances, so any consistent frame is fine per frame).
 -- ============================================================================
 
 -- Build the tabBar focusable list — one element per CHAR_TABS entry, bounds
@@ -790,7 +793,7 @@ local function _buildTabBarElements(win)
     local lastGroup = 1
     for i, tab in ipairs(CHAR_TABS) do
         if not isTabVisible(tab, win) then
-            -- Skip hidden contextual tabs (S115 — radio when no radios in range).
+            -- Skip hidden contextual tabs (radio with no radio carried).
             -- Group separator still suppressed; if the next visible tab is in a
             -- different group the separator fires on its own iteration.
         else

@@ -2703,11 +2703,11 @@ function MM.addView(view, field, make, screen, mirror)
     MM.views[#MM.views + 1] = { view = view, field = field, make = make, screen = screen, mirror = mirror }
 end
 
--- A vanilla screen that must stay "visible" to keep working (it only follows events while
--- shown): it shows as vanilla wants but off the screen, and the view mirrors it; hiding
--- it brings it back and leaves the view (whatever vanilla shows next takes over).
--- keep (the view's mirror field, when a function): asked as vanilla hides the screen; true
--- keeps the view up (the server's Workshop items, once installed, while the join goes on).
+--- A vanilla screen that must stay "visible" to keep working (it only follows events while
+--- shown): it shows as vanilla wants but off the screen, and the view mirrors it; hiding
+--- it brings it back and leaves the view (whatever vanilla shows next takes over).
+--- keep (the view's mirror field, when a function): asked as vanilla hides the screen; true
+--- keeps the view up (the server's Workshop items, once installed, while the join goes on).
 function MM.mirror(screen, view, keep)
     if not screen or screen._zedRedirect then return end
     screen._zedRedirect = true
@@ -2726,7 +2726,7 @@ function MM.mirror(screen, view, keep)
     end
 end
 
--- Is our menu showing (vanilla's bottom panel visible = no other screen is up)?
+--- Is our menu showing (vanilla's bottom panel visible = no other screen is up)?
 function MM.isUp(m)
     -- explicit ifs: Kahlua can return the table from "A and B and (C or D) and true or false"
     if not (m and m.bottomPanel and m.bottomPanel:isVisible()) then return false end
@@ -2734,7 +2734,7 @@ function MM.isUp(m)
     return MM.root ~= nil
 end
 
--- Vanilla's own extras on the main screen move into the menu; hide them while it shows.
+--- Vanilla's own extras on the main screen move into the menu; hide them while it shows.
 local EXTRAS = { "versionBtn", "reportBug", "termsOfService", "resetLua", "modListDetail", "seedLabel" }
 function MM.hideExtras(m)
     for _, k in ipairs(EXTRAS) do
@@ -2743,7 +2743,7 @@ function MM.hideExtras(m)
     end
 end
 
--- Runs after MainScreen's prerender every frame.
+--- Runs after MainScreen's prerender every frame.
 function MM.afterPrerender(m)
     local up = MM.isUp(m)
     if m.inGame then
@@ -2830,14 +2830,14 @@ function MM.joyDir(m, dir)
     if w then w:joyDir(dir) end
 end
 
--- the controller starts on the window's first button
+--- the controller starts on the window's first button
 function MM.joyFocus(m)
     local w = MM.window(m)
     if w then w.focusId = nil end
 end
 
--- Keys at the main menu. Escape closes an open menu, then a question, then leaves Load
--- Game / New Game; Return plays / goes on. True = handled.
+--- Keys at the main menu. Escape closes an open menu, then a question, then leaves Load
+--- Game / New Game; Return plays / goes on. True = handled.
 function MM.keyRelease(m, key)
     if m.inGame or not MM.isUp(m) then return false end
     local w = MM.window(m)
@@ -2851,7 +2851,7 @@ function MM.keyRelease(m, key)
     return false
 end
 
--- shared with ZeD_MainMenuSaves.lua
+-- shared with the rest of the menu's files (buttons, sounds, text measuring, units)
 MM.drawBtn, MM.drawMark = drawBtn, drawMark
 MM.hoverSound, MM.clickSound = hoverSound, clickSound
 MM.textW, MM.fontH, MM.blocked, MM.now, MM.tex = textW, fontH, blocked, now, tex

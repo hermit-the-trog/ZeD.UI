@@ -1633,7 +1633,7 @@ function ZeD_BeltHUD:_drawLamp(b, focus, hover)
     if focus then padMark(self, b, false)
     elseif hover then hoverWash(self, b, false) end
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
-    -- the map's flyer note without its pin (director, Oct 25 2026), pixel art at a whole zoom
+    -- the map's flyer note without its pin, pixel art at a whole zoom
     if lampTex == nil then lampTex = getTexture("media/textures/ZeD/icons/msg_note.png") or false end
     if lampTex then
         local k = math.max(1, math.floor(b.h * 0.75 / 14))
@@ -1663,7 +1663,7 @@ function ZeD_BeltHUD:_ammoState(p)
     local on0 = S0 and S0.ammoBoxOn and S0.ammoBoxOn() or false
     if c and c.gun == gun and c.p == p and c.on == on0 and now - c.t < AMMO_MS then return c.a end
     local a = nil
-    -- (ZeD setup's "Ammo on the belt", off for a new player since Oct 30 2026: off, the belt is as it was)
+    -- (ZeD setup's "Ammo on the belt", off for a new player: off means no ammo tab)
     local S = ZeD.Settings
     local on = S and S.ammoBoxOn and S.ammoBoxOn() or false
     if on and gun and instanceof(gun, "HandWeapon") then a = B.ammo(p) end
@@ -1726,8 +1726,8 @@ function B.ammoInk(a)
     }
 end
 
--- the ammo tab (style B; t: the tab, its words and rounds from t.cx, the main hand's right edge): surf2 in the hands'
--- two-unit outline (Oct 27 2026; it was framed as the slots are); the ammo's own picture (the magazine for a gun
+-- the ammo tab (t: the tab, its words and rounds from t.cx, the main hand's right edge): surf2 in the hands'
+-- two-unit outline; the ammo's own picture (the magazine for a gun
 -- that takes one, else the round); the rounds in the gun as a count in F3 in the default text with its status square
 -- ("Empty" at nothing; "+1" for a chambered round); what is carried, right-aligned; and at the foot the same framed
 -- strip the slots' condition lines are (1u borderS frame, solid T.base well, flat solid fills, 8u tall) with one
@@ -1822,7 +1822,7 @@ local function drawPart(self, sp, slots)
     if r:getX() ~= x then r:setX(x) end
     if r:getY() ~= y then r:setY(y) end
 end
-B._drawPart = drawPart   -- (sims)
+B._drawPart = drawPart   -- (the QA sims reach it here)
 
 -- The belt draws under the safe-mode guard (SafeMode.lua): a failing frame is
 -- logged once and its stencils cleared, and repeated failures hand the screen
@@ -1839,8 +1839,8 @@ function ZeD_BeltHUD:_prerender()
     if ZeD.trTestOn then ZeD.trTestOn() end   -- keeps the test-language state fresh for the kept names
     local slots = B.slots(self.playerNum)
     local w, h = self:_layoutCached(slots)
-    -- the buckle on the screen's centre (director, Oct 19 2026: the belt may sit off centre;
-    -- the buckle is where the eye goes)
+    -- the buckle on the screen's centre: the belt may sit off centre;
+    -- the buckle is where the eye goes
     local b = self._buckle
     local bx = b and (b.x + math.floor(b.w / 2)) or self._anchorX or math.floor(w / 2)   -- (Simple: the slots' middle)
     local sx = getPlayerScreenLeft(self.playerNum) + math.floor(getPlayerScreenWidth(self.playerNum) / 2) - bx
@@ -2027,8 +2027,7 @@ function ZeD_BeltHUD:_tooltip(item, b, chipH)
             self._tip:setCharacter(self:player())
         else
             self._tip:setItem(item)
-            -- (the belt outlives a respawn: the tooltip follows the character now playing;
-            -- code audit Oct 17 2026)
+            -- (the belt outlives a respawn: the tooltip follows the character now playing)
             local p = self:player()
             if self._tipChr ~= p then self._tip:setCharacter(p) end
             self._tip:bringToTop()
@@ -2102,7 +2101,7 @@ function ZeD_BeltHUD:_finishOut(x, y)
     -- into the bags (a ZeD inventory list): take it off the belt
     local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    for _, win in ipairs({ cw or false, ww or false }) do  -- (a closed window is false, not a nil hole that ends ipairs early; code audit Oct 17 2026)
+    for _, win in ipairs({ cw or false, ww or false }) do  -- (a closed window is false, not a nil hole that ends ipairs early)
         local c = win and win._contentPanel
         if c and c:isReallyVisible() and c:isMouseOver() then
             B.detach(self.playerNum, o.item)
@@ -2176,7 +2175,7 @@ function B.takeDrop(playerNum, items)
 end
 
 -- Where the small watch sits on screen: x, y, w and the side its full watch opens to ("left": its left edges
--- line up, the full watch reaching right; both wrists are at the belt's left end since Oct 27 2026), or nil.
+-- line up, the full watch reaching right; both wrists are at the belt's left end), or nil.
 -- pn: whose belt (nil: the first player's)
 function B.watchScreen(pn)
     local hud = B._huds[pn or 0]
@@ -2227,7 +2226,7 @@ function ZeD_BeltHUD:_firstSlotIdx()
 end
 
 -- Leaving the belt: back to the game, or to the ZeD window that held the pad
--- (Oct 23 2026: control returns to the spot it came from)
+-- (control returns to the spot it came from)
 function ZeD_BeltHUD:_leavePad()
     self._gp = nil
     setJoypadFocus(self.playerNum, nil)
@@ -2238,8 +2237,8 @@ function ZeD_BeltHUD:_leavePad()
     if fw and fw:isVisible() and not fw.windowShaded then F.reclaimEngineFocus() end
 end
 
--- Oct 23 2026 (director: the belt "is too easy to get stuck in"; no press
--- does nothing): a direction with nowhere to go on the belt leaves it, as B
+-- The belt must never be a trap on the pad (no press does
+-- nothing): a direction with nowhere to go on the belt leaves it, as B
 -- does. Past either end, Down (the screen's edge), and Up with no list above.
 -- (the ammo box is read, not pressed: the pad steps over it; the main hand's focus shows its count)
 function ZeD_BeltHUD:_padStep(i, d)
@@ -2391,9 +2390,9 @@ function ZeD_BeltHUD:_drawPadList()
 end
 
 -- ----------------------------------------------------------------------------
--- Lifecycle: one belt a local player (split-screen, known issue Nov 7 2026: the game's hotbar is parked for every
--- player, Overrides/Belt.lua, so the second player had none). Each sits on its player's screen (the HUD places itself
--- by its playerNum); B._hud stays the first player's, for the callers that know of one belt
+-- Lifecycle: one belt a local player. In split-screen the game's hotbar is parked for every
+-- player (Overrides/Belt.lua), so every player needs a belt of their own here. Each sits on its player's screen (the
+-- HUD places itself by its playerNum); B._hud stays the first player's, for the callers that know of one belt
 -- ----------------------------------------------------------------------------
 B._huds = B._huds or {}
 function B.install(pn)
@@ -2412,9 +2411,9 @@ end
 -- pn: the local player's number (nil: the first player's belt)
 function B.getHUD(pn) return B._huds[pn or 0] end
 
--- Where ZeD's notices come out (the director, Nov 7 2026: "All of these notices are speech bubbles or thought
--- bubbles that pop up out of the notification icon where we save errors and other mods pop-ups. Just all in one
--- place."): the top middle of the Messages note on the belt, in screen pixels, while the belt and its note are on
+-- Where ZeD's notices come out. Every notice is a speech or thought bubble popping out of the one notification
+-- icon that keeps errors and other mods' pop-ups, so they all come from one
+-- place: the top middle of the Messages note on the belt, in screen pixels, while the belt and its note are on
 -- the screen; nil otherwise (in a vehicle seat, the UI hidden, safe mode, nothing kept: ZeD_MessagesWindow's
 -- bubbles then come from the bottom middle of the screen, above the dash when one shows).
 -- pn: the player the notice is for: that player's belt (B._huds[pn], a belt per player), else player one's

@@ -295,8 +295,8 @@ local function _watchCueMouse()
     end
 end
 
---- True while the controller's focus mark shows: the last pad press that reached
--- a ZeD window is newer than the last use of the mouse.
+--- True while the controller's focus mark shows: the last pad press that
+--- reached a ZeD window is newer than the last use of the mouse.
 function Focus.cuesVisible()
     return _cuesOn
 end
@@ -305,7 +305,7 @@ end
 -- REGISTRY API
 -- ---------------------------------------------------------------------------
 
--- whether w is still registered (a window kept to hand focus back to may have closed)
+--- Whether w is still registered (a window kept to hand focus back to may have closed).
 function Focus.isRegistered(w)
     return w ~= nil and _indexOf(w) ~= nil
 end
@@ -318,9 +318,9 @@ function Focus.registerWindow(w)
        .. " (" .. tostring(#_windowRegistry) .. " registered)")
 end
 
--- Atomic focus transfer on unregister: if the removed window was focused and
--- another survives, hand off in a SINGLE ZeD_FocusChanged event so subscribers
--- can diff cleanly. If no survivors, degrades to regular release (new = nil).
+--- Atomic focus transfer on unregister: if the removed window was focused and
+--- another survives, hand off in a SINGLE ZeD_FocusChanged event so subscribers
+--- can diff cleanly. If no survivors, degrades to regular release (new = nil).
 function Focus.unregisterWindow(w)
     if not w then return end
     local wasFocused = (_focusedWindow == w)
@@ -357,8 +357,9 @@ end
 -- FOCUS CLAIM / RELEASE / READ
 -- ---------------------------------------------------------------------------
 
--- a window that keeps the pad to itself is up (the join screen, ZeD_CommunityCards.lua): nothing here opens a window or takes the
--- pad under it. It holds the pad itself (ZeD_JoinWindow:update) and hands it back when it closes
+--- A window that keeps the pad to itself is up (the join screen,
+--- ZeD_CommunityCards.lua): nothing here opens a window or takes the pad under
+--- it. It holds the pad itself (ZeD_JoinWindow:update) and hands it back when it closes.
 function Focus.held()
     local CM = ZeD.CommunityCards
     return CM ~= nil and CM.joinWin ~= nil
@@ -421,13 +422,12 @@ function Focus.isLocked()
 end
 
 -- ---------------------------------------------------------------------------
--- ZONE STORAGE API (preserved from S97 — per-tab builders unchanged)
+-- ZONE STORAGE API
 --
--- Zones remain as a per-window STORAGE abstraction so existing per-tab builder
--- code (Equipment / Health / Thermal / Skills / Identity / Journal / Forage /
--- Animals / Maps / Craft / Build / InventoryRenderer / ItemCard) doesn't need
--- to be rewritten. The DIFFERENCE from S97: D-pad nav is flat across ALL
--- focusable zones in the focused window — bumpers no longer hop between zones.
+-- Zones are a per-window STORAGE abstraction, kept so the per-tab builder
+-- code that fills them never had to be rewritten when nav went flat: D-pad
+-- nav runs across ALL focusable zones in the focused window, and bumpers
+-- never hop between zones.
 -- ---------------------------------------------------------------------------
 
 -- Resolve a zone reference (index or name) to its array index inside w._focusRing.
@@ -455,14 +455,14 @@ local function _clampIdx(idx, t)
     return idx
 end
 
--- Return the currently-focused ring entry (whole zone table), or nil.
+--- The currently-focused ring entry (whole zone table), or nil.
 function Focus.getFocusedZone(w)
     if not w or not w._focusRing then return nil end
     local idx = w._focusIdx or 1
     return w._focusRing[idx]
 end
 
--- Return the currently-focused element inside the current zone, or nil.
+--- The currently-focused element inside the current zone, or nil.
 function Focus.getFocusedElement(w)
     local zone = Focus.getFocusedZone(w)
     if not zone or not zone.elements then return nil end
@@ -478,7 +478,7 @@ end
 -- the mark stayed lit while the mouse was used. Surfaces draw marks through these:
 
 --- The zone a focus mark may show in, or nil: w is the focused window and the
--- controller is in use.
+--- controller is in use.
 function Focus.liveZone(w)
     if not w or w ~= _focusedWindow or not _cuesOn then return nil end
     return Focus.getFocusedZone(w)
@@ -491,8 +491,8 @@ function Focus.liveElement(w)
 end
 
 --- True when a surface should draw the focus mark: w is the focused window, the
--- controller is in use, its focused zone is zoneName (when given) and its
--- focused element has the id elementId (when given).
+--- controller is in use, its focused zone is zoneName (when given) and its
+--- focused element has the id elementId (when given).
 function Focus.isFocused(w, zoneName, elementId)
     local z = Focus.liveZone(w)
     if not z then return false end
