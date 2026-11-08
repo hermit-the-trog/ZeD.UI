@@ -5,7 +5,7 @@ $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
 # (with no Steam the Workshop folder isn't read: the mods under test are copied in for the run, and taken out at its end)
 $Wk = "E:\Project Zomboid\steamapps\workshop\content\108600"
-$Mods = "C:\Users\you\Zomboid\mods"
+$Mods = "$env:USERPROFILE\Zomboid\mods"
 $Copied = @()
 foreach ($id in 3828608843, 3828607335, 3414634809, 3814843526) {
     foreach ($d in Get-ChildItem "$Wk\$id\mods" -Directory) {
@@ -25,6 +25,6 @@ $o = & "$Qa\zedqa_mods_run.ps1" -ModList "$Qa\roadworthy_mods.txt" -Mode fullscr
 Note "roadworthy : $(($o | Select-Object -Last 1) -join ' ')"
 $o = & "$Qa\zedqa_mods_run.ps1" -ModList "$Qa\spncc_long_mods.txt" -Mode fullscreen4k -Manifest "$Qa\spncc_long_manifest.txt" 2>&1
 Note "spncc in game : $(($o | Select-Object -Last 1) -join ' ')"
-Copy-Item "C:\Users\you\Zomboid\console.txt" "$Keep\console_roadworthy.txt" -Force
+Copy-Item "$env:USERPROFILE\Zomboid\console.txt" "$Keep\console_roadworthy.txt" -Force
 foreach ($c in $Copied) { Remove-Item $c -Recurse -Force }
 Note "the copied mods taken out"

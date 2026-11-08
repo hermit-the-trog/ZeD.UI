@@ -7,7 +7,7 @@ Survey date: Oct 25 2026. Read-only: no game launch, no edit to any mod or to Ze
 ## How to read the paths
 
 - Mod files are written `<workshop id>/<mod folder>/<version folder>/media/lua/...:line`, under `E:\Project Zomboid\SteamApps\workshop\content\108600\`. The version folder is the newest one up to 42.21 (what the game loads beside `common`).
-- `ZeD:` means `C:\Users\you\Zomboid\mods\ZeD-UI\42\media\lua\client\ZeD\`.
+- `ZeD:` means `%USERPROFILE%\Zomboid\mods\ZeD-UI\42\media\lua\client\ZeD\`.
 - `V:` means the game's own Lua, `E:\Project Zomboid\SteamApps\common\ProjectZomboid\media\lua\client\`.
 - Effort: S = a few hours, M = a day, L = several days.
 - Subscribers are the lifetime count from the inventory (`steam.subs`).

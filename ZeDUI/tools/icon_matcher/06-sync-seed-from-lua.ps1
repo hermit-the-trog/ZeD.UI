@@ -14,7 +14,7 @@
 # runs leave that function unchanged.
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$luaPath   = "C:\Users\you\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
+$luaPath   = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
 $htmlPath  = Join-Path $scriptDir "vanilla-catalog.html"
 
 if (-not (Test-Path $luaPath))  { Write-Host "Lua file not found: $luaPath" -ForegroundColor Red; exit 1 }

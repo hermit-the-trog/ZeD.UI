@@ -9,15 +9,15 @@
 # server's database, its ini and ModOptions are put back.
 param([switch]$DashOnly, [switch]$RoleOnly, [switch]$SafeOnly)
 $Qa = $PSScriptRoot
-$Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
+$Root = "$env:USERPROFILE\Zomboid\mods\ZeD-UI"
 $Log = "$Root\ZeDUI\qa\two_players_b7_rest.txt"
-$Z = "C:\Users\you\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Lua = "$Z\Lua"
 $P2 = "$Z\zedqa_p2"
 $Lock = "$Lua\zedqa.lock"
 $env:ZEDQA_NOSTEAM = "1"
 $Con = "$P2\console.txt"
-$Out = "C:\Users\you\AppData\Local\Temp\claude\927f5331f6a7940b\8d4042f4-6e83-4cb6-9f64-0a1e0b9a2dae\scratchpad\two_b7_rest"
+$Out = "$env:USERPROFILE\AppData\Local\Temp\claude\927f5331f6a7940b\8d4042f4-6e83-4cb6-9f64-0a1e0b9a2dae\scratchpad\two_b7_rest"
 New-Item -ItemType Directory -Force $Out | Out-Null
 $all = -not ($DashOnly -or $RoleOnly -or $SafeOnly)
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Log }

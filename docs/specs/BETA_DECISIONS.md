@@ -1,6 +1,6 @@
 # ZeD-GUI Beta Decisions (Nov 2 2026)
 
-For the build session: save this as `docs/specs/BETA_DECISIONS.md` in `C:\Users\you\Zomboid\mods\ZeD-UI`, commit only that file and push. The checkout is shared, so never stash, check out, pull with autostash or touch other files. Then turn these into punch list items and hand QA its checks. All answers are the director's, given Nov 2 2026 in a voice session.
+For the build session: save this as `docs/specs/BETA_DECISIONS.md` in `%USERPROFILE%\Zomboid\mods\ZeD-UI`, commit only that file and push. The checkout is shared, so never stash, check out, pull with autostash or touch other files. Then turn these into punch list items and hand QA its checks. All answers are the director's, given Nov 2 2026 in a voice session.
 
 ## Answers
 

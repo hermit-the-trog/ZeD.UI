@@ -78,7 +78,7 @@ When words carry it (a long list, a table of buttons), both pages may be manual.
 
 ## Prints (his screenshots)
 
-- Captures: `C:/Users/you/Zomboid/Screenshots/gallery_t14` (4K, 3840 x 2160); the slide's `src`/crops in shots.json
+- Captures: `%USERPROFILE%/Zomboid/Screenshots/gallery_t14` (4K, 3840 x 2160); the slide's `src`/crops in shots.json
   name them. The newest retakes and their window rects are in `ZeDUI/qa/regression/2026-11-01_gallery_nov1_*.md`
   and in the review's "Retake status". Use the freshest capture of each thing.
 - Crop to show the whole of what the notes name, nothing cut mid-row. Scale so the UI reads: about 0.5-0.65 for a
@@ -107,7 +107,7 @@ Print indexes count across the spread: the left page's prints first, then the ri
 
 ## Build and check
 
-    cd C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/workshop/gallery
+    cd %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/workshop/gallery
     py spread.py spreads out_spread --only <id>
     py peek.py out_spread/<file>.png x0 y0 x1 y1 C:/Temp/<you>/look.png --w 1100 --grid 20
     py peek.py <capture> x0 y0 x1 y1 C:/Temp/<you>/cap.png --w 1100 --grid 50

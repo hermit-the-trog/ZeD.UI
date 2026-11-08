@@ -1,4 +1,4 @@
-zedqa_run: 3 scripts, fullscreen4k; report C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\dash_r6_run1.md
+zedqa_run: 3 scripts, fullscreen4k; report %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\dash_r6_run1.md
   ZeD settings: UI scale 1.75x (4K) (the director's ModOptions.ini kept aside)
   pzrestorewin.ps1 (before a fullscreen run): no backup
   started ProjectZomboid64.exe -debug (fullscreen, the director's options.ini)
@@ -9,4 +9,4 @@ zedqa_run: 3 scripts, fullscreen4k; report C:\Users\you\Zomboid\mods\ZeD-UI\ZeDU
 [3/3] zedqa_dash_r6_parts.lua (r6p) ... FAIL 319 s - 1 Java exception(s) in the log; 16 ERR line(s)
   quit: quit to the main menu, then to the desktop (go 12389, 12390)
   ZeD settings: the director's ModOptions.ini put back
-1/3 pass, 1 warn, 1 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\dash_r6_run1.md
+1/3 pass, 1 warn, 1 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\dash_r6_run1.md

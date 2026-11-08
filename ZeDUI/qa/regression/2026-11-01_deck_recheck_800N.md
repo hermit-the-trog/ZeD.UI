@@ -9,11 +9,11 @@
 | Game build | 42.22.0 e013dbb529 |
 | Mod version | 0.1.1242300k |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\deck_recheck_normal_manifest.txt (7 scripts) |
+| Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\deck_recheck_normal_manifest.txt (7 scripts) |
 | Result | **3/7 pass**, 2 warn, 0 fail, 1 timeout, 1 not run |
 | Go numbers | 17962 to 17969 |
 
-Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 

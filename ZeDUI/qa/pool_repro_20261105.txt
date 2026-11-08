@@ -12,7 +12,7 @@ ZEDQA pol DONE
 ZEDQA pol the beard now: Chops
 ZEDQA pol DONE
 ZeD-QA put back
-console kept: C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\modload\2026-11-05_1811_pol_console.txt
+console kept: %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\modload\2026-11-05_1811_pol_console.txt
 == poison
 start click: clicked
 in game after 54 s (ZeD off)
@@ -29,7 +29,7 @@ ZEDQA pol DONE
 ZEDQA pol the beard now: Chops
 ZEDQA pol DONE
 ZeD-QA put back
-console kept: C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\modload\2026-11-05_1814_pol_console.txt
+console kept: %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\modload\2026-11-05_1814_pol_console.txt
 == check
 start click: clicked
 in game after 54 s (ZeD off)
@@ -50,4 +50,4 @@ ZEDQA pol DONE
 ZEDQA pol the beard now: Chops
 ZEDQA pol DONE
 ZeD-QA put back
-console kept: C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\modload\2026-11-05_1817_pol_console.txt
+console kept: %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\modload\2026-11-05_1817_pol_console.txt

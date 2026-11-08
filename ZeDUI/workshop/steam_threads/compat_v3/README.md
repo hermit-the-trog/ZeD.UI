@@ -26,5 +26,5 @@ ZeD support added Oct 26 2026 that were not in the old posts: Share Annotations,
 Rows marked "From ZeD-GUI 0.2.0-t6" describe support built Oct 26 2026 that is not yet on the Workshop:
 post these texts once 0.2.0-t6 is uploaded.
 
-Checked with `C:\Users\you\AppData\Local\Temp\claude\C--Users-you-Zomboid\989d1212-0f15-49ba-a371-9ee134c38e7f\scratchpad\compat_v3\check.py`
+Checked with `%USERPROFILE%\AppData\Local\Temp\claude\C--Users-you-Zomboid\989d1212-0f15-49ba-a371-9ee134c38e7f\scratchpad\compat_v3\check.py`
 (texts built by `gen.py` beside it): every old Workshop id but ZombieBuddy's appears exactly once, none twice, each post under 7,800. Result: PASS.

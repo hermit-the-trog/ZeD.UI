@@ -927,7 +927,7 @@ Initial `_focusIdx = 2` (worldTabContent).
 
 ## MAJOR DECISION: NAV MODEL PIVOT — D-PAD-ONLY → RING NAVIGATION
 
-**S97 brainstorm gate replaced the S96 D-pad-only ruling with the ring-navigation model from `C:\Users\you\Downloads\files\S94_GAMEPAD_RING_NAVIGATION_SPEC.md` (dated April 16, 2026).**
+**S97 brainstorm gate replaced the S96 D-pad-only ruling with the ring-navigation model from `%USERPROFILE%\Downloads\files\S94_GAMEPAD_RING_NAVIGATION_SPEC.md` (dated April 16, 2026).**
 
 ### Timeline
 - S91–S96: Stack model shipped (~950 LOC). A=confirm, B=pop/shade, D-pad=tab cycle at root + cone nav in panel. Required button presses to traverse depth.

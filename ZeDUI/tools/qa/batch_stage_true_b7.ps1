@@ -4,9 +4,9 @@
 # neither the staged Contents, the repo's 42/ nor the real Zomboid folder is touched. The run prints the version and folder the game
 # loaded. Stops at the check: the upload is the director's.
 $Qa = $PSScriptRoot
-$Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
-$Z = "C:\Users\you\Zomboid"
-$Stg = "C:\Users\you\ZomboidStaged"
+$Root = "$env:USERPROFILE\Zomboid\mods\ZeD-UI"
+$Z = "$env:USERPROFILE\Zomboid"
+$Stg = "$env:USERPROFILE\ZomboidStaged"
 $env:ZEDQA_NOSTEAM = "1"
 $Out = "$Root\ZeDUI\qa\stage_true_b7.txt"
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }

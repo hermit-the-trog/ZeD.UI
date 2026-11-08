@@ -2,9 +2,9 @@
 # ZeDUI/tools/qa/batch_tab_sweep.ps1  (Nov 6 2026, QA): every Character and World tab with data in it, at 4K. The pen is built on the QA save, so the save and the options are put back after each run.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Z = "C:\Users\you\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Save = "$Z\Saves\Sandbox\ZeD-QA"
-$KeepSave = "C:\Users\you\ZedQaSaveKeep_20261106"
+$KeepSave = "$env:USERPROFILE\ZedQaSaveKeep_20261106"
 $Opt = "$Z\options.ini"
 $KeepOpt = "$KeepSave.options.ini"
 $Rep = "$Z\mods\ZeD-UI\ZeDUI\qa\regression"

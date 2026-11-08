@@ -14,7 +14,7 @@
     removes the sample mods and the staged sample folder it added. Holds Zomboid/Lua/zedqa.lock.
     Exit 0 every script reached DONE, 1 a script did not, 2 refused.
 #>
-$Zomboid = "C:\Users\you\Zomboid"
+$Zomboid = "$env:USERPROFILE\Zomboid"
 $Lua = Join-Path $Zomboid "Lua"
 $QA = $PSScriptRoot
 $log = Join-Path $Zomboid "console.txt"

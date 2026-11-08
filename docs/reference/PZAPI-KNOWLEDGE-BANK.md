@@ -720,7 +720,7 @@ Top-level prints — those that execute during PZ's initial Lua file-load pass,
 before/during the logger stream being wired up — go to stdout only. **Observed in
 S91/S92:** Both `[ZeD.Input] InputModeDetector loaded - awaiting first input event`
 and `[ZeD.Input] BumperChord loaded - no arming timeout, hold-and-tap model` are
-absent from `C:\Users\you\Zomboid\console.txt` despite both files definitely loading
+absent from `%USERPROFILE%\Zomboid\console.txt` despite both files definitely loading
 (their runtime `Events.OnTick` handlers fire correctly and their state transitions
 appear in console.txt). **Workaround** if you need a boot-diagnostic to be grep-able:
 wrap the `print()` in an `Events.OnGameStart.Add(function() print(...) end)` callback.

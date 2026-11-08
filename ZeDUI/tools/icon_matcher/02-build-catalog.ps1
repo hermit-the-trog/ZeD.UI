@@ -757,7 +757,7 @@ function svgSrc(icon){
   return 'Smashicons/'+icon.path.replace(/\\/g,'/');
 }
 function pngDest(icon){
-  const smashRoot=DATA.root_path||'C:\\Users\\you\\Zomboid\\mods\\ZeD-UI\\tools\\icon_matcher\\Smashicons';
+  const smashRoot=DATA.root_path;   // (set by the build script, from the user folder)
   const rel=icon.path.replace(/\\svg\\/i,'\\png\\').replace(/\.svg$/i,'.png');
   return smashRoot+'\\'+rel;
 }
@@ -966,8 +966,8 @@ function renderMockup(){
 // EXPORT
 // ================================================================
 function renderExport(){
-  const smashRoot=DATA.root_path||'C:\\Users\\you\\Zomboid\\mods\\ZeD-UI\\tools\\icon_matcher\\Smashicons';
-  const modIcons='C:\\Users\\you\\Zomboid\\mods\\ZeD-UI\\42\\media\\textures\\ZeD\\icons';
+  const smashRoot=DATA.root_path;   // (both set by the build script, from the user folder)
+  const modIcons=DATA.mod_icons;
   const entries=PZ_ACTIONS.filter(a=>getAssignedIcon(a.name)!==null);
   if(!entries.length){
     document.getElementById('luaTa').value='-- No icons assigned yet.\n-- Assign icons in the Actions panel, then return here.';
@@ -1168,7 +1168,7 @@ DATA=
 '@
 
 # Read existing ContextIcons.lua assignments to seed the catalog
-$luaPath = "C:\Users\you\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
+$luaPath = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
 $seededJs = "const SEEDED_ASSIGNMENTS = {};"
 if (Test-Path $luaPath) {
     $lua = Get-Content $luaPath -Raw
@@ -1184,10 +1184,15 @@ if (Test-Path $luaPath) {
     }
 }
 
+# The page's paths, from the user folder, escaped for a JS string literal
+$smashRootJs = (Join-Path $env:USERPROFILE 'Zomboid\mods\ZeD-UI\tools\icon_matcher\Smashicons').Replace('\', '\\').Replace("'", "\'")
+$modIconsJs = (Join-Path $env:USERPROFILE 'Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons').Replace('\', '\\').Replace("'", "\'")
+
 $htmlBottom = @"
 ;
 $seededJs
-DATA.root_path = 'C:\\Users\\you\\Zomboid\\mods\\ZeD-UI\\tools\\icon_matcher\\Smashicons';
+DATA.root_path = '$smashRootJs';
+DATA.mod_icons = '$modIconsJs';
 init();
 </script>
 </body>

@@ -9,11 +9,11 @@
 | Game build | 42.21.0 4a0e9546ec |
 | Mod version | 0.1.1242300k |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:\Users\you\AppData\Local\Temp\claude\C--Users-you-Zomboid\989d1212-0f15-49ba-a371-9ee134c38e7f\scratchpad\r3\nb_manifest.txt (2 scripts) |
+| Manifest | %USERPROFILE%\AppData\Local\Temp\claude\C--Users-you-Zomboid\989d1212-0f15-49ba-a371-9ee134c38e7f\scratchpad\r3\nb_manifest.txt (2 scripts) |
 | Result | **1/2 pass**, 0 warn, 0 fail, 1 timeout |
 | Go numbers | 14027 to 14031 |
 
-Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -24,7 +24,7 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - stopped after zedqa_notebook.lua: no DONE within 180 s; the script may still be running in the game
 - quit: the game was still running after the quit (go 14029, 14030, 14031); close it by hand
-- ZeD settings NOT put back (the game is still running): copy C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-27_0044_mods_fullscreen4k.md.modoptions.ini over C:\Users\you\Zomboid\Lua\ModOptions.ini once it has closed
+- ZeD settings NOT put back (the game is still running): copy %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-27_0044_mods_fullscreen4k.md.modoptions.ini over %USERPROFILE%\Zomboid\Lua\ModOptions.ini once it has closed
 
 ## Results
 

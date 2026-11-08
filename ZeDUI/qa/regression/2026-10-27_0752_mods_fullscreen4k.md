@@ -13,7 +13,7 @@
 | Result | **2/2 pass**, 0 warn, 0 fail, 0 timeout |
 | Go numbers | 14274 to 14278 |
 
-Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -23,7 +23,7 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 - loaded; clicked the screen centre (1920,1080) to pass 'click to start'
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - quit: the game was still running after the quit (go 14276, 14277, 14278); close it by hand
-- ZeD settings NOT put back (the game is still running): copy C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-27_0752_mods_fullscreen4k.md.modoptions.ini over C:\Users\you\Zomboid\Lua\ModOptions.ini once it has closed
+- ZeD settings NOT put back (the game is still running): copy %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-27_0752_mods_fullscreen4k.md.modoptions.ini over %USERPROFILE%\Zomboid\Lua\ModOptions.ini once it has closed
 
 ## Results
 

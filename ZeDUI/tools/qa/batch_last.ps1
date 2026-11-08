@@ -11,12 +11,12 @@ Note "ranch pad: $(($o | Select-Object -Last 2) -join ' | ')"
 $o = & "$Qa\zedqa_run.ps1" -Manifest "$Qa\mp_surfaces_shots.txt" -Mp -Report (Join-Path $Rep "2026-11-05_mp_gallery2.md") 2>&1
 Note "multiplayer pictures: $(($o | Select-Object -Last 1) -join ' ')"
 & "$Qa\mp_server.ps1" -Stop | Out-Null
-$s = "C:\Users\you\Zomboid\Screenshots"; New-Item -ItemType Directory -Force "$s\mp_4k_20261105" | Out-Null; Copy-Item "$s\mps_*.png" "$s\mp_4k_20261105\" -Force
-Set-Content "C:\Users\you\Zomboid\Lua\zedqa_pcallwatch.txt" "on"
+$s = "$env:USERPROFILE\Zomboid\Screenshots"; New-Item -ItemType Directory -Force "$s\mp_4k_20261105" | Out-Null; Copy-Item "$s\mps_*.png" "$s\mp_4k_20261105\" -Force
+Set-Content "$env:USERPROFILE\Zomboid\Lua\zedqa_pcallwatch.txt" "on"
 try {
     Note "regression start"
     $o = & "$Qa\zedqa_run.ps1" -Manifest "$Qa\regression_b4.txt" -Mode fullscreen4k -Report (Join-Path $Rep "2026-11-05_after_known_issues_4k.md") 2>&1
     Note "regression: $(($o | Select-Object -Last 1) -join ' ')"
-    Select-String -Path "C:\Users\you\Zomboid\console.txt" -Pattern "pcw " -SimpleMatch | ForEach-Object { $_.Line } | Set-Content ([IO.Path]::GetFullPath("$Qa\..\..\qa\pcallwatch_regression_20261105.txt"))
+    Select-String -Path "$env:USERPROFILE\Zomboid\console.txt" -Pattern "pcw " -SimpleMatch | ForEach-Object { $_.Line } | Set-Content ([IO.Path]::GetFullPath("$Qa\..\..\qa\pcallwatch_regression_20261105.txt"))
 }
-finally { Remove-Item "C:\Users\you\Zomboid\Lua\zedqa_pcallwatch.txt" -ErrorAction SilentlyContinue }
+finally { Remove-Item "$env:USERPROFILE\Zomboid\Lua\zedqa_pcallwatch.txt" -ErrorAction SilentlyContinue }

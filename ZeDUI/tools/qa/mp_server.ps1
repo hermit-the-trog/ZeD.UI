@@ -3,7 +3,7 @@
     ZeDUI/tools/qa/mp_server.ps1  (Nov 5 2026, QA): a local Project Zomboid dedicated server for multiplayer QA.
 .DESCRIPTION
     Runs the server that ships with the game (zombie.network.GameServer, the same command as the game's own
-    ProjectZomboidServer.bat) without Steam, in its own cache folder (C:\Users\you\Zomboid\zedqa_mp): its world,
+    ProjectZomboidServer.bat) without Steam, in its own cache folder (%USERPROFILE%\Zomboid\zedqa_mp): its world,
     its server settings and its own copy of ZeD (copied from the working mod, 42 + common + mod.info) live there, so
     nothing in the director's Zomboid folder changes. Listens on 127.0.0.1 port 16261 (UDP).
     The admin account is "zedqa"; its password is made once and kept in Zomboid\Lua\zedqa_mp.txt (never committed:
@@ -19,9 +19,9 @@ param([switch]$Start, [switch]$Stop, [switch]$Status, [switch]$NoServerPart, [st
     [ValidateSet("ZeD_UI", "ZeDQAShim", "ZeD_UI;ZeDQAShim")][string]$Mods = "ZeD_UI")   # (-Mods ZeDQAShim: the game's own windows, for the benchmark's comparison; -Mods "ZeD_UI;ZeDQAShim": ZeD plus the shim's ZeDQA.role, for mp_tickets.lua)
 $ErrorActionPreference = "Stop"
 $GameDir  = "E:\Project Zomboid\steamapps\common\ProjectZomboid"
-$Cache    = "C:\Users\you\Zomboid\zedqa_mp"
-$ModSrc   = "C:\Users\you\Zomboid\mods\ZeD-UI"
-$LuaDir   = "C:\Users\you\Zomboid\Lua"
+$Cache    = "$env:USERPROFILE\Zomboid\zedqa_mp"
+$ModSrc   = "$env:USERPROFILE\Zomboid\mods\ZeD-UI"
+$LuaDir   = "$env:USERPROFILE\Zomboid\Lua"
 $PwFile   = Join-Path $LuaDir "zedqa_mp.txt"
 $PidFile  = Join-Path $Cache "server.pid"
 $OutLog   = Join-Path $Cache "server-stdout.txt"
@@ -59,7 +59,7 @@ Copy-Item (Join-Path $ModSrc "42") (Join-Path $dst "42") -Recurse
 Copy-Item (Join-Path $ModSrc "common") (Join-Path $dst "common") -Recurse
 # the QA-only stand-in with the bridge and no ZeD (the comparison runs)
 $shimDst = Join-Path $Cache "mods\ZeDQAShim"
-$shimSrc = "C:\Users\you\Zomboid\mods\ZeDQAShim"
+$shimSrc = "$env:USERPROFILE\Zomboid\mods\ZeDQAShim"
 if (Test-Path $shimDst) { Remove-Item $shimDst -Recurse -Force }
 # (the shim's server file is kept in the repo; the shim on this machine takes it first, so the client's Lua checksum
 # and the server's agree)

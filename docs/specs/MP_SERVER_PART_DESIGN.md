@@ -992,7 +992,7 @@ Leave `42/media/lua/server/Items/` alone. No Java, no change to `mod.info`.
 # Part D: the steps, in order
 
 Each step ends with the game running. QA uses `mp_server.ps1 -Start` (it copies ZeD in fresh, `PauseEmpty=true` already)
-and `zedqa_run.ps1 -Mp`, then greps `Logs/*_DebugLog-server.txt` and the `ZeD` log in `C:\Users\you\Zomboid\zedqa_mp`.
+and `zedqa_run.ps1 -Mp`, then greps `Logs/*_DebugLog-server.txt` and the `ZeD` log in `%USERPROFILE%\Zomboid\zedqa_mp`.
 The test client joins as admin, since a `-debug` client must. `mp_nonadmin.lua` cannot stand in for a plain player here:
 its own comment says the server refuses `/setaccesslevel` on the logged-in account, and it calls `p:setRole(low)` on the
 client alone, so the server still sees an admin and every permission test would pass for the wrong reason. The test client

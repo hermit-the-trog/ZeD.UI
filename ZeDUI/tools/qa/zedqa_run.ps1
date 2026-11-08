@@ -74,15 +74,15 @@
     list the QA scripts it leaves out. Touches neither the lock nor the game.
 
 .EXAMPLE
-    & C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1
+    & "$env:USERPROFILE/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1"
 .EXAMPLE
-    & C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1 -Mode fullscreen4k
+    & "$env:USERPROFILE/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1" -Mode fullscreen4k
 .EXAMPLE
-    & C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1 -Check
+    & "$env:USERPROFILE/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1" -Check
 #>
 [CmdletBinding()]
 param(
-    [string]$Manifest = "C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/regression.txt",
+    [string]$Manifest = "$env:USERPROFILE/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/regression.txt",
     [ValidateSet("windowed", "fullscreen4k")][string]$Mode = "fullscreen4k",   # (director, Oct 22 2026: test at real play scale)
     [ValidateRange(640, 7680)][int]$Width = 1920,     # windowed only: the window's client size (Oct 29 2026, small screens:
     [ValidateRange(480, 4320)][int]$Height = 1080,    #   1280x800 is the Steam Deck, 1280x720 an old laptop)
@@ -98,7 +98,7 @@ param(
 # ============================================================================
 # Places (fixed: the director's machine)
 # ============================================================================
-$ZomboidDir  = $(if ($env:ZEDQA_ZDIR) { $env:ZEDQA_ZDIR } else { "C:\Users\you\Zomboid" })   # (Nov 6 2026) ZEDQA_ZDIR: a separate game folder, -cachedir
+$ZomboidDir  = $(if ($env:ZEDQA_ZDIR) { $env:ZEDQA_ZDIR } else { "$env:USERPROFILE\Zomboid" })   # (Nov 6 2026) ZEDQA_ZDIR: a separate game folder, -cachedir
 $LuaDir      = Join-Path $ZomboidDir "Lua"
 $LockFile    = Join-Path $LuaDir "zedqa.lock"
 $GoFile      = Join-Path $LuaDir "zedqa.go"
@@ -112,8 +112,8 @@ $OptionsIni  = Join-Path $ZomboidDir "options.ini"
 $ModOptions  = Join-Path $LuaDir "ModOptions.ini"
 $ResetPrefix = 'pcall(function() if ZeD_Window and ZeD_Window.resetLayout then ZeD_Window.resetLayout(); print("[ZeD.QA] windows reset (R)") end end); '
 $VersionTxt  = Join-Path $ZomboidDir "version.txt"
-$QaDir       = "C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa"
-$ReportDir   = "C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression"
+$QaDir       = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa"
+$ReportDir   = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression"
 $ModInfo     = Join-Path $ZomboidDir "mods\ZeD-UI\42\mod.info"
 $GameDir     = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
 $GameExe     = Join-Path $GameDir "ProjectZomboid64.exe"
@@ -896,7 +896,7 @@ function Write-Report($Results, [string]$Path, $Info) {
     Add "| Result | **$($c.PASS)/$total pass**, $($c.WARN) warn, $($c.FAIL) fail, $($c.TIMEOUT) timeout$(if ($c.SKIP) { ", $($c.SKIP) not run" }) |"
     if ($script:GoNumbers.Count -gt 0) { Add "| Go numbers | $($script:GoNumbers[0]) to $($script:GoNumbers[$script:GoNumbers.Count - 1]) |" }
     Add ""
-    Add "Screenshots are in ``C:/Users/you/Zomboid/Screenshots`` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. ""(expect ...)"" prints are shown, not checked."
+    Add "Screenshots are in ``%USERPROFILE%/Zomboid/Screenshots`` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. ""(expect ...)"" prints are shown, not checked."
     Add ""
     if ($script:RunNotes.Count -gt 0) {
         Add "## Run notes"
@@ -992,7 +992,7 @@ if ($Check) {
 }
 
 # refuse to start: a Workshop staging copy of ZeD-UI would shadow the dev mod (checked before the lock is read or written)
-$staged = @(Get-ChildItem -Path "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
+$staged = @(Get-ChildItem -Path "$env:USERPROFILE/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "$env:USERPROFILE/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "$env:USERPROFILE/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
     Where-Object { Select-String -LiteralPath $_.FullName -Pattern '^\s*id=ZeD_UI\s*$' -Quiet -ErrorAction SilentlyContinue } |
     ForEach-Object { $_.FullName -replace '[\\/]mods[\\/].*$', '' } | Select-Object -Unique)
 if ($env:ZEDQA_ZDIR) { $staged = @() }   # (a separate game folder never reads the real Workshop folder)

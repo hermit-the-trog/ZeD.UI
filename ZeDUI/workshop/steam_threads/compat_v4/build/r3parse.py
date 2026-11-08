@@ -1,6 +1,6 @@
 import sys, re, json, os, glob
 sys.stdout.reconfigure(encoding="utf-8")
-SRC = r"C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\workshop\compat_round3_results.md"
+SRC = os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\ZeDUI\workshop\compat_round3_results.md")
 WS = r"E:\Project Zomboid\SteamApps\workshop\content\108600"
 v3 = json.load(open("v3_mods.json", encoding="utf-8"))
 rows, grp = {}, None

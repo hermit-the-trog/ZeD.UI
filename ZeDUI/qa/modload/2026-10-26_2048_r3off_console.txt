@@ -2079,7 +2079,7 @@ LOG  : General      f:0> ErosionGlobals.Boot() start
 LOG  : General      f:0> ErosionGlobals.Boot() end
 LOG  : General      f:0> WorldDictionary.init() start
 LOG  : General      f:0> WorldDictionary: Checking dictionary...
-LOG  : General      f:0> Loading WorldDictionary:C:\Users\you\Zomboid\Saves\Sandbox\ZeD-QA\WorldDictionary.bin
+LOG  : General      f:0> Loading WorldDictionary:%USERPROFILE%\Zomboid\Saves\Sandbox\ZeD-QA\WorldDictionary.bin
 LOG  : General      f:0> WorldDictionary.init() end
 LOG  : General      f:0> GameEntityManager.Init() start
 LOG  : General      f:0> GameEntityManager.Init() end

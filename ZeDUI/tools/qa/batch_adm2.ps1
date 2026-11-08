@@ -5,7 +5,7 @@ $Qa = $PSScriptRoot
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 $Rep = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression")
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }
-$Cache = "C:\Users\you\Zomboid\zedqa_mp"; $Lua = "C:\Users\you\Zomboid\Lua"
+$Cache = "$env:USERPROFILE\Zomboid\zedqa_mp"; $Lua = "$env:USERPROFILE\Zomboid\Lua"
 $Keep = Join-Path $env:TEMP "zedqa_mp_keep_tk"
 New-Item -ItemType Directory -Force $Keep | Out-Null
 Copy-Item "$Cache\db\zedqa.db" "$Keep\zedqa.db" -Force; Copy-Item "$Cache\Server\zedqa.ini" "$Keep\zedqa.ini" -Force; Copy-Item "$Lua\ModOptions.ini" "$Keep\ModOptions.ini" -Force

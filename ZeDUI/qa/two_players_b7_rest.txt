@@ -4,7 +4,7 @@
 10:12:35 set DoLuaChecksum=false
 10:12:35 set SafehouseAllowNonResidential=true
 10:13:09 server up
-10:14:17 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_rest_start.md
+10:14:17 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_rest_start.md
 10:15:01 second client joining as bob
 10:17:08 TIMEOUT
 10:17:08 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
@@ -66,19 +66,19 @@
 10:17:53 ZEDQA bcc 16 passed, 0 failed
 10:17:53 ZEDQA bcc DONE
 10:17:56 second client stopped
-10:17:58 server ZeD log C:\Users\you\Zomboid\zedqa_mp\Logs\2026-11-07_10-12_ZeD.txt:
+10:17:58 server ZeD log %USERPROFILE%\Zomboid\zedqa_mp\Logs\2026-11-07_10-12_ZeD.txt:
 10:17:58   server: LOG  : General      f:0 st:36,369,135> server name is "zedqa"
 10:17:58   server: LOG  : Mod          f:0 st:36,376,406> loading ZeDQAShim
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeD-UI\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeD-UI\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeD-UI\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeD-UI\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeDQAShim\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeDQAShim\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeDQAShim\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
-10:17:58   server: 	java.nio.file.NoSuchFileException: C:\Users\you\Zomboid\zedqa_mp\mods\ZeDQAShim\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
-10:17:58   server: LOG  : General      f:0 st:36,394,554> writing C:\Users\you\Zomboid\zedqa_mp\Server\zedqa_SandboxVars.lua
-10:17:58   server: LOG  : General      f:0 st:36,397,342> Loading WorldDictionary:C:\Users\you\Zomboid\zedqa_mp\Saves\Multiplayer\zedqa\WorldDictionary.bin
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeD-UI\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeD-UI\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeD-UI\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeD-UI\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeDQAShim\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeDQAShim\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeDQAShim\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:17:58   server: 	java.nio.file.NoSuchFileException: %USERPROFILE%\Zomboid\zedqa_mp\mods\ZeDQAShim\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:17:58   server: LOG  : General      f:0 st:36,394,554> writing %USERPROFILE%\Zomboid\zedqa_mp\Server\zedqa_SandboxVars.lua
+10:17:58   server: LOG  : General      f:0 st:36,397,342> Loading WorldDictionary:%USERPROFILE%\Zomboid\zedqa_mp\Saves\Multiplayer\zedqa\WorldDictionary.bin
 10:17:58   server: LOG  : Lua          f:0 st:36,403,151> [ZeDQA] paused tick 1, players 0
 10:17:58   server: LOG  : Lua          f:0 st:36,422,949> [ZeDQA] paused tick 199, players 0
 10:17:58   server: LOG  : Lua          f:0 st:36,442,954> [ZeDQA] paused tick 399, players 0

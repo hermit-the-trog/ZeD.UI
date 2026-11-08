@@ -4,7 +4,7 @@ The director: "anything that opens a vanilla window, we need to work on." Three 
 
 The three sweeps merge into 52 rows below: 35 vanilla windows a player can still reach with ZeD on, 6 that ZeD opens itself only when its own screen can't open, and 11 kept vanilla on purpose. I checked each point where the sweeps disagreed against the code. Nothing was changed and the game was not launched.
 
-Paths starting `ZeD/` are under `C:/Users/you/Zomboid/mods/ZeD-UI/42/media/lua/client/ZeD/`. Paths starting `vanilla/` are under `E:/Project Zomboid/steamapps/common/ProjectZomboid/media/lua/`.
+Paths starting `ZeD/` are under `%USERPROFILE%/Zomboid/mods/ZeD-UI/42/media/lua/client/ZeD/`. Paths starting `vanilla/` are under `E:/Project Zomboid/steamapps/common/ProjectZomboid/media/lua/`.
 
 **Where the sweeps disagreed, settled in the code**
 1. **Server buttons on the left edge of the screen.** The header at `ZeD/Overrides/ScreenIcons.lua:9-13` says they are left alone, but that comment is out of date. On a server, `ZeD/Overrides/Belt.lua:73` and `:257-262` hide the Safety, Client and Admin buttons every frame. So the game's user panel, admin panel and its tickets window can't be reached from ZeD's screens. Only the debug button stays, and only in debug runs.

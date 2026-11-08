@@ -2,9 +2,9 @@
 # ZeDUI/tools/qa/batch_rail.ps1  (Nov 6 2026, QA): the Admin tab's rail and footer at 4K and at the Deck's size, the pictures kept by size. The staged copy steps aside and comes back.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Shots = "C:/Users/you/Zomboid/Screenshots"
-$C = "C:/Users/you/Zomboid/Workshop/ZeD-UI/Contents"
-$Aside = "C:/Users/you/Zomboid/Workshop_ZeD-UI_Contents_aside"
+$Shots = "$env:USERPROFILE/Zomboid/Screenshots"
+$C = "$env:USERPROFILE/Zomboid/Workshop/ZeD-UI/Contents"
+$Aside = "$env:USERPROFILE/Zomboid/Workshop_ZeD-UI_Contents_aside"
 if (Test-Path $C) { Move-Item $C $Aside }
 try {
     foreach ($r in @(@("rail_4k", ""), @("rail_deck", ":1280:800"))) {

@@ -9,18 +9,18 @@
 param([string]$Runs = "menu,game,base")
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Mods = "C:\Users\you\Zomboid\mods"
+$Mods = "$env:USERPROFILE\Zomboid\mods"
 $Src = "C:\steamcmd\steamapps\workshop\content\108600"
-$Rec = "C:\Users\you\Zomboid\Lua\ZeD_step_aside.txt"
-$Con = "C:\Users\you\Zomboid\console.txt"
+$Rec = "$env:USERPROFILE\Zomboid\Lua\ZeD_step_aside.txt"
+$Con = "$env:USERPROFILE\Zomboid\console.txt"
 $Ids = "3800989007 3790656296 3508537032 3642084851" -split " "
 $Out = [System.IO.Path]::GetFullPath("$Qa\..\..\qa")
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { "the game is running, stop"; exit 2 }
 $recBak = $null
 if (Test-Path $Rec) { $recBak = [System.IO.File]::ReadAllBytes($Rec) }
 function Keep($tag) {
-    $sd = "C:\Users\you\AppData\Local\Temp\bel\$tag"; New-Item -ItemType Directory -Force $sd | Out-Null
-    Copy-Item "C:\Users\you\Zomboid\Screenshots\zqa_bel*.png" $sd -Force -ErrorAction SilentlyContinue
+    $sd = "$env:USERPROFILE\AppData\Local\Temp\bel\$tag"; New-Item -ItemType Directory -Force $sd | Out-Null
+    Copy-Item "$env:USERPROFILE\Zomboid\Screenshots\zqa_bel*.png" $sd -Force -ErrorAction SilentlyContinue
     # the lines that matter from the console, for the report
     $pat = 'ZEDQA (bel|belm|pre|pnw)|Step aside|ERROR|Exception|Bridge|NEQ|NeatUI|Minimal|attempted index|nil'
     Get-Content $Con -ErrorAction SilentlyContinue | ForEach-Object { $_ -replace "`0", "" } | Where-Object { $_ -match $pat } | Select-Object -First 400 | Set-Content "$Out\belisar_console_$tag.txt"

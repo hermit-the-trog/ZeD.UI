@@ -17,8 +17,8 @@
 #>
 param([string[]]$Only = @(), [switch]$Slow, [switch]$NoHelper, [int]$Width = 1280, [int]$Height = 800)
 $Qa = $PSScriptRoot
-$Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
-$Z = "C:\Users\you\Zomboid"
+$Root = "$env:USERPROFILE\Zomboid\mods\ZeD-UI"
+$Z = "$env:USERPROFILE\Zomboid"
 $Lua = "$Z\Lua"
 $Lock = "$Lua\zedqa.lock"
 $ConA = "$Z\console.txt"
@@ -267,7 +267,7 @@ finally {
 
 # ---- the host helper session: the server restarted with RCON on, the helper beside it
 $py = $null
-foreach ($c in @("C:\Users\you\Documents\ComfyUI\.venv\Scripts\python.exe")) { if (Test-Path $c) { $py = $c } }
+foreach ($c in @("$env:USERPROFILE\Documents\ComfyUI\.venv\Scripts\python.exe")) { if (Test-Path $c) { $py = $c } }
 if (-not $py) { $g = Get-Command py -ErrorAction SilentlyContinue; if ($g) { $py = $g.Source } }
 if ((Want "helper") -and -not $NoHelper) {
     if (-not $py) { Note "helper session skipped: no Python found (py, or the ComfyUI venv)" }

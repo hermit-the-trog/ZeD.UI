@@ -187,7 +187,7 @@ out too, and has it already?
 ## 5. The handback to Code
 
 When the conversation is done, write `docs/specs/BETA_DECISIONS.md` in the repo
-(`C:\Users\you\Zomboid\mods\ZeD-UI`). It needs:
+(`%USERPROFILE%\Zomboid\mods\ZeD-UI`). It needs:
 - each question's answer, in the director's words where possible, with the date
 - the agreed beta definition
 - anything the director added

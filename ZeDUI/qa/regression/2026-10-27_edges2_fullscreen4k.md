@@ -9,11 +9,11 @@
 | Game build | 42.21.0 4a0e9546ec |
 | Mod version | 0.1.1242300k |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:/Users/you/AppData/Local/Temp/claude/C--Users-you-Zomboid/7395e6f8-af8b-4442-87a0-5848151409de/scratchpad/edges_manifest.txt (3 scripts) |
+| Manifest | %USERPROFILE%/AppData/Local/Temp/claude/C--Users-you-Zomboid/7395e6f8-af8b-4442-87a0-5848151409de/scratchpad/edges_manifest.txt (3 scripts) |
 | Result | **1/3 pass**, 1 warn, 0 fail, 1 timeout |
 | Go numbers | 14189 to 14191 |
 
-Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -24,7 +24,7 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - stopped after zedqa_prelude.lua: no DONE within 180 s; the script may still be running in the game
 - -KeepOpen: the game was left running
-- -KeepOpen: ZeD settings are still the test's; the director's file is C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-27_edges2_fullscreen4k.md.modoptions.ini
+- -KeepOpen: ZeD settings are still the test's; the director's file is %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-27_edges2_fullscreen4k.md.modoptions.ini
 
 ## Results
 

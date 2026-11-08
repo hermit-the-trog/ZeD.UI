@@ -9,11 +9,11 @@
 | Game build | 42.22.2 3d39148846 |
 | Mod version | 0.3.0-beta7 |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\release_check_staged.txt (4 scripts) |
+| Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\release_check_staged.txt (4 scripts) |
 | Result | **4/4 pass**, 0 warn, 0 fail, 0 timeout |
 | Go numbers | 23026 to 23031 |
 
-Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -105,7 +105,7 @@ ZEDQA rel DONE
 ```text
 [ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
 [ZeD.QA] windows reset (R)
-ZEDQA sv version=0.3.0-beta7 dir=C:\Users\you\Zomboid\mods\ZeD-UI
+ZEDQA sv version=0.3.0-beta7 dir=%USERPROFILE%\Zomboid\mods\ZeD-UI
 [ZeD.QA] run #4 ok=true
 ZEDQA sv DONE
 ```

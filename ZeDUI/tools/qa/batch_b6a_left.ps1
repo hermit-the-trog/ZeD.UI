@@ -2,11 +2,11 @@
 # ZeDUI/tools/qa/batch_b6a_left.ps1  (Nov 7 2026, QA): zedqa_b6a_left.lua at 4K, then at the Deck's size, with the real-mouse helper beside it. The save comes back after each run.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Z = "C:\Users\you\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Lua = "$Z\Lua"
 $Shots = "$Z\Screenshots"
 $Save = "$Z\Saves\Sandbox\ZeD-QA"
-$KeepSave = "C:\Users\you\ZedQaSaveKeep_b6l"
+$KeepSave = "$env:USERPROFILE\ZedQaSaveKeep_b6l"
 $Rep = "$Z\mods\ZeD-UI\ZeDUI\qa\regression"
 if (Test-Path $KeepSave) { Write-Output "keep folder exists, stop"; exit 1 }
 Copy-Item $Save $KeepSave -Recurse

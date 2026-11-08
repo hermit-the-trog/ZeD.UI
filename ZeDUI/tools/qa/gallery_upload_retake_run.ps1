@@ -5,7 +5,7 @@
     gallery_v4_upload.lua and the end script; same sample mods put in and taken out, same files put back.
     Nothing is uploaded (gallery_v4_upload.lua answers Cancel). Exit 0 every script reached DONE, 1 one did not, 2 refused.
 #>
-$Zomboid = "C:\Users\you\Zomboid"
+$Zomboid = "$env:USERPROFILE\Zomboid"
 $Lua = Join-Path $Zomboid "Lua"
 $QA = $PSScriptRoot
 $log = Join-Path $Zomboid "console.txt"

@@ -44,7 +44,7 @@
    {"p": "Choose the button pictures in *ZeD setup*, under *Controls*."}
   ],
   "prints": [
-   {"src": "C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png", "box": [80, 112, 1552, 1008], "scale": 0.375, "at": [1060, 480], "tape": ["l", "tr"], "resample": "nearest"}
+   {"src": "%USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png", "box": [80, 112, 1552, 1008], "scale": 0.375, "at": [1060, 480], "tape": ["l", "tr"], "resample": "nearest"}
   ],
   "marks": [
    {"text": "LT | RT: the game's own, aim and attack. On the map, zoom.", "pen": "blu", "at": [1096, 312], "maxw": 600, "to": [[0, 300, 235], [0, 1310, 235]]},

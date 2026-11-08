@@ -70,9 +70,9 @@
     the game takes a square PNG of 256 or 512).
 
 .EXAMPLE
-    & C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -DryRun
+    & "$env:USERPROFILE/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1" -DryRun
 .EXAMPLE
-    & C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-test1
+    & "$env:USERPROFILE/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1" -Version 0.2.0-test1
 .EXAMPLE
     & .../stage_workshop.ps1 -Version 0.3.0-beta1 -Title "ZeD-GUI [BETA]" -Description ZeDUI/workshop/tester_description_0.3.0-beta1.bbcode -ChangeNote ZeDUI/workshop/tester_changenote_0.3.0-beta1.txt -Preview ZeDUI/workshop/gallery/thumb_512_beta.png
 #>
@@ -408,6 +408,6 @@ Write-Host '== SUMMARY ==' -ForegroundColor Cyan
 foreach ($r in ($copy | Sort-Object Size -Descending | Select-Object -First 10)) { '    {0,10}  {1}' -f (Mb $r.Size), $r.Rel }
 if (-not $DryRun) {
     Write-Host ''
-    Warn 'The staged copy now shadows the dev mod in the game: remove C:/Users/you/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy.'
+    Warn "The staged copy now shadows the dev mod in the game: remove $env:USERPROFILE/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy."
 }
 exit 0

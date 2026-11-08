@@ -5,9 +5,9 @@ $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }
-$Opt = "C:\Users\you\Zomboid\options.ini"
+$Opt = "$env:USERPROFILE\Zomboid\options.ini"
 $Keep = Join-Path $env:TEMP "options_lang_keep.ini"
-$Shots = "C:\Users\you\Zomboid\Screenshots"
+$Shots = "$env:USERPROFILE\Zomboid\Screenshots"
 Note "final start"
 Copy-Item $Opt $Keep -Force
 try {
@@ -19,7 +19,7 @@ try {
 finally { Copy-Item $Keep $Opt -Force }
 Note "german cards done"
 $Wk = "E:\Project Zomboid\steamapps\workshop\content\108600"
-$Mods = "C:\Users\you\Zomboid\mods"
+$Mods = "$env:USERPROFILE\Zomboid\mods"
 $Copied = @()
 foreach ($d in "3480990544\mods\Constown", "3616176188\mods\GaelGunStore", "3494108029\mods\SmartRadialMenu") {
     $to = Join-Path $Mods (Split-Path $d -Leaf)

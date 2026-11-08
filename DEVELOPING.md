@@ -37,7 +37,7 @@ Nothing is installed by a package manager; these are the things the tools call.
 
 | Need | Used for | Notes |
 | --- | --- | --- |
-| Project Zomboid, Build 42, Steam | running and testing | the tools look for it at `E:\Project Zomboid\SteamApps\common\ProjectZomboid`; change the path where they say so (search the tools for `E:\Project Zomboid` and `C:\Users\you`, about nine files) |
+| Project Zomboid, Build 42, Steam | running and testing | the tools look for it at `E:\Project Zomboid\SteamApps\common\ProjectZomboid`; change the path where they say so (search the tools for `E:\Project Zomboid`, about nine files); your own user folder is found on its own |
 | PowerShell 7 (`pwsh`) | every runner and the staging script | the `#Requires -Version 7.0` line at the top of each |
 | Python 3.12 or newer with numpy, Pillow and scipy | the art and font kits, the gallery cards, the preview picture | `lupa` is optional: the dashboard tests fall back to a Lua executable |
 | A Lua 5.1 or LuaJIT executable | syntax-checking a file without starting the game | any `lua.exe` will do: `lua -e "assert(loadfile('path.lua'))"` |

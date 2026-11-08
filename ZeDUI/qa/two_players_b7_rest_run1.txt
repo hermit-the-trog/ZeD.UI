@@ -4,7 +4,7 @@
 09:43:09 set DoLuaChecksum=false
 09:43:10 set SafehouseAllowNonResidential=true
 09:44:26 server up
-09:45:33 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_rest_start.md
+09:45:33 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_rest_start.md
 09:48:49 ZEDQA acm PASS a safehouse held (zedqa)
 09:48:49 ZEDQA acm DONE
 09:49:32 second client joining as bob
@@ -170,7 +170,7 @@
 09:55:29 ZEDQA bcc 10 passed, 6 failed
 09:55:29 ZEDQA bcc DONE
 09:55:31 second client stopped
-09:55:34 server ZeD log C:\Users\you\Zomboid\zedqa_mp\Logs\2026-11-07_09-43_ZeD.txt:
+09:55:34 server ZeD log %USERPROFILE%\Zomboid\zedqa_mp\Logs\2026-11-07_09-43_ZeD.txt:
 09:55:34   [07-11-26 09:45:53.801] safehouse | claim | zedqa | - | 10784,10027 | - | day 1.
 09:55:34   [07-11-26 09:52:12.227] safehouse | member in | bob | - | 10784,10027 | - | day 1.
 09:55:34   server: LOG  : Lua          f:618 st:34,799,857> [ZeDQA] paused tick 1189, players 1

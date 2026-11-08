@@ -1,7 +1,7 @@
 """Before (today's plaques, the pipeline's own drive previews) beside after (the brand lockups), 2x."""
 import os
 from PIL import Image, ImageDraw
-OUT = r"C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\dashpx\out"
+OUT = os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\ZeDUI\tools\dashpx\out")
 ORDER = ["luxury", "nyala", "cossette", "d6", "dashelite", "primani", "dart", "horizon", "wagon", "suv", "van", "bulldriver", "rancher"]
 PICK = ["d6", "bulldriver", "van", "luxury", "horizon", "primani", "dashelite", "suv"]
 after_sheet = Image.open(r"C:\Temp\brand_insitu_v3.png").convert("RGBA")
