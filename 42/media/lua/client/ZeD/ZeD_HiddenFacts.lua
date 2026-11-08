@@ -25,6 +25,8 @@
 require "ZeD/Tr"
 require "ZeD/ZeD_SurvivalGuide"
 
+-- Kahlua has no next(); whether a table has any entry.
+local function hasAny(t) if type(t) ~= "table" then return false end for _ in pairs(t) do return true end return false end
 ZeD = ZeD or {}
 ZeD.Finds = ZeD.Finds or {}
 local F = ZeD.Finds
@@ -176,7 +178,7 @@ function F.recipeIndex()
         end
     end)
     if not ok then return {} end
-    if next(groups) then
+    if hasAny(groups) then
         local okG = pcall(function()
             local recipes = getScriptManager():getAllCraftRecipes()
             for i = 0, recipes:size() - 1 do
