@@ -1,13 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/JournalTab.lua
 -- ============================================================================
--- JOURNAL TAB — five pages inside the drawer, picked from the header's Page
--- pop-up ("Page: Journal"; the search at its right). Each page's own controls
--- sit in a band at its foot (Oct 30 2026, punch list 21); Notebooks has none.
+-- JOURNAL TAB — client; the Character window's journal drawer. Five pages,
+-- picked from the header's Page pop-up ("Page: Journal"; the search at its
+-- right). Each page's own controls sit in a band at its foot; Notebooks has
+-- none.
 --   Journal:   survival logbook + BBS-style diary (full width); Save (the band)
 --              can also write the entry into a carried notebook (Into)
 --   Notebooks: carried notebooks, the page small, a quick note (ZeD_JournalReaders)
 --   Papers:    carried newspapers, flyers, brochures; quick look (ZeD_JournalReaders)
---   Recipes:   all learnable recipes grouped by skill, status dots, expandable
+--   Recipes:   every craft + build recipe grouped by category, read-only
+--              (CraftingCore draws it)
 --   Loadouts:  the saved loadouts and outfits and their lines (ZeD_JournalLists)
 -- ============================================================================
 
@@ -100,24 +102,23 @@ local _saveBandSpec = {}  -- the Journal page's band (its Save is the window's b
 
 local wrapText = ZeD.Atoms.wrapText
 
--- Recipe icon grid constants (matches CraftingTab)
+-- the recipe grid's cell size and gap (the height estimate below uses them)
 local RCELL_SZ   = 43
 local RCELL_GAP  = 3
 
 local truncText = ZeD.Atoms.truncateText
 
--- The pages (sub-tabs until Oct 30 2026; now the header's Page pop-up)
--- (Oct 16 2026, mockup zed_reader_v2: Flyers became Papers, Notebooks added; the
--- Character window reads these by index (win._journalSubTab): 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes)
+-- The pages the header's Page pop-up offers. The Character window reads these
+-- by index (win._journalSubTab): 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes.
 local SUB_TABS = {
     { id = "journal",   key = "UI_ZeD_Journal_TabJournal" },
     { id = "notebooks", key = "UI_ZeD_Journal_TabNotebooks" },
     { id = "papers",    key = "UI_ZeD_Journal_TabPapers" },
     { id = "recipes",   key = "IGUI_LiteratureUI_Recipes" },   -- (the game's own "Recipes")
-    -- Oct 29 2026 (loadouts B2): on the end, so 1 to 4 keep their numbers
+    -- on the end, so 1 to 4 keep their numbers
     { id = "loadouts",  key = "UI_ZeD_Journal_TabLoadouts" },
 }
--- Loadouts is in the Page list only while Loadouts and outfits is on (Settings.lua; director, Oct 30 2026)
+-- Loadouts is in the Page list only while Loadouts and outfits is on (Settings.lua)
 local function subTabShown(tab)
     return tab.id ~= "loadouts" or (ZeD.Lists ~= nil and ZeD.Lists.on())
 end
@@ -435,7 +436,8 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
 
     local CC = ZeD.CraftingCore
 
-    -- Reuse existing recipe array — mutate in-place instead of 800+ new tables
+    -- Reuse the existing recipe array — mutate in place instead of making
+    -- hundreds of new tables every refresh
     local recipes = win._jrecipeRecipes
     if not recipes then
         recipes = {}
@@ -572,14 +574,14 @@ local function renderJournal(panel, win, x, y, w, h)
     local M    = ZeD.Molecules
 
     -- Search field positioned by the Journal's header (drawHeader, right of the Page pop-up).
-    -- The page's band at its foot (Save; the delete question takes its place, Oct 30 2026):
+    -- The page's band at its foot (Save; the delete question takes its place):
     -- the log scrolls above it.
     local bandH = M.bandH()
     h = h - bandH
 
-    -- S105 gamepad: resolve the currently-focused element id for cue paints
-    -- (all element types on this sub-tab share charTabContent; live element
-    -- check is the authoritative paint gate — S101 pattern).
+    -- Controller: resolve the currently focused element id for cue paints.
+    -- Every element type on this page shares the charTabContent zone; the
+    -- live element check is what decides whether a cue paints.
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     -- (for the scroll-follow below; the marks are asked of the library per element: focusOf)
     local gpFocusedId = nil
@@ -644,7 +646,7 @@ local function renderJournal(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
 
-    -- S105 gamepad: scroll-follow with delta gate (Q99). Pin only when the
+    -- Controller: scroll so the focus stays in view. Pin only when the
     -- focused id CHANGED — continuous pinning would fight input-mode
     -- oscillation. Uses LAST frame's zones (captured before clear) since
     -- this frame's zones aren't stamped yet. One-frame lag: imperceptible.
@@ -890,7 +892,7 @@ local function renderJournal(panel, win, x, y, w, h)
             local _, roomR = M.bandRoom(panel, outerX, outerW, btnW + 2 * T.px(8))
             local btnX, btnY = roomR - T.px(8) - btnW, by + T.px(5)
             if saveBtn:getX() ~= btnX or saveBtn:getY() ~= btnY then saveBtn:setX(btnX); saveBtn:setY(btnY) end
-            -- S105 gamepad: stamp the save button's hit zone and mark it BEHIND the button's
+            -- Controller: stamp the save button's hit zone and mark it BEHIND the button's
             -- own render (the button is a drawer child, drawn after this panel, and
             -- transparent, so the mark shows through).
             win._journalSaveBtnZone = { x = btnX, y = btnY, w = btnW, h = btnH }
@@ -985,9 +987,8 @@ end
 -- ============================================================================
 
 
---- Gather detail (ingredients + skills) for one selected recipe item.
--- Uses CraftingCore shared utilities for container building, counting, and perk lookup.
---- Gather detail for selected recipe — delegates to CraftingCore.gatherDetail
+-- Detail (ingredients + skills) for the selected recipe. CraftingCore.gatherDetail
+-- does the work; the journal is read-only, so batch quantity stays zero.
 local function _gatherJRecipeDetail(rd, playerObj, win)
     local CC = ZeD.CraftingCore
     CC.gatherDetail(rd, playerObj, win, "jrecipe")
@@ -1059,10 +1060,9 @@ function ZeD.JournalTab.onRecipeMouseWheel(win, del, x, y)
 end
 
 -- ============================================================================
--- THE HEADER STRIP (Oct 30 2026, punch list 21: one row, the standard height):
--- the page as a System 7 pop-up menu at the left ("Page: Journal"), the page's
--- search at the right. The pages were sub-tabs in a strip; the Page list opens
--- under the box, drawn last over the page.
+-- THE HEADER STRIP — one row, the standard tab-header height: the page as a
+-- System 7 pop-up menu at the left ("Page: Journal"), the page's search at
+-- the right. The Page list opens under the box, drawn last over the page.
 -- ============================================================================
 
 local PAGE_MODES = {}   -- the Page list's choices {id = page index, label}: reused, labels refreshed
@@ -1205,7 +1205,7 @@ local function drawHeader(panel, win, x, y, w)
     if hov then help(win, ZeD.tr("UI_ZeD_Journal_HelpPage")) end
     local pageName = ZeD.tr(SUB_TABS[cur].key)
     M.drawPopupMenu(panel, bx, rowY, bw, ih, ZeD.tr("UI_ZeD_Journal_PagePick", pageName),
-        hov or open, focusOf(win, "jpage"), false, pageName)   -- (the page alone when both do not fit, break-it B2)
+        hov or open, focusOf(win, "jpage"), false, pageName)   -- (the page name alone when both do not fit)
     local box = win._journalPageBox or {}
     win._journalPageBox = box
     box.x, box.y, box.w, box.h = bx, rowY, bw, ih
@@ -1317,7 +1317,7 @@ function ZeD.JournalTab.headerFocusables(win)
             }
             if z.id == (win._journalSubTab or 1) then out._focusIdx = i end
         end
-        -- (Oct 30 2026, punch list 21 a-f: modal; Down from Loadouts, the last row, stays on it)
+        -- (the list is modal: its rows are the only stops, and Down on the last row stays put)
         out._menuRows = true
         return out
     end
@@ -1338,8 +1338,8 @@ function ZeD.JournalTab.headerFocusables(win)
     return out
 end
 
---- Shut the Page list and every page's own list (Oct 30 2026, punch list 21 a-f: the window
--- calls it when the tab is left, its drawer folds or an item card opens over it).
+--- Shut the Page list and every page's own list. The window calls it when the tab
+-- is left, its drawer folds or an item card opens over it.
 function ZeD.JournalTab.shutLists(win)
     if not win then return end
     if win._journalPageOpen then closePageMenu(win) end
