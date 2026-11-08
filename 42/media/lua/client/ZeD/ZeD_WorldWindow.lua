@@ -3276,7 +3276,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- S93 Layer 3: tear down joypad focus registration before dropping ref.
         -- unregisterWindow internally releases focus if this window holds it.
         if ZeD and ZeD.Input and ZeD.Input.Focus then
-            if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(_worldWin) end  -- S123: fold the map pop-out with the window
+            if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(_worldWin, true) end  -- S123: fold the map pop-out with the window
             ZeD.Input.Focus.unregisterWindow(_worldWin)
         end
         _worldWin:removeFromUIManager()
@@ -5895,7 +5895,7 @@ function ZeD_WorldWindow.close()
         -- unregister here keeps this entry point symmetric with the toggle()
         -- and win.close override paths.
         if ZeD and ZeD.Input and ZeD.Input.Focus then
-            if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(_worldWin) end  -- S123: fold the map pop-out with the window
+            if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(_worldWin, true) end  -- S123: fold the map pop-out with the window
             ZeD.Input.Focus.unregisterWindow(_worldWin)
         end
         _worldWin:removeFromUIManager()
@@ -5916,7 +5916,7 @@ function ZeD_WorldWindow.forceClose()
     _floorContainer = nil
     if not w then return end
     pcall(function()
-        if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w) end
+        if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w, true) end
         if ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
     end)
     pcall(w.removeFromUIManager, w)

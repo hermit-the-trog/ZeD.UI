@@ -1702,7 +1702,7 @@ function ZeD.MapsTab.onClick(win, x, y)
     if win._mapPopout and not win._mapClickFromPopout then
         local z = win._mapFoldZone
         if z and x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
-            ZeD.MapsTab.closePopout(win)
+            ZeD.MapsTab.closePopout(win, true)
         end
         return
     end
@@ -1715,7 +1715,7 @@ function ZeD.MapsTab.onClick(win, x, y)
     if win._mapPopoutZone then
         local z = win._mapPopoutZone
         if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
-            if win._mapPopout then ZeD.MapsTab.closePopout(win) else ZeD.MapsTab.openPopout(win) end
+            if win._mapPopout then ZeD.MapsTab.closePopout(win, true) else ZeD.MapsTab.openPopout(win) end
             return
         end
     end
@@ -1967,7 +1967,7 @@ function ZeD.MapsTab.buildFocusables(win)
             id = "map:popout",
             isMapPopout = true,
             onActivate = function(w, _el)
-                if w._mapPopout then ZeD.MapsTab.closePopout(w) else ZeD.MapsTab.openPopout(w) end
+                if w._mapPopout then ZeD.MapsTab.closePopout(w, true) else ZeD.MapsTab.openPopout(w) end
             end,
         }
     end
@@ -2420,7 +2420,10 @@ function ZeD.MapsTab.openPopout(win, paperItem)
     end
 end
 
-function ZeD.MapsTab.closePopout(win)
+-- keepWorld: the fold comes from the World window itself (its fold zone or
+-- unfold button, its own close, the world map opening, another paper), so a
+-- World window that Read Map opened stays (PaperMap.closed)
+function ZeD.MapsTab.closePopout(win, keepWorld)
     local pop = win and win._mapPopout
     if not pop then return end
     local paper = win._mapPaperItem ~= nil
@@ -2445,10 +2448,11 @@ function ZeD.MapsTab.closePopout(win)
     if Focus then Focus.unregisterWindow(pop) end   -- hands focus back to the last registered window
     pcall(function() pop:removeFromUIManager() end)
     if paper then
-        -- the paper map is put away: vanilla's sound, and the controller goes back
-        -- to the window it read the map from (PaperMap.lua)
+        -- the paper map is put away: vanilla's sound, the controller goes back to
+        -- the window it read the map from, and a World window opened only to show
+        -- the paper closes with it (PaperMap.lua)
         pcall(function() win._playerObj:playSoundLocal("MapClose") end)
-        if ZeD.PaperMap and ZeD.PaperMap.returnFocus then pcall(ZeD.PaperMap.returnFocus, win, pop) end
+        if ZeD.PaperMap and ZeD.PaperMap.closed then pcall(ZeD.PaperMap.closed, win, pop, keepWorld) end
         return
     end
     pcall(function() getSoundManager():playUISound("UIActivateTab") end)

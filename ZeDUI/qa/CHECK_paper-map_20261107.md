@@ -6,7 +6,13 @@ showing only the paper's area as the game draws it, with the paper's own marks a
 read is kept: the walk to the main inventory, the stash's building, the map counted as read, the area revealed on
 the world map. Files: `client/ZeD/PaperMap.lua`, `client/ZeD/Overrides/PaperMap.lua`, small hooks in `MapsTab.lua`,
 `MapNotes.lua`, `MapsTabExt.lua`, `MapsTabKey.lua`, `Overrides/WorldMap.lua`, `Input/FocusManager.lua`
-(`Focus.isRegistered`). Sim: `ZeDUI/tools/qa/paper_map_sim.lua` (54 checks, all pass).
+(`Focus.isRegistered`). Sim: `ZeDUI/tools/qa/paper_map_sim.lua` (72 checks, all pass).
+
+Later the same evening, Build's calls on the author's questions: when Read Map had to open the World window just to
+show the paper, closing the paper closes the World window again (as closing the game's map window returns you to
+play); a World window that was already open stays. The stash map's button keeps its words, "Find on map", with its
+help line (ZeD's buttons are worded; icons only where ZeD already uses icon buttons). The game is on Stable 42.21
+again: its Read Map (`onCheckMap`), paper window (`ISMap`) and map-reading action are the same as 42.22's.
 
 Set-up: the QA save (Saves/Sandbox/ZeD-QA), ZEDQA_NOSTEAM=1, the Irvington drag strip in daylight. Spawn in the main
 inventory: one town map (`Base.MuldraughMap`), one stash map (`Base.MulStashMap1` or any `*StashMap*`), one map in a
@@ -22,7 +28,8 @@ backpack (`Base.RosewoodMap`), a pencil, a red pen and an eraser. Run each part 
    - The band at the foot has no Survey / Color / Paper. The Key button is there (it opens the map key over the
      bottom-left, the eight colors).
    - No game ISMap window anywhere behind it.
-2. Close it (the window's close box). MapClose sound. The World window's map tab is as it was.
+2. Close it (the window's close box). MapClose sound. If the World window was closed before Read Map, it closes
+   again with the paper (you are back in play). If it was open before, it stays open, its map tab as it was.
 3. Double-click the town map in the list. Same window opens (a double-click is Read Map too).
 4. Right-click the map in the backpack > Read Map. The character first moves it to the main inventory (the game's
    transfer bar), then the window opens.
@@ -50,11 +57,19 @@ backpack (`Base.RosewoodMap`), a pencil, a red pen and an eraser. Run each part 
 
 ## 4. Closing rules
 
-1. With the paper open, drop the map on the floor (drag it out, or the game's drop). The window closes by itself.
-2. Read a second map while one is open: the first closes, the second opens.
+Do each of 1 to 5 twice: once with the World window closed before Read Map, once with it open.
+
+1. With the paper open, drop the map on the floor (drag it out, or the game's drop). The window closes by itself
+   (and the World window with it, when Read Map opened it).
+2. Read a second map while one is open: the first closes, the second opens; the World window stays meanwhile. Closing
+   the second paper closes the World window when the first Read Map opened it.
 3. With the world map unfolded (M), Read Map on a paper: the world map folds, the paper opens.
 4. With the paper open press M: the game's map-reading bar runs, then the world map opens and the paper is put away.
-5. Close the World window (its close box) with the paper open: the paper closes with it.
+5. Close the World window (its close box) with the paper open: the paper closes with it, no error in the console.
+6. World window closed, Read Map on the stash map, Find on map: after the reading bar the World window stays open with
+   the world map unfolded in it. Folding that world map leaves the World window open.
+7. World window closed, Read Map, then click the World window's own map fold (the drawer's placeholder or its unfold
+   button): the paper folds and the World window stays (you reached into it).
 
 ## 5. Controller
 
@@ -65,6 +80,7 @@ backpack (`Base.RosewoodMap`), a pencil, a red pen and an eraser. Run each part 
    a stash map). A on a mark, then A on the map places it. X on a mark opens its menu.
 4. The hint strip says B Close (the game's word), not Fold.
 5. B closes the paper. The pad lands back in the Character window list, on the map's row, not in the World window.
+   With the World window closed before Read Map, it closes again with B and the pad stays in the Character window.
 6. Find on map with the pad on a stash map: the world map opens after the reading bar, the pad on its cursor.
 
 ## 6. Small screens (Deck 1280x800, 720p)

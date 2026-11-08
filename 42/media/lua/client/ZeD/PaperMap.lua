@@ -29,6 +29,9 @@
 -- in safe mode, for a split-screen player whose World window it isn't, and
 -- whenever ZeD's cannot open or cannot draw the paper (openVanilla: the window
 -- alone, steps 2 and 4 are not done twice).
+-- When Read Map had to open the World window just to show the paper, putting the
+-- paper away closes the World window again (as closing the game's map window
+-- returns you to play); a World window that was already open stays (P.closed).
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -62,18 +65,25 @@ function P.open(item, playerNum)
     local win = ZeD_WorldWindow.getWindow()
     -- (one World window: another split-screen player's keeps it, and this player reads in the game's window)
     if win and win._playerObj ~= playerObj then return false end
+    local opened = false   -- (the World window opened here, only for the paper)
     if not win then
         if not pcall(ZeD_WorldWindow.open, playerNum) then return false end
         win = ZeD_WorldWindow.getWindow()
+        opened = win ~= nil
     end
     if not (win and win._playerObj == playerObj) then return false end
-    if win._mapPopout then ZeD.MapsTab.closePopout(win) end   -- (the world map, or another paper)
+    -- (another paper over one that opened the World window: this one closes it too)
+    local owns = opened or (win._mapPaperItem ~= nil and win._mapPopout ~= nil and win._mapPaperOwnsWindow == true)
+    if win._mapPopout then ZeD.MapsTab.closePopout(win, true) end   -- (the world map, or another paper)
     local ok, err = pcall(ZeD.MapsTab.openPopout, win, item)
     if not (ok and win._mapPopout and win._mapPaperItem == item) then
         if not ok then print("[ZeD] paper map: " .. tostring(err)) end
-        if win._mapPopout then pcall(ZeD.MapsTab.closePopout, win) end
+        if win._mapPopout then pcall(ZeD.MapsTab.closePopout, win, true) end
+        -- (the game's window reads it: a World window opened for the paper goes again)
+        if owns and ZeD_WorldWindow.getWindow() == win and ZeD_WorldWindow.close then pcall(ZeD_WorldWindow.close) end
         return false
     end
+    win._mapPaperOwnsWindow = owns or nil
     win._mapPaperBack = back
     -- the game's read (steps 2 and 4; 5 to 7 come with the map's drawing: instantiate, frame)
     local ok2, err2 = pcall(function()
@@ -81,6 +91,21 @@ function P.open(item, playerNum)
         playerObj:addReadMap(item)
     end)
     if not ok2 then print("[ZeD] paper map read: " .. tostring(err2)) end
+    return true
+end
+
+-- The paper map is put away (MapsTab.closePopout): the controller goes back to
+-- the window Read Map was chosen in, and a World window Read Map opened only for
+-- the paper closes again, unless the fold came from the World window itself
+-- (keepWorld: its own close or fold, the world map opening there, another paper).
+function P.closed(win, pop, keepWorld)
+    local owns = win._mapPaperOwnsWindow
+    win._mapPaperOwnsWindow = nil
+    pcall(P.returnFocus, win, pop)
+    if not owns or keepWorld then return false end
+    if not (ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.close) then return false end
+    if ZeD_WorldWindow.getWindow() ~= win then return false end
+    ZeD_WorldWindow.close()
     return true
 end
 
