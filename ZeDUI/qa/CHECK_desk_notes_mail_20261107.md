@@ -182,9 +182,9 @@ the ticket cards, which are another part's.
 - **A reported letter gets its own label** on the staff ticket card: "The reported letter", not "The chat around it".
   A report from ProtoPOP3 Mail carries `letter = true`. The server's report check (`ZeD_ServerTickets.lua`, `goodReport`
   and `reportCopy`) keeps that one flag, and `B.reportChat` picks the label from it. The key `UI_ZeD_Tk_ReportedLetter`
-  is in all 28 languages. The line under it ("As it showed on the reporter's screen. The server hears no chat.") is
-  unchanged and still mentions chat: a question if it should read differently for a letter.
+  is in all 28 languages. The line under it reads "As the player received it." (`UI_ZeD_Tk_LetterWhose`, the director: the
+  server did carry the letter, so "The server hears no chat" was wrong for mail); chat reports keep their own line.
 
-Sims: mail_sim 100, mail_cards_sim 5,035; tickets, ticket_cards, community, community_cards and log sims and the i18n
+Sims: mail_sim 100, mail_cards_sim 5,037; tickets, ticket_cards, community, community_cards and log sims and the i18n
 guard all pass. Not checked by a sim: the server keeping the flag. tickets_sim doesn't file a letter report, so that
 two-line server change is proved only by reading it.

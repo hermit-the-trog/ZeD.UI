@@ -5845,5 +5845,6 @@
     "UI_ZeD_Mail_Reported": "Dikirim ke admin sebagai tiket #%1.",
     "UI_ZeD_Mail_NoReport": "Server ini tidak bisa menerima laporan surat.",
     "UI_ZeD_Mail_Connecting": "Menyambung... mengirim %1, menerima %2",
-    "UI_ZeD_Tk_ReportedLetter": "Surat yang dilaporkan"
+    "UI_ZeD_Tk_ReportedLetter": "Surat yang dilaporkan",
+    "UI_ZeD_Tk_LetterWhose": "Sebagaimana diterima pemain."
 }
