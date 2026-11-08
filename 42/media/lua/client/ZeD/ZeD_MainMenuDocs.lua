@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuDocs.lua
 -- ============================================================================
--- DOCUMENTS (punch list 104; the director, Nov 7 2026: "one Documents folder icon on the desktop" in place of an icon
--- for each note). A ZeD window on the monitor listing every CletusWorks note, its name and when it was saved, newest
+-- DOCUMENTS: the notes folder on the monitor. Client; an organism (a window on the desk, the "docs" view). One
+-- Documents icon on the desktop stands in for an icon per note (the desktop would fill otherwise).
+-- A ZeD window listing every CletusWorks note, its name and when it was saved, newest
 -- first; the band: Rename (a field in the band), Delete (asks, lands on Cancel) and Open (the main one: the note in
 -- CletusWorks, which asks "Save changes?" first when its page has unsaved words). CletusWorks' own Open comes here, and
 -- closing then goes back to it. The band's line counts the notes against the cap (24).
@@ -34,7 +35,7 @@ local function when(sec)
     return tr(months[d.month or 1] or "") .. " " .. tostring(d.day or 1) .. ", " .. string.format("%02d:%02d", d.hour or 0, d.min or 0)
 end
 
--- from: the view to go back to on close ("notepad" from CletusWorks' Open; the desktop otherwise)
+--- from: the view to go back to on close ("notepad" from CletusWorks' Open; the desktop otherwise)
 function MM.openDocs(from)
     MM.ctx.open = nil
     MM._docsFrom = from
@@ -117,7 +118,7 @@ function ZeD_MMDocs:setConfirm(mode)
         if self.renameEntry:isFocused() then self.renameEntry:unfocus() end
     end
     if mode then
-        self.focusId = "confirm:no"            -- (a question that loses work lands on Cancel, Nov 1 2026)
+        self.focusId = "confirm:no"            -- (a question that loses work lands on Cancel)
     else
         self.focusId = self.sel and ("row:" .. self.sel) or "close"
     end

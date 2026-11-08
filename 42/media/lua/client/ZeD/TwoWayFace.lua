@@ -1,11 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/TwoWayFace.lua
 -- ============================================================================
--- THE TWO-WAY RADIOS' FACES — shared by the radio tab (RadioTab.lua) and full
--- view (TwoWayFull.lua). Handoff ZeDUI/HANDOFF_twoway_20261025.md, mockup
--- ZeDUI/mockups/zed_twoway_v1 (director, Oct 25 2026: "mock up the walkie
--- talkie faces, to replace the ones in the radio tab", then "faces only, no
--- antenna or mic. clicking full view will show without. full view is like the
--- watch, no window frame").
+-- THE TWO-WAY RADIOS' FACES (client) — shared by the radio tab (RadioTab.lua)
+-- and the full view (TwoWayFull.lua). The faces replace the radio tab's plain
+-- controls; they are faces only, no antenna or mic in the art, and the full
+-- view is frameless, like the watch.
 --
 -- A radio whose device data is two-way (deviceData:getIsTwoWay()) is drawn as
 -- its own pixel-art face, a plate in PhysPx.lua (ZeDUI/tools/physpx/d_walkie.py)
@@ -40,7 +38,7 @@ local P = ZeD.Px
 local PL = ZeD.Plate
 
 TW.PANEL_W = 220          -- a walkie's panel: the item card's compact width (plate px); the face sits in it, 10 either side
-TW.HALF_W = 220           -- the half card (units): a walkie's tab (director, Oct 25 2026; two card widths, Oct 29)
+TW.HALF_W = 220           -- the half card's width (units): the room a walkie's tab gets
 TW.PAD = 10               -- the space round a face (plate px)
 TW.PRESS_SHADE = 0.35     -- a held key's shade
 
@@ -50,8 +48,9 @@ ZeD.trDefaults({
     UI_ZeD_Radio_FullView = "Full view", UI_ZeD_Radio_CloseFullView = "Close full view", UI_ZeD_RadioPrompt_Lamp = "Light",
 })
 
--- per face: the brand the tab's footer names (the maker's mark, printed as on the set; a hand-built set has none),
--- whether it is a base set, and its display's kind (what TW.reading fills in)
+-- per face: whether it is a base set, and its display's kind (what TW.reading
+-- fills in). brand is the maker's mark as printed on the set (a hand-built set
+-- has none); nothing draws it today — the face art already carries it.
 TW.INFO = {
     walkie_toy       = { brand = "TOYS-R-MINE",          kind = "toy" },
     walkie_valutech  = { brand = "VALUTECH",             kind = "walkie" },
@@ -95,9 +94,9 @@ local function droppedItem(obj)
     return nil
 end
 
--- the face's plate id for a radio (an item, or a set in the world), nil when it is not a two-way radio. An item by
--- its full type; a placed set by the item it was placed from (its tile's CustomItem) or else its tile; a radio
--- dropped on the floor by its item. A modded two-way borrows the ValuTech walkie (in the hands) or the civilian ham.
+--- The face's plate id for a radio (an item, or a set in the world), nil when it is not a two-way radio. An item by
+--- its full type; a placed set by the item it was placed from (its tile's CustomItem) or else its tile; a radio
+--- dropped on the floor by its item. A modded two-way borrows the ValuTech walkie (in the hands) or the civilian ham.
 function TW.plateId(dev, dd)
     local X = ZeD.PhysPx
     local tw = X and X.twoway
@@ -126,7 +125,7 @@ function TW.plateId(dev, dd)
     return id
 end
 
--- for a radio tab entry ({ radioInstance, deviceData }): its plate id and plate
+--- For a radio tab entry ({ radioInstance, deviceData }): its plate id and plate.
 function TW.plateFor(entry)
     if not (entry and entry.radioInstance) then return nil, nil end
     local id = TW.plateId(entry.radioInstance, entry.deviceData)
@@ -134,8 +133,8 @@ function TW.plateFor(entry)
     return id, ZeD.PhysPx.plates[id]
 end
 
--- a ham set's narrow face (mockup zed_ham_narrow_v1, approved Oct 25 2026): the same set rearranged into a walkie's
--- width, drawn where the radio tab cannot hold the wide one at the plates' whole zoom. Its controls are the wide set's.
+--- A ham set's narrow face: the same set rearranged into a walkie's width, drawn where the radio tab cannot
+--- hold the wide one at the plates' whole zoom. Its controls are the wide set's.
 function TW.narrowOf(pid)
     local X = ZeD.PhysPx
     local id = X and X.twoway and X.twoway.narrow and X.twoway.narrow[pid]
