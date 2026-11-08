@@ -51,8 +51,12 @@ local M, A = ZeD.Molecules, ZeD.Atoms
 
 OC.LEASH   = 6       -- tiles: the card closes past this (vanilla's plant window rule)
 OC.CARD_W  = 480     -- design units
-OC.REFRESH = 15      -- frames between data refreshes
-OC.BROWSE_EVERY = 60 -- frames between nearby-object scans
+-- (Nov 7 2026, perf review #12) the two counts are in 60ths of a second on the clock (a frame at
+-- 60 FPS), no longer frames drawn, which ran them 2.4-4 times as often at 144-240 Hz: 15 is 250 ms
+-- and 60 one second at any frame rate. The kinds' "refresh now" (_refreshT = OC.REFRESH) and
+-- "in three" (OC.REFRESH - 3, 50 ms) keep their meaning.
+OC.REFRESH = 15      -- 60ths of a second between data refreshes
+OC.BROWSE_EVERY = 60 -- 60ths of a second between nearby-object scans
 OC.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 OC.kinds = OC.kinds or {}
 
@@ -193,6 +197,36 @@ function OC.spriteIcon(obj)
     return call(tex, "splitIcon") or tex
 end
 
+-- The 60ths of a second since o[atKey] was last stamped (and stamps it now): 1 on the first call,
+-- as a frame was (perf review #12). Only differences of the clock are taken (it is past 2^31).
+local function sixtieths(o, atKey, now)
+    local last = o[atKey]
+    o[atKey] = now
+    if last and now >= last then return (now - last) * 0.06 end
+    return 1
+end
+
+-- A count that ran: what it carries over the period, so the runs keep a beat (a late frame doesn't
+-- stretch the next period); 0 when it was forced early or comes after a gap, as the count went back to 0.
+local function beat(count, period)
+    local over = count - period
+    if over > 0 and over < period then return over end
+    return 0
+end
+
+-- The browse scan's phase, per card (the open entry): its second scan comes 4 to 11 sixtieths
+-- early, so the scan keeps off the card's data refresh (both start on the card's first frame) by
+-- more than a frame, and cards opened together (split screen) don't scan together. Later scans keep
+-- the whole second.
+local function browsePhase(e)
+    if not e._zedPhase then
+        ZeD._throttleN = (ZeD._throttleN or 0) + 1
+        local g = ZeD._throttleN * 0.6180339887
+        e._zedPhase = 4 + math.floor((g - math.floor(g)) * 8)
+    end
+    return e._zedPhase
+end
+
 -- Per-frame upkeep for the open entry: validity, leash, data and browse list.
 -- Returns false when the card should close.
 function OC.tick(e, player)
@@ -223,15 +257,17 @@ function OC.tick(e, player)
     if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
         return false
     end
-    t._refreshT = (t._refreshT or OC.REFRESH) + 1
+    local now = getTimestampMs()
+    t._refreshT = (t._refreshT or OC.REFRESH) + sixtieths(t, "_refreshAt", now)
     if t._refreshT >= OC.REFRESH or not t.d then
-        t._refreshT = 0
+        t._refreshT = beat(t._refreshT, OC.REFRESH)
         local ok, err = pcall(def.refresh, t, player)
         if not ok then ZeD.logOnce("ObjectCards refresh " .. tostring(def.id), err) end
     end
-    e._browseT = (e._browseT or OC.BROWSE_EVERY) + 1
+    local firstScan = e._browseT == nil
+    e._browseT = (e._browseT or OC.BROWSE_EVERY) + sixtieths(e, "_browseAt", now)
     if e._browseT >= OC.BROWSE_EVERY or not e.list then
-        e._browseT = 0
+        e._browseT = firstScan and browsePhase(e) or beat(e._browseT, OC.BROWSE_EVERY)
         local ok, list = pcall(def.nearby or function() return { t } end, player)
         e.list = ok and list or { t }
         e.idx = 1
