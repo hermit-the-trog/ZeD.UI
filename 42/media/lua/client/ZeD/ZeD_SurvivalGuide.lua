@@ -12,7 +12,7 @@
 -- the game's rules as numbers, never this world's secrets (a shutoff's range, never the day
 -- it rolled). ZeD's own chapters (ZeD_GuideChapters.lua) follow the game's.
 --
--- Before touching a shared part: ZeD_SurvivalGuideBook.lua, the Full look, reads the topics,
+-- Before touching a shared part: ZeD_SurvivalGuideBook.lua, the Immersive look, reads the topics,
 -- their words, the inline pictures, the two ways and the rules through ZeD.Guide, so a change
 -- here shows in both looks.
 --
@@ -1680,7 +1680,7 @@ W.inlineW = inlineW
 W.inlineDraw = inlineDraw
 W.entryText = entryText
 
--- The Full look is the book, "Survive the Apocalypse" (ZeD setup, Full or simple: Survival guide). The book's
+-- The Immersive look is the book, "Survive the Apocalypse" (ZeD setup's Survival guide: Immersive or Simple). The book's
 -- faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
 -- Chinese, Japanese, Korean, Thai or Arabic shows the window.
 local NO_BOOK_LANGS = { CN = true, CH = true, JP = true, KO = true, TH = true, AR = true }
