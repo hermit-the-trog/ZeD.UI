@@ -46,7 +46,9 @@ Not run in game yet. Everything below is for QA.
     the pause menu, as before (the console never takes Escape, since it can sit open all game).
 11. Close box: shuts it; the key opens it again where it was.
 12. Safe mode On (Options > Mods > ZeD-GUI): with ZeD's console open, the game's own grey console comes back in its
-    place, open. Safe mode Off: ZeD's again.
+    place, open. Safe mode Off: ZeD's again. The same with ZeD setup's own switch "Safe mode: Lua console" (listed
+    with the other ZeD screens): only the console goes back to the game's.
+14. Desk menu bar, Debug menu (debug mode, from the pause window in game): "Lua console" opens it.
 13. Check `console.txt` for `[ZeD]` lines and Lua errors from `ZeD_DebugConsole.lua`. One line is expected only if the
     console's parts were not found ("the game's console parts were not found; the game's own stays").
 

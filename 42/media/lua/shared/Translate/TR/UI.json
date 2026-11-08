@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Bu sunucu Lua çalıştırmana izin vermiyor",
     "UI_ZeD_Console_PadOlder": "Daha eski",
     "UI_ZeD_Console_PadNewer": "Daha yeni",
-    "UI_ZeD_Console_WheelDetail": "Lua çalıştır, çıktıyı ve hataları oku"
+    "UI_ZeD_Console_WheelDetail": "Lua çalıştır, çıktıyı ve hataları oku",
+    "UI_ZeD_Settings_ScreenConsole": "Güvenli mod: Lua konsolu",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Açık: Lua konsolu, ZeD-GUI'nin geri kalanı korunur.",
+    "UI_ZeD_Options_UnderScreenConsole": "Lua konsolu"
 }

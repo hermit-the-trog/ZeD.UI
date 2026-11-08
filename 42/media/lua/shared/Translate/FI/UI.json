@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Tämä palvelin ei anna sinun suorittaa Luaa",
     "UI_ZeD_Console_PadOlder": "Vanhempi",
     "UI_ZeD_Console_PadNewer": "Uudempi",
-    "UI_ZeD_Console_WheelDetail": "Suorita Luaa, lue tuloste ja virheet"
+    "UI_ZeD_Console_WheelDetail": "Suorita Luaa, lue tuloste ja virheet",
+    "UI_ZeD_Settings_ScreenConsole": "Turvatila: Lua-konsoli",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Päällä: Lua-konsoli, muu ZeD-GUI säilyy.",
+    "UI_ZeD_Options_UnderScreenConsole": "Lua-konsoli"
 }

@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Server ini tidak mengizinkanmu menjalankan Lua",
     "UI_ZeD_Console_PadOlder": "Lebih lama",
     "UI_ZeD_Console_PadNewer": "Lebih baru",
-    "UI_ZeD_Console_WheelDetail": "Jalankan Lua, baca keluaran dan galat"
+    "UI_ZeD_Console_WheelDetail": "Jalankan Lua, baca keluaran dan galat",
+    "UI_ZeD_Settings_ScreenConsole": "Mode Aman: Konsol Lua",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Hidup: Konsol Lua, sisa ZeD-GUI dipertahankan.",
+    "UI_ZeD_Options_UnderScreenConsole": "Konsol Lua"
 }

@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Acest server nu te lasă să rulezi Lua",
     "UI_ZeD_Console_PadOlder": "Mai veche",
     "UI_ZeD_Console_PadNewer": "Mai nouă",
-    "UI_ZeD_Console_WheelDetail": "Rulează Lua, citește ieșirea și erorile"
+    "UI_ZeD_Console_WheelDetail": "Rulează Lua, citește ieșirea și erorile",
+    "UI_ZeD_Settings_ScreenConsole": "Mod de siguranță: Consolă Lua",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Pornit: Consolă Lua, restul ZeD-GUI rămâne.",
+    "UI_ZeD_Options_UnderScreenConsole": "Consolă Lua"
 }

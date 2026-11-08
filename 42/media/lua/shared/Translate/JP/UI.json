@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "このサーバーではLuaを実行できません",
     "UI_ZeD_Console_PadOlder": "前へ",
     "UI_ZeD_Console_PadNewer": "次へ",
-    "UI_ZeD_Console_WheelDetail": "Luaを実行し、出力とエラーを読む"
+    "UI_ZeD_Console_WheelDetail": "Luaを実行し、出力とエラーを読む",
+    "UI_ZeD_Settings_ScreenConsole": "セーフモード: Luaコンソール",
+    "UI_ZeD_Settings_ScreenConsoleTip": "オン: Luaコンソール、ZeD-GUIのそれ以外は維持します。",
+    "UI_ZeD_Options_UnderScreenConsole": "Luaコンソール"
 }

@@ -274,7 +274,8 @@ local MODE = "kbm"
 ZeD.Input = { Detector = { getMode = function() return MODE end }, Focus = { cuesVisible = function() return MODE == "gamepad" end } }
 ZeD.Keyboard = { isVisible = function() return KB.visible end }
 local SAFE, SAFEDEF = false, {}
-ZeD.Safe = { on = function() return SAFE end, register = function(n, def) SAFEDEF[n] = def end }
+local PIECE = false   -- (the ZeD setup switch "Safe mode: Lua console": SafeMode.lua reads it as piece "console")
+ZeD.Safe = { on = function(name) return SAFE or (name == "console" and PIECE) end, register = function(n, def) SAFEDEF[n] = def end }
 
 -- the window (Organisms.lua's ZeD_Window, the parts this file uses) ------------------------------
 ZeD_Window = ISPanel:derive("ZeD_Window")
@@ -777,6 +778,32 @@ for _, prof in ipairs(PROFILES) do
 end
 JoypadState.players[1] = nil
 MODE = "kbm"
+
+-- ============================================================================
+-- 14. the ZeD setup switch "Safe mode: Lua console" (the director, Nov 7 2026): listed with the other ZeD screens,
+--     it hands this one screen back to the game; the desk's Debug menu lists the console while it exists
+-- ============================================================================
+local function src(p) local f = assert(io.open(ROOT .. p, "rb")); local s = f:read("*a"); f:close(); return s end
+local settings = src("42/media/lua/client/ZeD/Settings.lua")
+check("switch: in the ZeD screens list as piece console", settings:find('{ "screenConsole",%s+"console",%s+"UI_ZeD_Settings_ScreenConsole" }') ~= nil)
+check("switch: named in the options' label list", settings:find('screenConsole = "UI_ZeD_Settings_ScreenConsole"', 1, true) ~= nil)
+check("switch: in ZeD setup beside the other screens", src("42/media/lua/client/ZeD/ZeD_MainMenuOptionGroups.lua"):find('{ "screenConsole", "onoff", under = "UI_ZeD_Options_UnderScreenConsole" }', 1, true) ~= nil)
+check("switch: its words", TEXT.UI_ZeD_Settings_ScreenConsole ~= nil and TEXT.UI_ZeD_Settings_ScreenConsoleTip ~= nil and TEXT.UI_ZeD_Options_UnderScreenConsole ~= nil)
+check("desk Debug menu: the console while it exists", src("42/media/lua/client/ZeD/ZeD_MainMenu.lua"):find('DCon.exists() then', 1, true) ~= nil)
+ZEDQA_ROOT, ZEDQA_LARGE = 1, false
+ZeD.applyTheme("dark", "orange", "small")
+SCREEN.w, SCREEN.h = 1920, 1080
+JC.visible = true
+frame()
+check("switch off: ZeD's open", DC.isOpen() and JC.x <= PARKED)
+PIECE = true
+frame()
+check("switch on: ZeD's shut, the game's own up in its place", not DC.isOpen() and JC.visible == true and JC.x == 20)
+check("switch on: ZeD's does not exist (no wheel slice, no desk item)", not DC.exists())
+PIECE = false
+frame()
+check("switch off again: ZeD's back", DC.isOpen() and JC.x <= PARKED)
+DC.close()
 
 check("the game's console never on the screen while ZeD's was open", onScreenWhileOpen == 0, onScreenWhileOpen)
 check("nothing logged", #LOGGED == 0, LOGGED[1])

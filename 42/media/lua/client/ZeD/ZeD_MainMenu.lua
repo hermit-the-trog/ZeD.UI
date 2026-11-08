@@ -1035,6 +1035,11 @@ function MM.menuItems(key)
     elseif key == "debug" then
         local t = { { text = "Reset Lua", fn = A.resetLua } }
         if DebugScenarios and DebugScenarios.instance then t[#t + 1] = { text = "Scenarios", fn = A.scenarios } end
+        -- the Lua console (punch list 106): only while the game's console exists (in game, as the game's)
+        local DCon = ZeD.DebugConsole
+        if DCon and DCon.exists and DCon.exists() then
+            t[#t + 1] = { text = ZeD.tr("UI_ZeD_Console_Title"), fn = function() MM.ctx.open = nil; DCon.open() end }
+        end
         return t
     end
     return {}

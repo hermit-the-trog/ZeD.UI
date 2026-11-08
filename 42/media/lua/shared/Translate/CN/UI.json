@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "此服务器不允许你运行 Lua",
     "UI_ZeD_Console_PadOlder": "较早",
     "UI_ZeD_Console_PadNewer": "较新",
-    "UI_ZeD_Console_WheelDetail": "运行 Lua，查看输出和错误"
+    "UI_ZeD_Console_WheelDetail": "运行 Lua，查看输出和错误",
+    "UI_ZeD_Settings_ScreenConsole": "安全模式：Lua 控制台",
+    "UI_ZeD_Settings_ScreenConsoleTip": "开启：Lua 控制台，ZeD-GUI 的其余部分保留。",
+    "UI_ZeD_Options_UnderScreenConsole": "Lua 控制台"
 }
