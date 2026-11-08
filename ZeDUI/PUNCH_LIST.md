@@ -2928,3 +2928,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     offline on the desk. The notepad's name (the director, Nov 7): **CletusWorks**, after ClarisWorks (1991, the
     all-in-one on every school Mac in 1993): the desktop icon reads CletusWorks with a page-with-writing picture, the
     window title "CletusWorks Notepad", so the joke is there for those who know and the plain word for everyone.
+106. **The debug Lua console in ZeD's own parts (the director, Nov 7 2026; next in the queue after the current one
+    merges).** The game's debug-mode console (only with -debug: run Lua, read errors and output) rebuilt from ZeD's
+    atoms and molecules as a ZeD window: the typed line, history, the output and error list, controller parity (the
+    pad keyboard), safe mode hands back the game's own. Find the game's console class and what it offers first.
