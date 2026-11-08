@@ -462,6 +462,24 @@ local _, _, _, _, pBack = casual(60, true)
 check("a clock gone back: the run still ticks", pBack > 0, pBack)
 NEW.plan = realPlan
 
+-- Casual weighs each take it queues: from 1 of 20 kg, three 8 kg takes in reach queue two (1 + 8 + 8), not all three
+do
+    local function heavy(id) return { getID = function() return id end, getUnequippedWeight = function() return 8 end, getDisplayName = function() return "Axe" end } end
+    local src = { name = "Crate" }
+    local realJobs, realActs = NEW.runJobs, NEW.actionsFor
+    NEW.runJobs = function() return { { kind = "take", item = heavy(11), src = src }, { kind = "take", item = heavy(12), src = src },
+                                      { kind = "take", item = heavy(13), src = src } }, { scan = { reachSig = "w" }, count = {} } end
+    local queued = 0
+    NEW.actionsFor = function() queued = queued + 1; return {} end
+    local run = { pn = 0, mode = "casual", kind = "restock", acts = {}, z0 = 0, hp0 = 100, tried = {}, list = "" }
+    NEW.runs[0] = run
+    W.now = W.now + 1000
+    NEW._onTick()
+    check("one batch stops at what you can carry: two of three 8 kg takes", queued == 2, queued)
+    NEW.runs[0] = nil
+    NEW.runJobs, NEW.actionsFor = realJobs, realActs
+end
+
 -- ---------------------------------------------------------------------------
 section("the ticks by the clock")
 -- ---------------------------------------------------------------------------
