@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_DashProto.lua
 -- ============================================================================
--- THE DASH'S ODOMETER ON A SERVER: WHAT BOTH SIDES AGREE ON (punch list 92 and 94;
--- ZeDUI/HANDOFF_design_dash_roadworthy_20261106.md). The driver's client (ZeD_Dashboard:_odoSend) asks the server to write
+-- THE DASH'S ODOMETER ON A SERVER: WHAT BOTH SIDES AGREE ON. Shared protocol table for the dashboard's odometer.
+-- The driver's client (ZeD_Dashboard:_odoSend) asks the server to write
 -- the car's three odometer keys; the server (ZeD_ServerDash.lua) writes only those, on its own copy of the car, and tells
 -- the car's other seats. Never the client's vehicle:transmitModData(): that sends the whole table, and the server's copy
 -- is wiped and replaced with it (ObjectModDataPacket.parse, KahluaTableImpl.load wipes first), so a key another mod keeps
@@ -28,8 +28,8 @@ DP.ASK = "ask"           -- a passenger's dash as it sits down: { veh }. The ser
                          -- to that player alone (a car stopped with its engine on sends none)
 DP.ASH = "ash"           -- the driver opens or shuts the car's ash tray (the server takes it from anyone in the car):
                          -- { veh, open = boolean }. The server writes ZeD_ash on its own copy of the car (kept with the
-                         -- world, one tray a car) and sends the car out, as at the odometer's presses (known issue Nov 7
-                         -- 2026: it was each player's own, for the session)
+                         -- world, one tray a car; it used to be each player's own, for the session) and sends the car
+                         -- out, as at the odometer's presses
 
 DP.ODO_MAX = 10000000    -- miles: no odometer reads this far (a found car starts under 140000)
 DP.GRACE_MS = 10000      -- a driver's last send can land after they got out or moved seats (the game's exit packet goes

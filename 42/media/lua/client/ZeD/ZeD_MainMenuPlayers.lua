@@ -568,6 +568,8 @@ MM.pages.invite = {
 -- ---------------------------------------------------------------------------
 -- OPENING A PAGE (MM.act.players / MM.act.invite). False: the game's own screen opens instead.
 -- ---------------------------------------------------------------------------
+--- Show page name ("players" / "invite") in the pause window; false when it cannot
+--- (no pause window, Safe mode, or no InviteFriends object yet).
 function MM.openPage(name)
     local w = MM.pause
     if not (w and MM.pages[name]) then return false end

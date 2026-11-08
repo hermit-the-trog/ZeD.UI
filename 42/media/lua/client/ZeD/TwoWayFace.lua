@@ -289,10 +289,10 @@ function TW.secondary(chr, dev, id, owner)
     elseif id == "tune" or id == "vol" then TW.turn(chr, dev, id, -1) end
 end
 
--- presses that act on the release (a hold does the second meaning instead)
+--- Presses that act on the release (a hold does the second meaning instead).
 function TW.holdable(id) return id == "mem" or id:match("^p%d$") ~= nil end
 
--- a held press past O.HOLD_MS does its second meaning once; hold = { id, t0, fired }
+--- A held press past O.HOLD_MS does its second meaning once; hold = { id, t0, fired }.
 function TW.holdTick(hold, chr, dev, owner)
     if hold and not hold.fired and TW.holdable(hold.id) and now() - hold.t0 >= O.HOLD_MS then
         hold.fired = true
@@ -300,7 +300,7 @@ function TW.holdTick(hold, chr, dev, owner)
     end
 end
 
--- what A and X do on a control (the controller strip's words), nil = nothing
+--- What A and X do on a control (the controller strip's words), nil = nothing.
 function TW.labelA(id)
     if not id or id == "tune" then return nil end
     if id == "vol" then return getText("IGUI_RadioPower") end
@@ -317,7 +317,7 @@ function TW.labelX(id)
     return nil
 end
 
--- MEM held: name the channel (stored first if it is not yet), in vanilla's text box (the ZeD prompt)
+--- MEM held: name the channel (stored first if it is not yet), in vanilla's text box (the ZeD prompt).
 function TW.nameChannel(chr, dev, owner)
     local st = TW.read(dev)
     if not (st and chr) then return end
@@ -391,7 +391,7 @@ function TW.drawFace(panel, x, y, k, face)
     return hits, st
 end
 
--- the control under a point (panel px), nil when none
+--- The control under a point (panel px), nil when none.
 function TW.hitAt(hits, x, y)
     for i = #(hits or {}), 1, -1 do
         local h = hits[i]
@@ -400,7 +400,7 @@ function TW.hitAt(hits, x, y)
     return nil
 end
 
--- the controls in reading order (top to bottom, then left to right; rows 12 plate px apart)
+--- The controls in reading order (top to bottom, then left to right; rows 12 plate px apart).
 function TW.readingOrder(hits, k)
     local out = {}
     for i, h in ipairs(hits or {}) do out[i] = h end
@@ -413,7 +413,7 @@ function TW.readingOrder(hits, k)
     return out
 end
 
--- the nearest control in a direction (centre to centre, straight lines preferred), as the car radio walks its face
+--- The nearest control in a direction (centre to centre, straight lines preferred), as the car radio walks its face.
 function TW.nearest(hits, cur, dx, dy)
     if not cur then return nil end
     local cx, cy = cur.x + cur.w / 2, cur.y + cur.h / 2
@@ -432,7 +432,7 @@ function TW.nearest(hits, cur, dx, dy)
     return best
 end
 
--- the tuning knob's speed for a held D-pad or a spun wheel (a ham set's dial runs faster)
+--- The tuning knob's speed for a held D-pad or a spun wheel (a ham set's dial runs faster).
 function TW.turnMult(pid, streak)
     if TW.isBase(pid) then return (streak >= 10 and 25) or (streak >= 4 and 5) or 1 end
     return (streak >= 8 and 5) or 1

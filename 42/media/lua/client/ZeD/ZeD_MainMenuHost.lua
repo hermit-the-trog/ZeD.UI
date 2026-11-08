@@ -118,12 +118,12 @@ function ZeD_MMHost:answer(yes)
     elseif mode == "deletePlayer" then c:onDeletePlayerStep2({ internal = "YES" }, nil) end
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { reset = "confirm:no", deleteWorld = "confirm:no", deletePlayer = "confirm:no" }
 function ZeD_MMHost:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil

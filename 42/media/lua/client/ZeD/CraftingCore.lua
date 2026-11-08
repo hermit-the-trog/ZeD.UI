@@ -2599,13 +2599,13 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- Store category list for dropdown cycling
     state.categoryList = data.categories or {}
 
-    -- S105 gamepad: cache last frame's zones BEFORE clearing, for scroll-follow.
-    -- Delta gate keys on focused id; lookup against last-frame positions since
-    -- this-frame positions aren't stamped yet.
+    -- the controller's scroll-follow: last frame's zones, kept BEFORE clearing.
+    -- The delta gate keys on the focused id; the lookup runs against last-frame
+    -- positions since this frame's are not stamped yet.
     local lastZones = state.zones
 
-    -- S105 gamepad: stash win ref on state so helpers (dropdown overlay) can
-    -- resolve the live focused ring element without a signature change.
+    -- the win ref on state lets helpers (the dropdown overlay) resolve the
+    -- live focused ring element without a signature change
     state._focusWin = win
     -- choosing ingredients is offered only where the craft is built from the
     -- choice: the Craft tab (handcraft logic), unless a config says otherwise
@@ -2616,11 +2616,11 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     state._pickPrefix = config.prefix
     state._countKey = config.countKey
 
-    -- S105 gamepad: resolve the currently-focused ring element id once per
-    -- frame and stash on state so each render function paints its cue inline
-    -- at zone-stamp time. Post-render cue pass was unreliable (stencil state
-    -- at end-of-render can obscure the accent overlay). Inline paint
-    -- guarantees cue sits in the correct paint-order position.
+    -- the focused ring element id, resolved once per frame and stashed on
+    -- state so each render function paints its cue inline at zone-stamp time.
+    -- A post-render cue pass is unreliable (stencil state at end-of-render can
+    -- obscure the accent overlay); inline paint puts the cue in the right
+    -- paint-order position.
     -- Only while the mark may show (Focus.liveZone: this window has the focus and
     -- the controller is in use), so the other window or the mouse never keeps a
     -- row lit.
@@ -2629,9 +2629,10 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         if Focus and Focus.liveZone and Focus.liveElement then
             local fz = Focus.liveZone(win)
-            -- S107: accept either window's tab-content zone. Craft + Build
-            -- render in BOTH the Character and World windows; cue paint must
-            -- pick up the focused element id regardless of which one owns it.
+            -- either window's tab-content zone counts: this same pipeline
+            -- serves the World window (Craft, Build) and the Character window
+            -- (the Journal's Recipes page), so the cue paint must pick up the
+            -- focused element id whichever window owns it
             if fz and (fz.zone == "charTabContent" or fz.zone == "worldTabContent") then
                 local fe = Focus.liveElement(win)
                 state._gpFocusedId = fe and fe.id or nil

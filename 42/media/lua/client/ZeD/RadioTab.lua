@@ -403,7 +403,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- Chips paint as `○ TEXT` (off) / `● TEXT` (on). AM and FM are mutually
     -- exclusive based on whether channel is in the upper kHz / MHz band — PZ
     -- has no real modulation flag. STEREO is a cosmetic chassis chip on
-    -- ValuTech (always off this session — no engine reading for it).
+    -- ValuTech (always off — no engine reading for it).
     -- 2-WAY pinned to the right edge.
     local fontHrow1 = TM:getFontHeight(font)
     local row1Y = cy
@@ -620,7 +620,7 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
 
     local pad      = T.px(10)
     local pwrBtnH  = T.px(30)
-    local pillH    = T.px(14)    -- SEEK/VOL pills: thinner than buttons (mockup proportion)
+    local pillH    = T.px(14)    -- SEEK/VOL pills: thinner than buttons, like real deck hardware
     local pwrBtnY  = y + math.floor((h - pwrBtnH) / 2)
     local pillY    = y + math.floor((h - pillH) / 2)
     local cx       = x + pad
@@ -826,7 +826,7 @@ function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)
     panel:drawRect(x, mid, w, T.px(1), 0.30, dim.r, dim.g, dim.b)
 
     -- Each column gets a vertical line whose height = |wave[i]| * h/2.
-    local colW = math.max(T.px(1), math.floor((w - (cols - 1) * T.px(1)) / cols))  -- S124 scale: (cols - 1) one-px gaps
+    local colW = math.max(T.px(1), math.floor((w - (cols - 1) * T.px(1)) / cols))  -- (cols - 1) one-px gaps
     local lineCol = T.radio.vfd.bright
     local lineA   = power and (lineCol.a or 1.0) or ((lineCol.a or 1.0) * 0.32)
     for i = 1, cols do
@@ -896,7 +896,7 @@ function cdPlayerModule(panel, x, y, w, h, dd, win)
 
     -- 7-button transport grid: << | > play | ▲ eject | || pause | [] stop | >> | ●
     local btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
-    local btnW = math.floor((w - pad * 2 - 6 * T.px(2)) / 7)  -- S124 scale: 6 gaps of 2 px between 7 buttons
+    local btnW = math.floor((w - pad * 2 - 6 * T.px(2)) / 7)  -- 6 gaps of 2 px between 7 buttons
     local btnH = math.min(T.px(18), (y + h - pad) - cy)
     if btnH < T.px(8) then btnH = T.px(8) end
     local glyphs = { "<<", ">", "^", "||", "[]", ">>", "*" }
@@ -939,7 +939,7 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
         cy = cy + stripH + T.px(8)
     end
 
-    -- 2. Preset bank — taller buttons match mockup.
+    -- 2. Preset bank — taller buttons, easy targets.
     local presetH = T.px(50)
     if cy + presetH <= y + h - pad then
         radioPresetBank(panel, cx, cy, innerW, presetH, "premium", dd, win)

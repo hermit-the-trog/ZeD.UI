@@ -212,10 +212,10 @@ local function rebuildColStates(content)
     content._colStates = newStates
 end
 
--- Nov 6 2026 (FAIV's report, a list stale until the window closed): a column's rows follow the container selected for it,
--- by the container object, never by its place in the list. Each column is checked against the selection before it draws;
--- any that disagrees is re-pointed by its object (keeping its scroll and selection) and the columns rebuilt, whichever way
--- the list or the selection moved. Returns true when it rebuilt them.
+-- A column's rows follow the container selected for it, by the container object, never by its place in the list
+-- (a column pointed at a list index can go stale until the window closes). Each column is checked against the
+-- selection before it draws; any that disagrees is re-pointed by its object (keeping its scroll and selection) and
+-- the columns rebuilt, whichever way the list or the selection moved. Returns true when it rebuilt them.
 local function syncColStates(content)
     local selected, containers = content._selectedContainers, content._containers
     if not (selected and containers) then return false end
@@ -288,8 +288,8 @@ end
 -- ============================================================================
 
 -- Container buttons (ContainerControls): one row at the bottom of the list
--- (director, Oct 16 2026: "bottom is the right place. less noise down
--- there"), single-container view only; the list ends above it. These helpers
+-- (the bottom keeps the noise out of the way), single-container view only;
+-- the list ends above it. These helpers
 -- keep renderItemList's locals unchanged (it sits at Kahlua's limit of 200
 -- active locals): the row's height rides on self._ccH.
 local function ccLayout(self, hdrY, barH, colW)
@@ -328,8 +328,7 @@ local function ccMarked(self, item)
 end
 
 -- ============================================================================
--- GRID VIEW (Oct 19 2026, mockup zed_inventory_grid_v1.html; director: "Go
--- with inventory grid"). A List | Grid toggle in each column's heading; the
+-- GRID VIEW. A List | Grid toggle in each column's heading; the
 -- list stays the default. The choice is remembered per container (the fridge
 -- set to grid opens as a grid next time), in the character's mod data. The
 -- grid shows the list's own order: no sorting of its own. Cells register the
@@ -384,8 +383,8 @@ function ZeD.InventoryRenderer.setGridKey(key, on)
 end
 
 -- ---------------------------------------------------------------------------
--- The controller's L3 / R3 in a window (Oct 23 2026, GAMEPAD_SPEC; Hard Rule
--- #11 as amended: view-only, only while a window holds the pad). The list the
+-- The controller's L3 / R3 in a window: view-only changes (sort, List |
+-- Grid), and only while a window holds the pad. They act on the list the
 -- pad is on (a multi-container column, else the window's list), else the
 -- window's list on show.
 -- ---------------------------------------------------------------------------
