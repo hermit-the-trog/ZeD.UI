@@ -17,6 +17,15 @@
 --                                nil for a plain tag, and optionally a mark colour)
 --   def.body(card, x, y, w, t, player) -> draws the body, returns its height
 --   def.status(t)  (optional)  -> { text, c } a state line in the band at the foot
+--   def.foot(t, player, card) (optional, Nov 7 2026: the trade card) -> the band at the
+--                                foot with the card's own actions: { status = { text, c },
+--                                check = { id, label, on, disabled, help, run },
+--                                buttons = { { id, label, variant, disabled, help, run }, ... }
+--                                (the main one last) }; run(player, t, card). Taken over
+--                                def.status; a question still takes the band first.
+--   def.pxIcon(t) (optional)  -> a ZeD pixel icon id for the header, when def.icon has no picture
+--   def.vehicleOk (optional)  -> true: the card stays open in a vehicle (a medical check in
+--                                the same car, a trade)
 --   def.onKey(t, key, card) (optional) -> true when the card takes the key
 --                                (asked only while the pointer is over the card)
 -- Verbs: { id, label, enabled, primary, danger, run(player, t, card), jump = fid,
@@ -206,7 +215,7 @@ function OC.tick(e, player)
         e._browseT = 0
         t = e.t
     end
-    if player:getVehicle() or player:isDead() then return false end
+    if (player:getVehicle() and not def.vehicleOk) or player:isDead() then return false end
     -- the leash applies to a card about a tile (a fluid card about your own
     -- bottles has none)
     local sq = t.sq
@@ -972,7 +981,12 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
     local iy = math.floor((hh - isz) / 2)
     A.frame(self, cx, iy, isz, isz, T.borderS)
     local icon = kindCall(e, def.icon, t)
-    if icon then self:drawTextureScaledAspect(icon, cx + T.px(2), iy + T.px(2), isz - 2 * T.px(2), isz - 2 * T.px(2), 1, 1, 1, 1) end
+    if icon then self:drawTextureScaledAspect(icon, cx + T.px(2), iy + T.px(2), isz - 2 * T.px(2), isz - 2 * T.px(2), 1, 1, 1, 1)
+    else
+        -- (a card about a person, not a thing: ZeD's own pixel icon in the frame)
+        local px = def.pxIcon and kindCall(e, def.pxIcon, t)
+        if px then A.drawPxIcon(self, px, cx + T.px(2), iy + T.px(2), isz - 2 * T.px(2)) end
+    end
     cx = cx + isz + T.px(8)
     -- browse (right)
     local rightX = w - T.px(8)
@@ -1177,6 +1191,48 @@ local function drawFootStrip(self, fy, w, lines, dotC)
     return h
 end
 
+-- The band of a kind's own actions (def.foot): its check at the left, its buttons at the right (the
+-- main one last), each a controller stop pinned with the band (foot = true). A run gets the card's
+-- player, the target and the card, and the card refreshes right after, as after a verb.
+local function footRun(self, e, run)
+    return function()
+        local p = self:player()
+        if not (p and run) then return end
+        local ok, err = pcall(run, p, e.t, self)
+        if not ok then print("[ZeD] ObjectCards: foot action failed: " .. tostring(err)) end
+        if e.t then e.t._refreshT = OC.REFRESH - 3 end
+    end
+end
+local function drawOwnFoot(self, e, foot, fy, w, win)
+    local hv = self._hoverFid
+    local spec = { win = win, status = nil, buttons = {}, check = nil }
+    if foot.status and foot.status.text then spec.status = { text = foot.status.text, color = foot.status.c } end
+    local c = foot.check
+    if c then
+        local fid = "oc:foot:" .. tostring(c.id or "check")
+        spec.check = { label = c.label, on = c.on and true or false, disabled = c.disabled, help = c.help,
+            hover = hv == fid, focus = self:focusOf(fid), id = fid }
+    end
+    for i, b in ipairs(foot.buttons or {}) do
+        local fid = "oc:foot:" .. tostring(b.id or i)
+        spec.buttons[i] = { label = b.label, variant = b.variant, disabled = b.disabled, help = b.help,
+            hover = hv == fid, focus = self:focusOf(fid), id = fid }
+    end
+    local _, rects = M.drawBand(self, 0, fy, w, spec)
+    if c and rects.check then
+        local r = rects.check
+        self:zone({ fid = r.id, x = r.x, y = r.y, w = r.w, h = r.h, foot = true, help = c.help,
+            run = (not c.disabled) and footRun(self, e, c.run) or nil })
+    end
+    for i, b in ipairs(foot.buttons or {}) do
+        local r = rects.buttons[i]
+        if r then
+            self:zone({ fid = r.id, x = r.x, y = r.y, w = r.w, h = r.h, foot = true, help = b.help,
+                primary = b.primary or nil, run = (not b.disabled) and footRun(self, e, b.run) or nil })
+        end
+    end
+end
+
 function ZeD_ObjectCard:prerender()
     local e = self.entry
     if not e then return end
@@ -1219,6 +1275,7 @@ function ZeD_ObjectCard:prerender()
 
     -- BODY (one scrolling unit); the band at the foot holds a question, or the kind's state line
     local footH, status = 0, nil
+    local foot = nil     -- (def.foot's band: the card's own actions)
     local fLines = nil   -- (a half card's foot words, wrapped into a strip when the band cannot hold them)
     local cf = self._confirm
     if cf then
@@ -1226,6 +1283,15 @@ function ZeD_ObjectCard:prerender()
         -- (the question band's two buttons: Cancel, then the verb's own word)
         if def.half then fLines = footLines(self, w, cf.text, { ZeD.tr("UI_Cancel"), cf.yes }) end
         if fLines then footH = footH + footStripH(fLines) end
+    elseif def.foot then
+        -- the card's own actions in the band (the trade's Seal offer, Cancel and Accept deal)
+        local fok, fs = pcall(def.foot, t, player, self)
+        if fok and fs then
+            foot = fs
+            footH = M.bandH()
+        elseif not fok then
+            ZeD.logOnce("ObjectCards foot " .. tostring(def.id), fs)
+        end
     elseif def.status then
         local sok, st = pcall(def.status, t)
         if sok and st and st.text then
@@ -1314,6 +1380,9 @@ function ZeD_ObjectCard:prerender()
                     e.t._refreshT = OC.REFRESH - 3
                 end
             end })
+    elseif foot then
+        UI.claim(self, 0, fy, w, footH)
+        drawOwnFoot(self, e, foot, fy, w, win)
     elseif status then
         UI.claim(self, 0, fy, w, footH)
         if fLines then
