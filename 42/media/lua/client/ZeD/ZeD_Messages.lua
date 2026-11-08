@@ -240,6 +240,14 @@ function M.adminNote(text, bans)
     return it
 end
 
+-- a notice of ZeD's own (the director, Nov 7 2026: every ZeD notice comes out of Messages): filed under head,
+-- with the toast out of the belt's Messages note
+function M.notice(head, text)
+    local it = M.add(head, "mods", { k = "notice", text = text })
+    toast("warn", head, head, text)
+    return it
+end
+
 -- notes any player can cause: the oldest of this kind goes past its cap, and only that kind
 local function capKind(name, k, max)
     local items = M.sources[name].items
