@@ -422,7 +422,7 @@ local function plateState(st, pid, r, p)
     return s
 end
 
--- what the plate shows for an appliance now (exposed for QA probes)
+--- What the plate shows for an appliance now (exposed for QA probes; nothing in the mod calls it).
 function SA.plateState(st)
     local _, pid = SA.plateFor(st)
     return plateState(st, pid, read(st), padOf(st))
@@ -527,7 +527,7 @@ local PLAIN_BIG_PX = 26           -- the readout's large type (design units)
 local PLAIN_BIG_MIN = 18          -- ... where 26 does not fit its half
 local DASH = "--"
 
--- true while the devices are drawn as plain cards (read as they draw: a change applies at once)
+--- SA.simple(): true while the devices are drawn as plain cards (read as they draw: a change applies at once)
 local function devicesSimple()
     local S = ZeD.Settings
     return S ~= nil and S.devicesSimple ~= nil and S.devicesSimple() == true
@@ -1013,7 +1013,9 @@ function SA.isPopped(player, st)
 end
 local POP_ICON = "pop_out"   -- a ZeD pixel icon
 
--- opts: the pop-out window's draw { noHeader = true, k = whole zoom, fid = focused id }; nil in the tab
+--- The view's frame: the header, the plate (or the plain card), its line and what is inside, as one scroll;
+--- returns the body's height (nothing while the station is popped out). opts: the pop-out window's draw
+--- { noHeader = true, k = whole zoom, fid = focused id }; nil in the tab.
 function SA.render(panel, win, x, y, w, h, state, st, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -1144,7 +1146,7 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
             zones[#zones + 1] = { type = "popout", fid = "craft:a:popout", x = bx, y = by, w = bs, h = bs }
         end
     end
-    -- the line under the plate: default words after a status mark (the plain card has it in its readout)
+    -- the line under the plate: what it is doing, in words, after a status mark (the plain card has it in its readout)
     if not simple then
         local line, mark = stateLine(st, r)
         local lf = T.fontF2
@@ -1208,8 +1210,9 @@ end
 -- ----------------------------------------------------------------------------
 local function hit(z, x, y) return x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 
--- a click on a control: a knob turns toward the half clicked, a key presses; the tab's pop-out
--- button opens the station in its own window, its "bring it back" closes that window
+--- A click on a control (SA.act; the pop-out window acts through it too): a knob turns toward the half
+--- clicked, a key presses; the tab's pop-out button opens the station in its own window, its "bring it
+--- back" closes that window.
 local function act(player, st, z, dir)
     if z.type == "popout" then if ZeD.StationPopout then ZeD.StationPopout.open(player, st) end; return end
     if z.type == "popin" then if ZeD.StationPopout then ZeD.StationPopout.close(player) end; return end
@@ -1218,6 +1221,7 @@ local function act(player, st, z, dir)
 end
 SA.act = act
 
+--- A click in the view, against the zones the last render stamped; it always takes the click.
 function SA.onClick(win, state, st, x, y)
     local player = win._playerObj
     if ST.viewHeaderClick(state, player, x, y) then return true end
@@ -1231,6 +1235,7 @@ function SA.onClick(win, state, st, x, y)
     return true
 end
 
+--- The wheel: an open list scrolls, a knob under the pointer turns, else the body scrolls.
 function SA.onMouseWheel(win, state, st, del, x, y)
     if state.stDropdownOpen then return ST.dropdownWheel(state, del) end
     for _, z in ipairs(state.zones or {}) do
@@ -1243,6 +1248,8 @@ function SA.onMouseWheel(win, state, st, del, x, y)
     return true
 end
 
+--- The controller's stops: the station picker, every stamped control (a knob turns on left / right), then
+--- the leave-and-cancel stop; an open list's own stops instead while it is open.
 function SA.buildFocusables(win, state, st)
     if state.stDropdownOpen then return ST.dropdownFocusables(state, win._playerObj, "craft") end
     local out = {}

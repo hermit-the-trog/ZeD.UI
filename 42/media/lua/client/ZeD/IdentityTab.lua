@@ -695,7 +695,7 @@ local function drawNameRow(panel, data, name, x, y, w, px, ink, sign)
 end
 
 -- A field's two lines: the label (F1) and the value (F4), each at least the body
--- line, so a larger text never draws a value over its label (Oct 31 2026, break-it E5)
+-- line, so a larger text never draws a value over its label
 local function fieldLineHs()
     local T, tm = ZeD.T, ZeD.TM
     local bodyFH = tm:getFontHeight(T.fontF2)
@@ -716,7 +716,7 @@ local function setPhoto(win, x, y, w, h, expanded, zx, zy, zw, zh)
 end
 
 -- ============================================================================
--- THE WIDE LICENSE (mockup licenseWide)
+-- THE WIDE LICENSE (photo and seal left, name and fields right)
 -- ============================================================================
 
 local function wideRightH()
@@ -836,9 +836,9 @@ local function renderLicenseWide(panel, win, data, x, drawY, w)
 end
 
 -- ============================================================================
--- WIDE OR NARROW (Oct 31 2026, punch list 36, the director: "make a vertical version of
--- the ID"). Below a width the wide card's two-column fields are narrower than their longest
--- label (they would read "..."); there the card stands up. Simple follows the same width.
+-- WIDE OR NARROW. Below a width the wide card's two-column fields are narrower than their
+-- longest label (they would read "..."); there the card stands up, a vertical version of
+-- the ID. Simple follows the same width.
 -- QA: ZeD.IdentityTab.qaLayout = "tall" or "wide" forces one (nil: by the width);
 -- win._idTall says which one drew.
 -- ============================================================================
@@ -879,7 +879,7 @@ end
 ZeD.IdentityTab.isTall = isTall
 
 -- ============================================================================
--- THE NARROW LICENSE (mockup licenseNarrow, Tennessee's layout)
+-- THE NARROW LICENSE (Tennessee's layout)
 -- ============================================================================
 
 -- the small rows: { label key, field of data.small [, second label key, second field] }
@@ -894,10 +894,10 @@ local TALL_SMALL = {
 
 -- Every height of the narrow card, one place for the measure and the draw. w is the width the
 -- tab measures at (as if a scroll bar shows), so the height never hangs on the bar. The photo
--- is 44% of the width and 3:4, stretched to the column beside it when that is taller (as the
--- mockup draws it), up to 1:2, the model's own shape (renderLicenseTall). The half card is
--- narrower than the mockup's window, so what the wider card sets on one line stacks there: ISS
--- and EXP over their dates, the small rows' pairs one to a row. One table, refilled at each call.
+-- is 44% of the width and 3:4, stretched to the column beside it when that is taller, up to
+-- 1:2, the model's own shape (renderLicenseTall). On the half card what a wider card sets on
+-- one line stacks when it won't fit: ISS and EXP over their dates, the small rows' pairs one
+-- to a row. One table, refilled at each call.
 local _tm = {}
 local function tallMetrics(data, w)
     local T, tm = ZeD.T, ZeD.TM
@@ -1155,8 +1155,8 @@ local function renderLicenseTall(panel, win, data, x, drawY, w, layoutW)
 end
 
 -- ============================================================================
--- SIMPLE, WIDE AND NARROW (mockup plainWide, plainNarrow): ZeD's own components on the
--- theme's surface; label / value rows, labels in the accent, no rules
+-- SIMPLE, WIDE AND NARROW: ZeD's own components on the theme's surface; label / value
+-- rows, labels in the accent, no rules
 -- ============================================================================
 
 local function simpleRowH()
@@ -1212,7 +1212,7 @@ end
 -- Simple's rows at width w, one place for the measure and the draw: { label, lines, lineW, beside }
 -- and h, the rows' whole height. A row is the label with the value beside it while the two fit;
 -- else the value goes under the label, right-aligned (the half card). Kept with the data, which
--- is made anew every half second, so nothing is measured every frame.
+-- is made anew every 30 frames (half a second at 60 fps), so nothing is measured every frame.
 local function simpleRows(data, w)
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local c = data._rows
@@ -1409,8 +1409,8 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local rh = traitRowH()
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
-    -- its description on hover and on controller focus (mockup zed_traits_tab_v1: the
-    -- no-mod scene's descriptions belong here); the zone is kept for both
+    -- its description on hover and on controller focus (drawTraitHint; the traits'
+    -- descriptions belong here); the zone is kept for both
     local key = "identity:trait:" .. tostring(trait.name)
     local zones = win._idTraitZones
     zones[#zones + 1] = { x = tx, y = ty, w = tw, h = rh, id = key, name = trait.name, desc = trait.desc }
