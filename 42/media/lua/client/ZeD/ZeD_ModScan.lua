@@ -501,7 +501,7 @@ function MS.isLoaded(id)
     return loadedSet[id] == true
 end
 
--- the game's Workshop front page, the same way
+--- The game's Workshop front page, the same way as openInSteam.
 function MS.openWorkshop()
     local overlay = false
     pcall(function() overlay = isSteamOverlayEnabled() end)
@@ -509,7 +509,7 @@ function MS.openWorkshop()
     if overlay then activateSteamOverlayToWebPage(url) else openUrl(url) end
 end
 
--- "the game's 3 items and 2 recipes" (nil: it replaces none)
+--- What a mod replaces, as "the game's 3 items and 2 recipes" (nil: it replaces none).
 function MS.overrideText(id)
     local o = MS.res.overrides[id]
     if not o or o.total == 0 then return nil end
@@ -524,12 +524,13 @@ function MS.overrideText(id)
     return ZeD.tr("UI_ZeD_ModScan_TheGames", list)
 end
 
--- the hidden conflicts that name a mod, and showing them again
+--- How many hidden conflicts name a mod.
 function MS.hiddenFor(id)
     local n = 0
     for _, e in ipairs(MS.res.byMod[id] or {}) do if MS.isHidden(e) then n = n + 1 end end
     return n
 end
+--- Show a mod's hidden conflicts again.
 function MS.unhideFor(id)
     if not hidden then hiddenLoad() end
     for _, e in ipairs(MS.res.byMod[id] or {}) do hidden[e.key] = nil end

@@ -1138,14 +1138,14 @@ _buildLootFocusables = function(win)
     zone3Y = zone3Y - ((L and L.scroll) or 0)
 
     local elements = {}
-    -- Element 1: main (always pinned at Zone 1 top)
-    -- S106: onFocus no longer mutates _activeContainer. Previously the focus
-    -- callback wrote the focused container index to _activeContainer, which
-    -- cascaded into: (a) duplicate column when adding non-main to MC because
-    -- colSel appends _activeContainer as the "main column" — same idx ended
-    -- up at positions 1 and N; (b) stale view-preview after MC exit. Now
-    -- _activeContainer stays pinned at 1 (main) for the whole Loot flow;
-    -- MC column layout is derived purely from _mcSelected + _mainVisible.
+    -- Element 1: main (always pinned at Zone 1 top).
+    -- onFocus never mutates _activeContainer. When the focus callback wrote
+    -- the focused index there, it cascaded into (a) a duplicate column when
+    -- adding a non-main bag to MC, because colSel appended _activeContainer
+    -- as the "main column" — the same idx landed at positions 1 and N; and
+    -- (b) a stale view-preview after MC exit. _activeContainer stays pinned
+    -- at 1 (main) for the whole Loot flow; MC column layout is derived purely
+    -- from _mcSelected + _mainVisible.
     local mainCnt = win._containers[1]
     if mainCnt then
         elements[#elements + 1] = {
@@ -1154,15 +1154,15 @@ _buildLootFocusables = function(win)
             containerIdx = 1,
             inventory = mainCnt.inventory,
             onFocus = function(w, el) end,
-            -- S107 QA: tap = switch active container (no tab swap, no MC).
-            -- On Loot, exits MC if active and shows this container as the
-            -- single-column view. On non-Loot, just sets active — user can
-            -- swap to Loot later to see the items. Hold preserves the S106
-            -- cross-tab mcToggle (snaps to Loot first, then MC-toggles).
+            -- Tap = switch active container (no tab swap, no MC). On Loot,
+            -- exits MC if active and shows this container as the
+            -- single-column view. On non-Loot, just sets active — the player
+            -- can swap to Loot later to see the items. Hold is the cross-tab
+            -- MC toggle (snaps to Loot first, then toggles the column).
             -- _mainVisible mirrors "is main the displayed container?" — only
-            -- true when picked container IS main, else false (main button
-            -- shouldn't paint its accent fill when a different container is
-            -- being viewed via _viewedContainer override).
+            -- true when the picked container IS main, else false (the main
+            -- button must not paint its accent fill while a different
+            -- container is viewed via the _viewedContainer override).
             onActivate = function(w, el)
                 local c = w._mainContent
                 if not c then return end

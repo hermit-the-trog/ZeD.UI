@@ -890,8 +890,8 @@ local function _refreshDebugPicks(w)
         _debugFocusBox = nil
     end
     for _, dir in ipairs({"up", "down", "left", "right"}) do
-        -- Apply the same same-zone restriction for U/D that dispatch uses
-        -- (S113c: vertical never leaves the panel, only horizontal crosses).
+        -- Apply the same same-zone-first restriction for U/D that dispatch
+        -- uses (vertical stays in its zone while anything more lies that way).
         local searchEls, searchFromIdx = elements, fromIdx
         if dir == "up" or dir == "down" then
             local fromLoc = locator[fromIdx]
@@ -938,8 +938,8 @@ end
 
 local function _drawDebugOverlay()
     if not _debugOverlay then return end
-    -- S123 (GAMEPAD_SPEC open item): the overlay is a cone-nav aid; keep it
-    -- off while the detector says mouse so a stray F9 never paints over KBM play.
+    -- The overlay is a cone-nav aid; keep it off while the detector says
+    -- mouse so a stray F9 never paints over KBM play.
     local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode and ZeD.Input.Detector.getMode()
     if mode ~= "gamepad" then return end
     local w = _focusedWindow
@@ -976,7 +976,7 @@ local function _drawDebugOverlay()
             w:drawRect(px,          py,          1,  ph, 0.85, r, g, b)
             w:drawRect(px + pw - 1, py,          1,  ph, 0.85, r, g, b)
             -- Connecting "line" via 32 stamped 2x2 blocks (PZ has no native
-            -- line primitive — Q12). Walks from focus center to target center.
+            -- line primitive). Walks from focus center to target center.
             local tcx, tcy = px + pw * 0.5, py + ph * 0.5
             for i = 1, 32 do
                 local t = i / 32

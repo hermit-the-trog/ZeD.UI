@@ -405,7 +405,7 @@ function Session:update()
             break
         end
     end
-    -- the card is pinned (the director, Nov 7 2026): only Cancel, their close, distance or them leaving
+    -- the card is pinned: only Cancel, their close, distance or them leaving
     -- end the trade. Shut World window: the trade waits and its card is back when the window opens
     -- again (or at the next thing the other player does: TR.onEvent). Another object card in the
     -- drawer: the trade comes back when it closes. An item card shows over it (the drawer's own order).

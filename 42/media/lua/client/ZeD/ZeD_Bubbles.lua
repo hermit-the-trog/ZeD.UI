@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Bubbles.lua
 -- ============================================================================
--- THE OVERHEAD BUBBLES (Oct 24 2026; mockup ZeDUI/mockups/zed_bubbles_v1, approved
--- "Bubbles are good. Themed yes."; handoff ZeDUI/HANDOFF_bubbles_20261024.md).
+-- THE OVERHEAD BUBBLES. Client-only: the shapes and layouts every bubble over
+-- a head is drawn from, themed from the live palette.
 --
 --   speech   what a local player says over their head, in the gallery's System 7
 --            balloon: stepped round corners, a 1-unit ink line, a hard shadow, a
@@ -13,8 +13,8 @@
 -- Everything is in design units on whole multiples (ZeD.Px, k = ZeD.ActionBar.k()),
 -- head-relative: (0, 0) is the top of the head (ZeD.ActionBar.headScreen). Colours
 -- are ZeD.T tokens read every frame; the shadow (black, no token) is synced like
--- the action bar's dim colour. bubbles.py in the mockup folder draws the same
--- pixels; the shapes below are ported from it one for one.
+-- the action bar's dim colour. ZeDUI/mockups/zed_bubbles_v1/bubbles.py draws the
+-- same pixels; the shapes below are ported from it one for one.
 --
 -- The speech hook. Every line the engine puts over a character's head goes
 -- through its chat element (IsoGameCharacter.Say, SayShout, typed chat in
@@ -63,8 +63,8 @@ B.LINE = 9               -- line pitch of the 5 x 7 face
 B.GAP = 3                -- head top to the tail tip / the trail's end
 B.TAIL_H = 9
 B.THOUGHT_PAD = 7
-B.THOUGHT_H = 36         -- the action bar's two lines and its 6-unit framed strip (Oct 27 2026; was 30 with a 2-unit line;
-                         -- 36 from Nov 3 2026: two more between the lines for the item name's tall accents)
+B.THOUGHT_H = 36         -- the action bar's two lines and its 6-unit framed strip,
+                         -- plus two units between the lines for the item name's tall accents
 B.TRAIL_H = 15
 B.MIN_MS = 800           -- a balloon shows at least this long, then as long as the engine's line would (B.current)
 B.MAX_MS = 20000
@@ -102,7 +102,7 @@ local function boxRows(cv, x0, y0, ww, hh, c, a)
     end
 end
 -- bubbles.py round_box: the ink rows, the fill rows over them (with the shadow colour for both, the
--- inside takes the shadow twice, as in the mockup)
+-- inside takes the shadow twice, as bubbles.py has it)
 function B.roundBox(cv, x, y, w, h, fill, ink, a)
     boxRows(cv, x, y, w, h, ink, a)
     boxRows(cv, x + 1, y + 1, w - 2, h - 2, fill, a)
@@ -144,8 +144,8 @@ local function cloudLists(w, h, r)
 end
 
 -- the trail: hand-set bubbles (# ink, o fill), biggest first, each at its top-left from the trail's
--- origin: down to the head (the action bar's), or in a row to the right or left (the moodles' notes,
--- Oct 25 2026), the biggest next to the cloud. B.TRAIL_LEN units from the origin to the far end.
+-- origin: down to the head (the action bar's), or in a row to the right or left (the moodles'
+-- notes), the biggest next to the cloud. B.TRAIL_LEN units from the origin to the far end.
 local TRAIL = {
     { ".###.", "#ooo#", "#ooo#", "#ooo#", ".###." },
     { ".##.", "#oo#", "#oo#", ".##." },
@@ -175,9 +175,9 @@ local TRAILS = {
 }
 
 -- ---------------------------------------------------------------------------
--- the tail: bubbles.py wedge_mask, a triangle on the unit grid. Rasterised the way the mockup's
+-- the tail: bubbles.py wedge_mask, a triangle on the unit grid. Rasterised the way bubbles.py's
 -- drawing library does (a 4 x 4 grid of samples per unit, a cell is in when 7 of 16 are), so the
--- edge pixels are the mockup's.
+-- edge pixels match its art.
 -- ---------------------------------------------------------------------------
 local function trunc(v) if v >= 0 then return math.floor(v) end return math.ceil(v) end
 local function wedge(pts)

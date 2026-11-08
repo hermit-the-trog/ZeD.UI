@@ -1456,11 +1456,10 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
     local edge = T.px(8)
     local narrow = (x + w - edge - M.buttonW(b.label) - gap - stepW - gap - x) < (leftNeed or 0)
     if narrow then
-        -- (Oct 31 2026, punch list 28, the director's pick: short of room the - n + become
-        -- one amount box, "< 3 >", its halves, the wheel and the pad's Left / Right step it.
-        -- Checked in game the same night, Sort and Show still lacked whole words: now the box
-        -- is as narrow as its digits, Craft / Build as narrow as its word, the band's
-        -- margins and spaces 4u)
+        -- (short of room the - n + become one amount box, "< 3 >": its halves,
+        -- the wheel and the pad's Left / Right step it. The box is as narrow as
+        -- its digits, Craft / Build as narrow as its word, the band's margins
+        -- and spaces 4u — so Sort and Show keep whole words)
         gap, edge = T.px(4), T.px(4)
         stepW = M.qtySpinW(qty)
         b.w = ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(b.label)) + T.px(4) * 2
@@ -1469,7 +1468,7 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
         b.w, _bandSpec.edge = nil, nil
     end
     -- (the World window's pad stops rebuild when the band changes shape or recipe: stamped here,
-    -- the frame its zones are made, not when the recipe is picked; Oct 31 2026, punch list 28)
+    -- the frame its zones are made, not when the recipe is picked)
     state._bandSingle = narrow
     state._bandSel = rd and rd.entry and rd.entry.name or nil
     local _, out = M.drawBand(panel, x, y, w, _bandSpec)
@@ -1493,7 +1492,7 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
         qb.t = getTimestampMs()   -- (drawn this frame: a band no longer drawn takes no wheel)
     end
     -- the one box with nothing to step (the most is 1: Build, or materials for one): it stays a
-    -- pad stop, A and the wheel change nothing, and the help line says why (punch list 28)
+    -- pad stop, A and the wheel change nothing, and the help line says why
     if narrow and rd and maxQty <= 1 and (so.focusId == "qty" or (mx >= 0 and ZeD.Atoms.mouseIn(panel, sx, y + T.px(5), stepW, bh))) then
         ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_QtyOne"))
     end
@@ -1523,8 +1522,8 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
 
     -- the left's boxes: at most the longest words each can carry, at least the current
     -- choice and its arrow ("Craftable" v), and at worst its first letter and the arrow
-    -- (Oct 31 2026, break-it B2: narrowed by one share, Sort and Show came out too
-    -- narrow for any words at 1280x720, UI scale 2.0, Large text)
+    -- (narrowed by a plain even share, Sort and Show once came out too narrow for any
+    -- words at 1280x720, UI scale 2.0, Large text)
     local sortModes = CC.popModes("sort", config)
     local showModes = CC.popModes("show", config)
     local sortName = modeLabel(sortModes, state.sort or "craftable")
@@ -1548,7 +1547,7 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
             edge + gap * nGaps + catMin + sortMin + showMin)
     end
     -- short of room the spaces close up first, and the boxes hold the choice alone ("Craftable",
-    -- not "Sort: Craftable") at tight pads, the longest choice at most (punch list 28)
+    -- not "Sort: Craftable") at tight pads, the longest choice at most
     if narrow then
         edge, gap = T.px(4), T.px(4)
         sortW, showW = sortC, showC
@@ -1569,7 +1568,7 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
             showW = showMin + math.floor((showW - showMin) * k)
         else
             -- even the choices do not fit: each keeps its first letter and its arrow, and
-            -- the rest is shared by what each choice needs over that (a punch list question)
+            -- the rest is shared by what each choice needs over that
             local catF = ro and math.min(catMin, M.popupMenuW(string.sub(catName or "", 1, 1), narrow)) or 0
             local sortF = math.min(sortMin, M.popupMenuW(string.sub(sortName, 1, 1), narrow))
             local showF = math.min(showMin, M.popupMenuW(string.sub(showName, 1, 1), narrow))

@@ -1399,7 +1399,7 @@ _syncWorldRingZones = function(win, content)
     -- open column).
     _rebuildWorldMCRingZones(win)
 
-    -- S99: Tab change always leaves "item" mode (_switchWorldTabForNav flips
+    -- A tab change always leaves "item" mode (_switchWorldTabForNav flips
     -- _drawerMode). Explicitly disable the card zone so a bumper press in the
     -- same frame can't land on stale card elements before the per-frame
     -- refresh runs next frame.
@@ -1410,7 +1410,7 @@ _syncWorldRingZones = function(win, content)
     if win._rolled and win._curtain and win._curtain.onFrame then win._curtain.onFrame() end
 end
 
--- S96 — Build inventory-row focusables for the World Window's active container.
+-- Build inventory-row focusables for the World Window's active container.
 -- Mirrors _buildInvRowFocusables from ZeD_CharacterWindow but passes
 -- isInPlayerInventory=false for the context menu (world items aren't in player inv).
 _buildWorldInvRowFocusables = function(win)
@@ -1418,9 +1418,9 @@ _buildWorldInvRowFocusables = function(win)
     local items = c and c._invRowItems
     if not items or #items == 0 then return {} end
     local elements = {}
-    -- S98: bounds must be distinct per element so the cone-nav algorithm can
-    -- pick neighbors. Prefer the renderer-stamped Y from _itemRenderYMap
-    -- (Q91 pattern); fall back to index*rowH when the map hasn't been
+    -- Bounds must be distinct per element so the cone-nav algorithm can
+    -- pick neighbors. Prefer the renderer-stamped Y from _itemRenderYMap;
+    -- fall back to index*rowH when the map hasn't been
     -- populated yet (first frame after tab switch).
     local T = ZeD.T
     local rowH = (T and T.rowH) or 26
@@ -1439,7 +1439,7 @@ _buildWorldInvRowFocusables = function(win)
                 w._gpFocusedRowItem = el.item
                 local cnt = w._mainContent
                 if cnt then cnt._gpFocusedRowItem = el.item end
-                -- S99: Card follow-focus. When the card is visible (any tab —
+                -- Card follow-focus. When the card is visible (any tab —
                 -- on non-Loot tabs the card overlays the tab drawer while
                 -- `_drawerMode` stays "tab"), moving the gp cursor to a
                 -- different invrow live-swaps the card to the newly-focused
@@ -1453,13 +1453,13 @@ _buildWorldInvRowFocusables = function(win)
                     w._updateDrawer()
                 end
             end,
-            -- S113: A tap = LMB = SELECT item (opens card drawer for it).
+            -- A tap = LMB = SELECT item (opens card drawer for it).
             -- On a stack rep (count > 1), A toggles stack expand/collapse
-            -- (= LMB on chevron). A hold = double-LMB (InventoryRenderer
+            -- (= LMB on chevron). X hold = double-LMB (InventoryRenderer
             -- quickUse: to the main inventory). X = RMB = open vanilla context menu —
             -- the menu's "Take" / "Move To" entries handle floor items via
-            -- their own paths (Q44/Q94 floor-routing happens inside
-            -- ContextMenuRegistry.makeActionDef.onFire pre-transfer).
+            -- their own paths (floor-routing happens inside
+            -- ContextMenuRegistry.makeActionDef.onFire, before the transfer).
             onActivate = function(w, el)
                 if not el.item then return end
                 local cnt = w._mainContent
@@ -1473,7 +1473,7 @@ _buildWorldInvRowFocusables = function(win)
                     ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (a plain select drops the marks, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    -- S117: A toggles the card drawer (mirror Char invrow).
+                    -- A toggles the card drawer (as the Character rows do).
                     -- World _updateDrawer is closure-scoped — no args.
                     if w._drawerItem ~= el.item then
                         sel[el.item] = true
@@ -1484,7 +1484,7 @@ _buildWorldInvRowFocusables = function(win)
                         cnt._lastClickedItem = nil
                     end
                     w._updateDrawer()
-                    -- Oct 23 2026: the card opened (or swapped to this item):
+                    -- the card opened (or swapped to this item):
                     -- focus onto its primary action, so A again does it
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "worldItemCard", 2) end
                 end

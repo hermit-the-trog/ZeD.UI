@@ -1086,11 +1086,11 @@ local _browseOpts, _browseMark = {}, {}
 
 -- the width (screen px) a two-way face needs, nil when the tab is not on one; the window gives it the half card
 -- or the full card, whichever holds that (limit: the widest card the window lets the drawer be). A walkie needs
--- its panel, the face and its margins at the plates' whole zoom (director, Oct 25 2026: "only as wide as the
--- graphic"; Oct 29: a card is the half card or the full card): the half card wherever one of its widths fits it
--- (Oct 30 2026, punch list item 2), else today's 220 panel (the full card). A ham set needs its own width. Where
+-- its panel, the face and its margins at the plates' whole zoom — only as wide as the graphic, and a card
+-- is always the half card or the full card: the half card wherever one of its widths fits it,
+-- else the 220 panel (the full card). A ham set needs its own width. Where
 -- that is more than limit, the set's narrow face is drawn (render below), which needs a walkie's panel.
--- (Oct 30 2026) The ordinary radios and the CD player: the half card wherever one of their widths fits it, else the
+-- The ordinary radios and the CD player: the half card wherever one of their widths fits it, else the
 -- full card (the hand-built radio at 0.75 and 1.5); the TVs: the full card (RtvFace.wantW).
 function ZeD.RadioTab.wantW(win, base, limit)
     local r = win and win._radios and win._radios[win._radioIdx or 1]
@@ -1142,7 +1142,7 @@ end
 ZeD.RadioTab._menuAt, ZeD.RadioTab._hitById = _menuAt, _hitById
 
 -- the face, its footer and the scrollbar under the header (y, h: the body). drv: the face's driver, ZeD.TwoWay or
--- ZeD.Rtv (Oct 30 2026: the ordinary radios and the TVs, which have no footer: the brand is on the face)
+-- ZeD.Rtv (the ordinary radios and the TVs, which have no footer: the brand is on the face)
 local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local T = ZeD.T
     local TW = drv or ZeD.TwoWay
@@ -1242,8 +1242,8 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- onHoldActivate at the A_HOLD_MS threshold). After a 250ms grace the
     -- auto-repeat kicks in on an accelerating interval: 200ms → 100ms → 50ms
     -- → 25ms as hold time grows. Released immediately when the source button
-    -- is no longer down — mouse uses isMouseButtonDown(0); gamepad path
-    -- (S117) polls JoypadButton.A:isDown on the captured joypad id.
+    -- is no longer down — mouse uses isMouseButtonDown(0); the gamepad path
+    -- polls JoypadButton.A:isDown on the captured joypad id.
     if win._radioSeekHold then
         local hold = win._radioSeekHold
         local stillDown
@@ -1281,7 +1281,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 
     -- Empty state — display a single line centered.
     if #radios == 0 then
-        -- S117: drop any stale gamepad focus id so the seed gate fires fresh
+        -- drop any stale gamepad focus id so the seed gate fires fresh
         -- next time a radio is equipped (the gate only writes on nil).
         win._gpFocusedRadioCtl = nil
         -- one dim F2 line at the list's text inset, a full sentence (no header here: 10u from the top)
@@ -1289,7 +1289,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         return
     end
 
-    -- (Nov 7 2026) the tab stays on the radio it was opened on or browsed to while the list re-sorts by distance
+    -- the tab stays on the radio it was opened on or browsed to while the list re-sorts by distance
     if win._radioFollow then
         local at = ZeD.RadioTab.indexOf(radios, win._radioFollow)
         if at then win._radioIdx = at else win._radioFollow = nil end
