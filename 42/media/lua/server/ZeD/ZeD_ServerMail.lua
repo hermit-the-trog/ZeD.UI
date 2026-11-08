@@ -207,7 +207,7 @@ local function reg(command, opts, fn) Srv.register(Ml.MOD, command, opts, fn) en
 
 local applyMutes     -- (below; declared here so p_dial's closure finds it, not a global of that name)
 
--- the dial-in: remember the player, take the mute list that comes with it, say how many letters wait, send the first batch
+-- the dial-in: remember the player, take a mute list if one comes with it, say how many letters wait, send the first batch
 reg("p_dial", { limit = ML.DIAL_MS }, function(p, a, rid)
     local md = open()
     know(md, p)
