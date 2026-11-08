@@ -13,7 +13,7 @@
 | Result | **10/11 pass**, 1 warn, 0 fail, 0 timeout |
 | Go numbers | 16320 to 16330 |
 
-Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -23,7 +23,7 @@ Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites
 - loaded; clicked the screen centre (1920,1080) to pass 'click to start'
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - -KeepOpen: the game was left running
-- -KeepOpen: ZeD settings are still the test's; the director's file is C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-30_mouse_pass_fullscreen4k.md.modoptions.ini
+- -KeepOpen: ZeD settings are still the test's; the director's file is %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-30_mouse_pass_fullscreen4k.md.modoptions.ini
 
 ## Results
 

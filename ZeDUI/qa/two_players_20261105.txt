@@ -1,5 +1,5 @@
 21:40:48 server up
-21:41:53 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_mp_two_start.md
+21:41:53 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_mp_two_start.md
 21:48:03 second client stopped
 21:48:05 closed
 21:55 the second copy stops at the game's first-run Terms of Service and Privacy Notice in its own folder. Not accepted: that is the director's to do. Two-player runs wait for them.

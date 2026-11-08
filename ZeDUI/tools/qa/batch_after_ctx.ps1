@@ -2,7 +2,7 @@
 # ZeDUI/tools/qa/batch_after_ctx.ps1  (Nov 6 2026, QA): the context menu scripts and the outline, the auto-collapse and the real drag, all with the real-mouse helper on and no Steam.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Lua = "C:\Users\danie\Zomboid\Lua"
+$Lua = "$env:USERPROFILE\Zomboid\Lua"
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }
 Remove-Item "$Lua\zedqa_click_stop.txt", "$Lua\zedqa_click.txt" -ErrorAction SilentlyContinue

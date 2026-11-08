@@ -299,7 +299,7 @@ Bring `GAMEPAD_SPEC.md` rule 4, `GLOSSARY.md` and the rules in `STATE.md` in lin
 
 ## 14. Builder rules
 
-- Work only in `C:\Users\danie\ZeD-cohesion` (branch `cohesion`). Never touch `C:\Users\danie\Zomboid\mods\ZeD-UI` (the
+- Work only in `%USERPROFILE%\ZeD-cohesion` (branch `cohesion`). Never touch `%USERPROFILE%\Zomboid\mods\ZeD-UI` (the
   game loads that copy; a compatibility run is using it). Never launch the game. Never commit (the session commits).
 - Stay in the files you are given; ask the session before touching another file.
 - Read `ZeD.T` fresh each frame; no `Tokens.lua` mutation at draw time; Kahlua: at most ~150 locals per function (the
@@ -308,6 +308,6 @@ Bring `GAMEPAD_SPEC.md` rule 4, `GLOSSARY.md` and the rules in `STATE.md` in lin
   `C:/Program Files/Java/jdk-19/bin/javac.exe -cp "E:/Project Zomboid/steamapps/common/ProjectZomboid/projectzomboid.jar"`
   into a scratch folder, then `"E:/Project Zomboid/steamapps/common/ProjectZomboid/jre64/bin/java.exe" -cp
   "<scratch>;E:/Project Zomboid/steamapps/common/ProjectZomboid/projectzomboid.jar" KCheck <file.lua>`.
-- Run `ZeDUI/tools/qa/i18n_guard.py` (Python: `C:/Users/danie/Documents/ComfyUI/.venv/Scripts/python.exe`) after any
+- Run `ZeDUI/tools/qa/i18n_guard.py` (Python: `%USERPROFILE%/Documents/ComfyUI/.venv/Scripts/python.exe`) after any
   string change. New strings go through `ZeD.tr` with UI.json keys.
 - Comments match the surrounding code: plain English, the why, no session numbers.

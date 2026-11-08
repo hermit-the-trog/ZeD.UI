@@ -3,8 +3,8 @@
 # installed copy for the run; the installed one is put back after. Never while the game runs.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Inst = "C:\Users\danie\Zomboid\mods\ZeD_Picks\42\mod.info"
-$Ship = "C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\picks_mod\ZeD_Picks\42\mod.info"
+$Inst = "$env:USERPROFILE\Zomboid\mods\ZeD_Picks\42\mod.info"
+$Ship = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\ZeDUI\picks_mod\ZeD_Picks\42\mod.info"
 $Keep = "$env:TEMP\zedqa_picks_mod.info.keep"
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { Write-Output "the game is running, stop"; exit 2 }
 Copy-Item $Inst $Keep -Force

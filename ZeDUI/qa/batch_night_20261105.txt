@@ -1,3 +1,3 @@
-21:27 half card: 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_2125_mods_windowed.md | zedqa_mods_run: ZeD-QA put back (its mod list is ZeD_UI only again)
-21:33 wheels: 7/7 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_2127_mods_fullscreen4k.md | zedqa_mods_run: ZeD-QA put back (its mod list is ZeD_UI only again)
-21:35 license on the server: 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_mp_iss.md
+21:27 half card: 3/3 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_2125_mods_windowed.md | zedqa_mods_run: ZeD-QA put back (its mod list is ZeD_UI only again)
+21:33 wheels: 7/7 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_2127_mods_fullscreen4k.md | zedqa_mods_run: ZeD-QA put back (its mod list is ZeD_UI only again)
+21:35 license on the server: 2/2 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_mp_iss.md

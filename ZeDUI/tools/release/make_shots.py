@@ -21,7 +21,7 @@ or the edges, and prefers the backdrop to the picture.
 
 Shot list (see ZeDUI/workshop/shots/shots.json):
 {
-  "screens": "C:/Users/danie/Zomboid/Screenshots",     source folder (relative paths resolve here)
+  "screens": "%USERPROFILE%/Zomboid/Screenshots",      source folder (relative paths resolve here)
   "out": "out",                                         relative to the JSON's folder
   "patches": [[x0,y0,x1,y1,dx,dy]],                     copy pixels over a corner of every source
                                                         (a shot's own "patches" replace these; a 7th
@@ -582,11 +582,24 @@ def patch(im, patches):
     return im
 
 
+def expand_home(o):
+    """Paths in the shot lists are written %USERPROFILE%/Zomboid/...: expand them (strings that start with %, deep)."""
+    if isinstance(o, str):
+        return os.path.expandvars(o.replace("%USERPROFILE%", os.path.expanduser("~"))) if o.startswith("%") else o
+    if isinstance(o, list):
+        return [expand_home(x) for x in o]
+    if isinstance(o, dict):
+        return {k: expand_home(v) for k, v in o.items()}
+    return o
+
+
 def render(shot, screens, n, stub, debug, patches=()):
     cache = {}
+    screens = expand_home(screens)
 
     def get(name):
-        path = name if os.path.isabs(name) else os.path.join(screens, name)
+        x = expand_home(name)
+        path = x if os.path.isabs(x) else os.path.join(screens, x)
         if path not in cache:
             cache[path] = load_src(path, stub)
             if cache[path] is None:
@@ -756,7 +769,7 @@ def render(shot, screens, n, stub, debug, patches=()):
             if c.get("frame") is False:
                 # a drawing on a transparent ground (the controller map's pad): no window frame,
                 # pasted with its own alpha onto the card's body
-                spath = c.get("src") or shot["src"]
+                spath = expand_home(c.get("src") or shot["src"])
                 if not os.path.isabs(spath):
                     spath = os.path.join(screens, spath)
                 rs = Image.NEAREST if c.get("resample") == "nearest" else Image.LANCZOS   # pixel art stays crisp
@@ -828,7 +841,7 @@ def main():
     with open(a.spec, encoding="utf-8") as fh:
         spec = json.load(fh)
     base = os.path.dirname(os.path.abspath(a.spec))
-    screens = spec.get("screens", "C:/Users/danie/Zomboid/Screenshots")
+    screens = spec.get("screens", os.path.expanduser("~/Zomboid/Screenshots"))
     out = a.out or os.path.join(base, spec.get("out", "out"))
     os.makedirs(out, exist_ok=True)
     only = set(s for s in a.only.split(",") if s)

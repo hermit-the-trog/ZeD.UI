@@ -60,7 +60,7 @@ Round 3 (sent at about 05:30, Build fixed in d8cae917, QA reran at 06:45 to 07:0
 
 - Game is Stable 42.21.0; beta 6 ran on 42.22. Two real differences: `getReadLiterature` and the radio scripts (above).
 - The QA save: its auto roll-up pin is not kept between runs; every manifest must pin. The save is at game day 9 to 10.
-- The multiplayer test server's world was saved by 42.22 and 42.21 refuses it ("savefile appears to be from a newer version"). QA moved it to C:\Users\danie\Zomboid\zedqa_mp_42_22_world_backup\zedqa and the server made a fresh world (admin zedqa and bob are made fresh; they are test accounts on the local server).
+- The multiplayer test server's world was saved by 42.22 and 42.21 refuses it ("savefile appears to be from a newer version"). QA moved it to %USERPROFILE%\Zomboid\zedqa_mp_42_22_world_backup\zedqa and the server made a fresh world (admin zedqa and bob are made fresh; they are test accounts on the local server).
 - A1 (server Workshop items window) needs Steam; QA runs without Steam because Steam would load its own copy of ZeD.
 - In debug mode a "Lua console" ZeD window opens at the bottom left in every QA run (new in b8); pictures show it.
 - Two police cars (dashpx) and one car in dash_keys_edge fail now and then to spawn or to read ACC; the vehicle kit is flaky, not ZeD.
@@ -99,7 +99,7 @@ Hands-on controller checks (QA cannot do these):
 5. A radio in a backpack (not in a hand): right click, Device Options; it should open the Radio tab with the radio as "Carried".
 6. Multiplayer, by hand with two players: the trade card (the offer list should not show worn, held or favorite things), the medical check of another player (the card should list his wounds and offer Bandage), the kicked screen (picture from QA's run: the monitor shows "You were kicked from the server" with the reason and a Back to menu button; saved only in QA's scratch folder, not in the repo), bans, mute, rules and mail.
 
-Pictures worth a look (C:\Users\danie\Zomboid\Screenshots, the next run overwrites them): zqa_b8_gd_first_spread.png, zqa_b8_gd_tv_rules.png, zqa_b8_hf_tv_found.png (guide and TV page); zqa_b8ea_heater_lit.png, zqa_b8ea_dash_note.png, zqa_b8ea_makeup.png (everyday leftovers); zqa_b8pm_paper_stash.png, zqa_b8pm_find_on_map.png (paper maps); zqa_b8dc_errors.png (Lua console error block); zqa_b8wd_car_part.png, zqa_b8wd_walkie.png, zqa_b8an_animal_view.png (world devices and animals); b8_mp\claims, b8_mp\trade, b8_mp\medic (multiplayer, 1280x800).
+Pictures worth a look (%USERPROFILE%\Zomboid\Screenshots, the next run overwrites them): zqa_b8_gd_first_spread.png, zqa_b8_gd_tv_rules.png, zqa_b8_hf_tv_found.png (guide and TV page); zqa_b8ea_heater_lit.png, zqa_b8ea_dash_note.png, zqa_b8ea_makeup.png (everyday leftovers); zqa_b8pm_paper_stash.png, zqa_b8pm_find_on_map.png (paper maps); zqa_b8dc_errors.png (Lua console error block); zqa_b8wd_car_part.png, zqa_b8wd_walkie.png, zqa_b8an_animal_view.png (world devices and animals); b8_mp\claims, b8_mp\trade, b8_mp\medic (multiplayer, 1280x800).
 
 ## What still blocks an upload
 

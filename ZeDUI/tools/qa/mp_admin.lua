@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_admin.lua  (Nov 5 2026, QA): multiplayer Phase 2, the admin tools against the real server part on the
--- local server. grep "ZEDQA mad", then the server's logs in C:\Users\danie\Zomboid\zedqa_mp\Logs (*_DebugLog-server.txt and
+-- local server. grep "ZEDQA mad", then the server's logs in %USERPROFILE%\Zomboid\zedqa_mp\Logs (*_DebugLog-server.txt and
 -- *_ZeD.txt).
 --   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"     (the shim carries ZeDQA.role)
 --   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_admin.txt

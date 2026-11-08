@@ -40,7 +40,7 @@ Keep tool calls few (credits): one Read and one Write per pack is the aim. Do no
 
 ## When the packs are done
 1. Run, with this Python (it is already installed; install nothing):
-   `C:/Users/danie/Documents/ComfyUI/.venv/Scripts/python.exe -I C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/i18n/mt.py unpack <your folder> <your folder>/parts`
+   `%USERPROFILE%/Documents/ComfyUI/.venv/Scripts/python.exe -I %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/i18n/mt.py unpack <your folder> <your folder>/parts`
    (add `--base <LANG>` only if your task says so), then for each file in `<your folder>/parts`:
    `... mt.py check <that file>`. Fix every FAIL line in your out file and run both again until there are none. "same as
    English" notes are fine where the word really is the same.

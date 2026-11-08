@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 # ZeDUI/tools/qa/batch_night1.ps1  (Nov 5 2026, QA): the half card at the Deck, the radial wheels' suite at 4K, the license on the server.
 $Qa = $PSScriptRoot
-$Root = "C:\Users\danie\Zomboid\mods\ZeD-UI"
+$Root = "$env:USERPROFILE\Zomboid\mods\ZeD-UI"
 $Out = "$Root\ZeDUI\qa\batch_night_20261105.txt"
 $Rep = "$Root\ZeDUI\qa\regression"
 function Note($s) { "$(Get-Date -Format HH:mm) $s" | Add-Content $Out }

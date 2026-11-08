@@ -21,9 +21,9 @@
     Exit codes: 0 every check passed, 1 a check failed or the run broke, 2 refused.
 #>
 param([switch]$Quit, [string]$ModOptionsKeep = "", [int]$IdleSec = 0)
-$Lua = "C:\Users\danie\Zomboid\Lua"
+$Lua = "$env:USERPROFILE\Zomboid\Lua"
 $QA = $PSScriptRoot
-$log = "C:\Users\danie\Zomboid\console.txt"
+$log = "$env:USERPROFILE\Zomboid\console.txt"
 $lock = Join-Path $Lua "zedqa.lock"
 $proc = Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $proc) { "the game is not running; start it first (zedqa_run.ps1 -KeepOpen)"; exit 2 }

@@ -5,7 +5,7 @@
 -- a running mod (ZeDQA_TestB) that Steam updated mid-session, which turns the
 -- strip into the restart case. Hot-reloads the two files first. Shoots each;
 -- grep "ZEDQA ws". Nothing is sent to Steam.
-local D = "C:/Users/danie/Zomboid/mods/ZeD-UI/42/media/lua/client/ZeD/"
+local D = tostring(getModInfoByID("ZeD_UI"):getDir()) .. "/42/media/lua/client/ZeD/"   -- (the mod's folder, as zedqa_staged_ver.lua prints it)
 reloadLuaFile(D .. "ZeD_ModScan.lua")
 reloadLuaFile(D .. "ZeD_MainMenuMods.lua")
 local MM = ZeD.MainMenu

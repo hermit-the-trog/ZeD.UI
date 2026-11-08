@@ -4,8 +4,8 @@ import os, sys
 from PIL import Image, ImageDraw, ImageEnhance
 sys.path.insert(0, r"C:\Temp\lead\thumb")
 G, K = 128, 8
-OUT = r"C:\Users\danie\Zomboid\ZeD_design_refs\thumbnail"
-SHOT = r"C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\Oct29_two_widths\zqa_tww_after_walkie.png"
+OUT = os.path.expanduser(r"~\Zomboid\ZeD_design_refs\thumbnail")
+SHOT = os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\ZeDUI\qa\Oct29_two_widths\zqa_tww_after_walkie.png")
 INK, WHT, GRY, LG = (16, 16, 16), (255, 255, 255), (136, 136, 136), (204, 204, 204)
 TEAL, TEALD = (31, 122, 98), (18, 78, 62)
 RED, YEL = (210, 36, 44), (240, 196, 40)

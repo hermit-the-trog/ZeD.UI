@@ -11,4 +11,4 @@
        0.47 MB  42/media/textures/ZeD/physpx/offair/tv_black@562/snow_1.png
        0.47 MB  42/media/textures/ZeD/physpx/offair/tv_black@562/snow_0.png
 
-WARNING: The staged copy now shadows the dev mod in the game: remove C:/Users/danie/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy.
+WARNING: The staged copy now shadows the dev mod in the game: remove %USERPROFILE%/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy.

@@ -191,7 +191,7 @@ Replace the role/font/slot table in the module docstring to reflect the new assi
 ## Step 3 — Run the Generator
 
 ```bash
-cd C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\fonts
+cd %USERPROFILE%\Zomboid\mods\ZeD-UI\42\media\fonts
 python generate_fonts.py
 ```
 

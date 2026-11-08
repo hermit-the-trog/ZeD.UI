@@ -6,8 +6,8 @@
 param([Parameter(Mandatory)][ValidateRange(1, 7)][int]$N)
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
-$lua = "C:\Users\danie\Zomboid\Lua"
-$scr = "C:\Users\danie\Zomboid\Screenshots"
+$lua = "$env:USERPROFILE\Zomboid\Lua"
+$scr = "$env:USERPROFILE\Zomboid\Screenshots"
 $stage = Join-Path $scr "gallery_b3a"
 New-Item -ItemType Directory -Force $stage | Out-Null
 $start = Get-Date

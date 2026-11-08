@@ -2,10 +2,10 @@
 # ZeDUI/tools/qa/batch_card_real.ps1  (Nov 6 2026, QA): zedqa_card_real.lua at 4K with the real-mouse helper beside it. The save and the options come back after.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Z = "C:\Users\danie\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Lua = "$Z\Lua"
 $Save = "$Z\Saves\Sandbox\ZeD-QA"
-$KeepSave = "C:\Users\danie\ZedQaSaveKeep_20261106"
+$KeepSave = "$env:USERPROFILE\ZedQaSaveKeep_20261106"
 $Opt = "$Z\options.ini"
 $KeepOpt = "$KeepSave.options.ini"
 $Shots = "$Z\Screenshots"

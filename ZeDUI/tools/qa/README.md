@@ -39,9 +39,9 @@ The bridge polls OnFETick at the main menu and OnRenderTick in game (so it also 
 `zedqa_run.ps1` runs the whole bridge library on its own and leaves a report, so keyboard-and-mouse QA can be replayed often at both of the director's setups. PowerShell 7, from any folder:
 
 ```powershell
-& C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1                     # 1920 x 1080 window (default)
-& C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1 -Mode fullscreen4k   # the director's 3840 x 2160 fullscreen
-& C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1 -Check              # read the manifest only: no lock, no game
+& %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1                     # 1920 x 1080 window (default)
+& %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1 -Mode fullscreen4k   # the director's 3840 x 2160 fullscreen
+& %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/zedqa_run.ps1 -Check              # read the manifest only: no lock, no game
 ```
 
 Other options: `-TimeoutSec 180` (per script), `-Manifest <file>`, `-Report <file.md>`, `-KeepOpen` (leave the game running at the end).

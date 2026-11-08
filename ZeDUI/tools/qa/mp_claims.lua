@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_claims.lua  (Nov 5 2026, QA): multiplayer Phase 3, safehouses and factions, on the local server.
--- grep "ZEDQA mcl", then the server's logs in C:\Users\danie\Zomboid\zedqa_mp\Logs (*_ZeD.txt: "safehouse |", "faction |").
+-- grep "ZEDQA mcl", then the server's logs in %USERPROFILE%\Zomboid\zedqa_mp\Logs (*_ZeD.txt: "safehouse |", "faction |").
 --   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"     (the shim carries ZeDQA.role)
 --   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_claims.txt
 -- It drives ZeD.Claims, which makes the game's own calls, and the server answers. PROBE lines are the things the code could

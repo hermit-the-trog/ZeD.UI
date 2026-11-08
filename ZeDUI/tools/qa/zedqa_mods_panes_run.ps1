@@ -29,9 +29,9 @@
     files and its ZeD_reset folder, quits the game.
     Holds Zomboid/Lua/zedqa.lock. Exit 0 every check passed, 1 a failure, 2 refused.
 #>
-$Lua = "C:\Users\danie\Zomboid\Lua"
+$Lua = "$env:USERPROFILE\Zomboid\Lua"
 $QA = $PSScriptRoot
-$Zomboid = "C:\Users\danie\Zomboid"
+$Zomboid = "$env:USERPROFILE\Zomboid"
 $log = Join-Path $Zomboid "console.txt"
 $lock = Join-Path $Lua "zedqa.lock"
 $DefaultMods = Join-Path $Zomboid "mods\default.txt"

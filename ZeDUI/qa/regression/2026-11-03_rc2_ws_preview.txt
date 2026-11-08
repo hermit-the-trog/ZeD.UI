@@ -2,7 +2,7 @@ ZEDQA wsp start
 ZEDQA wsp PASS the Workshop upload page opens
 ZEDQA wsp folders: ModTemplate, ZeD-UI
 ZEDQA wsp PASS the page is on the ZeD-UI folder
-ZEDQA wsp preview C:\Users\danie\Zomboid\Workshop\ZeD-UI\preview.png: 512 x 512
+ZEDQA wsp preview %USERPROFILE%\Zomboid\Workshop\ZeD-UI\preview.png: 512 x 512
 ZEDQA wsp PASS the picture reads 512 x 512
 ZEDQA wsp PASS the dot is green (a size the game takes)
 ZEDQA wsp the words: 512 x 512: a size the game takes. It must stay under 1000 KB.

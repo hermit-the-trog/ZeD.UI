@@ -6,7 +6,7 @@ $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\batch_known_issues_20261105.txt")
 $Rep = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression")
 function Note($s) { "$(Get-Date -Format HH:mm) $s" | Add-Content $Out }
 Note "multiplayer start"
-$Cache = "C:\Users\danie\Zomboid\zedqa_mp"
+$Cache = "$env:USERPROFILE\Zomboid\zedqa_mp"
 $Keep = Join-Path $env:TEMP "zedqa_mp_keep"
 New-Item -ItemType Directory -Force $Keep | Out-Null
 Copy-Item "$Cache\db\zedqa.db" "$Keep\zedqa.db" -Force
@@ -20,7 +20,7 @@ function RunMp($manifest, $tag, $extra = @{}) {
 try {
     & "$Qa\mp_server.ps1" -Start | Out-Null; Note "server up"
     RunMp "mp_deck.txt" "mp_deck" @{ Mode = "windowed"; Width = 1280; Height = 800 }
-    $s = "C:\Users\danie\Zomboid\Screenshots"; New-Item -ItemType Directory -Force "$s\mp_deck_20261105" | Out-Null; Move-Item "$s\mps_*.png" "$s\mp_deck_20261105\" -Force
+    $s = "$env:USERPROFILE\Zomboid\Screenshots"; New-Item -ItemType Directory -Force "$s\mp_deck_20261105" | Out-Null; Move-Item "$s\mps_*.png" "$s\mp_deck_20261105\" -Force
     RunMp "mp_plain.txt" "mp_plain"
     & "$Qa\mp_server.ps1" -Stop | Out-Null
     Copy-Item "$Keep\zedqa.db" "$Cache\db\zedqa.db" -Force

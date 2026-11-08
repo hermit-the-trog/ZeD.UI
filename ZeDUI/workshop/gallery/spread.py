@@ -485,13 +485,13 @@ def render(sp, screens, out_path):
 def load_spreads(path):
     """A folder of spreads (one NN_id.json each, plus _book.json with the screens folder) or one json file."""
     if os.path.isdir(path):
-        book = json.load(open(os.path.join(path, "_book.json"), encoding="utf-8"))
+        book = pp.expand_home(json.load(open(os.path.join(path, "_book.json"), encoding="utf-8")))
         sps = []
         for f in sorted(os.listdir(path)):
             if f.endswith(".json") and not f.startswith("_"):
-                sps.append(json.load(open(os.path.join(path, f), encoding="utf-8")))
+                sps.append(pp.expand_home(json.load(open(os.path.join(path, f), encoding="utf-8"))))
         return book["screens"], sps
-    spec = json.load(open(path, encoding="utf-8"))
+    spec = pp.expand_home(json.load(open(path, encoding="utf-8")))
     return spec["screens"], spec["spreads"]
 
 

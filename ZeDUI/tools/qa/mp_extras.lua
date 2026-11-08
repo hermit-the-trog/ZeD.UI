@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_extras.lua  (Nov 6 2026, QA): multiplayer Phase 6, the server extras, on the local server.
--- grep "ZEDQA mex", then the server's logs in C:\Users\danie\Zomboid\zedqa_mp\Logs (*_ZeD.txt: "admin | server extras", "vehicle |",
+-- grep "ZEDQA mex", then the server's logs in %USERPROFILE%\Zomboid\zedqa_mp\Logs (*_ZeD.txt: "admin | server extras", "vehicle |",
 -- "safehouse |", "container |"). A line "no ISxxx in this game" there means a class the wraps expect has gone.
 --   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"     (the shim carries ZeDQA.role)
 --   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_extras.txt

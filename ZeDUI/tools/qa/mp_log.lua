@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_log.lua  (Nov 6 2026, QA): multiplayer Phase 4, logs and accountability, on the local server. grep "ZEDQA mlg",
--- then the server's logs in C:\Users\danie\Zomboid\zedqa_mp\Logs (*_ZeD.txt: seven fields on every line).
+-- then the server's logs in %USERPROFILE%\Zomboid\zedqa_mp\Logs (*_ZeD.txt: seven fields on every line).
 --   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"     (the shim carries ZeDQA.role)
 --   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_log.txt
 -- PROBE lines are what the code could not settle: read them against MP_SERVER_PART_DESIGN.md's last section. The first is E2: a

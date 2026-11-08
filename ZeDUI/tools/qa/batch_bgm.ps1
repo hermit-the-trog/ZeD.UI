@@ -1,9 +1,9 @@
 #Requires -Version 7.0
 # ZeDUI/tools/qa/batch_bgm.ps1  (Nov 5 2026, QA): the real mouse on Butcher's bar with the staged copy in place (the bridge in for the run), the save put back.
 $Qa = $PSScriptRoot
-$Root = "C:\Users\danie\Zomboid\mods\ZeD-UI"
-$save = "C:\Users\danie\Zomboid\Saves\Sandbox\ZeD-QA"; $snap = Join-Path $env:TEMP "ZeD-QA.bars-snapshot"
-$dest = "C:\Users\danie\Zomboid\Workshop\ZeD-UI\Contents\mods\ZeD-UI\42\media\lua\client\ZeD"
+$Root = "$env:USERPROFILE\Zomboid\mods\ZeD-UI"
+$save = "$env:USERPROFILE\Zomboid\Saves\Sandbox\ZeD-QA"; $snap = Join-Path $env:TEMP "ZeD-QA.bars-snapshot"
+$dest = "$env:USERPROFILE\Zomboid\Workshop\ZeD-UI\Contents\mods\ZeD-UI\42\media\lua\client\ZeD"
 if (Test-Path $snap) { Remove-Item -Recurse -Force $snap }
 Copy-Item -Recurse $save $snap
 Copy-Item "$Root\42\media\lua\client\ZeD\QABridge.lua" $dest -Force

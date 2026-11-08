@@ -11,7 +11,7 @@
     Run it after zedqa_run.ps1 has finished and the game is closed. The picture lands in Zomboid/Screenshots.
     Exit 0 every script reached DONE, 1 a script did not, 2 refused (the game running or the lock busy).
 #>
-$Zomboid = "C:\Users\danie\Zomboid"
+$Zomboid = "$env:USERPROFILE\Zomboid"
 $Lua = Join-Path $Zomboid "Lua"
 $QA = $PSScriptRoot
 $log = Join-Path $Zomboid "console.txt"

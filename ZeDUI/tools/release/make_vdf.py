@@ -7,6 +7,7 @@ v = sys.argv[1]
 root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 w = os.path.join(root, "workshop")
 BS, Q = chr(92), chr(34)
+HOME = os.path.expanduser("~").replace(BS, "/")   # the user folder, forward slashes like the rest
 
 
 def read(name):
@@ -22,8 +23,8 @@ def esc(s):
 d = read("tester_description_%s.bbcode" % v)
 c = read("tester_changenote_%s.txt" % v)
 rows = [("appid", "108600"), ("publishedfileid", "3824968485"),
-        ("contentfolder", "C:/Users/danie/Zomboid/Workshop/ZeD-UI/Contents"),
-        ("previewfile", "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/thumbnail/year_1993_animated.gif"),
+        ("contentfolder", HOME + "/Zomboid/Workshop/ZeD-UI/Contents"),
+        ("previewfile", HOME + "/Zomboid/mods/ZeD-UI/ZeDUI/workshop/thumbnail/year_1993_animated.gif"),
         ("description", esc(d)), ("changenote", esc(c))]
 if len(sys.argv) > 2 and sys.argv[2] == "--note-only":   # (Nov 6 2026: Steam accepted this and posted no entry. A note only lands with a content upload.)
     rows = [r for r in rows if r[0] in ("appid", "publishedfileid", "changenote")]

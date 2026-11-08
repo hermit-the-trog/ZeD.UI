@@ -24,7 +24,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-$Z = "C:\Users\danie\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Lua = Join-Path $Z "Lua"
 $Lock = Join-Path $Lua "zedqa.lock"
 $Default = Join-Path $Z "mods\default.txt"

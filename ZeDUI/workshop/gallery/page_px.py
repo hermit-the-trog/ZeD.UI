@@ -150,6 +150,17 @@ def arrow(d, a, b, col, bend=0.18):
 
 
 # ---------------------------------------------------------------- one slide
+def expand_home(o):
+    """Paths in the shot lists are written %USERPROFILE%/Zomboid/...: expand them (strings that start with %, deep)."""
+    if isinstance(o, str):
+        return os.path.expandvars(o.replace("%USERPROFILE%", os.path.expanduser("~"))) if o.startswith("%") else o
+    if isinstance(o, list):
+        return [expand_home(x) for x in o]
+    if isinstance(o, dict):
+        return {k: expand_home(v) for k, v in o.items()}
+    return o
+
+
 def render(shot, screens, out):
     seed = shot.get("n", 1) * 97
     art, geom = art_layer(seed)
@@ -174,8 +185,9 @@ def render(shot, screens, out):
     # the figures: crop 0 on the left page, crop 1 on the right (more crops share a page later)
     src_cache = {}
     def get(name):
+        name = expand_home(name)
         p = name if os.path.isabs(name) or ":" in name[:3] else os.path.join(screens, name)
-        p = p.replace("C:/Users/danie/Zomboid/Screenshots", screens.rsplit("/", 1)[0]) if not os.path.exists(p) else p
+        p = p.replace(expand_home("%USERPROFILE%/Zomboid/Screenshots"), screens.rsplit("/", 1)[0]) if not os.path.exists(p) else p
         if p not in src_cache: src_cache[p] = Image.open(p).convert("RGB")
         return src_cache[p]
     crops = shot.get("crops", [])

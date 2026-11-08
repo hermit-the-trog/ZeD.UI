@@ -36,7 +36,7 @@
   ],
   "prints": [
    {
-    "src": "C:/Users/danie/Zomboid/Screenshots/gallery_beta2/zqa_m79_3840x2160_2_hover_row.png",
+    "src": "%USERPROFILE%/Zomboid/Screenshots/gallery_beta2/zqa_m79_3840x2160_2_hover_row.png",
     "box": [
      2640,
      40,
@@ -146,7 +146,7 @@
   ],
   "prints": [
    {
-    "src": "C:/Users/danie/Zomboid/Screenshots/gallery_beta2/zqa_m79_3840x2160_6_card_brake_step.png",
+    "src": "%USERPROFILE%/Zomboid/Screenshots/gallery_beta2/zqa_m79_3840x2160_6_card_brake_step.png",
     "box": [
      3070,
      105,

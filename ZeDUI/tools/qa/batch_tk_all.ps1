@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 # ZeDUI/tools/qa/batch_tk_all.ps1  (Nov 5 2026, QA): the restart pass again, then the controller walk and every card state at each size, the pictures moved by size.
 $Qa = $PSScriptRoot
-$Shots = "C:\Users\danie\Zomboid\Screenshots"
+$Shots = "$env:USERPROFILE\Zomboid\Screenshots"
 & "$Qa\batch_tk_restart.ps1" -NoBig
 function Move-Shots($to) { New-Item -ItemType Directory -Force "$Shots\$to" | Out-Null; Get-ChildItem $Shots -Filter "mt?_*.png" | Move-Item -Destination "$Shots\$to" -Force }
 & "$Qa\batch_tickets.ps1" -Runs "mp_tk_pad.txt:tk_pad:1280:800"; Move-Shots "tk_pad_deck"

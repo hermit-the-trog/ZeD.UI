@@ -4,8 +4,8 @@ import subprocess
 from pathlib import Path
 from PIL import Image, ImageOps
 
-SRC_DIR = Path(r"C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\icon_matcher\uicons-solid-straight\svg")
-OUT_DIR = Path(r"C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\icon_matcher\uicons-solid-straight\png")
+SRC_DIR = Path.home() / r"Zomboid\mods\ZeD-UI\ZeDUI\tools\icon_matcher\uicons-solid-straight\svg"
+OUT_DIR = Path.home() / r"Zomboid\mods\ZeD-UI\ZeDUI\tools\icon_matcher\uicons-solid-straight\png"
 
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 

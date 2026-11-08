@@ -2,7 +2,7 @@
 # ZeDUI/tools/qa/batch_tutorial.ps1  (Nov 6 2026, QA): the game's Tutorial started once on this build: launches with ZeD on, calls the game's own start, waits for the world, keeps
 # console.txt as qa/tutorial_console.txt, prints its error count and what mods it says loaded, and closes the game this script started. Mod list and lock put back.
 $ErrorActionPreference = "Stop"
-$Z = "C:\Users\danie\Zomboid"; $Lua = "$Z\Lua"; $Lock = "$Lua\zedqa.lock"; $Default = "$Z\mods\default.txt"; $Console = "$Z\console.txt"
+$Z = "$env:USERPROFILE\Zomboid"; $Lua = "$Z\Lua"; $Lock = "$Lua\zedqa.lock"; $Default = "$Z\mods\default.txt"; $Console = "$Z\console.txt"
 $GameDir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
 $Utf8 = New-Object System.Text.UTF8Encoding($false)
 function WriteT($p, $t) { [IO.File]::WriteAllText($p, $t, $Utf8) }

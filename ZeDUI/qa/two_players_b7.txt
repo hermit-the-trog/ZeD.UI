@@ -4,7 +4,7 @@
 04:59:57 set DoLuaChecksum=false
 04:59:57 set SafehouseAllowNonResidential=true
 05:00:29 server up
-05:01:36 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_start.md
+05:01:36 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_start.md
 05:04:51 ZEDQA acm PASS a safehouse held (zedqa)
 05:04:51 ZEDQA acm DONE
 05:05:32 second client joining as bob
@@ -39,7 +39,7 @@
 05:09:40 ZEDQA adb member of bob
 05:09:40 ZEDQA adb DONE
 05:09:42 second client stopped
-05:09:44 server ZeD log C:\Users\danie\Zomboid\zedqa_mp\Logs\2026-11-07_04-59_ZeD.txt:
+05:09:44 server ZeD log %USERPROFILE%\Zomboid\zedqa_mp\Logs\2026-11-07_04-59_ZeD.txt:
 05:09:44   [07-11-26 05:01:51.600] safehouse | claim | zedqa | - | 10784,10027 | - | day 1.
 05:09:44   [07-11-26 05:08:40.697] safehouse | release | zedqa | - | 10784,10027 | - | day 1.
 05:09:44   [07-11-26 05:08:40.697] safehouse | claim | bob | - | 10784,10027 | - | day 1.

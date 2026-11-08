@@ -163,8 +163,8 @@ def preview(body, out_layers, path, scale=3, cond=None):
 
 def compare(body, out_layers, path):
     import glob as _g
-    MOD = r"C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\textures\ZeD\mech"
-    MF = open(r"C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\lua\client\ZeD\MechFigs.lua", encoding="utf-8").read()
+    MOD = os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\42\media\textures\ZeD\mech")
+    MF = open(os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\42\media\lua\client\ZeD\MechFigs.lua"), encoding="utf-8").read()
     import re
     rects = {k: tuple(map(int, v)) for k, *v in re.findall(r'\["([A-Za-z0-9_]+)"\] = \{ x = (\d+), y = (\d+), w = (\d+), h = (\d+)', MF)}
     U = rects[body + "_base"]

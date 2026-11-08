@@ -6,7 +6,7 @@ Mockup: `ZeDUI/mockups/zed_cohesion_v1.html` (its JS draws the intended looks).
 
 ## Rules for every phase 2 builder
 
-- Work only in `C:\Users\danie\ZeD-cohesion` (branch `cohesion`). Never touch `C:\Users\danie\Zomboid\mods\ZeD-UI`.
+- Work only in `%USERPROFILE%\ZeD-cohesion` (branch `cohesion`). Never touch `%USERPROFILE%\Zomboid\mods\ZeD-UI`.
   Never launch the game. Never commit. Edit only the files of your group; if a fix needs another file, list it.
 - Library files are finished for this phase (`Atoms.lua`, `AtomExtensions.lua`, `Molecules.lua`, `Organisms.lua`,
   `Input/FocusManager.lua`, `ZeD_FocusPaint.lua`, `ZeD_Surface.lua`, `ZeD_WindowMenu.lua`, `Tokens.lua`, `Settings.lua`):

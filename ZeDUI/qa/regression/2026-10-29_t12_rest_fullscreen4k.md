@@ -9,11 +9,11 @@
 | Game build | 42.22.0 e013dbb529 |
 | Mod version | 0.1.1242300k |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/t12_rest.txt (23 scripts) |
+| Manifest | %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/t12_rest.txt (23 scripts) |
 | Result | **17/23 pass**, 0 warn, 1 fail, 0 timeout, 5 not run |
 | Go numbers | 16231 to 16251 |
 
-Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -24,7 +24,7 @@ Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - stopped after zedqa_dash_green.lua: the game dropped to the main menu during this script
 - quit: the game was still running after the quit (go 16249, 16250, 16251); close it by hand
-- ZeD settings NOT put back (the game is still running): copy C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-29_t12_rest_fullscreen4k.md.modoptions.ini over C:\Users\danie\Zomboid\Lua\ModOptions.ini once it has closed
+- ZeD settings NOT put back (the game is still running): copy %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-29_t12_rest_fullscreen4k.md.modoptions.ini over %USERPROFILE%\Zomboid\Lua\ModOptions.ini once it has closed
 
 ## Results
 

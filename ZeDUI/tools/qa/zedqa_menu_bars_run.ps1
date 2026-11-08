@@ -6,7 +6,7 @@
 param([int]$Width = 0, [int]$Height = 0, [switch]$Large, [int]$TimeoutSec = 400, [string]$ModList = "")   # (-ModList: default.txt for the run, so the load order runs over)
 $ErrorActionPreference = "Stop"
 $U = New-Object System.Text.UTF8Encoding($false)
-$Z = "C:\Users\danie\Zomboid"; $Lua = "$Z\Lua"; $Lock = "$Lua\zedqa.lock"; $MO = "$Lua\ModOptions.ini"; $Con = "$Z\console.txt"
+$Z = "$env:USERPROFILE\Zomboid"; $Lua = "$Z\Lua"; $Lock = "$Lua\zedqa.lock"; $MO = "$Lua\ModOptions.ini"; $Con = "$Z\console.txt"
 $GameDir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
 $tag = $(if ($Width -gt 0) { "${Width}x$Height" } else { "4k" })
 $Out = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\qa\menu_bars_$tag.log")

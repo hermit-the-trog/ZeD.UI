@@ -6,7 +6,7 @@
 param([Parameter(Mandatory)][string]$Pick, [int]$TimeoutSec = 420)
 $ErrorActionPreference = "Stop"
 $U = New-Object System.Text.UTF8Encoding($false)
-$Z = "C:\Users\danie\Zomboid"; $Lua = "$Z\Lua"; $Lock = "$Lua\zedqa.lock"; $Default = "$Z\mods\default.txt"; $MO = "$Lua\ModOptions.ini"; $Con = "$Z\console.txt"; $Latest = "$Z\latestSave.ini"
+$Z = "$env:USERPROFILE\Zomboid"; $Lua = "$Z\Lua"; $Lock = "$Lua\zedqa.lock"; $Default = "$Z\mods\default.txt"; $MO = "$Lua\ModOptions.ini"; $Con = "$Z\console.txt"; $Latest = "$Z\latestSave.ini"
 $GameDir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
 $Out = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\qa\tiyl_$($Pick -replace ' ','_').log")
 function W($p, $t) { [IO.File]::WriteAllText($p, $t, $U) }

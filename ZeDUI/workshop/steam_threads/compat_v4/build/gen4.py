@@ -7,7 +7,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 os.chdir(HERE)
 exec(open(os.path.join(HERE, "gen.py"), encoding="utf-8").read().split("posts = {}")[0])
 from r3notes import N3, T7
-OUT = r"C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\workshop\steam_threads\compat_v4"
+OUT = os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\ZeDUI\workshop\steam_threads\compat_v4")
 LIMIT = 7800
 
 # v3 notes that changed with 0.2.0-t6 / t7
