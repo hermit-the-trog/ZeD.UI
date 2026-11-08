@@ -182,9 +182,12 @@ end
 
 if not _G._zedRestockPinHooked then
     _G._zedRestockPinHooked = true
-    local n = 0
+    -- by the clock, not by frames (the old 15 ticks at 60 a second)
+    local last = 0
     Events.OnTick.Add(function()
-        n = n + 1
-        if n % 15 == 0 then pcall(ZeD.RestockPin.update) end
+        local now = getTimestampMs()
+        if now - last < 250 then return end
+        last = now
+        pcall(ZeD.RestockPin.update)
     end)
 end
