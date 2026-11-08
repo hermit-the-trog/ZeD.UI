@@ -32,6 +32,19 @@ require "ZeD/SafeMode"
 -- In safe mode (SafeMode.lua) every hook below hands straight to vanilla's own
 -- function, so the game's menu opens and draws as it would without ZeD.
 
+-- The functions these hooks wrap, kept once: a Lua reload runs this file again,
+-- and without the stash each hook would wrap the one before it (Nov 8 2026)
+local V = ISContextMenu._zedVanilla
+if not V then
+    V = {
+        get = ISContextMenu.get, clear = ISContextMenu.clear,
+        prerender = ISContextMenu.prerender, render = ISContextMenu.render,
+        worldCreateMenu = ISWorldObjectContextMenu.createMenu,
+        invCreateMenu = ISInventoryPaneContextMenu.createMenu,
+    }
+    ISContextMenu._zedVanilla = V
+end
+
 -- Is the user actively driving with a gamepad RIGHT NOW?
 --
 -- Do NOT use `JoypadState.players[player+1]` for this — it's truthy whenever
@@ -155,7 +168,7 @@ end
 -- mods) kept the LAST menu's anchor and target, and opened wherever the
 -- previous menu had been.
 -- ---------------------------------------------------------------------------
-local origGet = ISContextMenu.get
+local origGet = V.get
 ISContextMenu.get = function(player, x, y)
     if ZeD.Safe.on() then return origGet(player, x, y) end
     local context = origGet(player, x, y)
@@ -173,7 +186,7 @@ end
 -- ISWorldObjectContextMenu.createMenu is the B42.16+ convergence point for
 -- both mouse RMB and the gamepad X button.
 -- ---------------------------------------------------------------------------
-local origWorldCreateMenu = ISWorldObjectContextMenu.createMenu
+local origWorldCreateMenu = V.worldCreateMenu
 function ISWorldObjectContextMenu.createMenu(player, worldobjects, x, y, test)
     if ZeD.Safe.on() then return origWorldCreateMenu(player, worldobjects, x, y, test) end
     local menu = origWorldCreateMenu(player, worldobjects, x, y, test)
@@ -211,7 +224,7 @@ end
 -- S99: gamepad anchors at the selected item's screen row (instead of
 -- dock-bottom). Falls back to dock if we can't resolve the row position.
 -- ---------------------------------------------------------------------------
-local origInvCreateMenu = ISInventoryPaneContextMenu.createMenu
+local origInvCreateMenu = V.invCreateMenu
 function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y, origin)
     -- (origin: vanilla's sixth argument, passed through as it came)
     if ZeD.Safe.on() then return origInvCreateMenu(player, isInInv, items, x, y, origin) end
@@ -249,7 +262,7 @@ end
 -- This is our signal to forget any previously-spawned ZeD menu and let the
 -- next prerender frame build a fresh one.
 -- ---------------------------------------------------------------------------
-local origClear = ISContextMenu.clear
+local origClear = V.clear
 function ISContextMenu:clear()
     origClear(self)
     self._zedSpawned = false
@@ -268,7 +281,7 @@ end
 -- the ZeD organism and hides the vanilla menu offscreen. Subsequent frames
 -- are a no-op — vanilla stays offscreen, ZeD menu handles all input.
 -- ---------------------------------------------------------------------------
-local origPrerender = ISContextMenu.prerender
+local origPrerender = V.prerender
 function ISContextMenu:prerender()
     if ZeD.Safe.on() then return origPrerender(self) end
     -- Submenu instances — these are the child ISContextMenu objects vanilla
@@ -368,7 +381,7 @@ end
 -- off-screen, but short-circuiting render saves a bunch of wasted work on
 -- the blink animation + slide update + tooltip sub-lifecycle.
 -- ---------------------------------------------------------------------------
-local origRender = ISContextMenu.render
+local origRender = V.render
 function ISContextMenu:render()
     if ZeD.Safe.on() then return origRender(self) end
     if self._zedSpawned and not self._zedFailed and not self:isEmpty() then
