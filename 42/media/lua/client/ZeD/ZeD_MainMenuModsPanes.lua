@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuModsPanes.lua
 -- ============================================================================
--- THE MODS SCREEN'S INFO PANE TABS AND THE FILE PICKER (director, Oct 24 2026;
--- mockup zed_mods_settings_picks_v1, approved: "build the Mods screen changes as
--- the mockup shows")
+-- THE MODS SCREEN'S INFO PANE TABS AND THE FILE PICKER. Client-side; part of
+-- the ZeD_MMMods organism (it extends the class ZeD_MainMenuMods.lua builds).
 --
 -- The info pane (ZeD_MainMenuMods drawDetail) gets folder tabs under the mod's
 -- name: About (what it showed before), Options (the mod's own options, changed
@@ -46,7 +45,7 @@ local function jlist(l)
     return t
 end
 
--- the help band's height (three lines of the body font, as the Options window's)
+--- The help band's height (three lines of the body font, as the Options window's).
 function ZeD_MMMods:helpBandH()
     local T = ZeD.T
     return math.max(T.px(HELP_MIN_H), T.px(14) + 3 * (MM.fontH(T.fontF2) + T.px(3)))
@@ -72,7 +71,7 @@ function ZeD_MMMods:detailTabs(d)
     }
 end
 
--- the tab strip at cy across the pane; returns the y under it
+--- The tab strip at cy across the pane; returns the y under it.
 function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -83,7 +82,7 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
     self.dtab = self.dtab or "about"
     -- (the Simple view: About only, no tabs)
     if self:simple() then self.dtab = "about"; return cy end
-    -- the tabs fit the pane (QA Nov 4 2026, the Deck at Large text: Conflicts was cut): tighter padding, then gaps
+    -- the tabs fit the pane (on the Deck at Large text, Conflicts was cut): tighter padding, then gaps
     local list = self:detailTabs(d)
     local padX, gap = T.sp.tabPadX, T.sp.tabGap
     local texts, need = {}, 0
@@ -133,7 +132,7 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
     return cy + th + T.px(TAB_GAP_Y)
 end
 
--- a line of dim text for a tab with nothing to show
+--- A line of dim text for a tab with nothing to show.
 function ZeD_MMMods:paneNote(text, ix, iw, cy, color)
     local T = ZeD.T
     local dsz = T.px(7)
@@ -174,7 +173,7 @@ function ZeD_MMMods:pickColor(col)
     MM.clickSound()
 end
 
--- the palette over the window (render, after everything)
+--- The palette over the window (render, after everything).
 function ZeD_MMMods:drawPalette()
     local p = self._palette
     if not p then return end
@@ -204,7 +203,7 @@ function ZeD_MMMods:drawPalette()
     self._paletteRect = { x = ax + px, y = ay + py, w = pw, h = ph }
 end
 
--- a click outside the palette closes it
+--- A click outside the palette closes it.
 function ZeD_MMMods:paletteWatch()
     if self._palette and isMouseButtonDown(0) and not self._palDown then
         local r = self._paletteRect
@@ -281,6 +280,7 @@ function ZeD_MMMods:drawOptionRow(e, i, ix, iw, cy, vy, vh)
     return cy + rh
 end
 
+--- The Options tab: the mod's own options changed in place, its settings files, and Reset.
 function ZeD_MMMods:drawOptionsTab(d, ix, iw, cy, vy, vh)
     local T = ZeD.T
     local f1, f2 = T.fontF1, T.fontF2
@@ -403,7 +403,7 @@ function ZeD_MMMods:askReset(d)
     self:setConfirm("reset")
 end
 
--- the band while it asks (Cancel and Reset)
+--- The band while Reset settings asks (Cancel and Reset).
 function ZeD_MMMods:resetStrip(stripY, w, row)
     local T = ZeD.T
     local d = self._resetFor
@@ -470,6 +470,7 @@ end
 -- ----------------------------------------------------------------------------
 -- SANDBOX
 -- ----------------------------------------------------------------------------
+--- The Sandbox tab: the settings the mod adds to each game, read-only, with where they are chosen.
 function ZeD_MMMods:drawSandboxTab(d, ix, iw, cy, vy, vh)
     local T = ZeD.T
     local f1, f2 = T.fontF1, T.fontF2
@@ -518,7 +519,7 @@ function ZeD_MMMods:drawSandboxTab(d, ix, iw, cy, vy, vh)
     return cy + T.px(8)
 end
 
--- the band at the pane's foot: the row under the pointer, or the controller's
+--- The band at the pane's foot: the row under the pointer, or the controller's.
 function ZeD_MMMods:drawHelpBand(x, y, w, h)
     local T = ZeD.T
     ZeD.Surface.fill(self, x + T.px(1), y, w - 2 * T.px(1), h - T.px(1), "surf2")
@@ -568,7 +569,7 @@ end
 -- the files of a conflict, as the picker lists them
 local function thingsOf(e) local t = {}; for _, p in ipairs(e.things) do t[#t + 1] = p end; return t end
 
--- the picker can open: a file conflict whose copies differ, both mods on and loaded, the helper there
+--- The picker can open: a file conflict whose copies differ, both mods on and loaded, the helper there.
 function ZeD_MMMods:canPick(e)
     if e.kind ~= "file" or e.sameAll then return false end
     if not P.helper() then return false end
@@ -577,7 +578,7 @@ function ZeD_MMMods:canPick(e)
     return a and b and a.isActive and b.isActive and MS.isLoaded(e.loser) and MS.isLoaded(e.winner) and true or false
 end
 
--- the card for a conflict settled by picks (or the same-text note); returns the y under it, or nil
+--- The card for a conflict settled by picks (or the same-text note); returns the y under it, or nil.
 function ZeD_MMMods:drawConflictExtra(e, i, d, ix, iw, cy, vy, vh)
     local T = ZeD.T
     local f2, f3 = T.fontF2, T.fontF3
@@ -621,6 +622,7 @@ end
 -- ----------------------------------------------------------------------------
 -- THE PICKER (page "picks")
 -- ----------------------------------------------------------------------------
+--- Open the picker page for conflict e: every Lua file the two mods share, a choice per file.
 function ZeD_MMMods:enterPicks(e)
     MM.clickSound()
     MM.ctx.open = nil
