@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "Acest server nu poate primi raportarea unei scrisori.",
     "UI_ZeD_Mail_Connecting": "Conectare... trimit %1, primesc %2",
     "UI_ZeD_Tk_ReportedLetter": "Scrisoarea raportată",
-    "UI_ZeD_Tk_LetterWhose": "Așa cum a primit-o jucătorul."
+    "UI_ZeD_Tk_LetterWhose": "Așa cum a primit-o jucătorul.",
+    "UI_ZeD_Card_MakesTitle": "Folosit pentru a face",
+    "UI_ZeD_Card_MakesHelp": "Deschide rețeta în fila Meșteșug sau Construcție.",
+    "UI_ZeD_Card_MakesMore": "încă %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Deschide fila Meșteșug cu acest obiect în căutare.",
+    "UI_ZeD_Skills_UnlockHead": "Rețete care cer fiecare nivel",
+    "UI_ZeD_Skills_UnlockLevel": "Nivelul %1",
+    "UI_ZeD_Skills_UnlockMore": "și încă %1",
+    "UI_ZeD_Settings_AutoLearn": "Rețete învățate prin abilități",
+    "UI_ZeD_Settings_AutoLearnTip": "Cardul abilității arată și rețetele pe care jocul ți le învață singur când o abilitate atinge un nivel. Oprit: ca jocul, care nu spune.",
+    "UI_ZeD_Skills_TaughtHead": "Învățate singure la fiecare nivel"
 }

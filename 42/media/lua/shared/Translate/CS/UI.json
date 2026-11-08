@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "Tento server nepřijímá nahlášení dopisu.",
     "UI_ZeD_Mail_Connecting": "Připojování... odesílání %1, příjem %2",
     "UI_ZeD_Tk_ReportedLetter": "Nahlášený dopis",
-    "UI_ZeD_Tk_LetterWhose": "Tak, jak ho hráč obdržel."
+    "UI_ZeD_Tk_LetterWhose": "Tak, jak ho hráč obdržel.",
+    "UI_ZeD_Card_MakesTitle": "Použije se k výrobě",
+    "UI_ZeD_Card_MakesHelp": "Otevře recept na kartě Výroba nebo Stavba.",
+    "UI_ZeD_Card_MakesMore": "%1 dalších",
+    "UI_ZeD_Card_MakesMoreHelp": "Otevře kartu Výroba s tímto předmětem ve vyhledávání.",
+    "UI_ZeD_Skills_UnlockHead": "Recepty, které vyžadují danou úroveň",
+    "UI_ZeD_Skills_UnlockLevel": "Úroveň %1",
+    "UI_ZeD_Skills_UnlockMore": "a %1 dalších",
+    "UI_ZeD_Settings_AutoLearn": "Recepty, které učí dovednosti",
+    "UI_ZeD_Settings_AutoLearnTip": "Karta dovednosti uvádí i recepty, které tě hra naučí sama, když dovednost dosáhne úrovně. Vypnuto: jako ve hře, která to neříká.",
+    "UI_ZeD_Skills_TaughtHead": "Naučí se samo na každé úrovni"
 }

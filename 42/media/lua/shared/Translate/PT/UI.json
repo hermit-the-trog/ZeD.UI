@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "Este servidor não aceita a denúncia de uma carta.",
     "UI_ZeD_Mail_Connecting": "A ligar... a enviar %1, a receber %2",
     "UI_ZeD_Tk_ReportedLetter": "A carta denunciada",
-    "UI_ZeD_Tk_LetterWhose": "Como o jogador a recebeu."
+    "UI_ZeD_Tk_LetterWhose": "Como o jogador a recebeu.",
+    "UI_ZeD_Card_MakesTitle": "Serve para fazer",
+    "UI_ZeD_Card_MakesHelp": "Abre a receita no separador Fabricar ou Construir.",
+    "UI_ZeD_Card_MakesMore": "mais %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Abre o separador Fabricar com este objeto na pesquisa.",
+    "UI_ZeD_Skills_UnlockHead": "Receitas que precisam de cada nível",
+    "UI_ZeD_Skills_UnlockLevel": "Nível %1",
+    "UI_ZeD_Skills_UnlockMore": "e mais %1",
+    "UI_ZeD_Settings_AutoLearn": "Receitas que as perícias ensinam",
+    "UI_ZeD_Settings_AutoLearnTip": "O cartão da perícia mostra também as receitas que o jogo te ensina sozinho quando uma perícia atinge um nível. Desligado: como o jogo, que não o diz.",
+    "UI_ZeD_Skills_TaughtHead": "Aprendidas sozinhas em cada nível"
 }

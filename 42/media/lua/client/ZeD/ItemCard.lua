@@ -12,6 +12,12 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 ZeD = ZeD or {}
 ZeD_ItemCard = ISPanel:derive("ZeD_ItemCard")
+ZeD.ItemCard = ZeD.ItemCard or {}
+-- A body row is a controller stop only while all of it is inside the body's view (card-local top..bottom)
+function ZeD.ItemCard.rowInView(y, h, top, bottom)
+    if not (top and bottom) then return true end
+    return y >= top and y + h <= bottom
+end
 
 local safeGet = ZeD.Atoms.safeGet
 
@@ -1350,6 +1356,18 @@ function ZeD_ItemCard:_pointer()
     end
     self._zoneDockWasDown = down
 
+    -- The recipes it makes (punch list 109): released on a row, that recipe in the Craft tab
+    do
+        local hit = nil
+        for _, r in ipairs(self._makeRects or {}) do
+            if r.y + r.h > bodyTop and r.y < bodyBot and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h then
+                hit = r
+            end
+        end
+        if self._makeWasDown and not down and hit and hit.press then hit.press() end
+        self._makeWasDown = down and (hit ~= nil)
+    end
+
     -- Scrollbar hover/drag
     if self._sb and self._sb.visible then
         local sbMx = mx - self:getAbsoluteX()
@@ -1751,6 +1769,18 @@ function ZeD_ItemCard:getZoneDockElements()
             onActivate = function() card:_onZonePress(zIdx, zone, rect) end,
         }
     end
+    -- the recipes it makes (punch list 109): A opens the recipe, as a press does. Only the rows inside the body
+    -- (drawMakes stamps inView): one scrolled out of sight is no stop, so Down scrolls the card on (gpDpad) and
+    -- the next rows join as they come into view.
+    for _, rect in ipairs(self._makeRects or {}) do
+        local eid, press = rect.id, rect.press
+        if rect.inView then els[#els + 1] = {
+            x = rect.x, y = rect.y, w = rect.w, h = rect.h,
+            id = eid,
+            onFocus    = function() card._gpFocusedBtnId = eid end,
+            onActivate = function() if press then press() end end,
+        } end
+    end
     return els
 end
 
@@ -1810,6 +1840,9 @@ function ZeD_ItemCard:getDisclosureYs()
         local contentY = panelY + scrollOff
         ys[#ys + 1] = contentY
     end
+    -- the "Used to make" section's title (punch list 109; absolute, stamped by drawMakes)
+    if self._makesSecY then ys[#ys + 1] = self._makesSecY - ay + scrollOff end
+    table.sort(ys)
     return ys
 end
 

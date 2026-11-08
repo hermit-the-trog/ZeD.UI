@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "Questo server non può ricevere la segnalazione di una lettera.",
     "UI_ZeD_Mail_Connecting": "Collegamento... invio %1, ricezione %2",
     "UI_ZeD_Tk_ReportedLetter": "La lettera segnalata",
-    "UI_ZeD_Tk_LetterWhose": "Così come l'ha ricevuta il giocatore."
+    "UI_ZeD_Tk_LetterWhose": "Così come l'ha ricevuta il giocatore.",
+    "UI_ZeD_Card_MakesTitle": "Serve a fare",
+    "UI_ZeD_Card_MakesHelp": "Apre la ricetta nella scheda Crea o Costruisci.",
+    "UI_ZeD_Card_MakesMore": "altre %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Apre la scheda Crea con questo oggetto nella ricerca.",
+    "UI_ZeD_Skills_UnlockHead": "Ricette che richiedono ogni livello",
+    "UI_ZeD_Skills_UnlockLevel": "Livello %1",
+    "UI_ZeD_Skills_UnlockMore": "e altre %1",
+    "UI_ZeD_Settings_AutoLearn": "Ricette insegnate dalle abilità",
+    "UI_ZeD_Settings_AutoLearnTip": "La scheda dell'abilità elenca anche le ricette che il gioco ti insegna da solo quando un'abilità raggiunge un livello. Disattivato: come il gioco, che non lo dice.",
+    "UI_ZeD_Skills_TaughtHead": "Imparate da sole a ogni livello"
 }
