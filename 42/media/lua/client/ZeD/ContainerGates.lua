@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ContainerGates.lua
 -- ============================================================================
--- CONTAINER GATES (a general hook for other mods)
+-- CONTAINER GATES (client; a general hook for other mods)
 --
 -- A mod that hides a container's contents until something happens (a search,
 -- a lock of its own) changes what the game's inventory and loot pages list,
@@ -58,9 +58,10 @@ local function logOnce(id, err)
     end
 end
 
+--- Registers a gate under id (the header has fn's contract); same id replaces.
 function G.add(id, fn) addTo(G.gates, id, fn) end
 
--- The gate for one container, or nil.
+--- The gate for one container, or nil.
 function G.get(inv, playerObj)
     local list = G.gates
     if #list == 0 or not inv then return nil end
@@ -75,7 +76,7 @@ function G.get(inv, playerObj)
     return nil
 end
 
--- Does an item show in this container's list?
+--- Does an item show in this container's list?
 function G.keeps(gate, item)
     if not gate then return true end
     local k = gate.keep
@@ -84,7 +85,7 @@ function G.keeps(gate, item)
     return ok and yes and true or false
 end
 
--- How many things the list shows (the container's own count with no gate).
+--- How many things the list shows (the container's own count with no gate).
 function G.count(inv, playerObj)
     local items = inv and inv:getItems()
     if not items then return 0 end
@@ -102,19 +103,19 @@ function G.count(inv, playerObj)
     return n
 end
 
--- The gate's words in place of the weight line, or nil.
+--- The gate's words in place of the weight line, or nil.
 function G.status(inv, playerObj)
     local gate = G.get(inv, playerObj)
     return gate and gate.status or nil
 end
 
--- The gate's empty line, or nil.
+--- The gate's empty line, or nil.
 function G.emptyText(inv, playerObj)
     local gate = G.get(inv, playerObj)
     return gate and gate.empty or nil
 end
 
--- Does a gate refuse things put into this container?
+--- Does a gate refuse things put into this container?
 function G.refuses(inv, playerObj)
     local gate = G.get(inv, playerObj)
     return gate ~= nil and gate.refuse == true
@@ -123,6 +124,7 @@ end
 -- ----------------------------------------------------------------------------
 -- A CONTAINER PICKED: what the lists show, frame by frame
 -- ----------------------------------------------------------------------------
+--- Registers a picked-a-container hook (the header has fn's contract).
 function G.addChosen(id, fn)
     addTo(G.chosen, id, fn)
     if not G._ticking and Events and Events.OnPreUIDraw then
@@ -133,7 +135,7 @@ end
 
 local function wipe(t) for k in pairs(t) do t[k] = nil end end
 
--- Called by the list renderer for each container it draws (InventoryRenderer).
+--- Called by the list renderer for each container it draws (InventoryRenderer).
 function G.seen(panel, inv, playerObj)
     local list = G.chosen
     if #list == 0 or not (panel and inv) then return end
