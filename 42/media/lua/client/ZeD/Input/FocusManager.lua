@@ -251,6 +251,13 @@ local function _fireCbR(fnName, fn, w, ...)
     return result
 end
 
+-- Nov 8 2026 (the performance review, 14): a window whose tab stops wait while the mouse is in use (Focus.stopsMayWait)
+-- brings them up to date through w._focusFresh before anything here reads them: a press, a landing, the stop list
+local function _fresh(w)
+    local fn = w and w._focusFresh
+    if fn then _fireCb("window.focusFresh", fn, w) end
+end
+
 -- ---------------------------------------------------------------------------
 -- CUES: does the controller's focus mark show?
 -- The focus marks (ZeD.Focus, ZeD_FocusPaint.lua) show only while the pad is in
@@ -607,6 +614,7 @@ end
 -- ---------------------------------------------------------------------------
 
 function Focus.focusWhere(w, zoneName, pred)
+    _fresh(w)
     if not (w and w._focusRing) then return nil end
     for zi, z in ipairs(w._focusRing) do
         if z.zone == zoneName and z.focusable then
@@ -641,6 +649,7 @@ local function _focusLive(w)
 end
 
 function Focus.ensureEntry(w)
+    _fresh(w)
     if not (w and w._focusRing) then return end
     local live = _focusLive(w)
     if live and not w._focusPendingEntry then return end
@@ -1183,6 +1192,7 @@ end
 -- D-pad: pseudo-focusable onDpadDir intercept first (cursor movement, grid
 -- scroll), else flat cone-nav across all focusable zones.
 local function _handleSpatialNav(w, dir)
+    _fresh(w)
     if not w or not w._focusRing then return end
 
     -- S113c: X-HOLD DRAG INTERCEPT. If X is held past threshold AND the
@@ -1630,6 +1640,7 @@ end
 
 function Focus.dispatchJoypadDown(w, button, joypadData)
     if not w then return end
+    _fresh(w)
     _showCues()
     local actions = ZeD.Input.Action and ZeD.Input.Action.fromGamepadButton
                     and ZeD.Input.Action.fromGamepadButton(button)
@@ -1707,11 +1718,35 @@ end
 function Focus.focusPrimarySoon(w, zoneName, delay)
     _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, primary = true, tries = 60, delay = delay or 0 }
 end
+
+-- Nov 8 2026 (the performance review, 14): whether a landing waits on window w's stops (the calls above)
+function Focus.soonPending(w)
+    for i = 1, #_focusSoon do
+        if _focusSoon[i].w == w then return true end
+    end
+    return false
+end
+
+-- Whether window w's tab stops may wait a frame (the World and Character windows rebuild them every frame): the
+-- mouse and keyboard in use (the detector says "kbm", not "unknown"), no focus mark showing, no landing waiting for
+-- the stops (focusByIdSoon and the like) and none a tab named for its next rebuild (the card jump on Craft and
+-- Build, the new zone and the breadcrumb on Animals, the vehicle's target), so what a rebuild does with those comes
+-- on the frame it always did. Anything here that reads the stops brings them up to date first (w._focusFresh).
+function Focus.stopsMayWait(w)
+    local D = ZeD.Input.Detector
+    if not (w and D and D.getMode and D.getMode() == "kbm") then return false end
+    if _cuesOn or Focus.soonPending(w) then return false end
+    if w._mechFocusTarget or w._animalsFocusAfterCreate or w._animalsNavFocusTarget then return false end
+    local cs, bs = w._craftState, w._buildState
+    if (cs and cs._gpPendingCardJump) or (bs and bs._gpPendingCardJump) then return false end
+    return true
+end
 local function _focusSoonTick()
     if #_focusSoon == 0 then return end
     for i = #_focusSoon, 1, -1 do
         local f = _focusSoon[i]
         local done = false
+        _fresh(f.w)
         if f.delay and f.delay > 0 then
             f.delay = f.delay - 1
         else
@@ -1752,6 +1787,7 @@ end
 -- the window as the D-pad sees it, window-local: { zone, zi, ei, id, x, y,
 -- w, h, el } in flat order.
 function Focus.flatElements(w)
+    _fresh(w)
     local elements, locator = _collectFlat(w)
     local out = {}
     for i, t in ipairs(elements) do

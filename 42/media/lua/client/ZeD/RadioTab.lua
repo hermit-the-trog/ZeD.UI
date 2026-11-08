@@ -1019,6 +1019,13 @@ end
 -- O: renderDrawer — brand dispatch
 ----------------------------------------------------------------------
 function renderDrawer(panel, x, y, w, h, win, radioEntry)
+    -- (Nov 8 2026, code flags: each module clears only its own click rects, and a module the chassis skips (the CD
+    -- player on a ValuTech, any module the height leaves out) kept the last radio's: a click there worked the CD
+    -- transport of the wrong radio and the controller had stops on nothing. Every module's rects go first, each frame.)
+    if win then
+        win._radioPwrZone, win._radioSeekBtnZones, win._radioVolBtnZones = nil, nil, nil
+        win._radioPresetZones, win._radioPresetAddZone, win._radioCDZones = nil, nil, nil
+    end
     if radioEntry == nil or radioEntry.deviceData == nil then
         -- Defensive: caller already checked but guard anyway.
         return

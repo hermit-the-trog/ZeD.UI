@@ -3358,11 +3358,16 @@ local function drawContainerStrip(self, win, content)
     local stripFocus = { win = win, zone = "charContainerStrip" }
     local selA = T.selectionA or 0.30
 
-    -- Periodic container refresh (~every 30 frames). The active, viewed and
-    -- multi-column bags follow their bag, not their place in the list.
-    win._containerTimer = (win._containerTimer or 0) + 1
-    if win._containerTimer >= 30 then
+    -- Periodic container refresh. The active, viewed and multi-column bags follow their bag, not their place in the
+    -- list. Nov 8 2026 (the performance review, 12): every 500 ms by the clock (the old 30 frames at 60 fps; the frame
+    -- count ran it 2.4 times as often at 144 Hz). win._containerTimer stays the signal: 30 set by others refreshes on
+    -- the next frame, 0 marks the frame the list was rebuilt (the sort below reads it).
+    local nowMs = getTimestampMs()
+    if (win._containerTimer or 0) < 30 and nowMs < (win._containerDueMs or 0) then
+        win._containerTimer = 1
+    else
         win._containerTimer = 0
+        win._containerDueMs = nowMs + 500
         remapCharContainers(win, content, win._containers, buildContainers(win._playerObj))
 
         -- S115: refresh equipped radios + clamp browse index. Wave cache
@@ -3924,6 +3929,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._containers = buildContainers(playerObj)
     win._activeContainer = 1
     win._containerTimer = 0
+    win._containerDueMs = getTimestampMs() + 500   -- (the World window's falls WREF.phaseMs later)
     win._containerSortMode = "dist"  -- "dist" | "wt" | "type"
     win._containerOrder = nil        -- nil = natural order; set by sort/drag
 
@@ -6009,153 +6015,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- does not draw while the tab drawer takes the whole window; break-it D1)
     end
 
-    -- The Character window's per-frame stop refresh (the container strip, the main list, the MC
-    -- columns, the tab's stops, the item card). Oct 31 2026 (punch list 38): moved out of the
-    -- content's prerender, which does not run while the content is hidden (the tab drawer takes
-    -- the whole window at 1280x720, UI scale 2.0): Health, Thermal, Identity, Skills and the
-    -- Journal had no stops. The drawer's prerender runs it then.
-    content._focusRefresh = function(self)
-        -- --------------------------------------------------------
-        -- S98 RING MODEL: PER-FRAME MAIN-INV REFRESH
-        -- Runs AFTER the renderer finishes so _invRowItems is fresh.
-        -- Always active (regardless of tab) because charMainInv is the
-        -- persistent inventory-list zone in the ring. Rebuilds the focusable
-        -- element array from the live item list, preserving focus by item
-        -- identity. Uses dirty-check to avoid rebuilding unchanged lists.
-        -- --------------------------------------------------------
-        local Focus = ZeD.Input and ZeD.Input.Focus
-        if Focus and win._focusRing then
-            _refreshCharStripFocus(win, Focus)   -- (the container strip's stops)
-
-            -- Guard: container source inventory still valid?
-            if not self._inventory then
-                Focus.setRingZoneElements(win, "charMainInv", {})
-                Focus.setZoneFocusable   (win, "charMainInv", false)
-                win._gpFocusedRowItem = nil
-                win._invRowsForContainer = nil
-                self._gpFocusedRowItem = nil
-                win._lastInvRowSnapshot = nil
-            else
-                -- Guard: active container changed since rows were last seeded?
-                if win._invRowsForContainer
-                   and win._invRowsForContainer ~= win._activeContainer then
-                    Focus.setRingZoneElements(win, "charMainInv", {})
-                    Focus.setZoneFocusable   (win, "charMainInv", false)
-                    win._gpFocusedRowItem = nil
-                    win._invRowsForContainer = nil
-                    self._gpFocusedRowItem = nil
-                    win._lastInvRowSnapshot = nil
-                else
-                    -- Dirty check: only rebuild when item list actually changed.
-                    -- Cannot compare table identity (renderer creates a new
-                    -- flatItems table each frame), so compare count + edge items.
-                    local oldSnap = win._lastInvRowSnapshot
-                    local newItems = self._invRowItems
-                    local oldN = oldSnap and #oldSnap or 0
-                    local newN = newItems and #newItems or 0
-                    local dirty = (oldN ~= newN)
-                    if not dirty and newN > 0 and oldSnap then
-                        dirty = (oldSnap[1] ~= newItems[1])
-                             or (oldSnap[newN] ~= newItems[newN])
-                    end
-                    -- First frame (no snapshot yet) is always dirty.
-                    if not oldSnap then dirty = true end
-                    -- Oct 19 2026: the rows' places change with the scroll, the
-                    -- List | Grid view and the column's width too; the targets
-                    -- kept last build's places, so the pad picked by stale rows
-                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
-                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
-                    if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
-                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
-                    if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
-
-                    if dirty then
-                        -- Snapshot: copy item refs into a separate table so the
-                        -- next-frame comparison works (renderer's table changes).
-                        local snap = {}
-                        if newItems then
-                            for si = 1, #newItems do snap[si] = newItems[si] end
-                        end
-                        win._lastInvRowSnapshot = snap
-
-                        local newEls = _buildInvRowFocusables(win)
-                        -- the toggle keeps the focus it has (it carries no item)
-                        local keepId = nil
-                        for _, z in ipairs(win._focusRing or {}) do
-                            if z.zone == "charMainInv" then
-                                local fe = z.elements and z.elements[z.focusedElementIdx or 1]
-                                if fe and fe.isViewToggle then keepId = fe.id end
-                            end
-                        end
-                        if #newEls == 0 then
-                            Focus.setRingZoneElements(win, "charMainInv", {})
-                            Focus.setZoneFocusable   (win, "charMainInv", false)
-                            win._gpFocusedRowItem = nil
-                            win._invRowsForContainer = nil
-                            self._gpFocusedRowItem = nil
-                        else
-                            -- Preserve focus by item identity.
-                            local preserveIdx = 1
-                            local focItem = win._gpFocusedRowItem
-                            if focItem then
-                                for i, el in ipairs(newEls) do
-                                    if el.item == focItem then
-                                        preserveIdx = i
-                                        break
-                                    end
-                                end
-                                if preserveIdx == 1 and focItem ~= (newEls[1] and newEls[1].item) then
-                                    local oldIdx = 1
-                                    if win._focusRing then
-                                        for _, z in ipairs(win._focusRing) do
-                                            if z.zone == "charMainInv" then
-                                                oldIdx = z.focusedElementIdx or 1
-                                                break
-                                            end
-                                        end
-                                    end
-                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
-                                    -- toggles come after the rows, never a stand-in for one)
-                                    local nRows = 0
-                                    for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
-                                    preserveIdx = math.min(oldIdx, math.max(1, nRows))
-                                end
-                            end
-                            if keepId then
-                                for i, el in ipairs(newEls) do if el.id == keepId then preserveIdx = i end end
-                            end
-
-                            Focus.setRingZoneElements(win, "charMainInv", newEls, preserveIdx)
-                            Focus.setZoneFocusable   (win, "charMainInv", true)
-                            -- Update tracked item to match new resolved index.
-                            local resolvedEl = newEls[preserveIdx]
-                            if resolvedEl then
-                                win._gpFocusedRowItem = resolvedEl.item
-                                self._gpFocusedRowItem = resolvedEl.item
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        -- S108 v2: per-frame refresh for per-column charMC<n> zones.
-        -- Each MC selection has its own ring zone; loop and refresh elements.
-        -- Identity-preserve via _gpFocusedMCItem (per-zone preserveIdx). Ring
-        -- structure (zone count) updated by _rebuildCharMCRingZones on MC
-        -- toggle, not here. Only changed columns rebuild (_refreshCharMCZones).
-        if Focus and win._focusRing then
-            _refreshCharMCZones(win, Focus)
-        end
-
-        -- Oct 30 2026, punch list 21 a-f: an open pop-up list lives while its tab's
-        -- card shows; the drawer folding, an item card opening over it or the tab
-        -- going away shuts it (as leaving the tab does), never a hitch in drawing
-        do
-            local shown = win._drawerOpen and win._drawerMode == "tab" and win._drawerItem == nil
-            _shutTabLists(win, shown and win._activeTab or nil)
-        end
-
+    -- The Character window's tab stops, the per-frame refresh of the charTabContent zone (moved out of
+    -- content._focusRefresh on Nov 8 2026 so the controller can ask for it between frames: win._focusFresh)
+    content._tabStopsRefresh = function(self, Focus)
         if Focus and win._focusRing and (
                  win._activeTab == "equip"  or
                  win._activeTab == "health" or
@@ -6309,6 +6171,177 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 -- ran). Next frame the ring rebuilds with real card elements.
                 local inCardMode = (win._activeTab == "equip" and win._equipSelected)
                 Focus.setZoneFocusable(win, "charTabContent", newN > 0 or inCardMode ~= nil)
+            end
+        end
+    end
+
+    -- What the controller reads between frames (FocusManager calls it before a press is worked on, a landing is
+    -- looked for or the stops are listed): the tab's stops, when they waited for the mouse (Focus.stopsMayWait)
+    win._focusFresh = function(w)
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        if w._tabStopsStale and Focus and w._focusRing then
+            w._tabStopsStale = nil
+            content._tabStopsRefresh(content, Focus)
+        end
+    end
+
+    -- The Character window's per-frame stop refresh (the container strip, the main list, the MC
+    -- columns, the tab's stops, the item card). Oct 31 2026 (punch list 38): moved out of the
+    -- content's prerender, which does not run while the content is hidden (the tab drawer takes
+    -- the whole window at 1280x720, UI scale 2.0): Health, Thermal, Identity, Skills and the
+    -- Journal had no stops. The drawer's prerender runs it then.
+    content._focusRefresh = function(self)
+        -- --------------------------------------------------------
+        -- S98 RING MODEL: PER-FRAME MAIN-INV REFRESH
+        -- Runs AFTER the renderer finishes so _invRowItems is fresh.
+        -- Always active (regardless of tab) because charMainInv is the
+        -- persistent inventory-list zone in the ring. Rebuilds the focusable
+        -- element array from the live item list, preserving focus by item
+        -- identity. Uses dirty-check to avoid rebuilding unchanged lists.
+        -- --------------------------------------------------------
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        if Focus and win._focusRing then
+            _refreshCharStripFocus(win, Focus)   -- (the container strip's stops)
+
+            -- Guard: container source inventory still valid?
+            if not self._inventory then
+                Focus.setRingZoneElements(win, "charMainInv", {})
+                Focus.setZoneFocusable   (win, "charMainInv", false)
+                win._gpFocusedRowItem = nil
+                win._invRowsForContainer = nil
+                self._gpFocusedRowItem = nil
+                win._lastInvRowSnapshot = nil
+            else
+                -- Guard: active container changed since rows were last seeded?
+                if win._invRowsForContainer
+                   and win._invRowsForContainer ~= win._activeContainer then
+                    Focus.setRingZoneElements(win, "charMainInv", {})
+                    Focus.setZoneFocusable   (win, "charMainInv", false)
+                    win._gpFocusedRowItem = nil
+                    win._invRowsForContainer = nil
+                    self._gpFocusedRowItem = nil
+                    win._lastInvRowSnapshot = nil
+                else
+                    -- Dirty check: only rebuild when item list actually changed.
+                    -- Cannot compare table identity (renderer creates a new
+                    -- flatItems table each frame), so compare count + edge items.
+                    local oldSnap = win._lastInvRowSnapshot
+                    local newItems = self._invRowItems
+                    local oldN = oldSnap and #oldSnap or 0
+                    local newN = newItems and #newItems or 0
+                    local dirty = (oldN ~= newN)
+                    if not dirty and newN > 0 and oldSnap then
+                        dirty = (oldSnap[1] ~= newItems[1])
+                             or (oldSnap[newN] ~= newItems[newN])
+                    end
+                    -- First frame (no snapshot yet) is always dirty.
+                    if not oldSnap then dirty = true end
+                    -- Oct 19 2026: the rows' places change with the scroll, the
+                    -- List | Grid view and the column's width too; the targets
+                    -- kept last build's places, so the pad picked by stale rows
+                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
+                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
+                    if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
+                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
+
+                    if dirty then
+                        -- Snapshot: copy item refs into a separate table so the
+                        -- next-frame comparison works (renderer's table changes).
+                        local snap = {}
+                        if newItems then
+                            for si = 1, #newItems do snap[si] = newItems[si] end
+                        end
+                        win._lastInvRowSnapshot = snap
+
+                        local newEls = _buildInvRowFocusables(win)
+                        -- the toggle keeps the focus it has (it carries no item)
+                        local keepId = nil
+                        for _, z in ipairs(win._focusRing or {}) do
+                            if z.zone == "charMainInv" then
+                                local fe = z.elements and z.elements[z.focusedElementIdx or 1]
+                                if fe and fe.isViewToggle then keepId = fe.id end
+                            end
+                        end
+                        if #newEls == 0 then
+                            Focus.setRingZoneElements(win, "charMainInv", {})
+                            Focus.setZoneFocusable   (win, "charMainInv", false)
+                            win._gpFocusedRowItem = nil
+                            win._invRowsForContainer = nil
+                            self._gpFocusedRowItem = nil
+                        else
+                            -- Preserve focus by item identity.
+                            local preserveIdx = 1
+                            local focItem = win._gpFocusedRowItem
+                            if focItem then
+                                for i, el in ipairs(newEls) do
+                                    if el.item == focItem then
+                                        preserveIdx = i
+                                        break
+                                    end
+                                end
+                                if preserveIdx == 1 and focItem ~= (newEls[1] and newEls[1].item) then
+                                    local oldIdx = 1
+                                    if win._focusRing then
+                                        for _, z in ipairs(win._focusRing) do
+                                            if z.zone == "charMainInv" then
+                                                oldIdx = z.focusedElementIdx or 1
+                                                break
+                                            end
+                                        end
+                                    end
+                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
+                                    -- toggles come after the rows, never a stand-in for one)
+                                    local nRows = 0
+                                    for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
+                                    preserveIdx = math.min(oldIdx, math.max(1, nRows))
+                                end
+                            end
+                            if keepId then
+                                for i, el in ipairs(newEls) do if el.id == keepId then preserveIdx = i end end
+                            end
+
+                            Focus.setRingZoneElements(win, "charMainInv", newEls, preserveIdx)
+                            Focus.setZoneFocusable   (win, "charMainInv", true)
+                            -- Update tracked item to match new resolved index.
+                            local resolvedEl = newEls[preserveIdx]
+                            if resolvedEl then
+                                win._gpFocusedRowItem = resolvedEl.item
+                                self._gpFocusedRowItem = resolvedEl.item
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        -- S108 v2: per-frame refresh for per-column charMC<n> zones.
+        -- Each MC selection has its own ring zone; loop and refresh elements.
+        -- Identity-preserve via _gpFocusedMCItem (per-zone preserveIdx). Ring
+        -- structure (zone count) updated by _rebuildCharMCRingZones on MC
+        -- toggle, not here. Only changed columns rebuild (_refreshCharMCZones).
+        if Focus and win._focusRing then
+            _refreshCharMCZones(win, Focus)
+        end
+
+        -- Oct 30 2026, punch list 21 a-f: an open pop-up list lives while its tab's
+        -- card shows; the drawer folding, an item card opening over it or the tab
+        -- going away shuts it (as leaving the tab does), never a hitch in drawing
+        do
+            local shown = win._drawerOpen and win._drawerMode == "tab" and win._drawerItem == nil
+            _shutTabLists(win, shown and win._activeTab or nil)
+        end
+
+        -- the tab's stops (content._tabStopsRefresh, above). Nov 8 2026 (the performance review, 14): with the mouse
+        -- and keyboard in use, no controller mark showing and no landing waiting (Focus.stopsMayWait) they wait; the
+        -- first frame after, and anything the controller does first (FocusManager's win._focusFresh), rebuilds them
+        -- from scratch.
+        if Focus and win._focusRing then
+            if not (Focus.stopsMayWait and Focus.stopsMayWait(win)) then
+                win._tabStopsStale = nil
+                content._tabStopsRefresh(self, Focus)
+            else
+                win._tabStopsStale, win._lastTabContentSnapshot = true, nil
             end
         end
 
