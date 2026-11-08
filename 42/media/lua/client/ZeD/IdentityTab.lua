@@ -367,6 +367,9 @@ end
 -- DATA AGGREGATION
 -- ============================================================================
 
+--- Everything the card and the traits show, read once from the player (placeholders
+--- without one), and the strings the cards draw, made here rather than each frame.
+--- The kill-count QA scripts read it too.
 function ZeD.IdentityTab.gatherData(playerObj)
     local data = {
         surname    = ZeD.tr("UI_ZeD_Identity_Unknown"),
@@ -1409,8 +1412,8 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local rh = traitRowH()
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
-    -- its description on hover and on controller focus (drawTraitHint; the traits'
-    -- descriptions belong here); the zone is kept for both
+    -- its description shows on hover and on controller focus (drawTraitHint); the
+    -- zone is kept for both
     local key = "identity:trait:" .. tostring(trait.name)
     local zones = win._idTraitZones
     zones[#zones + 1] = { x = tx, y = ty, w = tw, h = rh, id = key, name = trait.name, desc = trait.desc }
@@ -1538,15 +1541,15 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     end
     local data = win._identityCache
 
-    -- Pinned tab header (37px, not in scroll content)
+    -- Pinned tab header (37 design units, not in scroll content)
     local tabHeaderH = M.getTabHeaderH()
 
-    -- S104 (Q100): stamp the disclosure hit-zone EARLY — mirrors SkillsTab
-    -- and HealthTab. Tab header becomes a disclosure that toggles the
-    -- license photo between bust (collapsed) and full-body (expanded). The
-    -- focusable builder in ZeD_CharacterWindow reads _identityFigureZone
-    -- each frame; stamping at the top guarantees the first prerender after
-    -- a tab switch sees valid bounds and the disclosure lands in element[1].
+    -- Stamp the disclosure hit-zone EARLY, as SkillsTab and HealthTab do. The
+    -- tab header is a disclosure that toggles the license photo between bust
+    -- (collapsed) and full-body (expanded). The focusable builder in
+    -- ZeD_CharacterWindow reads _identityFigureZone each frame; a zone stamped
+    -- at the end of render is still nil on the first prerender after a tab
+    -- switch, so stamping at the top is what puts the disclosure in element[1].
     win._identityFigureZone = { x = x, y = y, w = w, h = tabHeaderH }
 
     -- ================================================================
@@ -1556,12 +1559,12 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local scrollW = T.sp.scrollbarW
 
     -- Hair and beard (ZeD_HairBeard.lua): a fold under the license; Cut sits in it, beside its
-    -- Hair | Beard switch. The card has no footer band (nothing on the whole card to do; Oct 30 2026).
+    -- Hair | Beard switch. The card has no footer band (nothing on the whole card to do).
     local HB = ZeD.HairBeard
     local hbL = HB and HB.layout(win, w - T.sp.scrollbarW) or nil
     local zoneHH = hbL and hbL.h or 0
 
-    -- wide or narrow by the width (punch list 36), measured as if a scroll bar shows; the
+    -- wide or narrow by the width, measured as if a scroll bar shows; the
     -- heights hang on this width alone, so they agree with the draw with or without the bar
     local layoutW = w - T.sp.scrollbarW
     local tall = isTall(layoutW)
@@ -1591,12 +1594,13 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
 
-    -- S104: grid-scroll pseudo-zone (Thermal parity). Identity content is
-    -- pure readout — license card + traits list — so no individual row is
-    -- focusable. Instead, a single pseudo-focusable covers the visible
-    -- region below the tab header; D-pad up/down scrolls, and at bounds
-    -- falls through to cone nav back to the disclosure above. Stamped
-    -- only when scroll is actually needed; otherwise nil (builder skips).
+    -- The grid-scroll pseudo-zone, as on the Thermal tab: one stop over the
+    -- visible region below the tab header; D-pad up/down scrolls, and at the
+    -- ends it falls through to the spatial pick, back to the disclosure above.
+    -- The tab's own stops (the Hair and beard rows, each trait:
+    -- IdentityTab.focusables) take its place; ZeD_CharacterWindow falls back
+    -- to this zone only when IdentityTab.focusables is missing. Stamped only
+    -- when scroll is actually needed; otherwise nil (builder skips).
     if needsScroll then
         win._identityGridScrollZone = { x = x, y = scrollY, w = contentW, h = scrollH }
     else
@@ -1645,8 +1649,8 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     if win._placeIdentityModel then win._placeIdentityModel(w) end
 
     -- Pinned tab header: the disclosure arrow turns with _identityPhotoExpanded
-    -- (collapsed = bust, right-pointing; expanded = full body, down). L/R tree-nav
-    -- (gamepad), the header click (mouse) and a click on the photo all toggle it.
+    -- (collapsed = bust, right-pointing; expanded = full body, down). A on it
+    -- (controller), the header click (mouse) and a click on the photo all toggle it.
     -- The hover wash and the controller's mark come with the molecule.
     local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH)
     if hdrHover and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Identity_HelpHeader")) end
@@ -1710,7 +1714,8 @@ function ZeD.IdentityTab.followFocus(win, scroll, viewY, viewH, contentH)
     if newOff ~= off then scroll:setScrollPos(newOff / maxOff) end
 end
 
--- the controller's stops below the disclosure: Hair and beard's, then each trait
+--- The controller's stops below the disclosure: Hair and beard's, then each trait
+--- (ZeD_CharacterWindow's Identity aggregator puts the disclosure first).
 function ZeD.IdentityTab.focusables(win)
     local out = {}
     if ZeD.HairBeard then
@@ -1722,8 +1727,8 @@ function ZeD.IdentityTab.focusables(win)
     return out
 end
 
--- a click in the tab's content (the hair rows, the switch, Out of reach, Cut); the photo's
--- frame around the model picks the photo as the model does
+--- A click in the tab's content (the hair rows, the switch, Out of reach, Cut); the photo's
+--- frame around the model picks the photo as the model does. True when the click was the tab's.
 function ZeD.IdentityTab.onClick(win, x, y)
     if ZeD.HairBeard ~= nil and ZeD.HairBeard.onClick(win, x, y) then return true end
     local z, v = win._identityPhotoZone, win._idView
@@ -1737,7 +1742,7 @@ function ZeD.IdentityTab.onClick(win, x, y)
     return false
 end
 
--- what moves the stops, for the window's rebuild check
+--- What moves the stops, as one string, for the window's rebuild check.
 function ZeD.IdentityTab.scrollKey(win)
     local sc = win._identityScroll
     return tostring(sc and sc.scrollPos or 0) .. ":" .. (ZeD.HairBeard and ZeD.HairBeard.key(win) or "")
@@ -1749,6 +1754,8 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Put the tab's renderer in a window's tab dispatch table (the Character
+--- window's, under "identity").
 function ZeD.IdentityTab.register(dispatchTable)
     dispatchTable["identity"] = ZeD.IdentityTab.render
 end

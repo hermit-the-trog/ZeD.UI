@@ -1248,8 +1248,8 @@ function SA.onMouseWheel(win, state, st, del, x, y)
     return true
 end
 
---- The controller's stops: the station picker, every stamped control (a knob turns on left / right), then
---- the leave-and-cancel stop; an open list's own stops instead while it is open.
+--- The controller's stops: the station select first, then every stamped control (a knob turns on left /
+--- right); B on any of them leaves the station. An open list's own stops instead while it is open.
 function SA.buildFocusables(win, state, st)
     if state.stDropdownOpen then return ST.dropdownFocusables(state, win._playerObj, "craft") end
     local out = {}
@@ -1277,7 +1277,8 @@ function SA.buildFocusables(win, state, st)
     return out
 end
 
--- the controls change with the plate, with power (an unpowered panel offers none) and with Full / Simple
+--- The stops are rebuilt when this changes: the controls change with the plate, with power (an unpowered
+--- panel offers none) and with Full / Simple, and their places with the scroll.
 function SA.focusKey(win, state, st)
     local _, pid = SA.plateFor(st)
     return "a" .. tostring(pid) .. (devicesSimple() and "/plain" or "") .. "/" .. tostring(read(st).powered) .. "/" .. tostring(#(state.zones or {}))

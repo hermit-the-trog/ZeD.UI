@@ -1,10 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Admin.lua
 -- ============================================================================
--- THE ADMIN TOOLS, THE CLIENT'S MODEL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 2). No drawing: AdminTab.lua and ZeD_AdminCards.lua
--- read this and call it.
+-- THE ADMIN TOOLS, THE CLIENT'S MODEL (client). No drawing: AdminTab.lua and the admin cards (ZeD_AdminCards.lua and
+-- the other card files) read this and call it; ZeD_Chat.lua reads the mutes.
 --
 -- With the server part every act goes to the server first, and the game's own call follows only on its ack: server Lua
--- cannot kick, ban or set a role (A7), so that call goes from this client once the server has authorized it. Ban calls
+-- cannot kick, ban or set a role, so that call goes from this client once the server has authorized it. Ban calls
 -- that wait or must not be lost come back as a_owed, and this client says a_done when it has made them. A name from a row
 -- is sent as user and a typed target as target, and the shape of a string decides nothing about a row.
 --
@@ -14,10 +14,11 @@
 -- The game's data read here, each only with the capability the game asks for it: getUsers (SeeNetworkUsers), getRoles
 -- (RolesRead), the banned lists (BanUnbanUser), a player's log (ReadUserLog).
 --
--- QA, read at call time (the ticket cards' style):
+-- QA switches, read at call time (the same kind the ticket cards have):
 --   M.qaHold   true: no traffic. The screen shows only what the QA script put in the model
 --   M.qaLink   true / false: the server part as the cards read it
 --   M.qaCaps   a table of capability names: what the cards draw for, whatever the role
+--   M.qaRoles, M.qaItems   stand-ins for the game's role list and item list
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -59,19 +60,22 @@ M.srvRows = M.srvRows or {}           -- username -> the server's row
 local function now() return getTimestampMs() end
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
 local function tr(k, ...) return ZeD.tr(k, ...) end
+--- Mark the model changed: M.seq bumps and the cards read it again.
 function M.bump() M.seq = M.seq + 1 end
 
+--- This client's username ("" before there is a player).
 function M.me()
     local p = getPlayer()
     return p and p:getUsername() or ""
 end
 
--- the server part as the tools read it: up, and new enough to hold them
+--- The server part as the tools read it: up, and new enough to hold them.
 function M.live()
     if M.qaLink ~= nil then return M.qaLink end
     return S.available() and S.adm == true
 end
 
+--- True when this player's role has the capability (by its name in the game's Capability list).
 function M.can(name)
     if M.qaCaps then return M.qaCaps[name] == true end
     local p = getPlayer()
@@ -97,7 +101,8 @@ local function readRole(r)
     return row
 end
 
--- the roles, least to most, as the game's Roles List has them turned over: top to bottom, least to most, as drawn
+--- The roles, least to most, as the game's Roles List has them turned over: top to bottom, least to most, as drawn.
+--- Read again at most every 5 s, or at once after a role write.
 function M.roles()
     if M.qaRoles then return M.qaRoles end
     local t = now()
@@ -114,6 +119,7 @@ function M.roles()
     return out
 end
 
+--- One role's row by name, nil when the game has none by that name.
 function M.role(name)
     for _, r in ipairs(M.roles()) do
         if r.name == name then return r end
@@ -121,7 +127,7 @@ function M.role(name)
     return nil
 end
 
--- the role new players get, for the Roles row
+--- The role new players get, for the Roles row.
 function M.defaultRoleName()
     for _, r in ipairs(M.roles()) do
         for _, d in ipairs(r.defaults) do
@@ -139,7 +145,7 @@ function M.roleWith(capName)
     return nil
 end
 
--- (a capability a later game added has no words yet: its own name)
+--- The words for a capability (UI_ZeD_Cap_<name>); a capability a later game added has no words yet: its own name.
 function M.capWord(name)
     local key = "UI_ZeD_Cap_" .. name
     local s = tr(key)
@@ -147,7 +153,7 @@ function M.capWord(name)
     return s
 end
 
--- what a grayed control says: the capability it needs, and the role that has it
+--- What a grayed control says: the capability it needs, and the role that has it.
 function M.why(capName)
     if #M.roles() == 0 then return tr("UI_ZeD_Adm_NeedCapOnly", M.capWord(capName), capName) end
     local r = M.roleWith(capName)
@@ -155,7 +161,7 @@ function M.why(capName)
     return tr("UI_ZeD_Adm_NeedCapNone", M.capWord(capName), capName)
 end
 
--- what a role change means for this player: words for what they gain and lose, and the powers the game switches on
+--- What a role change means for this player: words for what they gain and lose, and the powers the game switches on.
 function M.roleChange(fromName, toName)
     local from, to = M.role(fromName), M.role(toName)
     local gain, lose, powers = {}, {}, {}

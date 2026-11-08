@@ -228,7 +228,7 @@ local function restoreCharState(win, playerObj)
     local xU = cs.x or 0
     local yU = math.max(0, cs.y or 60)
     -- no wider than this screen's cap either (half the screen): a layout saved on a bigger
-    -- screen used to keep that screen's inventory width
+    -- screen would otherwise keep that screen's inventory width
     local capU = math.floor((win._maxWinW or math.floor(screenW * 0.5)) / ((T and T.scale) or 1))
     local wU = math.max(minW, math.min(cs.w or 436, capU))
     local x = T.px(xU)
@@ -515,7 +515,7 @@ local function mcToggleContainer(win, content, cIdx)
         local view = win._viewedContainer
         if win._mainVisible and (view == nil or view == 1) then
             if #(win._mcSelected) > 0 then
-                -- MC active: just hide main
+                -- MC active: only hide main
                 win._mainVisible = false
             else
                 -- No MC: auto-select first non-main container, then hide main
@@ -532,8 +532,8 @@ local function mcToggleContainer(win, content, cIdx)
             end
         else
             win._mainVisible = true
-            -- (main lit means main is listed: a bag the pad showed used to stay the list under it;
-            -- what was selected there does not stay selected unseen)
+            -- (main lit means main is listed: a bag the pad showed does not stay the list under it,
+            -- and what was selected there does not stay selected unseen)
             if #win._mcSelected == 0 and (win._viewedContainer or win._activeContainer ~= 1) then
                 content._selectedItems = {}
                 content._lastClickedItem = nil
@@ -1159,7 +1159,7 @@ _buildLootFocusables = function(win)
             onFocus = function(w, el) end,
             -- Tap = switch active container (no tab swap, no MC). On Loot,
             -- exits MC if active and shows this container as the
-            -- single-column view. On non-Loot, just sets active — the player
+            -- single-column view. On non-Loot, only sets active — the player
             -- can swap to Loot later to see the items. Hold is the cross-tab
             -- MC toggle (snaps to Loot first, then toggles the column).
             -- _mainVisible mirrors "is main the displayed container?" — only
@@ -1490,7 +1490,7 @@ _buildInvRowFocusables = function(win)
                 -- Card follow-focus. When the drawer is open in "item"
                 -- mode, moving the gp cursor to a different inv row live-swaps
                 -- the card to the newly-focused item (no click needed).
-                -- NOTE: _updateDrawer is a plain function stored on win, NOT a
+                -- _updateDrawer is a plain function stored on win, NOT a
                 -- method. Call with dot syntax — colon adds `self` as first arg
                 -- and makes contentPanel = the window, which crashes.
                 if w._drawerMode == "item" and w._updateDrawer and el.item and cnt and not w._gpPaint then
@@ -2481,7 +2481,7 @@ end
 
 -- Thermal tab focusables: body figure parts. Parts ARE focusable
 -- because focus drives the right-column detail-view swap (mirror mouse
--- hover parity). A is a no-op — no action, just readout. Only populated
+-- hover parity). A is a no-op — no action, only readout. Only populated
 -- when the figure is expanded; collapsed figure yields empty list.
 local function _buildThermalBodyPartFocusables(win)
     if not win or not win._thermalFigureExpanded then return {} end
@@ -5478,7 +5478,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- "equipped" → UNEQUIP/DROP; "inventory" → EQUIP/EAT/READ/USE +DROP;
             -- "container" → TAKE/EQUIP. Equipped check first since that wins
             -- regardless of which container the item lives in.
-            -- NOTE: win._activeContainer is an INDEX into win._containers,
+            -- win._activeContainer is an INDEX into win._containers,
             -- NOT a container reference. Resolve via _containers[idx].isMain
             -- (player's primary inventory entry).
             do
@@ -5762,7 +5762,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                             win:setX(snapX)
                             win._lastSetX = snapX
                         else
-                            -- Different container: just switch
+                            -- Different container: switch to it
                             win._viewedContainer = idx
                         end
                         if win._invDrawerOpen then
@@ -7044,10 +7044,10 @@ Events.OnPostSave.Add(function()
 end)
 
 -- ============================================================================
--- S123: hide the vanilla inventory / loot pages from the FIRST frame of a
--- world, not only after the first ZeD open. Before this, a fresh load showed
--- the vanilla collapsed strips at the top of the screen until the player
--- pressed the inventory key. The pages are created on OnCreatePlayer, so a
+-- HIDE THE VANILLA PAGES FROM A WORLD'S FIRST FRAME
+-- Not only after the first ZeD open: otherwise a fresh load shows the vanilla
+-- collapsed strips at the top of the screen until the player presses the
+-- inventory key. The pages are created on OnCreatePlayer, so a
 -- short OnTick retry covers any ordering difference between builds.
 -- A respawn rebuilds those pages (vanilla's OnCreatePlayer) without a new
 -- OnGameStart, and both ZeD windows closed on the death, so the retry is armed
@@ -7077,10 +7077,11 @@ Events.OnCreatePlayer.Add(function(playerNum)
 end)
 
 -- ----------------------------------------------------------------------------
--- A container's column in the Loot tab's multi-column view, by its ItemContainer,
--- as a click on its icon in the container strip does (Oct 21 2026: the Workshop
--- gallery shows several bags open side by side; the QA scripts drive it from here).
--- Returns true when the container was found. Loot tab only, like the click.
+--- Toggle a container's column in the Loot tab's multi-column view, by its
+--- ItemContainer, as a click on its icon in the container strip does (test
+--- scripts drive it from here, e.g. for the Workshop gallery's shot of several
+--- bags open side by side). Returns true when the container was found. Loot
+--- tab only, like the click.
 -- ----------------------------------------------------------------------------
 function ZeD_CharacterWindow.toggleColumn(inv)
     local win = _charWin
