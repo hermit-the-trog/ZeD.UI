@@ -445,7 +445,10 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
     end
 
     local idx = 0
+    -- only the recipes the game would list for the character (RecipeIndex.visible; punch list 109 review)
+    local RI = ZeD.RecipeIndex
     for _, entry in ipairs(_jFlatRecipes) do
+      if not RI or RI.visible(playerObj, entry.recipe, entry.source) then
         idx = idx + 1
 
         -- Skill check
@@ -489,6 +492,7 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
         rd.ingredients  = rd.ingredients  -- preserve from detail gather
         rd.missingCount = rd.missingCount or 0
         rd.skills       = rd.skills       -- preserve from detail gather
+      end
     end
     -- Trim excess (if catalog shrank — unlikely but safe)
     for i = idx + 1, #recipes do recipes[i] = nil end

@@ -634,6 +634,27 @@ function ZeD.Settings.identitySimple()
     return ok and v == 2
 end
 
+-- ----- THE HIDDEN FACTS (the director, Nov 7 2026, punch list 109: "Vanilla plus gates them. Only vanilla access.") -----
+-- Find first: the guide's TV schedule opens once the character has read TV Monthly, the infection odds once they have
+-- read a First Aid book (ZeD_HiddenFacts.lua). Always: both open from the start, and the crafting card's How to learn
+-- names the magazine. An addition: Find first in Vanilla and Vanilla Plus, Always in Vanilla Access.
+local hiddenFacts = opts:addComboBox("hiddenFacts", ZeD.tr("UI_ZeD_Settings_HiddenFacts"), ZeD.tr("UI_ZeD_Settings_HiddenFactsTip"))
+hiddenFacts:addItem(ZeD.tr("UI_ZeD_Settings_FindFirst"), true)   -- default
+hiddenFacts:addItem(ZeD.tr("UI_ZeD_Hidden_Always"), false)
+ZeD.Settings.hiddenFactsOption = hiddenFacts
+function ZeD.Settings.hiddenFactsAlways()
+    local ok, v = pcall(hiddenFacts.getValue, hiddenFacts)
+    return ok and v == 2
+end
+
+-- ----- RECIPES SKILLS TEACH (the director, Nov 7 2026, punch list 109) -----
+-- The skill card also lists the recipes the game teaches by itself when a skill reaches a level (RecipeIndex.lua).
+-- The game never says which; so an addition, off for Vanilla and Vanilla Plus, on for Vanilla Access, Custom the
+-- player's pick. Read as the card draws, so a change applies at once.
+local autoLearn = onSwitch("autoLearn", "UI_ZeD_Settings_AutoLearn", "UI_ZeD_Settings_AutoLearnTip")
+ZeD.Settings.autoLearnOption = autoLearn
+ZeD.Settings.autoLearnOn = function() return (autoLearn:getValue() or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -664,8 +685,10 @@ do
         screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", screenConsole = "UI_ZeD_Settings_ScreenConsole", beltStyle = "UI_ZeD_Settings_Belt",
         devicesStyle = "UI_ZeD_Settings_Devices", watchStyle = "UI_ZeD_Settings_WatchStyle", dashStyle = "UI_ZeD_Settings_Dash",
         guideStyle = "UI_ZeD_Settings_Guide", modsStyle = "UI_ZeD_Settings_Mods", identityStyle = "UI_ZeD_Settings_Identity",
+        hiddenFacts = "UI_ZeD_Settings_HiddenFacts",
         wheelOpen = "UI_ZeD_Settings_WheelOpen", wheelCommit = "UI_ZeD_Settings_WheelCommit",
         wheelToggle = "UI_ZeD_Settings_WheelToggle", wheelDeadZone = "UI_ZeD_Settings_WheelDeadZone",
+        autoLearn = "UI_ZeD_Settings_AutoLearn",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -699,7 +722,7 @@ local function setUpAdditions()
     -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
                   "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle",
-                  "guideStyle", "modsStyle", "identityStyle", "haloBubble" }
+                  "guideStyle", "modsStyle", "identityStyle", "haloBubble", "hiddenFacts", "autoLearn" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
     -- while Loadouts is off). A new addition joins by putting its id in IDS and a row in each preset,
@@ -707,15 +730,18 @@ local function setUpAdditions()
     local PRESETS = {
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
-          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF },
+          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF,
+          hiddenFacts = 1, autoLearn = OFF },
         -- 2 Vanilla Plus: every addition on, Restock Casual
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
-          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON },
+          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON,
+          hiddenFacts = 1, autoLearn = OFF },
         -- 3 Vanilla Accessible: every addition on, Restock Accessible
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
-          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON },
+          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON,
+          hiddenFacts = 2, autoLearn = ON },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
@@ -825,6 +851,11 @@ local function setUpAdditions()
     -- who ran beta 6 was moved to Custom with the Immersive card. Those values, Vanilla Access in every row but that one,
     -- go back to the preset. The file says it was done, so a later pick of Immersive stays; a new player gets the file too.
     local REPAIR_FILE = "ZeD_presetRepair.txt"
+    -- the additions beta 6 had (IDS as it stood then): the repair compares these and nothing newer
+    local REPAIR_IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
+                         "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle",
+                         "watchStyle", "dashStyle", "guideStyle", "modsStyle", "identityStyle", "haloBubble" }
+    local savedHas = {}   -- (the ids ModOptions.ini has a line for, read at file load below)
     local repairSeen = false
     local function repairVanillaAccess()
         if repairSeen then return end
@@ -837,12 +868,22 @@ local function setUpAdditions()
         if not wrote then return end
         if additionsPreset:getValue() ~= CUSTOM then return end
         local set = PRESETS[3]
-        for id, v in pairs(set) do
+        -- (only the rows beta 6 had are compared: an addition newer than beta 6, Hidden facts or any later one, has no
+        -- saved line for that player and sits at its default, which must not stop the repair. Those newer rows the save
+        -- has no line for are set to Vanilla Access with the Identity row.)
+        for _, id in ipairs(REPAIR_IDS) do
+            local v = set[id]
             local want = (id == "identityStyle") and 1 or v
-            if stored(id) ~= want then return end
+            if v ~= nil and stored(id) ~= want then return end
         end
         local o = opt("identityStyle")
         if o then o:setValue(set.identityStyle) end
+        local old = {}
+        for _, id in ipairs(REPAIR_IDS) do old[id] = true end
+        for id, v in pairs(set) do
+            local on = opt(id)
+            if on and not old[id] and not savedHas[id] then on:setValue(v) end
+        end
     end
 
     --- The stored values read (the main menu, a game start): the preset set to what they make, and saved.
@@ -875,6 +916,7 @@ local function setUpAdditions()
             end
         end)
         pcall(function() r:close() end)
+        savedHas = has
         if had then
             for _, id in ipairs(WAS_ON) do
                 local o = opt(id)
@@ -882,9 +924,10 @@ local function setUpAdditions()
             end
             -- (the Full or simple rows joined the presets after the first players had saves. A player on Vanilla
             -- Access, preset item 3, from before them gets them Simple, as the preset asks, instead of the preset
-            -- reading Custom. The Identity row joined last, in beta 6.)
+            -- reading Custom. The Identity row joined in beta 6, and Hidden facts after beta 7.)
             if val.additionsPreset == 3 then
-                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle" }) do
+                -- (Recipes skills teach joined Nov 7 2026: item 2 is On)
+                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle", "hiddenFacts", "autoLearn" }) do
                     local o = opt(id)
                     if o and not has[id] then o:setValue(2) end
                 end
