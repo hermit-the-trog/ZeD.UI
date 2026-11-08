@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/b8_wo_manifest.txt (Nov 7 2026): Wounds Overhaul (3775026731) with ZeD, run once ZeD last and once ZeD first (batch_b8_mods.ps1)
+# b8sa: step aside (hand-back, notice, Health key, take-back, put back); b8wo: ZeD's Health tab with WO (god mode off for the run, back at the end)
+zedqa_prelude.lua | pre
+zedqa_b8_stepaside.lua | b8sa | timeout=200
+zedqa_b8_wounds.lua | b8wo | timeout=420
