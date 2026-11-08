@@ -39,6 +39,7 @@ pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp
    - **Player card** opens the existing Player card.
    - **Set password** opens a field under Account with Cancel beside it, and Set password in the foot.
      - Empty: gray.
+     - Typing shows stars, never the letters, including when a pop-up covers the field.
      - Typed: sends. Log in with the new password on the second client.
    - **Reset password, Reset TOTP Secret, Delete:** each asks in the foot (Keep it / the verb). Keep it does nothing.
    - **Delete:** the account card goes back with "account is gone".
