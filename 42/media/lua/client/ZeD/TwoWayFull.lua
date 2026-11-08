@@ -1,9 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/TwoWayFull.lua
 -- ============================================================================
--- A TWO-WAY RADIO IN FULL VIEW — the radio tab's face on its own over the
--- world, no window frame, like the watch popped from the belt (director, Oct 25
--- 2026: "full view is like the watch, no window frame"; handoff
--- ZeDUI/HANDOFF_twoway_20261025.md, section 3a).
+-- A TWO-WAY RADIO IN FULL VIEW (client; organism — an ISPanel subclass) — the
+-- radio tab's face on its own over the world, no window frame, like the watch
+-- popped from the belt.
 --
 -- Opened from the radio tab: the full view button at the header's right end,
 -- or a click on any part of the face that is not a control. It is the same
@@ -291,14 +290,14 @@ function ZeD_TwoWayFull:onJoypadDirDown() if self:isKnobFocused() then self:dirT
 -- ---------------------------------------------------------------------------
 function F.get(pn) return F.views[pn or 0] end
 
--- the radio in full view for this player, nil when none
+--- The radio in full view for this player, nil when none.
 function F.showing(pn)
     local v = F.views[pn or 0]
     if v and v:isReallyVisible() then return v.dev end
     return nil
 end
 
--- open full view on a radio (win: the window whose tab opened it, for the controller's way back)
+--- Open full view on a radio (win: the window whose tab opened it, for the controller's way back).
 function F.open(character, dev, win)
     if not (character and dev and TW.plateId(dev)) then return nil end
     local pn = character:getPlayerNum()
@@ -327,14 +326,14 @@ function F.close(pn)
     return false
 end
 
--- the tab's button: full view on this radio, or off when it already shows it
+--- The tab's button: full view on this radio, or off when it already shows it.
 function F.toggle(character, dev, win)
     if not character then return end
     local pn = character:getPlayerNum()
     if F.showing(pn) == dev then F.close(pn) else F.open(character, dev, win) end
 end
 
--- Escape from anywhere (the prompts' key hook asks): full view closes
+--- Escape from anywhere (the prompts' key hook asks): full view closes.
 function F.takeEscape()
     for _, v in pairs(F.views) do
         if v and v:isReallyVisible() then v:close(); return true end

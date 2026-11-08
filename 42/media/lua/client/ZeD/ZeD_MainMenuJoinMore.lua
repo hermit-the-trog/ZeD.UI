@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuJoinMore.lua
 -- ============================================================================
--- THE REST OF JOINING, ON THE MONITOR (VANILLA_WINDOWS_20261107.md A1, A2;
--- the director, Nov 7 2026: every vanilla window replaced)
+-- THE REST OF JOINING, ON THE MONITOR. Client; three organisms (windows on
+-- the desk), replacing the last of vanilla's join windows.
 --
 -- Three more of vanilla's join screens become ZeD windows on the desk. Each
 -- stays vanilla's engine: built and "visible" but off the screen (it follows
@@ -95,7 +95,7 @@ local function statusLines(win, text, x, y, w, color, blink)
 end
 
 -- ============================================================================
--- A1: THE SERVER'S WORKSHOP ITEMS
+-- THE SERVER'S WORKSHOP ITEMS
 -- ============================================================================
 ZeD_MMWsItems = ZeD_MMWindow:derive("ZeD_MMWsItems")
 
@@ -335,7 +335,7 @@ function MM.wsItemsKeep(scr)
 end
 
 -- ============================================================================
--- A2: THE SERVER INVITE (asking Steam about the server first)
+-- THE SERVER INVITE (asking Steam about the server first)
 -- ============================================================================
 ZeD_MMBootstrap = ZeD_MMWindow:derive("ZeD_MMBootstrap")
 
@@ -397,7 +397,7 @@ function ZeD_MMBootstrap:getFooterPrompts()
 end
 
 -- ============================================================================
--- A2: CONNECT TO (the address an invite or the command line gave)
+-- CONNECT TO (the address an invite or the command line gave)
 -- ============================================================================
 ZeD_MMSrvForm = ZeD_MMWindow:derive("ZeD_MMSrvForm")
 

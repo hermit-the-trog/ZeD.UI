@@ -1499,7 +1499,7 @@ _buildInvRowFocusables = function(win)
                     w._updateDrawer(cnt)
                 end
             end,
-            -- S113: A tap = LMB = SELECT item (opens card drawer for it,
+            -- A tap = LMB = SELECT item (opens the card drawer for it,
             -- mouse-click parity). On a stack rep (count > 1), A toggles
             -- the stack expand/collapse instead (= LMB on the chevron).
             -- A hold = double-LMB (InventoryRenderer.quickUse: a thing in a
@@ -1518,10 +1518,10 @@ _buildInvRowFocusables = function(win)
                     return
                 end
                 if cnt and w._updateDrawer then
-                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (punch list 44: the marks drop, every list's)
+                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (the marks drop, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    -- S117: A toggles the card drawer. Pressing A on the item
+                    -- A toggles the card drawer. Pressing A on the item
                     -- already shown clears the selection → updateDrawer closes
                     -- the card. Otherwise select this item → updateDrawer
                     -- opens (or live-swaps if already open on a different item).
@@ -1534,12 +1534,12 @@ _buildInvRowFocusables = function(win)
                         cnt._lastClickedItem = nil
                     end
                     w._updateDrawer(cnt)
-                    -- Oct 23 2026: the card opened (or swapped to this item):
+                    -- the card opened (or swapped to this item):
                     -- focus onto its primary action, so A again does it
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "charItemCard", 2) end
                 end
             end,
-            -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
+            -- the controller's marks: hold A marks, a held A paints, hold X is the quick use,
             -- B clears the marks (its prompt and X's only while marks exist, read each frame)
             onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
             onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,
@@ -1662,7 +1662,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                     return
                 end
                 if cnt and w._updateDrawer then
-                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (punch list 44: the marks drop, every list's)
+                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (the marks drop, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
                     -- S117: A toggles the card drawer (mirror Char invrow).
@@ -1679,7 +1679,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "charItemCard", 2) end
                 end
             end,
-            -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
+            -- the controller's marks: hold A marks, a held A paints, hold X is the quick use,
             -- B clears the marks (its prompt and X's only while marks exist, read each frame)
             onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
             onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,

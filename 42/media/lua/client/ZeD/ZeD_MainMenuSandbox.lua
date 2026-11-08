@@ -563,8 +563,8 @@ function ZeD_MMSandbox:deletePreset()
     local p = self:preset()
     if s and p and p.userDefined then
         -- vanilla's reload keeps the list's place (past the end: the last preset, Six Months Later) and applies it;
-        -- the values on screen stay, and the preset they are measured from is the one they sit closest to (the
-        -- outside review, Nov 7 2026: Apocalypse + 1 change saved and deleted read "Six Months Later, 36 changed")
+        -- the values on screen stay, and the preset they are measured from is the one they sit closest to (without
+        -- this, Apocalypse plus one change, saved and deleted, read "Six Months Later, 36 changed")
         local keep = SandboxOptions.new()
         s:settingsFromUI(keep)
         deleteSandboxPreset(p.name)
@@ -581,12 +581,12 @@ function ZeD_MMSandbox:commitText()
     if self.confirm == "save" then self:savePreset() end
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
--- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: a question that can lose or
+-- write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { load = "confirm:no", delete = "confirm:no" }
 function ZeD_MMSandbox:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self:commitCell()
     self.confirm = mode

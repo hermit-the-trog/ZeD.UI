@@ -2035,7 +2035,7 @@ local function getMcCapacity(win)
     if win._activeTab ~= "loot" then return 0 end
     local R = getR()
     local T = ZeD.T
-    -- S124 scale: InventoryRenderer exports MIN_COL_W / COMFORT_COL_W / getXferW as design units
+    -- InventoryRenderer exports MIN_COL_W / COMFORT_COL_W / getXferW as design units
     local minColW = T.px(R.MIN_COL_W or 140)
     local screenW = getCore():getScreenWidth()
     -- Loot tab has no drawer, full space available
@@ -2184,10 +2184,10 @@ exitWorldMC = function(win, content)
     win:setWidth(snapW)
 end
 
--- S94 B-nav: fill the `_switchWorldTabForNav` slot forward-declared above.
+-- Fill the `_switchWorldTabForNav` slot forward-declared above.
 -- Assigned here so it has exitWorldMC + getWorldActiveScroll in scope.
--- Mirrors the "different tab" branch of the mouse click handler below
--- (lines ~1900+), with the loot-tab special case folded in. Kept parallel to
+-- Mirrors the "different tab" branch of the tab strip's mouse click
+-- handler, with the loot-tab special case folded in. Kept parallel to
 -- _switchTabForNav in ZeD_CharacterWindow.
 _switchWorldTabForNav = function(win, content, tabId)
     if not win or not content or not tabId then return false end
@@ -2266,18 +2266,15 @@ mcToggleWorldContainer = function(win, content, cIdx)
     local containers = win._containers
     if not containers[cIdx] then return end
 
-    -- S108 QA: branch on isFloor rather than `cIdx == _activeContainer`. The
+    -- Branch on isFloor, never on `cIdx == _activeContainer`. The
     -- floor (= the "main"/anchor column) has its own toggle semantics — hide
-    -- it / auto-fill MC if empty. Pre-fix used _activeContainer as the proxy
-    -- because _activeContainer was always floor at toggle time, but S107's
-    -- tap-vs-hold split made _activeContainer track the user's most recent
-    -- view-switch. With the focusable onFocus now NOT mutating _activeContainer
-    -- (Char S106 parity), this proxy is even more wrong — every non-floor
-    -- toggle landed here and silently picked containers[1] as the first MC
-    -- entry, with no way to add more (subsequent toggles just flipped
-    -- _mainVisible).
+    -- it / auto-fill MC if empty. _activeContainer tracks the user's most
+    -- recent view-switch, so as a stand-in for "is this the floor" it sent
+    -- every non-floor toggle down this branch, which silently picked
+    -- containers[1] as the first MC entry with no way to add more
+    -- (subsequent toggles just flipped _mainVisible).
     if containers[cIdx].isFloor then
-        -- (Nov 6 2026, FAIV's report: the floor lit means the floor is listed, as main is in the Character window. A world
+        -- (The floor lit means the floor is listed, as main is in the Character window. A world
         -- click, a pad tap or a view come back to Loot leaves a crate the selection, so the branches here took a crate's
         -- list for the floor's and the floor could not be brought back; a press on a floor that does not show shows it.)
         if win._mainVisible and win._activeContainer == cIdx then
@@ -2286,8 +2283,8 @@ mcToggleWorldContainer = function(win, content, cIdx)
                 win._mainVisible = false
             else
                 -- No MC: auto-select first non-floor container, then hide floor.
-                -- S108: use isFloor to identify the non-floor pick (was
-                -- i ~= _activeContainer, which assumed _activeContainer = floor).
+                -- The non-floor pick goes by isFloor (an index test against
+                -- _activeContainer assumed the active one was the floor).
                 local firstOther = nil
                 for i, c in ipairs(containers) do
                     if not c.isFloor then firstOther = i; break end

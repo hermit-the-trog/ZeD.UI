@@ -36,14 +36,14 @@ ZeD.trDefaults({
     UI_ZeD_Radio_Store = "STORE %1", UI_ZeD_Radio_ChStored = "CH %1 STORED", UI_ZeD_Radio_MemFull = "MEMORY FULL",
     UI_ZeD_Radio_ChCleared = "CH %1 CLEARED", UI_ZeD_Radio_Range = "RANGE %1 KM",
 })
--- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it.
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
 end
 
--- the word for a glass: O.word("scan"), "mute", "micOff", "txOk", "disc", "mic"
+--- the word for a glass: O.word("scan"), "mute", "micOff", "txOk", "disc", "mic"
 function O.word(w) return ZeD.tr(WORDS[w]) end
 
 O.HOLD_MS = 600          -- a press held this long stores (presets) or names (MEM)
@@ -58,8 +58,8 @@ O.KIND_BY_ITEM = {
 O.HAM = { ham = true, army = true, hammake = true }
 
 local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
--- the same for one method call with no arguments, without making a closure each time (these are read every frame;
--- Oct 22 2026, the drawing-cost work): o:m(), its value or the default when it fails or gives nil
+-- the same for one method call with no arguments, without making a closure each time (these run every frame):
+-- o:m(), its value or the default when it fails or gives nil
 local function _inv(o, m) return o[m](o) end
 local function _get(o, m, default)
     if o == nil then return default end
@@ -70,9 +70,9 @@ end
 local function now() return getTimestampMs() end
 local function clamp(v, lo, hi) if v < lo then return lo end; if v > hi then return hi end; return v end
 
--- vanilla's DeviceData:canBePoweredHere, without its Java NPE: for a mains set it asks its parent's square, and a set
--- with no square (a house tile's CustomItem, a TV item on the floor or in a bag) throws (logged under -debug even
--- inside pcall). Battery sets and car parts take vanilla's own path (it asks no square of them); no square, no grid.
+--- vanilla's DeviceData:canBePoweredHere, without its Java NPE: for a mains set it asks its parent's square, and a set
+--- with no square (a house tile's CustomItem, a TV item on the floor or in a bag) throws (logged under -debug even
+--- inside pcall). Battery sets and car parts take vanilla's own path (it asks no square of them); no square, no grid.
 function O.canBePoweredHere(dd)
     if dd == nil then return false end
     if _get(dd, "getIsBatteryPowered", false) then return _get(dd, "canBePoweredHere", false) end
@@ -81,14 +81,14 @@ function O.canBePoweredHere(dd)
     if not instanceof(par, "VehiclePart") and _get(par, "getSquare", nil) == nil then return false end
     return _get(dd, "canBePoweredHere", false)
 end
--- ISRadioAction:isValidToggleOnOff's test (and DeviceData:setIsTurnedOn's), safe the same way
+--- ISRadioAction:isValidToggleOnOff's test (and DeviceData:setIsTurnedOn's), safe the same way
 function O.poweredHere(dd)
     if dd == nil then return false end
     if _get(dd, "getIsBatteryPowered", false) and _get(dd, "getPower", 0) > 0 then return true end
     return O.canBePoweredHere(dd)
 end
 
--- the face for a fitted radio item; modded radios borrow the nearest face
+--- the face for a fitted radio item; modded radios borrow the nearest face
 function O.kindOf(item, dd)
     if not item then return nil end
     local ft = _get(item, "getFullType", "")
@@ -98,9 +98,9 @@ function O.kindOf(item, dd)
     return "valutech"
 end
 
--- a radio's key for the short-lived state below. The radio is its owner, whatever holds the device data: a car's
--- Radio part, a radio item in the hands (the two-way walkies), or a set placed in the world (IsoWaveSignal); the
--- verbs below take any of them (ISRadioAction does: it asks the owner for getDeviceData).
+--- a radio's key for the short-lived state below. The radio is its owner, whatever holds the device data: a car's
+--- Radio part, a radio item in the hands (the two-way walkies), or a set placed in the world (IsoWaveSignal); the
+--- verbs below take any of them (ISRadioAction does: it asks the owner for getDeviceData).
 local function keyOf(part)
     -- no part (the vehicle is gone): a key that no radio holds
     if not part then return "none" end
@@ -118,7 +118,7 @@ local function keyOf(part)
 end
 O.keyOf = keyOf
 
--- vanilla's station name for a frequency (nil when vanilla has none)
+--- vanilla's station name for a frequency (nil when vanilla has none)
 function O.chanName(hz)
     local zr = getZomboidRadio and getZomboidRadio()
     if not (zr and zr.getChannelName and hz) then return nil end
@@ -127,7 +127,7 @@ function O.chanName(hz)
     return nil
 end
 
--- "101.2" on an FM set, "098.400" on a two-way set
+--- "101.2" on an FM set, "098.400" on a two-way set
 function O.freqText(hz, ham)
     hz = hz or 0
     if ham then local t = string.format("%.3f", hz / 1000); return string.rep("0", 7 - #t) .. t end   -- padded by hand (Kahlua's format)

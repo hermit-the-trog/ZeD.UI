@@ -1,14 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Wheel.lua
 -- ============================================================================
--- THE WHEEL — vanilla's radial menus as the context strip's cells on a ring.
--- Mockup ZeDUI/mockups/zed_wheels_v1.html (approved Oct 15 2026: keep the wheel,
--- larger cells, ZeD icons with vanilla's own pictures where they say more); since
--- Oct 27 2026 every slice draws the wheels' own icons (PICTURES below).
--- HOOK_MAP row 29; Overrides/Wheels.lua puts this in place of the engine's
+-- THE WHEEL — client; vanilla's radial menus as the context strip's cells on a
+-- ring. The wheel shape is kept; the cells are larger, and every slice draws
+-- the wheels' own icons, with vanilla's own pictures kept where they say more
+-- (PICTURES below). Overrides/Wheels.lua puts this in place of the engine's
 -- drawing for both vanilla wheels (getPlayerRadialMenu's ISRadialMenu and the
 -- controller's ISBackButtonWheel).
 --
--- Geometry is the engine's (RadialMenu.class, KB Q241): slice 1 centred at
+-- Geometry is the engine's (RadialMenu.class): slice 1 centred at
 -- 12 o'clock, the rest clockwise, each 360 / max(n, 2) degrees; a slice with
 -- no text and no picture is an empty place (kept, never drawn or picked). The
 -- pointer's direction (outside a small dead zone) or the right stick picks.
@@ -34,12 +33,11 @@ local W = ZeD.Wheel
 -- design units
 local U = {
     CELL = 22, ICON = 16,     -- a cell at rest: the strip's own size
-    CELL_ON = 33, ICON_ON = 24, -- the pointed cell grows to 1.5x (director, Oct 15: smaller at rest, bigger when pointed)
+    CELL_ON = 33, ICON_ON = 24, -- the pointed cell grows to 1.5x: smaller at rest, bigger when pointed
     GAP = 10,                 -- room between neighbouring resting cells (centre to centre: CELL + GAP),
                               -- enough that the grown cell clears its neighbours too
     MIN_R = 28,               -- the ring's smallest radius: the pointed cell just clears the hub. Above
-                              -- it the ring follows the number of slices (director, Oct 15: "is the size of
-                              -- the wheel determined by the amount of actions?")
+                              -- it the ring follows the number of slices, so a fuller wheel grows
     DEAD = 0.4,               -- the pointer's dead zone, as a share of the ring's radius
     BUBBLE = 110,             -- room above the ring for the balloon
     HUB = 7,                  -- the small square at the centre
@@ -54,9 +52,8 @@ local PAPER = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
 local function lower(s) return string.lower(tostring(s or "")) end
 
 -- ---------------------------------------------------------------------------
--- PICTURES: the wheels' own icons (the director's, Oct 27 2026; handoff
--- ZeDUI/HANDOFF_wheel_icons_20261027.md, map wheel_icons_map.json, source
--- ZeDUI/tools/wheelpx). Items, traits and the controller's glyphs keep their
+-- PICTURES: the wheels' own icons (drawn with ZeDUI/tools/wheelpx).
+-- Items, traits and the controller's glyphs keep their
 -- pictures; anything unknown keeps its own (mods included).
 -- ---------------------------------------------------------------------------
 local _icons = {}
@@ -82,7 +79,7 @@ W.TAB_ICONS = {
     ["build-tab-white"] = "bricks", ["move-tab-white"] = "chair", ["map-tab-white"] = "map",
     ["forage-tab-white"] = "magnifier", ["farm-tab-white"] = "cow", ["vehicle-tab-white"] = "car",
     ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits", ["cooking-tab-white"] = "pot",
-    ["server-tab-white"] = "tower", ["admin-tab-white"] = "badge",   -- (multiplayer, Nov 5 2026)
+    ["server-tab-white"] = "tower", ["admin-tab-white"] = "badge",   -- (multiplayer-only tabs)
 }
 
 -- the slice's words first: several vanilla slices share one picture
@@ -218,7 +215,7 @@ end
 function W.isPlace(slice) return slice and not slice.text and not slice.texture end
 function W.isOff(slice) return slice and not W.isPlace(slice) and not (slice.command and slice.command[1]) end
 function W.isBack(slice) return slice and texName(slice.texture):find("emotes/back", 1, true) ~= nil end
--- the game's mini-map commands (the director, Nov 7 2026, B7: ZeD's wheels leave them out; looked up at call time)
+-- the game's mini-map commands: ZeD's wheels leave them out (looked up at call time)
 function W.isMiniMapCommand(command)
     local M = ISMiniMap
     return command ~= nil and M ~= nil and (command == M.ToggleMiniMap or command == M.FocusMiniMap)
@@ -408,7 +405,7 @@ function W.draw(menu)
         if not ok then ZeD.logOnce("Wheel: balloon", err) end
     end
     -- the D-pad wheels (ZeD_DpadWheels.lua): the breadcrumb and the button
-    -- prompts under the ring (mockup zed_dpad_wheels_v2)
+    -- prompts under the ring
     if menu._zedCrumb or menu._zedPrompts then
         local ok, err = pcall(W.drawUnder, menu, cx, cy + r + math.ceil(cellOn / 2) + T.px(12))
         if not ok then ZeD.logOnce("Wheel: crumb", err) end
