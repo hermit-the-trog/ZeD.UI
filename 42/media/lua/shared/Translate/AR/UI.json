@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "أُبلغ عن رسالة من %1. الموضوع: %2",
     "UI_ZeD_Mail_Reported": "أُرسلت إلى المشرفين كتذكرة #%1.",
     "UI_ZeD_Mail_NoReport": "لا يقبل هذا الخادم الإبلاغ عن رسالة.",
-    "UI_ZeD_Mail_Connecting": "جارٍ الاتصال... إرسال %1، استلام %2"
+    "UI_ZeD_Mail_Connecting": "جارٍ الاتصال... إرسال %1، استلام %2",
+    "UI_ZeD_Tk_ReportedLetter": "الرسالة المُبلَّغ عنها"
 }

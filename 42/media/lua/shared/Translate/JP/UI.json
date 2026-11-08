@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "%1 さんからの手紙が報告されました。件名: %2",
     "UI_ZeD_Mail_Reported": "チケット #%1 として運営に送りました。",
     "UI_ZeD_Mail_NoReport": "このサーバーは手紙の報告を受け付けられません。",
-    "UI_ZeD_Mail_Connecting": "接続中... 送信 %1、受信 %2"
+    "UI_ZeD_Mail_Connecting": "接続中... 送信 %1、受信 %2",
+    "UI_ZeD_Tk_ReportedLetter": "報告された手紙"
 }

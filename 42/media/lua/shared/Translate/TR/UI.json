@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "%1 kişisinden bir mektup bildirildi. Konu: %2",
     "UI_ZeD_Mail_Reported": "Yöneticilere #%1 numaralı bilet olarak gönderildi.",
     "UI_ZeD_Mail_NoReport": "Bu sunucu bir mektup bildirimi alamaz.",
-    "UI_ZeD_Mail_Connecting": "Bağlanılıyor... %1 gönderiliyor, %2 alınıyor"
+    "UI_ZeD_Mail_Connecting": "Bağlanılıyor... %1 gönderiliyor, %2 alınıyor",
+    "UI_ZeD_Tk_ReportedLetter": "Bildirilen mektup"
 }

@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Een brief van %1 is gemeld. Onderwerp: %2",
     "UI_ZeD_Mail_Reported": "Als ticket #%1 naar de admins gestuurd.",
     "UI_ZeD_Mail_NoReport": "Deze server kan geen melding van een brief aannemen.",
-    "UI_ZeD_Mail_Connecting": "Verbinden... %1 versturen, %2 ontvangen"
+    "UI_ZeD_Mail_Connecting": "Verbinden... %1 versturen, %2 ontvangen",
+    "UI_ZeD_Tk_ReportedLetter": "De gemelde brief"
 }

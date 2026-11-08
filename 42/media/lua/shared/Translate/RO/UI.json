@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "A fost raportată o scrisoare de la %1. Subiect: %2",
     "UI_ZeD_Mail_Reported": "Trimisă adminilor ca tichetul #%1.",
     "UI_ZeD_Mail_NoReport": "Acest server nu poate primi raportarea unei scrisori.",
-    "UI_ZeD_Mail_Connecting": "Conectare... trimit %1, primesc %2"
+    "UI_ZeD_Mail_Connecting": "Conectare... trimit %1, primesc %2",
+    "UI_ZeD_Tk_ReportedLetter": "Scrisoarea raportată"
 }

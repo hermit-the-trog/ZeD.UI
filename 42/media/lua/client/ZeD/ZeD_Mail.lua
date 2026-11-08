@@ -105,7 +105,8 @@ function M.hookMute()
 end
 
 -- THE MODEM: once a connection, the handshake (our own sound, ZeDUI/tools/sound/make_modem.py, on the game's UI volume)
--- when the dial-in starts, and "Connecting... sending N, receiving M" as a note over the head when the server answers
+-- when the dial-in starts, and "Connecting... sending N, receiving M" as a Messages notice when the server answers (the
+-- director: every ZeD notice is a bubble out of the Messages icon, never over the head)
 function M.ring()
     if M.rang then return end
     M.rang = true
@@ -114,8 +115,27 @@ end
 function M.connectNote(sending, receiving)
     local text = ZeD.tr("UI_ZeD_Mail_Connecting", sending or 0, receiving or 0)
     M.lastNote = text
-    if ZeD.Bubbles and ZeD.Bubbles.note then pcall(ZeD.Bubbles.note, 0, text) end
-    if ZeD.Messages and ZeD.Messages.halo then pcall(ZeD.Messages.halo, text) end
+    M.notice(text)
+end
+
+-- a notice from Mail: through Messages' notice path (ZeD.Messages.notice, which the branch moving every notice into the
+-- Messages bubbles provides), else a Messages item under Mail's name; one item kept, brought up to date
+function M.notice(text)
+    local Msg = ZeD.Messages
+    if not Msg then return end
+    local name = ZeD.tr("UI_ZeD_Mail_Title")
+    if Msg.notice then
+        pcall(Msg.notice, name, text, "mail")
+        return
+    end
+    local s = Msg.sources and Msg.sources[name]
+    for _, it in ipairs(s and s.items or {}) do
+        if it.k == "mail" then
+            it.text, it.read = text, false
+            return
+        end
+    end
+    if Msg.add then pcall(Msg.add, name, "mods", { k = "mail", text = text }) end
 end
 
 -- state: nil (not yet), "dialing", "on" (dialed in this connection), "off" (the server said no; why in M.why)
@@ -215,17 +235,8 @@ end
 -- ---------------------------------------------------------------------------
 function M.note(n, froms)
     local Msg = ZeD.Messages
-    if not (Msg and Msg.add and n > 0) then return end
-    local name = ZeD.tr("UI_ZeD_Mail_Title")
-    local text = (n == 1) and ZeD.tr("UI_ZeD_Mail_NoteOne", froms[1] or "") or ZeD.tr("UI_ZeD_Mail_NoteMany", n)
-    local s = Msg.sources and Msg.sources[name]
-    for _, it in ipairs(s and s.items or {}) do
-        if it.k == "mail" then                -- (one note, brought up to date)
-            it.text, it.read = text, false
-            return
-        end
-    end
-    pcall(Msg.add, name, "mods", { k = "mail", text = text })
+    if not (Msg and n > 0) then return end
+    M.notice((n == 1) and ZeD.tr("UI_ZeD_Mail_NoteOne", froms[1] or "") or ZeD.tr("UI_ZeD_Mail_NoteMany", n))
 end
 
 function M.onIn(a)

@@ -168,6 +168,13 @@ for _, c in ipairs(CLIENT) do if c.c == "t_new" then filed = c.a end end
 check("Report files a ticket through ZeD's tickets", filed ~= nil and filed.kind == "GRIEF")
 check("its words name the sender and subject", filed and filed.text == ZeD.tr("UI_ZeD_Mail_ReportText", "Ada", "Rules"), filed and filed.text)
 check("the letter goes as the report's lines, naming the sender", filed and filed.report and filed.report.who == "Ada" and filed.report.n == 1 and filed.report[1].text == "Read the new rules.")
+check("the report says it is a letter", filed and filed.report and filed.report.letter == true)
+local lab = {}
+TC._B.reportChat(lab, { who = "Ada", n = 1, letter = true, { who = "Ada", text = "x" } })
+check("the staff card labels it the reported letter", lab[1] and lab[1].text == ZeD.tr("UI_ZeD_Tk_ReportedLetter"), lab[1] and lab[1].text)
+lab = {}
+TC._B.reportChat(lab, { who = "Ada", n = 1, { who = "Ada", text = "x" } })
+check("a chat report keeps its own label", lab[1] and lab[1].text == ZeD.tr("UI_ZeD_Tk_ChatAround"))
 local long = { from = "Rosa", subj = "", text = string.rep("abc ", 500), t = 1 }
 local rep = MC._P.reportOf(long)
 check("a long letter fits the report's lines, each at most REPORT_TEXT", rep.n <= Tk.LIMITS.REPORT_LINES and #rep[1].text == Tk.LIMITS.REPORT_TEXT)

@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Kirjeestä henkilöltä %1 ilmoitettiin. Aihe: %2",
     "UI_ZeD_Mail_Reported": "Lähetetty ylläpidolle tikettinä #%1.",
     "UI_ZeD_Mail_NoReport": "Tämä palvelin ei ota vastaan ilmoitusta kirjeestä.",
-    "UI_ZeD_Mail_Connecting": "Yhdistetään... lähetetään %1, vastaanotetaan %2"
+    "UI_ZeD_Mail_Connecting": "Yhdistetään... lähetetään %1, vastaanotetaan %2",
+    "UI_ZeD_Tk_ReportedLetter": "Ilmoitettu kirje"
 }

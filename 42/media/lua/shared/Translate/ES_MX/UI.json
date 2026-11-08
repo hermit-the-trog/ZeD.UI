@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Se denunció una carta de %1. Asunto: %2",
     "UI_ZeD_Mail_Reported": "Enviada a los admins como ticket #%1.",
     "UI_ZeD_Mail_NoReport": "Este servidor no puede recibir la denuncia de una carta.",
-    "UI_ZeD_Mail_Connecting": "Conectando... enviando %1, recibiendo %2"
+    "UI_ZeD_Mail_Connecting": "Conectando... enviando %1, recibiendo %2",
+    "UI_ZeD_Tk_ReportedLetter": "La carta denunciada"
 }

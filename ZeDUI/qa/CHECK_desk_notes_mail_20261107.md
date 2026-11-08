@@ -171,3 +171,20 @@ words for a report), which reads oddly. Mute and Unmute while on, and a muted se
 **A design question, from round two:** the staff ticket card labels a reported letter's lines with the chat report's
 words ("the chat around it"). Should a letter's report get its own label ("the reported letter")? That would change
 the ticket cards, which are another part's.
+
+## Round three (Nov 7 2026)
+
+- **Notices go through Messages**, as the director's rule says: every ZeD notice is a bubble out of the Messages icon
+  (on the belt, or the dash while driving), never over the head and never in a corner. "Connecting... sending N,
+  receiving M" and the new-letter notes now both go through `ZeD.Mail.notice`. It calls `ZeD.Messages.notice` when
+  Messages has one (the branch moving every notice into Messages bubbles adds it); until then it keeps one Messages
+  item under Mail's name and updates it in place. Nothing goes over the head any more.
+- **A reported letter gets its own label** on the staff ticket card: "The reported letter", not "The chat around it".
+  A report from ProtoPOP3 Mail carries `letter = true`. The server's report check (`ZeD_ServerTickets.lua`, `goodReport`
+  and `reportCopy`) keeps that one flag, and `B.reportChat` picks the label from it. The key `UI_ZeD_Tk_ReportedLetter`
+  is in all 28 languages. The line under it ("As it showed on the reporter's screen. The server hears no chat.") is
+  unchanged and still mentions chat: a question if it should read differently for a letter.
+
+Sims: mail_sim 100, mail_cards_sim 5,035; tickets, ticket_cards, community, community_cards and log sims and the i18n
+guard all pass. Not checked by a sim: the server keeping the flag. tickets_sim doesn't file a letter report, so that
+two-line server change is proved only by reading it.

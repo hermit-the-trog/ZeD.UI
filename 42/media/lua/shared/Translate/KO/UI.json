@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "%1 님의 편지가 신고되었습니다. 제목: %2",
     "UI_ZeD_Mail_Reported": "티켓 #%1(으)로 운영진에게 보냈습니다.",
     "UI_ZeD_Mail_NoReport": "이 서버는 편지 신고를 받을 수 없습니다.",
-    "UI_ZeD_Mail_Connecting": "연결 중... 보내는 중 %1, 받는 중 %2"
+    "UI_ZeD_Mail_Connecting": "연결 중... 보내는 중 %1, 받는 중 %2",
+    "UI_ZeD_Tk_ReportedLetter": "신고된 편지"
 }
