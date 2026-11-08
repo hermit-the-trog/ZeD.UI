@@ -888,6 +888,12 @@ do
     M.toasts = {}
     local back = ZeD.PadJoin.replugged(0)
     check("... a later plug-in does not say player one's controller is back", back == nil and #M.toasts == 0)
+    -- the stand-ins become a controller's focus, and the game's updateJoypadFocus names each focus with ui:toString()
+    -- every frame until it settles: without one it threw every frame and never settled
+    local st = ZeD.PadJoin.stub(1, { id = 1 })
+    check("the join stand-in names itself (the game's updateJoypadFocus asks)", type(st.toString) == "function" and type(st:toString()) == "string")
+    local ds = ZeD.PadJoin.disconnectedStub(1)
+    check("the unplugged stand-in names itself too", type(ds.toString) == "function" and type(ds:toString()) == "string")
 end
 
 print(string.format("everyday_leftovers_sim: %d checks, %d failed", checks, failed))
