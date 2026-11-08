@@ -253,8 +253,47 @@ function R.bkey(b)
     return d:getX() .. "," .. d:getY()
 end
 
+-- The building's squares that hold a container or a tap (perf review, Nov 7 2026): the whole building is
+-- walked once, then only these squares are looked at again (their containers and taps afresh each time:
+-- what is in them, opened, locked, the water). Walked again after R.BUILDING_MS, when an object is added
+-- to or taken from the world, or on force. A square counts when any object on it has a container, or could
+-- hold water now or later (it has water, a fluid container, or an outside water source).
+R.BUILDING_MS = 10000
+local _bsq = {}   -- bkey -> { b, ms, list = { { x, y, z }, ... } in the walk's order }
+local function mayHold(o)
+    if not o then return false end
+    if o.getContainerCount and o:getContainerCount() > 0 then return true end
+    if instanceof(o, "IsoWorldInventoryObject") then return false end
+    return (call(o, "hasWater") or call(o, "getFluidContainer") ~= nil or call(o, "getUsesExternalWaterSource")) and true or false
+end
+local function buildingSquares(b, bk, now, force)
+    local e = bk and _bsq[bk]
+    if e and not force and e.b == b and now - e.ms < R.BUILDING_MS then return e.list end
+    local list = {}
+    local d = b:getDef()
+    local cell = getCell()
+    for z = d:getMinLevel(), d:getMaxLevel() do
+        for y = d:getY(), d:getY2() - 1 do
+            for x = d:getX(), d:getX2() - 1 do
+                local sq = cell:getGridSquare(x, y, z)
+                if sq and sq:getBuilding() == b then
+                    local obs = sq:getObjects()
+                    for i = 0, obs:size() - 1 do
+                        if mayHold(obs:get(i)) then list[#list + 1] = { x, y, z }; break end
+                    end
+                end
+            end
+        end
+    end
+    if bk then _bsq[bk] = { b = b, ms = now, list = list } end
+    return list
+end
+--- Walk the buildings again at the next scan (an object added to or taken from the world).
+function R.forgetBuildings() _bsq = {} end
+
 --- The building's containers (or, outside one, those in reach) and its taps. Kept for a
--- second (the building's squares are walked); force = look again now.
+-- second, or until you step to another square; the building's squares that hold something
+-- are kept longer (above); force = look again now, the whole building too.
 -- @return { sources = { { cont, obj, sq, x, y, z, name, reach, floor } }, waters = {...},
 --           building, bkey, reachSig }
 local _scan = {}
@@ -270,15 +309,10 @@ function R.scan(p, force)
     local reachSig = scanReach(p, out, waters, seen)
     local b = R.buildingOf(p)
     if b then
-        local d = b:getDef()
         local cell = getCell()
-        for z = d:getMinLevel(), d:getMaxLevel() do
-            for y = d:getY(), d:getY2() - 1 do
-                for x = d:getX(), d:getX2() - 1 do
-                    local sq = cell:getGridSquare(x, y, z)
-                    if sq and sq:getBuilding() == b then scanSquare(p, sq, out, waters, seen, R.inReach(p, sq)) end
-                end
-            end
+        for _, xyz in ipairs(buildingSquares(b, R.bkey(b), now, force)) do
+            local sq = cell:getGridSquare(xyz[1], xyz[2], xyz[3])
+            if sq and sq:getBuilding() == b then scanSquare(p, sq, out, waters, seen, R.inReach(p, sq)) end
         end
     end
     c = { sources = out, waters = waters, building = b, bkey = R.bkey(b), reachSig = reachSig, ms = now, here = here }
@@ -1023,7 +1057,7 @@ local function tickCasual(p, run)
     touch()
 end
 
--- any button on the pad, read every tick: a tap is shorter than tickRun's 10. A press is a button down now and up
+-- any button on the pad, read every tick: a tap is shorter than tickRun's R.RUN_TICK_MS (167 ms). A press is a button down now and up
 -- at the last read, so the one that started the run never counts. With a window or a wheel holding the pad, now or
 -- at the last read (B closing one has already let go of the focus), the press is theirs: A on the Stop button fires
 -- on its release, and a run stopped on the press would start again there.
@@ -1039,7 +1073,7 @@ local function padTick(p, run)
     end
 end
 
--- one run's tick (every 10 ticks)
+-- one run's tick (every R.RUN_TICK_MS)
 local function tickRun(p, run)
     -- a zombie coming into view, getting hurt
     local zv = p:getStats():getNumVisibleZombies()
@@ -1231,9 +1265,11 @@ end
 -- ---------------------------------------------------------------------------
 -- EVENTS: the runs' ticks, keys, hurt; stepping out of home
 -- ---------------------------------------------------------------------------
-local _tick, _inHome = 0, {}
+-- the runs' tick and the home check go by the clock, not by frames (the old 10 and 30 ticks at 60 a second)
+R.RUN_TICK_MS = 167
+R.HOME_TICK_MS = 500
+local _runMs, _homeMs, _inHome = 0, 0, {}
 local function onTick()
-    _tick = _tick + 1
     for pn, run in pairs(R.runs) do
         local p = getSpecificPlayer(pn)
         if p and not run.done then
@@ -1241,7 +1277,9 @@ local function onTick()
             if not ok then ZeD.logOnce("Restock pad", err) end
         end
     end
-    if _tick % 10 ~= 0 then return end
+    local now = getTimestampMs()
+    if now - _runMs < R.RUN_TICK_MS then return end
+    _runMs = now
     -- Loadouts and outfits off: a run going stops (its queue cancelled), and nothing else is watched
     if not L.on() then
         for pn, run in pairs(R.runs) do
@@ -1257,7 +1295,8 @@ local function onTick()
             if not ok then run.done = true; run.stopped = "error"; print("[ZeD] Restock: " .. tostring(err)) end
         end
     end
-    if _tick % 30 ~= 0 then return end
+    if now - _homeMs < R.HOME_TICK_MS then return end
+    _homeMs = now
     -- stepping out of home after a restock: what you leave with
     for pn = 0, 3 do
         local p = getSpecificPlayer(pn)
@@ -1290,5 +1329,8 @@ if not _G._zedRestockHooked then
             if run and not run.done then ZeD.Restock.stop(chr, "hurt") end
         end)
     end
+    -- a container or a tap placed, built or taken away: the buildings are walked again at the next scan
+    if Events.OnObjectAdded then Events.OnObjectAdded.Add(function() ZeD.Restock.forgetBuildings() end) end
+    if Events.OnObjectAboutToBeRemoved then Events.OnObjectAboutToBeRemoved.Add(function() ZeD.Restock.forgetBuildings() end) end
 end
 R._onTick = onTick
