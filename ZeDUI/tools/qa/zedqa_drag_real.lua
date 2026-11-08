@@ -29,7 +29,9 @@ end
 local function titleOf(win) return math.floor(win:getAbsoluteX() + win:getWidth() / 2), math.floor(win:getAbsoluteY() + win:titleBarHeight() / 2) end
 
 add(500, function()
-    keepPins = p:getModData().ZeD_WinPinned
+    -- (a copy: setPinned below writes the table; every pin key, the halves' too)
+    local t = p:getModData().ZeD_WinPinned
+    if t then keepPins = {}; for k, v in pairs(t) do keepPins[k] = v end end
     if not CWm.isOpen() then CWm.toggleBothPaired(0) end
 end)
 add(1500, function()
@@ -85,8 +87,14 @@ add(4500, function()
 end)
 add(500, function()
     if keepPins then
-        local c, w = CW(), WW()
-        c.pinned, w.pinned = keepPins.char == true, keepPins.world == true
+        p:getModData().ZeD_WinPinned = keepPins
+        for _, pair in ipairs({ { CW(), "char" }, { WW(), "world" } }) do
+            local win, k = pair[1], pair[2]
+            local i, d = keepPins[k .. "Inv"], keepPins[k .. "Tabs"]
+            if i == nil and d == nil then i, d = keepPins[k] == true, keepPins[k] == true end
+            if win and win._halves and ZeD.Halves then ZeD.Halves.setPin(win, "inv", i == true); ZeD.Halves.setPin(win, "drawer", d == true)
+            elseif win then win.pinned = keepPins[k] == true end
+        end
     end
     CW():setWindowShaded(false)
     say("DONE")
