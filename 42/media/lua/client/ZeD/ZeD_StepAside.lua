@@ -47,6 +47,8 @@
 require "ZeD/Tr"
 require "ZeD/SafeMode"
 
+-- Kahlua has no next(); whether a table has any entry.
+local function hasAny(t) if type(t) ~= "table" then return false end for _ in pairs(t) do return true end return false end
 ZeD = ZeD or {}
 ZeD.StepAside = ZeD.StepAside or {}
 local SA = ZeD.StepAside
@@ -587,7 +589,7 @@ local function tick()
     poll = poll + 1
     if poll < 60 then return end
     poll = 0
-    if rec and next(rec.set) and noteTakenBack() then save() end
+    if rec and hasAny(rec.set) and noteTakenBack() then save() end
 end
 if Events then
     if Events.OnGameStart then Events.OnGameStart.Add(function() wait = 300 end) end
