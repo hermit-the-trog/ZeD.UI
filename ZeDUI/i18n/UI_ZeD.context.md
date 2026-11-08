@@ -5241,12 +5241,8 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Adm_HelpUserPass` | `Empties the account's password.` | Admin tab, staff only: the Users and account cards | - |
 | `UI_ZeD_Adm_UserTotpAsk` | `Reset %1's TOTP secret?` | Admin tab, staff only: the Users and account cards | - |
 | `UI_ZeD_Adm_HelpUserTotp` | `Clears the account's TOTP secret, the key behind an authenticator app's codes.` | Admin tab, staff only: the Users and account cards | - |
-| `UI_ZeD_Adm_UserBanIpAsk` | `Ban %1's IP? Nobody joins from it until it is unbanned.` | Admin tab, staff only: the Users and account cards | - |
-| `UI_ZeD_Adm_HelpUserBanIp` | `The game's ban on the IP this account joins from. Only while they are online.` | Admin tab, staff only: the Users and account cards | - |
 | `UI_ZeD_Adm_UserUnbanIpAsk` | `Unban %1's IP?` | Admin tab, staff only: the Users and account cards | - |
 | `UI_ZeD_Adm_HelpUserUnbanIp` | `Lifts the game's ban on this account's IP.` | Admin tab, staff only: the Users and account cards | - |
-| `UI_ZeD_Adm_UserBanSidAsk` | `Ban %1's Steam ID? That Steam account can't join until it is unbanned.` | Admin tab, staff only: the Users and account cards | - |
-| `UI_ZeD_Adm_HelpUserBanSid` | `The game's ban on this account's Steam ID. Only while they are online.` | Admin tab, staff only: the Users and account cards | - |
 | `UI_ZeD_Adm_UserUnbanSidAsk` | `Unban %1's Steam ID?` | Admin tab, staff only: the Users and account cards | - |
 | `UI_ZeD_Adm_HelpUserUnbanSid` | `Lifts the game's ban on this account's Steam ID.` | Admin tab, staff only: the Users and account cards | - |
 | `UI_ZeD_Adm_PassLine` | `A new password for %1. They sign in with it from now on.` | Admin tab, staff only: the Users and account cards | - |
@@ -5378,3 +5374,6 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Sbx_AskServer` | `Send %1 to the server?` | Sandbox options window, opened from the Admin tab on a server. %1 is a count phrase (3 changes) | - |
 | `UI_ZeD_Sbx_SentServer` | `Sent %1 to the server. Every player gets them.` | Sandbox options window, opened from the Admin tab on a server. %1 is a count phrase (3 changes) | - |
 | `UI_ZeD_Sbx_HistServer` | `Nothing sent yet. Every change you send is listed here until you leave the server.` | Sandbox options window, opened from the Admin tab on a server. %1 is a count phrase (3 changes) | - |
+| `UI_ZeD_Adm_AcctBansLine` | `With a reason and a length, as ZeD's bans: each goes in the Bans list, and the server gives the game its ban.` | Admin tab, staff only: the account card's bans by IP and Steam ID | - |
+| `UI_ZeD_Adm_HelpAcctBanIp` | `Bans this account and the IP it joins from. Only while they are online.` | Admin tab, staff only: the account card's bans by IP and Steam ID | - |
+| `UI_ZeD_Adm_HelpAcctBanSid` | `Bans the Steam ID this account joins with, the one the game holds for it.` | Admin tab, staff only: the account card's bans by IP and Steam ID | - |

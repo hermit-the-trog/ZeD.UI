@@ -43,9 +43,15 @@ pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp
      - Typed: sends. Log in with the new password on the second client.
    - **Reset password, Reset TOTP Secret, Delete:** each asks in the foot (Keep it / the verb). Keep it does nothing.
    - **Delete:** the account card goes back with "account is gone".
-   - **Ban by IP / UnBan by IP**, and on Steam **Ban by Steam ID / UnBan:**
-     - Gray on yourself, on an admin (CantBeBannedByUser), and offline ("User is not online").
-     - The Unban button appears while a ban is held.
+   - **Ban by IP**, and on Steam **Ban by Steam ID:** each opens a part with a reason and a length, like the Player card's Ban.
+     - With ZeD's server part, the ban lands in the Bans card's list as ZeD's ban.
+       - By IP: it is a ZeD ban on the name with its IP, permanent only.
+       - By Steam ID: the account's own Steam ID goes to the game. It works with the player offline.
+       - The game's ban follows from the server. Check the game's own banned lists, or a rejoin.
+     - Without the server part: only Permanent can be picked, and the game's own call is made as before.
+     - Gray on yourself and on an admin (CantBeBannedByUser).
+     - By IP is gray while they are offline ("User is not online"). So is by Steam ID, without the server part.
+   - **UnBan by IP / UnBan by Steam ID** appear while a ban is held. They ask first, then lift it through ZeD's unban (the row leaves the Bans list), or the game's own call without the part.
 6. **Gray checks** (moderator client): every button that role lacks stays on screen, gray, and says the capability and the role that has it.
    - Gray: an account whose role ranks above yours ("Their role sits above yours").
 

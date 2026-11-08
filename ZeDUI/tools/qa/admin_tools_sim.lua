@@ -699,8 +699,69 @@ do
 end
 press("tk:upset")
 check("SetPassword is the game's call", hasG("net:SetPassword:Rosa:hunter2") and st.card.open == nil)
-press("tk:ua:banip"); press("tk:cyes")
-check("Ban by IP, the game's call on the name", hasG("ban:BanIP:Rosa:"))
+-- bans on an account (the director, Nov 7): a reason and a length; without the server part the game's own call
+press("tk:ua:banip")
+check("Ban by IP opens its part: reason and length", st.card.open == "banip" and stopOf("tk:f:ureason") ~= nil and stopOf("tk:ul:perm") ~= nil)
+check("it wants a reason", why("tk:ubyes") == tr("UI_ZeD_Adm_WriteReason"))
+check("a timed length needs the server part", why("tk:ul:d1") == tr("UI_ZeD_Adm_NeedPart"))
+TC2._D.setField(win, "ureason", "Duping")
+press("tk:ubyes")
+check("no server part: the game's call, with the reason", hasG("ban:BanIP:Rosa:Duping") and st.card.open == nil, table.concat(GAMECALLS, " "))
+-- with the server part: ZeD's Bans, one record
+do
+    local was = getSteamModeActive
+    getSteamModeActive = function() return true end
+    M.qaLink = true
+    SENT = {}
+    clear()
+    U.bump(); draw(); draw()
+    press("tk:ua:banip")
+    TC2._D.setField(win, "ureason", "Duping")
+    press("tk:ul:perm")
+    press("tk:ubyes")
+    local a
+    for _, e in ipairs(SENT) do if e.c == "a_ban" then a = e.a end end
+    check("server part: Ban by IP is ZeD's ban on the name with its IP", a and a.user == "Rosa" and a.banIp == true and a.len == "perm" and a.reason == "Duping", a and tostring(a.len))
+    check("and no game call from the client", not hasG("ban:"))
+    S.routes[Tk.MOD]("t_ack", { ok = true, rid = a and a.rid })
+    draw(); draw()
+    SENT = {}
+    press("tk:ua:bansid")
+    check("Ban by Steam ID needs nobody online with the part", why("tk:ua:bansid") == nil or st.card.open == "bansid")
+    TC2._D.setField(win, "ureason", "Alt")
+    press("tk:ubyes")
+    a = nil
+    for _, e in ipairs(SENT) do if e.c == "a_ban" then a = e.a end end
+    check("server part: Ban by Steam ID sends the game's own Steam ID as typed", a and a.target == "76561198000000001" and a.user == nil and a.reason == "Alt")
+    S.routes[Tk.MOD]("t_ack", { ok = true, rid = a and a.rid })
+    draw()
+    -- the unban: ZeD's row for the account's IP ban
+    M.bans = { { id = 7, user = "mike_d", banIp = true, reason = "x" } }
+    TC2.back(win, st); draw()
+    st.card.page = 1; U.bump(); draw()
+    press("tk:u:mike_d")
+    SENT = {}
+    press("tk:ua:unbanip"); press("tk:cyes")
+    a = nil
+    for _, e in ipairs(SENT) do if e.c == "a_unban" then a = e.a end end
+    check("server part: Unban by IP lifts ZeD's row", a and a.id == 7 and not hasG("ban:"))
+    S.routes[Tk.MOD]("t_ack", { ok = true, rid = a and a.rid })
+    M.bans = {}
+    SENT = {}
+    U.qaRows[2].sidBan = "76561198000000001"
+    TC2.back(win, st); draw(); U.bump(); draw()
+    press("tk:u:Rosa")
+    press("tk:ua:unbansid"); press("tk:cyes")
+    a = nil
+    for _, e in ipairs(SENT) do if e.c == "a_unban" then a = e.a end end
+    check("server part: a Steam ID only the game holds is lifted by ZeD's unban", a and a.sid == "76561198000000001")
+    S.routes[Tk.MOD]("t_ack", { ok = true, rid = a and a.rid })
+    U.qaRows[2].sidBan = ""
+    M.qaLink = false
+    getSteamModeActive = was
+    TC2.back(win, st); draw()
+    press("tk:u:Rosa")
+end
 -- the game's checks
 U.qaMyPos = -1
 st.tk.items = nil; draw(); draw()
