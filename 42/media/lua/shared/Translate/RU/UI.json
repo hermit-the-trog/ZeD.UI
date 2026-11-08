@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Открывает вкладку «Создание» с этим предметом в поиске.",
     "UI_ZeD_Skills_UnlockHead": "Рецепты, которым нужен каждый уровень",
     "UI_ZeD_Skills_UnlockLevel": "Уровень %1",
-    "UI_ZeD_Skills_UnlockMore": "и ещё %1"
+    "UI_ZeD_Skills_UnlockMore": "и ещё %1",
+    "UI_ZeD_Settings_AutoLearn": "Рецепты от навыков",
+    "UI_ZeD_Settings_AutoLearnTip": "Карточка навыка также показывает рецепты, которым игра учит сама, когда навык достигает уровня. Выкл.: как в игре, которая об этом не говорит.",
+    "UI_ZeD_Skills_TaughtHead": "Изучаются сами на каждом уровне"
 }

@@ -8,10 +8,14 @@
 --
 -- What it shows the character about a recipe is what the Craft tab's card already shows: Known or Unknown
 -- (learned, when the recipe has to be learned, and every skill it needs at its level). Nothing the game
--- keeps back: no auto-learn levels, no where-to-find.
+-- keeps back: no where-to-find. The levels at which the game teaches a recipe by itself (its auto-learn
+-- skills) show on the skill card only with ZeD setup's "Recipes skills teach" on: Vanilla Access turns it
+-- on, Vanilla and Vanilla Plus keep it off as the game does, Custom is the player's pick (the director,
+-- Nov 7 2026).
 --
 --   RI.usedIn(fullType)          -> the recipes that take the item as an input (craft first, then build)
 --   RI.atLevel(perkId)           -> { [level] = { rec, ... } } the recipes that need that skill at each level
+--   RI.taughtAt(perkId)          -> { [level] = { rec, ... } } the recipes the game teaches by itself at each level
 --   RI.known(player, rec)        -> known, learned, hasSkill
 --   RI.forCard(player, fullType, max) -> rows for the item card: known first, then by name; and the rest's count
 --   RI.open(player, rec)         -> the recipe in the Craft (or Build) tab, the game's own route in
@@ -27,6 +31,7 @@ local CHECK_MS = 5000
 
 RI._byItem = nil      -- fullType -> { rec, ... }
 RI._byPerk = nil      -- perk id -> { [level] = { rec, ... } }
+RI._byAuto = nil      -- perk id -> { [level] = { rec, ... } } (auto-learn)
 RI._count  = nil      -- the game's recipe count when built
 RI._checkAt = 0
 RI.builds = 0         -- (the sims count rebuilds)
@@ -65,7 +70,7 @@ local function fullTypeOf(it)
     return ft and tostring(ft) or nil
 end
 
-local function addRecipe(recipe, kind, byItem, byPerk)
+local function addRecipe(recipe, kind, byItem, byPerk, byAuto)
     local rec = { recipe = recipe, kind = kind }
     rec.name = tostring(recipe:getName())
     local dn = nil
@@ -106,6 +111,24 @@ local function addRecipe(recipe, kind, byItem, byPerk)
             end
         end
     end)
+    -- the levels the game teaches it at by itself (any one of the skills, or all of them)
+    local autoSeen = {}
+    for _, g in ipairs({ { "getAutoLearnAnySkillCount", "getAutoLearnAnySkill" }, { "getAutoLearnAllSkillCount", "getAutoLearnAllSkill" } }) do
+        pcall(function()
+            for i = 0, recipe[g[1]](recipe) - 1 do
+                local rs = recipe[g[2]](recipe, i)
+                local pid, lv = tostring(rs:getPerk():getId()), tonumber(rs:getLevel()) or 0
+                local key = pid .. "#" .. tostring(lv)
+                if lv > 0 and not autoSeen[key] then
+                    autoSeen[key] = true
+                    local p = byAuto[pid]
+                    if not p then p = {}; byAuto[pid] = p end
+                    p[lv] = p[lv] or {}
+                    p[lv][#p[lv] + 1] = rec
+                end
+            end
+        end)
+    end
     for _, s in ipairs(rec.skills) do
         local p = byPerk[s.id]
         if not p then p = {}; byPerk[s.id] = p end
@@ -118,7 +141,7 @@ local function addRecipe(recipe, kind, byItem, byPerk)
 end
 
 function RI.build()
-    local byItem, byPerk = {}, {}
+    local byItem, byPerk, byAuto = {}, {}, {}
     local n = 0
     local names = {}   -- (a recipe in both lists is indexed once, as craft)
     for _, pair in ipairs({ { "getAllCraftRecipes", "craft" }, { "getAllBuildableRecipes", "build" } }) do
@@ -131,17 +154,17 @@ function RI.build()
                 if r then pcall(function() nm = tostring(r:getName()) end) end
                 if r and not (nm and names[nm]) then
                     if nm then names[nm] = true end
-                    pcall(addRecipe, r, pair[2], byItem, byPerk)
+                    pcall(addRecipe, r, pair[2], byItem, byPerk, byAuto)
                 end
             end
         end
     end
-    RI._byItem, RI._byPerk, RI._count = byItem, byPerk, n
+    RI._byItem, RI._byPerk, RI._byAuto, RI._count = byItem, byPerk, byAuto, n
     RI._checkAt = now() + CHECK_MS
     RI.builds = RI.builds + 1
 end
 
-function RI.reset() RI._byItem, RI._byPerk, RI._count = nil, nil, nil end
+function RI.reset() RI._byItem, RI._byPerk, RI._byAuto, RI._count = nil, nil, nil, nil end
 
 -- the index, rebuilt when the game's recipes changed
 local function ensure()
@@ -161,6 +184,19 @@ end
 function RI.atLevel(perkId)
     ensure()
     return (perkId and RI._byPerk[perkId]) or {}
+end
+
+function RI.taughtAt(perkId)
+    ensure()
+    return (perkId and RI._byAuto[perkId]) or {}
+end
+
+-- ZeD setup's "Recipes skills teach" (Settings.lua: Vanilla Access on, Vanilla and Vanilla Plus off)
+function RI.showTaught()
+    local S = ZeD.Settings
+    if not (S and S.autoLearnOn) then return false end
+    local ok, on = pcall(S.autoLearnOn)
+    return ok and on == true
 end
 
 -- Known as the Craft tab's card says it: learned (when it must be learned) and every skill at its level
@@ -222,19 +258,16 @@ end
 -- Skills tab's extras). The next level's recipes by name, a few; the rest as counts.
 -- ---------------------------------------------------------------------------
 RI.NEXT_NAMES = 3
-function RI.skillLines(player, perk, skill)
-    local id = nil
-    if perk then pcall(function() id = tostring(perk:getId()) end) end
-    if not id then return nil end
-    local by = RI.atLevel(id)
-    local cur = tonumber(skill and skill.level) or 0
-    local lines = {}
+-- one block of lines: its head, each level still to come with its count, the first level's recipes named
+local function levelLines(lines, by, cur, headKey)
+    local first = true
     for lv = cur + 1, 10 do
         local l = by[lv]
         if l and #l > 0 then
-            if #lines == 0 then lines[1] = { text = ZeD.tr("UI_ZeD_Skills_UnlockHead") } end
+            if first then lines[#lines + 1] = { text = ZeD.tr(headKey) } end
             lines[#lines + 1] = { text = ZeD.tr("UI_ZeD_Skills_UnlockLevel", lv), value = tostring(#l) }
-            if #lines == 2 then
+            if first then
+                first = false
                 -- the next level's recipes by name
                 local named = {}
                 for _, rec in ipairs(l) do named[#named + 1] = rec end
@@ -248,6 +281,15 @@ function RI.skillLines(player, perk, skill)
             end
         end
     end
+end
+function RI.skillLines(player, perk, skill)
+    local id = nil
+    if perk then pcall(function() id = tostring(perk:getId()) end) end
+    if not id then return nil end
+    local cur = tonumber(skill and skill.level) or 0
+    local lines = {}
+    levelLines(lines, RI.atLevel(id), cur, "UI_ZeD_Skills_UnlockHead")
+    if RI.showTaught() then levelLines(lines, RI.taughtAt(id), cur, "UI_ZeD_Skills_TaughtHead") end
     return (#lines > 0) and lines or nil
 end
 

@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Megnyitja a Készítés lapot ezzel a tárggyal a keresőben.",
     "UI_ZeD_Skills_UnlockHead": "Receptek, amelyekhez az adott szint kell",
     "UI_ZeD_Skills_UnlockLevel": "%1. szint",
-    "UI_ZeD_Skills_UnlockMore": "és még %1"
+    "UI_ZeD_Skills_UnlockMore": "és még %1",
+    "UI_ZeD_Settings_AutoLearn": "Képességek által tanított receptek",
+    "UI_ZeD_Settings_AutoLearnTip": "A képességkártya azokat a recepteket is mutatja, amelyeket a játék magától megtanít, amikor egy képesség elér egy szintet. Ki: mint a játékban, amely nem árulja el.",
+    "UI_ZeD_Skills_TaughtHead": "Magától tanult szintenként"
 }

@@ -181,6 +181,69 @@ RI.NEXT_NAMES = 1
 lines = X.cardLines(player, CARP, { level = 2, perk = CARP })
 check("past the names: the rest's count", lines and lines[4] and lines[4].text == "  UI_ZeD_Skills_UnlockMore:1", lines and lines[4] and lines[4].text)
 
+RI.NEXT_NAMES = 3
+
+-- ---------------------------------------------------------------------------
+-- RECIPES THE GAME TEACHES BY ITSELF: Vanilla Access only (the director, Nov 7 2026)
+-- ---------------------------------------------------------------------------
+section("Recipes skills teach, by preset")
+-- the presets' values, read from Settings.lua's own table (its setUpAdditions, with stub options)
+local SETTINGS_SRC = io.open(ROOT .. "42/media/lua/client/ZeD/Settings.lua"):read("*a")
+local presetBlock = SETTINGS_SRC:match("local PRESETS = (%b{})")
+check("Settings.lua has the presets' table", presetBlock ~= nil)
+local PRESETS = presetBlock and loadstring("local OFF, ON = 1, 2; return " .. presetBlock)() or {}
+check("the switch is one of the additions (Custom keeps it)", SETTINGS_SRC:find('"identityStyle", "haloBubble", "autoLearn" }', 1, true) ~= nil)
+check("a Vanilla Access player from before keeps the preset (the switch on)",
+    SETTINGS_SRC:find('"devicesStyle", "watchStyle", "dashStyle", "identityStyle", "autoLearn"', 1, true) ~= nil)
+-- a recipe Woodwork 5 teaches by itself, one that any of Woodwork 5 or Cooking 3 teaches, one that needs both
+local function autoRecipe(name, display, any, all)
+    local r = recipe(name, display, { input({ "Base.Plank" }) }, true, nil)
+    local function rs(l) local o = {}; for _, s in ipairs(l or {}) do o[#o + 1] = { getPerk = function() return s[1] end, getLevel = function() return s[2] end } end; return o end
+    local a, b = rs(any), rs(all)
+    r.getAutoLearnAnySkillCount = function() return #a end
+    r.getAutoLearnAnySkill = function(_, i) return a[i + 1] end
+    r.getAutoLearnAllSkillCount = function() return #b end
+    r.getAutoLearnAllSkill = function(_, i) return b[i + 1] end
+    return r
+end
+CRAFT[#CRAFT + 1] = autoRecipe("Birdhouse", "Birdhouse", { { CARP, 5 } })
+CRAFT[#CRAFT + 1] = autoRecipe("Crate", "Crate", { { CARP, 5 }, { COOK, 3 } })
+CRAFT[#CRAFT + 1] = autoRecipe("Smoker", "Smoker", nil, { { CARP, 6 }, { COOK, 3 } })
+RI.reset()
+local SWITCH = 1
+ZeD.Settings = { autoLearnOn = function() return SWITCH == 2 end }
+local function taughtText(p, lv)
+    local out = {}
+    local inTaught = false
+    for _, l in ipairs(X.cardLines(player, p, { level = lv, perk = p }) or {}) do
+        if l.text == "UI_ZeD_Skills_TaughtHead" then inTaught = true end
+        if inTaught then out[#out + 1] = l.text .. (l.value and ("=" .. l.value) or "") end
+    end
+    return table.concat(out, "|")
+end
+local want = { [1] = false, [2] = false, [3] = true }
+local NAME = { "Vanilla", "Vanilla Plus", "Vanilla Access" }
+for i = 1, 3 do
+    SWITCH = (PRESETS[i] and PRESETS[i].autoLearn) or 1
+    local s = taughtText(CARP, 4)
+    if want[i] then
+        check(NAME[i] .. ": the switch is on", SWITCH == 2, SWITCH)
+        check(NAME[i] .. ": the skill card lists them (level 5 named, then 6)",
+            s == "UI_ZeD_Skills_TaughtHead|UI_ZeD_Skills_UnlockLevel:5=2|  Birdhouse|  Crate|UI_ZeD_Skills_UnlockLevel:6=1", s)
+    else
+        check(NAME[i] .. ": the switch is off", SWITCH == 1, SWITCH)
+        check(NAME[i] .. ": the skill card keeps them hidden, as the game", s == "", s)
+    end
+end
+SWITCH = 2
+check("Custom, on: listed under the other skill too (any or all)", taughtText(COOK, 0) == "UI_ZeD_Skills_TaughtHead|UI_ZeD_Skills_UnlockLevel:3=2|  Crate|  Smoker", taughtText(COOK, 0))
+SWITCH = 1
+check("Custom, off: hidden", taughtText(COOK, 0) == "")
+local needLines = X.cardLines(player, CARP, { level = 2, perk = CARP })
+check("off: the levels' needs still show", needLines and needLines[1].text == "UI_ZeD_Skills_UnlockHead")
+ZeD.Settings = nil
+check("no ZeD setup read: hidden", taughtText(CARP, 4) == "")
+
 -- ---------------------------------------------------------------------------
 -- THE WATCH'S PARKED SPEED CONTROLS
 -- ---------------------------------------------------------------------------

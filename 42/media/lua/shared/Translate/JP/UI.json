@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "このアイテムで検索してクラフトタブを開きます。",
     "UI_ZeD_Skills_UnlockHead": "各レベルで必要なレシピ",
     "UI_ZeD_Skills_UnlockLevel": "レベル %1",
-    "UI_ZeD_Skills_UnlockMore": "ほか %1 件"
+    "UI_ZeD_Skills_UnlockMore": "ほか %1 件",
+    "UI_ZeD_Settings_AutoLearn": "スキルで覚えるレシピ",
+    "UI_ZeD_Settings_AutoLearnTip": "スキルが一定レベルに達したときにゲームが自動で教えるレシピもスキルカードに表示します。オフ：ゲームと同じく表示しません。",
+    "UI_ZeD_Skills_TaughtHead": "各レベルで自動習得"
 }

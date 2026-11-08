@@ -631,6 +631,14 @@ function ZeD.Settings.identitySimple()
     return ok and v == 2
 end
 
+-- ----- RECIPES SKILLS TEACH (the director, Nov 7 2026, punch list 109) -----
+-- The skill card also lists the recipes the game teaches by itself when a skill reaches a level (RecipeIndex.lua).
+-- The game never says which; so an addition, off for Vanilla and Vanilla Plus, on for Vanilla Access, Custom the
+-- player's pick. Read as the card draws, so a change applies at once.
+local autoLearn = onSwitch("autoLearn", "UI_ZeD_Settings_AutoLearn", "UI_ZeD_Settings_AutoLearnTip")
+ZeD.Settings.autoLearnOption = autoLearn
+ZeD.Settings.autoLearnOn = function() return (autoLearn:getValue() or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -663,6 +671,7 @@ do
         guideStyle = "UI_ZeD_Settings_Guide", modsStyle = "UI_ZeD_Settings_Mods", identityStyle = "UI_ZeD_Settings_Identity",
         wheelOpen = "UI_ZeD_Settings_WheelOpen", wheelCommit = "UI_ZeD_Settings_WheelCommit",
         wheelToggle = "UI_ZeD_Settings_WheelToggle", wheelDeadZone = "UI_ZeD_Settings_WheelDeadZone",
+        autoLearn = "UI_ZeD_Settings_AutoLearn",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -696,7 +705,7 @@ local function setUpAdditions()
     -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
                   "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle",
-                  "guideStyle", "modsStyle", "identityStyle", "haloBubble" }
+                  "guideStyle", "modsStyle", "identityStyle", "haloBubble", "autoLearn" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
     -- while Loadouts is off). When the "faces or simple cards" switch is built (punch list 17), its id goes in
@@ -704,15 +713,15 @@ local function setUpAdditions()
     local PRESETS = {
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
-          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF },
+          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF, autoLearn = OFF },
         -- 2 Vanilla Plus: every addition on, Restock Casual
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
-          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON },
+          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON, autoLearn = OFF },
         -- 3 Vanilla Accessible: every addition on, Restock Accessible
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
-          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON },
+          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON, autoLearn = ON },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
@@ -879,7 +888,8 @@ local function setUpAdditions()
             -- from before them gets them Simple, as the preset now asks, instead of the preset reading Custom. The Identity
             -- row joined in beta 6.)
             if val.additionsPreset == 3 then
-                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle" }) do
+                -- (Recipes skills teach joined Nov 7 2026: item 2 is On)
+                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle", "autoLearn" }) do
                     local o = opt(id)
                     if o and not has[id] then o:setValue(2) end
                 end

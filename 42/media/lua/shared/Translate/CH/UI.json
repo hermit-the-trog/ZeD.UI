@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "開啟製作分頁並搜尋此物品。",
     "UI_ZeD_Skills_UnlockHead": "各等級所需的配方",
     "UI_ZeD_Skills_UnlockLevel": "等級 %1",
-    "UI_ZeD_Skills_UnlockMore": "還有 %1 個"
+    "UI_ZeD_Skills_UnlockMore": "還有 %1 個",
+    "UI_ZeD_Settings_AutoLearn": "技能教會的配方",
+    "UI_ZeD_Settings_AutoLearnTip": "技能卡也會列出技能達到某等級時遊戲自動教你的配方。關閉：與遊戲相同，不會告訴你。",
+    "UI_ZeD_Skills_TaughtHead": "各等級自動學會"
 }

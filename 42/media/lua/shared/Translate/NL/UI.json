@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Opent het tabblad Maken met dit voorwerp in de zoekbalk.",
     "UI_ZeD_Skills_UnlockHead": "Recepten die elk niveau nodig hebben",
     "UI_ZeD_Skills_UnlockLevel": "Niveau %1",
-    "UI_ZeD_Skills_UnlockMore": "en nog %1"
+    "UI_ZeD_Skills_UnlockMore": "en nog %1",
+    "UI_ZeD_Settings_AutoLearn": "Recepten die vaardigheden leren",
+    "UI_ZeD_Settings_AutoLearnTip": "De vaardigheidskaart toont ook de recepten die het spel je vanzelf leert als een vaardigheid een niveau haalt. Uit: zoals het spel, dat het niet zegt.",
+    "UI_ZeD_Skills_TaughtHead": "Vanzelf geleerd per niveau"
 }

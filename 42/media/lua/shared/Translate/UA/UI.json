@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Відкриває вкладку «Створення» з цим предметом у пошуку.",
     "UI_ZeD_Skills_UnlockHead": "Рецепти, яким потрібен кожен рівень",
     "UI_ZeD_Skills_UnlockLevel": "Рівень %1",
-    "UI_ZeD_Skills_UnlockMore": "і ще %1"
+    "UI_ZeD_Skills_UnlockMore": "і ще %1",
+    "UI_ZeD_Settings_AutoLearn": "Рецепти від навичок",
+    "UI_ZeD_Settings_AutoLearnTip": "Картка навички також показує рецепти, яких гра навчає сама, коли навичка досягає рівня. Вимк.: як у грі, яка про це не каже.",
+    "UI_ZeD_Skills_TaughtHead": "Вивчаються самі на кожному рівні"
 }

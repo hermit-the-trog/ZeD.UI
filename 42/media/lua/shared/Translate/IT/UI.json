@@ -5765,5 +5765,8 @@
     "UI_ZeD_Card_MakesMoreHelp": "Apre la scheda Crea con questo oggetto nella ricerca.",
     "UI_ZeD_Skills_UnlockHead": "Ricette che richiedono ogni livello",
     "UI_ZeD_Skills_UnlockLevel": "Livello %1",
-    "UI_ZeD_Skills_UnlockMore": "e altre %1"
+    "UI_ZeD_Skills_UnlockMore": "e altre %1",
+    "UI_ZeD_Settings_AutoLearn": "Ricette insegnate dalle abilità",
+    "UI_ZeD_Settings_AutoLearnTip": "La scheda dell'abilità elenca anche le ricette che il gioco ti insegna da solo quando un'abilità raggiunge un livello. Disattivato: come il gioco, che non lo dice.",
+    "UI_ZeD_Skills_TaughtHead": "Imparate da sole a ogni livello"
 }
