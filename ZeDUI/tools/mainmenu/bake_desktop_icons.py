@@ -14,6 +14,9 @@ Writes 42/media/textures/ZeD/mainmenu/icons/<name>.png:
   trash     the Trash (full: there is a file in it)
   computer  the Computer (inside the Trash: the old joke of throwing the computer away)
   uploader  the Mod Uploader (the Workshop window: the Mods folder with an up arrow)
+  cletusworks  CletusWorks, the notepad (a page of handwriting and a pencil)
+  note      a CletusWorks document on the desktop (a page of typed lines)
+  mail      Mail (an envelope and its stamp under a modem's waves)
 
 Usage:  py ZeDUI/tools/mainmenu/bake_desktop_icons.py [--sheet out.png]
 """
@@ -268,9 +271,73 @@ def icon_uploader():
     return ic
 
 
+PK = (230, 150, 160, 255)     # an eraser's pink
+WD = (210, 170, 120, 255)     # bare wood
+
+
+def writing(ic, rows, x0=9, x1=22, c=B):
+    """a few lines of handwriting: short strokes with gaps, each row a little different"""
+    for i, y in enumerate(rows):
+        x = x0
+        n = 0
+        while x <= x1 - (i % 3):
+            ln = (3, 5, 2, 4, 3)[(n + i) % 5]
+            ic.hline(x, min(x + ln - 1, x1 - (i % 3)), y, c)
+            if (n + i) % 2 == 0:
+                ic.p(x + 1, y - 1, c)                 # a rising stroke now and then
+            x += ln + 2
+            n += 1
+
+
+def icon_cletusworks():
+    """CletusWorks, the notepad (punch list 104; the director, Nov 7 2026: "a page-with-writing picture"): a page of
+    handwriting with a pencil across its foot"""
+    ic = Icon()
+    document(ic)
+    writing(ic, (11, 14, 17, 20))
+    # the pencil, from the lower right toward the page's middle
+    for i in range(10):
+        x, y = 15 + i, 28 - i
+        ic.p(x, y - 1, K); ic.p(x, y, Y); ic.p(x + 1, y, Y); ic.p(x + 1, y + 1, K)
+        ic.p(x - 1, y, K) if i == 0 else None
+    for i in range(3):                                # the eraser and its band
+        x, y = 25 + i, 18 - i
+        ic.p(x, y - 1, K); ic.p(x, y, PK); ic.p(x + 1, y, PK); ic.p(x + 1, y + 1, K)
+    ic.p(24, 19, M); ic.p(25, 19, M)
+    ic.p(14, 29, WD); ic.p(13, 30, K); ic.p(14, 30, K); ic.p(13, 29, K)   # the sharpened tip
+    return ic
+
+
+def icon_note():
+    """a CletusWorks document on the desktop: a page of typed lines (the app's own page has the pencil)"""
+    ic = Icon()
+    document(ic)
+    for y in (10, 13, 16, 19, 22, 25):
+        ic.hline(9, 22 if y not in (16, 25) else 17, y, M)
+    ic.hline(9, 14, 7, D)                           # its title line
+    return ic
+
+
+def icon_mail():
+    """Mail (punch list 104): an envelope with its stamp, and the modem's waves over it (mail went when you dialed in)"""
+    import math
+    ic = Icon()
+    ic.box(2, 11, 29, 28, W)                        # the envelope
+    ic.line(3, 12, 15, 21, K); ic.line(28, 12, 16, 21, K)   # the flap
+    ic.line(3, 27, 12, 19, M); ic.line(28, 27, 19, 19, M)   # its folds
+    ic.box(22, 13, 27, 18, R)                       # the stamp
+    ic.rect(23, 14, 26, 17, PK)
+    ic.rect(24, 15, 25, 16, R)
+    for i, r in enumerate((3, 6, 9)):              # the waves, up and right from the envelope's corner
+        for a in range(0, 91, 6):
+            ic.p(4 + int(round(r * math.cos(math.radians(a)))), 9 - int(round(r * math.sin(math.radians(a)))), K if i != 1 else D)
+    ic.rect(3, 8, 4, 9, K)
+    return ic
+
+
 ICONS = {"pz": icon_pz, "newgame": icon_newgame, "load": icon_load, "join": icon_join,
          "options": icon_options, "mods": icon_mods, "trash": icon_trash, "computer": icon_computer,
-         "uploader": icon_uploader}
+         "uploader": icon_uploader, "cletusworks": icon_cletusworks, "note": icon_note, "mail": icon_mail}
 
 
 def main():
