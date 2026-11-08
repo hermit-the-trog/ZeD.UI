@@ -67,7 +67,7 @@ end
 function M.has(plate) return M.SPEC[plate] ~= nil and tex(plate) ~= nil end
 
 -- the whole multiple the texels draw at: T.art, the scale rounded to the nearest whole number
--- (rounded down, a 1.75 scale drew the art at 1x in a 1.75x box, far too small)
+-- (rounded down instead, a 1.75 scale would draw the art at 1x in a 1.75x box, far too small)
 function M.zoom()
     local T = ZeD.T
     return (T and T.art) or 1
