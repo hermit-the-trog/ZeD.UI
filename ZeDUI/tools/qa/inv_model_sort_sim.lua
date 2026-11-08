@@ -10,7 +10,7 @@
 --            moves), with nothing asked of a thing inside a comparison.
 --   REBUILD  itemModel: kept between frames; about once a second, each column on its own beat (three columns opened
 --            together never rebuild on the same frame); at once when the count, weight, sort, folds or hands change;
---            within 200 ms of the game's OnContainerUpdate or a drop (a storm of events: about 5 a second); a
+--            within 500 ms of the game's OnContainerUpdate or a drop (a storm of events: about twice a second); a
 --            player's clothes rebuild, a zombie's do not; the clock set back rebuilds once. The clock is past 2^31.
 -- It prints the numbers (comparisons and asks, old -> new), FAIL lines and a last line
 -- "inv_model_sort_sim: N checks, M failed", and exits 1 if any failed.
@@ -529,13 +529,13 @@ check("another fold: rebuilt on that frame", rF2)
 local tBuilt = NOW
 HANDLERS.container()
 local waited, rebuilt = 0, false
-for i = 1, 30 do
+for i = 1, 40 do
     NOW = NOW + 16
     local _, r = draw(colA, main, "wt", true, F2)
     if r then rebuilt = true; waited = NOW - tBuilt; break end
 end
-check("after an event: rebuilt within 200 ms of the last build", rebuilt and waited <= 216, waited)
--- right after a build an event waits; a storm of events every frame rebuilds at most 5 times a second
+check("after an event: rebuilt within 500 ms of the last build", rebuilt and waited <= 516, waited)
+-- right after a build an event waits; a storm of events every frame rebuilds at most twice a second
 local storm = 0
 for i = 1, 60 do
     NOW = NOW + 16.6667
@@ -543,12 +543,12 @@ for i = 1, 60 do
     local _, r = draw(colA, main, "wt", true, F2)
     if r then storm = storm + 1 end
 end
-check("an event every frame for a second: 4-6 rebuilds", storm >= 4 and storm <= 6, storm)
+check("an event every frame for a second: 1-3 rebuilds", storm >= 1 and storm <= 3, storm)
 -- a zombie dressing: nothing; the player: a rebuild
 local zed = { _class = "IsoZombie" }
 NOW = NOW + 16
 local _, rF3 = draw(colA, main, "wt", true, { Food = true })   -- (a fold: a build now)
-NOW = NOW + 250
+NOW = NOW + 520
 HANDLERS.clothing(zed)
 local _, rz = draw(colA, main, "wt", true, { Food = true })
 check("a zombie's clothes: no rebuild", rF3 and not rz)

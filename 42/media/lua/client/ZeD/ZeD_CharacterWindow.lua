@@ -4086,7 +4086,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._healthScroll = ZeD_ScrollbarState:new()
     win._healthScroll.visible = false
     win._healthCache       = nil
-    win._healthTimer       = 0
     win._healthBodyFigure    = nil
     win._healthHoveredPart   = nil
     win._healthActivePart    = nil  -- S103 gamepad: resolved part (gp focus overrides mouse hover), mirrors Thermal
@@ -4102,11 +4101,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._skillsScroll = ZeD_ScrollbarState:new()
     win._skillsScroll.visible = false
     win._skillsCache  = nil
-    win._skillsTimer  = 0
     win._skillsGridExpanded = true
     win._skillsGridZone     = nil
     win._trainingCache     = nil
-    win._trainingTimer     = 0
     win._trainingExpanded  = {}
     win._trainingGroupZones = nil
     win._skillRowZones     = nil
@@ -4117,7 +4114,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- Equipment tab state (slot list + defense dashboard)
     win._equipListExpanded     = true   -- pinned "Equipped" disclosure default
     win._equipProtCache        = nil
-    win._equipProtTimer        = 0
     win._equipDefBodyFigure    = nil
     win._equipDefHoveredPart   = nil
     win._equipDefenseZone      = nil
@@ -4143,7 +4139,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._journalScroll = ZeD_ScrollbarState:new()
     win._journalScroll.visible = false
     win._journalCache  = nil
-    win._journalTimer  = 0
     win._killsExpanded = false
     win._killsRowY     = 0     -- Y position of kills stat row (for click detection)
     win._killsRowH     = 0     -- height of kills stat row
@@ -4190,7 +4185,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._equipScroll = ZeD_ScrollbarState:new()
     win._equipScroll.visible = false
     win._equipCache       = nil
-    win._equipTimer       = 0
     win._equipExpanded    = {head = false, torso = false, arms = false, legs = false, held = false}
     win._equipSelected    = nil   -- selected slot type string or nil
     win._equipGroupZones  = {}

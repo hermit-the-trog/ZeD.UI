@@ -3410,16 +3410,12 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- Crafting/Building tab state — new unified architecture.
     -- Tab state is lazily created by CraftingCore.createState() on first render.
     -- Only data-gathering caches and container refs live on win directly.
-    win._craftTimer          = 0
     win._craftCache          = nil
     win._craftContainers     = nil
-    win._craftContainerTimer = 0
     win._craftState          = nil   -- created lazily by CraftingTab
 
-    win._buildTimer          = 0
     win._buildCache          = nil
     win._buildContainers     = nil
-    win._buildContainerTimer = 0
     win._buildState          = nil   -- created lazily by BuildingTab
 
     -- Maps tab state
