@@ -588,6 +588,8 @@ end
 -- all 13 treatment handlers without duplication.
 -- ============================================================================
 
+--- Open the treatment menu for one part, named as the figure or the injury
+--- list names it. The controller's path passes no panel or position.
 function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     ensureFigureToBPType()
     local bpType = FIGURE_TO_BPTYPE[figureName]
@@ -605,13 +607,13 @@ function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     ZeD.HealthTab.treat(playerObj, nil, bp, anchor, relX or 0, relY or 0, nil)
 end
 
--- The game's treatment menu for one body part, through a thin adapter that stands in for
--- vanilla's ISHealthPanel (ISHealthPanel:doBodyPartContextMenu and its 13 handlers, unchanged):
--- character = the patient, otherPlayer = the doctor when it is someone else (vanilla's
--- setOtherPlayer: a medical check of another player), so every handler's getDoctor and getPatient
--- and the game's own timed actions are vanilla's. blocking = vanilla's blockingMessage (too far
--- away): the menu is built and kept hidden, as vanilla does. The menu opens at (rx, ry) in the
--- anchor panel; with a controller it takes the focus as vanilla's does.
+--- The game's treatment menu for one body part, through a thin adapter that stands in for
+--- vanilla's ISHealthPanel (ISHealthPanel:doBodyPartContextMenu and its 13 handlers, unchanged):
+--- character = the patient, otherPlayer = the doctor when it is someone else (vanilla's
+--- setOtherPlayer: a medical check of another player), so every handler's getDoctor and getPatient
+--- and the game's own timed actions are vanilla's. blocking = vanilla's blockingMessage (too far
+--- away): the menu is built and kept hidden, as vanilla does. The menu opens at (rx, ry) in the
+--- anchor panel; with a controller it takes the focus as vanilla's does.
 function ZeD.HealthTab.treat(patient, doctor, bp, anchor, rx, ry, blocking)
     if not (patient and bp and anchor) then return end
     local adapter = {
@@ -668,7 +670,7 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     curY = curY + barH + T.sp.xs
 
     -- Summary line
-    -- S123: count WOUNDS, not low health. A hungry character with every part
+    -- Count WOUNDS, not low health. A hungry character with every part
     -- at 77% is not "17 of 17 injured"; low health shows as a dim note.
     local wounded = data.woundedCount or data.injuredCount
     if wounded == 0 then
@@ -692,7 +694,8 @@ end
 
 -- ============================================================================
 -- ZONE A RIGHT COLUMN: HOVER DETAIL VIEW
--- Shows health + conditions for the hovered body part.
+-- Shows health + conditions for the hovered body part (the medical check of
+-- another player, ObjectCardMedic.lua, draws the same view).
 -- Returns curY (bottom of detail content).
 -- ============================================================================
 
@@ -759,8 +762,7 @@ end
 -- ============================================================================
 
 -- The exercises, in the order the footer band's pop-up lists them: the bodyweight
--- ones, then the ones that need equipment (Oct 30 2026: the seven buttons became
--- that pop-up)
+-- ones, then the ones that need equipment
 local EXERCISES = {
     "squats", "pushups", "situp", "burpees",
     "barbellcurl", "dumbbellpress", "bicepscurl",
@@ -961,8 +963,8 @@ local function drawExerciseInfo(panel, x, y, w, lay, info)
     end
 end
 
--- The exercise the footer band's pop-up has picked (what the info describes and
--- Start does), per window; vanilla's preselected squats until one is picked.
+--- The exercise the footer band's pop-up has picked (what the info describes and
+--- Start does), per window; vanilla's preselected squats until one is picked.
 function ZeD.HealthTab.selectedExercise(win)
     return win and win._healthExerciseSel or "squats"
 end
@@ -1012,10 +1014,9 @@ function ZeD.HealthTab._startExercise(playerObj, exerciseId, minutes)
 end
 
 -- ----------------------------------------------------------------------------
--- THE FOOTER BAND (Oct 30 2026, punch list 21): the exercise as a pop-up menu and
--- the session time (- 10 +) at the left, Start at the right (pick, then act, as
--- Craft). The seven exercise buttons are gone. Start does what the buttons did:
--- the same guards (canStart), the same vanilla fitness action (_startExercise).
+-- THE FOOTER BAND: the exercise as a pop-up menu and the session time (- 10 +)
+-- at the left, Start at the right (pick, then act, as Craft). Start keeps
+-- vanilla's guards (canStart) and runs vanilla's fitness action (_startExercise).
 -- ----------------------------------------------------------------------------
 
 -- true while the character is in the middle of a fitness session
@@ -1024,8 +1025,8 @@ local function isExercising(playerObj)
     return (q ~= nil and q.queue ~= nil and q.queue[1] ~= nil and q.queue[1].Type == "ISFitnessAction")
 end
 
--- Start's guards, as the exercise buttons had them: the global rules (vanilla
--- ISFitnessUI:updateButtons), no session already running, the picked exercise's item
+-- Start's guards: the global rules (vanilla ISFitnessUI:updateButtons), no
+-- session already running, the picked exercise's item
 function ZeD.HealthTab.canStart(win)
     local p = win and win._playerObj
     if not p then return false end
@@ -1033,8 +1034,8 @@ function ZeD.HealthTab.canStart(win)
         and isExerciseAvailable(p, ZeD.HealthTab.selectedExercise(win))
 end
 
--- Start: the picked exercise for the chosen time, through vanilla's fitness action.
--- Returns true when it started one.
+--- Start: the picked exercise for the chosen time, through vanilla's fitness action.
+--- Returns true when it started one.
 function ZeD.HealthTab.startSelected(win)
     if not ZeD.HealthTab.canStart(win) then return false end
     ZeD.HealthTab._startExercise(win._playerObj, ZeD.HealthTab.selectedExercise(win),
@@ -1042,8 +1043,8 @@ function ZeD.HealthTab.startSelected(win)
     return true
 end
 
--- The session time's - and +: one step (a multiple of 10 minutes), kept inside 10 to 60.
--- Returns true when the time changed.
+--- The session time's - and +: one step (a multiple of 10 minutes), kept inside 10 to 60.
+--- Returns true when the time changed.
 function ZeD.HealthTab.stepMinutes(win, step)
     if not win then return false end
     local was = ZeD.HealthTab.getExerciseMinutes(win)
@@ -1052,13 +1053,14 @@ function ZeD.HealthTab.stepMinutes(win, step)
     return m ~= was
 end
 
--- the exercise pop-up list: opened by the box, shut by a pick, a click anywhere else or B;
--- the pad returns to the box it came from (_healthReturnToMenu, read by the tab's focusables)
+--- The exercise pop-up list: opened by the box, shut by a pick, a click anywhere else or B;
+--- the pad returns to the box it came from (_healthReturnToMenu, read by the tab's focusables)
 function ZeD.HealthTab.openMenu(win)
     win._healthMenuOpen = true
     win._healthMenuZones = nil
 end
 
+--- Shut the list; pickId, when given, becomes the picked exercise.
 function ZeD.HealthTab.closeMenu(win, pickId)
     if pickId then win._healthExerciseSel = pickId end
     win._healthMenuOpen = false
@@ -1070,9 +1072,9 @@ local function inRect(r, x, y)
     return r ~= nil and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h
 end
 
--- The mouse path through the band: an open list takes every press (a pick or shut it);
--- else the box opens it, - and + step the time, Start starts. Returns true when the press
--- was the band's (the whole band swallows it).
+--- The mouse path through the band: an open list takes every press (a pick or shut it);
+--- else the box opens it, - and + step the time, Start starts. Returns true when the press
+--- was the band's (the whole band swallows it).
 function ZeD.HealthTab.onClick(win, x, y)
     if win._healthMenuOpen then
         for _, z in ipairs(win._healthMenuZones or {}) do
@@ -1189,8 +1191,8 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     local blockW = lblW + bh + readW + bh
     -- the box is never narrower than its choice and its arrow ("Squats" v): short of that,
     -- the time's label goes first, then the spaces close up (the edge, the gaps, the
-    -- readout's margin) (Oct 31 2026, break-it B2: at 1280x720, UI scale 2.0, Large text
-    -- the box read "S...")
+    -- readout's margin) (at 1280x720, UI scale 2.0 and Large text the box would
+    -- otherwise read "S...")
     local exName = ZeD.HealthTab.exerciseLabel(sel)
     local need = M.popupMenuW(exName)
     if startX - gap - blockW - gap - boxX < math.max(need, math.min(nat, T.px(130))) then
@@ -1218,7 +1220,7 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpPick")) end
     M.drawPopupMenu(panel, boxX, by, boxW, bh,
         ZeD.tr("UI_ZeD_Health_ExercisePick", exName),
-        hov or open, focusOf(win, "health:exercise"), false, exName)   -- (the name alone when both do not fit, break-it B2)
+        hov or open, focusOf(win, "health:exercise"), false, exName)   -- (the name alone when both do not fit)
     setRect(bz.box, boxX, by, boxW, bh)
 end
 
@@ -1327,16 +1329,16 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
-    -- Right column: summary section (heading moved to disclosure header)
+    -- Right column: summary section (its heading lives in the disclosure header)
     local rightH = 0
     local statRowH = math.max(secH, ZeD.TM:getFontHeight(T.fontF2)) + T.px(4)
     rightH = rightH + statRowH + T.sp.rowGap
     rightH = rightH + T.fillBarH + T.sp.xs + secH + T.sp.sm
 
-    -- Right column: the picked exercise's info block (its buttons are the footer band's now)
+    -- Right column: the picked exercise's info block (its controls are the footer band's)
     rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)
 
-    return math.max(T.sp.figureH, rightH)   -- the figure at the whole zoom it draws at (Oct 21 2026)
+    return math.max(T.sp.figureH, rightH)   -- the figure at the whole zoom it draws at
 end
 
 -- ============================================================================

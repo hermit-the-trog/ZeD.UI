@@ -2,8 +2,8 @@
 -- ============================================================================
 -- THE SERVER PART'S CORE. Server only: runs on a dedicated server and a host's server, and nowhere else (the first line
 -- returns anywhere else, single player included). Pure Lua, pure ASCII. ZeD.Srv: who may do what, the rate limits, the
--- one OnClientCommand listener, the hello, the pushes to staff and the ZeD log. Every other server file registers its
--- own commands here (Srv.register) and names its module in Srv.modules.
+-- one OnClientCommand listener, the hello, the pushes to staff and the ZeD log. Each server file with commands registers
+-- them here (Srv.register) and adds its module to Srv.modules; this file adds the link's and the tickets'.
 --
 -- What crosses the wire: a client's ZeD.ServerPart.send (client/ZeD/ZeD_ServerLink.lua) calls sendClientCommand(player,
 -- module, command, args). Here it arrives as OnClientCommand(module, command, player, args), the player filled in by the
@@ -70,7 +70,7 @@ local function logField(v)
     return s
 end
 
--- the line in the file alone: for a table's own opening, which the ring can't hold yet
+--- The line in the file alone: for a table's own opening, which the ring can't hold yet.
 function Srv.fileLine(kind, who, what, target, detail, x, y, z)
     local where = "-"
     if x then
@@ -80,6 +80,7 @@ function Srv.fileLine(kind, who, what, target, detail, x, y, z)
     Srv.log(table.concat({ kind, logField(what), logField(who), logField(target), where, logField(detail), "day " .. tostring(Srv.day()) }, " | "))
 end
 
+--- The one way into the action log (THE ACTION LOG above): the line in the file, then in the Log view's ring.
 function Srv.action(kind, who, what, target, detail, x, y, z, ex)
     Srv.fileLine(kind, who, what, target, detail, x, y, z)
     if Srv.actionStore then Srv.actionStore(kind, who, what, target, detail, x, y, z, ex) end
@@ -111,7 +112,7 @@ local function general(user, now)
     return true
 end
 
--- a command's own limit: the seconds left, or nil when it may run
+--- A command's own limit: the seconds left, or nil when it may run.
 function Srv.left(p, key, ms)
     local last = memOf(p:getUsername()).last[key]
     if not last then return nil end
@@ -119,9 +120,10 @@ function Srv.left(p, key, ms)
     if gone >= ms then return nil end
     return math.ceil((ms - gone) / 1000)
 end
+--- Start p's own limit for key now (Srv.left reads it).
 function Srv.mark(p, key) memOf(p:getUsername()).last[key] = getTimestampMs() end
 
--- one line a minute per player for a refused power, or the denial itself fills the disk
+--- Log a refused power: one line a minute per player, or the denial itself fills the disk.
 function Srv.deny(p, what)
     local m = memOf(p:getUsername())
     local now = getTimestampMs()
@@ -130,7 +132,7 @@ function Srv.deny(p, what)
     Srv.action("admin", p:getUsername(), "refused", nil, "has no right to " .. tostring(what))
 end
 
--- a line for arguments no client of ours sends, a few a minute per player
+--- Log arguments no client of ours sends: a few lines a minute per player.
 function Srv.bad(p, what)
     local m = memOf(p:getUsername())
     local now = getTimestampMs()
@@ -140,9 +142,11 @@ function Srv.bad(p, what)
     Srv.action("admin", p:getUsername(), "bad arguments", nil, what)
 end
 
+--- One command to one player's client (sendServerCommand).
 function Srv.to(p, module, command, args) sendServerCommand(p, module, command, args) end
 
--- the answer to a command: rid only if the client sent a good one. module, command: a phase's own (default: tickets)
+--- The answer to a command: rid only if the client sent a good one. module, command: a part's own (default: the
+--- tickets' t_ack, which the client matches to its request by rid).
 function Srv.ack(p, rid, ok, err, extra, module, command)
     local a = extra or {}
     a.ok = ok == true
@@ -151,11 +155,13 @@ function Srv.ack(p, rid, ok, err, extra, module, command)
     Srv.to(p, module or Tk.MOD, command or "t_ack", a)
 end
 
+--- fn(player) for every player online.
 function Srv.eachOnline(fn)
     local list = getOnlinePlayers()
     for i = 0, list:size() - 1 do fn(list:get(i)) end
 end
--- can is tested again at every push, so a demoted client gets no more
+--- fn(player) for every staff player online (AnswerTickets). can is tested again at every push, so a demoted
+--- client gets no more.
 function Srv.eachStaff(fn)
     local list = getOnlinePlayers()
     for i = 0, list:size() - 1 do
@@ -163,7 +169,8 @@ function Srv.eachStaff(fn)
         if Srv.can(o, CAP_STAFF) then fn(o) end
     end
 end
--- (getPlayerFromUsername is not server-safe: it calls GameClient.instance)
+--- The player online under exactly this name, or nil.
+--- (getPlayerFromUsername is not server-safe: it calls GameClient.instance)
 function Srv.player(user)
     local list = getOnlinePlayers()
     for i = 0, list:size() - 1 do
@@ -173,8 +180,9 @@ function Srv.player(user)
     return nil
 end
 
--- opts: cap (the capability it needs), limit (ms between runs), mark = false when the handler marks an accepted run itself,
--- ackModule and ackCommand when refusals answer on a phase's own module
+--- The handler for module.command: fn(player, args, rid), called only once the gates, cap and limit let it through.
+--- opts: cap (the capability it needs), limit (ms between runs), mark = false when the handler marks an accepted run itself,
+--- ackModule and ackCommand when refusals answer on a part's own module.
 function Srv.register(module, command, opts, fn)
     Srv.handlers[module .. "." .. command] = { module = module, name = command, cap = opts.cap, limit = opts.limit, mark = opts.mark, fn = fn,
         ackModule = opts.ackModule, ackCommand = opts.ackCommand }
@@ -194,7 +202,8 @@ function Srv.shut(p, why, what)
     Srv.action("admin", p:getUsername(), "refused", nil, tostring(why) .. ": " .. tostring(what))
 end
 
--- the word a gate shuts this player out of this command with, or nil (the admin part asks it before it hands anyone a game call)
+--- The word a gate shuts this player out of this command with, or nil (the admin part asks it before it hands anyone a
+--- game call).
 function Srv.gated(p, module, command)
     for _, g in pairs(Srv.gates) do
         local why = g(p, module, command)
@@ -269,7 +278,7 @@ if Srv.listening == nil then
     Events.OnClientCommand.Add(function(module, command, player, args) ZeD.Srv.onCommand(module, command, player, args) end)
 end
 
--- Any client can write to any logger through ISLogSystem (A5). The ZeD log is closed to that channel, by name with
+-- Any client can write to any logger through ISLogSystem. The ZeD log is closed to that channel, by name with
 -- its case and punctuation ignored. ISLogSystem.OnClientCommand looks the function up at each call. Srv.tapBy names the
 -- sender for the Log view's tap (ZeD_ServerLog.lua), which sees the line when the game's writeLog is called.
 if not Srv.logClosed and ISLogSystem and ISLogSystem.writeLog then

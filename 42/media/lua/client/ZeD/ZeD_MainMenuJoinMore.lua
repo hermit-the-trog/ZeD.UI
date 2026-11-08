@@ -13,7 +13,7 @@
 --   size, its state as a status square and a progress bar while it downloads;
 --   vanilla's prompt or error above them. Band: Disconnect | Install. Once
 --   vanilla hides it on success the connection goes on: the Connecting view
---   takes over again (vanilla showed an empty screen there).
+--   takes over again (where vanilla's own flow leaves an empty screen).
 -- SERVER INVITE (BootstrapConnectPopup): a Steam invite or a +connect launch
 --   asks Steam about the server first. Drawn like Connecting: the address, a
 --   blinking square while it asks, vanilla's words. Band: Cancel (Back once it
@@ -113,7 +113,7 @@ function ZeD_MMWsItems:onShow()
     self.done = nil
 end
 
--- the mods vanilla's list holds: { id, title, size (MB), state, frac (downloading) }
+--- The mods vanilla's list holds: { key, id, title, size (MB), state; while downloading frac, done, of (MB) }.
 function MM.wsItemRows(scr)
     local rows = {}
     local lb = scr and scr.listbox
@@ -137,7 +137,7 @@ function MM.wsItemRows(scr)
     return rows
 end
 
--- vanilla's words above the list: its prompt, or the error that replaced it
+--- Vanilla's words above the list, and true when they are an error that replaced its prompt.
 function MM.wsItemsNote(scr)
     local text = s(scr and scr.label and scr.label.name)
     local prompt = getText("UI_ServerWorkshopItemScreen_Prompt")
