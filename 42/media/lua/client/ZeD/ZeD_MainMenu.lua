@@ -1433,6 +1433,12 @@ function ZeD_MMDesk:createChildren()
         self.icons:initialise()
         self:addChild(self.icons)
     end
+    -- the sticky note's field, on the desktop under every window (ZeD_MainMenuNotes.lua; the icon layer draws its paper)
+    if ZeD_MMSticky then
+        self.sticky = ZeD_MMSticky:new()
+        self.sticky:initialise()
+        self:addChild(self.sticky)
+    end
     self.win = ZeD_MMWindow:new("main")
     self.win:initialise()
     self:addChild(self.win)
