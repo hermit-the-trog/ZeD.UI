@@ -1039,9 +1039,20 @@ function ZeD_ItemCard:_toggleFold(key)
     if player then
         player:getModData()["ZeD_fold_" .. key] = newVal
     end
-    -- Clamp scroll if body shrank
-    local bodyH = self:_calcBodyH()
-    local viewH = self:getHeight() - self._headH
+    -- Clamp scroll if body shrank. A drawer card (every card the windows make)
+    -- measures its body as renderBody draws it (_contentH, the view under the
+    -- head and above the care verbs' band, as prerender clamps it); the old
+    -- layout's _calcBodyH is shorter and cut the scroll back on every fold
+    -- (Nov 8 2026, code flags). renderBody stamps the new height next frame and
+    -- prerender clamps to it.
+    local bodyH, viewH
+    if self.mode == "drawer" then
+        bodyH = self._contentH or 0
+        viewH = self:getHeight() - (self._headH or 0) - (self._verbStripResvH or 0)
+    else
+        bodyH = self:_calcBodyH()
+        viewH = self:getHeight() - self._headH
+    end
     local maxScroll = math.max(0, bodyH - viewH)
     if self._scrollPixels > maxScroll then
         self._scrollPixels = maxScroll
