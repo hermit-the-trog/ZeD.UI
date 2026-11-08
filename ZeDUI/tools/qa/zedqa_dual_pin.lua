@@ -41,6 +41,16 @@ local function done() local r = getFileReader("zedqa_click_done.txt", false); lo
 local function moveTo(x, y) req("move " .. math.floor(x) .. " " .. math.floor(y)) end
 local function clickAt(x, y) req("left " .. math.floor(x) .. " " .. math.floor(y)) end
 local function mouse() waitFor(5, 600, done, function() end) end
+-- wait a number of milliseconds on the clock (getTimestampMs), not frames: the rest on a bar is timed on the clock
+local function waitMs(ms, fn)
+    local t0
+    waitFor(0, 100000, function() t0 = t0 or getTimestampMs(); return getTimestampMs() - t0 >= ms end, fn)
+end
+-- the pointer by the globals the halves read (the real desktop cursor is read again every frame): nil puts them back
+local realMX, realMY = getMouseX, getMouseY
+local function pointerAt(x, y)
+    if x then getMouseX = function() return x end; getMouseY = function() return y end else getMouseX, getMouseY = realMX, realMY end
+end
 local function rect(r) return r and string.format("%d,%d %dx%d", r.x, r.y, r.w, r.h) or "none" end
 local function centre(win, r) return win:getAbsoluteX() + r.x + r.w / 2, win:getAbsoluteY() + r.y + r.h / 2 end
 local function mapOpen(w) return w._activeTab == "maps" and w._drawerOpen and w._drawerMode == "tab" end
@@ -80,6 +90,21 @@ step(200, function()
     moveTo(w:getAbsoluteX() + w:getWidth() / 2, w:getAbsoluteY() + w:getHeight() / 2)
 end)
 mouse()
+-- 2.2a QUICK  a pass across the rolled Character bar under 0.3 s leaves it rolled
+step(10, function()
+    local c = CW()
+    check(c.windowShaded == true, "2.2a: the Character window is rolled before the sweep")
+    local y = c:getAbsoluteY() + c:titleBarHeight() / 2
+    pointerAt(c:getAbsoluteX() + 150, y)
+end)
+waitMs(120, function()
+    pointerAt(sw - 40, sh - 40)
+end)
+waitMs(900, function()
+    local c = CW()
+    check(c.windowShaded == true, "2.2a: a 0.12 s pass over the rolled title bar leaves it rolled")
+    pointerAt(nil)
+end)
 -- 3 MAP
 step(200, function()
     local w = WW()
@@ -89,7 +114,7 @@ step(200, function()
 end)
 mouse()
 -- 4 ROD
-step(60, function()
+waitMs(700, function()
     local w = WW()
     check(not w._rolled and mapOpen(w), "pointer on the containers' rod: they come down, the map open")
     shot("4_containers_down")
@@ -98,7 +123,7 @@ step(60, function()
 end)
 mouse()
 -- 5 HALF
-step(60, function()
+waitMs(700, function()
     local c = CW()
     check(not c.windowShaded and c._drawerOpen, "the drawer's part of the Character bar: the window down, the drawer open")
     check(c._rolled == true, "... the inventory still rolled under its rod")
@@ -158,6 +183,20 @@ step(30, function()
     check(not c._drawerOpen and c._activeTab == "loot", "a real click on the open tab still folds the drawer (pinned or not)")
     check(H.foldedTab(c) == nil, "... by hand: not the half's fold")
     ZeD_CharacterWindow.openTab(0, "health")
+end)
+-- 2.2b DRAG  an item dragged over a rolled title bar brings it down at once (no 0.3 s rest)
+step(10, function()
+    local c = CW()
+    pcall(function() c:setWindowShaded(true) end)
+    check(c.windowShaded == true, "2.2b: the Character window rolled for the drag test")
+    c._equipDrag = { isActive = function() return true end }   -- an item held (as itemDragging reads it)
+    pointerAt(c:getAbsoluteX() + 150, c:getAbsoluteY() + c:titleBarHeight() / 2)
+end)
+waitMs(250, function()
+    local c = CW()
+    check(not c.windowShaded, "2.2b: an item held over the rolled title bar brings the window down within 0.25 s")
+    c._equipDrag = nil
+    pointerAt(nil)
 end)
 -- 9 PAD
 step(30, function()
