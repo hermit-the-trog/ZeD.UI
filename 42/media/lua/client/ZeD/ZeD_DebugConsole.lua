@@ -169,7 +169,12 @@ end
 -- the game's command line holds what is typed here (its suggestion follows it)
 function DC.mirror(text)
     text = text or ""
-    if not (P.ok and P.cmd) or DC._mirrored == text then return end
+    if not (P.ok and P.cmd) then return end
+    if DC._mirrored == text then
+        -- (still what the game's line holds? Something else may have set it: then it is worked again)
+        local ok, cur = pcall(function() return P.cmd:getText() end)
+        if not ok or cur == nil or tostring(cur) == text then return end
+    end
     DC._mirrored = text
     pcall(function() P.cmd:SetText(text) end)
     -- (the game fills its suggestion box in its own update(), when the line's length has changed; it is run now, so the
@@ -428,7 +433,7 @@ function W:createChildren()
     e:instantiate()
     e.zedEntry = true
     pcall(function() e.javaObject:setCentreVertically(true) end)
-    e:setPlaceholderText(tr("UI_ZeD_Console_Type"))
+    e:setPlaceholderText("")   -- (ZeD draws the placeholder, _drawTyped)
     e.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     e.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     e:setMaxTextLength(LINE_MAX)
@@ -625,9 +630,13 @@ function W:_drawBody()
     self:drawText(mark, mx0, iy + math.floor((ih - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
     local ex = mx0 + ZeD.TM:MeasureStringX(f3, mark) + px(4)
     if inp then
-        if inp:getX() ~= ex then inp:setX(ex) end
-        if inp:getY() ~= iy then inp:setY(iy) end
+        -- The game's box draws its own text, its caret and its placeholder, always opaque (UITextBox2.render passes alpha 1
+        -- for them whatever setTextRGBA says), inside a clip clamped to its parent. It keeps the keys and the cursor, so it
+        -- stands left of the window, where that clip is empty; ZeD draws the line (_drawTyped) and takes the clicks.
         local ew = fx + fw - px(4) - ex
+        local offX = -(ew + px(60))
+        if inp:getX() ~= offX then inp:setX(offX) end
+        if inp:getY() ~= iy then inp:setY(iy) end
         if inp:getWidth() ~= ew then inp:setWidth(ew) end
         if inp:getHeight() ~= ih then inp:setHeight(ih) end
         self:_drawTyped(inp, ex, iy, ew, ih, f3, focused)
@@ -870,7 +879,9 @@ function W:onMouseDown(x, y)
         return true
     end
     if inRect(self._listRect, x, y) then self:pickAt(y); return true end
-    return ZeD_Window.onMouseDown(self, x, y)
+    -- the title bar (and the edges): ZeD_Window starts the drag or the resize. Whatever it answers, a press inside the window is ours.
+    ZeD_Window.onMouseDown(self, x, y)
+    return true
 end
 
 function W:onMouseUp(x, y)
@@ -883,25 +894,34 @@ function W:onMouseUp(x, y)
         end
         return true
     end
-    return ZeD_Window.onMouseUp(self, x, y)
+    ZeD_Window.onMouseUp(self, x, y)
+    return true
 end
 
 function W:onMouseUpOutside(x, y)
     self._down = nil
     if self._sb then self._sb:handleMouseUp() end
-    return ZeD_Window.onMouseUpOutside(self, x, y)
+    ZeD_Window.onMouseUpOutside(self, x, y)
+    return true
 end
 
+-- A drag of the window and a drag on the scrollbar's thumb are separate: the window's drag (ZeD_Window, as every ZeD
+-- window) always gets the move, in the window or outside it; the thumb follows the pointer as well.
 function W:onMouseMove(dx, dy)
     local sb = self._sb
-    if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y); return end
-    return ZeD_Window.onMouseMove(self, dx, dy)
+    if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y) end
+    ZeD_Window.onMouseMove(self, dx, dy)
+    return true
 end
 function W:onMouseMoveOutside(dx, dy)
     local sb = self._sb
-    if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y); return end
-    return ZeD_Window.onMouseMoveOutside(self, dx, dy)
+    if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y) end
+    ZeD_Window.onMouseMoveOutside(self, dx, dy)
+    return true
 end
+-- (42.22: a handler that is not there passes the click to what is beneath, one that returns nothing takes it)
+function W:onRightMouseDown(x, y) return true end
+function W:onRightMouseUp(x, y) return true end
 
 function W:onMouseWheel(del)
     local lh = self._lh or px(14)
@@ -912,6 +932,8 @@ end
 function W:update()
     ZeD_Window.update(self)
     if not self:getIsVisible() then return end
+    -- a drag whose release the engine missed (it ticks update every 100 ms) ends here, as the resize does
+    if self.moving and not isMouseButtonDown(0) then self.moving = false end
     local sb = self._sb
     if sb and sb.visible then
         local mx, my = self:getMouseX(), self:getMouseY()
