@@ -2,12 +2,17 @@
 -- ============================================================================
 -- APPLIANCE VIEW — client; the Craft tab bound to an oven or a microwave,
 -- in place of vanilla's oven window.
+-- One thing to know: this is one of the Craft tab's three station views (with
+-- StationMachine and StationGeneral); CraftingTab calls render, onClick,
+-- onMouseWheel, buildFocusables and focusKey on whichever is bound, so those
+-- five keep the same arguments in all three.
 -- Each of the game's ovens and microwaves shows its own control panel in pixel
 -- art (one plate per model, fixed size, centred): the
 -- 1956 green range, the 1962 red range, the 1985 grey range, the 1992 gas
 -- range, the restaurant range, the convection oven, the deep fryer, the 1990
 -- touchpad microwave and the 1979 dial microwave (plates baked into
--- PhysPx.lua, a generated file, drawn by the shared plate template ZeD_Plate.lua). The plate is
+-- PhysPx.lua by the tools in ZeDUI/tools/physpx — a generated file — and drawn
+-- by the shared plate template ZeD_Plate.lua). The plate is
 -- picked by the object's tile; a modded oven or microwave borrows one.
 --
 -- Every panel drives vanilla's state, nothing more: on / off, the temperature
@@ -120,6 +125,8 @@ end
 local function baseOf(pid) return P.baseId(pid) end
 local function isMwPlate(id) return id:sub(1, 3) == "mw_" end
 local function isOvenPlate(id) return id:sub(1, 5) == "oven_" or baseOf(id) == "fryer" end
+--- The plate and its id for a bound station: by its tile when the tile's plate fits its kind, else the kind's
+--- fallback (a modded appliance borrows one).
 function SA.plateFor(st)
     local X = PX()
     if not X then return nil, nil end
