@@ -514,8 +514,8 @@ local function stationView(win)
     return nil, st
 end
 
---- The tab's frame (the World window's renderer for "craft"): a bound machine's or
---- appliance's own view, else the recipe list through CraftingCore.
+--- The tab's frame (the World window's renderer for "craft"): a bound station's own view
+--- (a machine, an appliance, a general station), else the recipe list through CraftingCore.
 function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     local state = getState(win)
     if ZeD.Stations and win._playerObj then ZeD.Stations.validate(win._playerObj) end
@@ -531,8 +531,9 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     local data = ZeD.CraftingTab.gatherData(win._playerObj, win)
 
     -- Can each recipe be made now? Vanilla's crafting logic answers for every
-    -- recipe at once (CC.logicScan); the old quick scan only covers recipes it
-    -- could not answer. A changed answer re-filters the list.
+    -- recipe at once (CC.logicScan); the quick scan (CC.backgroundIngredientScan,
+    -- every 300 frames) only covers recipes it could not answer. A changed
+    -- answer re-filters the list.
     local bench = boundBench(win._playerObj)
     local benchKey = bench and tostring(bench.obj) or "hand"
     -- (a new bench or none: asked again at once, not up to 1.2 s later)
@@ -568,6 +569,7 @@ end
 -- CLICK HANDLER
 -- ============================================================================
 
+--- A press in the tab: the station view's, else CraftingCore's.
 function ZeD.CraftingTab.onClick(win, x, y)
     local state = getState(win)
     local view, st = stationView(win)
@@ -579,6 +581,7 @@ end
 -- RIGHT-CLICK HANDLER
 -- ============================================================================
 
+--- A right-click: pins or unpins a recipe row (a station view takes it and does nothing).
 function ZeD.CraftingTab.onRightClick(win, x, y)
     local state = getState(win)
     if stationView(win) then return true end
@@ -589,6 +592,7 @@ end
 -- MOUSE WHEEL HANDLER
 -- ============================================================================
 
+--- The wheel: the station view's, else CraftingCore's.
 function ZeD.CraftingTab.onMouseWheel(win, del, x, y)
     local T = ZeD.T
     local state = getState(win)
@@ -597,7 +601,7 @@ function ZeD.CraftingTab.onMouseWheel(win, del, x, y)
     return CC.onMouseWheel(state, del, x, y, 0, T.px(CC.DRAWER_W))
 end
 
--- Gamepad focusables for the World window (recipe view or station view).
+--- Gamepad focusables for the World window (recipe view or station view).
 function ZeD.CraftingTab.buildFocusables(win)
     local state = win and win._craftState
     if not state then return {} end
@@ -606,7 +610,7 @@ function ZeD.CraftingTab.buildFocusables(win)
     return CC.buildFocusables(win, state, "craft", "ZeD_CraftPins", ZeD.CraftingTab.startCraft)
 end
 
--- Focus-refresh key: changes whenever the station view's controls move.
+--- Focus-refresh key: changes whenever the station select or the station view's controls move.
 function ZeD.CraftingTab.focusKey(win)
     local state = win and win._craftState
     if not state then return nil end
@@ -620,6 +624,7 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Puts the tab's renderer in the World window's table (WORLD_TAB_RENDERERS).
 function ZeD.CraftingTab.register(dispatchTable)
     dispatchTable["craft"] = ZeD.CraftingTab.render
 end

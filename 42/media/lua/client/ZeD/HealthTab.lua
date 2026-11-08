@@ -1448,23 +1448,20 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
 
-    -- S101 gamepad scroll-follow for injury list. Runs only when the live
-    -- focused ring element is an injury row (Focus.getFocusedElement returns
-    -- the zone's current element; el.injuryKey is unique to injury elements).
-    -- Reads last frame's stamped entry-start Y and adjusts scroll.scrollPos
-    -- BEFORE scrollOff is computed. One-frame lag, mirrors EquipmentTab pattern.
-    -- S103 DELTA GATE: only pin scroll when the focused injuryKey actually
-    -- CHANGED. Mode-gate approach (getMode() == "gamepad") was unreliable
-    -- because the detector oscillates kbm↔gamepad within consecutive frames,
-    -- so a KBM mousewheel past the focused row could snap back on any
-    -- frame that briefly reported "gamepad". Delta gate fires exactly once
-    -- per focus change regardless of mode.
-    -- Oct 23 2026: the same for every stop in the body (body parts, injuries),
-    -- keyed on the element's id. The lowest stop scrolls as far down as it can
-    -- while staying in view, so the text under it (the last injury) can be read
-    -- on the pad; the header's disclosure scrolls back to the top. The band's
-    -- stops are pinned (bandStop): they never scroll the body and are not
-    -- counted as "below" a body stop.
+    -- Controller scroll-follow for every stop in the body (body parts, injury
+    -- rows, the header's disclosure), keyed on the element's id. Reads last
+    -- frame's stamped entry-start Y and adjusts scroll.scrollPos BEFORE
+    -- scrollOff is computed: one frame of lag, the EquipmentTab pattern.
+    -- DELTA GATE: the scroll is pinned only when the focused stop CHANGED.
+    -- Gating on the mode (getMode() == "gamepad") is unreliable: the detector
+    -- can swing kbm↔gamepad between consecutive frames, so a mouse-wheel scroll
+    -- past the focused row would snap back on any frame that briefly read
+    -- "gamepad". The delta gate fires exactly once per focus change, whatever
+    -- the mode. The lowest stop scrolls as far down as it can while staying in
+    -- view, so the text under it (the last injury) can be read on the pad; the
+    -- header's disclosure scrolls back to the top. The band's stops are pinned
+    -- (bandStop): they never scroll the body and are not counted as "below" a
+    -- body stop.
     if needsScroll then
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedElement
@@ -1474,9 +1471,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         if focKey and focKey ~= win._lastPinnedInjuryKey then
             local span    = math.max(1, totalContentH - scrollH)
             local oldOff  = math.floor(scroll.scrollPos * span)
-            -- (Oct 30 2026, punch list 21 a-f: the stops are clipped to the view, fullY / fullH
-            -- keep the whole rect; the lowest stop SHOWN scrolls the body on so the ones under
-            -- it come into view, and Up onto the highest one shown scrolls back the same way)
+            -- (the stops are clipped to the view, fullY / fullH keep the whole rect; the
+            -- lowest stop SHOWN scrolls the body on so the ones under it come into view,
+            -- and Up onto the highest one shown scrolls back the same way)
             local elY, elH = el.fullY or el.y, el.fullH or el.h
             if el.injuryKey and lastInjuryYMap[el.injuryKey] then elY = lastInjuryYMap[el.injuryKey] end
             local target = oldOff
@@ -1505,7 +1502,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
                 elseif logicalY + elH > oldOff + scrollH then
                     target = logicalY + elH - scrollH
                 end
-                -- whatever the rule, the focused stop ends whole in view (rule 3: never under the band)
+                -- whatever the rule, the focused stop ends whole in view (never under the band)
                 if logicalY + elH > target + scrollH then target = logicalY + elH - scrollH end
                 if logicalY < target then target = logicalY end
             end
@@ -1528,7 +1525,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- ================================================================
     -- ZONE A BODY: figure (left) + dashboard (right) — scrolls
     -- ================================================================
-    -- (_healthFigureZone is stamped at the TOP of render now, not here)
+    -- (_healthFigureZone is stamped at the TOP of render, not here)
 
     if figureExpanded then
         local layout = M.layoutZoneA(x, curY, contentW, T.sp.figureW, T.sp.figureH)
@@ -1536,8 +1533,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         ZeD.HealthTab._drawBodyFigure(panel, win, data,
             layout.figX, layout.figY, T.sp.figureW, T.sp.figureH)
 
-        -- S103: detail-view now reads _healthActivePart (gp focus overrides
-        -- mouse hover); previously only _healthHoveredPart drove the swap.
+        -- The detail view reads _healthActivePart (the controller's focus
+        -- overrides mouse hover).
         local activePart = win._healthActivePart
         local rightBottom
         if activePart and data.partHealth[activePart] then
@@ -1548,8 +1545,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
                 layout.rightX, layout.rightY, layout.rightW)
         end
 
-        -- (Oct 23 2026: a right column taller than the measure pushes the
-        -- injury list down instead of running under it)
+        -- (a right column taller than the measure pushes the injury list
+        -- down instead of running under it)
         curY = math.max(curY + zoneABodyH, (rightBottom or 0) + padTop + pad)
     end
 
@@ -1600,7 +1597,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             A.drawDividerH(panel, listX, curY, listW)
             curY = curY + T.px(1) + T.sp.afterGroove
 
-            -- S101 stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
+            -- Stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
             -- and scroll-follow above). Height = actual drawn extent including wrapped
             -- tag rows + divider gap.
             win._healthInjuryYMap[entry.name] = entryStartY

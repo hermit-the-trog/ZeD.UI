@@ -172,9 +172,9 @@ function S.computeGame()
 end
 
 -- ---------------------------------------------------------------------------
--- THE MAIN MENU'S SCALE. While the desk is up
--- and no game is loaded the root is at least 1.0, so the menu's type meets Valve's
--- readable size on a Steam Deck, and at most sMax / 4, where sMax is the largest whole
+-- THE MAIN MENU'S SCALE. While the desk is up and no game is loaded the root
+-- is at least 1.0, so the menu's type meets Valve's readable size on a Steam
+-- Deck, and at most sMax / 4, where sMax is the largest whole
 -- multiple of the desk picture whose monitor (240 x 180 px) fits the screen: 4 on a Deck
 -- or at 720p, 6 at 1080p, 12 at 4K. The game's own scale (S.computeGame, with the fit
 -- cap) is untouched: a Deck plays at 0.75 and reads its menu at 1.0. At 1080p and up

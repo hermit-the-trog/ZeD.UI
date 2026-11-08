@@ -4235,7 +4235,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
         if type(zid) == "string" and zid:sub(1, 4) == "tab:" then
             local tabId = zid:sub(5)
-            -- MC stays alive when switching tabs
+            -- MC columns stay open on the way to Loot; any other tab closes them (below)
             local mcSel = win._mcSelected or {}
             local mcActive = #mcSel > 0
 
@@ -4325,18 +4325,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 content._lastClickedItem = nil
             end
         end
-        -- S123: mouse tab clicks never re-synced the gamepad ring zones, so
-        -- after Journal -> Loot the charTabContent zone still held the Journal
-        -- pills and D-pad right from the inventory landed on invisible
-        -- elements. The gamepad path (_switchTabForNav) already syncs; now
-        -- every strip click does too.
+        -- Every strip click re-syncs the gamepad ring zones, as the gamepad
+        -- path (_switchTabForNav) does: without it, after Journal -> Loot the
+        -- charTabContent zone still held the Journal's stops and D-pad right
+        -- from the inventory landed on invisible elements.
         if _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, content) end
         return true
     end
 
     strip.onMouseWheel = function(self, del)
         local T = ZeD.T
-        local totalTabH = measureTabStripH(win)   -- (win: a tab shown only sometimes is counted right, break-it B1)
+        local totalTabH = measureTabStripH(win)   -- (win: a tab shown only sometimes is counted right)
         if totalTabH > self:getHeight() then
             win._tabScrollOffset = (win._tabScrollOffset or 0) + del * T.px(TAB_BTN_SZ)
             return true
@@ -4348,7 +4347,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- DRAWER — slides out between tab strip and inventory list
     -- ----------------------------------------------------------------
     win._drawerOpen     = false
-    win._drawerEffW     = 0      -- pixel-based animation (replaces progress 0-1)
+    win._drawerEffW     = 0      -- pixel-based animation (a width in px, not a 0-1 progress)
     win._prevEffW       = 0      -- (a restored tab drawer's first frame widens the window too; nil lost it)
     win._drawerItem     = nil
     win._drawerMode     = nil    -- 'item' | 'tab' | nil
@@ -4436,7 +4435,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._flyerSearch = flyerSearch
     win._flyerSearchText = ""
 
-    -- Identity tab bust portrait — window-parented to avoid stencil conflict (Q52).
+    -- Identity tab bust portrait — window-parented to avoid a stencil conflict.
     -- ISUI3DModel cannot be a child of any stencil-using panel (GL scissor kills
     -- Java 3D rendering). Parented on win directly; positioned each frame to overlay
     -- the photo frame in IdentityTab. addChild between containerStrip and itemDrawer.
@@ -4551,7 +4550,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     itemDrawer._zedLabel = "char item drawer"   -- its own name in console.txt and safe mode's watchdog
     itemDrawer.anchorRight = false
     itemDrawer:initialise()
-    -- addChild deferred: itemDrawer added LAST so it renders on top of all siblings
+    -- addChild deferred: itemDrawer goes in after the drawer, content and strips (only
+    -- the hint layer comes later) so it renders on top of them
     win._itemDrawerPanel = itemDrawer
 
     local card = ZeD_ItemCard:new(0, 0, T.px(ITEM_CARD_W), bodyH, "drawer", playerNum)
@@ -4559,8 +4559,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     card:setVisible(false)
     itemDrawer:addChild(card)
     win._itemCard = card
-    -- the card's back key shuts the card, as B does (_buildCardActionFocusables' onCancel). It had
-    -- no action here, so a click on it did nothing (Oct 30 2026, the director's mouse pass).
+    -- the card's back key shuts the card, as B does (_buildCardActionFocusables' onCancel);
+    -- without this handler a click on it does nothing.
     card.onBackClick = function()
         local content = win._mainContent
         if content and win._updateDrawer then
@@ -4636,8 +4636,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local effectiveW = math.floor(effW)
         -- its left edge too, every frame like its neighbours: a text size or scale change
         -- with the window open moves the tab strip's edge, and a left edge kept from the
-        -- build put the drawer's right side under the inventory (director, Oct 25 2026:
-        -- "the smallest font seems to break parts of the window ui")
+        -- build put the drawer's right side under the inventory (it showed at the
+        -- smallest text size)
         local dx = T.px(TAB_STRIP_W)
         if self:getX() ~= dx then self:setX(dx) end
         self:setWidth(effectiveW)
@@ -4653,15 +4653,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
             win._anchorRightEdge = win._anchorRightEdge + (win:getX() - win._lastSetX)
         end
 
-        -- ── Original proven model: tab drawer delta drives window width,
-        -- invW is always the residual. Inv toggle snaps width directly. ──
+        -- ── The width model: the tab drawer's delta drives the window width,
+        -- invW is always the residual. The inventory toggle snaps width directly. ──
         local prevEffW = win._prevEffW or effectiveW
         local drawerDelta = effectiveW - prevEffW
         win._prevEffW = effectiveW
 
         local mcActive = #(win._mcSelected or {}) > 0
         local screenW = getCore():getScreenWidth()
-        -- S121: when MC + item card both active, cap maxW at user's preferred
+        -- When MC + item card are both active, cap maxW at the player's preferred
         -- inv width (_baseInvW) plus chrome — window expands enough to keep
         -- card visible alongside MC, but not to full screen, so the eviction
         -- loop below fires when MC columns can't all fit at MIN_COL_W.
