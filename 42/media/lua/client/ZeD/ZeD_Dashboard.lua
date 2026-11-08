@@ -302,6 +302,25 @@ function D.lampColor(t)
     return D.LAMP_COLOR[t]
 end
 
+-- the player's units: the game's measurement option ("Imperial" or "Metric"; looked up first, as a build
+-- may lack it: then miles, the cars being American). Read again at most once a second (the strip draws every frame;
+-- an option changed in the Options screen shows within the second), and with no closure made per read.
+local UNITS_MS = 1000
+local _unitsAt, _unitsMetric = nil, false
+local function _readMetric()
+    local core = getCore()
+    return core.getOptionMeasurementFormat ~= nil and core:getOptionMeasurementFormat() == "Metric"
+end
+local function _metric()
+    local now = getTimestampMs()
+    if _unitsAt == nil or now - _unitsAt >= UNITS_MS or now < _unitsAt then
+        _unitsAt = now
+        local ok, v = pcall(_readMetric)
+        _unitsMetric = ok and v == true
+    end
+    return _unitsMetric
+end
+
 -- The values the parts read (ZeDUI/tools/dashpx/live.py derives the same for the previews).
 function D.derive(st, mem, dtMs)
     -- (st.pub: what a mod on Vehicle Kit Library publishes, ModSupport/VSKDash.lua; nil, every value is ZeD's own. Its
@@ -330,6 +349,12 @@ function D.derive(st, mem, dtMs)
         mem[key] = cur
         st[key] = cur
     end
+    -- the digital speed figures (the Lang 4000, the Cossette) in the player's units, the legend in use lit (director,
+    -- Nov 7 2026: digital readouts only; the dials and the wheels stay printed in mph and miles)
+    local metric = _metric()
+    st.speedShown = metric and st.speed_kmh or st.speed_mph
+    st.mphLamp    = st.power and not metric
+    st.kmhLamp    = st.power and metric
     local check = st.power and not st.running         -- key on, engine off: the bulb check
     st.check      = check
     st.oilLamp    = check
@@ -1350,7 +1375,7 @@ ZeD.trDefaults({
     UI_ZeD_DashPlain_Cruise = "Cruise", UI_ZeD_DashPlain_Meter = "Meter", UI_ZeD_DashPlain_AshTray = "Ash tray",
     UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
     UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
-    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km",
+    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km", UI_ZeD_DashPlain_Kmh = "km/h",
     UI_ZeD_DashPlain_Acc = "ACC",
 })
 
@@ -1592,30 +1617,19 @@ local function _cell(out, n, label, value, bar, col, id)
     return n
 end
 
--- the player's distance units: the game's measurement option ("Imperial" or "Metric"; looked up first, as a build
--- may lack it: then miles, the cars being American). Read again at most once a second (the strip draws every frame;
--- an option changed in the Options screen shows within the second), and with no closure made per read.
-local UNITS_MS = 1000
-local _unitsAt, _unitsMetric = nil, false
-local function _readMetric()
-    local core = getCore()
-    return core.getOptionMeasurementFormat ~= nil and core:getOptionMeasurementFormat() == "Metric"
-end
-local function _metric()
-    local now = getTimestampMs()
-    if _unitsAt == nil or now - _unitsAt >= UNITS_MS or now < _unitsAt then
-        _unitsAt = now
-        local ok, v = pcall(_readMetric)
-        _unitsMetric = ok and v == true
-    end
-    return _unitsMetric
-end
 -- miles as the strip shows them, in the player's units: whole, or to the tenth (the trip; cut, not rounded, as the
 -- wheels turn)
 local function _distText(miles, tenths, metric)
     local v = (tonumber(miles) or 0) * (metric and KM_PER_MILE or 1)
     local s = tenths and string.format("%.1f", math.floor(v * 10) / 10) or tostring(math.floor(v))
     return ZeD.tr(metric and "UI_ZeD_DashPlain_Km" or "UI_ZeD_DashPlain_Miles", s)
+end
+-- the speed as the strip shows it, in the same units as its Odometer and Trip (review of beta 7: it showed mph beside
+-- km): the figure, whole, and its unit's key. (The bar under it is a share of the plate's dial, the same either way.
+-- The plates' dials and wheels stay in mph and miles, as printed; their digital speed figures follow, D.derive.)
+function D.plainSpeed(st, metric)
+    local v = metric and (st.speed_kmh or 0) or (st.speed_mph or 0)
+    return tostring(math.floor(v + 0.5)), metric and "UI_ZeD_DashPlain_Kmh" or "UI_ZeD_DashPlain_Mph"
 end
 local function _plainCells(st, pl, out)
     local T = ZeD.T
@@ -1711,8 +1725,8 @@ function ZeD_Dashboard:_plainReadouts(st, pl, cells, n, y, W, big, rows, cellH)
     local px, tm = T.px, ZeD.TM
     local pad, gap = px(PLAIN_PAD), px(PLAIN_GAP)
     local bigW = px(PLAIN_BIG_W)
-    local mph = math.floor((st.speed_mph or 0) + 0.5)
-    self:_plainBig(pad, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Speed"), tostring(mph), ZeD.tr("UI_ZeD_DashPlain_Mph"),
+    local spd, unitKey = D.plainSpeed(st, _metric())
+    self:_plainBig(pad, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Speed"), spd, ZeD.tr(unitKey),
         (st.speed_mph or 0) / pl.speedMax, T.accent, big)
     local rpm = math.floor((st.rpm or 0) / 50 + 0.5) * 50
     self:_plainBig(pad + bigW + gap * 2, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Rpm"), tostring(rpm), nil,
