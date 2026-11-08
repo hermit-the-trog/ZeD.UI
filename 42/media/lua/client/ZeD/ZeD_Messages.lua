@@ -286,6 +286,26 @@ function M.adminMsg(text, tp)
     return it
 end
 
+-- the server's own word (VANILLA_WINDOWS C4: "saving"), under its own Server heading, an info bubble. One entry per id,
+-- updated in place each time (a save every hour must not pile up notes)
+function M.serverNote(id, text)
+    local name = ZeD.tr("UI_ZeD_Srv_Server")
+    local s = M.sources[name]
+    for _, it in ipairs(s and s.items or {}) do
+        if it.k == "server" and it.id == id then
+            it.text, it.read, it.when = text, false, when()
+            M.seq = M.seq + 1
+            s.at = M.seq
+            toast("info", name, name, text)
+            bump()
+            return it
+        end
+    end
+    local it = M.add(name, "mods", { k = "server", id = id, text = text })
+    toast("info", name, name, text)
+    return it
+end
+
 -- ---------------------------------------------------------------------------
 -- the notes over your head (the director, Nov 4 2026: "a running log", so a note you missed can be read later;
 -- ZeD_HaloText.lua). One source, newest first, already read (they never raise the unread count or a toast), the

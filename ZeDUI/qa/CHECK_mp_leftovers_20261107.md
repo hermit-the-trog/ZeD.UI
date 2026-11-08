@@ -9,13 +9,13 @@ window in safe mode.
 | C1 | Pause window > Players; D-pad Up social wheel > Players | A page of the pause window: the players, a pick, the game's actions for that player under the list |
 | C2 | Server tab > See server options; Admin tab > More tools > See server options | A card in the Server tab, the options to read; staff who may change options get Change (the game's window) in its foot |
 | C3 | Pause window > Invite (a Steam co-op host) | A page of the pause window: Find, the Steam friends, Invite in the band, Allow / Deny on a co-op host |
-| C4 | The server saving | A notice in Messages (the belt's bubble), kept there |
+| C4 | The server saving | A notice in Messages under its own Server heading (an info bubble), one entry updated each save |
 | C5 | Maps tab on a server > right-click (or X) on your own mark > Sharing | A card in the map's drawer, at the map's right edge: Private, Everyone or Other (Faction, Safehouse, players), Accept in the band |
 | C15 | Admin: inventory right-click > Debug > Edit item | The item's card in edit mode: the game's fields, Save in the band |
 | C16 | Any admin pop-up (not the ticket note for staff) | A note in Messages; Teleport on it when the game's asked "Teleport?" |
 | C17 | Kicked, banned or the connection lost | The desk comes back: a ZeD window on the monitor with the reason, for a ban the appeal line, Quit to desktop and Exit |
 
-Sims (no game needed): `lua51 ZeDUI/tools/qa/mp_leftovers_sim.lua` (199 checks), plus the community, tickets and admin
+Sims (no game needed): `lua51 ZeDUI/tools/qa/mp_leftovers_sim.lua` (218 checks), plus the community, tickets and admin
 card sims, all passing. The game was not launched for this build.
 
 ## Setup
@@ -46,6 +46,8 @@ card sims, all passing. The game was not launched for this build.
 
 ## C2 Server options
 
+0. The game's own user panel and admin panel (when another mod or the debug button shows them) > See server options
+   open this same card.
 1. Character window > Server tab > See server options: a card titled Server options, one row per option, name at the
    left and value at the right (or under the name when long). Booleans read Yes / No, enums in the game's words.
 2. As a plain user: no Change in the foot. As an admin with Change and reload server options: Change opens the game's
@@ -67,7 +69,8 @@ card sims, all passing. The game was not launched for this build.
 ## C4 Server saving
 
 1. On the server console: `save` (or wait for the autosave). "The server is saving the game. Please wait." arrives as
-   a notice out of the belt's Messages icon (a toast if toasts are on) and stays in Messages under Admin. Nothing at
+   an info notice out of the belt's Messages icon (a toast if toasts are on) and stays in Messages under Server; the
+   next save updates that one entry instead of adding another. Nothing at
    the top of the screen or in a corner; the game's box with Spiffo does not show.
 2. Safe mode on: the game's box.
 
@@ -75,7 +78,10 @@ card sims, all passing. The game was not launched for this build.
 
 1. On the server, put a mark on the map, right-click it > Sharing: a card in the map's drawer, against the map's
    right edge, no taller than the map. It starts as the mark is shared now. Also in the unfolded map window. It moves
-   with the World window, cannot be dragged off it.
+   with the World window, cannot be dragged off it. Switch to another tab, or shut the World window: the card closes
+   and the pad is free. The mouse wheel over the card scrolls the card, not the map.
+   On someone else's shared mark: Hide author's symbols (the game's own tick) hides that author's marks.
+   The game's own world map (M) > Sharing tool on a mark: the same card, over that map's middle.
 2. Everyone, Accept: bob sees the mark on his map. Other with Faction (when in one): only faction members see it.
    Other with bob ticked: bob sees it, a third player does not.
 3. Faction, Safehouse and the players are gray unless Other is picked.
@@ -88,7 +94,8 @@ card sims, all passing. The game was not launched for this build.
 1. As the admin, right-click an axe > Debug (or the admin's submenu) > Edit item: a card with the item's picture and
    name, the item type and file name as plain facts, then Name, Weight, Condition and the weapon's fields as fields.
 2. Change the name and condition, Save: the item shows the new name; a condition over the item's maximum is held to
-   it. Fields left alone stay exactly as they were (the weight keeps its full figure).
+   it. Fields left alone stay exactly as they were (the weight keeps its full figure). On food, set Hunger to a
+   negative figure (it is one already): it stays negative and the food still feeds.
 3. On a dyed shirt: the Color row's square opens the game's color picker; pick, Save: the shirt changes color.
 4. Cancel writes nothing. Controller: A on a field opens the on-screen keyboard.
 5. On another player's item (Admin tab > Player card > Inventory, then Edit item): the change reaches that player.
