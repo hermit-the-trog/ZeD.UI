@@ -1,15 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_PrintPage.lua
 -- ============================================================================
--- A PRINTED PIECE, SET BY ZeD (HOOK_MAP row 13; mockup zed_reader_v2; director,
--- Oct 16 2026: "the headlines ... same size as the article ... the messy zoom
--- system is the crux")
+-- A PRINTED PIECE (a newspaper, brochure or flyer) FOR ZeD'S READER. Client; a
+-- data and draw module with no window of its own: the reader (ZeD_Reader.lua),
+-- the journal's lists (ZeD_JournalReaders.lua) and the flyer map (FlyerMap.lua)
+-- read it.
 --
+-- A page is drawn one of two ways. The reader shows it as the game draws it,
+-- the game's own PZAPI atoms built here from the piece's layout (THE PAGE AS
+-- THE GAME DRAWS IT, below). Where that cannot be built, and for the read
+-- pieces' thumbnails, ZeD sets the page itself (P.draw):
 -- Vanilla draws a newspaper or flyer as one picture (PZAPI PrintMedia, from the
 -- Print_Media_<id>_info layout) and shrinks every text block by its own factor,
--- so a headline can come out the size of the story under it. ZeD keeps the
--- page's art and places (the paper, the pictures, the rules, the masthead, the
--- small print) and sets each story again, in the paper's own faces (Old
--- Standard TT, distance-field):
+-- so a headline can come out the size of the story under it. ZeD's setting
+-- keeps the page's art and places (the paper, the pictures, the rules, the
+-- masthead, the small print) and sets each story again, in the paper's own
+-- faces (Old Standard TT, distance-field):
 --   * the headline wrapped to its column (the lead story's larger; a headline the
 --     paper centred stays centred), the byline small under it;
 --   * the body in one size for the whole page, the largest that fits every
@@ -40,10 +45,12 @@ local function lineH(font, size) return TM:getFontHeight(font) * size / BASE end
 -- ---------------------------------------------------------------------------
 -- the piece's data (an item's modData.printMedia, or an id)
 -- ---------------------------------------------------------------------------
+--- The piece an item carries (its modData.printMedia), or nil.
 function P.media(item)
     local md = item and item.getModData and item:getModData()
     return md and md.printMedia or nil
 end
+--- A piece by its id: { id, title, info, text }, the translation keys of its title, layout and words.
 function P.ofId(id)
     local m = { id = id, title = "Print_Media_" .. id .. "_title", info = "Print_Media_" .. id .. "_info", text = "Print_Text_" .. id .. "_info" }
     -- the game's own keys from its registry (a piece's keys use its proper name,
@@ -55,9 +62,10 @@ function P.ofId(id)
     end)
     return m
 end
+--- The piece's title in the player's language (its id when the game has no text for it).
 function P.title(m) return m and (getTextOrNull(m.title) or m.id) or "" end
 
--- what kind of paper it is, by the item that carries it
+--- What kind of paper it is, by the item that carries it.
 function P.kind(item)
     local t = item and item:getType() or ""
     if t:find("Newspaper", 1, true) then return "Newspaper" end
@@ -67,7 +75,7 @@ function P.kind(item)
     return "Paper"
 end
 
--- what P.kind answered, in the player's language (the answer itself is an id, compared in code)
+--- What P.kind answered, in the player's language (the answer itself is an id, compared in code).
 function P.kindName(kind)
     if kind == "Newspaper" then return getText("IGUI_NewUI_Newspaper") end
     if kind == "Brochure" then return getText("IGUI_NewUI_Brochure") end
@@ -99,7 +107,7 @@ local function parse(s)
         end
     end
     -- (the page is at least as large as its pictures reach: the Kentucky Herald's layout gives a page shorter than its
-    -- art, and the reader fitted the short page, QA Nov 4 2026)
+    -- art, and the reader would fit the short page)
     for _, e in ipairs(els) do
         if e.type == "texture" and (e.angle or 0) == 0 and e.width and e.height and (e.scaleX or 1) > 0 and (e.scaleY or 1) > 0 then
             local r = (e.x or 0) - (e.pivotX or 0) * e.width + e.width
@@ -254,6 +262,8 @@ end
 
 -- the page, laid out once per piece (and per face set: a theme change cannot move it)
 local cache = {}
+--- The piece's page as ZeD sets it: { els, w, h, lines, stories, body }, in page units, laid out once per piece;
+--- nil when the game has no layout for it.
 function P.page(m)
     if not m then return nil end
     local c = cache[m.id]

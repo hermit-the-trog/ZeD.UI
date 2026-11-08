@@ -6844,24 +6844,24 @@ local function _openOrStepAside(open, playerNum, where)
     return false
 end
 
--- Public paired-open API — extracted from the I-key handler body in S95 so
--- the same paired sequencing is available to gamepad Y-tap (FocusManager).
--- Behavior:
---   Both closed     → open both
---   Both open       → close both
---   One open        → open the missing one
+--- Open or close the two windows as a pair: the inventory key's action, and
+--- the same sequence for the gamepad's Y tap (FocusManager). Behavior:
+---   Both closed     → open both
+---   Both open       → close both
+---   One open        → open the missing one
+--- While the game is paused, the Character window alone (see below).
 function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     playerNum = playerNum or 0
     if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not getSpecificPlayer(playerNum) then return end
-    -- (never for a dead character: the windows reopen for the next one; code audit Oct 17 2026)
+    -- (never for a dead character: the windows reopen for the next one)
     if getSpecificPlayer(playerNum):isDead() then return end
     if not getPlayerInventory(playerNum) then return end
     if tostring(getCore():getGameMode()) == "Tutorial" then return end
     -- safe mode: the game's own inventory answers (its key handler, its Y prompt)
     if ZeD.Safe.on("windows") then return end
-    -- paused (the director, Nov 7 2026, vanilla windows B14): the Character window alone, to look at; its
-    -- actions wait for the game to play again (ZeD_PausedLook.lua). It used to step aside to the game's own.
+    -- paused: the Character window alone, to look at, rather than the game's own pages; its
+    -- actions wait for the game to play again (ZeD_PausedLook.lua)
     if getGameSpeed() <= 0 then
         if ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggle(playerNum)
         else _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") end
@@ -6886,11 +6886,12 @@ function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     _hideVanilla()
 end
 
--- S113: Window-pair invariant for gamepad mode. Opens whichever of the pair
--- is currently closed. Idempotent — no-op if both are already open. Called
--- by FocusManager (LB/RB swap, Y tap) and by InputModeDetector on kbm→gamepad
--- transitions. Mouse mode keeps the existing asymmetric open/closed behavior;
--- this helper is gamepad-only and is gated by callers, not internally.
+--- Window-pair invariant for gamepad mode. Opens whichever of the pair
+--- is currently closed. Idempotent — no-op if both are already open. Called
+--- by FocusManager (LB/RB, the Y tap, the switch from mouse and keys to a pad)
+--- and wherever else a pad opens the pair (the wheels, chat, routes). Mouse
+--- mode keeps its asymmetric open/closed behavior; this helper is
+--- gamepad-only and is gated by callers, not internally.
 function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     playerNum = playerNum or 0
     if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.held and ZeD.Input.Focus.held() then return end   -- (the join screen)
@@ -6913,8 +6914,8 @@ end
 
 -- On death both windows close (vanilla destroys its inventory pages too). They
 -- are built afresh on the next open, so after a respawn they belong to the new
--- character, not the dead one (code audit Oct 17 2026: they kept the dead player,
--- queued actions against it and never rebound).
+-- character, not the dead one (left open, they kept the dead player, queued
+-- actions against it and never rebound).
 Events.OnPlayerDeath.Add(function(playerObj)
     pcall(function()
         if _charWin and _charWin._playerObj == playerObj then ZeD_CharacterWindow.toggle(playerObj:getPlayerNum()) end
@@ -6966,8 +6967,8 @@ if not ZeD._winStateCarry then
     end
 end
 
--- The inventory key (kept on the module so QA can press it). In safe mode the
--- game's own handler answers it.
+--- The inventory key's handler (kept on the module so a test script can press
+--- it). In safe mode the game's own handler answers it.
 function ZeD_CharacterWindow._onKeyPressed(key)
     if ZeD.Safe.on("windows") then
         _vanillaInvKeyPressed(key)
@@ -6995,7 +6996,7 @@ end)
 
 -- Safe mode's hand-back (SafeMode.lua): both windows close, even one that broke
 -- halfway through opening, and the game's own inventory and loot pages show.
--- Taking over again hides those pages, as a world's first frame does (S123);
+-- Taking over again hides those pages, as a world's first frame does;
 -- the windows stay closed until the inventory key opens them.
 local function _closeForSafeMode()
     if _charWin then
@@ -7016,7 +7017,7 @@ local function _closeForSafeMode()
 end
 ZeD.Safe.register("windows", { leave = _closeForSafeMode, enter = _hideVanilla })
 
--- A resolution change keeps the open window on the new screen (Oct 31 2026, break-it B3)
+-- A resolution change keeps the open window on the new screen
 if Events.OnResolutionChange then
     Events.OnResolutionChange.Add(function() if _charWin then fitCharToScreen(_charWin) end end)
 end
