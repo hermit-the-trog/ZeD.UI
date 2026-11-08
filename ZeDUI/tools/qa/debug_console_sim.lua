@@ -838,6 +838,33 @@ do
     check("mirror: the same text again runs nothing", JC.updates == before + 1)
     DC.mirror("")
     check("mirror: an empty line does not run update", JC.updates == before + 1)
+    -- round 2: the game's suggestion is its NEAREST function by edit distance, left standing when nothing is found;
+    -- "getPl" got "getCell" on 42.21. Never taken as a completion, never shown as one.
+    DC.mirror("getPl")
+    JC.sug.visible = true
+    JC.sug:SetText("IsoCell getCell")
+    JC.prevSuggestion = "getCell"
+    check("stale: a nearest word that does not start with the typed one is not offered", DC.suggestion() == nil, DC.suggestion())
+    check("stale: Tab does not put it into the line", DC.complete("getPl") == nil and JC.cmd.text == "getPl", JC.cmd.text)
+    JC.sug:SetText("IsoPlayer getPlayer")
+    JC.prevSuggestion = "getPlayer"
+    check("fits: a word that starts with it is offered", DC.suggestion() == "IsoPlayer getPlayer")
+    check("fits: Tab takes it", DC.complete("getPl") == "getPlayer()", JC.cmd.text)
+    check("fits: case does not matter", DC.fits("IsoPlayer getPlayer", { getText = function() return "GETPL" end }) == true)
+    check("fits: after a colon the word after it", DC.fits("void setX", { getText = function() return "a:setX" end }) == true
+        and DC.fits("void setX", { getText = function() return "a:getY" end }) == false)
+    check("fits: a line ending in a bracket takes any", DC.fits("void x", { getText = function() return "f(" end }) == true)
+end
+do
+    -- the tab turned into four spaces by DC.parse: the frames still start and hold an error
+    local pl, n = DC.parse("[USER] x()\n\tLua(Vanilla).console(console:1)\n\tse.krka.kahlua.vm.KahluaThread.tableget(K.java:1)\n\tjava.lang.RuntimeException: boom\nnext\n")
+    check("indented frames: start one error", pl[2].err == true and pl[2].b == 2 and n == 1, n)
+    check("indented frames: the rest stay in it", pl[3].err and pl[3].b == 2 and pl[4].err and pl[4].b == 2)
+    check("indented frames: the line after is plain", not pl[5].err)
+    local solo, n2 = DC.parse("    Lua(Vanilla).console(console:1)\n")
+    check("indented frame alone starts one", solo[1].err == true and n2 == 1)
+    local s3, n3 = DC.parse("    se.krka.kahlua.vm.X(k.java:1)\n    java.lang.Y: z\n")
+    check("indented se.krka and java. lines are one block", n3 == 1 and s3[2].b == 1, n3)
 end
 
 check("the game's console never on the screen while ZeD's was open", onScreenWhileOpen == 0, onScreenWhileOpen)
