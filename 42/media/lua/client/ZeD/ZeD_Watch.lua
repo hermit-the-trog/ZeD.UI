@@ -270,7 +270,7 @@ local function _wornScan(player)
     return other, otherLoc
 end
 
--- The worn watch is looked up once per character per UI draw (perf review Nov 7 2026, item 11: the watch's
+-- The worn watch is looked up once per character per UI draw (the watch's
 -- prerender, W.beltWatch and the belt's layout each walked the worn items every frame). Clothes change in the
 -- game's update, never while the UI draws (UIManager.render: OnPreUIDraw, every element, OnPostUIDraw), so
 -- within one draw the answer is the same; outside a draw every call looks again.
@@ -447,7 +447,7 @@ function ZeD_Watch:_layout(frameW, frameH, k)
 end
 
 -- this frame's click areas from the plate (only the enabled ones), in screen pixels
--- (perf review Nov 7 2026, item 11: the enabled controls are read straight from the plate's hits, as
+-- (the enabled controls are read straight from the plate's hits, as
 -- ZeD.Plate.controls lists them, into click areas reused frame to frame, so a frame makes no new tables)
 function ZeD_Watch:_hitsFrom(des, st, k)
     local hits, pool = self._hit, self._hitPool
@@ -622,8 +622,8 @@ function ZeD_Watch:prerender()
         if sy >= 0 then W._speedY = sy; pcall(sc.setY, sc, -4000) end
         -- Single player keeps their flag on (parked, they still draw nowhere): the game's own Pause on Focus
         -- Loss (Options, Display; on by default) pauses only while the speed controls are "really visible"
-        -- (IngameState.onDisplayFocusLost, 42.21), so hidden here they silently turned it off (punch list
-        -- 109). A server's stay hidden: there they do nothing.
+        -- (IngameState.onDisplayFocusLost, 42.21), so hidden here they would silently turn it off.
+        -- A server's stay hidden: there they do nothing.
         W.parkSpeed(sc)
     end
 

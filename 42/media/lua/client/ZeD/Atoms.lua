@@ -1538,9 +1538,9 @@ end
 -- Splits text into lines that fit within maxW pixels.
 -- Handles paragraph breaks (\n) and returns a table of strings.
 -- The answers are kept per font, width and text while the measures behind them are
--- (ZeD.Text.measureEpoch; Nov 7 2026, the outside performance review: the detail card, the
--- help balloon, the needs lines and the moodle note wrapped the same words every frame, and
--- every trial line went into the measure store). The width is kept by its whole pixel along
+-- (ZeD.Text.measureEpoch). The detail card, the help balloon, the needs lines and
+-- the moodle note wrap the same words every frame, and every trial line would go
+-- into the measure store, so the answers are kept. The width is kept by its whole pixel along
 -- with the measures that decided the answer (the widest trial line that fit, the narrowest
 -- that did not), so a width moving inside that pixel (a drawer or a resize on its way) gets
 -- the kept answer only when those measures decide it the same way; otherwise it is wrapped
@@ -1626,9 +1626,9 @@ end
 --- Truncate text with ellipsis ("...") to fit within maxW pixels.
 --- Uses binary search for efficiency.
 -- The answers are kept per font, width and text while the measures behind them are
--- (ZeD.Text.measureEpoch; Oct 22 2026, the drawing-cost work: every list cuts the same
--- names to the same widths every frame). Past TT_MAX answers the store starts over.
--- The width is kept by its whole pixel (Nov 7 2026, the outside performance review: a drawer or a
+-- (ZeD.Text.measureEpoch). Every list cuts the same
+-- names to the same widths every frame. Past TT_MAX answers the store starts over.
+-- The width is kept by its whole pixel (a drawer or a
 -- resize on its way asks with a new fraction every frame) along with the measures that decided
 -- the answer; a width inside that pixel gets the kept answer only when every one of those
 -- comparisons comes out the same for it (ttSame), so the cut is never wider than the true maxW.

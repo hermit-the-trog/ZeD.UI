@@ -642,7 +642,7 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
         cy = cy + M.drawEmptyLine(panel, x + pad, cy, cw - pad * 2, ZeD.tr("UI_ZeD_Cook_NoIngredients")) + T.px(8)
     end
     -- the groups: one, A to Z (By ingredient), or one per kind, seasoning last (By kind).
-    -- (Nov 7 2026, perf review #15) grouped and sorted once per ingredient list (ingCache) and sort,
+    -- grouped and sorted once per ingredient list (ingCache) and sort,
     -- not every frame: the same rows in the same order while neither changes
     local gc = s._ingGroups
     local groups

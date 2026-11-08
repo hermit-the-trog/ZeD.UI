@@ -1625,7 +1625,7 @@ end
 -- Returns: AROW_H consumed.
 -- ============================================================================
 
--- A roster row's readings (Nov 7 2026, speed): the portrait, name, the three
+-- A roster row's readings: the portrait, name, the three
 -- stats, the condition tags and the species line, read once per animal and kept
 -- for SORT_CACHE_MS (as the sort is), not every frame. Only the rows drawn are
 -- read. Widths are still measured as the row draws (they follow the font and scale).
@@ -1913,8 +1913,8 @@ local function drawZoneStructs(panel, win, x, y, w, summary, player)
 end
 
 -- butcher hooks around you (scanned every two seconds)
--- (Nov 7 2026, speed) The 41 x 41 walk used to run in one frame. The first scan
--- still does (there is nothing to show before it); each later one walks
+-- The 41 x 41 walk is spread over frames. The first scan
+-- runs in one frame (there is nothing to show before it); each later one walks
 -- HOOK_SCAN_ROWS rows a frame while the last list stays up, and the new list
 -- replaces it when the walk is done. Each hook's distance is read once before the
 -- sort, not in every comparison.
@@ -2169,14 +2169,14 @@ end
 -- button + scrollable animal roster rows.
 -- ============================================================================
 
--- The zone lit on the ground while its view shows (Nov 7 2026, speed). The view
--- used to look the zone up (a walk over every zone) and light it every frame. Now
--- the zone is looked up when the view's zone changes and then at most every
--- SORT_CACHE_MS, and lit again only when its id changed or anything else (the
--- game's zone windows and context menu, ZeD's Back and zone create) has turned the
--- highlight off or changed it: the ground shows what it showed before. (One
--- difference: a zone remade under the same name is lit within SORT_CACHE_MS, not
--- the same frame; the view steps back when its zone goes, so it is not met.)
+-- The zone lit on the ground while its view shows. The zone is looked up (a walk
+-- over every zone) when the view's zone changes and then at most every
+-- SORT_CACHE_MS, not every frame, and lit again only when its id changed or
+-- anything else (the game's zone windows and context menu, ZeD's Back and zone
+-- create) has turned the highlight off or changed it. (One difference from
+-- looking it up every frame: a zone remade under the same name is lit within
+-- SORT_CACHE_MS, not the same frame; the view steps back when its zone goes, so
+-- it is not met.)
 local function zoneLit(player, id)
     if not player:isSeeDesignationZone() then return false end
     local sel = player:getSelectedZonesForHighlight()

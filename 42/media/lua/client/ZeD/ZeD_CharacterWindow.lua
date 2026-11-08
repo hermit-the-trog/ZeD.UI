@@ -3352,8 +3352,8 @@ local function drawContainerStrip(self, win, content)
     local selA = T.selectionA or 0.30
 
     -- Periodic container refresh. The active, viewed and multi-column bags follow their bag, not their place in the
-    -- list. Nov 8 2026 (the performance review, 12): every 500 ms by the clock (the old 30 frames at 60 fps; the frame
-    -- count ran it 2.4 times as often at 144 Hz). win._containerTimer stays the signal: 30 set by others refreshes on
+    -- list. Every 500 ms by the clock (a frame count of 30 would run it 2.4 times as often at
+    -- 144 Hz as at 60 fps). win._containerTimer is the signal: 30 set by others refreshes on
     -- the next frame, 0 marks the frame the list was rebuilt (the sort below reads it).
     local nowMs = getTimestampMs()
     if (win._containerTimer or 0) < 30 and nowMs < (win._containerDueMs or 0) then
@@ -6010,8 +6010,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- does not draw while the tab drawer takes the whole window)
     end
 
-    -- The Character window's tab stops, the per-frame refresh of the charTabContent zone (moved out of
-    -- content._focusRefresh on Nov 8 2026 so the controller can ask for it between frames: win._focusFresh)
+    -- The Character window's tab stops, the per-frame refresh of the charTabContent zone (kept out of
+    -- content._focusRefresh so the controller can ask for it between frames: win._focusFresh)
     content._tabStopsRefresh = function(self, Focus)
         if Focus and win._focusRing and (
                  win._activeTab == "equip"  or
@@ -6181,13 +6181,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     -- The Character window's per-frame stop refresh (the container strip, the main list, the MC
-    -- columns, the tab's stops, the item card). Oct 31 2026 (punch list 38): moved out of the
+    -- columns, the tab's stops, the item card). It lives outside the
     -- content's prerender, which does not run while the content is hidden (the tab drawer takes
     -- the whole window at 1280x720, UI scale 2.0): Health, Thermal, Identity, Skills and the
-    -- Journal had no stops. The drawer's prerender runs it then.
+    -- Journal would have no stops. The drawer's prerender runs it then.
     content._focusRefresh = function(self)
         -- --------------------------------------------------------
-        -- S98 RING MODEL: PER-FRAME MAIN-INV REFRESH
+        -- RING MODEL: PER-FRAME MAIN-INV REFRESH
         -- Runs AFTER the renderer finishes so _invRowItems is fresh.
         -- Always active (regardless of tab) because charMainInv is the
         -- persistent inventory-list zone in the ring. Rebuilds the focusable
@@ -6231,13 +6231,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     end
                     -- First frame (no snapshot yet) is always dirty.
                     if not oldSnap then dirty = true end
-                    -- Oct 19 2026: the rows' places change with the scroll, the
+                    -- The rows' places change with the scroll, the
                     -- List | Grid view and the column's width too; the targets
                     -- kept last build's places, so the pad picked by stale rows
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
-                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    -- (the container shown is part of what these rows are, by the object)
                     if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
 
                     if dirty then
@@ -6285,7 +6285,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                                             end
                                         end
                                     end
-                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
+                                    -- (the neighbouring ROW: the List | Grid
                                     -- toggles come after the rows, never a stand-in for one)
                                     local nRows = 0
                                     for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
@@ -6310,7 +6310,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
         end
 
-        -- S108 v2: per-frame refresh for per-column charMC<n> zones.
+        -- Per-frame refresh for per-column charMC<n> zones.
         -- Each MC selection has its own ring zone; loop and refresh elements.
         -- Identity-preserve via _gpFocusedMCItem (per-zone preserveIdx). Ring
         -- structure (zone count) updated by _rebuildCharMCRingZones on MC
@@ -6319,7 +6319,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             _refreshCharMCZones(win, Focus)
         end
 
-        -- Oct 30 2026, punch list 21 a-f: an open pop-up list lives while its tab's
+        -- An open pop-up list lives while its tab's
         -- card shows; the drawer folding, an item card opening over it or the tab
         -- going away shuts it (as leaving the tab does), never a hitch in drawing
         do
@@ -6327,7 +6327,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             _shutTabLists(win, shown and win._activeTab or nil)
         end
 
-        -- the tab's stops (content._tabStopsRefresh, above). Nov 8 2026 (the performance review, 14): with the mouse
+        -- the tab's stops (content._tabStopsRefresh, above). With the mouse
         -- and keyboard in use, no controller mark showing and no landing waiting (Focus.stopsMayWait) they wait; the
         -- first frame after, and anything the controller does first (FocusManager's win._focusFresh), rebuilds them
         -- from scratch.
