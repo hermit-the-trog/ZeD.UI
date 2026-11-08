@@ -358,6 +358,7 @@ local function zedStubs()
     package.loaded["XpSystem/ISUI/ISCharacterInfoWindow"] = true
     package.loaded["ZeD/SafeMode"] = true
     ZeD = { _sim = true }
+    ZeD.windowsFor = function(pn) return pn == nil or pn == 0 end   -- (Atoms.lua: split-screen, the first player's windows)
     local en = readFile(ROOT .. "42/media/lua/shared/Translate/EN/UI.json")
     ZeD.tr = function(key, ...)
         local v = en:match('"' .. key .. '":%s*"(.-)",?\r?\n') or key
