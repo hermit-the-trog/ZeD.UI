@@ -14,6 +14,8 @@
 -- Then it counts the calls into the game (each item, player or container getter) and the ZeD.tr calls per frame,
 -- OLD against NEW, while a card just sits there.
 -- A change the card has no reading for (poison put in food) shows within MODEL_MS: the sim measures it.
+-- And (Nov 8 2026, code flags) a fold on a drawer card keeps the scroll: ItemCard:_toggleFold clamps with the height
+-- renderBody drew, no longer the old layout's shorter _calcBodyH (the old card is shown jumping).
 -- What it can't show is the game itself: the frame time with a card open, in the game.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/card_model_sim.lua
 -- It prints FAIL lines and a last line "card_model_sim: N checks, M failed", and exits 1 if any failed.
@@ -600,6 +602,38 @@ for _, k in ipairs({ "shirt", "apple", "bat", "pistol", "book", "bag", "lighter"
 end
 print(string.format("   all      game calls %6.1f -> %5.1f a frame   ZeD.tr %5.1f -> %5.1f   (%d%% fewer game calls)",
     totO / 480, totN / 480, totTO / 480, totTN / 480, math.floor(100 * (1 - totN / totO) + 0.5)))
+
+-- ---------------------------------------------------------------------------
+-- A FOLD KEEPS THE SCROLL (Nov 8 2026, code flags): a drawer card clamps with the height renderBody drew
+-- ---------------------------------------------------------------------------
+section("A fold on a drawer card keeps the scroll (its drawn height, not the old layout's)")
+setItem(ITEMS.shirt)
+frame("shirt before the fold")
+local function foldAt(e, scroll)
+    local c = e.card
+    c._contentH, c._headH, c._verbStripResvH = 2000, 100, 26   -- as renderBody stamped them: 774 in view
+    c._scrollPixels = scroll
+    local ok, err = pcall(c._toggleFold, c, "facts_defense")
+    check(e.label .. ": the fold toggles", ok, err)
+    pcall(c._toggleFold, c, "facts_defense")
+    return c._scrollPixels
+end
+local newKept = foldAt(NEW, 1000)
+check("a fold deep in a long drawer card leaves the scroll where it was", newKept == 1000, newKept)
+check("the scroll is still cut to the drawn height's end", foldAt(NEW, 1500) == 1226, NEW.card._scrollPixels)
+local mode = NEW.card.mode
+NEW.card.mode = "inspect"
+local okI = pcall(NEW.card._toggleFold, NEW.card, "clothing_zones")
+check("a card not in a drawer still clamps with the old layout's height", okI)
+pcall(NEW.card._toggleFold, NEW.card, "clothing_zones")
+NEW.card.mode = mode
+if haveBase then
+    local oldKept = foldAt(OLD, 1000)
+    check("TEETH: the old clamp (the old layout's height) moved the scroll", oldKept ~= 1000, oldKept)
+    print(string.format("   a fold at scroll 1000: old card %d, new card %d", oldKept, newKept))
+end
+both(function(e) e.card._scrollPixels = 0 end)
+frame("shirt after the fold checks")
 
 -- ---------------------------------------------------------------------------
 -- TEETH: a model kept with no readings would show stale numbers
