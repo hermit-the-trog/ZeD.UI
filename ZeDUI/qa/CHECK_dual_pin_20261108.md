@@ -10,7 +10,7 @@ What changed (punch list 112, the director's rulings): each half of the Characte
 - **Both halves rolled:** the whole window rolls to its title bar, as before.
 - A rolled half comes back when the pointer is over its part of the title bar (the inventory's: its rod). A side rolled by hand with the roll box stays rolled until its tab on the rod is pressed.
 
-Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, the window's roll hands over to the halves), `ZeD/WindowCurtain.lua` (the pin on the rod), `ZeD/ZeD_CharacterWindow.lua` and `ZeD/ZeD_WorldWindow.lua` (attach, the saved tab), `ZeD/Input/FocusManager.lua` (the pad's aiming escape and Y / bumpers). Sim: `lua51 ZeDUI/tools/qa/dual_pin_sim.lua` (125 checks, 0 failed at commit). Script: `ZeDUI/tools/qa/zedqa_dual_pin.lua` (the real mouse, as zedqa_autocollapse). Not run in game yet.
+Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, the window's roll hands over to the halves), `ZeD/WindowCurtain.lua` (the pin on the rod), `ZeD/ZeD_CharacterWindow.lua` and `ZeD/ZeD_WorldWindow.lua` (attach, the saved tab), `ZeD/Input/FocusManager.lua` (the pad's aiming escape and Y / bumpers). Sim: `lua51 ZeDUI/tools/qa/dual_pin_sim.lua` (133 checks, 0 failed at commit). Script: `ZeDUI/tools/qa/zedqa_dual_pin.lua` (the real mouse, as zedqa_autocollapse). Not run in game yet.
 
 ## Setup
 
@@ -41,6 +41,7 @@ Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, t
 | 2.5 | Move the pointer off both windows for 3 s. | Each window rolls to its title bar, full width, as before. |
 | 2.6 | Point at the drawer's part of a rolled title bar. | The window comes down with the drawer open and the inventory already under its rod, the rod already up: no flash of the whole window, no roll-up to watch. Point at the rod: the inventory comes down. |
 | 2.7 | Roll the window up again, then point at the inventory's part of the bar. | The window comes down with the inventory open and the drawer already folded: no flash of the drawer, no fold to watch. |
+| 2.7d | Deck (1280x800): Character on Skills (the drawer runs the window into its half-screen limit). Move off until it rolls up, then point at the inventory's part of the bar. Do the same with the World window on Maps. | The window comes back at its width from before the drawer opened (the inventory as wide as on Loot), against its usual edge, not a narrow sliver. Opening the tab again widens it as usual, and a click on the window's edge does not jump its width. |
 | 2.7a | A tab whose drawer is as wide as the window (no inventory list beside it). Move off for 3 s. | The bag strip never rolls under a rod; with nothing pinned the whole window rolls up, and its bar brings it back. |
 | 2.7b | Fold the drawer by itself, then window menu > Reset this window. Close and reopen the window. | It opens on Loot (the reset forgets the folded tab). |
 | 2.7c | Deck, Large text, Character on a tab: look at the roll box (the up triangle after the title). | It sits right after the title as drawn (cut short if need be) and never touches the stats or the right pin. |
