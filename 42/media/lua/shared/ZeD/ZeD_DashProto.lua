@@ -26,6 +26,10 @@ DP.FIG = "fig"           -- server -> the car's other occupants, at each figure 
                          -- nothing on
 DP.ASK = "ask"           -- a passenger's dash as it sits down: { veh }. The server answers with DP.FIG, its own figures,
                          -- to that player alone (a car stopped with its engine on sends none)
+DP.ASH = "ash"           -- the driver opens or shuts the car's ash tray (the server takes it from anyone in the car):
+                         -- { veh, open = boolean }. The server writes ZeD_ash on its own copy of the car (kept with the
+                         -- world, one tray a car) and sends the car out, as at the odometer's presses (known issue Nov 7
+                         -- 2026: it was each player's own, for the session)
 
 DP.ODO_MAX = 10000000    -- miles: no odometer reads this far (a found car starts under 140000)
 DP.GRACE_MS = 10000      -- a driver's last send can land after they got out or moved seats (the game's exit packet goes
@@ -33,6 +37,7 @@ DP.GRACE_MS = 10000      -- a driver's last send can land after they got out or 
                          -- while nobody else is at the wheel. The client drops a send later than 3 s (ODO_LATE_MS)
 DP.PRUNE_AT = 256        -- the server forgets drivers past their grace once it remembers this many cars
 DP.ASK_MS = 1000         -- the server answers one ask a player this often (the dash asks again after 2 s, 3 times at most)
+DP.ASH_MS = 500          -- the server takes one ash tray press a player this often (each one sends the car out)
 
 -- a reading the server takes: a number, not NaN or infinite, inside 0 .. ODO_MAX
 function DP.okMiles(n) return type(n) == "number" and n == n and n >= 0 and n < DP.ODO_MAX end
@@ -43,6 +48,10 @@ DP.EPS = 0.001           -- miles: the odometer and the trip add the same figure
 function DP.okFigs(a)
     return type(a) == "table" and DP.okVeh(a.veh) and DP.okMiles(a.odo) and DP.okMiles(a.trip) and type(a.show) == "boolean"
         and a.trip <= a.odo + DP.EPS
+end
+-- an ash tray press as both sides take it (DP.ASH)
+function DP.okAsh(a)
+    return type(a) == "table" and DP.okVeh(a.veh) and type(a.open) == "boolean"
 end
 
 return DP

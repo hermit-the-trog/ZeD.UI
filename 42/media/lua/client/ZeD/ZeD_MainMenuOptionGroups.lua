@@ -190,13 +190,14 @@ G.ZED_GROUPS = {
     -- (director, Nov 2 2026, punch list 55: one screen at a time steps aside, under Safe mode and read as it is:
     -- ticked, that screen is the game's own)
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", under = "UI_ZeD_Options_UnderSafeMode" },
-                                     { "screenWindows", "onoff", under = "UI_ZeD_Options_UnderScreenWindows" },
-                                     { "screenBelt", "onoff", under = "UI_ZeD_Options_UnderScreenBelt" },
+                                     { "screenWindows", "onoff", under = "UI_ZeD_Options_UnderScreenWindows", back = "windows" },
+                                     { "screenBelt", "onoff", under = "UI_ZeD_Options_UnderScreenBelt", back = "belt" },
                                      { "screenWatch", "onoff", under = "UI_ZeD_Options_UnderScreenWatch" },
-                                     { "screenDashboard", "onoff", under = "UI_ZeD_Options_UnderScreenDashboard" },
+                                     { "screenDashboard", "onoff", under = "UI_ZeD_Options_UnderScreenDashboard", back = "dashboard" },
                                      { "screenMoodles", "onoff", under = "UI_ZeD_Options_UnderScreenMoodles" },
-                                     { "screenWheels", "onoff", under = "UI_ZeD_Options_UnderScreenWheels" },
-                                     { "screenCharInfo", "onoff", under = "UI_ZeD_Options_UnderScreenCharInfo" },
+                                     { "screenWheels", "onoff", under = "UI_ZeD_Options_UnderScreenWheels", back = "wheels" },
+                                     { "screenCharInfo", "onoff", under = "UI_ZeD_Options_UnderScreenCharInfo", back = "charinfo" },
+                                     { "screenConsole", "onoff", under = "UI_ZeD_Options_UnderScreenConsole" },
                                      { "testLanguage", "onoff" } } },
 }
 
@@ -331,6 +332,7 @@ function G.build(pages, rowsOf)
             if c and not placed[e[1]] then
                 c.zedStyle, c.under, c.zedShort = e[2], e.under, e.short
                 c.zedNeeds, c.zedNeedsWhy, c.zedNeedsNot = e.needs, e.needsWhy, e.needsNot
+                c.zedBack = e.back   -- (a ZeD screen a mod can take: ZeD_StepAside.lua names it under the switch)
                 list[#list + 1] = c
                 placed[e[1]] = true
             end

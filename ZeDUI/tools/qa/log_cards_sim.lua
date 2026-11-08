@@ -1079,7 +1079,7 @@ check("no log: gray, with why", grayWhy("tk:around") == tr("UI_ZeD_Adm_NeedPart"
 TC.back(win, st)
 draw()
 
--- without the server part: the game's own window
+-- without the server part: the game's own log, in ZeD's PvP log card (C10; never the game's window)
 ISPVPLogToolUI = { made = 0, new = function(self)
     ISPVPLogToolUI.made = ISPVPLogToolUI.made + 1
     return { initialise = function() end, addToUIManager = function() end, setVisible = function() end }
@@ -1090,8 +1090,13 @@ M.qaCaps = { PVPLogTool = true }
 M.bump()
 draw()
 draw()
+ZeD.AdminTools._P.qaEvents = {}
 press("adm:tk:sum:log")
-check("the row opens the game's PvP log", ISPVPLogToolUI.made == 1 and st.card == nil, ISPVPLogToolUI.made)
+check("the row opens the PvP log card", ISPVPLogToolUI.made == 0 and st.card and st.card.kind == "pvplog", ISPVPLogToolUI.made)
+TC.back(win, st)
+draw()
+check("and back lands on the row", st.card == nil)
+ZeD.AdminTools._P.qaEvents = nil
 M.qaCaps = {}
 M.bump()
 draw()

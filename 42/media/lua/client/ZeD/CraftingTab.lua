@@ -500,6 +500,7 @@ local function stationView(win)
     if not st then return nil, nil end
     if st.kind == "machine" and ZeD.StationMachine then return ZeD.StationMachine, st end
     if (st.kind == "oven" or st.kind == "micro") and ZeD.StationAppliance then return ZeD.StationAppliance, st end
+    if st.kind == "general" and ZeD.StationGeneral then return ZeD.StationGeneral, st end
     return nil, st
 end
 

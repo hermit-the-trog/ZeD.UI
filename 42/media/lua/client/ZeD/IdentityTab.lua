@@ -1574,6 +1574,10 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local scrollH = h - tabHeaderH
     local needsScroll = totalContentH > scrollH
     scroll.visible = needsScroll
+    -- (a make-up item's Make Up option: the Hair and beard section into view, ZeD_HairBeard.showMakeUp)
+    if HB and HB.takeScroll and HB.takeScroll(win) and needsScroll then
+        scroll:setScrollPos(math.min(1, zoneAH / math.max(1, totalContentH - scrollH)))
+    end
     local contentW = w
     if needsScroll then
         scroll.x = x + w - scrollW

@@ -457,7 +457,10 @@ function SM.render(panel, win, x, y, w, h, state, st)
     lw = label(panel, ZeD.tr("UI_ZeD_Machine_FromBags"), lx, cy, rowH)
     cy = cy + rowH
     if #d.bag == 0 then
-        M.drawEmptyLine(panel, lx, cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), iw, ZeD.tr("UI_ZeD_Machine_NothingFits"))
+        -- (a drying rack says so; another machine on the same contract, Nov 7 2026, says it plainly)
+        local dryer = st.comp and instanceof(st.comp, "DryingCraftLogic")
+        M.drawEmptyLine(panel, lx, cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), iw,
+            ZeD.tr(dryer and "UI_ZeD_Machine_NothingFits" or "UI_ZeD_Machine_NothingFitsAny"))
     end
     local addL = ZeD.tr("UI_ZeD_Machine_Add")
     local addW = math.max(T.px(48), M.buttonW(addL))

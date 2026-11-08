@@ -511,15 +511,12 @@ end
 function LC.open(win, st) P.open(win, st, { from = "adm:tk:sum:log" }) end
 function LC.openAround(win, st, id) P.open(win, st, { from = "tk:around", around = id }) end
 
--- the game's own PvP log, with no server part to hold ZeD's (the Admin tab's More tools has the same window)
-function P.gameLog(win)
-    local p = win._playerObj or getPlayer()
-    for _, m in ipairs(ZeD.AdminTab and ZeD.AdminTab.MORE or {}) do
-        if m.id == "pvplog" then
-            local ok, err = pcall(m.run, p)
-            if not ok then ZeD.logOnce("log card: the game's PvP log", err) end
-        end
-    end
+-- the game's own PvP log, with no server part to hold ZeD's: its card (ZeD_AdminTools.lua; More tools has the same card)
+function P.gameLog(win, st)
+    local AT = ZeD.AdminTools
+    if not AT then return end
+    local ok, err = pcall(AT.openPvp, win, st, "adm:tk:sum:log")
+    if not ok then ZeD.logOnce("log card: the game's PvP log", err) end
 end
 
 function LC.homeRow(L, st, AP)
@@ -527,7 +524,7 @@ function LC.homeRow(L, st, AP)
     if Lm.live() then
         AP.summary(L, "sum:log", tr("UI_ZeD_Log_Sum"), nil, Lg.VIEW_CAP, function(ww) LC.open(ww, st) end)
     else
-        AP.summary(L, "sum:log", tr("UI_ZeD_Log_SumGame"), nil, "PVPLogTool", function(ww) P.gameLog(ww) end)
+        AP.summary(L, "sum:log", tr("UI_ZeD_Log_SumGame"), nil, "PVPLogTool", function(ww) P.gameLog(ww, st) end)
     end
 end
 
