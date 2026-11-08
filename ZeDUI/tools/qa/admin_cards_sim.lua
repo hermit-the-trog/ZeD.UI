@@ -1535,7 +1535,7 @@ do
     local SC = ZeD.StatsCards
     local p = { getUsername = function() return "Aretha" end }
     for _, m in ipairs(ZeD.AdminTab.MORE) do
-        if m.id == "mystats" then m.run(p, st, win) end
+        if m.id == "mystats" then m.run(p, win, st) end
     end
     check("Check your stats opens your own stats card", st.card and st.card.kind == "pstats" and st.card.user == "Aretha" and ISPlayerStatsUI.opened == 0)
     TC.back(win, st)
