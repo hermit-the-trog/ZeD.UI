@@ -1,15 +1,17 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuPlayers.lua
 -- ============================================================================
--- THE PAUSE WINDOW'S PLAYERS AND INVITE PAGES (ZeDUI/VANILLA_WINDOWS_20261107.md, C1 and C3). In game, the pause
+-- THE PAUSE WINDOW'S PLAYERS AND INVITE PAGES. Client-side; two pages of the pause window
+-- (MM.pages; the window itself is ZeD_MainMenu.lua's). In game, the pause
 -- window's Players and Invite buttons (and the D-pad social wheel's Players) open these in the window itself, where
--- the game opened ISScoreboard and InviteFriends over the screen.
+-- the game would open ISScoreboard and InviteFriends over the screen.
 --
 --   PLAYERS   who is on the server, from the game's scoreboard (scoreboardUpdate, the OnScoreboardUpdate reply): a row
 --             each, as the Admin tab's player rows read (the name, "(you)", the Steam name where the game shows it, the
 --             ping). Pick a row: under the list, the game's own actions for that player, each where the scoreboard
 --             has it and only for the role that has it (ISScoreboard:doAdminButtons): Mute, Voice mute, Kick, Ban,
 --             Ban IP, Teleport, Teleport to you, God mode, Invisible, sent with the game's own commands. Kick and the
---             two bans ask first in the band (a footer swap). The band: Back, Refresh.
+--             two bans open ZeD's Admin player card, which asks for a reason; without ZeD's server part they ask
+--             first in the band instead (its question in place of the buttons). The band: Back, Refresh.
 --   INVITE    the Steam friends the game's own InviteFriends lists, in its order (online, others, offline), each
 --             with its state. Pick a friend: Invite in the band (the game's clickInvite: inviteFriend). On a
 --             co-op host, Allow / Deny beside it (the game's toggleAllowDeny, its invited.ini kept by its own
@@ -269,6 +271,10 @@ function PL.picked()
     return nil
 end
 
+-- A pause-window page, as ZeD_MainMenu.lua calls it: W its width; label its heading; build lays its rows out as
+-- specs and returns the y under them and the next row; band returns the band's buttons and its question (nil:
+-- none); draw paints what the specs don't; joyDir / wheel take the D-pad and the wheel (true: handled); leave
+-- runs on the way out; cancel is B while a question is open.
 MM.pages.players = {
     W = PAGE_W,
     label = function() return ZeD.btnCase(getText("UI_mainscreen_scoreboard")) end,
@@ -375,8 +381,8 @@ function IV.fill(text)
     end)
 end
 
--- FIND (a list that can pass about 15 friends gets a find field): the words go into the game's own filter, and its
--- fillList narrows the list as it does on its own screen
+-- FIND (a friends list can run past 15 or so, so the page always has a find field): the words go into the game's
+-- own filter, and its fillList narrows the list as it does on its own screen
 function IV.entry(win)
     local e = win._ivFind
     if e then return e end
@@ -567,6 +573,8 @@ MM.pages.invite = {
 -- ---------------------------------------------------------------------------
 -- OPENING A PAGE (MM.act.players / MM.act.invite). False: the game's own screen opens instead.
 -- ---------------------------------------------------------------------------
+--- Show page name ("players" / "invite") in the pause window; false when it cannot
+--- (no pause window, Safe mode, or no InviteFriends object yet).
 function MM.openPage(name)
     local w = MM.pause
     if not (w and MM.pages[name]) then return false end
@@ -588,7 +596,7 @@ function MM.openPage(name)
     return true
 end
 
--- QA and the sims: the list as the game's reply would fill it
+--- A hook for QA scripts and simulations: fill the list as the game's scoreboard reply would.
 function PL.qaFill(list) PL.list = list or {}; PL.heard = true end
 
 return PL

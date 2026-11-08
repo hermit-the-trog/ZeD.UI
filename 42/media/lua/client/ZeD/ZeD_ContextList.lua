@@ -1,11 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ContextList.lua
 -- ============================================================================
--- THE CONTEXT MENU AS A LIST (Oct 19 2026; director: "as we are adding options
--- for viewing content. Can we add back in the text/list context menu. That way
--- people can have all lists or all grids options for the most used menus")
+-- THE CONTEXT MENU AS A LIST. Client organism (a ZeD_Panel): the other look
+-- for the right-click menu, beside the icon strip (ZeD_ContextMenu), so the
+-- most-used menus can be all lists or all grids, whichever a player reads
+-- best.
 --
--- The other look for the right-click menu, beside the icon strip
--- (ZeD_ContextMenu): a System 7 pull-down. One row per action (its icon, its
+-- A System 7 pull-down. One row per action (its icon, its
 -- name, a triangle when it opens a submenu), the action groups split by a
 -- rule, submenus cascading to the side, and the pointed row's vanilla
 -- tooltip (what it needs, why it can't) in a balloon beside it. The ZeD
@@ -61,7 +61,7 @@ function ZeD_ContextList:initialise() ZeD_Panel.initialise(self) end
 -- ----------------------------------------------------------------------------
 local function disabled(def, target) return def.disabled and def.disabled(target) or false end
 
--- Rows a list of choices needs (Oct 29 2026, the loadouts' menus): def.check (a
+-- Rows a list of choices needs (the loadouts' menus use them all): def.check (a
 -- function or a bool: a checkbox in the icon's place, live), def.heading (a small
 -- dim label over a group: no selection, no press), def.note (dim words at the
 -- row's right), def.keepOpen (the menu stays after the press: ticking boxes).
@@ -458,10 +458,10 @@ function ZeD_ContextList:update()
 end
 
 -- A list opened by a press (a picker's zone answers on the button going down) gets
--- that click's release too: it must not close the list or choose under it (Oct 30
--- 2026, the director's mouse pass: the loadout and Journal pickers stayed open only
--- while the button was held). Dragged onto a row, the release still chooses it, as
--- a System 7 pull-down does.
+-- that click's release too: it must not close the list or choose under it — without
+-- this guard the loadout and Journal pickers stayed open only while the button was
+-- held. Dragged onto a row, the release still chooses it, as a System 7 pull-down
+-- does.
 function ZeD_ContextList:_notePress()
     self._openPress = isMouseButtonDown and isMouseButtonDown(0) and true or false
     self._openPx, self._openPy = getMouseX(), getMouseY()

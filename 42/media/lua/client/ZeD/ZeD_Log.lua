@@ -1,14 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Log.lua
 -- ============================================================================
--- THE LOG, THE CLIENT'S MODEL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 4). No drawing: ZeD_LogCards.lua reads this and calls it. The
--- server holds the log and filters it (ZeD_ServerLog.lua); a page comes back as l_page, and the words for a line are built on this
--- side, from the server's codes, so a line reads in the viewer's language. A code with no words reads as the server wrote it.
+-- THE LOG, THE CLIENT'S MODEL. Client side, no drawing: ZeD_LogCards.lua reads this and calls it. The server holds the log
+-- and filters it (ZeD_ServerLog.lua); a page comes back as l_page, and the words for a line are built on this side, from the
+-- server's codes, so a line reads in the viewer's language. A code with no words reads as the server wrote it.
 --
 -- Without the server part there is no log to read: the Admin tab's row opens the game's own PvP log instead.
 --
--- QA, read at call time (the ticket cards' style):
+-- Test hooks, read at call time (as the ticket cards' are):
 --   Lm.qaLink   true / false: the server part as the cards read it
---   Lm.qaHold   true: no traffic. The screen shows only what the QA script put in Lm.page
+--   Lm.qaHold   true: no traffic. The screen shows only what a test script put in Lm.page
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -30,14 +30,17 @@ Lm.seq = Lm.seq or 0                  -- bumps on every change (the card re-read
 Lm.qid = Lm.qid or 0                  -- the read being waited for: an older page is dropped
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
+--- Marks a change: Lm.seq moves, and the card re-reads the model.
 function Lm.bump() Lm.seq = Lm.seq + 1 end
 
+--- True when the server part's log is there to read (or whatever the test hook Lm.qaLink says).
 function Lm.live()
     if Lm.qaLink ~= nil then return Lm.qaLink end
     return S.available() and S.lg == true
 end
 
--- q: kind, who, when, find, page, around. Refused, cb gets the answer
+--- Asks the server for a page: q = { kind, who, when, find, page, around }. The page comes back as l_page
+--- (into Lm.page); a refused read goes to cb with the answer.
 function Lm.ask(q, cb)
     if Lm.qaHold then return end
     Lm.lastQ, Lm.lastCb = q, cb       -- (asked again when the join rules are answered: the gate refused it until then)
@@ -52,6 +55,7 @@ function Lm.ask(q, cb)
     end)
 end
 
+--- The card is done: the page and the wait are dropped, and a page still on its way is ignored.
 function Lm.close()
     Lm.page, Lm.waiting = nil, nil
     Lm.lastQ, Lm.lastCb = nil, nil
@@ -63,6 +67,7 @@ S.onAgreed("log", function()
     if Lm.lastQ and Lm.live() then Lm.ask(Lm.lastQ, Lm.lastCb) end
 end)
 
+--- Puts log line s on ticket id as an admin note (the server's l_tonote); cb gets the answer.
 function Lm.toNote(id, s, cb) return C.requestOn(Lg.MOD, "l_tonote", { id = id, s = s }, cb) end
 
 S.on(Lg.MOD, function(command, args)
@@ -72,6 +77,7 @@ S.on(Lg.MOD, function(command, args)
         Lm.waiting = nil
         Lm.bump()
     elseif command == "l_probe" then
+        -- (what the server's hooks have seen, counts only: read by the test scripts)
         Lm.probe = args
         Lm.bump()
     end
@@ -92,7 +98,9 @@ function CTX.item(fullType)
     return (ok and s) or fullType
 end
 
+--- A line's words, in the viewer's language.
 function Lm.lineText(r) return Lg.lineWords(r, CTX) end
+--- Who did it, in the viewer's language.
 function Lm.whoText(r) return Lg.whoWords(r, CTX) end
 
 -- what the server is to look for besides the typed words (Lg.findCodes); kept, since the card asks at every look
@@ -118,14 +126,14 @@ function Lm.sourceText(r)
     return nil
 end
 
--- the second line of a row: the place, and the source; "" when a line has neither (a faction's has no place with nobody on)
+--- The second line of a row: the place, and the source; "" when a line has neither (a faction's has no place with nobody on).
 function Lm.metaText(r)
     local where, src = Lm.whereText(r), Lm.sourceText(r)
     if where and src then return where .. " | " .. src end
     return where or src or ""
 end
 
--- whose cards a line offers, beyond whoever did it. A ban's target can be an address: there is no card for one
+--- Whose card a line offers, beyond whoever did it. A ban's target can be an address: there is no card for one.
 function Lm.otherName(r)
     if r.src == "tap" or not r.target then return nil end
     if r.k == "pvp" or r.k == "vehicle" then return r.target end
@@ -134,6 +142,7 @@ function Lm.otherName(r)
     return nil
 end
 
+--- The color of a kind's tag.
 function Lm.kindColor(k)
     local T = ZeD.T
     if k == "admin" or k == "pvp" then return T.danger end

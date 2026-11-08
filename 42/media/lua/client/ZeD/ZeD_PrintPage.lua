@@ -1,15 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_PrintPage.lua
 -- ============================================================================
--- A PRINTED PIECE, SET BY ZeD (HOOK_MAP row 13; mockup zed_reader_v2; director,
--- Oct 16 2026: "the headlines ... same size as the article ... the messy zoom
--- system is the crux")
+-- A PRINTED PIECE (a newspaper, brochure or flyer) FOR ZeD'S READER. Client; a
+-- data and draw module with no window of its own: the reader (ZeD_Reader.lua),
+-- the journal's lists (ZeD_JournalReaders.lua) and the flyer map (FlyerMap.lua)
+-- read it.
 --
+-- A page is drawn one of two ways. The reader shows it as the game draws it,
+-- the game's own PZAPI atoms built here from the piece's layout (THE PAGE AS
+-- THE GAME DRAWS IT, below). Where that cannot be built, and for the read
+-- pieces' thumbnails, ZeD sets the page itself (P.draw):
 -- Vanilla draws a newspaper or flyer as one picture (PZAPI PrintMedia, from the
 -- Print_Media_<id>_info layout) and shrinks every text block by its own factor,
--- so a headline can come out the size of the story under it. ZeD keeps the
--- page's art and places (the paper, the pictures, the rules, the masthead, the
--- small print) and sets each story again, in the paper's own faces (Old
--- Standard TT, distance-field):
+-- so a headline can come out the size of the story under it. ZeD's setting
+-- keeps the page's art and places (the paper, the pictures, the rules, the
+-- masthead, the small print) and sets each story again, in the paper's own
+-- faces (Old Standard TT, distance-field):
 --   * the headline wrapped to its column (the lead story's larger; a headline the
 --     paper centred stays centred), the byline small under it;
 --   * the body in one size for the whole page, the largest that fits every
@@ -40,10 +45,12 @@ local function lineH(font, size) return TM:getFontHeight(font) * size / BASE end
 -- ---------------------------------------------------------------------------
 -- the piece's data (an item's modData.printMedia, or an id)
 -- ---------------------------------------------------------------------------
+--- The piece an item carries (its modData.printMedia), or nil.
 function P.media(item)
     local md = item and item.getModData and item:getModData()
     return md and md.printMedia or nil
 end
+--- A piece by its id: { id, title, info, text }, the translation keys of its title, layout and words.
 function P.ofId(id)
     local m = { id = id, title = "Print_Media_" .. id .. "_title", info = "Print_Media_" .. id .. "_info", text = "Print_Text_" .. id .. "_info" }
     -- the game's own keys from its registry (a piece's keys use its proper name,
@@ -55,9 +62,10 @@ function P.ofId(id)
     end)
     return m
 end
+--- The piece's title in the player's language (its id when the game has no text for it).
 function P.title(m) return m and (getTextOrNull(m.title) or m.id) or "" end
 
--- what kind of paper it is, by the item that carries it
+--- What kind of paper it is, by the item that carries it.
 function P.kind(item)
     local t = item and item:getType() or ""
     if t:find("Newspaper", 1, true) then return "Newspaper" end
@@ -67,7 +75,7 @@ function P.kind(item)
     return "Paper"
 end
 
--- what P.kind answered, in the player's language (the answer itself is an id, compared in code)
+--- What P.kind answered, in the player's language (the answer itself is an id, compared in code).
 function P.kindName(kind)
     if kind == "Newspaper" then return getText("IGUI_NewUI_Newspaper") end
     if kind == "Brochure" then return getText("IGUI_NewUI_Brochure") end
@@ -99,7 +107,7 @@ local function parse(s)
         end
     end
     -- (the page is at least as large as its pictures reach: the Kentucky Herald's layout gives a page shorter than its
-    -- art, and the reader fitted the short page, QA Nov 4 2026)
+    -- art, and the reader would fit the short page)
     for _, e in ipairs(els) do
         if e.type == "texture" and (e.angle or 0) == 0 and e.width and e.height and (e.scaleX or 1) > 0 and (e.scaleY or 1) > 0 then
             local r = (e.x or 0) - (e.pivotX or 0) * e.width + e.width
@@ -254,6 +262,8 @@ end
 
 -- the page, laid out once per piece (and per face set: a theme change cannot move it)
 local cache = {}
+--- The piece's page as ZeD sets it: { els, w, h, lines, stories, body } in page units; nil when the game has no
+--- layout for it.
 function P.page(m)
     if not m then return nil end
     local c = cache[m.id]
@@ -278,7 +288,7 @@ function P.page(m)
     return c
 end
 
--- the page painted at scale k with its top-left at (ox, oy) in the panel
+--- The page (P.page) painted at scale k with its top-left at (ox, oy) in the panel.
 function P.draw(panel, pg, ox, oy, k)
     panel:drawRect(ox, oy, pg.w * k, pg.h * k, 1, 0.86, 0.85, 0.83)   -- the paper itself, under everything
     for _, e in ipairs(pg.els) do
@@ -329,9 +339,8 @@ function P.draw(panel, pg, ox, oy, k)
 end
 
 -- ---------------------------------------------------------------------------
--- THE PAGE AS THE GAME DRAWS IT (the director, Nov 4 2026: "Vanilla is rendering those correctly. Can we just render
--- them correctly in our window as well?"). The game's own PZAPI atoms, built from the piece's layout exactly as
--- PZAPI's PrintMedia builds them (each texture at its place and size, each text in its own UIFont, scale, colour
+-- THE PAGE AS THE GAME DRAWS IT. The game's own drawing gets these pages right, so the reader shows that drawing in
+-- ZeD's window: the game's own PZAPI atoms, built from the piece's layout exactly as PZAPI's PrintMedia builds them (each texture at its place and size, each text in its own UIFont, scale, colour
 -- and width), under a clipping node at the reader's canvas; the whole page scaled as one by the reader's zoom. The
 -- tree is never handed to the UIManager: the reader draws it after its own drawing (as the survival guide's book
 -- draws its text), so it sits in the reader's window, not over or under other windows.
@@ -346,8 +355,8 @@ local function vInit(node)
     UI._initElement(node)
     UI._initResize(node)
 end
--- the page node for a piece at scale k, built once per piece and scale (QA, Nov 4 2026: the node's own scale did
--- not reach its atoms, so each one is scaled here: its place, its size, its text's scale)
+-- the page node for a piece at scale k, built once per piece and scale (the node's own scale does not reach its
+-- atoms, so each one is scaled here: its place, its size, its text's scale)
 local SCALED = { x = true, y = true, width = true, height = true, scaleX = true, scaleY = true }
 local function vBuild(m, k)
     local UI = PZAPI and PZAPI.UI
@@ -355,7 +364,7 @@ local function vBuild(m, k)
     local info = getTextOrNull(m.info)
     if not info then return false end
     if not V.clip then
-        -- (a panel clips, as the game's own reader body does: a node's isStencil did not, QA)
+        -- (a panel clips, as the game's own reader body does: a node's isStencil does not)
         V.clip = UI.Panel{ x = 0, y = 0, width = 1, height = 1, isStencil = true, r = 0, g = 0, b = 0, a = 0 }
         vInit(V.clip)
     end
@@ -411,7 +420,8 @@ local function vBuild(m, k)
     return true
 end
 
--- the page placed for this frame: its canvas c (panel coordinates), the page's top-left (ox, oy) and scale k
+--- The game's page placed for this frame: its canvas c (panel coordinates), the page's top-left (ox, oy) and
+--- scale k. Returns false when it cannot be built or placed (the reader then sets the page itself, P.draw).
 function P.vanillaPlace(panel, m, c, ox, oy, k)
     if not m then return false end
     if V.id ~= m.id or not V.k or math.abs(V.k - k) > 0.0001 then
@@ -435,20 +445,20 @@ function P.vanillaPlace(panel, m, c, ox, oy, k)
     V.panel = ok and panel or nil
     return ok
 end
--- hides it (the Words view, a notebook, the reader closed)
+--- Hide the game's page (the Words view, a notebook, the reader closed).
 function P.vanillaHide()
     if V.clip and V.clip.visible then pcall(function() V.clip:setVisible(false) end) end
     V.panel = nil
 end
--- drawn by the panel that placed it this frame, after its own drawing
+--- Draw the game's page; only the panel that placed it this frame draws it, after its own drawing.
 function P.vanillaRender(panel)
     if V.panel ~= panel or not V.clip then return end
     pcall(function() V.clip.javaObj:update() end)
     pcall(function() V.clip.javaObj:render() end)
 end
 
--- the page's paper and pictures only, no words: a list's thumbnail, and a piece not
--- read yet (reading it is vanilla's timed action; the tab never gives the words away)
+--- The page's paper and pictures only, no words: a list's thumbnail, and a piece not
+--- read yet (reading it is vanilla's timed action; the tab never gives the words away).
 function P.drawArt(panel, pg, ox, oy, k, a)
     a = a or 1
     panel:drawRect(ox, oy, pg.w * k, pg.h * k, a, 0.86, 0.85, 0.83)
@@ -467,7 +477,7 @@ function P.drawArt(panel, pg, ox, oy, k, a)
     end
 end
 
--- the stories' headlines, for the reader's side column
+--- The stories' headlines, for the reader's side column.
 function P.headlines(pg)
     local out = {}
     for _, st in ipairs(pg and pg.stories or {}) do
@@ -493,7 +503,8 @@ local function properCase(line, pg)
     return ZeD.upper(s:sub(1, 1)) .. s:sub(2)
 end
 
--- blocks: { kind = "head" | "kicker" | "pic" | "para" | "cont", text }
+--- The piece's words as blocks: { kind = "head" | "kicker" | "pic" | "para" | "cont", text }; a "para" may carry
+--- its dateline.
 function P.words(m)
     local raw = m and getTextOrNull(m.text)
     if not raw then return {} end
@@ -525,6 +536,7 @@ end
 -- ---------------------------------------------------------------------------
 -- PLACES (vanilla's reveal-on-map, up to five)
 -- ---------------------------------------------------------------------------
+--- The piece's places (PrintMediaDefinitions.MiscDetails): up to five, each a list of squares { x1, y1, x2, y2 }.
 function P.places(m)
     local out = {}
     local d = m and PrintMediaDefinitions and PrintMediaDefinitions.MiscDetails and PrintMediaDefinitions.MiscDetails[m.id]
@@ -546,7 +558,7 @@ local function mapZoom(len)
     return 14
 end
 
--- vanilla's own Show on map: the squares become known, then its read-map action opens the map there
+--- Vanilla's own Show on map for one place: the squares become known, then its read-map action opens the map there.
 function P.showOnMap(playerObj, loc)
     local xx, yy, maxLen = 0, 0, 0
     for _, sq in ipairs(loc) do

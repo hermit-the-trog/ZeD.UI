@@ -1,13 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SeatChooser.lua
 -- ============================================================================
--- THE SEAT CHOOSER — vanilla's ISVehicleSeatUI as a small ZeD window
--- Mockup ZeDUI/mockups/zed_seats_lightbar_v1.html (director, Oct 15 2026:
--- "love it, build both"). HOOK_MAP row 4; the hook is Overrides/Seats.lua
+-- THE SEAT CHOOSER — vanilla's ISVehicleSeatUI as a small ZeD window. Client
+-- organism (ZeD_SeatChooser, a ZeD_Window). The hook is Overrides/Seats.lua
 -- (ISVehicleMenu.onShowSeatUI: the wheel's Switch Seat and Enter Vehicle, the
 -- seat key).
 --
--- Where vanilla's sat (the middle of the player's screen, re-centred every
--- frame), the same size. The car is vanilla's own seat-chooser outline,
+-- It sits where vanilla's does (the middle of the player's screen, re-centred
+-- every frame), at the same size. The car is vanilla's own seat-chooser outline,
 -- tinted; the seats sit at vanilla's own places (the passenger positions, the
 -- same scale and per-car offsets), so every vehicle, a mod's too, lines up as
 -- it does in vanilla.
@@ -573,13 +572,13 @@ end
 function ZeD_SeatChooser:update()
     ZeD_Window.update(self)   -- the window box, the resize edges and the close box (closeAction)
     -- the car gone from the world or the character dead: it closes, rather than reading a
-    -- vanished vehicle every frame (code audit Oct 17 2026)
+    -- vanished vehicle every frame
     if not (self.vehicle and self.vehicle:getSquare()) or self.character:isDead() then self:close(); return end
     -- the controller that holds it
     local jf = nil
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     if jd and jd.focus == self then jf = jd end
-    if S.qaJoy then jf = S.qaJoy end   -- QA: the controller look without a controller
+    if S.qaJoy then jf = S.qaJoy end   -- (for the test scripts: the controller look without a controller)
     self.joyfocus = jf
     local h = self:hitAt(self:getMouseX(), self:getMouseY())
     if S.qaPoint then h = S.qaPoint end
@@ -638,6 +637,7 @@ end
 -- ---------------------------------------------------------------------------
 -- ENTRY (vanilla's ISVehicleMenu.onShowSeatUI, as a toggle per player)
 -- ---------------------------------------------------------------------------
+--- show the chooser for a vehicle, or close it when it is already up; nothing while the game is paused
 function S.toggle(playerObj, vehicle)
     local speed = UIManager.getSpeedControls()
     if speed and speed:getCurrentGameSpeed() == 0 then return end   -- vanilla: not while paused
@@ -663,7 +663,7 @@ function S.toggle(playerObj, vehicle)
     end
 end
 
--- Escape from anywhere (the prompts' key hook asks): the chooser on screen closes
+--- Escape from anywhere (the prompts' key hook asks): the chooser on screen closes; true when one did
 function S.takeEscape()
     for _, win in pairs(S.windows) do
         if win and win:isReallyVisible() then win:close(); return true end

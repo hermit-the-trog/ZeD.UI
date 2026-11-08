@@ -1,20 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemActionHooks.lua
 -- ============================================================================
--- ITEM ACTION HOOKS (S122 — Phase B2)
--- Bridges PZ TimedAction lifecycle into ZeD.ItemActionManager so the new
--- ItemCard's Progress Band lights up during real cooking / reading /
--- repairing. Without this bridge the Manager always returns nil and the
--- Progress Band molecule short-circuits to height=0 (S120 + S121 baseline).
+-- ITEM ACTION HOOKS — client; the detection side of the Progress Band.
+-- Watches what the player is really doing — reading, repairing, cooking —
+-- and feeds ZeD.ItemActionManager through notify(), so the ItemCard's
+-- Progress Band lights up. Without this file the Manager always answers nil
+-- and the band never draws.
 --
--- Approach: OnTick polling of the player's ISTimedActionQueue. Sniffing
+-- Approach: OnTick polling of the player's ISTimedActionQueue. Hooking
 -- subclass overrides of `start`/`perform`/`stop` is unreliable — many
 -- PZ actions override the base methods without calling super, so a base-
--- class override misses them. The queue itself is the canonical source of
--- truth: queue[1] is the currently-executing action; when it changes, the
+-- class override misses them. The queue itself is the source of truth:
+-- queue[1] is the currently-executing action; when it changes, the
 -- previous action is done.
 --
--- Defensive everywhere: the polling can't crash the engine loop. Worst
--- case is an action goes unrecognized and the Band stays idle.
+-- Defensive by habit: most Java calls sit behind pcall, so a bad probe
+-- can't take the engine loop down. Worst case an action goes unrecognized
+-- and the band stays idle.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -86,9 +87,9 @@ local _lastActive = {}  -- playerNum → {action, item}
 local function _pollPlayer(p)
     if not p then return end
     local pn = p:getPlayerNum()
-    -- S123: vanilla keys ISTimedActionQueue.queues by the CHARACTER OBJECT,
-    -- not by player number (ISTimedActionQueue.lua:144). The old queues[pn]
-    -- lookup was always nil, so the Band never lit from this path.
+    -- Vanilla keys ISTimedActionQueue.queues by the character object, not by
+    -- player number (ISTimedActionQueue.lua:144) — a queues[pn] lookup is
+    -- always nil, so go through the getter with the player object.
     local q  = ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue
                and ISTimedActionQueue.getTimedActionQueue(p)
     local last = _lastActive[pn]
@@ -98,7 +99,7 @@ local function _pollPlayer(p)
     if q and q.queue and q.queue[1] then head = q.queue[1] end
 
 
-    -- Reclassify head — ignore actions we don't surface
+    -- Classify the head — actions we don't surface count as no action
     local kind, label = _classifyAction(head)
     if not kind then head = nil end  -- treat as "no relevant action"
 
@@ -192,8 +193,8 @@ local function _pollReadingFallback(p)
         end
         -- Last-resort: scan inventory for a Literature item. PZ may not
         -- equip the book during reading. If multiple Lit items exist, prefer
-        -- the one currently displayed in any open ItemCard (matches user
-        -- intent — they opened the card for the book they're reading).
+        -- the one the Character window's card shows (matches user intent —
+        -- they opened the card for the book they're reading).
         -- The scan is the costly step, so once a book has been found it is
         -- kept for a while instead of being searched for again every tick
         -- (progress still updates every tick below).
@@ -221,9 +222,9 @@ local function _pollReadingFallback(p)
                 if #litItems == 1 then
                     book = litItems[1]; probeName = "invScan(unique)"
                 elseif #litItems > 1 then
-                    -- Multiple — pick the carded one if any window has it as drawerItem
+                    -- Multiple — pick the one the Character window cards (its drawerItem)
                     local carded = nil
-                    -- S123: the window accessor is getWindow(); .instance never existed.
+                    -- The window accessor is getWindow(); there is no .instance field.
                     local cwin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow
                                  and ZeD_CharacterWindow.getWindow()
                     if cwin and cwin._drawerItem then carded = cwin._drawerItem end
@@ -242,7 +243,7 @@ local function _pollReadingFallback(p)
                                 or 0
                             if pages > bestPages then best, bestPages = it, pages end
                         end
-                        -- S123: novels report -1 pages, so a tie leaves best nil; fall back to the first.
+                        -- Novels report -1 pages, so a tie leaves best nil; fall back to the first.
                         book = best or litItems[1]
                         probeName = "invScan(bestPages)"
                     end
@@ -251,7 +252,7 @@ local function _pollReadingFallback(p)
         end
         if not book then return end
 
-        -- Compute progress: getReadHours / getCharacterReadHours / item:getNumberOfPages + getAlreadyReadPages
+        -- Progress = pages already read / total pages, when the book reports both.
         local percent = 0
         if book.getNumberOfPages and book.getAlreadyReadPages then
             local ok2, total = pcall(book.getNumberOfPages, book)
@@ -286,13 +287,13 @@ local function _pollReadingFallback(p)
 end
 
 -- ---------------------------------------------------------------------------
--- COOKING POLL (S123, Q127/Q128). Cooking is not a TimedAction: a Food item
--- cooks while it sits in an ACTIVATED heat-source container (stove, fire).
--- Watch the item each window currently cards; when its container parent is
--- activated, drive the Band: "active" until minutesToCook, then "danger"
--- (burn countdown) until isBurnt, then complete.
+-- COOKING POLL. Cooking is not a TimedAction: a Food item cooks while it
+-- sits in an activated heat-source container (stove, fire). Watch the item
+-- each window currently cards; when its container parent is activated,
+-- drive the Band: "active" until minutesToCook, then "danger" (burn
+-- countdown) until isBurnt, then complete.
 -- ---------------------------------------------------------------------------
-local _cookTracked = {}   -- item -> true while we are reporting it
+local _cookTracked = {}   -- item -> last reported mode ("active"/"danger") while we report it
 
 local function _cardedItems()
     local out = {}
@@ -359,6 +360,8 @@ local function _pollCooking()
     end
 end
 
+-- The queue poll above is already registered; swap it for a wrapper that
+-- also runs the cooking poll and the reading fallback each tick.
 local _origOnTick = _onTick
 _onTick = function()
     _origOnTick()

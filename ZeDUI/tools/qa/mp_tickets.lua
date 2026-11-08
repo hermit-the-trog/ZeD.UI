@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_tickets.lua  (Nov 5 2026, QA): multiplayer Phase 1, tickets, steps 1 to 7 of Part D
--- (ZeDUI/MP_SERVER_PART_DESIGN.md) on the local server. grep "ZEDQA mtk", then the server's logs in
+-- (docs/specs/MP_SERVER_PART_DESIGN.md) on the local server. grep "ZEDQA mtk", then the server's logs in
 -- C:\Users\you\Zomboid\zedqa_mp\Logs (*_DebugLog-server.txt and *_ZeD.txt).
 --   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"     (the shim carries ZeDQA.role)
 --   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_tickets.txt

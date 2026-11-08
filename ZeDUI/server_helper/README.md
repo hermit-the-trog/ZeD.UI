@@ -125,4 +125,4 @@ Exit codes: 0 fine, 1 no RCON port or password found, 2 the console refused the 
 
 `test_zed_rcon_helper.py` runs the helper against a fake RCON server on localhost that speaks the game's protocol and reads
 commands the way the game does: `python -I test_zed_rcon_helper.py`. How ZeD's side works is in
-`ZeDUI/MP_SERVER_PART_DESIGN.md`, "Rules that hold".
+`docs/specs/MP_SERVER_PART_DESIGN.md`, "Rules that hold".

@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/ImmersiveMoodles.lua
 -- ============================================================================
--- SUPPORT FOR IMMERSIVE MOODLES (mod id ImmersiveMoodles, Workshop 3830422267, by Krovenox).
+-- SUPPORT FOR IMMERSIVE MOODLES (mod id ImmersiveMoodles, Workshop 3830422267,
+-- by Krovenox). Client.
 --
 -- The mod replaces the game's moodles with an animated column of its own (IMHud): its
 -- own icons and frames per level, level bars beside each tile, its own hover text, at
@@ -11,7 +12,7 @@
 --
 -- ZeD places the game's column every frame too (ZeD_Moodles.lua), so without this file
 -- the two fought: the game's column came back where ZeD puts it, with ZeD's hover note,
--- and every moodle showed twice (QA, Nov 2 2026, compat round 5).
+-- and every moodle showed twice.
 --
 -- While the mod's HUD is drawing for a player, ZeD leaves the moodles to it
 -- (ZeD.Moodles.setStandIn with whole = true): ZeD places nothing, draws no row and no

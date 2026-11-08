@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/POM.lua
 -- ============================================================================
--- SUPPORT FOR PLAYERS ON MAP (mod id POM, Workshop 2879960936). Mockup
--- zed_map_overlays_v1, approved "as recommended" Oct 26 2026.
+-- SUPPORT FOR PLAYERS ON MAP (mod id POM, Workshop 2879960936). Client.
 --
 -- The mod draws every player on the game's map and mini-map as a bright green
 -- square with the name under it (its client PlayersOnMap.lua, drawPlayerOnMap),
@@ -24,6 +23,7 @@
 
 local MOD_ID = "POM"
 
+-- Is the mod on? An id from getActivatedMods() can carry a leading backslash.
 local function modOn()
     local list = getActivatedMods and getActivatedMods()
     if not list then return false end
@@ -168,5 +168,5 @@ function X.side(win)
     return { key = "players", title = ZeD.tr("IGUI_Map_Sharing_Players"), count = #rows, rows = rows }
 end
 
-S.X = X   -- (the QA scripts drive it)
+S.X = X   -- (exposed so the QA scripts can reach the extension)
 ZeD.MapsTab.addExtension(MOD_ID, X)

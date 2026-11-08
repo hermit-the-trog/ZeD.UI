@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/VSKDash.lua
 -- ============================================================================
 -- SUPPORT FOR VEHICLE KIT LIBRARY'S DASHBOARD DATA (mod id VehicleSwissKnife,
--- Workshop 3828607335, namespace VSK). Roadworthy (RealisticDrivingOverhaul,
+-- Workshop 3828607335, namespace VSK). Client. Roadworthy (RealisticDrivingOverhaul,
 -- Workshop 3828608843) publishes its engine temperature, oil pressure, lamps,
 -- odometer and gearbox there, and any other mod built on the library can.
 --
@@ -91,7 +91,7 @@ local function claim(lamps, src, rank, blink, name)
     elseif rank == l.rank then l.blink, l.name = l.blink or blink, l.name or name end
 end
 
--- Once per place: to console.txt and nowhere else (see the file's head). A failing library costs one line.
+--- Once per place: to console.txt and nowhere else (see the file's head). A failing library costs one line.
 local noted = {}
 function V.note(place, err)
     if noted[place] then return end
@@ -200,8 +200,8 @@ local function stateFor(mem, vehicle)
     return s
 end
 
--- This frame's readings for the car, for its driver. nil: no library, or it failed, and the dash reads as it always
--- has. Low cost: one table read a frame, the library five times a second.
+--- This frame's readings for the car, for its driver. nil: no library, or it failed, and the dash reads as it always
+--- has. Low cost: one table read a frame, the library five times a second.
 function V.read(vehicle, chr, mem)
     local VD = library()
     if not VD then return nil end
@@ -222,8 +222,8 @@ function V.read(vehicle, chr, mem)
     return pub
 end
 
--- The same for a passenger: the World Scale and the odometer, in a table of the same shape. No provider runs and nothing
--- is lit from here. nil: no library.
+--- The same for a passenger: the World Scale and the odometer, in a table of the same shape. No provider runs and nothing
+--- is lit from here. nil: no library.
 function V.figures(vehicle, mem)
     local VD = library()
     if not VD then return nil end
@@ -241,8 +241,8 @@ function V.figures(vehicle, mem)
     return pub
 end
 
--- The plate's gear letter for a published label ("M2" -> "2", "D3" -> "D"), or nil when the plate has no such letter
--- and the plate's own selector stands (letters: the gear part's, DashPx). No art is added for the rest.
+--- The plate's gear letter for a published label ("M2" -> "2", "D3" -> "D"), or nil when the plate has no such letter
+--- and the plate's own selector stands (letters: the gear part's, DashPx). No art is added for the rest.
 function V.gearLetter(letters, label)
     if not (letters and label) then return nil end
     if letters[label] then return label end

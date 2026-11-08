@@ -1,6 +1,6 @@
 # The gallery as a worked-through 1993 manual (spreads)
 
-Director's brief: `ZeDUI/HANDOFF_gallery_manual_20261101.md`. Approved sample (Nov 1 2026, "Nailed it!"):
+Director's brief: `docs/handoffs/HANDOFF_gallery_manual_20261101.md`. Approved sample (Nov 1 2026, "Nailed it!"):
 `spreads/21_item_cards.json`, rendered `out_spread/21_item_cards.png`. Match it.
 
 ## The fiction

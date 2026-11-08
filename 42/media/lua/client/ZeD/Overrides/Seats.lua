@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Seats.lua
 -- ============================================================================
--- HOOK_MAP row 4: the vehicle wheel's two remaining vanilla windows.
+-- THE VEHICLE WHEEL'S TWO REMAINING VANILLA WINDOWS (override, client)
 --   * ISVehicleMenu.onShowSeatUI (Switch Seat and Enter Vehicle on the wheel,
 --     the seat key) opens the ZeD seat chooser (ZeD_SeatChooser.lua) instead
 --     of ISVehicleSeatUI.
@@ -10,6 +10,8 @@
 -- If either ZeD surface fails to open, vanilla's window opens instead. While
 -- safe mode is on (SafeMode.lua) vanilla's windows open every time, and
 -- turning it on puts away a chooser or a controller already on screen.
+-- Each hook keeps the vanilla function once (_zedSeats, _zedSiren), so a Lua
+-- reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

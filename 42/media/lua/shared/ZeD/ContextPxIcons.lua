@@ -1,9 +1,18 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ContextPxIcons.lua
--- Written by ZeDUI/tools/wheelpx/export.py --game from map.py CTX: do not edit by hand.
+-- ============================================================================
+-- THE PIXEL ICON FOR EACH CONTEXT-MENU PICTURE: a generated data table, read by the
+-- right-click menu and the controller's wheels. Written by ZeDUI/tools/wheelpx/export.py
+-- --game from map.py CTX: do not edit by hand.
 --
 -- ZeD.ContextPxIcons: a picture name from ZeD.ContextIcons -> the id of ZeD's pixel icon
 -- drawn for it (ZeD.PxIcon, media/textures/ZeD/wheel/). A name not here (one a mod adds)
--- keeps its picture from media/textures/ZeD/icons/.
+-- keeps its picture from media/textures/ZeD/icons/. The groups are map.py's: 1 everyday
+-- actions, 2 food and cooking, 3 drinks and fluids, 4 crafting and building, 5 combat and
+-- medical, 6 vehicles, power, farming, animals and the rest.
+-- Shared: loads on the client and on a dedicated server alike; plain data, nothing
+-- client-only. Pure ASCII.
+-- ============================================================================
+-- Reload-safe: loading this file twice reuses the table instead of wiping it
 ZeD = ZeD or {}
 ZeD.ContextPxIcons = {
     -- group 1

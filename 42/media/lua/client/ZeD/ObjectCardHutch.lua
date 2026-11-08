@@ -1,6 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardHutch.lua
 -- ============================================================================
--- OBJECT CARD: HUTCH (HOOK_MAP row 20; mockup zed_animal_cards_v1.html)
+-- OBJECT CARD: HUTCH (HOOK_MAP row 20)
+-- Client; one card kind for ZeD.ObjectCards (ObjectCards.lua draws the frame,
+-- this def fills it).
 -- Vanilla's two-tab Hutch window (egg laying boxes, coop roosting) becomes one
 -- card in the World window's card drawer:
 --   * the two doors as marks (full when open), with Open / Close door and
@@ -272,7 +274,7 @@ def.nameOf = hutchName   -- the Animals tab names hutch rows the same way
 
 function def.title(t) return t.d and t.d.name or txt("ContextMenu_Hutch", "Hutch") end
 function def.icon(t) return t.d and t.d.icon or nil end
--- the state tag: its words, and the colour of its square mark (none for a plain tag)
+--- The state tag: its words, and the colour of its square mark (none for a plain tag).
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
@@ -281,7 +283,7 @@ function def.pill(t)
     return ZeD.tr("IGUI_Open"), T.positive
 end
 
--- the controller lands on the first box with eggs to take, else the verbs
+--- The controller lands on the first box with eggs to take, else the verbs.
 function def.openFocus(t)
     local d = t.d
     if d and d.boxesShown and #d.free > 0 then return "hutch:box:" .. d.free[1].i end

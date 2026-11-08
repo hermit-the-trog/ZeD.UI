@@ -1,11 +1,16 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerExtras.lua
 -- ============================================================================
--- THE SERVER EXTRAS, THE SERVER'S SIDE (ZeDUI/MP_ADMIN_SCOPE.md, Phase 6). Every extra is a setting, off until the owner
--- turns it on: until then this file wraps nothing, adds no listener and has no clock, so a vanilla-rules server runs the
--- game's own functions. Once a system has been on, its wraps stay in place (a later mod may have wrapped them too) and each
--- starts with one test of a boolean that passes straight to the game's function while the system is off.
+-- THE SERVER EXTRAS, THE SERVER'S SIDE. Server only (the first line); pure Lua, pure ASCII. Every extra is a setting, off
+-- until the owner turns it on: until then this file wraps nothing, adds no listener and has no clock, so a vanilla-rules
+-- server runs the game's own functions. Once a system has been on, its wraps stay in place (a later mod may have wrapped
+-- them too) and each starts with one test of a boolean that passes straight to the game's function while the system is off.
 --
--- WHAT THE SERVER CAN REFUSE (MP_SERVER_PART_DESIGN.md, the last section, has the proof of each):
+-- What crosses the wire: the extras' model on the client (client/ZeD/ZeD_Extras.lua) sends x_save, x_claim, x_release,
+-- x_veh, x_mine, x_tp and x_took on module Ex.MOD. Back come acks (the tickets' t_ack), a car's claim (x_veh), a player's
+-- own claims (x_mine), the settings to everyone after a save (x_set) and the word of a refusal (x_no); the settings also
+-- ride on the hello's reply (ex).
+--
+-- WHAT THE SERVER CAN REFUSE:
 --   Timed actions   the server calls an action's Lua complete() when its time is up (NetTimedAction.perform). Returning false
 --                   is the game's own refusal: ActionManager marks the action rejected, the client's action stops, and no
 --                   anti-cheat counts it. The game's SledgehammerOnlyInSafehouse rule refuses this way. It comes at the end
@@ -24,8 +29,9 @@
 -- WHAT IT CANNOT: item transfers are Java on the server, with no Lua at all (TransactionManager), so a take from a container
 -- is reported by the player's own client (x_took) and the log says so; the server tests that the report could be true.
 --
--- The table has a secret random name, as the tickets' does (A2), and is never transmitted. Views are allowlists, for one
--- player. Every act goes through Srv.action, with kinds vehicle, safehouse, container and admin.
+-- The table has a secret random name, as the tickets' does (any logged-in client can read a global mod data table it can
+-- name), and is never transmitted. Views are allowlists, for one player. Every act goes through Srv.action, with kinds
+-- vehicle, safehouse, container and admin.
 --
 -- WITH THE LOG (ZeD_ServerLog.lua, which wraps the same vehicle actions): that file loads after this one and wraps at load, and
 -- this one wraps when a system is first on, so its wrap sits outside the Log's. A refused action never reaches the Log's wrap: the
@@ -295,7 +301,8 @@ function F.wrap(name, cls, method, test)
     cls[method] = function(self, a, b)
         local ok, no = pcall(Tests[id], self, a)
         if ok and no then
-            -- (the Log's wrap is inside this one, so it won't see this action: a refusal still proves the road, E2)
+            -- (the Log's wrap is inside this one, so it won't see this action; the refusal still tells the Log's probe
+            -- that the game reached the wrap on this class)
             local Lo = Srv.L
             if Lo and Lo.refused then pcall(Lo.refused, name) end
             return false
@@ -726,21 +733,21 @@ end)
 -- ---------------------------------------------------------------------------
 -- WHAT THE LOG ASKS (ZeD_ServerLog.lua). Each tests its boolean first: with the system off, no car is touched
 -- ---------------------------------------------------------------------------
--- a claimed car's owner is the one who claimed it, whoever drove it last
+--- A claimed car's owner is the one who claimed it, whoever drove it last.
 function Srv.exOwner(v)
     if not On.claims then return nil end
     local c = F.claimOf(v)
     return c and c.owner or nil
 end
--- this driver's engine is about to be shut off: they are no driver of this car
+--- This driver's engine is about to be shut off: they are no driver of this car.
 function Srv.exDriveStops(p, v)
     return On.drive == true and F.carBlock(p, v) ~= nil
 end
--- this tow comes straight off, and its line says refused
+--- This tow comes straight off, and its line says refused.
 function Srv.exTowStops(p, a, b)
     return On.tow == true and (F.carBlock(p, a) or F.carBlock(p, b)) ~= nil
 end
--- is the Container log on? The Log's chip follows this
+--- Is the Container log on? The Log's chip follows this.
 function Srv.exContainerLog()
     F.open()
     return T.set.cl.on == true

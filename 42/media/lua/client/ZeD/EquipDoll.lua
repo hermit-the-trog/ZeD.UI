@@ -1,35 +1,33 @@
 -- ZeD-UI/42/media/lua/client/ZeD/EquipDoll.lua
 -- ============================================================================
--- THE EQUIP TAB'S DOLL VIEW (Oct 19 2026, mockup zed_equip_doll_v3.html)
--- Director, Oct 17 2026: "avatar view with lines drawn at right angle to reach
--- the target not as the crow flies and list view are the two we want" ...
--- "yup, make head straight line and I think we have our equipped".
+-- THE EQUIP TAB'S DOLL VIEW - client; data and draw helpers for the Equip
+-- drawer, no class of its own (ZeD_CharacterWindow and EquipmentTab call in;
+-- InventoryRenderer asks takeDrop about drops; ZeD_EquipLoadout, slotForLoc).
 --
 -- The character's own 3D model (the Identity tab's ISUI3DModel, full body)
--- standing on the panel (no frame), the worn slots in a column either side, the
--- hands and the belt's slots in a row below. Beyond the columns a band of small
--- slots each side (Oct 29 2026, mockup zed_equip_doll_v4_loadouts): 38 of them for
--- the rings, the necklaces, the pads and the rest; a drawer too narrow for the
--- bands folds every small slot's item back into its big slot as a layer. Each slot points at a stretch of the body
--- with a right-angle leader line: straight in when the slot is level with its
--- stretch ("if it doesnt need a bend dont make one"), otherwise one turn in its
--- own lane, lanes 16 apart, lower slots nearer the body, so no two lines run
--- side by side or cross.
--- Oct 30 2026 (the director's mouse pass): no leader lines any more, and on the full card the
--- split: the upper body's slots on the left, the back's and the belt and below on the right
--- (SPLIT_BIG and SMALL_ROWS); the spare width of a shrunk doll goes between its parts.
+-- standing on the panel (no frame), the worn slots in a column either side,
+-- the hands and the belt's slots in a row below. Beyond the columns a band of
+-- small slots each side: 38 of them for the rings, the necklaces, the pads
+-- and the rest; a drawer too narrow for the bands folds every small slot's
+-- item back into its big slot as a layer. With the bands showing the big
+-- slots split instead: the upper body's on the left, the back's and the belt
+-- and below on the right (SPLIT_BIG and SMALL_ROWS); the spare width of a
+-- shrunk doll goes between its parts. No leader lines point at the body; each
+-- slot is named under its box.
 --
 -- Selecting a slot opens the same item card a list row opens (the outermost
 -- layer; the card's layer strip steps inward). The list stays the other view;
 -- the choice is a ZeD option (Settings.lua equipView), set by the toggle in the
 -- Equipped heading too.
 --
--- The 3D model and the lines are window children (CharacterWindow): a model
--- can't live in a stencilled panel, and the lines must sit ABOVE the model so
--- their dots land on the body. Everything else draws here, in the drawer.
+-- The 3D model and the line layer are window children (CharacterWindow): a
+-- model can't live in a stencilled panel, and the layer must sit ABOVE the
+-- model. The layer once drew leader lines to the body; now it only asks the
+-- window's overlay for the hover hint. Everything else draws here, in the
+-- drawer.
 --
--- Every number below is a design unit in the mockup's doll (520 wide, 744 with
--- the bands); the doll scales to fit the drawer (never wider than it, at least
+-- Every number below is a design unit of the doll (324 wide, 466 with the
+-- bands); the doll scales to fit the drawer (never wider than it, at least
 -- 0.7 of full size tall, then the tab scrolls).
 -- ============================================================================
 
@@ -42,10 +40,10 @@ ZeD.EquipDoll = ZeD.EquipDoll or {}
 local D = ZeD.EquipDoll
 
 -- Every x below is a design unit of the doll at scale 1. The Equip drawer is the full card (480 units, 466 beside
--- its scrollbar), so the doll with both bands of small slots is 466 wide (director, Oct 29 2026: "the updates
--- should fit in the full card, not the half card"); the figure's frame is 140 wide, the lanes 7 apart.
+-- its scrollbar), so the doll with both bands of small slots is 466 wide - sized for the full card, not the half
+-- card; the figure's frame is 140 wide.
 local BASE_W   = 324          -- the doll without its bands
-local BAND_W   = 71           -- a band of small slots, each side (Oct 29 2026, mockup zed_equip_doll_v4_loadouts)
+local BAND_W   = 71           -- a band of small slots, each side
 local WIDE_W   = BASE_W + 2 * BAND_W   -- 466: the doll with both bands
 local BOX      = 52
 local BOX_IN   = 0
@@ -67,10 +65,10 @@ local RULE_L, RULE_R = 70, 392   -- the faint rules between the bands and the do
 
 local function set(t) local s = {} for _, v in ipairs(t) do s[v] = true end return s end
 
--- The worn slots: side, row, the stretch of the body each points at (x, from
--- y to y, in units drawn for a photo centred on x 260: AV_DX moves them) and the body
--- locations each one gathers. Vanilla's locations, lower case, no underscores.
--- (Ordered by row: the leader lines take their lanes in this order.) A location
+-- The worn slots: side, row, av = the stretch of the body each slot pointed at
+-- (x, from y to y, in units for a photo centred on x 260; the leader lines read
+-- these, and nothing does now the lines are gone) and the body locations each
+-- one gathers. Vanilla's locations, lower case, no underscores. A location
 -- that has a small slot is not listed here; with the bands folded away it comes
 -- back to the big slot named in the small slot's row below.
 D.SLOTS = {
@@ -92,7 +90,7 @@ D.SLOTS = {
       locs = set{ "hands", "handsleft", "handsright" } },
     { id = "back",  key = "UI_ClothingType_Back",  side = "R", row = 0, av = { 312, 150, 150 },
       locs = set{ "back" } },
-    { id = "arms",  key = "UI_ZeD_Doll_Arms",  side = "R", row = 2, av = { 316, 200, 230 },   -- (the handoff says 322; in game the dot sat on the sleeve's edge, so 6 units in)
+    { id = "arms",  key = "UI_ZeD_Doll_Arms",  side = "R", row = 2, av = { 316, 200, 230 },   -- (322 put the line's dot on the sleeve's edge in game, so 6 units in)
       locs = set{ "leftarm", "rightarm" } },
     { id = "belt",  key = "UI_ClothingType_Belt",  side = "R", row = 3, av = { 292, 236, 236 },
       locs = set{ "belt" } },
@@ -108,9 +106,8 @@ D.SLOTS = {
 -- and the empty help), its locations, the letter of a pair }. The names are the game's own words for a
 -- body location (UI_ClothingType_*) where it has one. 38 slots.
 local SMALL_ROWS = {
-    -- the left band: the upper body, top to bottom (Oct 30 2026, the director's split: "the top of the
-    -- body on the left and the boxes for the lower body (belt and below) on the right"; then "move back
-    -- and bag slots to the right side")
+    -- the left band: the upper body, top to bottom; the lower body (belt and below) and the back's
+    -- bags go in the right band
     { side = "L", y = 16,  name = { "UI_ClothingType_Ears", "UI_ClothingType_Nose" }, slots = {
         { "ears",   "head", "UI_ClothingType_Ears",   { "ears" } },
         { "eartop", "head", "UI_ClothingType_EarTop", { "eartop" } },
@@ -189,8 +186,8 @@ for _, row in ipairs(SMALL_ROWS) do
 end
 
 -- THE SPLIT (the bands showing, the full card): the upper body's big slots in two columns on the left,
--- Back at the top on the right with its bags, then Belt, Legs and Feet; no leader lines (director, Oct 30
--- 2026). The narrow doll (the bands folded) keeps a column each side (COL_L / COL_R, D.SLOTS' rows).
+-- Back at the top on the right with its bags, then Belt, Legs and Feet; no leader lines. The narrow
+-- doll (the bands folded) keeps a column each side (COL_L / COL_R, D.SLOTS' rows).
 -- Units are the wide doll's.
 local SPLIT_BIG = { head = { 75, 16 }, eyes = { 133, 16 }, neck = { 75, 136 }, arms = { 133, 136 },
                     torso = { 75, 256 }, outer = { 133, 256 }, hands = { 75, 376 },
@@ -205,7 +202,7 @@ local function splitCol(id)
 end
 
 --- The doll slot a worn location shows in: a small slot's id while the bands show, else its big slot's
--- (the loadouts' missing things are drawn there: ZeD_EquipLoadout.ghosts).
+--- (the loadouts' missing things are drawn there: ZeD_EquipLoadout.ghosts).
 function D.slotForLoc(loc, bands)
     if not loc then return nil end
     if bands then return LOC_TO_SMALL[loc] or LOC_TO_BIG[loc] end
@@ -224,12 +221,14 @@ end
 -- ----------------------------------------------------------------------------
 -- The view (List or Doll), a ZeD option
 -- ----------------------------------------------------------------------------
+--- The Equip tab's view, "list" or "doll" (the equipView option's value).
 function D.view()
     local o = ZeD.Settings and ZeD.Settings.equipViewOption
     local v = o and call(o, "getValue")
     return (v == 2) and "doll" or "list"
 end
 
+--- Sets the view ("list" or "doll") and saves the option.
 function D.setView(v)
     local o = ZeD.Settings and ZeD.Settings.equipViewOption
     if not o then return end
@@ -248,9 +247,9 @@ local function normLoc(loc)
     return (ls:gsub("_", ""))
 end
 
--- slots[id] = { def, items } (outermost first); small[id] likewise (the bands showing only);
--- main, off; belt = ZeD.Belt.slots. bands: the small slots show; without them every location folds
--- back into its big slot as a layer, so nothing is lost at any width.
+--- slots[id] = { def, items } (outermost first); small[id] likewise (the bands showing only);
+--- main, off; belt = ZeD.Belt.slots. bands: the small slots show; without them every location folds
+--- back into its big slot as a layer, so nothing is lost at any width.
 function D.gather(p, pn, bands)
     bands = bands and true or false
     local out = { slots = {}, small = {}, bands = bands, main = nil, off = nil, belt = {} }
@@ -302,7 +301,7 @@ local function itemsFor(data, key)
     return {}
 end
 
--- The card's item for the selection: item, layer index, layer count
+--- The card's item for the selection: item, layer index, layer count.
 function D.selection(win)
     local key = win and win._equipSelected
     if not (type(key) == "string" and key:sub(1, 5) == "doll:") then return nil end
@@ -315,6 +314,7 @@ function D.selection(win)
     return items[i], i, n
 end
 
+--- True for a doll selection key ("doll:torso", "doll:main", "doll:belt3").
 function D.isDollKey(key) return type(key) == "string" and key:sub(1, 5) == "doll:" end
 
 -- ----------------------------------------------------------------------------
@@ -330,7 +330,7 @@ end
 -- MIN_FIT of full size tall, then the tab scrolls), and whether the bands show: they do while the
 -- 466-unit doll fits across at BANDS_FIT or more (the full card does; the half card and narrower don't).
 -- On a short screen the doll shrinks to the height, bands or not, down to MIN_FIT (a small slot of 14
--- units) before the tab scrolls (director, Oct 30 2026: shrink the slots rather than scroll).
+-- units) before the tab scrolls: the slots shrink rather than scroll.
 local function fit(w, viewH, nBelt)
     local U = ZeD.T.px(1000) / 1000
     local bands = w >= WIDE_W * BANDS_FIT * U
@@ -339,6 +339,7 @@ local function fit(w, viewH, nBelt)
     return math.min(1, byW, math.max(MIN_FIT, byH)), bands
 end
 
+--- The doll's height in screen px for a drawer w wide with viewH to show it in.
 function D.measure(win, w, viewH)
     local data = win._equipDollData
     local nBelt = data and #data.belt or 0
@@ -446,7 +447,7 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         end
         local f = condOf(item)
         if f then
-            -- (ten segments: 52 units less 8 is 21 px at the smallest doll at 0.75, a pixel a segment)
+            -- (ten segments even at the floor: the smallest doll on a 0.75 UI scale leaves ~21 px, a pixel a segment)
             local ch = T.px(5)
             condHov = ZeD.Atoms.drawFillBar(panel, bx + T.px(4), by + b - T.px(3) - ch, b - T.px(8), f, false, condColor(T, f), ch)
                 and f or nil
@@ -480,8 +481,8 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
     return over
 end
 
--- one small slot: a big slot's box at 24 units (the stripe fill and the strong frame; the item's
--- picture at 18 units, centred one unit high; a 2-unit condition strip inset 2 units at the bottom),
+-- one small slot: a big slot's box at 20 units (the stripe fill and the strong frame; the item's
+-- picture at 16 units, centred one unit high; a 2-unit condition strip inset 2 units at the bottom),
 -- empty ones dashed, a pair's empty slot with its faint L or R, the layer count as a big slot shows
 -- it; no label (the group's name stands above). u = screen px per doll unit. place = the place's
 -- name, for the help line.
@@ -547,11 +548,11 @@ local function groupName(g)
     return ZeD.textCase(t)
 end
 
--- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
--- win._equipSlotZones (filled slots: the card), win._equipBeltZones (empty
--- belt slots: the attach list), win._equipDollPhoto (the model's rectangle),
--- win._equipDollLines (for the line layer), win._equipDollHint,
--- win._equipDollAll (every slot's box, for a drop). Returns height.
+--- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
+--- win._equipSlotZones (filled slots: the card), win._equipBeltZones (empty
+--- belt slots: the attach list), win._equipDollPhoto (the model's rectangle),
+--- win._equipDollLines (for the line layer), win._equipDollHint,
+--- win._equipDollAll (every slot's box, for a drop). Returns height.
 function D.draw(panel, win, x, y, w, viewH, mx, my)
     local T, tm = ZeD.T, ZeD.TM
     win._equipDollTimer = (win._equipDollTimer or 0) + 1
@@ -566,16 +567,15 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     local nBelt = #data.belt
     local s = fit(w, viewH, nBelt)
     local k = s * ZeD.T.px(1000) / 1000
-    local off = bands and BAND_W or 0          -- every x of the 520-unit doll moves right by this
+    local off = bands and BAND_W or 0          -- the row below keeps base-doll x values; they move right past the left band
     local ox = x
     local function P(v) return math.floor(v * k + 0.5) end
     local b = P(BOX)
     -- The width the doll leaves spare (shrunk to a short window's height, it is narrower than the card)
     -- goes between its parts, each the size it is: the bands to the card's edges, the figure in the
-    -- middle, the big slots' columns half way between (director, Oct 30 2026: "fill the width of the
-    -- space for the equipment doll"). S(v): how far right a doll x (units) moves, its part's share.
-    -- Each band takes a share first (director, the same day: "balance the boxes out better, some
-    -- things still seem crammed"): bandX wider, its small slots half that further apart, its group
+    -- middle, the big slots' columns half way between, so the doll fills the drawer's width. S(v):
+    -- how far right a doll x (units) moves, its part's share. Each band takes a share first, so its
+    -- boxes never sit crammed: bandX wider, its small slots half that further apart, its group
     -- names that much more room. The rest goes into the gaps: five in the split (two left columns),
     -- two in the narrow doll.
     local spare = math.max(0, w - (bands and WIDE_W or BASE_W) * k)
@@ -703,7 +703,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     win._equipSlotZones = zones
     win._equipBeltZones = beltZones
     win._equipDollEmpty = empties
-    win._equipDollLines = {}   -- (no leader lines since Oct 30 2026: the line layer draws only the hint)
+    win._equipDollLines = {}   -- (no leader lines any more: the line layer draws only the hint)
     win._equipDollAll = rects
     win._equipDollDot = math.max(2, P(2.5))
     win._equipDollHintCand = hint
@@ -841,6 +841,7 @@ local function dpadSplit(w, zi, zone, el, def, dir)
     return false
 end
 
+--- A D-pad press from a doll slot (el = the focused element); true when it moved the focus.
 function D.dpad(w, el, dir)
     local key = el and el.slotType
     local zi, zone = charZone(w)
@@ -927,7 +928,7 @@ function D.newLineLayer(win)
     layer.onMouseDown = function() return false end
     layer.onMouseUp = function() return false end
     layer.onMouseWheel = function() return false end
-    layer.onRightMouseDown = function() return false end   -- (42.22: a handler that returns nothing takes the click)
+    layer.onRightMouseDown = function() return false end   -- (B42.22: a handler that returns nothing takes the click)
     layer.onRightMouseUp = function() return false end
     layer:setVisible(false)
     return layer
@@ -972,9 +973,9 @@ end
 -- The List | Doll toggle in the Equipped heading, and the card's layer strip
 -- ----------------------------------------------------------------------------
 
--- List | Doll: two separate icon buttons 4u apart at the heading's right edge,
--- the active one solid accent; each names itself in the library's hint after the
--- pause. Stamps win._equipViewZones.
+--- List | Doll: two separate icon buttons 4u apart at the heading's right edge,
+--- the active one solid accent; each names itself in the library's hint after the
+--- pause. Stamps win._equipViewZones.
 local _toggleOpts = {}
 function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
     local T = ZeD.T
@@ -1000,8 +1001,8 @@ function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
     win._equipViewZones = zones
 end
 
--- The card's layer strip: "LAYER 1 OF 2 | OUTERMOST" with Outer / Inner.
--- Stamps win._equipLayerZones. Returns its height.
+--- The card's layer strip: "LAYER 1 OF 2 | OUTERMOST" with Outer / Inner.
+--- Stamps win._equipLayerZones. Returns its height.
 function D.layerStripH() return ZeD.T.px(34) end
 
 -- A band of the card's (the library's band: surface 2, its structure line on
@@ -1040,6 +1041,7 @@ function D.drawLayerStrip(panel, win, x, y, w, idx, n, mx, my)
     return h
 end
 
+--- Steps the selected slot's layer: dir 1 goes inward, -1 back out.
 function D.stepLayer(win, dir)
     local _, i, n = D.selection(win)
     if not (i and n and n > 1) then return end

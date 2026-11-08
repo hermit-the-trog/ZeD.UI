@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ExtrasCards.lua
 -- ============================================================================
--- THE SERVER EXTRAS IN CARDS (ZeDUI/MP_ADMIN_SCOPE.md, Phase 6; the drawing is mockups/zed_community_v1.html). Drawing and
+-- THE SERVER EXTRAS IN CARDS. Client, drawing and
 -- input only: ZeD_Extras.lua is the model. The frame is the ticket cards' (ZeD_TicketCards.lua), and the items the admin
 -- cards' (ZeD_AdminCards.lua). This file holds:
 --   the Admin tab    its row, and the Server extras card: each system a tick in its box, Save in the foot
@@ -41,7 +41,7 @@ local D, B = TC._D, TC._B
 local F = AC._F
 local L = Ex.L
 
-local INNER = 24                          -- design units: what sits under a system's tick, as drawn
+local INNER = 24                          -- design units: the indent of what sits under a system's tick
 
 local P = {}     -- the cards' parts (a table: Kahlua counts every local in the chunk)
 
@@ -98,7 +98,7 @@ function P.stepper(items, card, field, id, lo, hi, unit, help)
     })
 end
 
--- one system: its tick in a box, what it holds under that while it's on. The box takes the accent while it's on, as drawn
+-- one system: its tick in a box, what it holds under that while it's on. The box takes the accent while it's on
 function P.system(items, card, id, titleKey, whatKey, inner)
     local on = card.d[id].on
     items[#items + 1] = { k = "insetTop", tone = on and "accent" or nil }
@@ -267,7 +267,7 @@ function P.tabItems(win, st)
     return out
 end
 
--- under News, over Tickets, as drawn. Nothing without the server part
+-- under News, over Tickets. Nothing without the server part
 function EC.blocks(L2, win, st)
     if not (E.live() and E.set) then return end
     E.mine()

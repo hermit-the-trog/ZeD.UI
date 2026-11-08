@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_b8_windows.lua  (Nov 7 2026, QA; tag b8vw): which window appears, ZeD's or the game's, for the vanilla windows of
--- ZeDUI/VANILLA_WINDOWS_20261107.md that can be opened from a script in single player. Each case calls the game's own entry point (the one
+-- docs/reference/VANILLA_WINDOWS_20261107.md that can be opened from a script in single player. Each case calls the game's own entry point (the one
 -- the doc and HOOK_MAP name), waits, and records
 --   * every window the game or a mod put on the UI list meanwhile (ISUIElement.addToUIManager is watched; a class named ZeD_* is ZeD's)
 --   * what ZeD shows (its Character or World window and the tab)

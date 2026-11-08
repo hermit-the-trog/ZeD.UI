@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/ExpRecovery.lua
 -- ============================================================================
 -- SUPPORT FOR EXP RECOVERY FOR SKILL BOOKS (mod id ExpRecovery, Workshop
--- 2923554542). Written Oct 29 2026 from the mod's own code; Compatibility round 3
--- found its marks missing on ZeD's Skills tab.
+-- 2923554542). Client. Without this file the mod's marks never show: they live
+-- on the game's skill page, which ZeD replaces.
 --
 -- What the mod does: a skill book trains faster (a multiplier on the XP you earn),
 -- so XP earned before you read the book is "missed" -- the book would have given

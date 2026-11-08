@@ -1,16 +1,27 @@
 -- ZeD-UI/42/media/lua/client/ZeD/RadioTab.lua
 -- ============================================================================
--- RADIO TAB — first contextual chassis drawer.
+-- RADIO TAB — client; the radios' tab in both windows.
 --
 -- Plugs into BOTH ZeD_CharacterWindow's TAB_RENDERERS and ZeD_WorldWindow's
--- WORLD_TAB_RENDERERS via the shared register() entry point. The chassis
--- renderer is identical in both windows; only the radio discovery source
--- differs (equipped on player vs in-range world objects). The window's
--- _kind field ("char" / "world") tells render() which discovery to use, but
--- the data has already been written to win._radios by the window's refresh
--- loop, so render() itself only reads.
+-- WORLD_TAB_RENDERERS via the shared register() entry point. The drawing is
+-- identical in both windows; only the radio discovery source
+-- differs (equipped on player vs in-range world objects). Each window's
+-- refresh loop writes what it found to win._radios before render() runs,
+-- so render() itself only reads.
+-- One thing to know: everything the mouse or the controller can press is a
+-- rect the drawing stamped on win this frame (win._radio*Zone, the face's
+-- win._radioTw.hits); the click router and the focus builder read those,
+-- they never measure the layout again.
 --
--- TWO VISUAL TIERS, distinguished at runtime by deviceData:getIsHighTier():
+-- FACES: a radio with a face of its own is drawn as that face: the two-way
+-- sets (TwoWayFace.lua), the ordinary radios, the CD player and the TVs
+-- (RtvFace.lua). The chassis drawn in this file is the SIMPLE CARD, reached
+-- through one function, ZeD.RadioTab.drawSimple: the card for a radio with
+-- no face (a modded one). The simple card has no brand strip at its foot:
+-- a face carries its own brand.
+--
+-- THE DRAWN CHASSIS has two visual tiers, picked at runtime by
+-- deviceData:getIsHighTier():
 --   - Premium Technologies (silver Pioneer-style hi-fi, cyan VFD, green-VFD CD)
 --   - ValuTech            (cheap black plastic, backlit amber LCD, no CD)
 --
@@ -21,21 +32,10 @@
 --   - Chassis molecules: radioMainDisplay, radioControlStrip, radioPresetBank,
 --     radioSignalWave, cdPlayerModule
 --   - Organisms: renderPremium, renderValutech, renderDrawer
---   - Top-level: render (with browse header), register
---
--- S115a SCOPE: read-only chassis. NO click handlers, NO gamepad focusables.
--- All controls paint as visually clickable but no-op until S115b. Browse
--- buttons in the drawer-internal header similarly paint but don't mutate
--- win._radioIdx this session.
---
--- FACES (Oct 30 2026, handoff ZeDUI/HANDOFF_radio_tv_laundry_20261030.md): a
--- radio with a face of its own is drawn as that face: the two-way sets
--- (TwoWayFace.lua), the ordinary radios, the CD player and the TVs
--- (RtvFace.lua). The drawn chassis above is the SIMPLE CARD, reached through
--- one function, ZeD.RadioTab.drawSimple: the card for a radio with no face,
--- and (punch list item 17, to come) the card ZeD setup's "faces or simple
--- cards" switch shows (ZeD.RadioTab.useFaces). The simple card has no brand strip at
--- its foot (director, Oct 30 2026, punch list 21): a face carries its own brand.
+--   - Faces: drawSimple, faceFor, wantW, renderTwoWay (any face, its footer
+--     and its scrollbar)
+--   - Top-level: render (with browse header), then the click router, the
+--     wheel and the right-click, register, and the controller's focusables
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -53,7 +53,7 @@ ZeD.RadioTab = ZeD.RadioTab or {}
 
 -- Forward decls — Kahlua closures capture free names at creation time, so
 -- helpers used inside other helpers must be declared as locals before any
--- function that references them. (Memory: feedback_forward_decl_hoist.md.)
+-- function that references them.
 local renderPremium
 local renderValutech
 local renderDrawer
@@ -62,8 +62,8 @@ local radioControlStrip
 local radioPresetBank
 local radioSignalWave
 local cdPlayerModule
--- S115b: render() drives the SEEK hold-to-repeat advance, so it needs
--- visibility into _channelStep before that local's definition further down.
+-- render() drives the SEEK hold-to-repeat advance, so it needs sight of
+-- _channelStep before that local's definition further down.
 local _channelStep
 
 -- ============================================================================
@@ -103,11 +103,11 @@ function ZeD.RadioTab.indexOf(list, dev)
 end
 
 --- Scan the player's equipped slots for radios.
--- Mirrors vanilla ISRadioWindow.lua:139-180 — hand items + back-clothing slot.
--- Returns array of entries each shaped:
---   { radioInstance, deviceData, locationTag, kind = "equipped" }
--- locationTag is the human-readable slot name surfaced in the drawer header
--- (Primary / Secondary / Back).
+--- Mirrors vanilla ISRadioWindow's scan — hand items + back-clothing slot.
+--- Returns array of entries each shaped:
+---   { radioInstance, deviceData, locationTag, kind = "equipped", cacheKey }
+--- locationTag is the slot's id (Primary / Secondary / Back); the drawer
+--- header shows it in the player's language (locationName above).
 function ZeD.RadioTab.buildEquippedRadios(playerObj)
     local out = {}
     if playerObj == nil then return out end
@@ -152,10 +152,11 @@ function ZeD.RadioTab.buildEquippedRadios(playerObj)
 end
 
 --- Scan the 3x3 grid around the player for IsoWaveSignal radios.
--- Mirrors buildWorldContainers (ZeD_WorldWindow.lua) for reach semantics:
--- canReachTo wall check + safehouse loot permission. Returns entries shaped:
---   { radioInstance, deviceData, locationTag, kind = "world", distance }
--- sorted by distance ascending.
+--- Mirrors buildWorldContainers (ZeD_WorldWindow.lua) for reach semantics:
+--- canReachTo wall check + safehouse loot permission. Returns entries shaped:
+---   { radioInstance, deviceData, locationTag, kind = "world", distance, cacheKey }
+--- sorted by distance ascending; a device a route pinned is added at the end
+--- when the scan missed it.
 function ZeD.RadioTab.buildWorldRadios(playerObj)
     local out = {}
     if playerObj == nil then return out end
@@ -215,7 +216,7 @@ function ZeD.RadioTab.buildWorldRadios(playerObj)
     end
 
     table.sort(out, function(a, b) return a.distance < b.distance end)
-    -- (Nov 7 2026) a device a route opened the tab on (a TV across the room, a car's device part) stays on the
+    -- a device a route opened the tab on (a TV across the room, a car's device part) stays on the
     -- list while it is within the game's reach for its window (WorldRoutes.lua)
     if ZeD.WorldRoutes and ZeD.WorldRoutes.addPinned then out = ZeD.WorldRoutes.addPinned(playerObj, out) end
     return out
@@ -223,8 +224,8 @@ end
 
 -- ============================================================================
 -- WAVE CACHE — cosmetic harmonic sine generator, seeded per radio
--- Spec hard rule #8: signal wave ALWAYS renders, even when powered off. The
--- power state only modulates the line color alpha; layout stays stable.
+-- The signal wave ALWAYS renders, even powered off: the power state only
+-- dims the line color, so the layout never shifts with a switch flip.
 -- ============================================================================
 
 -- Build a 64-column wave from a stable integer seed. Three sine harmonics with
@@ -282,8 +283,8 @@ end
 -- because they are tightly coupled to the radio chassis layout grammar.
 -- ============================================================================
 
--- Helper: silkscreen label drawn straight onto the chassis substrate. Reuses
--- Atoms.drawSecondary's color override, keeping the call site readable.
+-- Helper: a silkscreen label printed straight onto the chassis, in the
+-- given colour (F1 unless a font is passed).
 local function _silk(panel, x, y, text, color, font)
     local T = ZeD.T
     panel:drawText(text, x, y, color.r, color.g, color.b, color.a or 1.0, font or T.fontF1)
@@ -302,7 +303,7 @@ local function _safeGet(dd, fnName, fallback)
     return v
 end
 
--- PZ stores channel as MHz × 1000 (vanilla RWMGeneral:setInfoLines line 80
+-- PZ stores channel as MHz × 1000 (vanilla RWMGeneral:setInfoLines
 -- displays getChannel()/1000 .. " MHz" — so 88000 = 88 MHz, 96500 = 96.5 MHz).
 -- Always render as MHz with one decimal so the 0.1-step seek granularity is
 -- visible (88.0 → 88.1 → 88.2 ...).
@@ -317,11 +318,12 @@ end
 -- M: radioMainDisplay
 -- The VFD (Premium) or LCD (ValuTech) main display. Brand-conditional palette.
 -- Layout (top to bottom):
---   - status chip row (SIG / 2W / FM / AM) — text-only chips
+--   - status chip row (AM / FM / STEREO) — text-only chips
 --   - BATT (4 segs) + VOL (8 segs) bars
---   - main numeric zone: frequency big + range/distance line
--- Spec hard rule #9: TV CRT uses white, but here we are RADIO — VFD uses cyan
--- family, LCD uses dark-on-amber. NO multi-color displays per chassis tier.
+--   - main zone: the frequency large beside the RANGE / SIG column; the
+--     station name on its own row at the bottom
+-- One display colour per tier (a TV tube is white, but this is a radio): the
+-- VFD stays in the cyan family, the LCD dark-on-amber — never multi-colour.
 ----------------------------------------------------------------------
 function radioMainDisplay(panel, x, y, w, h, brand, dd)
     local T = ZeD.T
@@ -350,8 +352,8 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
         hasUsablePower = extPower
     end
     local power_now = userOn and hasUsablePower
-    -- Non-backlit STN LCD glass has a characteristic grey-green / olive tint
-    -- (see car-stereo reference photo). Roughly #8E8F72.
+    -- Non-backlit STN LCD glass has a characteristic grey-green / olive tint,
+    -- as on an old car stereo. Roughly #8E8F72.
     local lcdOffBg = { r = 0.557, g = 0.561, b = 0.447, a = 1.0 }
     local vfdOffBg = { r = 0.10, g = 0.10, b = 0.10, a = 1.0 }  -- ~ #1A1A1A unlit tube
     local fgBright, fgDim, fgOff, bg
@@ -416,11 +418,9 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     if type(battery) ~= "number" then battery = 0 end
 
     -- =========== ROW 1 — status chip row ===========
-    -- Chips paint as `○ TEXT` (off) / `● TEXT` (on). AM and FM are mutually
-    -- exclusive based on whether channel is in the upper kHz / MHz band — PZ
-    -- has no real modulation flag. STEREO is a cosmetic chassis chip on
-    -- ValuTech (always off this session — no engine reading for it).
-    -- 2-WAY pinned to the right edge.
+    -- Chips paint as a square and a word (M.drawStatusChip): filled for on,
+    -- outlined for off. AM, FM, STEREO, on both tiers; only FM ever lights.
+    -- STEREO is cosmetic (always off — no engine reading for it).
     local fontHrow1 = TM:getFontHeight(font)
     local row1Y = cy
     local hasFreq = (type(channel) == "number") and channel > 0
@@ -472,7 +472,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
         if battK < 0 then battK = 0 end
         if battK > 4 then battK = 4 end
     end
-    -- Dim the bars when display is off so they recede vs the (deferred) text.
+    -- Dim the bars when the display is off so they recede behind the text.
     local barAlpha = power and 1.0 or 0.35
     local barOnC  = { r = fgBright.r, g = fgBright.g, b = fgBright.b, a = (fgBright.a or 1) * barAlpha }
     local barOffC = { r = fgOff.r,    g = fgOff.g,    b = fgOff.b,    a = (fgOff.a    or 1) * barAlpha }
@@ -496,7 +496,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- Frequency painted in UIFont.Cred1 (largest standard font ~30px) so the
     -- station number is the visual anchor of the chassis. Unit suffix in mono
     -- F3 alongside the digits. Channel name in F2 below the frequency.
-    local freqFont    = ZeD.Font.sdf.head; local freqZoom = ZeD.Text.zoomPx(30)   -- S124: 30 px design digits on the distance-field heading face (was UIFont.Cred1, 1x only)
+    local freqFont    = ZeD.Font.sdf.head; local freqZoom = ZeD.Text.zoomPx(30)   -- 30 px design digits on the distance-field heading face (UIFont.Cred1 only renders at 1x)
     local unitFont    = T.fontF2
     local channelFont = T.fontF2
     -- Text colors don't gate on power — when the display is off the grey
@@ -540,10 +540,9 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
             freqColor.r, freqColor.g, freqColor.b, freqColor.a or 1.0, unitFont)
     end
 
-    -- Channel name line below the frequency. Future engine API may surface
-    -- a per-channel name (preset name or station identifier); for now we
-    -- show "Unknown Frequency" with a play-arrow prefix as the mockup does.
     -- ============ Station-name row (own line, full width) ============
+    -- The station's name from the engine (getZomboidRadio():getChannelName),
+    -- "Unknown Frequency" where it has none, a play-arrow prefix either way.
     -- Anchored at the bottom edge of the LCD so it spans the full width
     -- (past the data column on the right). Allows long station names like
     -- "Automated Emergency Broadcast System" without colliding with SIG/RANGE.
@@ -577,8 +576,8 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
 
     -- Right-side data column: RANGE / SIG readouts. Vertically centered in
     -- row 3 alongside the frequency block. Each row = label left + right-
-    -- aligned value. (2-WAY removed — this is the AM/FM chassis only;
-    -- shortwave/walkie-talkie chassis surfaces 2-WAY in its own design.)
+    -- aligned value. (This is the AM/FM chassis only: the two-way sets
+    -- carry their 2-WAY readout on their own faces.)
     local dataLabels = {
         { label = ZeD.upper(ZeD.tr("IGUI_RadioStrength")), value = string.format("%d-%d MHz", math.floor(minHz / 1000), math.floor(maxHz / 1000)) },
         { label = ZeD.tr("UI_ZeD_Radio_Sig"),   value = (power and hasSignal) and ZeD.tr("UI_ZeD_Radio_SigGood") or (power and ZeD.tr("UI_ZeD_Radio_SigWeak") or "-") },
@@ -607,7 +606,7 @@ end
 -- M: radioControlStrip
 -- Recessed dark panel containing the power button + SEEK group + VOL group.
 -- All buttons are flat-variant drawButton with chassis tokens.
--- READ-ONLY this session; nothing here mutates state.
+-- It only draws and stamps the click zones; the click router below acts.
 ----------------------------------------------------------------------
 function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     local T = ZeD.T
@@ -637,7 +636,7 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
 
     local pad      = T.px(10)
     local pwrBtnH  = T.px(30)
-    local pillH    = T.px(14)    -- SEEK/VOL pills: thinner than buttons (mockup proportion)
+    local pillH    = T.px(14)    -- SEEK/VOL pills: deliberately thinner than the buttons
     local pwrBtnY  = y + math.floor((h - pwrBtnH) / 2)
     local pillY    = y + math.floor((h - pillH) / 2)
     local cx       = x + pad
@@ -646,8 +645,8 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     local labelH    = TM:getFontHeight(labelFont)
 
     -- ============ Power button ============
-    -- Mockup: small black square with red status dot + "OFF" / "ON" label.
-    -- Single button (not separate icon + button). Status dot painted inside
+    -- A small black button with a red status square and the ON / OFF word.
+    -- Single button (not separate icon + button). Status square painted inside
     -- the button, left edge, with the label centered after.
     local power = _safeGet(dd, "getIsTurnedOn", false)
     local pwrLabel = power and ZeD.upper(ZeD.tr("UI_On")) or ZeD.upper(ZeD.tr("UI_Off"))
@@ -778,12 +777,11 @@ function radioPresetBank(panel, x, y, w, h, brand, dd, win)
             if type(mx) == "number" and mx > 0 then maxSlots = mx end
         end
     end
-    -- Cap to 8 visible per mockup.
+    -- At most 8 slots show.
     local visible = math.min(maxSlots, 8)
 
-    -- Add button anchors to the right edge — wider than a numbered slot now
-    -- that it owns the space the old `-` minus button used to occupy.
-    local addBtnW  = btnH * 2 + T.px(6)   -- ~2x square (was sideBtnW + sideBtnW + gap)
+    -- Add button anchors to the right edge, about two slots wide.
+    local addBtnW  = btnH * 2 + T.px(6)   -- ~2 squares
     local addX     = x + w - pad - addBtnW
     -- Available width for the slot row.
     local slotsAreaEnd = addX - T.px(10)
@@ -826,7 +824,7 @@ end
 ----------------------------------------------------------------------
 -- M: radioSignalWave (Premium-only)
 -- 64-column harmonic sine, seeded by entry.cacheKey hash. Renders ALWAYS; power
--- state only multiplies the line color alpha (spec hard rule #8). Drawn as
+-- state only multiplies the line color alpha. Drawn as
 -- thin vertical 1px lines centered on the midline, height = abs(value) * h/2.
 ----------------------------------------------------------------------
 function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)
@@ -844,7 +842,7 @@ function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)
     panel:drawRect(x, mid, w, T.px(1), 0.30, dim.r, dim.g, dim.b)
 
     -- Each column gets a vertical line whose height = |wave[i]| * h/2.
-    local colW = math.max(T.px(1), math.floor((w - (cols - 1) * T.px(1)) / cols))  -- S124 scale: (cols - 1) one-px gaps
+    local colW = math.max(T.px(1), math.floor((w - (cols - 1) * T.px(1)) / cols))  -- (cols - 1) one-px gaps
     local lineCol = T.radio.vfd.bright
     local lineA   = power and (lineCol.a or 1.0) or ((lineCol.a or 1.0) * 0.32)
     for i = 1, cols do
@@ -867,7 +865,7 @@ end
 ----------------------------------------------------------------------
 -- M: cdPlayerModule (Premium-only)
 -- Recessed dark panel with green-VFD strip + 7-button transport grid.
--- Reads radio:hasMedia() / getMediaIndex() / isPlayingMedia().
+-- Reads the device data's hasMedia / getMediaIndex / isPlayingMedia.
 ----------------------------------------------------------------------
 function cdPlayerModule(panel, x, y, w, h, dd, win)
     local T = ZeD.T
@@ -914,7 +912,7 @@ function cdPlayerModule(panel, x, y, w, h, dd, win)
 
     -- 7-button transport grid: << | > play | ▲ eject | || pause | [] stop | >> | ●
     local btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
-    local btnW = math.floor((w - pad * 2 - 6 * T.px(2)) / 7)  -- S124 scale: 6 gaps of 2 px between 7 buttons
+    local btnW = math.floor((w - pad * 2 - 6 * T.px(2)) / 7)  -- 6 gaps of 2 px between 7 buttons
     local btnH = math.min(T.px(18), (y + h - pad) - cy)
     if btnH < T.px(8) then btnH = T.px(8) end
     local glyphs = { "<<", ">", "^", "||", "[]", ">>", "*" }
@@ -933,7 +931,7 @@ end
 
 ----------------------------------------------------------------------
 -- O: renderPremium — silver Pioneer-style hi-fi chassis assembly
--- Top-down sections with 6-8px padding between (per feedback_padding_preference).
+-- Top-down sections with 6-8px padding between.
 ----------------------------------------------------------------------
 function renderPremium(panel, x, y, w, h, win, radioEntry)
     local T = ZeD.T
@@ -941,7 +939,7 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
     local dd = radioEntry.deviceData
     local cacheKey = radioEntry.cacheKey
 
-    -- Chassis fill — silver, edge-to-edge (spec hard rule #6).
+    -- Chassis fill — silver, edge-to-edge.
     panel:drawRect(x, y, w, h, pt.chassisBg.a or 1.0,
         pt.chassisBg.r, pt.chassisBg.g, pt.chassisBg.b)
 
@@ -957,15 +955,15 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
         cy = cy + stripH + T.px(8)
     end
 
-    -- 2. Preset bank — taller buttons match mockup.
+    -- 2. Preset bank — taller buttons, easy targets.
     local presetH = T.px(50)
     if cy + presetH <= y + h - pad then
         radioPresetBank(panel, cx, cy, innerW, presetH, "premium", dd, win)
         cy = cy + presetH + T.px(8)
     end
 
-    -- 3. Main display — taller (130px) so the big frequency has room. Optional
-    -- signal wave overlays the right ~36% of the display width.
+    -- 3. Main display — 150 tall so the big frequency has room, with the
+    -- signal wave beside it on the right (32% of the width, at most 160).
     local displayH = T.px(150)
     local power = _safeGet(dd, "getIsTurnedOn", false)
     if cy + displayH <= y + h - pad then
@@ -976,8 +974,8 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
         cy = cy + displayH + T.px(8)
     end
 
-    -- 4. CD player module — recessed. (Oct 30 2026: no brand strip at the foot; the CD module has
-    -- the room it took)
+    -- 4. CD player module — recessed (no brand strip at the foot: the CD
+    -- module has the room it took)
     local cdH = T.px(64)
     if cy + cdH <= y + h - pad then
         cdPlayerModule(panel, cx, cy, innerW, cdH, dd, win)
@@ -1016,23 +1014,23 @@ function renderValutech(panel, x, y, w, h, win, radioEntry)
         cy = cy + presetH + T.px(8)
     end
 
-    -- 3. Main display — full innerW, 130px tall so the big frequency reads.
+    -- 3. Main display — full innerW, 150 tall so the big frequency reads.
     local displayH = T.px(150)
     if cy + displayH <= y + h - pad then
         radioMainDisplay(panel, cx, cy, innerW, displayH, "valutech", dd)
         cy = cy + displayH + T.px(8)
     end
 
-    -- 4. (no CD module on ValuTech, and no brand strip at the foot since Oct 30 2026)
+    -- 4. (no CD module on ValuTech, and no brand strip at the foot)
 end
 
 ----------------------------------------------------------------------
 -- O: renderDrawer — brand dispatch
 ----------------------------------------------------------------------
 function renderDrawer(panel, x, y, w, h, win, radioEntry)
-    -- (Nov 8 2026, code flags: each module clears only its own click rects, and a module the chassis skips (the CD
-    -- player on a ValuTech, any module the height leaves out) kept the last radio's: a click there worked the CD
-    -- transport of the wrong radio and the controller had stops on nothing. Every module's rects go first, each frame.)
+    -- Each module clears only its own click rects, and a module the chassis skips (the CD
+    -- player on a ValuTech, any module the height leaves out) would keep the last radio's: a click there would work the CD
+    -- transport of the wrong radio and the controller would have stops on nothing. Every module's rects go first, each frame.
     if win then
         win._radioPwrZone, win._radioSeekBtnZones, win._radioVolBtnZones = nil, nil, nil
         win._radioPresetZones, win._radioPresetAddZone, win._radioCDZones = nil, nil, nil
@@ -1049,18 +1047,20 @@ function renderDrawer(panel, x, y, w, h, win, radioEntry)
     end
 end
 
--- THE SIMPLE CARD (Oct 30 2026): the drawn chassis, the one way in to it. Its clicks and controller stops are the
+-- THE SIMPLE CARD: the drawn chassis, the one way in to it. Its clicks and controller stops are the
 -- chassis' own (onClick and buildFocusables below, by the rects it stamps on the window).
 function ZeD.RadioTab.drawSimple(panel, x, y, w, h, win, radioEntry)
     renderDrawer(panel, x, y, w, h, win, radioEntry)
 end
 
--- faces or simple cards (punch list item 17: ZeD setup's switch will set this; faces by default). The two-way sets
--- keep their faces either way until the switch is built.
+-- faces or simple cards. TODO: nothing sets this yet, so it stays true; the
+-- planned ZeD setup switch would flip it (faces by default). The two-way sets
+-- keep their faces either way (faceFor reads it only after them). ZeD setup's
+-- Devices row is a different axis: Simple wraps a face as a plain card.
 ZeD.RadioTab.useFaces = true
 
 -- the face a radio tab entry is drawn as: its driver (ZeD.TwoWay or ZeD.Rtv), plate id and plate; nil for the
--- simple card. ZeD setup's Devices row (Full or Simple, punch list 60): Simple draws the plain card over the same
+-- simple card. ZeD setup's Devices row (Full or Simple): Simple draws the plain card over the same
 -- driver (PlainFace.lua: ZeD.PlainFace.wrap, its own size in place of the plate). The drawn chassis stays only for
 -- a radio with no face at all (a modded one).
 local function _simple()
@@ -1082,7 +1082,7 @@ function ZeD.RadioTab.faceFor(entry)
 end
 
 -- ============================================================================
--- THE TWO-WAY RADIOS (director, Oct 25 2026; handoff ZeDUI/HANDOFF_twoway_20261025.md)
+-- THE TWO-WAY RADIOS
 -- A radio whose device data is two-way is drawn as its own face (TwoWayFace.lua)
 -- in place of the AM/FM chassis: a walkie (or the ManPack) centred in a 220-wide
 -- panel at the content's left edge, a ham set centred across the drawer, at the
@@ -1090,7 +1090,9 @@ end
 -- SET". The header's full view button (and a click on the face away from its
 -- controls) shows the face on its own (TwoWayFull.lua). The body (face and
 -- footer) scrolls as one unit when the window is shorter than the face.
--- win._radioTw = { dev, pid, des, k, hits, face rect, ... } while one is shown.
+-- win._radioTw = { dev, pid, des, k, hits, face rect, ... } while a face of any
+-- kind is shown (renderTwoWay draws the ordinary radios, the TVs and the plain
+-- card the same way).
 -- ============================================================================
 local FULL_ICON, FOLD_ICON = "expand", "contract"   -- ZeD pixel icons
 
@@ -1107,14 +1109,14 @@ end
 -- the drawer header's browse keys take the controller's mark themselves: its opts and the mark's (reused each frame)
 local _browseOpts, _browseMark = {}, {}
 
--- the width (screen px) a two-way face needs, nil when the tab is not on one; the window gives it the half card
--- or the full card, whichever holds that (limit: the widest card the window lets the drawer be). A walkie needs
--- its panel, the face and its margins at the plates' whole zoom (director, Oct 25 2026: "only as wide as the
--- graphic"; Oct 29: a card is the half card or the full card): the half card wherever one of its widths fits it
--- (Oct 30 2026, punch list item 2), else today's 220 panel (the full card). A ham set needs its own width. Where
--- that is more than limit, the set's narrow face is drawn (render below), which needs a walkie's panel.
--- (Oct 30 2026) The ordinary radios and the CD player: the half card wherever one of their widths fits it, else the
--- full card (the hand-built radio at 0.75 and 1.5); the TVs: the full card (RtvFace.wantW).
+--- The width (screen px) the radio's face needs, nil when the tab is not on one; the window gives it the half card
+--- or the full card, whichever holds that (limit: the widest card the window lets the drawer be). A walkie needs
+--- its panel, the face and its margins at the plates' whole zoom — only as wide as the graphic, and a card
+--- is always the half card or the full card: the half card wherever one of its widths fits it,
+--- else the 220 panel (the full card). A ham set needs its own width. Where
+--- that is more than limit, the set's narrow face is drawn (render below), which needs a walkie's panel.
+--- The ordinary radios and the CD player: the half card wherever one of their widths fits it, else the
+--- full card (the hand-built radio at 0.75 and 1.5); the TVs: the full card (RtvFace.wantW).
 function ZeD.RadioTab.wantW(win, base, limit)
     local r = win and win._radios and win._radios[win._radioIdx or 1]
     local drv, pid, des = ZeD.RadioTab.faceFor(r)
@@ -1165,7 +1167,7 @@ end
 ZeD.RadioTab._menuAt, ZeD.RadioTab._hitById = _menuAt, _hitById
 
 -- the face, its footer and the scrollbar under the header (y, h: the body). drv: the face's driver, ZeD.TwoWay or
--- ZeD.Rtv (Oct 30 2026: the ordinary radios and the TVs, which have no footer: the brand is on the face)
+-- ZeD.Rtv (the ordinary radios and the TVs, which have no footer: the brand is on the face)
 local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local T = ZeD.T
     local TW = drv or ZeD.TwoWay
@@ -1252,10 +1254,10 @@ end
 -- ============================================================================
 
 --- Render the radio tab content into the drawer.
--- @param panel  The drawer ISPanel
--- @param win    The window owning the drawer (Char or World)
--- @param x, y   Top-left of the tab content area in panel-local coords
--- @param w, h   Available drawing region
+--- @param panel  The drawer ISPanel
+--- @param win    The window owning the drawer (Char or World)
+--- @param x, y   Top-left of the tab content area in panel-local coords
+--- @param w, h   Available drawing region
 function ZeD.RadioTab.render(panel, win, x, y, w, h)
     local T = ZeD.T
     if T == nil then return end
@@ -1265,8 +1267,8 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- onHoldActivate at the A_HOLD_MS threshold). After a 250ms grace the
     -- auto-repeat kicks in on an accelerating interval: 200ms → 100ms → 50ms
     -- → 25ms as hold time grows. Released immediately when the source button
-    -- is no longer down — mouse uses isMouseButtonDown(0); gamepad path
-    -- (S117) polls JoypadButton.A:isDown on the captured joypad id.
+    -- is no longer down — mouse uses isMouseButtonDown(0); the gamepad path
+    -- polls JoypadButton.A:isDown on the captured joypad id.
     if win._radioSeekHold then
         local hold = win._radioSeekHold
         local stillDown
@@ -1302,9 +1304,9 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 
     local radios = win._radios or {}
 
-    -- Empty state — display a single line centered.
+    -- Empty state — one line, no header.
     if #radios == 0 then
-        -- S117: drop any stale gamepad focus id so the seed gate fires fresh
+        -- drop any stale gamepad focus id so the seed gate fires fresh
         -- next time a radio is equipped (the gate only writes on nil).
         win._gpFocusedRadioCtl = nil
         -- one dim F2 line at the list's text inset, a full sentence (no header here: 10u from the top)
@@ -1312,7 +1314,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         return
     end
 
-    -- (Nov 7 2026) the tab stays on the radio it was opened on or browsed to while the list re-sorts by distance
+    -- the tab stays on the radio it was opened on or browsed to while the list re-sorts by distance
     if win._radioFollow then
         local at = ZeD.RadioTab.indexOf(radios, win._radioFollow)
         if at then win._radioIdx = at else win._radioFollow = nil end
@@ -1343,7 +1345,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     local isTw = fDrv == ZeD.TwoWay
     if not twDes then win._radioTw, win._radioFullZone = nil, nil end
     if not isTw then win._radioFullZone = nil end
-    -- the width that fills the card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): a walkie's for the half card
+    -- the width that fills the card: a walkie's for the half card
     -- (the drawer is that card wherever one fits; centred in the drawer, its margins its own); a ham set's for
     -- the drawer as a machine plate's. A ham set the tab cannot hold at the plates' whole zoom: its narrow face
     -- (the drawer is then a walkie's width). The ordinary radios and the TVs the same way (RtvFace.pickFace).
@@ -1434,20 +1436,20 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 end
 
 -- ============================================================================
--- CLICK HANDLER (S115b)
+-- CLICK HANDLER
 -- ============================================================================
 
--- Hit-test helper local to the module (mirrors AnimalsTab.lua:398 pattern).
+-- Hit-test helper: true when (x, y) lies inside the zone (no zone: false).
 local function _hitZone(zone, x, y)
     if not zone then return false end
     return x >= zone.x and x < zone.x + zone.w
        and y >= zone.y and y < zone.y + zone.h
 end
 
--- Seek step = 0.1 of the displayed unit, so every station tunable in PZ is
--- reachable. AM-band radios display kHz → step 100 Hz (= 0.1 kHz). Higher-
--- band radios display MHz → step 100 kHz (= 0.1 MHz). User design ruling:
--- skipping in larger increments leaves stations unreachable.
+-- Seek step, in the channel's own units (88000 is 88.0 MHz, as above): 100,
+-- a tenth of the displayed MHz, so every station tunable in PZ is reachable;
+-- skipping in larger steps would leave stations unreachable. A radio whose
+-- range tops 1,500,000 steps 100000 instead.
 local function _seekStep(dd)
     local maxHz = _safeGet(dd, "getMaxChannelRange", 1000000)
     if type(maxHz) ~= "number" or maxHz <= 1500000 then return 100 end
@@ -1572,11 +1574,12 @@ local function _cdTransport(dd, btnIdx)
     elseif btnIdx == 5 then  -- stop
         if dd.StopPlayMedia ~= nil then dd:StopPlayMedia() end
     end
-    -- <<, >>, eject, pause, record: defer (engine API less stable for these)
+    -- <<, >>, eject, pause, record: not wired yet (the engine's calls for these are less dependable)
 end
 
 --- Click router — called from each window's drawer.onMouseDown when the
--- active tab is "radio". Coordinates are panel-local (relative to the drawer).
+--- active tab is "radio". Coordinates are panel-local (relative to the drawer).
+--- Returns true when the click was the tab's.
 function ZeD.RadioTab.onClick(win, x, y)
     if win == nil then return false end
 
@@ -1683,7 +1686,7 @@ function ZeD.RadioTab.onClick(win, x, y)
         return true
     end
 
-    -- CD transport (Premium only — zones empty on ValuTech)
+    -- CD transport (the zones only the Premium chassis' CD module stamps)
     if win._radioCDZones then
         for i, z in ipairs(win._radioCDZones) do
             if _hitZone(z, x, y) then
@@ -1703,8 +1706,8 @@ local function _turnStreak(s, gap)
     return s.streak
 end
 
---- The mouse wheel over a two-way face (both windows' drawers ask while the radio tab is up): the knob under the
--- pointer turns, anywhere else the body scrolls. Returns true when it used the wheel.
+--- The mouse wheel over a face (both windows' drawers ask while the radio tab is up): the knob under the
+--- pointer turns, anywhere else the body scrolls. Returns true when it used the wheel.
 function ZeD.RadioTab.onWheel(win, del, x, y)
     local tw = win and win._radioTw
     if not tw then return false end
@@ -1712,7 +1715,7 @@ function ZeD.RadioTab.onWheel(win, del, x, y)
     local h = _hitZone(tw.view, x, y) and TW.hitAt(tw.hits, x, y) or nil
     if h and h.knob then
         win._radioWheel = win._radioWheel or { t = 0, streak = 0 }
-        local n = _turnStreak(win._radioWheel, 160)   -- (a brisk hand spins about 10 notches a second: 110 ms sat on it; QA, Nov 2 2026)
+        local n = _turnStreak(win._radioWheel, 160)   -- (a brisk hand spins about 10 notches a second: a 110 ms gap sat right on it)
         local mult = (h.id == "tune") and TW.turnMult(tw.pid, n) or 1
         TW.turn(win._playerObj, tw.dev, h.id, del > 0 and -1 or 1, mult)
         return true
@@ -1722,8 +1725,8 @@ function ZeD.RadioTab.onWheel(win, del, x, y)
     return false
 end
 
---- A right-click on a two-way face's control: its second meaning (MEM names, the army set's 1..6 store, a knob
--- turns down). Returns true when it was on the face.
+--- A right-click on a face's control: its second meaning (MEM names, a preset key stores, a knob
+--- turns down). Returns true when it was on the face.
 function ZeD.RadioTab.onRightClick(win, x, y)
     local tw = win and win._radioTw
     if not tw then return false end
@@ -1734,26 +1737,28 @@ function ZeD.RadioTab.onRightClick(win, x, y)
 end
 
 --- Register the radio tab into a tab-renderer dispatch table.
--- Called by both ZeD_CharacterWindow and ZeD_WorldWindow at module-load time.
+--- Called by both ZeD_CharacterWindow and ZeD_WorldWindow at module-load time.
 function ZeD.RadioTab.register(dispatchTable)
     dispatchTable["radio"] = ZeD.RadioTab.render
 end
 
 -- ============================================================================
--- FOCUSABLE BUILDER (S117) — ring elements for the host window's tab-content
+-- FOCUSABLE BUILDER — ring elements for the host window's tab-content
 -- ============================================================================
 -- Called each frame from the per-window panel-focusable dispatcher
 -- (_buildPanelFocusables in Char, _buildWorldPanelFocusables in World) when
 -- the Radio tab is active. Returns elements for LB/RB/D-pad navigation in
--- click-router scan order so cone-nav L→R / U→D feels natural:
+-- click-router scan order so cone-nav L→R / U→D feels natural; for the
+-- simple card:
 --   [browsePrev, browseNext, power, seek-, seek+, vol-, vol+,
 --    preset:1..N, presetAdd, cd:1..7 (Premium only)]
+-- and for a face, the order its own builder below gives.
 -- Mouse and gamepad share the same panel-local rect zones (_radioPwrZone,
 -- _radioSeekBtnZones, _radioPresetZones, etc.) populated by the chassis
 -- molecules each render — builder + render stay in lock-step.
 
--- An ordinary radio's or a TV's face (Oct 30 2026): its controls first, power first (where the controller lands on
--- the tab: the director's pad rules, land on the primary control), then the rest in reading order, then the header's
+-- An ordinary radio's or a TV's face: its controls first, power first (the pad rule: focus lands on
+-- the primary control), then the rest in reading order, then the header's
 -- browse keys. A presses (a list opens under the key, and the focus comes back to the key when it closes), held (or
 -- X) a preset stores; up / down on a knob turns it, left / right walk on. The focus stays on the key it pressed.
 local function _rtvFocusables(win, tw)
@@ -1835,15 +1840,17 @@ local function _plainFocusables(win, tw)
     return elements
 end
 
+--- The controller's stops on the radio tab (both windows call it while the tab is up): the plain card's, an
+--- ordinary radio's or a TV's face, a two-way face, else the simple card's stamped zones.
 function ZeD.RadioTab.buildFocusables(win)
     if not win then return {} end
-    -- an ordinary radio's or a TV's face (above)
     local rtw = win._radioTw
     local rcur = win._radios and win._radios[win._radioIdx or 1]
     -- the plain card (Devices: Simple): its rows top to bottom, then its footer band (above)
     if rtw and rtw.drv and rtw.drv.plain and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
         return _plainFocusables(win, rtw)
     end
+    -- an ordinary radio's or a TV's face (above)
     if rtw and rtw.drv == ZeD.Rtv and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
         return _rtvFocusables(win, rtw)
     end
@@ -1967,8 +1974,8 @@ function ZeD.RadioTab.buildFocusables(win)
     end
 
     -- ---- Preset slots ----------------------------------------------------
-    -- Assign-mode-aware: store flips the mode off, otherwise apply. Mirrors
-    -- click-router behavior at RadioTab.lua:1351-1357. _presetApply and
+    -- Assign-mode-aware: store flips the mode off, otherwise apply — the
+    -- same branch the click router takes. _presetApply and
     -- _presetStore both handle empty-slot and out-of-bounds cases internally.
     if win._radioPresetZones then
         for i = 1, #win._radioPresetZones do
@@ -1996,8 +2003,8 @@ function ZeD.RadioTab.buildFocusables(win)
         function(w) _presetToggleAssign(w) end)
 
     -- ---- CD transport (Premium-only) ------------------------------------
-    -- _radioCDZones is unset on ValuTech, so the if-guard cleanly skips the
-    -- loop without phantom rects ever entering the focusable list.
+    -- The rects cdPlayerModule stamped; only the Premium chassis draws it, and
+    -- nothing else sets or clears _radioCDZones.
     if win._radioCDZones then
         for i = 1, #win._radioCDZones do
             local btn = i
@@ -2007,7 +2014,7 @@ function ZeD.RadioTab.buildFocusables(win)
     end
 
     -- Seed gate — only writes on nil so D-pad onFocus updates are never
-    -- stomped between frames (memory: feedback_seed_stomp_race.md).
+    -- stomped between frames.
     if elements[1] and win._gpFocusedRadioCtl == nil then
         win._gpFocusedRadioCtl = elements[1].id
     end

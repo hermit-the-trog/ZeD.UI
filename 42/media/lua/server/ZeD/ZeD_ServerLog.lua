@@ -1,21 +1,21 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerLog.lua
 -- ============================================================================
--- THE LOG, THE SERVER'S SIDE (ZeDUI/MP_ADMIN_SCOPE.md, Phase 4; MP_SERVER_PART_DESIGN.md, A5 and A6). Srv.action is the one
--- log: md.log in the admin table holds it, and the file gets each line as it is written. This file reads that ring for the
--- Log view, and adds what the game has no event for:
+-- THE LOG, THE SERVER'S SIDE. Srv.action is the one log: md.log in the admin table holds it, and the file gets each line as
+-- it is written. This file reads that ring for the Log view, and adds what the game has no event for (server only: the
+-- first line returns anywhere but a dedicated server or the server process a hosted game starts; pure ASCII):
 --   vehicles   the seven timed actions wrapped where their complete runs, the last driver by the car's sqlId, a look every
 --              10 seconds at who is driving (one pass over the players, never over the vehicles), and the tow command. Work on a
 --              car nobody has on record goes in a ring of its own, so scavenging can't push out ZeD's other lines
 --   PvP        kills from OnCharacterDeath; the game's own PvP log read off PVPLogTool, in a ring of its own
---   other mods the global writeLog tapped, in a ring of its own. Any client can write to any logger (A5), so those lines are
+--   other mods the global writeLog tapped, in a ring of its own. Any client can write to any logger, so those lines are
 --              always labeled by where they came from, are never written to the ZeD log, and can't push out anything else
 --
--- E2 is unsettled, though the bytecode reads well: NetTimedAction.perform takes complete with KahluaTable.rawget, and
--- KahluaTableImpl.rawget walks the metatable, so a wrap on the class is what it calls. serverStop goes the same road, and each class
--- gets one, so a cancelled action proves the road too. Each class also has its .new wrapped, to count. A class that makes HOOK_MISS
--- actions and reaches neither wrap in HOOK_WAIT_S turns the fallback on: each new action of exactly that class carries the wrap
--- itself, while the class's own is still ZeD's. l_probe and one line in the ZeD log per class say which happened
--- (ZeDUI/tools/qa/mp_log.lua reads them).
+-- Not yet proved on a real server, though the bytecode reads well: NetTimedAction.perform takes complete with
+-- KahluaTable.rawget, and KahluaTableImpl.rawget walks the metatable, so a wrap on the class is what it calls. serverStop goes
+-- the same road, and each class gets one, so a cancelled action proves the road too. Each class also has its .new wrapped, to
+-- count. A class that makes HOOK_MISS actions and reaches neither wrap in HOOK_WAIT_S turns the fallback on: each new action of
+-- exactly that class carries the wrap itself, while the class's own is still ZeD's. l_probe and one line in the ZeD log per
+-- class say which happened (the QA script ZeDUI/tools/qa/mp_log.lua reads them).
 --
 -- With the server extras (ZeD_ServerExtras.lua, on the same actions): their wrap is outside this file's, so a refused action
 -- never reaches a wrap here and its one line is their "refused". The fallback carries their wrap too, refusal and all, and a
@@ -112,7 +112,7 @@ local function over(key, n)
 end
 
 -- ---------------------------------------------------------------------------
--- VEHICLES (A6)
+-- VEHICLES
 -- ---------------------------------------------------------------------------
 local function floor3(o) return math.floor(o:getX()), math.floor(o:getY()), math.floor(o:getZ()) end
 
@@ -138,6 +138,8 @@ local function carFacts(md, v)
     return { id = id, car = script and (script:getCarModelName() or script:getName()) or nil, owner = owner, settled = settled }
 end
 
+-- one vehicle line. Your own settled car writes nothing while OWN_CAR_LINES is off; one still settling counts as nobody's. A car with an
+-- owner goes through Srv.action (the ZeD log and the ring); work on a car nobody has on record goes to the file and the world ring
 local function vehWrite(md, user, x, y, z, what, car, ex)
     local owner = car.owner
     if owner == user then
@@ -170,6 +172,7 @@ local function vehLine(md, o, what, car, ex)
     vehWrite(md, o:getUsername(), x, y, z, what, car, ex)
 end
 
+-- past DRIVERS_MAX cars, the tenth seen longest ago are forgotten
 local function trimDrivers(md)
     if md.driverN <= L.DRIVERS_MAX then return end
     local list, n = {}, 0
@@ -183,7 +186,7 @@ local function trimDrivers(md)
     md.driverN = n - drop
 end
 
--- A6's rule: someone other than the last driver has the car moving. Only a running engine calls this, never a turn of the key.
+-- The rule for "drove off": someone other than the last driver has the car moving. Only a running engine calls this, never a turn of the key.
 -- The owner coming back inside the settling time takes the car back with no line: it was never theirs to lose
 function Lo.driverSeen(md, o, v)
     -- (a claim is shutting this engine off, and writes its own refusal: nobody drove off, and the record stays)
@@ -306,7 +309,8 @@ function Lo.stopped(name, act)
     local ok, err = pcall(stopped, name, act)
     if not ok then Lo.slip("stop " .. name, err) end
 end
--- the server extras refused an action outside this file's wrap: it proves the road, as a complete or a cancel does
+--- the server extras refused an action outside this file's wrap: it proves the road, as a complete or a cancel does
+--- (ZeD_ServerExtras.lua calls it as Srv.L.refused)
 function Lo.refused(name)
     local h = Lo.P.hooks[name]
     if h then h.ref = (h.ref or 0) + 1 end
@@ -340,6 +344,7 @@ function Lo.made(name, o, C, wrapped, stopWrapped)
         end
     end
 end
+-- a hook that threw: one line a minute per place, in the ZeD log and the console
 function Lo.slip(where, err)
     if over("slip:" .. where, 1) then return end
     Srv.action("admin", Tk.SYS, "log hook failed", nil, where .. ": " .. tostring(err))
@@ -379,7 +384,7 @@ local function wrap(name)
 end
 for name in pairs(ACT) do wrap(name) end
 
--- a tow: the game's own command, through one listener that tests the module first (A6). Nothing limits that command and the game
+-- a tow: the game's own command, through one listener that tests the module first. Nothing limits that command and the game
 -- only warns about distance, it goes out as the action starts, and a cancel takes it back. So a command is only noted, at
 -- TOW_PER_MIN, with both cars in reach, and the line waits for the next look to see that a tow really formed
 local function inReach(o, v)
@@ -416,6 +421,7 @@ local function towLine(md, t, a, b, now)
     vehWrite(md, t.user, t.x, t.y, t.z, "tow", car)
 end
 
+-- each noted tow, looked at once POLL_S has passed: a line only if the tow really formed
 local function towLook(md, now)
     local keep = {}
     for _, t in ipairs(Lo.tows) do
@@ -491,7 +497,7 @@ function Lo.readPvp(md)
 end
 
 -- ---------------------------------------------------------------------------
--- OTHER MODS' LINES (A5). The global writeLog, wrapped: every caller that looks it up at call time passes here, the game's own
+-- OTHER MODS' LINES. The global writeLog, wrapped: every caller that looks it up at call time passes here, the game's own
 -- ISLogSystem channel included. The ZeD log's own lines are skipped by name, and the game's own chatter too (Lg.GAME_LOGGERS). The
 -- file gets its line whatever happens here.
 -- ---------------------------------------------------------------------------
@@ -516,6 +522,7 @@ function Lo.tap(name, text)
         who = Tk.name(user or by or "?"), what = kindWord and Tk.name(kindWord) or nil, text = (rest ~= "") and rest or nil, x = x, y = y, z = z })
 end
 
+-- wrapped once (Srv.tapOn outlives a /reloadlua); the tap runs inside pcall, and the game's writeLog always runs after it
 if not Srv.tapOn and writeLog then
     Srv.tapOn = true
     local base = writeLog
@@ -526,7 +533,7 @@ if not Srv.tapOn and writeLog then
 end
 
 -- ---------------------------------------------------------------------------
--- THE CLOCK: POLL_S seconds apart, on OnTickEvenPaused: the game clock stops on an empty server (A1)
+-- THE CLOCK: POLL_S seconds apart, on OnTickEvenPaused: the game clock stops on an empty server
 -- ---------------------------------------------------------------------------
 function Lo.tick()
     local now = getTimestamp()
@@ -625,6 +632,7 @@ end
 local function canSeePvp(p) return CAP_PVP ~= nil and Srv.can(p, CAP_PVP) end
 local function readerOf(p) return { canPvp = canSeePvp(p), canBan = CAP_BAN ~= nil and Srv.can(p, CAP_BAN), above = {} } end
 
+-- true for a value no client of ours sends: not a string, or longer than max (nil passes)
 local function badText(s, max)
     return s ~= nil and (type(s) ~= "string" or #s > max)
 end
@@ -714,6 +722,8 @@ local function readQuery(p, a, rid)
     return q, when or Lg.DEFAULT_WHEN
 end
 
+-- l_query: one page of what this reader may see, newest first, and the Who list on page 1. With around (a ticket's id):
+-- the lines near its place and time, and whom its nearby list missed
 local function query(p, a, rid)
     local md = Srv.logTable()
     local q, when = readQuery(p, a, rid)
@@ -819,7 +829,8 @@ if CAP_VIEW and Srv.logTable then
         Srv.ack(p, rid, ok, err)
     end)
 
-    -- QA: what the hooks have seen (E2, E1). Counts only
+    -- QA: what the hooks have seen: whether the class wraps reach complete on a real server, and whether other mods' lines
+    -- reach the tap. Counts only
     Srv.register(Lg.MOD, "l_probe", { cap = CAP_ADMIN }, function(p, a, rid)
         local P = Lo.P
         local hooks = {}

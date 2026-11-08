@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Prompts.lua
 -- ============================================================================
--- VANILLA'S POP-UPS — HOOK_MAP row 28 (ZeD_Prompt.lua, ZeD_Keyboard.lua)
+-- VANILLA'S POP-UPS (override, client; ZeD_Prompt.lua and ZeD_Keyboard.lua
+-- draw them)
 --
 -- Vanilla builds every question, note and text box through a handful of
 -- classes; their :new is the entry point. Called on the class itself
@@ -8,7 +9,9 @@
 -- contract (same fields, same answers to the same callbacks). A subclass that
 -- builds through the parent (SomeDialog = ISModalDialog:derive, then
 -- ISModalDialog.new(self, ...)) still gets vanilla's, untouched, and so does
--- everything when the ZeD prompt cannot be built.
+-- everything when the ZeD prompt cannot be built. Each hook keeps the vanilla
+-- :new once (_zedOrigNew, behind _zedPromptHooked), so a Lua reload never
+-- wraps the wrapper.
 --
 --   ISModalDialog:new       question (Yes / No) or note (OK)
 --   ISModalRichText:new     formatted text: a long note, or a question
@@ -164,7 +167,7 @@ local function hookKeys()
     Events.OnKeyPressed.Add(ToggleEscapeMenu)
 end
 
--- VANILLA'S ABOUT MODS WARNING — HOOK_MAP row 31 (director, Oct 27 2026: "missed a window")
+-- VANILLA'S ABOUT MODS WARNING
 -- ModSelector.showNagPanel: once per game run, the first time the Mods screen (or Load
 -- Game's mods) opens, vanilla's ISModsNagPanel (a black 650x400 panel, Spiffo with his
 -- stop sign) drew over ZeD's Mods window; ZeD's own MM.openMods asks for it as vanilla's

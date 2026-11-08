@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_TicketCards.lua
 -- ============================================================================
--- THE TICKET CARDS (ZeDUI/MP_SERVER_PART_DESIGN.md, B9 and B11; the drawing is mockups/zed_tickets_v2.html). Drawing and
--- input only: ZeD_Tickets.lua is the model, and this file reads it and calls it.
+-- THE TICKET CARDS. Client; drawing and input only: ZeD_Tickets.lua is the model, and this file reads it and calls it.
+-- It is also the card engine (organism-level) the other multiplayer cards are built on.
 --
 -- Two tabs use these parts. Each tab keeps its one list; a card is a second render path behind st.card, the tab
 -- underneath and the card pushed on top with a back bar:
@@ -11,13 +11,15 @@
 -- on clicks and stops (TC.listClick, TC.itemStops). A card does all of that here (TC.renderCard, TC.cardClick,
 -- TC.cardStops).
 --
--- Without the server part (B9) the same cards read the game's list: one question and one answer, the help line saying
+-- Without the server part the same cards read the game's list: one question and one answer, the help line saying
 -- what is left out. Simple mode draws these same cards: they are already plain.
 --
 -- The admin tools (ZeD_AdminCards.lua) and the safehouse and faction cards (ZeD_ClaimCards.lua) push their cards on this
 -- same engine: TC.kinds holds a card kind's parts (data, items, foot, title, help, key, tick, back, gone, cancel, flag,
 -- padX, noBack) and TC.items a new item's (gap, layout, draw, stops), in a card or a tab's list alike. The join screen
 -- (ZeD_CommunityCards.lua) draws one such card in a window of its own, with its own pad: win._padId names the stop it holds.
+-- Before touching a helper: D and B go out as TC._D and TC._B, and the admin, claim, community, extras, log, mail and
+-- stats cards, the Server tab, chat and the main menu's mail and documents all use them.
 --
 -- All player text is drawn with drawText, never through the game's rich text, which would act on <LINE> or <IMAGE:...>.
 -- Kind and status always carry their word, never color alone.
@@ -29,7 +31,7 @@
 --   TC.qaLink    "wait" / "off" / "frozen": the link as Send and the queue read it
 --   TC.qaHold    true: no traffic. The screen shows only what the QA script put in the model
 --   TC.qaOpen(win, st, "ask" | "mine" | "staff", id, game), TC.qaConfirm(st), TC.qaFlash(st, text), TC.qaAsk(st, kind, here)
--- ZeDUI/tools/qa/mp_ticket_cards.lua walks every state with these, from the mockup's tickets.
+-- ZeDUI/tools/qa/mp_ticket_cards.lua walks every state with these, with sample tickets put in the model.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -48,7 +50,8 @@ local S = ZeD.ServerPart
 local Tk = ZeD.Tk
 local L = Tk.LIMITS
 
--- E5: OsLib reads real time in UTC, as far as the bytecode says. The date carries that word until QA settles it.
+-- The game's OsLib reads real time in UTC, as far as its bytecode says, so a real date carries the word UTC.
+-- TODO: settle it in play (os.date("%H:%M", getTimestamp()) printed beside the clock); the word stays until then.
 local DATE_SAYS_UTC = true
 TC.DATE_SAYS_UTC = DATE_SAYS_UTC
 
@@ -77,7 +80,7 @@ local ST_WORD = {
     Sent = "UI_ZeD_Tk_StSent", Seen = "UI_ZeD_Tk_StSeen", Open = "UI_ZeD_Tk_StOpen", Progress = "UI_ZeD_Tk_StProgress",
     Answered = "UI_ZeD_Tk_StAnswered", Closed = "UI_ZeD_Tk_StClosed", Spam = "UI_ZeD_Tk_StSpam",
 }
--- the mark's shape and token: the ZeD fonts have no round glyphs, and a status is a square mark (cohesion spec 1.2)
+-- the mark's shape and token: the ZeD fonts have no round glyphs, and a status is a square mark
 local ST_MARK = {
     Sent = { "hollow", "textDim" }, Seen = { "dot", "info" }, Open = { "dot", "accent" }, Progress = { "half", "warning" },
     Answered = { "dot", "positive" }, Closed = { "hollow", "textDim" }, Spam = { "dot", "danger" },
@@ -88,8 +91,9 @@ local MONTHS = {
     "UI_ZeD_Journal_MonthSep", "UI_ZeD_Journal_MonthOct", "UI_ZeD_Journal_MonthNov", "UI_ZeD_Journal_MonthDec",
 }
 
-local D = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk)
+local D = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk against its limit)
 local B = {}     -- what each card holds
+-- both go out to the other card files, which build their cards from these same parts
 TC._D, TC._B = D, B
 D.MONTHS = MONTHS
 -- Cards and items other files build on this frame (ZeD_AdminCards.lua, ZeD_ClaimCards.lua).
@@ -123,7 +127,7 @@ local function ts(st)
     return t
 end
 
--- a tab names its stops' prefix and its focus zone, every frame
+--- A tab names its stops' prefix and its focus zone, every frame. Returns the tab's card state.
 function TC.bind(win, st, prefix, zone)
     local t = ts(st)
     t.prefix = prefix
@@ -132,9 +136,10 @@ function TC.bind(win, st, prefix, zone)
     return t
 end
 
+--- A press's answer: the card's line (or the help line) shows text for FLASH_MS.
 function D.flash(t, text) t.flashText, t.flashAt = text, now() end
--- a press on a gray control: why it is gray, as the answer in the card's line (hover alone said it before, and a press
--- read as doing nothing: the outside review of beta 7, Mute on an offline player's card)
+-- a press on a gray control: why it is gray, as the answer in the card's line (hover alone says it otherwise, and a
+-- press would read as doing nothing: Mute on an offline player's card, say)
 function D.grayPress(t, c)
     if c and c.why then
         D.flash(t, c.why)
@@ -148,7 +153,7 @@ function D.flashNow(t)
     return nil
 end
 
--- the link as the cards read it: "wait", "on" or "off", and frozen (reads work, writes are refused)
+--- The link as the cards read it: "wait", "on" or "off", and frozen (reads work, writes are refused).
 function D.link()
     local q = TC.qaLink
     if q == "off" or q == "wait" then return q, false end
@@ -175,15 +180,18 @@ end
 function D.isAdmin()
     if TC.qaRole then return TC.qaRole == "admin" end
     if D.link() == "on" then return S.admin == true end
-    return D.cap("AnswerTickets")      -- (without the server part Delete is the game's Remove, B9)
+    return D.cap("AnswerTickets")      -- (without the server part Delete is the game's Remove)
 end
 
+--- True while the controller is in use (its cues show).
 function D.padOn()
     local Fo = ZeD.Input and ZeD.Input.Focus
     return (Fo and Fo.cuesVisible and Fo.cuesVisible()) and true or false
 end
 
 local _fo = {}
+--- The focus mark's options when the controller is on stop id in win, else nil. solid: the element is already solid
+--- accent. The table is reused: use it before the next call.
 function D.focusOf(win, id, solid)
     -- (a window with its own pad: the mark's own test passes, as ZeD_Prompt's does)
     if win._padId then
@@ -199,11 +207,13 @@ function D.focusOf(win, id, solid)
     return nil
 end
 
+--- Draw the focus mark when f (from D.focusOf) is set. True when the words drawn over it take textOnFocus.
 function D.mark(panel, x, y, w, h, f)
     if f and ZeD.Focus and ZeD.Focus.mark then return ZeD.Focus.mark(panel, x, y, w, h, f) and true or false end
     return false
 end
 
+--- Move the controller, soon, to the first stop in the tab's zone that pred(stop) accepts; D.focusId: to stop id.
 function D.focusNext(win, st, pred)
     local Fo = ZeD.Input and ZeD.Input.Focus
     if Fo and Fo.focusSoon and st.tkZone then Fo.focusSoon(win, st.tkZone, pred, 1) end
@@ -215,10 +225,11 @@ end
 -- ---------------------------------------------------------------------------
 -- WORDS
 -- ---------------------------------------------------------------------------
+--- "Day 12": the game day n, or nil.
 function D.day(n) return n and tr("UI_ZeD_Tk_Day", n) or nil end
 
 -- true for "21:42": the game's own clock option (24-hour clock) is on and the game's language isn't English. English
--- keeps the "9:42 PM" the cards were drawn with. Read at most once a second, as a list asks once per row.
+-- always keeps "9:42 PM". Read at most once a second, as a list asks once per row.
 local _h24 = { at = -1, on = false }
 function D.clock24()
     local t = now()
@@ -237,7 +248,7 @@ function D.clock24()
     return on
 end
 
--- "9:42 PM" (or "21:42", D.clock24), and the date's table
+--- "9:42 PM" (or "21:42", D.clock24) from real seconds, and the date's table; nil for no number.
 function D.clock(sec)
     if type(sec) ~= "number" then return nil end
     local ok, d = pcall(os.date, "*t", sec)
@@ -248,14 +259,14 @@ function D.clock(sec)
     return tr(pm and "UI_ZeD_Tk_TimePm" or "UI_ZeD_Tk_TimeAm", h, string.format("%02d", d.min or 0)), d
 end
 
--- "Nov 5, 9:42 PM" from the seconds filed, drawn on the viewer's side (E5)
+--- "Nov 5, 9:42 PM" from the seconds filed, drawn on the viewer's side, with UTC after it while DATE_SAYS_UTC.
 function D.realDate(sec)
     local clock, d = D.clock(sec)
     if not clock then return nil end
     return tr(DATE_SAYS_UTC and "UI_ZeD_Tk_WhenUtc" or "UI_ZeD_Tk_When", tr(MONTHS[d.month or 1] or MONTHS[1]), d.day or 1, clock)
 end
 
--- "Nov 5", for what happened on a day
+--- "Nov 5", for what happened on a day.
 function D.shortDate(sec)
     local _, d = D.clock(sec)
     if not d then return nil end
@@ -268,6 +279,7 @@ function D.replies(n)
     return tr("UI_ZeD_Tk_Replies", n)
 end
 
+--- s with its line breaks turned to spaces.
 function D.oneLine(s) return (string.gsub(s or "", "\n", " ")) end
 
 -- how many characters of s fit in maxW, at least one
@@ -280,7 +292,8 @@ function D.fitChars(s, font, maxW)
     return lo
 end
 
--- the wrap for words a player typed: as the atom's, but a word wider than the line is cut to fit, and an empty line stays
+--- The wrap for words a player typed: as the atom's, but a word wider than the line is cut to fit, and an empty line
+--- stays. Returns the lines.
 function D.wrap(text, font, maxW)
     local lines = {}
     if not text or text == "" then return lines end
@@ -305,7 +318,9 @@ function D.wrap(text, font, maxW)
     return lines
 end
 
+--- A kind's word in the player's language; an unknown kind reads as no kind.
 function TC.kindWord(k) return tr(KIND_WORD[k] or KIND_WORD.NONE) end
+--- A status's word; and the status as staff see it (a ticket the player sees as Seen is still Open to staff).
 function D.stWord(st) return tr(ST_WORD[st] or ST_WORD.Open) end
 function D.staffSt(st) if st == "Seen" then return "Open" end return st or "Open" end
 
@@ -366,9 +381,12 @@ function D.drawStatus(panel, x, y, h, st, a, onFocus)
     panel:drawText(D.stWord(st), x + T.px(10), y + math.floor((h - fh) / 2), c.r, c.g, c.b, (c.a or 1) * (a or 1), T.fontF3)
 end
 
+--- A chip's height, and its width for text.
 function D.chipH() return ZeD.TM:getFontHeight(ZeD.T.fontF3) + ZeD.T.px(7) end
 function D.chipW(text) return ZeD.TM:MeasureStringX(ZeD.T.fontF3, text) + ZeD.T.px(16) end
 
+--- A chip: a small button with its word (c.text), solid accent while c.on, grayed by c.disabled; on hover c.why or
+--- c.help goes to the help line. id: its stop, for the focus mark; mx, my: the pointer, or nil.
 function D.drawChip(panel, win, x, y, w, h, c, id, mx, my)
     local T, A = ZeD.T, ZeD.Atoms
     local hov = mx ~= nil and mx >= x and mx < x + w and my >= y and my < y + h
@@ -387,7 +405,7 @@ function D.drawChip(panel, win, x, y, w, h, c, id, mx, my)
     if hov and (c.why or c.help) then ZeD.Help.set(win, c.why or c.help) end
 end
 
--- a run of controls wrapped into width w from dx0: each gets dx, dy, w, h. Returns the height used.
+--- A run of controls wrapped into width w from dx0: each gets dx, dy, w, h. Returns the height used.
 function D.flow(ctls, w, dx0)
     local gap = px(CHIP_GAP)
     local h = D.chipH()
@@ -411,6 +429,7 @@ end
 -- says the tab has changed. The test in its own prerender runs after the drawer's render, so a frame that did not stamp
 -- it never shows it.
 -- ---------------------------------------------------------------------------
+--- A field by its key in this window; below, its inner text box, its text, and setting its text.
 function D.fieldOf(win, key) return win._tkFields and win._tkFields[key] or nil end
 
 function D.fieldInner(box) return box and (box._entry or box.input) or nil end
@@ -439,7 +458,8 @@ function D.gate(box)
     end
 end
 
--- it.one: a name, one line: Enter runs it.enter, Escape it.esc; it.max: its most characters
+--- Make the field key as a hidden child of panel: multi, a text box; else a Find box. hint: the words while it is
+--- empty. it.one: a name, one line: Enter runs it.enter, Escape it.esc; it.max: its most characters
 function D.makeField(win, panel, key, multi, hint, it)
     win._tkFields = win._tkFields or {}
     local box
@@ -480,6 +500,7 @@ function D.makeField(win, panel, key, multi, hint, it)
     return box
 end
 
+--- Place a field's box and show it for this frame only (D.gate hides it in a frame that does not call this).
 function D.showField(box, x, y, w, h)
     if box:getX() ~= x then box:setX(x) end
     if box:getY() ~= y then box:setY(y) end
@@ -509,6 +530,8 @@ function D.padType(win, box)
     inner:focus()
 end
 
+--- Type into a field: with the controller through ZeD's keyboard (D.padType), else the caret goes into its box
+--- while it shows.
 function D.useField(win, key)
     local box = D.fieldOf(win, key)
     if not box then return end
@@ -517,8 +540,8 @@ function D.useField(win, key)
     if inner and box:isVisible() then inner:focus() end
 end
 
--- a field's height: its rows, and more for the words it holds, up to the card's view (sh): a field taller than the view
--- could never show its box
+--- A field's height: its rows, and more for the words it holds, up to the card's view (sh): a field taller than the
+--- view could never show its box.
 function D.fieldH(win, it, w, sh)
     local T = ZeD.T
     local lh = ZeD.TM:getFontHeight(T.fontF2)
@@ -533,6 +556,8 @@ function D.fieldH(win, it, w, sh)
     return h
 end
 
+--- Draw field it at (x, y, w, h): its box shows while it is whole in the view (viewY, viewH) and not covered, and
+--- otherwise its words, or its hint, are drawn in its place.
 function D.drawField(panel, win, t, it, x, y, w, h, viewY, viewH, covered)
     local T, A = ZeD.T, ZeD.Atoms
     local box = D.fieldOf(win, it.key) or D.makeField(win, panel, it.key, true, it.hint, it)
@@ -575,6 +600,7 @@ end
 -- ---------------------------------------------------------------------------
 -- THE TICKET ROW (mine and the queue, as drawn: the kind, two lines, the status)
 -- ---------------------------------------------------------------------------
+--- A ticket row's height: its two lines and their padding.
 function D.rowH()
     local T = ZeD.T
     return ZeD.TM:getFontHeight(T.fontF2) + ZeD.TM:getFontHeight(T.fontF3) + px(2) + 2 * px(ROW_PAD)
@@ -609,6 +635,7 @@ end
 -- ---------------------------------------------------------------------------
 -- ITEMS IN A TAB'S LIST (w: the width inside the tab's side margins)
 -- ---------------------------------------------------------------------------
+--- An item's height at width w; TC.items' own kinds measure themselves.
 function TC.itemH(it, w)
     local T = ZeD.T
     local tt = it.t
@@ -713,6 +740,7 @@ function D.drawPager(panel, win, t, it, x, dy, cw, mx, my)
     end
 end
 
+--- Draw one item of a tab's list at (x, dy), cw wide; mx, my: the pointer, or nil.
 function TC.drawItem(panel, win, st, it, x, dy, cw, mx, my)
     local T = ZeD.T
     local t = ts(st)
@@ -738,14 +766,14 @@ function TC.drawItem(panel, win, st, it, x, dy, cw, mx, my)
     end
 end
 
--- one controller stop for a control
+--- One controller stop for a control: A runs c.run unless c is disabled; cy: its y in the list, for scrolling.
 function D.stop(c, id, x, y, w, h, cy)
     return { x = x, y = y, w = w, h = h, cy = cy, id = id, help = c.why or c.help,
         onFocus = function() end,
         onActivate = function(ww) if not c.disabled and c.run then c.run(ww) end end }
 end
 
--- the stops of one item, in reading order
+--- The stops of one item, in reading order, added to out; flag: a field set true on each (the tab's own mark).
 function TC.itemStops(out, st, it, x0, dy, cw, flag)
     local t = ts(st)
     local tt = it.t
@@ -771,13 +799,15 @@ function TC.itemStops(out, st, it, x0, dy, cw, flag)
     end
 end
 
+--- A key that changes with the list's items and its open pop-up: part of the tab's scroll key, so the controller's
+--- stops are rebuilt when it changes.
 function TC.listKey(st)
     local t = st.tk
     if not t then return "" end
     return tostring(t.listGen) .. (t.popup and ("p" .. tostring(t.popup.key)) or "")
 end
 
--- a tab's list starts its frame; base is the help line's words until something under the pointer says more
+--- A tab's list starts its frame; base is the help line's words until something under the pointer says more.
 function TC.beginList(win, st, sy, sh, base)
     local t = ts(st)
     t.listHits = {}
@@ -785,6 +815,7 @@ function TC.beginList(win, st, sy, sh, base)
     if base then ZeD.Help.set(win, base) end
 end
 
+--- A click in a tab's list; true when the list took it.
 function TC.listClick(win, st, x, y)
     local t = st.tk
     if not t then return false end
@@ -830,7 +861,8 @@ function D.mineRow(st, r)
         c = { id = "t:" .. tostring(r.id), run = function(win) TC.openMine(win, st, r.id, r.game) end } }
 end
 
--- once a frame on the Server tab, card or list: a note's Open, and my list without the server part
+--- Once a frame on the Server tab, card or list: a report from chat, a note's Open, and my list without the server
+--- part.
 function TC.frameServer(win, st)
     local t = ts(st)
     if TC.reportNext then
@@ -868,7 +900,7 @@ function D.padWhy(win)
     return el and el.tkWhy and el.tkWhy() or nil
 end
 
--- a tab's own words under the controller: a press's answer, or why the stop is gray
+--- A tab's own words under the controller: a press's answer, or why the stop is gray; nil with the mouse.
 function TC.padWords(win, st)
     if not D.padOn() then return nil end
     local t = ts(st)
@@ -883,7 +915,7 @@ function D.whyItem(t, s)
     return t.whyIt
 end
 
--- the Tickets block, as drawn. btnItem makes the tab's own button.
+--- The Tickets block's items, added to out. btnItem makes the tab's own button.
 function TC.playerItems(out, win, st, btnItem)
     local t = ts(st)
     local key = tostring(C.seq) .. ":" .. tostring((D.link()))
@@ -936,12 +968,15 @@ function TC.onFind(st, text)
     t.findAt = now()
 end
 
+--- How many tickets are open: the server's count with the server part, else the game's list for staff (0 for
+--- anyone else).
 function TC.openCount()
     if D.link() == "on" then return (C.counts and C.counts.open) or 0 end
     if D.cap("AnswerTickets") then return C.fallbackOpen() end
     return 0
 end
 
+--- The tab's name with the open count after it, when there is one.
 function TC.tabLabel(base)
     local n = TC.openCount()
     if n > 0 then return tr("UI_ZeD_Tk_TabCount", base, n) end
@@ -1100,7 +1135,7 @@ function D.queueTick(st, t)
     end
 end
 
--- the queue's items, for the Admin tab's list
+--- The queue's items for the Admin tab's list, added to out.
 function TC.queueItems(out, win, st)
     local t = ts(st)
     D.queueTick(st, t)
@@ -1126,11 +1161,12 @@ function TC.queueItems(out, win, st)
     t.helpNow = notes[1] or D.queueHelp(t, mode, t.queuePageNow)
 end
 
--- the queue kept open while its summary shows, so counts and the game's list stay read (the Admin tab's Tickets row)
+--- The queue kept open while its summary shows, so counts and the game's list stay read (the Admin tab's Tickets row).
 function TC.queueWatch(st)
     D.queueTick(st, ts(st))
 end
 
+--- The help line's words for the queue, as TC.queueItems last worked them out.
 function TC.queueHelp(st)
     local t = st.tk
     return t and t.helpNow or nil
@@ -1186,7 +1222,8 @@ function D.closePopup(st, t)
     elseif pop and pop.key then D.focusId(st.tkWin, st, t.prefix .. "pop:" .. pop.key) end
 end
 
--- a list of picks over a card: box is the control it opens from, modes its rows, pick what a row does
+--- A list of picks over a card: box is the control it opens from, modes its rows, active the row now chosen, pick
+--- what a row does.
 function TC.openPicker(win, st, box, modes, active, pick)
     local t = ts(st)
     t.popup = { key = box.id, modes = modes, box = box, active = active, pick = pick, from = "tk:" .. box.id }
@@ -1261,7 +1298,7 @@ function D.popupClick(st, t, x, y)
     D.closePopup(st, t)
 end
 
--- the open list's rows alone are the stops (FocusManager's _menuRows). True when a list is open.
+--- The open list's rows alone are the stops (FocusManager's _menuRows). True when a list is open.
 function TC.popupStops(st, out)
     local t = st.tk
     if not (t and t.popup and t.popup.zones) then return false end
@@ -1276,7 +1313,7 @@ function TC.popupStops(st, out)
     return true
 end
 
--- the end of a tab's list: the open pop-up, last and over the rest, and a card's answer in the help line
+--- The end of a tab's list: the open pop-up, last and over the rest, and a card's answer in the help line.
 function TC.endList(panel, win, st, top, bottom)
     local t = st.tk
     if not t then return end
@@ -1288,6 +1325,8 @@ end
 -- ---------------------------------------------------------------------------
 -- OPENING AND CLOSING A CARD
 -- ---------------------------------------------------------------------------
+--- Push card on top of the tab: a fresh scroll, no confirm or pop-up, and the controller lands on its landing stop.
+--- card.from: the stop to land on when it goes back; card.parent (the caller's to set): the card it goes back to.
 function D.push(win, st, card)
     local t = ts(st)
     st.tkWin = win
@@ -1315,6 +1354,7 @@ function D.landLate(win, st)
     D.focusNext(win, st, function(e) return e.tkLand == true and e.id ~= "tk:back" end)
 end
 
+--- Open the Ask the admins card, empty.
 function TC.openAsk(win, st)
     local t = ts(st)
     t.ask = { here = false }
@@ -1323,8 +1363,8 @@ function TC.openAsk(win, st)
 end
 
 -- from chat: Ask the admins with that player named and the chat around the line. The kind is a start: the player can change
--- it. Where the server can't keep a report (no server part, a frozen table, a part from before Phase 5) only the name goes, in
--- the words: the game's tickets are public and hold no more (B9)
+-- it. Where the server can't keep a report (no server part, a frozen table, a server part without community, S.cm) only the
+-- name goes, in the words: the game's tickets are public and hold no more
 function TC.openReport(win, st, r)
     local t = ts(st)
     local ask = { kind = "GRIEF", here = true }
@@ -1339,7 +1379,7 @@ function TC.openReport(win, st, r)
     D.push(win, st, { kind = "ask", from = "srv:ask" })
 end
 
--- chat asks for it: the Server tab opens, and its next frame opens the card
+--- Chat asks for a report: the Server tab opens, and its next frame opens the card. r: who, and the chat lines.
 function TC.reportFromChat(playerNum, r)
     TC.reportNext = r
     if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then ZeD_CharacterWindow.openTab(playerNum or 0, "server") end
@@ -1355,6 +1395,7 @@ function TC.openMine(win, st, id, game)
     C.read(id)
 end
 
+--- Open the staff card on ticket id. game: a row of the game's own list, read without the server part.
 function TC.openStaff(win, st, id, game)
     local t = ts(st)
     D.setField(win, "answer", "")
@@ -1369,6 +1410,7 @@ function TC.openStaff(win, st, id, game)
     C.openCard(id, function(a) D.loadAnswer(win, st, card, a) end)
 end
 
+--- Off the card on top: back to the card under it (card.parent) or the tab's list, the controller on card.from.
 function TC.back(win, st)
     local t = ts(st)
     local card = st.card
@@ -1418,6 +1460,10 @@ end
 -- ---------------------------------------------------------------------------
 -- WHAT EACH CARD HOLDS. Built once per change; words wrapped once per width.
 -- ---------------------------------------------------------------------------
+--- The builders: each adds one item to a card's list. label: a heading, right a hint at its right. sub: dim words,
+--- wrapped. msg: a message, who above the words; tone "staff", "note" or "plain". fact: a label and its value, c an
+--- inline control. field: a text field at least rows lines tall; land: the controller lands on it; max: its most
+--- characters.
 function B.label(items, text, right) items[#items + 1] = { k = "label", text = text, right = right } end
 function B.sub(items, text) items[#items + 1] = { k = "sub", text = text } end
 function B.msg(items, who, text, tone)
@@ -1707,13 +1753,15 @@ function D.delete(win, st, card)
     D.act(win, st, function(cb) C.delete(card.id, cb) end, tr("UI_ZeD_Tk_Deleted"), function() TC.back(win, st) end)
 end
 
+--- Go to a ticket's place (the game's /teleportto), and say so in the card's line.
 function D.goThere(st, place)
     if not (place and place.x and place.y) then return end
     SendCommandToServer("/teleportto " .. tostring(place.x) .. "," .. tostring(place.y) .. "," .. tostring(place.z or 0))
     D.flash(ts(st), tr("UI_ZeD_Tk_Going", Tk.whereText(place) or ""))
 end
 
--- the Player card; without the server part, the game's stats window
+--- The Player card (ZeD_AdminCards.lua) over an open card while the server part holds the admin tools; otherwise
+--- the player's stats (D.statsWindow).
 function D.playerCard(win, author)
     if ZeD.AdminCards and ZeD.Admin.live() and win._tkSt and win._tkSt.card then
         ZeD.AdminCards.openFromTicket(win, win._tkSt, author)
@@ -1746,12 +1794,15 @@ function D.canGo()
     return D.cap("TeleportToCoordinates")
 end
 
+--- Read as Go there draws: grayed, with the reason, without the teleport power.
 function D.liveGo(c)
     local can = D.canGo()
     c.disabled = not can
     c.why = (not can) and tr("UI_ZeD_Tk_NoGo") or nil
 end
 
+--- Read as Player card draws: grayed, with the reason, without the stats power; and, while the server part holds no
+--- admin tools, when the player isn't near this client.
 function D.livePlayerCard(c)
     local why = nil
     if ZeD.AdminCards and ZeD.Admin.live() and TC.qaStats == nil then
@@ -1784,10 +1835,12 @@ end
 -- ---------------------------------------------------------------------------
 -- THE FOOT: the card's own band. lead at the left (Delete, Spam), the answers at the right, the main one last.
 -- ---------------------------------------------------------------------------
+--- A foot button: its stop id, its word, run(win), variant ("primary", "danger" or nil) and help words.
 function D.btn(id, text, run, variant, help)
     return { id = id, label = text, run = run, variant = variant, help = help }
 end
 
+--- Gray a button with the reason it is gray; returns it.
 function D.disable(b, why)
     b.disabled, b.why = true, why
     return b
@@ -2111,6 +2164,7 @@ function D.layout(win, items, wAll, sh)
     return y + px(14)
 end
 
+--- Draw a card's inline control at (x, y): a button, or a pop-up box when c.box. c.live, if any, runs first to gray it.
 function D.drawInline(panel, win, t, c, x, y, mx, my)
     local M = ZeD.Molecules
     if c.live then c.live(c) end
@@ -2348,6 +2402,8 @@ function D.cardScroll(win, t, x, w, sy, sh, listH)
     return math.floor(scroll.scrollPos * maxOff), true
 end
 
+--- Draw the card on top of the tab inside (x, y, w, h): back bar, flag, the scrolled body and the foot. A card that
+--- loses its data, or never gets any in LOAD_MS, goes back with the reason.
 function TC.renderCard(panel, win, st, x, y, w, h)
     local T, M = ZeD.T, ZeD.Molecules
     local t = ts(st)
@@ -2443,7 +2499,7 @@ function TC.renderCard(panel, win, st, x, y, w, h)
         t.footRects = {}
     end
     -- (...and that clip comes off here: a card ends with the clips it started with, in a window's
-    -- tab and on the join screen alike; punch list 95)
+    -- tab and on the join screen alike)
     panel:clearStencilRect()
     local s = D.flashNow(t)
     if s and not D.padOn() then ZeD.Help.set(win, s) end
@@ -2473,6 +2529,7 @@ TC.items.chatline = {
 -- ---------------------------------------------------------------------------
 -- A CARD'S INPUT
 -- ---------------------------------------------------------------------------
+--- The open card's scroll, or nil when no card is open.
 function TC.activeScroll(st)
     local t = st.tk
     if st.card and t then return t.scroll end
@@ -2489,6 +2546,7 @@ function D.fieldPress(win, t, h)
     t.wantField = it.key
 end
 
+--- A click on the open card: its pop-up, scrollbar, back bar, foot, then its items.
 function TC.cardClick(win, st, x, y)
     local t = ts(st)
     if t.popup then
@@ -2575,6 +2633,8 @@ function D.dress(win, st, t, e, c, place)
     return e
 end
 
+--- The open card's controller stops: the back key, the items in reading order, the foot's buttons (only the
+--- pop-up's rows while one is open).
 function TC.cardStops(win, st)
     local t = ts(st)
     local out = {}
@@ -2647,6 +2707,7 @@ function TC.cardStops(win, st)
     return out
 end
 
+--- A key that changes when the card's stops would: the tab's scroll key while a card is open.
 function TC.cardKey(st)
     local t = st.tk
     if not t then return "" end
@@ -2665,6 +2726,7 @@ end
 -- ---------------------------------------------------------------------------
 -- QA
 -- ---------------------------------------------------------------------------
+--- The tab's card state (st.tk), made if missing. Named for QA, but the other card files reach the state this way too.
 function TC.qaState(st) return ts(st) end
 function TC.qaOpen(win, st, kind, id, game)
     if kind == "ask" then TC.openAsk(win, st)

@@ -1,17 +1,18 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_AdminProto.lua
 -- ============================================================================
--- THE ADMIN PROTOCOL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 2). What both sides agree on: the module, the ban lengths, the
--- repeats, the powers the game switches on with a role, every limit, and the capabilities in their five groups. Pure
--- Lua, ASCII, nothing client-only at load: this file also runs on a dedicated server.
+-- THE ADMIN PROTOCOL: what both sides agree on. The module name, the ban lengths, the choices for a repeating message,
+-- the powers the game switches on with a role, every limit, and the capabilities in their five groups. Shared: this
+-- file loads on the client and on a dedicated server alike, so nothing client-only at file scope. Pure Lua, pure ASCII.
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Adm = ZeD.Adm or {}
 local Adm = ZeD.Adm
 
-Adm.MOD = "ZeDA"
+Adm.MOD = "ZeDA"            -- the module on every admin command
 
--- THE DIRECTOR'S QUESTIONS, answered the careful way, each kept to one switch (MP_SERVER_PART_DESIGN.md, the last section)
+-- DESIGN CHOICES that could go either way, answered the careful way, each kept to one switch
 -- TIMED_IP: may a timed ban carry Ban IP too? Server Lua cannot see an IP, so only the game's IP ban exists, and that one
 -- lifts only when a staff client runs it. false: Ban IP too goes with Permanent alone, grayed with its reason.
 Adm.TIMED_IP = false
@@ -23,7 +24,8 @@ Adm.MUTE_STAFF_SEES = true
 -- SPAWN_TELLS: does a player hear that an admin spawned items to them? false: no note, as the game's /additem.
 Adm.SPAWN_TELLS = false
 
--- the ban lengths, as drawn; Permanent is the game's ban, the rest ZeD's own (E7, settled)
+-- the ban lengths the Bans card offers. Every one is the game's own ban too, which the server enforces at login; ZeD
+-- lifts a timed one at its end. Timed lengths need the server part: without it, Permanent is the only one
 Adm.LENGTHS = {
     { id = "h1", sec = 3600, key = "UI_ZeD_Adm_Len1h" },
     { id = "d1", sec = 86400, key = "UI_ZeD_Adm_Len1d" },
@@ -33,9 +35,9 @@ Adm.LENGTHS = {
 }
 Adm.LENGTH = {}
 for _, l in ipairs(Adm.LENGTHS) do Adm.LENGTH[l.id] = l end
-Adm.DEFAULT_LEN = "d3"
+Adm.DEFAULT_LEN = "d3"              -- where a player card's ban length starts; Permanent without the server part
 
-Adm.EVERY = { 15, 30, 60, 120 }     -- Repeat every, in minutes
+Adm.EVERY = { 15, 30, 60, 120 }     -- the choices for a repeating message's Repeat every, in minutes
 Adm.EVERY_OK = {}
 for _, m in ipairs(Adm.EVERY) do Adm.EVERY_OK[m] = true end
 
@@ -47,8 +49,8 @@ Adm.POWERS = {
     { id = "GodMod", cap = "ToggleGodModHimself" },
 }
 
--- every power on the Admin tab (ISAdminPowerUI.OptionList) and the capability the game asks for it: what the server takes
--- for a line in the log
+-- every power on the Admin tab (ISAdminPowerUI.OptionList) and the capability the game asks for it. A client's word that
+-- it turned a power on or off makes a log line only for a power on this list, from a player who holds its capability
 Adm.POWER_CAP = {
     Invisible = "ToggleInvisibleHimself", GodMod = "ToggleGodModHimself", NoClip = "ToggleNoclipHimself",
     FastMove = "UseFastMoveCheat", TimedActionInstant = "UseTimedActionInstantCheat", UnlimitedCarry = "ToggleUnlimitedCarry",
@@ -61,26 +63,26 @@ Adm.POWER_CAP = {
 
 -- every limit in one place, so they can become server settings later
 Adm.L = {
-    REASON_MAX = 200,
-    MSG_MAX = 200,
-    WARN_MAX = 10,
-    SPAWN_MAX = 100,
-    REPEATS_MAX = 10,
+    REASON_MAX = 200,                   -- a kick, warning or ban reason
+    MSG_MAX = 200,                      -- a server message, once or repeating
+    WARN_MAX = 10,                      -- warning points in one warning
+    SPAWN_MAX = 100,                    -- items in one spawn
+    REPEATS_MAX = 10,                   -- repeating messages at once
     BANS_MAX = 1000,                    -- rows; past it the oldest permanent row the game holds goes, a timed one never
-    MUTES_MAX = 500,
+    MUTES_MAX = 500,                    -- players muted at once
     PLAYERS_MAX = 2000,                 -- players remembered for the offline list, oldest out
     PLAYERS_ROWS = 500,                 -- rows in one a_players
-    LOG_MAX = 2000,                     -- admin actions kept for Phase 4's Log view, oldest out
+    LOG_MAX = 2000,                     -- lines kept for the Log view (every kind, not only admin actions), oldest out
     LOG_ACTOR_MAX = 400,                -- past this share one account's new lines replace its own oldest
     LOG_TOLD_MAX = 100,                 -- the same for lines a client reports of itself (the container log)
     OWED_MAX = 200,                     -- game calls waiting for a staff client
     TICKETS_ROWS = 10,                  -- tickets on a player card
     TARGET_MAX = 64,                    -- a name, a Steam ID or an IP
-    PLAYERS_MS = 2000,
-    CARD_MS = 500,
-    LIST_MS = 1000,
-    SPAWN_MS = 500,
-    POWER_MS = 1000,
+    PLAYERS_MS = 2000,                  -- between two asks for the players list, from one player
+    CARD_MS = 500,                      -- between two player cards
+    LIST_MS = 1000,                     -- between two asks for the bans, and for the repeats
+    SPAWN_MS = 500,                     -- between two spawns
+    POWER_MS = 1000,                    -- between two power lines for the log
     BAN_MS = 1500,                      -- between one account's bans, and its unbans
     POLL_S = 5,                         -- how often the server walks the players
     SNAP_S = 60,                        -- how often a player's card is copied for when they leave
@@ -110,8 +112,8 @@ Adm.L = {
     ROLE_WATCH_KEEP_S = 86400,          -- and this long for a player who is not on
 }
 
--- the five groups, as drawn; every capability the game has (getCapabilities) sits in one. One this list has not met yet
--- goes in the last group under its own name.
+-- the five groups the Roles card sorts capabilities into; every capability the game has (getCapabilities) sits in one.
+-- One this list has not met yet (a later game added it) goes in the last group under its own name.
 Adm.GROUPS = {
     { id = "players", key = "UI_ZeD_Adm_GrpPlayers", caps = {
         "SeePlayersConnected", "SeeNetworkUsers", "GetSteamScoreboard", "CanSeePlayersStats",
@@ -141,13 +143,13 @@ Adm.GROUPS = {
         "CanAlwaysJoinServer", "CantBeKickedIfTooLaggy", "CantBeKickedByUser", "CantBeBannedByUser",
         "CantBeKickedByAnticheat", "CantBeBannedByAnticheat", "HideFromSteamUserList" } },
 }
-Adm.CAP_GROUP = {}
+Adm.CAP_GROUP = {}                  -- capability -> its group's id
 for _, g in ipairs(Adm.GROUPS) do
     for _, c in ipairs(g.caps) do Adm.CAP_GROUP[c] = g.id end
 end
 
--- the capabilities the server part reads (A3: a name missing from a later game leaves the part off, or the call would
--- match no overload)
+-- the capabilities the server part reads. One missing from a later game leaves the admin tools off: looked up anyway,
+-- it would be nil, and a call with nil matches no overload
 Adm.SERVER_CAPS = {
     "SeePlayersConnected", "CanSeePlayersStats", "KickUser", "BanUnbanUser", "AddUserlog", "TeleportToPlayer",
     "TeleportPlayerToAnotherPlayer", "ChangeAccessLevel", "ModifyNetworkUsers", "AddXP", "DisplayServerMessage",
@@ -155,8 +157,9 @@ Adm.SERVER_CAPS = {
     "ToggleNoclipHimself", "ToggleGodModHimself",
 }
 
--- what a typed target looks like: "ip", "sid" or "user". An IP is four numbers, a Steam ID seventeen digits from 7656. Only
--- for the Bans card's typed field: a username can look like a Steam ID, so a name from a row is never read by its shape
+--- what a target looks like: "ip", "sid" or "user" (nil unless given a string). An IP is four numbers, a Steam ID
+--- seventeen digits from 7656. A username can look like a Steam ID, so the shape is only a reading: where a name is
+--- known (a player the server has met, a row on the list), the callers take the name first
 function Adm.targetKind(s)
     if type(s) ~= "string" then return nil end
     if string.match(s, "^%d+%.%d+%.%d+%.%d+$") then return "ip" end
@@ -164,7 +167,7 @@ function Adm.targetKind(s)
     return "user"
 end
 
--- a reason or a server message: one line, trimmed, within its limit; nil when it is not usable
+--- a reason or a server message: one line (line breaks become spaces), trimmed, 1 to max characters; nil otherwise
 function Adm.line(s, max)
     local c = ZeD.Tk.clean(s)
     if not c then return nil end
@@ -173,7 +176,8 @@ function Adm.line(s, max)
     return c
 end
 
--- a word for a slash command: the game's parser ends a quoted argument at the next quote
+--- a word for a slash command, in quotes, with any quote inside it dropped: the game's parser ends a quoted argument
+--- at the next quote
 function Adm.quoted(s) return "\"" .. string.gsub(tostring(s), "\"", "") .. "\"" end
 
 return Adm

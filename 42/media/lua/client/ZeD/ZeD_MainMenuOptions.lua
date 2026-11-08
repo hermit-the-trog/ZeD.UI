@@ -1,7 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuOptions.lua
 -- ============================================================================
--- OPTIONS (HOOK_MAP row 26; director, Oct 14 2026: "Settings menu is
--- obviously the biggest mess", design delegated, no mockup)
+-- OPTIONS. Client-side; the Options window organism (ZeD_MMOptions). The
+-- Sandbox settings window (with Sandbox in game and the server settings
+-- editor on top of it) and the character's Looks window derive from it, the
+-- Mods window borrows its row controls, and ZeD_MainMenuOptionsSub.lua adds
+-- two pages to it.
 --
 -- A ZeD window in place of vanilla's Options: on the desk's monitor at the
 -- main menu, centred over the dimmed world in game (from the pause window).
@@ -10,7 +13,8 @@
 -- with ZeD parts, and a change is made on vanilla's control exactly as a click
 -- would (the combo's onChange, the tick box's changeOptionMethod, setVolume,
 -- setCurrentValue, a colour button's backgroundColor + gameOptions:onChange).
--- APPLY / ACCEPT run vanilla's MainOptions:apply, so every rule stays vanilla's:
+-- APPLY runs vanilla's MainOptions:apply (there is no Accept: Apply keeps the
+-- window open), so every rule stays vanilla's:
 -- what applies live, restart-required options, the screen-settings revert,
 -- Lua resets, mod options (PZAPI.ModOptions) saved to ModOptions.ini.
 --
@@ -20,18 +24,18 @@
 --
 -- What it adds over vanilla:
 --   * one Find field across every page
---   * a dot on every option changed since the window opened
+--   * a dot on every option changed since the window opened (or the last Apply)
 --   * the option under the pointer (or the controller) explained in a panel
 --     at the bottom (vanilla's tooltips)
---   * Back with changes asks in the band at the foot: Cancel or Discard changes
---     (and a discard really reverts key bindings; vanilla kept them for the next Apply)
+--   * Back with changes asks in the band at the foot: Keep editing or Discard changes
+--     (and a discard really reverts key bindings; vanilla keeps them for the next Apply)
 --   * the 20-second "keep these screen settings?" and "restart to apply"
 --     are band states, not pop-ups
 --   * binding a key happens in the band: press the key (or a mouse button),
 --     No key / Default / Cancel; a key already in use asks there too
 --   * LB / RB walk the pages; left / right change a value in place
 --   * ZeD setup draws ZeD's own options as radio buttons, colour wells, a stepped slider,
---     checkboxes and pop-up menus, in groups, with a Defaults button (Oct 21 2026)
+--     checkboxes and pop-up menus, in groups, with a Defaults button
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -129,7 +133,7 @@ local function stepperOwner(controls)
     return nil
 end
 
--- the rows of a page: headers, options (control + its label), descriptions
+--- The rows of a page: headers, options (control + its label), descriptions.
 function MM.optionRows(page)
     local o = mo()
     if not (o and page and page.view) then return {} end
@@ -173,7 +177,7 @@ function MM.optionRows(page)
         if best then used[best] = true end
         local r = { kind = c.kind, control = c.el, label = best and best.text or "", y = c.y, x = c.x, opt = optOf[c.el] }
         -- a lone tick box that carries its own words (vanilla's toggles): the words become
-        -- the row's name, so it reads like every other row (Oct 19 2026)
+        -- the row's name, so it reads like every other row
         if c.kind == "tick" and not best and c.el.options and #c.el.options == 1 and tostring(c.el.options[1] or "") ~= "" then
             r.label = tostring(c.el.options[1])
             r.tickNoText = true
@@ -208,7 +212,7 @@ function MM.optionRows(page)
     return out
 end
 
--- the key bindings page: vanilla's own list (MainOptions.keyText), its toggles first
+--- The key bindings page: vanilla's own list (MainOptions.keyText), its toggles first.
 function MM.keyRows(page)
     local rows = {}
     local o = mo()
@@ -237,18 +241,18 @@ local function comboText(c, i)
     local ok, t = pcall(function() return c:getOptionText(i) end)
     t = ok and tostring(t or "") or ""
     -- the language list: ZeD's machine-drafted languages carry a mark, drawn only (the game picks a language by its
-    -- option text, so the option itself stays as the game wrote it; punch list 62)
+    -- option text, so the option itself stays as the game wrote it)
     if t ~= "" and ZeD.isMachineLangText and ZeD.isMachineLangText(t) then t = t .. " " .. ZeD.tr("UI_ZeD_Options_MachineTranslation") end
     return t
 end
 
--- UI scale's steps above what fits this screen (punch list 39, ZeD.Scale.fitCap): dimmed, and no pick takes them
+-- UI scale's steps above what fits this screen (ZeD.Scale.fitCap): dimmed, and no pick takes them
 local function stepOff(c, i)
     local S = ZeD.Settings
     return (S and S.scaleStepOff and S.scaleStepOff(c, i)) or false
 end
 
--- the next step from i in direction dir that is not off (the retired 0.5x sits right after Auto, punch list 58),
+-- the next step from i in direction dir that is not off (the retired 0.5x sits right after Auto),
 -- wrapping round when wrap is set; nil when none is
 local function nextOn(c, i, dir, wrap)
     local n = #(c.options or {})
@@ -310,8 +314,8 @@ local function rowKey(r)
     return nil
 end
 
--- a ZeD setup row that works only while another of ZeD's switches is on (ZeD_MainMenuOptionGroups' needs; director,
--- Oct 30 2026: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
+-- a ZeD setup row that works only while another of ZeD's switches is on (ZeD_MainMenuOptionGroups'
+-- needs: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
 -- dims, takes no click or press, and the controller passes over it; its pick is kept for when the switch comes on.
 local function needsOff(r)
     local id = r.zedNeeds or r.zedNeedsNot   -- (needsNot: the same row, dim while that switch is On)
@@ -350,7 +354,7 @@ local function help(r)
         return ZeD.tr("UI_ZeD_Chord_Help", nb, nf, table.concat(words or {}, " \226\128\186 "))
     end
     if r.kind == "key" then t = ZeD.tr("UI_ZeD_Options_HelpKey") end
-    if r.kind == "special" then t = ZeD.tr("UI_ZeD_Options_HelpPadMap") end   -- (its own page now: ZeD_MainMenuOptionsSub.lua)
+    if r.kind == "special" then t = ZeD.tr("UI_ZeD_Options_HelpPadMap") end   -- (a page of its own: ZeD_MainMenuOptionsSub.lua)
     if r.kind == "stepper" then t = ZeD.tr("UI_ZeD_Options_HelpDeadzone") end
     t = t and UI.plain(t) or nil
     -- the groups' marks (ZeD_MainMenuOptionGroups): why it does nothing, where it works, where it lives
@@ -365,7 +369,7 @@ local function help(r)
     end
     if r.only then t = join(t, MM.optionGroups.text(r.only[2])) end
     if r.why then t = join(t, MM.optionGroups.text(r.why)) end
-    -- UI scale on a small screen: which steps are off, and why (punch list 39)
+    -- UI scale on a small screen: which steps are off, and why
     if r.labelKey == "UI_ZeD_Settings_UiScale" and ZeD.Settings and ZeD.Settings.scaleTooBigHelp then
         local tb = ZeD.Settings.scaleTooBigHelp()
         if tb then t = join(t, tb) end
@@ -383,7 +387,7 @@ local function underLine(r)
     return r.only and MM.optionGroups.text(r.only[1])
 end
 
--- A row's name as drawn (ZeD's own options read at draw time: test language)
+-- A row's name as drawn (ZeD's own options go through ZeD.tr at draw time, so the test language reaches them)
 local function rowLabel(r)
     local label = r.label ~= "" and r.label or ""
     if r.labelKey then label = ZeD.tr(r.labelKey) end
@@ -391,8 +395,8 @@ local function rowLabel(r)
 end
 
 -- The name's lines in its column (room px wide, measured in the active font): nil when it fits on one line, else
--- two lines (Oct 26 2026: "Theme, accent and text buttons on windows" was cut short in Large text); past two the
--- second is cut short. The row grows by the second line, as it does for the line under a name.
+-- two lines (a name of forty-odd letters would otherwise be cut short in Large text); past two the second is cut
+-- short. The row grows by the second line, as it does for the line under a name.
 local function labelLines(r, f2, room)
     if r.kind == "header" or r.kind == "note" or r.kind == "desc" or r.kind == "chord" then return nil end
     local label = rowLabel(r)
@@ -465,6 +469,7 @@ local function chordAction(chord)
     return w[#w] or "?", table.concat(where, CHEV)
 end
 
+--- The Options window: inGame true for the pause window's own copy, false for the desk's.
 function ZeD_MMOptions:new(inGame)
     local o = ZeD_MMWindow.new(self, inGame and "options_ig" or "options")
     o.inGame = inGame and true or false
@@ -480,6 +485,7 @@ end
 -- pop-ups (MM.openPopup) live on the shared context, in game too
 function ZeD_MMOptions:pctx() return MM.ctx end
 
+--- Find and the band's text field (the windows built on this one call it for theirs).
 function ZeD_MMOptions:createChildren()
     ZeD_Window.createChildren(self)
     self.find = UI.newEntry(self)
@@ -615,7 +621,8 @@ function ZeD_MMOptions:back()
     self:finish()
 end
 
--- DISCARD: vanilla's "No" (live values restored), and the key list put back as the file has it
+--- DISCARD: vanilla's "No" (live values restored), and the key list put back as the file has it;
+--- then the window closes (Settings.lua wraps this to re-apply ZeD's stored settings afterwards).
 function ZeD_MMOptions:discard()
     local o = mo()
     if o then
@@ -786,7 +793,8 @@ function ZeD_MMOptions:commitText()
     self:setConfirm(false)
 end
 
--- the controller page's editor + test: vanilla's own page, then back here
+-- the controller page's editor + test: vanilla's own page, then back here. The fallback only:
+-- ZeD_MainMenuOptionsSub.lua, loaded after this file, replaces it with a page of this window
 function ZeD_MMOptions:openVanillaController(page)
     local o = mo()
     if not o then return end
@@ -797,12 +805,13 @@ function ZeD_MMOptions:openVanillaController(page)
     pcall(function() o.tabs:activateView(getText("UI_optionscreen_controller")) end)
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
--- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: Back or Discard with changes can
+-- lose work, so they land on Keep editing and Discard needs a deliberate move; the other
+-- questions land on their main answer (confirm:yes) where they have one.
 local SAFE_ANSWER = { back = "confirm:no", discard = "confirm:no" }
 function ZeD_MMOptions:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
@@ -833,7 +842,7 @@ end
 function ZeD_MMOptions:prerender()
     local T = ZeD.T
     self._specs, self._hits = {}, {}
-    -- the additions' preset shows the preset the live picks make, or Custom (Settings.lua; director, Oct 30 2026)
+    -- the additions' preset shows the preset the live picks make, or Custom (Settings.lua)
     if ZeD.Settings and ZeD.Settings.syncAdditionsPreset then pcall(ZeD.Settings.syncAdditionsPreset) end
     local w, h = self:place()
     local pages = self:pages()
@@ -880,6 +889,8 @@ function ZeD_MMOptions:render()
     ZeD_Window.render(self)
 end
 
+--- The left column: Find, then the page list in its own scroll box (Sandbox in game
+--- draws its step list with this too).
 function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     local T = ZeD.T
     local bs, s2 = T.borderS, T.surf2
@@ -897,9 +908,9 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     local kind = self.kind
     self._hits[#self._hits + 1] = { id = kind .. ":find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
                                     fn = function() self.find:focus() end }
-    -- the pages under Find scroll in their own box (a Workshop report, Nov 1 2026: with a long mod list the Sandbox
-    -- step has dozens of pages and they ran off the window, the wheel did nothing). The wheel over the box moves it,
-    -- the bar drags, and the picked page comes into view whenever it changes (a bumper, a page shown from elsewhere).
+    -- the pages under Find scroll in their own box (with a long mod list the Sandbox step has
+    -- dozens of pages, more than the window holds). The wheel over the box moves it, the bar
+    -- drags, and the picked page comes into view whenever it changes (a bumper, a page shown from elsewhere).
     local top0 = y + fH + T.px(1)
     local vh = y + h - T.px(1) - top0
     local rh = T.px(PAGE_ROW_H)
@@ -940,7 +951,7 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
 end
 
 -- ============================================================================
--- ZeD SETUP'S CONTROLS (Oct 21 2026, mockup ZeDUI/mockups/zed_settings_v2.html)
+-- ZeD SETUP'S CONTROLS
 -- Each of ZeD's own options is still a combo (ModOptions saves its item's number); these
 -- draw it as the control that fits it, and a click picks the item exactly as the drop-down
 -- would (setCombo). Left / right step it (nudge), A moves to the next choice (activateRow).
@@ -986,7 +997,7 @@ local function scaleReadout(r)
     -- a saved step above this screen's cap (picked on a bigger monitor): kept, drawn at the cap
     if stepOff(c, c.selected) then
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
-        -- a retired step (0.5x) draws at the floor in game; the main menu's own root is no guide to that (QA, Nov 2 2026)
+        -- a retired step (0.5x) draws at the floor in game; the main menu's own root is no guide to that
         if ZeD.Settings and ZeD.Settings.scaleStepRetired and ZeD.Settings.scaleStepRetired(c.selected) then
             root = (ZeD.Scale and ZeD.Scale.STEP_FLOOR) or 0.75
         end
@@ -1181,7 +1192,8 @@ function ZeD_MMOptions:drawFocusSample(x0, y, x1, h)
     if not ok then ZeD.logOnce("ZeD.Focus.drawSample", err) end
 end
 
--- one row's control, drawn at (cx, ry) in width cw; registers its hit boxes
+--- One row's control, drawn at (cx, ry) in width cw; registers its hit boxes, cut to clip (the
+--- list's visible band). The Sandbox, Looks and Mods windows draw their rows' controls with it.
 function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
     local T = ZeD.T
     local c = r.control
@@ -1338,7 +1350,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local gap = T.px(8)
         local off = (r.minus.enable == false)
         -- the live value: vanilla's label reads it right after a step, before the engine has
-        -- applied it, so it showed the value one press behind
+        -- applied it, so it shows the value one press behind
         local tp = r.owner and r.owner.controllerTestPanel
         local ctrl = tp and tp.selectedController
         local val
@@ -1366,7 +1378,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
     end
 end
 
--- the height a row needs (a tick box with many options wraps)
+--- The height a row needs (a tick box with many options wraps; a line under the name adds its height).
 function ZeD_MMOptions:rowHeight(r, cw)
     local T = ZeD.T
     if r.kind == "header" then return T.px(HEAD_H) + T.px(6) end
@@ -1411,12 +1423,15 @@ function ZeD_MMOptions:drawFoldHead(r, rowId, x, y, w, focused)
     return hot
 end
 
+--- The rows list and the help band. A window built on this one bends it through hooks:
+--- noHelpBand / helpBandH, tagsW / drawRowTags, rowDisabled and drawHelp (Sandbox in game uses
+--- most of them; the Looks window has no help band; the Sandbox and server windows dim rows).
 function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local T = ZeD.T
     local bs = T.borderS
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
-    -- the help band: three lines of the body font (Oct 21 2026: two cut the longer ZeD tips short)
+    -- the help band: three lines of the body font (two cut the longer ZeD tips short)
     -- (a window without help text has no band; one with its own band says how tall: Sandbox in game)
     local helpH = self.noHelpBand and 0 or (self.helpBandH and self:helpBandH()) or math.max(T.px(HELP_H), T.px(14) + 3 * (MM.fontH(T.fontF2) + T.px(3)))
     local vy, vh = y + T.px(1), h - helpH - T.px(2)
@@ -1479,8 +1494,8 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
             local fid = "orow:" .. idx
             local off = needsOff(r)
             -- a dimmed row (waiting on another switch, or a game setting that does nothing with ZeD active) is no stop
-            -- for the controller and takes no hover wash; its line underneath and the help line say why (the director,
-            -- Nov 2 2026, punch list 59: every dimmed row behaves the same)
+            -- for the controller and takes no hover wash; its line underneath and the help line say why.
+            -- Every dimmed row behaves the same.
             local dimRow = off or (r.moot and true) or (self.rowDisabled and self:rowDisabled(r)) or false
             if not (off or r.moot) then
                 self._specs[#self._specs + 1] = { id = fid, listRow = true, row = idx, col = 1, rowRef = r, ry = ry + self.scroll - vy, rh = rh,
@@ -1575,7 +1590,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     if self.drawHelp then self:drawHelp(x, hy, w, helpH, hr); return end   -- (a window with its own band: Sandbox in game)
     local htext = hr and help(hr) or nil
     if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
-    -- ZeD's own options: their default in a column at the right of the band (mockup zed_settings_v2)
+    -- ZeD's own options: their default in a column at the right of the band
     local dcol = 0
     local chordDefault = hr and hr.kind == "chord" and ZeD.QuickChords.defaultName(hr.chord) or nil
     if (hr and hr.zedDefault and hr.control) or chordDefault then
@@ -1599,6 +1614,8 @@ end
 
 -- POP-UPS -------------------------------------------------------------------------
 
+--- A drop-down's choices as a pop-up at anchor; UI scale's steps too big for this screen are
+--- dimmed and skipped (the Mods window borrows this as its own openCombo).
 function ZeD_MMOptions:openCombo(r, anchor)
     local c = r.control
     if c.disabled then return end
@@ -1617,7 +1634,7 @@ function ZeD_MMOptions:openCombo(r, anchor)
     MM.ctx.dropScroll = math.max(0, ((c.selected or 1) - 4) * ZeD.T.px(26))
 end
 
--- QUICK ACTION CHORDS (ZeD_QuickChords; mockup zed_quick_chords_v1): a row per
+-- QUICK ACTION CHORDS (ZeD_QuickChords): a row per
 -- chord; A opens the wheels' actions as a drop list, X clears it.
 -- The wheels' actions, a drop list item each, under its wheel's name; None first
 function ZeD_MMOptions:openChord(r, anchor)
@@ -1669,7 +1686,7 @@ end
 local _render = ZeD_MMOptions.render
 function ZeD_MMOptions:render()
     _render(self)
-    if MM.debugHits and self.inGame then MM.drawHitOverlay(self, { self }) end   -- (QA: the click audit; at the menu the desk's glass draws it)
+    if MM.debugHits and self.inGame then MM.drawHitOverlay(self, { self }) end   -- (the click-audit overlay; at the menu the desk's glass draws it)
     local p = self._palette
     if not p then return end
     local T = ZeD.T
@@ -1702,7 +1719,10 @@ function ZeD_MMOptions:render()
     self._paletteRect = { x = ax + px, y = ay + py, w = pw, h = ph }
 end
 
--- ACTIVATING A ROW (A on a controller, Space / Return on the keyboard) ---------------
+-- ACTIVATING A ROW (A on a controller; on the keyboard Return is Apply, see keyOther) ---------------
+--- A row's main action: ZeD setup's controls step to their next choice, a drop-down or the
+--- palette opens, a tick flips, a key starts binding, a chord opens its list. A moot row, or one
+--- waiting on another switch, does nothing.
 function ZeD_MMOptions:activateRow(r)
     if r.moot or needsOff(r) then return end   -- does nothing with ZeD active, or waits on another switch: inert here too
     local c = r.control
@@ -1730,7 +1750,8 @@ function ZeD_MMOptions:activateRow(r)
     end
 end
 
--- left / right change a value in place (combo: previous / next; volume / slider: a step)
+--- Left / right change a value in place (combo: previous / next; volume / slider: a step; a
+--- row of ticks: which tick). True when the row took the press, so the D-pad does not move on.
 function ZeD_MMOptions:nudge(r, dir)
     if r.moot or needsOff(r) then return true end
     local c = r.control
@@ -1782,10 +1803,10 @@ end
 function ZeD_MMOptions:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 1000
-    local discardWord = ZeD.tr("UI_ZeD_MMWord_DiscardChanges")   -- (spec 11: one word, and it is the danger answer everywhere)
+    local discardWord = ZeD.tr("UI_ZeD_MMWord_DiscardChanges")   -- (one wording everywhere, and it is the danger answer)
     if self.confirm == "back" or self.confirm == "discard" then
-        -- (Oct 19 2026: Apply keeps the window open, so Back with changes only
-        -- asks whether to lose them; the old Accept is gone)
+        -- (Apply keeps the window open, so Back with changes only
+        -- asks whether to lose them; there is no Accept)
         local n = self:changedCount()
         local ask = (n == 1) and ZeD.tr("UI_ZeD_Options_AskDiscardOne") or ZeD.tr("UI_ZeD_Options_AskDiscardMany", math.max(n, 1))
         local go = (self.confirm == "back") and function() self:discard() end or function() self:discardStay() end
@@ -1842,6 +1863,7 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
 end
 
 -- POINTER (in game the window has its own; at the menu the desk's) ---------------------
+--- Each update: a press outside the open palette closes it; in game the window runs its own pointer.
 function ZeD_MMOptions:update()
     -- a click outside the open palette closes it
     local down = ZeD.MouseTick.down()   -- (update() runs every 100 ms: ZeD_MouseTick.lua)
@@ -1894,6 +1916,7 @@ function ZeD_MMOptions:joyX()
     if not self.confirm and self:anyChanged() then self:setConfirm("discard") end
 end
 function ZeD_MMOptions:joyY() if not self.confirm and self:anyChanged() then self:apply(false) end end
+--- LB / RB: the previous or next page, wrapping round; Find's words are cleared.
 function ZeD_MMOptions:joyBumper(dir)
     if self.confirm then return end
     local n = #self:pages()
@@ -1950,6 +1973,7 @@ end
 
 function ZeD_MMOptions:close() self:back() end
 
+--- The mouse wheel: over the page list it scrolls the pages, over the rows the rows; true when it scrolled.
 function ZeD_MMOptions:wheel(del)
     local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
     local pb = self._pagesBox   -- (over the page list: it scrolls; a row at a time, two per notch)
@@ -1972,7 +1996,7 @@ end
 -- ENTRY POINTS + VANILLA HOOKS
 -- ============================================================================
 
--- Opens Options: vanilla's toUI (MainScreen's OPTIONS item does the same), our window.
+--- Opens Options: vanilla's toUI (MainScreen's OPTIONS item does the same), our window.
 function MM.openOptions()
     local m = ms()
     if not m or (not m.inGame and m.delay > 0) then return end
@@ -1986,8 +2010,8 @@ function MM.openOptions()
     end
 end
 
--- MainOptions keeps running underneath: its close, its two dialogs and its "show me"
--- (the Advanced sounds screen returns with setVisible(true)) come to the window.
+--- MainOptions keeps running underneath: its close, its two dialogs and its "show me"
+--- (the Advanced sounds screen returns with setVisible(true)) come to the window.
 function MM.hookOptions(m)
     local o = m and m.mainOptions
     if not o or o._zedHooked then return end
@@ -2030,7 +2054,8 @@ function MM.hookOptions(m)
     end
 end
 
--- vanilla's OPTIONS item (also how a Lua reset after "Apply" reopens Options)
+-- vanilla's OPTIONS item (also how a Lua reset after "Apply" reopens Options). Keep the vanilla
+-- function once, so a Lua reload never wraps the wrapper.
 MainScreen._zedItemOrig = MainScreen._zedItemOrig or MainScreen.onMenuItemMouseDownMainMenu
 MainScreen.onMenuItemMouseDownMainMenu = function(item, x, y)
     -- vanilla's CREDITS item hides the menu after its screen shows: the credits view opens straight

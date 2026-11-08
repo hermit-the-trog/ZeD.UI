@@ -1,33 +1,35 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_TicketProto.lua
 -- ============================================================================
--- THE TICKET PROTOCOL (ZeDUI/MP_SERVER_PART_DESIGN.md, Parts B and C). What both sides agree on: the module names,
--- the kinds, the statuses and what a player sees of them, every limit, and the tag on the game's ticket. Pure Lua,
--- ASCII, nothing client-only at load: this file also runs on a dedicated server.
+-- THE TICKET PROTOCOL: what both sides agree on. The module names, the kinds, the statuses and what a player sees of
+-- them, every limit, the checks on what a client sends, and the tag on the game's ticket. Shared: this file loads on
+-- the client and on a dedicated server alike, so nothing client-only at file scope. Pure Lua, pure ASCII.
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Tk = ZeD.Tk or {}
 local Tk = ZeD.Tk
 
-Tk.MOD_LINK = "ZeD"         -- the link: hello
-Tk.MOD = "ZeDT"             -- tickets
-Tk.PROTO = 1
+Tk.MOD_LINK = "ZeD"         -- the link's module: the hello handshake rides on it, both ways
+Tk.MOD = "ZeDT"             -- the module on every ticket command
+Tk.PROTO = 1                -- the version each side states in its hello
 -- who the server's own lines are by. The game refuses a username holding @ (ServerWorldDatabase.isValidUserName), so no account
 -- can pass for it
 Tk.SYS = "@server"
-Tk.NEAR = 30                -- tiles, on any floor (settled, the director, Nov 5 2026)
+Tk.NEAR = 30                -- the reach of "near": tiles, on any floor; a settled choice, not a placeholder
 
--- TWO OF THE DIRECTOR'S QUESTIONS, each kept to this one switch (Part E).
--- E12: may a ticket take more words once it is Answered? false is the mockup: the player's field closes at Answered,
--- staff press Reopen to reply again. true: the field stays open, a player's reply puts it back at Progress so it
--- re-enters the queue, and staff can Answer and Close an Answered ticket.
+-- TWO QUESTIONS THE DESIGN LEFT OPEN, each kept to one switch so the answer can turn without touching the rest.
+-- May a ticket take more words once it is Answered? false is as the screens were first drawn: the player's field
+-- closes at Answered, staff press Reopen to reply again. true: the field stays open, a player's reply puts it back at
+-- Progress so it re-enters the queue, and staff can Answer and Close an Answered ticket.
 Tk.REPLY_AT_ANSWERED = true
--- E13: what goes in the game's own ticket. true is the scope: the player's words in full, as public as the game makes
--- them (any logged-in client reads every game ticket). false files only "[GRIEF #14] see the Tickets queue", and the
--- staff's first answer goes to the game as that same stub.
+-- What goes in the game's own ticket. true: the player's words in full, as public as the game makes them (any
+-- logged-in client reads every game ticket). false files only "[GRIEF #14] see the Tickets queue", keeping the words
+-- off that public row, and the staff's first answer goes to the game as that same stub.
 Tk.FILE_FULL_TEXT = false
 Tk.FILE_STUB = "see the Tickets queue"
 
+-- the kinds a ticket may carry: KINDS keeps the order, KIND answers "is this one?"
 Tk.KINDS = { "BUG", "GRIEF", "STUCK", "QUESTION", "APPEAL", "OTHER" }
 Tk.KIND = {}
 for _, k in ipairs(Tk.KINDS) do Tk.KIND[k] = true end
@@ -35,11 +37,11 @@ Tk.NONE = "NONE"            -- a ticket adopted from the game's window with no t
 
 -- stored status -> what the player reads. The word Spam never reaches a player's client.
 Tk.PLAYER_ST = { Open = "Sent", Seen = "Seen", Progress = "Progress", Answered = "Answered", Closed = "Closed", Spam = "Closed" }
-Tk.QUEUE_ST = { Open = true, Answered = true, Closed = true, All = true, Spam = true }
+Tk.QUEUE_ST = { Open = true, Answered = true, Closed = true, All = true, Spam = true }   -- the views a queue request may name
 
 -- every limit in one place, so they can become server settings later
--- How many chat lines go with a report, each side of the picked line. (MP_ADMIN_SCOPE.md, Phase 5.) One switch: what the client
--- sends and what the server allows both come from it.
+-- How many chat lines go with a report, each side of the picked line. One switch: what the client sends and what the
+-- server allows both come from it.
 Tk.REPORT_AROUND = 5
 
 Tk.LIMITS = {
@@ -78,21 +80,27 @@ Tk.LIMITS = {
     REPORT_TEXT = 300,                          -- each, cut to this
 }
 
+--- one of the kinds above?
 function Tk.isKind(k) return type(k) == "string" and Tk.KIND[k] == true end
+--- still open: Open, Seen or Progress, not yet Answered, Closed or marked Spam
 function Tk.isOpen(st) return st == "Open" or st == "Seen" or st == "Progress" end
 
--- what each status allows (B4; E12 is the switch above)
+-- what each status allows. REPLY_AT_ANSWERED above is the one switch: with it on, Answered allows all three too
+--- may the player add words to this ticket?
 function Tk.canReply(st) return Tk.isOpen(st) or (Tk.REPLY_AT_ANSWERED and st == "Answered") end
+--- may staff answer it?
 function Tk.canAnswer(st) return Tk.isOpen(st) or (Tk.REPLY_AT_ANSWERED and st == "Answered") end
+--- may staff close it?
 function Tk.canClose(st) return Tk.isOpen(st) or (Tk.REPLY_AT_ANSWERED and st == "Answered") end
 
--- a whole positive number a client may name: an id, a page, a request number
+--- a whole positive number a client may name: an id, a page, a request number; kept below Java's int ceiling
 function Tk.whole(n)
     return type(n) == "number" and n >= 1 and n < 2147483647 and n == math.floor(n)
 end
 
--- Trim, and control characters out but for line breaks. By character code, not a pattern: the same on the server and
--- in a stub, and linear on any text a client can send. Nil unless given a string.
+--- Trim, and control characters out but for line breaks. By character code, not a pattern: pattern classes can differ
+-- between the game's Lua (Kahlua) and plain Lua, and a byte-by-byte scan stays linear on any text a client can send.
+-- Nil unless given a string.
 function Tk.clean(s)
     if type(s) ~= "string" then return nil end
     local byte, sub = string.byte, string.sub
@@ -122,23 +130,24 @@ function Tk.clean(s)
     return sub(out, a, b)
 end
 
--- the tag on the game's ticket, with the server part
+--- the tag on the game's ticket while the server part is here: "[GRIEF #14] words", the number naming ZeD's record
 function Tk.tag(kind, id, text) return "[" .. tostring(kind) .. " #" .. tostring(id) .. "] " .. tostring(text) end
--- the tag without it (B9): the place goes in the words
+--- the tag without the server part: no record will hold the place, so it goes in the words
 function Tk.plainTag(kind, text, x, y)
     local s = "[" .. tostring(kind) .. "] " .. tostring(text)
     if x and y then s = s .. " (" .. tostring(x) .. " x " .. tostring(y) .. ")" end
     return s
 end
--- what the player's client files in the game for a record (E13)
+--- what the player's client files in the game for a record: the words in full or the stub, as FILE_FULL_TEXT says
 function Tk.fileText(kind, id, text)
     return Tk.tag(kind, id, Tk.FILE_FULL_TEXT and text or Tk.FILE_STUB)
 end
--- what the staff's first answer files in the game (E13): the same switch, or the answer would be public
+--- what the staff's first answer files in the game: the same switch, or the answer would be public
 function Tk.answerText(text)
     return Tk.FILE_FULL_TEXT and text or Tk.FILE_STUB
 end
--- kind, id, the rest of the words. Kind and id are nil on an untagged message, or a tag ZeD did not write
+--- kind, id, the rest of the words. "[KIND #7] words" gives all three, "[KIND] words" gives kind alone, anything else
+-- gives nil, nil, the whole message. The kind comes back unchecked: callers test isKind
 function Tk.parse(msg)
     if type(msg) ~= "string" then return nil, nil, "" end
     local k, id, rest = string.match(msg, "^%[(%u+) #(%d+)%] (.*)$")
@@ -148,20 +157,21 @@ function Tk.parse(msg)
     return nil, nil, msg
 end
 
--- is this game message the one a ZeD record filed? Either form, so turning E13 over leaves old tickets linked
+--- is this game message the one a ZeD record filed? Either form, so turning FILE_FULL_TEXT over leaves old tickets linked
 function Tk.fileMatches(rec, msg)
     local first = rec.thread and rec.thread[1]
     if msg == Tk.tag(rec.kind, rec.id, Tk.FILE_STUB) then return true end
     return first ~= nil and msg == Tk.tag(rec.kind, rec.id, first.text)
 end
 
--- a name a game row claims, for one line: a line break stops at the door, or it reads as a second line in the log
+--- a name a game row claims, for one line: a line break stops at the door, or it reads as a second line in the log
 function Tk.name(s)
     local c = string.gsub(Tk.clean(s) or "", "\n", " ")
     return string.sub(c, 1, Tk.LIMITS.NAME_MAX)
 end
 
--- the test before any game call: is this game row still that record? (B8)
+--- the test before any game call: is this game row still that record? The game's ticket table can be wiped or
+-- replaced and a number reused, so the author and the words are the proof, not the number alone
 function Tk.sameTicket(author, msg, rec)
     if type(rec) ~= "table" then return false end
     if rec.source == "zed" then return author == rec.author and Tk.fileMatches(rec, msg) end
@@ -174,19 +184,20 @@ function Tk.sameTicket(author, msg, rec)
     return string.sub(text, 1, Tk.LIMITS.TEXT_MAX) == first.text
 end
 
--- the game's message to staff about a new ticket: "user %s added a ticket ..."
+--- the game's message to staff about a new ticket: "user %s added a ticket ..."
 function Tk.isTicketMessage(msg)
     return type(msg) == "string" and string.sub(msg, 1, 5) == "user " and string.find(msg, " added a ticket", 1, true) ~= nil
 end
 
--- the place in words, for a row: its name once one is proved (E3), else the coordinates
+--- the place in words, for a row: its name once the server has proved one, else the coordinates. No vanilla call
+-- turns coordinates into a town name, so a name is never promised
 function Tk.whereText(place)
     if type(place) ~= "table" then return nil end
     if place.name then return place.name end
     if place.x and place.y then return tostring(place.x) .. " x " .. tostring(place.y) end
     return nil
 end
--- the place on a card: the name and the coordinates, as drawn
+--- the place on a card: the name and the coordinates, as drawn
 function Tk.whereFull(place)
     if type(place) ~= "table" then return nil end
     if place.name and place.x and place.y then

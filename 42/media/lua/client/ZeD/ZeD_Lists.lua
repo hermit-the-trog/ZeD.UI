@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Lists.lua
 -- ============================================================================
--- LOADOUTS AND OUTFITS: THE LISTS (handoff equip_doll_v4_loadouts, Oct 29 2026,
--- part B1; the director: "Loadout lists should live in the journal tab ...
--- Outfits and loadouts: Separate, mix freely")
+-- LOADOUTS AND OUTFITS: THE LISTS. Client side. The lists live in the Journal
+-- tab, not on the equip doll; outfits and loadouts are separate, and mix freely.
 --
 -- The data and its rules, no drawing. A loadout is what you carry (gear and
 -- supplies), an outfit what you wear (everything worn that isn't a container).
@@ -33,10 +32,11 @@
 --     amount = 2, unit = "n" | "l" | "cal",
 --     per    = "day" | "fixed"       (supplies only) }
 --
--- The Journal's Loadouts page (ZeD_JournalLists.lua), the right-click menu
--- (Overrides/ItemMenu.lua) and the item card's mark strip edit them through
--- this module. The Equip tab's bar, restock and unpack (parts B4 to B7) read
--- them: L.all, L.get, L.resolve (a line on you, in its place) and L.ready.
+-- The Journal's Loadouts page (ZeD_JournalLists.lua), the right-click menu and
+-- the item card's mark strip (both in ZeD_ListsMenu.lua) edit them through this
+-- module. The Equip tab's bar (ZeD_EquipLoadout.lua), restock and unpack
+-- (ZeD_Restock.lua) read them: L.all, L.get, L.resolve (a line on you, in its
+-- place) and L.ready.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -49,18 +49,18 @@ L.VERSION = 1
 L.KEY = "ZeD_Lists"
 L.KINDS = { "loadout", "outfit" }
 
--- The two lists' pixel icons (ZeD.PxIcon ids). Design's own hanger and list icons are
--- still to come: swap the ids here and every surface follows (the Journal page, the
--- right-click menu, the item card's mark strip).
+-- The two lists' pixel icons (ZeD.PxIcon ids). TODO: these stand in until the lists get
+-- their own hanger and list icons; swap the ids here and every surface follows (the
+-- Journal page, the right-click menu, the item card's mark strip).
 L.ICON = { outfit = "hanger", loadout = "view_list" }
 
 -- bumped on every change: surfaces that keep something per frame check it
 L.gen = L.gen or 0
 
--- The Loadouts and outfits switch (Settings.lua "loadouts"; director, Oct 30 2026: off for a new player).
--- Every surface asks it as it draws: off, the fold, the to-do, the Journal page, the Lists mark, the
--- right-click menu, the Loadouts ring and Restock are hidden and inert. The lists themselves are never
--- touched: on again, they all come back.
+--- The Loadouts and outfits switch (Settings.lua "loadouts", off for a new player).
+--- Every surface asks it as it draws: off, the fold, the to-do, the Journal page, the Lists mark, the
+--- right-click menu, the Loadouts ring and Restock are hidden and inert. The lists themselves are never
+--- touched: on again, they all come back.
 function L.on()
     local S = ZeD.Settings
     return S and S.loadoutsOn and S.loadoutsOn() or false
@@ -126,6 +126,7 @@ function L.all(p, kind)
     return out
 end
 
+--- The list with this id, or nil.
 function L.get(p, id)
     local s = L.store(p)
     if not (s and id) then return nil end
@@ -151,6 +152,7 @@ function L.uniqueName(p, kind, base)
     return stem .. " " .. n
 end
 
+--- A new, empty list ("outfit", else a loadout); a blank name gets the next free default name.
 function L.create(p, kind, name)
     local s = L.store(p)
     if not s then return nil end
@@ -164,6 +166,7 @@ function L.create(p, kind, name)
     return l
 end
 
+--- Renames list id; false when there is no such list or the name is blank.
 function L.rename(p, id, name)
     local l = L.get(p, id)
     name = tidyName(name)
@@ -173,6 +176,7 @@ function L.rename(p, id, name)
     return true
 end
 
+--- Deletes list id; true when it was there.
 function L.delete(p, id)
     local s = L.store(p)
     if not s then return false end
@@ -202,6 +206,7 @@ function L.addLine(p, listId, line)
     return line
 end
 
+--- Takes a line off list listId; true when it was there.
 function L.removeLine(p, listId, lineId)
     local l = L.get(p, listId)
     if not l then return false end
@@ -222,10 +227,12 @@ function L.editLine(p, listId, lineId, fields)
     return ln
 end
 
--- the amount's step and floor for its unit
+-- the amount's step and floor per unit: a count, litres, calories
 local STEP = { n = 1, l = 0.5, cal = 100 }
+--- The amount's step (and its floor) for a line's unit.
 function L.step(line) return STEP[line and line.unit or "n"] or 1 end
 
+--- Sets a line's amount, rounded to its step (one step at least, 9999 at most); returns the amount kept.
 function L.setAmount(p, listId, lineId, amount)
     local ln = L.line(L.get(p, listId), lineId)
     if not ln then return nil end
@@ -238,7 +245,7 @@ function L.setAmount(p, listId, lineId, amount)
 end
 
 --- Any / This one. "this" keeps the item number the line was saved with (an any line
--- made from an item keeps it too, so switching back and forth loses nothing).
+--- made from an item keeps it too, so switching back and forth loses nothing).
 function L.setRule(p, listId, lineId, rule)
     local ln = L.line(L.get(p, listId), lineId)
     if not ln then return nil end
@@ -259,7 +266,7 @@ function L.setPer(p, listId, lineId, per)
 end
 
 --- The list's lines by section, in the page's order: loadouts Gear then Supplies,
--- outfits Worn. Returns { { sec = "gear", lines = {...} }, ... } (empty sections kept).
+--- outfits Worn. Returns { { sec = "gear", lines = {...} }, ... } (empty sections kept).
 function L.sections(list)
     local secs = (list and list.kind == "outfit") and { "worn" } or { "gear", "supply" }
     local out, by = {}, {}
@@ -280,7 +287,7 @@ end
 -- ---------------------------------------------------------------------------
 local function lower(s) return string.lower(tostring(s or "")) end
 
--- a body location as the doll keys it: lower case, no "base:" group, no underscores
+--- A body location as the doll keys it: lower case, no "base:" group, no underscores.
 function L.normLoc(loc)
     if loc == nil then return nil end
     local s = lower(loc)
@@ -302,7 +309,7 @@ local function wearLoc(item)
 end
 
 --- Can it go on an outfit: worn things that aren't containers (bags, fanny packs,
--- webbing and holsters belong to loadouts: they carry the gear).
+--- webbing and holsters belong to loadouts: they carry the gear).
 function L.canOutfit(item)
     if not item or isContainer(item) then return false end
     return wearLoc(item) ~= nil
@@ -342,7 +349,7 @@ local function consumableLight(item, t)
 end
 
 --- What a carried thing is on a loadout: "supply" (food, water, medicine, ammunition,
--- batteries, light that is used up) or "gear"; and for water its kind.
+--- batteries, light that is used up) or "gear"; and for water its kind.
 function L.classify(item)
     local t = call(item, "getFullType") or ""
     if waterIn(item) > 0 then return "supply", "water" end
@@ -437,7 +444,7 @@ local function fillOk(line, item)
 end
 
 --- Does the item meet the line's kind (type, tag or kind) and its minimums?
--- byId: rule "this" asks for that exact item (the fallback to its type is the caller's).
+--- byId: rule "this" asks for that exact item (the fallback to its type is the caller's).
 function L.matches(line, item, byId)
     if not (line and item) then return false end
     if byId and line.rule == "this" and line.itemId then return item:getID() == line.itemId end
@@ -449,7 +456,7 @@ function L.matches(line, item, byId)
     return ok and condOk(line, item) and fillOk(line, item)
 end
 
--- the line in a list that is this item (rule "this" by its number, any by its type)
+--- The line in a list that is this item (rule "this" by its number, any by its type).
 function L.lineOfItem(list, item)
     if not (list and item) then return nil end
     local id = item:getID()
@@ -462,9 +469,10 @@ function L.lineOfItem(list, item)
     return nil
 end
 
---- The lists the item is in: { { list = l, line = ln }, ... }, loadouts first.
--- (remembered per item and change: the item card and its mark strip ask each frame)
+-- the answers below, kept per item until a list changes (L.gen) or the player does
 local _with = { gen = -1, p = nil, by = {} }
+--- The lists the item is in: { { list = l, line = ln }, ... }, loadouts first.
+--- (remembered per item and change: the item card and its mark strip ask each frame)
 function L.listsWith(p, item)
     if not (p and item) then return {} end
     if _with.gen ~= L.gen or _with.p ~= p then _with.gen, _with.p, _with.by = L.gen, p, {} end
@@ -497,8 +505,8 @@ local function baseLine(item, sec, place, rule)
 end
 
 --- The line the item makes on a list of that kind (as the right-click menu and the
--- mark strip add it). Outfits: its worn place, any of its type. Loadouts: in a hand
--- or on the belt this one, the rest any; supplies fixed, at what it holds.
+--- mark strip add it). Outfits: its worn place, any of its type. Loadouts: in a hand
+--- or on the belt this one, the rest any; supplies fixed, at what it holds.
 function L.lineFor(p, item, kind)
     if not item then return nil end
     if kind == "outfit" then
@@ -522,7 +530,7 @@ function L.lineFor(p, item, kind)
 end
 
 --- Put the item on list id (or take it off when it is already there). Returns true
--- when it is on the list afterwards.
+--- when it is on the list afterwards.
 function L.toggleItem(p, listId, item)
     local l = L.get(p, listId)
     if not (l and item) then return false end
@@ -541,7 +549,7 @@ function L.createWith(p, kind, name, item)
 end
 
 -- ---------------------------------------------------------------------------
--- SAVE WHAT I CARRY / WHAT I WEAR (handoff B2)
+-- SAVE WHAT I CARRY / WHAT I WEAR
 -- ---------------------------------------------------------------------------
 -- every item inside inv (and the containers in it), with its place
 local function walk(inv, place, fn, depth)
@@ -662,12 +670,13 @@ function L.merge(p, listId, lines)
     return n
 end
 
---- Save what I carry as a new loadout / what I wear as a new outfit.
+--- Save what I carry, as a new loadout.
 function L.saveCarry(p, name)
     local l = L.create(p, "loadout", name)
     if l then L.merge(p, l.id, carryLines(p)) end
     return l
 end
+--- Save what I wear, as a new outfit.
 function L.saveWear(p, name)
     local l = L.create(p, "outfit", name)
     if l then L.merge(p, l.id, L.scanWear(p)) end
@@ -683,7 +692,7 @@ function L.addCurrent(p, listId)
 end
 
 -- ---------------------------------------------------------------------------
--- THE RESOLVER: is a line on the character, in its place (B4's "ready n of m")
+-- THE RESOLVER: is a line on the character, in its place (what the Equip bar's "ready n of m" counts)
 -- ---------------------------------------------------------------------------
 -- the amount one item gives a line
 local function amountOf(line, item)
@@ -724,10 +733,10 @@ end
 L.itemsAt = itemsAt
 
 --- How a line stands on the character.
--- @param days  the trip's days (per-day lines multiply by it; default 1)
--- @return { ok, need, have (in its place), haveOnYou (anywhere on you), inPlace,
---           items (the matching items in place), fallback (a "this one" whose item
---           isn't on you, matched by its type instead) }
+--- @param days  the trip's days (per-day lines multiply by it; default 1)
+--- @return { ok, need, have (in its place), haveOnYou (anywhere on you), inPlace,
+---           items (the matching items in place), fallback (a "this one" whose item
+---           isn't on you, matched by its type instead) }
 function L.resolve(p, line, days)
     local need = (line.amount or 1) * ((line.per == "day") and math.max(1, days or 1) or 1)
     local r = { need = need, have = 0, haveOnYou = 0, items = {}, ok = false, inPlace = false, fallback = false }
@@ -827,11 +836,11 @@ function L.namesFor(p, item)
     return table.concat(names, ", ")
 end
 
---- The pixel icon of a list's kind (L.ICON; one place to swap Design's).
+--- The pixel icon of a list's kind (L.ICON: the one place to swap the icons).
 function L.icon(kind) return L.ICON[kind == "outfit" and "outfit" or "loadout"] end
 
 --- The store holds only what the save can keep (strings, numbers, booleans, tables of
--- them). Returns true, or false and the path of the first value that isn't.
+--- them). Returns true, or false and the path of the first value that isn't.
 function L.check(p)
     local bad = nil
     local function go(t, path, depth)

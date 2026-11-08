@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Prompt.lua
 -- ============================================================================
--- O05 v2: THE PROMPT — vanilla's pop-ups as one small ZeD window
--- Mockup ZeDUI/mockups/zed_dialogs_v1.html (approved Oct 15 2026: vanilla's
--- placement, the ZeD keyboard). HOOK_MAP row 28; the hooks that open it are in
--- Overrides/Prompts.lua, the keyboard is ZeD_Keyboard.lua.
+-- O05: THE PROMPT — vanilla's pop-ups as one small ZeD window. Client
+-- organism (ZeD_Prompt derives ZeD_Window). The hooks that open it are in
+-- Overrides/Prompts.lua; a controller on its text field gets the ZeD
+-- keyboard (ZeD_Keyboard.lua), which Overrides/Prompts.lua puts in place of
+-- vanilla's on-screen one.
 --
 -- Every vanilla question, note, text box, long rich-text note, Set Alarm and
 -- Set Timer opens this instead: the striped bar with the close box and no
@@ -617,8 +618,7 @@ function ZeD_Prompt:addToUIManager()
         local p = n and getSpecificPlayer(n)
         if not (p and p:getJoypadBind() ~= -1) then self.entry:focus() end
         -- a one-line field's default (a list's name, a mod's question) is selected: typing replaces it, from the
-        -- keys or the controller's keyboard (ZeD.selectDefault; the outside review, Nov 7 2026). A note on several
-        -- lines keeps its caret at the end.
+        -- keys or the controller's keyboard (ZeD.selectDefault). A note on several lines keeps its caret at the end.
         local multi = false
         pcall(function() multi = self.entry.javaObject ~= nil and self.entry:isMultipleLine() end)
         if not multi and ZeD.selectDefault then ZeD.selectDefault(self.entry) end
@@ -630,6 +630,7 @@ function ZeD_Prompt:removeFromUIManager()
     ISUIElement.removeFromUIManager(self)
 end
 
+--- The prompt on top (the last opened that is still on screen), or nil; Escape and Enter go to it.
 function P.top()
     for i = #P.open, 1, -1 do
         local p = P.open[i]
@@ -665,15 +666,16 @@ function ZeD_Prompt:answers()
     return { self.no, self.yes }
 end
 
--- "D-pad Move" (a line of UI.json) as the button's picture and its words: the first word
--- names the button
+--- A help-line prompt from a line of UI.json such as "D-pad Move": the first word names the
+--- button, so it becomes { glyph, label }, the button's picture and its words. A line whose first
+--- word is no button stays a plain string.
 local function padNote(s)
     local first, rest = tostring(s):match("^(%S+)%s+(.+)$")
     local PG = ZeD.PadGlyphs
     if first and PG and PG.roles(ZeD.upper(first)) then return { glyph = ZeD.upper(first), label = rest } end
     return tostring(s)   -- (a plain note: the line draws it dim)
 end
-P.padNote = padNote   -- (the keyboard's help line reads its D-pad prompt the same way)
+P.padNote = padNote   -- (the keyboard's, the reader's, chat's and other help lines read their D-pad prompts the same way)
 
 -- what the buttons do here, for the window's help line
 function ZeD_Prompt:padPrompts()
@@ -1299,7 +1301,7 @@ function ZeD_Prompt:update()
         local mm = JoypadState.getMainMenuJoypad()
         if mm and mm.focus == self then jf = mm end
     end
-    if P.qaJoy then jf = P.qaJoy end   -- QA: the controller look without a controller (zedqa_prompts.lua)
+    if P.qaJoy then jf = P.qaJoy end   -- (a test hook: zedqa_prompts.lua shows the controller look without a controller)
     if jf ~= self.joyfocus then
         self.joyfocus = jf
         if jf then self:buildFocusRows() end
@@ -1410,6 +1412,7 @@ end
 -- ---------------------------------------------------------------------------
 -- builders the hooks call (vanilla's :new arguments, unchanged)
 -- ---------------------------------------------------------------------------
+--- ISModalDialog:new as a prompt: a question with yesno, else a note.
 function P.question(x, y, width, height, text, yesno, target, onclick, player, param1, param2)
     text = tostring(text or ""):gsub("\\n", "\n")
     local cx, cy = P.anchor(x, y, width, height, player)
@@ -1418,6 +1421,7 @@ function P.question(x, y, width, height, text, yesno, target, onclick, player, p
     return o
 end
 
+--- ISModalRichText:new (and the collapsible one) as a prompt.
 function P.rich(x, y, width, height, text, yesno, target, onclick, player, param1, param2)
     local cx, cy = P.anchor(x, y, width, height, player)
     local o = ZeD_Prompt:new("rich", cx, cy, player)
@@ -1427,6 +1431,7 @@ function P.rich(x, y, width, height, text, yesno, target, onclick, player, param
     return o
 end
 
+--- ISTextBox:new as a prompt.
 function P.textBox(x, y, width, height, text, defaultEntryText, target, onclick, player, param1, param2, param3, param4)
     local cx, cy = P.anchor(x, y, width, height, player)
     local o = ZeD_Prompt:new("text", cx, cy, player)
@@ -1438,6 +1443,7 @@ function P.textBox(x, y, width, height, text, defaultEntryText, target, onclick,
     return o
 end
 
+--- ISAlarmClockDialog:new as a prompt.
 function P.alarm(x, y, width, height, player, alarm)
     local cx, cy = P.anchor(x, y, width, height, player, true)
     local o = ZeD_Prompt:new("alarm", cx, cy, player)
@@ -1447,6 +1453,7 @@ function P.alarm(x, y, width, height, player, alarm)
     return o
 end
 
+--- ISBombTimerDialog:new as a prompt.
 function P.timer(x, y, width, height, prompt, time, player, target, targetFunc, param1, param2, param3, param4)
     local num = player and player.getPlayerNum and player:getPlayerNum() or 0
     local cx, cy = P.anchor(x, y, width, height, num, true)

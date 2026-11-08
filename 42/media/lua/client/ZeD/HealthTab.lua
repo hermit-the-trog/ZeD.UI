@@ -1,11 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/HealthTab.lua
 -- ============================================================================
--- HEALTH TAB — body figure + dashboard layout.
--- Zone A (fixed): body figure (left) + health summary or hover detail (right).
--- Zone B (scrollable): severity-sorted injury list with condition badges.
--- Adds BodyFigure, replaces flat list with figure+dashboard.
--- Footer band (Oct 30 2026, punch list 21): the exercise pop-up, the session time
--- and Start; the body's right column carries the picked exercise's description.
+-- HEALTH TAB — client; the Character window's Health tab ("health" in its
+-- tab dispatch table). Under a pinned header, whose disclosure folds the
+-- figure away, the body scrolls. Zone A: the body figure; beside it the health
+-- summary and the picked exercise's description, or the hovered or focused
+-- part's detail. Zone B: the injury list, worst first, with condition tags.
+-- The footer band is pinned: the exercise pop-up, the session time, Start.
+-- What the tab reveals follows vanilla's health panel at the viewer's First
+-- Aid level, and a part's treatment menu is vanilla's own. Other mods add
+-- wound details through EXTRAS; the medical check of another player
+-- (ObjectCardMedic.lua) reuses these pieces.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -18,8 +22,8 @@ require "XpSystem/ISUI/ISHealthPanel"
 ZeD = ZeD or {}
 ZeD.HealthTab = {}
 
--- (Nov 7 2026, perf review #12) the tab's data refresh runs on the clock, not on frames drawn: 15
--- frames was 250 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once periodMs has
+-- The tab's data refresh runs on the clock, not on frames drawn: 15 frames is 250 ms at 60 FPS
+-- but runs 2.4-4 times as often at 144-240 Hz. True once periodMs has
 -- passed since owner[key] (or on the first call, or forced: the cache was dropped). The runs keep a
 -- beat of periodMs; a forced run, or one after a gap (the tab not drawn), starts the period again,
 -- as the frame count went back to 0. A window's first run starts at its own
@@ -68,7 +72,8 @@ local function focusOf(win, id)
 end
 
 -- ============================================================================
--- ANATOMICAL DISPLAY NAMES (medic-style per feedback rule)
+-- ANATOMICAL DISPLAY NAMES (medic-style: "Left Thigh", "Left Shin" where the
+-- figure says Upper / Lower Leg)
 -- Lazy-initialized on first use to ensure BodyPartType Java enum is available.
 -- ============================================================================
 
@@ -212,7 +217,7 @@ ZeD.HealthTab.sevColor = sevColor
 -- can miss; severity words ("Severe", "Moderate", "Good") appear only at the
 -- First Aid levels where vanilla's doctor can judge them. doctorLevel is the
 -- viewing character's First Aid level.
--- (Nov 7 2026) What the character knows without looking is marked care = true:
+-- What the character knows without looking is marked care = true:
 -- pain, stiffness and the care already given (bandage, stitches, splint,
 -- poultice). A mod that holds a part's diagnosis back (EXTRAS below: holds) keeps
 -- only those for the part.
@@ -221,9 +226,9 @@ local function qualify(label, word)
     return label
 end
 
--- (Nov 7 2026, perf review #12) each getter the rules read more than once is read once into a
+-- Each getter the rules read more than once is read once into a
 -- local (the same values: nothing changes the part in between); the part's stiffness and pain go
--- back to gatherData, which used to read them again.
+-- back to gatherData, so it does not read them again.
 local function classifyConditions(bp, doctorLevel)
     local conds = {}
     local doc = doctorLevel or 0
@@ -367,9 +372,9 @@ local function getHealthColor(health)
 end
 
 -- ============================================================================
--- EXTRAS (Oct 29 2026) -- the general way for another mod's support file
+-- EXTRAS -- the general way for another mod's support file
 -- (ModSupport/<mod id>.lua) to add its own wound details to a body part without
--- touching this file again. Nothing is added until an extra is registered, so the
+-- touching this file. Nothing is added until an extra is registered, so the
 -- tab is exactly as built without one. An extra is a table:
 --   partLines(playerObj, bodyPart)
 --       -> nil, or a list of { text = "...", color = {r,g,b}, severity = "danger" |
@@ -378,23 +383,26 @@ end
 --          mod's colour, the words in the default ink) and as tags on the part's row
 --          in the injury list (the square follows the severity; "warning" when none
 --          is given). A part with such a line counts as injured and is listed.
---   holds(playerObj, bodyPart)                                   (Nov 7 2026)
+--   holds(playerObj, bodyPart)
 --       -> true while the mod holds that part's diagnosis back (an examination it
 --          asks for first): the part keeps only the conditions the character knows
 --          without looking (care = true in the classifier), and the mod's own
 --          partLines say what it wants said instead.
---   openPart(playerObj, bodyPart, panel, x, y)                   (Nov 7 2026)
+--   openPart(playerObj, bodyPart, panel, x, y)
 --       -> true when the mod opened the part's menu itself (right-click on the
 --          figure or an injury row, A on the controller). panel is the stand-in
 --          for the game's health panel that the game's menu is built from; x, y are
 --          where the menu opens, from its origin. Anything else, or an error, and
 --          the tab opens the game's menu as it always has.
 -- Every call goes through pcall; ZeD keeps no copy of the mod's data (the lines are
--- read again each time the tab re-reads the body). First used by
--- ModSupport/WoundExpansion.lua; holds and openPart by ModSupport/WoundsOverhaul.lua.
+-- read again each time the tab re-reads the body). Users today:
+-- ModSupport/WoundExpansion.lua (partLines) and ModSupport/WoundsOverhaul.lua
+-- (all three).
 -- ============================================================================
 ZeD.HealthTab.extras = ZeD.HealthTab.extras or {}
 
+--- Register another mod's extra under id (a second call with the same id
+--- replaces it); def holds the fields described in EXTRAS above.
 function ZeD.HealthTab.addExtras(id, def)
     for i, e in ipairs(ZeD.HealthTab.extras) do
         if e.id == id then ZeD.HealthTab.extras[i] = def; def.id = id; return end
@@ -462,12 +470,13 @@ end
 
 -- ============================================================================
 -- DATA AGGREGATION
--- Extended for body figure: partHealth + condsByFigureName.
+-- One read of the body: the injury list, plus the maps the figure draws from
+-- (partHealth, condsByFigureName, extraByFigureName, partByFigure).
 -- ============================================================================
 
 local _typeToFigure, _typeToFigureFrom = nil, nil   -- BodyPartType -> figure name, per BODY_PART_TYPES
 
--- opts (Nov 7 2026, the medical check of another player; nil for your own Health tab):
+-- opts (the medical check of another player; nil for your own Health tab):
 --   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
 --   bodyDamage   the body to read: on a server another player's is their remote copy
 --                (getBodyDamageRemote, as vanilla's health panel reads it), else getBodyDamage
@@ -554,7 +563,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         entries           = entries,
         totalParts        = nParts,
         injuredCount      = #entries,
-        -- S123: "injured" means a wound/condition; reduced health alone (hunger,
+        -- "injured" means a wound/condition; reduced health alone (hunger,
         -- sickness, cold) is listed but not called an injury.
         woundedCount      = (function() local c = 0; for _, e in ipairs(entries) do if #e.conditions > 0 then c = c + 1 end end; return c end)(),
         partHealth        = partHealth,
@@ -571,7 +580,7 @@ end
 
 function ZeD.HealthTab._ensureBodyFigure(win)
     if not win._healthBodyFigure then
-        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- S124 scale: placeholder size, drawAt() is given the real (scaled) rect
+        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- placeholder size: drawAt() is given the real (scaled) rect
         fig:initialise()
         fig:loadTextures()
         win._healthBodyFigure = fig
@@ -593,10 +602,9 @@ function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
         fig:setPartColor(figureName, color.r, color.g, color.b, 0.65)
     end
 
-    -- S103: read the authoritative _healthActivePart resolved at the top of
-    -- HealthTab.render (gp focus overrides mouse hover). Replaces the inline
-    -- Focus lookup that S101 used — single source of truth now that the
-    -- detail-view branch and the figure both consume the same value.
+    -- Read the _healthActivePart resolved at the top of HealthTab.render (the
+    -- controller's focus overrides mouse hover): one source of truth, so the
+    -- detail view and the figure always show the same part.
     fig.selectedPart = win._healthActivePart or nil
 
     -- the controller's mark on a focused part: its washes go under the figure (this
@@ -621,6 +629,8 @@ end
 -- all 13 treatment handlers without duplication.
 -- ============================================================================
 
+--- Open the treatment menu for one part, named as the figure or the injury
+--- list names it. The controller's path passes no panel or position.
 function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     ensureFigureToBPType()
     local bpType = FIGURE_TO_BPTYPE[figureName]
@@ -638,13 +648,13 @@ function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     ZeD.HealthTab.treat(playerObj, nil, bp, anchor, relX or 0, relY or 0, nil)
 end
 
--- The game's treatment menu for one body part, through a thin adapter that stands in for
--- vanilla's ISHealthPanel (ISHealthPanel:doBodyPartContextMenu and its 13 handlers, unchanged):
--- character = the patient, otherPlayer = the doctor when it is someone else (vanilla's
--- setOtherPlayer: a medical check of another player), so every handler's getDoctor and getPatient
--- and the game's own timed actions are vanilla's. blocking = vanilla's blockingMessage (too far
--- away): the menu is built and kept hidden, as vanilla does. The menu opens at (rx, ry) in the
--- anchor panel; with a controller it takes the focus as vanilla's does.
+--- The game's treatment menu for one body part, through a thin adapter that stands in for
+--- vanilla's ISHealthPanel (ISHealthPanel:doBodyPartContextMenu and its 13 handlers, unchanged):
+--- character = the patient, otherPlayer = the doctor when it is someone else (vanilla's
+--- setOtherPlayer: a medical check of another player), so every handler's getDoctor and getPatient
+--- and the game's own timed actions are vanilla's. blocking = vanilla's blockingMessage (too far
+--- away): the menu is built and kept hidden, as vanilla does. The menu opens at (rx, ry) in the
+--- anchor panel; with a controller it takes the focus as vanilla's does.
 function ZeD.HealthTab.treat(patient, doctor, bp, anchor, rx, ry, blocking)
     if not (patient and bp and anchor) then return end
     -- no menu for the doctor's player (the character died: the game drops its UI data): nothing to open
@@ -705,7 +715,7 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     curY = curY + barH + T.sp.xs
 
     -- Summary line
-    -- S123: count WOUNDS, not low health. A hungry character with every part
+    -- Count WOUNDS, not low health. A hungry character with every part
     -- at 77% is not "17 of 17 injured"; low health shows as a dim note.
     local wounded = data.woundedCount or data.injuredCount
     if wounded == 0 then
@@ -729,7 +739,8 @@ end
 
 -- ============================================================================
 -- ZONE A RIGHT COLUMN: HOVER DETAIL VIEW
--- Shows health + conditions for the hovered body part.
+-- Shows health + conditions for the hovered body part (the medical check of
+-- another player, ObjectCardMedic.lua, draws the same view).
 -- Returns curY (bottom of detail content).
 -- ============================================================================
 
@@ -796,8 +807,7 @@ end
 -- ============================================================================
 
 -- The exercises, in the order the footer band's pop-up lists them: the bodyweight
--- ones, then the ones that need equipment (Oct 30 2026: the seven buttons became
--- that pop-up)
+-- ones, then the ones that need equipment
 local EXERCISES = {
     "squats", "pushups", "situp", "burpees",
     "barbellcurl", "dumbbellpress", "bicepscurl",
@@ -998,8 +1008,8 @@ local function drawExerciseInfo(panel, x, y, w, lay, info)
     end
 end
 
--- The exercise the footer band's pop-up has picked (what the info describes and
--- Start does), per window; vanilla's preselected squats until one is picked.
+--- The exercise the footer band's pop-up has picked (what the info describes and
+--- Start does), per window; vanilla's preselected squats until one is picked.
 function ZeD.HealthTab.selectedExercise(win)
     return win and win._healthExerciseSel or "squats"
 end
@@ -1049,10 +1059,9 @@ function ZeD.HealthTab._startExercise(playerObj, exerciseId, minutes)
 end
 
 -- ----------------------------------------------------------------------------
--- THE FOOTER BAND (Oct 30 2026, punch list 21): the exercise as a pop-up menu and
--- the session time (- 10 +) at the left, Start at the right (pick, then act, as
--- Craft). The seven exercise buttons are gone. Start does what the buttons did:
--- the same guards (canStart), the same vanilla fitness action (_startExercise).
+-- THE FOOTER BAND: the exercise as a pop-up menu and the session time (- 10 +)
+-- at the left, Start at the right (pick, then act, as Craft). Start keeps
+-- vanilla's guards (canStart) and runs vanilla's fitness action (_startExercise).
 -- ----------------------------------------------------------------------------
 
 -- true while the character is in the middle of a fitness session
@@ -1061,8 +1070,8 @@ local function isExercising(playerObj)
     return (q ~= nil and q.queue ~= nil and q.queue[1] ~= nil and q.queue[1].Type == "ISFitnessAction")
 end
 
--- Start's guards, as the exercise buttons had them: the global rules (vanilla
--- ISFitnessUI:updateButtons), no session already running, the picked exercise's item
+-- Start's guards: the global rules (vanilla ISFitnessUI:updateButtons), no
+-- session already running, the picked exercise's item
 function ZeD.HealthTab.canStart(win)
     local p = win and win._playerObj
     if not p then return false end
@@ -1070,8 +1079,8 @@ function ZeD.HealthTab.canStart(win)
         and isExerciseAvailable(p, ZeD.HealthTab.selectedExercise(win))
 end
 
--- Start: the picked exercise for the chosen time, through vanilla's fitness action.
--- Returns true when it started one.
+--- Start: the picked exercise for the chosen time, through vanilla's fitness action.
+--- Returns true when it started one.
 function ZeD.HealthTab.startSelected(win)
     if not ZeD.HealthTab.canStart(win) then return false end
     ZeD.HealthTab._startExercise(win._playerObj, ZeD.HealthTab.selectedExercise(win),
@@ -1079,8 +1088,8 @@ function ZeD.HealthTab.startSelected(win)
     return true
 end
 
--- The session time's - and +: one step (a multiple of 10 minutes), kept inside 10 to 60.
--- Returns true when the time changed.
+--- The session time's - and +: one step (a multiple of 10 minutes), kept inside 10 to 60.
+--- Returns true when the time changed.
 function ZeD.HealthTab.stepMinutes(win, step)
     if not win then return false end
     local was = ZeD.HealthTab.getExerciseMinutes(win)
@@ -1089,13 +1098,14 @@ function ZeD.HealthTab.stepMinutes(win, step)
     return m ~= was
 end
 
--- the exercise pop-up list: opened by the box, shut by a pick, a click anywhere else or B;
--- the pad returns to the box it came from (_healthReturnToMenu, read by the tab's focusables)
+--- The exercise pop-up list: opened by the box, shut by a pick, a click anywhere else or B;
+--- the pad returns to the box it came from (_healthReturnToMenu, read by the tab's focusables)
 function ZeD.HealthTab.openMenu(win)
     win._healthMenuOpen = true
     win._healthMenuZones = nil
 end
 
+--- Shut the list; pickId, when given, becomes the picked exercise.
 function ZeD.HealthTab.closeMenu(win, pickId)
     if pickId then win._healthExerciseSel = pickId end
     win._healthMenuOpen = false
@@ -1107,9 +1117,9 @@ local function inRect(r, x, y)
     return r ~= nil and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h
 end
 
--- The mouse path through the band: an open list takes every press (a pick or shut it);
--- else the box opens it, - and + step the time, Start starts. Returns true when the press
--- was the band's (the whole band swallows it).
+--- The mouse path through the band: an open list takes every press (a pick or shut it);
+--- else the box opens it, - and + step the time, Start starts. Returns true when the press
+--- was the band's (the whole band swallows it).
 function ZeD.HealthTab.onClick(win, x, y)
     if win._healthMenuOpen then
         for _, z in ipairs(win._healthMenuZones or {}) do
@@ -1226,8 +1236,8 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     local blockW = lblW + bh + readW + bh
     -- the box is never narrower than its choice and its arrow ("Squats" v): short of that,
     -- the time's label goes first, then the spaces close up (the edge, the gaps, the
-    -- readout's margin) (Oct 31 2026, break-it B2: at 1280x720, UI scale 2.0, Large text
-    -- the box read "S...")
+    -- readout's margin) (at 1280x720, UI scale 2.0 and Large text the box would
+    -- otherwise read "S...")
     local exName = ZeD.HealthTab.exerciseLabel(sel)
     local need = M.popupMenuW(exName)
     if startX - gap - blockW - gap - boxX < math.max(need, math.min(nat, T.px(130))) then
@@ -1255,7 +1265,7 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpPick")) end
     M.drawPopupMenu(panel, boxX, by, boxW, bh,
         ZeD.tr("UI_ZeD_Health_ExercisePick", exName),
-        hov or open, focusOf(win, "health:exercise"), false, exName)   -- (the name alone when both do not fit, break-it B2)
+        hov or open, focusOf(win, "health:exercise"), false, exName)   -- (the name alone when both do not fit)
     setRect(bz.box, boxX, by, boxW, bh)
 end
 
@@ -1364,16 +1374,16 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
-    -- Right column: summary section (heading moved to disclosure header)
+    -- Right column: summary section (its heading lives in the disclosure header)
     local rightH = 0
     local statRowH = math.max(secH, ZeD.TM:getFontHeight(T.fontF2)) + T.px(4)
     rightH = rightH + statRowH + T.sp.rowGap
     rightH = rightH + T.fillBarH + T.sp.xs + secH + T.sp.sm
 
-    -- Right column: the picked exercise's info block (its buttons are the footer band's now)
+    -- Right column: the picked exercise's info block (its controls are the footer band's)
     rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)
 
-    return math.max(T.sp.figureH, rightH)   -- the figure at the whole zoom it draws at (Oct 21 2026)
+    return math.max(T.sp.figureH, rightH)   -- the figure at the whole zoom it draws at
 end
 
 -- ============================================================================
@@ -1386,9 +1396,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local M    = ZeD.Molecules
     local pad  = M.getTabPad()
 
-    -- (Oct 30 2026, punch list 21 a-f: the exercise list no longer shuts when a draw comes
-    -- 300 ms late, as a hitch or a screenshot made it; the window shuts it through closeMenu
-    -- when the tab is left, the drawer folds or an item card opens over it)
+    -- (the exercise list never shuts itself when a draw comes late, as a hitch or a
+    -- screenshot can make one; the window shuts it through closeMenu when the tab is
+    -- left, the drawer folds or an item card opens over it)
 
     -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
     if dueMs(win, "_healthAt", 250, not win._healthCache) then
@@ -1399,7 +1409,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- Font metrics
     local bodyH  = ZeD.TM:getFontHeight(T.fontF2)
 
-    -- S101 gamepad integration. Stash the content panel so _onPartClicked
+    -- For the controller: stash the content panel so _onPartClicked
     -- (called from injury-row / body-part onActivate) can anchor the vanilla
     -- treatment context menu even though callers don't pass drawerPanel.
     -- Capture LAST frame's injury Y-map before clearing so scroll-follow can
@@ -1415,16 +1425,15 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local scroll  = win._healthScroll
     local scrollW = T.sp.scrollbarW
 
-    -- Pinned header: 37px disclosure strip
+    -- Pinned header: the disclosure strip (37 design units)
     local headerH = M.getTabHeaderH()
     local padTop  = M.getTabPadTop()
     local figureExpanded = win._healthFigureExpanded
 
-    -- S103 — resolve "active" body part: gamepad focus on a body-part element
-    -- overrides mouse hover so D-pad through parts live-swaps the right-column
-    -- detail view (Thermal parity; S101 deferred this, S103 ships it). Stashed
-    -- on win so both the detail-view branch and _drawBodyFigure read the same
-    -- authoritative value.
+    -- Resolve the "active" body part: the controller's focus on a body-part
+    -- element overrides mouse hover, so the D-pad through the parts live-swaps
+    -- the right column's detail view (as the Thermal tab does). Stashed on win
+    -- so both the detail-view branch and _drawBodyFigure read the same value.
     -- (the live element: the controller's focus leads only while the controller is
     -- in use, so the mouse's hover leads again once the mouse moves)
     local activePart = win._healthHoveredPart
@@ -1435,11 +1444,11 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     end
     win._healthActivePart = activePart
 
-    -- S103: stamp disclosure hit-zone EARLY so the first prerender after a
-    -- tab-switch sees valid bounds and the disclosure focusable builds into
-    -- element[1]. Same one-frame-lag problem that SkillsTab had: late-stamped
-    -- zones leave idx=1 pointing at the first exercise pill instead of the
-    -- disclosure on entry, so users can't L-collapse the figure immediately.
+    -- Stamp the disclosure hit-zone EARLY so the first prerender after a tab
+    -- switch sees valid bounds and the disclosure focusable builds into
+    -- element[1]. A late stamp lags a frame (the SkillsTab trap too): element
+    -- 1 would point at another stop instead of the disclosure on entry, so the
+    -- figure could not be folded at once.
     win._healthFigureZone = { x = x, y = y, w = w, h = headerH }
 
     -- Zone A body: figure + dashboard (only when expanded)
@@ -1460,12 +1469,12 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         end
     end
 
-    -- Oct 23 2026 (director: "cannot see the bottom of the health tab"): the
-    -- scroll range covers what the last frame really drew too (the right
-    -- column's detail view and wrapped badge rows can run past the measure)
+    -- The scroll range covers what the last frame really drew too, so the
+    -- bottom of the tab is always reachable (the right column's detail view
+    -- and wrapped badge rows can run past the measure)
     local totalContentH = math.max(padTop + zoneABodyH + zoneBH, win._healthDrawnH or 0)
     local scrollY = y + headerH
-    -- the footer band is pinned at the card's foot (Oct 30 2026): the body scrolls between it and the header
+    -- the footer band is pinned at the card's foot: the body scrolls between it and the header
     local bandH = M.bandH()
     local bandY = y + h - bandH
     local scrollH = h - headerH - bandH
@@ -1482,23 +1491,20 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
 
-    -- S101 gamepad scroll-follow for injury list. Runs only when the live
-    -- focused ring element is an injury row (Focus.getFocusedElement returns
-    -- the zone's current element; el.injuryKey is unique to injury elements).
-    -- Reads last frame's stamped entry-start Y and adjusts scroll.scrollPos
-    -- BEFORE scrollOff is computed. One-frame lag, mirrors EquipmentTab pattern.
-    -- S103 DELTA GATE: only pin scroll when the focused injuryKey actually
-    -- CHANGED. Mode-gate approach (getMode() == "gamepad") was unreliable
-    -- because the detector oscillates kbm↔gamepad within consecutive frames,
-    -- so a KBM mousewheel past the focused row could snap back on any
-    -- frame that briefly reported "gamepad". Delta gate fires exactly once
-    -- per focus change regardless of mode.
-    -- Oct 23 2026: the same for every stop in the body (body parts, injuries),
-    -- keyed on the element's id. The lowest stop scrolls as far down as it can
-    -- while staying in view, so the text under it (the last injury) can be read
-    -- on the pad; the header's disclosure scrolls back to the top. The band's
-    -- stops are pinned (bandStop): they never scroll the body and are not
-    -- counted as "below" a body stop.
+    -- Controller scroll-follow for every stop in the body (body parts, injury
+    -- rows, the header's disclosure), keyed on the element's id. Reads last
+    -- frame's stamped entry-start Y and adjusts scroll.scrollPos BEFORE
+    -- scrollOff is computed: one frame of lag, the EquipmentTab pattern.
+    -- DELTA GATE: the scroll is pinned only when the focused stop CHANGED.
+    -- Gating on the mode (getMode() == "gamepad") is unreliable: the detector
+    -- can swing kbm↔gamepad between consecutive frames, so a mouse-wheel scroll
+    -- past the focused row would snap back on any frame that briefly read
+    -- "gamepad". The delta gate fires exactly once per focus change, whatever
+    -- the mode. The lowest stop scrolls as far down as it can while staying in
+    -- view, so the text under it (the last injury) can be read on the pad; the
+    -- header's disclosure scrolls back to the top. The band's stops are pinned
+    -- (bandStop): they never scroll the body and are not counted as "below" a
+    -- body stop.
     if needsScroll then
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedElement
@@ -1508,9 +1514,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         if focKey and focKey ~= win._lastPinnedInjuryKey then
             local span    = math.max(1, totalContentH - scrollH)
             local oldOff  = math.floor(scroll.scrollPos * span)
-            -- (Oct 30 2026, punch list 21 a-f: the stops are clipped to the view, fullY / fullH
-            -- keep the whole rect; the lowest stop SHOWN scrolls the body on so the ones under
-            -- it come into view, and Up onto the highest one shown scrolls back the same way)
+            -- (the stops are clipped to the view, fullY / fullH keep the whole rect; the
+            -- lowest stop SHOWN scrolls the body on so the ones under it come into view,
+            -- and Up onto the highest one shown scrolls back the same way)
             local elY, elH = el.fullY or el.y, el.fullH or el.h
             if el.injuryKey and lastInjuryYMap[el.injuryKey] then elY = lastInjuryYMap[el.injuryKey] end
             local target = oldOff
@@ -1539,7 +1545,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
                 elseif logicalY + elH > oldOff + scrollH then
                     target = logicalY + elH - scrollH
                 end
-                -- whatever the rule, the focused stop ends whole in view (rule 3: never under the band)
+                -- whatever the rule, the focused stop ends whole in view (never under the band)
                 if logicalY + elH > target + scrollH then target = logicalY + elH - scrollH end
                 if logicalY < target then target = logicalY end
             end
@@ -1562,7 +1568,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- ================================================================
     -- ZONE A BODY: figure (left) + dashboard (right) — scrolls
     -- ================================================================
-    -- (_healthFigureZone is stamped at the TOP of render now, not here)
+    -- (_healthFigureZone is stamped at the TOP of render, not here)
 
     if figureExpanded then
         local layout = M.layoutZoneA(x, curY, contentW, T.sp.figureW, T.sp.figureH)
@@ -1570,8 +1576,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         ZeD.HealthTab._drawBodyFigure(panel, win, data,
             layout.figX, layout.figY, T.sp.figureW, T.sp.figureH)
 
-        -- S103: detail-view now reads _healthActivePart (gp focus overrides
-        -- mouse hover); previously only _healthHoveredPart drove the swap.
+        -- The detail view reads _healthActivePart (the controller's focus
+        -- overrides mouse hover).
         local activePart = win._healthActivePart
         local rightBottom
         if activePart and data.partHealth[activePart] then
@@ -1582,8 +1588,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
                 layout.rightX, layout.rightY, layout.rightW)
         end
 
-        -- (Oct 23 2026: a right column taller than the measure pushes the
-        -- injury list down instead of running under it)
+        -- (a right column taller than the measure pushes the injury list
+        -- down instead of running under it)
         curY = math.max(curY + zoneABodyH, (rightBottom or 0) + padTop + pad)
     end
 
@@ -1634,7 +1640,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             A.drawDividerH(panel, listX, curY, listW)
             curY = curY + T.px(1) + T.sp.afterGroove
 
-            -- S101 stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
+            -- Stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
             -- and scroll-follow above). Height = actual drawn extent including wrapped
             -- tag rows + divider gap.
             win._healthInjuryYMap[entry.name] = entryStartY
@@ -1679,6 +1685,8 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Put the tab's renderer in a window's tab dispatch table (the Character
+--- window's, under "health").
 function ZeD.HealthTab.register(dispatchTable)
     dispatchTable["health"] = ZeD.HealthTab.render
 end

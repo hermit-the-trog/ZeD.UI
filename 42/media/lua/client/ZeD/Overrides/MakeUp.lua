@@ -1,13 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/MakeUp.lua
 -- ============================================================================
--- MAKE-UP (vanilla windows B9; the director, Nov 7 2026: "Makeup is supposed
--- to go with the hair"). The inventory make-up item's Make Up option
+-- MAKE-UP (override, client). Make-up belongs with the hair, so it lives on
+-- the Identity tab. The inventory make-up item's Make Up option
 -- (ISInventoryPaneContextMenu.onMakeUp, which the game's menu offers greyed
 -- with "needs a mirror" when there is none) opened ISMakeUpUI. It now opens
 -- the Character window's Identity tab on the Hair and beard section's Make Up
 -- part, that item's spots first (ZeD_MakeUp.open, ZeD_HairBeard.showMakeUp).
 -- The game's window opens only when ZeD's Character window cannot (its ZeD
--- screens switch for windows, safe mode, a failure).
+-- screens switch for windows, safe mode, a failure). The hook keeps vanilla's
+-- function once (_zedMakeUp), so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

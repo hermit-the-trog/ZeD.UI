@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ReadMarks.lua
 -- ============================================================================
--- READ MARKS in the item lists (mockup ZeDUI/mockups/zed_read_marks_v1.html, style B; approved Oct 26 2026).
+-- READ MARKS in the item lists — client; a helper, no component of its own
+-- (InventoryRenderer and ItemFactsPanel ask it for statuses and marks).
 --
 -- The game remembers what the character has read: the pages read in each skill book, the maps, fliers and
 -- brochures, the titled books, the tapes and discs, the recipes known. This reads those records (the same
@@ -15,6 +16,8 @@
 -- for part read (or some recipes known), full for read; the accent for unread and part read, the green "good"
 -- colour for read. A skill book below the character's level counts as read (the game teaches nothing more
 -- from it). "Dim read items" in ZeD setup (off by default) fades the read ones.
+-- One thing to know: statuses are cached for a second (R.state), so a page
+-- just read can take up to a second to show in the list.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -39,6 +42,7 @@ ZeD.trDefaults({
 
 local CACHE_MS = 1000     -- a list asks for every visible row each frame: the records are read again once a second
 
+-- o:m(...), or nil. The game's Java side can throw; pcall turns a crash into a nil we can test.
 local function call(o, m, ...)
     if o == nil then return nil end
     local f = o[m]
@@ -86,7 +90,7 @@ local function skillBook(p, item, s)
         s.lines = { getText("Tooltip_literature_HasBeenRead"), pagesLine }
     elseif done > 0 then
         s.st, s.word = "p", ZeD.tr("UI_ZeD_Read_Pages", done, pages)
-        s.short = tostring(math.floor(done * 100 / pages)) .. "%"   -- (a narrow COND column)
+        s.short = tostring(math.floor(done * 100 / pages)) .. "%"   -- (the short word, for a narrow COND column)
         s.lines = { pagesLine }
     else
         s.st, s.word = "u", ZeD.tr("UI_ZeD_Read_Unread")
@@ -132,8 +136,10 @@ local function readOrNot(s, read)
     return s
 end
 
--- The status of an item for a player, or nil when it is nothing the game keeps a read record for:
--- { st = "u" | "p" | "r", word = the COND column's word, lines = the hover text, next = "Mechanics 4" or nil }
+--- The status of an item for a player, or nil when it is nothing the game keeps a read record for:
+--- { st = "u" | "p" | "r", word = the COND column's word, short = a shorter word for a narrow column or nil,
+---   lines = the hover text, next = "Mechanics 4" or nil }
+--- Not cached and not gated by ZeD setup; the lists use R.state.
 function R.compute(p, item)
     if not (p and item) then return nil end
     local s = {}
@@ -184,7 +190,8 @@ function R.compute(p, item)
     return nil
 end
 
--- the same, kept for a second (per player and item; the whole table starts over each second and at a language change)
+--- R.compute's answer, kept for a second (keyed by item; the whole table starts over each second, at a
+--- language change, and when a different player asks). Nil while read marks are off in ZeD setup.
 local _cache, _cacheAt, _cacheGen, _cacheP = {}, 0, nil, nil
 local NONE = {}
 function R.state(p, item)
@@ -205,8 +212,8 @@ function R.state(p, item)
 end
 function R.clear() _cache, _cacheAt = {}, 0 end
 
--- ZeD setup's switches: "Read marks in item lists", "Next level on skill books" (both off for a new player since
--- Oct 30 2026, the Vanilla preset); off, the lists are as before
+--- ZeD setup's switches: "Read marks in item lists", "Next level on skill books" (both off for a new player,
+--- the Vanilla preset); off, the lists are as before
 function R.on()
     local S = ZeD.Settings
     return S and S.readMarksOn and S.readMarksOn() or false
@@ -216,7 +223,7 @@ function R.nextOn()
     return S and S.readNextOn and S.readNextOn() or false
 end
 
--- "Dim read items" (ZeD setup, off by default)
+--- "Dim read items" (ZeD setup, off by default)
 function R.dimOn()
     local S = ZeD.Settings
     return S and S.dimReadOn and S.dimReadOn() or false
@@ -251,11 +258,11 @@ R.UP_W, R.UP_H = 5, 4
 
 local function k() local T = ZeD.T; return math.max(1, (T and T.art) or 1) end
 R.k = k
--- the mark's side: the one status square (6u)
+--- The mark's side in pixels: the one status square (6u).
 function R.markSize() return ZeD.T.px(6) end
-R.DOT_W = 6   -- (design units; older readers measured the mark from it with k())
--- the COND column's room for the mark and the short statuses (Unread, Read, Known) in F3, with the
--- mark's own lead (InventoryRenderer sizes the column from it)
+R.DOT_W = 6   -- (kept under its old name: callers once sized the mark as DOT_W * k(); R.markSize() is the size now)
+--- The COND column's room for the mark and the short statuses (Unread, Read, Known) in F3, with the
+--- mark's own lead (InventoryRenderer sizes the column from it).
 function R.wordRoom()
     local T, tm = ZeD.T, ZeD.TM
     local w = 0
@@ -269,7 +276,7 @@ function R.color(st)
     local T = ZeD.T
     return (st == "r") and T.positive or (T.accentText or T.accent)
 end
--- the status square with its top left at x, y: full (read), its left half filled (part read), hollow (unread)
+--- The status square with its top left at x, y: full (read), its left half filled (part read), hollow (unread).
 function R.drawMark(el, x, y, st)
     local A = ZeD.Atoms
     local c = R.color(st)
@@ -279,7 +286,8 @@ function R.drawMark(el, x, y, st)
     else A.drawStatusHollow(el, x, y, c, sq) end
 end
 R.drawDot = R.drawMark   -- (the older name: it was a round dot)
--- the next level's arrow (5 x 4) in the grid: the accent, outlined in the window's strong line colour
+--- The next level's arrow (5 x 4 art pixels) in the grid, top left at x, y: the accent, outlined in the
+--- window's strong line colour.
 function R.drawUp(el, x, y)
     local T = ZeD.T
     local ac = T.accentText or T.accent

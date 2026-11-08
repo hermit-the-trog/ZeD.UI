@@ -1,10 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Moodles.lua
 -- ============================================================================
--- MOODLES — HOOK_MAP row 7 (mockup ZeDUI/mockups/zed_moodles_v2.html)
+-- MOODLES — where vanilla's moodles sit, and ZeD's hover note over them.
+-- Client; an organism (ZeD_MoodleLayer, one per local player) that works
+-- alongside vanilla's own MoodlesUI rather than replacing it.
 --
--- Director: "moodles are the one thing we really aren't touching other than
--- moving them around" and "we do our own hover text". The placement is a
--- ZeD-UI option (Settings.lua, "Moodles"), each good for different players:
+-- The moodles themselves stay exactly as vanilla draws them: ZeD only moves
+-- them and draws its own hover text. The placement is a ZeD-UI option
+-- (Settings.lua, "Moodles"), each good for different players:
 --   right   (default) vanilla's own MoodlesUI column on the right edge,
 --           centred on the screen's middle, kept under the watch
 --   left    vanilla's own column on the left edge, centred the same way
@@ -14,25 +16,26 @@
 --           grey -> the Good / Bad highlight colour by level / 4, the outline
 --           ring, vanilla's order, the wiggle when a level changes
 -- Hover text: a ZeD note (status square, vanilla's name for the level, vanilla's
--- description) in a thought bubble whose trail runs to its moodle; it also shows by itself for a few
--- seconds when a moodle comes on or changes level. A ZeD layer lies exactly over vanilla's column; UIManager
--- hands a mouse move to the topmost element under the pointer only, so the
--- column never sees the pointer and never draws its own text, while it keeps
--- drawing the moodles. Clicks pass through, as they do on vanilla's column.
+-- description) in a thought bubble whose trail runs to its moodle; with ZeD
+-- setup's "Moodle notices" on, it also shows by itself for a few seconds when a
+-- moodle comes on or changes level. A ZeD layer lies exactly over vanilla's
+-- column; UIManager hands a mouse move to the topmost element under the pointer
+-- only, so the column never sees the pointer and never draws its own text, while
+-- it keeps drawing the moodles. Clicks pass through, as they do on vanilla's column.
 --
 -- Vanilla facts (42.20.2, MoodlesUI): the column sits at x = right edge -
 -- (10 + size), y = 120; the engine resets its x every frame before the UI
 -- draws (y only in split screen), so the move is made in OnPreUIDraw; slots
--- stack size + 10 apart in the order of
--- its HashMap (see M.order); Well Fed shows from level 3; the hover text is
--- drawn to the LEFT of the column; no chevrons and no pulse are drawn.
+-- stack size + 10 apart in the order of its HashMap (see M.order); Well Fed
+-- shows from level 3; the hover text is drawn to the LEFT of the column; no
+-- chevrons and no pulse are drawn.
 --
 -- Another mod that draws the moodles itself in place of the game's column (it
--- takes MoodlesUI off the screen and puts a panel of its own there; first used
--- by ModSupport/moodle_quarters.lua) says so with M.setStandIn. ZeD keeps
--- placing; it lists the moodles in that mod's order (so the note is for the
--- moodle under the pointer), draws no copy of its own in the row, and tells the
--- mod where the moodles go through M.rect.
+-- takes MoodlesUI off the screen and puts a panel of its own there, as Moodle
+-- Quarters does: ModSupport/moodle_quarters.lua) says so with M.setStandIn.
+-- ZeD keeps placing; it lists the moodles in that mod's order (so the note is
+-- for the moodle under the pointer), draws no copy of its own in the row, and
+-- tells the mod where the moodles go through M.rect.
 -- A stand-in marked whole (ModSupport/ImmersiveMoodles.lua: its own column, side,
 -- top and hover text) is left the moodles entirely while it draws: ZeD places
 -- nothing, draws no row and no note, and M.rect is nil.
@@ -48,7 +51,8 @@ ZeD = ZeD or {}
 ZeD.Moodles = ZeD.Moodles or {}
 local M = ZeD.Moodles
 
--- MoodleType registration order (vanilla's slot order) and each type's art
+-- Every MoodleType in registration order (M.order sorts them into vanilla's
+-- slot order; this order breaks its ties) and each type's art
 -- (MoodleTextureSet: FOOD_EATEN reuses the hunger icon)
 local ORDER = {
     { "ENDURANCE", "Status_DifficultyBreathing" }, { "TIRED", "Mood_Sleepy" }, { "HUNGRY", "Status_Hunger" },
@@ -81,6 +85,7 @@ function M.size()
     local core = getCore()
     local opt = (safe(core.getOptionMoodleSize, core) or 2) - 1
     if opt >= 0 and opt < #SIZES then return SIZES[opt + 1] end
+    -- the choice after the six sizes follows the font size option instead
     if opt == 6 then
         local f = (safe(core.getOptionFontSizeReal, core) or 1) - 1
         if f >= 0 and f < #SIZES then return SIZES[f + 1] end
@@ -92,8 +97,9 @@ end
 -- and draws them in that map's iteration order: 26 entries end in 64
 -- buckets, bucket = (h ^ (h >>> 16)) & 63 of each type's hashCode, ties in
 -- registration order. hashCode is an identity hash, so the order changes with
--- every launch; it is worked out once per session (QA: it matched vanilla's
--- column slot for slot). Without hashCode it falls back to registration order.
+-- every launch; it is worked out once per session (tested in game: it matches
+-- vanilla's column slot for slot). Without hashCode it falls back to
+-- registration order.
 local orderCache
 local function xor6(a, b)
     local r, bit = 0, 1
@@ -126,10 +132,11 @@ Events.OnGameStart.Add(function() orderCache = nil end)
 -- A stand-in: another mod that draws the moodles in place of the game's column.
 -- spec = { id = "<mod id>",
 --          whole = true                                 -- (optional) it draws the moodles in whole: ZeD steps aside
---          order = { { "ENDURANCE", "<art>" }, ... }   -- its draw order, ORDER's shape
+--          order = { { "ENDURANCE", "<art>" }, ... }   -- (optional) its draw order, ORDER's shape; else M.order()
 --          drawing = function(playerNum) ... end }      -- true while it draws for that player
--- One at a time (the last to call wins); nil takes it away.
 local standIn = nil
+--- Make `spec` (above) the moodles' stand-in. One at a time: the last to call
+--- wins; nil takes it away.
 function M.setStandIn(spec) standIn = spec end
 -- The stand-in drawing for this player now, or nil (then ZeD works as above)
 function M.standIn(playerNum)
@@ -173,7 +180,7 @@ function M.active(player)
 end
 
 -- Vanilla's backing colour: grey lerped toward the Good / Bad highlight colour.
--- The two colours are kept between reads (perf review Nov 7 2026, item 10): read again whenever a layer
+-- The two colours are kept between reads: read again whenever a layer
 -- reads the moodle list (every 100 ms; the game's Options apply a new colour in play at once), when ZeD's
 -- theme changes (a new ZeD.T) and at every game start.
 local function hl(getter)
@@ -230,7 +237,8 @@ function ZeD_MoodleLayer:new(playerNum)
     o._zedLabel = "Moodles"
     o.anchorBottom, o.anchorRight = false, false
     -- it mirrors vanilla's column, which runs past the bottom of the screen;
-    -- ISUIElement:setY would clamp a top-level panel back onto it (KB Q193)
+    -- ISUIElement:setX / setY clamp a top-level panel (no parent) back onto the
+    -- screen unless keepOnScreen is false
     o.keepOnScreen = false
     o._wig = {}            -- per moodle key: { level, osc } for the row's wiggle
     o._step = 0
@@ -259,8 +267,8 @@ end
 function ZeD_MoodleLayer:_rightY()
     local pn = self.playerNum
     local w = pn == 0 and ZeD.Watch and ZeD.Watch.getInstance and ZeD.Watch.getInstance() or nil
-    -- only the corner watch: a belt watch popped open sits wherever it was dragged (Oct 25
-    -- 2026: popped at the bottom, it pushed the moodles into the bottom-right corner)
+    -- only the corner watch: a belt watch popped open sits wherever it was dragged, and
+    -- one popped at the bottom would push the moodles into the bottom-right corner
     if w and w:getIsVisible() and w:getHeight() > 0 and not w._belt then
         return w:getY() + w:getHeight() + ZeD.T.px(10)
     end
@@ -268,7 +276,7 @@ function ZeD_MoodleLayer:_rightY()
 end
 
 -- The moodles that are on for this layer's player (M.active's list), kept in one reused list and read
--- from the game at most every ACTIVE_MS (perf review Nov 7 2026, item 10: 26 pcall'd getMoodleLevel and a
+-- from the game at most every ACTIVE_MS (26 pcall'd getMoodleLevel and a
 -- table per moodle every frame). A different character or a different order (a stand-in starting or
 -- stopping, a new game) reads at once.
 local ACTIVE_MS = 100
@@ -323,7 +331,7 @@ function ZeD_MoodleLayer:_place()
         return
     end
     -- right / left: move vanilla's own column, then lie exactly over it.
-    -- The stack is centred on the screen's middle (director), so it grows up
+    -- The stack is centred on the screen's middle, so it grows up
     -- and down as moodles come and go; it stays under the watch (right) and
     -- above the belt.
     -- (a stand-in keeps the game's column off UIManager, so its width can be stale: the option's size)
@@ -354,9 +362,9 @@ function ZeD_MoodleLayer:_place()
     self._rect = { place = place, x = x, y = y, w = size, h = stackH, size = size, n = n }
 end
 
--- Where ZeD put the moodles for this player this frame, in screen pixels:
--- { place, x, y, w, h, size, n } (n moodles, size + 10 apart; a column for right /
--- left, a row for bottom), or nil while they are not shown or ZeD is in safe mode
+--- Where ZeD put the moodles for this player this frame, in screen pixels:
+--- { place, x, y, w, h, size, n } (n moodles, size + 10 apart; a column for right /
+--- left, a row for bottom), or nil while they are not shown or ZeD is in safe mode.
 function M.rect(playerNum)
     local L = M._layers and M._layers[playerNum or 0]
     if not (L and L._show and L._rect) then return nil end
@@ -412,15 +420,15 @@ function ZeD_MoodleLayer:_drawRow()
         if w.osc > 0.01 then w.osc = w.osc - w.osc * 0.04 * frac else w.osc = 0 end
         self:_drawMoodle(m, (i - 1) * (size + GAP) + math.floor(math.sin(self._step) * 15.6 * w.osc), 0)
     end
-    -- a moodle that went away and comes back wiggles like a new one (vanilla)
+    -- forget the moodles that went away: one that comes back starts over like a new one,
+    -- still until its level next changes
     for k in pairs(self._wig) do if not seen[k] then self._wig[k] = nil end end
 end
 
--- The ZeD note: status dot, vanilla's name for the level, vanilla's description, in a thought
+-- The ZeD note: status square, vanilla's name for the level, vanilla's description, in a thought
 -- bubble (ZeD.Bubbles' cloud, the one over the head) whose trail of three small bubbles runs to the
--- moodle it is about (director, Oct 25 2026: "moodle notice needs an extension to show which moodle
--- it is coming from", then "Can they be thought style bubbles?"). Right / left: the cloud beside the
--- column, level with its moodle, the trail across; bottom: above the row, the trail down.
+-- moodle it is about, so the note shows which moodle it comes from. Right / left: the cloud beside
+-- the column, level with its moodle, the trail across; bottom: above the row, the trail down.
 function ZeD_MoodleLayer:_drawChip(m, idx)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local p = self:player()
@@ -473,7 +481,7 @@ function ZeD_MoodleLayer:_drawChip(m, idx)
     Bb.cloudShadow(cv, 0, 0, wu, hu, 1, rad)
     Bb.drawTrail(P.canvas(self, tox, toy, tk), T, dir, 0, 0, 1)
     Bb.cloudBody(cv, T, 0, 0, wu, hu, 1, rad)
-    self._chip = { idx = idx, key = m.key, x = cx, y = cy, w = W, h = H, k = k, tk = tk, dir = dir, tox = tox, toy = toy }   -- (for QA)
+    self._chip = { idx = idx, key = m.key, x = cx, y = cy, w = W, h = H, k = k, tk = tk, dir = dir, tox = tox, toy = toy }   -- (where the note went; the in-game test scripts read it)
     local dot = (m.gbn == 1 and T.positive) or (m.gbn == 2 and (m.level >= 3 and T.danger or T.warning)) or T.textDim
     local ds = T.px(7)
     A.drawStatusDot(self, cx + padX, cy + padY + math.floor((nh - ds) / 2), dot, ds)
@@ -487,10 +495,11 @@ function ZeD_MoodleLayer:_drawChip(m, idx)
     end
 end
 
--- A moodle that comes on or changes level shows its chip by itself for NOTICE_MS (director, Oct 25
--- 2026: "On every change"). Several at once take turns; the queue keeps the one showing and the
--- newest NOTICE_MAX - 1 waiting (the oldest waiting goes). The moodles already on when the layer
--- first sees the player stay quiet. The pointer's moodle wins while it is on one.
+-- A moodle that comes on or changes level shows its note by itself for NOTICE_MS, on every change,
+-- while ZeD setup's "Moodle notices" is on (prerender checks it). Several at once take turns; the
+-- queue keeps the one showing and the newest NOTICE_MAX - 1 waiting (the oldest waiting goes). The
+-- moodles already on when the layer first sees the player stay quiet. The pointer's moodle wins
+-- while it is on one.
 local NOTICE_MS, NOTICE_MAX = 4000, 3
 function ZeD_MoodleLayer:_noticeTick()
     local now = getTimestampMs()
@@ -535,7 +544,7 @@ function ZeD_MoodleLayer:prerender()
     -- (a stand-in draws the row itself, at M.rect)
     if self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
     local i = self:_hoverIndex()
-    -- (ZeD setup's "Moodle notices", off for a new player since Oct 30 2026: off, a chip shows only under the pointer)
+    -- (ZeD setup's "Moodle notices", off for a new player: while it is off, a note shows only under the pointer)
     local S = ZeD.Settings
     local notices = S and S.moodleNoticesOn and S.moodleNoticesOn() or false
     if not i and notices and self._notices[1] then
@@ -584,8 +593,8 @@ end
 Events.OnPreUIDraw.Add(preDraw)
 
 -- Safe mode (SafeMode.lua): the layers hide and vanilla's column goes back to
--- its own spot (the engine resets its x every frame but not its y, which "right"
--- and "bottom" moved). Taking over again shows the layers; preDraw moves the
+-- its own spot (the engine resets its x every frame but not its y, which every
+-- placement moves). Taking over again shows the layers; preDraw moves the
 -- column again.
 ZeD.Safe.register("moodles", {
     leave = function()

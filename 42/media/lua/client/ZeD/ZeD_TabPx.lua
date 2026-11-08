@@ -1,8 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_TabPx.lua
 -- ============================================================================
--- THE WINDOW TABS IN LIT PIXEL ART (director, Oct 16 2026)
--- The character and world windows' tab strips, tied to the rest of the pixel
--- art (the plates, the dash, the watches) without changing their layout:
+-- THE WINDOW TABS IN LIT PIXEL ART
+-- Client; molecules on ZeD.TabPx. The character and world windows draw their
+-- tabs through TP.drawTab, tied to the rest of the pixel art (the plates, the
+-- dash, the watches) without changing the strips' layout:
 --   * each tab's icon is a small object lit from the top left, in five tones
 --     of the theme's accent, with a one-pixel shadow under it
 --   * the active tab is a bevelled, lit accent panel (light top and left
@@ -16,6 +17,9 @@
 -- and a shadow mask per icon (media/textures/ZeD/TabIcons/px/<id>_<tone>.png),
 -- each drawn tinted. Pixels stay whole: the icon is drawn at k x 16 screen
 -- pixels, k = the root scale rounded to the nearest whole number.
+--
+-- Before adding a tab: the windows draw a tab only when TP.has(id) is true,
+-- so a new tab needs its six pictures exported and its id in TP.ICONS.
 -- ============================================================================
 
 require "ZeD/ZeD_PixelParts"
@@ -25,12 +29,15 @@ ZeD.TabPx = ZeD.TabPx or {}
 local TP = ZeD.TabPx
 
 TP.DIR = "media/textures/ZeD/TabIcons/px/"
--- the tab ids that have a lit icon (both windows; Radio sits in both)
+-- the tab ids that have a lit icon (both windows; Radio sits in both). Tabs
+-- defined in other files (admin, server, cooking, the mod-support tabs) add
+-- their own id here when they load.
 TP.ICONS = { loot = true, equip = true, health = true, thermal = true, identity = true, journal = true, skills = true,
              radio = true, craft = true, build = true, furniture = true, maps = true, forage = true, animals = true,
              vehicle = true }
 local TONES = { "w", "l", "m", "d", "k" }
 
+--- True when this tab id has a lit icon; the windows draw a tab only then.
 function TP.has(id) return TP.ICONS[id] == true end
 
 -- ---------------------------------------------------------------------------
@@ -41,10 +48,10 @@ local function shade(out, c, f) out.r, out.g, out.b = clamp(c.r * f), clamp(c.g 
 local function mix(out, a, b, t) out.r, out.g, out.b = a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t; return out end
 local WHITE = { r = 1.0, g = 250 / 255, b = 240 / 255 }
 
--- the five tones for an icon: on the strip (lit from the top left) or pressed into the active panel
--- (Oct 22 2026, the drawing-cost work: a strip asks for the same tones once per tab, every frame; each set, pressed
--- in and on the strip, is worked out again only when the colours it comes from change. A window with its own accent
--- swaps those colours in while it draws, so the colours themselves are compared, not the token table.)
+-- the five tones for an icon: on the strip (lit from the top left) or pressed into the active panel.
+-- A strip asks for the same tones once per tab, every frame, so each set (pressed in, and on the strip) is worked
+-- out again only when the colours it comes from change. A window with its own accent swaps those colours in while
+-- it draws, so the colours themselves are compared, not the token table.
 local _toneSet = { a = { w = {}, l = {}, m = {}, d = {}, k = {} }, i = { w = {}, l = {}, m = {}, d = {}, k = {} } }
 local _toneKey = { a = {}, i = {} }
 local _tmp = {}
@@ -83,7 +90,9 @@ local function tones(T, active)
 end
 TP._tones = tones
 
--- the whole multiple the icon is drawn at
+--- The whole multiple the icon is drawn at: the root scale rounded to the
+--- nearest whole number, never below 1. ZeD_FocusPaint sizes its pixel hand
+--- with it too.
 function TP.k()
     local Sc = ZeD.Scale
     local s = (Sc and Sc.root and Sc.root()) or 1
@@ -94,16 +103,17 @@ local _c = {}
 local function rect(el, x, y, w, h, c, a) if w > 0 and h > 0 then el:drawRect(x, y, w, h, a or 1, c.r, c.g, c.b) end end
 
 -- ---------------------------------------------------------------------------
--- one tab: its background (the active panel, or the hover wash), the controller's
--- focus mark and its icon, inside (x, y, w, h) of el; `line` = the strip's 1-pixel
--- line width (T.px(1)).
--- isWashed: the pointer is over it (an older caller also passes the controller's
--- focus here; it gets the hover wash until it moves to opts.focus).
--- opts (optional): { focus = the ZeD.Focus.mark opts ({ win, zone }) when this tab
--- has the controller's focus, help = the help line's words (pass them only while
--- the pointer is over the tab) }
+-- one tab
 -- ---------------------------------------------------------------------------
 local _markOpts = {}
+--- Draw one tab inside (x, y, w, h) of el: its background (the active panel, or
+--- the hover wash), the controller's focus mark and its icon. `line` = the
+--- strip's 1-pixel line width (T.px(1)).
+--- isWashed: the pointer is over it, so an inactive tab gets the hover wash
+--- (the controller's focus goes in opts.focus instead).
+--- opts (optional): { focus = the ZeD.Focus.mark opts ({ win, zone }) when this tab
+--- has the controller's focus, help = the help line's words (pass them only while
+--- the pointer is over the tab) }
 function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line, opts)
     local T = ZeD.T
     local acc, bright = T.accent, T.accentBright or T.accent

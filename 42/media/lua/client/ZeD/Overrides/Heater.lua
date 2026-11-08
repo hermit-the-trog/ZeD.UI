@@ -1,8 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Heater.lua
 -- ============================================================================
--- HOOK_MAP row 4: the heater and air conditioning (the director, Nov 7 2026,
--- vanilla windows B6: "the key and the wheel slice go to the dash's own
--- climate controls").
+-- HEATER AND AIR CONDITIONING (override, client)
+--
+-- The heater key and the wheel slice go to the dash's own climate controls,
+-- not the game's pop-up window.
 --   * ISVehicleMenu.onToggleHeater (the Heater key, KeybindId.VEHICLE_HEATER in
 --     ISVehicleMenu.onKeyPressed; the vehicle wheel's Heater On / Heater Off
 --     slice, from the V wheel and ZeD's D-pad World wheel > Vehicle) turns the
@@ -10,7 +11,9 @@
 --     (ZeD.Dashboard.heater) instead of the game's ISVehicleACUI.
 -- The game's window opens as before when ZeD's dash is not the one showing:
 -- its ZeD screens switch (Dashboard: the game's own), safe mode, or a dash
--- that cannot take it. The wrapper asks at call time, so nothing is parked.
+-- that cannot take it. The wrapper asks at call time, so nothing is parked,
+-- and it keeps the vanilla function once (_zedHeater), so a Lua reload never
+-- wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

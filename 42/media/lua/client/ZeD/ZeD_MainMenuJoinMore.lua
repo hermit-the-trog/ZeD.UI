@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuJoinMore.lua
 -- ============================================================================
--- THE REST OF JOINING, ON THE MONITOR (VANILLA_WINDOWS_20261107.md A1, A2;
--- the director, Nov 7 2026: every vanilla window replaced)
+-- THE REST OF JOINING, ON THE MONITOR. Client; three organisms (windows on
+-- the desk), replacing the last of vanilla's join windows.
 --
 -- Three more of vanilla's join screens become ZeD windows on the desk. Each
 -- stays vanilla's engine: built and "visible" but off the screen (it follows
@@ -13,7 +13,7 @@
 --   size, its state as a status square and a progress bar while it downloads;
 --   vanilla's prompt or error above them. Band: Disconnect | Install. Once
 --   vanilla hides it on success the connection goes on: the Connecting view
---   takes over again (vanilla showed an empty screen there).
+--   takes over again (where vanilla's own flow leaves an empty screen).
 -- SERVER INVITE (BootstrapConnectPopup): a Steam invite or a +connect launch
 --   asks Steam about the server first. Drawn like Connecting: the address, a
 --   blinking square while it asks, vanilla's words. Band: Cancel (Back once it
@@ -95,7 +95,7 @@ local function statusLines(win, text, x, y, w, color, blink)
 end
 
 -- ============================================================================
--- A1: THE SERVER'S WORKSHOP ITEMS
+-- THE SERVER'S WORKSHOP ITEMS
 -- ============================================================================
 ZeD_MMWsItems = ZeD_MMWindow:derive("ZeD_MMWsItems")
 
@@ -113,7 +113,7 @@ function ZeD_MMWsItems:onShow()
     self.done = nil
 end
 
--- the mods vanilla's list holds: { id, title, size (MB), state, frac (downloading) }
+--- The mods vanilla's list holds: { key, id, title, size (MB), state; while downloading frac, done, of (MB) }.
 function MM.wsItemRows(scr)
     local rows = {}
     local lb = scr and scr.listbox
@@ -137,7 +137,7 @@ function MM.wsItemRows(scr)
     return rows
 end
 
--- vanilla's words above the list: its prompt, or the error that replaced it
+--- Vanilla's words above the list, and true when they are an error that replaced its prompt.
 function MM.wsItemsNote(scr)
     local text = s(scr and scr.label and scr.label.name)
     local prompt = getText("UI_ServerWorkshopItemScreen_Prompt")
@@ -318,9 +318,10 @@ function ZeD_MMWsItems:wheel(del)
 end
 function ZeD_MMWsItems:onMouseWheel(del) return MM.wheel(del) end
 
--- As vanilla hides the screen: Disconnect leaves the view; success goes back to the connection
--- still under way (vanilla's ConnectToServer, shown again so the Connecting view follows it to
--- the end); from Host's screen the view stays, saying it is contacting the server.
+--- The keep function MM.mirror asks as vanilla hides the screen (true keeps the view up): Disconnect
+--- leaves the view; success goes back to the connection still under way (vanilla's ConnectToServer,
+--- shown again so the Connecting view follows it to the end); from Host's screen the view stays, saying
+--- it is contacting the server.
 function MM.wsItemsKeep(scr)
     if scr._zedLeaving then return false end
     local prev = scr.prevScreen
@@ -335,7 +336,7 @@ function MM.wsItemsKeep(scr)
 end
 
 -- ============================================================================
--- A2: THE SERVER INVITE (asking Steam about the server first)
+-- THE SERVER INVITE (asking Steam about the server first)
 -- ============================================================================
 ZeD_MMBootstrap = ZeD_MMWindow:derive("ZeD_MMBootstrap")
 
@@ -397,7 +398,7 @@ function ZeD_MMBootstrap:getFooterPrompts()
 end
 
 -- ============================================================================
--- A2: CONNECT TO (the address an invite or the command line gave)
+-- CONNECT TO (the address an invite or the command line gave)
 -- ============================================================================
 ZeD_MMSrvForm = ZeD_MMWindow:derive("ZeD_MMSrvForm")
 
@@ -567,6 +568,7 @@ function ZeD_MMSrvForm:keyEscape()
     return true
 end
 function ZeD_MMSrvForm:keyOther(key)
+    -- (the Return that finished a field must not also press Connect)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     for _, e in ipairs(self._fields) do if e:isFocused() then return false end end
     if key == Keyboard.KEY_RETURN then self:connect(); return true end
@@ -579,6 +581,7 @@ function ZeD_MMSrvForm:getFooterPrompts()
 end
 
 -- ============================================================================
+-- the wheel scrolls the Workshop items' list (each screen chains its view onto MM.wheel)
 local _wheel = MM.wheel
 function MM.wheel(del)
     if MM.view == "wsitems" and MM.root and MM.root.wsItemsWin then

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/MediaLabel.lua
 -- ============================================================================
--- HOOK_MAP row 13: a CD's or a video tape's label (vanilla windows B8).
+-- A CD'S OR A VIDEO TAPE'S LABEL (override, client).
 -- The game's Read label (ISInventoryPaneContextMenu.onMediaText, and the item
 -- menu's media element, InvContextMedia.openMediaInfo) opens ISMediaInfo with
 -- the label's words through ISMediaInfo.openPanel. ZeD's reader shows the
@@ -8,6 +8,8 @@
 -- name at its head). The game's window opens only if the reader cannot, and
 -- always while safe mode is on. The game's own rules for the option (too dark
 -- to read, illiterate) stay with its menu, which ZeD's context menu draws.
+-- The hook keeps vanilla's function once (_zedLabel), so a Lua reload never
+-- wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

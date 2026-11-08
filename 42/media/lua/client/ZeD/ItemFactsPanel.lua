@@ -1,10 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemFactsPanel.lua
 -- ============================================================================
--- ITEM FACTS PANEL REGISTRY (S120 - Phase 4)
--- Five item-type-specific Facts panels - each a factory taking (item) and
--- returning a structured panel description, or nil if the item is not its
--- target type. The Phase 5 (S121) ItemCard organism queries the registry
--- via factsFor(item) - never branches on item class itself.
+-- ITEM FACTS PANEL REGISTRY - client; data only, no drawing.
+-- Five item-type Facts panels - each a factory taking (item) and returning
+-- a structured panel description, or nil if the item is not its target
+-- type. The ItemCard organism gets an item's facts through factsFor(item)
+-- instead of branching on item class itself.
 --
 -- Factory return shape:
 --   nil  → this panel doesn't apply to the item
@@ -20,9 +20,9 @@
 --     }
 --   }
 --
--- needsProbe = true → renderer appends a small "★" badge after the label
--- (mockup convention from v13 - values whose Java getter we haven't probed
--- yet). Phase 4 PZ probes Q125-Q128 will retire these flags as they land.
+-- needsProbe = true → the facts row appends a small "*" badge after the
+-- label in the warning color: the value comes from a Java getter not yet
+-- confirmed in-game. The flag comes off as each getter is confirmed.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -40,7 +40,7 @@ end
 -- Internal helpers
 -- ---------------------------------------------------------------------------
 
--- Format a percentage-like int with sign, e.g. "5%" / "-2%" / "+15"
+-- Format a percentage-like int with sign, e.g. "5%" / "-2%" / "+15%"
 local function _pct(n, withSign)
     if not n then return nil end
     n = math.floor(n + 0.5)
@@ -53,7 +53,8 @@ local function _hundredths(n)
     return math.floor(n * 100 + 0.5)
 end
 
--- Color class from a 0..1 ratio (warn at <0.6, bad at <0.3, good at >=0.6, dim at 0)
+-- Color class from a 0..1 ratio: dim at 0 or nil, bad under 0.3, warn under
+-- 0.6, plain up to 0.85, good from there on.
 local function _condClass(ratio)
     if not ratio or ratio <= 0 then return "dim" end
     if ratio < 0.3  then return "bad"  end
@@ -63,7 +64,7 @@ local function _condClass(ratio)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.1 DefenseFacts - clothing
+-- DefenseFacts - clothing
 -- ---------------------------------------------------------------------------
 function M.DefenseFacts(item)
     if not item then return nil end
@@ -72,9 +73,9 @@ function M.DefenseFacts(item)
         return nil
     end
 
-    -- Defense values (per-zone aggregated to "for any zone covered" - the
-    -- exact aggregation lives in the organism; the factory just shows the
-    -- representative max defense). Read from the clothing itself: of these
+    -- Defense values (the item's flat figures - any per-zone view is the
+    -- organism's business; the factory shows the item-level defense).
+    -- Read from the clothing itself: of these
     -- the script item has only insulation and getConditionLowerChance. Same
     -- scales as the game's tooltip: defense 0..100, the thermal three 0..1.
     local biteDef    = safeGet(item, "getBiteDefense")
@@ -101,7 +102,8 @@ function M.DefenseFacts(item)
         groups        = {},
     }
 
-    -- Group 1: bite/scratch/bullet (the director, Nov 6 2026: no mark on these; protection is good news and a number says it)
+    -- Group 1: bite/scratch/bullet. No status mark on these rows - protection
+    -- is good news and the number says it; a zero only dims.
     panel.groups[#panel.groups + 1] = {
         rows = {
             {label = getText("Tooltip_BiteDefense"),    short = ZeD.tr("IGUI_health_Bite"),
@@ -147,7 +149,7 @@ function M.DefenseFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.2 NutritionFacts - food
+-- NutritionFacts - food
 -- ---------------------------------------------------------------------------
 function M.NutritionFacts(item)
     if not item then return nil end
@@ -202,7 +204,7 @@ function M.NutritionFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.3 CombatFacts - weapons
+-- CombatFacts - weapons
 -- ---------------------------------------------------------------------------
 function M.CombatFacts(item)
     if not item then return nil end
@@ -265,7 +267,7 @@ function M.CombatFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.4 ContainerFacts - bags / boxes / cooking pots
+-- ContainerFacts - bags / boxes / cooking pots
 -- ---------------------------------------------------------------------------
 function M.ContainerFacts(item)
     if not item then return nil end
@@ -305,7 +307,7 @@ function M.ContainerFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.5 ReadingFacts - books / magazines / recipe sources
+-- ReadingFacts - books / magazines / recipe sources
 -- ---------------------------------------------------------------------------
 function M.ReadingFacts(item)
     if not item then return nil end
@@ -329,7 +331,7 @@ function M.ReadingFacts(item)
     end
 
     -- ReadMarks holds the game's own test (a skill book past your level counts as
-    -- read). compute, not state: state stays off while read marks are off in setup.
+    -- read). It asks compute, not state: state answers nil while read marks are off in setup.
     local alreadyRead  = false
     local marks = ZeD.ReadMarks
     if player and marks and marks.compute then
@@ -375,7 +377,7 @@ function M.ReadingFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.6 Registry + dispatch
+-- Registry + dispatch
 -- ---------------------------------------------------------------------------
 -- Priority order: most-specific first. ContainerFacts last so a bag-of-food
 -- shows NutritionFacts on the food, not the bag's container stats.
@@ -402,9 +404,9 @@ function M.factsFor(item)
     return nil
 end
 
---- Mutator: late-register or override a factory. Used by mod extensions
---- (custom item types, total conversion content). Insert at given priority
---- index (1 = first), or append if priority is nil.
+--- Late-register or override a factory, so an add-on mod can card its own
+--- item types. Inserts at the given priority index (1 = first), or appends
+--- when priority is nil.
 --- @param key      string key for the panel type
 --- @param factory  function(item) -> panel|nil
 --- @param priority integer | nil

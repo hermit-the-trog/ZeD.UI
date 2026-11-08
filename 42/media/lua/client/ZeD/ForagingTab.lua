@@ -1,9 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ForagingTab.lua
 -- ============================================================================
--- FORAGING TAB — World Window standalone tab.
+-- FORAGING TAB — client; the World window's "forage" tab renderer.
 -- Surfaces vanilla foraging data: zone, radius, modifiers, categories in range,
 -- recent finds. Gameplay-neutral — never reveals pre-discovery spawns.
--- Design: zed-foraging-quiet-v5.html (S70 approved).
+-- A pinned header strip on top and the band at the foot; the body between them
+-- (hero band, More detail fold, Recent finds) scrolls as one. The chosen focus
+-- is written into vanilla's hidden search window, and ISSearchManager.spotIcon
+-- is wrapped to log finds.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -43,7 +46,7 @@ local FINDS_PAD_X      = 12
 local FINDS_MAX        = 20      -- LIFO cap
 
 -- ============================================================================
--- LIVE DATA GETTERS (S72 — replaces mock data with vanilla API calls)
+-- LIVE DATA GETTERS — vanilla API reads, one helper per fact
 -- ============================================================================
 
 local ZONE_FRIENDLY_NAMES = {
@@ -102,9 +105,9 @@ local COMPASS = {
     "UI_ZeD_Forage_CompassS", "UI_ZeD_Forage_CompassSW", "UI_ZeD_Forage_CompassW", "UI_ZeD_Forage_CompassNW",
 }
 -- ============================================================================
--- S109b — GAMEPAD FOCUS CUE HELPERS (mirror of AnimalsTab pattern).
--- Paint gate reads live focused element from FocusManager; matcher closure
--- discriminates between element types (isSearch / isDropdown / isDisclosure).
+-- GAMEPAD FOCUS CUE HELPERS (the AnimalsTab pattern).
+-- Paint gate reads the live focused element from FocusManager; a matcher
+-- closure tells element types apart (isSearch / isDropdown / isDisclosure).
 -- ============================================================================
 
 -- (only while the mark may show: this window has the controller and the pad is in use)
@@ -126,7 +129,7 @@ end
 local function angleToBearing(rad)
     -- rad: the maths angle, 0 = east, pi/2 = north (PZ Y- is north). The COMPASS table starts at
     -- N and runs clockwise, so the angle is turned into a heading first: north 0, east 90, south
-    -- 180, west 270 (punch list 43, Nov 1 2026: a find due east read N and the ring ran backwards).
+    -- 180, west 270 — fed the angle raw, a find due east read N and the ring ran backwards.
     -- (+ 360 before the modulo: Kahlua's % keeps the sign of a negative number)
     local deg = math.deg(rad) % 360
     local heading = (90 - deg + 360) % 360
@@ -517,7 +520,8 @@ local function drawSkyArc(panel, x, y, w, h)
     -- Below horizon: dark ground tint
     panel:drawRect(x, y + horizY + T.px(1), w, h - horizY - T.px(1), 0.06, 0.03, 0.03, 0.03)
 
-    -- Arc path (column-by-column semicircle, 1px wide, above horizon only)  -- S124 scale: the loop walks screen px, so the 1 px column width stays; thickness scales
+    -- Arc path (column-by-column semicircle, 1px wide, above horizon only)
+    -- (the loop walks screen px, so the 1 px column width stays; the thickness scales)
     local arcColor = T.borderS
     local arcA = 0.35
     for col = 0, radius * 2 do
@@ -664,7 +668,7 @@ local function drawHero(panel, win, x, y, w)
     -- Cell B — info (middle, between scene and radius)
     local infoX = x + sceneW + T.px(1) + T.px(HERO_PAD)
 
-    -- (the place name is the card's header, drawn by drawHeader; Oct 30 2026)
+    -- (the place name is the card's header, drawn by drawHeader)
     -- The info cell ends before the radius cell; nothing is drawn past this edge
     local infoRight = radX - T.px(HERO_PAD)
     local infoRoom = infoRight - infoX
@@ -731,7 +735,7 @@ local function drawHero(panel, win, x, y, w)
 end
 
 -- ============================================================================
--- DRAW: HEADER STRIP AND BAND (Oct 30 2026)
+-- DRAW: HEADER STRIP AND BAND
 -- The header strip (the standard height): the place name on the left, the
 -- category drop-down on the right (with its chance readout before it). The band
 -- at the card's foot: Crouch and Aim on the left as read-only status, Search
@@ -1084,7 +1088,7 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
         local nnc = T.toneNorm
         panel:drawText(nameStr, colX, nameY, nnc.r, nnc.g, nnc.b, nnc.a or 1, T.fontF2)
 
-        -- Weight (K22, dim, right-aligned)
+        -- Weight (K22, neutral, right-aligned)
         local wtStr = string.format("%.1f", find.weight)
         local wtW = tm:MeasureStringX(T.fontF3, wtStr)
         local wtX = x + w - T.px(FINDS_PAD_X) - wtW
@@ -1145,7 +1149,7 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
     win._forageDisclosureZone = nil
 
     -- The pinned parts: the header strip on top and the band at the foot; the body
-    -- between them scrolls as one unit (Oct 30 2026)
+    -- between them scrolls as one unit
     local M = ZeD.Molecules
     local hdrH = drawHeader(panel, win, x, y, w)
     local bandH = M.bandH()
@@ -1219,13 +1223,15 @@ end
 -- CLICK HANDLERS
 -- ============================================================================
 
--- Search mode on or off: vanilla's own toggle (the button and the controller's A)
+--- Search mode on or off: vanilla's own toggle (the button and the controller's A).
 function ZeD.ForagingTab.toggleSearch(win)
     local player = win and win._playerObj
     local mgr = player and ISSearchManager.getManager(player) or nil
     if mgr and mgr.toggleSearchMode then mgr:toggleSearchMode() end
 end
 
+--- A click in the drawer (drawer-local x, y): the scrollbar, the band's Search
+--- button, or the More detail disclosure. True when it was the tab's.
 function ZeD.ForagingTab.onClick(win, x, y)
     local scroll = win._forageScroll
 
@@ -1262,8 +1268,8 @@ function ZeD.ForagingTab.onClick(win, x, y)
     return false
 end
 
+--- The tab has no right-click actions; always false.
 function ZeD.ForagingTab.onRightClick(win, x, y)
-    -- No right-click actions in S71
     return false
 end
 
@@ -1280,6 +1286,7 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Hooks "forage" into the World window's tab dispatch table.
 function ZeD.ForagingTab.register(dispatchTable)
     dispatchTable["forage"] = ZeD.ForagingTab.render
 end
@@ -1291,7 +1298,7 @@ end
 local _origSpotIcon = nil
 
 local function installForageHook()
-    if _origSpotIcon then return end  -- already installed
+    if _origSpotIcon then return end  -- keep vanilla once: a reload never wraps the wrapper
     _origSpotIcon = ISSearchManager.spotIcon
 
     ISSearchManager.spotIcon = function(self, _icon)

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/DRAW_ON_MAP.lua
 -- ============================================================================
 -- SUPPORT FOR DRAW ON THE MAP (mod id DRAW_ON_MAP, Workshop 2804531012).
--- Mockup zed_map_overlays_v1, approved "as recommended" Oct 26 2026.
+-- Client.
 --
 -- The mod puts a pencil button and a floating panel on the game's map (its
 -- FreeHandUI: Draw, Line, Erase, Thickness, Fill) with three tools of its own
@@ -32,6 +32,7 @@
 
 local MOD_ID = "DRAW_ON_MAP"
 
+-- Is the mod on? An id from getActivatedMods() can carry a leading backslash.
 local function modOn()
     local list = getActivatedMods and getActivatedMods()
     if not list then return false end
@@ -334,5 +335,5 @@ function X.cursor(mp, win, x, y)
     end
 end
 
-S.X = X   -- (the QA scripts drive it)
+S.X = X   -- (exposed so the QA scripts can reach the extension)
 ZeD.MapsTab.addExtension(MOD_ID, X)

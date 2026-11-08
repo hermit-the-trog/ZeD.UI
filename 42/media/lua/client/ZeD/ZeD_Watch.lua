@@ -1,15 +1,17 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Watch.lua
 -- ============================================================================
--- THE WATCH (Oct 16 2026) - a physical wristwatch at the top right, drawn as a
--- pixel-art plate by the shared plate template (ZeD_Plate.lua). It replaces the
--- Java clock AND the Java speed controls.
+-- THE WATCH - client organism; a physical wristwatch at the top right, drawn as
+-- a pixel-art plate by the shared plate template (ZeD_Plate.lua). It replaces
+-- the Java clock AND the Java speed controls. Before touching it: those two are
+-- never removed, only parked off-screen every frame (prerender), and the speed
+-- controls stay the authority for the game's speed.
 --
--- Two brands and the expensive one (director's calls, Oct 16 2026):
+-- Two brands and the expensive one:
 --   CaZio  digital (black, gold): ALARM and SET keys on the face, SPEED and
 --          START metal keys below; the thermometer is its perk.
 --          classic (black, gold): hands + a small display; SET, ALARM, SPEED,
 --          START pushers, the crown opens the alarm's setting.
---          LIGHT (Oct 21 2026, director: "a crappy little yellow glowing bulb"):
+--          LIGHT: a small yellow glowing bulb, deliberately cheap-looking;
 --          a pusher high on the left (the digital) or at nine (the classic)
 --          lights a tiny bulb at the display's left edge for W.LIGHT_MS; the
 --          glass goes a little warmer and lighter by it, fading across; the
@@ -25,7 +27,7 @@
 -- art carries a "dark" picture and its live parts carry night colours.
 -- No watch worn: a boom box's tape deck keys set the game speed.
 --
--- ON THE BELT (Oct 19 2026, the "Watch" option, default): the worn watch shows
+-- ON THE BELT (the "Watch" option, default): the worn watch shows
 -- small on the belt (WatchMini.lua, laid out by ZeD_Belt.lua) and this panel
 -- stays tucked away (still parking the Java clock). Its face pops the full
 -- watch up above it, or where the player last dragged it (drag it by any part
@@ -42,8 +44,8 @@
 --       texdir = nil,   -- optional: where that plate's pictures live; default ZeD.PhysPx.texdir
 --   }
 -- A watch's features come from its plate: a thermometer field, a light key,
--- glowing hands are all in the art and data, so registering is just "this item
--- wears this plate". An item nobody registered borrows a CaZio (digital or not).
+-- glowing hands are all in the art and data, so registering says no more than
+-- "this item wears this plate". An item nobody registered borrows a CaZio (digital or not).
 --
 -- The controls every plate may carry (click area ids):
 --   speed  steps the game speed 1x 2x 3x 4x    start  pauses / runs
@@ -74,7 +76,8 @@ local function _safe(fn, default) local ok, v = pcall(fn); if ok then return v e
 -- ---------------------------------------------------------------------------
 -- The registry
 -- ---------------------------------------------------------------------------
--- def = { plate = id, items = { full types }, design = data table or nil, texdir = folder or nil }
+--- Register a watch, ZeD-UI's own or an addon's (THE WATCH REGISTRY above):
+--- def = { plate = id, items = { full types }, design = data table or nil, texdir = folder or nil }
 function W.register(def)
     if type(def) ~= "table" or not def.plate then
         print("[ZeD] Watch.register: a watch needs at least a plate id"); return
@@ -118,8 +121,8 @@ local function _plateOf(def)
     return des, def._ctx
 end
 
--- whether a registration's plate (or a plate id) has a light: a Timez's glow or a CaZio's bulb (its
--- "light" control); asked once per registration
+--- Whether a registration's plate (or a plate id) has a light: a Timez's glow or a CaZio's bulb (its
+--- "light" control); asked once per registration.
 function W.hasLight(def)
     if type(def) == "string" then def = { plate = def } end
     if type(def) ~= "table" then return false end
@@ -195,7 +198,7 @@ local function _isDark(tod)
     end
     return tod < _sun.dawn or tod >= _sun.dusk
 end
-W._isDark = _isDark
+W._isDark = _isDark   -- (the two-way radios' faces ask it too: TwoWayFace.lua)
 
 -- the readout for the plate's display fields (a field draws only when its value is here),
 -- filled into rd (reused every frame, so nothing is allocated)
@@ -267,7 +270,7 @@ local function _wornScan(player)
     return other, otherLoc
 end
 
--- The worn watch is looked up once per character per UI draw (perf review Nov 7 2026, item 11: the watch's
+-- The worn watch is looked up once per character per UI draw (the watch's
 -- prerender, W.beltWatch and the belt's layout each walked the worn items every frame). Clothes change in the
 -- game's update, never while the UI draws (UIManager.render: OnPreUIDraw, every element, OnPostUIDraw), so
 -- within one draw the answer is the same; outside a draw every call looks again.
@@ -300,12 +303,13 @@ end
 -- ---------------------------------------------------------------------------
 W.POP_IDLE_MS = 6000     -- the full watch tucks back after this long untouched
 
+--- The "Watch" option says the belt (its first choice, the default; no option at all counts as the belt).
 function W.beltMode()
     local o = ZeD.Settings and ZeD.Settings.watchPlaceOption
     return not o or o:getValue() == 1
 end
 
--- the watch for the belt: item, plate, wrist ("left" / "right"), or nil
+--- The watch for the belt: item, plate, wrist ("left" / "right"), or nil.
 function W.beltWatch(player)
     if not (player and W.beltMode() and ZeD.WatchMini) then return nil end
     local item, loc = _wornWatch(player)
@@ -328,8 +332,8 @@ function W.parkSpeed(sc)
 end
 local SPEED_BUTTON = { [2] = "Fast Forward x 1", [3] = "Fast Forward x 2", [4] = "Wait" }
 local SPEED_MULT = { [2] = 5, [3] = 20, [4] = 40 }
--- On a server the server sets the time: Start and Speed do nothing there (QA's multiplayer check, Nov 5 2026:
--- the speed keys raised the client's own multiplier and its clock ran ahead of the server's), as the D-pad
+-- On a server the server sets the time: Start and Speed do nothing there (letting them through raised the
+-- client's own multiplier and its clock ran ahead of the server's), as the D-pad
 -- wheel's Game speed (ZeD_DpadWheels: UI_ZeD_Wheel_ServerTime)
 local function _serverTime() return isClient() end
 local function _setSpeed(n)
@@ -367,8 +371,8 @@ local function _alarmStep(item, dir)
 end
 W._alarmStep = _alarmStep
 
--- the small watch's reading (reused table)
 local _mini = {}
+--- The small watch's reading: hour, minute, fmt24, speed, armed, lit, night, dark (one reused table).
 function W.miniState(player, item)
     local gt = getGameTime()
     _mini.hour, _mini.minute = gt:getHour(), gt:getMinutes()
@@ -383,7 +387,7 @@ function W.miniState(player, item)
     return _mini
 end
 
--- a press on the small watch: its pushers act as the full watch's; the face pops it
+--- A press on the small watch: its pushers act as the full watch's; the face pops it.
 function W.act(id)
     local inst = W._instance
     if not inst then return end
@@ -392,6 +396,7 @@ function W.act(id)
     inst._popTouched = getTimestampMs()
 end
 
+--- Pop the full watch up over the belt (on = true), tuck it back (false), or flip it (nil).
 function W.togglePop(on)
     local inst = W._instance
     if not inst then return end
@@ -442,7 +447,7 @@ function ZeD_Watch:_layout(frameW, frameH, k)
 end
 
 -- this frame's click areas from the plate (only the enabled ones), in screen pixels
--- (perf review Nov 7 2026, item 11: the enabled controls are read straight from the plate's hits, as
+-- (the enabled controls are read straight from the plate's hits, as
 -- ZeD.Plate.controls lists them, into click areas reused frame to frame, so a frame makes no new tables)
 function ZeD_Watch:_hitsFrom(des, st, k)
     local hits, pool = self._hit, self._hitPool
@@ -465,11 +470,12 @@ function ZeD_Watch:_hitsFrom(des, st, k)
 end
 
 -- ---------------------------------------------------------------------------
--- THE SIMPLE WATCH (the director, Nov 2 2026, punch list 60; ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): a plain clock box in
+-- THE SIMPLE WATCH (the watchSimple setting): a plain clock box in
 -- ZeD's own parts, with the same readings and the same buttons as the watch (their ids go to _act unchanged).
 -- Worn: the time large, the weekday and date, the temperature, the game's speed and the alarm, then Start or Pause,
 -- Speed, Alarm and Set; while setting, the alarm hour with - and + and Done. No watch: the four speed keys.
 -- ---------------------------------------------------------------------------
+--- The watchSimple setting is on.
 function W.simple() return ZeD.Settings and ZeD.Settings.watchSimple and ZeD.Settings.watchSimple() or false end
 
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP = 150, 8, 4
@@ -616,8 +622,8 @@ function ZeD_Watch:prerender()
         if sy >= 0 then W._speedY = sy; pcall(sc.setY, sc, -4000) end
         -- Single player keeps their flag on (parked, they still draw nowhere): the game's own Pause on Focus
         -- Loss (Options, Display; on by default) pauses only while the speed controls are "really visible"
-        -- (IngameState.onDisplayFocusLost, 42.21), so hidden here they silently turned it off (punch list
-        -- 109). A server's stay hidden: there they do nothing.
+        -- (IngameState.onDisplayFocusLost, 42.21), so hidden here they would silently turn it off.
+        -- A server's stay hidden: there they do nothing.
         W.parkSpeed(sc)
     end
 
@@ -697,12 +703,12 @@ function ZeD_Watch:prerender()
     st.bulbNight = st.bulb and st.dark
     _reading(st.display, player, item, speed, self._setOpen, armed, alarmHour)
     -- (an add-on face with bad data logs once and is not drawn, rather than throwing every
-    -- frame on an always-visible prop; code audit Oct 17 2026)
+    -- frame on an always-visible prop)
     local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
     if not okD then ZeD.logOnce("watch plate " .. tostring(def and def.id), eD); return end
     self:_hitsFrom(des, st, k)
 end
-function ZeD_Watch:render() end
+function ZeD_Watch:render() end   -- (everything draws in prerender)
 
 function ZeD_Watch:_act(id)
     local item = self._item
@@ -797,6 +803,7 @@ function ZeD_Watch:onMouseUpOutside(x, y) self:onMouseUp(x, y) end
 -- ---------------------------------------------------------------------------
 -- Lifecycle
 -- ---------------------------------------------------------------------------
+--- Make the one watch panel (the first player's) and put it on screen; a second call returns the same one.
 function W.install()
     if W._instance then return W._instance end
     local inst = ZeD_Watch:new(0)
@@ -807,6 +814,7 @@ function W.install()
     print("[ZeD] Watch: plate watch installed (Java clock + speed controls parked)")
     return inst
 end
+--- The watch panel, or nil before the game starts.
 function W.getInstance() return W._instance end
 
 -- Safe mode (SafeMode.lua): the Java clock and speed controls go back where they
@@ -837,9 +845,9 @@ ZeD.Safe.register("watch", {
 
 Events.OnGameStart.Add(function() W._instance = nil; W.install() end)
 
--- On a server the game's speed controls do nothing and showed at the top right from the join until the watch's
--- first drawing parked them (QA's multiplayer check, Nov 5 2026): kept hidden there on every tick, whether a
--- watch is worn or not (not in safe mode, which hands them back)
+-- On a server the game's speed controls do nothing, yet they showed at the top right from the join until the
+-- watch's first drawing parked them: kept hidden there on every tick, whether a
+-- watch is worn or not. The tick stands down in safe mode, whose leave keeps them hidden on a server too
 Events.OnTick.Add(function()
     if not isClient() or ZeD.Safe.on("watch") then return end
     local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()

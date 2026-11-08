@@ -1,5 +1,5 @@
 """ZeD dashboards, round 6 (director, Oct 24 2026): the parts the round adds or replaces. Handoff:
-ZeDUI/HANDOFF_dashboards_r6_20261024.md.
+docs/handoffs/HANDOFF_dashboards_r6_20261024.md.
 
   The lower row: left of the steering column (COLUMN_X) the lights, lock and trunk; right of it the wiper, cruise
   and the key, the key right-most; each side spread with equal gaps; no vent down here. The key turns ACC, OFF,

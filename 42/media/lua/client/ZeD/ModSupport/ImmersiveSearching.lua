@@ -2,7 +2,7 @@
 -- ============================================================================
 -- SUPPORT FOR IMMERSIVE SEARCHING [B42MP] (mod id ImmersiveSearching, Workshop
 -- 3760450908, by kitsuneyuki (yuckyfox); its add-on OpenAllContainersISCompat
--- needs nothing here). Punch list 40; the director's picks, Nov 1 2026.
+-- needs nothing here). Client.
 --
 -- The mod hides a container's things until the character searches it, a timed
 -- action of its own (ImmersiveSearching_ISSearch: its sound, its animation,
@@ -15,7 +15,7 @@
 -- floor, Transfer all... hide until searched) and, on the Java side,
 -- ItemContainer.hasRoomFor (nothing goes into a container never searched) and
 -- getCapacityWeight (0 until searched). ZeD's windows list containers
--- themselves, so none of that reached them (QA, Oct 31 2026).
+-- themselves, so none of that reached them.
 --
 -- What this file does, all through ZeD's general hooks and the mod's own
 -- functions and data (the mod's page asks that it not be altered; nothing of
@@ -83,7 +83,7 @@ ZeD.ModSupport.ImmersiveSearching = S
 local ACTION_TYPE = "ImmersiveSearching_ISSearch"
 local PENDING_MS  = 1500   -- a search asked for, not yet in the queue (the mod waits for the character to get up first)
 
--- QA reads these: the last search ZeD started (reused table) and the decorator's stamps
+-- The QA scripts read these: the last search ZeD started (reused table) and the decorator's stamps
 S.lastStart = { inv = nil, side = nil, how = nil, at = 0, ok = false }
 S.badged = setmetatable({}, { __mode = "k" })   -- container -> time its "?" was last drawn
 
@@ -164,7 +164,7 @@ local function buttonFor(po, inv, side)
 end
 
 -- Starts the mod's search of one container (nothing when it is searched, or
--- its search is queued or asked for). how: "pick", "search", "all" (QA).
+-- its search is queued or asked for). how: "pick", "search", "all" (kept in S.lastStart).
 function S.start(po, inv, side, how)
     if not (po and inv) or isSearched(po, inv) then return false end
     if searchAction(po, inv) then return false end

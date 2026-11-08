@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/MechanicsTab.lua
 -- ============================================================================
 -- VEHICLE TAB — World window, contextual (replaces vanilla ISVehicleMechanics)
--- Contract: ZeDUI/VEHICLE_TAB_SPEC.md (the director, Nov 2-3 2026, punch list 79), on
--- the first tab's mockup zed_vehicle_mechanics_v1 (Oct 13 2026).
+-- Client. A full tab renderer: immediate-mode drawing off the World window's
+-- dispatch table, state kept on the window (win._mech).
 --
 -- Two columns, as Crafting and Building (CraftingCore's split measure): the part list
 -- on the left (By section: the game's categories, a part under the one that has to come
@@ -26,7 +26,7 @@
 -- INSPECT button (vanilla's walk-over-and-look action). An inspection lasts
 -- until the player is more than six tiles away, as vanilla closes its window.
 --
--- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
+-- Every layout number is a DESIGN UNIT and goes through T.px at use.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -66,7 +66,7 @@ local CAT_ORDER = { "engine", "gastank", "tire", "brakes", "suspension", "lights
 local CAT_RANK = {}
 for i, c in ipairs(CAT_ORDER) do CAT_RANK[c] = i end
 
-local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+local DOT = "|"   -- the separator: ZeD's pipe, never a middle dot
 
 -- Inspections survive the World window closing (keyed by vehicle id):
 -- { vehicle = BaseVehicle, hood = VehiclePart|nil }
@@ -315,7 +315,7 @@ local function idsIn(val)
     return out
 end
 
--- The part a part sits under in the list By section (VEHICLE_TAB_SPEC 2): the one that has to
+-- The part a part sits under in the list By section: the one that has to
 -- come off first (its table's requireUninstalled: a brake or a suspension under its tire), from
 -- the game's own install tables, so modded cars group as their scripts say. A window sits under
 -- the door it needs (the door's table asks for the window off first, but the window is in the
@@ -855,7 +855,7 @@ tex = function(name)
     local t = TEX[name]
     if t == nil then
         -- zm_: vanilla packs share the base names. Nearest filtering (3, as ZeD_PixelParts' textures): the
-        -- figures are pixel art since Nov 3 2026 (Design, punch list 79) and blur when filtered linearly
+        -- figures are pixel art and blur when filtered linearly
         local path = "media/textures/ZeD/mech/zm_" .. name .. ".png"
         t = (Texture and Texture.getSharedTexture and Texture.getSharedTexture(path, 3)) or getTexture(path) or false
         TEX[name] = t
@@ -927,7 +927,7 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
                             local full = tex(key) or t
                             panel:drawTextureScaledAspect(full, lx, ly, lw, lh, 0.75, ac.r, ac.g, ac.b)
                             -- and its outline in the text colour, so the lit part never rests on
-                            -- colour alone (the colourblind modes; Vehicle tab spec 3)
+                            -- colour alone (the colourblind modes)
                             local rim = tex(key .. "_rim")
                             if rim then
                                 local oc = T.text
@@ -946,7 +946,7 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
                 local z = { id = p.id, x = x0 - g, y = y0 - g, w = (x1 - x0) + g * 2, h = (y1 - y0) + g * 2 }
                 s.figZones[#s.figZones + 1] = z
                 -- the lit part also gets a box in the text colour around it: a thin part (the
-                -- muffler) lit only by its own outline reads as its neighbours in greyscale (QA)
+                -- muffler) lit only by its own outline reads as its neighbours in greyscale
                 if hlId == p.id then ZeD.Atoms.frame(panel, z.x, z.y, z.w, z.h, T.text) end
             end
         end
@@ -973,14 +973,14 @@ local function drawLabelValue(panel, x, y, w, label, value)
     local A = ZeD.Atoms
     local lt = A.truncateText(cased(label), T.fontF1, w)
     panel:drawText(lt, x, y, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
-    -- the value is cut to the room after its label, never drawn over it (Oct 31 2026, break-it E2)
+    -- the value is cut to the room after its label, never drawn over it
     local room = w - ZeD.TM:MeasureStringX(T.fontF1, lt) - T.px(8)
     if room > 0 then A.drawTextRight(panel, A.truncateText(value, T.fontF3, room), x + w, y, T.fontF3, tc) end
     return math.max(T.fontF1H, T.fontF3H)
 end
 
--- w: the line's width; the words are cut with "..." to the room after the dot (Oct 31 2026,
--- break-it E3: "Not inspect" ran off the card's right edge)
+-- w: the line's width; the words are cut with "..." to the room after the dot
+-- (uncut, a long line ran off the card's right edge)
 local function dotLine(panel, x, y, w, color, text, font)
     local T = ZeD.T
     font = font or T.fontF2
@@ -1221,11 +1221,11 @@ local function verbSensible(part, vb)
 end
 
 -- ----------------------------------------------------------------------------
--- The part list's order (VEHICLE_TAB_SPEC.md 2). By section: the game's part
+-- The part list's order. By section: the game's part
 -- categories, a part under the one it hangs off (parentOf); By condition: worst
 -- first, earned at Mechanics level 4.
 -- ----------------------------------------------------------------------------
-local COND_LEVEL = 4   -- the Mechanics level that earns By condition (the director, Nov 2 2026)
+local COND_LEVEL = 4   -- the Mechanics level that earns By condition
 local CHILD_IN   = 12  -- a part under another: its row indented this much
 
 local function condEarned(chr) return chr ~= nil and mechLevel(chr) >= COND_LEVEL end
@@ -1292,7 +1292,7 @@ local function groupedParts(s, parts, chr)
 end
 
 -- The part that has to be dealt with before this one can be installed or uninstalled
--- (the card's first line, spec 4.1): { id, text } or nil. The game's own words.
+-- (the card's first line): { id, text } or nil. The game's own words.
 local function stepBefore(v, part, verb)
     local kv = part:getTable(verb == "install" and "install" or "uninstall")
     if not kv then return nil end
@@ -1313,7 +1313,7 @@ local function stepBefore(v, part, verb)
     return nil
 end
 
--- Where the game walks the character to work on the part (spec 4.4): its area in words
+-- Where the game walks the character to work on the part: its area in words
 local function workPlace(part)
     local ok, area = pcall(function() return part:getArea() end)
     if not ok or not area or area == "" then return nil end
@@ -1494,8 +1494,8 @@ local function renderList(panel, win, s, x, top, w, bodyH, v, chr, inspected, pa
                         rightX = condRight - bw
                         M.drawTag(panel, rightX, cy + math.floor((rh - T.px(16)) / 2), label, T.danger)
                     else
-                        -- (the list column's bar is narrower than the card's, so names fit: QA saw
-                        -- "Right Headlig..." at 4K)
+                        -- (the list column's bar is narrower than the card's, so a long name
+                        -- like "Right Headlight" still fits at 4K)
                         local barX = condRight - T.px(PCT_W + 4) - T.px(LIST_BAR_W)
                         miniBar(panel, barX, cy + math.floor(rh / 2), T.px(LIST_BAR_W), p.cond)
                         A.drawTextRight(panel, tostring(p.cond) .. "%", condRight, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, ink)
@@ -1597,7 +1597,7 @@ local function renderDiagram(panel, win, s, x, top, w, bodyH, v, chr, inspected,
 end
 
 -- ----------------------------------------------------------------------------
--- Right, a part chosen: its card (spec 4). The verbs are in the footer.
+-- Right, a part chosen: its card. The verbs are in the footer.
 -- ----------------------------------------------------------------------------
 local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     local T = ZeD.T
@@ -1632,13 +1632,13 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     panel:drawText(A.truncateText(catLabel(p.cat), T.fontF1, tw), tx, cy + T.fontF4H, dcl.r, dcl.g, dcl.b, dcl.a or 1, T.fontF1)
     cy = cy + math.max(isz, T.fontF4H + T.fontF1H) + T.px(10)
 
-    -- the step before (spec 4.1): the part that has to come off (or go on) first, and a key
+    -- the step before: the part that has to come off (or go on) first, and a key
     -- that chooses it
     local sb = nil
     if s.verb == "install" or s.verb == "uninstall" then sb = stepBefore(v, part, s.verb) end
     if not sb then
         -- every verb the part has, the folded ones too: a brake blocked only by its tire has its
-        -- Uninstall folded away (QA, punch list 79)
+        -- Uninstall folded away
         for _, vb in ipairs(cm.verbs) do
             if vb == "install" or vb == "uninstall" then sb = stepBefore(v, part, vb); if sb then break end end
         end
@@ -1674,7 +1674,7 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     end
 
     -- the readings: condition and what the part carries beyond it (pressure, charge, fuel...),
-    -- and where the work is done (spec 4.3, 4.4)
+    -- and where the work is done
     local stats = cardStats(p, v, chr)
     local place = workPlace(part)
     if place then stats[#stats + 1] = { label = getText("IGUI_AttachedItems_Location"), value = place } end
@@ -1707,7 +1707,7 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
         return onFocus, rx + rs + T.px(8)
     end
 
-    -- install: the spares in reach and where each is (spec 4.2)
+    -- install: the spares in reach and where each is
     if s.verb == "install" then
         local picks = installPicks(part, chr, itemsFor(s, chr))
         local owned = 0
@@ -2179,7 +2179,7 @@ function MT.onRightClick(win, x, y)
     return true
 end
 
--- The wheel scrolls the column under the pointer; it never closes the card (spec 4)
+-- The wheel scrolls the column under the pointer; it never closes the card
 function MT.onMouseWheel(win, del)
     local s = st(win)
     local step = ZeD.T.px(SCROLL_STEP) * del

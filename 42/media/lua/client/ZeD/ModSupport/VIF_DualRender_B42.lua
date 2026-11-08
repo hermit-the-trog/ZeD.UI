@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/VIF_DualRender_B42.lua
 -- ============================================================================
 -- SUPPORT FOR BETTER FOLDERS (mod id VIF_DualRender_B42, Workshop 3834889317).
--- Written Nov 7 2026 from the mod's own code (compatibility round 6: the
--- director picked it for support).
+-- Client. The mod's named folders become group rows in ZeD's inventory list;
+-- what follows about the mod was read from its own code.
 --
 -- What the mod does: folders the player names, in the game's inventory list of
 -- the character's own inventory (not bags, not loot). A folder only points at
@@ -26,8 +26,8 @@
 --     categories, in the mod's folder order, named as the player named it; in
 --     the other sorts the list stays flat and the category column names the
 --     folder. The grid shows the same groups. A folder with nothing filed in it
---     yet is a group row too, count 0, as an empty container (Build's call,
---     Nov 7 2026: a folder just made shows at once).
+--     yet is a group row too, count 0, as an empty container: a folder just
+--     made shows at once.
 --   * the item menu gets "Virtual folders" (the mod's words): Create folder...
 --     and, for a filed thing, Rename folder... and Delete folder (keep items).
 --     The names are typed in ZeD's prompt (the game's text box, which ZeD
@@ -73,8 +73,8 @@ local function api()
     return nil
 end
 
--- The mod reads a pane's player and inventory to find the character's folders
--- (VIFState.getController); ZeD hands it a small table with just those two.
+--- The mod reads a pane's player and inventory to find the character's folders
+--- (VIFState.getController); ZeD hands it a small table with just those two.
 function S.pane(playerObj)
     if not playerObj then return nil end
     local pn = 0
@@ -88,7 +88,7 @@ function S.pane(playerObj)
     return p
 end
 
--- the character's folder state (the mod's), or nil
+--- The character's folder state (the mod's), or nil.
 function S.state(playerObj)
     local V = api()
     local pane = V and S.pane(playerObj)
@@ -106,7 +106,7 @@ local function itemKey(item)
     return nil
 end
 
--- The folder id a thing is filed in, or nil.
+--- The folder id a thing is filed in, or nil.
 function S.folderOf(playerObj, item)
     local V, st = api(), S.state(playerObj)
     if not (V and st and item) then return nil end
@@ -159,7 +159,7 @@ function G.rank(key)
     return nil
 end
 
--- every folder of the character, in the mod's order: listed even with nothing filed
+--- Every folder of the character, in the mod's order: listed even with nothing filed.
 function G.keys(inv, playerObj, isPlayerInv)
     if not (isPlayerInv and playerObj and inv) or inv ~= playerObj:getInventory() then return nil end
     local st = S.state(playerObj)
@@ -172,7 +172,7 @@ function G.keys(inv, playerObj, isPlayerInv)
     return out
 end
 
--- every change goes through the mod's VIFState.mutate, which bumps S.gen (below)
+--- Every change goes through the mod's VIFState.mutate, which bumps S.gen (below).
 function G.sig(inv, playerObj, isPlayerInv)
     if not isPlayerInv then return 0 end
     return S.gen
@@ -202,7 +202,7 @@ if Events and Events.OnGameStart then Events.OnGameStart.Add(wrapMutate) end
 -- folder rows' menu, which live on the game's list)
 -- ---------------------------------------------------------------------------
 
--- a change through the mod, then ZeD's lists rebuild
+--- A change through the mod, then ZeD's lists rebuild.
 function S.change(playerObj, fn, ...)
     local V = api()
     local pane = V and S.pane(playerObj)

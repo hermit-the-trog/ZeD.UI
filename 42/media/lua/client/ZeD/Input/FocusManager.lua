@@ -1,44 +1,65 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Input/FocusManager.lua
 -- ============================================================================
--- LAYER 3 — FocusManager (S113 — FLAT FREE-NAV model)
+-- FOCUS MANAGER — which window holds the pad, and what every button does there.
+-- Client. The heart of the controller stack: InputModeDetector says the pad
+-- is live, BumperChord stands down while a window is focused, ActionMap names
+-- each button's action, SpatialNav picks where a D-pad move lands — this file
+-- owns the focus itself and dispatches everything in between.
 --
--- Replaces the S97 RING model. Per-window zones still exist as a STORAGE
--- abstraction (per-tab builders still call setRingZoneElements / setZoneFocusable
--- — no churn) but D-pad nav is now FLAT across every focusable zone of the
--- focused window. Bumpers no longer cycle zones; they swap between the two
--- always-paired Character/World windows.
+-- How a press travels: claimFocus points the engine's joypad focus
+-- (setJoypadFocus) at the focused ZeD window, so the engine calls that
+-- window's onJoypadDown / onJoypadDir* stubs (ZeD_Window's, in Organisms.lua),
+-- which hand the press to dispatchJoypadDown / dispatchJoypadDir here.
+-- ActionMap turns a button into an action; a D-pad direction goes to the
+-- spatial pick. A, X and Y wait for release or their hold time, and a held
+-- D-pad repeats, on the tick poll at the bottom of this file. With no window
+-- focused the pad is the game's (BumperChord zooms, the D-pad wheels open);
+-- the tick poll still watches Y, which opens the pair.
 --
--- NAV MODEL (design director ruling, locked S113b brainstorm):
---   LB                       — swap focus to other window (Char ↔ World)
---   RB                       — swap focus to other window (Char ↔ World)
---   D-pad up/down/left/right — cone-nav across ALL focusable zones in the focused window
+-- Windows store their focusable controls in zones (per-tab builders call
+-- setRingZoneElements / setZoneFocusable), but D-pad nav is FLAT across every
+-- focusable zone of the focused window. Bumpers don't cycle zones; they pick
+-- one of the two always-paired windows (LB Character, RB World).
+--
+-- NAV MODEL:
+--   LB                       — focus the Character window (absolute: on it already, a no-op)
+--   RB                       — focus the World window (absolute)
+--   D-pad up/down/left/right — spatial nav across ALL focusable zones in the focused window;
+--                              with nothing more that way, Left / Right go on to the
+--                              other window when it sits that way on screen
 --   A tap                    — fire focused element's onActivate (= LMB)
---   A hold (>=350ms)         — fire onHoldActivate if defined (= double-LMB)
---   X                        — fire focused element's onContextMenu (= RMB);
+--   A hold (>=350ms)         — fire onHoldActivate if defined (a list row: mark it and
+--                              start a painted run)
+--   X tap                    — fire focused element's onContextMenu (= RMB);
 --                              else onReset if defined (3-option dialogs only)
+--   X hold (>=350ms)         — onHoldContextDrag drag mode (the D-pad drags, release
+--                              commits); else onHoldContext once (a list row: quick use)
 --   B                        — fire focused element's onCancel if defined; else NO-OP
---                              (no shade-all fallback; pure contextual cancel)
+--                              (no shade-all fallback; purely contextual cancel)
 --   Y tap                    — toggle paired visibility (open both/hide both/unhide both)
---   Y hold (>=400ms)         — close BOTH windows (full lifecycle teardown)
---   Right stick |v|² > 0.81  — instant hide both + focus release (aiming escape)
+--   Y hold (>=400ms)         — close every registered window (full lifecycle teardown)
+--   L3 / R3                  — the focused list's next sort / its List | Grid view, nothing else
+--   Right stick |v|² > 0.81  — roll up every registered window + release focus (aiming escape)
 --
 -- WINDOW-PAIR INVARIANT (gamepad mode):
 --   Both Character and World are always open as a pair on gamepad. LB/RB rely
 --   on this; Y maintains it. ZeD_CharacterWindow.ensureBothOpenForGamepad(0)
---   is called by InputModeDetector mode-flip and by Y-tap as a safety net.
+--   runs on the flip to gamepad (this file's ZeD_InputModeChanged listener),
+--   on Y-tap and on LB / RB, as a safety net.
 --
 -- PSEUDO-FOCUSABLE D-PAD INTERCEPT (unified contract):
 --   Any element may declare onDpadDir(w, el, dir) — a callback that fires
---   BEFORE generic cone-nav when D-pad is pressed while that element is
---   focused. Used by: maps canvas cursor (move cursor in panel pixels),
---   animals zone-draw cursor (move cursor by tile), gridScroll surfaces
---   (scroll the visible region). Returning false from the callback signals
---   "not handled, fall through to cone-nav" — matches the Q107 onCancel
---   pass-through contract.
+--   BEFORE the spatial pick when D-pad is pressed while that element is
+--   focused (only an X-hold drag and an open pop-up list come first). Used
+--   by: maps canvas cursor (move cursor in panel pixels), animals zone-draw
+--   cursor (move cursor by tile), gridScroll surfaces (scroll the visible
+--   region). Returning false from the callback signals "not handled, fall
+--   through to the spatial pick" — the false-means-not-handled convention
+--   onCancel follows too (for B, false only skips the click sound).
 --
 -- WINDOW CONTRACT:
 --   Each window populates w._focusRing (array of zones) and w._focusIdx (1-based
---   current zone index) on open. Zone shape unchanged from S97:
+--   current zone index) on open. Zone shape:
 --     w._focusRing = {
 --       { zone = "tabBar", focusable = true,
 --         elements = { {x, y, w, h, id, onActivate, onContextMenu, onFocus,
@@ -49,14 +70,15 @@
 --       ...
 --     }
 --     w._focusIdx = 1
---   Optional renderFn(w, zone) on each zone (per-zone bumper-land hook;
---   harmless under flat nav since bumpers no longer cycle zones, but kept
---   so old code doesn't have to be cleaned up).
---   Optional w:onFocusZoneChanged({new, old}) — fired when cone-nav crosses
---   a zone boundary, so chrome can refresh.
+--   Optional on a zone: covered(w) (drawn over just now, so no stops) and
+--   landOn(w, zone, dir) (the element a move into the zone lands on). A
+--   zone's renderFn, the old bumper-land hook, is unused: nothing sets or
+--   reads one.
+--   Optional w:onFocusZoneChanged({new, old}) — fired when a D-pad move
+--   crosses a zone boundary, so chrome can refresh.
 --
--- BUMPERCHORD INTEGRATION (unchanged from S97):
---   On claimFocus → Chord.setEnabled(false) so LB/RB route to window swap
+-- BUMPERCHORD INTEGRATION:
+--   On claimFocus → Chord.setEnabled(false) so LB/RB pick a window
 --   On releaseFocus → Chord.setEnabled(true) so LB/RB route to zoom chord
 --
 -- Public interface:
@@ -65,17 +87,21 @@
 --   ZeD.Input.Focus.claimFocus(w)
 --   ZeD.Input.Focus.releaseFocus()
 --   ZeD.Input.Focus.getFocusedWindow()
---   ZeD.Input.Focus.isLocked()                            -- always false post-S113 (Y-lock retired)
+--   ZeD.Input.Focus.isLocked()                            -- always false (the Y-hold lock is gone)
 --   ZeD.Input.Focus.getFocusedZone(w)                     -- current zone or nil
 --   ZeD.Input.Focus.getFocusedElement(w)                  -- focused element or nil
 --   ZeD.Input.Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx?)
 --   ZeD.Input.Focus.setZoneFocusable(w, zoneRef, flag)    -- drawer toggling
 --   ZeD.Input.Focus.dispatchJoypadDown(w, button, joypadData)
 --   ZeD.Input.Focus.dispatchJoypadDir(w, dir, joypadData)
---   ZeD.Input.Focus.reclaimEngineFocus()                  -- context-menu close path
+--   ZeD.Input.Focus.reclaimEngineFocus()                  -- hand the pad back after a menu or wheel
 --   ZeD.Input.Focus.cuesVisible()                         -- the controller's focus mark shows (pad in use)
 --   ZeD.Input.Focus.isFocused(w, zoneName?, elementId?)   -- draw a focus mark here? (focused window only)
 --   ZeD.Input.Focus.liveZone(w) / liveElement(w)          -- the same as zone / element, nil when not shown
+--   Also: isRegistered, held, setRingZoneElementsKeepId, focusWhere,
+--   ensureEntry, landOnPrimary, focusSoon / focusByIdSoon / focusPrimarySoon,
+--   openSide, tick, toggleDebugOverlay / isDebugOverlay, and the QA hooks
+--   previewMove, flatElements and qaButton (each documented where it lives).
 --
 -- Event emitted:
 --   Events.ZeD_FocusChanged(newWindow, oldWindow)
@@ -84,7 +110,8 @@
 require "ZeD/Tokens"
 require "ZeD/Input/SpatialNav"
 
--- Namespace (triple-guard per Q21 — PZ can re-execute files in any order).
+-- Reload-safe: loading this file twice reuses the tables instead of wiping
+-- them, and guarding every level lets PZ re-execute files in any order.
 ZeD = ZeD or {}
 ZeD.Input = ZeD.Input or {}
 ZeD.Input.Focus = ZeD.Input.Focus or {}
@@ -96,8 +123,8 @@ local Focus = ZeD.Input.Focus
 -- ---------------------------------------------------------------------------
 
 -- Grace period after claimFocus during which stick aiming-escape is suppressed.
--- Without this, resting-finger trigger pressure (Q83) or stick drift can hide
--- the window the instant it opens.
+-- Without this, stick drift or a thumb still resting on the right stick can
+-- hide the window the instant it opens.
 local WS_GRACE_MS = 600
 
 -- SDL standard controller axis indices. Mirrored from InputModeDetector.
@@ -105,7 +132,7 @@ local AXIS_RSTICK_X = 2
 local AXIS_RSTICK_Y = 3
 
 -- Token readers. Triple-guard to tolerate T.gp not being populated at
--- file-load time (same pattern as InputModeDetector / BumperChord).
+-- file-load time (same pattern as InputModeDetector).
 local function _holdInitialMs()     return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdInitMs)        or 250 end
 local function _holdRepeatMs()      return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdRepeatMs)      or 120 end
 local function _holdMs()            return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdMs)            or 400 end
@@ -123,12 +150,12 @@ local _dpadHoldDir    = nil
 local _dpadHoldStart  = 0
 local _dpadLastRepeat = 0
 
--- Y hold-timer state (B no longer uses hold). Y is the only hold-armed button.
+-- Y hold-timer state (B has no hold). Y, A and X are the hold-armed buttons.
 local _yHeld         = false
 local _yStartMs      = 0
 local _yConsumed     = false
 
--- S99: A-button tap-vs-hold state. Press defers firing until release (tap →
+-- A-button tap-vs-hold state. Press defers firing until release (tap →
 -- onActivate) or threshold (hold → onHoldActivate, when defined). `_aWindow`
 -- captures which window owned focus at press time so the callback fires on
 -- the correct window even if focus moved (defensive).
@@ -138,12 +165,13 @@ local _aConsumed    = false
 local _aWindow      = nil
 local A_HOLD_MS     = 350
 
--- S113c: X-button tap-vs-hold state, mirror of A's. Tap (release before
+-- X-button tap-vs-hold state, mirror of A's. Tap (release before
 -- threshold) fires onContextMenu / onReset. Hold past threshold fires
 -- onHoldContextDrag with no dir on entry (signal "drag mode armed"); while
 -- X stays held, D-pad presses fire onHoldContextDrag(w, el, dir) instead
--- of generic cone-nav so the element can mutate its position. Release
--- after hold fires onHoldContextRelease (commit / exit drag).
+-- of moving the focus, so the element can mutate its position. Release
+-- after hold fires onHoldContextRelease (commit / exit drag). An element
+-- with onHoldContext instead gets that once at the threshold (no drag).
 local _xHeld         = false
 local _xStartMs      = 0
 local _xConsumed     = false
@@ -154,17 +182,16 @@ local X_HOLD_MS      = 350
 -- Rising-edge tracker for Y when no window is focused (global Y-to-open).
 local _prevYPressedUnfocused = false
 
--- Aiming-escape edge latch + grace period. (S113: _wsLocked retired since
--- Y-hold no longer toggles a lock.)
+-- Aiming-escape edge latch + grace period.
 local _wsLatched       = false
 local _wsGraceUntilMs  = 0
 
--- S113b: cone-nav debug overlay toggle. F9 toggles on. Paints the focused
--- element's bbox + half-plane regions for U/D/L/R + the per-direction picks
--- (cone winner cyan, half-plane winner magenta if cone missed). Throwaway
--- QA aid — strip after iteration converges.
+-- D-pad debug overlay toggle (F9, debug builds). Paints the focused
+-- element's bbox + the per-direction picks (cyan = lined up, the picker's
+-- "cone" pass; magenta = off to the side, "half"). A QA aid — TODO: strip
+-- once the spatial nav settles.
 local _debugOverlay    = false
--- Oct 19 2026: a dry run of a D-pad move (Focus.previewMove; the nav audit reads it)
+-- a dry run of a D-pad move (Focus.previewMove; the QA nav scripts read it)
 local _preview = nil
 -- Last-pick cache (per direction) so the overlay can highlight what
 -- _pickBestWithFallback would choose in that direction without re-running
@@ -174,7 +201,7 @@ local _debugLastPicks  = { up = nil, down = nil, left = nil, right = nil }
 local _debugFocusBox   = nil  -- focused element's translated bounds (cached for paint)
 
 -- ---------------------------------------------------------------------------
--- HELPERS (declared up-front so forward refs resolve — common mistake #16)
+-- HELPERS (declared up-front so forward references resolve)
 -- ---------------------------------------------------------------------------
 
 -- (a zone's source panel; assigned in the FLAT-NAV section below, read by
@@ -199,9 +226,10 @@ local function _indexOf(w)
 end
 
 -- Push engine-level joypad focus so PZ's onJoypad* dispatch reaches our
--- window's shims. `nil` is valid — clears engine focus (Q87 canonical setter).
--- pcall-wrapped for Java proxy safety. Hardcoded playerID 0 (single-player);
--- split-screen threading deferred.
+-- window's shims. setJoypadFocus is the engine's canonical setter; `nil` is
+-- valid and clears engine focus. The game's Java side can throw, so pcall
+-- turns a crash into a miss. Hardcoded playerID 0; split-screen would need
+-- the player index threaded through.
 local function _pushEngineFocus(control)
     if not setJoypadFocus then return end
     pcall(setJoypadFocus, 0, control)
@@ -251,7 +279,7 @@ local function _fireCbR(fnName, fn, w, ...)
     return result
 end
 
--- Nov 8 2026 (the performance review, 14): a window whose tab stops wait while the mouse is in use (Focus.stopsMayWait)
+-- A window whose tab stops wait while the mouse is in use (Focus.stopsMayWait)
 -- brings them up to date through w._focusFresh before anything here reads them: a press, a landing, the stop list
 local function _fresh(w)
     local fn = w and w._focusFresh
@@ -298,8 +326,8 @@ local function _watchCueMouse()
     end
 end
 
---- True while the controller's focus mark shows: the last pad press that reached
--- a ZeD window is newer than the last use of the mouse.
+--- True while the controller's focus mark shows: the last pad press that
+--- reached a ZeD window is newer than the last use of the mouse.
 function Focus.cuesVisible()
     return _cuesOn
 end
@@ -308,11 +336,12 @@ end
 -- REGISTRY API
 -- ---------------------------------------------------------------------------
 
--- whether w is still registered (a window kept to hand focus back to may have closed)
+--- Whether w is still registered (a window kept to hand focus back to may have closed).
 function Focus.isRegistered(w)
     return w ~= nil and _indexOf(w) ~= nil
 end
 
+--- Add w to the windows the pad can reach (once; a second call does nothing).
 function Focus.registerWindow(w)
     if not w then return end
     if _indexOf(w) then return end
@@ -321,9 +350,9 @@ function Focus.registerWindow(w)
        .. " (" .. tostring(#_windowRegistry) .. " registered)")
 end
 
--- Atomic focus transfer on unregister: if the removed window was focused and
--- another survives, hand off in a SINGLE ZeD_FocusChanged event so subscribers
--- can diff cleanly. If no survivors, degrades to regular release (new = nil).
+--- Atomic focus transfer on unregister: if the removed window was focused and
+--- another survives, hand off in a SINGLE ZeD_FocusChanged event so subscribers
+--- can diff cleanly. If no survivors, degrades to regular release (new = nil).
 function Focus.unregisterWindow(w)
     if not w then return end
     local wasFocused = (_focusedWindow == w)
@@ -360,13 +389,18 @@ end
 -- FOCUS CLAIM / RELEASE / READ
 -- ---------------------------------------------------------------------------
 
--- a window that keeps the pad to itself is up (the join screen, ZeD_CommunityCards.lua): nothing here opens a window or takes the
--- pad under it. It holds the pad itself (ZeD_JoinWindow:update) and hands it back when it closes
+--- A window that keeps the pad to itself is up (the join screen,
+--- ZeD_CommunityCards.lua): nothing here opens a window or takes the pad under
+--- it. It holds the pad itself (ZeD_JoinWindow:update) and hands it back when it closes.
 function Focus.held()
     local CM = ZeD.CommunityCards
     return CM ~= nil and CM.joinWin ~= nil
 end
 
+--- Give w the pad: it becomes the focused window, lands on something lit
+--- (Focus.ensureEntry), takes the engine's joypad focus, and the bumpers
+--- leave the zoom chord for the window pair; ZeD_FocusChanged fires.
+--- Does nothing while Focus.held().
 function Focus.claimFocus(w)
     if not w then return end
     if _focusedWindow == w then return end
@@ -380,8 +414,8 @@ function Focus.claimFocus(w)
         local D = ZeD.Input.Detector
         if D and D.getMode and D.getMode() == "gamepad" then _showCues() end
     end
-    -- Oct 23 2026: land on something lit (the last focused element, else the
-    -- list's first row); see Focus.ensureEntry
+    -- land on something lit (the last focused element, else the list's first
+    -- row); see Focus.ensureEntry
     if Focus.ensureEntry then
         local ok, err = pcall(Focus.ensureEntry, w)
         if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
@@ -400,6 +434,8 @@ function Focus.claimFocus(w)
     triggerEvent("ZeD_FocusChanged", w, old)
 end
 
+--- Let the pad go: no window is focused, the engine's joypad focus clears
+--- (the pad is the game's again) and the bumpers return to the zoom chord.
 function Focus.releaseFocus()
     if not _focusedWindow then return end
     local old = _focusedWindow
@@ -413,24 +449,24 @@ function Focus.releaseFocus()
     triggerEvent("ZeD_FocusChanged", nil, old)
 end
 
+--- The window holding the pad, or nil.
 function Focus.getFocusedWindow()
     return _focusedWindow
 end
 
--- S113: Y-hold no longer toggles a windowshade lock (Y-hold = close pair now).
--- Public reader retained as a permanent `false` so legacy callers don't blow up.
+--- Always false: Y-hold closes the pair now instead of toggling a windowshade
+--- lock. The reader stays so an old caller can't blow up.
 function Focus.isLocked()
     return false
 end
 
 -- ---------------------------------------------------------------------------
--- ZONE STORAGE API (preserved from S97 — per-tab builders unchanged)
+-- ZONE STORAGE API
 --
--- Zones remain as a per-window STORAGE abstraction so existing per-tab builder
--- code (Equipment / Health / Thermal / Skills / Identity / Journal / Forage /
--- Animals / Maps / Craft / Build / InventoryRenderer / ItemCard) doesn't need
--- to be rewritten. The DIFFERENCE from S97: D-pad nav is flat across ALL
--- focusable zones in the focused window — bumpers no longer hop between zones.
+-- Zones are a per-window STORAGE abstraction, kept so the per-tab builder
+-- code that fills them never had to be rewritten when nav went flat: D-pad
+-- nav runs across ALL focusable zones in the focused window, and bumpers
+-- never hop between zones.
 -- ---------------------------------------------------------------------------
 
 -- Resolve a zone reference (index or name) to its array index inside w._focusRing.
@@ -458,14 +494,14 @@ local function _clampIdx(idx, t)
     return idx
 end
 
--- Return the currently-focused ring entry (whole zone table), or nil.
+--- The currently-focused ring entry (whole zone table), or nil.
 function Focus.getFocusedZone(w)
     if not w or not w._focusRing then return nil end
     local idx = w._focusIdx or 1
     return w._focusRing[idx]
 end
 
--- Return the currently-focused element inside the current zone, or nil.
+--- The currently-focused element inside the current zone, or nil.
 function Focus.getFocusedElement(w)
     local zone = Focus.getFocusedZone(w)
     if not zone or not zone.elements then return nil end
@@ -476,12 +512,12 @@ end
 -- getFocusedZone / getFocusedElement read a window's stored focus whether or not
 -- the window has it (navigation and the windows' own logic need that). A focus
 -- MARK needs more: the window is the focused one and the controller is in use.
--- Without that test the unfocused window kept lighting its remembered row
--- (Craft, Build, Journal, Animals, Foraging, Stations, JournalReaders), and
--- the mark stayed lit while the mouse was used. Surfaces draw marks through these:
+-- Without that test the unfocused window would keep lighting its remembered
+-- row (Craft, Build, Journal, Animals, Foraging, Stations, JournalReaders), and
+-- the mark would stay lit while the mouse is used. Surfaces draw marks through these:
 
 --- The zone a focus mark may show in, or nil: w is the focused window and the
--- controller is in use.
+--- controller is in use.
 function Focus.liveZone(w)
     if not w or w ~= _focusedWindow or not _cuesOn then return nil end
     return Focus.getFocusedZone(w)
@@ -494,8 +530,8 @@ function Focus.liveElement(w)
 end
 
 --- True when a surface should draw the focus mark: w is the focused window, the
--- controller is in use, its focused zone is zoneName (when given) and its
--- focused element has the id elementId (when given).
+--- controller is in use, its focused zone is zoneName (when given) and its
+--- focused element has the id elementId (when given).
 function Focus.isFocused(w, zoneName, elementId)
     local z = Focus.liveZone(w)
     if not z then return false end
@@ -507,8 +543,8 @@ function Focus.isFocused(w, zoneName, elementId)
     return true
 end
 
--- Swap a zone's elements array (e.g. inventory row rebuild). Optionally
--- preserve focusedElementIdx at a specific value (else clamp existing).
+--- Swap a zone's elements array (e.g. inventory row rebuild). Optionally
+--- preserve focusedElementIdx at a specific value (else clamp existing).
 function Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx)
     local idx = _resolveZoneIdx(w, zoneRef)
     if not idx or not elements then return end
@@ -521,9 +557,9 @@ function Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx)
     end
 end
 
--- Oct 23 2026: the same, keeping the focus on the element with the same id
--- when it is still there (a card's controls rebuilt each frame: a button
--- appearing before the focused one must not move the focus).
+--- The same, keeping the focus on the element with the same id when it is
+--- still there (a card's controls rebuilt each frame: a button appearing
+--- before the focused one must not move the focus).
 function Focus.setRingZoneElementsKeepId(w, zoneRef, elements)
     local idx = _resolveZoneIdx(w, zoneRef)
     if not idx or not elements then return end
@@ -538,25 +574,25 @@ function Focus.setRingZoneElementsKeepId(w, zoneRef, elements)
     Focus.setRingZoneElements(w, zoneRef, elements, keep)
 end
 
--- Toggle focusable flag on a zone (e.g. drawer open=true / closed=false).
--- If toggling OFF the currently-focused zone, advance _focusIdx to the next
--- focusable zone so the user doesn't end up stranded in a dead zone.
+--- Toggle focusable flag on a zone (e.g. drawer open=true / closed=false).
+--- If toggling OFF the currently-focused zone, advance _focusIdx to the next
+--- focusable zone so the user doesn't end up stranded in a dead zone.
 function Focus.setZoneFocusable(w, zoneRef, flag)
     local idx = _resolveZoneIdx(w, zoneRef)
     if not idx then return end
     w._focusRing[idx].focusable = flag and true or false
 
     if (not flag) and w._focusIdx == idx then
-        -- Oct 23 2026: the window's list emptied under the focus (another
-        -- container picked, the last item taken): focus goes back to the list
-        -- as soon as it has rows again (Focus.ensureEntry, on the tick)
+        -- the window's list emptied under the focus (another container
+        -- picked, the last item taken): focus goes back to the list as soon
+        -- as it has rows again (Focus.ensureEntry, on the tick)
         if w._focusEntryZone and w._focusRing[idx].zone == w._focusEntryZone then
             w._focusPendingEntry = true
         end
-        -- Oct 23 2026 (director: focus goes back to where you started, or its
-        -- nearest neighbour in the same panel, "never to another panel or
-        -- nowhere"): first a zone in the same panel that still has stops
-        -- (the list's container buttons under it), only then the ring order
+        -- Focus goes back to where you started or its nearest neighbour in
+        -- the same panel, never to another panel or nowhere: first a zone in
+        -- the same panel that still has stops (the list's container buttons
+        -- under it), only then the ring order.
         local panel = _zonePanel(w, w._focusRing[idx].zone)
         if panel then
             for i, z in ipairs(w._focusRing) do
@@ -581,9 +617,9 @@ function Focus.setZoneFocusable(w, zoneRef, flag)
 end
 
 -- ---------------------------------------------------------------------------
--- reclaimEngineFocus — context-menu close path. Re-push engine focus to the
--- tracked focused window so dispatch resumes after an external consumer
--- released engine focus.
+-- reclaimEngineFocus — re-push engine focus to the tracked focused window,
+-- so dispatch resumes after something that borrowed the pad (a context menu,
+-- a D-pad wheel, the chat) let it go.
 -- ---------------------------------------------------------------------------
 
 function Focus.reclaimEngineFocus()
@@ -593,9 +629,9 @@ function Focus.reclaimEngineFocus()
 end
 
 -- ---------------------------------------------------------------------------
--- WHERE FOCUS LANDS (Oct 23 2026, the director's first hands-on pad test:
--- "missing the selection in cone nav when first navigating to the world
--- window"; "the info cards do not land on the action strip")
+-- WHERE FOCUS LANDS — two helpers that keep a window from putting the focus
+-- on nothing visible when it is entered, and let an opened info card land
+-- it on its action strip.
 --
 --   Focus.focusWhere(w, zone, pred)  put focus on the first element of the
 --                                    zone that pred(el, i) accepts (nil pred
@@ -633,8 +669,9 @@ function Focus.focusWhere(w, zoneName, pred)
     return nil
 end
 
--- A zone.landOn for cards (FocusManager's landing rule): a move into the
--- card lands on its primary action, the button the player most likely wants.
+--- A zone.landOn for cards (the windows hand it in when they build zones):
+--- a move into the card lands on its primary action, the button the player
+--- most likely wants.
 function Focus.landOnPrimary(w, z)
     for i, e in ipairs(z and z.elements or {}) do
         if e.isPrimary then return i end
@@ -692,9 +729,9 @@ end
 -- the window's _focusIdx (cross-zone landing).
 -- ---------------------------------------------------------------------------
 
--- S113b: zone-name → window-field map. Each zone's element bounds are stamped
+-- Zone-name → window-field map. Each zone's element bounds are stamped
 -- in the source PANEL'S local coords (e.g. an invrow's x=0 is the LEFT EDGE
--- of the content panel, not of the window). Cone-nav math compares all
+-- of the content panel, not of the window). The spatial picker compares all
 -- elements as if they share a single coord space — without translation,
 -- two zones with x=0 collide and inventory gets skipped on cross-zone hops.
 -- The fix: at _collectFlat, translate each element to WINDOW-local by adding
@@ -714,7 +751,7 @@ local _zonePanelField = {
     worldItemCard       = "_itemDrawerPanel",
     worldContainerStrip = "_containerStrip",
     worldCtl            = "_contentPanel",  -- the container buttons' row (ContainerControls)
-    -- S123: map pop-out window (ZeD.MapsTab.openPopout) — one content zone
+    -- map pop-out window (ZeD.MapsTab.openPopout) — one content zone
     popMapContent       = "_contentPanel",
     -- charMC<N> / worldMC<N> all share their respective content panel
 }
@@ -747,7 +784,7 @@ end
 
 -- Returns (elements, locator) where:
 --   elements[i]  = a SHALLOW COPY of the source element with bounds translated
---                  to window-local coords (cone-nav math operates on this copy)
+--                  to window-local coords (the picker works on this copy)
 --   locator[i]   = { zoneIdx = N, elementIdx = M } for that flat position
 -- Skips zones flagged focusable=false and zones with empty elements.
 -- Translation: x/y get the source panel's offset added; w/h unchanged.
@@ -756,8 +793,8 @@ local function _collectFlat(w)
     if not w or not w._focusRing then return elements, locator end
     for zi = 1, #w._focusRing do
         local zone = w._focusRing[zi]
-        -- (Oct 23 2026: zone.covered(w) = drawn over just now, e.g. a tab's
-        -- controls under an item card that overlays the drawer: no stops)
+        -- (zone.covered(w) = drawn over just now, e.g. a tab's controls
+        -- under an item card that overlays the drawer: no stops)
         local covered = zone.covered and zone.covered(w)
         if zone.focusable and not covered and zone.elements and #zone.elements > 0 then
             local ox, oy = _zoneOffset(w, zone.zone)
@@ -798,7 +835,7 @@ local function _findCurrentFlatIdx(w, locator)
     return nil
 end
 
--- Update window state after cone-nav landed on flat position newFlatIdx.
+-- Update window state after a D-pad move landed on flat position newFlatIdx.
 -- Writes back to both w._focusIdx (zone) and the destination zone's
 -- focusedElementIdx (intra-zone position). Fires onFocus on landing element.
 -- If we crossed a zone boundary, also fires window's onFocusZoneChanged hook.
@@ -818,8 +855,8 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     if newEl and newEl.onFocus then
         _fireCb("element.onFocus", newEl.onFocus, w, newEl)
     end
-    -- S123: audible focus tick (vanilla list-select sound) so D-pad moves
-    -- are felt without looking for the cue. Mouse hover never routes here.
+    -- Audible focus tick (vanilla list-select sound) so D-pad moves are
+    -- felt without looking for the cue. Mouse hover never routes here.
     pcall(function() getSoundManager():playUISound("UISelectListItem") end)
 
     if newZoneIdx ~= oldZoneIdx and w.onFocusZoneChanged then
@@ -828,19 +865,18 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     end
 end
 
--- The picker (Oct 15 2026, director: "cone navigation is blocking directions
--- that are logical ... freedom of movement is crucial"): ZeD.SpatialNav, by
--- rectangles: the nearest element LINED UP that way (spans overlapping across
--- the move), else the nearest that way at any angle. The strict 45-degree
--- centre cone above sent Right past a button beside a tall row and made the
--- player go down, over and up. _coneCost / _halfPlaneCost stay for reference.
+-- The picker: ZeD.SpatialNav, by rectangles — the nearest element LINED UP
+-- that way (spans overlapping across the move), else the nearest that way at
+-- any angle, so no on-screen direction is ever blocked. The strict 45-degree
+-- centre cone it replaced sent Right past a button beside a tall row and made
+-- the player go down, over and up.
 -- Returns (idx, pass): pass "cone" = lined up, "half" = off to the side (the
 -- debug overlay's cyan / magenta), nil when nothing lies that way.
 -- linedUpOnly: take only a stop that lines up across (tier 0), never one off to the side. Up and
--- Down use it when they look beyond their own zone (director, Nov 1 2026, punch list 42 c.: on the
--- Deck a Down past the last Skills row went sideways into the inventory list, because the rest of
--- the window allowed the "half" tier; directions match the screen, so Up and Down leave a zone only
--- for something directly above or below, and at the end of a column Down does nothing).
+-- Down use it when they look beyond their own zone (on the Deck, a Down past the last Skills row
+-- went sideways into the inventory list, because the rest of the window allowed the "half" tier;
+-- directions match the screen, so Up and Down leave a zone only for something directly above or
+-- below, and at the end of a column Down does nothing).
 local function _pickBestWithFallback(elements, focusedIdx, dir, linedUpOnly)
     if not elements or #elements == 0 then return nil, nil end
     if focusedIdx < 1 or focusedIdx > #elements then focusedIdx = 1 end
@@ -862,10 +898,10 @@ local function _pickBestWithFallback(elements, focusedIdx, dir, linedUpOnly)
 end
 
 -- ---------------------------------------------------------------------------
--- DEBUG OVERLAY (S113b — F11 toggle)
+-- DEBUG OVERLAY (F9 toggle, debug builds)
 -- ---------------------------------------------------------------------------
 
--- Public: toggle / read the overlay state from outside (key handler / console).
+--- Toggle / read the overlay state from outside (key handler / console).
 function Focus.toggleDebugOverlay()
     _debugOverlay = not _debugOverlay
     print("[ZeD.Input] Focus debug overlay = " .. (_debugOverlay and "ON" or "OFF"))
@@ -896,8 +932,8 @@ local function _refreshDebugPicks(w)
         _debugFocusBox = nil
     end
     for _, dir in ipairs({"up", "down", "left", "right"}) do
-        -- Apply the same same-zone restriction for U/D that dispatch uses
-        -- (S113c: vertical never leaves the panel, only horizontal crosses).
+        -- Apply the same same-zone-first restriction for U/D that dispatch
+        -- uses (vertical stays in its zone while anything more lies that way).
         local searchEls, searchFromIdx = elements, fromIdx
         if dir == "up" or dir == "down" then
             local fromLoc = locator[fromIdx]
@@ -931,21 +967,21 @@ local function _refreshDebugPicks(w)
     end
 end
 
--- Render the overlay inside the focused window's render cycle. Monkey-patched
--- onto ZeD_Window:render at OnGameStart (see bottom of this file). The hook
--- runs AFTER the original render, in a valid draw context, so panel-local
--- drawRect/drawText work. Wrapped in pcall by the caller — overlay bugs
--- MUST NEVER take down the game.
 local function _hasBounds(el)
     return el and type(el.x) == "number" and type(el.y) == "number"
        and type(el.w) == "number" and type(el.h) == "number"
        and el.w > 0 and el.h > 0
 end
 
+-- Render the overlay inside the focused window's render cycle. Monkey-patched
+-- onto ZeD_Window:render at OnGameStart (see bottom of this file). The hook
+-- runs AFTER the original render, in a valid draw context, so panel-local
+-- drawRect/drawText work. Wrapped in pcall by the caller — overlay bugs
+-- MUST NEVER take down the game.
 local function _drawDebugOverlay()
     if not _debugOverlay then return end
-    -- S123 (GAMEPAD_SPEC open item): the overlay is a cone-nav aid; keep it
-    -- off while the detector says mouse so a stray F9 never paints over KBM play.
+    -- The overlay is a D-pad aid; keep it off while the detector says
+    -- mouse so a stray F9 never paints over KBM play.
     local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode and ZeD.Input.Detector.getMode()
     if mode ~= "gamepad" then return end
     local w = _focusedWindow
@@ -968,7 +1004,7 @@ local function _drawDebugOverlay()
     w:drawRect(cx - 4, cy,     8, 1, 1.0, 1.0, 0.85, 0.0)
     w:drawRect(cx,     cy - 4, 1, 8, 1.0, 1.0, 0.85, 0.0)
 
-    -- Per-direction pick: cyan = strict cone, magenta = half-plane fallback.
+    -- Per-direction pick: cyan = lined up ("cone"), magenta = off to the side ("half").
     -- Draws target bbox + dotted "line" from focus center to target center.
     for _, dir in ipairs({"up", "down", "left", "right"}) do
         local pick = _debugLastPicks[dir]
@@ -982,7 +1018,7 @@ local function _drawDebugOverlay()
             w:drawRect(px,          py,          1,  ph, 0.85, r, g, b)
             w:drawRect(px + pw - 1, py,          1,  ph, 0.85, r, g, b)
             -- Connecting "line" via 32 stamped 2x2 blocks (PZ has no native
-            -- line primitive — Q12). Walks from focus center to target center.
+            -- line primitive). Walks from focus center to target center.
             local tcx, tcy = px + pw * 0.5, py + ph * 0.5
             for i = 1, 32 do
                 local t = i / 32
@@ -1048,8 +1084,9 @@ local function _focusWindow(side)
     Focus.claimFocus(target)
 end
 
--- A bumper tapped with a D-pad wheel up (RADIAL_WHEELS_SPEC.md, the director: the bumpers close it and open
--- the windows): the pair open and showing, the pad on that bumper's window. side: "char" or "world".
+--- A bumper tapped while a D-pad wheel is up (ZeD_WheelGesture): the bumpers
+--- close the wheel and open the windows — the pair open and showing, the pad
+--- on that bumper's window. side: "char" or "world".
 function Focus.openSide(side)
     if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
         pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0)
@@ -1071,8 +1108,9 @@ local function _handleConfirm(w)
     _fireCb("element.onActivate", el.onActivate, w, el)
 end
 
--- A button (hold past A_HOLD_MS): fire onHoldActivate if defined (= double-LMB).
--- Used by invrows for vanilla "use item" (eat/wear/equip/read/consume).
+-- A button (hold past A_HOLD_MS): fire onHoldActivate if defined. A list row
+-- uses it to mark itself and arm the painted run (InventoryRenderer.padMark);
+-- a row's quick use, the double-click's twin, is X held instead.
 local function _handleHoldConfirm(w)
     local el = Focus.getFocusedElement(w)
     if not el or not el.onHoldActivate then return end
@@ -1093,10 +1131,10 @@ local function _handleContextOrReset(w)
     end
 end
 
--- B button: pure contextual cancel. If focused element has onCancel, fire it.
--- If not, NO-OP (no shade-all fallback). S113 design ruling: B does nothing
--- when there's nothing to cancel; user must press Y to hide / RS to aiming-
--- escape if they want to dismiss the windows.
+-- B button: purely contextual cancel. If the focused element has onCancel,
+-- fire it. If not, NO-OP (no shade-all fallback): B does nothing when there's
+-- nothing to cancel; the player presses Y to hide, or flicks the right stick
+-- for the aiming escape, to dismiss the windows.
 local function _handleBContextual()
     local w = _focusedWindow
     if not w then return end
@@ -1104,7 +1142,7 @@ local function _handleBContextual()
     if not el or not el.onCancel then return end
     local took = _fireCbR("element.onCancel", el.onCancel, w, el)
     if took ~= false then pcall(function() getSoundManager():playUISound("UIToggleTickBox") end) end
-    -- Return value ignored — no fall-through path exists post-S113.
+    -- Beyond the sound, the return value is ignored — B has no fall-through path.
 end
 
 -- The registered window lying `dir` of w on screen (visible, not rolled up),
@@ -1127,7 +1165,7 @@ local function _windowThatWay(w, dir)
     return best
 end
 
--- The open pop-up list (Oct 30 2026, punch list 21 a-f). Every pop-up list built
+-- The open pop-up list. Every pop-up list built
 -- on Molecules.drawPopupMenu (Craft and Build's Sort and Show, the Journal's Page
 -- and its pages' lists, Health's exercises, Thermal's views, the map's Survey /
 -- Color / Paper) hands the window its rows alone while it is open, the elements
@@ -1189,15 +1227,16 @@ local function _menuNav(w, dir)
     return true
 end
 
--- D-pad: pseudo-focusable onDpadDir intercept first (cursor movement, grid
--- scroll), else flat cone-nav across all focusable zones.
+-- D-pad: an X-hold drag first, then an open pop-up list, then the focused
+-- element's own onDpadDir (cursor movement, grid scroll), else the flat
+-- spatial pick across all focusable zones.
 local function _handleSpatialNav(w, dir)
     _fresh(w)
     if not w or not w._focusRing then return end
 
-    -- S113c: X-HOLD DRAG INTERCEPT. If X is held past threshold AND the
+    -- X-HOLD DRAG INTERCEPT. If X is held past threshold AND the
     -- captured drag element has onHoldContextDrag, route D-pad presses to
-    -- the element's drag handler instead of cone-nav. Focus does NOT shift
+    -- the element's drag handler instead of moving the focus. Focus does NOT shift
     -- during drag — the element stays locked under X-hold; D-pad mutates
     -- its position/state via the callback. Fires BEFORE generic onDpadDir
     -- so a drag-capable element can be reordered without conflicting with
@@ -1209,14 +1248,14 @@ local function _handleSpatialNav(w, dir)
         return
     end
 
-    -- Oct 30 2026, punch list 21 a-f (director: an open list keeps the
-    -- controller inside it): an open pop-up list is modal. Its rows alone
-    -- are the stops while it is open; the rest of the window is out of reach.
+    -- An open pop-up list keeps the controller inside it: the list is modal,
+    -- its rows alone are the stops while it is open, and the rest of the
+    -- window is out of reach.
     if _menuNav(w, dir) then return end
 
     -- Pseudo-focusable intercept (unified contract). Element may consume by
     -- returning anything other than false; returning false falls through to
-    -- generic cone-nav.
+    -- the spatial pick.
     local focEl = Focus.getFocusedElement(w)
     if focEl and focEl.onDpadDir then
         if _preview then _preview.custom = true end   -- (a dry run reports it, then picks as if it fell through)
@@ -1226,14 +1265,15 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- Generic flat cone-nav. Collect every element from focusable zones,
-    -- find the focused element's flat position, run two-pass picker.
+    -- Generic flat spatial nav. Collect every element from focusable zones,
+    -- find the focused element's flat position, then run the two-tier picker
+    -- (lined up, else off to the side) through the rules below.
     local elements, locator = _collectFlat(w)
     if #elements == 0 then return end
 
     local fromIdx = _findCurrentFlatIdx(w, locator) or 1
 
-    -- Oct 19 2026 (the nav audit): back the way you came. The press opposite
+    -- Back the way you came. The press opposite
     -- to the last move returns to the control that move left, wherever the
     -- picker would go: down from a map tool onto the map and up goes back to
     -- that tool, not to the toolbar's first button; out to the tab column and
@@ -1260,9 +1300,8 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- S113c rule (design director): UP/DOWN stays in the current panel while
-    -- the panel has anything more that way; Oct 15 2026 ("freedom of movement
-    -- is crucial") it then goes on to the next panel instead of stopping.
+    -- UP/DOWN stays in the current panel while the panel has anything more
+    -- that way, then goes on to the next panel instead of stopping dead.
     -- LEFT/RIGHT remain free to cross panels (that's how users hop between
     -- tab-strip / drawer / inv / container-strip).
     -- Same-zone filter happens AFTER _collectFlat so all the bounds are
@@ -1288,9 +1327,9 @@ local function _handleSpatialNav(w, dir)
 
     local newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
     if not newPickIdx and searchEls ~= elements then
-        -- Oct 23 2026 (the pad map): then the rest of the same panel before
-        -- any other (Down from a list's last row reaches the container
-        -- buttons under it, not a control in the drawer beside it)
+        -- then the rest of the same panel before any other (Down from a
+        -- list's last row reaches the container buttons under it, not a
+        -- control in the drawer beside it)
         local fromLoc = locator[_findCurrentFlatIdx(w, locator) or 1]
         local fp = fromLoc and _zonePanel(w, w._focusRing[fromLoc.zoneIdx].zone)
         if fp then
@@ -1317,9 +1356,9 @@ local function _handleSpatialNav(w, dir)
         newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir, dir == "up" or dir == "down")
     end
     if not newPickIdx then
-        -- Oct 23 2026: nothing more that way in this window: Left / Right go
-        -- on to the other window when it sits that way on screen (the pair
-        -- side by side), landing where Focus.ensureEntry puts it
+        -- nothing more that way in this window: Left / Right go on to the
+        -- other window when it sits that way on screen (the pair side by
+        -- side), landing where Focus.ensureEntry puts it
         if dir == "left" or dir == "right" then
             local other = _windowThatWay(w, dir)
             if other then
@@ -1351,11 +1390,11 @@ local function _handleSpatialNav(w, dir)
     -- Recover the original fromIdx in the unfiltered list for the log line.
     local logFromIdx = _findCurrentFlatIdx(w, locator) or 1
 
-    -- Oct 19 2026 (the nav audit): Left / Right with nothing level in this
-    -- panel go on to the next panel that way, never to a control above or
-    -- below in the same panel. (A row's Left went to the container buttons
-    -- under the list, not the tab column; its Right to the List | Grid
-    -- toggle over the list, not the container column.)
+    -- Left / Right with nothing level in this panel go on to the next panel
+    -- that way, never to a control above or below in the same panel. (A
+    -- row's Left went to the container buttons under the list, not the tab
+    -- column; its Right to the List | Grid toggle over the list, not the
+    -- container column.)
     if (dir == "left" or dir == "right") and pass == "half" then
         local fl, tl = locator[logFromIdx], locator[newFlatIdx]
         local fp = fl and _zonePanel(w, w._focusRing[fl.zoneIdx].zone)
@@ -1373,7 +1412,7 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- Oct 17 2026: a move never jumps over a whole panel. The picker prefers a
+    -- A move never jumps over a whole panel. The picker prefers a
     -- control LINED UP with the focused one, so Left from an inventory row went
     -- straight past the open item card (its buttons sit at the card's top and
     -- bottom, rarely level with the row) to the tab column. When a panel with
@@ -1422,11 +1461,11 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- S113c: cross-zone landing on a TAB STRIP snaps to the active tab,
-    -- not the spatially-closest tab. Rationale: when the user cone-navs
+    -- Cross-zone landing on a TAB STRIP snaps to the active tab,
+    -- not the spatially-closest tab. Rationale: when the player moves
     -- INTO the tab waterfall from another panel, the active tab is the
     -- intuitive starting point — they came here to see "what's open" and
-    -- (likely) switch from there. Without this, cone-nav lands on whichever
+    -- (likely) switch from there. Without this, the pick lands on whichever
     -- tab is closest to the source y, which is surprising and forces a
     -- second hop. Only fires on cross-zone landings (intra-zone D-pad
     -- navigation through the strip is unaffected).
@@ -1454,7 +1493,7 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- Oct 23 2026: the same rule for any zone that names its landing
+    -- The same rule for any zone that names its landing
     -- (zone.landOn(w, zone, dir) -> an element index, or nil for the spatial
     -- pick): a container column lands on the container on show (like a tab
     -- column on its active tab), a card on its primary action, an item list
@@ -1506,9 +1545,7 @@ local function _handleSpatialNav(w, dir)
     _applyFlatLanding(w, locator, logFromIdx, newFlatIdx)
 end
 
--- Hide every registered window (windowshade) + release focus. Idempotent.
-
--- The painted run (punch list 44): while A stays held past its hold and the window has a stroke armed
+-- The painted run: while A stays held past its hold and the window has a stroke armed
 -- (w._gpPaint, set by a row's onHoldActivate), a D-pad move lands as usual and the row landed on takes
 -- the stroke's mark through its onPaint. Letting A go ends the stroke (the release clears w._gpPaint).
 local _spatialNavCore = _handleSpatialNav
@@ -1523,6 +1560,8 @@ _handleSpatialNav = function(w, dir)
     end
 end
 
+-- Hide every registered window (windowshade) + release focus: the aiming
+-- escape. Idempotent.
 local function _hideAllWindows(reason)
     if #_windowRegistry == 0 then return end
     print("[ZeD.Input] Focus: hideAll (" .. (reason or "?") .. ")")
@@ -1627,8 +1666,8 @@ local function _handleYTap()
     print("[ZeD.Input] Focus: Y tap - normalized visibility, Character focus")
 end
 
--- Y hold: close BOTH windows (full lifecycle teardown — close() unregisters
--- via FocusManager.unregisterWindow which restores ISButtonPrompt).
+-- Y hold: close every registered window (full lifecycle teardown — each
+-- window's close() unregisters it through Focus.unregisterWindow).
 local function _handleYHold()
     print("[ZeD.Input] Focus: Y hold - close pair")
     _closeAllWindows()
@@ -1638,6 +1677,10 @@ end
 -- DISPATCH ENTRY POINTS
 -- ---------------------------------------------------------------------------
 
+--- A pad button went down while w holds the pad (w's onJoypadDown stub calls
+--- this). Shows the focus marks, names the button through ActionMap and
+--- routes it: A, X and Y arm their tap-vs-hold timers (settled on the tick),
+--- LB / RB pick a window, B cancels, L3 / R3 change the list's view.
 function Focus.dispatchJoypadDown(w, button, joypadData)
     if not w then return end
     _fresh(w)
@@ -1660,7 +1703,7 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
             end
             return
         elseif aid == "context_menu" then
-            -- S113c: X = tap-vs-hold. Tap (release < X_HOLD_MS) fires
+            -- X = tap-vs-hold. Tap (release < X_HOLD_MS) fires
             -- onContextMenu/onReset. Hold past threshold enters drag mode
             -- (onHoldContextDrag fires with no dir; subsequent D-pad presses
             -- fire onHoldContextDrag(dir); release fires onHoldContextRelease).
@@ -1678,7 +1721,7 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
         elseif aid == "window_next" then
             _focusWindow("world"); return   -- RB → World (absolute)
         elseif aid == "cancel" then
-            -- B is now immediate (no hold). Pure contextual cancel.
+            -- B is immediate (no hold): a purely contextual cancel.
             _handleBContextual(); return
         elseif aid == "window_control" then
             -- Y press arms hold timer. OnTick decides tap vs hold.
@@ -1689,37 +1732,43 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
             end
             return
         elseif aid == "list_sort" or aid == "list_view" then
-            -- L3 / R3 (Oct 23 2026, Hard Rule #11 as amended): only here, with a
-            -- window holding the pad; a view change of its list, nothing else
+            -- L3 / R3: only here, with a window holding the pad, and only a
+            -- view change of its list — stick clicks misfire under combat
+            -- tension, so they never carry a state-changing job (ActionMap)
             local R = ZeD.InventoryRenderer
             local fn = R and ((aid == "list_sort") and R.padSort or R.padView)
             if fn then pcall(fn, w) end
             return
         end
-        -- Other action IDs (layout_mode, strip_*, inspect) not dispatched
-        -- here. Strip menus fire when NO window has focus (OnTick path, TBD).
+        -- Other action IDs fall through on purpose. nav_* arrive here too —
+        -- the engine fires onJoypadDown AND onJoypadDir* for one D-pad press —
+        -- and the D-pad moves only through dispatchJoypadDir, or every press
+        -- would step twice. layout_mode and strip_* have no dispatcher yet
+        -- (the D-pad wheels, ZeD_DpadWheels, have the unfocused D-pad), and
+        -- inspect has no pad binding.
     end
 end
 
--- Put focus on an element by id, in a zone of window w, as soon as it exists
--- (an event that rebuilds a zone, like folding the map back, names where focus
--- should land; the element appears a frame or two later). Tries for ~1 s.
+-- Focus requests waiting for their element to exist (worked on the tick).
 local _focusSoon = {}
+--- Put focus on an element by id, in a zone of window w, as soon as it exists
+--- (an event that rebuilds a zone, like folding the map back, names where focus
+--- should land; the element appears a frame or two later). Tries for ~1 s.
 function Focus.focusByIdSoon(w, zoneName, id)
     _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, pred = function(e) return e.id == id end, tries = 60 }
 end
--- Oct 23 2026: the same for any test (pred(el, i)), after `delay` ticks (a
--- view that has to draw once first, like a card swapping to another item)
+--- The same for any test (pred(el, i)), after `delay` ticks (a view that has
+--- to draw once first, like a card swapping to another item).
 function Focus.focusSoon(w, zoneName, pred, delay)
     _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, pred = pred, tries = 60, delay = delay or 0 }
 end
--- A card just opened (A on a row): focus goes to its primary action (the
--- element marked isPrimary, else its first), so A again does it.
+--- A card just opened (A on a row): focus goes to its primary action (the
+--- element marked isPrimary, else its first), so A again does it.
 function Focus.focusPrimarySoon(w, zoneName, delay)
     _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, primary = true, tries = 60, delay = delay or 0 }
 end
 
--- Nov 8 2026 (the performance review, 14): whether a landing waits on window w's stops (the calls above)
+-- Whether a landing waits on window w's stops (the calls above)
 function Focus.soonPending(w)
     for i = 1, #_focusSoon do
         if _focusSoon[i].w == w then return true end
@@ -1771,10 +1820,11 @@ local function _focusSoonTick()
 end
 if Events and Events.OnTick then Events.OnTick.Add(_focusSoonTick) end
 
--- Oct 19 2026 (the controller nav audit): where a D-pad press would go from
--- the focused element, without moving focus or running any handler.
--- Returns { zone, id, pass } (nil zone = nothing that way), and custom = true
--- when the element has its own D-pad handler (which would run first).
+--- A dry run for the QA nav scripts: where a D-pad press would go from the
+--- focused element, without moving focus or running any handler. Returns
+--- { zone, id, pass } (nil zone = nothing that way), custom = true when the
+--- element has its own D-pad handler (which would run first), and err = true
+--- when the dry run threw.
 function Focus.previewMove(w, dir)
     _preview = {}
     local ok = pcall(_handleSpatialNav, w, dir)
@@ -1784,9 +1834,9 @@ function Focus.previewMove(w, dir)
     return r
 end
 
--- Oct 23 2026 (the pad map, ZeDUI/tools/qa/zedqa_padmap.lua): every stop of
--- the window as the D-pad sees it, window-local: { zone, zi, ei, id, x, y,
--- w, h, el } in flat order.
+--- Every stop of the window as the D-pad sees it, window-local: { zone, zi,
+--- ei, id, x, y, w, h, el } in flat order. The QA pad map
+--- (ZeDUI/tools/qa/zedqa_padmap.lua) reads it.
 function Focus.flatElements(w)
     _fresh(w)
     local elements, locator = _collectFlat(w)
@@ -1800,6 +1850,9 @@ function Focus.flatElements(w)
     return out
 end
 
+--- A D-pad press while w holds the pad (w's onJoypadDir* stubs call this;
+--- dir is "up" / "down" / "left" / "right"). Shows the focus marks, starts
+--- the hold-to-repeat clock and runs the move.
 function Focus.dispatchJoypadDir(w, dir, joypadData)
     if not w then return end
     _showCues()
@@ -1816,11 +1869,14 @@ function Focus.dispatchJoypadDir(w, dir, joypadData)
 end
 
 -- ---------------------------------------------------------------------------
--- ONTICK POLL
---   (A) Mode gate
+-- ONTICK POLL — every tick, and every drawn frame while the game is paused
+--   (A) Mode gate (outside gamepad mode, every hold and repeat is dropped)
+--   then: never focus with nothing lit (Focus.ensureEntry), and hand a pad
+--         left with no focus back to the focused window
 --   (B) Global Y rising edge (only when no window focused) — opens the pair
 --   (C) Y hold-timer release / threshold
 --   (C2) A tap-vs-hold resolver
+--   (C3) X tap-vs-hold resolver
 --   (D) Aiming escape (right stick magnitude² > T.gp.aimingThresholdSq)
 --   (E) D-pad hold-to-repeat
 -- ---------------------------------------------------------------------------
@@ -1828,7 +1884,7 @@ end
 local function _currentDpadDir(joypadData)
     if not joypadData or not joypadData.id then return nil end
     local jid = joypadData.id
-    -- Q109 (B42.17): JoypadButton.<n>:isDown(id) replaces removed isJoypadPressed.
+    -- B42.17: JoypadButton.<n>:isDown(id) replaces the removed isJoypadPressed.
     if JoypadButton.DPadUp:isDown(jid)    then return "up"    end
     if JoypadButton.DPadDown:isDown(jid)  then return "down"  end
     if JoypadButton.DPadLeft:isDown(jid)  then return "left"  end
@@ -1836,9 +1892,9 @@ local function _currentDpadDir(joypadData)
     return nil
 end
 
--- QA hook (punch list 44): a QA script may hold a pad button on a rig with no pad bound.
--- Focus.qaButton(name, true) holds the button, false lets it go, nil hands it back to the pad.
 local _qaBtn = {}
+--- QA hook: a QA script may hold a pad button on a rig with no pad bound.
+--- Focus.qaButton(name, true) holds the button, false lets it go, nil hands it back to the pad.
 function Focus.qaButton(name, down) _qaBtn[name] = down end
 local function _btnDown(name, jid)
     local o = _qaBtn[name]
@@ -1847,8 +1903,9 @@ local function _btnDown(name, jid)
     return JoypadButton[name]:isDown(jid)
 end
 
--- the Y, A and X holds: a tap on release, the hold at 350 ms. jid may be nil (no pad bound):
--- the holds still run so QA's hook can drive them; a nil pad reads as every button up.
+-- the Y, A and X holds: a tap on release, the hold at its threshold (A and X 350 ms; Y the
+-- gp.holdMs token, 400). jid may be nil (no pad bound): the holds still run so QA's hook can
+-- drive them; a nil pad reads as every button up.
 local function _holdTicks(jid)
     if Focus.held() then
         _yHeld, _yConsumed = false, false
@@ -1857,9 +1914,9 @@ local function _holdTicks(jid)
     end
     if not _focusedWindow then
         local yNow = _btnDown("Y", jid)
-        -- (Oct 24 2026: with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)
+        -- (with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)
         local bumper = _btnDown("LeftBump", jid) or _btnDown("RightBump", jid)
-        -- (a D-pad wheel up: Y does nothing, RADIAL_WHEELS_SPEC.md. This is the one button polled past the wheel's pad focus.)
+        -- (a D-pad wheel up: Y does nothing. This raw poll would read Y straight past the wheel's hold on the pad.)
         local wheel = ZeD.DpadWheels and ZeD.DpadWheels.state and ZeD.DpadWheels.state[0]
         if yNow and (not _prevYPressedUnfocused) and (not _yHeld) and not bumper and not wheel then
             _yHeld      = true
@@ -1915,12 +1972,13 @@ local function _holdTicks(jid)
         end
     end
 
-    -- (C3) S113c X tap-vs-hold resolver. Tap → onContextMenu/onReset on
+    -- (C3) X tap-vs-hold resolver. Tap → onContextMenu/onReset on
     -- release; hold past X_HOLD_MS → onHoldContextDrag(w, el, nil) (drag-mode
-    -- entry, dir == nil signals "armed"). On release after consumption,
-    -- fire onHoldContextRelease (commit). _xElement is captured at press to
-    -- lock the drag target — focused element may shift if cone-nav fires
-    -- mid-hold (defensive, shouldn't happen since D-pad is intercepted).
+    -- entry, dir == nil signals "armed"), else onHoldContext once. On release
+    -- after consumption, fire onHoldContextRelease (commit). _xElement is
+    -- captured at press to lock the drag target — focused element may shift
+    -- if a D-pad move fires mid-hold (defensive, shouldn't happen since D-pad
+    -- is intercepted).
     if _xHeld then
         local stillDown = _btnDown("X", jid)
         if stillDown then
@@ -1932,7 +1990,7 @@ local function _holdTicks(jid)
                         _xWindow or _focusedWindow, el)
                     _xConsumed = true
                 elseif el and el.onHoldContext then
-                    -- a one-shot hold with no drag (punch list 44: hold X on a row is the quick use)
+                    -- a one-shot hold with no drag (hold X on a row is the quick use)
                     _fireCb("element.onHoldContext", el.onHoldContext, _xWindow or _focusedWindow, el)
                     _xConsumed = true
                 end
@@ -1958,11 +2016,6 @@ local function _holdTicks(jid)
             _xElement  = nil
         end
     end
-
-    -- (D) Aiming escape. Right-stick magnitude² > threshold → hide pair.
-    -- No lock state (Y-hold-lock retired S113); always fires when active.
-    -- Iterate connected controllers (Q89) and compute right-stick magnitude².
-    -- NO math.abs() on axis values (Q90) — we use ax²+ay² which is always >=0.
 end
 
 local function _onTick()
@@ -1979,17 +2032,16 @@ local function _onTick()
         return
     end
 
-    -- Oct 23 2026: never focus with nothing lit. A fresh window lands on its
+    -- Never focus with nothing lit. A fresh window lands on its
     -- list's first row once the rows exist; focus left on a zone that went
     -- away (a card closed, a tab emptied) moves to the list (Focus.ensureEntry)
     if _focusedWindow and (_focusedWindow._focusPendingEntry or not _focusLive(_focusedWindow)) then
         local ok, err = pcall(Focus.ensureEntry, _focusedWindow)
         if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
     end
-    -- Oct 23 2026 (director: "it's not properly releasing control and
-    -- returning control back to the spot"): a prompt or menu that closed and
-    -- left the pad with no focus at all (it goes to the game then: Left was
-    -- the belt) hands it back to the focused window, on the element it had
+    -- A prompt or menu that closed and left the pad with no focus at all
+    -- hands it back to the focused window, on the element it had; left
+    -- alone, the pad would go to the game and the next press act in the world
     if _focusedWindow and JoypadState and JoypadState.players and JoypadState.players[1]
        and getJoypadFocus and getJoypadFocus(0) == nil
        and _focusedWindow:isVisible() and not _focusedWindow.windowShaded then
@@ -2001,6 +2053,13 @@ local function _onTick()
     _holdTicks(jid)   -- (before the no-pad return: QA's hook drives the holds with no pad bound)
     if not jid then return end
 
+    -- (D) Aiming escape. Right-stick magnitude² > threshold → roll up every
+    -- registered window and release focus. No lock state (the Y-hold lock is
+    -- gone); it fires whenever active, outside the grace after a claim.
+    -- Walk the connected controllers by index: getControllerAxisValue wants
+    -- the int index, not joypadData.controller (a Lua table). No math.abs()
+    -- on axis reads — on drivers whose triggers rest at -1 it reads a resting
+    -- trigger as fully pulled; the stick's ax²+ay² is never negative anyway.
     local aimThSq = _aimingThresholdSq()
     local maxMagSq = 0
     local n = (getControllerCount and getControllerCount()) or 0
@@ -2066,10 +2125,10 @@ end
 
 if LuaEventManager and LuaEventManager.AddEvent then
     LuaEventManager.AddEvent("ZeD_FocusChanged")
-    -- S113: AddEvent is idempotent (per InputModeDetector comment) so it's
-    -- safe to materialize ZeD_InputModeChanged here too. Mirrors BumperChord's
-    -- pattern — file-load order may put us before InputModeDetector, in which
-    -- case Events.ZeD_InputModeChanged would not yet exist for our .Add call.
+    -- AddEvent is idempotent, so it's safe to materialize ZeD_InputModeChanged
+    -- here too. Mirrors BumperChord's pattern — file-load order may put us
+    -- before InputModeDetector, in which case Events.ZeD_InputModeChanged
+    -- would not yet exist for our .Add call.
     LuaEventManager.AddEvent("ZeD_InputModeChanged")
 end
 
@@ -2085,7 +2144,7 @@ if Events.OnRenderTick then
 end
 if Events.OnRenderTick then Events.OnRenderTick.Add(_watchCueMouse) end
 
--- S113: Window-pair invariant. On kbm→gamepad transition, ensure both windows
+-- Window-pair invariant. On kbm→gamepad transition, ensure both windows
 -- are open as a pair (gamepad-only invariant; mouse mode keeps asymmetric
 -- open/closed state). Late-binds ZeD_CharacterWindow because that module
 -- loads after this one (Input/* is a separate dir from the windows).
@@ -2100,7 +2159,7 @@ local function _onModeChanged(newMode, oldMode)
 end
 Events.ZeD_InputModeChanged.Add(_onModeChanged)
 
--- S113b: F9 toggles the cone-nav debug overlay. Throwaway QA aid; the draw
+-- F9 toggles the D-pad debug overlay. Throwaway QA aid; the draw
 -- function early-exits when overlay is OFF, so cost is one bool check per
 -- focused-window render frame when disabled.
 --
@@ -2114,7 +2173,7 @@ Events.OnKeyPressed.Add(function(key)
     end
 end)
 
--- S113b: Overlay paints inside the focused window's render cycle (guaranteed
+-- The overlay paints inside the focused window's render cycle (guaranteed
 -- valid draw context). Monkey-patch ZeD_Window:render at OnGameStart to call
 -- _drawDebugOverlay AFTER the normal render. The hook fires every render but
 -- short-circuits when (a) overlay is OFF, (b) self isn't the focused window,

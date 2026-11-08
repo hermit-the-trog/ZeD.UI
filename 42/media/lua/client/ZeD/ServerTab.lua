@@ -1,24 +1,26 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ServerTab.lua
 -- ============================================================================
--- THE SERVER TAB (the director's multiplayer decisions, Nov 5 2026: ZeDUI/MP_DECISIONS.md, section 1)
--- "You on this server", in the Character window, only on a server (in single player the tab is not there):
+-- THE SERVER TAB — client; a Character window tab.
+-- "You on this server", only on a server (in single player the tab is not there). Top to bottom, as build() lays it out:
 --   SERVER     the server's name, the message of the day and The rules (a row that opens their card, ZeD_CommunityCards.lua, on
 --              a server with that part), the players on it, your role; the server options to read (a card: OPTIONS below)
---   PVP        while the server's safety system is on: PvP on or off, the seconds left while it switches, a
---              non-PvP zone; the switch (the game's own toggle, ISEquippedItem:toggleSafety, with its log line)
---   PLAYERS    who is on the server (the game's scoreboard, asked again every few seconds while the tab shows)
 --   NOTES      an invitation to a faction or a safehouse waits here, under the Server block, with Decline and Accept
 --   NEWS       the server's posts, pinned first (ZeD_CommunityCards.lua)
 --   EXTRAS     this server's extras in plain words, and your vehicle claims (ZeD_ExtrasCards.lua), with the server part
---   TICKETS    after the Server block, as drawn: N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and
---              its two cards, Ask the admins and my ticket, pushed on top of this list behind st.card)
---   MAIL       on a server that keeps mail: the dial-in, Inbox, Write a letter (ZeD_MailCards.lua, punch list 104)
+--   TICKETS    N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and its two cards, Ask the admins
+--              and my ticket, pushed on top of this list behind st.card)
+--   MAIL       on a server that keeps mail: the dial-in, Inbox, Write a letter (ZeD_MailCards.lua)
 --   FACTION    yours as a row that opens its card; or Create Faction where the server allows
 --   SAFEHOUSE  yours as a row that opens its card; or Can I claim this?, the server's rules and Claim Safehouse
 --   WARS       on a server with wars: a row that opens their card
+--   PVP        while the server's safety system is on: PvP on or off, the seconds left while it switches, a
+--              non-PvP zone; the switch (the game's own toggle, ISEquippedItem:toggleSafety, with its log line)
+--   PLAYERS    who is on the server (the game's scoreboard, asked again every few seconds while the tab shows)
 -- The game's user panel (ISUserPanelUI) is a set of buttons that open windows; this tab and its cards replace those for
 -- players. Faction, safehouse and wars are ZeD_ClaimCards.lua, on the same frame as the ticket cards. Wording is the game's
--- own (MP_DECISIONS.md, section 6).
+-- own wherever the game has a word for it.
+-- One thing to know: the list is built fresh every frame; while a card is pushed on top (st.card) it takes the drawing,
+-- the clicks and the controller's stops until it closes.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -44,10 +46,10 @@ local function tr(k, ...) return ZeD.tr(k, ...) end
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
 local function px(n) return ZeD.T.px(n) end
 
--- A button's words in sentence case: the game writes some of its English buttons in Title Case ("See Server
--- Options", "Create Faction"), and ZeD's buttons read in sentence case (ZeD.btnCase turns only ALL CAPS). English
--- only: other languages keep the game's own case (German nouns keep their capitals). A word with a capital inside
--- it (PvP) stays as written.
+--- A button's words in sentence case: the game writes some of its English buttons in Title Case ("See Server
+--- Options", "Create Faction"), and ZeD's buttons read in sentence case (ZeD.btnCase turns only ALL CAPS). English
+--- only: other languages keep the game's own case (German nouns keep their capitals). A word with a capital inside
+--- it (PvP) stays as written.
 function S.btnWords(s)
     if not s then return s end
     local lang = safe(function() return tostring(Translator.getLanguage():name()) end, "EN")
@@ -70,6 +72,8 @@ end
 -- ---------------------------------------------------------------------------
 -- THE PLAYERS: the game's scoreboard (the reply comes as an event)
 -- ---------------------------------------------------------------------------
+--- Who is on the server: { user = the username, name = the display name }, sorted by name. The admin
+--- tools, the ticket and claim cards read it too.
 S.players = {}
 S.askedAt = 0
 function S.onScoreboard(usernames, displayNames)
@@ -85,6 +89,7 @@ function S.onScoreboard(usernames, displayNames)
     S.players = out
 end
 if Events and Events.OnScoreboardUpdate then Events.OnScoreboardUpdate.Add(S.onScoreboard) end
+--- Ask the server for its scoreboard, at most every five seconds; the answer lands in S.players.
 local function askPlayers()
     local now = getTimestampMs()
     if now - S.askedAt < PLAYERS_EVERY then return end
@@ -96,6 +101,9 @@ S.askPlayers = askPlayers
 -- ---------------------------------------------------------------------------
 -- WHAT THE TAB SHOWS, read once a frame while it shows
 -- ---------------------------------------------------------------------------
+--- PvP for a player, or nil while the server's safety system is off: { on, left = seconds until the switch
+--- (or its cooldown) ends, switching, zone = in a non-PvP zone, allowed = the switch can be pressed }.
+--- The belt reads it too.
 local function pvpState(p)
     local so = getServerOptions and getServerOptions()
     if not (so and safe(function() return so:getBoolean("SafetySystem") end, false)) then return nil end
@@ -119,6 +127,7 @@ S.pvpState = pvpState
 -- ---------------------------------------------------------------------------
 -- WHAT THE TAB'S BUTTONS OPEN: ZeD's cards, and the game's options window for staff who change options
 -- ---------------------------------------------------------------------------
+--- By button id, each fn(player, win). Public so ZeD_MailCards.lua can add its Write a letter (mailwrite).
 local OPEN = {}
 function OPEN.gameOptions(p)
     if ISServerOptions and ISServerOptions.instance then ISServerOptions.instance:close() end
@@ -153,7 +162,7 @@ local function line(L, text) add(L, { k = "line", text = text }) end
 local function btn(L, id, text, help, disabled) add(L, { k = "btn", id = id, text = S.btnWords(text), help = help, disabled = disabled }) end
 
 -- ---------------------------------------------------------------------------
--- OPTIONS (ZeDUI/VANILLA_WINDOWS_20261107.md, C2): the server's options to read, a card on the tab's frame in place of the
+-- OPTIONS: the server's options to read, a card on the tab's frame in place of the
 -- game's ISServerOptions. The game's own list: ServerOptions:getPublicOptions(), by name as its window sorts them, each
 -- value as its window shows it (an enum's own words; on and off as the game's Yes and No). Staff who may change options
 -- (ChangeAndReloadServerOptions) get the game's own window from the card's foot: changing stays the game's.
@@ -210,8 +219,8 @@ function S.openOptions(win, st)
     ZeD.TicketCards._D.push(win, st, { kind = "srvopts", from = "srv:options" })
 end
 
--- from the Admin tab's More tools (AdminTab.lua) or anywhere else: the Server tab opens, and its next frame opens the card.
--- False when the tab cannot open
+--- From the Admin tab's More tools (AdminTab.lua) or anywhere else: the Server tab opens, and its next frame opens the card.
+--- False when the tab cannot open.
 function S.openOptionsFor(p)
     if not (p and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab) then return false end
     if not ZeD_CharacterWindow.openTab(p:getPlayerNum(), TAB_ID) then return false end
@@ -282,7 +291,7 @@ require "ISUI/UserPanel/ISUserPanelUI"
 require "ISUI/AdminPanel/ISAdminPanelUI"
 function S.wrapPanel(cls, internal)
     if not (cls and cls.onOptionMouseDown) or cls._zedOptions then return end
-    cls._zedOptions = true
+    cls._zedOptions = true   -- (once per class, so a Lua reload never wraps the wrapper)
     local base = cls.onOptionMouseDown
     cls.onOptionMouseDown = function(self, button, x, y)
         if button and button.internal == internal then
@@ -319,7 +328,7 @@ local function build(p, win, st)
     -- TICKETS
     local function btnItem(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end
     ZeD.TicketCards.playerItems(L, win, st, btnItem)
-    -- MAIL (punch list 104), on a server that keeps it
+    -- MAIL, on a server that keeps it
     if ZeD.MailCards then ZeD.MailCards.serverItems(L, win, st) end
     -- FACTION, SAFEHOUSE, WARS
     ZeD.ClaimCards.blocks(L, win, st, btnItem)
@@ -382,6 +391,8 @@ local function focusOf(win, id)
     return nil
 end
 
+--- The tab's frame, as the Character window calls it (addTab, below): the card on top if one is open,
+--- else the list with its header and scrollbar.
 function S.render(panel, win, x, y, w, h)
     local T = ZeD.T
     local M = ZeD.Molecules
@@ -472,7 +483,7 @@ function S.render(panel, win, x, y, w, h)
     M.drawTabHeader(panel, x, y, w, tr("UI_ZeD_Char_TabServer"), false, false, true)
     if needs then scroll:draw(panel) end
     TC.endList(panel, win, st, sy, sy + sh)
-    -- (...and that clip comes off here: the tab ends with the clips it started with; punch list 95)
+    -- (...and that clip comes off here: the tab ends with the clips it started with)
     panel:clearStencilRect()
 end
 
@@ -532,6 +543,7 @@ function S.buildFocusables(win)
     return out
 end
 
+-- the controller's stops are rebuilt whenever this key changes: the scroll, the buttons, the players, the cards' lists
 function S.scrollKey(win)
     local st = win._serverTab
     if not st then return nil end

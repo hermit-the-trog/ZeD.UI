@@ -1,9 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Trade.lua
 -- ============================================================================
--- TRADING WITH ANOTHER PLAYER — HOOK_MAP row 18b (the director, Nov 7 2026: B10, "build it as a
--- World window card"). The trade itself: one session per local player, every rule and every call
--- of vanilla's ISTradingUI (media/lua/client/ISUI/ISTradingUI.lua) kept, drawn by the World
--- window's trade card (ObjectCardTrade.lua); the hooks that open it are Overrides/TradeMedic.lua.
+-- TRADING WITH ANOTHER PLAYER — client; the trade itself, built as a World window card rather
+-- than a window of its own. One session per local player, every rule and every call of vanilla's
+-- ISTradingUI (media/lua/client/ISUI/ISTradingUI.lua) kept, drawn by the World window's trade
+-- card (ObjectCardTrade.lua); the hooks that open it are Overrides/TradeMedic.lua. No drawing
+-- here: this is the trade's state and rules. Before touching it: the other player may be on
+-- vanilla's own window (safe mode, or a card that could not open), so every call that reaches
+-- their side has to stay exactly vanilla's.
 --
 -- What vanilla does, and the session does the same:
 --   * Right-click a player > Trade with: the window opens blocked ("Waiting for X's answer."),
@@ -167,6 +170,8 @@ end
 -- ---------------------------------------------------------------------------
 -- state
 -- ---------------------------------------------------------------------------
+--- Blocked while waiting for their answer, after they closed, refused or left, or while too far
+--- apart; blockText is the words the card shows for it.
 function Session:isBlocked() return self.blocking ~= nil or self.blocking2 ~= nil end
 function Session:blockText() return self.blocking or self.blocking2 end
 function Session:max() return maxItems() end
@@ -187,14 +192,14 @@ function Session:history(message, publish, added, removed)
     end
 end
 
--- the state line the card shows for a few seconds (vanilla's history message), or nil
+--- The state line the card shows for a few seconds (vanilla's history message), or nil.
 function Session:flashText()
     if self.flashCD and self.flashCD > 0 then return self.flash end
     return nil
 end
 
 -- ---------------------------------------------------------------------------
--- WORN, HELD, FAVORITE: vanilla's tests, and what backs them up (QA round 3, two players: a
+-- WORN, HELD, FAVORITE: vanilla's tests, and what backs them up (seen with two players: a
 -- worn jacket, the knife in hand and a favorite watch were listed on the admin's client).
 -- Vanilla's player:isEquipped(item) / isEquippedClothing(item) compare the item OBJECT with
 -- the worn list and the hands. On a multiplayer client the server re-sends items, and the
@@ -314,6 +319,7 @@ function Session:canAccept()
     return false, getText("IGUI_TradingUI_AcceptDealTooltip")
 end
 
+--- Accept deal: DealWasFinalized to the other player, and this side closes (the server moves the items).
 function Session:accept()
     if not (self.open and self:canAccept()) then return end
     tradingUISendUpdateState(self.player, self.other, TradingState.DealWasFinalized)
@@ -456,8 +462,8 @@ function Session:update()
             break
         end
     end
-    -- the card is pinned (the director, Nov 7 2026): only Cancel, their close, distance or them leaving
-    -- end the trade. Shut World window: the trade waits and its card is back when the window opens
+    -- the card is pinned: only Cancel, their close or refusal, or them leaving end the trade (too far
+    -- apart only blocks it). Shut World window: the trade waits and its card is back when the window opens
     -- again (or at the next thing the other player does: TR.onEvent). Another object card in the
     -- drawer: the trade comes back when it closes. An item card shows over it (the drawer's own order).
     self:reshow(false)
