@@ -544,16 +544,16 @@ function Focus.setZoneFocusable(w, zoneRef, flag)
     w._focusRing[idx].focusable = flag and true or false
 
     if (not flag) and w._focusIdx == idx then
-        -- Oct 23 2026: the window's list emptied under the focus (another
-        -- container picked, the last item taken): focus goes back to the list
-        -- as soon as it has rows again (Focus.ensureEntry, on the tick)
+        -- the window's list emptied under the focus (another container
+        -- picked, the last item taken): focus goes back to the list as soon
+        -- as it has rows again (Focus.ensureEntry, on the tick)
         if w._focusEntryZone and w._focusRing[idx].zone == w._focusEntryZone then
             w._focusPendingEntry = true
         end
-        -- Oct 23 2026 (director: focus goes back to where you started, or its
-        -- nearest neighbour in the same panel, "never to another panel or
-        -- nowhere"): first a zone in the same panel that still has stops
-        -- (the list's container buttons under it), only then the ring order
+        -- Focus goes back to where you started or its nearest neighbour in
+        -- the same panel, never to another panel or nowhere: first a zone in
+        -- the same panel that still has stops (the list's container buttons
+        -- under it), only then the ring order.
         local panel = _zonePanel(w, w._focusRing[idx].zone)
         if panel then
             for i, z in ipairs(w._focusRing) do
@@ -590,9 +590,9 @@ function Focus.reclaimEngineFocus()
 end
 
 -- ---------------------------------------------------------------------------
--- WHERE FOCUS LANDS (Oct 23 2026, the director's first hands-on pad test:
--- "missing the selection in cone nav when first navigating to the world
--- window"; "the info cards do not land on the action strip")
+-- WHERE FOCUS LANDS. The first hands-on pad test found two holes: entering
+-- the World window put the focus on nothing visible, and opening an info
+-- card did not land on its action strip. These two fix that.
 --
 --   Focus.focusWhere(w, zone, pred)  put focus on the first element of the
 --                                    zone that pred(el, i) accepts (nil pred
@@ -687,7 +687,7 @@ end
 -- the window's _focusIdx (cross-zone landing).
 -- ---------------------------------------------------------------------------
 
--- S113b: zone-name → window-field map. Each zone's element bounds are stamped
+-- Zone-name → window-field map. Each zone's element bounds are stamped
 -- in the source PANEL'S local coords (e.g. an invrow's x=0 is the LEFT EDGE
 -- of the content panel, not of the window). Cone-nav math compares all
 -- elements as if they share a single coord space — without translation,
@@ -709,7 +709,7 @@ local _zonePanelField = {
     worldItemCard       = "_itemDrawerPanel",
     worldContainerStrip = "_containerStrip",
     worldCtl            = "_contentPanel",  -- the container buttons' row (ContainerControls)
-    -- S123: map pop-out window (ZeD.MapsTab.openPopout) — one content zone
+    -- map pop-out window (ZeD.MapsTab.openPopout) — one content zone
     popMapContent       = "_contentPanel",
     -- charMC<N> / worldMC<N> all share their respective content panel
 }
@@ -751,8 +751,8 @@ local function _collectFlat(w)
     if not w or not w._focusRing then return elements, locator end
     for zi = 1, #w._focusRing do
         local zone = w._focusRing[zi]
-        -- (Oct 23 2026: zone.covered(w) = drawn over just now, e.g. a tab's
-        -- controls under an item card that overlays the drawer: no stops)
+        -- (zone.covered(w) = drawn over just now, e.g. a tab's controls
+        -- under an item card that overlays the drawer: no stops)
         local covered = zone.covered and zone.covered(w)
         if zone.focusable and not covered and zone.elements and #zone.elements > 0 then
             local ox, oy = _zoneOffset(w, zone.zone)

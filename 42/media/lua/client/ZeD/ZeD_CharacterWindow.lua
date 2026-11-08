@@ -865,11 +865,11 @@ local function _rebuildCharMCRingZones(win)
         end
     end
 
-    -- S108 v2 QA: insert MC zones BEFORE charMainInv so ring order matches
-    -- visual L→R layout. Content panel renders MC cols at colStates[1..K]
-    -- (leftmost) with main = colStates[N] = rightmost. Old insertion point
-    -- (before charItemCard) put mainInv BEFORE MC zones in ring → bumpers
-    -- moved in counter-visual direction. Now: tabBar → tabContent → charMC1
+    -- MC zones go in BEFORE charMainInv so ring order matches the visual L→R
+    -- layout: the content panel renders MC cols at colStates[1..K] (leftmost)
+    -- with main = colStates[N] = rightmost. Inserted before charItemCard
+    -- instead, mainInv came BEFORE the MC zones in the ring and the bumpers
+    -- moved against the eye. Order: tabBar → tabContent → charMC1
     -- → ... → charMCN → charMainInv → charItemCard → charContainerStrip.
     local insertAt = nil
     for i, z in ipairs(ring) do
@@ -888,10 +888,10 @@ local function _rebuildCharMCRingZones(win)
                 elements = mcEls,
                 focusedElementIdx = 1,
                 uiRange = function(w)
-                    -- S108 v2 QA: cs.renderX is content-panel-relative;
-                    -- Char's content starts at TAB_STRIP_W + drawerEffW
-                    -- (left tab strip + drawer) so we offset by that to get
-                    -- window-absolute x for the focus underline.
+                    -- cs.renderX is content-panel-relative; the content
+                    -- starts at TAB_STRIP_W + drawerEffW (left tab strip +
+                    -- drawer), so offset by that to get window-absolute x
+                    -- for the focus underline.
                     local T = ZeD.T
                     local content = w._mainContent
                     if content and content._colStates and content._colStates[capturedSlot] then
@@ -931,10 +931,10 @@ _syncRingZonesToActiveTab = function(win, content)
     local Focus  = ZeD.Input.Focus
     local tabId  = win._activeTab
 
-    -- S108 v2 QA: capture currently focused containerIdx BEFORE rebuild.
-    -- Container onFocus is a no-op (S106), so _activeContainer doesn't
-    -- track D-pad nav. Using it as the seed makes focus jump after
-    -- mcToggle. Prefer the live focused container, fall back to active.
+    -- Capture the currently focused containerIdx BEFORE the rebuild.
+    -- Container onFocus is a no-op, so _activeContainer doesn't track
+    -- D-pad nav; seeding from it made focus jump after an MC toggle.
+    -- Prefer the live focused container, fall back to active.
     local focusedCidx = nil
     do
         local zoneNow = Focus.getFocusedZone and Focus.getFocusedZone(win)
@@ -945,8 +945,8 @@ _syncRingZonesToActiveTab = function(win, content)
     end
 
     local newContentEls   = _buildPanelFocusables(win, content, tabId) or {}
-    -- Containers reachable on ALL tabs per user spec (Apr 16). MC toggle
-    -- (A press) is Loot-only — enforced inside container onActivate.
+    -- Containers are reachable on ALL tabs. The MC toggle (an A press) is
+    -- Loot-only — enforced inside container onActivate.
     local newContainerEls = _buildLootFocusables(win) or {}
 
     Focus.setRingZoneElements(win, "charTabContent",     newContentEls, 1)
@@ -965,10 +965,10 @@ _syncRingZonesToActiveTab = function(win, content)
     Focus.setRingZoneElements(win, "charContainerStrip", newContainerEls, contIdx)
     Focus.setZoneFocusable   (win, "charContainerStrip", #newContainerEls > 0)
 
-    -- S108 v2: rebuild per-column MC zones based on _mcSelected count.
+    -- Rebuild the per-column MC zones from the _mcSelected count.
     _rebuildCharMCRingZones(win)
 
-    -- S99: Tab changes always leave "item" mode (_switchTabForNav flips
+    -- Tab changes always leave "item" mode (_switchTabForNav flips
     -- _drawerMode to "tab" or nil). Explicitly disable the card zone now so a
     -- bumper press in the same frame can't land on stale card elements before
     -- the per-frame refresh catches up next frame.
@@ -980,12 +980,12 @@ _syncRingZonesToActiveTab = function(win, content)
 end
 
 -- Switch active tab from a gamepad-nav context. Mirrors the "different tab"
--- branch of the mouse click handler below (line ~1292+), with the loot-tab
--- special case folded in. Kept as a separate helper rather than refactoring
--- the click handler because duplication here is cheaper than risking the
--- click path. Returns true if the tab actually changed, false otherwise.
--- S98: After tab state is fully mutated on either branch, calls
--- _syncRingZonesToActiveTab so the ring reflects the new tab's focusables.
+-- branch of the tab strip's mouse click handler (strip.onMouseDown, far
+-- below), with the loot-tab special case folded in. Kept as a separate helper
+-- rather than refactoring the click handler because duplication here is
+-- cheaper than risking the click path. Returns true if the tab actually
+-- changed, false otherwise. After tab state is fully mutated on either
+-- branch, calls _syncRingZonesToActiveTab so the ring reflects the new tab.
 local function _switchTabForNav(win, content, tabId)
     if not win or not content or not tabId then return false end
     if win._activeTab == tabId then return false end  -- no-op on same tab
@@ -1056,13 +1056,13 @@ local function _switchTabForNav(win, content, tabId)
     return true
 end
 
--- S96: forward-declare _buildInvRowFocusables so _buildLootFocusables'
--- onConfirm closure can reference it. Kahlua common mistake #16 — locals
--- defined after a function aren't visible inside its closures.
+-- Forward-declare _buildInvRowFocusables so _buildLootFocusables'
+-- onConfirm closure can reference it (the Kahlua trap again: locals
+-- declared after a function aren't visible inside its closures).
 local _buildInvRowFocusables
--- S106: MC column builder forward-decl hoisted to the top-of-file block
--- (see note above _syncRingZonesToActiveTab). Leaving this marker here
--- intentionally — the real `local` now lives before line 492.
+-- The MC column builder's forward-decl is hoisted to the block above
+-- _syncRingZonesToActiveTab (see the note there); this marker stays so
+-- nobody re-declares it here, below that closure.
 
 -- S95 — Build container strip focusables for the Loot tab. Container strip
 -- lives on the RIGHT edge of the window (CONTAINER_STRIP_W wide). One cell

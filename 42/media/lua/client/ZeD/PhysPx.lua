@@ -15,7 +15,8 @@ ZeD.PhysPx = {
   texdir = "media/textures/ZeD/physpx/",
   -- --------------------------------------------------------------------------
   -- THE PLATES - one entry per face: its size (w, h), its picture
-  -- (texdir .. plate .. ".png"), the card's title, its live parts (lamps,
+  -- (texdir .. plate .. ".png"), a human-readable title (the exporter's
+  -- label; nothing in the game Lua reads it), its live parts (lamps,
   -- needles, knob pointers, digits, bars, state sprites, radio displays -
   -- drawn over the picture from the machine's state; ZeD_Plate.lua knows each
   -- kind) and its click areas (hits: kind "press" / "turn" / "look"; one with

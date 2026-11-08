@@ -1975,7 +1975,7 @@ end
 -- ENTRY POINTS + VANILLA HOOKS
 -- ============================================================================
 
--- Opens Options: vanilla's toUI (MainScreen's OPTIONS item does the same), our window.
+--- Opens Options: vanilla's toUI (MainScreen's OPTIONS item does the same), our window.
 function MM.openOptions()
     local m = ms()
     if not m or (not m.inGame and m.delay > 0) then return end
@@ -1989,8 +1989,8 @@ function MM.openOptions()
     end
 end
 
--- MainOptions keeps running underneath: its close, its two dialogs and its "show me"
--- (the Advanced sounds screen returns with setVisible(true)) come to the window.
+--- MainOptions keeps running underneath: its close, its two dialogs and its "show me"
+--- (the Advanced sounds screen returns with setVisible(true)) come to the window.
 function MM.hookOptions(m)
     local o = m and m.mainOptions
     if not o or o._zedHooked then return end

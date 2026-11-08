@@ -442,7 +442,7 @@ function MS.wsFor(modInfo)
     return MS.ws.items[tostring(wid)]
 end
 
--- the loaded mods whose Workshop item updated while the game ran
+--- The loaded mods whose Workshop item updated while the game ran.
 function MS.updatedLoaded()
     local out = {}
     for _, id in ipairs(jlist(getActivatedMods())) do

@@ -1,31 +1,28 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuDesktop.lua
 -- ============================================================================
--- THE ZeD OS DESKTOP (HOOK_MAP row 26; menus delegated, no mockups). Director,
--- Oct 15 2026: "Add ability to close a window on the ZeD OS desktop computer in
--- the main menu. Add icons to the desktop to open the menus, in case they close
--- it and dont figure out the toolbar menu can do it. Normal application type
--- icons that would be on a desktop. Make a trashcan icon with system32.dll in
--- the trash can (little joke)."
+-- THE ZeD OS DESKTOP: the icons behind the menu's windows. Client; an organism
+-- (the icon layer, a child of the desk under every window, plus the Trash).
 --
--- The main window's close box now just closes it (Quit stays in File and on the
--- case's power button) and leaves the bare desktop. Down the screen's right
--- edge, the way a 1993 desktop kept them: Project Zomboid, New Game, Load Game,
+-- The main window's close box just closes it (Quit stays in File and on the
+-- case's power button) and leaves the bare desktop, so the icons open
+-- everything the menus can: a player who closes the window and never finds the
+-- menu bar still has a way in. Down the screen's right edge, the way a 1993
+-- desktop kept them: Project Zomboid, New Game, Load Game,
 -- Join a Server, Options, Mods, Mod Uploader (the Workshop, where Steam offers it); the
 -- Trash in the bottom corner. 32 x 32 pixel
--- icons (ZeDUI/tools/mainmenu/bake_desktop_icons.py) drawn at whole multiples.
+-- icons drawn at whole multiples.
 -- A click selects an icon (its name turns accent, the picture darkens), a
 -- second click opens it; Return or A opens the selected one, the arrows or the
 -- D-pad move between them. They sit under the windows, as icons do.
 --
--- Down the left edge (punch list 104; the director, Nov 7 2026): the sticky note, always there and typed in place,
+-- Down the left edge: the sticky note, always there and typed in place,
 -- then CletusWorks (the notepad), ProtoPOP3 Mail and the Documents folder (the notes, ZeD_MainMenuDocs.lua), columns to
 -- the right when one fills and never over the right column (ZeD_MainMenuNotes.lua and ZeD_MainMenuMail.lua give MM.leftItems its items).
 --
--- The Trash opens a small window holding one file: the Computer itself (Oct 21
--- 2026, was system32.dll; the old desktop joke of dragging the computer to the
--- trash). Empty trash throws the computer away: the window asks the game's own
--- "Quit Project Zomboid?" (director, Oct 16 2026: "What if deleting system32.dll
--- queues the are quit game dialog?"). Cancel keeps everything.
+-- The Trash opens a small window holding one file: the Computer itself (the
+-- old desktop joke of dragging the computer to the trash). Empty trash throws
+-- the computer away: the window asks "Quit Project Zomboid?" in its band, the
+-- same question as the main window's Quit. Cancel keeps everything.
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -62,16 +59,16 @@ local function items()
         { id = "join", label = ZeD.tr("UI_ZeD_MainMenu_JoinServer"), open = function() A.join() end },
         { id = "options", label = ZeD.btnCase(getText("UI_mainscreen_option")), open = function() A.options() end },
         { id = "mods", label = getText("UI_NewGame_Mods"), open = function() A.mods() end },
-        -- the Workshop window, where Steam offers it (director, Oct 25 2026: "an icon on the desktop...
-        -- Look like a FTP program... named, Mod Uploader"; the icon is the pick of three)
+        -- the Workshop window, where Steam offers it; named Mod Uploader and drawn
+        -- as the kind of FTP program a 1993 desktop would upload with
         { id = "uploader", label = ZeD.tr("UI_ZeD_Desktop_ModUploader"), open = function() A.workshop() end,
           hide = function() local m = MainScreen and MainScreen.instance; return not (m and m.workshopOption) end },
     }
 end
 local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() MM.showView("trash") end }   -- (label: a translation key, drawn through ZeD.tr)
 
--- (director, Oct 16 2026: "desktop icons are loading slower than their text label") the
--- icon pictures are loose textures the engine streams in after boot: they are asked for
+-- The icon pictures are loose textures the engine streams in after boot, so they loaded
+-- slower than their plain-text names: they are asked for
 -- now, the menu's wake-up waits for them with the desk's own pictures, and a cell draws
 -- its name only once its picture is in, so the two always arrive together
 local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "uploader", "trash", "computer", "cletusworks", "note", "mail", "documents" }
@@ -132,9 +129,9 @@ local function cells(L)
     return out
 end
 
--- The icon block as the main window's small layout needs it (ZeD_MainMenu.lua: MM.smallFits and the window's
--- build): its width across the columns the cells wrap into, the edge and the gap in px, and whether every
--- column is still on the monitor.
+--- The icon block as the main window's small layout needs it (ZeD_MainMenu.lua: MM.smallFits and the window's
+--- build): its width across the columns the cells wrap into, the edge and the gap in px, and whether every
+--- column is still on the monitor.
 function MM.iconBlock(L)
     local T = ZeD.T
     local cs = cells(L)
