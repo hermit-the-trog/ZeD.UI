@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_DpadWheels.lua
 -- ============================================================================
--- THE CONTROLLER'S D-PAD WHEELS (DPAD_WHEELS_SPEC.md, HOOK_MAP row 29;
--- mockup ZeDUI/mockups/zed_dpad_wheels_v2.html, approved Oct 23 2026)
+-- THE CONTROLLER'S D-PAD WHEELS
+-- Client. Override: wraps the game's four D-pad wheel fillers in place.
 --
 -- Four wheels in place of the game's four D-pad wheels, one per direction:
 --   Left  Character     the Character window's things, one flick from the world
@@ -11,7 +11,7 @@
 -- They open only when no window has the pad (in the world). Tap the D-pad and
 -- the wheel stays up, the left stick still walking; the right stick points and
 -- letting it go takes (ZeD_WheelGesture.lua works all of that, and the other
--- ways of working it from ZeD setup; RADIAL_WHEELS_SPEC.md). A slice with the
+-- ways of working it from ZeD setup). A slice with the
 -- corner triangle swaps the ring in place to its wheel and keeps it open: B
 -- backs out one level (Back is the inner wheel's last slice). Every top-level
 -- slice keeps its place: one that can't be done now is added off, and the
@@ -39,7 +39,7 @@ local D = ZeD.DpadWheels
 local W = ZeD.Wheel
 local G = ZeD.WheelGesture
 
-local MAX_INNER = 11                      -- an inner wheel's items (Back is the 12th; paging is out of scope for v1)
+local MAX_INNER = 11                      -- an inner wheel's items (Back is the 12th; there is no paging)
 local BACK_TEX = "media/ui/emotes/back.png"
 local CHEVRON = "  +  "                     -- (the window titles' own separator, "Character  +  Eat": no breadcrumb arrows)
 
@@ -49,7 +49,7 @@ D.DIRS = {
     right = { title = "UI_ZeD_Wheel_World",     button = "DPadRight", arrow = "\226\134\146", build = "world" },
     up    = { title = "UI_ZeD_Wheel_Social",    button = "DPadUp",    arrow = "\226\134\145", build = "social" },
     down  = { title = "UI_ZeD_Wheel_HereNow",   button = "DPadDown",  arrow = "\226\134\147", build = "now" },
-    -- the Select (Back / View) button: ZeD's own wheel (director, Oct 23 2026), on the game's Select wheel object
+    -- the Select (Back / View) button: ZeD's own wheel, on the game's Select wheel object
     select = { title = "UI_ZeD_Wheel_ZeD", button = "Back", glyph = "UI_ZeD_Wheel_GlyphSelect", build = "zed" },
 }
 D.B = D.B or {}                           -- the wheels' builders (filled below): player, pn -> entries
@@ -149,7 +149,7 @@ local function present(menu, pn, st)
 end
 
 -- ---------------------------------------------------------------------------
--- quick action chords (ZeD_QuickChords.lua; QUICK_CHORDS_SPEC.md): a slice's
+-- quick action chords (ZeD_QuickChords.lua): a slice's
 -- path, its words, and assigning a chord from the open wheel
 -- ---------------------------------------------------------------------------
 -- "character:8:1" for the slice i of the level on show (nil: the ZeD wheel, or a wheel the game fills)
@@ -359,10 +359,10 @@ end
 D.paused = paused
 
 -- a ZeD window holding the pad (a menu or prompt let the focus go): the press
--- is that window's, never a wheel (Oct 23 2026, from the belt's D-pad Left)
+-- is that window's, never a wheel
 local function windowTakes(dir, joypadData)
-    -- (only the first player's pad: ZeD's windows and their focus are theirs, ZeD.windowsFor. Another player's
-    -- D-pad moved the first player's window, split-screen, known issue Nov 7 2026)
+    -- (only the first player's pad: ZeD's windows and their focus are theirs, ZeD.windowsFor. Without this,
+    -- a second split-screen player's D-pad moved the first player's window)
     if not ZeD.windowsFor(joypadData and joypadData.player or 0) then return false end
     local F = ZeD.Input and ZeD.Input.Focus
     local fw = F and F.getFocusedWindow and F.getFocusedWindow()
@@ -534,10 +534,10 @@ function Z.scaleWheel()
     for i = 1, #S.scaleKeys do
         local name = (i == 1) and tr(S.scaleLabels[1]) or S.scaleLabels[i]   -- (the steps are numbers, as the options show them)
         if S.scaleStepRetired and S.scaleStepRetired(i) then
-            -- 0.5x is not offered in the beta (punch list 58): left out, unless it is the saved pick (then shown, dimmed)
+            -- a retired step (0.5x is no longer offered): left out, unless it is the saved pick (then shown, dimmed)
             if cur == i then out[#out + 1] = { name = name, icon = "scale", detail = inUse(true), off = tr("UI_ZeD_Settings_ScaleRetired") } end
         elseif S.scaleStepOff and S.scaleStepOff(S.uiScaleOption, i) then
-            -- above what fits this screen (punch list 39): dimmed, with the reason, and no pick
+            -- above what fits this screen: dimmed, with the reason, and no pick
             out[#out + 1] = { name = name, icon = "scale", detail = inUse(cur == i), off = tr("UI_ZeD_Settings_ScaleTooBig") }
         else
             out[#out + 1] = { name = name, icon = "scale", detail = inUse(cur == i),
@@ -631,7 +631,7 @@ D.B.zed = function(p, pn)
         { name = tr("UI_ZeD_Settings_Moodles"), icon = "smiley", detail = current(S.moodlePlaceOption, S.moodleLabels or {}), sub = Z.moodleWheel },
         { name = tr("UI_ZeD_Settings_ActionBar"), icon = "progress",
           detail = current(S.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }), sub = Z.actionBarWheel },
-        -- Messages (MESSAGES_SPEC.md): other mods' notes and errors; off while nothing is kept
+        -- Messages: other mods' notes and errors; off while nothing is kept
         (function()
             local MS = ZeD.Messages
             local n, un = MS and MS.count() or 0, MS and MS.unread() or 0
@@ -639,15 +639,15 @@ D.B.zed = function(p, pn)
                      detail = (n > 0) and tr(un > 0 and "UI_ZeD_Msg_New" or "UI_ZeD_Msg_CountStat", un > 0 and un or n) or nil,
                      run = (n > 0) and function(pl, pn2) MS.open() end or nil, off = (n == 0) and tr("UI_ZeD_Msg_None") or nil }
         end)(),
-        -- Bug report (the director, Nov 2 2026, punch list 66): every caught error with ZeD's version and the mod
-        -- list onto the clipboard, ready to paste into a Workshop thread or send to Hermit
+        -- Bug report: every caught error with ZeD's version and the mod
+        -- list onto the clipboard, ready to paste into a Workshop thread
         { name = tr("UI_ZeD_Msg_BugReport"), icon = "bullhorn", detail = tr("UI_ZeD_Msg_BugReportDetail"),
           run = function(pl, pn2) if ZeD.Messages and ZeD.Messages.copyBugReport then ZeD.Messages.copyBugReport(pn2) end end },
         { name = tr("UI_ZeD_Wheel_ResetWindows"), icon = "rotate", detail = tr("UI_ZeD_Wheel_ResetWindowsDetail"), run = Z.resetWindows },
         { name = tr("UI_ZeD_Options_GroupZed"), icon = "gears", detail = tr("UI_ZeD_Wheel_ZeDSetupDetail"), run = function(pl, n) D.H.openSetup(pl, n) end },
         { name = tr("UI_ZeD_Settings_SafeMode"), icon = "safemode", detail = tr("UI_ZeD_Wheel_SafeModeDetail"), run = Z.safeMode },
     }
-    -- the Lua console (punch list 106): in debug mode only, while the game's console exists; the controller's way in
+    -- the Lua console: in debug mode only, while the game's console exists; the controller's way in
     -- (the game's own way is a key)
     local DCon = ZeD.DebugConsole
     if DCon and DCon.exists and DCon.exists() then
@@ -797,7 +797,7 @@ function H.handsFree(p)
 end
 
 -- the brightest light you carry (vanilla's onDisplayLeft rule: an equipped or attached one first),
--- the bags you carry included (Oct 24 2026: a torch in the backpack is the one LB + X pulls out)
+-- the bags you carry included (a torch in the backpack is the one LB + X pulls out)
 function H.bestLight(p)
     local best, bestEq
     local function look(items, inBag)
@@ -817,8 +817,8 @@ function H.bestLight(p)
     return bestEq or best
 end
 
--- the light in a hand and on in one go (director, Oct 24 2026: "pulling out a flashlight and
--- turning it on LB+X and it was on"). In a hand or on the belt: vanilla's toggle. Else vanilla's
+-- the light in a hand and on in one go (one chord pulls out a flashlight and it is
+-- already lit). In a hand or on the belt: vanilla's toggle. Else vanilla's
 -- equip (its time; out of a bag first, vanilla's move), and the light switched on once it is in
 -- the hand; vanilla's toggle only equips, a second press switched it on.
 function H.lightOn(p, l)
@@ -939,7 +939,7 @@ function C.use(p, pn)
     }
 end
 
--- the Loadouts ring (handoff equip_doll_v4_loadouts B7): one slice per saved loadout; a pick sets it in the
+-- the Loadouts ring: one slice per saved loadout; a pick sets it in the
 -- Equip tab's bar and opens its to-do (ZeD_EquipLoadout.fromWheel)
 function C.loadouts(p, pn)
     local out = {}
@@ -976,7 +976,7 @@ D.B.character = function(p, pn)
           off = (#clothing == 0) and tr("UI_ZeD_Wheel_NothingToChange") or nil },
         { name = tr("UI_ZeD_Wheel_Use"), icon = "backpack", detail = tr("UI_ZeD_Wheel_UseDetail"), sub = C.use },
     }
-    -- the Loadouts ring only while Loadouts and outfits is on (Settings.lua; director, Oct 30 2026)
+    -- the Loadouts ring only while Loadouts and outfits is on (Settings.lua)
     if ZeD.Lists and ZeD.Lists.on() then
         ring[#ring + 1] = { name = tr("UI_ZeD_Wheel_Loadouts"), icon = ZeD.Lists.icon("loadout"), detail = tr("UI_ZeD_Wheel_LoadoutsDetail"),
           sub = C.loadouts, off = (#ZeD.Lists.all(p, "loadout") == 0) and tr("UI_ZeD_Wheel_NoLoadouts") or nil }
@@ -1012,7 +1012,7 @@ function Wd.tabs(p, pn)
     return out
 end
 
--- (the director, Nov 7 2026, B7: no mini-map in ZeD's wheels, "the World window's map is the map". Its two
+-- (No mini-map in ZeD's wheels: the World window's map is the map. Its two
 -- slices were the last two of this inner wheel, so taking them out moves no other slice: World map stays
 -- first and Back stays last, as on every inner wheel. The Map slice keeps its place on the World wheel.)
 function Wd.map(p, pn)
@@ -1080,7 +1080,7 @@ D.B.world = function(p, pn)
         { name = tr("UI_ZeD_Wheel_Search"), icon = "magnifier", sub = Wd.search },
         { name = tr("UI_ZeD_Wheel_LightsPower"), icon = "bulb_on", sub = function() return ask("lights", p, pn) or {} end,
           off = (not anyLight) and tr("UI_ZeD_Wheel_NoLights") or nil },
-        -- (the spec's Zones and rooms: the rooms editor has no way in on 42.21, so the place is Designated zones itself)
+        -- (Zones and rooms would pair here, but the rooms editor has no way in on 42.21, so the place is Designated zones itself)
         { name = getText("IGUI_Zone_Name"), icon = "fence", detail = tr("UI_ZeD_World_TabAnimals"),
           run = function(pl, n) ISDPadWheels.showAnimalZoneUI(n) end },
     }
@@ -1176,7 +1176,7 @@ end
 function N.help(p, pn)
     return {
         { name = getText("UI_optionscreen_binding_Toggle Survival Guide"), icon = "guide", run = function(pl, n) ISDPadWheels.showSurvGuide(n) end },
-        -- the controller map (the director, Nov 2 2026, punch list 67): ZeD_ControllerMap.lua
+        -- the controller map: ZeD_ControllerMap.lua
         { name = tr("UI_ZeD_Wheel_ControllerMap"), icon = "gamepad",
           run = function(pl, n) if ZeD.ControllerMap and ZeD.ControllerMap.open then ZeD.ControllerMap.open(n) end end },
     }
@@ -1223,8 +1223,7 @@ D.B.now = function(p, pn)
 end
 
 -- ============================================================================
--- THE HELPERS THE SLICES ASK FOR (the game's own rules and verbs; API census
--- Oct 23 2026, ZeDUI/qa notes in DPAD_WHEELS_SPEC)
+-- THE HELPERS THE SLICES ASK FOR (the game's own rules and verbs)
 -- ============================================================================
 local function vtext(key) return (tostring(getText(key)):gsub("<br>", " ")) end   -- (some of vanilla's reasons carry a line break)
 
@@ -1540,8 +1539,8 @@ local function nextFrame(fn, frames)
 end
 
 -- In the driver's seat, after the game's vehicle slices: Dashboard, the pad on the dash's
--- controls until B (director, Oct 24 2026: the dash no longer takes the D-pad when you sit
--- down). Its claim waits a frame, so the wheel's own close does not take the pad back.
+-- controls until B (the dash never takes the D-pad on sitting down: this slice is the
+-- way onto it). Its claim waits a frame, so the wheel's own close does not take the pad back.
 function H.dashSlice(p, pn)
     local Dash = ZeD.Dashboard
     if not (Dash and Dash.canTakePad and Dash.canTakePad(p)) then return end

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_HintStrip.lua
 -- ============================================================================
--- THE HINT STRIP (the director, Nov 4 2026: one quiet strip for keyboard and controller alike, "E Open door |
--- Right-click More"; ZeD setup: Always (the default), First hours, Off; ZeDUI/SURVIVAL_GUIDE_DRAFT.md). It shows
+-- THE HINT STRIP: one quiet strip for keyboard and controller alike, "E Open door | Right-click More". Client
+-- side; ZeD setup picks Always (the default), First hours or Off. It shows
 -- what you can do with what is in front of you, in the game's own words and by the game's own rules
 -- (ISButtonPrompt: the controller prompt's getBest* functions), so it says only what the game would do.
 --
@@ -84,8 +84,8 @@ end
 -- ---------------------------------------------------------------------------
 -- what the game's Interact key does on a keyboard (the controller's A does more: lights, stoves, devices; those are
 -- in the right-click menu on a keyboard)
--- (doors and windows: the game sets their prompt with no function, the Java does the press; known by their words,
--- QA Nov 4 2026)
+-- (doors and windows: the game sets their prompt with no function — the Java does the press — so those
+-- are known by their words)
 local DOOR_WORDS = nil
 local function doorWords(text)
     if not DOOR_WORDS then

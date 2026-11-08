@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModFolders.lua
 -- ============================================================================
--- MOD FOLDERS: Zomboid/Lua/ModFolders.cfg, the file of [B42]Mod Folders (Workshop 3779201168,
--- FieClaussell), read and written in its own format (MOD_FOLDERS_SPEC.md section 9; stage 2 of
--- the Mods screen work, punch list 37). Nothing drawn here: ZeD_MainMenuModsFolders.lua draws.
+-- MOD FOLDERS: Zomboid/Lua/ModFolders.cfg, the file of the [B42]Mod Folders
+-- mod (Workshop 3779201168), read and written in its own format. Client-side.
+-- Nothing drawn here: ZeD_MainMenuModsFolders.lua draws.
 --
 -- The file is kept as its lines. A line ZeD does not change is written back exactly as it was
 -- read (its own text), so an unchanged file round-trips byte for byte, and every line ZeD does
@@ -16,9 +16,9 @@
 -- (Kahlua's string.byte gives the unit): "Cars" is 43,61,72,73. Version 1 (%-escapes) is read
 -- as the mod reads it; the first change rewrites the file as version 2, as the mod does.
 --
--- Every change reads the file again, applies the one change to what is there now and writes it
--- (spec 9.3): an edit made outside the game while the screen was open is kept, never clobbered.
--- ZeD writes only when the player changes folders (spec 9.2).
+-- Every change reads the file again, applies the one change to what is there now and writes
+-- it: an edit made outside the game while the screen was open is kept, never clobbered.
+-- ZeD writes only when the player changes folders.
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -27,7 +27,7 @@ local F = ZeD.ModFolders
 
 F.FILE = F.FILE or "ModFolders.cfg"
 F.MAX = 99                 -- Mod Folders' own limit (it refuses the 100th; it still reads more)
-F.NAME_MAX = 48            -- typing stops here (spec 12.3); longer names from the file stay
+F.NAME_MAX = 48            -- typing stops here; longer names from the file stay
 F.gen = F.gen or 0         -- counts every load and change (the screen's caches key on it)
 F.cur = F.cur or nil       -- the file as last read or written
 
@@ -233,7 +233,7 @@ end
 
 function F.read() return F.parse(F.readLines()) end
 
--- the file read afresh (the Mods page opening: spec 9.1, so outside edits show)
+-- the file read afresh (the Mods page opening), so outside edits show
 function F.load()
     F.cur = F.read()
     uiState = nil
@@ -335,7 +335,7 @@ local function lastOf(M, k)
     return at
 end
 
--- lines inserted after place `at` in one pass (a move of 200 mods is one write: spec 12.2)
+-- lines inserted after place `at` in one pass (a move of 200 mods is one write)
 local function insertAfter(M, at, list)
     if #list == 0 then return end
     local out = {}
@@ -347,7 +347,7 @@ local function insertAfter(M, at, list)
     M.lines = out
 end
 
--- a new folder at the end of the folders, open, empty (spec 3.1, 9.6): its id, or false
+-- a new folder at the end of the folders, open, empty: its id, or false
 function F.create(name)
     name = trim(name)
     if #name > F.NAME_MAX then name = string.sub(name, 1, F.NAME_MAX) end
@@ -392,7 +392,7 @@ function F.delete(id)
     end)
 end
 
--- open (true) or closed (false), saved as the mod saves it (spec 3.6)
+-- open (true) or closed (false), saved as the mod saves it
 function F.setOpen(id, open)
     return F.change(function(M)
         local e = M.byId[id]
@@ -415,7 +415,7 @@ function F.setAllOpen(open)
 end
 
 -- one place up (-1) or down (1) among the folders: the two folder lines change places, every
--- other line stays where it is (spec 3.7)
+-- other line stays where it is
 function F.moveFolder(id, delta)
     return F.change(function(M)
         local k = nil
@@ -434,8 +434,8 @@ function F.moveFolder(id, delta)
     end)
 end
 
--- mods into folder fid (nil: out of their folder, to Unfiled). A mod is in one folder at most
--- (spec 4.4). Returns ok, the count moved; "gone" when the folder is gone (spec 4.5)
+-- mods into folder fid (nil: out of their folder, to Unfiled). A mod is in one folder
+-- at most. Returns ok, the count moved; "gone" when the folder is gone
 function F.assign(modIds, fid)
     local gone = false
     local ok, n = F.change(function(M)
@@ -468,7 +468,7 @@ function F.assign(modIds, fid)
                 end
             end
             if count == 0 then return false end
-            -- (new lines after the last member line, by mod id: spec 9.5's order for what ZeD adds)
+            -- (new lines after the last member line, by mod id: one fixed order for what ZeD adds)
             local sort = ZeD.ModOrder and ZeD.ModOrder.sort
             if sort then sort(new, function(a, b) return a.mod < b.mod end) else table.sort(new, function(a, b) return a.mod < b.mod end) end
             local at = lastOf(M, "member")
@@ -482,7 +482,7 @@ function F.assign(modIds, fid)
     return ok, n
 end
 
--- a not-installed mod's line taken out (the folder's detail, spec 5.3): nothing else removes it
+-- a not-installed mod's line taken out (the folder detail's remove): nothing else removes it
 function F.dropMember(modId)
     return F.change(function(M)
         local out, any = {}, false

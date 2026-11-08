@@ -339,7 +339,7 @@ function M.serverNote(id, text)
 end
 
 -- ---------------------------------------------------------------------------
--- the notes over your head (the director, Nov 4 2026: "a running log", so a note you missed can be read later;
+-- the notes over your head (a running log, so a note you missed can be read later;
 -- ZeD_HaloText.lua). One source, newest first, already read (they never raise the unread count or a toast), the
 -- oldest dropped past HALO_KEEP. The same line again on top counts up instead of adding a card. An XP line adds to
 -- the one on top for the same skill (sum = true, with amount and its key).
@@ -488,7 +488,7 @@ end
 
 -- The game keeps its last 40 entries (KahluaThread.m_errors_list: at 40 it drops the oldest as it
 -- adds one) and counts every entry it adds, so the new entries are the count's rise, read from the
--- list's end (Oct 25 2026: the list's own size was used, and once it was full no new error was filed).
+-- list's end (the list's own size was used before, and once it was full no new error was filed).
 function M.readErrors()
     if not (getLuaDebuggerErrorCount and getLuaDebuggerErrors) then return end
     local n = safe(getLuaDebuggerErrorCount) or 0
@@ -504,8 +504,8 @@ function M.readErrors()
         -- One error is written as: a separator line with the message ("------..." then "attempted index: ..."),
         -- then "dumping Lua stack trace" with the Lua stack, then the exception entry, then (in -debug) the Java
         -- stack. The separator opens the next error, so its head and stack wait in `pending` and go in front of that
-        -- error's exception; only what follows an exception belongs to it (punch list 66, QA Nov 2 2026: the older
-        -- error's copy carried the next one's head).
+        -- error's exception; only what follows an exception belongs to it (appending the separator
+        -- to the error before it gave that older error's copy the next one's head).
         if string.find(s, "Exception", 1, true) then
             fileError(pending and (pending .. "\n" .. s) or s)
             pending = nil
@@ -521,7 +521,7 @@ function M.readErrors()
 end
 
 -- ---------------------------------------------------------------------------
--- BUG REPORTS (the director, Nov 2 2026, punch list 66: "no digging through files or the console"). Every copied
+-- BUG REPORTS: one copy holds the whole story — no digging through files or the console. Every copied
 -- report starts with the same header, so a paste into a Workshop thread or a paste site says what ran:
 -- ZeD-GUI's version, the game's build, then the mods that are on, one per line.
 -- ---------------------------------------------------------------------------

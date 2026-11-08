@@ -280,7 +280,7 @@ function ST.recipeSet(st)
     return set
 end
 
--- Nearest station within reach that makes a recipe (nil when none).
+--- Nearest station within reach that makes a recipe (nil when none).
 function ST.nearestFor(player, recipeName)
     for _, st in ipairs(ST.nearby(player)) do
         if isEntityKind(st.kind) and not st.inUse and ST.recipeSet(st)[recipeName] then
@@ -308,6 +308,8 @@ local HEAT_TAG = { Forge = true, PrimitiveForge = true, AdvancedForge = true,
 
 local _recipeStation = {}   -- recipe name -> info table or false
 
+--- The station a recipe needs, as { label, short, heat }, or nil for any
+--- surface. Cached per recipe name.
 function ST.recipeStation(recipe)
     if not recipe then return nil end
     local name = call(recipe, "getName")
@@ -350,8 +352,8 @@ function ST.recipeStation(recipe)
     return info or nil
 end
 
--- "Needs a Primitive Kiln." / "Needs an Advanced Forge." One sentence per article, so a
--- language with no articles writes the same words in both keys.
+--- "Needs a Primitive Kiln." / "Needs an Advanced Forge." One sentence per article, so a
+--- language with no articles writes the same words in both keys.
 function ST.needsText(label)
     local first = string.lower(string.sub(label or "", 1, 1))
     if first == "a" or first == "e" or first == "i" or first == "o" or first == "u" then
@@ -363,11 +365,14 @@ end
 -- ----------------------------------------------------------------------------
 -- BINDING
 -- ----------------------------------------------------------------------------
+--- The station the player's Craft tab is bound to (nil = Hand).
 function ST.current(player)
     if not player then return nil end
     return _bind[player:getPlayerNum()]
 end
 
+--- Bind the Craft tab to a station. Entity kinds take vanilla's one-player
+--- lock; false when another player already holds it.
 function ST.bind(player, st)
     if not (player and st) then return false end
     if isEntityKind(st.kind) then
@@ -388,6 +393,7 @@ function ST.bind(player, st)
     return true
 end
 
+--- Back to Hand: drop the binding, and the lock while this player holds it.
 function ST.unbind(player)
     if not player then return end
     local pn = player:getPlayerNum()
@@ -400,8 +406,8 @@ function ST.unbind(player)
     ST.gen = ST.gen + 1
 end
 
--- Keeps a binding honest: the station still exists, the player is near it and
--- out of a vehicle, and nobody else has taken it. Returns the station or nil.
+--- Keeps a binding honest: the station still exists, the player is near it and
+--- out of a vehicle, and nobody else has taken it. Returns the station or nil.
 function ST.validate(player)
     if not player then return nil end
     local st = _bind[player:getPlayerNum()]
@@ -433,7 +439,7 @@ function ST.validate(player)
     return st
 end
 
--- Resolve a world object (any tile of a station) to a bindable station entry (general: ST.classify's).
+--- Resolve a world object (any tile of a station) to a bindable station entry (general: ST.classify's).
 function ST.entryFor(player, obj, general)
     if not (player and obj) then return nil end
     local m = call(obj, "getMasterObject") or obj
@@ -493,11 +499,11 @@ end
 -- DRAWING — selector box, dropdown overlay, station band
 -- ----------------------------------------------------------------------------
 
--- A select box in the pop-up menu's look (ZeD_Dropdown): surface 2 with a 1u outline,
--- the label in F1 textDim, the value in F2, the triangle at the right. Hover is the
--- T.hover wash; the controller's mark goes under the words. (accentOn is no longer
--- drawn: a bound station reads from its name and the band under it.) disabled: the
--- whole control at T.disabledAlpha (a select that cannot be opened now).
+--- A select box in the pop-up menu's look (ZeD_Dropdown): surface 2 with a 1u outline,
+--- the label in F1 textDim, the value in F2, the triangle at the right. Hover is the
+--- T.hover wash; the controller's mark goes under the words. accentOn is accepted
+--- but not drawn: a bound station reads from its name and the band under it.
+--- disabled: the whole control at T.disabledAlpha (a select that cannot be opened now).
 function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hovered, disabled)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -665,7 +671,7 @@ function ST.stateText(st, player)
     end
 end
 
--- The station band under the header: icon, name, distance and kind, state.
+--- The station band under the header: icon, name, distance and kind, state.
 ST.BAND_H = 28
 function ST.drawBand(panel, x, y, w, st, player)
     local T  = ZeD.T
@@ -702,9 +708,11 @@ end
 
 -- ----------------------------------------------------------------------------
 -- DROPDOWN BEHAVIOUR — shared by the recipe view (CraftingCore) and the
--- machine / appliance views. State lives on the Craft tab's state table:
--- stDropdownOpen, stDropdownScroll, _stGeo (anchor), _stRows, _stLayout.
+-- machine / appliance / general views. State lives on the Craft tab's state
+-- table: stDropdownOpen, stDropdownScroll, _stGeo (anchor), _stRows, _stLayout.
 -- ----------------------------------------------------------------------------
+--- Draw the open dropdown over a view (a no-op while closed). Views call it
+--- last, so the list lies over everything they drew.
 function ST.drawDropdownFor(panel, state, player, focusId, prefix)
     if not (state.stDropdownOpen and state._stGeo and player) then
         state._stLayout = nil
@@ -733,6 +741,7 @@ function ST.pickRow(state, player, row)
     state.stDropdownScroll = 0
 end
 
+--- A click while the dropdown is open: a row picks, anywhere else closes.
 function ST.dropdownClick(state, player, x, y)
     for _, L in ipairs(state._stLayout or {}) do
         if x >= L.x and x < L.x + L.w and y >= L.y and y < L.y + L.h then
@@ -752,6 +761,7 @@ function ST.dropdownWheel(state, del)
     return true
 end
 
+--- The open dropdown's rows as controller elements; B closes the list.
 function ST.dropdownFocusables(state, player, prefix)
     local out = {}
     for _, L in ipairs(state._stLayout or {}) do
@@ -772,7 +782,7 @@ function ST.dropdownFocusables(state, player, prefix)
     return out
 end
 
--- B leaves the station from anywhere in the Craft tab while one is bound.
+--- B leaves the station from anywhere in the Craft tab while one is bound.
 function ST.addLeaveCancel(elements, win, prefix)
     if prefix ~= "craft" then return end
     local player = win and win._playerObj
@@ -789,10 +799,10 @@ end
 -- STATION VIEW SCAFFOLD — shared by the machine and appliance views
 -- ----------------------------------------------------------------------------
 
--- The focused gamepad element id when focus is in the World window's tab
--- content (same resolution CraftingCore.render does for the recipe view).
--- Only while the mark may show (the window has the controller and the pad is
--- in use): the views paint their focus cue from it.
+--- The focused gamepad element id when focus is in the World window's tab
+--- content (same resolution CraftingCore.render does for the recipe view).
+--- Only while the mark may show (the window has the controller and the pad is
+--- in use): the views paint their focus cue from it.
 function ST.focusedId(win)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if not (Focus and Focus.liveZone and Focus.liveElement) then return nil end
@@ -804,8 +814,8 @@ function ST.focusedId(win)
     return nil
 end
 
--- Full-width STATION select and the band. Stamps the select's zone and the
--- dropdown anchor; returns the height used.
+--- Full-width STATION select and the band. Stamps the select's zone and the
+--- dropdown anchor; returns the height used.
 function ST.renderViewHeader(panel, win, x, y, w, state, st)
     local T = ZeD.T
     local pad = T.px(6)
@@ -822,8 +832,8 @@ function ST.renderViewHeader(panel, win, x, y, w, state, st)
     return used
 end
 
--- Shared click handling for a view's header: the dropdown when open, the
--- select itself. Returns true when handled.
+--- Shared click handling for a view's header: the dropdown when open, the
+--- select itself. Returns true when handled.
 function ST.viewHeaderClick(state, player, x, y)
     if state.stDropdownOpen then
         ST.dropdownClick(state, player, x, y)
@@ -839,7 +849,7 @@ function ST.viewHeaderClick(state, player, x, y)
     return false
 end
 
--- The select as a gamepad element (views add it first).
+--- The select as a gamepad element (views add it first).
 function ST.selectFocusable(state)
     for _, z in ipairs(state.zones or {}) do
         if z.type == "stationDropdown" then
@@ -856,8 +866,8 @@ function ST.selectFocusable(state)
     return nil
 end
 
--- Keep the focused element of a scrolling view inside its viewport. zones are
--- last frame's (screen px, scroll baked in); scroll is a ZeD_ScrollbarState.
+--- Keep the focused element of a scrolling view inside its viewport. zones are
+--- last frame's (screen px, scroll baked in); scroll is a ZeD_ScrollbarState.
 function ST.followFocus(state, scroll, focusId, viewY, viewH, totalH)
     if not (focusId and scroll and totalH > viewH) then return end
     if state._followId == focusId then return end
@@ -877,7 +887,7 @@ function ST.followFocus(state, scroll, focusId, viewY, viewH, totalH)
     end
 end
 
--- The machine and appliance views have no recipe search.
+--- The machine, appliance and general views have no recipe search.
 function ST.hidesSearch(win)
     local player = win and win._playerObj
     local st = player and ST.current(player)

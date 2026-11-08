@@ -177,11 +177,10 @@ local function _drawZoneBar(panel, x, y, w, rowH, ratio, segC, label)
     A.drawFillBar(panel, x, y + math.floor((rowH - h) / 2), w, ratio, false, segC, h, label)
 end
 
--- v15 220w single-row zone layout: NAME(measured) | gap | BAR(1fr) |
--- PCT(measured) | gap | DOCK(square). Replaces S118 drawZoneRow at compact
--- widths. Row height + column widths scale with font height so larger text-
--- size presets don't clip. 480w still uses S118 - its v15 5-column layout
--- (60/36/1fr/76/22) is a S122 follow-up.
+-- 220w single-row zone layout: NAME(measured) | gap | BAR(1fr) |
+-- PCT(measured) | gap | DOCK(square). Row height + column widths scale with
+-- font height so larger text-size presets don't clip. (480w rows go through
+-- _drawZoneRow480 below.)
 -- @return rowH, outDockRect (outDockRect = nil if no dock)
 local function _drawZoneRow220(panel, x, y, w, zCfg)
     local T  = ZeD.T
@@ -233,9 +232,9 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
     return rowH, outDockRect
 end
 
--- v15 480w zone row layout: NAME(60) | gap | PCT(36, right) | gap | BAR(1fr)
--- | gap | FLAG-TEXT(measured) | gap | DOCK(22). Replaces S118 drawZoneRow
--- at non-compact widths so 480w gets full v15 spec parity.
+-- 480w zone row layout: NAME(60) | gap | PCT(36, right) | gap | BAR(1fr)
+-- | gap | FLAG-TEXT(measured) | gap | DOCK(22). The wide card's five
+-- columns; 220w rows go through _drawZoneRow220 above.
 -- @param flagWOverride  Caller-computed flag column width (max across all
 --                       zones in the item) so columns align AND the column
 --                       collapses for all-pristine clothing - bars expand.
@@ -314,9 +313,9 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     return rowH, outDockRect
 end
 
--- v15 multi-segment ZONES bar - N equal-width segments, each colored per
--- _zoneSegColor of the corresponding zone. Drawn inline with the disclosure
--- header at 220w (between the chevron+label and overall % summary).
+-- Multi-segment ZONES bar - N equal-width segments, each colored per
+-- _zoneSegColor of the corresponding zone. Sits inline in the 480w
+-- disclosure header; at 220w it draws beneath the header when expanded.
 local function _drawZoneSegBar(panel, x, y, w, h, zones)
     local T = ZeD.T
     if not zones or #zones == 0 then return end
@@ -339,10 +338,9 @@ local function _drawZoneSegBar(panel, x, y, w, h, zones)
     end
 end
 
--- Look up the item's category from the existing ItemCard.lua local - we need
--- this for verb resolution. Re-implementing the minimum here so we don't have
--- to touch ItemCard.lua's exports (and can't anyway, since it's file-local).
--- Mirrors getItemCategory at ItemCard.lua:38.
+-- The item's coarse category, for verb resolution and the clothing/generic
+-- body split. ItemCard.lua's getItemCategory is file-local and can't be
+-- reached from here, so the same logic is repeated - keep the two in step.
 local function categoryOf(item)
     if not item then return "Item" end
     if safeGet(item, "getFluidContainer") then return "Fluid" end
@@ -364,19 +362,18 @@ local function categoryOf(item)
 end
 
 -- ---------------------------------------------------------------------------
--- Marks (FAV / NO-CRAFT / DISPOSE) - read item modData
--- modData keys established by S119 designer ruling - DO NOT rename:
---   ZeD_fav      → fav chip
---   ZeD_noCraft  → nocraft chip (matches existing S99 ActionStrip "protect" key)
---   ZeD_unwanted → dispose chip (matches existing S99 ActionStrip "unwanted" key)
+-- Marks (FAV / NO-CRAFT / DISPOSE) - what the flag strip's chips show.
+-- Fav is the game's own favorite flag; nocraft and dispose read through
+-- ActionStrip.getState under its "protect" and "unwanted" keys - the chip
+-- names and the state keys differ on purpose, so don't rename either side.
 -- ---------------------------------------------------------------------------
 local function readMarks(item, playerNum)
     if not item then return {fav=false, nocraft=false, dispose=false} end
     local fav = safeGet(item, "isFavorite") or false
     local nc, dis = false, false
-    -- no-craft is vanilla's "Unusable in Recipes" and unwanted is per player:
-    -- both through ActionStrip.getState (Oct 19 2026: no-craft was a ZeD-only
-    -- mark nothing read)
+    -- no-craft is vanilla's "Unusable in Recipes" (so the game's crafting
+    -- honors it, not a ZeD-only mark nothing reads) and unwanted is per
+    -- player: both through ActionStrip.getState
     if ZeD and ZeD.ActionStrip and ZeD.ActionStrip.getState then
         local ok, v = pcall(ZeD.ActionStrip.getState, item, "unwanted", playerNum)
         if ok then dis = v and true or false end
@@ -384,8 +381,8 @@ local function readMarks(item, playerNum)
         if ok2 then nc = v2 and true or false end
     end
     local m = {fav = fav, nocraft = nc, dispose = dis}
-    -- the fourth mark (Oct 29 2026, loadouts B3): on any loadout or outfit (ZeD_Lists.lua); none while
-    -- Loadouts and outfits is off (Settings.lua; director, Oct 30 2026): no button, no stop
+    -- the fourth mark: lit when the item is on any loadout or outfit (ZeD_Lists.lua).
+    -- While Loadouts and outfits is off (Settings.lua) there is no mark at all: no button, no stop
     local L, LU = ZeD.Lists, ZeD.ListsUI
     local p = L and L.on() and getSpecificPlayer(playerNum or 0)
     if p then
@@ -400,17 +397,18 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Header verb cluster (back-bar) - primary action by source context.
--- Returns array of {label, primary, glyph?}. Drawn right-to-left by
--- drawCardBackBar; primary first in the array renders rightmost (the CTA).
+-- Returns an array of {id, label, primary, isMore?}. drawCardBackBar lays the
+-- cluster out right-aligned: the last entry (MORE) sits at the right edge,
+-- the primary (first) leftmost of the cluster.
 -- ---------------------------------------------------------------------------
 local function headerVerbsForContext(ctx, item)
     if not item then return {} end
     local cat = categoryOf(item)
 
-    -- MORE (Oct 19 2026, the single-path audit): the item's whole context menu,
-    -- in the player's chosen look, at the button: everything the card has no
-    -- room for (drop, put in, off hand, rename, vanilla's and mods' options)
-    -- is one press away on every card, mouse or controller.
+    -- MORE: the item's whole context menu, in the player's chosen look, at
+    -- the button: everything the card has no room for (drop, put in, off
+    -- hand, rename, vanilla's and mods' options) is one press away on every
+    -- card, mouse or controller.
     local VT = ZeD.ItemCard.verbText
     local more = {id = "MORE", label = VT("MORE"), primary = false, isMore = true}
     if ctx == "equipped" then
@@ -435,7 +433,7 @@ local function headerVerbsForContext(ctx, item)
     elseif cat == "Food" then
         -- a food item with a verb of its own (the game's CustomContextMenu: Smoke, Drink, Chew ...)
         -- shows that verb, the game's own words; the button still runs the game's eat, which smokes,
-        -- drinks or chews it (director, Oct 24 2026: "Seems weird the character would be eating a cig")
+        -- drinks or chews it. EAT on a cigarette would read wrong.
         local own = safeGet(item, "getCustomMenuOption")
         primary = {id = "EAT", label = (own and own ~= "") and tostring(own) or VT("EAT"), primary = true}
     elseif cat == "Literature" then
@@ -443,12 +441,12 @@ local function headerVerbsForContext(ctx, item)
     elseif cat == "Drainable" then
         primary = {id = "USE", label = VT("USE"), primary = true}
     elseif cat == "Fluid" then
-        -- DRINK (Oct 19 2026): bottles and canteens had no card verb
+        -- DRINK: so bottles and canteens have a card verb at all
         local fc = safeGet(item, "getFluidContainer")
         local empty = fc and safeGet(fc, "isEmpty")
         if fc and not empty and not safeGet(item, "isSealed") then primary = {id = "DRINK", label = VT("DRINK"), primary = true} end
     elseif cat == "Container" then
-        -- WEAR (Oct 19 2026): a backpack couldn't be put on from its card
+        -- WEAR: so a backpack can be put on from its card
         local loc = safeGet(item, "canBeEquipped")
         if (loc and loc ~= "") or safeGet(item, "getBodyLocation") then primary = {id = "WEAR", label = VT("WEAR"), primary = true} end
     else
@@ -457,7 +455,7 @@ local function headerVerbsForContext(ctx, item)
 
     local verbs = {}
     if primary then verbs[#verbs + 1] = primary end
-    -- OFF HAND (Oct 19 2026): only the context menu equipped the second hand
+    -- OFF HAND: equips the second hand, which otherwise only the context menu could
     if cat == "Weapon" or cat == "Firearm" then verbs[#verbs + 1] = {id = "OFF HAND", label = VT("OFF HAND"), primary = false} end
     if ctx == "container" then
         table.insert(verbs, 1, {id = "TAKE", label = VT("TAKE"), primary = (primary == nil)})
@@ -471,16 +469,15 @@ end
 -- ---------------------------------------------------------------------------
 -- Maintenance verb cluster (verb-strip) - item-type-specific maintenance
 -- actions. Empty array = strip skips render entirely (books).
--- Returns array of {label, glyph?, key?}. `key` is the dispatch tag for B8
--- click router.
+-- Returns array of {label, glyph?, key?}. `key` is the dispatch tag the
+-- click router uses.
 -- ---------------------------------------------------------------------------
 local function maintenanceVerbsForItem(item)
     if not item then return {} end
     local cat = categoryOf(item)
-    -- (Oct 19 2026, the single-path audit: WASH, CLEAN and COOK were drawn
-    -- with nothing behind them and SHARPEN ran a repair. Now WASH washes,
-    -- shown when the garment is dirty or bloody; SHARPEN sharpens, shown on a
-    -- blade that isn't sharp; CLEAN and COOK are gone, as vanilla has no such
+    -- (Every verb here does what it says. WASH washes, shown when the
+    -- garment is dirty or bloody; SHARPEN sharpens, shown on a blade that
+    -- isn't sharp. There is no CLEAN or COOK, as vanilla has no such
     -- action on the item: cooking happens on a heat source, and the card's
     -- progress band shows it.)
     if cat == "Clothing" then
@@ -507,8 +504,8 @@ end
 -- ---------------------------------------------------------------------------
 -- TOP STATS: per-type stat row composition for the grid (480w) / list (220w).
 -- Each entry: {label, value, valueClass?, dotColor?, mirrorKey?}
--- mirrorKey = "cooked" | "progress" | "condition" - used by B7 state mirror
--- to recolor this row when ItemActionManager has a matching active action.
+-- mirrorKey = "cooked" | "progress" | "condition" - the state mirror below
+-- recolors this row when ItemActionManager has a matching active action.
 -- ---------------------------------------------------------------------------
 local function topStatsForItem(item)
     if not item then return {} end
@@ -655,7 +652,7 @@ local function topStatsForItem(item)
 end
 
 -- ---------------------------------------------------------------------------
--- B7: state mirror - apply ItemActionManager's active-action color to the
+-- State mirror - apply ItemActionManager's active-action color to the
 -- top-stat row whose mirrorKey matches. Mutates `rows` in place.
 -- "cooking"   → COOKED row becomes warn (active) or bad (danger/burning)
 -- "reading"   → PROGRESS row becomes warn-ish during read
@@ -683,22 +680,22 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Render helper: rebuild ZeD_ItemCard's per-frame hit rect tables to match
--- the gamepad ring API contract (lines 1395-1592 of ItemCard.lua).
+-- the gamepad ring API contract in ItemCard.lua.
 --
 -- `toggleRects[i]` for i in 1..3 → flag-strip chips in DEFS order: fav,
 --    protect (=nocraft), unwanted (=dispose). Mapped from `markRects`.
 -- `verbRects[i]` for i in 1..#maintenance → maintenance verb-strip buttons.
 -- `_verbDefs[i]` mirrors maintenance verb keys (gamepad onActivate dispatch).
--- `_zoneDockRects[]` populated by clothing-body's drawZoneRow loop.
+-- `_zoneDockRects[]` populated by the clothing body's zone-row loop.
 -- `_foldHitRects[]` populated by disclosure paint helpers.
--- `_cancelRect` (NEW) → progress-band cancel button (B9 wires to gamepad).
+-- `_cancelRect` → the progress band's Cancel (the gamepad ring picks it up).
 -- ---------------------------------------------------------------------------
 local function stampGamepadFields(card, markRects, verbStripRects, verbList, cancelRect)
     -- toggleRects / verbRects are ABSOLUTE screen coords: update() tests them
     -- against getMouseX/Y, the gamepad ring converts them to drawer-local and
     -- the focus outline subtracts the card's absolute origin. The draw helpers
-    -- stamp card-local rects, so lift them here (Oct 17 2026: left local, the
-    -- chips and verbs took no clicks and the pad could never reach the card).
+    -- stamp card-local rects, so lift them here - left local, the chips and
+    -- verbs take no clicks and the pad can never reach the card.
     local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
     local function abs(r)
         if not (r and r.x) then return nil end
@@ -760,24 +757,24 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
     end
     cy = cy + sectionGap
 
-    -- Zones disclosure + zone list per v15 spec.
-    -- 220w: NAME(38)|BAR(1fr)|PCT(26)|DOCK(18) single-row, grouped by anatomy.
-    -- 480w: still S118 drawZoneRow until the 5-column v15 480w molecule lands.
+    -- Zones disclosure + zone list.
+    -- 220w: _drawZoneRow220's single rows (NAME|BAR|PCT|DOCK), grouped by anatomy.
+    -- 480w: _drawZoneRow480's five columns (NAME|PCT|BAR|FLAG|DOCK), same grouping.
     local zones = ZeD.ItemDetail and ZeD.ItemDetail.buildConfigs
                  and ZeD.ItemDetail.buildConfigs(item) or {}
     if #zones > 0 then
         local discKey = "clothing_zones"
         local expanded = (card._foldStates and card._foldStates[discKey]) ~= false
 
-        -- Padding tokens scale with font height (per memory feedback_padding_preference:
-        -- generous 6-10px default, 2px is nothing, 4px is "a little"). Larger
-        -- text-size presets get proportional breathing room instead of
-        -- clipping. Each padding value floors at the small-font baseline +
-        -- scales upward as fontH grows.
+        -- Padding tokens scale with font height. Generous breathing is the
+        -- house rule (6-10px at the small font; 2px reads as nothing, 4px as
+        -- barely anything), and larger text-size presets get proportional
+        -- room instead of clipping. Each padding value floors at the
+        -- small-font baseline + scales upward as fontH grows.
         local tm     = ZeD.TM
         local font   = T.fontF1
         local fontH  = T.fontF1H or tm:getFontHeight(font)
-        local function scalePad(base) return math.max(T.px(base), math.floor(fontH * 0.6)) end  -- S124 scale: base is in design units
+        local function scalePad(base) return math.max(T.px(base), math.floor(fontH * 0.6)) end  -- base is in design units
         local hdrH   = math.max(fontH + T.px(10), T.px(24))            -- ZONES disclosure
         local groupHdrH = math.max(fontH + T.px(8), T.px(20))          -- TORSO/UPPER ARM/...
         local groupPadAbove = scalePad(10)                 -- pad above each group (after first)
@@ -1108,7 +1105,7 @@ local function verbHelp(id, label)
 end
 
 -- The care verbs (Wash, Repair, Pad, Sharpen) sorted by what the character can
--- do now (cohesion spec 9a, ZeD.Disclose.split over the card's verbAbility):
+-- do now (ZeD.Disclose.split over the card's verbAbility):
 -- shown = in the band (in Show all, the ones it can't do yet greyed, each with
 -- its NEEDS line), hidden = behind the folded row. One that makes no sense now
 -- (Repair on a garment with no holes) is gone.
@@ -1175,8 +1172,8 @@ local function drawCareNeeds(card, x, y, w, shown, hidden)
     return h + rh
 end
 
--- The "In lists" section (loadouts B3, mockup r2_10): each loadout or outfit the item
--- is on, with the line's place and rule. Nothing when it is on none, or Loadouts and outfits is off. Returns the height.
+-- The "In lists" section: each loadout or outfit the item is on, with the
+-- line's place and rule. Nothing when it is on none, or Loadouts and outfits is off. Returns the height.
 local function drawInLists(card, item, x, y, w, compact)
     local L = ZeD.Lists
     local p = L and L.on() and getSpecificPlayer(card.playerNum or 0)
@@ -1227,11 +1224,11 @@ function ZeD_ItemCard:renderBody(ctx)
     local cy = 0
 
     -- 1) Back bar (header verbs from source context).
-    -- v15 220w spec shows ONE primary verb only (UNEQUIP / EQUIP / TAKE).
-    -- 480w shows primary + 1 secondary (e.g. UNEQUIP + DROP).
-    -- Item name is intentionally OMITTED from the back-bar - it lives on
-    -- its own full-width row below so long names don't truncate and the
-    -- row can host a rename input in a future iteration.
+    -- The narrow card keeps one primary verb (UNEQUIP / EQUIP / TAKE) plus
+    -- MORE; 480w shows the whole cluster (e.g. UNEQUIP + DROP + MORE).
+    -- The item name is intentionally NOT in the back-bar - it lives on
+    -- its own full-width row below, so long names don't truncate and the
+    -- row can take the rename press.
     local headerVerbs = headerVerbsForContext(sourceCx, item)
     if compact and #headerVerbs > 1 then
         local primary
@@ -1255,7 +1252,7 @@ function ZeD_ItemCard:renderBody(ctx)
     if not bbo then bbo = {}; self._backBarOpts = bbo end
     bbo.focusId, bbo.focus = bf and "back" or nil, bf
     bbo.backHelp = ZeD.tr("UI_ZeD_Card_HelpClose")
-    bbo.close = true   -- the card's key is an X: it shuts the card (director, Oct 30 2026)
+    bbo.close = true   -- the card's key is an X: it shuts the card, not a back step
     local bbH = M.drawCardBackBar(self, 0, cy, w, "",
         headerVerbs, progressActive, compact, backBarRects, bbo)
     self._backBarRects   = backBarRects
@@ -1263,9 +1260,10 @@ function ZeD_ItemCard:renderBody(ctx)
     cy = cy + (bbH or 0)
 
     -- 1.5) Name row - full-width below the back-bar. Title font (T.fontF4),
-    --      generous vertical padding, surf1 bg matching body. Hit rect
-    --      stamped to `self._nameRowRect`. When `_renaming` is true the
-    --      name text is replaced by the lazy ZeD_TextInput child overlay.
+    --      generous vertical padding, no fill of its own (the drawer surface
+    --      shows through). Hit rect stamped to `self._nameRowRect`. When
+    --      `_renaming` is true the name text is replaced by the lazy
+    --      ZeD_TextInput child overlay.
     do
         local nameFont = T.fontF4
         local nameH    = T.fontF4H or ZeD.TM:getFontHeight(nameFont)
@@ -1350,7 +1348,7 @@ function ZeD_ItemCard:renderBody(ctx)
     if bodyH > 0 then
         self:setStencilRect(0, self._headH, bodyW, bodyH)
         -- Body inner padding scales with font height - generous breathing
-        -- around the entire scrollable region per memory feedback_padding_preference.
+        -- around the entire scrollable region.
         local bodyPad = math.max(compact and T.px(12) or T.px(14), math.floor((T.fontF1H or T.px(10)) * 1.0))
         local bodyX, bodyY = bodyPad, self._headH + bodyPad
         local scrollOff = self._scrollPixels or 0
@@ -1366,7 +1364,7 @@ function ZeD_ItemCard:renderBody(ctx)
                 bodyX, bodyY - scrollOff, innerW, compact, scrollOff,
                 self._headH + bodyH)
         end
-        -- the loadouts and outfits it is on (Oct 29 2026, loadouts B3)
+        -- the loadouts and outfits it is on
         contentH = (contentH or 0) + drawInLists(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)
         -- what the character can't do yet: NEEDS lines / the folded row, after the content
         contentH = (contentH or 0) + drawCareNeeds(self, bodyX, bodyY - scrollOff + (contentH or 0), innerW, maintVerbs, hiddenVerbs)
@@ -1393,7 +1391,8 @@ function ZeD_ItemCard:renderBody(ctx)
 end
 
 -- ---------------------------------------------------------------------------
--- Public namespace exports - for Phase C integration callers
+-- Public namespace exports - the module's internals, published so other
+-- files and add-on mods can reuse them; nothing in the mod calls them yet.
 -- ---------------------------------------------------------------------------
 ZeD.ItemCard.headerVerbsForContext   = headerVerbsForContext
 ZeD.ItemCard.maintenanceVerbsForItem = maintenanceVerbsForItem

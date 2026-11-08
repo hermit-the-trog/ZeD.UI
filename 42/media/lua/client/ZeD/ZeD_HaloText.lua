@@ -1,19 +1,19 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_HaloText.lua
 -- ============================================================================
--- THE GAME'S OVERHEAD NOTES (the director, Nov 4 2026: the red and green lines the game puts over your head, "Too
--- heavy", "Can't reach", were nearly unreadable; "Option two, the same bubble plus a running log and messages, so a
--- note you missed can be read later"). ZeD setup's Overhead notes switch (Settings.lua: haloBubble) turns it on.
+-- THE GAME'S OVERHEAD NOTES. Client-side override. The red and green lines the game puts over your head ("Too
+-- heavy", "Can't reach") were nearly unreadable, so ZeD catches them into the same bubble plus a running log, and a
+-- note you missed can be read later. ZeD setup's Overhead notes switch (Settings.lua: haloBubble) turns it on.
 --
 -- The game's HaloTextHelper is a Java class whose functions Lua sees as a table; every one of the game's Lua callers
 -- (about 50: "Not safe to sleep", "Too heavy", the mechanics and building notes) and ZeD's own call through that
--- global, so wrapping its functions catches them (QA probe zedqa_halo_probe.lua, Nov 4 2026). A caught line goes to
+-- global, so wrapping its functions catches them all. A caught line goes to
 -- ZeD's bubble over the head (ZeD_Bubbles: B.note, the status mark from its colour) and to the Messages window's
 -- log (ZeD_Messages: M.halo) instead of the game's own text. With the switch off, in safe mode, or for a character
 -- that is not a local player, the line goes to the game as before.
 --
 -- What Lua cannot catch: the game's Java code calls HaloTextHelper itself for skill XP ("+5 Carpentry"), a level
 -- gained or lost, a recipe learned on its own, a scratch ticket win, a card drawn, dice rolled, and multiplayer notes
--- from the server (javap, Nov 4 2026: IsoGameCharacter$XP.AddXP, IsoGameCharacter level up and down, CraftRecipe,
+-- from the server (the Java callers: IsoGameCharacter$XP.AddXP, IsoGameCharacter level up and down, CraftRecipe,
 -- Item.researchRecipes, RecipeCodeHelper, RecipeCodeOnCreate, HaloTextPacket). Those still draw as the game draws
 -- them. XP and levels are logged from the game's own events (AddXP, LevelPerk) so they can be read later too, but not
 -- put in the bubble, so nothing shows twice.
@@ -81,7 +81,7 @@ function H.install()
     O.addText, O.addGoodText, O.addBadText, O.addTextWithArrow = HT.addText, HT.addGoodText, HT.addBadText, HT.addTextWithArrow
     local ok = pcall(function()
         -- (each passes on exactly the arguments it was given, never padded with nils: the game picks its Java overload
-        -- by the count, and a nil int threw, QA Nov 4 2026)
+        -- by the count, and a nil in an int slot throws)
         -- addText(player, text [, separator] [, colour | r, g, b])
         HT.addText = function(...)
             local p, text, sep, c, g, b = ...
