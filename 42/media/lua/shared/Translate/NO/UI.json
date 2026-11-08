@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Samlet",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",
+    "UI_ZeD_Health_Examine": "Undersøk",
     "UI_ZeD_Hook_BleedingOnGround": "Blør ut på bakken",
     "UI_ZeD_Hook_BleedOnGround": "La blodet renne ut på bakken",
     "UI_ZeD_Hook_BloodLostHead": "Å ta hodet nå sprer de %1 blod som er igjen i det.",

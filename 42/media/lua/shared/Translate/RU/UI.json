@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Общее",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Начать",
+    "UI_ZeD_Health_Examine": "Осмотреть",
     "UI_ZeD_Hook_BleedingOnGround": "Кровь стекает на землю",
     "UI_ZeD_Hook_BleedOnGround": "Пустить кровь на землю",
     "UI_ZeD_Hook_BloodLostHead": "Если снять голову сейчас, разольётся оставшаяся кровь: %1.",

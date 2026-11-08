@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Geral",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Iniciar",
+    "UI_ZeD_Health_Examine": "Examinar",
     "UI_ZeD_Hook_BleedingOnGround": "Sangrando no chão",
     "UI_ZeD_Hook_BleedOnGround": "Sangrar no chão",
     "UI_ZeD_Hook_BloodLostHead": "Tirar a cabeça agora espirra os %1 de sangue que ainda há nela.",

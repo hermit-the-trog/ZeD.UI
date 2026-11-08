@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Global",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Démarrer",
+    "UI_ZeD_Health_Examine": "Examiner",
     "UI_ZeD_Hook_BleedingOnGround": "Saigne sur le sol",
     "UI_ZeD_Hook_BleedOnGround": "Laisser saigner sur le sol",
     "UI_ZeD_Hook_BloodLostHead": "Prendre la tête maintenant éclabousse les %1 de sang qu'elle contient encore.",

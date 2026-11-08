@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Genel",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Başlat",
+    "UI_ZeD_Health_Examine": "İncele",
     "UI_ZeD_Hook_BleedingOnGround": "Kan yere akıyor",
     "UI_ZeD_Hook_BleedOnGround": "Kanı yere akıt",
     "UI_ZeD_Hook_BloodLostHead": "Başı şimdi almak, içinde kalan %1 kanı etrafa saçar.",
