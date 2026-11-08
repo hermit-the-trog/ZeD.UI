@@ -165,6 +165,35 @@ function ZeD_MMSandbox:preset()
     return s.presets[i], comboText(s.presetList, i)
 end
 
+-- the options on screen (s.controls) where vals differ from a preset's: { [name] = true }, how many
+local function diffFrom(s, base, vals)
+    local diff, n = {}, 0
+    for i = 0, vals:getNumOptions() - 1 do
+        local o = vals:getOptionByIndex(i)
+        local name = o:getName()
+        if s.controls[name] then
+            local po = base:getOptionByName(name)
+            if po and po:getValueAsString() ~= o:getValueAsString() then
+                diff[name] = true
+                n = n + 1
+            end
+        end
+    end
+    return diff, n
+end
+
+-- the preset vals sit closest to (fewest options apart; the first in the list on a tie), its place in the list
+local function nearestPreset(s, vals)
+    local best, bestN = nil, nil
+    for i, p in ipairs(s.presets or {}) do
+        if p.options then
+            local _, n = diffFrom(s, p.options, vals)
+            if not bestN or n < bestN then best, bestN = i, n end
+        end
+    end
+    return best
+end
+
 -- which options differ from the preset (vanilla's settingsFromUI into a scratch set)
 function ZeD_MMSandbox:refreshDiff(force)
     local t = MM.now()
@@ -176,17 +205,7 @@ function ZeD_MMSandbox:refreshDiff(force)
     if not s or not p or not p.options then return end
     self.scratch = self.scratch or SandboxOptions.new()
     s:settingsFromUI(self.scratch)
-    for i = 0, self.scratch:getNumOptions() - 1 do
-        local o = self.scratch:getOptionByIndex(i)
-        local name = o:getName()
-        if s.controls[name] then
-            local po = p.options:getOptionByName(name)
-            if po and po:getValueAsString() ~= o:getValueAsString() then
-                self.diff[name] = true
-                self.nDiff = self.nDiff + 1
-            end
-        end
-    end
+    self.diff, self.nDiff = diffFrom(s, p.options, self.scratch)
 end
 
 function ZeD_MMSandbox:snapshot() end
@@ -543,11 +562,15 @@ function ZeD_MMSandbox:deletePreset()
     local s = sand()
     local p = self:preset()
     if s and p and p.userDefined then
-        -- vanilla's reload applies whichever preset is chosen after it; the values on screen stay
+        -- vanilla's reload keeps the list's place (past the end: the last preset, Six Months Later) and applies it;
+        -- the values on screen stay, and the preset they are measured from is the one they sit closest to (the
+        -- outside review, Nov 7 2026: Apocalypse + 1 change saved and deleted read "Six Months Later, 36 changed")
         local keep = SandboxOptions.new()
         s:settingsFromUI(keep)
         deleteSandboxPreset(p.name)
         s:loadPresets()
+        local near = nearestPreset(s, keep)
+        if near then s.presetList.selected = near end
         s:settingsToUI(keep)
     end
     self:setConfirm(false)
@@ -573,6 +596,7 @@ function ZeD_MMSandbox:setConfirm(mode)
         self.field:setText((p and p.userDefined) and tostring(p.name) or ZeD.tr("UI_ZeD_Sandbox_NewPresetName"))
         self.field:setVisible(true)
         self.field:focus()
+        if ZeD.selectDefault then ZeD.selectDefault(self.field) end   -- (typing replaces the name offered)
     else
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end

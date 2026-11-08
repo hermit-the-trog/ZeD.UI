@@ -230,7 +230,7 @@ function ZeD_MMServer:enterMode(m, prev)
         self.nameEntry:setText(s(p.entry:getText()))
         self.nameEntry:setVisible(true)
         self.nameEntry:focus()
-        pcall(function() self.nameEntry:selectAll() end)
+        if ZeD.selectDefault then ZeD.selectDefault(self.nameEntry) end   -- (typing replaces the name offered)
     elseif m == "points" then
         self.other:setText("")
         self.pointEntry:setText("")
