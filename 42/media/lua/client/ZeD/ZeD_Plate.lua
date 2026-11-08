@@ -1,9 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Plate.lua
 -- ============================================================================
--- PLATE — the template every pixel-art machine in ZeD draws with: the vehicle
--- dashboards, the ovens and microwaves (the Craft tab), the generators and the
--- propane grill (the object cards), and the car radios and the siren
--- controller up close (director, Oct 16 2026: one shared plate template).
+-- PLATE — the one template every pixel-art machine in ZeD draws with: the
+-- vehicle dashboards, the ovens, microwaves and fryer (the Craft tab), the
+-- generators and the propane grill (the object cards), the car radios and the
+-- siren controller up close, the two-way and ordinary radios, the CD player,
+-- the TVs, the laundry machines and the watches. Client; a molecule built on
+-- ZeD_PixelParts, with no state of its own beyond small per-part caches.
 --
 -- A plate is one fixed-size picture (ZeDUI/tools paints it as a lit height
 -- field: one plate pixel = one screen pixel at 1080p, a whole multiple k above,
@@ -76,7 +78,7 @@ local PL = ZeD.Plate
 local P = ZeD.Px
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
@@ -94,9 +96,9 @@ end
 PL.frac = frac
 
 -- ---------------------------------------------------------------------------
--- the night light (the dashboards; director, Oct 21 2026: no gauge is
--- backlit, a few small incandescent bulbs in the panel's corners and a lamp
--- under the brow light what they can). The art is baked (ZeDUI/tools/dashpx/
+-- the night light (the dashboards): no gauge is backlit; a few small
+-- incandescent bulbs in the panel's corners and a lamp under the brow light
+-- what they can. The art is baked (ZeDUI/tools/dashpx/
 -- night.py); ctx.light carries what the frame needs:
 --   n8      how dark it is at the car, in eighths (0 = day: nothing changes)
 --   lit     the dash lights are on (vanilla's headlight switch, with power)
