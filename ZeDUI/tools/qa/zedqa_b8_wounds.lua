@@ -47,6 +47,7 @@ local strict = false
 local unexamined = getText("IGUI_Wounds_Unexamined")
 
 local function keepDown()
+    pcall(function() p:getBodyDamage():setOverallBodyHealth(100) end)   -- (Nov 8 QA, Build: the neck's deep wound bled the character to death with god mode off, which closed the window)
     local w = CW.getWindow()
     if w then w._autoShaded = false; if w.windowShaded then w:setWindowShaded(false) end; w._outSince = getTimestampMs() + 600000 end
 end

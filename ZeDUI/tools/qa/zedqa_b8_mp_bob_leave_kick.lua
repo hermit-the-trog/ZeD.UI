@@ -52,7 +52,7 @@ local function drive()
     if pi > #plan then
         say(npass .. " passed, " .. nfail .. " failed")
         say("DONE")
-        Events.OnTick.Remove(drive)
+        Events.OnTick.Remove(drive); if Events.OnFETick then Events.OnFETick.Remove(drive) end
     end
 end
 local LS, A2 = ZeD.LeftScreen, ZeD.Admin
@@ -88,3 +88,5 @@ add(2500, function()
     pcall(LS.exit)
 end)
 Events.OnTick.Add(drive)
+-- (Nov 8 QA) after the kick or the ban the game is on the front end, where OnTick does not run: the script went quiet there and the batch waited for nothing. OnFETick carries it on.
+if Events.OnFETick then Events.OnFETick.Add(drive) end

@@ -1,0 +1,54 @@
+== 2026-11-08 05:09 beta 8 multiplayer checks, two players, the admin at 1280x800
+05:09:30 set PlayerSafehouse=true
+05:09:30 set AdminSafehouse=true
+05:09:30 set DoLuaChecksum=false
+05:09:30 set SafehouseAllowNonResidential=true
+05:09:30 set FactionDaySurvivedToCreate=0
+05:09:30 started the server, PID 12476; waiting for it to be ready
+05:10:02 ready after 32 s
+05:10:02 server up
+05:11:12 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
+05:11:59 second client joining as bob
+05:12:21 -- bob runs mp_p2_newchar.lua
+05:14:22 TIMEOUT
+05:14:39 bob in game
+05:14:45 -- admin runs zedqa_b8_mp_stage.lua
+05:15:01 ZEDQA b8st PASS this is a multiplayer client
+05:15:01 ZEDQA b8st NOTE the admin is zedqa, First Aid level 6
+05:15:01 ZEDQA b8st PASS the server's items arrived on the admin client
+05:15:01 ZEDQA b8st PASS an apple
+05:15:01 ZEDQA b8st PASS nails (2)
+05:15:01 ZEDQA b8st PASS pencils for the 20-item limit (132)
+05:15:01 ZEDQA b8st PASS the watch is marked favorite
+05:15:01 ZEDQA b8st PASS the jacket is worn
+05:15:01 ZEDQA b8st PASS the knife is in hand
+05:15:01 ZEDQA b8st PASS a bandage sits in the backpack (7)
+05:15:01 ZEDQA b8st PASS a bandage sits in the main inventory (7)
+05:15:01 ZEDQA b8st PASS bob is on the server
+05:15:01 ZEDQA b8st PASS bob stands within 3 tiles of the admin (0.0)
+05:15:01 ZEDQA b8st 12 passed, 0 failed
+05:15:01 ZEDQA b8st DONE
+05:15:01 -- bob starts zedqa_b8_mp_bob_leave_kick.lua in the background
+05:15:06 -- admin runs zedqa_b8_mp_kick.lua
+05:15:08 ZEDQA b8kk PASS bob is on the server before the kick
+05:15:08 ZEDQA b8kk PASS the admin may kick
+05:15:08 ZEDQA b8kk PASS the kick was accepted (true/nil)
+05:15:08 ZEDQA b8kk PASS bob is gone from the player list
+05:15:08 ZEDQA b8kk PASS the admin is still on the server
+05:15:09 ZEDQA b8kk MANUAL C17 1: bob's screen: the room, the monitor, the window 'Disconnected' with 'You were kicked from the server.' and the game's words in the dark slot (zedqa_b8_mp_bob_leave_kick.lua read the rest)
+05:15:09 ZEDQA b8kk 5 passed, 0 failed
+05:15:09 ZEDQA b8kk DONE
+05:18:03 TIMEOUT
+05:22:04 bob never came back to the main menu
+05:22:04 session 1 done
+05:22:04 -- admin runs zedqa_b8_mp_cleanup.lua
+05:22:24 ZEDQA b8cu PASS no ZeD ban row on bob is left (false)
+05:22:24 ZEDQA b8cu PASS bob is not banned in the game (user)
+05:22:24 ZEDQA b8cu PASS bob is not muted
+05:22:24 ZEDQA b8cu PASS bob holds no safehouse and no faction
+05:22:24 ZEDQA b8cu PASS no B8 rules are left on the join screen
+05:22:24 ZEDQA b8cu 5 passed, 0 failed
+05:22:24 ZEDQA b8cu DONE
+05:23:24 second client stopped
+05:23:31 closed; the server's database, settings and sandbox file and the admin's mod options are put back
+05:23:32 TOTAL: 22 PASS, 0 FAIL, 1 MANUAL items printed
