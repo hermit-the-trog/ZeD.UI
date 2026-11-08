@@ -481,6 +481,21 @@ function B.held(hud)
     end
     return false
 end
+-- B.addSplit(id, fn): fn(hud) gives the belt's real Java element while a mod is drawing this frame through a stand-in
+-- of its own (the element moved, or its javaObject swapped for one that changes every draw), for the hotbar's part of
+-- the belt only: the strap, the buckle and the slots take the mod's drawing; the hands, the ammo tab, the watch, the
+-- Messages note, the chat key, the PvP marker, other mods' boxes, the hover boxes and the tooltip are drawn on the
+-- real element at the belt's home. nil: no split this frame. (Auto-Hide Hotbar: the director, Nov 7 2026, "hides
+-- the belt's item slots only".)
+B._splits = B._splits or {}
+function B.addSplit(id, fn) addById(B._splits, id, { fn = fn }) end
+function B.split(hud)
+    for _, h in ipairs(B._splits) do
+        local ok, real = pcall(h.fn, hud)
+        if ok and real ~= nil then return real end
+    end
+    return nil
+end
 
 -- The strip or ring under an item: a mod's meter when one speaks for it, else its condition. Returns f, kind.
 function B.meter(item, where)
@@ -1801,6 +1816,21 @@ function ZeD_BeltHUD:_cardH(title, line, maxW)
     return h + math.max(1, rows) * (tm:getFontHeight(f2) + T.px(2))
 end
 
+-- B.addSplit's frame (sp: nil, or the mod's stand-in javaObject j, the real element and where the mod put it, x and y):
+-- slots true draws through the mod's stand-in where the mod put the belt, false on the real element at the belt's home.
+-- Switched only when it changes; the mod's own clean-up after the frame finds the belt either way.
+local function drawPart(self, sp, slots)
+    if not sp or sp.slid == slots then return end
+    sp.slid = slots
+    local r = sp.real
+    local x, y
+    if slots then self.javaObject, x, y = sp.j, sp.x, sp.y
+    else self.javaObject, x, y = r, self._homeX, self._homeY end
+    if r:getX() ~= x then r:setX(x) end
+    if r:getY() ~= y then r:setY(y) end
+end
+B._drawPart = drawPart   -- (sims)
+
 -- The belt draws under the safe-mode guard (SafeMode.lua): a failing frame is
 -- logged once and its stencils cleared, and repeated failures hand the screen
 -- back to vanilla's hotbar rather than throwing every frame.
@@ -1836,8 +1866,22 @@ function ZeD_BeltHUD:_prerender()
     if self:getHeight() ~= h then self:setHeight(h) end
     self._drawn = true
 
+    -- (B.addSplit: a mod's drawing for the slots only. The rest is drawn on the real element at home: drawPart)
+    local split = nil
+    if #B._splits > 0 then
+        local real = B.split(self)
+        if real then
+            split = self._split or {}
+            self._split = split
+            split.j, split.real, split.x, split.y, split.slid = self.javaObject, real, real:getX(), real:getY(), true
+            drawPart(self, split, false)
+        end
+    end
+
+    if self._strap or self._buckle then drawPart(self, split, true) end
     if self._strap then self:_drawStrap() end      -- (the Simple belt has neither)
     if self._buckle then self:_drawBuckle() end
+    drawPart(self, split, false)
 
     local mx, my = self:getMouseX(), self:getMouseY()
     local over = (mx >= 0 and my >= 0 and mx < w and my < h) and self:boxAt(mx, my) or nil
@@ -1855,6 +1899,7 @@ function ZeD_BeltHUD:_prerender()
     end
 
     for _, b in ipairs(self._boxes) do
+        if split then drawPart(self, split, b.kind == "slot") end
         local o = {}
         if b.kind == "lamp" then
             self:_drawLamp(b, gpTarget == b, b == over and not dragging)
@@ -1900,6 +1945,8 @@ function ZeD_BeltHUD:_prerender()
             if b == over and not dragging then self._hover = { b = b, item = o.item } end
         end
     end
+
+    drawPart(self, split, false)
 
     -- the hovered box: its name and key, and the item tooltip (not while a
     -- menu is open over the belt)

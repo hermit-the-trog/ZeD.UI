@@ -12,18 +12,25 @@
 --
 -- Under ZeD the game's hotbar is parked off-screen (Overrides/Belt.lua) and the
 -- belt (ZeD_Belt.lua) shows the hotbar's slots, with the hands, the watch and
--- the Messages note on the same strip. The mod's intent carries over whole: the
--- belt is where the player reaches for the hotbar, so the belt hides and comes
--- back the same way. The mod publishes the call for exactly this,
+-- the Messages note on the same strip. The director (Nov 7 2026): the mod hides
+-- the belt's item slots only; the hands, the watch and the Messages note stay.
+-- So the slots (with the strap and buckle that carry them) hide and come back
+-- the way the mod hides the hotbar, and the rest of the belt stays where it is.
+-- The mod publishes the call for this,
 -- AutoHideHotbar.attach(element, playerNum): another panel fades and slides
 -- with the hotbar and its hover counts as the hotbar's. This file attaches the
 -- belt (and again after a respawn makes a new one), so every option of the mod
--- works on the belt as the mod draws it: the hotbar keys, the hover margin and
--- the edge zone measured from the belt, the hold and toggle keys, the timings,
--- the look and the motion. While the mod has the belt slid for a frame
--- (its _ahbBusy on the belt, for the length of the drawing), the belt's hold
--- hook (ZeD.Belt.addHold) keeps the belt from putting itself home mid-frame;
--- the mod puts it back after, and the belt checks its home between frames.
+-- works on the slots as the mod draws them: the hotbar keys, the hover margin
+-- and the edge zone measured from the belt, the hold and toggle keys, the
+-- timings, the look and the motion. For the length of each frame's drawing the
+-- mod moves the belt by its slide and swaps its javaObject for one that fades
+-- every draw (its _ahbBusy on the belt meanwhile); then:
+--   * the belt's hold hook (ZeD.Belt.addHold) keeps the belt from putting itself
+--     home mid-frame (the mod puts it back after; the belt checks its home
+--     between frames);
+--   * the belt's split hook (ZeD.Belt.addSplit) hands the belt the real element,
+--     so the strap, the buckle and the slots are drawn through the mod's fade
+--     where the mod slid them, and the rest on the real element at home.
 --
 -- What ZeD adds through the mod's other call, AutoHideHotbar.keepShown:
 --   * "The inventory is open" counts ZeD's Character and World windows (the
@@ -34,10 +41,11 @@
 -- Dragging an item, a right-click on the belt, aiming and a vehicle are the
 -- mod's own checks (the belt is hidden in a vehicle anyway).
 --
--- The belt holds more than the hotbar (the hands, the gun's rounds, the watch,
--- Messages, the chat key, the PvP marker); they hide with it, as the mod's
--- description says of everything drawn beside the hotbar. A controller player
--- always sees it, as the mod does.
+-- What stays: the hands, the gun's rounds, the watch, the Messages note, the
+-- chat key, the PvP marker and other mods' boxes (the mask's), and the hover
+-- boxes and tooltip. The pointer over any of the belt shows the slots (the
+-- mod's hover is the attached element's rectangle). A controller player always
+-- sees them, as the mod does.
 --
 -- Safe mode or the belt's own switch off: the belt is not drawn, the game's
 -- hotbar is back, and the mod hides that as it always does.
@@ -156,6 +164,15 @@ S.onTick = onTick
 Events.OnTick.Add(onTick)
 -- the mod's slide stands for the frame it draws in (it sets _ahbBusy on the element for that long)
 ZeD.Belt.addHold(MOD_ID, function(hud) return rawget(hud, "_ahbBusy") == true end)
+-- ... for the slots only: the real element under the mod's fading stand-in (its proxy table keeps it as _ahbReal; with
+-- no fade this frame the javaObject is the real one, only moved)
+function S.split(hud)
+    if rawget(hud, "_ahbBusy") ~= true then return nil end
+    local j = rawget(hud, "javaObject")
+    if type(j) == "table" and rawget(j, "_ahbReal") ~= nil then return rawget(j, "_ahbReal") end
+    return j
+end
+ZeD.Belt.addSplit(MOD_ID, S.split)
 Events.OnGameStart.Add(function() S.keep = {}; tick = 0 end)   -- (a belt from before is detached by the next upkeep)
 
-print("[ZeD] ModSupport: Auto-Hide Hotbar (the belt hides and shows as the mod's hotbar)")
+print("[ZeD] ModSupport: Auto-Hide Hotbar (the belt's slots hide and show as the mod's hotbar)")

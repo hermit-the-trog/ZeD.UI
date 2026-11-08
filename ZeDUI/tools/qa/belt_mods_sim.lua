@@ -15,7 +15,9 @@
 --            the mod's strip parked while the belt is in charge and its own again in safe mode
 --   AHB      Auto-Hide Hotbar: the belt attached through the mod's own call (again after a respawn's new belt, detached
 --            in safe mode), keepShown for ZeD's windows (its keepInventory option) and for a belt in use; the slide the
---            mod sets for a frame is not undone by the belt, and the belt is home again between frames
+--            mod sets for a frame is not undone by the belt, and the belt is home again between frames; the split
+--            (Nov 7 2026, the director: the slots only): the strap, buckle and slots through the mod's stand-in where it
+--            slid them, the hands and the Messages note on the real element at home, and without the split all of it
 --   BIT      Better Item Transfer: the mod's lazy first options read, which put ZeD's menu style back to the file's
 --            value on the first right-click, happens at game start after the options are written, so a style set in
 --            game holds on the next menu (the bug reproduced first without the file)
@@ -588,6 +590,79 @@ hud._ahbBusy = nil
 check("AHB the slide holds through the belt's drawing", hud._y == homeY + 40)
 fire("OnTick")
 check("AHB home again between frames", hud._y == homeY)
+-- the slots only (the director, Nov 7 2026): while the mod draws, the strap, buckle and slots go through its stand-in
+-- where it slid them; the hands, the Messages note and the rest on the real element at home
+do
+    local seen = {}
+    local function spy(name)
+        local orig = ZeD_BeltHUD[name]
+        ZeD_BeltHUD[name] = function(self, b, ...)
+            local j = rawget(self, "javaObject")
+            local r = j and (rawget(j, "_ahbReal") or j)
+            seen[#seen + 1] = { what = (name == "_drawBox" and b and b.kind) or name, via = j and j.tag, y = r and r._y }
+            return orig(self, b, ...)
+        end
+        return orig
+    end
+    local spied = {}
+    for _, n in ipairs({ "_drawBox", "_drawStrap", "_drawBuckle", "_drawLamp" }) do spied[n] = spy(n) end
+    local real = { tag = "real" }
+    function real:getX() return self._x end
+    function real:getY() return self._y end
+    function real:setX(v) self._x = v end
+    function real:setY(v) self._y = v end
+    local px = { tag = "px", _ahbReal = real }
+    env.messages = 1
+    env.player.pri = item({ name = "Axe", class = "HandWeapon", cond = 2, condMax = 10 })
+    env.hotbar.attachedItems = { [1] = item({ name = "Knife", class = "HandWeapon", cond = 6, condMax = 10 }) }
+    hud.javaObject = real
+    frame()
+    local hx, hy = hud._homeX, hud._homeY
+    local function kinds(via, y)
+        local t = {}
+        for _, s in ipairs(seen) do if s.via == via and (y == nil or s.y == y) then t[s.what] = (t[s.what] or 0) + 1 end end
+        return t
+    end
+    -- the mod's frame: slid 40 down and faded (its stand-in on the belt)
+    real._x, real._y = hx, hy + 40
+    hud.javaObject, hud._ahbBusy = px, true
+    seen = {}
+    frame()
+    local slid = kinds("px", hy + 40)
+    local home = kinds("real", hy)
+    check("AHB split: the slots through the mod's fade, where it slid them", (slid.slot or 0) == 3 and home.slot == nil, (slid.slot or 0) .. "/" .. tostring(home.slot))
+    check("AHB split: the strap and buckle with them", slid._drawStrap == 1 and slid._drawBuckle == 1 and home._drawStrap == nil)
+    check("AHB split: the hands stay, at home and unfaded", home.hand == 2 and slid.hand == nil, tostring(home.hand) .. "/" .. tostring(slid.hand))
+    check("AHB split: the Messages note stays", home._drawLamp == 1 and slid._drawLamp == nil)
+    check("AHB split: nothing drawn anywhere else", #seen == (slid.slot or 0) + 2 + 2 + 1, #seen)
+    check("AHB split: the real element at home after the drawing (the mod restores its own after)", real._x == hx and real._y == hy)
+    hud._ahbBusy, hud.javaObject = nil, real
+    -- slid with no fade this frame: the javaObject is the real one, only moved
+    real._x, real._y = hx, hy + 25
+    hud._ahbBusy = true
+    seen = {}
+    frame()
+    slid, home = kinds("real", hy + 25), kinds("real", hy)
+    check("AHB split, slide only: the slots slid", (slid.slot or 0) == 3, slid.slot)
+    check("AHB split, slide only: the hands at home", home.hand == 2, home.hand)
+    hud._ahbBusy = nil
+    -- no mod drawing: one element, nothing switched
+    seen = {}
+    frame()
+    local all = kinds("real", hy)
+    check("AHB no split between the mod's frames", (all.slot or 0) == 3 and all.hand == 2 and #seen == 8, #seen)
+    -- the proof can fail: without the split hook the hands slide and fade with the slots (the whole belt hid)
+    ZeD.Belt._splits = {}
+    real._x, real._y = hx, hy + 40
+    hud.javaObject, hud._ahbBusy = px, true
+    seen = {}
+    frame()
+    local whole = kinds("px", hy + 40)
+    check("AHB without the split the hands went with the slots (the check can fail)", whole.hand == 2, whole.hand)
+    hud._ahbBusy, hud.javaObject = nil, nil
+    for n, f in pairs(spied) do ZeD_BeltHUD[n] = f end
+    env.messages = 0
+end
 AutoHideHotbar = nil
 local okT = pcall(S.upkeep)
 check("AHB the mod's table gone: nothing breaks", okT)
