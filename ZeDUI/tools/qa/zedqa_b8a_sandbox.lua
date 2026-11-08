@@ -1,8 +1,10 @@
 -- ZeDUI/tools/qa/zedqa_b8a_sandbox.lua  (Nov 8 2026, hotfix beta 8a): single player, the in-game Sandbox options
 -- answer the mouse. Beta 8's fault: the hidden in-game Options window ran the shared pointer first and took every
 -- press, so no control in the Sandbox window worked. This script presses the window's own hit boxes through the real
--- pointer path (MM.pointer in update, the hidden Options window updating alongside): the pointer is moved onto each
--- box with Mouse.setXY and the button is scripted through ZeD.MouseTick.down (put back at the end). Pressed: a page,
+-- pointer path (MM.pointer in update, the hidden Options window updating alongside). The pointer's position is scripted
+-- through the getMouseX / getMouseY globals MM.pointer reads, and the button through ZeD.MouseTick.down, all put back at
+-- the end. (Mouse.setXY does not hold: the game reads the desktop cursor again every frame, so a press set that way
+-- landed wherever the real cursor was: beta 8a's first run clicked Loot for Zombie and missed every tick.) Pressed: a page,
 -- a tick (a value), Undo changes, Apply and its question, Close. Then Escape twice: the pause window, not a stuck one.
 -- Everything it changes is put back: the setting, the switch, History's entry.
 -- grep "ZEDQA b8asb". Pictures: zqa_b8a_sb_*.png.
@@ -24,6 +26,17 @@ local switchWas = opt:getValue()
 local MT = ZeD.MouseTick
 local realDown = MT.down
 local fakeDown = false
+local realMX, realMY = getMouseX, getMouseY
+local fakeX, fakeY = 0, 0
+local function scripted(on)
+    if on then
+        MT.down = function() return fakeDown end
+        getMouseX = function() return fakeX end
+        getMouseY = function() return fakeY end
+    else
+        MT.down, getMouseX, getMouseY = realDown, realMX, realMY
+    end
+end
 local so = getSandboxOptions()
 local hist = ZeD.SandboxIG.history()
 local histWas = #hist
@@ -57,7 +70,7 @@ local function click(getHit, what)
     add(200, function()
         h = getHit()
         if not check(h ~= nil, what .. ": the box is on show") then return end
-        Mouse.setXY(math.floor(h.x + h.w / 2), math.floor(h.y + h.h / 2))
+        fakeX, fakeY = math.floor(h.x + h.w / 2), math.floor(h.y + h.h / 2)
         fakeDown = false
     end)
     add(350, function() if h then fakeDown = true end end)
@@ -77,7 +90,7 @@ local function drive()
     ins = nil
     if not ok then nfail = nfail + 1; say("FAIL ERR step " .. (pi - 1) .. ": " .. tostring(e)) end
     if pi > #plan then
-        MT.down = realDown
+        scripted(false)
         say(npass .. " passed, " .. nfail .. " failed")
         say("DONE")
         Events.OnPreUIDraw.Remove(drive)
@@ -97,7 +110,7 @@ add(800, function()
     sw = MM.pauseSandbox
     check(sw and sw:isVisible() and MM.pauseView == "sandbox", "the Sandbox window is open")
     check(MM.pauseOpts and not MM.pauseOpts:isVisible(), "the in-game Options window is there, hidden (the case that broke)")
-    MT.down = function() return fakeDown end
+    scripted(true)
     shot("open")
 end)
 
@@ -120,11 +133,11 @@ add(100, function()
     shot("changed")
 end)
 click(function() return hitById(sw.kind .. ":undo") end, "Undo changes")
-add(100, function() check((sw.nDiff or 0) == 0, "Undo changes takes it back", sw.nDiff) end)
+add(500, function() sw:refreshDiff(true); check((sw.nDiff or 0) == 0, "Undo changes takes it back", sw.nDiff) end)
 -- the value again, then Apply and its question
 add(100, function() tickHit = firstTick() end)
 click(function() return tickHit end, "the tick again")
-add(100, function() check((sw.nDiff or 0) == 1, "changed again", sw.nDiff) end)
+add(500, function() sw:refreshDiff(true); check((sw.nDiff or 0) == 1, "changed again", sw.nDiff) end)
 click(function() return hitById(sw.kind .. ":apply") end, "Apply")
 add(100, function()
     check(sw.confirm == "apply", "Apply asks first", tostring(sw.confirm))
@@ -149,7 +162,7 @@ add(100, function()
     shot("closed")
 end)
 -- Escape out and back: the pause window, not a stuck Sandbox window
-add(200, function() MT.down = realDown; if menuUp() then toggleMenu() end end)
+add(200, function() scripted(false); if menuUp() then toggleMenu() end end)
 add(800, function()
     check(not menuUp(), "Escape leaves the pause screen")
     toggleMenu()
