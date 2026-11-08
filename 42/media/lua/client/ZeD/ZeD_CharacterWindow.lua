@@ -6003,21 +6003,21 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
         -- the controller's stops (a function of its own: the drawer runs it too while this
-        -- side does not draw, the tab drawer taking the whole window; punch list 38)
+        -- side does not draw, the tab drawer taking the whole window)
         content._focusRefresh(self)
 
         -- (the title is built in the window's prerender, composeCharTitle: this side
-        -- does not draw while the tab drawer takes the whole window; break-it D1)
+        -- does not draw while the tab drawer takes the whole window)
     end
 
     -- The Character window's per-frame stop refresh (the container strip, the main list, the MC
-    -- columns, the tab's stops, the item card). Oct 31 2026 (punch list 38): moved out of the
+    -- columns, the tab's stops, the item card). A function of its own, not part of the
     -- content's prerender, which does not run while the content is hidden (the tab drawer takes
     -- the whole window at 1280x720, UI scale 2.0): Health, Thermal, Identity, Skills and the
-    -- Journal had no stops. The drawer's prerender runs it then.
+    -- Journal would have no stops. The drawer's prerender runs it then.
     content._focusRefresh = function(self)
         -- --------------------------------------------------------
-        -- S98 RING MODEL: PER-FRAME MAIN-INV REFRESH
+        -- RING MODEL: PER-FRAME MAIN-INV REFRESH
         -- Runs AFTER the renderer finishes so _invRowItems is fresh.
         -- Always active (regardless of tab) because charMainInv is the
         -- persistent inventory-list zone in the ring. Rebuilds the focusable
@@ -6061,13 +6061,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     end
                     -- First frame (no snapshot yet) is always dirty.
                     if not oldSnap then dirty = true end
-                    -- Oct 19 2026: the rows' places change with the scroll, the
-                    -- List | Grid view and the column's width too; the targets
-                    -- kept last build's places, so the pad picked by stale rows
+                    -- The rows' places change with the scroll, the List | Grid
+                    -- view and the column's width too; keyed on the items alone,
+                    -- the targets kept the last build's places and the pad picked
+                    -- by stale rows
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
-                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    -- (the container shown is part of what these rows are, compared by the object)
                     if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
 
                     if dirty then
@@ -6115,7 +6116,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                                             end
                                         end
                                     end
-                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
+                                    -- (the neighbouring ROW: the List | Grid
                                     -- toggles come after the rows, never a stand-in for one)
                                     local nRows = 0
                                     for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
@@ -6140,7 +6141,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
         end
 
-        -- S108 v2: per-frame refresh for per-column charMC<n> zones.
+        -- Per-frame refresh for the per-column charMC<n> zones.
         -- Each MC selection has its own ring zone; loop and refresh elements.
         -- Identity-preserve via _gpFocusedMCItem (per-zone preserveIdx). Ring
         -- structure (zone count) updated by _rebuildCharMCRingZones on MC
@@ -6149,7 +6150,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             _refreshCharMCZones(win, Focus)
         end
 
-        -- Oct 30 2026, punch list 21 a-f: an open pop-up list lives while its tab's
+        -- An open pop-up list lives while its tab's
         -- card shows; the drawer folding, an item card opening over it or the tab
         -- going away shuts it (as leaving the tab does), never a hitch in drawing
         do
@@ -6165,23 +6166,24 @@ function ZeD_CharacterWindow.toggle(playerNum)
                  win._activeTab == "identity" or
                  win._activeTab == "journal" or
                  ZeD_CharacterWindow._extTabs[win._activeTab] ~= nil or
-                 win._activeTab == "radio"  -- S117: contextual drawer chassis
+                 win._activeTab == "radio"  -- the radio's contextual chassis
                                             -- stamps its rect zones during render,
                                             -- so the tab-switch sync reads zero
                                             -- focusables; this catch-up picks
                                             -- them up on the next frame.
                ) then
-            -- S98 per-frame refresh for NON-Loot tabs. The per-tab zone tables
+            -- Per-frame refresh for NON-Loot tabs. The per-tab zone tables
             -- (_equipSlotZones, _healthBand, _thermalBand,
             -- _skillRowZones) are populated by the respective tab renderers
             -- each frame. _syncRingZonesToActiveTab fires on tab switch BEFORE
             -- the new tab's renderer has run, so it reads empty tables. This
             -- catch-up refresh runs AFTER the renderer populates the tables,
-            -- syncing the ring zone to the live data. No identity preservation
-            -- is needed — these are UI chrome elements keyed by static ID
-            -- (slotType, band stop ids, skillName). A dirty check via
-            -- element count keeps the rebuild cheap; setRingZoneElements
-            -- without preserveIdx clamps the existing focusedElementIdx to the
+            -- syncing the ring zone to the live data. These are UI chrome
+            -- elements keyed by static ID (slotType, band stop ids, skillName),
+            -- so focus is kept by id (below). A dirty check (count, end ids,
+            -- the last stop's place, the tab's scrollKey) keeps the rebuild
+            -- cheap; where no id matches, setRingZoneElements without
+            -- preserveIdx clamps the existing focusedElementIdx to the
             -- new array length so the gp cursor stays on the same visual row.
             local newEls = _buildPanelFocusables(win, self, win._activeTab) or {}
             local snap   = win._lastTabContentSnapshot
@@ -6192,19 +6194,18 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if not dirty and newN > 0 and snap then
                 dirty = (snap.firstId ~= newEls[1].id)
                      or (snap.lastId  ~= newEls[newN].id)
-                     -- Oct 23 2026 (the pad audit): the stops move when the tab
+                     -- the stops move when the tab
                      -- scrolls (Skills' training rows stayed where the tab first
                      -- drew them, so the pad's sums and scroll-follow used old places)
                      or (snap.lastY ~= newEls[newN].y) or (snap.lastH ~= newEls[newN].h)
             end
-            -- S107 QA: journal Recipes sub-tab routes through CC.buildFocusables;
-            -- recipeRow zones shift screen-y on every scroll. Always rebuild
-            -- so cone-nav reads fresh coords (else focus → wrong target).
-            -- S123 perf: the Journal Recipes list registers every recipe row
-            -- (1177 on the QA save) and the old always-rebuild cost ~6 ms a
-            -- frame. Rows only move when the list scrolls, its geometry
-            -- changes, or the category dropdown opens, so key the rebuild on
-            -- those instead of rebuilding every frame.
+            -- The Journal's Recipes page routes through CC.buildFocusables;
+            -- its recipeRow zones shift screen-y on every scroll, and cone-nav
+            -- must read fresh coords (else focus → wrong target). Rebuilding
+            -- every frame costs ~6 ms a frame (the list registers every recipe
+            -- row, 1177 on a large test save). Rows only move when the list
+            -- scrolls, its geometry changes, or the category dropdown opens,
+            -- so the rebuild is keyed on those (scrollKey) instead.
             local scrollKey = nil
             -- Notebooks / Papers: rows move with the tab's one scroll and its view
             local jsub = win._journalSubTab or 1
@@ -6217,7 +6218,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = ZeD.JournalLists.scrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
-            -- Journal (Oct 30 2026): its last stop, Save, sits in the band and never moves, so the
+            -- Journal: its last stop, Save, sits in the band and never moves, so the
             -- log's scroll and the Page list key the rebuild
             if win._activeTab == "journal" and jsub == 1 then
                 scrollKey = tostring(win._journalScroll and win._journalScroll.scrollPos or 0) .. ":" .. tostring(win._journalPageOpen)
@@ -6230,7 +6231,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     local lg = stk._listGeo
                     scrollKey = tostring(sp) .. ":" .. tostring(lg and lg.y or 0) .. ":" .. tostring(lg and lg.h or 0)
                         .. ":" .. tostring(stk.catDropdownOpen) .. ":" .. tostring(stk.catDropdownScroll or 0)
-                        -- (Oct 30 2026: the band's stops are last and fixed: the card's scroll and its lists)
+                        -- (the band's stops are last and fixed: the card's scroll and its lists key it)
                         .. ":" .. tostring(stk.cardScroll and stk.cardScroll.scrollPos or 0)
                         .. ":" .. tostring(stk.altScroll and stk.altScroll.scrollPos or 0)
                         .. ":" .. tostring(stk.sortMenuOpen) .. ":" .. tostring(stk.showMenuOpen)
@@ -6248,7 +6249,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     .. ":" .. (ZeD.EquipLoadout and ZeD.EquipLoadout.scrollKey(win) or "")
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
-            -- Health and Thermal (Oct 30 2026, punch list 21 a-f): the last stop is in the pinned
+            -- Health and Thermal: the last stop is in the pinned
             -- band and never moves, so the body's scroll and the fold key the rebuild (the
             -- figure's parts and the injury rows move with the scroll)
             if win._activeTab == "health" then

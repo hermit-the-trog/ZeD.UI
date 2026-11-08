@@ -565,6 +565,8 @@ function ZeD_MMLooks:buildStrip(stripY, stripH, w)
 end
 
 -- ROWS ON A CONTROLLER ---------------------------------------------------------------------
+-- A on a row: a name brings up the on-screen keyboard, a swatch row takes its chosen colour, a
+-- clothing row opens its list; the rest as in Options
 function ZeD_MMLooks:activateRow(r)
     local T = ZeD.T
     local anchor = { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = T.px(280), h = T.px(24) }
@@ -585,6 +587,7 @@ function ZeD_MMLooks:activateRow(r)
     end
 end
 
+-- left / right on a row: the next swatch, or the next item in a clothing slot; a name takes no nudge
 function ZeD_MMLooks:nudge(r, dir)
     if r.kind == "swatch" then
         local i = math.max(1, math.min(#r.colors, (r.cur or 1) + dir))
@@ -636,6 +639,7 @@ function ZeD_MMLooks:keyEscape()
 end
 
 function ZeD_MMLooks:keyOther(key)
+    -- (the Return that finished a name or an outfit's name must not also press Play)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     if self.field:isFocused() or self.fore:isFocused() or self.sur:isFocused() or self.confirm then return false end
     if key == Keyboard.KEY_RETURN then self:play(); return true end
@@ -646,6 +650,7 @@ end
 
 function ZeD_MMLooks:close() self:back() end
 
+-- the wheel on "looks": an open pop-up first, else the rows (each screen chains its view onto MM.wheel)
 local _wheel = MM.wheel
 function MM.wheel(del)
     if MM.view == "looks" and MM.root and MM.root.looksWin then
