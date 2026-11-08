@@ -350,7 +350,8 @@ local function sameContainers(a, b)
     return true
 end
 
-function CC.logicScan(data, win, prefix, makeLogic)
+-- always: skip the signature and set the recipes in full every scan (the Craft tab at a bench).
+function CC.logicScan(data, win, prefix, makeLogic, always)
     local recipes = data and data.recipes
     if not recipes or #recipes == 0 or not makeLogic then return false end
     local now = getTimestampMs()
@@ -386,10 +387,12 @@ function CC.logicScan(data, win, prefix, makeLogic)
             win[dKey] = listId
             win[sKey] = nil
         end
-        local okS, sig, sq = pcall(logicSig, win._playerObj, containers)
+        -- (always: a bench bound, whose fuel, heat or fluid the signature cannot see; set every scan, as before)
+        local okS, sig, sq = false, nil, nil
+        if not always then okS, sig, sq = pcall(logicSig, win._playerObj, containers) end
         if not okS then sig = nil end
         local fKey, qKey, ckKey = "_" .. prefix .. "LogicFullAt", "_" .. prefix .. "LogicSq", "_" .. prefix .. "LogicConts"
-        if sig == nil or win[sKey] ~= sig or win[qKey] ~= sq or not sameContainers(win[ckKey], containers)
+        if always or sig == nil or win[sKey] ~= sig or win[qKey] ~= sq or not sameContainers(win[ckKey], containers)
            or not win[fKey] or now - win[fKey] >= LOGIC_FULL_MS then
             logic:setContainers(containers)
             logic:setRecipes(win[lk])

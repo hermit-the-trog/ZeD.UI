@@ -413,6 +413,7 @@ function ZeD.CraftingTab.startCraft(win, state)
     if canStart == false or (canStart and qty > 1 and most < qty) then
         win._craftStartChk = nil
         win["_craftLogicAt"] = nil
+        win["_craftLogicFullAt"] = nil   -- (the next scan sets the game's recipes in full: a refusal its signature cannot see)
         win["_craftContainerAt"] = nil
         win["_craftTypeCache"] = nil
         state.qty = canStart and math.max(1, most or 1) or 1
@@ -548,7 +549,7 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     if win._craftLogicBench ~= benchKey then win._craftLogic = nil; win._craftLogicBench = benchKey; win._craftLogicAt = nil end
     if CC.logicScan(data, win, "craft", function()
         return HandcraftLogic.new(win._playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
-    end) then state.filterDirty = true end
+    end, bench ~= nil) then state.filterDirty = true end   -- (at a bench: the full set every scan)
     -- (the quick scan: at once, then every 5 s; was 300 frames)
     if CC.due(win, "_craftScanAt", 5000) then
         CC.backgroundIngredientScan(data, win, "craft")

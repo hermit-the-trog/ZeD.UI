@@ -28,6 +28,7 @@ local ST = ZeD.Stations
 ST.REACH      = 4     -- tiles: vanilla's station windows close past 4
 ST.OVEN_REACH = 3     -- tiles: vanilla's oven / microwave panel closes past 3
 ST.SCAN_MS    = 1000  -- ms between nearby scans while a station view draws (was 30 frames), and on a square change
+ST.SCAN_GAP_MS = 250  -- the least ms between scans on square changes
 ST.gen        = ST.gen or 0   -- bumped on every bind / unbind; views reset on change
 
 local _bind = {}      -- [playerNum] = bound station (nil = Hand)
@@ -243,8 +244,12 @@ function ST.nearby(player, force)
     local c = _scan[pn]
     local now = getTimestampMs()
     local sq = player:getCurrentSquare()
-    if c and not force and now - c.at < ST.SCAN_MS and c.sq == sq then
-        return c.list
+    if c and not force then
+        local age = now - c.at
+        -- (a new square rescans, but no sooner than SCAN_GAP_MS after the last: a sprint crosses 3-7 a second)
+        if age < ST.SCAN_MS and (c.sq == sq or age < ST.SCAN_GAP_MS) then
+            return c.list
+        end
     end
     local list = ST.scan(player)
     if c then

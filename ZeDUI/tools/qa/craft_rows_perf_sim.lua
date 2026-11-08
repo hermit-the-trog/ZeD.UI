@@ -611,6 +611,69 @@ do
     winN._craftLogicAt = nil; winN._craftTypeCache = {}
     CC.logicScan(dN, winN, "craft", fakeLogic)
     check("each scan gathers the containers again and drops the type cache", winN._craftContainers ~= c1 and winN._craftTypeCache == nil)
+
+    -- what the game's answer should say for a row now
+    local function expect(rd)
+        local a = worldAnswer(rd.entry.name)
+        local st = (a == "invalid") and "locked" or a
+        if rd.learned == false or rd.hasSkill == false then st = "locked" end
+        return st
+    end
+    local function rowOf(d, nm) return d.byName[nm] end
+
+    -- a refused craft, for a reason the signature cannot see (an item's condition): the next scan, on the
+    -- frame after the press, sets the recipes in full and the row shows the game's new answer
+    local queued = 0
+    ISTimedActionQueue = { add = function() queued = queued + 1 end }
+    HandcraftLogic = { new = function()
+        return { setContainers = noop, setRecipe = noop, canPerformCurrentRecipe = function() return false end,
+                 isCharacterInRangeOfWorkbench = function() return true end, getPossibleCraftCount = function() return 0 end }
+    end }
+    ZeD.Stations.validate = function() return nil end
+    winN._craftLogicAt, winN._craftLogicFullAt = nil, nil
+    CC.logicScan(dN, winN, "craft", fakeLogic)                -- (a full set, the answers as they are)
+    local rd2 = rowOf(dN, "R2")
+    check("the row starts on the game's answer", rd2 and rd2.status == expect(rd2), rd2 and rd2.status)
+    HIDDEN.cond = HIDDEN.cond + 1                              -- (the signature reads the same)
+    CLOCK = CLOCK + 1300
+    winN._craftLogicAt = nil
+    CC.logicScan(dN, winN, "craft", fakeLogic)
+    check("unseen change, no press: the row keeps the old answer (the saving)", rd2.status ~= expect(rd2), rd2.status)
+    CLOCK = CLOCK + 100
+    local st = { selected = "R2", qty = 1 }
+    ZeD.CraftingTab.startCraft(winN, st)
+    check("the press is refused: nothing queued", queued == 0)
+    CLOCK = CLOCK + 16
+    local r0 = LC.setR
+    CC.logicScan(dN, winN, "craft", fakeLogic)                -- (the next frame's scan)
+    check("the refused press: the next frame's scan sets the recipes in full", LC.setR == r0 + 1)
+    check("the refused press: the row shows the game's new answer on that frame", rd2.status == expect(rd2), rd2.status)
+
+    -- at a bench: every scan sets the recipes in full, so a bench's own change (a forge reaching heat)
+    -- shows within one scan; in Hand mode the same change waits for the full refresh
+    local winB, winH = { _playerObj = player }, { _playerObj = player }
+    local dB = dN
+    CC.logicScan(dB, winB, "craft", fakeLogic, true)
+    CC.logicScan(dB, winH, "craft", fakeLogic, false)
+    CLOCK = CLOCK + 1200
+    CC.logicScan(dB, winB, "craft", fakeLogic, true)
+    CC.logicScan(dB, winH, "craft", fakeLogic, false)
+    local rB = LC.setR
+    HIDDEN.cond = HIDDEN.cond + 1                              -- (the bench reaches heat: unseen by the signature)
+    CLOCK = CLOCK + 1200
+    CC.logicScan(dB, winB, "craft", fakeLogic, true)
+    check("at a bench: the change shows within 1.2 s", LC.setR == rB + 1 and rd2.status == expect(rd2), rd2.status)
+    local rH = LC.setR
+    CC.logicScan(dB, winH, "craft", fakeLogic, false)
+    check("in Hand mode: no full set on an unseen change before LOGIC_FULL_MS (the saving kept)", LC.setR == rH)
+    local tc = 0
+    for i = 1, 5 do
+        CLOCK = CLOCK + 1200
+        r0 = LC.setR
+        CC.logicScan(dB, winB, "craft", fakeLogic, true)
+        if LC.setR == r0 + 1 then tc = tc + 1 end
+    end
+    check("at a bench: the full set every scan", tc == 5, tc)
 end
 
 -- ---------------------------------------------------------------------------
@@ -661,11 +724,31 @@ do
     local s0 = scans
     ST.nearby(player)
     check("the same square, within the second: no scan", scans == s0)
+    ST.nearby(player, true)
+    check("forced: scanned", scans == s0 + 1)
+    s0 = scans
+    CLOCK = CLOCK + 100
     WORLD.sq = SQ2
     ST.nearby(player)
-    check("a new square: scanned at once", scans == s0 + 1)
-    ST.nearby(player, true)
-    check("forced: scanned", scans == s0 + 2)
+    check("a new square 100 ms after a scan: not yet", scans == s0)
+    CLOCK = CLOCK + 160
+    ST.nearby(player)
+    check("a new square, 250 ms on: scanned", scans == s0 + 1)
+    -- a sprint: a new square every 1/7 s for 5 s, the view drawing at 144 Hz
+    local sqs = {}
+    for i = 1, 40 do sqs[i] = { "sprint square " .. i } end
+    s0 = scans
+    local nextSq, si = CLOCK, 0
+    for f = 1, 5 * 144 do
+        CLOCK = CLOCK + 1000 / 144
+        if CLOCK >= nextSq then si = si + 1; WORLD.sq = sqs[si] or WORLD.sq; nextSq = nextSq + 1000 / 7 end
+        ST.nearby(player)
+    end
+    local perSec = (scans - s0) / 5
+    print(string.format("   a sprint, a new square 7 times a second: %.1f scans a second (no gap: 7)", perSec))
+    check("a sprint: at most 4 rescans a second", perSec <= 4, perSec)
+    check("a sprint: still rescans as it goes", perSec >= 2, perSec)
+    WORLD.sq = SQ1
 end
 
 -- ---------------------------------------------------------------------------
