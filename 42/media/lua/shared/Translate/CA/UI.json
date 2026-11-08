@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: marques i notes d'aquest color.",
     "UI_ZeD_Map_HelpKey": "Mostrar o amagar la llegenda: què signifiquen els colors del mapa de Topografia.",
     "UI_ZeD_Map_HelpKeyClose": "Tancar la llegenda.",
+    "UI_ZeD_Map_PaperFind": "Cercar al mapa",
+    "UI_ZeD_Map_HelpPaperFind": "Cercar al teu mapa del món el lloc que mostra aquest mapa.",
     "UI_ZeD_Map_HelpMark": "%1: recull aquesta marca i clica el mapa per deixar-la.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: recull aquesta marca. Un clic dret la fixa a la barra d'eines o la treu.",
     "UI_ZeD_Map_HelpMarksClose": "Plegar el conjunt complet de marques.",

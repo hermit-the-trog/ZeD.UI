@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: značky a poznámky v této barvě.",
     "UI_ZeD_Map_HelpKey": "Ukázat nebo skrýt legendu mapy: co znamenají barvy na mapě Průzkum.",
     "UI_ZeD_Map_HelpKeyClose": "Zavřít legendu mapy.",
+    "UI_ZeD_Map_PaperFind": "Najít na mapě",
+    "UI_ZeD_Map_HelpPaperFind": "Najít na mapě světa místo, které tato mapa ukazuje.",
     "UI_ZeD_Map_HelpMark": "%1: vezmi tuto značku a kliknutím na mapu ji polož.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: vezmi tuto značku. Pravým tlačítkem ji připneš na panel nástrojů nebo odepneš.",
     "UI_ZeD_Map_HelpMarksClose": "Sbalit celou sadu značek.",

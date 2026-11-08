@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: marcas y notas de este color.",
     "UI_ZeD_Map_HelpKey": "Mostrar u ocultar la leyenda: qué significan los colores del mapa Catastro.",
     "UI_ZeD_Map_HelpKeyClose": "Cerrar la leyenda.",
+    "UI_ZeD_Map_PaperFind": "Buscar en el mapa",
+    "UI_ZeD_Map_HelpPaperFind": "Buscar en tu mapa del mundo el lugar que muestra este mapa.",
     "UI_ZeD_Map_HelpMark": "%1: agarrá esta marca y hacé clic en el mapa para ponerla.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: agarrá esta marca. Un clic derecho la fija en la barra de herramientas o la quita.",
     "UI_ZeD_Map_HelpMarksClose": "Plegar el conjunto completo de marcas.",

@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1: mærker og noter i denne farve.",
     "UI_ZeD_Map_HelpKey": "Vis eller skjul legenden: hvad farverne på Opmålingskortet betyder.",
     "UI_ZeD_Map_HelpKeyClose": "Luk legenden.",
+    "UI_ZeD_Map_PaperFind": "Find på kortet",
+    "UI_ZeD_Map_HelpPaperFind": "Find stedet, som dette kort viser, på dit verdenskort.",
     "UI_ZeD_Map_HelpMark": "%1: tag dette mærke op, og klik så på kortet for at sætte det ned.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: tag dette mærke op. Et højreklik fastgør det til værktøjslinjen eller fjerner det.",
     "UI_ZeD_Map_HelpMarksClose": "Fold det fulde sæt mærker væk.",

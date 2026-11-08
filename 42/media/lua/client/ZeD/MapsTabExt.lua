@@ -43,6 +43,9 @@
 --     padA(mp, win, x, y, phase) controller A on the map's cursor while armed ("down", "hold", "up")
 --     cursor(mp, win, x, y)  preview at the pointer (or the controller's cursor) while armed
 --     mapMade(mp, win)  a map was made (the drawer's, or the unfolded window's)
+--     paper          true: also on a paper map's window (PaperMap.lua: a map item read from
+--                    the inventory, its own area and marks). Without it an extension is left
+--                    out there: its tools mark or read the world map, which that window is not.
 --
 -- HOOK_MAP.md, "Other mods' screens", lists who uses it.
 -- ============================================================================
@@ -68,9 +71,19 @@ function ZeD.MapsTab.addExtension(id, def)
     table.sort(E.list, function(a, b) return (a.order or 50) < (b.order or 50) end)
 end
 
+-- A paper map's window (PaperMap.lua) is showing: a, b are the call's first two
+-- arguments (the window, or the map and the window).
+function E.onPaper(a, b)
+    for _, o in ipairs({ a, b }) do
+        if type(o) == "table" and (o._paperItem ~= nil or (o._mapPaperItem ~= nil and o._mapPopout ~= nil)) then return true end
+    end
+    return false
+end
+
 local function call(d, name, ...)
     local f = d[name]
     if not f then return nil end
+    if not d.paper and E.onPaper(...) then return nil end   -- (the world map's tools stay off a paper map)
     local ok, r = pcall(f, ...)
     if ok then return r end
     if not E._errOnce then E._errOnce = {} end

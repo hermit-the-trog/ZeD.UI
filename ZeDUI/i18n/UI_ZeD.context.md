@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 3441.
+Total keys: 3443.
 
 ## Areas
 
@@ -1955,6 +1955,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Map_NoteDefault` | `Note` | Maps tab: default text of a new map note (saved with the note if left unchanged), the text box's starting text and the cursor preview | - |
 | `UI_ZeD_Map_PadFold` | `Fold` | Map window, controller prompt for B (fold the map back into the tab) | 12 |
 | `UI_ZeD_Map_PadMove` | `Move` | Map window, controller prompt next to L-STICK | - |
+| `UI_ZeD_Map_PaperFind` | `Find on map` | Paper map window (a map item read from the inventory), button on the band of a stash map: finds the place on the world map | 20 |
 | `UI_ZeD_Map_StyleColor` | `Color` | Maps tab toolbar: map style pill | 10 |
 | `UI_ZeD_Map_StylePaper` | `Paper` | Maps tab toolbar: map style pill | 10 |
 | `UI_ZeD_Map_StyleSurvey` | `Survey` | Maps tab toolbar: map style pill | 10 |
@@ -2005,6 +2006,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Map_HelpMarksClose` | `Fold the full set of marks away.` | Maps tab: help line over the button that folds the full set of marks away | - |
 | `UI_ZeD_Map_HelpMarksOpen` | `Show every mark, to pick one or pin it to the toolbar.` | Maps tab: help line over the button that shows the full set of marks | - |
 | `UI_ZeD_Map_HelpNote` | `Note: type the words in the box under the toolbar, then click the map to write them.` | Maps tab: help line over the Note tool on the toolbar | - |
+| `UI_ZeD_Map_HelpPaperFind` | `Find the place this map shows on your world map.` | Paper map window: help line over the Find on map button | - |
 | `UI_ZeD_Map_HelpRowDelete` | `Delete this from your map. You are asked first.` | Maps tab, side list of players and notes: help line over a row's delete button | - |
 | `UI_ZeD_Map_HelpSideList` | `Show or hide the list of players and notes beside the map.` | Maps tab: help line over the button that shows or hides the side list | - |
 | `UI_ZeD_Map_HelpStyleColor` | `Color: the ground as it looks from above.` | Maps tab: help line over the Color choice of the map style menu | - |

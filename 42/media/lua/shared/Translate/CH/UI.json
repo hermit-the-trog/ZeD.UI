@@ -3716,6 +3716,8 @@
     "UI_ZeD_Map_HelpInk": "%1：用這個顏色做標記和筆記。",
     "UI_ZeD_Map_HelpKey": "顯示或隱藏圖例：測繪地圖上各顏色的含義。",
     "UI_ZeD_Map_HelpKeyClose": "關閉圖例。",
+    "UI_ZeD_Map_PaperFind": "在地圖上尋找",
+    "UI_ZeD_Map_HelpPaperFind": "在你的世界地圖上找出這張地圖所標示的地方。",
     "UI_ZeD_Map_HelpMark": "%1：拿起這個標記，再點地圖把它放下。",
     "UI_ZeD_Map_HelpMarkGrid": "%1：拿起這個標記。右鍵可把它釘選到工具列或取下。",
     "UI_ZeD_Map_HelpMarksClose": "收起全部標記。",
