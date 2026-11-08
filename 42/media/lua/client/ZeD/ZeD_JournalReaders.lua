@@ -863,13 +863,13 @@ function J.syncChildren(win, onNotebooks)
     end
 end
 
--- the search box's words for the sub-tab
+--- The search box's words for the sub-tab.
 function J.searchHint(sub)
     if sub == 2 then return ZeD.tr("UI_ZeD_Notebook_Find") end
     return ZeD.tr("UI_ZeD_Papers_Find")
 end
 
--- the search box shows on the lists, not in a quick look
+--- The search box shows on the lists, not in a quick look.
 function J.searchVisible(win, sub)
     if sub == 3 then return not st(win).paperOpen end
     return sub == 2
