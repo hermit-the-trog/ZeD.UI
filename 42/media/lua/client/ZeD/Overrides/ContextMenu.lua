@@ -170,6 +170,14 @@ end
 -- ---------------------------------------------------------------------------
 local origGet = V.get
 ISContextMenu.get = function(player, x, y)
+    -- No menu for this player (the game drops a player's UI data when the character
+    -- dies): vanilla's get would throw at its first line (hideAndChildren of nil),
+    -- so nothing is asked of it; the caller gets nil (QA round 3, Wounds Overhaul)
+    local okM, have = pcall(function()
+        if not getPlayerContextMenu then return true end   -- (the game's player data is not defined yet: vanilla decides)
+        return player ~= nil and getPlayerContextMenu(player)
+    end)
+    if not (okM and have) then return nil end
     if ZeD.Safe.on() then return origGet(player, x, y) end
     local context = origGet(player, x, y)
     if context then

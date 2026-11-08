@@ -137,7 +137,12 @@ function def.refresh(t, doctor)
     if t.blocking then return end
     local p = t.patient
     local isRemote = remote(p)
+    -- (read afresh every time: startReceivingBodyDamageUpdates resets the remote copy, and the
+    -- server fills it as its updates arrive, so what this reads grows after the first frames. The
+    -- server's copy of the patient is what arrives: a wound that only the patient's own client
+    -- holds never reaches it)
     local bd = isRemote and p:getBodyDamageRemote() or p:getBodyDamage()
+    if not bd then return end
     local d = ZeD.HealthTab.gatherData(p, { doctorLevel = t.level, bodyDamage = bd })
     -- each listed part's name on the figure (the list's words can differ: "Left Thigh")
     local figOf = {}

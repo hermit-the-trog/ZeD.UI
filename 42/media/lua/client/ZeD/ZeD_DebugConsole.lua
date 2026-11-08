@@ -174,7 +174,22 @@ function DC.mirror(text)
     pcall(function() P.cmd:SetText(text) end)
     -- (the game fills its suggestion box in its own update(), when the line's length has changed; it is run now, so the
     -- suggestion is there for Tab and for the help line in this same frame, never a frame late or not at all)
-    if P.jc and text ~= "" then pcall(function() P.jc:update() end) end
+    -- (QA round 3, from UIDebugConsole.update() in the jar: it works the suggestion out only when the LENGTH of the line
+    -- differs from the length it last worked on, and an emptied line does not reset that length. So a line of the same
+    -- length as an earlier one got nothing, and the box stayed empty. The line is shown one character longer first, so
+    -- the second update always sees a changed length and does the work for the line as it is.)
+    if P.jc and text ~= "" then
+        local ok, err = pcall(function()
+            P.cmd:SetText(text .. " ")
+            P.jc:update()
+            P.cmd:SetText(text)
+            P.jc:update()
+        end)
+        if not ok then
+            pcall(function() P.cmd:SetText(text) end)   -- (the line is what was typed, whatever failed)
+            ZeD.logOnce("lua console suggestion", tostring(err))
+        end
+    end
 end
 
 -- may this player run a line? (the game's own test on Enter: on a server, the role's capability or the co-op host)
