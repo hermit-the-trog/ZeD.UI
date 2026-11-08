@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "General",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",
+    "UI_ZeD_Health_Examine": "Examinează",
     "UI_ZeD_Hook_BleedingOnGround": "Sângerează pe jos",
     "UI_ZeD_Hook_BleedOnGround": "Lasă sângele pe jos",
     "UI_ZeD_Hook_BloodLostHead": "Dacă iei capul acum, se varsă %1 de sânge rămas în el.",
