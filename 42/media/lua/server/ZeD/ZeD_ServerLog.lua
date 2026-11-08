@@ -138,7 +138,7 @@ local function carFacts(md, v)
     return { id = id, car = script and (script:getCarModelName() or script:getName()) or nil, owner = owner, settled = settled }
 end
 
--- one vehicle line. Your own settled car writes nothing (OWN_CAR_LINES); one still settling counts as nobody's. A car with an
+-- one vehicle line. Your own settled car writes nothing while OWN_CAR_LINES is off; one still settling counts as nobody's. A car with an
 -- owner goes through Srv.action (the ZeD log and the ring); work on a car nobody has on record goes to the file and the world ring
 local function vehWrite(md, user, x, y, z, what, car, ex)
     local owner = car.owner
@@ -632,6 +632,7 @@ end
 local function canSeePvp(p) return CAP_PVP ~= nil and Srv.can(p, CAP_PVP) end
 local function readerOf(p) return { canPvp = canSeePvp(p), canBan = CAP_BAN ~= nil and Srv.can(p, CAP_BAN), above = {} } end
 
+-- true for a value no client of ours sends: not a string, or longer than max (nil passes)
 local function badText(s, max)
     return s ~= nil and (type(s) ~= "string" or #s > max)
 end
@@ -721,6 +722,8 @@ local function readQuery(p, a, rid)
     return q, when or Lg.DEFAULT_WHEN
 end
 
+-- l_query: one page of what this reader may see, newest first, and the Who list on page 1. With around (a ticket's id):
+-- the lines near its place and time, and whom its nearby list missed
 local function query(p, a, rid)
     local md = Srv.logTable()
     local q, when = readQuery(p, a, rid)
@@ -826,7 +829,8 @@ if CAP_VIEW and Srv.logTable then
         Srv.ack(p, rid, ok, err)
     end)
 
-    -- QA: what the hooks have seen (E2, E1). Counts only
+    -- QA: what the hooks have seen: whether the class wraps reach complete on a real server, and whether other mods' lines
+    -- reach the tap. Counts only
     Srv.register(Lg.MOD, "l_probe", { cap = CAP_ADMIN }, function(p, a, rid)
         local P = Lo.P
         local hooks = {}
