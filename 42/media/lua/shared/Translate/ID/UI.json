@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Seed baru",
     "UI_ZeD_Spawn_PromptNewSeed": "Seed baru",
     "UI_ZeD_Spawn_RandomDesc": "Kota yang dipilih acak saat Anda menekan \"Berikutnya\".",
+    "UI_ZeD_Spawn_RandomNone": "Tidak ada kota yang bisa dipilih secara acak di sini. Pilih satu dari daftar.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Lokasi spawn",
     "UI_ZeD_Station_AnySurface": "Di mana saja",
     "UI_ZeD_Station_Fallback": "Stasiun",

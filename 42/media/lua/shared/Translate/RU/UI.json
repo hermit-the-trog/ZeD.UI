@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Новый сид",
     "UI_ZeD_Spawn_PromptNewSeed": "Новый сид",
     "UI_ZeD_Spawn_RandomDesc": "Город выбирается случайно при нажатии «Далее».",
+    "UI_ZeD_Spawn_RandomNone": "Здесь нет города, который можно выбрать случайно. Выберите город из списка.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Место появления",
     "UI_ZeD_Station_AnySurface": "Где угодно",
     "UI_ZeD_Station_Fallback": "Станция",

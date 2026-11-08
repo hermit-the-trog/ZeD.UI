@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "New seed",
     "UI_ZeD_Spawn_PromptNewSeed": "New seed",
     "UI_ZeD_Spawn_RandomDesc": "A town picked at random when you press \"Next\".",
+    "UI_ZeD_Spawn_RandomNone": "No town here for Random to pick. Choose one from the list.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Spawn location",
     "UI_ZeD_Station_AnySurface": "Any surface",
     "UI_ZeD_Station_Fallback": "Station",

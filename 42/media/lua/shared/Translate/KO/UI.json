@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "새 시드",
     "UI_ZeD_Spawn_PromptNewSeed": "새 시드",
     "UI_ZeD_Spawn_RandomDesc": "\"다음\"을 누르면 무작위로 고른 마을에서 시작합니다.",
+    "UI_ZeD_Spawn_RandomNone": "여기에는 무작위로 고를 수 있는 마을이 없습니다. 목록에서 하나를 고르세요.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  시작 위치",
     "UI_ZeD_Station_AnySurface": "아무 표면",
     "UI_ZeD_Station_Fallback": "설비",

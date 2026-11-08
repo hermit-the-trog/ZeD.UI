@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Nowe ziarno",
     "UI_ZeD_Spawn_PromptNewSeed": "Nowe ziarno",
     "UI_ZeD_Spawn_RandomDesc": "Miasto wybrane losowo po naciśnięciu \"Dalej\".",
+    "UI_ZeD_Spawn_RandomNone": "Nie ma tu miasta, które można wylosować. Wybierz jedno z listy.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Miejsce startu",
     "UI_ZeD_Station_AnySurface": "Dowolny blat",
     "UI_ZeD_Station_Fallback": "Stanowisko",

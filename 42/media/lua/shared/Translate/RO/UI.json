@@ -2416,6 +2416,7 @@
     "UI_ZeD_Spawn_NewSeed": "Seed nou",
     "UI_ZeD_Spawn_PromptNewSeed": "Seed nou",
     "UI_ZeD_Spawn_RandomDesc": "Un oraș ales la întâmplare când apeși \"Următorul\".",
+    "UI_ZeD_Spawn_RandomNone": "Aici nu există niciun oraș care să poată fi ales la întâmplare. Alege unul din listă.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Locul de apariție",
     "UI_ZeD_Station_AnySurface": "Orice suprafață",
     "UI_ZeD_Station_Fallback": "Stație",
