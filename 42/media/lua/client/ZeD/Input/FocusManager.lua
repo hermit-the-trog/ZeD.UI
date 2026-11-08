@@ -1735,6 +1735,7 @@ end
 function Focus.stopsMayWait(w)
     local D = ZeD.Input.Detector
     if not (w and D and D.getMode and D.getMode() == "kbm") then return false end
+    if ZEDQA_FRESH_STOPS then return false end   -- (QA scripts read w._focusRing directly: the QA prelude keeps the stops fresh)
     if _cuesOn or Focus.soonPending(w) then return false end
     if w._mechFocusTarget or w._animalsFocusAfterCreate or w._animalsNavFocusTarget then return false end
     local cs, bs = w._craftState, w._buildState
