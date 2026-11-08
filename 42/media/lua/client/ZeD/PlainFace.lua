@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/PlainFace.lua
 -- ============================================================================
--- THE PLAIN DEVICE CARD — the Simple form of the radio tab's faces (ZeD setup's
--- Devices row, Full or Simple: ZeD.Settings.devicesSimple). The rules the
--- director approved, Nov 2 2026 (ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md):
+-- THE PLAIN DEVICE CARD (client) — the Simple form of the radio tab's faces
+-- (ZeD setup's Devices row, Full or Simple: ZeD.Settings.devicesSimple).
+-- Four rules bind every plain card:
 --   1. it does everything its face does and shows everything it shows; only the
 --      art goes
 --   2. it is built from ZeD's own plain parts (labels and values, the segmented
@@ -731,7 +731,7 @@ end
 -- ---------------------------------------------------------------------------
 -- THE DRIVER
 -- ---------------------------------------------------------------------------
--- the card's size for the radio tab: { plain, w (screen px, the card it wants), h (measured as it draws) }
+--- the card's size for the radio tab: { plain, w (screen px, the card it wants), h (measured as it draws) }
 local _des = {}
 function PF.des(base, pid)
     local key = tostring(pid)
@@ -789,7 +789,7 @@ function PF.secondary(base, chr, dev, id, owner)
     if c.real and base.holdable(c.real) then base.secondary(chr, dev, c.real, owner) end
 end
 
--- the driver for a face driver (one per driver, kept: the radio tab compares them)
+--- the driver for a face driver (one per driver, kept: the radio tab compares them)
 local _wraps = {}
 function PF.wrap(base)
     if not base then return nil end

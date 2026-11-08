@@ -2327,7 +2327,7 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
     panel:drawText(nameStr, leftX, textY,
         T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
 
-    -- Pct — left col, right-aligned (K22 Xanthus — data readout)
+    -- Pct — left col, right-aligned, in the chrome's data voice
     local pctStr = tostring(math.floor(zone.pct or 0)) .. "%"
     local pctW   = ZeD.TM:MeasureStringX(T.fontF3, pctStr)
     local pctY   = y + math.floor((topH - ZeD.TM:getFontHeight(T.fontF3)) / 2)
@@ -2715,8 +2715,8 @@ end
 -- ============================================================================
 
 -- Internal helpers: a value class ("warn"/"bad"/"dim"/"good"/nil) is drawn as default
--- words and a 6u status square in the class's colour (cohesion spec: status as a
--- square, no coloured words). "dim" is not a status: dim words, no square.
+-- words and a 6u status square in the class's colour (the house rule: status is a
+-- square, never coloured words). "dim" is not a status: dim words, no square.
 local function _resolveStatValColor(valueClass, T)
     if valueClass == "dim" then return T.textDim end
     return T.text
@@ -4083,12 +4083,12 @@ function ZeD.Molecules.drawContextStrip(panel, x, y, state, T)
         -- (stencil clips to [innerX, innerX+innerW] anyway).
         if cx + ctx.cellW >= innerX - ctx.cellW
            and cx <= innerX + innerW + ctx.cellW then
-            -- S103: highlight tracks `selected` (mouse-hovered / keyboard
+            -- The highlight tracks `selected` (mouse-hovered / keyboard
             -- cursor) in BOTH modes. In truncating mode three copies of the
             -- same item exist in the track; matching by (i-1) mod N gives
             -- every visible copy the highlight (only one is ever in the
-            -- viewport at a time in practice). Previously tracked `pos`
-            -- in truncating mode, but pos is now the carousel scroll offset
+            -- viewport at a time in practice). It cannot track `pos`:
+            -- pos is the carousel scroll offset
             -- (chev / key / bumper advanced only), not the hover target.
             local N_track = #items
             local isActive = (N_track > 0) and (((i - 1) % N_track) + 1 == state.selected) or false
@@ -4102,9 +4102,9 @@ function ZeD.Molecules.drawContextStrip(panel, x, y, state, T)
             }
             ZeD.Molecules.drawContextCell(panel, cx, innerY, def, flags, T)
 
-            -- Hit zones are PANEL-LOCAL (ZeD_Panel convention). Each DOM index
+            -- Hit zones are PANEL-LOCAL (ZeD_Panel convention). Each track index
             -- gets its own key so a click maps back to the track position for
-            -- precise pos updates (mirrors mockup JS behavior).
+            -- precise pos updates.
             panel:addHitZone("ctxcell_" .. i, cx, innerY, ctx.cellW, ctx.cellH)
         end
     end
@@ -4136,11 +4136,11 @@ function ZeD.Molecules.drawContextBumpers(panel, stripX, stripY, stripW, stripH,
     local gutter = ctx.gutter
     local chevW = ctx.chevW
 
-    -- S103: outer `<<` / `>>` bumpers removed per design direction — the
-    -- single chevrons already handle carousel scrolling; the double-bumper
-    -- group-jump was redundant chrome for typical inventory menus. Hit
-    -- zones (ctxbump_l / ctxbump_r) removed alongside rendering; any
-    -- callers that still reference those ids will no-op silently.
+    -- The outer `<<` / `>>` group-jump bumpers are gone — the
+    -- single chevrons already handle carousel scrolling, so the double-bumper
+    -- jump was redundant chrome for typical inventory menus. Their hit
+    -- zones (ctxbump_l / ctxbump_r) went with them; any
+    -- callers that still reference those ids no-op silently.
     local leftChevX  = stripX - gutter - chevW
     local rightChevX = stripX + stripW + gutter
 
@@ -4299,31 +4299,22 @@ function ZeD.Molecules.drawContextTargetCard(panel, centerX, topY,
 end
 
 -- ---------------------------------------------------------------------------
--- drawContextBalloon — 230-wide panel under the target card. Upward pointer
--- connects to the card above. Does NOT track selection X — static-centered.
--- state:
---   categoryLabel: "USE" / "CRAFT" / parent name uppercased (if submenu)
---   selectedIdx, itemCount: for "N / Total" readout
---   bodyText: description
---   stateText: availability reason
---   stateKind: "ok" | "bad" — drives dot color
---   isSubmenu: category header accent tint
--- ---------------------------------------------------------------------------
--- Combined info bubble — sits ABOVE the icon strip with a downward pointer
--- toward the strip's selected cell. Subsumes what was previously a separate
--- floating label (action name) AND a balloon (body/state). One piece of chrome,
--- adaptive height: shows the action name always (with breadcrumb in submenus),
--- plus optional body and state rows that collapse when empty.
+-- drawContextBalloon — the combined info bubble. Sits ABOVE the icon strip
+-- with a downward pointer toward the strip's selected cell (or below it with
+-- an upward pointer when state.pointerDir = "up"). It subsumes what were once
+-- a separate floating label (action name) AND a balloon (body/state): one
+-- piece of chrome, adaptive height — the action name always (breadcrumbed in
+-- submenus), plus optional body and state rows that collapse when empty.
 --   centerX:    horizontal center of the bubble + pointer apex
 --   apexY:      where the pointer apex touches the strip top
---   state:      { labelText, parentChain, bodyText, stateText, stateKind,
---                 isSubmenu }
+--   state:      { labelText, parentChain, bodyText (description),
+--                 stateText (availability reason), stateKind ("ok" | "bad" —
+--                 drives the dot color), isSubmenu }
 function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
     local A = ZeD.Atoms
     -- The info bubble uses LOCKED System 7 chrome — paper white fill, ink
-    -- black border + text — regardless of active theme. Matches the locked
-    -- mockup intent (balloon is always white-on-black, like the mockup's
-    -- :root --paper / --ink). Theme-driven body text is hard to read on a
+    -- black border + text — regardless of active theme: the balloon is
+    -- white-on-black by design. Theme-driven body text is hard to read on a
     -- forced-white pill, so we hardcode for legibility.
     local ink    = { r = 0,    g = 0,    b = 0,    a = 1 }
     local paper  = { r = 1,    g = 1,    b = 1,    a = 1 }
@@ -4512,7 +4503,7 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
 end
 
 -- ============================================================================
--- STATUS CHIP (S115 — radio chassis VFD/LCD)
+-- STATUS CHIP (radio chassis VFD/LCD)
 -- Text-only on/off chip drawn directly onto a chassis display surface.
 -- "● TEXT" when on, "○ TEXT" when off — the bullet glyph carries the state and
 -- the text label says what the state is ABOUT (SIG, 2W, AM, FM). No bg, no
@@ -4520,8 +4511,8 @@ end
 -- through. Caller positions x, y; molecule advances no internal cursor.
 --
 -- Used inside radioMainDisplay (status chip row above the BATT/VOL bars).
--- Per feedback_status_dot_over_color.md: prefer ●/○ over color-only signaling
--- so colorblind users can still read state from glyph shape alone.
+-- The glyph's shape carries the state, never the color alone, so colorblind
+-- players can still read it.
 --
 -- @return widthDrawn (px) so caller can lay out a chip row left-to-right.
 -- ============================================================================
@@ -4555,27 +4546,26 @@ function ZeD.Molecules.drawStatusChip(panel, x, y, text, on, onColor, offColor, 
 end
 
 -- ============================================================================
--- DRAWER INTERNAL HEADER (S115 — first contextual drawer header pattern)
--- A 22px-tall strip at the top of a contextual drawer containing browse
--- controls + subtitle + location tag. First appearance of this pattern;
--- explicitly designed to be reused by every future contextual drawer
+-- DRAWER INTERNAL HEADER
+-- The strip across the top of a contextual drawer (the shared tabHeaderH
+-- height) holding browse controls + subtitle + location tag, built to be
+-- reused by every contextual drawer
 -- (washer, generator, oven, sink — anything with N reachable instances).
 --
 -- Layout left-to-right:
 --   [<] [tag: Location (idx)] [>]  subtitle
 --
--- - Browse keys are icon buttons with left / right triangles (cohesion spec 7),
+-- - Browse keys are icon buttons with left / right triangles,
 --   their names as hints.
 -- - The location is a tag (the one look for a small word naming a state).
 -- - Subtitle is the current instance's display name (from engine getter).
 --
--- This molecule is RENDER-ONLY this session (S115a). Browse arrow click
--- handlers are S115b — caller does NOT need to wire them yet, the buttons
--- paint as visually-clickable but no-op. browseState.idx and .total are read
--- to render the counter; nothing in this draw path mutates them.
+-- Render-only: the browse keys paint and hand back their rects; the caller
+-- owns the clicks. browseState.idx is read
+-- to render the counter; nothing in this draw path mutates it.
 --
 -- @param panel       ISPanel
--- @param x, y        Top-left of the 22px strip in panel-local coords
+-- @param x, y        Top-left of the strip in panel-local coords
 -- @param w           Total width
 -- @param browseState { idx, total } — current instance index (1-based) + count
 -- @param subtitle    String — current instance display name
@@ -4621,9 +4611,9 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     local pillY = y + math.floor((stripH - pillH) / 2)
 
     -- ============ Left edge: [<] [pill: Location (idx)] [>] ============
-    -- The location pill now sits BETWEEN the browse arrows. Pill text format
+    -- The location pill sits BETWEEN the browse arrows. Pill text format
     -- "<location> (<idx>)" e.g. "Primary (1)" or "Floor (2)". The (idx) shows
-    -- which radio in the cycle is current; replaces the old N/M counter.
+    -- which radio in the cycle is current; it replaced the old N/M counter.
     local idx     = (browseState and browseState.idx) or 1
     local pillText = (locationTag and locationTag ~= "") and locationTag or "-"
     pillText = pillText .. " (" .. tostring(idx) .. ")"
@@ -4661,9 +4651,9 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     local subColor = T.text or { r = 1, g = 1, b = 1, a = 1 }
     local subMaxW = (x + w - pad - (rightReserve or 0)) - cursor
     if subMaxW > 0 and subStr ~= "" then
-        -- cut with the shared "..." (Oct 31 2026, break-it E3: a local cut here used the
-        -- one-character ellipsis U+2026, which the game drew as its low byte 0x26, "&":
-        -- the Vehicle tab's "Che&". ZeD's fonts list the glyph; the draw does not reach it)
+        -- cut with the shared "..." — a local cut here once used the one-character
+        -- ellipsis U+2026, which the game drew as its low byte 0x26, "&" ("Che&").
+        -- ZeD's fonts list the glyph; the draw does not reach it.
         subStr = A.truncateText(subStr, fontHead, subMaxW)
         panel:drawText(subStr, cursor, subY,
             subColor.r, subColor.g, subColor.b, subColor.a or 1.0, fontHead)
@@ -4682,8 +4672,8 @@ end
 -- prompts = { "D-PAD Move", { glyph = "A", label = "Press" }, ... }: a plain
 -- string is a dim note. Draws left to right from x, centred in a strip of
 -- height h at y. Returns the right edge.
--- A button is drawn as ZeD's pixel picture of it (ZeD_PadGlyphs; director,
--- Oct 24 2026) when the glyph names one (or `pad` gives its roles), and as
+-- A button is drawn as ZeD's pixel picture of it (ZeD_PadGlyphs)
+-- when the glyph names one (or `pad` gives its roles), and as
 -- the boxed name when the glyph setting is Keyboard/mouse or Off.
 -- ============================================================================
 function ZeD.Molecules.drawGlyphPrompts(panel, x, y, h, prompts)
@@ -4720,7 +4710,7 @@ function ZeD.Molecules.drawGlyphPrompts(panel, x, y, h, prompts)
 end
 
 -- ============================================================================
--- COHESION PIECES (cohesion spec 8 and 9)
+-- COHESION PIECES
 -- The shared parts every surface moves onto: the tag, the band at the foot of a
 -- pane (and the question it asks before an act that cannot be undone), the
 -- NEEDS line, the empty-list line, and the detail card.
@@ -4766,7 +4756,7 @@ end
 --              a System 7 checkbox and its words at the left, after the icons ("Show popups")
 --   win      = the window (help and hints; default: the window the panel is in)
 --   noLine   = true leaves out the structure line (a band right under another line)
---   edge     = the band's side margin in screen px (default 8u; the Craft band short of room: 4u, punch list 28)
+--   edge     = the band's side margin in screen px (default 8u; the Craft band short of room: 4u)
 -- }
 -- @return height, rects = { buttons = { [i] = {x, y, w, h, id} }, lead = { ... }, icons = { ... }, check = {x, y, w, h, id} }
 local _bandBtn, _bandIcon = {}, {}
@@ -4803,7 +4793,7 @@ end
 -- _coverX, the card over the right part; the World window: _coverL, over the left part).
 -- The band's words and buttons lay out in what is left, so a tab's own actions (the
 -- Journal's Save, Cancel and Delete) stay in reach while the card is open, the card on
--- top of the tab (Nov 7 2026, the outside review of beta 7). need: the least room the
+-- top of the tab. need: the least room the
 -- band's contents take; with less showing, the band keeps its whole width.
 function ZeD.Molecules.bandRoom(panel, x, w, need)
     local l, r = x, x + w
@@ -4921,7 +4911,7 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     return H, out
 end
 
---- The question before an act that cannot be undone, as a band (cohesion spec 9):
+--- The question before an act that cannot be undone, as a band:
 -- "<Verb> the <thing>? <What is lost>." with a red square mark, then Cancel and
 -- the verb's own word (danger when it can't be undone, primary otherwise).
 -- opts = { danger = true (default) / false, cancelFocus / verbFocus (mark opts),
@@ -5062,7 +5052,7 @@ function ZeD.Molecules.drawDetailCard(panel, ax, ay, card)
 end
 
 -- ============================================================================
--- CONDITIONAL DISCLOSURE (director, Oct 26 2026)
+-- CONDITIONAL DISCLOSURE
 -- Actions the player cannot do yet are folded away so the verb row stays short,
 -- with one folded row after the verbs that keeps them discoverable:
 --   "With scissors you could cut your hair."   (one hidden action)
@@ -5175,8 +5165,8 @@ function ZeD.Molecules.drawMoreRow(panel, x, y, w, hidden, key, opts)
     local open = DS.isOpen(key)
     local cx = x + (opts.inset or 0)
     local tri = T.px(8)
-    -- the row's words wrap under each other when they do not fit (a narrow card column: QA saw
-    -- "With Tire Pump you could pum..." in the Vehicle tab's two columns, Nov 3 2026)
+    -- the row's words wrap under each other when they do not fit (a narrow card
+    -- column once cut them to "With Tire Pump you could pum...")
     local lines = A.wrapText(DS.rowText(hidden), f2, math.max(T.px(20), x + w - (cx + tri + T.px(6))))
     local rowH = math.max(T.px(20), fh * math.max(1, #lines) + T.px(6))
     if draw then

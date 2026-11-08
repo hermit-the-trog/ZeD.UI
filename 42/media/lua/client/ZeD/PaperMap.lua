@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/PaperMap.lua
 -- ============================================================================
--- PAPER MAPS (Nov 7 2026; vanilla windows list B2, the director: "ZeD's map,
--- that area"). Read Map on a map item (a town map, a Louisville square, a
--- stash map) opens ZeD's map window on that paper: the area the paper shows,
--- drawn as the game draws it, with the paper's own marks (a stash map's
+-- PAPER MAPS (client; the hook that routes Read Map here is
+-- Overrides/PaperMap.lua). Read Map on a map item (a town map, a Louisville
+-- square, a stash map) opens ZeD's map window on that paper: the area the
+-- paper shows, drawn as the game draws it, with the paper's own marks (a
+-- stash map's
 -- crosses and notes, and whatever was written on it), and ZeD's marking tools,
 -- which write on that paper as vanilla's do. The world map's tools (other
 -- mods' map extensions, Survey / Color / Paper, sharing) stay off it.
@@ -48,8 +49,8 @@ function P.itemOf(win)
     return win._mapPaperItem
 end
 
--- Read Map in ZeD's window. True when ZeD shows it (the game's read is done);
--- false sends the read to the game's own window, untouched.
+--- Read Map in ZeD's window. True when ZeD shows it (the game's read is done);
+--- false sends the read to the game's own window, untouched.
 function P.open(item, playerNum)
     playerNum = playerNum or 0
     local playerObj = getSpecificPlayer(playerNum)
@@ -95,10 +96,10 @@ function P.open(item, playerNum)
     return true
 end
 
--- The paper map is put away (MapsTab.closePopout): the controller goes back to
--- the window Read Map was chosen in, and a World window Read Map opened only for
--- the paper closes again, unless the fold came from the World window itself
--- (keepWorld: its own close or fold, the world map opening there, another paper).
+--- The paper map is put away (MapsTab.closePopout): the controller goes back to
+--- the window Read Map was chosen in, and a World window Read Map opened only for
+--- the paper closes again, unless the fold came from the World window itself
+--- (keepWorld: its own close or fold, the world map opening there, another paper).
 function P.closed(win, pop, keepWorld)
     local owns = win._mapPaperOwnsWindow
     win._mapPaperOwnsWindow = nil
@@ -123,9 +124,9 @@ function P.returnFocus(win, pop)
     return true
 end
 
--- ZeD_WorldMap:instantiate for a paper map (MapsTab.lua): bound to the item
--- and set up as vanilla's ISMap (instantiate, then initMapData), with ZeD's
--- mark pictures for the tools' previews.
+--- ZeD_WorldMap:instantiate for a paper map (MapsTab.lua): bound to the item
+--- and set up as vanilla's ISMap (instantiate, then initMapData), with ZeD's
+--- mark pictures for the tools' previews.
 function P.instantiate(mp, icons)
     local item = mp._paperItem
     local api = mp.mapAPI
@@ -166,8 +167,8 @@ function P.reveal(mp)
     mp._paperRevealed = true
 end
 
--- Each frame the paper map draws (ZeD_WorldMap:render): the whole paper in view
--- once it has its size (ISMap:update's resetView after initMapData).
+--- Each frame the paper map draws (ZeD_WorldMap:render): the whole paper in view
+--- once it has its size (ISMap:update's resetView after initMapData).
 function P.frame(mp)
     if mp._paperViewSet then return end
     mp._paperViewSet = true
@@ -181,8 +182,8 @@ function P.stillHeld(win)
     return p:getInventory():contains(item, true) == true
 end
 
--- The paper map could not be drawn (MapsTab.lua): its window is put away and the
--- game's opens on the same map (next tick, out of the drawing).
+--- The paper map could not be drawn (MapsTab.lua): its window is put away and the
+--- game's opens on the same map (next tick, out of the drawing).
 function P.failed(win, err)
     print("[ZeD] paper map not drawn: " .. tostring(err))
     win._mapPaperFail = { item = win._mapPaperItem, playerNum = win._playerObj and win._playerObj:getPlayerNum() or 0 }
