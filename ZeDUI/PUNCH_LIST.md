@@ -3021,3 +3021,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     unpinned half rolls and the pinned half stays; on a pad both pins are stops in the focus ring, A toggles. Example
     that must work: the World window with the map tab pinned open while its inventory side and the Character window
     roll with the pointer.
+113. **Beta 9: the rest of the Mac rig's outside review of beta 8 (the director, Nov 8 2026: "Hotfix the two, then add the
+    rest to b9").** ZeDUI/qa/REVIEW_BETA8_EXTERNAL_20261108.md items #3-#18 and its review-only list; #1 and #2 ship
+    as hotfix 0.3.0-beta8a. #9 stays (the Nov 7 ruling). #14: Follow Metric (the odometer and trip show km with KM/H;
+    display only). Being built on a branch off main.
+114. **The main menu desk's sticky note can be dragged and closed (the director, Nov 8 2026, beta 9).** "Being able to
+    drag the note around to other spots on the desktop or close it would be nice." Drag it anywhere on the desktop with
+    its place kept, a way to close it, and a way to bring it back. Design questions (where the close sits, how it comes
+    back, controller) go to the director as multiple choice before building.
