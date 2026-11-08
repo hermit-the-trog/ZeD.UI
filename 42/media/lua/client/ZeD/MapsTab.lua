@@ -693,6 +693,13 @@ end
 
 local function _openSharing(mp, sym, fromPad)
     if not _canShare(sym) then return end
+    -- ZeD's card for it (ZeD_MpLeftovers.lua, VANILLA_WINDOWS C5): Private, Everyone or Other, with Done; the game's
+    -- panel below only when the card can't open (safe mode)
+    local Lo = ZeD.MpLeftovers
+    if Lo and Lo.openSharing then
+        local ok, opened = pcall(Lo.openSharing, mp, sym, fromPad)
+        if ok and opened then return end
+    end
     local pn = (mp.playerObj and mp.playerObj:getPlayerNum()) or 0
     mp.playerNum = pn                           -- (the panel reads mapUI.playerNum)
     local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1] or nil

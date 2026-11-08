@@ -752,6 +752,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Card_HelpDockRepair` | `Repair this part's hole` | Item card (clothing): help line over a part's cell in the patch dock when its button repairs the hole | - |
 | `UI_ZeD_Card_HelpDockPatch` | `Take this part's patch off` | Item card (clothing): help line over a part's cell in the patch dock when its button takes the patch off | - |
 | `UI_ZeD_Card_HelpBack` | `Back: close this card` | Item card: help line over the Back button that closes the card | - |
+| `UI_ZeD_Card_EditHelp` | `Admin: change this item. Save writes it; Cancel leaves it as it was.` | Admin Edit item card: its help line. Save and Cancel are its two buttons | - |
 
 ## Char
 
@@ -1965,6 +1966,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Map_KeyColor` | `The Color map is the ground as it looks from above: roofs, roads and trees, not buildings by use. The key's colors are on Survey.` | Maps tab, map key panel on the Color map (Color and Survey are the map style buttons) | - |
 | `UI_ZeD_Map_KeyPaper` | `The Paper map is the road map as printed: roads, towns and water, not buildings by use. The key's colors are on Survey.` | Maps tab, map key panel on the Paper map (Paper and Survey are the map style buttons) | - |
 | `UI_ZeD_Map_ShowSurvey` | `Show survey` | Maps tab, map key panel: button that switches the map to Survey | 18 |
+| `UI_ZeD_Map_ShareHelp` | `Who sees this mark on their map. Accept keeps the choice.` | Map mark's Sharing card (multiplayer): its help line. Accept is the game's own button word | - |
+| `UI_ZeD_Map_ShareAway` | `not on now` | Map mark's Sharing card: after the name of a player the mark is shared with who is not on the server now (name | not on now) | 20 |
 | `UI_ZeD_Map_DrawDraw` | `Draw` | Maps tab with Draw On The Map: the toolbar button and the free-hand tool (stands in for the mod's own word while the game cannot read it) | 10 |
 | `UI_ZeD_Map_DrawLine` | `Line` | Maps tab with Draw On The Map: the straight-line tool (the mod's word) | 10 |
 | `UI_ZeD_Map_DrawErase` | `Erase` | Maps tab with Draw On The Map: the eraser tool (the mod's word) | 10 |
@@ -2073,11 +2076,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MMHelp_Abort` | `Abort: stop the server that is starting.` | Host screen: help line over the Abort button while the server is starting (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Connect` | `Connect: join the chosen server.` | Join screen: help line over the Connect button (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Refresh` | `Refresh: ask the servers again.` | Join screen: help line over the Refresh button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_RefreshPlayers` | `Refresh: ask the server for its players again.` | Pause window, Players page: help line over Refresh (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Save` | `Save: keep your changes.` | Main menu screens: help line over the Save button in the bottom strip (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Rename` | `Rename: give it the new name.` | Main menu screens: help line over the Rename button in the bottom strip (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_RenameSave` | `Rename: give the save its new name.` | Load game screen: help line over the Rename button of the rename question (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Rewind` | `Rewind: roll the credits backwards.` | Credits screen: help line over the rewind button, marked << (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Fast` | `Fast forward: roll the credits faster.` | Credits screen: help line over the fast forward button, marked >> (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_FriendRow` | `Pick this friend, then Invite.` | Pause window, Invite page: help line over a Steam friend's row | - |
 | `UI_ZeD_MMHelp_PlayPause` | `Pause or play the credits.` | Credits screen: help line over the pause and play button | - |
 | `UI_ZeD_MMHelp_EmptyTrash` | `Empty trash: throw away the file in it.` | Trash window: help line over the Empty trash button (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Options` | `Options: change the game's settings and ZeD's.` | Main menu window and pause window, bottom strip: help line over the Options button (begins with the button's name) | - |
@@ -2087,6 +2092,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MMHelp_Quit` | `Quit: leave the game. It asks first.` | Main menu window, bottom strip: help line over the Quit button, which asks first (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_QuitGame` | `Quit: leave the game. Anything unsaved is lost.` | Main menu window: help line over the Quit button of the quit question (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_QuitDesktop` | `Quit: leave to the desktop. It asks first.` | Pause window, bottom strip: help line over the button that leaves to the desktop, which asks first (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_QuitDesktopNow` | `Quit: leave the game for the desktop.` | Kicked or disconnected screen: help line over the game's Quit to desktop button (it does not ask first here) | - |
 | `UI_ZeD_MMHelp_SaveQuit` | `Save and quit: save the game, then leave to the main menu.` | Pause window, bottom strip: help line over the Save and quit button (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_MonitorBack` | `Cancel: go back to the screen settings you had.` | Options: help line over the Cancel button of the question that appears after the screen settings change (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_MonitorKeep` | `Keep: keep the new screen settings.` | Options: help line over the Keep button of the question that appears after the screen settings change (begins with the button's name) | - |
@@ -2102,7 +2108,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MMHelp_PauseMods` | `Mods: see the mods this game runs.` | Pause menu (in game): help line over the big Mods button (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_SandboxIG` | `Sandbox options: this game's world settings.` | Pause menu (in game): help line over the big Sandbox options button (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Players` | `Players: see who is on the server.` | Pause menu (in game, on a server): help line over the big Players button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_PlayerRow` | `Pick this player: the game's actions for them show under the list.` | Pause window, Players page: help line over a player's row (picking it shows the game's actions for that player under the list) | - |
 | `UI_ZeD_MMHelp_Invite` | `Invite: ask a friend to join through Steam.` | Pause menu (in game, on a server): help line over the big Invite button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_InviteAllow` | `Allow or deny: whether this friend may join your game.` | Pause window, Invite page on a co-op host: help line over the Allow / Deny button | - |
 | `UI_ZeD_MMHelp_ModRow` | `Click a mod to see it. Click it again, or use its box, to turn it on or off.` | Mod manager: help line over a mod's row, shown for the mouse only | - |
 | `UI_ZeD_MMHelp_JoinRow` | `Click a server or an account to choose it. Click it again to connect.` | Join screen: help line over a server or account row, shown for the mouse only | - |
 | `UI_ZeD_MMHelp_TownRow` | `Click a town to see it on the map. Click it again to go on.` | Spawn location screen (new game): help line over a town's row, shown for the mouse only | - |
@@ -2114,6 +2122,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_MMWord_DiscardChanges` | `Discard changes` | Main menu screens (Options, Mod manager, Server settings, Workshop, description editor): the danger answer to the question about leaving with unsaved changes (shown in sentence case) | 18 |
 | `UI_ZeD_MMWord_UndoChanges` | `Undo changes` | Mod manager, bottom strip: button that puts the mod list back as it was when the window opened (shown in sentence case) | 16 |
+| `UI_ZeD_MM_NoPlayers` | `No other players are on the server.` | Pause window, Players page, and the map mark's Sharing card: in place of the list when nobody else is on the server | - |
+| `UI_ZeD_MM_NoFriends` | `No Steam friends to show.` | Pause window, Invite page: in place of the list when Steam gives no friends | - |
 
 ## Modal
 
@@ -4134,6 +4144,10 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Settings_Identity` | `Identity card` | ZeD setup: a setting's name, or the help line under it (Tip) | 23 |
 | `UI_ZeD_Settings_IdentityTip` | `The Identity tab's card. Immersive: the Kentucky license. Simple: ZeD's own rows with the same facts.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
 | `UI_ZeD_Settings_Immersive` | `Immersive` | ZeD setup: a setting's name, or the help line under it (Tip) | 15 |
+| `UI_ZeD_Srv_HelpOptionsCard` | `The server's settings, to read. They change only on the server.` | Server tab, the server options card: its help line | - |
+| `UI_ZeD_Srv_HelpOptionsChange` | `Change: the game's own window for changing the server's settings.` | Server tab, the server options card, for staff who may change options: help line over Change (begins with the button's name) | - |
+| `UI_ZeD_Srv_OptionsGone` | `The server's settings can't be read right now.` | Server tab, the server options card: the line when the options cannot be read and the card closes | - |
+| `UI_ZeD_Srv_Saving` | `The server is saving the game. Please wait.` | The note at the top of the screen while the server saves (in place of the game's pop-up) | 60 |
 | `UI_ZeD_Tk_KindTicket` | `Ticket` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
 | `UI_ZeD_Tk_ToastHead` | `Ticket` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
 | `UI_ZeD_Tk_NoteAnswered` | `%2 answered your ticket #%1.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 42 |
@@ -5209,3 +5223,8 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Log_T_RepClosed` | `closed the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 49 |
 | `UI_ZeD_Log_T_RepSpam` | `marked the report on %1 as spam, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
 | `UI_ZeD_Log_T_RepDeleted` | `deleted the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 50 |
+| `UI_ZeD_Left_Title` | `Disconnected` | Kicked or disconnected screen: the window's title | 24 |
+| `UI_ZeD_Left_Banned` | `You were banned from the server.` | Kicked or disconnected screen: the heading for a ban (the game's own reason shows under it) | - |
+| `UI_ZeD_Left_Kicked` | `You were kicked from the server.` | Kicked or disconnected screen: the heading for a kick (the game's own reason shows under it) | - |
+| `UI_ZeD_Left_Lost` | `The connection to the server ended.` | Kicked or disconnected screen: the heading for any other end of the connection (the game's own reason shows under it) | - |
+| `UI_ZeD_Left_HelpExit` | `Exit: back to the main menu's desk.` | Kicked or disconnected screen: help line over the game's Quit to menu button | - |

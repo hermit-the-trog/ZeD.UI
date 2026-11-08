@@ -3,7 +3,7 @@
 -- THE SERVER TAB (the director's multiplayer decisions, Nov 5 2026: ZeDUI/MP_DECISIONS.md, section 1)
 -- "You on this server", in the Character window, only on a server (in single player the tab is not there):
 --   SERVER     the server's name, the message of the day and The rules (a row that opens their card, ZeD_CommunityCards.lua, on
---              a server with that part), the players on it, your role; the server options to read (the game's window)
+--              a server with that part), the players on it, your role; the server options to read (a card: OPTIONS below)
 --   PVP        while the server's safety system is on: PvP on or off, the seconds left while it switches, a
 --              non-PvP zone; the switch (the game's own toggle, ISEquippedItem:toggleSafety, with its log line)
 --   PLAYERS    who is on the server (the game's scoreboard, asked again every few seconds while the tab shows)
@@ -115,14 +115,15 @@ end
 S.pvpState = pvpState
 
 -- ---------------------------------------------------------------------------
--- WHAT THE TAB'S BUTTONS OPEN: the game's options window, as its user panel opens it, and ZeD's cards
+-- WHAT THE TAB'S BUTTONS OPEN: ZeD's cards, and the game's options window for staff who change options
 -- ---------------------------------------------------------------------------
 local OPEN = {}
-function OPEN.options(p)
+function OPEN.gameOptions(p)
     if ISServerOptions and ISServerOptions.instance then ISServerOptions.instance:close() end
     local ui = ISServerOptions:new(50, 50, 800, 800, p)
     ui:initialise(); ui:addToUIManager()
 end
+function OPEN.options(p, win) S.openOptions(win, win._serverTab) end
 function OPEN.faction(p, win) ZeD.ClaimCards.openFaction(win, win._serverTab) end
 function OPEN.claim(p, win) ZeD.ClaimCards.claim(win, win._serverTab) end
 function OPEN.ask(p, win) ZeD.TicketCards.openAsk(win, win._serverTab) end
@@ -148,6 +149,130 @@ local function head(L, text, count) add(L, { k = "head", text = text, count = co
 local function row(L, label, value, dot) add(L, { k = "row", label = label, value = value, dot = dot }) end
 local function line(L, text) add(L, { k = "line", text = text }) end
 local function btn(L, id, text, help, disabled) add(L, { k = "btn", id = id, text = S.btnWords(text), help = help, disabled = disabled }) end
+
+-- ---------------------------------------------------------------------------
+-- OPTIONS (ZeDUI/VANILLA_WINDOWS_20261107.md, C2): the server's options to read, a card on the tab's frame in place of the
+-- game's ISServerOptions. The game's own list: ServerOptions:getPublicOptions(), by name as its window sorts them, each
+-- value as its window shows it (an enum's own words; on and off as the game's Yes and No). Staff who may change options
+-- (ChangeAndReloadServerOptions) get the game's own window from the card's foot: changing stays the game's.
+-- ---------------------------------------------------------------------------
+local OPTS_EVERY = 5000      -- ms: the card reads the options again this often (the server can reload them)
+
+function S.optionValue(o)
+    local typ = safe(function() return o:getType() end, "")
+    if typ == "boolean" then
+        local v = safe(function() return o:getValueAsString() end, "")
+        return getText((v == "true") and "UI_Yes" or "UI_No")
+    end
+    if instanceof(o, "EnumConfigOption") then
+        local w = safe(function() return o:getValueTranslationByIndex(o:getValue()) end, nil)
+        if w then return tostring(w) end
+    end
+    return tostring(safe(function() return o:getValueAsString() end, ""))
+end
+
+function S.optionRows()
+    local so = ServerOptions and safe(function() return ServerOptions.getInstance() end, nil)
+    if not so then return nil end
+    local names = safe(function() return so:getPublicOptions() end, nil)
+    if not names then return nil end
+    local out = {}
+    for i = 0, safe(function() return names:size() end, 0) - 1 do
+        local n = tostring(names:get(i))
+        local o = safe(function() return so:getOptionByName(n) end, nil)
+        if o then out[#out + 1] = { name = n, value = S.optionValue(o) } end
+    end
+    table.sort(out, function(a, b) return a.name:lower() < b.name:lower() end)
+    return out
+end
+
+-- the card's rows, read again every OPTS_EVERY; gen bumps when they change
+function S.optionsData(card)
+    local t = getTimestampMs()
+    if not card.rows or t - (card.readAt or 0) >= OPTS_EVERY then
+        card.readAt = t
+        local rows = S.optionRows()
+        local sig = nil
+        if rows then
+            local parts = {}
+            for i, r in ipairs(rows) do parts[i] = r.value end
+            sig = table.concat(parts, "|")
+        end
+        if sig ~= card.sig then card.sig, card.rows, card.gen = sig, rows, (card.gen or 0) + 1 end
+    end
+    return card.rows
+end
+
+function S.openOptions(win, st)
+    if not (win and st) then return end
+    ZeD.TicketCards._D.push(win, st, { kind = "srvopts", from = "srv:options" })
+end
+
+-- from the Admin tab's More tools (AdminTab.lua) or anywhere else: the Server tab opens, and its next frame opens the card.
+-- False when the tab cannot open
+function S.openOptionsFor(p)
+    if not (p and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab) then return false end
+    if not ZeD_CharacterWindow.openTab(p:getPlayerNum(), TAB_ID) then return false end
+    S.openNext = "options"
+    return true
+end
+
+-- srvopt: an option's name and its value, the value at the right, or under the name when the two will not fit on a line.
+-- A stop with nothing to press, so the controller can step down the list to read it
+ZeD.TicketCards.items.srvopt = {
+    layout = function(win, it, w)
+        local T, tm = ZeD.T, ZeD.TM
+        local f1h, f2h = tm:getFontHeight(T.fontF1), tm:getFontHeight(T.fontF2)
+        if it.wrapW ~= w then
+            it.wrapW = w
+            local nw, vw = tm:MeasureStringX(T.fontF1, it.label), tm:MeasureStringX(T.fontF2, it.value)
+            it.under = nw + px(16) + vw > w
+            it.lines = it.under and ZeD.TicketCards._D.wrap(it.value, T.fontF2, math.max(1, w - px(12))) or { it.value }
+        end
+        if it.under then return f1h + #it.lines * f2h + px(6) end
+        return math.max(f1h, f2h) + px(6)
+    end,
+    draw = function(panel, win, t, it, x, dy, w, mx, my, ctx)
+        local T = ZeD.T
+        local tm = ZeD.TM
+        local D = ZeD.TicketCards._D
+        local onF = D.mark(panel, x, dy, w, it.h, D.focusOf(win, ctx.prefix .. it.c.id))
+        local lc = onF and T.textOnFocus or T.textHead
+        local vc = onF and T.textOnFocus or T.text
+        local f1h, f2h = tm:getFontHeight(T.fontF1), tm:getFontHeight(T.fontF2)
+        panel:drawText(it.label, x, dy + px(3), lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+        if it.under then
+            for i, s in ipairs(it.lines or {}) do
+                panel:drawText(s, x + px(12), dy + px(3) + f1h + (i - 1) * f2h, vc.r, vc.g, vc.b, vc.a or 1, T.fontF2)
+            end
+        else
+            local vw = tm:MeasureStringX(T.fontF2, it.value)
+            panel:drawText(it.value, x + w - vw, dy + px(3) + math.floor((f1h - f2h) / 2), vc.r, vc.g, vc.b, vc.a or 1, T.fontF2)
+        end
+        ZeD.Atoms.drawDividerH(panel, x, dy + it.h - T.hair, w, false)
+    end,
+    stops = function(it, x0, dy, w, add) add(it.c, x0, dy, w, it.h, it.y).promptA = false end,
+}
+
+ZeD.TicketCards.kinds.srvopts = {
+    data = function(card) return S.optionsData(card) end,
+    key = function(t, card) return tostring(card.gen or 0) end,
+    title = function() return S.btnWords(ZeD.btnCase(getText("IGUI_PlayerStats_ServerOptionTitle"))) end,
+    help = function() return tr("UI_ZeD_Srv_HelpOptionsCard") end,
+    gone = function() return tr("UI_ZeD_Srv_OptionsGone") end,
+    items = function(win, st, t, card, rows)
+        local items = {}
+        for _, r in ipairs(rows or {}) do items[#items + 1] = { k = "srvopt", label = r.name, value = r.value, c = { id = "opt:" .. r.name } } end
+        return items
+    end,
+    foot = function(win, st, t, card)
+        local p = win._playerObj
+        local can = p and safe(function() return p:getRole():hasCapability(Capability.ChangeAndReloadServerOptions) end, false)
+        if not can then return { main = {} } end
+        return { main = { ZeD.TicketCards._D.btn("optchange", S.btnWords(getText("IGUI_PlayerStats_Change")),
+            function(ww) local pp = ww._playerObj; if pp then OPEN.gameOptions(pp) end end, nil, tr("UI_ZeD_Srv_HelpOptionsChange")) } }
+    end,
+}
 
 local function build(p, win, st)
     local T = ZeD.T
@@ -244,6 +369,10 @@ function S.render(panel, win, x, y, w, h)
     TC.frameServer(win, st)
     ZeD.ClaimCards.frame(win, st)
     askPlayers()
+    if S.openNext == "options" then
+        S.openNext = nil
+        if not (st.card and st.card.kind == "srvopts") then S.openOptions(win, st) end
+    end
     if st.card then
         TC.renderCard(panel, win, st, x, y, w, h)
         return
