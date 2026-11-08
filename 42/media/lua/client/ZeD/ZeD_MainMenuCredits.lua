@@ -154,7 +154,7 @@ function ZeD_MMCredits:prerender()
     local vy, vh = by + T.px(1), bh - T.px(2)
     local total = self:layout(bw)
 
-    -- the roll: the titles enter at the bottom and leave at the top; it stops on the last line
+    -- the roll: the titles enter at the bottom and leave at the top; it stops with the last line halfway up the box
     local t = MM.now()
     local dt = self._t and math.min(0.1, (t - self._t) / 1000) or 0
     self._t = t
@@ -254,6 +254,8 @@ function ZeD_MMCredits:wheel(del)
 end
 function ZeD_MMCredits:onMouseWheel(del) return MM.wheel(del) end
 
+-- the wheel anywhere on the desk rolls the titles while Credits is up (each screen chains its view onto
+-- MM.wheel, which ZeD_MainMenuSaves.lua starts)
 local _wheel = MM.wheel
 function MM.wheel(del)
     if MM.view == "credits" and MM.root and MM.root.creditsWin then return MM.root.creditsWin:wheel(del) end

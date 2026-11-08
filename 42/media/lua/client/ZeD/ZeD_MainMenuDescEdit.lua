@@ -13,8 +13,14 @@
 -- cursor (the game's text boxes have no selection to wrap). Blocks move up
 -- and down and go away with their icon buttons. On the right the description
 -- the way Steam's page shows it, or as Steam's codes. The band counts the
--- characters against Steam's 8,000, undoes and redoes, and hands the text back
--- to the upload window (Use this description) or drops it (Cancel).
+-- characters against what the game leaves of Steam's 8,000, undoes and redoes,
+-- and hands the text back to the upload window (Use this description) or drops
+-- it (Cancel).
+--
+-- The upload window (ZeD_MainMenuWorkshop.lua) opens this view with
+-- MM.wsEditor = { text, title, limit, done }: Use this description (or Keep,
+-- when leaving asks) calls done with the new text, and either way the editor
+-- goes back to the "workshop" view, which keeps its form as it was.
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -26,7 +32,7 @@ local U  = MM.U
 local UI = MM.ui
 local BB = ZeD.BB
 
--- design units
+-- the palette's and the preview's shares of the body's width; the cards' measures in design units
 local PAL_SHARE, PREVIEW_SHARE = 0.2, 0.36
 local CARD_PAD, CARD_GAP, HEAD_H = 8, 8, 24
 
@@ -189,6 +195,7 @@ function ZeD_MMDescEdit:finish(keep)
     MM.showView("workshop")
 end
 
+-- Cancel, B, Escape and the close box: an open question is answered Cancel; text that changed asks first
 function ZeD_MMDescEdit:back()
     if self.confirm then self.confirm = false; self.focusId = nil; MM.clickSound(); return end
     if self:text() ~= BB.write(BB.parse(self.src and self.src.text or "")) then
@@ -301,8 +308,10 @@ local KIND_LABEL = { h1 = "UI_ZeD_DescEdit_KindHeading", h2 = "UI_ZeD_DescEdit_K
                      img = "UI_ZeD_DescEdit_KindPicture", quote = "UI_ZeD_DescEdit_KindQuote", code = "UI_ZeD_DescEdit_KindCode",
                      table = "UI_ZeD_DescEdit_KindTable", divider = "UI_ZeD_DescEdit_KindDivider", url = "UI_ZeD_DescEdit_KindLink",
                      spoiler = "UI_ZeD_DescEdit_KindSpoiler" }
+-- the how-to line under a picked block of these kinds
 local HOW = { list = "UI_ZeD_DescEdit_HowList", olist = "UI_ZeD_DescEdit_HowNumbered", table = "UI_ZeD_DescEdit_HowTable",
               url = "UI_ZeD_DescEdit_HowLink", img = "UI_ZeD_DescEdit_HowPicture" }
+-- the kinds whose words take the inline marks (bold, italic, underline, strike, link)
 local INLINE = { text = true, list = true, olist = true, quote = true, table = true, spoiler = true }
 
 function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
@@ -499,10 +508,12 @@ function ZeD_MMDescEdit:wheel(del)
     return false
 end
 function ZeD_MMDescEdit:onMouseWheel(del) return MM.wheel(del) end
+-- the desk's wheel scrolls the cards or the preview, whichever the pointer is over, while the editor is up
 local _wheel = MM.wheel
 function MM.wheel(del)
     if MM.view == "wsdesc" and MM.root and MM.root.wsdescWin then return MM.root.wsdescWin:wheel(del) end
     return _wheel(del)
 end
 
+-- on the desk as the "wsdesc" view; only the upload window opens it
 MM.addView("wsdesc", "wsdescWin", function() return ZeD_MMDescEdit:new() end)

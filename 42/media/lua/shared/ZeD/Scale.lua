@@ -1,23 +1,31 @@
+-- ZeD-UI/42/media/lua/shared/ZeD/Scale.lua
 -- ============================================================================
--- ZeD.Scale — the root scale of the whole UI (S124, true scaling, phase 1)
+-- ZeD.Scale — the root scale of the whole UI, the layer under the tokens
 -- ============================================================================
--- Director's rule (Oct 13 2026): the UI adapts to the resolution by itself;
--- the engine's font-size option is only an extra multiplier on top.
+-- The rule: the UI adapts to the resolution by itself; the engine's font-size
+-- option is only an extra multiplier on top.
 --
 -- Design base: a 1920x1080 screen is 1.0. Every layout number in ZeD is a
 -- DESIGN UNIT (1 unit = 1 px at 1080p); multiply by ZeD.Scale.root() at draw
 -- time (ZeD.Scale.px does that with rounding). A 4K screen lands at 2.0, 1440p
 -- at 1.33, a 720p window at 0.75 (clamped).
 --
--- Text: the engine draws any font at any zoom (ISUIElement:drawTextZoomed,
--- Q138) and distance-field atlases stay crisp (Q139). ZeD.Text wraps that so
--- organisms never touch UIFont sizes directly: zoom = root scale, width =
--- MeasureStringX * zoom.
+-- Text: the engine draws any font at any zoom (ISUIElement:drawTextZoomed) and
+-- distance-field atlases stay crisp. ZeD.Text wraps that so organisms never
+-- touch UIFont sizes directly: zoom = root scale, width = MeasureStringX * zoom.
+-- The one thing to know before touching it: this file also replaces the global
+-- getTextManager with ZeD.TM (at the bottom), so every measure of a ZeD role
+-- font, vanilla's included, comes back zoomed.
+--
+-- Shared: this file loads on the client and on a dedicated server alike, so
+-- nothing client-only at file scope. A server process loads no fonts, and
+-- X.noFonts (below) keeps the font work off there.
 --
 -- QA: ZeD.Scale.override = 1.0 / 1.333 / 2.0 forces the root scale; call
 -- ZeD.Scale.refresh() afterwards (or wait a second).
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Scale = ZeD.Scale or {}
 local S = ZeD.Scale
@@ -33,16 +41,17 @@ S.userScale = S.userScale or nil
 -- Engine font-size option. getOptionFontSize() is the options combo's own
 -- 1-based index: 1 = 16px, 2 = 19px, 3 = 26px, 4 = 33px, 5 = 38px,
 -- 6 = "Scale with window height" (the game's default). It does not touch ZeD
--- fonts (Q140), so it becomes the user's taste knob. 19px (the rig's setting,
--- where the approved look was tuned), 26px and the adaptive choice are
--- neutral; 16px shrinks the UI a step, 33px and 38px grow it. (Until Oct 20
--- 2026 this table was keyed 0..5, so every fixed size read the step above it
--- and 38px fell back to neutral.)
+-- fonts, so it becomes the player's taste knob. 19px (the setting the look was
+-- tuned at), 26px and the adaptive choice are neutral; 16px shrinks the UI a
+-- step, 33px and 38px grow it. Keyed 1..6 to match the combo: keyed 0..5,
+-- every fixed size would read the step above it and 38px would fall back to
+-- neutral.
 S.USER_MUL = { [1] = 0.85, [2] = 1.0, [3] = 1.0, [4] = 1.15, [5] = 1.3, [6] = 1.0 }
 
 S._root = nil
 S._tick = 0
 
+--- the engine font-size option's multiplier (USER_MUL), 1.0 when it can't be read
 function S.userMul()
     local ok, opt = pcall(function() return getCore():getOptionFontSize() end)
     if ok and opt ~= nil and S.USER_MUL[opt] then return S.USER_MUL[opt] end
@@ -50,15 +59,15 @@ function S.userMul()
 end
 
 -- ---------------------------------------------------------------------------
--- THE UI SCALE CAP (Oct 31 2026, punch list 39). The director: "NO ONE IS EVER
--- GOING TO PLAY AT 2X on 720p. It's way too big to fit more than 5 words." His
--- pick: cap the UI scale to what fits. On a small screen ZeD setup's UI scale
--- slider stops at the largest step whose windows still fit; Auto stays the default.
+-- THE UI SCALE CAP. Nobody plays at 2x on a 720p screen: the windows are too big
+-- to fit more than a few words. So the UI scale is capped to what fits: on a small
+-- screen ZeD setup's UI scale slider stops at the largest step whose windows still
+-- fit; Auto stays the default.
 --  1. A fixed step FITS when, at that step times the text size's multiplier
 --     (Large: 1.15 on every T.px), one window at its narrowest useful width fits in
 --     half the screen's width (both windows are capped there): the tab strip 36 +
---     the inventory's minimum beside a full card 180 (Nov 1 2026, punch list 42 a.:
---     alone it keeps 200, beside a full card it gives way to 180) + the full card 480 +
+--     the inventory's minimum beside a full card 180 (alone it keeps 200; beside a
+--     full card it gives way to 180) + the full card 480 +
 --     the container strip 36 = 732 units. And the screen's height holds the windows' minimum useful height:
 --     the title bar (26 units, Large 30, root scale only, as Tokens' SP() sizes it)
 --     + a tab strip of 6 tabs (6 x 36) + the help line (22). The engine font-size
@@ -85,6 +94,7 @@ S.FIT_TAB_U   = 36
 S.FIT_HELP_U  = 22
 S.FIT_STEPS   = { 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0 }   -- (Settings.lua's fixed steps)
 
+--- the screen's width and height in px; 1920 x 1080 when the game can't say
 function S.screenSize()
     local w, h = 1920, S.BASE_H
     pcall(function() w = getCore():getScreenWidth(); h = getCore():getScreenHeight() end)
@@ -93,7 +103,7 @@ function S.screenSize()
     return w, h
 end
 
--- What Auto picks for a screen this tall: the height over the base, clamped, times the font-size knob.
+--- What Auto picks for a screen this tall: the height over the base, clamped, times the font-size knob.
 function S.autoScale(h)
     local r = (h or S.BASE_H) / S.BASE_H
     if r < S.MIN then r = S.MIN elseif r > S.MAX then r = S.MAX end
@@ -107,7 +117,7 @@ local function textSizeFit()
     return (sz and sz.scale) or 1, (sz and sz.titleBarH) or 26
 end
 
--- Does fixed step v fit a w x h screen (rule 1)?
+--- Does fixed step v fit a w x h screen (rule 1)? w and h default to this screen
 function S.stepFits(v, w, h)
     if not (w and h) then w, h = S.screenSize() end
     local k, titleU = textSizeFit()
@@ -116,7 +126,7 @@ function S.stepFits(v, w, h)
     return titleU * v + (S.FIT_TABS * S.FIT_TAB_U + S.FIT_HELP_U) * sc <= h
 end
 
--- The largest fixed step offered on this screen (rule 2).
+--- The largest fixed step offered on this screen (rule 2).
 function S.fitCap(w, h)
     if not (w and h) then w, h = S.screenSize() end
     local auto = S.autoScale(h)
@@ -128,22 +138,23 @@ function S.fitCap(w, h)
     return cap or S.MAX
 end
 
--- true when fixed step v is above this screen's cap (dimmed and inert in the menus).
+--- true when fixed step v is above this screen's cap (dimmed and inert in the menus).
 function S.stepTooBig(v)
     return type(v) == "number" and v > S.fitCap() + 1e-6
 end
 
--- The smallest fixed step offered (the director, Nov 2 2026, punch list 58: 0.5x did not look right at scale, so it
--- is not offered in the beta; bring it back after the beta for players who want smaller windows). The step stays in
--- the list, because combos save by position: a saved 0.5 draws at the floor and keeps its saved value.
+-- The smallest fixed step offered: 0.5x does not look right at scale, so it is not offered in the beta. The step
+-- stays in the list, because combos save by position: a saved 0.5 draws at the floor and keeps its saved value.
+-- TODO: offer 0.5 again after the beta, for players who want smaller windows.
 S.STEP_FLOOR = 0.75
+--- true for a step below the floor: kept in the list, not offered
 function S.stepRetired(v)
     return type(v) == "number" and v < S.STEP_FLOOR - 1e-6
 end
 
--- Raw computation: screen height over the base, clamped, times the user knob.
--- A fixed step above the cap draws at the cap (S.userScale itself is left as saved).
--- (S.computeGame is the game's scale; S.compute below adds the main menu's clamp.)
+--- Raw computation: screen height over the base, clamped, times the user knob.
+--- A fixed step above the cap draws at the cap (S.userScale itself is left as saved).
+--- (S.computeGame is the game's scale; S.compute below adds the main menu's clamp.)
 function S.computeGame()
     if S.override then return S.override end
     if S.userScale then
@@ -161,8 +172,7 @@ function S.computeGame()
 end
 
 -- ---------------------------------------------------------------------------
--- THE MAIN MENU'S SCALE (Nov 1 2026, the director's pick on Design's
--- HANDOFF_small_screens_20261029.md, section 2; punch list 48). While the desk is up
+-- THE MAIN MENU'S SCALE. While the desk is up
 -- and no game is loaded the root is at least 1.0, so the menu's type meets Valve's
 -- readable size on a Steam Deck, and at most sMax / 4, where sMax is the largest whole
 -- multiple of the desk picture whose monitor (240 x 180 px) fits the screen: 4 on a Deck
@@ -174,11 +184,13 @@ end
 -- ---------------------------------------------------------------------------
 S.menuUp = S.menuUp or nil
 S.MENU_TUBE_W, S.MENU_TUBE_H = 240, 180
+--- the main menu's largest root scale on a w x h screen (this screen by default): sMax / 4
 function S.menuMax(w, h)
     if not (w and h) then w, h = S.screenSize() end
     local sMax = math.max(1, math.floor(math.min(w / S.MENU_TUBE_W, h / S.MENU_TUBE_H)))
     return sMax / 4
 end
+--- the root scale as it stands now: the game's, clamped while the main menu is up
 function S.compute()
     local r = S.computeGame()
     if S.override then return r end
@@ -190,21 +202,21 @@ function S.compute()
     return r
 end
 
--- Cached root scale (recomputed every 30 ticks, on resolution change, and on refresh()).
+--- Cached root scale (recomputed every 30 ticks, on resolution change, and on refresh()).
 function S.root()
     if S._root == nil then S._root = S.compute() end
     return S._root
 end
 
+--- work the root scale out again now, and return it
 function S.refresh() S._root = S.compute(); return S._root end
 
--- Design units -> screen pixels (rounded).
+--- Design units -> screen pixels (rounded).
 function S.px(v) return math.floor(v * S.root() + 0.5) end
 
 -- ---------------------------------------------------------------------------
--- Even at every step (director, Oct 21 2026: keep the in-between scales and make
--- the UI crisp at any of them). Text and layout keep the exact scale; three
--- things snap to whole pixels:
+-- EVEN AT EVERY STEP: the in-between scales stay, and the UI is crisp at any of
+-- them. Text and layout keep the exact scale; three things snap to whole pixels:
 --   * pixel art draws at a whole zoom, the nearest whole number to the scale
 --     (1.75 -> 2, 1.25 -> 1, exactly .5 rounds up), and the layout around a
 --     prop uses the size it is drawn at;

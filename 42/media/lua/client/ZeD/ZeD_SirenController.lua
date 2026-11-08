@@ -1,15 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SirenController.lua
 -- ============================================================================
--- THE SIREN CONTROLLER, UP CLOSE — vanilla's ISLightbarUI as a 1993 prop
--- Mockup ZeDUI/mockups/zed_seats_lightbar_v1.html (director, Oct 15 2026:
--- "lightbar is cool, better than the plain version", then "build both").
--- HOOK_MAP row 4; the hook is Overrides/Seats.lua (ISLightbarUITimedAction).
+-- THE SIREN CONTROLLER, UP CLOSE — vanilla's ISLightbarUI as a 1993 prop.
+-- Client organism (ZeD_SirenController, an ISPanel). The hook is
+-- Overrides/Seats.lua (ISLightbarUITimedAction).
 --
 -- The police dash's own siren controller brought up close, in the dashboards'
--- pixel art (director, Oct 16 2026; the plate in PhysPx.lua, drawn by the
--- shared plate template ZeD_Plate.lua): two rotary switches, LIGHTS (OFF 1 2
--- 3) and SIREN (STANDBY YELP WAIL ALARM, printed on the panel), their pointers
--- and pilot lamps live. It rises above the dash's console, so the car and its
+-- pixel art (the plate in PhysPx.lua, drawn by the shared plate template
+-- ZeD_Plate.lua): two rotary switches, LIGHTS (OFF 1 2 3) and SIREN (STANDBY
+-- YELP WAIL ALARM, printed on the panel), their pointers and pilot lamps
+-- live. It rises above the dash's console, so the car and its
 -- bar stay in view; with no dash it sits above the bottom of the player's
 -- screen. The wheel's Lightbar slice opens and closes it; leaving the car,
 -- Escape or B puts it away.
@@ -18,7 +17,8 @@
 -- the wheel turns it. Controller: left / right picks a switch (a ring round
 -- its knob), up / down turns it, A steps it, B puts it away. Every change is
 -- vanilla's own command (setLightbarLightsMode / setLightbarSirenMode) with
--- vanilla's sounds, so it works the same in multiplayer.
+-- vanilla's sounds, so it works the same in multiplayer. With the simple dash
+-- it is a plain card instead (THE SIMPLE FORM, below).
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -203,8 +203,8 @@ function ZeD_SirenController:prerender()
 end
 
 -- ---------------------------------------------------------------------------
--- THE SIMPLE FORM (the director, Nov 2 2026, punch list 60; ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): with the simple
--- dash, a plain card in ZeD's own parts where the prop rises. The two switches side by side, LIGHTS left and SIREN
+-- THE SIMPLE FORM: with the simple dash (ZeD setup's "Dashboard" row), a plain card in ZeD's own parts where the
+-- prop rises. The two switches side by side, LIGHTS left and SIREN
 -- right as on the panel: each its name as a button (the knob: a press steps it), then its four positions as buttons
 -- with the highest at the top (up turns it up), the one it is at in the primary look. The click areas carry the
 -- plate's ids ("lights:knob", "siren:2"), so the mouse, the wheel and the controller work as on the prop; the
@@ -218,7 +218,7 @@ local function modeWord(group, m)
     if group == "lights" then return (m == 0) and ZeD.tr("UI_Off") or tostring(m) end
     return ZeD.textCase(ZeD.tr(SIREN_KEYS[m] or SIREN_KEYS[0]))
 end
-S.modeWord = modeWord   -- (QA probes)
+S.modeWord = modeWord   -- (for the test scripts' probes)
 
 local PLAIN_COL_W, PLAIN_PAD, PLAIN_GAP = 104, 8, 4
 local _btnO, _markO = {}, { focused = true }
@@ -306,7 +306,7 @@ function ZeD_SirenController:update()
     ISPanel.update(self)
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     local jf = (jd and jd.focus == self) and jd or nil
-    if S.qaJoy then jf = S.qaJoy end
+    if S.qaJoy then jf = S.qaJoy end   -- (for the test scripts: the controller look without a controller)
     self.joyfocus = jf
     local h = self:hitAt(self:getMouseX(), self:getMouseY())
     if S.qaPoint then h = { id = S.qaPoint } end
@@ -331,6 +331,7 @@ function ZeD_SirenController:onJoypadDirDown() self:step(gid(self), -1) end
 -- ---------------------------------------------------------------------------
 -- ENTRY (the wheel's Lightbar slice, through vanilla's timed action)
 -- ---------------------------------------------------------------------------
+--- bring the controller up for the character's car, or put it away when it is up; nothing in a car without a lightbar
 function S.toggle(character)
     if not character then return end
     local pn = character:getPlayerNum()
@@ -352,7 +353,7 @@ function S.toggle(character)
     if JoypadState.players[pn + 1] then setJoypadFocus(pn, prop) end
 end
 
--- Escape (the prompts' key hook asks): the controller on screen goes away
+--- Escape (the prompts' key hook asks): the controller on screen goes away; true when one did
 function S.takeEscape()
     for _, p in pairs(S.props) do
         if p and p:isReallyVisible() then p:close(); return true end

@@ -2,7 +2,7 @@
 -- ============================================================================
 -- WHICH MOD MADE WHICH OPTIONS, so the Mods screen can show a mod's own
 -- settings in its info when the mod is picked from the list. Shared, and a wrap
--- on two of vanilla's functions: PZAPI.ModOptions create and load.
+-- on two of vanilla's functions: PZAPI.ModOptions create and load. Pure ASCII.
 --
 -- A mod makes its options with PZAPI.ModOptions:create(id, name), and the id is
 -- the mod's own choice: in a sample of 114 Workshop mods with options, only 47
@@ -143,6 +143,8 @@ local function watchModOptions(mo)
     end })
 end
 
+-- watch PZAPI for ModOptions: already there, it is watched now; otherwise the moment vanilla sets it. A PZAPI with a
+-- metatable of its own is left alone
 pcall(function()
     PZAPI = PZAPI or {}
     if rawget(PZAPI, "ModOptions") then watchModOptions(PZAPI.ModOptions); return end
@@ -154,16 +156,18 @@ pcall(function()
 end)
 
 -- ----------------------------------------------------------------------------
+--- the mod id that made these options, or nil when nobody was seen making them
 function O.ownerOf(optionsId)
     return O.byId[tostring(optionsId)]
 end
 
+--- an option's value as its mod declared it, before the saved values were read; nil if never noted
 function O.default(optionsId, optionId)
     local d = O.defaults[optionsId]
     return d and d[optionId]
 end
 
--- a mod's options objects: the ones it made, else (not seen being made) one named like the mod
+--- a mod's options objects, in vanilla's order: the ones it made, else (not seen being made) one named like the mod
 function O.forMod(modId)
     local out = {}
     local mo = PZAPI and PZAPI.ModOptions

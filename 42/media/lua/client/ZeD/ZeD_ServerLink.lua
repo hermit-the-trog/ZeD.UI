@@ -17,8 +17,7 @@
 -- Hello goes out at every OnCreatePlayer, a respawn included. send reads getPlayer() at each call: the object from
 -- before a death is not the one to hand sendClientCommand. A caller acting for one split-screen player hands that
 -- player (send's fourth argument): the game sends the player's index with the command (GameClient.sendClientCommand,
--- checked on 42.21), so the server sees that player, not the first (the dash's miles ask goes this way; without it a
--- second player's car would be asked about as the first player's).
+-- checked on 42.21), so the server sees that player, not the first (the dash's miles ask goes this way).
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -37,6 +36,8 @@ local round = nil                    -- { at = when it started, sent = how many 
 
 local function now() return getTimestampMs() end
 
+--- a command to the server (module, command, args); player: the split-screen player it is for, else getPlayer().
+--- False when it could not go (single player, no player).
 function S.send(module, command, args, player)
     if not isClient() then return false end
     local p = player
@@ -46,19 +47,21 @@ function S.send(module, command, args, player)
     return true
 end
 
+--- the server part answered (and the test switch forceOff is off)
 function S.available() return S.present == true and not S.forceOff end
 
--- the same question again, now (a perm answer: this player's role may have changed)
+--- the same question again, now (a perm answer: this player's role may have changed)
 function S.hello()
     local ok = S.send(Tk.MOD_LINK, "hello", { v = Tk.PROTO })
     if ok then S.helloAt = now() end
     return ok
 end
 
+--- the server's commands for a module go to fn(command, args)
 function S.on(module, fn) S.routes[module] = fn end
 
 -- THE JOIN RULES ANSWERED. Until a player asked at joining agrees, the server refuses every ZeD command but the hello (Srv.gates.rules),
--- so whatever a part asked for meanwhile came back "perm" or not at all. Once the server takes the agreement, each part asks again:
+-- so whatever a part asked for meanwhile comes back "perm" or not at all. Once the server takes the agreement, each part asks again:
 -- the hello goes out (tickets, admin, extras and community fill from it) and every part's own hook runs (S.onAgreed). agreedN counts
 -- the agreements, for a part that keeps no hook (a dash per car compares it)
 S.agreeHooks = S.agreeHooks or {}
@@ -66,7 +69,9 @@ S.agreedN = S.agreedN or 0
 -- past HELLO_MS, the wait before the hello goes again: the server times the gap by when each hello arrives, and one that left on
 -- time but landed early through network jitter would be refused with nothing said
 S.HELLO_MARGIN_MS = 1000
+--- a part's hook for the rules agreed (one per name: a reload replaces it rather than adding another)
 function S.onAgreed(name, fn) S.agreeHooks[name] = fn end
+--- the server took the agreement: the hello goes again (now, or when the server's gap allows) and every hook runs
 function S.agreed()
     S.agreedN = S.agreedN + 1
     -- (the server answers one hello a HELLO_MS: one sent sooner after the last is refused, so it waits for its turn, the tick sends it)

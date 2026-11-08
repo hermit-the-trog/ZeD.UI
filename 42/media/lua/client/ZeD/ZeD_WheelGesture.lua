@@ -1,23 +1,25 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_WheelGesture.lua
 -- ============================================================================
--- HOW THE WHEELS ARE WORKED (punch list 91; ZeDUI/RADIAL_WHEELS_SPEC.md, which
--- changes how the wheels of DPAD_WHEELS_SPEC.md are worked, not what is on them)
+-- HOW THE WHEELS ARE WORKED - client; the controller gesture behind ZeD's
+-- D-pad wheels and the Select wheel. It changes how the wheels of
+-- ZeD_DpadWheels.lua are worked, not what is on them.
 --
 -- Tap a D-pad direction (or Select) and the wheel stays up on its own. The left
 -- stick keeps walking. The right stick's angle highlights a slice past the
 -- engage radius; when it drops under the release radius the slice highlighted
 -- on the last frame above it fires. The same direction or B cancels, another
 -- direction swaps, a wheel nobody points at closes by itself. Three other ways
--- of working it come from ZeD setup: Hold (today's: up while the direction is
--- held), Stick click (R3 fires) and Toggle mode (the stick or the D-pad moves
--- the highlight, A takes, no timer).
+-- of working it come from ZeD setup: Hold (the game's own way: up while the
+-- direction is held), Stick click (R3 fires) and Toggle mode (the stick or the
+-- D-pad moves the highlight, A takes, no timer).
 --
 -- One table per player in D.state; the slices stay ZeD_DpadWheels'. Polled on
 -- OnRenderTick, the event the game's own pad code runs on: OnTick stops while
--- paused, and Here and now and ZeD open while paused; a UI element's update()
--- runs only every 100 ms, too slow to catch a flick.
+-- paused, and the Here and now wheel (D-pad Down) and the ZeD wheel (Select)
+-- open while paused; a UI element's update() runs only every 100 ms, too slow
+-- to catch a flick.
 --
--- WHAT THE GAME DOES WITH A WHEEL UP (read from the 42.22 code, Nov 5 2026):
+-- WHAT THE GAME DOES WITH A WHEEL UP (as B42.22's code has it):
 --   * The pad focus (joypadData.focus) is Lua's. Java hears of it through one
 --     place, updateJoypadFocus (JoyPadSetup): setPlayerButtonsActive false while
 --     anything has the focus, setJoypadIgnoreAim from the focus's ignoreAim
@@ -58,9 +60,10 @@
 --     the screen. removeFromUIManager is queued the same way: gone, it still
 --     reads as visible for the rest of the frame.
 --
--- Commit reads the latch, never the stick: on the release frame the stick is
--- springing through the center and its angle is noise. The latch is also what
--- ZeD.Wheel draws (menu._zedPoint), so what the player sees is what fires.
+-- Before touching it: a commit reads the latch, never the stick. On the release
+-- frame the stick is springing through the center and its angle is noise. The
+-- latch is also what ZeD.Wheel draws (menu._zedPoint), so what the player sees
+-- is what fires.
 -- ============================================================================
 
 require "ZeD/ZeD_Wheel"
@@ -114,7 +117,7 @@ end
 -- ---------------------------------------------------------------------------
 -- starting, levels and ending
 -- ---------------------------------------------------------------------------
--- a wheel opened (D.open): how it is worked, once per open
+--- A wheel opened (D.open): how it is worked, once per open.
 function G.begin(pn, st, menu)
     if G.live[pn] then G.finish(pn, G.live[pn]) end
     G.live[pn] = st
@@ -128,7 +131,7 @@ function G.begin(pn, st, menu)
     st.lastActive = st.openedAt
     -- a stick already over (aiming when the D-pad was tapped) has to come back first. Hold with Flick-release
     -- too: a slice lit on the first frame would fire as that stick went home, with nobody choosing it. Hold with
-    -- Stick click is today's: the stick can be out before the wheel is up.
+    -- Stick click stays classic: the stick can be out before the wheel is up.
     st.needCenter = (not st.held) or commit == "flick"
     st.restSince = 0       -- (no flick to spring back from yet: a stick under engage at the open is already home)
     local jd = JoypadState.players[pn + 1]
@@ -140,7 +143,7 @@ function G.begin(pn, st, menu)
     st.trigHeld = G.trigger(pn, jd)   -- (a trigger already down, aiming or driving, is no new press)
 end
 
--- a new ring on the wheel (in or out one level): nothing pointed, the stick back to the center first
+--- A new ring on the wheel (in or out one level): nothing pointed, the stick back to the center first.
 function G.level(st)
     st.latch, st.engaged = nil, false
     st.needCenter = true
@@ -149,7 +152,7 @@ function G.level(st)
     st.lastActive = getTimestampMs()
 end
 
--- the state is over, however it went: the shipped map back. Safe to call twice.
+--- The state is over, however it went: the shipped button map back. Safe to call twice.
 function G.finish(pn, st)
     if not st or st.done then return end
     st.done = true
@@ -290,7 +293,7 @@ function G.commit(pn, st, i, viaButton)
     cmd[1](cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7])
 end
 
--- aim or attack (the director): the wheel closes, nothing is taken, and the press goes through. The trigger is
+-- aim or attack: the wheel closes, nothing is taken, and the press goes through. The trigger is
 -- still down, so the two flags have to be off now, or the game holds the swing until the stick is centered.
 function G.attack(pn)
     D.close(pn)
@@ -334,7 +337,7 @@ local function bumperName(button)
     return nil
 end
 
--- the bumper held right now, for a chord assigned from the wheel: nil with both down (the zoom's)
+--- The bumper held right now, for a chord assigned from the wheel: nil with both down (the zoom's).
 function G.heldBumper(st, jid)
     local b = st.bump
     if b then
@@ -347,12 +350,12 @@ function G.heldBumper(st, jid)
     return nil
 end
 
--- a chord went on: this bumper's release does nothing
+--- A chord went on: this bumper's release does nothing.
 function G.noteAssign(st)
     if st.bump then st.bump.used = true end
 end
 
--- the slice the wheel has: the latch once the wheel runs on a stick, else the game's reading
+--- The slice the wheel has: the latch once the wheel runs on a stick, else the game's reading.
 function G.pointed(st, menu, id)
     if st.driven then return st.latch or -1 end
     return W.sliceFromJoypad(menu, id)
@@ -368,7 +371,7 @@ local function cruise(dir, jd)
     return false
 end
 
--- Hold is today's: A takes, B backs out, X closes, the D-pad does nothing. Stick click adds R3.
+-- Hold keeps the classic buttons: A takes, B backs out, X closes, the D-pad does nothing. Stick click adds R3.
 local function holdButton(pn, st, menu, button, jd)
     if button == Joypad.BButton then return D.back(pn) end
     if button == Joypad.XButton then return D.close(pn) end
@@ -379,6 +382,8 @@ local function holdButton(pn, st, menu, button, jd)
     end
 end
 
+--- A button pressed with this D-pad wheel up (its onJoypadDown, from ZeD_DpadWheels.lua): what it does
+--- depends on how the wheel is worked.
 function G.onButton(pn, st, menu, button, jd)
     local name = bumperName(button)
     if name then
@@ -419,7 +424,7 @@ function G.onButton(pn, st, menu, button, jd)
     -- A, X and Y do nothing, and go no further
 end
 
--- true: the release was the gesture's
+--- A button let go on a wheel (Overrides/Wheels.lua asks first): true when the release was the gesture's.
 function G.onRelease(menu, button)
     local st = menu._zedDpad
     local name = bumperName(button)
@@ -440,6 +445,7 @@ end
 -- the game repeats a held direction (JoypadControllerData:update): only the press itself opens a wheel,
 -- or B would close a wheel and the same held thumb would open it again
 local HELD_FOR = { left = "dtleft", right = "dtright", up = "dtup", down = "dtdown" }
+--- This direction's press is a new one, not the game's repeat of a held direction.
 function G.freshPress(dir, jd)
     local c = jd and jd.controller
     local dt = c and c[HELD_FOR[dir]]
@@ -540,7 +546,8 @@ local function step(pn, st)
     local ax, ay = G.stick(pn, jd)
     if not ax then st.driven = false; return end
     st.driven = true
-    -- a trigger pressed with a wheel up. In a vehicle the triggers are the pedals; Hold is today's.
+    -- a trigger pressed with a wheel up closes it and goes through (G.attack). Not in a vehicle, where the
+    -- triggers are the pedals, and not with Hold, which stays classic.
     if st.mode ~= "hold" then
         local tr = false
         if not p:getVehicle() then tr = G.trigger(pn, jd) end
@@ -568,20 +575,21 @@ end
 if Events and Events.OnRenderTick then Events.OnRenderTick.Add(frame) end
 
 -- ---------------------------------------------------------------------------
--- QA: every gesture with no pad (zedqa_dpad_wheels.lua, zedqa_quick_chords.lua)
+-- QA: every gesture with no pad, for the scripted checks in ZeDUI/tools/qa
+-- (zedqa_dpad_wheels.lua, zedqa_quick_chords.lua)
 -- ---------------------------------------------------------------------------
--- a simulated stick; nil gives the stick back
+--- A simulated stick; nil gives the stick back.
 function D.qaStick(pn, x, y)
     if x == nil then G.qa[pn] = nil else G.qa[pn] = { x = x, y = y or 0 } end
 end
--- the triggers down or up; nil gives them back
+--- The triggers down or up; nil gives them back.
 function D.qaTrigger(pn, down) G.qaTrig[pn] = down end
--- one frame now, so a script can play a flick frame by frame
+--- One frame now, so a script can play a flick frame by frame.
 function D.qaStep(pn)
     local st = D.state[pn]
     if st then step(pn, st) end
 end
--- a look at the state: nil with no wheel up
+--- A look at the state: nil with no wheel up.
 function D.gesture(pn)
     local st = D.state[pn]
     if not st then return nil end

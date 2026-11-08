@@ -472,6 +472,7 @@ function W.noteChoice(menu, slice)
     end
 end
 
+--- The wheel was cleared for new slices: a category's pending title lands, the rest starts over.
 function W.onClear(menu)
     if W._pendingFor == menu then
         menu._zedTitle = W._pendingTitle

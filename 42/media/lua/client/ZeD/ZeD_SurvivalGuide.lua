@@ -1,15 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SurvivalGuide.lua
 -- ============================================================================
--- THE SURVIVAL GUIDE (F1), the Simple look (ZeDUI/SURVIVAL_GUIDE_DRAFT.md; mockup
--- ZeDUI/mockups/zed_survival_guide_v7.html; director Nov 3 2026: "You are go for build").
+-- THE SURVIVAL GUIDE (F1), the Simple look. Client; an organism (a ZeD window), and the
+-- guide's shared parts on ZeD.Guide.
 --
--- A ZeD window in place of the game's guide (HOOK_MAP row 18): the game's sections and
+-- A ZeD window in place of the game's guide: the game's sections and
 -- topics on the left (Find at the top, sections that fold), the chosen topic on the right
 -- (its clip, the game's own text, and The Rules in Numbers where the game keeps rules in
 -- numbers), a band at the foot (the game's "Show the guide on startup", Previous, Next) and
--- the window's help line. Everything shown is read from the game: SurvivalGuideEntry for the
--- topics, text and clips; the game's own files for the numbers (the director's line, Nov 3:
--- the game's rules as numbers, never your world's secrets).
+-- the window's help line. The game's part is read from the game: SurvivalGuideEntry for the
+-- topics, text and clips; the game's own files and this world's settings for the numbers,
+-- the game's rules as numbers, never this world's secrets. ZeD's own chapters
+-- (ZeD_GuideChapters.lua) follow the game's.
+--
+-- Before touching a shared part: ZeD_SurvivalGuideBook.lua, the Full look, reads the topics,
+-- their words, the inline pictures, the two ways and the rules through ZeD.Guide, so a change
+-- here shows in both looks.
 --
 -- The game's behaviour is kept: F1 and the controller's Help wheel toggle it, it opens by
 -- itself on a new game while "Show the guide on startup" is ticked, the game pauses while it
@@ -42,8 +47,8 @@ local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
 -- (the game's measure leaves out spaces at the end of a string: measure them with a letter after)
 local function twFull(font, s) return tw(font, s .. "x") - tw(font, "x") end
--- the width a run takes on the line, for the fit test: the larger of the two measures (QA, Nov 3 2026: on a Thai line
--- ending in a vowel mark the "x" trick came out 2 px short of the run measured as drawn)
+-- the width a run takes on the line, for the fit test: the larger of the two measures (on a Thai line ending in a
+-- vowel mark the "x" trick comes out 2 px short of the run measured as drawn)
 local function twFit(font, s) return math.max(tw(font, s), twFull(font, s)) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
@@ -59,11 +64,9 @@ end
 -- ---------------------------------------------------------------------------
 -- THE GAME'S TOPICS (SurvivalGuideEntry, in the game's order)
 -- ---------------------------------------------------------------------------
--- A controller's button pictures in the game's text (<IMAGE:...XBOX_A.png...>) become the
--- button's name in brackets until the guide draws ZeD's own button pictures.
--- The game's text puts small pictures in its lines (<IMAGE:media/ui/...png,w,h>: a menu's icon, a
--- controller button). They become a marker (\1 path \1) that the reader passes through as text, and the
--- layout draws the picture in the line, a line's height square (QA, Nov 3 2026: "[Build_On_48]").
+-- The game's text puts small pictures in its lines (<IMAGE:media/ui/...png,w,h>: a menu's icon such as
+-- Build_On_48, a controller button such as XBOX_A.png). They become a marker (\1 path \1) that the reader passes
+-- through as text, and the layout draws the game's picture in the line, a line's height square.
 local MARK = "\1"
 local function inlineImages(s)
     return (s:gsub("<%s*[Ii][Mm][Aa][Gg][Ee]%s*:%s*([^,>]+)[^>]*>", function(path)
@@ -71,12 +74,14 @@ local function inlineImages(s)
     end))
 end
 
--- KEYS AND BUTTONS IN THE TEXT (the director, Nov 4 2026: the guide follows the device you use: your own keys on
--- a keyboard, that controller's buttons on a controller, Xbox, PlayStation, Nintendo or Steam Deck). ZeD fills the
--- game's %1 %2 ... itself (entryText below) with markers the layout draws in the line: "key:<name>" a key cap (the
--- key's name in a frame, as the controller strip draws a key), "pad:<role>" ZeD's own button picture in the set the
--- glyph setting picks (ZeD_PadGlyphs), any other path a picture from the game. One object per marker, kept.
+-- KEYS AND BUTTONS IN THE TEXT: the guide follows the device you use: your own keys on a keyboard, that
+-- controller's buttons on a controller (Xbox, PlayStation, Nintendo or Steam Deck). ZeD fills the game's %1 %2 ...
+-- itself (entryText below) with markers the layout draws in the line: "key:<name>" a key cap (the key's name in a
+-- frame, as the controller strip draws a key), "pad:<role>" ZeD's own button picture in the set the glyph setting
+-- picks (ZeD_PadGlyphs), any other path a picture from the game. One object per marker, kept.
 local _inl = {}
+--- What a marker's path stands for: { key = name }, { pad = { role } } or { tex = picture }; nil for a picture the
+--- game doesn't have.
 local function inlineTex(path)
     local o = _inl[path]
     if o == nil then
@@ -93,7 +98,7 @@ local function inlineTex(path)
     return o or nil
 end
 
--- an inline thing's width at a line height s
+--- An inline thing's width at a line height s.
 local function inlineW(o, s)
     if o.tex then return s end
     local T = ZeD.T

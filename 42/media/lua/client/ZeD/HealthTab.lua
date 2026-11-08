@@ -1,11 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/HealthTab.lua
 -- ============================================================================
--- HEALTH TAB — body figure + dashboard layout.
--- Zone A (fixed): body figure (left) + health summary or hover detail (right).
--- Zone B (scrollable): severity-sorted injury list with condition badges.
--- Adds BodyFigure, replaces flat list with figure+dashboard.
--- Footer band (Oct 30 2026, punch list 21): the exercise pop-up, the session time
--- and Start; the body's right column carries the picked exercise's description.
+-- HEALTH TAB — client; the Character window's Health tab ("health" in its
+-- tab dispatch table). Under a pinned header, whose disclosure folds the
+-- figure away, the body scrolls. Zone A: the body figure; beside it the health
+-- summary and the picked exercise's description, or the hovered or focused
+-- part's detail. Zone B: the injury list, worst first, with condition tags.
+-- The footer band is pinned: the exercise pop-up, the session time, Start.
+-- What the tab reveals follows vanilla's health panel at the viewer's First
+-- Aid level, and a part's treatment menu is vanilla's own. Other mods add
+-- wound details through EXTRAS; the medical check of another player
+-- (ObjectCardMedic.lua) reuses these pieces.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -40,7 +44,8 @@ local function focusOf(win, id)
 end
 
 -- ============================================================================
--- ANATOMICAL DISPLAY NAMES (medic-style per feedback rule)
+-- ANATOMICAL DISPLAY NAMES (medic-style: "Left Thigh", "Left Shin" where the
+-- figure says Upper / Lower Leg)
 -- Lazy-initialized on first use to ensure BodyPartType Java enum is available.
 -- ============================================================================
 
@@ -184,7 +189,7 @@ ZeD.HealthTab.sevColor = sevColor
 -- can miss; severity words ("Severe", "Moderate", "Good") appear only at the
 -- First Aid levels where vanilla's doctor can judge them. doctorLevel is the
 -- viewing character's First Aid level.
--- (Nov 7 2026) What the character knows without looking is marked care = true:
+-- What the character knows without looking is marked care = true:
 -- pain, stiffness and the care already given (bandage, stitches, splint,
 -- poultice). A mod that holds a part's diagnosis back (EXTRAS below: holds) keeps
 -- only those for the part.
@@ -331,9 +336,9 @@ local function getHealthColor(health)
 end
 
 -- ============================================================================
--- EXTRAS (Oct 29 2026) -- the general way for another mod's support file
+-- EXTRAS -- the general way for another mod's support file
 -- (ModSupport/<mod id>.lua) to add its own wound details to a body part without
--- touching this file again. Nothing is added until an extra is registered, so the
+-- touching this file. Nothing is added until an extra is registered, so the
 -- tab is exactly as built without one. An extra is a table:
 --   partLines(playerObj, bodyPart)
 --       -> nil, or a list of { text = "...", color = {r,g,b}, severity = "danger" |
@@ -342,23 +347,26 @@ end
 --          mod's colour, the words in the default ink) and as tags on the part's row
 --          in the injury list (the square follows the severity; "warning" when none
 --          is given). A part with such a line counts as injured and is listed.
---   holds(playerObj, bodyPart)                                   (Nov 7 2026)
+--   holds(playerObj, bodyPart)
 --       -> true while the mod holds that part's diagnosis back (an examination it
 --          asks for first): the part keeps only the conditions the character knows
 --          without looking (care = true in the classifier), and the mod's own
 --          partLines say what it wants said instead.
---   openPart(playerObj, bodyPart, panel, x, y)                   (Nov 7 2026)
+--   openPart(playerObj, bodyPart, panel, x, y)
 --       -> true when the mod opened the part's menu itself (right-click on the
 --          figure or an injury row, A on the controller). panel is the stand-in
 --          for the game's health panel that the game's menu is built from; x, y are
 --          where the menu opens, from its origin. Anything else, or an error, and
 --          the tab opens the game's menu as it always has.
 -- Every call goes through pcall; ZeD keeps no copy of the mod's data (the lines are
--- read again each time the tab re-reads the body). First used by
--- ModSupport/WoundExpansion.lua; holds and openPart by ModSupport/WoundsOverhaul.lua.
+-- read again each time the tab re-reads the body). Users today:
+-- ModSupport/WoundExpansion.lua (partLines) and ModSupport/WoundsOverhaul.lua
+-- (all three).
 -- ============================================================================
 ZeD.HealthTab.extras = ZeD.HealthTab.extras or {}
 
+--- Register another mod's extra under id (a second call with the same id
+--- replaces it); def holds the fields described in EXTRAS above.
 function ZeD.HealthTab.addExtras(id, def)
     for i, e in ipairs(ZeD.HealthTab.extras) do
         if e.id == id then ZeD.HealthTab.extras[i] = def; def.id = id; return end
@@ -426,13 +434,15 @@ end
 
 -- ============================================================================
 -- DATA AGGREGATION
--- Extended for body figure: partHealth + condsByFigureName.
+-- One read of the body: the injury list, plus the maps the figure draws from
+-- (partHealth, condsByFigureName, extraByFigureName, partByFigure).
 -- ============================================================================
 
--- opts (Nov 7 2026, the medical check of another player; nil for your own Health tab):
---   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
---   bodyDamage   the body to read: on a server another player's is their remote copy
---                (getBodyDamageRemote, as vanilla's health panel reads it), else getBodyDamage
+--- Read one body into the table the tab draws. opts is for the medical check
+--- of another player (nil for your own Health tab):
+---   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
+---   bodyDamage   the body to read: on a server another player's is their remote copy
+---                (getBodyDamageRemote, as vanilla's health panel reads it), else getBodyDamage
 function ZeD.HealthTab.gatherData(playerObj, opts)
     ensurePartNames()
     ensureBodyPartTypes()
@@ -512,7 +522,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         entries           = entries,
         totalParts        = parts:size(),
         injuredCount      = #entries,
-        -- S123: "injured" means a wound/condition; reduced health alone (hunger,
+        -- "injured" means a wound/condition; reduced health alone (hunger,
         -- sickness, cold) is listed but not called an injury.
         woundedCount      = (function() local c = 0; for _, e in ipairs(entries) do if #e.conditions > 0 then c = c + 1 end end; return c end)(),
         partHealth        = partHealth,
@@ -529,7 +539,7 @@ end
 
 function ZeD.HealthTab._ensureBodyFigure(win)
     if not win._healthBodyFigure then
-        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- S124 scale: placeholder size, drawAt() is given the real (scaled) rect
+        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- placeholder size: drawAt() is given the real (scaled) rect
         fig:initialise()
         fig:loadTextures()
         win._healthBodyFigure = fig
@@ -551,10 +561,9 @@ function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
         fig:setPartColor(figureName, color.r, color.g, color.b, 0.65)
     end
 
-    -- S103: read the authoritative _healthActivePart resolved at the top of
-    -- HealthTab.render (gp focus overrides mouse hover). Replaces the inline
-    -- Focus lookup that S101 used — single source of truth now that the
-    -- detail-view branch and the figure both consume the same value.
+    -- Read the _healthActivePart resolved at the top of HealthTab.render (the
+    -- controller's focus overrides mouse hover): one source of truth, so the
+    -- detail view and the figure always show the same part.
     fig.selectedPart = win._healthActivePart or nil
 
     -- the controller's mark on a focused part: its washes go under the figure (this

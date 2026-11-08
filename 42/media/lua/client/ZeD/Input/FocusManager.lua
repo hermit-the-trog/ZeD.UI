@@ -25,7 +25,8 @@
 --   LB                       — focus the Character window (absolute: on it already, a no-op)
 --   RB                       — focus the World window (absolute)
 --   D-pad up/down/left/right — spatial nav across ALL focusable zones in the focused window;
---                              Left / Right go on to the other window when it sits that way
+--                              with nothing more that way, Left / Right go on to the
+--                              other window when it sits that way on screen
 --   A tap                    — fire focused element's onActivate (= LMB)
 --   A hold (>=350ms)         — fire onHoldActivate if defined (a list row: mark it and
 --                              start a painted run)
@@ -2001,10 +2002,9 @@ local function _onTick()
         local ok, err = pcall(Focus.ensureEntry, _focusedWindow)
         if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
     end
-    -- Oct 23 2026 (director: "it's not properly releasing control and
-    -- returning control back to the spot"): a prompt or menu that closed and
-    -- left the pad with no focus at all (it goes to the game then: Left was
-    -- the belt) hands it back to the focused window, on the element it had
+    -- A prompt or menu that closed and left the pad with no focus at all
+    -- hands it back to the focused window, on the element it had; left
+    -- alone, the pad would go to the game and the next press act in the world
     if _focusedWindow and JoypadState and JoypadState.players and JoypadState.players[1]
        and getJoypadFocus and getJoypadFocus(0) == nil
        and _focusedWindow:isVisible() and not _focusedWindow.windowShaded then
@@ -2088,10 +2088,10 @@ end
 
 if LuaEventManager and LuaEventManager.AddEvent then
     LuaEventManager.AddEvent("ZeD_FocusChanged")
-    -- S113: AddEvent is idempotent (per InputModeDetector comment) so it's
-    -- safe to materialize ZeD_InputModeChanged here too. Mirrors BumperChord's
-    -- pattern — file-load order may put us before InputModeDetector, in which
-    -- case Events.ZeD_InputModeChanged would not yet exist for our .Add call.
+    -- AddEvent is idempotent, so it's safe to materialize ZeD_InputModeChanged
+    -- here too. Mirrors BumperChord's pattern — file-load order may put us
+    -- before InputModeDetector, in which case Events.ZeD_InputModeChanged
+    -- would not yet exist for our .Add call.
     LuaEventManager.AddEvent("ZeD_InputModeChanged")
 end
 
@@ -2107,7 +2107,7 @@ if Events.OnRenderTick then
 end
 if Events.OnRenderTick then Events.OnRenderTick.Add(_watchCueMouse) end
 
--- S113: Window-pair invariant. On kbm→gamepad transition, ensure both windows
+-- Window-pair invariant. On kbm→gamepad transition, ensure both windows
 -- are open as a pair (gamepad-only invariant; mouse mode keeps asymmetric
 -- open/closed state). Late-binds ZeD_CharacterWindow because that module
 -- loads after this one (Input/* is a separate dir from the windows).
@@ -2122,7 +2122,7 @@ local function _onModeChanged(newMode, oldMode)
 end
 Events.ZeD_InputModeChanged.Add(_onModeChanged)
 
--- S113b: F9 toggles the cone-nav debug overlay. Throwaway QA aid; the draw
+-- F9 toggles the D-pad debug overlay. Throwaway QA aid; the draw
 -- function early-exits when overlay is OFF, so cost is one bool check per
 -- focused-window render frame when disabled.
 --
@@ -2136,7 +2136,7 @@ Events.OnKeyPressed.Add(function(key)
     end
 end)
 
--- S113b: Overlay paints inside the focused window's render cycle (guaranteed
+-- The overlay paints inside the focused window's render cycle (guaranteed
 -- valid draw context). Monkey-patch ZeD_Window:render at OnGameStart to call
 -- _drawDebugOverlay AFTER the normal render. The hook fires every render but
 -- short-circuits when (a) overlay is OFF, (b) self isn't the focused window,

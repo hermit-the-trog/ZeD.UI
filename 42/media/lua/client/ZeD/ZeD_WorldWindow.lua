@@ -3197,19 +3197,24 @@ end
 
 
 -- ============================================================================
--- TOGGLE
+-- TOGGLE — opening and closing the window, and the small public helpers
+-- around it. toggle() builds the whole window on every open (panes,
+-- handlers, the controller's ring).
 -- ============================================================================
 
+--- True while the World window is open.
 function ZeD_WorldWindow.isOpen()
     return _worldWin ~= nil
 end
 
--- The controller's stops rebuilt for the tab on show (Reset windows: Nov 1 2026, punch list 45)
+--- Rebuilds the controller's stops for the tab now showing (Reset windows calls
+--- it after putting the window back on Loot). win defaults to the open window.
 function ZeD_WorldWindow.syncRing(win)
     win = win or ZeD_WorldWindow.getWindow()
     if win and win._mainContent and _syncWorldRingZones then _syncWorldRingZones(win, win._mainContent) end
 end
 
+--- The open World window, or nil.
 function ZeD_WorldWindow.getWindow()
     return _worldWin
 end
@@ -3281,13 +3286,14 @@ end
 -- Every close of the World window comes here: its close box (Organisms), the
 -- curtain rod's close (WindowCurtain), the controller's close-all (FocusManager),
 -- toggle, close and forceClose. The map pop-out (the world map or a paper map
--- Read Map opened) folds with the window (S123; keepWorld: no second close from
--- the paper), so nothing is left up with no World window behind it.
+-- Read Map opened) folds with the window (keepWorld: the fold comes from the
+-- window itself, so the paper doesn't close it a second time), so nothing is
+-- left up with no World window behind it.
 local function _closeWorldWindow(w)
     ZeD_WorldWindow._endZoneDraw()
     saveWorldState(w)
     if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w, true) end
-    -- S93 Layer 3: unregisterWindow releases focus if this window holds it
+    -- unregisterWindow releases focus if this window holds it
     if ZeD and ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
     w:removeFromUIManager()
     if _worldWin == w then
@@ -3355,7 +3361,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- Restore saved position/size (must come after _maxWinW is set)
     restoreWorldState(win, playerObj)
 
-    -- S98: registerWindow fires early; ring construction + claimFocus deferred
+    -- registerWindow fires early; ring construction + claimFocus deferred
     -- to after win._containers / win._activeContainer / win._mcSelected are
     -- populated so containerStrip elements seed correctly.
     if ZeD and ZeD.Input and ZeD.Input.Focus then
@@ -3378,9 +3384,9 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._containerTimer = 0
     win._stripScrollOffset = 0
     win._containerSortMode = "dist"  -- "dist" | "wt" | "type"
-    win._baseInvW = invW             -- S124 scale: DESIGN UNITS (T.px() at every use; saved as-is)
+    win._baseInvW = invW             -- DESIGN UNITS (T.px() at every use; saved as-is)
 
-    -- S115: radio contextual tab state. _kind tells RadioTab.render which
+    -- Radio contextual tab state. _kind tells RadioTab.render which
     -- discovery source to use ("world" -> 3x3 grid scan for IsoWaveSignal).
     -- Refreshed on the same 30-frame timer as containers.
     win._kind             = "world"
@@ -3394,15 +3400,15 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._drawerEffW  = 0
     win._prevEffW    = 0            -- (a drawer's first frame widens the window too; nil lost it)
     win._drawerItem  = nil
-    win._drawerMode  = nil          -- nil | "item" | "tab"
+    win._drawerMode  = nil          -- nil | "item" | "tab" | "object"
 
     -- Action tab state
     win._activeTab   = "loot"
-    win._tabUnder    = nil          -- saved tab id while card overlays a tab
+    win._tabUnder    = nil          -- only ever cleared: a card lies over its tab, which stays active
     win._actionTabScrollOffset = 0
-    -- Crafting/Building tab state — new unified architecture.
-    -- Tab state is lazily created by CraftingCore.createState() on first render.
-    -- Only data-gathering caches and container refs live on win directly.
+    -- Crafting/Building tab state. Each tab's state table is made by
+    -- CraftingCore.createState() on its first render; only the data caches
+    -- and container refs live on win directly.
     win._craftTimer          = 0
     win._craftCache          = nil
     win._craftContainers     = nil
@@ -3444,10 +3450,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- Multi-container state
     win._mcSelected = {}
 
-    -- S108: gamepad state for worldLootMCColumns zone. _gpFocusedMCItem tracks
-    -- the focused Java item for identity preservation across per-frame refresh;
-    -- _gpFocusedMCColIdx is its column (for scroll-follow + dispatch edge
-    -- detection); _lastPinnedMCItem is the Q99 delta-gate cache.
+    -- Controller state for the column zones (worldMC1..N): _gpFocusedMCItem is
+    -- the focused Java item, kept by identity across the per-frame refresh;
+    -- _gpFocusedMCColIdx is its column. _gpFocusedMCColIdx and _lastPinnedMCItem
+    -- are only written and cleared; nothing reads them.
     win._gpFocusedMCItem     = nil
     win._gpFocusedMCColIdx   = nil
     win._lastPinnedMCItem    = nil
@@ -3458,9 +3464,9 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._invDrawerTargetW = T.px(invW)   -- screen px
     win._mainVisible      = true    -- floor container visible (toggleable on Loot)
 
-    -- S98 ring model: construct AFTER container + MC state is initialized.
-    -- Zone order (LB/RB cycle): tabs → main_inv → MC columns → containerStrip.
-    -- Initial focus on worldTabContent (idx 2) so Y-tap lands cursor on items.
+    -- The controller's ring, built AFTER the container and MC state above, so
+    -- the strip's stops seed on the right container. The zone order is with
+    -- the ring below; the first focus goes to the main list.
     if ZeD and ZeD.Input and ZeD.Input.Focus then
         local Focus = ZeD.Input.Focus
 
@@ -3470,32 +3476,33 @@ function ZeD_WorldWindow.toggle(playerNum)
         _attachWorldTabBarCallbacks(win, tabEls)
 
         local tabContentEls = _buildWorldPanelFocusables(win, win._mainContent, activeTab) or {}
-        -- S99: worldMainInv holds the active container's invrows on ALL tabs
+        -- worldMainInv holds the active container's invrows on ALL tabs
         -- (matches Character's charMainInv pattern — inv is always visible
         -- regardless of active tab). Built even at init; per-frame refresh
         -- keeps it in sync as the container or items change.
         local mainInvEls    = _buildWorldInvRowFocusables(win) or {}
-        -- Containers reachable on ALL tabs per user spec (Apr 16). MC toggle
-        -- (A press) is Loot-only — enforced inside container onActivate.
+        -- The containers can be reached on ALL tabs; adding a column (hold A)
+        -- is Loot-only, checked in the stop's onHoldActivate.
         local containerEls  = _buildWorldLootFocusables(win) or {}
-        -- S108 v2: per-column MC zones added dynamically post-construction
-        -- via _rebuildWorldMCRingZones(). No flat mcEls list at init.
+        -- The per-column MC zones are added after the ring is built, by
+        -- _rebuildWorldMCRingZones(); there is no flat list of column stops here.
 
         local activeIdx = 1
         for i, el in ipairs(tabEls) do
             if el.tabId == activeTab then activeIdx = i; break end
         end
 
-        -- S99 HOTFIX: Ring order matches VISUAL left-to-right layout of the
-        -- World window (which is MIRRORED from Character):
+        -- Ring order matches the VISUAL left-to-right layout of the World
+        -- window (which is MIRRORED from Character):
         --   [containerStrip] [MCColumns] [mainInv] [tabContent] [itemCard] [tabBar]
         -- LB cycles visually LEFT (toward containerStrip); RB cycles visually
-        -- RIGHT (toward tabBar). Initial focus on mainInv (idx 3).
+        -- RIGHT (toward tabBar). The first focus goes to mainInv, found by name
+        -- (_pickInitialFocusIdx below).
 
-        -- S99: uiRange fns for the scoped-underline focus indicator on the
+        -- uiRange fns for the scoped-underline focus indicator on the
         -- title bar. Read live geometry (drawer width, window width).
-        -- S108 v2: worldMainInv uiRange — when MC active, mainInv = the
-        -- rightmost (active container) column; else = full inv width.
+        -- worldMainInv's uiRange: with MC active, mainInv = the rightmost
+        -- (active container) column; else = full inv width.
         -- Per-column MC zones have their own uiRange built inline by
         -- _rebuildWorldMCRingZones (column-precise via colStates renderX/W).
         local function _worldMainInvRange(w)
@@ -3512,12 +3519,11 @@ function ZeD_WorldWindow.toggle(playerNum)
         local function _worldDrawerRange(w)
             local T = ZeD.T
             local dw = math.floor(w._drawerEffW or 0)
-            -- S108 v2 QA: drawer x derived from live window geometry. In MC
-            -- mode the inv area expands beyond baseInvW; old hardcoded
-            -- (CONTAINER_STRIP_W + baseInvW) anchor put the focus underline
-            -- in the wrong x position when card was open over MC. The drawer
-            -- always sits between inv area (which can be wide) and the
-            -- right-edge action tab strip — derive from total width.
+            -- The drawer's x comes from the live window width: it always sits
+            -- between the inv area and the right-edge action tab strip, and in
+            -- MC mode the inv area grows past baseInvW, so a fixed
+            -- (CONTAINER_STRIP_W + baseInvW) anchor would put the focus
+            -- underline in the wrong place with a card open over MC.
             local ix = w:getWidth() - T.px(ACTION_TAB_STRIP_W) - dw
             return ix, dw
         end
@@ -3526,7 +3532,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             { zone = "worldContainerStrip",
               focusable = #containerEls > 0,
               elements = containerEls,
-              -- S108: seed by containerIdx match (elements in [floor, non-floor
+              -- Seed by containerIdx match (elements in [floor, non-floor
               -- display-order] layout, not container-index order).
               focusedElementIdx = (function()
                   if not win._activeContainer or #containerEls == 0 then return 1 end
@@ -3537,10 +3543,10 @@ function ZeD_WorldWindow.toggle(playerNum)
               end)(),
               landOn = _worldStripLandOn,
               uiRange = function(w) return 0, ZeD.T.px(CONTAINER_STRIP_W) end },
-            -- S108 v2: Per-column MC zones (worldMC1..worldMCN) inserted here
-            -- by _rebuildWorldMCRingZones() called below ring construction.
-            -- The single worldLootMCColumns zone has been removed.
-            -- S99: Always-visible invrows of the active container. Populated
+            -- The per-column MC zones (worldMC1..worldMCN) go in here, put in
+            -- by _rebuildWorldMCRingZones() after the ring is built: one zone
+            -- per column, no single zone for all of them.
+            -- Always-visible invrows of the active container. Populated
             -- on every tab — mirrors Character's charMainInv. Focusable
             -- whenever the container has items, regardless of active tab.
             { zone = "worldMainInv",
@@ -3553,17 +3559,18 @@ function ZeD_WorldWindow.toggle(playerNum)
               focusable = #tabContentEls > 0,
               elements = tabContentEls,
               focusedElementIdx = 1,
-              -- (Oct 23 2026: an item or object card over the drawer hides the tab's controls)
+              -- (an item or object card over the drawer hides the tab's controls)
               covered = function(w) return w._drawerItem ~= nil or w._drawerObject ~= nil end,
               uiRange = _worldDrawerRange },
-            -- S99: Item card action strip zone — card drawer opens to the
+            -- Item card action strip zone — card drawer opens to the
             -- RIGHT of the inventory in World (mirror of Character where it
-            -- opens to the LEFT). Focusable only when drawer is in "item" mode.
+            -- opens to the LEFT). Focusable only while a card shows (the
+            -- per-frame refresh: an item card, or an object card with none over it).
             { zone = "worldItemCard",
               focusable = false,
               elements = {},
               focusedElementIdx = 1,
-              landOn = Focus.landOnPrimary,   -- (Oct 23 2026: into a card, onto its primary action)
+              landOn = Focus.landOnPrimary,   -- (into a card, onto its primary action)
               uiRange = _worldDrawerRange },
             { zone = "worldTabBar",
               focusable = #tabEls > 0,
@@ -3574,12 +3581,12 @@ function ZeD_WorldWindow.toggle(playerNum)
                   return w:getWidth() - T.px(ACTION_TAB_STRIP_W), T.px(ACTION_TAB_STRIP_W)
               end },
         }
-        -- S108 QA: prefer worldMainInv (idx 3) when focusable, else fall
-        -- through to the first focusable zone. mainInv is non-focusable at
-        -- toggle-time because content hasn't rendered yet (no _invRowItems);
-        -- per-frame refresh populates it next frame. Hardcoded idx=3 left
-        -- the user stuck on a non-focusable zone — bumpers cycled around
-        -- but D-pad nav within the zone was a silent no-op.
+        -- Prefer worldMainInv when focusable, else fall through to the first
+        -- focusable zone. mainInv is non-focusable at toggle-time because
+        -- content hasn't rendered yet (no _invRowItems); per-frame refresh
+        -- populates it next frame. A fixed index would leave the player on a
+        -- non-focusable zone — the bumpers still cycle, but D-pad nav within
+        -- the zone does nothing.
         local function _pickInitialFocusIdx()
             local ring = win._focusRing
             if not ring or #ring == 0 then return 1 end
@@ -3595,11 +3602,11 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
             return 1
         end
-        -- S108 v2: build per-column MC zones (no-op if MC inactive at toggle).
+        -- Build the per-column MC zones (none while MC is inactive, as at open).
         _rebuildWorldMCRingZones(win)
 
         win._focusIdx = _pickInitialFocusIdx()
-        -- Oct 23 2026: entering the window lands on the list's first row once
+        -- Entering the window lands on the list's first row once
         -- it has rows (the rows draw a frame after the window opens); see
         -- Focus.ensureEntry
         win._focusEntryZone    = "worldMainInv"
@@ -3680,7 +3687,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
                         win:setWidth(math.min(snapW, maxW))
                     else
-                        -- Different container: just switch
+                        -- Different container: switch to it
                         win._viewedContainer = (zid ~= win._activeContainer) and zid or nil
                         win._viewedOver = (win._containers[win._activeContainer] or {}).inventory
                     end
@@ -3700,7 +3707,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     containerStrip.onMouseWheel = function(self, del)
         local T = ZeD.T
-        local total = #win._containers - 1  -- minus active
+        local total = #win._containers - 1  -- minus the floor (pinned, not in the scrolled list)
         if total > 0 then
             win._stripScrollOffset = (win._stripScrollOffset or 0) + del * T.px(CONTAINER_BTN_SZ)
         end
@@ -3716,7 +3723,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     content:initialise()
     win:addChild(content)
     win._contentPanel = content
-    -- S94 B-nav: expose content panel to gamepad focus callbacks set earlier
+    -- Expose the content panel to gamepad focus callbacks set earlier
     -- in toggle(). Closures look up `win._mainContent` at fire time, so it's
     -- fine that this assignment happens after the focus context was pushed.
     win._mainContent = content
@@ -3763,7 +3770,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     content._barH           = 0
 
     -- ----------------------------------------------------------------
-    -- DRAWER PANEL — right edge, slides open/closed with ItemCard
+    -- DRAWER PANEL — right of the list; the open tab draws here, and its
+    -- width animates open and shut (the item card lies over it: ITEM DRAWER)
     -- ----------------------------------------------------------------
     local drawer = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, 0, bodyH)
     drawer._zedLabel = "world drawer"   -- its own name in console.txt and safe mode's watchdog
@@ -3825,8 +3833,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     card:setVisible(false)
     itemDrawer:addChild(card)
     win._itemCard = card
-    -- the card's back key shuts the card, as B does (_wireWorldCardButtonNav's onCancel). It had
-    -- no action here, so a click on it did nothing (Oct 30 2026, the director's mouse pass).
+    -- the card's back key shuts the card, as B does (_wireWorldCardButtonNav's onCancel);
+    -- without this handler a click on it does nothing.
     card.onBackClick = function()
         local content = win._mainContent
         if content and win._updateDrawer then
@@ -3838,7 +3846,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
     end
 
-    -- S124 object card (generator, fires, farm plots): same overlay, full width
+    -- Object card (generator, fires, farm plots): same overlay, the full card's
+    -- width (a kind marked half takes the half card)
     local objCard = ZeD_ObjectCard:new(0, 0, T.px(OBJECT_CARD_W), bodyH, playerNum)
     objCard:initialise()
     objCard:setVisible(false)
@@ -3917,7 +3926,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         local effectiveW = math.floor(effW)
         self:setWidth(effectiveW)
 
-        -- ── Original proven model: tab drawer delta drives window width,
+        -- ── The drawer's change in width drives the window's width;
         -- invW is always the residual. Inv toggle snaps width directly. ──
         local prevEffW = win._prevEffW or effectiveW
         local drawerDelta = effectiveW - prevEffW
@@ -3925,7 +3934,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         local mcActive = #(win._mcSelected or {}) > 0
         local screenW = getCore():getScreenWidth()
-        -- S121: when MC + item card both active, cap maxW at user's preferred
+        -- When MC + item card are both active, cap maxW at user's preferred
         -- inv width (_baseInvW) plus chrome — window expands enough to keep
         -- card visible alongside MC, but not to full screen, so the eviction
         -- loop below fires when MC columns can't all fit at MIN_COL_W.
@@ -3939,12 +3948,11 @@ function ZeD_WorldWindow.toggle(playerNum)
             or (win._maxWinW or math.floor(screenW * 0.5))
 
         if drawerDelta ~= 0 then
-            -- S121: card opening in MC mode now expands the window like tab
-            -- mode does, instead of evicting MC columns. The S108 v2 design
-            -- (shrink inv area + FIFO evict oldest MC col when MC + item)
-            -- caused MC to silently collapse on item-select — bad UX after
-            -- the new ItemCard rolled. Always resize per drawerDelta now.
-            -- (Oct 28 2026) The cap swallows part of an opening drawer's width (at 1080p the Maps drawer
+            -- A card opening in MC mode expands the window like tab mode
+            -- does, instead of making room by shrinking the inv area and
+            -- evicting the oldest MC column (which would collapse MC silently
+            -- on every item select). Always resize per drawerDelta.
+            -- The cap swallows part of an opening drawer's width (at 1080p the Maps drawer
             -- runs the window into the half-screen cap); that loss is remembered and given back while
             -- the drawer closes, so the window comes back to the width it had, instead of 7 px short
             -- (which the rest-state check below then kept as if the player had resized it).
@@ -3995,7 +4003,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 then
             local expectedW = T.px(CONTAINER_STRIP_W) + T.px(win._baseInvW or 372) + T.px(ACTION_TAB_STRIP_W)
             if win:getWidth() ~= expectedW then
-                -- S124 scale: _baseInvW is stored in design units (screen px / T.scale);
+                -- _baseInvW is stored in design units (screen px / T.scale);
                 -- kept fractional so save/restore round-trips without drift.
                 win._baseInvW = invW / (T.scale or 1)
             end
@@ -4045,7 +4053,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     content._activeCol = #colSel
                 end
                 win._invDrawerTargetW = computeInvDrawerTargetWorld(win)
-                -- S108 v2 QA: ring zones must reflect new MC count after
+                -- The ring zones must reflect the new MC count after
                 -- FIFO eviction; otherwise stale worldMC<n> zones linger
                 -- in the ring and bumpers cycle to zones with no items.
                 if _syncWorldRingZones then _syncWorldRingZones(win, content) end
@@ -4057,8 +4065,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         content:setWidth(math.max(invW, 0))
         content:setVisible(invW > 0)
         -- the content's prerender (the controller's stops) does not run while it is hidden: the
-        -- drawer runs the refresh instead (punch list 28, Oct 31 2026: the Craft card and band
-        -- had no stops at 1280x720, UI scale 2.0)
+        -- drawer runs the refresh instead (without it the Craft card and band have no stops at
+        -- 1280x720, UI scale 2.0)
         if invW <= 0 and content._focusRefresh then content._focusRefresh(content) end
         containerStrip:setVisible(not win._rolled)
 
@@ -4069,10 +4077,10 @@ function ZeD_WorldWindow.toggle(playerNum)
         self:setHeight(bh)
         actionTabStrip:setX(stripW + invW + effectiveW)
         actionTabStrip:setHeight(bh)
-        -- the two strips' widths and every panel's top follow the scale too: a text size or
-        -- scale change with the window open left the strips at the width they were built
-        -- with, the container strip over the list and the tab strip past the window's edge
-        -- (director, Oct 25 2026: "World window didnt get the fix when smallest font is active")
+        -- the two strips' widths and every panel's top follow the scale too: without this, a
+        -- text size or scale change with the window open (the smallest font, for one) leaves the
+        -- strips at the width they were built with, the container strip over the list and the
+        -- tab strip past the window's edge
         local csW, tsW, bodyY = T.px(CONTAINER_STRIP_W), T.px(ACTION_TAB_STRIP_W), win:getBodyY()
         if containerStrip:getWidth() ~= csW then containerStrip:setWidth(csW) end
         if actionTabStrip:getWidth() ~= tsW then actionTabStrip:setWidth(tsW) end
@@ -4085,11 +4093,11 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- Store divider position for top-Z drawing in win.render
         win._dividerX = (effectiveW > 0 and invW > 0) and (stripW + invW) or nil
 
-        -- Card visibility now managed by ITEM.DRAWER overlay panel
+        -- (the card's visibility is the item drawer's job: itemDrawer._onPrerender)
 
         -- Crafting search field visibility (tab mode + craft tab active)
         local showCraft = effectiveW > 0 and win._drawerMode == "tab" and win._activeTab == "craft"
-        -- S124 stations: a drying rack or an oven has no recipe search
+        -- stations: a drying rack or an oven has no recipe search
         if showCraft and ZeD.Stations and ZeD.Stations.hidesSearch and ZeD.Stations.hidesSearch(win) then
             showCraft = false
         end
@@ -4118,9 +4126,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             local db = T.drawerBg
             self:drawRect(0, 0, effectiveW, dh, db.a, db.r, db.g, db.b)
 
-            -- Card bg now drawn by ITEM.DRAWER overlay panel. No left edge of its own:
-            -- the pane line is the window's divider (inventory open) or the container
-            -- strip's inner edge (inventory closed); a second line here doubled it.
+            -- The card's background is the item drawer's (itemDrawer._onPrerender). No left
+            -- edge of its own: the pane line is the window's divider (inventory open) or the
+            -- container strip's inner edge (inventory closed); a second line here would double it.
 
             -- Tab content rendering (when in tab mode)
             if win._drawerMode == "tab" and win._activeTab then
@@ -4142,12 +4150,12 @@ function ZeD_WorldWindow.toggle(playerNum)
                         coverL = nil
                     end
                     -- (a tab that throws must not repeat its error every frame or leave its own clip
-                    -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
-                    -- (a tab may leave a clip set, as the Admin tab and its cards did until each ended level
-                    -- itself (punch list 95; this stays as the safety net for any other), and under a card every
-                    -- clear of any tab leaves one, coverClear sets it again: one left on hides everything drawn
-                    -- after the drawer, the card, the tab strip and the help line with it. A tab that ends level
-                    -- with no card over it clears nothing here. The director, Nov 6 2026.)
+                    -- set: log once, put the drawer's clip back, draw on)
+                    -- (a tab may leave a clip set — the Admin tab and its cards once did; this stays as
+                    -- the safety net for any other — and under a card every clear of any tab leaves one,
+                    -- since coverClear sets it again: one left on hides everything drawn after the drawer,
+                    -- the card, the tab strip and the help line with it. So the clips the tab left are
+                    -- cleared after it runs; a tab that ends level with no card over it clears nothing here.)
                     local clipsBefore = self._zedStencilN or 0
                     self._coverClears = 0
                     local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
@@ -4212,7 +4220,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         if win._drawerMode == "tab" and win._activeTab == "furniture" then
             return ZeD.FurnitureTab.onMouseWheel(win, del)
         end
-        -- (the Animals tab's own wheel, nothing called it: the Ranch page, a zone's roster, Butcher, an animal's details)
+        -- (the Animals tab's own wheel: the Ranch page, a zone's roster, Butcher, an animal's details)
         if win._drawerMode == "tab" and win._activeTab == "animals" then
             return ZeD.AnimalsTab.onMouseWheel(win, del)
         end
@@ -4224,7 +4232,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                 return true
             end
         end
-        -- Card scroll now handled by ITEM.DRAWER overlay panel
+        -- (the card's own scroll is the item drawer's: itemDrawer.onMouseWheel)
         return false
     end
 
@@ -4265,7 +4273,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         return false
     end
 
-    -- Drawer right-click → pin toggle (crafting/building tab)
+    -- Drawer right-click → the open tab's own (on Craft and Build it pins a recipe)
     drawer.onRightMouseDown = function(self, x, y)
         -- a two-way radio's control: its second meaning (MEM names, a knob turns down)
         if win._drawerMode == "tab" and win._activeTab == "radio" then
@@ -4341,7 +4349,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     -- ----------------------------------------------------------------
-    -- ACTION TAB STRIP — right edge, 28px wide
+    -- ACTION TAB STRIP — right edge, 36px wide (ACTION_TAB_STRIP_W)
     -- ----------------------------------------------------------------
     actionTabStrip = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, T.px(ACTION_TAB_STRIP_W), bodyH)
     actionTabStrip._zedLabel = "world action strip"   -- its own name in console.txt and safe mode's watchdog
@@ -4379,8 +4387,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         if type(zid) == "string" and zid:sub(1, 4) == "tab:" then
             local tabId = zid:sub(5)
 
-            -- S124: a click on the tab under an open object card just closes
-            -- the card; any other tab click drops it and switches as usual.
+            -- A click on the tab under an open object card only closes the
+            -- card (a pinned card stays); any other tab click drops it and
+            -- switches as usual.
             if win._drawerObject then
                 local overTab = win._drawerMode == "tab" and win._drawerOpen and tabId == win._activeTab
                 dropObjectCard(win)
@@ -4456,8 +4465,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                 if scroll then scroll:setScrollPos(0) end
             end
         end
-        -- S123: re-sync gamepad ring zones on every strip click (mirror of the
-        -- Character window fix; the gamepad tab path already syncs).
+        -- Re-sync gamepad ring zones on every strip click (as the Character
+        -- window does; the gamepad tab path syncs on its own).
         if _syncWorldRingZones then _syncWorldRingZones(win, content) end
         return true
     end
@@ -4473,10 +4482,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     -- ----------------------------------------------------------------
-    -- updateDrawer — 3-mode state machine (nil / item / tab)
+    -- updateDrawer — the drawer's mode from the selection (nil / item / tab / object)
     -- ----------------------------------------------------------------
     local function updateDrawer()
-        local prevItem = win._drawerItem   -- S99: card-visibility snapshot
+        local prevItem = win._drawerItem   -- card-visibility snapshot
         local sel = content._selectedItems
         local count = 0
         local singleItem = nil
@@ -4487,10 +4496,10 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         if count == 0 then content._padMarks = nil end   -- (the marks gone, their rule with them)
-        -- the controller's marks hide the card even at one (punch list 44), as the mouse's many do
+        -- the controller's marks hide the card even at one, as the mouse's many do
         if count == 1 and not content._padMarks then
             -- Item selected: show item card (overlay if tab active)
-            if win._drawerObject then   -- S124: the item card replaces an object card
+            if win._drawerObject then   -- the item card replaces an object card
                 win._drawerObject = nil
                 if win._objectCard then win._objectCard:setEntry(nil) end
             end
@@ -4498,7 +4507,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                 win._itemCard:setItem(singleItem)
             end
             win._drawerItem = singleItem
-            -- S121 (Phase C3): wire the new ItemCard organism's sourceContext.
+            -- The card's starting sourceContext (ItemCard re-reads the item's own
+            -- container every render; this stamp is the fallback).
             -- World drawer items are NEVER "equipped" or "inventory" — always
             -- container or ground. World containers have .isFloor (not .isMain
             -- — that's Char-only); _activeContainer is an INDEX into the
@@ -4523,7 +4533,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             if win._activeTab ~= "loot" then
                 win._drawerMode = "tab"
                 win._drawerOpen = true
-            elseif win._drawerObject then   -- S124: an object card stays open
+            elseif win._drawerObject then   -- an object card stays open
                 win._drawerMode = "object"
                 win._drawerOpen = true
             elseif #(win._mcSelected or {}) > 0 then
@@ -4535,7 +4545,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
         end
 
-        -- S99: If the card just became hidden while focus was on worldItemCard,
+        -- If the card has gone while focus was on worldItemCard,
         -- snap ring focus back to worldMainInv. Gate on card-visibility
         -- transition (`prevItem ~= nil and now nil`) rather than drawerMode,
         -- since on non-Loot tabs the card is visible with drawerMode=="tab".
@@ -4551,21 +4561,21 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
     end
 
-    -- S99: Expose updateDrawer on win so the invrow A binding (mouse-click
+    -- Expose updateDrawer on win so the invrow A binding (mouse-click
     -- parity: A → select item → drawer opens) can trigger it. Closure keeps
     -- `content` + `win` captured.
     win._updateDrawer = updateDrawer
 
-    -- S113: D-pad direction wrappers RETIRED. Under flat free-nav, D-pad is
-    -- pure spatial cone-nav across all focusable zones in the focused window.
-    -- Behaviors handled by the old wrappers now live on elements:
+    -- No D-pad direction wrappers: the D-pad is plain spatial cone-nav across
+    -- all focusable zones in the focused window. Anything special lives on
+    -- the elements themselves:
     --   * Disclosure expand/collapse → A (onActivate, mouse parity)
     --   * Stack expand/collapse      → A on stack chevron
     --   * Item card open             → A on inv row (selects item, drawer opens)
     --   * Item card close            → B (onCancel)
     --   * Card U/D content scroll    → onDpadDir on card action strip elements
     --   * GridScroll U/D scroll      → onDpadDir on gridScroll pseudo-focusable
-    --   * Maps cursor pixel move     → onDpadDir on isCanvasCursor element
+    --   * Maps canvas cursor         → the left stick (MapsTab); the D-pad still navigates
     --   * Animals zone-draw cursor   → onDpadDir on isZoneDraw element
 
     -- Draw hook: render item list + update title bar stats
@@ -4578,8 +4588,8 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         closeCardIfItemGone(win, self)
 
-        -- what the list shows follows the selection, by the container object (FAIV's report, Nov 6 2026): the view, a
-        -- last column whose container left reach, and below the columns themselves (InventoryRenderer's syncColStates)
+        -- what the list shows follows the selection, by the container object: the view, a last column
+        -- whose container left reach, and below the columns themselves (InventoryRenderer's syncColStates)
         _holdWorldView(win)
         if #(win._mcSelected or {}) == 0 and self._colStates then
             exitWorldMC(win, self)
@@ -4597,7 +4607,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                 colSel[#colSel + 1] = ci
             end
             if win._mainVisible then
-                -- S108 v2 QA: dedup _activeContainer if already in mcSel.
+                -- Dedup _activeContainer if already in mcSel.
                 local activeInMc = false
                 for _, ci in ipairs(mcSel) do
                     if ci == win._activeContainer then activeInMc = true; break end
@@ -4670,12 +4680,12 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         -- the controller's stops (a function of its own: the drawer runs it too while this
-        -- side does not draw, the tab drawer taking the whole window; punch list 28)
+        -- side does not draw, the tab drawer taking the whole window)
         content._focusRefresh(self)
 
         -- The title is built in the window's prerender (composeWorldTitle: this side does
-        -- not draw while the tab drawer takes the whole window; break-it D1). The stats
-        -- are status only: the item count.
+        -- not draw while the tab drawer takes the whole window). The stats are status
+        -- only: the item count.
         local stats = win._titleStatsT or {}
         win._titleStatsT = stats
         local st1 = stats[1] or {}
@@ -4689,14 +4699,14 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     -- The World window's per-frame stop refresh (the container strip, the main list, the MC columns,
-    -- the tab's stops, the item card). Oct 31 2026 (punch list 28): moved out of the content's
-    -- prerender, which does not run while the content is hidden (the tab drawer takes the whole
-    -- window at 1280x720, UI scale 2.0): the Craft tab's stops then stayed as they were when
-    -- the tab opened (no card, no amount box, no Craft). The drawer's prerender runs it then.
+    -- the tab's stops, the item card). A function of its own, not part of the content's prerender,
+    -- which does not run while the content is hidden (the tab drawer takes the whole window at
+    -- 1280x720, UI scale 2.0): the drawer's prerender runs it then. Otherwise the Craft tab's stops
+    -- would stay as they were when the tab opened (no card, no amount box, no Craft).
     content._focusRefresh = function(self)
         local T = ZeD.T
         -- --------------------------------------------------------
-        -- S99 RING MODEL: PER-FRAME WORLDMAININV REFRESH (World Window)
+        -- PER-FRAME WORLDMAININV REFRESH (the main list's stops)
         -- Unconditional — worldMainInv holds the active container's invrows
         -- on ALL tabs, mirroring Character's charMainInv. Same dirty check,
         -- identity preservation, container-change guard.
@@ -4735,7 +4745,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                              or (oldSnap[newN] ~= newItems[newN])
                     end
                     if not oldSnap then dirty = true end
-                    -- S108 v2 QA: MC state transition forces rebuild even
+                    -- An MC state transition forces a rebuild even
                     -- when item count is unchanged. The placeholder branch
                     -- (mcActive + empty mainInv) needs to fire on MC enter
                     -- even if mainInv was already empty before MC.
@@ -4744,11 +4754,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                         dirty = true
                         win._lastMcActiveForMainInv = mcActive
                     end
-                    -- Oct 19 2026: rebuild on the rows' places too (scroll, List | Grid, width)
+                    -- rebuild on the rows' places too (scroll, List | Grid, width)
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
-                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    -- (the container shown is part of what these rows are, by the object)
                     if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
                     local keepId = nil
                     for _, z in ipairs(win._focusRing or {}) do
@@ -4766,7 +4776,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         win._lastInvRowSnapshot = snap
 
                         local newEls = _buildWorldInvRowFocusables(win)
-                        -- S108 v2 QA: when MC is active AND the last colState
+                        -- When MC is active AND the last colState
                         -- is already covered by a worldMC<N> zone (i.e. all
                         -- MC selections are visible columns, no extra "main"
                         -- column appended), worldMainInv would duplicate the
@@ -4825,7 +4835,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                                             end
                                         end
                                     end
-                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
+                                    -- (the neighbouring ROW: the List | Grid
                                     -- toggles come after the rows, never a stand-in for one)
                                     local nRows = 0
                                     for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
@@ -4850,7 +4860,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         -- --------------------------------------------------------
-        -- S108 v2 RING MODEL: PER-FRAME PER-COLUMN MC ZONE REFRESH
+        -- PER-FRAME PER-COLUMN MC ZONE REFRESH
         -- Each MC selection has its own ring zone (worldMC1..worldMCN).
         -- Loop over slots and refresh each zone's elements independently.
         -- Identity-preserve via _gpFocusedMCItem (per-zone idx tracked by
@@ -4882,29 +4892,29 @@ function ZeD_WorldWindow.toggle(playerNum)
             win._lastMCSnap = nil  -- the zones are rebuilt on the way back to Loot
         end
 
-        -- S98/S99 per-frame refresh for worldTabContent zone. Runs for
-        -- tab-specific non-inv content only (forage stances, animals
-        -- submodes, S107: craft + build CC zones, S112: maps toolbar +
-        -- canvas cursor). Loot no longer lands here (invrows live in
-        -- worldMainInv).
+        -- Per-frame refresh for the worldTabContent zone: the open tab's own
+        -- stops (forage, the animals sub-modes and views, craft + build
+        -- through CraftingCore, the maps toolbar + canvas cursor, radio,
+        -- vehicle, furniture, and tabs other files add). Loot never lands
+        -- here (its invrows live in worldMainInv).
         if Focus and win._focusRing and (
                  win._activeTab == "forage" or
                  win._activeTab == "animals" or
                  win._activeTab == "craft" or
                  win._activeTab == "build" or
                  win._activeTab == "maps" or
-                 win._activeTab == "radio" or -- S117: per Char window — radio
+                 win._activeTab == "radio" or -- as in the Char window: radio
                                             -- chassis zones stamped during
                                             -- render, picked up next frame.
-                 win._activeTab == "vehicle" or -- S124: Vehicle tab zones stamped during render
-                 win._activeTab == "furniture" or -- S124: Furniture tab zones stamped during render
+                 win._activeTab == "vehicle" or -- Vehicle tab zones stamped during render
+                 win._activeTab == "furniture" or -- Furniture tab zones stamped during render
                  ZeD_WorldWindow._extTabs[win._activeTab] ~= nil   -- a tab another file added (addTab)
                ) then
-            -- S98 per-frame refresh for NON-Loot World tabs. _forageStanceZones
-            -- and _animalsSubmodeZones are populated by ForagingTab / AnimalsTab
-            -- renderers each frame. _syncWorldRingZones fires on tab switch
-            -- BEFORE the new tab's renderer runs, so it reads empty tables.
-            -- This catch-up keeps worldTabContent in sync with live data.
+            -- Per-frame refresh for NON-Loot World tabs. Their hit zones (the
+            -- Forage search button and disclosure, _animalsSubmodeZones, ...)
+            -- are stamped by each tab's renderer every frame. _syncWorldRingZones
+            -- fires on tab switch BEFORE the new tab's renderer runs, so it reads
+            -- empty tables. This catch-up keeps worldTabContent in sync with live data.
             local newEls = _buildWorldPanelFocusables(win, self, win._activeTab) or {}
             local snap   = win._lastTabContentSnapshot
             local oldN   = snap and snap.n or -1
@@ -4914,10 +4924,10 @@ function ZeD_WorldWindow.toggle(playerNum)
             if not dirty and newN > 0 and snap then
                 dirty = (snap.firstId ~= newEls[1].id)
                      or (snap.lastId  ~= newEls[newN].id)
-                     or (snap.lastY   ~= newEls[newN].y)   -- (Oct 23 2026: the stops move when the tab scrolls
+                     or (snap.lastY   ~= newEls[newN].y)   -- (the stops move when the tab scrolls
                      or (snap.lastH   ~= newEls[newN].h)   -- or resizes, as the map does with the text size)
             end
-            -- S107 QA: pending card-jump after recipe selection. CC.buildFocusables
+            -- Pending card-jump after recipe selection. CC.buildFocusables
             -- recipeRow onActivate sets state._gpPendingCardJump after openCraft.
             -- Card pane renders via split animation over a few frames; once the
             -- first cardSection / action_build element is stamped, jump focus
@@ -4950,12 +4960,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                 end
             end
 
-            -- S107 QA: craft + build always rebuild (scroll shifts recipeRow
-            -- screen-y each frame; stale focusable coords break cone-nav
-            -- until the next dirty-fire). Other tabs keep the dirty-gate.
-            -- S123 perf: Craft (541 rows) and Build (77) register every recipe
-            -- row; the always-rebuild cost ~2.5 ms a frame on Craft. Key the
-            -- rebuild on scroll position, list geometry and dropdown state.
+            -- Craft + build: the scroll shifts recipeRow screen-y, and stale
+            -- focusable coords break cone-nav until the next rebuild. They
+            -- register every recipe row (Craft 541, Build 77), so rebuilding
+            -- every frame costs ~2.5 ms a frame on Craft; the rebuild is keyed
+            -- on scroll position, list geometry and dropdown state instead.
             local scrollKey = nil
             do
                 local stk = (win._activeTab == "craft" and win._craftState)
@@ -4965,25 +4974,25 @@ function ZeD_WorldWindow.toggle(playerNum)
                     local lg = stk._listGeo
                     scrollKey = tostring(sp) .. ":" .. tostring(lg and lg.y or 0) .. ":" .. tostring(lg and lg.h or 0)
                         .. ":" .. tostring(stk.catDropdownOpen) .. ":" .. tostring(stk.catDropdownScroll or 0)
-                        -- (Oct 30 2026: the band's stops are last and never move, so the card's and the
+                        -- (the band's stops are last and never move, so the card's and the
                         -- alternatives' scroll and the band's pop-up lists key the rebuild too)
                         .. ":" .. tostring(stk.cardScroll and stk.cardScroll.scrollPos or 0)
                         .. ":" .. tostring(stk.altScroll and stk.altScroll.scrollPos or 0)
                         .. ":" .. tostring(stk.sortMenuOpen) .. ":" .. tostring(stk.showMenuOpen)
-                        -- (Oct 31 2026, punch list 28: the band's shape, - n + or the one amount box,
-                        -- and the recipe it was drawn for, both stamped by the draw that made the
-                        -- zones. Keyed on state.selected the key changed one frame early, while the
-                        -- zones were still the last recipe's; the next frame's stops could match the
-                        -- old count and ends, and the box went without its stop at 720 2x Large)
+                        -- (the band's shape, - n + or the one amount box, and the recipe it was drawn
+                        -- for, both stamped by the draw that made the zones. Keyed on state.selected
+                        -- the key would change one frame early, while the zones were still the last
+                        -- recipe's; the next frame's stops could match the old count and ends, and the
+                        -- box would go without its stop at 1280x720, UI scale 2.0, Large text)
                         .. ":" .. tostring(stk._bandSingle) .. ":" .. tostring(stk._bandSel)
-                    -- S124 stations: binding, station dropdown and station-view controls
+                    -- stations: binding, station dropdown and station-view controls
                     if win._activeTab == "craft" and ZeD.CraftingTab and ZeD.CraftingTab.focusKey then
                         scrollKey = scrollKey .. ":" .. tostring(ZeD.CraftingTab.focusKey(win))
                     end
                     if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
                 end
             end
-            -- Forage (Oct 30 2026, punch list 21 a-f): its last stop (the body's scroll surface) and
+            -- Forage: its last stop (the body's scroll surface) and
             -- the band's Search never move, so the body's scroll and the fold key the rebuild (More
             -- detail's disclosure scrolls with the body)
             if win._activeTab == "forage" then
@@ -5011,8 +5020,8 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
             local alwaysRebuild = false
 
-            -- S107 QA: identity-preserve focus by element id. When the
-            -- focusables array churns (scroll + always-rebuild, filter
+            -- Identity-preserve focus by element id. When the
+            -- focusables array churns (a scroll, a filter
             -- change, dropdown open/close) the focused element's array
             -- index may shift — without preservation, focus would jump to a
             -- different element at the same index. Look up the old focused
@@ -5031,14 +5040,14 @@ function ZeD_WorldWindow.toggle(playerNum)
                     end
                 end
             end
-            -- Oct 30 2026: Craft / Build name where the focus lands as a pop-up list opens (its
+            -- Craft / Build name where the focus lands as a pop-up list opens (its
             -- current choice) or shuts (back on its box), as the Character window honours it
             if (win._activeTab == "craft" or win._activeTab == "build") and newEls._focusIdx then
                 preserveIdx = newEls._focusIdx
             end
-            -- S109a: post-create-zone focus hint. gpConfirm seeds
-            -- win._animalsFocusAfterCreate with the zone name; we resolve
-            -- that to a zonecard idx so the new zone lands focused instead
+            -- Post-create-zone focus hint. gpConfirm seeds
+            -- win._animalsFocusAfterCreate with the zone name; it is resolved
+            -- here to a zonecard idx so the new zone lands focused instead
             -- of the ranch submode pill (which otherwise wins via idx-1 clamp).
             if win._activeTab == "animals" and win._animalsFocusAfterCreate then
                 for i, e in ipairs(newEls) do
@@ -5049,7 +5058,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                 end
                 win._animalsFocusAfterCreate = nil
             end
-            -- S109a: navigation focus target. Zonecard/roster/butcher
+            -- Navigation focus target. Zonecard/roster/butcher
             -- onActivate sets this to "breadcrumb" so the user lands on the
             -- back-nav element in the new view, not whatever idx-clamp
             -- picks (e.g. sort btn at idx 4 for idx-4 zonecard sources).
@@ -5094,7 +5103,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
         end
 
-        -- S99 per-frame refresh for worldItemCard zone. Mirrors Character
+        -- Per-frame refresh for worldItemCard zone. Mirrors Character
         -- window's charItemCard refresh: the card's toggleRects / verbRects
         -- are stamped by render each frame; this picks them up into the ring.
         -- Focusable state tracks card visibility (`_drawerItem ~= nil`), NOT
@@ -5102,7 +5111,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- while `_drawerMode` stays "tab" — the card is still interactive.
         if Focus and win._focusRing then
             local cardVisible = (win._drawerItem ~= nil)
-            -- S124: the object card shares the card zone when no item card shows
+            -- the object card shares the card zone when no item card shows
             local objCard = win._objectCard
             local objVisible = (not cardVisible) and win._drawerObject ~= nil and objCard ~= nil
                 and objCard:getIsVisible()
@@ -5291,7 +5300,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)
-        self._padMarks = nil   -- (a mouse press: the mouse's card rule again; punch list 44)
+        self._padMarks = nil   -- (a mouse press: the mouse's card rule again)
         -- the container buttons' row
         do
             local ccZone = self:hitZoneAt(x, y)
@@ -5382,13 +5391,13 @@ function ZeD_WorldWindow.toggle(playerNum)
             return true
         end
 
-        -- Category collapse (column-aware)
         -- a column's List | Grid toggle (InventoryRenderer: "view:list:<container>" / "view:grid:<container>")
         if type(zid) == "string" and zid:sub(1, 5) == "view:" then
             ZeD.InventoryRenderer.onViewZone(zid)
             return true
         end
 
+        -- Category collapse (column-aware)
         if type(zid) == "string" and zid:sub(1, 4) == "cat:" then
             local cat = zid:sub(5)
             local catColIdx, catCs = getColumnAtX(self, x)
@@ -5401,7 +5410,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             return true
         end
 
-        -- S100: stack chevron toggle
+        -- Stack chevron toggle
         if type(zid) == "string" and zid:sub(1, 6) == "stack:" then
             local key = zid:sub(7)
             local stkColIdx, stkCs = getColumnAtX(self, x)
@@ -5703,7 +5712,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     -- Base prerender (shaded guard only — drawer._onPrerender handles all layout); the
-    -- title, every frame, from the window itself, whichever way the tab changed (break-it D1)
+    -- title, every frame, from the window itself, whichever way the tab changed
     local origPrerender = win.prerender
     win.prerender = function(self)
         composeWorldTitle(self)
@@ -5713,12 +5722,17 @@ end
 
 
 -- ============================================================================
--- PUBLIC API (called from ZeD_CharacterWindow for keybind pairing)
+-- PUBLIC API — what other files call: open and close (ZeD_CharacterWindow
+-- pairs the two windows' keys through them), a tab, a container, a column,
+-- an object card.
 -- ============================================================================
 
+--- Opens the World window. Player 0 only (other split-screen players keep the
+--- game's own windows); never for a dead character or in safe mode. Does
+--- nothing when the window is already open.
 function ZeD_WorldWindow.open(playerNum)
     if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: the game's own, ZeD.windowsFor)
-    -- (never for a dead character; code audit Oct 17 2026)
+    -- (never for a dead character)
     local p = getSpecificPlayer(playerNum or 0)
     if p and p:isDead() then return end
     if ZeD.Safe.on("windows") then return end   -- safe mode: no ZeD window (SafeMode.lua)
@@ -5727,20 +5741,16 @@ function ZeD_WorldWindow.open(playerNum)
     end
 end
 
--- S124: show a tab programmatically (stations, crafting and build keys).
--- Replays a tab-strip click so every side effect (multi-select exit, drawer
--- growth, gamepad ring re-sync) matches the mouse path. The strip stamps its
--- hit zones while drawing, so a freshly opened window retries for a few ticks.
--- toggle = true hides the tab again when it is already showing (vanilla's
--- crafting and build keys toggle their windows).
+--- True while tabId is the open tab and its drawer shows.
 function ZeD_WorldWindow.isTabShowing(tabId)
     local win = _worldWin
     return win ~= nil and win._activeTab == tabId and win._drawerMode == "tab" and win._drawerOpen == true
 end
 
--- S124 object cards: open a card ({ def, t } from ZeD.ObjectCards) in the
--- drawer. Opens the window if needed, clears the item selection, and overlays
--- the active tab (or opens the drawer on the Loot view).
+--- Opens an object card ({ def, t } from ZeD.ObjectCards) in the drawer.
+--- Opens the window if needed, closes any extra columns, clears the item
+--- selection, and overlays the active tab (or opens the drawer on the Loot
+--- view). The controller lands on the card. Returns true when it is up.
 function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not entry then return false end
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
@@ -5765,7 +5775,8 @@ function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     return true
 end
 
--- Close the object card; the tab underneath (or the Loot view) shows again.
+--- Closes the object card, a pinned one too; the tab underneath (or the Loot
+--- view) shows again.
 function ZeD_WorldWindow.closeObjectCard()
     local win = _worldWin
     if not (win and win._drawerObject) then return end
@@ -5797,15 +5808,17 @@ function ZeD_WorldWindow.closeObjectCard()
     if not ok then print("[ZeD] WorldWindow: closing the card failed: " .. tostring(err)) end
 end
 
+--- The object card organism while a card is open in the drawer, else nil.
 function ZeD_WorldWindow.getObjectCard()
     local win = _worldWin
     return win and win._drawerObject and win._objectCard or nil
 end
 
--- Show one container (by its ItemContainer) in the Loot pane, leaving the tab
--- drawer as it is. The container list rebuilds every 30 frames and only holds
--- what is in reach, so a container still being walked to is looked for again
--- each tick (forcing a rebuild every 20) for up to `tries` ticks.
+--- Shows one container (by its ItemContainer) in the Loot pane, leaving the
+--- tab drawer as it is. The container list rebuilds every 30 frames and only
+--- holds what is in reach, so a container still being walked to is looked for
+--- again each tick (forcing a rebuild every 20) for up to `tries` ticks (60 by
+--- default). Returns true when it showed at once; otherwise it keeps looking.
 function ZeD_WorldWindow.selectContainer(inv, tries)
     local win = _worldWin
     if not (win and inv) then return false end
@@ -5834,7 +5847,8 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
         if (n + paused) % 20 == 0 then
             win._containerTimer = 30
             -- (a rolled window draws no strip, so the line above never reaches it and the list stays as old as the roll-up:
-            -- MechTrailer's walk with the pointer gone ran out its tries. It comes down once the container is in reach.)
+            -- a walk to a trailer (MechTrailer) with the pointer elsewhere would run out its tries. So it comes down once
+            -- the container is in reach.)
             if win.windowShaded and ZeD_WorldWindow.inReach(inv) then
                 win._autoShaded = false
                 win:setWindowShaded(false)
@@ -5860,6 +5874,14 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
     return false
 end
 
+--- Shows a tab from code (stations, the crafting and build keys, wheels,
+--- routes), opening the window first when needed. Replays a tab-strip click
+--- so every side effect (multi-select exit, drawer growth, gamepad ring
+--- re-sync) matches the mouse path. The strip stamps its hit zones while
+--- drawing, so a freshly opened window retries for up to 20 ticks. toggle =
+--- true hides the tab again when it is already showing (vanilla's crafting
+--- and build keys toggle their windows). Returns false when the window
+--- can't open.
 function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _worldWin then
@@ -5868,7 +5890,7 @@ function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
     end
     local win = _worldWin
     if not win then return false end
-    -- (rolled up by the hover roll-up: down first, its roll-up counted again from now, QA Nov 5 2026)
+    -- (rolled up by the hover roll-up: down first, its roll-up counted again from now)
     if win.windowShaded then
         win._autoShaded = false
         win:setWindowShaded(false)
@@ -5908,6 +5930,7 @@ function ZeD_WorldWindow._endZoneDraw()
     if AT and AT.endZoneDraw then pcall(AT.endZoneDraw) end
 end
 
+--- Closes the World window if it is open.
 function ZeD_WorldWindow.close()
     -- (also reached when the Character window's close calls it for paired close)
     if _worldWin then
@@ -5915,9 +5938,9 @@ function ZeD_WorldWindow.close()
     end
 end
 
--- Safe mode's hand-back (SafeMode.lua, through ZeD_CharacterWindow's "windows"
--- hook): closes the window even when it broke halfway through opening and the
--- ordinary close fails on it
+--- Safe mode's hand-back (SafeMode.lua, through ZeD_CharacterWindow's "windows"
+--- hook): closes the window even when it broke halfway through opening and the
+--- ordinary close fails on it
 function ZeD_WorldWindow.forceClose()
     ZeD_WorldWindow._endZoneDraw()
     local ok = pcall(ZeD_WorldWindow.close)
@@ -5938,18 +5961,17 @@ Events.OnPostSave.Add(function()
     if _worldWin then saveWorldState(_worldWin) end
 end)
 
--- A resolution change keeps the open window on the new screen (Oct 31 2026, break-it B3)
+-- A resolution change keeps the open window on the new screen
 if Events.OnResolutionChange then
     Events.OnResolutionChange.Add(function() if _worldWin then fitWorldToScreen(_worldWin) end end)
 end
 
--- ----------------------------------------------------------------------------
--- A container's column in the Loot tab's multi-column view, by its ItemContainer,
--- as a click on its icon in the container strip does (Oct 21 2026: the Workshop
--- gallery shows several containers open side by side; the QA scripts drive it
--- from here). The container list only holds what is in reach and rebuilds every
--- 30 frames, so a fresh one may need a moment. Returns true when it was found.
--- ----------------------------------------------------------------------------
+--- Toggles a container's column in the Loot tab's multi-column view, by its
+--- ItemContainer, as a click on its icon in the container strip does (scripts
+--- that stage several containers open side by side, as for the Workshop
+--- gallery's pictures, drive it from here). The container list only holds
+--- what is in reach and rebuilds every 30 frames, so a fresh one may need a
+--- moment. Returns true when it was found.
 function ZeD_WorldWindow.toggleColumn(inv)
     local win = _worldWin
     if not (win and inv and win._mainContent) then return false end
@@ -5963,15 +5985,15 @@ function ZeD_WorldWindow.toggleColumn(inv)
 end
 
 -- ----------------------------------------------------------------------------
--- THE GAME'S LOOT PAGE, WHEREVER IT IS ASKED FOR (FAIV's report on 0.3.0-beta3a, Nov 5 2026; the director:
--- "let's fix that"). A left click on a container in the world is the game's own (ISObjectClickHandler: in
--- reach, not aiming, the safehouse rule and the lock checked, the container explored or its items asked of the
--- server): it hands the container to the game's loot page and shows it. The right-click menu and the
--- controller show that page by their own ways too. ZeD only hid the page again from its own windows' drawing,
--- so with both windows closed, or the World window rolled up, the game's page stayed; and an open window never
--- took the clicked container. Here, each tick: the game's loot page showing means a container was asked for,
--- so the page hides, the World window opens (or rolls down, counting its roll-up again from now) and shows
--- that container in its Loot pane, as the page's setNewContainer would. The game's inventory page only hides.
+-- THE GAME'S LOOT PAGE, WHEREVER IT IS ASKED FOR. A left click on a container in the world is the game's
+-- own (ISObjectClickHandler: in reach, not aiming, the safehouse rule and the lock checked, the container
+-- explored or its items asked of the server): it hands the container to the game's loot page and shows it.
+-- The right-click menu and the controller show that page by their own ways too. Hiding the page again only
+-- from ZeD's own windows' drawing is not enough: with both windows closed, or the World window rolled up,
+-- the game's page would stay, and an open window would never take the clicked container. So, each tick:
+-- the game's loot page showing means a container was asked for, so the page hides, the World window opens
+-- (or rolls down, counting its roll-up again from now) and shows that container in its Loot pane, as the
+-- page's setNewContainer would. The game's inventory page only hides.
 -- Safe mode hands the game's pages back (SafeMode.lua), so nothing here runs then.
 -- ----------------------------------------------------------------------------
 -- (the game makes its pages showing when it builds them, for a new character, a respawn or a new screen size:
@@ -5992,15 +6014,15 @@ local function _lootPadToWorld()
         pcall(F.claimFocus, win)
     end
 end
--- THE PAGE IS NEVER DRAWN (Nov 6 2026, FAIV's report: the game's page flashing; a flash is an access problem too, not
--- only a look). The click that shows the page runs in the engine's UIManager.update, OnTick after it, the drawing after
--- that; but OnTick does not run while the game is paused, so a paused click reached the drawing with the page showing:
--- one UI frame behind ZeD's windows (their prerender then hid it and lost the request), or the whole pause with both
--- windows closed or rolled up. So the watch runs on OnTickEvenPaused too (each frame, paused or not, after the click and
--- before the drawing; OnTick stays, a trunk's timed action runs after OnTickEvenPaused has fired), and the last look
--- below runs on OnPreUIDraw, the engine's last step before it walks the UI list: whatever showed the page by whatever
--- way, it never reaches a draw. The last look only hides (a window built inside the drawing pass is no good): _lootAsked
--- keeps the request for the next watch.
+-- THE PAGE IS NEVER DRAWN (not even a flash of it: a flash is an access problem too, not only a look). The
+-- click that shows the page runs in the engine's UIManager.update, OnTick after it, the drawing after that; but
+-- OnTick does not run while the game is paused, so a paused click would reach the drawing with the page
+-- showing: one UI frame behind ZeD's windows (their prerender then hides it and loses the request), or the
+-- whole pause with both windows closed or rolled up. So the watch runs on OnTickEvenPaused too (each frame,
+-- paused or not, after the click and before the drawing; OnTick stays, a trunk's timed action runs after
+-- OnTickEvenPaused has fired), and the last look below runs on OnPreUIDraw, the engine's last step before it
+-- walks the UI list: whatever showed the page by whatever way, it never reaches a draw. The last look only
+-- hides (a window built inside the drawing pass is no good): _lootAsked keeps the request for the next watch.
 local _lootAsked = false
 local function _lootPageLastLook()
     if not getSpecificPlayer(0) or ZeD.Safe.on("windows") then return end

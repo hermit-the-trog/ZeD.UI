@@ -1,8 +1,15 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerCore.lua
 -- ============================================================================
--- THE SERVER PART'S CORE (ZeDUI/MP_SERVER_PART_DESIGN.md, B6 and B10). Runs on a dedicated server and a host's server,
--- and nowhere else (the first line). ZeD.Srv: who may do what, the rate limits, the one OnClientCommand listener, the
--- hello, the pushes to staff and the ZeD log. Later phases register their modules here.
+-- THE SERVER PART'S CORE. Server only: runs on a dedicated server and a host's server, and nowhere else (the first line
+-- returns anywhere else, single player included). Pure Lua, pure ASCII. ZeD.Srv: who may do what, the rate limits, the
+-- one OnClientCommand listener, the hello, the pushes to staff and the ZeD log. Every other server file registers its
+-- own commands here (Srv.register) and names its module in Srv.modules.
+--
+-- What crosses the wire: a client's ZeD.ServerPart.send (client/ZeD/ZeD_ServerLink.lua) calls sendClientCommand(player,
+-- module, command, args). Here it arrives as OnClientCommand(module, command, player, args), the player filled in by the
+-- game, and Srv.onCommand hands it to the handler registered for module.command. What goes back is sendServerCommand
+-- (Srv.to, Srv.ack): the client's OnServerCommand, in ZeD_ServerLink.lua, hands each one to the part listening on its
+-- module.
 --
 -- Every command takes its player from the event, never a name from its arguments, and the handler runs inside pcall:
 -- a Lua logic error costs one command, not the server's event chain. ZeD.Srv is a global and the listener is added
@@ -20,9 +27,9 @@ local L = Tk.LIMITS
 
 Srv.handlers = Srv.handlers or {}
 Srv.mem = Srv.mem or {}          -- username -> the limits' memory; a restart clears it
-Srv.modules = Srv.modules or {}  -- the modules this part answers; each phase adds its own
+Srv.modules = Srv.modules or {}  -- the modules this part answers; each server file adds its own
 Srv.modules[Tk.MOD_LINK], Srv.modules[Tk.MOD] = true, true
-Srv.helloAdds = Srv.helloAdds or {}   -- more for the hello reply: a later phase keeps its own under a name
+Srv.helloAdds = Srv.helloAdds or {}   -- more for the hello reply: each server file keeps its own under a name
 
 -- Both are in the 42.22 enum. If a game update renames one the local is nil, and hasCapability(nil) would match no
 -- overload, which corrupts the game's call pool even inside pcall. So a missing one leaves the part off (below).
@@ -30,6 +37,7 @@ local CAP_STAFF = Capability and Capability.AnswerTickets
 local CAP_ADMIN = Capability and Capability.RolesWrite
 Srv.CAP_STAFF, Srv.CAP_ADMIN = CAP_STAFF, CAP_ADMIN
 
+--- p's role has this capability (no role: no).
 function Srv.can(p, cap)
     local role = p and p:getRole()
     return role ~= nil and role:hasCapability(cap) == true
@@ -39,7 +47,7 @@ end
 -- Srv.fileLine calls this, so everything in that file is one log with one shape
 function Srv.log(text) writeLog("ZeD", text) end
 
--- (0 before there is a game clock: the file's first lines are written as the Lua loads)
+--- The in-game day, from 1 (0 before there is a game clock: the file's first lines are written as the Lua loads).
 function Srv.day()
     local gt = getGameTime and getGameTime()
     if not gt then return 0 end

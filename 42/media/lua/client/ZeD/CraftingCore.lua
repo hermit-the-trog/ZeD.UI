@@ -1,11 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/CraftingCore.lua
 -- ============================================================================
 -- CRAFTING CORE — client; the shared engine behind the recipe tabs. The
--- Crafting, Building and Cooking tabs, the Journal's Recipes page, the
--- stations and the object cards all require it. Catalog helpers, container
--- scanning, material counting, pins, craft counts, filter and sort, text
--- truncation, the state machine, the drawer's rendering and the alternatives
--- list.
+-- Crafting, Building and Cooking tabs, the Journal's Recipes page and the
+-- stations require it; the object cards and other tabs borrow its
+-- truncText. Catalog helpers, container scanning, material counting, pins,
+-- craft counts, filter and sort, text truncation, the state machine, the
+-- drawer's rendering and the alternatives list.
 --
 -- Each consumer passes a `config` table (prefix, keys, labels, startAction)
 -- that tells Craft from Build from the Journal's read-only list; per-window
@@ -42,7 +42,7 @@ CC.PANE_W_SOLO     = 480
 CC.PANE_W_SPLIT    = 240
 CC.ROW_H           = 24
 CC.HEADER_H        = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- standard ZeD drawer-header strip
-CC.STRIP_H          = 20    -- sort strip doubles as column header row
+CC.STRIP_H          = 20    -- a strip row's height (the alternatives strip is 20u)
 CC.MAX_PINS        = 8
 CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
 
@@ -106,6 +106,8 @@ end
 -- UTILITY — buildContainers (ArrayList for HandcraftLogic/BuildLogic)
 -- ============================================================================
 
+--- The containers a craft draws on: the player's inventory, then each bag the
+--- player wears or holds and each key ring in it.
 function CC.buildContainers(playerObj)
     local containers = ArrayList.new()
     local mainInv = playerObj:getInventory()
@@ -247,12 +249,13 @@ function CC.quickCraftCheck(rd, containers, typeCache)
 end
 
 -- ============================================================================
--- BACKGROUND SCANNER — checks ingredient availability in batches per frame.
--- Call from tab render(). Scans BATCH_SIZE recipes per frame, round-robin.
--- Updates rd.status in-place so dots reflect real craftability.
+-- BACKGROUND SCANNER — checks ingredient availability a batch at a time.
+-- Each call checks the next BG_BATCH_SIZE recipes, round-robin, from the tab's
+-- render (Build calls it every frame, Craft and the Journal every 300 frames).
+-- Updates rd.status in place so the status dots reflect real craftability.
 -- ============================================================================
 
-local BG_BATCH_SIZE = 15  -- recipes checked per frame (tunable)
+local BG_BATCH_SIZE = 15  -- recipes checked per call (tunable)
 
 function CC.backgroundIngredientScan(data, win, prefix)
     local recipes = data.recipes
@@ -301,10 +304,12 @@ end
 -- (materials in the right amounts, tools, the bench). The same check greys
 -- vanilla's own list. Refreshed every LOGIC_EVERY_MS while the tab shows; a
 -- changed status re-filters the list. Recipes it answered are marked
--- rd.fromLogic, and the quick scan below leaves them alone.
+-- rd.fromLogic, and the quick scan above leaves them alone.
 -- ============================================================================
 local LOGIC_EVERY_MS = 1200
 
+--- makeLogic makes the tab's logic (a HandcraftLogic or BuildLogic), kept on the
+--- window. Returns true when any recipe's status changed (the caller re-filters).
 function CC.logicScan(data, win, prefix, makeLogic)
     local recipes = data and data.recipes
     if not recipes or #recipes == 0 or not makeLogic then return false end
@@ -340,9 +345,9 @@ function CC.logicScan(data, win, prefix, makeLogic)
         logic:setRecipes(win[lk])
     end)
     if not ok then
-        -- (the game would not answer: its last answers no longer stand. The quick scan and the
-        -- card's count take the recipes back, instead of a craftable answer held until it
-        -- answers again, which the rows rebuilt every 30 frames carried on)
+        -- (the game would not answer, so its last answers no longer stand: the quick scan and
+        -- the card's count take the recipes back. Kept, a craftable answer would hold until the
+        -- game answered again, carried over by the rows rebuilt every 30 frames)
         win[lKey] = nil
         for _, rd in ipairs(recipes) do rd.fromLogic = nil end
         return false
@@ -368,9 +373,9 @@ function CC.logicScan(data, win, prefix, makeLogic)
     return changed
 end
 
--- The tabs rebuild their recipe rows every 30 frames (learned recipes, skills,
--- the bench): the last craftable / missing answer carries over to the new rows
--- until the next scan, so the list does not empty and refill between scans.
+--- The tabs rebuild their recipe rows every 30 frames (learned recipes, skills,
+--- the bench): the last craftable / missing answer carries over to the new rows
+--- until the next scan, so the list does not empty and refill between scans.
 function CC.carryStatus(oldData, newData)
     if not (oldData and newData and oldData.recipes and newData.recipes) then return end
     local prev = {}
@@ -388,6 +393,7 @@ end
 -- UTILITY — truncText (binary search ellipsis truncation)
 -- ============================================================================
 
+--- str cut to fit maxW (screen px) in font, ending in "..."; whole when it fits.
 function CC.truncText(str, font, maxW)
     local tm = ZeD.TM
     if tm:MeasureStringX(font, str) <= maxW then return str end
@@ -465,6 +471,7 @@ end
 -- CRAFT COUNT TRACKING — modData-based (ZeD_CraftCounts / ZeD_BuildCounts)
 -- ============================================================================
 
+--- One more craft of recipeName, kept in the player's mod data under countKey.
 function CC.incrementCraftCount(player, recipeName, countKey)
     local md = player:getModData()
     if not md[countKey] then md[countKey] = {} end
@@ -509,7 +516,8 @@ end
 -- ============================================================================
 
 --- Pre-bake input definitions from a recipe object.
---- Returns list of {name, isTool, isKeep, validTypes, altCount} tables.
+--- Returns a list of {name, isTool, isKeep, isFuel, validTypes, altCount, tag,
+--- inputRef} tables (automation-only inputs are left out).
 function CC.prebakeInputs(recipe)
     local inputDefs = {}
     local ok1, inputs = pcall(function() return recipe:getInputs() end)
@@ -558,7 +566,8 @@ function CC.prebakeInputs(recipe)
                     altCount = possible:size()
                 end
 
-                -- Tag for display: TOOL, 1 USE, KEEP, or nil
+                -- Tag for display: TOOL, KEEP, or nil (FUEL comes later, in CC.gatherDetail:
+                -- a fuel input at a heat station)
                 local tag = nil
                 if isTool then tag = "TOOL"
                 elseif isKeep then tag = "KEEP"
@@ -685,8 +694,8 @@ end
 -- FILTERING + SORTING — parameterized by filter modes
 -- ============================================================================
 
--- SHOW: "ready" | "known" | "all" (older state kept only showAll: on = all, off = known;
--- the Journal's read-only list has no Ready)
+-- SHOW: "ready" | "known" | "all". A state with no show yet goes by showAll: on = all,
+-- off = the default (Ready; Known for the Journal's read-only list, which has no Ready)
 local SHOW_LABEL = { ready = "UI_ZeD_Craft_ShowReady", known = "UI_ZeD_Craft_Known", all = "UI_ZeD_Craft_ShowAll" }   -- keys
 function CC.showMode(state, config)
     if state.show then return state.show end
@@ -857,7 +866,8 @@ function CC.filterAndSort(data, state, config)
             sk = pin * 10000 + (9999 - math.min(9999, count))
 
         elseif sortMode == "recent" then
-            -- Most recently crafted first (higher timestamp = lower key)
+            -- Crafted ones first, most-crafted first: only counts are kept, no times,
+            -- so this orders as freq does
             local count = 0
             if playerObj then count = CC.getCraftCount(playerObj, rd.entry.name, countKey) end
             sk = pin * 10000 + (count > 0 and 0 or 1) * 1000 + (9999 - math.min(9999, count))
@@ -892,6 +902,9 @@ end
 -- DETAIL GATHERING — container scan for ONE selected recipe
 -- ============================================================================
 
+--- Fills rd from what is in reach: its ingredients (have / need per slot), skills,
+--- missing count and craft time. Returns the containers it used, gathered again
+--- every CONTAINER_INTERVAL (90) calls.
 function CC.gatherDetail(rd, playerObj, win, prefix)
     local entry = rd.entry
 
@@ -1062,6 +1075,8 @@ end
 -- STATE MACHINE — create / transition helpers
 -- ============================================================================
 
+--- A fresh state table for one tab, made once per tab and window (the
+--- controller's closures in CC.buildFocusables rely on it staying the same table).
 function CC.createState()
     return {
         activeCat        = "all",
@@ -1109,6 +1124,8 @@ function CC.handleRecipeClick(state, recipeId)
     end
 end
 
+--- Opens the craft card on recipeId: no picks, amount 1, the split pane opening,
+--- the alternatives list left.
 function CC.openCraft(state, recipeId)
     state.selected = recipeId
     state.picks = {}   -- a fresh recipe starts on the game's own choice of ingredients
@@ -1120,6 +1137,7 @@ function CC.openCraft(state, recipeId)
     state.cardScroll:setScrollPos(0)
 end
 
+--- Shuts the craft card: nothing selected, no picks, the split pane closing.
 function CC.closeCraft(state)
     state.selected = nil
     state.picks = {}
@@ -1141,6 +1159,7 @@ function CC.enterAltMode(state, slotName, slotIdx, playerObj, containers, inputD
     state.altScroll:setScrollPos(0)
 end
 
+--- Leaves the alternatives list for the recipe list.
 function CC.exitAltMode(state)
     state.altSlotName = nil
     state.altSlotIdx  = nil
@@ -1235,8 +1254,8 @@ local function drawCatSelect(panel, state, pfx, x, y, w, h, label, up)
     end
 end
 
--- The tab's search field (a ZeD_SearchField, a child panel of the drawer, made by the
--- window): placed where the caller says; in alt mode it filters the alternatives.
+--- The tab's search field (a ZeD_SearchField, a child panel of the drawer, made by the
+--- window): placed where the caller says; in alt mode it filters the alternatives.
 function CC.placeSearch(win, config, state, x, y, w, h)
     local f = win and config and win["_" .. tostring(config.prefix) .. "Search"]
     if not f then return end
@@ -1308,9 +1327,9 @@ end
 
 -- ============================================================================
 -- RENDERING — Alternatives strip (alt mode, 20u): the alternatives list's own
--- strip (back, the owned count, Owned only), a fold of the card. The sort strip
--- that sat here went to the band's Sort and Show; out of alt mode there is
--- nothing here.
+-- strip (back, the owned count, Owned only), a fold of the card. Sorting lives
+-- in the band (Sort and Show), so out of alt mode this draws nothing and is
+-- 0 tall.
 -- ============================================================================
 
 local EMPTY_ALT = { totalOwned = 0, totalAll = 0 }
@@ -1522,8 +1541,8 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
 
     -- the left's boxes: at most the longest words each can carry, at least the current
     -- choice and its arrow ("Craftable" v), and at worst its first letter and the arrow
-    -- (narrowed by a plain even share, Sort and Show once came out too narrow for any
-    -- words at 1280x720, UI scale 2.0, Large text)
+    -- (a plain even share leaves Sort and Show too narrow for any words at 1280x720,
+    -- UI scale 2.0, Large text)
     local sortModes = CC.popModes("sort", config)
     local showModes = CC.popModes("show", config)
     local sortName = modeLabel(sortModes, state.sort or "craftable")
@@ -1849,8 +1868,9 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         -- Rows: always stamp zones for cone-nav (scrolling past the viewport
         -- needs off-screen rows focusable so the D-pad cone has a target below
         -- the visible area; scroll-follow then brings it into
-        -- view next frame). Draw only when within visible rect. Zone-only
-        -- iteration cost: ~24 bytes/row table × ~500 rows ≈ 12KB/frame for
+        -- view next frame). Draw only when within visible rect. The zone
+        -- tables come from the cache above; a frame that makes them fresh (the
+        -- list scrolled or changed) costs ~24 bytes/row × ~500 rows ≈ 12KB for
         -- the largest typical section, well within budget.
         if not sec.collapsed then
             for _, rd in ipairs(sec.items) do
@@ -1999,21 +2019,6 @@ function CC.stampAltPick(panel, state, alt, x, y, w, rowH, viewY, viewH)
     end
 end
 
--- The craft action for a recipe whose ingredients were chosen. The chosen
--- types are offered to a handcraft logic in manual-select mode (as vanilla's
--- crafting window does when the player picks items) and the action is built
--- from it, so the game uses what was chosen. Returns nil when nothing was
--- chosen or the choice no longer covers the recipe (an item used up, moved
--- out of reach): the caller then starts the usual automatic craft.
---
--- The slots the player did not choose for keep the items the game fills them
--- with (autoPopulateInputs, as vanilla's panel does), so the recipe stays
--- complete. Each chosen slot is filtered to its own input before its items
--- are offered, so a chosen type lands in that slot and nowhere else.
--- `used` (optional) is a set of items already promised to an earlier craft
--- of the same batch: they are skipped, and the items this craft takes are
--- added to it. Tools and kept items are not consumed, so they are never skipped.
-
 -- Kahlua has no next(); whether a table has any entry.
 local function hasAny(t) for _ in pairs(t) do return true end return false end
 
@@ -2045,6 +2050,20 @@ local function slotHoldsAny(logic, script, set)
     return false
 end
 
+-- The craft action for a recipe whose ingredients were chosen. The chosen
+-- types are offered to a handcraft logic in manual-select mode (as vanilla's
+-- crafting window does when the player picks items) and the action is built
+-- from it, so the game uses what was chosen. Returns nil when nothing was
+-- chosen or the choice no longer covers the recipe (an item used up, moved
+-- out of reach): the caller then starts the usual automatic craft.
+--
+-- The slots the player did not choose for keep the items the game fills them
+-- with (autoPopulateInputs, as vanilla's panel does), so the recipe stays
+-- complete. Each chosen slot is filtered to its own input before its items
+-- are offered, so a chosen type lands in that slot and nowhere else.
+-- `used` (optional) is a set of items already promised to an earlier craft
+-- of the same batch: they are skipped, and the items this craft takes are
+-- added to it. Tools and kept items are not consumed, so they are never skipped.
 function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used)
     local picks = state.picks and entry and state.picks[entry.name]
     if not (picks and hasAny(picks) and entry.recipe and entry.inputDefs and containers) then return nil end
@@ -2127,6 +2146,8 @@ function CC.startPickedCraft(win, state)
 
     state.qty = 1
     state.filterDirty = true
+    -- (the Craft tab's caches, as its startCraft clears them: 90 = CONTAINER_INTERVAL,
+    -- so the next frame gathers the containers again)
     win._craftCache = nil
     win["_craftContainerTimer"] = 90
     win["_craftTypeCache"] = nil
@@ -2262,7 +2283,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
 end
 
 -- ============================================================================
--- RENDERING — Craft Card (240px right pane)
+-- RENDERING — Craft Card (the right pane, PANE_W_SPLIT = 240u when open)
 -- ============================================================================
 
 function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
@@ -2310,7 +2331,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     -- Scrollbar (for very long ingredient lists)
     local scrollW = T.sp.scrollbarW
-    local availH = h - actionH  -- action strip pinned to bottom
+    local availH = h - actionH  -- (actionH is 0: the band below the card holds the actions)
     local needsScroll = (totalH - actionH) > availH
     scroll.visible = needsScroll
     local contentW = needsScroll and (w - scrollW) or w
@@ -2323,7 +2344,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         scroll:setScrollPos(0)
     end
 
-    -- Stencil for scrollable area (above action strip)
+    -- Stencil for the scrollable area
     panel:setStencilRect(x, y, contentW, availH)
 
     local scrollOff = 0
@@ -2408,7 +2429,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     curY = curY + chipH + T.px(4)
 
-    -- NEEDS (cohesion spec 9): a hollow square and "Needs a Primitive Kiln." in F2,
+    -- NEEDS: a hollow square and "Needs a Primitive Kiln." in F2,
     -- the nearest one in reach under it, then the push button that goes to it
     if stNeed then
         local bx, bw2 = x + T.px(10), contentW - T.px(20)
@@ -2533,7 +2554,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         end
     end
 
-    -- Outputs section (collapsible disclosure, matches inventory catHdrH)
+    -- Outputs section (folds; the same 20u section head as Required)
     curY = curY + T.px(4)
     local outCount = #(entry.outputDefs or {})
     if outCount > 0 then
@@ -2575,10 +2596,13 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 end
 
 -- ============================================================================
--- MAIN ORCHESTRATOR — renders the full 480px drawer layout
+-- MAIN ORCHESTRATOR — renders the full drawer layout (DRAWER_W = 480u)
 -- Called by CraftingTab, BuildingTab and JournalTab's render.
 -- ============================================================================
 
+--- One frame of a recipe tab. state: the tab's (CC.createState); config: the
+--- tab's own (prefix, keys, labels, startAction, readOnly, stations); data: the
+--- tab's recipes this frame ({ recipes, categories, flatRecipes }).
 function CC.render(panel, win, x, y, w, h, state, config, data)
     state.config = config   -- (the preview card reads the tab's prefix, label and start action from it)
     local T = ZeD.T
@@ -2673,8 +2697,7 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- The alternatives list's strip (alt mode only)
     curY = curY + CC.renderStrip(panel, x, curY, w, state, config)
 
-    -- The band at the card's foot (Oct 30 2026, punch list 21); the panes take the
-    -- height between
+    -- The band at the card's foot; the panes take the height between
     local bandH = M.bandH()
     local panesH = h - (curY - y) - bandH
 
@@ -2831,7 +2854,7 @@ function CC.renderCatDropdownOverlay(panel, state, data)
     local bg = T.surf1
     panel:drawRect(ddX, ddY, ddW, listH, 1, bg.r, bg.g, bg.b)
 
-    -- S105 gamepad: use stashed focused id for dropdown row cue (the element ids
+    -- the controller: the focused id stashed on state marks a row (the element ids
     -- carry the tab's own prefix: craft, build or jrecipe)
     local gpFocusedId = state._gpFocusedId
     local catPfx = (state._pickPrefix or "jrecipe") .. ":cat:"
@@ -2890,6 +2913,8 @@ end
 -- CLICK DISPATCHER — called from tab wrapper's onClick
 -- ============================================================================
 
+--- A press at (x, y). An open list or select takes every press; otherwise the
+--- zone under it acts. True when something took the press.
 function CC.onClick(state, config, win, x, y, playerObj)
     local T = ZeD.T
     -- Station dropdown open: it takes every click (pick a row or close)
@@ -3051,6 +3076,7 @@ end
 -- RIGHT-CLICK DISPATCHER — pin toggle on recipe rows
 -- ============================================================================
 
+--- True when the right-click pinned or unpinned a recipe row.
 function CC.onRightClick(state, config, win, x, y)
     local zones = state.zones or {}
 
@@ -3072,6 +3098,9 @@ end
 -- MOUSE WHEEL DISPATCHER
 -- ============================================================================
 
+--- The wheel: an open station or Sort / Show list, the one amount box, the open
+--- category list, else the pane under the pointer (panelX: the drawer's left
+--- edge). Always true: the drawer takes the wheel.
 function CC.onMouseWheel(state, del, x, y, panelX, panelW)
     local T = ZeD.T
     if state.stDropdownOpen and ZeD.Stations then
@@ -3079,7 +3108,8 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
         return true
     end
     if state.sortMenuOpen or state.showMenuOpen then return true end
-    -- the one amount box (a band short of room): the wheel steps it, up for more
+    -- the one amount box (a band short of room): the wheel steps it, up for more; only
+    -- while the band drew it in the last 250 ms
     local qb = state._qtyBox
     if qb and qb.on and (getTimestampMs() - (qb.t or 0)) < 250 and x >= qb.x and x < qb.x + qb.w and y >= qb.y and y < qb.y + qb.h then
         if del < 0 then state.qty = math.min(state._maxQty or 99, (state.qty or 1) + 1)
@@ -3109,7 +3139,12 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
     return true
 end
 
--- The config buildFocusables passes on (it has none: the read-only list is the Journal's)
+-- ============================================================================
+-- GAMEPAD FOCUSABLES BUILDER
+-- ============================================================================
+
+-- buildFocusables is handed no config, so these stand in for one (the read-only
+-- list is the Journal's, prefix "jrecipe")
 local RO_CFG, FULL_CFG = { readOnly = true }, {}
 
 -- The open category list's rows as the controller's stops. B shuts the list; a choice or
@@ -3177,41 +3212,9 @@ local function popRowFocusables(state, prefix, kind)
     return elements
 end
 
--- ============================================================================
--- GAMEPAD FOCUSABLES BUILDER
--- ============================================================================
--- Shared focusable-list builder for ALL CraftingCore-driven tabs:
---   • Journal Recipes sub-tab on Character (readOnly, prefix="jrecipe")
---   • Crafting tab on World (full, prefix="craft")
---   • Building tab on World (full, prefix="build")
---
--- Synthesized from `state.zones`, the hit-zone list stamped each render by
--- the CC drawing pipeline. One focusable per interactive zone type. Mode
--- branching is implicit: alt mode adds altStrip_* and drops the band's
--- sortMenu / showMenu and the catDropdown (greyed there); readOnly mode
--- (Journal) has no recipeStar / action_* zones, so those branches never fire.
--- An open list (category, station, the band's Sort / Show) is the explicit
--- focus-lock case (matches CC.onClick, which hands it every click). Order:
--- the header strip, the body (list, card), the band.
---
--- Args:
---   win        — the parent window (Char or World)
---   state      — CC state table (_jrecipeState / _craftState / _buildState)
---   prefix     — id namespace ("jrecipe" / "craft" / "build")
---   pinKey     — modData pin key ("ZeD_CraftPins" etc.) or nil for readOnly
---                (controls whether X on a recipeRow toggles its pin)
---   startAction — function(win, state) executed by A on the BUILD/CRAFT
---                button. nil for readOnly (no action_build zones emitted).
---
--- All onActivate closures capture `state` directly — the state-table identity
--- is stable across frames (created once via CC.createState() per tab), so
--- closures rebuilt each frame still target the same data.
---
--- recipeStar zones are deliberately NOT emitted as focusables — the pin is
--- X (onContextMenu) on the recipeRow itself.
 -- The recipe preview (ObjectCardPreview.lua): the picked recipe's card in the World window's
--- card drawer, opened from the header's icon. The Journal's recipes (the Character window) have no card
--- drawer of their own yet, so they open none.
+-- card drawer, opened from the icon at the top of the craft card (a press or A). The Journal's
+-- recipes (the Character window) have no card drawer of their own, so they open none.
 function CC.openPreview(win, state, playerObj)
     local rd = state and state._rdLast
     local OC = ZeD.ObjectCards
@@ -3224,6 +3227,35 @@ function CC.openPreview(win, state, playerObj)
     return opened and true or false
 end
 
+--- Shared focusable-list builder for ALL CraftingCore-driven tabs:
+---   • Journal Recipes sub-tab on Character (readOnly, prefix="jrecipe")
+---   • Crafting tab on World (full, prefix="craft")
+---   • Building tab on World (full, prefix="build")
+---
+--- Synthesized from `state.zones`, the hit-zone list stamped each render by
+--- the CC drawing pipeline: one focusable per interactive zone. Mode
+--- branching is implicit: alt mode adds altStrip_* and drops the band's
+--- sortMenu / showMenu and the catDropdown (greyed there); readOnly mode
+--- (Journal) has no recipeStar / action_* zones, so those branches never fire.
+--- An open list (category, station, the band's Sort / Show) is the explicit
+--- focus-lock case (matches CC.onClick, which hands it every click). Order:
+--- the header strip, the body (list, card), the band.
+---
+--- Args:
+---   win        — the parent window (Char or World)
+---   state      — CC state table (_jrecipeState / _craftState / _buildState)
+---   prefix     — id namespace ("jrecipe" / "craft" / "build")
+---   pinKey     — modData pin key ("ZeD_CraftPins" etc.) or nil for readOnly
+---                (controls whether X on a recipeRow toggles its pin)
+---   startAction — function(win, state) executed by A on the BUILD/CRAFT
+---                button. nil for readOnly (no action_build zones emitted).
+---
+--- All onActivate closures capture `state` directly — the state-table identity
+--- is stable across frames (created once via CC.createState() per tab), so
+--- closures rebuilt each frame still target the same data.
+---
+--- recipeStar zones are deliberately NOT emitted as focusables — the pin is
+--- X (onContextMenu) on the recipeRow itself.
 function CC.buildFocusables(win, state, prefix, pinKey, startAction)
     local T = ZeD.T
     if not (win and state) then return {} end
@@ -3281,9 +3313,9 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 x = z.x, y = z.y, w = z.w, h = z.h,
                 id = prefix .. ":row:" .. tostring(z.id),
                 craftKind = "recipeRow",
-                -- journalKind preserved on jrecipe path so legacy L/R / cue
-                -- paint code that branches on it stays untouched. New craft/
-                -- build paths read craftKind only.
+                -- journalKind: a second kind name, set on the Journal's
+                -- (jrecipe) elements only; the World window's jump to the
+                -- card after a pick goes by craftKind.
                 journalKind = (prefix == "jrecipe") and "jrecipeRow" or nil,
                 recipeId = z.id,
                 onFocus = function(w, el)
@@ -3354,7 +3386,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 onActivate = function(w, el) CC.openPreview(w, state, w._playerObj) end,
             }
         elseif z.type == "sortMenu" or z.type == "showMenu" then
-            -- the band's Sort / Show pop-up boxes (Oct 30 2026): A opens the list
+            -- the band's Sort / Show pop-up boxes: A opens the list
             local kind = (z.type == "showMenu") and "show" or "sort"
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,

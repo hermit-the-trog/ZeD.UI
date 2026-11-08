@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/WindowCurtain.lua
 -- ============================================================================
--- WINDOW CURTAINS (Oct 19 2026, mockup ZeDUI/mockups/zed_curtains_v1)
+-- WINDOW CURTAINS (client) - a behaviour the Character and World windows
+-- attach, with the rod as a panel of its own.
 --
 -- A window's inventory side rolls up under its title, like a minimized
 -- window, while the tab drawer (the map, say) stays open where it is. The
@@ -52,6 +53,7 @@ function C.drawTri(panel, x, y, up, col)
     else A.drawTriangleDown(panel, x, y, T.px(TRI_W), col) end
 end
 
+-- true while an item is being dragged in either main window (a drop on the tab is then possible)
 local function anyDragActive()
     for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
         local w = get and get()
@@ -202,6 +204,9 @@ function ZeD_CurtainRod:onMouseUpOutside(x, y) self._dragging = false; self._pre
 -- ---------------------------------------------------------------------------
 -- The window side
 -- ---------------------------------------------------------------------------
+--- Opt a window in (spec: see the header). The first call hooks the window's
+--- onMouseDown (the roll box), render (draws it) and removeFromUIManager (the
+--- rod goes with it); a later call only swaps the spec.
 function C.attach(win, spec)
     win._curtain = spec
     if win._curtainHooked then return end
@@ -298,7 +303,7 @@ function C.roll(win)
     -- only hides it. The engine queues UIManager.AddUI and RemoveElement (toAdd / toRemove,
     -- applied on the next update): a roll in the same frame as the unroll before it cancelled the
     -- queued remove and queued a second add, so the UI list held the rod twice and an unroll took
-    -- only one away (Nov 1 2026, punch list 42 f.: "rods in UI 1" after a Loot press, on and off).
+    -- only one away (a Loot press, unrolling for its layout snap and rolling again, left a rod behind).
     if not rod._inUI then rod:addToUIManager(); rod._inUI = true end
     rod:setVisible(true)
     if spec.onChange then spec.onChange(true) end
@@ -346,8 +351,8 @@ local function restore(win)
     if rod then rod:setVisible(false) end   -- (it stays in the UI manager, hidden, until C.drop)
 end
 
--- at once: back to the full window (also when the drawer closes under a rolled
--- side, and before a layout snap that measures the unrolled window: Loot)
+--- At once: back to the full window (also when the drawer closes under a rolled
+--- side, and before a layout snap that measures the unrolled window: Loot).
 function C.finishUnroll(win)
     if not win._rolled then return end
     restore(win)
@@ -367,8 +372,8 @@ function C.drop(win)
     if rod then rod:setVisible(false); rod:removeFromUIManager(); rod._inUI = nil end
 end
 
--- every frame from the window's layout: the rod follows the window; the side
--- comes back when there is no tab drawer to keep
+--- Every frame from the window's layout: the rod follows the window; the side
+--- comes back when there is no tab drawer to keep.
 function C.sync(win)
     if not win._rolled then return end
     local spec = win._curtain
@@ -401,7 +406,7 @@ function C.sync(win)
     if spec.onFrame then spec.onFrame() end
 end
 
--- a drop released over a rolled tab: that side's inventory
+--- A drop released over a rolled tab: that side's inventory, else nil.
 function C.dropTarget()
     for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
         local w = get and get()
@@ -413,8 +418,8 @@ function C.dropTarget()
     return nil
 end
 
--- the controller's stop on the tab, in the coordinates of a zone whose panel
--- sits at (px, py) in the window
+--- The controller's stop on the tab, in the coordinates of a zone whose panel
+--- sits at (px, py) in the window; nil while the side is down.
 function C.padElement(win, px, py)
     local rod = win._rod
     local r = rod and rod._chip

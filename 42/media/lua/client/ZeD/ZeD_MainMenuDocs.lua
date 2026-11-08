@@ -35,7 +35,8 @@ local function when(sec)
     return tr(months[d.month or 1] or "") .. " " .. tostring(d.day or 1) .. ", " .. string.format("%02d:%02d", d.hour or 0, d.min or 0)
 end
 
---- from: the view to go back to on close ("notepad" from CletusWorks' Open; the desktop otherwise)
+--- Show the Documents window. from: the view to go back to on close ("notepad" from CletusWorks' Open; the
+--- desktop otherwise).
 function MM.openDocs(from)
     MM.ctx.open = nil
     MM._docsFrom = from
@@ -178,7 +179,7 @@ function ZeD_MMDocs:prerender()
             local vy0, vy1 = math.max(ry, ly), math.min(ry + rh, ly + lh)
             local nid = n.id
             self._hits[#self._hits + 1] = { id = hid, x = ax + lx, y = ay + vy0, w = lw, h = vy1 - vy0, fn = function()
-                -- (a second click on the picked note opens it, as on the desktop)
+                -- (a second click on the picked note within 450 ms opens it, as on the desktop)
                 local now = MM.now()
                 if self.sel == nid and self._lastAt and now - self._lastAt < 450 then self:open(); return end
                 self.sel, self._lastAt, self.focusId = nid, now, id
@@ -253,6 +254,8 @@ function ZeD_MMDocs:wheel(del)
     return true
 end
 function ZeD_MMDocs:onMouseWheel(del) return MM.wheel(del) end
+-- the wheel scrolls the list while Documents is up. Keep the base MM.wheel once, so a Lua reload never wraps
+-- the wrapper.
 local _wheel = MM._docsWheelBase or MM.wheel
 MM._docsWheelBase = _wheel
 function MM.wheel(del)
@@ -260,4 +263,5 @@ function MM.wheel(del)
     return _wheel(del)
 end
 
+-- on the desk as the "docs" view (the Documents icon and CletusWorks' Open reach it through MM.openDocs)
 MM.addView("docs", "docsWin", function() return ZeD_MMDocs:new() end)
