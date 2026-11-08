@@ -138,26 +138,44 @@ function M.standIn(playerNum)
     return nil
 end
 
+-- The moodles that are on, in the given order, filled into out (emptied first) with entry tables from
+-- pool (reused when pool is the caller's own): { key, type, art, level, gbn (0 neutral, 1 good, 2 bad) }
+local function fillActive(md, order, out, pool)
+    local n = 0
+    if md then
+        for _, e in ipairs(order) do
+            local t = MoodleType[e[1]]
+            local lvl = t and safe(md.getMoodleLevel, md, t) or 0
+            -- vanilla shows Well Fed and up only from Stuffed (level 3)
+            if e[1] == "FOOD_EATEN" and lvl < 3 then lvl = 0 end
+            if lvl and lvl > 0 then
+                n = n + 1
+                local m = pool[n]
+                if not m then m = {}; pool[n] = m end
+                m.key, m.type, m.art, m.level = e[1], t, e[2], lvl
+                m.gbn = safe(md.getGoodBadNeutral, md, t) or 0
+                out[n] = m
+            end
+        end
+    end
+    for i = #out, n + 1, -1 do out[i] = nil end
+    return out
+end
+
 -- The moodles that are on, in vanilla's slot order (the stand-in's, when one draws):
--- { key, type, art, level, gbn (0 neutral, 1 good, 2 bad) }
+-- { key, type, art, level, gbn (0 neutral, 1 good, 2 bad) }; a new list every call
 function M.active(player)
     local out = {}
     local md = player and player:getMoodles()
     if not md or not MoodleType then return out end
     local si = M.standIn(safe(player.getPlayerNum, player))
-    for _, e in ipairs(si and si.order or M.order()) do
-        local t = MoodleType[e[1]]
-        local lvl = t and safe(md.getMoodleLevel, md, t) or 0
-        -- vanilla shows Well Fed and up only from Stuffed (level 3)
-        if e[1] == "FOOD_EATEN" and lvl < 3 then lvl = 0 end
-        if lvl and lvl > 0 then
-            out[#out + 1] = { key = e[1], type = t, art = e[2], level = lvl, gbn = safe(md.getGoodBadNeutral, md, t) or 0 }
-        end
-    end
-    return out
+    return fillActive(md, si and si.order or M.order(), out, {})
 end
 
--- Vanilla's backing colour: grey lerped toward the Good / Bad highlight colour
+-- Vanilla's backing colour: grey lerped toward the Good / Bad highlight colour.
+-- The two colours are read once and kept (perf review Nov 7 2026, item 10): the game's Options apply a new
+-- one with a Lua reload (MainOptions: resetLua), and they are read again when ZeD's theme changes (a new
+-- ZeD.T) and at every game start.
 local function hl(getter)
     local core = getCore()
     local c = safe(core[getter], core)
@@ -166,10 +184,21 @@ local function hl(getter)
     if not r then return nil end
     return r, g, b
 end
+local hlc = { have = false }
+local function hlColours()
+    if hlc.have and hlc.T == ZeD.T then return hlc end
+    local r, g, b = hl("getGoodHighlitedColor")
+    hlc.gr, hlc.gg, hlc.gb = r or 0, g or 1, b or 0
+    r, g, b = hl("getBadHighlitedColor")
+    hlc.br, hlc.bg, hlc.bb = r or 1, g or 0, b or 0
+    hlc.T, hlc.have = ZeD.T, true
+    return hlc
+end
+Events.OnGameStart.Add(function() hlc.have = false end)
 function M.backing(m)
     local r, g, b
-    if m.gbn == 1 then r, g, b = hl("getGoodHighlitedColor"); r, g, b = r or 0, g or 1, b or 0
-    elseif m.gbn == 2 then r, g, b = hl("getBadHighlitedColor"); r, g, b = r or 1, g or 0, b or 0
+    if m.gbn == 1 then local c = hlColours(); r, g, b = c.gr, c.gg, c.gb
+    elseif m.gbn == 2 then local c = hlColours(); r, g, b = c.br, c.bg, c.bb
     else return GREY, GREY, GREY end
     local f = math.min(1, m.level / 4)
     return GREY + (r - GREY) * f, GREY + (g - GREY) * f, GREY + (b - GREY) * f
@@ -238,6 +267,28 @@ function ZeD_MoodleLayer:_rightY()
     return getPlayerScreenTop(pn) + 120
 end
 
+-- The moodles that are on for this layer's player (M.active's list), kept in one reused list and read
+-- from the game at most every ACTIVE_MS (perf review Nov 7 2026, item 10: 26 pcall'd getMoodleLevel and a
+-- table per moodle every frame). A different character or a different order (a stand-in starting or
+-- stopping, a new game) reads at once.
+local ACTIVE_MS = 100
+function ZeD_MoodleLayer:_activeList(p)
+    local list = self._actList
+    if not list then list = {}; self._actList = list; self._actPool = {} end
+    if not (p and MoodleType) then
+        self._actP = nil
+        for i = #list, 1, -1 do list[i] = nil end
+        return list
+    end
+    local si = M.standIn(self.playerNum)
+    local order = si and si.order or M.order()
+    local now = getTimestampMs()
+    local at = self._actAt
+    if at and p == self._actP and order == self._actOrder and now >= at and now - at < ACTIVE_MS then return list end
+    self._actP, self._actOrder, self._actAt = p, order, now
+    return fillActive(p:getMoodles(), order, list, self._actPool)
+end
+
 function ZeD_MoodleLayer:_place()
     local T = ZeD.T
     local mui = self:vanilla()
@@ -258,7 +309,7 @@ function ZeD_MoodleLayer:_place()
         if mui:getY() > -5000 then mui:setY(-10000) end
         local size = M.size()
         self._size = size
-        self._list = M.active(p)
+        self._list = self:_activeList(p)
         local n = #self._list
         local w = n > 0 and (n * size + (n - 1) * GAP) or 0
         local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
@@ -277,7 +328,7 @@ function ZeD_MoodleLayer:_place()
     -- (a stand-in keeps the game's column off UIManager, so its width can be stale: the option's size)
     local size = M.standIn(pn) and M.size() or mui:getWidth()
     self._size = size
-    self._list = M.active(p)
+    self._list = self:_activeList(p)
     local n = #self._list
     local stackH = n > 0 and (n * size + (n - 1) * GAP) or 0
     local top = getPlayerScreenTop(pn)
@@ -349,7 +400,9 @@ function ZeD_MoodleLayer:_drawRow()
     local list = self._list
     local frac = (UIManager.getMillisSinceLastRender and UIManager.getMillisSinceLastRender() or 33.3) / 33.3
     self._step = self._step + 0.8 * frac
-    local seen = {}
+    local seen = self._seen                                -- (reused, emptied every frame)
+    if not seen then seen = {}; self._seen = seen end
+    for k in pairs(seen) do seen[k] = nil end
     for i, m in ipairs(list) do
         seen[m.key] = true
         local w = self._wig[m.key]
@@ -447,7 +500,10 @@ function ZeD_MoodleLayer:_noticeTick()
         for _, m in ipairs(list) do self._levels[m.key] = m.level end
         return
     end
-    local q, seen, cur = self._notices, self._levels, {}
+    -- (two level maps take turns, so a frame makes no new table)
+    local q, seen, cur = self._notices, self._levels, self._levelsSpare
+    if not cur or cur == seen then cur = {} end
+    for k in pairs(cur) do cur[k] = nil end
     for _, m in ipairs(list) do
         cur[m.key] = m.level
         if seen[m.key] ~= m.level then
@@ -460,7 +516,7 @@ function ZeD_MoodleLayer:_noticeTick()
             end
         end
     end
-    self._levels = cur
+    self._levels, self._levelsSpare = cur, seen
     for i = #q, 1, -1 do                                   -- a moodle that went away is not shown
         if not cur[q[i]] then table.remove(q, i); if i == 1 then self._noticeAt = nil end end
     end
