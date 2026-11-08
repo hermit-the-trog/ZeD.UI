@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "택시 미터기: 대기 1분당",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "깃발을 내린 채 택시가 대기(시속 5 km 미만, 엔진 작동)할 때 실시간 1분마다 미터기가 더하는 달러 금액.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "택시 미터기: 추가 승객당",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "첫 승객 이후 승객 1인당 EXTRAS 아래에 표시되는 달러 금액. 기사는 세지 않습니다."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "첫 승객 이후 승객 1인당 EXTRAS 아래에 표시되는 달러 금액. 기사는 세지 않습니다.",
+    "Sandbox_ZeD_HostHelper": "호스트 도우미(RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "켜기: ZeD가 게임에 남겨 둔 차단, 차단 해제, 추방을 Zomboid/Lua/ZeD_helper/에도 기록해 ZeD 호스트 도우미에게 넘깁니다. 서버 주인이 서버 컴퓨터에서 실행하는 별도 프로그램입니다. 서버의 원격 콘솔(서버 설정의 RCONPort와 RCONPassword)로 실행하므로 운영진이 없어도 적용됩니다. 끄기: 운영진이 접속할 때까지 기다립니다."
 }

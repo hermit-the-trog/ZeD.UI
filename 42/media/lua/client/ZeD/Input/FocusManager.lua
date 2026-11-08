@@ -301,6 +301,11 @@ end
 -- REGISTRY API
 -- ---------------------------------------------------------------------------
 
+-- whether w is still registered (a window kept to hand focus back to may have closed)
+function Focus.isRegistered(w)
+    return w ~= nil and _indexOf(w) ~= nil
+end
+
 function Focus.registerWindow(w)
     if not w then return end
     if _indexOf(w) then return end

@@ -571,7 +571,8 @@ end
 -- ---------------------------------------------------------------------------
 local function rowView(l)
     return { s = l.s, t = l.t, day = l.day, k = Lg.kindOf(l.kind), who = l.who, what = l.what, target = l.target, text = l.text, x = l.x, y = l.y, z = l.z,
-        car = l.car, part = l.part, locked = l.locked, src = l.src, lg = l.lg, by = l.by, hid = l.hid }
+        car = l.car, part = l.part, locked = l.locked, src = l.src, lg = l.lg, by = l.by, hid = l.hid,
+        via = l.via }
 end
 
 local function copyOf(l)
@@ -592,7 +593,7 @@ local function eachRing(md, fn)
 end
 
 -- the lines whose target can be an IP address or a Steam ID: those a ban takes. The Bans card asks BanUnbanUser for the same
-local ID_LINE = { ban = true, unban = true, ["ban lifted"] = true, ["game ban"] = true, ["game call dropped"] = true, ["owed game calls full"] = true }
+local ID_LINE = { ban = true, unban = true, ["ban lifted"] = true, ["ban lifted in the game"] = true, ["game ban"] = true, ["game call dropped"] = true, ["owed game calls full"] = true }
 
 local function isAbove(r, p, name)
     if name == nil then return false end

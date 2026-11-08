@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxi Meter: Per Minute Waiting",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars the meter adds for each minute of real time the cab waits (under 5 km/h, engine running) with the flag down.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxi Meter: Per Extra Passenger",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars shown under EXTRAS for each passenger after the first. The driver does not count."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars shown under EXTRAS for each passenger after the first. The driver does not count.",
+    "Sandbox_ZeD_HostHelper": "Host Helper (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "On: the bans, unbans and kicks ZeD owes the game are also written to Zomboid/Lua/ZeD_helper/ for the ZeD host helper, a separate program the server's owner runs on the server machine. It makes them through the server's remote console (RCONPort and RCONPassword in the server's settings), so they land with no staff online. Off: they wait for a staff member to come online."
 }

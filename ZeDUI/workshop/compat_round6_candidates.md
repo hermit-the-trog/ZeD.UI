@@ -98,6 +98,19 @@ What these runs prove: no errors, and ZeD's own surfaces still work with each mo
 
 Checking each of those by eye, and deciding whether ZeD should support any of them, is the "mods to support" part of the beta 9/10 list.
 
+## Supported by Build (Nov 7 2026), lines for the thread's Supported list
+
+ZeD's support for four of the director's seven, each in `42/media/lua/client/ZeD/ModSupport/<mod id>.lua`, on only
+while that mod is on. In-game check: `ZeDUI/qa/CHECK_mods_hud_20261107.md`. Draft lines for the Compatibility thread's
+Supported list, in its style, for the next thread update (the version number is the build they ship in):
+
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3835479468]Auto-Hide Hotbar[/url] by mercifulviper: ZeD's belt hides and comes back as the mod's hotbar does, by every option of the mod (hover, hotbar keys, timings, look). It also stays while ZeD's windows are open (the mod's "inventory open" option) and while the belt is in use. Controller players always see it, as with the mod.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834708364]Item Condition Restored[/url] (continuing Item Condition by Qudix): Its numbers are on the belt's strips and hand rings: liquid left, a weapon's condition, uses left, a radio's charge. Liquid shows in the theme's info color; the mod's None style leaves ZeD's own condition.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3832759095]Mask Filter Indicator[/url] by movinow: The worn mask is a box on ZeD's belt: its filter or oxygen left, the spares carried, a lamp while it works. Its menu (take off, turn on or off, replace the filter) opens from the box with the mouse or the controller.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3830103302]Better Item Transfer[/url] by SuperOl3g: Its menu shows in full in both of ZeD's menu styles, and a switch between the strip and the list counts from the very next right-click.
+
+Not done here: Clear Skill Sheet, Better Folders and Better Mod Experience (other surfaces, other builds).
+
 ## Watch list (opened, not tested)
 
 - Better Folders: an inventory folder system, tested in set B.

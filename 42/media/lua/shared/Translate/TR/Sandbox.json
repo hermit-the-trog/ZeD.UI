@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taksimetre: bekleme dakikası başına",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Bayrak inikken taksi beklediğinde (5 km/s altında, motor çalışırken) gerçek zamanın her dakikası için taksimetrenin eklediği dolar.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taksimetre: ek yolcu başına",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "İlkinden sonraki her yolcu için EXTRAS altında gösterilen dolar. Şoför sayılmaz."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "İlkinden sonraki her yolcu için EXTRAS altında gösterilen dolar. Şoför sayılmaz.",
+    "Sandbox_ZeD_HostHelper": "Sunucu yardımcısı (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "Açık: ZeD'nin oyuna borçlu olduğu yasaklar, yasak kaldırmalar ve atmalar ayrıca Zomboid/Lua/ZeD_helper/ klasörüne, sunucu sahibinin sunucu makinesinde çalıştırdığı ayrı bir program olan ZeD sunucu yardımcısı için yazılır. Bunları sunucunun uzak konsolu üzerinden yapar (sunucu ayarlarında RCONPort ve RCONPassword), böylece çevrimiçi yetkili olmadan da geçerli olur. Kapalı: bir yetkilinin gelmesini bekler."
 }

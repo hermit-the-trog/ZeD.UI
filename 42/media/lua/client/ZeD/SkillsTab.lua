@@ -164,19 +164,28 @@ local function skillRowFit(columns, colW, barMin, font)
     return f
 end
 
-local function drawBoostPill(panel, x, y, rowH, boost, font)
+-- a row tag's width with the gap before it (words, side padding, the square)
+local function rowTagW(text)
     local T = ZeD.T
+    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(text)) + T.px(10) + T.px(10) + T.sp.xs
+end
+
+-- a tag ending at x, centred on the row; returns its left edge (the name stops short of it)
+local function drawRowTag(panel, x, y, rowH, text, color)
+    local T = ZeD.T
+    local tagH = T.px(16)
+    local tx = x - rowTagW(text)
+    ZeD.Molecules.drawTag(panel, tx, y + math.floor((rowH - tagH) / 2), text, color)
+    return tx
+end
+
+-- the boost tag's words ("+100% XP")
+local function boostText(boost)
     local pctStr = "75%"
     if boost == 2 then pctStr = "100%"
     elseif boost >= 3 then pctStr = "125%"
     end
-    local boostStr = ZeD.tr("UI_ZeD_Skills_Boost", pctStr)
-    -- Pre-measure the tag's width for right-alignment (words, side padding, the square)
-    local tw = ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(boostStr)) + T.px(10) + T.px(10)
-    local tagH = T.px(16)
-    local tx = x - tw - T.sp.xs
-    ZeD.Molecules.drawTag(panel, tx, y + math.floor((rowH - tagH) / 2), boostStr, T.positive)
-    return tx   -- (the tag's left edge: the name stops short of it)
+    return ZeD.tr("UI_ZeD_Skills_Boost", pctStr)
 end
 
 -- ============================================================================
@@ -452,6 +461,13 @@ end
 --              text = "...", value = "...", total = true | nil } }, note = "..." }:
 --              the row's hover card (mouse over a row, or the controller's
 --              focus on it) shows the skill's level and these lines
+--   tag(playerObj, perk, skill)          (Nov 7 2026, Clear Skill Sheet)
+--           -> nil, or { text = "...", color = {r,g,b} }: a row tag beside the
+--              boost tag, left of it (the director, Nov 7 2026: beside it, not in
+--              its place); the first extra that answers wins
+--   cardLines(playerObj, perk, skill)    (Nov 7 2026, Clear Skill Sheet)
+--           -> nil, or a list of lines as card's: added under any extra's card
+--              lines, and a card of their own when no extra has one
 -- First used by ModSupport/SkillRecoveryJournal.lua.
 -- ============================================================================
 ZeD.SkillsTab.extras = ZeD.SkillsTab.extras or {}
@@ -513,18 +529,69 @@ local function drawLane(panel, x, y, w, playerObj, skill)
     end
 end
 
+-- A row's tag from an extra (beside the boost tag), or nil.
+local function extrasTag(playerObj, skill)
+    if not skill.perk then return nil end
+    for _, e in ipairs(ZeD.SkillsTab.extras) do
+        if e.tag then
+            local ok, t = pcall(e.tag, playerObj, skill.perk, skill)
+            if ok and t and t.text then return t end
+        end
+    end
+    return nil
+end
+ZeD.SkillsTab.extrasTag = extrasTag   -- (the QA scripts read it)
+
+-- A row's tags, the one next to the bar first: the boost tag (the skill's boost), then
+-- an extra's tag beside it. Each { text = "...", color = {r,g,b} | nil, boost = true | nil }.
+function ZeD.SkillsTab.rowTags(playerObj, skill)
+    local out = {}
+    if skill.boost and skill.boost > 0 then
+        out[1] = { text = boostText(skill.boost), color = ZeD.T and ZeD.T.positive, boost = true }
+    end
+    local xtag = extrasTag(playerObj, skill)
+    if xtag then out[#out + 1] = xtag end
+    return out
+end
+
+-- Draw a row's tags right to left from x (the bar's left edge); returns where the name must
+-- stop. A tag after the first is drawn only while the name keeps minNameW of room (at the
+-- least "A...", the rule the bar follows: punch list 35).
+local function drawRowTags(panel, playerObj, skill, x, y, rowH, nameX, minNameW)
+    local T = ZeD.T
+    local nameR = x
+    local at = x - T.px(2)
+    for i, tg in ipairs(ZeD.SkillsTab.rowTags(playerObj, skill)) do
+        if i > 1 and at - rowTagW(tg.text) - nameX < minNameW then break end
+        at = drawRowTag(panel, at, y, rowH, tg.text, tg.color or T.positive)
+        nameR = at
+    end
+    return nameR
+end
+ZeD.SkillsTab._drawRowTags = drawRowTags   -- (the sims draw it: compat_r6_sim.lua)
+
 -- The row's hover card (the shared detail card): the skill's name as its title, its
--- level, then the first extra's lines. nil when no extra has a card for the skill.
+-- level, then the first extra's lines and every extra's cardLines. nil when no extra
+-- has anything for the skill.
 local function skillCard(win, skill)
     if not (skill and skill.perk) then return nil end
     local card = nil
+    local foot = nil
     for _, e in ipairs(ZeD.SkillsTab.extras) do
-        if e.card then
+        if e.card and not card then
             local ok, c = pcall(e.card, win._playerObj, skill.perk, skill)
-            if ok and c then card = c; break end
+            if ok and c then card = c end
+        end
+        if e.cardLines then
+            local ok, ls = pcall(e.cardLines, win._playerObj, skill.perk, skill)
+            if ok and ls and #ls > 0 then
+                foot = foot or {}
+                for _, ln in ipairs(ls) do foot[#foot + 1] = ln end
+            end
         end
     end
-    if not card then return nil end
+    if not card and not foot then return nil end
+    card = card or { lines = {} }
     ZeD.SkillsTab._cardShown = skill.name   -- (QA reads which card is up)
     local T = ZeD.T
     local sub
@@ -543,11 +610,17 @@ local function skillCard(win, skill)
         if ln.value then text = ZeD.tr("UI_ZeD_Skills_CardLine", text, ln.value) end
         lines[#lines + 1] = { text = text, font = ln.total and "F3" or "F2" }
     end
+    for _, ln in ipairs(foot or {}) do
+        local text = ln.text or ""
+        if ln.value then text = ZeD.tr("UI_ZeD_Skills_CardLine", text, ln.value) end
+        lines[#lines + 1] = { text = text, font = ln.total and "F3" or "F2" }
+    end
     if card.note and card.note ~= "" then
         lines[#lines + 1] = { text = card.note, font = "F2", color = T.textDim }
     end
     return { title = skill.name, lines = lines, maxW = 260 }
 end
+ZeD.SkillsTab._skillCard = skillCard   -- (the sims read it: compat_r6_sim.lua)
 
 -- The card layer: a click-through panel kept as the window's last child (as
 -- ZeD.Atoms.newHintLayer), for the controller's focused row, whose card is drawn at
@@ -1144,11 +1217,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                         help(win, ZeD.SkillsTab.barHelp(skill))
                     end
 
-                    -- Boost pill (right-aligned, before the bar)
-                    local nameR = barX
-                    if skill.boost and skill.boost > 0 then
-                        nameR = drawBoostPill(panel, barX - T.px(2), cy, baseRowH, skill.boost, font)
-                    end
+                    -- The boost tag (right-aligned, before the bar), a row extra's tag beside it
+                    local nameR = drawRowTags(panel, win._playerObj, skill, barX, cy, baseRowH, nameX,
+                        fit.gap + ZeD.TM:MeasureStringX(font, "A..."))
 
                     -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
                     local nameY = cy + math.floor((baseRowH - bodyH) / 2)

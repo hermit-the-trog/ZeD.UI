@@ -310,6 +310,7 @@ function G.build(pages, rowsOf)
                     -- its help: vanilla's options screen never gives a mod's drop-down the option's
                     -- tooltip, so the band read nothing; the key is beside the name's (UI_ZeD_Settings_<x>Tip)
                     r.zedTipKey = opt.zedNameKey and (opt.zedNameKey .. "Tip")
+                    r.zedOwn = true   -- (one of ZeD's own options: Find shows it on ZeD setup, G.findRows)
                     local c = copyRow(r, nil)
                     c.zedDefault = opt.zedDefault   -- (Settings.lua: the item it starts on)
                     zrow[opt.id] = c
@@ -356,6 +357,29 @@ function G.build(pages, rowsOf)
     end
     out.zed = setup
     return out
+end
+
+-- Find across the groups: the rows whose words (hayOf(r), lower case) hold q, each group's under its title.
+-- ZeD's own options are found on ZeD setup, drawn with ZeD's own controls (radio rows, wells, the slider);
+-- their plain drop-downs on the Mods page are left out (the outside review, Nov 7 2026). ZeD setup's copies of
+-- the game's settings are found in their own groups, as before.
+function G.findRows(pages, rowsFor, q, hayOf)
+    local rows = {}
+    for _, p in ipairs(pages) do
+        local hits = {}
+        for _, r in ipairs(rowsFor(p) or {}) do
+            if r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then
+                local keep
+                if p.setup then keep = r.zedOwn == true else keep = not r.zedOwn end
+                if keep and string.find(hayOf(r), q, 1, true) then hits[#hits + 1] = r end
+            end
+        end
+        if #hits > 0 then
+            rows[#rows + 1] = { kind = "header", text = p.title }
+            for _, r in ipairs(hits) do rows[#rows + 1] = r end
+        end
+    end
+    return rows
 end
 
 -- ----------------------------------------------------------------------------

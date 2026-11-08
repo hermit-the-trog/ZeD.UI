@@ -30,7 +30,7 @@ local KEYS = { "Community", "Hospitality", "Industrial", "Medical", "Parks", "Re
 -- the three colours on the button (Residential, Community, Retail & Commercial)
 local BTN = { { 225, 176, 126 }, { 139, 117, 235 }, { 184, 205, 84 } }
 
-local K = { order = 10 }
+local K = { order = 10, paper = true }   -- (vanilla's paper map has its Map key too: ISMap)
 
 local function keyTex(name)
     local path = "media/textures/worldMap/"

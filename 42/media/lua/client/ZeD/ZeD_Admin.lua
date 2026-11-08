@@ -371,9 +371,12 @@ function M.warn(user, n, reason, cb)
         if M.can("ReadUserLog") then requestUserlog(user) end
     end, cb)
 end
--- the game's own mute is voice alone (/voiceban); chat is ZeD's, on the server's list
-function M.mute(user, on, cb)
+-- the game's own mute is voice alone (/voiceban); chat is ZeD's, on the server's list. The voice ban finds only a player
+-- who is on (VoiceBanCommand: getPlayerByUserNameForCommand), so for an account that is off (here = false) the server's
+-- list is the mute and the game is not asked
+function M.mute(user, on, cb, here)
     act("a_mute", { user = user, on = on }, function()
+        if here == false and M.live() then return end
         SendCommandToServer("/voiceban " .. Q(user) .. (on and " -true" or " -false"))
         if not M.live() then M.voice[user] = on or nil end
     end, cb)
@@ -526,16 +529,25 @@ function M.banOf(user)
     return nil
 end
 
+-- " -r <reason>", or nothing: the game's commands read an empty quoted reason as a missing argument and refuse the whole line
+-- (CommandArgs "(.+)"), and with no -r they use their own words (a Kick for the join rules goes that way)
+local function rArg(reason)
+    if type(reason) == "string" and reason ~= "" then return " -r " .. Q(reason) end
+    return ""
+end
+
 local OWED = {
-    Ban = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -r " .. Q(a.reason or "")) end,
-    BanIP = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -ip -r " .. Q(a.reason or "")) end,
-    Kick = function(a) SendCommandToServer("/kickuser " .. Q(a.target) .. " -r " .. Q(a.reason or "")) end,
+    Ban = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. rArg(a.reason)) end,
+    BanIP = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -ip" .. rArg(a.reason)) end,
+    Kick = function(a) SendCommandToServer("/kickuser " .. Q(a.target) .. rArg(a.reason)) end,
     BanSteamID = function(a) banUnbanUserAction("BanSteamID", a.target, a.reason or "") end,
     BanIPOnly = function(a) SendCommandToServer("/banip " .. a.target) end,
     UnBan = function(a) banUnbanUserAction("UnBan", a.target, "") end,
     UnBanIP = function(a) banUnbanUserAction("UnBanIP", a.target, "") end,
     UnBanSteamID = function(a) banUnbanUserAction("UnBanSteamID", a.target, "") end,
     UnBanIPOnly = function(a) banUnbanUserAction("UnBanIPOnly", a.target, "") end,
+    -- a mute's voice ban, owed when the muted player came on (the game's /voiceban needs them on and holds for the connection)
+    VoiceBan = function(a) SendCommandToServer("/voiceban " .. Q(a.target) .. " -true") end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -728,6 +740,43 @@ function on.a_owed(a)
     S.send(Adm.MOD, "a_done", { id = a.id })
 end
 
+-- the server asks what the game's own user list says of some names: their roles, as the game keeps a name ban (a_looked).
+-- The game sends that list to a role with SeeNetworkUsers; it is asked for here and read when it next arrives (the server judges
+-- how fresh that is: LIFT_FRESH_S). One look at a time: a newer question replaces an older one
+function on.a_look(a)
+    if M.qaHold or not Tk.whole(a.id) or type(a.names) ~= "table" then return end
+    local want = {}
+    for i = 1, math.min(#a.names, AL.LOOK_N) do
+        local n = a.names[i]
+        if type(n) == "string" and #n <= AL.TARGET_MAX then want[string.lower(n)] = n end
+    end
+    M.look = { id = a.id, want = want, at = now() }
+    pcall(requestUsers)
+end
+
+-- the game's user list arrived: the look waiting for it is answered with each asked name's role, and whether that row comes
+-- from the game's own database (inWhitelist; a player on with no row there is sent with their live role)
+local function onNetworkUsers()
+    local look = M.look
+    if not look then return end
+    M.look = nil
+    if now() - look.at >= AL.LOOK_WAIT_S * 1000 then return end
+    local rows = {}
+    pcall(function()
+        local list = getUsers()
+        for i = 0, list:size() - 1 do
+            local u = list:get(i)
+            local name = u:getUsername()
+            local asked = type(name) == "string" and look.want[string.lower(name)] or nil
+            if asked and #rows < AL.LOOK_N then
+                local r = u:getRole()
+                rows[#rows + 1] = { u = asked, role = r and r:getName() or nil, wl = u:isInWhitelist() == true }
+            end
+        end
+    end)
+    S.send(Adm.MOD, "a_looked", { id = look.id, rows = rows })
+end
+
 function on.a_note(a)
     if a.kind == "stay" and ZeD.Messages and ZeD.Messages.adminNote then
         ZeD.Messages.adminNote(tr("UI_ZeD_Adm_NoteStay", tostring(a.user)), true)
@@ -856,6 +905,7 @@ if not M.hooked then
     if Events.OnReceiveUserlog then Events.OnReceiveUserlog.Add(onUserlog) end
     if Events.ViewBannedIPs then Events.ViewBannedIPs.Add(onBannedIPs) end
     if Events.ViewBannedSteamIDs then Events.ViewBannedSteamIDs.Add(onBannedSteamIDs) end
+    if Events.OnNetworkUsersReceived then Events.OnNetworkUsersReceived.Add(function() onNetworkUsers() end) end
     -- a role write lands here: setupRole and the rest only send a packet, and the cards read the list once a change bumps
     if Events.OnRolesReceived then
         Events.OnRolesReceived.Add(function()
