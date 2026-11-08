@@ -1089,8 +1089,8 @@ end
 -- drop (dirtyModels), and about once a second anyway for what changes nothing
 -- of those (a renamed item, a worn-down condition); each column on its own
 -- beat (its phase), so open columns do not rebuild on the same frame.
--- Each open column rebuilt and re-sorted its whole list every frame before,
--- then every 30 frames until Nov 7 2026 (the performance review's #4).
+-- Rebuilding and re-sorting a whole list in every open column every frame would
+-- be wasted work, so the model is kept until one of the above changes.
 -- (Kept out of renderItemList, which sits near Kahlua's 200-local limit.)
 -- ============================================================================
 
@@ -1150,7 +1150,7 @@ end
 -- holds the item, playerObj:isEquipped(item) asks that player's worn items and
 -- two hands (IsoGameCharacter.isEquipped, 42.21; both compare the very object).
 -- So while the container is the player's own (its parent is the player, or
--- nothing) one set answers both. nil: ask each item as before (heldByPlayer).
+-- nothing) one set answers both. nil: ask each item itself (heldByPlayer).
 local function heldSet(playerObj, inv)
     local ok, set = pcall(function()
         local par = inv:getParent()
@@ -1230,7 +1230,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     local items = inv and inv:getItems()
     -- a mod's gate (ContainerGates.lua): only the things it lets show (a search's finds so far)
     local gate = ZeD.ContainerGates.get(inv, playerObj)
-    -- what the player wears and holds, once for the list (an item held elsewhere: asked as before)
+    -- what the player wears and holds, once for the list (an item held elsewhere: asked item by item)
     local held = isPlayerInv and items and heldSet(playerObj, inv) or nil
     if items then
         for i = 0, items:size() - 1 do

@@ -23,8 +23,8 @@ require "ZeD/ZeD_RestockPin"
 ZeD = ZeD or {}
 ZeD.EquipmentTab = {}
 
--- (Nov 7 2026, perf review #12) the tab's data refreshes run on the clock, not on frames drawn: 15
--- frames was 250 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once periodMs has
+-- The tab's data refreshes run on the clock, not on frames drawn: 15 frames is 250 ms at 60 FPS
+-- but runs 2.4-4 times as often at 144-240 Hz. True once periodMs has
 -- passed since owner[key] (or on the first call, or forced: the cache was dropped). The runs keep a
 -- beat of periodMs; a forced run, or one after a gap (the tab not drawn), starts the period again,
 -- as the frame count went back to 0. A window's first run starts at its own
@@ -427,7 +427,7 @@ function ZeD.EquipmentTab.gatherData(playerObj)
 
     -- Fill slots from worn items — vanilla pattern: getWornItems(), 1-based,
     -- wornItem:getLocation() for the body location string (not getBodyLocation()).
-    -- (Nov 8 2026, code flags) the game keeps worn items innermost first (WornItems.setItem inserts by
+    -- The game keeps worn items innermost first (WornItems.setItem inserts by
     -- the BodyLocations.lua order, "declared in render-order"), so the list is read from its end: the
     -- first item a slot takes is its outermost layer (a jacket over a sweater shows the jacket), as
     -- the doll (EquipDoll.gather) leads with it.

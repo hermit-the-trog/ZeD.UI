@@ -45,7 +45,7 @@ local function key(id, j, k) return tostring(id) .. ":" .. j .. ":" .. k end
 -- Visits: the character standing inside a place marks it (every piece's places,
 -- read or not, so reading one later shows the tick at once)
 -- ---------------------------------------------------------------------------
--- (Nov 7 2026, perf review #15) every place's rectangle and key, worked out once per definitions
+-- Every place's rectangle and key, worked out once per definitions
 -- table (built again on a new game, or if the table is replaced), not walked with "location" .. j
 -- each second: { x1, x2 + 1, y1, y2 + 1, key } flat, five numbers-and-key per place
 local _rects, _rectsFrom = nil, nil
