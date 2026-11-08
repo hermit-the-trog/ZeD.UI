@@ -560,11 +560,10 @@ local function count(t, pat) local n = 0 for _ in string.gmatch(t, pat) do n = n
 check("MapsTab: closePopout takes keepWorld and hands it to PaperMap.closed",
     string.find(mt, "function ZeD.MapsTab.closePopout(win, keepWorld)", 1, true) ~= nil
     and string.find(mt, "pcall(ZeD.PaperMap.closed, win, pop, keepWorld)", 1, true) ~= nil)
-check("MapsTab: the drawer's fold zone and unfold button keep the World window",
-    count(mt, "ZeD%.MapsTab%.closePopout%(win, true%)") == 2 and count(mt, "ZeD%.MapsTab%.closePopout%(w, true%)") == 1)
-check("ZeD_WorldWindow: its three closes fold the paper with keepWorld (no second close)",
-    count(ww, "closePopout%(_worldWin, true%)") == 2 and count(ww, "closePopout%(w, true%)") == 1
-    and count(ww, "closePopout%(_worldWin%)") == 0)
+check("MapsTab: the drawer's fold zone (mouse and pad) and unfold button keep the World window",
+    count(mt, "ZeD%.MapsTab%.closePopout%(win, true%)") == 2 and count(mt, "ZeD%.MapsTab%.closePopout%(w, true%)") == 3)
+check("ZeD_WorldWindow: every fold it makes is keepWorld (no second close from the paper)",
+    count(ww, "closePopout%(") == count(ww, "closePopout%([%w_]+, true%)") and count(ww, "closePopout%(") >= 2)
 
 section("the controller goes back to the window Read Map was chosen in")
 local REG, FOCUSED = {}, nil
@@ -601,6 +600,143 @@ ISInventoryPaneContextMenu.onCheckMap(m1, 0)
 for i = #REG, 1, -1 do if REG[i] == charWin then table.remove(REG, i) end end   -- (the Character window closes meanwhile)
 ZeD.MapsTab.closePopout(WIN)
 check("the reading window has closed: the manager's own hand-back", FOCUSED == WIN)
+ZeD.Input = nil
+
+-- ---------------------------------------------------------------------------
+section("every close of the World window puts the paper away (the real closes, ZeD_WorldWindow.lua)")
+-- The World window's own closes run from the real file: the win.close override (the close box, Organisms; the curtain
+-- rod's close, WindowCurtain; the controller's close-all, FocusManager: each calls win:close()), toggle, close and
+-- forceClose, with the helper they share when there is one. Each must leave no paper open and nothing for P.tick.
+local function block(t, startPat, endPat)
+    local s = string.find(t, startPat)
+    if not s then return "" end
+    local _, e = string.find(t, endPat, s)
+    if not e then return "" end
+    return string.sub(t, s, e)
+end
+local NL = "\r?\n"
+local helperSrc   = block(ww, "local function _closeWorldWindow%(", NL .. "end" .. NL)
+local overrideSrc = block(ww, "    win%.close = function%(self%)", NL .. "    end" .. NL)
+local toggleSrc   = block(ww, "function ZeD_WorldWindow%.toggle%(", NL .. "end" .. NL)
+local closeSrc    = block(ww, "function ZeD_WorldWindow%.close%(%)", NL .. "end" .. NL)
+local forceSrc    = block(ww, "function ZeD_WorldWindow%.forceClose%(%)", NL .. "end" .. NL)
+check("the World window's closes are found in the file", overrideSrc ~= "" and toggleSrc ~= "" and closeSrc ~= "" and forceSrc ~= "")
+local chunk, cerr = loadstring("local ZeD_WorldWindow, SAVE = ...\nlocal _worldWin, _floorContainer\n"
+    .. "local function saveWorldState(w) SAVE(w) end\n" .. helperSrc .. toggleSrc .. closeSrc .. forceSrc
+    .. "\nlocal function arm(win)\n" .. overrideSrc .. "\nend\n"
+    .. "return { set = function(w) _worldWin = w end, get = function() return _worldWin end, arm = arm }")
+check("and they compile", chunk ~= nil, cerr)
+
+local REG2 = {}
+local function regHas(w) for _, x in ipairs(REG2) do if x == w then return true end end return false end
+local stubWW = ZeD_WorldWindow
+local RW
+if chunk then
+    ZeD_WorldWindow = { _endZoneDraw = function() end }
+    RW = chunk(ZeD_WorldWindow, function() end)
+    ZeD_WorldWindow.getWindow = RW.get
+    ZeD_WorldWindow.isOpen = function() return RW.get() ~= nil end
+    ZeD_WorldWindow.open = function(pn)
+        log("zed:worldWindow:" .. pn)
+        local w = { _playerObj = getSpecificPlayer(pn), _shown = true }
+        function w:removeFromUIManager() if self._shown then log("zed:worldWindow:close") end; self._shown = false end
+        RW.arm(w)
+        REG2[#REG2 + 1] = w
+        RW.set(w)
+    end
+end
+ZeD.Input = { Focus = {
+    register = function(w) REG2[#REG2 + 1] = w end,
+    registerWindow = function(w) REG2[#REG2 + 1] = w end,
+    isRegistered = regHas,
+    getFocusedWindow = function() return nil end,
+    claimFocus = function() end,
+    unregisterWindow = function(w) for i = #REG2, 1, -1 do if REG2[i] == w then table.remove(REG2, i) end end end,
+} }
+-- the pop-out closes itself as the real one (MapsTab.openPopout: pop.close folds it, without keepWorld)
+local stubOpen = ZeD.MapsTab.openPopout
+ZeD.MapsTab.openPopout = function(win, item)
+    stubOpen(win, item)
+    local pop = win._mapPopout
+    if pop then pop.close = function() ZeD.MapsTab.closePopout(win) end end
+end
+
+local PATHS = {
+    { "the close box (Organisms: self:close())", function(w) w:close() end },
+    { "the curtain rod's close (WindowCurtain: self.win:close())", function(w) w:close() end },
+    { "the controller's close-all (FocusManager: w:close() on each registered window)", function(w)
+        local all = {}
+        for _, x in ipairs(REG2) do all[#all + 1] = x end
+        for _, x in ipairs(all) do if x.close then pcall(function() x:close() end) end end
+    end },
+    { "toggle", function(w) ZeD_WorldWindow.toggle(0) end },
+    { "close", function(w) ZeD_WorldWindow.close() end },
+    { "forceClose", function(w) ZeD_WorldWindow.forceClose() end },
+}
+for _, before in ipairs({ false, true }) do
+    for _, path in ipairs(PATHS) do
+        if not RW then break end
+        fresh()
+        REG2 = {}
+        RW.set(nil)
+        if before then ZeD_WorldWindow.open(0) end
+        map = newItem("MuldraughMap")
+        PLAYERS[0]._inv.items = { map }
+        ISInventoryPaneContextMenu.onCheckMap(map, 0)
+        local w, pop = RW.get(), RW.get() and RW.get()._mapPopout
+        local tag = path[1] .. (before and ", World window open before" or ", World window opened by Read Map")
+        check(tag .. ": the paper is up first", w ~= nil and pop ~= nil and w._mapPaperItem == map)
+        if w and pop then
+            local okp, errp = pcall(path[2], w)
+            check(tag .. ": the World window closes", okp and RW.get() == nil and not w._shown and not regHas(w), errp)
+            check(tag .. ": the paper goes with it, in the same close (not left for a tick)", w._mapPopout == nil
+                and w._mapPaperItem == nil and not regHas(pop) and logHas("zed:close:MuldraughMap"))
+            tick()
+            check(tag .. ": once, nothing left for P.tick", logCount("zed:worldWindow:close") == 1
+                and logCount("zed:close:MuldraughMap") == 1 and RW.get() == nil and #REG2 == 0)
+        end
+    end
+end
+
+section("P.tick: a World window gone with its paper still up does not leave the paper behind")
+if RW then
+    fresh()
+    REG2 = {}
+    RW.set(nil)
+    map = newItem("MuldraughMap")
+    PLAYERS[0]._inv.items = { map }
+    ISInventoryPaneContextMenu.onCheckMap(map, 0)
+    local w = RW.get()
+    local pop = w and w._mapPopout
+    RW.set(nil)   -- (the window dropped by a path that did not fold: a later close nobody wired)
+    tick()
+    check("the next tick puts the paper away", w ~= nil and w._mapPopout == nil and pop ~= nil and not regHas(pop)
+        and logHas("zed:close:MuldraughMap"))
+end
+
+section("the controller on the World window's map placeholder folds as the mouse does (MapsTab map:fold)")
+local foldSrc = block(mt, 'id = "map:fold",', "onCancel[^\n]*\n")
+local actSrc = string.match(foldSrc, "onActivate%s*=%s*(function%b().-end),")
+local canSrc = string.match(foldSrc, "onCancel%s*=%s*(function%b().-end),")
+check("the placeholder's A and B are found", actSrc ~= nil and canSrc ~= nil)
+for _, pair in ipairs({ { "A", actSrc }, { "B", canSrc } }) do
+    local fn = pair[2] and loadstring("return " .. pair[2])
+    fn = fn and fn()
+    if fn and RW then
+        fresh()
+        REG2 = {}
+        RW.set(nil)
+        map = newItem("MuldraughMap")
+        PLAYERS[0]._inv.items = { map }
+        ISInventoryPaneContextMenu.onCheckMap(map, 0)
+        local w = RW.get()
+        local okf, errf = pcall(fn, w, {})
+        check("pad " .. pair[1] .. " on the placeholder: the paper folds, the World window Read Map opened stays",
+            okf and w ~= nil and w._mapPopout == nil and RW.get() == w and not logHas("zed:worldWindow:close"), errf)
+    end
+end
+ZeD.MapsTab.openPopout = stubOpen
+ZeD_WorldWindow = stubWW
 ZeD.Input = nil
 
 print = realPrint

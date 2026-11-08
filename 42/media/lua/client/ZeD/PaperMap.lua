@@ -85,6 +85,7 @@ function P.open(item, playerNum)
     end
     win._mapPaperOwnsWindow = owns or nil
     win._mapPaperBack = back
+    P._paperWin = win   -- (P.tick: a World window gone with the paper still up folds it)
     -- the game's read (steps 2 and 4; 5 to 7 come with the map's drawing: instantiate, frame)
     local ok2, err2 = pcall(function()
         item:doBuildingStash()
@@ -217,9 +218,18 @@ function P.openVanilla(item, playerNum)
 end
 
 -- Each tick: the paper map's window is put away when the map leaves the main
--- inventory, and a paper ZeD could not draw goes to the game's window.
+-- inventory, and a paper ZeD could not draw goes to the game's window. A World
+-- window that went without folding its paper (every close folds it:
+-- ZeD_WorldWindow's _closeWorldWindow) does not leave the paper up on its own.
 function P.tick()
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local last = P._paperWin
+    if last and last ~= win then
+        P._paperWin = nil
+        if last._mapPopout and last._mapPaperItem then pcall(ZeD.MapsTab.closePopout, last, true) end
+    elseif last and not last._mapPaperItem then
+        P._paperWin = nil
+    end
     if not win then return end
     local fail = win._mapPaperFail
     if fail then

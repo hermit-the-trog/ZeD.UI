@@ -1884,8 +1884,10 @@ function ZeD.MapsTab.buildFocusables(win)
             elements[1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
                 id = "map:fold",
-                onActivate = function(w, _el) ZeD.MapsTab.closePopout(w) end,
-                onCancel   = function(w, _el) ZeD.MapsTab.closePopout(w) end,
+                -- (keepWorld, as the mouse on the placeholder: the fold comes
+                -- from the World window, so a World window Read Map opened stays)
+                onActivate = function(w, _el) ZeD.MapsTab.closePopout(w, true) end,
+                onCancel   = function(w, _el) ZeD.MapsTab.closePopout(w, true) end,
             }
         end
         return elements
