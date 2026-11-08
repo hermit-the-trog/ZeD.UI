@@ -224,6 +224,8 @@ local MOODLE_EVENTS = {
     { 3000, function(w) w.LV[0].FOOD_EATEN = 3; w.LV[1].PANIC = 3 end },
     { 3500, function(w) w.place = 2 end },
     { 4500, function(w) w.place = 3; w.belt = true end },
+    -- the Options apply new highlight colours in play (no Lua reload, no new theme)
+    { 4800, function(w) w.good = { 0.5, 0.5, 1.0 }; w.bad = { 0.3, 0.9, 0.6 } end },
     { 5200, function(w) w.LV[0].STRESS = 3; w.LV[0].TIRED = 0 end },
     -- a new theme (ZeD.T) with the highlight colours changed by the Options (a Lua reload in the game)
     { 6000, function(w) w.T = newT("B"); w.good = { 0.1, 0.9, 0.9 }; w.bad = { 0.8, 0.4, 0.0 } end },
@@ -357,7 +359,19 @@ if srcMB and srcMA then
     print(string.format("   run B game calls over %d frames: getMoodleLevel %d -> %d (%.1f -> %.1f a frame), getMoodles %d -> %d, highlight colours %d -> %d",
         #frB, AB.calls.level, BB.calls.level, perA, perB, AB.calls.getMoodles, BB.calls.getMoodles, AB.calls.colour, BB.calls.colour))
     check("run B: getMoodleLevel at least 5x fewer", BB.calls.level * 5 <= AB.calls.level, BB.calls.level .. " vs " .. AB.calls.level)
-    check("run B: the highlight colours read only when the theme changes or a game starts", BB.calls.colour <= 8, BB.calls.colour)
+    check("run B: the highlight colours read at most once per list read (2 a read)", BB.calls.colour <= BB.calls.getMoodles * 2,
+        BB.calls.colour .. " for " .. BB.calls.getMoodles .. " list reads")
+    -- the colours changed in play at 4800 ms: the row's new tint (bad 0.3,0.9,0.6 at level 2 -> g 0.7, b 0.55;
+    -- the old one gave g 0.3, b 0.35) within 100 ms
+    local tintAt, tintBefore
+    for _, f in ipairs(frB) do
+        local has = f.b:find("6=0.7,7=0.55", 1, true) ~= nil
+        if f.t < 4800 and has then tintBefore = f.t end
+        if f.t >= 4800 and not tintAt and has then tintAt = f.t end
+    end
+    check("run B: the new tint is not drawn before the colours change", tintBefore == nil, tintBefore)
+    check("run B: colours applied in play show in the row within 100 ms plus one frame",
+        tintAt ~= nil and tintAt - 4800 <= 116, tintAt and (tintAt - 4800) or "never")
 
     section("Moodles: a steady frame's Lua memory")
     local function steady(src, label)

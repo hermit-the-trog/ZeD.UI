@@ -173,9 +173,9 @@ function M.active(player)
 end
 
 -- Vanilla's backing colour: grey lerped toward the Good / Bad highlight colour.
--- The two colours are read once and kept (perf review Nov 7 2026, item 10): the game's Options apply a new
--- one with a Lua reload (MainOptions: resetLua), and they are read again when ZeD's theme changes (a new
--- ZeD.T) and at every game start.
+-- The two colours are kept between reads (perf review Nov 7 2026, item 10): read again whenever a layer
+-- reads the moodle list (every 100 ms; the game's Options apply a new colour in play at once), when ZeD's
+-- theme changes (a new ZeD.T) and at every game start.
 local function hl(getter)
     local core = getCore()
     local c = safe(core[getter], core)
@@ -286,6 +286,7 @@ function ZeD_MoodleLayer:_activeList(p)
     local at = self._actAt
     if at and p == self._actP and order == self._actOrder and now >= at and now - at < ACTIVE_MS then return list end
     self._actP, self._actOrder, self._actAt = p, order, now
+    hlc.have = false                       -- the highlight colours are read again with the list (Options apply them in play)
     return fillActive(p:getMoodles(), order, list, self._actPool)
 end
 
