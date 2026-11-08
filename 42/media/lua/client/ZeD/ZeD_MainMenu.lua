@@ -962,7 +962,13 @@ MM.act = {
     -- (vanilla's WORKSHOP item hides the menu after opening its screen: the monitor's window opens directly)
     workshop  = function() MM.ctx.open = nil; if MM.views and ms() and ms().workshopSubmit then MM.showView("workshop") else fire("workshopOption") end end,
     credits   = function() MM.ctx.open = nil; MM.clickSound(); MM.showView("credits") end,   -- ZeD_MainMenuCredits.lua (vanilla's item hides the menu after opening its screen)
-    tos       = function() MM.ctx.open = nil; local m = ms(); if m then m:onClickTermsOfService() end end,
+    -- the terms on the monitor (ZeD_MainMenuTerms.lua); vanilla's own window when that view is missing
+    tos       = function()
+        MM.ctx.open = nil
+        local m = ms()
+        if not m then return end
+        if MM.root and MM.hasView and MM.hasView("terms") then clickSound(); MM.showView("terms") else m:onClickTermsOfService() end
+    end,
     reportBug = function() MM.ctx.open = nil; local m = ms(); if m then m:onClickReportBug() end end,
     resetLua  = function() getCore():ResetLua("default", "Force") end,
     scenarios = function()
@@ -1019,7 +1025,8 @@ function MM.menuItems(key)
         return { { text = ZeD.btnCase(getText("UI_mainscreen_continue")), fn = A.continue, disabled = not MM.continueInfo() },
                  { text = ZeD.btnCase(getText("UI_NewGameScreen_title")), fn = A.newGame },
                  { text = ZeD.tr("UI_ZeD_MainMenu_LoadGame"), fn = A.load, disabled = not MM.hasSaves() },
-                 { text = getText("IGUI_Gametime_Tutorial"), fn = A.tutorial },
+                 -- (the game's Tutorial loads no mods: labeled as the game's own; the director, Nov 7 2026)
+                 { text = ZeD.tr("UI_ZeD_MainMenu_TutorialVanilla"), fn = A.tutorial },
                  "-",
                  { text = getText("IGUI_Exit"), fn = A.askQuit } }
     elseif key == "mp" then
@@ -2016,7 +2023,7 @@ end
 
 -- The plain words the footer line shows for the menu's big buttons (a translation key each)
 local BIG_HELP = { continue = "UI_ZeD_MMHelp_Continue", newgame = "UI_ZeD_MMHelp_NewGame", load = "UI_ZeD_MMHelp_LoadGame",
-                   join = "UI_ZeD_MMHelp_JoinServer", host = "UI_ZeD_MMHelp_HostGame", tutorial = "UI_ZeD_MMHelp_Tutorial",
+                   join = "UI_ZeD_MMHelp_JoinServer", host = "UI_ZeD_MMHelp_HostGame", tutorial = "UI_ZeD_MMHelp_TutorialVanilla",
                    resume = "UI_ZeD_MMHelp_Resume", options = "UI_ZeD_MMHelp_Options", mods = "UI_ZeD_MMHelp_PauseMods",
                    sandbox = "UI_ZeD_MMHelp_SandboxIG", players = "UI_ZeD_MMHelp_Players", invite = "UI_ZeD_MMHelp_Invite" }
 local function bigHelp(id) return BIG_HELP[id] and ZeD.tr(BIG_HELP[id]) or nil end
@@ -2066,7 +2073,7 @@ function ZeD_MMWindow:build()
             { "load",     ZeD.tr("UI_ZeD_MainMenu_LoadGame"),   A.load, not MM.hasSaves() },
             { "join",     ZeD.tr("UI_ZeD_MainMenu_JoinServer"), A.join },
             { "host",     ZeD.tr("UI_ZeD_MainMenu_HostGame"),   A.host },
-            { "tutorial", getText("UI_mainscreen_tutorial"),   A.tutorial },
+            { "tutorial", ZeD.tr("UI_ZeD_MainMenu_TutorialVanilla"), A.tutorial },
         }
         for i, r in ipairs(list) do
             row = row + 1
@@ -2520,7 +2527,7 @@ function MM.attach(m)
         MM.redirect(m.loadScreen, "load")
         MM.redirect(m.modSelect, "mods")
         for _, v in ipairs(MM.views) do
-            if v.screen then if v.mirror then MM.mirror(m[v.screen], v.view) else MM.redirect(m[v.screen], v.view) end end
+            if v.screen then if v.mirror then MM.mirror(m[v.screen], v.view, v.mirror) else MM.redirect(m[v.screen], v.view) end end
         end
         MM.hookOptions(m)
     end
@@ -2584,6 +2591,10 @@ end
 -- maker (called when the desk builds, after every module has loaded), and the MainScreen
 -- field of the vanilla screen it stands in for (its setVisible(true) lands on the view).
 MM.views = MM.views or {}
+function MM.hasView(view)
+    for _, v in ipairs(MM.views) do if v.view == view then return MM.root ~= nil and MM.root[v.field] ~= nil end end
+    return false
+end
 function MM.addView(view, field, make, screen, mirror)
     for _, v in ipairs(MM.views) do
         if v.view == view then v.field, v.make, v.screen, v.mirror = field, make, screen, mirror; return end   -- a Lua reload replaces it
@@ -2594,7 +2605,9 @@ end
 -- A vanilla screen that must stay "visible" to keep working (it only follows events while
 -- shown): it shows as vanilla wants but off the screen, and the view mirrors it; hiding
 -- it brings it back and leaves the view (whatever vanilla shows next takes over).
-function MM.mirror(screen, view)
+-- keep (the view's mirror field, when a function): asked as vanilla hides the screen; true
+-- keeps the view up (the server's Workshop items, once installed, while the join goes on).
+function MM.mirror(screen, view, keep)
     if not screen or screen._zedRedirect then return end
     screen._zedRedirect = true
     local orig = screen.setVisible
@@ -2607,7 +2620,7 @@ function MM.mirror(screen, view)
             MM.showView(view, joypadData)
         else
             if self:getX() <= -10000 then self:setX(self._zedX or 0) end
-            if MM.view == view then MM.showView("main") end
+            if MM.view == view and not (type(keep) == "function" and keep(self)) then MM.showView("main") end
         end
     end
 end
@@ -2694,7 +2707,9 @@ function MM.joyDown(m, button)
     elseif button == Joypad.RBumper then if w.joyBumper then w:joyBumper(1) end
     elseif button == Joypad.YButton then
         if w.joyY then w:joyY()
-        elseif not m.inGame and not w.confirm then MM.act.tos() end
+        -- (the main window's Y: Legal, its footer says so; another view without a Y of its own, Connecting or a
+        -- New Game step, must not lose its place to the terms)
+        elseif not m.inGame and not w.confirm and MM.view == "main" then MM.act.tos() end
     end
 end
 
