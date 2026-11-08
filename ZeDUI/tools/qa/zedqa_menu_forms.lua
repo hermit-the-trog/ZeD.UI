@@ -15,8 +15,10 @@ local steps, T0, t = {}, 0, 0
 local function at(n, fn) T0 = T0 + n; steps[#steps + 1] = { n = T0, fn = fn } end
 local function tr(k) return ZeD.tr(k) end
 local function label(c, i) local o = c.options and c.options[i]; return tostring(type(o) == "table" and (o.text or o[1]) or o) end
-local WANT = { "UI_ZeD_Settings_Belt", "UI_ZeD_Settings_ActionBar", "UI_ZeD_Settings_ContextMenu", "UI_ZeD_Settings_EquipView",
-               "UI_ZeD_Settings_Devices", "UI_ZeD_Settings_WatchStyle", "UI_ZeD_Settings_Dash" }
+-- (punch list 110, Nov 7 2026: the group is "Immersive or simple"; Action bar to HUD, Context menu, Equip view and Mods
+-- to Windows, the Identity card in from Look)
+local WANT = { "UI_ZeD_Settings_Belt", "UI_ZeD_Settings_Devices", "UI_ZeD_Settings_WatchStyle", "UI_ZeD_Settings_Dash",
+               "UI_ZeD_Settings_Guide", "UI_ZeD_Settings_Identity" }
 local THREE = { "UI_ZeD_Settings_Devices", "UI_ZeD_Settings_WatchStyle", "UI_ZeD_Settings_Dash" }
 local rowsBy = {}
 
@@ -49,7 +51,7 @@ at(30, function()
     say("60: its rows: " .. table.concat(got, ", "))
     local same = #got == #WANT
     for i = 1, #WANT do if got[i] ~= WANT[i] then same = false end end
-    check(same, "60: Belt, Action bar, Context menu, Equip view, Devices, Watch, Dashboard, in that order")
+    check(same, "110: Belt, Devices, Watch, Dashboard, Survival guide, Identity card, in that order")
     local strays = {}
     for i, g in ipairs(groups) do
         if i ~= fi then for _, k in ipairs(g.keys) do for _, wk in ipairs(WANT) do if k == wk then strays[#strays + 1] = g.name .. ":" .. k end end end end
