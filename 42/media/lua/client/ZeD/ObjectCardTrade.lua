@@ -33,9 +33,14 @@ end
 
 function def.valid(t) return t.s ~= nil and t.s.open == true end
 
--- the card went (its close key, B, another card in its place): vanilla's Cancel
+-- pinned (the director, Nov 7 2026): tab switches and item cards leave it in the drawer; an item card
+-- opens over it and the trade shows again when that closes
+function def.pinned(t) return t.s ~= nil and t.s.open == true end
+
+-- the card's own close (its close key, B) is vanilla's Cancel; another object card taking the drawer is
+-- not: the trade waits and comes back when that card closes (ZeD_Trade.lua, Session:update)
 function def.onClose(t, card)
-    if t.s and t.s.open then t.s:cancel() end
+    if t.s and t.s.open and ZeD_WorldWindow and ZeD_WorldWindow._closingCard then t.s:cancel() end
 end
 
 function def.refresh(t, player)

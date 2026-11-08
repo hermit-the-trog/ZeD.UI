@@ -24,7 +24,7 @@ io.stdout:setvbuf("no")
 local OLD = arg and arg[1] == "old"
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]trade_medic_sim%.lua$", "")
 local PZ = os.getenv("ZEDSIM_PZ") or "E:/Project Zomboid/steamapps/common/ProjectZomboid/media/lua/"
-local ZL = ROOT .. "42/media/lua/"
+local ZL = os.getenv("ZEDSIM_ZL") or (ROOT .. "42/media/lua/")
 
 local checks, failed = 0, 0
 local function check(name, ok, detail)
@@ -570,19 +570,33 @@ end
 local CARD
 local WIN = { _playerObj = P1 }
 local drawerObject = nil
+-- (the World window's own drawer rules, as ZeD_WorldWindow.lua writes them: a pinned card stays when
+-- something else drops it; only closeObjectCard, the card's own close, forces it out)
+local WIN_OPEN = true
+local function dropObject(force)
+    local d = WIN._drawerObject
+    if not d then return end
+    if d.def and d.def.pinned and not force and d.def.pinned(d.t) then return end
+    WIN._drawerObject = nil
+    CARD:setEntry(nil)
+end
 ZeD_WorldWindow = {
-    getWindow = function() return WIN end,
+    getWindow = function() return WIN_OPEN and WIN or nil end,
     openObjectCard = function(n, entry)
-        drawerObject = entry
+        WIN_OPEN = true
+        WIN._drawerItem = nil
+        WIN._drawerObject = entry
+        WIN._drawerOpen = true
         CARD:setEntry(entry)
         return true
     end,
     closeObjectCard = function()
-        if not drawerObject then return end
-        drawerObject = nil
-        CARD:setEntry(nil)
+        if not (WIN_OPEN and WIN._drawerObject) then return end
+        ZeD_WorldWindow._closingCard = true
+        dropObject(true)
+        ZeD_WorldWindow._closingCard = nil
     end,
-    getObjectCard = function() return drawerObject and CARD or nil end,
+    getObjectCard = function() return WIN_OPEN and WIN._drawerObject and CARD or nil end,
 }
 
 runFile(ZL .. "client/ZeD/ObjectCards.lua", "ObjectCards.lua")
@@ -799,15 +813,45 @@ ISWorldObjectContextMenu.onTrade({}, P1, P2)
 local s3 = TR.get(P1)
 fire("AcceptedTrade", P2, P1, false)
 check("they said no: blocked with vanilla's words", s3 and s3.blocking == getText("IGUI_TradingUI_RefusedTrade", "Bobby"))
--- the card goes from the World window (closed, or another card): cancelled after three frames
+-- pinned (the director, Nov 7 2026): only Cancel, their close, distance or them leaving end the trade
 if s3 then
+    local function shown() local c = ZeD_WorldWindow.getObjectCard(); return c and c.entry and c.entry.t and c.entry.t.s == s3 and WIN._drawerOpen and WIN._drawerItem == nil end
     clearCalls()
-    drawerObject = nil   -- (the window went: the card is no longer there; no onClose ran)
-    tick(2)
-    check("card gone 2 frames: the trade waits", s3.open)
+    -- an item card opens over it
+    WIN._drawerItem = apple
+    dropObject(false)
+    tick(5)
+    check("pinned: an item card opens over the trade, which stays open", s3.open and #calls("tradingUISendUpdateState") == 0)
+    check("pinned: the trade card stays in the drawer under the item card", WIN._drawerObject and WIN._drawerObject.t.s == s3 and WIN._drawerItem == apple)
+    WIN._drawerItem = nil
     tick(1)
-    check("card gone 3 frames: Cancel (WindowWasClosed)", not s3.open and lastState() == "WindowWasClosed")
-    CARD.entry = nil
+    check("pinned: the item card closes, the trade is back", shown())
+    -- a tab switch folds the drawer
+    dropObject(false)
+    WIN._drawerOpen = false
+    tick(1)
+    check("pinned: a tab switch, the trade is back", shown() and s3.open)
+    -- another object card takes the drawer
+    ZeD_WorldWindow.openObjectCard(0, { def = { id = "generator" }, t = {} })
+    tick(3)
+    check("pinned: another card in its place does not end the trade", s3.open and #calls("tradingUISendUpdateState") == 0)
+    check("pinned: the other card is left alone while open", WIN._drawerObject.def.id == "generator")
+    ZeD_WorldWindow.closeObjectCard()
+    tick(1)
+    check("pinned: the other card closes, the trade is back", shown())
+    -- the World window shut
+    WIN_OPEN = false
+    tick(10)
+    check("pinned: the World window shut does not end the trade", s3.open and #calls("tradingUISendUpdateState") == 0)
+    WIN_OPEN, WIN._drawerObject, CARD.entry = true, nil, nil
+    tick(1)
+    check("pinned: the window opens again, the trade card is back", shown())
+    WIN_OPEN = false
+    fire("TradingUIUpdateState", P2, P1, "DealWasUnsealed")
+    check("pinned: their next move opens the window on the trade", WIN_OPEN and shown())
+    -- its own close is Cancel
+    CARD:close()
+    check("pinned: the card's close key still cancels", not s3.open and lastState() == "WindowWasClosed")
 end
 -- a narrow card stacks the offers
 ISWorldObjectContextMenu.onTrade({}, P1, P2)
