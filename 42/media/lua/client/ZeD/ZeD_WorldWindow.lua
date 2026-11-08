@@ -3267,21 +3267,29 @@ local function closeCardIfItemGone(win, content)
     end
 end
 
+-- Every close of the World window comes here: its close box (Organisms), the
+-- curtain rod's close (WindowCurtain), the controller's close-all (FocusManager),
+-- toggle, close and forceClose. The map pop-out (the world map or a paper map
+-- Read Map opened) folds with the window (S123; keepWorld: no second close from
+-- the paper), so nothing is left up with no World window behind it.
+local function _closeWorldWindow(w)
+    ZeD_WorldWindow._endZoneDraw()
+    saveWorldState(w)
+    if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w, true) end
+    -- S93 Layer 3: unregisterWindow releases focus if this window holds it
+    if ZeD and ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
+    w:removeFromUIManager()
+    if _worldWin == w then
+        _worldWin = nil
+        _floorContainer = nil
+    end
+end
+
 function ZeD_WorldWindow.toggle(playerNum)
     playerNum = playerNum or 0
 
     if _worldWin then
-        ZeD_WorldWindow._endZoneDraw()
-        saveWorldState(_worldWin)
-        -- S93 Layer 3: tear down joypad focus registration before dropping ref.
-        -- unregisterWindow internally releases focus if this window holds it.
-        if ZeD and ZeD.Input and ZeD.Input.Focus then
-            if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(_worldWin, true) end  -- S123: fold the map pop-out with the window
-            ZeD.Input.Focus.unregisterWindow(_worldWin)
-        end
-        _worldWin:removeFromUIManager()
-        _worldWin = nil
-        _floorContainer = nil
+        _closeWorldWindow(_worldWin)
         return
     end
 
@@ -3341,18 +3349,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     -- Override close
+    -- (the close box, the curtain rod's close, the controller's close-all: the
+    -- map pop-out folds with the window, _closeWorldWindow)
     win.close = function(self)
-        ZeD_WorldWindow._endZoneDraw()
-        saveWorldState(self)
-        -- S93 Layer 3: drop joypad focus before teardown. unregisterWindow
-        -- internally calls releaseFocus if this window currently holds it,
-        -- so one call handles both concerns.
-        if ZeD and ZeD.Input and ZeD.Input.Focus then
-            ZeD.Input.Focus.unregisterWindow(self)
-        end
-        self:removeFromUIManager()
-        _worldWin = nil
-        _floorContainer = nil
+        _closeWorldWindow(self)
     end
 
     -- Player ref
@@ -5886,21 +5886,9 @@ function ZeD_WorldWindow._endZoneDraw()
 end
 
 function ZeD_WorldWindow.close()
+    -- (also reached when the Character window's close calls it for paired close)
     if _worldWin then
-        ZeD_WorldWindow._endZoneDraw()
-        saveWorldState(_worldWin)
-        -- S93 Layer 3: drop joypad focus before teardown. This public module
-        -- function is reached when the Character Window close path calls
-        -- ZeD_WorldWindow.close() for paired close semantics — having the
-        -- unregister here keeps this entry point symmetric with the toggle()
-        -- and win.close override paths.
-        if ZeD and ZeD.Input and ZeD.Input.Focus then
-            if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(_worldWin, true) end  -- S123: fold the map pop-out with the window
-            ZeD.Input.Focus.unregisterWindow(_worldWin)
-        end
-        _worldWin:removeFromUIManager()
-        _worldWin = nil
-        _floorContainer = nil
+        _closeWorldWindow(_worldWin)
     end
 end
 

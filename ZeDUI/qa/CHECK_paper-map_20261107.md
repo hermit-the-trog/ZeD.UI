@@ -65,7 +65,9 @@ Do each of 1 to 5 twice: once with the World window closed before Read Map, once
    the second paper closes the World window when the first Read Map opened it.
 3. With the world map unfolded (M), Read Map on a paper: the world map folds, the paper opens.
 4. With the paper open press M: the game's map-reading bar runs, then the world map opens and the paper is put away.
-5. Close the World window (its close box) with the paper open: the paper closes with it, no error in the console.
+5. Close the World window with the paper open, once by its close box and once by the close on its curtain rod (roll
+   the window up first): each time the paper closes with it (MapClose sound) and nothing is left on screen, no error
+   in the console.
 6. World window closed, Read Map on the stash map, Find on map: after the reading bar the World window stays open with
    the world map unfolded in it. Folding that world map leaves the World window open.
 7. World window closed, Read Map, then click the World window's own map fold (the drawer's placeholder or its unfold
@@ -82,6 +84,10 @@ Do each of 1 to 5 twice: once with the World window closed before Read Map, once
 5. B closes the paper. The pad lands back in the Character window list, on the map's row, not in the World window.
    With the World window closed before Read Map, it closes again with B and the pad stays in the Character window.
 6. Find on map with the pad on a stash map: the world map opens after the reading bar, the pad on its cursor.
+7. World window closed, Read Map, then move the pad into the World window onto its map placeholder and press A (and
+   again with B): the paper folds and the World window stays, as with the mouse (closing rules 7).
+8. With the paper open, hold Y (it closes both of ZeD's windows): the Character window, the World window and the
+   paper all close, nothing is left on screen.
 
 ## 6. Small screens (Deck 1280x800, 720p)
 
