@@ -1,22 +1,23 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Garment.lua
 -- ============================================================================
--- CLOTHING'S INSPECT (tailoring) — director, Oct 15 2026: "There is no inspect
--- clothing item hook yet, it goes to vanilla ui. tailoring happens through the
--- inspect function."
+-- CLOTHING'S INSPECT (override, client)
 --
--- Vanilla's Inspect on a garment (the context menu, after it brings the item
--- out of a bag: ISInventoryPaneContextMenu.onInspectClothing ->
--- onInspectClothingUI) opened ISGarmentUI: the body parts it covers, holes,
--- blood, patches, defence, and right-click tailoring. The ZeD surface for a
--- garment is its item card (ItemCard / ItemCardOrganism: the per-part rows,
--- blood, patch material, the defence facts, WASH / REPAIR / PAD), so Inspect
--- now opens that card in the Character window with its parts open. Each torn
--- or patched part's dock opens vanilla's own tailoring choices for that part
+-- The engine offers no hook for inspecting clothing, and tailoring happens
+-- through the inspect path — so ZeD wraps that path itself. Vanilla's
+-- Inspect on a garment (the context menu, after it brings the item out of a
+-- bag: ISInventoryPaneContextMenu.onInspectClothing -> onInspectClothingUI)
+-- opened ISGarmentUI: the body parts it covers, holes, blood, patches,
+-- defence, and right-click tailoring. The ZeD surface for a garment is its
+-- item card (ItemCard / ItemCardOrganism: the per-part rows, blood, patch
+-- material, the defence facts, WASH / REPAIR / PAD), so Inspect now opens
+-- that card in the Character window with its parts open. Each torn or
+-- patched part's dock opens vanilla's own tailoring choices for that part
 -- (ZeD.Garment.tailorMenu: which fabric to patch with, patch every hole,
 -- remove the patch or all of them, with vanilla's skill and defence notes),
--- in the ZeD list. Vanilla's window still opens if the card cannot, and
--- always while safe mode is on (SafeMode.lua).
--- HOOK_MAP row 30.
+-- in the ZeD list. The hook keeps vanilla's function once behind the
+-- _zedGarment flag, so a Lua reload never wraps the wrapper. Vanilla's
+-- window still opens if the card cannot, and always while safe mode is on
+-- (SafeMode.lua).
 -- ============================================================================
 
 require "ZeD/SafeMode"

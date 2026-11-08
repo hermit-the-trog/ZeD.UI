@@ -1,10 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemCard.lua
 -- ============================================================================
--- O08: ITEM CARD — Sticky head + scrollable body
--- Head (top, pinned): Icon + Name + Primary bar + Action strip
--- Body (below, scrolls): Badges, Stats, Category/Weight, Foldable disclosures
--- Disclosures: Per-Zone Detail (clothing), Nutrition/Ingredients (food)
--- Fold state persisted per item TYPE via player modData.
+-- O08: ITEM CARD — the organism's class, input and dispatch. Client.
+-- ZeD_ItemCard is the one card for any inventory item: sticky chrome on top,
+-- scrollable body below. This file owns the class (lifecycle, scroll, fold
+-- state, rename), the pointer and controller input, and the dispatch that
+-- turns a card press into vanilla's own actions. What the card draws each
+-- frame lives in ItemCardOrganism.lua (renderBody); the zone data builders
+-- at the end (ZeD.ItemDetail) are shared with the Equip tab.
+-- Fold state persists per disclosure key via player modData.
 -- ============================================================================
 require "ISUI/ISPanel"
 require "ZeD/Atoms"
@@ -97,7 +100,7 @@ local function formatFirearm(item)
 end
 local function formatFood(item)
     local T=ZeD.T; local s={}
-    -- Player-affecting stats only — nutrition (calories/carbs/proteins/fat) moved to nutrition label
+    -- Player-affecting stats only — nutrition (calories/carbs/proteins/fat) is the nutrition label's job
     local h=safeGet(item,"getHungerChange"); if h and h~=0 then local v=math.floor(h*100); table.insert(s,{label="Hunger",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
     local t=safeGet(item,"getThirstChange"); if t and t~=0 then local v=math.floor(t*100); table.insert(s,{label="Thirst",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
     local b=safeGet(item,"getUnhappyChange") or safeGet(item,"getBoredomChange"); if b and b~=0 then local v=math.floor(b); table.insert(s,{label="Boredom",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
@@ -113,7 +116,7 @@ local function formatFood(item)
 end
 local function formatClothing(item)
     local T=ZeD.T; local s={}
-    -- Body location moved to Zone 1 stat anchor (getItemSubtype)
+    -- No body-location row: the zones list already names the covered parts
     local bite=safeGet(item,"getBiteDefense"); if bite and bite>0 then table.insert(s,{label="Bite def.",value=math.floor(bite).."%"}) end
     local scr=safeGet(item,"getScratchDefense"); if scr and scr>0 then table.insert(s,{label="Scratch",value=math.floor(scr).."%"}) end
     local cm=safeGet(item,"getCombatSpeedModifier"); if cm and cm~=0 then table.insert(s,{label="Move pen.",value=string.format("%.1f",cm),color=cm>0 and T.warning or T.positive}) end
@@ -192,18 +195,18 @@ local function getBarsForItem(item)
     if cond and mc and mc>0 then table.insert(bars,{label="Condition",ratio=math.max(0,math.min(1,cond/mc))}) end; return bars
 end
 -- the facts, bars and kind of an item another surface shows without holding it (the recipe
--- preview, punch list 49: the item you would craft, and the one of yours it upgrades)
+-- preview: the item you would craft, and the one of yours it upgrades)
 ZeD.itemFacts = function(item) return getStatsForItem(item), getBarsForItem(item), getItemCategory(item) end
 
 local function getNutritionForItem(item)
     if not instanceof(item, "Food") then return {} end
     local n = {}
-    -- Serving size: whole item = 1 serving, use item weight in grams
+    -- Serving size: the whole item is one serving; its weight stands in
     local wt = safeGet(item,"getActualWeight") or safeGet(item,"getWeight") or 0
     if wt > 0 then
         table.insert(n, {label="Serving Size", value=string.format("%.1f kg", wt)})
     end
-    -- NLEA 21 CFR 101.9 mandatory order
+    -- Rows follow the US nutrition label's mandatory order (NLEA, 21 CFR 101.9)
     local cal = safeGet(item,"getCalories")
     table.insert(n, {label="Calories", value=cal and cal>0 and string.format("%.0f",cal) or "0"})
     local lip = safeGet(item,"getLipids")
@@ -273,7 +276,9 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Verb dispatch table — maps verb key → handler(card, def).
--- Clothing verbs use ISRepairClothing; weapon verbs use FixingManager/ISFixAction.
+-- A garment's Repair and Pad use ISRepairClothing; Repair on a weapon goes
+-- through FixingManager/ISFixAction; Sharpen and Wash run vanilla's own
+-- recipe and wash (see each below).
 -- ---------------------------------------------------------------------------
 local VERB_DISPATCH = {}
 
@@ -354,8 +359,8 @@ local function tryFixingManager(card)
             end
         end
     end
-    -- No fixer in the bags: the character says what the repair needs (the
-    -- greyed verb still answers a press with its reason, cohesion spec 9)
+    -- No fixer in the bags: the character says what the repair needs (a
+    -- greyed verb still answers a press with its reason)
     noteNeeds(card, "repair")
 end
 
@@ -400,8 +405,9 @@ local function sharpenRecipe(player, item)
     return nil
 end
 
--- SHARPEN: vanilla's own (ISFirearmRadialMenu.sharpenWeapon): the whetstone
--- recipe, else the poor one with a file; it ran a repair before (Oct 19 2026).
+-- SHARPEN: the same recipes vanilla's radial menu runs
+-- (ISFirearmRadialMenu.sharpenWeapon): the whetstone one, else the poor one
+-- with a file. A sharpen, never a repair.
 VERB_DISPATCH.sharpen = function(card)
     local player = getSpecificPlayer(card.playerNum)
     if not (player and card.item) then return end
@@ -415,7 +421,7 @@ end
 
 -- WASH: vanilla's own wash (ISWorldObjectContextMenu.onWashClothing: walks to
 -- the water, uses soap when you carry it) at the nearest water within two
--- tiles; none in reach says so (Oct 19 2026: the button did nothing).
+-- tiles; none in reach says so instead of doing nothing.
 VERB_DISPATCH.wash = function(card)
     local player = getSpecificPlayer(card.playerNum)
     if not (player and card.item) then return end
@@ -426,7 +432,7 @@ VERB_DISPATCH.wash = function(card)
 end
 
 -- ---------------------------------------------------------------------------
--- WHAT A CARE VERB NEEDS (conditional disclosure, cohesion spec 9a)
+-- WHAT A CARE VERB NEEDS (conditional disclosure)
 -- For each care verb of the card (Wash, Repair, Pad, Sharpen): can it be done
 -- now (canDo), does it make sense now (sensible: Repair on a garment with no
 -- holes, or on a weapon in full condition, does not: the verb is gone), what it
@@ -702,7 +708,7 @@ function ZeD_ItemCard:new(x, y, width, height, mode, playerNum)
     o.toggleHover  = nil;  o.toggleWasDown  = false;  o.toggleRects = {}
     o.verbHover    = nil;  o.verbWasDown    = false;  o.verbRects   = {}
     o._verbDefs    = {}
-    -- Fold state (per-type disclosure toggles, persisted via modData)
+    -- Fold state (per-disclosure-key toggles, persisted via modData)
     o._foldStates    = {}        -- {clothing_zones=bool, food_nutrition=bool, food_ingredients=bool}
     o._foldHitRects  = {}        -- rebuilt each frame: {x,y,w,h,key}
     o._headH         = 0         -- cached sticky head height
@@ -734,8 +740,8 @@ function ZeD_ItemCard:initialise()
     self._sb = sb
 end
 
--- Called when a structural dock button is clicked.
--- Builds and queues the appropriate timed action for this player + zone.
+-- Called when a structural dock button is clicked: opens the part's tailoring
+-- list, else queues the one-press timed action for this player + zone.
 function ZeD_ItemCard:_onZonePress(zoneIdx, zone, rect)
     if not self.item or not zone or not zone.dock then return end
     local player = getSpecificPlayer(self.playerNum)
@@ -747,9 +753,9 @@ function ZeD_ItemCard:_onZonePress(zoneIdx, zone, rect)
     if not parts or zoneIdx > parts:size() then return end
     local part = parts:get(zoneIdx - 1)  -- Java 0-indexed
 
-    -- Oct 15 2026 (Inspect routed here, Overrides/Garment.lua): the dock opens
-    -- vanilla's own tailoring choices for the part (which fabric, patch every
-    -- hole, remove one patch or all), in the ZeD list under the dock. The
+    -- The dock opens vanilla's own tailoring choices for the part (which
+    -- fabric, patch every hole, remove one patch or all), in the ZeD list
+    -- under the dock (ZeD.Garment.tailorMenu, Overrides/Garment.lua). The
     -- one-press repair below stays as the fallback.
     if ZeD.Garment and ZeD.Garment.tailorMenu then
         local x = rect and rect.x or (self:getAbsoluteX() + math.floor(self:getWidth() / 2))
@@ -801,7 +807,8 @@ end
 
 -- The name row opens the same prompt the item menu and the controller use
 -- (ZeD.ItemMenu.rename: vanilla's text box, with its length check). The
--- card's inline text field cannot take typing, so it is no longer started.
+-- card's own inline text field can't take typing, so the card never starts
+-- one; _commitRename and _cancelRename below are what is left of it.
 function ZeD_ItemCard:_startRename()
     if not self.item then return end
     local ren = ZeD.ItemMenu and ZeD.ItemMenu.rename
@@ -830,7 +837,7 @@ function ZeD_ItemCard:_cancelRename()
 end
 
 -- ---------------------------------------------------------------------------
--- PROGRESS BAND CANCEL DISPATCH (S122 Phase B9)
+-- PROGRESS BAND CANCEL DISPATCH
 -- Stops the active TimedAction for self.item via the action ref carried in
 -- the ItemActionManager descriptor. ISBaseTimedAction.forceStop is the
 -- canonical cancellation method; falls back to clearing the player's
@@ -852,8 +859,8 @@ function ZeD_ItemCard:_dispatchProgressCancel()
         -- safe — the user explicitly clicked cancel.
         local p = getSpecificPlayer(self.playerNum or 0)
         if p and ISTimedActionQueue and ISTimedActionQueue.queues then
-            local q = ISTimedActionQueue.getTimedActionQueue(p)  -- S123: queues are keyed by character, not playerNum
-            -- S123: never forceStop queued-but-unstarted actions — vanilla's
+            local q = ISTimedActionQueue.getTimedActionQueue(p)  -- queues are keyed by character, not playerNum
+            -- Never forceStop queued-but-unstarted actions — vanilla's
             -- ISBaseTimedAction:forceStop indexes self.action, which is nil
             -- until start(), and throws. ISTimedActionQueue:clearQueue is the
             -- vanilla-safe way to drop the whole queue.
@@ -866,11 +873,11 @@ function ZeD_ItemCard:_dispatchProgressCancel()
 end
 
 -- ---------------------------------------------------------------------------
--- HEADER VERB DISPATCH (S121 Phase B8)
--- Maps the v15 back-bar verb label to the corresponding vanilla
--- ISInventoryPaneContextMenu handler, then re-fires updateDrawer so the card
--- closes / re-opens correctly when item state changes (equip → unequip flips
--- sourceContext → cluster shifts).
+-- HEADER VERB DISPATCH
+-- Maps a back-bar verb id to the matching vanilla ISInventoryPaneContextMenu
+-- handler. After a verb lands and the item's state changes (equip → the
+-- item is now worn), the verb cluster follows on the next render through
+-- _effectiveContext below.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_dispatchHeaderVerb(label)
     local item = self.item
@@ -884,10 +891,11 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
     if not item:getContainer() then return end
 
     -- Vanilla helpers expect an array of items (they run getActualItems on it
-    -- to unpack stacks). Every name below was verified against the Oct 6 2026
-    -- stable sources (S123). The pre-S123 names (onWear, onEquipPrimary,
-    -- onEquipWeapon, OnReadBook, OnRead) never existed in stable, so the
-    -- `if CM.x then` guards turned EQUIP and READ into silent no-ops.
+    -- to unpack stacks). Every CM name below is verified against vanilla's
+    -- own Lua (B42 stable). Plausible-looking names (onWear, onEquipPrimary,
+    -- onEquipWeapon, OnReadBook, OnRead) do not exist there, and behind the
+    -- `if CM.x then` guards a wrong name turns EQUIP or READ into a silent
+    -- no-op - so verify, never guess.
     local items = {item}
     local CM = ISInventoryPaneContextMenu
 
@@ -953,7 +961,7 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         if ISInventoryPane and ISInventoryPane.doContextualDblClick then
             ISInventoryPane.doContextualDblClick(stub, item)
         end
-    -- Oct 19 2026 (the single-path audit): verbs only the context menu had
+    -- the verbs vanilla keeps in the context menu only
     elseif label == "DRINK" then
         if CM.onDrinkFluid then CM.onDrinkFluid(item, 1, player, nil, item) end
     elseif label == "WEAR" then
@@ -976,13 +984,13 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
 end
 
 -- ---------------------------------------------------------------------------
--- LIVE SOURCE CONTEXT (S123)
+-- LIVE SOURCE CONTEXT
 -- The window stamps self.sourceContext once, at selection time. After a verb
--- fires (EQUIP → item now worn; TAKE → item now in the backpack) the stamp is
--- stale, so the verb cluster kept showing the verb that was just used until
--- the user re-selected the row. This re-derives the context from the item's
--- actual state each render. The stored stamp is only the fallback for items
--- whose state can't be read (world items with no container, nil item).
+-- fires (EQUIP → item now worn; TAKE → item now in the backpack) that stamp
+-- is stale and the cluster would keep offering the verb just used, so the
+-- context is re-derived from the item's actual state each render. The stored
+-- stamp is only the fallback for items whose state can't be read (world
+-- items with no container, nil item).
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_effectiveContext()
     local ctx  = self.sourceContext or "inventory"
@@ -1010,14 +1018,15 @@ function ZeD_ItemCard:_effectiveContext()
 end
 
 -- ---------------------------------------------------------------------------
--- FOLD STATE: per-type disclosure toggles, persisted via player modData
+-- FOLD STATE: the disclosure toggles, persisted per disclosure key in player
+-- modData - one setting for all items, not one per item.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_loadFoldStates()
     local player = getSpecificPlayer(self.playerNum)
     if not player then self._foldStates = {}; return end
     local md = player:getModData()
     -- Detail zones default OPEN on first encounter — the drawer card IS the
-    -- inspector (per design: no separate inspect window). Once the user toggles,
+    -- inspector (there is no separate inspect window). Once the user toggles,
     -- their preference persists via modData.
     local function foldDefault(key, def)
         local v = md["ZeD_fold_" .. key]
@@ -1042,8 +1051,8 @@ function ZeD_ItemCard:_toggleFold(key)
     -- Clamp scroll if body shrank. A drawer card (every card the windows make)
     -- measures its body as renderBody draws it (_contentH, the view under the
     -- head and above the care verbs' band, as prerender clamps it); the old
-    -- layout's _calcBodyH is shorter and cut the scroll back on every fold
-    -- (Nov 8 2026, code flags). renderBody stamps the new height next frame and
+    -- layout's _calcBodyH is shorter and cut the scroll back on every fold.
+    -- renderBody stamps the new height next frame and
     -- prerender clamps to it.
     local bodyH, viewH
     if self.mode == "drawer" then
@@ -1070,7 +1079,9 @@ function ZeD_ItemCard:_getPrimaryBar(item)
 end
 
 -- ---------------------------------------------------------------------------
--- HEIGHT CALCULATIONS: sticky head + scrollable body
+-- HEIGHT CALCULATIONS: sticky head + scrollable body. These sum the old
+-- card layout: prerender uses them only outside drawer mode (every card is
+-- made in drawer mode), and _toggleFold still clamps scroll with them.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_calcHeadH()
     if not self.item then return 0 end
@@ -1204,10 +1215,10 @@ end
 
 -- ---------------------------------------------------------------------------
 -- THE POINTER: action strip interaction (toggle buttons + verb buttons, both modes)
--- These controls poll the raw mouse. The engine runs update() only every 100 ms
--- (42.22), so a click that fell between two updates did nothing (Oct 30 2026, the
--- director: "clicking back on an item card does nothing"): they are polled at the
--- end of every frame drawn (render), against the rects that frame stamped.
+-- These controls poll the raw mouse. The engine runs update() only every
+-- 100 ms (42.22), so a click can fall between two updates and land on
+-- nothing: they are polled at the end of every frame drawn (render),
+-- against the rects that frame stamped.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:update()
     ISPanel.update(self)
@@ -1216,10 +1227,11 @@ end
 function ZeD_ItemCard:_pointer()
     if not self.item then return end
 
-    -- S121 (Phase B8): back-bar click dispatch. _backBarRects is stamped by
-    -- renderBody each frame: .back = back-arrow rect, .verbs[i] = header
-    -- verb rects (right-aligned, drawn right-to-left so [1] is leftmost
-    -- after primary). Verb labels come from ZeD.ItemCard.headerVerbsForContext.
+    -- Back-bar click dispatch. _backBarRects is stamped by renderBody each
+    -- frame: .back = the back key's rect (the card's X), .verbs[i] matches
+    -- headerVerbs[i] (the cluster is right-aligned: the last entry, MORE,
+    -- sits at the right edge; the primary leftmost of the cluster). Verb
+    -- labels come from ZeD.ItemCard.headerVerbsForContext.
     do
         local mxAbs   = getMouseX()
         local myAbs   = getMouseY()
@@ -1234,7 +1246,7 @@ function ZeD_ItemCard:_pointer()
                and myAbs >= ry and myAbs < ry + r.h
         end
 
-        -- Back arrow → onBackClick callback installed by parent surface
+        -- The back key (the card's X) → onBackClick, installed by the host surface
         if rects and rects.back then
             local inBack = inAbsRect(rects.back)
             if self._backWasDown and not downAbs and inBack and self.onBackClick then
@@ -1309,7 +1321,7 @@ function ZeD_ItemCard:_pointer()
     self.verbHover    = newVerbHover
     self.verbWasDown  = down and (newVerbHover ~= nil)
 
-    -- The mark strip's Lists button (loadouts B3): released on it, the lists' pop-up
+    -- The mark strip's Lists button: released on it, the lists' pop-up
     do
         local r = self._listsRect
         local inL = r and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h or false
@@ -1356,7 +1368,7 @@ function ZeD_ItemCard:_pointer()
     end
     self._foldWasDown = down
 
-    -- Zone dock click detection (clothing disclosure, repair/pad buttons)
+    -- Zone dock click detection (clothing disclosure: the repair / remove-patch docks)
     for _, rect in ipairs(self._zoneDockRects) do
         local absRectY = rect.y
         if absRectY + rect.h > bodyTop and absRectY < bodyBot then
@@ -1369,7 +1381,7 @@ function ZeD_ItemCard:_pointer()
     end
     self._zoneDockWasDown = down
 
-    -- The recipes it makes (punch list 109): released on a row, that recipe in the Craft tab
+    -- The recipes it makes: released on a row, that recipe in the Craft tab
     do
         local hit = nil
         for _, r in ipairs(self._makeRects or {}) do
@@ -1409,22 +1421,22 @@ function ZeD_ItemCard:prerender()
     self.colGap = ZeD.T.sp.sm
     self.iconSz = ZeD.T.cardIconSz
 
-    -- S121: in drawer mode, the card always fills its parent (the itemDrawer
-    -- panel sized to win body). renderBody stamps `self._headH` and
-    -- `self._contentH` based on actual v15 chrome + body composition; the
-    -- scrollbar is configured against THOSE values one frame later. Legacy
-    -- _calcHeadH / _calcBodyH (pre-S121 ItemCard layout assumptions) is
-    -- skipped here — calling it would shrink the card to the OLD layout's
-    -- content height and clip Defense Facts + lower zone groups.
+    -- In drawer mode the card always fills its parent (the itemDrawer panel
+    -- sized to the window body). renderBody stamps `self._headH` and
+    -- `self._contentH` from the real chrome + body composition; the
+    -- scrollbar is configured against THOSE values one frame later. The
+    -- legacy _calcHeadH / _calcBodyH sums are skipped here — they describe
+    -- the old card layout, and would shrink the card to the old content
+    -- height and clip Defense Facts + lower zone groups.
     if self.item then
         if self.mode == "drawer" and self.parent then
             -- _fillH: a host that keeps a strip under the card (the Equip tab's layer strip)
             local parentH = self._fillH or self.parent:getHeight()
             if self.height ~= parentH then self:setHeight(parentH) end
         else
-            -- Inspect / non-drawer mode: rough sizing via legacy calc still
-            -- works since prerender runs before render and the legacy values
-            -- are within ballpark of the new layout for non-clothing items.
+            -- Non-drawer mode (no card uses it): rough sizing from the legacy
+            -- sums, which run before render and land within ballpark of the
+            -- real layout for non-clothing items.
             self._headH = self:_calcHeadH()
             local bodyContentH = self:_calcBodyH()
             self._contentH = bodyContentH
@@ -1491,9 +1503,9 @@ local function buildZoneConfigs(item)
     local zones  = getClothingZones(item)
     local cfgs   = {}
     for _, zone in ipairs(zones) do
-        -- Pristine + clean zones get NO dock — drawZoneRow will collapse the
-        -- bottom row entirely (no "OK" filler row). Only build a dock when there
-        -- IS something to communicate (TORN/WORN flag or active patch).
+        -- Pristine + clean zones get NO dock entry — their row shows "-" in
+        -- the flag column and a greyed dock cell. Only build a dock when
+        -- there IS something to communicate (TORN/WORN flag or active patch).
         local dock = nil
         if zone.condIconKey or zone.flagText then
             local dockFlag  = zone.flagText or "-"
@@ -1513,7 +1525,7 @@ local function buildZoneConfigs(item)
             soiledCfg = { blood = math.floor(zone.bloodPct * 100) }
         end
         -- Action key derived from condIconKey so render-time dispatch + greying
-        -- doesn't have to re-walk getClothingZones (avoids double Q119 pcall log).
+        -- doesn't have to re-walk getClothingZones (and double its pcall cost).
         local actionKey = nil
         if     zone.condIconKey == "fashion-004-needle" then actionKey = "repair"
         elseif zone.condIconKey == "sewing--pliers"     then actionKey = "remove-patch"
@@ -1533,10 +1545,9 @@ function ZeD_ItemCard:render()
     local T = ZeD.T
     if not self.item then return end
     if self:getWidth() < T.px(80) then return end
-    -- S121: delegate body composition to ItemCardOrganism (renderBody method).
-    -- The new organism handles back-bar, flag strip, progress band, body
-    -- (clothing zones / facts dispatch), and maintenance verb strip per
-    -- v13/v15/v16 spec. Scrollbar paint stays here so it overlays.
+    -- Body composition is ItemCardOrganism's (renderBody): back-bar, name
+    -- row, flag strip, progress band, body (clothing zones / facts dispatch)
+    -- and the care verbs' band. Scrollbar paint stays here so it overlays.
     self:renderBody({sourceContext = self:_effectiveContext()})
     if self._sb and self._sb.visible then self._sb:draw(self) end
     self:_pointer()   -- (every frame drawn: update() runs only every 100 ms)
@@ -1581,27 +1592,29 @@ function ZeD_ItemCard:calcHeight()
 end
 
 -- ---------------------------------------------------------------------------
--- GAMEPAD RING API (S99)
--- Exposes action strip buttons as focusable elements + disclosure scroll.
--- Window reads these into w._focusRing[charItemCard].elements each frame.
--- Rects come from the previous frame's render (toggleRects / verbRects);
--- bounds are at most 1 frame stale, acceptable for cone nav.
+-- GAMEPAD RING API
+-- Exposes the card's buttons as focusable elements + disclosure scroll.
+-- The window reads these into its focus ring each frame. Rects come from
+-- the previous frame's render (toggleRects / verbRects); bounds are at most
+-- 1 frame stale, acceptable for cone nav.
 -- ---------------------------------------------------------------------------
 
--- Return focusable elements for the card's action strip, left-to-right:
--- FAV, PROTECT, UNWANTED, then verbs (repair_all/pad_all/repair/sharpen/etc.).
--- Element 1 (FAV) is the default landing per design.
+-- Return the card's focusable elements, in order: the progress band's
+-- Cancel (while an action runs), the header verbs (the primary is where the
+-- controller lands), the name row, the folded row and its greyed verbs, the
+-- mark chips (FAV / PROTECT / UNWANTED), the Lists mark, then the care verbs.
 function ZeD_ItemCard:getActionStripElements()
     if not self.item then return {} end
     local els  = {}
     local item = self.item
     local card = self
 
-    -- S122 (B9): Progress Band cancel as a leading focusable. Only present
-    -- when an action is active (Manager.getActiveAction != nil). Lands as
-    -- the first ring element when armed so X press hits it without ring nav.
-    -- Every rect here is ABSOLUTE, like toggleRects / verbRects / the zone
-    -- docks; the window converts them to drawer-local.
+    -- Progress Band cancel as a leading focusable. Only present
+    -- when an action is active (Manager.getActiveAction != nil); it heads the
+    -- list, and A on it cancels (a move into the card still lands on the
+    -- primary verb, Focus.landOnPrimary). Every rect here is ABSOLUTE, like
+    -- toggleRects / verbRects / the zone docks; the window converts them to
+    -- drawer-local.
     if self._cancelRect and ZeD.ItemActionManager
        and ZeD.ItemActionManager.getActiveAction
        and ZeD.ItemActionManager.getActiveAction(item) then
@@ -1616,8 +1629,8 @@ function ZeD_ItemCard:getActionStripElements()
     end
 
     -- Header verbs (Eat / Wear / Drop ...): the card's main actions. Back-bar
-    -- rects are card-local (update() adds the origin), so lift them here.
-    -- Oct 23 2026: they are the card's action strip (isStrip); the card's
+    -- rects are card-local (the pointer poll adds the origin), so lift them here.
+    -- They are the card's action strip (isStrip); the card's
     -- main button (the CTA: Eat, Take, Wear...) is isPrimary, where the
     -- controller lands when the card opens (else the first of them).
     local hb = self._backBarRects
@@ -1644,7 +1657,7 @@ function ZeD_ItemCard:getActionStripElements()
     end
 
     -- The name row: A renames through the prompt (the controller keyboard
-    -- types into its field; the card's inline field is mouse and keys only)
+    -- types into its field; the card's own inline field is never used)
     local nr = self._nameRowRect
     if nr and nr.x and not self._renaming and ZeD.ItemMenu and ZeD.ItemMenu.rename then
         local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -1735,8 +1748,8 @@ function ZeD_ItemCard:getActionStripElements()
     return els
 end
 
--- Oct 23 2026 (director: "it is difficult navigate up to the strip"): the
--- card's D-pad, shared by both windows' card zones (zoneName). Up from any
+-- The card's D-pad, shared by both windows' card zones (zoneName). The strip
+-- must be easy to get back to, so Up from any
 -- control in the card goes straight to the action strip, onto its primary
 -- button; on the strip, Up scrolls the card back up by a section. Down goes
 -- to the next control below in the card; past the last one it scrolls the
@@ -1764,8 +1777,8 @@ function ZeD_ItemCard:gpDpad(w, e, dir, zoneName)
 end
 
 -- Return focusable elements for the clothing detail zone's structural docks.
--- One element per zone whose dock is actionable (TORN with materials, or PATCHED
--- with needle). Greyed/pristine zones are skipped — they're not in _zoneDockRects.
+-- One element per zone whose dock is actionable (a hole to repair, or a patch
+-- to remove). Greyed/pristine zones are skipped — they're not in _zoneDockRects.
 -- Element id is "dock_<zoneIdx>" matching the render-side stamping.
 function ZeD_ItemCard:getZoneDockElements()
     if not self.item then return {} end
@@ -1782,7 +1795,7 @@ function ZeD_ItemCard:getZoneDockElements()
             onActivate = function() card:_onZonePress(zIdx, zone, rect) end,
         }
     end
-    -- the recipes it makes (punch list 109): A opens the recipe, as a press does. Only the rows inside the body
+    -- the recipes it makes: A opens the recipe, as a press does. Only the rows inside the body
     -- (drawMakes stamps inView): one scrolled out of sight is no stop, so Down scrolls the card on (gpDpad) and
     -- the next rows join as they come into view.
     for _, rect in ipairs(self._makeRects or {}) do
@@ -1798,10 +1811,10 @@ function ZeD_ItemCard:getZoneDockElements()
 end
 
 --- The focus mark's opts for the card's element `id` when the controller is on
--- it: this card's window has the focus, the controller is in use
--- (Focus.liveZone), the focus is in the card's zone and on that element.
--- Both windows have a card (charItemCard / worldItemCard); the Equip tab's
--- lives in charTabContent (self._gpZone). Else nil.
+--- it: this card's window has the focus, the controller is in use
+--- (Focus.liveZone), the focus is in the card's zone and on that element.
+--- Both windows have a card (charItemCard / worldItemCard); the Equip tab's
+--- lives in charTabContent (self._gpZone). Else nil.
 local _cardFocus = {}
 function ZeD_ItemCard:focusFor(id)
     if id == nil then return nil end
@@ -1825,7 +1838,7 @@ function ZeD_ItemCard:focusFor(id)
 end
 
 --- The mark strip's Lists button: the loadouts and outfits by name, with checkboxes
--- (ZeD_ListsMenu.lua), dropped from the button's lower left
+--- (ZeD_ListsMenu.lua), dropped from the button's lower left
 function ZeD_ItemCard:openListsPopup()
     local r = self._listsRect
     local LU = ZeD.ListsUI
@@ -1834,7 +1847,7 @@ function ZeD_ItemCard:openListsPopup()
     LU.openPopup(self.playerNum or 0, self.item, r.x - ZeD.T.px(4), r.y + r.h + ZeD.T.px(4))
 end
 
---- Open or fold the card's folded row (remembered per item type for the session)
+--- Open or fold the card's folded row (remembered per item category for the session)
 function ZeD_ItemCard:_toggleMoreRow()
     self._model = nil   -- the card's model is built again on the next frame
     if self._moreKey and ZeD.Disclose then ZeD.Disclose.toggle(self._moreKey) end
@@ -1843,8 +1856,8 @@ end
 -- Return disclosure-header content-Y positions (section header top edges),
 -- in render order. "Content-Y" = panel-local Y with _scrollPixels removed, so
 -- scrollTo math is independent of current scroll position.
--- Empty list for items without disclosures (weapons, food with no nutrition,
--- non-clothing non-food categories).
+-- Empty list for items without disclosures: everything but clothing, since
+-- only the clothing body stamps fold rects (its zones, and its facts at 220w).
 function ZeD_ItemCard:getDisclosureYs()
     local ys = {}
     local ay = self:getAbsoluteY()
@@ -1854,7 +1867,7 @@ function ZeD_ItemCard:getDisclosureYs()
         local contentY = panelY + scrollOff
         ys[#ys + 1] = contentY
     end
-    -- the "Used to make" section's title (punch list 109; absolute, stamped by drawMakes)
+    -- the "Used to make" section's title (absolute, stamped by drawMakes)
     if self._makesSecY then ys[#ys + 1] = self._makesSecY - ay + scrollOff end
     table.sort(ys)
     return ys
@@ -1914,10 +1927,10 @@ end
 
 -- ===========================================================================
 -- PUBLIC NAMESPACE: ZeD.ItemDetail
--- Shared by ZeD_ItemCard (drawer card for inv items) AND EquipmentTab
--- (selected-item view for equipped items). Equipment drawer IS the inspector
--- per design — no separate inspect window. Both render sites consume the same
--- detail-zone primitives.
+-- Shared by ZeD_ItemCard (drawer card for inv items) AND the Equip tab
+-- (selected-item view for equipped items). The equipment drawer IS the
+-- inspector — there is no separate inspect window. Both render sites consume
+-- the same detail-zone primitives.
 -- ===========================================================================
 ZeD                = ZeD or {}
 ZeD.ItemDetail = ZeD.ItemDetail or {}
@@ -1929,7 +1942,8 @@ ZeD.ItemDetail.drawSoilRow     = drawItemSoilRow
 ZeD.ItemDetail.findMaterials   = findClothingMaterials
 
 -- One-call repair / remove-patch dispatch for a given item + part. Mirrors
--- ZeD_ItemCard:_onZonePress logic so EquipmentTab gets identical behavior.
+-- the one-press fallback of ZeD_ItemCard:_onZonePress so the Equip tab gets
+-- the same behavior.
 function ZeD.ItemDetail.dispatchZoneAction(player, item, part, action)
     if not (player and item and part) then return end
     if action == "repair" then

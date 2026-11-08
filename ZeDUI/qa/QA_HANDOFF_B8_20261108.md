@@ -7,7 +7,7 @@ Each piece has its own in-game checklist (what to open, how, what should show, 4
 | Piece | Checklist |
 |---|---|
 | The guide's copyright page, 32 new third-size ads (director-approved) | the guide sims; look at the book's first spread and the ads |
-| Multiplayer rules hold: timed bans as the game's ban, join rules gate and kick, host helper (RCON), the game's unban wins, offline voice mute | ZeDUI/MP_SERVER_PART_DESIGN.md, E21-E27; ZeDUI/server_helper/README.md |
+| Multiplayer rules hold: timed bans as the game's ban, join rules gate and kick, host helper (RCON), the game's unban wins, offline voice mute | docs/specs/MP_SERVER_PART_DESIGN.md, E21-E27; ZeDUI/server_helper/README.md |
 | Outside review fixes: card band, Craft check, dash km/h, sandbox preset, name prompts, Options Find, offline Mute, whisper | ZeDUI/qa/REVIEW_BETA7_EXTERNAL_20261107.md items |
 | Respawn to the desk | CHECK_respawn_20261107.md |
 | TV and radio, animal info, check zone | CHECK_world_devices_20261107.md |

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_StatsCards.lua
 -- ============================================================================
--- A PLAYER'S STATS AND INVENTORY IN CARDS (ZeDUI/VANILLA_WINDOWS_20261107.md, C6 and C7; the director, Nov 7 2026: every
--- admin tool becomes a ZeD card). Two cards on the ticket cards' engine (ZeD_TicketCards.lua), in the Admin tab:
+-- A PLAYER'S STATS AND INVENTORY IN CARDS - client. The game's two windows become two card kinds on the ticket cards'
+-- engine (ZeD_TicketCards.lua), in the Admin tab:
 --   pstats  the game's Player Stats window (ISPlayerStatsUI) and its pop-ups: names, profession, weight, role, traits,
 --           skills and XP, warning points, the user logs, and Manage Inventory. Another player's or your own.
 --   pinv    the game's Manage Inventory (ISPlayerStatsManageInvUI): their things as the server sends them, Remove and
@@ -20,10 +20,10 @@
 -- The game's IsoPlayer is read into a plain table once a second (SC.read); the card draws that table. A player this client
 -- has not loaded has no stats to show, as the game's window cannot open on them: the card says so and keeps the logs.
 --
--- QA: SC.qaChar (username -> a stub player), SC.qaView (username -> a read, as SC.read makes it), SC.qaLists (prof, role, good,
--- bad: the pick lists), SC.qaInv (username ->
--- the server's item table, standing in for its answer), SC.qaOpen(win, st, kind, user), SC.qaPart(win, st, part, which).
--- ZeDUI/tools/qa/admin_cards_sim.lua walks both cards.
+-- For the test scripts: SC.qaChar (username -> a stub player), SC.qaView (username -> a read, as SC.read makes it),
+-- SC.qaLists (prof, role, good, bad: the pick lists), SC.qaInv (username -> the server's item table, standing in for its
+-- answer), SC.qaOpen(win, st, kind, user), SC.qaPart(win, st, part, which). ZeDUI/tools/qa/admin_cards_sim.lua walks
+-- both cards.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -51,7 +51,7 @@ local NAME_MAX = 40
 local WARN_MAX = 99
 local EDIT_CAP = "CanModifyPlayerStatsInThePlayerStatsUI"
 
-local Y = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk)
+local Y = {}     -- the file's helpers (a table rather than locals: Kahlua caps how many locals one chunk may hold)
 SC._Y = Y
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
@@ -293,6 +293,7 @@ end
 -- ---------------------------------------------------------------------------
 -- OPENING
 -- ---------------------------------------------------------------------------
+--- open the stats card on a user in the Admin tab's window (from: the focus to land on when the card closes)
 function SC.openStats(win, st, user, from)
     for _, k in ipairs({ "sname", "sweight", "sxp", "sreason", "slog", "spfind" }) do D.setField(win, k, "") end
     F.push(win, st, { kind = "pstats", user = user, from = from or "adm:tk:p:" .. tostring(user), good = true, page = 1, xpMult = true, warnN = 1 })
@@ -930,6 +931,7 @@ function SC.onItems(itemtable)
     M.bump()
 end
 
+--- open the inventory card on a user and ask the server for their things (oid: their online ID, when known)
 function SC.openInv(win, st, user, oid, from)
     local card = { kind = "pinv", user = user, from = from or "tk:inv" }
     card.id = SC.onlineId(user, oid)
@@ -1168,6 +1170,7 @@ function SC.hookWorld()
     end
 end
 
+-- wired once (a reload keeps SC, and the handlers call through it, so they pick up the new code)
 if not SC.wired then
     SC.wired = true
     if Events and Events.MngInvReceiveItems then Events.MngInvReceiveItems.Add(function(t) SC.onItems(t) end) end
@@ -1175,7 +1178,7 @@ if not SC.wired then
 end
 
 -- ---------------------------------------------------------------------------
--- QA
+-- TEST HOOKS (for the test scripts: open a card or a part straight away)
 -- ---------------------------------------------------------------------------
 function SC.qaOpen(win, st, kind, user)
     if kind == "pinv" then SC.openInv(win, st, user, nil, "tk:inv") else SC.openStats(win, st, user, "adm:tk:p:" .. tostring(user)) end

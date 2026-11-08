@@ -33,22 +33,30 @@
 -- The accented letters are written as character codes so the file does not depend on
 -- how the game reads its encoding. Every one is in Latin-1 or Latin Extended-A, which the
 -- ZeD fonts carry. B F M P Q V X have no such form and stay plain.
+--
+-- Shared: this file loads on the client and on a dedicated server alike, so nothing
+-- client-only at file scope. No server code calls it: the server writes its own English
+-- (ZeD_LogProto's Lg.EN). On a server the client's Settings never load, so the test
+-- language stays off there.
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the table instead of wiping it
 ZeD = ZeD or {}
 
 -- the English fallbacks (kept on ZeD so a reload of this file keeps them)
 local defaults = ZeD._trDefaults or {}
 ZeD._trDefaults = defaults
 
--- Stored the way the game hands a template back (see lookup, below): a literal percent sign is
--- written "%%" in UI.json, as in vanilla's files, and kept here as a single "%".
+--- registers the English fallback for key. Stored the way the game hands a template back (see
+--- lookup, below): a literal percent sign is written "%%" in UI.json, as in vanilla's files, and
+--- kept here as a single "%".
 function ZeD.trDefault(key, text)
     if key ~= nil and text ~= nil then
         defaults[tostring(key)] = (tostring(text):gsub("%%%%", "%%"))
     end
 end
 
+--- the same for several keys at once: { key = text, ... }
 function ZeD.trDefaults(tbl)
     if type(tbl) ~= "table" then return end
     for k, v in pairs(tbl) do ZeD.trDefault(k, v) end
@@ -73,8 +81,10 @@ end
 
 local checkLanguage = nil   -- (set below, with the template cache it clears)
 
+-- true while the test language is on (ZeD.trTestOn). The option is read at most every READ_MS,
+-- and the game's language is checked at the same pace
 local function testOn()
-    if not getTimestampMs then return false end   -- no clock: a server, never the test language
+    if not getTimestampMs then return false end   -- no game clock to pace the reads: never the test language
     local now = getTimestampMs()
     if now >= st.nextRead then
         st.nextRead = now + READ_MS
@@ -114,6 +124,7 @@ local function keepAt(s, i)
     return nil
 end
 
+-- what the test language makes of a phrase (ZeD.trStretch): about 40% longer, accented, in brackets
 local function stretch(s)
     local hit = cache[s]
     if hit then return hit end
@@ -306,13 +317,13 @@ local function turkicNow()
     return name == "TR" or name == "AZ"
 end
 
--- ZeD's machine-translated languages (the director, Nov 2 2026, punch list 62): AI drafts that ship in the mod and
--- are labelled as machine translations in the language list until players have checked them. Keyed by the game's
--- language code (Translate/<code>/). A language leaves this list once a player-checked version replaces its draft.
+-- ZeD's machine-translated languages: drafts that ship in the mod and are labelled as machine translations in the
+-- language list until players have checked them. Keyed by the game's language code (Translate/<code>/). A language
+-- leaves this list once a player-checked version replaces its draft.
 ZeD.MACHINE_LANGS = ZeD.MACHINE_LANGS or { TR = true, CN = true, PTBR = true, PT = true, CH = true, KO = true, JP = true, RU = true, ES = true, UA = true, TH = true, ES_CL = true, FR = true, AR = true, ES_MX = true, IT = true, DE = true, CA = true, NL = true, DA = true, NO = true, ID = true, PL = true, FI = true, CS = true, RO = true, HU = true }
 
--- true when a language's display name (as the game's language list shows it) is one of ZeD's machine drafts
-local _mtText = nil
+local _mtText = nil   -- display names of the machine drafts, read once from the game's list
+--- true when a language's display name (as the game's language list shows it) is one of ZeD's machine drafts
 function ZeD.isMachineLangText(text)
     if not _mtText then
         _mtText = {}
@@ -327,6 +338,7 @@ function ZeD.isMachineLangText(text)
     return _mtText[text] == true
 end
 
+--- s in capitals, for every language, by the rules in the section head above; nil gives ""
 function ZeD.upper(s)
     if s == nil then return "" end
     if type(s) ~= "string" then s = tostring(s) end
@@ -401,13 +413,15 @@ local function fill(s, a1, a2, a3, a4)
     return out
 end
 
--- The phrases asked for with up to two text arguments are kept (Oct 22 2026, the drawing-cost
--- work: the windows ask for the same column heads, counts and tags every frame), until the
--- language or the test language changes, or TRM_MAX are kept. A missing key is never kept (its
--- English default may be registered later).
+-- The phrases asked for with up to two text arguments are kept, because the windows ask for the
+-- same column heads, counts and tags every frame: kept until the language or the test language
+-- changes, or TRM_MAX are kept. A missing key is never kept (its English default may be
+-- registered later).
 local TRM_MAX = 4000
 local SEP, NILA = string.char(1), string.char(2)
 local trm, trmN, trmGen, trmOn = {}, 0, nil, nil
+--- the text for key in the player's language, %1..%4 filled from the arguments; the English
+--- registered with ZeD.trDefault when the files lack the key, and failing that the key itself
 function ZeD.tr(key, ...)
     if key == nil then return "" end
     key = tostring(key)
@@ -461,6 +475,7 @@ local function bareEnd(s)
     return out
 end
 
+--- ZeD.tr without the punctuation the game ends a label or message with (see above)
 function ZeD.trBare(key, ...)
     if key == nil then return "" end
     key = tostring(key)
@@ -476,9 +491,9 @@ function ZeD.trBare(key, ...)
     return fill(raw, a1, a2, a3, a4)
 end
 
--- ZeD.trPlain(key, a, b, c, d): the translation exactly as ZeD.tr gives it, but never
--- stretched by the test language. For text that sits in a fixed-size cell by design
--- (the watch's LCD day cell, say), where stretching would only test the wrong thing.
+--- ZeD.trPlain(key, a, b, c, d): the translation exactly as ZeD.tr gives it, but never
+--- stretched by the test language. For text that sits in a fixed-size cell by design
+--- (the watch's LCD day cell, say), where stretching would only test the wrong thing.
 function ZeD.trPlain(key, ...)
     if key == nil then return "" end
     key = tostring(key)
@@ -492,9 +507,9 @@ function ZeD.trPlain(key, ...)
     return fill(raw, a1, a2, a3, a4)
 end
 
--- ZeD.trEnglish(key, a, b, c, d): the English ZeD.trDefault registered for key, whatever
--- the player's language (the key itself when none is registered). For things that were
--- printed in English on the real hardware, such as an LCD watch's day names.
+--- ZeD.trEnglish(key, a, b, c, d): the English ZeD.trDefault registered for key, whatever
+--- the player's language (the key itself when none is registered). For things that were
+--- printed in English on the real hardware, such as an LCD watch's day names.
 function ZeD.trEnglish(key, ...)
     if key == nil then return "" end
     key = tostring(key)

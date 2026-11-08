@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModReset.lua
 -- ============================================================================
--- A MOD'S SETTINGS BACK TO ITS DEFAULTS (director, Oct 25 2026: "add a setting in
--- the mod manager to reset each mods settings (ini, settings....) to default";
--- design delegated)
+-- A MOD'S SETTINGS BACK TO ITS DEFAULTS: the mod manager's Reset. Client-side;
+-- no drawing (the Mods screen calls R.find / R.plan / R.reset below).
 --
 -- What a mod keeps as the player's settings, and where:
 --   * its PZAPI options: ModOptions.ini, one file for every mod. Reset puts its

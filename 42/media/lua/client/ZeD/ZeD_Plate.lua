@@ -1,9 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Plate.lua
 -- ============================================================================
--- PLATE — the template every pixel-art machine in ZeD draws with: the vehicle
--- dashboards, the ovens and microwaves (the Craft tab), the generators and the
--- propane grill (the object cards), and the car radios and the siren
--- controller up close (director, Oct 16 2026: one shared plate template).
+-- PLATE — the one template every pixel-art machine in ZeD draws with: the
+-- vehicle dashboards, the ovens, microwaves and fryer (the Craft tab), the
+-- generators and the propane grill (the object cards), the car radios and the
+-- siren controller up close, the two-way and ordinary radios, the CD player,
+-- the TVs, the laundry machines and the watches. Client; a molecule built on
+-- ZeD_PixelParts, with no state of its own beyond small per-part caches.
 --
 -- A plate is one fixed-size picture (ZeDUI/tools paints it as a lit height
 -- field: one plate pixel = one screen pixel at 1080p, a whole multiple k above,
@@ -76,7 +78,7 @@ local PL = ZeD.Plate
 local P = ZeD.Px
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
@@ -94,9 +96,9 @@ end
 PL.frac = frac
 
 -- ---------------------------------------------------------------------------
--- the night light (the dashboards; director, Oct 21 2026: no gauge is
--- backlit, a few small incandescent bulbs in the panel's corners and a lamp
--- under the brow light what they can). The art is baked (ZeDUI/tools/dashpx/
+-- the night light (the dashboards): no gauge is backlit; a few small
+-- incandescent bulbs in the panel's corners and a lamp under the brow light
+-- what they can. The art is baked (ZeDUI/tools/dashpx/
 -- night.py); ctx.light carries what the frame needs:
 --   n8      how dark it is at the car, in eighths (0 = day: nothing changes)
 --   lit     the dash lights are on (vanilla's headlight switch, with power)
@@ -110,7 +112,7 @@ PL.frac = frac
 --           cell into tints, a palette of { r, g, b } lists: the colour of the
 --           light in that cell. Without it every cell takes tint.
 --   needleOwn  a needle keeps its own colour and takes only the level (as if
---           light-piped): the director's pick for needles on green gauges
+--           light-piped): the look chosen for needles on green gauges
 --   glass   the backlit LCD glass: { color, r = rects } redrawn while st.power, with the lights on
 -- A part that makes no light (needles, pointers, tabs, the key, badges, the
 -- clock's hands, the radio's face) takes its colour times the multiplier of
@@ -521,8 +523,7 @@ local function inLight(p, st)
 end
 
 -- a moving strip in the dark: a cell's width at a time, each in the light it lies in
--- (neighbouring cells in the same light are drawn as one stretch: the same pixels in the same colours, fewer rects;
--- Oct 22 2026, the drawing-cost work)
+-- (neighbouring cells in the same light are drawn as one stretch: the same pixels in the same colours, fewer rects)
 local function ribbonLit(cv, p, xx, L)
     local c0, c1, c2 = P.color(p.color), P.shade(p.color, 1.25), P.shade(p.color, 0.6)
     local cy = p.y + p.h / 2
@@ -571,6 +572,8 @@ local function badgeFit(p, label, tag)
     return s, font, scale, lx, tx
 end
 
+--- Draw a plate's live parts from state st, in the order the data lists them; ctx is what the organism lends
+--- (the header). PL.draw calls it after the picture.
 function PL.drawParts(cv, parts, st, ctx)
     ctx = ctx or {}
     local L = ctx.light
@@ -640,8 +643,8 @@ function PL.drawParts(cv, parts, st, ctx)
                 P.digits(cv, txt, p.x, p.y, p.cw, p.ch, p.pitch, p.st or 1, P.color(p.color), p.ghost and P.color(p.ghost) or nil, p.align or "r", p.n)
             end
         elseif t == "drums" then
-            -- the odometers (Nov 6 2026, punch list 92): mechanical wheels turn with or without power and sit in the
-            -- light of the print around them; the LCD kind (p.text, the Dash Elite) shows only with the key on
+            -- the odometers: mechanical wheels turn with or without power and sit in the light of the print
+            -- around them; the LCD kind (p.text, the Dash Elite) shows only with the key on
             if st.power or not p.text then P.drums(cv, p, st[p.src], L, dim) end
         elseif t == "ptr" then
             local a
@@ -743,18 +746,19 @@ function PL.drawParts(cv, parts, st, ctx)
     end
 end
 
--- the plate's picture, then its live parts; w, h = the plate's size (des.w, des.h unless given)
 -- A plate's picture loads in the background the first time it is asked for; until then a face would show its lit
--- parts over nothing. The whole face waits for its picture and then appears at once (director, Oct 30 2026, punch
--- list 26). A picture once ready is remembered, so the check costs nothing after the first frames.
+-- parts over nothing. The whole face waits for its picture and then appears at once. A picture once ready is
+-- remembered, so the check costs nothing after the first frames.
 local _ready = {}
 local function texReady(t)
     if _ready[t] then return true end
     local ok, r = pcall(function() return t:isReady() end)
-    if not ok or r then _ready[t] = true; return true end    -- (no isReady on this build: draw as before)
+    if not ok or r then _ready[t] = true; return true end    -- (no isReady on this build: draw at once)
     return false
 end
 
+--- The plate's picture, then its live parts; w, h = the plate's size (des.w, des.h unless given). Returns false,
+--- drawing nothing, while the picture is still loading; true once the face is drawn.
 function PL.draw(cv, des, st, ctx, w, h)
     w, h = w or des.w, h or des.h
     local plate = ctx.tex(des.plate)
@@ -779,8 +783,8 @@ end
 -- ---------------------------------------------------------------------------
 -- click areas
 -- ---------------------------------------------------------------------------
--- the plate's controls in this state (the look-only areas left out): a list of
--- { id, x, y, w, h, kind, enabled } in plate pixels
+--- The plate's controls in this state (the look-only areas left out): a list of
+--- { id, x, y, w, h, kind, enabled } in plate pixels, written into `out` when given.
 function PL.controls(des, st, out)
     out = out or {}
     for _, h in ipairs(des.hits or {}) do
@@ -793,7 +797,7 @@ function PL.controls(des, st, out)
     return out
 end
 
--- the control under a point (plate pixels), the last listed first
+--- The control under a point (plate pixels), the last listed first.
 function PL.at(list, x, y)
     for i = #list, 1, -1 do
         local h = list[i]
@@ -802,16 +806,16 @@ function PL.at(list, x, y)
     return nil
 end
 
--- the control with this id
+--- The control with this id.
 function PL.find(list, id)
     for _, h in ipairs(list or {}) do if h.id == id then return h end end
     return nil
 end
 
--- the cue over a control: a ring round a knob (the knob's own light, which
--- stays), a fill over a key; c = colour, a = alpha. A key's held shade
--- (P.BLACK) is drawn through here too. A key's pointer wash and the
--- controller's focus mark are PL.hoverKey and PL.markKey, not this.
+--- The cue over a control: a ring round a knob (the knob's own light, which
+--- stays), a fill over a key; c = colour, a = alpha. A key's held shade
+--- (P.BLACK) is drawn through here too. A key's pointer wash and the
+--- controller's focus mark are PL.hoverKey and PL.markKey, not this.
 function PL.cue(cv, h, c, a)
     if h.kind == "turn" then
         local r = math.min(h.w, h.h) / 2
@@ -821,24 +825,24 @@ function PL.cue(cv, h, c, a)
     end
 end
 
--- the pointer over a key: the library's hover wash (T.hover). A knob keeps its ring.
+--- The pointer over a key: the library's hover wash (T.hover). A knob keeps its ring.
 function PL.hoverKey(cv, h)
     local hv = ZeD.T.hover
     P.rect(cv, h.x, h.y, h.w, h.h, hv, hv.a or 0.2)
 end
 
--- the controller on a key: the chosen focus look (ZeD.Focus.mark) over the key's rect, in
--- panel pixels (the plate's top-left at (ox, oy), k screen pixels to a plate pixel). Call it
--- after the plate is drawn; the mark's top part comes with the window's overlay pass, or with
--- ZeD.Focus.drawOverlay(panel, panel) at the end of a prop's own render. opts as ZeD.Focus.mark
--- ({ win, focused = true for a prop with a focus model of its own }).
+--- The controller on a key: the chosen focus look (ZeD.Focus.mark) over the key's rect, in
+--- panel pixels (the plate's top-left at (ox, oy), k screen pixels to a plate pixel). Call it
+--- after the plate is drawn; the mark's top part comes with the window's overlay pass, or with
+--- ZeD.Focus.drawOverlay(panel, panel) at the end of a prop's own render. opts as ZeD.Focus.mark
+--- ({ win, focused = true for a prop with a focus model of its own }).
 function PL.markKey(panel, h, ox, oy, k, opts)
     return ZeD.Focus.mark(panel, ox + h.x * k, oy + h.y * k, h.w * k, h.h * k, opts)
 end
 
--- the whole multiple a plate is drawn at for a UI scale, and the screen offset
--- that centres a plate w plate pixels wide in a span of aw screen pixels
+--- The whole multiple a plate is drawn at for a UI scale (ZeD_PixelParts' P.k).
 function PL.k(scale) return P.k(scale) end
+--- The screen offset that centres a plate w plate pixels wide in a span of aw screen pixels.
 function PL.centre(aw, w, k) return math.floor((aw - w * k) / 2) end
 
 return PL

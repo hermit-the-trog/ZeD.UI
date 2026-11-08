@@ -6,8 +6,8 @@ publisher's dry, printed manual sits underneath. On top are his marks: his own p
 paragraphs they replace, his four-colour Bic in the margins, and a sticky note.
 
 How a spread is laid out, and the JSON that describes it: `SPREADS.md`. The director's brief:
-`ZeDUI/HANDOFF_gallery_manual_20261101.md`. Where the set stands, what to retake and what the director still writes:
-`ZeDUI/HANDOFF_gallery_spreads_20261101.md`.
+`docs/handoffs/HANDOFF_gallery_manual_20261101.md`. Where the set stands, what to retake and what the director still writes:
+`docs/handoffs/HANDOFF_gallery_spreads_20261101.md`.
 
 | What | File | Status |
 |---|---|---|

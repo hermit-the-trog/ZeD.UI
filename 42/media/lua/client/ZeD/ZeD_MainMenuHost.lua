@@ -1,13 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuHost.lua
 -- ============================================================================
--- HOST A GAME ON THE MONITOR (HOOK_MAP row 26; director, Oct 14 2026: menus
--- delegated, no mockups)
+-- HOST A GAME ON THE MONITOR: the main menu's co-op host screen. Client; an
+-- organism (a window on the desk, the "host" view, mirroring vanilla's screen).
 --
 -- Vanilla's CoopOptionsScreen launches a co-op server and follows it only
 -- while it is visible, so it stays shown but off the screen (MM.mirror) and
 -- this window drives it: its account name (outside Steam), the server
--- settings to host with (Edit settings opens vanilla's settings editor;
--- its Back returns here), the memory to give the server, the world's upkeep
+-- settings to host with (Edit settings opens the server settings window,
+-- ZeD_MainMenuServer.lua, in place of vanilla's editor; its Back returns
+-- here), the memory to give the server, the world's upkeep
 -- (reset, delete the world, delete the player: each asks in the band), and
 -- Start / Abort. While the server starts: vanilla's status line and its
 -- progress as a framed bar.
@@ -25,7 +26,7 @@ local UI = MM.ui
 local LABEL_W, ROW_H, BOX_W = 170, 40, 300
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
@@ -71,6 +72,7 @@ function ZeD_MMHost:onShow()
     if c then self.account:setText(s(c.accountNameEntry:getText())) end
 end
 
+-- vanilla's screen is waiting (no server starting)
 function ZeD_MMHost:idle()
     local c = coop()
     return c ~= nil and c.uiStatus == "idle"
@@ -118,12 +120,13 @@ function ZeD_MMHost:answer(yes)
     elseif mode == "deletePlayer" then c:onDeletePlayerStep2({ internal = "YES" }, nil) end
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
--- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: each of these loses
+-- work (a reset, a deleted world, a deleted player), so it lands on Cancel, and
+-- the answer that does it needs a deliberate move.
 local SAFE_ANSWER = { reset = "confirm:no", deleteWorld = "confirm:no", deletePlayer = "confirm:no" }
 function ZeD_MMHost:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
@@ -143,6 +146,8 @@ function ZeD_MMHost:problem()
     return nil
 end
 
+-- a vanilla combo box as one of the desk's pop-up menus: the chosen row marked with a guillemet
+-- (string.char(171)), the list opened scrolled to it
 function ZeD_MMHost:openCombo(c, anchor)
     local items = {}
     for i = 1, #(c.options or {}) do
@@ -355,6 +360,7 @@ function ZeD_MMHost:keyEscape()
     return true
 end
 function ZeD_MMHost:keyOther(key)
+    -- (the Return that finished the account name must not also press Start)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     if self.account:isFocused() or self.confirm then return false end
     if key == Keyboard.KEY_RETURN then self:start(); return true end

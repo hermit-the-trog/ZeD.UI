@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/MainMenu.lua
 -- ============================================================================
--- MAIN MENU + PAUSE MENU — HOOK_MAP row 26 (ZeD_MainMenu.lua draws them)
+-- MAIN MENU + PAUSE MENU (override, client; ZeD_MainMenu.lua draws them)
 --
 -- Vanilla's MainScreen keeps running: its items, sub-screens, joypad focus
--- and Escape handling are untouched. The hooks only
+-- and Escape handling are untouched. The originals are captured once in
+-- MainScreen._zedOrig, so a Lua reload never wraps the wrapper. The hooks only
 --   * attach the desk (main menu) or the pause window (in game) when it builds,
 --   * skip the logo while our menu shows (the desk covers the screen; the
 --     pause window stands alone over the dimmed world),
@@ -45,9 +46,9 @@ require "OptionScreens/MainOptions"
 
 -- Another mod's broken setting must not stop the game's options screen from building:
 -- vanilla builds it inside MainScreen:instantiate, so one error there also leaves the
--- main screen half built and the pause menu dead (Oct 24 2026: Change Sandbox Options
--- (by Star) adds a key binding with no key; vanilla's getKeyName(nil) threw in
--- addModOptionsPanel, on the stack under Project A-Life's addPanels).
+-- main screen half built and the pause menu dead (seen in the wild: the Change
+-- Sandbox Options mod adds a key binding with no key; vanilla's getKeyName(nil)
+-- threw in addModOptionsPanel, on the stack under another mod's addPanels).
 -- A key binding without a usable key becomes "no key" (named in the log), and an error
 -- left on that page is caught there, so the rest of the screens still build.
 do
@@ -77,8 +78,8 @@ local Safe = ZeD.Safe
 -- Vanilla's host screen (built inside MainScreen:instantiate) asks for the colour
 -- "ProgressYellow", which 42.21 does not have. Its warning walks the Lua stack, and
 -- with the instantiate hook below on that stack the engine marks ZeD UI "[ERRORS]"
--- in the pause screen's mod list (KB Q230). That one colour is answered quietly; any
--- other name goes on to vanilla's lookup (a tail call: this frame leaves the stack).
+-- in the pause screen's mod list. That one colour is answered quietly; any other
+-- name goes on to vanilla's lookup (a tail call: this frame leaves the stack).
 local QUIET_COLORS = { ProgressYellow = { r = 0.93, g = 0.76, b = 0.18, a = 1 } }
 _G._zedNamedColor = _G._zedNamedColor or namedColorToTable
 function namedColorToTable(name)
@@ -178,9 +179,9 @@ end
 Safe.register("main menu", { leave = handBack, enter = takeOver })
 
 function MainScreen:instantiate()
-    -- another mod's step in this chain may fail after vanilla's built the screen (Oct 24 2026:
-    -- Change Sandbox Options (by Star) reads a quitToDesktop button 42.21 no longer makes); its
-    -- error must not leave the screen without ZeD's desk or pause window
+    -- another mod's step in this chain may fail after vanilla's built the screen (seen in
+    -- the wild: the Change Sandbox Options mod reads a quitToDesktop button 42.21 no longer
+    -- makes); its error must not leave the screen without ZeD's desk or pause window
     local ok, err = pcall(O.instantiate, self)
     if not ok then print("[ZeD] Main menu: another mod's part of the main screen failed (" .. tostring(err) .. "); ZeD's menu is built anyway") end
     self._zedBottomX = self.bottomPanel and self.bottomPanel:getX()

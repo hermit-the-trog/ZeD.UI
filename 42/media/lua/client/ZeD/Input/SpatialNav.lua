@@ -1,12 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Input/SpatialNav.lua
 -- ============================================================================
--- SPATIAL NAVIGATION — where a D-pad press goes, for every ZeD surface
--- (the in-game windows through FocusManager, the main menu's screens).
---
--- Director, Oct 15 2026: "Controller cone navigation is blocking directions
--- that are logical, like buttons to the right, requires moving down a button
--- then over, then up. Controller navigation freedom of movement in menus is
--- crucial."
+-- SPATIAL NAVIGATION — where a D-pad press goes, picked by geometry alone.
+-- Client. The geometry floor of the controller stack: two pure functions, no
+-- state. FocusManager runs every focused ZeD window's D-pad moves through
+-- them; the main menu screens call N.pick directly, and the item card asks
+-- N.cost whether anything lies below before it scrolls. A strict centre cone
+-- blocked moves that look obvious on screen — a button beside a tall row sat
+-- outside the cone, so reaching it took down, then over, then up. Freedom of
+-- movement wins over geometric purity.
 --
 -- The rule (the one console UIs use): a press goes to the nearest control
 -- LINED UP in that direction (its edges overlap the focused control's across
@@ -29,6 +30,9 @@ local SIDE_WEIGHT = 2      -- a step to the side costs twice a step along the mo
 local CROSS_WEIGHT = 0.05  -- between equals, the one whose centre lines up better
 local LEFT_BIAS = 0.5      -- up / down between equals: the left one (reading order)
 
+--- The cost of moving from rect f to rect t in dir ("up" / "down" / "left" /
+--- "right"). Returns tier, cost: tier 0 = lined up across the move, 1 = off
+--- to the side; lower cost is nearer. Nil when t does not lie that way at all.
 function N.cost(f, t, dir)
     local fcx, fcy = f.x + f.w * 0.5, f.y + f.h * 0.5
     local tcx, tcy = t.x + t.w * 0.5, t.y + t.h * 0.5
@@ -51,13 +55,14 @@ function N.cost(f, t, dir)
     if gap < 0 then gap = 0 end          -- overlapping along the move: as near as can be
     local side = math.max(0, apart)
     -- lined up = a real overlap of 2 px (touching edges are not); compared at
-    -- 1.5 so fractional scaling cannot read 2 px as 1.99 (Oct 23 2026, Large
-    -- text: Left from a bag row skipped the button beside it for the far body)
+    -- 1.5 so fractional scaling cannot read 2 px as 1.99 (with Large text,
+    -- Left from a bag row once skipped the button beside it for the far body)
     local tier = (apart <= -1.5) and 0 or 1
     return tier, gap + side * SIDE_WEIGHT + cross * CROSS_WEIGHT
 end
 
--- the best of `list` from `fromRect` in `dir` (nil when nothing lies that way)
+--- The best of `list` from `fromRect` in `dir`, and its tier (nil when
+--- nothing lies that way). rectOf(entry) gives an entry's rect; nil skips it.
 function N.pick(fromRect, list, dir, rectOf)
     local best, bestTier, bestCost = nil, nil, nil
     for i = 1, #list do

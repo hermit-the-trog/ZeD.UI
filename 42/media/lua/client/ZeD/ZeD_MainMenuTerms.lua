@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuTerms.lua
 -- ============================================================================
--- TERMS OF SERVICE (VANILLA_WINDOWS_20261107.md A4; the director, Nov 7 2026:
--- every vanilla window replaced)
+-- TERMS OF SERVICE: the game's terms window, replaced. Client-side; an
+-- organism.
 --
 -- Vanilla's ISTermsOfServiceUI (the Spiffo judge with four stacked buttons)
 -- as a ZeD window: the game's words in a scrolling box, the answers in the
@@ -75,7 +75,6 @@ function ZeD_MMTerms:pctx() if self.boot then return self.ctx end; return MM.ctx
 function ZeD_MMTerms:onShow()
     self.scroll = 0
     -- the pad lands on View terms of service, as the game's window did: agreeing is never one press away
-    -- (director's call, Nov 7 2026)
     self.focusId = "terms"
 end
 

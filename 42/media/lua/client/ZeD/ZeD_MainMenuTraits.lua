@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuTraits.lua
 -- ============================================================================
--- OCCUPATION AND TRAITS ON THE MONITOR (HOOK_MAP row 26; director, Oct 14
--- 2026: menus delegated, no mockups)
+-- OCCUPATION AND TRAITS ON THE MONITOR: the occupation-and-traits step of
+-- character creation. Client-side; an organism.
 --
 -- A ZeD window in place of vanilla's CharacterCreationProfession. Vanilla's
 -- screen stays built and hidden as the engine: its lists hold the occupations
@@ -209,12 +209,12 @@ function ZeD_MMTraits:deleteBuild()
     self:setConfirm(false)
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { delete = "confirm:no" }
 function ZeD_MMTraits:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
@@ -442,7 +442,7 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h, onFocus)
         self:drawText(tostring(lvl), lvX, midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         local bx = lvX - T.px(8) - barW
         -- the starting level as the System 7 bar: a framed strip (the compact height, in a list row), one segment per
-        -- level as the Skills tab's (Oct 30 2026); its help line "Fitness 5"
+        -- level as the Skills tab's; its help line "Fitness 5"
         local barH = ZeD.Atoms.fillBarCompactH()
         if ZeD.Atoms.drawSegFill(self, bx, midY - math.floor(barH / 2), barW, barH, 10, lvl, T.accent) then
             ZeD.Help.set(self, ZeD.tr("UI_ZeD_Bar_Help", name, lvl))

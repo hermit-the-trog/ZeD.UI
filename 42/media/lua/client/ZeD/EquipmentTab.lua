@@ -1,9 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/EquipmentTab.lua
 -- ============================================================================
--- EQUIPMENT TAB — Grouped slot list with click-to-inspect item cards.
--- Zone A: collapsible group headers with slot rows (list mode)
--- Zone B: item card with body figure coverage overlay (card mode)
--- First implementation.
+-- EQUIPMENT TAB — client; the Character window's Equip drawer (an organism-
+-- scale tab renderer, registered as "equip" in the drawer dispatch table).
+-- Three faces: the grouped slot list (worn and held slots, the belt's hotbar
+-- rows, the defense dashboard at the foot), the doll view (EquipDoll.lua),
+-- and card mode — a selected slot hands its item to a ZeD_ItemCard child.
+-- Everything else draws immediate-mode into the drawer panel, stamping zones
+-- on the window each frame; CharacterWindow routes clicks and the controller
+-- through those zones.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -19,8 +23,8 @@ require "ZeD/ZeD_RestockPin"
 ZeD = ZeD or {}
 ZeD.EquipmentTab = {}
 
--- (Nov 7 2026, perf review #12) the tab's data refreshes run on the clock, not on frames drawn: 15
--- frames was 250 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once periodMs has
+-- The tab's data refreshes run on the clock, not on frames drawn: 15 frames is 250 ms at 60 FPS
+-- but runs 2.4-4 times as often at 144-240 Hz. True once periodMs has
 -- passed since owner[key] (or on the first call, or forced: the cache was dropped). The runs keep a
 -- beat of periodMs; a forced run, or one after a gap (the tab not drawn), starts the period again,
 -- as the frame count went back to 0. A window's first run starts at its own
@@ -90,8 +94,8 @@ local EQUIP_GROUPS = {
     }},
 }
 
--- The words for a group or a slot: vanilla's own text where it has the same words
--- (vkey), else ZeD's (key). Looked up where drawn and measured, so the language applies.
+--- The words for a group or a slot: vanilla's own text where it has the same words
+--- (vkey), else ZeD's (key). Looked up where drawn and measured, so the language applies.
 function ZeD.EquipmentTab.wordsOf(def)
     if not def then return "" end
     if def.vkey then return getText(def.vkey) end
@@ -100,9 +104,9 @@ function ZeD.EquipmentTab.wordsOf(def)
 end
 
 -- A slot's short words ("Glv" for Gloves, "Inr" for Inner): the SLOT column takes them
--- before an item's name is cut (Oct 31 2026, punch list 29, the director's pick: at the
--- half card the names read "T-shi..." beside "Inner"). Words of four letters or fewer
--- stay whole. Through ZeD.tr, so a language gives its own.
+-- before an item's name is cut — at the half card the names otherwise read "T-shi..."
+-- beside a whole "Inner". Words of four letters or fewer stay whole. Through ZeD.tr,
+-- so a language gives its own.
 local SHORT_KEY = {
     HAT = "UI_ZeD_Equip_Short_HAT", EYE = "UI_ZeD_Equip_Short_EYE", MSK = "UI_ZeD_Equip_Short_MSK",
     EAR = "UI_ZeD_Equip_Short_EAR", SCF = "UI_ZeD_Equip_Short_SCF",
@@ -176,7 +180,7 @@ local PROT_COL_W = 32  -- protection stat column width
 
 -- Pre-computed label column width (widest label across all slots, measured lazily)
 local _labelColW = nil
-local _labelColWScale = nil  -- S124 scale: re-measure when T.scale (root x text size) changes
+local _labelColWScale = nil  -- re-measure when T.scale (root x text size) changes
 local function getLabelColW()
     -- re-measured when the scale changes, or the test language is switched
     local sig = tostring(ZeD.T.scale) .. (ZeD.trTestOn() and "t" or "")
@@ -197,7 +201,7 @@ local function getLabelColW()
     return _labelColW
 end
 
--- The SLOT column at its short words (punch list 29), measured the same way
+-- The SLOT column at its short words, measured the same way
 local _shortColW, _shortColWScale = nil, nil
 local function getShortColW()
     local sig = tostring(ZeD.T.scale) .. (ZeD.trTestOn() and "t" or "")
@@ -215,9 +219,9 @@ local function getShortColW()
     return _shortColW
 end
 
--- The protection and weight columns as narrow as what they hold (punch list 29, again, Oct 31
--- 2026): a protection column its dot or its head word ("Bite"), the weight its number ("00.0")
--- or "Wt", each with 2u either side; measured the same way
+-- The protection and weight columns as narrow as what they hold: a protection column its
+-- dot or its head word ("Bite"), the weight its number ("00.0") or "Wt", each with 2u
+-- either side; measured the same way
 local PROT_HEADS = { "IGUI_health_Bite", "UI_ZeD_Equip_ColScratch", "UI_ZeD_Equip_ColBullet" }
 local _narrowProtW, _narrowWtW, _narrowSig = nil, nil, nil
 local function getNarrowColW()
@@ -281,17 +285,17 @@ local function calcEquipColumns(w, win)
     local nameX = padX + iconW + iconGap
     local nameW = w - nameX - rightCols
     -- the names lack room at the full slot words (the half card): the slot words shorten
-    -- first ("Glv", "Inr"), before a name is cut (Oct 31 2026, punch list 29). A width the
-    -- player dragged stays theirs; the row then picks the words that fit it.
-    -- Checked in game the same night, the names still read "T-shi...", "Leat...": the
-    -- columns to the right (a 84u condition column, three 32u protection columns, a 40u
-    -- weight column) wanted 270u of a ~205u half card, so the name sat at its 40u least
-    -- and protection and weight drew past the card's edge. Now, while the widest worn
-    -- name lacks room, in turn: the slot words shorten (4u pads); the condition bar goes
-    -- to its least (ten segments, ZeD.Atoms.fillBarMinW); protection and weight become
-    -- as narrow as what they hold and the right margin 4u; then the name keeps the room
-    -- it needs and the columns that no longer fit inside the card are left out from the
-    -- right (weight, then the three protection columns together).
+    -- first ("Glv", "Inr"), before a name is cut. A width the player dragged stays theirs;
+    -- the row then picks the words that fit it.
+    -- Short words alone are not enough: the columns to the right (a 84u condition column,
+    -- three 32u protection columns, a 40u weight column) want 270u of a ~205u half card,
+    -- so the name would sit at its 40u least and protection and weight would draw past
+    -- the card's edge. So, while the widest worn name lacks room, in turn: the slot
+    -- words shorten (4u pads); the condition bar goes to its least (ten segments,
+    -- ZeD.Atoms.fillBarMinW); protection and weight become as narrow as what they hold
+    -- and the right margin 4u; then the name keeps the room it needs and the columns
+    -- that no longer fit inside the card are left out from the right (weight, then the
+    -- three protection columns together).
     local slotShort, slotPad, wtPad, protOn, wtOn = false, padX, padX, true, true
     local need = (win and win._equipNameNeed) or 0
     if not (win and win._equipColWidths) and nameW < need then
@@ -423,7 +427,7 @@ function ZeD.EquipmentTab.gatherData(playerObj)
 
     -- Fill slots from worn items — vanilla pattern: getWornItems(), 1-based,
     -- wornItem:getLocation() for the body location string (not getBodyLocation()).
-    -- (Nov 8 2026, code flags) the game keeps worn items innermost first (WornItems.setItem inserts by
+    -- The game keeps worn items innermost first (WornItems.setItem inserts by
     -- the BodyLocations.lua order, "declared in render-order"), so the list is read from its end: the
     -- first item a slot takes is its outermost layer (a jacket over a sweater shows the jacket), as
     -- the doll (EquipDoll.gather) leads with it.
@@ -445,7 +449,7 @@ function ZeD.EquipmentTab.gatherData(playerObj)
                     local mapping = LOCATION_TO_SLOT[locStr]
                     if mapping then
                         local slot = groups[mapping.gi].slots[mapping.si]
-                        -- Only fill if empty (first item wins — outermost layer)
+                        -- Only fill if empty: the first match in worn order wins
                         if not slot.item then
                             slot.item   = item
                             slot.cond   = condRatio(item)
@@ -488,10 +492,11 @@ function ZeD.EquipmentTab.gatherData(playerObj)
 end
 
 -- ============================================================================
--- DEFENSE DASHBOARD — aggregate protection overview (replaces Protection tab)
+-- DEFENSE DASHBOARD — the protection overview that took the Protection tab's
+-- place: body figure + aggregate stats at the foot of this tab.
+-- ProtectionTab.lua still computes the data and colours; headers and rows
+-- come from the molecules every tab shares.
 -- ============================================================================
-
--- Uses T.rowH via M.drawSectionHeader (shared molecule across all tabs)
 
 local function _ensureDefBodyFigure(win)
     local T = ZeD.T
@@ -528,12 +533,12 @@ end
 local function _measureDefenseDashboard(win, protData, w)
     local T    = ZeD.T
     local headerH = ZeD.Molecules.getTabHeaderH()
-    -- Defense body is always shown now (no separate disclosure for it); the
-    -- pinned header toggles the equipped INVENTORY list instead.
+    -- The defense body always shows (no disclosure of its own); the pinned
+    -- header toggles the equipped INVENTORY list instead.
     local pad    = ZeD.Molecules.getTabPad()
     local figH = T.sp.figureH
     local rightColH = ZeD.ProtectionTab._measureRightColumn(protData)
-    -- padTop not included — render's drawY already starts at scrollY + padTop
+    -- no top padding here: render puts figureGap above the body instead
     local contentH = math.max(figH, rightColH) + pad
     return headerH + contentH
 end
@@ -602,17 +607,14 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
     local tierColor  = ZeD.ProtectionTab.tierColor
     local gradeColor = ZeD.ProtectionTab.gradeColor
 
-    -- Defense body is always shown now (no separate disclosure for it).
-    -- The legacy bodyOnly=false call path is unused after the layout switch
-    -- but kept defensive in case external callers still hit it.
+    -- The defense body always shows. Nothing in ZeD calls this with
+    -- bodyOnly=false any more; the header-drawing path stays for safety.
     local headerH = ZeD.Molecules.getTabHeaderH()
 
     local pad = ZeD.Molecules.getTabPad()
     if not bodyOnly then
         M.drawSectionHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Defense"), nil, true, false, T.fontF4, nil, pad, headerH)
     end
-
-    -- (was: gated on expanded; defense body is always rendered now)
 
     -- --- Dashboard content ---
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
@@ -649,7 +651,7 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         A.borderRounded(panel, boxX, boxY, boxW, boxH, bs.r, bs.g, bs.b, bs.a or 1)
 
         local gx = boxX + math.floor((boxW - gradeLetterW) / 2)
-        local gy = boxY + math.floor((boxH - titleFH) / 2)  -- fontF5 centered in box (tune in-game if needed)
+        local gy = boxY + math.floor((boxH - titleFH) / 2)  -- the grade letter (F4) centred in the box
         panel:drawText(protData.grade, gx, gy, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
 
         local lblX = boxX + boxW + T.sp.sm
@@ -786,7 +788,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     end
 
     -- Slot label (truncated to fit column)
-    -- (the short words when the column took them, or the full ones do not fit it: punch list 29)
+    -- (the short words when the column took them, or when the full ones do not fit it)
     local slotRoom = c.slotColW - c.slotPad * 2
     local typeStr = ZeD.EquipmentTab.wordsOf(slot)
     if c.slotShort or tm:MeasureStringX(T.fontF1, typeStr) > slotRoom then
@@ -877,7 +879,7 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local B = ZeD.Belt
     local c = calcEquipColumns(w, win)
-    local DOT = " | "   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+    local DOT = " | "   -- the separator: ZeD's pipe, never a middle dot
     local f1, f2 = T.fontF1, T.fontF2
     local f1h, f2h = tm:getFontHeight(f1), tm:getFontHeight(f2)
     -- sub-header, in the category rows' height and type (sentence case), with no
@@ -886,8 +888,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local lo = T.toneLo
     local hy = y + math.floor((hh - f1h) / 2)
     -- the two heads keep to their own sides: short of room each is cut in its own share, the
-    -- right one gets at most half (Oct 31 2026, punch list 29: on the Deck with Large text
-    -- "The belt | keys" ran into "Slot | what gives it")
+    -- right one gets at most half (with Large text on a narrow card "The belt | keys"
+    -- otherwise runs into "Slot | what gives it")
     local headL = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft"))
     local cap = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadRight"))
     local hRoom = w - c.padX * 2 - T.px(2) - T.px(8)
@@ -955,8 +957,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         if s.inHand then rightEdge = bx - T.px(6) - _beltTagW(inHandTxt) end
         -- the item over the slot and what gives it: the name stops at the
         -- COND column (its bar sits beside it), the slot line runs under both
-        -- (the name stops before the verb too: on the Deck with Large text Detach sat over
-        -- "JS-2000 Sho..."; Oct 31 2026, punch list 29)
+        -- (the name stops before the verb too: with Large text the verb
+        -- otherwise sat over the name)
         local tx = iconX + c.iconW + c.iconGap
         local textW = math.min(x + c.condX - T.px(6), rightEdge - T.px(8)) - tx
         local subW = rightEdge - T.px(8) - tx
@@ -995,7 +997,7 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     return y
 end
 
--- Run a belt row's verb (mouse and controller)
+--- Run a belt row's verb (mouse and controller).
 function ZeD.EquipmentTab.beltAction(win, zone, absX, absY)
     local B = ZeD.Belt
     if not (B and zone) then return end
@@ -1009,7 +1011,7 @@ end
 -- COLUMN HEADER BAR — labels above the slot list
 -- ============================================================================
 
-local EQUIP_HDR_H = (ZeD.Spacing and ZeD.Spacing.colHdrH) or 20  -- S124 scale: design units (was ZeD.T.sp.colHdrH cached at load); uses go through T.px
+local EQUIP_HDR_H = (ZeD.Spacing and ZeD.Spacing.colHdrH) or 20  -- design units: a copy of T.sp.colHdrH cached at load would miss a scale change; every use goes through T.px
 
 local function _drawEquipHeader(panel, x, y, w, win)
     local T  = ZeD.T
@@ -1038,7 +1040,7 @@ local function _drawEquipHeader(panel, x, y, w, win)
     panel:drawText(ZeD.tr("IGUI_Name"), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColSlot"), cl.slotX, cl.slotColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColCond"), cl.condX, cl.condColW)
-    if cl.protOn then   -- (left out when the card is too narrow for them, punch list 29)
+    if cl.protOn then   -- (left out when the card is too narrow for them)
         drawCentered(ZeD.tr("IGUI_health_Bite"), cl.biteX, cl.protColW)
         drawCentered(ZeD.tr("UI_ZeD_Equip_ColScratch"), cl.scrX,  cl.protColW)
         drawCentered(ZeD.tr("UI_ZeD_Equip_ColBullet"), cl.bulX,  cl.protColW)
@@ -1084,10 +1086,11 @@ end
 
 -- ============================================================================
 -- ACTION HANDLER
--- Action buttons (Drop / Unequip) are rendered inline in the back-bar header
--- by _drawBackBar — no separate action strip below the card content.
+-- CharacterWindow routes a card-mode verb here (win._equipActionZones, and
+-- the controller's A on an action element), named by actionId.
 -- ============================================================================
 
+--- Runs a card-mode verb ("unequip" / "drop") on the selected slot's item.
 function ZeD.EquipmentTab._handleAction(win, actionId, slot)
     if not slot or not slot.item then return end
     local player = win._playerObj
@@ -1096,8 +1099,7 @@ function ZeD.EquipmentTab._handleAction(win, actionId, slot)
     if actionId == "unequip" then
         -- The game's own unequip for clothing and hand items alike (ISUnequipAction, through
         -- ISInventoryPaneContextMenu.unequipItem: it also puts out a lit candle or lantern). Emptying
-        -- the hand directly never reached a server: on a rejoin the item was back in the hand (QA's
-        -- multiplayer check, Nov 5 2026).
+        -- the hand directly never reached a server: on a rejoin the item was back in the hand.
         ISInventoryPaneContextMenu.unequipItem(slot.item, player:getPlayerNum())
         win._equipSelected = nil
         win._equipCache = nil
@@ -1114,7 +1116,7 @@ function ZeD.EquipmentTab._handleAction(win, actionId, slot)
 end
 
 -- ============================================================================
--- DRAG SOURCE (Oct 20 2026, director-approved)
+-- DRAG SOURCE
 -- A press on a worn or held item (a list row, or a doll slot) waits. Released
 -- without moving it is the click it always was (the item card). Moved off the
 -- slot it becomes the inventory lists' own drag: the same DragState molecule
@@ -1155,20 +1157,20 @@ local function selectSlot(win, slotType)
     win._gpFocusedEquipSlot = nil      -- reseed to the back button
 end
 
--- The item being dragged (a drag that has started), for the dim on its slot
+--- The item being dragged (a drag that has started), for the dim on its slot.
 function ZeD.EquipmentTab.draggedItem(win)
     local d = win and win._equipDrag
     if d and d:isActive() and d.items then return d.items[1] end
     return nil
 end
 
--- True while the drag is pending or running (the drawer then owns the mouse)
+--- True while the drag is pending or running (the drawer then owns the mouse).
 function ZeD.EquipmentTab.dragBusy(win)
     local d = win and win._equipDrag
     return d ~= nil and (d:isActive() or d:isPending())
 end
 
--- Mouse down on the drawer, list mode or doll: true when a filled slot took the press
+--- Mouse down on the drawer, list mode or doll: true when a filled slot took the press.
 function ZeD.EquipmentTab.pressSlot(win, panel, x, y)
     if win._equipSelected then return false end
     local zone = slotZoneAt(win, x, y)
@@ -1180,7 +1182,7 @@ function ZeD.EquipmentTab.pressSlot(win, panel, x, y)
     return true
 end
 
--- Mouse move on the drawer: past the threshold the press becomes a drag. True while it is the drag's.
+--- Mouse move on the drawer: past the threshold the press becomes a drag. True while it is the drag's.
 function ZeD.EquipmentTab.dragMove(win, panel)
     local d = win._equipDrag
     if not d then return false end
@@ -1219,7 +1221,7 @@ local function dropEquipped(win, panel, items)
     ZeD.InventoryRenderer.handleDrop(content, items, src)
 end
 
--- Mouse up on the drawer (or outside it): the drop, or the plain click. True when it was the press's.
+--- Mouse up on the drawer (or outside it): the drop, or the plain click. True when it was the press's.
 function ZeD.EquipmentTab.dragRelease(win, panel)
     local d = win._equipDrag
     if not d then return false end
@@ -1241,7 +1243,7 @@ function ZeD.EquipmentTab.dragRelease(win, panel)
     return false
 end
 
--- Right button during a drag (or a press): the drag is called off, nothing is selected
+--- Right button during a drag (or a press): the drag is called off, nothing is selected.
 function ZeD.EquipmentTab.dragCancel(win, panel)
     local d = win._equipDrag
     if not (d and (d:isActive() or d:isPending())) then return false end
@@ -1256,6 +1258,8 @@ end
 -- RENDERER
 -- ============================================================================
 
+--- The tab's frame: card mode (a ZeD_ItemCard child), the doll view, or the
+--- grouped list with the belt rows, the loadouts' fold and the defense body.
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
 
@@ -1319,10 +1323,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         if not selSlot or not selSlot.item then
             win._equipSelected = nil
         else
-            -- S121 (Phase C1): card mode now delegates to a ZeD_ItemCard child
-            -- — the same organism the inv drawer uses. Equipment tab keeps an
-            -- own card instance separate from win._itemCard since they render
-            -- at different surfaces. Back-arrow click clears _equipSelected.
+            -- Card mode delegates to a ZeD_ItemCard child — the same organism
+            -- the inventory drawer uses. The tab keeps its own card instance
+            -- apart from win._itemCard since the two render at different
+            -- surfaces. The back arrow clears _equipSelected.
             local card = panel._equipCard
             if not card then
                 card = ZeD_ItemCard:new(x, y, w, h, "drawer", win.playerNum or 0)
@@ -1349,9 +1353,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
             if card.item ~= selSlot.item then card:setItem(selSlot.item) end
             card.sourceContext = "equipped"
             card:setVisible(true)
-            -- Card draws via natural ISPanel child render lifecycle (after
-            -- this function returns). Skip the legacy _drawBackBar +
-            -- _drawCardContent + scrollbar — the card handles all of that.
+            -- The card draws itself through the ISPanel child lifecycle after
+            -- this function returns; its back bar, content and scrollbar are
+            -- its own, so card mode draws nothing else here.
             return
         end
     end
@@ -1380,8 +1384,8 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local headerH = T.sp.tabHeaderH or T.px(37)
     local listExpanded = win._equipListExpanded
     -- the loadouts: a fold under the doll and the lists, shut until opened, in both views
-    -- (ZeD_EquipLoadout.lua; pinned here under the heading until Oct 30 2026). It is measured
-    -- and drawn at the doll's width, so its rows do not change with the scrollbar.
+    -- (ZeD_EquipLoadout.lua). It is measured and drawn at the doll's width, so its rows
+    -- do not change with the scrollbar.
     local loW = w - T.sp.scrollbarW
     local loH = EL and EL.sectionH(win, loW) or 0
 
@@ -1444,8 +1448,8 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
 
-    -- S100: gamepad scroll-follow — ensure the currently focused equip slot
-    -- is within the viewport before computing scrollOff. Reads last frame's
+    -- Gamepad scroll-follow — ensure the currently focused equip slot is
+    -- within the viewport before computing scrollOff. Reads last frame's
     -- stamped absolute Y from _equipSlotYMap (populated inside the slot loop
     -- below). One-frame lag is imperceptible; matches InventoryRenderer's
     -- pattern. Disclosure is in the pinned header (always visible), so skip.
@@ -1499,7 +1503,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     elseif listExpanded then
         -- Column headers FIRST — equipped inventory list is the most-accessed
         -- region of this drawer.
-        -- the widest worn name: the SLOT column shortens when the names lack it (punch list 29)
+        -- the widest worn name: the SLOT column shortens when the names lack it
         local need = 0
         for _, g in ipairs(data.groups) do
             for _, s in ipairs(g.slots) do
@@ -1560,9 +1564,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     if hasDefBody then
         if listExpanded then drawY = drawY + figureGap end
         _drawDefenseDashboard(panel, win, protData, x, drawY - headerH, contentW, true)
-        -- S105 gamepad: stamp body figure part Y values into yMap so scroll-
-        -- follow can bring focused parts into viewport. drawAt sets the
-        -- figure's internal drawAtS/X/Y, so getPartRects returns correct
+        -- Gamepad: stamp body figure part Y values into yMap so scroll-follow
+        -- can bring focused parts into viewport. drawAt sets the figure's
+        -- internal drawAtS/X/Y, so getPartRects returns correct
         -- screen-relative coords here.
         local fig = win._equipDefBodyFigure
         if fig and fig.getPartRects then
@@ -1579,10 +1583,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
     panel:clearStencilRect()
 
-    -- Pinned header — labeled "Equipped" since it now toggles the inventory
-    -- list visibility. Defense body is always shown at the bottom of the tab.
-    -- The pointer's hover wash and the controller's focus mark are the header's
-    -- own (drawTabHeader), under its words.
+    -- Pinned header — "Equipped"; it toggles the inventory list's visibility
+    -- (the defense body always shows at the bottom of the tab). The pointer's
+    -- hover wash and the controller's focus mark are the header's own
+    -- (drawTabHeader), under its words.
     do
         local hdrHover = ZeD.Atoms.mouseIn(panel, x, y, w, headerH)
         ZeD.Molecules.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Equipped"), listExpanded, hdrHover, nil,
@@ -1591,9 +1595,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     end
     -- List | Doll, at the heading's right edge
     Doll.drawToggle(panel, win, x, y, w, headerH, panel:getMouseX(), panel:getMouseY())
-    -- Zone field name kept (_equipDefenseZone) for backward compat with the
-    -- existing CharacterWindow click + gamepad routing; the field now points
-    -- at the "Equipped" disclosure but the zone semantics are unchanged.
+    -- The old field name stays (_equipDefenseZone): CharacterWindow's click
+    -- and pad routing read it. It points at the "Equipped" disclosure; the
+    -- zone works as it always did.
     win._equipDefenseZone = { x = x, y = y, w = w, h = headerH }
 
     if scroll.visible then
@@ -1609,6 +1613,7 @@ end
 ZeD.EquipmentTab.getDefaultColWidths = getDefaultColWidths
 ZeD.EquipmentTab.getLabelColW = getLabelColW
 
+--- Hooks "equip" into the drawer's dispatch table (CharacterWindow calls it once).
 function ZeD.EquipmentTab.register(dispatchTable)
     -- looked up at draw time, so a hot reload of this file takes effect
     dispatchTable["equip"] = function(...) return ZeD.EquipmentTab.render(...) end

@@ -1,12 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/WorldMap.lua
 -- ============================================================================
--- WORLD MAP HOOK (S123) — the "Map" key, the mini-map click, the D-pad
--- wheel slice and the equipped-item HUD button all funnel through
+-- WORLD MAP HOOK (override, client) — the "Map" key, the mini-map click, the
+-- D-pad wheel slice and the equipped-item HUD button all funnel through
 -- ISWorldMap.ToggleWorldMap / ShowWorldMap / HideWorldMap. Every one of
 -- those now opens ZeD's unfolded map (World window → Maps tab → pop-out)
 -- instead of the vanilla full-screen map. Vanilla is only reached when ZeD
 -- cannot serve the request (no player, world not loaded, pop-out failed),
--- and always while ZeD's safe mode is on. See HOOK_MAP.md.
+-- and always while ZeD's safe mode is on.
 --
 -- Vanilla's rules still decide whether there is a map to read. Show refuses
 -- when the server or sandbox turns the world map off (and in the Tutorial),

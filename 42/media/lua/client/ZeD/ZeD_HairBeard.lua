@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_HairBeard.lua
 -- ============================================================================
--- HAIR AND BEARD — the Identity tab's section under the license (mockup
--- zed_hair_beard_v1, approved "as recommended" Oct 26 2026).
+-- HAIR AND BEARD — the Identity tab's section under the license. Client side;
+-- not a class: the tab calls HB.layout, HB.draw, HB.onClick and HB.focusables.
 --
 -- The game keeps haircuts and beard trims behind the Hair and Beard buttons of
 -- its Character screen (ISCharacterScreen:hairMenu / beardMenu), which ZeD never
@@ -17,17 +17,16 @@
 --     (NeatUI_Hairstyler) turn the menu into "Tie Hair" / "Cut Hair" / "Trim Beard"
 --     entries that open their picture windows; their lists of choices are read
 --     into rows here. Every row already shows the style on the character, so
---     their picture window is not offered from here (director, Oct 26 2026:
---     "use game avatars for each style").
+--     their picture window is not offered from here.
 -- What the character cannot do now (a row that needs a tool they lack, a style the
 -- hair is too short for) folds under one quiet row, by ZeD setup's Hidden actions
 -- (ZeD.Disclose); opened, those rows show greyed with the reason. One press does
 -- it (no confirm).
 -- Each row, and the Now and After heads, show the game's own 3D figure of the
 -- character wearing that style (AVATARS below).
--- Make-up (the director, Nov 7 2026, vanilla windows B9: "Makeup is supposed to
--- go with the hair"): a third part, Make Up, beside Hair and Beard while the
--- character carries or wears make-up. Its rows (ZeD_MakeUp.lua) are the spots
+-- Make-up belongs with the hair, not in a window of its own: a third part, Make
+-- Up, sits beside Hair and Beard while the character carries or wears
+-- make-up. Its rows (ZeD_MakeUp.lua) are the spots
 -- the carried make-up can do, by the game's categories, and the make-up worn
 -- under Remove; the figures wear the row's make-up; the verb button is Apply
 -- (the game's ISApplyMakeUp action) or Remove. The make-up item's Make Up option
@@ -47,10 +46,11 @@ ZeD = ZeD or {}
 ZeD.HairBeard = ZeD.HairBeard or {}
 local HB = ZeD.HairBeard
 
--- design units
+-- design units: a group's head row, one of the Now lines, the Now / After head frames, the Now
+-- lines' label column
 local GH_H, CUR_H, HEAD_W, HEAD_H, CUR_K = 15, 28, 68, 76, 56
 local THUMB, THUMB_PAD = 42, 6     -- a row's figure frame and its inset (the row is as tall as both)
-local REFRESH_FRAMES = 30
+local REFRESH_FRAMES = 30          -- frames between reads of the game's menus (the rows rebuilt)
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function F(n) return ZeD.TM:getFontHeight(ZeD.T["fontF" .. n]) end
@@ -94,11 +94,11 @@ local function isHairdo(it) return it:hasTag(ItemTag.DO_HAIRDO) or isGel(it) or 
 
 -- The first of each tool the character carries, bags included. One walk in Lua over the
 -- inventory, each item tested for all five: the container's own items first, then each
--- bag's (the order the game's getFirstEvalRecurse uses). Nov 2 2026 (QA, compat round 5):
--- handing these tests to the game's getFirstEvalRecurse, which calls back into Lua for
--- every item, made Kahlua throw "Cannot assign field callFrame because a is null" at
--- ReturnValues.put with nine popular mods on (each half alone did not); the walk makes no
--- such call back, and goes over the inventory once instead of five times.
+-- bag's (the order the game's getFirstEvalRecurse uses). Why not getFirstEvalRecurse:
+-- handing these tests to it means Java calls back into Lua for every item, and that
+-- made Kahlua itself throw "Cannot assign field callFrame because a is null" at
+-- ReturnValues.put with nine popular mods on together (each half alone did not); the walk
+-- makes no such call back, and goes over the inventory once instead of five times.
 local TOOL_TESTS = { { "razor", isRazor }, { "scissors", isScissors }, { "gel", isGel },
                      { "spray", isSpray }, { "hairdo", isHairdo } }
 -- Every item in a container and its bags, in the game's search order, handed to visit(item);
@@ -139,8 +139,8 @@ local function tools(p)
 end
 
 -- Doing a cut or a trim. The game's handlers (ISCharacterScreen.onCutHair / onTrimBeard) find
--- the tool with getFirstEvalRecurse, the call back of KB Q275; with some mod sets that call fails
--- for everyone (QA, Nov 2 2026: round 5's nine mods; vanilla's own car spawn failed the same way)
+-- the tool with getFirstEvalRecurse, the Java-calls-Lua-back search above; with some mod sets
+-- that call fails for everyone (the same nine mods; vanilla's own car spawn failed the same way)
 -- and the handler stops before the action is queued. These are the same steps, the tool found by
 -- ZeD's walk. They stand in only for the game's own handlers: a hair mod that put its own
 -- handler in place keeps it (the game's are kept here as the file loads, before any mod's).
@@ -298,8 +298,8 @@ end
 
 -- The game's menus ask the character's inventory, per style, whether a razor, scissors or a
 -- hairdo item is on hand (containsEvalRecurse with a Lua test the game calls back for every
--- item: the call back KB Q275 warns of, which threw with round 5's nine mods on; QA, Nov 2
--- 2026). While ZeD reads a menu, the character it is given answers those from one Lua walk
+-- item: the same call back that threw with the nine-mod set on, see the tools walk above).
+-- While ZeD reads a menu, the character it is given answers those from one Lua walk
 -- over the inventory (the items gathered once per read); everything else goes to the real
 -- character. The options keep the real character (put back after the read: see harvest).
 local function forwarder(real)
@@ -327,8 +327,9 @@ local function invStandIn(p)
 end
 local function charStandIn(p)
     local inv = invStandIn(p)
-    -- (the calls the game's hairMenu / beardMenu make, written out: a name looked up on a Java
-    -- object is not always reachable, KB Q275; anything else a hair mod's menu asks is forwarded)
+    -- (the calls the game's hairMenu / beardMenu make, written out: a method read off a Java
+    -- object by name can come back nil even when calling it directly works, so the known calls
+    -- are spelled out; anything else a hair mod's menu asks is forwarded)
     local c = {
         getInventory   = function() return inv end,
         getHumanVisual = function() return p:getHumanVisual() end,
@@ -384,7 +385,7 @@ end
 -- ---------------------------------------------------------------------------
 -- rows
 -- ---------------------------------------------------------------------------
--- (make-up's groups are the game's categories and its Remove, in the game's words: B9)
+-- (make-up's groups are the game's categories and its Remove, in the game's words)
 local GROUPS = { "Tie", "Shave", "Cut", "Style", "Trim", "FullFace", "Eyes", "EyesShadow", "Lips", "Remove" }
 local GROUP_KEY = { Tie = "UI_ZeD_Hair_GrpTie", Shave = "UI_ZeD_Hair_GrpShave", Cut = "UI_ZeD_Hair_GrpCut",
                     Style = "UI_ZeD_Hair_GrpStyle", Trim = "UI_ZeD_Hair_GrpTrim",
@@ -533,7 +534,7 @@ local function buildRows(win, p, part)
             end
         end
     end
-    -- grouped in the mockup's order, the game's order inside each group; one row per style
+    -- grouped in GROUPS' order above, the game's order inside each group; one row per style
     local seen, out = {}, {}
     for _, g in ipairs(GROUPS) do
         for _, r in ipairs(rows) do
@@ -651,8 +652,8 @@ function HB.setPart(win, part)
     end
 end
 
--- the make-up item's Make Up option (ZeD_MakeUp.open): this section on its make-up part, that item's spots first, and
--- the Identity tab scrolled to it (IdentityTab asks HB.takeScroll)
+--- The make-up item's Make Up option (ZeD_MakeUp.open): this section on its make-up part, that item's spots first, and
+--- the Identity tab scrolled to it (IdentityTab asks HB.takeScroll).
 function HB.showMakeUp(win, item)
     local st = state(win)
     st.mkPrefer = item
@@ -661,6 +662,7 @@ function HB.showMakeUp(win, item)
     st.part, st.sel, st.done = "makeup", nil, nil
     st.wantScroll = true
 end
+--- True once after HB.showMakeUp: the Identity tab then scrolls this section into view.
 function HB.takeScroll(win)
     local st = win._hb
     if not (st and st.wantScroll) then return false end
@@ -733,8 +735,8 @@ end
 -- are window children laid over the frames this section draws (a frame cut by
 -- the view's edge shows the part of its figure inside the view: the figure's
 -- own camera does the cut), from a small pool that grows to what shows. A layer
--- above them dims the greyed rows' figures. The
--- figures go (removed from the window) the first frame the section is not drawn.
+-- above them dims the greyed rows' figures. The figures go (removed from the
+-- window) the first frame the section is not drawn.
 -- ---------------------------------------------------------------------------
 local AV_ZOOM, AV_YOFF = 17, -0.86            -- head and shoulders: hair rows, Now and After
 local AV_ZOOM_BEARD, AV_YOFF_BEARD = 18.5, -0.83   -- beard rows: closer on the lower face, so the beard reads
@@ -827,7 +829,7 @@ local function makeModel()
     m.javaObject:setConsumeMouseEvents(false)
     m.onMouseDown, m.onMouseUp, m.onMouseMove, m.onMouseWheel = noMouse, noMouse, noMouse, noMouse
     m.onMouseUpOutside, m.onMouseMoveOutside = noMouse, noMouse
-    m.onRightMouseDown, m.onRightMouseUp = noMouse, noMouse   -- (42.22: a handler that returns nothing takes the click)
+    m.onRightMouseDown, m.onRightMouseUp = noMouse, noMouse   -- (B42.22: a handler that returns nothing takes the click)
     m._hbModel = true
     m:setVisible(false)
     m.javaObject:setVisible(false)
@@ -870,7 +872,8 @@ local function release(win, st)
 end
 HB.release = release
 
--- from ZeD_CharacterWindow.extFrame, each frame before the tab draws
+--- Every figure off. ZeD_CharacterWindow.extFrame calls it each frame before the tab draws;
+--- the drawing then shows the figures it uses.
 function HB.onWindowFrame(win)
     local st = win._hb
     if st and st.av then hideAll(st.av) end
@@ -1013,7 +1016,8 @@ local function placeFigures(panel, win, st, wants)
     end
 end
 
--- the figures showing now (for the QA script): { id, model, x, y, w, h } in window coordinates
+-- the figures showing now, for the test script: { id, model, x, y, w, h, look, cut, zoom, yoff }
+-- in window coordinates
 function HB.figures(win)
     local st = win and win._hb
     local out = {}
@@ -1026,6 +1030,7 @@ function HB.figures(win)
     end
     return out
 end
+-- how many figures the pool holds (for the test script too)
 function HB.poolSize(win)
     local st = win and win._hb
     return (st and st.av) and #st.av.pool or 0
@@ -1104,7 +1109,7 @@ local function partsHeight()
     return math.max(math.max(ZeD.Atoms.radioSize(), F(2)) + ZeD.T.px(8), ZeD.T.buttonH)
 end
 
--- Cut's width (Oct 30 2026): the widest of its words (Cut, Trim, Style, Shave, Tie, Untie, Stop), so
+-- Cut's width: the widest of its words (Stop and every verb in CUT_WORDS), so
 -- the button keeps its size as the pick changes
 local CUT_WORDS = { "Cut", "Trim", "Style", "Shave", "Tie", "Untie", "Apply", "Remove" }
 local function cutW()
@@ -1168,6 +1173,8 @@ local function moreGroups(st, hidden)
     return groups
 end
 
+--- Lays the section out for a width w: returns { items, h }, its pieces in content coordinates.
+--- Also where the rows are read again (every REFRESH_FRAMES frames) and a running cut is watched.
 function HB.layout(win, w)
     local T = ZeD.T
     local st = state(win)
@@ -1185,8 +1192,8 @@ function HB.layout(win, w)
     local topH = math.max(T.px(HEAD_H) + T.px(3) + F(5), T.px(CUR_H) * (st.female and 2 or 3))
     add(L, { kind = "heads", x = x, y = y, w = cw, h = topH })
     y = y + topH + T.px(10)
-    -- Hair | Beard at the left, Cut at the right of the same row (Oct 30 2026: Cut moved up from the
-    -- card's foot band into the fold), and under them the line Cut speaks through
+    -- Hair | Beard at the left, Cut at the right of the same row (the verb button lives up here in
+    -- the fold, not in a band at the card's foot), and under them the line Cut speaks through
     local ph = partsHeight()
     local cutw = cutW()
     add(L, { kind = "parts", x = x, y = y, w = cw - cutw - T.px(8), h = ph })
@@ -1367,7 +1374,8 @@ local function drawHeads(panel, win, st, it, y, wants, view)
     end
 end
 
--- Hair | Beard: two System 7 radio buttons (one of two), each half pressable
+-- Hair | Beard: one System 7 radio button per part partsOf gives (Make Up joins while make-up is
+-- carried or worn; no Beard for a woman), one of them on, each part's share of the row pressable
 local function drawParts(panel, win, st, it, y, mx, my)
     local T, A = ZeD.T, ZeD.Atoms
     local halves = partsOf(st)
@@ -1398,8 +1406,8 @@ end
 -- what Cut says this frame (defined with the doing, below)
 local stripState
 
--- Cut's button top and height in its row (row top y): the draw and the controller's stop share it
--- (Oct 30 2026, punch list 21 a-f: the stop was the whole row, and missing while Cut was out of view)
+-- Cut's button top and height in its row (row top y): the draw and the controller's stop share it,
+-- so the stop is the button itself (not the whole, taller row) and cannot drift from the draw
 local function cutBtnY(it, y)
     local bh = ZeD.T.buttonH
     return y + math.floor((it.h - bh) / 2), bh
@@ -1545,6 +1553,8 @@ local function drawRow(panel, win, st, it, y, mx, my, wants, view)
         ink.r, ink.g, ink.b, (ink.a or 1) * nameA, T.fontF2)
 end
 
+--- Draws the laid-out section L on panel at (x, top), inside the view viewY..viewY + viewH, and
+--- sets the 3D figures over the frames that show. Also keeps this frame's click zones.
 function HB.draw(panel, win, L, x, top, w, viewY, viewH)
     local T = ZeD.T
     local st = state(win)
@@ -1613,8 +1623,8 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
 end
 
 -- ---------------------------------------------------------------------------
--- Cut: what the picked row needs, and the button beside Hair | Beard (Oct 30 2026: it was the
--- card's foot band; the fold keeps its own controls). The line under the switch carries the
+-- Cut: what the picked row needs, and the button beside Hair | Beard (not a band at the card's
+-- foot: the fold keeps its own controls). The line under the switch carries the
 -- status words, the busy bar, the row's NEEDS line or its notes.
 -- ---------------------------------------------------------------------------
 local function itemName(it) return it and it:getDisplayName() or "" end
@@ -1704,11 +1714,12 @@ function stripState(win)
 end
 
 -- ---------------------------------------------------------------------------
--- the hover card (also the Identity traits' and the Traits tab's): the shared detail
--- card. The mouse asks the window's overlay for it (it appears after the shared pause);
--- the controller's focus draws it at once, under the element (rect = its place on panel).
--- body is a line of words, or a list of lines.
+-- the hover card
 -- ---------------------------------------------------------------------------
+--- The shared detail card: this section's rows use it, and so do the Identity tab's traits and
+--- the Traits tab that the Traits as Skills support adds. The mouse asks the window's overlay
+--- for it (it appears after the shared pause); focused (the controller's focus) draws it at
+--- once, under the element (rect = its place on panel). body is a line of words, or a list of lines.
 function HB.hoverCard(panel, win, key, title, body, rect, focused)
     local lines = nil
     if type(body) == "table" then lines = body
@@ -1722,7 +1733,8 @@ function HB.hoverCard(panel, win, key, title, body, rect, focused)
     end
 end
 
--- the hover card for a row: the game's own hint
+--- The hover card for the row under the mouse: why it is out of reach (the game's own reason
+--- where it gave one), or the tool it would use.
 function HB.drawHints(panel, win)
     local st = state(win)
     local hv = st.hover
@@ -1749,6 +1761,8 @@ end
 -- ---------------------------------------------------------------------------
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
+--- A click at (x, y) on the panel: Cut / Stop, a row (a second click lets it go), the folded
+--- row, or a part of the Hair | Beard switch. True when the section took it.
 function HB.onClick(win, x, y)
     local st = win._hb
     if not st then return false end
@@ -1760,7 +1774,7 @@ function HB.onClick(win, x, y)
         if inRect(z, x, y) then
             local it = z.item
             if it.kind == "row" then
-                if st.sel == it.row.key then st.sel = nil else st.sel = it.row.key end   -- a second click un-picks (`x and nil or y` always gave y)
+                if st.sel == it.row.key then st.sel = nil else st.sel = it.row.key end   -- a second click un-picks (an and/or chain cannot yield nil, so the if/else)
                 st.done = nil
             elseif it.kind == "more" then
                 DS.toggle(it.key)
@@ -1776,8 +1790,8 @@ function HB.onClick(win, x, y)
     return false
 end
 
--- the controller's stops: the Hair | Beard switch, Cut (Stop while it runs), each row, the folded row
--- (as laid out this frame; rows scrolled out of view keep their place for the cone)
+--- The controller's stops: the Hair | Beard switch, Cut (Stop while it runs), each row, the folded row
+--- (as laid out this frame; rows scrolled out of view keep their place for the d-pad's cone search).
 function HB.focusables(win)
     local st = win._hb
     local L = st and st.L
@@ -1839,7 +1853,7 @@ function HB.focusables(win)
     return out
 end
 
--- what moves the stops (for the window's rebuild check)
+--- What moves the stops: when this string changes, the window rebuilds the controller's list.
 function HB.key(win)
     local st = win._hb
     if not st then return "" end

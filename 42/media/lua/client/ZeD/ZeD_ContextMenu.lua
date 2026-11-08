@@ -1,22 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ContextMenu.lua
 -- ============================================================================
--- ZeD_ContextMenu — Unified Interaction Layer organism (S88)
--- One horizontal icon strip. Serves mouse RMB AND gamepad, identically. See
--- CONTEXT_MENU_SPEC.md for the full design. This file owns render + input
--- routing + open/close lifecycle + settle-timer management.
+-- ZeD_ContextMenu — the right-click menu as one horizontal icon strip. Client
+-- organism. Serves mouse RMB AND gamepad, identically; the other look, the
+-- list, is ZeD_ContextList (the ZeD option "Context menu" picks). This file
+-- owns render + input routing + open/close lifecycle + settle-timer
+-- management.
 --
--- Assembly stack (top → bottom):
---   floating label (absolute, tracks selected cell X)
+-- Assembly stack (top → bottom; flipped when the click is near the top edge):
+--   info bubble (action name headline, body and state rows; downward pointer)
 --     ▼
 --   [bumper] [chev?] [strip] [chev?] [bumper]      — strip row, flow
---     │
---   target card (static, centered under strip)
 --     ▲
---   balloon    (static, centered under target card; upward pointer)
+--   the click target itself (the cursor rests just under the strip)
 --
 -- The organism delegates all pixel work to molecules (drawContextStrip,
--- drawContextBumpers, drawContextFloatingLabel, drawContextTargetCard,
--- drawContextBalloon). This file is pure state + routing + layout math.
+-- drawContextBumpers, drawContextBalloon). This file is pure state + routing
+-- + layout math.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -53,7 +52,7 @@ function ZeD_ContextMenu:new(player, anchorMode, anchorX, anchorY, target, actio
     o._anchorY    = anchorY or 0
     o.vanillaMenu = vanillaMenu
 
-    -- Core state (see CONTEXT_MENU_SPEC §4 for spec)
+    -- Core state
     o._ctx = {
         open        = false,
         target      = target,
@@ -70,7 +69,8 @@ function ZeD_ContextMenu:new(player, anchorMode, anchorX, anchorY, target, actio
         parentDef   = nil,                 -- parent ActionDef when in submenu
     }
 
-    -- Animation state — ZeD drawer style (UIManager.getMillisSinceLastRender accumulator)
+    -- Animation state — eased over time as the drawers are, but on timestamps
+    -- (getTimestampMs progress), not the drawers' per-frame dt accumulator.
     -- All these must start as numbers; _layout uses them in arithmetic on the
     -- very first frame before any target-change detection can initialize them.
     o._animFromOriginX = 0
@@ -154,7 +154,7 @@ function ZeD_ContextMenu:close()
     end
     self._joyfocus = false
 
-    -- S96: return engine focus to FocusManager's tracked window so gamepad
+    -- Return engine focus to FocusManager's tracked window so gamepad
     -- dispatch resumes after context menu dismissal. Without this, engine
     -- focus stays nil and D-pad goes nowhere until a new window is opened.
     -- Defensive nil-check chain: context menu loads before FocusManager in
@@ -167,7 +167,7 @@ function ZeD_ContextMenu:close()
     -- CRITICAL: do NOT removeFromUIManager on the vanilla menu. It's a cached
     -- per-player singleton (getPlayerContextMenu); removing it breaks the
     -- clear() + prerender re-capture pipeline on every subsequent RMB. We
-    -- just hide it and clear our spawn marker so the next clear() cycle
+    -- hide it and clear our spawn marker so the next clear() cycle
     -- will trigger a fresh ZeD organism on the next prerender frame.
     if self.vanillaMenu then
         pcall(function() self.vanillaMenu:setVisible(false) end)
@@ -257,7 +257,7 @@ function ZeD_ContextMenu:_layout(T)
     local innerW = visibleCount * ctx.cellW + math.max(0, visibleCount - 1) * ctx.gap
     local drilled = #self._ctx.path > 0
     local topBorder = drilled and ctx.drilledBorderTop or T.px(1)
-    local housingW = innerW + T.px(1) * 2   -- S124 scale: 1px left + right border, same as drawContextStrip
+    local housingW = innerW + T.px(1) * 2   -- 1px left + right border, same as drawContextStrip
     local housingH = ctx.cellH + topBorder + T.px(1)
 
     -- Target values for interpolation
@@ -305,13 +305,13 @@ function ZeD_ContextMenu:_layout(T)
         local elapsed = getTimestampMs() - self._animStartMs
         progress = math.min(1.0, elapsed / ctx.animMs)
     end
-    -- Cubic ease-out (matches mockup's cubic-bezier approximation)
+    -- Cubic ease-out
     local p = 1 - (1 - progress) * (1 - progress) * (1 - progress)
     self._currentOriginX = self._animFromOriginX + (self._animToOriginX - self._animFromOriginX) * p
     self._currentStripW  = self._animFromStripW  + (self._animToStripW  - self._animFromStripW)  * p
     self._ctx.trackOriginX = math.floor(self._currentOriginX + 0.5)
 
-    -- S101: when suppress just fired (silent carousel teleport), collapse the
+    -- When suppress just fired (silent carousel teleport), collapse the
     -- from/to ranges so subsequent frames — which use timestamp-based progress
     -- restart at ~0 immediately after the kick — don't interpolate BACK toward
     -- the pre-teleport anchor. Without this, a LEFT press at the first item
@@ -407,14 +407,13 @@ function ZeD_ContextMenu:prerender()
     M.drawContextBumpers(self, cache.stripX, cache.stripY, cache.stripW, cache.stripH,
                           self._ctx.truncating, self._pressedId, T)
 
-    -- Combined info bubble ABOVE the strip (S88 follow-up). The previous
-    -- design had a small floating label up top and a separate balloon below
-    -- the (now-removed) target card. Both are now one piece of chrome above
-    -- the strip with a downward pointer — the action name is the headline,
-    -- body and state rows append below it when they have content.
+    -- The info bubble above the strip: one piece of chrome with a downward
+    -- pointer — the action name is the headline, body and state rows append
+    -- below it when they have content.
     --
-    -- Target card was removed entirely: right-clicking already shows you what
-    -- you clicked on (cursor sits below the strip on the click target).
+    -- No target card between strip and bubble: right-clicking already shows
+    -- you what you clicked on (the cursor sits below the strip on the click
+    -- target).
     local def = self._ctx.currentDef
     local target = self._ctx.target
 
@@ -460,7 +459,7 @@ function ZeD_ContextMenu:prerender()
 end
 
 -- ============================================================================
--- NAVIGATION — spec §4 "Selection transitions"
+-- NAVIGATION — selection transitions
 -- ============================================================================
 
 function ZeD_ContextMenu:next()
@@ -485,7 +484,7 @@ function ZeD_ContextMenu:prev()
     end
 end
 
--- Group jump — skip to first item of next category. Wraps. Mirrors mockup JS.
+-- Group jump — skip to first item of next category. Wraps.
 function ZeD_ContextMenu:nextGroup()
     local items = self._ctx.items
     local N = #items
@@ -506,7 +505,7 @@ end
 
 -- Group jump backward — walk back to the FIRST item of the PREVIOUS category.
 -- If we're already at the start of the current category, step into the
--- previous category and walk to its start. Mirrors mockup JS.
+-- previous category and walk to its start.
 function ZeD_ContextMenu:prevGroup()
     local items = self._ctx.items
     local N = #items
@@ -551,7 +550,7 @@ function ZeD_ContextMenu:confirm()
     if def.isBack then self:_pop(); return end
     if def.disabled and def.disabled(self._ctx.target) then return end
 
-    -- S99: lazy-populate children for options with a vanilla `subOption` that
+    -- Lazy-populate children for options with a vanilla `subOption` that
     -- wasn't populated at build time (some mods add submenu options only on
     -- hover via onSubMenu; gamepad users never hover). Fire onSubMenu, then
     -- re-read the vanilla submenu's options and rebuild children.
@@ -650,21 +649,21 @@ function ZeD_ContextMenu:update()
     end
 
     -- Mouse hover tracking — update _hoveredId so cells / bumpers can use it
-    -- (we already re-register hit zones each prerender; here we just probe)
+    -- (we already re-register hit zones each prerender; here we only probe)
     local mx = self:getMouseX()
     local my = self:getMouseY()
     local zone = self:hitZoneAt(mx, my)
     self._hoveredId = zone and zone.id or nil
 
     -- If mouse-hover over a cell, update selection (mouse-track selection
-    -- mirrors vanilla ISContextMenu and the mockup behavior).
-    -- S103: in truncating mode, hover updates `selected` ONLY — no longer
-    -- writes to `pos` (the carousel scroll offset). Previously every cell
-    -- the cursor entered kicked a recentering animation, so a simple left-
-    -- or-right cursor drag scrolled the list at cursor speed (one cell per
-    -- ~22px of pointer motion). Hover = selection; scroll = chev / bumper /
-    -- keyboard / gamepad. Matches vanilla's behavior where cursor motion
-    -- highlights the hovered option but doesn't pan the menu.
+    -- mirrors vanilla ISContextMenu).
+    -- In truncating mode, hover updates `selected` ONLY — never `pos` (the
+    -- carousel scroll offset). If every cell the cursor entered also kicked
+    -- a recentering animation, a simple left-or-right cursor drag would
+    -- scroll the list at cursor speed (one cell per ~22px of pointer
+    -- motion). Hover = selection; scroll = chev / bumper / keyboard /
+    -- gamepad. Matches vanilla's behavior where cursor motion highlights
+    -- the hovered option but doesn't pan the menu.
     if zone and type(zone.id) == "string" and zone.id:sub(1, 8) == "ctxcell_" then
         local trackIdx = tonumber(zone.id:sub(9))
         if trackIdx then
@@ -720,14 +719,14 @@ end
 -- strip to make room for the info bubble, so RMBs that land in that
 -- bubble area would otherwise be trapped here without this handler.
 --
--- Note: this is a TWO-click flow (first RMB dismisses, second RMB opens
--- the new menu). Synthesizing a redirected world RMB from Lua isn't
--- portable across PZ versions — we ship the predictable close-only
--- behavior and let the player re-click.
+-- This is a TWO-click flow (first RMB dismisses, second RMB opens the new
+-- menu). Synthesizing a redirected world RMB from Lua isn't portable
+-- across PZ versions — close-only is predictable, and the player
+-- re-clicks.
 function ZeD_ContextMenu:onRightMouseDown(x, y)
     -- Right-click always fully dismisses (does NOT pop a submenu level —
     -- intent is "abort and try elsewhere"). Keyboard Esc / gamepad B still
-    -- pop submenus per spec §5.
+    -- pop submenus one level at a time.
     self:close()
 end
 
@@ -746,8 +745,8 @@ function ZeD_ContextMenu:onMouseUpOutside(x, y)
 end
 
 -- The press outside closes it too, as vanilla's ISContextMenu does: the release outside
--- reaches the menu only when nothing under the pointer takes it, so a click on a window
--- left the menu open over the inventory (Oct 30 2026, the director's mouse pass)
+-- reaches the menu only when nothing under the pointer takes it, so with the release
+-- alone a click on a window left the menu open over the inventory
 function ZeD_ContextMenu:onMouseDownOutside(x, y)
     self:close()
 end
@@ -796,7 +795,7 @@ function ZeD_ContextMenu:onJoypadDirLeft(joypadData)  self:prev() end
 function ZeD_ContextMenu:onJoypadDirRight(joypadData) self:next() end
 
 -- ============================================================================
--- KEYBOARD INPUT (spec §5)
+-- KEYBOARD INPUT
 -- ============================================================================
 
 -- The keys the strip takes, so the game does not also act on them (Escape
@@ -814,7 +813,7 @@ function ZeD_ContextMenu:onKeyPress(key)
     elseif key == Keyboard.KEY_RETURN then self:confirm()
     elseif key == Keyboard.KEY_ESCAPE or key == Keyboard.KEY_BACK then self:cancel()
     elseif key == Keyboard.KEY_TAB    then
-        -- Shift-Tab = prevGroup, Tab = nextGroup
+        -- Shift-Tab = prevGroup, Tab = nextGroup (group jumps, as the bumpers)
         if isKeyDown and isKeyDown(Keyboard.KEY_LSHIFT) then self:prevGroup()
         else self:nextGroup() end
     end
@@ -876,7 +875,7 @@ function ZeD_ContextMenu:_positionAssembly()
         local psW = getPlayerScreenWidth  and getPlayerScreenWidth(self.player)  or getCore():getScreenWidth()
         local psH = getPlayerScreenHeight and getPlayerScreenHeight(self.player) or getCore():getScreenHeight()
         sx = psL + math.floor((psW - estW) / 2)
-        local moodleAllowance = ZeD.T.px(140)   -- clearance for the belt and the bottom moodle row, which are ZeD's now and scale (code audit Oct 17 2026)
+        local moodleAllowance = ZeD.T.px(140)   -- clearance for the belt and the bottom moodle row, which are ZeD's own and scale with it
         sy = psT + psH - estH - moodleAllowance
     else
         -- Cursor anchor — center the strip horizontally on the click point,

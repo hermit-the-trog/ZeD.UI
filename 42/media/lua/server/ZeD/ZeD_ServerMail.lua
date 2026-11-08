@@ -1,25 +1,25 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerMail.lua
 -- ============================================================================
--- MAIL, THE SERVER'S SIDE (punch list 104; the director, Nov 7 2026). The server holds a player's letters until they are
--- handed over, and forgets each one the moment the player's computer says it has it: the server is the post office, not
--- the mailbox. Everything is decided here from the player the event gives, never from a client's word: the sender is
--- always p:getUsername().
+-- MAIL, THE SERVER'S SIDE. The server holds a player's letters until they are handed over, and forgets each one the
+-- moment the player's computer says it has it: the server is the post office, not the mailbox. Everything is decided
+-- here from the player the event gives, never from a client's word: the sender is always p:getUsername(). Server only:
+-- the first line returns anywhere but a dedicated server or the server process a hosted game starts. Pure ASCII.
 --
--- PRIVATE. The director's moderation rules (MP_SERVER_PART_DESIGN.md, MP_ADMIN_SCOPE.md) give staff tickets, the action
--- log and reports; none of them covers letters between players, so letters stay private: the table has a secret random
--- name (A2) and is never transmitted, no capability reads it, no command lists it, and nothing about a letter reaches the
--- log, not its words and not who wrote to whom. The log hears only what every ZeD command already writes for anyone
+-- PRIVATE. ZeD's moderation tools give staff tickets, the action log and reports; none of them covers letters between
+-- players, so letters stay private: the table has a secret random name (any logged-in client can read a global mod data
+-- table it can name) and is never transmitted, no capability reads it, no command lists it, and nothing about a letter
+-- reaches the log, not its words and not who wrote to whom. The log hears only what every ZeD command already writes for anyone
 -- (Srv.bad for arguments no client of ours sends, the general rate limit). A server's owner can still open the save's
 -- files; nothing in Lua can stop that, and the help says so.
 --
--- Bans and the join rules: every command is Srv.register's, so ZeD's gates (Srv.gates, ZeD_ServerCore.lua on the
--- branch that adds them) shut a banned player, or one who has not agreed to the rules, out of mail as out of the rest.
+-- Bans and the join rules: every command is Srv.register's, so ZeD's gates (Srv.gates, ZeD_ServerCore.lua) shut a
+-- banned player, or one who has not agreed to the rules, out of mail as out of the rest.
 --
 --   p_dial   the dial-in: this player can be mailed from now on; the first batch of their waiting letters comes down
 --   p_got    { ids }: the client has these; the server forgets them and sends the next batch
 --   p_mute   { names }: the players this player muted (their own list, ZeD_Chat.lua). Their letters are no longer
 --            delivered, and any already waiting go. The sender is told nothing: the answer is the same ok as a letter
---            delivered (the director, Nov 7 2026: "muting a player also stops their mail to you")
+--            delivered
 --   p_send   { to, subj, text, cid }: a letter. To any player seen on this server since mail came (online or not).
 --            Refusals: "to" (nobody by that name here), "text", "subj", "wait" (Ml.L.SEND_MS), "hour" (Ml.L.HOUR_MAX),
 --            "frozen". A cid already delivered answers ok again and delivers nothing (an answer that was lost).
@@ -37,7 +37,7 @@ local Ml = ZeD.Ml
 if not Srv or Srv.off then return end
 
 local ML = Ml.L
-local PREFIX = "ZeD_ML_"
+local PREFIX = "ZeD_ML_"             -- the table's name: this, then a random UUID
 local SCHEMA = 1
 local MIGRATE = {}                   -- MIGRATE[1] = function(md) ... end   moves 1 to 2; adds or reshapes, never drops
 
@@ -48,6 +48,7 @@ Srv.Mail = T
 -- ---------------------------------------------------------------------------
 -- THE TABLE
 -- ---------------------------------------------------------------------------
+-- the mail table's name, if the save holds one; with several, the first by name and a line in the log
 local function findName()
     local names = ModData.getTableNames()
     local best, found = nil, 0
@@ -62,6 +63,8 @@ local function findName()
     return best
 end
 
+-- the mail table (Srv.openMail): opened once and kept, made under a new secret name the first time, brought up to
+-- SCHEMA, and frozen (read, never written) when a newer ZeD made it
 local function open()
     if T.md then return T.md end
     local name = findName() or (PREFIX .. getRandomUUID())
@@ -93,8 +96,8 @@ local function open()
 end
 Srv.openMail = open
 
-local function low(user) return string.lower(tostring(user)) end
-local function sizeOf(m) return #(m.text or "") + #(m.subj or "") end
+local function low(user) return string.lower(tostring(user)) end      -- every key is a lower-case username
+local function sizeOf(m) return #(m.text or "") + #(m.subj or "") end   -- a letter's share of CHARS_MAX
 
 -- ---------------------------------------------------------------------------
 -- WHO CAN BE MAILED: everyone who has joined since mail came, by the name the game gives them
@@ -128,6 +131,7 @@ end
 -- ---------------------------------------------------------------------------
 -- THE BOXES
 -- ---------------------------------------------------------------------------
+-- a player's box (k: the lower-case name); make: create it when missing
 local function boxOf(md, k, make)
     local b = md.boxes[k]
     if not b and make then
@@ -137,6 +141,7 @@ local function boxOf(md, k, make)
     return b
 end
 
+-- take letter i out of a box, keeping md.chars right; an empty box goes
 local function dropAt(md, k, b, i)
     local m = b[i]
     if not m then return end
@@ -159,6 +164,7 @@ local function dropOldest(md)
     return true
 end
 
+-- put a letter in a box, making room first: the box's own oldest past INBOX_MAX, then the oldest anywhere past CHARS_MAX
 local function deliver(md, k, m)
     local b = boxOf(md, k, true)
     while b.n >= ML.INBOX_MAX do dropAt(md, k, b, 1); b = boxOf(md, k, true) end
@@ -201,6 +207,7 @@ local function reg(command, opts, fn) Srv.register(Ml.MOD, command, opts, fn) en
 
 local applyMutes     -- (below; declared here so p_dial's closure finds it, not a global of that name)
 
+-- the dial-in: remember the player, take a mute list if one comes with it, say how many letters wait, send the first batch
 reg("p_dial", { limit = ML.DIAL_MS }, function(p, a, rid)
     local md = open()
     know(md, p)
@@ -291,12 +298,14 @@ local function hourRoom(md, k)
     return not h or h.n < ML.HOUR_MAX
 end
 
+-- one more letter in this player's hour; with no hour running, this letter starts one
 local function hourCount(md, k)
     local now = getTimestampMs()
     local h = hourOf(md, k, now)
     if h then h.n = h.n + 1 else md.hours[k] = { n = 1, at = now } end
 end
 
+-- each sender's last CIDS letter numbers: a number seen again is a letter resent after its answer was lost
 local function sentBefore(md, k, cid)
     local s = md.sent[k]
     if not s then return false end
@@ -372,6 +381,7 @@ Srv.helloAdds.mail = function(p, r)
     if not ok then r.ml = nil end
 end
 
+-- the table opens as the world's mod data loads; the flag lives on Srv, so a /reloadlua never adds the listener twice
 if Srv.mailHooked == nil then
     Srv.mailHooked = true
     Events.OnInitGlobalModData.Add(function() if ZeD.Srv.openMail then ZeD.Srv.openMail() end end)

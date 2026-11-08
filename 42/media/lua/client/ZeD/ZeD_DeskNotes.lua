@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_DeskNotes.lua
 -- ============================================================================
--- THE DESK'S NOTES, THE MODEL (punch list 104; the director, Nov 7 2026). No drawing: the sticky note on the
+-- THE DESK'S NOTES, THE MODEL. Client, no drawing of its own: the sticky note on the
 -- desktop and the CletusWorks Notepad (ZeD_MainMenuNotes.lua) read this and call it.
 --
 -- Everything is a plain file under Zomboid/Lua, the way ZeD keeps its own files (getFileWriter / getFileReader are
@@ -17,7 +17,7 @@
 --
 -- Files edited on disk cannot get round the caps: never more than MAX slots are read (ids 1 to MAX only), a note's
 -- file is read no further than TEXT_MAX characters (an oversized one is treated as cut there), the sticky's no further
--- than STICKY_MAX, and the index no further than a few lines past MAX.
+-- than STICKY_MAX, and the index no further than a bounded few lines (four times MAX, plus the header).
 --
 -- Words round-trip exactly: a file is the words and one line break more, read back line by line and joined with line
 -- breaks (the game's reader drops the last). Carriage returns are taken out on the way in.

@@ -1,13 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ContextMenuRegistry.lua
 -- ============================================================================
--- CONTEXT MENU REGISTRY (S88)
--- Pure-data module. Transforms vanilla ISContextMenu.options[] into the
--- ActionDef tree that ZeD_ContextMenu renders. Also handles:
---   - Category keyword mapping (hybrid hardcode + log-unknown)
---   - Pinned action persistence via Player ModData
---   - Target meta formatting (food / weapon / clothing / fluid / literature)
---   - Icon texture resolution (migrated from old Overrides/ContextMenu.lua)
--- No rendering ? UI calls live in the organism + molecules.
+-- CONTEXT MENU REGISTRY (client; pure data, no drawing).
+-- Turns vanilla ISContextMenu.options[] into the ActionDef tree that the ZeD
+-- menus render (ZeD_ContextMenu, the strip; ZeD_ContextList, the list). Also
+-- here:
+--   - the category each option sorts under (keyword lists, English and the
+--     player's language)
+--   - pinned actions, kept in the player's ModData
+--   - the target card's meta line (food / weapon / clothing / fluid /
+--     literature)
+--   - the icon for an option's name (ZeD's own map first, vanilla's after)
+-- Drawing lives in the organisms and molecules. The one reach into the game's
+-- UI is the outline on what an option acts on: Registry.highlight tells the
+-- game's own menu (parked off screen) which row is lit, and two small wraps
+-- of vanilla functions, right after it, keep that outline steady.
+-- The lookups are built on first use and kept (translations, icons, groups);
+-- a mod that adds icon entries later calls Registry.resetTranslatedCaches.
 -- ============================================================================
 
 require "ZeD/ContextIcons"   -- provides ZeD.ContextIcons
@@ -21,13 +29,13 @@ local Registry = {}
 
 -- ============================================================================
 -- CATEGORY KEYWORD MAP
--- Substring match against option names. First-match-wins in iteration order;
--- to keep ordering deterministic we list (keyword, category) pairs instead of
--- a plain table. All comparisons are case-insensitive.
+-- Substring match against option names, first match wins, case-insensitive.
+-- A list of (keyword, category) pairs rather than a plain table: pairs()
+-- walks a table in no fixed order, and the match order must never change.
 --
--- Category order (locked S87): USE ? ACTION ? CRAFT ? EQUIP ? TRANSFER ? INFO ? ADMIN
--- Unknown names fall back to ACTION. DEBUG_LOG_UNKNOWN_CATEGORIES toggles
--- first-sight logging so we can grow the map from real runs.
+-- Category order: USE -> ACTION -> CRAFT -> EQUIP -> TRANSFER -> INFO -> ADMIN
+-- Unknown names fall back to ACTION. DEBUG_LOG_UNKNOWN_CATEGORIES logs each
+-- unknown name once, so the map can grow from real play.
 -- ============================================================================
 
 Registry.CATEGORIES = { "USE", "ACTION", "CRAFT", "EQUIP", "TRANSFER", "INFO", "ADMIN" }
@@ -100,9 +108,9 @@ Registry.CATEGORY_KEYWORDS = {
     { "Destroy",     "ADMIN" },
 }
 
--- Debug channel: when true, first-sight unknown names print to console so we
--- can grow CATEGORY_KEYWORDS empirically. Set true in a dev build or via
--- ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_CATEGORIES = true at runtime.
+-- When true, each unknown option name prints once, so CATEGORY_KEYWORDS can
+-- grow from real play. Flip it in the game console:
+--   ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_CATEGORIES = true
 Registry.DEBUG_LOG_UNKNOWN_CATEGORIES = false
 Registry._loggedUnknowns = {}
 
@@ -159,7 +167,8 @@ local function firstWordOf(s)
 end
 
 -- True when the text holds a Chinese, Japanese or Korean character (code 0x2E80
--- and up), where one character is already a whole word.
+-- and up), where one character is already a whole word. Kahlua strings are
+-- Java strings, so byte() reads a whole character's code, not one UTF-8 byte.
 local function hasWideChar(s)
     for i = 1, #s do
         if string.byte(s, i) >= 0x2E80 then return true end
@@ -266,6 +275,9 @@ function Registry.exactCategories()
     return exact
 end
 
+-- The group an option's name sorts under: a whole known label first, then the
+-- player's language's group words, then the English keywords; ACTION when
+-- nothing matches.
 function Registry.categorize(optionName)
     if not optionName or optionName == "" then return "ACTION" end
     local lower = string.lower(optionName)
@@ -292,16 +304,17 @@ function Registry.categorize(optionName)
 end
 
 -- ============================================================================
--- ICON TEXTURE RESOLUTION (migrated from old Overrides/ContextMenu.lua)
+-- ICON TEXTURE RESOLUTION
 -- Vanilla options may already carry iconTexture or itemForTexture; otherwise
--- we look up option.name in ZeD.ContextIcons (which ships a large English-
--- keyed mapping to our SmashIcons PNG set). Translation keys are reverse-
--- resolved to display names so localized builds still match.
+-- option.name is looked up in ZeD.ContextIcons, a large English-keyed map to
+-- the SmashIcons PNG set. Translation keys are resolved to display names
+-- first, so the lookup works in every language.
 -- ============================================================================
 
--- A picture name drawn by ZeD's pixel icon (ZeD.ContextPxIcons, Oct 28 2026) gives its
--- 16 drawing and its id: the cell draws the id's drawing that fits its icon box, at its
--- own size (ZeD.Atoms.drawPxIcon). A name a mod adds keeps its picture from icons/.
+-- A picture name with a ZeD pixel icon (ZeD.ContextPxIcons) gives its texture
+-- for a 16 px box and its id: the cell draws the id's drawing that fits its
+-- icon box, at its own size (ZeD.Atoms.drawPxIcon). A name a mod adds keeps
+-- its picture from icons/.
 local _iconCache = {}
 local function getIconTexture(codepoint)
     if not codepoint then return nil end
@@ -313,22 +326,20 @@ local function getIconTexture(codepoint)
     return _iconCache[codepoint] or nil
 end
 
--- Exact-match cache: full option name (localized or raw) ? codepoint.
+-- Exact-match cache: full option name (localized or raw) -> codepoint.
 local _translatedNameCache = nil
--- First-word cache: leading word only ? codepoint. Used as fallback when the
--- option name has a dynamic suffix (e.g. "Read Doctor Magazine", "Repair
--- Baseball Bat", "Equip Shotgun") that the exact-match path would miss.
--- Vanilla composes many labels as `getText("ContextMenu_X") .. " " .. target`;
--- the leading word survives this composition and carries the action semantics.
+-- First-word cache: leading word only -> codepoint. The fallback for option
+-- names with a changing tail ("Read Doctor Magazine", "Repair Baseball Bat")
+-- that the exact-match path would miss. Vanilla composes many labels as
+-- getText("ContextMenu_X") .. " " .. target; the leading word survives that
+-- and carries the action.
 local _firstWordCache = nil
 
 local function _firstWord(s)
     if not s then return nil end
-    -- Plain-text search for a literal space. Previously used "%s" with the
-    -- plain=true flag, which made Lua look for the LITERAL two characters
-    -- '%' and 's' rather than the whitespace class ? find never matched and
-    -- _firstWord("Place Item") returned "Place Item" whole. (Confirmed from
-    -- the debug log: "first word: 'Place Item'" should have been "Place".)
+    -- A plain find for a literal space. With plain=true a "%s" pattern is the
+    -- two characters '%' and 's', not the whitespace class: it never matches,
+    -- and "Place Item" would come back whole.
     local sp = s:find(" ", 1, true)
     if sp then return s:sub(1, sp - 1) end
     return s
@@ -433,26 +444,18 @@ local function buildTranslatedCache()
     -- without a key).
     for name, cp in pairs(icons) do put(name, cp) end
 
-    -- Pass 2: build first-word index from the materialized exact-match cache.
-    -- Two-pass so translation-key resolutions (which only populate _translated-
-    -- NameCache above) also contribute their localized first words here.
-    -- Longer map keys win if multiple entries share a first word ? e.g.
-    -- "Equip Primary" and "Equip" both start with "Equip"; we want
-    -- "Equip Shotgun" ? first-word-fallback ? "Equip" (the generic verb), not
-    -- "Equip Primary" (a specific slot). Generic single-word entries naturally
-    -- win because a bare "Equip" key has first-word "Equip" with no competing
-    -- shorter candidate. For conflicts where both entries are multi-word, we
-    -- keep the first-seen (deterministic given Lua 5.1 table order is stable
-    -- within a session ? unordered across reloads, but every option name that
-    -- would fall back is a dynamic label anyway, so the icon picked is still
-    -- semantically "close enough").
+    -- Pass 2: the first-word index, built from the finished exact-match cache
+    -- so names resolved from translation keys contribute their localized
+    -- first words too. Only single-word entries go in: a bare "Equip" is the
+    -- answer for any "Equip <thing>" label, while a multi-word entry such as
+    -- "Equip Primary" stays out, so its leading word never claims labels that
+    -- belong to the bare verb.
     for name, cp in pairs(_translatedNameCache) do
         local fw = _firstWord(name)
         if fw and fw ~= name then
-            -- Multi-word map entry: don't pollute the first-word index with
-            -- its leading word. The bare single-word entry (if any) wins; if
-            -- there's no bare entry, no entry is the right answer (the user
-            -- hasn't expressed intent for that action).
+            -- A multi-word entry stays out of the first-word index: its
+            -- leading word must not claim other labels. With no bare entry,
+            -- no answer is the right answer.
         elseif fw then
             -- Single-word map entry: it IS the first-word answer.
             if _firstWordCache[fw] == nil then
@@ -462,10 +465,9 @@ local function buildTranslatedCache()
     end
 end
 
--- Debug toggle: when true, prints each unmatched option name once so we can
--- grow the map from real-play labels. Default ON during S103 icon-work cycle;
--- flip to false once the map is stable by running in the in-game console:
---   ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_ICONS = false
+-- When true, prints each unmatched option name once, so the icon map can grow
+-- from real play. Flip it in the game console:
+--   ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_ICONS = true
 Registry.DEBUG_LOG_UNKNOWN_ICONS = false
 Registry._loggedUnknownIcons = {}
 
@@ -483,11 +485,9 @@ local function resolveIconForName(optionName)
         if string.find(optionName, entry[1]) then return getIconTexture(entry[2]) end
     end
 
-    -- Prefix-word fallback for dynamic labels. "Read Doctor Magazine" ?
-    -- first word "Read" ? use the Read icon. Preserves the action's
-    -- semantic while tolerating vanilla's `verb + " " + target` composition.
-    -- Only triggers when the leading word is a distinct token (i.e. the
-    -- label has a space). Bare-word labels already took the exact path.
+    -- First-word fallback for labels with a changing tail: "Read Doctor
+    -- Magazine" -> first word "Read" -> the Read icon. Only labels with a
+    -- space get here; bare words already took the exact path.
     local fw = _firstWord(optionName)
     if fw and fw ~= optionName then
         cp = _firstWordCache and _firstWordCache[fw]
@@ -503,10 +503,12 @@ local function resolveIconForName(optionName)
     return nil
 end
 
+--- The icon for an option's name: its texture and, for a ZeD pixel icon, the
+--- icon's id; nil when the map has none.
 Registry.resolveIconForName = resolveIconForName
 
--- Forget what was read from the translations, so the next menu reads it again.
--- Call after a mod adds entries to ZeD.ContextIcons once menus are already open.
+--- Forget what was read from the translations, so the next menu reads it again.
+--- Call after a mod adds entries to ZeD.ContextIcons once menus are already open.
 function Registry.resetTranslatedCaches()
     _translatedNameCache = nil
     _firstWordCache = nil
@@ -545,25 +547,18 @@ end
 
 -- ============================================================================
 -- ACTIONDEF CONSTRUCTION
--- Walks ISContextMenu.options + .subMenus to build the tree format consumed
--- by ZeD_ContextMenu. See CONTEXT_MENU_SPEC ?6 for schema.
---
--- We PRESERVE a reference to the underlying vanilla option table so that:
---   - onSelect can dispatch through the original function
---   - onHighlight callbacks (the game's own outline on what an option acts on, and
---     some mods' server-side gating) can
---     still fire ? the organism calls vanillaRef.onHighlight on selection change
---   - notAvailable / isDisabled / badColor flags stay live if mods mutate them
+-- Walks ISContextMenu.options and their submenus to build the tree the ZeD
+-- menus render. An ActionDef: id, name, category, the icon fields, live
+-- disabled/stateKind/state functions, body (the balloon's text), onFire,
+-- children, and vanillaRef - the vanilla option table itself, kept so:
+--   - onFire can dispatch through the original onSelect
+--   - onHighlight callbacks (the game's own outline on what an option acts
+--     on, and some mods' server-side gating) still fire - the menus tell the
+--     game's menu through Registry.highlight on selection change
+--   - notAvailable / isDisabled / badColor flags stay live when mods mutate
+--     them after the menu is built
 -- ============================================================================
 
--- The row a menu of ours has selected, told to the game's menu: the game's own
--- checkHighlightedOption, so the option's onHighlight gets what the game gives it
--- (option, menu, on/off, its params), the last row is let go first, and the animal
--- rows that ask to be called every frame are. holder is the strip or the list; a nil
--- def lets go of whatever is lit (a menu closing must, or the outline stays on the
--- world object). A row of a submenu lives on that submenu's menu, so leaving one lets
--- the old menu go. (Nov 6 2026: this called onHighlight(option, true), so the object
--- came through nil: no outline in ZeD, and an exception on the rows that index it.)
 local function tellMenu(menu, opt)
     -- an option that throws while it is let go would stay held and every row after it
     -- would throw too: forget it and light the new one
@@ -573,6 +568,15 @@ local function tellMenu(menu, opt)
     end
 end
 
+--- The row a menu of ours has selected, told to the game's menu: the game's own
+--- checkHighlightedOption, so the option's onHighlight gets what the game gives
+--- it (option, menu, on/off, its params), the last row is let go first, and an
+--- animal row that asks to be called every frame gets those calls. Calling
+--- onHighlight(option, true) directly would hand the object through as nil: no
+--- outline, and an exception on the rows that index it. holder is the strip or
+--- the list; a nil def lets go of whatever is lit (a menu closing must, or the
+--- outline stays on the world object). A row of a submenu lives on that
+--- submenu's menu, so leaving one lets the old menu go.
 function Registry.highlight(holder, def)
     local opt = def and def.vanillaRef or nil
     local menu = opt and def._vanillaMenu or nil
@@ -593,6 +597,8 @@ end
 -- and the game's handler puts its lit option out. ZeD lights it again only at the next
 -- prerender, after the world has drawn, so the outline flickered while the mouse moved.
 -- While ZeD holds the menu its option stays lit; the rest of the game's handler still runs.
+-- (A Lua reload wraps the wrapper again; harmless, each layer only sets the lit option
+-- aside and puts it back.)
 require "ISUI/ISContextMenu"
 local origMoveOutside = ISContextMenu.onMouseMoveOutside
 function ISContextMenu:onMouseMoveOutside(dx, dy)
@@ -607,6 +613,7 @@ end
 -- their own open container. With ZeD's windows up those pages are hidden and their
 -- update never runs, so nothing would ever put that outline out: a page that isn't
 -- showing has nothing to light. (Safe mode's pages show, and go on as the game does.)
+-- (A Lua reload wraps it again; harmless, each layer asks the same question.)
 require "ISUI/ISInventoryPage"
 local origObjHl = ISInventoryPage.OnObjectHighlighted
 function ISInventoryPage.OnObjectHighlighted(playerNum, object, isHighlighted)
@@ -616,8 +623,8 @@ function ISInventoryPage.OnObjectHighlighted(playerNum, object, isHighlighted)
     end
 end
 
--- Derive a stable id from the option name. Collisions between sibling entries
--- resolve via "_<index>" suffix.
+-- A stable id from the option name; a name with nothing usable in it falls
+-- back to opt_<index>.
 local function idFromName(name, index)
     local base = (name or "opt"):lower():gsub("[^%w]+", "_"):gsub("_+", "_"):gsub("^_", ""):gsub("_$", "")
     if base == "" then base = "opt_" .. tostring(index) end
@@ -642,16 +649,14 @@ local function makeActionDef(option, index, vanillaMenu, target)
     def.name = option.name
     def.category = Registry.categorize(option.name)
     def.vanillaRef = option   -- for onHighlight / reactivity
-    -- S111: ZeD icon mapping takes priority. This gives semantically correct
-    -- action-icons (a needle for "Suture", a smoke icon for "Smoke", etc.)
-    -- instead of the item-bound sprite that vanilla ships via itemForTexture
-    -- (which was making every option on a cigarette pack show the cigarette-
-    -- pack sprite). Fall back to vanilla only if our map has no entry.
-    -- ZeD textures are pure-white-on-transparent alpha shapes, so the
-    -- renderer multiply-tints them to the cell's foreground color
-    -- (iconTintable=true). Vanilla iconTexture / itemForTexture textures are
-    -- already colored and must NOT be tinted ? collapsing an item sprite to
-    -- a single color would destroy it.
+    -- ZeD's icon map comes first: the action's own icon (a needle for
+    -- "Suture") instead of the item sprite vanilla ships via itemForTexture,
+    -- which put the cigarette-pack picture on every option of a cigarette
+    -- pack. Vanilla's texture is the fallback when the map has no entry.
+    -- ZeD textures are white-on-transparent shapes, so the renderer tints
+    -- them to the cell's foreground color (iconTintable = true). Vanilla's
+    -- iconTexture / itemForTexture are already colored and must not be
+    -- tinted: an item sprite collapsed to one color is destroyed.
     def.iconTexture, def.pxIcon = resolveIconForName(option.name)
     if def.iconTexture then
         def.iconTintable = true
@@ -663,8 +668,8 @@ local function makeActionDef(option, index, vanillaMenu, target)
         end
     end
 
-    -- An option ZeD adds may say more than vanilla's fields (Oct 29 2026, the
-    -- loadouts' Save to outfit / Save to loadout): zedPx = its pixel icon's id,
+    -- An option ZeD adds may say more than vanilla's fields (the loadouts'
+    -- Save to outfit / Save to loadout): zedPx = its pixel icon's id,
     -- zedCategory = its group (a rule between groups in the list look), zedCheck =
     -- a checkbox (true / false) in the icon's place in both looks.
     if option.zedPx and ZeD.PxIcon and ZeD.PxIcon.has(option.zedPx) then
@@ -673,21 +678,17 @@ local function makeActionDef(option, index, vanillaMenu, target)
     if option.zedCategory then def.category = option.zedCategory end
     if option.zedCheck ~= nil then def.check = option.zedCheck and true or false end
 
-    -- Live state functions ? captured-by-closure refs to option so flags can
-    -- mutate after menu construction (vanilla mods sometimes do this in
-    -- update-style callbacks)
+    -- Live state: these close over the option table, so a flag a mod flips
+    -- after the menu is built still reads true.
     def.disabled = function(_target)
         return option.isDisabled or option.notAvailable or false
     end
     def.stateKind = function(_target)
         if option.notAvailable or option.badColor then return "bad" else return "ok" end
     end
-    -- State row shows a REASON ? only populated when the action is gated.
-    -- For a green-lit action the balloon body already explains the outcome;
-    -- adding a redundant "? <tooltip>" here would just duplicate body text.
-    -- When disabled/notAvailable, the tooltip typically contains the reason
-    -- the option is gated (e.g. "Missing: Can Opener"), which is exactly
-    -- what the state row is for.
+    -- The state row is the reason an action is gated ("Missing: Can Opener"),
+    -- so it fills in only then. On a live action the balloon body already
+    -- says the outcome; the same tooltip twice would say nothing new.
     def.state = function(_target)
         local gated = option.isDisabled or option.notAvailable or option.badColor
         if gated and option.toolTip and option.toolTip.description then
@@ -696,10 +697,9 @@ local function makeActionDef(option, index, vanillaMenu, target)
         return ""
     end
 
-    -- Body text: ONLY use the tooltip description. If vanilla doesn't provide
-    -- one, leave body empty ? we deliberately do NOT fall back to the option
-    -- name because that duplicates the floating label (which already shows
-    -- the action name). The molecule collapses the body section when empty.
+    -- Body text comes from the tooltip description alone. With none the body
+    -- stays empty - never the option name, which the floating label already
+    -- shows. The molecule collapses an empty body section.
     if option.toolTip and option.toolTip.description then
         def.body = plainTip(option.toolTip.description)
     else
@@ -723,14 +723,12 @@ local function makeActionDef(option, index, vanillaMenu, target)
             params[6], params[7], params[8], params[9], params[10])
     end
 
-    -- Recurse into submenus (max 2 deep per spec ? but we don't enforce here;
-    -- the organism flattens display via "path" state).
-    --
-    -- S99 FIX: vanilla stores submenus in `instanceMap`, reached via
-    -- `:getSubMenu(num)` (see ISContextMenu.lua:1225). We were reading a
-    -- non-existent `.subMenus` field, so every drill-in saw empty children
-    -- and hit the leaf path ? the menu closed instead of drilling in.
-    def.subOption   = option.subOption   -- preserve for lazy re-populate below
+    -- Recurse into submenus. Depth is not capped here; the organism shows one
+    -- level at a time through its path state. Vanilla keeps submenus in
+    -- instanceMap, reached by :getSubMenu(num) (ISContextMenu.lua:1225);
+    -- there is no .subMenus field to read - a drill-in that looks for one
+    -- sees no children and the menu closes as a leaf.
+    def.subOption   = option.subOption   -- kept for the lazy drill-in (Registry._makeActionDef, below)
     def._vanillaMenu = vanillaMenu
     if option.subOption and vanillaMenu and vanillaMenu.getSubMenu then
         local ok, sub = pcall(function() return vanillaMenu:getSubMenu(option.subOption) end)
@@ -745,16 +743,16 @@ local function makeActionDef(option, index, vanillaMenu, target)
     return def
 end
 
--- Export for lazy-drill-in path in ZeD_ContextMenu:confirm ? some mods
--- populate submenus only on hover via `option.onSubMenu`, so the build-time
--- snapshot may miss children that only materialize when the user drills in.
+--- The lazy drill-in path (ZeD_ContextMenu:confirm, ZeD_ContextList): some
+--- mods fill a submenu only on hover, through option.onSubMenu, so the
+--- build-time snapshot can miss children that appear when the player drills in.
 Registry._makeActionDef = makeActionDef
 
--- Names of submenus we flatten into the parent list. Vanilla uses "More" as
--- an overflow bucket for inventory actions (Rename, Show Build Recipes Used,
--- etc.) so the main menu doesn't get long. ZeD's strip handles overflow via
--- truncation + visual carousel ? the extra drill level is just friction.
--- Promote those children to the top-level at the parent's position.
+-- Names of submenus flattened into the parent list. Vanilla buckets overflow
+-- inventory actions (Rename, Show Build Recipes Used...) under "More" so its
+-- menu stays short. ZeD's strip carries overflow itself, so the extra drill
+-- level is pure friction: those children are promoted to the top level at
+-- the parent's position.
 local FLATTEN_NAMES = {}
 local function rememberFlattenName(key)
     FLATTEN_NAMES[key] = true
@@ -764,7 +762,7 @@ local function rememberFlattenName(key)
     end
 end
 rememberFlattenName("ContextMenu_More")
-FLATTEN_NAMES["More"] = true   -- belt-and-suspenders for unlocalized fallback
+FLATTEN_NAMES["More"] = true   -- the English word too, should the key's text be missing
 
 -- Returns true if name reads as a "More"-style overflow label, tolerating
 -- trailing dots / ellipses / whitespace and localized forms (registered via
@@ -777,12 +775,11 @@ local function looksLikeMore(name)
     return s == "more"
 end
 
--- Walks a tree once. When it sees an entry whose name looks like "More", one
--- of two things happens:
---   - has children ? splice children into the parent list at its position
---   - no children  ? just remove the orphan entry (vanilla sometimes leaves a
---                    "More" stub with nothing underneath; it's pure noise)
--- Operates in place. Recurses into every surviving entry with children.
+-- Walks a tree once, in place. An entry whose name reads as "More":
+--   - with children: they are spliced into the parent list at its position
+--   - without: the entry goes (vanilla sometimes leaves a "More" stub with
+--     nothing underneath)
+-- Recurses into every surviving entry with children.
 local function flattenMoreSubmenus(list)
     if not list then return end
     local i = 1
@@ -799,9 +796,9 @@ local function flattenMoreSubmenus(list)
                 for j = 1, #children do
                     table.insert(list, i + j - 1, children[j])
                 end
-                -- DON'T increment i ? re-evaluate the freshly-inserted entries
+                -- i stays put: the freshly spliced entries get looked at too
             else
-                -- Orphan "More" with no children ? just drop it.
+                -- an orphan "More" with no children goes
                 table.remove(list, i)
             end
         else
@@ -810,10 +807,10 @@ local function flattenMoreSubmenus(list)
     end
 end
 
--- Build the full top-level ActionDef array from a vanilla ISContextMenu.
--- options:     vanillaMenu.options (array, 1-based)
--- target:      the world object(s) or inventory item(s) the menu is acting on
--- vanillaMenu: the ISContextMenu instance (needed for subMenus table)
+--- Builds the top-level ActionDef array from a vanilla ISContextMenu.
+--- options:     vanillaMenu.options (array, 1-based)
+--- target:      the world object(s) or inventory item(s) the menu acts on
+--- vanillaMenu: the ISContextMenu instance (its getSubMenu reaches the submenus)
 function Registry.buildActionsFromVanilla(options, target, vanillaMenu)
     local tree = {}
     if not options then return tree end
@@ -825,10 +822,11 @@ function Registry.buildActionsFromVanilla(options, target, vanillaMenu)
 end
 
 -- ============================================================================
--- PINNED ACTION PERSISTENCE
--- Stored per-character in ModData under key "ZeD_PinnedContextIds".
--- Structure: { ["eat"] = true, ["disassemble"] = true, ... }
--- Match on ActionDef.id which derives from the English option name.
+-- PINNED ACTIONS
+-- Kept in player 0's ModData under "ZeD_PinnedContextIds", as
+-- { ["eat"] = true, ["disassemble"] = true, ... }. Matching is on
+-- ActionDef.id, which derives from the option name as the player's language
+-- writes it, so pins do not carry across languages.
 -- ============================================================================
 
 local function getPinsModData()
@@ -841,6 +839,7 @@ local function getPinsModData()
     return md.ZeD_PinnedContextIds
 end
 
+--- The pinned ids ({ id = true }), straight from ModData.
 function Registry.getPinnedIds()
     return getPinsModData() or {}
 end
@@ -856,12 +855,11 @@ function Registry.togglePin(actionId)
     if pins[actionId] then pins[actionId] = nil else pins[actionId] = true end
 end
 
--- Apply pins to a tree: hoist pinned actions to the front of their category.
--- Mutates the tree in place. Also stamps def.pinned = true on each pinned
--- entry so the cell can render the pin indicator without re-querying.
--- Sort is stable per-category (Lua's table.sort isn't stable, so we use a
--- deliberate two-pass reordering: pinned first preserving input order, then
--- unpinned preserving input order).
+--- Applies pins to a tree, in place: the tree comes back grouped in category
+--- order, pinned actions first within their category, each stamped
+--- def.pinned = true so the cell can draw the pin mark without asking again.
+--- Lua's table.sort is not stable, so the order comes from buckets instead:
+--- pinned in input order, then the rest in input order.
 function Registry.applyPins(tree, _target)
     local pins = getPinsModData() or {}
     -- Mark pinned flags first
@@ -898,9 +896,9 @@ function Registry.applyPins(tree, _target)
 end
 
 -- ============================================================================
--- META FORMATTERS ? fills the target card's meta slot.
--- Returns a short string for the item type, or "" if nothing meaningful.
--- Ordered by specificity: most specific check first.
+-- META FORMATTERS - the target card's meta line.
+-- A short string for the item type, or "" when nothing is worth saying.
+-- Checked most specific first.
 -- ============================================================================
 
 local function safeCall(obj, method, ...)
@@ -994,15 +992,15 @@ local function formatLiteratureMeta(item)
     return nil
 end
 
--- Detect a Java ArrayList (world-RMB target: ArrayList<IsoObject>). Java
--- userdata in Kahlua exposes .size() + .get(i) ? that's our signature.
+-- A Java ArrayList (a world right-click's target: ArrayList<IsoObject>).
+-- Java userdata in Kahlua exposes .size() and .get(i); that pair is the test.
 local function isJavaList(v)
     return type(v) == "userdata" and v.size ~= nil and v.get ~= nil
 end
 
--- Unwrap the user's inventory-selection table to the first InventoryItem.
--- Inventory RMB sends either { item1, item2, ... } or an ISInventoryPane-style
--- wrapper { items = { item1, ... }, ... } ? handle both.
+-- The first InventoryItem of an inventory selection. An inventory right-click
+-- sends either { item1, item2, ... } or an ISInventoryPane-style wrapper
+-- { items = { item1, ... }, ... }; both are read.
 local function firstInventoryItem(t)
     if type(t) ~= "table" then return nil end
     local first = t[1]
@@ -1012,19 +1010,21 @@ local function firstInventoryItem(t)
     return first
 end
 
--- Dispatch by duck-typing (instanceof is expensive; we probe method presence)
+--- The target card's meta line for a menu target. Dispatches by probing for
+--- methods rather than instanceof, which is the dearer check; only a weapon's
+--- condition asks instanceof.
 function Registry.getMetaFor(target)
     if not target then return "" end
-    -- World RMB (Java ArrayList of IsoObjects) ? no item-style meta applies.
-    -- The target card shows the object name instead; meta stays empty.
+    -- a world right-click (a Java ArrayList): no item meta applies - the
+    -- target card shows the object's name and the meta stays empty
     if isJavaList(target) then return "" end
-    -- Inventory RMB ? unwrap and probe the first selected item
+    -- an inventory right-click: the first selected item speaks for the selection
     local item = target
     if type(target) == "table" then
         item = firstInventoryItem(target) or item
     end
     if type(item) ~= "userdata" and type(item) ~= "table" then return "" end
-    -- Try in order of specificity
+    -- most specific first
     local m = formatFluidMeta(item)
     if m then return m end
     m = formatLiteratureMeta(item)
@@ -1038,14 +1038,14 @@ function Registry.getMetaFor(target)
     return ""
 end
 
--- Given a Java ArrayList of IsoObjects from a world RMB, pick the most
--- meaningful object to display on the target card. Priority order:
---   1. IsoGameCharacter (player, zombie, animal, NPC) ? identified by the
+-- The most telling object of a world right-click's ArrayList, for the target
+-- card. In order:
+--   1. a character (player, zombie, animal, NPC) - anything with the
 --      getDescriptor method
---   2. Named world objects (doors, windows, vehicles, containers) ? anything
---      whose getName()/getObjectName() returns a non-empty, non-placeholder
---   3. Any IsoDeadBody
--- Falls back to {nil, nil} ? caller uses "Ground" default.
+--   2. a named world object (door, window, vehicle, container) - a
+--      getName()/getObjectName() that is non-empty and no placeholder
+--   3. any IsoDeadBody
+-- Nothing fits: returns nil, and the caller shows the floor.
 local function pickWorldObject(list)
     if not isJavaList(list) then return nil end
     local sz = 0
@@ -1070,7 +1070,7 @@ local function pickWorldObject(list)
             end
         end
     end
-    -- Pass 3: corpses (getCorpse / isCorpse flags vary; just check class name)
+    -- Pass 3: corpses, by class name (the getCorpse / isCorpse flags vary)
     for i = 0, sz - 1 do
         local obj = list:get(i)
         if obj then
@@ -1084,13 +1084,13 @@ local function pickWorldObject(list)
     return nil
 end
 
--- Name + icon for the target card.
---   - Inventory RMB ? first selected item's display name + its texture
---   - World RMB     ? first significant world object, else "Ground"
+--- Name and icon for the target card.
+---   - an inventory right-click: the first selected item's name and texture
+---   - a world right-click: the first telling world object, else the floor
 function Registry.getTargetDisplay(target)
     if not target then return "", nil end
 
-    -- World RMB (Java ArrayList)
+    -- a world right-click (a Java ArrayList)
     if isJavaList(target) then
         local obj, name = pickWorldObject(target)
         if obj and name then
@@ -1100,7 +1100,7 @@ function Registry.getTargetDisplay(target)
         return ZeD.tr("IGUI_ContainerTitle_floor"), nil
     end
 
-    -- Inventory RMB (Lua table)
+    -- an inventory right-click (a Lua table)
     if type(target) == "table" then
         local item = firstInventoryItem(target)
         if item then
@@ -1112,7 +1112,7 @@ function Registry.getTargetDisplay(target)
         return ZeD.tr("UI_ZeD_Target_Selection"), nil
     end
 
-    -- Single userdata object (rare path ? direct IsoObject)
+    -- a single userdata object (the rare direct IsoObject)
     if type(target) == "userdata" then
         local name = safeCall(target, "getDisplayName") or safeCall(target, "getName")
         if name and name ~= "" then
@@ -1124,7 +1124,6 @@ function Registry.getTargetDisplay(target)
     return "", nil
 end
 
--- Expose
 ZeD.ContextMenu.Registry = Registry
 
 return Registry

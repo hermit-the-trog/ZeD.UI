@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Belt.lua
 -- ============================================================================
--- HANDS + HOTBAR — HOOK_MAP rows 5 + 6 (the belt, ZeD_Belt.lua)
+-- HANDS + HOTBAR (override, client): vanilla's hotbar and hand slots become
+-- the belt (ZeD_Belt.lua).
 --
 -- * ISHotbar keeps running as the data model (slots, attachments, clothing
 --   refresh, the number keys) but no longer draws: its render / prerender are
@@ -8,7 +9,8 @@
 -- * Holding a hotbar key opens the slot's list (ZeD.Belt.slotMenu, a context
 --   menu above the slot) instead of vanilla's radial; the release that ends
 --   the hold does not then draw the item.
--- * D-pad Left (vanilla's weapon wheel) focuses the belt on a controller.
+-- * D-pad Left (vanilla's weapon wheel) opens ZeD's Character wheel
+--   (ZeD_DpadWheels.lua), whose Weapons slice covers the belt's weapons.
 -- * The vanilla left-edge column loses its hand slots (the belt shows the
 --   hands); in single player without -debug the column itself goes once only
 --   ZeD's replaced parts are left on it, since its window buttons were already
@@ -21,6 +23,8 @@
 --   hotbar methods (kept in ZeD.Safe._originals.ISHotbar) and its place on the
 --   screen, the hand slots and the column, vanilla's hold-a-key radial and
 --   D-pad Left; the belt hides.
+-- The hooks keep vanilla's functions once (ZeD.Safe._originals and the
+-- _zedBelt flags), so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/ZeD_Belt"
@@ -69,7 +73,8 @@ end
 -- vanilla's Debug button under forceEnable) is not ours to hide.
 local COLUMN_OWN = { "mainHand", "offHand", "invBtn", "healthBtn", "craftingBtn", "buildBtn",
     "movableBtn", "searchBtn", "zoneBtn", "mapBtn", "movableTooltip", "movablePopup", "metaPopup", "mapPopup" }
--- on a server, the column's buttons ZeD's multiplayer surfaces replace (MP_DECISIONS.md)
+-- on a server, the column's buttons ZeD's multiplayer surfaces replace (the
+-- PvP marker, the Server and Admin tabs)
 local MP_OWN = { "safetyBtn", "radialIcon", "clientBtn", "adminBtn" }
 -- frames the column waits before deciding, so other mods' hooks have added theirs
 local COLUMN_SETTLE = 30
@@ -158,7 +163,7 @@ local function parkHotbar()
     local O = ZeD.Safe._originals
     if ISHotbar._zedBelt then
         -- another mod set its own hotbar drawing after ours (Reorder The Hotbar does, on OnLoad, on
-        -- purpose; Oct 24 2026; the hotbar stayed off screen, but its drawing ran): its methods
+        -- purpose; the hotbar stayed off screen, but its drawing ran): its methods
         -- become the ones safe mode gives back, and the belt parks the hotbar again
         local moved = false
         for _, k in ipairs({ "render", "prerender", "setSizeAndPosition" }) do
@@ -188,7 +193,7 @@ end
 
 local function apply()
     if not ZeD.Safe.on("belt") then parkHotbar() end
-    -- (D-pad Left was the belt's way in until Oct 23 2026; it is the Character
+    -- (D-pad Left once focused the belt; it opens the Character
     -- wheel now, ZeD_DpadWheels.lua, whose Weapons slice covers the belt's
     -- weapons. That file also keeps a stray Left with a window open in the window.)
     if ISEquippedItem and not ISEquippedItem._zedBelt then
@@ -237,7 +242,7 @@ local function apply()
         local origPre = ISEquippedItem.prerender
         function ISEquippedItem:prerender()
             -- on a server the game's prerender paints its safety button's background and countdown on the column
-            -- itself, so hiding the button leaves them: a blank white square at the left edge (QA Nov 5 2026). Those
+            -- itself, so hiding the button leaves them: a blank white square at the left edge. Those
             -- two draws are skipped while ZeD's PvP marker holds the job; everything else passes through.
             if isClient() and not self._zedSafetyDraws then
                 self._zedSafetyDraws = true
@@ -254,7 +259,7 @@ local function apply()
             origPre(self)
             if ZeD.Safe.on("belt") or inTutorial() then return end
             -- on a server: the game's Safety (and its countdown), Client and Admin buttons hide, as ZeD's PvP
-            -- marker, Server tab and Admin tab hold them (QA Nov 5 2026: they still showed at the top left)
+            -- marker, Server tab and Admin tab hold them (without this they stayed at the top left)
             if isClient() then
                 for _, k in ipairs(MP_OWN) do
                     local b = self[k]

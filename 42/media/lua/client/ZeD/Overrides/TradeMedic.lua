@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/TradeMedic.lua
 -- ============================================================================
--- TRADING AND THE MEDICAL CHECK OF ANOTHER PLAYER — HOOK_MAP rows 17 and 18b (the director,
--- Nov 7 2026: B10 and B11, both World window cards)
+-- TRADING AND THE MEDICAL CHECK OF ANOTHER PLAYER (override, client)
+-- Both of these vanilla windows become World window cards.
 --
 -- Trade (multiplayer; the game offers it on a server only):
 --   ISWorldObjectContextMenu.onTrade        Trade with <name>: ZeD's trade card, blocked until they
@@ -19,7 +19,8 @@
 --                                           in place of vanilla's health panel window, and the doctor
 --                                           receives the patient's body as vanilla's perform does
 -- Vanilla runs whenever ZeD declines: safe mode or the World window given back, the World window open
--- for another split-screen player, or a card that cannot open.
+-- for another split-screen player, or a card that cannot open. Each hook sits behind a _zed*Hooked
+-- flag, so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/WriteNote.lua
 -- ============================================================================
--- NOTEBOOK HOOK (HOOK_MAP row 24) — vanilla's Write / Read note on a notebook,
+-- NOTEBOOK HOOK (override, client) — vanilla's Write / Read note on a notebook,
 -- journal or diary is ISWriteSomething: a timed action whose start() builds an
 -- ISUIWriteJournal window and runs until that window closes. For the length of
 -- that one start(), ISUIWriteJournal.new hands back ZeD's reader on the
@@ -8,7 +8,8 @@
 -- vanilla's: the action, its light and pencil rules, the animation and sounds,
 -- the modal's addToUIManager and controller focus, its stop and perform
 -- closing the window. Vanilla's window is used only if the reader cannot open,
--- or while ZeD's safe mode is on.
+-- or while ZeD's safe mode is on. The vanilla start is kept once
+-- (_zedOrigStart), so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "TimedActions/ISWriteSomething"

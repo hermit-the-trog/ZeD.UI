@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/TrailerAnimals.lua
 -- ============================================================================
--- ANIMAL TRAILER HOOK — HOOK_MAP row 23
+-- ANIMAL TRAILER HOOK (override, client)
 -- Vanilla's "Check Animal(s) in Trailer" (the world menu and the vehicle
 -- wheel) walks to the back of the trailer, then ISCheckAnimalInsideTrailer
 -- opens ISVehicleAnimalUI. ZeD opens the Vehicle tab on the trailer instead,
@@ -14,7 +14,8 @@
 --     only thing to load (doAnimalSubMenu never counted it); it now stays.
 --
 -- While safe mode is on (SafeMode.lua) all of it is vanilla's again, the two
--- bugs included.
+-- bugs included. The hooks sit behind _zed*Hooked flags, so a Lua reload
+-- never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

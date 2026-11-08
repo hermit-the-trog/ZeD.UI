@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModSettings.lua
 -- ============================================================================
--- A MOD'S OWN SETTINGS FOR ITS INFO PANE (director, Oct 24 2026: "can the mod
--- manager also show a mods individual settings in that mods info when selected
--- from the list of mods?"; mockup zed_mods_settings_picks_v1, approved)
+-- A MOD'S OWN SETTINGS FOR ITS INFO PANE. Client; a data module the Mods
+-- screen reads: when a mod is selected in the list, its info pane shows the
+-- mod's own options and sandbox settings, read through here.
 --
 -- OPTIONS: the mod's PZAPI.ModOptions (which mod made which: shared/ZeD/
 -- ModOptionsOwners.lua). Vanilla's Options builds a control for every option on
@@ -20,11 +20,16 @@
 -- own translation file (the player's language, else English).
 --
 --   S.optionRows(modId)   { sections = { { title, entries } }, count }
+--   S.count(modId)        how many options (0 while the mod is off)
 --   S.apply(entry)        keep one row's value (after its control changed)
 --   S.defaults(modId)     every option back to the value the mod declared
+--   S.offDefault(modId)   does any option differ from its declared value?
 --   S.sig(r)              a row's value as a short string (the changed dot)
 --   S.help(entry)         the row's help text, plain
+--   S.defaultText(entry)  the row's default as words
 --   S.sandbox(modId)      { list = { setting, ... }, pages = { name, ... } } or nil
+--   S.sandboxCount(modId) how many sandbox settings it adds
+--   S.readLines(modId, path)  a file inside a mod as lines (ZeD picks, mod resets)
 --   S.reset()             forget what was read (the Mods screen opens)
 -- ============================================================================
 require "ZeD/ZeD_MainMenuOptions"
@@ -59,6 +64,9 @@ end
 
 local SKIP_TYPE = { title = true, description = true, separator = true }
 
+--- A mod's options as the info pane lists them: { sections = { { title,
+--- entries } }, count }. An entry is a header, a note, or an option with the
+--- Options window's row behind it (entry.r), in the order the mod declared them.
 function S.optionRows(modId)
     local out = { sections = {}, count = 0 }
     if not (OW and PZAPI and PZAPI.ModOptions) then return out end
@@ -90,7 +98,7 @@ function S.optionRows(modId)
     return out
 end
 
--- how many options a mod has (0 for a mod that is off: its code never ran)
+--- How many options a mod has (0 for a mod that is off: its code never ran).
 function S.count(modId)
     local n = 0
     for _, options in ipairs(OW and OW.forMod(modId) or {}) do
@@ -99,7 +107,8 @@ function S.count(modId)
     return n
 end
 
--- the value of a row, as the Options window's changed dot compares it
+--- The value of a row as a short string, as the Options window's changed dot
+--- compares it.
 function S.sig(r)
     local c = r and r.control
     if not c then return nil end
@@ -116,7 +125,8 @@ function S.sig(r)
     return nil
 end
 
--- keep one row: vanilla's apply for its control, the mod's own apply, the save
+--- Keep one row's value after its control changed: vanilla's apply for its
+--- control, the mod's own apply, the save.
 function S.apply(entry)
     local r = entry and entry.r
     if r and r.opt and r.opt.apply then pcall(r.opt.apply, r.opt) end
@@ -127,7 +137,8 @@ function S.apply(entry)
     if o and o.gameOptions then o.gameOptions.changed = false end
 end
 
--- every option of a mod back to the value it declared (keys stay: the Options window sets those)
+--- Every option of a mod back to the value it declared (keys stay: the Options
+--- window sets those). Returns whether anything changed.
 function S.defaults(modId)
     local any = false
     for _, options in ipairs(OW and OW.forMod(modId) or {}) do
@@ -157,7 +168,7 @@ function S.defaults(modId)
     return any
 end
 
--- whether any option of a mod differs from the value it declared
+--- Does any option of a mod differ from the value it declared?
 function S.offDefault(modId)
     for _, options in ipairs(OW and OW.forMod(modId) or {}) do
         for _, opt in ipairs(options.data or {}) do
@@ -176,7 +187,7 @@ function S.offDefault(modId)
     return false
 end
 
--- the default as words (the help band's column)
+--- The default as words (the help band's column), nil when there is none.
 function S.defaultText(entry)
     local opt, options = entry.option, entry.options
     local d = OW and OW.default(options.modOptionsID, opt.id)
@@ -189,6 +200,7 @@ function S.defaultText(entry)
     return nil
 end
 
+--- A row's help text, plain (its option's tooltip, else its control's), or nil.
 function S.help(entry)
     local t = entry.option and entry.option.tooltip
     if t and t ~= "" then return plain(getText(t)) end
@@ -203,6 +215,7 @@ end
 local sb = {}      -- modId -> parsed (false: none)
 local trs = {}     -- modId -> { key -> text } from its own files
 
+--- A file inside a mod as an array of lines (nil when it is not there).
 local function readLines(modId, path)
     local r = safe(function() return getModFileReader(modId, path, false) end)
     if not r then return nil end
@@ -293,6 +306,11 @@ local function parse(modId)
     return out
 end
 
+--- A mod's sandbox settings, parsed once: { list = { setting, ... },
+--- pages = { name, ... } }, or nil for a mod that adds none. A setting is
+--- { name, label, tooltip, type, page } with its default: `on` for a boolean,
+--- `value` (the option's words) and `count` for an enum, else `value` and,
+--- when the file gives a min or max, `range = { min, max }`.
 function S.sandbox(modId)
     if sb[modId] == nil then
         local ok, r = pcall(parse, modId)
@@ -301,11 +319,13 @@ function S.sandbox(modId)
     return sb[modId] or nil
 end
 
+--- How many sandbox settings a mod adds.
 function S.sandboxCount(modId)
     local s = S.sandbox(modId)
     return s and #s.list or 0
 end
 
+--- Forget everything read (the Mods screen opens).
 function S.reset()
     sb, trs = {}, {}
     cache.rows, cache.at = nil, -1e9

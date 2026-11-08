@@ -1,35 +1,33 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ContainerControls.lua
 -- ============================================================================
--- CONTAINER BUTTONS — vanilla B42's row of container controls in the ZeD
--- windows (mockup ZeDUI/mockups/zed_container_controls_v1.html, built
--- Oct 16 2026; v2 Oct 16 2026: zed_container_controls_v2.html). One row at
--- the bottom of each window's list ("less noise down there"; the director
--- tried the container's own actions in the heading and kept them here:
--- "bottom row works best"). Common actions are icons that name themselves
--- in a hover hint, the unique ones are words. For the container on show:
+-- CONTAINER BUTTONS (client) — vanilla B42's row of container controls in
+-- the ZeD windows. One row at the bottom of each window's list: the
+-- container's own actions were tried in the window's heading and kept down
+-- here, where they make less noise. Common actions are icons that name
+-- themselves in a hover hint, the unique ones are words. For the container
+-- on show:
 --   Character window (your side), bottom row: Transfer all | Same type |
---     Same type, all nearby (icons)
+--     Same type, all nearby (icons), then after a divider any buttons mods add
 --   World window (the other side), bottom row: Take all | Same type |
 --     To floor (not on the floor) (icons), then after a divider the
 --     container's own buttons, vanilla's object controls, words first then
---     icons (a stove's
---     power and settings, a washer's switch, a mannequin's Wear all / Switch
---     outfits, a car trunk's Close trunk / lock, a campfire's Take apart /
---     light / add fuel / put out, a propane barbecue's tank and switch,
---     buttons other mods register) and a trash can's Delete all (the bin),
---     whose question takes over the bottom row.
+--     icons (a stove's power and settings, a washer's switch, a mannequin's
+--     Wear all / Switch outfits, a car trunk's Close trunk / lock, a
+--     campfire's Take apart / light / add fuel / put out, a propane
+--     barbecue's tank and switch, buttons other mods register) and a trash
+--     can's Delete all (the bin), whose question takes over the bottom row.
 -- The moves keep vanilla's rules (ISInventoryPane:lootAll / transferAll and
 -- the same-type handlers' item tables) but aim at the containers the ZeD
--- windows show, never at vanilla's parked pages. Items go through vanilla's
--- transfer action, or ZeD's floor path (InventoryRenderer.handleDrop's rules).
+-- windows show, never at vanilla's own pages hidden behind them. Items go
+-- through vanilla's transfer action, or ZeD's floor path
+-- (InventoryRenderer.handleDrop's rules).
 -- The container's own buttons are vanilla's handler classes
 -- (ISLootWindowContainerControls_HandlerList) run with a small stand-in for
 -- vanilla's loot window, so their visibility rules stay vanilla's. Light and
 -- Add fuel open the fire card on its own lists instead of a context menu.
 -- A washer, a dryer or a washer-dryer gets one button, the gears, that opens
--- its face card (ObjectCardLaundry, Oct 30 2026) in place of vanilla's
--- laundry buttons; ZeD.ObjectCardLaundry.useFace is the one switch back to
--- the plain ones (punch list 17).
+-- its face card (ObjectCardLaundry) in place of vanilla's laundry buttons;
+-- ZeD.ObjectCardLaundry.useFace is the one switch back to the plain ones.
 -- A mod that puts buttons straight onto the game's inventory page (not in the
 -- handler lists) gets them here through CT.addProvider, called from its
 -- ModSupport file (Easy Drop'n'Loot: ModSupport/KADropnLoot.lua).
@@ -98,9 +96,9 @@ local VANILLA = {
     ISLootWindowObjectControlHandler_AddCorpseToCampfire           = "ContextMenu_AddCorpse",
 }
 -- vanilla's object controls many objects share draw as icons (ZeD's pixel
--- icons, ZeD.PxIcon: the wheels' style, Oct 27 2026); the rest stay words
--- (director, Oct 16 2026: "can common actions be an icon, and unique actions be
--- text?" ... "hover hints where it matters")
+-- icons, ZeD.PxIcon, the wheels' style); the rest stay words. The rule: a
+-- common action is an icon that names itself in a hover hint, a unique
+-- action is text.
 local VANILLA_ICON = {
     ISLootWindowObjectControlHandler_StoveToggle                  = "power",
     ISLootWindowObjectControlHandler_ClothingWasherToggle         = "power",
@@ -196,6 +194,9 @@ end
 -- ----------------------------------------------------------------------------
 -- MOVING (vanilla's ISInventoryPane:transferItemsByWeight, with ZeD's floor)
 -- ----------------------------------------------------------------------------
+--- Moves items into dest, each by vanilla's transfer action; dest = the floor
+--- drops them instead (favourites stay put). A container whose gate refuses
+--- things takes nothing.
 function CT.moveItems(playerObj, items, dest)
     if not (playerObj and dest and items and #items > 0) then return end
     -- a mod's gate refuses things into this container (ContainerGates.lua: never searched)
@@ -270,8 +271,8 @@ local function transferAllItems(playerObj, src, dest)
     return items
 end
 
--- The same two moves from outside the windows (a container's world menu, an
--- item's menu with a controller). Walks to a container first, as vanilla does.
+--- The same two moves from outside the windows (a container's world menu, an
+--- item's menu with a controller). Walks to a container first, as vanilla does.
 function CT.takeAll(playerObj, src, dest)
     if not (playerObj and src) then return end
     dest = dest or playerObj:getInventory()
@@ -284,6 +285,7 @@ function CT.takeAll(playerObj, src, dest)
     CT.moveItems(playerObj, items, dest)
 end
 
+--- Transfer all from src into dest (walks to dest first unless it is the floor).
 function CT.transferAll(playerObj, src, dest)
     if not (playerObj and src and dest) then return end
     if not isFloor(dest) and not luautils.walkToContainer(dest, playerObj:getPlayerNum()) then return end
@@ -338,7 +340,7 @@ end
 
 -- The other side's container: what the other ZeD window shows. Your side's
 -- moves need the World window open on one container; the World window's
--- take into the Character window's container, else your inventory.
+-- moves go into the Character window's container, else your inventory.
 local function otherInventory(content)
     if content._ccSide == "char" then
         local ww = worldWindow()
@@ -516,14 +518,16 @@ end
 --   side    "char" (your side's row) or "world" (the World window's row)
 --   inv     the container this row is for, other the container on the other
 --           side (nil when that window shows none)
---   returns a list of specs, or nil: { id, label, enabled, help, run(content, hit) }
---           (help is the footer's line while the pointer rests on the button).
+--   returns a list of specs, or nil: { id, label, enabled, help, run(content, hit), primary }
+--           (help is the footer's line while the pointer rests on the button;
+--           primary = true draws it as the main button).
 -- Specs become words after the divider, with the container's own buttons.
 -- Called when the row is rebuilt (every REFRESH frames, sooner when items change),
 -- inside pcall, so a provider that fails costs its buttons, never the row.
 -- ----------------------------------------------------------------------------
 CT.providers = CT.providers or {}
 
+--- Registers a mod's button provider (the banner above has the contract).
 function CT.addProvider(id, fn)
     for _, p in ipairs(CT.providers) do
         if p.id == id then p.fn = fn; return end   -- registered again (a reload): replace
@@ -544,7 +548,7 @@ local function addProviderSpecs(list, side, content, inv, other)
     return list
 end
 
--- the controller's marked rows of a list (punch list 44), nil without any, and the set the band washes
+-- the controller's marked rows of a list, nil without any, and the set the band washes
 local function markedOf(content)
     local R = ZeD.InventoryRenderer
     return R and R.padMarkedAll and R.padMarkedAll(content) or nil
@@ -562,7 +566,7 @@ local function buildChar(content)
     local moves = {}
     local marked = markedOf(content)
     if marked then
-        -- the controller's marks (punch list 44): with rows marked, the move is of the marked rows only
+        -- the controller's marks: with rows marked, the move is of the marked rows only
         local toFloor = dest ~= nil and isFloor(dest)
         moves[#moves + 1] = { id = "xfer", label = ZeD.tr(toFloor and "UI_ZeD_Controls_DropMarked" or "UI_ZeD_Controls_MoveMarked"),
             enabled = dest ~= nil, marks = markedSet(marked),
@@ -611,7 +615,7 @@ local function buildWorld(content)
     local moves = {}
     local marked = markedOf(content)
     if marked then
-        -- the controller's marks (punch list 44): with rows marked, Take takes the marked rows only
+        -- the controller's marks: with rows marked, Take takes the marked rows only
         moves[#moves + 1] = { id = "take", label = ZeD.tr("UI_ZeD_Controls_TakeMarked"), enabled = true, marks = markedSet(marked),
             icon = "tray_in", hint = ZeD.tr("UI_ZeD_Controls_HintTakeMarked", #marked),
             run = function(ct)
@@ -730,14 +734,14 @@ local function refresh(content)
     local cc = content._cc
     cc.tick = (cc.tick or 0) + 1
     local other = otherInventory(content)
-    -- (the containers and their sizes compared as they are: a string of them built every frame cost two
-    -- Java toString calls; Oct 22 2026, the drawing-cost work)
+    -- (the containers and their sizes compared as they are: a signature string
+    -- built every frame cost two Java toString calls)
     local inv = content._inventory
     local n1, n2 = sizeOf(inv), sizeOf(other)
     -- (a mod's gate on either side: the row is built again when what it says changes)
     local g1, g2 = gateMode(inv, content._playerObj), gateMode(other, content._playerObj)
     local R = ZeD.InventoryRenderer
-    local m = (R and R.padMarkCountOf) and R.padMarkCountOf(content) or 0   -- (the controller's marks, punch list 44)
+    local m = (R and R.padMarkCountOf) and R.padMarkCountOf(content) or 0   -- (the controller's marks)
     local same = cc.sigSet and cc.sigInv == inv and cc.sigN1 == n1 and cc.sigOther == other and cc.sigN2 == n2
         and cc.sigG1 == g1 and cc.sigG2 == g2 and cc.sigM == m
     if same and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
@@ -784,9 +788,9 @@ end
 
 -- Lays the band's buttons out between x0 and x1 (column-local): the moves
 -- (icons, from the left), a divider, the container's own buttons (words first,
--- then icons, at the right). They do not fit: one ribbon between two arrows,
--- each rect keeping tx, its place along the ribbon (draw scrolls it); divX is
--- the divider's place the same way.
+-- then icons, at the right). When they do not fit: one ribbon between two
+-- arrows, each rect keeping tx, its place along the ribbon (draw scrolls it);
+-- divX is the divider's place the same way.
 local function layRow(moves, objs, x0, x1)
     local T = ZeD.T
     local gap, bh = T.px(CT.GAP), T.buttonH
@@ -819,10 +823,9 @@ local function layRow(moves, objs, x0, x1)
     return row
 end
 
--- Lays the band out for a list column colW wide; returns its height (0 = no
--- band: nothing to put in it). The band closes the list (the director tried
--- the container's own actions in the heading and kept them here: "bottom row
--- works best"). A question (Delete all) takes the whole band over.
+--- Lays the band out for a list column colW wide; returns its height (0 = no
+--- band: nothing to put in it). The band closes the list; a question
+--- (Delete all) takes the whole band over.
 function CT.layout(content, colW)
     content._ccMarks = nil
     local cc = state(content)
@@ -984,10 +987,11 @@ local function drawGateLine(content, B, top, h, xOff)
     end
 end
 
--- Draws the band at top (content-local; xOff = the list column's x). The band
--- is the library's (surface 2 without stacking, its structure line on top);
--- the Delete all question takes it over as the question band (Cancel and the
--- verb, the verb in danger: it cannot be undone).
+--- Draws the band at top (content-local; xOff = the list column's x). The band
+--- is the library's (surface 2 without stacking, its structure line on top);
+--- the Delete all question takes it over as the question band (Cancel and the
+--- verb, the verb in danger: it cannot be undone). atBottom = false leaves the
+--- structure line out.
 local _qOpts, _bandSpec = {}, {}
 function CT.draw(content, top, colW, xOff, atBottom)
     local cc = content._cc
@@ -1015,12 +1019,12 @@ function CT.draw(content, top, colW, xOff, atBottom)
     if cc.gated then drawGateLine(content, B, top, rowH, xOff) end
 end
 
--- The icons' hover hints are the library's (ZeD.Molecules.drawIconButton asks
--- the window's overlay for the hint box). Kept so older callers draw nothing.
+--- The icons' hover hints are the library's (ZeD.Molecules.drawIconButton asks
+--- the window's overlay for the hint box). Kept so older callers draw nothing.
 function CT.drawHint(content) end
 
--- Hit zones go in after the renderer clears its zones for the frame: each
--- button's showing part, and the arrows.
+--- Hit zones go in after the renderer clears its zones for the frame: each
+--- button's showing part, and the arrows.
 function CT.addZones(content)
     local cc = content._cc
     if not (cc and cc.hits) then return end
@@ -1048,7 +1052,7 @@ local function stepRibbon(cc, name, dir)
     cc.sx[name] = math.max(0, math.min(sx, S.total - S.viewW))
 end
 
--- The mouse wheel over a ribbon scrolls it sideways; true when it took the wheel.
+--- The mouse wheel over a ribbon scrolls it sideways; true when it took the wheel.
 function CT.wheel(content, del)
     local cc = content and content._cc
     if not (cc and cc.strips) then return false end
@@ -1063,6 +1067,8 @@ end
 -- ----------------------------------------------------------------------------
 -- PRESSING (mouse: content.onMouseDown with a "cc:<i>" zone; controller: A)
 -- ----------------------------------------------------------------------------
+--- Presses the band's hit zone idx. A negative idx is a ribbon arrow:
+--- -1 steps one button left, any other negative one button right.
 function CT.press(content, idx)
     local cc = content._cc
     if not (cc and idx) then return end
@@ -1101,6 +1107,7 @@ end
 -- arrow and the ribbon follows; the footer's prompt names an icon.
 -- Called by the window after the list renders.
 -- ----------------------------------------------------------------------------
+--- Rebuilds the row's ring zone from this frame's hits when they moved.
 function CT.syncFocus(win, content)
     local F = ZeD.Input and ZeD.Input.Focus
     if not (F and win and win._focusRing and content) then return end

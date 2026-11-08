@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Pins.lua
 -- ============================================================================
--- PINS ON THE CHARACTER WINDOW'S TITLE BAR (the director, Nov 4 2026: "option 2. Include a bunch of options to
--- start", growing from players' requests; mockup ZeDUI/mockups/zed_title_pins_v1.html, "Three, build it").
+-- PINS ON THE CHARACTER WINDOW'S TITLE BAR. Client; a data module with no UI of its own: the Character window's
+-- title bar draws the pins (P.stats), the Skills tab and an item's right-click menu set them. The kinds below are a
+-- starting set, to grow with what players ask for.
 -- Pinned from the right-click menu ("Pin to title bar"; X on a controller), never a plain click. Three at most: a
 -- fourth replaces the oldest, said in a note over the head (ZeD_Bubbles.note), never a pop-up. Every pin is a number
 -- the game already shows you (nothing hidden, vanilla's stakes kept).
@@ -12,8 +13,8 @@
 --   uses      a battery, a lighter, thread: how much is left   Flashlight | 62%
 --   cond      a weapon or tool: its condition                  Axe | 7/10
 -- Items are found by their id in what the player carries; one put down shows nothing until it is back.
--- Kept in the player's modData ZeD_Pins = { { k, id }, ... } oldest first (ZeD_PinnedSkills, the old skill pins,
--- read once into it).
+-- Kept in the player's modData ZeD_Pins = { { k, id, name, ft }, ... } oldest first; ft, an item's full type, finds
+-- the same kind of item when its id is gone (ZeD_PinnedSkills, the old skill pins, is read once into it).
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -41,7 +42,7 @@ end
 function P.isPinned(p, k, id) return P.find(p, k, id) ~= nil end
 
 -- the name a pin shows for itself (an item's display name, a skill's)
--- (Nov 7 2026, perf review #15: the title bar asks every frame, so the guarded calls are named
+-- (the title bar asks every frame, so the guarded calls are named
 -- functions, not a closure per pin per frame)
 local function carriedById(p, id) return p:getInventory():getItemWithIDRecursiv(tonumber(id)) end
 local function carriedByType(p, ft) return p:getInventory():getFirstTypeRecurse(ft) end
@@ -55,6 +56,7 @@ local function itemOf(p, id, e)
     end
     return nil
 end
+-- the name a pin shows for itself (an item's display name, a skill's)
 local function nameOf(p, e)
     if e.k == "skill" then
         local pd = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and ZeD.SkillsTab.getPinData(p, e.id)
@@ -64,7 +66,8 @@ local function nameOf(p, e)
     return it and it:getDisplayName() or e.name or "?"
 end
 
--- pins or unpins; a pin past MAX takes off the oldest and says which
+--- Pin or unpin (k, id) for player p; name, when given, is the pin's words in the note. A pin past MAX takes off
+--- the oldest and says which. Returns true when it pinned, false when it unpinned.
 function P.toggle(p, k, id, name)
     local L = list(p)
     local i = P.find(p, k, id)
@@ -84,7 +87,7 @@ function P.toggle(p, k, id, name)
     return true
 end
 
--- the skill names pinned (the Skills tab marks their rows)
+--- The skill names pinned (the Skills tab marks their rows).
 function P.skillNames(p)
     local out = {}
     for _, e in ipairs(list(p)) do if e.k == "skill" then out[#out + 1] = e.id end end
@@ -107,8 +110,8 @@ local function kindOf(item)
 end
 P.kindOf = kindOf
 
--- a name short enough for the title bar (QA, Nov 4 2026: with a book's whole title only one pin fitted): the part
--- before a colon or a bracket, at most SHORT letters
+-- a name short enough for the title bar (with a book's whole title only one pin would fit): the part before a colon
+-- or a bracket, at most SHORT letters
 local SHORT = 16
 local function shortName(n, max)
     max = max or SHORT
@@ -158,14 +161,14 @@ local function itemLine(k, it, T)
 end
 
 -- the title bar's entries for the pins: { text, color }, oldest first
--- (Nov 7 2026, perf review #15: asked every frame by the title bar, so no closure per pin: the words come
--- from pinForm, the item's numbers from itemLine, the same words as before)
+-- (asked every frame by the title bar, so no closure per pin: the words come
+-- from pinForm, the item's numbers from itemLine)
 function P.stats(p)
     local T = ZeD.T
     local out = {}
     for _, e in ipairs(list(p)) do
         -- the pin's words with a name (nil: the number alone); the title bar takes the longest form that
-        -- fits, then shorter ones (QA, Nov 4 2026: pins were dropped where a shorter form would have fitted)
+        -- fits, then shorter ones (otherwise pins drop where a shorter form would fit)
         local mode, pd, key, a1, a2, color, full = nil, nil, nil, nil, nil, nil, nil
         if e.k == "skill" then
             pd = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and ZeD.SkillsTab.getPinData(p, e.id)
@@ -214,7 +217,7 @@ local function onFillInventory(pn, context, rawItems)
 end
 P.onFillInventory = onFillInventory
 
--- a skill row's menu (the Skills tab: right-click, or X / A on a controller), at screen x, y
+--- A skill row's menu (the Skills tab: right-click, or X / A on a controller), at screen x, y.
 function P.skillMenu(pn, skillName, label, x, y)
     local p = getSpecificPlayer(pn)
     if not p or not ISContextMenu then return end

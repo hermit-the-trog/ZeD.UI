@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/ThisIsYourLife.lua
 -- ============================================================================
--- THIS IS YOUR LIFE (Workshop 3773911887, mod id ThisIsYourLife; the director, Nov 2 2026, punch list 64: "support
--- it", scripted starts and poster stories included; the plan approved: "go with your plan for this is your life").
+-- SUPPORT FOR THIS IS YOUR LIFE (Workshop 3773911887, mod id ThisIsYourLife).
+-- Client. The mod's hometowns, origin traits and poster stories get pages in ZeD's main menu.
 --
 -- The mod takes over the game's own spawn, sandbox, occupation and looks screens at class level and puts its own
 -- postcard screens on top. ZeD's main menu stands in for those screens at the instance level (MM.redirect), so under

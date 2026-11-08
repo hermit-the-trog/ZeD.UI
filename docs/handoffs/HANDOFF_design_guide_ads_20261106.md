@@ -2,7 +2,7 @@
 
 From design, for Build and then QA. **After the beta 6 regression, not before:** nothing here touches `42/` yet. The
 director, Nov 6: "And with that, the ads are done. We can build a handoff." The plan, every decision and every round
-of the director's notes: `ZeDUI/GUIDE_ADS_PLAN.md`. Punch list item 98.
+of the director's notes: `docs/plans/GUIDE_ADS_PLAN.md`. Punch list item 98.
 
 ## What it is
 
@@ -130,4 +130,4 @@ In `ZeDUI/tools/guide_ads/` (Python 3 with numpy and Pillow; Node with Playwrigh
 - Ship set: `Zomboid/ZeD_design_refs/ads/final/` (34). By batch: `ads/batch1/` (12), `ads/batch2/` (22).
 - The whole set on the book's pages: `Zomboid/ZeD_design_refs/ads/Guide_ads_all_1.png`, `_2.png`.
 - The director's reference photos: `ZeD_design_refs/ads/refs/` (recliner, gas mask, IBC tote).
-- Sources: `ZeDUI/tools/guide_ads/`. Plan and history: `ZeDUI/GUIDE_ADS_PLAN.md`.
+- Sources: `ZeDUI/tools/guide_ads/`. Plan and history: `docs/plans/GUIDE_ADS_PLAN.md`.

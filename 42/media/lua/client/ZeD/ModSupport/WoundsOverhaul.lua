@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/WoundsOverhaul.lua
 -- ============================================================================
 -- SUPPORT FOR WOUNDS OVERHAUL [B42] (mod id WoundsOverhaul, Workshop 3775026731,
--- by looo6). Written Nov 7 2026 from the mod's own code (0.6.2); QA's write-up is
--- ZeDUI/qa/COMPAT_WOUNDS_OVERHAUL_20261107.md.
+-- by looo6). Client. What follows about the mod was read from its own code,
+-- version 0.6.2.
 --
 -- What the mod does: "the Health tab becomes an examination". A limb has to be
 -- looked at before the game names what is on it or offers to treat it (on its
@@ -194,17 +194,21 @@ end
 -- ---------------------------------------------------------------------------
 -- THE TAB'S HOOKS (ZeD.HealthTab.addExtras)
 -- ---------------------------------------------------------------------------
+--- True while the mod holds this part's diagnosis back (it wants an examination first).
 function S.holds(playerObj, bodyPart)
     if not WO() then return false end
     model(playerObj)        -- (keeps the mod's examination record as its open panel would)
     return held(bodyPart)
 end
 
+--- On a part held back, the mod's own gray line; nil on any other part.
 function S.partLines(playerObj, bodyPart)
     if not held(bodyPart) then return nil end
     return { { text = unexamined(), color = HELD_COLOR, severity = "warning" } }
 end
 
+--- The part's menu: Examine on a held part, the game's menu through the mod's wrap on
+--- the rest. True when handled here; anything else and the tab opens the game's menu.
 function S.openPart(playerObj, bodyPart, panel, x, y)
     local m = WO()
     if not (m and viewClass() and playerObj and bodyPart and panel) then return false end

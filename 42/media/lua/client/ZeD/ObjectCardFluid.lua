@@ -1,6 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardFluid.lua
 -- ============================================================================
--- OBJECT CARD: FLUIDS (HOOK_MAP rows 8 and 9; mockup zed_fluids_v1.html)
+-- OBJECT CARD: FLUIDS (HOOK_MAP rows 8 and 9)
+-- Client; one card kind for ZeD.ObjectCards (ObjectCards.lua draws the frame,
+-- this def fills it).
 -- Vanilla's "Transfer Liquid" and "Container Info" windows become one fluid
 -- card in the World window's card drawer:
 --   * two tanks, Pouring from / Pouring to, filled in each liquid's colour, with
@@ -174,7 +176,7 @@ end
 
 local def = { id = "fluid" }
 
--- arg = { container = ISFluidContainer, source = bool, info = bool }
+--- arg = { container = ISFluidContainer, source = bool, info = bool }.
 function def.resolve(player, arg)
     local c = arg and arg.container
     if not (c and ISFluidUtil.validateContainer(c) and c:isValid()) then return nil end
@@ -355,8 +357,8 @@ end
 
 function def.title(t) return (t.d and (t.d.fromName or t.d.intoName)) or txt("Fluid_Transfer_Fluids", "Liquid") end
 function def.icon(t) return t.d and t.d.icon or nil end
--- the state tag: its words, the colour of its square mark (none for a plain tag), and a
--- mark colour of its own (the liquid's colour)
+--- The state tag: its words, the colour of its square mark (none for a plain tag), and a
+--- mark colour of its own (the liquid's colour).
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
@@ -366,7 +368,7 @@ function def.pill(t)
     return d.fluid, T.textDim, d.fluidColor
 end
 
--- An empty POUR INTO lands the controller on the first container that takes it.
+--- An empty POUR INTO lands the controller on the first container that takes it.
 function def.openFocus(t)
     local d = t.d
     if not d or t.into then return nil end

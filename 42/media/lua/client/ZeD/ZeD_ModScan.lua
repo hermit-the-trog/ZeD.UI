@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModScan.lua
 -- ============================================================================
--- WHAT THE MOD MANAGER KNOWS THAT VANILLA DOESN'T SAY (director, Oct 16 2026:
--- "helping with identifying conflicts, updating mods from the workshop")
+-- WHAT THE MOD MANAGER KNOWS THAT VANILLA DOESN'T SAY. Client; a data module
+-- the Mods screen reads, with no UI of its own: conflicts between the mods
+-- running now, and each Workshop item's update state.
 --
 -- Two readers, both on the game's own data, nothing guessed:
 --
@@ -19,9 +20,9 @@
 --     (tested on 42.21.0: renaming the file flips the winner; reordering does not).
 --   A mod replacing one of the game's own scripts is counted (overrides), not
 --   flagged: that is how mods change the game.
---   The scan runs a slice per frame while the Mods screen is up (a coroutine),
---   so a long mod list never stalls the menu. "Fine, hide this" is kept in
---   Zomboid/Lua/ZeD_modconflicts_hidden.txt.
+--   The scan is a coroutine that runs in slices, up to 6 ms of them a frame
+--   while the Mods screen's list is up, so a long mod list never stalls the
+--   menu. "Fine, hide this" is kept in Zomboid/Lua/ZeD_modconflicts_hidden.txt.
 --
 -- WORKSHOP state of every subscribed item (getSteamWorkshopItemIDs and
 -- querySteamWorkshopItemDetails): installed, update waiting, downloading,
@@ -31,14 +32,14 @@
 -- the menu behind it: see below). An item that finishes an update while the game
 -- runs is remembered: its new code needs a reload and its pictures a restart.
 --
--- NEVER ASK STEAM OUTSIDE THE MODS SCREEN (QA Nov 5 2026, the hair trim that failed
--- with Hands-On Interactions: "Cannot assign field callFrame because a is null").
--- Steam's reply comes on the main thread and the game runs the Lua callback there
--- whatever else is running; Lua offers no way to cancel a query. This used to ask
--- every 30 s at the main menu, so a reply could land while a world loaded, with the
--- loading thread in Lua: two threads shared the game's pool of call records, one
--- record was handed out twice, and later calls failed in unrelated places, far from
--- here. It only showed with a Workshop mod in the list (nothing to ask otherwise).
+-- NEVER ASK STEAM OUTSIDE THE MODS SCREEN. Steam's reply comes on the main
+-- thread and the game runs the Lua callback there whatever else is running; Lua
+-- offers no way to cancel a query. This used to ask every 30 s at the main menu,
+-- so a reply could land while a world loaded, with the loading thread in Lua:
+-- two threads shared the game's pool of call records, one record was handed out
+-- twice, and later calls failed in unrelated places, far from here ("Cannot
+-- assign field callFrame because a is null", once from another mod's hair-trim
+-- action). It only showed with a Workshop mod in the list (nothing to ask otherwise).
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -48,7 +49,7 @@ local MS = ZeD.ModScan
 local VANILLA = "pz-vanilla"
 local PICKS = "ZeD_Picks"         -- ZeD's helper mod for file picks (ZeD_ModPicks)
 local HIDE_FILE = "ZeD_modconflicts_hidden.txt"
-local SLICE = 60                  -- units of work per frame (a folder listing, or 40 script objects)
+local SLICE = 60                  -- folder listings per slice (the scan yields between slices)
 local WS_POLL_MS, WS_POLL_OPEN_MS = 30000, 10000
 
 -- the script kinds that are read, with the word the screen uses for each
@@ -62,12 +63,13 @@ local SCRIPT_KINDS = {
     { "getAllModelScripts", "model", "models", one = "UI_ZeD_ModScan_CountModel", many = "UI_ZeD_ModScan_CountModels", thing = "UI_ZeD_ModScan_ThingModel", same = "UI_ZeD_ModScan_SameModels", sameOne = "UI_ZeD_ModScan_SameModel" },
 }
 
--- a conflict's thing as words: a Lua file's path as it is, a script object as `item "Base.Axe"`
--- (MS.kindOf: the SCRIPT_KINDS row of a noun id such as "item")
+--- The SCRIPT_KINDS row of a noun id such as "item" (nil for any other word).
 function MS.kindOf(noun)
     for _, k in ipairs(SCRIPT_KINDS) do if k[2] == noun then return k end end
     return nil
 end
+--- A conflict's thing as words: a Lua file's path as it is, a script object
+--- as `item "Base.Axe"`.
 function MS.thingText(t)
     if type(t) ~= "table" then return tostring(t or "") end
     local k = MS.kindOf(t.kind)
@@ -84,6 +86,7 @@ local function jlist(l)
     return t
 end
 
+--- A mod's display name, or its id when it has none.
 local function modName(id)
     local m = getModInfoByID(id)
     local n = m and m:getName()
@@ -113,10 +116,12 @@ local function hiddenSave()
     wr:close()
 end
 
+--- Has "Fine, hide this" been pressed on this conflict?
 function MS.isHidden(e)
     if not hidden then hiddenLoad() end
     return hidden[e.key] == true
 end
+--- Hide a conflict (written to the file at once) and forget the per-mod counts.
 function MS.hide(e)
     if not hidden then hiddenLoad() end
     hidden[e.key] = true
@@ -128,7 +133,7 @@ end
 -- THE SCAN
 -- ----------------------------------------------------------------------------
 -- MS.res.byMod[id] = { entry, ... }; an entry is shared by the two mods it names:
---   { kind = "file" | "script", loser = id, winner = id, things = { text, ... }, nouns = { word = n }, key }
+--   { kind = "file" | "script", loser = id, winner = id, things = { path or { kind, name }, ... }, nouns = { word = n }, key }
 -- MS.res.overrides[id] = { total, kinds = { items = n, ... } }: the game's own scripts the mod replaces
 -- MS.res.adds[id] = { item = n, recipe = n, vehicle = n, building = n, model = n }: what it adds of its own
 MS.res = MS.res or { byMod = {}, overrides = {}, adds = {}, done = false }
@@ -169,8 +174,8 @@ local function scanBody(res)
         local p = string.lower(raw)
         local at = p:find("/media/", 1, true)
         local id = at and roots[p:sub(1, at - 1)]
-        -- (only media/lua/: the game runs every mod's media/registries.lua, read from its code, so
-        -- the same registries file in two mods is no conflict)
+        -- (only media/lua/: the game's code runs every mod's media/registries.lua, not one
+        -- winner, so the same registries file in two mods is no conflict)
         if id and p:sub(at + 1, at + 10) == "media/lua/" then
             local rel = p:sub(at + 1)
             winner[rel] = id
@@ -243,8 +248,10 @@ local function scanBody(res)
         if ok and list then
             for i = 0, list:size() - 1 do
                 local o = list:get(i)
-                -- what each mod adds of its own (the first definition is a mod's, not the game's):
-                -- the Mods screen's "if you turn it off" (ZeD_ModSafety)
+                -- the count holds two entries per definition (mod id, then text): 2 is one
+                -- definition, more than 2 is several.
+                -- What each mod adds of its own (the first definition is a mod's, not the
+                -- game's) feeds the Mods screen's "if you turn it off" (ZeD_ModSafety).
                 local n = o:getLoadedScriptBodyCount()
                 if n >= 2 then
                     local first = tostring(o:getLoadedScriptBodies():get(0))
@@ -291,9 +298,11 @@ function MS.start()
     job = coroutine.create(function() scanBody(res) end)
 end
 
--- slices of the scan for up to STEP_MS of a frame; the Mods screen calls this every frame it is up
+-- how much of a frame one MS.step call may take
 local STEP_MS = 6
 local errLogged = false
+--- Run slices of the scan for up to STEP_MS; the Mods screen calls this every
+--- frame its list page is up. The first call starts the scan itself.
 function MS.step()
     if not job then
         if not MS.res.startedAt then MS.start() else return end
@@ -313,7 +322,7 @@ end
 
 function MS.scanning() return job ~= nil and not MS.res.done end
 
--- the conflicts that name a mod, without the hidden ones
+--- The conflicts that name a mod, without the hidden ones.
 function MS.forMod(id)
     local out = {}
     for _, e in ipairs(MS.res.byMod[id] or {}) do
@@ -328,9 +337,11 @@ function MS.isPicked(e)
     return (ZeD.ModPicks.countIn(e.things)) > 0
 end
 
--- per mod, how many shown conflicts (kept until the scan, a hide or a pick changes it):
--- copies that are the same word for word, and conflicts settled by picks, are not counted
--- (c.same / c.picked: how many of each, for the row's grey and green tags)
+--- Per mod, how many shown conflicts (kept until the scan, a hide or a pick
+--- changes it): copies that are the same word for word, and conflicts settled
+--- by picks, are not counted (c.same / c.picked hold how many of each, for the
+--- row's grey and green tags). count / sameFor / pickedFor read one mod's
+--- numbers; dirtyCounts forgets them all after a hide or a pick.
 function MS.counts()
     local c = MS.res.counts
     if not c or c.done ~= MS.res.done then
@@ -353,7 +364,9 @@ function MS.dirtyCounts() MS.res.counts = nil end
 -- ----------------------------------------------------------------------------
 -- THE WORKSHOP
 -- ----------------------------------------------------------------------------
--- MS.ws.items[idString] = { id, title, state, updated, size, children }
+-- MS.ws.items[idString] = { id, title, state, updated, size, children }; MS.ws.order holds
+-- the same items sorted by title. updatedNow[id] marks an item that updated while the game
+-- ran; steamOff, pending and asked tell the screen why the list may still be empty.
 MS.ws = MS.ws or { items = {}, order = {}, at = 0, pending = false, first = {}, updatedNow = {}, asked = false }
 
 -- Steam's state flags (a text like "Subscribed|Installed") as one word for the screen
@@ -367,9 +380,10 @@ function MS.wsState(st)
     return "none"
 end
 
--- (translation keys by state; MS.wsText gives the player's words)
+-- translation keys by state
 MS.WS_TEXT = { downloading = "UI_WorkshopServerItemState_Downloading", queued = "UI_ZeD_ModScan_WsQueued", update = "UI_ZeD_ModScan_WsUpdate",
                ok = "UI_ZeD_ModScan_WsOk", missing = "UI_ZeD_ModScan_WsMissing", none = "UI_WorkshopServerItemState_NotSubscribed" }
+--- A Workshop state as the player's words (nil for a state with no line).
 function MS.wsText(state)
     local k = MS.WS_TEXT[state]
     return k and ZeD.tr(k) or nil
@@ -398,10 +412,14 @@ local function onDetails(target, status, info)
     ws.items, ws.order = items, order
 end
 
+--- Ask Steam for every subscribed item's state: at most every 10 s with `open`
+--- (the Mods screen is up), every 30 s otherwise. Steam answers later on the
+--- main thread (onDetails). Only the Mods screen may call this (the header says why).
 function MS.wsPoll(open)
     local ws = MS.ws
     if ws.fake then return end
     local t = nowMs()
+    -- a question still out: Steam gets 20 s to answer before it is asked again
     if ws.pending and t - ws.at < 20000 then return end
     if t - ws.at < (open and WS_POLL_OPEN_MS or WS_POLL_MS) then return end
     ws.at = t
@@ -421,7 +439,7 @@ function MS.wsPoll(open)
     ws.asked = true
 end
 
--- a mod's Workshop item (nil when it is not from the Workshop or Steam has not answered)
+--- A mod's Workshop item (nil when it is not from the Workshop or Steam has not answered).
 function MS.wsFor(modInfo)
     local wid = nil
     pcall(function() wid = modInfo:getWorkshopID() end)
@@ -429,7 +447,7 @@ function MS.wsFor(modInfo)
     return MS.ws.items[tostring(wid)]
 end
 
--- the loaded mods whose Workshop item updated while the game ran
+--- The loaded mods whose Workshop item updated while the game ran.
 function MS.updatedLoaded()
     local out = {}
     for _, id in ipairs(jlist(getActivatedMods())) do
@@ -441,12 +459,13 @@ function MS.updatedLoaded()
     return out
 end
 
--- "2 h ago", "3 days ago", "Sep 30"
--- (the month names are the main menu's keys, translated where they show)
+-- the month names are the main menu's keys, translated where they show
 local MONTHS = { "UI_ZeD_MainMenu_MonthJan", "UI_ZeD_MainMenu_MonthFeb", "UI_ZeD_MainMenu_MonthMar",
     "UI_ZeD_MainMenu_MonthApr", "UI_ZeD_MainMenu_MonthMay", "UI_ZeD_MainMenu_MonthJun",
     "UI_ZeD_MainMenu_MonthJul", "UI_ZeD_MainMenu_MonthAug", "UI_ZeD_MainMenu_MonthSep",
     "UI_ZeD_MainMenu_MonthOct", "UI_ZeD_MainMenu_MonthNov", "UI_ZeD_MainMenu_MonthDec" }
+--- A unix time as "within the hour", "2 h ago", "yesterday" or "3 days ago",
+--- and past two weeks as a date, "Sep 30, 2026" ("" for none).
 function MS.ago(secs)
     if not secs or secs <= 0 then return "" end
     local d = getTimestamp() - secs
@@ -458,6 +477,7 @@ function MS.ago(secs)
     return ok and s or ZeD.tr("UI_ZeD_ModScan_AgoDays", math.floor(d / 86400))
 end
 
+--- Bytes as "812 KB", "24 MB" or "1.2 GB" ("" for none).
 function MS.size(bytes)
     if not bytes or bytes <= 0 then return "" end
     if bytes < 1048576 then return string.format("%.0f KB", bytes / 1024) end
@@ -468,7 +488,7 @@ function MS.size(bytes)
     return string.format("%.1f GB", bytes / 1073741824)
 end
 
--- Steam's page for an item: the overlay when it is on, the browser otherwise
+--- Steam's page for an item: the overlay when it is on, the browser otherwise.
 function MS.openInSteam(wid)
     if not wid or wid == "" then return end
     local overlay = false
@@ -477,8 +497,8 @@ function MS.openInSteam(wid)
     else openUrl("https://steamcommunity.com/sharedfiles/filedetails/?id=" .. tostring(wid)) end
 end
 
--- the mods the game loaded (fixed until the next reload, which reloads this file too)
 local loadedSet = nil
+--- Did the game load this mod? (Fixed until the next reload, which reloads this file too.)
 function MS.isLoaded(id)
     if not loadedSet then
         loadedSet = {}
@@ -487,7 +507,7 @@ function MS.isLoaded(id)
     return loadedSet[id] == true
 end
 
--- the game's Workshop front page, the same way
+--- The game's Workshop front page, the same way as openInSteam.
 function MS.openWorkshop()
     local overlay = false
     pcall(function() overlay = isSteamOverlayEnabled() end)
@@ -495,7 +515,7 @@ function MS.openWorkshop()
     if overlay then activateSteamOverlayToWebPage(url) else openUrl(url) end
 end
 
--- "the game's 3 items and 2 recipes" (nil: it replaces none)
+--- What a mod replaces, as "the game's 3 items and 2 recipes" (nil: it replaces none).
 function MS.overrideText(id)
     local o = MS.res.overrides[id]
     if not o or o.total == 0 then return nil end
@@ -510,12 +530,13 @@ function MS.overrideText(id)
     return ZeD.tr("UI_ZeD_ModScan_TheGames", list)
 end
 
--- the hidden conflicts that name a mod, and showing them again
+--- How many hidden conflicts name a mod.
 function MS.hiddenFor(id)
     local n = 0
     for _, e in ipairs(MS.res.byMod[id] or {}) do if MS.isHidden(e) then n = n + 1 end end
     return n
 end
+--- Show a mod's hidden conflicts again.
 function MS.unhideFor(id)
     if not hidden then hiddenLoad() end
     for _, e in ipairs(MS.res.byMod[id] or {}) do hidden[e.key] = nil end

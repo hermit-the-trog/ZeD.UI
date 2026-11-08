@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Community.lua
 -- ============================================================================
--- COMMUNITY, THE CLIENT'S MODEL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 5). No drawing: ZeD_CommunityCards.lua reads this and calls it.
+-- COMMUNITY, THE CLIENT'S MODEL. Client file, no drawing: ZeD_CommunityCards.lua reads this and calls it.
 --
 -- The server holds the message of the day, the rules, the appeal line and the news, and sends each client what it may read
 -- with the hello and again at every change (ZeD_ServerCommunity.lua). No view means the server has no such part: every
@@ -10,7 +10,7 @@
 -- and tells the server: no answer from the server can hold a player there, and one that is lost means they are asked again
 -- next time. So a server that cannot be reached can never trap anyone.
 --
--- The appeal line is kept in Lua/ZeD_appeal.txt for each server, because a banned player cannot log in to ask for it (A7).
+-- The appeal line is kept in Lua/ZeD_appeal.txt for each server, because a banned player cannot log in to ask for it.
 --
 -- QA, read at call time (the ticket cards' style):
 --   M.qaHold   true: no traffic, and the join screen waits for qaJoin. The screen shows only what the QA script put in the model

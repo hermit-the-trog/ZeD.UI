@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/moodle_quarters.lua
 -- ============================================================================
 -- SUPPORT FOR MOODLE QUARTERS [B42] (mod id moodle_quarters, Workshop 2854030563).
+-- Client. The mod's moodle plates follow ZeD's moodle placement, row included.
 --
 -- The mod squares off one more quarter of each moodle's round backing per level
 -- (its client MoodleQuarters.lua). To do it, it takes the game's moodle column
@@ -69,8 +70,8 @@ local function warnOnce(what, err)
     print("[ZeD] moodle_quarters: " .. what .. ": " .. tostring(err))
 end
 
--- The mod's panel for this player, while it is the one drawing, else nil.
--- (The mod marks a panel detachRequested when it is about to hand the stack back.)
+--- The mod's panel for this player, while it is the one drawing, else nil.
+--- (The mod marks a panel detachRequested when it is about to hand the stack back.)
 function S.panel(playerNum)
     local mq = MQ()
     local panels = mq and mq.panels
@@ -83,8 +84,8 @@ end
 -- The mod's drawing, followed through. These two stand in for the panel's own
 -- drawTexture (ISUIElement's) for the length of one render: "self" is the panel,
 -- x / y are where the mod asks for the texture, inside its panel.
--- Each also notes how far the plates reach (S.extent, for QA; numbers only, so
--- nothing new is made each frame).
+-- Each also notes how far the plates reach (the panel's _zedExtent, read by QA;
+-- numbers only, so nothing new is made each frame).
 -- ---------------------------------------------------------------------------
 local baseDraw = nil   -- the panel's own drawTexture, kept when the wrap goes on
 

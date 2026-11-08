@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ContainerGroups.lua
 -- ============================================================================
--- CONTAINER GROUPS (a general hook for other mods; Nov 7 2026, first used by
--- ModSupport/VIF_DualRender_B42.lua, Better Folders)
+-- CONTAINER GROUPS (client; a general hook for other mods, used by Better
+-- Folders through ModSupport/VIF_DualRender_B42.lua)
 --
 -- ZeD's item lists group a container's things by category (sort by Category:
 -- a folding row per category; the grid the same). A mod that files things into
@@ -21,9 +21,9 @@
 --             changes whenever group, label or rank would answer differently
 --             (the list is rebuilt when it changes)
 --     keys  = function(inv, playerObj, isPlayerInv) -> a list of group keys
---             listed even with nothing in them (Nov 7 2026: a folder with
---             nothing filed yet is a group row, count 0, as an empty
---             container), or nil. Sort by Category only; sig covers it too.
+--             listed even with nothing in them (a folder with nothing filed
+--             yet is a group row, count 0, as an empty container), or nil.
+--             Sort by Category only; sig covers it too.
 --   }
 -- The category column of a filed item shows its group's words. ZeD keeps its
 -- own fold state per group key, as for categories.
@@ -42,6 +42,7 @@ local function logOnce(id, err)
     end
 end
 
+--- Registers a provider under id (the header has def's contract).
 function G.add(id, def)
     if type(def) ~= "table" then return end
     for i, p in ipairs(G.list) do
@@ -61,7 +62,7 @@ local function ask(p, field, a, b, c, d)
     return true, v
 end
 
--- The group an item is filed in, or nil (its category).
+--- The group an item is filed in, or nil (its category).
 function G.groupOf(item, inv, playerObj, isPlayerInv)
     local list = G.list
     if #list == 0 then return nil end
@@ -72,7 +73,7 @@ function G.groupOf(item, inv, playerObj, isPlayerInv)
     return nil
 end
 
--- A group key's words, or nil (not a provider's key: the category's words).
+--- A group key's words, or nil (not a provider's key: the category's words).
 function G.label(key)
     local list = G.list
     if #list == 0 or key == nil then return nil end
@@ -94,8 +95,8 @@ function G.rank(key)
     return nil
 end
 
--- The group keys listed even when empty (every provider's keys, in its order,
--- each once). An empty list with nothing registered.
+--- The group keys listed even when empty (every provider's keys, in its order,
+--- each once). An empty list with nothing registered.
 local NONE = {}
 function G.keys(inv, playerObj, isPlayerInv)
     local list = G.list
@@ -116,8 +117,8 @@ function G.keys(inv, playerObj, isPlayerInv)
     return out or NONE
 end
 
--- What the list's cache compares: false with nothing registered, else every
--- provider's signature joined.
+--- What the list's cache compares: false with nothing registered, else every
+--- provider's signature joined.
 function G.sig(inv, playerObj, isPlayerInv)
     local list = G.list
     if #list == 0 then return false end
@@ -129,8 +130,8 @@ function G.sig(inv, playerObj, isPlayerInv)
     return s
 end
 
--- The order of the group rows: ranked groups first, by rank; then the
--- categories by key (asc) or reversed (not asc), as before.
+--- Sorts the group rows in place: ranked groups first, by rank (ties by key);
+--- then the rest by key, ascending when asc, else descending.
 function G.sortKeys(keys, asc)
     if #G.list == 0 then
         if asc then table.sort(keys) else table.sort(keys, function(a, b) return a > b end) end

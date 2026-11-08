@@ -1,12 +1,14 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerTickets.lua
 -- ============================================================================
--- TICKETS, THE SERVER'S SIDE (ZeDUI/MP_SERVER_PART_DESIGN.md, Part B). ZeD's record lives here and is the truth. The
--- table has a secret random name, because any logged-in client can read any global mod data table it can name (A2),
--- and it is never transmitted: each person receives only what they may see, by sendServerCommand. Two functions build
--- every outgoing table from an allowlist (playerView, staffView, and the two rows); nothing else sends ticket data.
+-- TICKETS, THE SERVER'S SIDE. ZeD's record lives here and is the truth. The table has a secret random name, because any
+-- logged-in client can read any global mod data table it can name, and it is never transmitted: each person receives only
+-- what they may see, by sendServerCommand. Four functions build every outgoing table from an allowlist (playerView,
+-- staffView, playerRow, staffRow); Srv.ticketFacts hands the Log view a ticket's place and time, never its words. Server
+-- only: the first line returns anywhere but a dedicated server or the server process a hosted game starts. Pure ASCII.
 --
--- Server Lua cannot touch the game's tickets (A4), so clients do that work and report here (t_filed, t_sync,
--- t_gamediff). What comes back from the game's side is a claim, never proof (B8): an answer from there goes in notes.
+-- Server Lua cannot touch the game's tickets (the game guards those calls to clients), so clients do that work and report
+-- here (t_filed, t_sync, t_gamediff). What comes back from the game's side is a claim, never proof: an answer from there
+-- goes in notes.
 --
 -- Log lines (Srv.action, kind ticket) carry id, kind, who, what and place: never the text, a note, or the table's name.
 -- ============================================================================
@@ -21,7 +23,7 @@ if not Srv or Srv.off then return end
 
 local L = Tk.LIMITS
 local STAFF, ADMIN = Srv.CAP_STAFF, Srv.CAP_ADMIN
-local PREFIX = "ZeD_TK_"
+local PREFIX = "ZeD_TK_"             -- the table's name: this, then a random UUID
 local SCHEMA = 1
 local MIGRATE = {}                   -- MIGRATE[1] = function(md) ... end   moves 1 to 2; adds or reshapes, never drops
 
@@ -54,6 +56,8 @@ local function findName()
     return best
 end
 
+-- the ticket table (Srv.openTickets): opened once and kept, made under a new secret name the first time, brought up to
+-- SCHEMA, frozen (read, never written) when a newer ZeD made it. T.byGame, game id -> record, is rebuilt from it
 local function open()
     if T.md then return T.md end
     local name = findName() or (PREFIX .. getRandomUUID())
@@ -64,7 +68,7 @@ local function open()
     md.skipped = md.skipped or 0
     md.chars = md.chars or 0
     md.tickets = md.tickets or {}
-    md.tombs = md.tombs or {}        -- ticket id -> author: deleted with no game link yet (B8)
+    md.tombs = md.tombs or {}        -- ticket id -> author: deleted with no game link yet
     if md.schema > SCHEMA then
         T.frozen = true              -- data from a newer ZeD: read it, never change it
     end
@@ -86,6 +90,7 @@ local function open()
     return md
 end
 
+-- every character a record holds, thread, notes and report: its share of CHARS_MAX
 local function textOf(rec)
     local n = 0
     for i = 1, rec.thread.n do n = n + #rec.thread[i].text end
@@ -95,7 +100,7 @@ local function textOf(rec)
     return n
 end
 
--- a record leaves ZeD's table. The game's row stays, and gameMax or its tag stops it coming back (B8)
+-- a record leaves ZeD's table. The game's row stays, and gameMax or its tag stops it coming back
 local function drop(md, rec)
     md.chars = math.max(0, md.chars - textOf(rec))
     if rec.gameId then T.byGame[rec.gameId] = nil end
@@ -161,6 +166,7 @@ local function playerRoom(md, n, keep)
     return md.chars + n <= L.PLAYER_CHARS
 end
 
+-- the counts: open, spam and open per kind (every push carries these), and open per author, ZeD's own and adopted apart
 local function tally(md)
     local c = { open = 0, spam = 0, gameOpen = 0, zed = {}, claimed = {}, kinds = {} }
     for _, rec in pairs(md.tickets) do
@@ -180,6 +186,7 @@ local function tally(md)
     return c
 end
 
+-- one more line on a thread or the notes, counted into md.chars; extra marks it staff's or the game's
 local function line(md, list, who, text, extra)
     local e = { who = who, t = getTimestamp(), text = text }
     if extra then
@@ -194,9 +201,10 @@ end
 -- ---------------------------------------------------------------------------
 -- WHERE THE FACTS ARE STAMPED: on the server, from the server's own player object
 -- ---------------------------------------------------------------------------
--- (E3: no town source is proved yet. Until then the UI shows coordinates.)
+-- TODO: no source for a town's name is proved yet. Until one is, this names nothing and the UI shows coordinates.
 local function placeName(x, y, z) return nil end
 
+-- who else is online within r tiles, on any floor: at most NEAR_MAX names
 local function nearby(p, x, y, r)
     local out, me, list = { n = 0 }, p:getUsername(), getOnlinePlayers()
     for i = 0, list:size() - 1 do
@@ -213,6 +221,7 @@ local function nearby(p, x, y, r)
     return out
 end
 
+-- the facts a ticket is filed with: author, time, game day, and with wantPlace where they stood and who was near
 local function stamp(p, rec, wantPlace)
     rec.author = p:getUsername()
     rec.filed  = getTimestamp()
@@ -241,7 +250,7 @@ local function threadCopy(list)
     return out
 end
 
--- a report from chat (Phase 5): who it names, and the chat as the reporter's client held it
+-- a report from chat: who it names, and the chat as the reporter's client held it
 local function reportCopy(rep)
     if not rep then return nil end
     local out = { who = rep.who, n = rep.n, letter = rep.letter }
@@ -295,7 +304,7 @@ end
 -- ---------------------------------------------------------------------------
 -- THE PUSHES
 -- ---------------------------------------------------------------------------
--- what the Log view needs of a ticket (ZeD_ServerLog.lua): its place, its time, who it found nearby. Never its words
+--- what the Log view needs of a ticket (ZeD_ServerLog.lua): its place, its time, who it found nearby. Never its words
 function Srv.ticketFacts(id)
     local rec = open().tickets[id]
     if not rec then return nil end
@@ -304,6 +313,7 @@ function Srv.ticketFacts(id)
     return { id = rec.id, author = rec.author, filed = rec.filed, place = placeCopy(rec.place), near = near }
 end
 
+-- a ticket's log line: id, kind, who, what and place, never the words
 local function logTk(rec, what, who)
     local pl = rec.place
     Srv.action("ticket", who, what, "#" .. tostring(rec.id), tostring(rec.kind), pl and pl.x, pl and pl.y, pl and pl.z)
@@ -325,6 +335,7 @@ local function toAuthor(rec, command, args)
     if o then Srv.to(o, Tk.MOD, command, args) end
 end
 
+-- the ticket's row, with the counts, to every staff member online
 local function pushStaffRow(md, rec)
     local c = tally(md)
     Srv.eachStaff(function(o)
@@ -353,6 +364,8 @@ local function pushCard(rec)
     end)
 end
 
+--- the tickets' part of the hello (ZeD_ServerCore.lua calls it): whether the table is frozen, the player's newest
+--- unread answers (five at most), and for staff the counts
 Srv.helloFill = function(p, r)
     local md = open()
     r.frozen = T.frozen and true or nil
@@ -381,6 +394,7 @@ end
 -- ---------------------------------------------------------------------------
 local function reg(command, opts, fn) Srv.register(Tk.MOD, command, opts, fn) end
 
+-- a frozen table refuses every write: true, with the answer "frozen" sent
 local function frozen(p, rid)
     if T.frozen then Srv.ack(p, rid, false, "frozen"); return true end
     return false
@@ -424,7 +438,7 @@ local function goodReport(p, r)
         Srv.bad(p, "t_new report")
         return false
     end
-    -- (letter: a ProtoPOP3 letter reported, punch list 104; the card names it as such)
+    -- (letter: a letter from ProtoPOP3 Mail reported; the card names it as such)
     local out = { who = Tk.name(rawCut(r.who, L.NAME_MAX)), n = n, letter = r.letter == true and true or nil }
     for i = 1, n do
         local l = r[i]
@@ -545,7 +559,7 @@ reg("t_reply", { limit = L.REPLY_MS, mark = false }, function(p, a, rid)
     if not text then Srv.ack(p, rid, false, "text"); return end
     if rec.thread.n >= L.THREAD_MAX or not playerRoom(md, #text, rec) then Srv.ack(p, rid, false, "full"); return end
     line(md, rec.thread, p:getUsername(), text)
-    if rec.status == "Answered" then rec.status = "Progress" end   -- (only with E12 on: back in the queue)
+    if rec.status == "Answered" then rec.status = "Progress" end   -- (only with Tk.REPLY_AT_ANSWERED on: back in the queue)
     rec.updated = getTimestamp()
     Srv.mark(p, "t_reply")
     Srv.ack(p, rid, true)
@@ -565,9 +579,11 @@ end)
 -- ---------------------------------------------------------------------------
 -- THE STAFF'S COMMANDS
 -- ---------------------------------------------------------------------------
-local function okName(s) return s == nil or (type(s) == "string" and #s <= L.FIND_MAX) end
+local function okName(s) return s == nil or (type(s) == "string" and #s <= L.FIND_MAX) end   -- a name or a Find a client may send
 
--- the option as the server holds it (the client's copy may not carry it)
+-- true when SaveWorldEveryMinutes is 0: mod data is then written only by /save, /quit and shutdown, so a crash loses every
+-- ticket since the last save, and the queue tells staff. Read from the option as the server holds it (the client's copy may
+-- not carry it)
 local function noSave()
     local so = getServerOptions()
     if not so then return false end
@@ -575,6 +591,7 @@ local function noSave()
     return ok and n == 0
 end
 
+-- does a record pass the queue's filter? Open is not yet Answered, Closed or Spam; All is everything but Spam
 local function matches(rec, q, me)
     local st = rec.status
     if q.status == "Open" then
@@ -734,7 +751,7 @@ reg("t_answer", { cap = STAFF }, function(p, a, rid)
     rec.assignee = rec.assignee or me
     rec.unread = true
     rec.updated = getTimestamp()
-    -- the one game answer (A4): the first, while the record is linked and has none
+    -- the one game answer: the first, while the record is linked and has none
     local first = rec.gameId ~= nil and rec.gameAns == nil
     if first then rec.gameAns = true end
     evict(md, 0, rec)
@@ -762,7 +779,7 @@ reg("t_addnote", { cap = STAFF }, function(p, a, rid)
     logTk(rec, "note added", p:getUsername())
 end)
 
--- a line from the Log view, as an admin note: t_addnote's road. true, or false and the answer's word
+--- a line from the Log view, as an admin note: t_addnote's road. true, or false and the answer's word
 function Srv.ticketNote(p, id, text)
     local md = open()
     if T.frozen then return false, "frozen" end
@@ -852,7 +869,7 @@ reg("t_delete", { cap = ADMIN }, function(p, a, rid)
 end)
 
 -- ---------------------------------------------------------------------------
--- THE GAME'S SIDE (B8): matching is the server's job. Only the server holds every record
+-- THE GAME'S SIDE: matching is the server's job. Only the server holds every record
 -- ---------------------------------------------------------------------------
 -- gameClaim: the game's side showed an answer, already in notes. It is not gameAns, so a forged row costs no first answer
 local function linksOf()
@@ -861,11 +878,11 @@ local function linksOf()
     return out
 end
 
-local function cut(s) return string.sub(Tk.clean(s) or "", 1, L.TEXT_MAX) end
+local function cut(s) return string.sub(Tk.clean(s) or "", 1, L.TEXT_MAX) end   -- words from the game's side, cleaned and cut
 
 -- a game ticket with no record of ours. Its author and any answer are claims. Status needs viewed, the one field a
 -- plain client cannot set, so a griefer cannot answer a ticket out of the Open queue. Any answer goes in notes, marked
--- as the game's, for staff only: viewed says staff opened the ticket, not who wrote an answer added after that (B8).
+-- as the game's, for staff only: viewed says staff opened the ticket, not who wrote an answer added after that.
 local function adopt(md, r, c)
     local kind, _, rest = Tk.parse(r.m)
     if not Tk.isKind(kind) then kind, rest = Tk.NONE, r.m end
@@ -918,6 +935,8 @@ local function link(rec, g, c)
     end
 end
 
+-- one row of the game's list: linked to its ZeD record, dropped as dealt with, or adopted. A row at or under gameMax was
+-- seen before
 local function syncRow(md, r, c)
     if type(r) ~= "table" or not Tk.whole(r.g) or type(r.a) ~= "string" or type(r.m) ~= "string" then return end
     local g = r.g
@@ -941,6 +960,7 @@ local function syncRow(md, r, c)
     md.gameMax = g                   -- ids are never reused, so this one number stops any row coming back
 end
 
+-- the game's ticket database was replaced: every link goes, and the rows match again by tag
 local function resetLinks(md)
     for _, rec in pairs(md.tickets) do rec.gameId = nil end
     T.byGame = {}
@@ -1037,7 +1057,8 @@ reg("t_gamediff", { cap = STAFF, limit = L.DIFF_MS }, function(p, a, rid)
     pushCounts(md)
 end)
 
--- a player's tickets for their card (Phase 2): staff rows, the newest first, at most n. Rows only: the card has its own t_card
+--- a player's tickets for their admin card (ZeD_ServerAdmin.lua): staff rows, the newest first, at most n, and how many
+--- there are in all. Rows only: the card has its own t_card
 function Srv.ticketsOf(user, n)
     local md = open()
     local list, c = {}, 0
@@ -1056,6 +1077,7 @@ end
 -- ---------------------------------------------------------------------------
 -- OPENING
 -- ---------------------------------------------------------------------------
+-- the table opens as the world's mod data loads; the flag lives on Srv, so a /reloadlua never adds the listener twice
 if Srv.modDataHooked == nil then
     Srv.modDataHooked = true
     Events.OnInitGlobalModData.Add(function() if ZeD.Srv.openTickets then ZeD.Srv.openTickets() end end)

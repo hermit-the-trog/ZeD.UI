@@ -1,18 +1,18 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModOrder.lua
 -- ============================================================================
--- THE LOAD ORDER'S RULES, WITHOUT THE SCREEN (ZeDUI/MODS_LOAD_ORDER_SPEC.md, punch list 41;
--- director, Oct 31 2026: "I want the mod manager to really shine")
+-- THE LOAD ORDER'S RULES, WITHOUT THE SCREEN: the mod manager's load-order
+-- model. Client-side.
 --
 --   * the profile file (Zomboid/Lua/ZeD_modprofiles.txt): each profile's order and dates, now
---     with its pins and rules, and the lists' own pins and rules under "[@list ...]" sections
---     (spec 7). The writer keeps every line it does not know (spec 7.4): later stages' keys
---     (separators) and other tools' lines survive a save.
+--     with its pins and rules, and the lists' own pins and rules under "[@list ...]"
+--     sections. The writer keeps every line it does not know, so another tool's
+--     lines survive a save.
 --   * each mod's needs and wishes read from the game once (readInfo), not per row per frame
---   * laying out the order (spec 4): requirements, ZeD picks last, the pinned blocks, your
+--   * laying out the order: requirements, ZeD picks last, the pinned blocks, your
 --     rules, then the player's own place; Auto sorts by the mods' own wishes first
 --   * the order check (red / yellow / green per row), run once per change by the screen
 --   * the picker's questions: what must load before / after a mod (requirements, your rules)
---   * separators (MOD_FOLDERS_SPEC 7, 8, 10; stage 3): headings inside the load order, MO2-style,
+--   * separators: headings inside the load order, MO2-style,
 --     kept with the pins and rules ("sep=" and "top=" lines); a mod's section is its place in the
 --     order; laying out keeps each mod in its section, and Auto sorts inside each section only
 --
@@ -126,7 +126,7 @@ O._uid = O._uid or 0
 function O.newUid() O._uid = O._uid + 1; return O._uid end
 
 -- sep=<1 on, 0 off>|<1 open, 0 collapsed>|<name, encoded>|<id;id;...>[|<label key>]  (nil: not this form)
--- (the label, Nov 4 2026: one of ZeD.LABELS, the accent colours; written only when the separator has one)
+-- (the label: one of ZeD.LABELS, the accent colours; written only when the separator has one)
 local function parseSep(v)
     local on, open, name, rest = tostring(v or ""):match("^([01])|([01])|([%x,]*)|(.*)$")
     if not on then return nil end
@@ -163,7 +163,7 @@ function O.load()
             elseif k == "saved" or k == "used" then
                 cur[k] = v
             elseif line ~= "" then
-                cur.keep[#cur.keep + 1] = line      -- (spec 7.4: a line it does not know stays)
+                cur.keep[#cur.keep + 1] = line      -- (a line it does not know stays)
             end
         elseif line ~= "" and line ~= HEADER then
             Store.pre[#Store.pre + 1] = line
@@ -232,7 +232,7 @@ end
 -- ----------------------------------------------------------------------------
 -- PINS AND RULES ("lo")
 -- ----------------------------------------------------------------------------
--- the list being edited (spec 7.2): its own section, a name no profile can take
+-- the list being edited: its own section, a name no profile can take
 function O.listKey(m)
     if not m then return "@list main menu" end
     if m.isServerSettingsMods then
@@ -296,7 +296,7 @@ function O.setPin(lo, id, which)
     if which == "first" then lo.first[#lo.first + 1] = id elseif which == "last" then lo.last[#lo.last + 1] = id end
 end
 
--- a rule for id (spec 3.4: a second rule on the same pair replaces the first, whoever owns it)
+-- a rule for id (a second rule on the same pair replaces the first, whoever owns it)
 function O.addRule(lo, id, how, other)
     for i = #lo.rules, 1, -1 do
         local r = lo.rules[i]
@@ -320,7 +320,7 @@ function O.removeRulesOf(lo, id)
 end
 
 -- ----------------------------------------------------------------------------
--- WHAT THE GAME SAYS OF EACH MOD (read once per page, spec 5.2)
+-- WHAT THE GAME SAYS OF EACH MOD (read once per page)
 -- ----------------------------------------------------------------------------
 function O.readInfo(m, ids)
     O.stats.infos = O.stats.infos + 1
@@ -337,7 +337,7 @@ function O.readInfo(m, ids)
             pcall(function() e.before = jlist(mi:getLoadBefore()) end)
             pcall(function() wid = tostring(mi:getWorkshopID() or "") end)
         end
-        -- Find's text (spec 5.3): name, id and Workshop number, lower case, made once
+        -- Find's text: name, id and Workshop number, lower case, made once
         e.hay = string.lower(e.name .. " " .. tostring(id) .. " " .. wid)
         I[id] = e
     end
@@ -470,7 +470,7 @@ function O.place(order, I, id, how, other)
 end
 
 -- ----------------------------------------------------------------------------
--- LAYING OUT (spec 4): requirements, ZeD picks last, the pins (with what they carry), your
+-- LAYING OUT: requirements, ZeD picks last, the pins (with what they carry), your
 -- rules, then the player's own place. auto = sort by the mods' own wishes first (inside each
 -- block; the pins' order then follows the block). Returns the new order, each mod's block
 -- (1 load first, 2 the rest, 3 load last, 4 ZeD picks) and the carried mods.
@@ -526,7 +526,7 @@ local function pinsFollow(pins, block, isPin)
 end
 
 -- ----------------------------------------------------------------------------
--- SECTIONS (separators, MOD_FOLDERS_SPEC 7): each separator holds the mods under it, down to
+-- SECTIONS (separators): each separator holds the mods under it, down to
 -- the next one; section 0 is the top, above the first separator. Only the middle of the order
 -- (not the pinned blocks, not ZeD picks) is cut into sections.
 -- ----------------------------------------------------------------------------
@@ -554,9 +554,9 @@ function O.sepOf(lo, uid)
 end
 
 -- each middle mod's section, and the middle grouped section by section (stable; Auto sorts
--- inside each one and never across a separator, spec 7.6). A mod in no section: after every
--- placed one, the last separator (where the game puts a mod turned on, spec 7.4, the director's
--- pick); else the section of the nearest placed mod above it (the top when there is none: a mod
+-- inside each one and never across a separator). A mod in no section: after every
+-- placed one, the last separator (where the game puts a mod turned on); else the
+-- section of the nearest placed mod above it (the top when there is none: a mod
 -- unpinned from Load first lands at the top of the middle)
 local function sectionize(M, I, lo, auto)
     local sec = {}
@@ -658,7 +658,7 @@ function O.secGroup(order, zone, sec, lo)
 end
 
 -- the game's order made ready for laying out: the mods the separators hold in their lists'
--- order (a mod turned off and on again goes back to its place, spec 7.5), the others where
+-- order (a mod turned off and on again goes back to its place), the others where
 -- they were (above the first held one, or after them all: a mod newly on goes to the end)
 function O.seqFrom(lo, ids)
     if not O.hasSeps(lo) then return ids end
@@ -724,7 +724,7 @@ function O.layout(order, I, lo, auto)
     for _, id in ipairs(L) do out[#out + 1] = id; zone[id] = 3; if not pinL[id] then carried[id] = true end end
     if hasHelper then out[#out + 1] = helper; zone[helper] = 4 end
     -- your rules, oldest first, inside a block (a rule across blocks is kept or not by the blocks)
-    -- and inside a section (a rule across separators is kept or not: its row says so, spec 3.5)
+    -- and inside a section (a rule across separators is kept or not: its row says so)
     for _ = 1, 2 do
         for _, r in ipairs(lo.rules) do
             local za, zb = zone[r.id], zone[r.other]
@@ -735,7 +735,7 @@ function O.layout(order, I, lo, auto)
 end
 
 -- ----------------------------------------------------------------------------
--- THE ORDER CHECK (spec 3.6, 2.6): per row "ok" | "soft" (a wish, a rule or a pin not kept) |
+-- THE ORDER CHECK: per row "ok" | "soft" (a wish, a rule or a pin not kept) |
 -- "bad" (a mod it needs loads later or is not in the list). A wish your pin or your rule
 -- overrides is not yellow. One pass over the list per change.
 -- ----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuSpawn.lua
 -- ============================================================================
--- MAP / SPAWN ON THE MONITOR (HOOK_MAP row 26; director, Oct 14 2026: menus
--- delegated, no mockups)
+-- MAP / SPAWN ON THE MONITOR: the main menu's spawn-town screen.
+-- Client-side; an organism.
 --
 -- The town a new character starts in, as a ZeD window on the desk's screen in
 -- place of vanilla's MapSpawnSelect. Vanilla's screen stays built and keeps

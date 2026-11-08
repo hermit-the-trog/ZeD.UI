@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuMods.lua
 -- ============================================================================
--- THE MOD MANAGER ON THE MONITOR (HOOK_MAP row 26; director, Oct 14 2026:
--- "a more robust mod manager", design delegated, no mockup)
+-- THE MOD MANAGER ON THE MONITOR: the main menu's Mods screen. Client-side;
+-- an organism. ZeD_MainMenuModsFolders, ...ModsOrder and ...ModsPanes add
+-- their pages and panes to this same class.
 --
 -- A ZeD window on the desk's screen in place of vanilla's ModSelector. Every
 -- rule stays vanilla's: the screen drives ModSelector.instance.model (the
@@ -19,16 +20,15 @@
 --   * a detail pane: picture, author, version, IDs, what it needs and what
 --     it conflicts with (each with its status dot), the description
 --   * turning a mod on or off says which other mods came along (requirements)
---   * profiles (Oct 15 2026): vanilla's presets as a page of their own, each with its
+--   * profiles: vanilla's presets as a page of their own, each with its
 --     load order kept (ZeD_modprofiles.txt), what loading it would change, new / update /
 --     rename / duplicate / delete / share as text, and the profile in use in the title
 --   * load order and map order as views of the same window, with the order
 --     rules shown per row and MOVE UP / MOVE DOWN / AUTO
 --   * Back with changes asks in the band: Cancel, Discard changes or Keep
---   * (Oct 16 2026, director: "identifying conflicts, updating mods from the workshop,
---     reloading the lua ... and saying why a full restart is required") conflicts the
---     game never reports (the same Lua file or the same item / recipe in two mods, who
---     wins and the fix: ZeD_ModScan), the Workshop state of every subscribed item (a
+--   * conflicts the game never reports (the same Lua file or the same item /
+--     recipe in two mods, who wins and the fix: ZeD_ModScan), the Workshop
+--     state of every subscribed item (a
 --     Workshop tab, row tags, the detail's WORKSHOP line, Open in Steam), and a band
 --     that says what pending changes need: a reload (no exit) or, when Steam updated a
 --     running mod, a restart for its pictures, with Quit to restart
@@ -65,8 +65,8 @@ local function jlist(l)
 end
 
 -- ----------------------------------------------------------------------------
--- THE SCREEN'S OWN STATE (the director, Nov 4 2026, Workshop feedback): the tab and Hide incompatible are kept
--- between visits and games, in Zomboid/Lua/ZeD_modsview.txt (tab=<the tab>, hideInc=<0 or 1>)
+-- THE SCREEN'S OWN STATE: the tab and Hide incompatible are kept between
+-- visits and games, in Zomboid/Lua/ZeD_modsview.txt (tab=<the tab>, hideInc=<0 or 1>)
 -- ----------------------------------------------------------------------------
 local VIEW_FILE = "ZeD_modsview.txt"
 local VIEW_TABS = { all = true, enabled = true, off = true, favs = true, maps = true, problems = true, conflicts = true, ws = true }
@@ -93,7 +93,7 @@ end
 -- ============================================================================
 ZeD_MMMods = ZeD_MMWindow:derive("ZeD_MMMods")
 
--- true while the Mods screen is the Simple view (ZeD setup, read as it draws, so a change applies at once)
+--- True while the Mods screen is the Simple view (ZeD setup, read as it draws, so a change applies at once).
 function ZeD_MMMods:simple() return ZeD.Settings and ZeD.Settings.modsSimple and ZeD.Settings.modsSimple() or false end
 -- a mod row's height: two lines in Full, one in Simple
 function ZeD_MMMods:rowH() return ZeD.T.px(self:simple() and ROW_H_SIMPLE or ROW_H) end
@@ -160,9 +160,9 @@ function ZeD_MMMods:onShow()
     self._picksRefreshed = wrote > 0
 end
 
--- the mods the list shows: vanilla's sorted records, through the tab and Find (plain text).
--- Kept while the tab, Find and the records stay the same (a list of 1300+ mods filtered every
--- frame cost the screen its frame rate; Oct 27 2026), and for a moment at most
+--- The mods the list shows: vanilla's sorted records, through the tab and Find (plain text).
+--- Kept while the tab, Find and the records stay the same (a list of 1300+ mods filtered every
+--- frame cost the screen its frame rate), and for a moment at most.
 local ROWS_MS = 500
 function ZeD_MMMods:rows()
     local m = model()
@@ -174,7 +174,7 @@ function ZeD_MMMods:rows()
         return c.out
     end
     local out, idx = {}, {}
-    -- each record's search text is made once and kept with the record (MODS_LOAD_ORDER_SPEC 5.3)
+    -- each record's search text is made once and kept with the record
     local hay = self._hay
     if not hay or self._haySrc ~= src or (c and c.n ~= #(src or {})) then hay = {}; self._hay, self._haySrc = hay, src end
     for _, d in ipairs(m.sortedMods or {}) do
@@ -206,9 +206,10 @@ end
 -- counts and profile comparisons run several times a frame: kept for a moment, dropped on any change
 -- (the rows, each mod's problem, the band's pending line and the map check too)
 local CACHE_MS = 150
--- (the counts and the profile comparisons walk every installed mod: kept a second, a change
--- on the screen drops them at once; 1,500 mods, MODS_LOAD_ORDER_SPEC 5)
+-- the counts and the profile comparisons walk every installed mod (1,500 is a real library):
+-- kept a second, and a change on the screen drops them at once
 local SLOW_MS = 1000
+--- Drop every cache; call it after anything on the screen changes a mod, a favourite or the order.
 function ZeD_MMMods:dirty() self._cnt, self._diffs, self._rowsC, self._probC, self._pendC, self._mapC = nil, nil, nil, nil, nil, nil end
 
 function ZeD_MMMods:counts()
@@ -330,9 +331,9 @@ function ZeD_MMMods:selected()
     return m and self.sel and m.mods[self.sel] or nil
 end
 
--- why a mod cannot be turned on (nil = it can): vanilla's isAvailable / isIncompatible, in words.
--- Kept per mod for a moment (the counts and the Problems tab ask for every installed mod); any
--- change on the screen drops it (dirty)
+--- Why a mod cannot be turned on (nil = it can): vanilla's isAvailable / isIncompatible, in words.
+--- Kept per mod for a moment (the counts and the Problems tab ask for every installed mod); any
+--- change on the screen drops it (dirty).
 local PROB_MS = 1000
 function ZeD_MMMods:problem(d)
     if not d then return nil end
@@ -387,23 +388,18 @@ function ZeD_MMMods:problemNow(d)
 end
 
 -- MODS ON AND OFF AS ONE BATCH ------------------------------------------------
--- Every path that sets several mods goes through here (QA Nov 1 2026: msp 3d, then mhd). One at
--- a time, the first of two mods that declare each other incompatible went on and the game then
--- refused the second, though the player had them on together: The Only Cure+ was lost turning
--- a separator back on, and again on Undo. Here every mod that can run is set on, the
--- requirements follow and the game's lists are worked out once.
-
--- ids on, in that order. opts.together: ids the player had on together (their own earlier
--- state): two of them that conflict go on together; otherwise the first wins, and a mod on
--- already counts as first. opts.exact: the template mod too (else it asks on its own row).
--- opts.why: id -> the reason a mod stayed off. Returns the mods set on and the names left off.
+-- Every path that sets several mods goes through here. Set one at a time, the first of two
+-- mods that declare each other incompatible went on and the game then refused the second,
+-- though the player had them on together: The Only Cure+ was lost turning a separator back
+-- on, and again on Undo. Here every mod that can run is set on, the requirements follow and
+-- the game's lists are worked out once.
 
 -- ZeD picks needs ZeD-GUI (require=\ZeD_UI in its mod.info), so ZeD-GUI going off takes picks off
 -- with it, and vanilla's cascade only brings requirements back on, never dependants. The screen
 -- remembers the mod whose going off took picks with it (self._picksOffWith), whichever way it
 -- went off: its own row, a folder or separator box, Turn all off or No mods (picksNoteOff). Every
 -- way that mod comes back on (its row, a box, Turn all on, a mod that needs it) brings picks back
--- with it (picksSettle, act = true; the director, Nov 7 2026: before, only the row did). The
+-- with it (picksSettle, act = true). The
 -- memory goes once picks is on again, when the player sets picks on its own row and when a set
 -- the player kept comes back exactly (a profile, Undo changes, Discard: applyOnSet exact checks
 -- without acting). The Load order page's Back and Undo set an earlier set of this visit's mods
@@ -426,8 +422,8 @@ local function picksSettle(self, m, act)
     if act then m:forceActivateMods(h.modInfo, true) end
 end
 
--- after mods went off (before: the set on before): picks was on and is off now because a mod it
--- needs went off: remember that mod (the first of picks' own requirements that went off)
+--- After mods went off (before: the set on before): picks was on and is off now because a mod it
+--- needs went off: remember that mod (the first of picks' own requirements that went off).
 function ZeD_MMMods:picksNoteOff(before)
     local m = model()
     if not (m and before) then return end
@@ -439,15 +435,19 @@ function ZeD_MMMods:picksNoteOff(before)
     end
 end
 
--- the Load order page's Back and Undo: id is the memory kept with the set they just put back
--- (nil when there was none). It is checked again (not acted on: the set put back stands), so it
--- holds only while that mod and picks are both off now.
+--- The Load order page's Back and Undo: id is the memory kept with the set they just put back
+--- (nil when there was none). It is checked again (not acted on: the set put back stands), so it
+--- holds only while that mod and picks are both off now.
 function ZeD_MMMods:restorePicksOffWith(id)
     self._picksOffWith = id
     local m = model()
     if m then picksSettle(self, m, false) end
 end
 
+--- ids on, in that order. opts.together: ids the player had on together (their own earlier
+--- state): two of them that conflict go on together; otherwise the first wins, and a mod on
+--- already counts as first. opts.exact: the template mod too (else it asks on its own row).
+--- opts.why: id -> the reason a mod stayed off. Returns the mods set on and the names left off.
 function ZeD_MMMods:modsOnBatch(ids, opts)
     local m = model()
     local go, goSet, cannot, seen = {}, {}, {}, {}
@@ -519,8 +519,8 @@ local function activeSet(m)
     return s
 end
 
--- vanilla's forceActivateMods (requirements cascade on, dependants cascade off);
--- the note says which other mods came along
+--- One mod on or off through vanilla's forceActivateMods (requirements cascade on,
+--- dependants cascade off); the note says which other mods came along.
 function ZeD_MMMods:toggle(d, confirmed)
     local m = model()
     if not (m and d) then return end
@@ -561,9 +561,10 @@ function ZeD_MMMods:toggleFav(d)
     MM.clickSound()
 end
 
+--- A line in the detail pane's note band for a few seconds: what a toggle, a profile or a fix did.
 function ZeD_MMMods:say(text) self.note = { text = text, untilMs = MM.now() + NOTE_MS }; self:dirty() end
 
--- what changed since the screen opened (vanilla's Back test)
+--- What changed since the screen opened (vanilla's Back test).
 function ZeD_MMMods:changed()
     local m = model()
     for _, d in pairs(m and m.mods or {}) do
@@ -643,10 +644,10 @@ function ZeD_MMMods:reordered()
     return r
 end
 
--- every load order the screen writes goes through here (punch list 97). Vanilla's
--- correctAndSaveModOrder reads each id's record (self.mods[id].modInfo), and the list can still
--- name a mod that is no longer installed: that id has no record, so the call threw (Undo changes
--- and Load after, beta 6). Such ids are left out first; Accept's checkMissingMods drops them anyway
+--- Every load order the screen writes goes through here. Vanilla's
+--- correctAndSaveModOrder reads each id's record (self.mods[id].modInfo), and the list can still
+--- name a mod that is no longer installed: that id has no record, so the call threw (Undo changes
+--- and Load after hit it). Such ids are left out first; Accept's checkMissingMods drops them anyway.
 function ZeD_MMMods:saveOrder(ids)
     local m = model()
     if not m then return end
@@ -695,7 +696,7 @@ function ZeD_MMMods:back()
     if self:changed() then self:setConfirm("back") else self:accept() end
 end
 
--- PROFILES (director, Oct 15 2026: "more robust features for managing mods and load profiles")
+-- PROFILES
 -- A profile is vanilla's mod-list preset (pz_modlist_settings.cfg, so vanilla's own screen and
 -- its share text still work) plus what vanilla does not keep, in ZeD's own file
 -- Zomboid/Lua/ZeD_modprofiles.txt: the load order, and when it was saved and last loaded.
@@ -825,7 +826,7 @@ function ZeD_MMMods:loadProfile(p)
         for _, id in ipairs(e.order) do if isOn[id] and not seen[id] then order[#order + 1] = id; seen[id] = true end end
         for _, id in ipairs(active) do if not seen[id] then order[#order + 1] = id; seen[id] = true end end
     end
-    -- the profile's pins and rules become the list's (spec 7.3), and lay the order out (spec 4)
+    -- the profile's pins and rules become the list's, and lay the order out
     local I = self.infoFor and self:infoFor(m, active) or O.readInfo(m, active)
     if #order == 0 then order = O.ruleOrder(I, active) end
     local lo = O.getLo(p.name)
@@ -865,7 +866,7 @@ function ZeD_MMMods:writeProfile(name)
     local e = extra(name) or {}
     e.order, e.saved = order, stamp()
     O.entries()[name] = e
-    -- (New... and Update...: the list's pins and rules go with the profile, spec 7.3)
+    -- (New... and Update...: the list's pins and rules go with the profile)
     O.putLo(name, O.getLo(O.listKey(m)), false)
     extrasSave()
     self.preset = name
@@ -876,7 +877,7 @@ function ZeD_MMMods:nameFree(name, except)
     local m = model()
     if not (name and name ~= "" and SandboxOptions.isValidPresetName(name)) then return false end
     if name == "No mods" or name == ZeD.tr("UI_ZeD_Mods_NoMods") then return false end   -- (the pseudo-profile's row: its English and its translated name)
-    if name:sub(1, 1) == "@" then return false end   -- (the lists' own sections in the profile file, spec 7.2)
+    if name:sub(1, 1) == "@" then return false end   -- (the lists' own sections in the profile file start with @)
     return not (m and m.presets[name]) or name == except
 end
 
@@ -1047,7 +1048,7 @@ end
 local FIELD_MODES = { save = true, paste = true, rename = true, dup = true, fnew = true, frename = true }
 ZeD_MMMods.FIELD_MODES = FIELD_MODES
 
--- Return in the band's field: the mode's own action
+--- Return in the band's field: the mode's own action.
 function ZeD_MMMods:fieldEnter()
     local c = self.confirm
     if c == "save" then self:savePreset() elseif c == "paste" then self:pastePreset()
@@ -1055,14 +1056,15 @@ function ZeD_MMMods:fieldEnter()
     elseif (c == "fnew" or c == "frename") and self.folderFieldEnter then self:folderFieldEnter(c) end
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { back = "confirm:no", delete = "confirm:no", update = "confirm:no", reset = "confirm:no",
                       fdelete = "confirm:no", turnoff = "confirm:keep", sreplace = "confirm:no" }
+--- Open a question in the band (false closes it); a FIELD_MODES mode also shows the band's text field.
 function ZeD_MMMods:setConfirm(mode)
     if self.confirm == mode then return end
     -- (a question opened from no question: the controller's stop it was asked from, for B to come back to; a caller that
-    -- named its own button keeps it. The leave question had none: B, B left the focus on nothing, t15 pre-upload)
+    -- named its own button keeps it. The leave question once had none, and B, B left the focus on nothing)
     if mode and not self.confirm and self._backFocus == nil then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
@@ -1141,7 +1143,7 @@ function ZeD_MMMods:render()
     ZeD_Window.render(self)
 end
 
--- the band at the foot (spec 8): this page's actions, or the question in their place
+-- the band at the foot: this page's actions, or the question in their place
 function ZeD_MMMods:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 100000      -- (past every list row: a list of 1000 mods has a row 1000)
@@ -1242,7 +1244,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
     end
 end
 
--- a tag on a list row (spec 9): the library's tag, an outline with its status as a square mark; it sits
+-- a tag on a list row: the library's tag, an outline with its status as a square mark; it sits
 -- on the list's own fill, so a picked row's wash does not run through it
 local TAG_MARK = { warning = "warning", positive = "positive", info = "info", danger = "danger" }
 local function tagMark(variant) local T = ZeD.T; return TAG_MARK[variant] and T[TAG_MARK[variant]] or nil end
@@ -1290,7 +1292,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local tH = T.px(TABS_H)
     ZeD.Surface.fill(self, x + T.px(1), y + T.px(1), w - 2 * T.px(1), tH, "surf2")
     local tY = y + tH - T.tabH
-    -- the tabs fit the list's width (QA Nov 1 2026, 1280x720 Large: Workshop ran under the pane):
+    -- the tabs fit the list's width (at 1280x720 with Large text, Workshop ran under the pane):
     -- tighter first (padding, then gaps), and if they still do not fit the row slides so the
     -- open tab is in view, clipped to the list, never cut by the pane
     local avail = w - T.px(16)
@@ -1305,7 +1307,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
             gap = gap - cutGap; over = over - cutGap * n
         end
         need = avail + math.max(0, over)
-        -- still too wide (QA Nov 4 2026, Dutch on the Deck at Large text): the tabs not open drop their counts
+        -- still too wide (Dutch on the Deck at Large text): the tabs not open drop their counts
         if over > 0 then
             need = T.px(16)
             for _, t in ipairs(tabs) do
@@ -1357,7 +1359,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     ZeD.Surface.fill(self, x + T.px(1), fY, w - 2 * T.px(1), fH - T.px(1), "surf2")
     ZeD.Atoms.drawDividerH(self, x, fY + fH - T.px(1), w, true)
     local f2 = T.fontF2
-    -- Hide incompatible at the right of Find (the director, Nov 4 2026)
+    -- Hide incompatible sits at the right of Find
     local hw = self:hideIncBox(x, fY, w, fH)
     self:findBar(x, fY, w - hw, fH)
     -- (the tab and the box kept as they change: written only on a change)
@@ -1394,8 +1396,8 @@ function ZeD_MMMods:drawList(x, y, w, h)
     end
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
     -- a controller stop for each row in sight, one either side (the D-pad steps off the edge
-    -- and the list follows) and the focused one: not one per mod a frame (1,500 mods,
-    -- MODS_LOAD_ORDER_SPEC 5.4). Each is made once per record and kept while the records are.
+    -- and the list follows) and the focused one: not one per mod a frame (1,500 mods).
+    -- Each is made once per record and kept while the records are.
     local m = model()
     if self._rowSpecsFor ~= (m and m.sortedMods) then self._rowSpecs, self._rowSpecsFor = {}, m and m.sortedMods end
     local specs = self._rowSpecs
@@ -1433,7 +1435,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     end
 end
 
--- Hide incompatible (the director, Nov 4 2026, Workshop feedback): a box at the right of Find; while it is ticked
+-- Hide incompatible: a box at the right of Find; while it is ticked
 -- the mods that are off and cannot be turned on leave the list, and how many is said beside it. Kept between visits
 -- (ZeD_modsview.txt). Returns the width it takes, so Find fits the rest.
 function ZeD_MMMods:hideIncBox(x, fY, w, fH)
@@ -1444,8 +1446,8 @@ function ZeD_MMMods:hideIncBox(x, fY, w, fH)
     local label = ZeD.tr("UI_ZeD_Mods_HideInc")
     local inc = select(8, self:counts()) or 0
     local note = (self.hideInc and inc > 0) and ZeD.tr("UI_ZeD_Mods_HideIncN", inc) or nil
-    -- (Find keeps room for its label, a usable field and its Clear: QA Nov 4 2026, Hungarian in the Simple view at the
-    -- Deck, where the field was drawn over the box. Past that, the count goes first, then the label is cut)
+    -- (Find keeps room for its label, a usable field and its Clear: Hungarian in the Simple view on the
+    -- Deck drew the field over the box. Past that, the count goes first, then the label is cut)
     local room = w - T.px(16) - (MM.textW(f2, ZeD.tr("UI_ZeD_Options_Find")) + T.px(16) + T.px(140))
     if (self.find:getInternalText() or "") ~= "" then room = room - ZeD.Molecules.buttonW(ZeD.tr("UI_ZeD_Order_Clear")) - T.px(6) end
     local bw = cb + T.px(7) + MM.textW(f2, label) + (note and (T.px(8) + MM.textW(f3, note)) or 0)
@@ -1490,9 +1492,9 @@ function ZeD_MMMods:hideIncBox(x, fY, w, fH)
     return bw + T.px(16)
 end
 
--- one mod's row of the Mods list (in sight): the box, icon, name, id or what is wrong, tags, star.
--- indent: the folder grouping's step in (ZeD_MainMenuModsFolders); a row of a multi-selection
--- draws picked too
+--- One mod's row of the Mods list (in sight): the box, icon, name, id or what is wrong, tags, star.
+--- indent: the folder grouping's step in (ZeD_MainMenuModsFolders); a row of a multi-selection
+--- draws picked too.
 function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -1501,8 +1503,8 @@ function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
     do
             local isSel = d.modId == self.sel or (self.msel ~= nil and self.msel[d.modId] == true)
             local simple = self:simple()
-            -- a mod that is on sits on a solid band, darker than the list (the director, Nov 4 2026: FAIV could not
-            -- tell on from off in a long list); the accent stays for the chosen row, hover and the controller
+            -- a mod that is on sits on a solid band, darker than the list (the box alone did not read
+            -- as on or off in a long list); the accent stays for the chosen row, hover and the controller
             if d.isActive then
                 local bd = T.onBand
                 self:drawRect(x + T.px(1), ry, rw, rh, bd.a or 1, bd.r, bd.g, bd.b)
@@ -1781,7 +1783,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     local by = ny + T.px(8)
     local bh = T.buttonH
     local bx = tx
-    -- (a row of buttons beside the picture, then under it at the pane's full width: QA Nov 4 2026, a Dutch button
+    -- (a row of buttons beside the picture, then under it at the pane's full width: a Dutch button
     -- wider than the room beside the picture ran past the pane)
     local picBot = cy + (ptex and psz or 0)
     local lx, lw = tx, tw
@@ -1842,7 +1844,7 @@ function ZeD_MMMods:drawAbout(d, ix, iw, cy, vy, vh, prob, wid)
         end
         cy = cy + T.px(6)
     end
-    -- pinned in the list's load order (MODS_LOAD_ORDER_SPEC 2.9; kept while it is off too)
+    -- pinned in the list's load order (kept while it is off too)
     local pc = self._pinNote
     if not (pc and pc.id == d.modId and pc.gen == O.gen) then
         local pin = O.pinOf(O.entry(O.listKey(m)), d.modId)
@@ -1939,7 +1941,7 @@ function ZeD_MMMods:drawAbout(d, ix, iw, cy, vy, vh, prob, wid)
     return cy
 end
 
--- wrapped text in the detail pane; returns the y under it
+--- Wrapped text in the detail pane; returns the y under it.
 function ZeD_MMMods:paneText(text, x, cy, w, font, color)
     local T = ZeD.T
     for _, l in ipairs(ZeD.Atoms.wrapText(text, font, w)) do
@@ -1949,7 +1951,7 @@ function ZeD_MMMods:paneText(text, x, cy, w, font, color)
     return cy
 end
 
--- a row of buttons in the detail pane (clipped with it); returns the y under them
+--- A row of buttons in the detail pane (clipped with it); returns the y under them.
 function ZeD_MMMods:paneVerbs(list, x, cy, w, vy, vh, row)
     local T = ZeD.T
     local bh = T.buttonH
@@ -2249,7 +2251,7 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
                 names[#names + 1] = md and tostring(md.name) or ZeD.tr("UI_ZeD_Mods_ListNotInstalled", id)
                 nums[#nums + 1] = tostring(n)
             end
-            -- (with separators: each one's heading line over its mods, MOD_FOLDERS_SPEC 10.3)
+            -- (with separators: each one's heading line over its mods)
             local runs = O.sectionRuns(e, order)
             if runs then
                 local n = 0
@@ -2522,7 +2524,7 @@ function MM.openMods()
 end
 
 -- the wheel goes to whichever list view is up (the wheel under it kept once, as Mail keeps its own: a reload of this file
--- wraps that same one again, not its own last wrapper; Nov 8 2026)
+-- wraps that same one again, not its own last wrapper)
 local _wheel = MM._modsWheelBase or MM.wheel
 MM._modsWheelBase = _wheel
 function MM.wheel(del)

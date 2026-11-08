@@ -1,11 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Restock.lua
 -- ============================================================================
--- RESTOCK AND UNPACK: THE ENGINE (handoff equip_doll_v4_loadouts, parts B4-B6;
--- mockup frames r2_03 to r2_07; the director: "1, 2 and 3. 3 being the
--- accessible option, 1 being hardcore, and 2 being casual")
---
--- No drawing here (the Equip tab's bar and to-do are ZeD_EquipLoadout.lua, the
--- pinned list ZeD_RestockPin.lua). What it does:
+-- RESTOCK AND UNPACK: THE ENGINE - client logic, no drawing (the Equip tab's
+-- bar and to-do are ZeD_EquipLoadout.lua, the pinned list ZeD_RestockPin.lua).
+-- What it does:
 --   * the lists applied (one outfit, one loadout, the days), kept with the
 --     character beside the lists (player:getModData().ZeD_Lists.applied);
 --   * where it looks: the building you're in, or only what's in reach outside
@@ -18,18 +15,19 @@
 --     condition, the fullest bottle, the lightest thing that meets the line);
 --   * the game's own timed actions at their own speed, queued: take, wear,
 --     equip, attach to a belt slot, fill at a tap; their total time;
---   * the three ways (the Restock setting): Hardcore takes from what is in reach
---     now; Casual queues the takes as containers come into reach; Accessible
---     walks a route over the containers with the game's pathfinding walk and
---     comes back to where you pressed;
---   * it stops (the queue cancelled) for any key or button, a zombie coming into
---     view or getting hurt;
+--   * the three ways (the Restock setting, 1 to 3): Hardcore takes from what is
+--     in reach now; Casual (the default) queues the takes as containers come
+--     into reach; Accessible walks a route over the containers with the game's
+--     pathfinding walk and comes back to where you pressed;
+--   * any key or button cancels the queue (Casual then waits for the containers
+--     in reach to change; the other two stop), and a zombie coming into view or
+--     getting hurt stops the run;
 --   * home (the building where you last restocked), what you left with, and
 --     Unpack: loot where its kind lives, leftovers packed, gear and outfit on you.
 -- Never moves a thing by itself: every take is vanilla's transfer action.
--- Restock follows Loadouts (director, Oct 30 2026): with Loadouts and outfits
--- off (Settings.lua, L.on()) nothing starts, a run going is stopped, and there
--- are no scans and no trip kept on stepping out of home.
+-- Restock follows Loadouts: with Loadouts and outfits off (Settings.lua,
+-- L.on()) nothing starts, a run going is stopped, and there are no scans and
+-- no trip kept on stepping out of home.
 -- ============================================================================
 
 require "TimedActions/ISTimedActionQueue"
@@ -41,13 +39,16 @@ ZeD.Restock = ZeD.Restock or {}
 local R = ZeD.Restock
 local L = ZeD.Lists
 
--- a timed action's maxTime in game units; seconds at 1x speed per unit (QA: zedqa_restock.lua times one)
+-- a timed action's maxTime is in game units; this is seconds per unit at 1x speed, as timed in game (the restock
+-- test script, zedqa_restock.lua, logs the real figure)
 R.SEC_PER_UNIT = 1 / 48
 R.WALK_SEC_PER_TILE = 0.45    -- the pathfinding walk, a tile
 R.SPOIL_SOON_DAYS = 2         -- leftover food that would spoil within this goes back where food lives
 R.gen = R.gen or 0            -- bumped on every change the to-do shows (the applied lists, a run)
 R.runs = R.runs or {}         -- per player number: the run going on
 
+--- o:m(...), or nil when o or the method is missing. The game's Java side can throw; pcall turns a crash into a
+--- nil we can test.
 local function call(o, m, ...)
     if not o then return nil end
     local f = o[m]
@@ -64,6 +65,7 @@ R.touch = touch
 -- THE SETTING (Settings.lua restock: Hardcore, Casual, Accessible)
 -- ---------------------------------------------------------------------------
 R.MODES = { "hardcore", "casual", "accessible" }
+--- the way the setting says now: "hardcore", "casual" (the default) or "accessible"
 function R.mode()
     local o = ZeD.Settings and ZeD.Settings.restockOption
     local v = o and call(o, "getValue") or 2
@@ -90,8 +92,10 @@ function R.current(p)
     return a.outfit and L.get(p, a.outfit) or nil, a.loadout and L.get(p, a.loadout) or nil, a.days
 end
 
+--- apply an outfit or a loadout by its list id (nil: none)
 function R.setOutfit(p, id) R.applied(p).outfit = id; touch() end
 function R.setLoadout(p, id) R.applied(p).loadout = id; touch() end
+--- the days to stock for, kept between 1 and 30; returns the days kept
 function R.setDays(p, n)
     n = math.max(1, math.min(30, math.floor(tonumber(n) or 1)))
     R.applied(p).days = n
@@ -138,7 +142,7 @@ local function lootAllowed(sq, p)
 end
 
 --- In reach now, as the loot window counts it: the square you stand on or one beside it on
--- your level that nothing walls off.
+--- your level that nothing walls off.
 function R.inReach(p, sq)
     local cur = p and p:getCurrentSquare()
     if not (cur and sq) then return false end
@@ -261,7 +265,7 @@ local function since(now, t)
 end
 R.since = since
 
--- The building's squares that hold a container or a tap (perf review, Nov 7 2026): the whole building is
+-- The building's squares that hold a container or a tap: the whole building is
 -- walked once, then only these squares are looked at again (their containers and taps afresh each time:
 -- what is in them, opened, locked, the water). Walked again after R.BUILDING_MS, when a run starts, or when
 -- something is built, placed, plumbed or taken away (R.forgetBuildings: the hooks at the end of the file).
@@ -555,7 +559,7 @@ local function planLine(p, list, ln, days, scan, reserved, opts)
 end
 
 --- The plan for the lists applied (or those given): rows in list order, outfit first.
--- opts = { outfit, loadout, days, okLast, hardcore, force }
+--- opts = { outfit, loadout, days, okLast, hardcore, force }
 function R.plan(p, opts)
     opts = opts or {}
     local o, lo, days = R.current(p)
@@ -593,6 +597,7 @@ function R.okLast(p)
     _okLast[pn] = _okLast[pn] or {}
     return _okLast[pn]
 end
+--- yes to taking the last one for a row (key: the row's key), kept for this session
 function R.confirmLast(p, key) R.okLast(p)[key] = true; touch() end
 
 -- ---------------------------------------------------------------------------
@@ -635,8 +640,8 @@ local function weightFor(p, plan, n, uws)
 end
 
 --- The load after restock (the game's carried weight with the bags' reduction, then every line
--- met for the days): { now, max, after, supplies (the supplies you'd carry), worn (worn and gear),
--- byLine = { [row key] = kg of that supply for the days }, uws }
+--- met for the days): { now, max, after, supplies (the supplies you'd carry), worn (worn and gear),
+--- byLine = { [row key] = kg of that supply for the days }, uws }
 function R.load(p, plan)
     local now = p:getInventoryWeight()
     local max = p:getMaxWeight()
@@ -736,7 +741,7 @@ local function wornAt(p, loc, item)
 end
 
 --- The game's timed actions for a job, in order (not queued). live: about to be queued (a
--- floor item is then put in vanilla's floor container, as the loot window does).
+--- floor item is then put in vanilla's floor container, as the loot window does).
 function R.actionsFor(p, job, live)
     local acts = {}
     local inv = p:getInventory()
@@ -815,7 +820,7 @@ function R.jobsSecs(p, jobs, walk)
     return s
 end
 
---- "0:35"
+--- seconds as m:ss ("0:35")
 function R.timeText(sec)
     sec = math.max(0, math.floor((sec or 0) + 0.5))
     local m = math.floor(sec / 60)
@@ -879,8 +884,9 @@ end
 -- ---------------------------------------------------------------------------
 -- run = { pn, mode, kind = "restock" | "unpack", list (its name), acts (queued, in order),
 --         stops, stopAt, start = { x, y, z }, z0, hp0, pads, notice, stopped, done, doneMs, ms }
--- (ZeD's own moves: Put things back never notes them as a run. Noted, a run's wear or belt step
--- was its "main action", and once it finished Put things back took the hat off and back to the crate.)
+-- (ZeD's own moves are queued with PutBack.queuing set, so Put things back never notes them. Noted, a run's
+-- wear or belt step would count as its "main action", and once it finished Put things back would take the
+-- hat off and carry it back to the crate.)
 local function queueActs(run, p, acts)
     local PB = ZeD.PutBack
     local was = PB and PB.queuing
@@ -1029,7 +1035,7 @@ function R.start(p, kind)
 end
 
 --- Stop the run: the queue cancelled; why = "key" | "zombie" | "hurt" | "user" (pressed again)
--- (Casual also ends by itself: "full", over what you can carry; "stuck", what is left in reach was refused)
+--- (Casual also ends by itself: "full", over what you can carry; "stuck", what is left in reach was refused)
 function R.stop(p, why)
     local run = R.runs[p:getPlayerNum()]
     if not run or run.done then return end
@@ -1038,7 +1044,7 @@ function R.stop(p, why)
 end
 
 --- A key or a button: the queue cancelled. Casual keeps its list pinned and waits for the
--- containers in reach to change (you walk with the keys); the other two stop.
+--- containers in reach to change (you walk with the keys); the other two stop.
 function R.onKey(p)
     local run = p and R.runs[p:getPlayerNum()]
     if not run or run.done then return end
@@ -1172,7 +1178,7 @@ local function allOn(p)
 end
 R.allOn = allOn
 
---- What you leave with (taken when you step out of home; QA calls it directly).
+--- What you leave with (taken when you step out of home; the restock test script calls it directly).
 function R.snapshotTrip(p)
     local s = L.store(p)
     if not s then return end
@@ -1234,7 +1240,7 @@ local function homeFor(p, scan, it, homes)
 end
 
 --- The unpack plan: { loot = { { item, dest, state = "put" | "pick", cat } },
---   leftovers = { { item, state = "stay" | "put", dest } }, stays = { names }, scan }
+---   leftovers = { { item, state = "stay" | "put" | "pick", dest } }, stays = { names }, scan }
 function R.unpackPlan(p)
     local s = L.store(p)
     local scan = R.scan(p)
@@ -1288,6 +1294,7 @@ function R.setHome(p, cat, src)
     touch()
 end
 
+--- the unpack plan's "put" entries (loot and leftovers) as jobs; a thing still waiting for a home is left out
 function R.unpackJobs(p, up)
     local jobs = {}
     for _, grp in ipairs({ up.loot, up.leftovers }) do
@@ -1303,7 +1310,7 @@ end
 -- ---------------------------------------------------------------------------
 -- EVENTS: the runs' ticks, keys, hurt; stepping out of home
 -- ---------------------------------------------------------------------------
--- the runs' tick and the home check go by the clock, not by frames (the old 10 and 30 ticks at 60 a second)
+-- the runs' tick and the home check go by the clock, not by frames (10 and 30 ticks at 60 a second)
 R.RUN_TICK_MS = 167
 R.HOME_TICK_MS = 500
 local _runMs, _homeMs, _inHome = 0, 0, {}
@@ -1348,6 +1355,8 @@ local function onTick()
     end
 end
 
+-- Hooked once (a global flag survives a Lua reload), and the handlers call through ZeD.Restock, so a reload
+-- swaps in the new code without adding second hooks.
 if not _G._zedRestockHooked then
     _G._zedRestockHooked = true
     Events.OnTick.Add(function()

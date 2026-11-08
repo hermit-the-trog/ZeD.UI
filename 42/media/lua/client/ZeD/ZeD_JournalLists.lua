@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_JournalLists.lua
 -- ============================================================================
--- THE JOURNAL'S LOADOUTS PAGE (handoff equip_doll_v4_loadouts, part B2; mockup
--- frame r2_08; the director: "Loadout lists should live in the journal tab")
+-- THE JOURNAL'S LOADOUTS PAGE: loadout and outfit lists live here in the
+-- Journal tab, not on the equip doll. Client side.
 --
 -- The Journal tab's fifth page, after Recipes, in the Recipes page's pattern:
 --   * a filter (All, Loadouts, Outfits: the pop-up menu's look) and a search
@@ -16,18 +16,17 @@
 --     the amount), an outfit's in Worn (Any | This one). Pressing an amount gives
 --     a stepper; right-click (the pad's X) removes a line;
 --   * under about 560 units the panes stack, the lists above the lines. The page
---     lives in the full card (the Journal's 480-unit drawer; director, Oct 29 2026:
---     "The updates should fit in the full card, not the half card"), so it reads
---     stacked: at 480 a narrowed list pane left the lines too little room for the
---     name beside the amount and the switch.
+--     lives in the full card (the Journal's 480-unit drawer), so it reads
+--     stacked: side by side at 480, a narrowed list pane would leave the lines
+--     too little room for the name beside the amount and the switch.
 -- One scroll for the panes (the page scrolls as one). The data is ZeD_Lists.lua.
 --
 -- Hit zones are stamped each frame into win._jlZones (drawer coordinates); the
 -- Character window routes clicks (JL.onClick, JL.onRightClick), the wheel
 -- (JL.scroll) and the controller (JL.focusables, ids "jl:...") here.
--- With Loadouts and outfits off (Settings.lua; director, Oct 30 2026) the page
--- is not in the Journal's strip (JournalTab), and these find nothing to draw,
--- press or stop on (L.on() at each way in).
+-- With Loadouts and outfits off (Settings.lua) the page is not in the Journal's
+-- Page pop-up (JournalTab), and these find nothing to draw, press or stop on
+-- (L.on() at each way in).
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -59,7 +58,9 @@ local function st(win)
     end
     return win._jl
 end
+--- The page's state on the window (made the first time it is asked for).
 JL.state = st
+--- The page's scrollbar state, handed out by the Character window's scroll dispatch.
 function JL.scroll(win) return st(win).scroll end
 
 local function player(win) return win and win._playerObj end
@@ -151,7 +152,7 @@ end
 -- ---------------------------------------------------------------------------
 -- ACTIONS
 -- ---------------------------------------------------------------------------
---- Choose list id on the page (B4's Open in Journal: the page, that list chosen).
+--- Choose a list on the page (the doll's Open in Journal lands here, that list chosen).
 function JL.select(win, id)
     local s = st(win)
     s.sel, s.step, s.ask = id, nil, nil
@@ -664,10 +665,10 @@ local function drawDetail(panel, win, x, y, w)
 end
 
 -- ---------------------------------------------------------------------------
--- THE SEARCH (in the Journal's header strip: JournalTab places it) AND THE BAND
--- (Oct 30 2026, punch list 21): the filter (All, Loadouts, Outfits) as a System 7
--- pop-up menu at the left, its list opening upward over the page; Save loadout,
--- Save outfit and New list at the right (the long words are their help lines).
+-- THE SEARCH (in the Journal's header strip: JournalTab places it) AND THE BAND:
+-- the filter (All, Loadouts, Outfits) as a System 7 pop-up menu at the left, its
+-- list opening upward over the page; Save loadout, Save outfit and New list at
+-- the right (the long words are their help lines).
 -- ---------------------------------------------------------------------------
 local function searchField(win)
     if win._jlSearch then return win._jlSearch end
@@ -778,7 +779,7 @@ local function drawPageBand(panel, win, x, y, w)
     if hov then help(win, ZeD.tr("UI_ZeD_Lists_HelpFilter")) end
     local showName = filterLabel(s.filter)
     M.drawPopupMenu(panel, fx, by, fw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", showName), hov or open,
-        focusOf(win, "filter"), false, showName)   -- (the choice alone when both do not fit, break-it B2)
+        focusOf(win, "filter"), false, showName)   -- (the choice alone when both do not fit)
     zone(win, { id = "filter", x = fx, y = by, w = fw, h = bh, fn = function() s.filterOpen = true; s.step = nil end })
     for i, d in ipairs(BAND_BTNS) do
         local id = d[1]
@@ -791,6 +792,8 @@ end
 -- ---------------------------------------------------------------------------
 -- RENDER
 -- ---------------------------------------------------------------------------
+--- Draws the page into (x, y, w, h) on the drawer: the panes under one scroll, then the band
+--- at the foot (or the question before a delete). Stamps this frame's hit zones.
 function JL.render(panel, win, x, y, w, h)
     if not L.on() then win._jlZones = {}; return end
     local T, M = ZeD.T, ZeD.Molecules
@@ -839,17 +842,18 @@ function JL.render(panel, win, x, y, w, h)
     if not s.ask then drawPageBand(panel, win, x, by, w) end
 end
 
--- the band's filter list is open (its rows alone hold the controller) / shut it
+--- True while the band's filter list is open (its rows alone hold the controller).
 function JL.listOpen(win)
     local s = st(win)
     return s.filterOpen == true and s.filterZones ~= nil
 end
+--- Shuts the band's filter list.
 function JL.shutList(win)
     local s = st(win)
     s.filterOpen, s.filterZones = nil, nil
 end
 
--- the drawer's children follow the page (called every frame by the Character window)
+--- The drawer's children (the search field) follow the page; the Character window calls it every frame.
 function JL.syncChildren(win, onPage)
     onPage = onPage and L.on()
     local f = win._jlSearch
@@ -863,6 +867,8 @@ end
 -- ---------------------------------------------------------------------------
 -- INPUT (routed by the Character window's drawer)
 -- ---------------------------------------------------------------------------
+--- A click at (x, y) in drawer coordinates; true when the page took it. While the question
+--- before a delete is up, it holds every click.
 function JL.onClick(win, x, y)
     if not L.on() then return false end
     local s = st(win)
@@ -904,6 +910,8 @@ function JL.onClick(win, x, y)
     return false
 end
 
+--- A right-click at (x, y): the menu of the list or the line under it (Rename and Delete; Remove).
+--- True when the page took it.
 function JL.onRightClick(win, x, y)
     if not L.on() then return false end
     local s = st(win)
@@ -918,8 +926,8 @@ function JL.onRightClick(win, x, y)
     return false
 end
 
--- the controller's elements (ids "jl:..."): every live zone; while the question is up,
--- its two answers alone (Cancel first, where the focus lands)
+--- The controller's elements (ids "jl:..."): every live zone; while the question is up,
+--- its two answers alone (Cancel first, where the focus lands).
 function JL.focusables(win)
     local s = st(win)
     local out = {}
@@ -967,12 +975,13 @@ function JL.focusables(win)
         end
         if out._focusIdx or #out > 0 then s.land = nil end
     end
-    -- (Oct 30 2026, punch list 21 a-f: the open filter list is modal: Up / Down stop at its ends)
+    -- (the open filter list is modal: Up / Down stop at its ends)
     if rowsOnly and #out > 0 then out._menuRows = true end
     return out
 end
 
--- rebuild the controller's elements when the view scrolls or changes
+--- What moves the controller's elements: when this string changes (the view scrolled or
+--- changed), the Character window rebuilds them.
 function JL.scrollKey(win)
     local s = st(win)
     return tostring(s.scroll.scrollPos) .. ":" .. tostring(s.sel) .. ":" .. tostring(s.filter) .. ":" .. tostring(s.ask)

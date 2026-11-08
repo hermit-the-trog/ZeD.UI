@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardTrade.lua
 -- ============================================================================
--- OBJECT CARD: TRADE (HOOK_MAP row 18b; the director, Nov 7 2026: B10 as a World window card)
+-- OBJECT CARD: TRADE (card definition, client)
 -- The trade with another player in the World window's card drawer, in place of vanilla's
 -- ISTradingUI window. The session and every rule are ZeD_Trade.lua's (vanilla's, kept); this
 -- file only draws it:
@@ -33,7 +33,7 @@ end
 
 function def.valid(t) return t.s ~= nil and t.s.open == true end
 
--- pinned (the director, Nov 7 2026): tab switches and item cards leave it in the drawer; an item card
+-- pinned: tab switches and item cards leave it in the drawer; an item card
 -- opens over it and the trade shows again when that closes
 function def.pinned(t) return t.s ~= nil and t.s.open == true end
 

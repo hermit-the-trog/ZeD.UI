@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/ItemMenu.lua
 -- ============================================================================
--- MENU ADDITIONS — things that had only one way in
+-- MENU ADDITIONS (override, client) — things that had only one way in
 --   * Move to (an item's menu): the World window's open container, your main
 --     inventory, the bags you wear or hold, key rings, the floor. Vanilla shows
 --     its own only to controller players and aims it at its hidden loot page;
@@ -12,7 +12,9 @@
 --   * Take all (a container's world menu): empty a container you can see
 --     without opening the World window first.
 -- The moves go through ZeD.ContainerControls (ZeD's floor, corpse items,
--- vanilla's walk-to-container).
+-- vanilla's walk-to-container). Nothing is wrapped here — the options ride
+-- the OnFill* menu events, hooked once behind a global flag so a Lua reload
+-- never adds them twice.
 -- ============================================================================
 
 require "ISUI/ISInventoryPaneContextMenu"
@@ -127,9 +129,9 @@ end
 
 -- One rename prompt at a time, and a prompt opened from an item card goes (as
 -- Cancel) when that card shuts, shows another item, or its drawer or window
--- folds. Before, a prompt from a double click stayed on screen through every
--- later tab, both windows and a layout reset, and a second click stacked a
--- second one (Oct 31 2026, break-it C1).
+-- folds. Without this, a prompt from a double click stayed on screen through
+-- every later tab, both windows and a layout reset, and a second click
+-- stacked a second one.
 local live = nil   -- { box, item, card, misses }
 
 local function boxOpen(box)

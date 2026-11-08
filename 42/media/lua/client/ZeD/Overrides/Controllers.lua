@@ -1,11 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Controllers.lua
 -- ============================================================================
--- CONTROLLERS JOINING AND LEAVING (vanilla windows B12 and B13; the director,
--- Nov 7 2026: no ZeD prompts for these, they go into ZeD's notifications. "A
--- bubble pops up saying Controller plugged in or Controller unplugged, and the
--- notice is kept in Messages like the others"; the join choices "open from
--- that notice, or from Messages, on the new controller. They are no longer a
--- pop-up in the middle of play.")
+-- CONTROLLERS JOINING AND LEAVING (override, client)
+--
+-- The game's controller windows stop play in the middle of the screen; ZeD
+-- files them as notices in Messages instead. A bubble says "Controller
+-- plugged in" or "Controller unplugged", the notice is kept in Messages like
+-- the others, and the join choices open from that notice, or from Messages,
+-- on the new controller — no longer a pop-up in the middle of play.
 --
 --   * A press on a controller nobody plays with (the game's
 --     JoypadControllerData:onPressButtonNoFocus) made ISJoypadListBox.Create
@@ -30,7 +31,10 @@
 --     replaces the one before it.
 --   * A controller plugged in while playing (OnGamepadConnect) that is no
 --     player's yet: "Controller plugged in", press A on it to join.
--- Safe mode, and anything before a game is loaded, keep the game's windows.
+--
+-- Each wrap keeps the vanilla function once (_zedJoin, _zedNote), so a Lua
+-- reload never wraps the wrapper. Safe mode, and anything before a game is
+-- loaded, keep the game's windows.
 -- ============================================================================
 
 require "ZeD/SafeMode"

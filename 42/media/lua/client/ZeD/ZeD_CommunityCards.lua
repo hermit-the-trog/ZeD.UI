@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_CommunityCards.lua
 -- ============================================================================
--- COMMUNITY IN CARDS (ZeDUI/MP_ADMIN_SCOPE.md, Phase 5; the drawing is mockups/zed_community_v1.html, its Server extras are Phase
--- 6). Drawing and input only: ZeD_Community.lua is the model. The frame is the ticket cards' (ZeD_TicketCards.lua). This file
+-- COMMUNITY IN CARDS. Client file, drawing and input only: ZeD_Community.lua is the model. The frame is the ticket
+-- cards' (ZeD_TicketCards.lua). This file
 -- registers three cards and its own items with it:
 --   cmrules   the rules, as on joining, from the Server tab
 --   cmedit    Rules and news, from the Admin tab: typed in place, Save in the foot; news posts at once
@@ -17,7 +17,7 @@
 -- up only on the server's word (a server without this part never says it), I agree closes it without waiting for an answer, a
 -- draw that fails closes it, safe mode closes it, and so does the connection ending. If it cannot be built nothing is left up.
 --
--- A client that will not agree cannot play only because this client leaves: the server cannot remove a player (A7). The world
+-- A client that will not agree cannot play only because this client leaves: the server cannot remove a player. The world
 -- runs on behind the cover, as behind any window.
 --
 -- Simple mode draws these same cards: they are already plain.
@@ -804,7 +804,7 @@ function P.classes()
 
     function ZeD_JoinWindow:_body()
         local top = self:titleBarHeight()
-        -- (the card takes off every clip it sets, so nothing is cleared after it here; punch list 95)
+        -- (the card takes off every clip it sets, so nothing is cleared after it here)
         TC.renderCard(self, self, self.joinSt, 0, top, self.width, self.height - self:footerHeight() - top)
     end
 
@@ -1092,8 +1092,8 @@ function P.showNote(appeal)
     note:setAlwaysOnTop(true)
 end
 
--- the connection has ended, for whatever reason: ZeD's desk screen in place of the game's (ZeD_LeftScreen.lua; the
--- director, Nov 7 2026: the reason and, for a ban, the appeal line). Where it cannot stand, nothing of ours may stand over
+-- the connection has ended, for whatever reason: ZeD's desk screen in place of the game's (ZeD_LeftScreen.lua), with the
+-- reason and, for a ban, the appeal line. Where it cannot stand, nothing of ours may stand over
 -- the game's screen, its Exit and Quit, but a ban's appeal line under the game's words.
 function CM.onDisconnect(reason)
     if CM.joinWin then CM.joinWin:finish() end
@@ -1106,7 +1106,7 @@ function CM.onDisconnect(reason)
     if gone then kind = (gone.kind == "kick") and "kick" or "ban"
     elseif removed then kind = (LS and LS.isBan and LS.isBan(reason)) and "ban" or "kick" end
     if LS and LS.show and LS.show({ reason = reason, kind = kind, appeal = appeal }) then return end
-    -- (the appeal line is for a ban only: the director, Nov 7 2026)
+    -- (the appeal line is for a ban only: a kick has nothing to appeal)
     if kind ~= "ban" then return end
     if appeal and ZeD.T then P.showNote(appeal) end
 end

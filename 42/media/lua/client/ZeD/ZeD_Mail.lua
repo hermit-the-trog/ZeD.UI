@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Mail.lua
 -- ============================================================================
--- MAIL, THE CLIENT'S MODEL IN GAME (punch list 104; the director, Nov 7 2026: "email back then, you would dial in to
--- connect, to send and receive. So most of it was done offline."). No drawing: ZeD_MailCards.lua reads this.
+-- MAIL, THE CLIENT'S MODEL IN GAME. Client side, no drawing: ZeD_MailCards.lua reads this. The model is early-90s
+-- email: dial in, mail moves both ways, hang up, read offline.
 --
 -- Joining a server is the dial-in. When the hello says the server keeps mail (r.ml), this client says p_dial once in the
 -- connection: the letters waiting for this player come down in batches, each kept in the copy on this computer
@@ -12,10 +12,10 @@
 --
 -- A refusal by the server (nobody by that name here, words it will not take) sends the letter back to the Inbox as
 -- returned mail, the way 1993 mail did. A refusal of the player (a ban, the join rules not answered yet, the hourly cap,
--- no answer at all) leaves the Outbox as it is for the next dial-in. With ZeD's gates (another branch) a player who has
+-- no answer at all) leaves the Outbox as it is for the next dial-in. With ZeD's gates (the join rules) a player who has
 -- not agreed to the rules dials again the moment they agree (S.onAgreed).
 --
--- QA, read at call time: M.qaHold true: no traffic.
+-- Test hooks, read at call time: M.qaHold true: no traffic. M.qaLink true / false: whether the server keeps mail.
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -46,7 +46,7 @@ local GOT_EVERY_MS = 1000            -- one p_got a second at most
 
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
 
--- the server keeps mail (its hello said so)
+--- True when the server keeps mail (its hello said so).
 function M.live()
     if M.qaLink ~= nil then return M.qaLink end
     return S.available() and M.here == true
@@ -65,7 +65,8 @@ end
 
 function M.user() return safe(function() return getPlayer():getUsername() end, nil) end
 
--- this connection's mailbox on this computer (made at the first dial-in)
+--- This connection's mailbox on this computer: made the first time it is asked for (the dial-in asks first), nil
+--- until the server and the player's name are known.
 function M.box()
     if M._box then return M._box end
     local key, user = M.serverKey(), M.user()
@@ -91,7 +92,7 @@ function M.mutes()
     return out
 end
 
--- a change to the mute list goes to the server at once (muting someone also stops their mail; the director, Nov 7 2026)
+-- a change to the mute list goes to the server at once (muting someone also stops their mail)
 function M.hookMute()
     local Ch = ZeD.Chat
     if not (Ch and Ch.setMuted) or Ch._mailHooked then return end
@@ -104,9 +105,9 @@ function M.hookMute()
     end
 end
 
--- THE MODEM: once a connection, the handshake (our own sound, ZeDUI/tools/sound/make_modem.py, on the game's UI volume)
--- when the dial-in starts, and "Connecting... sending N, receiving M" as a Messages notice when the server answers (the
--- director: every ZeD notice is a bubble out of the Messages icon, never over the head)
+-- THE MODEM: once a connection, the handshake (our own sound, made by ZeDUI/tools/sound/make_modem.py, on the game's UI
+-- volume) when the dial-in starts, and "Connecting... sending N, receiving M" as a Messages notice when the server answers
+-- (every ZeD notice is a bubble out of the Messages icon, never over the head)
 function M.ring()
     if M.rang then return end
     M.rang = true
@@ -118,8 +119,8 @@ function M.connectNote(sending, receiving)
     M.notice(text)
 end
 
--- a notice from Mail: through Messages' notice path (ZeD.Messages.notice, which the branch moving every notice into the
--- Messages bubbles provides), else a Messages item under Mail's name; one item kept, brought up to date
+-- a notice from Mail: through Messages' notice path (ZeD.Messages.notice: filed under Mail's name, with its toast);
+-- a Messages without that path gets a plain item under Mail's name instead, one item kept and brought up to date
 function M.notice(text)
     local Msg = ZeD.Messages
     if not Msg then return end
@@ -169,6 +170,8 @@ function M.dial()
     end)
 end
 
+--- The server's hello (ZeD_ServerLink.lua hands it on): its ml says whether the server keeps mail, and if so the
+--- dial-in is set for DIAL_AFTER_MS later. Another server than the last one in this Lua session starts fresh.
 function M.onHello(a)
     -- (another server than the last one in this Lua session: a fresh dial-in)
     local key = M.serverKey()
@@ -218,7 +221,7 @@ function M.drain()
     end)
 end
 
--- a letter written in game: into the Outbox, and on its way at once. nil and why when it cannot go
+--- A letter written in game: into the Outbox, and on its way at once. nil and why when it cannot go.
 function M.write(to, subj, text)
     local b = M.box()
     if not b then return nil, "nobox" end

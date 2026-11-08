@@ -1,9 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_QuickChords.lua
 -- ============================================================================
--- QUICK ACTIONS ON BUMPER CHORDS (director, Oct 24 2026: "settings for
--- gamepad chords for quick actions. Bumpers + A, B, X, Y, L3, R3 -- 12 quick
--- action assignments possible"; QUICK_CHORDS_SPEC.md; mockup
--- ZeDUI/mockups/zed_quick_chords_v1.html, approved Oct 24 2026)
+-- QUICK ACTIONS ON BUMPER CHORDS: a bumper with A, B, X, Y, L3 or R3, twelve
+-- quick actions a player assigns. Client; an override of vanilla's
+-- JoypadControllerData (press and release) plus the chords' store, which ZeD's
+-- Options window (a row per chord) and the D-pad wheels edit.
 --
 -- In the world (no window has the pad, no wheel is open, not paused), hold LB
 -- or RB and press A, B, X, Y, L3 or R3: the action assigned to that chord
@@ -52,7 +52,7 @@ local function word(key)
     return getText(key)
 end
 
--- the starting layout (the mockup's, approved Oct 24 2026), with the words as keys
+-- the starting layout, with the words as translation keys
 Q.DEFAULTS = {
     ["LB+A"]  = { "character:3",   { "UI_ZeD_Wheel_Character", "ContextMenu_Eat" } },
     ["LB+B"]  = { "character:4",   { "UI_ZeD_Wheel_Character", "ContextMenu_Drink" } },
@@ -148,7 +148,7 @@ local function save()
     keepFile(table.concat(buf))
 end
 
--- the chord's path (nil = nothing) and its words, for showing
+--- The chord's path (nil = nothing) and its words, for showing.
 function Q.get(chord)
     if not store then load() end
     local s = store[chord]
@@ -160,6 +160,7 @@ function Q.get(chord)
     return d[1], w
 end
 
+--- Give a chord a path and the words to show for it; saved at once.
 function Q.set(chord, path, words)
     if not store then load() end
     local w = {}
@@ -167,31 +168,34 @@ function Q.set(chord, path, words)
     store[chord] = { path = path, words = w }
     save()
 end
+--- Clear a chord on purpose: it runs nothing (not the same as its default).
 function Q.clear(chord) Q.set(chord, nil, {}) end
--- the chord as it starts (no line of its own in the file)
+--- Is the chord as it starts (no line of its own in the file)?
 function Q.isDefault(chord)
     if not store then load() end
     return store[chord] == nil
 end
+--- The name of the chord's default action (the last of its words), or "None".
 function Q.defaultName(chord)
     local d = Q.DEFAULTS[chord]
     return d and word(d[2][#d[2]]) or ZeD.tr("UI_ZeD_Chord_None")
 end
 function Q.reload() store = nil end   -- (the file is read again on the next look)
+--- Put a chord back to its default.
 function Q.reset(chord)
     if not store then load() end
     store[chord] = nil
     save()
 end
 
--- the first chord that runs this path (nil = none)
+--- The first chord that runs this path (nil = none).
 function Q.chordFor(path)
     if not path then return nil end
     for _, c in ipairs(Q.CHORDS) do if Q.get(c) == path then return c end end
     return nil
 end
 
--- a slice's name without the wheel's count ("Canned Corn  x3")
+--- A slice's name without the wheel's count ("Canned Corn  x3").
 function Q.cleanName(s) return (tostring(s or ""):gsub("%s+x%d+$", "")) end
 
 -- ---------------------------------------------------------------------------
@@ -205,7 +209,7 @@ local function find(list, seg)
     return i and list and list[i] or nil
 end
 
--- the entry a path names, with the chain of entries above it; nil + why when it is gone
+--- The entry a path names, with the chain of entries above it and its wheel; nil + why when it is gone.
 function Q.resolve(p, pn, path)
     local D = ZeD.DpadWheels
     if not (D and D.B and path) then return nil end
@@ -255,7 +259,7 @@ local function openFilled(p, pn, wheel, chain)
     end
 end
 
--- runs the chord; true when it did something
+--- Run the chord for player p; true when it did something.
 function Q.run(p, chord)
     local pn = p:getPlayerNum()
     local path, words = Q.get(chord)
@@ -285,6 +289,7 @@ end
 -- in it (one level in; a list inside a list as its best pick), a wheel the
 -- game fills as "opens its wheel"
 -- ---------------------------------------------------------------------------
+--- The setup page's list: { { id, title, actions = { { path, words, text } } } }, one entry per wheel.
 function Q.catalog(p, pn)
     local D = ZeD.DpadWheels
     local out = {}
@@ -336,7 +341,7 @@ local FACE_OF = {}
 local consumed = {}   -- button -> true, until it is let go (its release is swallowed too)
 
 local function bumperHeld(jid)
-    if Q.qaBumper then return Q.qaBumper end   -- QA: a held bumper without a pad (zedqa_quick_chords.lua)
+    if Q.qaBumper then return Q.qaBumper end   -- (a test hook: zedqa_quick_chords.lua holds a bumper without a pad)
     local lb = JoypadButton.LeftBump:isDown(jid)
     local rb = JoypadButton.RightBump:isDown(jid)
     if lb and rb then return nil end   -- (both: the zoom's)
@@ -363,10 +368,12 @@ function Q.onPress(joypadData, button)
     local chord = bump .. "+" .. face
     local ok, err = pcall(Q.run, p, chord)
     if not ok then print("[ZeD] QuickChords: " .. chord .. ": " .. tostring(err)) end
-    Q.lastChord = chord   -- (QA)
+    Q.lastChord = chord   -- (the last chord pressed, kept for testing)
     return true
 end
 
+-- wraps vanilla's press and release once: it runs at load and again at game boot, and the _zedChords flag
+-- keeps the second call from wrapping the wrapper
 local function apply()
     if not JoypadControllerData or JoypadControllerData._zedChords then return end
     JoypadControllerData._zedChords = true

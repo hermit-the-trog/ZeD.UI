@@ -1,9 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/AtomExtensions.lua
 -- ============================================================================
--- ATOM EXTENSIONS
--- Additional draw helpers needed by organisms. These were added during
--- the System 7.1 refinement pass — disclosure triangles, groove dividers.
--- Require this AFTER Atoms.lua.
+-- ATOM EXTENSIONS — client; atoms.
+-- Draw helpers the organisms need beyond Atoms.lua: disclosure triangles,
+-- groove dividers, bevel panels, the context-menu primitives.
+-- Require this AFTER Atoms.lua — it adds onto the same ZeD.Atoms table.
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -15,7 +15,7 @@ ZeD.Atoms = ZeD.Atoms or {}
 -- Row 0: 2px inset, Row 1: 1px inset, then full width.
 -- ---------------------------------------------------------------------------
 -- Design units; the corner is pixel art on the hairline grid: row r spans [r * T.hair, (r + 1) * T.hair), so every
--- step is the same size at any scale (Oct 21 2026: on T.px(r) edges the two rows came out 2 and 1 px tall at 1.5)
+-- step is the same size at any scale (on T.px(r) edges the two rows came out 2 and 1 px tall at 1.5)
 local ROUND_RADIUS = {2, 1}
 
 --- Draw a filled rounded rectangle
@@ -60,7 +60,7 @@ function ZeD.Atoms.borderDoubleRounded(panel, x, y, w, h, r, g, b, a)
 end
 
 -- ---------------------------------------------------------------------------
--- BEVEL PANELS (S115 — radio chassis)
+-- BEVEL PANELS — the radio chassis look.
 -- recessedPanel = inset look. Top + left painted in `hi` (the DARK bevel — a
 -- shadow cast by the chassis edge above the recess); bottom + right in `sh`
 -- (the LIGHT bevel — light catching the lower lip of the recess). Mirrors
@@ -118,7 +118,7 @@ function ZeD.Atoms.raisedPanel(panel, x, y, w, h, bgColor, hiColor, shColor)
     end
 end
 
---- Accent ring for focus chrome (S95). Draws a solid rectangular border of the
+--- Accent ring for focus chrome. Draws a solid rectangular border of the
 -- given thickness INSIDE the rect at (x,y,w,h). Four rects = top, bottom, left,
 -- right. Used to highlight the window currently holding joypad focus.
 --
@@ -139,9 +139,8 @@ function ZeD.Atoms.drawAccentRing(panel, x, y, w, h, thickness, color)
 end
 
 -- ---------------------------------------------------------------------------
--- CHEVRONS (Oct 27 2026: drawn here, a row of whole pixels at a time, so they
--- stay sharp at every size and UI scale; until then four 16 px pictures in
--- ZeD/icons, of unknown origin, drawn scaled). In a size x size box: the
+-- CHEVRONS — drawn here a row of whole pixels at a time, not scaled textures,
+-- so they stay sharp at every size and UI scale. In a size x size box: the
 -- stroke size / 6 thick (at least 1 px), its point at the box's middle.
 -- ---------------------------------------------------------------------------
 local function _drawArrow(panel, name, x, y, size, color)
@@ -200,7 +199,7 @@ function ZeD.Atoms.drawGroove(panel, x, y, width)
     local T = ZeD.T
     local dk = T.grooveDark
     local lt = T.grooveLight
-    -- two hairlines of the same thickness (Oct 21 2026): T.px(2) - T.px(1) made the light line 2 px under a 1 px
+    -- two hairlines of the same thickness: T.px(2) - T.px(1) made the light line 2 px under a 1 px
     -- dark one at 1.25 and 1 px under 2 px at 1.5. The pair totals T.grooveH (= T.px(2) at 1x and 2x).
     local u = T.hair
     panel:drawRect(x, y, width, u, dk.a, dk.r, dk.g, dk.b)
@@ -218,7 +217,7 @@ function ZeD.Atoms.drawResizeRidges(panel, x, y, size)
     local T = ZeD.T
     local lt = T.textDim  -- light ridge
     local dk = T.base     -- dark ridge
-    -- S124 scale: one ridge dot = 1 design px (u); steps count dots, not screen px, so dots never overlap (alpha would stack)
+    -- one ridge dot = 1 design px (u); steps count dots, not screen px, so dots never overlap (alpha would stack)
     local u = T.px(1)
     for i = 0, 2 do
         local offset = T.px(i * 4)
@@ -277,7 +276,7 @@ function ZeD.Atoms.drawCloseBox(panel, x, y, size, hovered)
     -- X mark (two 1px diagonals)
     local m = math.max(T.px(3), math.floor(size * 0.25))  -- margin from edge
     local tc = T.textDim
-    -- S124 scale: strokes are 1 design px (u); the loop steps one dot at a time so dots don't overlap
+    -- strokes are 1 design px (u); the loop steps one dot at a time so dots don't overlap
     local u = T.px(1)
     for i = 0, size - m * 2 - u, u do
         local px = x + m + i
@@ -286,14 +285,14 @@ function ZeD.Atoms.drawCloseBox(panel, x, y, size, hovered)
     end
 end
 
--- NOTE: drawStatusDot lives in Atoms.lua (06b) — signature: (panel, x, y, color, size)
--- A string-based version was here previously but shadowed the Atoms version,
--- causing all callers (which pass color tables) to silently render dim/hollow.
--- Removed S65 cleanup. Use Atoms.drawStatusDot with a color table directly.
+-- NOTE: drawStatusDot lives in Atoms.lua — signature: (panel, x, y, color, size).
+-- A string-based version here once shadowed the Atoms version, and every caller
+-- (they pass color tables) silently rendered dim/hollow. Don't re-add one;
+-- use Atoms.drawStatusDot with a color table directly.
 
 -- ---------------------------------------------------------------------------
 -- PILL BUTTON — the old exercise / view selector, now drawn as the one push
--- button (cohesion spec 7: no pills) in the same rect, so its callers turn
+-- button (the house rule: no pills) in the same rect, so its callers turn
 -- cohesive before they move to push buttons or radio buttons by meaning.
 -- Active: the push button solid accent with its words in textOnAccent (the
 -- "active" state). Enabled: the default push button. Not enabled: disabled
@@ -319,7 +318,7 @@ end
 -- ghost: true → low alpha fill + faint border (for "missing"/"unknown").
 -- Returns swatch width (8) for layout advancement.
 -- ---------------------------------------------------------------------------
-local SWATCH_W = 8   -- S124 scale: design units (also ZeD.Atoms.SWATCH_W / SWATCH_H); uses wrap with T.px
+local SWATCH_W = 8   -- design units (also ZeD.Atoms.SWATCH_W / SWATCH_H); callers wrap with T.px
 local SWATCH_H = 14
 
 function ZeD.Atoms.drawLegendSwatch(panel, x, y, color, ghost)
@@ -337,7 +336,7 @@ ZeD.Atoms.SWATCH_W = SWATCH_W
 ZeD.Atoms.SWATCH_H = SWATCH_H
 
 -- ===========================================================================
--- CONTEXT-MENU ATOMS (S88) — primitives for the unified horizontal strip menu.
+-- CONTEXT-MENU ATOMS — primitives for the unified horizontal strip menu.
 -- Each atom is self-contained: takes a panel, draws, returns nothing. Uses
 -- T.ctx tokens (see Tokens.lua) so geometry stays consistent across the
 -- molecule composition layer above.
@@ -345,7 +344,7 @@ ZeD.Atoms.SWATCH_H = SWATCH_H
 
 -- ---------------------------------------------------------------------------
 -- drawSteppedShadow — the pop-ups' shadow, now the one System 7 hard shadow
--- (cohesion spec 1.4): 1u right and 1u down, black at 0.5 (ZeD.Atoms.
+-- every pop-up shares: 1u right and 1u down, black at 0.5 (ZeD.Atoms.
 -- drawHardShadow). Every caller is a pop-up (context strip and its balloons,
 -- context lists, wheel cells, menus, the seat chooser), so they all take the one
 -- look; `color` is no longer read.
@@ -363,7 +362,7 @@ end
 function ZeD.Atoms.drawDisabledStipple(panel, x, y, w, h, color)
     local T = ZeD.T
     local a = color.a or 1
-    -- S124 scale: one stipple dot = 1 design px (u); the loops step in dots
+    -- one stipple dot = 1 design px (u); the loops step in dots
     local u = T.px(1)
     for dy = 0, h - u, u do
         local startX = (math.floor(dy / u) % 2) * u   -- odd rows shift right one pixel → diagonal
@@ -384,7 +383,7 @@ end
 function ZeD.Atoms.drawCornerTri3x3(panel, x, y, color)
     local T = ZeD.T
     local a = color.a or 1
-    -- design-unit pixel art on the hairline grid: each cell T.hair square at every scale (Oct 21 2026)
+    -- design-unit pixel art on the hairline grid: each cell T.hair square at every scale
     local p1 = T.hair
     local p2, p3 = 2 * p1, 3 * p1
     panel:drawRect(x + p2, y,      p3 - p2, p1,      a, color.r, color.g, color.b)
@@ -458,7 +457,7 @@ end
 -- ---------------------------------------------------------------------------
 function ZeD.Atoms.drawBumper(panel, x, y, w, h, label, isPressed, T)
     T = T or ZeD.T
-    -- S101: context-menu bumpers use locked paper/ink so they read the same
+    -- Context-menu bumpers use locked paper/ink so they read the same
     -- on every theme (matches drawContextCell + drawContextBalloon).
     local ink   = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
     local paper = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
@@ -471,7 +470,7 @@ function ZeD.Atoms.drawBumper(panel, x, y, w, h, label, isPressed, T)
     -- Paper fill + ink border
     panel:drawRect(x + dx, y + dy, w, h, paper.a or 1, paper.r, paper.g, paper.b)
     panel:drawRectBorder(x + dx, y + dy, w, h, ink.a or 1, ink.r, ink.g, ink.b)
-    -- Centered label (F1 chrome — mono bold — matches mockup's Fira Mono weight 700)
+    -- Centered label (F1 chrome — mono bold)
     if label and label ~= "" then
         local font = T.fontF1 or T.fontF2
         local tw = ZeD.TM:MeasureStringX(font, label)
@@ -486,15 +485,15 @@ end
 -- ---------------------------------------------------------------------------
 -- drawTruncChevron — 12-wide × cellH-tall ink block with a paper triangle
 -- glyph centered. Used only when the strip is truncating (N > 10). Uses the
--- existing drawTriangleLeft/Right textures because PZ bitmap fonts lack
--- reliable arrow glyphs (Q15b in PZAPI-KNOWLEDGE-BANK).
+-- drawTriangleLeft/Right atoms because PZ bitmap fonts lack reliable
+-- arrow glyphs.
 --   dir: "left"  → ◂-style (points at start of the list)
 --        "right" → ▸-style (points at end of the list)
 -- ---------------------------------------------------------------------------
 function ZeD.Atoms.drawTruncChevron(panel, x, y, dir, T)
     T = T or ZeD.T
     local ctx   = T.ctx
-    -- S101: locked context-menu palette so the ink-block chevron + paper
+    -- Locked context-menu palette so the ink-block chevron + paper
     -- glyph read identically on every theme.
     local ink   = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
     local paper = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
@@ -517,8 +516,8 @@ end
 -- ---------------------------------------------------------------------------
 -- drawBackGlyph — accent-colored ◂ triangle sized to fit a context cell.
 -- The cell background is drawn by drawContextCell; this atom only paints the
--- glyph. Per mockup, back cell keeps its accent glyph color whether the cell
--- is active or not (only the cell bg inverts).
+-- glyph. The back cell keeps its accent glyph color whether the cell is
+-- active or not (only the cell bg inverts).
 -- ---------------------------------------------------------------------------
 function ZeD.Atoms.drawBackGlyph(panel, x, y, w, h, isActive, T)
     T = T or ZeD.T
@@ -527,7 +526,7 @@ function ZeD.Atoms.drawBackGlyph(panel, x, y, w, h, isActive, T)
     local ty = y + math.floor((h - triSz) / 2)
     -- When the back cell is selected, the cell bg is accent — switch the glyph
     -- to locked paper so the triangle stays visible. Otherwise accent on paper.
-    -- S101: paper locked to near-white for cross-theme consistency.
+    -- Paper is locked to near-white for cross-theme consistency.
     local color = isActive and {r = 0.95, g = 0.95, b = 0.95, a = 1} or T.accent
     ZeD.Atoms.drawTriangleLeft(panel, tx, ty, triSz, color)
 end

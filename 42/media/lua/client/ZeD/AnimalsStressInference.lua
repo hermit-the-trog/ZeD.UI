@@ -1,11 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/AnimalsStressInference.lua
 -- ============================================================================
--- STRESS SOURCE INFERENCE — plausible-contributors list for stress display.
--- No confidence ranking. Simple threshold checks on environment + state.
--- Capped at 3 entries to prevent UI overflow.
+-- STRESS SOURCE INFERENCE — client. A plausible-contributors list for the
+-- stress display. No confidence ranking. Simple threshold checks on
+-- environment + state. Capped at 3 entries to prevent UI overflow.
 --
--- Gunshot detection deferred to Phase 2 — no reliable recent-gunshots
--- accessor confirmed in PZ 42.16. Placeholder comment left in.
+-- Gunshots belong on this list but aren't checked: PZ 42.16 exposes no
+-- reliable recent-gunshots accessor from Lua. The TODO at the bottom holds
+-- the options for later.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -56,7 +57,7 @@ end
 
 --- Infer plausible stress sources for the given animal.
 -- @param animal  IsoAnimal instance
--- @param player  IsoPlayer instance (unused in v1, reserved for proximity checks)
+-- @param player  IsoPlayer instance (unused for now; reserved for proximity checks)
 -- @return list of short human-readable source strings, max 3
 function SI.inferSources(animal, player)
     if not animal then return {} end
@@ -132,10 +133,9 @@ function SI.inferSources(animal, player)
         end
     end
 
-    -- Phase 2: gunshot detection
-    -- PZ doesn't expose a queryable recent-gunshots log from Lua.
-    -- Options for later: OnWeaponHitCharacter event → ring buffer,
-    -- or IsoPlayer:getTimeSinceLastGunShot() if it exists.
+    -- TODO Gunshot detection. PZ doesn't expose a queryable recent-gunshots
+    -- log from Lua. Options for later: OnWeaponHitCharacter event → ring
+    -- buffer, or IsoPlayer:getTimeSinceLastGunShot() if it exists.
 
     -- Cap at 3 to avoid UI overflow
     if #sources > 3 then

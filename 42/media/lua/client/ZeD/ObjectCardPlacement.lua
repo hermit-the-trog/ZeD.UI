@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardPlacement.lua
 -- ============================================================================
--- OBJECT CARD: 3D PLACEMENT (HOOK_MAP row 15; mockup zed_furniture_v1.html)
+-- OBJECT CARD: 3D PLACEMENT (card definition, client)
 -- Vanilla's "Extended 3D Placement" window (ISExtendedPlacementUI) becomes a
 -- placement card in the World window's card drawer. Right-click an item lying
 -- in the world that has a 3D model; vanilla walks next to it and the card

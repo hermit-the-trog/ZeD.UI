@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/FurnitureTab.lua
 -- ============================================================================
--- FURNITURE TAB — World window (HOOK_MAP row 15; mockup zed_furniture_v1.html)
+-- FURNITURE TAB — client; the World window's "furniture" tab (HOOK_MAP row 15).
 -- Vanilla moves furniture with a world cursor (ISMoveableCursor) in five modes
 -- (pickup, place, rotate, scrap, repair), switched from the left-edge button's
 -- pop-up (hidden by ZeD) or the controller's radial, and explains the tile
@@ -32,7 +32,7 @@ local FT = ZeD.FurnitureTab
 
 FT.cap = FT.cap or {}          -- per player: what the cursor read last
 FT.state = FT.state or { mode = "pickup" }
-local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+local DOT = "|"   -- the separator: ZeD's pipe, never a middle dot
 
 local MODES = {
     -- ready / no are keys, translated where they are drawn
@@ -46,7 +46,7 @@ local MODE_BY_ID = {}
 for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
 
 local PAD = 10
-local TAB_TOP_PAD = 13   -- the sub-tab strip's top pad, as Animals' (header = pad + T.tabH = 37u; Oct 30 2026)
+local TAB_TOP_PAD = 13   -- the sub-tab strip's top pad, as Animals' (header = pad + T.tabH = 37u)
 local PREV_W, PREV_H = 84, 104
 local ROW_H, FACT_H, SEC_H = 28, 18, 20
 local SCROLL_STEP = 40
@@ -565,7 +565,7 @@ end
 
 -- ---------------------------------------------------------------------------
 -- The mode strip (the header): the five modes as sub-tabs. Where they do not fit
--- the card (1280x720, UI scale 2.0, Large text; Oct 31 2026, break-it E7) the tabs
+-- the card (a 1280x720 screen at UI scale 2.0 with Large text gets there) the tabs
 -- close up their side room, then take the small words (F5); if even that is too
 -- wide the strip scrolls by whole tabs between a scrollbar's left and right arrows
 -- (live while there is more that way). A tab out of view has no zone; the
@@ -857,6 +857,7 @@ function FT.render(panel, win, x, y, w, h)
     s.cur = cur
 end
 
+--- Hooks "furniture" into the World window's tab dispatch table.
 function FT.register(dispatch)
     -- wrapper: a hot reload replaces the renderer, and a fault never takes the
     -- window's frame down (logged once per distinct error)
@@ -874,6 +875,8 @@ function FT.isVisible(win) return true end
 -- ---------------------------------------------------------------------------
 -- Mouse
 -- ---------------------------------------------------------------------------
+--- A click in the drawer: the scrollbar, else the topmost stamped zone.
+--- Always true: the tab owns its clicks.
 function FT.onClick(win, x, y)
     local s = st(win)
     -- the scrollbar: its arrows and track step the body (no drag; the wheel scrolls too)
@@ -895,6 +898,7 @@ function FT.onClick(win, x, y)
     return true
 end
 
+--- The wheel scrolls the body by whole steps.
 function FT.onMouseWheel(win, del)
     local s = st(win)
     s.scrollY = math.max(0, math.min(s.maxScroll or 0, (s.scrollY or 0) + ZeD.T.px(SCROLL_STEP) * del))
@@ -904,6 +908,7 @@ end
 -- ---------------------------------------------------------------------------
 -- Gamepad: this frame's zones; B hands the stick back to the world cursor
 -- ---------------------------------------------------------------------------
+--- The tab's focusable elements for the controller, one per stamped zone.
 function FT.buildFocusables(win)
     local s = win and win._fur
     if not s then return {} end
@@ -922,6 +927,8 @@ function FT.buildFocusables(win)
     return els
 end
 
+--- A key that changes whenever the zones may have moved (mode, zone count,
+--- scroll, the strip's first tab, the tile read).
 function FT.focusKey(win)
     local s = win and win._fur
     if not s then return "none" end
@@ -1012,6 +1019,9 @@ end
 -- ---------------------------------------------------------------------------
 -- Hooks
 -- ---------------------------------------------------------------------------
+--- Wraps the vanilla cursor and info window, once each: setInfoPanel (capture
+--- what it says), isValid (the hold and the pick), render (draw at the held
+--- tile), and the info window stops drawing while the tab is up.
 function FT.install()
     if ISMoveableCursor and not ISMoveableCursor._zedFurnitureHooked then
         ISMoveableCursor._zedFurnitureHooked = true

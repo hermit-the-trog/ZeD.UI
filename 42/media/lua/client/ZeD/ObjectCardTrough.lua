@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardTrough.lua
 -- ============================================================================
--- OBJECT CARD: FEEDING TROUGH (HOOK_MAP row 21; mockup zed_animal_cards_v1.html)
+-- OBJECT CARD: FEEDING TROUGH (card definition, client)
 -- Vanilla's read-only Feeding Trough panel (a few numbers and three lines of
 -- advice, no controller, no distance close) becomes a card in the World
 -- window's card drawer. A trough holds food or water, never both:
@@ -63,7 +63,7 @@ function def.nearby(player)
     return OC.sortTargets(out)
 end
 
--- vanilla's tooltip rule for "Tainted" (Q164)
+-- vanilla's tooltip rule for "Tainted"
 local function tainted(fc)
     if not (fc and call(fc, "isPoisonous")) then return false end
     local eff = tostring(call(fc, "getPoisonEffect"))

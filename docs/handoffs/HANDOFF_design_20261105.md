@@ -44,7 +44,7 @@ the order and the pointers. American spelling in everything players read (item 9
 
 ## Uncommitted design files (Build commits them with the first of this work)
 
-`ZeDUI/HANDOFF_design_20261105.md` (this), `PUNCH_LIST.md` (items 87 to 90), `MP_ADMIN_SCOPE.md`,
+`docs/handoffs/HANDOFF_design_20261105.md` (this), `PUNCH_LIST.md` (items 87 to 90), `MP_ADMIN_SCOPE.md`,
 `MP_DECISIONS.md`, `VEHICLE_TAB_SPEC.md` (spelling only), `mockups/zed_tickets_v1.html`, `_v2`,
 `zed_safehouse_faction_v1.html`, `zed_admin_tools_v1.html`, `zed_logs_v1.html`, `zed_community_v1.html`,
 `zed_identity_v1.html`, `_v2`, `art/skeleton_arms_88/`, `art/identity/`, `tools/identity/ky_header.py`,

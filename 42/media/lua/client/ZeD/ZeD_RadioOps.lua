@@ -1,19 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_RadioOps.lua
 -- ============================================================================
--- THE CAR RADIO'S WORKINGS — shared by the radio up close (ZeD_CarRadio.lua)
--- and the dash's head unit (ZeD_Dashboard.lua), so both drive the same radio
--- the same way. Mockup ZeDUI/mockups/zed_car_radio_v1.html (director, Oct 15
--- 2026: "love it, build it, yes match the dash to the radio").
+-- THE RADIOS' WORKINGS — client. One set of read / press verbs shared by
+-- every surface that shows a radio — the radio up close (ZeD_CarRadio.lua),
+-- the dash's head unit (ZeD_Dashboard.lua), the radio tab and the handheld
+-- faces — so they all drive the same radio the same way.
 --
--- A car's Radio part holds one of vanilla's six radio items; each has a face
--- (the kind). Every change goes through vanilla's own radio action code
+-- A radio is whatever holds the device data: a car's Radio part, a radio item
+-- in the hands (the two-way walkies), or a set placed in the world. Vanilla's
+-- six radio items each map to a face (the kind); modded radios borrow the
+-- nearest. Every change goes through vanilla's own radio action code
 -- (ISRadioAction's isValid / perform for power, volume, mute, tuning, the
 -- microphone, play / stop; ISDeviceMediaAction through the action queue for a
 -- CD in or out), so sounds, rules and multiplayer stay vanilla's. Presets are
 -- vanilla's own device presets (the list the Device Options window edits).
 --
 -- Also here: the display drawing (each kind's glass, full size and small),
--- the short-lived things both surfaces show (STORE flashes, SCAN, the CD's
+-- the short-lived things the surfaces show (STORE flashes, SCAN, the CD's
 -- elapsed time).
 -- ============================================================================
 
@@ -34,14 +36,14 @@ ZeD.trDefaults({
     UI_ZeD_Radio_Store = "STORE %1", UI_ZeD_Radio_ChStored = "CH %1 STORED", UI_ZeD_Radio_MemFull = "MEMORY FULL",
     UI_ZeD_Radio_ChCleared = "CH %1 CLEARED", UI_ZeD_Radio_Range = "RANGE %1 KM",
 })
--- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it.
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
 end
 
--- the word for a glass: O.word("scan"), "mute", "micOff", "txOk", "disc", "mic"
+--- the word for a glass: O.word("scan"), "mute", "micOff", "txOk", "disc", "mic"
 function O.word(w) return ZeD.tr(WORDS[w]) end
 
 O.HOLD_MS = 600          -- a press held this long stores (presets) or names (MEM)
@@ -55,9 +57,10 @@ O.KIND_BY_ITEM = {
 }
 O.HAM = { ham = true, army = true, hammake = true }
 
+-- The game's Java side can throw; pcall turns a crash into the default we can test (a nil answer gives it too).
 local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
--- the same for one method call with no arguments, without making a closure each time (these are read every frame;
--- Oct 22 2026, the drawing-cost work): o:m(), its value or the default when it fails or gives nil
+-- the same for one method call with no arguments, without making a closure each time (these run every frame):
+-- o:m(), its value or the default when it fails or gives nil
 local function _inv(o, m) return o[m](o) end
 local function _get(o, m, default)
     if o == nil then return default end
@@ -68,9 +71,9 @@ end
 local function now() return getTimestampMs() end
 local function clamp(v, lo, hi) if v < lo then return lo end; if v > hi then return hi end; return v end
 
--- vanilla's DeviceData:canBePoweredHere, without its Java NPE: for a mains set it asks its parent's square, and a set
--- with no square (a house tile's CustomItem, a TV item on the floor or in a bag) throws (logged under -debug even
--- inside pcall). Battery sets and car parts take vanilla's own path (it asks no square of them); no square, no grid.
+--- vanilla's DeviceData:canBePoweredHere, without its Java NPE: for a mains set it asks its parent's square, and a set
+--- with no square (a house tile's CustomItem, a TV item on the floor or in a bag) throws (logged under -debug even
+--- inside pcall). Battery sets and car parts take vanilla's own path (it asks no square of them); no square, no grid.
 function O.canBePoweredHere(dd)
     if dd == nil then return false end
     if _get(dd, "getIsBatteryPowered", false) then return _get(dd, "canBePoweredHere", false) end
@@ -79,14 +82,14 @@ function O.canBePoweredHere(dd)
     if not instanceof(par, "VehiclePart") and _get(par, "getSquare", nil) == nil then return false end
     return _get(dd, "canBePoweredHere", false)
 end
--- ISRadioAction:isValidToggleOnOff's test (and DeviceData:setIsTurnedOn's), safe the same way
+--- ISRadioAction:isValidToggleOnOff's test (and DeviceData:setIsTurnedOn's), safe the same way
 function O.poweredHere(dd)
     if dd == nil then return false end
     if _get(dd, "getIsBatteryPowered", false) and _get(dd, "getPower", 0) > 0 then return true end
     return O.canBePoweredHere(dd)
 end
 
--- the face for a fitted radio item; modded radios borrow the nearest face
+--- the face for a fitted radio item; modded radios borrow the nearest face
 function O.kindOf(item, dd)
     if not item then return nil end
     local ft = _get(item, "getFullType", "")
@@ -96,9 +99,9 @@ function O.kindOf(item, dd)
     return "valutech"
 end
 
--- a radio's key for the short-lived state below. The radio is its owner, whatever holds the device data: a car's
--- Radio part, a radio item in the hands (the two-way walkies), or a set placed in the world (IsoWaveSignal); the
--- verbs below take any of them (ISRadioAction does: it asks the owner for getDeviceData).
+--- a radio's key for the short-lived state below. The radio is its owner, whatever holds the device data: a car's
+--- Radio part, a radio item in the hands (the two-way walkies), or a set placed in the world (IsoWaveSignal); the
+--- verbs below take any of them (ISRadioAction does: it asks the owner for getDeviceData).
 local function keyOf(part)
     -- no part (the vehicle is gone): a key that no radio holds
     if not part then return "none" end
@@ -116,7 +119,7 @@ local function keyOf(part)
 end
 O.keyOf = keyOf
 
--- vanilla's station name for a frequency (nil when vanilla has none)
+--- vanilla's station name for a frequency (nil when vanilla has none)
 function O.chanName(hz)
     local zr = getZomboidRadio and getZomboidRadio()
     if not (zr and zr.getChannelName and hz) then return nil end
@@ -125,7 +128,7 @@ function O.chanName(hz)
     return nil
 end
 
--- "101.2" on an FM set, "098.400" on a two-way set
+--- "101.2" on an FM set, "098.400" on a two-way set
 function O.freqText(hz, ham)
     hz = hz or 0
     if ham then local t = string.format("%.3f", hz / 1000); return string.rep("0", 7 - #t) .. t end   -- padded by hand (Kahlua's format)
@@ -137,8 +140,10 @@ end
 -- ---------------------------------------------------------------------------
 O._flash, O._scan, O._cd, O._lastVol = O._flash or {}, O._scan or {}, O._cd or {}, O._lastVol or {}
 
--- short = what a small glass shows in place of the text ("P3" for "STORE 3"); nil = the text itself
+--- show text on a radio's glass for ms (1400 when not given).
+--- short = what a small glass shows in place of the text ("P3" for "STORE 3"); nil = the text itself
 function O.flash(part, text, ms, short) O._flash[keyOf(part)] = { text = text, short = short, untilMs = now() + (ms or 1400) } end
+--- the flash on a radio's glass now (key: keyOf(part)): its text and its short form, or nil once it has run out
 local function flashOf(key)
     local f = O._flash[key]
     if f and now() < f.untilMs then return f.text, f.short or f.text end
@@ -162,6 +167,7 @@ end
 -- ---------------------------------------------------------------------------
 -- READ: everything the faces show, in one table (nil when no radio is fitted)
 -- ---------------------------------------------------------------------------
+--- the set's stored presets in order, each { name, freq }, and how many it can hold (10 when it doesn't say)
 function O.presetList(dd)
     local out = {}
     local pc = _get(dd, "getDevicePresets", nil)
@@ -175,6 +181,7 @@ function O.presetList(dd)
     return out, (pc and _get(pc, "getMaxPresets", 10)) or 10
 end
 
+--- one read of a car's Radio part: the table the radio up close and the dash draw from (nil when no radio is fitted)
 function O.read(part)
     if not part then return nil end
     local item = _get(part, "getInventoryItem", nil)
@@ -222,7 +229,7 @@ function O.read(part)
     return st
 end
 
--- the radio a character can reach (vanilla: front seats only), with its part
+--- the radio a character can reach (vanilla: front seats only), with its part
 function O.reachable(chr)
     local v = chr and chr:getVehicle()
     if not v then return nil end
@@ -260,9 +267,10 @@ local function stopScan(part)
 end
 O.stopScan = stopScan
 
+--- the power switch (a SCAN stops, a remembered Stop is forgotten); false when vanilla refuses
 function O.power(chr, part) stopScan(part); if part and O.forgetStop then O.forgetStop(keyOf(part)) end; return run("ToggleOnOff", chr, part) end
 
--- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
+--- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
 function O.volStep(chr, part, dir, wrap)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
@@ -272,6 +280,7 @@ function O.volStep(chr, part, dir, wrap)
     return run("SetVolume", chr, part, nv)
 end
 
+--- MUTE: silence the set, or bring back the volume it had before (half when none was kept)
 function O.mute(chr, part)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
@@ -283,10 +292,11 @@ function O.mute(chr, part)
     return run("UnMuteVolume", chr, part, O._lastVol[keyOf(part)] or 0.5)
 end
 
+--- tune straight to hz (in kHz, as vanilla counts: 101200 is 101.2 MHz)
 local function setChannel(chr, part, hz) return run("SetChannel", chr, part, hz) end
 O.setChannel = setChannel
 
--- one click of TUNE / the DIAL (mult: the fast-turn multiplier); the band wraps
+--- one click of TUNE / the DIAL (mult: the fast-turn multiplier); the band wraps
 function O.tuneStep(chr, part, dir, mult)
     if not part then return false end
     stopScan(part)
@@ -298,7 +308,7 @@ function O.tuneStep(chr, part, dir, mult)
     return setChannel(chr, part, nv)
 end
 
--- the next frequency vanilla has a station on (FM sets)
+--- the next frequency vanilla has a station on (FM sets)
 function O.nextStation(dd, dir)
     local lo, hi = _get(dd, "getMinChannelRange", 88000), _get(dd, "getMaxChannelRange", 108000)
     local cur = _get(dd, "getChannel", lo)
@@ -311,6 +321,7 @@ function O.nextStation(dd, dir)
     return nil
 end
 
+--- SEEK: tune to the next station up (dir 1, the default) or down (-1); false when there is none
 function O.seek(chr, part, dir)
     if not part then return false end
     stopScan(part)
@@ -319,7 +330,7 @@ function O.seek(chr, part, dir)
     return false
 end
 
--- SCAN: on to the next station, a few seconds on each, until pressed again
+--- SCAN: on to the next station, a few seconds on each, until pressed again
 function O.scanToggle(chr, part)
     if not part then return false end
     local k = keyOf(part)
@@ -360,6 +371,7 @@ local function storedName(hz, ham)
     return O.chanName(hz) or (O.freqText(hz, ham) .. " MHz")
 end
 
+--- tune to stored preset i (counting from 1); false past the list's end
 function O.recall(chr, part, i)
     stopScan(part)
     local _, _, l = presetsOf(part)
@@ -367,8 +379,8 @@ function O.recall(chr, part, i)
     return setChannel(chr, part, l:get(i - 1):getFrequency())
 end
 
--- store the station on button i (past the list's end it goes on the next free
--- button); returns the button it went on
+--- store the station on button i (past the list's end it goes on the next free
+--- button); returns the button it went on
 function O.store(chr, part, i)
     stopScan(part)
     local dd, pc, l = presetsOf(part)
@@ -390,7 +402,7 @@ function O.store(chr, part, i)
     return idx
 end
 
--- two-way sets: CH up / down through every stored channel
+--- two-way sets: CH up / down through every stored channel
 function O.chStep(chr, part, dir)
     stopScan(part)
     local dd, _, l = presetsOf(part)
@@ -404,7 +416,7 @@ function O.chStep(chr, part, dir)
     return setChannel(chr, part, l:get(nxt - 1):getFrequency())
 end
 
--- MEM: the station joins the stored channels (once); returns its channel number
+--- MEM: the station joins the stored channels (once); returns its channel number
 function O.memAdd(chr, part)
     local dd, pc, l = presetsOf(part)
     if not l then return nil end
@@ -418,7 +430,7 @@ function O.memAdd(chr, part)
     return l:size()
 end
 
--- name channel idx; an empty name forgets the channel
+--- name channel idx; an empty name forgets the channel
 function O.rename(chr, part, idx, name)
     local dd, _, l = presetsOf(part)
     if not l or idx < 1 or idx > l:size() then return false end
@@ -433,24 +445,25 @@ function O.rename(chr, part, idx, name)
     return true
 end
 
+--- MIC: mute or unmute a two-way set's microphone
 function O.mic(chr, part)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
     return run("MuteMicrophone", chr, part, not _get(dd, "getMicIsMuted", false))
 end
 
--- PLAY / STOP (QA, Nov 2 2026, punch list 60): the game's StopPlayMedia drops the disc at once but clears its playing
--- flag only after a short stop timer that runs on game time (DeviceData.updateMediaPlaying: never while paused), and
--- StartPlayMedia does nothing until it has cleared. So a set read "playing" after Stop, and a second press called Stop
--- again. ZeD remembers its own Stop: the set reads stopped at once, and a Play pressed meanwhile starts the media as
+-- PLAY / STOP: the game's StopPlayMedia drops the disc at once but clears its playing flag only after a short
+-- stop timer that runs on game time (DeviceData.updateMediaPlaying: never while paused), and StartPlayMedia does
+-- nothing until it has cleared. Left alone, a set reads "playing" after Stop and a second press calls Stop again.
+-- ZeD remembers its own Stop: the set reads stopped at once, and a Play pressed meanwhile starts the media as
 -- soon as the game lets it.
 O._stopping = O._stopping or {}
 O._wantPlay = O._wantPlay or {}
--- is the media playing, as the player sees it (dd: the device data; key: keyOf(part))
--- (a remembered Stop and Play go with an eject, a power change, a new disc, or after STOP_MS: a Play left waiting
--- must not start a disc later on its own; code review, Nov 2 2026)
+-- a remembered Stop and Play go with an eject, a power change, a new disc, or after STOP_MS: a Play left waiting
+-- must not start a disc later on its own
 local STOP_MS = 4000
 function O.forgetStop(key) if key then O._stopping[key], O._wantPlay[key] = nil, nil end end
+--- is the media playing, as the player sees it (dd: the device data; key: keyOf(part))
 function O.playingNow(dd, key)
     local p = _get(dd, "isPlayingMedia", false) and true or false
     if key == nil or not O._stopping[key] then return p end
@@ -470,6 +483,7 @@ function O.playingNow(dd, key)
     end
     return false
 end
+--- PLAY / STOP, through vanilla's TogglePlayMedia; a press while a Stop is remembered toggles the waiting Play
 function O.playStop(chr, part)
     stopScan(part)
     local key = part and keyOf(part)
@@ -484,7 +498,7 @@ function O.playStop(chr, part)
     return ok
 end
 
--- the CDs the character carries (and in the bags they wear) that this radio plays
+--- the CDs the character carries (and in the bags they wear) that this radio plays
 function O.cds(chr, part)
     local dd = part and part:getDeviceData()
     local mt = dd and _get(dd, "getMediaType", -1) or -1
@@ -516,6 +530,7 @@ local function mediaAction(chr, part, isRemove, item)
     ISTimedActionQueue.add(a)
     return true
 end
+--- put a CD in (fetched into the main inventory first when it sits in a bag)
 function O.insert(chr, part, item)
     stopScan(part)
     if part and O.forgetStop then O.forgetStop(keyOf(part)) end
@@ -523,6 +538,7 @@ function O.insert(chr, part, item)
     pcall(ISInventoryPaneContextMenu.transferIfNeeded, chr, item)
     return mediaAction(chr, part, false, item)
 end
+--- EJECT: take the CD out; false when there is none
 function O.eject(chr, part)
     if not part then return false end
     if O.forgetStop then O.forgetStop(keyOf(part)) end
@@ -588,7 +604,7 @@ local function charsFit(f, px, sp, w)
     return math.max(1, math.floor((w + sp) / (cw + sp)))
 end
 
--- a line that marches left a character at a time when it is too long (1993 LCDs did)
+--- a line that marches left a character at a time when it is longer than n (1993 LCDs did)
 local function marquee(str, n)
     str = tostring(str or "")
     if #str <= n then return str end
@@ -746,18 +762,20 @@ local function drawHam(p, kind, x, y, w, h, u, st, full)
 end
 
 -- ---------------------------------------------------------------------------
--- THE READING for the radio up close (director, Oct 16 2026: the faces in pixel
--- art): what each face's display shows now, field by field, for the shared
--- plate template's radioDisplay part (ZeD_Plate.lua) to draw in pixel figures.
--- The same content as drawFM / drawHam below, blinking already applied; nil
+-- THE READING for the pixel-art faces: what each face's display shows now,
+-- field by field, for the shared plate template's radioDisplay part
+-- (ZeD_Plate.lua) to draw in pixel figures.
+-- The same content as drawFM / drawHam above, blinking already applied; nil
 -- when the set is off (the template darkens a liquid-crystal glass).
 --   FM sets   band "FM" / "CD", big (the frequency, or the CD's time), unit,
 --             preset "P2", cdTag "CD" (a disc in), tag (STORE n / SCAN /
---             MUTE), bars (signal 0 .. 4), line (the station, the CD's title)
+--             MUTE), bars (signal 0 .. 4), line (the station, the CD's title),
+--             cd (true while a CD plays)
 --   ValuTech  big, band, tag
 --   two-way   chLabel "CH", ch "02", big "146.520", unit, tx "TX OK" /
 --             "MIC OFF", line (the channel's name, a flash, MUTE)
---   makeshift l1 / l2: the 16 x 2 character glass's two lines
+--   makeshift l1 / l2: the 16 x 2 character glass's two lines (both
+--             makeshift sets, FM and two-way)
 -- ---------------------------------------------------------------------------
 function O.displayReading(st, t)
     if not (st and st.on) then return nil end
@@ -810,7 +828,7 @@ function O.drawDisplay(p, kind, x, y, w, h, u, st, full)
     if O.HAM[kind] then drawHam(p, kind, x, y, w, h, u, st, full) else drawFM(p, kind, x, y, w, h, u, st, full) end
 end
 
--- the handwritten names on the ValuTech's masking tape ("AEBS" -> "Aebs", like the mockup)
+--- the handwritten names on the ValuTech's masking tape ("AEBS" -> "Aebs")
 function O.tapeName(name)
     name = tostring(name or "")
     local head = name:match("^(.-)%s+%-%s+") or name

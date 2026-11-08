@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/CookingTab.lua
 -- ============================================================================
--- COOKING TAB — Character window, contextual (punch list 80; ZeDUI/COOKING_TAB_DRAFT.md,
--- the director's picks Nov 3 2026: "Go with your recs and we will tune it")
+-- COOKING TAB — client; a Character window tab that only shows in context.
 --
 -- The second way to make the game's pot-and-pan dishes (its evolved recipes: stews,
 -- soups, stir-fries, salads, sandwiches, pies, drinks...), which are otherwise
@@ -13,7 +12,9 @@
 -- and Make. Make runs the game's own add-an-ingredient action for each ingredient in
 -- turn, dish after dish (ZeD_CookAdd follows the dish as the first ingredient turns a
 -- pot of water into a pot of stew), so the limits, the amounts by Cooking level and
--- the results are the game's.
+-- the results are the game's. On a server ZeD_CookAdd cannot run (the server knows
+-- no action from a client file), so Make there chains the game's own action with a
+-- short wait of ZeD's between adds (ZeD_CookWait; "Make on a server" below).
 --
 -- Shown while a dish's base (a pot, a pan, a bowl, bread, a cup...) is on the player
 -- and something in reach goes into it. Saved dishes live in the player's mod data.
@@ -92,7 +93,7 @@ local function catalog()
         -- from scratch only: a recipe that adds to a dish already made (base == its result) is left to the game
         if not hidden and base ~= result then
             -- one dish per name: the game's Stir fry, Stir fry Griddle Pan and Stir fry Forged are one
-            -- Stir-fry, made in whichever of them is at hand (QA, Nov 3 2026)
+            -- Stir-fry, made in whichever of them is at hand
             local label = labelOf(r)
             local key = CAT.keyOfLabel[label]
             CAT.keyOf[r] = key
@@ -120,6 +121,9 @@ local function st(win)
     if not s then
         s = { dish = nil, baseIdx = 1, plan = {}, sort = "name", qty = 1, listScroll = 0, dishScroll = 0,
               zones = {}, byId = {}, scanAt = -1, popup = nil, loaded = nil }
+        -- what the window's scroll hook gets (addTab, below): visible, so the window hands
+        -- it the wheel, but off screen and deaf to the mouse; the wheel scrolls the column
+        -- under the pointer (CK.onWheel)
         s.shim = { visible = true, x = -9999, y = -9999, dragging = false,
                    handleMouseDown = function() return false end, handleMouseMove = function() end,
                    handleMouseUp = function() end, setScrollPos = function() end,
@@ -131,7 +135,7 @@ end
 
 local function containersFor(chr)
     -- (the game's list reads the player's inventory pages; at quit the window draws once after they
-    -- are gone, and the game's function prints its error even under pcall: QA, Nov 3 2026)
+    -- are gone, and the game's function prints its error even under pcall)
     local pn = chr:getPlayerNum()
     local ok0, ready = pcall(function() return getPlayerInventory(pn) ~= nil and getPlayerLoot(pn) ~= nil end)
     if not (ok0 and ready) then return ZeD.CraftingCore.buildContainers(chr) end
@@ -216,7 +220,7 @@ local function curBase(s)
 end
 
 -- The ingredients in reach for the chosen base, grouped by kind of item:
--- { ft, name, kind, kindLabel, spice, use, items = {...}, n, why } (why: the game's reason it cannot go in)
+-- { ft, name, kind, kindLabel, spice, use, tex, items = {...}, n, why } (why: the game's reason it cannot go in)
 local function ingredients(s, chr)
     local b = curBase(s)
     if not b then return {} end
@@ -235,7 +239,7 @@ local function ingredients(s, chr)
                 if not g then
                     local spice = false
                     -- as the game's own menu reads it: a food's own isSpice, the script's only for a non-food
-                    -- (the script says spice for many vegetables: QA saw a stir-fry take five, Nov 3 2026)
+                    -- (the script says spice for many vegetables; read that way a stir-fry took five)
                     pcall(function()
                         if instanceof(it, "Food") then spice = it:isSpice() else spice = it:getScriptItem():isSpice() end
                     end)
@@ -267,7 +271,7 @@ local function ingredients(s, chr)
         end
     end
     -- every item of each kind in reach, in the same state as the one the game offers (the game's list
-    -- may hold one of each kind; the count and Make need them all: QA, Nov 3 2026)
+    -- may hold one of each kind; the count and Make need them all)
     local function same(a, b)
         if not instanceof(a, "Food") then return true end
         return a:isRotten() == b:isRotten() and a:isFrozen() == b:isFrozen() and a:isBurnt() == b:isBurnt()
@@ -351,8 +355,8 @@ function ZeD_CookAdd:start()
 end
 function ZeD_CookAdd:complete()
     -- the dish as it is now: in 42.22 an action's complete() runs after the next one's isValidStart()
-    -- and start() (QA's diagnostic, 2026-11-03_cook80_diag.md), so the next add began on the plain pot
-    -- and made a second stew; the completes run in queue order, so the chain is right here
+    -- and start(), so the next add would begin on the plain pot and make a second stew; the
+    -- completes run in queue order, so the chain is right here
     self.baseItem = self.chain.base
     local ok = ISAddItemInRecipe.complete(self)
     self.chain.base = self.baseItem
@@ -360,13 +364,13 @@ function ZeD_CookAdd:complete()
 end
 
 -- ----------------------------------------------------------------------------
--- Make on a server (QA's multiplayer check, Nov 5 2026; the director: fixed for Beta 4). The server builds an
--- action's own half from its Lua type and runs its complete() there; ZeD_CookAdd lives in this client file, so the
--- server did not know it and the add stopped at once (no stew, the ingredients untouched). The game's own
--- ISAddItemInRecipe works there (QA: mp_cook_vanilla.lua). So on a server each ingredient is the game's own action,
--- and before each one after the first a short wait of ZeD's own (client only, no complete(), as ZeDOpenCardAction)
--- finds the dish the last add left and queues the next add onto it: the first add turns the base into another item
--- (a pot of water becomes a pot of stew, with a new id), made on the server and sent back.
+-- Make on a server. The server builds an action's own half from its Lua type and runs its complete() there;
+-- ZeD_CookAdd lives in this client file, so the server does not know it and the add stops at once (no stew,
+-- the ingredients untouched). The game's own ISAddItemInRecipe works there. So on a server each ingredient
+-- is the game's own action, and before each one after the first a short wait of ZeD's own (client only, no
+-- complete(), like ZeDOpenCardAction in ObjectCards.lua) finds the dish the last add left and queues the
+-- next add onto it: the first add turns the base into another item (a pot of water becomes a pot of stew,
+-- with a new id), made on the server and sent back.
 -- ----------------------------------------------------------------------------
 -- the dish this chain cooks into, once the server has made it (nil: not yet)
 local function findDish(chr, recipe, chain)
@@ -392,7 +396,7 @@ ZeD_CookWait = ZeD_CookWait or ISBaseTimedAction:derive("ZeD_CookWait")
 function ZeD_CookWait:new(character, recipe, chain, usedItem)
     local o = ISBaseTimedAction.new(self, character)
     o.recipe, o.chain, o.usedItem = recipe, chain, usedItem
-    o.maxTime = -1
+    o.maxTime = -1   -- (no set length: update() ends it)
     o.useProgressBar = false
     o.stopOnWalk, o.stopOnRun = true, true
     return o
@@ -411,7 +415,7 @@ function ZeD_CookWait:update()
         ISTimedActionQueue.addAfter(self, ISAddItemInRecipe:new(self.character, self.recipe, dish, self.usedItem))
         self:forceComplete()
     elseif not ok or getTimestampMs() - (self.t0 or 0) > 10000 then
-        -- (the server never made it: the rest of this dish's adds go no further)
+        -- (no dish from the server within 10 s: the rest of this dish's adds go no further)
         if not ok then ZeD.logOnce("cook wait", dish) end
         self:forceStop()
     end
@@ -638,7 +642,7 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
         cy = cy + M.drawEmptyLine(panel, x + pad, cy, cw - pad * 2, ZeD.tr("UI_ZeD_Cook_NoIngredients")) + T.px(8)
     end
     -- the groups: one, A to Z (By ingredient), or one per kind, seasoning last (By kind).
-    -- (Nov 7 2026, perf review #15) grouped and sorted once per ingredient list (ingCache) and sort,
+    -- grouped and sorted once per ingredient list (ingCache) and sort,
     -- not every frame: the same rows in the same order while neither changes
     local gc = s._ingGroups
     local groups
@@ -989,6 +993,8 @@ end
 -- ----------------------------------------------------------------------------
 -- The tab
 -- ----------------------------------------------------------------------------
+--- The tab's frame, as the Character window calls it (addTab, below): the header, the two
+--- columns, the band, and an open pop-up list over them.
 function CK.render(panel, win, x, y, w, h)
     local T = ZeD.T
     if not T then return end
@@ -1016,8 +1022,8 @@ function CK.render(panel, win, x, y, w, h)
     local inR = (not isGamepad()) and not s.popup and mx >= rx and mx < x + w and my >= top and my < top + bodyH
     -- The Character window clips its drawer with a stencil, and PZ stencils do not nest: a column's own
     -- clip, once cleared, leaves its rect marked apart from the drawer's, so what draws over it later
-    -- (the open Dish and Sort lists) was hidden there (QA, Nov 3 2026). After each column the drawer's
-    -- clip is laid again over the whole tab.
+    -- (the open Dish and Sort lists) would be hidden there. After each column the drawer's clip is laid
+    -- again over the whole tab.
     local function relayClip()
         panel:clearStencilRect()
         panel:setStencilRect(x, y, w, h)
@@ -1043,6 +1049,7 @@ function CK.render(panel, win, x, y, w, h)
     renderPopup(panel, s, chr)
 end
 
+-- the wheel scrolls the column under the pointer (the scroll stand-in, s.shim, calls this)
 function CK.onWheel(win, del)
     local s = st(win)
     local step = ZeD.T.px(SCROLL_STEP) * del
@@ -1054,6 +1061,8 @@ function CK.onWheel(win, del)
     end
 end
 
+-- a press: with a pop-up list open only its rows and its box answer, and a press anywhere
+-- else shuts it; otherwise the topmost zone under the pointer, inside its clip
 function CK.onClick(win, x, y)
     local s = st(win)
     if s.popup then
@@ -1098,6 +1107,8 @@ function CK.buildFocusables(win)
     return els
 end
 
+-- the controller's stops are rebuilt whenever this key changes: the dish, the base, the plan,
+-- the open list, both scrolls, the zones, the sort and the count
 function CK.scrollKey(win)
     local s = win and win._cook
     if not s then return nil end

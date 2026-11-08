@@ -1,18 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Tickets.lua
 -- ============================================================================
--- TICKETS, THE CLIENT'S MODEL (ZeDUI/MP_SERVER_PART_DESIGN.md, B7 to B9). No drawing: the cards (ZeD_TicketCards.lua)
--- read this and call it.
+-- TICKETS, THE CLIENT'S MODEL. Client file, no drawing: the cards (ZeD_TicketCards.lua) read this and call it.
 --
--- The server holds ZeD's record. The game's own ticket can only be touched from a client (A4), so this file does that
--- work: the player's client files the game's ticket, a staff client reads the game's list and reports it, and acts on
--- the game's row after the server's ack (viewed, the one answer, remove).
+-- The server holds ZeD's record. The game's own ticket can only be touched from a client (the game's four ticket
+-- calls, getTickets, addTicket, viewedTicket and removeTicket, do nothing on a server), so this file does that work:
+-- the player's client files the game's ticket, a staff client reads the game's list and reports it, and acts on the
+-- game's row after the server's ack (viewed, the one answer, remove).
 --
--- The game's reply is one untagged event, ViewTickets, and only some replies hold the whole list (A4). So every game
--- call goes through one queue here, one in flight at a time, and each says what its reply is. A reply nobody here asked
--- for (the game's own window) is left alone. Before any game call on a ticket the staff client finds that row in its
--- latest full list and tests it against the record (Tk.sameTicket): no row, or a row that differs, no call.
+-- The game's reply is one untagged event, ViewTickets, and only some replies hold the whole list: getTickets(nil), an
+-- answer, viewedTicket and removeTicket bring back every ticket; a new ticket and getTickets(name) bring back that
+-- author's only. So every game call goes through one queue here, one in flight at a time, and each says what its reply
+-- is. A reply nobody here asked for (the game's own window) is left alone. Before any game call on a ticket the staff
+-- client finds that row in its latest full list and tests it against the record (Tk.sameTicket): no row, or a row that
+-- differs, no call.
 --
--- Without the server part (B9) the same calls fall back to the game's one question and one answer.
+-- Without the server part the same calls fall back to the game's own tickets: one question and one answer, no thread.
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -69,10 +71,12 @@ end
 -- ---------------------------------------------------------------------------
 -- COMMANDS TO THE SERVER
 -- ---------------------------------------------------------------------------
--- cb gets the t_ack, or { ok = false, err = "fail" } after REPLY_MS. Returns the rid.
+--- Send a ticket command to the server. cb gets the t_ack, or { ok = false, err = "fail" } after REPLY_MS (at once
+--- when the send itself fails). Returns the rid, or nil when the send failed.
 function C.request(cmd, args, cb) return C.requestOn(Tk.MOD, cmd, args, cb) end
 
--- the same for another module of the server part: every answer comes back as this one t_ack
+--- The same for another module of the server part (mail, admin, community, the extras and the log send through
+--- this): every answer comes back as this one t_ack.
 function C.requestOn(module, cmd, args, cb)
     ridNext = ridNext + 1
     local rid = ridNext
@@ -87,7 +91,8 @@ function C.requestOn(module, cmd, args, cb)
     return rid
 end
 
--- the words for an error from the server (B6)
+--- The words for an error code in a t_ack (err: "many", "text", "wait", "fail" and the rest). left: the seconds to
+--- wait, for "wait".
 function C.errText(err, left)
     local key = "UI_ZeD_Tk_Err_" .. tostring(err or "fail")
     if err == "many" then return ZeD.tr(key, L.OPEN_PER_PLAYER) end
@@ -135,6 +140,7 @@ local function readList(list)
     return rows, byId, top
 end
 
+-- the game's ViewTickets reply: it belongs to the call in flight, if any (hooked at the foot of this file)
 function C.onViewTickets(list)
     local ok, rows, byId, top = pcall(readList, list)
     local b = busy
@@ -193,8 +199,8 @@ local function withRow(g, rec, fn)
 end
 
 -- ---------------------------------------------------------------------------
--- FILING (B8, the player's side). The record decides: a ticket is filed while gameFiled is nil on the server, so one
--- an admin removed on the game's window does not come back at its author's next login.
+-- FILING (the player's side). The record decides: a ticket is filed while gameFiled is nil on the server, so one an
+-- admin removed on the game's window does not come back at its author's next login.
 -- ---------------------------------------------------------------------------
 local function confirmFiled(rows, id, file)
     for _, row in ipairs(rows) do
@@ -239,7 +245,8 @@ end
 local function gameMineRow(row)
     local kind, _, rest = Tk.parse(row.m)
     if not Tk.isKind(kind) then kind, rest = Tk.NONE, row.m end
-    -- (viewed is the one field a plain client cannot set: without it an answer is the game's claim, not an answer, B9)
+    -- (viewed is the one field a plain client cannot set, and any logged-in client can add an answer: without viewed,
+    -- an answer is a claim, not an answer)
     local answered = row.aw ~= nil and row.v == true
     return { id = row.g, kind = kind, last = string.sub(row.aw and row.at or rest, 1, L.PREVIEW),
         st = (answered and "Answered") or (row.v and "Seen") or "Sent", replies = row.aw and 1 or 0, game = true,
@@ -257,9 +264,11 @@ local function addGameRow(rows, msg)
     bump()
 end
 
--- Send. Answers "wait" while the link is unknown and "text" for words the server would refuse, both with the typed
--- text kept; otherwise "sent", with done(ack) to come. Keeps the fallback's path for frozen, as B9 says.
--- report: from chat (Phase 5), the name and the lines around it. Only the server part keeps it: a game ticket is public
+--- Send a new ticket: kind (one of Tk.KINDS), here (true: the player's place goes with it), text. Answers "wait"
+--- while the link is unknown and "text" for words the server would refuse, both with the typed text kept; otherwise
+--- "sent", with done(ack) to come. A frozen server part (up, but refusing writes) takes the fallback's path.
+--- report (optional): a report from chat, the name and the lines around it. Only the server part keeps it: a game
+--- ticket is public, any logged-in client can read it.
 function C.ask(kind, here, text, done, report)
     if S.present == nil and not S.forceOff then return "wait" end
     local clean = Tk.clean(text)
@@ -288,7 +297,8 @@ function C.ask(kind, here, text, done, report)
     return "sent"
 end
 
--- the game's own list of mine, in my rows' shape (B9): kind from the tag, viewed gives Seen, an answer gives Answered
+-- the game's own list of mine, in my rows' shape: kind from the tag, viewed gives Seen, an answer on a viewed row
+-- gives Answered
 function C.fallbackMine(rows)
     local out = {}
     for i = #rows, 1, -1 do out[#out + 1] = gameMineRow(rows[i]) end
@@ -296,6 +306,7 @@ function C.fallbackMine(rows)
     bump()
 end
 
+--- Ask for my tickets again: t_mine from the server part, or the game's own list of mine without it.
 function C.loadMine()
     if S.available() then
         S.send(Tk.MOD, "t_mine", {})
@@ -306,14 +317,16 @@ function C.loadMine()
     gameCall({ run = function() getTickets(me) end, got = function(rows) C.fallbackMine(rows) end })
 end
 
+--- The player's side of one ticket: load it (it comes back as t_one), add a reply, mark its answer read.
 function C.loadOne(id, cb) return C.request("t_one", { id = id }, cb) end
 function C.reply(id, text, cb) return C.request("t_reply", { id = id, text = Tk.clean(text) }, cb) end
 function C.read(id) S.send(Tk.MOD, "t_read", { id = id }) end
--- the player's card says it is on screen, each frame: an answer read there needs no note
+--- The player's card says it is on screen, each frame: an answer read there needs no note.
 function C.onCard(id) C.seeId, C.seeAt = id, now() end
 function C.seeing(id) return C.seeId == id and C.seeAt ~= nil and now() - C.seeAt < SEEING_MS end
 
--- the note's Open: read, and to the Server tab, where the ticket card opens (C.openId says which)
+--- The note's Open (ZeD_MessagesWindow.lua): read, and to the Server tab, where the ticket card opens (C.openId says
+--- which).
 function C.openNote(item)
     if not item then return end
     item.read = true
@@ -325,7 +338,9 @@ function C.openNote(item)
 end
 
 -- ---------------------------------------------------------------------------
--- THE STAFF: the queue. Every change arrives as t_row; getTickets(nil) runs only on opening and on Refresh.
+-- THE STAFF: the queue. Every change arrives as t_row. With the server part the game's full list, getTickets(nil), is
+-- not polled: it is read on opening and on Refresh, and again only when something needs it (a ticket with no game
+-- link yet, a row to find before a game call, a second list before anything counts as gone).
 -- ---------------------------------------------------------------------------
 local pumpSync, compare       -- (below; hoisted for what calls them)
 
@@ -492,18 +507,20 @@ local function sendQueue()
     C.queueRid = rid
 end
 
--- the queue opens, or Refresh. q: status, kind, who, mine, find, newest, page
+--- The queue opens, or Refresh: the server's page, then a sync with the game's list.
+--- q: status, kind, who, mine, find, newest, page
 function C.openQueue(q)
     if q then C.q = q end
     C.queueOpen = true
     C.wantSync = true
     sendQueue()
 end
--- a changed filter or page: the server's list only
+--- A changed filter or page: the server's list only.
 function C.setQueue(q)
     C.q = q
     sendQueue()
 end
+--- The queue closed: every sync, recheck and waiting batch stops.
 function C.closeQueue()
     C.queueOpen = false
     C.wantSync = nil
@@ -516,17 +533,19 @@ function C.syncSoon()
     if C.queueOpen and not C.recheckAt then C.recheckAt = now() + SOON_MS end
 end
 
+--- Open the staff card on ticket id: the server sends it as t_card, and again at every change until C.closeCard.
 function C.openCard(id, cb)
     C.wantCard = id
     return C.request("t_card", { id = id }, cb)
 end
--- the card closed: the next open of this ticket is a fresh one (the game's viewed goes with a fresh one). Only this ends
--- the card's pushes: the queue's own traffic runs under an open card
+--- The card closed: the next open of this ticket is a fresh one (the game's viewed goes with a fresh one). Only this
+--- ends the card's pushes: the queue's own traffic runs under an open card.
 function C.closeCard()
     C.card = nil
     C.wantCard = nil
     S.send(Tk.MOD, "t_cardoff", {})
 end
+--- Staff commands on one ticket; each cb gets the t_ack.
 function C.take(id, cb) return C.request("t_take", { id = id }, cb) end
 function C.addNote(id, text, cb) return C.request("t_addnote", { id = id, text = Tk.clean(text) }, cb) end
 function C.close(id, cb) return C.request("t_close", { id = id }, cb) end
@@ -534,13 +553,14 @@ function C.reopen(id, cb) return C.request("t_reopen", { id = id }, cb) end
 function C.spam(id, cb) return C.request("t_spam", { id = id }, cb) end
 function C.unspam(id, cb) return C.request("t_unspam", { id = id }, cb) end
 
+--- Answer a ticket. The first answer also goes to the game's ticket once its row checks out against the card.
 function C.answer(id, text, cb)
     local rec = (C.card and C.card.id == id) and C.card or nil
     local clean = Tk.clean(text)
     return C.request("t_answer", { id = id, text = clean }, function(a)
         if a.ok and a.first and a.gameId then
             local me = myName()
-            -- (the one game answer; several replies live in ZeD's record, A4)
+            -- (the one game answer: the game shows one answer per ticket; several replies live in ZeD's record)
             withRow(a.gameId, rec, function()
                 gameCall({ run = function() addTicket(me, Tk.answerText(clean), a.gameId) end, got = fullList })
             end)
@@ -551,6 +571,7 @@ function C.answer(id, text, cb)
     end)
 end
 
+--- Delete a ticket: from ZeD's record, then from the game's list once its row checks out against the card.
 function C.delete(id, cb)
     local rec = (C.card and C.card.id == id) and C.card or nil
     return C.request("t_delete", { id = id }, function(a)
@@ -566,8 +587,9 @@ function C.delete(id, cb)
 end
 
 -- ---------------------------------------------------------------------------
--- THE QUEUE WITHOUT THE SERVER PART (B9): the game's list read here, on the 10-second poll the Admin tab always had
+-- THE QUEUE WITHOUT THE SERVER PART: the game's list read here, at most every 10 seconds while the queue shows
 -- ---------------------------------------------------------------------------
+--- Read the game's full list again, at most once in ADMIN_POLL_MS unless force.
 function C.adminAsk(force)
     local t = now()
     if not force and C.pollAt and t - C.pollAt < ADMIN_POLL_MS then return end
@@ -586,11 +608,13 @@ local function fallbackStaff(r)
         text = rest, ansWho = r.aw, ansText = r.at, claim = (r.aw ~= nil and not r.v) or nil }
 end
 
+--- One game row in a staff row's shape, or nil when the latest list lacks it.
 function C.fallbackRow(id)
     local r = C.list and C.list.byId[id]
     return r and fallbackStaff(r) or nil
 end
 
+--- How many of the game's tickets are still open: every row but those viewed and holding an answer.
 function C.fallbackOpen()
     local n = 0
     for _, r in ipairs(C.list and C.list.rows or {}) do
@@ -610,7 +634,7 @@ local function fallbackKeep(row, q, find)
     return true
 end
 
--- a page of the game's list, filtered here: the same shape as the server's t_queue
+--- A page of the game's list, filtered here: the same shape as the server's t_queue.
 function C.fallbackQueue(q)
     q = q or {}
     local find = (q.find and q.find ~= "") and string.lower(q.find) or nil
@@ -636,7 +660,7 @@ function C.fallbackQueue(q)
     return { page = page, pages = pages, n = #list, rows = rows, open = C.fallbackOpen(), spam = 0, authors = authors }
 end
 
--- the card opened: the game's window shows it viewed, and the player's row reads Seen (B9)
+--- The card opened: the game's window shows it viewed, and the player's row reads Seen.
 function C.gameView(id)
     local r = C.list and C.list.byId[id]
     local me = myName()
@@ -645,6 +669,7 @@ function C.gameView(id)
         gameCall({ run = function() viewedTicket(me, id) end, got = fullList })
     end
 end
+--- The fallback's one answer and its delete, straight to the game's list (id: the game's ticket id).
 function C.gameAnswer(id, text)
     local me = myName()
     if me then gameCall({ run = function() addTicket(me, Tk.clean(text), id) end, got = fullList }) end
@@ -791,7 +816,6 @@ S.on(Tk.MOD, function(command, args)
     if fn then fn(args) end
 end)
 
--- the hello: the notes that wait, the counts, and my tickets (the catch-up for a ticket filed but never sent to the game)
 -- the join rules answered: the hello brings my tickets again (C.onHello); an open queue and its sync ask again too
 S.onAgreed("tickets", function()
     if C.queueOpen then
@@ -800,6 +824,8 @@ S.onAgreed("tickets", function()
     end
 end)
 
+--- The hello (ZeD_ServerLink.lua): the notes that wait, the counts, and my tickets (the catch-up for a ticket filed
+--- but never sent to the game).
 function C.onHello(a)
     if a.open then C.counts = { open = a.open, spam = a.spam or 0, kinds = a.kinds } end
     if type(a.unread) == "table" and ZeD.Messages and ZeD.Messages.ticket then
@@ -866,7 +892,7 @@ local function tick()
 end
 
 -- ---------------------------------------------------------------------------
--- THE GAME'S MODAL FOR A NEW TICKET (B7): it would cover the screen on each ticket. For staff with the queue it is a
+-- THE GAME'S MODAL FOR A NEW TICKET: it would cover the screen on each ticket. For staff with the queue it is a
 -- note in Messages, at most one in 10 seconds. Any other message, and this one on a client without AnswerTickets (observer
 -- and gm receive it and have no queue to open), is a plain note in Messages (ZeD_MpLeftovers.lua), the game's pop-up only
 -- in safe mode.
@@ -880,8 +906,8 @@ local function onAdminMessage(message, x, y, z)
         end
         return
     end
-    -- any other: a note in Messages with Teleport where the game asks "Teleport?" (ZeD_MpLeftovers.lua, VANILLA_WINDOWS C16);
-    -- the game's pop-up in safe mode
+    -- any other: a note in Messages with Teleport where the game asks "Teleport?" (ZeD_MpLeftovers.lua); the game's
+    -- pop-up in safe mode
     local Lo = ZeD.MpLeftovers
     if Lo and Lo.adminMessage and Lo.adminMessage(message, x, y, z) then return end
     return ISAdminMessage.AddAdminMessage(message, x, y, z)

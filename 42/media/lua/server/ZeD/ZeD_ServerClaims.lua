@@ -1,13 +1,15 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerClaims.lua
 -- ============================================================================
--- SAFEHOUSES AND FACTIONS, THE SERVER'S SIDE (ZeDUI/MP_ADMIN_SCOPE.md, Phase 3). Almost nothing: the game's own calls do
--- the work and the game checks them, so the cards work with no server part at all. This file adds only what a client
--- cannot know or do:
+-- SAFEHOUSES AND FACTIONS, THE SERVER'S SIDE. Server only (the first line); pure Lua, pure ASCII. Almost nothing: the
+-- game's own calls do the work and the game checks them, so the cards work with no server part at all. This file adds
+-- only what a client cannot know or do. The Safehouse and Faction cards' model (client/ZeD/ZeD_Claims.lua) sends the two
+-- commands on module Cl.MOD, and each answer comes back on the same module (c_info, or c_ack for a refusal or a cancel):
 --   c_info     when your safehouse was last visited (the game never sends it to clients), who your invitations are
 --              still waiting on, and invitations waiting for you (the game sends one once, to a player online)
 --   c_cancel   takes an invitation back: the game has no call for it, and only the server holds the list
 --   the log    claims, releases and faction changes, by comparing the game's own lists, so a change made from any
---              window is logged and none rests on a client's word. Phase 4 reads these lines.
+--              window is logged and none rests on a client's word. No command: it runs on the server's own clock, and
+--              the Log view (ZeD_ServerLog.lua) reads these lines.
 -- This file stores nothing: it all reads the game's live lists, and the log's lines go into the server part's one log
 -- (Srv.action). A view is built from an allowlist, for one player, about their own safehouse and faction.
 -- ============================================================================
@@ -40,7 +42,7 @@ end
 local function safeOf(p) return SafeHouse.hasSafehouse(p) end
 local function factionOf(p) return Faction.getPlayerFaction(p) end
 
--- the safehouse this player runs, or the one they named if they may run any
+-- the player's own safehouse, when they own it or their role may run any safehouse
 local function runsSafe(p)
     local h = safeOf(p)
     if h and (h:isOwner(p) or can(p, CAP_SAFE)) then return h end
@@ -142,8 +144,7 @@ end)
 -- THE LOG: the game's lists compared with what they held last time. Every line says what changed and where; a change that
 -- names no doer (a member gone) says whom it touched. Titles and names are players' words, so each is cut to one short line,
 -- with no | to pass for a field of the line. A safehouse line says where, a faction line names the faction as its target.
--- A change undone between two passes leaves no line, which is the limit of comparing lists:
--- ZeDUI/MP_SERVER_PART_DESIGN.md says so for Phase 4.
+-- A change undone between two passes leaves no line: that is the limit of comparing lists.
 -- ---------------------------------------------------------------------------
 local function short(s) return (string.gsub(string.sub(Tk.name(s or ""), 1, L.LOG_TEXT), "|", "/")) end
 

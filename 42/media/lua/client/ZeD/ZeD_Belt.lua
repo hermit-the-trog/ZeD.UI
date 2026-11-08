@@ -1,17 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Belt.lua
 -- ============================================================================
--- THE BELT — HOOK_MAP rows 5 + 6 (mockup ZeDUI/mockups/zed_hands_belt_v3.html)
+-- THE BELT — HOOK_MAP rows 5 + 6. Client-only.
 --
 -- Vanilla shows what you hold as two circles in the top-left corner
 -- (ISEquippedItem) and what hangs on you as a bar of numbered squares at the
--- bottom (ISHotbar). Both become one HUD piece at the bottom centre, to the
--- director's sketch:
---     [Secondary hand] ==[1]=[2]={buckle}=[3]=[4]== [Main Hand]
--- (the sketch had the main hand on the left; since Oct 25 2026 the belt reads as seen from behind,
--- the left hand on the left, as the director asked; since Oct 27 2026 the two hands sit together
--- at the left end, the main hand the bigger: (off)(MAIN) ==[1]=[2]={buckle}=[3]=[4]==)
+-- bottom (ISHotbar). Both become one HUD piece at the bottom centre:
+--     (off)(MAIN) ==[1]=[2]={buckle}=[3]=[4]==
+-- The belt reads as seen from behind — the left hand on the left — and the two
+-- hands sit together at the left end, the main hand the bigger. The piece is
 -- a decorative leather strap with a buckle in the middle (decoration,
--- theme-neutral: since Oct 15 2026 the character's profession buckle, 25
+-- theme-neutral: the character's profession buckle, 25
 -- designs, the plain KENTUCKY plate for any other), the hotbar slots as ZeD boxes on the strap (a little taller
 -- than it) on either side of the buckle in key order, the hands as circles
 -- beside it. The boxes follow the ZeD base and accent.
@@ -22,10 +20,10 @@
 --   * ZeD.Belt — the belt API shared with the Equip tab (slots, keys, names,
 --     what fits, attach / detach / draw, the slot list menu, drops);
 --   * ZeD_BeltHUD — the organism (mouse, drag in / out, tooltips, controller).
--- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
+-- Every layout number is a DESIGN UNIT and goes through T.px at use.
 --
--- Two forms (the "Belt" option; director, Nov 2 2026, punch list 56: a full and a simple version, as for the
--- action bar and the context menu): Full, the leather strap with each slot's material and the profession buckle;
+-- Two forms (the "Belt" option, a full and a simple version, as the
+-- action bar and the context menu have): Full, the leather strap with each slot's material and the profession buckle;
 -- Simple, the same hands, slots, ammo tab, wrist watch and note with no strap and no buckle, the slots evenly
 -- spaced after the hands, the middle of the slots on the screen's centre (where Full puts its buckle, so the slots
 -- stay put while the hands change). Everything the belt does is the same in both.
@@ -44,35 +42,32 @@ local B = ZeD.Belt
 -- ----------------------------------------------------------------------------
 -- Constants (design units)
 -- ----------------------------------------------------------------------------
--- the hands side by side at the left end (director, Oct 27 2026: "I think the hands should move together on the belt",
--- "Put the hands together at the left end"), the main hand bigger, as vanilla draws them ("Can primary be a little
--- bigger than secondary, the way the vanilla game does it?": vanilla's off hand is three quarters of the main; here
+-- the hands side by side at the left end, the main hand bigger, as vanilla draws them
+-- (vanilla's off hand is three quarters of the main; here
 -- 56 and a slot's 44). One item in both hands keeps the main hand's circle; the off hand slides in under it and
--- shows PEEK units ("keeping the primary the circle, and having the secondary peeking from behind")
+-- shows PEEK units
 local BOX, HAND, OFF_HAND = 44, 56, 44
 local HAND_GAP, PEEK = 6, 14
 local HAND_PIC = 34        -- the main hand's picture; the off hand's is a slot's (SLOT_PIC)
-local GAP, SIDE_GAP, PAD, END_GAP = 11, 14, 12, 10   -- GAP 7 -> 11 (Oct 16 2026): each slot's strap material shows between the boxes
+local GAP, SIDE_GAP, PAD, END_GAP = 11, 14, 12, 10   -- GAP is wide enough that each slot's strap material shows between the boxes
 local BUCKLE_W, BUCKLE_H = 58, 40   -- the profession buckle's own size (58 x 40 texels, one a unit)
 local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
-local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
+local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua)
 local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
--- on a server (MP_DECISIONS.md, Nov 5 2026): the chat key next to the Messages note (LAMP's size), and the PvP marker
+-- on a server: the chat key next to the Messages note (LAMP's size), and the PvP marker
 -- (a status dot and "PvP on" / "PvP off", the seconds left while it switches, an outline inside a non-PvP zone)
 local PVP_H, PVP_PAD = 26, 8
-local AMMO_W = 100         -- the ammo tab's words and rounds (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026;
-                           -- redrawn Oct 26 2026 to the director's "needs segments for each round ... a bit more polish").
-                           -- Since Oct 27 2026 a tab out from under the main hand, not a pouch on a strap (director: "I
-                           -- think the ammo should peek out from the gun/primary icon, rather than be on a belt. So it
-                           -- looks part of the gun. Right now it looks like a clip attached to the belt")
+local AMMO_W = 100         -- the ammo tab's words and rounds, one segment per round. The tab comes out from under the
+                           -- main hand rather than hanging on the strap, so it reads as part of the gun, not a clip
+                           -- attached to the belt
 local AMMO_ICON = 24       -- the ammo's picture in the tab
 local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
 local AMMO_CARD_W = 280      -- the widest the gun's detail card gets
 local LIST_ROW_H, LIST_W = 26, 290
 
-local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+local DOT = "|"   -- the separator: ZeD OS's pipe, never a middle dot
 local SIMPLE_GAP = 6   -- the Simple belt's gap between slots (no strap material to show between them)
 
 -- the Simple belt (the "Belt" option's second item), read as the belt lays out
@@ -90,7 +85,7 @@ local function hex(h)
 end
 local LEATHER_TOP, LEATHER_BOT, LEATHER_EDGE = hex("#5c4129"), hex("#3b2a1b"), hex("#1a1108")
 
--- The strap in lit pixel art (director, Oct 16 2026: no stitching, more material, a light creaser line along each
+-- The strap in lit pixel art (no stitching, a light creaser line along each
 -- edge; art by ZeDUI/tools/physpx/d_belt.py): the left end, a 64-pixel middle that repeats without a seam, the right
 -- end, 30 texels tall, drawn at a whole multiple (like the buckle) so the pixels stay square.
 local STRAP_DIR = "media/textures/ZeD/belt/strap_"
@@ -106,8 +101,8 @@ local function strapTexture(part)
 end
 
 -- ----------------------------------------------------------------------------
--- Each slot on its own attachment material (director, Oct 16 2026: "quick look you can see what is attached to
--- what"). Every hotbar slot in vanilla comes from something worn (its AttachmentsProvided; the back slot is the
+-- Each slot on its own attachment material: one look says what is attached to
+-- what. Every hotbar slot in vanilla comes from something worn (its AttachmentsProvided; the back slot is the
 -- body, or the bag on it): the strap behind a slot's box is that thing's material. The waist belt (whatever gives
 -- the belt slots) carries the buckle. Art: ZeDUI/tools/physpx/d_straps.py (the leather is d_belt.py's).
 -- B.MATERIALS is open: a mod's item adds its own line (full type -> material name).
@@ -143,8 +138,8 @@ B.SLOT_MATERIAL = B.SLOT_MATERIAL or {
     HolsterRight = "holster_brown", HolsterLeft = "holster_brown", HolsterShoulder = "holster_brown", HolsterAnkle = "holster_black",
     BedrollBottom = "pack", BedrollBottomBig = "pack", BedrollBottomALICE = "webbing_olive", Back = "sling",
 }
--- worn things that are not bags but put a harness over the back (director, Oct 16 2026: the breathing pack's back slot
--- is its harness, not the bare canvas sling); a bag on the back still wins. Open like B.MATERIALS.
+-- worn things that are not bags but put a harness over the back (the breathing pack's back slot
+-- shows its harness, not the bare canvas sling); a bag on the back still wins. Open like B.MATERIALS.
 B.BACK_WORN = B.BACK_WORN or {}
 for ft, m in pairs({ ["Base.SCBA"] = "harness", ["Base.SCBA_notank"] = "harness" }) do
     if B.BACK_WORN[ft] == nil then B.BACK_WORN[ft] = m end
@@ -163,9 +158,9 @@ local function matTexture(mat, part)
 end
 B._matTexture = matTexture
 
--- What closes the waist belt (director, Oct 16 2026: "rope is a knot. web/nylon belts get rectangle flat clip
--- closure"): the leather belt keeps the profession buckle; the rope belt is tied in a knot; webbing and the breathing
--- pack's nylon belt shut with the classic web-belt buckle (the director's references: GI brass on olive drab, black
+-- What closes the waist belt, by its material: the leather belt keeps the profession buckle; the rope belt is
+-- tied in a knot; webbing and the breathing
+-- pack's nylon belt shut with the classic flat web-belt clip (GI brass on olive drab, black
 -- on black nylon). Art: ZeDUI/tools/physpx/d_closures.py, 58 x 40 like the buckle.
 -- B.CLOSURE is open: a mod's material adds its own line (material -> "buckle" | "knot" | "clip_brass" | "clip_black" |
 -- "clip_chrome"); none = no closure.
@@ -191,8 +186,7 @@ local function closureTexture(kind)
 end
 
 -- The closure splits the slots evenly, half on each side in key order, an odd one out on the right, away from the
--- hands (director, Oct 27 2026: "split the attachments evenly around the buckle, two on each side"; until then it
--- sat between Belt L and Belt R, Oct 16 2026). Returns how many slots sit left of it.
+-- hands. Returns how many slots sit left of it.
 function B.closureAfter(slots)
     return math.floor(#slots / 2)
 end
@@ -275,9 +269,9 @@ function B.strapRuns(strapX, strapW, boxes, mats, waist, k, gap, hole)
 end
 local BRASS_A, BRASS_B, BRASS_C = hex("#e2c070"), hex("#9c7428"), hex("#4a3812")
 
--- The player's profession buckle (director, Oct 15 2026; art by ZeDUI/tools/buckles/
+-- The player's profession buckle (art by ZeDUI/tools/buckles/
 -- gen_buckles.py: 25 stable professions, 58 x 40, one texel a design unit). Loaded with
--- nearest filtering like the main menu desk (KB Q205) and drawn at a whole multiple, so the
+-- nearest filtering like the main menu desk and drawn at a whole multiple, so the
 -- pixels stay square. A modded or unknown profession wears the plain KENTUCKY plate
 -- (unemployed); a missing texture falls back to the brass frame.
 local BUCKLE_DIR = "media/textures/ZeD/buckles/buckle_"
@@ -365,7 +359,7 @@ ZeD.trDefaults({
     UI_ZeD_Belt_AmmoCountOf = "%1 %2",
 })
 -- The names are asked for every frame: kept per slot kind until the language or the test language changes
--- (Oct 22 2026, the drawing-cost work)
+-- (a draw-cost saving: no frame rebuilds a string)
 local _nm = { gen = -1, test = nil, short = {}, hand = {}, slot = {} }
 local function names()
     local st = ZeD._trState
@@ -396,8 +390,8 @@ function B.handName(which)
     local k = (which == "p") and "p" or "s"
     local s = c[k]
     if s then return s end
-    -- ZeD's own short word where the player's language has one (QA, Nov 2 2026: the game's Turkish "Ikincil Donanim"
-    -- was cut in the hand circle), else the game's word
+    -- ZeD's own short word where the player's language has one (the game's Turkish "Ikincil Donanim"
+    -- was cut off in the hand circle), else the game's word
     local zk = (k == "p") and "UI_ZeD_Radio_LocPrimary" or "UI_ZeD_Radio_LocSecondary"
     local own = ZeD.tr(zk)
     if ZeD.trEnglish and own ~= ZeD.trEnglish(zk) then s = own
@@ -444,7 +438,7 @@ function B.cond(item)
 end
 
 -- ----------------------------------------------------------------------------
--- Other mods on the belt (ModSupport; Nov 7 2026). General hooks, each keyed by an id (a second call with the
+-- Other mods on the belt (ModSupport). General hooks, each keyed by an id (a second call with the
 -- same id replaces the first), so a mod that draws on the game's hotbar or hand slots shows on the belt instead
 -- (and B.addHold, below, for a mod that moves the belt while it draws):
 --   B.addMeter(id, fn)  fn(item, where) -> f (0..1) and a kind ("fluid": T.info; "flat": one color, T.positive; nil:
@@ -485,8 +479,8 @@ end
 -- of its own (the element moved, or its javaObject swapped for one that changes every draw), for the hotbar's part of
 -- the belt only: the strap, the buckle and the slots take the mod's drawing; the hands, the ammo tab, the watch, the
 -- Messages note, the chat key, the PvP marker, other mods' boxes, the hover boxes and the tooltip are drawn on the
--- real element at the belt's home. nil: no split this frame. (Auto-Hide Hotbar: the director, Nov 7 2026, "hides
--- the belt's item slots only".)
+-- real element at the belt's home. nil: no split this frame. (So Auto-Hide Hotbar hides
+-- the belt's item slots only.)
 B._splits = B._splits or {}
 function B.addSplit(id, fn) addById(B._splits, id, { fn = fn }) end
 function B.split(hud)
@@ -603,7 +597,7 @@ function B.meterColor(T, kind)
 end
 
 -- ----------------------------------------------------------------------------
--- Ammo (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026): with a gun in the main hand, the rounds in it
+-- Ammo: with a gun in the main hand, the rounds in it
 -- and what a reload can use. For a gun with magazines, the loaded magazines carried, then the loose rounds; for a
 -- shotgun or a revolver, the loose rounds. Unopened boxes are named ("+1 BOX") but not counted: the game will not
 -- reload from a box. Bags count as carried, as the game's own reload counts them (getItemCountRecurse).
@@ -844,7 +838,7 @@ function B.otherWeapons(playerObj)
             end
         elseif call(item, "canEmitLight") then
             if not best or best:getLightStrength() < item:getLightStrength() then best = item end
-            if playerObj:isEquipped(item) or (hb and hb:isItemAttached(item)) then  -- (vanilla's isEquippedOrAttached is local to ISDPadWheels, out of reach: its test inline; code audit Oct 17 2026)
+            if playerObj:isEquipped(item) or (hb and hb:isItemAttached(item)) then  -- (vanilla's isEquippedOrAttached is local to ISDPadWheels, out of reach: its test inline)
                 if not bestEq or bestEq:getLightStrength() < item:getLightStrength() then bestEq = item end
             end
         end
@@ -889,9 +883,9 @@ function ZeD_BeltHUD:wanted()
     return B.hotbar(self.playerNum) ~= nil
 end
 
--- The layout, kept while nothing it is built from changes (Oct 22 2026, the drawing-cost work): the token table
+-- The layout, kept while nothing it is built from changes (a draw-cost saving): the token table
 -- (theme, accent, text size, UI scale and art zoom all make a new one), the character, the slots and their kinds,
--- the worn watch and its plate and wrist; the slots' materials are looked up again every second, as before. Only
+-- the worn watch and its plate and wrist; the slots' materials are looked up again every second. Only
 -- the boxes' slot records are refreshed every frame (what is in them, the key that draws them). Returns the size.
 function ZeD_BeltHUD:_layoutCached(slots)
     local T = ZeD.T
@@ -993,15 +987,14 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local boxes = {}
     local hand, off, box = px(HAND), px(OFF_HAND), px(BOX)
     local x = 0
-    -- seen from behind, as the camera sees the character (director, Oct 25 2026: "Belt Left is on the
-    -- side of the Primary hand slot"): the off hand (the game's left) on the left of the main hand (the
-    -- right), the pair at the left end of the belt (Oct 27 2026), then the strap with the slots in key
+    -- seen from behind, as the camera sees the character: the off hand (the game's left) on the left of the main hand (the
+    -- right), the pair at the left end of the belt, then the strap with the slots in key
     -- order. Boxes go in left to right (the controller walks them in this order; the off hand stays
     -- before the main hand so the main hand draws over it while it peeks).
     -- the worn watch (the "Watch" option) beside its own hand: left wrist left of the off hand, right
     -- wrist right of the main hand (outside the ammo tab)
     -- (wItem, wPlate, wWrist: ZeD.Watch.beltWatch, asked by _layoutCached)
-    -- the box is the mini watch as drawn: its art at the whole zoom T.art (Oct 21 2026); where that is
+    -- the box is the mini watch as drawn: its art at the whole zoom T.art; where that is
     -- taller than the hands (1.5: 92 px art, 84 px hands) the belt grows to it and the rest centre on it
     local mw, mh = 44 * T.art, 46 * T.art
     if ZeD.WatchMini and ZeD.WatchMini.size then mw, mh = ZeD.WatchMini.size() end
@@ -1050,7 +1043,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     x = x + px(END_GAP)
     if B.simple() then
         -- the Simple belt: the slots evenly spaced after the hands, no strap and no buckle. The middle of the slots
-        -- goes on the screen's centre, as Full's buckle does (QA, Nov 2 2026: centred on its own width, a second
+        -- goes on the screen's centre, as Full's buckle does (centred on its own width, a second
         -- item in the off hand moved every slot by half the hands' change)
         local slotsX = x
         for i = 1, n do
@@ -1074,7 +1067,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     self._anchorX = nil
     local strapX = x
     x = x + px(PAD)                       -- the slots sit PAD in from the strap's end (the buckle's place counts it)
-    -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art; Oct 21 2026)
+    -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art)
     local buckW, buckH = BUCKLE_W * T.art, BUCKLE_H * T.art
     for i = 1, n do
         if i == k + 1 then
@@ -1206,15 +1199,15 @@ local function dashedBorder(p, x, y, w, h, c, t)
 end
 
 -- A filled circle in the box (x, y, s x s), made of one-pixel screen rows like ZeD.Atoms.drawStatusDot so its edge
--- is crisp at every scale; the hands are round (director, Oct 16 2026: "make primary and secondary circles not square").
+-- is crisp at every scale; the hands are round, never square.
 -- Its outline (ring), t screen pixels thick. The rows are worked out once per size (roundShape) and drawn as one
 -- ready-made picture of exactly those pixels (ZeDUI/tools/physpx/d_rounds.py, media/textures/ZeD/belt/round/),
--- tinted: one draw instead of a rectangle per row (Oct 22 2026, the drawing-cost work). A size with no picture
+-- tinted: one draw instead of a rectangle per row (a draw-cost saving). A size with no picture
 -- draws the rows, runs of equal rows merged into one rectangle.
 local ROUND_DIR = "media/textures/ZeD/belt/round/"
 local _round, _roundN = {}, 0
 -- is there a picture for this size (the ranges d_rounds.py makes: RING_SIZES there, thickness -> first and last size)
--- (Oct 27 2026: widened for the 56-unit main hand and the 44-unit off hand)
+-- (wide enough for the 56-unit main hand and the 44-unit off hand)
 local RING_BAKED = { [1] = { 15, 78 }, [2] = { 17, 120 }, [3] = { 31, 84 }, [4] = { 23, 132 }, [6] = { 25, 132 },
                      [8] = { 50, 116 }, [12] = { 54, 120 } }
 local function roundBaked(s, t)
@@ -1321,8 +1314,8 @@ local function roundDrawPart(p, x, y, e, a, c, rx, ry, rw, rh)
     end
 end
 -- A ring filled clockwise from twelve o'clock for f (0..1) of the way round: the hands' condition
--- (director, Oct 24 2026: "can those be ring indicator, the bar looks odd in the circle. a ring
--- slightly inset inside would be the better place for it"). Each quarter is the ring's picture cut
+-- (a straight bar looks odd in a circle; a ring slightly inset
+-- sits better in it). Each quarter is the ring's picture cut
 -- to that quarter; the last quarter is cut again where the fill ends, across the ring: down the
 -- ring where it runs flat (near twelve, three, six, nine), along it where it runs upright, so a
 -- thin ring ends square. Five draws at most, like the outline itself.
@@ -1360,7 +1353,7 @@ function ZeD_BeltHUD:_drawStrap()
     if strapTexture("mid") then
         -- the pixel-art straps: whole multiple k, centred on the strap's row; each run its own piece (its two
         -- cut ends and its middle repeated and clipped)
-        local k = T.art   -- the nearest whole zoom (Oct 21 2026; was the scale rounded down)
+        local k = T.art   -- the nearest whole zoom
         local th, ew, tw = STRAP_TEX_H * k, STRAP_END * k, STRAP_TILE * k
         local y = s.y + math.floor((s.h - th) / 2)
         for _, r in ipairs(runs) do
@@ -1382,7 +1375,7 @@ function ZeD_BeltHUD:_drawStrap()
         end
         return
     end
-    -- the art missing: the plain leather (no stitching since Oct 16 2026)
+    -- the art missing: the plain leather, no stitching
     local bands = 6
     for i = 0, bands - 1 do
         local f = i / (bands - 1)
@@ -1427,14 +1420,14 @@ function ZeD_BeltHUD:_drawBuckle()
     self:drawRect(b.x + b.w - t, b.y, t, half, 1, col(BRASS_A)); self:drawRect(b.x + b.w - t, b.y + half, t, b.h - half, 1, col(BRASS_B))
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, col(BRASS_C))
     self:drawRectBorder(b.x + t, b.y + t, b.w - t * 2, b.h - t * 2, 1, col(BRASS_C))
-    -- no bar across the middle (director: "doesnt work like that"); the
+    -- no bar across the middle (a buckle's frame is open); the
     -- strap shows through the open frame
 end
 
--- The frame of a belt slot (and of the ammo pouch until Oct 27 2026; Oct 26 2026), from the live theme: the keyline in
+-- The frame of a belt slot, from the live theme: the keyline in
 -- the frame grey (T.frameS; Light's stands 3:1 off the slots' fill, where the strong border stood 2.3:1), inside a light
 -- line where the theme has one (T.frameHi; Light's stands 3:1 off the leather strap), and the keyline doubled where the
--- theme's borders are thick (High contrast). Dark and High contrast: the strong border, as before.
+-- theme's borders are thick (High contrast). Dark and High contrast keep the strong border.
 local function frameBox(p, x, y, w, h, T)
     local fs, fh = T.frameS or T.borderS, T.frameHi
     local o = 0
@@ -1456,9 +1449,9 @@ local function wearColor(T, f)
     return T.danger
 end
 
--- The hands' condition: the slots' framed strip bent round inside the outline (director, Oct 27 2026: "Make the
--- belt hands' condition ring and the action bar's progress line the same chunky framed strip as the other status
--- bars"). One unit in from the two-unit outline and six units across: a frame line each side (T.borderS, two on
+-- The hands' condition: the slots' framed strip bent round inside the outline — the same chunky framed strip as
+-- the other status bars, as the action bar's progress line is too (ZeD_ActionBar.lua).
+-- One unit in from the two-unit outline and six units across: a frame line each side (T.borderS, two on
 -- High contrast, as the strip's), the solid T.base well between, a flat fill clockwise from twelve. Whole
 -- hairlines (T.line), so the frames and the outline keep one weight at every scale.
 local RING_IN, RING_T = 3, 6
@@ -1509,7 +1502,7 @@ local function padMark(self, b, round)
 end
 
 -- A slot's condition line is the library's framed strip (ZeD.Atoms.drawFillBar: 1u borderS frame, solid T.base well,
--- ten segments in the graduated status colours, Oct 30 2026), 8u tall and 3u in from the box's sides and bottom; the picture
+-- ten segments in the graduated status colours), 8u tall and 3u in from the box's sides and bottom; the picture
 -- stands above it.
 local STRIP_INSET = 3
 local SLOT_PIC = 28
@@ -1558,7 +1551,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
     end
     -- border: dashed accent while drawn, accent while a drop fits, else the line (round on the hands)
     if round then
-        -- (two design units: director, Oct 19 2026, "primary and secondary circles need thicker outline")
+        -- (two design units: the hands' circles carry a thicker outline than the slots' one-unit frame)
         if o.state == "fit" then ring(self, b.x, b.y, b.w, p1 * 2, 1, T.accent)
         elseif o.state == "fitHover" then ring(self, b.x, b.y, b.w, p1 * 3, 1, T.accent)
         else local fs = T.frameS or T.borderS; ring(self, b.x, b.y, b.w, p1 * 2, fs.a or 1, fs) end
@@ -1719,7 +1712,7 @@ function ZeD_BeltHUD:_drawPvp(b, focus, hover)
 end
 
 -- the Messages note (MESSAGES_SPEC.md): a box with a paper note (the map flyer's, no pin) and the count of what is
--- new (Visual Catalog A12: the danger red when an error is new, the accent for a note)
+-- new (the danger red when an error is new, the accent for a note)
 local lampTex = nil
 function ZeD_BeltHUD:_drawLamp(b, focus, hover)
     local T = ZeD.T
@@ -1728,7 +1721,7 @@ function ZeD_BeltHUD:_drawLamp(b, focus, hover)
     if focus then padMark(self, b, false)
     elseif hover then hoverWash(self, b, false) end
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
-    -- the map's flyer note without its pin (director, Oct 25 2026), pixel art at a whole zoom
+    -- the map's flyer note without its pin, pixel art at a whole zoom
     if lampTex == nil then lampTex = getTexture("media/textures/ZeD/icons/msg_note.png") or false end
     if lampTex then
         local k = math.max(1, math.floor(b.h * 0.75 / 14))
@@ -1758,7 +1751,7 @@ function ZeD_BeltHUD:_ammoState(p)
     local on0 = S0 and S0.ammoBoxOn and S0.ammoBoxOn() or false
     if c and c.gun == gun and c.p == p and c.on == on0 and now - c.t < AMMO_MS then return c.a end
     local a = nil
-    -- (ZeD setup's "Ammo on the belt", off for a new player since Oct 30 2026: off, the belt is as it was)
+    -- (ZeD setup's "Ammo on the belt", off for a new player: off means no ammo tab)
     local S = ZeD.Settings
     local on = S and S.ammoBoxOn and S.ammoBoxOn() or false
     if on and gun and instanceof(gun, "HandWeapon") then a = B.ammo(p) end
@@ -1821,8 +1814,8 @@ function B.ammoInk(a)
     }
 end
 
--- the ammo tab (style B; t: the tab, its words and rounds from t.cx, the main hand's right edge): surf2 in the hands'
--- two-unit outline (Oct 27 2026; it was framed as the slots are); the ammo's own picture (the magazine for a gun
+-- the ammo tab (t: the tab, its words and rounds from t.cx, the main hand's right edge): surf2 in the hands'
+-- two-unit outline; the ammo's own picture (the magazine for a gun
 -- that takes one, else the round); the rounds in the gun as a count in F3 in the default text with its status square
 -- ("Empty" at nothing; "+1" for a chambered round); what is carried, right-aligned; and at the foot the same framed
 -- strip the slots' condition lines are (1u borderS frame, solid T.base well, flat solid fills, 8u tall) with one
@@ -1917,7 +1910,7 @@ local function drawPart(self, sp, slots)
     if r:getX() ~= x then r:setX(x) end
     if r:getY() ~= y then r:setY(y) end
 end
-B._drawPart = drawPart   -- (sims)
+B._drawPart = drawPart   -- (the QA sims reach it here)
 
 -- The belt draws under the safe-mode guard (SafeMode.lua): a failing frame is
 -- logged once and its stencils cleared, and repeated failures hand the screen
@@ -1934,8 +1927,8 @@ function ZeD_BeltHUD:_prerender()
     if ZeD.trTestOn then ZeD.trTestOn() end   -- keeps the test-language state fresh for the kept names
     local slots = B.slots(self.playerNum)
     local w, h = self:_layoutCached(slots)
-    -- the buckle on the screen's centre (director, Oct 19 2026: the belt may sit off centre;
-    -- the buckle is where the eye goes)
+    -- the buckle on the screen's centre: the belt may sit off centre;
+    -- the buckle is where the eye goes
     local b = self._buckle
     local bx = b and (b.x + math.floor(b.w / 2)) or self._anchorX or math.floor(w / 2)   -- (Simple: the slots' middle)
     local sx = getPlayerScreenLeft(self.playerNum) + math.floor(getPlayerScreenWidth(self.playerNum) / 2) - bx
@@ -2133,8 +2126,7 @@ function ZeD_BeltHUD:_tooltip(item, b, chipH)
             self._tip:setCharacter(self:player())
         else
             self._tip:setItem(item)
-            -- (the belt outlives a respawn: the tooltip follows the character now playing;
-            -- code audit Oct 17 2026)
+            -- (the belt outlives a respawn: the tooltip follows the character now playing)
             local p = self:player()
             if self._tipChr ~= p then self._tip:setCharacter(p) end
             self._tip:bringToTop()
@@ -2208,7 +2200,7 @@ function ZeD_BeltHUD:_finishOut(x, y)
     -- into the bags (a ZeD inventory list): take it off the belt
     local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    for _, win in ipairs({ cw or false, ww or false }) do  -- (a closed window is false, not a nil hole that ends ipairs early; code audit Oct 17 2026)
+    for _, win in ipairs({ cw or false, ww or false }) do  -- (a closed window is false, not a nil hole that ends ipairs early)
         local c = win and win._contentPanel
         if c and c:isReallyVisible() and c:isMouseOver() then
             B.detach(self.playerNum, o.item)
@@ -2282,7 +2274,7 @@ function B.takeDrop(playerNum, items)
 end
 
 -- Where the small watch sits on screen: x, y, w and the side its full watch opens to ("left": its left edges
--- line up, the full watch reaching right; both wrists are at the belt's left end since Oct 27 2026), or nil.
+-- line up, the full watch reaching right; both wrists are at the belt's left end), or nil.
 -- pn: whose belt (nil: the first player's)
 function B.watchScreen(pn)
     local hud = B._huds[pn or 0]
@@ -2333,7 +2325,7 @@ function ZeD_BeltHUD:_firstSlotIdx()
 end
 
 -- Leaving the belt: back to the game, or to the ZeD window that held the pad
--- (Oct 23 2026: control returns to the spot it came from)
+-- (control returns to the spot it came from)
 function ZeD_BeltHUD:_leavePad()
     self._gp = nil
     setJoypadFocus(self.playerNum, nil)
@@ -2344,8 +2336,8 @@ function ZeD_BeltHUD:_leavePad()
     if fw and fw:isVisible() and not fw.windowShaded then F.reclaimEngineFocus() end
 end
 
--- Oct 23 2026 (director: the belt "is too easy to get stuck in"; no press
--- does nothing): a direction with nowhere to go on the belt leaves it, as B
+-- The belt must never be a trap on the pad (no press does
+-- nothing): a direction with nowhere to go on the belt leaves it, as B
 -- does. Past either end, Down (the screen's edge), and Up with no list above.
 -- (the ammo box is read, not pressed: the pad steps over it; the main hand's focus shows its count)
 function ZeD_BeltHUD:_padStep(i, d)
@@ -2497,9 +2489,9 @@ function ZeD_BeltHUD:_drawPadList()
 end
 
 -- ----------------------------------------------------------------------------
--- Lifecycle: one belt a local player (split-screen, known issue Nov 7 2026: the game's hotbar is parked for every
--- player, Overrides/Belt.lua, so the second player had none). Each sits on its player's screen (the HUD places itself
--- by its playerNum); B._hud stays the first player's, for the callers that know of one belt
+-- Lifecycle: one belt a local player. In split-screen the game's hotbar is parked for every
+-- player (Overrides/Belt.lua), so every player needs a belt of their own here. Each sits on its player's screen (the
+-- HUD places itself by its playerNum); B._hud stays the first player's, for the callers that know of one belt
 -- ----------------------------------------------------------------------------
 B._huds = B._huds or {}
 function B.install(pn)
@@ -2518,9 +2510,9 @@ end
 -- pn: the local player's number (nil: the first player's belt)
 function B.getHUD(pn) return B._huds[pn or 0] end
 
--- Where ZeD's notices come out (the director, Nov 7 2026: "All of these notices are speech bubbles or thought
--- bubbles that pop up out of the notification icon where we save errors and other mods pop-ups. Just all in one
--- place."): the top middle of the Messages note on the belt, in screen pixels, while the belt and its note are on
+-- Where ZeD's notices come out. Every notice is a speech or thought bubble popping out of the one notification
+-- icon that keeps errors and other mods' pop-ups, so they all come from one
+-- place: the top middle of the Messages note on the belt, in screen pixels, while the belt and its note are on
 -- the screen; nil otherwise (in a vehicle seat, the UI hidden, safe mode, nothing kept: ZeD_MessagesWindow's
 -- bubbles then come from the bottom middle of the screen, above the dash when one shows).
 -- pn: the player the notice is for: that player's belt (B._huds[pn], a belt per player), else player one's

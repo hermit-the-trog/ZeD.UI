@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_HiddenFacts.lua
 -- ============================================================================
--- THE HIDDEN FACTS OPEN WITH A FIND (punch list 109; the director, Nov 7 2026: "I can show you the TV schedule, but
--- you have to find the TV magazine first.")
+-- THE HIDDEN FACTS OPEN WITH A FIND
+-- The guide can show the TV schedule only once the character has found the TV magazine.
 --
 -- Two guide pages the game keeps in the fiction, read live from the game:
 --   * the TV schedule (the Television/Radio topic): the shows that teach a skill or a recipe in the next seven days,
@@ -11,7 +11,7 @@
 --   * the infection odds (the Zombie Attacks topic): which wounds can pass the infection in this world, from its
 --     Transmission setting (the game's BodyPart: a bite always passes it unless the setting is None; a scratch or a
 --     laceration only sometimes, and never with Saliva Only or None).
--- By preset (the director: "Vanilla plus gates them. Only vanilla access."): in Vanilla and Vanilla Plus a page opens
+-- By preset: in Vanilla and Vanilla Plus a page opens
 -- once the character has READ the find, like a recipe magazine (read once, kept for that character); in Vanilla
 -- Access it is open from the start. ZeD setup's "Hidden facts" (Find first / Always, Settings.lua) holds the choice
 -- for Custom. Until a page opens the guide says what more it could show and what to find.
@@ -344,7 +344,7 @@ end
 function F.schedule(days)
     days = days or F.DAYS
     local out, read = {}, 0
-    -- (what the last read saw, for QA: zedqa_b8_tvstamps.lua prints it)
+    -- (what the last read saw, for the QA scripts to print)
     F.stat = { channels = 0, dormant = 0, broadcasts = 0, inWindow = 0 }
     local ok = pcall(function()
         local sm = getZomboidRadio():getScriptManager()
@@ -456,7 +456,7 @@ if Rules then
         if page then out[#out + 1] = page end
         return (#out > 0) and out or nil
     end
-    -- Zombie Attacks: the world's infection settings as before, then the odds
+    -- Zombie Attacks: the world's infection settings, then the odds
     local za = Rules.SurvivalGuide_zombie_attacks_title
     Rules.SurvivalGuide_zombie_attacks_title = function()
         local out = {}

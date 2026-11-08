@@ -1,7 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ProtectionTab.lua
 -- ============================================================================
--- PROTECTION DATA MODULE — aggregate defense data gathering + helpers.
--- Rendering moved to EquipmentTab (defense dashboard section).
+-- PROTECTION DATA MODULE (client) — gathers the worn clothing's defense
+-- numbers and the grading helpers around them. No drawing here: the
+-- EquipmentTab's defense dashboard section renders what gatherData returns.
+-- Part keys are vanilla's BloodBodyPartType strings; three tables translate
+-- them (medic-style display names, BodyFigure tile names, and abbreviations
+-- for the danger pills).
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -109,6 +113,7 @@ local PART_ABBREV = {
 -- DEFENSE TIER COLOR + GRADE
 -- ============================================================================
 
+--- the colour for one part's bite defense (red under 5, up to green at 50+)
 local function tierColor(biteDef)
     local T = ZeD.T
     if biteDef < 5  then return T.danger   end
@@ -118,6 +123,7 @@ local function tierColor(biteDef)
 end
 ZeD.ProtectionTab.tierColor = tierColor
 
+--- the letter grade for the average bite defense (A at 60+, F below 1)
 local function gradeForAvg(avg)
     if avg >= 60 then return "A" end
     if avg >= 35 then return "B" end
@@ -127,6 +133,7 @@ local function gradeForAvg(avg)
 end
 ZeD.ProtectionTab.gradeForAvg = gradeForAvg
 
+--- the colour a letter grade is drawn in
 local function gradeColor(grade)
     local T = ZeD.T
     if grade == "A" then return T.positive end
@@ -136,6 +143,7 @@ local function gradeColor(grade)
 end
 ZeD.ProtectionTab.gradeColor = gradeColor
 
+--- the colour for a part's best defense; below zero means uncovered
 local function protectionColorForDef(def)
     local T = ZeD.T
     if def < 0  then return T.danger   end  -- uncovered
@@ -150,6 +158,10 @@ ZeD.ProtectionTab.protectionColorForDef = protectionColorForDef
 -- DATA GATHERING
 -- ============================================================================
 
+--- Everything the defense dashboard shows for one player, in one table:
+--- each worn garment's per-part defenses (worst first), per-part maxima
+--- across layers, the overall average and grade, best and worst parts,
+--- and the uncovered parts as abbreviated pill names.
 function ZeD.ProtectionTab.gatherData(playerObj)
     local inv   = playerObj:getInventory()
     local items = inv:getItems()

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StripDecorators.lua
 -- ============================================================================
--- STRIP DECORATORS (a general hook for other mods)
+-- STRIP DECORATORS (client) — a general hook for other mods.
 --
 -- A mod that marks the game's container buttons (a fill bar, a badge, a tint)
 -- gets the same mark on ZeD's container strips by registering a decorator
@@ -8,8 +8,8 @@
 --     ZeD_CharacterWindow.addStripDecorator(id, fn)
 --     ZeD_WorldWindow.addStripDecorator(id, fn)
 -- Each frame, right after a strip button's icon is drawn (before its column
--- number badge, so the badge stays on top), the window calls every decorator
--- of its side:
+-- number badge and the World window's padlock, so those stay on top), the
+-- window calls every decorator of its side:
 --     fn(panel, entry, x, y, w, h, win)
 --   panel  the strip panel to draw on (draw with its drawRect, the ZeD atoms ...)
 --   entry  the window's own entry for that button: entry.inventory is the
@@ -35,7 +35,7 @@ ZeD = ZeD or {}
 local X = ZeD.StripDecorators or { char = {}, world = {}, errors = {} }
 ZeD.StripDecorators = X
 
--- Adds (or replaces, by id) a decorator for one side: "char" or "world".
+--- Adds (or replaces, by id) a decorator for one side: "char" or "world".
 function X.add(side, id, fn)
     local reg = X[side]
     if not reg or type(fn) ~= "function" then return end
@@ -45,8 +45,8 @@ function X.add(side, id, fn)
     reg[#reg + 1] = { id = id, fn = fn }
 end
 
--- Calls every decorator of `side` for one button. Called by the two strips
--- every frame, so with nothing registered it returns at once.
+--- Calls every decorator of `side` for one button. Called by the two strips
+--- every frame, so with nothing registered it returns at once.
 function X.run(panel, win, side, entry, x, y, w, h)
     local reg = X[side]
     if not reg or #reg == 0 or not entry then return end

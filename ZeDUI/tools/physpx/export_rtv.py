@@ -81,7 +81,7 @@ def export(root, only=None):
     return out, pictures
 
 
-# The tools have drifted from the committed art (design, Nov 2 2026, ZeDUI/HANDOFF_laundry_redesign_20261102.md): the
+# The tools have drifted from the committed art (design, Nov 2 2026, docs/handoffs/HANDOFF_laundry_redesign_20261102.md): the
 # committed oven, generator, grill, ham, walkie and microwave textures and six oven / ham entries in PhysPx.lua are newer
 # than what these generators make today, so a full export straight into the mod would put older art back. Export to the
 # default folder (or any other) and copy the plates you changed; writing into the mod itself needs --into-mod.

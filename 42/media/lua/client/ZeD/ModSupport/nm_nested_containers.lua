@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/nm_nested_containers.lua
 -- ============================================================================
 -- SUPPORT FOR [B42] NESTED CONTAINERS (mod id nm_nested_containers, Workshop
--- 3410947298, by Nikku Miru).
+-- 3410947298, by Nikku Miru). Client. Bags inside bags get ZeD container
+-- buttons of their own.
 --
 -- The mod gives a bag carried inside another container a container button of
 -- its own in the game's inventory and loot windows (its Nested.lua, on the
@@ -148,8 +149,8 @@ end
 -- THE PROVIDERS
 -- ---------------------------------------------------------------------------
 
--- Character window: the bags inside the containers it lists (main inventory,
--- worn and held bags, key rings), by the mod's player rules.
+--- Character window: the bags inside the containers it lists (main inventory,
+--- worn and held bags, key rings), by the mod's player rules.
 function S.charProvider(playerObj, list)
     local out = {}
     if not S.option("nesting_Player") then return out end
@@ -179,8 +180,8 @@ local function isSeat(inv)
     return ok and yes == true
 end
 
--- World window: the bags inside the containers in reach, by the mod's loot
--- rules. The floor and anything ZeD shows locked are left alone.
+--- World window: the bags inside the containers in reach, by the mod's loot
+--- rules. The floor and anything ZeD shows locked are left alone.
 function S.worldProvider(playerObj, list)
     local out = {}
     if not S.option("nesting_Loot") then return out end

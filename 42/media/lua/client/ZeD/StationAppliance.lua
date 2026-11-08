@@ -1,12 +1,18 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StationAppliance.lua
 -- ============================================================================
--- APPLIANCE VIEW — the Craft tab bound to an oven or a microwave (HOOK_MAP 14)
+-- APPLIANCE VIEW — client; the Craft tab bound to an oven or a microwave,
+-- in place of vanilla's oven window.
+-- One thing to know: this is one of the Craft tab's three station views (with
+-- StationMachine and StationGeneral); CraftingTab calls render, onClick,
+-- onMouseWheel, buildFocusables and focusKey on whichever is bound, so those
+-- five keep the same arguments in all three.
 -- Each of the game's ovens and microwaves shows its own control panel in pixel
--- art (director, Oct 16 2026: one plate per model, fixed size, centred): the
+-- art (one plate per model, fixed size, centred): the
 -- 1956 green range, the 1962 red range, the 1985 grey range, the 1992 gas
 -- range, the restaurant range, the convection oven, the deep fryer, the 1990
--- touchpad microwave and the 1979 dial microwave (ZeDUI/tools/physpx, data in
--- PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua). The plate is
+-- touchpad microwave and the 1979 dial microwave (plates baked into
+-- PhysPx.lua by the tools in ZeDUI/tools/physpx — a generated file — and drawn
+-- by the shared plate template ZeD_Plate.lua). The plate is
 -- picked by the object's tile; a modded oven or microwave borrows one.
 --
 -- Every panel drives vanilla's state, nothing more: on / off, the temperature
@@ -114,11 +120,13 @@ local function spriteName(obj)
     local spr = call(obj, "getSprite")
     return spr and call(spr, "getName") or nil
 end
--- a narrow face ("oven_grey_n") or a width ("oven_grey@392", Oct 30 2026) is its main plate's: it routes and
+-- a narrow face ("oven_grey_n") or a width ("oven_grey@392") is its main plate's: it routes and
 -- counts as the main plate does
 local function baseOf(pid) return P.baseId(pid) end
 local function isMwPlate(id) return id:sub(1, 3) == "mw_" end
 local function isOvenPlate(id) return id:sub(1, 5) == "oven_" or baseOf(id) == "fryer" end
+--- The plate and its id for a bound station: by its tile when the tile's plate fits its kind, else the kind's
+--- fallback (a modded appliance borrows one).
 function SA.plateFor(st)
     local X = PX()
     if not X then return nil, nil end
@@ -414,7 +422,7 @@ local function plateState(st, pid, r, p)
     return s
 end
 
--- what the plate shows for an appliance now (exposed for QA probes)
+--- What the plate shows for an appliance now (exposed for QA probes; nothing in the mod calls it).
 function SA.plateState(st)
     local _, pid = SA.plateFor(st)
     return plateState(st, pid, read(st), padOf(st))
@@ -480,8 +488,7 @@ end
 
 -- ----------------------------------------------------------------------------
 -- THE PLAIN CARD — the Simple form of the faces (ZeD setup's Devices row, Full
--- or Simple: ZeD.Settings.devicesSimple; the rules the director approved, Nov 2
--- 2026, ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md). It does what the face does and shows
+-- or Simple: ZeD.Settings.devicesSimple). It does what the face does and shows
 -- what it shows; only the art goes. One layout: the readout across the top (the
 -- heat and the timer in large type, a microwave's time and power; the line under
 -- it says what it is doing), then rows of label | value | control in the face's
@@ -520,7 +527,7 @@ local PLAIN_BIG_PX = 26           -- the readout's large type (design units)
 local PLAIN_BIG_MIN = 18          -- ... where 26 does not fit its half
 local DASH = "--"
 
--- true while the devices are drawn as plain cards (read as they draw: a change applies at once)
+--- SA.simple(): true while the devices are drawn as plain cards (read as they draw: a change applies at once)
 local function devicesSimple()
     local S = ZeD.Settings
     return S ~= nil and S.devicesSimple ~= nil and S.devicesSimple() == true
@@ -1006,7 +1013,9 @@ function SA.isPopped(player, st)
 end
 local POP_ICON = "pop_out"   -- a ZeD pixel icon
 
--- opts: the pop-out window's draw { noHeader = true, k = whole zoom, fid = focused id }; nil in the tab
+--- The view's frame: the header, the plate (or the plain card), its line and what is inside, as one scroll;
+--- returns the body's height (nothing while the station is popped out). opts: the pop-out window's draw
+--- { noHeader = true, k = whole zoom, fid = focused id }; nil in the tab.
 function SA.render(panel, win, x, y, w, h, state, st, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -1137,7 +1146,7 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
             zones[#zones + 1] = { type = "popout", fid = "craft:a:popout", x = bx, y = by, w = bs, h = bs }
         end
     end
-    -- the line under the plate: default words after a status mark (the plain card has it in its readout)
+    -- the line under the plate: what it is doing, in words, after a status mark (the plain card has it in its readout)
     if not simple then
         local line, mark = stateLine(st, r)
         local lf = T.fontF2
@@ -1201,8 +1210,9 @@ end
 -- ----------------------------------------------------------------------------
 local function hit(z, x, y) return x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 
--- a click on a control: a knob turns toward the half clicked, a key presses; the tab's pop-out
--- button opens the station in its own window, its "bring it back" closes that window
+--- A click on a control (SA.act; the pop-out window acts through it too): a knob turns toward the half
+--- clicked, a key presses; the tab's pop-out button opens the station in its own window, its "bring it
+--- back" closes that window.
 local function act(player, st, z, dir)
     if z.type == "popout" then if ZeD.StationPopout then ZeD.StationPopout.open(player, st) end; return end
     if z.type == "popin" then if ZeD.StationPopout then ZeD.StationPopout.close(player) end; return end
@@ -1211,6 +1221,7 @@ local function act(player, st, z, dir)
 end
 SA.act = act
 
+--- A click in the view, against the zones the last render stamped; it always takes the click.
 function SA.onClick(win, state, st, x, y)
     local player = win._playerObj
     if ST.viewHeaderClick(state, player, x, y) then return true end
@@ -1224,6 +1235,7 @@ function SA.onClick(win, state, st, x, y)
     return true
 end
 
+--- The wheel: an open list scrolls, a knob under the pointer turns, else the body scrolls.
 function SA.onMouseWheel(win, state, st, del, x, y)
     if state.stDropdownOpen then return ST.dropdownWheel(state, del) end
     for _, z in ipairs(state.zones or {}) do
@@ -1236,6 +1248,8 @@ function SA.onMouseWheel(win, state, st, del, x, y)
     return true
 end
 
+--- The controller's stops: the station select first, then every stamped control (a knob turns on left /
+--- right); B on any of them leaves the station. An open list's own stops instead while it is open.
 function SA.buildFocusables(win, state, st)
     if state.stDropdownOpen then return ST.dropdownFocusables(state, win._playerObj, "craft") end
     local out = {}
@@ -1263,7 +1277,8 @@ function SA.buildFocusables(win, state, st)
     return out
 end
 
--- the controls change with the plate, with power (an unpowered panel offers none) and with Full / Simple
+--- The stops are rebuilt when this changes: the controls change with the plate, with power (an unpowered
+--- panel offers none) and with Full / Simple, and their places with the scroll.
 function SA.focusKey(win, state, st)
     local _, pid = SA.plateFor(st)
     return "a" .. tostring(pid) .. (devicesSimple() and "/plain" or "") .. "/" .. tostring(read(st).powered) .. "/" .. tostring(#(state.zones or {}))
