@@ -570,6 +570,8 @@ local OWED = {
     UnBanIP = function(a) banUnbanUserAction("UnBanIP", a.target, "") end,
     UnBanSteamID = function(a) banUnbanUserAction("UnBanSteamID", a.target, "") end,
     UnBanIPOnly = function(a) banUnbanUserAction("UnBanIPOnly", a.target, "") end,
+    -- after an unban: the game's unban leaves the account on the default user role, so the role it had goes back (reason: the role)
+    SetRole = function(a) networkUserAction("SetRole", a.target, a.reason) end,
     -- a mute's voice ban, owed when the muted player came on (the game's /voiceban needs them on and holds for the connection)
     VoiceBan = function(a) SendCommandToServer("/voiceban " .. Q(a.target) .. " -true") end,
 }

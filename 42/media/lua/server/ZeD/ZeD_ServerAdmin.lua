@@ -512,7 +512,11 @@ local function oweKick(md, user, reason, opts)
     return owe(md, "Kick", user, reason or "", 0, nil, opts)
 end
 
-local function owedCap(act) if act == "Kick" then return CAP.KickUser end return CAP.BanUnbanUser end
+local function owedCap(act)
+    if act == "Kick" then return CAP.KickUser end
+    if act == "SetRole" then return CAP.ModifyNetworkUsers end
+    return CAP.BanUnbanUser
+end
 
 -- every call owed for this ban, gone. True when a game ban among them had already been sent out
 local function cancelOwed(md, banId)
@@ -533,7 +537,12 @@ end
 local function undoGame(md, b, by)
     local sent = cancelOwed(md, b.id)
     if not (b.made or b.everMade or sent or b.ipSent) then return end   -- (everMade: a round reOwe asked again may have half taken)
-    if b.user then owe(md, b.banIp and "UnBanIP" or "UnBan", b.user, "", 0, by) end
+    if b.user then
+        local un = owe(md, b.banIp and "UnBanIP" or "UnBan", b.user, "", 0, by)
+        -- the game's unban puts the account back to the default user role, so a role it held when banned is set again
+        local r = b.role and string.lower(b.role)
+        if r and r ~= "user" and r ~= "banned" and roleNamed(b.role) then owe(md, "SetRole", b.user, b.role, 0, by, { after = un }) end
+    end
     local lift = b.sidGame or b.sidLift
     if lift then owe(md, "UnBanSteamID", lift, "", 0, by) end
     if not (b.user or b.sid) then owe(md, "UnBanIPOnly", b.ip, "", 0, by) end
@@ -1554,7 +1563,11 @@ reg("a_ban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, functi
     local b = { id = id, reason = reason, by = me, byPos = rank(p:getRole()), at = getTimestamp(), day = today(), untilT = untilT, banIp = banIp or nil, sid = sid, v = 2 }
     -- (the Steam ID the game is given: only one staff typed. sid is what the row matches, on the server's own number)
     if kind == "sid" then b.sidGame = target end
-    if kind == "user" then b.user = target elseif kind == "ip" then b.ip = target end
+    if kind == "user" then
+        b.user = target
+        local r = roleOf(md, target)   -- (the role the game's unban would take away: undoGame sets it again)
+        b.role = r and r:getName() or nil
+    elseif kind == "ip" then b.ip = target end
     md.bans[id] = b
     local wait = o and AL.LEAVE_S or 0
     if o then tellLeave(o, b, getTimestamp()) end
