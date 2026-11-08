@@ -190,7 +190,8 @@ function MM.optionRows(page)
     end
     for _, l in ipairs(bucket.labels) do
         if not used[l] and l.text ~= "" then
-            rows[#rows + 1] = { kind = l.medium and "header" or "note", text = l.text, y = l.y, x = l.x }
+            -- (el: the label itself, so a mod's support can tell whose section a row is in: ModSupport/BetterModExperience.lua)
+            rows[#rows + 1] = { kind = l.medium and "header" or "note", text = l.text, y = l.y, x = l.x, el = l.el }
         end
     end
     if stepper then rows[#rows + 1] = stepper end
