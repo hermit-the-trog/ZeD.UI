@@ -690,10 +690,10 @@ local function mirrorActiveStateOnRows(item, rows)
 end
 
 -- ---------------------------------------------------------------------------
--- THE CARD'S MODEL (Nov 7 2026, the outside performance review, item 9).
+-- THE CARD'S MODEL
 -- What the card says about its item (the marks, the header verbs, the top
--- stats, the facts panel, the kind) was built again every frame: dozens of
--- pcalls, translations and tables a frame while a card shows. The card keeps
+-- stats, the facts panel, the kind) is costly to build: dozens of pcalls,
+-- translations and tables. Building it every frame would cost that a frame while a card shows. The card keeps
 -- them for MODEL_MS, and builds them again at once when anything they show
 -- changes: another item, player or source (worn or held, in the inventory, in
 -- a container, on the ground), the item moving container, its condition, the
@@ -703,7 +703,7 @@ end
 -- changed (Lists.gen) or the switch, a mod's facts panel registered
 -- (ItemFactsPanel.gen), the language or the test language, the theme or the
 -- text size (a new ZeD.T); setItem and the fold toggles drop it (ItemCard.lua,
--- self._model = nil). What must move every frame is drawn live as before: the
+-- self._model = nil). What must move every frame is drawn live: the
 -- progress band, the name, the zones, the care verbs, "Used to make" (its own
 -- second), the hover and the focus. The kept tables are never written to: the
 -- draw puts help and focus on the verbs each frame (the same words each time),

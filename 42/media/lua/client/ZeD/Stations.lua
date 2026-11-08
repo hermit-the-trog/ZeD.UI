@@ -31,7 +31,7 @@ local ST = ZeD.Stations
 
 ST.REACH      = 4     -- tiles: vanilla's station windows close past 4
 ST.OVEN_REACH = 3     -- tiles: vanilla's oven / microwave panel closes past 3
-ST.SCAN_MS    = 1000  -- ms between nearby scans while a station view draws (was 30 frames), and on a square change
+ST.SCAN_MS    = 1000  -- ms between nearby scans while a station view draws, and on a square change
 ST.SCAN_GAP_MS = 250  -- the least ms between scans on square changes
 ST.gen        = ST.gen or 0   -- bumped on every bind / unbind; views reset on change
 
@@ -248,8 +248,7 @@ function ST.scan(player)
 end
 
 -- Throttled scan, cached per player: about once a second, and at once when the
--- player stands on another square (Nov 7 2026, the outside performance review,
--- item 13). Lazily built fields (icon, recipe set) carry over to the fresh
+-- player stands on another square. Lazily built fields (icon, recipe set) carry over to the fresh
 -- entries for stations that are still there.
 function ST.nearby(player, force)
     if not player then return {} end
@@ -479,7 +478,7 @@ end
 
 -- Release the lock whenever the World window is gone, and keep bindings valid
 -- while the player moves around with the Craft tab hidden.
-local _wdAt = nil   -- (ms of the last check: every 250 ms, was every 15th tick)
+local _wdAt = nil   -- (ms of the last check: every 250 ms)
 local function watchdog()
     local now = getTimestampMs()
     if _wdAt and now - _wdAt < 250 then return end

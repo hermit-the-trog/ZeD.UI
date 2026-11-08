@@ -59,7 +59,7 @@ end
 
 local CONTAINER_STRIP_W    = 36
 local CONTAINER_BTN_SZ     = 36
--- The container list's refresh, in ms (Nov 8 2026, the performance review): every `ms` (the old 30 frames at 60 fps);
+-- The container list's refresh, in ms: every `ms` (what 30 frames are at 60 fps, but on the clock);
 -- a new square or a container change no sooner than `soonMs` after the last; the radios and vehicles with their tab
 -- closed every `sideMs`; `phaseMs` after the window opens, so it does not fall on the Character window's
 local WREF = { ms = 500, soonMs = 200, sideMs = 1000, phaseMs = 250 }
@@ -415,7 +415,7 @@ _buildWorldLootFocusables = function(win)
             onHoldActivate = function(w, el)
                 local c = w._mainContent
                 if not c then return end
-                -- (Nov 8 2026, bug flags: hold-A opened a locked container, as a column or the view; tap-A's check)
+                -- (a locked container opens its lock card on hold-A too, as a column or the view, the same as tap-A's check)
                 local cnt = w._containers and w._containers[el.containerIdx]
                 if cnt and cnt.locked then
                     if cnt.isoObject and ZeD.ObjectCardLock then pcall(ZeD.ObjectCardLock.openFor, w._playerObj, cnt.isoObject, false) end
@@ -482,7 +482,7 @@ _buildWorldLootFocusables = function(win)
             onHoldActivate = function(w, el)
                 local c = w._mainContent
                 if not c then return end
-                -- (Nov 8 2026, bug flags: hold-A opened a locked container, as a column or the view; tap-A's check)
+                -- (a locked container opens its lock card on hold-A too, as a column or the view, the same as tap-A's check)
                 local cnt = w._containers and w._containers[el.containerIdx]
                 if cnt and cnt.locked then
                     if cnt.isoObject and ZeD.ObjectCardLock then pcall(ZeD.ObjectCardLock.openFor, w._playerObj, cnt.isoObject, false) end
@@ -547,8 +547,8 @@ end
 -- item leaves the character; focus then goes back to the list, on the row's
 -- neighbour — the player is back where they started once the action is done.
 -- Checked every 10 frames.
--- (Nov 8 2026, code flags: a count of its own. It shared win._goneTick with closeCardIfItemGone, the mouse's and the
--- controller's check, and running later in the same frame it always reached 10 first and reset it, so that check never ran.)
+-- (A count of its own: sharing win._goneTick with closeCardIfItemGone, the mouse's and the
+-- controller's check, would let this one, running later in the same frame, always reach 10 first and reset it, so that check would never run.)
 local function _closeCardIfItemGone(win)
     win._goneTickPad = (win._goneTickPad or 0) + 1
     if win._goneTickPad < 10 then return end
@@ -2842,8 +2842,8 @@ local function drawWorldContainerStrip(self, win, content)
     local stripFocus = { win = win, zone = "worldContainerStrip" }
     local selA = T.selectionA or 0.30
 
-    -- Periodic container refresh. Nov 8 2026 (the performance review, 5 and 12): by the clock, not the frame count (30
-    -- frames ran it 2.4 times as often at 144 Hz as at 60): every WREF.ms (the old 30 frames at 60 fps), and
+    -- Periodic container refresh. By the clock, not the frame count (30
+    -- frames would run it 2.4 times as often at 144 Hz as at 60): every WREF.ms, and
     -- sooner (WREF.soonMs after the last) when the player's square changes or a container changed (OnContainerUpdate).
     -- win._containerTimer stays the window's signal: others set it to 30 for a refresh on the next frame, and it is 0
     -- on the frame the list was rebuilt (the strip's sort reads that).
@@ -2922,10 +2922,10 @@ local function drawWorldContainerStrip(self, win, content)
             content._inventory = activeCnt.inventory
         end
 
-        -- S115: refresh world radios in player range + clamp browse index.
+        -- Refresh world radios in player range + clamp browse index.
         -- Wave cache prunes against the new key set (entry.cacheKey is built
         -- from world coords by RadioTab.buildWorldRadios — stable identity).
-        -- Nov 8 2026 (the performance review, 5): the radios (the same 9 squares) are read with the list while the
+        -- The radios (the same 9 squares) are read with the list while the
         -- Radio tab is open and on every new square, else every WREF.sideMs; the vehicles (every vehicle in the cell)
         -- while the Vehicle tab is open, else every WREF.sideMs or WREF.ms after the last on a new square. Both tabs
         -- show only while there is one (WORLD_TABS' visible), and the vehicle read ends inspections out of reach.
@@ -2937,7 +2937,7 @@ local function drawWorldContainerStrip(self, win, content)
             win._radioSq = plSq
             win._radios = ZeD.RadioTab.buildWorldRadios(win._playerObj)
         end
-        -- S124: vehicles in reach for the Vehicle tab
+        -- Vehicles in reach for the Vehicle tab
         if (sideDue or win._activeTab == "vehicle") and ZeD.MechanicsTab and ZeD.MechanicsTab.refresh then
             pcall(ZeD.MechanicsTab.refresh, win)
         end
@@ -4747,8 +4747,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
     end
 
-    -- The World window's tab stops, the per-frame refresh of the worldTabContent zone (moved out of
-    -- content._focusRefresh on Nov 8 2026 so the controller can ask for it between frames: win._focusFresh)
+    -- The World window's tab stops, the per-frame refresh of the worldTabContent zone (kept out of
+    -- content._focusRefresh so the controller can ask for it between frames: win._focusFresh)
     content._tabStopsRefresh = function(self, Focus)
         -- S98/S99 per-frame refresh for worldTabContent zone. Runs for
         -- tab-specific non-inv content only (forage stances, animals
@@ -4973,14 +4973,14 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     -- The World window's per-frame stop refresh (the container strip, the main list, the MC columns,
-    -- the tab's stops, the item card). Oct 31 2026 (punch list 28): moved out of the content's
+    -- the tab's stops, the item card). It lives outside the content's
     -- prerender, which does not run while the content is hidden (the tab drawer takes the whole
-    -- window at 1280x720, UI scale 2.0): the Craft tab's stops then stayed as they were when
+    -- window at 1280x720, UI scale 2.0): the Craft tab's stops would stay as they were when
     -- the tab opened (no card, no amount box, no Craft). The drawer's prerender runs it then.
     content._focusRefresh = function(self)
         local T = ZeD.T
         -- --------------------------------------------------------
-        -- S99 RING MODEL: PER-FRAME WORLDMAININV REFRESH (World Window)
+        -- RING MODEL: PER-FRAME WORLDMAININV REFRESH (World Window)
         -- Unconditional — worldMainInv holds the active container's invrows
         -- on ALL tabs, mirroring Character's charMainInv. Same dirty check,
         -- identity preservation, container-change guard.
@@ -5019,7 +5019,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                              or (oldSnap[newN] ~= newItems[newN])
                     end
                     if not oldSnap then dirty = true end
-                    -- S108 v2 QA: MC state transition forces rebuild even
+                    -- MC state transition forces rebuild even
                     -- when item count is unchanged. The placeholder branch
                     -- (mcActive + empty mainInv) needs to fire on MC enter
                     -- even if mainInv was already empty before MC.
@@ -5028,11 +5028,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                         dirty = true
                         win._lastMcActiveForMainInv = mcActive
                     end
-                    -- Oct 19 2026: rebuild on the rows' places too (scroll, List | Grid, width)
+                    -- Rebuild on the rows' places too (scroll, List | Grid, width)
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
-                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    -- (the container shown is part of what these rows are, by the object)
                     if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
                     local keepId = nil
                     for _, z in ipairs(win._focusRing or {}) do
@@ -5050,7 +5050,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         win._lastInvRowSnapshot = snap
 
                         local newEls = _buildWorldInvRowFocusables(win)
-                        -- S108 v2 QA: when MC is active AND the last colState
+                        -- When MC is active AND the last colState
                         -- is already covered by a worldMC<N> zone (i.e. all
                         -- MC selections are visible columns, no extra "main"
                         -- column appended), worldMainInv would duplicate the
@@ -5109,7 +5109,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                                             end
                                         end
                                     end
-                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
+                                    -- (the neighbouring ROW: the List | Grid
                                     -- toggles come after the rows, never a stand-in for one)
                                     local nRows = 0
                                     for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
@@ -5134,7 +5134,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         -- --------------------------------------------------------
-        -- S108 v2 RING MODEL: PER-FRAME PER-COLUMN MC ZONE REFRESH
+        -- RING MODEL: PER-FRAME PER-COLUMN MC ZONE REFRESH
         -- Each MC selection has its own ring zone (worldMC1..worldMCN).
         -- Loop over slots and refresh each zone's elements independently.
         -- Identity-preserve via _gpFocusedMCItem (per-zone idx tracked by
@@ -5166,7 +5166,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             win._lastMCSnap = nil  -- the zones are rebuilt on the way back to Loot
         end
 
-        -- the tab's stops (content._tabStopsRefresh, above). Nov 8 2026 (the performance review, 14): rebuilt every
+        -- the tab's stops (content._tabStopsRefresh, above). Rebuilt every
         -- frame they cost the most on Craft (every recipe row). With the mouse and keyboard in use, no controller mark
         -- showing and no landing waiting (Focus.stopsMayWait) they wait; the first frame after, and anything
         -- the controller does first (FocusManager's win._focusFresh), rebuilds them from scratch.
@@ -6043,7 +6043,7 @@ if Events.OnResolutionChange then
 end
 
 -- A container changed (an item moved, a container opened or emptied): the container list reads afresh on the next
--- frame the strip draws, WREF.soonMs after its last read at the soonest (Nov 8 2026, the performance review)
+-- frame the strip draws, WREF.soonMs after its last read at the soonest
 if Events.OnContainerUpdate then
     Events.OnContainerUpdate.Add(function() if _worldWin then _worldWin._containersDirty = true end end)
 end

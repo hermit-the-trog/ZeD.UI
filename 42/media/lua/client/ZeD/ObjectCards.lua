@@ -52,8 +52,8 @@ local M, A = ZeD.Molecules, ZeD.Atoms
 
 OC.LEASH   = 6       -- tiles: the card closes past this (vanilla's plant window rule)
 OC.CARD_W  = 480     -- design units
--- (Nov 7 2026, perf review #12) the two counts are in 60ths of a second on the clock (a frame at
--- 60 FPS), no longer frames drawn, which ran them 2.4-4 times as often at 144-240 Hz: 15 is 250 ms
+-- The two counts are in 60ths of a second on the clock (a frame at
+-- 60 FPS), not frames drawn, which would run them 2.4-4 times as often at 144-240 Hz: 15 is 250 ms
 -- and 60 one second at any frame rate. The kinds' "refresh now" (_refreshT = OC.REFRESH) and
 -- "in three" (OC.REFRESH - 3, 50 ms) keep their meaning.
 OC.REFRESH = 15      -- 60ths of a second between data refreshes
@@ -199,7 +199,7 @@ function OC.spriteIcon(obj)
 end
 
 -- The 60ths of a second since o[atKey] was last stamped (and stamps it now): 1 on the first call,
--- as a frame was (perf review #12). Only differences of the clock are taken (it is past 2^31).
+-- as a frame was. Only differences of the clock are taken (it is past 2^31).
 local function sixtieths(o, atKey, now)
     local last = o[atKey]
     o[atKey] = now

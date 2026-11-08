@@ -179,7 +179,7 @@ Events.OnGameStart.Add(onGameStart)
 -- The recipe list and categories for a bench: the catalog entries the bench
 -- makes, in catalog order. Cached per station.
 local _benchSource = {}
-local ROWS_MS = 1000   -- the rows' refresh (was 30 frames: 2.4-4x as often at 144-240 Hz)
+local ROWS_MS = 1000   -- the rows' refresh (once a second on the clock, not per frame)
 local function benchSource(bench)
     local c = _benchSource[bench.key]
     if c then return c.list, c.cats, c.short end
@@ -229,7 +229,7 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         win._craftCacheKey = srcKey
     end
 
-    -- Throttled: every ROWS_MS (was 30 frames), at once when the cache was dropped
+    -- Throttled: every ROWS_MS, at once when the cache was dropped
     local prev = win._craftCache
     if not CC.due(win, "_craftRowsAt", ROWS_MS, not prev) then
         return prev
@@ -240,8 +240,8 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
     local boundCase = bench and ZeD.textCase(boundShort) or nil
 
     -- The rows are rewritten in place (CC.refreshRow), one table per recipe kept for the tab, into one
-    -- data table kept while the cache stands (the review's item 3); a dropped cache starts a new one,
-    -- and nothing carries into it, as before.
+    -- data table kept while the cache stands; a dropped cache starts a new one,
+    -- and nothing carries into it.
     local data = prev
     if not data then
         data = { recipes = {} }
@@ -554,7 +554,7 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
 
     -- Can each recipe be made now? Vanilla's crafting logic answers for every
     -- recipe at once (CC.logicScan); the quick scan (CC.backgroundIngredientScan,
-    -- every 300 frames) only covers recipes it could not answer. A changed
+    -- every 5 s) only covers recipes it could not answer. A changed
     -- answer re-filters the list.
     local bench = boundBench(win._playerObj)
     local benchKey = bench and tostring(bench.obj) or "hand"
@@ -563,7 +563,7 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     if CC.logicScan(data, win, "craft", function()
         return HandcraftLogic.new(win._playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
     end, bench ~= nil) then state.filterDirty = true end   -- (at a bench: the full set every scan)
-    -- (the quick scan: at once, then every 5 s; was 300 frames)
+    -- (the quick scan: at once, then every 5 s)
     if CC.due(win, "_craftScanAt", 5000) then
         CC.backgroundIngredientScan(data, win, "craft")
     end

@@ -279,7 +279,7 @@ local function _fireCbR(fnName, fn, w, ...)
     return result
 end
 
--- Nov 8 2026 (the performance review, 14): a window whose tab stops wait while the mouse is in use (Focus.stopsMayWait)
+-- A window whose tab stops wait while the mouse is in use (Focus.stopsMayWait)
 -- brings them up to date through w._focusFresh before anything here reads them: a press, a landing, the stop list
 local function _fresh(w)
     local fn = w and w._focusFresh
@@ -1768,7 +1768,7 @@ function Focus.focusPrimarySoon(w, zoneName, delay)
     _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, primary = true, tries = 60, delay = delay or 0 }
 end
 
--- Nov 8 2026 (the performance review, 14): whether a landing waits on window w's stops (the calls above)
+-- Whether a landing waits on window w's stops (the calls above)
 function Focus.soonPending(w)
     for i = 1, #_focusSoon do
         if _focusSoon[i].w == w then return true end

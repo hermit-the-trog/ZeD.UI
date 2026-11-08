@@ -42,7 +42,7 @@ end
 function P.isPinned(p, k, id) return P.find(p, k, id) ~= nil end
 
 -- the name a pin shows for itself (an item's display name, a skill's)
--- (Nov 7 2026, perf review #15: the title bar asks every frame, so the guarded calls are named
+-- (the title bar asks every frame, so the guarded calls are named
 -- functions, not a closure per pin per frame)
 local function carriedById(p, id) return p:getInventory():getItemWithIDRecursiv(tonumber(id)) end
 local function carriedByType(p, ft) return p:getInventory():getFirstTypeRecurse(ft) end
@@ -161,8 +161,8 @@ local function itemLine(k, it, T)
 end
 
 -- the title bar's entries for the pins: { text, color }, oldest first
--- (Nov 7 2026, perf review #15: asked every frame by the title bar, so no closure per pin: the words come
--- from pinForm, the item's numbers from itemLine, the same words as before)
+-- (asked every frame by the title bar, so no closure per pin: the words come
+-- from pinForm, the item's numbers from itemLine)
 function P.stats(p)
     local T = ZeD.T
     local out = {}
