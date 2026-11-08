@@ -113,6 +113,30 @@ root:addChild(se2)
 check("the sticky reads its words at the next start", se2.entry:getText() == "seed 7741\nserver pw: dog")
 
 -- ---------------------------------------------------------------------------
+section("a quick double-click on an icon, counted on the frames drawn")
+do
+    MM.showView("desktop")
+    D.frame()
+    local c = D.cell("cletusworks")
+    W.mouse.x, W.mouse.y = c.x + 4, c.y + 4
+    MM.ctx.hot = "desk:other"                -- (the pointer has something else under the mouse: a window over the icons)
+    W.down = true; D.frame(16); W.down = false; D.frame(16); W.down = true; D.frame(16); W.down = false; D.frame(16)
+    check("not while the pointer has another box under the mouse", MM.view == "desktop", MM.view)
+    MM.ctx.hot = "desk:cletusworks"
+    W.clock = W.clock + 1000
+    -- two presses inside 100 ms: the pointer, every 100 ms, would see one click
+    W.down = true; D.frame(16); W.down = false; D.frame(16); W.down = true; D.frame(16)
+    check("the second press opens it", MM.view == "notepad", MM.view)
+    W.down = false; D.frame(16)
+    root.icons:click("cletusworks")          -- (the pointer's own click on the release comes after: no second open)
+    check("the pointer's late click does not count again", root.icons._lastClick == nil)
+    MM.ctx.hot = nil
+    W.mouse.x, W.mouse.y = 0, 0
+    MM.showView("desktop")
+    D.frame()
+end
+
+-- ---------------------------------------------------------------------------
 section("CletusWorks: a new page, save, the icon")
 root.icons:open("cletusworks")
 check("CletusWorks opens its window", MM.view == "notepad")

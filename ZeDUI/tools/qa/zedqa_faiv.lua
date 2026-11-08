@@ -29,7 +29,20 @@ local function say(s) print("ZEDQA fav " .. tostring(s)) end
 if ZEDQA_HOME then ZEDQA_HOME("fav") end
 local p = getPlayer()
 local md = p:getModData()
-local keepPins = md.ZeD_WinPinned and { char = md.ZeD_WinPinned.char, world = md.ZeD_WinPinned.world } or nil
+local keepPins = nil   -- (every pin key, the halves' too: charInv, charTabs, worldInv, worldTabs)
+if md.ZeD_WinPinned then keepPins = {}; for k, v in pairs(md.ZeD_WinPinned) do keepPins[k] = v end end
+-- the pins put back on the open windows, each half from its own key (WindowHalves; an older single key pins both)
+local function putPinsBack(t)
+    t = t or {}
+    for _, pair in ipairs({ { ZeD_CharacterWindow.getWindow(), "char" }, { ZeD_WorldWindow.getWindow(), "world" } }) do
+        local win, k = pair[1], pair[2]
+        if win and win._halves and ZeD.Halves then
+            local i, d = t[k .. "Inv"], t[k .. "Tabs"]
+            if i == nil and d == nil then i, d = t[k] == true, t[k] == true end
+            ZeD.Halves.setPin(win, "inv", i == true); ZeD.Halves.setPin(win, "drawer", d == true)
+        elseif win then win.pinned = t[k] == true end
+    end
+end
 local pass, fail = 0, 0
 local function check(ok, what) if ok then pass = pass + 1; say("PASS " .. what) else fail = fail + 1; say("FAIL " .. what) end end
 local function CW() return ZeD_CharacterWindow.getWindow() end
@@ -611,8 +624,9 @@ add(500, function()
     md.ZeD_WinPinned = keepPins or { char = true, world = true }
     openBoth()
     local c, w = CW(), WW()
-    if c then c.pinned = md.ZeD_WinPinned.char == true; c:setWindowShaded(false) end
-    if w then w.pinned = md.ZeD_WinPinned.world == true; w:setWindowShaded(false) end
+    putPinsBack(md.ZeD_WinPinned)
+    if c then c:setWindowShaded(false) end
+    if w then w:setWindowShaded(false) end
     standAt(homeX, homeY)
     if ZEDQA_HOME then ZEDQA_HOME("fav") end
     say(string.format("RESULT %d pass, %d fail", pass, fail))

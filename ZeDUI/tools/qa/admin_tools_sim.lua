@@ -186,7 +186,10 @@ MASKED = setmetatable({}, { __mode = "k" })
 function ISTextEntryBox:setMasked(b) MASKED[self] = b end
 function ISTextEntryBox:setPlaceholderText() end
 function ISTextEntryBox:setMaxTextLength(n) self.maxT = n end
-function ISTextEntryBox:getText() return self.text end
+-- (as the game's UITextBox2: a masked box answers getText with stars; getInternalText is what was typed)
+function ISTextEntryBox:getText() if MASKED[self] then return string.rep("*", #(self.text or "")) end; return self.text end
+function ISTextEntryBox:getInternalText() return self.text end
+function ISTextEntryBox:isMasked() return MASKED[self] == true end
 function ISTextEntryBox:setText(s) self.text = s end
 function ISTextEntryBox:focus() self.hasFocus = true end
 function ISTextEntryBox:unfocus() self.hasFocus = false end

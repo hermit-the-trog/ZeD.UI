@@ -521,6 +521,32 @@ do
     car.md.ZeD_odoTrip = true
     frame(100)
     check("and shows the trip when the car says so", st().odoShownT == "t  128", st().odoShownT)
+    car.md.ZeD_odoTrip = nil
+    -- Metric: every odometer in kilometers, as the speed is; the car still keeps miles
+    env.units = "Metric"
+    frame(1000)                                        -- (the option is read again within a second)
+    check("Metric: the LCD counts kilometers", st().odoShownT == "067330", st().odoShownT)
+    check("Metric: the wheels' figures in kilometers", math.abs((st().odoView or 0) - 41837.36 * 1.609344) < 1e-6 and math.abs((st().tripView or 0) - 128.64 * 1.609344) < 1e-6)
+    check("Metric: the car still keeps miles", near(car.md.ZeD_odo, 41837.36, 0.2) and near(st().odo, 41837.36, 0.2), car.md.ZeD_odo)
+    car.md.ZeD_odoTrip = true
+    frame(100)
+    check("Metric: the trip in kilometers", st().odoShownT == "t  207", st().odoShownT)
+    local m = { power = true, odo = 41837.36, trip = 128.64, odoTrip = false }
+    D.odoShow(m)
+    check("Metric: the VFD (Cossette, Luxury) counts kilometers", m.odoShown == 67330, m.odoShown)
+    local cv = canvas()
+    local seen = {}
+    local PX = ZeD.Px
+    local realDrums = PX.drums
+    PX.drums = function(_, p, v) seen[p.src] = v end
+    PL.drawParts(cv, { { t = "drums", src = "odo", x = 0, y = 0, n = 6, cw = 5, ch = 7, tenths = true },
+                       { t = "drums", src = "trip", x = 0, y = 9, n = 4, cw = 5, ch = 6, tenths = true } }, m, {})
+    PX.drums = realDrums
+    check("Metric: the mechanical wheels turn in kilometers", seen.odo and math.abs(seen.odo - 41837.36 * 1.609344) < 1e-6 and seen.trip and math.abs(seen.trip - 128.64 * 1.609344) < 1e-6, tostring(seen.odo))
+    env.units = "Imperial"
+    car.md.ZeD_odoTrip = nil
+    frame(1000)
+    check("back to miles on the LCD", st().odoShownT == "041837", st().odoShownT)
 end
 
 -- ---------------------------------------------------------------------------

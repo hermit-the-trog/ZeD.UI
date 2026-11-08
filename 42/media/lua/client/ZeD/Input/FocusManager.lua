@@ -1077,11 +1077,24 @@ local function _focusWindow(side)
     local target = (side == "char") and charWin or worldWin
 
     -- Unshade the target if it was hidden — bumper means "go look at this one".
-    if target.windowShaded and target.setWindowShaded then
-        target:setWindowShaded(false)
-    end
+    Focus.showWin(target)
 
     Focus.claimFocus(target)
+end
+
+--- A window brought back to view: a window with halves (WindowHalves.lua) brings down
+--- every half that rolled by itself; any other window comes out of its shade.
+function Focus.showWin(w)
+    if not w then return end
+    if w._halves and ZeD.Halves then ZeD.Halves.showAll(w); return end
+    if w.windowShaded and w.setWindowShaded then w:setWindowShaded(false) end
+end
+
+--- True while a window is rolled up, or (a window with halves) has a half rolled by itself.
+function Focus.isRolled(w)
+    if not w then return false end
+    if w.windowShaded then return true end
+    return (w._halves and ZeD.Halves and ZeD.Halves.anyRolled(w)) and true or false
 end
 
 --- A bumper tapped while a D-pad wheel is up (ZeD_WheelGesture): the bumpers
@@ -1093,7 +1106,7 @@ function Focus.openSide(side)
     end
     for _, M in ipairs({ ZeD_CharacterWindow or {}, ZeD_WorldWindow or {} }) do
         local w = M.getWindow and M.getWindow()
-        if w and w.windowShaded and w.setWindowShaded then w:setWindowShaded(false) end
+        Focus.showWin(w)
     end
     _focusWindow(side)
 end
@@ -1561,12 +1574,15 @@ _handleSpatialNav = function(w, dir)
 end
 
 -- Hide every registered window (windowshade) + release focus: the aiming
--- escape. Idempotent.
+-- escape. Idempotent. A window with halves (WindowHalves.lua) rolls only its
+-- unpinned halves: a pinned half stays as it is.
 local function _hideAllWindows(reason)
     if #_windowRegistry == 0 then return end
     print("[ZeD.Input] Focus: hideAll (" .. (reason or "?") .. ")")
     for _, w in ipairs(_windowRegistry) do
-        if w.setWindowShaded and not w.windowShaded then
+        if w._halves and ZeD.Halves then
+            ZeD.Halves.aim(w)
+        elseif w.setWindowShaded and not w.windowShaded then
             w:setWindowShaded(true)
         end
     end
@@ -1620,15 +1636,10 @@ local function _handleYTap()
         if CW.ensureBothOpenForGamepad then CW.ensureBothOpenForGamepad(0) end
         local charWin = CW.getWindow and CW.getWindow()
         if charWin then
-            if charWin.windowShaded and charWin.setWindowShaded then
-                charWin:setWindowShaded(false)
-            end
+            Focus.showWin(charWin)
             Focus.claimFocus(charWin)
         end
-        local worldWin = WW.getWindow and WW.getWindow()
-        if worldWin and worldWin.windowShaded and worldWin.setWindowShaded then
-            worldWin:setWindowShaded(false)
-        end
+        Focus.showWin(WW.getWindow and WW.getWindow())
         print("[ZeD.Input] Focus: Y tap - normalized pair, Character focus")
         return
     end
@@ -1638,8 +1649,10 @@ local function _handleYTap()
     local worldWin = WW.getWindow  and WW.getWindow()
     if not charWin or not worldWin then return end
 
-    local charShaded  = charWin.windowShaded
-    local worldShaded = worldWin.windowShaded
+    -- (a window with a half rolled by itself counts as rolled: one Y brings that half
+    -- back, and never rolls the pinned half beside it, WindowHalves)
+    local charShaded  = Focus.isRolled(charWin)
+    local worldShaded = Focus.isRolled(worldWin)
     local bothShaded  = charShaded and worldShaded
     local bothVisible = (not charShaded) and (not worldShaded)
 
@@ -1652,16 +1665,16 @@ local function _handleYTap()
     end
 
     if bothShaded then
-        if charWin.setWindowShaded  then charWin:setWindowShaded(false)  end
-        if worldWin.setWindowShaded then worldWin:setWindowShaded(false) end
+        Focus.showWin(charWin)
+        Focus.showWin(worldWin)
         Focus.claimFocus(charWin)
         print("[ZeD.Input] Focus: Y tap - unhide pair, Character focus")
         return
     end
 
     -- One shaded one not: normalize to both-visible.
-    if charShaded  and charWin.setWindowShaded  then charWin:setWindowShaded(false)  end
-    if worldShaded and worldWin.setWindowShaded then worldWin:setWindowShaded(false) end
+    if charShaded  then Focus.showWin(charWin)  end
+    if worldShaded then Focus.showWin(worldWin) end
     Focus.claimFocus(charWin)
     print("[ZeD.Input] Focus: Y tap - normalized visibility, Character focus")
 end
