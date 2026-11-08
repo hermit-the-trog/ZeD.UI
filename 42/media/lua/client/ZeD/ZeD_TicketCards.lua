@@ -564,6 +564,8 @@ function D.drawField(panel, win, t, it, x, y, w, h, viewY, viewH, covered)
     if shown and (text ~= "" or focused) then return end
     local c = (text == "") and T.textDim or T.text
     local s = (text == "") and it.hint or text
+    -- (it.mask: a password, starred here as the box itself stars it)
+    if it.mask and text ~= "" then s = string.rep("*", #text) end
     local lh = ZeD.TM:getFontHeight(T.fontF2)
     for i, line in ipairs(D.wrap(s, T.fontF2, math.max(1, w - px(2 * FIELD_PAD + 8)))) do
         panel:drawText(line, x + px(6), y + px(FIELD_PAD) + (i - 1) * lh, c.r, c.g, c.b, c.a or 1, T.fontF2)
