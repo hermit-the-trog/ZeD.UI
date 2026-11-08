@@ -47,13 +47,33 @@ local function call(o, m, ...)
 end
 ST.call = call
 
-local function isEntityKind(kind) return kind == "bench" or kind == "machine" end
+local function isEntityKind(kind) return kind == "bench" or kind == "machine" or kind == "general" end
 ST.isEntityKind = isEntityKind
 
 -- ----------------------------------------------------------------------------
 -- CLASSIFY — what kind of station an object is, and its working component.
 -- ----------------------------------------------------------------------------
-function ST.classify(obj)
+-- general (vanilla windows B15, Nov 7 2026): an entity the game opens its station window for (ISEntityUI.OpenWindow)
+-- that is none of these is a "general" station, its working part the first cycle logic it has (FurnaceLogic,
+-- MashingLogic), or none (a tank, a store). Only the open route asks for it: the nearby scan and the STATION list
+-- keep to the kinds ZeD has known views for, so every barrel in reach does not join the list.
+-- the game's own entities that open its station window (the review, Nov 7 2026): they keep what opened before
+local VANILLA_ENTITY = { butcherhook = true, logbench = true, logstool = true, logtable = true, otherlogstool = true }
+local function squash(s) return string.lower((tostring(s or "")):gsub("[%s_%-]", "")) end
+-- a mod's entity: its script names a mod that is not the game's, and it is none of the game's own above. Anything
+-- unsure (no script, no mod named) stays the game's.
+function ST.isModEntity(obj)
+    local sc = call(obj, "getEntityScript")
+    local name = sc and (call(sc, "getName") or call(sc, "getScriptObjectName"))
+    if name and VANILLA_ENTITY[squash(name)] then return false end
+    if VANILLA_ENTITY[squash(call(obj, "getEntityFullTypeDebug"))] then return false end
+    local mod = sc and call(sc, "getModID")
+    if not mod or mod == "" then return false end
+    local m = string.lower(tostring(mod))
+    return m ~= "pz-vanilla" and m ~= "base" and m ~= "vanilla"
+end
+
+function ST.classify(obj, general)
     if not obj then return nil end
     if instanceof(obj, "IsoStove") then
         if call(obj, "isMicrowave") then return "micro" end
@@ -64,6 +84,17 @@ function ST.classify(obj)
     if bench then return "bench", bench end
     local dry = call(obj, "getComponent", ComponentType.DryingCraftLogic)
     if dry then return "machine", dry end
+    -- any other craft machine on the same contract (DryingCraftLogic is one): StationMachine's view
+    local logic = ComponentType.CraftLogic and call(obj, "getComponent", ComponentType.CraftLogic)
+    if logic then return "machine", logic end
+    if general and call(obj, "hasComponents") and ST.isModEntity(obj) then
+        local comp = nil
+        for _, name in ipairs({ "FurnaceLogic", "MashingLogic" }) do
+            local ct = ComponentType[name]
+            comp = comp or (ct and call(obj, "getComponent", ct)) or nil
+        end
+        return "general", comp
+    end
     return nil
 end
 
@@ -105,7 +136,7 @@ ST.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle
 
 -- the keys of the kind words on the station band (translated where they are drawn)
 local KIND_LABEL = { bench = "UI_ZeD_Station_KindBench", machine = "UI_ZeD_Station_KindMachine",
-    oven = "UI_ZeD_Station_KindAppliance", micro = "UI_ZeD_Station_KindAppliance" }
+    oven = "UI_ZeD_Station_KindAppliance", micro = "UI_ZeD_Station_KindAppliance", general = "UI_ZeD_Station_Fallback" }
 ST.KIND_LABEL = KIND_LABEL
 
 function ST.reachFor(kind)
@@ -399,14 +430,14 @@ function ST.validate(player)
     return st
 end
 
--- Resolve a world object (any tile of a station) to a bindable station entry.
-function ST.entryFor(player, obj)
+-- Resolve a world object (any tile of a station) to a bindable station entry (general: ST.classify's).
+function ST.entryFor(player, obj, general)
     if not (player and obj) then return nil end
     local m = call(obj, "getMasterObject") or obj
     for _, e in ipairs(ST.nearby(player, true)) do
         if e.obj == m then return e end
     end
-    local kind, comp = ST.classify(m)
+    local kind, comp = ST.classify(m, general)
     if not kind then return nil end
     local sq = call(m, "getSquare")
     if not sq then return nil end
@@ -442,10 +473,10 @@ if Events and Events.OnTick then Events.OnTick.Add(watchdog) end
 -- ----------------------------------------------------------------------------
 -- OPEN — bind a station and show it in the World window's Craft tab.
 -- ----------------------------------------------------------------------------
-function ST.open(player, obj)
+function ST.open(player, obj, general)
     if not (player and obj) then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
-    local st = ST.entryFor(player, obj)
+    local st = ST.entryFor(player, obj, general)
     if not st then return false end
     if st.inUse then
         if getText then player:Say(getText("IGUI_ObjectAlreadyUsedSayMessage")) end
@@ -619,7 +650,7 @@ function ST.stateText(st, player)
     local T = ZeD.T
     if st.kind == "bench" then
         return ZeD.tr("UI_ZeD_Station_StateInUseByYou"), T.positive
-    elseif st.kind == "machine" then
+    elseif st.kind == "machine" or st.kind == "general" then
         if st.comp and call(st.comp, "isRunning") then return ZeD.tr("UI_ZeD_Station_StateRunning"), T.positive end
         return ZeD.tr("UI_ZeD_Station_StateIdle"), T.textDim
     else

@@ -170,6 +170,9 @@ local function condTags(panel, conds, x, y, maxW)
     if #conds == 0 then return 0 end
     return by + th
 end
+-- (the same tags and marks on the medical check of another player: ObjectCardMedic.lua)
+ZeD.HealthTab.condTags = condTags
+ZeD.HealthTab.sevColor = sevColor
 
 -- ============================================================================
 -- CONDITION CLASSIFIER
@@ -181,6 +184,10 @@ end
 -- can miss; severity words ("Severe", "Moderate", "Good") appear only at the
 -- First Aid levels where vanilla's doctor can judge them. doctorLevel is the
 -- viewing character's First Aid level.
+-- (Nov 7 2026) What the character knows without looking is marked care = true:
+-- pain, stiffness and the care already given (bandage, stitches, splint,
+-- poultice). A mod that holds a part's diagnosis back (EXTRAS below: holds) keeps
+-- only those for the part.
 local function qualify(label, word)
     if word then return ZeD.tr("UI_ZeD_Health_Qualified", label, word) end
     return label
@@ -255,9 +262,9 @@ local function classifyConditions(bp, doctorLevel)
     local stiffness = bp:getStiffness()
     if stiffness >= 5 then
         if stiffness < 20 then
-            conds[#conds + 1] = { label = getText("IGUI_health_MinorStiffness"), severity = "warning" }
+            conds[#conds + 1] = { label = getText("IGUI_health_MinorStiffness"), severity = "warning", care = true }
         else
-            conds[#conds + 1] = { label = getText("IGUI_health_Stiffness"), severity = "danger" }
+            conds[#conds + 1] = { label = getText("IGUI_health_Stiffness"), severity = "danger", care = true }
         end
     end
 
@@ -265,17 +272,17 @@ local function classifyConditions(bp, doctorLevel)
     local pain = bp:getAdditionalPain()
     if pain > 10 then
         if pain > 50 then
-            conds[#conds + 1] = { label = getText("IGUI_health_HeavyPain"), severity = "danger" }
+            conds[#conds + 1] = { label = getText("IGUI_health_HeavyPain"), severity = "danger", care = true }
         else
-            conds[#conds + 1] = { label = getText("IGUI_health_Pain"), severity = "warning" }
+            conds[#conds + 1] = { label = getText("IGUI_health_Pain"), severity = "warning", care = true }
         end
     end
 
     if bp:bandaged() then
         if bp:getBandageLife() > 0 then
-            conds[#conds + 1] = { label = getText("IGUI_health_Bandaged"), severity = "positive" }
+            conds[#conds + 1] = { label = getText("IGUI_health_Bandaged"), severity = "positive", care = true }
         else
-            conds[#conds + 1] = { label = getText("IGUI_health_DirtyBandage"), severity = "warning" }
+            conds[#conds + 1] = { label = getText("IGUI_health_DirtyBandage"), severity = "warning", care = true }
         end
     end
     if bp:stitched() then
@@ -283,7 +290,7 @@ local function classifyConditions(bp, doctorLevel)
         if doc > 6 or cheat then
             word = (bp:getStitchTime() > 40) and getText("IGUI_health_Good") or ZeD.tr("IGUI_health_NeedTime")
         end
-        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Stitched"), word), severity = "positive" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Stitched"), word), severity = "positive", care = true }
     end
     if bp:getSplintFactor() > 0 then
         word = nil
@@ -291,17 +298,17 @@ local function classifyConditions(bp, doctorLevel)
             if bp:getSplintFactor() > 4 then word = getText("IGUI_health_Good")
             elseif bp:getFractureTime() > 2 then word = getText("IGUI_health_Moderate") end
         end
-        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Splinted"), word), severity = "positive" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Splinted"), word), severity = "positive", care = true }
     end
     -- Poultices on the part, as vanilla lists them
     if bp:getPlantainFactor() > 0 then
-        conds[#conds + 1] = { label = getText("ContextMenu_PlantainCataplasm"), severity = "positive" }
+        conds[#conds + 1] = { label = getText("ContextMenu_PlantainCataplasm"), severity = "positive", care = true }
     end
     if bp:getComfreyFactor() > 0 then
-        conds[#conds + 1] = { label = getText("ContextMenu_ComfreyCataplasm"), severity = "positive" }
+        conds[#conds + 1] = { label = getText("ContextMenu_ComfreyCataplasm"), severity = "positive", care = true }
     end
     if bp:getGarlicFactor() > 0 then
-        conds[#conds + 1] = { label = getText("ContextMenu_GarlicCataplasm"), severity = "positive" }
+        conds[#conds + 1] = { label = getText("ContextMenu_GarlicCataplasm"), severity = "positive", care = true }
     end
 
     table.sort(conds, function(a, b)
@@ -335,9 +342,20 @@ end
 --          mod's colour, the words in the default ink) and as tags on the part's row
 --          in the injury list (the square follows the severity; "warning" when none
 --          is given). A part with such a line counts as injured and is listed.
+--   holds(playerObj, bodyPart)                                   (Nov 7 2026)
+--       -> true while the mod holds that part's diagnosis back (an examination it
+--          asks for first): the part keeps only the conditions the character knows
+--          without looking (care = true in the classifier), and the mod's own
+--          partLines say what it wants said instead.
+--   openPart(playerObj, bodyPart, panel, x, y)                   (Nov 7 2026)
+--       -> true when the mod opened the part's menu itself (right-click on the
+--          figure or an injury row, A on the controller). panel is the stand-in
+--          for the game's health panel that the game's menu is built from; x, y are
+--          where the menu opens, from its origin. Anything else, or an error, and
+--          the tab opens the game's menu as it always has.
 -- Every call goes through pcall; ZeD keeps no copy of the mod's data (the lines are
 -- read again each time the tab re-reads the body). First used by
--- ModSupport/WoundExpansion.lua.
+-- ModSupport/WoundExpansion.lua; holds and openPart by ModSupport/WoundsOverhaul.lua.
 -- ============================================================================
 ZeD.HealthTab.extras = ZeD.HealthTab.extras or {}
 
@@ -369,6 +387,26 @@ local function extraLines(playerObj, bp)
     return out
 end
 
+-- Does an extra hold this part's diagnosis back? (false with none, or when it errs)
+local function heldBack(playerObj, bp)
+    for _, e in ipairs(ZeD.HealthTab.extras) do
+        if e.holds then
+            local ok, yes = pcall(e.holds, playerObj, bp)
+            if ok and yes == true then return true end
+        end
+    end
+    return false
+end
+
+-- The conditions the character knows without looking (care = true), in their order
+local function careOnly(conds)
+    local out = {}
+    for _, c in ipairs(conds) do
+        if c.care then out[#out + 1] = c end
+    end
+    return out
+end
+
 -- A copy of a part's conditions with the extras' lines added as tags, each placed
 -- after the conditions of equal or higher severity (so vanilla's order is kept).
 local function withExtraTags(conds, extra)
@@ -391,11 +429,15 @@ end
 -- Extended for body figure: partHealth + condsByFigureName.
 -- ============================================================================
 
-function ZeD.HealthTab.gatherData(playerObj)
+-- opts (Nov 7 2026, the medical check of another player; nil for your own Health tab):
+--   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
+--   bodyDamage   the body to read: on a server another player's is their remote copy
+--                (getBodyDamageRemote, as vanilla's health panel reads it), else getBodyDamage
+function ZeD.HealthTab.gatherData(playerObj, opts)
     ensurePartNames()
     ensureBodyPartTypes()
 
-    local bd = playerObj:getBodyDamage()
+    local bd = (opts and opts.bodyDamage) or playerObj:getBodyDamage()
     local parts = bd:getBodyParts()
     local overall = bd:getOverallBodyHealth()
 
@@ -410,13 +452,17 @@ function ZeD.HealthTab.gatherData(playerObj)
         typeToFigure[bp.type] = bp.figure
     end
 
-    -- The viewer is the patient here, so the patient's First Aid is the doctor's
-    local doctorLevel = playerObj:getPerkLevel(Perks.Doctor)
+    -- The viewer is the patient here, so the patient's First Aid is the doctor's (a medical
+    -- check of another player passes the doctor's own)
+    local doctorLevel = (opts and opts.doctorLevel) or playerObj:getPerkLevel(Perks.Doctor)
+    local partByFigure = {}      -- figureName -> the BodyPart (the medical check treats it)
 
     for i = 1, parts:size() do
         local bp = parts:get(i - 1)
         local health = bp:getHealth()
         local conds = classifyConditions(bp, doctorLevel)
+        -- a part another mod holds back until it is examined names no wound
+        if heldBack(playerObj, bp) then conds = careOnly(conds) end
         -- other mods' wound details for this part (nil without any); the injury list
         -- carries them as tags too, the detail view draws them as lines
         local extra = extraLines(playerObj, bp)
@@ -426,6 +472,7 @@ function ZeD.HealthTab.gatherData(playerObj)
 
         -- Store health and conditions for ALL parts (figure needs full map)
         if figureName then
+            partByFigure[figureName] = bp
             partHealth[figureName] = health
             if #conds > 0 then
                 condsByFigureName[figureName] = conds
@@ -448,6 +495,7 @@ function ZeD.HealthTab.gatherData(playerObj)
                 health     = health,
                 conditions = listConds,
                 worstSev   = worstSev,
+                bodyPart   = bp,
             }
         end
     end
@@ -471,6 +519,7 @@ function ZeD.HealthTab.gatherData(playerObj)
         condsByFigureName = condsByFigureName,
         extraByFigureName = extraByFigureName,
         isFemale         = playerObj:isFemale(),
+        partByFigure     = partByFigure,
     }
 end
 
@@ -544,14 +593,22 @@ function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     -- Gamepad path may pass nil drawerPanel/relX/relY — fall back to the
     -- health content panel stashed during render, else the window itself.
     local anchor = drawerPanel or win._healthContentPanel or win
-    local rX = relX or 0
-    local rY = relY or 0
+    ZeD.HealthTab.treat(playerObj, nil, bp, anchor, relX or 0, relY or 0, nil)
+end
 
-    -- Adapter mimicking ISHealthPanel for doBodyPartContextMenu
+-- The game's treatment menu for one body part, through a thin adapter that stands in for
+-- vanilla's ISHealthPanel (ISHealthPanel:doBodyPartContextMenu and its 13 handlers, unchanged):
+-- character = the patient, otherPlayer = the doctor when it is someone else (vanilla's
+-- setOtherPlayer: a medical check of another player), so every handler's getDoctor and getPatient
+-- and the game's own timed actions are vanilla's. blocking = vanilla's blockingMessage (too far
+-- away): the menu is built and kept hidden, as vanilla does. The menu opens at (rx, ry) in the
+-- anchor panel; with a controller it takes the focus as vanilla's does.
+function ZeD.HealthTab.treat(patient, doctor, bp, anchor, rx, ry, blocking)
+    if not (patient and bp and anchor) then return end
     local adapter = {
-        character       = playerObj,
-        otherPlayer     = nil,
-        blockingMessage = nil,
+        character       = patient,
+        otherPlayer     = (doctor ~= nil and doctor ~= patient) and doctor or nil,
+        blockingMessage = blocking,
         actions         = {},
     }
     function adapter:getDoctor() return self.otherPlayer or self.character end
@@ -562,7 +619,19 @@ function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
     adapter.checkItems          = ISHealthPanel.checkItems
     adapter.checkContainerItems = ISHealthPanel.checkContainerItems
 
-    ISHealthPanel.doBodyPartContextMenu(adapter, bp, rX, rY)
+    -- a mod that opens this part's menu itself (EXTRAS: openPart) has it; only for one's own body (a doctor's
+    -- look at another player stays the game's menu)
+    if doctor == nil or doctor == patient then
+        for _, e in ipairs(ZeD.HealthTab.extras) do
+            if e.openPart then
+                local ok, done = pcall(e.openPart, patient, bp, adapter, rx or 0, ry or 0)
+                if ok and done == true then return adapter end
+            end
+        end
+    end
+
+    ISHealthPanel.doBodyPartContextMenu(adapter, bp, rx or 0, ry or 0)
+    return adapter
 end
 
 -- ============================================================================

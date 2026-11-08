@@ -17,6 +17,10 @@
 -- second click opens it; Return or A opens the selected one, the arrows or the
 -- D-pad move between them. They sit under the windows, as icons do.
 --
+-- Down the left edge (punch list 104; the director, Nov 7 2026): the sticky note, always there and typed in place,
+-- then CletusWorks (the notepad), ProtoPOP3 Mail and the Documents folder (the notes, ZeD_MainMenuDocs.lua), columns to
+-- the right when one fills and never over the right column (ZeD_MainMenuNotes.lua and ZeD_MainMenuMail.lua give MM.leftItems its items).
+--
 -- The Trash opens a small window holding one file: the Computer itself (Oct 21
 -- 2026, was system32.dll; the old desktop joke of dragging the computer to the
 -- trash). Empty trash throws the computer away: the window asks the game's own
@@ -42,6 +46,7 @@ local DOUBLE_MS = 450             -- a second click this soon opens
 
 local _tex = {}
 local function icon(name)
+    if name == nil then return nil end
     local t = _tex[name]
     if t == nil then t = Texture.getSharedTexture(ICON_DIR .. name .. ".png", NEAREST) or false; _tex[name] = t end
     return t or nil
@@ -69,7 +74,7 @@ local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() 
 -- icon pictures are loose textures the engine streams in after boot: they are asked for
 -- now, the menu's wake-up waits for them with the desk's own pictures, and a cell draws
 -- its name only once its picture is in, so the two always arrive together
-local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "uploader", "trash", "computer" }
+local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "uploader", "trash", "computer", "cletusworks", "note", "mail", "documents" }
 pcall(function() for _, n in ipairs(ICON_IDS) do Texture.getSharedTexture(ICON_DIR .. n .. ".png", NEAREST) end end)
 local function iconReady(t)
     if not t then return true end
@@ -106,6 +111,24 @@ local function cells(L)
     end
     x = L.tx + L.tw - T.px(EDGE) - cw
     place(TRASH, trashY)
+    -- the left side: each item a cell of its own size (the sticky's is bigger), an icon centered in its column
+    local rightX = x
+    for _, c in ipairs(out) do if c.x < rightX then rightX = c.x end end
+    local lx, ly = L.tx + T.px(EDGE), top
+    -- (clear of the controller's prompts along the screen's foot, which sit at the left: the same place with a mouse)
+    local colW, bottom = 0, L.ty + L.th - T.px(EDGE) - T.sp.scrollbarW - T.px(GAP)
+    for _, it in ipairs(MM.leftItems and MM.leftItems() or {}) do
+        local iw, ih = cw, ch
+        if it.size then iw, ih = it.size() end
+        if ly > top and ly + ih > bottom then lx = lx + colW + T.px(GAP); ly = top; colW = 0 end
+        local colAfter = math.max(colW, iw)
+        if lx + colAfter > rightX - T.px(GAP) then break end   -- (the rest are in the notepad's Open list)
+        colW = colAfter
+        local cx = it.size and lx or (lx + math.floor((math.max(colW, cw) - iw) / 2))
+        out[#out + 1] = { item = it, x = cx, y = ly, w = iw, h = ih, ix = cx + math.floor((iw - isz) / 2), iy = ly, isz = isz,
+                          ly = ly + isz + T.px(6), lh = labelH, left = true }
+        ly = ly + ih + T.px(GAP)
+    end
     return out
 end
 
@@ -116,7 +139,7 @@ function MM.iconBlock(L)
     local T = ZeD.T
     local cs = cells(L)
     local minX = L.tx + L.tw
-    for _, c in ipairs(cs) do if c.x < minX then minX = c.x end end
+    for _, c in ipairs(cs) do if c.x < minX and not c.left then minX = c.x end end   -- (the left side lies under the window)
     local right = L.tx + L.tw - T.px(EDGE)
     return { w = right - minX, edge = T.px(EDGE), gap = T.px(GAP), fits = minX >= L.tx + T.px(EDGE) }
 end
@@ -179,8 +202,13 @@ function ZeD_MMIcons:prerender()
         local it = c.item
         local off = it.off and it.off()
         local sel = self.focusId == it.id
-        local tex = icon(it.id)
+        local tex = icon(it.icon or it.id)
         local ready = iconReady(tex)
+        if it.draw then                                   -- (an item that draws itself: the sticky note)
+            it.draw(self, c, sel)
+            ready = false
+            self._hits[#self._hits + 1] = { id = "desk:" .. it.id, x = c.x, y = c.y, w = c.w, h = c.h, fn = function() self:click(it.id) end }
+        end
         local k = sel and 0.55 or 1                       -- a selected icon darkens, as they did
         if ready then                                     -- (picture and name come together)
         if tex then self:drawTextureScaledAspect(tex, c.ix, c.iy, c.isz, c.isz, off and T.disabledAlpha or 1, k, k, k) end
@@ -228,6 +256,7 @@ function ZeD_MMIcons:joyB() end
 function ZeD_MMIcons:getFooterPrompts() return nil end
 function ZeD_MMIcons:keyEscape() return false end
 function ZeD_MMIcons:keyOther(key)
+    if MM.stickyTyping and MM.stickyTyping() then return false end   -- (the sticky note has the keys)
     if key == Keyboard.KEY_RETURN then self:joyA(); return true end
     if key == Keyboard.KEY_UP then self:joyDir("up"); return true end
     if key == Keyboard.KEY_DOWN then self:joyDir("down"); return true end

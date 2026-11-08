@@ -116,7 +116,7 @@ end
 -- LAYOUT: the dash's own whole multiple; the right edge on the dash console's right edge
 -- ---------------------------------------------------------------------------
 function ZeD_SirenController:scale()
-    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
+    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(self.playerNum)
     if dash and dash._s then return dash._s end
     local Sc = ZeD.Scale
     return P.k(((Sc and Sc.root and Sc.root()) or 1) * ((ZeD.Dashboard and ZeD.Dashboard.scale) or 1))
@@ -136,7 +136,7 @@ end
 -- end), else above the bottom of the player's screen; kept on the screen
 function ZeD_SirenController:place(w, h, s)
     local pn = self.playerNum
-    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
+    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(self.playerNum)
     local x, y
     if dash and dash:isVisible() and dash._consoleRect and dash.playerNum == pn then
         local cs, ds = dash._consoleRect, dash._s or s
@@ -233,7 +233,7 @@ function ZeD_SirenController:_plain()
     local w = pad * 2 + colW * 2 + px(8)
     local bodyH = pad + fh1 + gap + 5 * bh + 4 * gap + pad
     local h = bodyH + stripH
-    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
+    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(self.playerNum)
     self:place(w, h, (dash and dash._s) or 1)
     self._s, self._stripH = 1, stripH
     ZeD.Surface.fill(self, 0, 0, w, bodyH, "surf2")
