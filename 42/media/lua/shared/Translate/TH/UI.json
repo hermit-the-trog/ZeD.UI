@@ -5845,5 +5845,6 @@
     "UI_ZeD_Mail_Reported": "ส่งถึงแอดมินเป็นตั๋ว #%1 แล้ว",
     "UI_ZeD_Mail_NoReport": "เซิร์ฟเวอร์นี้รับการรายงานจดหมายไม่ได้",
     "UI_ZeD_Mail_Connecting": "กำลังเชื่อมต่อ... ส่ง %1 รับ %2",
-    "UI_ZeD_Tk_ReportedLetter": "จดหมายที่ถูกรายงาน"
+    "UI_ZeD_Tk_ReportedLetter": "จดหมายที่ถูกรายงาน",
+    "UI_ZeD_Tk_LetterWhose": "ตามที่ผู้เล่นได้รับ"
 }

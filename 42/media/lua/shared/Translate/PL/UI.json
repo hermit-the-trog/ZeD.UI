@@ -5845,5 +5845,6 @@
     "UI_ZeD_Mail_Reported": "Wysłano obsłudze jako zgłoszenie #%1.",
     "UI_ZeD_Mail_NoReport": "Ten serwer nie przyjmuje zgłoszeń listów.",
     "UI_ZeD_Mail_Connecting": "Łączenie... wysyłanie %1, odbieranie %2",
-    "UI_ZeD_Tk_ReportedLetter": "Zgłoszony list"
+    "UI_ZeD_Tk_ReportedLetter": "Zgłoszony list",
+    "UI_ZeD_Tk_LetterWhose": "Tak, jak gracz go otrzymał."
 }

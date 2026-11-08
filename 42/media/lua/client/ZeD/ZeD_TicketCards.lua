@@ -1429,7 +1429,7 @@ function B.reportChat(items, rep)
             items[#items + 1] = { k = "chatline", text = head .. who .. tostring(l.text), mark = l.mark, c = { id = "chat:" .. tostring(i) } }
         end
     end
-    B.sub(items, tr("UI_ZeD_Tk_ChatWhose"))
+    B.sub(items, tr(rep.letter and "UI_ZeD_Tk_LetterWhose" or "UI_ZeD_Tk_ChatWhose"))   -- (a letter: the server did carry it)
 end
 
 function B.ask(st, t)

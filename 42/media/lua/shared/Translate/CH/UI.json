@@ -5845,5 +5845,6 @@
     "UI_ZeD_Mail_Reported": "已作为工單 #%1 發給管理员。",
     "UI_ZeD_Mail_NoReport": "這臺伺服器無法接收信件舉報。",
     "UI_ZeD_Mail_Connecting": "正在連接... 發送 %1，接收 %2",
-    "UI_ZeD_Tk_ReportedLetter": "被舉報的信"
+    "UI_ZeD_Tk_ReportedLetter": "被舉報的信",
+    "UI_ZeD_Tk_LetterWhose": "與玩家收到時一致。"
 }

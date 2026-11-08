@@ -5845,5 +5845,6 @@
     "UI_ZeD_Mail_Reported": "Enviada aos admins como ticket #%1.",
     "UI_ZeD_Mail_NoReport": "Este servidor não aceita a denúncia de uma carta.",
     "UI_ZeD_Mail_Connecting": "A ligar... a enviar %1, a receber %2",
-    "UI_ZeD_Tk_ReportedLetter": "A carta denunciada"
+    "UI_ZeD_Tk_ReportedLetter": "A carta denunciada",
+    "UI_ZeD_Tk_LetterWhose": "Como o jogador a recebeu."
 }

@@ -5845,5 +5845,6 @@
     "UI_ZeD_Mail_Reported": "Отправлено администрации, тикет #%1.",
     "UI_ZeD_Mail_NoReport": "Этот сервер не принимает жалобы на письма.",
     "UI_ZeD_Mail_Connecting": "Соединение... отправка %1, приём %2",
-    "UI_ZeD_Tk_ReportedLetter": "Письмо, на которое пожаловались"
+    "UI_ZeD_Tk_ReportedLetter": "Письмо, на которое пожаловались",
+    "UI_ZeD_Tk_LetterWhose": "В том виде, в каком игрок его получил."
 }

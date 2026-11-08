@@ -5845,5 +5845,6 @@
     "UI_ZeD_Mail_Reported": "Inviata agli admin come ticket #%1.",
     "UI_ZeD_Mail_NoReport": "Questo server non può ricevere la segnalazione di una lettera.",
     "UI_ZeD_Mail_Connecting": "Collegamento... invio %1, ricezione %2",
-    "UI_ZeD_Tk_ReportedLetter": "La lettera segnalata"
+    "UI_ZeD_Tk_ReportedLetter": "La lettera segnalata",
+    "UI_ZeD_Tk_LetterWhose": "Così come l'ha ricevuta il giocatore."
 }

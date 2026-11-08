@@ -172,9 +172,11 @@ check("the report says it is a letter", filed and filed.report and filed.report.
 local lab = {}
 TC._B.reportChat(lab, { who = "Ada", n = 1, letter = true, { who = "Ada", text = "x" } })
 check("the staff card labels it the reported letter", lab[1] and lab[1].text == ZeD.tr("UI_ZeD_Tk_ReportedLetter"), lab[1] and lab[1].text)
+check("and its line says the player received it, not that the server hears no chat", lab[#lab].k == "sub" and lab[#lab].text == ZeD.tr("UI_ZeD_Tk_LetterWhose"), lab[#lab].text)
 lab = {}
 TC._B.reportChat(lab, { who = "Ada", n = 1, { who = "Ada", text = "x" } })
 check("a chat report keeps its own label", lab[1] and lab[1].text == ZeD.tr("UI_ZeD_Tk_ChatAround"))
+check("and its own line", lab[#lab].text == ZeD.tr("UI_ZeD_Tk_ChatWhose"))
 local long = { from = "Rosa", subj = "", text = string.rep("abc ", 500), t = 1 }
 local rep = MC._P.reportOf(long)
 check("a long letter fits the report's lines, each at most REPORT_TEXT", rep.n <= Tk.LIMITS.REPORT_LINES and #rep[1].text == Tk.LIMITS.REPORT_TEXT)
