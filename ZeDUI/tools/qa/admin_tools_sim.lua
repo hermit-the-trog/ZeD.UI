@@ -182,6 +182,8 @@ function ISTextEntryBox:new(text, x, y, w, h)
     return o
 end
 function ISTextEntryBox:setMultipleLine() end
+MASKED = setmetatable({}, { __mode = "k" })
+function ISTextEntryBox:setMasked(b) MASKED[self] = b end
 function ISTextEntryBox:setPlaceholderText() end
 function ISTextEntryBox:setMaxTextLength(n) self.maxT = n end
 function ISTextEntryBox:getText() return self.text end
@@ -680,6 +682,21 @@ press("tk:upass")
 check("Set password opens its field", st.card.open == "pass" and stopOf("tk:f:upass") ~= nil)
 check("Set wants words", why("tk:upset") == tr("UI_ZeD_Adm_WritePass"))
 TC2._D.setField(win, "upass", "hunter2")
+draw(); draw()
+do
+    local inner = TC2._D.fieldInner(TC2._D.fieldOf(win, "upass"))
+    check("the password box is masked", inner ~= nil and MASKED[inner] == true)
+    -- covered (a pop-up over it): the card draws the words itself, starred
+    win._drawerItem = true
+    draw()
+    win._drawerItem = nil
+    local plain, stars = false, false
+    for _, t in ipairs(panel.texts) do
+        if t.s:find("hunter2", 1, true) then plain = true end
+        if t.s == "*******" then stars = true end
+    end
+    check("a hidden password box draws stars, never the words", stars and not plain)
+end
 press("tk:upset")
 check("SetPassword is the game's call", hasG("net:SetPassword:Rosa:hunter2") and st.card.open == nil)
 press("tk:ua:banip"); press("tk:cyes")

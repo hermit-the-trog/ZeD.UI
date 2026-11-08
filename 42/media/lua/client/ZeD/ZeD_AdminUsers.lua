@@ -397,6 +397,7 @@ function P.userItems(win, st, t, card, r)
     if card.open == "pass" then
         B.sub(items, tr("UI_ZeD_Adm_PassLine", r.user))
         F.field(items, "upass", 1, tr("UI_ZeD_Adm_PassHint"), true, NAME_MAX)
+        items[#items].mask = true      -- (starred, safe on a stream: the director, Nov 7)
         -- (Cancel here, not in the foot: Set password alone there fits the narrowest card)
         F.flow(items, { { id = "upcancel", text = getText("UI_Cancel"), help = tr("UI_ZeD_Adm_HelpKeepUser"), run = function(ww) P.closePass(ww, st, card) end } })
     else
@@ -465,7 +466,16 @@ end
 
 TC.kinds.user = {
     data = function(card) return U.row(card.user) end,
-    tick = function() U.watch() end,
+    tick = function(win)
+        U.watch()
+        -- the password box stars what is typed (the game's own UITextBox2.setMasked, javap). The box is made on its first
+        -- draw, so this looks each frame until it is set
+        local inner = D.fieldInner(D.fieldOf(win, "upass"))
+        if inner and not inner._zedMasked then
+            local ok = pcall(function() inner:setMasked(true) end)
+            if ok then inner._zedMasked = true end
+        end
+    end,
     key = function(t, card) return table.concat({ tostring(U.seq), tostring(M.seq), tostring(card.open) }, ":") end,
     title = function(card) return card.user end,
     gone = function(card) return tr("UI_ZeD_Adm_UserGone", card.user) end,
