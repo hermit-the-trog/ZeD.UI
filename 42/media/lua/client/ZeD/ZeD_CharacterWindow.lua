@@ -5556,19 +5556,19 @@ function ZeD_CharacterWindow.toggle(playerNum)
     --   * GridScroll U/D scrolling   → onDpadDir on the gridScroll pseudo-focusable
     --   * Maps cursor / animals zone-cursor → onDpadDir (WorldWindow elements)
 
-    -- Content panel — right of tab strip + drawer (fixed width)
+    -- Content panel — right of tab strip + drawer (the drawer's prerender sets its x and width)
     content = ZeD_Panel:new(T.px(TAB_STRIP_W), bodyY, T.px(win._baseInvW), bodyH)
     content._zedLabel = "char content"   -- its own name in console.txt and safe mode's watchdog
     content.anchorRight = false  -- drawer prerender controls position/width, not ISPanel auto-resize
     content:initialise()
     win:addChild(content)
     win._contentPanel = content
-    -- S94 B-nav: expose content panel to gamepad focus callbacks set earlier
+    -- Expose the content panel to the gamepad focus callbacks set earlier
     -- in toggle(). Closures look up `win._mainContent` at fire time, so it's
-    -- fine that this assignment happens after the focus context was pushed.
+    -- fine that this assignment happens after the ring was built.
     win._mainContent = content
 
-    -- Container strip — right edge, redesigned vertical layout
+    -- Container strip — right edge, a vertical list
     containerStrip = ZeD_Panel:new(T.px(TAB_STRIP_W) + T.px(win._baseInvW), bodyY, T.px(CONTAINER_STRIP_W), bodyH)
     containerStrip._zedLabel = "char container strip"   -- its own name in console.txt and safe mode's watchdog
     containerStrip.anchorRight = false
@@ -5584,7 +5584,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         win:addChild(win._equipDollLayer)
     end
 
-    -- ITEM.DRAWER overlay: added LAST so card renders on top of drawer + content
+    -- The item drawer overlay: added after these so the card renders on top of drawer + content
     win:addChild(itemDrawer)
 
     -- The tab hover hint: a click-through layer above everything (ZeD.Atoms.newHintLayer)
@@ -5619,7 +5619,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Main container toggle
         if zid == "main_toggle" then
             if win._activeTab == "loot" then
-                -- S106: always toggle MAIN (container idx 1), regardless of
+                -- Always toggle MAIN (container idx 1), regardless of
                 -- _activeContainer. Zone 1 is permanently pinned to main —
                 -- clicking it always controls main visibility in MC mode.
                 mcToggleContainer(win, content, 1)
@@ -5696,7 +5696,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if drag then
             if drag.active and drag.insertIdx then
                 -- Reorder: move in _containerOrder
-                -- Map list display indices back to order indices (skip active container)
+                -- Map list display indices back to order indices (the list leaves out main)
                 local order = win._containerOrder or {}
                 -- Find the order index of the dragged container
                 local srcOrderIdx, dstOrderIdx
@@ -5857,7 +5857,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     content._sortCol = "name"
     content._sortAsc = true
 
-    -- Column header Y offset — aligns with strip's WT row (below active container)
+    -- Column header Y offset — aligns with the strip's sort row (below the main container)
     content._hdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
     content._defaultHdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
 
@@ -5892,8 +5892,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if vl and vl:getIsVisible() and not ZeD.Safe.on("windows") then vl:setVisible(false) end
 
         -- The card's item gone (eaten, dropped, moved to the world): the card closes, as a
-        -- deselect would. Checked every 10 frames (code audit Oct 17 2026: the card and its
-        -- live buttons outlived the item, since the drawer only updated on a new selection).
+        -- deselect would. Checked every 10 frames: the drawer only updates on a new
+        -- selection, so without this the card and its live buttons outlived the item.
         self._goneTick = (self._goneTick or 0) + 1
         if self._goneTick >= 10 then
             self._goneTick = 0
@@ -5912,8 +5912,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         -- Title bar stats: [heart] hp%  [pack] weight / max
         local inv = self._inventory
-        -- (the character's own load over their own max: the viewed bag's weight was read
-        -- here before; code audit Oct 17 2026)
+        -- (the character's own load over their own max, never the viewed bag's weight)
         local weight = round(self._playerObj:getInventory():getCapacityWeight(), 2)
         local maxWt = self._playerObj:getMaxWeight()
         local bd = self._playerObj:getBodyDamage()
@@ -5923,15 +5922,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
         elseif hp > 30 then  hpColor = T.warning
         else                  hpColor = T.danger
         end
-        -- Build title stats: skill | HP | weight (right-to-left rendering)
+        -- Build title stats: pins | HP | weight (right-to-left rendering)
         win.titleStats = {}
 
         -- the pins (ZeD_Pins: skills, the book read, liquids, what is left, condition; leftmost). The mark is the
-        -- pin's status, the words plain (Nov 4 2026: a skill near its next level was red, read as bad news)
+        -- pin's status, the words plain (a skill near its next level shown in red read as bad news)
         win._pinnedSkills = ZeD.Pins.skillNames(self._playerObj)
         local pinStats = ZeD.Pins.stats(self._playerObj)
         for _, st in ipairs(pinStats) do win.titleStats[#win.titleStats + 1] = st end
-        -- (the character's name gives way while pins show, the director, Nov 4 2026: the tab says whose it is)
+        -- (the character's name gives way while pins show: the tab says whose it is)
         win._hideTitle = #pinStats > 0
 
         -- HP (middle): its status square in the health colour

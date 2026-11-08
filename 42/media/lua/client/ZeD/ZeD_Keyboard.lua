@@ -15,7 +15,9 @@
 -- of the screen with its own line showing the field's text.
 --
 -- OnScreenKeyboard (vanilla's API: Show, IsVisible, Hide, GetCurrentText and
--- .instance) is pointed at this one by Overrides/Prompts.lua.
+-- .instance) is pointed at this one by Overrides/Prompts.lua; in safe mode the
+-- game's own keyboard shows instead. It holds the controller itself, not
+-- through ZeD's FocusManager.
 -- ============================================================================
 
 require "ISUI/ISTextEntryBox"
