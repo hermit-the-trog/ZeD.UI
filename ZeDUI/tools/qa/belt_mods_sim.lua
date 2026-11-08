@@ -18,6 +18,10 @@
 --            mod sets for a frame is not undone by the belt, and the belt is home again between frames; the split
 --            (Nov 7 2026, the director: the slots only): the strap, buckle and slots through the mod's stand-in where it
 --            slid them, the hands and the Messages note on the real element at home, and without the split all of it
+--   MSB      Minimal Sidebar: the belt's fade (ZeD.Belt.addAlpha) with the mod's rates and options: the strap, buckle and slots
+--            fade out until the pointer is within the margin, a hand that holds something stays and an empty one fades,
+--            Animation Speed scales both, Enable Mod off draws the belt as it is, the controller, a drag and a menu keep it
+--            shown; the stand-in for the Java element scales every draw's alpha and is never left on
 --   BIT      Better Item Transfer: the mod's lazy first options read, which put ZeD's menu style back to the file's
 --            value on the first right-click, happens at game start after the options are written, so a style set in
 --            game holds on the next menu (the bug reproduced first without the file)
@@ -333,7 +337,7 @@ local function stubAHB()
 end
 
 -- a fresh game: the belt from this source, then the ModSupport files (each returns at once unless its mod is on)
-local SUPPORT = { "AutoHideHotbar", "ItemConditionRestored", "MaskFilterIndicator", "BetterItemTransfer" }
+local SUPPORT = { "AutoHideHotbar", "ItemConditionRestored", "MaskFilterIndicator", "BetterItemTransfer", "MinimalSidebar" }
 local function boot(source, mods)
     newEnv()
     for _, m in ipairs(mods or {}) do env.mods[m] = true end
@@ -667,6 +671,219 @@ AutoHideHotbar = nil
 local okT = pcall(S.upkeep)
 check("AHB the mod's table gone: nothing breaks", okT)
 check("AHB no errors logged", #env.errors == 0, env.errors[1])
+
+-- ---------------------------------------------------------------------------
+section("MSB: Minimal Sidebar's fade on the belt")
+-- ---------------------------------------------------------------------------
+-- the mod's options as PZAPI.ModOptions keeps them (its own ids; a combo's value is the item's index)
+local msbOpts
+local function stubMSBOptions()
+    msbOpts = { EnableMinimalSidebar = true, ShowHeartOnPulse = false, AnimationSpeed = 2 }
+    PZAPI = { ModOptions = {} }
+    function PZAPI.ModOptions:getOptions(id)
+        if id ~= "MinimalSideBar" then return nil end
+        return { getOption = function(_, oid)
+            if msbOpts[oid] == nil then return nil end
+            return { getValue = function() return msbOpts[oid] end }
+        end }
+    end
+end
+-- the Java element the belt draws on: any Draw call is written down with its arguments
+local function fakeReal()
+    local r = { _x = 0, _y = 0, calls = {} }
+    function r:getX() return self._x end
+    function r:getY() return self._y end
+    function r:setX(v) self._x = v end
+    function r:setY(v) self._y = v end
+    return setmetatable(r, { __index = function(t, k)
+        if type(k) ~= "string" then return nil end
+        if k:sub(1, 4) ~= "Draw" then return function() end end
+        return function(self, ...) self.calls[#self.calls + 1] = { k, ... } end
+    end })
+end
+local msbSeen
+local function msbSpy()
+    local spied = {}
+    for _, name in ipairs({ "_drawBox", "_drawStrap", "_drawBuckle", "_drawLamp" }) do
+        local orig = ZeD_BeltHUD[name]
+        spied[name] = orig
+        ZeD_BeltHUD[name] = function(self, b, ...)
+            local j = rawget(self, "javaObject")
+            local a = j and rawget(j, "_a") or 1
+            msbSeen[#msbSeen + 1] = { what = (name == "_drawBox" and b and b.kind) or name, which = b and b.which, a = a }
+            return orig(self, b, ...)
+        end
+    end
+    return spied
+end
+local function msbUnspy(spied) for n, f in pairs(spied) do ZeD_BeltHUD[n] = f end end
+local function msbAlpha(what, which)
+    for _, s in ipairs(msbSeen) do
+        if s.what == what and (which == nil or s.which == which) then return s.a end
+    end
+    return nil
+end
+local function msbRun(n) for _ = 1, n do msbSeen = {}; frame() end end
+local function msbStage()
+    boot(NEW, { "MinimalSidebar" })
+    stubMSBOptions()
+    env.messages = 1
+    env.player.pri = item({ name = "Axe", class = "HandWeapon", cond = 2, condMax = 10 })
+    env.player.sec = nil
+    env.hotbar.attachedItems = { [1] = item({ name = "Knife", class = "HandWeapon", cond = 6, condMax = 10 }) }
+    local h = ZeD.Belt.getHUD()
+    h.javaObject = fakeReal()
+    return h
+end
+
+hud = msbStage()
+local MS = ZeD.ModSupport and ZeD.ModSupport.MinimalSidebar
+check("MSB the file answers with the mod on", type(MS) == "table")
+check("MSB the belt has one alpha provider", #ZeD.Belt._alphas == 1)
+local real0 = hud.javaObject
+local spied = msbSpy()
+-- the pointer far away: the strap, buckle and slots fade out; the held hand stays; the empty hand fades; the note stays
+env.mouseX, env.mouseY = -500, -500
+msbRun(1)
+check("MSB the first frame starts shown and begins to fade (1.0x: a tenth of the gap)", math.abs(msbAlpha("slot") - 0.9) < 0.001, msbAlpha("slot"))
+msbRun(120)
+check("MSB far pointer: the slots fade out", msbAlpha("slot") == 0, msbAlpha("slot"))
+check("MSB the strap and the buckle fade with them", msbAlpha("_drawStrap") == 0 and msbAlpha("_drawBuckle") == 0)
+check("MSB the hand that holds something stays", msbAlpha("hand", "p") == 1, msbAlpha("hand", "p"))
+check("MSB the empty hand fades", msbAlpha("hand", "s") == 0, msbAlpha("hand", "s"))
+check("MSB the Messages note stays", msbAlpha("_drawLamp") == 1, msbAlpha("_drawLamp"))
+check("MSB the belt's element is the real one after the drawing", hud.javaObject == real0)
+-- a faded part draws nothing through the stand-in; a half-faded one draws at half
+do
+    ZeD.Belt.fadeTo(hud, 0)
+    real0.calls = {}
+    hud.javaObject:DrawText("F", "x", 1, 2, 1, 1, 1, 1, 1)
+    check("MSB a part at 0 is not drawn", #real0.calls == 0)
+    ZeD.Belt.fadeTo(hud, 0.5)
+    hud.javaObject:DrawText("F", "x", 1, 2, 1, 1, 1, 1, 0.8)
+    hud.javaObject:DrawTextureScaledColor("t", 1, 2, 3, 4, 1, 1, 1, 1)
+    hud.javaObject:setStencilRect(1, 2, 3, 4)
+    local c1, c2 = real0.calls[1], real0.calls[2]
+    check("MSB half faded: the alpha last is halved", c1 and math.abs(c1[#c1] - 0.4) < 1e-9 and c2 and math.abs(c2[#c2] - 0.5) < 1e-9)
+    check("MSB the other calls pass through", #real0.calls == 2 or real0.calls[3] == nil)
+    ZeD.Belt.fadeTo(hud, nil)
+    check("MSB fadeTo(nil) puts the real element back", hud.javaObject == real0)
+end
+-- the pointer on the belt (and within the margin): everything comes back
+env.mouseX, env.mouseY = hud._x + hud._w / 2, hud._y + hud._h / 2
+msbRun(120)
+check("MSB pointer on the belt: the slots are back", msbAlpha("slot") == 1, msbAlpha("slot"))
+check("MSB the empty hand is back too (it follows the fade)", msbAlpha("hand", "s") == 1)
+env.mouseX, env.mouseY = hud._x + hud._w + 30, hud._y + hud._h / 2
+msbRun(120)
+check("MSB pointer inside the margin (30 of 50): still shown", msbAlpha("slot") == 1, msbAlpha("slot"))
+env.mouseX = hud._x + hud._w + 80
+msbRun(120)
+check("MSB pointer past the margin: faded", msbAlpha("slot") == 0, msbAlpha("slot"))
+env.mouseX, env.mouseY = hud._x + hud._w / 2, hud._y - 30
+msbRun(120)
+check("MSB 30 above the belt: shown", msbAlpha("slot") == 1)
+-- in use: the controller, a drag off the belt, a menu open while it shows
+env.mouseX, env.mouseY = -500, -500
+hud._gp = { idx = 1, inList = false, row = 1, list = {} }
+msbRun(120)
+check("MSB the controller on the belt keeps it shown", msbAlpha("slot") == 1, msbAlpha("slot"))
+hud._gp = nil
+msbRun(120)
+check("MSB the controller off: it fades again", msbAlpha("slot") == 0)
+hud._out = { active = true }
+msbRun(120)
+check("MSB a slot dragged off the belt keeps it shown", msbAlpha("slot") == 1)
+hud._out = nil
+msbRun(120)
+env.ctx.visible = true
+msbRun(30)
+check("MSB a menu open while it is hidden does not show it", msbAlpha("slot") == 0)
+env.mouseX, env.mouseY = hud._x + hud._w / 2, hud._y + hud._h / 2
+msbRun(120)
+env.mouseX, env.mouseY = -500, -500
+msbRun(30)
+check("MSB a menu open while it shows keeps it", msbAlpha("slot") == 1)
+env.ctx.visible = false
+msbRun(120)
+check("MSB the menu shut: it fades", msbAlpha("slot") == 0)
+-- the hand: a hand that is filled comes back by itself, an emptied one fades
+env.player.sec = item({ name = "Pot", condMax = 10, cond = 9, fluidRatio = 0.3 })
+msbRun(120)
+check("MSB a hand that now holds something comes back with the pointer far", msbAlpha("hand", "s") == 1, msbAlpha("hand", "s"))
+env.player.pri, env.player.sec = nil, nil
+msbRun(120)
+check("MSB both hands emptied: both fade", msbAlpha("hand", "p") == 0 and msbAlpha("hand", "s") == 0)
+env.player.pri = item({ name = "Axe", class = "HandWeapon", cond = 2, condMax = 10 })
+-- Animation Speed: the combo's index into 0.5x..5x; the hand fades at 0.15 times it
+env.mouseX, env.mouseY = hud._x + hud._w / 2, hud._y + hud._h / 2
+msbRun(120)
+for _, c in ipairs({ { 1, 0.95 }, { 2, 0.9 }, { 4, 0.8 }, { 10, 0.5 } }) do
+    msbOpts.AnimationSpeed = c[1]
+    env.mouseX, env.mouseY = hud._x + hud._w / 2, hud._y + hud._h / 2
+    msbRun(120)
+    env.mouseX, env.mouseY = -500, -500
+    msbRun(1)
+    check("MSB Animation Speed item " .. c[1] .. ": one frame of fading leaves " .. c[2], math.abs(msbAlpha("slot") - c[2]) < 0.001, msbAlpha("slot"))
+end
+msbOpts.AnimationSpeed = 2
+env.mouseX, env.mouseY = hud._x + hud._w / 2, hud._y + hud._h / 2
+msbRun(120)
+check("MSB speed as a string ('2.5x') reads the number", (function() msbOpts.AnimationSpeed = "2.5x"; return MS.speed() end)() == 2.5)
+msbOpts.AnimationSpeed = 2
+env.player.sec = item({ name = "Pot", condMax = 10, cond = 9, fluidRatio = 0.3 })
+msbRun(120)
+env.player.sec = nil
+env.mouseX, env.mouseY = -500, -500
+msbRun(1)
+check("MSB an emptied hand's own fade runs at 0.15 of the gap (1.0x), the slots' at 0.1", math.abs(MS.state[0].off - 0.85) < 0.001 and math.abs(MS.state[0].fade - 0.9) < 0.001, MS.state[0].off)
+-- Enable Mod off: nothing is faded, the element is never swapped
+msbOpts.EnableMinimalSidebar = false
+msbRun(5)
+check("MSB Enable Mod off: every part as it is", msbAlpha("slot") == 1 and msbAlpha("_drawStrap") == 1 and msbAlpha("hand", "s") == 1)
+check("MSB Enable Mod off: the real element throughout", hud.javaObject == real0)
+msbOpts.EnableMinimalSidebar = true
+msbRun(120)
+check("MSB Enable Mod on again: it fades", msbAlpha("slot") == 0)
+-- no options table at all (the mod's options not made yet): the mod's defaults, on at 1.0x
+PZAPI = nil
+check("MSB no options: on, 1.0x", MS.enabled() == true and MS.speed() == 1)
+stubMSBOptions()
+-- a mod's split holds the drawing: no fade that frame
+do
+    local sreal = hud.javaObject
+    ZeD.Belt.addSplit("msbtest", function() return sreal end)
+    sreal._x, sreal._y = hud._homeX or 0, hud._homeY or 0
+    msbRun(1)
+    check("MSB while another mod splits the drawing the fade stands aside", msbAlpha("slot") == 1 and msbAlpha("_drawStrap") == 1)
+    ZeD.Belt._splits = {}
+end
+-- a frame that threw leaves the stand-in on; the next frame starts with the real element
+ZeD.Belt.fadeTo(hud, 0.3)
+check("MSB (setup) the stand-in is on", hud.javaObject ~= real0)
+msbRun(1)
+check("MSB the next frame puts the real element back", hud.javaObject == real0)
+-- safe mode: the belt is not drawn (wanted), nothing of the fade is left on it
+-- the provider that throws is skipped; the belt's drawing goes on
+ZeD.Belt.addAlpha("boom", { alpha = function() error("boom") end, frame = function() error("boom") end })
+msbRun(1)
+check("MSB a provider that throws is skipped", #msbSeen > 5 and #env.errors == 0)
+ZeD.Belt._alphas = {}
+-- the proof can fail: with no provider the belt's parts are never faded
+msbRun(1)
+check("MSB no provider: no fade", msbAlpha("slot") == 1)
+check("MSB no errors logged", #env.errors == 0, env.errors[1])
+-- the real mod's file as the game has it: its options as the mod reads them, the numbers the mod's source holds
+do
+    local fh = io.open("C:/steamcmd/steamapps/workshop/content/108600/3642084851/mods/MinimalSidebar/common/media/lua/client/MinimalSideBar.lua", "rb")
+    local src = fh and fh:read("*a") or nil
+    if fh then fh:close() end
+    if src then check("MSB the mod's source has our rates (0.1, 0.15, margin 50, ids)", src:find("a,b,c,d,e,f,g,h,i,j=0.1,0.15,0,1,50", 1, true) ~= nil
+        and src:find("'EnableMinimalSidebar'", 1, true) ~= nil and src:find("'AnimationSpeed'", 1, true) ~= nil
+        and src:find("PZAPI.ModOptions:create('MinimalSideBar'", 1, true) ~= nil) end
+end
+msbUnspy(spied)
+env.messages = 0
 
 -- ---------------------------------------------------------------------------
 section("BIT: Better Item Transfer's first options read")
