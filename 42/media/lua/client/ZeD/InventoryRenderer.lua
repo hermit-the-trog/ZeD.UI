@@ -3,9 +3,11 @@
 -- INVENTORY RENDERER — shared module consumed by CharacterWindow + WorldWindow.
 -- Extracted from TestInventory.lua.
 --
--- 11 exports: renderItemList, renderMultiColumnContent, makeSorter, SORT_COLS,
--- countSelected, findIndex, collectSelectedItems, handleDrop, buildContainers,
--- rebuildColStates, toggleContainer
+-- 43 exports. The core 12: renderItemList, renderMultiColumnContent, makeSorter,
+-- SORT_COLS, countSelected, findIndex, collectSelectedItems, handleDrop,
+-- buildContainers, rebuildColStates, toggleContainer, dirtyModels (every list
+-- model rebuilds on its next draw). The rest are the pad, grid, category and
+-- column helpers the two windows call.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -1094,7 +1096,7 @@ end
 -- ============================================================================
 
 local MODEL_REFRESH_MS = 1000   -- the time-based rebuild, ms (each column on its own phase)
-local MODEL_EVENT_MS   = 200    -- an event's rebuild comes at most this long after the last build (a storm of events)
+local MODEL_EVENT_MS   = 500    -- an event's rebuild comes at most this long after the last build (a storm of events)
 local _modelGen, _modelPhases = 0, 0
 
 -- every list model rebuilds on its next draw: a container's things changed

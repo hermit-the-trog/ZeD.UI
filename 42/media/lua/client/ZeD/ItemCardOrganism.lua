@@ -697,8 +697,8 @@ end
 -- pcalls, translations and tables a frame while a card shows. The card keeps
 -- them for MODEL_MS, and builds them again at once when anything they show
 -- changes: another item, player or source (worn or held, in the inventory, in
--- a container, on the ground), the item moving container, its condition, its
--- uses, fluid or rounds, a bite eaten, food cooked, burnt or gone off, the
+-- a container, on the ground), the item moving container, its condition, the
+-- favorite mark, its uses, fluid (and a fluid container sealed or opened) or rounds, a bite eaten, food cooked, burnt or gone off, the
 -- pages read, a bag's contents, an action starting
 -- or ending (ItemActionManager.gen), a mark set (ActionStrip.gen), a loadout
 -- changed (Lists.gen) or the switch, a mod's facts panel registered
@@ -717,7 +717,8 @@ local MODEL_MS = 250
 local function liveProbe(item, m, out)
     out[1] = safeGet(item, "getContainer")
     out[2] = safeGet(item, "getCondition")
-    local n = 2
+    out[3] = safeGet(item, "isFavorite")   -- the favorite mark, toggled from the card or the list
+    local n = 3
     if m.pFood then
         -- a bite eaten, and the cooked / burnt / fresh / rotten rows (cooking, ageing)
         out[n + 1] = safeGet(item, "getHungerChange")
@@ -731,6 +732,8 @@ local function liveProbe(item, m, out)
     if m.pFluid then
         local fc = safeGet(item, "getFluidContainer")
         n = n + 1; out[n] = fc and safeGet(fc, "getAmount")
+        -- sealed or opened (InventoryItem.isSealed; read only for a fluid container)
+        n = n + 1; out[n] = safeGet(item, "isSealed")
     end
     if m.pAmmo then n = n + 1; out[n] = safeGet(item, "getCurrentAmmoCount") end
     if m.pRead then
