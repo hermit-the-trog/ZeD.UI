@@ -1625,10 +1625,43 @@ end
 -- Returns: AROW_H consumed.
 -- ============================================================================
 
-local function drawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus)
+-- A roster row's readings (Nov 7 2026, speed): the portrait, name, the three
+-- stats, the condition tags and the species line, read once per animal and kept
+-- for SORT_CACHE_MS (as the sort is), not every frame. Only the rows drawn are
+-- read. Widths are still measured as the row draws (they follow the font and scale).
+local function animalRowModel(zs, animal, player)
+    local now = getTimestampMs and getTimestampMs() or 0
+    local rm = zs._rowModels
+    if not rm or rm.player ~= player or now - rm.t >= SORT_CACHE_MS then
+        rm = { t = now, player = player, rows = {} }
+        zs._rowModels = rm
+    end
+    local m = rm.rows[animal]
+    if m then return m end
+    local ad = AD()
+    local atype = ad.getAnimalType(animal)
+    local species = getText("IGUI_AnimalType_" .. atype) or atype
+    local sex = ad.isFemale(animal) and getText("IGUI_Animal_Female") or getText("IGUI_Animal_Male")
+    if ad.isBaby(animal) then sex = getText("IGUI_Animal_Baby") end
+    local age = ad.getAgeText(animal, player)
+    local infoLine = species .. ", " .. sex
+    if age and age ~= "" then infoLine = infoLine .. " | " .. age end
+    m = {
+        tex    = getTexture(ad.resolvePortrait(animal)),
+        name   = ad.getDisplayName(animal),
+        health = ad.getHealth(animal),
+        hunger = ad.getHunger(animal),
+        thirst = ad.getThirst(animal),
+        tags   = ad.getConditionTags(animal, player),
+        info   = infoLine,
+    }
+    rm.rows[animal] = m
+    return m
+end
+
+local function drawAnimalRow(panel, x, y, w, m, hovered, onFocus)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local ad = AD()
     local tm = ZeD.TM
     local rowH = T.px(AROW_H)
     local ink = onFocus and T.textOnFocus or T.text
@@ -1641,8 +1674,7 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus)
     end
 
     -- Portrait icon (32px, vertically centered)
-    local portraitPath = ad.resolvePortrait(animal)
-    local tex = getTexture(portraitPath)
+    local tex = m.tex
     local iconY = y + math.floor((rowH - T.px(AROW_ICON_SZ)) / 2)
     if tex then
         panel:drawTextureScaledAspect(tex, x + T.px(AROW_PAD), iconY, T.px(AROW_ICON_SZ), T.px(AROW_ICON_SZ), 0.9, 1, 1, 1)
@@ -1654,7 +1686,7 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus)
 
     -- Name
     local nameFont = T.fontF2
-    local name = ad.getDisplayName(animal)
+    local name = m.name
     panel:drawText(name, textX, topY, ink.r, ink.g, ink.b, ink.a or 1, nameFont)
     local nameW = tm:MeasureStringX(nameFont, name)
 
@@ -1663,22 +1695,22 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus)
     local dotY = topY + math.floor((tm:getFontHeight(nameFont) - T.px(AROW_DOT_SZ)) / 2)
 
     -- Health: high = good (green), low = bad (red)
-    local health = ad.getHealth(animal)
+    local health = m.health
     A.drawStatusDot(panel, dotX, dotY, dotColorForValue(T, health), T.px(AROW_DOT_SZ))
     dotX = dotX + T.px(AROW_DOT_SZ) + T.px(AROW_DOT_GAP)
 
     -- Hunger: INVERTED — high value means MORE hungry (bad), low = fed (good)
-    local hunger = ad.getHunger(animal)
+    local hunger = m.hunger
     A.drawStatusDot(panel, dotX, dotY, dotColorForValue(T, 100 - hunger), T.px(AROW_DOT_SZ))
     dotX = dotX + T.px(AROW_DOT_SZ) + T.px(AROW_DOT_GAP)
 
     -- Thirst: INVERTED — high value means MORE thirsty (bad), low = hydrated (good)
-    local thirst = ad.getThirst(animal)
+    local thirst = m.thirst
     A.drawStatusDot(panel, dotX, dotY, dotColorForValue(T, 100 - thirst), T.px(AROW_DOT_SZ))
     dotX = dotX + T.px(AROW_DOT_SZ)
 
     -- Condition tags (right-aligned), as many as fit beside the name and squares
-    local tags = ad.getConditionTags(animal, player)
+    local tags = m.tags
     local tagX = x + w - T.px(AROW_PAD)
     local tagRowY = tagY(topY, tm:getFontHeight(nameFont))
     for i = #tags, 1, -1 do
@@ -1695,13 +1727,7 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus)
     local secFont = T.fontF5
 
     -- Species + sex + age
-    local atype = ad.getAnimalType(animal)
-    local species = getText("IGUI_AnimalType_" .. atype) or atype
-    local sex = ad.isFemale(animal) and getText("IGUI_Animal_Female") or getText("IGUI_Animal_Male")
-    if ad.isBaby(animal) then sex = getText("IGUI_Animal_Baby") end
-    local age = ad.getAgeText(animal, player)
-    local infoLine = species .. ", " .. sex
-    if age and age ~= "" then infoLine = infoLine .. " | " .. age end
+    local infoLine = m.info
 
     panel:drawText(infoLine, textX, botY, inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, secFont)
 
@@ -1887,7 +1913,34 @@ local function drawZoneStructs(panel, win, x, y, w, summary, player)
 end
 
 -- butcher hooks around you (scanned every two seconds)
+-- (Nov 7 2026, speed) The 41 x 41 walk used to run in one frame. The first scan
+-- still does (there is nothing to show before it); each later one walks
+-- HOOK_SCAN_ROWS rows a frame while the last list stays up, and the new list
+-- replaces it when the walk is done. Each hook's distance is read once before the
+-- sort, not in every comparison.
 local HOOK_SCAN_R = 20
+local HOOK_SCAN_ROWS = 6          -- rows of the walk a frame: 41 rows in 7 frames
+local HOOK_SWEEP_STALE_MS = 1000  -- a walk not stepped for this long (the view shut) starts over
+local function hookSweepRows(sw, rows)
+    local cell = getCell()
+    local last = math.min(sw.y + rows - 1, sw.cy + HOOK_SCAN_R)
+    local list = sw.list
+    for yy = sw.y, last do
+        for xx = sw.cx - HOOK_SCAN_R, sw.cx + HOOK_SCAN_R do
+            local sq = cell:getGridSquare(xx, yy, sw.z)
+            if sq then
+                local objs = sq:getObjects()
+                for i = 0, objs:size() - 1 do
+                    local o = objs:get(i)
+                    if instanceof(o, "IsoButcherHook") then list[#list + 1] = o end
+                end
+            end
+        end
+    end
+    sw.y = last + 1
+    return sw.y > sw.cy + HOOK_SCAN_R
+end
+
 local function hooksNear(win, player)
     local now = getTimestampMs()
     local c = win._animalsHookScan
@@ -1895,24 +1948,27 @@ local function hooksNear(win, player)
     local list = {}
     local sq0 = player and player:getCurrentSquare()
     if sq0 then
-        local cell = getCell()
-        for yy = sq0:getY() - HOOK_SCAN_R, sq0:getY() + HOOK_SCAN_R do
-            for xx = sq0:getX() - HOOK_SCAN_R, sq0:getX() + HOOK_SCAN_R do
-                local sq = cell:getGridSquare(xx, yy, sq0:getZ())
-                if sq then
-                    local objs = sq:getObjects()
-                    for i = 0, objs:size() - 1 do
-                        local o = objs:get(i)
-                        if instanceof(o, "IsoButcherHook") then list[#list + 1] = o end
-                    end
-                end
-            end
+        local sw = win._animalsHookSweep
+        if not sw or sw.z ~= sq0:getZ() or now - sw.tStep > HOOK_SWEEP_STALE_MS then
+            sw = { cx = sq0:getX(), cy = sq0:getY(), z = sq0:getZ(), y = sq0:getY() - HOOK_SCAN_R, list = {} }
+            win._animalsHookSweep = sw
         end
+        sw.tStep = now
+        if not hookSweepRows(sw, c and HOOK_SCAN_ROWS or (HOOK_SCAN_R * 2 + 1)) then return c.list end
+        list = sw.list
     end
-    -- nearest first
+    win._animalsHookSweep = nil
+    -- nearest first (a hook taken down while the walk ran drops out)
     if player then
-        local function d2(o) local s = o:getSquare(); return (s:getX() - player:getX()) ^ 2 + (s:getY() - player:getY()) ^ 2 end
-        table.sort(list, function(a, b) return d2(a) < d2(b) end)
+        local px, py = player:getX(), player:getY()
+        local keyed = {}
+        for _, o in ipairs(list) do
+            local s = o:getSquare()
+            if s then keyed[#keyed + 1] = { o = o, d = (s:getX() - px) ^ 2 + (s:getY() - py) ^ 2 } end
+        end
+        table.sort(keyed, function(a, b) return a.d < b.d end)
+        list = {}
+        for i = 1, #keyed do list[i] = keyed[i].o end
     end
     win._animalsHookScan = { t = now, list = list }
     return list
@@ -2113,6 +2169,50 @@ end
 -- button + scrollable animal roster rows.
 -- ============================================================================
 
+-- The zone lit on the ground while its view shows (Nov 7 2026, speed). The view
+-- used to look the zone up (a walk over every zone) and light it every frame. Now
+-- the zone is looked up when the view's zone changes and then at most every
+-- SORT_CACHE_MS, and lit again only when its id changed or anything else (the
+-- game's zone windows and context menu, ZeD's Back and zone create) has turned the
+-- highlight off or changed it: the ground shows what it showed before. (One
+-- difference: a zone remade under the same name is lit within SORT_CACHE_MS, not
+-- the same frame; the view steps back when its zone goes, so it is not met.)
+local function zoneLit(player, id)
+    if not player:isSeeDesignationZone() then return false end
+    local sel = player:getSelectedZonesForHighlight()
+    return sel ~= nil and sel:size() == 1 and sel:get(0) == id
+end
+
+local function lightZone(player, id)
+    player:setSeeDesignationZone(true)
+    player:resetSelectedZonesForHighlight()
+    player:addSelectedZoneForHighlight(id)
+end
+
+local function highlightZone(win, player, zoneName)
+    if not player then return end
+    local now = getTimestampMs and getTimestampMs() or 0
+    local h = win._animalsZoneLit
+    local same = h ~= nil and h.player == player and h.name == zoneName
+    if same and now - h.t < SORT_CACHE_MS then
+        if zoneLit(player, h.id) then return end
+        -- turned off: light it again, the zone checked as the lookup would
+        local z = h.zone
+        if z:isStillStreamed() and z:getName() == zoneName then
+            lightZone(player, h.id)
+            return
+        end
+    end
+    local zoneObj = getZoneByName(zoneName)
+    if not zoneObj then
+        win._animalsZoneLit = nil
+        return
+    end
+    local id = zoneObj:getId()
+    if not (same and h.id == id and zoneLit(player, id)) then lightZone(player, id) end
+    win._animalsZoneLit = { player = player, name = zoneName, zone = zoneObj, id = id, t = now }
+end
+
 local function renderRanchZone(panel, win, x, y, w, h)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -2127,12 +2227,7 @@ local function renderRanchZone(panel, win, x, y, w, h)
 
     -- Highlight this zone on the ground
     local player = getSpecificPlayer(0)
-    local zoneObj = getZoneByName(state.zoneName)
-    if player and zoneObj then
-        player:setSeeDesignationZone(true)
-        player:resetSelectedZonesForHighlight()
-        player:addSelectedZoneForHighlight(zoneObj:getId())
-    end
+    highlightZone(win, player, state.zoneName)
 
     local summary = state.zoneName and ap.getZoneSummary(state.zoneName)
     if not summary then
@@ -2242,7 +2337,7 @@ local function renderRanchZone(panel, win, x, y, w, h)
             if animal == gpFocusAnimal then
                 onFocus = ZeD.Focus.mark(panel, x + pad, rowY, contentW - pad * 2, T.px(AROW_H), focusOpts(win))
             end
-            drawAnimalRow(panel, x + pad, rowY, contentW - pad * 2, animal, player, isHovered, onFocus)
+            drawAnimalRow(panel, x + pad, rowY, contentW - pad * 2, animalRowModel(zs, animal, player), isHovered, onFocus)
             table.insert(win._animalsRosterZones, {
                 x = x, y = rowY, w = contentW, h = T.px(AROW_H), animal = animal
             })

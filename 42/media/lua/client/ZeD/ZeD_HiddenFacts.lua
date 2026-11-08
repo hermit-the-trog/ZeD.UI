@@ -63,12 +63,12 @@ F.player = player
 -- the title ItemCodeOnCreate.onCreateTVMagazine gives the issue)
 local function readLiterature(p, prefix)
     local ok, found = pcall(function()
-        local it = p:getReadLiterature():keySet():iterator()
-        while it:hasNext() do
-            local key = tostring(it:next())
-            if key:sub(1, #prefix) == prefix then return true end
-        end
-        return false
+        -- 42.21: a Java HashMap; Kahlua cannot call keySet() or iterator() on it, nor pairs() it. tostring(map) works
+        -- and reads "[key=n, key=n]", so the key is found in that text.
+        local map = p:getReadLiterature()
+        if not map or map:isEmpty() then return false end
+        local text = tostring(map)
+        return (text:find("[" .. prefix, 1, true) or text:find(", " .. prefix, 1, true)) and true or false
     end)
     return ok and found or false
 end
@@ -283,16 +283,51 @@ local function teaches(bc)
 end
 
 F.DAYS = 7
+-- the first daysSinceStart of this world, in minutes: the radio's daysSinceStart now less the nights survived (the
+-- start month's offset, 0 for the default July start)
+function F.startOffset()
+    local ok, v = pcall(function()
+        return (getZomboidRadio():getDaysSinceStart() - GameTime.getInstance():getNightsSurvived()) * 1440
+    end)
+    if ok and type(v) == "number" and v > 0 then return v end
+    return 0
+end
 -- one TV channel's shows that teach, into out; true when the channel had a script to read
 local function channelShows(ch, now, today, days, out)
-    local sc = ch:IsTv() and ch:getCurrentScript()
+    if not ch:IsTv() then return false end
+    -- 42.21: RadioScriptManager.Load clears every channel's active script and only a RADIO_SAVE.txt line sets it again,
+    -- so on a save without one (or one that says "none") getCurrentScript is nil on every channel although the
+    -- channel still holds its scripts. Each channel's own "main" script (RadioData.xml startscript, keyed by name in
+    -- the channel) is the daily programme, so that one is read when nothing is active.
+    -- The stamps (zombie.radio.scripting, javap and bytecode, 42.21): all in MINUTES. RadioScript.setStartDayStamp(day)
+    -- keeps startDayStamp = day * 1440, and RadioScript.UpdateScript(now) works on now - startDayStamp, compared with
+    -- each broadcast's start and end stamp. So a broadcast airs at startDayStamp + its stamp, where its stamp is
+    -- (RadioData.xml "day" * 1440 + minute of the day) from the SCRIPT'S start, and "now" (getCurrentTimeStamp) is
+    -- ZomboidRadio's daysSinceStart * 1440 + hour * 60 + minute, daysSinceStart being the start month's offset
+    -- (months * 30.5) plus the nights survived. A script lasts as long as its last broadcast ("main" about 28 days,
+    -- loops 1) and then, with no exit option, the channel goes dark. RadioData sets every script to start at day 0
+    -- when it is read; ZomboidRadio starts the channels at daysSinceStart when the world begins.
+    local sc = ch:getCurrentScript()
+    local dormant = false
+    if not sc and ch.getRadioScript then sc = ch:getRadioScript("main"); dormant = sc ~= nil end
     if not sc then return false end
     local base = sc:getStartDayStamp()
+    -- (a script never started in this run is still at RadioData's day 0: the channels start at the world's first
+    -- daysSinceStart, the start month's offset, so that is where it airs from)
+    if dormant and base == 0 then base = F.startOffset() end
     local bl = sc:getBroadcastList()
+    local stat = F.stat
+    if stat then stat.channels = stat.channels + 1; if dormant then stat.dormant = stat.dormant + 1 end end
     for j = 0, bl:size() - 1 do
         local bc = bl:get(j)
         local st, en = base + bc:getStartStamp(), base + bc:getEndStamp()
+        if stat then
+            stat.broadcasts = stat.broadcasts + 1
+            if stat.first == nil or st < stat.first then stat.first = st end
+            if stat.last == nil or en > stat.last then stat.last = en end
+        end
         if en > now and st < (today + days) * 1440 then
+            if stat then stat.inWindow = stat.inWindow + 1 end
             local what = teaches(bc)
             if what ~= "" then
                 local d = math.floor(st / 1440)
@@ -309,6 +344,8 @@ end
 function F.schedule(days)
     days = days or F.DAYS
     local out, read = {}, 0
+    -- (what the last read saw, for QA: zedqa_b8_tvstamps.lua prints it)
+    F.stat = { channels = 0, dormant = 0, broadcasts = 0, inWindow = 0 }
     local ok = pcall(function()
         local sm = getZomboidRadio():getScriptManager()
         local now = sm:getCurrentTimeStamp()

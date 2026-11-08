@@ -31,11 +31,12 @@ local ST = ZeD.Stations
 
 ST.REACH      = 4     -- tiles: vanilla's station windows close past 4
 ST.OVEN_REACH = 3     -- tiles: vanilla's oven / microwave panel closes past 3
-ST.SCAN_EVERY = 30    -- frames between nearby scans while a station view draws
+ST.SCAN_MS    = 1000  -- ms between nearby scans while a station view draws (was 30 frames), and on a square change
+ST.SCAN_GAP_MS = 250  -- the least ms between scans on square changes
 ST.gen        = ST.gen or 0   -- bumped on every bind / unbind; views reset on change
 
 local _bind = {}      -- [playerNum] = bound station (nil = Hand)
-local _scan = {}      -- [playerNum] = { t = frames since scan, list = stations }
+local _scan = {}      -- [playerNum] = { at = ms of the scan, sq = the player's square then, list = stations }
 
 -- ----------------------------------------------------------------------------
 -- Safe Java calls. Indexing a Java object by method name yields the method (or
@@ -246,15 +247,22 @@ function ST.scan(player)
     return out
 end
 
---- Throttled scan, cached per player. Lazily built fields (icon, recipe set)
---- carry over to the fresh entries for stations that are still there.
+-- Throttled scan, cached per player: about once a second, and at once when the
+-- player stands on another square (Nov 7 2026, the outside performance review,
+-- item 13). Lazily built fields (icon, recipe set) carry over to the fresh
+-- entries for stations that are still there.
 function ST.nearby(player, force)
     if not player then return {} end
     local pn = player:getPlayerNum()
     local c = _scan[pn]
-    if c and not force and c.t < ST.SCAN_EVERY then
-        c.t = c.t + 1
-        return c.list
+    local now = getTimestampMs()
+    local sq = player:getCurrentSquare()
+    if c and not force then
+        local age = now - c.at
+        -- (a new square rescans, but no sooner than SCAN_GAP_MS after the last: a sprint crosses 3-7 a second)
+        if age < ST.SCAN_MS and (c.sq == sq or age < ST.SCAN_GAP_MS) then
+            return c.list
+        end
     end
     local list = ST.scan(player)
     if c then
@@ -265,7 +273,7 @@ function ST.nearby(player, force)
             if o then e.recipeSet = o.recipeSet; e.icon = o.icon end
         end
     end
-    _scan[pn] = { t = 0, list = list }
+    _scan[pn] = { at = now, sq = sq, list = list }
     return list
 end
 
@@ -471,10 +479,11 @@ end
 
 -- Release the lock whenever the World window is gone, and keep bindings valid
 -- while the player moves around with the Craft tab hidden.
-local _tick = 0
+local _wdAt = nil   -- (ms of the last check: every 250 ms, was every 15th tick)
 local function watchdog()
-    _tick = _tick + 1
-    if _tick % 15 ~= 0 then return end
+    local now = getTimestampMs()
+    if _wdAt and now - _wdAt < 250 then return end
+    _wdAt = now
     local open = ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen()
     for pn, _ in pairs(_bind) do
         local p = getSpecificPlayer(pn)

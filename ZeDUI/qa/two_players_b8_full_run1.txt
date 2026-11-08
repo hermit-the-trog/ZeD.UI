@@ -1,0 +1,611 @@
+== 2026-11-08 02:34 beta 8 multiplayer checks, two players, the admin at 1280x800
+02:34:38 set PlayerSafehouse=true
+02:34:38 set AdminSafehouse=true
+02:34:38 set DoLuaChecksum=false
+02:34:38 set SafehouseAllowNonResidential=true
+02:34:38 set FactionDaySurvivedToCreate=0
+02:34:38 started the server, PID 94052; waiting for it to be ready
+02:35:10 ready after 32 s
+02:35:10 server up
+02:36:17 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
+02:37:02 second client joining as bob
+02:37:24 -- bob runs mp_p2_newchar.lua
+02:39:25 TIMEOUT
+02:39:42 bob in game
+02:39:48 -- admin runs zedqa_b8_mp_stage.lua
+02:40:04 ZEDQA b8st PASS this is a multiplayer client
+02:40:04 ZEDQA b8st NOTE the admin is zedqa, First Aid level 0
+02:40:04 ZEDQA b8st PASS the server's items arrived on the admin client
+02:40:04 ZEDQA b8st PASS an apple
+02:40:04 ZEDQA b8st PASS nails (5)
+02:40:04 ZEDQA b8st PASS pencils for the 20-item limit (22)
+02:40:04 ZEDQA b8st PASS the watch is marked favorite
+02:40:04 ZEDQA b8st PASS the jacket is worn
+02:40:04 ZEDQA b8st PASS the knife is in hand
+02:40:04 ZEDQA b8st PASS a bandage sits in the backpack (2)
+02:40:04 ZEDQA b8st PASS a bandage sits in the main inventory (2)
+02:40:04 ZEDQA b8st PASS bob is on the server
+02:40:04 ZEDQA b8st PASS bob stands within 3 tiles of the admin (0.0)
+02:40:04 ZEDQA b8st 12 passed, 0 failed
+02:40:04 ZEDQA b8st DONE
+02:40:04 -- bob starts zedqa_b8_mp_bob_trade.lua in the background
+02:40:13 -- admin runs zedqa_b8_mp_trade.lua
+02:41:31 ZEDQA b8tr PASS bob is on the server
+02:41:31 ZEDQA b8tr PASS ZeD's trade can open (World window is ZeD's, not safe mode)
+02:41:31 ZEDQA b8tr PASS 1: Trade with bob opened ZeD's trade card
+02:41:31 ZEDQA b8tr PASS 1: the card is in the World window's drawer
+02:41:31 ZEDQA b8tr PASS 1: the red box waits for bob's answer (Waiting for bob's answer.)
+02:41:31 ZEDQA b8tr PASS 1: Accept deal is grayed (Waiting for bob's answer.)
+02:41:31 ZEDQA b8tr PASS 1: the game's guard is up (no inventory context menu while trading)
+02:41:31 ZEDQA b8tr PASS 2: bob said Yes; the waiting box is gone
+02:41:31 ZEDQA b8tr NOTE groups: Apple (Fresh):2, Bandage:2, Digital Watch:1, Hunting Knife:1, ID Card: Bette Shah:1, Leather Jacket:1, Nails:10, Pencil:20, Rag:2, Small Backpack:1, Bette Shah's Key Ring:1
+02:41:31 ZEDQA b8tr PASS 3: the apple is listed
+02:41:31 ZEDQA b8tr PASS 3: nails are listed
+02:41:31 ZEDQA b8tr FAIL 3: the ripped sheets are listed
+02:41:31 ZEDQA b8tr FAIL 3: worn, held and favorite things are not listed
+02:41:31 ZEDQA b8tr PASS 3: only the main inventory's bandage is listed, not the backpack's (2)
+02:41:31 ZEDQA b8tr PASS 4: the apple goes on the offer
+02:41:31 ZEDQA b8tr PASS 4: the apple and the nails are on the offer (11)
+02:41:31 ZEDQA b8tr PASS 5: the offer holds exactly 20 items (20)
+02:41:31 ZEDQA b8tr PASS 5: the 21st Add is refused
+02:41:31 ZEDQA b8tr PASS 5: the card says why (Can't add more than 20 items to an offer.)
+02:41:31 ZEDQA b8tr PASS 5: an offered thing moved into the backpack comes off the offer (19)
+02:41:31 ZEDQA b8tr FAIL 5: the offer is back to the apple and the nails (11)
+02:41:31 ZEDQA b8tr PASS 6: Seal offer is ticked
+02:41:31 ZEDQA b8tr PASS 6: Accept deal stays grayed until both are sealed (Both offers must be sealed before the trade can be accepted.)
+02:41:31 ZEDQA b8tr PASS 7: bob's added item unsealed the admin's offer
+02:41:31 ZEDQA b8tr PASS 7: the log lists bob's add (bob added Diet Cola (Pop Can) to their offer.)
+02:41:31 ZEDQA b8tr PASS 8: both offers are sealed
+02:41:31 ZEDQA b8tr PASS 8: Accept deal is lit
+02:41:31 ZEDQA b8tr PASS 8: Accept deal closes the card
+02:41:31 ZEDQA b8tr FAIL 8: the items swapped in the admin's inventory (the server moved them) (apple 2->1, nails 10->0, pop 0->1)
+02:41:31 ZEDQA b8tr PASS 8: the guard is down after the deal
+02:41:31 ZEDQA b8tr PASS 9: the second trade opened and bob answered
+02:41:31 ZEDQA b8tr PASS 9: 'Too far away from bob!' once 4 tiles apart (Too far away from bob!)
+02:41:31 ZEDQA b8tr PASS 9: every control but Close is grayed (Accept deal is)
+02:41:31 ZEDQA b8tr PASS 9: the far box clears when the admin walks back
+02:41:31 ZEDQA b8tr PASS 11: after the Loot tab the trade card is back at once
+02:41:31 ZEDQA b8tr PASS 11: with the World window shut the trade is still open (bob is not told)
+02:41:31 ZEDQA b8tr PASS 11: opening the window again shows the trade card
+02:41:31 ZEDQA b8tr MANUAL 11: an item card over the trade, a generator's Info card over it, and a shut window opening by itself when bob adds an item
+02:41:31 ZEDQA b8tr PASS 10: Cancel closes the card
+02:41:31 ZEDQA b8tr PASS 12: bob said No: 'bob refused to trade with you.' (bob refused to trade with you.)
+02:41:31 ZEDQA b8tr PASS 12: the guard let go at once
+02:41:31 ZEDQA b8tr PASS 13: the admin closes the card before bob answers
+02:41:31 ZEDQA b8tr PASS 15: the fifth trade opened and bob answered
+02:41:31 ZEDQA b8tr PASS 15: safe mode on ends the ZeD trade as Cancel
+02:41:31 ZEDQA b8tr PASS 15: the admin can right-click and move items at once
+02:41:31 ZEDQA b8tr MANUAL 14: Safe mode on, then Trade with bob: the game's own trading window on both sides
+02:41:31 ZEDQA b8tr MANUAL 16: bob's Cancel is read on bob's client (b8bt prints it)
+02:41:31 ZEDQA b8tr MANUAL controller pass, 4K 1.75x and Deck pictures: look at zqa_b8_trade_*.png
+02:41:31 ZEDQA b8tr 39 passed, 4 failed
+02:41:32 ZEDQA b8tr DONE
+02:41:50 ZEDQA b8bt NOTE request 1 from zedqa: yes
+02:41:50 ZEDQA b8bt PASS bob's prompt names the admin (request 1)
+02:41:50 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block nil
+02:41:50 ZEDQA b8bt PASS 2: bob's card has no waiting box
+02:41:50 ZEDQA b8bt PASS 2: bob's World window opened on the trade card
+02:41:50 ZEDQA b8bt NOTE bob's card: his 11 your 0 sealed false otherSealed false block nil
+02:41:50 ZEDQA b8bt PASS 4: the admin's offer shows on bob's card, read only (11)
+02:41:50 ZEDQA b8bt PASS 4: the line and the Trade Log say what was added (zedqa added Nails to their offer.)
+02:41:50 ZEDQA b8bt NOTE bob's card: his 19 your 0 sealed false otherSealed false block nil
+02:41:50 ZEDQA b8bt NOTE bob's card: his 11 your 0 sealed false otherSealed false block nil
+02:41:50 ZEDQA b8bt NOTE bob's card: his 11 your 0 sealed false otherSealed true block nil
+02:41:50 ZEDQA b8bt PASS 6: bob sees that the admin sealed
+02:41:50 ZEDQA b8bt PASS 7: bob's added Pop is on his offer (1)
+02:41:50 ZEDQA b8bt NOTE bob's card: his 11 your 1 sealed false otherSealed false block nil
+02:41:50 ZEDQA b8bt NOTE bob's card: his 11 your 1 sealed false otherSealed true block nil
+02:41:50 ZEDQA b8bt PASS 8: bob seals his offer
+02:41:50 ZEDQA b8bt NOTE bob's card: his 11 your 1 sealed true otherSealed true block nil
+02:41:50 ZEDQA b8bt NOTE bob's trade 1 is over; items: apple 1, nails 10, pop 1
+02:41:50 ZEDQA b8bt PASS 8: bob has the admin's apple after the deal (1)
+02:41:50 ZEDQA b8bt PASS 8: bob has the admin's nails after the deal (10)
+02:41:50 ZEDQA b8bt FAIL 8: bob's pop went to the admin (1)
+02:41:50 ZEDQA b8bt NOTE request 2 from zedqa: yes
+02:41:50 ZEDQA b8bt PASS bob's prompt names the admin (request 2)
+02:41:50 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block nil
+02:41:50 ZEDQA b8bt PASS 9: bob's card also says too far away (Too far away from zedqa!)
+02:41:50 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block zedqa closed their trading window.
+02:41:50 ZEDQA b8bt PASS 10: bob's card says the admin closed their trading window (zedqa closed their trading window.)
+02:41:50 ZEDQA b8bt NOTE bob's trade 2 is over; items: apple 1, nails 10, pop 1
+02:41:50 ZEDQA b8bt NOTE request 3 from zedqa: no
+02:41:50 ZEDQA b8bt PASS bob's prompt names the admin (request 3)
+02:41:50 ZEDQA b8bt NOTE request 4 from zedqa: gone
+02:41:50 ZEDQA b8bt PASS bob's prompt names the admin (request 4)
+02:41:50 ZEDQA b8bt NOTE request 5 from zedqa: yes
+02:41:50 ZEDQA b8bt PASS bob's prompt names the admin (request 5)
+02:41:50 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block nil
+02:41:50 ZEDQA b8bt NOTE bob's card: his 0 your 0 sealed false otherSealed false block zedqa closed their trading window.
+02:41:50 ZEDQA b8bt PASS 16: bob cancels; his card closes
+02:41:50 ZEDQA b8bt PASS all five requests were answered (requests seen 5)
+02:41:50 ZEDQA b8bt PASS the first trade completed on bob's side
+02:41:50 ZEDQA b8bt 19 passed, 1 failed
+02:41:50 ZEDQA b8bt DONE
+02:41:50 -- bob starts zedqa_b8_mp_bob_medic.lua in the background
+02:41:58 -- admin runs zedqa_b8_mp_medic.lua
+02:44:19 ZEDQA b8md PASS bob is on the server
+02:44:19 ZEDQA b8md PASS ZeD's medical card can open on the admin's World window
+02:44:19 ZEDQA b8md NOTE the admin's First Aid level 0
+02:44:19 ZEDQA b8md PASS 1: the check ran and ZeD's medical card opened
+02:44:19 ZEDQA b8md PASS 2: the game's health panel did not open
+02:44:19 ZEDQA b8md PASS 2: the card is in the World window's drawer
+02:44:19 ZEDQA b8md PASS 2: bob's body was read into the card
+02:44:19 ZEDQA b8md FAIL 2: the left hand is in the injury list
+02:44:19 ZEDQA b8md FAIL 2: the summary counts an injured part (0)
+02:44:19 ZEDQA b8md PASS 2: no red box near bob
+02:44:19 ZEDQA b8md NOTE First Aid now 5
+02:44:19 ZEDQA b8md PASS 3: the admin is First Aid 5 or better (5)
+02:44:19 ZEDQA b8md PASS 3: the second check opened the card
+02:44:19 ZEDQA b8md FAIL 3: the left hand is listed at First Aid 5
+02:44:19 ZEDQA b8md NOTE bob's pain on the card: nil
+02:44:19 ZEDQA b8md FAIL 5: a part to treat
+02:44:19 ZEDQA b8md NOTE the hand's menu: 
+02:44:19 ZEDQA b8md FAIL 5: the menu offers Bandage (0)
+02:44:19 ZEDQA b8md FAIL 5: the menu lists the game's treatments
+02:44:19 ZEDQA b8md FAIL 5: the hand shows Bandaged on the admin's copy of bob's body (not within 40 s)
+02:44:19 ZEDQA b8md NOTE hand after the bandage: 
+02:44:19 ZEDQA b8md FAIL 5: the row turns to Bandaged on the card ()
+02:44:19 ZEDQA b8md FAIL 7: 3 tiles away the card stays with 'Too far away from bob!'
+02:44:19 ZEDQA b8md FAIL 7: walking back clears the red box and fills the list again (Too far away from bob!)
+02:44:19 ZEDQA b8md PASS 10: closing the World window ends the check (the card is gone)
+02:44:19 ZEDQA b8md PASS 10: the card stays gone when the window opens again
+02:44:19 ZEDQA b8md PASS 9: in safe mode ZeD's medical card steps aside
+02:44:19 ZEDQA b8md FAIL 9: the game's own health panel opened in safe mode (no panel)
+02:44:19 ZEDQA b8md PASS 9: no ZeD card in safe mode
+02:44:19 ZEDQA b8md MANUAL 4: hover a figure part or an injury row; the right column shows that part
+02:44:19 ZEDQA b8md MANUAL 6: paused (single player), 8: split screen, the controller walk (A opens the menu, B closes), and 4K and Deck pictures
+02:44:19 ZEDQA b8md 13 passed, 11 failed
+02:44:19 ZEDQA b8md DONE
+02:49:53 ZEDQA b8bm PASS bob has a deep wound on the left hand (true)
+02:49:53 ZEDQA b8bm NOTE bob's left hand: bandaged false, deep wound true
+02:49:53 ZEDQA b8bm PASS 1: bob's prompt asks for a medical check, request 1 (zedqa)
+02:49:53 ZEDQA b8bm PASS 1: bob's prompt asks for a medical check, request 2 (zedqa)
+02:49:53 ZEDQA b8bm FAIL bob answered all three medical check requests (2)
+02:49:53 ZEDQA b8bm FAIL 5: bob's hand showed the bandage
+02:49:53 ZEDQA b8bm NOTE bob's body put back to full health
+02:49:53 ZEDQA b8bm 3 passed, 2 failed
+02:49:53 ZEDQA b8bm DONE
+02:49:53 -- bob starts zedqa_b8_mp_bob_claims.lua in the background
+02:50:01 -- admin runs zedqa_b8_mp_claims.lua
+02:57:18 ZEDQA b8cl PASS bob is on the server
+02:57:18 ZEDQA b8cl NOTE bob claimed at spot 1
+02:57:18 ZEDQA b8cl PASS bob holds a safehouse (staged by walking buildings)
+02:57:18 ZEDQA b8cl PASS the Admin tab is there for this role
+02:57:18 ZEDQA b8cl PASS 1: Check stats opens the stats card in the Admin tab
+02:57:18 ZEDQA b8cl PASS 1: the pstats card is on the tab (pstats)
+02:57:18 ZEDQA b8cl PASS bob is loaded on the admin client (the card can edit him)
+02:57:18 ZEDQA b8cl NOTE bob: bob / Cari Pointer, Custom Occupation, role user, weight 80
+02:57:18 ZEDQA b8cl PASS bob is a plain user (user)
+02:57:18 ZEDQA b8cl PASS 2: no rank reason against bob
+02:57:18 ZEDQA b8cl PASS 2: the skills read (35)
+02:57:18 ZEDQA b8cl PASS 2: the edit gate is open for the admin
+02:57:18 ZEDQA b8cl PASS 7: the warning point shows in bob's user log
+02:57:18 ZEDQA b8cl PASS 7: Remove log took the warning's line away (false)
+02:57:18 ZEDQA b8cl PASS 7: Add log put a line in (true)
+02:57:18 ZEDQA b8cl PASS 3: the forename shows on the admin's copy of bob (Qab)
+02:57:18 ZEDQA b8cl PASS 4: bob's role reads priority on the admin's copy (priority)
+02:57:18 ZEDQA b8cl PASS bob's forename is back (Cari)
+02:57:18 ZEDQA b8cl PASS bob's role is back (user)
+02:57:18 ZEDQA b8cl MANUAL 6, 8, 9: Add XP with multipliers, traits, the gates (a role without CanModifyPlayerStatsInThePlayerStatsUI, a role above), Save presses in the foot, Check your stats
+02:57:18 ZEDQA b8cl PASS C7 1: the Inventory row opens the inventory card
+02:57:18 ZEDQA b8cl PASS C7 1: bob's things arrive
+02:57:18 ZEDQA b8cl NOTE 14 rows, first: Belt, Crop Top - Arms, Socks, Shoes, Long Skirt, ID Card
+02:57:18 ZEDQA b8cl PASS C7 1: weapons come first
+02:57:18 ZEDQA b8cl MANUAL C7 2 to 4: pick a thing, Take, Remove (asks in the foot), Add item, your own inventory, bob logged off
+02:57:18 ZEDQA b8cl PASS C8: bob's safehouse is in the game's list
+02:57:18 ZEDQA b8cl PASS C8 1: Open on bob's safehouse opens its card in the Admin tab
+02:57:18 ZEDQA b8cl PASS C8 1: the staff card for bob's safehouse is up (osafe)
+02:57:18 ZEDQA b8cl PASS C8 1: bob is the owner, this is someone else's claim (bob)
+02:57:18 ZEDQA b8cl PASS C8 1: the admin does not own it
+02:57:18 ZEDQA b8cl NOTE rename answered true
+02:57:18 ZEDQA b8cl PASS C8 2: Rename shows on the card and reaches the game (QA b8 house)
+02:57:18 ZEDQA b8cl PASS C8 2: bob is still on the server (no kick)
+02:57:18 ZEDQA b8cl PASS C8 3: Open on bob's faction opens its card
+02:57:18 ZEDQA b8cl PASS C8 3: the staff card for bob's faction is up (ofac)
+02:57:18 ZEDQA b8cl PASS C8 3: bob is the faction's owner (bob)
+02:57:18 ZEDQA b8cl NOTE faction rename answered true
+02:57:18 ZEDQA b8cl PASS C8 3: Rename reached the game (QA Crew b8x)
+02:57:18 ZEDQA b8cl NOTE disband answered true
+02:57:18 ZEDQA b8cl PASS C8 3: Disband removed bob's faction
+02:57:18 ZEDQA b8cl NOTE release answered true
+02:57:18 ZEDQA b8cl PASS C8 2: Release took bob's safehouse away (restored)
+02:57:18 ZEDQA b8cl MANUAL C8 2: Add Player, change owner and remove a member need a third account; C8 4 and 5: your own claims, a role without CanSetupSafehouses
+02:57:18 ZEDQA b8cl 33 passed, 0 failed
+02:57:18 ZEDQA b8cl DONE
+02:57:18 ZEDQA b8bc NOTE waiting in 10721,10630 for the admin to bring bob to a free building
+02:57:18 ZEDQA b8bc NOTE forename = Cari
+02:57:18 ZEDQA b8bc NOTE surname = Pointer
+02:57:18 ZEDQA b8bc NOTE role = user
+02:57:18 ZEDQA b8bc NOTE weight = 80
+02:57:18 ZEDQA b8bc NOTE cooking xp = 0
+02:57:18 ZEDQA b8bc NOTE safehouse = none
+02:57:18 ZEDQA b8bc NOTE faction = none
+02:57:18 ZEDQA b8bc NOTE free building: claiming
+02:57:18 ZEDQA b8bc NOTE claim done: true
+02:57:18 ZEDQA b8bc NOTE safehouse = bob
+02:57:18 ZEDQA b8bc NOTE faction made: true
+02:57:18 ZEDQA b8bc NOTE faction = QA Crew b8
+02:57:18 ZEDQA b8bc NOTE forename = Qab
+02:57:18 ZEDQA b8bc NOTE role = priority
+02:57:18 ZEDQA b8bc NOTE weight = 70
+02:57:18 ZEDQA b8bc NOTE cooking xp = 50
+02:57:18 ZEDQA b8bc NOTE forename = Cari
+02:57:18 ZEDQA b8bc NOTE role = user
+02:57:18 ZEDQA b8bc NOTE weight = 80
+02:57:18 ZEDQA b8bc NOTE faction = QA Crew b8x
+02:57:18 ZEDQA b8bc NOTE faction = none
+02:57:18 ZEDQA b8bc PASS bob held a safehouse of his own (bob)
+02:57:18 ZEDQA b8bc PASS 6: bob's forename changed while the admin saved it, and came back (Cari -> Cari)
+02:57:18 ZEDQA b8bc PASS 6: bob's role changed through the stats card and came back (user -> user)
+02:57:19 ZEDQA b8bc PASS 6: bob's weight changed (3)
+02:57:19 ZEDQA b8bc PASS 6: bob's Cooking XP rose (50)
+02:57:19 ZEDQA b8bc FAIL C8: bob's safehouse was renamed by the admin, then released (2)
+02:57:19 ZEDQA b8bc PASS C8: bob's faction was renamed by the admin and disbanded (4)
+02:57:19 ZEDQA b8bc PASS C8: bob is still on the server (the staff actions kicked nobody)
+02:57:19 ZEDQA b8bc 7 passed, 1 failed
+02:57:19 ZEDQA b8bc DONE
+02:57:19 -- admin runs zedqa_b8_mp_stage.lua
+02:57:35 ZEDQA b8st PASS this is a multiplayer client
+02:57:35 ZEDQA b8st NOTE the admin is zedqa, First Aid level 5
+02:57:35 ZEDQA b8st PASS the server's items arrived on the admin client
+02:57:35 ZEDQA b8st PASS an apple
+02:57:35 ZEDQA b8st FAIL nails (0)
+02:57:35 ZEDQA b8st PASS pencils for the 20-item limit (44)
+02:57:35 ZEDQA b8st PASS the watch is marked favorite
+02:57:35 ZEDQA b8st PASS the jacket is worn
+02:57:35 ZEDQA b8st PASS the knife is in hand
+02:57:35 ZEDQA b8st PASS a bandage sits in the backpack (3)
+02:57:35 ZEDQA b8st PASS a bandage sits in the main inventory (3)
+02:57:35 ZEDQA b8st PASS bob is on the server
+02:57:35 ZEDQA b8st PASS bob stands within 3 tiles of the admin (0.0)
+02:57:35 ZEDQA b8st 11 passed, 1 failed
+02:57:35 ZEDQA b8st DONE
+02:57:35 -- admin runs zedqa_b8_mp_admin_tools.lua
+02:59:00 ZEDQA b8at PASS the admin may see every account
+02:59:00 ZEDQA b8at PASS the Admin tab has its state
+02:59:00 ZEDQA b8at PASS 1: the Users card lists accounts (2)
+02:59:00 ZEDQA b8at PASS 1: the card on the tab is the users card (users)
+02:59:00 ZEDQA b8at PASS 1: online accounts come first (bob)
+02:59:00 ZEDQA b8at NOTE rows: bob/user/on, zedqa/admin/on
+02:59:00 ZEDQA b8at PASS 2: Find by a name answers (1)
+02:59:00 ZEDQA b8at PASS 2: Find by a role answers (1)
+02:59:00 ZEDQA b8at PASS 2: Online only keeps the online accounts
+02:59:00 ZEDQA b8at PASS 3: Add user: b8_carl shows in the list within seconds
+02:59:00 ZEDQA b8at PASS 5: the account card opens (user)
+02:59:00 ZEDQA b8at PASS 5: the password box stars what is typed (setMasked took) (true)
+02:59:00 ZEDQA b8at PASS 5: nothing blocks the admin from changing this account
+02:59:00 ZEDQA b8at PASS 5: Set password goes to the game
+02:59:00 ZEDQA b8at MANUAL 5: log in as b8_carl with the new password; reset password and TOTP are the foot's asks
+02:59:00 ZEDQA b8at PASS 5: a ban on yourself is gray with the game's words (You can't ban yourself)
+02:59:00 ZEDQA b8at PASS 5: Delete took the account away (restored)
+02:59:00 ZEDQA b8at PASS 4: the Bans card opens (bans)
+02:59:00 ZEDQA b8at PASS S: the statistics card opens (stats)
+02:59:00 ZEDQA b8at PASS S: the game's statistics are switched on while the card shows
+02:59:00 ZEDQA b8at NOTE first table, first row memory-free: client 1161, server 1312
+02:59:00 ZEDQA b8at PASS S: the client's table is readable
+02:59:00 ZEDQA b8at PASS S: the server's table has arrived (yes)
+02:59:00 ZEDQA b8at PASS S: about 2 s after the card goes the numbers are switched off (false)
+02:59:00 ZEDQA b8at PASS P: the PvP log card opens (pvplog)
+02:59:00 ZEDQA b8at PASS P: the admin has the PVP log tool
+02:59:00 ZEDQA b8at PASS P: the log reads as a list (0)
+02:59:00 ZEDQA b8at NOTE PVPLogToolChat is true
+02:59:00 ZEDQA b8at FAIL P: the option changed on the server and the client sees it (true)
+02:59:00 ZEDQA b8at PASS P: the option is put back (true)
+02:59:00 ZEDQA b8at MANUAL P: a hit or a kill between two clients with PvP on shows a line within about 10 s; Go there; Clear asks first
+02:59:00 ZEDQA b8at PASS C: the climate card opens (climate)
+02:59:00 ZEDQA b8at PASS C: the game's admin values read
+02:59:00 ZEDQA b8at PASS C: Apply writes the admin values
+02:59:00 ZEDQA b8at PASS C: fog reads back 0.6 (0.6000000238418579)
+02:59:00 ZEDQA b8at PASS C: clouds read back 0.7 (0.699999988079071)
+02:59:00 ZEDQA b8at PASS C: Precipitation is off
+02:59:00 ZEDQA b8at PASS C: Desaturation stays put when Precipitation is unticked (true)
+02:59:00 ZEDQA b8at PASS C: the server's weather is put back as it was
+02:59:00 ZEDQA b8at MANUAL C: Stop current weather, Trigger storm, tropical, blizzard, Generate; a second admin sees the same values; X is Apply on a pad
+02:59:00 ZEDQA b8at PASS Z: the zones card opens (zones)
+02:59:00 ZEDQA b8at PASS Z: it starts on adding a non-PvP zone (nonpvp)
+02:59:00 ZEDQA b8at PASS Z: a one-square area is refused with the card's reason (The area is too small.)
+02:59:00 ZEDQA b8at PASS Z: a free area of 7 by 7 can be added
+02:59:00 ZEDQA b8at PASS Z: the game's call adds the zone
+02:59:00 ZEDQA b8at PASS Z: the zone is in the game's list
+02:59:00 ZEDQA b8at PASS Z: the name is taken now
+02:59:00 ZEDQA b8at PASS Z: an area that overlaps a zone is refused (IGUI_PvpZone_ZoneInterception)
+02:59:00 ZEDQA b8at PASS Z: Remove took the zone away (restored)
+02:59:00 ZEDQA b8at PASS Z: the safe zone starts on adding (safe)
+02:59:00 ZEDQA b8at FAIL Z: the safe zone for bob can be added (he is online, no overlap) (Write the owner's username first.)
+02:59:00 ZEDQA b8at FAIL Z: the safe zone claimed an area for bob and shows in the safehouse list (not within 15 s)
+02:59:00 ZEDQA b8at PASS Z: the safe zone is released again (restored)
+02:59:00 ZEDQA b8at MANUAL Z: See zone on ground, Pick on the map (drag, or hold A), Corner here, the map tint while the card is open, the world map off
+02:59:00 ZEDQA b8at PASS SB: this is a server session
+02:59:00 ZEDQA b8at NOTE before: false / false
+02:59:00 ZEDQA b8at PASS SB: More tools > Sandbox options opens ZeD's window (true)
+02:59:00 ZEDQA b8at PASS SB: the pause screen shows the sandbox window for the server
+02:59:00 ZEDQA b8at PASS SB: both settings are rows in the window (true/true)
+02:59:00 ZEDQA b8at PASS SB: two changes are waiting (2)
+02:59:00 ZEDQA b8at PASS SB: Apply sent 2 changes to the server (2)
+02:59:00 ZEDQA b8at PASS SB: the strip says what was sent (Sent 2 changes to the server. Every player gets them.)
+02:59:00 ZEDQA b8at PASS SB: the server's copy came back with the new value (true)
+02:59:00 ZEDQA b8at PASS SB: the settings are put back on the server
+02:59:00 ZEDQA b8at MANUAL SB: a moderator without SandboxOptions sees More tools > Sandbox gray; fixed settings stay locked; a second client sees the values in See server options
+02:59:00 ZEDQA b8at 53 passed, 3 failed
+02:59:00 ZEDQA b8at DONE
+02:59:00 -- admin runs zedqa_b8_mp_leftovers.lua
+02:59:54 ZEDQA b8lo PASS the leftovers files are loaded
+02:59:54 ZEDQA b8lo PASS the pause screen opens
+02:59:54 ZEDQA b8lo FAIL C1: the pause window is up (not shown)
+02:59:54 ZEDQA b8lo NOTE the scoreboard: bob/0, zedqa/1
+02:59:54 ZEDQA b8lo PASS C1 1: the scoreboard's reply fills the Players list (2)
+02:59:54 ZEDQA b8lo FAIL C1 1: Players is a page of the pause window, not the game's scoreboard
+02:59:54 ZEDQA b8lo FAIL C1 3: bob has a row
+02:59:54 ZEDQA b8lo FAIL C1 4: the admin has a row of their own
+02:59:54 ZEDQA b8lo NOTE actions for bob: act:tp=false act:kick=false act:ban=false act:banip=false act:mute=false act:voip=false
+02:59:54 ZEDQA b8lo FAIL C1 3: Kick and Ban show for the admin
+02:59:54 ZEDQA b8lo FAIL C1 3: Teleport shows for the admin
+02:59:54 ZEDQA b8lo FAIL C1 2: Mute shows for another player
+02:59:54 ZEDQA b8lo PASS C1 4: your own row has no Kick and no Mute
+02:59:55 ZEDQA b8lo PASS C1 5: B goes back to the pause list
+02:59:55 ZEDQA b8lo MANUAL C1 2: bob muting the admin, then the admin typing in chat; C1 3: Kick/Ban from the pause page opens the Admin tab's Player card (zedqa_b8_mp_kick.lua does the kick itself); C1 6 to 8: pad, long list, Large text
+02:59:55 ZEDQA b8lo PASS C2 1: the Server tab has its state
+02:59:55 ZEDQA b8lo PASS C2 1: the Server tab shows the options card (srvopts)
+02:59:55 ZEDQA b8lo PASS C2 1: one row per option (137)
+02:59:55 ZEDQA b8lo NOTE ShowFirstAndLastName on the card reads 'No', the game says false
+02:59:55 ZEDQA b8lo PASS C2 1: the option is a row
+02:59:55 ZEDQA b8lo FAIL C2 5: the game's own copy followed the change (false)
+02:59:55 ZEDQA b8lo NOTE the card now reads 'No'
+02:59:55 ZEDQA b8lo PASS C2: the option is put back (false)
+02:59:55 ZEDQA b8lo MANUAL C2 2 to 4: a plain user sees no Change; the Admin tab's More tools row opens the same card; D-pad steps down the rows
+02:59:55 ZEDQA b8lo PASS C4: Messages has the server note
+02:59:55 ZEDQA b8lo PASS C4 1: the saving notice is one entry in Messages under Server (1)
+02:59:55 ZEDQA b8lo PASS C4 1: it carries the game's words (The server is saving the game. Please wait.)
+02:59:55 ZEDQA b8lo PASS C4 1: the next save updates that entry, no second one (1)
+02:59:55 ZEDQA b8lo PASS C4 1: the game's box with Spiffo was not used
+02:59:55 ZEDQA b8lo MANUAL C4 1: the real save from the server console (save) and the bubble out of the belt's Messages icon; C4 2: safe mode gives the game's box
+02:59:55 ZEDQA b8lo PASS C15: an axe to edit
+02:59:55 Lua fail. Message: attempted index of non-table
+02:59:55 ERROR: General      f:162593 st:44,023,928> Lua(Vanilla).axe> Exception thrown
+02:59:55 	java.lang.RuntimeException: attempted index of non-table at KahluaUtil.fail(KahluaUtil.java:100).
+02:59:55 ZEDQA b8lo FAIL ERR step 23: attempted index of non-table java.lang.RuntimeException
+02:59:55 ZEDQA b8lo PASS C16 1: the admin message went to Messages as a note (true)
+02:59:55 ZEDQA b8lo PASS C16 1: the note has the plain words (Server restarts soon please finish up)
+02:59:55 ZEDQA b8lo PASS C16 2: the note carries the place (10807)
+02:59:55 ZEDQA b8lo PASS C16 2: Teleport on the note takes the admin to the place (10807.0 vs 10807)
+02:59:55 ZEDQA b8lo MANUAL C16 1: a real admin message from the server (a ticket sent to a client without AnswerTickets); C16 3: safe mode gives the pop-up
+02:59:55 ZEDQA b8lo 20 passed, 9 failed
+02:59:55 ZEDQA b8lo DONE
+02:59:55 -- bob starts zedqa_b8_mp_bob_mail.lua in the background
+03:00:03 -- admin runs zedqa_b8_mp_mail.lua
+03:00:11 ZEDQA b8ml PASS the server keeps mail (the hello said so)
+03:00:11 ZEDQA b8ml PASS the admin's mailbox on this computer exists
+03:00:11 ZEDQA b8ml PASS 5: the admin dialed in on joining (state on) (on/nil)
+03:00:11 ZEDQA b8ml PASS 5: the modem handshake played once this connection (true)
+03:00:11 ZEDQA b8ml PASS 5: the connecting note went through Messages (Connecting... sending 0, receiving 0)
+03:00:11 ZEDQA b8ml NOTE the modem sound playing right now: false
+03:00:11 ZEDQA b8ml PASS 5: Messages keeps an item under Mail's name (1)
+03:00:11 ZEDQA b8ml PASS 5: a letter written in game goes to the Outbox and on its way
+03:00:11 ZEDQA b8ml PASS 5: the server took it: Outbox empty, the letter in Sent (outbox 0)
+03:00:11 ZEDQA b8ml PASS 5: bob's reply came down at once while both are on
+03:00:11 ZEDQA b8ml PASS 5: the sender is the player the server saw (bob) (bob)
+03:00:11 ZEDQA b8ml PASS 5: it arrives unread
+03:00:11 ZEDQA b8ml PASS 5: the words came whole (A reply from bob, word for word.)
+03:00:11 ZEDQA b8ml PASS 5: the mailbox counts it unread (1)
+03:00:11 ZEDQA b8ml PASS 5: a letter to an unknown name is accepted into the Outbox
+03:00:11 ZEDQA b8ml PASS 5: it came back to the Inbox as returned mail and left the Outbox
+03:00:11 ZEDQA b8ml PASS the admin's copy has none of this run's letters left (restored)
+03:00:11 ZEDQA b8ml 16 passed, 0 failed
+03:00:11 ZEDQA b8ml DONE
+03:00:11 ZEDQA b8bml PASS bob: the server keeps mail
+03:00:11 ZEDQA b8bml PASS bob dialed in (state on) (on/nil)
+03:00:11 ZEDQA b8bml PASS bob: the modem handshake played once (true)
+03:00:11 ZEDQA b8bml PASS 5: the admin's letter came down to bob
+03:00:11 ZEDQA b8bml PASS 5: it names the sender (zedqa)
+03:00:11 ZEDQA b8bml PASS 5: it is unread
+03:00:11 ZEDQA b8bml PASS 5: the words came whole (Hello bob, this is the admin. The words of this letter are plain.)
+03:00:11 ZEDQA b8bml PASS 5: a note sits in Messages under Mail's name
+03:00:11 ZEDQA b8bml PASS 5: bob's reply goes to the Outbox
+03:00:11 ZEDQA b8bml PASS 5: bob's Outbox emptied (the server took the reply)
+03:00:11 ZEDQA b8bml 10 passed, 0 failed
+03:00:11 ZEDQA b8bml DONE
+03:00:11 -- bob starts zedqa_b8_mp_bob_leave_kick.lua in the background
+03:00:17 -- admin runs zedqa_b8_mp_kick.lua
+03:00:19 ZEDQA b8kk PASS bob is on the server before the kick
+03:00:19 ZEDQA b8kk PASS the admin may kick
+03:00:19 ZEDQA b8kk PASS the kick was accepted (true/nil)
+03:00:19 ZEDQA b8kk PASS bob is gone from the player list
+03:00:19 ZEDQA b8kk PASS the admin is still on the server
+03:00:19 ZEDQA b8kk MANUAL C17 1: bob's screen: the room, the monitor, the window 'Disconnected' with 'You were kicked from the server.' and the game's words in the dark slot (zedqa_b8_mp_bob_leave_kick.lua read the rest)
+03:00:19 ZEDQA b8kk 5 passed, 0 failed
+03:00:19 ZEDQA b8kk DONE
+03:03:13 TIMEOUT
+03:07:14 bob never came back to the main menu
+03:07:14 -- bob runs zedqa_b8_mp_bob_rejoin.lua
+03:08:14 TIMEOUT
+03:13:19 bob never reached the game
+03:13:19 bob did not rejoin; bans skipped
+03:13:19 -- bob runs zedqa_b8_mp_bob_desk.lua
+03:17:20 TIMEOUT
+03:17:20 -- admin runs zedqa_b8_mp_mute_set.lua
+03:17:22 ZEDQA b8mus PASS bob is off the server
+03:17:22 ZEDQA b8mus PASS the server took the mute for an offline player (true/nil)
+03:17:22 ZEDQA b8mus PASS bob shows as muted on the admin's list
+03:17:22 ZEDQA b8mus PASS the Player card would read Muted
+03:17:22 ZEDQA b8mus MANUAL E27: the game's voice ban is NOT made while he is off (nothing to find); at his next join it is owed (see zedqa_b8_mp_rules_gate.lua)
+03:17:22 ZEDQA b8mus 4 passed, 0 failed
+03:17:22 ZEDQA b8mus DONE
+03:17:22 -- admin runs zedqa_b8_mp_mail_offline_send.lua
+03:17:24 ZEDQA b8mos PASS bob is off the server
+03:17:24 ZEDQA b8mos PASS the admin is dialed in (on)
+03:17:24 ZEDQA b8mos PASS a letter for an offline player goes to the Outbox
+03:17:24 ZEDQA b8mos PASS the server took it for later (Outbox empty)
+03:17:24 ZEDQA b8mos 4 passed, 0 failed
+03:17:24 ZEDQA b8mos DONE
+03:17:24 -- admin starts zedqa_b8_mp_rules_gate.lua in the background
+03:17:37 -- bob runs zedqa_b8_mp_bob_rejoin.lua
+03:18:37 TIMEOUT
+03:23:41 bob never reached the game
+03:35:08 ZEDQA b8ru PASS the admin holds the community view
+03:35:08 ZEDQA b8ru NOTE before: ask nil, 0 rules, motd ''
+03:35:08 ZEDQA b8ru PASS the admin may write the rules
+03:35:08 ZEDQA b8ru FAIL the rules were saved with ask on (false/stale)
+03:35:08 ZEDQA b8ru FAIL the admin's view shows two rules and ask on (not seen)
+03:35:08 ZEDQA b8ru RULES SET
+03:35:08 ZEDQA b8ru FAIL bob joined after the rules were set (not in 15 minutes)
+03:35:08 ZEDQA b8ru NOTE bob is on; mode gate
+03:35:08 ZEDQA b8ru FAIL gate: bob is still on after agreeing (a kick is for the unanswered)
+03:35:08 ZEDQA b8ru FAIL E27: the voice ban for an offline mute was owed to this staff client when bob joined (0)
+03:35:08 ZEDQA b8ru FAIL the rules are put back (false/stale)
+03:35:08 ZEDQA b8ru PASS the admin's view matches what it was (restored)
+03:35:08 ZEDQA b8ru 3 passed, 6 failed
+03:35:08 ZEDQA b8ru DONE
+03:35:08 -- admin runs zedqa_b8_mp_mail_offline_read.lua
+03:39:09 ZEDQA b8mor FAIL the letter written at the desk went up at bob's dial-in and came down here (not within 4 minutes)
+03:39:09 ZEDQA b8mor PASS the admin's copy has none of this run's letters left (restored)
+03:39:09 ZEDQA b8mor 1 passed, 1 failed
+03:39:09 ZEDQA b8mor DONE
+03:39:09 -- admin starts zedqa_b8_mp_mute_after.lua in the background
+03:39:13 -- bob starts zedqa_b8_mp_bob_leave_kick.lua in the background
+03:42:14 TIMEOUT
+03:46:15 bob never came back to the main menu
+03:46:15 -- bob runs zedqa_b8_mp_bob_rejoin.lua
+03:47:15 TIMEOUT
+03:52:20 bob never reached the game
+03:56:12 ZEDQA b8mua FAIL bob is on the server before the second connection
+03:56:12 ZEDQA b8mua PASS bob is still muted on the list
+03:56:12 ZEDQA b8mua KICKING BOB
+03:56:12 ZEDQA b8mua PASS bob was kicked and is off
+03:56:12 ZEDQA b8mua BOB MAY JOIN AGAIN
+03:56:12 ZEDQA b8mua FAIL bob rejoined (not within 15 minutes)
+03:56:12 ZEDQA b8mua FAIL E27: the voice ban was owed again at the new connection (it lasts one connection) (0)
+03:56:12 ZEDQA b8mua PASS the unmute was accepted (true/nil)
+03:56:12 ZEDQA b8mua PASS bob is off the mute list (restored)
+03:56:13 ZEDQA b8mua MANUAL E27: with a second microphone, a muted bob is not heard on his first or second connection; a third player given his freed online ID is heard
+03:56:13 ZEDQA b8mua 4 passed, 3 failed
+03:56:13 ZEDQA b8mua DONE
+03:56:13 session 1 done
+03:56:13 -- admin runs zedqa_b8_mp_cleanup.lua
+03:56:33 ZEDQA b8cu PASS no ZeD ban row on bob is left (false)
+03:56:33 ZEDQA b8cu PASS bob is not banned in the game (user)
+03:56:33 ZEDQA b8cu PASS bob is not muted
+03:56:33 ZEDQA b8cu PASS bob holds no safehouse and no faction
+03:56:33 ZEDQA b8cu PASS no B8 rules are left on the join screen
+03:56:33 ZEDQA b8cu 5 passed, 0 failed
+03:56:33 ZEDQA b8cu DONE
+03:56:33 == helper session
+03:57:33 second client stopped
+03:57:55 set DoLuaChecksum=false
+03:57:55 started the server, PID 78996; waiting for it to be ready
+03:59:14 ready after 78 s
+03:59:14 helper started, PID 95880
+03:59:17 E23: the helper's answers.txt is fresh (the helper reached the console and logged in): True
+03:59:18 E24: RCON listening on 27015: True  (the flag -Drconlo=true cannot be added by this kit's server launcher: manual)
+04:00:26 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
+04:01:13 second client joining as bob
+04:01:35 -- bob runs mp_p2_newchar.lua
+04:03:36 TIMEOUT
+04:03:53 bob in game
+04:03:59 -- admin runs zedqa_b8_mp_stage.lua
+04:04:15 ZEDQA b8st PASS this is a multiplayer client
+04:04:15 ZEDQA b8st NOTE the admin is zedqa, First Aid level 5
+04:04:15 ZEDQA b8st PASS the server's items arrived on the admin client
+04:04:15 ZEDQA b8st PASS an apple
+04:04:16 ZEDQA b8st PASS nails (5)
+04:04:16 ZEDQA b8st PASS pencils for the 20-item limit (66)
+04:04:16 ZEDQA b8st PASS the watch is marked favorite
+04:04:16 ZEDQA b8st PASS the jacket is worn
+04:04:16 ZEDQA b8st PASS the knife is in hand
+04:04:16 ZEDQA b8st PASS a bandage sits in the backpack (4)
+04:04:16 ZEDQA b8st PASS a bandage sits in the main inventory (4)
+04:04:16 ZEDQA b8st PASS bob is on the server
+04:04:16 ZEDQA b8st PASS bob stands within 3 tiles of the admin (0.0)
+04:04:16 ZEDQA b8st 12 passed, 0 failed
+04:04:16 ZEDQA b8st DONE
+04:04:16 -- admin starts zedqa_b8_mp_helper.lua in the background
+04:04:21 -- bob starts zedqa_b8_mp_bob_leave_ban.lua in the background
+04:08:23 TIMEOUT
+04:12:24 bob never came back to the main menu
+04:12:24 -- bob runs zedqa_b8_mp_bob_rejoin.lua
+04:13:24 TIMEOUT
+04:18:28 bob never reached the game
+04:18:28 ZEDQA b8hp PASS bob is on the server
+04:18:28 ZEDQA b8hp PASS ZeD's server part answers
+04:18:28 ZEDQA b8hp PASS 1: the ban was accepted (true/nil)
+04:18:28 ZEDQA b8hp PASS 1: the game's ban was made (role banned) within 17 s (banned)
+04:18:28 ZEDQA b8hp PASS 1: it landed inside the helper's 30 s, before any staff client would be asked (17)
+04:18:28 ZEDQA b8hp PASS 1: bob is gone
+04:18:28 ZEDQA b8hp NOTE calls owed to this client so far: []
+04:18:28 ZEDQA b8hp PASS 1: this staff client was not asked to make the ban or the kick (the helper did) (0)
+04:18:28 ZEDQA b8hp PASS 2: bob is muted while off the server (true/nil)
+04:18:28 ZEDQA b8hp PASS 3: the ban row is there to lift
+04:18:28 ZEDQA b8hp PASS 3: ZeD's Unban was accepted (true/nil)
+04:18:28 ZEDQA b8hp PASS 3: the helper lifted the game's ban within 6 s (user)
+04:18:28 ZEDQA b8hp PASS 3: this staff client was not asked to make the unban (0)
+04:18:29 ZEDQA b8hp BOB MAY JOIN
+04:18:29 ZEDQA b8hp FAIL 4: bob rejoined after the lift (not within 10 minutes)
+04:18:29 ZEDQA b8hp NOTE calls owed to this client after the join: []
+04:18:29 ZEDQA b8hp PASS 4: the voice ban at the join was not asked of this staff client (the helper made it) (0)
+04:18:29 ZEDQA b8hp PASS 5: the unmute was accepted (true/nil)
+04:18:29 ZEDQA b8hp PASS 5: bob is off the mute list (restored)
+04:18:29 ZEDQA b8hp PASS end: no ban and no mute on bob is left (restored) (user)
+04:18:29 ZEDQA b8hp MANUAL E24: -Drconlo=true reaching System.getProperty (this kit's server launcher cannot add the flag; netstat on the RCON port after a real start)
+04:18:29 ZEDQA b8hp MANUAL E21: NetworkUser.new():isSteamIdBanned(sid) from server Lua needs a Steam server (BanSteamID, then read the ZeD server log)
+04:18:29 ZEDQA b8hp MANUAL E25, E26 (the look in game of the join rules in safe mode, and a ban lifted in the game's own Users window) are looks, not scripts
+04:18:29 ZEDQA b8hp 16 passed, 1 failed
+04:18:29 ZEDQA b8hp DONE
+04:18:29 E22: the queue file exists in the server's own Lua folder: True
+04:18:29 helper> 2026-11-08 03:59:14 ZeD host helper 1: C:\Users\you\Zomboid\zedqa_mp\Lua\ZeD_helper, console 127.0.0.1:27015 (password from the settings file)
+04:18:29 helper> 2026-11-08 04:04:35 ok Ban bob: System banned user bob
+04:18:29 helper> 2026-11-08 04:04:43 ok UnBan bob: System unbanned user bob
+04:18:29 E23: the helper made banuser: False, unbanuser: False, voiceban: False, kickuser: False
+04:18:29 -- admin runs zedqa_b8_mp_cleanup.lua
+04:18:49 ZEDQA b8cu PASS no ZeD ban row on bob is left (false)
+04:18:49 ZEDQA b8cu PASS bob is not banned in the game (user)
+04:18:49 ZEDQA b8cu PASS bob is not muted
+04:18:49 ZEDQA b8cu PASS bob holds no safehouse and no faction
+04:18:49 ZEDQA b8cu PASS no B8 rules are left on the join screen
+04:18:49 ZEDQA b8cu 5 passed, 0 failed
+04:18:49 ZEDQA b8cu DONE
+04:18:49 helper stopped
+04:19:49 second client stopped
+04:19:54 closed; the server's database, settings and sandbox file and the admin's mod options are put back
+04:19:54 TOTAL: 295 PASS, 43 FAIL, 24 MANUAL items printed
+04:19:54 FAILED: 02:41:31 ZEDQA b8tr FAIL 3: the ripped sheets are listed
+04:19:54 FAILED: 02:41:31 ZEDQA b8tr FAIL 3: worn, held and favorite things are not listed
+04:19:54 FAILED: 02:41:31 ZEDQA b8tr FAIL 5: the offer is back to the apple and the nails (11)
+04:19:54 FAILED: 02:41:31 ZEDQA b8tr FAIL 8: the items swapped in the admin's inventory (the server moved them) (apple 2->1, nails 10->0, pop 0->1)
+04:19:54 FAILED: 02:41:50 ZEDQA b8bt FAIL 8: bob's pop went to the admin (1)
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 2: the left hand is in the injury list
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 2: the summary counts an injured part (0)
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 3: the left hand is listed at First Aid 5
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 5: a part to treat
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 5: the menu offers Bandage (0)
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 5: the menu lists the game's treatments
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 5: the hand shows Bandaged on the admin's copy of bob's body (not within 40 s)
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 5: the row turns to Bandaged on the card ()
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 7: 3 tiles away the card stays with 'Too far away from bob!'
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 7: walking back clears the red box and fills the list again (Too far away from bob!)
+04:19:54 FAILED: 02:44:19 ZEDQA b8md FAIL 9: the game's own health panel opened in safe mode (no panel)
+04:19:54 FAILED: 02:49:53 ZEDQA b8bm FAIL bob answered all three medical check requests (2)
+04:19:54 FAILED: 02:49:53 ZEDQA b8bm FAIL 5: bob's hand showed the bandage
+04:19:54 FAILED: 02:57:19 ZEDQA b8bc FAIL C8: bob's safehouse was renamed by the admin, then released (2)
+04:19:54 FAILED: 02:57:35 ZEDQA b8st FAIL nails (0)
+04:19:55 FAILED: 02:59:00 ZEDQA b8at FAIL P: the option changed on the server and the client sees it (true)
+04:19:55 FAILED: 02:59:00 ZEDQA b8at FAIL Z: the safe zone for bob can be added (he is online, no overlap) (Write the owner's username first.)
+04:19:55 FAILED: 02:59:00 ZEDQA b8at FAIL Z: the safe zone claimed an area for bob and shows in the safehouse list (not within 15 s)
+04:19:55 FAILED: 02:59:54 ZEDQA b8lo FAIL C1: the pause window is up (not shown)
+04:19:55 FAILED: 02:59:54 ZEDQA b8lo FAIL C1 1: Players is a page of the pause window, not the game's scoreboard
+04:19:55 FAILED: 02:59:54 ZEDQA b8lo FAIL C1 3: bob has a row
+04:19:55 FAILED: 02:59:54 ZEDQA b8lo FAIL C1 4: the admin has a row of their own
+04:19:55 FAILED: 02:59:54 ZEDQA b8lo FAIL C1 3: Kick and Ban show for the admin
+04:19:55 FAILED: 02:59:54 ZEDQA b8lo FAIL C1 3: Teleport shows for the admin
+04:19:55 FAILED: 02:59:54 ZEDQA b8lo FAIL C1 2: Mute shows for another player
+04:19:55 FAILED: 02:59:55 ZEDQA b8lo FAIL C2 5: the game's own copy followed the change (false)
+04:19:55 FAILED: 02:59:55 ZEDQA b8lo FAIL ERR step 23: attempted index of non-table java.lang.RuntimeException
+04:19:55 FAILED: 03:35:08 ZEDQA b8ru FAIL the rules were saved with ask on (false/stale)
+04:19:55 FAILED: 03:35:08 ZEDQA b8ru FAIL the admin's view shows two rules and ask on (not seen)
+04:19:55 FAILED: 03:35:08 ZEDQA b8ru FAIL bob joined after the rules were set (not in 15 minutes)
+04:19:55 FAILED: 03:35:08 ZEDQA b8ru FAIL gate: bob is still on after agreeing (a kick is for the unanswered)
+04:19:55 FAILED: 03:35:08 ZEDQA b8ru FAIL E27: the voice ban for an offline mute was owed to this staff client when bob joined (0)
+04:19:55 FAILED: 03:35:08 ZEDQA b8ru FAIL the rules are put back (false/stale)
+04:19:55 FAILED: 03:39:09 ZEDQA b8mor FAIL the letter written at the desk went up at bob's dial-in and came down here (not within 4 minutes)
+04:19:55 FAILED: 03:56:12 ZEDQA b8mua FAIL bob is on the server before the second connection
+04:19:55 FAILED: 03:56:12 ZEDQA b8mua FAIL bob rejoined (not within 15 minutes)
+04:19:55 FAILED: 03:56:12 ZEDQA b8mua FAIL E27: the voice ban was owed again at the new connection (it lasts one connection) (0)
+04:19:55 FAILED: 04:18:29 ZEDQA b8hp FAIL 4: bob rejoined after the lift (not within 10 minutes)

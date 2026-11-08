@@ -412,6 +412,7 @@ end
 --- @param priority integer | nil
 function M.register(key, factory, priority)
     if not key or not factory then return end
+    M.gen = (M.gen or 0) + 1   -- a card showing an item builds its model again (ItemCardOrganism.lua)
     -- Drop any existing entry with the same key
     for i = #M._registry, 1, -1 do
         if M._registry[i].key == key then

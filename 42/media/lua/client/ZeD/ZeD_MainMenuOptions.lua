@@ -403,7 +403,8 @@ local function labelLines(r, f2, room)
     if label == "" or MM.textW(f2, label) <= room then return nil end
     local lines = ZeD.Atoms.wrapText(label, f2, room)
     if #lines < 2 then return nil end
-    if #lines > 2 then lines = { lines[1], table.concat(lines, " ", 2) } end
+    -- (a table of its own: wrapText's answer is shared and kept, never written into)
+    if #lines > 2 then lines = { lines[1], table.concat(lines, " ", 2) } else lines = { lines[1], lines[2] } end
     lines[1] = ZeD.Atoms.truncateText(lines[1], f2, room)   -- (a single word wider than the column)
     lines[2] = ZeD.Atoms.truncateText(lines[2], f2, room)
     return lines

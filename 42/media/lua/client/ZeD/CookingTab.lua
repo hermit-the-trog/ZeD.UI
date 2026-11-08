@@ -641,8 +641,16 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
         cy = cy + T.px(8)
         cy = cy + M.drawEmptyLine(panel, x + pad, cy, cw - pad * 2, ZeD.tr("UI_ZeD_Cook_NoIngredients")) + T.px(8)
     end
-    -- the groups: one, A to Z (By ingredient), or one per kind, seasoning last (By kind)
-    local groups = {}
+    -- the groups: one, A to Z (By ingredient), or one per kind, seasoning last (By kind).
+    -- (Nov 7 2026, perf review #15) grouped and sorted once per ingredient list (ingCache) and sort,
+    -- not every frame: the same rows in the same order while neither changes
+    local gc = s._ingGroups
+    local groups
+    if gc and gc.src == ing and gc.sort == s.sort then
+        groups = gc.groups
+        if groups[1] and groups[1].kind == "_all" then groups[1].label = getText("IGUI_perks_Cooking") end
+    else
+    groups = {}
     if s.sort == "kind" then
         local byK = {}
         for _, g in ipairs(ing) do
@@ -659,9 +667,13 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
         for _, g in ipairs(ing) do rows[#rows + 1] = g end
         groups[1] = { label = getText("IGUI_perks_Cooking"), rows = rows, kind = "_all" }
     end
-    s.collapsed = s.collapsed or {}
     for _, grp in ipairs(groups) do
         table.sort(grp.rows, function(a, b) return a.name < b.name end)
+    end
+    s._ingGroups = { src = ing, sort = s.sort, groups = groups }
+    end
+    s.collapsed = s.collapsed or {}
+    for _, grp in ipairs(groups) do
         if s.sort == "kind" then
             local ch = T.px(CAT_H)
             local key = grp.kind

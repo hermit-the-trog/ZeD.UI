@@ -88,6 +88,7 @@ function ZeD.RadioTab.locationName(tag)
     if tag == "Secondary" then return ZeD.tr("UI_ZeD_Radio_LocSecondary") end
     if tag == "Back" then return ZeD.tr("UI_ZeD_Radio_LocBack") end
     if tag == "Floor" then return getText("ContextMenu_Floor") end
+    if tag == "Carried" then return getText("IGUI_InventoryTooltip") end   -- in a bag or the inventory (WorldRoutes.lua)
     if tag == "Vehicle" then return getText("UI_optionscreen_binding_Vehicle") end   -- a car's device part (WorldRoutes.lua)
     return tag or ""
 end
@@ -135,6 +136,16 @@ function ZeD.RadioTab.buildEquippedRadios(playerObj)
     -- on the player's back register too.
     if playerObj.getClothingItem_Back then
         tryAdd(playerObj:getClothingItem_Back(), "Back")
+    end
+    -- a radio opened from a bag or the inventory (WorldRoutes.radio pins it): listed while it stays on the player
+    local pin = ZeD.RadioTab._carried and ZeD.RadioTab._carried[playerObj:getPlayerNum()]
+    if pin then
+        local okC, still = pcall(function()
+            local c = pin:getContainer()
+            return c ~= nil and c:isInCharacterInventory(playerObj)
+        end)
+        if okC and still and not ZeD.RadioTab.indexOf(out, pin) then tryAdd(pin, "Carried") end
+        if not (okC and still) then ZeD.RadioTab._carried[playerObj:getPlayerNum()] = nil end
     end
 
     return out
@@ -1017,6 +1028,13 @@ end
 -- O: renderDrawer — brand dispatch
 ----------------------------------------------------------------------
 function renderDrawer(panel, x, y, w, h, win, radioEntry)
+    -- (Nov 8 2026, code flags: each module clears only its own click rects, and a module the chassis skips (the CD
+    -- player on a ValuTech, any module the height leaves out) kept the last radio's: a click there worked the CD
+    -- transport of the wrong radio and the controller had stops on nothing. Every module's rects go first, each frame.)
+    if win then
+        win._radioPwrZone, win._radioSeekBtnZones, win._radioVolBtnZones = nil, nil, nil
+        win._radioPresetZones, win._radioPresetAddZone, win._radioCDZones = nil, nil, nil
+    end
     if radioEntry == nil or radioEntry.deviceData == nil then
         -- Defensive: caller already checked but guard anyway.
         return

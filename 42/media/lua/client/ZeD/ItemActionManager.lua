@@ -86,6 +86,9 @@ function M.notify(item, event, action)
     else
         M._active[item] = action
     end
+    -- an action starting, ending or turning dangerous: the item card builds its
+    -- model again (ItemCardOrganism.lua); a tick only moves the live band
+    if event ~= "tick" then M.gen = (M.gen or 0) + 1 end
     local obs = M._observers[item]
     if obs then
         -- "start" → "onStart", etc. Capitalize first letter, prefix "on".
@@ -100,6 +103,7 @@ end
 --- Wipe all state — active actions, observers, handle counter. Here for
 --- player-swap / save-reload resets; nothing calls it yet.
 function M.clear()
+    M.gen        = (M.gen or 0) + 1
     M._active    = {}
     M._observers = {}
     _nextHandle  = 1

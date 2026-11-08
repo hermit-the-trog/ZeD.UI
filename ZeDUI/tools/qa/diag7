@@ -1,0 +1,421 @@
+# ZeD-UI regression - 2026-11-08 02:04 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-08 02:04:43 |
+| Finished | 2026-11-08 02:11:54 (7 min 11 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta7 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\diag7.txt (7 scripts) |
+| Result | **5/7 pass**, 2 warn, 0 fail, 0 timeout |
+| Go numbers | 23736 to 23744 |
+
+Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 23743, 23744)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 5 |  |  |
+| 2 | zedqa_pin_windows.lua | pnw | PASS | 1 |  |  |
+| 3 | zedqa_b8_tvstamps.lua | tvst | PASS | 1 |  |  |
+| 4 | zedqa_b8_hidden.lua | b8hf | WARN | 14 | zqa_b8_hf_tv_locked.png, zqa_b8_hf_inf_locked.png, zqa_b8_hf_tv_found.png, zqa_b8_hf_inf_found_spoiler_shown.png, zqa_b8_hf_tv_window.png, zqa_b8_hf_inf_window.png, zqa_b8_hf_tv_always.png | 1 ERR line(s) |
+| 5 | zedqa_b8_guide.lua | b8gd | PASS | 18 | zqa_b8_gd_first_spread.png, zqa_b8_gd_contents.png, zqa_b8_gd_contents_end_intro.png, zqa_b8_gd_tv_rules.png, zqa_b8_gd_third_1_third_optima_eyes.png, zqa_b8_gd_third_2_third_invisible_sledgehammer.png, zqa_b8_gd_third_3_third_nolans_used_cars.png, zqa_b8_gd_third_4_third_echo_creek_feed_seed.png, zqa_b8_gd_third_5_third_homeward_real_estate.png, zqa_b8_gd_third_6_third_u_store_it.png |  |
+| 6 | zedqa_b8_console.lua | b8dc | WARN | 11 | zqa_b8dc_open.png, zqa_b8dc_errors.png, zqa_b8dc_handed_back.png | 1 expected exception(s) ignored (expect=); 3 ERR line(s) |
+| 7 | zedqa_dash_keys_edge.lua | dke | PASS | 280 | zqa_dke_luxury_acc.png, zqa_dke_luxury_start.png, zqa_dke_luxury_on.png, zqa_dke_nyala_acc.png, zqa_dke_nyala_start.png, zqa_dke_nyala_on.png, zqa_dke_cossette_acc.png, zqa_dke_cossette_start.png, zqa_dke_cossette_on.png, zqa_dke_police_acc.png, zqa_dke_police_start.png, zqa_dke_police_on.png, zqa_dke_d6_acc.png, zqa_dke_d6_start.png, zqa_dke_d6_on.png, zqa_dke_dashelite_acc.png, zqa_dke_dashelite_start.png, zqa_dke_dashelite_on.png, zqa_dke_primani_acc.png, zqa_dke_primani_start.png, zqa_dke_primani_on.png, zqa_dke_dart_acc.png, zqa_dke_dart_start.png, zqa_dke_dart_on.png, zqa_dke_horizon_acc.png, zqa_dke_horizon_start.png, zqa_dke_horizon_on.png, zqa_dke_wagon_acc.png, zqa_dke_wagon_start.png, zqa_dke_wagon_on.png, zqa_dke_suv_acc.png, zqa_dke_suv_start.png, zqa_dke_suv_on.png, zqa_dke_van_acc.png, zqa_dke_van_start.png, zqa_dke_van_on.png, zqa_dke_bulldriver_acc.png, zqa_dke_bulldriver_start.png, zqa_dke_bulldriver_on.png, zqa_dke_rancher_acc.png, zqa_dke_rancher_start.png, zqa_dke_rancher_on.png, zqa_dke_taxi_acc.png, zqa_dke_taxi_start.png, zqa_dke_taxi_on.png, zqa_dke_ambulance_acc.png, zqa_dke_ambulance_start.png, zqa_dke_ambulance_on.png, zqa_dke_fire_acc.png, zqa_dke_fire_start.png, zqa_dke_fire_on.png, zqa_dke_ranger_acc.png, zqa_dke_ranger_start.png, zqa_dke_ranger_on.png, zqa_dke_race_acc.png, zqa_dke_race_start.png, zqa_dke_race_on.png |  |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 5 s
+
+- go 23736 at 02:05:40
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=914,13055 grid=19 inCar=false vehicles=47 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre moved from 914,13055,0 to the drag strip
+ZEDQA pre clock 4.63 -> 11.00 (daylight)
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 299 frames 300
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
+
+- go 23737 at 02:05:49
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pnw pinned both windows
+[ZeD.QA] run #2 ok=true
+ZEDQA pnw DONE
+```
+
+### 3. zedqa_b8_tvstamps.lua (`ZEDQA tvst`) - PASS, 1 s
+
+- go 23738 at 02:05:53
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA tvst clock: ok now 15060 (day 10) daysSinceStart 10 nights 5 startOffset 7200
+ZEDQA tvst ch Triple-N: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 69 stamps 0..20130 (days 0..13.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst ch WBLN News: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 59 stamps 0..17250 (days 0..11.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst ch Life and Living TV: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 59 stamps 0..17250 (days 0..11.979166666666666) teaching 24 loops 1-1
+ZEDQA tvst ch TURBO: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 91 stamps 0..40110 (days 0..27.854166666666668) teaching 0 loops 1-1
+ZEDQA tvst ch PawsTV: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 59 stamps 0..17250 (days 0..11.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst ch KPATV: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 47 stamps 360..17250 (days 0.25..11.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst ch Music Video Channel: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 47 stamps 360..17250 (days 0.25..11.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst ch National Sports TV: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 47 stamps 360..17250 (days 0.25..11.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst ch Brennan Movie Channel: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 46 stamps 360..17250 (days 0.25..11.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst ch GBC: ok active=nil main: startDayStamp 0 startDay 0 broadcasts 47 stamps 360..17250 (days 0.25..11.979166666666666) teaching 0 loops 1-1
+ZEDQA tvst F.schedule: ok 9 shows; stat channels 10 dormant 10 broadcasts 571 inWindow 301 first 7200 last 47310
+[ZeD.QA] run #3 ok=true
+ZEDQA tvst DONE
+```
+
+### 4. zedqa_b8_hidden.lua (`ZEDQA b8hf`) - WARN, 14 s
+
+- go 23739 at 02:05:57
+- 1 ERR line(s)
+- screenshots: zqa_b8_hf_tv_locked.png, zqa_b8_hf_inf_locked.png, zqa_b8_hf_tv_found.png, zqa_b8_hf_inf_found_spoiler_shown.png, zqa_b8_hf_tv_window.png, zqa_b8_hf_inf_window.png, zqa_b8_hf_tv_always.png
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8hf start
+[ZeD.QA] run #4 ok=true
+ZEDQA b8hf before: Hidden facts item 1, guide look 1, 24-hour clock true, the character's marks false
+ZEDQA b8hf PASS single player
+ZEDQA b8hf PASS the reading hook on ISReadABook:perform is installed
+ZEDQA b8hf PASS the finds: TV Monthly opens the schedule, a First Aid book the odds, other books nothing
+ZEDQA b8hf Find first, marks cleared: TV find held false, First Aid find held false
+ZEDQA b8hf PASS Always is off on Find first
+ZEDQA b8hf PASS TV: the locked page is one column and one row
+ZEDQA b8hf PASS TV: it names TV Monthly (Read Magazine: TV Monthly to add the broadcast schedule here.)
+ZEDQA b8hf PASS TV: it says what more it could show
+ZEDQA b8hf PASS odds: the locked page is one column and one row
+ZEDQA b8hf PASS odds: it names the First Aid skill (Read a First Aid book to add the infection odds here.)
+ZEDQA b8hf PASS F1's book opens (Full)
+ZEDQA b8hf PASS Television/Radio has a rules page in the book (1 page(s))
+ZEDQA b8hf Television/Radio rules page(s) at 20, locked now: true
+ZEDQA b8hf shot tv_locked
+ZEDQA b8hf PASS Zombie Attacks has a rules page in the book (2 page(s))
+ZEDQA b8hf Zombie Attacks rules pages at 28 to 29; the last is: Infection odds | Read a First Aid book to add the infection odds here. | note: This page can show which wounds can pass the infection on in this world.
+ZEDQA b8hf shot inf_locked
+ZEDQA b8hf PASS other reading opens nothing
+ZEDQA b8hf TV Monthly pages -1, read-to-end test true
+ZEDQA b8hf PASS a magazine with no pages counts when read
+ZEDQA b8hf PASS TV Monthly read: the schedule is open
+ZEDQA b8hf PASS TV Monthly read: the odds are as they were (false)
+ZEDQA b8hf First Aid I pages 220
+ZEDQA b8hf PASS First Aid I is a book with pages
+ZEDQA b8hf PASS a First Aid book not yet read does not count
+ZEDQA b8hf PASS a First Aid book half read does not count
+ZEDQA b8hf PASS half read: the odds are as they were
+ZEDQA b8hf PASS read to the last page: counts
+ZEDQA b8hf PASS First Aid read to the end: the odds are open
+ZEDQA b8hf PASS on a server's client the end of the reading counts
+ZEDQA b8hf PASS the game's clock (RadioScriptManager current time stamp) reads 15060
+ZEDQA b8hf PASS the schedule reads in single player (the stations have scripts)
+ZEDQA b8hf the schedule: 9 teaching shows in the next 7 days
+ZEDQA b8hf day +0 06:00 Life and Living TV teaches Cooking, Recipe: Prepare Pie Dough
+ZEDQA b8hf day +0 12:00 Life and Living TV teaches Carpentry
+ZEDQA b8hf day +0 18:00 Life and Living TV teaches Trapping, Recipe: Make Crate Trap
+ZEDQA b8hf day +1 06:00 Life and Living TV teaches Cooking, Recipe: Make Cake Batter
+ZEDQA b8hf PASS the shows are sorted by start
+ZEDQA b8hf FAIL every show ends after now and starts within 7 days
+ZEDQA b8hf PASS every show has a day, a time, a channel and what it teaches
+ZEDQA b8hf PASS the page has day / time / channel / teaches columns and a row a show (9 rows)
+ZEDQA b8hf first show's time: 24-hour '06:00', 12-hour '6:00 AM'
+ZEDQA b8hf PASS 24-hour clock: hh:mm
+ZEDQA b8hf PASS 12-hour clock: the time reads with AM or PM
+ZEDQA b8hf columns: Day | Time | Channel | Teaches; notes: 2
+ZEDQA b8hf PASS no channel script: the page says the schedule is not available here
+ZEDQA b8hf PASS woundsFor: Blood and Saliva, Saliva Only, Everyone, None
+ZEDQA b8hf PASS the odds page is open (a First Aid book was read)
+ZEDQA b8hf PASS three rows (Bitten, Cut, Scratched), behind the spoiler bar
+ZEDQA b8hf this world's Transmission is 1; page: Infection odds | Bitten / Always | Laceration / Sometimes | Scratched / Sometimes | note: Transmission in this world: Blood and Saliva. | note: How often a scratch or a laceration passes it on is kept in the game's code, not in the world's settings, so the guide cannot read it. Whether you have it is never shown.
+ZEDQA b8hf PASS the page follows this world's Transmission
+ZEDQA b8hf PASS Mortality 5 (not Never): the world line and the odds note only (2 notes)
+ZEDQA b8hf PASS TV rules page present with the find held
+ZEDQA b8hf shot tv_found
+ZEDQA b8hf shot inf_found_spoiler_shown
+ZEDQA b8hf PASS Simple look: F1 opens the window
+ZEDQA b8hf shot tv_window
+ZEDQA b8hf shot inf_window
+ZEDQA b8hf recipe sources indexed: 408 recipes; sample BarbedWireWeapon
+ZEDQA b8hf PASS the item scripts' LearnedRecipes index builds
+ZEDQA b8hf PASS Find first: the crafting card keeps its own words (no magazine named)
+ZEDQA b8hf PASS Hidden facts item 2 reads Always
+ZEDQA b8hf Always, 'BarbedWireWeapon' -> Find Magazine: Bloody Japanese Wrestling Deathmatch!
+ZEDQA b8hf PASS Always: How to learn names the magazine
+ZEDQA b8hf PASS Always: both pages open with nothing read
+ZEDQA b8hf PASS Always: neither page is the locked page
+ZEDQA b8hf PASS Always: the book has the TV page
+ZEDQA b8hf shot tv_always
+ZEDQA b8hf 45 passed, 1 failed
+ZEDQA b8hf DONE
+```
+
+### 5. zedqa_b8_guide.lua (`ZEDQA b8gd`) - PASS, 18 s
+
+- go 23740 at 02:06:15
+- screenshots: zqa_b8_gd_first_spread.png, zqa_b8_gd_contents.png, zqa_b8_gd_contents_end_intro.png, zqa_b8_gd_tv_rules.png, zqa_b8_gd_third_1_third_optima_eyes.png, zqa_b8_gd_third_2_third_invisible_sledgehammer.png, zqa_b8_gd_third_3_third_nolans_used_cars.png, zqa_b8_gd_third_4_third_echo_creek_feed_seed.png, zqa_b8_gd_third_5_third_homeward_real_estate.png, zqa_b8_gd_third_6_third_u_store_it.png
+
+```text
+[ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8gd start
+[ZeD.QA] run #5 ok=true
+ZEDQA b8gd ads in the book's lists: 3 full, 7 half, 44 third, 12 quarter (66)
+ZEDQA b8gd PASS 44 third-size ads (12 + 32 new); the list has 44
+ZEDQA b8gd PASS 32 third-size ads are new this build (32)
+ZEDQA b8gd PASS no ad named twice
+ZEDQA b8gd PASS every ad's art file loads
+ZEDQA b8gd PASS every ad's art is in its size's proportion
+ZEDQA b8gd PASS the deck holds every third once (44 of 44)
+ZEDQA b8gd PASS all 32 new thirds are in the deck
+ZEDQA b8gd PASS F1 on Full opens the book
+ZEDQA b8gd screen 3840x2160, unit 1.75, 112 pages, 2 contents page(s), intro on page 6
+ZEDQA b8gd PASS page 1 is the copyright page and page 2 the title page
+ZEDQA b8gd PASS the contents start on page 3 (2 page(s))
+ZEDQA b8gd PASS page 3 is contents part 1
+ZEDQA b8gd PASS page 4 is contents part 2
+ZEDQA b8gd PASS the introduction is on page 6
+ZEDQA b8gd PASS the introduction sits on a right-hand page
+ZEDQA b8gd PASS the copyright page lays out (16 lines)
+ZEDQA b8gd PASS the page prints exactly the keys' words, in order
+ZEDQA b8gd PASS the printing line is last (10 9 8 7 6 5 4 3 2 1)
+ZEDQA b8gd PASS the block starts under the top margin (749.9, margin 52.5)
+ZEDQA b8gd PASS the block ends on the text foot (last baseline 1157.6, foot 1162.0)
+ZEDQA b8gd PASS no copyright line is wider than the text block
+ZEDQA b8gd PASS UI_ZeD_Guide_Copy1 to 5 have text
+ZEDQA b8gd PASS the copyright line carries its years
+ZEDQA b8gd copyright line 1: Survive the Apocalypse: Survive an Outbreak Like It's a Vacation
+ZEDQA b8gd copyright line 2: Second Edition
+ZEDQA b8gd copyright line 3: by Stevie Whetstone
+ZEDQA b8gd copyright line 4: Copyright © 1984, 1987 by Doidbros and Buzzlord Division of Survival Emergency
+ZEDQA b8gd copyright line 5: Publications LLC. All rights reserved. No part of this book may be reproduced, stored in a
+ZEDQA b8gd copyright line 6: retrieval system or transmitted in any form or by any means, electronic, mechanical,
+ZEDQA b8gd copyright line 7: photocopying, recording or otherwise, without the prior written permission of the publisher.
+ZEDQA b8gd copyright line 8: Brand names in this book are trademarks of their respective holders and are used for
+ZEDQA b8gd copyright line 9: identification only.
+ZEDQA b8gd copyright line 10: Limits of liability and disclaimer of warranty: the author and the publisher have used their
+ZEDQA b8gd copyright line 11: best efforts in preparing this book and the methods in it. They make no warranty of any
+ZEDQA b8gd copyright line 12: kind, expressed or implied, with regard to the methods or the advice in this book. The first
+ZEDQA b8gd PASS the title page's publisher line has text (by Stevie Whetstone)
+ZEDQA b8gd shot first_spread
+ZEDQA b8gd shot contents
+ZEDQA b8gd shot contents_end_intro
+ZEDQA b8gd PASS every section has a page
+ZEDQA b8gd PASS the sections run in order
+ZEDQA b8gd chapters (page / spread now, for the gallery retakes): 1:Movement=p7/spread 4; 2:Loot=p12/spread 6; 3:Interactables=p14/spread 7; 4:Combat=p22/spread 11; 5:Food & Water=p33/spread 17; 6:Character=p39/spread 20; 7:Crafting and Building=p59/spread 30; 8:Vehicles=p65/spread 33; 9:Weather=p70/spread 35; 10:Foraging & Mining=p72/spread 36; 11:Farming=p74/spread 37; 12:Ranching=p82/spread 41; 13:Fishing=p89/spread 45; 14:Cleaning=p92/spread 46; 15:Multiplayer=p95/spread 48; 16:ZeD=p98/spread 49; 17:First Days=p102/spread 51; 18:Coming from Build 41=p106/spread 53; 19:Your Controls=p108/spread 54; 20:What's New in ZeD=p111/spread 56
+ZEDQA b8gd PASS Television/Radio has a rules page (page 20)
+ZEDQA b8gd PASS the rules page follows the topic (topic on page 19)
+ZEDQA b8gd Television/Radio rules page: TV schedule (1 rows)
+ZEDQA b8gd shot tv_rules
+ZEDQA b8gd thirds dealt per reading over 10 seeds: 36,36,36,36,36,36,36,36,36,36; the union covers 44 of 44 (32 of the 32 new)
+ZEDQA b8gd PASS the new thirds are dealt into the book
+ZEDQA b8gd this reading's deal: 36 thirds, 26 of them new. ZeD guide ads (text x1.00, keyboard): full pages 4 (1 with no full ad left), the house ad up front; 310 slots 21 (8 with no half or pair left); 205 slots 36 (0 with no third left); NOTES blocks 15; dealt full 4/4, half 7/7, quarter 12/12, third 36/44
+ZEDQA b8gd new thirds in view of a picture: 25
+ZEDQA b8gd shot third_1_third_optima_eyes
+ZEDQA b8gd shot third_2_third_invisible_sledgehammer
+ZEDQA b8gd shot third_3_third_nolans_used_cars
+ZEDQA b8gd shot third_4_third_echo_creek_feed_seed
+ZEDQA b8gd shot third_5_third_homeward_real_estate
+ZEDQA b8gd shot third_6_third_u_store_it
+ZEDQA b8gd PASS every new third dealt is drawn at design size inside the text block (12 measured of 25 dealt)
+ZEDQA b8gd 29 passed, 0 failed
+ZEDQA b8gd DONE
+```
+
+### 6. zedqa_b8_console.lua (`ZEDQA b8dc`) - WARN, 11 s
+
+- go 23741 at 02:06:36
+- 1 expected exception(s) ignored (expect=)
+- 3 ERR line(s)
+- screenshots: zqa_b8dc_open.png, zqa_b8dc_errors.png, zqa_b8dc_handed_back.png
+
+```text
+[ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8dc start
+[ZeD.QA] run #6 ok=true
+ZEDQA b8dc NOTE the console was up at the start: true (UI.DebugConsole.StartVisible)
+ZEDQA b8dc PASS 1: with the game's flag down ZeD's Lua console is shut
+ZEDQA b8dc PASS 1: the game's own console is off the screen
+ZEDQA b8dc PASS 1: with the flag up (the key) ZeD's Lua console opens
+ZEDQA b8dc PASS 1: and the game's own console stays parked off the screen
+ZEDQA b8dc PASS 1: the window is on the screen
+ZEDQA b8dc PASS 3: print(...) shows in the list
+ZEDQA b8dc PASS 3: the game's line is empty after the run
+ZEDQA b8dc PASS 3: the line is the newest history entry (print("hello_b8dc"))
+ZEDQA b8dc PASS 6: the same line twice in a row keeps one history entry (1 then 1)
+ERROR: General f:2930> Lua(Vanilla).console> Exception thrown   (expected)
+    java.lang.RuntimeException: attempted index of non-table at KahluaUtil.fail(KahluaUtil.java:100).
+    Lua(Vanilla).console(spawnpoints.lua:1)
+    Lua((MOD:ZeD-GUI)).pcall(ZeD_DebugConsole.lua:196)
+    Lua((MOD:ZeD-GUI)).run(ZeD_DebugConsole.lua:196)
+    Lua(Vanilla).step(spawnpoints.lua:138)
+    Lua(Vanilla).onTick(spawnpoints.lua:69)
+ZEDQA b8dc PASS 4: a runtime error adds an error block (0 then 1)
+ZEDQA b8dc 4 bytes line 14: 76,79,71,32,32,58 err=nil
+ZEDQA b8dc 4 bytes line 15: 91,85,83,69,82,93 err=nil
+ZEDQA b8dc 4 bytes line 16: 32,32,32,32,76,117 err=true
+ZEDQA b8dc 4 bytes line 17: 32,32,32,32,76,117 err=true
+ZEDQA b8dc 4 bytes line 18: 32,32,32,32,76,117 err=true
+ZEDQA b8dc 4 parse of a clean copy: 1 error block(s); line 2 err true; text length 3759, lines 62, errors counted 1
+ZEDQA b8dc PASS 4: its words are in the list
+ZEDQA b8dc PASS 5: a line that does not compile adds an error block (1 then 2)
+ZEDQA b8dc PASS 5: the console's own compile message is in the list
+ZEDQA b8dc PASS 6: the history ends with the last line run (oldest first; 3 entries)
+ZEDQA b8dc FAIL 7: the game's suggestion for getPlay names getPlayer (nil)
+ZEDQA b8dc FAIL 7: Tab turns getPlay into getPlayer() (nil)
+ZEDQA b8dc PASS 7: a suggestion that does not start with the typed word (getPl) is not offered (nil)
+ZEDQA b8dc FAIL 7: Tab on getPl changes nothing (nil)
+ZEDQA b8dc PASS 8: Clear empties the list
+ZEDQA b8dc PASS 8: new output shows after a clear
+ZEDQA b8dc PASS 8: the typed command clear empties the list too
+ZEDQA b8dc PASS 11: the close box shuts ZeD's window
+ZEDQA b8dc PASS 11: and the game's flag goes down with it
+ZEDQA b8dc PASS 11: the key (the flag) opens it again
+ZEDQA b8dc PASS pad 1: the ZeD wheel's last slice is the Lua console (Lua console)
+ZEDQA b8dc PASS pad 1: with the pencil icon
+ZEDQA b8dc PASS 12: the switch On hands the console back to the game
+ZEDQA b8dc PASS 12: ZeD's window is shut
+ZEDQA b8dc PASS 12: the game's own console is back in its place (x 20)
+ZEDQA b8dc PASS 12: and open, as ZeD's was
+ZEDQA b8dc PASS 12: the switch Off takes it again
+ZEDQA b8dc PASS 12: ZeD's window is back
+ZEDQA b8dc PASS 12: the game's own console is parked again
+ZEDQA b8dc checks: passes=30 misses=3
+ZEDQA b8dc DONE
+```
+
+### 7. zedqa_dash_keys_edge.lua (`ZEDQA dke`) - PASS, 280 s
+
+- go 23742 at 02:06:51
+- screenshots: zqa_dke_luxury_acc.png, zqa_dke_luxury_start.png, zqa_dke_luxury_on.png, zqa_dke_nyala_acc.png, zqa_dke_nyala_start.png, zqa_dke_nyala_on.png, zqa_dke_cossette_acc.png, zqa_dke_cossette_start.png, zqa_dke_cossette_on.png, zqa_dke_police_acc.png, zqa_dke_police_start.png, zqa_dke_police_on.png, zqa_dke_d6_acc.png, zqa_dke_d6_start.png, zqa_dke_d6_on.png, zqa_dke_dashelite_acc.png, zqa_dke_dashelite_start.png, zqa_dke_dashelite_on.png, zqa_dke_primani_acc.png, zqa_dke_primani_start.png, zqa_dke_primani_on.png, zqa_dke_dart_acc.png, zqa_dke_dart_start.png, zqa_dke_dart_on.png, zqa_dke_horizon_acc.png, zqa_dke_horizon_start.png, zqa_dke_horizon_on.png, zqa_dke_wagon_acc.png, zqa_dke_wagon_start.png, zqa_dke_wagon_on.png, zqa_dke_suv_acc.png, zqa_dke_suv_start.png, zqa_dke_suv_on.png, zqa_dke_van_acc.png, zqa_dke_van_start.png, zqa_dke_van_on.png, zqa_dke_bulldriver_acc.png, zqa_dke_bulldriver_start.png, zqa_dke_bulldriver_on.png, zqa_dke_rancher_acc.png, zqa_dke_rancher_start.png, zqa_dke_rancher_on.png, zqa_dke_taxi_acc.png, zqa_dke_taxi_start.png, zqa_dke_taxi_on.png, zqa_dke_ambulance_acc.png, zqa_dke_ambulance_start.png, zqa_dke_ambulance_on.png, zqa_dke_fire_acc.png, zqa_dke_fire_start.png, zqa_dke_fire_on.png, zqa_dke_ranger_acc.png, zqa_dke_ranger_start.png, zqa_dke_ranger_on.png, zqa_dke_race_acc.png, zqa_dke_race_start.png, zqa_dke_race_on.png
+
+```text
+[ZeD.QA] state #7 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #7 ok=true
+ZEDQA vp dke player=925,13040 grid=19 chunks (152 tiles) loaded x 848-1000 y 12968-13120 sq=920,13042 dist=5.7 chunk=true inMap=true car=Base.CarLuxury at 920.0,13042.0 dist=5.7 vehicles=38
+ZEDQA dke shot luxury_acc design=luxury rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot luxury_start design=luxury rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot luxury_on design=luxury rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=917,13042 grid=19 chunks (152 tiles) loaded x 840-992 y 12968-13120 sq=912,13044 dist=6.1 chunk=true inMap=true car=Base.CarNormal at 912.0,13044.0 dist=6.1 vehicles=48
+ZEDQA dke shot nyala_acc design=nyala rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot nyala_start design=nyala rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot nyala_on design=nyala rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=910,13043 grid=19 chunks (152 tiles) loaded x 832-984 y 12968-13120 sq=912,13048 dist=4.3 chunk=true inMap=true car=Base.SportsCar at 912.0,13048.0 dist=4.3 vehicles=50
+ZEDQA dke shot cossette_acc design=cossette rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot cossette_start design=cossette rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot cossette_on design=cossette rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=911,13048 grid=19 chunks (152 tiles) loaded x 832-984 y 12976-13128 sq=916,13050 dist=5.3 chunk=true inMap=true car=Base.CarLightsKST at 916.0,13050.0 dist=5.3 vehicles=49
+ZEDQA dke shot police_acc design=police rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot police_start design=police rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot police_on design=police rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=915,13049 grid=19 chunks (152 tiles) loaded x 840-992 y 12976-13128 sq=920,13046 dist=6.1 chunk=true inMap=true car=Base.PickUpTruck at 920.0,13046.0 dist=6.1 vehicles=47
+ZEDQA dke shot d6_acc design=d6 rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot d6_start design=d6 rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot d6_on design=d6 rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=918,13045 grid=19 chunks (152 tiles) loaded x 840-992 y 12968-13120 sq=913,13047 dist=5.2 chunk=true inMap=true car=Base.ModernCar at 913.0,13047.0 dist=5.2 vehicles=48
+ZEDQA dke shot dashelite_acc design=dashelite rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot dashelite_start design=dashelite rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot dashelite_on design=dashelite rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=911,13046 grid=19 chunks (152 tiles) loaded x 832-984 y 12968-13120 sq=913,13051 dist=4.5 chunk=true inMap=true car=Base.ModernCar02 at 913.0,13051.0 dist=4.5 vehicles=50
+ZEDQA dke shot primani_acc design=primani rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot primani_start design=primani rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot primani_on design=primani rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=911,13050 grid=19 chunks (152 tiles) loaded x 832-984 y 12976-13128 sq=916,13052 dist=4.3 chunk=true inMap=true car=Base.SmallCar at 916.0,13052.0 dist=4.3 vehicles=49
+ZEDQA dke shot dart_acc design=dart rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot dart_start design=dart rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot dart_on design=dart rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=914,13052 grid=19 chunks (152 tiles) loaded x 840-992 y 12976-13128 sq=919,13049 dist=5.1 chunk=true inMap=true car=Base.SmallCar02 at 919.0,13049.0 dist=5.1 vehicles=47
+ZEDQA dke shot horizon_acc design=horizon rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot horizon_start design=horizon rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot horizon_on design=horizon rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=917,13049 grid=19 chunks (152 tiles) loaded x 840-992 y 12976-13128 sq=912,13051 dist=6.2 chunk=true inMap=true car=Base.CarStationWagon at 912.0,13051.0 dist=6.2 vehicles=47
+ZEDQA dke shot wagon_acc design=wagon rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot wagon_start design=wagon rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot wagon_on design=wagon rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=910,13050 grid=19 chunks (152 tiles) loaded x 832-984 y 12976-13128 sq=912,13055 dist=4.5 chunk=true inMap=true car=Base.SUV at 912.0,13055.0 dist=4.5 vehicles=49
+ZEDQA dke shot suv_acc design=suv rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot suv_start design=suv rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot suv_on design=suv rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=910,13054 grid=19 chunks (152 tiles) loaded x 832-984 y 12976-13128 sq=915,13056 dist=4.4 chunk=true inMap=true car=Base.Van at 915.0,13056.0 dist=4.4 vehicles=49
+ZEDQA dke shot van_acc design=van rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot van_start design=van rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot van_on design=van rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=913,13055 grid=19 chunks (152 tiles) loaded x 840-992 y 12976-13128 sq=918,13052 dist=5.2 chunk=true inMap=true car=Base.PickUpVan at 918.0,13052.0 dist=5.2 vehicles=47
+ZEDQA dke shot bulldriver_acc design=bulldriver rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot bulldriver_start design=bulldriver rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot bulldriver_on design=bulldriver rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=916,13051 grid=19 chunks (152 tiles) loaded x 840-992 y 12976-13128 sq=911,13053 dist=6.0 chunk=true inMap=true car=Base.OffRoad at 911.0,13053.0 dist=6.0 vehicles=47
+ZEDQA dke shot rancher_acc design=rancher rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot rancher_start design=rancher rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot rancher_on design=rancher rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=909,13053 grid=19 chunks (152 tiles) loaded x 832-984 y 12976-13128 sq=911,13058 dist=5.1 chunk=true inMap=true car=Base.CarTaxi at 911.0,13058.0 dist=5.1 vehicles=49
+ZEDQA dke shot taxi_acc design=taxi rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot taxi_start design=taxi rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot taxi_on design=taxi rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=909,13057 grid=19 chunks (152 tiles) loaded x 832-984 y 12984-13136 sq=914,13059 dist=4.3 chunk=true inMap=true car=Base.VanAmbulance at 914.0,13059.0 dist=4.3 vehicles=47
+ZEDQA dke shot ambulance_acc design=ambulance rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot ambulance_start design=ambulance rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot ambulance_on design=ambulance rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=912,13058 grid=19 chunks (152 tiles) loaded x 840-992 y 12984-13136 sq=917,13055 dist=5.3 chunk=true inMap=true car=Base.PickUpTruckLightsFire at 917.0,13055.0 dist=5.3 vehicles=45
+ZEDQA dke shot fire_acc design=fire rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot fire_start design=fire rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot fire_on design=fire rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA vp dke player=915,13054 grid=19 chunks (152 tiles) loaded x 840-992 y 12976-13128 sq=910,13056 dist=6.1 chunk=true inMap=true car=Base.CarLightsRanger at 910.0,13056.0 dist=6.1 vehicles=47
+ZEDQA dke shot ranger_acc design=ranger rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot ranger_start design=ranger rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot ranger_on design=ranger rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ERROR: General f:20082 at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+ZEDQA vp dke player=908,13055 grid=19 chunks (152 tiles) loaded x 832-984 y 12976-13128 sq=910,13060 dist=4.2 chunk=true inMap=true car=Base.RaceCar12 at 910.0,13060.0 dist=4.2 vehicles=49
+ERROR: General f:20385 at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+ZEDQA dke shot race_acc design=race rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=acc running=false kmh=0.0
+ZEDQA dke shot race_start design=race rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=start running=false kmh=0.0
+ZEDQA dke shot race_on design=race rect=1120,1804,1600,356 bottom=2160 screenBottom=2160 k=2 keyPos=on running=true kmh=0.0
+ZEDQA dke PASS
+ZEDQA dke DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    2x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

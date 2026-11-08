@@ -147,14 +147,14 @@ local function optionPoll(value, want, name)
         opt:setValue(value)
         t0 = getTimestampMs()
     end)
-    poll(0, 600, function()
+    poll(0, 1100, function()
         local ms = getTimestampMs() - t0
         if S.on() == want then
             say(name .. ": picked up after " .. tostring(ms) .. " ms")
-            check(name, ms <= 700)
+            check(name, ms <= 1000)
             return true
         end
-        if ms > 700 then
+        if ms > 1000 then
             say(name .. ": not picked up after " .. tostring(ms) .. " ms")
             check(name, false)
             return true

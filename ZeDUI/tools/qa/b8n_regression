@@ -1,0 +1,2123 @@
+# ZeD-UI regression - 2026-11-07 21:35 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-07 21:35:14 |
+| Finished | 2026-11-07 21:50:48 (15 min 33 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta7 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\regression.txt (100 scripts) |
+| Result | **32/100 pass**, 4 warn, 3 fail, 0 timeout, 61 not run |
+| Go numbers | 23281 to 23321 |
+
+Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- stopped after zedqa_journal_readers.lua: no DONE within 180 s; the script may still be running in the game
+- quit: quit to the main menu, then to the desktop (go 23320, 23321)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 2 |  |  |
+| 2 | suite_tabs.lua | tabs | PASS | 9 |  |  |
+| 3 | suite_verbs.lua | verbs | PASS | 14 |  |  |
+| 4 | suite_gamepad.lua | gp | PASS | 6 |  |  |
+| 5 | suite_band.lua | band | PASS | 2 |  |  |
+| 6 | suite_perf.lua | perf | PASS | 24 |  |  |
+| 7 | zedqa_audit_fixes.lua | af | PASS | 3 |  |  |
+| 8 | zedqa_card_pad.lua | cp | PASS | 4 | zqa_cp_card.png |  |
+| 9 | zedqa_ctxlist.lua | cl | PASS | 5 | zqa_cl_1.png, zqa_cl_2.png |  |
+| 10 | zedqa_ctx_icons.lua | cx | PASS | 22 | zqa_cx_grid.png, zqa_cx_strip_apple.png, zqa_cx_strip_pistol.png, zqa_cx_strip_bandage.png, zqa_cx_strip_hammer.png, zqa_cx_strip_floor.png, zqa_cx_list_apple.png, zqa_cx_list_pistol.png, zqa_cx_list_bandage.png, zqa_cx_list_hammer.png, zqa_cx_list_floor.png |  |
+| 11 | zedqa_onepath.lua | op | PASS | 16 | zqa_op_1.png, zqa_op_2.png, zqa_op_3.png, zqa_op_4.png |  |
+| 12 | zedqa_grid.lua | grid | PASS | 6 | zqa_grid_1.png, zqa_grid_2.png, zqa_grid_3.png |  |
+| 13 | zedqa_sort_groups.lua | sg | WARN | 45 | zqa_sg_single_list_cat.png, zqa_sg_single_list_name.png, zqa_sg_single_list_cond.png, zqa_sg_single_list_wt.png, zqa_sg_single_list_name_rev.png, zqa_sg_fold_cat.png, zqa_sg_fold_name.png, zqa_sg_fold_back.png, zqa_sg_stack_open.png, zqa_sg_single_grid_cat.png, zqa_sg_single_grid_name.png, zqa_sg_single_grid_cond.png, zqa_sg_single_grid_wt.png, zqa_sg_single_grid_name_rev.png, zqa_sg_multi_list_cat.png, zqa_sg_multi_list_name.png, zqa_sg_multi_list_cond.png, zqa_sg_multi_list_wt.png, zqa_sg_multi_list_name_rev.png, zqa_sg_multi_grid_cat.png, zqa_sg_multi_grid_name.png, zqa_sg_multi_grid_cond.png, zqa_sg_multi_grid_wt.png, zqa_sg_multi_grid_name_rev.png | 102 ERR line(s) |
+| 14 | zedqa_wt_bracket.lua | wtb | WARN | 21 | zqa_wtb_small_list.png, zqa_wtb_open_stack.png, zqa_wtb_narrow_wt.png, zqa_wtb_small_grid.png, zqa_wtb_large_list.png, zqa_wtb_large_grid.png, zqa_wtb_two_columns.png, zqa_wtb_two_columns_large.png | 20 ERR line(s) |
+| 15 | zedqa_doll.lua | doll | PASS | 7 | zqa_doll_1.png, zqa_doll_2.png, zqa_doll_3.png |  |
+| 16 | zedqa_doll_v4.lua | dollv4 | **FAIL** | 18 | zqa_dollv4_3840x2160_wide.png, zqa_dollv4_3840x2160_dpad.png, zqa_dollv4_3840x2160_wide_pads.png, zqa_dollv4_3840x2160_card.png, zqa_dollv4_3840x2160_narrow.png | 1 Java exception(s) in the log; 34 ERR line(s) |
+| 17 | zedqa_large.lua | lg | PASS | 8 | zqa_lg_small_loot.png, zqa_lg_small_equip.png, zqa_lg_large_loot.png, zqa_lg_large_equip.png |  |
+| 18 | zedqa_segbars.lua | segb | PASS | 1 |  |  |
+| 19 | zedqa_curtain.lua | cu | **FAIL** | 123 | zqa_cu_0.png, zqa_cu_1.png, zqa_cu_2.png, zqa_cu_3.png, zqa_cu_4.png, zqa_cu_5.png, zqa_cu_6.png | 1 Java exception(s) in the log; 87 ERR line(s) |
+| 20 | zedqa_curtain2.lua | cv | PASS | 10 | zqa_cv_1.png, zqa_cv_2.png, zqa_cv_3.png |  |
+| 21 | zedqa_navevents.lua | ev | PASS | 5 |  |  |
+| 22 | zedqa_navmap.lua | nav | PASS | 8 |  |  |
+| 23 | zedqa_loot_tabs.lua | lt | PASS | 1 |  |  |
+| 24 | zedqa_world_pad_take.lua | wpt | WARN | 48 |  | 39 ERR line(s) |
+| 25 | zedqa_furniture.lua | fu | PASS | 2 |  |  |
+| 26 | zedqa_tabicons.lua | ti | PASS | 3 | zqa_tabicons.png |  |
+| 27 | zedqa_tabs_lit.lua | tl | PASS | 6 | zqa_tabs_1.png, zqa_tabs_2.png, zqa_tabs_3.png |  |
+| 28 | zedqa_win.lua | win | PASS | 5 | zedqa_win_200.png, zedqa_win_100.png |  |
+| 29 | zedqa_rootchange.lua | rc | PASS | 6 | zedqa_rc_100.png, zedqa_rc_200.png |  |
+| 30 | zedqa_scalewalk.lua | sw | WARN | 57 | zedqa_sw_200_char_loot.png, zedqa_sw_200_char_equip.png, zedqa_sw_200_char_health.png, zedqa_sw_200_char_thermal.png, zedqa_sw_200_char_identity.png, zedqa_sw_200_char_journal.png, zedqa_sw_200_char_skills.png, zedqa_sw_200_world_loot.png, zedqa_sw_200_world_craft.png, zedqa_sw_200_world_build.png, zedqa_sw_200_world_furniture.png, zedqa_sw_200_world_maps.png, zedqa_sw_200_world_forage.png, zedqa_sw_200_world_animals.png, zedqa_sw_200_world_vehicle.png, zedqa_sw_100_char_loot.png, zedqa_sw_100_char_equip.png, zedqa_sw_100_char_health.png, zedqa_sw_100_char_thermal.png, zedqa_sw_100_char_identity.png, zedqa_sw_100_char_journal.png, zedqa_sw_100_char_skills.png, zedqa_sw_100_world_loot.png, zedqa_sw_100_world_craft.png, zedqa_sw_100_world_build.png, zedqa_sw_100_world_furniture.png, zedqa_sw_100_world_maps.png, zedqa_sw_100_world_forage.png, zedqa_sw_100_world_animals.png, zedqa_sw_100_world_vehicle.png | 8 ERR line(s) |
+| 31 | zedqa_uiscale.lua | scale | PASS | 12 | zedqa_scale_auto.png, zedqa_scale_x150.png, zedqa_scale_x100.png, zedqa_scale_auto_back.png, zedqa_scale_restored.png |  |
+| 32 | zedqa_sc_font.lua | scf | PASS | 3 | zqa_scf_draw.png |  |
+| 33 | zedqa_mapshot.lua | ms | PASS | 4 | zqa_ms_1.png, zqa_ms_2.png |  |
+| 34 | zedqa_mapstyles.lua | mst | PASS | 12 | zqa_ms_survey_13.png, zqa_ms_survey_17.png, zqa_ms_color_13.png, zqa_ms_color_17.png, zqa_ms_paper_13.png, zqa_ms_paper_17.png |  |
+| 35 | zedqa_flyers.lua | fl | PASS | 5 | zqa_fl_1.png, zqa_fl_2.png |  |
+| 36 | zedqa_flyermap.lua | fm | PASS | 10 | zqa_fm_paper.png, zqa_fm_survey.png, zqa_fm_card.png, zqa_fm_reader.png, zqa_fm_flash.png |  |
+| 37 | zedqa_mapnotes.lua | mnote | PASS | 8 | zqa_mnote_placed.png, zqa_mnote_menu.png, zqa_mnote_deleted.png, zqa_mnote_paper_labels.png |  |
+| 38 | zedqa_journal_refs.lua | jr | PASS | 4 | zqa_jr_01_diary.png, zqa_jr_02_flyers.png |  |
+| 39 | zedqa_journal_readers.lua | jrd | **FAIL** | 180 | zqa_jr_01_papers.png, zqa_jr_02_unread_look.png, zqa_jr_03_read_look.png | 1 Java exception(s) in the log; 1 ERR line(s); no DONE within 180 s; the script may still be running in the game |
+| 40 | zedqa_lists.lua | ls | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 41 | zedqa_restock.lua | rst | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 42 | zedqa_reader.lua | rd | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 43 | zedqa_reader_refs.lua | rr | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 44 | zedqa_notebook.lua | nb | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 45 | zedqa_print_fit.lua | pf | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 46 | zedqa_print_typeset.lua | ts | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 47 | zedqa_prompts.lua | pr | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 48 | zedqa_fishing.lua | fi | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 49 | zedqa_props_plates.lua | props | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 50 | zedqa_belt_strap.lua | belt | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 51 | zedqa_straps.lua | straps | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 52 | zedqa_buckle.lua | bk | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 53 | zedqa_buckles.lua | bks | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 54 | zedqa_beltwatch.lua | bw | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 55 | zedqa_hands_together.lua | ht | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 56 | zedqa_watches2.lua | watches | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 57 | zedqa_container_bottom.lua | cb | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 58 | zedqa_container_controls.lua | ct | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 59 | zedqa_container_controls_captures.lua | cc | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 60 | zedqa_px_icons.lua | px | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 61 | zedqa_button_case_game.lua | bg | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 62 | zedqa_immersive_searching.lua | iss | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 63 | zedqa_wheel_sizes.lua | ws | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 64 | zedqa_wheel_icons.lua | wi | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 65 | zedqa_wheels.lua | wh | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 66 | zedqa_dpad_wheels.lua | dw | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 67 | zedqa_pad_glyphs.lua | pg | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 68 | zedqa_quick_chords.lua | qc | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 69 | zedqa_put_back.lua | pb | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 70 | zedqa_food_verbs.lua | fv | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 71 | zedqa_messages.lua | msg | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 72 | zedqa_moodles.lua | mood | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 73 | zedqa_ring_squares.lua | rs | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 74 | zedqa_sandbox_ig.lua | sbx | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 75 | zedqa_twoway.lua | tw | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 76 | zedqa_rtv.lua | rtv | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 77 | zedqa_appliances.lua | ap | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 78 | zedqa_two_widths.lua | tww | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 79 | zedqa_plates_336.lua | p336 | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 80 | zedqa_laundry.lua | ldy | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 81 | zedqa_seat_lightbar_vanilla.lua | sl | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 82 | zedqa_car_radio_build.lua | rb | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 83 | zedqa_car_radio_cd.lua | cd | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 84 | zedqa_dash_props_smoke.lua | sm | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 85 | zedqa_tm.lua | tm | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 86 | zedqa_tour3.lua | t3 | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 87 | zedqa_dash19.lua | dash | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 88 | zedqa_dashpx.lua | dpx | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 89 | zedqa_exinfo.lua | ex | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 90 | zedqa_charinfo.lua | ci | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 91 | zedqa_equipdrag.lua | eqd | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 92 | zedqa_faiv.lua | fav | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 93 | zedqa_cazio_light.lua | czl | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 94 | zedqa_dashnight.lua | dnt | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 95 | zedqa_dash_green.lua | dgr | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 96 | zedqa_dash_keys_edge.lua | dke | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 97 | zedqa_dash_brands.lua | dbr | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 98 | zedqa_testlang.lua | tlang | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 99 | zedqa_safemode.lua | safe | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+| 100 | zedqa_soak.lua | soak | SKIP |  |  | not run: no DONE within 180 s; the script may still be running in the game |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 2 s
+
+- go 23281 at 21:36:11
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 60 frames 61
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. suite_tabs.lua (`ZEDQA tabs`) - PASS, 9 s
+
+- go 23282 at 21:36:17
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA char tabs: loot,equip,health,thermal,identity,journal,skills
+ZEDQA world tabs: loot,craft,build,furniture,maps,forage,animals,vehicle
+ZEDQA tabs armed
+[ZeD.QA] run #2 ok=true
+ZEDQA char tab=loot active=loot w=777 focusables=0 {}
+ZEDQA char tab=equip active=equip w=777 focusables=0 {}
+ZEDQA char tab=health active=health w=777 focusables=0 {}
+ZEDQA char tab=thermal active=thermal w=777 focusables=0 {}
+ZEDQA char tab=identity active=identity w=777 focusables=0 {}
+ZEDQA char tab=journal active=journal w=777 focusables=0 {}
+ZEDQA char tab=skills active=skills w=777 focusables=0 {}
+ZEDQA world tab=loot active=loot w=777 focusables=0 {}
+ZEDQA world tab=craft active=craft w=777 focusables=0 {}
+ZEDQA world tab=build active=build w=777 focusables=0 {}
+ZEDQA world tab=furniture active=furniture w=777 focusables=0 {}
+ZEDQA world tab=maps active=maps w=777 focusables=0 {}
+ZEDQA world tab=forage active=forage w=777 focusables=0 {}
+ZEDQA world tab=animals active=animals w=777 focusables=0 {}
+ZEDQA world tab=vehicle active=vehicle w=777 focusables=0 {}
+ZEDQA tabs done
+```
+
+### 3. suite_verbs.lua (`ZEDQA verbs`) - PASS, 14 s
+
+- go 23283 at 21:36:29
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA verbs armed
+[ZeD.QA] run #3 ok=true
+ZEDQA worn=Belt ctx=equipped
+ZEDQA fire UNEQUIP ok=true err=nil qhead=ISUnequipAction
+ZEDQA after UNEQUIP pEq=false ctx=inventory (expect inventory)
+ZEDQA fire EQUIP ok=true err=nil qhead=ISWearClothing
+ZEDQA after EQUIP pEq=true ctx=equipped (expect equipped)
+ZEDQA fire READ ok=true err=nil qhead=ISReadABook
+ZEDQA after READ qhead=ISReadABook (expect ISReadABook)
+ZEDQA fire EQUIP ok=true err=nil qhead=ISEquipWeaponAction
+ZEDQA after EQUIP bat primary=Baseball Bat ctx=equipped (expect equipped)
+ZEDQA fire UNEQUIP ok=true err=nil qhead=ISUnequipAction
+ZEDQA after UNEQUIP bat primary=nil (expect nil)
+ZEDQA fire EAT ok=true err=nil qhead=ISEatFoodAction
+ZEDQA after EAT qhead=ISEatFoodAction (expect ISEatFoodAction)
+ZEDQA fire DROP ok=true err=nil qhead=ISInventoryTransferAction
+ZEDQA after DROP cont=nil ctx=inventory (expect floor/ground)
+ZEDQA fire TAKE ok=true err=nil qhead=none
+ZEDQA after TAKE inInv=false ctx=ground (expect inventory)
+ZEDQA verbs done
+```
+
+### 4. suite_gamepad.lua (`ZEDQA gp`) - PASS, 6 s
+
+- go 23284 at 21:36:46
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA gp armed
+[ZeD.QA] run #4 ok=true
+ZEDQA gp claim zone=charMainInv el=invrow:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp down zone=charMainInv el=invrow:2 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp right zone=charContainerStrip el=container:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp left zone=charMainInv el=invrow:2 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp loot charTabContent elements=0 (expect 0)
+ZEDQA gp right after journal to loot (expect container strip, never jsub) zone=charContainerStrip el=container:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp after row2 onActivate (expect card open) zone=charContainerStrip el=container:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp after row3 onActivate (expect live swap) zone=charContainerStrip el=container:1 tab=loot drawer=true item=Baseball Bat ctx=false
+ZEDQA gp after row3 again (expect closed) zone=charContainerStrip el=container:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp after row2 onContextMenu (expect ctx=true) zone=charContainerStrip el=container:1 tab=loot drawer=false item=nil ctx=true
+ZEDQA gp after ctx B (expect ctx=false) zone=charContainerStrip el=container:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp world claim zone=worldMainInv el=invrow:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp world right zone=worldTabBar el=tab:loot tab=loot drawer=false item=nil ctx=false
+ZEDQA gp world craft down zone=worldTabBar el=tab:craft tab=craft drawer=true item=nil ctx=false
+ZEDQA gp world loot left (stale check) zone=worldMainInv el=invrow:1 tab=loot drawer=false item=nil ctx=false
+ZEDQA gp done
+```
+
+### 5. suite_band.lua (`ZEDQA band`) - PASS, 2 s
+
+- go 23285 at 21:36:56
+
+```text
+[ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA band armed
+[ZeD.QA] run #5 ok=true
+ZEDQA band reading active=true kind=reading mode=nil label=Reading pct=0 time=nil (expect active reading)
+ZEDQA band after cancel active=false kind=nil mode=nil label=nil pct=nil time=nil qlen=0 (expect inactive, 0)
+ZEDQA band: no real stove within 20 tiles; cooking skipped
+ZEDQA band done
+```
+
+### 6. suite_perf.lua (`ZEDQA perf`) - PASS, 24 s
+
+- go 23286 at 21:37:01
+
+```text
+[ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #6 ok=true
+ZEDQA perf char loot avg=8.33ms/tick max=11ms
+ZEDQA perf char equip avg=8.32ms/tick max=13ms
+ZEDQA perf char health avg=8.33ms/tick max=12ms
+ZEDQA perf char thermal avg=8.33ms/tick max=12ms
+ZEDQA perf char identity avg=8.33ms/tick max=12ms
+ZEDQA perf char journal avg=8.34ms/tick max=12ms
+ZEDQA perf char skills avg=8.33ms/tick max=12ms
+ZEDQA perf world craft avg=8.34ms/tick max=13ms
+ZEDQA perf world build avg=8.33ms/tick max=12ms
+ZEDQA perf world maps avg=8.32ms/tick max=12ms
+ZEDQA perf world forage avg=8.33ms/tick max=15ms
+ZEDQA perf world animals avg=8.33ms/tick max=12ms
+ZEDQA perf world loot avg=8.34ms/tick max=12ms
+ZEDQA perf done
+```
+
+### 7. zedqa_audit_fixes.lua (`ZEDQA af`) - PASS, 3 s
+
+- go 23287 at 21:37:28
+
+```text
+[ZeD.QA] state #7 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA af start
+[ZeD.QA] run #7 ok=true
+ZEDQA af tab draws again: zones 0
+ZEDQA af equip slots 0
+ZEDQA af equip card shown on Equip: nil
+ZEDQA af equip card on Journal (expect false): nil
+ZEDQA af card item set: true mode item
+ZEDQA af after the apple left: drawer item Base.Apple:zombie.inventory.types.Food@78e2f867 mode item (expect nil, nil)
+ZEDQA af weight 0
+ZEDQA af DONE
+```
+
+### 8. zedqa_card_pad.lua (`ZEDQA cp`) - PASS, 4 s
+
+- go 23288 at 21:37:34
+- screenshots: zqa_cp_card.png
+
+```text
+[ZeD.QA] state #8 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA cp start
+[ZeD.QA] run #8 ok=true
+ZEDQA cp card open false | card buttons 0 {}
+ZEDQA cp before left: zone=charContainerStrip el=container:1
+ZEDQA cp after left (expect charItemCard): zone=charMainInv el=invrow:2
+ZEDQA cp right 1: zone=charContainerStrip el=container:1
+ZEDQA cp right 2: zone=charContainerStrip el=container:1
+ZEDQA cp left: zone=charMainInv el=invrow:2
+ZEDQA cp after B: card item nil (expect nil)
+ZEDQA cp health: inv then left (expect charTabContent): zone=charTabBar el=tab:health
+ZEDQA cp health: right: zone=charMainInv el=invrow:1
+ZEDQA cp DONE
+```
+
+### 9. zedqa_ctxlist.lua (`ZEDQA cl`) - PASS, 5 s
+
+- go 23289 at 21:37:41
+- screenshots: zqa_cl_1.png, zqa_cl_2.png
+
+```text
+[ZeD.QA] state #9 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA cl start
+[ZeD.QA] run #9 ok=true
+ZEDQA cl class ZeD_ContextList | rows: Eat, |, Place Item, Favorite, Set Unwanted, Move to, |, Set to be Unusable in Recipes, |, Drop, |, Save to loadout, |, Rename
+ZEDQA cl levels 2 | submenu: All, 1/2, 1/4
+ZEDQA cl down: sub sel 2
+ZEDQA cl B: levels 1
+ZEDQA cl B again: open false
+ZEDQA cl strip back: class ZeD_ContextMenu
+ZEDQA cl DONE
+```
+
+### 10. zedqa_ctx_icons.lua (`ZEDQA cx`) - PASS, 22 s
+
+- go 23290 at 21:37:50
+- screenshots: zqa_cx_grid.png, zqa_cx_strip_apple.png, zqa_cx_strip_pistol.png, zqa_cx_strip_bandage.png, zqa_cx_strip_hammer.png, zqa_cx_strip_floor.png, zqa_cx_list_apple.png, zqa_cx_list_pistol.png, zqa_cx_list_bandage.png, zqa_cx_list_hammer.png, zqa_cx_list_floor.png
+
+```text
+[ZeD.QA] state #10 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA cx ok 389 pictures in the menu's table, each with a pixel icon
+ZEDQA cx ok each pixel icon has its four drawings
+ZEDQA cx scale 1.75: the cell is 39 px, its icon box 28, the drawing 24
+ZEDQA cx ok the box rule picks 24 for the menu's icon box
+ZEDQA cx ok Walk to: walk (walk)
+ZEDQA cx ok ContextMenu_Eat (Eat): apple
+ZEDQA cx ok ContextMenu_Drink (Drink): glass
+ZEDQA cx ok ContextMenu_Equip_Primary (Equip Primary): hand_main
+ZEDQA cx ok ContextMenu_Barricade (Barricade (Planks)): barricade
+ZEDQA cx ok a label with a changing part finds its verb's icon: book
+ZEDQA cx grid x0=35 y0=35 cell=39 gap=7 per=82 n=291 box=28
+ZEDQA cx ids alarm,alarm_off,ammo,ammo_off,apple,arrow_left,arrow_right,backpack,bacon,bandage,bandage_off,barricade,bath,bayonet,bed,beer,berries,blender,blood,book,bookcase,boot,bottle,bowl,box_down,box_open,box_up,brain,bread,bricks,broom,bucket,bug,bulb_off,bulb_on,bulb_remove,burger,butter,cake,campfire,can,candy,cap,car_battery,car_door,car_enter,car_exit,car_x,carrot,chair,cheese,chocolate,cigarette,citrus,climb,climb_window,cocktail,coffee_pot,coffin,comb,combine,compost,cookie,cow,craft,craft_off,crop,cup,curtains,dna,door,drop,drumstick,dumbbell,egg,egg_fried,empty,engine,equip,extinguisher,eye,eyedrop,fabric,feather,fence,fill,filter,fireplace,fish,fist,flag,flame,flask,floor,follow_me,garlic,gas_can,gas_pump,gas_siphon,gauge,gears,generator,glass,glass_empty,glass_half,grater,grill,group,guide,gun,gun_fire,hammer,hand,hand_main,hand_off,hanger,heart,help,holster,holster_left,holster_right,honey,hook,horn,hotdog,hotwire,hutch,icecream,info,jacket,jar,juice,kebab,key_off,knife,ladder,leaf,lightbar,link,lipstick,locker,mag_in,mag_out,magazine,magnifier,map,mask,match,meat,milk,minus,more,mortar,move_down,move_up,mug,mushroom,needle,no,nose,notebook,nut,oil,ointment,one,padlock,padlock_open,paint,paintbrush,pan,pancakes,pasta,patch,peapod,pencil,pepper,pet,pet_bowl,pie,pillow,pills,pin,pipe,pizza,planks,plant,pliers,plug,plus,poison,pot,potato,pour,progress,pulse,push,rack,rain,razor,reinforce,rip,rod,roller,rope,rope_climb,rotate,rounds_out,sack,sad,salad,same_type,sandwich,sauce,saw,scarf,scissors,scope,screwdriver,scythe,seed,seek,shaker,shelves,shield_minus,shield_plain,shirt,shovel,sit_ground,sit_seat,skills,skull,sledge,sleeping_bag,smiley,soup,sparkle,splint,spoon,spray,stairs,stand,star,star_off,steak,stethoscope,suppressor,swap,table,taco,tally,tap,target,tent,tent_down,thermometer,tire,to_floor,toast,toilet,tombstone,tooth,tourniquet,towel,trap,trash,tray_in,tray_out,unequip,unlink,unplug,upgrade,view_grid,view_list,waffle,walk,warning,wash_hands,washer,watch,watering_can,welder,well,whisk,window,wine,wine_glass,wires,wrap,wrench,yarn,yes
+ZEDQA cx start
+[ZeD.QA] run #10 ok=true
+ZEDQA cx drawings not ready yet: 268
+ZEDQA cx drawings not ready after 67 frames: 0
+ZEDQA cx ok every drawing on the panel loaded
+ZEDQA cx shot zqa_cx_grid
+ZEDQA cx ok the test panel drew
+ZEDQA cx strip apple: ZeD_ContextMenu | pixel 14, licensed 0, item pictures 0, none 0
+ZEDQA cx ok strip apple opened with pixel icons
+ZEDQA cx ok strip apple: no licensed picture left
+ZEDQA cx shot zqa_cx_strip_apple
+ZEDQA cx strip pistol: ZeD_ContextMenu | pixel 15, licensed 0, item pictures 0, none 1 (Pin to title bar)
+ZEDQA cx ok strip pistol opened with pixel icons
+ZEDQA cx ok strip pistol: no licensed picture left
+ZEDQA cx shot zqa_cx_strip_pistol
+ZEDQA cx strip bandage: ZeD_ContextMenu | pixel 13, licensed 0, item pictures 0, none 0
+ZEDQA cx ok strip bandage opened with pixel icons
+ZEDQA cx ok strip bandage: no licensed picture left
+ZEDQA cx shot zqa_cx_strip_bandage
+ZEDQA cx strip hammer: ZeD_ContextMenu | pixel 15, licensed 0, item pictures 0, none 3 (Belt Left, Belt Right, Pin to title bar)
+ZEDQA cx ok strip hammer opened with pixel icons
+ZEDQA cx ok strip hammer: no licensed picture left
+ZEDQA cx shot zqa_cx_strip_hammer
+ZEDQA cx strip floor: ZeD_ContextMenu | pixel 4, licensed 0, item pictures 0, none 0
+ZEDQA cx ok strip floor opened with pixel icons
+ZEDQA cx ok strip floor: no licensed picture left
+ZEDQA cx shot zqa_cx_strip_floor
+ZEDQA cx list apple: ZeD_ContextList | pixel 14, licensed 0, item pictures 0, none 0
+ZEDQA cx ok list apple opened with pixel icons
+ZEDQA cx ok list apple: no licensed picture left
+ZEDQA cx shot zqa_cx_list_apple
+ZEDQA cx list pistol: ZeD_ContextList | pixel 15, licensed 0, item pictures 0, none 1 (Pin to title bar)
+ZEDQA cx ok list pistol opened with pixel icons
+ZEDQA cx ok list pistol: no licensed picture left
+ZEDQA cx shot zqa_cx_list_pistol
+ZEDQA cx list bandage: ZeD_ContextList | pixel 13, licensed 0, item pictures 0, none 0
+ZEDQA cx ok list bandage opened with pixel icons
+ZEDQA cx ok list bandage: no licensed picture left
+ZEDQA cx shot zqa_cx_list_bandage
+ZEDQA cx list hammer: ZeD_ContextList | pixel 15, licensed 0, item pictures 0, none 3 (Belt Left, Belt Right, Pin to title bar)
+ZEDQA cx ok list hammer opened with pixel icons
+ZEDQA cx ok list hammer: no licensed picture left
+ZEDQA cx shot zqa_cx_list_hammer
+ZEDQA cx list floor: ZeD_ContextList | pixel 4, licensed 0, item pictures 0, none 0
+ZEDQA cx ok list floor opened with pixel icons
+ZEDQA cx ok list floor: no licensed picture left
+ZEDQA cx shot zqa_cx_list_floor
+ZEDQA cx DONE 0 failed
+```
+
+### 11. zedqa_onepath.lua (`ZEDQA op`) - PASS, 16 s
+
+- go 23291 at 21:38:14
+- screenshots: zqa_op_1.png, zqa_op_2.png, zqa_op_3.png, zqa_op_4.png
+
+```text
+[ZeD.QA] state #11 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA op start
+[ZeD.QA] run #11 ok=true
+ZEDQA op crate ItemContainer:[type:crate, parent:null:carpentry_01_16:carpentry_01_16:zombie.iso.IsoObject@1b9c150] type crate
+ZEDQA op world select crate false
+ZEDQA op apple menu: Eat, |, Place Item, Favorite, Set Unwanted, Move to, |, Set to be Unusable in Recipes, |, Drop, |, Save to loadout, |, Rename
+ZEDQA op move to: Crate, Floor
+ZEDQA op picked Crate
+ZEDQA op apple now in crate
+ZEDQA op hammer menu: Attach, Claw Hammer, Place Item, Put in Container (Crate), Favorite, Set Unwanted, Move to, Pin to title bar, |, Craft, Set to be Unusable in Recipes, Show Build Recipes Used In, |, Equip Primary, Equip Secondary, |, Drop, |, Save to loadout, |, Rename
+ZEDQA op prompt true entry Claw Hammer
+ZEDQA op hammer name: Old Faithful custom true
+ZEDQA op card els:
+ZEDQA op dbl: first false second true
+ZEDQA op primary: true
+ZEDQA op crate menu: Sit on ground, Walk to, |, Disassemble, |, Take All
+ZEDQA op take all pressed
+ZEDQA op crate left: 1 apple home true
+ZEDQA op bottle verbs:
+ZEDQA op knife maint: sharp 0.4000000059604645
+ZEDQA op nocraft on true off false
+ZEDQA op DONE
+```
+
+### 12. zedqa_grid.lua (`ZEDQA grid`) - PASS, 6 s
+
+- go 23292 at 21:38:34
+- screenshots: zqa_grid_1.png, zqa_grid_2.png, zqa_grid_3.png
+
+```text
+[ZeD.QA] state #12 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA grid start
+[ZeD.QA] run #12 ok=true
+ZEDQA grid grid on: cell nil | cells placed 0 | toggle rects 2
+ZEDQA grid first target: invrow:1 at 0,100 size 350x53
+ZEDQA grid first cell: zone=charMainInv el=invrow:1 item=Angel Cross's Key Ring
+ZEDQA grid right (expect the next cell): zone=charContainerStrip el=container:1 item=nil
+ZEDQA grid down (expect the cell below): zone=charContainerStrip el=container:2 item=nil
+ZEDQA grid up: zone=charContainerStrip el=container:1 item=nil
+ZEDQA grid up again (expect the toggle): zone=charContainerStrip el=container:1 item=nil
+ZEDQA grid card open true item Angel Cross's Key Ring
+ZEDQA grid after A on List: grid false cell nil
+ZEDQA grid DONE
+```
+
+### 13. zedqa_sort_groups.lua (`ZEDQA sg`) - WARN, 45 s
+
+- go 23293 at 21:38:43
+- 102 ERR line(s)
+- screenshots: zqa_sg_single_list_cat.png, zqa_sg_single_list_name.png, zqa_sg_single_list_cond.png, zqa_sg_single_list_wt.png, zqa_sg_single_list_name_rev.png, zqa_sg_fold_cat.png, zqa_sg_fold_name.png, zqa_sg_fold_back.png, zqa_sg_stack_open.png, zqa_sg_single_grid_cat.png, zqa_sg_single_grid_name.png, zqa_sg_single_grid_cond.png, zqa_sg_single_grid_wt.png, zqa_sg_single_grid_name_rev.png, zqa_sg_multi_list_cat.png, zqa_sg_multi_list_name.png, zqa_sg_multi_list_cond.png, zqa_sg_multi_list_wt.png, zqa_sg_multi_list_name_rev.png, zqa_sg_multi_grid_cat.png, zqa_sg_multi_grid_name.png, zqa_sg_multi_grid_cond.png, zqa_sg_multi_grid_wt.png, zqa_sg_multi_grid_name_rev.png
+
+```text
+[ZeD.QA] state #13 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA sg start
+[ZeD.QA] run #13 ok=true
+ZEDQA sg pack worn at base:back: true
+ZEDQA sg given: bag 23, pack 8, bed 19, floor 11
+ZEDQA sg floor container things 11 | char window true world window true
+ZEDQA sg columns at start: char 0 world 0
+ZEDQA sg mode single:
+ZEDQA sg single list cat char: columns 1 rows 15 headers 0 order BAD Baseball Bat before Battery pad 15 (charMainInv=15) grid false sort cat/true
+ZEDQA sg FAIL single list cat char: headers 0
+ZEDQA sg FAIL single list cat char: fewer headers than columns
+ZEDQA sg FAIL single list cat char: order Baseball Bat before Battery
+ZEDQA sg single list cat world: columns 1 rows 9 headers 6 order ok pad 9 (worldMainInv=9) grid false sort cat/true
+ZEDQA sg single list name char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort name/true
+ZEDQA sg single list name world: columns 1 rows 9 headers 6 order BAD Bandage before Apple (Stale) pad 9 (worldMainInv=9) grid false sort name/true
+ZEDQA sg FAIL single list name world: headers 6
+ZEDQA sg FAIL single list name world: order Bandage before Apple (Stale)
+ZEDQA sg single list cond char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort cond/true
+ZEDQA sg single list cond world: columns 1 rows 9 headers 6 order BAD Rope before Plank pad 9 (worldMainInv=9) grid false sort cond/true
+ZEDQA sg FAIL single list cond world: headers 6
+ZEDQA sg FAIL single list cond world: order Rope before Plank
+ZEDQA sg single list wt char: columns 1 rows 15 headers 0 order BAD Apple (Fresh) before Baseball Bat pad 15 (charMainInv=15) grid false sort wt/true
+ZEDQA sg FAIL single list wt char: order Apple (Fresh) before Baseball Bat
+ZEDQA sg single list wt world: columns 1 rows 9 headers 6 order BAD Canned Vegetable Soup before Chips - Plain pad 9 (worldMainInv=9) grid false sort wt/true
+ZEDQA sg FAIL single list wt world: headers 6
+ZEDQA sg FAIL single list wt world: order Canned Vegetable Soup before Chips - Plain
+ZEDQA sg single list name rev char: columns 1 rows 15 headers 0 order BAD Angel Cross's Key Ring before Apple (Fresh) pad 15 (charMainInv=15) grid false sort name/false
+ZEDQA sg FAIL single list name rev char: order Angel Cross's Key Ring before Apple (Fresh)
+ZEDQA sg single list name rev world: columns 1 rows 9 headers 6 order BAD Apple (Stale) before Canned Vegetable Soup pad 9 (worldMainInv=9) grid false sort name/false
+ZEDQA sg FAIL single list name rev world: headers 6
+ZEDQA sg FAIL single list name rev world: order Apple (Stale) before Canned Vegetable Soup
+ZEDQA sg fold char: Container folded, rows 15 of 15, its header false
+ZEDQA sg FAIL fold char: folding hid no rows
+ZEDQA sg FAIL fold char: no header for the folded category
+ZEDQA sg fold world: FirstAid folded, rows 9 of 9, its header true
+ZEDQA sg FAIL fold world: folding hid no rows
+ZEDQA sg fold char on Name: rows 15 headers 0
+ZEDQA sg fold world on Name: rows 9 headers 6
+ZEDQA sg FAIL fold world: Name has headers
+ZEDQA sg fold char back on Category: still folded true rows 15
+ZEDQA sg fold world back on Category: still folded true rows 9
+ZEDQA sg stack char: Base.Apple x11 open, rows 15 of 15 (+10 expected), children follow false, headers 0
+ZEDQA sg FAIL stack char: rows 15
+ZEDQA sg FAIL stack char: children do not follow the stack
+ZEDQA sg stack world: Base.Apple x2 open, rows 9 of 9 (+1 expected), children follow false, headers 6
+ZEDQA sg FAIL stack world: rows 9
+ZEDQA sg FAIL stack world: children do not follow the stack
+ZEDQA sg single grid cat char: columns 1 rows 15 headers 0 order BAD Baseball Bat before Battery pad 15 (charMainInv=15) grid false sort cat/true
+ZEDQA sg FAIL single grid cat char: headers 0
+ZEDQA sg FAIL single grid cat char: fewer headers than columns
+ZEDQA sg FAIL single grid cat char: order Baseball Bat before Battery
+ZEDQA sg FAIL single grid cat char: view is false
+ZEDQA sg single grid cat world: columns 1 rows 9 headers 6 order ok pad 9 (worldMainInv=9) grid false sort cat/true
+ZEDQA sg FAIL single grid cat world: view is false
+ZEDQA sg single grid name char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort name/true
+ZEDQA sg FAIL single grid name char: view is false
+ZEDQA sg single grid name world: columns 1 rows 9 headers 6 order BAD Bandage before Apple (Stale) pad 9 (worldMainInv=9) grid false sort name/true
+ZEDQA sg FAIL single grid name world: headers 6
+ZEDQA sg FAIL single grid name world: order Bandage before Apple (Stale)
+ZEDQA sg FAIL single grid name world: view is false
+ZEDQA sg single grid cond char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort cond/true
+ZEDQA sg FAIL single grid cond char: view is false
+ZEDQA sg single grid cond world: columns 1 rows 9 headers 6 order BAD Rope before Plank pad 9 (worldMainInv=9) grid false sort cond/true
+ZEDQA sg FAIL single grid cond world: headers 6
+ZEDQA sg FAIL single grid cond world: order Rope before Plank
+ZEDQA sg FAIL single grid cond world: view is false
+ZEDQA sg single grid wt char: columns 1 rows 15 headers 0 order BAD Apple (Fresh) before Baseball Bat pad 15 (charMainInv=15) grid false sort wt/true
+ZEDQA sg FAIL single grid wt char: order Apple (Fresh) before Baseball Bat
+ZEDQA sg FAIL single grid wt char: view is false
+ZEDQA sg single grid wt world: columns 1 rows 9 headers 6 order BAD Canned Vegetable Soup before Chips - Plain pad 9 (worldMainInv=9) grid false sort wt/true
+ZEDQA sg FAIL single grid wt world: headers 6
+ZEDQA sg FAIL single grid wt world: order Canned Vegetable Soup before Chips - Plain
+ZEDQA sg FAIL single grid wt world: view is false
+ZEDQA sg single grid name rev char: columns 1 rows 15 headers 0 order BAD Angel Cross's Key Ring before Apple (Fresh) pad 15 (charMainInv=15) grid false sort name/false
+ZEDQA sg FAIL single grid name rev char: order Angel Cross's Key Ring before Apple (Fresh)
+ZEDQA sg FAIL single grid name rev char: view is false
+ZEDQA sg single grid name rev world: columns 1 rows 9 headers 6 order BAD Apple (Stale) before Canned Vegetable Soup pad 9 (worldMainInv=9) grid false sort name/false
+ZEDQA sg FAIL single grid name rev world: headers 6
+ZEDQA sg FAIL single grid name rev world: order Apple (Stale) before Canned Vegetable Soup
+ZEDQA sg FAIL single grid name rev world: view is false
+ZEDQA sg mode multi: char:false world:true
+ZEDQA sg mode multi again: char:false
+ZEDQA sg multi list cat char: columns 1 rows 15 headers 0 order BAD Baseball Bat before Battery pad 15 (charMainInv=15) grid false sort cat/true
+ZEDQA sg FAIL multi list cat char: headers 0
+ZEDQA sg FAIL multi list cat char: fewer headers than columns
+ZEDQA sg FAIL multi list cat char: order Baseball Bat before Battery
+ZEDQA sg FAIL multi list cat char: 1 columns, wanted 2
+ZEDQA sg multi list cat world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort cat/true
+ZEDQA sg FAIL multi list cat world: pad rows 9 of 0
+ZEDQA sg FAIL multi list cat world: no rows
+ZEDQA sg multi list name char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort name/true
+ZEDQA sg FAIL multi list name char: 1 columns, wanted 2
+ZEDQA sg multi list name world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort name/true
+ZEDQA sg FAIL multi list name world: headers 6
+ZEDQA sg FAIL multi list name world: pad rows 9 of 0
+ZEDQA sg FAIL multi list name world: no rows
+ZEDQA sg multi list cond char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort cond/true
+ZEDQA sg FAIL multi list cond char: 1 columns, wanted 2
+ZEDQA sg multi list cond world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort cond/true
+ZEDQA sg FAIL multi list cond world: headers 6
+ZEDQA sg FAIL multi list cond world: pad rows 9 of 0
+ZEDQA sg FAIL multi list cond world: no rows
+ZEDQA sg multi list wt char: columns 1 rows 15 headers 0 order BAD Apple (Fresh) before Baseball Bat pad 15 (charMainInv=15) grid false sort wt/true
+ZEDQA sg FAIL multi list wt char: order Apple (Fresh) before Baseball Bat
+ZEDQA sg FAIL multi list wt char: 1 columns, wanted 2
+ZEDQA sg multi list wt world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort wt/true
+ZEDQA sg FAIL multi list wt world: headers 6
+ZEDQA sg FAIL multi list wt world: pad rows 9 of 0
+ZEDQA sg FAIL multi list wt world: no rows
+ZEDQA sg multi list name rev char: columns 1 rows 15 headers 0 order BAD Angel Cross's Key Ring before Apple (Fresh) pad 15 (charMainInv=15) grid false sort name/false
+ZEDQA sg FAIL multi list name rev char: order Angel Cross's Key Ring before Apple (Fresh)
+ZEDQA sg FAIL multi list name rev char: 1 columns, wanted 2
+ZEDQA sg multi list name rev world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort name/false
+ZEDQA sg FAIL multi list name rev world: headers 6
+ZEDQA sg FAIL multi list name rev world: pad rows 9 of 0
+ZEDQA sg FAIL multi list name rev world: no rows
+ZEDQA sg multi grid cat char: columns 1 rows 15 headers 0 order BAD Baseball Bat before Battery pad 15 (charMainInv=15) grid false sort cat/true
+ZEDQA sg FAIL multi grid cat char: headers 0
+ZEDQA sg FAIL multi grid cat char: fewer headers than columns
+ZEDQA sg FAIL multi grid cat char: order Baseball Bat before Battery
+ZEDQA sg FAIL multi grid cat char: view is false
+ZEDQA sg FAIL multi grid cat char: 1 columns, wanted 2
+ZEDQA sg multi grid cat world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort cat/true
+ZEDQA sg FAIL multi grid cat world: view is false
+ZEDQA sg FAIL multi grid cat world: pad rows 9 of 0
+ZEDQA sg FAIL multi grid cat world: no rows
+ZEDQA sg multi grid name char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort name/true
+ZEDQA sg FAIL multi grid name char: view is false
+ZEDQA sg FAIL multi grid name char: 1 columns, wanted 2
+ZEDQA sg multi grid name world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort name/true
+ZEDQA sg FAIL multi grid name world: headers 6
+ZEDQA sg FAIL multi grid name world: view is false
+ZEDQA sg FAIL multi grid name world: pad rows 9 of 0
+ZEDQA sg FAIL multi grid name world: no rows
+ZEDQA sg multi grid cond char: columns 1 rows 15 headers 0 order ok pad 15 (charMainInv=15) grid false sort cond/true
+ZEDQA sg FAIL multi grid cond char: view is false
+ZEDQA sg FAIL multi grid cond char: 1 columns, wanted 2
+ZEDQA sg multi grid cond world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort cond/true
+ZEDQA sg FAIL multi grid cond world: headers 6
+ZEDQA sg FAIL multi grid cond world: view is false
+ZEDQA sg FAIL multi grid cond world: pad rows 9 of 0
+ZEDQA sg FAIL multi grid cond world: no rows
+ZEDQA sg multi grid wt char: columns 1 rows 15 headers 0 order BAD Apple (Fresh) before Baseball Bat pad 15 (charMainInv=15) grid false sort wt/true
+ZEDQA sg FAIL multi grid wt char: order Apple (Fresh) before Baseball Bat
+ZEDQA sg FAIL multi grid wt char: view is false
+ZEDQA sg FAIL multi grid wt char: 1 columns, wanted 2
+ZEDQA sg multi grid wt world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort wt/true
+ZEDQA sg FAIL multi grid wt world: headers 6
+ZEDQA sg FAIL multi grid wt world: view is false
+ZEDQA sg FAIL multi grid wt world: pad rows 9 of 0
+ZEDQA sg FAIL multi grid wt world: no rows
+ZEDQA sg multi grid name rev char: columns 1 rows 15 headers 0 order BAD Angel Cross's Key Ring before Apple (Fresh) pad 15 (charMainInv=15) grid false sort name/false
+ZEDQA sg FAIL multi grid name rev char: order Angel Cross's Key Ring before Apple (Fresh)
+ZEDQA sg FAIL multi grid name rev char: view is false
+ZEDQA sg FAIL multi grid name rev char: 1 columns, wanted 2
+ZEDQA sg multi grid name rev world: columns 2 rows 0+0 headers 6 order ok pad 9 (worldMC1=0,worldMainInv=9) grid false sort name/false
+ZEDQA sg FAIL multi grid name rev world: headers 6
+ZEDQA sg FAIL multi grid name rev world: view is false
+ZEDQA sg FAIL multi grid name rev world: pad rows 9 of 0
+ZEDQA sg FAIL multi grid name rev world: no rows
+ZEDQA sg columns off: world:true
+ZEDQA sg restored: bag things 36 (were 36), bed 2, world things on the square 0, floor container 11
+ZEDQA sg 102 checks FAILED; DONE
+```
+
+### 14. zedqa_wt_bracket.lua (`ZEDQA wtb`) - WARN, 21 s
+
+- go 23294 at 21:39:32
+- 20 ERR line(s)
+- screenshots: zqa_wtb_small_list.png, zqa_wtb_open_stack.png, zqa_wtb_narrow_wt.png, zqa_wtb_small_grid.png, zqa_wtb_large_list.png, zqa_wtb_large_grid.png, zqa_wtb_two_columns.png, zqa_wtb_two_columns_large.png
+
+```text
+[ZeD.QA] state #14 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA wtb start
+[ZeD.QA] run #14 ok=true
+ZEDQA wtb given: bag 5 x Base.Orange + Base.Saucepan, ground 5 x Base.Orange + Base.Saucepan (6 / 6)
+ZEDQA wtb extra columns: char 0 world 0
+ZEDQA wtb FAIL small list char: stack nil single nil
+ZEDQA wtb small list world stack Orange (Fresh) x5: drew "(1.0)" (expect "(1.0)") at x 562..615 of 651, name ends 261, columns 1
+ZEDQA wtb small list world headers: cat true, cond true
+ZEDQA wtb FAIL small list char: stack nil single nil
+ZEDQA wtb small list world single Empty Saucepan: drew "0.7" (expect "0.7")
+ZEDQA wtb FAIL open stack char: the open stack's row drew nil, not (1.0)
+ZEDQA wtb open stack char: the row "nil", 0 rows under it, 0 with their own weight
+ZEDQA wtb FAIL open stack char: 0 rows under the stack, 4 expected
+ZEDQA wtb open stack world: the row "(1.0)", 4 rows under it, 4 with their own weight
+ZEDQA wtb char WT column 101 -> 81
+ZEDQA wtb FAIL narrow WT char: stack nil single nil   (x2)
+ZEDQA wtb FAIL small grid char: stack nil single nil
+ZEDQA wtb FAIL small grid world stack: no cell
+ZEDQA wtb FAIL small grid char: stack nil single nil
+ZEDQA wtb FAIL small grid world single: no cell
+ZEDQA wtb FAIL large list char: stack nil single nil
+ZEDQA wtb large list world stack Orange (Fresh) x5: drew "(1.0)" (expect "(1.0)") at x 646..709 of 749, name ends 298, columns 1
+ZEDQA wtb large list world headers: cat true, cond true
+ZEDQA wtb FAIL large list char: stack nil single nil
+ZEDQA wtb large list world single Empty Saucepan: drew "0.7" (expect "0.7")
+ZEDQA wtb FAIL large grid char: stack nil single nil
+ZEDQA wtb large grid world stack Orange (Fresh) x5: drew "(1.0)" (expect "(1.0)" or "(1)" / "0.2") at x 198..232 of 238, name ends nil, columns 1
+ZEDQA wtb FAIL large grid char: stack nil single nil
+ZEDQA wtb FAIL large grid world single: no weight drawn
+ZEDQA wtb the pack is not in the window's bag list after 300 ticks
+ZEDQA wtb pack column on: false
+ZEDQA wtb char columns 0
+ZEDQA wtb FAIL the pack's column did not open beside the bag
+ZEDQA wtb FAIL two columns char: stack nil single nil   (x2)
+ZEDQA wtb FAIL two columns large char: stack nil single nil   (x2)
+ZEDQA wtb size back to small | bag Base.Orange left 0
+ZEDQA wtb 20 checks FAILED; DONE
+```
+
+### 15. zedqa_doll.lua (`ZEDQA doll`) - PASS, 7 s
+
+- go 23295 at 21:39:56
+- screenshots: zqa_doll_1.png, zqa_doll_2.png, zqa_doll_3.png
+
+```text
+[ZeD.QA] state #15 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA doll start
+[ZeD.QA] run #15 ok=true
+ZEDQA doll doll shown nil | slots 0 {} | belt empties 0 | photo nil | lines 0 | model visible false | layer visible false
+ZEDQA doll pad targets:
+ZEDQA doll focus torso: zone=charMainInv el=view:list:player sel=nil layer=nil
+ZEDQA doll card targets:
+ZEDQA doll card open: zone=charMainInv el=view:list:player sel=nil layer=nil
+ZEDQA doll focus Inner: zone=charMainInv el=view:list:player sel=nil layer=nil
+ZEDQA doll after Inner (expect layer 2): zone=charMainInv el=view:list:player sel=nil layer=nil
+ZEDQA doll after B (expect sel=nil, el=equipslot:doll:torso): zone=charMainInv el=view:list:player sel=nil layer=nil
+ZEDQA doll head then down: zone=charMainInv el=invrow:1 sel=nil layer=nil
+ZEDQA doll then right (expect back): zone=charContainerStrip el=container:1 sel=nil layer=nil
+ZEDQA doll then down (expect belt): zone=charContainerStrip el=container:2 sel=nil layer=nil
+ZEDQA doll then left (expect neck): zone=charMainInv el=invrow:1 sel=nil layer=nil
+ZEDQA doll then left (into the left band when the bands show, else leaves the doll): zone=charTabBar el=tab:equip sel=nil layer=nil
+ZEDQA doll view restored to list | DONE
+```
+
+### 16. zedqa_doll_v4.lua (`ZEDQA dollv4`) - FAIL, 18 s
+
+- go 23296 at 21:40:07
+- 1 Java exception(s) in the log
+- 34 ERR line(s)
+- screenshots: zqa_dollv4_3840x2160_wide.png, zqa_dollv4_3840x2160_dpad.png, zqa_dollv4_3840x2160_wide_pads.png, zqa_dollv4_3840x2160_card.png, zqa_dollv4_3840x2160_narrow.png
+
+```text
+[ZeD.QA] state #16 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA dollv4 start
+[ZeD.QA] run #16 ok=true
+ZEDQA dollv4 round 1: wearing 21 of 21
+ZEDQA dollv4 PASS 38 small slots defined | 38
+ZEDQA dollv4 FAIL wide: bands show | drawer 0px = 0 units, screen 3840x2160
+ZEDQA dollv4 FAIL wide: 49 slot boxes (11 big + 38 small) | 0
+ZEDQA dollv4 PASS wide: no slot overlaps another
+ZEDQA dollv4 PASS wide: every box inside the drawer's width | 0
+ZEDQA dollv4 PASS wide: the drawer is no wider than the full card (480 units) | 0.0 units
+ZEDQA dollv4 FAIL wide: a small slot is 14 units or more on screen
+ZEDQA dollv4 PASS wide: no leader lines | 0 lines
+ZEDQA dollv4 FAIL wide: Back at the top right above Belt, Arms on the left with Head
+ZEDQA dollv4 PASS every group name and place name has its words |
+ZEDQA dollv4 PASS round 1 wide: every worn thing lands in its small slot (21 on) |
+ZEDQA dollv4 FAIL round 1 wide: each has a card zone doll:<slot> | belly,airtank,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,fpfront,ammo,beltholster,ankleholster,necklace,gorget,ears,nose
+ZEDQA dollv4 PASS round 1 folded (data): every worn thing lands in its big slot (21 on) |
+ZEDQA dollv4 PASS belly button ring, air tank, tail in their small slots
+ZEDQA dollv4 empties 0, slots with things 0
+ZEDQA dollv4 FAIL charTabContent zone exists with the doll's stops | 0
+ZEDQA dollv4 FAIL Left from Neck steps into the left band
+ZEDQA dollv4 FAIL Right from the band's inner edge returns to a big slot
+ZEDQA dollv4 FAIL Right from Belt steps into the right band
+ZEDQA dollv4 FAIL Left from the right band's inner edge returns to a big slot
+ZEDQA dollv4 FAIL the doll's moves reach all 38 small slots | 0 missed ears,eartop,nose,necklace,necklacelong,gorget,padl,padr,padsport,elbowl,elbowr,wristl,wristr,forearml,forearmr,belly,holster,lmiddle,lring,rmiddle,rring,satchel,airtank,tail,fpfront,fpback,webbing,ammo,beltholster,kneel,kneer,thighl,thighr,shinl,shinr,gaiterl,gaiterr,ankleholster
+ZEDQA dollv4 FAIL and all 11 big slots (Up / Down in a column are the cone's) | 0 missed head,eyes,neck,torso,outer,hands,back,arms,belt,legs,feet
+ZEDQA dollv4 PASS the outer edge of each band row leaves the doll (18 rows)
+ZEDQA dollv4 dispatch Right from belt -> invrow:1
+ZEDQA dollv4 then Down -> invrow:2
+ZEDQA dollv4 dispatch Left from the left band's outer edge -> tab:equip
+ZEDQA dollv4 PASS the real Left at the outer edge does not land on another doll slot | tab:equip
+ZEDQA dollv4 round 2: wearing 1 of 1
+ZEDQA dollv4 PASS round 2 wide: every worn thing lands in its small slot (21 on) |
+ZEDQA dollv4 PASS the sport pads worn on top show in their small slot
+ZEDQA dollv4 PASS the air tank is gone from its slot
+ZEDQA dollv4 PASS a second layer shows as a count (2) | 2
+ZEDQA dollv4 FAIL pad stop for the filled small slot
+ZEDQA dollv4 FAIL A opens the small slot's card (outermost first) | nil item nil layer nil/nil
+ZEDQA dollv4 FAIL its outermost layer is the pair worn on top
+ZEDQA dollv4 FAIL Inner steps to layer 2
+ZEDQA dollv4 round 3: wearing 1 of 1
+ZEDQA dollv4 PASS round 3 wide: every worn thing lands in its small slot (20 on) |
+ZEDQA dollv4 FAIL round 3 wide: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,webbing
+ZEDQA dollv4 PASS round 3 folded (data): every worn thing lands in its big slot (20 on) |
+ZEDQA dollv4 round 4: wearing 2 of 2
+ZEDQA dollv4 PASS round 4 wide: every worn thing lands in its small slot (21 on) |
+ZEDQA dollv4 FAIL round 4 wide: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,padl,padr
+ZEDQA dollv4 PASS round 4 folded (data): every worn thing lands in its big slot (21 on) |
+ZEDQA dollv4 round 5: wearing 1 of 1
+ZEDQA dollv4 PASS round 5 wide: every worn thing lands in its small slot (20 on) |
+ZEDQA dollv4 FAIL round 5 wide: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,holster
+ZEDQA dollv4 PASS round 5 folded (data): every worn thing lands in its big slot (20 on) |
+ZEDQA dollv4 FAIL a cap dropped on Head is taken | no rect | loc base:hat
+ZEDQA dollv4 FAIL a cap dropped on a small slot that is not its place is refused
+ZEDQA dollv4 FAIL a ring dropped on the wrong small slot is refused
+ZEDQA dollv4 FAIL a ring dropped on its slot is taken | no rect
+ZEDQA dollv4 FAIL the ring was put on (vanilla's wear action ran)
+ZEDQA dollv4 FAIL the cap was put on
+ZEDQA dollv4 FAIL narrow: bands folded | drawer 0px = 0 units, screen 3840x2160
+ZEDQA dollv4 FAIL narrow: 11 big slot boxes, no small ones | 0
+ZEDQA dollv4 PASS narrow: no slot overlaps another
+ZEDQA dollv4 PASS narrow: every box inside the drawer's width | 0
+ZEDQA dollv4 PASS narrow: the drawer is no wider than the full card (480 units) | 0.0 units
+ZEDQA dollv4 PASS narrow: no leader lines | 0 lines
+ZEDQA dollv4 FAIL narrow: Back, Arms, Belt in that order down the right
+ZEDQA dollv4 PASS narrow: every worn thing lands in its big slot (20 on) |
+ZEDQA dollv4 FAIL narrow: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,holster
+ZEDQA dollv4 PASS narrow: no small-slot zone left | 0
+ZEDQA dollv4 narrow: Arms layers 3, Back 2, Legs 5, Belt 4, Hands 3
+ZEDQA dollv4 FAIL narrow: Back's card shows the folded layers (tail, satchel) | layers nil
+ZEDQA dollv4 FAIL short: the doll was measured
+ZEDQA dollv4 FAIL short: the bands still show
+ZEDQA dollv4 FAIL short: the small slots shrank (under 18 units, 14 or more) | 0.0 units
+ERROR: General f:19505 at KahluaThread.flushErrorMessage > -------------------------------------------------------------
+    attempted index: w of non-table: null
+ERROR: General f:19505> Lua(Vanilla).whenStill> Exception thrown
+    java.lang.RuntimeException: attempted index: w of non-table: null at KahluaThread.tableget(KahluaThread.java:1430).
+    Lua(Vanilla).whenStill(spawnpoints.lua:534)
+    Lua(Vanilla).poll(spawnpoints.lua:51)
+    Lua(Vanilla).onTick(spawnpoints.lua:567)
+ZEDQA dollv4 ERR step 248 attempted index: w of non-table: null java.lang.RuntimeException
+ZEDQA dollv4 passed 27, failed 33 | DONE
+```
+
+### 17. zedqa_large.lua (`ZEDQA lg`) - PASS, 8 s
+
+- go 23297 at 21:40:28
+- screenshots: zqa_lg_small_loot.png, zqa_lg_small_equip.png, zqa_lg_large_loot.png, zqa_lg_large_equip.png
+
+```text
+[ZeD.QA] state #17 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA lg start
+[ZeD.QA] run #17 ok=true
+ZEDQA lg small: rowH 53 buttonH 46 titleBarH 46 | cat 151 wt 101 | equip slot col 140
+ZEDQA lg large: rowH 60 buttonH 53 titleBarH 53 | cat 151 wt 101 | equip slot col 163
+ZEDQA lg size back to small | DONE
+```
+
+### 18. zedqa_segbars.lua (`ZEDQA segb`) - PASS, 1 s
+
+- go 23298 at 21:40:40
+
+```text
+[ZeD.QA] state #18 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA segb 0.640 -> 6 lit, 4 dark
+ZEDQA segb 0.040 -> 0 lit, 10 dark
+ZEDQA segb 1.000 -> 10 lit, 0 dark
+ZEDQA segb 0.000 -> 0 lit, 10 dark
+ZEDQA segb 0.700 -> 7 lit, 3 dark
+ZEDQA segb 0.300 -> 3 lit, 7 dark
+ZEDQA segb 0.999 -> 9 lit, 1 dark
+ZEDQA segb narrowest 42 px (scale 1.75): 10 cells, 2 to 2 px wide
+ZEDQA segb skill help: Fitness 5, 40% to level 6 | Fitness 10
+ZEDQA segb hover checks skipped: the controller's cues are showing
+[ZeD.QA] run #18 ok=true
+ZEDQA segb PASS
+ZEDQA segb DONE
+```
+
+### 19. zedqa_curtain.lua (`ZEDQA cu`) - FAIL, 123 s
+
+- go 23299 at 21:40:44
+- 1 Java exception(s) in the log
+- 87 ERR line(s)
+- screenshots: zqa_cu_0.png, zqa_cu_1.png, zqa_cu_2.png, zqa_cu_3.png, zqa_cu_4.png, zqa_cu_5.png, zqa_cu_6.png
+
+```text
+[ZeD.QA] state #19 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA cu start
+[ZeD.QA] run #19 ok=true
+ZEDQA cu loaded: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 777x735 rolled nil (saved 1102.286,0.000 444.000x1143.429 tab loot drawer false)
+ZEDQA cu scale 1.75 root 1.75 screen 3840x2160
+ZEDQA cu reset: ZeD_Window.resetLayout
+ZEDQA cu reset: Character 1134,0 777x735 rolled nil (saved -) | World 1929,0 777x735 rolled nil (saved -)
+ZEDQA cu before: x 1929 w 1617 title Ground + Maps button 244.94140625,11 23
+ZEDQA cu rolled true: x 2643 w 903 (sum 3546 was 3546) rod 1929,0 714x719 content false title Maps
+ZEDQA cu pad stops:
+ZEDQA cu unrolled false: x 2643 w 903 content false rod true
+ZEDQA cu FAIL first roll World: got 2643,0 903x46 want 1929,0 1617x2001 (dx 714 dy 0 dw -714 dh -1955)
+ZEDQA cu rolled again true
+ZEDQA cu tab closed: rolled false x 1929 w 777 content true drawer false
+ZEDQA cu FAIL tab closed while rolled World: got 1929,0 777x2001 want 1929,0 777x735 (dx 0 dy 0 dw 0 dh 1266)
+ZEDQA cu World before: 1929,0 1566x46 (other 1134,0 777x735) drawer true tab tab maps
+ZEDQA cu cycle1 World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL cycle1 World: no roll button
+ZEDQA cu cycle1 World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle1 World rollW 714
+ZEDQA cu FAIL cycle1 rolled World: not rolled / no rod (rolled false)
+ZEDQA cu FAIL cycle1 rolled World: got 1929,0 1566x46 want 2643,0 852x46 (dx -714 dy 0 dw 714 dh 0)
+ZEDQA cu ok cycle1 while rolled: other Character 1134,0 777x735
+ZEDQA cu cycle1 World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle1 World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok cycle1 World 1929,0 1566x46
+ZEDQA cu ok cycle1 other (Character) 1134,0 777x735
+ZEDQA cu ok cycle1 World saved 1102.286,0.000 444.000x1143.429
+ZEDQA cu cycle2 World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL cycle2 World: no roll button
+ZEDQA cu cycle2 World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle2 World rollW 714
+ZEDQA cu FAIL cycle2 rolled World: not rolled / no rod (rolled false)
+ZEDQA cu FAIL cycle2 rolled World: got 1929,0 1566x46 want 2643,0 852x46 (dx -714 dy 0 dw 714 dh 0)
+ZEDQA cu ok cycle2 while rolled: other Character 1134,0 777x735
+ZEDQA cu cycle2 World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle2 World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok cycle2 World 1929,0 1566x46
+ZEDQA cu ok cycle2 other (Character) 1134,0 777x735
+ZEDQA cu ok cycle2 World saved 1102.286,0.000 444.000x1143.429
+ZEDQA cu moved by rod World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL moved by rod World: no roll button
+ZEDQA cu moved by rod World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,0 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by rod World rollW 714
+ZEDQA cu FAIL moved by rod rolled World: not rolled / no rod (rolled false)
+ZEDQA cu FAIL moved by rod rolled World: got 1929,0 1566x46 want 2643,0 852x46 (dx -714 dy 0 dw 714 dh 0)
+ZEDQA cu ok moved by rod while rolled: other Character 1134,0 777x735
+ZEDQA cu moved by rod World moved by 200,200 (rod) to 2129,200 1566x46
+ZEDQA cu FAIL moved by rod moved World: not rolled / no rod (rolled false)
+ZEDQA cu moved by rod World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 2129,200 1566x46 rolled false (saved 1102.286,0.000 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by rod World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 2129,200 1566x46 rolled false (saved 1216.571,114.286 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok moved by rod World 2129,200 1566x46
+ZEDQA cu ok moved by rod other (Character) 1134,0 777x735
+ZEDQA cu ok moved by rod World saved 1216.571,114.286 444.000x1143.429
+ZEDQA cu moved by title World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 2129,200 1566x46 rolled false (saved 1216.571,114.286 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL moved by title World: no roll button
+ZEDQA cu moved by title World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 2129,200 1566x46 rolled false (saved 1216.571,114.286 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by title World rollW 714
+ZEDQA cu FAIL moved by title rolled World: not rolled / no rod (rolled false)
+ZEDQA cu FAIL moved by title rolled World: got 2129,200 1566x46 want 2843,200 852x46 (dx -714 dy 0 dw 714 dh 0)
+ZEDQA cu ok moved by title while rolled: other Character 1134,0 777x735
+ZEDQA cu moved by title World moved by -200,200 (title) to 1929,400 1566x46
+ZEDQA cu FAIL moved by title moved World: not rolled / no rod (rolled false)
+ZEDQA cu moved by title World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,400 1566x46 rolled false (saved 1216.571,114.286 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by title World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok moved by title World 1929,400 1566x46
+ZEDQA cu ok moved by title other (Character) 1134,0 777x735
+ZEDQA cu ok moved by title World saved 1102.286,228.571 444.000x1143.429
+ZEDQA cu cycle5 World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL cycle5 World: no roll button
+ZEDQA cu cycle5 World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle5 World rollW 714
+ZEDQA cu FAIL cycle5 rolled World: not rolled / no rod (rolled false)
+ZEDQA cu FAIL cycle5 rolled World: got 1929,400 1566x46 want 2643,400 852x46 (dx -714 dy 0 dw 714 dh 0)
+ZEDQA cu ok cycle5 while rolled: other Character 1134,0 777x735
+ZEDQA cu cycle5 World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle5 World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab loot drawer false) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok cycle5 World 1929,400 1566x46
+ZEDQA cu ok cycle5 other (Character) 1134,0 777x735
+ZEDQA cu ok cycle5 World saved 1102.286,228.571 444.000x1143.429
+ZEDQA cu character health tab true
+ZEDQA cu Character before: 1134,0 777x735 (other 1929,400 1566x46) drawer true tab tab health
+ZEDQA cu cycle1 Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL cycle1 Character: no roll button
+ZEDQA cu cycle1 Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle1 Character rollW nil
+ZEDQA cu FAIL cycle1 rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle1 rolled Character 1134,0 777x735
+ZEDQA cu ok cycle1 while rolled: other World 1929,400 1566x46
+ZEDQA cu cycle1 Character rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle1 Character unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok cycle1 Character 1134,0 777x735
+ZEDQA cu ok cycle1 other (World) 1929,400 1566x46
+ZEDQA cu ok cycle1 Character saved 648.000,0.000 444.000x543.429
+ZEDQA cu cycle2 Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL cycle2 Character: no roll button
+ZEDQA cu cycle2 Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle2 Character rollW nil
+ZEDQA cu FAIL cycle2 rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle2 rolled Character 1134,0 777x735
+ZEDQA cu ok cycle2 while rolled: other World 1929,400 1566x46
+ZEDQA cu cycle2 Character rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle2 Character unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok cycle2 Character 1134,0 777x735
+ZEDQA cu ok cycle2 other (World) 1929,400 1566x46
+ZEDQA cu ok cycle2 Character saved 648.000,0.000 444.000x543.429
+ZEDQA cu moved by rod Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL moved by rod Character: no roll button
+ZEDQA cu moved by rod Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by rod Character rollW nil
+ZEDQA cu FAIL moved by rod rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok moved by rod rolled Character 1134,0 777x735
+ZEDQA cu ok moved by rod while rolled: other World 1929,400 1566x46
+ERROR: General f:23441> Lua(Vanilla).after> Exception thrown
+    java.lang.RuntimeException: attempted index of non-table at KahluaUtil.fail(KahluaUtil.java:100).
+    Lua(Vanilla).after(spawnpoints.lua:244)
+    Lua(Vanilla).onTick(spawnpoints.lua:571)
+ZEDQA cu ERR 2246 attempted index of non-table java.lang.RuntimeException
+ZEDQA cu FAIL moved by rod moved Character: not rolled / no rod (rolled nil)
+ZEDQA cu moved by rod Character rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by rod Character unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok moved by rod Character 1134,0 777x735
+ZEDQA cu ok moved by rod other (World) 1929,400 1566x46
+ZEDQA cu ok moved by rod Character saved 648.000,0.000 444.000x543.429
+ZEDQA cu moved by title Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL moved by title Character: no roll button
+ZEDQA cu moved by title Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by title Character rollW nil
+ZEDQA cu FAIL moved by title rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok moved by title rolled Character 1134,0 777x735
+ZEDQA cu ok moved by title while rolled: other World 1929,400 1566x46
+ZEDQA cu moved by title Character moved by 200,200 (title) to 1334,200 777x735
+ZEDQA cu FAIL moved by title moved Character: not rolled / no rod (rolled nil)
+ZEDQA cu moved by title Character rolled, before unroll: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu moved by title Character unrolled: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok moved by title Character 1334,200 777x735
+ZEDQA cu ok moved by title other (World) 1929,400 1566x46
+ZEDQA cu FAIL moved by title Character saved: got 648.000,114.286 444.000x543.429 a 1092.000 want 762.286,114.286 444.000x543.429 a 1206.286
+ZEDQA cu cycle5 Character before roll: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL cycle5 Character: no roll button
+ZEDQA cu cycle5 Character rolled: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle5 Character rollW nil
+ZEDQA cu FAIL cycle5 rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle5 rolled Character 1334,200 777x735
+ZEDQA cu ok cycle5 while rolled: other World 1929,400 1566x46
+ZEDQA cu cycle5 Character rolled, before unroll: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu cycle5 Character unrolled: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,400 1566x46 rolled false (saved 1102.286,228.571 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok cycle5 Character 1334,200 777x735
+ZEDQA cu ok cycle5 other (World) 1929,400 1566x46
+ZEDQA cu ok cycle5 Character saved 648.000,114.286 444.000x543.429
+ZEDQA cu closed rolled (inventory key) World reference, closed and reopened unrolled: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (inventory key) reference back on its tab World: got 1929,159 1617x46 want 1929,400 1566x46 (dx 0 dy -241 dw 51 dh 0)
+ZEDQA cu closed rolled (inventory key) World before roll: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 1617x46 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL closed rolled (inventory key) World roll button: none
+ZEDQA cu FAIL closed rolled (inventory key) World rolled: rods in UI 0
+ZEDQA cu ok closed rolled (inventory key) World window closed
+ZEDQA cu FAIL closed rolled (inventory key) World rod gone: rod visible nil, rods in UI 0
+ZEDQA cu closed rolled (inventory key) World reopened: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (inventory key) World reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (inventory key) reopened as unrolled World 1929,159 777x2001
+ZEDQA cu ok closed rolled (inventory key) reopened: other Character 294,200 1617x951
+ZEDQA cu closed rolled (rod close box) World reference, closed and reopened unrolled: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (rod close box) reference back on its tab World: got 1929,159 1617x2001 want 1929,159 1617x46 (dx 0 dy 0 dw 0 dh 1955)
+ZEDQA cu closed rolled (rod close box) World before roll: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 1617x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab maps drawer true)
+ZEDQA cu ok closed rolled (rod close box) World rolled (rods in UI 1)
+ZEDQA cu ok closed rolled (rod close box) World window closed
+ZEDQA cu ok closed rolled (rod close box) World rod gone (rod visible false, rods in UI 0)
+ZEDQA cu closed rolled (rod close box) World reopened: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (rod close box) World reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (rod close box) reopened as unrolled World 1929,159 777x2001
+ZEDQA cu ok closed rolled (rod close box) reopened: other Character 294,200 1617x46
+ZEDQA cu closed rolled (controller Y hold) World reference, closed and reopened unrolled: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (controller Y hold) reference back on its tab World: got 1929,159 1617x46 want 1929,159 1617x2001 (dx 0 dy 0 dw 0 dh -1955)
+ZEDQA cu closed rolled (controller Y hold) World before roll: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 1617x46 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab maps drawer true)
+ZEDQA cu FAIL closed rolled (controller Y hold) World roll button: none
+ZEDQA cu FAIL closed rolled (controller Y hold) World rolled: rods in UI 0
+ZEDQA cu ok closed rolled (controller Y hold) World window closed
+ZEDQA cu FAIL closed rolled (controller Y hold) World rod gone: rod visible nil, rods in UI 0
+ZEDQA cu closed rolled (controller Y hold) World reopened: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (controller Y hold) World reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (controller Y hold) reopened as unrolled World 1929,159 777x2001
+ZEDQA cu ok closed rolled (controller Y hold) reopened: other Character 294,200 1617x951
+ZEDQA cu closed rolled (inventory key) Character reference, closed and reopened unrolled: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (inventory key) reference back on its tab Character 294,200 1617x951
+ZEDQA cu closed rolled (inventory key) Character before roll: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (inventory key) Character rolled (rods in UI 1)
+ZEDQA cu ok closed rolled (inventory key) Character window closed
+ZEDQA cu ok closed rolled (inventory key) Character rod gone (rod visible false, rods in UI 0)
+ZEDQA cu closed rolled (inventory key) Character reopened: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (inventory key) Character reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (inventory key) reopened as unrolled Character 294,200 1617x951
+ZEDQA cu ok closed rolled (inventory key) reopened: other World 1929,159 777x2001
+ZEDQA cu closed rolled (close box) Character reference, closed and reopened unrolled: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x46 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (close box) reference back on its tab Character 294,200 1617x951
+ZEDQA cu closed rolled (close box) Character before roll: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x46 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (close box) Character rolled (rods in UI 1)
+ZEDQA cu ok closed rolled (close box) Character window closed
+ZEDQA cu ok closed rolled (close box) Character rod gone (rod visible false, rods in UI 0)
+ZEDQA cu closed rolled (close box) Character reopened: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x46 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (close box) Character reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (close box) reopened as unrolled Character 294,200 1617x951
+ZEDQA cu ok closed rolled (close box) reopened: other World 1929,159 777x46
+ZEDQA cu closed rolled (controller Y hold) Character reference, closed and reopened unrolled: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (controller Y hold) reference back on its tab Character 294,200 1617x951
+ZEDQA cu closed rolled (controller Y hold) Character before roll: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (controller Y hold) Character rolled (rods in UI 1)
+ZEDQA cu ok closed rolled (controller Y hold) Character window closed
+ZEDQA cu ok closed rolled (controller Y hold) Character rod gone (rod visible false, rods in UI 0)
+ZEDQA cu closed rolled (controller Y hold) Character reopened: Character 294,200 1617x951 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x2001 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab loot drawer false)
+ZEDQA cu ok closed rolled (controller Y hold) Character reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (controller Y hold) reopened as unrolled Character 294,200 1617x951
+ZEDQA cu ok closed rolled (controller Y hold) reopened: other World 1929,159 777x2001
+ZEDQA cu World tabs: on maps 1929,159 1617x46 (other 294,200 1617x46)
+ZEDQA cu ok tab forage reference, back on maps World 1929,159 1617x46
+ZEDQA cu FAIL tab forage World roll button: none
+ZEDQA cu FAIL tab forage World rolled before the press
+ZEDQA cu FAIL tab forage World still rolled on the tab: tab forage
+ZEDQA cu ok tab forage rolled World 1929,159 1617x46
+ZEDQA cu ok tab forage World unrolled (rods in UI 0)
+ZEDQA cu ok tab forage unrolled World 1929,159 1617x46
+ZEDQA cu ok tab forage unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab forage back on maps World 1929,159 1617x46
+ZEDQA cu ok tab craft reference, back on maps World 1929,159 1617x46
+ZEDQA cu FAIL tab craft World roll button: none
+ZEDQA cu FAIL tab craft World rolled before the press
+ZEDQA cu FAIL tab craft World still rolled on the tab: tab craft
+ZEDQA cu ok tab craft rolled World 1929,159 1617x46
+ZEDQA cu ok tab craft World unrolled (rods in UI 0)
+ZEDQA cu ok tab craft unrolled World 1929,159 1617x46
+ZEDQA cu ok tab craft unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab craft back on maps World 1929,159 1617x46
+ZEDQA cu ok tab build reference, back on maps World 1929,159 1617x46
+ZEDQA cu FAIL tab build World roll button: none
+ZEDQA cu FAIL tab build World rolled before the press
+ZEDQA cu FAIL tab build World still rolled on the tab: tab build
+ZEDQA cu ok tab build rolled World 1929,159 1617x46
+ZEDQA cu ok tab build World unrolled (rods in UI 0)
+ZEDQA cu ok tab build unrolled World 1929,159 1617x46
+ZEDQA cu ok tab build unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab build back on maps World 1929,159 1617x46
+ZEDQA cu ok tab furniture reference, back on maps World 1929,159 1617x46
+ZEDQA cu FAIL tab furniture World roll button: none
+ZEDQA cu FAIL tab furniture World rolled before the press
+ZEDQA cu FAIL tab furniture World still rolled on the tab: tab furniture
+ZEDQA cu ok tab furniture rolled World 1929,159 1617x46
+ZEDQA cu ok tab furniture World unrolled (rods in UI 0)
+ZEDQA cu ok tab furniture unrolled World 1929,159 1617x46
+ZEDQA cu ok tab furniture unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab furniture back on maps World 1929,159 1617x46
+ZEDQA cu ok tab animals reference, back on maps World 1929,159 1617x46
+ZEDQA cu FAIL tab animals World roll button: none
+ZEDQA cu FAIL tab animals World rolled before the press
+ZEDQA cu FAIL tab animals World still rolled on the tab: tab animals
+ZEDQA cu ok tab animals rolled World 1929,159 1617x46
+ZEDQA cu ok tab animals World unrolled (rods in UI 0)
+ZEDQA cu ok tab animals unrolled World 1929,159 1617x46
+ZEDQA cu ok tab animals unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab animals back on maps World 1929,159 1617x46
+ZEDQA cu tab radio World: not shown here, skipped
+ZEDQA cu ok tab vehicle reference, back on maps World 1929,159 1617x46
+ZEDQA cu FAIL tab vehicle World roll button: none
+ZEDQA cu FAIL tab vehicle World rolled before the press
+ZEDQA cu FAIL tab vehicle World still rolled on the tab: tab vehicle
+ZEDQA cu ok tab vehicle rolled World 1929,159 1617x46
+ZEDQA cu ok tab vehicle World unrolled (rods in UI 0)
+ZEDQA cu ok tab vehicle unrolled World 1929,159 1617x46
+ZEDQA cu ok tab vehicle unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab vehicle back on maps World 1929,159 1617x46
+ZEDQA cu FAIL forage and back World still rolled: tab maps
+ZEDQA cu ok forage and back rolled World 1929,159 1617x46
+ZEDQA cu ok forage and back, unrolled World 1929,159 1617x46
+ZEDQA cu World Loot (unrolled) 1929,159 777x46
+ZEDQA cu FAIL Loot reference, back on maps World: got 1929,159 777x46 want 1929,159 1617x46 (dx 0 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL Loot World rolled before the press
+ZEDQA cu World Loot press not delivered by the window's update after 10 ticks; checked 30 ticks later
+ZEDQA cu ok Loot World side down with the press (rolled nil tab loot rods in UI 0)
+ZEDQA cu ok Loot while rolled World 1929,159 777x46
+ZEDQA cu ok Loot while rolled: other Character 294,200 1617x46
+ZEDQA cu FAIL Loot while rolled, back on maps World: got 1929,159 777x46 want 1929,159 1617x46 (dx 0 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL maps again World rolled before the press
+ZEDQA cu ok maps again World side down (rolled nil)
+ZEDQA cu ok maps pressed again while rolled World 1929,159 777x46
+ZEDQA cu FAIL maps again, back on maps World: got 1929,159 777x46 want 1929,159 1617x46 (dx 0 dy 0 dw -840 dh 0)
+ZEDQA cu Character tabs: on health 294,200 1617x46 (other 1929,159 777x46)
+ZEDQA cu ok tab skills reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab skills Character roll button: none
+ZEDQA cu FAIL tab skills Character rolled before the press
+ZEDQA cu FAIL tab skills Character still rolled on the tab: tab skills
+ZEDQA cu ok tab skills rolled Character 294,200 1617x46
+ZEDQA cu ok tab skills Character unrolled (rods in UI 0)
+ZEDQA cu ok tab skills unrolled Character 294,200 1617x46
+ZEDQA cu ok tab skills unrolled: other World 1929,159 777x46
+ZEDQA cu ok tab skills back on health Character 294,200 1617x46
+ZEDQA cu ok tab equip reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab equip Character roll button: none
+ZEDQA cu FAIL tab equip Character rolled before the press
+ZEDQA cu FAIL tab equip Character still rolled on the tab: tab equip
+ZEDQA cu ok tab equip rolled Character 294,200 1617x46
+ZEDQA cu ok tab equip Character unrolled (rods in UI 0)
+ZEDQA cu ok tab equip unrolled Character 294,200 1617x46
+ZEDQA cu ok tab equip unrolled: other World 1929,159 777x46
+ZEDQA cu ok tab equip back on health Character 294,200 1617x46
+ZEDQA cu ok tab thermal reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab thermal Character roll button: none
+ZEDQA cu FAIL tab thermal Character rolled before the press
+ZEDQA cu FAIL tab thermal Character still rolled on the tab: tab thermal
+ZEDQA cu ok tab thermal rolled Character 294,200 1617x46
+ZEDQA cu ok tab thermal Character unrolled (rods in UI 0)
+ZEDQA cu ok tab thermal unrolled Character 294,200 1617x46
+ZEDQA cu ok tab thermal unrolled: other World 1929,159 777x46
+ZEDQA cu ok tab thermal back on health Character 294,200 1617x46
+ZEDQA cu ok tab identity reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab identity Character roll button: none
+ZEDQA cu FAIL tab identity Character rolled before the press
+ZEDQA cu FAIL tab identity Character still rolled on the tab: tab identity
+ZEDQA cu ok tab identity rolled Character 294,200 1617x46
+ZEDQA cu ok tab identity Character unrolled (rods in UI 0)
+ZEDQA cu ok tab identity unrolled Character 294,200 1617x46
+ZEDQA cu ok tab identity unrolled: other World 1929,159 777x46
+ZEDQA cu ok tab identity back on health Character 294,200 1617x46
+ZEDQA cu ok tab journal reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab journal Character roll button: none
+ZEDQA cu FAIL tab journal Character rolled before the press
+ZEDQA cu FAIL tab journal Character still rolled on the tab: tab journal
+ZEDQA cu ok tab journal rolled Character 294,200 1617x46
+ZEDQA cu ok tab journal Character unrolled (rods in UI 0)
+ZEDQA cu ok tab journal unrolled Character 294,200 1617x46
+ZEDQA cu ok tab journal unrolled: other World 1929,159 777x46
+ZEDQA cu ok tab journal back on health Character 294,200 1617x46
+ZEDQA cu tab radio Character: not shown here, skipped
+ZEDQA cu FAIL skills and back Character still rolled: tab health
+ZEDQA cu ok skills and back rolled Character 294,200 1617x46
+ZEDQA cu ok skills and back, unrolled Character 294,200 1617x46
+ZEDQA cu Character Loot (unrolled) 1134,200 777x46
+ZEDQA cu FAIL Loot reference, back on health Character: got 1134,200 777x46 want 294,200 1617x46 (dx 840 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL Loot Character rolled before the press
+ZEDQA cu ok Loot Character side down with the press (rolled nil tab loot rods in UI 0)
+ZEDQA cu ok Loot while rolled Character 1134,200 777x46
+ZEDQA cu ok Loot while rolled: other World 1929,159 777x46
+ZEDQA cu FAIL Loot while rolled, back on health Character: got 1134,200 777x46 want 294,200 1617x46 (dx 840 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL health again Character rolled before the press
+ZEDQA cu ok health again Character side down (rolled nil)
+ZEDQA cu ok health pressed again while rolled Character 1134,200 777x46
+ZEDQA cu FAIL health again, back on health Character: got 1134,200 777x46 want 294,200 1617x46 (dx 840 dy 0 dw -840 dh 0)
+ZEDQA cu geometry checks 235, differences 86
+ZEDQA cu at quit, unrolled: Character 1134,200 777x46 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x46 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab maps drawer true)
+ZEDQA cu at quit, rolled: Character 1134,200 777x46 rolled nil (saved 648.000,114.286 444.000x543.429 anchor 1092.000 tab health drawer true) | World 1929,159 777x46 rolled nil (saved 1102.286,90.857 444.000x1143.429 tab maps drawer true)
+ZEDQA cu DONE
+```
+
+### 20. zedqa_curtain2.lua (`ZEDQA cv`) - PASS, 10 s
+
+- go 23300 at 21:42:50
+- screenshots: zqa_cv_1.png, zqa_cv_2.png, zqa_cv_3.png
+
+```text
+[ZeD.QA] state #20 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA cv start
+[ZeD.QA] run #20 ok=true
+ZEDQA cv health tab true
+ZEDQA cv char before rolled nil x 1134 w 777 right 1911 tab health content false rod - button false
+ZEDQA cv roll false
+ZEDQA cv char rolled rolled nil x 1134 w 777 right 1911 tab health content false rod -
+ZEDQA cv skills tab true
+ZEDQA cv char after switch rolled nil x 1134 w 777 right 1911 tab skills content false rod -
+ZEDQA cv char unrolled rolled nil x 1134 w 777 right 1911 tab skills content false rod - (was x 1134 w 777)
+ZEDQA cv world roll true
+ZEDQA cv world rolled rolled true x 2643 w 903 right 3546 tab maps content false rod 1929+714
+ZEDQA cv world after switch rolled true x 2643 w 903 right 3546 tab forage content false rod 1929+714
+ZEDQA cv world unrolled rolled true x 2643 w 903 right 3546 tab forage content false rod 1929+714
+ZEDQA cv DONE
+```
+
+### 21. zedqa_navevents.lua (`ZEDQA ev`) - PASS, 5 s
+
+- go 23301 at 21:43:04
+
+```text
+[ZeD.QA] state #21 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA ev start
+[ZeD.QA] run #21 ok=true
+ZEDQA ev 1 on the hammer row: Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA ev 1 after A (expect the card's primary action): Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA ev 1 after B (expect back on the hammer row): Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA ev 2 Right (expect the strip): Char charContainerStrip:container:1
+ZEDQA ev 2 Left (expect back on the hammer row): Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA ev 3 on the screwdriver: Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA ev 3 Left (expect the active tab): Char charTabBar:tab:loot
+ZEDQA ev 3 Down: Char charTabBar:tab:equip
+ZEDQA ev 3 A on: Char charTabBar:tab:equip
+ZEDQA ev 3 after A on the tab (expect still on it): Char charTabBar:tab:equip
+ZEDQA ev 3 Right (expect the tab's first control): Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA ev 3 Left (expect back on the tab): Char charTabBar:tab:equip
+ZEDQA ev 4 on the screwdriver: Char charTabBar:tab:equip
+ZEDQA ev 4 after RB (World): World worldTabBar:tab:loot
+ZEDQA ev 4 after LB (expect back on the screwdriver): Char charTabBar:tab:equip
+ZEDQA ev 5 on the hammer: Char charMainInv:invrow:7 (Claw Hammer)
+ZEDQA ev 5 after the hammer went (expect a neighbouring row): Char charMainInv:invrow:7 (Digital Watch)
+ZEDQA ev 6 on the star tool: World worldTabContent:map:tool:star
+ZEDQA ev 6 Down (expect the map): World worldTabContent:map:canvas:cursor
+ZEDQA ev 6 Up (expect back on the star tool): World worldTabContent:map:tool:star
+ZEDQA ev 6 Down, Left: World worldCtl:worldCtl:same
+ZEDQA ev 6 Right (expect back on the map): World worldTabContent:map:canvas:cursor
+ZEDQA ev 6 Right again: World worldTabBar:tab:maps
+ZEDQA ev 7 on unfold: World worldTabContent:map:popout
+ZEDQA ev 7 after unfold (expect the big map's window): Map popMapContent:map:canvas:cursor
+ZEDQA ev 7 after B (expect the World window's map or unfold): World worldTabBar:tab:maps
+ZEDQA ev DONE
+```
+
+### 22. zedqa_navmap.lua (`ZEDQA nav`) - PASS, 8 s
+
+- go 23302 at 21:43:12
+
+```text
+[ZeD.QA] state #22 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA nav start
+[ZeD.QA] run #22 ok=true
+ZEDQA nav char loot: 30 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char loot STUCK: tab:loot(UL) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) invrow:16(D) view:list:player(U) view:grid:player(U) container:1(UR) container:2(DR)
+ZEDQA nav char loot charTabBar:tab:loot U>- D>tab:equip L>- R>charMainInv:invrow:7
+ZEDQA nav char loot charTabBar:tab:equip U>tab:loot D>tab:health L>- R>charMainInv:invrow:7
+ZEDQA nav char loot charTabBar:tab:health U>tab:equip D>tab:thermal L>- R>charMainInv:invrow:7
+ZEDQA nav char loot charTabBar:tab:thermal U>tab:health D>tab:identity L>- R>charMainInv:invrow:7
+ZEDQA nav char loot charTabBar:tab:identity U>tab:thermal D>tab:journal L>- R>charMainInv:invrow:7
+ZEDQA nav char loot charTabBar:tab:journal U>tab:identity D>tab:skills L>- R>charMainInv:invrow:7
+ZEDQA nav char loot charTabBar:tab:skills U>tab:journal D>- L>- R>charMainInv:invrow:7
+ZEDQA nav char loot charMainInv:invrow:1 U>view:list:player~ D>invrow:2 L>charTabBar:tab:loot R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:2 U>invrow:1 D>invrow:3 L>charTabBar:tab:loot R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:3 U>invrow:2 D>invrow:4 L>charTabBar:tab:loot R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:4 U>invrow:3 D>invrow:5 L>charTabBar:tab:loot R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:5 U>invrow:4 D>invrow:6 L>charTabBar:tab:loot R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:6 U>invrow:5 D>invrow:7 L>charTabBar:tab:loot R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:7 U>invrow:6 D>invrow:8 L>charTabBar:tab:loot R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:8 U>invrow:7 D>invrow:9 L>charTabBar:tab:loot~ R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:9 U>invrow:8 D>invrow:10 L>charTabBar:tab:loot~ R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:10 U>invrow:9 D>invrow:11 L>charTabBar:tab:loot~ R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:11 U>invrow:10 D>invrow:12 L>charTabBar:tab:loot~ R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:12 U>invrow:11 D>invrow:13 L>charTabBar:tab:loot~ R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:13 U>invrow:12 D>invrow:14 L>charTabBar:tab:loot~ R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:14 U>invrow:13 D>invrow:15 L>charCtl:charCtl:xfer R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:15 U>invrow:14 D>invrow:16 L>charCtl:charCtl:xfer R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:invrow:16 U>invrow:15 D>- L>charTabBar:tab:loot~ R>charContainerStrip:container:1
+ZEDQA nav char loot charMainInv:view:list:player U>- D>invrow:1~ L>charTabBar:tab:loot R>view:grid:player
+ZEDQA nav char loot charMainInv:view:grid:player U>- D>invrow:1~ L>view:list:player R>charContainerStrip:container:1
+ZEDQA nav char loot charContainerStrip:container:1 U>- D>container:2 L>charMainInv:view:grid:player R>-
+ZEDQA nav char loot charContainerStrip:container:2 U>container:1 D>- L>charMainInv:invrow:1 R>-
+ZEDQA nav char loot charCtl:charCtl:xfer U>charMainInv:invrow:14 D>charMainInv:invrow:15 L>charTabBar:tab:loot~ R>charMainInv:invrow:14
+ZEDQA nav char loot charCtl:charCtl:same U>charMainInv:invrow:14 D>charMainInv:invrow:15 L>charCtl:xfer R>charMainInv:invrow:14
+ZEDQA nav char loot charCtl:charCtl:near U>charMainInv:invrow:14 D>charMainInv:invrow:15 L>charCtl:same R>charMainInv:invrow:14
+ZEDQA nav char equip: 30 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char equip STUCK: tab:loot(UL) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) invrow:16(D) view:list:player(U) view:grid:player(U) container:1(UR) container:2(DR)
+ZEDQA nav char equip charTabBar:tab:loot U>- D>tab:equip L>- R>charMainInv:invrow:7
+ZEDQA nav char equip charTabBar:tab:equip U>tab:loot D>tab:health L>- R>charMainInv:invrow:7
+ZEDQA nav char equip charTabBar:tab:health U>tab:equip D>tab:thermal L>- R>charMainInv:invrow:7
+ZEDQA nav char equip charTabBar:tab:thermal U>tab:health D>tab:identity L>- R>charMainInv:invrow:7
+ZEDQA nav char equip charTabBar:tab:identity U>tab:thermal D>tab:journal L>- R>charMainInv:invrow:7
+ZEDQA nav char equip charTabBar:tab:journal U>tab:identity D>tab:skills L>- R>charMainInv:invrow:7
+ZEDQA nav char equip charTabBar:tab:skills U>tab:journal D>- L>- R>charMainInv:invrow:7
+ZEDQA nav char equip charMainInv:invrow:1 U>view:list:player~ D>invrow:2 L>charTabBar:tab:equip R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:2 U>invrow:1 D>invrow:3 L>charTabBar:tab:equip R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:3 U>invrow:2 D>invrow:4 L>charTabBar:tab:equip R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:4 U>invrow:3 D>invrow:5 L>charTabBar:tab:equip R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:5 U>invrow:4 D>invrow:6 L>charTabBar:tab:equip R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:6 U>invrow:5 D>invrow:7 L>charTabBar:tab:equip R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:7 U>invrow:6 D>invrow:8 L>charTabBar:tab:equip R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:8 U>invrow:7 D>invrow:9 L>charTabBar:tab:equip~ R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:9 U>invrow:8 D>invrow:10 L>charTabBar:tab:equip~ R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:10 U>invrow:9 D>invrow:11 L>charTabBar:tab:equip~ R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:11 U>invrow:10 D>invrow:12 L>charTabBar:tab:equip~ R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:12 U>invrow:11 D>invrow:13 L>charTabBar:tab:equip~ R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:13 U>invrow:12 D>invrow:14 L>charTabBar:tab:equip~ R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:14 U>invrow:13 D>invrow:15 L>charCtl:charCtl:xfer R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:15 U>invrow:14 D>invrow:16 L>charCtl:charCtl:xfer R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:invrow:16 U>invrow:15 D>- L>charTabBar:tab:equip~ R>charContainerStrip:container:1
+ZEDQA nav char equip charMainInv:view:list:player U>- D>invrow:1~ L>charTabBar:tab:equip R>view:grid:player
+ZEDQA nav char equip charMainInv:view:grid:player U>- D>invrow:1~ L>view:list:player R>charContainerStrip:container:1
+ZEDQA nav char equip charContainerStrip:container:1 U>- D>container:2 L>charMainInv:view:grid:player R>-
+ZEDQA nav char equip charContainerStrip:container:2 U>container:1 D>- L>charMainInv:invrow:1 R>-
+ZEDQA nav char equip charCtl:charCtl:xfer U>charMainInv:invrow:14 D>charMainInv:invrow:15 L>charTabBar:tab:equip~ R>charMainInv:invrow:14
+ZEDQA nav char equip charCtl:charCtl:same U>charMainInv:invrow:14 D>charMainInv:invrow:15 L>charCtl:xfer R>charMainInv:invrow:14
+ZEDQA nav char equip charCtl:charCtl:near U>charMainInv:invrow:14 D>charMainInv:invrow:15 L>charCtl:same R>charMainInv:invrow:14
+ZEDQA nav char health: 52 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char health STUCK: tab:loot(UL) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) health:time:dec(D) health:time:inc(D) health:start(DR) invrow:16(D) view:list:player(U) view:grid:player(U) container:1(U)
+ZEDQA nav char thermal: 30 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char thermal STUCK: tab:loot(UL) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) invrow:16(D) view:list:player(U) view:grid:player(U) container:1(UR) container:2(DR)
+ZEDQA nav char identity: 30 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char identity STUCK: tab:loot(UL) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) invrow:16(D) view:list:player(U) view:grid:player(U) container:1(UR) container:2(DR)
+ZEDQA nav char journal: 30 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char journal STUCK: tab:loot(UL) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) invrow:16(D) view:list:player(U) view:grid:player(U) container:1(UR) container:2(DR)
+ZEDQA nav char skills: 30 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char skills STUCK: tab:loot(UL) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) invrow:16(D) view:list:player(U) view:grid:player(U) container:1(UR) container:2(DR)
+ZEDQA nav world loot: 13 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world loot STUCK: container:3(UL) container:1(L) container:2(DL) tab:loot(UR) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(R) tab:vehicle(DR) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav world loot worldContainerStrip:container:3 U>- D>container:1 L>- R>worldTabBar:tab:loot
+ZEDQA nav world loot worldContainerStrip:container:1 U>container:3 D>container:2 L>- R>worldTabBar:tab:loot
+ZEDQA nav world loot worldContainerStrip:container:2 U>container:1 D>- L>- R>worldTabBar:tab:loot
+ZEDQA nav world loot worldTabBar:tab:loot U>- D>tab:craft L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldTabBar:tab:craft U>tab:loot D>tab:build L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldTabBar:tab:build U>tab:craft D>tab:furniture L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldTabBar:tab:furniture U>tab:build D>tab:maps L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldTabBar:tab:maps U>tab:furniture D>tab:forage L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldTabBar:tab:forage U>tab:maps D>tab:animals L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldTabBar:tab:animals U>tab:forage D>tab:vehicle L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldTabBar:tab:vehicle U>tab:animals D>- L>worldContainerStrip:container:3 R>-
+ZEDQA nav world loot worldCtl:worldCtl:take U>- D>- L>worldContainerStrip:container:3 R>worldCtl:same
+ZEDQA nav world loot worldCtl:worldCtl:same U>- D>- L>worldCtl:take R>worldTabBar:tab:loot~
+ZEDQA nav world craft: 13 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world craft STUCK: container:3(UL) container:1(L) container:2(DL) tab:loot(UR) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(R) tab:vehicle(DR) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav world build: 13 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world build STUCK: container:3(UL) container:1(L) container:2(DL) tab:loot(UR) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(R) tab:vehicle(DR) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav world furniture: 13 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world furniture STUCK: container:3(UL) container:1(L) container:2(DL) tab:loot(UR) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(R) tab:vehicle(DR) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav world maps: 32 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world maps STUCK: container:3(UL) container:1(L) container:2(DL) map:disclosure(U) map:tool:house(U) map:tool:target(U) map:tool:skull(U) map:tool:star(U) map:tool:cross(U) map:tool:checkmark(U) map:tool:text(U) map:color:1(U) map:color:2(U) map:color:3(U) map:color:4(U) map:color:5(U) map:popout(UR) map:style:survey(D) map:style:color(D) map:style:paper(D) map:ext:key(D) tab:loot(U) tab:vehicle(D) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav world maps worldContainerStrip:container:3 U>- D>container:1 L>- R>worldTabContent:map:disclosure
+ZEDQA nav world maps worldContainerStrip:container:1 U>container:3 D>container:2 L>- R>worldTabContent:map:canvas:cursor
+ZEDQA nav world maps worldContainerStrip:container:2 U>container:1 D>- L>- R>worldTabContent:map:canvas:cursor
+ZEDQA nav world maps worldTabContent:map:disclosure U>- D>map:canvas:cursor L>worldContainerStrip:container:3 R>map:tool:house
+ZEDQA nav world maps worldTabContent:map:tool:house U>- D>map:canvas:cursor L>map:disclosure R>map:tool:target
+ZEDQA nav world maps worldTabContent:map:tool:target U>- D>map:canvas:cursor L>map:tool:house R>map:tool:skull
+ZEDQA nav world maps worldTabContent:map:tool:skull U>- D>map:canvas:cursor L>map:tool:target R>map:tool:star
+ZEDQA nav world maps worldTabContent:map:tool:star U>- D>map:canvas:cursor L>map:tool:skull R>map:tool:cross
+ZEDQA nav world maps worldTabContent:map:tool:cross U>- D>map:canvas:cursor L>map:tool:star R>map:tool:checkmark
+ZEDQA nav world maps worldTabContent:map:tool:checkmark U>- D>map:canvas:cursor L>map:tool:cross R>map:tool:text
+ZEDQA nav world maps worldTabContent:map:tool:text U>- D>map:canvas:cursor L>map:tool:checkmark R>map:color:1
+ZEDQA nav world maps worldTabContent:map:color:1 U>- D>map:canvas:cursor L>map:tool:text R>map:color:2
+ZEDQA nav world maps worldTabContent:map:color:2 U>- D>map:canvas:cursor L>map:color:1 R>map:color:3
+ZEDQA nav world maps worldTabContent:map:color:3 U>- D>map:canvas:cursor L>map:color:2 R>map:color:4
+ZEDQA nav world maps worldTabContent:map:color:4 U>- D>map:canvas:cursor L>map:color:3 R>map:color:5
+ZEDQA nav world maps worldTabContent:map:color:5 U>- D>map:canvas:cursor L>map:color:4 R>worldTabBar:tab:maps
+ZEDQA nav world maps worldTabContent:map:popout U>- D>map:ext:key L>worldTabBar:tab:maps R>-
+ZEDQA nav world maps worldTabContent:map:canvas:cursor U>map:disclosure D>map:style:paper L>worldContainerStrip:container:3 R>worldTabBar:tab:maps
+ZEDQA nav world maps worldTabContent:map:style:survey U>map:canvas:cursor D>- L>worldCtl:worldCtl:same~ R>map:style:color
+ZEDQA nav world maps worldTabContent:map:style:color U>map:canvas:cursor D>- L>map:style:survey R>map:style:paper
+ZEDQA nav world maps worldTabContent:map:style:paper U>map:canvas:cursor D>- L>map:style:color R>map:ext:key
+ZEDQA nav world maps worldTabContent:map:ext:key U>map:popout D>- L>map:style:paper R>map:popout~
+ZEDQA nav world maps worldTabBar:tab:loot U>- D>tab:craft L>worldTabContent:map:color:5 R>worldTabContent:map:popout
+ZEDQA nav world maps worldTabBar:tab:craft U>tab:loot D>tab:build L>worldTabContent:map:canvas:cursor R>worldTabContent:map:popout~
+ZEDQA nav world maps worldTabBar:tab:build U>tab:craft D>tab:furniture L>worldTabContent:map:canvas:cursor R>worldTabContent:map:popout~
+ZEDQA nav world maps worldTabBar:tab:furniture U>tab:build D>tab:maps L>worldTabContent:map:canvas:cursor R>worldTabContent:map:popout~
+ZEDQA nav world maps worldTabBar:tab:maps U>tab:furniture D>tab:forage L>worldTabContent:map:canvas:cursor R>worldTabContent:map:popout~
+ZEDQA nav world maps worldTabBar:tab:forage U>tab:maps D>tab:animals L>worldTabContent:map:canvas:cursor R>worldTabContent:map:popout~
+ZEDQA nav world maps worldTabBar:tab:animals U>tab:forage D>tab:vehicle L>worldTabContent:map:canvas:cursor R>worldTabContent:map:popout~
+ZEDQA nav world maps worldTabBar:tab:vehicle U>tab:animals D>- L>worldTabContent:map:canvas:cursor R>worldTabContent:map:popout~
+ZEDQA nav world maps worldCtl:worldCtl:take U>- D>- L>worldContainerStrip:container:3 R>worldCtl:same
+ZEDQA nav world maps worldCtl:worldCtl:same U>- D>- L>worldCtl:take R>worldTabContent:map:style:survey~
+ZEDQA nav world forage: 16 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world forage STUCK: container:3(UL) container:1(L) container:2(DL) forage:dropdown(U) forage:search(D) tab:loot(UR) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(R) tab:vehicle(DR) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav world animals: 13 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world animals STUCK: container:3(UL) container:1(L) container:2(DL) tab:loot(UR) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(R) tab:vehicle(DR) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav world vehicle: 13 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world vehicle STUCK: container:3(UL) container:1(L) container:2(DL) tab:loot(UR) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(R) tab:vehicle(DR) worldCtl:take(UD) worldCtl:same(UD)
+ZEDQA nav DONE
+```
+
+### 23. zedqa_loot_tabs.lua (`ZEDQA lt`) - PASS, 1 s
+
+- go 23303 at 21:43:24
+
+```text
+[ZeD.QA] state #23 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA lt start
+[ZeD.QA] run #23 ok=true
+ZEDQA lt Character loot drawer false | World loot drawer false
+ZEDQA lt DONE
+```
+
+### 24. zedqa_world_pad_take.lua (`ZEDQA wpt`) - WARN, 48 s
+
+- go 23304 at 21:43:28
+- 39 ERR line(s)
+
+```text
+[ZeD.QA] state #24 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA wpt start
+[ZeD.QA] run #24 ok=true
+ZEDQA wpt scene: 0 zombies removed, save ZeD-QA
+ZEDQA wpt FAIL a crate was built beside the character
+ZEDQA wpt containers 1:Trunk, 2:Garbage Bag, 3:Ground | stops container:3@0, container:1@100, container:2@163
+ZEDQA wpt FAIL the crate has a stop in the World window's container strip (stops follow the list)
+ZEDQA wpt 1 after RB: World worldTabBar:tab:maps
+ZEDQA wpt PASS RB lands in the World window on a lit element
+ZEDQA wpt 1 on the Character window's strip: Char charContainerStrip:container:1
+ZEDQA wpt 1 Right from the Character window's right edge: World worldTabBar:tab:maps
+ZEDQA wpt PASS the D-pad across from the Character window lands in the World window, lit
+ZEDQA wpt 2 strip: World worldContainerStrip:container:3
+ZEDQA wpt PASS on the strip, focus is on the container on show (the ground)
+ZEDQA wpt 2 Down x10: World worldContainerStrip:container:2
+ZEDQA wpt FAIL Down from the ground reaches the crate (10 presses)
+ZEDQA wpt 2 after A on the crate: World worldContainerStrip:container:2
+ZEDQA wpt FAIL A on the crate puts focus on its first item, lit
+ZEDQA wpt 2 Left: Char charContainerStrip:container:1
+ZEDQA wpt FAIL Left from the list lands on the crate (the container on show)
+ZEDQA wpt 2 Right: World worldContainerStrip:container:2
+ZEDQA wpt FAIL Right goes back to the same row
+ZEDQA wpt 2 Left from a lower row: Char charContainerStrip:container:1
+ZEDQA wpt FAIL Left from a lower row lands on the crate too
+ZEDQA wpt FAIL and Right goes back to that row
+ZEDQA wpt 3 A on the bandage: World worldContainerStrip:container:2
+ZEDQA wpt FAIL 3 A on the bandage: focus is on the card's primary action (nil)
+ZEDQA wpt 3 Down in the card: World worldContainerStrip:container:2
+ZEDQA wpt FAIL Down moves to the card's next control
+ZEDQA wpt 3 Up: World worldContainerStrip:container:1
+ZEDQA wpt FAIL Up from inside the card is back on the primary action in one press
+ZEDQA wpt 3 after B: World worldContainerStrip:container:1
+ZEDQA wpt FAIL B closes the card and focus is back on the bandage row, lit
+ZEDQA wpt 3 timing: card buttons ready after nil; focus in the card after nil (watched 60 ticks, 59 frames)
+ZEDQA wpt 4 A on the nails: World worldMainInv:invrow:1 (Garbage Bag)
+ZEDQA wpt FAIL 4 A on the nails: focus is on the card's primary action (nil)
+ZEDQA wpt FAIL the nails' card offers Take as its primary action
+ZEDQA wpt FAIL A on Take moved the nails into the bag (vanilla's transfer, 610 ticks)
+ZEDQA wpt 4 after the take: World worldItemCard:hverb_1
+ZEDQA wpt 5 before the padlock card: World worldMainInv:invrow:1 (Garbage Bag)
+ZEDQA wpt 5 the padlock card: World worldMainInv:invrow:1 (Garbage Bag)
+ZEDQA wpt FAIL the object card opens with focus on its main live verb (nil)
+ZEDQA wpt FAIL A on it ran the verb (the padlock's code wheel shows)
+ZEDQA wpt 5 after B: World worldMainInv:invrow:1 (Garbage Bag)
+ZEDQA wpt PASS B closes the object card and focus is back in the list, lit
+ZEDQA wpt 6 Left from the World window's strip: World worldContainerStrip:container:1
+ZEDQA wpt FAIL the D-pad across from the World window lands in the Character window, lit
+ZEDQA wpt 6 LB: Char charContainerStrip:container:1
+ZEDQA wpt PASS LB lands in the Character window on a lit element
+ZEDQA wpt 6 Right: World worldContainerStrip:container:1
+ZEDQA wpt FAIL Right from a row lands on the bag on show
+ZEDQA wpt FAIL Left goes back to the same row
+ZEDQA wpt 6 A on the nails: Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA wpt FAIL 6 A on the nails: focus is on the card's primary action (nil)
+ZEDQA wpt FAIL Down then Up in the Character window's card is back on its primary action
+ZEDQA wpt 6 primary is nil; A runs it
+ZEDQA wpt FAIL A on the card's primary action (Drop) moved the nails out of the bag (610 ticks)
+ZEDQA wpt 6 A on a row: Char charItemCard:hverb_1
+ZEDQA wpt PASS 6 A on a row: focus is on the card's primary action (DROP)
+ZEDQA wpt 6 after B: Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA wpt PASS B on the Character window's card goes back to the row
+ZEDQA wpt 8 no corkscrew row in the World window's list: worldContainerStrip=3 worldMainInv=4 worldTabContent(off)=0 worldItemCard(off)=0 worldTabBar=8 worldCtl=3; card false
+ZEDQA wpt FAIL 8 X on a row opens the context menu
+ZEDQA wpt 8 after the menu's B: World worldContainerStrip:container:1
+ZEDQA wpt FAIL 8 the menu closed: focus is back on the same row, lit
+ZEDQA wpt 8 after hold X: World worldContainerStrip:container:1
+ZEDQA wpt FAIL 8 hold X moved the thing out of the crate
+ZEDQA wpt 8 a moment later: World worldContainerStrip:container:1
+ZEDQA wpt FAIL 8 after the transfer focus is on a neighbour in the same panel, lit
+ZEDQA wpt PASS 8 a stray Left with a window open stays in the window (no way into the belt)
+ZEDQA wpt PASS 8 with the windows put away, Left opens the Character wheel (not the belt)
+ZEDQA wpt PASS 8 B leaves the belt in one press
+ZEDQA wpt PASS 8 Right past the belt's last box leaves it
+ZEDQA wpt PASS 8 Down (the screen's edge) leaves the belt
+ZEDQA wpt 7 tabs: 13 at small and large
+ZEDQA wpt 7 Char equip small: no controls in the tab
+ZEDQA wpt FAIL 7 Char health small pad: Down reaches the lowest control of its column health:exercise and it is in view (bottom 857 of 0)
+ZEDQA wpt FAIL 7 Char health small wheel: the lowest control health:exercise is in view at the bottom (bottom 857 of 0)
+ZEDQA wpt PASS 7 Char health small Health: scrolled to the end, drawn 616 px in a 175 px view
+ZEDQA wpt 7 Char thermal small: no controls in the tab
+ZEDQA wpt 7 Char identity small: no controls in the tab
+ZEDQA wpt 7 Char journal small: no controls in the tab
+ZEDQA wpt 7 Char skills small: no controls in the tab
+ZEDQA wpt 7 World craft small: no controls in the tab
+ZEDQA wpt 7 World build small: no controls in the tab
+ZEDQA wpt 7 World furniture small: no controls in the tab
+ZEDQA wpt FAIL 7 World maps small pad: Down reaches the lowest control of its column map:style:paper and it is in view (bottom 1590 of 0)
+ZEDQA wpt FAIL 7 World maps small wheel: the lowest control map:style:survey is in view at the bottom (bottom 1590 of 0)
+ZEDQA wpt FAIL 7 World forage small pad: Down reaches the lowest control of its column forage:search and it is in view (bottom 1907 of 0)
+ZEDQA wpt FAIL 7 World forage small wheel: the lowest control forage:search is in view at the bottom (bottom 1907 of 0)
+ZEDQA wpt 7 World animals small: no controls in the tab
+ZEDQA wpt 7 World vehicle small: no controls in the tab
+ZEDQA wpt 7 Char equip large: no controls in the tab
+ZEDQA wpt FAIL 7 Char health large pad: Down reaches the lowest control of its column health:exercise and it is in view (bottom 857 of 0)
+ZEDQA wpt FAIL 7 Char health large wheel: the lowest control health:exercise is in view at the bottom (bottom 857 of 0)
+ZEDQA wpt PASS 7 Char health large Health: scrolled to the end, drawn 616 px in a 175 px view
+ZEDQA wpt 7 Char thermal large: no controls in the tab
+ZEDQA wpt 7 Char identity large: no controls in the tab
+ZEDQA wpt 7 Char journal large: no controls in the tab
+ZEDQA wpt 7 Char skills large: no controls in the tab
+ZEDQA wpt 7 World craft large: no controls in the tab
+ZEDQA wpt 7 World build large: no controls in the tab
+ZEDQA wpt 7 World furniture large: no controls in the tab
+ZEDQA wpt FAIL 7 World maps large pad: Down reaches the lowest control of its column map:style:paper and it is in view (bottom 1590 of 0)
+ZEDQA wpt FAIL 7 World maps large wheel: the lowest control map:style:survey is in view at the bottom (bottom 1590 of 0)
+ZEDQA wpt FAIL 7 World forage large pad: Down reaches the lowest control of its column forage:search and it is in view (bottom 1907 of 0)
+ZEDQA wpt FAIL 7 World forage large wheel: the lowest control forage:search is in view at the bottom (bottom 1907 of 0)
+ZEDQA wpt 7 World animals large: no controls in the tab
+ZEDQA wpt 7 World vehicle large: no controls in the tab
+ZEDQA wpt cleanup: crate gone true, size small
+ZEDQA wpt 14 passed, 39 failed
+ZEDQA wpt DONE
+```
+
+### 25. zedqa_furniture.lua (`ZEDQA fu`) - PASS, 2 s
+
+- go 23305 at 21:44:19
+
+```text
+[ZeD.QA] state #25 speed=1 paused=false player=869,13025 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #25 ok=true
+ZEDQA fu tab=true cursor=true mode=pickup
+ZEDQA fu furniture square=875,13017
+ZEDQA fu pickup capture name=nil can=false facts=nil notes=nil
+ZEDQA fu mode place -> cursor mode=place target=false can=false
+ZEDQA fu mode rotate -> cursor mode=rotate target=false can=false
+ZEDQA fu mode scrap -> cursor mode=scrap target=false can=false
+ZEDQA fu mode repair -> cursor mode=repair target=false can=false
+ZEDQA fu mode pickup -> cursor mode=pickup target=false can=false
+ZEDQA fu zones fur:mode:pickup,fur:mode:place,fur:mode:rotate,fur:mode:scrap,fur:mode:repair
+ZEDQA fu after leaving tab=false cursor=false active=false
+```
+
+### 26. zedqa_tabicons.lua (`ZEDQA ti`) - PASS, 3 s
+
+- go 23306 at 21:44:25
+- screenshots: zqa_tabicons.png
+
+```text
+[ZeD.QA] state #26 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #26 ok=true
+ZEDQA ti DONE
+```
+
+### 27. zedqa_tabs_lit.lua (`ZEDQA tl`) - PASS, 6 s
+
+- go 23307 at 21:44:31
+- screenshots: zqa_tabs_1.png, zqa_tabs_2.png, zqa_tabs_3.png
+
+```text
+[ZeD.QA] state #27 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #27 ok=true
+ZEDQA tl char true world true TabPx true
+ZEDQA tl active loot / loot
+ZEDQA tl restored; DONE
+```
+
+### 28. zedqa_win.lua (`ZEDQA win`) - PASS, 5 s
+
+- go 23308 at 21:44:40
+- screenshots: zedqa_win_200.png, zedqa_win_100.png
+
+```text
+[ZeD.QA] state #28 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #28 ok=true
+ZEDQA win natural root=1.75 T.scale=1.75 rowH=53 sp.md=25 F2H=29.1484375 char=true 1134,0 777x735 world=true 1929,0 777x735
+ZEDQA win forced1 root=1 T.scale=1 rowH=30 sp.md=14 F2H=16.65625 char=true 1134,0 777x735 world=true 1929,0 777x735
+ZEDQA win done root=1.75
+```
+
+### 29. zedqa_rootchange.lua (`ZEDQA rc`) - PASS, 6 s
+
+- go 23309 at 21:44:49
+- screenshots: zedqa_rc_100.png, zedqa_rc_200.png
+
+```text
+[ZeD.QA] state #29 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #29 ok=true
+ZEDQA rc open at natural root=1.75 applied=1.75 char=true 777x735 at 1134,0 world=true 777x735 rowH=53
+ZEDQA rc after override 1.0 root=1 applied=1 char=true 444x951 at 1467,0 world=true 444x2001 rowH=30
+ZEDQA rc after override cleared root=1.75 applied=1.75 char=true 777x1664 at 2567,0 world=true 777x2125 rowH=53
+ZEDQA rc done
+```
+
+### 30. zedqa_scalewalk.lua (`ZEDQA sw`) - WARN, 57 s
+
+- go 23310 at 21:44:58
+- 8 ERR line(s)
+- screenshots: zedqa_sw_200_char_loot.png, zedqa_sw_200_char_equip.png, zedqa_sw_200_char_health.png, zedqa_sw_200_char_thermal.png, zedqa_sw_200_char_identity.png, zedqa_sw_200_char_journal.png, zedqa_sw_200_char_skills.png, zedqa_sw_200_world_loot.png, zedqa_sw_200_world_craft.png, zedqa_sw_200_world_build.png, zedqa_sw_200_world_furniture.png, zedqa_sw_200_world_maps.png, zedqa_sw_200_world_forage.png, zedqa_sw_200_world_animals.png, zedqa_sw_200_world_vehicle.png, zedqa_sw_100_char_loot.png, zedqa_sw_100_char_equip.png, zedqa_sw_100_char_health.png, zedqa_sw_100_char_thermal.png, zedqa_sw_100_char_identity.png, zedqa_sw_100_char_journal.png, zedqa_sw_100_char_skills.png, zedqa_sw_100_world_loot.png, zedqa_sw_100_world_craft.png, zedqa_sw_100_world_build.png, zedqa_sw_100_world_furniture.png, zedqa_sw_100_world_maps.png, zedqa_sw_100_world_forage.png, zedqa_sw_100_world_animals.png, zedqa_sw_100_world_vehicle.png
+
+```text
+[ZeD.QA] state #30 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA sw armed
+[ZeD.QA] run #30 ok=true
+ZEDQA sw char tabs loot,equip,health,thermal,identity,journal,skills
+ZEDQA sw shot 200 char loot active=loot win=1134,0 777x735
+ZEDQA sw shot 200 char equip active=equip win=1134,0 777x735
+ZEDQA sw shot 200 char health active=health win=1134,0 777x735
+ZEDQA sw shot 200 char thermal active=thermal win=1134,0 777x735
+ZEDQA sw shot 200 char identity active=identity win=1134,0 777x735
+ZEDQA sw shot 200 char journal active=journal win=1134,0 777x735
+ZEDQA sw shot 200 char skills active=skills win=1134,0 777x735
+ZEDQA sw world tabs loot,craft,build,furniture,maps,forage,animals,vehicle
+ZEDQA sw shot 200 world loot active=loot win=1929,0 777x735
+ZEDQA sw fit 200 loot: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw shot 200 world craft active=craft win=1929,0 777x735
+ZEDQA sw fit 200 craft: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw shot 200 world build active=build win=1929,0 777x735
+ZEDQA sw fit 200 build: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw shot 200 world furniture active=furniture win=1929,0 777x735
+ZEDQA sw fit 200 furniture: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw shot 200 world maps active=maps win=1929,0 777x735
+ZEDQA sw fit 200 maps: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw shot 200 world forage active=forage win=1929,0 777x735
+ZEDQA sw fit 200 forage: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw shot 200 world animals active=animals win=1929,0 777x735
+ZEDQA sw fit 200 animals: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw shot 200 world vehicle active=vehicle win=1929,0 777x735
+ZEDQA sw fit 200 vehicle: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 777
+ZEDQA sw char tabs loot,equip,health,thermal,identity,journal,skills
+ZEDQA sw shot 100 char loot active=loot win=1467,0 444x735
+ZEDQA sw shot 100 char equip active=equip win=1467,0 444x735
+ZEDQA sw shot 100 char health active=health win=1467,0 444x735
+ZEDQA sw shot 100 char thermal active=thermal win=1467,0 444x735
+ZEDQA sw shot 100 char identity active=identity win=1467,0 444x735
+ZEDQA sw shot 100 char journal active=journal win=1467,0 444x735
+ZEDQA sw shot 100 char skills active=skills win=1467,0 444x735
+ZEDQA sw world tabs loot,craft,build,furniture,maps,forage,animals,vehicle
+ZEDQA sw shot 100 world loot active=loot win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 loot: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw shot 100 world craft active=craft win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 craft: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw shot 100 world build active=build win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 build: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw shot 100 world furniture active=furniture win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 furniture: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw shot 100 world maps active=maps win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 maps: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw shot 100 world forage active=forage win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 forage: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw shot 100 world animals active=animals win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 animals: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw shot 100 world vehicle active=vehicle win=1929,0 444x735
+ZEDQA sw ERR world parts out of place 100 vehicle: container strip ends 63, list starts 63, drawer 714-714, tab strip 714-777, window 444
+ZEDQA sw done root=1.75
+```
+
+### 31. zedqa_uiscale.lua (`ZEDQA scale`) - PASS, 12 s
+
+- go 23311 at 21:45:58
+- screenshots: zedqa_scale_auto.png, zedqa_scale_x150.png, zedqa_scale_x100.png, zedqa_scale_auto_back.png, zedqa_scale_restored.png
+
+```text
+[ZeD.QA] state #31 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA scale armed
+[ZeD.QA] run #31 ok=true
+ZEDQA scale auto option=7 userScale=1.75 root=1.75 iconDrawn=28 iconTex=24x24 char=777x735 world=777x735
+ZEDQA scale x150 option=6 userScale=1.5 root=1.5 iconDrawn=24 iconTex=24x24 char=666x1426 world=666x1821
+ZEDQA scale x100 option=4 userScale=1 root=1 iconDrawn=16 iconTex=16x16 char=444x951 world=444x1214
+ZEDQA scale auto_back option=1 userScale=nil root=2 iconDrawn=32 iconTex=32x32 char=888x1902 world=888x2120
+ZEDQA scale restored option=7 userScale=1.75 root=1.75 iconDrawn=28 iconTex=24x24 char=777x1664 world=777x1855
+ZEDQA scale done
+```
+
+### 32. zedqa_sc_font.lua (`ZEDQA scf`) - PASS, 3 s
+
+- go 23312 at 21:46:14
+- screenshots: zqa_scf_draw.png
+
+```text
+[ZeD.QA] state #32 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #32 ok=true
+ZEDQA scf zoom 0.355 fallback false
+ZEDQA scf PASS 1 Cred1 draws U+56FE (32)
+ZEDQA scf PASS 2 map picks ZeD's face (32)
+ZEDQA scf PASS 2/3 map width (45.5)
+ZEDQA scf PASS 2/3 map role measure (45.5)
+ZEDQA scf PASS 4 map count after name (73.9 vs 45.5 + 26.7)
+ZEDQA scf PASS 2 simplified picks ZeD's face (32)
+ZEDQA scf PASS 2/3 simplified width (92.4)
+ZEDQA scf PASS 2/3 simplified role measure (92.4)
+ZEDQA scf PASS 4 simplified count after name (119.4 vs 92.4 + 26.7)
+ZEDQA scf PASS 3 cafe stays on Fira (false)
+ZEDQA scf PASS 2/3 cafe width (45.5)
+ZEDQA scf PASS 2/3 cafe role measure (45.5)
+ZEDQA scf PASS 4 cafe count after name (72.2 vs 45.5 + 26.7)
+ZEDQA scf PASS 2 map letter two not blank (45.5 / 24.2)
+ZEDQA scf PASS 5 kana on the game's Japanese face (23)
+ZEDQA scf total all passed
+ZEDQA scf DONE
+```
+
+### 33. zedqa_mapshot.lua (`ZEDQA ms`) - PASS, 4 s
+
+- go 23313 at 21:46:20
+- screenshots: zqa_ms_1.png, zqa_ms_2.png
+
+```text
+[ZeD.QA] state #33 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA ms start
+[ZeD.QA] run #33 ok=true
+ZEDQA ms world 1929,0 1617x1855 tab maps
+ZEDQA ms DONE
+```
+
+### 34. zedqa_mapstyles.lua (`ZEDQA mst`) - PASS, 12 s
+
+- go 23314 at 21:46:28
+- screenshots: zqa_ms_survey_13.png, zqa_ms_survey_17.png, zqa_ms_color_13.png, zqa_ms_color_17.png, zqa_ms_paper_13.png, zqa_ms_paper_17.png
+
+```text
+[ZeD.QA] state #34 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA mst start
+[ZeD.QA] run #34 ok=true
+ZEDQA mst survey: style survey zoom 13 images 2
+ZEDQA mst color: style color zoom 13 images 2
+ZEDQA mst paper: style paper zoom 13 images 1
+ZEDQA mst DONE
+```
+
+### 35. zedqa_flyers.lua (`ZEDQA fl`) - PASS, 5 s
+
+- go 23315 at 21:46:43
+- screenshots: zqa_fl_1.png, zqa_fl_2.png
+
+```text
+[ZeD.QA] state #35 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA fl start
+[ZeD.QA] run #35 ok=true
+ZEDQA fl read pieces: 14
+ZEDQA fl piece mccoyloggingcorp
+ZEDQA fl read now: 15
+ZEDQA fl forgot true read 14
+ZEDQA fl DONE
+```
+
+### 36. zedqa_flyermap.lua (`ZEDQA fm`) - PASS, 10 s
+
+- go 23316 at 21:46:52
+- screenshots: zqa_fm_paper.png, zqa_fm_survey.png, zqa_fm_card.png, zqa_fm_reader.png, zqa_fm_flash.png
+
+```text
+[ZeD.QA] state #36 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA fm start
+[ZeD.QA] run #36 ok=true
+ZEDQA fm read 16 (added 2)
+ZEDQA fm tracker ticked the test place: false
+ZEDQA fm pins on paper: muldraughbakesale, fossoil1(done), ustoreitmuldraugh, sunstarmotel
+ZEDQA fm hover: nil
+ZEDQA fm reader open nil media nil title nil
+ZEDQA fm flash true
+ZEDQA fm read back to 14
+ZEDQA fm DONE
+```
+
+### 37. zedqa_mapnotes.lua (`ZEDQA mnote`) - PASS, 8 s
+
+- go 23317 at 21:47:05
+- screenshots: zqa_mnote_placed.png, zqa_mnote_menu.png, zqa_mnote_deleted.png, zqa_mnote_paper_labels.png
+
+```text
+[ZeD.QA] state #37 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA mnote start
+[ZeD.QA] run #37 ok=true
+ZEDQA mnote gave 2 (pencil / eraser)
+ZEDQA mnote map bound to the world map item: true
+ZEDQA mnote before: store marks 7 | vanilla api marks 7 of 70 symbols (the rest are the map's own labels)
+ZEDQA mnote text tool armed: true
+ZEDQA mnote after note: store 7 -> 8 | vanilla api 7 -> 8 | found in store true | found by vanilla api true
+ZEDQA mnote note ink 1 rgb 0.200 0.200 0.200 scale 0.6660000085830688 layer text-note
+ZEDQA mnote star tool armed: true
+ZEDQA mnote star as vanilla's Star: true ink 1 | store 9
+ZEDQA mnote migration: first run added 2 (9 -> 11), second 0 (11), flag cleared 0 (11)
+ZEDQA mnote migrated note ink 4 (want 4) | star ink 3 (want 3) | done flag true
+ZEDQA mnote cursor finds the note: true
+ZEDQA mnote cursor ui 420,820 | engine hit note 'ZEDQA note 91740' at world 809.0,12966.5 ui 420,841 | found note 'ZEDQA note 91740' at world 809.0,12966.5 ui 420,841 | the note note 'ZEDQA note 91740' at world 809.0,12966.5 ui 420,841
+ZEDQA mnote menu: delete true | edit note true | change colour true | share false (multiplayer false)
+ZEDQA mnote after delete: store 11 -> 10 | vanilla api 11 -> 10 | still found false / false
+ZEDQA mnote removal: made a note true and a star true | store 10 -> 12
+ZEDQA mnote removal: note true (12 -> 11), star true (-> 10), stale note again false (-> 10)
+ZEDQA mnote style paper: map style paper | label layers 8 | strongest label alpha 0 | note hand alpha 255
+ZEDQA mnote style survey: map style survey | label layers 8 | strongest label alpha 255 | note hand alpha 255
+ZEDQA mnote style color: map style color | label layers 8 | strongest label alpha 255 | note hand alpha 255
+ZEDQA mnote style back to survey
+ZEDQA mnote cleanup: removed 3 marks | store 7 (started 7) | modData back
+ZEDQA mnote DONE
+```
+
+### 38. zedqa_journal_refs.lua (`ZEDQA jr`) - PASS, 4 s
+
+- go 23318 at 21:47:17
+- screenshots: zqa_jr_01_diary.png, zqa_jr_02_flyers.png
+
+```text
+[ZeD.QA] state #38 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA jr start
+[ZeD.QA] run #38 ok=true
+ZEDQA jr DONE
+```
+
+### 39. zedqa_journal_readers.lua (`ZEDQA jrd`) - FAIL, 180 s
+
+- go 23319 at 21:47:24
+- 1 Java exception(s) in the log
+- 1 ERR line(s)
+- no DONE within 180 s; the script may still be running in the game
+- screenshots: zqa_jr_01_papers.png, zqa_jr_02_unread_look.png, zqa_jr_03_read_look.png
+
+```text
+[ZeD.QA] state #39 speed=1 paused=false player=868,13024 grid=19 inCar=false vehicles=42 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA jrd start
+[ZeD.QA] run #39 ok=true
+ZEDQA jrd papers 2 books 1 zones 0
+ZEDQA jrd unread look zones
+ZEDQA jrd read look zones
+ZEDQA jrd note field nil page nil
+ERROR: General f:54985 at KahluaThread.flushErrorMessage > -------------------------------------------------------------
+    attempted index: setText of non-table: null
+ERROR: General f:54985> Lua(Vanilla).at> Exception thrown
+    java.lang.RuntimeException: attempted index: setText of non-table: null at KahluaThread.tableget(KahluaThread.java:1430).
+    Lua(Vanilla).at(worldmap-annotations.lua:80)
+    Lua(Vanilla).onTick(worldmap-annotations.lua:132)
+ZEDQA jrd ERR 160 attempted index: setText of non-table: null java.lang.RuntimeException
+```
+
+### 40. zedqa_lists.lua (`ZEDQA ls`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 41. zedqa_restock.lua (`ZEDQA rst`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 42. zedqa_reader.lua (`ZEDQA rd`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 43. zedqa_reader_refs.lua (`ZEDQA rr`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 44. zedqa_notebook.lua (`ZEDQA nb`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 45. zedqa_print_fit.lua (`ZEDQA pf`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 46. zedqa_print_typeset.lua (`ZEDQA ts`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 47. zedqa_prompts.lua (`ZEDQA pr`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 48. zedqa_fishing.lua (`ZEDQA fi`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 49. zedqa_props_plates.lua (`ZEDQA props`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 50. zedqa_belt_strap.lua (`ZEDQA belt`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 51. zedqa_straps.lua (`ZEDQA straps`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 52. zedqa_buckle.lua (`ZEDQA bk`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 53. zedqa_buckles.lua (`ZEDQA bks`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 54. zedqa_beltwatch.lua (`ZEDQA bw`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 55. zedqa_hands_together.lua (`ZEDQA ht`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 56. zedqa_watches2.lua (`ZEDQA watches`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 57. zedqa_container_bottom.lua (`ZEDQA cb`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 58. zedqa_container_controls.lua (`ZEDQA ct`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 59. zedqa_container_controls_captures.lua (`ZEDQA cc`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 60. zedqa_px_icons.lua (`ZEDQA px`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 61. zedqa_button_case_game.lua (`ZEDQA bg`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 62. zedqa_immersive_searching.lua (`ZEDQA iss`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 63. zedqa_wheel_sizes.lua (`ZEDQA ws`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 64. zedqa_wheel_icons.lua (`ZEDQA wi`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 65. zedqa_wheels.lua (`ZEDQA wh`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 66. zedqa_dpad_wheels.lua (`ZEDQA dw`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 67. zedqa_pad_glyphs.lua (`ZEDQA pg`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 68. zedqa_quick_chords.lua (`ZEDQA qc`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 69. zedqa_put_back.lua (`ZEDQA pb`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 70. zedqa_food_verbs.lua (`ZEDQA fv`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 71. zedqa_messages.lua (`ZEDQA msg`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 72. zedqa_moodles.lua (`ZEDQA mood`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 73. zedqa_ring_squares.lua (`ZEDQA rs`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 74. zedqa_sandbox_ig.lua (`ZEDQA sbx`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 75. zedqa_twoway.lua (`ZEDQA tw`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 76. zedqa_rtv.lua (`ZEDQA rtv`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 77. zedqa_appliances.lua (`ZEDQA ap`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 78. zedqa_two_widths.lua (`ZEDQA tww`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 79. zedqa_plates_336.lua (`ZEDQA p336`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 80. zedqa_laundry.lua (`ZEDQA ldy`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 81. zedqa_seat_lightbar_vanilla.lua (`ZEDQA sl`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 82. zedqa_car_radio_build.lua (`ZEDQA rb`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 83. zedqa_car_radio_cd.lua (`ZEDQA cd`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 84. zedqa_dash_props_smoke.lua (`ZEDQA sm`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 85. zedqa_tm.lua (`ZEDQA tm`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 86. zedqa_tour3.lua (`ZEDQA t3`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 87. zedqa_dash19.lua (`ZEDQA dash`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 88. zedqa_dashpx.lua (`ZEDQA dpx`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 89. zedqa_exinfo.lua (`ZEDQA ex`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 90. zedqa_charinfo.lua (`ZEDQA ci`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 91. zedqa_equipdrag.lua (`ZEDQA eqd`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 92. zedqa_faiv.lua (`ZEDQA fav`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 93. zedqa_cazio_light.lua (`ZEDQA czl`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 94. zedqa_dashnight.lua (`ZEDQA dnt`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 95. zedqa_dash_green.lua (`ZEDQA dgr`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 96. zedqa_dash_keys_edge.lua (`ZEDQA dke`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 97. zedqa_dash_brands.lua (`ZEDQA dbr`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 98. zedqa_testlang.lua (`ZEDQA tlang`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 99. zedqa_safemode.lua (`ZEDQA safe`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+### 100. zedqa_soak.lua (`ZEDQA soak`) - SKIP, not run
+
+- not run: no DONE within 180 s; the script may still be running in the game
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    2x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/b8_menus_review_mainmenu.txt  (Nov 7 2026, QA): RUN LAST, ON ITS OWN LAUNCH. This script runs at the main menu with no
+# game loaded (it uses Events.OnFETick), so zedqa_run.ps1 refuses it by design (its never-run rule for OnFETick scripts) and -Check will
+# say so. Run it with the menu runner instead, one launch, after the in-game manifests have finished and the game is closed:
+#   pwsh -File ZeDUI/tools/qa/zedqa_menu_mods_run.ps1 -ModList <an empty text file> -Script ZeDUI/tools/qa/zedqa_b8_mainmenu.lua -Tag b8mm -TimeoutSec 400
+# Add -Width 1280 -Height 800 for the Steam Deck size. Set ZEDQA_NOSTEAM=1 to launch without Steam (then the invite is the Connect to form).
+# The runner prints the script's ZEDQA b8mm lines; read PASS / FAIL / NOTE there. Format below is the manifest's, for the record.
+zedqa_b8_mainmenu.lua | b8mm | timeout=400
