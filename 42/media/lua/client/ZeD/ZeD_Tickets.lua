@@ -587,7 +587,7 @@ function C.delete(id, cb)
 end
 
 -- ---------------------------------------------------------------------------
--- THE QUEUE WITHOUT THE SERVER PART: the game's list read here, on the 10-second poll the Admin tab always had
+-- THE QUEUE WITHOUT THE SERVER PART: the game's list read here, at most every 10 seconds while the queue shows
 -- ---------------------------------------------------------------------------
 --- Read the game's full list again, at most once in ADMIN_POLL_MS unless force.
 function C.adminAsk(force)
