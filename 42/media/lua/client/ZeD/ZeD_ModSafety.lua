@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModSafety.lua
 -- ============================================================================
--- WHAT TURNING A MOD OFF DOES TO A SAVE — client; a data module the Mods
--- screen reads (no UI of its own). Before a mod goes off on a save, this
+-- WHAT TURNING A MOD OFF DOES TO A SAVE. Client; a data module the Mods
+-- screen reads, with no UI of its own. Before a mod goes off on a save, this
 -- grades what the save would lose: safe, or not.
 --
 -- A save remembers what its mods put into the world, and the game cannot keep
@@ -25,7 +25,8 @@
 --
 --   SF.assess(modId)        { grade, lines = { { grade, text } }, unchecked }
 --   SF.forTurnOff(m, d)     { grade, main, deps = { { name, assess } } }
---   SF.reset()              forget (the Mods screen opens, the scan finishes)
+--   SF.headline(grade)      the grade's one-line headline
+--   SF.reset()              forget every grade (the Mods screen, as it opens)
 -- grade: "safe" | "careful" | "unchecked" | "unsafe"
 -- ============================================================================
 require "ZeD/ZeD_ModScan"
@@ -134,5 +135,6 @@ function SF.headline(grade)
     return ZeD.tr("UI_ZeD_Mods_OffSafe")
 end
 
---- Forget every cached grade (the Mods screen opening, the scan finishing).
+--- Forget every cached grade. The Mods screen calls it each time it opens;
+--- a scan that finishes needs no reset, because the cache key changes with it.
 function SF.reset() cache = {} end

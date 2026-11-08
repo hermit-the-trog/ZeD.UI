@@ -5,17 +5,21 @@
 -- module owns the station side of that:
 --   * discovery  — every usable station within reach of the player: craft
 --                  benches (kilns, forges, pottery wheels...), drying racks
---                  (machines with slots and a start / stop cycle), ovens and
---                  microwaves (appliances with knobs);
---   * binding    — which station the Craft tab is working at. Benches and
---                  racks take vanilla's one-player lock (setUsingPlayer), the
---                  same lock vanilla's station window takes, and release it
---                  when the tab goes back to Hand, the player walks away, gets
---                  in a vehicle, or the World window closes;
+--                  and other craft machines (slots and a start / stop cycle),
+--                  ovens and microwaves (appliances with knobs);
+--   * binding    — which station the Craft tab is working at. All but ovens
+--                  and microwaves take vanilla's one-player lock
+--                  (setUsingPlayer), the same lock vanilla's station window
+--                  takes, and release it when the tab goes back to Hand, the
+--                  player walks away, gets in a vehicle, or the World window
+--                  closes;
 --   * drawing    — the STATION selector, its dropdown and the station band.
--- The bound views live in CraftingTab (benches), StationMachine (racks),
--- StationAppliance (oven, microwave) and StationGeneral (a mod's other
--- stations). Vanilla entry points are routed here by Overrides/Stations.lua.
+-- The bound views live in CraftingTab (benches), StationMachine (racks and
+-- other machines), StationAppliance (oven, microwave) and StationGeneral (a
+-- mod's other stations). Vanilla entry points are routed here by
+-- Overrides/Stations.lua.
+-- To end a binding, call ST.unbind: it lets go of the lock and bumps ST.gen,
+-- which the Craft tab watches to reset itself.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -55,11 +59,14 @@ ST.isEntityKind = isEntityKind
 -- ----------------------------------------------------------------------------
 -- CLASSIFY — what kind of station an object is, and its working component.
 -- ----------------------------------------------------------------------------
--- general: an entity the game opens its station window for (ISEntityUI.OpenWindow)
--- that is none of these is a "general" station, its working part the first cycle logic it has (FurnaceLogic,
--- MashingLogic), or none (a tank, a store). Only the open route asks for it: the nearby scan and the STATION list
--- keep to the kinds ZeD has known views for, so every barrel in reach does not join the list.
--- The game's own few entities that open its station window keep what opened before; only a mod's land in general.
+-- "general": a mod's entity the game would open its station window for
+-- (ISEntityUI.OpenWindow) that is no bench, machine or appliance. Its working
+-- part is the first cycle logic it has (FurnaceLogic, MashingLogic), or none
+-- (a tank, a store). Only the open route asks for it (classify's general
+-- flag): the nearby scan and the STATION list keep to benches, machines and
+-- appliances, so every barrel in reach does not join the list. The game's own
+-- few entities that open its station window (listed here) never count as
+-- general, so they open as they always did.
 local VANILLA_ENTITY = { butcherhook = true, logbench = true, logstool = true, logtable = true, otherlogstool = true }
 local function squash(s) return string.lower((tostring(s or "")):gsub("[%s_%-]", "")) end
 -- a mod's entity: its script names a mod that is not the game's, and it is none of the game's own above. Anything
@@ -75,6 +82,9 @@ function ST.isModEntity(obj)
     return m ~= "pz-vanilla" and m ~= "base" and m ~= "vanilla"
 end
 
+--- What kind of station obj is: "oven", "micro", "bench", "machine" or
+--- "general", and its working component second (none for the appliances);
+--- nil for anything else. general = true lets a mod's other entities in.
 function ST.classify(obj, general)
     if not obj then return nil end
     if instanceof(obj, "IsoStove") then
@@ -259,6 +269,7 @@ function ST.nearby(player, force)
     return list
 end
 
+-- the station's icon, looked up once (false remembers "none" so it is not asked again)
 function ST.icon(st)
     if st.icon == nil then st.icon = ST.iconOf(st.obj, st.kind) or false end
     return st.icon or nil
@@ -482,6 +493,9 @@ if Events and Events.OnTick then Events.OnTick.Add(watchdog) end
 -- ----------------------------------------------------------------------------
 -- OPEN — bind a station and show it in the World window's Craft tab.
 -- ----------------------------------------------------------------------------
+--- Bind the station obj belongs to and open the Craft tab on it. True when ZeD
+--- took the open (a station another player holds gets the game's "already in
+--- use" line instead); false leaves it to vanilla. general: as in ST.classify.
 function ST.open(player, obj, general)
     if not (player and obj) then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
@@ -543,7 +557,7 @@ function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hover
 end
 
 -- Dropdown rows: Hand, a header, then each station in reach.
-local OPT_H, HDR_H, DD_MAX_VIS = 26, 18, 9
+local OPT_H, HDR_H, DD_MAX_VIS = 26, 18, 9   -- row heights (design px); rows shown before it scrolls
 
 function ST.dropdownRows(player)
     local rows = { { kind = "hand" } }
@@ -754,6 +768,7 @@ function ST.dropdownClick(state, player, x, y)
     return true
 end
 
+--- The wheel over the open dropdown: one row per notch. Always handled.
 function ST.dropdownWheel(state, del)
     local ms = state._stRows and ST.dropdownMaxScroll(state._stRows) or 0
     -- PZ: positive del = scroll down
@@ -796,7 +811,7 @@ function ST.addLeaveCancel(elements, win, prefix)
 end
 
 -- ----------------------------------------------------------------------------
--- STATION VIEW SCAFFOLD — shared by the machine and appliance views
+-- STATION VIEW SCAFFOLD — shared by the machine, appliance and general views
 -- ----------------------------------------------------------------------------
 
 --- The focused gamepad element id when focus is in the World window's tab

@@ -3,9 +3,12 @@
 -- SAFE MODE — client; the mod's escape hatch. If ZeD ever breaks, a bad day
 -- is a setting flip rather than a hotfix: ZeD steps aside, the game's own
 -- interface comes back, and a player is never left with no inventory.
+-- One thing to know: anything new that takes over a piece of the game's
+-- interface needs a way back through here (ZeD.Safe.register, or asking
+-- ZeD.Safe.on() each time; both below).
 --
 -- ZeD steps aside:
---   * while the "Safe mode" option is On (Options > Mods > ZeD UI), until it
+--   * while the "Safe mode" option is On (Options > Mods > ZeD-GUI), until it
 --     is turned Off again;
 --   * for the rest of the session once the watchdog trips: a ZeD window that
 --     fails to open, or one place failing on frame after frame for two seconds
@@ -13,13 +16,13 @@
 --     same for failures spread over three places or more, as when a place's
 --     name keeps changing). A burst of a few frames never trips it; a failure
 --     every frame does, even below 30 fps. A note says so through the game's
---     own dialog, the error goes to console.txt, and the next launch says it
---     once more (Zomboid/Lua/ZeD_safe_trip.txt).
+--     own dialog, the error goes to console.txt, and the next game start says
+--     it once more (Zomboid/Lua/ZeD_safe_trip.txt).
 --
 --   ZeD.Safe.on()              true while safe mode holds (the option, or a trip)
 --   ZeD.Safe.on(name)          true while safe mode holds or the player gave that screen back
 --                              to the game in ZeD setup's ZeD screens (one of the hooks below:
---                              belt, charinfo, dashboard, moodles, watch, wheels, windows)
+--                              belt, charinfo, console, dashboard, moodles, watch, wheels, windows)
 --   ZeD.Safe.setPieceOption(name, option)   the ZeD setup switch for a screen, under Safe mode
 --                              and read the same way (item 1 Off: ZeD's; item 2 On: the game's own)
 --   ZeD.Safe.fault(key, err)   a failure at key that happens every frame
@@ -97,7 +100,9 @@ end
 local pieceOptions = S._pieceOptions or {}
 S._pieceOptions = pieceOptions
 local pieceRead = {}   -- name -> { off = bool, next = ms }
+--- Settings.lua hands each screen's ZeD setup switch over here as it makes it.
 function S.setPieceOption(name, option) pieceOptions[name] = option end
+-- true while that screen's switch gives it back to the game
 function S.pieceOff(name)
     -- (Settings.lua makes the switches; whichever file loads first, its table is found here too)
     local o = pieceOptions[name] or (ZeD.Settings and ZeD.Settings.screenOptions and ZeD.Settings.screenOptions[name])
@@ -113,6 +118,9 @@ function S.pieceOff(name)
     return r.off
 end
 
+--- True while safe mode holds (the option is On, or the watchdog tripped); with a name, also while
+--- that screen is given back on its own. Cheap enough to ask every frame: the option is read at most
+--- every half second.
 function S.on(name)
     local now = getTimestampMs()
     if now >= st.nextRead then
@@ -159,6 +167,8 @@ local function sync()
         end
     end
 end
+--- A piece of ZeD says how to hand back what it took over (def.leave) and take it over again
+--- (def.enter). Registering the same name again replaces its pair and keeps its place in the order.
 function S.register(name, def)
     if type(name) ~= "string" or type(def) ~= "table" then return end
     if not hooks[name] then order[#order + 1] = name end
@@ -170,6 +180,7 @@ function S.register(name, def)
     end
 end
 
+--- Read the option now and bring every hook in line with it, rather than within half a second.
 function S.reread()
     st.nextRead = 0
     sync()
@@ -180,7 +191,9 @@ end
 -- vanilla's ISModalDialog:new as _zedOrigNew; its hook goes vanilla anyway
 -- once safe mode holds)
 -- ----------------------------------------------------------------------------
--- a word longer than a line (Chinese and Japanese run without spaces) breaks into pieces
+-- a word longer than a line (Chinese and Japanese run without spaces) breaks into pieces, half as
+-- long when it starts with a wide character (code 0x2E80 and up). Kahlua strings are Java strings,
+-- so byte() reads the whole character's code and # counts characters.
 local function pieces(word, width)
     if #word <= width then return { word } end
     local cut = (word:byte(1) or 0) >= 0x2E80 and math.floor(width / 2) or width
@@ -237,6 +250,8 @@ end
 -- ----------------------------------------------------------------------------
 -- The watchdog
 -- ----------------------------------------------------------------------------
+--- Step aside now, for the rest of the session: the error to console.txt and the trip file, every
+--- hook handed back, and the note shown once. where names the place, err is the error.
 function S.trip(where, err)
     if st.tripped then return end
     st.tripped = true
@@ -251,6 +266,8 @@ function S.trip(where, err)
     end
 end
 
+--- Take a trip back by hand: the hooks take over again, unless the option is On or a screen's own
+--- switch keeps it with the game.
 function S.reset()
     st.tripped = false
     st.noted = false
@@ -296,6 +313,8 @@ local function stepOverall(k, now)
     return hit and a.n >= ALL_PLACES
 end
 
+--- One failure at a place (key) for the watchdog to count. ZeD.logOnce calls it on every failing
+--- frame, before its own one-time log.
 function S.fault(key, err)
     if st.tripped then return end
     -- in game only: the main menu has none of vanilla's in-game interface to hand back
@@ -314,13 +333,13 @@ function S.fault(key, err)
     if stepOverall(k, now) then S.trip("errors in several places", err) end
 end
 
--- A per-frame draw hook, fn(panel), under pcall. A failure clears the stencils
--- it had set (ZeD_Panel and ZeD_Window count theirs in _zedStencilN; one left
--- set clips everything drawn after it), counts as a fault and logs once, with
--- the Lua stack the first time for each label. Returns true when it ran.
+--- A per-frame draw hook, fn(panel), under pcall. A failure clears the stencils
+--- it had set (ZeD_Panel and ZeD_Window count theirs in _zedStencilN; one left
+--- set clips everything drawn after it), counts as a fault and logs once, with
+--- the Lua stack the first time for each label. Returns true when it ran.
 function S.guard(panel, fn, label)
     local n0 = panel._zedStencilN or 0
-    local ok, err, trace = pcall(fn, panel)
+    local ok, err, trace = pcall(fn, panel)   -- (on a failure Kahlua's pcall also hands back the Lua stack)
     if ok then return true end
     local n = panel._zedStencilN or 0
     while n > n0 do
@@ -340,8 +359,8 @@ function S.guard(panel, fn, label)
 end
 
 -- ----------------------------------------------------------------------------
--- The next launch after a trip says so once (the file is emptied, not deleted:
--- an empty one counts as none)
+-- The next game start after a trip says so once (the file is emptied, not
+-- deleted: an empty one counts as none)
 -- ----------------------------------------------------------------------------
 local function lastTimeNote()
     local where
@@ -368,9 +387,10 @@ local function lastTimeNote()
 end
 
 -- ----------------------------------------------------------------------------
--- Driving it: the option is re-read and the hooks follow it every tick (paused
--- too), on the front end as well; the main menu and a game start read it at
--- once, right after vanilla has loaded the saved options
+-- Driving it: the hooks follow the option every tick (paused too), on the
+-- front end as well, the option itself read at most every half second; the
+-- main menu and a game start read it at once, right after vanilla has loaded
+-- the saved options
 -- ----------------------------------------------------------------------------
 if Events then
     if Events.OnTickEvenPaused then Events.OnTickEvenPaused.Add(sync)

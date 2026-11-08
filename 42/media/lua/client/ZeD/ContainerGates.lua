@@ -22,8 +22,13 @@
 --     specs   = function(side, content, inv) -> band buttons for this
 --               container, as ContainerControls.addProvider's specs
 --               ({ id, label, enabled, help, run, primary })
---     band    = { text = "Searching...", progress = 0..1 or nil }: the
---               band's left line (a status mark and words) and a moving bar
+--     band    = { text = "Searching...", progress = 0..1 or nil, color = a
+--               T colour or nil }: the band's left line (a status mark in
+--               color, T.warning when nil, then the words) and a moving bar
+--     mode    = any value that changes whenever specs, noMoves or refuse
+--               would answer differently: the band's buttons are rebuilt at
+--               once (without it they catch up within ContainerControls'
+--               REFRESH frames)
 --   }
 -- The fields are read every frame: a gate keeps one table per container and
 -- updates it in place (no new tables per frame).
@@ -35,7 +40,9 @@
 --   already on screen (a pick in the strip, a column added, a pad press). A
 --   window that opens, or a list that comes back after a tab covered it, does
 --   not count. side is "char" or "world".
--- Every call is in pcall: a gate that throws counts as no gate, once logged.
+-- Every call is in pcall: a gate that throws counts as no gate, logged once
+-- (a chosen hook that throws is logged once too); a keep that throws hides
+-- that item, and specs that throw add no buttons.
 -- With nothing registered every function returns at once.
 -- ============================================================================
 

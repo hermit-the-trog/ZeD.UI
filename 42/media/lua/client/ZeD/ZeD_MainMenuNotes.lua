@@ -16,9 +16,10 @@
 -- says whether it is saved, or that the page is full (N.TEXT_MAX: the box takes no more). A new page becomes a note
 -- when it is first saved. The notes are listed in the desktop's one Documents folder
 -- (ZeD_MainMenuDocs.lua), and Open goes to that list. Delete asks in the band, as every question on the desk does, and
--- lands on Cancel. Leaving a page with unsaved words (the close box, B, New, Open, another icon) asks "Save
--- changes?" first: Discard changes, Cancel, Save. Words not saved yet are also kept as a draft (ZeD_DeskNotes), so
--- a game started from the menu bar loses nothing: the notepad opens with them next time.
+-- lands on Cancel. Leaving a page with unsaved words (the close box, B, New, another note opened from Documents) asks
+-- "Save changes?" first: Discard changes, Cancel, Save. Any other way out (another desktop icon, the menu bar) asks
+-- nothing: the page stays as it was, and words not saved yet are kept as a draft (ZeD_DeskNotes), so a game started
+-- from the menu bar loses nothing: the notepad opens with them next time.
 --
 -- The ZeD menu (the logo, where System 7 kept its desk accessories) opens CletusWorks too.
 -- ============================================================================
@@ -73,6 +74,7 @@ MM.editField = editField
 -- ============================================================================
 ZeD_MMSticky = ISPanel:derive("ZeD_MMSticky")
 
+--- The sticky's field panel, made once by the desk (ZeD_MainMenu.lua); the icon layer places it each frame.
 function ZeD_MMSticky:new()
     local o = ISPanel:new(-10000, -10000, 10, 10)
     setmetatable(o, self)
@@ -133,7 +135,7 @@ function ZeD_MMSticky:place(c)
 end
 
 function ZeD_MMSticky:prerender()
-    -- (not placed this frame: the icon layer did not draw it, so the field goes too)
+    -- (not placed in the last half second: the icon layer stopped drawing it, so the field goes too)
     local shown = self._placedAt ~= nil and MM.now() - self._placedAt < 500
     if self.entry:isVisible() ~= shown then self.entry:setVisible(shown) end
 end
@@ -156,7 +158,8 @@ function ZeD_MMSticky:update()
 end
 
 -- the field under the pointer takes the press (MM.entryUnder hands the glass's press to a field): the sticky's,
--- when it shows there and nothing on the monitor lies over it
+-- when it shows there and nothing on the monitor lies over it. Each MM function this file wraps (entryUnder,
+-- menuItems, wheel, showView) keeps its base once in MM._notes*Base, so a Lua reload never wraps the wrapper.
 local _entryUnder = MM._notesEntryBase or MM.entryUnder
 MM._notesEntryBase = _entryUnder
 function MM.entryUnder(mx, my)

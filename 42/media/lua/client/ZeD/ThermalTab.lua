@@ -5,6 +5,8 @@
 -- Layout: body figure (top-left) + Core / Air / Wind readings (top-right) +
 -- grid (below); the View pop-up lives in the footer band.
 -- Reads vanilla's thermoregulator nodes (getNodeForType) and their *UI getters.
+-- The readings are gathered every 15 frames into win._thermalCache; the draw
+-- functions read only that table, never the thermoregulator.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -85,8 +87,10 @@ function ZeD.ThermalTab.tempText(c)
     return ZeD.tr("UI_ZeD_Thermal_TempF", string.format("%.1f", c * 9 / 5 + 32))
 end
 
--- BodyPartType → display name mapping (used by getNodeForType)
--- BodyPartType enum names verified against vanilla ISHealthPanel.lua
+-- The parts the tab reads, each by its BodyPartType (what getNodeForType takes)
+-- and its English name, the key the figure and ZeD.partLabel look up (the
+-- words shown are the player's language). The enum names are vanilla's, as
+-- ISHealthPanel.lua uses them.
 local BODY_PART_TYPES = {
     { type = BodyPartType.Head,        name = "Head" },
     { type = BodyPartType.Neck,        name = "Neck" },
@@ -189,6 +193,8 @@ end
 -- RENDERER (main entry point)
 -- ============================================================================
 
+--- The tab, every frame: the scrolling body (figure and readings, then the
+--- grid), the pinned header over it, the band and, last, the open View list.
 function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
     local A    = ZeD.Atoms
@@ -405,7 +411,8 @@ function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
         ZeD.ThermalTab.tempText(data.airTemp), T.toneNorm) + T.sp.rowGap
     curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("IGUI_Fishing_Wind"),
         ZeD.ThermalTab.tempText(data.windTemp), T.toneNorm) + T.sp.rowGap
-    -- Core temperature gauge: the chunky framed strip (the standard bar height), not a thin line
+    -- Core temperature gauge: the chunky framed strip (the standard bar height), not a thin line;
+    -- 30 to 42 °C runs across it
     ZeD.Atoms.drawGradientBar(panel, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
 end
 
@@ -427,6 +434,8 @@ function ZeD.ThermalTab.openMenu(win)
     win._thermalMenuZones = nil
 end
 
+--- Shut the list; pickIdx, when given, becomes the chosen view. The Character
+--- window also calls it when the tab is left, the drawer folds or a card opens.
 function ZeD.ThermalTab.closeMenu(win, pickIdx)
     if pickIdx then win._thermalView = pickIdx end
     win._thermalMenuOpen = false
@@ -663,7 +672,7 @@ function ZeD.ThermalTab._renderDetailView(panel, win, data, partName, rx, ry, rw
         local fillPct = math.max(0, math.min(1, uiVal))
         local fc = getThermalColor(fillPct)
 
-        -- Format: skin temp shows raw celsius, others show UI value
+        -- Format: skin temperature in the player's unit, the others their 0-1 UI value
         local valStr
         if row.getter == "getSkinCelcius" then
             valStr = ZeD.ThermalTab.tempText(rawVal)
@@ -706,6 +715,7 @@ end
 -- REGISTRATION
 -- ============================================================================
 
+--- Put the tab's renderer in the Character window's dispatch table, as "thermal".
 function ZeD.ThermalTab.register(dispatchTable)
     dispatchTable["thermal"] = ZeD.ThermalTab.render
 end

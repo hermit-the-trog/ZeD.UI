@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/InventoryRenderer.lua
 -- ============================================================================
--- INVENTORY RENDERER — client; shared module, no class of its own.
+-- INVENTORY RENDERER — client; a module of functions, no class of its own.
 -- The drawing and model engine behind every ZeD item list: the Character and
 -- World windows (and the Equip tab's drop path) hand it a content panel each
 -- frame and it draws the columns, rows, grid cells, headings and transfer
@@ -1155,7 +1155,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
 
     -- Build one stack per (cat, fullType); emit representative + optional
     -- children into flatItems in render order. Expanded stacks show their
-    -- child rows indented beneath the header. Vanilla PZ UX.
+    -- child rows indented beneath the header, as vanilla's inventory does.
     local function emitStacks(itemList)
         local byType = {}
         local ordered = {}
@@ -1265,7 +1265,7 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
         return c.m
     end
     if not c then
-        -- containers come and go as the player walks: start over past a few dozen
+        -- containers come and go as the player walks: start over past 24
         self._modelCacheN = (self._modelCacheN or 0) + 1
         if self._modelCacheN > 24 then
             cache = {}
@@ -1370,13 +1370,13 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     -- LAYOUT CONSTANTS (computed from tokens each frame)
     -- --------------------------------------------------------
-    local padX     = T.sp.sm            -- 8px  — left/right inset
-    local rowH     = T.rowH             -- 26px (small) / 32px (large)
+    local padX     = T.sp.sm            -- 10u — left/right inset
+    local rowH     = T.rowH             -- 30u (Small text) / 34u (Large)
     local catHdrH  = T.sp.catHdrH       -- category group label row
     local colHdrH  = T.sp.colHdrH       -- column header bar
     local iconW    = rowH - T.px(8)           -- item icon square (closer to text height)
-    local iconGap  = T.sp.iconGap       -- 6px  — icon → name gap
-    local scrollW  = T.sp.scrollbarW    -- 14px — reserved for scrollbar
+    local iconGap  = T.sp.iconGap       -- 8u — icon → name gap
+    local scrollW  = T.sp.scrollbarW    -- 14u — reserved for scrollbar
     local scale    = T.scale or 1.0     -- text scale factor
     local st       = T.stripe           -- alternating row shading
 
@@ -1473,8 +1473,8 @@ local function renderItemList(self)
     local sortAsc  = self._sortAsc
     local collapsed = self._collapsedGroups
 
-    -- S100: item stacking (identical items collapse into one row with a count
-    -- badge). The rows are built in itemModel, only when the container changes.
+    -- Item stacking: identical items collapse into one row with their count
+    -- ("Apple x6"). The rows are built in itemModel, only when the container changes.
     self._expandedStacks = self._expandedStacks or {}
     local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, self._expandedStacks)
     -- a container this list starts showing while on screen: a mod's pick hook (ContainerGates.seen)
@@ -1485,7 +1485,7 @@ local function renderItemList(self)
     local stacks = M.stacks
 
     self._flatItems      = flatItems
-    self._invRowItems    = flatItems   -- S96: alias for focusable builder (external consumers)
+    self._invRowItems    = flatItems   -- (the same rows, under the name both windows' controller stops read)
     self._useGroups      = useGroups
     self._groups         = groups
     self._stackedGroups  = stackedGroups
@@ -1572,8 +1572,8 @@ local function renderItemList(self)
         colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCat"),  "cat",  catX + padX,  catX,   catColW}
     end
     if showCond then
-        -- (the director, Nov 5 2026: Condition and Weight headings sit at the right, over their values' right edge;
-        -- the 6th field is that edge: the condition strip ends 2u short of its column, as rowCondition is given it)
+        -- (Condition and Weight headings sit at the right, over their values' right edge; the 6th field
+        -- is that edge: the condition strip ends 2u short of its column, as rowCondition is given it)
         colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW, condX + condColW - T.px(2)}
     end
     colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW, wtX + wtColW - padX}
@@ -1662,35 +1662,34 @@ local function renderItemList(self)
     -- DRAW ROWS (clipped to below column header)
     -- --------------------------------------------------------
 
-    -- S96 SCROLL-FOLLOW: if a gamepad-focused row exists, ensure it's
-    -- visible before computing the scroll offset. Uses the item's
+    -- SCROLL-FOLLOW: if a controller-focused row exists, make sure it's
+    -- visible before the scroll offset is worked out. Uses the item's
     -- render Y stamped into `self._itemRenderYMap` during the PREVIOUS
-    -- frame's draw loop. One-frame lag is imperceptible (focus changes
-    -- are user-initiated).
-    -- NOTE: cannot stamp directly on Java item objects (Kahlua throws
-    -- "attempted index of non-table"), so we use a Lua-side map table.
+    -- frame's draw loop. The one-frame lag doesn't show (focus only moves
+    -- on a press).
+    -- The map is a Lua table because a field can't be stamped onto a Java
+    -- item object (Kahlua throws "attempted index of non-table").
     --
-    -- S103 DELTA GATE: `_gpFocusedRowItem` is sticky across mode switches
-    -- (cleared only on tab-switch or window unclaim). Previous frames would
-    -- re-pin scroll every tick whenever the focused row drifted out of
-    -- view — e.g. when a KBM user scrolled the mousewheel past it. A mode
-    -- gate (getMode() == "gamepad") didn't help because the detector
-    -- oscillates kbm↔gamepad within consecutive frames (see console log).
-    -- Fix: only pin scroll when the focused item actually CHANGED this
-    -- render. Cached in `_lastPinnedRowItem`. Works regardless of input
-    -- mode: gamepad D-pad changes focus → one pin fires → stops. KBM user
-    -- scrolls past the pinned row → focus unchanged → no re-pin.
+    -- DELTA GATE: `_gpFocusedRowItem` stays set when the input mode
+    -- switches, so pinning whenever the focused row is out of view would
+    -- re-pin the scroll every tick — a mouse user scrolling the wheel past
+    -- it would be pulled back. A mode gate (getMode() == "gamepad") doesn't
+    -- help: with a drifting stick and the mouse both live, the detector
+    -- swaps kbm <-> gamepad from one frame to the next. So the scroll pins
+    -- only when the focused item actually CHANGED this render (kept in
+    -- `_lastPinnedRowItem`), whatever the input mode: a D-pad move changes
+    -- focus → one pin fires → stops; a mouse user scrolls past the pinned
+    -- row → focus unchanged → no re-pin.
     local itemRenderYMap = self._itemRenderYMap or {}
     if self._gpFocusedRowItem
        and self._gpFocusedRowItem ~= self._lastPinnedRowItem
        and totalContentH > visibleH then
         local focY = itemRenderYMap[self._gpFocusedRowItem]
         if focY then
-            -- focY is the absolute y from last frame's draw. Convert to
-            -- logical offset: logical = y - contentTop + scrollOffset_old.
-            -- But we don't have scrollOffset_old yet. Instead, use the
-            -- stable relationship: renderY = contentTop + logicalY - scrollOffset.
-            -- => logicalY = focY - contentTop + old scrollOffset.
+            -- focY is the absolute y from last frame's draw. A row draws at
+            -- renderY = contentTop + logicalY - scrollOffset, so
+            -- logicalY = focY - contentTop + scrollOffset, with the bar's
+            -- current position taken as the offset it was drawn at.
             local oldScrollOff = math.floor(scroll.scrollPos * (totalContentH - visibleH))
             local logicalY = focY - contentTop + oldScrollOff
 
@@ -1745,7 +1744,7 @@ local function renderItemList(self)
 
     -- Shared row drawing function
     local function drawItemRow(item)
-        -- S96: stamp render Y into the panel-level map for scroll-follow
+        -- Stamp the row's render Y into the panel-level map for scroll-follow
         -- (read next frame). Stamp BEFORE the visibility cull so items that
         -- just scrolled off-screen still have a valid entry for the follow
         -- algorithm. Cannot stamp on Java item objects directly (Kahlua
@@ -1773,16 +1772,16 @@ local function renderItemList(self)
             mouseInCol and my >= y and my < y + rowH and my >= contentTop and my < contentTop + visibleH and localMx < scrollX)
         local focusTxt = onFocus and (T.textOnFocus or T.toneNorm) or nil
 
-        -- S100 stacking: detect this row's stack role. Stack header shows
-        -- a chevron + count badge; child is drawn indented; single items
-        -- render as before.
+        -- Stacking: this row's role in a stack. A stack's head shows a
+        -- triangle and its count; an open stack's other rows are drawn
+        -- indented; a single item draws as a plain row.
         local stackInfo   = self._stacks and self._stacks[item]
         local childParent = self._childParent and self._childParent[item]
         local isStackHead = stackInfo and stackInfo.count > 1
         local isChild     = childParent ~= nil
         local childIndent = isChild and T.px(10) or 0
 
-        -- the read mark's status (ReadMarks.lua; mockup zed_read_marks_v1): read items faded with "Dim read items"
+        -- the read mark's status (ReadMarks.lua): read items faded with "Dim read items"
         local rs = ZeD.ReadMarks.state(playerObj or getSpecificPlayer(0), item)
         local dimA = (rs and rs.st == "r" and ZeD.ReadMarks.dimOn()) and 0.5 or 1
 
@@ -1812,7 +1811,7 @@ local function renderItemList(self)
             chevW = tri + T.px(6)
             suffix = " x" .. tostring(stackInfo.count)
         end
-        -- a cut name keeps its end: a stack's count survives ("Apple (Fr... x6"; Large text audit)
+        -- a cut name keeps its end: a stack's count survives ("Apple (Fr... x6"), at Large text too
         local avail = nameW - childIndent - chevW
         -- room kept for the Next level tag (it never drops off a long name) and, with COND hidden, the read mark
         local nextTag = rs and rs.next and ZeD.ReadMarks.nextOn() and ZeD.tr("UI_ZeD_Read_NextLevel") or nil
@@ -1861,7 +1860,7 @@ local function renderItemList(self)
             rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH)
         end
 
-        -- Weight (K22 Xanthus — stat voice); a stack's head shows its total in brackets
+        -- Weight (F3, the data voice); a stack's head shows its total in brackets
         local wtStr = weightText(item, stackInfo, T.fontF3, wtColW - padX * 2)
         local wtTextY = y + math.floor((rowH - statFH) / 2)
         A.drawTextRight(self, wtStr, xOff + wtX + wtColW - padX, wtTextY, T.fontF3, focusTxt or T.toneHi)
@@ -1910,7 +1909,7 @@ local function renderItemList(self)
             rowIdx = rowIdx + 1  -- count header row so stripe pattern stays consistent
 
             if not isClosed then
-                -- S100: iterate the stacked row list, not raw items — stacking
+                -- Iterate the stacked row list, not raw items — stacking
                 -- collapses identical fullTypes into a single row (expanded
                 -- reveals children).
                 local catRows = (self._stackedGroups and self._stackedGroups[cat]) or catGroup
@@ -1961,7 +1960,7 @@ local XFER_W_NORMAL  = 32    -- transfer strip between columns (2-3 cols)
 local XFER_W_COMPACT = 24    -- narrower XFER strip at 4+ cols (drop badge, keep arrow+icon)
 
 -- Adaptive XFER strip width based on column count
--- S124 scale: returns DESIGN units (exported; Character/World windows wrap it in T.px)
+-- Returns DESIGN units (exported; the Character and World windows wrap it in T.px)
 local function getXferW(colCount)
     if colCount >= 4 then return XFER_W_COMPACT end
     return XFER_W_NORMAL
@@ -2178,7 +2177,7 @@ local function renderMultiColumnContent(self)
     if syncColStates(self) then colStates, N = self._colStates, #selected end
 
     -- Set bar height so renderItemList shifts content down.
-    -- Caller can pre-set _barH = 0 to suppress the container bar (e.g. character window).
+    -- Caller can pre-set _barH = 0 to suppress the container bar (both windows do).
     local showBar = (self._barH == nil) or (self._barH > 0)
     if showBar then
         self._barH = T.px(CONTAINER_BAR_H)
@@ -2207,7 +2206,7 @@ local function renderMultiColumnContent(self)
             self._hdrYOffset        = 0
             self._containerInfo     = nil
 
-            -- S100: per-column stack expand state
+            -- each column keeps its own open stacks
             self._expandedStacks = cs.expandedStacks or {}
             cs.expandedStacks    = self._expandedStacks
 
@@ -2297,7 +2296,7 @@ local function renderMultiColumnContent(self)
             self._colWidths      = cs.colWidths
             self._colWidthsScale = cs.colWidthsScale
 
-            -- S100: per-column stack expand state
+            -- each column keeps its own open stacks
             self._expandedStacks = cs.expandedStacks or {}
             cs.expandedStacks    = self._expandedStacks
 
@@ -2312,11 +2311,12 @@ local function renderMultiColumnContent(self)
             cs.lastClickedItem = self._lastClickedItem
             cs.stacks          = self._stacks
             cs.childParent     = self._childParent
-            -- S106: save per-column yMap so charLootMCColumns focusables can
-            -- read per-row Y for cone-nav bounds. Each column's renderItemList
-            -- call writes to self._itemRenderYMap; subsequent columns overwrite
-            -- it. Snapshotting after each render preserves each column's stamps
-            -- for the next frame's focusable builder.
+            -- Each column keeps its own row-Y map, so the per-column controller
+            -- zones (charMC1.., worldMC1..) can read each row's y to move between
+            -- rows. Each column's renderItemList call writes to
+            -- self._itemRenderYMap and the next column overwrites it; the copy
+            -- taken after each render keeps each column's stamps for the next
+            -- frame's focusable builder.
             cs.itemRenderYMap  = self._itemRenderYMap
             -- the grid: each cell's x, the cell size, the List | Grid toggle (focusables read them)
             cs.itemRenderXMap  = self._itemRenderXMap
@@ -2405,10 +2405,10 @@ local function stripDropTarget(win)
     return cnt.inventory
 end
 
--- Nov 6 2026 (FAIV's report, the rolled window): the list a release on another ZeD window's title bar lands in, the bar
--- being all a rolled window has and its roll-down taking up to a tenth of a second. The same pointer test as
+-- The list a release on another ZeD window's title bar lands in: the bar is all a rolled-up window has, and its
+-- roll-down takes up to a tenth of a second, so the bar itself takes the drop. The same pointer test as
 -- ZeD_Window:_autoCollapse. The source's own bar takes nothing, as its own list doesn't, nor a bar the source window
--- covers; a window showing no list takes nothing. A rolled World window's list stopped refreshing with its strip, so a
+-- covers; a window showing no list takes nothing. A rolled World window's list doesn't refresh with its strip, so a
 -- container left behind, or locked since, takes nothing either.
 local function titleBarDropTarget(win, srcWin)
     if not (win and win ~= srcWin and win._contentPanel and win:getIsVisible()) then return nil end
@@ -2587,8 +2587,9 @@ local function handleDrop(content, items, srcInventory)
 end
 
 -- ============================================================================
--- SHARED MODULE EXPORTS
--- Used by ZeD_CharacterWindow and any future inventory host.
+-- MODULE EXPORTS
+-- The rest of the public table: the Character and World windows read these,
+-- the Equip tab its drops (handleDrop), and the F6 test window (TestInventory).
 -- ============================================================================
 
 ZeD.InventoryRenderer.renderItemList            = renderItemList

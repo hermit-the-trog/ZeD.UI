@@ -2,21 +2,22 @@
 -- ============================================================================
 -- MACHINE VIEW (client) — the Craft tab bound to a drying rack, or any other
 -- craft machine on the same Java contract.
--- A drying rack is a machine, not a bench: items go into its input slots, a
--- START begins the drying cycle, finished items land in its output slots.
+-- A drying rack is a machine, not a bench: items go into its input slots,
+-- Start begins the drying cycle, finished items land in its output slots.
 -- Vanilla shows this through ISCraftLogicPanel; ZeD draws it from scratch on
 -- the same Java contract:
 --   DryingCraftLogic : getInputResources / getOutputResources, isRunning,
 --                      canStart / start / stop (wrapped in ISGenericCraftStart),
 --                      getProgress(craftRecipeData), getCurrentRecipe,
---                      getPossibleRecipe, getFreeOutputSlotCount
+--                      getPossibleRecipe, getFreeOutputSlotCount, getRecipes
 --   CraftLogicUILogic: getItemsInProgress (craftRecipeData -> item -> count)
---   ResourceItem     : getStoredItems, getItemCapacity, acceptsItem
+--   ResourceItem     : getStoredItems, getItemCapacity, getFreeItemCapacity,
+--                      storedSize, acceptsItem
 --   ISItemSlotAddAction / ISItemSlotRemoveAction move items in and out.
--- Layout: STATION select and band, then one scrolling body: the recipe line,
--- the input grid (each slot with its own progress), START / STOP with the
--- cycle's progress and time left, the output grid with TAKE ALL, and the
--- items in your bags the rack accepts, each with ADD.
+-- Layout: the station select and band, then one scrolling body: the recipe
+-- line, the input grid (each drying slot with its own progress), Start / Stop
+-- with the cycle's progress and time left, the output grid with a button that
+-- takes them all, and the items in your bags the rack accepts, each with Add.
 -- ============================================================================
 
 require "ZeD/Stations"
@@ -28,7 +29,7 @@ local ST = ZeD.Stations
 local call = ST.call
 
 local COLS    = 10    -- slots per grid row
-local CELL_H  = 38    -- design px
+local CELL_H  = 38    -- slot height; it and the three below are design px
 local GAP     = 4
 local PAD     = 10
 local ROW_H   = 24
@@ -52,7 +53,7 @@ local function containerLabel(c, player)
     return n or getText("IGUI_ItemCat_Bag")
 end
 
--- Game seconds as "ABOUT 1 DAY" / "ABOUT 5 HOURS" / "ABOUT 20 MINUTES" (a whole phrase per count).
+-- Game seconds as "About 1 day" / "About 5 hours" / "About 20 minutes" (a whole phrase per count).
 local function aboutTime(sec)
     sec = math.max(0, sec or 0)
     if sec >= 86400 * 1.5 then return ZeD.tr("UI_ZeD_Machine_AboutDays", math.floor(sec / 86400 + 0.5)) end
@@ -64,6 +65,7 @@ local function aboutTime(sec)
 end
 SM.aboutTime = aboutTime
 
+-- The recipe line's time for one item: "2 days each", "5 hours each", "20 min each".
 local function durationText(sec)
     sec = math.max(0, sec or 0)
     if sec >= 86400 then
@@ -77,6 +79,8 @@ local function durationText(sec)
     return ZeD.tr("UI_ZeD_Machine_MinEach", math.max(1, math.floor(sec / 60 + 0.5)))
 end
 
+-- The game's CraftLogicUILogic for the station (it knows what is drying), made
+-- once and kept on the station; false marks one that could not be made.
 local function uiLogic(st, player)
     if st.uiLogic == nil then
         st.uiLogic = false
@@ -213,6 +217,8 @@ local function gather(st, player)
     return d
 end
 
+-- The snapshot, gathered again every REFRESH frames; dirty() makes the next
+-- frame gather again, so an action shows at once.
 local function data(st, player)
     st._mdT = (st._mdT or REFRESH) + 1
     if st._mdT >= REFRESH or not st._md then
@@ -231,11 +237,14 @@ local function walk(player, st)
     return ISEntityUI and ISEntityUI.WalkToEntity and ISEntityUI.WalkToEntity(player, st.obj)
 end
 
+--- Put a kind from the bags (group, from gather) into the first input, as many as fit.
 function SM.add(player, st, group)
     local d = st._md
     local res = d and d.inRes
     if not (res and group) then return end
     if not walk(player, st) then return end
+    -- an item goes in only while an output slot is left for it (free output
+    -- slots less what is already loaded); each action asks again (canAddItem)
     local free = call(res, "getFreeItemCapacity") or 0
     local outFree = call(st.comp, "getFreeOutputSlotCount")
     local maxItems = free
@@ -252,6 +261,7 @@ function SM.add(player, st, group)
     dirty(st)
 end
 
+--- Take entries ({ item, res } from gather) out of their slots.
 function SM.take(player, st, entries)
     if not (entries and #entries > 0) then return end
     if not walk(player, st) then return end
@@ -523,6 +533,7 @@ function SM.onClick(win, state, st, x, y)
     return true
 end
 
+--- The wheel scrolls the open dropdown, else the body. Always handled.
 function SM.onMouseWheel(win, state, st, del, x, y)
     if state.stDropdownOpen then return ST.dropdownWheel(state, del) end
     if state.scroll and state.scroll.visible then state.scroll:handleMouseWheel(del) end
@@ -549,7 +560,8 @@ function SM.buildFocusables(win, state, st)
     return out
 end
 
---- Rebuild focusables when the machine's contents change shape.
+--- A key that changes when the machine's contents change shape or the body
+--- scrolls; a new key makes the World window rebuild the controller's elements.
 function SM.focusKey(win, state, st)
     local d = st._md
     if not d then return "m" end

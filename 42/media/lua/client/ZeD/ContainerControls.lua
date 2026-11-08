@@ -7,20 +7,20 @@
 -- themselves in a hover hint, the unique ones are words. For the container
 -- on show:
 --   Character window (your side), bottom row: Transfer all | Same type |
---     Same type, all nearby (icons)
+--     Same type, all nearby (icons), then after a divider any buttons mods add
 --   World window (the other side), bottom row: Take all | Same type |
 --     To floor (not on the floor) (icons), then after a divider the
 --     container's own buttons, vanilla's object controls, words first then
---     icons (a stove's
---     power and settings, a washer's switch, a mannequin's Wear all / Switch
---     outfits, a car trunk's Close trunk / lock, a campfire's Take apart /
---     light / add fuel / put out, a propane barbecue's tank and switch,
---     buttons other mods register) and a trash can's Delete all (the bin),
---     whose question takes over the bottom row.
+--     icons (a stove's power and settings, a washer's switch, a mannequin's
+--     Wear all / Switch outfits, a car trunk's Close trunk / lock, a
+--     campfire's Take apart / light / add fuel / put out, a propane
+--     barbecue's tank and switch, buttons other mods register) and a trash
+--     can's Delete all (the bin), whose question takes over the bottom row.
 -- The moves keep vanilla's rules (ISInventoryPane:lootAll / transferAll and
 -- the same-type handlers' item tables) but aim at the containers the ZeD
--- windows show, never at vanilla's parked pages. Items go through vanilla's
--- transfer action, or ZeD's floor path (InventoryRenderer.handleDrop's rules).
+-- windows show, never at vanilla's own pages hidden behind them. Items go
+-- through vanilla's transfer action, or ZeD's floor path
+-- (InventoryRenderer.handleDrop's rules).
 -- The container's own buttons are vanilla's handler classes
 -- (ISLootWindowContainerControls_HandlerList) run with a small stand-in for
 -- vanilla's loot window, so their visibility rules stay vanilla's. Light and
@@ -285,6 +285,7 @@ function CT.takeAll(playerObj, src, dest)
     CT.moveItems(playerObj, items, dest)
 end
 
+--- Transfer all from src into dest (walks to dest first unless it is the floor).
 function CT.transferAll(playerObj, src, dest)
     if not (playerObj and src and dest) then return end
     if not isFloor(dest) and not luautils.walkToContainer(dest, playerObj:getPlayerNum()) then return end
@@ -339,7 +340,7 @@ end
 
 -- The other side's container: what the other ZeD window shows. Your side's
 -- moves need the World window open on one container; the World window's
--- take into the Character window's container, else your inventory.
+-- moves go into the Character window's container, else your inventory.
 local function otherInventory(content)
     if content._ccSide == "char" then
         local ww = worldWindow()
@@ -517,8 +518,9 @@ end
 --   side    "char" (your side's row) or "world" (the World window's row)
 --   inv     the container this row is for, other the container on the other
 --           side (nil when that window shows none)
---   returns a list of specs, or nil: { id, label, enabled, help, run(content, hit) }
---           (help is the footer's line while the pointer rests on the button).
+--   returns a list of specs, or nil: { id, label, enabled, help, run(content, hit), primary }
+--           (help is the footer's line while the pointer rests on the button;
+--           primary = true draws it as the main button).
 -- Specs become words after the divider, with the container's own buttons.
 -- Called when the row is rebuilt (every REFRESH frames, sooner when items change),
 -- inside pcall, so a provider that fails costs its buttons, never the row.
@@ -786,9 +788,9 @@ end
 
 -- Lays the band's buttons out between x0 and x1 (column-local): the moves
 -- (icons, from the left), a divider, the container's own buttons (words first,
--- then icons, at the right). They do not fit: one ribbon between two arrows,
--- each rect keeping tx, its place along the ribbon (draw scrolls it); divX is
--- the divider's place the same way.
+-- then icons, at the right). When they do not fit: one ribbon between two
+-- arrows, each rect keeping tx, its place along the ribbon (draw scrolls it);
+-- divX is the divider's place the same way.
 local function layRow(moves, objs, x0, x1)
     local T = ZeD.T
     local gap, bh = T.px(CT.GAP), T.buttonH
@@ -988,7 +990,8 @@ end
 --- Draws the band at top (content-local; xOff = the list column's x). The band
 --- is the library's (surface 2 without stacking, its structure line on top);
 --- the Delete all question takes it over as the question band (Cancel and the
---- verb, the verb in danger: it cannot be undone).
+--- verb, the verb in danger: it cannot be undone). atBottom = false leaves the
+--- structure line out.
 local _qOpts, _bandSpec = {}, {}
 function CT.draw(content, top, colW, xOff, atBottom)
     local cc = content._cc

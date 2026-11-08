@@ -4,9 +4,10 @@
 -- Client. One floor of the controller stack: InputModeDetector says which
 -- device is live, this file owns LB / RB while nothing is focused, and
 -- FocusManager turns it off (Chord.setEnabled) the moment a window claims
--- focus — the bumpers then swap windows through ActionMap — and back on at
--- release. It sees no events: it polls both bumpers every tick with its own
--- edge detection, so it works with no window open and nothing else on the pad.
+-- focus — the bumpers then pick a window through ActionMap (LB Character,
+-- RB World) — and back on at release. It gets no button events: it polls
+-- both bumpers every tick with its own edge detection, so it works with no
+-- window open and nothing else on the pad.
 --
 -- THE CHORD:
 --   Hold LB, tap RB  -> one zoom-OUT step
@@ -155,7 +156,7 @@ local function _fire(direction)
 end
 
 -- ---------------------------------------------------------------------------
--- TICK DISPATCHER — called every frame by Events.OnTick
+-- TICK DISPATCHER — called every tick by Events.OnTick
 --
 -- Ordering inside each state branch matters:
 --   1. Fire-chord edge check (wins ties with release)

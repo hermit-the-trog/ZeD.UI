@@ -57,6 +57,7 @@ O.KIND_BY_ITEM = {
 }
 O.HAM = { ham = true, army = true, hammake = true }
 
+-- The game's Java side can throw; pcall turns a crash (or a nil) into the default we can test.
 local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
 -- the same for one method call with no arguments, without making a closure each time (these run every frame):
 -- o:m(), its value or the default when it fails or gives nil
@@ -139,8 +140,10 @@ end
 -- ---------------------------------------------------------------------------
 O._flash, O._scan, O._cd, O._lastVol = O._flash or {}, O._scan or {}, O._cd or {}, O._lastVol or {}
 
+--- show text on a radio's glass for ms (1400 when not given).
 --- short = what a small glass shows in place of the text ("P3" for "STORE 3"); nil = the text itself
 function O.flash(part, text, ms, short) O._flash[keyOf(part)] = { text = text, short = short, untilMs = now() + (ms or 1400) } end
+--- the flash on a radio's glass now (key: keyOf(part)): its text and its short form, or nil once it has run out
 local function flashOf(key)
     local f = O._flash[key]
     if f and now() < f.untilMs then return f.text, f.short or f.text end
@@ -164,6 +167,7 @@ end
 -- ---------------------------------------------------------------------------
 -- READ: everything the faces show, in one table (nil when no radio is fitted)
 -- ---------------------------------------------------------------------------
+--- the set's stored presets in order, each { name, freq }, and how many it can hold (10 when it doesn't say)
 function O.presetList(dd)
     local out = {}
     local pc = _get(dd, "getDevicePresets", nil)
@@ -177,6 +181,7 @@ function O.presetList(dd)
     return out, (pc and _get(pc, "getMaxPresets", 10)) or 10
 end
 
+--- one read of a car's Radio part: the table the radio up close and the dash draw from (nil when no radio is fitted)
 function O.read(part)
     if not part then return nil end
     local item = _get(part, "getInventoryItem", nil)
@@ -262,6 +267,7 @@ local function stopScan(part)
 end
 O.stopScan = stopScan
 
+--- the power switch (a SCAN stops, a remembered Stop is forgotten); false when vanilla refuses
 function O.power(chr, part) stopScan(part); if part and O.forgetStop then O.forgetStop(keyOf(part)) end; return run("ToggleOnOff", chr, part) end
 
 --- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
@@ -274,6 +280,7 @@ function O.volStep(chr, part, dir, wrap)
     return run("SetVolume", chr, part, nv)
 end
 
+--- MUTE: silence the set, or bring back the volume it had before (half when none was kept)
 function O.mute(chr, part)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
@@ -285,6 +292,7 @@ function O.mute(chr, part)
     return run("UnMuteVolume", chr, part, O._lastVol[keyOf(part)] or 0.5)
 end
 
+--- tune straight to hz (in kHz, as vanilla counts: 101200 is 101.2 MHz)
 local function setChannel(chr, part, hz) return run("SetChannel", chr, part, hz) end
 O.setChannel = setChannel
 
@@ -313,6 +321,7 @@ function O.nextStation(dd, dir)
     return nil
 end
 
+--- SEEK: tune to the next station up (dir 1, the default) or down (-1); false when there is none
 function O.seek(chr, part, dir)
     if not part then return false end
     stopScan(part)
@@ -362,6 +371,7 @@ local function storedName(hz, ham)
     return O.chanName(hz) or (O.freqText(hz, ham) .. " MHz")
 end
 
+--- tune to stored preset i (counting from 1); false past the list's end
 function O.recall(chr, part, i)
     stopScan(part)
     local _, _, l = presetsOf(part)
@@ -435,24 +445,25 @@ function O.rename(chr, part, idx, name)
     return true
 end
 
+--- MIC: mute or unmute a two-way set's microphone
 function O.mic(chr, part)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
     return run("MuteMicrophone", chr, part, not _get(dd, "getMicIsMuted", false))
 end
 
--- PLAY / STOP: the game's StopPlayMedia drops the disc at once but clears its playing
--- flag only after a short stop timer that runs on game time (DeviceData.updateMediaPlaying: never while paused), and
--- StartPlayMedia does nothing until it has cleared. So a set read "playing" after Stop, and a second press called Stop
--- again. ZeD remembers its own Stop: the set reads stopped at once, and a Play pressed meanwhile starts the media as
+-- PLAY / STOP: the game's StopPlayMedia drops the disc at once but clears its playing flag only after a short
+-- stop timer that runs on game time (DeviceData.updateMediaPlaying: never while paused), and StartPlayMedia does
+-- nothing until it has cleared. Left alone, a set reads "playing" after Stop and a second press calls Stop again.
+-- ZeD remembers its own Stop: the set reads stopped at once, and a Play pressed meanwhile starts the media as
 -- soon as the game lets it.
 O._stopping = O._stopping or {}
 O._wantPlay = O._wantPlay or {}
--- is the media playing, as the player sees it (dd: the device data; key: keyOf(part))
--- (a remembered Stop and Play go with an eject, a power change, a new disc, or after STOP_MS: a Play left waiting
--- must not start a disc later on its own)
+-- a remembered Stop and Play go with an eject, a power change, a new disc, or after STOP_MS: a Play left waiting
+-- must not start a disc later on its own
 local STOP_MS = 4000
 function O.forgetStop(key) if key then O._stopping[key], O._wantPlay[key] = nil, nil end end
+--- is the media playing, as the player sees it (dd: the device data; key: keyOf(part))
 function O.playingNow(dd, key)
     local p = _get(dd, "isPlayingMedia", false) and true or false
     if key == nil or not O._stopping[key] then return p end
@@ -472,6 +483,7 @@ function O.playingNow(dd, key)
     end
     return false
 end
+--- PLAY / STOP, through vanilla's TogglePlayMedia; a press while a Stop is remembered toggles the waiting Play
 function O.playStop(chr, part)
     stopScan(part)
     local key = part and keyOf(part)
@@ -518,6 +530,7 @@ local function mediaAction(chr, part, isRemove, item)
     ISTimedActionQueue.add(a)
     return true
 end
+--- put a CD in (fetched into the main inventory first when it sits in a bag)
 function O.insert(chr, part, item)
     stopScan(part)
     if part and O.forgetStop then O.forgetStop(keyOf(part)) end
@@ -525,6 +538,7 @@ function O.insert(chr, part, item)
     pcall(ISInventoryPaneContextMenu.transferIfNeeded, chr, item)
     return mediaAction(chr, part, false, item)
 end
+--- EJECT: take the CD out; false when there is none
 function O.eject(chr, part)
     if not part then return false end
     if O.forgetStop then O.forgetStop(keyOf(part)) end
@@ -590,7 +604,7 @@ local function charsFit(f, px, sp, w)
     return math.max(1, math.floor((w + sp) / (cw + sp)))
 end
 
--- a line that marches left a character at a time when it is too long (1993 LCDs did)
+--- a line that marches left a character at a time when it is longer than n (1993 LCDs did)
 local function marquee(str, n)
     str = tostring(str or "")
     if #str <= n then return str end
@@ -751,15 +765,17 @@ end
 -- THE READING for the pixel-art faces: what each face's display shows now,
 -- field by field, for the shared plate template's radioDisplay part
 -- (ZeD_Plate.lua) to draw in pixel figures.
--- The same content as drawFM / drawHam below, blinking already applied; nil
+-- The same content as drawFM / drawHam above, blinking already applied; nil
 -- when the set is off (the template darkens a liquid-crystal glass).
 --   FM sets   band "FM" / "CD", big (the frequency, or the CD's time), unit,
 --             preset "P2", cdTag "CD" (a disc in), tag (STORE n / SCAN /
---             MUTE), bars (signal 0 .. 4), line (the station, the CD's title)
+--             MUTE), bars (signal 0 .. 4), line (the station, the CD's title),
+--             cd (true while a CD plays)
 --   ValuTech  big, band, tag
 --   two-way   chLabel "CH", ch "02", big "146.520", unit, tx "TX OK" /
 --             "MIC OFF", line (the channel's name, a flash, MUTE)
---   makeshift l1 / l2: the 16 x 2 character glass's two lines
+--   makeshift l1 / l2: the 16 x 2 character glass's two lines (both
+--             makeshift sets, FM and two-way)
 -- ---------------------------------------------------------------------------
 function O.displayReading(st, t)
     if not (st and st.on) then return nil end

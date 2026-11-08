@@ -3,10 +3,10 @@
 -- GENERAL STATION VIEW (client) — the Craft tab bound to a station ZeD has no
 -- view of its own for.
 -- Benches (CraftingTab), drying racks and any other plain craft machine
--- (StationMachine) and ovens (StationAppliance) have their views. Anything
--- else the game's ISEntityUI.OpenWindow would open (in 42.22 only mods add
--- these: a furnace or mashing logic, a tank, a store of items) lands here,
--- read from the components the entity has:
+-- (StationMachine), ovens and microwaves (StationAppliance) have their views.
+-- Anything else the game's ISEntityUI.OpenWindow would open (in 42.22 only
+-- mods add these: a furnace or mashing logic, a tank, a store of items) lands
+-- here, read from the components the entity has:
 --   * a logic with a cycle (FurnaceLogic, MashingLogic, any component with
 --     isRunning / canStart / start / stop / getProgress / getCurrentRecipe /
 --     getPossibleRecipe): the recipe line, Start or Stop through the game's
@@ -115,6 +115,8 @@ local function gather(st, player)
 end
 SG.gather = gather
 
+-- The snapshot, gathered again every REFRESH frames; dirty() makes the next
+-- frame gather again, so an action shows at once.
 local function data(st, player)
     st._gdT = (st._gdT or REFRESH) + 1
     if st._gdT >= REFRESH or not st._gd then
@@ -130,12 +132,15 @@ local function dirty(st) st._gdT = REFRESH end
 -- ----------------------------------------------------------------------------
 local function walk(player, st) return ISEntityUI and ISEntityUI.WalkToEntity and ISEntityUI.WalkToEntity(player, st.obj) end
 
+--- Take every item of one stored kind (group, from gather) out of resource res.
 function SG.take(player, st, res, group)
     if not (res and group and #group.items > 0) or not walk(player, st) then return end
     for _, it in ipairs(group.items) do ISTimedActionQueue.add(ISItemSlotRemoveAction:new(player, st.obj, res, nil, it)) end
     dirty(st)
 end
 
+--- Put a kind from the bags (group, from gather) into the input that accepts
+--- it, as many as that input has room for.
 function SG.add(player, st, group)
     local res = group and group.res
     if not res or not walk(player, st) then return end
@@ -359,6 +364,7 @@ function SG.onClick(win, state, st, x, y)
     return true
 end
 
+--- The wheel scrolls the open dropdown, else the body. Always handled.
 function SG.onMouseWheel(win, state, st, del, x, y)
     if state.stDropdownOpen then return ST.dropdownWheel(state, del) end
     if state.scroll and state.scroll.visible then state.scroll:handleMouseWheel(del) end
@@ -385,7 +391,8 @@ function SG.buildFocusables(win, state, st)
     return out
 end
 
---- Rebuild focusables when the station's contents change shape.
+--- A key that changes when the station's contents change shape or the body
+--- scrolls; a new key makes the World window rebuild the controller's elements.
 function SG.focusKey(win, state, st)
     local d = st._gd
     if not d then return "g" end

@@ -193,8 +193,8 @@ local function _pollReadingFallback(p)
         end
         -- Last-resort: scan inventory for a Literature item. PZ may not
         -- equip the book during reading. If multiple Lit items exist, prefer
-        -- the one currently displayed in any open ItemCard (matches user
-        -- intent — they opened the card for the book they're reading).
+        -- the one the Character window's card shows (matches user intent —
+        -- they opened the card for the book they're reading).
         -- The scan is the costly step, so once a book has been found it is
         -- kept for a while instead of being searched for again every tick
         -- (progress still updates every tick below).
@@ -222,7 +222,7 @@ local function _pollReadingFallback(p)
                 if #litItems == 1 then
                     book = litItems[1]; probeName = "invScan(unique)"
                 elseif #litItems > 1 then
-                    -- Multiple — pick the carded one if any window has it as drawerItem
+                    -- Multiple — pick the one the Character window cards (its drawerItem)
                     local carded = nil
                     -- The window accessor is getWindow(); there is no .instance field.
                     local cwin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow

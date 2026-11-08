@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ContainerGroups.lua
 -- ============================================================================
--- CONTAINER GROUPS (client; a general hook for other mods — Better Folders
--- uses it through ModSupport/VIF_DualRender_B42.lua)
+-- CONTAINER GROUPS (client; a general hook for other mods, used by Better
+-- Folders through ModSupport/VIF_DualRender_B42.lua)
 --
 -- ZeD's item lists group a container's things by category (sort by Category:
 -- a folding row per category; the grid the same). A mod that files things into
@@ -130,8 +130,8 @@ function G.sig(inv, playerObj, isPlayerInv)
     return s
 end
 
---- The order of the group rows: ranked groups first, by rank; then the
---- categories by key (asc) or reversed (not asc), as before.
+--- Sorts the group rows in place: ranked groups first, by rank (ties by key);
+--- then the rest by key, ascending when asc, else descending.
 function G.sortKeys(keys, asc)
     if #G.list == 0 then
         if asc then table.sort(keys) else table.sort(keys, function(a, b) return a > b end) end

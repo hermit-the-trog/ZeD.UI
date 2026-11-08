@@ -112,8 +112,8 @@ local FALLBACK = { display = "graphics", ui = "interface", audio = "audio", keys
                    mp = "gameplay", controller = "controls", mods = "mods" }
 
 -- Settings that do nothing with ZeD active: greyed, inert, the reason in the
--- row and the help band. From the code: ZeD replaces the surface and never
--- reads the option (checked against every getOption* call).
+-- row and the help band. Each one sets a vanilla surface ZeD replaces, and no
+-- ZeD code reads it (no getOption* call names it).
 G.MOOT = {
     inventoryFont = "UI_ZeD_Options_MootInventoryFont",
     contextMenuFont = "UI_ZeD_Options_MootContextMenuFont",
@@ -162,20 +162,21 @@ G.SETUP_GAME = {
 G.ZED_GROUPS = {
     -- (the windows' See-through is the stepped slider under Text size, Solid while in use a
     -- checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample
-    -- beside it; Hidden actions closes Windows as a pop-up menu. The windows' theme squares are
-    -- gone with their setting.)
+    -- beside it; Hidden actions closes Windows as a pop-up menu. No row for theme squares: the
+    -- windows have none, and each window box's menu, ZeD_WindowMenu.lua, holds Theme, Accent
+    -- and Text size.)
     { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
     -- (One row per family, each offering ZeD's full vision or a plainer one, with one phrase for
     -- the two forms: Immersive or simple, for the rows drawn as the thing itself or as a plain
-    -- card; the Identity card joined from Look. The Action bar (now in HUD) and the Mods screen
-    -- (now in Windows) are Detailed or simple; Context menu and Equipped items choose a layout,
-    -- so they sit in Windows by Inventory. Only the rows moved: every option keeps its items in
-    -- order, so saved choices keep their meaning.)
+    -- card, the Identity card (once in Look) among them. The Action bar (in HUD) and the Mods
+    -- screen (in Windows) are Detailed or simple; Context menu and Equipped items choose a
+    -- layout, so they sit in Windows by Inventory. A row can move between groups freely: every
+    -- option keeps its items in order, so saved choices keep their meaning.)
     { "UI_ZeD_Options_ZedForms", { { "beltStyle", "radio" }, { "devicesStyle", "radio" }, { "watchStyle", "radio" }, { "dashStyle", "radio" }, { "guideStyle", "radio" }, { "identityStyle", "radio" } } },
-    -- (everything vanilla does not do, in one group after the look, the preset first; Settings.lua
-    -- setUpAdditions. The rows gathered here from other groups: Put back, Messages and Sandbox in
-    -- game had groups of their own, Ammo on the belt, Moodle notices and Dashboard lamps sat in
-    -- HUD, Restock and the read marks in Windows.)
+    -- (everything vanilla does not do, in one group after the look, the preset first; the
+    -- presets' table is in Settings.lua's setUpAdditions. Put back, Messages and Sandbox in game
+    -- have no groups of their own; Ammo on the belt, Moodle notices and Dashboard lamps (once in
+    -- HUD) and Restock and the read marks (once in Windows) live here too.)
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
         { "ammoBox", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "dashLamps", "onoff" },
         { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "haloBubble", "onoff" }, { "hintStrip", "radio" }, { "putBack", "onoff" },
@@ -313,7 +314,7 @@ function G.build(pages, rowsOf)
                     -- the name is drawn through ZeD.tr each frame (ZeD_MainMenuOptions), so the test language reaches it
                     r.labelKey = opt.zedNameKey
                     -- its help: vanilla's options screen never gives a mod's drop-down the option's
-                    -- tooltip, so the band read nothing; the key is beside the name's (UI_ZeD_Settings_<x>Tip)
+                    -- tooltip, so the band would read nothing; the key is beside the name's (UI_ZeD_Settings_<x>Tip)
                     r.zedTipKey = opt.zedNameKey and (opt.zedNameKey .. "Tip")
                     r.zedOwn = true   -- (one of ZeD's own options: Find shows it on ZeD setup, G.findRows)
                     local c = copyRow(r, nil)
@@ -368,7 +369,7 @@ end
 --- Find across the groups: the rows whose words (hayOf(r), lower case) hold q, each group's under its title.
 --- ZeD's own options are found on ZeD setup, drawn with ZeD's own controls (radio rows, wells, the slider);
 --- their plain drop-downs on the Mods page are left out, so Find never offers the same option twice.
---- ZeD setup's copies of the game's settings are found in their own groups, as before.
+--- ZeD setup's copies of the game's settings are left out the other way: each is found in its own group.
 function G.findRows(pages, rowsFor, q, hayOf)
     local rows = {}
     for _, p in ipairs(pages) do
@@ -391,7 +392,8 @@ end
 -- ----------------------------------------------------------------------------
 -- The first time the game starts with ZeD on, Options opens on ZeD setup by
 -- itself, once (Zomboid/Lua/ZeD_setup_seen.txt remembers). Not on a QA
--- autoload launch (QABridge sets ZeD.QAAutoload).
+-- autoload launch, a -debug test run that continues the latest save by
+-- itself (QABridge sets ZeD.QAAutoload).
 -- ----------------------------------------------------------------------------
 local SEEN_FILE = "ZeD_setup_seen.txt"
 local firstTicks = 0

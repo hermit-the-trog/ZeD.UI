@@ -270,7 +270,9 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Verb dispatch table — maps verb key → handler(card, def).
--- Clothing verbs use ISRepairClothing; weapon verbs use FixingManager/ISFixAction.
+-- A garment's Repair and Pad use ISRepairClothing; Repair on a weapon goes
+-- through FixingManager/ISFixAction; Sharpen and Wash run vanilla's own
+-- recipe and wash (see each below).
 -- ---------------------------------------------------------------------------
 local VERB_DISPATCH = {}
 
@@ -732,8 +734,8 @@ function ZeD_ItemCard:initialise()
     self._sb = sb
 end
 
--- Called when a structural dock button is clicked.
--- Builds and queues the appropriate timed action for this player + zone.
+-- Called when a structural dock button is clicked: opens the part's tailoring
+-- list, else queues the one-press timed action for this player + zone.
 function ZeD_ItemCard:_onZonePress(zoneIdx, zone, rect)
     if not self.item or not zone or not zone.dock then return end
     local player = getSpecificPlayer(self.playerNum)
@@ -798,7 +800,8 @@ end
 
 -- The name row opens the same prompt the item menu and the controller use
 -- (ZeD.ItemMenu.rename: vanilla's text box, with its length check). The
--- card's inline text field cannot take typing, so it is no longer started.
+-- card's own inline text field can't take typing, so the card never starts
+-- one; _commitRename and _cancelRename below are what is left of it.
 function ZeD_ItemCard:_startRename()
     if not self.item then return end
     local ren = ZeD.ItemMenu and ZeD.ItemMenu.rename
@@ -1058,8 +1061,8 @@ end
 
 -- ---------------------------------------------------------------------------
 -- HEIGHT CALCULATIONS: sticky head + scrollable body. These sum the old
--- card layout: prerender uses them only outside drawer mode, and
--- _toggleFold still clamps scroll with them.
+-- card layout: prerender uses them only outside drawer mode (every card is
+-- made in drawer mode), and _toggleFold still clamps scroll with them.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_calcHeadH()
     if not self.item then return 0 end
@@ -1224,7 +1227,7 @@ function ZeD_ItemCard:_pointer()
                and myAbs >= ry and myAbs < ry + r.h
         end
 
-        -- Back arrow → onBackClick callback installed by parent surface
+        -- The back key (the card's X) → onBackClick, installed by the host surface
         if rects and rects.back then
             local inBack = inAbsRect(rects.back)
             if self._backWasDown and not downAbs and inBack and self.onBackClick then
@@ -1346,7 +1349,7 @@ function ZeD_ItemCard:_pointer()
     end
     self._foldWasDown = down
 
-    -- Zone dock click detection (clothing disclosure, repair/pad buttons)
+    -- Zone dock click detection (clothing disclosure: the repair / remove-patch docks)
     for _, rect in ipairs(self._zoneDockRects) do
         local absRectY = rect.y
         if absRectY + rect.h > bodyTop and absRectY < bodyBot then
@@ -1400,9 +1403,9 @@ function ZeD_ItemCard:prerender()
             local parentH = self._fillH or self.parent:getHeight()
             if self.height ~= parentH then self:setHeight(parentH) end
         else
-            -- Inspect / non-drawer mode: rough sizing via legacy calc still
-            -- works since prerender runs before render and the legacy values
-            -- are within ballpark of the new layout for non-clothing items.
+            -- Non-drawer mode (no card uses it): rough sizing from the legacy
+            -- sums, which run before render and land within ballpark of the
+            -- real layout for non-clothing items.
             self._headH = self:_calcHeadH()
             local bodyContentH = self:_calcBodyH()
             self._contentH = bodyContentH
@@ -1576,9 +1579,9 @@ function ZeD_ItemCard:getActionStripElements()
     local card = self
 
     -- Progress Band cancel as a leading focusable. Only present
-    -- when an action is active (Manager.getActiveAction != nil). Lands as
-    -- the first ring element when armed so X press hits it without ring nav.
-    -- Every rect here is ABSOLUTE, like toggleRects / verbRects / the zone
+    -- when an action is active (Manager.getActiveAction != nil); it heads the
+    -- list, and A on it cancels (a move into the card still lands on the
+    -- primary verb, Focus.landOnPrimary). Every rect here is ABSOLUTE, like toggleRects / verbRects / the zone
     -- docks; the window converts them to drawer-local.
     if self._cancelRect and ZeD.ItemActionManager
        and ZeD.ItemActionManager.getActiveAction
@@ -1594,7 +1597,7 @@ function ZeD_ItemCard:getActionStripElements()
     end
 
     -- Header verbs (Eat / Wear / Drop ...): the card's main actions. Back-bar
-    -- rects are card-local (update() adds the origin), so lift them here.
+    -- rects are card-local (the pointer poll adds the origin), so lift them here.
     -- They are the card's action strip (isStrip); the card's
     -- main button (the CTA: Eat, Take, Wear...) is isPrimary, where the
     -- controller lands when the card opens (else the first of them).
@@ -1622,7 +1625,7 @@ function ZeD_ItemCard:getActionStripElements()
     end
 
     -- The name row: A renames through the prompt (the controller keyboard
-    -- types into its field; the card's inline field is mouse and keys only)
+    -- types into its field; the card's own inline field is never used)
     local nr = self._nameRowRect
     if nr and nr.x and not self._renaming and ZeD.ItemMenu and ZeD.ItemMenu.rename then
         local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -1808,8 +1811,8 @@ end
 -- Return disclosure-header content-Y positions (section header top edges),
 -- in render order. "Content-Y" = panel-local Y with _scrollPixels removed, so
 -- scrollTo math is independent of current scroll position.
--- Empty list for items without disclosures (weapons, food with no nutrition,
--- non-clothing non-food categories).
+-- Empty list for items without disclosures: everything but clothing, since
+-- only the clothing body stamps fold rects (its zones, and its facts at 220w).
 function ZeD_ItemCard:getDisclosureYs()
     local ys = {}
     local ay = self:getAbsoluteY()

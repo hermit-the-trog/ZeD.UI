@@ -3,26 +3,42 @@
 -- MAIN MENU + PAUSE MENU. Client; the desk the whole main menu lives on. This
 -- file is the room, the menu bar and its pull-downs, the CRT glass, the
 -- pointer and the shared window frame; the other ZeD_MainMenu*.lua files hang
--- their screens on it as windows and views (MM.addView).
+-- their screens on it as windows and views. Its organisms: ZeD_MMDesk (the
+-- room), ZeD_MMBar, ZeD_MMDrop (an open menu or pop-up), ZeD_MMGlass,
+-- ZeD_MMWake, and ZeD_MMWindow (the Project Zomboid window, and in game the
+-- pause window). MM holds what every screen shares: the band, the buttons,
+-- the scroll bar, the focus mark, the sounds, text measuring.
 --
 -- The main menu is the owner's desk: one 480 x 270 pixel-art picture drawn
 -- at a whole multiple (4x at 1080p, 6x at 1440p, 8x at 4K) so its pixels stay
 -- square. The CRT's screen (240 x 180 of those pixels) holds the menu: a menu
 -- bar and the Project Zomboid window, a ZeD window like the Character and
--- World windows. Vanilla's old painting is the monitor's wallpaper. Small life
--- on the desk: the hard disk light, the floppy light, the boombox needle, the
--- lamp, lightning in the painting. None of it does anything.
+-- World windows. Everything is placed from MM.layout(): the room, or on a
+-- screen too small for the 1080p menu (a Steam Deck, 720p) the desk leaning
+-- in. The wallpaper is vanilla's old painting, or Build 42's title video (a
+-- choice in Settings). Small life on the desk: the hard disk light, the floppy
+-- light, the boombox needle, the lamp, lightning in the painting. None of it
+-- does anything; the case's power button is Quit. The same room comes back
+-- after a death (Overrides/Respawn.lua) and after a kick or a lost connection
+-- (ZeD_LeftScreen.lua).
 --
 -- In game, Escape opens the pause window: a ZeD window over the dimmed world.
 --
--- Every item runs vanilla's own handler (MainScreen.onMenuItemMouseDownMainMenu
--- with vanilla's item). Vanilla's labels stay alive, parked off-screen; the
--- hooks are in Overrides/MainMenu.lua. The screens behind the items (Load,
--- New Game, Options, Mods, ...) stay vanilla's until each has its own design.
+-- How it hangs together. Overrides/MainMenu.lua hooks vanilla's MainScreen and
+-- calls in here (MM.attach, MM.afterPrerender, MM.joyDown / joyDir /
+-- keyRelease). Every item runs vanilla's own handler
+-- (MainScreen.onMenuItemMouseDownMainMenu with vanilla's item); vanilla's
+-- labels stay alive, parked off-screen. Load Game and New Game
+-- (ZeD_MainMenuSaves), Mods, Options, the desktop's icons and the sticky note
+-- are made by name in ZeD_MMDesk:createChildren; every other window registers
+-- itself with MM.addView, and MM.showView puts one view on the monitor at a
+-- time. Vanilla's own screens stay built: when vanilla shows one that has a
+-- ZeD window, MM.redirect or MM.mirror puts that view up instead.
 --
 -- Clicks: every panel here registers hit boxes while it draws and the update
--- pass tests the mouse against them (child panels do not get mouse events
--- reliably). Buttons act on release over the button that took the press.
+-- pass tests the mouse against them. Child panels do not get mouse events
+-- reliably, and on the desk the glass lies over every window and takes the
+-- mouse anyway. Buttons act on release over the button that took the press.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -225,7 +241,7 @@ function MM.roomLayout()
     return c
 end
 
--- Does this framing's monitor hold the 1080p menu?
+-- Does this framing's monitor hold the 1080p menu (SMALL_W x SMALL_H design units)?
 function MM.roomHolds(L)
     local T = ZeD.T
     return L.tw >= T.px(SMALL_W) and L.th >= T.px(SMALL_H)
@@ -334,7 +350,7 @@ local function nat(L, r) return L.ox + r[1] * L.s, L.oy + r[2] * L.s, r[3] * L.s
 -- SMALL LIFE ON THE DESK
 -- ---------------------------------------------------------------------------
 local life = {}
-MM._life = life   -- QA: the bridge can start a lightning strike (life.zap.nextAt = 0)
+MM._life = life   -- (the QA bridge, QABridge.lua, can start a lightning strike: life.zap.nextAt = 0)
 
 local function lifeTick(t)
     -- hard disk: a burst of flicker every few seconds
@@ -406,6 +422,8 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAWING THE DESK, THE WALLPAPER, THE GLASS
 -- ---------------------------------------------------------------------------
+--- The room into panel p at layout L, time t: the margins, the desk picture (dipped on a lamp beat), the
+--- change note, the lights and the needle. Also ticks the small life (ZeD_LeftScreen.lua draws the room too).
 function MM.drawDesk(p, L, t)
     local s = L.s
     -- margins (a screen wider or taller than the picture): wall above the desk's edge, desktop
@@ -448,11 +466,12 @@ function MM.drawDesk(p, L, t)
 end
 
 -- ---------------------------------------------------------------------------
--- THE CHANGE NOTE. The menu writes on the paper in
--- the desk picture, in the game's pixel faces at the desk's own multiple, so a release changes a word list
--- (MenuNote.lua) and the heading follows the version: no art changes.
+-- THE CHANGE NOTE. The menu writes on the paper in the desk picture, in the game's pixel faces at the desk's
+-- own multiple, so a release changes a word list (MenuNote.lua) and the heading follows the version: no art
+-- changes.
 -- ---------------------------------------------------------------------------
---- 0.3.0-beta4: "BETA 4"; 0.3.0-beta3a: "BETA 3A"; a release, 1.0.0: "V1.0"; anything else (the dev copy): "DEV"
+--- The note's heading for a version: 0.3.0-beta4 "BETA 4"; 0.3.0-beta3a "BETA 3A"; a release, 1.0.0, "V1.0";
+--- anything else (the dev copy) "DEV".
 function MM.noteHeading(v)
     v = tostring(v or "")
     local b = v:match("%-[bB][eE][tT][aA](%w+)$")
@@ -520,6 +539,7 @@ function MM.drawNote(p, L, dipped)
     end
 end
 
+--- The wallpaper choice, "original" (the painting) or "new" (the title video), read from its file once.
 function MM.wallpaper()
     if MM._wall == nil then
         MM._wall = "original"
@@ -533,6 +553,7 @@ function MM.wallpaper()
     return MM._wall
 end
 
+--- Choose the wallpaper and keep the choice in its file.
 function MM.setWallpaper(which)
     MM._wall = which
     local wr = getFileWriter(WALL_FILE, true, false)
@@ -568,7 +589,8 @@ local function drawTiles(p, tiles, tx, ty, tw, th, alpha)
     return true
 end
 
---- The painting fills the tube (cut to its 4:3), lightning over it, then dimmed.
+--- The wallpaper fills the tube, dimmed: the title video when "new" is chosen, the game's video effects are on
+--- and the video plays; else the painting (cut to its 4:3) with the lightning over it.
 function MM.drawWallpaper(p, L, t)
     local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
     -- the new one: Build 42's title video, cut to the tube's 4:3 (its middle, where the room is)
@@ -612,16 +634,18 @@ end
 -- ---------------------------------------------------------------------------
 -- THE MENU ARRIVING: THE MONITOR SWITCHES ON. The switch-on pulls the eye to the
 -- monitor as the one spot on the desk that answers. The power-off played backwards
--- and slower, as a 1993 CRT warms
--- up: the room comes up with the tube dark, a dot lights in the middle, draws out into a
--- line, the line opens into the picture, and the picture settles from a phosphor glare.
--- About 0.9 s after the room; at boot, back from a game and after a mod reload (each
--- builds the menu anew). The pointer waits until the picture is open.
+-- and slower, as a 1993 CRT warms up: the room comes up with the tube dark, a dot
+-- lights in the middle, draws out into a line, the line opens into the picture, and
+-- the picture settles from a phosphor glare. It starts ON_DELAY_FADE after the room's
+-- fade begins (ON_DELAY_QUICK with no fade) and takes about 0.95 s; at boot, back from
+-- a game and after a mod reload (each builds the menu anew). The pointer waits until
+-- the picture is open.
 -- ---------------------------------------------------------------------------
 local ON_DOT, ON_LINE, ON_OPEN, ON_SETTLE = 90, 140, 240, 480
 local ON_DELAY_FADE, ON_DELAY_QUICK = 380, 120   -- after the room's fade starts / with no fade
 local ON_GLOW = { r = 0.86, g = 0.94, b = 1.0 }
 
+--- True while the switch-on is still opening the picture (its settle doesn't count): nothing answers yet.
 function MM.poweringOn()
     local o = MM.powerOn
     if not o then return false end
@@ -682,13 +706,13 @@ end
 -- Every vanilla start ends in forceChangeState(LoadingQueueState.new()); from the desk
 -- the monitor switches off first, as a 1993 CRT does (the picture squeezes into a
 -- bright line, the line into a dot, the dot fades) while the hard disk works, and then
--- the engine takes over. About half a second; nothing on the desk answers meanwhile.
+-- the engine takes over. About 0.6 s (OFF_TOTAL); nothing on the desk answers meanwhile.
 -- ---------------------------------------------------------------------------
 local OFF_SQUEEZE, OFF_LINE, OFF_DOT, OFF_HOLD = 170, 150, 180, 100
 local OFF_TOTAL = OFF_SQUEEZE + OFF_LINE + OFF_DOT + OFF_HOLD
 local PHOSPHOR = { r = 0.86, g = 0.94, b = 1.0 }
 
-MM._origForceChangeState = MM._origForceChangeState or forceChangeState   -- (a Lua reload must not wrap the wrapper)
+MM._origForceChangeState = MM._origForceChangeState or forceChangeState   -- (kept once, so a Lua reload never wraps the wrapper)
 function forceChangeState(state, ...)
     local loading = state ~= nil and instanceof(state, "LoadingQueueState")
     local o = MM.powerOff
@@ -711,7 +735,8 @@ function MM.switchOff(o)
     MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
 end
 
---- (the desk's update) the switch-off done: vanilla's start goes on to the loading screen
+--- From the desk's update: once the switch-off has played, what waited on it goes on (vanilla's start to the
+--- loading screen, or o.run). A start that never leaves the menu brings the monitor back after 2 s.
 function MM.powerOffTick()
     local o = MM.powerOff
     if not o then return end
@@ -767,6 +792,7 @@ end
 -- ---------------------------------------------------------------------------
 -- WHAT THE MENU SHOWS (read from vanilla)
 -- ---------------------------------------------------------------------------
+--- A game mode's name in the player's language (vanilla's IGUI_Gametime_ words), or the mode as given.
 function MM.modeName(mode)
     mode = tostring(mode or "")
     return getTextOrNull("IGUI_Gametime_" .. mode) or mode
@@ -840,8 +866,8 @@ function MM.refresh()
 end
 function MM.continueInfo() return MM._cont or nil end
 
--- the Continue card's picture streams in like the desk's: the menu waits for it (it popped in
--- about two seconds after the card at boot)
+-- the Continue card's picture streams in like the desk's: the menu waits for it (without the
+-- wait it pops in about two seconds after the card at boot)
 MM.readyChecks = MM.readyChecks or {}
 MM.readyChecks.continueThumb = function()
     local c = MM._cont
@@ -850,6 +876,7 @@ MM.readyChecks.continueThumb = function()
     return (not ok) or r
 end
 
+--- Is there a save to load (vanilla's own flag)?
 function MM.hasSaves() local m = ms(); if m and m.hasSaveFiles then return true end; return false end
 
 function MM.modCount()
@@ -898,6 +925,7 @@ function MM.zedVersion()
     return MM._zedVersion
 end
 
+-- the menu bar's clock: real time in the player's 12- or 24-hour choice, read at most once a second
 local _clock = { at = -1, s = "", fmt = nil }
 function MM.clock()
     local t = now()
@@ -1022,6 +1050,7 @@ MM.act = {
 -- ---------------------------------------------------------------------------
 -- THE MENU BAR'S MENUS
 -- ---------------------------------------------------------------------------
+-- the menu bar's titles, left to right (Debug only while the game runs in debug mode)
 function MM.menus()
     -- back at the desk after a death: only the ZeD menu's About block (nothing here leaves the game)
     if MM.respawn then return { { key = "zed", logo = true } } end
@@ -1035,6 +1064,8 @@ function MM.menus()
     return t
 end
 
+--- A menu's rows: { text, fn, disabled, check } each, "-" for a line, { about = true } for the About block.
+--- ZeD_MainMenuNotes.lua wraps this to add its own rows.
 function MM.menuItems(key)
     local A, m = MM.act, ms()
     if MM.respawn then return key == "zed" and { { about = true } } or {} end
@@ -1096,6 +1127,8 @@ local function hitAt(panels, mx, my)
     return nil
 end
 
+--- Run the pointer for one update: hover, press and release over the hit boxes of panels (top first), kept
+--- in ctx (MM.ctx on the desk; the pause window and ZeD_LeftScreen.lua's window keep their own).
 function MM.pointer(ctx, panels)
     -- (called from update(), which runs every 100 ms: a click between two updates still counts)
     local down = ZeD.MouseTick.down()

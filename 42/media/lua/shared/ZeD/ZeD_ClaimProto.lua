@@ -1,20 +1,22 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_ClaimProto.lua
 -- ============================================================================
--- SAFEHOUSES AND FACTIONS: WHAT BOTH SIDES AGREE ON. The module name, the limits, the
--- tag colors, the checks on a typed name and the wars' rules. Pure Lua, ASCII, nothing client-only at load: this file
--- also runs on a dedicated server.
+-- SAFEHOUSES AND FACTIONS: WHAT BOTH SIDES AGREE ON. The module name, the limits, the tag colors, the checks on a typed
+-- name and the wars' rules. Shared: this file loads on the client and on a dedicated server alike, so nothing
+-- client-only at file scope. Pure Lua, pure ASCII.
 --
 -- The game does this work: every claim, invite and rename here goes through its own calls, which its server checks. The
 -- checks in this file only say why before the game would refuse.
 -- ============================================================================
 
+-- for ZeD.Tk.clean: a typed name is scrubbed with the ticket protocol's scrubber
 require "ZeD/ZeD_TicketProto"
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Cl = ZeD.Cl or {}
 local Cl = ZeD.Cl
 
-Cl.MOD = "ZeDC"
+Cl.MOD = "ZeDC"             -- the module on every claims command
 
 -- DESIGN CHOICES that could go either way, each answered the careful way and kept to one switch here.
 -- The game's code takes 15 characters for a faction's name; its words say 3-14. ZeD holds to the words.
@@ -55,22 +57,23 @@ Cl.LIMITS = {
     LOG_TEXT = 64,               -- a title or a name in a log line
 }
 
--- what names a safehouse on every machine and past a restart: the online id the game's own packets carry, made from its
--- corner. (getId holds a timestamp from the constructor and load does not restore it, so it differs by machine and by
--- restart.) A whole number under 2^31 prints the same through tostring on both sides. Nothing here shows the call on 42.21,
--- so it is guarded: x,y is the same identity, and a client and its server run one build, so both take the same branch
+--- what names a safehouse on every machine and past a restart: the online id the game's own packets carry, made from its
+--- corner. (getId holds a timestamp from the constructor and load does not restore it, so it differs by machine and by
+--- restart.) A whole number under 2^31 prints the same through tostring on both sides. The call is not confirmed on 42.21,
+--- so it is guarded: x,y is the same identity, and a client and its server run one build, so both take the same branch
 function Cl.houseKey(h)
     if h.getOnlineID then return h:getOnlineID() end
     return tostring(h:getX()) .. "," .. tostring(h:getY())
 end
 
--- do these two colors count as the same pick? (the game keeps a tag color as three floats, so compare with slack)
+--- do these two colors count as the same pick? (the game keeps a tag color as three floats, so compare with slack)
 function Cl.sameColor(a, b)
     if not (a and b) then return false end
     return math.abs(a.r - b.r) < 0.02 and math.abs(a.g - b.g) < 0.02 and math.abs(a.b - b.b) < 0.02
 end
 
--- the words of a typed name, trimmed. Line breaks and control characters out: a name is one line.
+--- the words of a typed name, trimmed. Control characters go and line breaks become spaces: a name is one line.
+--- "" unless given a string
 function Cl.name(s)
     if type(s) ~= "string" then return "" end
     local c = ZeD.Tk and ZeD.Tk.clean and ZeD.Tk.clean(s) or s
@@ -78,8 +81,9 @@ function Cl.name(s)
     return (string.gsub(string.gsub(c, "^%s+", ""), "%s+$", ""))
 end
 
--- what is wrong with a typed name, as a word the cards turn into the game's own text; nil when it may be saved.
--- exists: the game's own test (Faction.factionExist, Faction.tagExist), called only when the text differs from what is stored
+--- what is wrong with a typed faction name, as a word the cards turn into the game's own text ("length" or "exists");
+--- nil when it may be saved. exists: the game's own test (Faction.factionExist, Faction.tagExist), called only when the
+--- text differs from what is stored
 function Cl.nameProblem(text, exists)
     local n = #Cl.name(text)
     if n < Cl.NAME_MIN or n > Cl.NAME_MAX then return "length" end
@@ -87,6 +91,7 @@ function Cl.nameProblem(text, exists)
     return nil
 end
 
+--- the same for a faction's tag, against TAG_MIN and TAG_MAX
 function Cl.tagProblem(text, exists)
     local n = #Cl.name(text)
     if n < Cl.TAG_MIN or n > Cl.TAG_MAX then return "length" end
@@ -94,6 +99,7 @@ function Cl.tagProblem(text, exists)
     return nil
 end
 
+--- the same for a safehouse's title: "empty" or "long", nil when it may be saved. No "exists" test for a title
 function Cl.titleProblem(text)
     local n = #Cl.name(text)
     if n < 1 then return "empty" end
@@ -101,13 +107,15 @@ function Cl.titleProblem(text)
     return nil
 end
 
+--- a typed tag as it is saved: one line, trimmed, in capitals while TAG_UPPER is on
 function Cl.tagText(s)
     local c = Cl.name(s)
     if Cl.TAG_UPPER then c = string.upper(c) end
     return c
 end
 
--- the game joins its claim reasons with the system's line separator: each reason on its own line, none empty
+--- the game joins its claim reasons with the system's line separator: split them back into a list, one reason a row,
+--- trimmed, none empty
 function Cl.lines(s)
     local out = {}
     if type(s) ~= "string" then return out end
@@ -118,8 +126,8 @@ function Cl.lines(s)
     return out
 end
 
--- hours until SafeHouse.update releases a safehouse: it goes when now passes lastVisited + the option's hours, whoever
--- is on the member list. Nil when there is nothing to count.
+--- hours until SafeHouse.update releases a safehouse: it goes when now passes lastVisited + the option's hours, whoever
+--- is on the member list. Never below 0; nil when there is nothing to count (a value missing, or zero or less).
 function Cl.hoursLeft(lastVisitedMs, nowMs, removalHours)
     if type(lastVisitedMs) ~= "number" or type(nowMs) ~= "number" or type(removalHours) ~= "number" then return nil end
     if lastVisitedMs <= 0 or removalHours <= 0 then return nil end
@@ -128,7 +136,8 @@ function Cl.hoursLeft(lastVisitedMs, nowMs, removalHours)
     return left
 end
 
--- what this player may do to a war, as ISWarManagerUI:onSelectWar decides it
+--- what this player may do to a war, as ISWarManagerUI:onSelectWar decides it: a list of the states they may set.
+--- A claimed war's defender may accept or refuse it, its attacker cancel it; canEnd adds Ended
 function Cl.warActions(state, attacker, defender, me, canEnd)
     local out = {}
     if state == "Claimed" and defender == me then
@@ -140,7 +149,8 @@ function Cl.warActions(state, attacker, defender, me, canEnd)
     return out
 end
 
--- which of the game's three countdowns a war's time is (ISWarManagerUI:drawDatas)
+--- which of the game's three countdowns a war's time is, as ISWarManagerUI:drawDatas picks it: the text key, or nil
+--- for a state with no countdown
 function Cl.warClock(state)
     if state == "Claimed" then return "IGUI_WarManager_TimeToAccept" end
     if state == "Accepted" then return "IGUI_WarManager_TimeToStart" end

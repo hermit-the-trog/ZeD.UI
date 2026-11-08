@@ -58,8 +58,11 @@ ZeD.Input.Actions = {
         gamepad = "B",
     },
 
-    -- D-pad = flat cone-nav across ALL focusable zones in the focused window.
-    -- Bumpers do not cycle zones; they swap between the two paired windows.
+    -- D-pad = flat spatial nav (SpatialNav) across ALL focusable zones in the
+    -- focused window. Bumpers do not cycle zones; they pick one of the two
+    -- paired windows. The engine fires a direction callback as well as the
+    -- button for one D-pad press; FocusManager moves on the direction and
+    -- ignores these ids, or every press would step twice.
     nav_up    = { kbm = "Up",    gamepad = "DPadUp"    },
     nav_down  = { kbm = "Down",  gamepad = "DPadDown"  },
     nav_left  = { kbm = "Left",  gamepad = "DPadLeft"  },
@@ -102,7 +105,8 @@ ZeD.Input.Actions = {
     -- ----- CONTEXT MENU ------------------------------------------------------
     -- X on gamepad, RMB on KBM. Y was weighed for this and rejected for good —
     -- Y is the pair control. FocusManager fires the focused element's
-    -- onContextMenu (tap) and its drag hooks (hold).
+    -- onContextMenu or onReset (tap) and its hold hooks (hold: a drag, or a
+    -- one-shot quick use).
     context_menu = {
         kbm = "MouseRight",
         gamepad = "X",
@@ -148,7 +152,7 @@ ZeD.Input.Actions = {
 --                          NO ZeD window has focus. When a window IS focused,
 --                          FocusManager calls Chord.setEnabled(false) and the
 --                          bumpers route here as window_prev / window_next above
---                          (swap focus between the Character + World pair).
+--                          (LB the Character window, RB the World window).
 --                          Single physical button, two roles, gated by focus.
 --   * LS / RS click  — no state-changing jobs on stick clicks. They fire too
 --                      readily under combat tension and the cost of a phantom
@@ -159,9 +163,10 @@ ZeD.Input.Actions = {
 --     prev_window    — the old window-cycling ring is gone. Paired-window
 --                      semantics live in `window_control` (Y) above.
 --   * next_tab /
---     prev_tab       — Tab cycling is D-pad up/down AT THE TAB BAR ONLY and
---                      is handled inline by FocusManager when focus is on
---                      the tab bar. Not exposed as a separate logical action.
+--     prev_tab       — tabs are controls like any other: D-pad up/down walk
+--                      the tab column, A opens the focused tab, and a move
+--                      into the column lands on the active tab (FocusManager).
+--                      Not exposed as a separate logical action.
 --   * "secondary" /
 --     "tertiary"     — removed: no ZeD-UI surface ever referenced them, and
 --                      the Y and X buttons they claimed went to

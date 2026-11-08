@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemActionManager.lua
 -- ============================================================================
--- ITEM ACTION MANAGER — client; shared state, no UI of its own.
+-- ITEM ACTION MANAGER — client; a state module, no UI of its own.
 -- Answers one question fast: does this inventory item have a timed action
 -- running, and what does it look like (mode, label, percent, timeStr)?
 -- ItemActionHooks.lua pushes state in through notify(); the Card Progress
@@ -12,12 +12,16 @@
 -- only with both ends in hand.
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them.
 ZeD = ZeD or {}
 ZeD.ItemActionManager = ZeD.ItemActionManager or {}
 
 local M = ZeD.ItemActionManager
 
--- Active-action map. _active[item] = {mode, label, percent, timeStr} or nil.
+-- Active-action map. _active[item] = the action table last pushed, or nil:
+-- kind ("cooking" / "reading" / "repairing"), label, percent (0-1), and where
+-- known mode ("active" / "danger"; the band reads none as "active"), timeStr,
+-- and _action (the TimedAction itself, which the card's Cancel stops).
 -- Item is the table identity (Java userdata bridged via Kahlua) — works as a
 -- weak-ish key, though Kahlua tables don't support weak keys natively, so
 -- callers must call notify(item, "complete"/"cancel", ...) to free the entry.
@@ -74,7 +78,7 @@ end
 ---   "cancel"   → _active[item] = nil
 --- @param item   PZ inventory item
 --- @param event  One of the strings above
---- @param action Table {mode, label, percent, timeStr} for start/tick/danger; nil for complete/cancel
+--- @param action The action table (see the active-action map above) for start/tick/danger; nil for complete/cancel
 function M.notify(item, event, action)
     if not item or not event then return end
     if event == "complete" or event == "cancel" then
