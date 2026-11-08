@@ -1,7 +1,7 @@
 name=ZeD-GUI
 id=ZeD_UI
 description=The ZeroDay Graphical User Interface: a custom kernel on the fictional ZNIX platform, built by a paranoid DIY doomsday prepper. The look follows Macintosh System 6 and 7, DOS and the Texas Instruments TI-99/4A; no endorsement of Apple, Microsoft, Texas Instruments or any brand. Controller and keyboard and mouse as equals.
-modversion=0.3.0-beta7
+modversion=0.3.0-beta8
 versionMin=42.17.0
 author=Hermit the Trog
 url=https://steamcommunity.com/sharedfiles/filedetails/?id=3824968485
