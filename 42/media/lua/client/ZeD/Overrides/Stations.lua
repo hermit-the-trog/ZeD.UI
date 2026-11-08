@@ -1,12 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Stations.lua
 -- ============================================================================
--- STATION + CRAFTING WINDOW HOOKS — HOOK_MAP rows 1 and 14
+-- STATION + CRAFTING WINDOW HOOKS (override, client)
 -- Every vanilla way into a crafting surface lands in the World window:
 --   * ISEntityUI.OpenWindow        — the station option in the world
 --     right-click menu, the controller Interact prompt, clicking a big
 --     multi-tile station: Craft tab bound to that bench or drying rack, or
---     (Nov 7 2026, B15) any other station in the general view
---     (StationGeneral.lua).
+--     any other station in the general view (StationGeneral.lua).
 --   * ISOvenUITimedAction:perform  — "Stove settings" on an oven or a
 --     microwave: Craft tab bound to the appliance.
 --   * ISEntityUI.OpenHandcraftWindow — the crafting key, "craft with this
@@ -15,7 +14,8 @@
 --     tab, recipe selected.
 -- The vanilla windows never show. Vanilla runs only when ZeD declines (no
 -- World window, or an entity that is not a station ZeD draws), and every time
--- while safe mode is on (SafeMode.lua).
+-- while safe mode is on (SafeMode.lua). The hooks sit behind _zed*Hooked
+-- flags, so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"
@@ -75,7 +75,7 @@ local function apply()
             local ok, handled = pcall(function()
                 if not (player and entity) then return false end
                 if not ISEntityUI.CanOpenWindowFor(player, entity) then return false end
-                -- (a station ZeD has no view of its own for opens the general one: vanilla windows B15)
+                -- (a station ZeD has no view of its own for opens the general one)
                 local kind = ST.classify(ST.call(entity, "getMasterObject") or entity, true)
                 if not ST.isEntityKind(kind) then return false end
                 return ST.open(player, entity, true)

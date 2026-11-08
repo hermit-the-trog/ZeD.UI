@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Sleeping.lua
 -- ============================================================================
--- ASLEEP (HOOK_MAP row 16; mockup zed_fish_sleep_death_v5, director Oct 16
--- 2026: "sleep clock should be the oldschool red number clock")
+-- ASLEEP (override, client) — the sleep clock is the old-school red-number
+-- clock radio.
 --
 -- Vanilla's ISSleepingUI stays: the engine darkens the screen, vanilla shows
 -- its panel on every sleeping tick with the hour of the day and removes it on
@@ -10,9 +10,11 @@
 -- seven-segment numbers by the minute, the AM / PM dot, the colon blinking
 -- once a second, the ALARM lamp lit while an alarm is set (an alarm clock or
 -- a watch the character set). The case is a plate (media/textures/ZeD/props/
--- clock_radio.png, 330 x 84 plate pixels; Design's plate pipeline draws the
--- final one); the lit segments are drawn live on it at whole multiples.
--- While ZeD's safe mode is on, vanilla's clock picture draws instead.
+-- clock_radio.png, 330 x 84 plate pixels; stand-in art until the final plate
+-- is drawn); the lit segments are drawn live on it at whole multiples.
+-- The render hook keeps the vanilla function once (_zedOrigRender), so a Lua
+-- reload never wraps the wrapper. While ZeD's safe mode is on, vanilla's
+-- clock picture draws instead.
 -- ============================================================================
 
 require "ISUI/ISSleepingUI"
@@ -38,7 +40,7 @@ local GLOW = { r = 0.353, g = 0.071, b = 0.047 }
 local SEG = { [0] = "abcdef", "bc", "abdeg", "abcdg", "bcfg", "acdfg", "acdefg", "abc", "abcdefg", "abcdfg" }
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
@@ -84,7 +86,7 @@ end
 
 -- the clock radio at (ox, oy) in the panel, k screen pixels a plate pixel
 function S.draw(self, ox, oy, k, hourOfDay, alarm)
-    -- nearest filtering (3), so the pixel art stays square at 3x / 6x (Oct 16 2026: getTexture smoothed it)
+    -- nearest filtering (3), so the pixel art stays square at 3x / 6x (plain getTexture smoothed it)
     local tex = Texture.getSharedTexture(S.TEX, 3)
     if not tex then return false end
     self:drawTextureScaledAspect(tex, ox, oy, S.W * k, S.H * k, 1, 1, 1, 1)

@@ -1,9 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Respawn.lua
 -- ============================================================================
 -- BACK TO THE DESK: A NEW SURVIVOR AFTER A DEATH, OR A NEW SPLIT-SCREEN PLAYER
--- (HOOK_MAP row 19b; VANILLA_WINDOWS_20261107.md B3; the director, Nov 7 2026:
--- "back to the desk; the next survivor is built in ZeD's own Looks, Traits and
--- Spawn screens, as a new game")
+-- (override, client). The next survivor is built in ZeD's own Spawn, Traits
+-- and Looks windows, as on a new game.
 --
 -- Both of the game's ways to make a character in a running game go through
 -- CoopCharacterCreation: Restart on the death screen (ISPostDeathUI:onRespawn,

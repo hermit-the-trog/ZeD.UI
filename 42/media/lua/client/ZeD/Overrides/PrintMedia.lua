@@ -1,12 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/PrintMedia.lua
 -- ============================================================================
--- PRINT MEDIA HOOK (HOOK_MAP row 13) — when vanilla's Read action finishes on
+-- PRINT MEDIA HOOK (override, client) — when vanilla's Read action finishes on
 -- a newspaper, flyer or brochure, ISReadABook:displayPrintMedia opens vanilla's
 -- PZAPI PrintMedia window. ZeD opens its reader there instead (ZeD_Reader),
 -- and keeps vanilla's own rule after it: with the game's "auto reveal print
 -- media map locations" option on, the piece's places are marked on the map.
 -- Vanilla's window is reached only if the reader cannot open, or while ZeD's
--- safe mode is on.
+-- safe mode is on. The vanilla function is kept once (_zedOrigDisplayPrintMedia),
+-- so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "TimedActions/ISReadABook"

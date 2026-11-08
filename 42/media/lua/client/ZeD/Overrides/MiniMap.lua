@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/MiniMap.lua
 -- ============================================================================
--- THE GAME'S MINI-MAP (vanilla windows B7; the director, Nov 7 2026: no
--- mini-map in ZeD, "the World window's map is the map"; a save that left the
--- game's mini-map showing: hide it). ZeD's wheels no longer offer it
+-- THE GAME'S MINI-MAP (override, client). There is no mini-map in ZeD: the
+-- World window's map is the map, and a save that left the game's mini-map
+-- showing gets it hidden. ZeD's wheels no longer offer it
 -- (ZeD_DpadWheels, ZeD.Wheel.isMiniMapCommand); here, a mini-map the game
 -- shows (MiniMap.StartVisible kept from an older game, a mod's toggle) is
 -- hidden, checked before the frames draw (the first frame too, so it never

@@ -1,5 +1,6 @@
+-- ZeD-UI/42/media/lua/client/ZeD/Overrides/TextScale.lua
 -- ============================================================================
--- Overrides/TextScale.lua — ZeD text follows the root scale (S124, phase 2)
+-- ZED TEXT FOLLOWS THE ROOT SCALE (override, client)
 -- ============================================================================
 -- The five ZeD role fonts (ZeD.T.fontF1..F5) live on distance-field slots
 -- (ZeD.Font.sdf) whose atlases have a 64 px face. Every ISUIElement text draw
@@ -15,6 +16,8 @@
 -- or the Dyslexic font option; ZeD.Text.checkRoleFonts) the roles are the
 -- game's Small / Medium / Large with no zoom registered, so zoomOf is 1 and
 -- every draw below takes the original path at native size.
+-- Each patch here sits behind a _zed*Patched flag, so a Lua reload never
+-- wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/Scale"
@@ -78,7 +81,7 @@ if not ISUIElement._zedTextScalePatched then
 end
 
 -- ---------------------------------------------------------------------------
--- Borders (phase 2): the engine's drawRectBorder is always one screen pixel.
+-- Borders: the engine's drawRectBorder is always one screen pixel.
 -- ZeD elements draw their outlines T.px(1) thick instead (four rects), so a
 -- border scales like everything else. Vanilla elements keep the engine call.
 -- An element counts as ZeD when its class carries `zedScaled = true`; the ZeD
@@ -101,7 +104,7 @@ if not ISUIElement._zedBorderPatched then
 end
 
 -- ---------------------------------------------------------------------------
--- Lean draw calls for the ZeD classes (Oct 22 2026, the drawing-cost work). A draw
+-- Lean draw calls for the ZeD classes, to cut drawing cost. A draw
 -- through ISUIElement costs three to seven times the Java call it makes (measured in
 -- game, -debug: a rect 1.56 us against 0.60, a text 3.12 against 1.02, a texture fitted
 -- 3.40 against 0.48): the method is found five classes up, the texture goes through
@@ -193,8 +196,8 @@ local LEAN_NAMES = { "drawRect", "drawRectBorder", "drawText", "drawTextureScale
 local ZED_CLASSES = { "ZeD_Panel", "ZeD_Window", "ZeD_Button", "ZeD_TextInput", "ZeD_TextEntry", "ZeD_SearchField",
     "ZeD_Tooltip", "ZeD_ScrollList", "ZeD_ScrollPanel", "ZeD_ZoneList", "ZeD_Dropdown", "ZeD_Modal", "ZeD_TabPanel",
     "ZeD_ItemGrid", "ZeD_ItemCard", "ZeD_BodyFigure", "ZeD_ContextMenu", "ZeD_ContextList", "ZeD_Dashboard", "ZeD_Watch",
-    -- (code audit Oct 17 2026: ZeD classes that derive straight from ISPanel / ISUIElement were
-    -- missed and kept hairline borders at 4K. The pixel-art panels (the desk, the CRT glass and
+    -- (These last ones derive straight from ISPanel / ISUIElement and were once missed,
+    -- keeping hairline borders at 4K. The pixel-art panels (the desk, the CRT glass and
     -- wake, the car radio, the siren controller) stay off this list: their thin lines are art.)
     "ZeD_ObjectCard", "ZeD_FurnitureChip", "ZeD_MMBar", "ZeD_MMDrop", "ZeD_MMIcons" }
 -- The lean calls go on every ZeD class (any global "ZeD_*" class table), not only the listed ones:

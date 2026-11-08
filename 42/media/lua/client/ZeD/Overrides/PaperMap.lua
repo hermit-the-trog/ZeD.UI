@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/PaperMap.lua
 -- ============================================================================
--- PAPER MAP HOOK (Nov 7 2026; vanilla windows list B2; HOOK_MAP "Paper map
--- items"). Read Map on a map item, from the right-click menu or a double-click
+-- PAPER MAP HOOK (override, client)
+-- Read Map on a map item, from the right-click menu or a double-click
 -- (ISInventoryPane:doContextualDblClick) in any inventory, ends in
 -- ISInventoryPaneContextMenu.onCheckMap, which opens the game's ISMap window.
 -- ZeD opens its own map on that paper instead (PaperMap.lua), after the game's

@@ -1,11 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Tooltip.lua
 -- ============================================================================
--- TOOLTIP OVERRIDE
+-- TOOLTIP OVERRIDE (client)
 -- Replaces ISToolTip and ISToolTipInv rendering with ZeD design system
 -- styling. All positioning logic is preserved exactly from vanilla.
 -- A tooltip pops up over the game, so it is a pop-up box: solid whatever the
 -- see-through setting says, the 1u frame (T.borderS) and System 7's hard shadow.
--- Deferred to OnGameBoot so vanilla files are fully loaded first.
+-- Deferred to OnGameBoot so vanilla files are fully loaded first. Vanilla's
+-- methods are cached once in ISToolTip._zedVanilla, so a Lua reload never
+-- keeps ZeD's own methods as "vanilla".
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -43,7 +45,7 @@ local function applyTooltipOverrides()
     local Safe = ZeD.Safe
 
     -- ========================================================================
-    -- Layout in design units (S124). Mirrors vanilla doLayout with the ZeD role
+    -- Layout in design units. Mirrors vanilla doLayout with the ZeD role
     -- fonts (F2 title / description, F1 footnote) and T.px for every offset, so
     -- the frame fits the zoomed text at any root scale.
     -- ========================================================================
@@ -197,7 +199,7 @@ local function applyTooltipOverrides()
         end
 
 
-        -- Positioning (identical to vanilla; S124 scale: cursor / screen offsets stay vanilla px)
+        -- Positioning (identical to vanilla; cursor / screen offsets stay vanilla px)
         local mx = getMouseX() + 32
         local my = getMouseY() + 10
         if not self.followMouse then

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Atoms.lua
 -- ============================================================================
--- ATOM FACTORIES & DRAW HELPERS
+-- ATOM FACTORIES & DRAW HELPERS — client; the atoms.
 -- The smallest indivisible UI pieces. Each atom is either:
 --   - A draw function (called inside a parent's render/prerender)
 --   - A factory function (creates and returns a configured ISPanel/etc.)
@@ -22,9 +22,9 @@ end
 
 --- The ammo a gun (or magazine) takes: its full type ("Base.Bullets9mm") and the
 --- name a player reads ("9mm Rounds"), or nil when it takes none. getAmmoType()
---- returns an AmmoType object on 42.22.2 (javap; the outside review saw the same on
---- 42.21), whose getItemKey() is the full type; should a build hand back the full
---- type as a plain string, that is read too.
+--- returns an AmmoType object on 42.21 and 42.22.2, whose getItemKey() is the
+--- full type; should a build hand back the full type as a plain string, that is
+--- read too.
 --- The name is the ammo item's own display name, as the belt's ammo pouch shows it.
 function ZeD.Atoms.ammoOf(item)
     if not item then return nil end
@@ -49,7 +49,7 @@ function ZeD.Atoms.ammoOf(item)
 end
 
 -- ============================================================================
--- 00. SHARED PIECES (cohesion pass)
+-- 00. SHARED PIECES
 -- Small helpers every look below leans on: the one hover delay, a window surface
 -- that does not stack on the body, a 1u frame, the hard System 7 shadow, and the
 -- window a panel sits in.
@@ -288,14 +288,14 @@ end
 -- @param size     Container size (use ZeD.T.iconSm/iconMd/iconLg/iconXl)
 -- @param alpha    Optional alpha (defaults to 1.0, use disabledAlpha for disabled)
 -- ----------------------------------------------------------------------------
--- PIXEL ICONS (Oct 27 2026): ZeD's own one-colour icons (ZeDUI/tools/wheelpx: the
+-- PIXEL ICONS: ZeD's own one-colour icons (drawn with ZeDUI/tools/wheelpx: the
 -- wheels', the container row's, the item card's marks, the windows' small
 -- controls), each drawn at 16 and 24 and doubled to 32 and 48, white on clear,
 -- in media/textures/ZeD/wheel/<size>/zw_<id>.png. For an icon box of `box`
 -- screen px the largest drawing that fits is drawn at its own size, centred,
 -- never stretched; a box under 16 scales the 16 down. The zw_ prefix keeps a
 -- name off the game's packed pictures (a plain map.png loads the game's own
--- "map", KB Q143); nearest filtering (KB Q205). ZeD_Wheel's W.iconTex is this.
+-- "map"); nearest filtering keeps the pixels square. ZeD_Wheel's W.iconTex is this.
 -- ----------------------------------------------------------------------------
 ZeD.PxIcon = ZeD.PxIcon or {}
 local PXI = ZeD.PxIcon
@@ -370,11 +370,11 @@ end
 --                  nil gives the value alone ("64%")
 -- @return hovered  true while the pointer is on the bar (its value is in the help line)
 --
--- The System 7 "About This Macintosh" bar (director, Oct 26 2026: "a more chunky strip than a glowing line"):
+-- The System 7 "About This Macintosh" bar — a chunky strip, not a glowing line:
 -- a framed strip with a dark well; no 1-5 unit lines, no glow, no gradient. Every condition and amount bar
 -- draws through here.
--- Oct 30 2026 (director, punch list 22: "keeping it 93; the segments help info at a glance"): the fill is ten
--- separate segments (ZeD.Atoms.drawSegFill), lit or dark, never part-lit, one per tenth. Rounding is strict: a
+-- The fill is ten separate segments (ZeD.Atoms.drawSegFill), lit or dark, never part-lit, one per tenth —
+-- the segments help read the amount at a glance. Rounding is strict: a
 -- segment lights only when its whole tenth is reached (4% lights none, 64% six, 100% all ten). Pointing at the
 -- bar puts the exact value in the window's help line. What moves on its own stays smooth (ZeD.Atoms.drawSmoothBar:
 -- the progress band, uploads, crafting, a timed action's busy bar), as does a slider's track (its thumb sits
@@ -425,7 +425,7 @@ function ZeD.Atoms.fillBarHelp(percent, label)
     return s
 end
 
---- Draw n separate segments in the framed strip, k of them lit: the one look of every fill bar (Oct 30 2026).
+--- Draw n separate segments in the framed strip, k of them lit: the one look of every fill bar.
 -- 1u frame (2u High contrast) round the T.base well, the cells inside sharing its width evenly with a hairline
 -- of well between them; lit cells flat in the bar's colour, dark ones T.surf3. Skills give one segment per level
 -- (n = 10), a farm plot's stages one per stage (n = 6); every other bar asks ZeD.Atoms.drawFillBar (n = 10).
@@ -455,7 +455,7 @@ function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h,
     return hov
 end
 
---- The smooth strip (the fill bar's look before Oct 30 2026): a flat fill to the exact share. For what moves on
+--- The smooth strip (the fill bar's older, un-segmented look): a flat fill to the exact share. For what moves on
 -- its own (the progress band, uploads, crafting, a timed action's busy bar), a slider's track, and the bare frame
 -- and well other atoms draw their own marks in (percent 0: the ammo pouch's rounds, a Skills row extra's lane).
 -- Same arguments as ZeD.Atoms.drawFillBar, less the label.
@@ -570,12 +570,12 @@ function ZeD.Atoms.drawBarSegs(panel, x, y, w, h, segs)
 end
 
 -- ============================================================================
--- 04c. SEGMENTED BAR — K-of-N discrete cells (S115)
+-- 04c. SEGMENTED BAR — K-of-N discrete cells
 -- Different from drawBarSegs above: this draws N independent segment cells
 -- left-to-right with a 1px gap between each. The first K are painted in
 -- onColor, the remaining (N-K) in offColor. Used by the radio chassis for
 -- BATT (4 segs) and VOL (8 segs) readouts on both Premium VFD and ValuTech LCD,
--- and (framed) every fill bar: ZeD.Atoms.drawSegFill (Oct 30 2026).
+-- and (framed) every fill bar: ZeD.Atoms.drawSegFill.
 -- ============================================================================
 
 --- Draw N discrete segment cells with K of them lit.
@@ -587,7 +587,7 @@ end
 -- @param onColor  Color for lit segments — RGBA table (framed: default the accent)
 -- @param offColor Color for unlit segments — RGBA table (framed: nil shows the well)
 -- @param gap      Pixels between segments (default 1)
--- @param opts     Optional { framed = true }: a meter in the window (cohesion spec 9b), the
+-- @param opts     Optional { framed = true }: a meter in the window, the
 --                 fill bar's look: a 1u borderS frame (2u High contrast) round a solid dark
 --                 well (T.base), the cells inside it, at least 8u tall whatever h says.
 --                 Without it the bare cells, as the radio's printed LCD draws them.
@@ -604,13 +604,13 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
         local fh = opts.exactH and h or math.max(h, T.px(8))
         local bw = T.line(T.borderW)
         -- the frame as the strip in its colour with the well over its inside: two rects, not five (every fill
-        -- bar draws here each frame, a list of them at once; Oct 30 2026)
+        -- bar draws here each frame, a list of them at once)
         local bs, bg = T.borderS, T.base
         panel:drawRect(x, y, w, fh, bs.a or 1, bs.r, bs.g, bs.b)
         x, y, w, h = x + bw, y + bw, w - 2 * bw, fh - 2 * bw
         panel:drawRect(x, y, w, h, 1, bg.r, bg.g, bg.b)
         onColor = onColor or T.accent
-        -- (Oct 30 2026) the cells share the inside evenly in whole pixels (none more than one wider than
+        -- the cells share the inside evenly in whole pixels (none more than one wider than
         -- another), the last meeting the frame, so a full meter has no strip of well at its end; an inside
         -- too short for a pixel per cell and every gap closes the gaps rather than drop a cell
         if w < n + (n - 1) * gap then gap = 0 end
@@ -674,7 +674,7 @@ function ZeD.Atoms.drawCheckbox(panel, x, y, checked, hovered, disabled)
         -- Top-left to bottom-right
         -- PZ doesn't have drawLine, so we draw thin rects at angles
         -- Approximate with a series of 1px rects along the diagonal
-        local u = T.px(1)  -- S124 scale: strokes are 1 design px; the loop steps one dot at a time
+        local u = T.px(1)  -- strokes are 1 design px; the loop steps one dot at a time
         for i = 0, sz - m * 2 - u, u do
             local px = x + m + i
             local py = y + m + i
@@ -745,7 +745,7 @@ end
 
 -- ============================================================================
 -- 06. TAG (draw helper)
--- The one look for a small word that names a state (cohesion spec 9): 16u tall,
+-- The one look for a small word that names a state: 16u tall,
 -- a 1u borderS outline, F1, sentence case, 5u side padding, and when the state
 -- has a status a 6u square mark in its colour before the word. No tinted fill,
 -- no coloured words: the mark carries the colour. ZeD.Molecules.drawTag is the
@@ -831,8 +831,8 @@ end
 
 -- ============================================================================
 -- 06b. STATUS MARKS (draw helpers)
--- A status is a 6u square in the status colour (cohesion spec 1.2: no round
--- dots anywhere in the UI), one size everywhere. The `size` the callers pass is
+-- A status is a 6u square in the status colour (no round dots anywhere in
+-- the UI), one size everywhere. The `size` the callers pass is
 -- the box they laid out for the mark: the square is centred in it, so rows that
 -- were measured for a 7u or 8u dot stay lined up.
 -- ============================================================================
@@ -937,7 +937,7 @@ function ZeD_Tooltip:new(x, y)
     setmetatable(o, self)
     self.__index = self
     o.lines = {}           -- Array of {text=, variant=} where variant is "heading","body","secondary"
-    o.maxWidth = 250   -- S124 scale: maxWidth / padX / padY stay design units; wrapped with T.px where used
+    o.maxWidth = 250   -- maxWidth / padX / padY stay design units; wrapped with T.px where used
     o.padX = 10
     o.padY = 6
     o.moveWithMouse = false
@@ -1009,7 +1009,7 @@ end
 ZeD.Atoms.Tooltip = ZeD_Tooltip
 
 -- ============================================================================
--- 07b. HOVER BOXES (cohesion spec 9)
+-- 07b. HOVER BOXES
 -- Two boxes, one look: the hint (one line of F2, for icon-only buttons) and the
 -- detail card (a title in F4, lines in F2 / F3; ZeD.Molecules.drawDetailCard).
 -- Both are surface 1, solid, framed in 1u borderS with System 7's hard shadow,
@@ -1161,7 +1161,7 @@ function ZeD.Atoms.newHintLayer(win, field)
     layer.onMouseWheel = function() return false end
     -- (the right button too: ISUIElement's own handlers return nothing, and on 42.22 that takes
     -- the click; the layer ate every right-click over the Character window's inventory while
-    -- the drawer was shut, Oct 30 2026)
+    -- the drawer was shut)
     layer.onRightMouseDown = function() return false end
     layer.onRightMouseUp = function() return false end
     layer.render = function(self)
@@ -1246,7 +1246,7 @@ function ZeD.Atoms.drawScrollArrow(panel, x, y, size, direction, state)
 
     local cx = x + math.floor(size / 2)  -- center x
     local cy = y + math.floor(size / 2)  -- center y
-    local arrSz = math.max(T.px(3), math.floor(size / 4))  -- half-height of arrow (S124 scale: size is scaled; 1px rows rasterize at screen res)
+    local arrSz = math.max(T.px(3), math.floor(size / 4))  -- half-height of arrow (size arrives scaled; 1px rows rasterize at screen res)
 
     if direction == "up" then
         for row = 0, arrSz - 1 do
@@ -1276,7 +1276,7 @@ function ZeD.Atoms.drawScrollArrow(panel, x, y, size, direction, state)
 end
 
 -- ============================================================================
--- 12. PROGRESS BAND (S120; the library's parts since the cohesion pass)
+-- 12. PROGRESS BAND — built from the library's parts.
 -- A strip between the back bar and the flag strip on item cards (and on the
 -- Vehicle cards) while a timed action runs on the thing. Two modes:
 --   "active" — the accent: the status mark and the bar's fill
@@ -1395,8 +1395,8 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
 end
 
 -- ============================================================================
--- 13. FLAG CHIP (S120; the tag look since the cohesion pass; the icon since Oct 27
--- 2026, director: "option A, the icon takes the square's place and the words stay")
+-- 13. FLAG CHIP — the tag look; the icon takes the square's place and the
+-- words stay.
 -- A small toggle in the FlagStrip molecule above the item card body: the 1u
 -- outline, ZeD's pixel icon for the mark (ZeD.PxIcon) and its words; the icon
 -- carries the state, in the kind's colour when on, dim when off:
@@ -1488,7 +1488,7 @@ ZeD.ActionStrip.TOGGLE_DEFS = {
     {key="unwanted", tex="trash",     colorKey="danger", tip_on="ContextMenu_Wanted",         tip_off="ContextMenu_Unwanted"},
 }
 
-local _safeGet = ZeD.Atoms.safeGet  -- reuse public helper (line 18)
+local _safeGet = ZeD.Atoms.safeGet  -- reuse the public helper above
 
 -- a window's player number (split-screen: never assume player 1)
 function ZeD.playerNumOf(w)
@@ -1496,7 +1496,7 @@ function ZeD.playerNumOf(w)
     return p and p:getPlayerNum() or 0
 end
 
--- Split-screen (known issue Nov 7 2026): ZeD's Character and World windows, and the focus that drives them by pad
+-- Split-screen (a known limit): ZeD's Character and World windows, and the focus that drives them by pad
 -- (Input/FocusManager.lua: one focused window, the first pad), are the first local player's. Another local player
 -- gets the game's own windows (inventory, loot, character info), their own, on their part of the screen and driven
 -- by their pad: every way into ZeD's windows asks this first and, for them, answers nothing, so the game's own
@@ -1506,7 +1506,7 @@ function ZeD.windowsFor(pn)
     return pn == nil or pn == 0
 end
 
--- Oct 19 2026 (the single-path audit): the no-craft chip is vanilla's own
+-- The no-craft chip is vanilla's own
 -- "Set to be Unusable in Recipes" (item:setNoRecipes), so vanilla's crafting
 -- honours it and the context menu shows it; the old ZeD-only mark
 -- (modData.ZeD_noCraft, which nothing read) carries over once. playerNum: the
@@ -1566,8 +1566,8 @@ end
 --- Truncate text with ellipsis ("...") to fit within maxW pixels.
 --- Uses binary search for efficiency.
 -- The answers are kept per font, width and text while the measures behind them are
--- (ZeD.Text.measureEpoch; Oct 22 2026, the drawing-cost work: every list cuts the same
--- names to the same widths every frame). Past TT_MAX answers the store starts over.
+-- (ZeD.Text.measureEpoch): every list cuts the same names to the same widths
+-- every frame. Past TT_MAX answers the store starts over.
 local truncateRaw
 local TT_MAX = 4000
 local _tt, _ttN, _ttEpoch = {}, 0, nil

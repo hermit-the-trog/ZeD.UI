@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/BuildingTab.lua
 -- ============================================================================
--- BUILDING TAB — Thin wrapper over CraftingCore.
+-- BUILDING TAB — client; an organism: a thin wrapper over CraftingCore.
 -- Owns: catalog building (lazy, needs player), gatherData (skill checks only),
 -- gatherDetail (tool availability), startBuild (BuildLogic + placement cursor).
 -- All rendering, filtering, pin management, state machine → CraftingCore.
@@ -121,9 +121,9 @@ local function buildBuildCatalog(playerObj)
             pcall(function() iconTex = recipe:getIconTexture() end)
 
             -- Pre-bake description: the recipe's Tooltip (a translation key on 135 of the game's 189 build
-            -- recipes, e.g. Tooltip_craft_BigMetalFenceDesc; vanilla's info box reads it the same way). Until
-            -- Nov 1 2026 this asked for getDescription, which the game's recipes do not have, so the header's
-            -- description slot stayed empty (punch list 49).
+            -- recipes, e.g. Tooltip_craft_BigMetalFenceDesc; vanilla's info box reads it the same way).
+            -- Not getDescription: the game's build recipes do not have it, and asking for it left the
+            -- header's description slot empty.
             local description = nil
             if recipe.getTooltip then
                 pcall(function()
