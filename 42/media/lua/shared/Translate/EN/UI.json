@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "A letter from %1 was reported. Subject: %2",
     "UI_ZeD_Mail_Reported": "Sent to the admins as ticket #%1.",
     "UI_ZeD_Mail_NoReport": "This server cannot take a report of a letter.",
-    "UI_ZeD_Mail_Connecting": "Connecting... sending %1, receiving %2"
+    "UI_ZeD_Mail_Connecting": "Connecting... sending %1, receiving %2",
+    "UI_ZeD_Tk_ReportedLetter": "The reported letter"
 }

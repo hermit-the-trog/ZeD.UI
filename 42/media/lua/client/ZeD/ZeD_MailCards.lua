@@ -210,7 +210,7 @@ end
 function P.reportOf(m)
     local L = ZeD.Tk.LIMITS
     local text = string.gsub(m.text or "", "\n", " ")
-    local rep = { who = tostring(m.from), n = 0 }
+    local rep = { who = tostring(m.from), n = 0, letter = true }
     local i = 1
     while i <= #text and rep.n < L.REPORT_LINES do
         rep.n = rep.n + 1

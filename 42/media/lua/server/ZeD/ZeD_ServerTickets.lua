@@ -244,7 +244,7 @@ end
 -- a report from chat (Phase 5): who it names, and the chat as the reporter's client held it
 local function reportCopy(rep)
     if not rep then return nil end
-    local out = { who = rep.who, n = rep.n }
+    local out = { who = rep.who, n = rep.n, letter = rep.letter }
     for i = 1, rep.n do
         local l = rep[i]
         out[i] = { who = l.who, text = l.text, t = l.t, mark = l.mark }
@@ -424,7 +424,8 @@ local function goodReport(p, r)
         Srv.bad(p, "t_new report")
         return false
     end
-    local out = { who = Tk.name(rawCut(r.who, L.NAME_MAX)), n = n }
+    -- (letter: a ProtoPOP3 letter reported, punch list 104; the card names it as such)
+    local out = { who = Tk.name(rawCut(r.who, L.NAME_MAX)), n = n, letter = r.letter == true and true or nil }
     for i = 1, n do
         local l = r[i]
         if type(l) ~= "table" or type(l.who) ~= "string" or type(l.text) ~= "string" then

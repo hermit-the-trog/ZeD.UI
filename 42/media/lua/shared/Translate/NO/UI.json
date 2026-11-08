@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Et brev fra %1 ble rapportert. Emne: %2",
     "UI_ZeD_Mail_Reported": "Sendt til admin som sak #%1.",
     "UI_ZeD_Mail_NoReport": "Denne serveren kan ikke ta imot en rapport om et brev.",
-    "UI_ZeD_Mail_Connecting": "Kobler til... sender %1, mottar %2"
+    "UI_ZeD_Mail_Connecting": "Kobler til... sender %1, mottar %2",
+    "UI_ZeD_Tk_ReportedLetter": "Det rapporterte brevet"
 }

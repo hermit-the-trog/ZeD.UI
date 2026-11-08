@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "S'ha denunciat una carta de %1. Assumpte: %2",
     "UI_ZeD_Mail_Reported": "Enviada als admins com a tiquet #%1.",
     "UI_ZeD_Mail_NoReport": "Aquest servidor no pot rebre la denúncia d'una carta.",
-    "UI_ZeD_Mail_Connecting": "Connectant... enviant %1, rebent %2"
+    "UI_ZeD_Mail_Connecting": "Connectant... enviant %1, rebent %2",
+    "UI_ZeD_Tk_ReportedLetter": "La carta denunciada"
 }

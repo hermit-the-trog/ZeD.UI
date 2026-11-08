@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Ein Brief von %1 wurde gemeldet. Betreff: %2",
     "UI_ZeD_Mail_Reported": "Als Ticket #%1 an die Admins gesendet.",
     "UI_ZeD_Mail_NoReport": "Dieser Server kann keine Meldung eines Briefs annehmen.",
-    "UI_ZeD_Mail_Connecting": "Verbinde... sende %1, empfange %2"
+    "UI_ZeD_Mail_Connecting": "Verbinde... sende %1, empfange %2",
+    "UI_ZeD_Tk_ReportedLetter": "Der gemeldete Brief"
 }

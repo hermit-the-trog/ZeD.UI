@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Byl nahlášen dopis od %1. Předmět: %2",
     "UI_ZeD_Mail_Reported": "Posláno správcům jako tiket #%1.",
     "UI_ZeD_Mail_NoReport": "Tento server nepřijímá nahlášení dopisu.",
-    "UI_ZeD_Mail_Connecting": "Připojování... odesílání %1, příjem %2"
+    "UI_ZeD_Mail_Connecting": "Připojování... odesílání %1, příjem %2",
+    "UI_ZeD_Tk_ReportedLetter": "Nahlášený dopis"
 }

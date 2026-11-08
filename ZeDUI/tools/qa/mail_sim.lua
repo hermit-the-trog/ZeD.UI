@@ -230,7 +230,12 @@ local function clientJoin(p)
         end,
         logOnce = function(k, m) c.errors[#c.errors + 1] = tostring(k) .. ": " .. tostring(m); check("no client error", false, tostring(k) .. ": " .. tostring(m)) end,
         Messages = { ticket = function() end, ticketNew = function() end, adminNote = function() end, sources = {},
-                     add = function(name, kind, item) c.notes = (c.notes or 0) + 1; c.lastNote = item.text; return item end,
+                     add = function(name, kind, item)
+                         c.notes = (c.notes or 0) + 1; c.lastNote = item.text
+                         c.noteLog = c.noteLog or {}; c.noteLog[#c.noteLog + 1] = item.text
+                         c.sources = c.sources or {}
+                         return item
+                     end,
                      halo = function(text) c.halos = (c.halos or 0) + 1 end },
         -- the over-head notes and the player's own mute list (ZeD_Chat.lua keeps it per server, on this computer)
         Bubbles = { note = function(pn, text) c.bubbles = c.bubbles or {}; c.bubbles[#c.bubbles + 1] = text end },
@@ -334,7 +339,7 @@ cn = clientJoin(ned)
 advance(500)
 check("Ned has the letter on his computer", #inbox(cn) == 1 and inbox(cn)[1].text == "Meet at the gas station." and inbox(cn)[1].from == "Rosa")
 check("unread", MS(cn).unread(box(cn)) == 1)
-check("a note in Messages", cn.notes == 1 and cn.lastNote == "UI_ZeD_Mail_NoteOne(Rosa)", cn.lastNote)
+check("a notice in Messages", cn.lastNote == "UI_ZeD_Mail_NoteOne(Rosa)", cn.lastNote)
 check("the server forgot it once Ned had it", md().boxes.ned == nil)
 check("the words counted out again", md().chars == 0, md().chars)
 check("it is on Ned's disk", (cn.disk["ZeD_mail_1.txt"] or ""):find("Meet at the gas station", 1, true) ~= nil)
@@ -580,12 +585,23 @@ W.clock = W.clock + 3000
 raw(eve, "p_send", { to = "Dee", text = "again", cid = "e2", rid = 2 })
 cd = clientJoin(dee)
 check("the modem plays once at the dial-in", #cd.sounds == 1 and cd.sounds[1] == "ZeDModemDial", #cd.sounds)
-check("the note over the head: sending 1, receiving 2", cd.bubbles and cd.bubbles[1] == "UI_ZeD_Mail_Connecting(1,2)", cd.bubbles and cd.bubbles[1])
-check("and it is kept in Messages' log of over-head notes", (cd.halos or 0) == 1)
+check("Connecting goes out as a Messages notice: sending 1, receiving 2", cd.noteLog and cd.noteLog[1] == "UI_ZeD_Mail_Connecting(1,2)", cd.noteLog and cd.noteLog[1])
+check("never over the head (the director: every notice is a bubble out of Messages)", cd.bubbles == nil and (cd.halos or 0) == 0)
+check("the letters' arrival is a Messages notice too", cd.lastNote == "UI_ZeD_Mail_NoteMany(2)", cd.lastNote)
 M(cd).state = nil
 M(cd).dial()
 advance(6000)
-check("a second dial-in in the same connection plays nothing more", #cd.sounds == 1 and #cd.bubbles == 1, #cd.sounds)
+check("a second dial-in in the same connection plays nothing more", #cd.sounds == 1 and (function()
+    local n = 0
+    for _, t in ipairs(cd.noteLog or {}) do if t:find("Connecting", 1, true) then n = n + 1 end end
+    return n == 1
+end)(), #cd.sounds)
+-- with Messages' notice path (the branch moving every notice into Messages bubbles), Mail uses it
+local got = {}
+cd.env.ZeD.Messages.notice = function(name, text, k) got[#got + 1] = { name, text, k } end
+cd.env.ZeD.Mail.notice("x")
+check("the notice API is used when Messages has one", got[1] and got[1][1] == "UI_ZeD_Mail_Title" and got[1][2] == "x")
+cd.env.ZeD.Messages.notice = nil
 check("the sound's script is the mod's own, a UI sound on a .wav made here", (function()
     local f = io.open(ROOT .. "42/media/scripts/ZeD_Sounds.txt", "r")
     if not f then return false end

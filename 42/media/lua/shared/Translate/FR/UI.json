@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Une lettre de %1 a été signalée. Objet : %2",
     "UI_ZeD_Mail_Reported": "Envoyée aux admins, ticket n°%1.",
     "UI_ZeD_Mail_NoReport": "Ce serveur ne peut pas recevoir le signalement d'une lettre.",
-    "UI_ZeD_Mail_Connecting": "Connexion... envoi de %1, réception de %2"
+    "UI_ZeD_Mail_Connecting": "Connexion... envoi de %1, réception de %2",
+    "UI_ZeD_Tk_ReportedLetter": "La lettre signalée"
 }

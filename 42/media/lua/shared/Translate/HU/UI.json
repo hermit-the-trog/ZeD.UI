@@ -5844,5 +5844,6 @@
     "UI_ZeD_Mail_ReportText": "Jelentettek egy levelet tőle: %1. Tárgy: %2",
     "UI_ZeD_Mail_Reported": "Elküldve az adminoknak, jegy: #%1.",
     "UI_ZeD_Mail_NoReport": "Ez a szerver nem fogad levélről szóló jelentést.",
-    "UI_ZeD_Mail_Connecting": "Kapcsolódás... küldés %1, fogadás %2"
+    "UI_ZeD_Mail_Connecting": "Kapcsolódás... küldés %1, fogadás %2",
+    "UI_ZeD_Tk_ReportedLetter": "A jelentett levél"
 }
