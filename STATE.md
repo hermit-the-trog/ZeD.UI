@@ -5,7 +5,7 @@ Draft, Nov 8 2026: needs the director's check before it is trusted.
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122), `ZeDUI/deltas/`, PUNCH_LIST.md and the change notes in `ZeDUI/workshop/`.
 
-**Version:** `0.3.0-beta7` in `42/mod.info` (set Nov 7 2026). The Nov 8 upload may go out under another number: the branches merged for it are named b8 [check].
+**Version:** work is on **0.3.0-beta8** (the director, Nov 8 2026). `42/mod.info` still reads 0.3.0-beta7 and needs bumping before staging; beta 7 never went up, so beta 8 carries everything since beta6a.
 **Live on the Workshop:** 0.3.0-beta6a (live Nov 6 2026), item 3824968485 [check that nothing went up since]. Beta 7 was staged and passed the release check on Nov 7, but the director's evening plan was no upload Nov 7, the next one by noon Nov 8 (VANILLA_WINDOWS_20261107.md). Gallery spread 46 already went up for beta 7, since gallery images go up apart from the mod's files.
 **Full release:** Dec 1 2026 (the director's release plan, Nov 7). The page says the release will be a separate Workshop item.
 **Game:** Build 42 stable 42.21. The director switched the game to 42.21 on Nov 7 and the release check runs there; code checks also read the 42.22.2 jar. The page says tested on 42.21 and 42.22. `versionMin=42.17.0`.
@@ -25,7 +25,7 @@ From the change notes (`tester_changenote_<version>.txt`). Upload dates other th
 - **beta6 / 6a:** ZeD's server part (official Lua), tickets, the Player card, bans, safehouse and faction cards, the Log, join rules; the radial wheels redesign (tap to open, toggle mode); the Identity tab redrawn, Immersive and Simple. 6a: the outside review's server and card fixes.
 - **beta7 (staged Nov 7, not uploaded):** survival guide ads, a contents that runs onto more pages, odometers and trip odometers, the ACC key position, one kill count everywhere, padlocks in the half card, the Z menu's version, the clip fix for tabs and cards.
 
-## On main for the Nov 8 upload, beyond the beta 7 change note
+## On main for beta 8, beyond the beta 7 change note
 
 Built Nov 7, each part reviewed and passing its sim. Most commits say "not run in game"; each part has an in-game list `CHECK_<part>_20261107.md` in `ZeDUI/qa/` [check which have been run].
 

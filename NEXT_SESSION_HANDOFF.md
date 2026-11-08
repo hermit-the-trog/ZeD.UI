@@ -16,7 +16,7 @@ Read this first, then STATE.md for what ships and PUNCH_LIST.md for every open i
 
 ## Before the Nov 8 upload, in order
 
-1. **Pick the version.** `mod.info` says 0.3.0-beta7; the merged branches are named b8. Beta 7 never went up, so the director picks beta7 or beta8 [check].
+1. **Bump the version to 0.3.0-beta8.** The director settled it: work is on beta 8. `mod.info` still says 0.3.0-beta7, and the beta 7 change note and page become the beta 8 ones (beta 7 never went up).
 2. **QA in the game on the waves**, Pass 1 of QA_CHECKLIST_BETA.md: the release check plus each `CHECK_*_20261107.md` list for what the build changed. Multiplayer parts need two players on a local server; QA built a two-player kit for merge 1 (commit 2619829) [check where it lives].
 3. **Rewrite the change note and the page.** `tester_changenote_0.3.0-beta7.txt` covers only the Nov 7 morning fixes. Add waves 1 and 2, and take off the known issues they fixed (ZeD picks every way, split-screen dash miles, Death then Restart) once QA confirms them. Reword split-screen to "player 2 and later get the game's own windows". Both need the director's approval.
 4. **Stage and check:** stage with the version, write the build's page text into `workshop.txt`, run the release check on the staged copy as the last thing before Upload (RELEASE_CHECKLIST.md). The director presses Upload.
