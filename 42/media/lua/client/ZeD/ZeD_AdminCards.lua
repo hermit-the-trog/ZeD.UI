@@ -4,7 +4,8 @@
 -- only: ZeD_Admin.lua is the model. The cards run on the ticket cards' engine (ZeD_TicketCards.lua): the back bar, the
 -- scroll, the fields, the foot and its confirm swap, the pad stops and the help band are all that file's.
 --   the Admin tab's list   AC.homeItems: Tickets, Players, Admin powers, Server message, Roles, Bans, Spawn items
---   Player card            facts, the acts, Kick, Ban, role and warning points in the card, skills, logs, tickets
+--   Player card            facts, the acts, Kick, Ban, role and warning points in the card, skills, logs, tickets; Check
+--                          stats and Inventory open the stats and inventory cards over it (ZeD_StatsCards.lua)
 --   Roles, Role            the list; a role's name, description, color and capabilities as ticks in five groups
 --   Bans                   ban someone who isn't on; each ban; Unban behind the foot's confirm; what they see
 --   Spawn items            find, pick, how many, to whom
@@ -1280,15 +1281,13 @@ function P.playerItems(win, st, t, card, data)
         end
         P.skills(items, win, st, card, view)
     end
-    -- (add XP, a trait, a profession: the game's window has them until they are ZeD's)
-    F.flow(items, { F.gate({ id = "stats", text = tr("UI_ZeD_Adm_Stats"), help = tr("UI_ZeD_Adm_HelpStats"), run = function(ww) D.statsWindow(ww, card.user) end },
-        "CanSeePlayersStats", function()
-            if not getPlayerFromUsername(card.user) then return tr("UI_ZeD_Adm_NotSeen") end
-            return nil
-        end) })
+    -- (add XP, a trait, a profession, names, weight: the stats card over this one, ZeD_StatsCards.lua)
+    F.flow(items, { F.gate({ id = "stats", text = tr("UI_ZeD_Adm_Stats"), help = tr("UI_ZeD_Adm_HelpStatsCard"),
+        run = function(ww) ZeD.StatsCards.openStats(ww, st, card.user, "tk:stats") end }, "CanSeePlayersStats") })
     B.label(items, tr("UI_ZeD_Adm_Inventory"))
-    items[#items + 1] = { k = "arow", left = getText("IGUI_PlayerStats_ManageInventory", card.user), leftMin = 300, meta = tr("UI_ZeD_Adm_GameWindow"), chev = true,
-        c = F.gate({ id = "inv", help = tr("UI_ZeD_Adm_HelpInv"), run = function() M.openInventory(card.user, view and view.oid) end }, "InspectPlayerInventory") }
+    items[#items + 1] = { k = "arow", left = getText("IGUI_PlayerStats_ManageInventory", card.user), leftMin = 300, chev = true,
+        c = F.gate({ id = "inv", help = tr("UI_ZeD_Adm_HelpInvCard"),
+            run = function(ww) ZeD.StatsCards.openInv(ww, st, card.user, view and view.oid, "tk:inv") end }, "InspectPlayerInventory") }
     P.logs(items, card)
     if M.live() then P.tickets(items, win, st, card, view) end
     return items
