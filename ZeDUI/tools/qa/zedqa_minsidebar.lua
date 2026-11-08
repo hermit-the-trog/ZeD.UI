@@ -7,8 +7,8 @@
 --      margin): shown. 80 above (outside): faded again.
 --   3. Animation Speed: 0.5x fades slowly, 5.0x in a frame or two (frames counted from the pointer leaving)
 --   4. Enable Mod off: the belt is drawn as it is (nothing faded, the real element on the belt). Picture.
---   PUT BACK: the options as found, the items, the pointer parked at the corner.
--- By hand (the pointer and the pad are the desktop's): a controller on the belt keeps it shown; a menu open from a slot
+--   PUT BACK: the options as found, the items, the belt reads the real cursor again.
+-- By hand (the real mouse and the pad are the desktop's; here the belt is told where the pointer is): a controller on the belt keeps it shown; a menu open from a slot
 -- keeps it shown; a slot dragged off the belt keeps it shown; the Messages note's bubbles still come from the note.
 -- grep "ZEDQA msb"; shots zqa_msb_*.png.
 local function say(s) print("ZEDQA msb " .. tostring(s)) end
@@ -55,17 +55,28 @@ local function setOpt(id, v)
     o:setValue(v)
     return true
 end
-local function pointer(x, y) pcall(function() Mouse.setXY(math.floor(x), math.floor(y)) end) end
-local function park() pointer(20, 20) end
-local function onBelt(dy)
+-- The pointer: Mouse.setXY does not hold (the game reads the desktop cursor again every frame), so the belt is told
+-- where the pointer is, as zedqa_belt_ammo.lua does: its getMouseX / getMouseY answer a place relative to the belt.
+-- Away is far outside the margin. pointerOff gives the belt back the real cursor.
+local pointed = nil
+local function pointer(rx, ry)
     local h = hud()
     if not h then return end
-    pointer(h:getX() + h:getWidth() / 2, h:getY() + h:getHeight() / 2 + (dy or 0))
+    pointed = h
+    h.getMouseX = function() return rx end
+    h.getMouseY = function() return ry end
+end
+local function pointerOff()
+    if pointed then pointed.getMouseX, pointed.getMouseY = nil, nil; pointed = nil end
+end
+local function park() pointer(-5000, -5000) end
+local function onBelt()
+    local h = hud()
+    if h then pointer(h:getWidth() / 2, h:getHeight() / 2) end
 end
 local function above(units)
     local h = hud()
-    if not h then return end
-    pointer(h:getX() + h:getWidth() / 2, h:getY() - ZeD.T.px(units))
+    if h then pointer(h:getWidth() / 2, -ZeD.T.px(units)) end
 end
 local function slotAlpha() local s, h = S(), hud(); return s and h and s.alpha(h, "slot", nil) or nil end
 local function handAlpha(which) local s, h = S(), hud(); return s and h and s.alpha(h, "hand", { which = which }) or nil end
@@ -179,7 +190,7 @@ step(10, function()
         local o = opt(id)
         if o then o:setValue(v) end
     end
-    park()
+    pointerOff()
     for _, it in ipairs(attached) do pcall(B.detach, 0, it) end
     pcall(function() p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil) end)
     for _, it in ipairs(added) do pcall(function() inv:Remove(it) end) end
