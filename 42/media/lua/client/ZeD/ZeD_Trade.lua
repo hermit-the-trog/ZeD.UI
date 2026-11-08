@@ -87,7 +87,7 @@ function TR.open(player, other, asked)
         player = player, other = other, index = idx(player),
         your = {}, his = {}, sealed = false, otherSealed = false,
         blocking = nil, blocking2 = nil, pending = false,
-        flash = nil, flashCD = 0, log = {}, groups = {}, open = true, missing = 0,
+        flash = nil, flashCD = 0, log = {}, groups = {}, open = true,
     }, Session)
     local el = ZeD_TradeSession:new(0, 0, 0, 0)
     el:initialise()
@@ -363,16 +363,36 @@ function Session:update()
             break
         end
     end
-    -- the card is the window: gone from the World window (closed, or another card took its place)
-    -- for three frames running, the trade is cancelled as vanilla's Cancel does
-    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
-    local e = card and card.entry
-    if e and e.t and e.t.s == self then
-        self.missing = 0
-    else
-        self.missing = (self.missing or 0) + 1
-        if self.missing > 2 then self:cancel() end
+    -- the card is pinned (the director, Nov 7 2026): only Cancel, their close, distance or them leaving
+    -- end the trade. Shut World window: the trade waits and its card is back when the window opens
+    -- again (or at the next thing the other player does: TR.onEvent). Another object card in the
+    -- drawer: the trade comes back when it closes. An item card shows over it (the drawer's own order).
+    self:reshow(false)
+end
+
+--- Put the trade card back in the drawer when it is not there and nothing else holds it. open = true
+--- opens a shut World window for it (an event from the other player); false waits for the window.
+function Session:reshow(open)
+    if not (self.open and ZeD_WorldWindow) then return end
+    local win = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    if not win and not open then return end
+    if win then
+        local d = win._drawerObject
+        if d and d.t and d.t.s == self then
+            if win._drawerOpen ~= false then return end   -- (shown, or under an item card)
+        elseif d then
+            return                                          -- another object card: wait for it to close
+        end
+        if win._drawerItem ~= nil then return end           -- an item card over it: back when it closes
     end
+    local ok, err = pcall(ZeD.ObjectCards.open, self.player, "trade", self)
+    if not ok then ZeD.logOnce("Trade reshow", err) end
+end
+
+-- after the other player's event: their trade on screen again (the window opened if it was shut)
+function TR.onEvent(player)
+    local s = TR.get(player)
+    if s then s:reshow(true) end
 end
 
 local function tick()

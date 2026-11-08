@@ -109,6 +109,7 @@ local function hookEvents()
             if TR.get(player) then
                 local ok, err = pcall(route.zed, otherPlayer, player, arg)
                 if not ok then print("[ZeD] TradeMedic: " .. route.event .. " failed: " .. tostring(err)) end
+                pcall(TR.onEvent, player)   -- (a pinned trade on screen again if its window was shut)
                 return
             end
             local v = ISTradingUI[route.name]

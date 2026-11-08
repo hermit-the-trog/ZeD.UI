@@ -3,7 +3,7 @@
 The director's B10 and B11 (VANILLA_WINDOWS_20261107.md): both are now World window cards. Trading opens ZeD's trade
 card instead of the game's trading window; a medical check of another player opens ZeD's Health tab on them in the
 card drawer instead of the game's health panel. Nothing here was run in game. The sim
-(`lua51 ZeDUI/tools/qa/trade_medic_sim.lua`, 149 checks) runs the game's own ISTradingUI, ISHealthPanel and
+(`lua51 ZeDUI/tools/qa/trade_medic_sim.lua`, 158 checks) runs the game's own ISTradingUI, ISHealthPanel and
 ISMedicalCheckAction files against ZeD's code; it cannot show what the engine does with real packets, fonts and focus.
 That is this check.
 
@@ -51,12 +51,17 @@ Two real players on the local server kit, as `batch_two_b7.ps1` does it:
 9. **Distance.** Start a new trade, then walk bob 3 tiles away: the red box "Too far away from bob!" on the admin's
    card, every control but Close grayed. Walk back: it clears.
 10. **Cancel and close.** Start one, press Cancel: bob's card shows "admin closed their trading window." with Close.
-    Start one, press the card's close key (X): the same on bob's side. Start one and close the whole World window:
-    within a few frames bob's card shows the same (the trade ended). Start one and click an item in the admin's
-    inventory so its item card replaces the trade card: the trade ends the same way (see the design question).
-11. **No.** Bob answers No: the admin's box reads "bob refused to trade with you." and Close.
-12. **Bob gives up first.** Admin asks, then closes the card before bob answers: bob's prompt goes away by itself.
-13. **Safe mode.** Turn Safe mode on and trade: the game's own trading window, on both sides as usual.
+    Start one, press the card's close key (X) or B: the same on bob's side.
+11. **Pinned (the director, Nov 7 2026).** The trade card stays until Cancel, bob's close, distance or bob leaving:
+    - Click an item in the admin's inventory: its item card opens over the trade; close it and the trade is back,
+      offers unchanged, nothing on bob's side.
+    - Switch the World window's tab (Loot, Craft): the trade card comes straight back.
+    - Open another card (a generator's Info): it shows; close it and the trade is back.
+    - Close the whole World window: bob sees nothing change. Open it again: the trade card is there. Close it again
+      and have bob add an item: the admin's World window opens by itself on the trade.
+12. **No.** Bob answers No: the admin's box reads "bob refused to trade with you." and Close.
+13. **Bob gives up first.** Admin asks, then closes the card before bob answers: bob's prompt goes away by itself.
+14. **Safe mode.** Turn Safe mode on and trade: the game's own trading window, on both sides as usual.
 
 Controller (admin on the pad): the card takes the focus when it opens, on the first Add (on Close while blocked). The
 D-pad walks Add / Add all / Remove and the band (Seal offer, Cancel, Accept deal); A presses; B is Cancel (it closes
