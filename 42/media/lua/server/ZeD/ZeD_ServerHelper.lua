@@ -69,7 +69,7 @@ function H.epoch()
     return H.word
 end
 
--- running: its last answers file is fresh (H.seen is that file's own time)
+--- The helper is running: its last answers file is fresh (H.seen is that file's own time).
 function H.alive(now) return H.seen ~= nil and now - H.seen <= ZeD.Adm.L.HELPER_ALIVE_S end
 
 local function line(e)
@@ -77,7 +77,8 @@ local function line(e)
     return table.concat({ tostring(e.id), tostring(e.try or 1), e.act, e.target, reason }, "\t")
 end
 
--- the queue, rewritten when what it holds changed: every owed call the helper holds. True when the file says what it should
+--- The queue, rewritten when what it holds changed: every owed call the helper holds. True when the file says what it
+--- should.
 function H.write(md)
     local ids = {}
     for id, e in pairs(md.owed) do
@@ -97,7 +98,8 @@ function H.write(md)
     return true
 end
 
--- the helper's answers for this world: a list of { id, try, res, text }. H.seen becomes the file's time. Nothing there: {}
+--- The helper's answers for this world: a list of { id, try, res, text }. H.seen becomes the file's time. Nothing
+--- there: {}
 function H.read(md)
     local r = getFileReader(H.ANSWERS, false)
     if not r then return {} end

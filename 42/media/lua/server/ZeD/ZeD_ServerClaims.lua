@@ -1,13 +1,15 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerClaims.lua
 -- ============================================================================
--- SAFEHOUSES AND FACTIONS, THE SERVER'S SIDE (ZeDUI/MP_ADMIN_SCOPE.md, Phase 3). Almost nothing: the game's own calls do
--- the work and the game checks them, so the cards work with no server part at all. This file adds only what a client
--- cannot know or do:
+-- SAFEHOUSES AND FACTIONS, THE SERVER'S SIDE. Server only (the first line); pure Lua, pure ASCII. Almost nothing: the
+-- game's own calls do the work and the game checks them, so the cards work with no server part at all. This file adds
+-- only what a client cannot know or do. The Safehouse and Faction cards' model (client/ZeD/ZeD_Claims.lua) sends the two
+-- commands on module Cl.MOD, and each answer comes back on the same module (c_info, or c_ack for a refusal or a cancel):
 --   c_info     when your safehouse was last visited (the game never sends it to clients), who your invitations are
 --              still waiting on, and invitations waiting for you (the game sends one once, to a player online)
 --   c_cancel   takes an invitation back: the game has no call for it, and only the server holds the list
 --   the log    claims, releases and faction changes, by comparing the game's own lists, so a change made from any
---              window is logged and none rests on a client's word. Phase 4 reads these lines.
+--              window is logged and none rests on a client's word. No command: it runs on the server's own clock, and
+--              the Log view (ZeD_ServerLog.lua) reads these lines.
 -- This file stores nothing: it all reads the game's live lists, and the log's lines go into the server part's one log
 -- (Srv.action). A view is built from an allowlist, for one player, about their own safehouse and faction.
 -- ============================================================================
