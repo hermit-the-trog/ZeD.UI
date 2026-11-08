@@ -27,13 +27,14 @@
 -- How it hangs together. Overrides/MainMenu.lua hooks vanilla's MainScreen and
 -- calls in here (MM.attach, MM.afterPrerender, MM.joyDown / joyDir /
 -- keyRelease). An item opens its ZeD window, or, where vanilla's screen still
--- does the job, runs vanilla's own handler (MainScreen.onMenuItemMouseDownMainMenu
--- with vanilla's item); vanilla's labels stay alive, parked off-screen. Load Game and New Game
--- (ZeD_MainMenuSaves), Mods, Options, the desktop's icons and the sticky note
--- are made by name in ZeD_MMDesk:createChildren; every other window registers
--- itself with MM.addView, and MM.showView puts one view on the monitor at a
--- time. Vanilla's own screens stay built: when vanilla shows one that has a
--- ZeD window, MM.redirect or MM.mirror puts that view up instead.
+-- does the job, runs vanilla's own handler with vanilla's item
+-- (MainScreen.onMenuItemMouseDownMainMenu); vanilla's labels stay alive,
+-- parked off-screen. Load Game and New Game (ZeD_MainMenuSaves), Mods,
+-- Options, the desktop's icons and the sticky note are made by name in
+-- ZeD_MMDesk:createChildren; every other window registers itself with
+-- MM.addView, and MM.showView puts one view on the monitor at a time.
+-- Vanilla's own screens stay built: when vanilla shows one that has a ZeD
+-- window, MM.redirect or MM.mirror puts that view up instead.
 --
 -- Clicks: every panel here registers hit boxes while it draws and the update
 -- pass tests the mouse against them. Child panels do not get mouse events

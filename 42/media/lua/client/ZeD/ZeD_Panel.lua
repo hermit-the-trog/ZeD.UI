@@ -1,15 +1,23 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Panel.lua
 -- ============================================================================
--- ZeD_PANEL — Base panel class for all ZeD UI components
--- One hop from vanilla (ISPanel:derive). Last vanilla touch ever.
+-- ZeD_PANEL — the base panel class most ZeD surfaces stand on. Client
+-- organism, one hop from vanilla (ISPanel:derive). The belt, watch,
+-- dashboard, action bar, hint strip, moodles and both context menus derive
+-- from it, and the Character and World windows build their tab strips,
+-- drawers and content panes as plain instances with a draw hook. ZeD_Window
+-- (Organisms.lua) derives from ISPanel itself. A change here reaches every
+-- one of them.
 --
 -- Features:
 --   - Transparent by default (no border, no background)
 --   - Opt-in drawBg / drawBorder flags
 --   - _hitZones table for manual hit testing (ISPanel child mouse dispatch
 --     is unreliable — we enumerate zones instead)
---   - _onPrerender hook for draw logic without subclassing
---   - Theme-reactive: reads ZeD.T fresh every prerender(), zero stale data
+--   - _onPrerender / _onRender hooks for draw logic without subclassing, run
+--     under ZeD.Safe.guard (an instance's _zedLabel names it in the log)
+--   - Reads the palette (ZeD.T) fresh every frame, so a theme change shows
+--     up instantly — nothing is cached
+--   - Joypad methods that hand a focused panel's input to the focus manager
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -18,6 +26,8 @@ require "ZeD/SafeMode"
 
 ZeD_Panel = ISPanel:derive("ZeD_Panel")
 
+--- A transparent panel at x, y, w x h: no fill, no border, anchored to its
+--- parent's right and bottom, no hit zones and no draw hooks yet.
 function ZeD_Panel:new(x, y, w, h)
     local o = ISPanel:new(x, y, w, h)
     setmetatable(o, self)
@@ -43,6 +53,7 @@ function ZeD_Panel:new(x, y, w, h)
     -- Optional draw hook. Signature: function(panel) ... end
     -- Called at the end of prerender(), after bg and border are drawn.
     -- Set this on instances instead of subclassing for one-off panels.
+    -- (_onRender works the same way for render(), after the children draw.)
     o._onPrerender = nil
 
     return o
@@ -56,6 +67,10 @@ end
 -- PRERENDER — draws bg/border then calls the hook
 -- ============================================================================
 
+--- Runs every frame just before the children draw: the opt-in fill (surf1)
+--- and border (borderS), then the _onPrerender hook. A subclass that
+--- overrides prerender replaces all three unless it calls
+--- ZeD_Panel.prerender(self).
 function ZeD_Panel:prerender()
     local T = ZeD.T
 

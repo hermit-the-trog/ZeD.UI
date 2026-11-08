@@ -1801,8 +1801,8 @@ function D.liveGo(c)
     c.why = (not can) and tr("UI_ZeD_Tk_NoGo") or nil
 end
 
---- Read as Player card draws: grayed, with the reason, without the stats power or, for the game's window, with the
---- player out of reach.
+--- Read as Player card draws: grayed, with the reason, without the stats power; and, while the server part holds no
+--- admin tools, when the player isn't near this client.
 function D.livePlayerCard(c)
     local why = nil
     if ZeD.AdminCards and ZeD.Admin.live() and TC.qaStats == nil then
@@ -2402,6 +2402,8 @@ function D.cardScroll(win, t, x, w, sy, sh, listH)
     return math.floor(scroll.scrollPos * maxOff), true
 end
 
+--- Draw the card on top of the tab inside (x, y, w, h): back bar, flag, the scrolled body and the foot. A card that
+--- loses its data, or never gets any in LOAD_MS, goes back with the reason.
 function TC.renderCard(panel, win, st, x, y, w, h)
     local T, M = ZeD.T, ZeD.Molecules
     local t = ts(st)
@@ -2527,6 +2529,7 @@ TC.items.chatline = {
 -- ---------------------------------------------------------------------------
 -- A CARD'S INPUT
 -- ---------------------------------------------------------------------------
+--- The open card's scroll, or nil when no card is open.
 function TC.activeScroll(st)
     local t = st.tk
     if st.card and t then return t.scroll end
@@ -2543,6 +2546,7 @@ function D.fieldPress(win, t, h)
     t.wantField = it.key
 end
 
+--- A click on the open card: its pop-up, scrollbar, back bar, foot, then its items.
 function TC.cardClick(win, st, x, y)
     local t = ts(st)
     if t.popup then
@@ -2629,6 +2633,7 @@ function D.dress(win, st, t, e, c, place)
     return e
 end
 
+--- The open card's controller stops: the back key, the items in reading order, the foot's buttons.
 function TC.cardStops(win, st)
     local t = ts(st)
     local out = {}
@@ -2701,6 +2706,7 @@ function TC.cardStops(win, st)
     return out
 end
 
+--- A key that changes when the card's stops would: the tab's scroll key while a card is open.
 function TC.cardKey(st)
     local t = st.tk
     if not t then return "" end
