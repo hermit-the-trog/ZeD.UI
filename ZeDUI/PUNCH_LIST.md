@@ -2910,6 +2910,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     - **Known gaps:** ZeD picks come back only when ZeD-GUI is turned on by its own row, not through a folder or
       separator box or Turn all off; split-screen's second player doesn't save dash miles on a server; on a server the
       dash ash tray is per player and session; FR and HU month words keep a capital (shared Journal keys; native pass).
+
+103. **The survival guide's copyright page (the director, Nov 7 2026: "I want to do a similar for the survival guide, make
+    sure the writing style is the same").** Like the znix manual's title spread: the copyright page left of the title
+    page, in the blank's place, the small print set low, line for line the znix page's text with the guide's names;
+    "Publications LLC both" (the division gets LLC on the copyright page and the title page); first edition 1984
+    ("Copyright © 1984, 1987"). The text, keys and layout: HANDOFF_design_guide_copyright_20261107.md. Open: whether the
+    house ad's coupon address takes the LLC too.
 104. **The desk's notes and mail (the director, Nov 7 2026, for later, not beta 7).** Two apps on the main menu's desk
     computer. (1) **Notes:** a sticky note on the desktop the player can edit, or text files they make that save on the
     desktop. Doable in Lua alone: ZeD already writes its own files under Zomboid/Lua (getFileWriter), so notes would
@@ -2928,6 +2935,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     offline on the desk. The notepad's name (the director, Nov 7): **CletusWorks**, after ClarisWorks (1991, the
     all-in-one on every school Mac in 1993): the desktop icon reads CletusWorks with a page-with-writing picture, the
     window title "CletusWorks Notepad", so the joke is there for those who know and the plain word for everyone.
+105. **The gallery for beta 7 (the director, Nov 7 2026: "Anything out of date there we should update before we upload
+    the next beta at 1pm PST"; "Why alt tab to a wiki when you could F1 to live rules and data? That needs to be on the
+    46 survival guide").** Before the upload (design, not committed): 52's two arrows that missed since the Nov 6 retake
+    now land on Ask the admins and Turn PvP on, its paragraph follows the Server tab's order, and both figure captions
+    clear the prints; 46's right-hand sticky is the director's line, and Figure 46-2's caption clears its tape. After
+    the upload, QA's retakes: 36 (the taxi with ACC, the odometer and trip), 61 (the Simple dash's Trip cell and ACC),
+    05 and 14 (optional), 46 (two pages with ads; the copyright spread once 103 is built), and about 15 captures for new
+    multiplayer spreads (tickets, the Player card, the join rules, the safehouse and faction cards, invitations, the
+    Log, chat report and mute). Where the new spreads go is the director's call. HANDOFF_gallery_beta7_20261107.md.
 106. **The debug Lua console in ZeD's own parts (the director, Nov 7 2026; next in the queue after the current one
     merges).** The game's debug-mode console (only with -debug: run Lua, read errors and output) rebuilt from ZeD's
     atoms and molecules as a ZeD window: the typed line, history, the output and error list, controller parity (the
@@ -2938,3 +2954,56 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     getPlayerScreen*(pn), then the ~105 no-argument getters; the player-1 map is in the known-issues branch report.
 108. **A drawn controller for Options > Controls (the director, Nov 7 2026).** The Nov 8 build ships the controller map and
     live test with a plain System 7 box pad; design draws a proper pad in ZeD's pixel art to replace it.
+109. **What players leave the game to look up, and what ZeD still owes (the director, Nov 7 2026: "Put the gaps on the
+    punch list. This is awesome.").** From the director's research report, RESEARCH_alt_tab_lookups_20261107.md: players
+    alt-tab mostly for crafting and the map, then the exact numbers behind the character (moodles, XP, what a skill
+    level unlocks), then what the game hides on purpose (the TV schedule, infection odds, loot). Its split is ZeD's
+    rule: what the game shows badly, ZeD shows well; what it hides on purpose stays the game's to give. Already done:
+    the crafting card names most of Build 42's gates (Known or Unknown with How to learn, Needs, skill level, Use
+    station, the Surface badge), skill cards show exact XP, sandbox settings say what a change does, and the guide reads
+    its rules live.
+    - **What can I make with this,** on the item card: the recipes that use the item. Design found no such list in the
+      strings or the client code; Build confirms. It is the feature behind Craft Helper and Neat Crafting, the two
+      biggest information mods.
+    - **What each skill level unlocks,** on the skill card or a rules page.
+    - **Moodle thresholds,** a rules page of the game's own numbers.
+    - **The hidden facts open with a find (the director, 6:00 PM):** "I can show you the TV schedule, but you have to
+      find the TV magazine first." The guide says what more it could show and what to find for it. The game already has
+      the magazine: Magazine: TV Monthly (Base.TVMagazine), on side tables, desks and counters, in closets and bags. By
+      preset (the director: "It's the difference between hardcore vanilla and vanilla access"; 6:05 PM: "Vanilla plus
+      gates them. Only vanilla access. Vanilla access is a mode with less mechanical barriers and more automation." and
+      "It's like accessibility and all access behind the scenes all in one."): Vanilla and Vanilla Plus keep the facts
+      behind the find; only Vanilla Access shows them without it; a ZeD setup addition holds the choice for Custom.
+      Build finds where the game keeps the schedule (its broadcast scripts) so the page reads it live, like the rules
+      pages. Open: whether the find is reading the magazine (as with recipe magazines) or carrying it; which find opens
+      the infection odds (prefer what the game already spawns: a new item adds loot, a systems change). Never a live
+      "you are infected". Design proposes the same split for where a recipe is learned: Vanilla and Vanilla Plus say
+      "Find recipe magazine or schematic", as now; Vanilla Access names the magazine.
+    - **The map:** the Maps tab and paper maps keep the game's own reveals; later map work stays to the look, the key
+      and readability.
+    - **Pause when the window loses focus** (characters die while their player reads the wiki): Build checks whether Lua
+      can see the game window's focus; if it can, an opt-in single-player setting in ZeD setup.
+    - **For the Workshop page:** on a controller, alt-tabbing means putting the pad down for the mouse, so an in-game
+      answer is worth more to pad players. Pairs with spread 46's sticky, "Why Alt-Tab to a wiki when you could F1 to
+      live rules and data?"
+    - **QA:** the Full-look guide at 1366 x 768 (small screens were the first casualties of the vanilla crafting
+      window).
+110. **One phrase for the two forms (the director, Nov 7 2026: "can we come up with a common phrase? It seems like each
+    has a different word. Some of them have the same, but I think that could confuse some players.").** Today ZeD
+    setup's *Full or simple* rows say Full (Belt, Devices, Watch, Dashboard, Survival guide, Mods screen) and Verbose
+    (Action bar), the Identity card says Immersive in Look, and Context menu (Icon strip / List) and Equipped items
+    (List / Doll) sit in the section too. The director's picks:
+    - **Immersive / Simple** on every row drawn either as the thing itself or as a plain card, and the section renamed
+      *Immersive or simple*: Belt, Devices, Watch, Dashboard, Survival guide, and the Identity card, moved in from Look.
+      All six take the one key UI_ZeD_Settings_Immersive (five borrow UI_ZeD_Settings_BeltFull today), and each help
+      line reads "Immersive: ... Simple: ...".
+    - **Detailed / Simple** for the two rows whose rich side is more information, not a thing drawn, and both move out:
+      the Action bar to HUD (Verbose becomes Detailed), the Mods screen to Windows (Full becomes Detailed).
+    - **Context menu and Equipped items** move to Windows, next to Inventory (List / Grid): they choose a layout, not a
+      form.
+    - **Strings:** UI_ZeD_Options_ZedForms; the Belt, Devices, WatchStyle, Dash, Guide, ActionBar and Mods tips;
+      ActionBarVerbose; the guide's ZeD setup chapter (UI_ZeD_GCh_zed_setup_Title and _Text) and the beta 3 what's-new
+      line. Every language, as the project's labeled AI drafts. Saved choices keep their values: no option changes its
+      place in its list. The presets don't change (Vanilla Access still picks Simple).
+    - **Then the gallery (design):** 12, 26 and 31 say Verbose; 46 says Full; 48 lists the sections; 61 is the whole
+      spread, with a new capture of the section.
