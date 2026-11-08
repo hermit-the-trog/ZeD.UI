@@ -9,10 +9,10 @@
 -- One art pixel is one screen pixel at 1080p and a whole multiple k above it, so
 -- every pixel stays square. Pixel art loads with nearest filtering
 -- (Texture.getSharedTexture(path, 3): FILTER_MIN_NEAREST 1 + FILTER_MAG_NEAREST 2).
--- Everything live is drawn the same way the art was painted: rects on
--- the art grid. A needle is rasterised into art pixels (a lit side and a shaded
--- side, its shadow below), seven-segment figures are segment rects, and text uses
--- the two pixel fonts (ZeD/PixelFonts.lua): 3 x 5 for legends, 5 x 7 for badges.
+-- Everything live is drawn the same way the art was painted: rects on the art
+-- grid. A needle is rasterised into art pixels (a lit side and a shaded side, its
+-- shadow below), seven-segment figures are segment rects, and text uses the two
+-- pixel fonts (ZeD/PixelFonts.lua): 3 x 5 for legends, 5 x 7 for badges.
 --
 -- A "canvas" binds an element, the screen offset of the art's origin inside it,
 -- and the multiple: cv = P.canvas(self, 0, 0, k). Every coordinate after that is
@@ -673,7 +673,7 @@ local function layoutOf(str, font)
     return lay
 end
 
---- A text's width in art pixels, in a face ("35" when nil) at a whole scale (1 when nil).
+--- A text's width in art pixels, in a face ("35" when nil) at a scale (1 when nil).
 function P.textWidth(str, font, scale)
     str = tostring(str or ""); font = font or "35"; scale = scale or 1
     if str == "" then return 0 end
