@@ -3,7 +3,7 @@
 -- THE ZeD OS DESKTOP: the icons behind the menu's windows. Client; an organism
 -- (the icon layer, a child of the desk under every window, plus the Trash).
 --
--- The main window's close box just closes it (Quit stays in File and on the
+-- The main window's close box only closes it (Quit stays in File and on the
 -- case's power button) and leaves the bare desktop, so the icons open
 -- everything the menus can: a player who closes the window and never finds the
 -- menu bar still has a way in. Down the screen's right edge, the way a 1993

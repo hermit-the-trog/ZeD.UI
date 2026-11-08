@@ -6275,10 +6275,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             local alwaysRebuild = false
-            -- S107 QA: identity-preserve focus by element id across rebuilds.
-            -- Without this, scroll-driven array shifts (always-rebuild on
-            -- journal Recipes) make focusedElementIdx point at a different
-            -- element than the user expects.
+            -- Identity-preserve focus by element id across rebuilds.
+            -- Without this, scroll-driven array shifts (the Journal's Recipes
+            -- list rebuilding as it scrolls) make focusedElementIdx point at a
+            -- different element than the player expects.
             local preserveIdx = nil
             do
                 local oldZ = nil
@@ -6305,7 +6305,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 }
                 -- a builder may name where focus lands (the Equip card opening / closing)
                 Focus.setRingZoneElements(win, "charTabContent", newEls, newEls._focusIdx or preserveIdx)
-                -- S100: stay focusable during equip card-mode transitions even
+                -- Stay focusable during equip card-mode transitions even
                 -- if newEls is momentarily empty (first frame of card entry —
                 -- back/action bounds stamped during render, AFTER this prerender
                 -- ran). Next frame the ring rebuilds with real card elements.
@@ -6314,7 +6314,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
         end
 
-        -- S99 per-frame refresh for charItemCard zone. The card's toggleRects
+        -- Per-frame refresh for the charItemCard zone. The card's toggleRects
         -- and verbRects are stamped by the card render each frame; this block
         -- picks them up into the ring zone. Focusable state tracks card
         -- visibility (`_drawerItem ~= nil`), NOT `_drawerMode` — on non-Loot
@@ -6330,15 +6330,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
     end
 
-    -- Draw drag ghost at window level so it renders on top of all panels
     -- The title, every frame, from the window itself: every way the tab changes (a click on
-    -- the strip, LB / RB, the D-pad, a script) shows in it (Oct 31 2026, break-it D1)
+    -- the strip, LB / RB, the D-pad, a script) shows in it
     local _baseWinPrerender = win.prerender
     win.prerender = function(self)
         composeCharTitle(self)
         _baseWinPrerender(self)
     end
 
+    -- Draw drag ghost at window level so it renders on top of all panels
     local _baseWinRender = win.render
     win.render = function(self)
         _baseWinRender(self)
@@ -6398,7 +6398,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     })
 
     -- ----------------------------------------------------------------
-    -- MOUSE HANDLERS (identical to TestInventory — proven in Layers 3-7)
+    -- MOUSE HANDLERS — the list's clicks, selection, drags, scroll and right-click
     -- ----------------------------------------------------------------
     local scrollW = T.sp.scrollbarW
     local countSelected        = r.countSelected
@@ -6406,7 +6406,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)
-        self._padMarks = nil   -- (a mouse press: the mouse's card rule again; punch list 44)
+        self._padMarks = nil   -- (a mouse press: the mouse's card rule again)
         -- the container buttons' row
         do
             local ccZone = self:hitZoneAt(x, y)
@@ -6522,7 +6522,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             return true
         end
 
-        -- S100: stack chevron toggle — flips the expanded state for this
+        -- Stack chevron toggle — flips the expanded state for this
         -- fullType in the clicked column. Next render pass emits children
         -- (expanded) or hides them (collapsed). Key is the stack's fullType.
         if type(zid) == "string" and zid:sub(1, 6) == "stack:" then

@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/IdentityTab.lua
 -- ============================================================================
--- IDENTITY TAB: the character's card + traits, two styles at two widths.
+-- IDENTITY TAB — client; the Character window's Identity tab ("identity" in its
+-- tab dispatch table): the character's card + traits, two styles at two widths.
 --   Immersive: the Kentucky operator's license, wide (photo left, fields right)
 --     or narrow (laid out like Tennessee's vertical card).
 --   Simple: ZeD components on the theme's surface, wide or narrow.
@@ -10,9 +11,10 @@
 -- read at every render; the width picks wide or narrow (isTall).
 -- The license keeps a fixed palette; its colored words are the player's accent
 -- darkened for the cream (kyAccent). Simple and the traits use ZeD theme tokens.
+-- Each layout's heights come from one place the measure and the draw share, at
+-- the width as if a scroll bar shows, so the two always agree.
 --
--- Design: ZeDUI/mockups/zed_identity_v2.html (punch list 89). The art comes from
--- ZeDUI/tools/identity/ky_header.py.
+-- The license's pixel art comes from ZeDUI/tools/identity/ky_header.py.
 -- QA: ZeD.IdentityTab.qaLayout "tall" / "wide", qaStyle "immersive" / "simple",
 -- qaTrend "steady" / "up" / "upup" / "down", qaProf a profession id ("base:burglar").
 -- ============================================================================
@@ -104,7 +106,7 @@ local TRAIT_COL_GAP = 12 -- between the two columns of traits
 local CARD_RADIUS = { 10, 7, 5, 4, 3, 2, 2, 1, 1, 1 }
 
 local function fillRoundedCard(panel, x, y, w, h, r, g, b, a)
-    local T = ZeD.T  -- S124 scale: design row i covers [T.px(i - 1), T.px(i)) so rows tile without gaps
+    local T = ZeD.T  -- design row i covers [T.px(i - 1), T.px(i)) so rows tile without gaps
     -- Top rounded rows
     for i, inset in ipairs(CARD_RADIUS) do
         panel:drawRect(x + T.px(inset), y + T.px(i - 1), w - T.px(inset) * 2, T.px(i) - T.px(i - 1), a, r, g, b)
@@ -126,7 +128,7 @@ local function borderRoundedCard(panel, x, y, w, h, r, g, b, a)
     -- Top bevel outline (1px edge, not full scanlines)
     for i, inset in ipairs(CARD_RADIUS) do
         local row = T.px(i - 1)
-        local rowH = T.px(i) - row  -- S124 scale: design row i covers [T.px(i - 1), T.px(i))
+        local rowH = T.px(i) - row  -- design row i covers [T.px(i - 1), T.px(i))
         if i == 1 then
             -- Outermost row: full scanline (the tip of the bevel)
             panel:drawRect(x + T.px(inset), y + row, w - T.px(inset) * 2, rowH, a, r, g, b)
