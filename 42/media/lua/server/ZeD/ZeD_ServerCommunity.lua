@@ -8,10 +8,12 @@
 -- client receives, field by field: the words anyone on the server may read, whether this player is asked to agree, and for
 -- those who may write, the two ticks. Who else has agreed never leaves the server.
 --
--- A client that refuses to agree cannot play only because its own client leaves: server Lua cannot remove a player (A7),
--- as with the timed ban. The agreement itself is this server's record of what a client said. As the ban's stay note does, the
--- server looks again: a player asked at joining and still on with no answer after Cm.L.ASKED_MS gets one line in the log staff
--- read. That is all it can do about a client that skips the screen.
+-- Until a player asked at joining agrees, every ZeD command from them is refused (Srv.gates.rules): tickets, claims,
+-- community, extras, log, dash, admin. Only the hello, a_hi, m_get and m_agree stay open. Who was asked is the server's own
+-- record, made at the first word from them or at its own walk of the players online, so a client that never says hello is
+-- caught all the same. Server Lua cannot remove a player (A7), so after Cm.L.ASKED_MS unanswered a Kick is owed, made by a
+-- staff client or the host helper, with one line in the log staff read. The agreement itself is this server's record of what a
+-- client said: a modified client can still send m_agree without showing the screen, and nothing on the server can tell.
 --
 -- Every edit goes through Srv.action, kind "community". An agreement is a line in the ZeD log alone: a busy server would
 -- fill the ring with them. Only a real answer writes anything.
@@ -391,17 +393,67 @@ end)
 -- ---------------------------------------------------------------------------
 -- THE CLOCK: OnTickEvenPaused, as the admin tools' (A1)
 -- ---------------------------------------------------------------------------
--- who was asked at joining and is still on with no answer. One line for a connection; Leave needs none, the player is gone
+-- this connection's record: made at the first word from them (the hello or any command) or at the server's own walk. Asked
+-- is fixed then: nobody is asked mid-play
+local function hereOf(md, user, t)
+    local low = string.lower(user)
+    local e = T.here[low]
+    if not e then
+        e = { user = user, at = t, ask = (asked(md, user)) == true }
+        T.here[low] = e
+    end
+    return e
+end
+
+-- still to answer the rules they were asked at joining (ZeD_ServerAdmin.lua: a Kick owed for them waits only while this holds)
+function Srv.rulesUnanswered(user)
+    local md = T.md
+    if not md or type(user) ~= "string" then return false end
+    local e = T.here[string.lower(user)]
+    return e ~= nil and e.ask == true and (asked(md, e.user)) == true
+end
+
+-- the gate: asked and no answer, every ZeD command is refused but the few that let them answer
+local OPEN = { [Cm.MOD .. ".m_agree"] = true, [Cm.MOD .. ".m_get"] = true, [Adm.MOD .. ".a_hi"] = true }
+Srv.gates.rules = function(p, module, command)
+    if module == Tk.MOD_LINK or OPEN[module .. "." .. tostring(command)] then return nil end
+    local md = T.md
+    if not md or T.frozen then return nil end
+    local e = hereOf(md, p:getUsername(), getTimestampMs())
+    if e.ask and (asked(md, e.user)) then return "has not agreed to the rules" end
+    return nil
+end
+
+-- a split-screen guest: a second, third or fourth player on someone's connection (getPlayerNum is the index the client gave
+-- that player when it joined; the server sets it from the connect packet, GameServer.receivePlayerConnect). ZeD's client
+-- speaks only for the connection's first player, so a guest can never answer, and the game's kick by name drops the whole
+-- connection (KickUserCommand: forceDisconnect), the first player with it. The first player's answer stands for the screen
+local function isGuest(o)
+    local ok, n = pcall(function() return o:getPlayerNum() end)
+    return ok and type(n) == "number" and n > 0
+end
+
+-- who was asked at joining and is still on with no answer: one line for a connection, and a Kick owed (reason "": the game's
+-- own words). A role the game will not kick is only written down. Leave needs nothing, the player is gone. The walk itself
+-- makes the record for anyone online without one, so a client that never says hello is asked all the same. A split-screen
+-- guest gets no record: their connection's first player has one
 local function lookAtAsked(md, t)
+    Srv.eachOnline(function(o) if not isGuest(o) then hereOf(md, o:getUsername(), t) end end)
     for low, e in pairs(T.here) do
         local o = Srv.player(e.user)
         if not o then
             T.here[low] = nil
+        elseif isGuest(o) then
+            T.here[low] = nil        -- (a record a guest's own command made: the gate still asks them, nothing is owed)
         elseif e.ask and not asked(md, e.user) then
             e.ask = false
         elseif e.ask and not e.noted and t - e.at >= CL.ASKED_MS then
             e.noted = true
-            logAt(o, "rules not answered", "asked at joining, revision " .. tostring(md.rev))
+            local role = o:getRole()
+            local cap = Capability and Capability.CantBeKickedByUser
+            local kick = Srv.oweKick ~= nil and not (role and cap and role:hasCapability(cap))
+            logAt(o, "rules not answered", "asked at joining, revision " .. tostring(md.rev) .. (kick and ", a kick is owed" or ""))
+            if kick then Srv.oweKick(e.user, "", "rules") end
         end
     end
 end
@@ -425,9 +477,7 @@ Srv.modules[Cm.MOD] = true
 Srv.helloAdds.community = function(p, r)
     local v = viewFor(open(), p)
     r.cm = v
-    local user = p:getUsername()
-    local low = string.lower(user)
-    if not T.here[low] then T.here[low] = { user = user, at = getTimestampMs(), ask = v.ask == true } end
+    hereOf(open(), p:getUsername(), getTimestampMs())
 end
 
 if Srv.communityHooked == nil then

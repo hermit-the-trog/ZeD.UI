@@ -302,6 +302,25 @@ function D.lampColor(t)
     return D.LAMP_COLOR[t]
 end
 
+-- the player's units: the game's measurement option ("Imperial" or "Metric"; looked up first, as a build
+-- may lack it: then miles, the cars being American). Read again at most once a second (the strip draws every frame;
+-- an option changed in the Options screen shows within the second), and with no closure made per read.
+local UNITS_MS = 1000
+local _unitsAt, _unitsMetric = nil, false
+local function _readMetric()
+    local core = getCore()
+    return core.getOptionMeasurementFormat ~= nil and core:getOptionMeasurementFormat() == "Metric"
+end
+local function _metric()
+    local now = getTimestampMs()
+    if _unitsAt == nil or now - _unitsAt >= UNITS_MS or now < _unitsAt then
+        _unitsAt = now
+        local ok, v = pcall(_readMetric)
+        _unitsMetric = ok and v == true
+    end
+    return _unitsMetric
+end
+
 -- The values the parts read (ZeDUI/tools/dashpx/live.py derives the same for the previews).
 function D.derive(st, mem, dtMs)
     -- (st.pub: what a mod on Vehicle Kit Library publishes, ModSupport/VSKDash.lua; nil, every value is ZeD's own. Its
@@ -330,6 +349,12 @@ function D.derive(st, mem, dtMs)
         mem[key] = cur
         st[key] = cur
     end
+    -- the digital speed figures (the Lang 4000, the Cossette) in the player's units, the legend in use lit (director,
+    -- Nov 7 2026: digital readouts only; the dials and the wheels stay printed in mph and miles)
+    local metric = _metric()
+    st.speedShown = metric and st.speed_kmh or st.speed_mph
+    st.mphLamp    = st.power and not metric
+    st.kmhLamp    = st.power and metric
     local check = st.power and not st.running         -- key on, engine off: the bulb check
     st.check      = check
     st.oilLamp    = check
@@ -856,6 +881,12 @@ local KM_PER_MILE = 1.609344
 -- a remainder by floor (Kahlua's % keeps the sign and goes wrong past 2^31)
 local function _floorMod(a, m) return a - math.floor(a / m) * m end
 
+-- how many times this player has answered the join rules (ZeD_ServerLink.lua, S.agreed): 0 without the server part
+function D.agreedN()
+    local S = ZeD.ServerPart
+    return (S and tonumber(S.agreedN)) or 0
+end
+
 -- a found car's starting mileage: stable for a given id and condition (0..100)
 function D.odoSeed(id, cond)
     -- (a vehicle id is a short; brought into 0..65535 anyway, so id * 7919 stays far under 2^31)
@@ -901,6 +932,13 @@ function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     local at = self._odoSentAt
     if not at then at = {}; self._odoSentAt = at end
     local last = at[id]
+    -- (the join rules answered since this dash last sent: the server refused every send until then, so the figures go now)
+    local gen = D.agreedN()
+    if self._odoGen == nil then self._odoGen = gen end
+    if self._odoGen ~= gen then
+        self._odoGen = gen
+        if last ~= nil then force = true end
+    end
     if last == nil and not force then at[id] = odo; return end      -- (first sight: what the car has is what was sent)
     if not force and odo < last then at[id] = odo; return end       -- (the server's figure came in lower: count from it)
     local save = force or flush == 0
@@ -982,7 +1020,9 @@ function ZeD_Dashboard:_odoAsk(vehicle, id)
     if self._driver then self._odoAsking = nil; return end
     if not (isClient and isClient()) or self.playerNum ~= 0 then return end
     local a = self._odoAsking
-    if not a or a.car ~= vehicle then a = { car = vehicle, n = 0, at = 0 }; self._odoAsking = a end
+    if not a or a.car ~= vehicle then a = { car = vehicle, n = 0, at = 0, gen = D.agreedN() }; self._odoAsking = a end
+    -- (the join rules answered since: the server refused every ask until then, so the tries start again)
+    if a.gen ~= D.agreedN() and not a.got then a.n, a.at, a.gen = 0, 0, D.agreedN() end
     if a.got or a.n >= ODO_ASK_TRIES then return end
     local now = getTimestampMs()
     if a.n > 0 and now - a.at < ODO_ASK_MS then return end
@@ -1322,6 +1362,62 @@ end
 -- ---------------------------------------------------------------------------
 function D.simple() return ZeD.Settings and ZeD.Settings.dashSimple and ZeD.Settings.dashSimple() or false end
 
+-- ---------------------------------------------------------------------------
+-- Other mods on the dash (ModSupport; Nov 7 2026): a general hook, keyed by an id (a second call with the same id
+-- replaces the first), for a mod whose small readout sat on the game's hotbar or above the game's dash, both hidden
+-- while ZeD's dash is up:
+--   D.addExtra(id, spec)  spec.state(chr, vehicle, driver) -> a table while there is something to show, else nil (read
+--                         every frame: the mod keeps its own pace); spec.cell(st) -> name, text: one item in the simple
+--                         strip's Readouts row ("name: text", after a library's readouts); spec.mark(cv, x, y, ink,
+--                         shadow, st) -> the width it drew: a small mark in plate pixels on the plate's top edge, left
+--                         end (after the passenger's word), in the edge's own ink and shadow (shadow nil on a light edge).
+-- A spec that throws is skipped for that frame; the dash goes on. Mask Filter Indicator
+-- (ModSupport/MaskFilterIndicator.lua) is the first.
+-- ---------------------------------------------------------------------------
+D._extras = D._extras or {}
+function D.addExtra(id, spec)
+    local rec = { id = id, spec = spec }
+    for i, r in ipairs(D._extras) do
+        if r.id == id then D._extras[i] = rec; return end
+    end
+    D._extras[#D._extras + 1] = rec
+end
+-- this frame's extras that have something to show: { { spec, st }, ... }, or nil with none
+function D.extrasNow(chr, vehicle, driver)
+    local out = nil
+    for _, r in ipairs(D._extras) do
+        local ok, st = pcall(r.spec.state, chr, vehicle, driver)
+        if ok and type(st) == "table" then
+            out = out or {}
+            out[#out + 1] = { spec = r.spec, st = st }
+        end
+    end
+    return out
+end
+-- the simple strip's items for them (appended to items)
+function D.extraCells(xs, items)
+    for _, x in ipairs(xs or {}) do
+        if x.spec.cell then
+            local ok, name, text = pcall(x.spec.cell, x.st)
+            if ok and type(name) == "string" and type(text) == "string" then
+                items[#items + 1] = { text = ZeD.tr("UI_ZeD_DashPlain_Pair", name, text) }
+            end
+        end
+    end
+    return items
+end
+-- their marks on the plate's top edge from x (plate pixels); returns the x after the last
+local MARK_GAP = 6
+function D.extraMarks(cv, xs, x, y, ink, shadow)
+    for _, e in ipairs(xs or {}) do
+        if e.spec.mark then
+            local ok, w = pcall(e.spec.mark, cv, x, y, ink, shadow, e.st)
+            if ok and type(w) == "number" and w > 0 then x = x + w + MARK_GAP end
+        end
+    end
+    return x
+end
+
 ZeD.trDefaults({
     UI_ZeD_DashPlain_Pair = "%1: %2", UI_ZeD_DashPlain_Speed = "Speed", UI_ZeD_DashPlain_Mph = "mph", UI_ZeD_DashPlain_Rpm = "RPM",
     UI_ZeD_DashPlain_Fuel = "Fuel", UI_ZeD_DashPlain_Oil = "Oil", UI_ZeD_DashPlain_Volts = "Volts", UI_ZeD_DashPlain_Gear = "Gear",
@@ -1335,7 +1431,7 @@ ZeD.trDefaults({
     UI_ZeD_DashPlain_Cruise = "Cruise", UI_ZeD_DashPlain_Meter = "Meter", UI_ZeD_DashPlain_AshTray = "Ash tray",
     UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
     UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
-    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km",
+    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km", UI_ZeD_DashPlain_Kmh = "km/h",
     UI_ZeD_DashPlain_Acc = "ACC",
 })
 
@@ -1577,30 +1673,19 @@ local function _cell(out, n, label, value, bar, col, id)
     return n
 end
 
--- the player's distance units: the game's measurement option ("Imperial" or "Metric"; looked up first, as a build
--- may lack it: then miles, the cars being American). Read again at most once a second (the strip draws every frame;
--- an option changed in the Options screen shows within the second), and with no closure made per read.
-local UNITS_MS = 1000
-local _unitsAt, _unitsMetric = nil, false
-local function _readMetric()
-    local core = getCore()
-    return core.getOptionMeasurementFormat ~= nil and core:getOptionMeasurementFormat() == "Metric"
-end
-local function _metric()
-    local now = getTimestampMs()
-    if _unitsAt == nil or now - _unitsAt >= UNITS_MS or now < _unitsAt then
-        _unitsAt = now
-        local ok, v = pcall(_readMetric)
-        _unitsMetric = ok and v == true
-    end
-    return _unitsMetric
-end
 -- miles as the strip shows them, in the player's units: whole, or to the tenth (the trip; cut, not rounded, as the
 -- wheels turn)
 local function _distText(miles, tenths, metric)
     local v = (tonumber(miles) or 0) * (metric and KM_PER_MILE or 1)
     local s = tenths and string.format("%.1f", math.floor(v * 10) / 10) or tostring(math.floor(v))
     return ZeD.tr(metric and "UI_ZeD_DashPlain_Km" or "UI_ZeD_DashPlain_Miles", s)
+end
+-- the speed as the strip shows it, in the same units as its Odometer and Trip (review of beta 7: it showed mph beside
+-- km): the figure, whole, and its unit's key. (The bar under it is a share of the plate's dial, the same either way.
+-- The plates' dials and wheels stay in mph and miles, as printed; their digital speed figures follow, D.derive.)
+function D.plainSpeed(st, metric)
+    local v = metric and (st.speed_kmh or 0) or (st.speed_mph or 0)
+    return tostring(math.floor(v + 0.5)), metric and "UI_ZeD_DashPlain_Kmh" or "UI_ZeD_DashPlain_Mph"
 end
 local function _plainCells(st, pl, out)
     local T = ZeD.T
@@ -1696,8 +1781,8 @@ function ZeD_Dashboard:_plainReadouts(st, pl, cells, n, y, W, big, rows, cellH)
     local px, tm = T.px, ZeD.TM
     local pad, gap = px(PLAIN_PAD), px(PLAIN_GAP)
     local bigW = px(PLAIN_BIG_W)
-    local mph = math.floor((st.speed_mph or 0) + 0.5)
-    self:_plainBig(pad, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Speed"), tostring(mph), ZeD.tr("UI_ZeD_DashPlain_Mph"),
+    local spd, unitKey = D.plainSpeed(st, _metric())
+    self:_plainBig(pad, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Speed"), spd, ZeD.tr(unitKey),
         (st.speed_mph or 0) / pl.speedMax, T.accent, big)
     local rpm = math.floor((st.rpm or 0) / 50 + 0.5) * 50
     self:_plainBig(pad + bigW + gap * 2, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Rpm"), tostring(rpm), nil,
@@ -1885,11 +1970,12 @@ function ZeD_Dashboard:_plain(des, st, k)
     if #clim > 0 then sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Climate"), items = clim } end
     local radio = _radioItems(st)
     if radio then sections[#sections + 1] = { name = ZeD.tr("Tooltip_Dashboard_Radio"), items = radio } end
-    if pub and #pub.cells > 0 then
-        local items = {}
+    local items = {}
+    if pub then
         for _, c in ipairs(pub.cells) do items[#items + 1] = { text = _pair(c.name, c.text or _pct(c.share * 100)) } end
-        sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Readouts"), items = items }
     end
+    if self._xs then D.extraCells(self._xs, items) end      -- (other mods' readouts, D.addExtra)
+    if #items > 0 then sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Readouts"), items = items } end
     for _, sec in ipairs(sections) do
         for _, it in ipairs(sec.items) do
             if it.id then it.w = ZeD.Molecules.buttonW(it.text)
@@ -2001,6 +2087,7 @@ function ZeD_Dashboard:prerender()
         if self._driver then st.pub = pubV.read(vehicle, chr, self._mem) else st.pub = pubV.figures(vehicle, self._mem) end
     end
     D.derive(st, self._mem, dt)
+    self._xs = (#D._extras > 0) and D.extrasNow(chr, vehicle, self._driver) or nil   -- (other mods' readouts, D.addExtra)
     self:_trip(vehicle, st, dt)
     self._st = st
     local scriptName = _safe(function() return tostring(vehicle:getScriptName() or "") end, "")
@@ -2064,10 +2151,17 @@ function ZeD_Dashboard:prerender()
     end
     for _, c in ipairs(pending) do self:_control(c[1], c[2], c[3], c[4], c[5], st, c[6]) end
     -- the top edge's two words: cream with a dark shadow, or a plain dark ink where the design's top edge is light
+    local edgeX = 12
     if not self._driver then
         local pass = ZeD.tr("UI_ZeD_Dash_Passenger")
-        if des.passInk then P.text(cv, pass, 12, 2, P.color(des.passInk), "35", 1, "l")
-        else P.text(cv, pass, 12, 2, P.color("#d8d6cc"), "35", 1, "l", nil, "#101010") end
+        local pw
+        if des.passInk then pw = P.text(cv, pass, 12, 2, P.color(des.passInk), "35", 1, "l")
+        else pw = P.text(cv, pass, 12, 2, P.color("#d8d6cc"), "35", 1, "l", nil, "#101010") end
+        edgeX = 12 + (pw or 0) + MARK_GAP
+    end
+    -- other mods' marks after it, in the same ink (D.addExtra)
+    if self._xs then
+        D.extraMarks(cv, self._xs, edgeX, 2, P.color(des.passInk or "#d8d6cc"), (not des.passInk) and "#101010" or nil)
     end
 
     local Det = ZeD.Input and ZeD.Input.Detector

@@ -42,7 +42,7 @@ Cm.L = {
     AGREE_MS = 2000,
     GET_MS = 1000,
     PUSH_MS = 5000,                 -- the board goes to everyone at most this often; whoever pressed gets it at once
-    ASKED_MS = 300000,              -- asked and no answer for this long: one line in the log
+    ASKED_MS = 300000,              -- asked and no answer for this long: one line in the log, and a Kick is owed
     ASKED_LOOK_MS = 5000,           -- how often the server looks
 }
 

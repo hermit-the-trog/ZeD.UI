@@ -450,7 +450,7 @@ local STREAMS = {   -- the game's ISChat.allChatStreams: command, short command,
 local SEND = {
     say = function(t) processSayMessage(t) end,
     yell = function(t) processShoutMessage(t) end,
-    whisper = function(t) proceedPM(t) end,
+    whisper = function(t) return proceedPM(t) end,     -- (the game's answer: the name it went to)
     faction = function(t) proceedFactionMessage(t) end,
     safehouse = function(t) processSafehouseMessage(t) end,
     general = function(t) processGeneralMessage(t) end,
@@ -480,10 +480,10 @@ function C.send(text)
     -- (the strip comes before the parse: a pasted newline is what makes "/s\nhi" into "/s hi")
     text = tostring(text or "")
     if not cap("EmptyLinesInChat") then text = text:gsub("[\n\r]", " ") end
-    local stream, body = nil, text
+    local stream, body, typed = nil, text, ""
     for _, s in ipairs(STREAMS) do
         local cmd = (text:sub(1, #s[1]) == s[1] and s[1]) or (s[2] and text:sub(1, #s[2]) == s[2] and s[2]) or nil
-        if cmd then stream, body = s[3], text:sub(#cmd + 1); break end
+        if cmd then stream, body, typed = s[3], text:sub(#cmd + 1), cmd; break end
     end
     -- (the mute is about chat: any other slash command still goes, it may be staff's)
     local isChat = stream or text:sub(1, 1) ~= "/" or toldToAll(text)
@@ -501,8 +501,17 @@ function C.send(text)
     if body:gsub("%s", "") == "" then return false end
     local fn = SEND[stream]
     if not fn then return false end
-    local ok, err = pcall(fn, body)
-    if not ok then ZeD.logOnce("chat send " .. stream, err); return false end
+    local ok, res = pcall(fn, body)
+    if not ok then ZeD.logOnce("chat send " .. stream, res); return false end
+    -- the game's chat keeps "/w name " for the next whisper and gives it back when the line is opened again
+    -- (ISChat:onCommandEntered and ISChat:focus, one per tab). As there, a line typed with another stream's command
+    -- takes its place (ZeD opens on the tab's own stream, so it lets it go); a plain line leaves it be
+    if stream == "whisper" then
+        local name = (type(res) == "string" and res ~= "") and res or body:match("^%s*(%S+)")
+        C.keep = name and { text = typed .. name .. " ", tab = C.tab } or nil
+    elseif typed ~= "" and C.keep and C.keep.tab == C.tab then
+        C.keep = nil
+    end
     if not cap("IgnoreChatSlowMode") then
         local secs = safe(function() return getServerOptions():getInteger("ChatMessageSlowModeTime") end, 0)
         C.slowUntil = getTimestampMs() + secs * 1000
@@ -560,9 +569,8 @@ function ZeD_ChatWindow:submit()
     local text = self.input:getText() or ""
     local ok, why = C.send(text)
     if ok then
-        -- a whisper keeps "/w name " for the next one, as the game's chat does
-        local keep = text:match("^(/w%a* %S+ )") or ""
-        self.input:setText(keep)
+        -- the line empties once it went, as the game's does; a whisper's "/w name " comes back when it is opened again
+        self.input:setText("")
         self.scroll = 0
     elseif why == "slow" then
         self._slowNote = true
@@ -571,6 +579,16 @@ function ZeD_ChatWindow:submit()
     end
     self._usedAt = getTimestampMs()
     self.input:unfocus()
+end
+
+-- into the line to type: an empty line starts with the last whisper's "/w name " in its tab, as the game's chat does
+function ZeD_ChatWindow:prefill()
+    local k = C.keep
+    if k and k.tab == C.tab and (self.input:getText() or "") == "" then self.input:setText(k.text) end
+end
+function ZeD_ChatWindow:focusInput()
+    self:prefill()
+    self.input:focus()
 end
 
 -- the window is in use: the pointer on it, the line being typed in, the pad on it, or a line came lately
@@ -861,7 +879,7 @@ function ZeD_ChatWindow:onMouseDown(x, y)
         if C.slowLeft() == 0 then self:submit() end
         return true
     end
-    if inRect(self._inputRect, x, y) then self.input:focus(); return true end
+    if inRect(self._inputRect, x, y) then self:focusInput(); return true end
     if self:_pressLines(x, y) then return true end
     -- anywhere else: the title bar drags (ZeD_Window), the rest does nothing
     return ZeD_Window.onMouseDown(self, x, y)
@@ -905,6 +923,9 @@ function ZeD_ChatWindow:update()
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     self.joyfocus = (jd and jd.focus == self) and jd or nil
     if self.joyfocus then self._usedAt = getTimestampMs() end
+    -- left with only the whisper's "/w name " in it: the line empties, as the game's does when you leave it
+    local k = C.keep
+    if k and self.input and not self.input:isFocused() and self.input:getText() == k.text then self.input:setText("") end
     -- the place is kept a moment after a drag or a resize ends
     local now = getTimestampMs()
     if not (self._saveAt and now - self._saveAt < 2000) then self._saveAt = now; C.savePlace(self) end
@@ -940,6 +961,7 @@ function ZeD_ChatWindow:onJoypadDown(button, jd)
         return
     end
     if button == Joypad.AButton and self.zone == "input" then
+        self:prefill()
         if OnScreenKeyboard and OnScreenKeyboard.Show then
             local ok = pcall(OnScreenKeyboard.Show, self.playerNum, self.input, jd)
             if not ok then self.input:focus() end
@@ -1108,7 +1130,7 @@ function C.open(typing, pad)
         if jd then win.zone = "lines"; jd.focus = win; updateJoypadFocus(jd) end
     elseif typing and win.input then
         win.zone = "input"
-        win.input:focus()
+        win:focusInput()
     end
     return win
 end

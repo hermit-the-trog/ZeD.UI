@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taksameter: Pr. ventende minut",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars, taksameteret lægger til for hvert minut i realtid, taxaen venter (under 5 km/t, motor i gang), med flaget nede.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taksameter: Pr. ekstra passager",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars vist under EKSTRA for hver passager efter den første. Chaufføren tæller ikke med."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars vist under EKSTRA for hver passager efter den første. Chaufføren tæller ikke med.",
+    "Sandbox_ZeD_HostHelper": "Værtshjælper (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "Til: de udelukkelser, ophævelser og smid-ud, ZeD skylder spillet, skrives også til Zomboid/Lua/ZeD_helper/ til ZeD's værtshjælper, et separat program serverens ejer kører på servermaskinen. Den udfører dem via serverens fjernkonsol (RCONPort og RCONPassword i serverens indstillinger), så de træder i kraft uden staff online. Fra: de venter på, at en fra staff logger på."
 }

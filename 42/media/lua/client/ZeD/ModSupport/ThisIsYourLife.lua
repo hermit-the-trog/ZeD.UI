@@ -17,6 +17,9 @@
 --   a story     fixes the name, the job, the traits and the look, so ZeD lets the mod's own occupation and looks
 --               screens run (they fill themselves in and press Play): MM.redirectPass.
 --   Back        from the Hometown page to the town list; a normal town clears any pending pick (TIYL.Flow.abandon).
+--   Restart     back at the desk after a death (Overrides/Respawn.lua) the same: the respawn desk builds the Hometown
+--               window, and its Next is the game's respawn spawn screen's own (CoopMapSpawnSelect:clickNext). Random
+--               on the town list there never lands on the mod's hidden town.
 -- ============================================================================
 require "ZeD/ZeD_MainMenu"
 require "ZeD/ZeD_MainMenuSpawn"
@@ -138,6 +141,7 @@ function ZeD_MMHometown:items()
 end
 
 function ZeD_MMHometown:isRandom(it) return it ~= nil and it.tiyl ~= nil and it.tiyl.id == "random" end
+function ZeD_MMHometown:randomProblem() return nil end   -- (the mod's own Random hometown: the mod picks)
 function ZeD_MMHometown:hasDetails() return false end   -- (the save name and seed were on the town list)
 
 function ZeD_MMHometown:onShow()
@@ -171,6 +175,8 @@ function ZeD_MMHometown:next()
     local i = tiylIndex()
     v.listbox.selected = i
     MM.toVanilla()
+    -- (back at the desk after a death: the respawn spawn screen's own Next, on to occupation and traits)
+    if MM.respawn then v:clickNext(); return end
     MapSpawnSelect.clickNext(v)
 end
 
@@ -199,6 +205,13 @@ function ZeD_MMSpawn:next()
         pcall(TIYL.Flow.abandon)
     end
     return baseNext(self)
+end
+
+-- Random back at the desk after a death never lands on the mod's town (it needs the Hometown page)
+local basePickable = ZeD_MMSpawn.randomPickable
+function ZeD_MMSpawn:randomPickable(it)
+    if TIYL and TIYL.REGION_NAME and isTiylItem(it) then return false end
+    return basePickable(self, it)
 end
 
 -- the mod's town says what it is in the town list (its own description is empty)

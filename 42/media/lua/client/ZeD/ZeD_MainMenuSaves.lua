@@ -336,6 +336,7 @@ function ZeD_MMLoad:startRename()
     self.renameEntry:setText(s.saveName)
     self.renameEntry:setVisible(true)
     self.renameEntry:focus()
+    if ZeD.selectDefault then ZeD.selectDefault(self.renameEntry) end   -- (typing replaces the name offered)
 end
 
 function ZeD_MMLoad:rename()

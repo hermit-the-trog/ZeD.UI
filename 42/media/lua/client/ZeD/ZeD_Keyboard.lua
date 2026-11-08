@@ -119,6 +119,20 @@ function ZeD_Keyboard:upperOn()
 end
 
 -- ---------------------------------------------------------------------------
+-- A question's field that opens on a default (a name to keep or change: a preset, a build, a list, a save): the
+-- default is selected, so the first key typed replaces it instead of adding to it (the outside review, Nov 7 2026).
+-- The field remembers its default, and the controller's keyboard selects it again when it opens on the field while
+-- the default still stands. Every ZeD name question calls this after setting its text.
+-- ---------------------------------------------------------------------------
+function KB.selectDefault(e)
+    if not e then return end
+    local ok, t = pcall(function() return e:getInternalText() end)
+    e._zedDefaultText = ok and t or nil
+    pcall(function() e:selectAll() end)
+end
+ZeD.selectDefault = KB.selectDefault
+
+-- ---------------------------------------------------------------------------
 -- vanilla's instance API (OnScreenKeyboard.Show / Hide / GetCurrentText call these)
 -- ---------------------------------------------------------------------------
 function ZeD_Keyboard:show(playerNum, textEntryBox, joypadData)
@@ -134,6 +148,10 @@ function ZeD_Keyboard:show(playerNum, textEntryBox, joypadData)
     self.capsLock, self.shiftDown = false, false
     self.isRTPressed = joypadData and (joypadData.id or -1) >= 0 and isJoypadRTPressed and isJoypadRTPressed(joypadData.id) or false
     if textEntryBox then textEntryBox:focus() end
+    -- a question's default still standing: selected again, so the first key replaces it (KB.selectDefault)
+    if textEntryBox and textEntryBox._zedDefaultText ~= nil and self._orig == textEntryBox._zedDefaultText then
+        pcall(function() textEntryBox:selectAll() end)
+    end
     self:setVisible(true)
     self:addToUIManager()
     self:setAlwaysOnTop(true)

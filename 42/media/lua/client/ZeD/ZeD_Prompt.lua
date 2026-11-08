@@ -616,6 +616,12 @@ function ZeD_Prompt:addToUIManager()
         local n = self:pnum()
         local p = n and getSpecificPlayer(n)
         if not (p and p:getJoypadBind() ~= -1) then self.entry:focus() end
+        -- a one-line field's default (a list's name, a mod's question) is selected: typing replaces it, from the
+        -- keys or the controller's keyboard (ZeD.selectDefault; the outside review, Nov 7 2026). A note on several
+        -- lines keeps its caret at the end.
+        local multi = false
+        pcall(function() multi = self.entry.javaObject ~= nil and self.entry:isMultipleLine() end)
+        if not multi and ZeD.selectDefault then ZeD.selectDefault(self.entry) end
     end
 end
 
@@ -1286,6 +1292,12 @@ function ZeD_Prompt:update()
             local jd = JoypadState.players[i]
             if jd and jd.focus == self then jf = jd; break end
         end
+    end
+    -- at the main menu the controller is no player's yet: the main menu's joypad (a main-menu
+    -- note given its focus: Overrides/Prompts.lua's About Mods, Better Mod Experience's New Game)
+    if not jf and JoypadState and JoypadState.getMainMenuJoypad then
+        local mm = JoypadState.getMainMenuJoypad()
+        if mm and mm.focus == self then jf = mm end
     end
     if P.qaJoy then jf = P.qaJoy end   -- QA: the controller look without a controller (zedqa_prompts.lua)
     if jf ~= self.joyfocus then

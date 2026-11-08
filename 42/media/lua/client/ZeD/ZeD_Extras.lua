@@ -255,6 +255,14 @@ S.on(Ex.MOD, function(command, args)
     if fn then fn(args) end
 end)
 
+-- the join rules answered: my claims, asked before and refused, are asked again now (the hello brings the settings back)
+S.onAgreed("extras", function()
+    if E.mineAt then
+        E.mineAt, E.mineRows = nil, nil
+        E.mine()
+    end
+end)
+
 function E.onHello(a)
     E.frozen = a.exFrozen == true
     if a.ex then

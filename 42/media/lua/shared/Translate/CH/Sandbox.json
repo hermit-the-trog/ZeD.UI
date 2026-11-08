@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "計程車計費表：每分鐘等候",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "計費旗放下後，計程車每等候一分鐘（時速低於 5 km/h，引擎運轉），計費表按真實時間增加的美元數。",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "計程車計費表：每名額外乘客",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "在「其他」下為第一名之後的每位乘客顯示的美元數。司機不計。"
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "在「其他」下為第一名之後的每位乘客顯示的美元數。司機不計。",
+    "Sandbox_ZeD_HostHelper": "主機助手（RCON）",
+    "Sandbox_ZeD_HostHelper_tooltip": "開啟：ZeD 欠遊戲的封禁、解封與踢出也會寫入 Zomboid/Lua/ZeD_helper/，交給 ZeD 主機助手，這是伺服器擁有者在伺服器電腦上執行的獨立程式。它透過伺服器的遠端主控台（伺服器設定中的 RCONPort 與 RCONPassword）執行，所以沒有管理員在線也會生效。關閉：等管理員上線。"
 }
