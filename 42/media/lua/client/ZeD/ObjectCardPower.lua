@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardPower.lua
 -- ============================================================================
--- OBJECT CARD: GENERATOR (HOOK_MAP row 11; mockup zed_info_cards_v1.html)
--- The generator's own front panel in pixel art (director, Oct 16 2026: one
--- plate per model): the red 1988 portable, the yellow contractor's set, the
+-- OBJECT CARD: GENERATOR (card definition, client)
+-- The generator's own front panel in pixel art, one plate per model: the
+-- red 1988 portable, the yellow contractor's set, the
 -- blue compact and the 1960s military set (ZeDUI/tools/physpx, data in
 -- PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua; the plate is
 -- picked by the generator's item). Live on it: the engine switch and its lamp,
@@ -40,9 +40,9 @@ local call = OC.call
 local DOT = OC.DOT
 
 -- ============================================================================
--- THE PLAIN OBJECT CARD (Nov 2 2026): the Simple form of the generator, the propane grill and the laundry faces
--- (ZeD setup's Devices row, Full or Simple: ZeD.Settings.devicesSimple; the rules the director approved,
--- ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md). It does everything the face does and shows everything it shows; only the art
+-- THE PLAIN OBJECT CARD: the Simple form of the generator, the propane grill and the laundry faces
+-- (ZeD setup's Devices row, Full or Simple: ZeD.Settings.devicesSimple).
+-- It does everything the face does and shows everything it shows; only the art
 -- goes. One layout: a readout block across the top (the one or two values that matter most, in large type), then
 -- rows of label | value | control in the face's own order, then what the card already had under the face. Every
 -- control is the face's own zone: the same fid, the same run, the same help, so the mouse, the controller and the
@@ -286,8 +286,8 @@ function OP.sources(pid)
     return f
 end
 
-local OIL_COND = 25           -- the OIL lamp lights under a quarter's condition (director, Oct 16 2026)
--- The load meters' full scale: L/h burnt above the engine's own idle. Calibrated (Oct 16 2026) against vanilla's
+local OIL_COND = 25           -- the OIL lamp lights under a quarter's condition
+-- The load meters' full scale: L/h burnt above the engine's own idle. Calibrated against vanilla's
 -- own figures (IsoGenerator, B42): idle 0.02; fridge and freezer together 0.13, a lone fridge or freezer 0.08; a
 -- stove, washer or dryer 0.09 each while running; a television 0.03, a radio 0.01; a battery charger 0.05; a light
 -- switch 0.002 while lit; a stacked washer-dryer 0.9 (ten times the others; vanilla's figure). So a lived-in house
