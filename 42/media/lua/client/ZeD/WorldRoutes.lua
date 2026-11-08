@@ -41,6 +41,8 @@
 -- D-pad wheels do (ZeD_DpadWheels.lua H.worldTab).
 -- ============================================================================
 
+-- Kahlua has no next(); whether a table has any entry.
+local function hasAny(t) if type(t) ~= "table" then return false end for _ in pairs(t) do return true end return false end
 ZeD = ZeD or {}
 ZeD.WorldRoutes = ZeD.WorldRoutes or {}
 local WR = ZeD.WorldRoutes
@@ -153,7 +155,7 @@ local function watchPins(chr)
         local dev = WR.pins[pn]
         if dev and not WR.inReach(chr, dev) then WR.pins[pn] = nil end
     end
-    if next(WR.pins) == nil and watching then
+    if not hasAny(WR.pins) and watching then
         watching = false
         if Events and Events.OnPlayerUpdate then Events.OnPlayerUpdate.Remove(watchPins) end
     end
