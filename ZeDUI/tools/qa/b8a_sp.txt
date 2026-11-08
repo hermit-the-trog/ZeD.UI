@@ -1,0 +1,5 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_release_check.lua | rel | timeout=240
+zedqa_prelude2.lua | pre2 | timeout=120
+zedqa_b8a_sandbox.lua | b8asb | timeout=300
+zedqa_b8a_report.lua | b8arp | timeout=300
