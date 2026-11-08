@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_wheel_icons.lua  (Oct 27 2026)
--- The wheels' icons (ZeDUI/HANDOFF_wheel_icons_20261027.md; ZeD_Wheel.lua, ZeD_DpadWheels.lua). The
+-- The wheels' icons (docs/handoffs/HANDOFF_wheel_icons_20261027.md; ZeD_Wheel.lua, ZeD_DpadWheels.lua). The
 -- expectations below are wheel_icons_map.json's (ZeDUI/mockups/zed_wheel_icons_v1, Oct 27 2026), as data.
 --   1. every icon's four drawings load, at their sizes (16 and 24, and the two doubled: 32 and 48);
 --   2. the drawing for an icon box: the largest that fits, at its own size (the handoff's table, 0.5x to 2x);

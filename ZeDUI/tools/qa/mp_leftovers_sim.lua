@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_leftovers_sim.lua  (Nov 7 2026, Build): the multiplayer windows the game still opened with ZeD on
--- (ZeDUI/VANILLA_WINDOWS_20261107.md, C1 to C5, C15 to C17), with no game running. The real Tokens, Tr, Atoms, Molecules,
+-- (docs/reference/VANILLA_WINDOWS_20261107.md, C1 to C5, C15 to C17), with no game running. The real Tokens, Tr, Atoms, Molecules,
 -- ZeD_MainMenu, ZeD_MainMenuPlayers, ZeD_FormCard, ZeD_MpLeftovers, ZeD_LeftScreen, ZeD_Messages, ServerTab, AdminTab, the
 -- ticket, claim and community files, and the game's own ISItemEditPanel.lua from its install, on Lua 5.1 stubs (the harness
 -- is community_cards_sim.lua's). It walks: the pause window's Players page (the scoreboard's reply, a pick, the game's

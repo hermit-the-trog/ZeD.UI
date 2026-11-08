@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_bubbles.lua  (Oct 24 2026)
--- The overhead bubbles (ZeD/ZeD_Bubbles.lua, handoff ZeDUI/HANDOFF_bubbles_20261024.md):
+-- The overhead bubbles (ZeD/ZeD_Bubbles.lua, handoff docs/handoffs/HANDOFF_bubbles_20261024.md):
 -- the speech balloon for what the character says (a short line, a long wrapping
 -- line), the action bar's verbose layout in the thought bubble (a queue of eating),
 -- speaking while acting (the balloon beside the thought), the balloon flipped left

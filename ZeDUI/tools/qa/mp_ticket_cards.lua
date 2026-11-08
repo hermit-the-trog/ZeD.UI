@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_ticket_cards.lua  (Nov 5 2026, QA): multiplayer Phase 1, tickets, steps 8 to 10 of Part D
--- (ZeDUI/MP_SERVER_PART_DESIGN.md): every state of the ticket cards, from the mockup's tickets, one picture each.
+-- (docs/specs/MP_SERVER_PART_DESIGN.md): every state of the ticket cards, from the mockup's tickets, one picture each.
 -- grep "ZEDQA mtc". Pictures: mtc_<state>.png, in the screenshots folder.
 --   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"
 --   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_ticket_cards.txt

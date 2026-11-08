@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/gallery_t14_look_menu.lua  (Oct 30 2026)
--- The Workshop gallery retake on 0.2.0-t14 (ZeDUI/HANDOFF_gallery_book_20261030.md): run it FIRST in the gallery
+-- The Workshop gallery retake on 0.2.0-t14 (docs/handoffs/HANDOFF_gallery_book_20261030.md): run it FIRST in the gallery
 -- manifest (after zedqa_prelude.lua), and again after any block whose teardown puts the options back. Nothing in the mod
 -- changes: what it does is done at run time and put back by gallery_t14_end.lua.
 --   1. no debug artifacts in the pictures (the bridge needs -debug):

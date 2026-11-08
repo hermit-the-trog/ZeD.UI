@@ -1,6 +1,6 @@
 # Check: the multiplayer windows the game still opened (Nov 7 2026, Build)
 
-What changed (ZeDUI/VANILLA_WINDOWS_20261107.md, rows C1 to C5 and C15 to C17). Every one of these used to open the
+What changed (docs/reference/VANILLA_WINDOWS_20261107.md, rows C1 to C5 and C15 to C17). Every one of these used to open the
 game's own window over ZeD. Now each is ZeD's, through the game's own data and calls, and each falls back to the game's
 window in safe mode.
 

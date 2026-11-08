@@ -1,6 +1,6 @@
 # Check: everyday vanilla windows, the leftovers (Nov 7 2026)
 
-What changed, from the list of game windows still reachable with ZeD on (ZeDUI/VANILLA_WINDOWS_20261107.md, section B), with the director's decisions and corrections of Nov 7. Nothing here has been opened in the game yet. The no-game check is `ZeDUI/tools/qa/everyday_leftovers_sim.lua` (148 checks, all pass; 41 of them fail on the code before this work).
+What changed, from the list of game windows still reachable with ZeD on (docs/reference/VANILLA_WINDOWS_20261107.md, section B), with the director's decisions and corrections of Nov 7. Nothing here has been opened in the game yet. The no-game check is `ZeDUI/tools/qa/everyday_leftovers_sim.lua` (148 checks, all pass; 41 of them fail on the code before this work).
 
 Run every item twice: **4K fullscreen at 1.75x** and **Steam Deck 1280x800 at Auto** (Normal text, then Large text). Use the mouse first, then the controller. QA save only (Saves/Sandbox/ZeD-QA). Wait for windows to stop moving before any capture.
 

@@ -1,6 +1,6 @@
 # Survival guide ads (ZeD-GUI, design, Nov 6 2026)
 
-The plan is `ZeDUI/GUIDE_ADS_PLAN.md`.
+The plan is `docs/plans/GUIDE_ADS_PLAN.md`.
 
 1. `python adpx.py [name ...]` draws the pictures in ZeD's pixel art (the dashes' engine, `../dashpx/engine.py`: a
    height field, a material per pixel, lit from above, real shadows, each material on its own ramp, no blending, no

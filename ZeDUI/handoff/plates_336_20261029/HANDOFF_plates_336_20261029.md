@@ -4,7 +4,7 @@ For Code. Design is done and approved by the director. Everything is drawn, expo
 own Lua. What's left is plugging it in, three small Lua changes, and an in-game look. Nothing in the repo was edited
 by the design session; this folder is the whole change.
 
-Spec: `ZeDUI/PLATE_SIZES_SPEC.md`. Review page: `ZeDUI/mockups/zed_plates_336_v1.html` (today / 336 / 200 narrow,
+Spec: `docs/specs/PLATE_SIZES_SPEC.md`. Review page: `ZeDUI/mockups/zed_plates_336_v1.html` (today / 336 / 200 narrow,
 the fit at each UI scale). Notes on every design call: `ZeDUI/mockups/zed_plates_336_v1/README.md`.
 
 ## What changed

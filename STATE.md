@@ -3,7 +3,7 @@ Draft, Nov 8 2026: needs the director's check before it is trusted.
 # ZeD-UI — STATE
 
 One page. What is true right now. Rewritten at every closeout, never appended to.
-History lives in `archive/PROJECT_STATE.md` (through S122), `ZeDUI/deltas/`, PUNCH_LIST.md and the change notes in `ZeDUI/workshop/`.
+History lives in `docs/archive/PROJECT_STATE.md` (through S122), `ZeDUI/deltas/`, PUNCH_LIST.md and the change notes in `ZeDUI/workshop/`.
 
 **Version:** work is on **0.3.0-beta8** (the director, Nov 8 2026). `42/mod.info` still reads 0.3.0-beta7 and needs bumping before staging; beta 7 never went up, so beta 8 carries everything since beta6a.
 **Live on the Workshop:** 0.3.0-beta6a (live Nov 6 2026), item 3824968485 [check that nothing went up since]. Beta 7 was staged and passed the release check on Nov 7, but the director's evening plan was no upload Nov 7, the next one by noon Nov 8 (VANILLA_WINDOWS_20261107.md). Gallery spread 46 already went up for beta 7, since gallery images go up apart from the mod's files.
@@ -65,7 +65,7 @@ D-pad navigates inside a window (left-biased, U/D stays in the panel, L/R crosse
 
 ## Rules that bind every session
 
-No `border-radius`. 1px borders (2px on High Contrast). No soft shadows, no blur: System 7's hard 1u shadow, on pop-ups only. No all caps in the windows; status marks are 6u squares; no web patterns (pills, switches, segmented pairs). Fira only (Noto Sans SC for Chinese). No emoji. American spelling. Atoms → Molecules → Organisms; read `ZeD.T` fresh each frame; no `Tokens.lua` mutation. Never skin vanilla: any vanilla script that shows UI gets hooked at its entry point and designed for (HOOK_MAP.md). Every added feature can be turned off. Every fix goes on PUNCH_LIST.md with its check, and nothing is done until QA has seen it in the game. QA only in the zombie-free QA save; on 42.21 that is the Oct 27 copy, since the 42.22 save stalls at the convert prompt [check the save's name]. Code comments follow COMMENT_VOICE.md. Full rule set: GLOSSARY.md and the design-rule sections in `archive/PROJECT_STATE.md`.
+No `border-radius`. 1px borders (2px on High Contrast). No soft shadows, no blur: System 7's hard 1u shadow, on pop-ups only. No all caps in the windows; status marks are 6u squares; no web patterns (pills, switches, segmented pairs). Fira only (Noto Sans SC for Chinese). No emoji. American spelling. Atoms → Molecules → Organisms; read `ZeD.T` fresh each frame; no `Tokens.lua` mutation. Never skin vanilla: any vanilla script that shows UI gets hooked at its entry point and designed for (HOOK_MAP.md). Every added feature can be turned off. Every fix goes on PUNCH_LIST.md with its check, and nothing is done until QA has seen it in the game. QA only in the zombie-free QA save; on 42.21 that is the Oct 27 copy, since the 42.22 save stalls at the convert prompt [check the save's name]. Code comments follow COMMENT_VOICE.md. Full rule set: GLOSSARY.md and the design-rule sections in `docs/archive/PROJECT_STATE.md`.
 
 ## Where things are
 

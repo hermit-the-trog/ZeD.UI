@@ -27,7 +27,7 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
    drawn to fill the half card at every scale (panels 154 / 180 / 206 / 257 px); it stays full
    width until then. Ordinary radios, the CD player and TVs (chosen Oct 30): their own faces from
    Design, radios and the CD player in the half card, TVs in the full card, house radios and TVs on
-   the same faces. Request: `ZeDUI/REQUEST_design_radio_tv_faces_20261030.md`. Washers and dryers
+   the same faces. Request: `docs/handoffs/REQUEST_design_radio_tv_faces_20261030.md`. Washers and dryers
    next; then the pocket watch, alarm clock, timer, remote and pager (ideas, not yet asked for).
    **QA, Oct 30 (in game, 4K, 3ed5369, the director's yes):** passed. A ValuTech walkie in the hand: the
    Radio tab is the half card at 0.75, 1.0, 1.25, 1.5, 1.75 and 2.0 (its 154 / 206 / 257 / 154 / 180 / 206
@@ -44,7 +44,7 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
    at four widths that fill the full card, 336 (0.75, 1.5), 392 (1.75), 450 (1.0, 2.0 and up), 562
    (1.25); the game draws the widest that fits (85-100% between the listed scales); 0.5 dropped;
    the 200 pixel narrow faces stay for Auto on 720 or 800 high screens with the smallest font.
-   Request: `ZeDUI/REQUEST_design_plates_fill_20261030.md`. The test checks the right width loads
+   Request: `docs/handoffs/REQUEST_design_plates_fill_20261030.md`. The test checks the right width loads
    and fills its card, crisp, at every scale.
    **QA, Oct 30 (in game, 4K, 3ed5369, the director's yes; zedqa_plates_fill.lua):** passed but for one
    check. All 142 `<pid>@<W>` textures load. At 0.75, 1.0, 1.25, 1.5, 1.75 and 2.0 the range, both
@@ -547,7 +547,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     - Build to write the plain rules and a mockup for the director before building; credit FieClaussell in the
       Compatibility thread.
 
-    **Spec and mockup (build, Oct 31, 3f0b244):** ZeDUI/MOD_FOLDERS_SPEC.md (ModFolders.cfg's format from the
+    **Spec and mockup (build, Oct 31, 3f0b244):** docs/specs/MOD_FOLDERS_SPEC.md (ModFolders.cfg's format from the
     mod's own code, section 9), ZeDUI/mockups/zed_mod_folders_v1.html + PNGs, credit draft
     ZeDUI/workshop/compat_modfolders_draft.txt (not posted; the Workshop page says FieClaussell, the mod's
     info says Paltia: check before posting). **Director's picks (Oct 31):** a folder's on/off acts at once (Accept
@@ -711,7 +711,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       No errors either way.
 41. **Load order tools for big mod lists (a Workshop comment by Kable, ~1,500 mods; director, Oct 31 2026: "I want
     the mod manager to really shine, so let's try and accommodate their request").** chosen. Rules
-    ZeDUI/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
+    docs/specs/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
     folders and separators as one Mods screen. Director's picks: Find in the load order shows only the matches, with
     their real place numbers and the gaps counted; "Load after..." is kept as a rule (survives Auto and profiles,
     shown on the row, removable); a pin or rule wins over a mod's own load-after wish with no yellow mark
@@ -1747,8 +1747,8 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
 
 ## Beta (0.3.0-beta1)
 
-The director, Nov 2 2026 (ZeDUI/BETA_DECISIONS.md, from the Cowork session; the questions in
-ZeDUI/HANDOFF_cowork_beta_20261102.md): the build after t16 is the beta. Every item below is chosen. Each carries its
+The director, Nov 2 2026 (docs/specs/BETA_DECISIONS.md, from the Cowork session; the questions in
+docs/handoffs/HANDOFF_cowork_beta_20261102.md): the build after t16 is the beta. Every item below is chosen. Each carries its
 own check, and nothing is done until QA confirms it in the game. QA works in two passes: after each build, only what
 that build changed plus the five-minute release check; before a release, the full checklist (rewritten for the beta,
 item 74, reviewed by the director first). Regular testing runs at one resolution (4K); Deck and 720p only where an
@@ -1816,7 +1816,7 @@ item says so.
     - Build brings the layout rules and that list to the director before building anything.
     - **Check (QA, after it is built):** the ZeD setup switch flips every listed surface between its two forms, live;
       each simple card does everything its face does, with the mouse and the pad.
-    **Proposal and answers (ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md; the director, Nov 2 2026: "the rules are right.
+    **Proposal and answers (docs/plans/SIMPLE_VERSIONS_PROPOSAL.md; the director, Nov 2 2026: "the rules are right.
     Watch and dashboard go into the beta. Fictional pieces stay simple"):** the six rules stand (nothing lost, ZeD's
     plain parts, one device-card layout, the pad in the face's order, one "Look" group in ZeD setup with a Full /
     Simple row per family and Vanilla Access picking Simple, Full the default). In the beta: group A, the devices
@@ -2173,7 +2173,7 @@ item says so.
     - QA rewrites items 4 to 16 and its regression list in the two-pass shape: a per-build pass of only what changed
       plus the release check, and a full pre-release checklist.
     - The director reviews the full checklist before testing starts, and both sessions refresh it after every build.
-    **QA, Nov 2 2026: the draft is written for the director's review: ZeDUI/QA_CHECKLIST_BETA.md.** Pass 1 after each
+    **QA, Nov 2 2026: the draft is written for the director's review: docs/plans/QA_CHECKLIST_BETA.md.** Pass 1 after each
     build: the release check, the build's own checks, and the scripts that cover what changed (a table by area). Pass 2
     before a release: the release check, the full run at 4K, the simple versions, the old items 4 to 16 (each mapped
     to how it is checked now), small screens once, the main menu, the languages, the upload. Three checks are still to
@@ -2227,7 +2227,7 @@ item says so.
     - Related, for the director: the right-click strip draws two letters for an action ZeD has no icon for
       (Molecules drawContextCell's fallback), the same modern tell.
 77. **The laundry faces redrawn (design, Cowork; the director, Nov 2 2026: "These are great. I love them.").** built
-    (258dc431, 2817d3f1; ZeDUI/HANDOFF_laundry_redesign_20261102.md). The game model's proportions; the washer a
+    (258dc431, 2817d3f1; docs/handoffs/HANDOFF_laundry_redesign_20261102.md). The game model's proportions; the washer a
     top-loader seen from above (backsplash console, lid up, basket and agitator, the load round it, soapy water rising
     through it at the 5 levels: `washer*_soak1..5` with clothes, `washer*_water1..5` without, from ObjectCardLaundry's
     new `waterLoad` / `waterBare` states); the dryer under the matching console; the washer-dryer still a front-loader
@@ -2264,7 +2264,7 @@ item says so.
     piped washer reads "Water: On the water pipes"; the plain dryer shows only Inside. The dryer card blank on its first
     4K frame draws its face a second later (its pictures loading, item 26 rule): not a fault.
 78. **The main menu desk v5: the joystick ports and the KI pad (design, Cowork; the director, Nov 2 2026: "Desk is
-    approved").** chosen, staged, not installed (ZeDUI/HANDOFF_main_menu_pad_20261102.md). Two 9-pin joystick ports on
+    approved").** chosen, staged, not installed (docs/handoffs/HANDOFF_main_menu_pad_20261102.md). Two 9-pin joystick ports on
     the case front, 1 and 2, the Kentucky Instruments pad's plug pushed into 1 (its cable out of the back and down), 2
     empty with its pins; the pad lying flat on the desk at the bottom right, beige, Super NES thick, edges rounded.
     The art is in ZeDUI/art/main_menu/v5 (gen_desk.py; grade.py reads v5); no code change, the contract is unchanged.
@@ -2273,7 +2273,7 @@ item says so.
     - **Check (QA):** the menu at 1080p against previews/main_menu_v5_4x.png, the lights blink in place, the lamp
       flicker shows the pad; how much of the pad shows at 1280x800 and 720 (the lean-in) and on ultrawide.
 79. **The Vehicle tab in two columns (the director, Nov 2-3 2026: in the beta, "we're just refining the features that
-    we already offer").** chosen. Spec: ZeDUI/VEHICLE_TAB_SPEC.md. The tab becomes Crafting's layout: the part list on
+    we already offer").** chosen. Spec: docs/specs/VEHICLE_TAB_SPEC.md. The tab becomes Crafting's layout: the part list on
     the left (By section, a part under the one that comes off first; By condition, greyed until Mechanics level 4 with
     "Mechanics Level 4" from words already translated); the car diagram on the right, lighting the part the pointer or
     the pad's focus is on, clickable; a click or A puts the part's card in its place, the same row again or B brings
@@ -2286,7 +2286,7 @@ item says so.
     - **QA:** the spec's section 8; QA_CHECKLIST_BETA.md has the Vehicle tab row in its pass 1 table.
     - **Design, Nov 3 2026: the diagrams are redrawn and staged** (the director: "The vehicle mockup looks
       awesome"). All 13 bodies, 314 layers, the same texture names and anchors form: ZeDUI/art/mech_pixel/, from
-      tools/mechanics/pixel_mech_figs.py. Build: install per ZeDUI/HANDOFF_vehicle_diagrams_20261103.md (copy the
+      tools/mechanics/pixel_mech_figs.py. Build: install per docs/handoffs/HANDOFF_vehicle_diagrams_20261103.md (copy the
       textures and MechFigs.lua; draw the figure at a whole multiple so the pixels stay crisp). QA: its checks there.
     **Built (build, Nov 3 2026, 2cb35519): MechanicsTab.lua on CraftingCore's split (list 240u left, diagram or card
     right, footer with Sort and the part's verbs). By section uses the parts' own install tables: requireUninstalled
@@ -2399,7 +2399,7 @@ item says so.
       the item's files, size, title and description are unchanged; then the same on the real item.
 
 82. **The survival guide (F1), the Simple look (the director, Nov 3 2026: "You are go for build").** built, QA to
-    check (b641524e). Design: ZeDUI/SURVIVAL_GUIDE_DRAFT.md; mockup ZeDUI/mockups/zed_survival_guide_v7.html. Code:
+    check (b641524e). Design: docs/plans/SURVIVAL_GUIDE_DRAFT.md; mockup ZeDUI/mockups/zed_survival_guide_v7.html. Code:
     42/media/lua/client/ZeD/ZeD_SurvivalGuide.lua (HOOK_MAP row 18). A ZeD window in place of the game's guide: the
     game's 15 sections and their topics on the left (Find at the top, sections fold), the topic on the right (the game's
     clip, the game's text, The Rules in Numbers for Skill Books), a band (the game's "Show the guide on startup",
@@ -2587,7 +2587,7 @@ item says so.
       - Pictures: Screenshots/zqa_hln_*, zqa_hln_sheet.png.
 86. **The change note on the main menu's corkboard (the director, Nov 5 2026: "one long note, yellow paper, and it's
     the change notes. At the top, it lists the current beta number").** chosen; staged, not installed
-    (ZeDUI/HANDOFF_main_menu_note_20261105.md). A sheet of yellow legal paper replaces the sticky note and the photo
+    (docs/handoffs/HANDOFF_main_menu_note_20261105.md). A sheet of yellow legal paper replaces the sticky note and the photo
     beside Princess Quest 3. The paper is in the art (ZeDUI/art/main_menu/v6, grade.py reads v6); the menu writes the
     words: the beta from the mod's version in the 5 x 7 face, five short lines from MenuNote.lua in the 3 x 5 face, in
     the note's ink (lit and dimmed).
@@ -2597,7 +2597,7 @@ item says so.
       a long line cut).
     - **Every release:** the five lines updated (release checklist step 4b).
 87. **Multiplayer and admin, the full scope (the director, Nov 5 2026: "I want to solve for all these problems ...
-    I would rather just have it included").** chosen; design first. ZeDUI/MP_ADMIN_SCOPE.md: ZeD ships a server part
+    I would rather just have it included").** chosen; design first. docs/specs/MP_ADMIN_SCOPE.md: ZeD ships a server part
     (official Lua); six phases (reports and tickets; admin clarity, players and moderation; safehouses and factions in
     cards; logs; community; opt-in systems off by default); every game pop-up the server surfaces open either moves
     into a card or gets the ZeD skin (the table there).

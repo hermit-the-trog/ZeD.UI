@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/zedqa_twoway.lua  (Oct 25 2026)
 -- The two-way radios' faces in the radio tab and in full view (handoff
--- ZeDUI/HANDOFF_twoway_20261025.md, approved Oct 25 2026). With batteries in:
+-- docs/handoffs/HANDOFF_twoway_20261025.md, approved Oct 25 2026). With batteries in:
 --   1. each portable set in the Character window (the five walkies and the
 --      makeshift one in the hand, the ManPack on the back): its own face at the
 --      plates' zoom, centred in its 220 panel at the content's left, the full

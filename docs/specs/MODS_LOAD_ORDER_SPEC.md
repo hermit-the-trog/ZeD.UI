@@ -4,7 +4,7 @@ Plain rules for the director before anything is built. Asked for by a player who
 comment, Oct 31 2026: searching the load order, load first / last, load before or after a chosen mod); the
 director: "I want the mod manager to really shine, so let's try and accommodate their request."
 
-This extends `ZeDUI/MOD_FOLDERS_SPEC.md` (folders on the Mods page, separators on the Load order page; read it
+This extends `docs/specs/MOD_FOLDERS_SPEC.md` (folders on the Mods page, separators on the Load order page; read it
 first: its sections 7, 8 and 10 are assumed here). Mockup: `ZeDUI/mockups/zed_mod_folders_v2.html` (PNGs beside it;
 it keeps v1's folder scenes and adds the load order scenes). Screen as built today:
 `42/media/lua/client/ZeD/ZeD_MainMenuMods.lua`.
