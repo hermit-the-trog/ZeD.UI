@@ -631,6 +631,19 @@ function ZeD.Settings.identitySimple()
     return ok and v == 2
 end
 
+-- ----- THE HIDDEN FACTS (the director, Nov 7 2026, punch list 109: "Vanilla plus gates them. Only vanilla access.") -----
+-- Find first: the guide's TV schedule opens once the character has read TV Monthly, the infection odds once they have
+-- read a First Aid book (ZeD_HiddenFacts.lua). Always: both open from the start, and the crafting card's How to learn
+-- names the magazine. An addition: Find first in Vanilla and Vanilla Plus, Always in Vanilla Access.
+local hiddenFacts = opts:addComboBox("hiddenFacts", ZeD.tr("UI_ZeD_Settings_HiddenFacts"), ZeD.tr("UI_ZeD_Settings_HiddenFactsTip"))
+hiddenFacts:addItem(ZeD.tr("UI_ZeD_Settings_FindFirst"), true)   -- default
+hiddenFacts:addItem(ZeD.tr("UI_ZeD_Hidden_Always"), false)
+ZeD.Settings.hiddenFactsOption = hiddenFacts
+function ZeD.Settings.hiddenFactsAlways()
+    local ok, v = pcall(hiddenFacts.getValue, hiddenFacts)
+    return ok and v == 2
+end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -661,6 +674,7 @@ do
         screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", beltStyle = "UI_ZeD_Settings_Belt",
         devicesStyle = "UI_ZeD_Settings_Devices", watchStyle = "UI_ZeD_Settings_WatchStyle", dashStyle = "UI_ZeD_Settings_Dash",
         guideStyle = "UI_ZeD_Settings_Guide", modsStyle = "UI_ZeD_Settings_Mods", identityStyle = "UI_ZeD_Settings_Identity",
+        hiddenFacts = "UI_ZeD_Settings_HiddenFacts",
         wheelOpen = "UI_ZeD_Settings_WheelOpen", wheelCommit = "UI_ZeD_Settings_WheelCommit",
         wheelToggle = "UI_ZeD_Settings_WheelToggle", wheelDeadZone = "UI_ZeD_Settings_WheelDeadZone",
     }
@@ -696,7 +710,7 @@ local function setUpAdditions()
     -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
                   "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle",
-                  "guideStyle", "modsStyle", "identityStyle", "haloBubble" }
+                  "guideStyle", "modsStyle", "identityStyle", "haloBubble", "hiddenFacts" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
     -- while Loadouts is off). When the "faces or simple cards" switch is built (punch list 17), its id goes in
@@ -704,15 +718,18 @@ local function setUpAdditions()
     local PRESETS = {
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
-          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF },
+          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF,
+          hiddenFacts = 1 },
         -- 2 Vanilla Plus: every addition on, Restock Casual
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
-          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON },
+          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON,
+          hiddenFacts = 1 },
         -- 3 Vanilla Accessible: every addition on, Restock Accessible
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
-          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON },
+          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON,
+          hiddenFacts = 2 },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
@@ -877,9 +894,9 @@ local function setUpAdditions()
             end
             -- (beta, Nov 2 2026: the Full or simple rows joined the presets. A player on Vanilla Access, preset item 3,
             -- from before them gets them Simple, as the preset now asks, instead of the preset reading Custom. The Identity
-            -- row joined in beta 6.)
+            -- row joined in beta 6, Hidden facts after beta 7.)
             if val.additionsPreset == 3 then
-                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle" }) do
+                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle", "hiddenFacts" }) do
                     local o = opt(id)
                     if o and not has[id] then o:setValue(2) end
                 end
