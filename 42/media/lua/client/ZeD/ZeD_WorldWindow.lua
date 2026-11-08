@@ -927,6 +927,17 @@ local function _buildAnimalsFocusables(win)
                 end,
             }
         end
+        -- Help (Nov 7 2026): the game's zone note, asked for.
+        if win._animalsZoneHelpZone then
+            local z = win._animalsZoneHelpZone
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "animals:zonehelp",
+                onActivate = function(w)
+                    if AT.zoneHelp then AT.zoneHelp(w) end
+                end,
+            }
+        end
         -- Animal roster rows → navigate to animal detail.
         if win._animalsRosterZones then
             for i, rz in ipairs(win._animalsRosterZones) do

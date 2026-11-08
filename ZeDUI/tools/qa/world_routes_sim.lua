@@ -16,6 +16,11 @@
 --   ANIMAL   onAnimalInfo and ISOpenAnimalInfo:perform show the animal in the Animals tab (the action still finishes)
 --   ZONE     onCheckZone opens the zone's view (ranch, no animal, the cache read for a new zone)
 --   NOTE     the first-time zone note: skipped under ZeD's window, shown when asked for or with no window
+--   FLOOR    (Build's calls, Nov 7 2026) the pin keeps the 10 tiles on the player's floor only: a floor change drops
+--            it (with the window's list asking or not), a device on another floor opens nothing
+--   REACH    an animal outside the ranch keeps the game's reach for its window (5 tiles, 4 from a hutch or
+--            trailer, gone or dead steps back, the cheat lifts it); a zone animal has none
+--   HELP     the zone view's help button: the game's own note, as a ZeD note, the game's when ZeD can't
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/world_routes_sim.lua
 -- It prints FAIL lines and a last line "world_routes_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -63,6 +68,9 @@ local function event() local e = {}; e.Add = function(f) ticks[#ticks + 1] = f e
     e.Remove = function(f) for i = #ticks, 1, -1 do if ticks[i] == f then table.remove(ticks, i) end end end; return e end
 Events = { OnTick = event(), OnGameBoot = { Add = function() end }, OnEquipPrimary = { Add = function() end, Remove = function() end },
     OnEquipSecondary = { Add = function() end, Remove = function() end } }
+local playerUpdate = {}
+Events.OnPlayerUpdate = { Add = function(f) playerUpdate[#playerUpdate + 1] = f end,
+    Remove = function(f) for i = #playerUpdate, 1, -1 do if playerUpdate[i] == f then table.remove(playerUpdate, i) end end end }
 local function runTicks(n) for _ = 1, n do local list = {}; for i, f in ipairs(ticks) do list[i] = f end; for _, f in ipairs(list) do f() end end end
 
 JoypadState = { players = {} }
@@ -127,6 +135,7 @@ local function newPart(id, x, y)
     function p:getDeviceData() return self.dd end
     function p:getX() return self.x end
     function p:getY() return self.y end
+    function p:getZ() return 0 end
     return p
 end
 
@@ -241,6 +250,40 @@ resetWindows()
 tvFar.gone = true
 check("FAR a set picked up: the game's window", WR.radio(p0, tvFar) == false)
 tvFar.gone = nil
+
+-- FLOOR (Build's call, Nov 7 2026: the game's 10 tiles, on the same floor only)
+resetWindows()
+local tvUp = newTv(104, 100)
+tvUp.z = 1
+check("FLOOR a TV upstairs: handled, nothing opens", WR.radio(p0, tvUp) == true and #log == 0 and ZeD_WorldWindow.win == nil)
+check("FLOOR a TV upstairs: no pin", WR.pins[0] == nil)
+check("FLOOR not in reach across floors", WR.inReach(p0, tvUp) == false)
+resetWindows()
+check("FLOOR same floor: pinned", WR.radio(p0, tvFar) == true and WR.pins[0] == tvFar)
+check("FLOOR the pin watches the player", #playerUpdate == 1)
+p0.z = 1
+check("FLOOR upstairs: the list drops it", ZeD.RadioTab.indexOf(ZeD.RadioTab.buildWorldRadios(p0), tvFar) == nil)
+p0.z = 0
+check("FLOOR back down: not again", ZeD.RadioTab.indexOf(ZeD.RadioTab.buildWorldRadios(p0), tvFar) == nil and WR.pins[0] == nil)
+resetWindows()
+WR.radio(p0, tvFar)
+p0.z = 1.4
+for _, f in ipairs({ unpack(playerUpdate) }) do f(p0) end
+check("FLOOR upstairs with the tab not drawn: the watcher drops it", WR.pins[0] == nil)
+check("FLOOR the watcher leaves with the last pin", #playerUpdate == 0)
+p0.z = 0
+check("FLOOR back down, window list: not again", ZeD.RadioTab.indexOf(ZeD.RadioTab.buildWorldRadios(p0), tvFar) == nil)
+resetWindows()
+WR.radio(p0, tvFar)
+p0.x = 120.5
+for _, f in ipairs({ unpack(playerUpdate) }) do f(p0) end
+check("FLOOR walked out with the tab not drawn: dropped", WR.pins[0] == nil)
+p0.x = 100.5
+p0.z = 0.6
+check("FLOOR on the stairs' first step: same floor", WR.sameFloor(p0, tvFar) == true)
+p0.z = 0
+local noZ = { getX = function() return 0 end }
+check("FLOOR a floor that can't be read: x and y only", WR.sameFloor(p0, noZ) == true)
 
 -- PART
 resetWindows()
@@ -452,6 +495,122 @@ check("NOTE player 1 under player 0's window: shown", origNote == 3)
 ZeD._safe = true
 ISAnimalZoneFirstInfo.showUI(0, false)
 check("NOTE safe mode: shown", origNote == 4)
+
+-- REACH (Build's call, Nov 7 2026: an animal outside the ranch keeps the game's reach for its window)
+local function newAnimal(x, y, o)
+    local a = { x = x, y = y, hp = 1, inWorld = true }
+    for k, v in pairs(o or {}) do a[k] = v end
+    function a:getX() return self.x end
+    function a:getY() return self.y end
+    function a:getHealth() return self.hp end
+    function a:getHutch() return self.hutch end
+    function a:getVehicle() return self.veh end
+    function a:isHeld() return self.held == true end
+    function a:isExistInTheWorld() return self.inWorld end
+    function a:getDZone() return self.dz end
+    return a
+end
+resetAnimals()
+local deer = newAnimal(103, 100)
+AnimalContextMenu.onAnimalInfo(deer, p0)
+local aw = ZeD_WorldWindow.win
+check("REACH a wild animal is watched", aw._zedAnimalReach and aw._zedAnimalReach.animal == deer)
+check("REACH near: the view stays", WR.animalLeft(aw, deer) == false)
+deer.x = 106
+check("REACH past 5 tiles: steps back", WR.animalLeft(aw, deer) == true)
+check("REACH then no more watch", aw._zedAnimalReach == nil and WR.animalLeft(aw, deer) == false)
+resetAnimals()
+deer.x = 103
+AnimalContextMenu.onAnimalInfo(deer, p0)
+aw = ZeD_WorldWindow.win
+deer.hp = 0
+check("REACH dead: steps back", WR.animalLeft(aw, deer) == true)
+deer.hp = 1
+resetAnimals()
+AnimalContextMenu.onAnimalInfo(deer, p0)
+aw = ZeD_WorldWindow.win
+deer.inWorld = false
+check("REACH gone from the world: steps back", WR.animalLeft(aw, deer) == true)
+deer.inWorld = true
+resetAnimals()
+AnimalContextMenu.onAnimalInfo(deer, p0)
+aw = ZeD_WorldWindow.win
+local other = newAnimal(200, 200)
+check("REACH another animal browsed to: no reach", WR.animalLeft(aw, other) == false and aw._zedAnimalReach == nil)
+resetAnimals()
+local hen = newAnimal(100, 100, { hutch = { getSquare = function() return SQ(104, 100, 0) end } })
+check("REACH hutch 3.5 tiles: in", WR.animalInReach(p0, hen) == true)
+hen.hutch = { getSquare = function() return SQ(105, 100, 0) end }
+check("REACH hutch 4.5 tiles: out", WR.animalInReach(p0, hen) == false)
+local calf = newAnimal(0, 0, { veh = { getX = function() return 104 end, getY = function() return 100.5 end } })
+check("REACH trailer 3.5 tiles: in", WR.animalInReach(p0, calf) == true)
+local held = newAnimal(0, 0, { held = true, inWorld = false })
+check("REACH held: in", WR.animalInReach(p0, held) == true)
+deer.x = 140
+AnimalContextMenu.cheat = true
+check("REACH the cheat lifts it", WR.animalInReach(p0, deer) == true)
+AnimalContextMenu.cheat = nil
+ISAnimalUI = { maxDist = 50 }
+check("REACH the game's own maxDist", WR.animalInReach(p0, deer) == true)
+ISAnimalUI = nil
+resetAnimals()
+local ewe = newAnimal(140, 100, { dz = {} })
+AnimalContextMenu.onAnimalInfo(ewe, p0)
+check("REACH a zone animal: the ranch, no reach", ZeD_WorldWindow.win._zedAnimalReach == nil
+    and WR.animalLeft(ZeD_WorldWindow.win, ewe) == false)
+do
+    local src = readFile(Z .. "AnimalsTab.lua")
+    local a = src:find("local function renderRanchAnimal(", 1, true)
+    local b = a and src:find("WR.animalLeft(win, animal)", a, true)
+    local c = a and src:find("drawAnimalHeader(panel, x, y, w, animal, player)", a, true)
+    check("REACH the animal view asks before it draws", a and b and c and b < c)
+end
+
+-- HELP (Build's call, Nov 7 2026: no pop-up, a help entry with the game's own note)
+local NOTE = "<CENTRE> <SIZE:medium> Farm animals needs a Livestock Zone to know where to stay. <LINE> <LINE> Animals in a Zone will never leave it."
+local realGetText = getText
+getText = function(k) if k == "IGUI_Animal_ZoneFirstInfo" then return NOTE end return realGetText(k) end
+check("HELP the help line: the note's first sentence", WR.zoneNoteLead() == "Farm animals needs a Livestock Zone to know where to stay.",
+    WR.zoneNoteLead())
+local built
+ZeD.Prompt = { rich = function(x, y, w, h, text, yesno, target, onclick, player)
+    built = { text = text, yesno = yesno, player = player }
+    built.initialise = function(self) self.inited = true end
+    built.addToUIManager = function(self) self.added = true end
+    return built
+end }
+resetAnimals()
+origNote = 0
+check("HELP handled", WR.zoneHelp(0) == true)
+check("HELP a ZeD note with the game's words", built and built.text == NOTE and built.yesno == false and built.inited and built.added)
+check("HELP not the game's panel", origNote == 0)
+local padFocus
+getJoypadFocus = function() return "before" end
+setJoypadFocus = function(pn, o) padFocus = o end
+JoypadState.players[1] = {}
+WR.zoneHelp(0)
+check("HELP pad: focus to the note, back after", padFocus == built and built.prevFocus == "before")
+JoypadState.players[1] = nil
+ZeD.Prompt = { rich = function() error("no prompt") end }
+WR.zoneHelp(0)
+check("HELP no ZeD note: the game's note, asked for (shown under ZeD's window too)", origNote == 1)
+ZeD.Prompt = nil
+ZeD_WorldWindow.win = { _playerObj = p0 }
+WR.zoneHelp(0)
+check("HELP no prompt module: the game's note", origNote == 2)
+getText = function(k) return k end   -- (the game hands back the key itself when it has no text)
+check("HELP an untranslated key: no help line", WR.zoneNoteLead() == nil)
+getText = realGetText
+do
+    local src = readFile(Z .. "AnimalsTab.lua")
+    local a = src:find("local function renderRanchZone(", 1, true)
+    local b = a and src:find('"animals:zonehelp"', a, true)
+    check("HELP the zone view draws the button", a and b)
+    check("HELP a click asks for it", src:find("hitZone(win._animalsZoneHelpZone, x, y)", 1, true) ~= nil)
+    check("HELP the button names itself with ZeD's Help", src:find('hint = ZeD.tr("UI_ZeD_Wheel_Help")', 1, true) ~= nil)
+    local ww2 = readFile(Z .. "ZeD_WorldWindow.lua")
+    check("HELP the controller reaches it", ww2:find('id = "animals:zonehelp"', 1, true) ~= nil)
+end
 
 print("world_routes_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
