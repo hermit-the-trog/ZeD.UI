@@ -5597,6 +5597,7 @@
     "UI_ZeD_Log_A_Ban": "zabanoval %1 (%2): %3",
     "UI_ZeD_Log_A_Unban": "odbanoval %1",
     "UI_ZeD_Log_A_Lifted": "ban na %1 vypršel",
+    "UI_ZeD_Log_A_LiftedGame": "ban na %1 byl zrušen ve hře",
     "UI_ZeD_Log_A_GameBan": "dal ban hry na %1: %2",
     "UI_ZeD_Log_A_Msg": "poslal zprávu serveru: %1",
     "UI_ZeD_Log_A_Repeat": "nastavil opakující se zprávu, %1",

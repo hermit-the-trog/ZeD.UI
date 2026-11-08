@@ -91,6 +91,7 @@ Adm.L = {
     OWED_RETRY_S = 15,                  -- a game call with no word back goes again
     VERIFY_S = 10,                      -- a client's "done" is not proof: past this, a banned player still on means the ban did not take
     REOWE_MAX = 3,                      -- a game ban that did not take is asked for again this many times, then a log line
+    LIFT_LOOK_N = 10,                   -- rows whose game ban held, read back each walk for one the game lifted (a query each)
     HELPER_POLL_S = 2,                  -- how often the server reads the host helper's answers and writes its queue
     HELPER_ALIVE_S = 30,                -- the helper counts as running while its last answers file is this fresh
     HELPER_WAIT_S = 30,                 -- a call the helper has not answered in this long goes to a staff client as well

@@ -5597,6 +5597,7 @@
     "UI_ZeD_Log_A_Ban": "verbande %1 (%2): %3",
     "UI_ZeD_Log_A_Unban": "ontbande %1",
     "UI_ZeD_Log_A_Lifted": "de ban op %1 liep af",
+    "UI_ZeD_Log_A_LiftedGame": "de ban op %1 is in het spel opgeheven",
     "UI_ZeD_Log_A_GameBan": "zette de ban van het spel op %1: %2",
     "UI_ZeD_Log_A_Msg": "stuurde een serverbericht: %1",
     "UI_ZeD_Log_A_Repeat": "stelde een herhalend bericht in, %1",

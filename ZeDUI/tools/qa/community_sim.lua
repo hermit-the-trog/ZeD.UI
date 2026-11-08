@@ -1432,6 +1432,9 @@ do
     check("the agreement is taken", cmd().agreed.rae ~= nil and ran.m_agree == 1)
     check("the client counts it", cu.env.ZeD.ServerPart.agreedN == 1)
     check("the hello waits out its limit rather than be refused", ran.hello == 1 and cu.env.ZeD.ServerPart.helloDue ~= nil)
+    local SP = cu.env.ZeD.ServerPart
+    check("with a second to spare, so jitter can't land it early and get it refused", SP.helloDue and SP.helloAt
+        and SP.helloDue - SP.helloAt >= W.server.ZeD.Tk.LIMITS.HELLO_MS + 1000, SP.helloDue and SP.helloAt and (SP.helloDue - SP.helloAt))
     advance(W.server.ZeD.Tk.LIMITS.HELLO_MS)
     check("then the hello goes again and is answered", ran.hello == 2)
     check("tickets asked again: my tickets come", ran.t_mine == 1)

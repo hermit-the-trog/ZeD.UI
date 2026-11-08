@@ -5597,6 +5597,7 @@
     "UI_ZeD_Log_A_Ban": "utestengte %1 (%2): %3",
     "UI_ZeD_Log_A_Unban": "opphevet utestengelsen av %1",
     "UI_ZeD_Log_A_Lifted": "utestengelsen av %1 gikk ut",
+    "UI_ZeD_Log_A_LiftedGame": "utestengelsen av %1 ble opphevet i spillet",
     "UI_ZeD_Log_A_GameBan": "la spillets utestengelse på %1: %2",
     "UI_ZeD_Log_A_Msg": "sendte en servermelding: %1",
     "UI_ZeD_Log_A_Repeat": "satte en gjentatt melding, %1",

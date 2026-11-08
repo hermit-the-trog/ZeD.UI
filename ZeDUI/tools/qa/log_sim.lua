@@ -1425,6 +1425,7 @@ do
         { 'banned x (3 days): "y"', "admin", "ban", "x", "d3: y" },
         { "unbanned x", "admin", "unban", "x" },
         { "the ban on x ran out", "admin", "ban lifted", "x", "the time ran out" },
+        { "the ban on x was lifted in the game", "admin", "ban lifted in the game", "x", "lifted in the game: the game let them log in" },
         { 'sent a server message: "Restart soon"', "admin", "server message", nil, "Restart soon" },
         { "set a repeating message, 15 min: x", "admin", "repeating message", nil, "15 min: x" },
         { "spawned 10 x Bandage to Rosa", "admin", "spawn", "Rosa", "10 x Base.Bandage to Rosa" },

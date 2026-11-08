@@ -5597,6 +5597,7 @@
     "UI_ZeD_Log_A_Ban": "esti: %1 (%2): %3",
     "UI_ZeD_Log_A_Unban": "poisti eston: %1",
     "UI_ZeD_Log_A_Lifted": "kielto päättyi: %1",
+    "UI_ZeD_Log_A_LiftedGame": "kielto poistettiin pelissä: %1",
     "UI_ZeD_Log_A_GameBan": "antoi pelin kiellon: %1: %2",
     "UI_ZeD_Log_A_Msg": "lähetti palvelinviestin: %1",
     "UI_ZeD_Log_A_Repeat": "asetti toistuvan viestin, %1",

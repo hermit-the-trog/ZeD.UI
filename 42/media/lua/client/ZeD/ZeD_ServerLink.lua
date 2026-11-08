@@ -58,11 +58,14 @@ function S.on(module, fn) S.routes[module] = fn end
 -- the agreements, for a part that keeps no hook (a dash per car compares it)
 S.agreeHooks = S.agreeHooks or {}
 S.agreedN = S.agreedN or 0
+-- past HELLO_MS, the wait before the hello goes again: the server times the gap by when each hello arrives, and one that left on
+-- time but landed early through network jitter would be refused with nothing said
+S.HELLO_MARGIN_MS = 1000
 function S.onAgreed(name, fn) S.agreeHooks[name] = fn end
 function S.agreed()
     S.agreedN = S.agreedN + 1
     -- (the server answers one hello a HELLO_MS: one sent sooner after the last is refused, so it waits for its turn, the tick sends it)
-    local due = S.helloAt and (S.helloAt + Tk.LIMITS.HELLO_MS + 250) or 0
+    local due = S.helloAt and (S.helloAt + Tk.LIMITS.HELLO_MS + S.HELLO_MARGIN_MS) or 0
     if now() >= due then S.hello() else S.helloDue = due end
     for name, fn in pairs(S.agreeHooks) do
         local ok, err = pcall(fn)

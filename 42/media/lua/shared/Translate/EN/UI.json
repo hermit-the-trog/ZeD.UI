@@ -5597,6 +5597,7 @@
     "UI_ZeD_Log_A_Ban": "banned %1 (%2): %3",
     "UI_ZeD_Log_A_Unban": "unbanned %1",
     "UI_ZeD_Log_A_Lifted": "the ban on %1 ran out",
+    "UI_ZeD_Log_A_LiftedGame": "the ban on %1 was lifted in the game",
     "UI_ZeD_Log_A_GameBan": "put the game's ban on %1: %2",
     "UI_ZeD_Log_A_Msg": "sent a server message: %1",
     "UI_ZeD_Log_A_Repeat": "set a repeating message, %1",

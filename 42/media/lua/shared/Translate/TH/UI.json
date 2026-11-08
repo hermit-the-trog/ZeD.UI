@@ -5597,6 +5597,7 @@
     "UI_ZeD_Log_A_Ban": "แบน %1 (%2): %3",
     "UI_ZeD_Log_A_Unban": "ปลดแบน %1",
     "UI_ZeD_Log_A_Lifted": "การแบน %1 หมดอายุ",
+    "UI_ZeD_Log_A_LiftedGame": "การแบน %1 ถูกยกเลิกในเกม",
     "UI_ZeD_Log_A_GameBan": "ใช้การแบนของเกมกับ %1: %2",
     "UI_ZeD_Log_A_Msg": "ส่งข้อความเซิร์ฟเวอร์: %1",
     "UI_ZeD_Log_A_Repeat": "ตั้งข้อความซ้ำ %1",
