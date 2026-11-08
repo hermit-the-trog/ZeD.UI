@@ -9,6 +9,7 @@
 --   adm       the server part holds the admin tools (Phase 2)
 --   lg        the server part holds the log (Phase 4)
 --   cm        the server part holds community (Phase 5): the rules, the news. A server without it shows none of this
+--   ml        the server part keeps mail (punch list 104); ZeD_Mail.lua reads it and dials in
 -- The hello's a.ex, the server extras (Phase 6), goes to ZeD_Extras.lua, and a.cm to ZeD_Community.lua; each part of the
 -- server's is on its own, so any of them can be missing from a hello.
 --   frozen    the server part is up and refuses writes (its data is from a newer ZeD)
@@ -91,6 +92,7 @@ local function heard(a)
     if ZeD.Admin and ZeD.Admin.onHello then ZeD.Admin.onHello(a) end
     if ZeD.Extras and ZeD.Extras.onHello then ZeD.Extras.onHello(a) end
     if ZeD.Community and ZeD.Community.onHello then ZeD.Community.onHello(a) end
+    if ZeD.Mail and ZeD.Mail.onHello then ZeD.Mail.onHello(a) end      -- (a.ml: the server keeps mail; joining is the dial-in)
 end
 
 local function onServerCommand(module, command, args)

@@ -1433,7 +1433,7 @@ end
 -- a report from chat on a card. Every word is what the reporter's client held: the server hears no chat
 function B.reportChat(items, rep)
     if not rep or (rep.n or 0) == 0 then return end
-    B.label(items, tr("UI_ZeD_Tk_ChatAround"))
+    B.label(items, tr(rep.letter and "UI_ZeD_Tk_ReportedLetter" or "UI_ZeD_Tk_ChatAround"))
     for i = 1, rep.n do
         local l = rep[i]
         if l then
@@ -1442,7 +1442,7 @@ function B.reportChat(items, rep)
             items[#items + 1] = { k = "chatline", text = head .. who .. tostring(l.text), mark = l.mark, c = { id = "chat:" .. tostring(i) } }
         end
     end
-    B.sub(items, tr("UI_ZeD_Tk_ChatWhose"))
+    B.sub(items, tr(rep.letter and "UI_ZeD_Tk_LetterWhose" or "UI_ZeD_Tk_ChatWhose"))   -- (a letter: the server did carry it)
 end
 
 function B.ask(st, t)
