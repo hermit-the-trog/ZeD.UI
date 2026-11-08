@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "สวิตช์สตาร์ท",
     "UI_ZeD_DashPlain_KeyOut": "ไม่ได้เสียบกุญแจ",
     "UI_ZeD_DashPlain_Km": "%1 km",
+    "UI_ZeD_DashPlain_Kmh": "km/h",
     "UI_ZeD_DashPlain_Lamps": "ไฟหน้า",
     "UI_ZeD_DashPlain_Lights": "ไฟ",
     "UI_ZeD_DashPlain_Meter": "มิเตอร์",

@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "Zündung",
     "UI_ZeD_DashPlain_KeyOut": "Schlüssel ab",
     "UI_ZeD_DashPlain_Km": "%1 km",
+    "UI_ZeD_DashPlain_Kmh": "km/h",
     "UI_ZeD_DashPlain_Lamps": "Lampen",
     "UI_ZeD_DashPlain_Lights": "Licht",
     "UI_ZeD_DashPlain_Meter": "Taxameter",

@@ -27,6 +27,8 @@
 --   HOT     the hot lamp lights in the key-on bulb check; the Simple dash's Temperature bar goes red only when hot
 --   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
 --           option is read at most once a second
+--   DIGITAL the Lang 4000's and the Cossette's speed figures in the game's units, the KM/H or MPH legend lit; the
+--           needles stay in mph
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/dash_odo_sim.lua
 -- It prints FAIL lines and a last line "dash_odo_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -1056,6 +1058,20 @@ do
     check("the units option is read at most twice a second, not every frame", env.unitReads <= 2, env.unitReads)
     log = frame(1000)
     check("back to miles", drew(log, "41837 mi"))
+    -- the speed in the same units as the Odometer and Trip (review of beta 7: "0 mph" beside "95507 km")
+    car.kmh = 100
+    frames(20, 250)                                    -- (the needle settles)
+    log = frame(100)
+    check("Simple speed in mph with Imperial", drew(log, "drawText 62 ") and drew(log, "drawText mph "))
+    env.units = "Metric"
+    log = frame(1000)
+    check("Simple speed in km/h with Metric", drew(log, "drawText 100 ") and drew(log, "drawText km/h "))
+    check("no mph beside km", not drew(log, "drawText mph ") and drew(log, " km "))
+    env.units = "Imperial"
+    log = frame(1000)
+    check("back to mph", drew(log, "drawText 62 ") and drew(log, "drawText mph ") and not drew(log, "km/h"))
+    car.kmh = 0
+    frames(20, 250)
     local e = element("tripReset")
     check("the Trip cell is on the pad's walk", e ~= nil)
     check("its A says Reset trip", e and e.promptA == "Reset trip", e and e.promptA)
@@ -1078,6 +1094,48 @@ do
     for _, el in ipairs(inst._elements) do if el.id == "dash:tripReset" or el.id == "dash:odoButton" then n = n + 1 end end
     check("the Dash Elite on Simple: one trip control", n == 1 and element("tripReset") ~= nil, n)
     env.simple, env.pad = false, false
+end
+
+-- ---------------------------------------------------------------------------
+section("DIGITAL")
+-- ---------------------------------------------------------------------------
+-- (director, Nov 7 2026, "digital readouts only": the Lang 4000's and the Cossette's speed figures follow the game's
+-- Metric option and light the legend in use, KM/H or MPH; every needle and wheel stays in mph and miles)
+do
+    local figures, needlesMph, others = {}, true, {}
+    for id, des in pairs(ZeD.DashPx.designs) do
+        for _, p in ipairs(des.parts or {}) do
+            if p.t == "digits" and (p.src == "speed_mph" or p.src == "speed_kmh") then others[#others + 1] = id end
+            if p.t == "digits" and p.src == "speedShown" then figures[id] = true end
+            if (p.t == "needle" or p.t == "ribbon") and p.src and p.src:find("speed", 1, true) and p.src ~= "speed_mph" then needlesMph = false end
+        end
+    end
+    check("the Lang 4000 and the Cossette show speedShown", figures.luxury and figures.cossette)
+    check("no digital figure reads mph alone, in any design", #others == 0, others[1])
+    check("every speed needle and ribbon still reads mph", needlesMph)
+    for _, id in ipairs({ "luxury", "cossette" }) do
+        local lamps = {}
+        for _, p in ipairs(ZeD.DashPx.designs[id].parts) do if p.t == "lamp" then lamps[p.src] = true end end
+        check(id .. ": an MPH and a KM/H legend", lamps.mphLamp and lamps.kmhLamp)
+        local car = drive(id, { keysIn = true, running = true, kmh = 100, md = { ZeD_odo = 10, ZeD_trip = 0 } })
+        env.units = "Imperial"
+        frames(20, 250)
+        local s = st()
+        check(id .. ": Imperial, the figures in mph", near(s.speedShown, 62.14, 0.6), s.speedShown)
+        check(id .. ": Imperial, MPH lit, KM/H dark", s.mphLamp == true and s.kmhLamp == false)
+        env.units = "Metric"
+        frame(1000)
+        s = st()
+        check(id .. ": Metric, the figures in km/h", near(s.speedShown, 100, 1), s.speedShown)
+        check(id .. ": Metric, KM/H lit, MPH dark", s.kmhLamp == true and s.mphLamp == false)
+        check(id .. ": Metric, the needles' mph unchanged", near(s.speed_mph, 62.14, 0.6), s.speed_mph)
+        car.keysIn, car.running = false, false
+        frames(4, 250)
+        s = st()
+        check(id .. ": key off, both legends dark", s.kmhLamp == false and s.mphLamp == false)
+        env.units = "Imperial"
+        frame(1000)
+    end
 end
 
 check("nothing logged", #env.errors == 0, env.errors[1])
