@@ -3031,3 +3031,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     back, controller) go to the director as multiple choice before building. Ruled Nov 8: a small X close box in the
     note's corner (System 7 style); a 'Show note' item in the desk's menu bar brings it back where it last was; on a
     pad the note is a stop, A picks it up, the D-pad moves it, A puts it down, Y closes it.
+115. **Bug reports hide the player's account name (the director, Nov 8 2026: "Hopefully yes"; beta 9).** ZeD_Messages.lua
+    reportHeader / report / reportOne / reportAll and the Messages window's Copy / Copy all replace the Windows user
+    folder (C:\Users\<name>\ and the forward-slash form -> ~\) and the Zomboid folder (getMyDocumentFolder -> ~/Zomboid)
+    before copying. Ruled wording ("Plainer"), shown in both places, the copied report's last line and beside Copy:
+    "Your user name is taken out of this report. Files like console.txt still have it: look them over before you post
+    them." Every language as the project's labeled drafts.
