@@ -548,7 +548,7 @@ M(cr).dial()
 advance(4000)
 check("allowed again (agreed, unbanned): the dial-in sends it", #outbox(cr) == 0)
 
-section("a restart: what waits survives, the hour's count does not")
+section("a restart: what waits survives, and so does the hour's count")
 leave(cr)
 advance(100)
 W.clock = W.clock + 3000
@@ -557,6 +557,17 @@ serverStart()
 check("the same table found again", md().boxes.rosa and md().boxes.rosa.n == 1)
 cr = clientJoin(rosa)
 check("delivered after a restart", inbox(cr)[1].text == "after the restart")
+check("the hour's count is in the table", md().hours.ned and md().hours.ned.n >= 1, md().hours.ned and md().hours.ned.n)
+md().hours.ned.n = W.server.ZeD.Ml.L.HOUR_MAX       -- (Ned at the hour's cap, then the server restarts)
+serverStart()
+ned.box = {}
+W.clock = W.clock + 3000
+raw(ned, "p_send", { to = "Rosa", text = "past the cap", cid = "rs2", rid = 801 })
+check("a restart does not reset the hour's cap", lastAck(ned) and lastAck(ned).err == "hour", lastAck(ned) and lastAck(ned).err)
+W.clock = W.clock + 3600000
+ned.box = {}
+raw(ned, "p_send", { to = "Rosa", text = "an hour after the restart", cid = "rs3", rid = 802 })
+check("the kept hour still runs out", lastAck(ned) and lastAck(ned).ok == true, lastAck(ned) and lastAck(ned).err)
 
 section("a frozen table (data from a newer ZeD)")
 leave(cr)
@@ -660,6 +671,19 @@ check("no line in the log says who muted whom", (function()
     for _, l in ipairs(W.logs) do if l.line:find("mute", 1, true) and not l.line:find("bad arguments", 1, true) then return false end end
     return true
 end)())
+
+section("a known player evicted: their sent numbers, mutes and hour go with them")
+check("before: Dee has sent numbers, mutes and an hour", md().sent.dee ~= nil and md().mutes.dee ~= nil and md().hours.dee ~= nil)
+local keepMax = W.server.ZeD.Ml.L.KNOWN_MAX
+md().known.dee.t = 0                                -- (Dee, seen longest ago)
+W.server.ZeD.Ml.L.KNOWN_MAX = md().knownN
+leave(cd)
+local cf = clientJoin(player("Fay"))
+check("Dee is no longer known", md().known.dee == nil and md().known.fay ~= nil)
+check("Dee's sent numbers, mutes and hour went too", md().sent.dee == nil and md().mutes.dee == nil and md().hours.dee == nil)
+check("the others keep theirs", md().known.eve ~= nil and md().hours.eve ~= nil)
+W.server.ZeD.Ml.L.KNOWN_MAX = keepMax
+leave(cf)
 
 section("a server without mail")
 world()
