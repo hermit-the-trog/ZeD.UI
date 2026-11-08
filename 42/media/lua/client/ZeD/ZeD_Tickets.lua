@@ -792,6 +792,14 @@ S.on(Tk.MOD, function(command, args)
 end)
 
 -- the hello: the notes that wait, the counts, and my tickets (the catch-up for a ticket filed but never sent to the game)
+-- the join rules answered: the hello brings my tickets again (C.onHello); an open queue and its sync ask again too
+S.onAgreed("tickets", function()
+    if C.queueOpen then
+        C.queueAgainAt = now()
+        C.wantSync = true
+    end
+end)
+
 function C.onHello(a)
     if a.open then C.counts = { open = a.open, spam = a.spam or 0, kinds = a.kinds } end
     if type(a.unread) == "table" and ZeD.Messages and ZeD.Messages.ticket then

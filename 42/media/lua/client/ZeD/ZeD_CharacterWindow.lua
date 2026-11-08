@@ -4836,9 +4836,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
         ZeD_CharacterWindow.extFrame(win, effectiveW)
 
         -- An open item card over the tab: the tab's own boxes it would lie over
-        -- hide (a child panel can't be cut by the drawer's clip; setTabCover)
+        -- hide (a child panel can't be cut by the drawer's clip; setTabCover). The boxes
+        -- are the drawer's children, so the card's edge is measured in the drawer, as the
+        -- tab's clip is (it was in the window, the tab strip's width too far right: a box
+        -- under the card by less than that stayed over it). Save stays: the Journal sets
+        -- it in the part the card leaves showing (ZeD.Molecules.bandRoom).
         if win._drawerItem ~= nil and win._drawerMode == "tab" then
-            local coverWX = T.px(TAB_STRIP_W) + getTargetDrawerW(win) - T.px(ITEM_CARD_W)
+            local coverWX = getTargetDrawerW(win) - T.px(ITEM_CARD_W)
             for _, c in ipairs({ win._journalInput, win._journalSaveBtn, win._journalSearch, win._jrecipeSearch, win._flyerSearch }) do
                 if c and c:isVisible() and c:getX() + c:getWidth() > coverWX then c:setVisible(false) end
             end

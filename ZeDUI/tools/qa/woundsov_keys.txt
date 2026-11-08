@@ -1,0 +1,4 @@
+# Nov 7 2026: Wounds Overhaul, the inventory key and the treatment menu
+zedqa_prelude.lua | pre
+zedqa_woundsov.lua | wo | timeout=60
+

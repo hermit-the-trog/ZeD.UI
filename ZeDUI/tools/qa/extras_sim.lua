@@ -1937,5 +1937,23 @@ do
     CAPS = saved
 end
 
+section("the join rules answered: extras asks again for what the gate refused")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local Srv = W.server.ZeD.Srv
+    check("a car claimed first", (claim(co, newVehicle(7, 4021, 102, 100)) or {}).ok == true)
+    Srv.gates.qa = function(p, module) if W.shut and module ~= "ZeD" then return "has not agreed to the rules" end end
+    W.shut = true
+    co.E.mineRows, co.E.mineAt = nil, nil
+    co.E.mine()
+    advance(1200)
+    check("refused by the gate: no list", co.E.mineRows == nil and co.E.mineAt ~= nil)
+    W.shut = nil
+    co.env.ZeD.ServerPart.agreed()
+    advance(1200)
+    check("agreed: my claims asked again at once and come", co.E.mineRows ~= nil and #co.E.mineRows == 1)
+    Srv.gates.qa = nil
+end
+
 print("extras_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

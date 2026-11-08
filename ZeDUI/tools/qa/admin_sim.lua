@@ -1,9 +1,11 @@
--- ZeDUI/tools/qa/admin_sim.lua  (Nov 5 2026, QA): the admin tools' server side and client model with no game running.
+-- ZeDUI/tools/qa/admin_sim.lua  (Nov 5 2026, QA; Nov 7 rules that hold): the admin tools' server side and client model with no game running.
 -- Lua 5.1 stubs of the game, in the style of tickets_sim.lua, and the real files run against them: ZeD_TicketProto,
 -- ZeD_AdminProto, ZeD_ServerCore, ZeD_ServerTickets, ZeD_ServerAdmin, and on each simulated client ZeD_ServerLink,
 -- ZeD_Tickets and ZeD_Admin. Every message crosses a stub of the network with the game's rules, a step at a time.
 -- Permissions, hostile arguments, the views, kick, warn, mute, roles and their powers, Level Up, timed bans lifting with
 -- nobody on, a client that does not leave, permanent bans owed to a staff client, repeats, spawns, restarts, the fallback.
+-- Nov 7: every ban is the game's (a timed one's unban owed at its end), a Kick on every stay, a ban shuts out every module,
+-- Steam IDs matched on the server's own number, a client's "done" judged again, and the host helper's queue and answers.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/admin_sim.lua
 -- It prints FAIL lines and a last line "admin_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -171,12 +173,14 @@ local function player(name, roleName, x, y, z)
     function p.getInventory(self)
         return { AddItem = function(_, t)
             if type(t) ~= "string" then error("AddItem overload") end
+            if W.addFails and W.addFails[t] then return nil end     -- (the game made nothing: InventoryItemFactory gave nil)
             self.items[#self.items + 1] = t
             return { type = t }
         end }
     end
     function p.getCurrentSquare(self)
         return { AddWorldInventoryItem = function(_, t, a, b, c)
+            if W.addFails and W.addFails[t] then return nil end
             W.ground[#W.ground + 1] = t
             return { type = t }
         end }
@@ -192,6 +196,16 @@ local function offline(p)
     for i = #W.online, 1, -1 do if W.online[i] == p then table.remove(W.online, i) end end
     local c = W.clients[p.name]
     if c then c.up = false end
+end
+
+-- the game refuses a name's or a Steam ID's ban: W.refuse[name] true always, a number that many times
+local function refuser(name)
+    local r = W.refuse and W.refuse[name]
+    if type(r) == "number" then
+        W.refuse[name] = (r > 1) and (r - 1) or nil
+        return true
+    end
+    return r == true
 end
 
 -- ---------------------------------------------------------------------------
@@ -219,6 +233,7 @@ local FILES = {
     ["ZeD/ZeD_AdminProto"] = "42/media/lua/shared/ZeD/ZeD_AdminProto.lua",
     ["ZeD/ZeD_ServerCore"] = "42/media/lua/server/ZeD/ZeD_ServerCore.lua",
     ["ZeD/ZeD_ServerTickets"] = "42/media/lua/server/ZeD/ZeD_ServerTickets.lua",
+    ["ZeD/ZeD_ServerHelper"] = "42/media/lua/server/ZeD/ZeD_ServerHelper.lua",
     ["ZeD/ZeD_ServerLink"] = "42/media/lua/client/ZeD/ZeD_ServerLink.lua",
     ["ZeD/ZeD_Tickets"] = "42/media/lua/client/ZeD/ZeD_Tickets.lua",
 }
@@ -274,13 +289,55 @@ local function serverStart()
     env.CharacterProfessionDefinition = { getCharacterProfessionDefinition = function() return { getUIName = function() return "Carpenter" end } end }
     env.CharacterTraitDefinition = { getCharacterTraitDefinition = function(t) return { getLabel = function() return t end } end }
     env.getScriptManager = function()
+        -- (FindItem(String) is FindItem(s, true): not found by its full type, the bare type in any module. The Item it gives
+        -- has its own full type, getFullName)
         return { FindItem = function(_, s)
             if type(s) ~= "string" then error("FindItem overload") end
-            return W.scripts[s]
+            local key = W.scripts[s] and s or nil
+            if not key then
+                local bare = string.match(s, "%.(.+)$") or s
+                for k in pairs(W.scripts) do
+                    if string.match(k, "%.(.+)$") == bare then key = k end
+                end
+            end
+            if not key then return nil end
+            return { getFullName = function(self) return key end }
         end }
     end
     env.sendAddItemToContainer = function(inv, it) W.sent = W.sent + 1 end
     env.ISLogSystem = { writeLog = function(who, packet) W.logs[#W.logs + 1] = { name = packet.loggerName, line = packet.logText } end }
+    -- the sandbox (ZeD.HostHelper), Zomboid/Lua's files (getFileWriter, getFileReader: their Java signatures), the game's
+    -- Steam ID ban list as NetworkUser.isSteamIdBanned reads it (the ID back, or null)
+    env.SandboxVars = { ZeD = W.sandbox }
+    env.getFileWriter = function(path, create, append)
+        if type(path) ~= "string" or type(create) ~= "boolean" or type(append) ~= "boolean" then error("getFileWriter overload") end
+        local buf = append and (W.files[path] or "") or ""
+        return { write = function(_, s) buf = buf .. s end, close = function() W.files[path] = buf; W.fileWrites = (W.fileWrites or 0) + 1 end }
+    end
+    env.getFileReader = function(path, create)
+        if type(path) ~= "string" or type(create) ~= "boolean" then error("getFileReader overload") end
+        local text = W.files[path]
+        if text == nil then return nil end
+        local lines, at = {}, 0
+        for l in string.gmatch(text, "([^\n]*)\n") do lines[#lines + 1] = l end
+        return { readLine = function() at = at + 1; return lines[at] end, close = function() end }
+    end
+    if W.sidList then
+        -- (and getFirstBannedIPForUser: the IP the game's list holds for a name, or null)
+        env.NetworkUser = { new = function() return {
+            -- (W.dbFail: that many reads hit a database error, which the game catches and answers null, as "not banned")
+            isSteamIdBanned = function(_, s)
+                if type(s) ~= "string" then error("isSteamIdBanned overload") end
+                if (W.dbFail or 0) > 0 then W.dbFail = W.dbFail - 1; return nil end
+                return W.sidList[s] and s or nil
+            end,
+            getFirstBannedIPForUser = function(_, u)
+                if type(u) ~= "string" then error("getFirstBannedIPForUser overload") end
+                if (W.dbFail or 0) > 0 then W.dbFail = W.dbFail - 1; return nil end
+                return W.gameIps[u] and "10.0.0.9" or nil
+            end,
+        } end }
+    end
     runFile(env, FILES["ZeD/ZeD_TicketProto"])
     env.loaded["ZeD/ZeD_TicketProto"] = true
     runFile(env, FILES["ZeD/ZeD_AdminProto"])
@@ -320,8 +377,16 @@ local function clientJoin(p)
     end
     env.SendCommandToServer = function(s)
         c.slash[#c.slash + 1] = s
+        -- a Kick: the game drops them, when this run lets it (W.kickRemoves) and the name is not one it refuses (W.noKick)
+        local k = string.match(s, '^/kickuser "([^"]*)"')
+        if k and W.kickRemoves and W.players[k] and not (W.noKick and W.noKick[k]) then offline(W.players[k]) end
         -- the game's rules (BanSystem): with -ip the player must be on and not on a Steam connection, or nothing happens
         local u = string.match(s, '^/banuser "([^"]*)"')
+        if u then
+            W.accounts = W.accounts or {}
+            W.accounts[u] = true       -- (the game's ban makes the account's row if it had none: ServerWorldDatabase.banUser)
+        end
+        if u and W.refuser and W.refuser(u) then return end      -- (a ban that does not take: a spelling, a dropped packet)
         local o = u and W.players[u]
         local isOn = false
         for _, x in ipairs(W.online) do isOn = isOn or x == o end
@@ -335,7 +400,13 @@ local function clientJoin(p)
             if isOn then offline(o) end
         end
     end
-    env.banUnbanUserAction = function(a, b, r) c.game[#c.game + 1] = a .. ":" .. b .. ":" .. r end
+    env.banUnbanUserAction = function(a, b, r)
+        c.game[#c.game + 1] = a .. ":" .. b .. ":" .. r
+        if a == "UnBan" or a == "UnBanIP" then W.gameBans[b] = nil end
+        if a == "UnBanIP" then W.gameIps[b] = nil end
+        if W.sidList and a == "BanSteamID" and not (W.refuser and W.refuser(b)) then W.sidList[b] = true end
+        if W.sidList and a == "UnBanSteamID" and not (W.refuser and W.refuser("un:" .. b)) then W.sidList[b] = nil end
+    end
     env.networkUserAction = function(a, b, r)
         c.game[#c.game + 1] = a .. ":" .. b .. ":" .. r
         local o = W.players[b]
@@ -349,11 +420,45 @@ local function clientJoin(p)
         end
     end
     env.addWarningPoint = function(u, r, n) c.game[#c.game + 1] = "warn:" .. u .. ":" .. r .. ":" .. n end
-    env.requestUsers, env.requestRoles, env.requestUserlog = function() end, function() end, function() end
+    env.requestRoles, env.requestUserlog = function() end, function() end
+    -- the game's user list (RequestNetworkUsersPacket, NetworkUsersPacket), with W.userList on: sent only to a role with
+    -- SeeNetworkUsers, every account with its role from the game's database (a name the game banned: "banned") and
+    -- inWhitelist true. W.dbDown: the game's read of its database failed, so only the players on are sent, with their live
+    -- role and inWhitelist false. W.usersStale: this client's list is the one it had before (a reply to an older request)
+    c.users = {}
+    env.requestUsers = function()
+        if not W.userList then return end
+        net(function()
+            if not (c.up and p.role.caps.SeeNetworkUsers) or W.usersStale then
+                if c.up and W.usersStale then c.env.Events.OnNetworkUsersReceived.fire() end
+                return
+            end
+            local names = {}
+            for n in pairs(W.players) do names[n] = true end
+            for n in pairs(W.gameBans) do names[n] = true end
+            for n in pairs(W.accounts or {}) do names[n] = true end
+            local list = {}
+            for n in pairs(names) do
+                local o = W.players[n]
+                local isOn = false
+                for _, x in ipairs(W.online) do isOn = isOn or x == o end
+                local r = W.gameBans[n] and ROLES.banned or (o and o.role) or ROLES.user
+                if W.dbDown then r = o and o.role end
+                if not W.dbDown or isOn then
+                    local wl = not W.dbDown
+                    list[#list + 1] = { getUsername = function() return n end, getRole = function() return r end,
+                        isInWhitelist = function() return wl end }
+                end
+            end
+            c.users = list
+            c.looked = (c.looked or 0) + 1
+            c.env.Events.OnNetworkUsersReceived.fire()
+        end)
+    end
     env.getBannedIPs, env.getBannedSteamIDs = function() end, function() end
     env.getSteamModeActive = function() return false end
     env.getCurrentUserSteamID = function() return c.sid end
-    env.getUsers = function() return jlist({}) end
+    env.getUsers = function() return jlist(c.users) end
     env.getCapabilities = function()
         local list = {}
         for n in pairs(CAPS) do list[#list + 1] = { name = function() return n end, n = n } end
@@ -384,7 +489,8 @@ end
 
 local function world()
     W = { clock = 1793913240000, net = {}, logs = {}, online = {}, players = {}, clients = {}, moddata = {}, hours = 12.5 * 24,
-        uuid = 0, scripts = { ["Base.Axe"] = true }, ground = {}, sent = 0, gameBans = {}, gameIps = {} }
+        uuid = 0, scripts = { ["Base.Axe"] = true }, ground = {}, sent = 0, gameBans = {}, gameIps = {}, files = {}, refuser = refuser,
+        sandbox = W and W.sandboxNext or nil, sidList = W and W.sidListNext or nil }
     serverStart()
 end
 
@@ -720,13 +826,14 @@ do
     check("their client is told to leave, with the reason", M(cu).leave and M(cu).leave.reason == "Burned the farm, twice" and M(cu).leave.untilT == ca.r.untilT)
     check("it is logged", logHas("admin | ban | Hermit | Torch |"))
     check("staff read it", #M(ca).bans == 1 and M(ca).bans[1].by == "Hermit")
-    check("no game ban for a timed one", not has(ca.slash, "/banuser"))
+    check("the game's ban waits while they read the reason", not has(ca.slash, "/banuser"))
     advance(6000)
     check("the reason shows first", cu.left == 0)
     advance(7000)
     check("then the client goes", cu.left == 1)
     advance(3000)
-    check("gone on their own: no kick on their record", not has(ca.slash, "/kickuser") and next(md().owed) == nil)
+    check("gone on their own: no kick on their record", not has(ca.slash, "/kickuser"))
+    check("and the game's own ban holds them out", has(ca.slash, '/banuser "Torch" -r "Burned the farm, twice"') and next(md().owed) == nil)
     offline(u)
     offline(a)
     -- nobody on: it lifts to the second
@@ -737,6 +844,10 @@ do
     W.server.Events.OnTickEvenPaused.fire()
     check("lifted with nobody on", next(md().bans) == nil)
     check("the lift is logged", logHas("admin | ban lifted | @server | Torch |"))
+    check("the game's unban is owed at the end", (function()
+        for _, e in pairs(md().owed) do if e.act == "UnBan" and e.target == "Torch" then return true end end
+        return false
+    end)())
 end
 
 section("a client that does not leave")
@@ -748,30 +859,32 @@ do
     say(a, "a_ban", { user = "Torch", reason = "Griefing", len = "w1" })
     drain()
     advance(16000)
-    check("a real kick backs up a client that stays", has(ca.slash, '/kickuser "Torch" -r "Griefing"'))
-    offline(u)
+    check("the game's ban removes a client that stays", has(ca.slash, '/banuser "Torch" -r "Griefing"') and cu.up == false)
     advance(6000)
-    -- they come back on a modified client: told again, stays
+    -- the game's ban did not take (W.refuse), and they come back on a modified client: told again, stays
+    W.refuse = { Torch = true }
     W.online[#W.online + 1] = u
     u.box = {}
     W.clients.Torch.up = false
     advance(6000)
     check("told on joining, with the server's own eyes", got(u, "a_leave") ~= nil)
+    check("found on: the game's ban did not take, and it is asked for again", logHas("game ban did not take") and md().bans[1].reowe == 1)
     advance(21000)
     check("staff hear it", has(ca.game, "note:UI_ZeD_Adm_NoteStay"))
     check("and it is on the ban", md().bans[1].stay ~= nil)
     check("a line in the log", logHas("has not left"))
+    check("a stay owes a Kick", has(ca.slash, '/kickuser "Torch" -r "Griefing"'))
     local n = #ca.game
     advance(30000)
     check("not again at once", #ca.game == n)
     advance(300000)
     check("again after five minutes", #ca.game > n)
-    -- the game's ban is one press away, and lifts with the timed one through a staff client
+    check("the ban is asked for again REOWE_MAX times, no more", md().bans[1].reowe == 3 and md().bans[1].gaveUp == true and logHas("asked 3 times"))
+    -- the old press is not needed: a timed ban already has the game's
     nolimit(a)
     say(a, "a_gameban", { id = 1 })
-    check("the game's ban acks", okOf(a))
-    advance(2000)
-    check("it goes through the staff client", has(ca.slash, '/banuser "Torch" -r "Griefing"'))
+    check("Use the game's ban: already done", errOf(a) == "gone")
+    W.refuse = nil
     W.clock = W.clock + 604800 * 1000
     advance(2000)
     check("and comes off when the time runs out", has(ca.game, "UnBan:Torch:"))
@@ -953,6 +1066,28 @@ do
     say(a, "a_spawn", { item = "Base.Axe", n = 1, to = "me" })
     say(a, "a_spawn", { item = "Base.Axe", n = 1, to = "me" })
     check("its own pace", errOf(a) == "wait")
+    -- (outside review, Nov 7) FindItem falls back to the bare type in any module: what is spawned and logged is the item found
+    nolimit(a)
+    local had = #a.items
+    say(a, "a_spawn", { item = "Fake.Axe", n = 2, to = "me" })
+    check("a client's module that is not the item's: the real item is spawned", okOf(a) and #a.items == had + 2 and a.items[#a.items] == "Base.Axe", a.items[#a.items])
+    check("and logged by its real full type", logHas("2 x Base.Axe to me") and not logHas("Fake.Axe"))
+    nolimit(a)
+    say(a, "a_spawn", { item = "Fake.Axe", n = 3, to = "ground" })
+    check("on the ground too", W.ground[#W.ground] == "Base.Axe" and logHas("3 x Base.Axe to ground"))
+    -- the game makes nothing: not done
+    W.addFails = { ["Base.Axe"] = true }
+    nolimit(a)
+    local lines = #W.logs
+    say(a, "a_spawn", { item = "Base.Axe", n = 2, to = "me" })
+    check("AddItem gives nil: acks false", got(a, "t_ack") and got(a, "t_ack").ok == false and errOf(a) == "item")
+    local spawnLine = false
+    for i = lines + 1, #W.logs do spawnLine = spawnLine or string.find(W.logs[i].line, "| spawn |", 1, true) ~= nil end
+    check("and logs no spawn", not spawnLine)
+    nolimit(a)
+    say(a, "a_spawn", { item = "Base.Axe", n = 2, to = "ground" })
+    check("the ground gives nil: acks false", got(a, "t_ack") and got(a, "t_ack").ok == false)
+    W.addFails = nil
 end
 
 section("the log for Phase 4")
@@ -1133,6 +1268,7 @@ do
     local u = player("Torch", "user")
     local cu = clientJoin(u)
     cu.env.forceDisconnect = function() end
+    W.refuse = { Torch = true }
     say(a, "a_ban", { user = "Torch", reason = "griefing", len = "w1" })
     for _ = 1, 8 do
         advance(6000)
@@ -1142,6 +1278,7 @@ do
     end
     check("the stay note comes all the same", has(ca.game, "note:UI_ZeD_Adm_NoteStay") and md().bans[1].stay ~= nil)
     check("the hello hears a_leave again", got(u, "a_leave") ~= nil)
+    W.refuse = nil
 end
 
 section("owed calls follow their ban")
@@ -1288,10 +1425,8 @@ do
     say(a, "a_card", { user = "Torch" })
     local v = got(a, "a_card")
     check("the card knows it", v.banId == 1 and v.banUntil ~= nil)
-    -- a timed row with the game's ban: lifting it owes one UnBan
-    nolimit(a)
-    say(a, "a_gameban", { id = 1 })
-    advance(2000)
+    -- a timed row has the game's ban: lifting it owes one UnBan
+    advance(13000)
     check("the game's ban is made", md().bans[1].made == true)
     W.clock = W.clock + 3 * 86400 * 1000
     advance(2000)
@@ -1330,12 +1465,10 @@ do
     nolimit(u)
     say(u, "a_hi", { sid = cu.sid })
     advance(26000)
+    check("the game's ban went at once, through the Steam ID", has(ca.game, "BanSteamID:76561198000000044:alt"))
     check("the stay is on the row", md().bans[1].stay ~= nil)
-    nolimit(a)
-    say(a, "a_gameban", { id = 1 })
-    check("the game's ban acks", okOf(a))
-    advance(2000)
-    check("through the Steam ID", has(ca.game, "BanSteamID:76561198000000044:alt"))
+    check("found on: asked for again", md().bans[1].reowe ~= nil and md().bans[1].reowe >= 1)
+    check("and a Kick is owed", has(ca.slash, '/kickuser "Other" -r "alt"'))
 end
 
 section("the card's view")
@@ -1646,6 +1779,875 @@ do
     say(a, "a_role", { user = "Kade", role = "user" })
     check("and no offline role change either", errOf(a) == "perm", tostring(errOf(a)))
     CAPS.SeeNetworkUsers = savedCap
+end
+
+
+-- ---------------------------------------------------------------------------
+-- RULES THAT HOLD (the director, Nov 7 2026): each as the task names it
+-- ---------------------------------------------------------------------------
+local function owedOf(act, target)
+    for _, e in pairs(md().owed) do
+        if e.act == act and (target == nil or e.target == target) then return e end
+    end
+    return nil
+end
+-- the answer to the command just said: the first ack (a refusal makes the client say hello again, which brings others)
+local function firstErr(p)
+    for i = 1, #p.box do
+        if p.box[i].cmd == "t_ack" then return p.box[i].args and p.box[i].args.err end
+    end
+    return nil
+end
+
+section("a timed ban owes the game's ban at once, and the unban at its end")
+do
+    local a, ca = boot()
+    local u = player("Torch", "user")
+    u.steamNum = 76561198000000321
+    local cu = clientJoin(u)
+    cu.sid = "76561198000000321"
+    nolimit(u)
+    say(u, "a_hi", { sid = cu.sid })
+    nolimit(a)
+    say(a, "a_ban", { user = "Torch", reason = "Burned the farm", len = "d1" })
+    check("acks", okOf(a))
+    check("the game's ban is owed at once, after the reason", owedOf("Ban", "Torch") ~= nil)
+    check("by name only: the Steam ID is the client's word, never named to the game", owedOf("BanSteamID") == nil)
+    check("and the row says it holds the game's ban", md().bans[1].gameBan == true)
+    advance(14000)
+    check("the game's ban by name", has(ca.slash, '/banuser "Torch" -r "Burned the farm"'))
+    advance(4000)
+    check("never by the Steam ID the client named", not has(ca.game, "BanSteamID:76561198000000321:Burned the farm"))
+    check("made", md().bans[1].made == true and next(md().owed) == nil)
+    -- an offline name: the game's ban goes with no wait
+    nolimit(a)
+    md().players.Away = { t = 1, role = "user" }
+    say(a, "a_ban", { user = "Away", reason = "Alt", len = "h1" })
+    advance(1000)
+    check("offline: at once", has(ca.slash, '/banuser "Away" -r "Alt"'))
+    -- never short: nothing lifts before the end, with nobody on
+    offline(a)
+    W.clock = W.clock + 86400 * 1000 - 30000
+    advance(2000)
+    check("before its end: no unban owed", owedOf("UnBan", "Torch") == nil and md().bans[1] ~= nil)
+    W.clock = W.clock + 40000
+    advance(2000)
+    check("at its end the row goes", md().bans[1] == nil)
+    check("the unban is owed, the name only (no Steam ID was given)", owedOf("UnBan", "Torch") ~= nil and owedOf("UnBanSteamID") == nil)
+    advance(60000)
+    check("with nobody to make it, it waits: the ban runs past its time, never short", owedOf("UnBan", "Torch") ~= nil)
+    local back = player("Hermit", "admin")
+    W.clients.Hermit = nil
+    local c2 = clientJoin(back)
+    advance(2000)
+    check("the next staff client lifts it", has(c2.game, "UnBan:Torch:") and not has(c2.game, "UnBanSteamID:76561198000000321:"))
+end
+
+section("a client can't steer a Steam ID ban onto a neighbor's account")
+do
+    local a, ca = boot()
+    local u = player("Steer", "user")
+    u.steamNum = 76561198000000400
+    -- a neighbor's ID that shares the server's double: the claim the server's own number can't tell from the true one
+    local real = string.format("%.0f", u.steamNum)
+    local claim = nil
+    for n = 385, 415 do
+        local s = "76561198000000" .. tostring(n)
+        if s ~= real and tonumber(s) == u.steamNum then claim = s; break end
+    end
+    check("a neighbor's ID with the same double exists", claim ~= nil)
+    local cu = clientJoin(u)
+    cu.sid = claim
+    nolimit(u)
+    say(u, "a_hi", { sid = claim })
+    check("the server kept the claim as the row's match", md().players.Steer.sid == claim)
+    nolimit(a)
+    say(a, "a_ban", { user = "Steer", reason = "x", len = "perm" })
+    advance(20000)
+    check("no Steam ID call at all: the neighbor is never banned", owedOf("BanSteamID") == nil and not has(ca.game, "BanSteamID:" .. tostring(claim) .. ":x"), ca.game)
+    check("the name is", has(ca.slash, '/banuser "Steer" -r "x"'))
+    nolimit(a)
+    say(a, "a_gameban", { id = 1 })
+    nolimit(a)
+    say(a, "a_unban", { id = 1 })
+    advance(3000)
+    check("and lifting it names no Steam ID either", not has(ca.game, "UnBanSteamID:" .. tostring(claim) .. ":"), ca.game)
+end
+
+section("a stay owes a Kick, every stay")
+do
+    local a, ca = boot()
+    W.refuse = { Torch = true }
+    local u = player("Torch", "user")
+    local cu = clientJoin(u)
+    cu.env.forceDisconnect = function() end
+    say(a, "a_ban", { user = "Torch", reason = "Griefing", len = "perm" })
+    advance(36000)
+    check("the first stay owes a Kick", has(ca.slash, '/kickuser "Torch" -r "Griefing"'))
+    -- the kick lands this time; they come back on the same name the game would not ban
+    W.kickRemoves = true
+    ca.slash = {}
+    advance(16000)
+    local kicked = 0
+    for _, s in ipairs(ca.slash) do if string.find(s, '/kickuser "Torch"', 1, true) then kicked = kicked + 1 end end
+    check("a kick that did not take is asked again", logHas("kick did not take") and kicked >= 1)
+    check("gone", cu.up == false)
+    ca.slash = {}
+    W.online[#W.online + 1] = u
+    W.clients.Torch.up = false
+    advance(30000)
+    check("back: told again, and the next stay owes another Kick", has(ca.slash, '/kickuser "Torch" -r "Griefing"'))
+    check("a Kick took them, not the game's ban: their login lifts nothing", md().bans[1] ~= nil and not logHas("ban lifted in the game"))
+    W.refuse, W.kickRemoves = nil, nil
+end
+
+section("a kick that never takes is asked for REOWE_MAX times")
+do
+    local a, ca = boot()
+    W.refuse = { Torch = true }
+    local u = player("Torch", "user")
+    local cu = clientJoin(u)
+    cu.env.forceDisconnect = function() end
+    say(a, "a_ban", { user = "Torch", reason = "Griefing", len = "perm" })
+    advance(400000)
+    local kicked = 0
+    for _, s in ipairs(ca.slash) do if string.find(s, '/kickuser "Torch"', 1, true) then kicked = kicked + 1 end end
+    check("asked again, a few times", kicked >= 2, kicked)
+    check("then a line, not a loop", logHas("kick did not take | @server | Torch | - | asked 3 times"))
+    W.refuse = nil
+end
+
+section("every ZeD command is refused for a banned player")
+do
+    local a, ca = boot()
+    W.refuse = { Torch = true }
+    local u = player("Torch", "user")
+    local cu = clientJoin(u)
+    cu.env.forceDisconnect = function() end
+    local Srv = W.server.ZeD.Srv
+    -- a stand-in for each part this sim does not load, on the same register and the same one listener
+    local ran = {}
+    for _, mod in ipairs({ "ZeDC", "ZeDX", "ZeDL", "ZeDDash" }) do
+        Srv.modules[mod] = true
+        Srv.register(mod, "probe", {}, function(p) ran[mod] = (ran[mod] or 0) + 1 end)
+    end
+    local function fire(mod, cmd, args)
+        u.box = {}
+        nolimit(u)
+        net(function() W.server.Events.OnClientCommand.fire(mod, cmd, u, wire(args or {})) end)
+        drain()
+    end
+    for _, mod in ipairs({ "ZeDC", "ZeDX", "ZeDL", "ZeDDash" }) do
+        fire(mod, "probe")
+        check("before the ban: " .. mod .. " runs", ran[mod] == 1)
+    end
+    say(a, "a_ban", { user = "Torch", reason = "Griefing", len = "perm" })
+    advance(14000)
+    for _, mod in ipairs({ "ZeDC", "ZeDX", "ZeDL", "ZeDDash" }) do
+        fire(mod, "probe")
+        check("banned: " .. mod .. " (claims, extras, log, dash) refused", ran[mod] == 1)
+    end
+    fire("ZeDT", "t_mine")
+    check("banned: tickets refused", firstErr(u) == "perm" and got(u, "t_mine") == nil)
+    fire("ZeDA", "a_players")
+    check("banned: admin refused", firstErr(u) == "perm" and got(u, "a_players") == nil)
+    fire("ZeD", "hello", { v = 1 })
+    check("the hello still answers, so their client hears why", got(u, "hello") ~= nil)
+    fire("ZeDA", "a_hi", {})
+    check("and a_hi still tells them to leave", got(u, "a_leave") ~= nil)
+    check("one line a minute says so", logHas("under a ban: probe") or logHas("under a ban:"))
+    W.refuse = nil
+end
+
+section("a Steam ID ban matches the server's own number, not the client's word")
+do
+    local a, ca = boot()
+    say(a, "a_ban", { target = "76561198000000600", reason = "alt", len = "w1" })
+    -- a new account on that Steam ID; its client claims nothing at all
+    local u = player("Fresh", "user")
+    u.steamNum = 76561198000000600
+    local cu = clientJoin(u)
+    advance(6000)
+    check("no claim: told to leave all the same", M(cu).leave ~= nil)
+    nolimit(u)
+    say(u, "a_players", {})
+    check("and refused", firstErr(u) == "perm")
+    -- a client that claims another ID
+    local v = player("Liar", "user")
+    v.steamNum = 76561198000000600
+    local cv = clientJoin(v)
+    nolimit(v)
+    say(v, "a_hi", { sid = "76561198000999999" })
+    advance(6000)
+    check("a false claim changes nothing", M(cv).leave ~= nil)
+    -- someone else's number is not theirs
+    local w = player("Other", "user")
+    w.steamNum = 76561198000500000
+    local cw = clientJoin(w)
+    advance(6000)
+    check("another Steam ID is not touched", M(cw).leave == nil)
+end
+
+section("a_done is not trusted: the game's list is read back")
+do
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    W.refuse = { ["76561198000000700"] = 1 }
+    say(a, "a_ban", { target = "76561198000000700", reason = "alt", len = "perm" })
+    advance(3000)
+    check("the client said done", has(ca.game, "BanSteamID:76561198000000700:alt"))
+    check("the game's list said no: asked again, with a line", md().bans[1].reowe == 1 and logHas("the Steam ID is not on the game's list"))
+    check("the second one holds: no more", md().bans[1].made == true and W.sidList["76561198000000700"] == true)
+    advance(30000)
+    check("and nothing more is asked", md().bans[1].reowe == 1 and next(md().owed) == nil)
+    -- a round asked again whose calls have not gone yet (made is cleared), then lifted: the first round's game ban may hold,
+    -- so the unban is still owed
+    local b1 = md().bans[1]
+    check("a ban the game was told of remembers it", b1.everMade == true)
+    b1.made = nil
+    nolimit(a)
+    say(a, "a_unban", { id = 1 })
+    advance(3000)
+    check("lifted with made cleared: the game's unban still goes", has(ca.game, "UnBanSteamID:76561198000000700"), ca.game)
+    -- a game that never takes it: the cap, then a line
+    W.refuse = { ["76561198000000701"] = true }
+    nolimit(a)
+    say(a, "a_ban", { target = "76561198000000701", reason = "alt", len = "perm" })
+    advance(5000)
+    check("never on the list: REOWE_MAX tries, then a line", md().bans[2].reowe == 3 and md().bans[2].gaveUp == true)
+    W.refuse = nil
+    -- a name: the only proof is that they are gone
+    W.refuse = { Kade = 1 }
+    local u = player("Kade", "user")
+    local cu = clientJoin(u)
+    cu.env.forceDisconnect = function() end
+    nolimit(a)
+    say(a, "a_ban", { user = "Kade", reason = "x", len = "perm" })
+    advance(13000)
+    check("done, and still on", md().bans[3].made == true and cu.up == true)
+    advance(16000)
+    check("still on past VERIFY_S: the game's ban did not take, asked again", md().bans[3].reowe == 1 and logHas("they are still on"))
+    check("the second lands", cu.up == false and W.gameBans.Kade == true)
+    W.refuse = nil
+end
+
+section("an unban by Steam ID is read back too")
+local function calls(list, s)
+    local n = 0
+    for _, x in ipairs(list) do if x == s then n = n + 1 end end
+    return n
+end
+do
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    say(a, "a_ban", { target = "76561198000000800", reason = "alt", len = "perm" })
+    advance(3000)
+    check("on the game's list", W.sidList["76561198000000800"] == true)
+    W.refuse = { ["un:76561198000000800"] = 1 }
+    nolimit(a)
+    say(a, "a_unban", { id = 1 })
+    advance(3000)
+    check("the client said done but the list still held it: asked again, with a line", logHas("game unban did not take") and calls(ca.game, "UnBanSteamID:76561198000000800:") == 2, ca.game)
+    check("the second one lifted it: nothing more", W.sidList["76561198000000800"] == nil and next(md().owed) == nil)
+    -- a game that never lifts it: REOWE_MAX more, then a line
+    W.refuse = { ["un:76561198000000801"] = true }
+    W.sidList["76561198000000801"] = true
+    nolimit(a)
+    say(a, "a_unban", { sid = "76561198000000801" })
+    advance(10000)
+    check("never lifted: asked REOWE_MAX more times, then left", calls(ca.game, "UnBanSteamID:76561198000000801:") == 4 and next(md().owed) == nil, calls(ca.game, "UnBanSteamID:76561198000000801:"))
+    check("and the last line says so", logHas("asked 3 times"))
+    -- a row of ours banning that ID again: its unban is not asked for again
+    W.refuse = { ["un:76561198000000802"] = true }
+    W.sidList["76561198000000802"] = true
+    nolimit(a)
+    say(a, "a_unban", { sid = "76561198000000802" })
+    md().bans[99] = { id = 99, sid = "76561198000000802", sidGame = "76561198000000802", reason = "again", by = "Hermit", byPos = 4, at = 1, day = 1, v = 2, made = true }
+    advance(5000)
+    check("banned again meanwhile: the unban is not asked again", calls(ca.game, "UnBanSteamID:76561198000000802:") == 1)
+    W.refuse = nil
+end
+
+section("the game's unban wins, on the game's own word")
+local function count(list, s)
+    local n = 0
+    for _, x in ipairs(list) do if x == s then n = n + 1 end end
+    return n
+end
+local function back(u)
+    W.online[#W.online + 1] = u
+    W.clients[u.name] = nil
+    return clientJoin(u)
+end
+-- a row, or an empty one once it is gone (so a run on older code goes on to its next check)
+local function row(i) return md().bans[i] or {} end
+local function lifts()
+    local n = 0
+    for _, l in ipairs(W.logs) do if string.find(l.line, "| ban lifted in the game |", 1, true) then n = n + 1 end end
+    return n
+end
+local function unbanned(c, name)
+    return has(c.game, "UnBan:" .. name .. ":") or has(c.game, "UnBanIP:" .. name .. ":")
+end
+do
+    -- the review's case: a name ban made while they are on, which the game did NOT take, and their client's own leave screen
+    -- disconnects them a moment after the ban goes out. Leaving is no proof: their next login must not close the row, and ZeD
+    -- must not lift anything
+    local a, ca = boot()
+    W.userList = true
+    W.refuse = { Kade = true }
+    local u = player("Kade", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Kade", reason = "griefing", len = "perm" })
+    advance(16000)
+    check("the ban went out, the game did not take it, and their own client left", has(ca.slash, '/banuser "Kade" -r "griefing"') and W.gameBans.Kade == nil and W.clients.Kade.up == false)
+    check("the game's list was looked at, and it does not say banned", (ca.looked or 0) >= 1 and not row(1).nameSeen)
+    W.refuse = nil
+    local c2 = back(u)
+    c2.env.forceDisconnect = function() end
+    advance(16000)
+    check("their login closes nothing", md().bans[1] ~= nil and lifts() == 0)
+    check("the ban is asked for again, as before", row(1).reowe == 1 and logHas("they are still on"))
+    check("ZeD lifted nothing", not unbanned(ca, "Kade"))
+    W.userList = nil
+end
+do
+    -- the game held it (a staff client read the role "banned" on the game's user list), then staff lift it in the game's own
+    -- window; the player logs in: the row closes on a second look before anything is asked again, and nothing gates them or is
+    -- lifted by ZeD
+    local a, ca = boot()
+    W.userList = true
+    local u = player("Kade", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Kade", reason = "griefing", len = "perm" })
+    advance(13000)
+    check("the game's ban made, and it kicked them", W.gameBans.Kade == true and row(1).made == true)
+    advance(4000)
+    check("a look at the game's list: the role is banned, so it held", row(1).nameSeen ~= nil)
+    advance(20000)
+    W.gameBans.Kade = nil                    -- (staff lift it in the game)
+    local c2 = back(u)
+    advance(1000)
+    check("while the look runs: no leave screen and no ban again", M(c2).leave == nil and count(ca.slash, '/banuser "Kade" -r "griefing"') == 1)
+    advance(5000)
+    check("the row is closed", next(md().bans) == nil)
+    check("the log says it was lifted in the game, and how ZeD knew", logHas("ban lifted in the game") and logHas("lifted in the game: the game's user list no longer has the name banned"))
+    check("and names the staff client whose look showed it", logHas("no longer has the name banned; seen by Hermit"))
+    check("on the line's own field too", (function() for i = 1, md().log.n do local l = md().log[i]; if l and l.what == "ban lifted in the game" then return l.via == "Hermit" end end return false end)())
+    check("never banned again", count(ca.slash, '/banuser "Kade" -r "griefing"') == 1 and not logHas("game ban did not take"))
+    check("nor told to leave", M(c2).leave == nil and c2.up == true)
+    check("nothing owed for them, nothing lifted by ZeD", next(md().owed) == nil and not unbanned(ca, "Kade"))
+    check("the gate opens", W.server.ZeD.Srv.gated(u, "ZeDT", "t_mine") == nil)
+    -- one lifted in the game while they are off: the row closes at its next look
+    nolimit(a)
+    md().players.Ola = { t = 1, role = "user" }
+    say(a, "a_ban", { user = "Ola", reason = "x", len = "w1" })
+    advance(8000)
+    check("made while they were off, and the game's list says banned", W.gameBans.Ola == true and row(2).nameSeen ~= nil)
+    W.gameBans.Ola = nil
+    advance(65000)
+    check("a timed row lifted in the game while they are off: closed at its next look", md().bans[2] == nil and lifts() == 2, tostring(md().bans[2] ~= nil) .. " " .. lifts())
+    check("and its unban is not owed at its end", owedOf("UnBan", "Ola") == nil and not unbanned(ca, "Ola"))
+    W.userList = nil
+end
+do
+    -- no staff client to look: a name row stays as it was, and a login is asked again as before
+    local a, ca = boot()
+    W.userList = true
+    local u = player("Torch", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Torch", reason = "x", len = "perm" })
+    advance(20000)
+    check("held", row(1).nameSeen ~= nil)
+    W.gameBans.Torch = nil
+    offline(a)
+    local c2 = back(u)
+    c2.env.forceDisconnect = function() end
+    advance(16000)
+    check("nobody to look: the row stands and is asked again", md().bans[1] ~= nil and row(1).reowe == 1 and lifts() == 0)
+    check("and the leave screen shows", M(c2).leave ~= nil)
+    W.userList = nil
+end
+do
+    -- the game's database read failed: the list holds only the players on, with their live role and not from the database.
+    -- That is no word on the ban: nothing closes
+    local a, ca = boot()
+    W.userList = true
+    local u = player("Bix", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Bix", reason = "x", len = "perm" })
+    advance(40000)
+    check("held", row(1).nameSeen ~= nil)
+    W.dbDown = true
+    W.refuse = { Bix = true }
+    local c2 = back(u)
+    c2.env.forceDisconnect = function() end
+    advance(30000)
+    check("a row not from the game's database proves nothing: the row stands", md().bans[1] ~= nil and lifts() == 0)
+    check("after the look, as before: asked again", (row(1).reowe or 0) >= 1, tostring(row(1).reowe))
+    W.dbDown, W.refuse = nil, nil
+    -- an answer that is the list from before the question (a reply to an older request) and still says banned: held again
+    W.userList = nil
+end
+do
+    -- the answer itself: only the client asked, only in time, only names asked, a role from the game's database, and a lift
+    -- only from a look asked LIFT_FRESH_S or more after the one that saw the ban
+    local a, ca = boot()
+    local m = player("Mods", "moderator")
+    clientJoin(m)
+    local now = math.floor(W.clock / 1000)
+    md().bans[1] = { id = 1, user = "Kade", reason = "x", by = "Hermit", byPos = 4, at = now, day = 1, v = 2, made = true, everMade = true, nameSeen = now - 5 }
+    local function ask(id, to) A().look = { id = id, to = to, at = math.floor(W.clock / 1000), names = { kade = 1 } } end
+    ask(7, "Hermit")
+    nolimit(a)
+    say(a, "a_looked", { id = 7, rows = { { u = "Kade", role = "user", wl = true } } })
+    check("a look too soon after the one that saw the ban proves nothing", md().bans[1] ~= nil)
+    row(1).nameSeen = now - 30
+    ask(8, "Hermit")
+    nolimit(m)
+    say(m, "a_looked", { id = 8, rows = { { u = "Kade", role = "user", wl = true } } })
+    check("another staff client's word is not taken", md().bans[1] ~= nil and A().look ~= nil)
+    nolimit(a)
+    say(a, "a_looked", { id = 9, rows = { { u = "Kade", role = "user", wl = true } } })
+    check("nor an answer to another look", md().bans[1] ~= nil)
+    say(a, "a_looked", { id = 8, rows = { { u = "Kade", role = "user", wl = false } } })
+    check("nor a row not from the game's database", md().bans[1] ~= nil)
+    ask(10, "Hermit")
+    nolimit(a)
+    say(a, "a_looked", { id = 10, rows = { { u = "Other", role = "user", wl = true } } })
+    check("nor a name not asked; a name missing says nothing", md().bans[1] ~= nil)
+    ask(11, "Hermit")
+    nolimit(a)
+    say(a, "a_looked", { id = 11, rows = { { u = "kade", role = "user", wl = true }, { u = "Kade", role = "banned", wl = true } } })
+    check("two rows for a name: banned wins", md().bans[1] ~= nil)
+    ask(12, "Hermit")
+    W.clock = W.clock + 11000
+    nolimit(a)
+    say(a, "a_looked", { id = 12, rows = { { u = "Kade", role = "user", wl = true } } })
+    check("nor an answer past LOOK_WAIT_S", md().bans[1] ~= nil)
+    ask(13, "Hermit")
+    nolimit(a)
+    say(a, "a_looked", { id = 13, rows = { { u = "Kade", role = "user", wl = true } } })
+    check("the asked client, in time, a role from the database, fresh: the row closes", md().bans[1] == nil)
+end
+do
+    -- a Steam ID: the game's own list says so, read twice, timed or not, and with the player off
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    say(a, "a_ban", { target = "76561198000000900", reason = "alt", len = "w1" })
+    nolimit(a)
+    say(a, "a_ban", { target = "76561198000000901", reason = "alt", len = "perm" })
+    advance(3000)
+    check("both on the game's list, read back", row(1).sidHeld == true and row(2).sidHeld == true)
+    -- a database error answers null, as "not banned": one such read must never close a row or lift anything
+    W.dbFail = 1
+    advance(12000)
+    check("one failed read of the game's list closes nothing", md().bans[1] ~= nil and md().bans[2] ~= nil and lifts() == 0)
+    check("and lifts nothing", not has(ca.game, "UnBanSteamID:76561198000000900") and not has(ca.game, "UnBanSteamID:76561198000000901"))
+    check("a read that finds it again starts over", row(1).sidOffAt == nil and row(2).sidOffAt == nil)
+    W.sidList["76561198000000900"] = nil      -- (unbanid in the game)
+    advance(25000)
+    check("read off twice: the timed row closes", md().bans[1] == nil and md().bans[2] ~= nil)
+    check("the log says it", logHas("lifted in the game: the Steam ID is off the game's list"))
+    check("a Steam ID read off the game's list names nobody", not logHas("the Steam ID is off the game's list; seen by"))
+    check("never banned again", count(ca.game, "BanSteamID:76561198000000900:alt") == 1)
+    check("and no unban owed at its end", owedOf("UnBanSteamID", "76561198000000900") == nil)
+    W.clock = W.clock + 604800 * 1000
+    advance(3000)
+    check("not at the end either", count(ca.game, "UnBanSteamID:76561198000000900:") == 0)
+    -- a row whose ID the game never confirmed: the list's word is not taken as a lift
+    W.refuse = { ["76561198000000902"] = true }
+    nolimit(a)
+    say(a, "a_ban", { target = "76561198000000902", reason = "alt", len = "perm" })
+    advance(6000)
+    check("never on the list: not lifted, asked again", md().bans[3] ~= nil and row(3).reowe == 3)
+    W.refuse = nil
+end
+do
+    -- an IP: the game's unban of another account on the same IP clears it from the game's list too (banIp deletes by the IP).
+    -- Only the IP part goes; the row and the game's name ban stay, and ZeD lifts nothing
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    local u = player("Loot", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Loot", reason = "x", len = "perm", banIp = true })
+    advance(20000)
+    check("the IP on the game's list: held", row(1).ipHeld == true and W.gameBans.Loot == true)
+    W.gameIps.Loot = nil                     -- (staff unban Loot's alt in the game; the IP they share comes off)
+    advance(20000)
+    check("the row stays", md().bans[1] ~= nil and lifts() == 0, tostring(md().bans[1] ~= nil) .. " " .. lifts() .. " " .. tostring(W.logs[#W.logs] and W.logs[#W.logs].line))
+    check("only its IP part goes, with a line", row(1).banIp == nil and logHas("ip ban lifted in the game") and logHas("the ban on the name stands"))
+    check("ZeD lifts nothing: the game's name ban stands", not unbanned(ca, "Loot") and W.gameBans.Loot == true and owedOf("UnBan", "Loot") == nil)
+    -- a single failed read of the IP is no proof either
+    nolimit(a)
+    local v = player("Vex", "user")
+    clientJoin(v)
+    say(a, "a_ban", { user = "Vex", reason = "x", len = "perm", banIp = true })
+    advance(20000)
+    check("held", row(2).ipHeld == true)
+    W.dbFail = 1
+    advance(12000)
+    check("one failed read keeps the IP part", row(2).banIp == true)
+end
+do
+    -- the name lifted in the game on a Steam server (its unban leaves the IP on the game's list): the row closes, the log says
+    -- the game still holds the IP, and ZeD lifts nothing itself
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    W.userList = true
+    local u = player("Rue", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Rue", reason = "x", len = "perm", banIp = true })
+    advance(20000)
+    check("held: the name by a look, the IP by the list", row(1).nameSeen ~= nil and row(1).ipHeld == true, tostring(row(1).nameSeen) .. " " .. tostring(row(1).ipHeld) .. " " .. tostring(row(1).banIp) .. " " .. tostring(ca.looked))
+    W.gameBans.Rue = nil
+    advance(65000)
+    check("closed at its next look", md().bans[1] == nil)
+    check("the line names what the game still holds", logHas("the game still holds its IP"))
+    check("and ZeD never lifts it itself", not has(ca.game, "UnBanIP:Rue:") and not has(ca.game, "UnBan:Rue:") and W.gameIps.Rue == true)
+    W.userList = nil
+end
+
+section("owed voice bans give way to a ban, as Kicks do")
+do
+    local a, ca = boot()
+    local now = math.floor(W.clock / 1000)
+    for i = 1, 150 do md().owed[1000 + i] = { id = 1000 + i, act = "UnBan", target = "t" .. i, reason = "", at = now + 99999 } end
+    for i = 1, 50 do md().owed[2000 + i] = { id = 2000 + i, act = "VoiceBan", target = "v" .. i, reason = "", at = now + 99999 } end
+    nolimit(a)
+    say(a, "a_unban", { user = "Someone" })
+    check("full of voice bans: an unban is taken", okOf(a) and owedOf("UnBan", "Someone") ~= nil)
+    check("the oldest voice ban made room", md().owed[2001] == nil and md().owed[2002] ~= nil and md().owed[1001] ~= nil)
+    check("the log says a VoiceBan was dropped", logHas("dropped a VoiceBan"))
+    for i = 1, 150 do md().owed[1000 + i] = nil end
+    for i = 1, 200 do md().owed[3000 + i] = { id = 3000 + i, act = "UnBan", target = "u" .. i, reason = "", at = now + 99999 } end
+    for id, e in pairs(md().owed) do if e.act == "VoiceBan" then md().owed[id] = nil end end
+    nolimit(a)
+    say(a, "a_unban", { user = "Other" })
+    check("full of real calls, no voice ban to drop: still refused", errOf(a) == "full" and md().owed[3001] ~= nil)
+end
+
+section("a mute owes the game's voice ban when they come on")
+do
+    local a, ca = boot()
+    md().players.Away = { t = 1, role = "user" }
+    say(a, "a_mute", { user = "Away", on = true })
+    check("muted while off: acked", okOf(a))
+    advance(6000)
+    check("nothing owed while they are off", owedOf("VoiceBan") == nil)
+    local u = player("Away", "user")
+    local cu = clientJoin(u)
+    advance(6000)
+    check("on: the next staff client makes the game's voice ban", count(ca.slash, '/voiceban "Away" -true') == 1, table.concat(ca.slash, "; "))
+    check("done, nothing left owed", owedOf("VoiceBan") == nil)
+    advance(20000)
+    check("once a session", count(ca.slash, '/voiceban "Away" -true') == 1)
+    offline(u)
+    advance(6000)
+    back(u)
+    advance(6000)
+    check("each session: the game holds it for the connection only", count(ca.slash, '/voiceban "Away" -true') == 2)
+    -- unmuted before they come on: dropped
+    nolimit(a)
+    md().players.Bo = { t = 1, role = "user" }
+    say(a, "a_mute", { user = "Bo", on = true })
+    nolimit(a)
+    say(a, "a_mute", { user = "Bo", on = false })
+    local b = player("Bo", "user")
+    clientJoin(b)
+    advance(6000)
+    check("unmuted first: no voice ban", not has(ca.slash, '/voiceban "Bo"'))
+    -- owed with no staff on, then unmuted before it was made: dropped
+    nolimit(a)
+    md().players.Cy = { t = 1, role = "user" }
+    say(a, "a_mute", { user = "Cy", on = true })
+    offline(a)
+    local cyp = player("Cy", "user")
+    clientJoin(cyp)
+    advance(6000)
+    check("on with no staff to make it: it waits", owedOf("VoiceBan", "Cy") ~= nil)
+    nolimit(a)
+    say(a, "a_mute", { user = "Cy", on = false })
+    check("unmuted: dropped", owedOf("VoiceBan", "Cy") == nil)
+    local back2 = player("Hermit", "admin")
+    W.clients.Hermit = nil
+    local c2 = clientJoin(back2)
+    advance(6000)
+    check("and never made", not has(c2.slash, '/voiceban "Cy"'))
+    -- muted while on: the staff client's own call, never a second owed one
+    local t = player("Torch", "user")
+    clientJoin(t)
+    advance(6000)
+    M(c2).mute("Torch", true)
+    advance(12000)
+    check("muted while on: one voice ban, the staff client's own", count(c2.slash, '/voiceban "Torch" -true') == 1, table.concat(c2.slash, "; "))
+    -- the host helper may make it: on its allow-list, with a name checked as the helper checks it
+    local H = W.server.ZeD.Srv.H
+    check("the helper takes a voice ban", H.can({ act = "VoiceBan", target = "Away" }) == true)
+    check("never a name the console could read as -true or -false", H.can({ act = "VoiceBan", target = "-true" }) == false and H.can({ act = "VoiceBan", target = "-x" }) == false)
+    check("nor an unmute", H.can({ act = "VoiceUnban", target = "Away" }) == false)
+end
+do
+    -- with the helper running and no staff on, the helper makes it
+    W = W or {}
+    W.sandboxNext = { HostHelper = true }
+    local a, ca = boot()
+    W.sandboxNext = nil
+    md().players.Away = { t = 1, role = "user" }
+    say(a, "a_mute", { user = "Away", on = true })
+    offline(a)
+    W.files["ZeD_helper/answers.txt"] = "ZEDA 1 " .. W.server.ZeD.Srv.H.epoch() .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n"
+    advance(3000)
+    local u = player("Away", "user")
+    clientJoin(u)
+    advance(8000)
+    local q = W.files["ZeD_helper/queue.txt"] or ""
+    check("in the helper's queue", string.find(q, "\tVoiceBan\tAway\t", 1, true) ~= nil, q)
+    local e = owedOf("VoiceBan", "Away")
+    W.files["ZeD_helper/answers.txt"] = "ZEDA 1 " .. W.server.ZeD.Srv.H.epoch() .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n" .. tostring(e and e.id) .. "\t1\tok\tUser Away voice is banned.\n"
+    advance(3000)
+    check("answered ok: done", owedOf("VoiceBan", "Away") == nil)
+end
+
+section("bans from before this build hold too")
+do
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    offline(a)
+    local now = math.floor(W.clock / 1000)
+    local B = md().bans
+    B[7] = { id = 7, user = "Old", reason = "grief", by = "Hermit", byPos = 4, at = now - 100, day = 1, untilT = now + 3600, sid = "76561198000000900" }
+    B[8] = { id = 8, sid = "76561198000000901", reason = "alt", by = "Hermit", byPos = 4, at = now, day = 1, untilT = now + 3600 }
+    B[9] = { id = 9, user = "Perm", sid = "76561198000000902", reason = "x", by = "Hermit", byPos = 4, at = now, day = 1, made = true }
+    B[10] = { id = 10, user = "Gone", reason = "x", by = "Hermit", byPos = 4, at = now - 7200, day = 1, untilT = now - 10 }
+    B[11] = { id = 11, user = "Ip", ip = nil, banIp = true, reason = "x", by = "Hermit", byPos = 4, at = now, day = 1, untilT = now + 600 }
+    md().owed[50] = { id = 50, act = "BanSteamID", target = "76561198000000902", reason = "x", at = 0, banId = 9 }
+    md().nextBan, md().nextOwe = 12, 51
+    serverStart()                    -- (a restart: this build meets beta 7's rows)
+    W.server.ZeD.Srv.adminTick()
+    check("a beta 7 timed ban owes the game's ban by name", owedOf("Ban", "Old") ~= nil and md().bans[7].gameBan == true)
+    check("never by the Steam ID its player's client named", owedOf("BanSteamID", "76561198000000900") == nil and md().bans[7].sidGame == nil)
+    check("a typed Steam ID's timed ban owes the game's Steam ID ban", owedOf("BanSteamID", "76561198000000901") ~= nil and md().bans[8].sidGame == "76561198000000901")
+    check("a timed IP ban owes the plain ban, never the IP (that needs them on)", owedOf("Ban", "Ip") ~= nil and owedOf("BanIP") == nil)
+    check("a call for a client's Steam ID still waiting goes", md().owed[50] == nil)
+    check("a permanent row the game held keeps its Steam ID, to be lifted with it", md().bans[9].sidLift == "76561198000000902" and md().bans[9].sidGame == nil)
+    check("a line says each was owed", logHas("game ban owed"))
+    check("a row already over is only lifted", md().bans[10] == nil and owedOf("Ban", "Gone") == nil)
+    local n = 0
+    for _ in pairs(md().owed) do n = n + 1 end
+    serverStart()                    -- (another start before anyone made them: nothing owed twice)
+    W.server.ZeD.Srv.adminTick()
+    local n2 = 0
+    for _ in pairs(md().owed) do n2 = n2 + 1 end
+    check("a second start owes nothing again", n2 == n, n .. " then " .. n2)
+    -- the next staff client makes them
+    local back = player("Hermit", "admin")
+    W.clients.Hermit = nil
+    local c2 = clientJoin(back)
+    advance(3000)
+    check("made by the next staff client", has(c2.slash, '/banuser "Old" -r "grief"') and has(c2.game, "BanSteamID:76561198000000901:alt"))
+    nolimit(back)
+    say(back, "a_unban", { id = 9 })
+    advance(3000)
+    check("the old permanent row lifts what beta 7 gave the game", has(c2.game, "UnBanSteamID:76561198000000902:"))
+    -- a frozen table is never touched
+    world()
+    md().bans[1] = { id = 1, user = "Cold", reason = "x", by = "Hermit", byPos = 4, at = 1, day = 1, untilT = math.floor(W.clock / 1000) + 600, sid = "76561198000000903" }
+    md().schema = 99
+    serverStart()
+    W.server.ZeD.Srv.adminTick()
+    check("frozen: no row changed, nothing owed", md().bans[1].v == nil and md().bans[1].gameBan == nil and next(md().owed) == nil)
+end
+
+section("the host helper: the queue it reads and the answers it writes")
+local function failLines()
+    local n = 0
+    for _, l in ipairs(W.logs) do
+        if string.find(l.line, "host helper failed", 1, true) then n = n + 1 end
+    end
+    return n
+end
+do
+    W = W or {}
+    W.sandboxNext = { HostHelper = true }
+    local a, ca = boot()
+    W.sandboxNext = nil
+    local Srv = W.server.ZeD.Srv
+    local H = Srv.H
+    check("the setting turns it on", H.on() == true)
+    local epoch = H.epoch()
+    check("this start has its own word for the helper", type(epoch) == "string" and #epoch > 8)
+    check("and it is never saved, so a table a crash rolled back never meets its old answers", md().helperEpoch == nil)
+    -- a running helper rewrites its answers file every pass: ans sets what it answers, adv keeps its time fresh
+    local function ans(body)
+        W.helperBody = body
+        W.files["ZeD_helper/answers.txt"] = "ZEDA 1 " .. epoch .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n" .. body
+    end
+    local function adv(ms)
+        while ms > 0 do
+            local d = math.min(ms, 2000)
+            if W.helperBody then ans(W.helperBody) end
+            advance(d)
+            ms = ms - d
+        end
+    end
+    -- not known to be running (no answer from it this start): a call goes straight to a staff client, never to the queue
+    md().players.Early = { t = 1, role = "user" }
+    nolimit(a)
+    say(a, "a_ban", { user = "Early", reason = "x", len = "perm" })
+    advance(3000)
+    check("before the helper's first answer: a staff client makes the call", has(ca.slash, '/banuser "Early" -r "x"'))
+    check("and the queue holds nothing", not string.find(W.files["ZeD_helper/queue.txt"] or "", "Early", 1, true), W.files["ZeD_helper/queue.txt"])
+    ans("")                          -- (its first pass: the empty queue answered)
+    adv(3000)
+    check("once it has answered it counts as running", H.alive(math.floor(W.clock / 1000)) == true)
+    offline(a)
+    md().players.Kade = { t = 1, role = "user" }
+    -- a permanent ban with nobody on: the calls go to the queue
+    W.server.ZeD.Srv.mem.Hermit = nil
+    a.box = {}
+    W.online[#W.online + 1] = a
+    say(a, "a_ban", { user = "Kade", reason = "Grief and lies", len = "perm" })
+    offline(a)
+    for _, ow in pairs(md().owed) do ow.reason = "Grief\tand\nlies" end      -- (as if a reason had kept them: the queue's own guard)
+    adv(3000)
+    local q = W.files["ZeD_helper/queue.txt"] or ""
+    check("the queue names this world", string.find(q, "ZEDQ 1 " .. epoch, 1, true) == 1, q)
+    check("the call is in it, its reason on one line", string.find(q, "\tBan\tKade\tGrief and lies\n", 1, true) ~= nil, q)
+    check("the queue ends with its end line, so a file read mid-write is never taken", string.sub(q, -9) == "ZEDQ end\n", q)
+    -- the helper answers ok: done, and judged as any other
+    local e = owedOf("Ban", "Kade")
+    ans(tostring(e.id) .. "\t1\tok\tSystem banned user Kade\n")
+    adv(3000)
+    check("ok: the call is done", owedOf("Ban", "Kade") == nil and (function() for _, b in pairs(md().bans) do if b.user == "Kade" then return b.made == true end end end)())
+    check("and the queue no longer holds it", not string.find(W.files["ZeD_helper/queue.txt"], "\tBan\tKade", 1, true))
+    -- an answer from another world's file is not read
+    md().players.Mags = { t = 1, role = "user" }
+    W.online[#W.online + 1] = a
+    nolimit(a)
+    say(a, "a_ban", { user = "Mags", reason = "x", len = "perm" })
+    offline(a)
+    adv(3000)
+    e = owedOf("Ban", "Mags")
+    W.files["ZeD_helper/answers.txt"] = "ZEDA 1 not-this-world " .. tostring(math.floor(W.clock / 1000)) .. "\n" .. tostring(e.id) .. "\t1\tok\tx\n"
+    adv(3000)
+    check("another world's answer changes nothing", owedOf("Ban", "Mags") ~= nil)
+    -- refused: it goes to a staff client instead
+    ans(tostring(e.id) .. "\t1\trefused\tThis user can't be banned.\n")
+    adv(3000)
+    check("refused: off the queue, and written down", not string.find(W.files["ZeD_helper/queue.txt"], "\tMags\t", 1, true) and logHas("host helper refused"))
+    local back = player("Hermit", "admin")
+    W.clients.Hermit = nil
+    local c2 = clientJoin(back)
+    adv(2000)
+    check("then a staff client makes it", has(c2.slash, '/banuser "Mags" -r "x"'))
+    -- what the helper never gets: an IP call, a name its patterns refuse
+    nolimit(back)
+    local ip = player("Loot", "user")
+    clientJoin(ip)
+    say(back, "a_ban", { user = "Loot", reason = "x", len = "perm", banIp = true })
+    md().players["N\195\164me"] = { t = 1, role = "user" }
+    nolimit(back)
+    say(back, "a_ban", { user = "N\195\164me", reason = "x", len = "perm" })
+    adv(1000)
+    q = W.files["ZeD_helper/queue.txt"]
+    check("an IP call is never the helper's", not string.find(q, "BanIP", 1, true))
+    check("a name outside its patterns is never the helper's", not string.find(q, "N\195\164me", 1, true))
+    check("both go to the staff client", has(c2.slash, '/banuser "N\195\164me" -r "x"'))
+    -- failed: a staff client gets it at once, and the helper a new try
+    offline(back)
+    md().players.Bo = { t = 1, role = "user" }
+    W.online[#W.online + 1] = back
+    nolimit(back)
+    say(back, "a_ban", { user = "Bo", reason = "x", len = "perm" })
+    offline(back)
+    adv(3000)
+    e = owedOf("Ban", "Bo")
+    ans(tostring(e.id) .. "\t1\tfailed\tno answer from the console\n")
+    adv(3000)
+    check("failed: written down", logHas("host helper failed") and failLines() == 1)
+    adv(16000)
+    check("no new try before HELPER_WAIT_S: a console it cannot reach is not asked every pass", string.find(W.files["ZeD_helper/queue.txt"], tostring(e.id) .. "\t1\tBan\tBo", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    adv(16000)
+    check("then tried again under a new try", string.find(W.files["ZeD_helper/queue.txt"], tostring(e.id) .. "\t2\tBan\tBo", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    -- it fails again: no second line inside HELPER_LOG_S, only a count
+    ans(tostring(e.id) .. "\t2\tfailed\tno answer from the console\n")
+    adv(3000)
+    check("a second failure inside a minute: no new line", failLines() == 1)
+    adv(31000)
+    check("a third try", string.find(W.files["ZeD_helper/queue.txt"], tostring(e.id) .. "\t3\tBan\tBo", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    ans(tostring(e.id) .. "\t3\tfailed\tno answer from the console\n")
+    adv(3000)
+    check("HELPER_TRIES failures: left to staff clients, off the queue", owedOf("Ban", "Bo").noHelper == true and not string.find(W.files["ZeD_helper/queue.txt"], "\tBo\t", 1, true))
+    check("and one line says so, with the count it held back", failLines() == 2 and logHas("tried 3 times, staff only now") and logHas("(and 1 more since the last line)"))
+    adv(60000)
+    check("then nothing more: no tries, no lines", failLines() == 2 and owedOf("Ban", "Bo").try == 3)
+    -- many calls failing at once: one line, not one a call
+    local many = {}
+    for _, n in ipairs({ "Fi", "Gus", "Hal", "Ivy" }) do
+        md().players[n] = { t = 1, role = "user" }
+        W.online[#W.online + 1] = back
+        nolimit(back)
+        say(back, "a_ban", { user = n, reason = "x", len = "perm" })
+        offline(back)
+    end
+    adv(3000)
+    local text = "ZEDA 1 " .. epoch .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n"
+    for _, n in ipairs({ "Fi", "Gus", "Hal", "Ivy" }) do
+        many[#many + 1] = owedOf("Ban", n)
+        text = text .. tostring(many[#many].id) .. "\t1\tfailed\tno answer from the console\n"
+    end
+    ans((string.gsub(text, "^[^\n]*\n", "")))
+    adv(3000)
+    check("four failures in one pass: one line, the other three held for the next line", failLines() == 3 and A().helperFails == 3)
+    W.files["ZeD_helper/answers.txt"], W.helperBody = nil, nil
+    -- a helper that stopped writing: staff are not kept waiting
+    md().players.Cy = { t = 1, role = "user" }
+    W.online[#W.online + 1] = back
+    W.clients.Hermit.up = true
+    nolimit(back)
+    say(back, "a_ban", { user = "Cy", reason = "x", len = "perm" })
+    W.clock = W.clock + 60000
+    adv(20000)
+    check("an answers file gone stale: the staff client gets it", has(W.clients.Hermit.slash, '/banuser "Cy" -r "x"'))
+    -- a timed ban's end with nobody on, the helper running: the unban goes to it
+    offline(back)
+    nolimit(back)
+    md().players.Dee = { t = 1, role = "user" }
+    W.online[#W.online + 1] = back
+    say(back, "a_ban", { user = "Dee", reason = "x", len = "h1" })
+    offline(back)
+    adv(1000)
+    e = owedOf("Ban", "Dee")
+    ans(tostring(e.id) .. "\t1\tok\tSystem banned user Dee\n")
+    adv(3000)
+    W.clock = W.clock + 3600 * 1000
+    adv(3000)
+    check("the end of a timed ban: the unban is in the queue", string.find(W.files["ZeD_helper/queue.txt"], "\tUnBan\tDee", 1, true) ~= nil)
+    e = owedOf("UnBan", "Dee")
+    ans(tostring(e.id) .. "\t1\tok\tSystem unbanned user Dee\n")
+    adv(3000)
+    check("made by the helper with nobody on", owedOf("UnBan", "Dee") == nil)
+    -- off: no file at all
+    world()
+    local z = player("Hermit", "admin")
+    clientJoin(z)
+    md().players.Kade = { t = 1, role = "user" }
+    say(z, "a_ban", { user = "Kade", reason = "x", len = "perm" })
+    adv(3000)
+    check("off: no queue written", W.files["ZeD_helper/queue.txt"] == nil)
 end
 
 print("admin_sim: " .. checks .. " checks, " .. failed .. " failed")

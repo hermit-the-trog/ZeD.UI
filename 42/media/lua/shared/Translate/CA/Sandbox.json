@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxímetre: per minut d'espera",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dòlars que el taxímetre afegeix per cada minut de temps real que el taxi espera (a menys de 5 km/h, amb el motor en marxa) amb la bandera baixada.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxímetre: per passatger extra",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dòlars que es mostren sota EXTRES per cada passatger després del primer. El conductor no compta."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dòlars que es mostren sota EXTRES per cada passatger després del primer. El conductor no compta.",
+    "Sandbox_ZeD_HostHelper": "Ajudant de l'amfitrió (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "Activat: els bans, desbans i expulsions que ZeD deu al joc també s'escriuen a Zomboid/Lua/ZeD_helper/ per a l'ajudant de l'amfitrió de ZeD, un programa a part que el propietari executa a la màquina del servidor. Els aplica per la consola remota del servidor (RCONPort i RCONPassword a la configuració del servidor), així es compleixen sense cap moderador connectat. Desactivat: esperen que es connecti algú de l'equip."
 }

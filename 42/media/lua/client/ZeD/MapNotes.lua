@@ -11,7 +11,10 @@
 -- draws none of its own.
 --
 -- Paper map items (reading a map you picked up) keep their own symbols, as
--- vanilla's ISMap does with setMapItem(the item): nothing here touches them.
+-- vanilla's ISMap does with setMapItem(the item). ZeD's map shows one of them
+-- (PaperMap.lua) bound to that item, and its marks go to the paper's own
+-- symbols: addSymbol / addNote take that map's api (panelAPI), the rest take
+-- the api the mark came from. The world store is never touched by a paper map.
 --
 -- Until Oct 20 2026 ZeD kept its marks in the character's modData
 -- (ZeD_MapAnnotations). migrate() copies them into the store once per
@@ -202,9 +205,10 @@ end
 -- WRITING THE STORE -- vanilla's calls, in vanilla's order
 -- ============================================================================
 
--- ISWorldMapSymbolTool_AddSymbol:addSymbol
-function M.addSymbol(symbolId, wx, wy, inkIdx)
-    local api = M.api()
+-- ISWorldMapSymbolTool_AddSymbol:addSymbol. api: where the mark goes (the
+-- world map's store when nil; a paper map's own symbols, PaperMap.lua).
+function M.addSymbol(symbolId, wx, wy, inkIdx, api)
+    api = api or M.api()
     if not (api and symbolId) then return nil end
     local defs = MapSymbolDefinitions and MapSymbolDefinitions.getInstance()
     if defs and not defs:getSymbolById(symbolId) then return nil end
@@ -218,9 +222,9 @@ function M.addSymbol(symbolId, wx, wy, inkIdx)
 end
 
 -- ISWorldMapSymbolTool_AddNote:onNoteAdded (the in-game path: plain text, no
--- translation key). Empty text adds nothing, as in vanilla.
-function M.addNote(text, wx, wy, inkIdx)
-    local api = M.api()
+-- translation key). Empty text adds nothing, as in vanilla. api as addSymbol's.
+function M.addNote(text, wx, wy, inkIdx, api)
+    api = api or M.api()
     if not api then return nil end
     text = _trim(text)
     if text == "" then return nil end

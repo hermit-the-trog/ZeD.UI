@@ -159,8 +159,18 @@ local function ms() return MainScreen and MainScreen.instance end
 -- A controller is driving the menu (vanilla's main-menu joypad has focus on MainScreen).
 function MM.gamepad()
     if MM.forceGamepad then return true end
+    -- back at the desk after a death (Overrides/Respawn.lua): the respawning player's controller, on the desk
+    local r = MM.respawn
+    if r then return r.joypadData ~= nil and MM.root ~= nil and r.joypadData.focus == MM.root end
     local jd = JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
     return jd ~= nil and jd.focus == ms()
+end
+
+-- The controller driving the desk: the main menu's, or the respawning player's.
+function MM.joypad()
+    local r = MM.respawn
+    if r then return r.joypadData end
+    return JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad() or nil
 end
 
 local _hoverSound = nil
@@ -687,11 +697,19 @@ function forceChangeState(state, ...)
     local m = ms()
     local root = MM.root
     if loading and not o and root and root:isVisible() and m and not m.inGame then
-        MM.powerOff = { t0 = now(), state = state }
-        MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
+        MM.switchOff({ state = state })
         return
     end
     return MM._origForceChangeState(state, ...)
+end
+
+-- The monitor switches off, and then what waits on it goes on: o.state, vanilla's start (the loading
+-- screen); o.run, a function (back at the desk after a death, Play: the game makes the character,
+-- Overrides/Respawn.lua; director, Nov 7 2026: "the same moment as starting a game").
+function MM.switchOff(o)
+    o.t0 = now()
+    MM.powerOff = o
+    MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
 end
 
 -- (the desk's update) the switch-off done: vanilla's start goes on to the loading screen
@@ -699,11 +717,11 @@ function MM.powerOffTick()
     local o = MM.powerOff
     if not o then return end
     local t = now()
-    if o.state and t - o.t0 >= OFF_TOTAL then
-        local st = o.state
-        o.state, o.firedAt = nil, t
-        MM._origForceChangeState(st)
-    elseif not o.state and o.firedAt and t - o.firedAt > 2000 then
+    if (o.state or o.run) and t - o.t0 >= OFF_TOTAL then
+        local st, run = o.state, o.run
+        o.state, o.run, o.firedAt = nil, nil, t
+        if run then run() else MM._origForceChangeState(st) end
+    elseif not o.state and not o.run and o.firedAt and t - o.firedAt > 2000 then
         MM.powerOff = nil   -- still on the menu (the start did not go through): the monitor comes back
     end
 end
@@ -998,6 +1016,8 @@ MM.act = {
 -- THE MENU BAR'S MENUS
 -- ---------------------------------------------------------------------------
 function MM.menus()
+    -- back at the desk after a death: only the ZeD menu's About block (nothing here leaves the game)
+    if MM.respawn then return { { key = "zed", logo = true } } end
     local t = {
         { key = "zed", logo = true },
         { key = "file", title = ZeD.tr("UI_ZeD_MainMenu_MenuFile") },
@@ -1010,6 +1030,7 @@ end
 
 function MM.menuItems(key)
     local A, m = MM.act, ms()
+    if MM.respawn then return key == "zed" and { { about = true } } or {} end
     if key == "zed" then
         return { { about = true }, "-",
                  { text = ZeD.btnCase(getText("UI_mainscreen_credits")), fn = A.credits },
@@ -1613,6 +1634,19 @@ function MM.openPopup(key, items, anchor, up)
     MM.ctx.dropScroll = 0
 end
 
+-- A pop-up's room (top, bottom, left, right): the monitor's screen on the desk (at the menu, and back
+-- at the desk after a death, where the game is loaded but the desk is up: Overrides/Respawn.lua; at
+-- Deck size the desk leans in and the room past the monitor is the desk's wood), the game screen in game.
+function MM.popRoom()
+    local T = ZeD.T
+    local m = ms()
+    if m and m.inGame and not MM.respawn then
+        return T.px(8), getCore():getScreenHeight() - T.px(8), 0, getCore():getScreenWidth()
+    end
+    local L = MM.layout()
+    return L.ty + T.px(4), L.ty + L.th - T.px(4), L.tx + T.px(4), L.tx + L.tw - T.px(4)
+end
+
 -- The live rows of the open menu (the controller walks these).
 function MM.dropLive()
     local items = MM.openItems()
@@ -1657,12 +1691,10 @@ function ZeD_MMDrop:prerender()
     -- room: the monitor's screen at the menu, the game screen in game. A list that does not
     -- fit below its box opens above it when there is more room there, else it is cut and scrolls.
     local full = h
+    local limL, limR = 0, getCore():getScreenWidth()
     if not pos then
-        local L = MM.layout()
-        local m = ms()
-        local inGame = m and m.inGame
-        local limTop = inGame and T.px(8) or (L.ty + T.px(4))
-        local limBot = inGame and (getCore():getScreenHeight() - T.px(8)) or (L.ty + L.th - T.px(4))
+        local limTop, limBot
+        limTop, limBot, limL, limR = MM.popRoom()
         local an = pop.anchor
         if not pop.up and y + h > limBot then
             local below, above = limBot - y, an.y - T.px(2) - limTop
@@ -1680,6 +1712,7 @@ function ZeD_MMDrop:prerender()
         w = w + dropBarW
         x = math.max(0, math.min(x, getCore():getScreenWidth() - w))
     end
+    if not pos then x = math.max(limL, math.min(x, limR - w)) end   -- (a pop-up stays on its room side to side too)
     MM.ctx.dropScrollMax = scrollMax
     MM.ctx.dropScroll = math.max(0, math.min(MM.ctx.dropScroll or 0, scrollMax))
     local off = MM.ctx.dropScroll
@@ -1828,8 +1861,9 @@ function ZeD_MMWake:prerender()
         MM.waking = false
         if t - self._t0 < 50 then self._done = true end   -- ready on the first frame: no fade
         -- the monitor switches on as the room comes up (at once when there was no fade)
+        -- (back to the desk after a death, Overrides/Respawn.lua: the monitor switches on there too)
         local m = ms()
-        if not (m and m.inGame) then MM.powerOn = { t0 = t + (self._done and ON_DELAY_QUICK or ON_DELAY_FADE) } end
+        if not (m and m.inGame) or MM.respawn then MM.powerOn = { t0 = t + (self._done and ON_DELAY_QUICK or ON_DELAY_FADE) } end
     end
     local a = self._readyAt and (1 - (t - self._readyAt) / WAKE_FADE_MS) or 1
     if self._done or a <= 0 then
@@ -2553,6 +2587,19 @@ function MM.showView(view, joypadData)
     local w = MM.activeWindow()
     if was and was ~= w then MM.unfocusEntries(was) end
     if w and w.onShow then w:onShow() end
+    -- back at the desk after a death (Overrides/Respawn.lua): the desk over the world, not the pause
+    -- menu's MainScreen; the respawning player's controller (if any) on the desk
+    local r = MM.respawn
+    if r then
+        local root = MM.root
+        if root then
+            if not root:isVisible() then root:setVisible(true) end
+            root:bringToTop()
+        end
+        local rj = r.joypadData
+        if rj and root then rj.focus = root; updateJoypadFocus(rj) end
+        return
+    end
     if not m.bottomPanel:isVisible() then m.bottomPanel:setVisible(true) end
     local jd = joypadData or (JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad())
     if jd then jd.focus = m; updateJoypadFocus(jd) end
@@ -2561,6 +2608,7 @@ end
 -- A vanilla screen takes over (map / spawn, mods, ...): the desk steps aside.
 function MM.toVanilla()
     MM.ctx.open = nil
+    if MM.respawn then return end   -- (in game the bottom panel is the pause menu's: it stays as it is)
     local m = ms()
     if m and m.bottomPanel:isVisible() then m.bottomPanel:setVisible(false) end
 end
@@ -2665,6 +2713,7 @@ end
 -- (joyA / joyB / joyX / joyY / joyDir).
 -- ---------------------------------------------------------------------------
 function MM.window(m)
+    if m.respawn then return MM.activeWindow() end   -- (the desk after a death: Overrides/Respawn.lua)
     if m.inGame then
         if MM.pauseView == "options" and MM.pauseOpts then return MM.pauseOpts end
         if MM.pauseView == "sandbox" and MM.pauseSandbox then return MM.pauseSandbox end
@@ -2694,7 +2743,7 @@ function MM.joyDown(m, button)
     elseif button == Joypad.RBumper then if w.joyBumper then w:joyBumper(1) end
     elseif button == Joypad.YButton then
         if w.joyY then w:joyY()
-        elseif not m.inGame and not w.confirm then MM.act.tos() end
+        elseif not m.inGame and not m.respawn and not w.confirm then MM.act.tos() end
     end
 end
 

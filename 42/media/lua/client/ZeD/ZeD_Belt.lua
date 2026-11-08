@@ -444,6 +444,77 @@ function B.cond(item)
 end
 
 -- ----------------------------------------------------------------------------
+-- Other mods on the belt (ModSupport; Nov 7 2026). General hooks, each keyed by an id (a second call with the
+-- same id replaces the first), so a mod that draws on the game's hotbar or hand slots shows on the belt instead
+-- (and B.addHold, below, for a mod that moves the belt while it draws):
+--   B.addMeter(id, fn)  fn(item, where) -> f (0..1) and a kind ("fluid": T.info; "flat": one color, T.positive; nil:
+--                       the condition's graduated colors),
+--                       or nil to leave the item to the next meter and then to ZeD's own condition. where: "slot" or
+--                       "hand". Item Condition Restored (ModSupport/ItemConditionRestored.lua) is the first.
+--   B.addBox(id, spec)  a box of the mod's own, a slot's size, after the strap (before the Messages note), while
+--                       spec.state(playerObj) returns a table: { item, meter (0..1 or nil: no strip), kind, lit (the
+--                       lamp of a light that is on), badge (a few characters on the box's top left, as a slot's key),
+--                       key (a string: a change lays the belt out again) }. spec.hint(st) words the hover hint;
+--                       spec.menu(playerNum, st, x, y, pad) opens its context menu from a click, a right-click, A or X
+--                       and returns it. Mask Filter Indicator (ModSupport/MaskFilterIndicator.lua) is the first.
+-- A meter or a box that throws is skipped for that frame; ZeD's own drawing goes on.
+-- ----------------------------------------------------------------------------
+B._meters = B._meters or {}
+B._extras = B._extras or {}
+local function addById(list, id, rec)
+    rec.id = id
+    for i, r in ipairs(list) do
+        if r.id == id then list[i] = rec; return end
+    end
+    list[#list + 1] = rec
+end
+function B.addMeter(id, fn) addById(B._meters, id, { fn = fn }) end
+function B.addBox(id, spec) addById(B._extras, id, { spec = spec }) end
+-- B.addHold(id, fn): fn(hud) true while a mod has moved the belt for the length of its drawing (Auto-Hide Hotbar slides
+-- it and puts it back after): the belt then keeps the mod's place for that frame instead of putting itself home
+B._holds = B._holds or {}
+function B.addHold(id, fn) addById(B._holds, id, { fn = fn }) end
+function B.held(hud)
+    for _, h in ipairs(B._holds) do
+        local ok, on = pcall(h.fn, hud)
+        if ok and on then return true end
+    end
+    return false
+end
+-- B.addSplit(id, fn): fn(hud) gives the belt's real Java element while a mod is drawing this frame through a stand-in
+-- of its own (the element moved, or its javaObject swapped for one that changes every draw), for the hotbar's part of
+-- the belt only: the strap, the buckle and the slots take the mod's drawing; the hands, the ammo tab, the watch, the
+-- Messages note, the chat key, the PvP marker, other mods' boxes, the hover boxes and the tooltip are drawn on the
+-- real element at the belt's home. nil: no split this frame. (Auto-Hide Hotbar: the director, Nov 7 2026, "hides
+-- the belt's item slots only".)
+B._splits = B._splits or {}
+function B.addSplit(id, fn) addById(B._splits, id, { fn = fn }) end
+function B.split(hud)
+    for _, h in ipairs(B._splits) do
+        local ok, real = pcall(h.fn, hud)
+        if ok and real ~= nil then return real end
+    end
+    return nil
+end
+
+-- The strip or ring under an item: a mod's meter when one speaks for it, else its condition. Returns f, kind.
+function B.meter(item, where)
+    if item == nil then return nil end
+    for _, m in ipairs(B._meters) do
+        local ok, f, kind = pcall(m.fn, item, where)
+        if ok and type(f) == "number" and f == f then return math.max(0, math.min(1, f)), kind end
+    end
+    return B.cond(item), nil
+end
+
+-- a meter kind's fixed color, or nil for the graduated condition colors
+function B.meterColor(T, kind)
+    if kind == "fluid" then return T.info end
+    if kind == "flat" then return T.positive end
+    return nil
+end
+
+-- ----------------------------------------------------------------------------
 -- Ammo (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026): with a gun in the main hand, the rounds in it
 -- and what a reload can use. For a gun with magazines, the loaded magazines carried, then the loose rounds; for a
 -- shotgun or a revolver, the loose rounds. Unopened boxes are named ("+1 BOX") but not counted: the game will not
@@ -752,9 +823,10 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local two = pri ~= nil and pri == p:getSecondaryHandItem()
     local now = getTimestampMs and getTimestampMs() or 0
     local simple = B.simple()
+    local xsig = self:_extrasNow(p)    -- (other mods' boxes, B.addBox: which show, and their layout keys)
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
         or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or L.two ~= two or L.simple ~= simple or L.chat ~= chat or L.pvp ~= pvp
-        or not self._provAt or now - self._provAt > 1000
+        or L.xsig ~= xsig or not self._provAt or now - self._provAt > 1000
     if not dirty then
         local types = L.types
         for i = 1, n do
@@ -771,13 +843,57 @@ function ZeD_BeltHUD:_layoutCached(slots)
             types[i] = s and s.slot and s.slot.slotType
         end
         self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, ammo = ammo, two = two,
-                     simple = simple, types = types, w = w, h = h, chat = chat, pvp = pvp }
+                     simple = simple, types = types, w = w, h = h, chat = chat, pvp = pvp, xsig = xsig }
         return w, h
     end
     for _, b in ipairs(self._boxes) do
         if b.kind == "slot" then b.s = slots[b.i] end
     end
     return L.w, L.h
+end
+
+-- Other mods' boxes (B.addBox) this frame: self._xs[id] = the state each spec gave, self._xlist the ids in order.
+-- Returns the layout key ("" with none), so a box coming, going or changing its key lays the belt out again.
+function ZeD_BeltHUD:_extrasNow(p)
+    local xs, xlist, sig = {}, {}, ""
+    for _, r in ipairs(B._extras) do
+        local ok, st = pcall(r.spec.state, p, self.playerNum)
+        if ok and type(st) == "table" then
+            xs[r.id] = st
+            xlist[#xlist + 1] = r.id
+            sig = sig .. r.id .. "=" .. tostring(st.key or "") .. ";"
+        end
+    end
+    self._xs, self._xlist = xs, xlist
+    return sig
+end
+
+-- the boxes of other mods after the strap: returns the new x
+function ZeD_BeltHUD:_extraBoxes(boxes, x, by, box)
+    for _, id in ipairs(self._xlist or {}) do
+        x = x + ZeD.T.px(END_GAP)
+        boxes[#boxes + 1] = { kind = "extra", id = id, x = x, y = by, w = box, h = box }
+        x = x + box
+    end
+    return x
+end
+
+local function extraSpec(id)
+    for _, r in ipairs(B._extras) do if r.id == id then return r.spec end end
+    return nil
+end
+
+-- A click, a right-click, A or X on another mod's box: its menu (pad: anchored on the box, the pad's focus in it)
+function ZeD_BeltHUD:_extraMenu(b, pad)
+    local spec, st = extraSpec(b.id), self._xs and self._xs[b.id]
+    if not (spec and st and spec.menu) then return nil end
+    local ax, ay = self:getAbsoluteX() + b.x + math.floor(b.w / 2), self:getAbsoluteY() + b.y
+    local ok, ctx = pcall(spec.menu, self.playerNum, st, pad and ax or getMouseX(), pad and ay or getMouseY(), pad)
+    if not ok then
+        if ZeD.logOnce then ZeD.logOnce("Belt: a mod's box menu failed (" .. tostring(b.id) .. ")", ctx) end
+        return nil
+    end
+    return ctx
 end
 
 -- Layout: boxes keyed for hit testing; returns the panel size
@@ -855,6 +971,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         end
         if n > 0 then x = x - px(SIMPLE_GAP) end
         self._anchorX = math.floor((slotsX + x) / 2)
+        x = self:_extraBoxes(boxes, x, by, box)
         if lamp then
             x = x + px(END_GAP)
             local lw = px(LAMP)
@@ -892,6 +1009,8 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     end
     x = x + px(PAD)
     local strapW = x - strapX
+    -- other mods' boxes (B.addBox), past the strap's end
+    x = self:_extraBoxes(boxes, x, by, box)
     -- the Messages note, last on the right, past the strap's end (only while Messages keeps anything)
     if lamp then
         x = x + px(END_GAP)
@@ -940,7 +1059,7 @@ end
 
 -- the same box across frames (the layout rebuilds the box tables every frame)
 local function sameBox(a, b)
-    return a ~= nil and b ~= nil and a.kind == b.kind and a.i == b.i and a.which == b.which
+    return a ~= nil and b ~= nil and a.kind == b.kind and a.i == b.i and a.which == b.which and a.id == b.id
 end
 
 function ZeD_BeltHUD:boxAt(x, y)
@@ -967,7 +1086,7 @@ end
 -- What a box would do with the current drag: "fit" / "no" / nil
 function ZeD_BeltHUD:_dropState(b, items)
     if not items then return nil end
-    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return "no" end
+    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" or b.kind == "extra" then return "no" end
     if b.kind == "hand" then
         for _, it in ipairs(items) do if B.handTakes(it) then return "fit", it end end
         return "no"
@@ -1255,14 +1374,14 @@ end
 -- High contrast, as the strip's), the solid T.base well between, a flat fill clockwise from twelve. Whole
 -- hairlines (T.line), so the frames and the outline keep one weight at every scale.
 local RING_IN, RING_T = 3, 6
-local function condRing(p, b, f, T)
+local function condRing(p, b, f, T, fc)
     local ins, t, fw = T.line(RING_IN), T.line(RING_T), T.line(T.borderW)
     local x, y, s = b.x + ins, b.y + ins, b.w - ins * 2
     ring(p, x, y, s, t, 1, T.base)
     if f > 0 then
         -- two units of fill at least, as on the strip
         f = math.max(f, T.px(2) / (math.pi * (s - t)))
-        ringArc(p, x + fw, y + fw, s - fw * 2, t - fw * 2, f, 1, wearColor(T, f))
+        ringArc(p, x + fw, y + fw, s - fw * 2, t - fw * 2, f, 1, fc or wearColor(T, f))   -- (fc: a fixed color, a liquid's)
     end
     local bc, i = T.borderS, t - fw
     ring(p, x, y, s, fw, bc.a or 1, bc)
@@ -1368,8 +1487,8 @@ function ZeD_BeltHUD:_drawBox(b, o)
     -- the foot: In hand as a tag, or the condition (the framed ring inside the hands' outline, the framed strip on
     -- the slots)
     if round and o.item then
-        local f = B.cond(o.item)
-        if f then condRing(self, b, f, T) end
+        local f, kind = B.meter(o.item, "hand")
+        if f then condRing(self, b, f, T, B.meterColor(T, kind)) end
     elseif o.inHand then
         local text = ZeD.tr("UI_ZeD_Belt_InHand")
         local f5, th = T.fontF5, T.px(14)
@@ -1378,21 +1497,26 @@ function ZeD_BeltHUD:_drawBox(b, o)
         ZeD.Molecules.drawTag(self, b.x + math.max(0, math.floor((b.w - tw) / 2)), b.y + b.h - th - T.px(STRIP_INSET) - up, text, nil,
             { font = f5, h = th, textColor = onFocus and T.textOnFocus or nil })
     elseif o.item then
-        local f = B.cond(o.item)
+        -- (another mod's box brings its own meter, or none: o.ownMeter)
+        local f, kind
+        if o.ownMeter then f, kind = o.meter, o.meterKind else f, kind = B.meter(o.item, "slot") end
         if f then
             local ins = T.px(STRIP_INSET)
-            ZeD.Atoms.drawFillBar(self, b.x + ins, b.y + b.h - ins - stripH, b.w - 2 * ins, f, true, nil, stripH)   -- (ten segments)
+            local fc = B.meterColor(T, kind)
+            ZeD.Atoms.drawFillBar(self, b.x + ins, b.y + b.h - ins - stripH, b.w - 2 * ins, f, fc == nil, fc, stripH)   -- (ten segments)
         end
     end
-    -- the key that draws it
-    if o.key ~= nil then
+    -- the key that draws it (another mod's box: its badge in the same place, on the dim tag)
+    local keyTxt = o.key
+    if keyTxt == nil and o.badge ~= nil then keyTxt = false end
+    if keyTxt ~= nil then
         local f1 = T.fontF1
-        local txt = o.key or "-"
+        local txt = o.key or o.badge or "-"
         local kh = tm:getFontHeight(f1)
         local kw = math.max(tm:MeasureStringX(f1, txt) + T.px(6), kh)
         local kc = o.key and T.accent or T.surf3
         self:drawRect(b.x, b.y, kw, kh, 1, col(kc))
-        local tc = o.key and T.textOnAccent or T.textDim
+        local tc = o.key and T.textOnAccent or (o.badge and T.text) or T.textDim
         self:drawText(txt, b.x + math.floor((kw - tm:MeasureStringX(f1, txt)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
     end
     -- a light or walkie that is on
@@ -1692,6 +1816,21 @@ function ZeD_BeltHUD:_cardH(title, line, maxW)
     return h + math.max(1, rows) * (tm:getFontHeight(f2) + T.px(2))
 end
 
+-- B.addSplit's frame (sp: nil, or the mod's stand-in javaObject j, the real element and where the mod put it, x and y):
+-- slots true draws through the mod's stand-in where the mod put the belt, false on the real element at the belt's home.
+-- Switched only when it changes; the mod's own clean-up after the frame finds the belt either way.
+local function drawPart(self, sp, slots)
+    if not sp or sp.slid == slots then return end
+    sp.slid = slots
+    local r = sp.real
+    local x, y
+    if slots then self.javaObject, x, y = sp.j, sp.x, sp.y
+    else self.javaObject, x, y = r, self._homeX, self._homeY end
+    if r:getX() ~= x then r:setX(x) end
+    if r:getY() ~= y then r:setY(y) end
+end
+B._drawPart = drawPart   -- (sims)
+
 -- The belt draws under the safe-mode guard (SafeMode.lua): a failing frame is
 -- logged once and its stencils cleared, and repeated failures hand the screen
 -- back to vanilla's hotbar rather than throwing every frame.
@@ -1713,14 +1852,36 @@ function ZeD_BeltHUD:_prerender()
     local bx = b and (b.x + math.floor(b.w / 2)) or self._anchorX or math.floor(w / 2)   -- (Simple: the slots' middle)
     local sx = getPlayerScreenLeft(self.playerNum) + math.floor(getPlayerScreenWidth(self.playerNum) / 2) - bx
     local sy = getPlayerScreenTop(self.playerNum) + getPlayerScreenHeight(self.playerNum) - h - T.px(BOTTOM)
-    if self:getX() ~= sx then self:setX(sx) end
-    if self:getY() ~= sy then self:setY(sy) end
+    -- (while a mod holds the belt for its drawing, B.addHold: set only when the home moves, so the mod's slide for this
+    -- frame stands; the mod puts the belt back after, and visibilityTick puts it home between frames)
+    if B.held(self) then
+        if self._homeX ~= sx then self._homeX = sx; self:setX(sx) end
+        if self._homeY ~= sy then self._homeY = sy; self:setY(sy) end
+    else
+        self._homeX, self._homeY = sx, sy
+        if self:getX() ~= sx then self:setX(sx) end
+        if self:getY() ~= sy then self:setY(sy) end
+    end
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
     self._drawn = true
 
+    -- (B.addSplit: a mod's drawing for the slots only. The rest is drawn on the real element at home: drawPart)
+    local split = nil
+    if #B._splits > 0 then
+        local real = B.split(self)
+        if real then
+            split = self._split or {}
+            self._split = split
+            split.j, split.real, split.x, split.y, split.slid = self.javaObject, real, real:getX(), real:getY(), true
+            drawPart(self, split, false)
+        end
+    end
+
+    if self._strap or self._buckle then drawPart(self, split, true) end
     if self._strap then self:_drawStrap() end      -- (the Simple belt has neither)
     if self._buckle then self:_drawBuckle() end
+    drawPart(self, split, false)
 
     local mx, my = self:getMouseX(), self:getMouseY()
     local over = (mx >= 0 and my >= 0 and mx < w and my < h) and self:boxAt(mx, my) or nil
@@ -1738,6 +1899,7 @@ function ZeD_BeltHUD:_prerender()
     end
 
     for _, b in ipairs(self._boxes) do
+        if split then drawPart(self, split, b.kind == "slot") end
         local o = {}
         if b.kind == "lamp" then
             self:_drawLamp(b, gpTarget == b, b == over and not dragging)
@@ -1762,6 +1924,10 @@ function ZeD_BeltHUD:_prerender()
             -- one item in both hands: the off hand peeks from under the main hand, empty of picture and words
             if b.peek then o.label, o.peek = nil, true end
             o.lit = item and call(item, "canBeActivated") and call(item, "isActivated")
+        elseif b.kind == "extra" then
+            -- another mod's box (B.addBox): its item, its own meter or none, its lamp and badge
+            local st = self._xs and self._xs[b.id] or {}
+            o.item, o.ownMeter, o.meter, o.meterKind, o.lit, o.badge = st.item, true, st.meter, st.kind, st.lit, st.badge
         else
             local s = b.s
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
@@ -1779,6 +1945,8 @@ function ZeD_BeltHUD:_prerender()
             if b == over and not dragging then self._hover = { b = b, item = o.item } end
         end
     end
+
+    drawPart(self, split, false)
 
     -- the hovered box: its name and key, and the item tooltip (not while a
     -- menu is open over the belt)
@@ -1814,6 +1982,11 @@ function ZeD_BeltHUD:_prerender()
         A.requestHint(self, "chat", ZeD.tr(un > 0 and "UI_ZeD_Chat_KeyNew" or "UI_ZeD_Chat_Title", un), self)
     elseif hv and hv.b.kind == "pvp" then
         A.requestHint(self, "pvp", ZeD.tr("UI_ZeD_Srv_PvPMarker"), self)
+    elseif hv and hv.b.kind == "extra" then
+        local spec, st = extraSpec(hv.b.id), self._xs and self._xs[hv.b.id]
+        local okH, words = false, nil
+        if spec and st and spec.hint then okH, words = pcall(spec.hint, st) end
+        if okH and type(words) == "string" and words ~= "" then A.requestHint(self, "x" .. tostring(hv.b.id), words, self) end
     elseif hv and hv.b.kind == "watch" then
         local id = ZeD.WatchMini.hit(hv.b.plate, mx - hv.b.x, my - hv.b.y)
         local name = call(hv.b.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch")
@@ -1958,6 +2131,10 @@ function ZeD_BeltHUD:onMouseUp(x, y)
     if b.kind == "slot" then
         pcall(function() getSoundManager():playUISound("UIActivateButton") end)
         B.activate(self.playerNum, b.i)
+    elseif b.kind == "extra" then
+        -- another mod's box: its menu, on the release (a menu opened on the press could take the release)
+        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        self:_extraMenu(b, false)
     end
     return true
 end
@@ -1973,6 +2150,7 @@ function ZeD_BeltHUD:onRightMouseUp(x, y)
     local b = self:boxAt(x, y)
     if not b then return false end
     if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end
+    if b.kind == "extra" then self:_extraMenu(b, false); return true end
     local p = self:player()
     if b.kind == "slot" then
         B.rightMenu(self.playerNum, b.i)
@@ -1992,7 +2170,7 @@ function B.takeDrop(playerNum, items)
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
     local b = hud:boxAt(mx, my)
-    if not b or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end   -- over the strap, the watch, the ammo box or the Messages note: no drop to the floor either
+    if not b or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" or b.kind == "extra" then return true end   -- over the strap, the watch, the ammo box or the Messages note: no drop to the floor either
     local st, it = hud:_dropState(b, items)
     if st ~= "fit" then return true end
     if b.kind == "hand" then
@@ -2125,6 +2303,18 @@ function ZeD_BeltHUD:onJoypadDown(button)
         if button == Joypad.AButton then B.tailAct(b.kind, true) end
         return
     end
+    if b.kind == "extra" then
+        -- another mod's box: A and X both open its menu, the pad's focus in it, back to the belt after
+        if button == Joypad.AButton or button == Joypad.XButton then
+            local ctx = self:_extraMenu(b, true)
+            if ctx then
+                ctx.origin = self
+                ctx.mouseOver = 1
+                setJoypadFocus(self.playerNum, ctx)
+            end
+        end
+        return
+    end
     if b.kind == "watch" then
         if button == Joypad.AButton then ZeD.Watch.act("start")
         elseif button == Joypad.XButton then ZeD.Watch.act("speed")
@@ -2241,6 +2431,10 @@ local function visibilityTick()
     if not hud then return end
     local want = hud:wanted()
     if want ~= hud:getIsVisible() then hud:setVisible(want) end
+    -- back home between frames (a mod that slides the belt while it draws: Auto-Hide Hotbar; _prerender)
+    if want and hud._homeX and (hud:getX() ~= hud._homeX or hud:getY() ~= hud._homeY) then
+        hud:setX(hud._homeX); hud:setY(hud._homeY)
+    end
     if not want then
         hud._drawn = false
         if hud._tip then hud._tip:setVisible(false) end

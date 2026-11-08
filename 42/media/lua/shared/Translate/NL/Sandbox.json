@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxameter: per wachtminuut",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars die de meter toevoegt voor elke minuut echte tijd dat de taxi wacht (onder 5 km/h, motor draait) met de vlag omlaag.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxameter: per extra passagier",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars getoond onder EXTRA'S voor elke passagier na de eerste. De chauffeur telt niet mee."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars getoond onder EXTRA'S voor elke passagier na de eerste. De chauffeur telt niet mee.",
+    "Sandbox_ZeD_HostHelper": "Hosthulp (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "Aan: de bans, unbans en kicks die ZeD het spel verschuldigd is, worden ook naar Zomboid/Lua/ZeD_helper/ geschreven voor de ZeD-hosthulp, een apart programma dat de eigenaar op de servermachine draait. Die voert ze uit via de externe console van de server (RCONPort en RCONPassword in de serverinstellingen), zodat ze gelden zonder staf online. Uit: ze wachten tot iemand van de staf online komt."
 }

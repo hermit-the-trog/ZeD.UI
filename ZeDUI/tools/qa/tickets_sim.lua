@@ -2109,5 +2109,28 @@ do
     end
 end
 
+section("the join rules answered: tickets asks again for what the gate refused")
+do
+    world()
+    local u = player("Kade", "user")
+    local cu = clientJoin(u)
+    advance(6000)
+    local Srv = W.server.ZeD.Srv
+    local ran = 0
+    local h = Srv.handlers["ZeDT.t_mine"]
+    local fn = h.fn
+    h.fn = function(p, ...) if p:getUsername() == "Kade" then ran = ran + 1 end return fn(p, ...) end
+    Srv.gates.qa = function(p, module) if W.shut and module ~= "ZeD" then return "has not agreed to the rules" end end
+    W.shut = true
+    cu.env.ZeD.ServerPart.hello()
+    advance(6000)
+    check("refused by the gate: my tickets not answered", ran == 0)
+    W.shut = nil
+    cu.env.ZeD.ServerPart.agreed()
+    advance(500)
+    check("agreed: the hello again (its limit long past) brings my tickets", ran == 1)
+    Srv.gates.qa = nil
+end
+
 print("tickets_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)

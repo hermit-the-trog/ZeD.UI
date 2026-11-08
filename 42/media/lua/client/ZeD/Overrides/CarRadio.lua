@@ -4,8 +4,10 @@
 --   * ISVehicleMenu.onSignalDevice (the wheel's Device Options slice, front
 --     seats only) brings the fitted radio up close (ZeD_CarRadio.lua) instead
 --     of vanilla's ISRadioWindow.
--- Any other device part (a mod's), or a radio the ZeD prop cannot show, opens
--- vanilla's window as before. While safe mode is on (SafeMode.lua) every
+-- Any other device part (a mod's), or a radio the ZeD prop cannot show, goes
+-- on to vanilla's function, whose ISRadioWindow.activate Overrides/RadioWindow.lua
+-- sends to the World window's Radio tab (Nov 7 2026); the game's window opens
+-- only when that can't show it either. While safe mode is on (SafeMode.lua) every
 -- device opens vanilla's window, and turning it on puts away a radio already
 -- up close.
 -- ============================================================================

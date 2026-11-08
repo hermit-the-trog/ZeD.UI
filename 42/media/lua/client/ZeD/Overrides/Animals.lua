@@ -13,9 +13,21 @@
 --     the ground, a track item).
 -- Vanilla runs only when ZeD declines (no World window, object not found),
 -- and every time while safe mode is on (SafeMode.lua).
+--
+-- (Nov 7 2026, VANILLA_WINDOWS_20261107.md rows B4, B5) The game's animal info
+-- and livestock zone windows go to the Animals tab (ZeD.WorldRoutes):
+--   * AnimalContextMenu.onAnimalInfo (right-click an animal > Info, the animal
+--     wheel's Info slice, the hutch window's Info) -> the animal's view;
+--   * ISOpenAnimalInfo:perform (the walk-then-look action of the game's zone
+--     and trailer windows) -> the animal's view;
+--   * AnimalContextMenu.onCheckZone (right-click inside a zone > Check zone)
+--     -> that zone's view; the game's first-time zone note
+--     (ISAnimalZoneFirstInfo.showUI) is not shown while ZeD's World window is
+--     the player's, unless it is asked for.
 -- ============================================================================
 
 require "ZeD/SafeMode"
+require "ZeD/WorldRoutes"
 require "ZeD/ObjectCards"
 require "ZeD/ObjectCardHutch"
 require "ZeD/ObjectCardTrough"
@@ -77,7 +89,48 @@ local function apply()
     -- tracks
     hookPerform(ISInspectAnimalTrackAction, "tracks", "track", function(a) return a.character, a.track end)
 
-    print("[ZeD] Overrides/Animals: hutch, trough, butcher hook and tracks routed to the animal cards")
+    -- animal info and Check zone: the Animals tab
+    local WR = ZeD.WorldRoutes
+    if AnimalContextMenu and AnimalContextMenu.onAnimalInfo and not AnimalContextMenu._zedInfoHooked then
+        AnimalContextMenu._zedInfoHooked = true
+        local orig = AnimalContextMenu.onAnimalInfo
+        AnimalContextMenu.onAnimalInfo = function(animal, chr)
+            if ZeD.Safe.on() then return orig(animal, chr) end
+            if route("animal info", WR.animal, chr, animal) then return end
+            return orig(animal, chr)
+        end
+    end
+    if ISOpenAnimalInfo and not ISOpenAnimalInfo._zedCardHooked then
+        ISOpenAnimalInfo._zedCardHooked = true
+        local orig = ISOpenAnimalInfo.perform
+        ISOpenAnimalInfo.perform = function(self)
+            if ZeD.Safe.on() then return orig(self) end
+            if route("animal info", WR.animal, self.character, self.animal) then
+                ISBaseTimedAction.perform(self)
+                return
+            end
+            return orig(self)
+        end
+    end
+    if AnimalContextMenu and AnimalContextMenu.onCheckZone and not AnimalContextMenu._zedZoneHooked then
+        AnimalContextMenu._zedZoneHooked = true
+        local orig = AnimalContextMenu.onCheckZone
+        AnimalContextMenu.onCheckZone = function(zone, playerObj)
+            if ZeD.Safe.on() then return orig(zone, playerObj) end
+            if route("check zone", WR.zone, playerObj, zone) then return end
+            return orig(zone, playerObj)
+        end
+    end
+    if ISAnimalZoneFirstInfo and ISAnimalZoneFirstInfo.showUI and not ISAnimalZoneFirstInfo._zedHooked then
+        ISAnimalZoneFirstInfo._zedHooked = true
+        local orig = ISAnimalZoneFirstInfo.showUI
+        ISAnimalZoneFirstInfo.showUI = function(playerNum, force)
+            if not ZeD.Safe.on() and route("zone note", WR.skipZoneNote, playerNum, force) then return end
+            return orig(playerNum, force)
+        end
+    end
+
+    print("[ZeD] Overrides/Animals: hutch, trough, butcher hook and tracks routed to the animal cards; animal info and Check zone to the Animals tab")
 end
 
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(apply) end

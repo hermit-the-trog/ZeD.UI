@@ -1703,5 +1703,29 @@ do
     cb.env.acceptSafehouseInvite = acc
 end
 
+section("the join rules answered: claims asks again for what the gate refused")
+do
+    world()
+    local Srv = W.server.ZeD.Srv
+    local ran = 0
+    local h = Srv.handlers["ZeDC.c_info"]
+    local fn = h.fn
+    h.fn = function(p, ...) if p:getUsername() == "Aretha" then ran = ran + 1 end return fn(p, ...) end
+    -- (a gate as the rules' own: shut from the join until the player agrees, the hello left open)
+    Srv.gates.qa = function(p, module) if W.shut and module ~= "ZeD" then return "has not agreed to the rules" end end
+    W.shut = true
+    local a = player("Aretha")
+    local c = clientJoin(a)
+    advance(1000)
+    check("asked at joining and refused by the gate: nothing answered", ran == 0 and c.C.infoAt ~= nil)
+    W.shut = nil
+    advance(500)
+    check("nothing asks again by itself yet (the next ask is a while off)", ran == 0)
+    c.env.ZeD.ServerPart.agreed()
+    advance(500)
+    check("agreed: claims asks again at once, and is answered", ran == 1)
+    Srv.gates.qa = nil
+end
+
 print("claims_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
