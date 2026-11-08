@@ -1,0 +1,11 @@
+VERSION = 1,
+
+mods
+{
+    mod = ZeD_UI,
+    mod = WoundsOverhaul,
+}
+
+maps
+{
+}
