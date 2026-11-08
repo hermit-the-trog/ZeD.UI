@@ -468,7 +468,7 @@ end
 
 
 -- ============================================================================
--- CONTROLLER MARKS (punch list 44; the director's rules, Nov 1 2026)
+-- CONTROLLER MARKS
 -- Hold A on a row MARKS it (the row's wash, as Ctrl-click); hold A on a marked row unmarks it; while A
 -- stays held, Up and Down mark the rows passed (Shift-click's run, painted; FocusManager fires onPaint on
 -- the row landed on). With marks on the list the card hides (as with the mouse), X opens the game's menu
@@ -594,9 +594,9 @@ function ZeD.InventoryRenderer.padPromptHold(w, el)
     return ZeD.tr(marked and "UI_ZeD_Inv_PromptUnmark" or "UI_ZeD_Inv_PromptMark")
 end
 
--- The quick use itself, for the double-click and the controller's hold A on a
--- row (Oct 23 2026: hold A called only vanilla's basic action, which does
--- nothing for a thing in a crate; vanilla's double-click brings it over first)
+-- The quick use itself, for the double-click and the controller's hold X on
+-- a row. Vanilla's basic action does nothing for a thing in a crate, so, as
+-- vanilla's double-click does, a thing elsewhere comes over first.
 function ZeD.InventoryRenderer.quickUse(item, playerNum)
     local playerObj = getSpecificPlayer(playerNum)
     local src = item and item:getContainer()
@@ -768,8 +768,8 @@ local function stackWeight(stackInfo)
 end
 
 -- A row's or a cell's weight: an item's own ("0.5"), a stack's total in
--- brackets ("(2.5)": five at 0.5; open the stack and each row shows its own;
--- Oct 29 2026, the director). A total wider than room in font drops its
+-- brackets ("(2.5)": five at 0.5; open the stack and each row shows its
+-- own). A total wider than room in font drops its
 -- decimal ("(120)"), then gives way to the item's own.
 local function weightText(item, stackInfo, font, room)
     local unit = string.format("%.1f", item:getUnequippedWeight() or 0)
@@ -912,9 +912,9 @@ end
 
 -- The column's heading: the container's icon and name on the left; its
 -- weight over its item count on the right, the List | Grid toggle left of them.
--- (Moved out of renderItemList, Oct 19 2026: in -debug the game's compiler
--- keeps every local a function declares, block or not, and stops at 200;
--- renderItemList stood at 193.)
+-- (Kept out of renderItemList: in -debug the game's compiler keeps every
+-- local a function declares, block or not, and stops at 200; renderItemList
+-- runs close to that limit.)
 local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, f5FH)
     local ci = self._containerInfo
     if not ci then return end
@@ -928,7 +928,7 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local f4FH   = ZeD.TM:getFontHeight(T.fontF4)
     if self._compactMode and (f4FH + gap + secFH) <= infoAreaH then
         -- A column among several is narrow (about 210 px): the weight stack and the toggle on the
-        -- right left the name three or four letters ("Sma..."). Here the name takes the whole line
+        -- right would leave the name three or four letters ("Sma..."). Here the name takes the whole line
         -- (the toggle is the only thing right of it), and the weight and the item count sit under it.
         local togW = drawViewToggle(self, GV, xOff, colW - padX, barH, infoAreaH, padX)
         local totalH = f4FH + gap + secFH

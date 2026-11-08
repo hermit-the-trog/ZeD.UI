@@ -1204,9 +1204,9 @@ local function _handleSpatialNav(w, dir)
         return
     end
 
-    -- Oct 30 2026, punch list 21 a-f (director: an open list keeps the
-    -- controller inside it): an open pop-up list is modal. Its rows alone
-    -- are the stops while it is open; the rest of the window is out of reach.
+    -- An open pop-up list keeps the controller inside it: the list is modal,
+    -- its rows alone are the stops while it is open, and the rest of the
+    -- window is out of reach.
     if _menuNav(w, dir) then return end
 
     -- Pseudo-focusable intercept (unified contract). Element may consume by
@@ -1228,7 +1228,7 @@ local function _handleSpatialNav(w, dir)
 
     local fromIdx = _findCurrentFlatIdx(w, locator) or 1
 
-    -- Oct 19 2026 (the nav audit): back the way you came. The press opposite
+    -- Back the way you came. The press opposite
     -- to the last move returns to the control that move left, wherever the
     -- picker would go: down from a map tool onto the map and up goes back to
     -- that tool, not to the toolbar's first button; out to the tab column and
@@ -1255,9 +1255,8 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- S113c rule (design director): UP/DOWN stays in the current panel while
-    -- the panel has anything more that way; Oct 15 2026 ("freedom of movement
-    -- is crucial") it then goes on to the next panel instead of stopping.
+    -- UP/DOWN stays in the current panel while the panel has anything more
+    -- that way, then goes on to the next panel instead of stopping dead.
     -- LEFT/RIGHT remain free to cross panels (that's how users hop between
     -- tab-strip / drawer / inv / container-strip).
     -- Same-zone filter happens AFTER _collectFlat so all the bounds are

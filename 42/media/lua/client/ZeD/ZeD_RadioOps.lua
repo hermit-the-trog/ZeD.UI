@@ -1,19 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_RadioOps.lua
 -- ============================================================================
--- THE CAR RADIO'S WORKINGS — shared by the radio up close (ZeD_CarRadio.lua)
--- and the dash's head unit (ZeD_Dashboard.lua), so both drive the same radio
--- the same way. Mockup ZeDUI/mockups/zed_car_radio_v1.html (director, Oct 15
--- 2026: "love it, build it, yes match the dash to the radio").
+-- THE RADIOS' WORKINGS — client. One set of read / press verbs shared by
+-- every surface that shows a radio — the radio up close (ZeD_CarRadio.lua),
+-- the dash's head unit (ZeD_Dashboard.lua), the radio tab and the handheld
+-- faces — so they all drive the same radio the same way.
 --
--- A car's Radio part holds one of vanilla's six radio items; each has a face
--- (the kind). Every change goes through vanilla's own radio action code
+-- A radio is whatever holds the device data: a car's Radio part, a radio item
+-- in the hands (the two-way walkies), or a set placed in the world. Vanilla's
+-- six radio items each map to a face (the kind); modded radios borrow the
+-- nearest. Every change goes through vanilla's own radio action code
 -- (ISRadioAction's isValid / perform for power, volume, mute, tuning, the
 -- microphone, play / stop; ISDeviceMediaAction through the action queue for a
 -- CD in or out), so sounds, rules and multiplayer stay vanilla's. Presets are
 -- vanilla's own device presets (the list the Device Options window edits).
 --
 -- Also here: the display drawing (each kind's glass, full size and small),
--- the short-lived things both surfaces show (STORE flashes, SCAN, the CD's
+-- the short-lived things the surfaces show (STORE flashes, SCAN, the CD's
 -- elapsed time).
 -- ============================================================================
 

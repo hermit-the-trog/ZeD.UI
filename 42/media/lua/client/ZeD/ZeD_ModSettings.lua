@@ -132,7 +132,8 @@ function S.apply(entry)
     if o and o.gameOptions then o.gameOptions.changed = false end
 end
 
--- every option of a mod back to the value it declared (keys stay: the Options window sets those)
+--- Every option of a mod back to the value it declared (keys stay: the Options
+--- window sets those). Returns whether anything changed.
 function S.defaults(modId)
     local any = false
     for _, options in ipairs(OW and OW.forMod(modId) or {}) do
@@ -162,7 +163,7 @@ function S.defaults(modId)
     return any
 end
 
--- whether any option of a mod differs from the value it declared
+--- Does any option of a mod differ from the value it declared?
 function S.offDefault(modId)
     for _, options in ipairs(OW and OW.forMod(modId) or {}) do
         for _, opt in ipairs(options.data or {}) do
@@ -181,7 +182,7 @@ function S.offDefault(modId)
     return false
 end
 
--- the default as words (the help band's column)
+--- The default as words (the help band's column), nil when there is none.
 function S.defaultText(entry)
     local opt, options = entry.option, entry.options
     local d = OW and OW.default(options.modOptionsID, opt.id)
@@ -194,6 +195,7 @@ function S.defaultText(entry)
     return nil
 end
 
+--- A row's help text, plain (its option's tooltip, else its control's), or nil.
 function S.help(entry)
     local t = entry.option and entry.option.tooltip
     if t and t ~= "" then return plain(getText(t)) end

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_ExtrasProto.lua
 -- ============================================================================
--- THE SERVER EXTRAS PROTOCOL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 6). What both sides agree on: the module, the settings and
+-- THE SERVER EXTRAS PROTOCOL. What both sides agree on: the module, the settings and
 -- what a good one looks like, every limit. Every extra is off until the owner turns it on, so solo play and vanilla-rules
 -- servers are untouched. Pure Lua, ASCII, nothing client-only at load: this file also runs on a dedicated server.
 -- ============================================================================
