@@ -199,7 +199,7 @@ function Session:flashText()
 end
 
 -- ---------------------------------------------------------------------------
--- WORN, HELD, FAVORITE: vanilla's tests, and what backs them up (QA round 3, two players: a
+-- WORN, HELD, FAVORITE: vanilla's tests, and what backs them up (seen with two players: a
 -- worn jacket, the knife in hand and a favorite watch were listed on the admin's client).
 -- Vanilla's player:isEquipped(item) / isEquippedClothing(item) compare the item OBJECT with
 -- the worn list and the hands. On a multiplayer client the server re-sends items, and the

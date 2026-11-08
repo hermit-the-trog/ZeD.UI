@@ -2524,7 +2524,7 @@ function MM.openMods()
 end
 
 -- the wheel goes to whichever list view is up (the wheel under it kept once, as Mail keeps its own: a reload of this file
--- wraps that same one again, not its own last wrapper; Nov 8 2026)
+-- wraps that same one again, not its own last wrapper)
 local _wheel = MM._modsWheelBase or MM.wheel
 MM._modsWheelBase = _wheel
 function MM.wheel(del)

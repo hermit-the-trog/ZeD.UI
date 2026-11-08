@@ -180,7 +180,7 @@ function M.active(player)
 end
 
 -- Vanilla's backing colour: grey lerped toward the Good / Bad highlight colour.
--- The two colours are kept between reads (perf review Nov 7 2026, item 10): read again whenever a layer
+-- The two colours are kept between reads: read again whenever a layer
 -- reads the moodle list (every 100 ms; the game's Options apply a new colour in play at once), when ZeD's
 -- theme changes (a new ZeD.T) and at every game start.
 local function hl(getter)
@@ -276,7 +276,7 @@ function ZeD_MoodleLayer:_rightY()
 end
 
 -- The moodles that are on for this layer's player (M.active's list), kept in one reused list and read
--- from the game at most every ACTIVE_MS (perf review Nov 7 2026, item 10: 26 pcall'd getMoodleLevel and a
+-- from the game at most every ACTIVE_MS (26 pcall'd getMoodleLevel and a
 -- table per moodle every frame). A different character or a different order (a stand-in starting or
 -- stopping, a new game) reads at once.
 local ACTIVE_MS = 100
