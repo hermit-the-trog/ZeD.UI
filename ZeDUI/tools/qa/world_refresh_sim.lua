@@ -132,7 +132,8 @@ section("CLOCK: the World window's container list")
 -- ---------------------------------------------------------------------------
 local NEW_W = WW and cutTo(WW, "    local nowMs = getTimestampMs()\n", "\n    local containers = win._containers")
 check("CLOCK: today's block found", NEW_W ~= nil)
-local tail = NEW_W and cutTo(NEW_W, "        -- Remap _activeContainer by inventory identity", "        -- S115: refresh world radios")
+local tail = NEW_W and (cutTo(NEW_W, "        -- Remap _activeContainer by inventory identity", "        -- Refresh world radios")
+    or cutTo(NEW_W, "        -- Remap _activeContainer by inventory identity", "        -- S115: refresh world radios"))
 check("CLOCK: the remap is in today's block", tail ~= nil)
 local OLD_W
 if OLD_WW then
@@ -425,7 +426,8 @@ local function setCues(v) FS.cues = v; if FS.setCues then FS.setCues(v) end end
 local function windowParts(src, label)
     local trs = src and cutTo(src, "    content._tabStopsRefresh = function(self, Focus)\n", "\n    -- What the controller reads between frames")
     local fresh = src and cutTo(src, "    win._focusFresh = function(w)\n", "\n    -- The ")
-    local gate = src and cutTo(src, "        if Focus and win._focusRing then\n            if not (Focus.stopsMayWait", "\n        -- S99 per-frame refresh for ")
+    local gate = src and (cutTo(src, "        if Focus and win._focusRing then\n            if not (Focus.stopsMayWait", "\n        -- Per-frame refresh for ")
+        or cutTo(src, "        if Focus and win._focusRing then\n            if not (Focus.stopsMayWait", "\n        -- S99 per-frame refresh for "))
     check("STOPS: " .. label .. " pieces found", trs ~= nil and fresh ~= nil and gate ~= nil)
     return trs, fresh, gate
 end

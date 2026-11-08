@@ -107,7 +107,7 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       the screen agree after every Apply (the game's own Mods page itself was not opened).
       Two notes for the director, not failures: the preset buttons read "Plus" and "Accessible", not
       "Vanilla Plus" / "Vanilla Accessible"; with Loadouts off the Restock row still shows its choice
-      (Casual) as if it applied. Screenshot: ZeDUI/qa/Oct30_mouse_pass/qa18_additions_group.jpg.
+      (Casual) as if it applied. Screenshot: ZeDUI/qa/archive/Oct30_mouse_pass/qa18_additions_group.jpg.
 19. **The Restock row dims while Loadouts is off (director, Oct 30: "Yes, dim it").** chosen.
     Found by QA in item 18's check: with Loadouts and outfits off, ZeD setup's Restock row still shows
     its choice (Casual) as if it applied, though Restock does nothing then. Choice: dim the row while
@@ -128,7 +128,7 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     it was checked in the code (the pad's row handlers return early for it), not with a pad in game.
     Notes for the director: the dimmed row still lights up under the pointer although it takes no
     click; Restock's third button reads "Access" at this window width (it read "Accessible" in item
-    18's shot). Screenshot: ZeDUI/qa/Oct30_mouse_pass/qa19_restock_dim.jpg.
+    18's shot). Screenshot: ZeDUI/qa/archive/Oct30_mouse_pass/qa19_restock_dim.jpg.
     **QA recheck, Oct 30 at 3ed5369 (in game, items 18 and 19):** the presets, Custom, Apply and Loadouts off /
     on passed again (20 checks); the words now read Vanilla | Vanilla Plus | Vanilla Access and Restock
     Hardcore | Casual | Access. The dimmed row was not in this run's shots (it scrolled past); unchanged
@@ -1094,7 +1094,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
           Java exceptions): the same cause suspect (the building not streamed in when the fixture looks).
         - jrd WARN "Too dark to write": the time of day. Large only: card_pad "ran twice (re-bump)", the runner.
         Passed at 720 at both sizes: everything else, including tww, cu, wpt, dollv4, the pad suites, the radios, TVs,
-        laundry, the plates, the menus and the soak. Main-menu checks (ZeDUI/qa/Nov1_main_menu/): the About menu ends
+        laundry, the plates, the menus and the soak. Main-menu checks (ZeDUI/qa/archive/Nov1_main_menu/): the About menu ends
         inside the glass at 720 and 800; the v4 desk at 1080p lit and dimmed matches Design's preview.
 
       - **QA, Nov 1 2026, late: the 720 vehicle cluster, two probes.** (1) zedqa_probe_car_ticks.lua at 720, 800 and 4K
@@ -1353,7 +1353,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Nov 1 desk captures (mm_desk_v4). The in-game scale on the Deck unchanged (0.75).
 
     - **QA, Nov 1 2026, evening: confirmed.** zedqa_menu_lean.lua at 1280x800 and 1280x720, Normal then Large
-      (ZeDUI/qa/Nov1_main_menu/README.md, lean/, the game consoles in qa/regression/2026-11-01_menu_lean_*): **47 / 47
+      (ZeDUI/qa/archive/Nov1_main_menu/README.md, lean/, the game consoles in qa/regression/2026-11-01_menu_lean_*): **47 / 47
       at Normal and 48 / 48 at Large, each size, 0 FAIL.** Root 1.0 at the menu, the game's 0.75 beside it. Normal:
       the main view in the room (desk 3x, monitor 720x540, the window's right edge 750 against the icon block at 764),
       Options, New game with Spawn, Sandbox, Traits and Looks, Mods, Load, Workshop and Credits each lean in (desk 4x,
@@ -1572,7 +1572,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     (build, Nov 2), QA to confirm. Immersive Moodles (Workshop 3830422267, mod id ImmersiveMoodles, by Krovenox, about
     2,100 subscribers) draws an animated moodle column of its own and parks the game's column off screen every frame;
     ZeD placed the game's column every frame too, so each moodle showed twice, the game's with ZeD's hover note
-    (qa/Nov2_compat_r4c/immersive_moodles_twice.png). The Moodle Quarters way (ZeD moves the mod's panel to ZeD's place)
+    (qa/archive/Nov2_compat_r4c/immersive_moodles_twice.png). The Moodle Quarters way (ZeD moves the mod's panel to ZeD's place)
     does not fit: the mod's column wraps to the screen's height, draws bars beside each tile, has its own side and top
     options and its own hover text, and cannot lie in ZeD's row above the belt. So ZeD leaves the moodles to it:
     ModSupport/ImmersiveMoodles.lua tells ZeD_Moodles it draws them in whole (setStandIn, whole = true) while its HUD is
@@ -1586,7 +1586,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     off (a new game or reload): ZeD's moodles and note as usual; safe mode on and off; the Compatibility thread's entry
     moves from "Compatible, with a note" to Supported once confirmed.
     **QA, Nov 2 2026: confirmed at e535b7b (2026-11-02_1227_mods_fullscreen4k.md, 47 / 47, at 4K with Immersive
-    Moodles alone; new check zedqa_immersive_moodles.lua; pictures in qa/Nov2_pl53).** console.txt: "[ImmersiveMoodles]
+    Moodles alone; new check zedqa_immersive_moodles.lua; pictures in qa/archive/Nov2_pl53).** console.txt: "[ImmersiveMoodles]
     main loaded", "[ZeD] ImmersiveMoodles: support loaded (wrapped true)". Four moodles up (god mode off for the test).
     At ZeD's place right, left and bottom: ZeD's layer hidden, M.rect nil, the game's column at -20000,-20000, the mod's
     HUD on, no ZeD note drawn, and after a hunger level change none either; one column on screen, the mod's, and no row
@@ -1716,7 +1716,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     under Safe mode and read as it does: ticked is the game's own, unticked (the default) is ZeD's. Names "Safe mode:
     belt" and so on, each with a line under it ("The game's own hotbar"). The ZeD screens group is gone.
     **QA, Nov 2 2026: confirmed at d751c3f (2026-11-02_pl55_screens_4k.md, 77 / 79, zedqa_screens.lua; pictures
-    qa/Nov2_t16/screens_six.png).** Each of the seven switches ticked: ZeD.Safe.on(name) true and every other screen stays
+    qa/archive/Nov2_t16/screens_six.png).** Each of the seven switches ticked: ZeD.Safe.on(name) true and every other screen stays
     ZeD's; the belt gives the game's hotbar back (the picture shows it), the watch the game's clock (y 10, visible), the
     moodles the game's column, the windows close; unticked, each is ZeD's again (the clock parked at y -4000). The console
     says "[ZeD] Screens: <name> handed back to the game" and "is ZeD's again" for all seven. Belt and watch ticked together:
@@ -1737,7 +1737,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     the most slots; a gun (the ammo tab), a worn watch on each wrist, the Messages note; drag an item onto a slot and
     off; the number keys; the controller's belt focus; moodles placed at the bottom sit above it.
     **QA, Nov 2 2026: confirmed at 361d0b6 (2026-11-02_pl56_belt_4k.md and _deck.md, 16 / 17 each,
-    zedqa_simple_belt.lua; pictures qa/Nov2_t16/simple_belt_rows.png).** Full: strap and buckle. Simple at 4K and on the
+    zedqa_simple_belt.lua; pictures qa/archive/Nov2_t16/simple_belt_rows.png).** Full: strap and buckle. Simple at 4K and on the
     Deck: no strap, buckle, runs or closure; both hands; all 3 slots in key order, 6 units apart, the belt centred
     (4K 1692 + 457 wide, Deck 542 + 197); a pistol in hand shows the ammo tab; a watch on the left and on the right
     wrist shows on the belt; a knife goes onto free slot 2 and off again (B.attach / B.detach, the drag's calls) and slot
@@ -1830,7 +1830,7 @@ item says so.
     shows them; Vanilla Access sets Devices, Watch and Dashboard to Simple, Vanilla Plus to Full; each of the three
     picked by hand makes the Preset read Custom; Discard put everything back.
     **QA, Nov 2 2026: the Simple watch at 4K (zedqa_simple_watch.lua, 20 / 23; pictures for the director in
-    qa/Nov2_beta/pl60_simple_watch.png).** Worn, the corner box: the time large with seconds, "WE 21", 79°F, Speed x1,
+    qa/archive/Nov2_beta/pl60_simple_watch.png).** Worn, the corner box: the time large with seconds, "WE 21", 79°F, Speed x1,
     Alarm off; Pause / Start pauses and runs the game, Speed steps x2 and x3, Alarm sets and clears the alarm (Alarm
     15:00 with the dot). No watch: Game speed with Pause, x1, x2, x3, each setting the speed. On the belt: the plain
     time box, and the plain watch pops above it. Full brings the watch's art back at once. + and - follow the watch's
@@ -1840,12 +1840,12 @@ item says so.
     mode's help line "Set the alarm hour with ..." runs out of the box (not wrapped).
     **QA, Nov 2 2026, after cb8447cc: the three watch faults are fixed (23 / 23 at 4K and 23 / 23 on the Deck with
     Large text; 2026-11-02_pl60_watch_4k_b.md, _800L.md; the director's picture retaken,
-    qa/Nov2_beta/pl60_simple_watch.png).** Every button holds its word (4K box 476 x 212, set mode 518 x 176; Deck
+    qa/archive/Nov2_beta/pl60_simple_watch.png).** Every button holds its word (4K box 476 x 212, set mode 518 x 176; Deck
     Large 234 x 103); the set mode's help line wraps in F2 inside the box; On/off ("alarmtoggle") switches the alarm
     and stays in set mode, Done leaves. Note for build: on the Deck the corner box sits over the World window's
     top-right corner (its tab strip's edge).
     **QA, Nov 2 2026: the plain device cards at 4K (zedqa_plain_cards.lua through pl60_plain_run.ps1, 35 / 36; pictures
-    for the director in qa/Nov2_beta/pl60_plain_cards.png).** Black radio, red radio, Tactical walkie in the hand: the
+    for the director in qa/archive/Nov2_beta/pl60_plain_cards.png).** Black radio, red radio, Tactical walkie in the hand: the
     plain card drawn; power switch; the volume stepper's right half raises, left half lowers; the wheel over the
     frequency turns it and a fast spin goes further (2400 against 200 a notch; once in five runs it did not speed up);
     a held preset (right-click) stores and the key recalls; battery and headphones keys queue the game's action; the
@@ -1868,7 +1868,7 @@ item says so.
     pause give 6400 against 200 a notch: the speed-up starts at the 8th notch (7 at 1x, 5 at 5x), one notch sooner than
     build described; told build.
     **QA, Nov 2 2026: the Simple dashboard on every design at 4K (dash19 with Dashboard on Simple,
-    2026-11-02_pl60_dash_4k.md; pictures for the director qa/Nov2_beta/pl60_simple_dash.png).** All 19 cars draw the
+    2026-11-02_pl60_dash_4k.md; pictures for the director qa/archive/Nov2_beta/pl60_simple_dash.png).** All 19 cars draw the
     plain strip (1400 x 430 to 483 at 4K, bottom centre): Speed, RPM, Fuel, Volts, Temperature, Oil, Gear, Odometer,
     Clock, Climate; the lamps as status dots; Car, Climate and Radio rows of buttons with the radio's presets; the taxi
     adds Fare, Extras and Meter; the police car Lightbar and Siren. The police car and the Primani did not start in
@@ -1890,11 +1890,11 @@ item says so.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
       Normal text). The director picks the fix from it.
-    **QA, Nov 2 2026 (6515c6e, qa/Nov2_beta/pl61_*):** at 720 Normal, 720 Large and the Deck Large, UI scale Auto,
+    **QA, Nov 2 2026 (6515c6e, qa/archive/Nov2_beta/pl61_*):** at 720 Normal, 720 Large and the Deck Large, UI scale Auto,
     Type, Distance and Key show their values ("Standard", "3 tiles", "On you"); the labels-only look came at UI scale
     2.0, item 35's stress setting. The tight spot at 720 is the parts list under the figure: with the hood open only
     "Under Hood (4)" shows above Close Hood. QA told the director that "leave it" now matches what a player sees.
-    - **QA, Nov 2 2026: the pictures are in (zedqa_vehicle_small.lua; qa/Nov2_beta/pl61_*; reports
+    - **QA, Nov 2 2026: the pictures are in (zedqa_vehicle_small.lua; qa/archive/Nov2_beta/pl61_*; reports
       2026-11-02_pl61_vehicle_720.md, _720L.md, _800L.md).** At 1280x720 Normal, 1280x720 Large and the Deck (1280x800)
       Large, UI scale Auto, both windows open: before the hood is opened, Type, Distance and Key each show their value
       ("Standard", "3 tiles", "On you"); with the hood open the summary (Engine, Quality, Loudness, Weight, Fuel,
@@ -2077,7 +2077,7 @@ item says so.
     "KI", as gen_desk.py draws it on the desk's computer), one art pixel per desk pixel, in the pad's dark trim colour
     (ZeDUI/tools/icons/pad_ki_logo.py; the director's fourth ask). Drawn by QA (ZeDUI/tools/icons/bumpers_long.py,
     from the original art: the bumper's own columns, LB's rounded light end moved out for LB, LB's shaded end with its
-    outline and shadow for RB) into controller_map.png; before and after in qa/Nov2_beta/pl67_bumpers_before_after.png.
+    outline and shadow for RB) into controller_map.png; before and after in qa/archive/Nov2_beta/pl67_bumpers_before_after.png.
 68. **Hair and beard with the eight-mod set (the director, Nov 2: the beta can ship with it as a known issue; keep
     working on it).** Item 54 continues. If it is unsolved at staging, it goes on item 57's Known issues.
 69. **Oct 30's band calls and the radio faces (the director, Nov 2).**
@@ -2242,7 +2242,7 @@ item says so.
       copied the laundry files only. Build to bring the tools level with the committed art (or guard the exporter to
       named plates) before anyone exports again.
     **QA, Nov 2 2026: confirmed at 4K and on the Deck with Large text (zedqa_laundry.lua, 202 / 202 at each;
-    2026-11-02_pl77_laundry_4k.md, _800L.md; pictures for the director qa/Nov2_beta/pl77_laundry_4k.png and
+    2026-11-02_pl77_laundry_4k.md, _800L.md; pictures for the director qa/archive/Nov2_beta/pl77_laundry_4k.png and
     pl77_washer_soak3_deck.png).** The washer, dryer and washer-dryer through the gears button: the face that fills the
     card at a whole zoom (washer@392 at both sizes), power the primary stop, no power (red lamp, the band says so), no
     water (FILL), running (one phase lamp lit, the cycle dial moving, the next phase later), stopped (lamps dark), the
@@ -2495,7 +2495,7 @@ item says so.
 
 84. **The Mods screen's readability (the director, Nov 4 2026, from FAIV's request in the Suggestions thread; promised
     for the next beta).** Mockup ZeDUI/mockups/zed_mods_readability_v1.html, QA notes
-    ZeDUI/qa/2026-11-04_mods_readability.md. Built in 133c0dc4: on rows on a solid band darker than the list, off
+    ZeDUI/qa/archive/2026-11-04_mods_readability.md. Built in 133c0dc4: on rows on a solid band darker than the list, off
     rows' names and icons dimmed; an Off tab; Hide incompatible by Find (with the count); the tab and the box kept
     between visits (ZeD_modsview.txt); a Simple view (ZeD setup, Full or simple: Mods screen); System 7's seven Finder
     labels for folders (the picture tinted; ZeD_modfolders.txt) and separators (name and rules; ZeD_modprofiles.txt),
@@ -2766,7 +2766,7 @@ item says so.
 94. **The Dash Elite odometer's unlit figures, after beta 6 (the director, Nov 6 2026: "That's a little problem"; okay
     for this release, no QA round for it now).** At night with the panel lights off, the window's unlit marks read as what
     looks like an E, a single quote, two half pipes, another single quote and another E, in the dark. The director wants
-    that fixed; the unlit marks should be four 8s, and QA's picture (ZeDUI/qa/dash_elite_odometer_b_20261106.jpg) shows
+    that fixed; the unlit marks should be four 8s, and QA's picture (ZeDUI/qa/archive/dash_elite_odometer_b_20261106.jpg) shows
     five figure spaces. Look at it with item 92's Dash Elite LCD odometer, which draws six figures, so the figure count
     is settled once.
 95. **After beta 6: German cards and clips left over (QA, Nov 6 2026, 101 pictures, no layout breakage).** "Sent as #16.
@@ -2791,7 +2791,7 @@ item says so.
     tab_drain_sim.
 
 96. **After beta 6: a code review and in-game QA of beta 6 (Claude on the director's Mac, on 42.21, another account,
-    Nov 6 2026).** Every finding, with file, line, QA's check and a fix idea: qa/REVIEW_BETA6_EXTERNAL_20261106.md. QA read
+    Nov 6 2026).** Every finding, with file, line, QA's check and a fix idea: qa/archive/REVIEW_BETA6_EXTERNAL_20261106.md. QA read
     the code and the 42.22.2 jar, no game run. The director's order for the next build, Nov 6: the first seven below. A
     dedicated server throws a font exception about three times a second for as long as it runs (in our own server log);
     safehouse invitations vanish, as the game's safehouse id differs by machine; every armed hit logs a Lua error; muted
@@ -2799,7 +2799,7 @@ item says so.
     protection. "Others can't tow" works on 42.22.2 and fails on 42.21: the two-argument call suits both. Any fix must run
     on both versions. Wheel RT: the director is fine with it, no change. Animals tab, confirmed in game at 4K and Deck: the
     Ranch page has no tab icons and no footer, the Admin bug again, since f59ffdc8 (beta 5 and 6). ZeD_WorldWindow.lua:4152
-    clears extra clips for added tabs only. Picture: qa/animals_ranch_rail_deck_20261106.jpg.
+    clears extra clips for added tabs only. Picture: qa/archive/animals_ranch_rail_deck_20261106.jpg.
 
 97. **After the beta 6a hot fix: what the outside review left (Build, Nov 6 2026).** All of 96 went in on main at a60c4472 except these. Too big for a hot fix: split-screen positioning and per-player server state; Death then Restart on ZeD's own windows; the getTextManager proxy. Narrowed: the Steam ID check still lets about 15 neighbors through. Code nothing calls: formatWeaponMeta and formatFluidMeta in ContextMenuRegistry. Small follow-ups: the Character window has coverClear and no drain, so Journal > Recipes under a card may lose its list; send every correctAndSaveModOrder through one filtered helper (Undo changes and Load after throw with an uninstalled mod listed, as in beta 6); clear KillTracker deadLog once a weapon kill counts, as a reused zombie can read as a fire kill; RADIAL_WHEELS_SPEC.md line 58 needs the centered start for Hold with Flick-release. Second-player checks are in the merge note to QA. Build, Nov 7 2026, for QA: the Character window now clears what a tab leaves on after it draws, as the World window does, counting the clips an item card's cover puts back. The fault was real: under a card, Journal > Recipes with a recipe picked left two clips on and the inventory list's one clear took off only one, so the list and all drawn after it would vanish. tab_drain_sim runs both windows' real drain over tabs with 0 to 3 clip pairs, a leftover clip and a throw, with and without a card. QA reads, at 4K 1.75x and Deck 1280x800 Auto: Character window > Journal > Recipes with a recipe picked and an item card open, category dropdown open too (inventory list, container strip and card stay); then Health, Skills, the Journal sub-tabs, Identity, Equip, Radio and Cooking with a card open (nothing beside the drawer flickers or stays gone).
 
@@ -2813,7 +2813,7 @@ item says so.
 
 99. **For the next beta: two small faults (the director, Nov 6 2026: "Wait for the next one. I really want to get this thing uploaded").** Not in beta 6a, as either would want a regression. Locks: padlocks and combination locks open in a full card; they should open in a half card. The Z menu: on the main menu, Z in the toolbar still shows version 0.1.1-something; it should show the current version.
 
-100. **For later: EquipPacket in the server log (QA, Nov 6 2026).** "Wrong player connection index" repeats during multiplayer runs: 505 lines in one beta 6a run, mostly while teleporting, 302 in one run on Nov 5, so it predates the hot fix. See qa/QA_BETA6A_20261106.md. Build, Nov 7, from the logs and the 42.22.2 jar: the client log has a matching "EquipPacket.set get invalid arguments" warning for each server line (217 each in the 22:56 run), starting seconds after the kit's /teleport. The client builds an equip message without a player (setData wants one IsoPlayer), so the server reads index -1 and drops the packet. ZeD never sends one: no sendEquip or equip packet anywhere in 42/; sendEquip does nothing on a client; the game's own hand update sends only for a local player with the right arguments. So the sender is game code we haven't pinned (IsoGameCharacter.tryPerformDropHeldItem is the one left in the classes read). Proof it isn't ZeD: the same teleport run with ZeD off; if it stays, it's the game's, for the TIS report.
+100. **For later: EquipPacket in the server log (QA, Nov 6 2026).** "Wrong player connection index" repeats during multiplayer runs: 505 lines in one beta 6a run, mostly while teleporting, 302 in one run on Nov 5, so it predates the hot fix. See qa/archive/QA_BETA6A_20261106.md. Build, Nov 7, from the logs and the 42.22.2 jar: the client log has a matching "EquipPacket.set get invalid arguments" warning for each server line (217 each in the 22:56 run), starting seconds after the kit's /teleport. The client builds an equip message without a player (setData wants one IsoPlayer), so the server reads index -1 and drops the packet. ZeD never sends one: no sendEquip or equip packet anywhere in 42/; sendEquip does nothing on a client; the game's own hand update sends only for a local player with the right arguments. So the sender is game code we haven't pinned (IsoGameCharacter.tryPerformDropHeldItem is the one left in the classes read). Proof it isn't ZeD: the same teleport run with ZeD off; if it stays, it's the game's, for the TIS report.
 
 ## Test process
 
@@ -3012,3 +3012,22 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     Sidebar has no effect: ZeD's belt wraps the sidebar render, so the mod's fade never hooks a button (0 of 14). Give
     the belt a hook so the mod's fade (and its settings) apply to ZeD's belt; HOOK_MAP row and a QA script with the
     mod on.
+112. **Dual pinning: each half of the Character and World windows rolls up and pins on its own (the director, Nov 8
+    2026, from FAIV's report on pinned windows in combat; build now).** "Each window needs to have dual pinning. So each
+    half rolls up independently, and each half can be pinned independently on each window. Clicking on a tab, or
+    clicking on the inventory tab still folds the tabs in, though." Rulings: a pinned half stays exactly as it is (no
+    aim or click override); the inventory side and the tab drawer side each auto-roll with the pointer (2 s after it
+    leaves, or on aim) unless that half is pinned; one pin per half, each in its own part of the title bar; on aim the
+    unpinned half rolls and the pinned half stays; on a pad both pins are stops in the focus ring, A toggles. Example
+    that must work: the World window with the map tab pinned open while its inventory side and the Character window
+    roll with the pointer.
+113. **Beta 9: the rest of the Mac rig's outside review of beta 8 (the director, Nov 8 2026: "Hotfix the two, then add the
+    rest to b9").** ZeDUI/qa/REVIEW_BETA8_EXTERNAL_20261108.md items #3-#18 and its review-only list; #1 and #2 ship
+    as hotfix 0.3.0-beta8a. #9 stays (the Nov 7 ruling). #14: Follow Metric (the odometer and trip show km with KM/H;
+    display only). Being built on a branch off main.
+114. **The main menu desk's sticky note can be dragged and closed (the director, Nov 8 2026, beta 9).** "Being able to
+    drag the note around to other spots on the desktop or close it would be nice." Drag it anywhere on the desktop with
+    its place kept, a way to close it, and a way to bring it back. Design questions (where the close sits, how it comes
+    back, controller) go to the director as multiple choice before building. Ruled Nov 8: a small X close box in the
+    note's corner (System 7 style); a 'Show note' item in the desk's menu bar brings it back where it last was; on a
+    pad the note is a stop, A picks it up, the D-pad moves it, A puts it down, Y closes it.
