@@ -269,9 +269,9 @@ function B.strapRuns(strapX, strapW, boxes, mats, waist, k, gap, hole)
 end
 local BRASS_A, BRASS_B, BRASS_C = hex("#e2c070"), hex("#9c7428"), hex("#4a3812")
 
--- The player's profession buckle (director, Oct 15 2026; art by ZeDUI/tools/buckles/
+-- The player's profession buckle (art by ZeDUI/tools/buckles/
 -- gen_buckles.py: 25 stable professions, 58 x 40, one texel a design unit). Loaded with
--- nearest filtering like the main menu desk (KB Q205) and drawn at a whole multiple, so the
+-- nearest filtering like the main menu desk and drawn at a whole multiple, so the
 -- pixels stay square. A modded or unknown profession wears the plain KENTUCKY plate
 -- (unemployed); a missing texture falls back to the brass frame.
 local BUCKLE_DIR = "media/textures/ZeD/buckles/buckle_"
@@ -359,7 +359,7 @@ ZeD.trDefaults({
     UI_ZeD_Belt_AmmoCountOf = "%1 %2",
 })
 -- The names are asked for every frame: kept per slot kind until the language or the test language changes
--- (Oct 22 2026, the drawing-cost work)
+-- (a draw-cost saving: no frame rebuilds a string)
 local _nm = { gen = -1, test = nil, short = {}, hand = {}, slot = {} }
 local function names()
     local st = ZeD._trState
@@ -390,8 +390,8 @@ function B.handName(which)
     local k = (which == "p") and "p" or "s"
     local s = c[k]
     if s then return s end
-    -- ZeD's own short word where the player's language has one (QA, Nov 2 2026: the game's Turkish "Ikincil Donanim"
-    -- was cut in the hand circle), else the game's word
+    -- ZeD's own short word where the player's language has one (the game's Turkish "Ikincil Donanim"
+    -- was cut off in the hand circle), else the game's word
     local zk = (k == "p") and "UI_ZeD_Radio_LocPrimary" or "UI_ZeD_Radio_LocSecondary"
     local own = ZeD.tr(zk)
     if ZeD.trEnglish and own ~= ZeD.trEnglish(zk) then s = own
@@ -438,7 +438,7 @@ function B.cond(item)
 end
 
 -- ----------------------------------------------------------------------------
--- Other mods on the belt (ModSupport; Nov 7 2026). General hooks, each keyed by an id (a second call with the
+-- Other mods on the belt (ModSupport). General hooks, each keyed by an id (a second call with the
 -- same id replaces the first), so a mod that draws on the game's hotbar or hand slots shows on the belt instead
 -- (and B.addHold, below, for a mod that moves the belt while it draws):
 --   B.addMeter(id, fn)  fn(item, where) -> f (0..1) and a kind ("fluid": T.info; "flat": one color, T.positive; nil:
@@ -479,8 +479,8 @@ end
 -- of its own (the element moved, or its javaObject swapped for one that changes every draw), for the hotbar's part of
 -- the belt only: the strap, the buckle and the slots take the mod's drawing; the hands, the ammo tab, the watch, the
 -- Messages note, the chat key, the PvP marker, other mods' boxes, the hover boxes and the tooltip are drawn on the
--- real element at the belt's home. nil: no split this frame. (Auto-Hide Hotbar: the director, Nov 7 2026, "hides
--- the belt's item slots only".)
+-- real element at the belt's home. nil: no split this frame. (So Auto-Hide Hotbar hides
+-- the belt's item slots only.)
 B._splits = B._splits or {}
 function B.addSplit(id, fn) addById(B._splits, id, { fn = fn }) end
 function B.split(hud)
@@ -509,7 +509,7 @@ function B.meterColor(T, kind)
 end
 
 -- ----------------------------------------------------------------------------
--- Ammo (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026): with a gun in the main hand, the rounds in it
+-- Ammo: with a gun in the main hand, the rounds in it
 -- and what a reload can use. For a gun with magazines, the loaded magazines carried, then the loose rounds; for a
 -- shotgun or a revolver, the loose rounds. Unopened boxes are named ("+1 BOX") but not counted: the game will not
 -- reload from a box. Bags count as carried, as the game's own reload counts them (getItemCountRecurse).
@@ -750,7 +750,7 @@ function B.otherWeapons(playerObj)
             end
         elseif call(item, "canEmitLight") then
             if not best or best:getLightStrength() < item:getLightStrength() then best = item end
-            if playerObj:isEquipped(item) or (hb and hb:isItemAttached(item)) then  -- (vanilla's isEquippedOrAttached is local to ISDPadWheels, out of reach: its test inline; code audit Oct 17 2026)
+            if playerObj:isEquipped(item) or (hb and hb:isItemAttached(item)) then  -- (vanilla's isEquippedOrAttached is local to ISDPadWheels, out of reach: its test inline)
                 if not bestEq or bestEq:getLightStrength() < item:getLightStrength() then bestEq = item end
             end
         end
@@ -795,9 +795,9 @@ function ZeD_BeltHUD:wanted()
     return B.hotbar(self.playerNum) ~= nil
 end
 
--- The layout, kept while nothing it is built from changes (Oct 22 2026, the drawing-cost work): the token table
+-- The layout, kept while nothing it is built from changes (a draw-cost saving): the token table
 -- (theme, accent, text size, UI scale and art zoom all make a new one), the character, the slots and their kinds,
--- the worn watch and its plate and wrist; the slots' materials are looked up again every second, as before. Only
+-- the worn watch and its plate and wrist; the slots' materials are looked up again every second. Only
 -- the boxes' slot records are refreshed every frame (what is in them, the key that draws them). Returns the size.
 function ZeD_BeltHUD:_layoutCached(slots)
     local T = ZeD.T

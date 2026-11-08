@@ -1,12 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModPicks.lua
 -- ============================================================================
--- FILE PICKS: SETTLING A CONFLICT FILE BY FILE (director, Oct 24 2026: "is there
--- a way to override file conflicts when load order alone won't solve it. like if
--- you want some files replaced by another mod, but want it to not win on other
--- files?"; mockup zed_mods_settings_picks_v1, approved)
+-- FILE PICKS: SETTLING A CONFLICT FILE BY FILE, for when load order alone will
+-- not do — one mod should win some files but not others. Client-side; the list
+-- and the helper's copies (the Mods screen draws the picker).
 --
 -- When two mods ship the same Lua file, the one later in the load order runs
--- and the other copy never loads (KB Q263). ZeD comes with a helper mod,
+-- and the other copy never loads. ZeD comes with a helper mod,
 -- ZeD picks (mod id ZeD_Picks, empty), kept last in the load order. For every
 -- file you pick, ZeD writes the picked mod's copy into the helper; the helper
 -- loads last, so its copy is the one the game runs, and load order still decides

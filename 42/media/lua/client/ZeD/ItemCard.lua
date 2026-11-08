@@ -1511,10 +1511,9 @@ function ZeD_ItemCard:render()
     local T = ZeD.T
     if not self.item then return end
     if self:getWidth() < T.px(80) then return end
-    -- S121: delegate body composition to ItemCardOrganism (renderBody method).
-    -- The new organism handles back-bar, flag strip, progress band, body
-    -- (clothing zones / facts dispatch), and maintenance verb strip per
-    -- v13/v15/v16 spec. Scrollbar paint stays here so it overlays.
+    -- Body composition is ItemCardOrganism's (renderBody): back-bar, name
+    -- row, flag strip, progress band, body (clothing zones / facts dispatch)
+    -- and the care verbs' band. Scrollbar paint stays here so it overlays.
     self:renderBody({sourceContext = self:_effectiveContext()})
     if self._sb and self._sb.visible then self._sb:draw(self) end
     self:_pointer()   -- (every frame drawn: update() runs only every 100 ms)
@@ -1559,23 +1558,24 @@ function ZeD_ItemCard:calcHeight()
 end
 
 -- ---------------------------------------------------------------------------
--- GAMEPAD RING API (S99)
--- Exposes action strip buttons as focusable elements + disclosure scroll.
--- Window reads these into w._focusRing[charItemCard].elements each frame.
--- Rects come from the previous frame's render (toggleRects / verbRects);
--- bounds are at most 1 frame stale, acceptable for cone nav.
+-- GAMEPAD RING API
+-- Exposes the card's buttons as focusable elements + disclosure scroll.
+-- The window reads these into its focus ring each frame. Rects come from
+-- the previous frame's render (toggleRects / verbRects); bounds are at most
+-- 1 frame stale, acceptable for cone nav.
 -- ---------------------------------------------------------------------------
 
--- Return focusable elements for the card's action strip, left-to-right:
--- FAV, PROTECT, UNWANTED, then verbs (repair_all/pad_all/repair/sharpen/etc.).
--- Element 1 (FAV) is the default landing per design.
+-- Return the card's focusable elements, in order: the progress band's
+-- Cancel (while an action runs), the header verbs (the primary is where the
+-- controller lands), the name row, the folded row and its greyed verbs, the
+-- mark chips (FAV / PROTECT / UNWANTED), the Lists mark, then the care verbs.
 function ZeD_ItemCard:getActionStripElements()
     if not self.item then return {} end
     local els  = {}
     local item = self.item
     local card = self
 
-    -- S122 (B9): Progress Band cancel as a leading focusable. Only present
+    -- Progress Band cancel as a leading focusable. Only present
     -- when an action is active (Manager.getActiveAction != nil). Lands as
     -- the first ring element when armed so X press hits it without ring nav.
     -- Every rect here is ABSOLUTE, like toggleRects / verbRects / the zone
@@ -1595,7 +1595,7 @@ function ZeD_ItemCard:getActionStripElements()
 
     -- Header verbs (Eat / Wear / Drop ...): the card's main actions. Back-bar
     -- rects are card-local (update() adds the origin), so lift them here.
-    -- Oct 23 2026: they are the card's action strip (isStrip); the card's
+    -- They are the card's action strip (isStrip); the card's
     -- main button (the CTA: Eat, Take, Wear...) is isPrimary, where the
     -- controller lands when the card opens (else the first of them).
     local hb = self._backBarRects

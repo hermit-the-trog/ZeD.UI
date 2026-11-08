@@ -826,7 +826,7 @@ end
 -- ---------------------------------------------------------------------------
 -- the trip meter and the taxi's fare meter (session distance, per vehicle)
 --
--- The meter really meters, no prop (the fares are ZeD's
+-- A working meter, not a prop (the fares are ZeD's
 -- sandbox options, so a server's rates reach every player): the flag pulled
 -- down starts it at the flag drop; each fifth of a mile driven and each minute
 -- waiting (under 5 km/h, the engine running) adds its rate. The extras are the

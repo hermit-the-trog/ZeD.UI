@@ -138,8 +138,8 @@ end
 
 -- The title: the container's name (win._titleBase, set by the inventory side), then the
 -- open tab ("Crate  +  Craft"), as the character window does. Built every frame from the
--- window's own prerender (Oct 31 2026, break-it D1: built in the inventory side's
--- prerender, it went stale while the tab drawer took the whole window). A rolled side's
+-- window's own prerender — built from the inventory side's prerender it went
+-- stale while the tab drawer took the whole window. A rolled side's
 -- title is the curtain's (WindowCurtain: the tab alone). Kept until a part changes.
 local function composeWorldTitle(win)
     if win._rolled then return end
@@ -165,7 +165,7 @@ local function isTabVisible(tab, win)
     if not tab.visible then return true end
     return tab.visible(win)
 end
--- A tab another file adds (the Admin tab, AdminTab.lua; Nov 5 2026), as ZeD_CharacterWindow.addTab: def = id, key or
+-- A tab another file adds (the Admin tab, AdminTab.lua), as ZeD_CharacterWindow.addTab: def = id, key or
 -- label(), group, iconName, after (a tab id), visible(win), render(panel, win, x, y, w, h), and optionally
 -- scroll(win), onClick(win, x, y), buildFocusables(win), scrollKey(win), drawerW. Read at run time from
 -- ZeD_WorldWindow._extTabs by the window's per-tab dispatch (focus, click, scroll, the focus refresh).
@@ -176,11 +176,11 @@ ZeD_WorldWindow.TABS = WORLD_TABS
 ZeD_WorldWindow.isTabVisible = isTabVisible
 
 -- ============================================================================
--- S94 B-NAV — GAMEPAD FOCUS SUPPORT (World Window)
--- Mirrors ZeD_CharacterWindow's pattern: builds a tabBar focusable list and
--- switches tabs on D-pad cycle. No panel-level focusables this session —
--- Character Window's Loot tab is S94's cone-nav proof point, so World's panel
--- focusables stay empty. S95+ wires real per-tab focusables here.
+-- GAMEPAD FOCUS SUPPORT (World Window)
+-- Mirrors ZeD_CharacterWindow's pattern: every controller stop is an element
+-- in a ring zone (tab bar, container strip, main list, the columns, the tab's
+-- content, the item card). The builders below stamp those elements from the
+-- places things last drew.
 --
 -- Ordering note: placed AFTER isTabVisible so `_buildWorldTabBarElements` can
 -- reference it as a resolved upvalue. `_switchWorldTabForNav` is forward-

@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModScan.lua
 -- ============================================================================
--- WHAT THE MOD MANAGER KNOWS THAT VANILLA DOESN'T SAY (director, Oct 16 2026:
--- "helping with identifying conflicts, updating mods from the workshop")
+-- WHAT THE MOD MANAGER KNOWS THAT VANILLA DOESN'T SAY — client; a data module
+-- the Mods screen reads (no UI of its own): conflicts between the mods running
+-- now, and each Workshop item's update state.
 --
 -- Two readers, both on the game's own data, nothing guessed:
 --

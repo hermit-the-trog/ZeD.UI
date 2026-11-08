@@ -52,13 +52,13 @@
 --       ...
 --     }
 --     w._focusIdx = 1
---   Optional renderFn(w, zone) on each zone (per-zone bumper-land hook;
---   harmless under flat nav since bumpers no longer cycle zones, but kept
---   so old code doesn't have to be cleaned up).
+--   Optional renderFn(w, zone) on each zone (a bumper-land hook from the days
+--   bumpers cycled zones; harmless under flat nav, kept so old builder code
+--   doesn't have to be cleaned up).
 --   Optional w:onFocusZoneChanged({new, old}) — fired when cone-nav crosses
 --   a zone boundary, so chrome can refresh.
 --
--- BUMPERCHORD INTEGRATION (unchanged from S97):
+-- BUMPERCHORD INTEGRATION:
 --   On claimFocus → Chord.setEnabled(false) so LB/RB route to window swap
 --   On releaseFocus → Chord.setEnabled(true) so LB/RB route to zoom chord
 --
@@ -68,7 +68,7 @@
 --   ZeD.Input.Focus.claimFocus(w)
 --   ZeD.Input.Focus.releaseFocus()
 --   ZeD.Input.Focus.getFocusedWindow()
---   ZeD.Input.Focus.isLocked()                            -- always false post-S113 (Y-lock retired)
+--   ZeD.Input.Focus.isLocked()                            -- always false (the Y-hold lock is gone)
 --   ZeD.Input.Focus.getFocusedZone(w)                     -- current zone or nil
 --   ZeD.Input.Focus.getFocusedElement(w)                  -- focused element or nil
 --   ZeD.Input.Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx?)
@@ -87,7 +87,8 @@
 require "ZeD/Tokens"
 require "ZeD/Input/SpatialNav"
 
--- Namespace (triple-guard per Q21 — PZ can re-execute files in any order).
+-- Reload-safe: loading this file twice reuses the tables instead of wiping
+-- them, and guarding every level lets PZ re-execute files in any order.
 ZeD = ZeD or {}
 ZeD.Input = ZeD.Input or {}
 ZeD.Input.Focus = ZeD.Input.Focus or {}
@@ -99,8 +100,8 @@ local Focus = ZeD.Input.Focus
 -- ---------------------------------------------------------------------------
 
 -- Grace period after claimFocus during which stick aiming-escape is suppressed.
--- Without this, resting-finger trigger pressure (Q83) or stick drift can hide
--- the window the instant it opens.
+-- Without this, stick drift or a thumb still resting on the right stick can
+-- hide the window the instant it opens.
 local WS_GRACE_MS = 600
 
 -- SDL standard controller axis indices. Mirrored from InputModeDetector.
