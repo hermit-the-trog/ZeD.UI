@@ -3121,6 +3121,8 @@
     "UI_ZeD_Belt_AmmoCarried": "Båret: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "Båret: ingen %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "%1%% tilbage",
+    "UI_ZeD_Belt_MaskSpares": "reserver: %1",
     "UI_ZeD_Dash_LampCond": "tilstand %1",
     "UI_ZeD_Dash_LampCharge": "ladning %1",
     "UI_ZeD_Dash_LampLeft": "venstre %1",
