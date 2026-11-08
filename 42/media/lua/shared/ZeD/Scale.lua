@@ -67,8 +67,8 @@ end
 --     (Large: 1.15 on every T.px), one window at its narrowest useful width fits in
 --     half the screen's width (both windows are capped there): the tab strip 36 +
 --     the inventory's minimum beside a full card 180 (alone it keeps 200; beside a
---     full card it gives way to 180) + the full card 480 +
---     the container strip 36 = 732 units. And the screen's height holds the windows' minimum useful height:
+--     full card it gives way to 180) + the full card 480 + the container strip 36 =
+--     732 units. And the screen's height holds the windows' minimum useful height:
 --     the title bar (26 units, Large 30, root scale only, as Tokens' SP() sizes it)
 --     + a tab strip of 6 tabs (6 x 36) + the help line (22). The engine font-size
 --     multiplier (USER_MUL) does not apply to a fixed step (S.compute hands

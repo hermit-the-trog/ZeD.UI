@@ -3302,6 +3302,9 @@ local function _closeWorldWindow(w)
     end
 end
 
+--- Closes the World window when it is open, else builds and opens it (player 0
+--- only; not in safe mode). Other files go through open(), which also refuses
+--- a dead character. The whole window is built inside this one call.
 function ZeD_WorldWindow.toggle(playerNum)
     playerNum = playerNum or 0
     -- (split-screen: another player's press never opens or closes the first player's window, ZeD.windowsFor)

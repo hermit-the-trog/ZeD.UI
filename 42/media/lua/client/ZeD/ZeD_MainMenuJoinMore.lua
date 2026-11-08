@@ -318,9 +318,10 @@ function ZeD_MMWsItems:wheel(del)
 end
 function ZeD_MMWsItems:onMouseWheel(del) return MM.wheel(del) end
 
--- As vanilla hides the screen: Disconnect leaves the view; success goes back to the connection
--- still under way (vanilla's ConnectToServer, shown again so the Connecting view follows it to
--- the end); from Host's screen the view stays, saying it is contacting the server.
+--- The keep function MM.mirror asks as vanilla hides the screen (true keeps the view up): Disconnect
+--- leaves the view; success goes back to the connection still under way (vanilla's ConnectToServer,
+--- shown again so the Connecting view follows it to the end); from Host's screen the view stays, saying
+--- it is contacting the server.
 function MM.wsItemsKeep(scr)
     if scr._zedLeaving then return false end
     local prev = scr.prevScreen
@@ -567,6 +568,7 @@ function ZeD_MMSrvForm:keyEscape()
     return true
 end
 function ZeD_MMSrvForm:keyOther(key)
+    -- (the Return that finished a field must not also press Connect)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     for _, e in ipairs(self._fields) do if e:isFocused() then return false end end
     if key == Keyboard.KEY_RETURN then self:connect(); return true end
@@ -579,6 +581,7 @@ function ZeD_MMSrvForm:getFooterPrompts()
 end
 
 -- ============================================================================
+-- the wheel scrolls the Workshop items' list (each screen chains its view onto MM.wheel)
 local _wheel = MM.wheel
 function MM.wheel(del)
     if MM.view == "wsitems" and MM.root and MM.root.wsItemsWin then

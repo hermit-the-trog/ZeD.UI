@@ -8,9 +8,9 @@
 -- (its clip, the game's own text, and The Rules in Numbers where the game keeps rules in
 -- numbers), a band at the foot (the game's "Show the guide on startup", Previous, Next) and
 -- the window's help line. The game's part is read from the game: SurvivalGuideEntry for the
--- topics, text and clips; the game's own files and this world's settings for the numbers,
--- the game's rules as numbers, never this world's secrets. ZeD's own chapters
--- (ZeD_GuideChapters.lua) follow the game's.
+-- topics, text and clips; the game's own files and this world's settings for the numbers:
+-- the game's rules as numbers, never this world's secrets (a shutoff's range, never the day
+-- it rolled). ZeD's own chapters (ZeD_GuideChapters.lua) follow the game's.
 --
 -- Before touching a shared part: ZeD_SurvivalGuideBook.lua, the Full look, reads the topics,
 -- their words, the inline pictures, the two ways and the rules through ZeD.Guide, so a change
@@ -1691,7 +1691,8 @@ function W.useBook()
     return true
 end
 
--- open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window
+--- Open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window. Every open
+--- hides the spoilers again and reads the rules afresh.
 function W.open(pn, want)
     W.spoil = {}
     W._rulesC = {}
@@ -1738,6 +1739,7 @@ end
 
 function W.get(pn) return W.windows[pn or 0] end
 
+--- F1: close the open guide (window or book), else open it on the topic for what the player is doing.
 function W.toggle(pn)
     local win = W.windows[pn or 0]
     if win and win:isReallyVisible() then win:close(); return end
@@ -1746,6 +1748,7 @@ function W.toggle(pn)
     W.open(pn, W.contextTopicKey())
 end
 
+--- Escape closes an open guide, window or book (ZeD.EscapeTakers); true when it took the key.
 function W.takeEscape()
     for _, win in pairs(W.windows) do
         if win and win:isReallyVisible() then win:close(); return true end
@@ -1758,7 +1761,7 @@ ZeD.EscapeTakers = ZeD.EscapeTakers or {}
 ZeD.EscapeTakers.guide = W.takeEscape
 
 -- ---------------------------------------------------------------------------
--- THE GAME'S ENTRY POINTS (HOOK_MAP row 18): F1, the Help wheel, openEntry, the first run
+-- THE GAME'S ENTRY POINTS: F1, the Help wheel, openEntry, the first run
 -- ---------------------------------------------------------------------------
 local function blocked()
     if MainScreen and MainScreen.instance and MainScreen.instance:isVisible() then return true end

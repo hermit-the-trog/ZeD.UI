@@ -1351,9 +1351,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local M    = ZeD.Molecules
     local pad  = M.getTabPad()
 
-    -- (Oct 30 2026, punch list 21 a-f: the exercise list no longer shuts when a draw comes
-    -- 300 ms late, as a hitch or a screenshot made it; the window shuts it through closeMenu
-    -- when the tab is left, the drawer folds or an item card opens over it)
+    -- (the exercise list never shuts itself when a draw comes late, as a hitch or a
+    -- screenshot can make one; the window shuts it through closeMenu when the tab is
+    -- left, the drawer folds or an item card opens over it)
 
     -- Throttled data refresh
     win._healthTimer = (win._healthTimer or 0) + 1
@@ -1366,7 +1366,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- Font metrics
     local bodyH  = ZeD.TM:getFontHeight(T.fontF2)
 
-    -- S101 gamepad integration. Stash the content panel so _onPartClicked
+    -- For the controller: stash the content panel so _onPartClicked
     -- (called from injury-row / body-part onActivate) can anchor the vanilla
     -- treatment context menu even though callers don't pass drawerPanel.
     -- Capture LAST frame's injury Y-map before clearing so scroll-follow can
@@ -1382,16 +1382,15 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local scroll  = win._healthScroll
     local scrollW = T.sp.scrollbarW
 
-    -- Pinned header: 37px disclosure strip
+    -- Pinned header: the disclosure strip (37 design units)
     local headerH = M.getTabHeaderH()
     local padTop  = M.getTabPadTop()
     local figureExpanded = win._healthFigureExpanded
 
-    -- S103 — resolve "active" body part: gamepad focus on a body-part element
-    -- overrides mouse hover so D-pad through parts live-swaps the right-column
-    -- detail view (Thermal parity; S101 deferred this, S103 ships it). Stashed
-    -- on win so both the detail-view branch and _drawBodyFigure read the same
-    -- authoritative value.
+    -- Resolve the "active" body part: the controller's focus on a body-part
+    -- element overrides mouse hover, so the D-pad through the parts live-swaps
+    -- the right column's detail view (as the Thermal tab does). Stashed on win
+    -- so both the detail-view branch and _drawBodyFigure read the same value.
     -- (the live element: the controller's focus leads only while the controller is
     -- in use, so the mouse's hover leads again once the mouse moves)
     local activePart = win._healthHoveredPart
@@ -1402,11 +1401,11 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     end
     win._healthActivePart = activePart
 
-    -- S103: stamp disclosure hit-zone EARLY so the first prerender after a
-    -- tab-switch sees valid bounds and the disclosure focusable builds into
-    -- element[1]. Same one-frame-lag problem that SkillsTab had: late-stamped
-    -- zones leave idx=1 pointing at the first exercise pill instead of the
-    -- disclosure on entry, so users can't L-collapse the figure immediately.
+    -- Stamp the disclosure hit-zone EARLY so the first prerender after a tab
+    -- switch sees valid bounds and the disclosure focusable builds into
+    -- element[1]. A late stamp lags a frame (the SkillsTab trap too): element
+    -- 1 would point at another stop instead of the disclosure on entry, so the
+    -- figure could not be folded at once.
     win._healthFigureZone = { x = x, y = y, w = w, h = headerH }
 
     -- Zone A body: figure + dashboard (only when expanded)
@@ -1427,12 +1426,12 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         end
     end
 
-    -- Oct 23 2026 (director: "cannot see the bottom of the health tab"): the
-    -- scroll range covers what the last frame really drew too (the right
-    -- column's detail view and wrapped badge rows can run past the measure)
+    -- The scroll range covers what the last frame really drew too, so the
+    -- bottom of the tab is always reachable (the right column's detail view
+    -- and wrapped badge rows can run past the measure)
     local totalContentH = math.max(padTop + zoneABodyH + zoneBH, win._healthDrawnH or 0)
     local scrollY = y + headerH
-    -- the footer band is pinned at the card's foot (Oct 30 2026): the body scrolls between it and the header
+    -- the footer band is pinned at the card's foot: the body scrolls between it and the header
     local bandH = M.bandH()
     local bandY = y + h - bandH
     local scrollH = h - headerH - bandH

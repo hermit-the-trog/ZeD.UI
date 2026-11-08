@@ -4089,9 +4089,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._healthActivePart    = nil  -- gamepad: resolved part (gp focus overrides mouse hover), as Thermal's
     win._healthBand          = nil  -- the footer band's rects (HealthTab._renderBand): exercise box, - / +, Start
     win._healthMenuOpen      = false  -- the exercise pop-up list
-    win._healthInjuryZones   = nil -- S101 gamepad: stamped each frame by injury draw loop
-    win._healthInjuryYMap    = nil  -- S101 gamepad: scroll-follow Y-stamps keyed by body part name
-    win._healthContentPanel  = nil  -- S101 gamepad: panel ref for _onPartClicked anchor fallback
+    win._healthInjuryZones   = nil -- gamepad: stamped each frame by injury draw loop
+    win._healthInjuryYMap    = nil  -- gamepad: scroll-follow Y-stamps keyed by body part name
+    win._healthContentPanel  = nil  -- gamepad: panel ref for _onPartClicked anchor fallback
     win._healthFigureExpanded = true
     win._healthFigureZone     = nil
 
@@ -4126,7 +4126,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._thermalTimer       = 0
     win._thermalBodyFigure  = nil
     win._thermalHoveredPart = nil
-    win._thermalActivePart  = nil  -- S102 gamepad: resolved part (gp focus overrides mouse hover)
+    win._thermalActivePart  = nil  -- gamepad: resolved part (gp focus overrides mouse hover)
     win._thermalView        = 1
     win._thermalBand        = nil  -- the footer band's View box (ThermalTab._renderBand)
     win._thermalMenuOpen    = false  -- the View pop-up list
@@ -4134,9 +4134,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._thermalFigureZone     = nil
 
     -- Journal tab state
-    win._journalSubTab      = 1     -- active sub-tab: 1=Journal, 2=Notebooks, 3=Papers, 4=Recipes
-    win._journalSubTabZones = nil   -- click zones for sub-tab strip
-    win._mapDragging        = false -- true while map pan-drag is active
+    win._journalSubTab      = 1     -- the open page: 1=Journal, 2=Notebooks, 3=Papers, 4=Recipes, 5=Loadouts
+    win._journalSubTabZones = nil   -- (nothing reads it: the pages are the header's Page pop-up, not a strip)
+    win._mapDragging        = false -- (a map pan-drag; Maps is the World window's, see the map state below)
     win._journalScroll = ZeD_ScrollbarState:new()
     win._journalScroll.visible = false
     win._journalCache  = nil
@@ -4147,20 +4147,21 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._journalGroupCollapsed = {}   -- month_year key → bool
     win._journalGroupZones     = nil  -- click zones for group headers
     win._journalDeleteZones    = nil  -- click zones for entry delete X buttons
-    -- S105 gamepad: extra zones stamped by JournalTab.render for the kills
+    -- Gamepad: extra zones stamped by JournalTab.render for the kills
     -- disclosure row and save button — enables gamepad focusables that don't
     -- depend on a per-entry loop (kills + save are fixed-position on the
     -- Journal sub-tab).
     win._journalKillsZone     = nil
     win._journalSaveBtnZone   = nil
-    -- S105 gamepad: scroll-follow delta gate (Q99). Scroll-follow pins scroll
+    -- Gamepad: scroll-follow delta gate. Scroll-follow pins scroll
     -- only when the focused id CHANGES, not every frame the mode gate still
     -- thinks we're on gamepad. Prevents input-mode oscillation from locking
     -- the scroll when kbm briefly fires mid-gamepad-nav.
     win._lastPinnedJournalId  = nil
     -- Recipe notebook state (journal Recipes sub-tab — CraftingCore readOnly)
     win._jrecipeState = nil   -- lazily created by JournalTab.getJRecipeState
-    -- Map annotation toolbar state
+    -- Map annotation toolbar state. The Maps page lives in the World window
+    -- (MapsTab, on that window's own fields); nothing in this window reads these.
     win._mapActiveTool    = nil   -- active tool id (nil = pan mode)
     win._mapActiveColor   = 1     -- color palette index
     win._mapToolZones     = nil   -- click zones for tool buttons
@@ -4177,7 +4178,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._identityPhotoExpanded = false
     win._identityPhotoRect = nil   -- drawer-relative photo frame rect (set by IdentityTab renderer)
     win._identityScrollOff = 0
-    -- S104 gamepad: tab-header disclosure hit-zone (stamped each frame by
+    -- Gamepad: tab-header disclosure hit-zone (stamped each frame by
     -- IdentityTab.render) + grid-scroll pseudo-zone rect (stamped when the
     -- content overflows the viewport).
     win._identityFigureZone     = nil
@@ -4208,13 +4209,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local content
     local containerStrip
 
-    -- Tab strip panel — left edge, fixed 28px wide
+    -- Tab strip panel — left edge, fixed TAB_STRIP_W (36 units) wide
     local strip = ZeD_Panel:new(0, bodyY, T.px(TAB_STRIP_W), bodyH)
     strip._zedLabel = "char tab strip"   -- its own name in console.txt and safe mode's watchdog
     strip.anchorRight = false
     strip:initialise()
     win:addChild(strip)
-    -- S113b: expose for FocusManager._collectFlat panel-offset translation.
+    -- Exposed for FocusManager._collectFlat's panel-offset translation.
     win._tabStripPanel = strip
 
     strip._onPrerender = function(self) drawTabStrip(self, win) end
