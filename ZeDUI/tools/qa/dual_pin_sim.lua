@@ -28,6 +28,8 @@
 --   PADUP    Up from the top tab and the top bag land on the pins at Large text (the real SpatialNav)
 --   FULL     a drawer as wide as the window: the bag strip never rolls, the halves meet at it
 --   ROLLBOX  the roll box after the title as drawn, its room kept in the bar
+--   CAP      the snapped fold at the Deck with a 480 drawer at the half-screen cap: the swallowed width given back
+--            (444, not 160), the cap counters clean, the minimum width lowered; the World window's push settled
 --   PADY     one Y after the pad's aim brings the rolled halves back and never rolls a pinned one (the real
 --            FocusManager.lua, its Y through Focus.qaButton)
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/dual_pin_sim.lua
@@ -61,7 +63,8 @@ local PLAYER = { md = {}, aiming = false }
 function PLAYER:getModData() return self.md end
 function PLAYER:isAiming() return self.aiming end
 function getSpecificPlayer() return PLAYER end
-function getCore() return { getScreenWidth = function() return 3840 end, getScreenHeight = function() return 2160 end } end
+local SCREEN_W, SCREEN_H = 3840, 2160
+function getCore() return { getScreenWidth = function() return SCREEN_W end, getScreenHeight = function() return SCREEN_H end } end
 function getSoundManager() return { playUISound = function() end } end
 UIManager = { getMillisSinceLastRender = function() return 100 end }
 
@@ -180,20 +183,22 @@ local CW, WW
 -- the window's widths and divider every update, as the real layouts do
 local function layout(win)
     local L = win._lay
-    local effW = (win._drawerOpen and win._drawerMode == "tab") and DRAWER or 0
+    local effW = (win._drawerOpen and win._drawerMode == "tab") and (L.drawerW or DRAWER) or 0
     win._drawerEffW = effW
     -- (a drawer as wide as the window: the inventory list hidden, the bag strip still there)
     local full = win._invDrawerOpen == false and effW > 0
     local invW = (win._rolled or full) and 0 or INV
+    -- (L.fixedWidth: the window's width is staged by the test, as the cap left it; the list takes what is left)
+    if L.fixedWidth then invW = (win._rolled or full) and 0 or math.max(0, win:getWidth() - STRIP - effW - CSTRIP) end
     L.content.width = invW
     if not win.windowShaded then L.content.visible = not win._rolled and not full end
     local w = STRIP + effW + (win._rolled and 0 or (CSTRIP + invW))
-    if win:getWidth() ~= w and not win.windowShaded then
+    if win:getWidth() ~= w and not win.windowShaded and not L.fixedWidth then
         if L.side == "left" then win:setX(L.anchor - w) end   -- (the Character window grows to the left)
         win:setWidth(w)
     end
     win._anchorRightEdge = L.anchor
-    win._dividerX = (effW > 0 and invW > 0) and ((L.side == "left") and (STRIP + effW) or (CSTRIP + INV)) or nil
+    win._dividerX = (effW > 0 and invW > 0) and ((L.side == "left") and (STRIP + effW) or (CSTRIP + invW)) or nil
     L.strip.x = (L.side == "left") and 0 or (win:getWidth() - STRIP)
     L.bags.x = (L.side == "left") and (win:getWidth() - CSTRIP) or 0
     if not win.windowShaded then L.bags.visible = not win._rolled end
@@ -760,6 +765,54 @@ do
     check("ROLLBOX: the bar keeps its room from the title and the stats", w._titleReserve == 14 + 4 + 2)
     w._rolled = true; C.drawRollButton(w); w._rolled = false
     check("ROLLBOX: no box, no room kept", w._titleReserve == nil)
+end
+
+-- ===========================================================================
+-- CAP: the snapped fold at the Deck (1280x800), a 480 drawer capped at half the screen
+-- ===========================================================================
+do
+    SCREEN_W, SCREEN_H = 1280, 800
+    WW = nil
+    local w = fresh()
+    local L = w._lay
+    L.drawerW, L.fixedWidth = 480, true
+    -- staged as the real layout leaves it: 444 wide before the drawer, 924 wanted, 640 allowed (284 swallowed);
+    -- the right edge anchored at 635, so the window was pushed 5 px off the screen's left edge
+    L.anchor = 635
+    w._maxWinW = 640
+    w.minimumWidth = 640
+    w:setWidth(640); w:setX(0)
+    w._drawerCapLost, w._drawerCapPush = 284, 5
+    layout(w)
+    check("CAP: (staged) Skills open at the cap", w:getWidth() == 640 and w._drawerEffW == 480 and w._dividerX ~= nil)
+    away(); tick(22)
+    check("CAP: (staged) both halves rolled", w.windowShaded)
+    pointAt(w, 600, 10)   -- the inventory's part of the bar
+    CLOCK = CLOCK + 100; w:update()
+    check("CAP: the inventory's part: down with the drawer folded", not w.windowShaded and w._halves.foldTab == "health")
+    check("CAP: the snapped fold gives back what the cap swallowed: 444 wide, not 160", w:getWidth() == 444, w:getWidth())
+    check("CAP: ... on its right edge (635)", w:getX() + w:getWidth() == 635, w:getX())
+    check("CAP: ... both cap counters clean", (w._drawerCapLost or 0) == 0 and (w._drawerCapPush or 0) == 0, tostring(w._drawerCapLost) .. " " .. tostring(w._drawerCapPush))
+    check("CAP: ... the minimum width lowered first (a real click clamps to it)", w.minimumWidth <= 444, w.minimumWidth)
+    layout(w)
+    -- the World window settles its push through its own settleCapPush
+    local settled = 0
+    ZeD_WorldWindow.settleCapPush = function(win) settled = settled + 1; win._drawerCapPush = 0; win._drawerCapLost = 0 end
+    PLAYER.md = { ZeD_WinPinned = { worldInv = false, worldTabs = false } }
+    WW = makeWindow("world")
+    local v = WW
+    v._lay.drawerW, v._lay.fixedWidth = 480, true
+    v._maxWinW = 640
+    v:setWidth(640); v:setX(640)
+    v._drawerCapLost, v._drawerCapPush = 284, 5
+    layout(v)
+    away(); tick(22)
+    pointAt(v, 50, 10)
+    CLOCK = CLOCK + 100; v:update()
+    check("CAP: World: snapped fold 444 wide, its push settled by its own settleCapPush", v:getWidth() == 444 and settled == 1, v:getWidth() .. " " .. settled)
+    ZeD_WorldWindow.settleCapPush = nil
+    WW = nil
+    SCREEN_W, SCREEN_H = 3840, 2160
 end
 
 -- ===========================================================================

@@ -323,17 +323,40 @@ local function syncRing(win)
 end
 
 -- The drawer shut at once: no closing slide (a half folded while the window is
--- rolled up must not show folding when the window comes down). The Character
--- window keeps its right edge, the World window its left.
+-- rolled up must not show folding when the window comes down). It ends where the
+-- windows' own animated close ends: the width the half-screen cap swallowed when
+-- the drawer opened (_drawerCapLost, the usual case on the Deck and at 720p) is
+-- given back, within the cap, and both cap counters start clean. The minimum
+-- width comes down first (the engine clamps a real click's resize to it). The
+-- Character window keeps its right edge (a push off the screen's left edge
+-- remembered, as its close does); the World window keeps its left and settles
+-- its push (ZeD_WorldWindow.settleCapPush, as its snaps to Loot do).
 local function snapShut(win)
     local effW = math.floor(win._drawerEffW or 0)
     if effW <= 0 then return end
-    local newW = win:getWidth() - effW
+    local screenW = getCore():getScreenWidth()
+    local maxW = win._maxWinW or math.floor(screenW * 0.5)
+    local back = math.min(win._drawerCapLost or 0, effW)
+    local newW = math.min(win:getWidth() - effW + back, maxW)
     win._drawerEffW, win._prevEffW = 0, 0
+    win._drawerCapLost = 0
+    win.minimumWidth = math.min(win.minimumWidth or newW, newW)
     win:setWidth(newW)
-    if win._halves.side == "left" and win._anchorRightEdge then
-        win:setX(win._anchorRightEdge - newW)
-        win._lastSetX = win:getX()
+    if win._halves.side == "left" then
+        if win._anchorRightEdge then
+            local x = win._anchorRightEdge - newW
+            local pushed = 0
+            if x < 0 then pushed = -x; x = 0 end
+            win._drawerCapPush = pushed
+            win:setX(x)
+            win._lastSetX = x
+        else
+            win._drawerCapPush = 0
+        end
+    elseif ZeD_WorldWindow and ZeD_WorldWindow.settleCapPush then
+        ZeD_WorldWindow.settleCapPush(win)
+    else
+        win._drawerCapPush = 0
     end
 end
 

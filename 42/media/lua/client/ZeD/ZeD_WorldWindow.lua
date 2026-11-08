@@ -2017,6 +2017,8 @@ local function settleCapPush(win)
     win._drawerCapPush = 0
     win._drawerCapLost = 0
 end
+-- (also the halves' snapped fold, WindowHalves)
+ZeD_WorldWindow.settleCapPush = settleCapPush
 
 -- Scroll dispatch per tab — the scrollbar state the open tab uses, nil for none
 local function getWorldActiveScroll(win)
