@@ -1363,9 +1363,10 @@ function ZeD_GuideWindow:prerender()
             end
             A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false)
             for _, n in ipairs(it.notes) do
-                local ny = n.y + oy
-                if n.bullet then self:drawRect(n.x, ny + math.floor(fh(T.fontF2) / 2) - px(2), px(4), px(4), tc.a or 1, tc.r, tc.g, tc.b) end
-                self:drawText(n.text, n.x + px(12), ny, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+                local ny = (n.x and n.y) and (n.y + oy) or nil
+                -- a note the layout never placed (no x or y) is skipped, never added
+                if ny and n.bullet then self:drawRect(n.x, ny + math.floor(fh(T.fontF2) / 2) - px(2), px(4), px(4), tc.a or 1, tc.r, tc.g, tc.b) end
+                if ny then self:drawText(n.text, n.x + px(12), ny, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2) end
             end
         end
     end

@@ -805,6 +805,41 @@ frame()
 check("switch off again: ZeD's back", DC.isOpen() and JC.x <= PARKED)
 DC.close()
 
+-- Nov 8 round 1 (3a): a runtime error typed into the console comes as bare stack frames after the [USER] line, with no
+-- ERROR or Exception header; a frame outside a block starts one, the frames after it stay in it
+do
+    local text = "[USER] getPl.x.y()\nLua(Vanilla).console(console:1)\nse.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1689)\n"
+        .. "java.lang.RuntimeException: boom\nLOG  : General  f:1> fine\nsay hi\n"
+    local pl, n = DC.parse(text)
+    check("bare frames: the Lua( line starts an error", pl[2].err == true and pl[2].b == 2)
+    check("bare frames: the se.krka line stays in the block", pl[3].err == true and pl[3].b == 2)
+    check("bare frames: the java. line stays in the block", pl[4].err == true and pl[4].b == 2)
+    check("bare frames: one error counted", n == 1, n)
+    check("bare frames: the [USER] line and the lines after are plain", not pl[1].err and not pl[5].err and not pl[6].err)
+    local solo, n2 = DC.parse("se.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1689)\n")
+    check("bare frames: a se.krka line alone starts one", solo[1].err == true and n2 == 1)
+    local solo2, n3 = DC.parse("java.lang.RuntimeException: Object tried to call nil\n")
+    check("bare frames: a java. line alone starts one", solo2[1].err == true and n3 == 1)
+    local fine, n4 = DC.parse("LOG  : General  f:1> hello\n[USER] x\n")
+    check("bare frames: plain lines are no error", n4 == 0)
+end
+-- (3b) a line mirrored into the game's command line has its suggestion that same call: the game's update() ran
+do
+    JC.visible = true
+    JC.sug.visible = false
+    JC.sug:SetText("")
+    DC._mirrored = nil
+    local before = JC.updates
+    DC.mirror("getPl")
+    check("mirror: the game's line holds the text", JC.cmd.text == "getPl")
+    check("mirror: the game's update ran for it", JC.updates == before + 1, JC.updates - before)
+    check("mirror: the suggestion is there at once", DC.suggestion() == "IsoPlayer getPlayer", DC.suggestion())
+    DC.mirror("getPl")
+    check("mirror: the same text again runs nothing", JC.updates == before + 1)
+    DC.mirror("")
+    check("mirror: an empty line does not run update", JC.updates == before + 1)
+end
+
 check("the game's console never on the screen while ZeD's was open", onScreenWhileOpen == 0, onScreenWhileOpen)
 check("nothing logged", #LOGGED == 0, LOGGED[1])
 print(string.format("debug_console_sim: %d checks, %d failed", checks, failed))

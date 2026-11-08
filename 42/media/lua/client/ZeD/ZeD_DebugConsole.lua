@@ -172,6 +172,9 @@ function DC.mirror(text)
     if not (P.ok and P.cmd) or DC._mirrored == text then return end
     DC._mirrored = text
     pcall(function() P.cmd:SetText(text) end)
+    -- (the game fills its suggestion box in its own update(), when the line's length has changed; it is run now, so the
+    -- suggestion is there for Tab and for the help line in this same frame, never a frame late or not at all)
+    if P.jc and text ~= "" then pcall(function() P.jc:update() end) end
 end
 
 -- may this player run a line? (the game's own test on Enter: on a server, the role's capability or the co-op host)
@@ -254,6 +257,8 @@ local function startsError(s)
     if s:find("^ERROR") or s:find("^SEVERE") or s:find("^%s*STACK TRACE") then return true end
     if s:find("console[\"%]]*:%d+:") then return true end
     if s:find("Exception") and not s:find("^LOG") then return true end
+    -- a runtime error typed into the console comes as bare stack frames after the [USER] line, with no header
+    if s:find("^Lua%(") or s:find("^se%.krka") or s:find("^java%.") then return true end
     return false
 end
 -- a line that goes on with the error above it (its trace)
@@ -261,7 +266,7 @@ local function continuesError(s)
     if s == "" then return false end
     if s:find("^%s") then return true end
     if s:find("^STACK TRACE") or s:find("^%-%-%-%-") or s:find("%-%-%-%-%-%-%-%-%-%-$") then return true end
-    if s:find("^Callframe") or s:find("^function: ") or s:find("^Caused by") or s:find("^java%.") or s:find("^se%.krka") then return true end
+    if s:find("^Lua%(") or s:find("^Callframe") or s:find("^function: ") or s:find("^Caused by") or s:find("^java%.") or s:find("^se%.krka") then return true end
     return false
 end
 
