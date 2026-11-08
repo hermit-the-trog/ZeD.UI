@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/everyday_leftovers_sim.lua  (Nov 7 2026, Build): the everyday vanilla windows of
--- ZeDUI/VANILLA_WINDOWS_20261107.md section B, with no game running. The real ZeD files run on Lua 5.1 with a
+-- docs/reference/VANILLA_WINDOWS_20261107.md section B, with no game running. The real ZeD files run on Lua 5.1 with a
 -- forgiving stand-in for everything else (a global or field nobody set is a stand-in that takes any call), and
 -- small fakes of the game's objects each section needs.
 --   B6  HEATER   ZeD_Dashboard.heater turns the heater on (the key in) or off, keeps the temperature, says the game's

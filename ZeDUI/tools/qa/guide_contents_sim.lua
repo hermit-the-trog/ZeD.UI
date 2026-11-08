@@ -561,7 +561,7 @@ local function drawCheck(bk, u, m)
 end
 
 -- ---------------------------------------------------------------------------
--- THE COPYRIGHT PAGE (punch list 103, ZeDUI/HANDOFF_design_guide_copyright_20261107.md): page 1, drawn on a
+-- THE COPYRIGHT PAGE (punch list 103, docs/handoffs/HANDOFF_design_guide_copyright_20261107.md): page 1, drawn on a
 -- recording book. Its block in the body face at U.CAP (times the text size), every line inside the text block's
 -- sides (measured with the face's own widths), the block bottom-aligned to the text block's foot (its last line's
 -- descender, the face's deepest of g, j, p, q and y from its .fnt, never past the foot; the book's own quarter-size

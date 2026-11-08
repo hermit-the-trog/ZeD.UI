@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/zedqa_rtv.lua  (Oct 30 2026; the TV, house and pad parts added after the QA run at 1c9d882)
 -- The ordinary radios', the CD player's and the TVs' faces in the radio tab (handoff
--- ZeDUI/HANDOFF_radio_tv_laundry_20261030.md, approved Oct 30 2026; RtvFace.lua). With batteries in:
+-- docs/handoffs/HANDOFF_radio_tv_laundry_20261030.md, approved Oct 30 2026; RtvFace.lua). With batteries in:
 --   1. each portable in the Character window's hand (the ValuTech and Premium radios, the hand-built
 --      radio, the CD player): its own face by the item, at the width that fills the half card (the
 --      hand-built radio has no 154 face: the full card at 0.75 and 1.5), centred with its margins, no

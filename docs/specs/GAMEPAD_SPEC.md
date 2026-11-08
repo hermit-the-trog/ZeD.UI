@@ -1,7 +1,7 @@
 # GAMEPAD_SPEC — flat free-nav
 
 **Status:** LOCKED (S113, April 26 2026 — design director). Reconfirmed in words Oct 11 2026: "D-pad is the most accurate way to navigate to items. A/B are left and right mouse. X/Y are E/F and Tab/I. Chords are excellent. Predictable and logical."
-**Supersedes:** the ring model (S97–S112; see `archive/GAMEPAD_SPEC.md`) and the stack model before it.
+**Supersedes:** the ring model (S97–S112; see `docs/archive/GAMEPAD_SPEC_20260416.md`) and the stack model before it.
 **Source of truth in code:** `Input/ActionMap.lua` (bindings), `Input/FocusManager.lua` (cone-nav, tap/hold timers, F9 overlay), `Input/BumperChord.lua` (zoom chord when no window is focused), `Input/InputModeDetector.lua`.
 **Principle:** the gamepad is a mouse with a thumb. Every focusable element has the same callbacks for both input modes; focus paints exactly like hover; there is no gamepad-only state.
 

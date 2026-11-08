@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_plates_336.lua  (Oct 29 2026)
--- The machine plates at 336 px and their 200 px narrow faces (ZeDUI/HANDOFF_plates_336_20261029.md), in game.
+-- The machine plates at 336 px and their 200 px narrow faces (docs/handoffs/HANDOFF_plates_336_20261029.md), in game.
 -- At the run's UI scale (1.75 at 4K: the main face at 2x inside the 480 card) and at a forced 0.5 (the narrow
 -- face), after a layout reset, for one oven (modern range), one microwave (white), the chrome microwave, one
 -- generator and one grill. For each: which face is drawn and at what zoom, that it sits inside its card, then

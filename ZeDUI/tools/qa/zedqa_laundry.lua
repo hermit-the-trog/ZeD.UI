@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_laundry.lua  (Oct 30 2026; rewritten after the QA run at 1c9d882)
--- The laundry machines' face cards (ZeDUI/HANDOFF_radio_tv_laundry_20261030.md; ObjectCardLaundry.lua), in game.
+-- The laundry machines' face cards (docs/handoffs/HANDOFF_radio_tv_laundry_20261030.md; ObjectCardLaundry.lua), in game.
 -- A washer, a dryer and a washer-dryer are set down on three free squares ONE SQUARE from the character, inside a room
 -- (grid power and the water supply need a room; grid power on for the run, as zedqa_appliances.lua does; the Fossoil
 -- at West Point when no room is in reach). The World window lists only what is within a square, so each machine is

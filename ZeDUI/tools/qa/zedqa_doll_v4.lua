@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/zedqa_doll_v4.lua  (Oct 29 2026)
 -- In game on the ZeD-QA save: the Equip tab's doll with its bands of small slots (EquipDoll.lua, handoff
--- ZeDUI/HANDOFF_equip_doll_v4_loadouts_20261029.md part A). Dresses the character in things from every small
+-- docs/handoffs/HANDOFF_equip_doll_v4_loadouts_20261029.md part A). Dresses the character in things from every small
 -- slot's place (a belly button ring, an air tank, a tail, sport shoulder pads and the pair worn on top,
 -- rings, a watch, knee / elbow / shin pads, a fanny pack, a shoulder holster, necklaces ...) and checks:
 --   * the 38 small slots exist, with their words, and no slot (big or small) overlaps another

@@ -1,4 +1,4 @@
-# Oct 30 2026: the Workshop gallery retake on 0.2.0-t14 (ZeDUI/HANDOFF_gallery_book_20261030.md). Every in-game
+# Oct 30 2026: the Workshop gallery retake on 0.2.0-t14 (docs/handoffs/HANDOFF_gallery_book_20261030.md). Every in-game
 # picture the 56 slides use, plus slides 57-60, in the default look (Dark, Orange) but the theme slides, with no debug
 # artifacts. zedqa_run.ps1 -Manifest gallery_t14_manifest.txt -Mode fullscreen4k   (QA only; about 45-55 min at 4K)
 # Then the main-menu pictures: gallery_menus_run.ps1 (desk, Options, Mods, profiles, uploader) and
