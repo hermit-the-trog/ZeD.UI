@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "XP x%1",
     "UI_ZeD_CSS_TagBook": "XP x%1, livro x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 ordena a ordem de carga ao Aceitar.",
-    "UI_ZeD_BME_NotStarted": "Não iniciado: %1 encontrou um problema na lista de mods."
+    "UI_ZeD_BME_NotStarted": "Não iniciado: %1 encontrou um problema na lista de mods.",
+    "UI_ZeD_Card_MakesTitle": "Serve para fazer",
+    "UI_ZeD_Card_MakesHelp": "Abre a receita na aba Fabricar ou Construir.",
+    "UI_ZeD_Card_MakesMore": "mais %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Abre a aba Fabricar com este item na busca.",
+    "UI_ZeD_Skills_UnlockHead": "Receitas que precisam de cada nível",
+    "UI_ZeD_Skills_UnlockLevel": "Nível %1",
+    "UI_ZeD_Skills_UnlockMore": "e mais %1"
 }

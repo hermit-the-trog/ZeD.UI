@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "Опыт x%1",
     "UI_ZeD_CSS_TagBook": "Опыт x%1, книга x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 сортирует порядок загрузки при нажатии «Принять».",
-    "UI_ZeD_BME_NotStarted": "Не запущено: %1 нашёл проблему в списке модов."
+    "UI_ZeD_BME_NotStarted": "Не запущено: %1 нашёл проблему в списке модов.",
+    "UI_ZeD_Card_MakesTitle": "Нужно для",
+    "UI_ZeD_Card_MakesHelp": "Открывает рецепт на вкладке «Создание» или «Стройка».",
+    "UI_ZeD_Card_MakesMore": "ещё %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Открывает вкладку «Создание» с этим предметом в поиске.",
+    "UI_ZeD_Skills_UnlockHead": "Рецепты, которым нужен каждый уровень",
+    "UI_ZeD_Skills_UnlockLevel": "Уровень %1",
+    "UI_ZeD_Skills_UnlockMore": "и ещё %1"
 }

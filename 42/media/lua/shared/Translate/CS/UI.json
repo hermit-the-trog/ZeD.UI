@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "XP x%1",
     "UI_ZeD_CSS_TagBook": "XP x%1, kniha x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 při Přijmout seřadí pořadí načítání.",
-    "UI_ZeD_BME_NotStarted": "Nespuštěno: %1 našel problém v seznamu modů."
+    "UI_ZeD_BME_NotStarted": "Nespuštěno: %1 našel problém v seznamu modů.",
+    "UI_ZeD_Card_MakesTitle": "Použije se k výrobě",
+    "UI_ZeD_Card_MakesHelp": "Otevře recept na kartě Výroba nebo Stavba.",
+    "UI_ZeD_Card_MakesMore": "%1 dalších",
+    "UI_ZeD_Card_MakesMoreHelp": "Otevře kartu Výroba s tímto předmětem ve vyhledávání.",
+    "UI_ZeD_Skills_UnlockHead": "Recepty, které vyžadují danou úroveň",
+    "UI_ZeD_Skills_UnlockLevel": "Úroveň %1",
+    "UI_ZeD_Skills_UnlockMore": "a %1 dalších"
 }

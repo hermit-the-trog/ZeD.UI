@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "XP x%1",
     "UI_ZeD_CSS_TagBook": "XP x%1, buku x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 mengurutkan urutan muat saat Terima.",
-    "UI_ZeD_BME_NotStarted": "Tidak dimulai: %1 menemukan masalah pada daftar mod."
+    "UI_ZeD_BME_NotStarted": "Tidak dimulai: %1 menemukan masalah pada daftar mod.",
+    "UI_ZeD_Card_MakesTitle": "Dipakai untuk membuat",
+    "UI_ZeD_Card_MakesHelp": "Membuka resep di tab Buat atau Bangun.",
+    "UI_ZeD_Card_MakesMore": "%1 lagi",
+    "UI_ZeD_Card_MakesMoreHelp": "Membuka tab Buat dengan barang ini di pencarian.",
+    "UI_ZeD_Skills_UnlockHead": "Resep yang butuh tiap level",
+    "UI_ZeD_Skills_UnlockLevel": "Level %1",
+    "UI_ZeD_Skills_UnlockMore": "dan %1 lagi"
 }

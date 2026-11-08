@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "XP x%1",
     "UI_ZeD_CSS_TagBook": "XP x%1, kirja x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 lajittelee latausjärjestyksen Hyväksy-painalluksella.",
-    "UI_ZeD_BME_NotStarted": "Ei aloitettu: %1 löysi ongelman modiluettelosta."
+    "UI_ZeD_BME_NotStarted": "Ei aloitettu: %1 löysi ongelman modiluettelosta.",
+    "UI_ZeD_Card_MakesTitle": "Käytetään valmistamaan",
+    "UI_ZeD_Card_MakesHelp": "Avaa reseptin Valmista- tai Rakenna-välilehdellä.",
+    "UI_ZeD_Card_MakesMore": "%1 muuta",
+    "UI_ZeD_Card_MakesMoreHelp": "Avaa Valmista-välilehden tämä esine haussa.",
+    "UI_ZeD_Skills_UnlockHead": "Reseptit, jotka vaativat kunkin tason",
+    "UI_ZeD_Skills_UnlockLevel": "Taso %1",
+    "UI_ZeD_Skills_UnlockMore": "ja %1 muuta"
 }

@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "XP x%1",
     "UI_ZeD_CSS_TagBook": "XP x%1, kitap x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1, Kabul Et'te yükleme sırasını sıralar.",
-    "UI_ZeD_BME_NotStarted": "Başlatılmadı: %1 mod listesinde bir sorun buldu."
+    "UI_ZeD_BME_NotStarted": "Başlatılmadı: %1 mod listesinde bir sorun buldu.",
+    "UI_ZeD_Card_MakesTitle": "Şunu yapmakta kullanılır",
+    "UI_ZeD_Card_MakesHelp": "Tarifi Üretim veya İnşa sekmesinde açar.",
+    "UI_ZeD_Card_MakesMore": "%1 tane daha",
+    "UI_ZeD_Card_MakesMoreHelp": "Üretim sekmesini aramada bu eşyayla açar.",
+    "UI_ZeD_Skills_UnlockHead": "Her seviyenin gerektirdiği tarifler",
+    "UI_ZeD_Skills_UnlockLevel": "Seviye %1",
+    "UI_ZeD_Skills_UnlockMore": "ve %1 tane daha"
 }

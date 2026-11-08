@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "PD x%1",
     "UI_ZeD_CSS_TagBook": "PD x%1, książka x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1 sortuje kolejność wczytywania po Akceptuj.",
-    "UI_ZeD_BME_NotStarted": "Nie uruchomiono: %1 znalazł problem na liście modów."
+    "UI_ZeD_BME_NotStarted": "Nie uruchomiono: %1 znalazł problem na liście modów.",
+    "UI_ZeD_Card_MakesTitle": "Służy do zrobienia",
+    "UI_ZeD_Card_MakesHelp": "Otwiera przepis w karcie Wytwarzanie lub Budowa.",
+    "UI_ZeD_Card_MakesMore": "jeszcze %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Otwiera kartę Wytwarzanie z tym przedmiotem w wyszukiwaniu.",
+    "UI_ZeD_Skills_UnlockHead": "Przepisy wymagające każdego poziomu",
+    "UI_ZeD_Skills_UnlockLevel": "Poziom %1",
+    "UI_ZeD_Skills_UnlockMore": "i jeszcze %1"
 }

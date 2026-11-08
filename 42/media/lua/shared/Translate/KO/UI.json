@@ -5758,5 +5758,12 @@
     "UI_ZeD_CSS_Tag": "XP x%1",
     "UI_ZeD_CSS_TagBook": "XP x%1, 책 x%2",
     "UI_ZeD_BME_SortsOnAccept": "%1이(가) 수락할 때 로드 순서를 정렬합니다.",
-    "UI_ZeD_BME_NotStarted": "시작되지 않음: %1이(가) 모드 목록에서 문제를 찾았습니다."
+    "UI_ZeD_BME_NotStarted": "시작되지 않음: %1이(가) 모드 목록에서 문제를 찾았습니다.",
+    "UI_ZeD_Card_MakesTitle": "이것으로 만들 수 있는 것",
+    "UI_ZeD_Card_MakesHelp": "제작 또는 건설 탭에서 레시피를 엽니다.",
+    "UI_ZeD_Card_MakesMore": "%1개 더",
+    "UI_ZeD_Card_MakesMoreHelp": "이 아이템으로 검색한 제작 탭을 엽니다.",
+    "UI_ZeD_Skills_UnlockHead": "레벨별로 필요한 레시피",
+    "UI_ZeD_Skills_UnlockLevel": "레벨 %1",
+    "UI_ZeD_Skills_UnlockMore": "외 %1개"
 }
