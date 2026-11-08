@@ -429,7 +429,7 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
 
     local CC = ZeD.CraftingCore
 
-    -- Throttled: every 500 ms (was 30 frames), at once when the cache was dropped
+    -- Throttled: every 500 ms, at once when the cache was dropped
     if not CC.due(win, "_jrecipeAt", 500, not win._jrecipeCache) then
         return win._jrecipeCache
     end
@@ -595,7 +595,7 @@ local function renderJournal(panel, win, x, y, w, h)
         end
     end
 
-    -- Throttled data refresh: every 250 ms (was 15 frames), at once when the cache was dropped
+    -- Throttled data refresh: every 250 ms, at once when the cache was dropped
     if ZeD.CraftingCore.due(win, "_journalAt", 250, not win._journalCache) then
         win._journalCache = ZeD.JournalTab.gatherData(win._playerObj)
     end
@@ -1025,7 +1025,7 @@ local function renderRecipes(panel, win, x, y, w, h)
     local data = ZeD.JournalTab.gatherRecipeData(win._playerObj, win)
 
     -- Throttled background scan — Journal is read-only, no need for per-frame updates.
-    -- Scan once on open, then every 5 s (was 300 frames).
+    -- Scan once on open, then every 5 s.
     if CC.due(win, "_jrecipeScanAt", 5000) then
         CC.backgroundIngredientScan(data, win, "jrecipe")
     end
