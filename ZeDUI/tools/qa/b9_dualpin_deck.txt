@@ -1,0 +1,3 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_dual_pin.lua | dpn | timeout=420
