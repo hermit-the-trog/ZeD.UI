@@ -2175,6 +2175,22 @@ local function renderRanchZone(panel, win, x, y, w, h)
         focus = focusFor(win, "animals:sort"), help = ZeD.tr("UI_ZeD_Animals_HelpSort") })
     win._animalsSortZone = { x = sbx, y = sby, w = sbw, h = sbh }
 
+    -- Help (Nov 7 2026): the game's first-time zone note on request, in its own words (WorldRoutes.zoneHelp); the
+    -- help line says its opening sentence. The note never comes up on its own under ZeD's window.
+    win._animalsZoneHelpZone = nil
+    local WR = ZeD.WorldRoutes
+    if WR and WR.zoneHelp then
+        local hx = sortX - T.px(6) - hdrH
+        local hHover = A.mouseIn(panel, hx, secY, hdrH, hdrH)
+        local hOn = isOn(win, "animals:zonehelp")
+        local lead = WR.zoneNoteLead and WR.zoneNoteLead() or nil
+        local hzx, hzy, hzw, hzh = M.drawIconButton(panel, hx, secY, hdrH, "help", {
+            hover = hHover, win = win, focus = focusFor(win, "animals:zonehelp"),
+            hint = ZeD.tr("UI_ZeD_Wheel_Help"), id = "animals:zonehelp" })
+        if (hHover or hOn) and lead and ZeD.Help and ZeD.Help.set then ZeD.Help.set(panel, lead) end
+        win._animalsZoneHelpZone = { x = hzx, y = hzy, w = hzw, h = hzh }
+    end
+
     -- ── SCROLLABLE ROSTER ──
     local rosterTop = secY + hdrH
     local rosterH = h - (rosterTop - y)
@@ -2685,6 +2701,13 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
         return
     end
 
+    -- (Nov 7 2026) an animal outside the ranch that the game's Info opened keeps the game's reach (WorldRoutes.lua)
+    local WR = ZeD.WorldRoutes
+    if WR and WR.animalLeft and WR.animalLeft(win, animal) then
+        navigateBack(win)
+        return
+    end
+
     local pad = M.getTabPad()
     local padTop = M.getTabPadTop()
     local scrollW = T.sp.scrollbarW
@@ -3117,6 +3140,7 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     win._animalsGenomeZones, win._animalsGenomeBtns = nil, nil
     win._animalsButcherZones = nil   -- the Butcher roster rebuilds it when drawn
     win._animalsRosterZones, win._animalsSortZone, win._animalsZoneNameZone = nil, nil, nil
+    win._animalsZoneHelpZone = nil
     win._animalsZoneCardZones, win._animalsSectionZones = nil, nil
     win._animalsAlertZones, win._animalsOvClip = nil, nil   -- (not _animalsOvRows: the follow reads last frame's)
     if win._animalsScroll then win._animalsScroll.visible = false end   -- (the Ranch page's bar: it shows it)
@@ -3320,6 +3344,12 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         return true
     end
 
+    -- Help (zone view): the game's zone note, asked for
+    if hitZone(win._animalsZoneHelpZone, x, y) then
+        AT.zoneHelp(win)
+        return true
+    end
+
     -- Section header collapse/expand clicks (overview). The page scrolls: rows out of its view take no click
     local ovClip = win._animalsOvClip
     local inOv = not ovClip or (y >= ovClip.y and y < ovClip.y + ovClip.h)
@@ -3431,6 +3461,18 @@ end
 -- ============================================================================
 
 AT.navigate         = navigate
+-- (Nov 7 2026) the zone view's help button: the game's first-time zone note, for the window's player
+function AT.zoneHelp(win)
+    local WR = ZeD.WorldRoutes
+    if not (WR and WR.zoneHelp) then return false end
+    local pn = 0
+    local p = win and win._playerObj
+    if p then
+        local ok, n = pcall(function() return p:getPlayerNum() end)
+        if ok and n then pn = n end
+    end
+    return WR.zoneHelp(pn)
+end
 AT.navigateBack     = navigateBack
 -- HOOK_MAP 20-22: the cards link back here (a bird's INFO), and the World
 -- window's gamepad builder opens and edits through these.
