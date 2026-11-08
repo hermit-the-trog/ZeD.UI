@@ -1265,9 +1265,9 @@ local function _worldMCSlotStale(win, content, slot)
     return (not cs) or _worldMCColumnDirty(win, slot, cs)
 end
 
--- S108 v2 — Dynamic per-column MC ring zone restructuring. Each MC selection
+-- Dynamic per-column MC ring zone restructuring. Each MC selection
 -- becomes its own ring zone (worldMC1..worldMCN); bumpers cycle them as
--- standard ring zones. Removes the old single `worldLootMCColumns` zone.
+-- standard ring zones.
 -- Insertion point: between worldContainerStrip and worldMainInv (matches the
 -- visual layout where MC cols sit left of mainInv in the content panel).
 local function _rebuildWorldMCRingZones(win)
@@ -1345,16 +1345,16 @@ local function _rebuildWorldMCRingZones(win)
     end
 end
 
--- S98 — Sync the ring zones to the new active tab + MC state. Called from
--- _switchWorldTabForNav and from mcToggleWorldContainer. Centralizes the
+-- Sync the ring zones to the new active tab + MC state. Called wherever the
+-- tab or the column set changes. Centralizes the
 -- mutations so the various entry points don't drift.
 _syncWorldRingZones = function(win, content)
     if not (ZeD and ZeD.Input and ZeD.Input.Focus and win and win._focusRing) then return end
     local Focus  = ZeD.Input.Focus
     local tabId  = win._activeTab
 
-    -- S108 v2 QA: capture currently focused containerIdx BEFORE rebuild.
-    -- Container onFocus is a no-op (Char S106 parity), so _activeContainer
+    -- Capture the currently focused containerIdx BEFORE the rebuild.
+    -- Container onFocus is a no-op, so _activeContainer
     -- doesn't track D-pad navigation — using it as the seed target makes
     -- focus jump unexpectedly after mcToggle (containerStrip rebuilds and
     -- focuses on _activeContainer = floor instead of the user's actual
@@ -1369,10 +1369,10 @@ _syncWorldRingZones = function(win, content)
     end
 
     local newContentEls   = _buildWorldPanelFocusables(win, content, tabId) or {}
-    -- Containers reachable on ALL tabs per user spec (Apr 16). MC is Loot-only.
+    -- Containers stay reachable on ALL tabs; the column toggle is Loot-only.
     local newContainerEls = _buildWorldLootFocusables(win) or {}
 
-    -- Oct 30 2026: Forage lands on its main action, Search in the band (punch list 21)
+    -- Forage lands on its main action, the band's Search
     local contentIdx = 1
     if tabId == "forage" then
         for i, el in ipairs(newContentEls) do
@@ -1381,7 +1381,7 @@ _syncWorldRingZones = function(win, content)
     end
     Focus.setRingZoneElements(win, "worldTabContent",     newContentEls, contentIdx)
     Focus.setZoneFocusable   (win, "worldTabContent",     #newContentEls > 0)
-    -- S108: containerEls are now in [floor, non-floor display-order] layout
+    -- containerEls are in [floor, non-floor display-order] layout
     -- (not container-index order), so seed idx by scanning for containerIdx
     -- match. Prefer focusedCidx (preserve current focus), fall back to
     -- _activeContainer for first-time/cold seeds.
@@ -1395,8 +1395,8 @@ _syncWorldRingZones = function(win, content)
     Focus.setRingZoneElements(win, "worldContainerStrip", newContainerEls, contIdx)
     Focus.setZoneFocusable   (win, "worldContainerStrip", #newContainerEls > 0)
 
-    -- S108 v2: MC ring zones rebuilt based on _mcSelected count (one zone per
-    -- MC selection). Old single worldLootMCColumns zone is gone.
+    -- MC ring zones rebuilt from the _mcSelected count (one zone per
+    -- open column).
     _rebuildWorldMCRingZones(win)
 
     -- S99: Tab change always leaves "item" mode (_switchWorldTabForNav flips

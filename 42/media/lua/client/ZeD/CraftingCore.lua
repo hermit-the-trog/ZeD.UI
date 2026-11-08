@@ -1198,8 +1198,8 @@ function CC.updateSplitAnimation(state)
 end
 
 -- ============================================================================
--- RENDERING — Header strip (Oct 30 2026, punch list 21: one row, the standard
--- height). Craft: the STATION and CATEGORY selects and the search side by side;
+-- RENDERING — Header strip: one row, the standard height.
+-- Craft: the STATION and CATEGORY selects and the search side by side;
 -- Build: CATEGORY and the search. The read-only list (the Journal's Recipes page)
 -- draws no header of its own: the Journal's header holds its search, the band
 -- its Category select.
@@ -1262,8 +1262,8 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     if ST then
         -- Crafting: STATION, CATEGORY and the search in thirds; a select is never narrower
         -- than its value and its arrow ("-- All --" v): the search gives it the room, down
-        -- to half its own third (Oct 31 2026, break-it B2: at 1280x720, UI scale 2.0, Large
-        -- text the Category read "-- A...")
+        -- to half its own third (at 1280x720, UI scale 2.0, Large text an even split read
+        -- the Category as "-- A...")
         local selW = math.floor((w - pad * 2 - gap * 2) / 3)
         local player = win and win._playerObj
         local cur = player and ST.current(player) or nil
@@ -1309,8 +1309,8 @@ end
 -- ============================================================================
 -- RENDERING — Alternatives strip (alt mode, 20u): the alternatives list's own
 -- strip (back, the owned count, Owned only), a fold of the card. The sort strip
--- that sat here went to the band's Sort and Show (Oct 30 2026); out of alt mode
--- there is nothing here.
+-- that sat here went to the band's Sort and Show; out of alt mode there is
+-- nothing here.
 -- ============================================================================
 
 local EMPTY_ALT = { totalOwned = 0, totalAll = 0 }
@@ -1353,7 +1353,7 @@ function CC.renderStrip(panel, x, y, w, state, config)
 end
 
 -- ============================================================================
--- RENDERING — The band (Oct 30 2026, punch list 21): at the card's foot, the full
+-- RENDERING — The band: at the card's foot, the full
 -- card's width (the split pane's list and card both sit above it), just above the
 -- window's help line. Left: Sort and Show as System 7 pop-up menus (the read-only
 -- list: its Category select first). Right: the amount (- 1 +) and Craft / Build,
@@ -1395,14 +1395,14 @@ local function popWidths(state, config, sortModes, showModes)
         hw = math.max(hw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label)))
         hc = math.max(hc, M.popupMenuW(m.label, true))
     end
-    -- (sortC / showC: the longest choice alone in a tight box, the band short of room, punch list 28)
+    -- (sortC / showC: the longest choice alone in a tight box, for a band short of room)
     state._popW = { scale = T.scale, font = T.fontF1, lang = lang, ro = ro, sort = sw, show = hw, sortC = sc, showC = hc }
     return sw, hw, sc, hc
 end
 
 -- One of the band's pop-up boxes: its zone, and the open list's geometry (it opens
 -- upward from the box: the band is at the card's foot). frozen: greyed, no press.
--- (short: the choice alone, shown when "Sort: Craftable" does not fit, break-it B2)
+-- (short: the choice alone, shown when "Sort: Craftable" does not fit)
 local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, focused, mx, my, short, tight)
     local P = POP[kind]
     local hov = (not frozen) and mx >= x and mx < x + w and my >= y and my < y + h
@@ -1423,7 +1423,7 @@ end
 -- The amount and Craft / Build at the band's right; returns the x the left part ends at,
 -- and true when the band is short of room. leftNeed: the room the left part's boxes need
 -- from x at the usual spacing; short of it, the amount closes up (its gap to Craft / Build,
--- its readout only as wide as its digits) (Oct 31 2026, break-it B2).
+-- its readout only as wide as its digits).
 local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, leftNeed)
     local T = ZeD.T
     local zones = state.zones

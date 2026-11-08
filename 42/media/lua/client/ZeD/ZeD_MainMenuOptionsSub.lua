@@ -2,7 +2,7 @@
 -- ============================================================================
 -- TWO OPTIONS SUB-PAGES. Client-side; extends the ZeD_MMOptions organism
 -- (ZeD_MainMenuOptions.lua) with two pages that replace whole vanilla screens,
--- part of ZeD's rule that no vanilla window ever shows.
+-- part of replacing every vanilla window.
 --
 -- ZeD's Options window (ZeD_MainMenuOptions.lua, on the monitor and over the
 -- world in game) handed two of vanilla's screens over whole. They are pages of

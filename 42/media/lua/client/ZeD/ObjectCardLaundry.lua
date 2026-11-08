@@ -238,8 +238,8 @@ local function clockState(t, d, st)
     st.drumF = f
 end
 
--- The water meter is a powered display; the water in the drum is not (director, Oct 30 2026: "the meter goes dark
--- without power, the water in the drum still shows"). Both are `bars` parts reading `water` in the export, and the
+-- The water meter is a powered display; the water in the drum is not: the meter goes dark
+-- without power, the water in the drum still shows. Both are `bars` parts reading `water` in the export, and the
 -- template lights bars only while st.power, so once per session each laundry face's meter (the bars part whose
 -- bars are single rects; the drum's are stacks of lines) is pointed at `waterMeter`, which reads 0 without power.
 local metersMarked = false
@@ -343,7 +343,7 @@ local function drawFace(card, x, y, w, t)
         or ZeD.tr("UI_ZeD_Laundry_WaterL", string.format("%.1f", d.fluid))
     local inside = (d.n == 0) and ZeD.tr("IGUI_None") or ZeD.tr(d.n == 1 and "UI_ZeD_Laundry_ItemsOne" or "UI_ZeD_Laundry_ItemsMany", d.n)
     if d.piped then water = ZeD.tr("UI_ZeD_Laundry_WaterPiped") end
-    -- (a row each: the readings are too long to share a row; punch list 24. None for a dryer: punch list 77)
+    -- (a row each: the readings are too long to share a row. None for a dryer: it takes no water)
     if not d.dryerOnly then h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Water"), water) end
     h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Inside"), inside)
     return h
@@ -399,7 +399,7 @@ local function drawPlain(card, x, y, w, t)
             { fid = "ldy:mode_dry", word = ZeD.tr("UI_ZeD_PlainCard_Dry"), sel = not d.washMode, run = dr, help = dh, dis = not d.canMode },
         } } })
     end
-    -- (no water row for a dryer: punch list 77; the pipes say so: "On the water pipes")
+    -- (no water row for a dryer; on the pipes the value reads "On the water pipes")
     if not d.dryerOnly then
         local water = (d.cap > 0) and ZeD.tr("UI_ZeD_Laundry_WaterOf", string.format("%.1f", d.fluid), math.floor(d.cap + 0.5))
             or ZeD.tr("UI_ZeD_Laundry_WaterL", string.format("%.1f", d.fluid))
@@ -423,7 +423,7 @@ end
 
 OC.register(def)
 
--- Open the card on a machine. back = { win, zone, id }: the controller's stop to return to when it closes.
+--- Open the card on a machine. back = { win, zone, id }: the controller's stop to return to when it closes.
 function LD.open(player, obj, back)
     if not (player and obj and ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard) then return false end
     local t = def.resolve(player, obj)
@@ -432,8 +432,8 @@ function LD.open(player, obj, back)
     return ZeD_WorldWindow.openObjectCard(player:getPlayerNum(), { def = def, t = t }) and true or false
 end
 
--- The World window's container button for a machine (ContainerControls, in place of vanilla's laundry buttons):
--- the gears, as the stove's settings, opening the face card.
+--- The World window's container button for a machine (ContainerControls, in place of vanilla's laundry buttons):
+--- the gears, as the stove's settings, opening the face card.
 function LD.rowSpec(playerObj, obj)
     local label = ZeD.tr("UI_ZeD_Laundry_Controls")
     local id = "obj:ZeDLaundry"

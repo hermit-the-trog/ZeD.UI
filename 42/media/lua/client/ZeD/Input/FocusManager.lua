@@ -823,19 +823,18 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     end
 end
 
--- The picker (Oct 15 2026, director: "cone navigation is blocking directions
--- that are logical ... freedom of movement is crucial"): ZeD.SpatialNav, by
--- rectangles: the nearest element LINED UP that way (spans overlapping across
--- the move), else the nearest that way at any angle. The strict 45-degree
--- centre cone above sent Right past a button beside a tall row and made the
--- player go down, over and up. _coneCost / _halfPlaneCost stay for reference.
+-- The picker: ZeD.SpatialNav, by rectangles — the nearest element LINED UP
+-- that way (spans overlapping across the move), else the nearest that way at
+-- any angle, so no on-screen direction is ever blocked. The strict 45-degree
+-- centre cone it replaced sent Right past a button beside a tall row and made
+-- the player go down, over and up.
 -- Returns (idx, pass): pass "cone" = lined up, "half" = off to the side (the
 -- debug overlay's cyan / magenta), nil when nothing lies that way.
 -- linedUpOnly: take only a stop that lines up across (tier 0), never one off to the side. Up and
--- Down use it when they look beyond their own zone (director, Nov 1 2026, punch list 42 c.: on the
--- Deck a Down past the last Skills row went sideways into the inventory list, because the rest of
--- the window allowed the "half" tier; directions match the screen, so Up and Down leave a zone only
--- for something directly above or below, and at the end of a column Down does nothing).
+-- Down use it when they look beyond their own zone (on the Deck, a Down past the last Skills row
+-- went sideways into the inventory list, because the rest of the window allowed the "half" tier;
+-- directions match the screen, so Up and Down leave a zone only for something directly above or
+-- below, and at the end of a column Down does nothing).
 local function _pickBestWithFallback(elements, focusedIdx, dir, linedUpOnly)
     if not elements or #elements == 0 then return nil, nil end
     if focusedIdx < 1 or focusedIdx > #elements then focusedIdx = 1 end
@@ -857,10 +856,10 @@ local function _pickBestWithFallback(elements, focusedIdx, dir, linedUpOnly)
 end
 
 -- ---------------------------------------------------------------------------
--- DEBUG OVERLAY (S113b — F11 toggle)
+-- DEBUG OVERLAY (F9 toggle, debug builds)
 -- ---------------------------------------------------------------------------
 
--- Public: toggle / read the overlay state from outside (key handler / console).
+--- Toggle / read the overlay state from outside (key handler / console).
 function Focus.toggleDebugOverlay()
     _debugOverlay = not _debugOverlay
     print("[ZeD.Input] Focus debug overlay = " .. (_debugOverlay and "ON" or "OFF"))
