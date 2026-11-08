@@ -2737,15 +2737,15 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
         ZeD.Stations.drawDropdownFor(panel, state, win._playerObj, state._gpFocusedId, config.prefix)
     end
 
-    -- S105 gamepad: scroll-follow with delta gate (Q99). Uses last-frame
+    -- the controller's scroll-follow, with a delta gate. Uses last-frame
     -- zones so positions are stable against this-frame scroll adjustment.
     -- Only fires for recipeRow (the scrollable element type). Section
     -- headers and card sections are at fixed content-Y so scroll-follow
     -- on them would be noisy without benefit.
     --
-    -- S107: zone gate accepts char OR world tab content (Craft/Build live
-    -- in both windows). Delta-gate field is prefix-namespaced so journal,
-    -- craft, and build don't fight over the same `_lastPinned*` pin.
+    -- The zone gate accepts char or world tab content (this pipeline serves
+    -- tabs in both windows). The delta-gate field is prefix-namespaced so
+    -- journal, craft and build don't fight over the same `_lastPinned*` pin.
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if Focus and Focus.getFocusedZone and Focus.getFocusedElement
        and state.scroll and lastZones then
@@ -2954,9 +2954,9 @@ function CC.onClick(state, config, win, x, y, playerObj)
 
             elseif zone.type == "recipeRow" then
                 CC.handleRecipeClick(state, zone.id)
-                -- NOTE: no filterDirty here — selection doesn't change filter/
-                -- sort criteria.  Re-sorting would move the selected recipe
-                -- (Q43) and break toggle-off.
+                -- no filterDirty here — selection doesn't change filter or
+                -- sort criteria, and re-sorting would move the selected recipe
+                -- and break toggle-off
                 return true
 
             elseif zone.type == "recipeStar" then
@@ -3080,7 +3080,6 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
     end
     if state.sortMenuOpen or state.showMenuOpen then return true end
     -- the one amount box (a band short of room): the wheel steps it, up for more
-    -- (Oct 31 2026, punch list 28)
     local qb = state._qtyBox
     if qb and qb.on and (getTimestampMs() - (qb.t or 0)) < 250 and x >= qb.x and x < qb.x + qb.w and y >= qb.y and y < qb.y + qb.h then
         if del < 0 then state.qty = math.min(state._maxQty or 99, (state.qty or 1) + 1)
@@ -3091,7 +3090,7 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
     if state.catDropdownOpen then
         local totalRows = #(state.categoryList or {})
         local maxScroll = math.max(0, totalRows - DD_MAX_VIS)
-        -- PZ: positive del = scroll down (Q5)
+        -- PZ: positive del = scroll down
         state.catDropdownScroll = math.max(0, math.min(maxScroll,
             (state.catDropdownScroll or 0) + (del > 0 and 1 or -1)))
         return true
@@ -3114,7 +3113,7 @@ end
 local RO_CFG, FULL_CFG = { readOnly = true }, {}
 
 -- The open category list's rows as the controller's stops. B shuts the list; a choice or
--- B brings the focus back to the select (Oct 30 2026).
+-- B brings the focus back to the select.
 local function catRowFocusables(state, prefix)
     local T = ZeD.T
     local geo = state._ddGeo
@@ -3174,7 +3173,7 @@ local function popRowFocusables(state, prefix, kind)
         }
         if z.id == cur then elements._focusIdx = i end
     end
-    elements._menuRows = true   -- (Oct 30 2026, punch list 21 a-f: modal, FocusManager's _menuNav)
+    elements._menuRows = true   -- (modal: FocusManager's _menuNav walks these rows)
     return elements
 end
 

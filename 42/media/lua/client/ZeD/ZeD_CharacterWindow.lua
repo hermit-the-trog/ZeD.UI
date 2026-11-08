@@ -1445,26 +1445,24 @@ local function _buildSkillsFocusables(win)
     return elements
 end
 
--- S96 — Build inventory-row focusables for the active container's item list.
--- Reads the flat item array from the content panel's InventoryRenderer output
--- (`content._invRowItems`). Returns one focusable per item. Geometry is zeroed
--- because the section model uses U/D index cycling (no cone nav at this depth).
--- The renderer paints the accent fill directly when it sees _gpFocusedRowItem.
+-- The inventory rows' stops, for the active container's item list. Reads the
+-- flat item array from the content panel's InventoryRenderer output
+-- (`content._invRowItems`) and returns one stop per item. The renderer paints
+-- the accent fill directly when it sees _gpFocusedRowItem.
 --
 -- onFocus: writes the focused item to both `win` and `content` so the renderer
--- can paint the accent fill and drive scroll-follow without a reverse reference.
--- onConfirm: opens the ZeD unified context menu for the focused item via the
--- vanilla ISInventoryPaneContextMenu.createMenu entry point. The existing
--- Overrides/ContextMenu.lua hook transforms it into the ZeD organism. S96's
--- dock-anchor fix ensures gamepad gets bottom-center positioning.
+-- can paint the accent fill and drive scroll-follow without a reverse
+-- reference. The context menu goes through the vanilla
+-- ISInventoryPaneContextMenu.createMenu entry point; Overrides/ContextMenu.lua
+-- transforms it into the ZeD organism, docked bottom-center on a pad.
 _buildInvRowFocusables = function(win)
     local c = win and win._mainContent
     local items = c and c._invRowItems
     if not items or #items == 0 then return {} end
     local elements = {}
-    -- S98: bounds must be distinct per element so the cone-nav algorithm can
+    -- Bounds must be distinct per element so the cone-nav algorithm can
     -- pick neighbors. Prefer the renderer-stamped Y from _itemRenderYMap
-    -- (Q91 pattern: Java item as map key); fall back to index*rowH when the
+    -- (keyed by the Java item itself); fall back to index*rowH when the
     -- map hasn't been populated yet (first frame / non-loot tab).
     local T = ZeD.T
     local rowH = (T and T.rowH) or 26
@@ -1486,7 +1484,7 @@ _buildInvRowFocusables = function(win)
                 w._gpFocusedRowItem = el.item
                 local cnt = w._mainContent
                 if cnt then cnt._gpFocusedRowItem = el.item end
-                -- S99: Card follow-focus. When the drawer is open in "item"
+                -- Card follow-focus. When the drawer is open in "item"
                 -- mode, moving the gp cursor to a different inv row live-swaps
                 -- the card to the newly-focused item (no click needed).
                 -- NOTE: _updateDrawer is a plain function stored on win, NOT a

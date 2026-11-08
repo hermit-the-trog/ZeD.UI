@@ -620,7 +620,7 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
 
     local pad      = T.px(10)
     local pwrBtnH  = T.px(30)
-    local pillH    = T.px(14)    -- SEEK/VOL pills: thinner than buttons, like real deck hardware
+    local pillH    = T.px(14)    -- SEEK/VOL pills: deliberately thinner than the buttons
     local pwrBtnY  = y + math.floor((h - pwrBtnH) / 2)
     local pillY    = y + math.floor((h - pillH) / 2)
     local cx       = x + pad
@@ -1037,7 +1037,7 @@ end
 ZeD.RadioTab.useFaces = true
 
 -- the face a radio tab entry is drawn as: its driver (ZeD.TwoWay or ZeD.Rtv), plate id and plate; nil for the
--- simple card. ZeD setup's Devices row (Full or Simple, punch list 60): Simple draws the plain card over the same
+-- simple card. ZeD setup's Devices row (Full or Simple): Simple draws the plain card over the same
 -- driver (PlainFace.lua: ZeD.PlainFace.wrap, its own size in place of the plate). The drawn chassis stays only for
 -- a radio with no face at all (a modded one).
 local function _simple()
@@ -1689,7 +1689,7 @@ function ZeD.RadioTab.onWheel(win, del, x, y)
     local h = _hitZone(tw.view, x, y) and TW.hitAt(tw.hits, x, y) or nil
     if h and h.knob then
         win._radioWheel = win._radioWheel or { t = 0, streak = 0 }
-        local n = _turnStreak(win._radioWheel, 160)   -- (a brisk hand spins about 10 notches a second: 110 ms sat on it; QA, Nov 2 2026)
+        local n = _turnStreak(win._radioWheel, 160)   -- (a brisk hand spins about 10 notches a second: a 110 ms gap sat right on it)
         local mult = (h.id == "tune") and TW.turnMult(tw.pid, n) or 1
         TW.turn(win._playerObj, tw.dev, h.id, del > 0 and -1 or 1, mult)
         return true

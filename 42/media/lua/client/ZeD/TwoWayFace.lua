@@ -438,7 +438,8 @@ function TW.turnMult(pid, streak)
     return (streak >= 8 and 5) or 1
 end
 
--- (no footer: the director, Nov 2 2026, punch list 69: the walkie and ham faces lose their printed foot, the brand and
--- "2-WAY PORTABLE"; the brand is already on the graphic. RadioTab.lua draws the face alone while TW.footer is nil.)
+-- (no footer: the faces carry no printed foot — no brand line, no "2-WAY
+-- PORTABLE"; the face art already carries the brand. RadioTab.lua draws the
+-- face alone while TW.footer is nil.)
 
 return TW

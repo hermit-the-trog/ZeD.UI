@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuSandbox.lua
 -- ============================================================================
--- SANDBOX OPTIONS ON THE MONITOR (HOOK_MAP row 26; director, Oct 14 2026:
--- menus delegated, no mockups)
+-- SANDBOX OPTIONS ON THE MONITOR. Client-side; a window built on the
+-- ZeD_MMOptions organism (Sandbox in game, ZeD_SandboxInGame.lua, builds on this one in turn).
 --
 -- The Options window's layout (pages, Find, rows, the help band, list-box
 -- pop-ups, the controller) over vanilla's SandboxOptionsScreen, which stays

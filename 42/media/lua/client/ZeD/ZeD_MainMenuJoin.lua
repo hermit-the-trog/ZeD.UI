@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuJoin.lua
 -- ============================================================================
--- JOIN A SERVER + CONNECTING ON THE MONITOR (HOOK_MAP row 26; director, Oct 14
--- 2026: menus delegated, no mockups)
+-- JOIN A SERVER + CONNECTING ON THE MONITOR. Client; two organisms (windows
+-- on the desk: the "join" view, and "connect" mirroring vanilla's screen).
 --
 -- JOIN: a ZeD window over vanilla's MultiplayerUI, which stays built and
 -- hidden as the engine: its saved servers and accounts (accountList), the
@@ -43,7 +43,7 @@ local KV_LABEL_W, KV_ROW_H = 96, 20
 local NOTE_H = 20
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
@@ -54,7 +54,7 @@ local function mp() local m = ms(); return m and m.multiplayer end
 local function cts() local m = ms(); return m and m.connectToServer end
 
 local function s(v) if v == nil then return "" end; return tostring(v) end
--- does a table hold anything (Kahlua has no next(): KB Q221)
+-- does a table hold anything (Kahlua has no next())
 local function any(t) for _ in pairs(t or {}) do return true end; return false end
 local function keyOf(server) return server and (s(server:getIp()) .. ":" .. s(server:getPort())) or "" end
 
@@ -340,7 +340,7 @@ function ZeD_MMJoin:deleteAccount(account)
     self.sel = nil
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { delServer = "confirm:no", forget = "confirm:no", delAccount = "confirm:no" }
 function ZeD_MMJoin:setConfirm(mode)

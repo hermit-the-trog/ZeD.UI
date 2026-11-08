@@ -1798,7 +1798,7 @@ local function drawWorldTabStrip(self, win)
     -- has the focus and the controller is in use (Focus.liveZone), so the mark
     -- never lingers in the other window or under the mouse. The active tab shows
     -- it too (the mark on a solid element leaves out its wash). (Resolved before
-    -- the scroll: a focused tab out of sight scrolls into view, break-it B1.)
+    -- the scroll: a focused tab out of sight scrolls into view.)
     local gpFocusedTabId = nil
     do
         local zone = Focus and Focus.liveZone and Focus.liveZone(win)
@@ -1891,7 +1891,7 @@ local function drawWorldTabStrip(self, win)
             local isActive = (tab.id == visualActive)
             local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(ACTION_TAB_BTN_SZ))
 
-            -- Oct 16 2026 (director): the tabs in lit pixel art (ZeD_TabPx), as in
+            -- The tabs in lit pixel art (ZeD_TabPx), as in
             -- the character window. The pointer's hover is the T.hover wash; the
             -- controller's focus is the player's focus mark, on the active tab too.
             -- Every tab id has a lit icon.
@@ -1927,7 +1927,7 @@ end
 -- Drawer width dispatch — mode-driven. MC columns live in content, not drawer.
 local function getWorldTargetDrawerW(win)
     local T = ZeD.T
-    -- S124 scale: returns SCREEN px (compared against the animated _drawerEffW).
+    -- Returns SCREEN px (compared against the animated _drawerEffW).
     if win._drawerOpen then
         local half, full = T.px(DRAWER_W), T.px(TAB_DRAWER_W)
         local base = 0
@@ -1949,8 +1949,8 @@ local function getWorldTargetDrawerW(win)
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
                 heldIn = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(INV_MIN_BESIDE_CARD) < full
             end
-            -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits it (Oct 30 2026,
-            -- punch list item 2), else the full card; a ham set's is the full card, or the card a walkie's width
+            -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits
+            -- it, else the full card; a ham set's is the full card, or the card a walkie's width
             -- fits with the set's narrow face where the drawer is held in. Never a width between the two.
             if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
                 local want = ZeD.RadioTab.wantW(win, base, heldIn and half or full)
@@ -1958,7 +1958,7 @@ local function getWorldTargetDrawerW(win)
             end
             base = (heldIn or base <= half) and half or full
         end
-        -- S124: the object card needs the full card, over a tab or on its own
+        -- the object card needs the full card, over a tab or on its own
         -- (a kind marked half, the recipe preview, is the half card over the tab's card like an item card)
         if win._drawerObject and win._drawerItem == nil then
             local d = win._drawerObject.def
@@ -1974,8 +1974,8 @@ end
 -- left by the engine (setWidth keeps a top-level panel on screen); the animated close gives
 -- that push back as the drawer narrows (drawer._onPrerender, _drawerCapPush). A snap to Loot
 -- sets the width in one step and never runs that path, so the push stayed and the amount
--- owed was paid out by a later animated close or grew over roll / unroll cycles (Nov 1 2026,
--- punch list 42 e.: the World window 4 to 12 px off on the Deck). Every snap settles it here:
+-- owed was paid out by a later animated close or grew over roll / unroll cycles
+-- (the World window sat 4 to 12 px off on the Steam Deck). Every snap settles it here:
 -- the window goes back right by what it was pushed, as far as the screen allows, and both
 -- counters start clean.
 local function settleCapPush(win)
@@ -1989,9 +1989,9 @@ local function settleCapPush(win)
     win._drawerCapLost = 0
 end
 
--- Scroll dispatch per tab — for future scrollable tab content
+-- Scroll dispatch per tab — the scrollbar state the open tab uses, nil for none
 local function getWorldActiveScroll(win)
-    -- New unified architecture: craft/build tabs manage scroll internally via state
+    -- craft/build manage scroll inside their state tables
     if win._activeTab == "craft" and win._craftState then return win._craftState.scroll end
     if win._activeTab == "build" and win._buildState then return win._buildState.scroll end
     if win._activeTab == "maps"   then return nil end  -- map handles zoom, not scroll
@@ -2029,8 +2029,8 @@ end
 -- MULTI-CONTAINER HELPERS
 -- ============================================================================
 
--- Dynamic MC capacity: max extra columns that fit at MIN_COL_W.
--- Dynamic MC capacity. MC only allowed on Loot tab.
+-- Dynamic MC capacity: the most extra columns that fit at MIN_COL_W.
+-- Columns are a Loot-tab thing; every other tab gets 0.
 local function getMcCapacity(win)
     if win._activeTab ~= "loot" then return 0 end
     local R = getR()
