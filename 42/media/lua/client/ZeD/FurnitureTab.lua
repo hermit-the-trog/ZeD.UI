@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/FurnitureTab.lua
 -- ============================================================================
--- FURNITURE TAB — World window (HOOK_MAP row 15; mockup zed_furniture_v1.html)
+-- FURNITURE TAB — client; the World window's "furniture" tab (HOOK_MAP row 15).
 -- Vanilla moves furniture with a world cursor (ISMoveableCursor) in five modes
 -- (pickup, place, rotate, scrap, repair), switched from the left-edge button's
 -- pop-up (hidden by ZeD) or the controller's radial, and explains the tile
@@ -32,7 +32,7 @@ local FT = ZeD.FurnitureTab
 
 FT.cap = FT.cap or {}          -- per player: what the cursor read last
 FT.state = FT.state or { mode = "pickup" }
-local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+local DOT = "|"   -- the separator: ZeD's pipe, never a middle dot
 
 local MODES = {
     -- ready / no are keys, translated where they are drawn

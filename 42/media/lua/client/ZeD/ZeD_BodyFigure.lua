@@ -1,9 +1,8 @@
--- ZeD-UI/42/media/lua/client/ZeD/BodyFigure.lua
+-- ZeD-UI/42/media/lua/client/ZeD/ZeD_BodyFigure.lua
 -- ============================================================================
 -- BODY FIGURE — the skeleton the Health, Thermal and Equipment tabs colour.
--- Built into the game's own unclothed male and female bodies, traced (Oct 17 2026).
--- Lit pixel art since Oct 17 2026 (director: "rework the body skeleton and
--- background and make female skelly"; art by ZeDUI/tools/physpx/
+-- Client-only organism (an ISPanel). Lit pixel art traced over the game's own
+-- unclothed male and female bodies (art by ZeDUI/tools/physpx/
 -- d_skeleton.py). One 220 x 260 canvas for both sexes, drawn in three layers:
 --   1. fig-bg-<s>-<dark|light>.png  the perspective grid and the body's
 --      outline, tinted by the theme

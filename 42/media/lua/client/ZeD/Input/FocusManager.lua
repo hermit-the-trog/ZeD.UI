@@ -504,8 +504,8 @@ function Focus.isFocused(w, zoneName, elementId)
     return true
 end
 
--- Swap a zone's elements array (e.g. inventory row rebuild). Optionally
--- preserve focusedElementIdx at a specific value (else clamp existing).
+--- Swap a zone's elements array (e.g. inventory row rebuild). Optionally
+--- preserve focusedElementIdx at a specific value (else clamp existing).
 function Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx)
     local idx = _resolveZoneIdx(w, zoneRef)
     if not idx or not elements then return end
@@ -518,9 +518,9 @@ function Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx)
     end
 end
 
--- Oct 23 2026: the same, keeping the focus on the element with the same id
--- when it is still there (a card's controls rebuilt each frame: a button
--- appearing before the focused one must not move the focus).
+--- The same, keeping the focus on the element with the same id when it is
+--- still there (a card's controls rebuilt each frame: a button appearing
+--- before the focused one must not move the focus).
 function Focus.setRingZoneElementsKeepId(w, zoneRef, elements)
     local idx = _resolveZoneIdx(w, zoneRef)
     if not idx or not elements then return end
@@ -535,9 +535,9 @@ function Focus.setRingZoneElementsKeepId(w, zoneRef, elements)
     Focus.setRingZoneElements(w, zoneRef, elements, keep)
 end
 
--- Toggle focusable flag on a zone (e.g. drawer open=true / closed=false).
--- If toggling OFF the currently-focused zone, advance _focusIdx to the next
--- focusable zone so the user doesn't end up stranded in a dead zone.
+--- Toggle focusable flag on a zone (e.g. drawer open=true / closed=false).
+--- If toggling OFF the currently-focused zone, advance _focusIdx to the next
+--- focusable zone so the user doesn't end up stranded in a dead zone.
 function Focus.setZoneFocusable(w, zoneRef, flag)
     local idx = _resolveZoneIdx(w, zoneRef)
     if not idx then return end

@@ -1482,8 +1482,8 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
             local fid = "orow:" .. idx
             local off = needsOff(r)
             -- a dimmed row (waiting on another switch, or a game setting that does nothing with ZeD active) is no stop
-            -- for the controller and takes no hover wash; its line underneath and the help line say why (the director,
-            -- Nov 2 2026, punch list 59: every dimmed row behaves the same)
+            -- for the controller and takes no hover wash; its line underneath and the help line say why.
+            -- Every dimmed row behaves the same.
             local dimRow = off or (r.moot and true) or (self.rowDisabled and self:rowDisabled(r)) or false
             if not (off or r.moot) then
                 self._specs[#self._specs + 1] = { id = fid, listRow = true, row = idx, col = 1, rowRef = r, ry = ry + self.scroll - vy, rh = rh,
@@ -1578,7 +1578,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     if self.drawHelp then self:drawHelp(x, hy, w, helpH, hr); return end   -- (a window with its own band: Sandbox in game)
     local htext = hr and help(hr) or nil
     if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
-    -- ZeD's own options: their default in a column at the right of the band (mockup zed_settings_v2)
+    -- ZeD's own options: their default in a column at the right of the band
     local dcol = 0
     local chordDefault = hr and hr.kind == "chord" and ZeD.QuickChords.defaultName(hr.chord) or nil
     if (hr and hr.zedDefault and hr.control) or chordDefault then
@@ -1620,7 +1620,7 @@ function ZeD_MMOptions:openCombo(r, anchor)
     MM.ctx.dropScroll = math.max(0, ((c.selected or 1) - 4) * ZeD.T.px(26))
 end
 
--- QUICK ACTION CHORDS (ZeD_QuickChords; mockup zed_quick_chords_v1): a row per
+-- QUICK ACTION CHORDS (ZeD_QuickChords): a row per
 -- chord; A opens the wheels' actions as a drop list, X clears it.
 -- The wheels' actions, a drop list item each, under its wheel's name; None first
 function ZeD_MMOptions:openChord(r, anchor)
@@ -1672,7 +1672,7 @@ end
 local _render = ZeD_MMOptions.render
 function ZeD_MMOptions:render()
     _render(self)
-    if MM.debugHits and self.inGame then MM.drawHitOverlay(self, { self }) end   -- (QA: the click audit; at the menu the desk's glass draws it)
+    if MM.debugHits and self.inGame then MM.drawHitOverlay(self, { self }) end   -- (the click-audit overlay; at the menu the desk's glass draws it)
     local p = self._palette
     if not p then return end
     local T = ZeD.T
@@ -1785,10 +1785,10 @@ end
 function ZeD_MMOptions:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 1000
-    local discardWord = ZeD.tr("UI_ZeD_MMWord_DiscardChanges")   -- (spec 11: one word, and it is the danger answer everywhere)
+    local discardWord = ZeD.tr("UI_ZeD_MMWord_DiscardChanges")   -- (one wording everywhere, and it is the danger answer)
     if self.confirm == "back" or self.confirm == "discard" then
-        -- (Oct 19 2026: Apply keeps the window open, so Back with changes only
-        -- asks whether to lose them; the old Accept is gone)
+        -- (Apply keeps the window open, so Back with changes only
+        -- asks whether to lose them; there is no Accept)
         local n = self:changedCount()
         local ask = (n == 1) and ZeD.tr("UI_ZeD_Options_AskDiscardOne") or ZeD.tr("UI_ZeD_Options_AskDiscardMany", math.max(n, 1))
         local go = (self.confirm == "back") and function() self:discard() end or function() self:discardStay() end
