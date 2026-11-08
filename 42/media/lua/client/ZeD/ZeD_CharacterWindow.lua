@@ -814,39 +814,38 @@ local function _buildTabBarElements(win)
     return elements
 end
 
--- S98: Forward-declarations for helpers _syncRingZonesToActiveTab references.
+-- Forward-declarations for helpers _syncRingZonesToActiveTab references.
 -- Each helper is defined later in the file (after the per-tab focusable
 -- builders, where the locals it depends on ARE in scope). Declaring them
 -- here as `local X` and assigning later via `X = function...` (instead of
 -- `local function X(...)`) makes them visible to the closure built by
--- _syncRingZonesToActiveTab. Common mistake #16.
+-- _syncRingZonesToActiveTab.
 local _buildPanelFocusables
 local _buildLootFocusables
 local _clearGpFocusState
--- S106: forward-declare MC column builder HERE (before _syncRingZonesToActiveTab
--- at line 492) so the sync closure captures the local correctly. Originally
--- declared at line 616, AFTER the sync function — Kahlua common mistake #16:
--- closures reference the enclosing scope at CALL TIME but only see names that
--- existed as locals at CLOSURE-CREATION time. Late-declared forward-decls
--- become global lookups, which are nil here since the real definition is
--- also local. Fixed by hoisting the forward-decl above all consumers.
+-- The MC column builder is forward-declared HERE, before the
+-- _syncRingZonesToActiveTab forward-decl above is assigned, so the sync
+-- closure captures the local correctly. A Kahlua trap: closures resolve the
+-- enclosing scope at CALL TIME but only see names that existed as locals at
+-- CLOSURE-CREATION time. A forward-decl written after the closure becomes a
+-- global lookup inside it — nil here, since the real definition is also
+-- local. Hoist every forward-decl above all its consumers.
 local _buildCharacterMCColumnFocusables
--- S99: forward-declared so _syncRingZonesToActiveTab and the per-frame
+-- Forward-declared so _syncRingZonesToActiveTab and the per-frame
 -- refresh block can reference it (defined after _buildInvRowFocusables).
 local _buildCardActionFocusables
--- S103: forward-declared so _buildSkillRowFocusables can bind togglePinSkill
+-- Forward-declared so _buildSkillRowFocusables can bind togglePinSkill
 -- as an upvalue for its onActivate closure (defined much later in the file).
 local togglePinSkill
-local skillRowMenu   -- (Nov 4 2026: the skill row's menu, assigned with togglePinSkill below)
+local skillRowMenu   -- (the skill row's menu, assigned with togglePinSkill below)
 
--- S98: Sync the ring zones to the new active tab. Called from _switchTabForNav
--- on both the loot-snap and non-loot-drawer paths. Centralizes the four
--- mutations (containerStrip, tabContent, equipDrawer focusable + element
--- swaps) so the two branches don't drift. Reads the new _activeTab off win.
--- S108 v2 — Dynamic per-column MC ring zone restructuring for Character
--- window. Mirrors the World pattern. Each MC selection becomes its own ring
--- zone (charMC1..charMCN) inserted between charMainInv and charItemCard.
--- Old single charLootMCColumns zone removed.
+-- The ring zones synced to the new active tab (the function two blocks down).
+-- Called from _switchTabForNav on both the loot-snap and non-loot-drawer
+-- paths, so the two branches share one set of mutations and don't drift.
+-- Reads the new _activeTab off win.
+-- This first helper restructures the per-column MC zones, mirroring the World
+-- window: each MC selection becomes its own ring zone (charMC1..charMCN),
+-- inserted between charMainInv and charItemCard.
 local function _rebuildCharMCRingZones(win)
     local ring = win and win._focusRing
     if not ring then return end

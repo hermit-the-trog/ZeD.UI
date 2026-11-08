@@ -1,16 +1,23 @@
 -- ZeD-UI/42/media/lua/client/ZeD/RadioTab.lua
 -- ============================================================================
--- RADIO TAB — first contextual chassis drawer.
+-- RADIO TAB — client; the radios' tab in both windows.
 --
 -- Plugs into BOTH ZeD_CharacterWindow's TAB_RENDERERS and ZeD_WorldWindow's
--- WORLD_TAB_RENDERERS via the shared register() entry point. The chassis
--- renderer is identical in both windows; only the radio discovery source
--- differs (equipped on player vs in-range world objects). The window's
--- _kind field ("char" / "world") tells render() which discovery to use, but
--- the data has already been written to win._radios by the window's refresh
--- loop, so render() itself only reads.
+-- WORLD_TAB_RENDERERS via the shared register() entry point. The drawing is
+-- identical in both windows; only the radio discovery source
+-- differs (equipped on player vs in-range world objects). Each window's
+-- refresh loop writes what it found to win._radios before render() runs,
+-- so render() itself only reads.
 --
--- TWO VISUAL TIERS, distinguished at runtime by deviceData:getIsHighTier():
+-- FACES: a radio with a face of its own is drawn as that face: the two-way
+-- sets (TwoWayFace.lua), the ordinary radios, the CD player and the TVs
+-- (RtvFace.lua). The chassis drawn in this file is the SIMPLE CARD, reached
+-- through one function, ZeD.RadioTab.drawSimple: the card for a radio with
+-- no face (a modded one). The simple card has no brand strip at its foot:
+-- a face carries its own brand.
+--
+-- THE DRAWN CHASSIS has two visual tiers, picked at runtime by
+-- deviceData:getIsHighTier():
 --   - Premium Technologies (silver Pioneer-style hi-fi, cyan VFD, green-VFD CD)
 --   - ValuTech            (cheap black plastic, backlit amber LCD, no CD)
 --
@@ -21,21 +28,8 @@
 --   - Chassis molecules: radioMainDisplay, radioControlStrip, radioPresetBank,
 --     radioSignalWave, cdPlayerModule
 --   - Organisms: renderPremium, renderValutech, renderDrawer
---   - Top-level: render (with browse header), register
---
--- S115a SCOPE: read-only chassis. NO click handlers, NO gamepad focusables.
--- All controls paint as visually clickable but no-op until S115b. Browse
--- buttons in the drawer-internal header similarly paint but don't mutate
--- win._radioIdx this session.
---
--- FACES (Oct 30 2026, handoff ZeDUI/HANDOFF_radio_tv_laundry_20261030.md): a
--- radio with a face of its own is drawn as that face: the two-way sets
--- (TwoWayFace.lua), the ordinary radios, the CD player and the TVs
--- (RtvFace.lua). The drawn chassis above is the SIMPLE CARD, reached through
--- one function, ZeD.RadioTab.drawSimple: the card for a radio with no face,
--- and (punch list item 17, to come) the card ZeD setup's "faces or simple
--- cards" switch shows (ZeD.RadioTab.useFaces). The simple card has no brand strip at
--- its foot (director, Oct 30 2026, punch list 21): a face carries its own brand.
+--   - Top-level: render (with browse header), register, then the click
+--     router, the wheel and the controller's focusables
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -53,7 +47,7 @@ ZeD.RadioTab = ZeD.RadioTab or {}
 
 -- Forward decls — Kahlua closures capture free names at creation time, so
 -- helpers used inside other helpers must be declared as locals before any
--- function that references them. (Memory: feedback_forward_decl_hoist.md.)
+-- function that references them.
 local renderPremium
 local renderValutech
 local renderDrawer
@@ -62,8 +56,8 @@ local radioControlStrip
 local radioPresetBank
 local radioSignalWave
 local cdPlayerModule
--- S115b: render() drives the SEEK hold-to-repeat advance, so it needs
--- visibility into _channelStep before that local's definition further down.
+-- render() drives the SEEK hold-to-repeat advance, so it needs sight of
+-- _channelStep before that local's definition further down.
 local _channelStep
 
 -- ============================================================================
@@ -102,7 +96,7 @@ function ZeD.RadioTab.indexOf(list, dev)
 end
 
 --- Scan the player's equipped slots for radios.
--- Mirrors vanilla ISRadioWindow.lua:139-180 — hand items + back-clothing slot.
+-- Mirrors vanilla ISRadioWindow's scan — hand items + back-clothing slot.
 -- Returns array of entries each shaped:
 --   { radioInstance, deviceData, locationTag, kind = "equipped" }
 -- locationTag is the human-readable slot name surfaced in the drawer header

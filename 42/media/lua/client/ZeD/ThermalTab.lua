@@ -481,7 +481,7 @@ function ZeD.ThermalTab._renderBand(panel, win, x, y, w)
     local view = VIEWS[win._thermalView or 1] or VIEWS[1]
     local viewName = ZeD.ThermalTab.labelOf(view)
     M.drawPopupMenu(panel, boxX, by, boxW, bh, ZeD.tr("UI_ZeD_Thermal_ViewPick", viewName),
-        hov or open, focusOf(win, "thermal:view"), false, viewName)   -- (the view alone when both do not fit, break-it B2)
+        hov or open, focusOf(win, "thermal:view"), false, viewName)   -- (the view alone when both do not fit)
     bz.box.x, bz.box.y, bz.box.w, bz.box.h = boxX, by, boxW, bh
 end
 
@@ -525,7 +525,7 @@ end
 function ZeD.ThermalTab._ensureBodyFigure(win)
     if not win._thermalBodyFigure then
         -- Create as a standalone object — NOT a child panel
-        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- S124 scale: placeholder size, drawAt() is given the real (scaled) rect
+        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- placeholder size; drawAt() is given the real (scaled) rect
         fig:initialise()
         fig:loadTextures()
         win._thermalBodyFigure = fig
@@ -593,7 +593,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
 
     local drawY = ry
 
-    -- (the Core / Air / Wind readings and the core gauge sit beside the figure now: _renderHeader)
+    -- (the Core / Air / Wind readings and the core gauge sit beside the figure: _renderHeader)
 
     -- Section head (the content line under it comes with the molecule)
     drawY = drawY + M.drawSectionHeader(panel, listX, drawY, listW,
@@ -690,8 +690,8 @@ function ZeD.ThermalTab._measureGridContent(data, listW, scrollW)
 
     -- Body part rows (2 columns). rowH must match Molecules.drawStatBarRow:
     --   rowH = max(valFont=F3, lblFont=F2) + 8
-    -- Previously used secH (F1) + 8, which under-measured by ~4px per row →
-    -- with 9 rows the bottom row was clipped by ~36px ("halfway visible").
+    -- Measuring with a smaller font under-counts ~4px per row; over nine rows
+    -- that clips the bottom row half away.
     local valH = ZeD.TM:getFontHeight(T.fontF3)
     local lblH = ZeD.TM:getFontHeight(T.fontF2)
     local rowH = math.max(valH, lblH) + T.px(8)

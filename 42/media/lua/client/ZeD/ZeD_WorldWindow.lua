@@ -987,13 +987,13 @@ end
 -- frame, so this wrapper returns {} until that state exists.
 local function _buildWorldCraftFocusables(win)
     if not (ZeD and ZeD.CraftingCore and ZeD.CraftingTab) then return {} end
-    -- S124: CraftingTab routes to the recipe view or a station's own view
+    -- CraftingTab routes to the recipe view or a station's own view
     if ZeD.CraftingTab.buildFocusables then return ZeD.CraftingTab.buildFocusables(win) end
     return ZeD.CraftingCore.buildFocusables(win, win and win._craftState,
         "craft", "ZeD_CraftPins", ZeD.CraftingTab.startCraft)
 end
 
--- S107 — Building tab focusables (World window). Same shape as Craft;
+-- Building tab focusables (World window). Same shape as Craft;
 -- prefix="build", BuildLogic-backed startBuild (which spawns the placement
 -- cursor on success — getCell():setDrag()).
 local function _buildWorldBuildFocusables(win)
@@ -1002,18 +1002,13 @@ local function _buildWorldBuildFocusables(win)
         "build", "ZeD_BuildPins", ZeD.BuildingTab.startBuild)
 end
 
--- Build panel-level focusables for a World tab.
--- S96: Loot auto-pushes invrows. Forage and Animals return flat lists.
--- S107: Craft + Build now wired to CraftingCore via shared focusables helper.
--- Maps still deferred (no zone-tracking renderer).
--- S98 ring model: For Loot tab, this returns INVENTORY ROW elements (the
--- containers live in their own zone — worldContainerStrip). The S91-S96 stack
--- model nested containers above invrows; ring model treats them as siblings.
--- Bumper cycle order on Loot: tabBar -> containerStrip -> tabContent (invrows)
--- -> wraps.
+-- Build panel-level focusables for a World tab (the worldTabContent zone).
+-- Each tab delegates to its own builder. Loot returns {}: its rows live in
+-- the always-visible worldMainInv zone and its containers in
+-- worldContainerStrip — sibling ring zones, not nested levels.
 _buildWorldPanelFocusables = function(win, content, tabId)
     if not win then return {} end
-    -- S99: Loot invrows now live in worldMainInv zone (always-visible).
+    -- Loot invrows live in the worldMainInv zone (always visible);
     -- worldTabContent carries per-tab secondary content only.
     if tabId == "loot"    then return {}                               end
     local ext = ZeD_WorldWindow._extTabs[tabId]
@@ -1022,7 +1017,7 @@ _buildWorldPanelFocusables = function(win, content, tabId)
     if tabId == "animals" then return _buildAnimalsFocusables(win)     end
     if tabId == "craft"   then return _buildWorldCraftFocusables(win)  end
     if tabId == "build"   then return _buildWorldBuildFocusables(win)  end
-    -- S112: Maps canvas annotation tools. MapsTab owns the builder —
+    -- Maps canvas annotation tools. MapsTab owns the builder —
     -- returns [disclosure, pinned tools, text tool, colors, grid tools,
     -- canvas cursor]. Mouse hit-zone tables are populated each frame by
     -- the Maps renderer; the builder reads them as the source of truth
@@ -1033,9 +1028,8 @@ _buildWorldPanelFocusables = function(win, content, tabId)
         end
         return {}
     end
-    -- S117: Radio drawer focusables. Mirrors the Char window dispatcher
-    -- exactly — feedback_gamepad_pattern_parity.md mandates identical
-    -- behavior across both windows.
+    -- Radio drawer focusables. Mirrors the Character window dispatcher
+    -- exactly, so the pad behaves the same in both windows.
     if tabId == "radio" then
         if ZeD and ZeD.RadioTab and ZeD.RadioTab.buildFocusables then
             return ZeD.RadioTab.buildFocusables(win)
