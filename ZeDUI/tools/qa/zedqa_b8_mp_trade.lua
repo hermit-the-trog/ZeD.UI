@@ -119,7 +119,52 @@ add(500, function()
     check(groupOf(s, "apple") ~= nil, "3: the apple is listed")
     check(groupOf(s, "nails") ~= nil, "3: nails are listed")
     check((groupOf(s, "ripped") or groupOf(s, "rag")) ~= nil, "3: the ripped sheets (Rag on 42.21) are listed")
-    check(groupOf(s, "jacket") == nil and groupOf(s, "knife") == nil and groupOf(s, "watch") == nil, "3: worn, held and favorite things are not listed")
+    -- (Nov 8: the server keeps the admin's inventory between runs and the stage adds one jacket,
+    -- knife and watch per run, so plain copies pile up; only the ONE worn, held or favorite copy
+    -- must stay off the list. The old check wanted no "jacket" group at all, which fails as soon
+    -- as a second, unworn jacket exists: 10 runs left 10 of each, 9 listed. So the worn, held
+    -- and favorite objects are found by id and looked for in every group, and each type's
+    -- listed count must be its main-inventory count less those.)
+    local function idOf(it) return safe(function() return it:getID() end, nil) end
+    local special, specialN = {}, {}
+    local function mark(it, why)
+        local id = it and idOf(it)
+        if id == nil or special[id] then return end
+        special[id] = why .. " " .. tostring(it:getType())
+        specialN[it:getType()] = (specialN[it:getType()] or 0) + 1
+    end
+    pcall(function()
+        local worn = p:getWornItems()
+        for i = 0, worn:size() - 1 do mark(worn:get(i):getItem(), "worn") end
+    end)
+    mark(p:getPrimaryHandItem(), "held"); mark(p:getSecondaryHandItem(), "held")
+    pcall(function()
+        local l = p:getInventory():getItems()
+        for i = 0, l:size() - 1 do if l:get(i):isFavorite() then mark(l:get(i), "favorite") end end
+    end)
+    local jw, kh, wf = false, false, false
+    for _, why in pairs(special) do
+        if why == "worn Jacket_Black" then jw = true end
+        if why == "held HuntingKnife" then kh = true end
+        if why == "favorite WristWatch_Left_DigitalBlack" then wf = true end
+    end
+    check(jw and kh and wf, "3: the stage left a worn jacket, a knife in hand and a favorite watch",
+        "jacket " .. tostring(jw) .. ", knife " .. tostring(kh) .. ", watch " .. tostring(wf))
+    local leaked = {}
+    for _, g in ipairs(s.groups) do
+        for _, it in ipairs(g.items) do
+            local id = idOf(it)
+            if id ~= nil and special[id] then leaked[#leaked + 1] = special[id] end
+        end
+    end
+    check(#leaked == 0, "3: worn, held and favorite things are not listed", #leaked > 0 and table.concat(leaked, ", ") or nil)
+    for _, t in ipairs({ { "Jacket_Black", "jacket" }, { "HuntingKnife", "knife" }, { "WristWatch_Left_DigitalBlack", "watch" } }) do
+        local g = groupOf(s, t[2])
+        local want = math.min(s:max(), countOf(t[1]) - (specialN[t[1]] or 0))
+        local got = g and #g.items or 0
+        check(got == want, "3: the " .. t[2] .. " copies listed are the main inventory's less the worn, held or favorite one",
+            got .. " of " .. countOf(t[1]))
+    end
     local b = groupOf(s, "bandage")
     check(b == nil or #b.items == countOf("Bandage"), "3: only the main inventory's bandage is listed, not the backpack's", b and #b.items)
     ticks(20, function() shot("trade_lists") end)
