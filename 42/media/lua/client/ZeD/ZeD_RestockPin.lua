@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_RestockPin.lua
 -- ============================================================================
--- THE PINNED TO-DO — client organism (ZeD_RestockPin, a plain ISPanel); the
+-- THE PINNED TO-DO - client organism (ZeD_RestockPin, a plain ISPanel); the
 -- run itself is ZeD_Restock.lua, this only shows it.
 --
 -- While a Casual or Accessible restock (or unpack) runs, the to-do pins as a

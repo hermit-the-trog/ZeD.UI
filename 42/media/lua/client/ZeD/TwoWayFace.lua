@@ -6,8 +6,9 @@
 -- view is frameless, like the watch.
 --
 -- A radio whose device data is two-way (deviceData:getIsTwoWay()) is drawn as
--- its own pixel-art face, a plate in PhysPx.lua (ZeDUI/tools/physpx/d_walkie.py)
--- drawn by the shared plate template (ZeD_Plate.lua), as the car radios are:
+-- its own pixel-art face: a plate in PhysPx.lua (a generated file; its source
+-- is ZeDUI/tools/physpx/d_walkie.py) drawn by the shared plate template
+-- (ZeD_Plate.lua), as the car radios are:
 -- five walkies, the makeshift walkie and the ManPack (200 x 360 / 200 x 280,
 -- in a 220 panel), three tabletop ham sets (400 x 172). Live on each: the
 -- display, the knob pointers, the TX lamp, the hams' band marker and RANGE.
@@ -21,6 +22,8 @@
 --   mic   push to talk: the mic latched live, again to mute it
 --   mute, scan   as on the car          p1..p6  (army ham) a memory at once
 --   lamp  the display's backlight for 5 s (Tactical, US Army)
+-- Nothing is kept here between calls: each one reads the radio afresh
+-- (TW.read), and ZeD_RadioOps holds what lasts (flashes, scans, the lamp).
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -64,6 +67,8 @@ TW.INFO = {
     ham_makeshift    = { brand = "",                     kind = "hamchar", base = true },
 }
 
+-- o:m() or default when the method is missing, throws or returns nil. The
+-- game's Java side can throw; pcall turns a crash into a value we can test.
 local function _inv(o, m) return o[m](o) end
 local function _get(o, m, default)
     if o == nil or o[m] == nil then return default end
@@ -73,6 +78,7 @@ local function _get(o, m, default)
 end
 TW._get = _get
 local function now() return getTimestampMs() end
+-- a plate's texture by file name, from PhysPx's texture folder
 local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 TW.plateTex = plateTex
 
@@ -150,6 +156,7 @@ function TW.basePid(pid)
 end
 function TW.info(pid) return TW.INFO[TW.basePid(pid)] end
 
+--- True for a tabletop ham set's face (wide or narrow).
 function TW.isBase(pid) local i = TW.info(pid); return i and i.base == true end
 --- The space a face takes in the tab (plate px): a walkie's panel (a width's own, `fill`; else the 220 one), a
 --- ham set's own width.
@@ -300,7 +307,7 @@ function TW.holdTick(hold, chr, dev, owner)
     end
 end
 
---- What A and X do on a control (the controller strip's words), nil = nothing.
+--- What A does on a control (the controller strip's words), nil = nothing.
 function TW.labelA(id)
     if not id or id == "tune" then return nil end
     if id == "vol" then return getText("IGUI_RadioPower") end
@@ -310,6 +317,7 @@ function TW.labelA(id)
     if id == "mic" then return getText("IGUI_RadioMicrophone") end
     return ZeD.tr(K[id] or "UI_ZeD_RadioPrompt_Press")
 end
+--- What X does on a control (store a memory, name the channel), nil = nothing.
 function TW.labelX(id)
     if not id then return nil end
     if id:match("^p%d$") then return ZeD.tr("UI_ZeD_RadioPrompt_Store") end
@@ -338,6 +346,7 @@ function TW.nameChannel(chr, dev, owner)
     if JoypadState.players[pn + 1] then setJoypadFocus(pn, box) end
     return box
 end
+-- the naming box's answer: OK renames memory idx; any other button leaves it
 function TW.onNamed(target, button, idx)
     if not (button and button.internal == "OK") then return end
     local text = button.parent and button.parent.entry and button.parent.entry:getText() or ""
@@ -367,7 +376,7 @@ end
 -- A key wears the library's looks (the pointer's wash, the controller's focus mark); a knob keeps its
 -- ring, which is the knob's own light.
 -- ---------------------------------------------------------------------------
-local OWN_FOCUS = { focused = true }
+local OWN_FOCUS = { focused = true }   -- face.own: no ZeD window to ask, so the mark takes the key as focused (still pad-only)
 function TW.drawFace(panel, x, y, k, face)
     local T = ZeD.T
     local st = TW.read(face.dev)

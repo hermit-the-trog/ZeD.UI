@@ -3,12 +3,14 @@
 -- WORLD WINDOW — "the world and its stuff". Client; organism: a plain
 -- ZeD_Window shell with ZeD_Panel panes, the Character window's mirror.
 -- Container strip LEFT, item list CENTER, drawer RIGHT, action tabs RIGHT
--- EDGE. A click on a strip container opens it as a column beside the others
--- (MC: multi-container); XFER strips and cross-column drag-drop move items.
+-- EDGE. On the Loot tab a click on a strip container opens it as a column
+-- beside the others (MC: multi-container); XFER strips and cross-column
+-- drag-drop move items.
 --
--- Does NOT touch ISInventoryPage, and never registers with Java's UIManager
--- (that pairing can't be undone from Lua) — vanilla's loot page is hidden
--- behind this window instead.
+-- toggle() builds the whole window on every open, and its panes' handlers are
+-- closures inside that one call. Overrides nothing in ISInventoryPage, and
+-- never registers with Java's UIManager (that pairing can't be undone from
+-- Lua) — vanilla's loot page is hidden behind this window instead.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -129,7 +131,8 @@ local WORLD_TABS = {
       end },
 }
 
--- a tab's name in the player's language
+--- A tab's name in the player's language: its label() if it has one, else
+--- vanilla's word (vkey), else ZeD's (key). The D-pad wheels read it too.
 function ZeD_WorldWindow.tabLabel(tab)
     if tab.label then return tab.label() end
     if tab.vkey then return getText(tab.vkey) end
@@ -184,18 +187,18 @@ ZeD_WorldWindow.isTabVisible = isTabVisible
 --
 -- Ordering note: placed AFTER isTabVisible so `_buildWorldTabBarElements` can
 -- reference it as a resolved upvalue. `_switchWorldTabForNav` is forward-
--- declared as a local slot then assigned inside toggle() because its body
--- references `exitWorldMC` which lives even further down the file.
+-- declared as a local slot, then assigned after `exitWorldMC`, which its body
+-- references and which lives further down the file.
 -- ============================================================================
 
--- Forward declaration — assigned inside toggle() after its upvalues (exitWorldMC,
+-- Forward declaration — assigned further down, once its upvalues (exitWorldMC,
 -- getWorldActiveScroll) are in scope. Kahlua closures cannot capture locals
 -- declared below them, so the slot is reserved here and filled lower in the
 -- file.
 local _switchWorldTabForNav
 
--- Forward-declared so container onConfirm can reference it. Assigned below
--- after the definition.
+-- The main list's row builder, forward-declared with the others and assigned
+-- further down (its callers, toggle() and the per-frame refresh, sit below it).
 local _buildWorldInvRowFocusables
 
 -- Forward declarations for the ring-sync helpers and builders that
@@ -420,10 +423,9 @@ _buildWorldLootFocusables = function(win)
         }
     end
 
-    -- Elements 2..N: non-floor containers in listEntries display order.
-    -- Replicate drawWorldContainerStrip's listEntries build + sort so focus
-    -- element y-coords track the actual rendered positions.
-    -- (the stored order the strip drew, not sorted again here)
+    -- Elements 2..N: the non-floor containers in the order the strip drew
+    -- them (its stored list, _worldStripListOrder, not sorted again here), so
+    -- each stop's y matches its button on screen.
     local listEntries = _worldStripListOrder(win)
 
     for pos, ci in ipairs(listEntries) do
@@ -622,8 +624,8 @@ local function _buildForageFocusables(win)
                         end
                     end
                     if d.hoveredIndex < 1 then d.hoveredIndex = 1 end
-                    -- Widget auto-resizes on next render via its own maxVis
-                    -- compute; we just flip the flag.
+                    -- The widget resizes itself on its next render (its own
+                    -- maxVis sum); only the flag flips here.
                 end
             end,
         }
@@ -778,8 +780,8 @@ local function _buildAnimalsFocusables(win)
                 id = "animals:submode:" .. tostring(z.id),
                 isSubmode = true,
                 submodeId = z.id,
-                -- as the Journal pills (GAMEPAD_SPEC.md): focus paints,
-                -- A switches the sub-mode.
+                -- as the Journal's pills: focus paints, A switches the
+                -- sub-mode.
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
                     local s = w._animalsState
@@ -805,9 +807,9 @@ local function _buildAnimalsFocusables(win)
         }
     end
 
-    -- 2b. Structures (HOOK_MAP.md 20-22): a zone's hutches and troughs, the
-    -- Butcher view's hooks (A opens the card), an animal's hutch, and the
-    -- genome editor (animal cheats). Each list exists only while its view is drawn.
+    -- 2b. Structures: a zone's hutches and troughs, the Butcher view's hooks
+    -- (A opens the card), an animal's hutch, and the genome editor (animal
+    -- cheats). Each list exists only while its view is drawn.
     for _, sz in ipairs(win._animalsStructZones or {}) do
         elements[#elements + 1] = {
             x = sz.x, y = sz.y, w = sz.w, h = sz.h,
@@ -980,11 +982,13 @@ local function _buildAnimalsFocusables(win)
     return elements
 end
 
--- Crafting tab focusables (World window). Routes through the shared
--- CraftingCore.buildFocusables helper with prefix="craft" + ZeD_CraftPins for
--- X-pin + the HandcraftLogic-backed startCraft for the BUILD button. State
--- (`win._craftState`) is created lazily by ZeD.CraftingTab.render on first
--- frame, so this wrapper returns {} until that state exists.
+-- Crafting tab focusables (World window). ZeD.CraftingTab.buildFocusables
+-- picks them: a station's own view, or the recipe list through the shared
+-- CraftingCore.buildFocusables (prefix "craft", ZeD_CraftPins for the X pin,
+-- the HandcraftLogic-backed startCraft behind the Craft button). The state
+-- (`win._craftState`) is made by ZeD.CraftingTab.render on the tab's first
+-- frame, so there are no stops until then. The direct CraftingCore call is
+-- the fallback for a CraftingTab without its own builder.
 local function _buildWorldCraftFocusables(win)
     if not (ZeD and ZeD.CraftingCore and ZeD.CraftingTab) then return {} end
     -- CraftingTab routes to the recipe view or a station's own view
@@ -1017,11 +1021,12 @@ _buildWorldPanelFocusables = function(win, content, tabId)
     if tabId == "animals" then return _buildAnimalsFocusables(win)     end
     if tabId == "craft"   then return _buildWorldCraftFocusables(win)  end
     if tabId == "build"   then return _buildWorldBuildFocusables(win)  end
-    -- Maps canvas annotation tools. MapsTab owns the builder —
-    -- returns [disclosure, pinned tools, text tool, colors, grid tools,
-    -- canvas cursor]. Mouse hit-zone tables are populated each frame by
-    -- the Maps renderer; the builder reads them as the source of truth
-    -- for bounds, so builder + render stay in lock-step.
+    -- Maps canvas annotation tools. MapsTab owns the builder: the
+    -- disclosure, the header's tools and colors, the pop-out button, the
+    -- full set of marks while the fold is open, other mods' controls, the
+    -- canvas cursor, then the band. Mouse hit-zone tables are populated each
+    -- frame by the Maps renderer; the builder reads them as the source of
+    -- truth for bounds, so builder + render stay in lock-step.
     if tabId == "maps" then
         if ZeD and ZeD.MapsTab and ZeD.MapsTab.buildFocusables then
             return ZeD.MapsTab.buildFocusables(win)
@@ -1325,8 +1330,8 @@ local function _rebuildWorldMCRingZones(win)
         end
     end
 
-    -- Restore _focusIdx by name. If the previously-focused zone was a removed
-    -- worldMC<n>, fall back to worldContainerStrip (idx 1).
+    -- Restore _focusIdx by name. If the focused zone was a column that is now
+    -- gone, land on the main list (worldMainInv) when it can take focus.
     if focusedName then
         local found = nil
         for i, z in ipairs(ring) do
@@ -1335,7 +1340,7 @@ local function _rebuildWorldMCRingZones(win)
         if found then
             win._focusIdx = found
         elseif focusedName:match("^worldMC%d+$") then
-            -- Old MC zone gone — likely user just exited MC. Land on inv.
+            -- The column's zone is gone (the columns closed, or one was dropped).
             for i, z in ipairs(ring) do
                 if z.zone == "worldMainInv" and z.focusable then
                     win._focusIdx = i; break
@@ -1527,8 +1532,8 @@ end
 -- World Window item card action strip focusables. Same shape as the
 -- Character window builder: delegates to the card organism, which stamps live
 -- toggle + verb button rects each frame. Returns {} when the card isn't
--- visible. Note: on non-Loot tabs, the card OVERLAYS the tab drawer while
--- `_drawerMode` stays "tab" — gate on `_drawerItem` presence instead.
+-- visible. On non-Loot tabs the card OVERLAYS the tab drawer while
+-- `_drawerMode` stays "tab", so the gate is `_drawerItem`, not the mode.
 --
 -- Each card button gets:
 --   * onDpadDir — D-pad U/D scrolls card content by disclosure (preserves
@@ -1614,8 +1619,12 @@ local function getWorldTabDrawerW(tab)
     return WORLD_TAB_DRAWER_WIDTHS[tab] or DRAWER_W
 end
 
--- Tab content renderers
+-- Tab content renderers, by tab id (each tab module registers its own below)
 local WORLD_TAB_RENDERERS = {}
+--- Adds a tab from another file (the def's fields are listed above
+--- ZeD_WorldWindow._extTabs). It goes in after the tab def.after names, else
+--- last; its drawer is def.drawerW wide, else the full card. A second call
+--- with the same id is ignored.
 function ZeD_WorldWindow.addTab(def)
     if ZeD_WorldWindow._extTabs[def.id] then return end
     ZeD_WorldWindow._extTabs[def.id] = def
@@ -1670,8 +1679,9 @@ local ICON_FALLBACKS = {
 }
 
 
--- A container with no picture of its own shows the game's own box (its cardboard box / crate icon), never a letter
--- glyph — a letter reads as modern UI and breaks the 1993 look. Shared by both windows' strips.
+--- The picture for a container with none of its own: the game's own box (its
+--- cardboard box / crate icon), never a letter glyph — a letter reads as modern
+--- UI and breaks the 1993 look. Shared by both windows' strips.
 ZeD.genericContainerTex = ZeD.genericContainerTex or function()
     local I = ContainerButtonIcons
     return I and (I.cardboardbox or I.crate or I.smallbox) or getTexture("media/ui/Container_Crate.png")
@@ -1746,8 +1756,8 @@ end
 -- The strip, when it scrolls, brings the tab that matters into view: the controller's focused
 -- tab, else the active one. Only when that tab changes (a new focus, a new active tab, the
 -- strip just starting to scroll), so the wheel and the arrows can still look elsewhere.
--- (At 1280x720, UI scale 2.0, Large text a controller moving down
--- past Maps focused Forage, Animals, Radio, Vehicle out of sight.)
+-- (Without it, at 1280x720, UI scale 2.0 and Large text, a controller moving
+-- down past Maps focuses Forage, Animals, Radio and Vehicle out of sight.)
 local function worldTabStripFollow(win, viewH, scrollOff, maxScroll, focusedId)
     local tgt = focusedId or win._activeTab
     local isPad = focusedId ~= nil
@@ -1871,7 +1881,7 @@ local function drawWorldTabStrip(self, win)
     local curY      = -scrollOff
     local lastGroup = 1
 
-    -- Resolve active tab (show _tabUnder visually when card overlays)
+    -- The tab drawn as active: the open tab (a card over its drawer leaves it lit)
     local visualActive = win._activeTab
 
     for _, tab in ipairs(WORLD_TABS) do
@@ -2151,6 +2161,8 @@ local function _worldRmbMenuItems(content, x, y, colIdx, colCs)
     return menuItems, true
 end
 
+-- The first extra column opens: the object card (unless pinned) and an item
+-- card close (a tab's drawer stays), the selection clears, the inventory shows.
 local function enterWorldMC(win, content)
     dropObjectCard(win)
     if win._drawerMode == "item" then
@@ -2168,6 +2180,8 @@ local function enterWorldMC(win, content)
     win._invDrawerOpen = true
 end
 
+-- Back to one list: the columns close, the list shows again, and the window
+-- snaps to its base width (an open drawer keeps its own).
 exitWorldMC = function(win, content)
     local T = ZeD.T
     win._mcSelected = {}
@@ -2272,14 +2286,17 @@ mcToggleWorldContainer = function(win, content, cIdx)
     -- recent view-switch, so as a stand-in for "is this the floor" it sent
     -- every non-floor toggle down this branch, which silently picked
     -- containers[1] as the first MC entry with no way to add more
-    -- (subsequent toggles just flipped _mainVisible).
+    -- (subsequent toggles only flipped _mainVisible).
     if containers[cIdx].isFloor then
-        -- (The floor lit means the floor is listed, as main is in the Character window. A world
-        -- click, a pad tap or a view come back to Loot leaves a crate the selection, so the branches here took a crate's
-        -- list for the floor's and the floor could not be brought back; a press on a floor that does not show shows it.)
+        -- The floor counts as shown only while it is visible AND the selection
+        -- (as main is in the Character window). A click in the world, a pad tap
+        -- or a viewed container coming back to Loot can leave a crate as the
+        -- selection; reading that as the floor would take the crate's list for
+        -- the floor's, and the floor could not be brought back. A press on a
+        -- floor that is not shown shows it.
         if win._mainVisible and win._activeContainer == cIdx then
             if #(win._mcSelected) > 0 then
-                -- MC active: just hide floor
+                -- MC active: hide the floor only
                 win._mainVisible = false
             else
                 -- No MC: auto-select first non-floor container, then hide floor.
@@ -2312,7 +2329,7 @@ mcToggleWorldContainer = function(win, content, cIdx)
             return
         end
     else
-        -- Non-active container: toggle in/out of MC selection
+        -- A non-floor container: toggle it in or out of the columns
         local selected = win._mcSelected
         local wasEmpty = #selected == 0
 

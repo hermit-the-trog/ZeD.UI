@@ -3,8 +3,8 @@
 -- ITEM FACTS PANEL REGISTRY - client; data only, no drawing.
 -- Five item-type Facts panels - each a factory taking (item) and returning
 -- a structured panel description, or nil if the item is not its target
--- type. The ItemCard organism queries the registry via factsFor(item) -
--- it never branches on item class itself.
+-- type. The ItemCard organism gets an item's facts through factsFor(item)
+-- instead of branching on item class itself.
 --
 -- Factory return shape:
 --   nil  → this panel doesn't apply to the item
@@ -331,7 +331,7 @@ function M.ReadingFacts(item)
     end
 
     -- ReadMarks holds the game's own test (a skill book past your level counts as
-    -- read). compute, not state: state stays off while read marks are off in setup.
+    -- read). It asks compute, not state: state answers nil while read marks are off in setup.
     local alreadyRead  = false
     local marks = ZeD.ReadMarks
     if player and marks and marks.compute then

@@ -1,11 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/WatchMini.lua
 -- ============================================================================
--- THE MINI WATCH ON THE BELT (Oct 19 2026, mockup ZeDUI/mockups/zed_belt_watch_v1;
--- director: "watch move opposite the belt on the primary, secondary icons. left
--- of primary, right of secondary depending on wrist")
+-- THE MINI WATCH ON THE BELT (client; a draw helper ZeD_Belt calls)
 --
--- The worn watch, small, outside the hand circle of its wrist (ZeD_Belt lays
--- it out). Its case is pixel art made by ZeDUI/tools/physpx/d_miniwatch.py,
+-- The worn watch, small, beside its own hand on the belt: a left-wrist watch
+-- left of the off hand, a right-wrist one right of the main hand (ZeD_Belt
+-- lays it out). Its case is pixel art made by ZeDUI/tools/physpx/d_miniwatch.py,
 -- 44 x 46 texels, one per plate, with night and Indiglow variants; the time is
 -- drawn here, live, over the blank LCD or dial:
 --   digital  the time in seven segments, the alarm dot, three speed marks
@@ -14,16 +13,20 @@
 -- The pushers are the full watch's: SPEED and START on the case's sides (at 8
 -- and 4 o'clock on a round one), the crown lights a Timez; the face pops the
 -- full watch up (ZeD_Watch.lua), a second press tucks it back.
+-- Every position here is in texels of that art, drawn at the whole multiple
+-- T.art; M.hit's areas are texel boxes on the same art, so redrawn art means
+-- checking them.
 -- ============================================================================
 
 ZeD = ZeD or {}
 ZeD.WatchMini = ZeD.WatchMini or {}
 local M = ZeD.WatchMini
 
-M.W, M.H = 44, 46
+M.W, M.H = 44, 46   -- the art's size in texels
 local DIR = "media/textures/ZeD/physpx/mini/"
-local NEAREST = 3
+local NEAREST = 3    -- Texture flag: nearest filtering (the pixels stay square)
 
+-- "#rrggbb" to a colour table
 local function rgb(h)
     local n = tonumber(h:sub(2), 16)
     return { r = math.floor(n / 65536) / 255, g = (math.floor(n / 256) % 256) / 255, b = (n % 256) / 255 }

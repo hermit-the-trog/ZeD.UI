@@ -23,7 +23,7 @@
 --
 -- What it adds over vanilla:
 --   * one Find field across every page
---   * a dot on every option changed since the window opened
+--   * a dot on every option changed since the window opened (or the last Apply)
 --   * the option under the pointer (or the controller) explained in a panel
 --     at the bottom (vanilla's tooltips)
 --   * Back with changes asks in the band at the foot: Keep editing or Discard changes
@@ -1715,9 +1715,10 @@ function ZeD_MMOptions:render()
     self._paletteRect = { x = ax + px, y = ay + py, w = pw, h = ph }
 end
 
--- ACTIVATING A ROW (A on a controller, Space / Return on the keyboard) ---------------
+-- ACTIVATING A ROW (A on a controller; on the keyboard Return is Apply, see keyOther) ---------------
 --- A row's main action: ZeD setup's controls step to their next choice, a drop-down or the
---- palette opens, a tick flips, a key starts binding, a chord opens its list. A dimmed row does nothing.
+--- palette opens, a tick flips, a key starts binding, a chord opens its list. A moot row, or one
+--- waiting on another switch, does nothing.
 function ZeD_MMOptions:activateRow(r)
     if r.moot or needsOff(r) then return end   -- does nothing with ZeD active, or waits on another switch: inert here too
     local c = r.control

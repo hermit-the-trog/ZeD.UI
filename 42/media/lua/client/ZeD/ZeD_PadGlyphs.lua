@@ -1,9 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_PadGlyphs.lua
 -- ============================================================================
--- THE CONTROLLER'S BUTTONS AS PICTURES (director, Oct 24 2026: "are we going
--- to use graphic icons for gamepad buttons. I think we should to help with
--- quick glance identifying"; GAMEPAD_SPEC.md, Button pictures; mockup
--- ZeDUI/mockups/zed_quick_chords_v1.html, approved Oct 24 2026)
+-- THE CONTROLLER'S BUTTONS AS PICTURES. Client; draw helpers in the atom
+-- mould (no state but a picture cache), plus the HUD props' controller strip
+-- built from them. Used wherever a controller prompt shows: a picture is
+-- quicker to pick out at a glance than a button's name.
 --
 -- ZeD's own pixel art, not the game's 32 px outlines: every picture is a few
 -- design pixels, each drawn as a k x k block (ZeD_PixelParts' rule: whole
@@ -77,6 +77,9 @@ local NAMES = {
 -- ---------------------------------------------------------------------------
 local SETTING = { xbox = "xbox", ps = "ps", deck = "deck", nintendo = "nin" }
 local STYLE = { PS4 = "ps", STEAMDECK = "deck" }   -- the game's file prefixes (JoyPadSetup: initControllerButtonStyle)
+--- The picture set in use: "xbox" | "ps" | "deck" | "nin", or nil when the
+--- setting is Keyboard/mouse or Off (buttons then show as lettered boxes).
+--- Auto follows the game's controller button style, Xbox when it names none.
 function G.set()
     local key = (ZeD.Settings and ZeD.Settings.glyphKey and ZeD.Settings.glyphKey()) or "auto"
     if key == "auto" then
@@ -217,6 +220,8 @@ local ALIAS = { A = "A", B = "B", X = "X", Y = "Y", LB = "LB", RB = "RB", LT = "
     ["L-STICK"] = "LS", ["R-STICK"] = "RS", ["<>"] = "DLR", ["D-PAD"] = "DPAD", SELECT = "SEL", BACK = "SEL", VIEW = "SEL", START = "START", MENU = "START",
     ["\226\134\144"] = "DL", ["\226\134\146"] = "DR", ["\226\134\145"] = "DU", ["\226\134\147"] = "DD" }
 G.ALIAS = ALIAS
+--- A prompt's glyph text as roles ("RT LT" -> { "RT", "LT" }; ALIAS also reads
+--- words such as "SELECT" and the arrows), nil when any word is not a button.
 function G.roles(str)
     if type(str) ~= "string" or str == "" then return nil end
     local one = ALIAS[str]
@@ -233,9 +238,11 @@ end
 -- ---------------------------------------------------------------------------
 -- sizes and drawing
 -- ---------------------------------------------------------------------------
--- the whole multiple that makes a 13-pixel picture about h px tall
+--- The whole multiple that makes a 13-pixel picture about h px tall.
 function G.k(h) return math.max(1, math.floor((tonumber(h) or 13) / 13 + 0.25)) end
 
+--- The pictures' width side by side at multiple k, one k between them (set:
+--- G.set() when nil).
 function G.width(roles, k, set)
     set = set or G.set()
     if not (set and roles) then return 0 end
@@ -260,8 +267,9 @@ local function isLight(T)
     return b and (b.r + b.g + b.b) > 1.5
 end
 
--- the pictures side by side, each centred in a strip h tall at y; panel:drawRect only. pal: the colours for the
--- ink, paper and rim (text, surf3, surf1, base), ZeD.T when nil (the survival guide's book passes its ink on paper)
+--- The pictures side by side, each centred in a strip h tall at y; panel:drawRect only. pal: the colours for the
+--- ink, paper and rim (text, surf3, surf1, base), ZeD.T when nil (the survival guide's book passes its ink on paper).
+--- Returns the width drawn.
 function G.draw(panel, roles, x, y, h, k, set, pal)
     set = set or G.set()
     if not (set and roles and panel and panel.drawRect) then return 0 end
@@ -291,11 +299,12 @@ end
 -- in F2, 8u between prompts. A plain string is a dim note. When the prompts do not fit the strip,
 -- the leftmost go first, as in the help line. The callers show it only while the pad has the prop.
 --   G.stripH()                                the strip's height (22u, the help line's)
+--   G.stripW(prompts)                         the width the prompts need, margins included
 --   G.drawStrip(panel, x, y, w, prompts)      prompts = { "D-PAD Move", { glyph = "A", label = "Press" }, ... }
 -- ---------------------------------------------------------------------------
 local STRIP_H, PIC_H = 22, 14
 function G.stripH() return ZeD.T.px(STRIP_H) end
--- the width drawStrip needs for these prompts (its 10u margins included)
+--- The width drawStrip needs for these prompts (its 10u margins included).
 function G.stripW(prompts)
     local T, tm = ZeD.T, ZeD.TM
     local f2, f5 = T.fontF2, T.fontF5
@@ -318,6 +327,7 @@ function G.stripW(prompts)
 end
 
 local _sw, _sr, _sg = {}, {}, {}   -- the prompts' widths, roles and picture widths (reused each frame)
+--- Draw the controller strip (the banner above says how) at x, y, w wide.
 function G.drawStrip(panel, x, y, w, prompts)
     local T, tm = ZeD.T, ZeD.TM
     local h = G.stripH()
@@ -399,7 +409,7 @@ local function mini(role, set)
     end
     return nil, nil, (NAMES[set] and NAMES[set][role]) or role
 end
--- its width in lettering pixels
+--- A small picture's width in lettering pixels.
 function G.miniWidth(role, set)
     set = set or G.set()
     if not set then return 0 end
@@ -407,8 +417,8 @@ function G.miniWidth(role, set)
     if rows then return #rows[1] end
     return (ZeD.Px and ZeD.Px.textWidth(word, "35", 1)) or (#word * 4 - 1)
 end
--- draws it on a ZeD_PixelParts canvas at lettering pixel (x, y), with the lettering's ink and
--- shadow (both colour tables or "#rrggbb"); returns the width
+--- Draw a small picture on a ZeD_PixelParts canvas at lettering pixel (x, y), with the lettering's ink and
+--- shadow (both colour tables or "#rrggbb"); returns the width.
 function G.drawMini(cv, role, x, y, ink, shadow, set)
     set = set or G.set()
     if not set then return 0 end
@@ -430,7 +440,7 @@ function G.drawMini(cv, role, x, y, ink, shadow, set)
     return #rows[1]
 end
 
--- the button's name on this pad, for words ("Hold L1 and press Square")
+--- The button's name on this pad, for words ("Hold L1 and press Square").
 function G.name(role, set)
     set = set or G.set() or "xbox"
     local n = NAMES[set] and NAMES[set][role]

@@ -1581,8 +1581,9 @@ function ZeD_ItemCard:getActionStripElements()
     -- Progress Band cancel as a leading focusable. Only present
     -- when an action is active (Manager.getActiveAction != nil); it heads the
     -- list, and A on it cancels (a move into the card still lands on the
-    -- primary verb, Focus.landOnPrimary). Every rect here is ABSOLUTE, like toggleRects / verbRects / the zone
-    -- docks; the window converts them to drawer-local.
+    -- primary verb, Focus.landOnPrimary). Every rect here is ABSOLUTE, like
+    -- toggleRects / verbRects / the zone docks; the window converts them to
+    -- drawer-local.
     if self._cancelRect and ZeD.ItemActionManager
        and ZeD.ItemActionManager.getActiveAction
        and ZeD.ItemActionManager.getActiveAction(item) then

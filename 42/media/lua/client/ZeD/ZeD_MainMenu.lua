@@ -26,9 +26,9 @@
 --
 -- How it hangs together. Overrides/MainMenu.lua hooks vanilla's MainScreen and
 -- calls in here (MM.attach, MM.afterPrerender, MM.joyDown / joyDir /
--- keyRelease). Every item runs vanilla's own handler
--- (MainScreen.onMenuItemMouseDownMainMenu with vanilla's item); vanilla's
--- labels stay alive, parked off-screen. Load Game and New Game
+-- keyRelease). An item opens its ZeD window, or, where vanilla's screen still
+-- does the job, runs vanilla's own handler (MainScreen.onMenuItemMouseDownMainMenu
+-- with vanilla's item); vanilla's labels stay alive, parked off-screen. Load Game and New Game
 -- (ZeD_MainMenuSaves), Mods, Options, the desktop's icons and the sticky note
 -- are made by name in ZeD_MMDesk:createChildren; every other window registers
 -- itself with MM.addView, and MM.showView puts one view on the monitor at a
@@ -966,7 +966,8 @@ function MM.pauseInfo()
 end
 
 -- ---------------------------------------------------------------------------
--- ACTIONS (each runs vanilla's handler with vanilla's item)
+-- ACTIONS: a ZeD window or page where one stands in; otherwise vanilla's handler with
+-- vanilla's item (fire), as when the item is clicked
 -- ---------------------------------------------------------------------------
 local function fire(field)
     local m = ms()
@@ -1167,8 +1168,8 @@ function MM.pointer(ctx, panels)
 end
 
 -- ---------------------------------------------------------------------------
--- THE SCROLL BAR. The menus' lists
--- draw ZeD's own bar, ZeD_ScrollbarState: the arrows, the track, the thumb with its grip, their hover and press states.
+-- THE SCROLL BAR. The menus' lists draw ZeD's own bar, ZeD_ScrollbarState: the arrows, the track, the thumb with
+-- its grip, their hover and press states.
 -- p: the panel; key: the bar's id, one per list; x, y, w, h: the bar in the panel; scroll: px scrolled; total: the
 -- content's height; set(v): takes a new scroll (px). The panel's p._hits gets one hit over the bar: a press goes to the
 -- bar (an arrow steps and repeats while held, the track pages, the thumb drags). The wheel and the controller keep
@@ -1176,7 +1177,8 @@ end
 -- arrows (MM.qaNoArrows shows that on any list). opts: step (the list's row height: what an arrow moves), noHit (draw
 -- only), inDrop (a pull-down's bar).
 -- ---------------------------------------------------------------------------
-local BAR_REPEAT_MS = 300
+local BAR_REPEAT_MS = 300   -- an arrow held this long starts repeating
+--- Draw a list's scroll bar and lay its hit (the arguments are above). Returns the bar's state.
 function MM.scrollBar(p, key, x, y, w, h, scroll, total, set, opts)
     local T = ZeD.T
     local bars = p._zedBars
@@ -1227,9 +1229,9 @@ function MM.scrollBar(p, key, x, y, w, h, scroll, total, set, opts)
 end
 
 -- ---------------------------------------------------------------------------
--- CONTROLS ON THE LIBRARY. The menu has no FocusManager: a window of the
--- menu says for itself which element holds the controller's focus, and that a controller is
--- driving (MM.gamepad). Everything below hands the library those two facts.
+-- CONTROLS ON THE LIBRARY (ZeD's shared drawing parts). The menu has no FocusManager:
+-- a window of the menu says for itself which element holds the controller's focus, and that a
+-- controller is driving (MM.gamepad). Everything below hands the library those two facts.
 -- ---------------------------------------------------------------------------
 local _focusO = { focused = true }
 --- the ZeD.Focus.mark opts of the menu's focused element (win: the window, when the panel
@@ -1239,8 +1241,8 @@ function MM.focusOpts(win, solid)
     return _focusO
 end
 
---- A row, card or cell's wash (spec 5): the selected one at T.selectionA, a hovered one at
---- T.hover, never both. Drawn under the words.
+--- A row, card or cell's wash: the selected one at T.selectionA, a hovered one at T.hover,
+--- never both. Drawn under the words.
 function MM.rowWash(p, x, y, w, h, selected, hot)
     local T = ZeD.T
     if selected then
@@ -1344,7 +1346,7 @@ local function drawBtn(p, b, hot, focus, pressed)
 end
 
 -- ---------------------------------------------------------------------------
--- THE BAND AT A WINDOW'S FOOT (spec 8): every screen's own actions, and the question that
+-- THE BAND AT A WINDOW'S FOOT: every screen's own actions, and the question that
 -- swaps them out. The library draws it (Molecules.drawBand); this sets it up for the menu:
 -- hover and press from the menu's pointer, the focus mark from the window's focusId, and the
 -- specs the controller walks (row, col left to right). It is drawn in the window's prerender,
@@ -1354,6 +1356,8 @@ end
 -- when a status colour is given).
 -- ---------------------------------------------------------------------------
 local _bandSpec = {}
+--- Draw win's band at y, w wide, and add its buttons to the window's specs on controller row `row`.
+--- Returns the band's height.
 function MM.band(win, y, w, row, buttons, ask, plain, statusColor)
     local M = ZeD.Molecules
     local ctx = (win.pctx and win:pctx()) or MM.ctx
@@ -1396,6 +1400,7 @@ local BAND_HELP = {
     save = "UI_ZeD_MMHelp_Save", rename = "UI_ZeD_MMHelp_Rename", rewind = "UI_ZeD_MMHelp_Rewind",
     fast = "UI_ZeD_MMHelp_Fast", play_pause = "UI_ZeD_MMHelp_PlayPause", empty = "UI_ZeD_MMHelp_EmptyTrash",
 }
+--- The footer line's words for a band button's id, or nil when it has none.
 function MM.helpFor(id)
     local k = BAND_HELP[id]
     return k and ZeD.tr(k) or nil
@@ -1416,7 +1421,7 @@ function MM.bandFieldX(label)
     return T.px(8) + textW(T.fontF2, label or "") + T.px(10)
 end
 
---- a window's band buttons answer here: their hit boxes, the pointer's side
+--- Lay hit boxes over a window's band buttons, so the pointer can press them.
 function MM.bandHits(win)
     local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
     for _, b in ipairs(win._specs) do
@@ -1510,7 +1515,7 @@ function ZeD_MMDesk:prerender()
     MM.framingTick(now())
     local L = MM.layout()
     if self.width ~= L.sw or self.height ~= L.sh then self:setWidth(L.sw); self:setHeight(L.sh) end
-    -- the root scale follows the screen at the menu too (no OnTick here)
+    -- the root scale follows the screen at the menu too (no OnTick here: checked every 30 frames)
     local S = ZeD.Scale
     if S and S.refresh then
         self._scaleTick = (self._scaleTick or 0) + 1
@@ -1627,9 +1632,9 @@ end
 
 -- The ZeD menu's About block. The boilerplate is about the fictional Zero Day OS
 -- kernel the owner of this desk and computer built — half crazy idealist, half
--- prepper, never a feature list. Their words, then a few
--- live facts the way an About This Macintosh box gives them. The game's build shows here
--- and nowhere else on the menu.
+-- prepper, never a feature list. Their words, then a few live facts the way an
+-- About This Macintosh box gives them. The game's build shows here and nowhere
+-- else on the menu.
 local ABOUT_W = 340   -- design units: the block's text width
 -- The owner's words, typed by the owner. Kept rough on purpose — it should sound
 -- disorganized: the spelling, the missing apostrophes, the run-on, the asides.
@@ -1860,15 +1865,12 @@ function MM.dropWheel(del)
 end
 
 -- ============================================================================
--- THE GLASS (scanlines and the tube's edge) and the power button's label
--- ============================================================================
--- ============================================================================
--- THE WAKE-UP. At boot the engine is
--- still streaming loose textures when the menu first draws: the menu bar and the windows
--- showed for about 2.6 s over the bare margin colours before the desk and the wallpaper
--- arrived. This panel, the desk's last child, keeps the whole screen dark until those
--- pictures are ready, then fades the room up. Back from a game they are already loaded,
--- and it steps aside at once.
+-- THE WAKE-UP. At boot the engine is still streaming loose textures when the menu
+-- first draws: without this panel the menu bar and the windows would show for about
+-- 2.6 s over the bare margin colours before the desk and the wallpaper arrive. This
+-- panel, the desk's last child, keeps the whole screen dark until those pictures are
+-- ready (or WAKE_GIVE_UP_MS has passed), then fades the room up. Back from a game they
+-- are already loaded, and it steps aside at once.
 -- ============================================================================
 local WAKE_FADE_MS, WAKE_GIVE_UP_MS = 450, 10000
 local function texReady(path, smooth)
@@ -1929,6 +1931,9 @@ function ZeD_MMWake:prerender()
 end
 function ZeD_MMWake:render() end
 
+-- ============================================================================
+-- THE GLASS (scanlines and the tube's edge) and the power button's label
+-- ============================================================================
 ZeD_MMGlass = ISPanel:derive("ZeD_MMGlass")
 
 function ZeD_MMGlass:new()
@@ -1941,13 +1946,13 @@ function ZeD_MMGlass:new()
     return o
 end
 
--- A press on a text field goes through the glass to the field itself. The glass
--- sits over every window and took every press, so a field took the keys only where its window
--- had laid a hit box that focuses it; the description editor and the Workshop form had none, and
--- typing went nowhere. Now the field answers the press the way the game's own fields do: it takes
--- the keys, puts the caret where it was pressed and selects with a drag. Everything else stays on
--- the glass for ZeD's hit boxes, and so does a press on a field that some other box covers (a
--- pop-up drawn over it, an open menu).
+-- A press on a text field goes through the glass to the field itself. The glass sits over every
+-- window and takes every press, so otherwise a field would take the keys only where its window
+-- laid a hit box that focuses it (the description editor and the Workshop form lay none). The
+-- field answers the press the way the game's own fields do: it takes the keys, puts the caret
+-- where it was pressed and selects with a drag. Everything else stays on the glass for ZeD's hit
+-- boxes, and so does a press on a field that some other box covers (a pop-up drawn over it, an
+-- open menu).
 local function isEntry(c)
     return c.javaObject ~= nil and c.getInternalText ~= nil and c.setMultipleLine ~= nil
 end
@@ -1970,6 +1975,8 @@ local function entryAt(p, mx, my)
     end
     return nil
 end
+--- The text field the glass hands a press at (mx, my) to, or nil. ZeD_MainMenuNotes.lua wraps this for the
+--- sticky note's field.
 function MM.entryUnder(mx, my)
     if MM.ctx.open or MM.waking or MM.powerOff or MM.poweringOn() or blocked() then return nil end
     local w = MM.activeWindow()
@@ -2069,10 +2076,10 @@ function ZeD_MMWindow:new(kind)
 end
 
 -- On the monitor the desk's glass lies over every window and holds the pointer, so the
--- engine never reports it over a window and the frame's theme, accent and text-size
--- squares and its close box never answered. A window on the desk says for
--- itself: it is the one in view, the pointer is inside it, and no pull-down lies over it.
--- In game (no glass) the engine's test stands.
+-- engine never reports it over a window, and the frame's own boxes (the close box, the
+-- window box) would never answer. A window on the desk says for itself: it is the one in
+-- view, the pointer is inside it, and no pull-down lies over it. In game (no glass) the
+-- engine's test stands.
 function ZeD_MMWindow:pointerOn()
     local desk = self.parent
     if not (desk and desk.glass and desk.glass:isVisible()) then return self:isMouseOver() end
@@ -2199,7 +2206,7 @@ function ZeD_MMWindow:build()
         end
     end
 
-    -- the band at the foot (spec 8): this screen's own buttons, or the question in their place;
+    -- the band at the foot: this screen's own buttons, or the question in their place;
     -- drawn in prerender (MM.band), the buttons' places are known once it has
     self._strip = { y = y, h = MM.bandH() }
     local cooling = isQuitCooldown and isQuitCooldown()
@@ -2249,8 +2256,8 @@ function ZeD_MMWindow:build()
     return specs
 end
 
--- the controller's focus: rows of live buttons (named focusRows: the Mods screen's
--- rows() is its list of mods and used to shadow this, leaving its D-pad dead)
+-- the controller's focus: rows of live buttons (named focusRows, not rows: the Mods screen's
+-- rows() is its list of mods, and would shadow a rows() here, leaving its D-pad dead)
 function ZeD_MMWindow:focusRows()
     local rows, byRow = {}, {}
     for _, s in ipairs(self._specs) do
@@ -2540,8 +2547,8 @@ function ZeD_MMWindow:onMouseWheel(del)
     return true
 end
 
--- The pause window's pages beyond Mods (MM.pages[name] = { W, label, build, band, draw, joyDir, wheel, leave }; the
--- page file opens them with MM.openPage): the page this window shows, if it is one of them
+-- The pause window's pages beyond Mods (MM.pages[name] = { W, label, build, band, draw, joyDir, wheel, leave,
+-- cancel }; ZeD_MainMenuPlayers.lua opens them with MM.openPage): the page this window shows, if it is one of them
 function MM.pageOf(win)
     local p = win and win.page
     return p and MM.pages and MM.pages[p] or nil
@@ -2583,7 +2590,8 @@ function ZeD_MMWindow:close()
 end
 
 function ZeD_MMWindow:update()
-    -- the frame's own controls (close box, theme squares) wait while a menu is open over them
+    -- the frame's own boxes (the close box, the window box) wait while a menu is open over them; a theme,
+    -- accent or text size that changes during the frame's update is saved with the mod's options
     local before = tostring(ZeD.currentBase) .. tostring(ZeD.currentAccent) .. tostring(ZeD.currentSize)
     if not (self.kind ~= "pause" and MM.ctx.open) and not blocked() then ZeD_Window.update(self) end
     local after = tostring(ZeD.currentBase) .. tostring(ZeD.currentAccent) .. tostring(ZeD.currentSize)
@@ -2594,6 +2602,8 @@ end
 -- ============================================================================
 -- ATTACHING TO VANILLA'S MainScreen (called from Overrides/MainMenu.lua)
 -- ============================================================================
+--- Build ZeD's menu on vanilla's MainScreen m as it is made: in game the pause window, the in-game Options
+--- (and Sandbox) windows and their pull-down; at the main menu the desk, with vanilla's screens redirected.
 function MM.attach(m)
     if m.inGame then
         local w = ZeD_MMWindow:new("pause")
@@ -2636,7 +2646,7 @@ function MM.attach(m)
             if S._appliedRoot and math.abs(S._appliedRoot - r) > 0.001 then ZeD.applyTheme() end
         end
         MM.refresh()
-        -- vanilla's debug scenario list sat over the logo; it is in the Debug menu now
+        -- vanilla's debug scenario list would sit over the logo; it opens from the Debug menu instead
         local ds = DebugScenarios and DebugScenarios.instance
         if ds then ds:setVisible(false) end
         -- Every vanilla way back to New Game or Load (map / spawn's BACK, character creation's
@@ -2698,7 +2708,8 @@ function MM.showView(view, joypadData)
     if jd then jd.focus = m; updateJoypadFocus(jd) end
 end
 
---- A vanilla screen takes over (map / spawn, mods, ...): the desk steps aside.
+--- A vanilla screen takes over (a ZeD window handing on to the game's next step, or to one of the game's own
+--- pages): vanilla's bottom panel hides, and the desk steps aside with it.
 function MM.toVanilla()
     MM.ctx.open = nil
     if MM.respawn then return end   -- (in game the bottom panel is the pause menu's: it stays as it is)
@@ -2721,14 +2732,16 @@ function MM.activeWindow()
     return r.win
 end
 
---- A later screen's window on the monitor: its view name, the desk's field for it, a
---- maker (called when the desk builds, after every module has loaded), and the MainScreen
---- field of the vanilla screen it stands in for (its setVisible(true) lands on the view).
 MM.views = MM.views or {}
+--- Is this view registered, and has the desk built its window?
 function MM.hasView(view)
     for _, v in ipairs(MM.views) do if v.view == view then return MM.root ~= nil and MM.root[v.field] ~= nil end end
     return false
 end
+--- Put a screen file's window on the monitor: its view name, the desk's field for it, a maker (called when
+--- the desk builds, after every file has loaded), and optionally the MainScreen field of the vanilla screen
+--- it stands in for: that screen's setVisible(true) lands on the view (MM.redirect), or with mirror the view
+--- follows it (MM.mirror; mirror is true, or the keep function MM.mirror describes).
 function MM.addView(view, field, make, screen, mirror)
     for _, v in ipairs(MM.views) do
         if v.view == view then v.field, v.make, v.screen, v.mirror = field, make, screen, mirror; return end   -- a Lua reload replaces it
@@ -2801,7 +2814,7 @@ function MM.afterPrerender(m)
         end
     end
     if up then
-        m.bottomPanel:setX(-20000)   -- vanilla's labels stay alive (their items drive every action) but out of sight
+        m.bottomPanel:setX(-20000)   -- vanilla's labels stay alive (fire runs their items; they say which items exist) but out of sight
         MM.hideExtras(m)
     end
 end
@@ -2811,6 +2824,8 @@ end
 -- pull-down takes the D-pad, A and B first; otherwise the view's window does
 -- (joyA / joyB / joyX / joyY / joyDir).
 -- ---------------------------------------------------------------------------
+--- The window the controller and keys go to: the pause window or its Options / Sandbox in game, else the
+--- view's window. m is MainScreen, or Overrides/Respawn.lua's stand-in for the desk after a death.
 function MM.window(m)
     if m.respawn then return MM.activeWindow() end   -- (the desk after a death: Overrides/Respawn.lua)
     if m.inGame then
@@ -2821,6 +2836,7 @@ function MM.window(m)
     return MM.activeWindow()
 end
 
+--- A controller button: an open pull-down takes A and B, else MM.window(m)'s joy handlers do.
 function MM.joyDown(m, button)
     if MM.ctx.open then
         local live = MM.dropLive()
@@ -2848,6 +2864,8 @@ function MM.joyDown(m, button)
     end
 end
 
+--- A D-pad press ("up" / "down" / "left" / "right"): an open pull-down takes up and down (its rows wrap
+--- round), else the window moves its focus.
 function MM.joyDir(m, dir)
     if MM.ctx.open then
         local n = #MM.dropLive()

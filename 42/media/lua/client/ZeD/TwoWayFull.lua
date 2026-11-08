@@ -17,6 +17,8 @@
 -- Controller: it takes focus while open. The D-pad walks the controls (up /
 -- down on a knob turns it), A presses, X stores or names, B closes and gives
 -- focus back to the window it was opened from.
+-- The drawing and every verb live in TwoWayFace.lua; this file places the
+-- face, passes input to it and closes it.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -50,7 +52,7 @@ function ZeD_TwoWayFull:new(character)
     o.moveWithMouse = false
     o.character = character
     o.playerNum = character:getPlayerNum()
-    o._zedLabel = "TwoWayFull"
+    o._zedLabel = "TwoWayFull"   -- the name the focus manager and safe mode call this panel by
     o.focusId = nil
     o._hits = {}
     o._press = nil         -- { id, t0, fired } while a key is held down
@@ -137,6 +139,7 @@ function ZeD_TwoWayFull:prerender()
         hoverId = (not joy) and self._hover or nil, pressId = self._press and self._press.id or nil, own = true })
     self._hits = hits
     self.st = st
+    -- (the controller starts on the first control in reading order)
     if joy and not self:focused() and hits[1] then self.focusId = TW.readingOrder(hits, k)[1].id end
     if stripH > 0 then
         local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_RadioPrompt_Move") } }
@@ -154,6 +157,7 @@ end
 function ZeD_TwoWayFull:update()
     ISPanel.update(self)
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
+    -- (F.qaJoy: the controller look without a controller, for testing)
     self.joyfocus = (jd and jd.focus == self) and jd or (F.qaJoy and {} or nil)
     local h = TW.hitAt(self._hits, self:getMouseX(), self:getMouseY())
     self._hover = h and h.id or nil
@@ -203,6 +207,7 @@ function ZeD_TwoWayFull:onMouseUp(x, y)
     if d then
         self._drag = nil
         self:setCapture(false)
+        -- a real drag (2 px or more) keeps the new place, in design units
         if math.abs(d.nx - d.x) + math.abs(d.ny - d.y) >= 2 then
             local sc = (ZeD.T and ZeD.T.scale) or 1
             self.character:getModData().ZeD_TwoWayFull = { x = self:getX() / sc, y = self:getY() / sc }
@@ -230,7 +235,8 @@ function ZeD_TwoWayFull:onRightMouseDown(x, y)
 end
 function ZeD_TwoWayFull:onRightMouseUp(x, y) return true end
 
--- the wheel turns the knob under the pointer (a fast spin goes further per click)
+-- the wheel turns the knob under the pointer (a fast spin goes further per click:
+-- clicks under 110 ms apart build the streak TW.turnMult reads)
 function ZeD_TwoWayFull:onMouseWheel(del)
     local h = TW.hitAt(self._hits, self:getMouseX(), self:getMouseY())
     if h and h.knob then
@@ -259,6 +265,8 @@ function ZeD_TwoWayFull:moveFocus(dx, dy)
     if best then self.focusId = best.id; sound("UISelectListItem") end
 end
 
+-- up / down on a knob: presses under 260 ms apart build a streak, so a held
+-- D-pad spins the tuning knob faster
 function ZeD_TwoWayFull:dirTurn(dir)
     local t = now()
     local k = self._padTurn or { t = 0, streak = 0 }
