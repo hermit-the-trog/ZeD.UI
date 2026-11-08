@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/minsidebar_manifest.txt: Minimal Sidebar (minsidebar_mods.txt) with ZeD last (batch_minsidebar.ps1)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_minsidebar.lua | msb | timeout=300
