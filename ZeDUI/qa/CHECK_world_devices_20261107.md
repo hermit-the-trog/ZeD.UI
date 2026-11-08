@@ -2,7 +2,13 @@
 
 What changed: every way into the game's radio window, its animal info window and its livestock zone window now opens the ZeD screen that already shows the same thing (VANILLA_WINDOWS_20261107.md rows B1, B4 and B5). The TV and house radio still use today's radio card; their own faces come when design draws them.
 
-Code: `ZeD/WorldRoutes.lua` (where each goes), `ZeD/Overrides/RadioWindow.lua`, `ZeD/Overrides/Animals.lua`, `ZeD/RadioTab.lua` (pinned devices, the tab staying on its radio). Sim: `lua51 ZeDUI/tools/qa/world_routes_sim.lua` (88 checks, 0 failed at commit). Not opened in game yet.
+Code: `ZeD/WorldRoutes.lua` (where each goes), `ZeD/Overrides/RadioWindow.lua`, `ZeD/Overrides/Animals.lua`, `ZeD/RadioTab.lua` (pinned devices, the tab staying on its radio), `ZeD/AnimalsTab.lua` and `ZeD/ZeD_WorldWindow.lua` (the zone view's help button, the animal view's reach). Sim: `lua51 ZeDUI/tools/qa/world_routes_sim.lua` (128 checks, 0 failed at commit). Not opened in game yet. The hooked vanilla functions were re-read on Stable 42.21 (`ISRadioWindow.activate` / `:update`, `AnimalContextMenu.onAnimalInfo` / `onCheckZone`, `ISOpenAnimalInfo:perform`, `ISAnimalZoneFirstInfo.showUI`, `ISAnimalUI:prerender`): the same as 42.22's.
+
+## Build's calls on the three open questions (Nov 7 2026)
+
+1. **The game's first-time livestock zone note.** Still no pop-up: it never comes up on its own under ZeD's window. ZeD's zone view has a help button instead (the "?" icon at the right of the Animals heading, left of Sort): pointing at it (or the controller on it) puts the note's first sentence on the window's help line, and pressing it opens the game's whole note, in the game's own words (`IGUI_Animal_ZoneFirstInfo`), as a ZeD note with one OK. No new text: the button's name is ZeD's existing "Help". If ZeD's note can't be built, the game's own note opens.
+2. **The pinned far device.** The game's 10-tile reach stays, but only on the player's own floor: going up or down stairs drops the pin at once (whether or not the Radio tab is showing), and walking back does not bring it again. A device on another floor opens nothing (the game's window would have opened, since its reach reads only across the map, not up and down).
+3. **The third question (Build's reading).** The build's notes carried no written third question, so Build took the one open reach point the work left: an animal view opened by the game's Info on an animal outside the ranch. Decided the way that keeps the game's reach and stakes: an animal with no livestock zone (a wild animal, one in a trailer or in a hutch outside a zone) keeps the game's reach for its info window: 5 tiles from the animal, 4 from the hutch or trailer; a held animal stays; past it, or once the animal dies or leaves the world, the view steps back (to the overview). The debug cheat lifts it, as it does the game's. Animals in a zone stay in the ranch view from anywhere, as before (ZeD's own ranch, approved earlier).
 
 ## Setup
 
@@ -20,6 +26,9 @@ Code: `ZeD/WorldRoutes.lua` (where each goes), `ZeD/Overrides/RadioWindow.lua`, 
 | 1.3 | From 1.2, walk 3 tiles toward the TV and back. | The tab stays on the TV the whole time (it doesn't jump to another radio as the list re-sorts). |
 | 1.4 | From 1.2, walk more than 10 tiles away. Walk back. | The TV drops off the tab once you are past 10 tiles. Walking back does not bring it back unless it is within the usual reach (next to you). |
 | 1.5 | Right-click a TV more than 10 tiles away > Device Options. | The game's own behavior: its window opens and closes at once (nothing in ZeD). Note it if anything else happens. |
+| 1.5a | From 1.2 (TV pinned across the room), walk up the stairs, then come back down near the TV's room (within 10 tiles). | The TV drops off the tab as you go up and does not come back when you come down. |
+| 1.5b | Close the World window, open the TV again from across the room, close the window, go upstairs and back, open the Radio tab. | The TV is not on the list (the pin dropped while the window was closed). |
+| 1.5c | Upstairs, right-click a TV on the floor below (if the menu offers it, e.g. through an open stairwell) > Device Options. | Nothing opens: no ZeD tab, no game window. |
 | 1.6 | House radio (the wall or table radio of a house): left-click it, then right-click > Device Options. | Same as 1.1 and 1.2, on the house radio. |
 | 1.7 | Place a portable radio on the floor (Place Item). Right-click its floor item > Device Options. | Radio tab on that placed radio. |
 | 1.8 | With an item card open in the World window drawer (any furniture or a hutch card), left-click the TV. | The card closes and the Radio tab shows the TV. |
@@ -51,6 +60,9 @@ Code: `ZeD/WorldRoutes.lua` (where each goes), `ZeD/Overrides/RadioWindow.lua`, 
 | 4.3 | Hutch chicken: hutch card > a bird's INFO. | The bird's view (unchanged, but check it still works). |
 | 4.4 | A wild animal (debug or cheat, if your build shows Info on it). | The animal's view with no zone; Back goes to the overview. |
 | 4.5 | Trailer with an animal: Vehicle tab > trailer > animal > INFO. | The animal's view (the walk happens first if you are not at the trailer). |
+| 4.6 | From 4.4 (a wild animal's view), walk away or let it run off past 5 tiles. | The view steps back to the overview, as the game's window would close. |
+| 4.7 | From 4.5, walk more than 4 tiles from the trailer. | The view steps back. |
+| 4.8 | From 4.1 (a zone animal), walk far away. | The view stays (zone animals are the ranch's, seen from anywhere). |
 
 ## 5. Check zone (World window, Animals tab, the zone's view)
 
@@ -60,6 +72,9 @@ Code: `ZeD/WorldRoutes.lua` (where each goes), `ZeD/Overrides/RadioWindow.lua`, 
 | 5.2 | Draw a new empty zone, then right-click inside it > Check zone. | That new zone's view (not the overview). |
 | 5.3 | Controller: open the world menu with the pad inside a zone > Check zone. | Both windows open, the pad on the zone view's breadcrumb. |
 | 5.4 | With the Animals tab already on another zone, Check zone on a second zone. | The view switches to the second zone. |
+| 5.5 | In a zone's view, point at the "?" button left of Sort. | Its name "Help" after the delay; the help line reads the game note's first sentence ("Farm animals needs a Livestock Zone..."). |
+| 5.6 | Press the "?" button. | A ZeD note (striped bar, one OK) with the game's whole livestock zone note. OK closes it; nothing else changes. Try it at Deck size with Large text: the note scrolls if it does not fit. |
+| 5.7 | Controller: move to the "?" button, press A, then A on OK. | The note opens with the pad on OK; after OK the pad is back in the World window. |
 
 ## 6. Hand-backs
 
