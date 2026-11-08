@@ -1,13 +1,13 @@
-LOG  : General      f:0> 08-11-2026 10:08:20
+LOG  : General      f:0> 08-11-2026 10:26:42
 LOG  : General      f:0> SLF4J(I): Attempting to load provider "zombie.core.logger.Slf4jBridge" specified via "slf4j.provider" system property
 LOG  : General      f:0> ===== System specs =====
 LOG  : General      f:0> CPU: 11th Gen Intel(R) Core(TM) i9-11900K @ 3.50GHz, vendor: GenuineIntel, cores: 8, threads: 16
 LOG  : General      f:0> RAM: 65424 Mb
 LOG  : General      f:0> Base board: MPG Z490 GAMING EDGE WIFI (MS-7C79), vendor: Micro-Star International Co., Ltd.
 LOG  : General      f:0> GPU: NVIDIA GeForce RTX 4090, vendor: NVIDIA, video memory: 24564 Mb, driver: 32.0.16.1742
-LOG  : General      f:0> Disk info: 930.41 Gb, free space: 307.12 Gb, usable space: 307.12 Gb
+LOG  : General      f:0> Disk info: 930.41 Gb, free space: 307.10 Gb, usable space: 307.10 Gb
 LOG  : General      f:0> OS: Windows 11, version: 10.0, arch: amd64, build: 26300
-LOG  : General      f:0> JVM (free: 910 Mb, max: 3072 Mb, total available: 1024 Mb)
+LOG  : General      f:0> JVM (free: 912 Mb, max: 3072 Mb, total available: 1024 Mb)
 LOG  : General      f:0> ========================
 LOG  : General      f:0> java.specification.version=25
 LOG  : General      f:0> sun.cpu.isalist=amd64
@@ -228,20 +228,20 @@ LOG  : General      f:0> Desktop resolution 3840x2160
 LOG  : General      f:0> Initial resolution 3840x2160 fullScreen=true
 LOG  : General      f:0> OpenGL 1.5 buffer objects supported
 LOG  : General      f:0> VSync: ON
-LOG  : General      f:0> 1794161302244 fmod: Java loging: OK
-LOG  : General      f:0> 1794161302250 fmod: FMOD::Studio::System::create() result: No errors.
-LOG  : General      f:0> 1794161302250 fmod: FMOD::Studio::System::getCoreSystem() result: No errors.
-LOG  : General      f:0> 1794161302250 fmod: FMOD_System_GetVersion() result: No errors.
-LOG  : General      f:0> 1794161302250 fmod: fmodintegration built with version 20309, fmod shared library version 20309
-LOG  : General      f:0> 1794161302251 fmod: System Create: OK
-LOG  : General      f:0> 1794161302251 fmod: FMOD_System_SetSoftwareFormat() result: No errors.
-LOG  : General      f:0> 1794161302282 fmod: FMOD::Studio::System::Initialize() result: No errors.
-LOG  : General      f:0> 1794161302282 fmod: Creating DSP for capture sound
-LOG  : General      f:0> 1794161302282 fmod: FMOD_System_CreateDSP() result: No errors.
-LOG  : General      f:0> 1794161302284 fmod: FMOD_DSP_SetBypass() result: No errors.
-LOG  : General      f:0> 1794161302284 fmod: FMOD_System_GetMasterChannelGroup() result: No errors.
-LOG  : General      f:0> 1794161302284 fmod: FMOD_ChannelGroup_AddDSP() result: No errors.
-LOG  : General      f:0> 1794161302284 fmod: FMOD_System_Set3DSettings() result: No errors.
+LOG  : General      f:0> 1794162403830 fmod: Java loging: OK
+LOG  : General      f:0> 1794162403834 fmod: FMOD::Studio::System::create() result: No errors.
+LOG  : General      f:0> 1794162403834 fmod: FMOD::Studio::System::getCoreSystem() result: No errors.
+LOG  : General      f:0> 1794162403835 fmod: FMOD_System_GetVersion() result: No errors.
+LOG  : General      f:0> 1794162403835 fmod: fmodintegration built with version 20309, fmod shared library version 20309
+LOG  : General      f:0> 1794162403835 fmod: System Create: OK
+LOG  : General      f:0> 1794162403835 fmod: FMOD_System_SetSoftwareFormat() result: No errors.
+LOG  : General      f:0> 1794162403856 fmod: FMOD::Studio::System::Initialize() result: No errors.
+LOG  : General      f:0> 1794162403858 fmod: Creating DSP for capture sound
+LOG  : General      f:0> 1794162403858 fmod: FMOD_System_CreateDSP() result: No errors.
+LOG  : General      f:0> 1794162403858 fmod: FMOD_DSP_SetBypass() result: No errors.
+LOG  : General      f:0> 1794162403858 fmod: FMOD_System_GetMasterChannelGroup() result: No errors.
+LOG  : General      f:0> 1794162403858 fmod: FMOD_ChannelGroup_AddDSP() result: No errors.
+LOG  : General      f:0> 1794162403858 fmod: FMOD_System_Set3DSettings() result: No errors.
 ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
 ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
 ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
@@ -459,12 +459,12 @@ LOG  : General      f:0> Loading B42ChunkCaching2x.floor texture pack
 LOG  : General      f:0> texturepack: loading Clock2x
 LOG  : General      f:0> Loading Clock2x texture pack
 LOG  : General      f:0> Loading models and animations
-LOG  : General      f:0> 1794161321930 fmod: globalSystem = 0x9F34A128
-LOG  : General      f:0> 1794161321930 fmod: FMOD_System_GetRecordDriverInfo: nativeRate = 48000, nativeChannels = 8
-LOG  : General      f:0> 1794161321931 fmod: System create record sound: OK
-LOG  : General      f:0> 1794161321931 fmod: Create resampler: OK
-LOG  : General      f:0> 1794161321932 fmod: Create acoustic echo canceller: OK
-LOG  : General      f:0> 1794161321938 fmod: GetRecordNumDrivers id = 0, sound = 0x9872dd08 loop=1
+LOG  : General      f:0> 1794162435332 fmod: globalSystem = 0x44CA7DE8
+LOG  : General      f:0> 1794162435332 fmod: FMOD_System_GetRecordDriverInfo: nativeRate = 48000, nativeChannels = 8
+LOG  : General      f:0> 1794162435334 fmod: System create record sound: OK
+LOG  : General      f:0> 1794162435334 fmod: Create resampler: OK
+LOG  : General      f:0> 1794162435334 fmod: Create acoustic echo canceller: OK
+LOG  : General      f:0> 1794162435339 fmod: GetRecordNumDrivers id = 0, sound = 0x420b7d18 loop=1
 LOG  : General      f:0> Game booting
 LOG  : Lua          f:0> [ZeD] Overrides/Animals: hutch, trough, butcher hook and tracks routed to the animal cards; animal info and Check zone to the Animals tab
 LOG  : Lua          f:0> [ZeD] Overrides/Belt: hotbar and hand slots routed to the belt
@@ -508,7 +508,7 @@ LOG  : General      f:0> MapGroup 8/8
 LOG  : General      f:0>   challengemaps/Tutorial
 LOG  : General      f:0> -----
 LOG  : General      f:0> STATE: exit zombie.gameStates.MainScreenState
-LOG  : General      f:0> LOADED UP A TOTAL OF 573 TEXTURES
+LOG  : General      f:0> LOADED UP A TOTAL OF 583 TEXTURES
 LOG  : General      f:0> STATE: exit zombie.gameStates.LoadingQueueState
 LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: appliances_01_30
 LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_32
@@ -662,7 +662,7 @@ LOG  : General      f:0> Looking in these map folders:
 LOG  : General      f:0> <End of map-folders list>
 LOG  : General      f:0> IsoMetaGrid.Create: X: [ -250 250 ], Y: [ -250 250 ]
 LOG  : General      f:0> World seed:  0
-LOG  : General      f:0> IsoMetaGrid.Create: finished scanning directories in 0.04 seconds
+LOG  : General      f:0> IsoMetaGrid.Create: finished scanning directories in 0.042 seconds
 LOG  : General      f:0> IsoMetaGrid.Create: begin loading
 LOG  : Lua          f:0> [ZeD] Watch loot: the steel Timez joined 30 loot lists
 LOG  : General      f:0> VehiclesDB2.init() start
@@ -680,7 +680,7 @@ LOG  : General      f:0> loadAnimalDefinitions end
 LOG  : General      f:0> GameTime.init() and load() start
 LOG  : General      f:0> GameTime.init() and load() end
 LOG  : General      f:0> ZomboidRadio.Init() start
-LOG  : Lua          f:0> scriptmanager = zombie.radio.scripting.RadioScriptManager@673565ea, isNewGame = false
+LOG  : Lua          f:0> scriptmanager = zombie.radio.scripting.RadioScriptManager@34a7a651, isNewGame = false
 LOG  : Lua          f:0> name = Automated Emergency Broadcast System, freq = 98400, cat = Emergency, uuid = EMRG-711984
 LOG  : Lua          f:0> Found radio channel: Automated Emergency Broadcast System, freq = EMRG-711984, freqcheck = 98400, multi = 1
 LOG  : General      f:0> Radio Loading channels...
@@ -699,7 +699,7 @@ LOG  : General      f:0> GameEntityManager.Init() start
 LOG  : General      f:0> GameEntityManager.Init() end
 LOG  : General      f:0> PersistentOutfits.init() start
 LOG  : General      f:0> PersistentOutfits.init() end
-LOG  : General      f:0> IsoMetaGrid.Create: finished loading in 3.224 seconds
+LOG  : General      f:0> IsoMetaGrid.Create: finished loading in 4.347 seconds
 ERROR: Lua          f:0 at Lua(Vanilla).handleMannequinZone    > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
 LOG  : General      f:0> 111ERROR: not adding suspicious zone "" "Nav" 8343,12316,0 2244x18
 ERROR: General      f:0 at Basements.mergeRoomsOntoMetaCell    > duplicate RoomDef.metaID for room at 10707,9484,0
@@ -861,15 +861,15 @@ LOG  : General      f:0> CGlobalObjects: newSystem feedingTrough
 LOG  : General      f:0> CGlobalObjects: newSystem rainbarrel
 LOG  : General      f:0> CGlobalObjects: newSystem trap
 LOG  : General      f:0> GlobalObjects.initSystems() end
-LOG  : General      f:0> [08-11-26 10:09:00.121][info] Init chat system....
-LOG  : General      f:0> [08-11-26 10:09:00.122][info] Mode: single player.
+LOG  : General      f:0> [08-11-26 10:27:50.488][info] Init chat system....
+LOG  : General      f:0> [08-11-26 10:27:50.488][info] Mode: single player.
 LOG  : General      f:0> bWaitForAssetLoadingToFinish2 start
 LOG  : General      f:0> bWaitForAssetLoadingToFinish2 end
 LOG  : General      f:0> FBORenderChunkManager.gameLoaded() start
 LOG  : General      f:0> FBORenderChunkManager.gameLoaded() end
 LOG  : General      f:0> Bullet.initPhysicsMeshes() start
 LOG  : General      f:0> Bullet.initPhysicsMeshes() end
-LOG  : General      f:0> game loading took 24 seconds
+LOG  : General      f:0> game loading took 30 seconds
 LOG  : General      f:0> STATE: exit zombie.gameStates.GameLoadingState
 LOG  : Lua          f:0> 1 players found
 LOG  : Lua          f:0> player 0 is mouse
@@ -1164,116 +1164,120 @@ LOG  : Lua          f:0> [ZeD] Moodles: layer installed for player 0 (right)
 LOG  : Lua          f:0> [ZeD] Watch: plate watch installed (Java clock + speed controls parked)
 LOG  : Lua          f:1> [ZeD.Input] mode: unknown -> kbm
 LOG  : Lua          f:60> [ZeD] Overrides/Belt: hotbar and hand slots routed to the belt
-LOG  : Lua          f:256> [ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:256> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:256> [ZeD.Input] Focus: register: Character (1 registered)
-LOG  : Lua          f:256> [ZeD.Input] Focus: claim: nil -> Character
-LOG  : Lua          f:256> [ZeD.Input] Focus: register: World (2 registered)
-LOG  : Lua          f:256> [ZeD.Input] Focus: claim: Character -> World
-LOG  : Lua          f:256> ZEDQA pre start
-LOG  : Lua          f:256> [ZeD.QA] run #1 ok=true
-LOG  : Lua          f:316> ZEDQA pre char true world true speed 1 ticks 60 frames 61
-LOG  : Lua          f:316> ZEDQA pre search overlay: enabled false, override false, manager false
-LOG  : Lua          f:316> ZEDQA pre DONE
-LOG  : Lua          f:586> [ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:586> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:586> ZEDQA pnw pinned both windows
-LOG  : Lua          f:586> [ZeD.QA] run #2 ok=true
-LOG  : Lua          f:606> ZEDQA pnw DONE
-LOG  : Lua          f:916> [ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:916> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:916> ZEDQA rel start
-LOG  : Lua          f:916> [ZeD.QA] run #3 ok=true
-LOG  : Lua          f:926> [ZeD.Input] Focus: unregister: Character (1 registered)
-LOG  : Lua          f:926> [ZeD.Input] Focus: unregister: World (0 registered)
-LOG  : Lua          f:926> [ZeD.Input] Focus: release: World -> nil
-LOG  : Lua          f:946> ZEDQA rel PASS the windows start shut
-LOG  : Lua          f:946> [ZeD.Input] Focus: register: Character (1 registered)
-LOG  : Lua          f:946> [ZeD.Input] Focus: claim: nil -> Character
-LOG  : Lua          f:946> [ZeD.Input] Focus: register: World (2 registered)
-LOG  : Lua          f:946> [ZeD.Input] Focus: claim: Character -> World
-LOG  : Lua          f:986> ZEDQA rel PASS 1: both windows open
-LOG  : Lua          f:986> ZEDQA rel rolled up before the hold: Character false, World false
-LOG  : Lua          f:986> ZEDQA rel the test item: Base.Spiffo
-LOG  : Lua          f:1026> ZEDQA rel PASS 2: the test item is in the Character window's list
-LOG  : Lua          f:1226> ZEDQA rel PASS 2: the test item went to the floor (the game's transfer)
-LOG  : Lua          f:1226> ZEDQA rel PASS 2: the World window lists it
-LOG  : Lua          f:1426> ZEDQA rel rolled up now: Character false, World false
-LOG  : Lua          f:1426> ZEDQA rel PASS 2: it came back to the inventory
-LOG  : Lua          f:1426> ZEDQA rel PASS 2: the Character window lists it again
-LOG  : Lua          f:1446> [ZeD.Input] Focus: claim: World -> Character
-LOG  : Lua          f:1446> ZEDQA rel PASS 4: the controller's focus is on the test item's row
-LOG  : Lua          f:1447> [ZeD.Input] mode: kbm -> gamepad
-LOG  : Lua          f:1496> ZEDQA rel 4: after A: charItemCard:hverb_1
-LOG  : Lua          f:1496> ZEDQA rel PASS 4: A on the row opens its card, focus on its primary action (charItemCard:hverb_1)
-LOG  : Lua          f:1526> ZEDQA rel 4: after B: invrow:18
-LOG  : Lua          f:1526> ZEDQA rel PASS 4: B goes back to the row
-LOG  : Lua          f:1526> [ZeD.Input] Focus: release: Character -> nil
-LOG  : Lua          f:1536> ZEDQA rel PASS 3: the test item's row has a place on screen
-LOG  : Lua          f:1536> ZEDQA rel PASS 3: the row is in the list's view (y 533 of 650)
-LOG  : Lua          f:1536> ZEDQA rel 3: row invrow:18 at 0,533 350x53 in the window; the window at 1197,46
-LOG  : Lua          f:1536> ZEDQA rel asked the helper for a right-click at 1257,605
-LOG  : Lua          f:1741> [ZeD.Input] mode: gamepad -> kbm
-LOG  : Lua          f:1751> ZEDQA rel PASS 3: the helper made the real right-click
-LOG  : Lua          f:1771> ZEDQA rel 3: menu open true (ZeD_ContextMenu)
-LOG  : Lua          f:1771> ZEDQA rel PASS 3: a real right-click on the row opens the item menu for that item (1 items)
-LOG  : Lua          f:1841> ZEDQA rel PASS 5: the worn watch shows (belt true, corner true)
-LOG  : Lua          f:1841> ZEDQA rel PASS 5: its face reads the game's time (15:32, the game 15:32)
-LOG  : Lua          f:1851> [ZeD.Input] Focus: unregister: Character (1 registered)
-LOG  : Lua          f:1851> [ZeD.Input] Focus: unregister: World (0 registered)
-LOG  : Lua          f:1851> ZEDQA rel RESULT PASS: all 16 checks
-LOG  : Lua          f:1851> ZEDQA rel DONE
-LOG  : Lua          f:2296> [ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:2296> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:2296> ZEDQA sv version=0.3.0-beta8a dir=C:\Users\you\ZomboidStaged\mods\ZeD-UI
-LOG  : Lua          f:2296> [ZeD.QA] run #4 ok=true
-LOG  : Lua          f:2316> ZEDQA sv DONE
-LOG  : Lua          f:2806> [ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:2806> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:2806> [ZeD.Input] Focus: register: Character (1 registered)
-LOG  : Lua          f:2806> [ZeD.Input] Focus: claim: nil -> Character
-LOG  : Lua          f:2806> [ZeD.Input] Focus: register: World (2 registered)
-LOG  : Lua          f:2806> [ZeD.Input] Focus: claim: Character -> World
-LOG  : Lua          f:2806> ZEDQA pre2 start
-LOG  : Lua          f:2806> [ZeD.QA] run #5 ok=true
-LOG  : Lua          f:2866> ZEDQA pre2 char true world true speed 1 ticks 60 frames 61
-LOG  : Lua          f:2866> ZEDQA pre2 search overlay: enabled false, override false, manager false
-LOG  : Lua          f:2866> ZEDQA pre2 DONE
-LOG  : Lua          f:3166> [ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:3166> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:3166> ZEDQA b8asb start
-LOG  : Lua          f:3166> [ZeD.QA] run #6 ok=true
-LOG  : Lua          f:3175> ZEDQA b8asb PASS the pause screen is up
-LOG  : Lua          f:3175> ZEDQA b8asb PASS the Sandbox window is open
-LOG  : Lua          f:3175> ZEDQA b8asb PASS the in-game Options window is there, hidden (the case that broke)
-LOG  : Lua          f:3175> ZEDQA b8asb PASS a page: the box is on show
-LOG  : Lua          f:3175> ZEDQA b8asb PASS a click on a page opens it (1 > 3)
-LOG  : Lua          f:3175> ZEDQA b8asb PASS a tick on this page
-LOG  : Lua          f:3175> ZEDQA b8asb PASS a tick: the box is on show
-LOG  : Lua          f:3175> ZEDQA b8asb FAIL a click on a tick marks one change (0)
-LOG  : Lua          f:3175> ZEDQA b8asb PASS Undo changes: the box is on show
-LOG  : Lua          f:3175> ZEDQA b8asb PASS Undo changes takes it back (0)
-LOG  : Lua          f:3175> ZEDQA b8asb PASS the tick again: the box is on show
-LOG  : Lua          f:3175> ZEDQA b8asb FAIL changed again (0)
-LOG  : Lua          f:3175> ZEDQA b8asb PASS Apply: the box is on show
-LOG  : Lua          f:3175> ZEDQA b8asb FAIL Apply asks first (false)
-LOG  : Lua          f:3175> ZEDQA b8asb FAIL Apply's answer: the box is on show
-LOG  : Lua          f:3175> ZEDQA b8asb FAIL the answer applies the setting (true > true)
-LOG  : Lua          f:3175> ZEDQA b8asb FAIL History has the apply
-LOG  : Lua          f:3175> ZEDQA b8asb PASS the setting is back as it was
-LOG  : Lua          f:3175> ZEDQA b8asb PASS Close: the box is on show
-LOG  : Lua          f:3175> ZEDQA b8asb FAIL Close goes back to the pause window (sandbox)
-LOG  : Lua          f:3256> ZEDQA b8asb PASS Escape leaves the pause screen
-LOG  : Lua          f:3256> ZEDQA b8asb FAIL Escape again opens the pause window (sandbox)
-LOG  : Lua          f:3305> ZEDQA b8asb MANUAL a quick real click on a page, a value, Undo, Apply and Close; the controller still drives it
-LOG  : Lua          f:3305> ZEDQA b8asb 14 passed, 8 failed
-LOG  : Lua          f:3305> ZEDQA b8asb DONE
-LOG  : Lua          f:3641> [ZeD.QA] state #7 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:3641> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:3641> ZEDQA b8arp Zomboid folder found: yes, under a Users folder: yes
-LOG  : Lua          f:3641> ZEDQA b8arp start
-LOG  : Lua          f:3641> [ZeD.QA] run #7 ok=true
-ERROR: General      f:3650> Lua(Vanilla).boom> Exception thrown
+LOG  : Lua          f:255> [ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:255> [ZeD.QA] windows reset (R)
+LOG  : Lua          f:255> [ZeD.Input] Focus: register: Character (1 registered)
+LOG  : Lua          f:255> [ZeD.Input] Focus: claim: nil -> Character
+LOG  : Lua          f:255> [ZeD.Input] Focus: register: World (2 registered)
+LOG  : Lua          f:255> [ZeD.Input] Focus: claim: Character -> World
+LOG  : Lua          f:255> ZEDQA pre start
+LOG  : Lua          f:255> [ZeD.QA] run #1 ok=true
+LOG  : Lua          f:315> ZEDQA pre char true world true speed 1 ticks 60 frames 61
+LOG  : Lua          f:315> ZEDQA pre search overlay: enabled false, override false, manager false
+LOG  : Lua          f:315> ZEDQA pre DONE
+LOG  : Lua          f:735> [ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:735> [ZeD.QA] windows reset (R)
+LOG  : Lua          f:735> ZEDQA pnw pinned both windows
+LOG  : Lua          f:735> [ZeD.QA] run #2 ok=true
+LOG  : Lua          f:755> ZEDQA pnw DONE
+LOG  : Lua          f:1185> [ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:1185> [ZeD.QA] windows reset (R)
+LOG  : Lua          f:1185> ZEDQA rel start
+LOG  : Lua          f:1185> [ZeD.QA] run #3 ok=true
+LOG  : Lua          f:1195> [ZeD.Input] Focus: unregister: Character (1 registered)
+LOG  : Lua          f:1195> [ZeD.Input] Focus: unregister: World (0 registered)
+LOG  : Lua          f:1195> [ZeD.Input] Focus: release: World -> nil
+LOG  : Lua          f:1215> ZEDQA rel PASS the windows start shut
+LOG  : Lua          f:1215> [ZeD.Input] Focus: register: Character (1 registered)
+LOG  : Lua          f:1215> [ZeD.Input] Focus: claim: nil -> Character
+LOG  : Lua          f:1215> [ZeD.Input] Focus: register: World (2 registered)
+LOG  : Lua          f:1215> [ZeD.Input] Focus: claim: Character -> World
+LOG  : Lua          f:1255> ZEDQA rel PASS 1: both windows open
+LOG  : Lua          f:1255> ZEDQA rel rolled up before the hold: Character false, World false
+LOG  : Lua          f:1255> ZEDQA rel the test item: Base.Spiffo
+LOG  : Lua          f:1295> ZEDQA rel PASS 2: the test item is in the Character window's list
+LOG  : Lua          f:1495> ZEDQA rel PASS 2: the test item went to the floor (the game's transfer)
+LOG  : Lua          f:1495> ZEDQA rel PASS 2: the World window lists it
+LOG  : Lua          f:1695> ZEDQA rel rolled up now: Character false, World false
+LOG  : Lua          f:1695> ZEDQA rel PASS 2: it came back to the inventory
+LOG  : Lua          f:1695> ZEDQA rel PASS 2: the Character window lists it again
+LOG  : Lua          f:1715> [ZeD.Input] Focus: claim: World -> Character
+LOG  : Lua          f:1715> ZEDQA rel PASS 4: the controller's focus is on the test item's row
+LOG  : Lua          f:1716> [ZeD.Input] mode: kbm -> gamepad
+LOG  : Lua          f:1765> ZEDQA rel 4: after A: charItemCard:hverb_1
+LOG  : Lua          f:1765> ZEDQA rel PASS 4: A on the row opens its card, focus on its primary action (charItemCard:hverb_1)
+LOG  : Lua          f:1795> ZEDQA rel 4: after B: invrow:18
+LOG  : Lua          f:1795> ZEDQA rel PASS 4: B goes back to the row
+LOG  : Lua          f:1795> [ZeD.Input] Focus: release: Character -> nil
+LOG  : Lua          f:1805> ZEDQA rel PASS 3: the test item's row has a place on screen
+LOG  : Lua          f:1805> ZEDQA rel PASS 3: the row is in the list's view (y 533 of 650)
+LOG  : Lua          f:1805> ZEDQA rel 3: row invrow:18 at 0,533 350x53 in the window; the window at 1197,46
+LOG  : Lua          f:1805> ZEDQA rel asked the helper for a right-click at 1257,605
+LOG  : Lua          f:2078> [ZeD.Input] mode: gamepad -> kbm
+LOG  : Lua          f:2090> ZEDQA rel PASS 3: the helper made the real right-click
+LOG  : Lua          f:2110> ZEDQA rel 3: menu open true (ZeD_ContextMenu)
+LOG  : Lua          f:2110> ZEDQA rel PASS 3: a real right-click on the row opens the item menu for that item (1 items)
+LOG  : Lua          f:2180> ZEDQA rel PASS 5: the worn watch shows (belt true, corner true)
+LOG  : Lua          f:2180> ZEDQA rel PASS 5: its face reads the game's time (15:31, the game 15:31)
+LOG  : Lua          f:2190> [ZeD.Input] Focus: unregister: Character (1 registered)
+LOG  : Lua          f:2190> [ZeD.Input] Focus: unregister: World (0 registered)
+LOG  : Lua          f:2190> ZEDQA rel RESULT PASS: all 16 checks
+LOG  : Lua          f:2190> ZEDQA rel DONE
+LOG  : Lua          f:2625> [ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:2625> [ZeD.QA] windows reset (R)
+LOG  : Lua          f:2625> ZEDQA sv version=0.3.0-beta8a dir=C:\Users\you\ZomboidStaged\mods\ZeD-UI
+LOG  : Lua          f:2625> [ZeD.QA] run #4 ok=true
+LOG  : Lua          f:2645> ZEDQA sv DONE
+LOG  : Lua          f:3135> [ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:3135> [ZeD.QA] windows reset (R)
+LOG  : Lua          f:3135> [ZeD.Input] Focus: register: Character (1 registered)
+LOG  : Lua          f:3135> [ZeD.Input] Focus: claim: nil -> Character
+LOG  : Lua          f:3135> [ZeD.Input] Focus: register: World (2 registered)
+LOG  : Lua          f:3135> [ZeD.Input] Focus: claim: Character -> World
+LOG  : Lua          f:3135> ZEDQA pre2 start
+LOG  : Lua          f:3135> [ZeD.QA] run #5 ok=true
+LOG  : Lua          f:3195> ZEDQA pre2 char true world true speed 1 ticks 60 frames 61
+LOG  : Lua          f:3195> ZEDQA pre2 search overlay: enabled false, override false, manager false
+LOG  : Lua          f:3195> ZEDQA pre2 DONE
+LOG  : Lua          f:3615> [ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:3615> [ZeD.QA] windows reset (R)
+LOG  : Lua          f:3615> ZEDQA b8asb start
+LOG  : Lua          f:3615> [ZeD.QA] run #6 ok=true
+LOG  : Lua          f:3626> ZEDQA b8asb PASS the pause screen is up
+LOG  : Lua          f:3626> ZEDQA b8asb PASS the Sandbox window is open
+LOG  : Lua          f:3626> ZEDQA b8asb PASS the in-game Options window is there, hidden (the case that broke)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS a page: the box is on show
+LOG  : Lua          f:3626> ZEDQA b8asb PASS a click on a page opens it (1 > 2)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS a tick on this page
+LOG  : Lua          f:3626> ZEDQA b8asb PASS a tick: the box is on show
+LOG  : Lua          f:3626> ZEDQA b8asb PASS a click on a tick marks one change (1)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS Undo changes: the box is on show
+LOG  : Lua          f:3626> ZEDQA b8asb PASS Undo changes takes it back (0)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS the tick again: the box is on show
+LOG  : Lua          f:3626> ZEDQA b8asb PASS changed again (1)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS Apply: the box is on show
+LOG  : Lua          f:3626> ZEDQA b8asb PASS Apply asks first (apply)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS Apply's answer: the box is on show
+LOG  : Lua          f:3626> Initializing Randomized World Tabletop Clutter Tables
+LOG  : Lua          f:3626> [ZeD] Sandbox in game: applied 1 change(s)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS the answer applies the setting (true > false)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS History has the apply
+LOG  : Lua          f:3626> Initializing Randomized World Tabletop Clutter Tables
+LOG  : Lua          f:3626> [ZeD] Sandbox in game: applied 1 change(s)
+LOG  : Lua          f:3626> ZEDQA b8asb PASS the setting is back as it was
+LOG  : Lua          f:3626> ZEDQA b8asb PASS Close: the box is on show
+LOG  : Lua          f:3626> ZEDQA b8asb PASS Close goes back to the pause window (pause)
+LOG  : Lua          f:3720> ZEDQA b8asb PASS Escape leaves the pause screen
+LOG  : Lua          f:3720> ZEDQA b8asb PASS Escape again opens the pause window (pause)
+LOG  : Lua          f:3775> ZEDQA b8asb MANUAL a quick real click on a page, a value, Undo, Apply and Close; the controller still drives it
+LOG  : Lua          f:3775> ZEDQA b8asb 22 passed, 0 failed
+LOG  : Lua          f:3775> ZEDQA b8asb DONE
+LOG  : Lua          f:4265> [ZeD.QA] state #7 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:4265> [ZeD.QA] windows reset (R)
+LOG  : Lua          f:4265> ZEDQA b8arp Zomboid folder found: yes, under a Users folder: yes
+LOG  : Lua          f:4265> ZEDQA b8arp start
+LOG  : Lua          f:4265> [ZeD.QA] run #7 ok=true
+ERROR: General      f:4279> Lua(Vanilla).boom> Exception thrown
 	se.krka.kahlua.vm.KahluaException: ZEDQA-b8arp-planted in C:\Users\you\ZomboidStaged\Lua\b8arp.txt; C:/Users/you/ZomboidStaged/Saves/b8arp; C:\Users\you\AppData\Local\b8arp.tmp; c:/USERS/you/Downloads/b8arp.lua at BaseLib.error(BaseLib.java:307).
 	Stack trace:
 		se.krka.kahlua.stdlib.BaseLib.error(BaseLib.java:307)
@@ -1297,7 +1301,7 @@ ERROR: General      f:3650> Lua(Vanilla).boom> Exception thrown
 		zombie.GameWindow.mainThreadStep(GameWindow.java:568)
 		zombie.MainThread.mainLoop(MainThread.java:69)
 		java.base/java.lang.Thread.run(Unknown Source)
-ERROR: General      f:3650 at KahluaThread.flushErrorMessage      > dumping Lua stack trace
+ERROR: General      f:4279 at KahluaThread.flushErrorMessage      > dumping Lua stack trace
 -----------------------------------------
 STACK TRACE
 -----------------------------------------
@@ -1321,36 +1325,36 @@ DEBUG-MODE STACK TRACE:
 	zombie.GameWindow.mainThreadStep(GameWindow.java:568)
 	zombie.MainThread.mainLoop(MainThread.java:69)
 	java.base/java.lang.Thread.run(Unknown Source)
-LOG  : Lua          f:3946> ZEDQA b8arp PASS the planted error is filed in Messages
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (one error): the planted error is in the copy
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (one error): no Users folder
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (one error): the account name is not in it
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (one error): the Zomboid folder reads ~/Zomboid
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (one error): the user folder reads ~\ and ~/
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (one error): the last line says the name was taken out
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (the source): the planted error is in the copy
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (the source): no Users folder
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (the source): the account name is not in it
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (the source): the Zomboid folder reads ~/Zomboid
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (the source): the user folder reads ~\ and ~/
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Copy (the source): the last line says the name was taken out
-LOG  : Lua          f:3946> [ZeD] Bug report: 1 errors copied to the clipboard (true)
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Bug report copies (1)
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Bug report (Copy all): the planted error is in the copy
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Bug report (Copy all): no Users folder
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Bug report (Copy all): the account name is not in it
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Bug report (Copy all): the Zomboid folder reads ~/Zomboid
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Bug report (Copy all): the user folder reads ~\ and ~/
-LOG  : Lua          f:3946> ZEDQA b8arp PASS Bug report (Copy all): the last line says the name was taken out
-LOG  : Lua          f:3946> ZEDQA b8arp 20 passed, 0 failed
-LOG  : Lua          f:3946> ZEDQA b8arp DONE
-LOG  : Lua          f:4331> [ZeD.QA] state #8 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
-LOG  : Lua          f:4331> [ZeD.QA] run #8 ok=true
-LOG  : General      f:4331> Saving worldgen params
-LOG  : General      f:4331> Saving GlobalModData
-LOG  : Lua          f:4331> removing all player data
-LOG  : Lua          f:4331> - player: 0
-LOG  : General      f:4331> STATE: exit zombie.gameStates.IngameState
+LOG  : Lua          f:4743> ZEDQA b8arp PASS the planted error is filed in Messages
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (one error): the planted error is in the copy
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (one error): no Users folder
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (one error): the account name is not in it
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (one error): the Zomboid folder reads ~/Zomboid
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (one error): the user folder reads ~\ and ~/
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (one error): the last line says the name was taken out
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (the source): the planted error is in the copy
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (the source): no Users folder
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (the source): the account name is not in it
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (the source): the Zomboid folder reads ~/Zomboid
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (the source): the user folder reads ~\ and ~/
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Copy (the source): the last line says the name was taken out
+LOG  : Lua          f:4743> [ZeD] Bug report: 1 errors copied to the clipboard (true)
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Bug report copies (1)
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Bug report (Copy all): the planted error is in the copy
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Bug report (Copy all): no Users folder
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Bug report (Copy all): the account name is not in it
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Bug report (Copy all): the Zomboid folder reads ~/Zomboid
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Bug report (Copy all): the user folder reads ~\ and ~/
+LOG  : Lua          f:4743> ZEDQA b8arp PASS Bug report (Copy all): the last line says the name was taken out
+LOG  : Lua          f:4743> ZEDQA b8arp 20 passed, 0 failed
+LOG  : Lua          f:4743> ZEDQA b8arp DONE
+LOG  : Lua          f:5165> [ZeD.QA] state #8 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+LOG  : Lua          f:5165> [ZeD.QA] run #8 ok=true
+LOG  : General      f:5165> Saving worldgen params
+LOG  : General      f:5165> Saving GlobalModData
+LOG  : Lua          f:5165> removing all player data
+LOG  : Lua          f:5165> - player: 0
+LOG  : General      f:5165> STATE: exit zombie.gameStates.IngameState
 LOG  : Mod          f:0> loading ZeD_UI
 LOG  : Mod          f:0> mod "ZeD_UI" overrides media/fileguidtable.xml
 LOG  : Mod          f:0> mod "ZeD_UI" overrides media/fonts/en/fonts.txt
