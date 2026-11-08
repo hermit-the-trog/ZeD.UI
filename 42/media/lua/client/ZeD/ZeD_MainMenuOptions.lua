@@ -1874,7 +1874,9 @@ function ZeD_MMOptions:update()
     end
     self._palDown = down
     ZeD_MMWindow.update(self)
-    if self.inGame then
+    -- The game runs update() on hidden children too (UIElement.update checks only enabled). The in-game
+    -- Options and Sandbox windows share MM.ctx, so a hidden one would take each press before the shown one.
+    if self.inGame and self:isVisible() then
         local drop = MM.igDrop
         MM.pointer(MM.ctx, drop and { drop, self } or { self })
         local open = MM.ctx.open ~= nil

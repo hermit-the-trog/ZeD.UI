@@ -436,6 +436,10 @@ function D.fieldInner(box) return box and (box._entry or box.input) or nil end
 
 function D.fieldText(win, key)
     local box = D.fieldOf(win, key)
+    -- a masked box (a password) answers getText with its stars; the typed words are its internal text, as
+    -- vanilla reads its own password boxes
+    local inner = D.fieldInner(box)
+    if inner and inner.javaObject and inner.isMasked and inner:isMasked() then return inner:getInternalText() or "" end
     return box and box:getText() or ""
 end
 
