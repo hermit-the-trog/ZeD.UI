@@ -94,7 +94,7 @@ step(60, function()
     check(not w._rolled and mapOpen(w), "pointer on the containers' rod: they come down, the map open")
     shot("4_containers_down")
     local c = CW()
-    moveTo(c:getAbsoluteX() + 60, c:getAbsoluteY() + c:titleBarHeight() / 2)
+    moveTo(c:getAbsoluteX() + 150, c:getAbsoluteY() + c:titleBarHeight() / 2)
 end)
 mouse()
 -- 5 HALF
