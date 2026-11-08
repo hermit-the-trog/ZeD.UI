@@ -1051,8 +1051,8 @@ function ZeD_ItemCard:_toggleFold(key)
     -- Clamp scroll if body shrank. A drawer card (every card the windows make)
     -- measures its body as renderBody draws it (_contentH, the view under the
     -- head and above the care verbs' band, as prerender clamps it); the old
-    -- layout's _calcBodyH is shorter and cut the scroll back on every fold
-    -- (Nov 8 2026, code flags). renderBody stamps the new height next frame and
+    -- layout's _calcBodyH is shorter and cut the scroll back on every fold.
+    -- renderBody stamps the new height next frame and
     -- prerender clamps to it.
     local bodyH, viewH
     if self.mode == "drawer" then

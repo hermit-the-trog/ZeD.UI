@@ -22,8 +22,8 @@ require "ZeD/Tr"
 ZeD = ZeD or {}
 ZeD.SkillsTab = {}
 
--- (Nov 7 2026, perf review #12) the tab's data refreshes run on the clock, not on frames drawn: 15
--- and 30 frames were 250 and 500 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once
+-- The tab's data refreshes run on the clock, not on frames drawn: 15
+-- and 30 frames are 250 and 500 ms at 60 FPS but run 2.4-4 times as often at 144-240 Hz. True once
 -- periodMs has passed since owner[key] (or on the first call, or forced: the cache was dropped). The
 -- runs keep a beat of periodMs; a forced run, or one after a gap (the tab not drawn, the section
 -- scrolled away), starts the period again, as the frame count went back to 0. A window's first run starts at its
@@ -1063,7 +1063,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     -- Training data (separate throttle — literature changes less often: 500 ms on the clock, 30
     -- frames at 60 FPS). The first gather is here, as the measure below needs the rows; the later
-    -- ones wait for the draw (perf review #12), where they run only while some of the section is in
+    -- ones wait for the draw, where they run only while some of the section is in
     -- the scroll view: the walk of the inventory and every skill book is skipped while the section
     -- is scrolled away (the rows always come from the same catalog, so the measure is the same).
     if not win._trainingCache then

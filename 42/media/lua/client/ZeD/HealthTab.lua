@@ -22,8 +22,8 @@ require "XpSystem/ISUI/ISHealthPanel"
 ZeD = ZeD or {}
 ZeD.HealthTab = {}
 
--- (Nov 7 2026, perf review #12) the tab's data refresh runs on the clock, not on frames drawn: 15
--- frames was 250 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once periodMs has
+-- The tab's data refresh runs on the clock, not on frames drawn: 15 frames is 250 ms at 60 FPS
+-- but runs 2.4-4 times as often at 144-240 Hz. True once periodMs has
 -- passed since owner[key] (or on the first call, or forced: the cache was dropped). The runs keep a
 -- beat of periodMs; a forced run, or one after a gap (the tab not drawn), starts the period again,
 -- as the frame count went back to 0. A window's first run starts at its own
@@ -226,9 +226,9 @@ local function qualify(label, word)
     return label
 end
 
--- (Nov 7 2026, perf review #12) each getter the rules read more than once is read once into a
+-- Each getter the rules read more than once is read once into a
 -- local (the same values: nothing changes the part in between); the part's stiffness and pain go
--- back to gatherData, which used to read them again.
+-- back to gatherData, so it does not read them again.
 local function classifyConditions(bp, doctorLevel)
     local conds = {}
     local doc = doctorLevel or 0

@@ -26,7 +26,7 @@ require "ZeD/SafeMode"
 -- function, so the game's menu opens and draws as it would without ZeD.
 
 -- The functions these hooks wrap, kept once: a Lua reload runs this file again,
--- and without the stash each hook would wrap the one before it (Nov 8 2026)
+-- and without the stash each hook would wrap the one before it.
 local V = ISContextMenu._zedVanilla
 if not V then
     V = {
@@ -165,7 +165,7 @@ local origGet = V.get
 ISContextMenu.get = function(player, x, y)
     -- No menu for this player (the game drops a player's UI data when the character
     -- dies): vanilla's get would throw at its first line (hideAndChildren of nil),
-    -- so nothing is asked of it; the caller gets nil (QA round 3, Wounds Overhaul)
+    -- so nothing is asked of it; the caller gets nil (seen with Wounds Overhaul).
     local okM, have = pcall(function()
         if not getPlayerContextMenu then return true end   -- (the game's player data is not defined yet: vanilla decides)
         return player ~= nil and getPlayerContextMenu(player)
