@@ -412,7 +412,7 @@ Also in the group's log: eight `Index 200 out of bounds ... LexState.new_localva
 
 ## Results, third group (Nov 2 2026, overnight): the rest of round 4
 
-Subscribed overnight (`subscriptions_ledger.md`, Nov 2), tested with ZeD-GUI 0.2.0-t15 code (main, 638baa7 and later), game 42.22, on a copy of the ZeD-QA save at 4K, ZeD scale 1.75, through `zedqa_mods_run.ps1` with `tools/qa/compat_r4c.txt` (the r4b set: the visible-UI census, every tab, the grid, the item menu as a list, the card on the pad, the cone-nav map, the Health tab's exercise info, a car's dashboard, the map, the moodles, Messages) and `compat_r4c_mods.txt` (20 mods, requirements first, ZeD last). Report `qa/regression/2026-11-02_0003_mods_fullscreen4k.md`: 12 / 12 pass. The main-menu mods through `zedqa_menu_mods_run.ps1` with `zedqa_r3_menu.lua` (`qa/regression/2026-11-02_r4c_menu.console.txt`): Mods, Options, Spawn, Sandbox, Traits (25 occupations, 49 positive and 32 negative traits), Looks, no error. Pictures of note in `qa/Nov2_compat_r4c/`.
+Subscribed overnight (`subscriptions_ledger.md`, Nov 2), tested with ZeD-GUI 0.2.0-t15 code (main, 638baa7 and later), game 42.22, on a copy of the ZeD-QA save at 4K, ZeD scale 1.75, through `zedqa_mods_run.ps1` with `tools/qa/compat_r4c.txt` (the r4b set: the visible-UI census, every tab, the grid, the item menu as a list, the card on the pad, the cone-nav map, the Health tab's exercise info, a car's dashboard, the map, the moodles, Messages) and `compat_r4c_mods.txt` (20 mods, requirements first, ZeD last). Report `qa/regression/2026-11-02_0003_mods_fullscreen4k.md`: 12 / 12 pass. The main-menu mods through `zedqa_menu_mods_run.ps1` with `zedqa_r3_menu.lua` (`qa/regression/2026-11-02_r4c_menu.console.txt`): Mods, Options, Spawn, Sandbox, Traits (25 occupations, 49 positive and 32 negative traits), Looks, no error. Pictures of note in `qa/archive/Nov2_compat_r4c/`.
 
 | Mod | Workshop id | Verdict | Note |
 |---|---|---|---|
@@ -434,7 +434,7 @@ Subscribed overnight (`subscriptions_ledger.md`, Nov 2), tested with ZeD-GUI 0.2
 
 Not tested: Silent Hill 2 OG Main Menu Background (installed by hand) and Knox Companion (online web map).
 
-Found by the sandbox probe the same night (not a mod's fault; ZeD's): with the 150 mods of `compat_r3_full_2_mods.txt` on, the Sandbox step has 42 pages and its page list runs off the window: 22 rows fall below the list, 10 below the screen, at 4K; the mouse wheel does not move the list, and the controller's bumpers reach the last page but its row stays off screen (`zedqa_menu_sandbox_pages.lua`, `qa/regression/2026-11-02_sandbox_pages_4k.console.txt`, `qa/Nov2_compat_r4c/zqa_sbp_pages_*.png`). This is Kable's Bug reports post of Nov 1.
+Found by the sandbox probe the same night (not a mod's fault; ZeD's): with the 150 mods of `compat_r3_full_2_mods.txt` on, the Sandbox step has 42 pages and its page list runs off the window: 22 rows fall below the list, 10 below the screen, at 4K; the mouse wheel does not move the list, and the controller's bumpers reach the last page but its row stays off screen (`zedqa_menu_sandbox_pages.lua`, `qa/regression/2026-11-02_sandbox_pages_4k.console.txt`, `qa/archive/Nov2_compat_r4c/zqa_sbp_pages_*.png`). This is Kable's Bug reports post of Nov 1.
 
 ## Round 5 (Nov 2 2026, overnight): new popular Build 42 mods on ZeD's screens since Oct 29
 
@@ -443,7 +443,7 @@ Read from the Workshop's trending Build 42 lists (7 and 30 days, 4 pages each) a
 | Mod | Workshop id | Verdict | Note |
 |---|---|---|---|
 | Better Context Menu Icons | 3830018449 | Not needed with ZeD | ZeD's menus draw their own icons for every action, so its icons do not show (as Simple Context Menu Icons) |
-| Immersive Moodles | 3830422267 | Compatible, with a note | its animated moodle column draws at the top right while ZeD's moodles still show in their place, so each moodle shows twice (`qa/Nov2_compat_r4c/immersive_moodles_twice.png`); a support candidate, as Moodle Quarters was |
+| Immersive Moodles | 3830422267 | Compatible, with a note | its animated moodle column draws at the top right while ZeD's moodles still show in their place, so each moodle shows twice (`qa/archive/Nov2_compat_r4c/immersive_moodles_twice.png`); a support candidate, as Moodle Quarters was |
 | Paravel's Enhanced Inventory (with Paravel's UI) | 3828627678, 3828626636 | Not needed with ZeD | it replaces the inventory and loot windows ZeD already replaces; none of its windows showed over ZeD's in the census |
 | Light Belt | 3828137227 | Compatible | lights hung on the belt slots; ZeD's belt passes |
 | Bag Check (Lua part) | 3829406098 | Compatible | its Ground Bag add-on needs ZombieBuddy (Java): not tested |
