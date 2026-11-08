@@ -1,10 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/MapsTab.lua
 -- ============================================================================
--- MAPS TAB — World Window standalone tab.
+-- MAPS TAB — client; the World Window's map tab.
 -- Embedded UIWorldMap with stash map markers, flyer location dots,
--- user-placed marks (15 icons, 5 inks, text notes). Since Oct 20 2026 the
--- marks live in vanilla's own map store and the engine draws them
--- (MapNotes.lua); the old modData.ZeD_MapAnnotations is only a backup.
+-- user-placed marks (15 icons, 5 inks, text notes). The marks live in
+-- vanilla's own map store and the engine draws them (MapNotes.lua); the
+-- old modData.ZeD_MapAnnotations is only a backup.
 -- ============================================================================
 
 require "ZeD/MapNotes"
@@ -22,7 +22,7 @@ ZeD.MapsTab = ZeD.MapsTab or {}
 local Ext = ZeD.MapsTabExt   -- other pieces on the map: MapsTabExt.lua (ZeD.MapsTab.addExtension)
 
 -- ============================================================================
--- CONSTANTS — duplicated from JournalTab (may diverge)
+-- CONSTANTS — the marks, the inks, and the toolbar's sizes
 -- ============================================================================
 
 -- (key: the mark's name, its toolbar button's hint)
@@ -284,7 +284,7 @@ end
 
 -- ============================================================================
 -- SURVEY / COLOR / PAPER — System 7 radio buttons on the card's band (its
--- left; Oct 30 2026) where they fit; else a pop-up menu, whose list opens up
+-- left) where they fit; else a pop-up menu, whose list opens up
 -- from its box over the map. These open and shut that list, and take a click
 -- while it is open.
 -- ============================================================================
@@ -346,7 +346,7 @@ end
 
 local ZeD_WorldMap = ISUIElement:derive("ZeD_WorldMap")
 -- (its outlines scale with the UI like every ZeD element; it is local, so TextScale's
--- class list cannot reach it; code audit Oct 17 2026)
+-- class list cannot reach it)
 ZeD_WorldMap.zedScaled = true
 
 function ZeD_WorldMap:new(x, y, w, h, playerObj)
@@ -376,14 +376,14 @@ function ZeD_WorldMap:instantiate()
     if self.playerObj then pcall(ZeD.MapNotes.migrate, self.playerObj) end
 
     -- Configure: top-down, no debug, fog-of-war ("HideUnvisited", as vanilla's in-game map sets
-    -- it in ISWorldMap:initDataAndStyle; the engine's default is off, and this read
-    -- "HideUnvisitedAreas" until Oct 15 2026, a name the engine does not have: the whole county
+    -- it in ISWorldMap:initDataAndStyle; the engine's default is off. This once read
+    -- "HideUnvisitedAreas", a name the engine does not have: the whole county
     -- showed whatever the character had explored)
     self.mapAPI:setBoolean("Isometric", false)
     self.mapAPI:setBoolean("DebugInfo", false)
     self.mapAPI:setBoolean("HideUnvisited", true)
-    -- the game's own dots for players, as the server allows (Oct 26 2026, the
-    -- map mods pass; Players On Map draws its own squares and names over them)
+    -- the game's own dots for players, as the server allows (the Players On
+    -- Map mod draws its own squares and names over them)
     pcall(function()
         self.mapAPI:setBoolean("Players", true)
         if isClient() then self.mapAPI:setBoolean("RemotePlayers", true) end

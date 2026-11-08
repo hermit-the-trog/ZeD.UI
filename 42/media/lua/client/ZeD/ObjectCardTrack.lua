@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardTrack.lua
 -- ============================================================================
--- OBJECT CARD: ANIMAL TRACKS (HOOK_MAP row 22; mockup zed_animal_cards_v1.html)
+-- OBJECT CARD: ANIMAL TRACKS (card definition, client)
 -- Inspect Track (search mode, a track on the ground, or a track item such as
 -- droppings or a tuft of fur) opens this card instead of vanilla's small
 -- window: what it is, the species (only its size below Tracking 5, as

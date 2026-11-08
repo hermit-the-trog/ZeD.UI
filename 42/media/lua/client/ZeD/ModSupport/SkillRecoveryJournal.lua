@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/SkillRecoveryJournal.lua
 -- ============================================================================
 -- SUPPORT FOR SKILL RECOVERY JOURNAL (mod id SkillRecoveryJournal, Workshop
--- 2503622437). Mockup zed_skill_journal_v1, approved "as recommended" Oct 26 2026.
+-- 2503622437). Client: the mod's strips, key and numbers on ZeD's Skills tab.
 --
 -- The mod draws a thin strip under each of the game's skill bars (its
 -- "Skill Recovery Journal SkillProgressBar.lua"): grey for the levels the job and
@@ -80,6 +80,8 @@ local function round(n) return math.floor((n or 0) + 0.5) end
 -- ---------------------------------------------------------------------------
 local _cache, _cacheWho = {}, nil
 
+--- The mod's four sums for one skill, or nil for a skill it does not record:
+--- { totalXP, startingLevel, settledXP, deductedXP, greenXP, deficitXP }.
 function S.amounts(char, perk)
     local M = SRJ()
     if not (M and char and perk) then return nil end
@@ -113,7 +115,8 @@ function S.amounts(char, perk)
     return a
 end
 
--- the Bound Journal on the character (the first one), who wrote it, and where
+--- The Bound Journal on the character (the first one), who wrote it, and where;
+--- nil with none carried.
 function S.journal(char)
     local inv = char and char:getInventory()
     if not inv then return nil end
@@ -161,7 +164,8 @@ end
 -- ---------------------------------------------------------------------------
 local X = { laneH = 10 }
 
--- the strip: as long as the skill has come (level and a bit, of ten), split by XP
+--- The strip under a row: as long as the skill has come (level and a bit, of ten),
+--- split by XP. The Skills tab calls it per row.
 function X.lane(char, perk, level, progress)
     if not level or level <= 0 then return nil end
     local a = S.amounts(char, perk)
@@ -198,10 +202,12 @@ local function wordRows(w)
     return rows
 end
 
+--- How tall the key block is at width w (the Skills tab reserves the space).
 function X.headHeight(win, w)
     return ZeD.T.px(20) + lineH() * (1 + #wordRows(w)) + ZeD.T.px(10)
 end
 
+--- The key block at the top of the Skills tab: journal row, then the four words.
 function X.drawHead(panel, win, x, y, w)
     local T, tm, A, M = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.Molecules
     local char = win._playerObj
@@ -251,8 +257,8 @@ function X.drawHead(panel, win, x, y, w)
     A.drawDividerH(panel, x, y, w)
 end
 
--- the hover card's lines: Starting Level (and its level), the XP the mod
--- counts, Total XP, and what to do about the red part
+--- The hover card's lines: Starting Level (and its level), the XP the mod
+--- counts, Total XP, and what to do about the red part.
 function X.card(char, perk, skill)
     if not skill or skill.level <= 0 then return nil end
     local a = S.amounts(char, perk)
