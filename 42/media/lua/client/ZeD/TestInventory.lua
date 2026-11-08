@@ -454,7 +454,7 @@ end
 -- ============================================================================
 
 Events.OnKeyPressed.Add(function(key)
-    if key == Keyboard.KEY_F6 then
+    if key == Keyboard.KEY_F6 and isDebugEnabled() then   -- (debug builds only, as the F9 overlay: players may bind F6)
         toggleTestInventory()
     end
 end)

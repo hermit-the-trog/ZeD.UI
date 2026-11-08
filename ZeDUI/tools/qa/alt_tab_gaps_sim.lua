@@ -347,6 +347,9 @@ ZeD.CraftingCore = {
     prebakeSkills = function() return {} end, resolveCategory = function() return "Carpentry" end,
     getPerkType = function(n) return CARP end, carryStatus = noop,
 }
+-- (the rows' ms throttle and in-place rows are CraftingCore's own, cut from the file; Nov 7 2026)
+dofile(ROOT .. "ZeDUI/tools/qa/cc_cut.lua")(ROOT, ZeD.CraftingCore, { "function CC.due(", "function CC.rowsBegin(",
+    "function CC.refreshRow(", "function CC.perkLevelOf(", "function CC.rowsEnd(" })
 ZeD.textCase = function(x) return x end
 Perks = { None = "None" }
 CRAFT = { R.plank, R.stool, R.secret, R.piano, R.table_ }

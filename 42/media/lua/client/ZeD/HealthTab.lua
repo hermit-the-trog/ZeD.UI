@@ -18,6 +18,34 @@ require "XpSystem/ISUI/ISHealthPanel"
 ZeD = ZeD or {}
 ZeD.HealthTab = {}
 
+-- (Nov 7 2026, perf review #12) the tab's data refresh runs on the clock, not on frames drawn: 15
+-- frames was 250 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once periodMs has
+-- passed since owner[key] (or on the first call, or forced: the cache was dropped). The runs keep a
+-- beat of periodMs; a forced run, or one after a gap (the tab not drawn), starts the period again,
+-- as the frame count went back to 0. A window's first run starts at its own
+-- phase (owner._zedPhase, shared by the tabs of one window), so windows opened together don't
+-- refresh on the same frame. Only differences of the clock are taken (no %: it is past 2^31).
+local function dueMs(owner, key, periodMs, force)
+    local now = getTimestampMs()
+    local last = owner[key]
+    if not force and last and now >= last and now - last < periodMs then return false end
+    if last == nil then
+        local ph = owner._zedPhase
+        if not ph then
+            ZeD._throttleN = (ZeD._throttleN or 0) + 1
+            local g = ZeD._throttleN * 0.6180339887
+            ph = g - math.floor(g)
+            owner._zedPhase = ph
+        end
+        owner[key] = now - math.floor(ph * periodMs)
+    elseif force or now < last or now - last >= periodMs * 2 then
+        owner[key] = now               -- (forced, or after a gap: the period starts again)
+    else
+        owner[key] = last + periodMs   -- (on the beat: a late frame doesn't stretch the next period)
+    end
+    return true
+end
+
 local function pctToStatusColor(pct)
     local T = ZeD.T
     if pct > 60 then return T.positive
@@ -193,11 +221,16 @@ local function qualify(label, word)
     return label
 end
 
+-- (Nov 7 2026, perf review #12) each getter the rules read more than once is read once into a
+-- local (the same values: nothing changes the part in between); the part's stiffness and pain go
+-- back to gatherData, which used to read them again.
 local function classifyConditions(bp, doctorLevel)
     local conds = {}
     local doc = doctorLevel or 0
     local cheat = ISHealthPanel and ISHealthPanel.cheat
     local bandaged = bp:bandaged()
+    local fractureT = bp:getFractureTime()
+    local splint = bp:getSplintFactor()
     local word
 
     -- The words are vanilla's own health-panel words where it has them (IGUI_health_*);
@@ -212,8 +245,9 @@ local function classifyConditions(bp, doctorLevel)
     if bp:deepWounded() then
         word = nil
         if doc > 4 or cheat then
-            if bp:getDeepWoundTime() > 10 then word = getText("IGUI_health_Severe")
-            elseif bp:getDeepWoundTime() > 8 then word = getText("IGUI_health_Moderate") end
+            local t = bp:getDeepWoundTime()
+            if t > 10 then word = getText("IGUI_health_Severe")
+            elseif t > 8 then word = getText("IGUI_health_Moderate") end
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_DeepWound"), word), severity = "danger" }
     end
@@ -221,11 +255,11 @@ local function classifyConditions(bp, doctorLevel)
        and (doc > 8 or bp:getWoundInfectionLevel() * 10 >= (2.5 - doc) or cheat) then
         conds[#conds + 1] = { label = getText("IGUI_health_Infected"), severity = "danger" }
     end
-    if bp:getFractureTime() > 0 and bp:getSplintFactor() == 0 then
+    if fractureT > 0 and splint == 0 then
         word = nil
         if doc > 6 or cheat then
-            if bp:getFractureTime() > 50 then word = getText("IGUI_health_Severe")
-            elseif bp:getFractureTime() > 20 then word = getText("IGUI_health_Moderate") end
+            if fractureT > 50 then word = getText("IGUI_health_Severe")
+            elseif fractureT > 20 then word = getText("IGUI_health_Moderate") end
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Fracture"), word), severity = "danger" }
     end
@@ -239,16 +273,18 @@ local function classifyConditions(bp, doctorLevel)
     if bp:scratched() then
         word = nil
         if doc > 2 or cheat then
-            if bp:getScratchTime() > 17 then word = getText("IGUI_health_Severe")
-            elseif bp:getScratchTime() > 14 then word = getText("IGUI_health_Moderate") end
+            local t = bp:getScratchTime()
+            if t > 17 then word = getText("IGUI_health_Severe")
+            elseif t > 14 then word = getText("IGUI_health_Moderate") end
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Scratch"), word), severity = "warning" }
     end
     if bp:isCut() then
         word = nil
         if doc > 2 or cheat then
-            if bp:getCutTime() > 17 then word = getText("IGUI_health_Severe")
-            elseif bp:getCutTime() > 14 then word = getText("IGUI_health_Moderate") end
+            local t = bp:getCutTime()
+            if t > 17 then word = getText("IGUI_health_Severe")
+            elseif t > 14 then word = getText("IGUI_health_Moderate") end
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Cut"), word), severity = "warning" }
     end
@@ -278,7 +314,7 @@ local function classifyConditions(bp, doctorLevel)
         end
     end
 
-    if bp:bandaged() then
+    if bandaged then
         if bp:getBandageLife() > 0 then
             conds[#conds + 1] = { label = getText("IGUI_health_Bandaged"), severity = "positive", care = true }
         else
@@ -292,11 +328,11 @@ local function classifyConditions(bp, doctorLevel)
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Stitched"), word), severity = "positive", care = true }
     end
-    if bp:getSplintFactor() > 0 then
+    if splint > 0 then
         word = nil
         if doc > 4 or cheat then
-            if bp:getSplintFactor() > 4 then word = getText("IGUI_health_Good")
-            elseif bp:getFractureTime() > 2 then word = getText("IGUI_health_Moderate") end
+            if splint > 4 then word = getText("IGUI_health_Good")
+            elseif fractureT > 2 then word = getText("IGUI_health_Moderate") end
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Splinted"), word), severity = "positive", care = true }
     end
@@ -315,7 +351,7 @@ local function classifyConditions(bp, doctorLevel)
         return (SEV_ORDER[a.severity] or 99) < (SEV_ORDER[b.severity] or 99)
     end)
 
-    return conds
+    return conds, stiffness, pain
 end
 
 -- ============================================================================
@@ -429,6 +465,8 @@ end
 -- Extended for body figure: partHealth + condsByFigureName.
 -- ============================================================================
 
+local _typeToFigure, _typeToFigureFrom = nil, nil   -- BodyPartType -> figure name, per BODY_PART_TYPES
+
 -- opts (Nov 7 2026, the medical check of another player; nil for your own Health tab):
 --   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
 --   bodyDamage   the body to read: on a server another player's is their remote copy
@@ -439,6 +477,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
 
     local bd = (opts and opts.bodyDamage) or playerObj:getBodyDamage()
     local parts = bd:getBodyParts()
+    local nParts = parts:size()
     local overall = bd:getOverallBodyHealth()
 
     local entries = {}
@@ -446,21 +485,25 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
     local condsByFigureName = {} -- figureName → conditions array
     local extraByFigureName = {} -- figureName → other mods' lines (see EXTRAS above)
 
-    -- Build a lookup: BodyPartType → figure name
-    local typeToFigure = {}
-    for _, bp in ipairs(BODY_PART_TYPES) do
-        typeToFigure[bp.type] = bp.figure
+    -- Build a lookup: BodyPartType → figure name (once per BODY_PART_TYPES table; read only)
+    if _typeToFigureFrom ~= BODY_PART_TYPES then
+        _typeToFigure = {}
+        for _, bp in ipairs(BODY_PART_TYPES) do
+            _typeToFigure[bp.type] = bp.figure
+        end
+        _typeToFigureFrom = BODY_PART_TYPES
     end
+    local typeToFigure = _typeToFigure
 
     -- The viewer is the patient here, so the patient's First Aid is the doctor's (a medical
     -- check of another player passes the doctor's own)
     local doctorLevel = (opts and opts.doctorLevel) or playerObj:getPerkLevel(Perks.Doctor)
     local partByFigure = {}      -- figureName -> the BodyPart (the medical check treats it)
 
-    for i = 1, parts:size() do
+    for i = 1, nParts do
         local bp = parts:get(i - 1)
         local health = bp:getHealth()
-        local conds = classifyConditions(bp, doctorLevel)
+        local conds, stiffness, pain = classifyConditions(bp, doctorLevel)
         -- a part another mod holds back until it is examined names no wound
         if heldBack(playerObj, bp) then conds = careOnly(conds) end
         -- other mods' wound details for this part (nil without any); the injury list
@@ -483,8 +526,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         end
 
         -- Injury list: parts with conditions, reduced health, stiffness, or pain
-        local stiffness = bp:getStiffness()
-        local pain = bp:getAdditionalPain()
+        -- (stiffness and pain as classifyConditions read them)
         if #listConds > 0 or health < 95 or stiffness >= 5 or pain > 10 then
             local worstSev = "ok"
             if #listConds > 0 then
@@ -510,7 +552,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
     return {
         overall           = overall,
         entries           = entries,
-        totalParts        = parts:size(),
+        totalParts        = nParts,
         injuredCount      = #entries,
         -- S123: "injured" means a wound/condition; reduced health alone (hunger,
         -- sickness, cold) is listed but not called an injury.
@@ -1344,10 +1386,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- 300 ms late, as a hitch or a screenshot made it; the window shuts it through closeMenu
     -- when the tab is left, the drawer folds or an item card opens over it)
 
-    -- Throttled data refresh
-    win._healthTimer = (win._healthTimer or 0) + 1
-    if win._healthTimer >= 15 or not win._healthCache then
-        win._healthTimer = 0
+    -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
+    if dueMs(win, "_healthAt", 250, not win._healthCache) then
         win._healthCache = ZeD.HealthTab.gatherData(win._playerObj)
     end
     local data = win._healthCache

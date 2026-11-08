@@ -231,7 +231,15 @@ function ZeD_MMMail:put()
     local b = self:box()
     local to, subj, text = self:composeWords()
     local m, err = MS.queue(b, to, subj, text)
-    if not m then self.note = tr("UI_ZeD_Mail_OutboxFull", MS.OUT_MAX); return end
+    if not m then
+        -- (the store's own reason: putWhy can drift from it, so a refused letter says why the store said no)
+        local tx = ZeD.Tk and ZeD.Tk.clean(text) or text
+        self.note = (err == "to" and tr("UI_ZeD_Mail_NeedTo"))
+            or (err == "subj" and tr("UI_ZeD_Mail_SubjLong", Ml.L.SUBJ_MAX))
+            or (err == "text" and ((tx and #tx > Ml.L.TEXT_MAX) and tr("UI_ZeD_Mail_TooLong", Ml.L.TEXT_MAX) or tr("UI_ZeD_Mail_NeedText")))
+            or tr("UI_ZeD_Mail_OutboxFull", MS.OUT_MAX)
+        return
+    end
     self.compose = nil
     self:showFields(false)
     self.folder, self.sel, self.lscroll = "outbox", m, 0

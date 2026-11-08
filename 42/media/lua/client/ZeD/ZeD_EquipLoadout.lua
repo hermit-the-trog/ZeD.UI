@@ -163,7 +163,7 @@ function EL.plan(win, force)
     local p = player(win)
     if not p then return nil end
     local now = getTimestampMs()
-    if force or not s.plan or s.planR ~= R.gen or s.planL ~= L.gen or now - s.planMs > 1000 then
+    if force or not s.plan or s.planR ~= R.gen or s.planL ~= L.gen or now - s.planMs > 1000 or now < s.planMs then
         local ok, plan = pcall(R.plan, p, {})
         if not ok then
             if ZeD.logOnce then ZeD.logOnce("restock plan", plan) end
@@ -521,13 +521,32 @@ function EL.sectionH(win, w)
     return headH() + (foldOpen(win) and EL.barH(win, w) or 0)
 end
 
--- the heading's words on its right while shut: the loadout and how ready it is, else the outfit
-local function foldSummary(win)
-    local o, lo = R.current(player(win))
+-- the heading's words on its right while shut: the loadout and how ready it is, else the outfit.
+-- The ready count is the plan's when it is fresh (the doll's ghosts keep it so); else it is counted
+-- from what is on you alone (kept a second), the plan's own rule (a line is ready when it is on you in
+-- its place), so the shut fold never walks the building (perf review, Nov 7 2026).
+local function readyCount(win, p, o, lo, days)
     local s = st(win)
+    local now = getTimestampMs()
+    if s.plan and s.planR == R.gen and s.planL == L.gen and now >= s.planMs and now - s.planMs <= 1000 then return s.readyN or 0, s.readyM or 0 end
+    local c = s.ready
+    if c and c.r == R.gen and c.l == L.gen and now >= c.ms and now - c.ms <= 1000 then return c.n, c.m end
+    local n, m = 0, 0
+    for _, list in ipairs({ o or false, lo or false }) do
+        if list and list.kind ~= "outfit" then
+            local ok, a, b = pcall(L.ready, p, list, days or 1)
+            if ok then n, m = n + (a or 0), m + (b or 0) end
+        end
+    end
+    s.ready = { n = n, m = m, r = R.gen, l = L.gen, ms = now }
+    return n, m
+end
+local function foldSummary(win)
+    local p = player(win)
+    local o, lo, days = R.current(p)
     if lo then
-        EL.plan(win)   -- (kept a second: the ready count, as the bar's)
-        return lo.name .. " | " .. ZeD.tr("UI_ZeD_EqBar_Ready", s.readyN or 0, s.readyM or 0)
+        local n, m = readyCount(win, p, o, lo, days)
+        return lo.name .. " | " .. ZeD.tr("UI_ZeD_EqBar_Ready", n, m)
     end
     return o and o.name or nil
 end

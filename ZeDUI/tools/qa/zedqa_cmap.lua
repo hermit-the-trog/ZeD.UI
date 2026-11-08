@@ -3,8 +3,9 @@
 -- picture set: Xbox, PlayStation, Deck, Nintendo and Off (the names in boxes). For each: the window is the full card
 -- wide (or the screen less its margin), centred, the 12 rows; at 4K the body fits with no scroll (the check is
 -- skipped on a short screen, where the scroll checks run instead); a picture zqa_cmap_<set>.png. Each opening is shut a
--- different way: B, A, Escape, a REAL left click on the close box (release_check_mouse.ps1 must be running: run with
--- cmap_run.ps1), and B; after each it is off screen and holds no controller focus.
+-- different way: B, A (which must leave it open; then B), Escape, a REAL left click on the close box
+-- (release_check_mouse.ps1 must be running: run with cmap_run.ps1), and B; after each it is off screen and holds no
+-- controller focus.
 -- On a short screen (the Deck at Large text): the body runs past the window, D-pad Down scrolls it to the end, Up back,
 -- the wheel scrolls it, the footer offers "D-pad: Scroll", and the scroll mark is in the picture.
 -- The picture set is put back. grep "ZEDQA cmap".
@@ -77,7 +78,11 @@ for si, key in ipairs(SETS) do
         shot(key)
         -- shut it this opening's way
         if way == "B" then w:onJoypadDown(Joypad.BButton)
-        elseif way == "A" then w:onJoypadDown(Joypad.AButton)
+        elseif way == "A" then
+            -- (Nov 8 2026: A has no job on the map and the foot offers only B, so A leaves it open; B then shuts it)
+            w:onJoypadDown(Joypad.AButton)
+            check(open(), "67 " .. key .. ": A leaves the map open")
+            w:onJoypadDown(Joypad.BButton)
         elseif way == "Escape" then w:onKeyPress(Keyboard.KEY_ESCAPE)
         elseif way == "close box" then
             local cb = w:closeRect()

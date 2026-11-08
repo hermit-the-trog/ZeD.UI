@@ -57,7 +57,7 @@ end
 -- the lines still to do (kept a second)
 function ZeD_RestockPin:refresh(p, run)
     local now = getTimestampMs()
-    if now - self._ms < 1000 then return end
+    if now >= self._ms and now - self._ms < 1000 then return end   -- (a clock gone back: refresh)
     self._ms = now
     local rows = {}
     if run.kind == "unpack" then
@@ -182,9 +182,12 @@ end
 
 if not _G._zedRestockPinHooked then
     _G._zedRestockPinHooked = true
-    local n = 0
+    -- by the clock, not by frames (the old 15 ticks at 60 a second)
+    local last = 0
     Events.OnTick.Add(function()
-        n = n + 1
-        if n % 15 == 0 then pcall(ZeD.RestockPin.update) end
+        local now = getTimestampMs()
+        if now >= last and now - last < 250 then return end   -- (a clock gone back: run)
+        last = now
+        pcall(ZeD.RestockPin.update)
     end)
 end
