@@ -139,7 +139,7 @@ end
 -- ---------------------------------------------------------------------------
 O._flash, O._scan, O._cd, O._lastVol = O._flash or {}, O._scan or {}, O._cd or {}, O._lastVol or {}
 
--- short = what a small glass shows in place of the text ("P3" for "STORE 3"); nil = the text itself
+--- short = what a small glass shows in place of the text ("P3" for "STORE 3"); nil = the text itself
 function O.flash(part, text, ms, short) O._flash[keyOf(part)] = { text = text, short = short, untilMs = now() + (ms or 1400) } end
 local function flashOf(key)
     local f = O._flash[key]
@@ -224,7 +224,7 @@ function O.read(part)
     return st
 end
 
--- the radio a character can reach (vanilla: front seats only), with its part
+--- the radio a character can reach (vanilla: front seats only), with its part
 function O.reachable(chr)
     local v = chr and chr:getVehicle()
     if not v then return nil end
@@ -264,7 +264,7 @@ O.stopScan = stopScan
 
 function O.power(chr, part) stopScan(part); if part and O.forgetStop then O.forgetStop(keyOf(part)) end; return run("ToggleOnOff", chr, part) end
 
--- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
+--- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
 function O.volStep(chr, part, dir, wrap)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
@@ -288,7 +288,7 @@ end
 local function setChannel(chr, part, hz) return run("SetChannel", chr, part, hz) end
 O.setChannel = setChannel
 
--- one click of TUNE / the DIAL (mult: the fast-turn multiplier); the band wraps
+--- one click of TUNE / the DIAL (mult: the fast-turn multiplier); the band wraps
 function O.tuneStep(chr, part, dir, mult)
     if not part then return false end
     stopScan(part)
@@ -300,7 +300,7 @@ function O.tuneStep(chr, part, dir, mult)
     return setChannel(chr, part, nv)
 end
 
--- the next frequency vanilla has a station on (FM sets)
+--- the next frequency vanilla has a station on (FM sets)
 function O.nextStation(dd, dir)
     local lo, hi = _get(dd, "getMinChannelRange", 88000), _get(dd, "getMaxChannelRange", 108000)
     local cur = _get(dd, "getChannel", lo)
@@ -321,7 +321,7 @@ function O.seek(chr, part, dir)
     return false
 end
 
--- SCAN: on to the next station, a few seconds on each, until pressed again
+--- SCAN: on to the next station, a few seconds on each, until pressed again
 function O.scanToggle(chr, part)
     if not part then return false end
     local k = keyOf(part)
@@ -369,8 +369,8 @@ function O.recall(chr, part, i)
     return setChannel(chr, part, l:get(i - 1):getFrequency())
 end
 
--- store the station on button i (past the list's end it goes on the next free
--- button); returns the button it went on
+--- store the station on button i (past the list's end it goes on the next free
+--- button); returns the button it went on
 function O.store(chr, part, i)
     stopScan(part)
     local dd, pc, l = presetsOf(part)
@@ -392,7 +392,7 @@ function O.store(chr, part, i)
     return idx
 end
 
--- two-way sets: CH up / down through every stored channel
+--- two-way sets: CH up / down through every stored channel
 function O.chStep(chr, part, dir)
     stopScan(part)
     local dd, _, l = presetsOf(part)
@@ -406,7 +406,7 @@ function O.chStep(chr, part, dir)
     return setChannel(chr, part, l:get(nxt - 1):getFrequency())
 end
 
--- MEM: the station joins the stored channels (once); returns its channel number
+--- MEM: the station joins the stored channels (once); returns its channel number
 function O.memAdd(chr, part)
     local dd, pc, l = presetsOf(part)
     if not l then return nil end
@@ -420,7 +420,7 @@ function O.memAdd(chr, part)
     return l:size()
 end
 
--- name channel idx; an empty name forgets the channel
+--- name channel idx; an empty name forgets the channel
 function O.rename(chr, part, idx, name)
     local dd, _, l = presetsOf(part)
     if not l or idx < 1 or idx > l:size() then return false end
@@ -441,7 +441,7 @@ function O.mic(chr, part)
     return run("MuteMicrophone", chr, part, not _get(dd, "getMicIsMuted", false))
 end
 
--- PLAY / STOP (QA, Nov 2 2026, punch list 60): the game's StopPlayMedia drops the disc at once but clears its playing
+-- PLAY / STOP: the game's StopPlayMedia drops the disc at once but clears its playing
 -- flag only after a short stop timer that runs on game time (DeviceData.updateMediaPlaying: never while paused), and
 -- StartPlayMedia does nothing until it has cleared. So a set read "playing" after Stop, and a second press called Stop
 -- again. ZeD remembers its own Stop: the set reads stopped at once, and a Play pressed meanwhile starts the media as
@@ -450,7 +450,7 @@ O._stopping = O._stopping or {}
 O._wantPlay = O._wantPlay or {}
 -- is the media playing, as the player sees it (dd: the device data; key: keyOf(part))
 -- (a remembered Stop and Play go with an eject, a power change, a new disc, or after STOP_MS: a Play left waiting
--- must not start a disc later on its own; code review, Nov 2 2026)
+-- must not start a disc later on its own)
 local STOP_MS = 4000
 function O.forgetStop(key) if key then O._stopping[key], O._wantPlay[key] = nil, nil end end
 function O.playingNow(dd, key)
@@ -486,7 +486,7 @@ function O.playStop(chr, part)
     return ok
 end
 
--- the CDs the character carries (and in the bags they wear) that this radio plays
+--- the CDs the character carries (and in the bags they wear) that this radio plays
 function O.cds(chr, part)
     local dd = part and part:getDeviceData()
     local mt = dd and _get(dd, "getMediaType", -1) or -1
@@ -748,9 +748,9 @@ local function drawHam(p, kind, x, y, w, h, u, st, full)
 end
 
 -- ---------------------------------------------------------------------------
--- THE READING for the radio up close (director, Oct 16 2026: the faces in pixel
--- art): what each face's display shows now, field by field, for the shared
--- plate template's radioDisplay part (ZeD_Plate.lua) to draw in pixel figures.
+-- THE READING for the pixel-art faces: what each face's display shows now,
+-- field by field, for the shared plate template's radioDisplay part
+-- (ZeD_Plate.lua) to draw in pixel figures.
 -- The same content as drawFM / drawHam below, blinking already applied; nil
 -- when the set is off (the template darkens a liquid-crystal glass).
 --   FM sets   band "FM" / "CD", big (the frequency, or the CD's time), unit,
@@ -812,7 +812,7 @@ function O.drawDisplay(p, kind, x, y, w, h, u, st, full)
     if O.HAM[kind] then drawHam(p, kind, x, y, w, h, u, st, full) else drawFM(p, kind, x, y, w, h, u, st, full) end
 end
 
--- the handwritten names on the ValuTech's masking tape ("AEBS" -> "Aebs", like the mockup)
+--- the handwritten names on the ValuTech's masking tape ("AEBS" -> "Aebs")
 function O.tapeName(name)
     name = tostring(name or "")
     local head = name:match("^(.-)%s+%-%s+") or name

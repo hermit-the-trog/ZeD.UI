@@ -855,7 +855,7 @@ function J.renderNotebooks(panel, win, x, y, w, h)
     if not fieldShown and field._entry and field._entry:isFocused() then field._entry:unfocus() end
 end
 
--- the drawer's children follow the sub-tab (called every frame by the Character window)
+--- The drawer's children follow the sub-tab (called every frame by the Character window).
 function J.syncChildren(win, onNotebooks)
     if not onNotebooks and win._jrNote and win._jrNote:isVisible() then
         if win._jrNote._entry then win._jrNote._entry:unfocus() end

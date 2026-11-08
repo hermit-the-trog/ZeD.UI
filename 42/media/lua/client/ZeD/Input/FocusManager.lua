@@ -1416,7 +1416,7 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- S113c: cross-zone landing on a TAB STRIP snaps to the active tab,
+    -- Cross-zone landing on a TAB STRIP snaps to the active tab,
     -- not the spatially-closest tab. Rationale: when the user cone-navs
     -- INTO the tab waterfall from another panel, the active tab is the
     -- intuitive starting point — they came here to see "what's open" and

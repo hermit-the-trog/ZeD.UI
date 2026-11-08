@@ -317,6 +317,7 @@ function S.sandboxCount(modId)
     return s and #s.list or 0
 end
 
+--- Forget everything read (the Mods screen opens).
 function S.reset()
     sb, trs = {}, {}
     cache.rows, cache.at = nil, -1e9

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_ClaimProto.lua
 -- ============================================================================
--- SAFEHOUSES AND FACTIONS: WHAT BOTH SIDES AGREE ON (ZeDUI/MP_ADMIN_SCOPE.md, Phase 3). The module name, the limits, the
+-- SAFEHOUSES AND FACTIONS: WHAT BOTH SIDES AGREE ON. The module name, the limits, the
 -- tag colors, the checks on a typed name and the wars' rules. Pure Lua, ASCII, nothing client-only at load: this file
 -- also runs on a dedicated server.
 --
@@ -16,13 +16,13 @@ local Cl = ZeD.Cl
 
 Cl.MOD = "ZeDC"
 
--- THE DIRECTOR'S QUESTIONS, each answered the careful way and kept to one switch here.
+-- DESIGN CHOICES that could go either way, each answered the careful way and kept to one switch here.
 -- The game's code takes 15 characters for a faction's name; its words say 3-14. ZeD holds to the words.
 Cl.NAME_MIN, Cl.NAME_MAX = 3, 14
 Cl.TAG_MIN, Cl.TAG_MAX = 1, 4
--- The game has no limit on a safehouse's title but "not empty". The drawing's 30.
+-- The game has no limit on a safehouse's title but "not empty". ZeD caps it at 30.
 Cl.TITLE_MAX = 30
--- A tag is saved in capitals, as drawn. The game takes it as typed, and tests "already exists" with the case kept.
+-- A tag is saved in capitals. The game takes it as typed, and tests "already exists" with the case kept.
 Cl.TAG_UPPER = true
 -- An invitation that waits in the Server tab also leaves a note on the belt and a toast, as a ticket's answer does. false:
 -- only the Server tab shows it.
@@ -33,7 +33,7 @@ Cl.WAR_CONFIRM = true
 -- typing past the limit is allowed by this much, so the count and the reason can show
 Cl.FIELD_OVER = 4
 
--- Tag colors, as drawn. r, g, b from 0 to 1. The word is for the help line: a color is never the only thing said.
+-- Tag colors a faction may pick. r, g, b from 0 to 1. The word is for the help line: a color is never the only thing said.
 Cl.COLORS = {
     { id = "Red",    r = 0.769, g = 0.314, b = 0.314 },
     { id = "Orange", r = 0.831, g = 0.573, b = 0.165 },
@@ -64,7 +64,7 @@ function Cl.houseKey(h)
     return tostring(h:getX()) .. "," .. tostring(h:getY())
 end
 
--- is this color the one drawn? (the game keeps a tag color as three floats)
+-- do these two colors count as the same pick? (the game keeps a tag color as three floats, so compare with slack)
 function Cl.sameColor(a, b)
     if not (a and b) then return false end
     return math.abs(a.r - b.r) < 0.02 and math.abs(a.g - b.g) < 0.02 and math.abs(a.b - b.b) < 0.02
