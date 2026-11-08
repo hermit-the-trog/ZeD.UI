@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "ophævede %1",
     "UI_ZeD_Log_A_Lifted": "bandlysningen på %1 udløb",
     "UI_ZeD_Log_A_LiftedGame": "bandlysningen på %1 blev ophævet i spillet",
+    "UI_ZeD_Log_A_LiftedGameBy": "bandlysningen på %1 blev ophævet i spillet, set af %2",
     "UI_ZeD_Log_A_IpLiftedGame": "IP-bandlysningen på %1 blev ophævet i spillet",
     "UI_ZeD_Log_A_GameBan": "satte spillets bandlysning på %1: %2",
     "UI_ZeD_Log_A_Msg": "sendte en serverbesked: %1",

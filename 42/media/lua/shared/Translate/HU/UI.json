@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "tiltást oldott: %1",
     "UI_ZeD_Log_A_Lifted": "lejárt a tiltás: %1",
     "UI_ZeD_Log_A_LiftedGame": "a tiltást feloldották a játékban: %1",
+    "UI_ZeD_Log_A_LiftedGameBy": "a tiltást feloldották a játékban: %1 (ellenőrizte: %2)",
     "UI_ZeD_Log_A_IpLiftedGame": "az IP-tiltást feloldották a játékban: %1",
     "UI_ZeD_Log_A_GameBan": "játéktiltást adott: %1: %2",
     "UI_ZeD_Log_A_Msg": "szerverüzenetet küldött: %1",

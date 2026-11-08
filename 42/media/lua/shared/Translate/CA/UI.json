@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "ha desvetat %1",
     "UI_ZeD_Log_A_Lifted": "el veto de %1 s'ha acabat",
     "UI_ZeD_Log_A_LiftedGame": "el veto de %1 s'ha aixecat al joc",
+    "UI_ZeD_Log_A_LiftedGameBy": "el veto de %1 s'ha aixecat al joc, ho ha vist %2",
     "UI_ZeD_Log_A_IpLiftedGame": "el veto d'IP de %1 s'ha aixecat al joc",
     "UI_ZeD_Log_A_GameBan": "ha posat el veto del joc a %1: %2",
     "UI_ZeD_Log_A_Msg": "ha enviat un missatge del servidor: %1",

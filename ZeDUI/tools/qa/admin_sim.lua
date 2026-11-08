@@ -2136,6 +2136,8 @@ do
     advance(5000)
     check("the row is closed", next(md().bans) == nil)
     check("the log says it was lifted in the game, and how ZeD knew", logHas("ban lifted in the game") and logHas("lifted in the game: the game's user list no longer has the name banned"))
+    check("and names the staff client whose look showed it", logHas("no longer has the name banned; seen by Hermit"))
+    check("on the line's own field too", (function() for i = 1, md().log.n do local l = md().log[i]; if l and l.what == "ban lifted in the game" then return l.via == "Hermit" end end return false end)())
     check("never banned again", count(ca.slash, '/banuser "Kade" -r "griefing"') == 1 and not logHas("game ban did not take"))
     check("nor told to leave", M(c2).leave == nil and c2.up == true)
     check("nothing owed for them, nothing lifted by ZeD", next(md().owed) == nil and not unbanned(ca, "Kade"))
@@ -2253,6 +2255,7 @@ do
     advance(25000)
     check("read off twice: the timed row closes", md().bans[1] == nil and md().bans[2] ~= nil)
     check("the log says it", logHas("lifted in the game: the Steam ID is off the game's list"))
+    check("a Steam ID read off the game's list names nobody", not logHas("the Steam ID is off the game's list; seen by"))
     check("never banned again", count(ca.game, "BanSteamID:76561198000000900:alt") == 1)
     check("and no unban owed at its end", owedOf("UnBanSteamID", "76561198000000900") == nil)
     W.clock = W.clock + 604800 * 1000
@@ -2313,6 +2316,25 @@ do
     check("the line names what the game still holds", logHas("the game still holds its IP"))
     check("and ZeD never lifts it itself", not has(ca.game, "UnBanIP:Rue:") and not has(ca.game, "UnBan:Rue:") and W.gameIps.Rue == true)
     W.userList = nil
+end
+
+section("owed voice bans give way to a ban, as Kicks do")
+do
+    local a, ca = boot()
+    local now = math.floor(W.clock / 1000)
+    for i = 1, 150 do md().owed[1000 + i] = { id = 1000 + i, act = "UnBan", target = "t" .. i, reason = "", at = now + 99999 } end
+    for i = 1, 50 do md().owed[2000 + i] = { id = 2000 + i, act = "VoiceBan", target = "v" .. i, reason = "", at = now + 99999 } end
+    nolimit(a)
+    say(a, "a_unban", { user = "Someone" })
+    check("full of voice bans: an unban is taken", okOf(a) and owedOf("UnBan", "Someone") ~= nil)
+    check("the oldest voice ban made room", md().owed[2001] == nil and md().owed[2002] ~= nil and md().owed[1001] ~= nil)
+    check("the log says a VoiceBan was dropped", logHas("dropped a VoiceBan"))
+    for i = 1, 150 do md().owed[1000 + i] = nil end
+    for i = 1, 200 do md().owed[3000 + i] = { id = 3000 + i, act = "UnBan", target = "u" .. i, reason = "", at = now + 99999 } end
+    for id, e in pairs(md().owed) do if e.act == "VoiceBan" then md().owed[id] = nil end end
+    nolimit(a)
+    say(a, "a_unban", { user = "Other" })
+    check("full of real calls, no voice ban to drop: still refused", errOf(a) == "full" and md().owed[3001] ~= nil)
 end
 
 section("a mute owes the game's voice ban when they come on")

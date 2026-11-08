@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "%1 yasağını kaldırdı",
     "UI_ZeD_Log_A_Lifted": "%1 yasağı bitti",
     "UI_ZeD_Log_A_LiftedGame": "%1 yasağı oyunda kaldırıldı",
+    "UI_ZeD_Log_A_LiftedGameBy": "%1 yasağı oyunda kaldırıldı (gören: %2)",
     "UI_ZeD_Log_A_IpLiftedGame": "%1 IP yasağı oyunda kaldırıldı",
     "UI_ZeD_Log_A_GameBan": "%1 kişisine oyunun yasağını koydu: %2",
     "UI_ZeD_Log_A_Msg": "sunucu iletisi gönderdi: %1",

@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "poisti eston: %1",
     "UI_ZeD_Log_A_Lifted": "kielto päättyi: %1",
     "UI_ZeD_Log_A_LiftedGame": "kielto poistettiin pelissä: %1",
+    "UI_ZeD_Log_A_LiftedGameBy": "kielto poistettiin pelissä: %1 (tarkisti %2)",
     "UI_ZeD_Log_A_IpLiftedGame": "IP-kielto poistettiin pelissä: %1",
     "UI_ZeD_Log_A_GameBan": "antoi pelin kiellon: %1: %2",
     "UI_ZeD_Log_A_Msg": "lähetti palvelinviestin: %1",

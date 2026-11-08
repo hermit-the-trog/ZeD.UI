@@ -76,7 +76,7 @@ end
 -- the words a Find looks through, lower case. say: the line in words (Lg.lineWords), so Find reaches what the card shows as
 -- well as the codes
 function Lg.hay(l, say)
-    local p = { l.who or "", l.what or "", l.target or "", l.text or "", l.car or "", l.part or "", l.lg or "", l.by or "", say or "" }
+    local p = { l.who or "", l.what or "", l.target or "", l.text or "", l.car or "", l.part or "", l.lg or "", l.by or "", l.via or "", say or "" }
     if l.x then p[#p + 1] = tostring(l.x) .. " x " .. tostring(l.y) end
     return string.lower(table.concat(p, " "))
 end
@@ -85,7 +85,7 @@ end
 -- gives a line's words; codes, what the viewer's own words for find came to (Lg.findCodes)
 function Lg.keep(l, q)
     if q.kind and Lg.kindOf(l.kind) ~= q.kind then return false end
-    if q.who and l.who ~= q.who and l.target ~= q.who and l.by ~= q.who then return false end
+    if q.who and l.who ~= q.who and l.target ~= q.who and l.by ~= q.who and l.via ~= q.who then return false end
     if q.since and l.t < q.since then return false end
     if q.untilT and l.t > q.untilT then return false end
     if q.near then
@@ -346,7 +346,11 @@ ADMIN["ban"] = function(r, c)
 end
 ADMIN["unban"] = function(r, c) return c.w("UI_ZeD_Log_A_Unban", banTarget(r, c)) end
 ADMIN["ban lifted"] = function(r, c) return c.w("UI_ZeD_Log_A_Lifted", banTarget(r, c)) end
-ADMIN["ban lifted in the game"] = function(r, c) return c.w("UI_ZeD_Log_A_LiftedGame", banTarget(r, c)) end
+-- via: the staff client whose look at the game's user list showed it (the server's lines from before this build have none)
+ADMIN["ban lifted in the game"] = function(r, c)
+    if r.via then return c.w("UI_ZeD_Log_A_LiftedGameBy", banTarget(r, c), tostring(r.via)) end
+    return c.w("UI_ZeD_Log_A_LiftedGame", banTarget(r, c))
+end
 ADMIN["ip ban lifted in the game"] = function(r, c) return c.w("UI_ZeD_Log_A_IpLiftedGame", tostring(r.target)) end
 ADMIN["game ban"] = function(r, c) return c.w("UI_ZeD_Log_A_GameBan", banTarget(r, c), quoted(r.text)) end
 ADMIN["server message"] = function(r, c) return c.w("UI_ZeD_Log_A_Msg", quoted(r.text)) end
@@ -448,6 +452,7 @@ Lg.EN = {
     UI_ZeD_Log_A_Mute = "muted %1", UI_ZeD_Log_A_Unmute = "unmuted %1", UI_ZeD_Log_A_Role = "gave %1 the role %2",
     UI_ZeD_Log_A_LevelUp = "leveled %1 up: %2", UI_ZeD_Log_A_LevelDown = "leveled %1 down: %2", UI_ZeD_Log_A_Ban = "banned %1 (%2): %3",
     UI_ZeD_Log_A_Unban = "unbanned %1", UI_ZeD_Log_A_Lifted = "the ban on %1 ran out", UI_ZeD_Log_A_LiftedGame = "the ban on %1 was lifted in the game",
+    UI_ZeD_Log_A_LiftedGameBy = "the ban on %1 was lifted in the game, seen by %2",
     UI_ZeD_Log_A_IpLiftedGame = "the IP ban on %1 was lifted in the game", UI_ZeD_Log_A_GameBan = "put the game's ban on %1: %2",
     UI_ZeD_Log_A_Msg = "sent a server message: %1", UI_ZeD_Log_A_Repeat = "set a repeating message, %1", UI_ZeD_Log_A_RepeatStop = "stopped a repeating message",
     UI_ZeD_Log_A_Spawn = "spawned %1 x %2 to %3", UI_ZeD_Log_A_SpawnSelf = "spawned %1 x %2 to themselves", UI_ZeD_Log_A_SpawnGround = "spawned %1 x %2 on the ground",
