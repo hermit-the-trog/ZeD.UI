@@ -585,6 +585,8 @@ local MS = ZeD.Messages
 require "ZeD/ZeD_MainMenu"
 require "ZeD/ZeD_MainMenuPlayers"
 require "ZeD/ZeD_FormCard"
+-- the game's own map's Sharing tool (ISWorldMapSymbols.lua), as the file defines it
+ISWorldMapSymbolTool_Sharing = { showPropertiesUI = function() VAN_TOOL = (VAN_TOOL or 0) + 1; return true end }
 require "ZeD/ZeD_MpLeftovers"
 require "ZeD/ZeD_LeftScreen"
 local MM, PL, L, LS, FC = ZeD.MainMenu, ZeD.PausePlayers, ZeD.MpLeftovers, ZeD.LeftScreen, ZeD.FormCard
@@ -819,12 +821,25 @@ check("the game's saving box is off the events", (function()
     return #Events.OnServerStartSaving.list >= 1
 end)())
 local seq0 = MS.seq
+local SRV = ZeD.tr("UI_ZeD_Srv_Server")
+local adm0 = MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")] and #MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")].items or 0
+local realToast = ZeD.Settings
+ZeD.Settings = { messagesToastOn = function() return true end, messagesCatchOn = function() return true end }
+MS.toasts = {}
 for _, fn in ipairs(Events.OnServerStartSaving.list) do fn() end
-local top = MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")] and MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")].items[1]
-check("saving is a notice in Messages, not the game's box nor a panel of its own", top ~= nil and top.text == ZeD.tr("UI_ZeD_Srv_Saving")
+local top = MS.sources[SRV] and MS.sources[SRV].items[1]
+check("saving is a notice under its own Server heading, not the game's box nor a panel", top ~= nil and top.k == "server" and top.text == ZeD.tr("UI_ZeD_Srv_Saving")
     and MS.seq > seq0 and VAN_SAVING == 0 and ZeD_SavingNote == nil)
+check("not under Admin", (MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")] and #MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")].items or 0) == adm0)
+check("an info bubble, not a warning", MS.toasts[#MS.toasts] and MS.toasts[#MS.toasts].kind == "info", MS.toasts[#MS.toasts] and MS.toasts[#MS.toasts].kind)
 for _, fn in ipairs(Events.OnServerFinishSaving.list) do fn() end
-check("done leaves the notice kept in Messages", MS.sources[ZeD.tr("UI_ZeD_Adm_NoteHead")].items[1] == top and VAN_SAVING == 0)
+top.read = true
+for _, fn in ipairs(Events.OnServerStartSaving.list) do fn() end
+for _, fn in ipairs(Events.OnServerStartSaving.list) do fn() end
+check("one entry, updated in place each save", #MS.sources[SRV].items == 1 and MS.sources[SRV].items[1] == top and top.read == false)
+ZeD.Settings = realToast
+for _, fn in ipairs(Events.OnServerFinishSaving.list) do fn() end
+check("done leaves the notice kept in Messages", MS.sources[SRV].items[1] == top and VAN_SAVING == 0)
 SAFE = true
 ZeD.Safe.on = function() return SAFE == true end
 for _, fn in ipairs(Events.OnServerStartSaving.list) do fn() end
@@ -836,6 +851,21 @@ SAFE = nil
 -- ===========================================================================================
 -- C16 ADMIN MESSAGE: a note in Messages
 -- ===========================================================================================
+-- the game's user and admin panels' See server options
+do
+    local SV2 = ZeD.ServerTab
+    local Panel = { van = 0 }
+    function Panel.onOptionMouseDown(self, button) Panel.van = Panel.van + 1 end
+    SV2.wrapPanel(Panel, "SERVEROPTIONS")
+    OPENED = {}
+    SV2.openNext = nil
+    Panel.onOptionMouseDown({ player = PLAYER }, { internal = "SERVEROPTIONS" })
+    check("the game's user panel's See server options opens ZeD's card", Panel.van == 0 and OPENED[1] == "server" and SV2.openNext == "options")
+    SV2.openNext = nil
+    Panel.onOptionMouseDown({ player = PLAYER }, { internal = "FACTION" })
+    check("its other buttons stay the game's", Panel.van == 1)
+end
+
 print("-- C16 admin message")
 VAN_ADMIN = {}
 local adminFns = Events.OnAdminMessage.list
@@ -916,6 +946,73 @@ card = L.shareCard
 sym2.set = nil
 card:cancel()
 check("Cancel changes nothing", sym2.set == nil and card._done)
+-- the drawer leaves the map (another tab, a hidden map): the card goes and lets go
+L.openSharing(mp, sym2, false)
+card = L.shareCard
+mp._drawnMs = getTimestampMs()
+card:update()
+check("the card stays while the map draws", not card._done)
+mp._drawnMs = getTimestampMs() - 2000
+card:update()
+check("another tab in the drawer: the card closes", card._done and drawer.kids[#drawer.kids] == mp)
+mp._drawnMs = nil
+L.openSharing(mp, sym2, false)
+card = L.shareCard
+mp.visible = false
+card:update()
+check("a hidden map: the card closes", card._done)
+check("and no card opens on a hidden map", FC.open({ title = "x", rows = function() return {} end, band = function() return {} end,
+    dock = function() return nil end }) == nil)
+mp.visible = true
+-- Hide author, on someone else's shared mark (the game's setAuthorHidden)
+local API = { hidden = {} }
+function API.isAuthorHidden(self, a) return self.hidden[a] == true end
+function API.setAuthorHidden(self, a, on) self.hidden[a] = on end
+mp.mapAPI = { getSymbolsAPIv2 = function() return API end }
+local sym3 = symbol(false, true, false, false)
+function sym3.isShared() return true end
+function sym3.isAuthorLocalPlayer() return false end
+function sym3.getAuthor() return "bob" end
+L.openSharing(mp, sym3, false)
+card = L.shareCard
+card:layout()
+check("Hide author on someone else's shared mark", rowById(card, "hide") ~= nil and not rowById(card, "hide").on)
+card:pressRow(rowById(card, "hide"))
+card:layout()
+card:pressButton(card._band.buttons[2])
+check("Accept hides that author's marks, as the game's panel does", API.hidden.bob == true)
+local sym4 = symbol(false, true, false, false)
+function sym4.isShared() return true end
+function sym4.isAuthorLocalPlayer() return true end
+function sym4.getAuthor() return "Aretha" end
+L.openSharing(mp, sym4, false)
+L.shareCard:layout()
+check("no Hide author on your own mark", rowById(L.shareCard, "hide") == nil)
+L.shareCard:cancel()
+mp.mapAPI = nil
+-- the wheel over the card scrolls the card
+L.openSharing(mp, sym, false)
+card = L.shareCard
+card:layout()
+card._maxScroll, card._scroll = 100, 0
+check("the card takes the wheel", card:onMouseWheel(1) == true and card._scroll > 0)
+card:cancel()
+-- the game's own map's Sharing tool reaches the card
+do
+    local gameMap = ISPanel:new(0, 0, 1920, 1080)
+    gameMap.playerNum = 0
+    local tool = { symbolsUI = { checkAnnotationForSharingMouse = function(u) u.mouseOverSymbol = 3 end, checkAnnotationForSharingJoypad = function() end },
+        symbolsAPI = { getSymbolByIndex = function(_, i) return i == 3 and sym or nil end }, mapUI = gameMap }
+    VAN_TOOL = 0
+    L.shareCard = nil
+    check("the game's map tool opens ZeD's card", ISWorldMapSymbolTool_Sharing.showPropertiesUI(tool) == true and VAN_TOOL == 0 and L.shareCard ~= nil)
+    check("over the game's map, a card of its own (no drawer)", L.shareCard.dockedIn == nil and L.shareCard.inUI == true)
+    L.shareCard:cancel()
+    SAFE = true
+    ISWorldMapSymbolTool_Sharing.showPropertiesUI(tool)
+    check("safe mode: the game's panel", VAN_TOOL == 1)
+    SAFE = nil
+end
 -- the pad
 JoypadState.players[1] = { focus = nil, player = 0 }
 L.openSharing(mp, sym, false)
@@ -989,6 +1086,11 @@ opened:pressButton(opened._band.buttons[2])
 check("Save writes a changed name through the game's setter", axe.saved.name == "Lucky axe", axe.saved.name)
 check("a number past its bound is held to it", axe.saved.cond == 10, axe.saved.cond)
 check("a field left as it was is not written back", axe.saved.weight == nil and axe.saved.MinDamage == nil and axe.saved.custom == nil)
+-- food holds negatives: the registered min (0) is not a bound, only the item's own funcMin / funcMax
+local hungerEd = { originalValue = -0.2, min = 0 }
+check("a food field keeps its negative value", L.numberText(hungerEd, "-0.5") == "-0.5", L.numberText(hungerEd, "-0.5"))
+check("a field with no bound of the item's is not held", L.numberText({ originalValue = 1, max = 1 }, "5") == "5")
+check("the item's own max holds", L.numberText({ originalValue = 1, zedMax = 10 }, "99") == "10")
 check("the card is gone after Save", opened._done == true)
 local axe2 = item()
 opened = nil

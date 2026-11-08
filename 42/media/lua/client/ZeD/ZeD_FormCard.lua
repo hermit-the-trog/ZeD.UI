@@ -109,7 +109,11 @@ function ZeD_FormCard:layout()
     local spec = self.spec
     local w = px(spec.width or U.W)
     local dp, dx, dy, dw, dh = nil, 0, 0, 0, 0
-    if spec.dock then dp, dx, dy, dw, dh = spec.dock() end
+    if spec.dock then
+        dp, dx, dy, dw, dh = spec.dock()
+        -- (its drawer is gone from the screen: another tab, the window shut. The card goes too, and lets go of the pad)
+        if not dp then self:finish(); return false end
+    end
     if dp then w = math.min(w, dw) end
     local pad = px(U.PAD)
     local tb = self:titleBarHeight()
@@ -198,7 +202,7 @@ local function focusOpts(self) _fo.win, _fo.pad, _fo.focused = self, true, true;
 function ZeD_FormCard:prerender()
     local T = ZeD.T
     self.minimumWidth, self.minimumHeight = 0, 0
-    self:layout()
+    if self._done or self:layout() == false then return end
     ZeD_Window.prerender(self)
     self.minimumWidth, self.minimumHeight = 0, 0
     local A, M = ZeD.Atoms, ZeD.Molecules
@@ -436,6 +440,8 @@ end
 function ZeD_FormCard:update()
     ZeD_Window.update(self)
     if self._done then return end
+    -- (a docked card is checked here too: a hidden drawer draws none of its children, so prerender would never see it go)
+    if self.spec.dock and not self.spec.dock() then self:finish(); return end
     local jf = nil
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     if jd and jd.focus == self then jf = jd end
@@ -495,6 +501,7 @@ function FC.open(spec)
     card:initialise()
     card:instantiate()
     local dp = spec.dock and spec.dock() or nil
+    if spec.dock and not dp then return nil end
     if dp then
         card.dockedIn = dp
         dp:addChild(card)            -- (added last: over the map and its pieces)

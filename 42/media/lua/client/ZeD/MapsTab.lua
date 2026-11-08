@@ -887,6 +887,9 @@ end
 
 -- Mouse wheel for zoom
 function ZeD_WorldMap:onMouseWheel(del)
+    -- the Sharing card in the drawer (ZeD_MpLeftovers.lua) takes the wheel under the pointer: it scrolls, the map stays
+    local card = ZeD.MpLeftovers and ZeD.MpLeftovers.shareCard
+    if card and not card._done and card.dockedIn and card:isMouseOver() then return card:onMouseWheel(del) end
     local win = self._parentWin
     if win and Ext.wheel(win, self:getMouseX() + self:getX(), self:getMouseY() + self:getY(), del) then return true end
     self.mapAPI:zoomAt(self:getMouseX(), self:getMouseY(), del)

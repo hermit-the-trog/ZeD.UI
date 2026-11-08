@@ -24,6 +24,7 @@ require "ZeD/ZeD_FormCard"
 require "ISUI/ISServerSavingMessage"
 require "ISUI/AdminPanel/ISItemEditorUI"
 require "ISUI/AdminPanel/ISItemEditPanel"
+require "ISUI/Maps/ISWorldMapSymbols"
 
 ZeD = ZeD or {}
 ZeD.MpLeftovers = ZeD.MpLeftovers or {}
@@ -46,11 +47,11 @@ end
 -- ---------------------------------------------------------------------------
 function L.savingStart()
     local MS = ZeD.Messages
-    if safeOn() or not (MS and MS.adminMsg and getPlayer()) then
+    if safeOn() or not (MS and MS.serverNote and getPlayer()) then
         L.savingVanilla = true
         return ISServerSavingMessage.showPauseMessage()
     end
-    pcall(MS.adminMsg, tr("UI_ZeD_Srv_Saving"), nil)
+    pcall(MS.serverNote, "saving", tr("UI_ZeD_Srv_Saving"))
 end
 
 function L.savingDone()
@@ -128,8 +129,15 @@ function L.sharePlayers(sym)
 end
 
 -- the mark's sharing now, as the game's panel reads it (PanelMain:setCurrentSymbol)
-function L.shareState(sym)
+function L.shareState(sym, api)
     local s = { mode = "other", faction = false, safehouse = false, players = {} }
+    -- the game's Hide author: only on a shared mark someone else made (PanelMain:setCurrentSymbol)
+    s.author = safe(function() return sym:getAuthor() end, nil)
+    s.canHide = api ~= nil and s.author ~= nil and safe(function() return sym:isShared() end, false)
+        and not safe(function() return sym:isAuthorLocalPlayer() end, true)
+    s.hide = s.canHide and safe(function() return api:isAuthorHidden(s.author) end, false) or false
+    s.api = api
+    s.can = safe(function() return sym:canClientModify() end, false)
     if safe(function() return sym:isPrivate() end, true) then s.mode = "private"
     elseif safe(function() return sym:isVisibleToEveryone() end, false) then s.mode = "all"
     else
@@ -146,6 +154,7 @@ end
 
 -- the choice, handed to the mark as the game's ISWorldMapSharing:applyChanges does
 function L.shareApply(sym, s)
+    if s.canHide and s.api then s.api:setAuthorHidden(s.author, s.hide and true or false) end
     if not safe(function() return sym:canClientModify() end, false) then return end
     if s.mode == "private" then sym:setSharing(nil); return end
     if s.mode == "all" then sym:setSharing({ everyone = true }); return end
@@ -157,6 +166,10 @@ end
 
 function L.shareRows(sym, s)
     local rows = {}
+    if s.canHide then
+        rows[#rows + 1] = { k = "check", id = "hide", text = getText("IGUI_Map_Sharing_HideAuthor"), on = s.hide, run = function() s.hide = not s.hide end }
+    end
+    if not s.can then return rows end
     local function pick(mode) return function() s.mode = mode end end
     rows[#rows + 1] = { k = "radio", id = "private", text = getText("IGUI_Map_Sharing_Private"), on = s.mode == "private", run = pick("private") }
     rows[#rows + 1] = { k = "radio", id = "all", text = getText("IGUI_Map_Sharing_Everyone"), on = s.mode == "all", run = pick("all") }
@@ -179,19 +192,31 @@ end
 -- opens the card for the mark; false when it can't (the game's panel opens instead)
 function L.openSharing(mp, sym, fromPad)
     if safeOn() or not (ZeD.FormCard and sym and isClient()) then return false end
-    if not safe(function() return sym:canClientModify() end, false) then return false end
     if L.shareCard and not L.shareCard._done then L.shareCard:finish() end
     if scoreboardUpdate then pcall(scoreboardUpdate) end
-    local s = L.shareState(sym)
-    local pn = (mp and mp.playerObj and safe(function() return mp.playerObj:getPlayerNum() end, 0)) or 0
-    -- a card in the map's drawer (VANILLA_WINDOWS C5): in the panel that holds the map, at the map's right edge
+    local api = mp and mp.mapAPI and safe(function() return mp.mapAPI:getSymbolsAPIv2() end, nil)
+    local s = L.shareState(sym, api)
+    if not (s.can or s.canHide) then return false end
+    local pn = (mp and mp.playerObj and safe(function() return mp.playerObj:getPlayerNum() end, 0)) or (mp and mp.playerNum) or 0
+    -- a card in the map's drawer (VANILLA_WINDOWS C5): in the panel that holds the map, at the map's right edge. While
+    -- the map is not on screen (another tab, the window shut or rolled up) there is no drawer to be in: the card closes
     local function dock()
         local holder = mp and mp.parent
         if not holder then return nil end
+        if not (mp:isVisible() and holder:isVisible() and (not mp.isReallyVisible or mp:isReallyVisible())) then return nil end
+        -- (the map stamps each frame it draws: another tab in the same drawer stops the stamp)
+        if mp._drawnMs and getTimestampMs() - mp._drawnMs > 500 then return nil end
         return holder, mp:getX(), mp:getY(), mp:getWidth(), mp:getHeight()
     end
+    -- (the game's own world map is a screen of its own, no drawer: the card stands over its middle)
+    local docked = mp ~= nil and mp.parent ~= nil
+    local cx, cy = nil, nil
+    if mp and not docked then
+        cx = math.floor(mp:getAbsoluteX() + mp:getWidth() / 2)
+        cy = math.floor(mp:getAbsoluteY() + mp:getHeight() / 2)
+    end
     L.shareCard = ZeD.FormCard.open({
-        title = getText("IGUI_Map_Sharing"), width = 320, playerNum = pn, dock = dock,
+        title = getText("IGUI_Map_Sharing"), width = 320, playerNum = pn, dock = docked and dock or nil, cx = cx, cy = cy,
         help = tr("UI_ZeD_Map_ShareHelp"),
         rows = function() return L.shareRows(sym, s) end,
         band = function(card)
@@ -234,8 +259,10 @@ function L.editFields(admin, item)
                 if elem.round and luautils and luautils.round then v = luautils.round(v, elem.round) end
                 elem.zedText = tostring(v)
                 if elem.funcEditable then elem.editable = safe(function() return item[elem.funcEditable](item) end, false) end
-                if elem.funcMin then elem.min = safe(function() return item[elem.funcMin](item) end, elem.min) end
-                if elem.funcMax then elem.max = safe(function() return item[elem.funcMax](item) end, elem.max) end
+                -- (the bounds the save holds a number to: only the item's own, funcMin / funcMax. The field's registered
+                -- min is a default, 0 even where the game keeps negatives: hunger, unhappiness, boredom on food)
+                if elem.funcMin then elem.zedMin = safe(function() return item[elem.funcMin](item) end, nil) end
+                if elem.funcMax then elem.zedMax = safe(function() return item[elem.funcMax](item) end, nil) end
             elseif elem.type == TYPE_COLOR then
                 local c = safe(function() return item[elem.funcGet](item) end, nil)
                 if c then
@@ -258,8 +285,8 @@ end
 function L.numberText(elem, text)
     local n = tonumber(text)
     if not n then return tostring(elem.originalValue) end
-    if type(elem.min) == "number" and n < elem.min then n = elem.min end
-    if type(elem.max) == "number" and n > elem.max then n = elem.max end
+    if type(elem.zedMin) == "number" and n < elem.zedMin then n = elem.zedMin end
+    if type(elem.zedMax) == "number" and n > elem.zedMax then n = elem.zedMax end
     return tostring(n)
 end
 
@@ -352,6 +379,27 @@ function L.openItemEditor(admin, item)
         end,
     })
     return card ~= nil
+end
+
+-- the game's own map's Sharing tool (ISWorldMapSymbols.lua: ISWorldMapSymbolTool_Sharing:showPropertiesUI) opens the same
+-- card on the mark under the pointer or the controller's cursor; its panel only when the card can't
+if not L.toolHooked and ISWorldMapSymbolTool_Sharing and ISWorldMapSymbolTool_Sharing.showPropertiesUI then
+    L.toolHooked = true
+    local base = ISWorldMapSymbolTool_Sharing.showPropertiesUI
+    ISWorldMapSymbolTool_Sharing.showPropertiesUI = function(self)
+        local ok, done = pcall(function()
+            local ui = self.symbolsUI
+            ui:checkAnnotationForSharingMouse()
+            ui:checkAnnotationForSharingJoypad()
+            local i = ui.mouseOverNote or ui.mouseOverSymbol
+            if not i then return false end
+            local sym = self.symbolsAPI:getSymbolByIndex(i)
+            local pn = self.mapUI and self.mapUI.playerNum or 0
+            return L.openSharing(self.mapUI, sym, getJoypadData and getJoypadData(pn) ~= nil)
+        end)
+        if ok and done then return true end
+        return base(self)
+    end
 end
 
 if not L.editHooked and ISItemEditorUI and ISItemEditorUI.OpenPanel then

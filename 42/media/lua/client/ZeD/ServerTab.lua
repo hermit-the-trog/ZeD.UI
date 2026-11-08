@@ -274,6 +274,26 @@ ZeD.TicketCards.kinds.srvopts = {
     end,
 }
 
+-- the game's own user and admin panels' See server options (ISUserPanelUI SERVEROPTIONS, ISAdminPanelUI SEEOPTIONS) reach
+-- the same card, when the Server tab can open; their buttons read these functions as the panels are made
+require "ISUI/UserPanel/ISUserPanelUI"
+require "ISUI/AdminPanel/ISAdminPanelUI"
+function S.wrapPanel(cls, internal)
+    if not (cls and cls.onOptionMouseDown) or cls._zedOptions then return end
+    cls._zedOptions = true
+    local base = cls.onOptionMouseDown
+    cls.onOptionMouseDown = function(self, button, x, y)
+        if button and button.internal == internal then
+            local p = self.player or getPlayer()
+            local ok, opened = pcall(S.openOptionsFor, p)
+            if ok and opened then return end
+        end
+        return base(self, button, x, y)
+    end
+end
+S.wrapPanel(ISUserPanelUI, "SERVEROPTIONS")
+S.wrapPanel(ISAdminPanelUI, "SEEOPTIONS")
+
 local function build(p, win, st)
     local T = ZeD.T
     local L = {}
