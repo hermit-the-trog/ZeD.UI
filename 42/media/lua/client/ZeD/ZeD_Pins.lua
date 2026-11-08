@@ -41,12 +41,16 @@ end
 function P.isPinned(p, k, id) return P.find(p, k, id) ~= nil end
 
 -- the name a pin shows for itself (an item's display name, a skill's)
+-- (Nov 7 2026, perf review #15: the title bar asks every frame, so the guarded calls are named
+-- functions, not a closure per pin per frame)
+local function carriedById(p, id) return p:getInventory():getItemWithIDRecursiv(tonumber(id)) end
+local function carriedByType(p, ft) return p:getInventory():getFirstTypeRecurse(ft) end
 local function itemOf(p, id, e)
-    local ok, it = pcall(function() return p:getInventory():getItemWithIDRecursiv(tonumber(id)) end)
+    local ok, it = pcall(carriedById, p, id)
     if ok and it then return it end
     -- (the same kind of thing you carry, when its id is not found: ids may not survive the game loading again)
     if e and e.ft then
-        local ok2, it2 = pcall(function() return p:getInventory():getFirstTypeRecurse(e.ft) end)
+        local ok2, it2 = pcall(carriedByType, p, e.ft)
         if ok2 and it2 then e.id = it2:getID(); return it2 end
     end
     return nil
@@ -116,66 +120,76 @@ local function shortName(n, max)
 end
 P.shortName = shortName
 
+-- A pin's words with a name n (nil: the number alone): mode "max" (a skill at 10), "level" (a skill: pd the
+-- skill's pin data) or "item" (key a1 a2: the item's line)
+local function pinForm(mode, pd, key, a1, a2, n)
+    if mode == "max" then return n and ZeD.tr("UI_ZeD_Char_PinMax", n) or "10" end
+    if mode == "level" then
+        if n then return ZeD.tr("UI_ZeD_Char_PinLevel", n, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel) end
+        return ZeD.tr("UI_ZeD_Pin_Of", pd.level, pd.xpInLevel, pd.xpForLevel)
+    end
+    local t = ZeD.tr(key, n or "", a1, a2)
+    if not n then t = t:gsub("^%s*|%s*", "") end
+    return t
+end
+
+-- an item pin's numbers: key, a1, a2, color (key nil: a kind with none); run guarded, as an item may lack a part
+local function itemLine(k, it, T)
+    local key, a1, a2, color
+    if k == "book" then
+        local n, r = it:getNumberOfPages() or 0, it:getAlreadyReadPages() or 0
+        key, a1, a2 = "UI_ZeD_Pin_Of", r, n
+        color = (n > 0 and r >= n) and T.positive or T.accent
+    elseif k == "fluid" then
+        local fc = it:getFluidContainer()
+        local am, c = fc:getAmount() or 0, fc:getCapacity() or 0
+        key, a1, a2 = "UI_ZeD_Pin_Litres", string.format("%.1f", am), string.format("%.1f", c)
+        color = (c > 0 and am / c < 0.25) and T.warning or T.info
+    elseif k == "uses" then
+        local u = it:getCurrentUsesFloat() or 0
+        key, a1 = "UI_ZeD_Pin_Pct", math.floor(u * 100 + 0.5)
+        color = (u < 0.25) and T.warning or T.info
+    elseif k == "cond" then
+        local c, m = it:getCondition() or 0, it:getConditionMax() or 1
+        key, a1, a2 = "UI_ZeD_Pin_Of", c, m
+        color = (c <= 0 and T.danger) or ((c / m <= 0.25) and T.warning) or T.positive
+    end
+    return key, a1, a2, color
+end
+
 -- the title bar's entries for the pins: { text, color }, oldest first
+-- (Nov 7 2026, perf review #15: asked every frame by the title bar, so no closure per pin: the words come
+-- from pinForm, the item's numbers from itemLine, the same words as before)
 function P.stats(p)
     local T = ZeD.T
     local out = {}
     for _, e in ipairs(list(p)) do
-        -- form(name): the pin's words with a name (nil: the number alone); the title bar takes the longest form that
+        -- the pin's words with a name (nil: the number alone); the title bar takes the longest form that
         -- fits, then shorter ones (QA, Nov 4 2026: pins were dropped where a shorter form would have fitted)
-        local form, color, full = nil, nil, nil
+        local mode, pd, key, a1, a2, color, full = nil, nil, nil, nil, nil, nil, nil
         if e.k == "skill" then
-            local pd = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and ZeD.SkillsTab.getPinData(p, e.id)
+            pd = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and ZeD.SkillsTab.getPinData(p, e.id)
             if pd then
                 full = pd.name
                 if pd.level >= 10 then
                     color = T.positive
-                    form = function(n) return n and ZeD.tr("UI_ZeD_Char_PinMax", n) or "10" end
+                    mode = "max"
                 else
                     color = T.accent
-                    form = function(n)
-                        if n then return ZeD.tr("UI_ZeD_Char_PinLevel", n, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel) end
-                        return ZeD.tr("UI_ZeD_Pin_Of", pd.level, pd.xpInLevel, pd.xpForLevel)
-                    end
+                    mode = "level"
                 end
             end
         else
             local it = itemOf(p, e.id, e)
             if it then
                 full = it:getDisplayName()
-                pcall(function()
-                    local key, a1, a2
-                    if e.k == "book" then
-                        local n, r = it:getNumberOfPages() or 0, it:getAlreadyReadPages() or 0
-                        key, a1, a2 = "UI_ZeD_Pin_Of", r, n
-                        color = (n > 0 and r >= n) and T.positive or T.accent
-                    elseif e.k == "fluid" then
-                        local fc = it:getFluidContainer()
-                        local am, c = fc:getAmount() or 0, fc:getCapacity() or 0
-                        key, a1, a2 = "UI_ZeD_Pin_Litres", string.format("%.1f", am), string.format("%.1f", c)
-                        color = (c > 0 and am / c < 0.25) and T.warning or T.info
-                    elseif e.k == "uses" then
-                        local u = it:getCurrentUsesFloat() or 0
-                        key, a1 = "UI_ZeD_Pin_Pct", math.floor(u * 100 + 0.5)
-                        color = (u < 0.25) and T.warning or T.info
-                    elseif e.k == "cond" then
-                        local c, m = it:getCondition() or 0, it:getConditionMax() or 1
-                        key, a1, a2 = "UI_ZeD_Pin_Of", c, m
-                        color = (c <= 0 and T.danger) or ((c / m <= 0.25) and T.warning) or T.positive
-                    end
-                    if key then
-                        form = function(n)
-                            local t = ZeD.tr(key, n or "", a1, a2)
-                            if not n then t = t:gsub("^%s*|%s*", "") end
-                            return t
-                        end
-                    end
-                end)
+                local ok, k1, b1, b2, c1 = pcall(itemLine, e.k, it, T)
+                if ok and k1 then mode, key, a1, a2, color = "item", k1, b1, b2, c1 end
             end
         end
-        if form then
-            local text = form(shortName(full, SHORT))
-            local alts = { form(shortName(full, 8)), form(nil) }
+        if mode then
+            local text = pinForm(mode, pd, key, a1, a2, shortName(full, SHORT))
+            local alts = { pinForm(mode, pd, key, a1, a2, shortName(full, 8)), pinForm(mode, pd, key, a1, a2, nil) }
             out[#out + 1] = { text = text, color = color, alts = alts }
         end
     end

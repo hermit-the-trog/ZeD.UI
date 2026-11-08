@@ -3,9 +3,11 @@
 -- INVENTORY RENDERER — shared module consumed by CharacterWindow + WorldWindow.
 -- Extracted from TestInventory.lua.
 --
--- 11 exports: renderItemList, renderMultiColumnContent, makeSorter, SORT_COLS,
--- countSelected, findIndex, collectSelectedItems, handleDrop, buildContainers,
--- rebuildColStates, toggleContainer
+-- 43 exports. The core 12: renderItemList, renderMultiColumnContent, makeSorter,
+-- SORT_COLS, countSelected, findIndex, collectSelectedItems, handleDrop,
+-- buildContainers, rebuildColStates, toggleContainer, dirtyModels (every list
+-- model rebuilds on its next draw). The rest are the pad, grid, category and
+-- column helpers the two windows call.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -1084,13 +1086,47 @@ end
 -- LIST MODEL
 -- A list's rows: its categories, the items sorted in each, and the stacks.
 -- Built only when the container changes (its item count or weight, the sort,
--- the folds, what the player holds), and every MODEL_REFRESH draws anyway for
--- what changes nothing of those (a renamed item, a worn-down condition).
--- Each open column rebuilt and re-sorted its whole list every frame before.
+-- the folds, what the player holds), at once after a container event or a
+-- drop (dirtyModels), and about once a second anyway for what changes nothing
+-- of those (a renamed item, a worn-down condition); each column on its own
+-- beat (its phase), so open columns do not rebuild on the same frame.
+-- Each open column rebuilt and re-sorted its whole list every frame before,
+-- then every 30 frames until Nov 7 2026 (the performance review's #4).
 -- (Kept out of renderItemList, which sits near Kahlua's 200-local limit.)
 -- ============================================================================
 
-local MODEL_REFRESH = 30
+local MODEL_REFRESH_MS = 1000   -- the time-based rebuild, ms (each column on its own phase)
+local MODEL_EVENT_MS   = 500    -- an event's rebuild comes at most this long after the last build (a storm of events)
+local _modelGen, _modelPhases = 0, 0
+
+-- every list model rebuilds on its next draw: a container's things changed
+-- (the game's OnContainerUpdate, a player's clothes put on or off), a drop moved things
+function ZeD.InventoryRenderer.dirtyModels()
+    _modelGen = _modelGen + 1
+end
+if Events then
+    if Events.OnContainerUpdate then Events.OnContainerUpdate.Add(ZeD.InventoryRenderer.dirtyModels) end
+    if Events.OnClothingUpdated then
+        Events.OnClothingUpdated.Add(function(chr)
+            -- (only a player on this machine: zombies dress through this event too)
+            local ok, mine = pcall(function() return instanceof(chr, "IsoPlayer") and chr:isLocalPlayer() end)
+            if ok and mine then ZeD.InventoryRenderer.dirtyModels() end
+        end)
+    end
+end
+
+-- x mod m for m > 0 on any size of number (Kahlua's % breaks past 2^31; the clock is past it)
+local function modPos(x, m)
+    return x - math.floor(x / m) * m
+end
+
+-- when a model built now rebuilds by time: the next tick of the column's own
+-- one-second beat that is at least half a second away (0.5-1.5 s, 1 s apart after)
+local function modelDue(now, phase)
+    local due = now + MODEL_REFRESH_MS - modPos(now - phase, MODEL_REFRESH_MS)
+    if due - now < MODEL_REFRESH_MS / 2 then due = due + MODEL_REFRESH_MS end
+    return due
+end
 
 -- the folds that are set in a fold table, as one string ("" when none)
 local function foldKey(t)
@@ -1110,17 +1146,102 @@ local function heldByPlayer(playerObj, item)
     return okP and peq or false
 end
 
+-- The same answer for a whole list at once: what the player wears and holds,
+-- asked once per build. item:isEquipped() asks the character whose container
+-- holds the item, playerObj:isEquipped(item) asks that player's worn items and
+-- two hands (IsoGameCharacter.isEquipped, 42.21; both compare the very object).
+-- So while the container is the player's own (its parent is the player, or
+-- nothing) one set answers both. nil: ask each item as before (heldByPlayer).
+local function heldSet(playerObj, inv)
+    local ok, set = pcall(function()
+        local par = inv:getParent()
+        if par ~= nil and par ~= playerObj then return nil end
+        local s = {}
+        local worn = playerObj:getWornItems()
+        for i = 0, worn:size() - 1 do
+            local it = worn:get(i):getItem()
+            if it then s[it] = true end
+        end
+        local ph, sh = playerObj:getPrimaryHandItem(), playerObj:getSecondaryHandItem()
+        if ph then s[ph] = true end
+        if sh then s[sh] = true end
+        return s
+    end)
+    if ok then return set end
+    return nil
+end
+
+-- DECORATE-SORT-UNDECORATE. Each item's sort keys are asked once per build
+-- (decorate), the list is sorted on those, then put back as items (undecorate).
+-- The comparators answer every pair exactly as makeSorter's do (the same keys,
+-- the same tests, name the tiebreak; Sort by Name compares the lowered name),
+-- so table.sort makes the same moves and ties land where they always did.
+-- makeSorter asked the game for 2-4 things inside every comparison.
+local function keyedNameTie(a, b) return a.nm < b.nm end
+local KEYED = {
+    name = {
+        [true]  = function(a, b) return a.lo < b.lo end,
+        [false] = function(a, b) return a.lo > b.lo end,
+    },
+    cat = {
+        [true]  = function(a, b) if a.k ~= b.k then return a.k < b.k end return keyedNameTie(a, b) end,
+        [false] = function(a, b) if a.k ~= b.k then return a.k > b.k end return keyedNameTie(a, b) end,
+    },
+    cond = {
+        [true]  = function(a, b) if a.k ~= b.k then return a.k < b.k end return keyedNameTie(a, b) end,
+        [false] = function(a, b) if a.k ~= b.k then return a.k > b.k end return keyedNameTie(a, b) end,
+    },
+    wt = {
+        [true]  = function(a, b) if a.k ~= b.k then return a.k < b.k end return keyedNameTie(a, b) end,
+        [false] = function(a, b) if a.k ~= b.k then return a.k > b.k end return keyedNameTie(a, b) end,
+    },
+}
+
+-- one item's keys for a sort column (as makeSorter reads them)
+local function sortRec(item, col)
+    if col == "name" then
+        return { it = item, lo = string.lower(item:getName() or "") }
+    end
+    local k
+    if col == "cat" then
+        k = ZeD.InventoryRenderer.catKey(item)
+    elseif col == "cond" then
+        local mx = item:getConditionMax()   -- (getCondPct)
+        if not mx or mx <= 0 then k = -1 else k = item:getCondition() / mx end
+    else
+        k = item:getUnequippedWeight()
+    end
+    return { it = item, k = k, nm = item:getName() or "" }
+end
+
+-- sorts list in place, in the order table.sort(list, makeSorter(col, asc)) gives
+local function sortItems(list, col, asc)
+    local n = #list
+    if n < 2 then return end   -- (nothing to compare: table.sort asks nothing either)
+    if col ~= "name" and col ~= "cat" and col ~= "cond" then col = "wt" end   -- (makeSorter's else)
+    local recs = {}
+    for i = 1, n do recs[i] = sortRec(list[i], col) end
+    table.sort(recs, KEYED[col][asc and true or false])
+    for i = 1, n do list[i] = recs[i].it end
+end
+
 local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     local groups, catOrder, flatItems = {}, {}, {}
     local catOf = {}   -- item -> its category key (the rows draw it every frame)
     local items = inv and inv:getItems()
     -- a mod's gate (ContainerGates.lua): only the things it lets show (a search's finds so far)
     local gate = ZeD.ContainerGates.get(inv, playerObj)
+    -- what the player wears and holds, once for the list (an item held elsewhere: asked as before)
+    local held = isPlayerInv and items and heldSet(playerObj, inv) or nil
     if items then
         for i = 0, items:size() - 1 do
             local item = items:get(i)
-            if item and not item:isHidden() and not (isPlayerInv and heldByPlayer(playerObj, item))
-               and (not gate or ZeD.ContainerGates.keeps(gate, item)) then
+            local shown = item and not item:isHidden()
+            if shown and isPlayerInv then
+                if held and item:getContainer() == inv then shown = not held[item]
+                else shown = not heldByPlayer(playerObj, item) end
+            end
+            if shown and (not gate or ZeD.ContainerGates.keeps(gate, item)) then
                 -- a mod's group first (ContainerGroups.lua: a folder the player filed it in), else its category
                 local cat = ZeD.ContainerGroups.groupOf(item, inv, playerObj, isPlayerInv) or ZeD.InventoryRenderer.catKey(item)
                 catOf[item] = cat
@@ -1144,7 +1265,6 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         end
     end
 
-    local sorter    = makeSorter(sortCol, sortAsc)
     local useGroups = (sortCol == "cat")   -- only Sort by Category has category headers; the rest is one flat list
     local stacks = {}          -- rep item → stack info
     local childParent = {}     -- child item → stack info
@@ -1168,10 +1288,12 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         end
         -- sorted by weight, a stack goes by its total, the number its row shows (as vanilla's inventory sorts)
         if sortCol == "wt" then
-            for _, s in ipairs(ordered) do s.wt = stackWeight(s) end
+            -- (each stack's total and name asked once, not in every comparison)
+            local snm = {}
+            for _, s in ipairs(ordered) do s.wt = stackWeight(s); snm[s] = s.rep:getName() or "" end
             table.sort(ordered, function(a, b)
                 if a.wt ~= b.wt then if sortAsc then return a.wt < b.wt end return a.wt > b.wt end
-                return (a.rep:getName() or "") < (b.rep:getName() or "")
+                return snm[a] < snm[b]
             end)
         end
         for _, s in ipairs(ordered) do
@@ -1195,7 +1317,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         -- (a mod's ranked groups first, ContainerGroups.lua; then the categories, either way)
         ZeD.ContainerGroups.sortKeys(catOrder, not (sortCol == "cat" and not sortAsc))
         for _, cat in ipairs(catOrder) do
-            table.sort(groups[cat], sorter)
+            sortItems(groups[cat], sortCol, sortAsc)
             if not (collapsed and collapsed[cat]) then
                 local before = #flatItems
                 emitStacks(groups[cat])
@@ -1220,7 +1342,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
                 all[#all + 1] = item
             end
         end
-        table.sort(all, sorter)
+        sortItems(all, sortCol, sortAsc)
         emitStacks(all)
     end
 
@@ -1254,10 +1376,18 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     end
     local key = inv or cache   -- (no container: one shared empty model)
     local c = cache[key]
-    if c and c.age < MODEL_REFRESH and c.n == n and c.w == w and c.sortCol == sortCol
+    -- this column's beat (MODEL_REFRESH_MS apart, each new column a little later than the last)
+    if not self._modelPhase then
+        _modelPhases = _modelPhases + 1
+        self._modelPhase = modPos(_modelPhases * 397, MODEL_REFRESH_MS)
+    end
+    local now = getTimestampMs()
+    -- kept: not due by time (and the clock not set back), no event since it was built (or one
+    -- within MODEL_EVENT_MS of the last build: it waits that long), nothing it is built from changed
+    if c and now < c.due and now >= c.t and (c.gen == _modelGen or now - c.t < MODEL_EVENT_MS)
+       and c.n == n and c.w == w and c.sortCol == sortCol
        and c.sortAsc == sortAsc and c.cf == cf and c.ef == ef and c.ph == ph and c.sh == sh
        and c.isP == isPlayerInv and c.gs == gs and c.gg == gg then
-        c.age = c.age + 1
         return c.m
     end
     if not c then
@@ -1271,7 +1401,8 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
         c = {}
         cache[key] = c
     end
-    c.age, c.n, c.w, c.sortCol, c.sortAsc = 0, n, w, sortCol, sortAsc
+    c.t, c.due, c.gen = now, modelDue(now, self._modelPhase), _modelGen
+    c.n, c.w, c.sortCol, c.sortAsc = n, w, sortCol, sortAsc
     c.cf, c.ef, c.ph, c.sh, c.isP, c.gs, c.gg = cf, ef, ph, sh, isPlayerInv, gs, gg
     c.m = buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     return c.m
@@ -2447,6 +2578,7 @@ end
 
 local function handleDrop(content, items, srcInventory)
     if not items or #items == 0 then return end
+    ZeD.InventoryRenderer.dirtyModels()   -- (a drop moves things: every list model rebuilds)
 
     local playerObj = content._playerObj
     local playerNum = playerObj:getPlayerNum()

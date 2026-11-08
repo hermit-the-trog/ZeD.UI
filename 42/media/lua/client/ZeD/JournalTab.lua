@@ -426,14 +426,12 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
         return { recipes = {}, categories = _jCategories or {}, flatRecipes = {} }
     end
 
-    -- Throttled (every 30 frames)
-    win._jrecipeTimer = (win._jrecipeTimer or 0) + 1
-    if win._jrecipeTimer < 30 and win._jrecipeCache then
+    local CC = ZeD.CraftingCore
+
+    -- Throttled: every 500 ms (was 30 frames), at once when the cache was dropped
+    if not CC.due(win, "_jrecipeAt", 500, not win._jrecipeCache) then
         return win._jrecipeCache
     end
-    win._jrecipeTimer = 0
-
-    local CC = ZeD.CraftingCore
 
     -- Reuse existing recipe array — mutate in-place instead of 800+ new tables
     local recipes = win._jrecipeRecipes
@@ -595,10 +593,8 @@ local function renderJournal(panel, win, x, y, w, h)
         end
     end
 
-    -- Throttled data refresh
-    win._journalTimer = (win._journalTimer or 0) + 1
-    if win._journalTimer >= 15 or not win._journalCache then
-        win._journalTimer = 0
+    -- Throttled data refresh: every 250 ms (was 15 frames), at once when the cache was dropped
+    if ZeD.CraftingCore.due(win, "_journalAt", 250, not win._journalCache) then
         win._journalCache = ZeD.JournalTab.gatherData(win._playerObj)
     end
     local data = win._journalCache
@@ -1028,10 +1024,8 @@ local function renderRecipes(panel, win, x, y, w, h)
     local data = ZeD.JournalTab.gatherRecipeData(win._playerObj, win)
 
     -- Throttled background scan — Journal is read-only, no need for per-frame updates.
-    -- Scan once on open, then every 300 frames (~5s at 60fps).
-    win._jrecipeScanTimer = (win._jrecipeScanTimer or 300) + 1
-    if win._jrecipeScanTimer >= 300 then
-        win._jrecipeScanTimer = 0
+    -- Scan once on open, then every 5 s (was 300 frames).
+    if CC.due(win, "_jrecipeScanAt", 5000) then
         CC.backgroundIngredientScan(data, win, "jrecipe")
     end
 
