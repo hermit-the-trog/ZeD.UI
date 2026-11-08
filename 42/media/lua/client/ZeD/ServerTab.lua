@@ -12,6 +12,7 @@
 --   EXTRAS     this server's extras in plain words, and your vehicle claims (ZeD_ExtrasCards.lua), with the server part
 --   TICKETS    after the Server block, as drawn: N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and
 --              its two cards, Ask the admins and my ticket, pushed on top of this list behind st.card)
+--   MAIL       on a server that keeps mail: the dial-in, Inbox, Write a letter (ZeD_MailCards.lua, punch list 104)
 --   FACTION    yours as a row that opens its card; or Create Faction where the server allows
 --   SAFEHOUSE  yours as a row that opens its card; or Can I claim this?, the server's rules and Claim Safehouse
 --   WARS       on a server with wars: a row that opens their card
@@ -29,6 +30,7 @@ require "ZeD/ZeD_Claims"
 require "ZeD/ZeD_TicketCards"
 require "ZeD/ZeD_ClaimCards"
 require "ZeD/ZeD_CommunityCards"
+require "ZeD/ZeD_MailCards"
 
 ZeD = ZeD or {}
 local S = {}
@@ -172,6 +174,8 @@ local function build(p, win, st)
     -- TICKETS
     local function btnItem(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end
     ZeD.TicketCards.playerItems(L, win, st, btnItem)
+    -- MAIL (punch list 104), on a server that keeps it
+    if ZeD.MailCards then ZeD.MailCards.serverItems(L, win, st) end
     -- FACTION, SAFEHOUSE, WARS
     ZeD.ClaimCards.blocks(L, win, st, btnItem)
     -- PVP (only while the server's safety system is on)
