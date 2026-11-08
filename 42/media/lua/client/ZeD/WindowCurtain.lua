@@ -18,6 +18,7 @@
 --
 -- The tab: press it to roll the side down; drop items on it to put them in
 -- the side's container; with a controller it is a stop on the D-pad (A).
+-- A window with halves (WindowHalves.lua) also has the side's pin on the rod.
 --
 -- The rolled side is on the window's left (the World window: containers left of
 -- the drawer) or, with spec.side = "right", on its right (the Character
@@ -87,6 +88,8 @@ function ZeD_CurtainRod:chipRect()
     self._label = label
     local tbH = T.titleBarH
     local x = self.win._closeOnRod and (T.sp.sm + T.closeBoxSz + T.sp.md - T.sp.titleBoxPad) or T.sp.sm
+    -- (a window with halves: a left rod carries the inventory's pin after its close box, WindowHalves)
+    if self.win._halves and ZeD.Halves then x = x + ZeD.Halves.rodChipShift(self.win) end
     local w = T.px(TRI_W) + T.sp.sm + ZeD.TM:MeasureStringX(T.fontF3, label) + T.sp.titleBoxPad * 2
     local h = tbH - T.px(6)
     return { x = x, y = math.floor((tbH - h) / 2), w = w, h = h }
@@ -132,7 +135,10 @@ function ZeD_CurtainRod:prerender()
     -- the tab: the title plate, framed (pressable), with the roll-down triangle.
     -- The pointer: the hover wash, and its help in the window's help line (the
     -- rod has no footer of its own); the controller: the player's focus mark.
+    self._pinRect = nil
     if h > tbH then return end
+    -- the inventory's pin, while this side is rolled (a window with halves)
+    if win._halves and ZeD.Halves then ZeD.Halves.drawRodPin(self) end
     local r = self:chipRect()
     self._chip = r
     ZeD.Molecules.drawBodyBg(self, r.x, r.y, r.w, r.h, "surf2")
@@ -182,7 +188,7 @@ function ZeD_CurtainRod:onMouseMoveOutside(dx, dy)
     self:onMouseMove(dx, dy)
 end
 function ZeD_CurtainRod:onMouseDown(x, y)
-    if inRect(self._closeRect, x, y) or inRect(self._chip, x, y) then self._pressed = true; return true end
+    if inRect(self._closeRect, x, y) or inRect(self._pinRect, x, y) or inRect(self._chip, x, y) then self._pressed = true; return true end
     self._dragging = true
     return true
 end
@@ -193,6 +199,8 @@ function ZeD_CurtainRod:onMouseUp(x, y)
     if inRect(self._closeRect, x, y) then
         getSoundManager():playUISound("UIActivateButton")
         self.win:close()
+    elseif inRect(self._pinRect, x, y) and ZeD.Halves then
+        ZeD.Halves.togglePin(self.win, "inv")
     elseif inRect(self._chip, x, y) then
         getSoundManager():playUISound("UIActivateTab")
         C.unroll(self.win)
@@ -245,7 +253,7 @@ function C.drawRollButton(win)
     local T = ZeD.T
     local tbH = T.titleBarH
     local tbp = T.sp.titleBoxPad
-    local titleX = T.sp.sm + T.closeBoxSz + T.sp.md
+    local titleX = T.sp.sm + T.closeBoxSz + T.sp.md + ((win._halves and ZeD.Halves) and ZeD.Halves.titleShift(win) or 0)
     local titleW = ZeD.TM:MeasureStringX(T.fontF3, tostring(win.title or ""))
     local s = T.closeBoxSz
     local r = { x = titleX + titleW + tbp + T.px(2), y = math.floor((tbH - s) / 2), w = s, h = s }

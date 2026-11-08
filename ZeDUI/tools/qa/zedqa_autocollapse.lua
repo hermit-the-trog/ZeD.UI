@@ -2,7 +2,8 @@
 -- With the REAL mouse (release_check_mouse.ps1 through Lua/zedqa_click.txt). Both windows open, unpinned:
 --   1. pointer to an empty corner: after 1 s both still open; after ~2.6 s both rolled up (windowShaded)
 --   2. pointer over the Character window's title bar: it rolls down; the World window stays up
---   3. a real click on the Character window's pin: pinned (modData ZeD_WinPinned.char), stays open with the pointer away
+--   3. a real click on the Character window's right pin (its inventory side's, WindowHalves): that half pinned
+--      (modData ZeD_WinPinned.charInv), the window stays down with the pointer away (its drawer folds in)
 --   4. aiming (setIsAiming): the unpinned World window, rolled down by a hover first, rolls up at once when the pointer leaves
 --   5. a real click on the pin again: unpinned; rolls up after the wait
 -- Pictures. Pins and windows put back. grep "ZEDQA acl". Pictures zqa_acl_<w>x<h>_<n>.png.
@@ -14,7 +15,9 @@ local pass, fail = 0, 0
 local function check(ok, what) if ok then pass = pass + 1; say("PASS " .. what) else fail = fail + 1; say("FAIL " .. what) end end
 local p = getPlayer()
 local md = p:getModData()
-local keepPins = md.ZeD_WinPinned and { char = md.ZeD_WinPinned.char, world = md.ZeD_WinPinned.world } or nil
+-- (every pin key, the halves' too: charInv, charTabs, worldInv, worldTabs)
+local keepPins = nil
+if md.ZeD_WinPinned then keepPins = {}; for k, v in pairs(md.ZeD_WinPinned) do keepPins[k] = v end end
 local function CW() return ZeD_CharacterWindow.getWindow() end
 local function WW() return ZeD_WorldWindow.getWindow() end
 local Q, qi, wait = {}, 0, 0
@@ -81,7 +84,7 @@ step(20, function()
 end)
 waitFor(5, 600, done, function() end)
 step(20, function()
-    check(CW().pinned == true and md.ZeD_WinPinned and md.ZeD_WinPinned.char == true, "a real click on the pin pins it, kept in the character's modData")
+    check(ZeD.Halves.isPinned(CW(), "inv") and not ZeD.Halves.isPinned(CW(), "drawer") and md.ZeD_WinPinned and md.ZeD_WinPinned.charInv == true, "a real click on the right pin pins the inventory side only, kept in the character's modData")
     moveTo(sw - 40, sh / 2)
 end)
 waitFor(5, 600, done, function() end)
@@ -113,7 +116,7 @@ step(10, function()
 end)
 waitFor(5, 600, done, function() end)
 step(20, function()
-    check(CW().pinned == false and md.ZeD_WinPinned.char == false, "a second click unpins it")
+    check(not ZeD.Halves.isPinned(CW(), "inv") and md.ZeD_WinPinned.charInv == false, "a second click unpins it")
     moveTo(sw - 40, sh / 2)
 end)
 waitFor(5, 600, done, function() end)
@@ -122,7 +125,7 @@ step(400, function()
     shot("4_unpinned_rolled")
     -- put back
     local c, w = CW(), WW()
-    if keepPins then md.ZeD_WinPinned = keepPins; c.pinned = keepPins.char == true; w.pinned = keepPins.world == true
+    if keepPins then md.ZeD_WinPinned = keepPins; c.pinned = keepPins.char == true; w.pinned = keepPins.world == true   -- (the halves read their own keys on the next open)
     else md.ZeD_WinPinned = nil; c.pinned = false; w.pinned = false end
     c:setWindowShaded(false); w:setWindowShaded(false)
     -- the rest of the regression expects open windows: pin both for the run's remainder (restored above only in modData)
