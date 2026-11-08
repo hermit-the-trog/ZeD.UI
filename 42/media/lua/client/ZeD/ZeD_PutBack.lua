@@ -144,8 +144,8 @@ local function finish(run)
     trace("  " .. #backs .. " back, " .. #gone .. " used up")
 end
 
--- wraps the queue once: the _zedPutBack flag on vanilla's table keeps a second call (game boot, then this
--- file's own) from wrapping the wrapper
+-- wraps the queue once: it runs at load and again at game boot, and the _zedPutBack flag on vanilla's table
+-- keeps the second call from wrapping the wrapper
 local function apply()
     if not ISTimedActionQueue or ISTimedActionQueue._zedPutBack then return end
     ISTimedActionQueue._zedPutBack = true

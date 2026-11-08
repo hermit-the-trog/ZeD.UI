@@ -1687,7 +1687,7 @@ local function houseAdTry(w, u, g, sz, down)
     return L
 end
 
-local AD_DOWN = { "deck", "items", "coupon", "body", "head" }   -- (the parts that step down a size, in turn)
+local AD_DOWN = { "deck", "items", "coupon", "body", "head" }   -- (in turn, each a size down if it wrapped)
 --- The house ad's layout at page width w and unit u: the list of what to draw, from the page's corner.
 function B.houseAdLayout(w, u)
     local sz = { head = U.OPEN * u, deck = U.DECK * u, body = U.TEXT * u, items = U.TEXT * u, coupon = U.CAP * u * 1.1, price = U.DECK * u }
