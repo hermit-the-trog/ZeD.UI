@@ -262,6 +262,7 @@ function ZeD_ContextList:prerender()
     local mx, my = getMouseX(), getMouseY()
     local nav = self._nav
     local balloon = nil
+    local topLi = self:_levelAt(mx, my)   -- the one level the pointer is on
     for li, lv in ipairs(self._levels) do
         local x, y, w, h = lv.x, lv.y, lv.w, lv.h
         lv.inkRow = nil
@@ -306,7 +307,7 @@ function ZeD_ContextList:prerender()
                 local def = r.def
                 r.y = cy - y
                 local off = disabled(def, self._ctx.target)
-                local over = mx >= x and mx < x + w and my >= cy and my < cy + rowH
+                local over = li == topLi and mx >= x and mx < x + w and my >= cy and my < cy + rowH
                 local isSel = (lv.sel == ri)
                 local openParent = self._levels[li + 1] and self._levels[li + 1].parentRow == ri
                 -- the row the cue is on, the deepest level's winning (a submenu with nothing picked
@@ -421,11 +422,29 @@ end
 -- ----------------------------------------------------------------------------
 -- mouse: the pointed row is the selection; hovering a submenu row opens it
 -- ----------------------------------------------------------------------------
+-- The deepest level whose box holds the point. A cascade drawn over its parent is the
+-- one that takes the pointer there; the parent's rows under it do not exist. (hitZoneAt
+-- answers the first zone registered, the top level's, so it alone put the parent's row
+-- under the cascade and the cascade closed the moment the pointer crossed it.)
+function ZeD_ContextList:_levelAt(x, y)
+    for li = #self._levels, 1, -1 do
+        local lv = self._levels[li]
+        if x >= lv.x and x < lv.x + lv.w and y >= lv.y and y < lv.y + lv.h then return li end
+    end
+    return nil
+end
+
 local function rowAt(self, x, y)
-    local z = self:hitZoneAt(x, y)
-    if not (z and type(z.id) == "string") then return nil end
-    local li, ri = z.id:match("^row:(%d+):(%d+)$")
-    return tonumber(li), tonumber(ri)
+    local top = self:_levelAt(x, y)
+    if not top then return nil end
+    -- only that level's rows answer; its padding or heading answers nothing
+    for _, z in ipairs(self._hitZones) do
+        if type(z.id) == "string" and self:hitTest(x, y, z.x, z.y, z.w, z.h) then
+            local li, ri = z.id:match("^row:(%d+):(%d+)$")
+            if tonumber(li) == top then return top, tonumber(ri) end
+        end
+    end
+    return nil
 end
 
 function ZeD_ContextList:update()
