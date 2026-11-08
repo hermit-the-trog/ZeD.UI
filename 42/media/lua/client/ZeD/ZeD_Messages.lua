@@ -265,6 +265,25 @@ function M.invite(text)
     return it
 end
 
+-- controllers (the director, Nov 7 2026, vanilla windows B12 and B13; Overrides/Controllers.lua): a controller plugged
+-- in, with the game's join choices as its buttons, or a player's controller unplugged. One note per controller or
+-- player (id): the newest replaces the one before it; never more than PAD_NOTES_MAX. buttons: { label, run } each,
+-- pressed on the note's card (ZeD_MessagesWindow); run returns true when it did what it says.
+local PAD_NOTES_MAX = 8
+function M.pad(id, head, text, buttons)
+    local name = ZeD.tr("UI_ZeD_Pad_Source")
+    local s = M.sources[name]
+    if s then
+        for i = #s.items, 1, -1 do
+            if s.items[i].k == "pad" and s.items[i].pad == id then table.remove(s.items, i) end
+        end
+    end
+    local it = M.add(name, "mods", { k = "pad", pad = id, head = head, text = text, padButtons = buttons })
+    capKind(name, "pad", PAD_NOTES_MAX)
+    toast("warn", head, name, text)
+    return it
+end
+
 -- for staff, in place of the game's modal: a ticket came in
 function M.ticketNew()
     local name = getText("UI_userpanel_tickets")
