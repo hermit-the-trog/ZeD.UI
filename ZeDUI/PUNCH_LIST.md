@@ -3007,3 +3007,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       place in its list. The presets don't change (Vanilla Access still picks Simple).
     - **Then the gallery (design):** 12, 26 and 31 say Verbose; 46 says Full; 48 lists the sections; 61 is the whole
       spread, with a new capture of the section.
+111. **Minimal Sidebar works with ZeD's belt (the director, Nov 8 2026: "Make it work"; after the light week).** QA's
+    test of Belisar's three mods (ZeDUI/qa/COMPAT_BELISAR_20261108.md): no errors, nothing handed back, but Minimal
+    Sidebar has no effect: ZeD's belt wraps the sidebar render, so the mod's fade never hooks a button (0 of 14). Give
+    the belt a hook so the mod's fade (and its settings) apply to ZeD's belt; HOOK_MAP row and a QA script with the
+    mod on.
