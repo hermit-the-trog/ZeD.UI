@@ -43,7 +43,8 @@ local function _zedOpenUnfolded(playerNum)
     local win = ZeD_WorldWindow.getWindow()
     if not win then return false end
     -- a paper map in the unfolded window (PaperMap.lua) is put away for the world map
-    if win._mapPopout and win._mapPaperItem then ZeD.MapsTab.closePopout(win) end
+    -- (the World window stays: the world map opens in it)
+    if win._mapPopout and win._mapPaperItem then ZeD.MapsTab.closePopout(win, true) end
 
     -- The tab strip stamps its hit zones during render, so a freshly opened
     -- window has none yet. Try now, then retry for a handful of ticks.

@@ -9,6 +9,9 @@
 --   boolean). A stub has only those methods, so a call the game does not have fails here too.
 -- Also: MapNotes writes a paper's marks to the paper (not the world store), MapsTabExt keeps the world map's extensions off a
 -- paper map, and Overrides/WorldMap.lua puts the paper away for the world map without the Map key closing it.
+-- And (Nov 7 evening): a World window Read Map opened only to show the paper closes with the paper; one already open
+-- stays, as does the World window when the paper gives way to the world map (Find on map, M) or to another paper.
+-- 42.21 (Stable) has the same onCheckMap, ISMap:update / initMapData / revealOnWorldMap and ISReadWorldMap:perform.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/paper_map_sim.lua
 -- It prints FAIL lines and a last line "paper_map_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -19,7 +22,7 @@ local function check(name, ok, detail)
     checks = checks + 1
     if not ok then
         failed = failed + 1
-        print("FAIL " .. name .. (detail ~= nil and (" (" .. tostring(detail) .. ")") or ""))
+        io.write("FAIL " .. name .. (detail ~= nil and (" (" .. tostring(detail) .. ")") or "") .. string.char(10))   -- (print is muted below)
     end
 end
 local function section(s) print("-- " .. s) end
@@ -223,14 +226,14 @@ function ZeD.MapsTab.openPopout(win, paperItem)
     win._mapPaperItem = paperItem
     log(paperItem and ("zed:open:" .. paperItem:getName()) or "zed:open:world")
 end
-function ZeD.MapsTab.closePopout(win)
+function ZeD.MapsTab.closePopout(win, keepWorld)
     if not win._mapPopout then return end
     log(win._mapPaperItem and ("zed:close:" .. win._mapPaperItem:getName()) or "zed:close:world")
     local pop, paper = win._mapPopout, win._mapPaperItem ~= nil
     win._mapPopout, win._mapPaperItem = nil, nil
     win._worldMapPanel = nil
     if ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(pop) end
-    if paper then pcall(ZeD.PaperMap.returnFocus, win, pop) end   -- (as the real closePopout)
+    if paper then pcall(ZeD.PaperMap.closed, win, pop, keepWorld) end   -- (as the real closePopout)
 end
 
 local WIN
@@ -241,6 +244,15 @@ ZeD_WorldWindow = {
         log("zed:worldWindow:" .. pn)
         WIN = { _playerObj = getSpecificPlayer(pn), _activeTab = "maps",
                 _actionTabStrip = { _hitZones = { { id = "tab:maps", x = 0, y = 0 } }, onMouseDown = function() end } }
+    end,
+    -- (as the real close: the map pop-out folds with the window, then the window goes)
+    close = function()
+        if not WIN then return end
+        local w = WIN
+        ZeD.MapsTab.closePopout(w, true)
+        if WIN ~= w then error("the World window closed twice") end
+        log("zed:worldWindow:close")
+        WIN = nil
     end,
 }
 
@@ -346,6 +358,7 @@ PLAYERS[0]._inv.items = { map }
 ISInventoryPaneContextMenu.onCheckMap(map, 0)
 check("ZeD's window cannot open: the game's Read Map, whole", logHas("vanilla:onCheckMap:WestpointMap:0"))
 check("and the read is not done twice", logCount("doBuildingStash:WestpointMap") == 0 and logCount("addReadMap:WestpointMap") == 0)
+check("and the World window opened for it goes again", WIN == nil and logHas("zed:worldWindow:close"))
 
 section("an open world map gives way to the paper")
 fresh()
@@ -369,7 +382,7 @@ PLAYERS[0]._inv.items = { map }
 ISInventoryPaneContextMenu.onCheckMap(map, 0)
 rawset(PLAYERS[0], "_dead", true)
 tick()
-check("the reader dies: the window closes", WIN._mapPopout == nil)
+check("the reader dies: the window closes", WIN == nil or WIN._mapPopout == nil)
 
 section("a paper ZeD cannot draw goes to the game's window")
 fresh()
@@ -468,6 +481,90 @@ check("the world map opens: the paper is put away first", logHas("zed:close:Muld
 LOG = {}
 ISWorldMap.ToggleWorldMap(0)
 check("with the world map open the Map key still folds it", logHas("zed:close:world") and not logHas("vanilla:ToggleWorldMap"))
+
+section("a World window opened only for the paper closes with it")
+fresh()
+map = newItem("MuldraughMap")
+PLAYERS[0]._inv.items = { map }
+ISInventoryPaneContextMenu.onCheckMap(map, 0)
+check("Read Map opened the World window", logHas("zed:worldWindow:0") and WIN._mapPaperOwnsWindow == true)
+local w0 = WIN
+ZeD.MapsTab.closePopout(WIN)   -- (the close box, or B)
+check("closing the paper closes that World window", WIN == nil and logCount("zed:worldWindow:close") == 1)
+check("the paper is put away first", (logIndex("zed:close:MuldraughMap") or 99) < (logIndex("zed:worldWindow:close") or 0))
+check("nothing left on the old window", w0._mapPaperOwnsWindow == nil and w0._mapPopout == nil)
+
+fresh()
+ZeD_WorldWindow.open(0)
+map = newItem("MuldraughMap")
+PLAYERS[0]._inv.items = { map }
+ISInventoryPaneContextMenu.onCheckMap(map, 0)
+check("a World window already open is not the paper's", WIN._mapPaperOwnsWindow == nil)
+ZeD.MapsTab.closePopout(WIN)
+check("closing the paper leaves it open", WIN ~= nil and not logHas("zed:worldWindow:close"))
+
+fresh()
+local mA, mB = newItem("MuldraughMap"), newItem("RosewoodMap")
+PLAYERS[0]._inv.items = { mA, mB }
+ISInventoryPaneContextMenu.onCheckMap(mA, 0)
+ISInventoryPaneContextMenu.onCheckMap(mB, 0)
+check("a second paper: the World window stays meanwhile", WIN ~= nil and WIN._mapPaperItem == mB and not logHas("zed:worldWindow:close"))
+check("and the second paper owns it", WIN ~= nil and WIN._mapPaperOwnsWindow == true)
+if WIN then ZeD.MapsTab.closePopout(WIN) end
+check("closing the second paper closes it", WIN == nil and logCount("zed:worldWindow:close") == 1)
+
+fresh()
+map = newItem("MuldraughMap")
+PLAYERS[0]._inv.items = { map }
+ISInventoryPaneContextMenu.onCheckMap(map, 0)
+PLAYERS[0]._inv.items = {}
+tick()
+check("the map leaves the inventory: paper and World window close", WIN == nil and logCount("zed:worldWindow:close") == 1)
+
+fresh()
+map = newItem("MulStashMap1", "MulStashMap1")
+PLAYERS[0]._inv.items = { map }
+ISInventoryPaneContextMenu.onCheckMap(map, 0)
+makePanel(WIN)
+P.ext.button(WIN).activate(WIN)
+ISWorldMap.ShowWorldMap(0, 100, 200, 15)   -- (ISReadWorldMap:perform, the reading bar's end)
+check("Find on map: the World window stays, the world map open in it",
+    WIN ~= nil and WIN._mapPopout ~= nil and WIN._mapPaperItem == nil and not logHas("zed:worldWindow:close"))
+if WIN then ZeD.MapsTab.closePopout(WIN) end
+check("folding that world map leaves the World window (the player's now)", WIN ~= nil and not logHas("zed:worldWindow:close"))
+
+fresh()
+map = newItem("MuldraughMap")
+PLAYERS[0]._inv.items = { map }
+ISInventoryPaneContextMenu.onCheckMap(map, 0)
+local okc, errc = pcall(ZeD_WorldWindow.close)   -- (the World window's own close box with the paper up)
+check("the World window's own close: once, no second close from the paper", okc and WIN == nil
+    and logCount("zed:worldWindow:close") == 1 and logHas("zed:close:MuldraughMap"), errc)
+
+fresh()
+map = newItem("LouisvilleMap1")
+PLAYERS[0]._inv.items = { map }
+ISInventoryPaneContextMenu.onCheckMap(map, 0)
+P.failed(WIN, "boom")
+tick()
+check("a paper ZeD cannot draw: the World window opened for it goes, the game's window opens",
+    WIN == nil and logHas("zed:worldWindow:close") and logHas("vanilla:shown"))
+
+-- the real files: folds from inside the World window keep it (keepWorld)
+local function src(rel)
+    local f = io.open(ROOT .. "42/media/lua/client/" .. rel, "rb")
+    local t = f:read("*a"); f:close(); return t
+end
+local mt, ww = src("ZeD/MapsTab.lua"), src("ZeD/ZeD_WorldWindow.lua")
+local function count(t, pat) local n = 0 for _ in string.gmatch(t, pat) do n = n + 1 end return n end
+check("MapsTab: closePopout takes keepWorld and hands it to PaperMap.closed",
+    string.find(mt, "function ZeD.MapsTab.closePopout(win, keepWorld)", 1, true) ~= nil
+    and string.find(mt, "pcall(ZeD.PaperMap.closed, win, pop, keepWorld)", 1, true) ~= nil)
+check("MapsTab: the drawer's fold zone and unfold button keep the World window",
+    count(mt, "ZeD%.MapsTab%.closePopout%(win, true%)") == 2 and count(mt, "ZeD%.MapsTab%.closePopout%(w, true%)") == 1)
+check("ZeD_WorldWindow: its three closes fold the paper with keepWorld (no second close)",
+    count(ww, "closePopout%(_worldWin, true%)") == 2 and count(ww, "closePopout%(w, true%)") == 1
+    and count(ww, "closePopout%(_worldWin%)") == 0)
 
 section("the controller goes back to the window Read Map was chosen in")
 local REG, FOCUSED = {}, nil
