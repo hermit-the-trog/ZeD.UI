@@ -30,6 +30,7 @@ require "ZeD/ObjectCardMedic"
 require "ISUI/ISTradingUI"
 require "ISUI/ISWorldObjectContextMenu"
 require "TimedActions/ISMedicalCheckAction"
+require "TimedActions/ISInventoryTransferAction"
 require "XpSystem/ISUI/ISHealthPanel"
 
 local TR = ZeD.Trade
@@ -141,8 +142,41 @@ local function hookMedical()
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- A trade waiting behind a shut World window still holds the game's right-click menu and transfers
+-- (as vanilla's open window does). Trying either brings the trade card back, so the player sees why
+-- and can go on or Cancel.
+-- ---------------------------------------------------------------------------
+local function bringBack(player)
+    local s = player and TR.get(player)
+    if s and not s.released then pcall(s.reshow, s, true) end
+end
+TR.bringBack = bringBack
+
+local function hookHeld()
+    if ISWorldObjectContextMenu and ISWorldObjectContextMenu.createMenu and not ISWorldObjectContextMenu._zedTradeHeld then
+        ISWorldObjectContextMenu._zedTradeHeld = true
+        local orig = ISWorldObjectContextMenu.createMenu
+        ISWorldObjectContextMenu.createMenu = function(player, ...)
+            local p = type(player) == "number" and getSpecificPlayer(player) or nil
+            if p then bringBack(p) end
+            return orig(player, ...)
+        end
+    end
+    if ISInventoryTransferAction and ISInventoryTransferAction.isValid and not ISInventoryTransferAction._zedTradeHeld then
+        ISInventoryTransferAction._zedTradeHeld = true
+        local origV = ISInventoryTransferAction.isValid
+        ISInventoryTransferAction.isValid = function(self, ...)
+            local ok = origV(self, ...)
+            if not ok and self.character then bringBack(self.character) end
+            return ok
+        end
+    end
+end
+
 local function apply()
     hookOnTrade()
+    hookHeld()
     hookAnswer()
     hookEvents()
     hookMedical()
