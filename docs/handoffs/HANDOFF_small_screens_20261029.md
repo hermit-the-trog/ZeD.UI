@@ -6,7 +6,7 @@ Mockups and redlines: `ZeDUI/mockups/zed_small_screens_v1/`. Start with `spec_sm
 
 ## Why
 
-- **The test run's main menu failure** (`qa/Oct29_small_screens.md`, "The main menu at 1280x800: not ready") was the director's saved scale.
+- **The test run's main menu failure** (`qa/archive/Oct29_small_screens.md`, "The main menu at 1280x800: not ready") was the director's saved scale.
   - His `ModOptions.ini` has `uiScale` 7, which is 1.75.
   - The regression run set that file aside; the menu walk did not.
   - At 1.75 the monitor of a 1280 x 800 window holds 411 x 309 design units, so nothing fit.

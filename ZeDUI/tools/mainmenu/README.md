@@ -75,7 +75,7 @@ You need Python 3 with numpy, scipy and Pillow. Run from this folder:
 ```
 python gen_desk.py --to ../../art/main_menu/v4      # the textures and desk_info.json; prints the Lua colours
 python ../menugrade/grade.py none 1.0 <graded dir>   # graded as the mod draws it (default out: the mod's textures)
-python preview.py <graded dir>/desk.png ../../qa/S125_mainmenu/01_main_menu.png previews/main_menu_v4_4x.png
+python preview.py <graded dir>/desk.png ../../qa/archive/S125_mainmenu/01_main_menu.png previews/main_menu_v4_4x.png
 ```
 
 The textures the mod loads are graded from these by `../menugrade/grade.py` at strength 1.0 (see its header). Its frames folder only feeds the statistics it prints.
