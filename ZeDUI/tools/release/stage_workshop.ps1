@@ -408,6 +408,6 @@ Write-Host '== SUMMARY ==' -ForegroundColor Cyan
 foreach ($r in ($copy | Sort-Object Size -Descending | Select-Object -First 10)) { '    {0,10}  {1}' -f (Mb $r.Size), $r.Rel }
 if (-not $DryRun) {
     Write-Host ''
-    Warn 'The staged copy now shadows the dev mod in the game: remove C:/Users/you/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy.'
+    Warn 'The dev copy in Zomboid/mods wins over the staged copy (same mod id), so a normal game run tests the dev mod, not the stage: test the stage from its own -cachedir (ZomboidStaged). Remove Workshop/ZeD-UI/Contents after the upload.'
 }
 exit 0
