@@ -233,7 +233,7 @@ local function marquee(str, n, now)
     str = tostring(str or "")
     if #str <= n then return str end
     local loop = str .. "   "
-    local k = math.floor((now or 0) / 320) % #loop
+    local k = clockStep(now or 0, 320, #loop)                -- (not % on the ms clock: Kahlua, past 2^31)
     return (loop .. loop):sub(k + 1, k + n)
 end
 PL.marquee = marquee
