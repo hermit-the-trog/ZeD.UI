@@ -1386,20 +1386,21 @@ local function adWrapEven(text, f, px, maxW)
     return adWrap(text, f, px, hi)
 end
 
--- THE COPYRIGHT PAGE (design, Nov 7 2026, punch list 103; ZeDUI/HANDOFF_design_guide_copyright_20261107.md): the
--- first left-hand page, facing the title page, set as the znix manual's (ZeDUI/workshop/gallery/title_spread.py) in
--- the publisher's dry register. The small print sits low, as copyright pages set it: one block in the body face a
+-- THE COPYRIGHT PAGE: the first left-hand page, facing the title page, in the publisher's dry register, spaced as
+-- the mock manual's copyright page in the mod's Workshop gallery (ZeDUI/workshop/gallery/title_spread.py). The
+-- small print sits low, as copyright pages set it: one block in the body face a
 -- step under the body size (U.CAP), left aligned and ragged over the full text-block width, its last line's
 -- descender on the text block's foot (U.PH - U.FOOT), so Large text grows it upward and never past the foot. The
--- znix page's spacing: 1 after the title and the edition, 9 after the "by" line, 7 between paragraphs, 4 more
--- before "Printed in" and the printing line straight under it (all times the text size). Wrapped with adWrap, which
--- cuts Chinese, Japanese and Thai between characters. No folio (drawPage returns before it, as for the title page).
+-- spacing: 1 after the title and the edition, 9 after the "by" line, 7 between paragraphs, 4 more
+-- before "Printed in" and the printing line straight under it (in tenths of the type's size). Wrapped with adWrap,
+-- which cuts Chinese, Japanese and Thai between characters. No folio (drawPage returns before it, as for the title
+-- page).
 local COPY_KEYS = { "UI_ZeD_Guide_BookTitle", "UI_ZeD_Guide_BookSub1", "UI_ZeD_Guide_BookSub2", "UI_ZeD_Guide_BookEdition",
                     "UI_ZeD_Guide_CopyBy", "UI_ZeD_Guide_Copy1", "UI_ZeD_Guide_Copy2", "UI_ZeD_Guide_Copy3",
                     "UI_ZeD_Guide_Copy4", "UI_ZeD_Guide_Copy5" }
 local COPY_DESC = 0.25   -- (the face's descender, a quarter of its size: the block's bottom under its last baseline)
--- the block at page width w and unit u: { lines = { { s, w, y = baseline from the page's top } }, px, top, bottom }
--- (in the improbable case the block would rise over the top margin, its size steps down until it fits)
+--- The block at page width w and unit u: { lines = { { s, w, y = baseline from the page's top } }, px, top, bottom }
+--- (in the improbable case the block would rise over the top margin, its size steps down until it fits)
 function B.copyrightLayout(w, u)
     local t = {}
     for i, k in ipairs(COPY_KEYS) do t[i] = tr(k) end
@@ -1456,14 +1457,14 @@ function ZeD_GuideBook:drawCopyrightPage(x, y, w, u)
     for _, l in ipairs(L.lines) do drawAt(self, F.text, l.s, tx, y + l.y, L.px, INK) end
 end
 
--- THE CONTENTS (the director, Nov 7 2026: "2-3 pages, however many pages it needs. I'm sure it'll expand"): the
--- sections come from the game's guide and ZeD's chapters at run time, so their count is not fixed. A row for each
--- section that has a page (numOf(s), its printed number, or nil for none), laid out at the text size and in the
--- wording into as many pages as it needs, whole rows only, none past the body text's bottom. A row: the chapter's
--- number and title (wrapped to the text block), its blurb wrapped to the room before its page number (QA, Nov 7
--- 2026: at Large text some languages' blurbs ran into their numbers), the dotted leader and the number on the
--- blurb's last line. A later page heads with the contents title and the book's "continued", as the rules pages do.
--- Places in px at u from the page's top; B.paginate places the pages, drawContentsPage draws them.
+--- THE CONTENTS, on as many pages as it needs: the sections come from the game's guide and ZeD's chapters at run
+--- time, so their count is not fixed. A row for each
+--- section that has a page (numOf(s), its printed number, or nil for none), laid out at the text size and in the
+--- wording into as many pages as it needs, whole rows only, none past the body text's bottom. A row: the chapter's
+--- number and title (wrapped to the text block), its blurb wrapped to the room before its page number (else at
+--- Large text some languages' blurbs run into their numbers), the dotted leader and the number on the
+--- blurb's last line. A later page heads with the contents title and the book's "continued", as the rules pages do.
+--- Places in px at u from the page's top; B.paginate places the pages, drawContentsPage draws them.
 function B.contentsLayout(bk, u, numOf)
     local cu = u * TM_
     local tw_ = (U.PW - U.M * 2) * u
@@ -1686,8 +1687,8 @@ local function houseAdTry(w, u, g, sz, down)
     return L
 end
 
--- the ad's layout at page width w and unit u: the list of what to draw, from the page's corner
-local AD_DOWN = { "deck", "items", "coupon", "body", "head" }
+local AD_DOWN = { "deck", "items", "coupon", "body", "head" }   -- (the parts that step down a size, in turn)
+--- The house ad's layout at page width w and unit u: the list of what to draw, from the page's corner.
 function B.houseAdLayout(w, u)
     local sz = { head = U.OPEN * u, deck = U.DECK * u, body = U.TEXT * u, items = U.TEXT * u, coupon = U.CAP * u * 1.1, price = U.DECK * u }
     local down = { head = U.TITLE * u, deck = U.TEXT * u, items = U.CAP * u * 1.1, coupon = U.CAP * u, body = U.CAP * u * 1.1 }
@@ -1729,6 +1730,7 @@ function ZeD_GuideBook:houseAd(w, u)
     return c.L
 end
 
+--- The publisher's house ad on a whole page at (x, y), w wide, from the layout ZeD_GuideBook:houseAd keeps.
 function ZeD_GuideBook:drawAdPage(x, y, w, u)
     local L = self:houseAd(w, u)
     for _, o in ipairs(L.ops) do
@@ -1984,8 +1986,10 @@ function ZeD_GuideBook:update()
 end
 
 -- ---------------------------------------------------------------------------
--- ENTRY (ZeD.Guide.open sends here while the Full look is chosen)
+-- ENTRY (ZeD.Guide.open sends here while the Immersive look is chosen)
 -- ---------------------------------------------------------------------------
+--- Open player pn's book on a topic (an id, tostring of a SurvivalGuideEntry, or a title key), else at its first
+--- spread. The game pauses while it is open, and the game's "Game Paused" box is hidden.
 function B.open(pn, want)
     pn = pn or 0
     local bk = B.books[pn]
@@ -2026,11 +2030,13 @@ function B.open(pn, want)
     return bk
 end
 
+--- True while player pn's book is open.
 function B.isOpen(pn)
     local bk = B.books[pn or 0]
     return bk ~= nil and bk:isReallyVisible()
 end
 
+--- Close player pn's book: the game runs again, its "Game Paused" box as it was, the controller back where it was.
 function B.close(pn)
     local bk = B.books[pn or 0]
     if not bk then return end

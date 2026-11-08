@@ -1,13 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ListsMenu.lua
 -- ============================================================================
 -- LOADOUTS AND OUTFITS BY NAME: the menus that put an item on a list, and the
--- name prompt. Client side; the hook on the game's inventory right-click is at
--- the foot of the right-click section.
+-- name prompt. Client side. The right-click options come in through the game's
+-- OnFillInventoryObjectContextMenu event, only while Loadouts and outfits is on
+-- (and never in safe mode).
 --
 --   * The right-click menu: Save to outfit (worn and wearable things only) and
 --     Save to loadout (anything you can carry). Each opens the saved lists of
 --     that kind by name, a check on the ones the item is already in (picking a
---     checked one takes it out), a dividing rule, then New outfit... / New loadout...,
+--     checked one takes it out), a divider, then New outfit... / New loadout...,
 --     which makes a list with the item on it. They are vanilla options with a
 --     submenu, so both looks show them: the list cascades, the icon strip
 --     drills into the same names (ContextMenuRegistry reads zedCheck / zedPx).
