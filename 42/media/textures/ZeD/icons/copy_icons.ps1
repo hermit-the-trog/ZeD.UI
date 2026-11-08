@@ -1,5 +1,5 @@
-$src = "C:\Users\danie\Zomboid\mods\ZeD-UI\tools\icon_matcher\Smashicons"
-$dst = "C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons"
+$src = Join-Path $env:USERPROFILE "Zomboid\mods\ZeD-UI\tools\icon_matcher\Smashicons"
+$dst = Join-Path $env:USERPROFILE "Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons"
 New-Item -ItemType Directory -Force -Path $dst | Out-Null
 
 Copy-Item "$src\00000000-mycollection\png\walk.png" "$dst\mycollection--walk.png" -Force
