@@ -1,6 +1,11 @@
-[h2]👍 Compatible, D to F (part 3 of 9)[/h2]
+[h2]👍 Compatible, C to F (part 3 of 9)[/h2]
 🍎 Retested Nov 8 2026 on a Mac on ZeD-GUI 0.3.0-beta8: ✔ = loaded and every window opened; 🚗✔ = driven; no mark = not retested. Details in the first post.
 Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts ⚠️ "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 11.
+[h3]C, continued[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2719850086][42.20] Customizable Containers[/url] by dane: Its Capacity Limit Bypass add-on was not tested. (not retested on this Mac: the game did not load its Workshop copy here)
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3780683663]Cye's Push Doors![/url] by Cye ✔
+[/list]
 [h3]D[/h3]
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2939187818]Darker Map[/url]: ⚠️ Part of it does not show: it darkens the game's map; the map key opens ZeD's map, which has its own styles. ✔
@@ -53,7 +58,4 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3430172149][B42MP] FlipVehiclePlusTrailer[/url] ✔
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2447729538]Fluffy Hair [B41/B42][/url] ✔
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3750861914]Football & Shoving [SP & MP][/url]: Its NFL Player occupation is in ZeD's occupation list. ✔
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3042138819]Functional Appliances 2[/url] by Norby007 ✔
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3744455714]Functional Pager - Immersive Map-Wide Communication [B42][/url] ✔
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3685672179][B42] Functional TV Movies & Series - Framework[/url] ✔
 [/list]

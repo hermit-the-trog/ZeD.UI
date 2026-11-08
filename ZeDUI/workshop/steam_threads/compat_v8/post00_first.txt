@@ -2,14 +2,14 @@ TITLE: Compatibility with other mods
 
 This thread lists the 559 mods tested with ZeD-GUI, sorted into five lists. Each list is in alphabetical order. The Compatible lists have a heading for each letter. Last updated Nov 8 2026.
 
-🍎 Retested Nov 8 2026 on macOS (Apple M4 Pro, 1920x1080, UI scale auto), Project Zomboid 42.21, ZeD-GUI 0.3.0-beta8, single player. ✔ after a mod = on this Mac it loaded with its group (12 to 50 mods at once, ZeD-GUI last), showed no errors of its own beyond any listed here, and every Character and World tab, the pause menu and Options opened. 🚗✔ = a car from the pack was spawned and ZeD's dashboard showed with the driver seated. No mark = not retested on this Mac.
+🍎 Mac retest Nov 8 2026 (M4 Pro, 1920x1080), Zomboid 42.21, ZeD-GUI 0.3.0-beta8, single player: ✔ loaded, windows opened; 🚗✔ driven; no mark = not retested.
 
 [h2]📋 Where each list is[/h2]
 Steam cannot link to a reply, so count the replies from the top of the thread.
 [list]
 [*]✅ [b]This post, below: Supported.[/b] ZeD-GUI has its own support for the mod, so its features show in ZeD's windows (21 mods).
 [*]⭐ [b]Reply 1: Works well with ZeD.[/b] The mod fills a gap or shows well in ZeD's windows; worth having (13). After it: how the mods were tested, help for long mod lists, and how to add a mod.
-[*]👍 [b]Replies 2 to 10: Compatible[/b], in 9 parts: 0-9 to Be (reply 2), Be to C (reply 3), D to F (reply 4), G to K (reply 5), L to M (reply 6), N to P (reply 7), Q to Sm (reply 8), Sm to Tr (reply 9), Tr to Z (reply 10). Loads and works with ZeD-GUI, nothing special (413).
+[*]👍 [b]Replies 2 to 10: Compatible[/b], in 9 parts: 0-9 to Be (reply 2), Be to C (reply 3), C to F (reply 4), F to K (reply 5), L to M (reply 6), N to P (reply 7), Q to Sm (reply 8), Sm to Tr (reply 9), Tr to Z (reply 10). Loads and works with ZeD-GUI, nothing special (413).
 [*]🚗 [b]Reply 11: Compatible, vehicle packs[/b] (49).
 [*]🤝 [b]Replies 12 and 13: Not needed with ZeD.[/b] ZeD-GUI already does the job, so use one of the two; the makers are credited there (49).
 [*]❌ [b]Reply 14: Does not work.[/b] Two lists: mods that do not work with ZeD-GUI, with why (3), and mods broken on 42.21 or 42.22 by themselves (11).

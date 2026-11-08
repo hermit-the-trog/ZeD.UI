@@ -1,6 +1,12 @@
-[h2]👍 Compatible, G to K (part 4 of 9)[/h2]
+[h2]👍 Compatible, F to K (part 4 of 9)[/h2]
 🍎 Retested Nov 8 2026 on macOS (Apple M4 Pro, 1920x1080, UI scale auto), Project Zomboid 42.21, ZeD-GUI 0.3.0-beta8, single player. ✔ after a mod = on this Mac it loaded with its group (12 to 50 mods at once, ZeD-GUI last), showed no errors of its own beyond any listed here, and every Character and World tab, the pause menu and Options opened. 🚗✔ = a car from the pack was spawned and ZeD's dashboard showed with the driver seated. No mark = not retested on this Mac.
 Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts ⚠️ "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 11.
+[h3]F, continued[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3042138819]Functional Appliances 2[/url] by Norby007 ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3744455714]Functional Pager - Immersive Map-Wide Communication [B42][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3685672179][B42] Functional TV Movies & Series - Framework[/url] ✔
+[/list]
 [h3]G[/h3]
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827271522]GarageWorks [B42][/url] by telvary ✔

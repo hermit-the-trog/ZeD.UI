@@ -8,16 +8,16 @@ v7's posts plus the changes in `../compat_v8_mac_retest.md`, nothing else: the M
 
 Steam's limit is about 8,000 characters per post, counted on the body (the TITLE line left out, a newline as one character, in UTF-16 units as check7 does).
 The full retest paragraph would push most replies over, so a reply uses the short retest line when the full one makes it go
-over 8,000. Post 00 keeps the full paragraph.
+over 8,000. Post 00 has its own shortened paragraph.
 
 | Post | Retest line | Characters |
 |---|---|---|
-| 00 first | full | 8,310 (over) |
+| 00 first | shortened | 7,997 |
 | 01 | full | 6,320 |
 | 02 | full | 6,706 |
-| 03 | short | 8,190 (over) |
-| 04 | short | 7,931 |
-| 05 | full | 7,499 |
+| 03 | short | 7,840 |
+| 04 | short | 7,930 |
+| 05 | full | 7,924 |
 | 06 | short | 7,695 |
 | 07 | short | 7,918 |
 | 08 | full | 7,975 |
@@ -28,7 +28,7 @@ over 8,000. Post 00 keeps the full paragraph.
 | 13 | full | 7,966 |
 | 14 | full | 5,468 |
 
-Posts 00 and 03 are over the limit, so they were not posted; they need trimming that does not cut a mod or a note.
+Post 00 got a shorter retest paragraph (same facts). Post 03's last two C entries (Customizable Containers, Cye's Push Doors!) moved to the start of post 04 under "C, continued"; post 04's last three F entries moved to the start of post 05 under "F, continued". Headings and post 00's index now read: C to F (reply 4), F to K (reply 5). No mod or note cut; still 559 mods.
 
 ## Posting
 
