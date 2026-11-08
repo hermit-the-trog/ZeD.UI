@@ -1,6 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardHook.lua
 -- ============================================================================
--- OBJECT CARD: BUTCHER HOOK (HOOK_MAP row 22; mockup zed_animal_cards_v1.html)
+-- OBJECT CARD: BUTCHER HOOK (HOOK_MAP row 22)
+-- Client; one card kind for ZeD.ObjectCards (ObjectCards.lua draws the frame,
+-- this def fills it).
 -- Vanilla's Butcher Hook window becomes a work card in the World window's
 -- card drawer:
 --   * empty hook: Dead animals nearby (within 2 tiles of you or carried) with

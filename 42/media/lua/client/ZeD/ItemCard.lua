@@ -1713,8 +1713,8 @@ function ZeD_ItemCard:getActionStripElements()
     return els
 end
 
--- Oct 23 2026 (director: "it is difficult navigate up to the strip"): the
--- card's D-pad, shared by both windows' card zones (zoneName). Up from any
+-- The card's D-pad, shared by both windows' card zones (zoneName). The strip
+-- must be easy to get back to, so Up from any
 -- control in the card goes straight to the action strip, onto its primary
 -- button; on the strip, Up scrolls the card back up by a section. Down goes
 -- to the next control below in the card; past the last one it scrolls the
@@ -1742,8 +1742,8 @@ function ZeD_ItemCard:gpDpad(w, e, dir, zoneName)
 end
 
 -- Return focusable elements for the clothing detail zone's structural docks.
--- One element per zone whose dock is actionable (TORN with materials, or PATCHED
--- with needle). Greyed/pristine zones are skipped — they're not in _zoneDockRects.
+-- One element per zone whose dock is actionable (a hole to repair, or a patch
+-- to remove). Greyed/pristine zones are skipped — they're not in _zoneDockRects.
 -- Element id is "dock_<zoneIdx>" matching the render-side stamping.
 function ZeD_ItemCard:getZoneDockElements()
     if not self.item then return {} end
@@ -1764,10 +1764,10 @@ function ZeD_ItemCard:getZoneDockElements()
 end
 
 --- The focus mark's opts for the card's element `id` when the controller is on
--- it: this card's window has the focus, the controller is in use
--- (Focus.liveZone), the focus is in the card's zone and on that element.
--- Both windows have a card (charItemCard / worldItemCard); the Equip tab's
--- lives in charTabContent (self._gpZone). Else nil.
+--- it: this card's window has the focus, the controller is in use
+--- (Focus.liveZone), the focus is in the card's zone and on that element.
+--- Both windows have a card (charItemCard / worldItemCard); the Equip tab's
+--- lives in charTabContent (self._gpZone). Else nil.
 local _cardFocus = {}
 function ZeD_ItemCard:focusFor(id)
     if id == nil then return nil end
@@ -1791,7 +1791,7 @@ function ZeD_ItemCard:focusFor(id)
 end
 
 --- The mark strip's Lists button: the loadouts and outfits by name, with checkboxes
--- (ZeD_ListsMenu.lua), dropped from the button's lower left
+--- (ZeD_ListsMenu.lua), dropped from the button's lower left
 function ZeD_ItemCard:openListsPopup()
     local r = self._listsRect
     local LU = ZeD.ListsUI
@@ -1800,7 +1800,7 @@ function ZeD_ItemCard:openListsPopup()
     LU.openPopup(self.playerNum or 0, self.item, r.x - ZeD.T.px(4), r.y + r.h + ZeD.T.px(4))
 end
 
---- Open or fold the card's folded row (remembered per item type for the session)
+--- Open or fold the card's folded row (remembered per item category for the session)
 function ZeD_ItemCard:_toggleMoreRow()
     if self._moreKey and ZeD.Disclose then ZeD.Disclose.toggle(self._moreKey) end
 end
@@ -1891,7 +1891,8 @@ ZeD.ItemDetail.drawSoilRow     = drawItemSoilRow
 ZeD.ItemDetail.findMaterials   = findClothingMaterials
 
 -- One-call repair / remove-patch dispatch for a given item + part. Mirrors
--- ZeD_ItemCard:_onZonePress logic so EquipmentTab gets identical behavior.
+-- the one-press fallback of ZeD_ItemCard:_onZonePress so the Equip tab gets
+-- the same behavior.
 function ZeD.ItemDetail.dispatchZoneAction(player, item, part, action)
     if not (player and item and part) then return end
     if action == "repair" then
