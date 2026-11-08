@@ -1263,7 +1263,7 @@ do
     local modals = {}
     local realModal = ISModalDialog
     ISModalDialog = { new = function(_, x, y, w, h, text, yesno, target, onclick, pn)
-        local m = { text = text, yesno = yesno, onclick = onclick, w = 400, h = 300, inUI = false }
+        local m = { text = text, yesno = yesno, onclick = onclick, w = 400, h = 300, inUI = false, passW = w }
         function m.initialise() end
         function m.addToUIManager(self) self.inUI = true end
         function m.getWidth(self) return self.w end
@@ -1322,7 +1322,8 @@ do
             local md = modals[before + 1]
             check(name .. "asked", md ~= nil)
             if md then
-                local w, h, n0 = calc(md.text)
+                local w0, h, n0 = calc(md.text)
+                local w = math.max(md.passW, w0)       -- (CalcSize: the width asked for, or the text's when wider; fixed from here)
                 md.w, md.h = w, h
                 check(name .. "the box fits the screen's height", h <= scr[2], h)
                 check(name .. "and its width", w <= scr[1], w)
@@ -1333,8 +1334,14 @@ do
                 -- scrolled to the end by the wheel: the last rule shows, the box never grows
                 local guard = 0
                 local lastWords = string.sub(P.plainWrap("40. " .. longRules[40].text, st.n)[#P.plainWrap("40. " .. longRules[40].text, st.n)], 1, 10)
-                while guard < 200 and not string.find(md.text, lastWords, 1, true) do md.onMouseWheel(md, 1); guard = guard + 1 end
+                local wSeen = 0
+                while guard < 200 and not string.find(md.text, lastWords, 1, true) do
+                    md.onMouseWheel(md, 1)
+                    guard = guard + 1
+                    wSeen = math.max(wSeen, (calc(md.text)))
+                end
                 check(name .. "the wheel reaches the last rule", string.find(md.text, lastWords, 1, true) ~= nil)
+                check(name .. "no line scrolled in draws past the border", wSeen <= w, tostring(wSeen) .. " > " .. tostring(w))
                 local _, h2 = calc(md.text)
                 check(name .. "scrolling never grows the box", h2 == h, h2)
                 for _ = 1, 100 do md.onJoypadDirUp(md) end
@@ -1345,6 +1352,39 @@ do
                 md.onclick(nil, { internal = "YES" })
                 check(name .. "Yes still agrees", lastCmd("m_agree") ~= nil)
             end
+        end
+    end
+    -- (outside review, Nov 7) short rules first and a wide one far down: the box takes its width when it opens, so it must already
+    -- be as wide as that line, not only the lines showing then
+    local narrowRules = { n = 40 }
+    for i = 1, 40 do narrowRules[i] = { id = i, rev = 1, text = "Rule " .. i .. ": be kind" } end
+    narrowRules[40].text = "Rule 40: " .. string.rep("keep the roads clear and the gates shut ", 3)
+    for _, scr in ipairs({ { 1280, 720 }, { 1280, 800 }, { 800, 600 } }) do
+        local fh = 19
+        local name = "safe box, a wide rule far down, " .. scr[1] .. "x" .. scr[2] .. ": "
+        coreOf(scr[1], scr[2])
+        ZeD.TM.getFontHeight = function(self, font) if font == UIFont.Small then return fh end return realFH(self, font) end
+        ZeD.TM.MeasureStringX = function(self, font, s) if font == UIFont.Small then return math.ceil(#tostring(s) * fh * 0.5) end return realMX(self, font, s) end
+        local before = #modals
+        view({ ask = true, rules = narrowRules })
+        M.joinScreen()
+        local md = modals[before + 1]
+        local st = CM.safeState
+        check(name .. "it scrolls", md ~= nil and st and st.rows ~= nil)
+        if md and st and st.rows then
+            local w0 = calc(md.text)
+            local w = math.max(md.passW, w0)
+            check(name .. "the wide rule is not showing when it opens", string.find(md.text, "Rule 40:", 1, true) == nil)
+            local wSeen, guard = 0, 0
+            while guard < 200 and st.top + st.rows - 1 < #st.body do
+                md.onMouseWheel(md, 1)
+                guard = guard + 1
+                wSeen = math.max(wSeen, (calc(md.text)))
+            end
+            check(name .. "scrolled to it", string.find(md.text, "Rule 40:", 1, true) ~= nil)
+            check(name .. "it stays inside the border it opened with", wSeen <= w, tostring(wSeen) .. " > " .. tostring(w))
+            check(name .. "and the box still fits the screen", w <= scr[1] - 2 * P.SAFE_MARGIN, w)
+            md.onclick(nil, { internal = "YES" })
         end
     end
     ZeD.TM.getFontHeight, ZeD.TM.MeasureStringX = realFH, realMX

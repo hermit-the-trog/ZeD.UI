@@ -173,12 +173,14 @@ local function player(name, roleName, x, y, z)
     function p.getInventory(self)
         return { AddItem = function(_, t)
             if type(t) ~= "string" then error("AddItem overload") end
+            if W.addFails and W.addFails[t] then return nil end     -- (the game made nothing: InventoryItemFactory gave nil)
             self.items[#self.items + 1] = t
             return { type = t }
         end }
     end
     function p.getCurrentSquare(self)
         return { AddWorldInventoryItem = function(_, t, a, b, c)
+            if W.addFails and W.addFails[t] then return nil end
             W.ground[#W.ground + 1] = t
             return { type = t }
         end }
@@ -287,9 +289,19 @@ local function serverStart()
     env.CharacterProfessionDefinition = { getCharacterProfessionDefinition = function() return { getUIName = function() return "Carpenter" end } end }
     env.CharacterTraitDefinition = { getCharacterTraitDefinition = function(t) return { getLabel = function() return t end } end }
     env.getScriptManager = function()
+        -- (FindItem(String) is FindItem(s, true): not found by its full type, the bare type in any module. The Item it gives
+        -- has its own full type, getFullName)
         return { FindItem = function(_, s)
             if type(s) ~= "string" then error("FindItem overload") end
-            return W.scripts[s]
+            local key = W.scripts[s] and s or nil
+            if not key then
+                local bare = string.match(s, "%.(.+)$") or s
+                for k in pairs(W.scripts) do
+                    if string.match(k, "%.(.+)$") == bare then key = k end
+                end
+            end
+            if not key then return nil end
+            return { getFullName = function(self) return key end }
         end }
     end
     env.sendAddItemToContainer = function(inv, it) W.sent = W.sent + 1 end
@@ -311,10 +323,17 @@ local function serverStart()
         return { readLine = function() at = at + 1; return lines[at] end, close = function() end }
     end
     if W.sidList then
-        env.NetworkUser = { new = function() return { isSteamIdBanned = function(_, s)
-            if type(s) ~= "string" then error("isSteamIdBanned overload") end
-            return W.sidList[s] and s or nil
-        end } end }
+        -- (and getFirstBannedIPForUser: the IP the game's list holds for a name, or null)
+        env.NetworkUser = { new = function() return {
+            isSteamIdBanned = function(_, s)
+                if type(s) ~= "string" then error("isSteamIdBanned overload") end
+                return W.sidList[s] and s or nil
+            end,
+            getFirstBannedIPForUser = function(_, u)
+                if type(u) ~= "string" then error("getFirstBannedIPForUser overload") end
+                return W.gameIps[u] and "10.0.0.9" or nil
+            end,
+        } end }
     end
     runFile(env, FILES["ZeD/ZeD_TicketProto"])
     env.loaded["ZeD/ZeD_TicketProto"] = true
@@ -1004,6 +1023,28 @@ do
     say(a, "a_spawn", { item = "Base.Axe", n = 1, to = "me" })
     say(a, "a_spawn", { item = "Base.Axe", n = 1, to = "me" })
     check("its own pace", errOf(a) == "wait")
+    -- (outside review, Nov 7) FindItem falls back to the bare type in any module: what is spawned and logged is the item found
+    nolimit(a)
+    local had = #a.items
+    say(a, "a_spawn", { item = "Fake.Axe", n = 2, to = "me" })
+    check("a client's module that is not the item's: the real item is spawned", okOf(a) and #a.items == had + 2 and a.items[#a.items] == "Base.Axe", a.items[#a.items])
+    check("and logged by its real full type", logHas("2 x Base.Axe to me") and not logHas("Fake.Axe"))
+    nolimit(a)
+    say(a, "a_spawn", { item = "Fake.Axe", n = 3, to = "ground" })
+    check("on the ground too", W.ground[#W.ground] == "Base.Axe" and logHas("3 x Base.Axe to ground"))
+    -- the game makes nothing: not done
+    W.addFails = { ["Base.Axe"] = true }
+    nolimit(a)
+    local lines = #W.logs
+    say(a, "a_spawn", { item = "Base.Axe", n = 2, to = "me" })
+    check("AddItem gives nil: acks false", got(a, "t_ack") and got(a, "t_ack").ok == false and errOf(a) == "item")
+    local spawnLine = false
+    for i = lines + 1, #W.logs do spawnLine = spawnLine or string.find(W.logs[i].line, "| spawn |", 1, true) ~= nil end
+    check("and logs no spawn", not spawnLine)
+    nolimit(a)
+    say(a, "a_spawn", { item = "Base.Axe", n = 2, to = "ground" })
+    check("the ground gives nil: acks false", got(a, "t_ack") and got(a, "t_ack").ok == false)
+    W.addFails = nil
 end
 
 section("the log for Phase 4")
@@ -1813,6 +1854,7 @@ do
     W.clients.Torch.up = false
     advance(30000)
     check("back: told again, and the next stay owes another Kick", has(ca.slash, '/kickuser "Torch" -r "Griefing"'))
+    check("a Kick took them, not the game's ban: their login lifts nothing", md().bans[1] ~= nil and not logHas("ban lifted in the game"))
     W.refuse, W.kickRemoves = nil, nil
 end
 
@@ -1985,6 +2027,124 @@ do
     advance(5000)
     check("banned again meanwhile: the unban is not asked again", calls(ca.game, "UnBanSteamID:76561198000000802:") == 1)
     W.refuse = nil
+end
+
+section("the game's unban wins")
+local function count(list, s)
+    local n = 0
+    for _, x in ipairs(list) do if x == s then n = n + 1 end end
+    return n
+end
+local function back(u)
+    W.online[#W.online + 1] = u
+    W.clients[u.name] = nil
+    return clientJoin(u)
+end
+do
+    -- a permanent name ban the game held (made while they were on: the game's ban kicked them), lifted in the game's own
+    -- window or with /unbanuser, and they log in: the row closes, nothing is asked again, nothing gates them
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    local u = player("Kade", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Kade", reason = "griefing", len = "perm" })
+    advance(13000)
+    check("the game's ban made, and it kicked them", W.gameBans.Kade == true and md().bans[1].made == true)
+    advance(2000)
+    check("gone after it: the game's ban held", md().bans[1].nameHeld == true)
+    W.gameBans.Kade = nil                    -- (staff lift it in the game)
+    local c2 = back(u)
+    check("the gate lets them in at once: the game's unban wins", W.server.ZeD.Srv.gated(u, "ZeDT", "t_mine") == nil)
+    advance(20000)
+    check("the row is closed", next(md().bans) == nil)
+    check("the log says it was lifted in the game", logHas("ban lifted in the game") and logHas("lifted in the game: the game let them log in"))
+    check("never banned again", count(ca.slash, '/banuser "Kade" -r "griefing"') == 1 and not logHas("game ban did not take"))
+    check("nor told to leave", M(c2).leave == nil and c2.up == true)
+    check("nothing owed for them", next(md().owed) == nil)
+    nolimit(u)
+    say(u, "a_players", {})
+    check("their commands are no longer refused as banned", not logHas("under a ban"))
+
+    -- a permanent row whose game ban was never seen to hold (made while they were off): a login is not proof, as before
+    local function lifts()
+        local n = 0
+        for _, l in ipairs(W.logs) do if string.find(l.line, "ban lifted in the game", 1, true) then n = n + 1 end end
+        return n
+    end
+    local lifted0 = lifts()
+    nolimit(a)
+    md().players.Ola = { t = 1, role = "user" }
+    say(a, "a_ban", { user = "Ola", reason = "x", len = "perm" })
+    advance(3000)
+    check("made while they were off", W.gameBans.Ola == true and md().bans[2].made == true and not md().bans[2].nameHeld)
+    W.gameBans.Ola = nil
+    local o = player("Ola", "user")
+    local co = clientJoin(o)
+    co.env.forceDisconnect = function() end
+    advance(16000)
+    check("never seen to hold: the row stands and the ban is asked again", md().bans[2] ~= nil and md().bans[2].reowe == 1)
+    check("and no line says it was lifted", lifts() == lifted0)
+end
+do
+    -- a timed ban in its time: a login is not the game's word, so it is asked again as before
+    local a, ca = boot()
+    local u = player("Torch", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Torch", reason = "x", len = "w1" })
+    advance(16000)
+    check("timed: the game's ban held", md().bans[1].nameHeld == true)
+    W.gameBans.Torch = nil
+    local c2 = back(u)
+    c2.env.forceDisconnect = function() end
+    advance(16000)
+    check("a timed ban in its time is not lifted by a login", md().bans[1] ~= nil and md().bans[1].reowe == 1 and not logHas("ban lifted in the game"))
+end
+do
+    -- a Steam ID: the game's own list says so, timed or not, and with the player off
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    say(a, "a_ban", { target = "76561198000000900", reason = "alt", len = "w1" })
+    nolimit(a)
+    say(a, "a_ban", { target = "76561198000000901", reason = "alt", len = "perm" })
+    advance(3000)
+    check("both on the game's list, read back", md().bans[1].sidHeld == true and md().bans[2].sidHeld == true)
+    W.sidList["76561198000000900"] = nil      -- (unbanid in the game)
+    advance(6000)
+    check("the timed row closes: the game's list said so", md().bans[1] == nil and md().bans[2] ~= nil)
+    check("the log says it", logHas("lifted in the game: the Steam ID is off the game's list"))
+    check("never banned again", count(ca.game, "BanSteamID:76561198000000900:alt") == 1)
+    check("and no unban owed at its end", owedOf("UnBanSteamID", "76561198000000900") == nil)
+    W.clock = W.clock + 604800 * 1000
+    advance(3000)
+    check("not at the end either", count(ca.game, "UnBanSteamID:76561198000000900:") == 0)
+    -- a row whose ID the game never confirmed: the list's word is not taken as a lift
+    W.refuse = { ["76561198000000902"] = true }
+    nolimit(a)
+    say(a, "a_ban", { target = "76561198000000902", reason = "alt", len = "perm" })
+    advance(6000)
+    check("never on the list: not lifted, asked again", md().bans[3] ~= nil and md().bans[3].reowe == 3)
+    W.refuse = nil
+end
+do
+    -- an IP ban: its read-back holds for the name too. Lifted in the game (the IP off its list): the row closes, and the name's
+    -- ban, if the game still holds it, is lifted with it so the game keeps no ban the Bans card does not show
+    W = W or {}
+    W.sidListNext = {}
+    local a, ca = boot()
+    W.sidListNext = nil
+    local u = player("Loot", "user")
+    clientJoin(u)
+    say(a, "a_ban", { user = "Loot", reason = "x", len = "perm", banIp = true })
+    advance(20000)
+    check("the IP on the game's list: held", md().bans[1].ipHeld == true and md().bans[1].nameHeld == true)
+    W.gameIps.Loot = nil                     -- (the IP lifted in the game's Banned IPs list)
+    advance(6000)
+    check("the row closes with the player off", md().bans[1] == nil and logHas("lifted in the game: the IP is off the game's list"))
+    check("the name's half is lifted too", has(ca.game, "UnBan:Loot:"))
 end
 
 section("bans from before this build hold too")

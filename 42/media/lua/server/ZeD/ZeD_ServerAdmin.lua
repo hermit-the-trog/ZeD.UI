@@ -15,6 +15,8 @@
 -- is not proof: a banned player the server still finds on after VERIFY_S means the ban did not take, and it is asked for
 -- again (REOWE_MAX times, each with a log line); a Steam ID ban is read back from the game's own list. A banned client that
 -- stays is reported and a Kick is owed, on every stay. A standing ban shuts its holder out of every ZeD command (Srv.gates).
+-- The game's unban wins: a row whose game ban was seen to hold, and which the game no longer holds (its list read back, or a
+-- permanent ban's player let in by the game's login), is closed with a log line, never asked for again.
 -- With the host helper on (ZeD_ServerHelper.lua) the calls it can make go to it as well, so they land with no staff online.
 -- Repeating messages run here too, on OnTickEvenPaused (A1): the game clock stops on an empty server.
 --
@@ -52,7 +54,7 @@ for _, name in ipairs(Adm.SERVER_CAPS) do
 end
 
 -- memory only: a /reloadlua of this file leaves it empty and open() fills it again
-local T = { told = {}, seen = {}, kicked = {} }
+local T = { told = {}, seen = {}, kicked = {}, doneOn = {} }
 Srv.A = T
 
 -- ---------------------------------------------------------------------------
@@ -300,6 +302,16 @@ local function knownName(md, s)
         if string.lower(u) == low then return u end
     end
     return nil
+end
+
+-- the player online under this name in any case (the game's login matches names in any case), or nil
+local function onlineAs(user)
+    if type(user) ~= "string" then return nil end
+    local low, found = string.lower(user), nil
+    Srv.eachOnline(function(o)
+        if not found and string.lower(o:getUsername()) == low then found = o end
+    end)
+    return found
 end
 
 -- ---------------------------------------------------------------------------
@@ -606,6 +618,8 @@ local function sendOwed(md, now)
                 if not e.sent then ipRefused(md, b) end   -- (sent, and gone: that was the game's kick)
             else
                 if e.act == "Ban" and b and b.ipSent and not gone then ipRefused(md, b) end   -- (the IP call would have kicked them)
+                -- (on or off as this call goes: a name ban made while they were on, and gone once it is done, held)
+                if e.act == "Ban" or e.act == "BanIP" then e.onAtSend = onlineAs(e.target) ~= nil end
                 deliver(md, e, b, now)
             end
         end
@@ -624,12 +638,22 @@ local function gameHoldsSid(sid)
     return r ~= nil
 end
 
+-- the game's IP ban on a name, read back the same way: true or false, nil when it cannot be read
+-- (NetworkUser.getFirstBannedIPForUser: a read-only SELECT ip FROM bannedip WHERE username = ?; one overload, a String)
+local function gameHoldsIp(user)
+    if type(user) ~= "string" or not NetworkUser then return nil end
+    local ok, r = pcall(function() return NetworkUser.new():getFirstBannedIPForUser(user) end)
+    if not ok then return nil end
+    return r ~= nil
+end
+
 -- the game's ban did not take: asked for again, REOWE_MAX times, each with a line. After that the row still keeps them out
 -- (the leave screen, the Kick on a stay) and the log says the game's ban is not holding
 local function reOwe(md, b, why)
     for _, e in pairs(md.owed) do
         if e.banId == b.id and GAME_BAN[e.act] then return end     -- (one still waits: nothing to judge yet)
     end
+    b.nameHeld, T.doneOn[b.id] = nil, nil   -- (a new round: what was seen of the last one proves nothing)
     local who = b.user or b.sid
     if (b.reowe or 0) >= AL.REOWE_MAX then
         if not b.gaveUp then
@@ -661,13 +685,36 @@ local function reOweUnban(md, e)
     owe(md, "UnBanSteamID", e.target, "", 0, e.by, { n = n + 1 })
 end
 
+-- a Kick for this name sent and not yet judged: then their going proves nothing of a ban
+local function kickedLately(md, user)
+    local low = string.lower(user)
+    if T.kicked[low] then return true end
+    for _, e in pairs(md.owed) do
+        if e.act == "Kick" and e.sent and string.lower(tostring(e.target)) == low then return true end
+    end
+    return false
+end
+
 -- a call is done: by the staff client it went to, or by the host helper
 local function doneOwed(md, e, now)
     md.owed[e.id] = nil
     local b = e.banId and md.bans[e.banId] or nil
     if b and GAME_BAN[e.act] then
         b.made, b.madeAt, b.everMade = true, now, true
-        if e.act == "BanSteamID" and gameHoldsSid(e.target) == false then reOwe(md, b, "the Steam ID is not on the game's list") end
+        if e.act == "BanSteamID" then
+            local held = gameHoldsSid(e.target)
+            if held == false then reOwe(md, b, "the Steam ID is not on the game's list") end
+            if held == true then b.sidHeld = true end
+        end
+    end
+    -- what proves the game holds the ban, so a later sign it no longer does means the game lifted it (liftedHow): an IP on the
+    -- game's list for the name (BanUser bans the name before the IP), or a name ban sent while they were on (the game's ban
+    -- kicks them: gone by the time it is done, or at a look within VERIFY_S, it held)
+    if b and (e.act == "Ban" or e.act == "BanIP") and b.user then
+        if e.act == "BanIP" and gameHoldsIp(b.user) == true then b.ipHeld, b.nameHeld = true, true end
+        if not b.nameHeld and e.onAtSend then
+            if onlineAs(b.user) then T.doneOn[b.id] = now elseif not kickedLately(md, b.user) then b.nameHeld = true end
+        end
     end
     if e.act == "UnBanSteamID" and gameHoldsSid(e.target) == true then reOweUnban(md, e) end
     if e.act == "BanIP" then
@@ -709,6 +756,86 @@ local function reportStay(md, user, b, told, now)
     oweKick(md, user, b.reason, { banId = b.id })
 end
 
+-- ---------------------------------------------------------------------------
+-- THE GAME'S UNBAN WINS (the director, Nov 7 2026): staff who lift a ban in the game's own admin panel or with /unbanuser
+-- have lifted it. ZeD closes its row, owes no ban again, gates no more, and says so in the log. Only on proof the game held
+-- the ban and holds it no more: a ZeD row whose game ban was never seen to hold, or a timed one in its time, is lifted only
+-- when the game's own list says so (a Steam ID or an IP it held, read back and gone)
+-- ---------------------------------------------------------------------------
+-- a name ban made while they were on: gone at the next look, it held (each second; memory only, so a reload proves nothing)
+local function confirmHeld(md, now)
+    for id, at in pairs(T.doneOn) do
+        local b = md.bans[id]
+        if not b or not b.made or not b.user or b.nameHeld then
+            T.doneOn[id] = nil
+        elseif not onlineAs(b.user) then
+            b.nameHeld = not kickedLately(md, b.user) or nil     -- (a Kick took them: that is no proof of the ban)
+            T.doneOn[id] = nil
+        elseif now - at >= AL.VERIFY_S then
+            T.doneOn[id] = nil       -- (still on: the ban did not take, and checkBan asks again)
+        end
+    end
+end
+
+-- how the game says it no longer holds this row's ban ("sid", "ip" or "name" and the words for the log), or nil.
+-- o: the player online the row matched, if any. A name ban has no read-only lookup (ServerWorldDatabase is not exposed, and the
+-- game keeps it as the account's role), so its proof is the login: a permanent row whose game ban held, its player back on.
+-- noRead: the login only, no query on the game's database (the gate, asked at every command)
+local function liftedHow(b, o, noRead)
+    if not noRead and b.sidHeld and b.sidGame and gameHoldsSid(b.sidGame) == false then return "sid", "the Steam ID is off the game's list" end
+    if not noRead and b.ipHeld and b.user and gameHoldsIp(b.user) == false then return "ip", "the IP is off the game's list" end
+    if o and b.nameHeld and not b.untilT and b.user and string.lower(o:getUsername()) == string.lower(b.user) then
+        return "name", "the game let them log in"
+    end
+    return nil
+end
+
+-- the row closes. What else ZeD made of it is lifted too, so the game holds no ban the Bans card does not show and a part it
+-- still holds never outlasts the row: the name (with its IP) unless that was the part lifted, a Steam ID the game still holds
+local function closeLifted(md, b, kind, how)
+    cancelOwed(md, b.id)
+    md.bans[b.id] = nil
+    T.doneOn[b.id] = nil
+    release(b)
+    if b.user and kind ~= "name" then
+        owe(md, (b.banIp and kind ~= "ip" and gameHoldsIp(b.user) ~= false) and "UnBanIP" or "UnBan", b.user, "", 0, nil)
+    elseif b.user and b.banIp and gameHoldsIp(b.user) == true then
+        owe(md, "UnBanIP", b.user, "", 0, nil)
+    end
+    local sid = b.sidGame or b.sidLift
+    if sid and kind ~= "sid" and gameHoldsSid(sid) ~= false then owe(md, "UnBanSteamID", sid, "", 0, nil) end
+    -- (the game tells server Lua nothing of who: its own user log names them, and only a client can ask for that)
+    Srv.adminLog(Tk.SYS, "ban lifted in the game", b.user or b.sid or b.ip, "lifted in the game: " .. how)
+    pushBans(md)
+end
+
+-- true when the row was closed because the game lifted its ban
+local function liftIfGameLifted(md, b, o, noRead)
+    local kind, how = liftedHow(b, o, noRead)
+    if not kind then return false end
+    closeLifted(md, b, kind, how)
+    return true
+end
+
+-- the rows whose game ban was seen to hold, a few each walk (each look is a query on the game's database): one lifted in the
+-- game while its player is off closes too, so the Bans card is right before they come back
+local function lookLifted(md)
+    local ids = {}
+    for id, b in pairs(md.bans) do
+        if (b.sidHeld or b.ipHeld) and (not T.liftCursor or id > T.liftCursor) then ids[#ids + 1] = id end
+    end
+    if #ids == 0 then
+        T.liftCursor = nil
+        return
+    end
+    table.sort(ids)
+    for i = 1, math.min(#ids, AL.LIFT_LOOK_N) do
+        T.liftCursor = ids[i]
+        local b = md.bans[ids[i]]
+        if b then liftIfGameLifted(md, b, nil) end
+    end
+end
+
 local function checkBan(md, o, user, now)
     local b = standingFor(md, user, sidNum(o))
     if b and not bindsRole(b, o:getRole()) then
@@ -719,6 +846,11 @@ local function checkBan(md, o, user, now)
         b = nil
     end
     if not b then
+        T.told[user] = nil
+        return
+    end
+    -- (the game's unban wins: lifted there, the row closes before anything is asked again)
+    if liftIfGameLifted(md, b, o) then
         T.told[user] = nil
         return
     end
@@ -862,6 +994,7 @@ local function walkPlayers(md, now)
     T.seen = seen
     trimPlayers(md)
     checkKicks(md, now)
+    lookLifted(md)
 end
 
 local function runRepeats(md, now)
@@ -962,6 +1095,7 @@ function Srv.adminTick()
     local md = open()
     if T.frozen then return end
     liftDue(md, now)
+    confirmHeld(md, now)
     if not T.walkAt or now - T.walkAt >= AL.POLL_S then
         T.walkAt = now
         walkPlayers(md, now)
@@ -981,7 +1115,7 @@ Srv.gates.ban = function(p, module, command)
     if module == Tk.MOD_LINK or (module == Adm.MOD and command == "a_hi") then return nil end
     local md = open()
     local b = standingFor(md, p:getUsername(), sidNum(p))
-    if b and bindsRole(b, p:getRole()) then return "under a ban" end
+    if b and bindsRole(b, p:getRole()) and not (not T.frozen and liftIfGameLifted(md, b, p, true)) then return "under a ban" end
     return nil
 end
 
@@ -1420,25 +1554,39 @@ reg("a_spawn", { cap = CAP.AddItem, limit = AL.SPAWN_MS }, function(p, a, rid)
         Srv.ack(p, rid, false, "text")
         return
     end
-    if not getScriptManager():FindItem(item) then Srv.ack(p, rid, false, "item"); return end
+    -- (FindItem falls back to the bare type in any module: "Mod.Axe" can find Base.Axe. What is spawned and logged is the
+    -- item it found, by its own full type, never the client's string)
+    local found = getScriptManager():FindItem(item)
+    local full = found and found:getFullName()
+    if type(full) ~= "string" or full == "" then Srv.ack(p, rid, false, "item"); return end
+    local made = 0
     if to == "ground" then
         local sq = p:getCurrentSquare()
         if not sq then Srv.ack(p, rid, false, "state"); return end
-        for _ = 1, n do sq:AddWorldInventoryItem(item, 0.5, 0.5, 0) end
+        for _ = 1, n do
+            if not sq:AddWorldInventoryItem(full, 0.5, 0.5, 0) then break end
+            made = made + 1
+        end
     else
         local o = (to == "me") and p or Srv.player(to)
         if not o then Srv.ack(p, rid, false, "offline"); return end
         local inv = o:getInventory()
         for _ = 1, n do
-            local it = inv:AddItem(item)
-            if it then sendAddItemToContainer(inv, it) end
+            local it = inv:AddItem(full)
+            if not it then break end
+            sendAddItemToContainer(inv, it)
+            made = made + 1
         end
     end
     local other = nil
     if to ~= "me" and to ~= "ground" then other = to end
-    logAt(p, "spawn", other, tostring(n) .. " x " .. item .. " to " .. to)
-    if Adm.SPAWN_TELLS and other then Srv.to(Srv.player(other), Adm.MOD, "a_note", { kind = "spawn", n = n, item = item }) end
-    Srv.ack(p, rid, true, nil, { n = n })
+    if made > 0 then
+        logAt(p, "spawn", other, tostring(made) .. " x " .. full .. " to " .. to)
+        if Adm.SPAWN_TELLS and other then Srv.to(Srv.player(other), Adm.MOD, "a_note", { kind = "spawn", n = made, item = full }) end
+    end
+    -- (the game made none, or fewer than asked: not done)
+    if made < n then Srv.ack(p, rid, false, "item", { n = made }); return end
+    Srv.ack(p, rid, true, nil, { n = made })
 end)
 
 -- ---------------------------------------------------------------------------

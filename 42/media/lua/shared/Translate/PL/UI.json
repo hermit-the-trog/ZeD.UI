@@ -5597,6 +5597,7 @@
     "UI_ZeD_Log_A_Ban": "zbanował %1 (%2): %3",
     "UI_ZeD_Log_A_Unban": "odbanował: %1",
     "UI_ZeD_Log_A_Lifted": "ban na %1 wygasł",
+    "UI_ZeD_Log_A_LiftedGame": "ban na %1 zdjęto w grze",
     "UI_ZeD_Log_A_GameBan": "nałożył ban gry na %1: %2",
     "UI_ZeD_Log_A_Msg": "wysłał wiadomość serwera: %1",
     "UI_ZeD_Log_A_Repeat": "ustawił powtarzaną wiadomość, %1",

@@ -346,6 +346,7 @@ ADMIN["ban"] = function(r, c)
 end
 ADMIN["unban"] = function(r, c) return c.w("UI_ZeD_Log_A_Unban", banTarget(r, c)) end
 ADMIN["ban lifted"] = function(r, c) return c.w("UI_ZeD_Log_A_Lifted", banTarget(r, c)) end
+ADMIN["ban lifted in the game"] = function(r, c) return c.w("UI_ZeD_Log_A_LiftedGame", banTarget(r, c)) end
 ADMIN["game ban"] = function(r, c) return c.w("UI_ZeD_Log_A_GameBan", banTarget(r, c), quoted(r.text)) end
 ADMIN["server message"] = function(r, c) return c.w("UI_ZeD_Log_A_Msg", quoted(r.text)) end
 ADMIN["repeating message"] = function(r, c) return c.w("UI_ZeD_Log_A_Repeat", tostring(r.text)) end
@@ -445,7 +446,7 @@ Lg.EN = {
     UI_ZeD_Log_A_Warn1 = "added %1 warning point to %2: %3", UI_ZeD_Log_A_Warn = "added %1 warning points to %2: %3",
     UI_ZeD_Log_A_Mute = "muted %1", UI_ZeD_Log_A_Unmute = "unmuted %1", UI_ZeD_Log_A_Role = "gave %1 the role %2",
     UI_ZeD_Log_A_LevelUp = "leveled %1 up: %2", UI_ZeD_Log_A_LevelDown = "leveled %1 down: %2", UI_ZeD_Log_A_Ban = "banned %1 (%2): %3",
-    UI_ZeD_Log_A_Unban = "unbanned %1", UI_ZeD_Log_A_Lifted = "the ban on %1 ran out", UI_ZeD_Log_A_GameBan = "put the game's ban on %1: %2",
+    UI_ZeD_Log_A_Unban = "unbanned %1", UI_ZeD_Log_A_Lifted = "the ban on %1 ran out", UI_ZeD_Log_A_LiftedGame = "the ban on %1 was lifted in the game", UI_ZeD_Log_A_GameBan = "put the game's ban on %1: %2",
     UI_ZeD_Log_A_Msg = "sent a server message: %1", UI_ZeD_Log_A_Repeat = "set a repeating message, %1", UI_ZeD_Log_A_RepeatStop = "stopped a repeating message",
     UI_ZeD_Log_A_Spawn = "spawned %1 x %2 to %3", UI_ZeD_Log_A_SpawnSelf = "spawned %1 x %2 to themselves", UI_ZeD_Log_A_SpawnGround = "spawned %1 x %2 on the ground",
     UI_ZeD_Log_A_Refused = "tried a command they have no right to (%1)", UI_ZeD_Log_A_Rate = "went over the rate limit, %1 commands dropped so far",

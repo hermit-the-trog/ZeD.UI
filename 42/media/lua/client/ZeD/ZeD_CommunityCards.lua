@@ -939,6 +939,7 @@ end
 P.SAFE_MARGIN = 20           -- pixels kept clear above, below and beside the box
 P.SAFE_CHROME = 75           -- ISModalDialog.CalcSize: 20 over the text, 20 under it, a 25 button row, 10 under that
 P.SAFE_WIDE = 70             -- characters a line, at most
+P.SAFE_PAD = 20              -- pixels beside the widest line, both sides together (ISModalDialog.CalcSize keeps 10)
 function P.safeLines(v, n)
     local body = { tr("UI_ZeD_Cm_Rules"), "" }
     local rules = v.rules or {}
@@ -971,18 +972,22 @@ function P.safeFit(v)
     local sw, sh = core:getScreenWidth(), core:getScreenHeight()
     local fh = math.max(1, tm:getFontHeight(UIFont.Small))
     local st = { n = P.SAFE_WIDE, top = 1 }
+    local function widest(list, w)
+        for _, s in ipairs(list) do w = math.max(w, tm:MeasureStringX(UIFont.Small, s)) end
+        return w
+    end
     while true do
         st.body, st.tail = P.safeLines(v, st.n)
-        local widest = 0
-        for _, s in ipairs(st.body) do widest = math.max(widest, tm:MeasureStringX(UIFont.Small, s)) end
-        for _, s in ipairs(st.tail) do widest = math.max(widest, tm:MeasureStringX(UIFont.Small, s)) end
-        if widest + 10 <= sw - 2 * P.SAFE_MARGIN or st.n <= 20 then break end
+        st.wide = widest(st.tail, widest(st.body, 0))
+        if st.wide + P.SAFE_PAD <= sw - 2 * P.SAFE_MARGIN or st.n <= 20 then break end
         st.n = st.n - 10
     end
     local fit = math.floor((sh - 2 * P.SAFE_MARGIN - P.SAFE_CHROME) / fh)
     if #st.body + #st.tail <= fit then return st end
     -- (the line that says where they are, cut as its longest form would be)
-    st.moreN = #P.plainWrap(tr("UI_ZeD_Cm_SafeMore", #st.body, #st.body, #st.body), st.n)
+    local more = P.plainWrap(tr("UI_ZeD_Cm_SafeMore", #st.body, #st.body, #st.body), st.n)
+    st.moreN = #more
+    st.wide = widest(more, st.wide)
     st.rows = math.max(3, fit - #st.tail - st.moreN - 1)
     if st.rows >= #st.body then st.rows = nil end
     return st
@@ -1005,7 +1010,9 @@ function P.safeAsk()
         CM.safeAsk = nil
         if button and button.internal == "YES" then M.agree(rev) else M.leave() end
     end
-    local modal = ISModalDialog:new(0, 0, 350, 150, P.safeText(st), true, nil, onAnswer, 0)
+    -- (as wide as the widest line it will ever hold, every rule line and not only those showing now: the width is set here, and
+    -- a wider line scrolled in later would draw past the border)
+    local modal = ISModalDialog:new(0, 0, math.max(350, math.ceil(st.wide + P.SAFE_PAD)), 150, P.safeText(st), true, nil, onAnswer, 0)
     modal:initialise()
     modal:addToUIManager()
     CM.safeState = st

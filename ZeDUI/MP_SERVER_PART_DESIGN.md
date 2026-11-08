@@ -1690,7 +1690,10 @@ The director's decisions of Nov 7 2026 (multiple choice), built. Files: `ZeD_Ser
 `ZeDUI/server_helper/`. Sims: `admin_sim.lua`, `community_sim.lua`, `community_cards_sim.lua`; the helper's own test is
 `ZeDUI/server_helper/test_zed_rcon_helper.py`. The second review pass (items 4, 5, 7, 9, 10 and the helper's start) adds
 `ZeD_ServerLink.lua`, `ZeD_Community.lua`, `ZeD_Tickets.lua`, `ZeD_Claims.lua`, `ZeD_Extras.lua`, `ZeD_Log.lua` and `ZeD_Dashboard.lua`,
-with sections in `claims_sim.lua`, `extras_sim.lua`, `log_sim.lua`, `tickets_sim.lua` and `dash_odo_sim.lua`.
+with sections in `claims_sim.lua`, `extras_sim.lua`, `log_sim.lua`, `tickets_sim.lua` and `dash_odo_sim.lua`. The game's unban
+(item 11) and the outside review's fixes (items 7, 9 and 12: the safe-mode box's width, the hello's margin, the admin spawn) add
+`ZeD_LogProto.lua`, `ZeD_ServerLog.lua` and the key `UI_ZeD_Log_A_LiftedGame` in all 28 languages, with sections in
+`admin_sim.lua` ("the game's unban wins", "spawn items"), `community_cards_sim.lua`, `community_sim.lua` and `log_sim.lua`.
 
 **Settled facts this rests on** (bytecode, 42.22.2): server Lua cannot kick, ban, unban or set one player's role. `GameServer`,
 `ServerWorldDatabase` and `UdpConnection` are not exposed, and the `GlobalObject` admin calls only act on a client. The game's own
@@ -1730,11 +1733,13 @@ from server Lua (it changes the player object's field, not the connection's role
    - an `UnBanSteamID` is read back the same way: still on the list, it is asked for again (`reOweUnban`), `REOWE_MAX` times with a
      line ("game unban did not take"), never while a row of ours bans that ID again.
    - a name ban has no read-only lookup in reach (`getFirstBannedIPForUser` is the IP's), so the proof is that the player is gone:
-     found on past `VERIFY_S` with the row made, the ban is asked for again.
+     found on past `VERIFY_S` with the row made, the ban is asked for again. An IP ban is read back by
+     `NetworkUser.new():getFirstBannedIPForUser(name)` (exposed; a read-only `SELECT ip FROM bannedip WHERE username = ?`, one
+     overload taking a String): on the list, it held, and the name with it (`BanSystem.BanUser` bans the name before the IP).
    - a Kick: still on past `VERIFY_S` while its reason holds (the row binds or the rules are still unanswered), asked for again.
    Each is asked again `REOWE_MAX` (3) times with a log line ("game ban did not take", "kick did not take"), then one line says
-   so. The row still keeps them out (the leave screen, a Kick on a stay). **A ban lifted in the game's own window but left on
-   ZeD's Bans card is put back** by this: the Bans card is the record, and Unban there lifts both.
+   so. The row still keeps them out (the leave screen, a Kick on a stay). A ban whose game ban held and was then lifted in the
+   game is not put back: item 11.
 6. **The join rules hold.** Until a player asked at joining agrees, every ZeD command from them is refused (the rules gate); only
    the hello, `a_hi`, `m_get` and `m_agree` stay open. The record of who was asked is made at the first word from them (the hello or
    any command) or at the server's own walk of the players online (`lookAtAsked`, every `ASKED_LOOK_MS`), so a client that never
@@ -1755,7 +1760,9 @@ from server Lua (it changes the player object's field, not the connection's role
    will not fit the height (720p, the Deck, Large text, a long list) the box holds only as many rule lines as fit, with a line
    `UI_ZeD_Cm_SafeMore` ("Lines 1 to 12 of 40. Mouse wheel or D-pad Up and Down for the rest.") above the question. The rules
    scroll inside it (the mouse wheel, the D-pad up and down, 3 lines a step); the box never grows, and the question, Yes and No
-   (A and B on the pad) stay on screen at every resolution and text size.
+   (A and B on the pad) stay on screen at every resolution and text size. The box takes its width once, when it opens, so it is
+   asked for as wide as the widest line it will ever hold (every rule line, the question and the "Lines" line in its longest form,
+   `st.wide`, plus `P.SAFE_PAD`, 20 pixels): a wider rule scrolled in later stays inside the border.
 8. **Mutes stay client-kept.** The server cannot reach the game's chat (`ChatServer` is not exposed, and `IsoPlayer.setAllChatMuted`
    is read by nothing in the chat path). ZeD's mute is the server's list, kept by each player's ZeD chat; a modified client, or the
    game's own chat box under safe mode, is not stopped, and the words over a player's head are the game's. The voice mute is the
@@ -1763,7 +1770,9 @@ from server Lua (it changes the player object's field, not the connection's role
 9. **What the rules gate refused comes back.** Every request a part made before the player agreed came back `perm`. When the
    server takes `m_agree`, the client runs `S.agreed` (`ZeD_ServerLink.lua`): the hello goes again (tickets, admin's `a_hi`,
    extras' settings and the community view fill from it; a hello inside `HELLO_MS` of the last would be refused, so it waits its
-   turn on the tick), and each part's own hook (`S.onAgreed`) asks again: claims its `c_info`, extras my claims, the Log the read
+   turn on the tick, `HELLO_MS` and `S.HELLO_MARGIN_MS` (1000 ms) after the last: the server times the gap by when each one
+   lands, and a margin of 250 ms let network jitter land one early and get it refused with nothing said), and each part's own
+   hook (`S.onAgreed`) asks again: claims its `c_info`, extras my claims, the Log the read
    still open, tickets an open queue and its sync. The dash keeps no hook: it compares `S.agreedN`, so a passenger's spent asks
    start again and a driver's figures go at once.
 10. **Bans from before this build hold too.** At every load of the admin table (each server start, and a reload; never a frozen
@@ -1771,6 +1780,45 @@ from server Lua (it changes the player object's field, not the connection's role
    Steam ID; never the IP, which needs the player on) with a line ("game ban owed"), and is marked `gameBan` so a second start owes
    nothing again. A name's row that kept a client's Steam ID never names it to the game again (a call still waiting for it goes);
    one the game may already hold is lifted with the row (`sidLift`). Rows carry `v = 2`.
+11. **The game's unban wins** (the director, Nov 7 2026). Staff who lift a ban in the game's own admin panel, with `/unbanuser`
+   or `/unbanid`, have lifted it: ZeD notices the game no longer holds the ban and closes its row. It does not ban again, does
+   not gate, and writes "ban lifted in the game" ("the ban on X was lifted in the game", `UI_ZeD_Log_A_LiftedGame`) with how it
+   knows. **Who** is not in reach: the game writes the admin's name in its own user log (`BanSystem.BanUser` calls
+   `addUserlog`), but `ServerWorldDatabase.getUserlog` is not exposed and `requestUserlog` is a client's packet, so the line says
+   "lifted in the game". What the server can read (javap on 42.21, where `NetworkUser` is `zombie.characters.NetworkUser`,
+   exposed under its plain name; both lookups were read on 42.22.2 too, item 5; each one overload taking a String):
+   - **A Steam ID**: `isSteamIdBanned`. Read back on the list when its `BanSteamID` was done, the row is marked `sidHeld`; read
+     back off it later, the game lifted it.
+   - **An IP**: `getFirstBannedIPForUser(name)`. On the list after the `BanIP`, the row is `ipHeld` (and `nameHeld`); off it
+     later, lifted. (The game's own unban of a name lifts its IP too: `BanUser` with unban finds the first banned IP and lifts it.)
+   - **A name**: no read-only lookup. The game keeps a name ban as the account's role (`banUser` sets the whitelist row's role,
+     `authClient` refuses the banned role) and `getUserRoleNameByUsername` is on `ServerWorldDatabase`, not exposed. So the
+     proof is the login: the game refuses a banned name at `authClient`, and a player who logs in while ZeD's row says the game
+     holds their ban was let in by the game. A name ban **held** (`nameHeld`) when its `Ban` was sent while they were on and
+     they were gone by the time it was done, or at a look within `VERIFY_S` after (each second, in memory: a reload proves
+     nothing). Gone because a Kick of ours was sent or is being judged proves nothing (`kickedLately`); still on, it did not take
+     (item 5).
+
+   **Only on proof.** A row whose game ban was never seen to hold (banned while off, a row from before this build, a done that
+   did not take) is not "lifted in the game" on a login: it is asked for again as before (item 5). A **timed row in its time** is
+   lifted only when the game's own list says so (a Steam ID or an IP read back off it), never by a login. A modified staff client
+   that says done while the banned player happens to quit within the same second would pass as held; staff who collude can
+   already unban.
+
+   **Where it is checked.** At every walk of the players (`checkBan`, before anything is asked again), at the ban gate (the login
+   proof only, no database query: it runs at every command, so the player's first command after logging in is not refused), and
+   for players who are off, the rows marked held are read back `LIFT_LOOK_N` (10) a walk in turn, so the Bans card is right
+   before they come back.
+
+   **Closing.** The row's owed calls go, whoever was told to leave stays, and what else ZeD made of that ban is lifted too, so
+   the game holds no ban the Bans card does not show and a part it still holds never outlasts the row: the name's ban (with its
+   IP) when the Steam ID or the IP was the part lifted, a Steam ID the game still holds when the name was, the IP when the name
+   was lifted and the IP read back still on the list. A timed row closed this way owes nothing at its end.
+12. **The admin spawn uses the item it found** (outside review, Nov 7). `ScriptManager.FindItem(String)` is
+   `FindItem(s, true)`: not found by its full type, it takes the bare type in any module, so "Mod.Axe" finds Base.Axe. `a_spawn`
+   spawned and logged the client's string; it now spawns and logs `found:getFullName()` (the Item's `moduleDotType`), stops at the
+   first `AddItem` (or `AddWorldInventoryItem`) that gives nil, logs only what was made, and acks false ("item", with the count
+   made) when it made fewer than asked.
 
 **The host helper** (optional, off by default; the sandbox option `ZeD.HostHelper`, "Host Helper (RCON)" on the ZeD-GUI page).
 A small program the server's owner runs on the server machine (`ZeDUI/server_helper/zed_rcon_helper.py`, Python 3 standard library
