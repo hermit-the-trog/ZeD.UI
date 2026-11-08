@@ -67,7 +67,16 @@ ZeD.GuideAds = {
              "half_jamieton_army_surplus", "half_mccoys_lumber", "half_pharmahug" },
     third = { "third_maps_unlimited", "third_salt_river_bait", "third_pioneer_girls", "third_knob_creek_hunting",
               "third_aa_ron_hunting", "third_west_point_range", "third_nails_and_nuts", "third_time_4_sport",
-              "third_zippee_market", "third_phils_pawn", "third_hit_vids", "third_rolling_fork_camp" },
+              "third_zippee_market", "third_phils_pawn", "third_hit_vids", "third_rolling_fork_camp",
+              -- (batch 5, Nov 7: the 32 more thirds, in GUIDE_ADS_PLAN.md's lineup order)
+              "third_gas_2_go", "third_nolans_used_cars", "third_car_fixation", "third_louisville_motorshop",
+              "third_echo_creek_feed_seed", "third_brott_cattle_farm", "third_thumbs_of_green", "third_five_alarm_chili",
+              "third_mendys_eatery", "third_knox_distillery", "third_first_baptist_bake_sale", "third_rusty_rifle",
+              "third_invisible_sledgehammer", "third_electron_house", "third_plugged_in_electrics", "third_worm_of_books",
+              "third_awl_work_sew_play", "third_barg_n_clothes", "third_optima_eyes", "third_family_dentistry",
+              "third_pet_health_pawmise", "third_pony_roam_o", "third_abc_driving_school", "third_rosewood_fire_first_aid",
+              "third_muldraugh_karate", "third_mindpeace_insurance", "third_homeward_real_estate", "third_u_store_it",
+              "third_old_mill_water", "third_restwell_funeral_home", "third_knox_lock_key", "third_throw_your_voice" },
     quarter = { "quarter_xray_specs", "quarter_iron_mike", "quarter_safari_club", "quarter_brine_buddies",
                 "quarter_learn_magic", "quarter_kentucky_seed_co", "quarter_kitten_knives",
                 "quarter_purrfect_barkner", "quarter_motorbikes_and_more", "quarter_wizards_keep",
@@ -478,7 +487,7 @@ function B.dealAds(bk, pages, u, textW_)
     return st
 end
 
--- one line on how far the ads went at this layout (QA's count: whether 34 ads cover every slot). Logged in -debug
+-- one line on how far the ads went at this layout (QA's count: whether 66 ads cover every slot). Logged in -debug
 -- each time it changes, so a text size or wording change shows its own count in console.txt.
 function B.adReport(bk)
     local st = bk and bk.adStats
@@ -492,7 +501,7 @@ function B.adReport(bk)
         st.at.full + fh, #A.full + 1, st.at.half, #A.half, st.at.quarter, #A.quarter, st.at.third, #A.third)
 end
 
--- the textures, each loaded the first time a page draws it (all 34 at 2x are about 60 MB once loaded).
+-- the textures, each loaded the first time a page draws it (all 66 at 2x are about 105 MB once loaded).
 -- Flags 2 (the engine's TextureID reads them as bits when it uploads the texture): 2 = point filtering when the
 -- texture is drawn LARGER than its PNG (u above 2), so the pixel pictures stay crisp there. Bit 1 (point filtering
 -- when drawn smaller) stays off: at u 2 and below (1080p, 4K at 1.75x) the art is shrunk, and point sampling would
@@ -811,7 +820,7 @@ function ZeD_GuideBook:readTopics(u)
     -- (the ads' seed: this character in this save, read again each time since a split-screen seat can change hands)
     self._adSeed = B.adSeed(self.playerNum)
     B.paginate(self, u)
-    -- (in -debug, the ads' count for this layout when it changes: QA's question of whether 34 ads cover the book)
+    -- (in -debug, the ads' count for this layout when it changes: QA's question of whether 66 ads cover the book)
     local ok, dbg = pcall(isDebugEnabled)
     if ok and dbg then
         local okR, line = pcall(B.adReport, self)

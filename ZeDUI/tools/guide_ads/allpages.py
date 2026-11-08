@@ -12,7 +12,16 @@ HALF = ["half_well_regulated_militia", "half_better_bed_than_dead", "half_zacs_h
         "half_jamieton_army_surplus", "half_mccoys_lumber", "half_pharmahug"]
 THIRD = ["third_maps_unlimited", "third_salt_river_bait", "third_pioneer_girls", "third_knob_creek_hunting",
          "third_aa_ron_hunting", "third_west_point_range", "third_nails_and_nuts", "third_time_4_sport",
-         "third_zippee_market", "third_phils_pawn", "third_hit_vids", "third_rolling_fork_camp"]
+         "third_zippee_market", "third_phils_pawn", "third_hit_vids", "third_rolling_fork_camp",
+         # (batch 5, Nov 7: the 32 more thirds, the book's order)
+         "third_gas_2_go", "third_nolans_used_cars", "third_car_fixation", "third_louisville_motorshop",
+         "third_echo_creek_feed_seed", "third_brott_cattle_farm", "third_thumbs_of_green", "third_five_alarm_chili",
+         "third_mendys_eatery", "third_knox_distillery", "third_first_baptist_bake_sale", "third_rusty_rifle",
+         "third_invisible_sledgehammer", "third_electron_house", "third_plugged_in_electrics", "third_worm_of_books",
+         "third_awl_work_sew_play", "third_barg_n_clothes", "third_optima_eyes", "third_family_dentistry",
+         "third_pet_health_pawmise", "third_pony_roam_o", "third_abc_driving_school", "third_rosewood_fire_first_aid",
+         "third_muldraugh_karate", "third_mindpeace_insurance", "third_homeward_real_estate", "third_u_store_it",
+         "third_old_mill_water", "third_restwell_funeral_home", "third_knox_lock_key", "third_throw_your_voice"]
 QUARTER = ["quarter_xray_specs", "quarter_iron_mike", "quarter_safari_club", "quarter_brine_buddies",
            "quarter_learn_magic", "quarter_kentucky_seed_co", "quarter_kitten_knives", "quarter_purrfect_barkner",
            "quarter_motorbikes_and_more", "quarter_wizards_keep", "quarter_juke_box_bowling",

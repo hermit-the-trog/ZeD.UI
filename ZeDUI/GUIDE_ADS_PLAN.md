@@ -319,7 +319,7 @@ Rye (woodtype) and Yellowtail (brush script). Clip art in SVG, shading in halfto
 
 The director, Nov 7: "Sure, use more third size ads." QA counted up to 30 third-size spaces a book that fall back to the
 ruled NOTES block once the 12 thirds run out (`qa/QA_GUIDE_ADS_20261107.md`); 32 more thirds cover every reading. Lineup and
-copy only, nothing drawn yet. Same rules as above: names from the game's lists, our own copy, 1987, evergreen, no flyer or
+copy first; drawn the same day (Batch 5 (drawn), below). Same rules as above: names from the game's lists, our own copy, 1987, evergreen, no flyer or
 newspaper text ("flyers" below means the name also appears there). 27 real, 5 invented.
 
 | Ad | Real? | Where | The pitch | Picture | Phone |
@@ -377,7 +377,7 @@ The copy, as printed (bar line, deck, list line, foot):
 - `third_worm_of_books` Worm of Books: BAR: USED BOOKS BOUGHT, SOLD & TRADED DECK: Bring two, take one. Books work without batteries. LIST: HOW-TO / COOKING / FIRST AID / WESTERNS / MYSTERIES / PAPERBACKS 3 FOR $1 FOOT: OPEN 7 DAYS. (502) 555-0127
 - `third_awl_work_sew_play` Awl Work and Sew Play: BAR: FABRIC / NOTIONS / LEATHER DECK: A stitch in time saves nine. A stitch in a jacket saves the jacket. Classes for beginners. LIST: THREAD / NEEDLES / PATCHES / DENIM / CANVAS / LEATHER & AWLS / MACHINE REPAIR FOOT: LAYAWAY ON SEWING MACHINES. (502) 555-0129
 - `third_barg_n_clothes` Barg-N-Clothes: BAR: WORKWEAR FOR THE WHOLE FAMILY DECK: Boots that last, coveralls that take a beating, flannel by the stack. Dress for the work you've got. LIST: STEEL TOE BOOTS / COVERALLS / FLANNEL / RAIN GEAR / WOOL SOCKS / WORK GLOVES FOOT: CLIP THIS COUPON: $5 OFF ANY BOOTS. (502) 555-0130
-- `third_optima_eyes` Optima Eyes: BAR: EYE EXAMS / GLASSES IN ABOUT AN HOUR DECK: See them before they see you. Keep a spare pair in the glove box. LIST: EYE EXAMS / FRAMES / LENSES / SUNGLASSES / REPAIRS / SPARE PAIRS HALF PRICE FOOT: VISA & MASTERCARD. (502) 555-0132
+- `third_optima_eyes` Optima Eyes: BAR: EYE EXAMS / GLASSES WHILE YOU WAIT DECK: See them before they see you. Keep a spare pair in the glove box. LIST: EYE EXAMS / FRAMES / LENSES / SUNGLASSES / REPAIRS / SPARE PAIRS HALF PRICE FOOT: VISA & MASTERCARD. (502) 555-0132
 - `third_family_dentistry` Family Dentistry: BAR: GENTLE CARE FOR THE WHOLE FAMILY DECK: Healthy teeth for life. We ask only one thing of our patients: no biting. LIST: CLEANINGS / FILLINGS / EXTRACTIONS / DENTURES / EMERGENCIES SEEN SAME DAY FOOT: NEW PATIENTS WELCOME. MOST INSURANCE ACCEPTED. (502) 555-0134
 - `third_pet_health_pawmise` Pet Health Pawmise: BAR: ANIMAL HOSPITAL / FARM CALLS DECK: Dogs, cats, horses and cattle. If your dog won't stop barking at the window, it may know something. LIST: SHOTS / CHECKUPS / SURGERY / BOARDING / FARM CALLS / EMERGENCIES FOOT: INSTALLMENT PLANS. CALL ANY HOUR. (502) 555-0135
 - `third_pony_roam_o` Pony Roam-O: BAR: RIDING LESSONS / BOARDING / TACK DECK: A horse never runs out of gas. It does eat, but so do you. LIST: LESSONS FOR ALL AGES / TRAIL RIDES / BOARDING / SADDLES & BRIDLES / FEED & HAY FOOT: CALL FOR DIRECTIONS. (502) 555-0136
@@ -394,3 +394,13 @@ The copy, as printed (bar line, deck, list line, foot):
 
 Picture briefs follow the one view (front and a little from above, a level circle an ellipse 0.26 as tall as wide),
 about 120 x 118, one ink, no people, no real logos. Phones checked against every `src/*.html` (29 in use).
+
+### Batch 5 (drawn)
+
+Nov 7: all 32 drawn, in four sets of eight in lineup order (batch 5a to 5d): the HTML in `tools/guide_ads/src/third_<name>.html`,
+the pixel pictures from `tools/guide_ads/adpx_b5a.py` to `adpx_b5d.py` into `tools/guide_ads/px/`, the ship art at 2x in
+`42/media/textures/ZeD/guide/ads/third_<name>.png`. All 32 are on `ZeD.GuideAds.third` after the first 12, in the order
+above: 44 thirds, 66 ads in all with the house ad's page (4 full, 7 half, 44 third, 12 quarter). `guide_ads_sim.lua` now
+checks that every listed ad has its PNG and every PNG is listed. In the sim's real book no third-size slot falls back to
+NOTES at Small or Large, keyboard or pad (35, 31, 34 and 37 thirds dealt of 44); the NOTES blocks left are the spaces
+too short for a third.
