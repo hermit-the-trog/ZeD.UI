@@ -773,6 +773,15 @@ function ZeD_Dashboard:_hoverCue(id, x, y, w, h)
     end
 end
 
+-- the climate controls the heater key and the Heater slice point at (D.heater): lit with the hover look for
+-- CLIMATE_MS, so the eye finds them on any plate and in the plain strip
+local CLIMATE_CUE = { temp = true, tempup = true, tempdn = true, heat = true, fan = true, fanup = true, fandn = true,
+                      ac = true, def = true, off = true }
+local CLIMATE_MS = 2500
+function ZeD_Dashboard:_climateCue(id)
+    return CLIMATE_CUE[id] and self._climateUntil ~= nil and getTimestampMs() < self._climateUntil or false
+end
+
 -- register a control: hit rect for the mouse, focus element for the pad (driver only)
 function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
     if not self._driver then return end
@@ -782,7 +791,7 @@ function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
     if hr.enabled then
         local focused = self._focEl and self._focEl.id == "dash:" .. id
         if focused then self:_focusCue(id, x, y, w, h)
-        elseif self._over and ZeD.Atoms.mouseIn(self, hr.x, hr.y, hr.w, hr.h) then self:_hoverCue(id, x, y, w, h) end
+        elseif (self._over and ZeD.Atoms.mouseIn(self, hr.x, hr.y, hr.w, hr.h)) or self:_climateCue(id) then self:_hoverCue(id, x, y, w, h) end
         self:_element(id, hr, st)
     end
 end
@@ -1882,7 +1891,7 @@ function ZeD_Dashboard:_plainButtons(items, st, mx, my, over, zones)
             local en = it.en and self._driver
             local hov = (en and over and mx >= it.x and mx < it.x + it.w and my >= it.y and my < it.y + bh) and true or false
             local o = _btnOpts
-            o.hover, o.disabled = hov, not en
+            o.hover, o.disabled = hov or (en and self:_climateCue(it.id)), not en
             o.focus = (en and self._focEl and self._focEl.id == "dash:" .. it.id) and self._markOpts or nil
             ZeD.Molecules.drawButton(self, it.x, it.y, it.w, bh, it.text, it.on and "primary" or "default", hov and isMouseButtonDown(0), nil, o)
             self:_plainControl(it.id, it.x, it.y, it.w, bh, st, it.en)
@@ -2225,6 +2234,15 @@ function ZeD_Dashboard:_ring(Focus)
         local oldEl = zone.elements[zone.focusedElementIdx or 1]
         local keep = nil
         if oldEl then for i, e in ipairs(self._elements) do if e.id == oldEl.id then keep = i; break end end end
+        -- (the heater key handed the pad over: it lands on the first climate control this plate has, D.heater)
+        local want = self._wantFocus
+        if want then
+            for _, id in ipairs(want) do
+                for i, e in ipairs(self._elements) do if e.id == "dash:" .. id then keep = i; break end end
+                if keep and self._elements[keep].id == "dash:" .. id then self._wantFocus = nil; break end
+            end
+            if self._wantFocus and getTimestampMs() > (self._wantUntil or 0) then self._wantFocus = nil end
+        end
         Focus.setRingZoneElements(self, "dashControls", self._elements, keep)
         Focus.setZoneFocusable(self, "dashControls", #self._elements > 0)
     end
@@ -2371,6 +2389,45 @@ end
 function D.takePad(character)
     if not D.canTakePad(character) then return false end
     D._instances[character:getPlayerNum()]:_claim()
+    return true
+end
+
+-- The heater key and the vehicle wheel's Heater slice (Overrides/Heater.lua; the director, Nov 7 2026, B6: "the key
+-- and the wheel slice go to the dash's own climate controls"). The game's ISVehicleMenu.onToggleHeater opened its
+-- heater window from any seat; here the heater goes on or off as the slice says (the game's own rule: turning it on
+-- needs the engine running or the key in, ISVehicleACUI:updateButtons; off always works; its temperature kept) and
+-- the dash shows its climate controls: lit for a moment, and a driver on a controller gets the pad on the first of
+-- them (B lets go, as from the World wheel's Dashboard). A passenger's dash is read-only, as ever: the heater still
+-- turns, as it did in the game's window. False when ZeD's dash is not the one showing (its ZeD screens switch, safe
+-- mode, no dash yet): the caller opens the game's window then.
+local CLIMATE_FOCUS = { "heat", "off", "temp", "fan", "ac", "def", "tempup", "fanup" }
+function D.canHeater(character)
+    if ZeD.Safe.on("dashboard") then return false end
+    local inst = D._instance
+    local vehicle = character and character:getVehicle()
+    if not (inst and vehicle and inst:isVisible() and inst.vehicle == vehicle) then return false end
+    if inst.playerNum ~= character:getPlayerNum() then return false end
+    return _safe(function() return vehicle:getPartById("Heater") ~= nil end, false)
+end
+function D.heater(character)
+    if not D.canHeater(character) then return false end
+    local inst = D._instance
+    local v = character:getVehicle()
+    pcall(function() character:playSound("VehicleACButton") end)
+    local st = _state(v, character)
+    if st.heaterOn then
+        _sendHeater(character, v, false, st.heaterTemp)
+    elseif _safe(function() return v:isEngineRunning() or v:isKeysInIgnition() end, false) then
+        _sendHeater(character, v, true, st.heaterTemp)
+    elseif HaloTextHelper and HaloTextHelper.addBadText then
+        pcall(HaloTextHelper.addBadText, character, getText("UI_Vehicle_HeaterNeedKey"))
+    end
+    inst._climateUntil = getTimestampMs() + CLIMATE_MS
+    local pn = character:getPlayerNum()
+    if JoypadState and JoypadState.players[pn + 1] and _safe(function() return v:isDriver(character) end, false) then
+        inst._wantFocus, inst._wantUntil = CLIMATE_FOCUS, getTimestampMs() + 1000
+        inst:_claim()
+    end
     return true
 end
 

@@ -133,6 +133,9 @@ local function hookRadial()
         if engineSide(self) then
             return O.addSlice(self, text, texture, command, arg1, arg2, arg3, arg4, arg5, arg6)
         end
+        -- (the director, Nov 7 2026, B7: no mini-map in ZeD's wheels. The game's own map wheel, holding the
+        -- map key, offers it last: left out, so nothing after it moves. Safe mode's engine wheel keeps it.)
+        if W.isMiniMapCommand(command) then return end
         local slice = { text = text, texture = texture, command = { command, arg1, arg2, arg3, arg4, arg5, arg6 } }
         table.insert(self.slices, slice)
         if ready() then W.fit(self) end

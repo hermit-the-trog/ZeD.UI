@@ -16,7 +16,9 @@
 --   a page another mod added to the game's window -> ZeD's tab of that name
 --   (ModSupport tabs), when there is one
 -- Vanilla runs when ZeD declines (no such tab, the windows cannot open: a dead
--- or paused character, the Tutorial) and always while safe mode is on.
+-- character, the Tutorial) and always while safe mode is on. While the game is
+-- paused the Character window opens alone and is for looking until it plays
+-- again (the director, Nov 7 2026, vanilla windows B14; ZeD_PausedLook.lua).
 -- ============================================================================
 
 require "ZeD/SafeMode"
@@ -88,12 +90,15 @@ function ZeD_CharacterWindow.openTab(playerNum, tabId, toggle)
         return false
     end
     if not attempt() then
+        -- (the drawn frames, not the game's ticks: a paused game has no ticks, and the window opens while
+        -- paused now, B14)
+        local ev = Events.OnRenderTick or Events.OnTick
         local tries = 0
         local function tick()
             tries = tries + 1
-            if attempt() or tries >= 20 then Events.OnTick.Remove(tick) end
+            if attempt() or tries >= 20 then ev.Remove(tick) end
         end
-        Events.OnTick.Add(tick)
+        ev.Add(tick)
     end
     return true
 end

@@ -1012,15 +1012,14 @@ function Wd.tabs(p, pn)
     return out
 end
 
+-- (the director, Nov 7 2026, B7: no mini-map in ZeD's wheels, "the World window's map is the map". Its two
+-- slices were the last two of this inner wheel, so taking them out moves no other slice: World map stays
+-- first and Back stays last, as on every inner wheel. The Map slice keeps its place on the World wheel.)
 function Wd.map(p, pn)
-    local mini = getPlayerMiniMap and getPlayerMiniMap(pn)
-    local noMini = (not mini) and tr("UI_ZeD_Wheel_NoMiniMap") or nil
     local noMap = not (ISWorldMap and ISWorldMap.IsAllowed and ISWorldMap.IsAllowed())
     return {
         { name = getText("IGUI_WorldMap_Toggle"), icon = "map", run = function(pl, n) ISWorldMap.ToggleWorldMap(n) end,
           off = noMap and tr("UI_ZeD_Wheel_NoWorldMap") or nil },
-        { name = getText("IGUI_MiniMap_Toggle"), icon = "minimap", run = function(pl, n) ISMiniMap.ToggleMiniMap(n) end, off = noMini },
-        { name = getText("IGUI_MiniMap_Focus"), icon = "pin", run = function(pl, n) ISMiniMap.FocusMiniMap(n) end, off = noMini },
     }
 end
 
