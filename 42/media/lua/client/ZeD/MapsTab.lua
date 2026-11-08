@@ -407,9 +407,7 @@ function ZeD_WorldMap:instantiate()
     self:createChildren()
 end
 
--- THE THREE MAPS (director, Oct 15 2026: "the paper map used in the location selection ...
--- options to show both the paper map and ingame map?"; Oct 19 2026: "there should be two
--- survey maps, one in color"). SURVEY is vanilla's in-game map (its data, streets and
+-- THE THREE MAPS. SURVEY is vanilla's in-game map (its data, streets and
 -- style); COLOR is the same ground as the base map's colour picture (pyramid.zip, the
 -- aerial look); PAPER is the illustrated county map the spawn screen shows (the base map's
 -- spawnSelectImagePyramid, laid out in world squares: not as detailed up close, but fun to
@@ -427,7 +425,7 @@ local function paperFile()
 end
 ZeD.MapsTab.hasPaper = function() return paperFile() ~= nil end
 
--- S124: the label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
+-- The label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
 -- with the root so street and town names, and the player's notes, grow with the rest of the UI.
 local function scaleLabels(mp)
     pcall(function()
@@ -590,7 +588,7 @@ end
 -- engine's render thread may at that moment still be drawing this map's last
 -- frame from those same lists (WorldMapPyramidStyleLayer.renderVisibleCells
 -- reads the picture list unguarded; emptied under it, it throws an
--- IndexOutOfBoundsException, regression Oct 20 2026). So a map that is on
+-- IndexOutOfBoundsException). So a map that is on
 -- screen is restyled only once it has been left out of RESTYLE_HOLD frames:
 -- ZeD.MapsTab.render keeps it hidden till then (_restyleStep) and restyles it
 -- there. A map not drawn lately is restyled at once. self.style is the style
@@ -699,7 +697,7 @@ end
 
 local function _openSharing(mp, sym, fromPad)
     if not _canShare(sym) then return end
-    -- ZeD's card for it (ZeD_MpLeftovers.lua, VANILLA_WINDOWS C5): Private, Everyone or Other, with Done; the game's
+    -- ZeD's card for it (ZeD_MpLeftovers.lua): Private, Everyone or Other, with Done; the game's
     -- panel below only when the card can't open (safe mode)
     local Lo = ZeD.MpLeftovers
     if Lo and Lo.openSharing then
@@ -990,11 +988,11 @@ end
 
 -- Read the currently-focused ring element if focus belongs to the owning
 -- window. Returns nil when another window has focus, or when the ring isn't
--- initialized yet. Used to drive gamepad-only overlays without leaking them
--- into KBM sessions.
--- S123: the map can live in the World drawer OR in the unfolded pop-out
--- window. Focus-dependent paint (cursor, toolbar cues) must read whichever
--- of the two currently owns FocusManager focus.
+-- initialized yet. Used to drive controller-only overlays without leaking
+-- them into mouse play.
+-- The map can live in the World drawer OR in the unfolded pop-out window;
+-- focus-dependent paint (cursor, toolbar cues) must read whichever of the
+-- two currently owns FocusManager focus.
 local function _focusOwner(win)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if not Focus or not win then return nil end
@@ -1089,7 +1087,7 @@ end
 
 -- Render the gamepad crosshair + tool preview at the gp cursor position.
 -- Only runs when the canvas cursor pseudo-focusable is the focused ring
--- element; otherwise the crosshair would bleed into KBM sessions.
+-- element; otherwise the crosshair would bleed into mouse play.
 function ZeD_WorldMap:renderGamepadCursor()
     local win = self._parentWin
     if not win then return end
@@ -1105,8 +1103,7 @@ function ZeD_WorldMap:renderGamepadCursor()
     local ac = T.accent
 
     -- Crosshair — two short orthogonal segments + a small gap in the middle
-    -- so the exact pixel the cursor points at is never obscured. Pattern
-    -- parallels AnimalsTab line 757 (idle-phase tile highlight).
+    -- so the exact pixel the cursor points at is never obscured.
     local arm   = T.px(8)    -- arm length in pixels
     local gap   = T.px(3)    -- half-gap (no pixels drawn within `gap` of center)
     -- Horizontal arms
@@ -1135,7 +1132,7 @@ function ZeD_WorldMap:render()
     self._gpCursorLive = false
     -- what sits ON the map (stash icons, flyer pins and their pulse, previews, the
     -- extensions' marks) is clipped to the map: a pin by the edge never hangs over
-    -- the toolbar or the tab strip (Oct 27 2026). One clip, set and cleared here:
+    -- the toolbar or the tab strip. One clip, set and cleared here:
     -- nothing inside sets its own (stencils do not nest).
     self:setStencilRect(0, 0, self:getWidth(), self:getHeight())
     if self._paperItem then

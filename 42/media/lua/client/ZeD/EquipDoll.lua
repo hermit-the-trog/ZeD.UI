@@ -40,10 +40,10 @@ ZeD.EquipDoll = ZeD.EquipDoll or {}
 local D = ZeD.EquipDoll
 
 -- Every x below is a design unit of the doll at scale 1. The Equip drawer is the full card (480 units, 466 beside
--- its scrollbar), so the doll with both bands of small slots is 466 wide (director, Oct 29 2026: "the updates
--- should fit in the full card, not the half card"); the figure's frame is 140 wide, the lanes 7 apart.
+-- its scrollbar), so the doll with both bands of small slots is 466 wide - sized for the full card, not the half
+-- card; the figure's frame is 140 wide.
 local BASE_W   = 324          -- the doll without its bands
-local BAND_W   = 71           -- a band of small slots, each side (Oct 29 2026, mockup zed_equip_doll_v4_loadouts)
+local BAND_W   = 71           -- a band of small slots, each side
 local WIDE_W   = BASE_W + 2 * BAND_W   -- 466: the doll with both bands
 local BOX      = 52
 local BOX_IN   = 0
@@ -65,10 +65,10 @@ local RULE_L, RULE_R = 70, 392   -- the faint rules between the bands and the do
 
 local function set(t) local s = {} for _, v in ipairs(t) do s[v] = true end return s end
 
--- The worn slots: side, row, the stretch of the body each points at (x, from
--- y to y, in units drawn for a photo centred on x 260: AV_DX moves them) and the body
--- locations each one gathers. Vanilla's locations, lower case, no underscores.
--- (Ordered by row: the leader lines take their lanes in this order.) A location
+-- The worn slots: side, row, av = the stretch of the body each slot pointed at
+-- (x, from y to y, in units for a photo centred on x 260; the leader lines read
+-- these, and nothing does now the lines are gone) and the body locations each
+-- one gathers. Vanilla's locations, lower case, no underscores. A location
 -- that has a small slot is not listed here; with the bands folded away it comes
 -- back to the big slot named in the small slot's row below.
 D.SLOTS = {
@@ -90,7 +90,7 @@ D.SLOTS = {
       locs = set{ "hands", "handsleft", "handsright" } },
     { id = "back",  key = "UI_ClothingType_Back",  side = "R", row = 0, av = { 312, 150, 150 },
       locs = set{ "back" } },
-    { id = "arms",  key = "UI_ZeD_Doll_Arms",  side = "R", row = 2, av = { 316, 200, 230 },   -- (the handoff says 322; in game the dot sat on the sleeve's edge, so 6 units in)
+    { id = "arms",  key = "UI_ZeD_Doll_Arms",  side = "R", row = 2, av = { 316, 200, 230 },   -- (322 put the line's dot on the sleeve's edge in game, so 6 units in)
       locs = set{ "leftarm", "rightarm" } },
     { id = "belt",  key = "UI_ClothingType_Belt",  side = "R", row = 3, av = { 292, 236, 236 },
       locs = set{ "belt" } },
@@ -106,9 +106,8 @@ D.SLOTS = {
 -- and the empty help), its locations, the letter of a pair }. The names are the game's own words for a
 -- body location (UI_ClothingType_*) where it has one. 38 slots.
 local SMALL_ROWS = {
-    -- the left band: the upper body, top to bottom (Oct 30 2026, the director's split: "the top of the
-    -- body on the left and the boxes for the lower body (belt and below) on the right"; then "move back
-    -- and bag slots to the right side")
+    -- the left band: the upper body, top to bottom; the lower body (belt and below) and the back's
+    -- bags go in the right band
     { side = "L", y = 16,  name = { "UI_ClothingType_Ears", "UI_ClothingType_Nose" }, slots = {
         { "ears",   "head", "UI_ClothingType_Ears",   { "ears" } },
         { "eartop", "head", "UI_ClothingType_EarTop", { "eartop" } },
@@ -187,8 +186,8 @@ for _, row in ipairs(SMALL_ROWS) do
 end
 
 -- THE SPLIT (the bands showing, the full card): the upper body's big slots in two columns on the left,
--- Back at the top on the right with its bags, then Belt, Legs and Feet; no leader lines (director, Oct 30
--- 2026). The narrow doll (the bands folded) keeps a column each side (COL_L / COL_R, D.SLOTS' rows).
+-- Back at the top on the right with its bags, then Belt, Legs and Feet; no leader lines. The narrow
+-- doll (the bands folded) keeps a column each side (COL_L / COL_R, D.SLOTS' rows).
 -- Units are the wide doll's.
 local SPLIT_BIG = { head = { 75, 16 }, eyes = { 133, 16 }, neck = { 75, 136 }, arms = { 133, 136 },
                     torso = { 75, 256 }, outer = { 133, 256 }, hands = { 75, 376 },

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/BLTAnnotations.lua
 -- ============================================================================
 -- SUPPORT FOR SHARE ANNOTATIONS (mod id BLTAnnotations, Workshop 2815560151).
--- Mockup zed_map_overlays_v1, approved "as recommended" Oct 26 2026.
+-- Client.
 --
 -- The mod lets a character learn the marks on a map or a paper of notes
 -- ("Remember annotations"); each lot it learns is a set, kept in the world's
@@ -25,6 +25,7 @@
 
 local MOD_ID = "BLTAnnotations"
 
+-- Is the mod on? An id from getActivatedMods() can carry a leading backslash.
 local function modOn()
     local list = getActivatedMods and getActivatedMods()
     if not list then return false end
@@ -108,5 +109,5 @@ function X.side(win)
              empty = ZeD.tr("UI_ZeD_Map_NotesEmpty", ZeD.tr("IGUI_BLTRemember_Annotations")) }
 end
 
-S.X = X   -- (the QA scripts drive it)
+S.X = X   -- (exposed so the QA scripts can reach the extension)
 ZeD.MapsTab.addExtension(MOD_ID, X)
