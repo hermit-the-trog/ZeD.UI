@@ -310,6 +310,9 @@ end
 -- the pointer at a window-local point (or a rod-local one)
 local function pointAt(win, x, y) MX, MY = win:getAbsoluteX() + x, win:getAbsoluteY() + y end
 local function away() MX, MY = 100, 2000 end
+-- the pointer resting on a rolled bar: the rest (H.REST_MS) is timed from the first update that sees it,
+-- so three updates here and the next one brings the half back
+local function rest() tick(3) end
 
 local function fresh(pins)
     PLAYER.md = { ZeD_WinPinned = pins or { charInv = false, charTabs = false, worldInv = false, worldTabs = false } }
@@ -336,6 +339,7 @@ do
     -- the pointer on the rod's title bar brings the inventory back
     local rod = w._rod
     MX, MY = rod:getX() + 200, rod:getY() + 10
+    rest()   -- (the pointer rests on the bar first)
     tick(1)
     check("TIMERS: the pointer on the rolled side's bar brings it down", not w._rolled and not w._halves.inv.rolled, tostring(w._rolled))
 
@@ -346,6 +350,7 @@ do
     check("TIMERS: ... the inventory stays, the window down", not w._rolled and not w.windowShaded)
     check("TIMERS: ... set straight, not through a press of the strip (which wipes the drawer)", (w._stripPresses or 0) == 0, w._stripPresses)
     pointAt(w, 10, 10)   -- the drawer's part of the title bar (the tab strip's end)
+    rest()   -- (the pointer rests on the bar first)
     tick(1)
     check("TIMERS: the pointer on the drawer's part of the bar opens it again on its tab", w._drawerOpen and w._activeTab == "health" and w._halves.foldTab == nil)
 
@@ -358,6 +363,7 @@ do
     check("TIMERS: ... at its full width (the curtain down under the shade)", not w._rolled and w:getWidth() == 744, w:getWidth())
     -- the drawer's part of the rolled bar: the drawer comes down, the inventory rolls under its rod
     pointAt(w, 100, 10)
+    rest()   -- (the pointer rests on the bar first)
     tick(3)
     check("TIMERS: the drawer's part of a rolled bar: the window down, the drawer open", not w.windowShaded and w._drawerOpen)
     check("TIMERS: ... and the inventory still rolled, under its rod", w._rolled == true, tostring(w._rolled))
@@ -365,6 +371,7 @@ do
     w = fresh()
     away(); tick(22)
     pointAt(w, 600, 10)
+    rest()   -- (the pointer rests on the bar first)
     tick(3)
     check("TIMERS: the inventory's part of a rolled bar: the window down, the drawer folded", not w.windowShaded and not w._rolled and w._halves.foldTab == "health", tostring(w._halves.foldTab))
     -- a held button (a drag, the map moved) holds both timers
@@ -383,7 +390,7 @@ do
     stripPress(w, "loot"); layout(w)
     away(); tick(22)
     check("TIMERS: on Loot (no drawer), the inventory's 2 s rolls the whole window", w.windowShaded == true)
-    pointAt(w, 10, 10); tick(2)
+    pointAt(w, 10, 10); rest(); tick(2)
     check("TIMERS: ... and any part of its bar brings it down", not w.windowShaded)
 end
 
@@ -420,6 +427,7 @@ do
     tick(3)
     check("AIM: aiming across the folded drawer's bar leaves it folded", w._halves.foldTab == "health" and not w._drawerOpen)
     RDOWN = false; PLAYER.aiming = false
+    rest()   -- (the pointer rests on the bar first)
     tick(1)
     check("AIM: done aiming, the pointer on that bar brings it back", w._drawerOpen and w._halves.foldTab == nil)
 
@@ -583,6 +591,7 @@ do
     local rod = WW._rod
     check("MAPS: the World rod sits left of the window (the containers' side)", rod:getX() < WW:getX())
     MX, MY = rod:getX() + 100, rod:getY() + 10
+    rest()   -- (the pointer rests on the bar first)
     tick(1)
     check("MAPS: the pointer on the containers' rod brings them down", not WW._rolled)
     away(); tick(25)
@@ -591,7 +600,7 @@ do
     check("MAPS: rolled: the containers' pin is on the rod, not the bar", H.pinRect(WW, "left") == nil and H.rodPinRect(WW._rod) ~= nil)
     check("MAPS: a left rod's tab moves right past its pin", H.rodChipShift(WW) == 14 + 4 and H.rodChipShift(CW) == 0)
     -- the Character window over its bar: down again
-    pointAt(CW, 300, 10); tick(3)
+    pointAt(CW, 300, 10); rest(); tick(3)
     check("MAPS: the Character window's bar brings it down", not CW.windowShaded)
 
     -- PAD: the pins as the title bar's stops
@@ -630,7 +639,7 @@ do
     tick(22)
     check("KEEP: (staged) the Equip drawer folded by its half", w._halves.foldTab == "equip" and not w._drawerOpen)
     check("KEEP: the fold keeps the Equip pick", w._equipSelected == "slot5", w._equipSelected)
-    pointAt(w, 10, 10); tick(1)
+    pointAt(w, 10, 10); rest(); tick(1)
     check("KEEP: unfolded on Equip", w._drawerOpen and w._activeTab == "equip" and w._halves.foldTab == nil)
     check("KEEP: ... its pick, scroll and cache as they were", w._equipSelected == "slot5" and w._tabScroll.pos == 120 and w._equipCache ~= nil,
         tostring(w._equipSelected) .. " " .. tostring(w._tabScroll.pos))
@@ -650,7 +659,7 @@ do
     w._mcSelected = { "crate" }
     tick(1)
     check("KEEP: Loot columns opened while folded: the fold forgotten", w._halves.foldTab == nil and not w._halves.drawer.rolled)
-    pointAt(w, 10, 10); tick(2)
+    pointAt(w, 10, 10); rest(); tick(2)
     check("KEEP: ... and the drawer's bar leaves the columns alone", #w._mcSelected == 1 and w._activeTab == "loot")
     w = fresh({ charInv = true })
     pointAt(w, 36 + 300 + 100, 200); tick(22)
@@ -663,7 +672,7 @@ do
     w._lay.tabs = { "loot" }
     pointAt(w, 36 + 300 + 100, 200); tick(22)
     check("KEEP: a tab with no zone on the strip still folds", w._halves.foldTab == "health")
-    pointAt(w, 10, 10); tick(1)
+    pointAt(w, 10, 10); rest(); tick(1)
     check("KEEP: ... and unfolds", w._drawerOpen and w._activeTab == "health")
 end
 
@@ -675,6 +684,7 @@ do
     away(); tick(22)
     check("FLASH: (staged) both rolled", w.windowShaded)
     pointAt(w, 600, 10)   -- the inventory's part of the bar
+    rest()   -- (the pointer rests on the bar first)
     CLOCK = CLOCK + 100; w:update()
     check("FLASH: the inventory's part: in the same update the window is down with the drawer already folded",
         not w.windowShaded and w._halves.foldTab == "health" and not w._drawerOpen and (w._drawerEffW or 0) == 0)
@@ -682,6 +692,7 @@ do
     w = fresh()
     away(); tick(22)
     pointAt(w, 100, 10)   -- the drawer's part
+    rest()   -- (the pointer rests on the bar first)
     CLOCK = CLOCK + 100; w:update()
     check("FLASH: the drawer's part: in the same update the inventory is already under its rod",
         not w.windowShaded and w._rolled == true and w._drawerOpen)
@@ -693,6 +704,7 @@ do
     away(); tick(22)                              -- then the inventory: the window rolls
     check("FLASH: (staged) folded, then rolled", w.windowShaded and w._halves.foldTab == "health")
     pointAt(w, 10, 10)
+    rest()   -- (the pointer rests on the bar first)
     CLOCK = CLOCK + 100; w:update()
     check("FLASH: the drawer's part of that bar: down, the drawer open, the inventory already rolled",
         not w.windowShaded and w._drawerOpen and w._rolled == true)
@@ -749,7 +761,7 @@ do
     w._invDrawerOpen = false; layout(w)
     away(); tick(25)
     check("FULL: nothing pinned: the whole window rolls (no drawer fold, no rod)", w.windowShaded and not w._rolled and w._halves.foldTab == nil)
-    pointAt(w, 40, 10); tick(2)
+    pointAt(w, 40, 10); rest(); tick(2)
     check("FULL: its bar brings it back down", not w.windowShaded and w._drawerOpen)
 end
 
@@ -828,6 +840,54 @@ do
 end
 
 -- ===========================================================================
+-- REST: a rolled half comes back only after the pointer rests on its bar for 0.3 s (H.REST_MS);
+-- a pointer passing over does not unroll it. Timed on the clock, the updates 100 ms apart.
+-- ===========================================================================
+do
+    check("REST: the rest is 300 ms", H.REST_MS == 300)
+    for _, key in ipairs({ "char", "world" }) do
+        PLAYER.md = { ZeD_WinPinned = { charInv = false, charTabs = true, worldInv = false, worldTabs = true } }
+        local w
+        if key == "char" then w = fresh(PLAYER.md.ZeD_WinPinned); WW = nil
+        else CW = nil; WW = makeWindow("world"); w = WW end
+        away(); tick(22)
+        check("REST " .. key .. ": (staged) the inventory under its rod", w._rolled == true)
+        local rod = w._rod
+        local cx = (key == "char") and (rod:getWidth() / 2) or (rod:getWidth() - 20)   -- (the rod's bar, off its pin and tab)
+        local function onRod() MX, MY = rod:getX() + cx, rod:getY() + 10 end
+        -- a 200 ms pass: the pointer is on the bar for two updates, then gone
+        onRod(); tick(2); away(); tick(3)
+        check("REST " .. key .. ": a 200 ms pass over the rod leaves it rolled", w._rolled == true)
+        -- a 350 ms rest
+        onRod(); tick(3)
+        check("REST " .. key .. ": ... still rolled at 200 ms of rest", w._rolled == true)
+        CLOCK = CLOCK + 50   -- (350 ms on the clock at the next update)
+        tick(1)
+        rodSettle(w)
+        check("REST " .. key .. ": a 350 ms rest brings it back", not w._rolled, tostring(w._rolled))
+        -- the rolled title bar the same
+        away(); w:setWindowShaded(true); tick(1)   -- (rolled up whole, from elsewhere, both halves down before)
+        local bx = (key == "char") and 600 or 50   -- (the inventory's part of the bar)
+        pointAt(w, bx, 10); tick(2); away(); tick(2)
+        check("REST " .. key .. ": a 200 ms pass over the rolled bar leaves it rolled", w.windowShaded == true)
+        pointAt(w, bx, 10); tick(3)
+        check("REST " .. key .. ": ... still rolled at 200 ms", w.windowShaded == true)
+        CLOCK = CLOCK + 50; tick(1)
+        check("REST " .. key .. ": a 350 ms rest on the bar brings it back", not w.windowShaded,
+            string.format("inv %s drw %s split %s rolled %s", tostring(w._halves.inv.rolled), tostring(w._halves.drawer.rolled), tostring(w._halves.lastSplit), tostring(w._rolled)))
+        -- an item held over the rolled bar still brings it down at once
+        away(); w:setWindowShaded(true); tick(1)
+        local content = w._lay.content
+        content._drag = { isActive = function() return true end }
+        pointAt(w, bx, 10)
+        CLOCK = CLOCK + 100; w:update()
+        check("REST " .. key .. ": an item held over the rolled bar: down at once", not w.windowShaded)
+        content._drag = nil
+    end
+    WW = nil
+end
+
+-- ===========================================================================
 -- CAP: the snapped fold at the Deck (1280x800), a 480 drawer capped at half the screen
 -- ===========================================================================
 do
@@ -848,6 +908,7 @@ do
     away(); tick(22)
     check("CAP: (staged) both halves rolled", w.windowShaded)
     pointAt(w, 600, 10)   -- the inventory's part of the bar
+    rest()   -- (the pointer rests on the bar first)
     CLOCK = CLOCK + 100; w:update()
     check("CAP: the inventory's part: down with the drawer folded", not w.windowShaded and w._halves.foldTab == "health")
     check("CAP: the snapped fold gives back what the cap swallowed: 444 wide, not 160", w:getWidth() == 444, w:getWidth())
@@ -868,6 +929,7 @@ do
     layout(v)
     away(); tick(22)
     pointAt(v, 50, 10)
+    rest()   -- (the pointer rests on the bar first)
     CLOCK = CLOCK + 100; v:update()
     check("CAP: World: snapped fold 444 wide, its push settled by its own settleCapPush", v:getWidth() == 444 and settled == 1, v:getWidth() .. " " .. settled)
     ZeD_WorldWindow.settleCapPush = nil

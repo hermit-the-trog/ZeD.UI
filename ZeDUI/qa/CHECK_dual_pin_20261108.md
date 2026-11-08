@@ -8,9 +8,9 @@ What changed (punch list 112, the director's rulings): each half of the Characte
 - **A rolled drawer side** folds in, as a second press of its tab does, and opens again on the same tab exactly as it was left: the same scroll, the same Equip pick, the selection in the list kept. It never folds while an item card is over it, while Loot columns are open, or while the drawer is as wide as the window (no inventory list beside it). Opening Loot columns or an item card while it is folded makes that the drawer: the fold is forgotten.
 - **Coming back from a rolled window,** only the half brought back appears: the other is already folded or under its rod, with no flash of the whole window.
 - **Both halves rolled:** the whole window rolls to its title bar, as before.
-- A rolled half comes back when the pointer is over its part of the title bar (the inventory's: its rod). A side rolled by hand with the roll box stays rolled until its tab on the rod is pressed.
+- A rolled half comes back when the pointer rests on its part of the title bar (the inventory's: its rod) for about 0.3 s; a pointer just passing over leaves it rolled. Resting on a rolled half's pin leaves it rolled (the click pins it). An item dragged over a rolled title bar still brings the window down at once. A side rolled by hand with the roll box stays rolled until its tab on the rod is pressed.
 
-Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, the window's roll hands over to the halves), `ZeD/WindowCurtain.lua` (the pin on the rod), `ZeD/ZeD_CharacterWindow.lua` and `ZeD/ZeD_WorldWindow.lua` (attach, the saved tab), `ZeD/Input/FocusManager.lua` (the pad's aiming escape and Y / bumpers). Sim: `lua51 ZeDUI/tools/qa/dual_pin_sim.lua` (133 checks, 0 failed at commit). Script: `ZeDUI/tools/qa/zedqa_dual_pin.lua` (the real mouse, as zedqa_autocollapse). Not run in game yet.
+Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, the window's roll hands over to the halves), `ZeD/WindowCurtain.lua` (the pin on the rod), `ZeD/ZeD_CharacterWindow.lua` and `ZeD/ZeD_WorldWindow.lua` (attach, the saved tab), `ZeD/Input/FocusManager.lua` (the pad's aiming escape and Y / bumpers). Sim: `lua51 ZeDUI/tools/qa/dual_pin_sim.lua` (162 checks, 0 failed at commit). Script: `ZeDUI/tools/qa/zedqa_dual_pin.lua` (the real mouse, as zedqa_autocollapse). Not run in game yet.
 
 ## Setup
 
@@ -32,7 +32,9 @@ Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, t
 | # | How | What should show |
 |---|---|---|
 | 2.1 | Nothing pinned. Character on Health. Rest the pointer on the drawer (the Health page) for 3 s. | The inventory side rolls up under its rod; the drawer stays open. |
-| 2.2 | Point at the rod's title. | The inventory comes back down. |
+| 2.2 | Rest the pointer on the rod's title (not its pin). | After about 0.3 s the inventory comes back down. |
+| 2.2a | Sweep the pointer quickly across a rod, and across a rolled window's title bar, without stopping. Both windows. | Nothing comes down: a pass under 0.3 s leaves it rolled. |
+| 2.2b | Drag an item from the other window onto a rolled window's title bar. | It comes down at once (no wait), so the drop lands in its list. |
 | 2.3 | Rest the pointer on the inventory list for 3 s. | The drawer folds in (the window narrows from the left); the list does not move. |
 | 2.4 | Point at the title bar above the tabs. | The drawer opens again, on Health, scrolled where you left it. |
 | 2.4a | Equip tab: pick a slot, scroll down, select two items in the list. Rest the pointer on the list until the drawer folds, then point above the tabs. | The drawer comes back on Equip with the same slot picked and the same scroll; both items still selected. |

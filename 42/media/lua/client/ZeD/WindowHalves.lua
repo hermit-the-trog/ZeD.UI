@@ -41,6 +41,7 @@ ZeD.Halves = ZeD.Halves or {}
 local H = ZeD.Halves
 
 H.COLLAPSE_MS = 2000
+H.REST_MS = 300       -- the pointer's rest on a rolled half's bar before that half comes back
 local HALVES = { "inv", "drawer" }
 local ENDS = { "left", "right" }
 
@@ -412,8 +413,9 @@ local function invShown(win)
     local s = win._halves
     if win.windowShaded then return s.invShown ~= false end
     if win._rolled then s.invShown = true; return true end
-    local c = win._contentPanel or win._mainContent
-    local on = c == nil or (c:isVisible() and c:getWidth() > 0)
+    -- (the windows' own flag for an inventory a wide drawer hid, not the list panel's visibility,
+    -- which lags a frame behind an unroll: read then, a list "hidden" kept the window rolled up)
+    local on = win._invDrawerOpen ~= false
     s.invShown = on
     return on
 end
@@ -529,7 +531,9 @@ function H.split(win)
             end
         end
     end
-    s.lastSplit = x
+    -- (kept for a rolled-up bar only while both halves share the window: a rod's window, or a
+    -- frame caught mid-unroll, is all drawer and would leave the inventory no part of the bar)
+    if not win._rolled and x > 0 and x < w then s.lastSplit = x end
     return x
 end
 
@@ -615,6 +619,7 @@ function H.update(win)
             local st = s[half]
             local inside, bar = H.hit(win, half, mx, my, half == "inv" and invSplit or drwSplit)
             local shown = win.windowShaded or (half == "inv" and win._rolled) or (half == "drawer" and s.foldTab ~= nil)
+            if H.isPinned(win, half) or not st.rolled then st.restSince = nil end
             if H.isPinned(win, half) then
                 st.out = nil
             elseif st.rolled then
@@ -623,8 +628,17 @@ function H.update(win)
                 -- its bar, but not while the player aims through it, nor while the pointer is on its pin:
                 -- unrolled under the pointer, the Character window's box took the pin's click and the menu
                 -- opened)
-                if not aiming and not H.onPin(win, half, mx, my) and ((bar and not st.hand) or (inside and not shown)) then
-                    st.rolled = false
+                -- A rolled half comes back once the pointer has rested on its bar (the rod, or the
+                -- rolled title bar) for H.REST_MS, timed on the clock: update() runs only every 100 ms,
+                -- and a pointer passing over on its way elsewhere does not unroll it.
+                local resting = not aiming and not H.onPin(win, half, mx, my) and bar and not st.hand
+                if resting then
+                    st.restSince = st.restSince or now
+                    if now - st.restSince >= H.REST_MS then st.rolled = false; st.restSince = nil end
+                else
+                    st.restSince = nil
+                    -- (rolled, but not showing so: the pointer in it brings the half back at once)
+                    if not aiming and inside and not shown then st.rolled = false end
                 end
             elseif inside or (half == "drawer" and noDrawer) or (half == "inv" and noList) then
                 st.out = nil
@@ -635,6 +649,7 @@ function H.update(win)
         end
     else
         s.inv.out, s.drawer.out = nil, nil
+        s.inv.restSince, s.drawer.restSince = nil, nil
     end
     H.drive(win)
     syncZone(win)
