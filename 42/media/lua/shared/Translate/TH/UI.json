@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "โดยรวม",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "เริ่ม",
+    "UI_ZeD_Health_Examine": "ตรวจดู",
     "UI_ZeD_Hook_BleedingOnGround": "เลือดไหลลงพื้น",
     "UI_ZeD_Hook_BleedOnGround": "ปล่อยเลือดลงพื้น",
     "UI_ZeD_Hook_BloodLostHead": "ถ้าตัดหัวตอนนี้ เลือดที่ยังเหลือ %1 จะกระเซ็นออกมา",

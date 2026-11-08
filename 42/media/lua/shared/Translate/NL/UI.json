@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "Algemeen",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",
+    "UI_ZeD_Health_Examine": "Onderzoeken",
     "UI_ZeD_Hook_BleedingOnGround": "Bloed op de grond",
     "UI_ZeD_Hook_BleedOnGround": "Laat bloed op de grond lopen",
     "UI_ZeD_Hook_BloodLostHead": "Als je nu de kop neemt, spat de %1 bloed die er nog in zit eruit.",

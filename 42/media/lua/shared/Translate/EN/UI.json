@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "Overall",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",
+    "UI_ZeD_Health_Examine": "Examine",
     "UI_ZeD_Hook_BleedingOnGround": "Bleeding onto the ground",
     "UI_ZeD_Hook_BleedOnGround": "Bleed onto the ground",
     "UI_ZeD_Hook_BloodLostHead": "Taking the head now splashes the %1 of blood still in it.",

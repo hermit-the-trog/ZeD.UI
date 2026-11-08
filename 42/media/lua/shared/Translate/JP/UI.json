@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "全体",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "開始",
+    "UI_ZeD_Health_Examine": "診察",
     "UI_ZeD_Hook_BleedingOnGround": "地面に血抜き中",
     "UI_ZeD_Hook_BleedOnGround": "地面に血を流す",
     "UI_ZeD_Hook_BloodLostHead": "今、頭を取ると中に残る血%1が飛び散ります。",

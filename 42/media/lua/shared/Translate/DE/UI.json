@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "Gesamt",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",
+    "UI_ZeD_Health_Examine": "Untersuchen",
     "UI_ZeD_Hook_BleedingOnGround": "Blut läuft auf den Boden",
     "UI_ZeD_Hook_BleedOnGround": "Auf den Boden ausbluten lassen",
     "UI_ZeD_Hook_BloodLostHead": "Nimmst du jetzt den Kopf, spritzen die %1 Blut darin heraus.",

@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "总体",
     "UI_ZeD_Health_Qualified": "%1（%2）",
     "UI_ZeD_Health_Start": "开始",
+    "UI_ZeD_Health_Examine": "检查",
     "UI_ZeD_Hook_BleedingOnGround": "向地上流血",
     "UI_ZeD_Hook_BleedOnGround": "放血到地上",
     "UI_ZeD_Hook_BloodLostHead": "现在取下头部会溅出还留在里面的 %1 血。",

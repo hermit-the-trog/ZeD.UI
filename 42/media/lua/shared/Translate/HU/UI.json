@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "Összesen",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Indítás",
+    "UI_ZeD_Health_Examine": "Megvizsgálás",
     "UI_ZeD_Hook_BleedingOnGround": "Vér a földre folyik",
     "UI_ZeD_Hook_BleedOnGround": "Vér a földre engedése",
     "UI_ZeD_Hook_BloodLostHead": "A fej levágása most szétfröcsköli a benne lévő vért (%1).",

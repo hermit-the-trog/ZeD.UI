@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "Yleinen",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Aloita",
+    "UI_ZeD_Health_Examine": "Tutki",
     "UI_ZeD_Hook_BleedingOnGround": "Verta valuu maahan",
     "UI_ZeD_Hook_BleedOnGround": "Valuta veri maahan",
     "UI_ZeD_Hook_BloodLostHead": "Pään ottaminen nyt roiskii sen sisältämät %1 verta.",

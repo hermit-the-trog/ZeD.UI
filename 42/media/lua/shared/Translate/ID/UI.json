@@ -1135,6 +1135,7 @@
     "UI_ZeD_Health_Overall": "Keseluruhan",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Mulai",
+    "UI_ZeD_Health_Examine": "Periksa",
     "UI_ZeD_Hook_BleedingOnGround": "Darah menetes ke tanah",
     "UI_ZeD_Hook_BleedOnGround": "Alirkan darah ke tanah",
     "UI_ZeD_Hook_BloodLostHead": "Mengambil kepala sekarang memercikkan %1 darah yang masih ada di dalamnya.",
