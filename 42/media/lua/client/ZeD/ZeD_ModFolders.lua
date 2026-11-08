@@ -497,10 +497,10 @@ function F.dropMember(modId)
 end
 
 -- ----------------------------------------------------------------------------
--- UNFILED'S OPEN STATE AND THE FOLDERS' LABELS: ZeD's own (never in ModFolders.cfg, spec 3.6, so the mod and
+-- UNFILED'S OPEN STATE AND THE FOLDERS' LABELS: ZeD's own (never in ModFolders.cfg, so the mod and
 -- anything else that reads the file sees it as before), in Zomboid/Lua/ZeD_modfolders.txt:
 --   unfiledOpen=<1 or 0>
---   label=<folder id>|<label key>     one a labelled folder (the director, Nov 4 2026: ZeD's accent colours)
+--   label=<folder id>|<label key>     one per labelled folder (a label is one of ZeD's accent colours)
 -- ----------------------------------------------------------------------------
 local UI_FILE = "ZeD_modfolders.txt"
 

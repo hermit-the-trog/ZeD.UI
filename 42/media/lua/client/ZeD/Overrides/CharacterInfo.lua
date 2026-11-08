@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/CharacterInfo.lua
 -- ============================================================================
--- THE GAME'S CHARACTER WINDOW HOOK (Oct 26 2026) — HOOK_MAP "Character info"
+-- THE GAME'S CHARACTER WINDOW HOOK (override, client)
 -- Everything that shows one of the pages of the game's own Character window
 -- goes through ISCharacterInfoWindow:toggleView(viewName) on the window
 -- getPlayerInfoPanel(n) returns: the game's keys (Skills, Health, Info,

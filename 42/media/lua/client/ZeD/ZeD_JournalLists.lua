@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_JournalLists.lua
 -- ============================================================================
--- THE JOURNAL'S LOADOUTS PAGE (handoff equip_doll_v4_loadouts, part B2; mockup
--- frame r2_08; the director: "Loadout lists should live in the journal tab")
+-- THE JOURNAL'S LOADOUTS PAGE: loadout and outfit lists live here in the
+-- Journal tab, not on the equip doll. Client side.
 --
 -- The Journal tab's fifth page, after Recipes, in the Recipes page's pattern:
 --   * a filter (All, Loadouts, Outfits: the pop-up menu's look) and a search
@@ -16,8 +16,7 @@
 --     the amount), an outfit's in Worn (Any | This one). Pressing an amount gives
 --     a stepper; right-click (the pad's X) removes a line;
 --   * under about 560 units the panes stack, the lists above the lines. The page
---     lives in the full card (the Journal's 480-unit drawer; director, Oct 29 2026:
---     "The updates should fit in the full card, not the half card"), so it reads
+--     lives in the full card (the Journal's 480-unit drawer), so it reads
 --     stacked: at 480 a narrowed list pane left the lines too little room for the
 --     name beside the amount and the switch.
 -- One scroll for the panes (the page scrolls as one). The data is ZeD_Lists.lua.
@@ -25,7 +24,7 @@
 -- Hit zones are stamped each frame into win._jlZones (drawer coordinates); the
 -- Character window routes clicks (JL.onClick, JL.onRightClick), the wheel
 -- (JL.scroll) and the controller (JL.focusables, ids "jl:...") here.
--- With Loadouts and outfits off (Settings.lua; director, Oct 30 2026) the page
+-- With Loadouts and outfits off (Settings.lua) the page
 -- is not in the Journal's strip (JournalTab), and these find nothing to draw,
 -- press or stop on (L.on() at each way in).
 -- ============================================================================
@@ -151,7 +150,7 @@ end
 -- ---------------------------------------------------------------------------
 -- ACTIONS
 -- ---------------------------------------------------------------------------
---- Choose list id on the page (B4's Open in Journal: the page, that list chosen).
+--- Choose a list on the page (the doll's Open in Journal lands here, that list chosen).
 function JL.select(win, id)
     local s = st(win)
     s.sel, s.step, s.ask = id, nil, nil
