@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Tento server nepřijímá nahlášení dopisu.",
     "UI_ZeD_Mail_Connecting": "Připojování... odesílání %1, příjem %2",
     "UI_ZeD_Tk_ReportedLetter": "Nahlášený dopis",
-    "UI_ZeD_Tk_LetterWhose": "Tak, jak ho hráč obdržel.",
+    "UI_ZeD_Tk_LetterWhose": "Tak, jak to bylo vidět na obrazovce nahlašovatele. Server si dopisy neuchovává.",
     "UI_ZeD_Card_MakesTitle": "Použije se k výrobě",
     "UI_ZeD_Card_MakesHelp": "Otevře recept na kartě Výroba nebo Stavba.",
     "UI_ZeD_Card_MakesMore": "%1 dalších",

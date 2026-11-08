@@ -13,6 +13,7 @@
 --                          o|cid|to|t|subject|words                  a letter in the Outbox
 --                          s|cid|to|t|subject|words                  a letter in Sent
 --                          g|id                                      a letter already handed over (so it never comes twice)
+--                          e|word                                    the server table's word the g numbers belong to
 --                        A field's "\" is "\\", its line break "\n" and its "|" "\p": a record is always one line.
 -- Caps, oldest first: INBOX_KEEP letters in an Inbox, SENT_KEEP in Sent, GOT_KEEP numbers remembered. The Outbox holds
 -- OUT_MAX and says so; BOXES_MAX mailboxes, the one dialed into longest ago goes.
@@ -217,6 +218,8 @@ function MS.load(b)
             if k == "o" then d.outbox[#d.outbox + 1] = m else d.sent[#d.sent + 1] = m end
         elseif k == "g" and tonumber(f[2]) then
             d.got[#d.got + 1] = tonumber(f[2])
+        elseif k == "e" and f[2] then
+            d.ep = MS.unesc(f[2])
         end
     end
     b.data = d
@@ -236,6 +239,7 @@ function MS.save(b)
             lines[#lines + 1] = table.concat({ pair[1], m.cid, MS.esc(m.to), tostring(m.t or 0), MS.esc(m.subj), MS.esc(m.text) }, "|")
         end
     end
+    if d.ep then lines[#lines + 1] = "e|" .. MS.esc(d.ep) end
     for _, id in ipairs(d.got) do lines[#lines + 1] = "g|" .. tostring(id) end
     local ok = writeLines(MS.fileOf(b.n), lines)
     bump()
@@ -254,6 +258,28 @@ end
 -- LETTERS
 -- ---------------------------------------------------------------------------
 local function has(list, v) for _, x in ipairs(list) do if x == v then return true end end return false end
+
+--- The server's table word at a dial-in (ep). A word unlike the one the got numbers came under means the server's
+--- table started over and its numbers with it: the numbers held are forgotten, so its new letters are not taken for old
+--- ones. True when they were.
+function MS.epoch(b, ep)
+    if type(ep) ~= "string" or ep == "" then return false end
+    local d = MS.load(b)
+    if d.ep == ep then return false end
+    d.ep, d.got = ep, {}
+    MS.save(b)
+    return true
+end
+
+--- A reply's words: two empty lines to write in, "<name> wrote:", then the letter with "> " at the start of each line, as
+--- mail of the time did (the first QUOTE_MAX characters). The desk's Reply and the game's use it alike.
+MS.QUOTE_MAX = 600
+function MS.quote(m, wroteLine)
+    local body = tostring(m and m.text or "")
+    if #body > MS.QUOTE_MAX then body = string.sub(body, 1, MS.QUOTE_MAX) .. "..." end
+    local quoted = "> " .. string.gsub(body, "\n", "\n> ")
+    return "\n\n" .. tostring(wroteLine or "") .. "\n" .. quoted
+end
 
 --- A letter handed over: kept (newest first in the Inbox) unless it came before. True when it is new. Saving is the
 --- caller's (a batch saves once).

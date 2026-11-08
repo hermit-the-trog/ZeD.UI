@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Denne serveren kan ikke ta imot en rapport om et brev.",
     "UI_ZeD_Mail_Connecting": "Kobler til... sender %1, mottar %2",
     "UI_ZeD_Tk_ReportedLetter": "Det rapporterte brevet",
-    "UI_ZeD_Tk_LetterWhose": "Slik spilleren mottok det.",
+    "UI_ZeD_Tk_LetterWhose": "Slik det sto på rapportørens skjerm. Serveren tar ikke vare på kopier av brev.",
     "UI_ZeD_Card_MakesTitle": "Brukes til å lage",
     "UI_ZeD_Card_MakesHelp": "Åpner oppskriften på fanen Lag eller Bygg.",
     "UI_ZeD_Card_MakesMore": "%1 til",

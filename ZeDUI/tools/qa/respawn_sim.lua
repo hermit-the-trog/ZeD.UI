@@ -393,6 +393,16 @@ check("the death screen is hidden", dead.visible == false)
 check("the menu bar has only the ZeD menu", #MM.menus() == 1 and MM.menus()[1].key == "zed")
 local zi = MM.menuItems("zed")
 check("the ZeD menu has only the About block", #zi == 1 and zi[1].about == true)
+-- the notepad file adds CletusWorks and the apps to the ZeD menu; the desk after a death has none of their views
+do
+    ZeD.DeskNotes = ZeD.DeskNotes or { seq = 0 }
+    local okN, errN = pcall(dofile, ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuNotes.lua")
+    check("the notepad file loads", okN, errN)
+    MM.leftApps = { { id = "mail", menu = "UI_ZeD_Desk_Mail", open = function() end } }
+    local zn = MM.menuItems("zed")
+    check("with it loaded: still only the About block (no CletusWorks, no Mail)", #zn == 1 and zn[1].about == true, #zn)
+    MM.leftApps = {}
+end
 check("no File menu items", #MM.menuItems("file") == 0)
 check("no power button on this desk", (function()
     local real = ZeD_MMDesk.prerender

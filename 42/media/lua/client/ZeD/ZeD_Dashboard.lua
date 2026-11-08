@@ -910,12 +910,16 @@ function D.odoSeed(id, cond)
     return miles + _floorMod(i * 3, 10) / 10      -- and a tenth, so not every car's tenths wheel sits at 0
 end
 
--- the readings the parts show, from st.odo, st.trip and st.odoTrip (the wheels read odo and trip themselves):
---   odoShown   the VFD figures (cossette, luxury): the trip's whole miles while it shows, else the odometer's
---   odoShownT  the Dash Elite's LCD, six characters: "t" and the trip's miles ("t  128"), else the odometer, zero padded
+-- the readings the parts show, from st.odo, st.trip and st.odoTrip. The car keeps miles (st.odo, st.trip, its
+-- modData); with the game's units on Metric every reading here is in kilometers, as the speed is, for display only:
+--   odoView, tripView   the wheels' figures (ZeD_Plate.lua's drums read these over odo and trip)
+--   odoShown   the VFD figures (cossette, luxury): the trip's whole figure while it shows, else the odometer's
+--   odoShownT  the Dash Elite's LCD, six characters: "t" and the trip ("t  128"), else the odometer, zero padded
 --   odoMode, tripMode   the ODO and TRIP words, lit with the key on
 function D.odoShow(st)
-    local odo, trip = tonumber(st.odo) or 0, tonumber(st.trip) or 0
+    local k = _metric() and KM_PER_MILE or 1
+    local odo, trip = (tonumber(st.odo) or 0) * k, (tonumber(st.trip) or 0) * k
+    st.odoView, st.tripView = odo, trip
     local onTrip = st.odoTrip and true or false
     st.odoShown = math.floor(onTrip and trip or odo)
     local s

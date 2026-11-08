@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Aquest servidor no pot rebre la denúncia d'una carta.",
     "UI_ZeD_Mail_Connecting": "Connectant... enviant %1, rebent %2",
     "UI_ZeD_Tk_ReportedLetter": "La carta denunciada",
-    "UI_ZeD_Tk_LetterWhose": "Tal com la va rebre el jugador.",
+    "UI_ZeD_Tk_LetterWhose": "Tal com es veia a la pantalla de qui ho ha informat. El servidor no guarda cap còpia de les cartes.",
     "UI_ZeD_Card_MakesTitle": "Serveix per fer",
     "UI_ZeD_Card_MakesHelp": "Obre la recepta a la pestanya Fabricar o Construir.",
     "UI_ZeD_Card_MakesMore": "%1 més",

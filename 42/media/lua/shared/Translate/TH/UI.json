@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "เซิร์ฟเวอร์นี้รับการรายงานจดหมายไม่ได้",
     "UI_ZeD_Mail_Connecting": "กำลังเชื่อมต่อ... ส่ง %1 รับ %2",
     "UI_ZeD_Tk_ReportedLetter": "จดหมายที่ถูกรายงาน",
-    "UI_ZeD_Tk_LetterWhose": "ตามที่ผู้เล่นได้รับ",
+    "UI_ZeD_Tk_LetterWhose": "ตามที่แสดงบนหน้าจอของผู้รายงาน เซิร์ฟเวอร์ไม่เก็บสำเนาจดหมาย",
     "UI_ZeD_Card_MakesTitle": "ใช้ทำ",
     "UI_ZeD_Card_MakesHelp": "เปิดสูตรในแท็บประดิษฐ์หรือก่อสร้าง",
     "UI_ZeD_Card_MakesMore": "อีก %1",

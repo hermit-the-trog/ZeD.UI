@@ -685,6 +685,60 @@ check("the others keep theirs", md().known.eve ~= nil and md().hours.eve ~= nil)
 W.server.ZeD.Ml.L.KNOWN_MAX = keepMax
 leave(cf)
 
+section("the server's table starts over: its numbers again from 1, and no letter is taken for an old one")
+world()
+serverStart()
+do
+    local ri, nu = player("Ria"), player("Nuno")
+    local cri = clientJoin(ri)
+    local cnu = clientJoin(nu)
+    leave(cri)
+    advance(100)
+    M(cnu).write("Ria", "one", "first table")
+    advance(3000)
+    cri = clientJoin(ri)
+    advance(500)
+    check("letter 1 of the first table arrives", #inbox(cri) == 1 and inbox(cri)[1].id == 1)
+    local ep1 = MS(cri).load(box(cri)).ep
+    check("the mailbox keeps the table's word", type(ep1) == "string" and ep1 ~= "")
+    leave(cri); leave(cnu)
+    -- the wipe: a new table, its numbers from 1 again
+    W.moddata = {}
+    serverStart()
+    cnu = clientJoin(nu)
+    cri = clientJoin(ri)
+    check("a new word: the numbers held are forgotten", MS(cri).load(box(cri)).ep ~= ep1 and #MS(cri).load(box(cri)).got == 0)
+    leave(cri)
+    advance(100)
+    M(cnu).write("Ria", "two", "second table")
+    advance(3000)
+    check("the new table's letter is number 1 again", md().boxes.ria and md().boxes.ria[1].id == 1)
+    cri = clientJoin(ri)
+    advance(500)
+    check("it arrives, not dropped as letter 1 of the first table", #inbox(cri) == 2 and inbox(cri)[1].text == "second table", #inbox(cri))
+    check("and the server forgot it", md().boxes.ria == nil)
+    leave(cri); leave(cnu)
+end
+
+section("an account met before mail came is someone to write to")
+world()
+serverStart()
+do
+    local wr = player("Wren")
+    local cw = clientJoin(wr)
+    W.server.ZeD.Srv.openAdmin = function() return { players = { Quinn = { t = 1, role = "user" } } } end
+    W.clock = W.clock + 3000
+    wr.box = {}
+    raw(wr, "p_send", { to = "quinn", text = "you there?", cid = "kq1", rid = 900 })
+    check("a name the admin table met takes the letter", lastAck(wr) and lastAck(wr).ok == true and lastAck(wr).to == "Quinn", lastAck(wr) and lastAck(wr).err)
+    check("and is known from now on", md().known.quinn and md().known.quinn.user == "Quinn")
+    W.clock = W.clock + 3000
+    raw(wr, "p_send", { to = "Nobody", text = "x", cid = "kq2", rid = 901 })
+    check("a name nobody met still comes back", lastAck(wr) and lastAck(wr).err == "to")
+    W.server.ZeD.Srv.openAdmin = nil
+    leave(cw)
+end
+
 section("a server without mail")
 world()
 serverStart(true)

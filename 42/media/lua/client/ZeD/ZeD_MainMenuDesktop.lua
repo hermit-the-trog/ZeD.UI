@@ -176,12 +176,39 @@ function ZeD_MMIcons:open(id)
     if not c then return end
     if c.item.off and c.item.off() then return end
     self._lastClick = nil
+    self._openedAt = MM.now()
     MM.clickSound()
     c.item.open()
 end
 
+-- A double-click counted on every frame drawn. The desk's pointer runs in update(), every 100 ms, and a quick second
+-- press can fall inside the same update as the first's release, so the pointer saw one click. Here each press is seen
+-- the frame it comes; it counts only on the icon the pointer itself has under the mouse (MM.ctx.hot), so a window over
+-- the icons, a menu or a dialog still keeps it out.
+function ZeD_MMIcons:framePress()
+    local down = isMouseButtonDown(0)
+    local fresh = down and not self._frameDown
+    self._frameDown = down
+    if not fresh then return end
+    local mx, my = getMouseX(), getMouseY()
+    for _, h in ipairs(self._hits) do
+        if mx >= h.x and mx < h.x + h.w and my >= h.y and my < h.y + h.h and MM.ctx.hot == h.id then
+            local id, t, fp = string.sub(h.id, 6), MM.now(), self._framePress
+            if fp and fp.id == id and t - fp.at < DOUBLE_MS then
+                self._framePress = nil
+                self:open(id)
+            else
+                self._framePress = { id = id, at = t }
+            end
+            return
+        end
+    end
+    self._framePress = nil
+end
+
 function ZeD_MMIcons:click(id)
     local t = MM.now()
+    if self._openedAt and t - self._openedAt < DOUBLE_MS then return end   -- (the frames' double-click already opened it)
     local lc = self._lastClick
     if lc and lc.id == id and t - lc.at < DOUBLE_MS then self:open(id); return end
     self.focusId = id
@@ -229,6 +256,7 @@ function ZeD_MMIcons:prerender()
         end
         end
     end
+    self:framePress()
     -- the controller's prompts along the screen's foot (the bare desktop only)
     if MM.view == "desktop" and MM.gamepad() then
         local h = T.sp.scrollbarW

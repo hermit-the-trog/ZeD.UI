@@ -198,6 +198,11 @@ press("tk:ml:inbox:2")
 press("tk:mlreply")
 check("Reply opens a letter to the sender", st().card and st().card.kind == "mlwrite" and win._tkFields["ml:to"] and win._tkFields["ml:to"]._entry:getText() == "Ned")
 check("its subject", win._tkFields["ml:subj"]._entry:getText() == "Re: supplies")
+do
+    local q = win._tkFields["ml:text"]._entry:getText() or ""
+    check("the letter quoted with \"> \", as the desk's Reply", q:find(ZeD.tr("UI_ZeD_Mail_Wrote", "Ned"), 1, true) ~= nil and q:find("\n> ", 1, true) ~= nil, q)
+end
+win._tkFields["ml:text"]._entry:setText("")
 draw()
 local send = footOf("mlsend")
 check("Send is gray with no words, and says why", send and send.disabled and send.why == ZeD.tr("UI_ZeD_Mail_NeedText"), send and send.why)

@@ -436,6 +436,10 @@ function D.fieldInner(box) return box and (box._entry or box.input) or nil end
 
 function D.fieldText(win, key)
     local box = D.fieldOf(win, key)
+    -- a masked box (a password) answers getText with its stars; the typed words are its internal text, as
+    -- vanilla reads its own password boxes
+    local inner = D.fieldInner(box)
+    if inner and inner.javaObject and inner.isMasked and inner:isMasked() then return inner:getInternalText() or "" end
     return box and box:getText() or ""
 end
 
@@ -1476,7 +1480,8 @@ function B.field(items, key, rows, hint, land, max)
         c = { id = "f:" .. key, land = land, run = function(ww) D.useField(ww, key) end } }
 end
 
--- a report from chat on a card. Every word is what the reporter's client held: the server hears no chat
+-- a report from chat or a letter on a card. Every word is what the reporter's client sent: the server hears no chat and
+-- keeps no copy of a letter once it is delivered, so a report can only say what the reporter's screen showed
 function B.reportChat(items, rep)
     if not rep or (rep.n or 0) == 0 then return end
     B.label(items, tr(rep.letter and "UI_ZeD_Tk_ReportedLetter" or "UI_ZeD_Tk_ChatAround"))
@@ -1488,7 +1493,7 @@ function B.reportChat(items, rep)
             items[#items + 1] = { k = "chatline", text = head .. who .. tostring(l.text), mark = l.mark, c = { id = "chat:" .. tostring(i) } }
         end
     end
-    B.sub(items, tr(rep.letter and "UI_ZeD_Tk_LetterWhose" or "UI_ZeD_Tk_ChatWhose"))   -- (a letter: the server did carry it)
+    B.sub(items, tr(rep.letter and "UI_ZeD_Tk_LetterWhose" or "UI_ZeD_Tk_ChatWhose"))
 end
 
 function B.ask(st, t)
