@@ -368,17 +368,17 @@ _buildWorldLootFocusables = function(win)
             id = "container:" .. tostring(floorIdx),
             containerIdx = floorIdx,
             inventory = floorCnt.inventory,
-            -- S108 QA: onFocus no longer mutates _activeContainer (Char S106
-            -- parity). D-pad cycling on the strip moves focus cue only — the
-            -- active container (=the currently-displayed view) is set via
-            -- tap-A (onActivate) or hold-A (mcToggle adds to MC without
-            -- changing _activeContainer). Without this, every focused
-            -- container satisfied `cIdx == _activeContainer` in mcToggle,
-            -- hitting the floor-only branch and breaking non-first MC adds.
+            -- onFocus mutates nothing: D-pad cycling on the strip moves the
+            -- focus cue only — the active container (=the currently-displayed
+            -- view) is set via tap-A (onActivate) or hold-A (mcToggle adds a
+            -- column without changing _activeContainer). Were focus to set
+            -- _activeContainer, every focused container would satisfy
+            -- `cIdx == _activeContainer` in mcToggle, hit the floor-only
+            -- branch, and break every column add after the first.
             onFocus = function(w, el) end,
-            -- S107 QA tap = single-view (exit MC, set active + mainVisible).
-            -- S108 fix: check `isFloor` not `isMain` — World containers don't
-            -- have an isMain field.
+            -- Tap = single view: exit the columns, set active + mainVisible.
+            -- Checks `isFloor`, not `isMain` — World containers don't have
+            -- an isMain field.
             onActivate = function(w, el)
                 local c = w._mainContent
                 if not c then return end
@@ -397,8 +397,8 @@ _buildWorldLootFocusables = function(win)
                 w._activeContainer = el.containerIdx
                 w._viewedContainer = nil
                 w._mainVisible     = isFloor
-                -- Oct 23 2026: the pad goes on to the container's first item
-                -- (once its rows have drawn); an empty one keeps the focus here
+                -- the pad goes on to the container's first item (once its
+                -- rows have drawn); an empty one keeps the focus here
                 local inv = cnt and cnt.inventory
                 local Fo = ZeD.Input and ZeD.Input.Focus
                 if inv and Fo and Fo.focusSoon then
@@ -433,13 +433,13 @@ _buildWorldLootFocusables = function(win)
             id = "container:" .. tostring(ci),
             containerIdx = ci,
             inventory = win._containers[ci] and win._containers[ci].inventory,
-            -- S108 QA: onFocus no longer mutates _activeContainer (Char S106
-            -- parity). D-pad cycling on the strip moves focus cue only — the
-            -- active container (=the currently-displayed view) is set via
-            -- tap-A (onActivate) or hold-A (mcToggle adds to MC without
-            -- changing _activeContainer). Without this, every focused
-            -- container satisfied `cIdx == _activeContainer` in mcToggle,
-            -- hitting the floor-only branch and breaking non-first MC adds.
+            -- onFocus mutates nothing: D-pad cycling on the strip moves the
+            -- focus cue only — the active container (=the currently-displayed
+            -- view) is set via tap-A (onActivate) or hold-A (mcToggle adds a
+            -- column without changing _activeContainer). Were focus to set
+            -- _activeContainer, every focused container would satisfy
+            -- `cIdx == _activeContainer` in mcToggle, hit the floor-only
+            -- branch, and break every column add after the first.
             onFocus = function(w, el) end,
             onActivate = function(w, el)
                 local c = w._mainContent
@@ -459,8 +459,8 @@ _buildWorldLootFocusables = function(win)
                 w._activeContainer = el.containerIdx
                 w._viewedContainer = nil
                 w._mainVisible     = isFloor
-                -- Oct 23 2026: the pad goes on to the container's first item
-                -- (once its rows have drawn); an empty one keeps the focus here
+                -- the pad goes on to the container's first item (once its
+                -- rows have drawn); an empty one keeps the focus here
                 local inv = cnt and cnt.inventory
                 local Fo = ZeD.Input and ZeD.Input.Focus
                 if inv and Fo and Fo.focusSoon then
@@ -479,10 +479,10 @@ _buildWorldLootFocusables = function(win)
                     w._viewedContainer = nil
                 end
             end,
-            -- S113c: HOLD X + D-pad UP/DOWN = reorder this container in the
-            -- strip (mouse-drag parity). Mirror of Char's container drag
-            -- binding. Floor container above is intentionally NOT given
-            -- this binding — it stays pinned at top, like main on Char.
+            -- HOLD X + D-pad UP/DOWN = reorder this container in the strip
+            -- (mouse-drag parity), the Character strip's binding mirrored.
+            -- The floor element above is deliberately NOT given this binding
+            -- — it stays pinned at top, like main on the Character window.
             onHoldContextDrag = function(w, el, dir)
                 if dir == nil then return end
                 _gpReorderWorldContainer(w, el.containerIdx, dir)

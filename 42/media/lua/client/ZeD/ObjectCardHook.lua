@@ -299,7 +299,7 @@ function def.icon(t)
     if a and ZeD.AnimalsData then return getTexture(ZeD.AnimalsData.resolvePortrait(a)) end
     return OC.spriteIcon(t.obj)
 end
--- the state tag: its words, and the colour of its square mark (none for a plain tag)
+--- The state tag: its words, and the colour of its square mark (none for a plain tag).
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
@@ -310,7 +310,7 @@ function def.pill(t)
     return ZeD.tr("UI_ZeD_Hook_PillOnHook"), T.positive
 end
 
--- the card goes: the hook stops reporting to it, the figure goes with it
+--- The card goes: the hook stops reporting to it, the figure goes with it.
 function def.onClose(t, card)
     if t.obj then pcall(function() t.obj:setLuaHook(nil) end) end
     if card and card._hookAvatar then

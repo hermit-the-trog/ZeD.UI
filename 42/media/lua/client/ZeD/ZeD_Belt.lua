@@ -1336,10 +1336,10 @@ function ZeD_BeltHUD:_drawBuckle()
     -- strap shows through the open frame
 end
 
--- The frame of a belt slot (and of the ammo pouch until Oct 27 2026; Oct 26 2026), from the live theme: the keyline in
+-- The frame of a belt slot, from the live theme: the keyline in
 -- the frame grey (T.frameS; Light's stands 3:1 off the slots' fill, where the strong border stood 2.3:1), inside a light
 -- line where the theme has one (T.frameHi; Light's stands 3:1 off the leather strap), and the keyline doubled where the
--- theme's borders are thick (High contrast). Dark and High contrast: the strong border, as before.
+-- theme's borders are thick (High contrast). Dark and High contrast keep the strong border.
 local function frameBox(p, x, y, w, h, T)
     local fs, fh = T.frameS or T.borderS, T.frameHi
     local o = 0
@@ -1361,9 +1361,9 @@ local function wearColor(T, f)
     return T.danger
 end
 
--- The hands' condition: the slots' framed strip bent round inside the outline (director, Oct 27 2026: "Make the
--- belt hands' condition ring and the action bar's progress line the same chunky framed strip as the other status
--- bars"). One unit in from the two-unit outline and six units across: a frame line each side (T.borderS, two on
+-- The hands' condition: the slots' framed strip bent round inside the outline — the same chunky framed strip as
+-- the other status bars, as the action bar's progress line is too (ZeD_ActionBar.lua).
+-- One unit in from the two-unit outline and six units across: a frame line each side (T.borderS, two on
 -- High contrast, as the strip's), the solid T.base well between, a flat fill clockwise from twelve. Whole
 -- hairlines (T.line), so the frames and the outline keep one weight at every scale.
 local RING_IN, RING_T = 3, 6
@@ -1414,7 +1414,7 @@ local function padMark(self, b, round)
 end
 
 -- A slot's condition line is the library's framed strip (ZeD.Atoms.drawFillBar: 1u borderS frame, solid T.base well,
--- ten segments in the graduated status colours, Oct 30 2026), 8u tall and 3u in from the box's sides and bottom; the picture
+-- ten segments in the graduated status colours), 8u tall and 3u in from the box's sides and bottom; the picture
 -- stands above it.
 local STRIP_INSET = 3
 local SLOT_PIC = 28
@@ -1463,7 +1463,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
     end
     -- border: dashed accent while drawn, accent while a drop fits, else the line (round on the hands)
     if round then
-        -- (two design units: director, Oct 19 2026, "primary and secondary circles need thicker outline")
+        -- (two design units: the hands' circles carry a thicker outline than the slots' one-unit frame)
         if o.state == "fit" then ring(self, b.x, b.y, b.w, p1 * 2, 1, T.accent)
         elseif o.state == "fitHover" then ring(self, b.x, b.y, b.w, p1 * 3, 1, T.accent)
         else local fs = T.frameS or T.borderS; ring(self, b.x, b.y, b.w, p1 * 2, fs.a or 1, fs) end
@@ -1624,7 +1624,7 @@ function ZeD_BeltHUD:_drawPvp(b, focus, hover)
 end
 
 -- the Messages note (MESSAGES_SPEC.md): a box with a paper note (the map flyer's, no pin) and the count of what is
--- new (Visual Catalog A12: the danger red when an error is new, the accent for a note)
+-- new (the danger red when an error is new, the accent for a note)
 local lampTex = nil
 function ZeD_BeltHUD:_drawLamp(b, focus, hover)
     local T = ZeD.T

@@ -320,7 +320,7 @@ end
 
 function MS.scanning() return job ~= nil and not MS.res.done end
 
--- the conflicts that name a mod, without the hidden ones
+--- The conflicts that name a mod, without the hidden ones.
 function MS.forMod(id)
     local out = {}
     for _, e in ipairs(MS.res.byMod[id] or {}) do
@@ -335,9 +335,11 @@ function MS.isPicked(e)
     return (ZeD.ModPicks.countIn(e.things)) > 0
 end
 
--- per mod, how many shown conflicts (kept until the scan, a hide or a pick changes it):
--- copies that are the same word for word, and conflicts settled by picks, are not counted
--- (c.same / c.picked: how many of each, for the row's grey and green tags)
+--- Per mod, how many shown conflicts (kept until the scan, a hide or a pick
+--- changes it): copies that are the same word for word, and conflicts settled
+--- by picks, are not counted (c.same / c.picked hold how many of each, for the
+--- row's grey and green tags). count / sameFor / pickedFor read one mod's
+--- numbers; dirtyCounts forgets them all after a hide or a pick.
 function MS.counts()
     local c = MS.res.counts
     if not c or c.done ~= MS.res.done then

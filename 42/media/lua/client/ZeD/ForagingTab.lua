@@ -668,7 +668,7 @@ local function drawHero(panel, win, x, y, w)
     -- Cell B — info (middle, between scene and radius)
     local infoX = x + sceneW + T.px(1) + T.px(HERO_PAD)
 
-    -- (the place name is the card's header, drawn by drawHeader; Oct 30 2026)
+    -- (the place name is the card's header, drawn by drawHeader)
     -- The info cell ends before the radius cell; nothing is drawn past this edge
     local infoRight = radX - T.px(HERO_PAD)
     local infoRoom = infoRight - infoX
@@ -735,7 +735,7 @@ local function drawHero(panel, win, x, y, w)
 end
 
 -- ============================================================================
--- DRAW: HEADER STRIP AND BAND (Oct 30 2026)
+-- DRAW: HEADER STRIP AND BAND
 -- The header strip (the standard height): the place name on the left, the
 -- category drop-down on the right (with its chance readout before it). The band
 -- at the card's foot: Crouch and Aim on the left as read-only status, Search
@@ -1088,7 +1088,7 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
         local nnc = T.toneNorm
         panel:drawText(nameStr, colX, nameY, nnc.r, nnc.g, nnc.b, nnc.a or 1, T.fontF2)
 
-        -- Weight (K22, dim, right-aligned)
+        -- Weight (K22, neutral, right-aligned)
         local wtStr = string.format("%.1f", find.weight)
         local wtW = tm:MeasureStringX(T.fontF3, wtStr)
         local wtX = x + w - T.px(FINDS_PAD_X) - wtW
@@ -1149,7 +1149,7 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
     win._forageDisclosureZone = nil
 
     -- The pinned parts: the header strip on top and the band at the foot; the body
-    -- between them scrolls as one unit (Oct 30 2026)
+    -- between them scrolls as one unit
     local M = ZeD.Molecules
     local hdrH = drawHeader(panel, win, x, y, w)
     local bandH = M.bandH()
@@ -1223,13 +1223,15 @@ end
 -- CLICK HANDLERS
 -- ============================================================================
 
--- Search mode on or off: vanilla's own toggle (the button and the controller's A)
+--- Search mode on or off: vanilla's own toggle (the button and the controller's A).
 function ZeD.ForagingTab.toggleSearch(win)
     local player = win and win._playerObj
     local mgr = player and ISSearchManager.getManager(player) or nil
     if mgr and mgr.toggleSearchMode then mgr:toggleSearchMode() end
 end
 
+--- A click in the drawer (drawer-local x, y): the scrollbar, the band's Search
+--- button, or the More detail disclosure. True when it was the tab's.
 function ZeD.ForagingTab.onClick(win, x, y)
     local scroll = win._forageScroll
 

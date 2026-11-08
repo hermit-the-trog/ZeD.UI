@@ -2513,7 +2513,7 @@ function MM.pageOf(win)
     local p = win and win.page
     return p and MM.pages and MM.pages[p] or nil
 end
--- leaving any page (Back, B, the menu shut and opened again): the page's own leave first (Invite keeps its list)
+--- leaving any page (Back, B, the menu shut and opened again): the page's own leave first (Invite keeps its list)
 function MM.leavePage(win)
     if not win then return end
     local pg = MM.pageOf(win)
@@ -2619,6 +2619,7 @@ function MM.attach(m)
     end
 end
 
+--- Reroutes a vanilla screen: its setVisible(true) opens the given view on the monitor instead.
 function MM.redirect(screen, view)
     if not screen or screen._zedRedirect then return end
     screen._zedRedirect = true
@@ -2635,8 +2636,8 @@ function MM.redirect(screen, view)
     end
 end
 
--- Puts a view on the monitor: "main", "load" or "newgame". The menu comes back up
--- (vanilla's bottom panel) and the controller focus returns to MainScreen.
+--- Puts a view on the monitor: "main", "load", "desktop", any view MM.addView registered. The menu
+--- comes back up (vanilla's bottom panel) and the controller focus returns to MainScreen.
 function MM.showView(view, joypadData)
     local m = ms()
     if not m then return end
@@ -2664,7 +2665,7 @@ function MM.showView(view, joypadData)
     if jd then jd.focus = m; updateJoypadFocus(jd) end
 end
 
--- A vanilla screen takes over (map / spawn, mods, ...): the desk steps aside.
+--- A vanilla screen takes over (map / spawn, mods, ...): the desk steps aside.
 function MM.toVanilla()
     MM.ctx.open = nil
     if MM.respawn then return end   -- (in game the bottom panel is the pause menu's: it stays as it is)
@@ -2672,7 +2673,7 @@ function MM.toVanilla()
     if m and m.bottomPanel:isVisible() then m.bottomPanel:setVisible(false) end
 end
 
--- The window the current view shows.
+--- The window the current view shows.
 function MM.activeWindow()
     local r = MM.root
     if not r then return nil end
@@ -2687,9 +2688,9 @@ function MM.activeWindow()
     return r.win
 end
 
--- A later screen's window on the monitor: its view name, the desk's field for it, a
--- maker (called when the desk builds, after every module has loaded), and the MainScreen
--- field of the vanilla screen it stands in for (its setVisible(true) lands on the view).
+--- A later screen's window on the monitor: its view name, the desk's field for it, a
+--- maker (called when the desk builds, after every module has loaded), and the MainScreen
+--- field of the vanilla screen it stands in for (its setVisible(true) lands on the view).
 MM.views = MM.views or {}
 function MM.hasView(view)
     for _, v in ipairs(MM.views) do if v.view == view then return MM.root ~= nil and MM.root[v.field] ~= nil end end

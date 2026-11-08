@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuOptions.lua
 -- ============================================================================
--- OPTIONS (HOOK_MAP row 26; director, Oct 14 2026: "Settings menu is
--- obviously the biggest mess", design delegated, no mockup)
+-- OPTIONS. Client-side; the Options window organism (ZeD_MMOptions), which
+-- ZeD setup's sub-pages and Sandbox in game build on.
 --
 -- A ZeD window in place of vanilla's Options: on the desk's monitor at the
 -- main menu, centred over the dimmed world in game (from the pause window).
@@ -31,7 +31,7 @@
 --     No key / Default / Cancel; a key already in use asks there too
 --   * LB / RB walk the pages; left / right change a value in place
 --   * ZeD setup draws ZeD's own options as radio buttons, colour wells, a stepped slider,
---     checkboxes and pop-up menus, in groups, with a Defaults button (Oct 21 2026)
+--     checkboxes and pop-up menus, in groups, with a Defaults button
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -129,7 +129,7 @@ local function stepperOwner(controls)
     return nil
 end
 
--- the rows of a page: headers, options (control + its label), descriptions
+--- The rows of a page: headers, options (control + its label), descriptions.
 function MM.optionRows(page)
     local o = mo()
     if not (o and page and page.view) then return {} end
@@ -173,7 +173,7 @@ function MM.optionRows(page)
         if best then used[best] = true end
         local r = { kind = c.kind, control = c.el, label = best and best.text or "", y = c.y, x = c.x, opt = optOf[c.el] }
         -- a lone tick box that carries its own words (vanilla's toggles): the words become
-        -- the row's name, so it reads like every other row (Oct 19 2026)
+        -- the row's name, so it reads like every other row
         if c.kind == "tick" and not best and c.el.options and #c.el.options == 1 and tostring(c.el.options[1] or "") ~= "" then
             r.label = tostring(c.el.options[1])
             r.tickNoText = true
