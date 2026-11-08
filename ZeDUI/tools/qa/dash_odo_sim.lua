@@ -929,10 +929,33 @@ do
     pq.passenger = true
     frame(250)
     check("back to a passenger seat: asks again", asks() == a0 + 5, asks() - a0)
+    -- the join rules answered (ZeD_ServerLink.lua, S.agreed counts them): until then the server refused every ask and send
+    frames(40, 250)
+    local a1 = asks()
+    check("a passenger's three asks spent", asks() == a0 + 7, asks() - a0)
+    ZeD.ServerPart.agreedN = (ZeD.ServerPart.agreedN or 0) + 1
+    frame(250)
+    check("the join rules answered: a passenger whose asks were refused asks again", asks() == a1 + 1, asks() - a1)
+    frames(40, 250)
+    check("and three times at most again", asks() == a1 + 3, asks() - a1)
+    pq.passenger = nil
+    frame(250)
+    inst:_fire("tripReset", false)
+    local b0 = pq.sent
+    pq.kmh = 100
+    frames(4, 250)
+    check("a driver under a tenth since the last send: nothing yet", pq.sent == b0, pq.sent - b0)
+    ZeD.ServerPart.agreedN = ZeD.ServerPart.agreedN + 1
+    frame(250)
+    check("the join rules answered: the driver's figures go at once (the server refused the ones before)", pq.sent == b0 + 1, pq.sent - b0)
+    frames(4, 250)
+    check("and only once", pq.sent == b0 + 1, pq.sent - b0)
+    pq.kmh = 0
+    local aSP = asks()
     env.client = false
     drive("nyala", { keysIn = true, running = true, kmh = 0, id = 42, passenger = true, md = { ZeD_odo = 900, ZeD_trip = 3 } })
     frames(12, 250)
-    check("single player: a passenger never asks", asks() == a0 + 5, asks() - a0)
+    check("single player: a passenger never asks", asks() == aSP, asks() - aSP)
     env.client = true
 
     -- the ash tray on a server: in this game's memory, never the car's modData, so the server's sends can't undo it

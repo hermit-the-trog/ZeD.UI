@@ -287,6 +287,9 @@ function C.ask()
     S.send(Cl.MOD, "c_info", {})
 end
 
+-- the join rules answered: the server part is asked again now, not at the next INFO_MS
+S.onAgreed("claims", function() if S.available() then C.ask() end end)
+
 function C.askSoon()
     C.infoEvery = INFO_SOON_MS
 end

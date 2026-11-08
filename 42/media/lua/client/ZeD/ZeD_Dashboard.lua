@@ -856,6 +856,12 @@ local KM_PER_MILE = 1.609344
 -- a remainder by floor (Kahlua's % keeps the sign and goes wrong past 2^31)
 local function _floorMod(a, m) return a - math.floor(a / m) * m end
 
+-- how many times this player has answered the join rules (ZeD_ServerLink.lua, S.agreed): 0 without the server part
+function D.agreedN()
+    local S = ZeD.ServerPart
+    return (S and tonumber(S.agreedN)) or 0
+end
+
 -- a found car's starting mileage: stable for a given id and condition (0..100)
 function D.odoSeed(id, cond)
     -- (a vehicle id is a short; brought into 0..65535 anyway, so id * 7919 stays far under 2^31)
@@ -901,6 +907,13 @@ function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     local at = self._odoSentAt
     if not at then at = {}; self._odoSentAt = at end
     local last = at[id]
+    -- (the join rules answered since this dash last sent: the server refused every send until then, so the figures go now)
+    local gen = D.agreedN()
+    if self._odoGen == nil then self._odoGen = gen end
+    if self._odoGen ~= gen then
+        self._odoGen = gen
+        if last ~= nil then force = true end
+    end
     if last == nil and not force then at[id] = odo; return end      -- (first sight: what the car has is what was sent)
     if not force and odo < last then at[id] = odo; return end       -- (the server's figure came in lower: count from it)
     local save = force or flush == 0
@@ -982,7 +995,9 @@ function ZeD_Dashboard:_odoAsk(vehicle, id)
     if self._driver then self._odoAsking = nil; return end
     if not (isClient and isClient()) or self.playerNum ~= 0 then return end
     local a = self._odoAsking
-    if not a or a.car ~= vehicle then a = { car = vehicle, n = 0, at = 0 }; self._odoAsking = a end
+    if not a or a.car ~= vehicle then a = { car = vehicle, n = 0, at = 0, gen = D.agreedN() }; self._odoAsking = a end
+    -- (the join rules answered since: the server refused every ask until then, so the tries start again)
+    if a.gen ~= D.agreedN() and not a.got then a.n, a.at, a.gen = 0, 0, D.agreedN() end
     if a.got or a.n >= ODO_ASK_TRIES then return end
     local now = getTimestampMs()
     if a.n > 0 and now - a.at < ODO_ASK_MS then return end
