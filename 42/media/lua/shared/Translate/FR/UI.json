@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Ce serveur ne peut pas recevoir le signalement d'une lettre.",
     "UI_ZeD_Mail_Connecting": "Connexion... envoi de %1, réception de %2",
     "UI_ZeD_Tk_ReportedLetter": "La lettre signalée",
-    "UI_ZeD_Tk_LetterWhose": "Tel que le joueur l'a reçue.",
+    "UI_ZeD_Tk_LetterWhose": "Telle qu'elle s'affichait sur l'écran de l'auteur du signalement. Le serveur ne garde aucune copie des lettres.",
     "UI_ZeD_Card_MakesTitle": "Sert à fabriquer",
     "UI_ZeD_Card_MakesHelp": "Ouvre la recette dans l'onglet Fabriquer ou Construire.",
     "UI_ZeD_Card_MakesMore": "%1 de plus",

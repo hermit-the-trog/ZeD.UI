@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Questo server non può ricevere la segnalazione di una lettera.",
     "UI_ZeD_Mail_Connecting": "Collegamento... invio %1, ricezione %2",
     "UI_ZeD_Tk_ReportedLetter": "La lettera segnalata",
-    "UI_ZeD_Tk_LetterWhose": "Così come l'ha ricevuta il giocatore.",
+    "UI_ZeD_Tk_LetterWhose": "Com'era sullo schermo di chi ha segnalato. Il server non tiene copia delle lettere.",
     "UI_ZeD_Card_MakesTitle": "Serve a fare",
     "UI_ZeD_Card_MakesHelp": "Apre la ricetta nella scheda Crea o Costruisci.",
     "UI_ZeD_Card_MakesMore": "altre %1",

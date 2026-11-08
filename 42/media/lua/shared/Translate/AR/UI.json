@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "لا يقبل هذا الخادم الإبلاغ عن رسالة.",
     "UI_ZeD_Mail_Connecting": "جارٍ الاتصال... إرسال %1، استلام %2",
     "UI_ZeD_Tk_ReportedLetter": "الرسالة المُبلَّغ عنها",
-    "UI_ZeD_Tk_LetterWhose": "كما استلمها اللاعب.",
+    "UI_ZeD_Tk_LetterWhose": "كما ظهرت على شاشة المُبلِّغ. لا يحتفظ الخادم بنسخة من الرسائل.",
     "UI_ZeD_Card_MakesTitle": "يُستخدم لصنع",
     "UI_ZeD_Card_MakesHelp": "يفتح الوصفة في تبويب الصناعة أو البناء.",
     "UI_ZeD_Card_MakesMore": "%1 أخرى",

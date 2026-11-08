@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Denne server kan ikke modtage en anmeldelse af et brev.",
     "UI_ZeD_Mail_Connecting": "Forbinder... sender %1, modtager %2",
     "UI_ZeD_Tk_ReportedLetter": "Det anmeldte brev",
-    "UI_ZeD_Tk_LetterWhose": "Som spilleren modtog det.",
+    "UI_ZeD_Tk_LetterWhose": "Som det viste sig på anmelderens skærm. Serveren gemmer ingen kopi af breve.",
     "UI_ZeD_Card_MakesTitle": "Bruges til at lave",
     "UI_ZeD_Card_MakesHelp": "Åbner opskriften på fanen Fremstil eller Byg.",
     "UI_ZeD_Card_MakesMore": "%1 mere",

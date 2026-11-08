@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Dieser Server kann keine Meldung eines Briefs annehmen.",
     "UI_ZeD_Mail_Connecting": "Verbinde... sende %1, empfange %2",
     "UI_ZeD_Tk_ReportedLetter": "Der gemeldete Brief",
-    "UI_ZeD_Tk_LetterWhose": "So, wie der Spieler ihn erhalten hat.",
+    "UI_ZeD_Tk_LetterWhose": "So, wie er auf dem Bildschirm des Meldenden erschien. Der Server behält keine Kopie von Briefen.",
     "UI_ZeD_Card_MakesTitle": "Verwendet für",
     "UI_ZeD_Card_MakesHelp": "Öffnet das Rezept im Reiter Herstellen oder Bauen.",
     "UI_ZeD_Card_MakesMore": "%1 weitere",
