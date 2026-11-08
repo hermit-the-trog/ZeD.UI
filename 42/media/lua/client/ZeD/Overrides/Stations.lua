@@ -4,7 +4,9 @@
 -- Every vanilla way into a crafting surface lands in the World window:
 --   * ISEntityUI.OpenWindow        — the station option in the world
 --     right-click menu, the controller Interact prompt, clicking a big
---     multi-tile station: Craft tab bound to that bench or drying rack.
+--     multi-tile station: Craft tab bound to that bench or drying rack, or
+--     (Nov 7 2026, B15) any other station in the general view
+--     (StationGeneral.lua).
 --   * ISOvenUITimedAction:perform  — "Stove settings" on an oven or a
 --     microwave: Craft tab bound to the appliance.
 --   * ISEntityUI.OpenHandcraftWindow — the crafting key, "craft with this
@@ -73,9 +75,10 @@ local function apply()
             local ok, handled = pcall(function()
                 if not (player and entity) then return false end
                 if not ISEntityUI.CanOpenWindowFor(player, entity) then return false end
-                local kind = ST.classify(ST.call(entity, "getMasterObject") or entity)
+                -- (a station ZeD has no view of its own for opens the general one: vanilla windows B15)
+                local kind = ST.classify(ST.call(entity, "getMasterObject") or entity, true)
                 if not ST.isEntityKind(kind) then return false end
-                return ST.open(player, entity)
+                return ST.open(player, entity, true)
             end)
             if ok and handled then return end
             if not ok then print("[ZeD] Stations: OpenWindow route failed: " .. tostring(handled)) end

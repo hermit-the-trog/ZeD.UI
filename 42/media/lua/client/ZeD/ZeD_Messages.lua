@@ -162,10 +162,16 @@ local function when()
     return t
 end
 
-local function toast(kind, head, name, text)
-    if not toastOn() then return end
-    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS }
-    for i = #M.toasts, 1, -1 do if M.toasts[i].source == name and M.toasts[i].head == head then table.remove(M.toasts, i) end end
+-- pn: the player the notice is for (its balloon comes out of that player's note; nil: player one)
+-- force: shown whatever ZeD setup's notices setting says (a controller plugged in or unplugged: they replace
+-- windows the game always showed)
+local function toast(kind, head, name, text, pn, force)
+    if not force and not toastOn() then return end
+    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS, pn = pn }
+    for i = #M.toasts, 1, -1 do
+        local o = M.toasts[i]
+        if o.source == name and o.head == head and o.pn == pn then table.remove(M.toasts, i) end
+    end
     M.toasts[#M.toasts + 1] = t
     while #M.toasts > 3 do table.remove(M.toasts, 1) end
 end
@@ -270,6 +276,25 @@ function M.invite(text)
     local it = M.add(name, "mods", { k = "invite", text = text })
     capKind(name, "invite", INVITE_NOTES_MAX)
     toast("warn", ZeD.tr("UI_ZeD_Cl_ToastHead"), name, text)
+    return it
+end
+
+-- controllers (the director, Nov 7 2026, vanilla windows B12 and B13; Overrides/Controllers.lua): a controller plugged
+-- in, with the game's join choices as its buttons, or a player's controller unplugged. One note per controller or
+-- player (id): the newest replaces the one before it; never more than PAD_NOTES_MAX. buttons: { label, run } each,
+-- pressed on the note's card (ZeD_MessagesWindow); run returns true when it did what it says.
+local PAD_NOTES_MAX = 8
+function M.pad(id, head, text, buttons, pn)
+    local name = ZeD.tr("UI_ZeD_Pad_Source")
+    local s = M.sources[name]
+    if s then
+        for i = #s.items, 1, -1 do
+            if s.items[i].k == "pad" and s.items[i].pad == id then table.remove(s.items, i) end
+        end
+    end
+    local it = M.add(name, "mods", { k = "pad", pad = id, head = head, text = text, padButtons = buttons })
+    capKind(name, "pad", PAD_NOTES_MAX)
+    toast("warn", head, name, text, pn, true)
     return it
 end
 

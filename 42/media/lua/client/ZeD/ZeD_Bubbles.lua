@@ -548,6 +548,92 @@ function B.drawNotes(cv, T, L)
 end
 
 -- ---------------------------------------------------------------------------
+-- THE NOTICES (the director, Nov 7 2026: "All of these notices are speech bubbles or thought bubbles that pop up
+-- out of the notification icon where we save errors and other mods pop-ups. Just all in one place."). ZeD's
+-- notices (ZeD_Messages' toasts: a mod's note kept, an error, a ticket, an invitation, a controller plugged in or
+-- unplugged) are speech balloons stacked over the Messages note on the belt, the newest nearest it with the tail
+-- down to the note; ZeD_MessagesWindow places and draws them. Units are the bubbles' own, from the anchor (the top
+-- middle of the note): the balloon stays on the screen, and the tail's base stays under the balloon.
+-- ---------------------------------------------------------------------------
+B.NOTICE_MAXW = 150      -- a notice's line wraps here
+B.NOTICE_LINES = 4       -- past this the last line kept ends "..."
+B.NOTICE_EDGE = 4        -- from the screen's edge
+
+-- a notice's lines: what it is (its head), then what it is about, in the balloon's face; and the widest one
+function B.noticeLines(head, body)
+    local lines, tw = {}, 0
+    for _, part in ipairs({ head or "", body or "" }) do
+        local t = B.clean(part)
+        if t ~= "" then
+            local ls = B.wrap(t, B.NOTICE_MAXW)
+            for i = 1, #ls do lines[#lines + 1] = ls[i] end
+        end
+    end
+    if #lines > B.NOTICE_LINES then
+        while #lines > B.NOTICE_LINES do table.remove(lines) end
+        lines[#lines] = lines[#lines] .. "..."
+    end
+    for i = 1, #lines do tw = math.max(tw, P.textWidth(lines[i], "57", 1)) end
+    return lines, tw
+end
+
+-- the balloons for notices (oldest first, each { lines, tw, dot }): each gets .x .y .w .h; the last one (the
+-- newest) sits lowest, its tail to the anchor when tail is set. leftU / rightU: the screen's edges in units from
+-- the anchor. Returns the box over all of them (x0, y0, x1, y1).
+function B.layoutNoticeBalloons(list, leftU, rightU, tail)
+    local base = tail and (-B.GAP - B.TAIL_H) or -B.GAP
+    local x0, y0, x1, y1 = 0, base, 0, 0
+    local loE, hiE = (leftU or -100000) + B.NOTICE_EDGE, (rightU or 100000) - B.NOTICE_EDGE
+    for i = #list, 1, -1 do
+        local n = list[i]
+        local w = n.tw + B.PAD * 2 + (n.dot and (B.NOTE_DOT * 2) or 0)
+        local h = #n.lines * B.LINE - 2 + B.PAD * 2
+        local x = -math.floor(w / 3)
+        if tail and i == #list then
+            -- the tail's base (-5 .. 6) stays inside the balloon, 3 units in from each end
+            x = math.max(9 - w, math.min(-8, x))
+        end
+        -- then the screen wins
+        if x + w + 2 > hiE then x = hiE - w - 2 end
+        if x < loE then x = loE end
+        local y = base - h
+        n.x, n.y, n.w, n.h = x, y, w, h
+        base = y - B.NOTE_GAP
+        x0, y0, x1 = math.min(x0, x), math.min(y0, y), math.max(x1, x + w + 2)
+    end
+    if tail and #list > 0 then x0, x1 = math.min(x0, -6), math.max(x1, 8) end
+    return x0, y0, x1, y1
+end
+
+-- the balloons: shadow, body, the status mark, the lines; the newest one's tail (tail set) to the anchor
+function B.drawNoticeBalloons(cv, T, list, tail, a)
+    local sh = B._shadow
+    local el = cv.el
+    a = a or 1
+    for i = 1, #list do
+        local n = list[i]
+        B.roundBox(cv, n.x + 1, n.y + 1, n.w, n.h, sh, sh, a)
+        if tail and i == #list then rectsA(cv, B.speechTail().sh, sh, a, 0, 0) end
+        B.roundBox(cv, n.x, n.y, n.w, n.h, B.solid.surf1, T.borderS, a)
+        if tail and i == #list then
+            local tl = B.speechTail()
+            rectsA(cv, tl.ink, T.borderS, a, 0, 0)
+            rectsA(cv, tl.fill, B.solid.surf1, a, 0, 0)
+        end
+        local tx = n.x + B.PAD
+        if n.dot then
+            rectA(cv, tx, n.y + B.PAD + 2, B.NOTE_DOT, B.NOTE_DOT, n.dot, a)
+            tx = tx + B.NOTE_DOT * 2
+        end
+        el._zedAlpha = a * (T.text.a or 1)
+        for j = 1, #n.lines do
+            P.text(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, "57", 1, "l", nil, nil)
+        end
+        el._zedAlpha = 1
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- the speech hook (see the header)
 -- ---------------------------------------------------------------------------
 B._sp = B._sp or {}       -- playerNum -> { text, lines, tw, sideLines, sideW, ms, endMs }

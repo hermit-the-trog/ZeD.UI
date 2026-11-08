@@ -6860,11 +6860,17 @@ function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     if not getSpecificPlayer(playerNum) then return end
     -- (never for a dead character: the windows reopen for the next one; code audit Oct 17 2026)
     if getSpecificPlayer(playerNum):isDead() then return end
-    if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
     if tostring(getCore():getGameMode()) == "Tutorial" then return end
     -- safe mode: the game's own inventory answers (its key handler, its Y prompt)
     if ZeD.Safe.on("windows") then return end
+    -- paused (the director, Nov 7 2026, vanilla windows B14): the Character window alone, to look at; its
+    -- actions wait for the game to play again (ZeD_PausedLook.lua). It used to step aside to the game's own.
+    if getGameSpeed() <= 0 then
+        if ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggle(playerNum)
+        else _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") end
+        return
+    end
 
     local charOpen  = ZeD_CharacterWindow.isOpen()
     local worldOpen = ZeD_WorldWindow.isOpen()
