@@ -4,9 +4,9 @@
 -- data and calls; each falls back to the game's own window in safe mode or when ZeD's cannot be built.
 --
 --   C4  SERVER SAVING   the game's "Server saving game. Please wait." box (ISServerSavingMessage, OnServerStartSaving /
---                       OnServerFinishSaving): a ZeD note at the top of the screen, gone when the server is done.
---   C5  MARK SHARING    the map mark's Sharing (ISWorldMapSharing, from MapsTab.lua's mark menu): a form card over the
---                       map: Private, Everyone or Other; under Other, Faction, Safehouse and the players by name. Done
+--                       OnServerFinishSaving): a notice in Messages, as every ZeD notice is.
+--   C5  MARK SHARING    the map mark's Sharing (ISWorldMapSharing, from MapsTab.lua's mark menu): a form card in the
+--                       map's drawer, at the map's right edge: Private, Everyone or Other; under Other, Faction, Safehouse and the players by name. Done
 --                       hands the choice to the mark as the game's panel does (symbol:setSharing).
 --   C15 EDIT ITEM       the admin's Edit item (ISItemEditorUI.OpenPanel, from the inventory menu): the item's card in edit
 --                       mode, the game's own list of fields (ISItemEditPanel:initElements) as field rows, Save in the band;
@@ -40,63 +40,20 @@ local function words(s)
 end
 
 -- ---------------------------------------------------------------------------
--- C4: THE SERVER SAVING NOTE
+-- C4: SERVER SAVING, A NOTICE IN MESSAGES (the director's standing rule: every ZeD notice is a bubble out of the belt's
+-- Messages icon and is kept in Messages, never a box at the top of the screen or in a corner; the bubble itself is
+-- Messages' own drawing). The finish needs nothing: the note stays in Messages as a record
 -- ---------------------------------------------------------------------------
-ZeD_SavingNote = ISPanel:derive("ZeD_SavingNote")
-
-function ZeD_SavingNote:new()
-    local o = ISPanel:new(0, 0, 10, 10)
-    setmetatable(o, self)
-    self.__index = self
-    o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-    o.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-    o.anchorRight, o.anchorBottom = false, false
-    return o
-end
-
-function ZeD_SavingNote:prerender()
-    local T = ZeD.T
-    if not T then return end
-    local text = tr("UI_ZeD_Srv_Saving")
-    local f = T.fontF2
-    local sq, gap, pad = px(7), px(8), px(12)
-    local w = ZeD.TM:MeasureStringX(f, text) + sq + gap + pad * 2
-    local h = ZeD.TM:getFontHeight(f) + pad * 2
-    local x = math.floor((getCore():getScreenWidth() - w) / 2)
-    local y = math.floor(getCore():getScreenHeight() * 0.2)
-    if self.width ~= w or self.height ~= h then self:setWidth(w); self:setHeight(h) end
-    if self.x ~= x or self.y ~= y then self:setX(x); self:setY(y) end
-    local A = ZeD.Atoms
-    A.surfaceFill(self, 0, 0, w, h, "surf2")
-    A.frame(self, 0, 0, w, h, T.borderS)
-    A.drawStatusDot(self, pad, math.floor((h - sq) / 2), T.warning or T.accent, sq)
-    local c = T.text
-    self:drawText(text, pad + sq + gap, pad, c.r, c.g, c.b, c.a or 1, f)
-end
-
--- (it takes no clicks: the world goes on under it)
-function ZeD_SavingNote:onMouseDown() return false end
-function ZeD_SavingNote:onMouseUp() return false end
-function ZeD_SavingNote:onRightMouseDown() return false end
-function ZeD_SavingNote:onMouseMove() return false end
-
 function L.savingStart()
-    if safeOn() or not ZeD.T then
+    local MS = ZeD.Messages
+    if safeOn() or not (MS and MS.adminMsg and getPlayer()) then
         L.savingVanilla = true
         return ISServerSavingMessage.showPauseMessage()
     end
-    if L.savingNote then return end
-    local n = ZeD_SavingNote:new()
-    n:initialise()
-    n:addToUIManager()
-    n:setAlwaysOnTop(true)
-    L.savingNote = n
+    pcall(MS.adminMsg, tr("UI_ZeD_Srv_Saving"), nil)
 end
 
 function L.savingDone()
-    local n = L.savingNote
-    L.savingNote = nil
-    if n then pcall(function() n:setVisible(false); n:removeFromUIManager() end) end
     if L.savingVanilla then
         L.savingVanilla = nil
         return ISServerSavingMessage.showSavingFinishMessage()
@@ -227,13 +184,14 @@ function L.openSharing(mp, sym, fromPad)
     if scoreboardUpdate then pcall(scoreboardUpdate) end
     local s = L.shareState(sym)
     local pn = (mp and mp.playerObj and safe(function() return mp.playerObj:getPlayerNum() end, 0)) or 0
-    local cx, cy = nil, nil
-    if mp then
-        cx = math.floor(mp:getAbsoluteX() + mp:getWidth() / 2)
-        cy = math.floor(mp:getAbsoluteY() + mp:getHeight() / 2)
+    -- a card in the map's drawer (VANILLA_WINDOWS C5): in the panel that holds the map, at the map's right edge
+    local function dock()
+        local holder = mp and mp.parent
+        if not holder then return nil end
+        return holder, mp:getX(), mp:getY(), mp:getWidth(), mp:getHeight()
     end
     L.shareCard = ZeD.FormCard.open({
-        title = getText("IGUI_Map_Sharing"), width = 320, playerNum = pn, cx = cx, cy = cy,
+        title = getText("IGUI_Map_Sharing"), width = 320, playerNum = pn, dock = dock,
         help = tr("UI_ZeD_Map_ShareHelp"),
         rows = function() return L.shareRows(sym, s) end,
         band = function(card)

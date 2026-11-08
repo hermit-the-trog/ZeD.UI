@@ -99,7 +99,19 @@ end
 local function q(s) return '"' .. tostring(s) .. '"' end
 local function send(cmd) pcall(SendCommandToServer, cmd) end
 
--- the actions for the picked player: { id, text, run, ask (a question first), danger }
+-- Kick and the bans: ZeD's Admin player card for that player, which asks for a reason (ZeD_AdminCards.lua, the way chat's
+-- Player card opens it). The game resumes and the World window opens on the Admin tab. False without ZeD's server part:
+-- then the game's command, after the band's question
+function PL.openCard(user)
+    local Ad = ZeD.Admin
+    if not (Ad and Ad.live and Ad.live() and ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
+    Ad.openPlayerNext = user
+    if MM.act and MM.act.resume then pcall(MM.act.resume) end
+    ZeD_WorldWindow.openTab(0, "admin")
+    return true
+end
+
+-- the actions for the picked player: { id, text, run, ask (a question first), danger, card (ZeD's player card first) }
 function PL.actions(e)
     local out = {}
     if not e then return out end
@@ -119,11 +131,11 @@ function PL.actions(e)
         if cap("ToggleGodModEveryone") then out[#out + 1] = { id = "god", text = getText("UI_Scoreboard_GodMod"), run = function() send("/godmodplayer " .. q(u)) end } end
         if cap("ToggleInvisibleEveryone") then out[#out + 1] = { id = "invis", text = getText("UI_Scoreboard_Invisible"), run = function() send("/invisibleplayer " .. q(u)) end } end
         if cap("KickUser") then
-            out[#out + 1] = { id = "kick", text = getText("UI_Scoreboard_Kick"), ask = tr("UI_ZeD_Adm_KickAsk", e.name), danger = true, run = function() send("/kickuser " .. q(u)) end }
+            out[#out + 1] = { id = "kick", text = getText("UI_Scoreboard_Kick"), ask = tr("UI_ZeD_Adm_KickAsk", e.name), danger = true, card = true, run = function() send("/kickuser " .. q(u)) end }
         end
         if cap("BanUnbanUser") then
-            out[#out + 1] = { id = "ban", text = getText("UI_Scoreboard_Ban"), ask = tr("UI_ZeD_Adm_BanAsk", e.name), danger = true, run = function() send("/banuser " .. q(u)) end }
-            out[#out + 1] = { id = "banip", text = getText("UI_Scoreboard_BanIp"), ask = tr("UI_ZeD_Adm_BanAsk", e.name), danger = true, run = function() send("/banuser " .. q(u) .. " -ip") end }
+            out[#out + 1] = { id = "ban", text = getText("UI_Scoreboard_Ban"), ask = tr("UI_ZeD_Adm_BanAsk", e.name), danger = true, card = true, run = function() send("/banuser " .. q(u)) end }
+            out[#out + 1] = { id = "banip", text = getText("UI_Scoreboard_BanIp"), ask = tr("UI_ZeD_Adm_BanAsk", e.name), danger = true, card = true, run = function() send("/banuser " .. q(u) .. " -ip") end }
         end
     else
         if cap("ToggleGodModHimself") then out[#out + 1] = { id = "god", text = getText("UI_Scoreboard_GodMod"), run = function() send("/godmodplayer " .. q(u)) end } end
@@ -291,6 +303,7 @@ MM.pages.players = {
                 add({ id = "act:" .. a.id, text = words(a.text), x = pad + c * (bw + pad), y = by, w = bw, h = T.buttonH, row = row, col = c + 1,
                       variant = "default",
                       fn = function()
+                          if a.card and PL.openCard(e.user) then MM.clickSound(); return end
                           if a.ask then st.ask = a; win.focusId = "ask:no"; MM.clickSound(); return end
                           MM.clickSound()
                           a.run()
@@ -353,13 +366,75 @@ PL.invite = IV
 function IV.game() return InviteFriends and InviteFriends.instance or nil end
 
 -- the friends, in the game's order: its own fillList (the filter left empty)
-function IV.fill()
+function IV.fill(text)
     local g = IV.game()
     if not g then return end
     pcall(function()
-        if g.filterEntry then g.filterEntry:setText("") end
+        if g.filterEntry then g.filterEntry:setText(text or "") end
         g:fillList()
     end)
+end
+
+-- FIND (a list that can pass about 15 friends gets a find field): the words go into the game's own filter, and its
+-- fillList narrows the list as it does on its own screen
+function IV.entry(win)
+    local e = win._ivFind
+    if e then return e end
+    e = ISTextEntryBox:new("", 0, 0, 100, 20)
+    e:initialise()
+    e:instantiate()
+    e.zedEntry = true
+    e.font = (ZeD.Text and ZeD.Text.entryFont) and ZeD.Text.entryFont() or UIFont.Small
+    e.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
+    e.borderColor = { r = 0, g = 0, b = 0, a = 0 }
+    e.onTextChange = function() IV.find(win, e:getInternalText()) end
+    win:addChild(e)
+    win._ivFind = e
+    return e
+end
+function IV.find(win, text)
+    local st = pageState(win, "invite")
+    st.find = text or ""
+    st.off = 0
+    IV.fill(st.find)
+end
+function IV.hideFind(win)
+    local e = win._ivFind
+    if e then
+        if e.isFocused and e:isFocused() then e:unfocus() end
+        e:setVisible(false)
+    end
+end
+-- the find row: its label, the inset box, the field placed in it
+function IV.drawFind(win, b, hot, focus)
+    local T = ZeD.T
+    local label = tr("UI_ZeD_Join_Find")
+    local lw = textW(T.fontF2, label) + px(8)
+    local c = T.text
+    win:drawText(label, b.x, b.y + math.floor((b.h - fontH(T.fontF2)) / 2), c.r, c.g, c.b, c.a or 1, T.fontF2)
+    local bx, bw = b.x + lw, b.w - lw
+    local base, bs = T.base, T.borderS
+    win:drawRect(bx, b.y, bw, b.h, 1, base.r, base.g, base.b)
+    win:drawRectBorder(bx, b.y, bw, b.h, bs.a or 1, bs.r, bs.g, bs.b)
+    if focus then ZeD.Focus.mark(win, bx, b.y, bw, b.h, MM.focusOpts()) end
+    local e = IV.entry(win)
+    local eh = fontH(e.font or UIFont.Small) + px(2)
+    local ex, ey, ew = bx + px(6), b.y + math.floor((b.h - eh) / 2), bw - px(12)
+    if e.x ~= ex or e.y ~= ey then e:setX(ex); e:setY(ey) end
+    if e.width ~= ew or e.height ~= eh then e:setWidth(ew); e:setHeight(eh) end
+    if not e:isVisible() then e:setVisible(true) end
+    if hot then ZeD.Help.set(win, tr("UI_ZeD_MMHelp_FriendFind")) end
+end
+-- A on the find row: the field takes the keys, or on a controller the game's on-screen keyboard
+function IV.pressFind(win)
+    local e = IV.entry(win)
+    local jd = JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
+    if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
+        local osk = OnScreenKeyboard.Show(jd.player or 0, e, jd)
+        if osk then osk.prevFocus = MainScreen and MainScreen.instance; jd.focus = osk; updateJoypadFocus(jd) end
+        return
+    end
+    e:focus()
 end
 
 function IV.items()
@@ -424,6 +499,10 @@ MM.pages.invite = {
         if not IV.picked(win) then st.sel = nil end
         st.statusY = y
         y = y + fontH(T.fontF3) + px(8)
+        row = row + 1
+        add({ id = "iv:find", x = pad, y = y, w = w - pad * 2, h = px(26), row = row, col = 1, draw = IV.drawFind,
+              fn = function() IV.pressFind(win) end, help = tr("UI_ZeD_MMHelp_FriendFind") })
+        y = y + px(26) + px(8)
         st.room = roomFor(y, 0)
         if #st.items == 0 then
             st.emptyY = y
@@ -469,7 +548,7 @@ MM.pages.invite = {
             win:drawText(st.said, pad + px(13), st.statusY or 0, T.text.r, T.text.g, T.text.b, T.text.a or 1, T.fontF3)
         end
         if st.emptyY then
-            win:drawText(tr("UI_ZeD_MM_NoFriends"), pad, st.emptyY + math.floor((px(ROW_H) - fontH(T.fontF2)) / 2), d.r, d.g, d.b, d.a or 1, T.fontF2)
+            win:drawText(tr((st.find or "") ~= "" and "UI_ZeD_MM_NoFriendsFound" or "UI_ZeD_MM_NoFriends"), pad, st.emptyY + math.floor((px(ROW_H) - fontH(T.fontF2)) / 2), d.r, d.g, d.b, d.a or 1, T.fontF2)
         end
         listBar(win, st, "iv")
     end,
@@ -481,6 +560,7 @@ MM.pages.invite = {
         if g and g.saveInvitedFile then pcall(g.saveInvitedFile, g) end
         local st = pageState(win, "invite")
         st.said = nil
+        IV.hideFind(win)
     end,
 }
 
@@ -497,7 +577,7 @@ function MM.openPage(name)
         PL.ask(true)
     elseif name == "invite" then
         if not IV.game() then return false end
-        IV.fill()
+        IV.fill(pageState(w, "invite").find)
     end
     local st = pageState(w, name)
     st.off, st.ask = 0, nil

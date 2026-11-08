@@ -2083,6 +2083,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MMHelp_Rewind` | `Rewind: roll the credits backwards.` | Credits screen: help line over the rewind button, marked << (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Fast` | `Fast forward: roll the credits faster.` | Credits screen: help line over the fast forward button, marked >> (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_FriendRow` | `Pick this friend, then Invite.` | Pause window, Invite page: help line over a Steam friend's row | - |
+| `UI_ZeD_MMHelp_FriendFind` | `Find: type part of a friend's name to narrow the list.` | Pause window, Invite page: help line over the Find field above the friends | - |
 | `UI_ZeD_MMHelp_PlayPause` | `Pause or play the credits.` | Credits screen: help line over the pause and play button | - |
 | `UI_ZeD_MMHelp_EmptyTrash` | `Empty trash: throw away the file in it.` | Trash window: help line over the Empty trash button (begins with the button's name) | - |
 | `UI_ZeD_MMHelp_Options` | `Options: change the game's settings and ZeD's.` | Main menu window and pause window, bottom strip: help line over the Options button (begins with the button's name) | - |
@@ -2124,6 +2125,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MMWord_UndoChanges` | `Undo changes` | Mod manager, bottom strip: button that puts the mod list back as it was when the window opened (shown in sentence case) | 16 |
 | `UI_ZeD_MM_NoPlayers` | `No other players are on the server.` | Pause window, Players page, and the map mark's Sharing card: in place of the list when nobody else is on the server | - |
 | `UI_ZeD_MM_NoFriends` | `No Steam friends to show.` | Pause window, Invite page: in place of the list when Steam gives no friends | - |
+| `UI_ZeD_MM_NoFriendsFound` | `No friend's name has those letters.` | Pause window, Invite page: in place of the list when no friend's name matches Find | - |
 
 ## Modal
 
