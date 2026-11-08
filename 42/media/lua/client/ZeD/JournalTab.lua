@@ -445,7 +445,7 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
     end
 
     local idx = 0
-    -- only the recipes the game would list for the character (RecipeIndex.visible; punch list 109 review)
+    -- only the recipes the game would list for the character (RecipeIndex.visible)
     local RI = ZeD.RecipeIndex
     for _, entry in ipairs(_jFlatRecipes) do
       if not RI or RI.visible(playerObj, entry.recipe, entry.source) then

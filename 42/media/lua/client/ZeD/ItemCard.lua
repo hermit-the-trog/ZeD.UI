@@ -1368,7 +1368,7 @@ function ZeD_ItemCard:_pointer()
     end
     self._zoneDockWasDown = down
 
-    -- The recipes it makes (punch list 109): released on a row, that recipe in the Craft tab
+    -- The recipes it makes: released on a row, that recipe in the Craft tab
     do
         local hit = nil
         for _, r in ipairs(self._makeRects or {}) do
@@ -1782,7 +1782,7 @@ function ZeD_ItemCard:getZoneDockElements()
             onActivate = function() card:_onZonePress(zIdx, zone, rect) end,
         }
     end
-    -- the recipes it makes (punch list 109): A opens the recipe, as a press does. Only the rows inside the body
+    -- the recipes it makes: A opens the recipe, as a press does. Only the rows inside the body
     -- (drawMakes stamps inView): one scrolled out of sight is no stop, so Down scrolls the card on (gpDpad) and
     -- the next rows join as they come into view.
     for _, rect in ipairs(self._makeRects or {}) do
@@ -1853,7 +1853,7 @@ function ZeD_ItemCard:getDisclosureYs()
         local contentY = panelY + scrollOff
         ys[#ys + 1] = contentY
     end
-    -- the "Used to make" section's title (punch list 109; absolute, stamped by drawMakes)
+    -- the "Used to make" section's title (absolute, stamped by drawMakes)
     if self._makesSecY then ys[#ys + 1] = self._makesSecY - ay + scrollOff end
     table.sort(ys)
     return ys
