@@ -51,6 +51,4 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3814251221]Crosshair Overhaul[/url] by hogggriiddaaaa ✔
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2210760610][B41/B42] Cryogenic Winter +Easy/Hard Modes (SP/MP)[/url] ✔
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3559737194][B42] Custom Map Labels[/url]: Its labels are for the game's map. [i](expected)[/i] ✔ ⚠️ beta8: one error at game start (CustomMapLabels.lua:93): it opens the game's map to read labels, ZeD opens its own map instead, so its labels are never read.
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2719850086][42.20] Customizable Containers[/url] by dane: Its Capacity Limit Bypass add-on was not tested. (not retested on this Mac: the game did not load its Workshop copy here)
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3780683663]Cye's Push Doors![/url] by Cye ✔
 [/list]
