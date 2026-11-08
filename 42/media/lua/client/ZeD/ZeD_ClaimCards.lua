@@ -8,6 +8,8 @@
 --   faction   name, tag, color, members, invitations, the two ticks
 --   newfac    create a faction: the name, in the card
 --   wars      accept, refuse, end, the countdowns
+--   osafe, ofac  someone else's safehouse or faction, for staff in the Admin tab (CC.openOther): the same parts on
+--                C.other, the staff buttons gated as the game's windows gate them
 -- and gives the Server tab its pieces: invitations as notes, the summary rows, Can I claim this?, this server's rules.
 --
 -- A name is a field in its card. What is typed is checked as it is typed, and saves with the foot's Save. A confirm is a
@@ -166,6 +168,22 @@ X.FIELDS.newFac = {
     stored = function() return "" end,
     problem = X.FIELDS.facName.problem,
 }
+-- the same three on someone else's claim (staff, the Admin tab): their own boxes, read from C.other and sent on it
+function X.otherField(from, read, save)
+    local f = X.FIELDS[from]
+    return { max = f.max, limit = f.limit, clean = f.clean, problem = f.problem, done = f.done,
+        stored = function() return C.other and read(C.other) or "" end,
+        save = function(s, done)
+            if not C.other then
+                done(false)
+                return
+            end
+            save(s, done, C.other)
+        end }
+end
+X.FIELDS.oSafeTitle = X.otherField("safeTitle", function(o) return o.title end, function(s, d, v) C.rename(s, d, v) end)
+X.FIELDS.oFacName = X.otherField("facName", function(o) return o.name end, function(s, d, v) C.renameFaction(s, d, v) end)
+X.FIELDS.oFacTag = X.otherField("facTag", function(o) return o.tag end, function(s, d, v) C.setTag(s, d, v) end)
 
 function X.text(win, key)
     local f = X.FIELDS[key]
@@ -212,8 +230,21 @@ function X.keysOf(card)
     elseif card.kind == "faction" then
         if C.fac and C.fac.manage then out[1] = "facName" end
         if C.fac and C.fac.canTag then out[#out + 1] = "facTag" end
+    elseif card.kind == "osafe" then
+        if C.other and C.other.manage then out[1] = "oSafeTitle" end
+    elseif card.kind == "ofac" then
+        if C.other and C.other.manage then out[1] = "oFacName" end
+        if C.other and C.other.canTag then out[#out + 1] = "oFacTag" end
     end
     return out
+end
+
+-- a card's own claim: yours (safe, faction) or the one staff watch (osafe, ofac)
+function X.isOther(card) return card.kind == "osafe" or card.kind == "ofac" end
+-- the invitations shown as waiting: the server part's list of yours, or what staff sent from here
+function X.sentOf(kind, v)
+    if v and v.other then return C.otherSent[kind] or {} end
+    return C.sent[kind] or {}
 end
 
 -- hint: what the empty box says. sub: the line under the box while it is being typed in; a problem takes its place
@@ -332,21 +363,24 @@ function X.memberRows(items, st, t, kind, v)
         row.c = { id = "m:" .. n, help = can and tr("UI_ZeD_Cl_HelpRow") or nil, open = open,
             run = can and function() X.toggleRow(st, t, kind, n) end or nil }
         if open then
+            -- (on someone else's claim the confirm keeps the claim it was asked on: X.stamp)
+            local ov = v.other and v or nil
             local own = { id = "own:" .. n, text = X.word(X.plain("IGUI_SafehouseUI_ChangeOwnership")), help = tr("UI_ZeD_Cl_HelpOwner"),
-                run = function(ww) X.ask(ww, st, t, { act = "owner", kind = kind, who = n }) end }
+                run = function(ww) X.ask(ww, st, t, { act = "owner", kind = kind, who = n, v = ov }) end }
             if not on then own.disabled, own.why = true, tr("UI_ZeD_Cl_MustBeOnline", n) end
             row.acts = { own,
                 { id = "rem:" .. n, text = getText("ContextMenu_Remove"), help = tr("UI_ZeD_Cl_HelpRemove"), variant = "danger",
-                  run = function(ww) X.ask(ww, st, t, { act = "remove", kind = kind, who = n }) end } }
+                  run = function(ww) X.ask(ww, st, t, { act = "remove", kind = kind, who = n, v = ov }) end } }
         end
         items[#items + 1] = row
     end
     local names = {}
-    for n in pairs(C.sent[kind] or {}) do names[#names + 1] = n end
+    for n in pairs(X.sentOf(kind, v)) do names[#names + 1] = n end
     table.sort(names)
     for _, n in ipairs(names) do
         local row = { k = "member", kindOf = kind, name = n, pending = true }
-        if v.manage then
+        -- (the server part takes back only the invitations of your own claim: a staff one waits it out)
+        if v.manage and not v.other then
             local c = { id = "un:" .. n, text = getText("UI_Cancel"), help = tr("UI_ZeD_Cl_HelpUninvite"),
                 run = function(ww) X.uninvite(ww, st, t, kind, n) end }
             if not C.hasPart() then c.disabled, c.why = true, tr("UI_ZeD_Cl_NoTakeBack") end
@@ -374,19 +408,21 @@ function X.addDrawer(items, st, t, kind, v)
     items[#items + 1] = { k = "dhead", text = tr("UI_ZeD_Cl_PlayersOnline"), right = tr("UI_ZeD_Cl_PickInvite") }
     local n = 0
     local isIn = {}
-    local sent = C.sent[kind] or {}
+    local sent = X.sentOf(kind, v)
     for _, m in ipairs(v.names) do isIn[m] = true end
     -- (only the server's list knows who still holds one: without it a name stays pickable, the game takes a second invitation)
-    if C.sentSure[kind] then
+    if C.sentSure[kind] and not v.other then
         for m in pairs(sent) do isIn[m] = true end
     end
+    -- (staff adding to someone else's claim: not themselves, as the game's faction list leaves out the one who invites)
+    if v.other then isIn[C.me()] = true end
     for _, pl in ipairs(X.players()) do
         if not isIn[pl.user] then
             n = n + 1
             local user = pl.user
             local word, why
             if kind == "safe" then
-                local other = C.safeOf(user)
+                local other = C.safeOf(user, v)
                 word = other and tr("UI_ZeD_Cl_HasSafehouse") or tr("UI_ZeD_Cl_NoSafehouseYet")
                 if other then why = getText("IGUI_SafehouseUI_AlreadyHaveSafehouse", (other ~= "") and ("(" .. other .. ")") or "") end
             else
@@ -397,7 +433,7 @@ function X.addDrawer(items, st, t, kind, v)
             if sent[user] and not why then word = tr("UI_ZeD_Cl_InvitedWaiting") end
             items[#items + 1] = { k = "pick", name = pl.name, word = word,
                 c = { id = "pick:" .. user, help = tr("UI_ZeD_Cl_HelpPick", pl.name), disabled = why ~= nil, why = why,
-                      run = function(ww) X.invite(ww, st, t, kind, user) end } }
+                      run = function(ww) X.invite(ww, st, t, kind, user, v.other) end } }
         end
     end
     if n == 0 then
@@ -405,17 +441,19 @@ function X.addDrawer(items, st, t, kind, v)
     end
 end
 
-function X.invite(win, st, t, kind, user)
+-- other: the claim is someone else's, the one staff watch
+function X.invite(win, st, t, kind, user, other)
     X.cl(t).drawer = nil
     t.items = nil
     if not C.qaHold then
         C.refresh()
-        local v = (kind == "safe") and C.safe or C.fac
-        if not (v and v.manage) then
+        local v = (other and C.other) or (not other and ((kind == "safe") and C.safe or C.fac)) or nil
+        -- (an invitation from someone who no longer manages it is a refused safehouse packet: the kick, X.stillTrue)
+        if not (v and v.manage) or (other and v.kind ~= kind) then
             D.flash(t, tr("UI_ZeD_Cl_AskStale"))
             return
         end
-        C.invite(kind, user)
+        C.invite(kind, user, other and v or nil)
     end
     D.flash(t, tr("UI_ZeD_Cl_Sent", user))
     D.focusId(win, st, "tk:add")
@@ -451,10 +489,11 @@ function X.askWords(c)
 end
 
 -- what a confirm was opened on, so it can tell if that has changed under it
+-- (c.v: someone else's claim, the staff card's; else your own)
 function X.stamp(c)
     if c.act == "war" then c.canEnd = C.cap("CanGoInsideSafehouses")
-    elseif X.askOnSafe(c) then c.house = C.safe
-    else c.fac = C.fac end
+    elseif X.askOnSafe(c) then c.house = c.v or C.safe
+    else c.fac = c.v or C.fac end
     return c
 end
 
@@ -481,12 +520,13 @@ function X.stillTrue(c)
         end
         return false
     end
-    local v = C.fac
+    local v
     if X.askOnSafe(c) then
-        v = C.safe
+        v = c.house and C.latest(c.house, "safe")
         if not (v and c.house and v.id == c.house.id) then return false end
-    elseif not (v and c.fac and v.obj == c.fac.obj) then
-        return false
+    else
+        v = c.fac and C.latest(c.fac, "fac")
+        if not (v and c.fac and v.obj == c.fac.obj) then return false end
     end
     if c.act == "release" or c.act == "disband" then return v.manage == true end
     if c.act == "quit" or c.act == "leave" then return not v.isOwner end
@@ -547,19 +587,20 @@ function X.runAsk(win, st, t, c)
             if not ok then
                 card.goneText = nil
                 D.flash(t, tr("UI_ZeD_Cl_NoAnswer"))
-            elseif st.card == card and TC.kinds[card.kind].data() then
+            elseif st.card == card and TC.kinds[card.kind].data(card) then
                 -- (staff can hold a second safehouse, and the card would go on to show that one)
                 D.flash(t, words)
                 TC.back(win, st)
             end
         end
     end
+    local ov = c.v and C.latest(c.v, X.askOnSafe(c) and "safe" or "fac") or nil
     if c.act == "release" then C.release(c.house, left(tr("UI_ZeD_Cl_Released")))
     elseif c.act == "quit" then C.quit(c.house, left(tr("UI_ZeD_Cl_Quit")))
-    elseif c.act == "disband" then C.disband(left(tr("UI_ZeD_Cl_Disbanded")))
+    elseif c.act == "disband" then C.disband(left(tr("UI_ZeD_Cl_Disbanded")), ov)
     elseif c.act == "leave" then C.leave(left(tr("UI_ZeD_Cl_Left")))
-    elseif c.act == "remove" then C.remove(c.kind, c.who, function(ok) X.answered(t, ok, tr("UI_ZeD_Cl_Removed", c.who)) end)
-    elseif c.act == "owner" then C.changeOwner(c.kind, c.who, function(ok) X.answered(t, ok, tr("UI_ZeD_Cl_NewOwner", c.who)) end)
+    elseif c.act == "remove" then C.remove(c.kind, c.who, function(ok) X.answered(t, ok, tr("UI_ZeD_Cl_Removed", c.who)) end, ov)
+    elseif c.act == "owner" then C.changeOwner(c.kind, c.who, function(ok) X.answered(t, ok, tr("UI_ZeD_Cl_NewOwner", c.who)) end, ov)
     end
 end
 
@@ -597,11 +638,11 @@ function X.footEdit(win, st, t, card)
         D.btn("ecancel", getText("UI_Cancel"), function(ww) X.revert(ww, st) end, nil, tr("UI_ZeD_Cl_HelpRevert")), save } }
 end
 
--- ends: { act, label, help } in reading order
-function X.footEnd(st, t, ends)
+-- ends: { act, label, help } in reading order. v: someone else's claim (the staff card), or nil for your own
+function X.footEnd(st, t, ends, v)
     local main = {}
     for i, e in ipairs(ends) do
-        local b = D.btn(e[1], X.word(e[2]), function(ww) X.ask(ww, st, t, { act = e[1] }) end, "danger", e[3])
+        local b = D.btn(e[1], X.word(e[2]), function(ww) X.ask(ww, st, t, { act = e[1], v = v }) end, "danger", e[3])
         if t.busy then D.disable(b, tr("UI_ZeD_Tk_Busy")) end
         main[i] = b
     end
@@ -621,21 +662,27 @@ end
 function X.itemsSafe(win, st, t, card, h)
     local items = {}
     local r = C.rules or {}
+    local key = X.isOther(card) and "oSafeTitle" or "safeTitle"
     items[#items + 1] = { k = "label", text = X.plain("IGUI_SafehouseUI_Title"),
-        rightFn = h.manage and X.fieldRight(st, "safeTitle", tr("UI_ZeD_Cl_PickRename")) or nil }
-    if h.manage then X.field(items, st, "safeTitle", h.title, tr("UI_ZeD_Cl_TitleHint"), true, tr("UI_ZeD_Cl_TitleSub"))
+        rightFn = h.manage and X.fieldRight(st, key, tr("UI_ZeD_Cl_PickRename")) or nil }
+    if h.manage then X.field(items, st, key, h.title, tr("UI_ZeD_Cl_TitleHint"), true, tr("UI_ZeD_Cl_TitleSub"))
     else items[#items + 1] = { k = "value", text = h.title } end
     X.fact(items, "IGUI_SafehouseUI_Owner", h.owner)
     X.fact(items, "IGUI_SafehouseUI_Location", h.location or (tostring(h.x) .. " x " .. tostring(h.y)))
     if h.created then X.fact(items, "IGUI_SafehouseUI_DateCreated", h.created) end
-    local keep = CC.keepWords()
-    if keep then items[#items + 1] = { k = "sub", text = keep } end
-    local sub, why
-    if not r.respawn then why, sub = tr("UI_ZeD_Cl_RespawnOff"), tr("UI_ZeD_Cl_RespawnOff")
-    elseif h.respawn then sub = tr("UI_ZeD_Cl_RespawnOn")
-    else sub = tr("UI_ZeD_Cl_RespawnNeeds") end
-    X.check(items, "respawn", getText("IGUI_SafehouseUI_Respawn"), sub, h.respawn and r.respawn,
-        function() if C.qaHold then return end; C.setRespawn(not h.respawn) end, not h.manage, why)
+    -- (the server part's time left is for your own safehouse alone; the respawn tick is the player's own, so a member's)
+    if not h.other then
+        local keep = CC.keepWords()
+        if keep then items[#items + 1] = { k = "sub", text = keep } end
+    end
+    if not h.other or h.member then
+        local sub, why
+        if not r.respawn then why, sub = tr("UI_ZeD_Cl_RespawnOff"), tr("UI_ZeD_Cl_RespawnOff")
+        elseif h.respawn then sub = tr("UI_ZeD_Cl_RespawnOn")
+        else sub = tr("UI_ZeD_Cl_RespawnNeeds") end
+        X.check(items, "respawn", getText("IGUI_SafehouseUI_Respawn"), sub, h.respawn and r.respawn,
+            function() if C.qaHold then return end; C.setRespawn(not h.respawn, h.other and h or nil) end, not h.manage, why)
+    end
     items[#items + 1] = { k = "label", text = X.plain("IGUI_SafehouseUI_Players"), right = tostring(#h.names) }
     X.memberRows(items, st, t, "safe", h)
     if h.manage then X.addDrawer(items, st, t, "safe", h) end
@@ -646,13 +693,16 @@ end
 function X.itemsFaction(win, st, t, card, f)
     local items = {}
     local r = C.rules or {}
+    local other = X.isOther(card)
+    local nameKey, tagKey = other and "oFacName" or "facName", other and "oFacTag" or "facTag"
     items[#items + 1] = { k = "label", text = X.plain("IGUI_FactionUI_FactionName"),
-        rightFn = f.manage and X.fieldRight(st, "facName", tr("UI_ZeD_Cl_PickRename")) or nil }
-    if f.manage then X.field(items, st, "facName", f.name, tr("UI_ZeD_Cl_NameHint"), true, getText("IGUI_FactionUI_FactionNameTooLongShort"))
+        rightFn = f.manage and X.fieldRight(st, nameKey, tr("UI_ZeD_Cl_PickRename")) or nil }
+    if f.manage then X.field(items, st, nameKey, f.name, tr("UI_ZeD_Cl_NameHint"), true, getText("IGUI_FactionUI_FactionNameTooLongShort"))
     else items[#items + 1] = { k = "value", text = f.name } end
-    items[#items + 1] = { k = "label", text = X.plain("IGUI_FactionUI_Tag"), rightFn = f.canTag and X.count(st, "facTag") or nil }
+    if other then X.fact(items, "IGUI_SafehouseUI_Owner", f.owner) end
+    items[#items + 1] = { k = "label", text = X.plain("IGUI_FactionUI_Tag"), rightFn = f.canTag and X.count(st, tagKey) or nil }
     if f.canTag then
-        X.field(items, st, "facTag", f.tag or "", tr("UI_ZeD_Cl_TagHint"), nil, getText("IGUI_FactionUI_TagTooLongShort"))
+        X.field(items, st, tagKey, f.tag or "", tr("UI_ZeD_Cl_TagHint"), nil, getText("IGUI_FactionUI_TagTooLongShort"))
     elseif f.hasRoom or f.tag then
         items[#items + 1] = { k = "value", text = f.tag or tr("UI_ZeD_Cl_NoTag"), tagColor = f.color }
     else
@@ -673,11 +723,14 @@ function X.itemsFaction(win, st, t, card, f)
         end
         items[#items + 1] = { k = "swatches", ctls = ctls }
     end
-    X.check(items, "showtag", getText("IGUI_FactionUI_ShowTag"), tr("UI_ZeD_Cl_OwnTick"), f.showTag,
-        function() if C.qaHold then return end; C.showTag(not f.showTag) end, not f.manage)
-    if f.tag and f.tag ~= "" then items[#items + 1] = { k = "preview", tag = f.tag, color = f.color, show = f.showTag } end
-    X.check(items, "pvp", getText("IGUI_FactionUI_FactionPvp"), getText("IGUI_FactionUI_FactionPvpTooltip"), f.pvp,
-        function() if C.qaHold then return end; C.factionPvp(not f.pvp) end)
+    -- (the two ticks and the preview are the player's own, over their own head: a member's alone)
+    if not other or f.member then
+        X.check(items, "showtag", getText("IGUI_FactionUI_ShowTag"), tr("UI_ZeD_Cl_OwnTick"), f.showTag,
+            function() if C.qaHold then return end; C.showTag(not f.showTag) end, not f.manage)
+        if f.tag and f.tag ~= "" then items[#items + 1] = { k = "preview", tag = f.tag, color = f.color, show = f.showTag } end
+        X.check(items, "pvp", getText("IGUI_FactionUI_FactionPvp"), getText("IGUI_FactionUI_FactionPvpTooltip"), f.pvp,
+            function() if C.qaHold then return end; C.factionPvp(not f.pvp) end)
+    end
     items[#items + 1] = { k = "label", text = tr("UI_ZeD_Srv_Members"), right = tostring(#f.names) }
     X.memberRows(items, st, t, "fac", f)
     if f.manage then X.addDrawer(items, st, t, "fac", f) end
@@ -839,6 +892,77 @@ TC.kinds.wars = {
         return true
     end,
 }
+
+-- ---------------------------------------------------------------------------
+-- SOMEONE ELSE'S SAFEHOUSE OR FACTION, for staff (the Admin tab). The same parts on C.other: the game's windows for an
+-- admin (ISSafehouseUI with CanSetupSafehouses, ISFactionUI with FactionCheat), their Add Player and tag pop-ups in the
+-- card. Each frame names the claim, so the model keeps reading it while the card shows (C.watchOther)
+-- ---------------------------------------------------------------------------
+function X.otherData(card)
+    if not C.qaHold then C.watchOther((card.kind == "osafe") and "safe" or "fac", card.obj) end
+    local o = C.other
+    if o and o.obj == card.obj then return o end
+    return nil
+end
+
+TC.kinds.osafe = {
+    data = X.otherData,
+    items = X.itemsSafe,
+    title = function(card, h) return h and h.title or getText("IGUI_SafehouseUI_Safehouse") end,
+    help = function(t, card, h)
+        if not h then return tr("UI_ZeD_Tk_Loading") end
+        return X.helpFor(t, card, tr(h.manage and "UI_ZeD_Cl_HelpSafeStaff" or "UI_ZeD_Cl_HelpSafeLook", tostring(h.owner)))
+    end,
+    foot = function(win, st, t, card, h)
+        if not h then return { main = {} } end
+        local foot = X.footAsk(win, st, t) or X.footEdit(win, st, t, card)
+        if foot then return foot end
+        -- (the game's window: Release for the owner and CanSetupSafehouses, Quit for a member who is not the owner)
+        local ends = {}
+        if h.member and not h.isOwner then ends[1] = { "quit", getText("IGUI_SafehouseUI_QuitSafehouse"), tr("UI_ZeD_Cl_HelpQuit") } end
+        if h.manage then ends[#ends + 1] = { "release", getText("IGUI_SafehouseUI_Release"), tr("UI_ZeD_Cl_HelpRelease") } end
+        return X.footEnd(st, t, ends, h)
+    end,
+    key = X.cardKey, cancel = X.cancelCard,
+    gone = function(card) return card.goneText or tr("UI_ZeD_Cl_OtherSafeGone") end,
+}
+
+TC.kinds.ofac = {
+    data = X.otherData,
+    items = X.itemsFaction,
+    title = function(card, f) return f and f.name or getText("UI_userpanel_factionpanel") end,
+    help = function(t, card, f)
+        if not f then return tr("UI_ZeD_Tk_Loading") end
+        return X.helpFor(t, card, tr(f.manage and "UI_ZeD_Cl_HelpFacStaff" or "UI_ZeD_Cl_HelpFacLook", tostring(f.owner)))
+    end,
+    foot = function(win, st, t, card, f)
+        if not f then return { main = {} } end
+        local foot = X.footAsk(win, st, t) or X.footEdit(win, st, t, card)
+        if foot then return foot end
+        -- (the game's window: Disband for the owner and FactionCheat. A player is in one faction, so staff in this one
+        -- would have opened it as their own)
+        local ends = {}
+        if f.manage then ends[1] = { "disband", getText("IGUI_FactionUI_Remove"), tr("UI_ZeD_Cl_HelpDisband") } end
+        return X.footEnd(st, t, ends, f)
+    end,
+    key = X.cardKey, cancel = X.cancelCard,
+    gone = function(card) return card.goneText or tr("UI_ZeD_Cl_OtherFacGone") end,
+}
+
+-- kind: "safe" or "faction"; obj: the game's SafeHouse or Faction. The Admin tab's list and the right-click View
+function CC.openOther(win, st, kind, obj, from)
+    local isSafe = kind == "safe"
+    for _, k in ipairs(isSafe and { "oSafeTitle" } or { "oFacName", "oFacTag" }) do X.resetField(win, k) end
+    local t = st_t(st)
+    local card = { kind = isSafe and "osafe" or "ofac", obj = obj, from = from, win = win }
+    t.cl = {}
+    if not C.qaHold then
+        C.watchOther(isSafe and "safe" or "fac", obj)
+        C.refresh()
+    end
+    D.push(win, st, card)
+    return card, t
+end
 
 function X.create(win, st, t, card)
     local name = X.text(win, "newFac")
@@ -1436,7 +1560,8 @@ TC.items.preview = {
 }
 
 -- ---------------------------------------------------------------------------
--- THE RIGHT-CLICK MENU'S "View safehouse" on your own opens the card (ISWorldObjectContextMenu.onViewSafeHouse)
+-- THE RIGHT-CLICK MENU'S "View safehouse" on your own opens the card (ISWorldObjectContextMenu.onViewSafeHouse); on
+-- someone else's, staff get its card in the Admin tab
 -- ---------------------------------------------------------------------------
 function CC.hookWorld()
     if CC.hooked or not ISWorldObjectContextMenu or not ISWorldObjectContextMenu.onViewSafeHouse then return end
@@ -1448,6 +1573,11 @@ function CC.hookWorld()
         local n = p and p.getPlayerNum and p:getPlayerNum() or 0
         if mine and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab and ZeD_CharacterWindow.openTab(n, "server") then
             C.openNext = "safe"
+            return
+        end
+        -- someone else's: its staff card in the Admin tab, for a role that can manage it (the game's window otherwise)
+        if not mine and C.cap("CanSetupSafehouses") and ZeD.AdminTab and ZeD.AdminTab.openNext
+            and ZeD.AdminTab.openNext({ kind = "osafe", obj = safehouse }, n) then
             return
         end
         return base(worldobjects, safehouse, player)

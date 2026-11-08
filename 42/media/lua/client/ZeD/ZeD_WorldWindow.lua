@@ -81,6 +81,13 @@ local TAB_SEP_MAR          = 0
 -- consumers (tab switches, MC entry, item selection, the public close).
 local function dropObjectCard(win)
     if not win or not win._drawerObject then return end
+    -- a pinned card (the trade, the director Nov 7 2026) stays through tab switches, item cards and the
+    -- like; only its own close (closeObjectCard: the close key, B, Cancel) takes it away
+    local pd = win._drawerObject.def
+    if pd and pd.pinned and not win._forceDrop then
+        local okP, pin = pcall(pd.pinned, win._drawerObject.t)
+        if okP and pin then return end
+    end
     win._drawerObject = nil
     if win._objectCard then win._objectCard:setEntry(nil) end
     if win._drawerMode == "object" then
@@ -3298,6 +3305,8 @@ end
 
 function ZeD_WorldWindow.toggle(playerNum)
     playerNum = playerNum or 0
+    -- (split-screen: another player's press never opens or closes the first player's window, ZeD.windowsFor)
+    if not ZeD.windowsFor(playerNum) then return end
 
     if _worldWin then
         _closeWorldWindow(_worldWin)
@@ -3340,6 +3349,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
+    win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the roll-up and the cards)
 
     _worldWin = win
 
@@ -5714,6 +5724,7 @@ end
 -- ============================================================================
 
 function ZeD_WorldWindow.open(playerNum)
+    if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: the game's own, ZeD.windowsFor)
     -- (never for a dead character; code audit Oct 17 2026)
     local p = getSpecificPlayer(playerNum or 0)
     if p and p:isDead() then return end
@@ -5739,6 +5750,7 @@ end
 -- the active tab (or opens the drawer on the Loot view).
 function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not entry then return false end
+    if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _worldWin then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
         if not ok then return false end
@@ -5783,7 +5795,13 @@ function ZeD_WorldWindow.closeObjectCard()
             Focus.setZoneFocusable(win, "worldItemCard", false)
         end
     end
-    dropObjectCard(win)
+    -- (the card's own close: a pinned card goes too, and its kind hears it was the player's close)
+    win._forceDrop = true
+    ZeD_WorldWindow._closingCard = true
+    local ok, err = pcall(dropObjectCard, win)
+    win._forceDrop = nil
+    ZeD_WorldWindow._closingCard = nil
+    if not ok then print("[ZeD] WorldWindow: closing the card failed: " .. tostring(err)) end
 end
 
 function ZeD_WorldWindow.getObjectCard()
@@ -5850,6 +5868,7 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
 end
 
 function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
+    if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _worldWin then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
         if not ok then return false end

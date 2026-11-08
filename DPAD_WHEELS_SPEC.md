@@ -56,7 +56,7 @@ Order is clockwise from 12 o'clock. ▸ = opens an inner wheel. "Live when" = ot
 | # | Slice | Live when / reason | Inside, or what it does |
 |---|---|---|---|
 | 1 | Tabs ▸ | always | Loot, Crafting, Building, Furniture, Maps, Foraging, Animals, Radio, Vehicle: open the pair on that World tab |
-| 2 | Map ▸ | always | World map (`ISWorldMap.ToggleWorldMap`, which already lands on the Maps tab), Mini-map show / hide (`ISMiniMap.ToggleMiniMap`), Mini-map centre on you (`ISMiniMap.FocusMiniMap`) |
+| 2 | Map ▸ | always | World map (`ISWorldMap.ToggleWorldMap`, which already lands on the Maps tab). (Nov 7 2026, the director: no mini-map in ZeD's wheels, "the World window's map is the map". Its two slices, show / hide and centre on you, were the last two here, so World map keeps its place and Back follows it.) |
 | 3 | Vehicle ▸ | in or next to a vehicle ("No vehicle in reach.") | vanilla's vehicle wheel slices, as they are (`ISVehicleMenu.showRadialMenu` fills it: inside, seat / engine / lights / heater / horn / radio / mechanics / exit; outside, enter / gas / doors / trunk / mechanics). Settled: a World slice, not a separate wheel while seated. In the driver's seat ZeD adds **Dashboard** after the game's slices (vanilla's word, `IGUI_VehiclePartCatdashboard`; second line "The D-pad on its controls. B lets go."): the pad goes to the dash's controls until B (director, Oct 24 2026: the dash no longer takes the D-pad when you sit down, so the wheels open at once). |
 | 4 | Animal ▸ | a tame animal in reach ("No tame animal in reach.") | vanilla's animal wheel slices (`AnimalContextMenu.showRadialMenu`) |
 | 5 | Craft and build ▸ | always | Crafting (at the nearest station, named: "Workbench, 2 tiles"), Building, Move furniture: open the World tab |

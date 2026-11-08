@@ -86,6 +86,24 @@ TEXT.UI_ZeD_Adm_SpawnLineGround = TEXT.UI_ZeD_Adm_SpawnLineGround or "%1 x %2 to
 TEXT.UI_ZeD_Adm_SpawnedMe = TEXT.UI_ZeD_Adm_SpawnedMe or "%1 x %2 spawned to you. Logged."
 TEXT.UI_ZeD_Adm_SpawnedGround = TEXT.UI_ZeD_Adm_SpawnedGround or "%1 x %2 spawned to the ground. Logged."
 TEXT.UI_ZeD_Adm_NoItemMatch = TEXT.UI_ZeD_Adm_NoItemMatch or "No items match."
+-- the game's words the stats and inventory cards use
+for k, v in pairs({ IGUI_PlayerStats_Change = "Change", IGUI_PlayerStats_Username = "Username:", IGUI_PlayerStats_DisplayName = "Display Name:",
+    UI_characreation_forename = "Forename", UI_characreation_surname = "Surname", IGUI_PlayerStats_Profession = "Profession:", IGUI_char_Survived_For = "Survived For",
+    IGUI_char_Zombies_Killed = "Zombies Killed", IGUI_char_Weight = "Weight", IGUI_char_Traits = "Traits", IGUI_PlayerStats_AddTrait = "Add Trait",
+    IGUI_PlayerStats_AddTraitTitle = "Add Trait", IGUI_PlayerStats_AddTraitTooltip = "Will add trait, but not skill levels or XP multiplier. Skill levels can be added below.",
+    IGUI_PlayerStats_AddXP = "Add XP", IGUI_PlayerStats_AddXPTitle = "Add XP", IGUI_PlayerStats_Amount = "Amount", IGUI_PlayerStats_AddXPMultipliers = "Use XP multipliers",
+    IGUI_PlayerStats_Level = "Level", IGUI_PlayerStats_XP = "XP", IGUI_PlayerStats_Boost = "Boost", IGUI_PlayerStats_Multiplier = "Multiplier",
+    IGUI_PlayerStats_WarningPts = "Warning Points:", IGUI_PlayerStats_Add = "Add", IGUI_PlayerStats_WarningPointTitle = "Add Warning Points",
+    IGUI_PlayerStats_AddLog = "Add Log", IGUI_PlayerStats_AddLogOn = "Add log on %1", IGUI_PlayerStats_RemoveLogConfirm = "Are you sure you want to remove this log?",
+    IGUI_PlayerStats_ChangeProfTitle = "Change Profession", IGUI_PlayerStats_SameName = "%1 is the same", ContextMenu_Remove = "Remove",
+    IGUI_RolesList_Save = "Save", UI_servers_refresh = "REFRESH", IGUI_invpanel_Condition = "Condition", IGUI_ItemCat_Weapon = "Weapon" }) do TEXT[k] = TEXT[k] or v end
+getItemName = function(full) return (string.gsub(full, "^Base%.", "")) end
+getItemTex = function() return nil end
+getItemConditionMax = function() return 10 end
+INVCALLS = {}
+InvMngRemoveItem = function(id, oid, user) INVCALLS[#INVCALLS + 1] = "rm:" .. tostring(id) .. ":" .. tostring(oid) .. ":" .. tostring(user) end
+InvMngGetItem = function(id, full, oid, user) INVCALLS[#INVCALLS + 1] = "get:" .. tostring(id) .. ":" .. tostring(full) .. ":" .. tostring(oid) .. ":" .. tostring(user) end
+sendRequestInventory = function(oid, user) INVCALLS[#INVCALLS + 1] = "ask:" .. tostring(oid) .. ":" .. tostring(user) end
 function getText(k, ...)
     local s = TEXT[k] or k
     return s
@@ -777,8 +795,13 @@ clear()
 press("tk:tpme")
 ack("a_bring")
 check("bring", hasS('/teleportplayer "Kade_R" "Aretha"'))
+local invWas = ISPlayerStatsManageInvUI.opened
 press("tk:inv")
-check("Manage Inventory opens the game's window", ISPlayerStatsManageInvUI.opened >= 1)
+check("Inventory opens its card over the player card, not the game's window", st.card.kind == "pinv" and st.card.parent and st.card.parent.kind == "player"
+    and ISPlayerStatsManageInvUI.opened == invWas)
+TC.back(win, st)
+draw()
+check("back to the player card from the inventory", st.card.kind == "player")
 -- a ticket on the card, and back to the card
 TC.qaHold = true
 press("tk:tkt:14")
@@ -1305,6 +1328,223 @@ do
     S.routes[Adm.MOD]("a_leave", { kind = "ban", reason = "R" })
     check("said again, the clock runs on", M.hooked5 == nil)
     M.leaveScreen, M.leaveAt, M.leave = nil, nil, nil
+end
+
+-- the stats card and the inventory card (ZeD_StatsCards.lua): the game's calls, as its windows make them -----------------
+do
+    local SC = ZeD.StatsCards
+    fresh()
+    SC.qaView, SC.qaLists, SC.qaInv = nil, nil, nil
+    M.qaCaps = { CanSeePlayersStats = true, CanModifyPlayerStatsInThePlayerStatsUI = true, AddXP = true, AddUserlog = true, ReadUserLog = true,
+        WorkWithUserlog = true, InspectPlayerInventory = true, ManipulateWhitelist = true, AddItem = true }
+    M.bump()
+    -- the game's side, from the javap listings: a player, its descriptor, traits, XP and the definitions
+    local CALLS = {}
+    local function log(s) CALLS[#CALLS + 1] = s end
+    local function has(s) for _, v in ipairs(CALLS) do if v == s then return true end end return false end
+    local PERKS = { "Farming", "Aiming" }
+    local perkObj = {}
+    for i, n in ipairs(PERKS) do
+        perkObj[n] = { n = n, getName = function() return n end, getParent = function() return { pn = "Skill" } end,
+            getXpForLevel = function(_, lv) return 75 * lv end, getTotalXpForLevel = function(_, lv) return 100 * lv end }
+        setmetatable(perkObj[n], { __tostring = function() return n end })
+    end
+    Perks = { None = "none", getMaxIndex = function() return #PERKS end, fromIndex = function(i) return perkObj[PERKS[i + 1]] end }
+    PerkFactory = { getPerk = function(p) return p end, getPerkName = function() return "Skill" end }
+    ISSkillProgressBar = nil
+    local function trait(id, cost) return { getType = function() return id end, getTexture = function() return {} end, getLabel = function() return id end,
+        getDescription = function() return id .. " <LINE> more" end, getCost = function() return cost end } end
+    local DEFS = { trait("Strong", 10), trait("Brave", 4), trait("Smoker", -4) }
+    CharacterTraitDefinition = { getTraits = function() return { size = function() return #DEFS end, get = function(_, i) return DEFS[i + 1] end } end,
+        getCharacterTraitDefinition = function(id) for _, d in ipairs(DEFS) do if d:getType() == id then return d end end return nil end }
+    local PROFS = { { t = "unemployed", n = "Unemployed" }, { t = "farmer", n = "Farmer" }, { t = "nurse", n = "Nurse" } }
+    CharacterProfession = { UNEMPLOYED = "unemployed" }
+    local function prof(p) return { getType = function() return p.t end, getUIName = function() return p.n end, getDescription = function() return p.n end } end
+    CharacterProfessionDefinition = { getProfessions = function() return { size = function() return #PROFS end, get = function(_, i) return prof(PROFS[i + 1]) end } end,
+        getCharacterProfessionDefinition = function(t) for _, p in ipairs(PROFS) do if p.t == t then return prof(p) end end return nil end }
+    local known = { "Strong" }
+    local xp = { Farming = 120, Aiming = 0 }
+    local rolePos = 1
+    local desc = { fore = "Kade", sur = "Rourke", prof = "farmer" }
+    function desc.getForename(self) return self.fore end
+    function desc.setForename(self, s) self.fore = s; log("fore:" .. s) end
+    function desc.getSurname(self) return self.sur end
+    function desc.setSurname(self, s) self.sur = s end
+    function desc.getCharacterProfession(self) return self.prof end
+    function desc.setCharacterProfession(self, p) self.prof = p; log("prof:" .. tostring(p)) end
+    local CHAR = { inWorld = true }
+    function CHAR.getUsername() return "Kade_R" end
+    function CHAR.getDisplayName() return "Kade" end
+    function CHAR.setDisplayName(_, s) log("display:" .. s) end
+    function CHAR.getDescriptor() return desc end
+    function CHAR.getTimeSurvived() return "9 days" end
+    function CHAR.getZombieKills() return 212 end
+    function CHAR.getNutrition() return { getWeight = function() return 81.6 end } end
+    function CHAR.getRole() return { getName = function() return "user" end, getPosition = function() return rolePos end } end
+    function CHAR.setRole(_, name) log("role:" .. tostring(name)) end
+    function CHAR.getOnlineID() return 7 end
+    function CHAR.getCurrentSquare() return {} end
+    function CHAR.isExistInTheWorld(self) return self.inWorld end
+    function CHAR.hasTrait(_, id) for _, k in ipairs(known) do if k == id then return true end end return false end
+    function CHAR.getCharacterTraits() return {
+        getKnownTraits = function() return { size = function() return #known end, get = function(_, i) return known[i + 1] end } end,
+        add = function(_, id) known[#known + 1] = id; log("trait+" .. id) end,
+        remove = function(_, id) for i = #known, 1, -1 do if known[i] == id then table.remove(known, i) end end log("trait-" .. id) end } end
+    function CHAR.modifyTraitXPBoost(_, id, off) log("boost:" .. id .. ":" .. tostring(off)) end
+    function CHAR.getPerkLevel(_, p) return math.floor(xp[p.n] / 100) end
+    function CHAR.getXp() return { getXP = function(_, p) return xp[p.n] end, getPerkBoost = function() return 1 end, getMultiplier = function() return 1 end,
+        AddXP = function(_, p, n, a, mult) xp[p.n] = xp[p.n] + n; log("addxp:" .. p.n .. ":" .. n .. ":" .. tostring(mult)) end } end
+    SC.qaChar = { Kade_R = CHAR }
+    sendPlayerStatsChange = function() log("stats") end
+    SyncXp = function() log("syncxp") end
+    addUserlog = function(u, ty, text) log("log+" .. u .. ":" .. tostring(ty) .. ":" .. text) end
+    removeUserlog = function(u, ty, text) log("log-" .. u .. ":" .. ty .. ":" .. text) end
+    getRoles = function()
+        local rs = { { "user", 1 }, { "moderator", 5 }, { "admin", 7 } }
+        return { size = function() return #rs end, get = function(_, i) local r = rs[i + 1]; return { getName = function() return r[1] end, getPosition = function() return r[2] end, getDescription = function() return "" end } end }
+    end
+    PLAYER.getRole = function() return { getPosition = function() return 5 end, getName = function() return "moderator" end, hasCapability = function() return true end } end
+
+    press("adm:tk:p:Kade_R")
+    press("tk:stats")
+    check("Check stats opens the stats card over the player card, not the game's window", st.card.kind == "pstats" and st.card.parent.kind == "player" and ISPlayerStatsUI.opened == 0)
+    check("it reads the player: names, profession, weight, traits, skills", st.card.view.fore == "Kade" and st.card.view.profName == "Farmer" and st.card.view.weight == 81
+        and #st.card.view.traits == 1 and #st.card.view.skills == 2)
+    -- a name: the field in the card, Save in the foot, the game's setter and its packet
+    press("tk:c:fore")
+    check("Change opens the name in the card", st.card.open == "name" and TC._D.fieldText(win, "sname") == "Kade")
+    check("the same name grays Save with the game's words", grayWhy("tk:sgo") == "%1 is the same" or grayWhy("tk:sgo") == getText("IGUI_PlayerStats_SameName", "Forename"))
+    typeIn("sname", "")
+    check("an empty name grays Save", grayWhy("tk:sgo") == ZeD.tr("UI_ZeD_St_NameEmpty"))
+    typeIn("sname", "Kaden")
+    press("tk:sgo")
+    check("Save: the descriptor's setter, then sendPlayerStatsChange", has("fore:Kaden") and CALLS[#CALLS] == "stats" and st.card.open == nil)
+    -- weight: the server's own command, 30 to 130
+    press("tk:c:wt")
+    typeIn("sweight", "200")
+    check("a weight out of range grays Save", grayWhy("tk:sgo") == ZeD.tr("UI_ZeD_St_WeightRange", 30, 130))
+    typeIn("sweight", "90")
+    press("tk:sgo")
+    check("weight goes as the game's setWeight with the online ID", sent("setWeight") and sent("setWeight").weight == 90 and sent("setWeight").id == 7)
+    -- profession: a pick, then the foot
+    press("tk:c:prof")
+    check("Change profession grays until a pick", grayWhy("tk:sgo") == ZeD.tr("UI_ZeD_St_PickFirst"))
+    press("tk:pk:3")
+    press("tk:sgo")
+    check("profession: setCharacterProfession and the packet", has("prof:nurse"))
+    -- traits: add a good one, remove behind the foot's ask
+    press("tk:addtrait")
+    press("tk:pk:1")
+    press("tk:sgo")
+    check("Add trait: add, the XP boost, SyncXp", has("trait+Brave") and has("boost:Brave:false") and has("syncxp"))
+    st.card.stale = true
+    draw()
+    press("tk:tr:1")
+    check("Remove asks in the foot first", TC.qaState(st).confirm ~= nil and not has("trait-Strong"))
+    press("tk:sgo")
+    check("then the game's remove and boost", has("trait-Strong") and has("boost:Strong:true"))
+    -- XP: Level Up as the window's LEVELPERK: /addxp to the next level's start
+    clear()
+    st.card.stale = true
+    draw()
+    press("tk:su:Farming")
+    check("Level Up: the server's /addxp for the gap, without multipliers", hasS('/addxp "Kade_R" Farming=80 -false') and has("addxp:Farming:80:false"))
+    press("tk:addxp")
+    press("tk:pk:1")
+    typeIn("sxp", "25")
+    press("tk:sgo")
+    check("Add XP: the amount with multipliers ticked", hasS('/addxp "Kade_R" Aiming=25 -true'))
+    -- logs and warning points
+    press("tk:addlog")
+    typeIn("slog", "Asked about the generator")
+    press("tk:sgo")
+    check("Add log: the game's addUserlog as AdminLog", has("log+Kade_R:AdminLog:Asked about the generator"))
+    M.logs.Kade_R = { { type = "AdminLog", text = "Old", by = "Rosa", amount = 0 } }
+    M.bump()
+    press("tk:lg:1")
+    press("tk:sgo")
+    check("Remove log behind the ask: removeUserlog", has("log-Kade_R:AdminLog:Old"))
+    clear()
+    press("tk:addwarn")
+    typeIn("sreason", "Third time")
+    press("tk:sgo")
+    check("warning points: the game's addWarningPoint", hasG("warn:Kade_R:Third time:1"))
+    -- the gates: the window's rank rule, the packet's capability
+    rolePos = 7
+    st.card.stale = true
+    draw()
+    check("a role above yours grays every Change", grayWhy("tk:c:fore") == ZeD.tr("UI_ZeD_St_RankAbove", "user"))
+    rolePos = 1
+    CHAR.inWorld = false
+    st.card.stale = true
+    draw()
+    check("out of the world grays them", grayWhy("tk:c:wt") == ZeD.tr("UI_ZeD_St_NotInWorld"))
+    CHAR.inWorld = true
+    M.qaCaps.WorkWithUserlog, M.qaCaps.CanModifyPlayerStatsInThePlayerStatsUI = nil, nil
+    st.card.stale = true
+    M.bump()
+    draw()
+    check("without the window's capability: its reason", grayWhy("tk:c:wt") == M.why("CanModifyPlayerStatsInThePlayerStatsUI"))
+    M.qaCaps.CanModifyPlayerStatsInThePlayerStatsUI = true
+    M.bump()
+    check("a log off needs WorkWithUserlog", grayWhy("tk:lg:1") == M.why("WorkWithUserlog"))
+    -- B closes an open part, not the card
+    press("tk:c:fore")
+    stops("admin")[2].onCancel(win)
+    check("B closes the part first", st.card.kind == "pstats" and st.card.open == nil)
+    -- someone this client hasn't loaded: no stats, the logs stay
+    SC.qaChar = {}
+    st.card.stale = true
+    M.bump()
+    draw()
+    check("not loaded: says so, no Change", stopOf("tk:c:fore") == nil and stopOf("tk:addlog") ~= nil)
+    SC.qaChar = { Kade_R = CHAR }
+    -- the inventory card: the server's table, Remove behind the ask, Take
+    INVCALLS = {}
+    M.qaHold = false
+    press("tk:inv")
+    check("the inventory card asks the server with the online ID", INVCALLS[1] == "ask:7:Kade_R")
+    M.qaHold = true
+    local items = { capacityWeight = 3.21, maxWeight = 18,
+        { itemId = 11, fullType = "Base.Axe", count = "1", cat = "Weapon", inInv = false, parrentId = -1, var = 5, isEquip = true },
+        { itemId = 12, fullType = "Base.Nails", count = "40", cat = "Material", inInv = true, parrentId = 13, hasParrent = true, container = "Bag" } }
+    for _, fn in ipairs(EVENTS.MngInvReceiveItems.list) do fn(items) end
+    draw()
+    check("its rows arrive, weapons first", SC.inv.Kade_R and #SC.inv.Kade_R.rows == 2 and SC.inv.Kade_R.rows[1].name == "Axe")
+    check("Remove grays until a pick", grayWhy("tk:iremove") == ZeD.tr("UI_ZeD_St_PickFirst"))
+    press("tk:it:1")
+    press("tk:iremove")
+    check("Remove asks first", TC.qaState(st).confirm ~= nil and #INVCALLS == 1)
+    press("tk:ryes")
+    check("then the game's InvMngRemoveItem", INVCALLS[2] == "rm:11:7:Kade_R")
+    for _, fn in ipairs(EVENTS.MngInvReceiveItems.list) do fn(items) end
+    press("tk:it:2")
+    press("tk:itake")
+    check("Take a stack: the game's InvMngGetItem by type", INVCALLS[#INVCALLS] == "get:0:Base.Nails:7:Kade_R")
+    TC.back(win, st)
+    TC.back(win, st)
+    TC.back(win, st)
+    SC.qaChar = nil
+    M.qaCaps = {}
+    M.bump()
+end
+
+-- More tools' Check your stats is the card, and a ticket's Player card without the server part is too
+do
+    fresh()
+    local SC = ZeD.StatsCards
+    local p = { getUsername = function() return "Aretha" end }
+    for _, m in ipairs(ZeD.AdminTab.MORE) do
+        if m.id == "mystats" then m.run(p, win, st) end
+    end
+    check("Check your stats opens your own stats card", st.card and st.card.kind == "pstats" and st.card.user == "Aretha" and ISPlayerStatsUI.opened == 0)
+    TC.back(win, st)
+    ZeD.AdminTab.next = nil
+    st.card = { kind = "player", user = "Kade_R" }
+    TC._D.statsWindow(win, "Kade_R")
+    check("from a card in the Admin tab: the stats card over it", st.card.kind == "pstats" and st.card.parent and st.card.parent.kind == "player")
+    st.card = nil
+    draw()
 end
 
 print("admin_cards_sim: " .. checks .. " checks, " .. failed .. " failed")

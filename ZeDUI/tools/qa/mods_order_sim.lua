@@ -4,6 +4,8 @@
 --   * punch list 97: every order write goes through ZeD_MMMods:saveOrder, which leaves out a mod the list names but
 --     that is not installed (vanilla's correctAndSaveModOrder indexes each id's record and threw: Undo changes, Load after)
 --   * review Nov 7 2026 #4: ZeD-GUI off then on in one visit brings ZeD picks back (picks require ZeD-GUI)
+--   * the director, Nov 7 2026 (known issue): every way ZeD-GUI goes off (row, folder or separator box, Turn all
+--     off, No mods) and every way it comes back (row, box, Turn all on, a mod that needs it) brings picks back
 -- What it can't show: the band and the note on screen (zedqa_mods_*.lua, in the game).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/mods_order_sim.lua [path to the game's ModSelectorModel.lua]
 -- It prints FAIL lines and a last line "mods_order_sim: N checks, M failed", and exits 1 if any failed.
@@ -176,56 +178,16 @@ do
     s:onShow()
     s:toggle(m.mods.ZeD_UI)
     check("a new visit forgets which mod took picks off", not m.mods.ZeD_Picks.isActive)
-    -- a set changed at once in between (here a profile with ZeD-GUI on and picks off): its choice stands
+    -- a set the player kept, put back exactly (here a profile with ZeD-GUI on and picks off): it stands
     m, s = setup({ "ZeD_UI", "ZeD_Picks" })
     s:onShow()
     s:toggle(m.mods.ZeD_UI)
     s:applyOnSet({ ZeD_UI = true }, true)
-    check("the set put ZeD-GUI on and left picks off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+    check("the kept set put ZeD-GUI on and left picks off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+    check("the kept set dropped the memory", s._picksOffWith == nil, tostring(s._picksOffWith))
     s:toggle(m.mods.ZeD_UI)
     s:toggle(m.mods.ZeD_UI)
-    check("after a set change, ZeD-GUI off and on leaves picks off", not m.mods.ZeD_Picks.isActive)
-    -- Turn all on (no applyOnSet, straight to the batch) forgets too
-    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
-    s:onShow()
-    s:toggle(m.mods.ZeD_UI)
-    s:modsOnBatch({ "ZeD_UI" })
-    check("a batch forgets which mod took picks off", s._picksOffWith == nil)
-    -- the Load order page's Back sets the mods that were on again (nothing changes): it keeps the
-    -- memory, so ZeD-GUI back on still brings picks (review Nov 7 2026)
-    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
-    s:onShow()
-    s:toggle(m.mods.ZeD_UI)
-    s:applyOnSet({ Other = true }, true)
-    check("a set change that changes nothing keeps the memory", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
-    s:toggle(m.mods.ZeD_UI)
-    check("after Back, ZeD-GUI back on: picks back on", m.mods.ZeD_Picks.isActive)
-    -- a mod that needs ZeD-GUI turned on brings ZeD-GUI back without picks: that stands
-    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
-    s:onShow()
-    s:toggle(m.mods.ZeD_UI)
-    s:toggle(m.mods.Needs_ZeD)
-    check("ZeD-GUI back as a requirement: the memory goes", m.mods.ZeD_UI.isActive and s._picksOffWith == nil, tostring(s._picksOffWith))
-    s:toggle(m.mods.ZeD_UI)
-    s:toggle(m.mods.ZeD_UI)
-    check("then ZeD-GUI off and on leaves picks off", not m.mods.ZeD_Picks.isActive)
-    -- a whole set picked that leaves both off (Turn all off, No mods, Undo changes) stands: ticking
-    -- ZeD-GUI after it must not bring picks back (review Nov 7 2026, second pass)
-    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
-    s:onShow()
-    s:toggle(m.mods.ZeD_UI)
-    s:setAll(false)
-    check("Turn all off forgets which mod took picks off", s._picksOffWith == nil, tostring(s._picksOffWith))
-    s:toggle(m.mods.ZeD_UI)
-    check("Turn all off, then ZeD-GUI on: picks stay off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
-    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
-    s:onShow()
-    s.profileDiff = function() return { off = {} } end   -- (the profile pane's own parts: not under test here)
-    s.leaveProfiles = noop
-    s:toggle(m.mods.ZeD_UI)
-    s:loadProfile({})                  -- (the "No mods" profile: no name)
-    s:toggle(m.mods.ZeD_UI)
-    check("No mods, then ZeD-GUI on: picks stay off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+    check("after a kept set, ZeD-GUI off and on leaves picks off", not m.mods.ZeD_Picks.isActive)
     -- Undo changes back to a set the screen opened with both off
     m, s = setup({ "Other" })
     s:onShow()
@@ -235,26 +197,101 @@ do
     check("Undo changes forgets which mod took picks off", s._picksOffWith == nil, tostring(s._picksOffWith))
     s:toggle(m.mods.ZeD_UI)
     check("Undo changes, then ZeD-GUI on: picks stay off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
-    -- the Load order page: a separator box turns ZeD-GUI back on (the memory goes), then Back
-    -- puts both off again and the memory with them, so ZeD-GUI back on still brings picks. The
-    -- steps are leaveOrder's own: sepMatchActive (applyOnSet) then restorePicksOffWith (review
-    -- Nov 7 2026, third pass)
+    -- a saved profile with both off: the profile's own picks stand
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:applyOnSet({ Other = true }, true)   -- (loadProfile's own step, after it forgot the memory)
+    s._picksOffWith = nil
+    s:toggle(m.mods.ZeD_UI)
+    check("a saved profile with both off, then ZeD-GUI on: picks stay off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+    -- other mods keep vanilla's rule: a dependant stays off
+    m, s = setup({ "Other", "Needs_Other" })
+    s:onShow()
+    s:toggle(m.mods.Other)
+    s:toggle(m.mods.Other)
+    check("another mod's dependant stays off (vanilla)", not m.mods.Needs_Other.isActive)
+end
+
+section("every way ZeD-GUI comes back on brings picks (the director, Nov 7 2026)")
+do
+    -- Turn all on (straight to the batch)
+    local m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:modsOnBatch({ "ZeD_UI" })
+    check("row off, a batch on: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive and active:isModActive("ZeD_Picks"))
+    check("the memory is spent", s._picksOffWith == nil, tostring(s._picksOffWith))
+    -- a mod that needs ZeD-GUI brings ZeD-GUI back, and picks with it
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:toggle(m.mods.Needs_ZeD)
+    check("ZeD-GUI back as a requirement: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
+    check("the note names picks with ZeD-GUI", tostring(said[#said]):find("ZeD_Picks", 1, true) ~= nil, said[#said])
+    -- Turn all off, then ZeD-GUI on by its row
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:setAll(false)
+    check("Turn all off: everything off", onList() == "", onList())
+    check("Turn all off remembers picks went with ZeD-GUI", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
+    s:toggle(m.mods.ZeD_UI)
+    check("Turn all off, then ZeD-GUI on: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
+    check("only ZeD-GUI and picks came on", onList() == "ZeD_UI,ZeD_Picks", onList())
+    -- ZeD-GUI off by its row, then Turn all off, then ZeD-GUI on: the memory holds through
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:setAll(false)
+    s:toggle(m.mods.ZeD_UI)
+    check("row off, Turn all off, ZeD-GUI on: picks back on", m.mods.ZeD_Picks.isActive)
+    -- Turn all off with picks already off by the player: nothing to bring back
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_Picks)
+    s:setAll(false)
+    s:toggle(m.mods.ZeD_UI)
+    check("picks off by hand, Turn all off, ZeD-GUI on: picks stay off", not m.mods.ZeD_Picks.isActive)
+    -- the "No mods" profile is Turn all off
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s.profileDiff = function() return { off = {} } end   -- (the profile pane's own parts: not under test here)
+    s.leaveProfiles = noop
+    s:loadProfile({})                  -- (the "No mods" profile: no name)
+    s:toggle(m.mods.ZeD_UI)
+    check("No mods, then ZeD-GUI on: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
+    -- Turn all off then Turn all on: all on
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:setAll(false)
+    s:setAll(true)
+    check("Turn all off then on: picks on", m.mods.ZeD_Picks.isActive and s._picksOffWith == nil)
+    -- the Load order page: Back sets the earlier set again (nothing changes) and keeps the memory
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:applyOnSet({ Other = true }, true)
+    check("a set change that changes nothing keeps the memory", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
+    s:toggle(m.mods.ZeD_UI)
+    check("after Back, ZeD-GUI back on: picks back on", m.mods.ZeD_Picks.isActive)
+    -- a separator box on the Load order page turns ZeD-GUI back on (picks with it), then Back puts
+    -- both off again and the memory with them. The steps are leaveOrder's own: sepMatchActive
+    -- (applyOnSet) then restorePicksOffWith
     m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
     s:onShow()
     s:toggle(m.mods.ZeD_UI)
     local kept = s._picksOffWith       -- (enterOrder's _oPicksOffWith0)
     s:modsOnBatch({ "ZeD_UI" })        -- (the separator box)
-    check("the separator box cleared the memory", s._picksOffWith == nil, tostring(s._picksOffWith))
+    check("the separator box brought picks back", m.mods.ZeD_Picks.isActive and s._picksOffWith == nil, tostring(s._picksOffWith))
     s:applyOnSet({ Other = true }, true)
     s:restorePicksOffWith(kept)
     check("Back puts the memory back with the set", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
     s:toggle(m.mods.ZeD_UI)
     check("after Back, ZeD-GUI on: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
-    -- a memory put back while ZeD-GUI is on does not hold (it is checked again)
-    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    -- a memory put back while ZeD-GUI is on does not hold (it is checked, not acted on)
+    m, s = setup({ "ZeD_UI", "Other" })
     s:onShow()
     s:restorePicksOffWith("ZeD_UI")
-    check("a memory put back with ZeD-GUI on is dropped", s._picksOffWith == nil, tostring(s._picksOffWith))
+    check("a memory put back with ZeD-GUI on is dropped, picks left off", s._picksOffWith == nil and not m.mods.ZeD_Picks.isActive, tostring(s._picksOffWith))
     -- the wiring: leaveOrder (Back) and orderUndo call restorePicksOffWith, enterOrder and
     -- orderSnap keep the memory (ZeD_MainMenuModsOrder.lua is not loaded here: read its source)
     do
@@ -266,12 +303,74 @@ do
         check("the Load order page keeps the memory it opened with", src:find("self._oPicksOffWith0 = self._picksOffWith", 1, true) ~= nil)
         check("each Load order Undo step keeps its memory", src:find("picksOffWith = self._picksOffWith", 1, true) ~= nil)
     end
-    -- other mods keep vanilla's rule: a dependant stays off
-    m, s = setup({ "Other", "Needs_Other" })
-    s:onShow()
-    s:toggle(m.mods.Other)
-    s:toggle(m.mods.Other)
-    check("another mod's dependant stays off (vanilla)", not m.mods.Needs_Other.isActive)
+end
+
+section("folder and separator boxes (the real ZeD_MainMenuModsFolders.lua and ZeD_MainMenuModsSeps.lua)")
+do
+    -- folders: f1 holds ZeD-GUI (and Other), f2 holds picks too when asked
+    local member = {}
+    ZeD.ModFolders = {
+        load = noop, readLines = function() return {} end,
+        byId = function(id) return ({ f1 = { id = "f1", name = "UI" }, f2 = { id = "f2", name = "Both" } })[id] end,
+        folderOf = function(mid) return member[mid] end,
+    }
+    ZeD.ModOrder = ZeD.ModOrder or {}
+    local okF, errF = pcall(function() assert(loadfile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuModsFolders.lua"))() end)
+    check("the folders file loads", okF, errF)
+    local okS, errS = pcall(function() assert(loadfile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuModsSeps.lua"))() end)
+    check("the separators file loads", okS, errS)
+    local function boxSetup(on)
+        local m, s = setup(on)
+        s:onShow()
+        s.sepReconcile = noop          -- (the Load order page's layout: not under test here)
+        s.oOffHere = {}
+        return m, s
+    end
+    if okF then
+        member = { ZeD_UI = "f1", Other = "f1" }
+        -- the folder's box off takes ZeD-GUI off (picks with it), on again brings both
+        local m, s = boxSetup({ "ZeD_UI", "ZeD_Picks", "Other" })
+        s:folderBox("f1")
+        check("folder box off: ZeD-GUI and picks off", not m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+        check("folder box off remembers picks went with ZeD-GUI", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
+        s:folderBox("f1")
+        check("folder box on: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
+        -- the folder's box off, then ZeD-GUI's own row on
+        m, s = boxSetup({ "ZeD_UI", "ZeD_Picks", "Other" })
+        s:folderBox("f1")
+        s:toggle(m.mods.ZeD_UI)
+        check("folder box off, ZeD-GUI row on: picks back on", m.mods.ZeD_Picks.isActive)
+        -- ZeD-GUI's row off, then the folder's box on
+        m, s = boxSetup({ "ZeD_UI", "ZeD_Picks" })
+        s:toggle(m.mods.ZeD_UI)
+        s:folderBox("f1")
+        check("ZeD-GUI row off, folder box on: picks back on", m.mods.ZeD_UI.isActive and m.mods.Other.isActive and m.mods.ZeD_Picks.isActive)
+        -- both in one folder: off and on together
+        member = { ZeD_UI = "f2", ZeD_Picks = "f2" }
+        m, s = boxSetup({ "ZeD_UI", "ZeD_Picks" })
+        s:folderBox("f2")
+        s:folderBox("f2")
+        check("a folder with both: off and on brings both", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
+        -- picks off by hand first: the folder's box off and on leaves them off
+        member = { ZeD_UI = "f1", Other = "f1" }
+        m, s = boxSetup({ "ZeD_UI", "ZeD_Picks", "Other" })
+        s:toggle(m.mods.ZeD_Picks)
+        s:folderBox("f1")
+        s:folderBox("f1")
+        check("picks off by hand, folder box off and on: picks stay off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+    end
+    if okS then
+        local m, s = boxSetup({ "ZeD_UI", "ZeD_Picks", "Other" })
+        s:sepTurn({ "ZeD_UI" }, false)
+        check("separator off: ZeD-GUI and picks off", not m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+        check("separator off remembers picks went with ZeD-GUI", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
+        s:sepTurn({ "ZeD_UI" }, true)
+        check("separator on: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
+        m, s = boxSetup({ "ZeD_UI", "ZeD_Picks", "Other" })
+        s:sepTurn({ "ZeD_UI", "Other" }, false)
+        s:toggle(m.mods.ZeD_UI)
+        check("separator off, ZeD-GUI row on: picks back on", m.mods.ZeD_Picks.isActive)
+    end
 end
 
 section("every order write goes through saveOrder")
