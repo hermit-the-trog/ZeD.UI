@@ -645,7 +645,10 @@ function PL.drawParts(cv, parts, st, ctx)
         elseif t == "drums" then
             -- the odometers: mechanical wheels turn with or without power and sit in the light of the print
             -- around them; the LCD kind (p.text, the Dash Elite) shows only with the key on
-            if st.power or not p.text then P.drums(cv, p, st[p.src], L, dim) end
+            -- (odo and trip: their figures in the player's units, odoView and tripView, ZeD_Dashboard.lua's D.odoShow)
+            local v = st[p.src]
+            if p.src == "odo" then v = st.odoView or v elseif p.src == "trip" then v = st.tripView or v end
+            if st.power or not p.text then P.drums(cv, p, v, L, dim) end
         elseif t == "ptr" then
             local a
             if p.angles then

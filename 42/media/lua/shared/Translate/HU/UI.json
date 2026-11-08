@@ -6224,7 +6224,7 @@
     "UI_ZeD_Mail_NoReport": "Ez a szerver nem fogad levélről szóló jelentést.",
     "UI_ZeD_Mail_Connecting": "Kapcsolódás... küldés %1, fogadás %2",
     "UI_ZeD_Tk_ReportedLetter": "A jelentett levél",
-    "UI_ZeD_Tk_LetterWhose": "Ahogy a játékos megkapta.",
+    "UI_ZeD_Tk_LetterWhose": "Ahogy a bejelentő képernyőjén látszott. A szerver nem őriz másolatot a levelekről.",
     "UI_ZeD_Card_MakesTitle": "Ehhez használható",
     "UI_ZeD_Card_MakesHelp": "Megnyitja a receptet a Készítés vagy Építés lapon.",
     "UI_ZeD_Card_MakesMore": "még %1",
