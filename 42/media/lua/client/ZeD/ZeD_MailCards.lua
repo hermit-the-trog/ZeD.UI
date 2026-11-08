@@ -253,7 +253,7 @@ function P.reply(win, st, m)
     local subj = m.subj or ""
     if string.sub(string.lower(subj), 1, 4) ~= "re: " then subj = "Re: " .. subj end
     if #subj > Ml.L.SUBJ_MAX then subj = string.sub(subj, 1, Ml.L.SUBJ_MAX) end
-    MC.openWrite(win, st, m.from, subj, "")
+    MC.openWrite(win, st, m.from, subj, MS.quote(m, tr("UI_ZeD_Mail_Wrote", m.from)))   -- (quoted, as the desk's Reply)
 end
 
 -- why Send is gray, or nil

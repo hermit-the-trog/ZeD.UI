@@ -271,6 +271,16 @@ function MS.epoch(b, ep)
     return true
 end
 
+--- A reply's words: two empty lines to write in, "<name> wrote:", then the letter with "> " at the start of each line, as
+--- mail of the time did (the first QUOTE_MAX characters). The desk's Reply and the game's use it alike.
+MS.QUOTE_MAX = 600
+function MS.quote(m, wroteLine)
+    local body = tostring(m and m.text or "")
+    if #body > MS.QUOTE_MAX then body = string.sub(body, 1, MS.QUOTE_MAX) .. "..." end
+    local quoted = "> " .. string.gsub(body, "\n", "\n> ")
+    return "\n\n" .. tostring(wroteLine or "") .. "\n" .. quoted
+end
+
 --- A letter handed over: kept (newest first in the Inbox) unless it came before. True when it is new. Saving is the
 --- caller's (a batch saves once).
 function MS.receive(b, m)

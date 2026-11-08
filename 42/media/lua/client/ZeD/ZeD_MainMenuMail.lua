@@ -31,7 +31,6 @@ local Ml = ZeD.Ml
 -- design units
 local LIST_SHARE = 0.4
 local ROW_H, DROP_H, FIELD_H, LABEL_W = 40, 26, 26, 72
-local QUOTE_MAX = 600               -- characters of a letter quoted in a reply
 local MONTHS = MM.MONTHS
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
@@ -202,10 +201,7 @@ function ZeD_MMMail:reply()
     local subj = m.subj or ""
     if string.sub(string.lower(subj), 1, 4) ~= "re: " then subj = "Re: " .. subj end
     if #subj > Ml.L.SUBJ_MAX then subj = string.sub(subj, 1, Ml.L.SUBJ_MAX) end
-    local body = m.text or ""
-    if #body > QUOTE_MAX then body = string.sub(body, 1, QUOTE_MAX) .. "..." end
-    local quoted = "> " .. string.gsub(body, "\n", "\n> ")
-    self:startCompose(m.from, subj, "\n\n" .. tr("UI_ZeD_Mail_Wrote", m.from) .. "\n" .. quoted)
+    self:startCompose(m.from, subj, MS.quote(m, tr("UI_ZeD_Mail_Wrote", m.from)))
     pcall(function() self.textEntry:setCursorPos(0) end)
 end
 
