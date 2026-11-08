@@ -4462,10 +4462,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._placeIdentityModel = function(drawerW)
         local T = ZeD.T
         local pr = win._identityPhotoRect
-        if not (pr and drawerW > 0 and win._drawerMode == "tab" and win._activeTab == "identity"
-                and not win._drawerItem) then
+        if not (pr and drawerW > 0 and win._drawerMode == "tab" and win._activeTab == "identity") then
             return false
         end
+        -- an open item card lies over the tab's right part: the model (no clip reaches it) shows while clear of the card
+        if win._drawerItem and pr.x + pr.w > getTargetDrawerW(win) - T.px(ITEM_CARD_W) then return false end
         -- A model can't be clipped (its own UI element; stencils don't reach it), so clamp it
         -- to the card's scroll view: top below the pinned tab header, bottom above the view's
         -- end (else it draws over the status line at small sizes). _idView is the view
