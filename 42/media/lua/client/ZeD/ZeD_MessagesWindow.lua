@@ -11,8 +11,11 @@
 -- mod's notes as pop-ups, Delete, Mark all read) and the window's help line under
 -- it (the plain words for what the pointer is over, the controller's prompts).
 -- Mouse and controller (D-pad between the list, the cards' buttons and the band;
--- A presses, B closes). Toasts (Visual Catalog O12) stand on the right of the
--- screen for six seconds; a click opens the window on that source.
+-- A presses, B closes). Its notices (until Nov 7 2026 the toasts on the right of
+-- the screen) are speech balloons out of the Messages note on the belt for six
+-- seconds (the director: "pop up out of the notification icon ... Just all in
+-- one place"; ZeD_Bubbles.layoutNoticeBalloons); a click opens the window on
+-- that source.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -21,6 +24,7 @@ require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Messages"
+require "ZeD/ZeD_Bubbles"
 
 ZeD = ZeD or {}
 ZeD.MessagesWindow = ZeD.MessagesWindow or {}
@@ -32,7 +36,8 @@ W.windows = W.windows or {}
 local U = {
     W = 760, BODY_H = 400, LIST_W = 240, HEAD_H = 20, PAD = 10,
     CARD_GAP = 10, CARD_PAD = 10, CARD_HEAD_H = 24, BAND_EDGE = 8, BAND_GAP = 8,
-    TOAST_W = 340, TOAST_H = 30, TOAST_GAP = 4, TOAST_TOP = 150, TOAST_RIGHT = 70,
+    NOTICE_LIFT = 4,        -- the balloons' tail tip above the note's top edge
+    NOTICE_FREE_BOTTOM = 80, -- no note on the screen: the balloons this far over the screen's bottom (or the dash)
 }
 
 local function fh(font) return ZeD.TM:getFontHeight(font) end
@@ -95,6 +100,13 @@ function ZeD_MessagesWindow:createChildren()
 end
 
 function ZeD_MessagesWindow:close()
+    -- (opened with a controller nobody plays with yet: it lets go, W.openGuest)
+    local guest = self.guestJoy
+    if guest then
+        self.guestJoy = nil
+        if guest.focus == self then guest.focus, guest.lastfocus = nil, nil end
+        guest.activeWhilePaused = nil
+    end
     self:setVisible(false)
     self:removeFromUIManager()
     if JoypadState.players[self.playerNum + 1] then setJoypadFocus(self.playerNum, nil) end
@@ -150,9 +162,16 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             for _, f in ipairs(it.firsts or {}) do
                 for _, l in ipairs(ZeD.Atoms.wrapText(f, T.fontF1, inner)) do lines[#lines + 1] = { text = l, font = T.fontF1, mono = true } end
             end
-        elseif it.k == "ticket" or it.k == "ticketnew" or it.k == "adminnote" or it.k == "invite" then
+        elseif it.k == "ticket" or it.k == "ticketnew" or it.k == "adminnote" or it.k == "invite" or it.k == "pad" then
             -- (a ticket's note carries a username: drawn plain, never read for markup)
+            if it.k == "pad" and it.head then
+                for _, l in ipairs(ZeD.Atoms.wrapText(tostring(it.head), T.fontF4, inner)) do lines[#lines + 1] = { text = l, font = T.fontF4 } end
+            end
             for _, l in ipairs(ZeD.Atoms.wrapText(tostring(it.text or ""), T.fontF2, inner)) do lines[#lines + 1] = { text = l, font = T.fontF2 } end
+            if it.k == "pad" and it.answer then
+                lines[#lines + 1] = { gap = true }
+                lines[#lines + 1] = { text = tr("UI_ZeD_Msg_YouAnswered", it.answer), font = T.fontF2, dim = true }
+            end
         else
             for bi, bl in ipairs(blocksOf(it)) do
                 if bl.kind ~= "image" then
@@ -181,6 +200,10 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), bans = true, primary = true }
         elseif it.k == "invite" then
             btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), invite = true, primary = true }
+        elseif it.k == "pad" and not it.done then
+            -- (a controller's note: the game's own choices, in its order; one alone is the default)
+            local pb = it.padButtons or {}
+            for bi, b in ipairs(pb) do btns[#btns + 1] = { label = btnLabel(tostring(b.label or "")), padRun = b.run, primary = #pb == 1 } end
         end
         -- (the card and its buttons, placed; shared by the per-error cards below)
         local function place(cit, clines, cbtns, cTextH)
@@ -513,6 +536,16 @@ function ZeD_MessagesWindow:pressCard(b)
         end)
         return
     end
+    if b.padRun then
+        -- a controller's choice: Messages closes first (the controller it was opened with lets go of it), then the
+        -- game's own command runs; the note keeps what was chosen
+        local it = b.card.it
+        self:close()
+        local ok, done = pcall(b.padRun)
+        if not ok then print("[ZeD] Messages: a controller's choice: " .. tostring(done)) end
+        if ok and done then it.done, it.answer, it.read = true, b.label, true end
+        return
+    end
     MS.press(b.card.it, b.i)
 end
 
@@ -622,7 +655,8 @@ function ZeD_MessagesWindow:update()
         if sb.dragging and not isMouseButtonDown(0) then sb:handleMouseUp() end
     end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
-    self.joyfocus = (jd and jd.focus == self) and jd or (W.qaJoy and self or nil)
+    local guest = self.guestJoy
+    self.joyfocus = (jd and jd.focus == self) and jd or ((guest and guest.focus == self) and guest) or (W.qaJoy and self or nil)
     self._hover = self:hitAt(self:getMouseX(), self:getMouseY())
 end
 
@@ -737,6 +771,35 @@ function W.open(pn, name)
     return win
 end
 
+-- the window for a controller nobody plays with yet (Overrides/Controllers.lua: A on a controller's "plugged in"
+-- note): player one's window, on that source, worked by that controller (it works while paused, as the game's
+-- join list did); closing it lets the controller go
+function W.openGuest(joypadData, name)
+    if not joypadData then return nil end
+    local win = W.windows[0]
+    if not win then
+        win = ZeD_MessagesWindow:new(0)
+        win:initialise()
+        win:instantiate()
+        W.windows[0] = win
+    end
+    if name then win:choose(name) end
+    if not win:isReallyVisible() then
+        win:setVisible(true)
+        win:addToUIManager()
+        win:setAlwaysOnTop(true)
+    end
+    MS.toasts = {}
+    win.guestJoy = joypadData
+    -- the pad starts on the note's first choice when there is one
+    win.zone = "list"
+    if #win:cardButtons() > 0 then win.zone, win.cardFocus = "cards", 1 end
+    joypadData.focus = win
+    joypadData.activeWhilePaused = true
+    updateJoypadFocus(joypadData)
+    return win
+end
+
 function W.get(pn) return W.windows[pn or 0] end
 
 -- Escape from anywhere (the prompts' key hook asks): the window on screen closes
@@ -753,7 +816,10 @@ ZeD.EscapeTakers = ZeD.EscapeTakers or {}
 ZeD.EscapeTakers.messages = W.takeEscape
 
 -- ---------------------------------------------------------------------------
--- THE TOASTS (O12): a top-level strip sized to the toasts on show
+-- THE NOTICES: speech balloons out of the Messages note on the belt (the director, Nov 7 2026). An element as big
+-- as the balloons on show, over the note: the newest balloon lowest with its tail down to the note, the older ones
+-- stacked over it. With no note on the screen (a vehicle seat, the belt given back to the game, the UI hidden) they
+-- stand at the bottom middle of player one's screen, over the dash when one shows, without a tail.
 -- ---------------------------------------------------------------------------
 ZeD_MessagesToasts = ISUIElement:derive("ZeD_MessagesToasts")
 
@@ -761,59 +827,92 @@ function ZeD_MessagesToasts:new()
     local o = ISUIElement.new(self, 0, 0, 1, 1)
     o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
     o._boxes = {}
+    o._list = {}
     return o
+end
+
+-- where the balloons come from (screen pixels), and whether they point at the note
+function W.noticeAnchor()
+    local B = ZeD.Belt
+    local ax, ay = nil, nil
+    if B and B.noteAnchor then ax, ay = B.noteAnchor() end
+    if ax then return ax, ay - ZeD.T.px(U.NOTICE_LIFT), true end
+    local x = getPlayerScreenLeft(0) + math.floor(getPlayerScreenWidth(0) / 2)
+    local y = getPlayerScreenTop(0) + getPlayerScreenHeight(0) - ZeD.T.px(U.NOTICE_FREE_BOTTOM)
+    local D = ZeD.Dashboard
+    local dash = D and D.getInstance and D.getInstance()
+    if dash and dash:getIsVisible() then y = math.min(y, dash:getY() - ZeD.T.px(8)) end
+    return x, y, false
+end
+
+-- the balloons' scale: the bubbles' own whole multiple (the action bar's)
+local function noticeK()
+    local AB = ZeD.ActionBar
+    if AB and AB.k then local ok, k = pcall(AB.k); if ok and k then return k end end
+    return 1
 end
 
 function ZeD_MessagesToasts:prerender()
     local T = ZeD.T
     local list = MS.toasts
-    if not T or #list == 0 or not getPlayer() then
+    local Bb = ZeD.Bubbles
+    if not T or not Bb or #list == 0 or not getPlayer() then
         if self.width > 1 then self:setWidth(1); self:setHeight(1) end
-        self._boxes = {}
+        self._boxes, self._list = {}, {}
         return
     end
-    local px = T.px
-    local w, bh, gap = px(U.TOAST_W), px(U.TOAST_H), px(U.TOAST_GAP)
-    local h = #list * (bh + gap) - gap
-    local x = getPlayerScreenLeft(0) + getPlayerScreenWidth(0) - px(U.TOAST_RIGHT) - w
-    local y = getPlayerScreenTop(0) + px(U.TOAST_TOP)
-    if self.x ~= x then self:setX(x) end
-    if self.y ~= y then self:setY(y) end
-    -- (a hair more each way: the pop-up shadow falls 1u right and down of each box)
-    if self.width ~= w + T.hair then self:setWidth(w + T.hair) end
-    if self.height ~= h + T.hair then self:setHeight(h + T.hair) end
-    self._boxes = {}
-    local A = ZeD.Atoms
-    local s1, hv, tc = T.surf1, T.hover, T.text
-    local mx, my = self:getMouseX(), self:getMouseY()
+    Bb.syncColours(T)
+    local k = noticeK()
+    local ax, ay, tail = W.noticeAnchor()
+    -- each toast's balloon: its head, then where it is from and what it says (the list's own order, oldest first)
+    local items = {}
     for i, t in ipairs(list) do
-        local by = (i - 1) * (bh + gap)
-        local c = (t.kind == "crit" and T.danger) or (T.warning or T.accent)
-        -- a pop-up over the game: solid surface 1, the 1u frame and System 7's hard shadow;
-        -- the status is a square mark, the words stay the default ink
-        A.drawHardShadow(self, 0, by, w, bh)
-        self:drawRect(0, by, w, bh, 1, s1.r, s1.g, s1.b)
-        if mx >= 0 and mx < w and my >= by and my < by + bh then
-            self:drawRect(0, by, w, bh, hv.a or 1, hv.r, hv.g, hv.b)
-        end
-        A.frame(self, 0, by, w, bh, T.borderS)
-        local hx = px(10)
-        local sq = px(6)
-        A.drawStatusDot(self, hx, by + math.floor((bh - sq) / 2), c, sq)
-        local head = ZeD.textCase(tostring(t.head or ""))
-        local fy1 = by + math.floor((bh - fh(T.fontF1)) / 2)
-        local headX = hx + sq + px(6)
-        self:drawText(head, headX, fy1, tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
-        local tx = headX + tw(T.fontF1, head) + px(8)
         local body = tostring(t.source or "") .. ((t.text and t.text ~= "") and (" | " .. t.text) or "")
-        self:drawText(A.truncateText(body, T.fontF2, w - tx - px(10)), tx, by + math.floor((bh - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-        self._boxes[#self._boxes + 1] = { y = by, h = bh, source = t.source }
+        local lines, tw0 = Bb.noticeLines(t.head, body)
+        items[i] = { lines = lines, tw = tw0, dot = (t.kind == "crit") and T.danger or (T.warning or T.accent), source = t.source }
+    end
+    local sl = getPlayerScreenLeft(0)
+    local sr = sl + getPlayerScreenWidth(0)
+    local x0, y0, x1, y1 = Bb.layoutNoticeBalloons(items, math.floor((sl - ax) / k), math.floor((sr - ax) / k), tail)
+    local ex, ey = ax + x0 * k, ay + y0 * k
+    local ew, eh = (x1 - x0) * k + k, (y1 - y0) * k + k
+    if self.x ~= ex then self:setX(ex) end
+    if self.y ~= ey then self:setY(ey) end
+    if self.width ~= ew then self:setWidth(ew) end
+    if self.height ~= eh then self:setHeight(eh) end
+    -- (the click areas, in the element's pixels)
+    self._boxes = {}
+    for _, n in ipairs(items) do
+        self._boxes[#self._boxes + 1] = { x = (n.x - x0) * k, y = (n.y - y0) * k, w = n.w * k, h = n.h * k, source = n.source }
+    end
+    self._list, self._ox, self._oy, self._k, self._tail = items, -x0, -y0, k, tail
+end
+
+-- (the pixel text routes its rects through this element's alpha, as the action bar's layer does)
+function ZeD_MessagesToasts:drawRect(x, y, w, h, a, r, g, b)
+    ISUIElement.drawRect(self, x, y, w, h, a * (self._zedAlpha or 1), r, g, b)
+end
+
+function ZeD_MessagesToasts:render()
+    local list = self._list
+    if not list or #list == 0 or not ZeD.Bubbles or not ZeD.Px then return end
+    local k = self._k or 1
+    local cv = ZeD.Px.canvas(self, self._ox * k, self._oy * k, k)
+    self._zedAlpha = 1
+    ZeD.Bubbles.drawNoticeBalloons(cv, ZeD.T, list, self._tail, 1)
+    -- the pointer over a balloon: the hover wash on it (a click opens Messages there)
+    local mx, my = self:getMouseX(), self:getMouseY()
+    local hv = ZeD.T.hover
+    for _, b in ipairs(self._boxes or {}) do
+        if mx >= b.x and mx < b.x + b.w and my >= b.y and my < b.y + b.h then
+            ISUIElement.drawRect(self, b.x + k, b.y + k, b.w - 2 * k, b.h - 2 * k, hv.a or 1, hv.r, hv.g, hv.b)
+        end
     end
 end
 
 function ZeD_MessagesToasts:onMouseDown(x, y)
     for _, b in ipairs(self._boxes) do
-        if y >= b.y and y < b.y + b.h and x >= 0 and x < self.width - ZeD.T.hair then
+        if y >= b.y and y < b.y + b.h and x >= b.x and x < b.x + b.w then
             sound("UIActivateButton")
             MS.open(b.source)
             return true

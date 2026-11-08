@@ -2219,6 +2219,20 @@ function B.install()
 end
 function B.getHUD() return B._hud end
 
+-- Where ZeD's notices come out (the director, Nov 7 2026: "All of these notices are speech bubbles or thought
+-- bubbles that pop up out of the notification icon where we save errors and other mods pop-ups. Just all in one
+-- place."): the top middle of the Messages note on the belt, in screen pixels, while the belt and its note are on
+-- the screen; nil otherwise (in a vehicle seat, the UI hidden, safe mode, nothing kept: ZeD_MessagesWindow's
+-- bubbles then come from the bottom middle of the screen, above the dash when one shows).
+function B.noteAnchor()
+    local hud = B._hud
+    if not (hud and hud._drawn and hud:getIsVisible()) then return nil end
+    for _, b in ipairs(hud._boxes or {}) do
+        if b.kind == "lamp" then return hud:getX() + b.x + math.floor(b.w / 2), hud:getY() + b.y end
+    end
+    return nil
+end
+
 -- hidden while it should not show (a top-level panel would still catch clicks)
 local function visibilityTick()
     local hud = B._hud

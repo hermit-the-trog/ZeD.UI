@@ -1051,6 +1051,8 @@ end
 local function _handleConfirm(w)
     local el = Focus.getFocusedElement(w)
     if not el then return end
+    -- (the Character window while paused is for looking: ZeD_PausedLook.lua)
+    if ZeD.PausedLook and ZeD.PausedLook.blocks(w, el) then return end
     if el.onActivate then pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
     _fireCb("element.onActivate", el.onActivate, w, el)
 end
@@ -1060,6 +1062,7 @@ end
 local function _handleHoldConfirm(w)
     local el = Focus.getFocusedElement(w)
     if not el or not el.onHoldActivate then return end
+    if ZeD.PausedLook and ZeD.PausedLook.blocks(w, el) then return end
     _fireCb("element.onHoldActivate", el.onHoldActivate, w, el)
 end
 
@@ -1068,6 +1071,7 @@ end
 local function _handleContextOrReset(w)
     local el = Focus.getFocusedElement(w)
     if not el then return end
+    if ZeD.PausedLook and ZeD.PausedLook.blocks(w, el) then return end
     if el.onContextMenu then
         _fireCb("element.onContextMenu", el.onContextMenu, w, el)
     elseif el.onReset then
