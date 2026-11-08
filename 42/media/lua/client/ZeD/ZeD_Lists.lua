@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Lists.lua
 -- ============================================================================
--- LOADOUTS AND OUTFITS: THE LISTS (handoff equip_doll_v4_loadouts, Oct 29 2026,
--- part B1; the director: "Loadout lists should live in the journal tab ...
--- Outfits and loadouts: Separate, mix freely")
+-- LOADOUTS AND OUTFITS: THE LISTS. Client side. The lists live in the Journal
+-- tab, not on the equip doll; outfits and loadouts are separate, and mix freely.
 --
 -- The data and its rules, no drawing. A loadout is what you carry (gear and
 -- supplies), an outfit what you wear (everything worn that isn't a container).
@@ -33,10 +32,11 @@
 --     amount = 2, unit = "n" | "l" | "cal",
 --     per    = "day" | "fixed"       (supplies only) }
 --
--- The Journal's Loadouts page (ZeD_JournalLists.lua), the right-click menu
--- (Overrides/ItemMenu.lua) and the item card's mark strip edit them through
--- this module. The Equip tab's bar, restock and unpack (parts B4 to B7) read
--- them: L.all, L.get, L.resolve (a line on you, in its place) and L.ready.
+-- The Journal's Loadouts page (ZeD_JournalLists.lua), the right-click menu and
+-- the item card's mark strip (both in ZeD_ListsMenu.lua) edit them through this
+-- module. The Equip tab's bar (ZeD_EquipLoadout.lua), restock and unpack
+-- (ZeD_Restock.lua) read them: L.all, L.get, L.resolve (a line on you, in its
+-- place) and L.ready.
 -- ============================================================================
 
 require "ZeD/Tr"

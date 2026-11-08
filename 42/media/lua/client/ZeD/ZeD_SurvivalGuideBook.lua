@@ -228,12 +228,11 @@ local function wrapWords(words, f, px, widthFor, start, indent)
     return lines, n
 end
 
--- a line, justified unless it ends its paragraph
 -- a line, ragged right; each run of words between the game's small pictures is one string
 local function drawLine(panel, f, px, l, x, baseY, c)
     local sp = spaceW(f, px)
     local gaps = #l.items - 1
-    -- (ragged right: the text atoms space words by whole spaces, so justifying doubled some gaps; QA, Nov 3 2026)
+    -- (ragged right: the text atoms space words by whole spaces, so justifying doubled some gaps; extraN stays 0)
     local extraN = 0
     local xx = x + l.indent
     local runX, run = xx, nil

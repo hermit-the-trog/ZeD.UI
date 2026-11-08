@@ -276,7 +276,7 @@ function G.commit(pn, st, i, viaButton)
     local slice = menu.slices and menu.slices[i]
     local cmd = menu:getSliceCommand(i)
     if not (cmd and cmd[1]) then
-        -- an off slice does what taking one does today: letting go on the top level closes the wheel,
+        -- an off slice does what taking one always does: letting go on the top level closes the wheel,
         -- in an inner wheel it stays open
         if viaButton then return end
         if #st.path <= 1 then return D.close(pn) end
