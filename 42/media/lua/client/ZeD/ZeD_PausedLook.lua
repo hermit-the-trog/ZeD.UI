@@ -39,12 +39,15 @@ function PL.on()
     return ok and sp == 0 or false
 end
 
--- the Character window's controls the controller may still use while paused: the tab strip and the bags
-local FREE_ZONES = { charTabBar = true, charContainerStrip = true }
+-- the windows held while paused (the director, Nov 7 2026: the World window's actions too, with the same veil)
+local function charWin() return ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow() end
+local function worldWin() return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() end
+
+-- the controls the controller may still use while paused: the tab strips and the Character window's bags
+local FREE_ZONES = { charTabBar = true, charContainerStrip = true, worldTabBar = true, worldContainerStrip = true }
 function PL.blocks(w, el)
     if not PL.on() then return false end
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-    if not cw or w ~= cw then return false end
+    if not w or (w ~= charWin() and w ~= worldWin()) then return false end
     local Focus = ZeD.Input and ZeD.Input.Focus
     local fz = Focus and Focus.liveZone and Focus.liveZone(w)
     if fz and FREE_ZONES[fz.zone] then return false end
@@ -92,7 +95,12 @@ ZeD_PausedGlass.onMouseDoubleClick = eat
 function ZeD_PausedGlass:onMouseWheel(del)
     local win = self.win
     local mx, my = getMouseX(), getMouseY()
-    for _, c in ipairs({ win and win._drawerPanel, win and win._mainContent }) do
+    local list = { win and win._drawerPanel, win and win._mainContent }
+    if win and win._actionTabStrip then   -- (the World window: any of its panels under the pointer)
+        list = {}
+        for _, c in pairs(win:getChildren() or {}) do if c ~= self then list[#list + 1] = c end end
+    end
+    for _, c in ipairs(list) do
         -- (by place: the glass over it has the pointer, so the panel's own "mouse over" would say no)
         local over = c and c:isVisible() and mx >= c:getAbsoluteX() and mx < c:getAbsoluteX() + c:getWidth()
             and my >= c:getAbsoluteY() and my < c:getAbsoluteY() + c:getHeight()
@@ -114,13 +122,28 @@ function PL.rect(win)
     return x, strip:getY(), w, strip:getHeight()
 end
 
--- each frame before the UI draws: the glass on while paused, off while the game plays
+-- the World window's (it mirrors the Character window): right of its bags, left of its tab strip
+function PL.worldRect(win)
+    local bags, strip = win._containerStrip, win._actionTabStrip
+    if not (bags and strip) then return nil end
+    local x = bags:getX() + bags:getWidth()
+    local w = strip:getX() - x
+    if w <= 0 then return nil end
+    return x, bags:getY(), w, bags:getHeight()
+end
+
+-- each frame before the UI draws: the glass on while paused, off while the game plays, on each window
+local SLOTS = { { key = "_glass", kids = "_kids", get = charWin, rect = function(w) return PL.rect(w) end },
+                { key = "_wglass", kids = "_wkids", get = worldWin, rect = function(w) return PL.worldRect(w) end } }
 function PL.frame()
-    local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-    local g = PL._glass
+    for _, s in ipairs(SLOTS) do PL.frameFor(s) end
+end
+function PL.frameFor(s)
+    local win = s.get()
+    local g = PL[s.key]
     if g and g.win ~= win then
         pcall(function() g.win:removeChild(g) end)
-        PL._glass, g = nil, nil
+        PL[s.key], g = nil, nil
     end
     if not win then return end
     local want = PL.on() and not win.windowShaded
@@ -128,14 +151,14 @@ function PL.frame()
         if g and g:isVisible() then g:setVisible(false) end
         return
     end
-    local x, y, w, h = PL.rect(win)
+    local x, y, w, h = s.rect(win)
     if not x then return end
     if not g then
         g = ZeD_PausedGlass:new(win)
         g:initialise()
         g:instantiate()
         win:addChild(g)
-        PL._glass = g
+        PL[s.key] = g
     end
     if g:getX() ~= x then g:setX(x) end
     if g:getY() ~= y then g:setY(y) end
@@ -147,8 +170,8 @@ function PL.frame()
     -- puts the glass back on top
     local n = 0
     for _ in pairs(win:getChildren() or {}) do n = n + 1 end
-    if n ~= PL._kids then
-        PL._kids = n
+    if n ~= PL[s.kids] then
+        PL[s.kids] = n
         pcall(function() win:removeChild(g); win:addChild(g) end)
     end
 end

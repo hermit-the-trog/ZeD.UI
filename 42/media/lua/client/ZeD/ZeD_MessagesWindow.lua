@@ -823,22 +823,102 @@ ZeD.EscapeTakers.messages = W.takeEscape
 -- ---------------------------------------------------------------------------
 ZeD_MessagesToasts = ISUIElement:derive("ZeD_MessagesToasts")
 
-function ZeD_MessagesToasts:new()
+-- pn: the player whose balloons this element shows (a notice for no one in particular is player one's)
+function ZeD_MessagesToasts:new(pn)
     local o = ISUIElement.new(self, 0, 0, 1, 1)
     o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
+    o.playerNum = pn or 0
     o._boxes = {}
     o._list = {}
     return o
 end
 
--- where the balloons come from (screen pixels), and whether they point at the note
-function W.noticeAnchor()
+-- THE DASH'S NOTE (the director, Nov 7 2026: "every dash gets the same Messages icon"): the belt's Messages note,
+-- the same box, paper and count, at the dash's top right corner while driving (the belt hides in a seat), on the
+-- full dash and the Simple one, while Messages keeps anything; a click opens Messages. Notices come out of it then.
+ZeD_DashNote = ISUIElement:derive("ZeD_DashNote")
+local NOTE_U = 38   -- the belt's LAMP
+function ZeD_DashNote:new()
+    local o = ISUIElement.new(self, 0, 0, 1, 1)
+    o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
+    return o
+end
+-- where it stands: the dash's top right corner, a gap above the dash (nil: no dash showing, nothing kept)
+function W.dashNoteRect()
+    local D = ZeD.Dashboard
+    local dash = D and D.getInstance and D.getInstance()
+    if not (dash and dash:getIsVisible() and MS.count() > 0) then return nil end
+    local T = ZeD.T
+    local s = T.px(NOTE_U)
+    return dash:getX() + dash:getWidth() - s - T.px(10), dash:getY() - s - T.px(6), s, s
+end
+local noteTex = nil
+-- shown or not, and where, before each frame draws (a hidden element gets no prerender to show itself again)
+function W.dashNoteFrame()
+    local note = W.dashNote
+    if not note then return end
+    local x, y, w, h = nil, nil, nil, nil
+    if ZeD.T then x, y, w, h = W.dashNoteRect() end
+    if not x then
+        if note:getIsVisible() then note:setVisible(false) end
+        return
+    end
+    if not note:getIsVisible() then note:setVisible(true) end
+    if note.x ~= x then note:setX(x) end
+    if note.y ~= y then note:setY(y) end
+    if note.width ~= w then note:setWidth(w); note:setHeight(h) end
+end
+if Events and Events.OnPreUIDraw then Events.OnPreUIDraw.Add(function() pcall(W.dashNoteFrame) end) end
+
+function ZeD_DashNote:prerender()
+    local T = ZeD.T
+    local x, y, w, h = nil, nil, nil, nil
+    if T then x, y, w, h = W.dashNoteRect() end
+    if not x then return end
+    if self.x ~= x then self:setX(x) end
+    if self.y ~= y then self:setY(y) end
+    if self.width ~= w then self:setWidth(w); self:setHeight(h) end
+    local s1, bd, ac = T.surf1, T.borderS, T.accent
+    self:drawRect(0, 0, w, h, 0.92, s1.r, s1.g, s1.b)
+    if self:isMouseOver() then local hv = T.hover; self:drawRect(0, 0, w, h, hv.a or 1, hv.r, hv.g, hv.b) end
+    self:drawRectBorder(0, 0, w, h, 1, bd.r, bd.g, bd.b)
+    if noteTex == nil then noteTex = getTexture("media/textures/ZeD/icons/msg_note.png") or false end
+    if noteTex then
+        local k = math.max(1, math.floor(h * 0.75 / 14))
+        local iw, ih = 13 * k, 14 * k
+        self:drawTextureScaledAspect(noteTex, math.floor((w - iw) / 2), math.floor((h - ih) / 2), iw, ih, 1, 1, 1, 1)
+    end
+    local un, err = MS.unread()
+    if un > 0 then
+        local t = tostring(un > 99 and "99" or un)
+        local f = T.fontF1
+        local pw, ph = tw(f, t) + T.px(6), fh(f) + T.px(2)
+        local c = err and T.danger or ac
+        local ink = T.base or { r = 0.05, g = 0.05, b = 0.05 }
+        self:drawRect(w - pw, 0, pw, ph, 1, c.r, c.g, c.b)
+        self:drawText(t, w - pw + T.px(3), T.px(1), ink.r, ink.g, ink.b, 1, f)
+    end
+end
+function ZeD_DashNote:onMouseDown(x, y)
+    sound("UIActivateButton")
+    MS.open()
+    return true
+end
+
+-- where a player's balloons come from (screen pixels), and whether they point at a note: that player's belt note,
+-- else the dash's note while driving, else the bottom middle of that player's screen without a tail
+function W.noticeAnchor(pn)
+    pn = pn or 0
     local B = ZeD.Belt
     local ax, ay = nil, nil
-    if B and B.noteAnchor then ax, ay = B.noteAnchor() end
+    if B and B.noteAnchor then ax, ay = B.noteAnchor(pn) end
     if ax then return ax, ay - ZeD.T.px(U.NOTICE_LIFT), true end
-    local x = getPlayerScreenLeft(0) + math.floor(getPlayerScreenWidth(0) / 2)
-    local y = getPlayerScreenTop(0) + getPlayerScreenHeight(0) - ZeD.T.px(U.NOTICE_FREE_BOTTOM)
+    if pn == 0 then
+        local nx, ny, nw = W.dashNoteRect()
+        if nx then return nx + math.floor(nw / 2), ny - ZeD.T.px(U.NOTICE_LIFT), true end
+    end
+    local x = getPlayerScreenLeft(pn) + math.floor(getPlayerScreenWidth(pn) / 2)
+    local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - ZeD.T.px(U.NOTICE_FREE_BOTTOM)
     local D = ZeD.Dashboard
     local dash = D and D.getInstance and D.getInstance()
     if dash and dash:getIsVisible() then y = math.min(y, dash:getY() - ZeD.T.px(8)) end
@@ -852,9 +932,22 @@ local function noticeK()
     return 1
 end
 
+-- this element's player's toasts (a notice for no one in particular goes to player one; a player who is not
+-- playing any more hands theirs to player one too)
+function W.toastsFor(pn, all)
+    local out = {}
+    for _, t in ipairs(all) do
+        local to = t.pn or 0
+        if to ~= 0 and not getSpecificPlayer(to) then to = 0 end
+        if to == pn then out[#out + 1] = t end
+    end
+    return out
+end
+
 function ZeD_MessagesToasts:prerender()
     local T = ZeD.T
-    local list = MS.toasts
+    local pn = self.playerNum or 0
+    local list = W.toastsFor(pn, MS.toasts)
     local Bb = ZeD.Bubbles
     if not T or not Bb or #list == 0 or not getPlayer() then
         if self.width > 1 then self:setWidth(1); self:setHeight(1) end
@@ -863,7 +956,7 @@ function ZeD_MessagesToasts:prerender()
     end
     Bb.syncColours(T)
     local k = noticeK()
-    local ax, ay, tail = W.noticeAnchor()
+    local ax, ay, tail = W.noticeAnchor(pn)
     -- each toast's balloon: its head, then where it is from and what it says (the list's own order, oldest first)
     local items = {}
     for i, t in ipairs(list) do
@@ -871,8 +964,8 @@ function ZeD_MessagesToasts:prerender()
         local lines, tw0 = Bb.noticeLines(t.head, body)
         items[i] = { lines = lines, tw = tw0, dot = (t.kind == "crit") and T.danger or (T.warning or T.accent), source = t.source }
     end
-    local sl = getPlayerScreenLeft(0)
-    local sr = sl + getPlayerScreenWidth(0)
+    local sl = getPlayerScreenLeft(pn)
+    local sr = sl + getPlayerScreenWidth(pn)
     local x0, y0, x1, y1 = Bb.layoutNoticeBalloons(items, math.floor((sl - ax) / k), math.floor((sr - ax) / k), tail)
     local ex, ey = ax + x0 * k, ay + y0 * k
     local ew, eh = (x1 - x0) * k + k, (y1 - y0) * k + k
@@ -921,11 +1014,21 @@ function ZeD_MessagesToasts:onMouseDown(x, y)
     return false
 end
 
+-- one balloon element per player (split screen: each from its own player's note), and the dash's note
 local toasts
 Events.OnGameStart.Add(function()
     if toasts then return end
-    toasts = ZeD_MessagesToasts:new()
-    toasts:initialise()
-    toasts:addToUIManager()
-    toasts:setAlwaysOnTop(true)
+    toasts = {}
+    for pn = 0, 3 do
+        local t = ZeD_MessagesToasts:new(pn)
+        t:initialise()
+        t:addToUIManager()
+        t:setAlwaysOnTop(true)
+        toasts[pn] = t
+    end
+    local note = ZeD_DashNote:new()
+    note:initialise()
+    note:addToUIManager()
+    note:setVisible(false)
+    W.dashNote = note
 end)
