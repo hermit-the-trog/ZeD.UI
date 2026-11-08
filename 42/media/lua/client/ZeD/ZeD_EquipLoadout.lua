@@ -163,7 +163,7 @@ function EL.plan(win, force)
     local p = player(win)
     if not p then return nil end
     local now = getTimestampMs()
-    if force or not s.plan or s.planR ~= R.gen or s.planL ~= L.gen or now - s.planMs > 1000 then
+    if force or not s.plan or s.planR ~= R.gen or s.planL ~= L.gen or now - s.planMs > 1000 or now < s.planMs then
         local ok, plan = pcall(R.plan, p, {})
         if not ok then
             if ZeD.logOnce then ZeD.logOnce("restock plan", plan) end
@@ -528,9 +528,9 @@ end
 local function readyCount(win, p, o, lo, days)
     local s = st(win)
     local now = getTimestampMs()
-    if s.plan and s.planR == R.gen and s.planL == L.gen and now - s.planMs <= 1000 then return s.readyN or 0, s.readyM or 0 end
+    if s.plan and s.planR == R.gen and s.planL == L.gen and now >= s.planMs and now - s.planMs <= 1000 then return s.readyN or 0, s.readyM or 0 end
     local c = s.ready
-    if c and c.r == R.gen and c.l == L.gen and now - c.ms <= 1000 then return c.n, c.m end
+    if c and c.r == R.gen and c.l == L.gen and now >= c.ms and now - c.ms <= 1000 then return c.n, c.m end
     local n, m = 0, 0
     for _, list in ipairs({ o or false, lo or false }) do
         if list and list.kind ~= "outfit" then

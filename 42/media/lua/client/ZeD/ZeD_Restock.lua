@@ -253,22 +253,49 @@ function R.bkey(b)
     return d:getX() .. "," .. d:getY()
 end
 
+-- ms gone by since t; a clock gone back counts as long gone (a throttle never freezes)
+local function since(now, t)
+    local d = now - (t or 0)
+    if d < 0 then return math.huge end
+    return d
+end
+R.since = since
+
 -- The building's squares that hold a container or a tap (perf review, Nov 7 2026): the whole building is
 -- walked once, then only these squares are looked at again (their containers and taps afresh each time:
--- what is in them, opened, locked, the water). Walked again after R.BUILDING_MS, when an object is added
--- to or taken from the world, or on force. A square counts when any object on it has a container, or could
--- hold water now or later (it has water, a fluid container, or an outside water source).
+-- what is in them, opened, locked, the water). Walked again after R.BUILDING_MS, when a run starts, or when
+-- something is built, placed, plumbed or taken away (R.forgetBuildings: the hooks at the end of the file).
+-- A square counts when any object on it has a container, or could hold water now or later (it has water, a
+-- fluid container, an outside water source, or the game's waterPiped flag). Kept per player (a safehouse
+-- that keeps you out is never walked into), for the last R.BUILDING_KEEP buildings and never past
+-- R.BUILDING_DROP_MS.
 R.BUILDING_MS = 10000
-local _bsq = {}   -- bkey -> { b, ms, list = { { x, y, z }, ... } in the walk's order }
-local function mayHold(o)
-    if not o then return false end
-    if o.getContainerCount and o:getContainerCount() > 0 then return true end
-    if instanceof(o, "IsoWorldInventoryObject") then return false end
-    return (call(o, "hasWater") or call(o, "getFluidContainer") ~= nil or call(o, "getUsesExternalWaterSource")) and true or false
+R.BUILDING_KEEP = 4
+R.BUILDING_DROP_MS = 60000
+R.walks = R.walks or 0   -- the building walks made (QA, the sim)
+local _bsq = {}   -- bkey|pn -> { b, ms, list = { { x, y, z }, ... } in the walk's order }
+-- one square: anything on it that holds or could hold something (one pcall a square; an error counts as yes)
+local function squareHolds(sq)
+    local wp = IsoFlagType and IsoFlagType.waterPiped
+    local obs = sq:getObjects()
+    for i = 0, obs:size() - 1 do
+        local o = obs:get(i)
+        if o then
+            if o.getContainerCount and o:getContainerCount() > 0 then return true end
+            if not instanceof(o, "IsoWorldInventoryObject") then
+                if o:hasWater() or o:getFluidContainer() ~= nil or o:getUsesExternalWaterSource() then return true end
+                local pr = wp and o:getProperties()
+                if pr and pr:has(wp) then return true end
+            end
+        end
+    end
+    return false
 end
-local function buildingSquares(b, bk, now, force)
-    local e = bk and _bsq[bk]
-    if e and not force and e.b == b and now - e.ms < R.BUILDING_MS then return e.list end
+local function buildingSquares(p, b, bk, now)
+    local k = bk and (bk .. "|" .. tostring(p:getPlayerNum())) or nil
+    local e = k and _bsq[k]
+    if e and e.b == b and since(now, e.ms) < R.BUILDING_MS then return e.list end
+    R.walks = R.walks + 1
     local list = {}
     local d = b:getDef()
     local cell = getCell()
@@ -276,24 +303,34 @@ local function buildingSquares(b, bk, now, force)
         for y = d:getY(), d:getY2() - 1 do
             for x = d:getX(), d:getX2() - 1 do
                 local sq = cell:getGridSquare(x, y, z)
-                if sq and sq:getBuilding() == b then
-                    local obs = sq:getObjects()
-                    for i = 0, obs:size() - 1 do
-                        if mayHold(obs:get(i)) then list[#list + 1] = { x, y, z }; break end
-                    end
+                if sq and sq:getBuilding() == b and lootAllowed(sq, p) then
+                    local ok, holds = pcall(squareHolds, sq)
+                    if holds or not ok then list[#list + 1] = { x, y, z } end
                 end
             end
         end
     end
-    if bk then _bsq[bk] = { b = b, ms = now, list = list } end
+    if k then
+        -- the old ones go: past R.BUILDING_DROP_MS, then the oldest past R.BUILDING_KEEP
+        local keep = {}
+        for kk, ee in pairs(_bsq) do
+            if kk ~= k and since(now, ee.ms) < R.BUILDING_DROP_MS then keep[#keep + 1] = { k = kk, e = ee } end
+        end
+        table.sort(keep, function(a, c) return a.e.ms > c.e.ms end)
+        local nb = {}
+        for i = 1, math.min(#keep, R.BUILDING_KEEP - 1) do nb[keep[i].k] = keep[i].e end
+        nb[k] = { b = b, ms = now, list = list }
+        _bsq = nb
+    end
     return list
 end
---- Walk the buildings again at the next scan (an object added to or taken from the world).
+--- Walk the buildings again at the next scan (a run starts; something built, placed, plumbed or taken away).
 function R.forgetBuildings() _bsq = {} end
+function R.buildingsKept() local n = 0; for _ in pairs(_bsq) do n = n + 1 end; return n end
 
 --- The building's containers (or, outside one, those in reach) and its taps. Kept for a
 -- second, or until you step to another square; the building's squares that hold something
--- are kept longer (above); force = look again now, the whole building too.
+-- are kept longer (above); force = look again now at those squares and the reach (a run's tick).
 -- @return { sources = { { cont, obj, sq, x, y, z, name, reach, floor } }, waters = {...},
 --           building, bkey, reachSig }
 local _scan = {}
@@ -304,13 +341,13 @@ function R.scan(p, force)
     local c = _scan[pn]
     local cur = p:getCurrentSquare()
     local here = cur and (cur:getX() .. "," .. cur:getY() .. "," .. cur:getZ()) or ""
-    if c and not force and c.here == here and now - c.ms < 1000 then return c end
+    if c and not force and c.here == here and since(now, c.ms) < 1000 then return c end
     local out, waters, seen = {}, {}, {}
     local reachSig = scanReach(p, out, waters, seen)
     local b = R.buildingOf(p)
     if b then
         local cell = getCell()
-        for _, xyz in ipairs(buildingSquares(b, R.bkey(b), now, force)) do
+        for _, xyz in ipairs(buildingSquares(p, b, R.bkey(b), now)) do
             local sq = cell:getGridSquare(xyz[1], xyz[2], xyz[3])
             if sq and sq:getBuilding() == b then scanSquare(p, sq, out, waters, seen, R.inReach(p, sq)) end
         end
@@ -963,6 +1000,7 @@ function R.start(p, kind)
         local s = L.store(p)
         if b and s then s.home = { b = R.bkey(b), x = math.floor(p:getX()), y = math.floor(p:getY()), z = math.floor(p:getZ()) }; s.trip = nil end
     end
+    R.forgetBuildings()   -- (a run starts on the whole building as it is now)
     R.forget(p)
     local jobs = R.runJobs(p, kind)
     run.jobs0 = #jobs
@@ -1278,7 +1316,7 @@ local function onTick()
         end
     end
     local now = getTimestampMs()
-    if now - _runMs < R.RUN_TICK_MS then return end
+    if since(now, _runMs) < R.RUN_TICK_MS then return end
     _runMs = now
     -- Loadouts and outfits off: a run going stops (its queue cancelled), and nothing else is watched
     if not L.on() then
@@ -1295,7 +1333,7 @@ local function onTick()
             if not ok then run.done = true; run.stopped = "error"; print("[ZeD] Restock: " .. tostring(err)) end
         end
     end
-    if now - _homeMs < R.HOME_TICK_MS then return end
+    if since(now, _homeMs) < R.HOME_TICK_MS then return end
     _homeMs = now
     -- stepping out of home after a restock: what you leave with
     for pn = 0, 3 do
@@ -1329,8 +1367,41 @@ if not _G._zedRestockHooked then
             if run and not run.done then ZeD.Restock.stop(chr, "hurt") end
         end)
     end
-    -- a container or a tap placed, built or taken away: the buildings are walked again at the next scan
-    if Events.OnObjectAdded then Events.OnObjectAdded.Add(function() ZeD.Restock.forgetBuildings() end) end
-    if Events.OnObjectAboutToBeRemoved then Events.OnObjectAboutToBeRemoved.Add(function() ZeD.Restock.forgetBuildings() end) end
 end
 R._onTick = onTick
+
+-- ---------------------------------------------------------------------------
+-- SOMETHING BUILT, PLACED, PLUMBED OR TAKEN AWAY: the buildings are walked again at the next scan.
+-- The game fires OnObjectAdded only for an object sent over the network (multiplayer), so the build
+-- menu (ISBuildIsoEntity:create), placing furniture (ISMoveableSpriteProps:placeMoveable) and plumbing
+-- (ISPlumbItem:complete / perform) are followed too. Each is wrapped once (R._wraps marks ours), at load
+-- and at game start (the build menu's file loads after this one). Kept apart from the hooks above so a
+-- reload of this file still adds them.
+-- ---------------------------------------------------------------------------
+R._wraps = R._wraps or {}
+local function forgetAfter(...)
+    pcall(ZeD.Restock.forgetBuildings)
+    return ...
+end
+local function wrapForget(cls, m)
+    if type(cls) ~= "table" then return end
+    local orig = rawget(cls, m)
+    if type(orig) ~= "function" or R._wraps[orig] then return end
+    local w = function(...) return forgetAfter(orig(...)) end
+    R._wraps[w] = true
+    cls[m] = w
+end
+function R.wrapBuildHooks()
+    wrapForget(ISBuildIsoEntity, "create")
+    wrapForget(ISMoveableSpriteProps, "placeMoveable")
+    wrapForget(ISPlumbItem, "complete")
+    wrapForget(ISPlumbItem, "perform")
+end
+pcall(R.wrapBuildHooks)
+if not _G._zedRestockWorldHooks then
+    _G._zedRestockWorldHooks = true
+    local function forget() pcall(ZeD.Restock.forgetBuildings) end
+    if Events.OnObjectAdded then Events.OnObjectAdded.Add(forget) end
+    if Events.OnObjectAboutToBeRemoved then Events.OnObjectAboutToBeRemoved.Add(forget) end
+    if Events.OnGameStart then Events.OnGameStart.Add(function() pcall(ZeD.Restock.wrapBuildHooks) end) end
+end
