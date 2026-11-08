@@ -320,8 +320,8 @@ local function askLists()
     end
 end
 
---- Called by the tab each frame it shows: the game and the server are asked again when their time is up (users and
---- players 5 s, bans and repeats 10 s) and the rows are read again every second.
+--- Called each frame the tab or one of its cards shows: the game and the server are asked again when their time is up (users, roles
+--- and players every 5 s; bans and repeats every 10 s) and the rows are read again every second.
 function M.watch()
     if M.qaHold then return end
     local t = now()

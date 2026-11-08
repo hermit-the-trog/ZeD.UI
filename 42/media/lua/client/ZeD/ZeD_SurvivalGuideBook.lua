@@ -753,9 +753,9 @@ function B.paginate(bk, u)
     -- THE CONTENTS, now the chapters' pages are known (B.contentsLayout): as many pages as its rows need after the
     -- title page, then the introduction on a right-hand page, facing the last contents page when their count is odd
     -- and after a left-hand page when it is even (as a printer would). That left-hand page is the publisher's house ad
-    -- (old paperbacks ran an "also from this publisher" ad up front; p.front, so the deal
-    -- leaves it be and never repeats the house ad later, B.dealAds). It is no text page: no chapter, topic or contents
-    -- row points at it, and it has no section for the thumbs. The front matter is always an even
+    -- (old paperbacks ran an "also from this publisher" ad up front; p.front, so the deal leaves it be and never
+    -- repeats the house ad later, B.dealAds). It is no text page: no chapter, topic or contents row points at it,
+    -- and it has no section for the thumbs. The front matter is always an even
     -- count, so the chapters keep their sides; every page moves on by what the contents added (shift), and the rows
     -- print the numbers of the pages as they end up (laid out again while the shift grows: a wider number can wrap).
     local shift, cpages = 0, nil
@@ -1457,13 +1457,12 @@ function ZeD_GuideBook:drawCopyrightPage(x, y, w, u)
 end
 
 --- THE CONTENTS, on as many pages as it needs: the sections come from the game's guide and ZeD's chapters at run
---- time, so their count is not fixed. A row for each
---- section that has a page (numOf(s), its printed number, or nil for none), laid out at the text size and in the
---- wording into as many pages as it needs, whole rows only, none past the body text's bottom. A row: the chapter's
---- number and title (wrapped to the text block), its blurb wrapped to the room before its page number (else at
---- Large text some languages' blurbs run into their numbers), the dotted leader and the number on the
---- blurb's last line. A later page heads with the contents title and the book's "continued", as the rules pages do.
---- Places in px at u from the page's top; B.paginate places the pages, drawContentsPage draws them.
+--- time, so their count is not fixed. A row for each section that has a page (numOf(s), its printed number, or nil
+--- for none), laid out at the text size and in the wording, whole rows only, none past the body text's bottom. A
+--- row: the chapter's number and title (wrapped to the text block), its blurb wrapped to the room before its page
+--- number (else at Large text some languages' blurbs run into their numbers), the dotted leader and the number on
+--- the blurb's last line. A later page heads with the contents title and the book's "continued", as the rules pages
+--- do. Places in px at u from the page's top; B.paginate places the pages, drawContentsPage draws them.
 function B.contentsLayout(bk, u, numOf)
     local cu = u * TM_
     local tw_ = (U.PW - U.M * 2) * u
