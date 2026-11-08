@@ -335,7 +335,7 @@ local function newItem(name, cont, opts)
     itemN = itemN + 1
     opts = opts or {}
     local it = { name = name, id = 1000 + itemN, cont = cont, fav = opts.fav, ftype = opts.ftype or ("Base." .. name:gsub(" ", "")),
-        bandage = opts.bandage or 0 }
+        bandage = opts.bandage or 0, wornflag = opts.wornflag }
     function it.getName(self) return self.name end
     function it.getDisplayName(self) return self.name end
     function it.setName(self, n) self.name = n end
@@ -345,6 +345,7 @@ local function newItem(name, cont, opts)
     function it.getB() return 1 end
     function it.getID(self) return self.id end
     function it.isFavorite(self) return self.fav == true end
+    function it.isWorn(self) return self.wornflag == true end
     function it.isHidden() return false end
     function it.IsFood() return false end
     function it.getContainer(self) return self.cont end
@@ -693,6 +694,35 @@ if s then
     check("a held item: no", s:addItem(held) == false and s.flash == getText("IGUI_TradingUI_ItemNeedUnequip", "Knife"))
     check("a worn item: no", s:addItem(worn) == false)
     check("a favorite: no", s:addItem(fav) == false and s.flash == getText("IGUI_TradingUI_CantAddFavorite"))
+    do -- QA round 3 (two players): on a server the main inventory can hold a NEWER OBJECT for the item the player wears or
+       -- holds (same getID, not the same object), so vanilla's isEquipped / isEquippedClothing say no; the ids and the
+       -- item's own worn flag back them up. The worn jacket, the knife in hand and the favorite watch were listed.
+        local jacket2 = newItem("Jacket", P1.inv); jacket2.id = worn:getID()
+        local knife2 = newItem("Knife", P1.inv); knife2.id = held:getID()
+        local hat = newItem("Hat", P1.inv, { wornflag = true })
+        local plain = newItem("Plain", P1.inv)
+        check("stale copy: vanilla's own two calls say it is not worn or held (the fault's cause)",
+            P1:isEquipped(jacket2) == false and P1:isEquippedClothing(jacket2) == false and P1:isEquipped(knife2) == false)
+        check("stale copy: TR.isHeld knows the worn jacket by its id", TR.isHeld(P1, jacket2) == true)
+        check("stale copy: TR.isHeld knows the knife in hand by its id", TR.isHeld(P1, knife2) == true)
+        check("worn flag: TR.isHeld reads the item's own flag", TR.isHeld(P1, hat) == true)
+        check("the originals are held too (vanilla's calls)", TR.isHeld(P1, worn) == true and TR.isHeld(P1, held) == true)
+        check("an item that is neither: not held", TR.isHeld(P1, plain) == false and TR.isHeld(P1, apple) == false)
+        check("TR.isHeld with the ids already read gives the same answers",
+            TR.isHeld(P1, jacket2, TR.heldIds(P1)) == true and TR.isHeld(P1, plain, TR.heldIds(P1)) == false)
+        check("stale copy: Add refuses the jacket (Unequip first)", s:addItem(jacket2) == false and s.flash == getText("IGUI_TradingUI_ItemNeedUnequip", "Jacket"), s.flash)
+        check("stale copy: Add refuses the knife", s:addItem(knife2) == false)
+        check("worn flag: Add refuses the hat", s:addItem(hat) == false)
+        s:rebuild()
+        local seen = {}
+        for _, g in ipairs(s.groups) do seen[g.label] = #g.items end
+        check("the list leaves out the stale jacket and knife, the hat and the favorite watch",
+            seen.Jacket == nil and seen.Knife == nil and seen.Hat == nil and seen.Watch == nil, seen.Jacket or seen.Knife or seen.Hat or seen.Watch)
+        check("and still lists what is free (nails, plain)", seen.Nails == 3 and seen.Plain == 1)
+        for _, x in ipairs({ jacket2, knife2, hat, plain }) do
+            for i = #P1.inv.items, 1, -1 do if P1.inv.items[i] == x then table.remove(P1.inv.items, i) end end
+        end
+    end
     s:rebuild()
     local hasApple = false
     for _, g in ipairs(s.groups) do if g.label == "Apple" then hasApple = true end end
@@ -974,6 +1004,39 @@ if CARD.entry and CARD.entry.def.id == "medic" then
     local label = en and en.conditions[1] and en.conditions[1].label
     check("a First Aid 0 doctor: a deep wound without its severity", label == getText("IGUI_health_DeepWound"), label)
     check("a First Aid 0 doctor: no pain line", t.pain == nil)
+    do -- QA round 3: on a server the doctor's copy of the patient is filled as the SERVER's updates arrive: empty at the start
+       -- (startReceivingBodyDamageUpdates resets it, maybe as a new object), fuller as they come. The card reads vanilla's
+       -- getBodyDamageRemote afresh at every refresh, so it follows, and a missing copy is no error.
+        local origRemote = P2.remote
+        local def = CARD.entry.def
+        local function reread() def.refresh(t, P1) end
+        -- nothing arrived yet
+        P2.remote = newBody(100)
+        reread()
+        check("remote: before the server's first update the list is empty", t.d and #t.d.entries == 0 and t.d.woundedCount == 0, t.d and #t.d.entries)
+        -- the update arrives (the hand, the overall health and the pain), and a later refresh shows it
+        local h2 = P2.remote.byType[BodyPartType.Hand_L]
+        h2.f.deepWounded = true; h2.f.getDeepWoundTime = 15; h2.health = 55
+        P2.remote.overall = 80; P2.remote.pain = 2
+        reread()
+        check("remote: the update that arrives later is read (the left hand listed)", t.d.entries[1] and t.d.entries[1].bodyPart == h2, t.d.entries[1] and t.d.entries[1].name)
+        check("remote: its deep wound is named", t.d.entries[1] and t.d.entries[1].conditions[1] and t.d.entries[1].conditions[1].label == getText("IGUI_health_DeepWound"))
+        check("remote: the summary counts it and carries the overall health", t.d.woundedCount >= 1 and math.floor(t.d.overall + 0.5) == 80, t.d.woundedCount)
+        -- the copy replaced by a new object (a new check resets it): the next refresh reads the new one
+        P2.remote = newBody(100)
+        local h3 = P2.remote.byType[BodyPartType.Hand_L]
+        h3.f.deepWounded = true; h3.f.getDeepWoundTime = 15; h3.health = 50
+        reread()
+        check("remote: a copy replaced by a new object is read, not the old one", t.d.entries[1] and t.d.entries[1].bodyPart == h3)
+        -- no copy at all: no error, the card keeps what it had
+        local before = t.d
+        P2.remote = nil
+        local okNil, errNil = pcall(reread)
+        check("remote: a missing copy raises nothing (the card reads what there is)", okNil and t.d ~= nil, errNil)
+        P2.remote = origRemote
+        reread()
+        check("remote: back on the first copy the left hand is listed again", t.d.entries[1] and t.d.entries[1].bodyPart == hand)
+    end
     -- a First Aid 5 doctor (a new check)
     CARD:close()
     P1.doctor = 5
