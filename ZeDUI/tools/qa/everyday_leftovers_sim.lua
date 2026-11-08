@@ -295,7 +295,8 @@ do
     local invItems = { lipstick }
     local removed = {}
     local inv = { getItems = function() return { size = function() return #invItems end, get = function(_, i) return invItems[i + 1] end } end,
-                  Remove = function(_, it) removed[#removed + 1] = it end }
+                  Remove = function(_, it) removed[#removed + 1] = it end,
+                  containsRecursive = function(_, it) for _, x in ipairs(invItems) do if x == it then return true end end return false end }
     local worn = { wornCamo }
     local wornObj = { size = function() return #worn end, getItemByIndex = function(_, i) return worn[i + 1] end }
     local wornOff = {}
@@ -330,6 +331,27 @@ do
         local rows2 = MU.rows(p)
         check("no mirror: greyed with the game's reason", rows2[1] and rows2[1].ok == false and rows2[1].reason == "Tooltip_NeedMirror", rows2[1] and rows2[1].reason)
         mirror = true
+        -- the make-up the Make Up option came from, asked again: dropped, it is no longer the tool
+        local lip2 = item("Base.Lipstick", "Lipstick", "Red lipstick")
+        local byPref = {}
+        for _, r in ipairs(MU.rows(p, lip2)) do byPref[r.key] = r end
+        check("a picked item no longer carried is not the tool", byPref["m:a:Base.MakeUp_Lips1"] and byPref["m:a:Base.MakeUp_Lips1"].toolItem == lipstick)
+        invItems[#invItems + 1] = lip2
+        byPref = {}
+        for _, r in ipairs(MU.rows(p, lip2)) do byPref[r.key] = r end
+        check("carried, the picked item comes first", byPref["m:a:Base.MakeUp_Lips1"] and byPref["m:a:Base.MakeUp_Lips1"].toolItem == lip2)
+        lip2.getCurrentUses = function() return 0 end
+        byPref = {}
+        for _, r in ipairs(MU.rows(p, lip2)) do byPref[r.key] = r end
+        check("used up, the picked item is not the tool", byPref["m:a:Base.MakeUp_Lips1"] and byPref["m:a:Base.MakeUp_Lips1"].toolItem == lipstick)
+        -- a row made with an item that went before Apply applies nothing
+        local stale = byPref["m:a:Base.MakeUp_Lips1"]
+        table.remove(invItems, 1)
+        QUEUE = {}
+        stale.run(p)
+        check("an item gone since the rows were made: nothing queued", #QUEUE == 0)
+        table.insert(invItems, 1, lipstick)
+        table.remove(invItems)
         check("relevant while carried or worn", MU.relevant(p))
         invItems, worn = {}, {}
         check("nothing carried or worn: no make-up part", not MU.relevant(p))
