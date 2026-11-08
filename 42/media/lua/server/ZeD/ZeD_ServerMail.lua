@@ -42,7 +42,7 @@ local SCHEMA = 1
 local MIGRATE = {}                   -- MIGRATE[1] = function(md) ... end   moves 1 to 2; adds or reshapes, never drops
 
 -- memory only: a /reloadlua of this file leaves it empty and open() fills it again
-local T = { hours = {} }             -- hours: lower-case username -> the times of their last HOUR_MAX letters
+local T = {}
 Srv.Mail = T
 
 -- ---------------------------------------------------------------------------
@@ -74,6 +74,8 @@ local function open()
     md.chars = md.chars or 0          -- every letter's words and subject
     md.nextId = md.nextId or 1
     md.mutes = md.mutes or {}         -- lower-case username -> { [lower-case name] = true }: whose letters they refuse
+    md.hours = md.hours or {}         -- lower-case username -> { n = letters sent, at = the hour's start (ms) }: kept so a
+                                      -- restart can't reset the hour's cap
     if md.schema > SCHEMA then
         T.frozen = true               -- data from a newer ZeD: read it, never change it
     end
@@ -116,6 +118,10 @@ local function know(md, p)
     if oldest then
         md.known[oldest] = nil
         md.knownN = md.knownN - 1
+        -- (what the server keeps for them goes with them: their sent-letter numbers, their mutes, their hour)
+        md.sent[oldest] = nil
+        md.mutes[oldest] = nil
+        md.hours[oldest] = nil
     end
 end
 
@@ -269,15 +275,26 @@ reg("p_mute", { limit = ML.MUTE_MS }, function(p, a, rid)
     Srv.ack(p, rid, true)
 end)
 
--- the letters this player sent in the last hour: false when they have sent HOUR_MAX
-local function hourRoom(k)
+-- this player's hour: a count and the hour's start, in the mod data (a restart keeps it). An hour that has run out
+-- (or a clock that went back) starts again
+local function hourOf(md, k, now)
+    local h = md.hours[k]
+    if type(h) ~= "table" or type(h.at) ~= "number" or type(h.n) ~= "number" or now - h.at >= ML.HOUR_MS or now < h.at then
+        return nil
+    end
+    return h
+end
+
+-- false when this player has sent HOUR_MAX letters this hour
+local function hourRoom(md, k)
+    local h = hourOf(md, k, getTimestampMs())
+    return not h or h.n < ML.HOUR_MAX
+end
+
+local function hourCount(md, k)
     local now = getTimestampMs()
-    local h = T.hours[k]
-    if not h then h = {}; T.hours[k] = h end
-    local keep = {}
-    for _, at in ipairs(h) do if now - at < ML.HOUR_MS then keep[#keep + 1] = at end end
-    T.hours[k] = keep
-    return #keep < ML.HOUR_MAX
+    local h = hourOf(md, k, now)
+    if h then h.n = h.n + 1 else md.hours[k] = { n = 1, at = now } end
 end
 
 local function sentBefore(md, k, cid)
@@ -323,9 +340,9 @@ reg("p_send", { limit = ML.SEND_MS, mark = false }, function(p, a, rid)
     if not subj then Srv.ack(p, rid, false, "subj", { cid = cid }); return end
     local dest = to and md.known[low(to)] or nil
     if not dest then Srv.ack(p, rid, false, "to", { cid = cid }); return end
-    if not hourRoom(k) then Srv.ack(p, rid, false, "hour", { cid = cid }); return end
+    if not hourRoom(md, k) then Srv.ack(p, rid, false, "hour", { cid = cid }); return end
     Srv.mark(p, "p_send")
-    table.insert(T.hours[k], getTimestampMs())
+    hourCount(md, k)
     local id = md.nextId
     md.nextId = id + 1
     local m = { id = id, from = me, to = dest.user, subj = subj, text = text, t = getTimestamp(), day = Srv.day() }
