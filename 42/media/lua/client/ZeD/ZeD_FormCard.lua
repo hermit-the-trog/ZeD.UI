@@ -449,7 +449,7 @@ function ZeD_FormCard:update()
     local jf = nil
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     if jd and jd.focus == self then jf = jd end
-    if FC.qaJoy then jf = FC.qaJoy end   -- QA: the controller look without a controller
+    if FC.qaJoy then jf = FC.qaJoy end   -- (a test hook: the controller look without a controller)
     self.joyfocus = jf
 end
 
