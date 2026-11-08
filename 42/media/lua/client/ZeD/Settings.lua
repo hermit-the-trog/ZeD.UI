@@ -838,6 +838,11 @@ local function setUpAdditions()
     -- who ran beta 6 was moved to Custom with the Immersive card. Those values, Vanilla Access in every row but that one,
     -- go back to the preset. The file says it was done, so a later pick of Immersive stays; a new player gets the file too.
     local REPAIR_FILE = "ZeD_presetRepair.txt"
+    -- the additions beta 6 had (IDS as it stood then): the repair compares these and nothing newer
+    local REPAIR_IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
+                         "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle",
+                         "watchStyle", "dashStyle", "guideStyle", "modsStyle", "identityStyle", "haloBubble" }
+    local savedHas = {}   -- (the ids ModOptions.ini has a line for, read at file load below)
     local repairSeen = false
     local function repairVanillaAccess()
         if repairSeen then return end
@@ -850,12 +855,22 @@ local function setUpAdditions()
         if not wrote then return end
         if additionsPreset:getValue() ~= CUSTOM then return end
         local set = PRESETS[3]
-        for id, v in pairs(set) do
+        -- (only the rows beta 6 had are compared: an addition newer than beta 6, Hidden facts or any later one, has no
+        -- saved line for that player and sits at its default, which must not stop the repair. Those newer rows the save
+        -- has no line for are set to Vanilla Access with the Identity row.)
+        for _, id in ipairs(REPAIR_IDS) do
+            local v = set[id]
             local want = (id == "identityStyle") and 1 or v
-            if stored(id) ~= want then return end
+            if v ~= nil and stored(id) ~= want then return end
         end
         local o = opt("identityStyle")
         if o then o:setValue(set.identityStyle) end
+        local old = {}
+        for _, id in ipairs(REPAIR_IDS) do old[id] = true end
+        for id, v in pairs(set) do
+            local on = opt(id)
+            if on and not old[id] and not savedHas[id] then on:setValue(v) end
+        end
     end
 
     -- the stored values read (the main menu, a game start): the preset set to what they make, and saved
@@ -888,6 +903,7 @@ local function setUpAdditions()
             end
         end)
         pcall(function() r:close() end)
+        savedHas = has
         if had then
             for _, id in ipairs(WAS_ON) do
                 local o = opt(id)
