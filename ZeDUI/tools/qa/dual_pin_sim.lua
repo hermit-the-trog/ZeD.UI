@@ -296,7 +296,8 @@ end
 local function tick(n)
     for _ = 1, n or 1 do
         CLOCK = CLOCK + 100
-        for _, w in ipairs({ CW, WW }) do
+        for i = 1, 2 do
+            local w = (i == 1) and CW or WW   -- (ipairs would stop at a closed Character window)
             if w then
                 w:update()
                 layout(w)
@@ -765,6 +766,65 @@ do
     check("ROLLBOX: the bar keeps its room from the title and the stats", w._titleReserve == 14 + 4 + 2)
     w._rolled = true; C.drawRollButton(w); w._rolled = false
     check("ROLLBOX: no box, no room kept", w._titleReserve == nil)
+end
+
+-- ===========================================================================
+-- RODPIN (QA, beta 9 step 7): a real click on the pin on a rolled side's rod pins it; the window
+-- menu never opens. The press order as the game runs it: the pointer arrives and rests (updates
+-- run), the button goes down (the rod, the top panel there, takes onMouseDown; the window polls the
+-- raw mouse in its update), then up.
+-- ===========================================================================
+do
+    local menus = 0
+    ZeD.WindowMenu = { open = function() menus = menus + 1 end }
+    -- the click where the pointer is, as the engine delivers it
+    local function realClick(win)
+        local rod = win._rod
+        local function onRod()
+            return rod and rod:isVisible() and win._rolled and MX >= rod:getX() and MX < rod:getX() + rod:getWidth()
+                and MY >= rod:getY() and MY < rod:getY() + rod:getHeight()
+        end
+        tick(2)   -- (the pointer rests on the pin a moment)
+        DOWN = true
+        local pressedRod = onRod()
+        if pressedRod then rod:onMouseDown(MX - rod:getX(), MY - rod:getY()) end
+        CLOCK = CLOCK + 100; win:update()
+        DOWN = false
+        if pressedRod then rod:onMouseUp(MX - rod:getX(), MY - rod:getY()) end
+        tick(1)
+    end
+    for _, key in ipairs({ "char", "world" }) do
+        PLAYER.md = { ZeD_WinPinned = { charInv = false, charTabs = true, worldInv = false, worldTabs = true } }
+        local w
+        if key == "char" then w = fresh(PLAYER.md.ZeD_WinPinned); WW = nil
+        else CW = nil; WW = makeWindow("world"); w = WW end
+        away(); PLAYER.aiming = true; tick(2); PLAYER.aiming = false
+        local rod = w._rod
+        check("RODPIN " .. key .. ": (staged) the inventory rolled by aim, its pin on the rod", w._rolled and rod and rod._pinRect ~= nil)
+        local r = rod and rod._pinRect
+        if r then MX, MY = rod:getX() + r.x + math.floor(r.w / 2), rod:getY() + r.y + math.floor(r.h / 2) end
+        menus = 0
+        realClick(w)
+        check("RODPIN " .. key .. ": the click on the rod's pin pins the inventory", H.isPinned(w, "inv"))
+        check("RODPIN " .. key .. ": ... the window menu does not open", menus == 0, menus)
+        rodSettle(w); tick(2)
+        check("RODPIN " .. key .. ": ... and the pinned inventory comes down", not w._rolled)
+        -- the knock-on: the next click, on the open tab, still folds the drawer by hand
+        stripPress(w, w._activeTab); layout(w); tick(1)
+        check("RODPIN " .. key .. ": the next press on the open tab folds the drawer", not w._drawerOpen and w._activeTab == "loot")
+    end
+    -- a rolled window's bar: resting on a pin leaves the window rolled, the click pins and brings that half back
+    local w = fresh()
+    WW = nil
+    away(); tick(22)
+    local lp = H.pinRect(w, "left")
+    pointAt(w, lp.x + 3, lp.y + 3)
+    tick(3)
+    check("RODPIN: on a rolled window's bar, resting on the drawer's pin leaves it rolled", w.windowShaded)
+    menus = 0
+    realClick(w)
+    check("RODPIN: ... the click pins the drawer and brings it down, no menu", H.isPinned(w, "drawer") and not w.windowShaded and menus == 0)
+    ZeD.WindowMenu = nil
 end
 
 -- ===========================================================================
