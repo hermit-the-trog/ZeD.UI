@@ -102,6 +102,7 @@ Total keys: 3443.
 - [Target](#target) (2)
 - [Thermal](#thermal) (10)
 - [Track](#track) (9)
+- [Trade](#trade) (10)
 - [Traits](#traits) (19)
 - [Trough](#trough) (27)
 - [Veh](#veh) (176)
@@ -3602,6 +3603,21 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Track_CompassSW` | `SW` | Animal track card: the compass letter for south-west, drawn round the compass ring (1 letter for the main points, 2 for the corners; the corners use a tiny face) | 2 |
 | `UI_ZeD_Track_CompassW` | `W` | Animal track card: the compass letter for west, drawn round the compass ring (1 letter for the main points, 2 for the corners; the corners use a tiny face) | 2 |
 | `UI_ZeD_Track_TrackingLevel` | `\| Tracking %1` | Animal track card: small dim text after the species; %1 is the player's Tracking level (the bar is a separator) | 16 |
+
+## Trade
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Trade_EmptyInv` | `Nothing in your main inventory can be offered.` | Trade card (World window, trading with another player): the dim line under Main inventory when nothing there can go on the offer | - |
+| `UI_ZeD_Trade_EmptyOffer` | `Nothing offered yet.` | Trade card: the dim line under an offer's head (yours or theirs) while it is empty; half the card wide | - |
+| `UI_ZeD_Trade_HelpAccept` | `Hand over your offer and take theirs` | Trade card: help line over Accept deal (the game's words) in the band at the foot | - |
+| `UI_ZeD_Trade_HelpAdd` | `Add %1 to your offer` | Trade card: help line over an Add button in the Main inventory list; %1 = the item's name | - |
+| `UI_ZeD_Trade_HelpAddAll` | `Add all %1 to your offer` | Trade card: help line over Add all (a stack of the same item); %1 = the item's name | - |
+| `UI_ZeD_Trade_HelpCancel` | `End the trade. Nothing changes hands.` | Trade card: help line over Cancel in the band at the foot | - |
+| `UI_ZeD_Trade_HelpRemove` | `Take %1 back off your offer` | Trade card: help line over Remove on a row of your offer; %1 = the item's name | - |
+| `UI_ZeD_Trade_MainInventory` | `Main inventory` | Trade card: section head over your main inventory's items (the ones you can add); a count sits on its right | 24 |
+| `UI_ZeD_Trade_TagReady` | `Ready` | Trade card: tag in the header when both offers are sealed and the deal can be accepted | 12 |
+| `UI_ZeD_Trade_TagWaiting` | `Waiting` | Trade card: tag in the header while the other player has not answered your request | 12 |
 
 ## Traits
 

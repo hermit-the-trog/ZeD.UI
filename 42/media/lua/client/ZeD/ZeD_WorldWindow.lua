@@ -81,6 +81,13 @@ local TAB_SEP_MAR          = 0
 -- consumers (tab switches, MC entry, item selection, the public close).
 local function dropObjectCard(win)
     if not win or not win._drawerObject then return end
+    -- a pinned card (the trade, the director Nov 7 2026) stays through tab switches, item cards and the
+    -- like; only its own close (closeObjectCard: the close key, B, Cancel) takes it away
+    local pd = win._drawerObject.def
+    if pd and pd.pinned and not win._forceDrop then
+        local okP, pin = pcall(pd.pinned, win._drawerObject.t)
+        if okP and pin then return end
+    end
     win._drawerObject = nil
     if win._objectCard then win._objectCard:setEntry(nil) end
     if win._drawerMode == "object" then
@@ -5788,7 +5795,13 @@ function ZeD_WorldWindow.closeObjectCard()
             Focus.setZoneFocusable(win, "worldItemCard", false)
         end
     end
-    dropObjectCard(win)
+    -- (the card's own close: a pinned card goes too, and its kind hears it was the player's close)
+    win._forceDrop = true
+    ZeD_WorldWindow._closingCard = true
+    local ok, err = pcall(dropObjectCard, win)
+    win._forceDrop = nil
+    ZeD_WorldWindow._closingCard = nil
+    if not ok then print("[ZeD] WorldWindow: closing the card failed: " .. tostring(err)) end
 end
 
 function ZeD_WorldWindow.getObjectCard()
