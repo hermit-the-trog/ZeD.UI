@@ -91,7 +91,7 @@ local e0, e1 = 0, 0
 local hist0 = 0
 onCleanup(function()
     if opt and optWas ~= nil then pcall(function() opt:setValue(optWas) end) end
-    DC.mirror("")
+    pcall(function() DC.win.input:setText("") end); DC.mirror("")
     flag(wasUp)
 end)
 
@@ -251,10 +251,177 @@ step(20, function()
 end)
 
 
+-- ===== 3c. (Nov 8 QA, Build's 7daff3a7) keys still reach the line after a click; drag; clicks consumed; menus above the console
+step(5, function()
+    DC.run('print("hist_one")'); DC.run('print("hist_two")')
+end)
+step(30, function()
+    local w, i = DC.win, inp()
+    pcall(function() i:setText("") end)
+    local fr, tx, cw = w._fieldRect, w._typeX, w._typeCw
+    local ok = pcall(w.onMouseDown, w, tx + 3 * cw, fr.y + fr.h / 2)
+    check(ok and i:isFocused(), "3c: after a click in the field the game's box has the keys (focused)")
+    pcall(function() i:setText("getPlay") end)
+end)
+step(30, function()
+    local w, i = DC.win, inp()
+    check(DC.suggestion() ~= nil and DC.suggestion():find("getPlayer", 1, true) ~= nil, "7: typed into the line, getPlay gets the suggestion getPlayer (" .. tostring(DC.suggestion()) .. ")")
+    pcall(function() i.onOtherKey(i, 15) end)     -- Tab
+    check(typed():find("getPlayer", 1, true) == 1, "3c: Tab completes the line after a click (" .. typed() .. ")")
+    pcall(function() i.onPressUp(i) end)
+    local up1 = typed()
+    pcall(function() i.onPressUp(i) end)
+    local up2 = typed()
+    check(up1:find("hist_two", 1, true) ~= nil and up2:find("hist_one", 1, true) ~= nil, "3c: Up steps back through the history (" .. up1 .. " | " .. up2 .. ")")
+    pcall(function() i.onPressDown(i) end)
+    check(typed():find("hist_two", 1, true) ~= nil, "3c: Down steps forward (" .. typed() .. ")")
+    setCur(0); check(curPos() == 0, "3c: Home")
+    setCur(#typed()); check(curPos() == #typed(), "3c: End")
+    check(i:isFocused(), "3c: the box still has the keys after all of those")
+    geom("keys")
+    shot("keys")
+    pcall(function() i.onCommandEntered(i) end)   -- Enter
+end)
+step(40, function()
+    DC.read()
+    check(textHas("hist_two"), "3c: Enter runs the line (its output is in the list)")
+    check(typed() == "", "3c: and empties it (" .. typed() .. ")")
+end)
+-- drag by the title bar
+step(5, function()
+    local w = DC.win
+    local x0, y0 = w:getX(), w:getY()
+    local tb = w:titleBarHeight()
+    local mx = math.floor(w:getWidth() / 2)
+    local r1 = w:onMouseDown(mx, math.floor(tb / 2))
+    local movedFlag = w.moving
+    pcall(w.onMouseMove, w, 40, -30)
+    pcall(w.onMouseMove, w, 20, -10)
+    local x1, y1 = w:getX(), w:getY()
+    local r2 = w:onMouseUp(mx, math.floor(tb / 2))
+    check(r1 == true, "3c: a press on the title bar returns true")
+    check(movedFlag == true, "3c: it starts a drag (moving set)")
+    check(x1 == x0 + 60 and y1 == y0 - 40, "3c: the drag moves the window (" .. x0 .. "," .. y0 .. " to " .. x1 .. "," .. y1 .. ")")
+    check(w.moving == false, "3c: moving clears on release")
+    check(r2 == true, "3c: the release returns true")
+    w:onMouseDown(mx, math.floor(tb / 2))     -- a drag whose release is missed
+    w:setX(x0); w:setY(y0)
+end)
+step(15, function()
+    local w = DC.win
+    check(w.moving == false, "3c: a drag whose release was missed ends on its own (update)")
+end)
+-- clicks consumed: title bar, band, left / right / double
+step(10, function()
+    local w = DC.win
+    local tb = w:titleBarHeight()
+    local mx = math.floor(w:getWidth() / 2)
+    local ty = math.floor(tb / 2)
+    local function ret(f, ...) local ok, v = pcall(f, ...); return ok and v == true end
+    check(ret(w.onMouseDown, w, mx, ty), "3c: title bar left press consumed")
+    w.moving = false
+    check(ret(w.onMouseUp, w, mx, ty), "3c: title bar left release consumed")
+    check(ret(w.onRightMouseDown, w, mx, ty), "3c: title bar right press consumed")
+    check(ret(w.onRightMouseUp, w, mx, ty), "3c: title bar right release consumed")
+    local dbl = w.onMouseDoubleClick
+    if dbl then check(ret(dbl, w, mx, ty), "3c: title bar double click consumed") else say("NOTE 3c: the window has no onMouseDoubleClick handler (a double click is two presses)") end
+    local n = 0
+    for _, r in ipairs(w._bandRects or {}) do
+        n = n + 1
+        local cx, cy = r.x + r.w / 2, r.y + r.h / 2
+        check(ret(w.onMouseDown, w, cx, cy), "3c: band '" .. tostring(r.id) .. "' left press consumed")
+        w._down = nil
+        check(ret(w.onRightMouseDown, w, cx, cy), "3c: band '" .. tostring(r.id) .. "' right press consumed")
+        check(ret(w.onRightMouseUp, w, cx, cy), "3c: band '" .. tostring(r.id) .. "' right release consumed")
+    end
+    check(n >= 3, "3c: the band has its buttons (" .. n .. ")")
+    check(ret(w.onMouseDown, w, mx, ty), "3c: first press of a double click consumed")
+    w.moving = false
+    check(ret(w.onMouseDown, w, mx, ty), "3c: second press of a double click consumed")
+    w.moving = false
+    say("3c double click on the title bar: shaded " .. tostring(w.windowShaded))
+    if w.windowShaded then w:setWindowShaded(false) end
+    w._lastTitleClick = nil
+    w._down = nil
+end)
+-- the menu above the console
+local function zIndex(tbl)
+    local jo = tbl and tbl.javaObject
+    local ui = UIManager.getUI()
+    for k = 0, ui:size() - 1 do
+        local ok, t = pcall(function() return ui:get(k):getTable() end)
+        if (ok and t == tbl) or (jo and ui:get(k) == jo) then return k, ui:size() end
+    end
+    return nil, ui:size()
+end
+local function laterThan(w, skip)
+    local ci = zIndex(w)
+    local ui = UIManager.getUI()
+    local out = {}
+    for k = (ci or 0) + 1, ui:size() - 1 do
+        local t; pcall(function() t = ui:get(k):getTable() end)
+        local vis = false; pcall(function() vis = ui:get(k):isVisible() end)
+        if vis and t and t ~= skip then out[#out + 1] = tostring(t.Type or t.title or "?") end
+    end
+    return out
+end
+step(15, function()
+    local w = DC.win
+    local ok, e = pcall(ZeD.WindowMenu.open, w)
+    if not ok then say("ERR window menu: " .. tostring(e)) end
+    local m = ZeD.WindowMenu.current
+    check(m ~= nil, "3c: the window menu opens")
+    if not m then return end
+    local cwTop = false; pcall(function() cwTop = w.javaObject:isAlwaysOnTop() end)
+    local mTop = false; pcall(function() mTop = m.javaObject:isAlwaysOnTop() end)
+    local ci, n = zIndex(w)
+    local mi = zIndex(m)
+    say("3c z-order: console alwaysOnTop " .. tostring(cwTop) .. " index " .. tostring(ci) .. "; menu alwaysOnTop " .. tostring(mTop) .. " index " .. tostring(mi) .. " of " .. tostring(n))
+    check(cwTop == true, "3c: the console is always on top")
+    check(mTop == true, "3c: the menu is always on top")
+    say("3c above the console in the draw order: " .. table.concat(laterThan(w, nil), ", "))
+end)
+step(20, function()
+    local m = ZeD.WindowMenu.current
+    local ci, mi = zIndex(DC.win), m and zIndex(m)
+    check(ci ~= nil and mi ~= nil and mi > ci, "3c: the menu (added to the screen list a frame later) is later in the draw order than the console (in front): " .. tostring(mi) .. " vs " .. tostring(ci))
+    shot("menu")
+end)
+step(5, function()
+    local m = ZeD.WindowMenu.current
+    if not (m and m._levels and m._levels[1]) then return end
+    local lv = m._levels[1]
+    for ri, r in ipairs(lv.rows) do
+        if r.def and r.def.name == ZeD.tr("UI_ZeD_WinMenu_Theme") then lv.sel = ri end
+    end
+    say("3c theme row opened: " .. tostring(m:_openSub(1, true)))
+end)
+step(20, function() shot("menu_theme") end)
+step(5, function()
+    local m = ZeD.WindowMenu.current
+    if m then pcall(function() m:close() end) end
+end)
+-- the console in front of the game's debug windows
+step(10, function()
+    local w = DC.win
+    local later = laterThan(w, nil)
+    say("3c visible elements later than the console: " .. table.concat(later, ", "))
+    check(#later == 0, "3c: nothing visible draws in front of the console (" .. #later .. " later)")
+    local okd = pcall(function() if ISDebugMenu and ISDebugMenu.OnOpenPanel then ISDebugMenu.OnOpenPanel() end end)
+    say("3c opened the game's debug menu: " .. tostring(okd))
+end)
+step(25, function()
+    local later = laterThan(DC.win, nil)
+    say("3c after the debug menu opened, later than the console: " .. table.concat(later, ", "))
+    check(#later == 0, "3c: still nothing in front of the console after the game's debug menu opened (" .. #later .. ")")
+    shot("debug_menu")
+    pcall(function() if ISDebugMenu and ISDebugMenu.instance then ISDebugMenu.instance:close() end end)
+end)
+
 -- ===== 4 / 5. errors
 step(5, function()
     DC.read()
-    e0 = errCount()
+    DC.clear(); DC.read(); e0 = errCount()
     DC.run("local t = nil; t.x = 1")
 end)
 step(45, function()
@@ -289,21 +456,21 @@ end)
 
 -- ===== 7. the suggestion and Tab
 -- (Nov 8 QA, after Build's round 2: the game suggests the CLOSEST global, so "getPl" gives getCell and ZeD uses a suggestion only when it starts with the typed word)
-step(5, function() DC.mirror("getPlay") end)
+step(5, function() pcall(function() DC.win.input:setText("getPlay") end) end)
 step(35, function()
     local s = DC.suggestion()
     check(s ~= nil and s:find("getPlayer", 1, true) ~= nil, "7: the game's suggestion for getPlay names getPlayer (" .. tostring(s) .. ")")
     local t = DC.complete("getPlay")
     check(t ~= nil and t:find("getPlayer", 1, true) == 1, "7: Tab turns getPlay into getPlayer() (" .. tostring(t) .. ")")
-    DC.mirror("")
+    pcall(function() DC.win.input:setText("") end); DC.mirror("")
 end)
-step(5, function() DC.mirror("getPl") end)
+step(5, function() pcall(function() DC.win.input:setText("getPl") end) end)
 step(35, function()
     local s = DC.suggestion()
     check(s == nil or s:sub(1, 5) == "getPl", "7: a suggestion that does not start with the typed word (getPl) is not offered (" .. tostring(s) .. ")")
     local t = DC.complete("getPl")
     check(t == nil or t == "getPl", "7: Tab on getPl changes nothing (" .. tostring(t) .. ")")
-    DC.mirror("")
+    pcall(function() DC.win.input:setText("") end); DC.mirror("")
 end)
 
 -- ===== 8. clear
