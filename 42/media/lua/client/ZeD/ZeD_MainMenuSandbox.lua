@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuSandbox.lua
 -- ============================================================================
 -- SANDBOX OPTIONS ON THE MONITOR. Client-side; a window built on the
--- ZeD_MMOptions organism (Sandbox in game, ZeD_SandboxInGame.lua, builds on this one in turn).
+-- ZeD_MMOptions organism (Sandbox in game, ZeD_SandboxInGame.lua, and the server settings
+-- editor, ZeD_MainMenuServer.lua, build on this one in turn).
 --
 -- The Options window's layout (pages, Find, rows, the help band, list-box
 -- pop-ups, the controller) over vanilla's SandboxOptionsScreen, which stays
@@ -11,15 +12,15 @@
 --
 -- What it adds over vanilla, on vanilla's data:
 --   * a dot on every option that differs from the chosen preset, and the
---     count in the title (vanilla marked differences from the game default)
+--     count in the title (vanilla marks differences from the game default)
 --   * numbers are edited in their row (Return keeps, Escape leaves, a red
 --     outline while the number is out of range); the help band shows the range
 --   * an option with named steps ("Zombie Count": Insane ... None) is one list
 --     box of its steps with their numbers and Custom Number... (vanilla's
---     Advanced tick box switched every such option between two controls)
+--     Advanced tick box switches every such option between two controls)
 --   * options that do nothing in the current setup are greyed and inert
 --     (the mini map without the world map, skill multipliers under the
---     global one), as vanilla greyed them
+--     global one), as vanilla greys them
 --   * presets in one pop-up (every preset, Save as Preset..., Delete);
 --     loading one over changes asks first; save and delete ask in the band
 -- ============================================================================
@@ -55,6 +56,7 @@ end
 -- ============================================================================
 ZeD_MMSandbox = ZeD_MMOptions:derive("ZeD_MMSandbox")
 
+--- The sandbox settings window (the desk's "sandbox" view); Sandbox in game makes its own through this too.
 function ZeD_MMSandbox:new()
     local o = ZeD_MMWindow.new(self, "sandbox")
     o.inGame = false
@@ -69,6 +71,7 @@ function ZeD_MMSandbox:new()
     return o
 end
 
+--- Find, the band's field and the in-place number field (the server settings editor calls it for its own).
 function ZeD_MMSandbox:createChildren()
     ZeD_MMOptions.createChildren(self)   -- Find and the band's field
     -- the in-place number field (one, moved to the row being edited)
@@ -350,6 +353,9 @@ end
 
 -- DRAWING ----------------------------------------------------------------------------
 
+--- One row's control: a number or a named-steps list drawn here (the number edited in place), list
+--- and tick boxes by the Options window's, greyed and inert while they do nothing. Sandbox in game
+--- and the server settings editor draw their rows through it.
 function ZeD_MMSandbox:drawControl(r, cx, ry, cw, rh, rowId, clip)
     local T = ZeD.T
     local c = r.control
@@ -564,7 +570,7 @@ function ZeD_MMSandbox:deletePreset()
     if s and p and p.userDefined then
         -- vanilla's reload keeps the list's place (past the end: the last preset, Six Months Later) and applies it;
         -- the values on screen stay, and the preset they are measured from is the one they sit closest to (without
-        -- this, Apocalypse plus one change, saved and deleted, read "Six Months Later, 36 changed")
+        -- this, Apocalypse plus one change, saved and deleted, would read "Six Months Later, 36 changed")
         local keep = SandboxOptions.new()
         s:settingsFromUI(keep)
         deleteSandboxPreset(p.name)
@@ -581,8 +587,9 @@ function ZeD_MMSandbox:commitText()
     if self.confirm == "save" then self:savePreset() end
 end
 
--- The answer the controller lands on when a question opens: a question that can lose or
--- write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: loading a preset over changes and
+-- deleting one can lose work, so they land on the answer that stays and Load and Delete need a
+-- deliberate move; Save as preset loses nothing and lands on Save.
 local SAFE_ANSWER = { load = "confirm:no", delete = "confirm:no" }
 function ZeD_MMSandbox:setConfirm(mode)
     if self.confirm == mode then return end
@@ -640,7 +647,7 @@ function ZeD_MMSandbox:buildStrip(stripY, stripH, w)
     end
 end
 
--- ROWS: A on a controller, Space / Return on a focused row ---------------------------------
+-- ROWS: A on a controller (on the keyboard Return is Next, see keyOther) ---------------------------------
 function ZeD_MMSandbox:activateRow(r)
     if self:rowDisabled(r) then return end
     if r.kind == "entry" then self:startCell(r); return end
@@ -729,6 +736,7 @@ end
 
 function ZeD_MMSandbox:close() self:back() end
 
+--- The wheel keeps an open number first, then scrolls as the Options window does.
 function ZeD_MMSandbox:wheel(del)
     if self._cellRow then self:commitCell() end
     return ZeD_MMOptions.wheel(self, del)

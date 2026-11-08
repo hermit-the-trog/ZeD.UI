@@ -1,12 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_PixelParts.lua
 -- ============================================================================
--- PIXEL PARTS — the shelf atom for ZeD's pixel-art organisms (the dashboards first;
--- the belt buckles, the main menu desk and the radios share the same density rule).
+-- PIXEL PARTS — the draw helpers ZeD's pixel-art pieces are built from. Client;
+-- atoms (their only state is caches): the dashboards, the machine plates
+-- (ZeD_Plate), the radios, the watch and the bubbles draw through them, and the
+-- belt buckles and the main menu desk keep the same density rule. The caches and
+-- rect merges below only cut the drawing cost; each keeps the picture pixel for pixel.
 --
 -- One art pixel is one screen pixel at 1080p and a whole multiple k above it, so
 -- every pixel stays square. Pixel art loads with nearest filtering
--- (Texture.getSharedTexture(path, 3): FILTER_MIN_NEAREST 1 + FILTER_MAG_NEAREST 2,
--- KB Q205). Everything live is drawn the same way the art was painted: rects on
+-- (Texture.getSharedTexture(path, 3): FILTER_MIN_NEAREST 1 + FILTER_MAG_NEAREST 2).
+-- Everything live is drawn the same way the art was painted: rects on
 -- the art grid. A needle is rasterised into art pixels (a lit side and a shaded
 -- side, its shadow below), seven-segment figures are segment rects, and text uses
 -- the two pixel fonts (ZeD/PixelFonts.lua): 3 x 5 for legends, 5 x 7 for badges.
@@ -29,6 +32,7 @@ P.NEAREST = 3
 -- colours and textures
 -- ---------------------------------------------------------------------------
 local _col = {}
+--- A "#rrggbb" colour as { r, g, b } (0 to 1), converted once and cached; a table passes through.
 function P.color(h)
     if type(h) == "table" then return h end
     local c = _col[h or "#ffffff"]
@@ -39,6 +43,7 @@ function P.color(h)
     end
     return c
 end
+--- A colour times f, each channel kept at 1 or under; cached per colour and factor.
 function P.shade(h, f)
     local key = tostring(h) .. "*" .. tostring(f)
     local c = _col[key]
@@ -52,7 +57,7 @@ end
 P.BLACK = { r = 0, g = 0, b = 0 }
 
 local _tex = {}
--- a texture with nearest filtering, cached (false when missing, so a missing file is asked for once)
+--- A texture with nearest filtering, cached (false when missing, so a missing file is asked for once).
 function P.tex(path)
     local t = _tex[path]
     if t == nil then
@@ -62,9 +67,9 @@ function P.tex(path)
     return t or nil
 end
 
--- the whole multiple for a UI scale (1080p = 1.0): never below 1, never fractional. The nearest whole
--- number (Oct 21 2026, director: crisp at every scale step; 1.75 draws at 2, 1.25 at 1, .5 rounds up);
--- it was the scale rounded down, which left every prop at 1x up to 1.95.
+--- The whole multiple for a UI scale (1080p = 1.0): never below 1, never fractional. The nearest whole
+--- number, so the art is crisp at every scale step: 1.75 draws at 2, 1.25 at 1, .5 rounds up (rounding
+--- down would leave every prop at 1x up to 1.95). ZeD.Scale.artZoom, when loaded, gives the same answer.
 function P.k(scale)
     local Sc = ZeD.Scale
     if Sc and Sc.artZoom then return Sc.artZoom(scale or 1) end

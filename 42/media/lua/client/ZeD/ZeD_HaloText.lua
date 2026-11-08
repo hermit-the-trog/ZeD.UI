@@ -2,14 +2,15 @@
 -- ============================================================================
 -- THE GAME'S OVERHEAD NOTES. Client-side override. The red and green lines the game puts over your head ("Too
 -- heavy", "Can't reach") were nearly unreadable, so ZeD catches them into the same bubble plus a running log, and a
--- note you missed can be read later. ZeD setup's Overhead notes switch (Settings.lua: haloBubble) turns it on.
+-- note you missed can be read later. ZeD setup's Overhead notes switch (Settings.lua: haloBubble, off by default)
+-- turns it on.
 --
 -- The game's HaloTextHelper is a Java class whose functions Lua sees as a table; every one of the game's Lua callers
 -- (about 50: "Not safe to sleep", "Too heavy", the mechanics and building notes) and ZeD's own call through that
--- global, so wrapping its functions catches them all. A caught line goes to
--- ZeD's bubble over the head (ZeD_Bubbles: B.note, the status mark from its colour) and to the Messages window's
--- log (ZeD_Messages: M.halo) instead of the game's own text. With the switch off, in safe mode, or for a character
--- that is not a local player, the line goes to the game as before.
+-- global, so wrapping its functions catches them all. A caught line goes to ZeD's bubble over the head (ZeD_Bubbles:
+-- B.note, the status mark from its colour) and to the Messages window's log (ZeD_Messages: M.halo) instead of the
+-- game's own text. With the switch off, in safe mode, or for a character that is not a local player, the line goes
+-- to the game as before.
 --
 -- What Lua cannot catch: the game's Java code calls HaloTextHelper itself for skill XP ("+5 Carpentry"), a level
 -- gained or lost, a recipe learned on its own, a scratch ticket win, a card drawn, dice rolled, and multiplayer notes

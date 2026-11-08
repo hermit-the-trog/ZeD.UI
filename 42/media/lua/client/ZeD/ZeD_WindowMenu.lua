@@ -1,12 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_WindowMenu.lua
 -- ============================================================================
--- THE WINDOW BOX'S MENU (cohesion spec 3.1)
+-- THE WINDOW BOX'S MENU - client organism: a ZeD_ContextList with checks
 --
 -- The box at the right end of every ZeD window's title bar pulls this menu
 -- down: a System 7 pull-down in the context list's look (ZeD_ContextList),
 -- right-aligned under the box, its choices in submenus with a check beside
 -- the one in use.
 --
+--   (a window's own choices first: the chat window's Name color)
 --   Theme > Dark, Light, High contrast
 --   Accent > the nine (the Character and World windows: their own accent,
 --            and "Same as Accent color")
@@ -14,12 +15,13 @@
 --   See-through > 100% ... 60%, Solid while in use
 --   Controller highlight > Pointing hand, Corner marks, One wash, Marching ants
 --   ----
---   Reset this window (Reset both windows on the Character / World pair)
+--   Reset this window (and Reset both windows on the Character / World pair)
 --   ----
 --   ZeD setup...
 --
--- Every choice calls what ZeD setup and the Select wheel call, so the three
--- always agree and the choice is saved with the other ZeD settings.
+-- Before touching it: every choice calls what ZeD setup and the Select wheel
+-- call, so the three always agree and the choice is saved with the other ZeD
+-- settings.
 -- ZeD_Window (Organisms.lua) opens it: ZeD.WindowMenu.open(win).
 -- ============================================================================
 
@@ -163,8 +165,8 @@ function WM.build(win)
     end
     items[#items + 1] = theme
 
-    -- the Character and World windows each keep an accent of their own (the old footer square
-    -- set it there too); any other window sets the whole interface's
+    -- the Character and World windows each keep an accent of their own; any other window
+    -- sets the whole interface's
     local accent = { name = tr("UI_ZeD_WinMenu_Accent"), category = "look", children = {} }
     for i, k in ipairs(S.accentKeys or {}) do
         local fire, chk
@@ -222,7 +224,7 @@ function WM.build(win)
     return items
 end
 
--- Pull the menu down from win's window box (one menu at a time)
+--- Pull the menu down from win's window box (one menu at a time).
 function WM.open(win)
     if WM.current and WM.current._ctx and WM.current._ctx.open then WM.current:close() end
     local box = win and win:windowBoxRect()

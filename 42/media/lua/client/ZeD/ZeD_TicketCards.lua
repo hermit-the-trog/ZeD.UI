@@ -19,7 +19,7 @@
 -- padX, noBack) and TC.items a new item's (gap, layout, draw, stops), in a card or a tab's list alike. The join screen
 -- (ZeD_CommunityCards.lua) draws one such card in a window of its own, with its own pad: win._padId names the stop it holds.
 -- Before touching a helper: D and B go out as TC._D and TC._B, and the admin, claim, community, extras, log, mail and
--- stats cards, the Server tab, chat and the main menu's mail and documents all build on them.
+-- stats cards, the Server tab, chat and the main menu's mail and documents all use them.
 --
 -- All player text is drawn with drawText, never through the game's rich text, which would act on <LINE> or <IMAGE:...>.
 -- Kind and status always carry their word, never color alone.
@@ -2633,7 +2633,8 @@ function D.dress(win, st, t, e, c, place)
     return e
 end
 
---- The open card's controller stops: the back key, the items in reading order, the foot's buttons.
+--- The open card's controller stops: the back key, the items in reading order, the foot's buttons (only the
+--- pop-up's rows while one is open).
 function TC.cardStops(win, st)
     local t = ts(st)
     local out = {}
@@ -2725,6 +2726,7 @@ end
 -- ---------------------------------------------------------------------------
 -- QA
 -- ---------------------------------------------------------------------------
+--- The tab's card state (st.tk), made if missing. Named for QA, but the other card files reach the state this way too.
 function TC.qaState(st) return ts(st) end
 function TC.qaOpen(win, st, kind, id, game)
     if kind == "ask" then TC.openAsk(win, st)

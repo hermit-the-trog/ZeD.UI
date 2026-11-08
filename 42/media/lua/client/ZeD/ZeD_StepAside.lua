@@ -1,17 +1,16 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_StepAside.lua
 -- ============================================================================
--- STEPPING ASIDE FOR A MOD THAT TAKES A SCREEN (director, Nov 7 2026: "Yeah,
--- automatic. That's the way to do it. And then a bubble pops up from the
--- messages saying ... mod has taken over Zed ... to turn whatever menu it
--- turned off, go to settings." The Workshop page promises ZeD steps aside for
--- mods loaded after it.)
+-- STEPPING ASIDE FOR A MOD THAT TAKES A SCREEN - client logic, no window of
+-- its own. It is automatic: nothing is asked, and a note in Messages names
+-- the mod and the screen and says how to turn ZeD's back on (ZeD setup). The
+-- Workshop page promises ZeD steps aside for mods loaded after it.
 --
 -- After every mod has loaded (a game's start, once the game's windows are
 -- built), each ZeD screen with a ZeD setup switch (Settings.lua screenOptions)
--- is checked. When a mod (before or after ZeD in the load order; the director,
--- Nov 7 2026: "Either order") has replaced the game's own version
--- of that screen, the screen is handed back to the game (and so to that mod)
--- through its switch, the rest of ZeD kept; a note says so in Messages.
+-- is checked. When a mod (before or after ZeD in the load order, either one
+-- counts) has replaced the game's own version of that screen, the screen is
+-- handed back to the game (and so to that mod) through its switch, the rest of
+-- ZeD kept; a note says so in Messages.
 --
 -- What counts as replaced (strict: a player must not lose a ZeD screen for
 -- nothing):
@@ -28,7 +27,7 @@
 --     under a name it can see, a definition it cannot find, a hook library).
 --   Less than that (one copied and edited function, which is how most mods add
 --   a tab or a button) hands nothing back and says nothing to the player: one
---   line goes to console.txt ("[ZeD] Step aside: partial ...") for QA.
+--   line goes to console.txt ("[ZeD] Step aside: partial ...") for testing.
 -- What never counts: the game's own files (in no mod's folder), ZeD's, a
 -- mod ZeD supports (ModSupport: SUPPORTED below), and a mod that only adds
 -- (context menu options, buttons, tabs under new names, wrapped functions).
@@ -36,8 +35,8 @@
 -- The hand-back is the screen's own ZeD setup switch, ticked (the game's own) and
 -- saved, so ZeD setup shows it with "Taken by <mod>" under it. Unticking it is
 -- taking the screen back: that holds for as long as that same mod is the one
--- taking it, whatever other mods come and go (Zomboid/Lua/ZeD_step_aside.txt). A mod that has gone gives its screen back to
--- ZeD the same way.
+-- taking it, whatever other mods come and go (Zomboid/Lua/ZeD_step_aside.txt).
+-- A mod that has gone gives its screen back to ZeD the same way.
 --
 --   ZeD.StepAside.check()          detect and apply now (the game start does it)
 --   ZeD.StepAside.detect()         { [screen] = { id, name, why } }, nothing applied
@@ -322,8 +321,8 @@ end
 -- ---------------------------------------------------------------------------
 -- detection
 -- ---------------------------------------------------------------------------
--- the mod behind a function, when it counts: any mod in either order (the director, Nov 7 2026: "Either order"),
--- not supported, not ZeD. The game's own files sit in no mod's folder, so they never count.
+-- the mod behind a function, when it counts: any mod, before or after ZeD in the load order, not supported, not ZeD.
+-- The game's own files sit in no mod's folder, so they never count.
 local function counts(mods, zedAt, path)
     if not path or not zedAt then return nil end
     local m = ownerOf(mods, path)
@@ -344,13 +343,13 @@ local function replacedBy(cls, method, mods, zedAt)
     if lines and first and not callsThrough(lines, first, cls, method) then return true, m end
     return false
 end
--- (the sim's way in to the reading of one function)
+-- (the test sim's way in to the reading of one function, step_aside_sim.lua)
 function SA._replaced(cls, method)
     local mods, zedAt = readMods()
     return (replacedBy(cls, method, mods, zedAt))
 end
 
--- the screen's main class with EVERY core function replaced by one mod: that mod; fewer: nil, and a line for QA
+-- the screen's main class with EVERY core function replaced by one mod: that mod; fewer: nil, and a line in console.txt
 SA.partial = SA.partial or {}
 local function checkFunctions(screen, mods, zedAt)
     local core = SA.CORE[screen]
@@ -561,7 +560,7 @@ function SA.check()
     return found
 end
 
--- ZeD setup's line under a screen's switch while a mod has it
+--- ZeD setup's line under a screen's switch while a mod has it ("Taken by <mod>"), else nil
 function SA.underFor(screen)
     if not rec then load() end
     local s = rec.set[screen]

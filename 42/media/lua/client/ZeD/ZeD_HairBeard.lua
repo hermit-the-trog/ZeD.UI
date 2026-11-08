@@ -1714,11 +1714,12 @@ function stripState(win)
 end
 
 -- ---------------------------------------------------------------------------
--- the hover card (also the Identity traits' and the Traits tab's): the shared detail
--- card. The mouse asks the window's overlay for it (it appears after the shared pause);
--- the controller's focus draws it at once, under the element (rect = its place on panel).
--- body is a line of words, or a list of lines.
+-- the hover card
 -- ---------------------------------------------------------------------------
+--- The shared detail card: this section's rows use it, and so do the Identity tab's traits and
+--- the Traits tab that the Traits as Skills support adds. The mouse asks the window's overlay
+--- for it (it appears after the shared pause); focused (the controller's focus) draws it at
+--- once, under the element (rect = its place on panel). body is a line of words, or a list of lines.
 function HB.hoverCard(panel, win, key, title, body, rect, focused)
     local lines = nil
     if type(body) == "table" then lines = body
@@ -1732,7 +1733,8 @@ function HB.hoverCard(panel, win, key, title, body, rect, focused)
     end
 end
 
--- the hover card for a row: the game's own hint
+--- The hover card for the row under the mouse: why it is out of reach (the game's own reason
+--- where it gave one), or the tool it would use.
 function HB.drawHints(panel, win)
     local st = state(win)
     local hv = st.hover
@@ -1759,6 +1761,8 @@ end
 -- ---------------------------------------------------------------------------
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
+--- A click at (x, y) on the panel: Cut / Stop, a row (a second click lets it go), the folded
+--- row, or a part of the Hair | Beard switch. True when the section took it.
 function HB.onClick(win, x, y)
     local st = win._hb
     if not st then return false end
@@ -1786,8 +1790,8 @@ function HB.onClick(win, x, y)
     return false
 end
 
--- the controller's stops: the Hair | Beard switch, Cut (Stop while it runs), each row, the folded row
--- (as laid out this frame; rows scrolled out of view keep their place for the cone)
+--- The controller's stops: the Hair | Beard switch, Cut (Stop while it runs), each row, the folded row
+--- (as laid out this frame; rows scrolled out of view keep their place for the d-pad's cone search).
 function HB.focusables(win)
     local st = win._hb
     local L = st and st.L
@@ -1849,7 +1853,7 @@ function HB.focusables(win)
     return out
 end
 
--- what moves the stops (for the window's rebuild check)
+--- What moves the stops: when this string changes, the window rebuilds the controller's list.
 function HB.key(win)
     local st = win._hb
     if not st then return "" end

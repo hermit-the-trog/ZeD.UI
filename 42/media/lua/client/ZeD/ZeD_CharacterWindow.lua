@@ -9,7 +9,7 @@
 -- The one thing to know: never derive from ISInventoryPage or register with
 -- Java's UIManager — that pairing can't be undone from Lua. ZeD builds plain
 -- windows and hides the vanilla pages behind them; the game's own
--- "Toggle Inventory" key opens this window instead.
+-- "Toggle Inventory" key opens this window and the World window instead.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -56,8 +56,9 @@ ZeD.RadioTab.register(TAB_RENDERERS)
 local _charWin = nil
 
 --- The open Character window, or nil while it is closed. Other files read it
---- (Overrides/RadioWindow.lua switches to the Radio tab when a radio is
---- equipped; ZeD_Reader checks whose window is up). Same as getWindow().
+--- (Overrides/RadioWindow.lua refreshes its radio list when a radio is
+--- equipped, so the Radio tab shows at once; ZeD_Reader keeps its reading
+--- window above it). Same as getWindow().
 function ZeD_CharacterWindow.getInstance()
     return _charWin
 end
@@ -101,7 +102,7 @@ end
 
 -- A Journal entry's "x": the Journal tab asks before the entry goes (its question
 -- band, ZeD.JournalTab.askDelete(win, entry, index)). True when it asked; false
--- when the tab has no question to ask (the entry is deleted at once, as before).
+-- when the tab has no question to ask (the caller then deletes the entry at once).
 local function askJournalDelete(win, idx)
     local JT = ZeD.JournalTab
     if not (JT and JT.askDelete) then return false end
@@ -270,9 +271,10 @@ local function restoreCharState(win, playerObj)
     end
 end
 
--- Per-tab drawer width — Skills/Protection use a wider drawer for multi-column layout.
--- Item mode always uses standard width regardless of which tab is underneath.
--- Tab → drawer width lookup (tabs not listed use DRAWER_W)
+-- Per-tab drawer width: every tab listed here asks for the full card (SKILLS_DRAWER_W);
+-- a tab not listed gets the half card (DRAWER_W). Item mode is always the half card
+-- (ITEM_CARD_W), whichever tab is underneath. A tab another file adds
+-- (ZeD_CharacterWindow.addTab) brings its own width, or gets the full card.
 local TAB_DRAWER_WIDTHS = {
     equip    = SKILLS_DRAWER_W,
     health   = SKILLS_DRAWER_W,
@@ -658,7 +660,7 @@ end
 
 local CHAR_TABS = {
     -- key = ZeD's word for the tab, vkey = vanilla's own where it has the same word;
-    -- the tab's name is read where it is shown (CHAR_TABS.labelOf), so the language applies.
+    -- the tab's name is read where it is shown (ZeD_CharacterWindow.tabLabel), so the language applies.
     { id = "loot",     key = "UI_ZeD_Char_TabLoot",      group = 1, glyph = "L", iconName = "loot-tab-white" },
     { id = "equip",    key = "UI_ZeD_Char_TabEquipment", group = 1, glyph = "E", iconName = "equipment-tab-white" },
     { id = "health",   vkey = "IGUI_XP_Health",          group = 1, glyph = "H", iconName = "health-tab-white" },
@@ -769,7 +771,7 @@ local function isTabVisible(tab, win)
     if not tab.visible then return true end
     return tab.visible(win)
 end
--- the tabs and the test, for the D-pad wheels' Tabs slice (ZeD_DpadWheels.lua)
+--- The tabs and their visibility test, for the D-pad wheels' Tabs slice (ZeD_DpadWheels.lua).
 ZeD_CharacterWindow.TABS = CHAR_TABS
 ZeD_CharacterWindow.isTabVisible = isTabVisible
 
@@ -783,9 +785,9 @@ ZeD_CharacterWindow.isTabVisible = isTabVisible
 
 -- Build the tabBar focusable list — one element per CHAR_TABS entry, bounds
 -- computed from the same constants drawTabStrip uses so positions stay in sync
--- if strip layout constants shift. Returns plain data; caller attaches the
--- onSelect/onConfirm callbacks (which need access to `switchTabForNav` + the
--- closed-over window content panel).
+-- if strip layout constants shift. Returns plain data; the caller attaches the
+-- onFocus/onActivate callbacks (_attachTabBarCallbacks: they need
+-- _switchTabForNav and the window's content panel).
 local function _buildTabBarElements(win)
     local T = ZeD.T
     local elements = {}
@@ -834,8 +836,9 @@ local _buildCharacterMCColumnFocusables
 -- Forward-declared so _syncRingZonesToActiveTab and the per-frame
 -- refresh block can reference it (defined after _buildInvRowFocusables).
 local _buildCardActionFocusables
--- Forward-declared so _buildSkillRowFocusables can bind togglePinSkill
--- as an upvalue for its onActivate closure (defined much later in the file).
+-- Forward-declared so the skill row stops (_buildSkillRowFocusables) can
+-- capture skillRowMenu as an upvalue; both are assigned under PINNED SKILLS,
+-- much later in the file.
 local togglePinSkill
 local skillRowMenu   -- (the skill row's menu, assigned with togglePinSkill below)
 
@@ -845,7 +848,7 @@ local skillRowMenu   -- (the skill row's menu, assigned with togglePinSkill belo
 -- Reads the new _activeTab off win.
 -- This first helper restructures the per-column MC zones, mirroring the World
 -- window: each MC selection becomes its own ring zone (charMC1..charMCN),
--- inserted between charMainInv and charItemCard.
+-- inserted just before charMainInv (the order is explained below).
 local function _rebuildCharMCRingZones(win)
     local ring = win and win._focusRing
     if not ring then return end
@@ -951,8 +954,8 @@ _syncRingZonesToActiveTab = function(win, content)
 
     Focus.setRingZoneElements(win, "charTabContent",     newContentEls, 1)
     Focus.setZoneFocusable   (win, "charTabContent",     #newContentEls > 0)
-    -- S106: seed containerStrip idx by scanning for the element whose
-    -- containerIdx matches the captured focus (or _activeContainer fallback).
+    -- Seed the containerStrip index by scanning for the element whose
+    -- containerIdx matches the captured focus (or the _activeContainer fallback).
     local seedTarget = focusedCidx or win._activeContainer
     local contIdx = 1
     if seedTarget and #newContainerEls > 0 then
@@ -1282,9 +1285,9 @@ _buildLootFocusables = function(win)
     return elements
 end
 
--- The strip's stops used to be built at open and on a tab switch only, so a
--- bag put on afterwards had no stop. Rebuilt whenever the bag list, its order
--- or its scroll changes; the focus stays on the same bag (by inventory).
+-- The strip's stops, rebuilt whenever the bag list, its order or its scroll
+-- changes (built only at open and on a tab switch, a bag put on afterwards
+-- would have no stop); the focus stays on the same bag (by inventory).
 local function _refreshCharStripFocus(win, Focus)
     local L = win._stripLay
     local cnts = win._containers
@@ -1354,7 +1357,7 @@ local function _buildSkillsDisclosureFocusable(win)
             id = "skills:__disclosure",
             isDisclosure = true,
             onFocus = function(w, el) end,
-            -- S113: A toggles expand/collapse (= LMB on the chevron, mouse parity).
+            -- A toggles expand/collapse (= LMB on the chevron, mouse parity).
             onActivate = function(w, el)
                 w._skillsGridExpanded = not w._skillsGridExpanded
                 w._skillsCache = nil  -- recompute scroll measurement
@@ -1363,7 +1366,7 @@ local function _buildSkillsDisclosureFocusable(win)
     }
 end
 
--- Skill rows — pin/unpin on A (click parity via togglePinSkill). Guard on
+-- Skill rows — A or X opens the row's menu (skillRowMenu). Guard on
 -- _skillsGridExpanded: when the grid is collapsed, the draw loop skips the
 -- skill rows entirely and _skillRowZones is not refreshed; returning [] here
 -- prevents the ring from holding phantom focusables at stale coords.
@@ -1382,7 +1385,7 @@ local function _buildSkillRowFocusables(win)
             onFocus = function(w, el)
                 w._gpFocusedSkill = el.skillName
             end,
-            -- A or X: the row's menu, with Pin to title bar (A used to pin at once)
+            -- A or X: the row's menu, with Pin to title bar (a press never pins on its own)
             onActivate = function(w, el)
                 if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
             end,
@@ -1502,12 +1505,12 @@ _buildInvRowFocusables = function(win)
             -- A tap = LMB = SELECT item (opens the card drawer for it,
             -- mouse-click parity). On a stack rep (count > 1), A toggles
             -- the stack expand/collapse instead (= LMB on the chevron).
-            -- A hold = double-LMB (InventoryRenderer.quickUse: a thing in a
-            -- bag to the main inventory, else eat/wear/equip via vanilla
-            -- ISInventoryPane:doContextualDblClick). X = RMB = open vanilla
-            -- context menu (Drop, Grab, Move-To, etc.); for stack reps the
-            -- menu receives ALL stack items so "Grab one / half / all"
-            -- variants surface.
+            -- X = RMB = open vanilla context menu (Drop, Grab, Move-To,
+            -- etc.); for stack reps the menu receives ALL stack items so
+            -- "Grab one / half / all" variants surface. X hold = double-LMB
+            -- (InventoryRenderer.quickUse: a thing in a bag to the main
+            -- inventory, else eat/wear/equip via vanilla
+            -- ISInventoryPane:doContextualDblClick). A hold marks (below).
             onActivate = function(w, el)
                 if not el.item then return end
                 local cnt = w._mainContent
@@ -1643,9 +1646,9 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                     w._updateDrawer(cnt)
                 end
             end,
-            -- S113: A = LMB. Stack rep → toggle expand/collapse; non-stack
-            -- item → select (open card drawer). Hold A = double-LMB use.
-            -- X = RMB = vanilla context menu (Drop/Grab/etc.).
+            -- A = LMB. Stack rep → toggle expand/collapse; non-stack
+            -- item → select (open card drawer). X = RMB = vanilla context
+            -- menu (Drop/Grab/etc.); hold X = double-LMB use; hold A marks.
             onActivate = function(w, el)
                 if not el.item then return end
                 local cnt = w._mainContent
@@ -1660,7 +1663,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                     ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (the marks drop, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    -- S117: A toggles the card drawer (mirror Char invrow).
+                    -- A toggles the card drawer (as on the main list's rows).
                     if w._drawerItem ~= el.item then
                         sel[el.item] = true
                         cnt._selectedItems   = sel
@@ -1670,7 +1673,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                         cnt._lastClickedItem = nil
                     end
                     w._updateDrawer(cnt)
-                    -- Oct 23 2026: the card opened: focus onto its primary action
+                    -- the card opened: focus onto its primary action
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "charItemCard", 2) end
                 end
             end,
@@ -1700,8 +1703,8 @@ _buildCharacterMCColumnFocusables = function(win, slot)
     end
     -- the column's List | Grid toggle
     for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(cs.viewToggleRects)) do elements[#elements + 1] = e end
-    -- S108 v2 QA: empty MC column needs a placeholder so the zone stays
-    -- focusable. Otherwise bumpers skip empty containers.
+    -- An empty MC column needs a placeholder so the zone stays focusable;
+    -- otherwise the bumpers skip empty containers.
     if #elements == 0 then
         elements[1] = {
             x = colX, y = 0, w = colW, h = rowH,
@@ -1788,32 +1791,34 @@ local function _refreshCharMCZones(win, Focus)
     end
 end
 
--- S99 — Item card action strip focusables. Delegates to the card organism
--- which stamps live button rects (absolute screen coords) each frame via
--- M14 drawActionStrip / M16 drawVerbStrip. Element order is FAV, PROTECT,
--- UNWANTED, then verbs (repair_all / pad_all / repair / sharpen / ...).
--- Returns {} when the card isn't in "item" mode or has no item.
+-- Item card action strip focusables. Delegates to the card organism, which
+-- stamps live button rects (absolute screen coords) each frame via
+-- M14 drawActionStrip / M16 drawVerbStrip. Element order is the card's own
+-- (ZeD_ItemCard:getActionStripElements): a running action's cancel, the
+-- header verbs, the name row, the folded care verbs, the FAV / PROTECT /
+-- UNWANTED marks and the Lists mark, then the verbs (repair and the like).
+-- Returns {} when no card is open (win._drawerItem nil).
 --
--- S113: Each card button gets:
---   * onDpadDir — D-pad U/D scrolls card content by disclosure (preserves
---     focus on button); L/R falls through to flat cone-nav between buttons.
+-- Each card button gets:
+--   * onDpadDir — Up / Down go through ZeD_ItemCard:gpDpad (see below);
+--     L/R fall through to flat cone-nav between buttons.
 --   * onCancel  — B closes the card drawer (mouse parity = X-button on
 --     window chrome / ESC key path).
 _buildCardActionFocusables = function(win)
     if not (win and win._itemCard) then return {} end
-    -- S117 polish: gate on card visibility, not mode. Card overlays the tab
+    -- Gate on card visibility, not mode. The card overlays the tab
     -- drawer on non-Loot tabs while _drawerMode stays "tab"; in that state
     -- the buttons are still painted and must remain interactive. Mirrors
     -- World's _buildWorldCardActionFocusables.
     if win._drawerItem == nil then return {} end
     local els = win._itemCard:getActionStripElements() or {}
-    -- S118: append clothing detail-zone structural docks AFTER the action strip.
+    -- Append the clothing detail-zone structural docks AFTER the action strip.
     -- Natural D-pad order: action strip → zone docks. Greyed/pristine docks are
     -- not in _zoneDockRects so they're auto-skipped (no focus, no activation).
     local dockEls = win._itemCard:getZoneDockElements() or {}
     for i = 1, #dockEls do els[#els + 1] = dockEls[i] end
-    -- S113c: ItemCard returns ABSOLUTE screen coords (Molecules.lua
-    -- drawActionStrip line 1687: `rects[i] = { x = absX + bx, ... }`).
+    -- ItemCard returns ABSOLUTE screen coords (Molecules.lua
+    -- drawActionStrip: `rects[i] = {x = absX + bx, ...}`).
     -- _collectFlat translates panel-local → window-local by adding the
     -- panel's getX/Y, which double-offsets these and pushes the focusables
     -- way off-screen — cone-nav can't reach them and B's onCancel never
@@ -1828,7 +1833,7 @@ _buildCardActionFocusables = function(win)
         local el = els[i]
         el.x = el.x - panelAbsX
         el.y = el.y - panelAbsY
-        -- Oct 23 2026: Up = to the action strip, Down = next control, then
+        -- Up = to the action strip, Down = next control, then
         -- read on (ZeD_ItemCard:gpDpad, shared with the World window);
         -- L/R fall through to the spatial move
         el.onDpadDir = function(w, e, dir)
@@ -1852,17 +1857,18 @@ _buildCardActionFocusables = function(win)
     return els
 end
 
--- S96/S100 — Equipment tab focusables. Ring zone `charTabContent` treats the
+-- Equipment tab focusables. Ring zone `charTabContent` treats the
 -- equipment drawer as a single flow: disclosure at the top, equipment slots
--- below. D-pad up/down cones navigate between them; A on disclosure toggles
--- Defense expansion; A on slot enters card mode (same as click). Stat rows
--- are pure readout, never focusable. LB/RB only cycles among outer zones
--- (tabBar / mainInv / containerStrip).
+-- below. D-pad up/down cones navigate between them; A on the disclosure
+-- shows or hides the equipped slot list; A on a slot enters card mode (same
+-- as a click). Stat rows are pure readout, never focusable. LB/RB only move
+-- between ring zones, never between these stops.
 --
--- Card mode (win._equipSelected ~= nil): elements swap to back button +
--- action buttons (Drop / Unequip). Entering and exiting card mode
--- nils _gpFocusedEquipSlot so the seed path picks the first element of the
--- new element set.
+-- Card mode (win._equipSelected ~= nil): the stops become the card's own
+-- buttons (the CARD MODE branch below; stand-ins for back + Drop / Unequip
+-- until the card has drawn). Entering and exiting card mode nils
+-- _gpFocusedEquipSlot so the seed path picks the first element of the new
+-- element set.
 local function _buildEquipmentFocusables(win)
     -- the loadouts' to-do holds the drawer (ZeD_EquipLoadout): its stops alone
     if win and ZeD.EquipLoadout and ZeD.EquipLoadout.todoOpen(win) then return ZeD.EquipLoadout.focusables(win) end
@@ -1873,8 +1879,8 @@ local function _buildEquipmentFocusables(win)
     -- verbs (Unequip, Drop...), the marks, the repair verbs, the clothing docks,
     -- then the back arrow and a doll card's layer strip. The card stamps screen
     -- coords; the zone's panel is the drawer. B goes back to the list / doll.
-    -- (Oct 19 2026: these were stand-in rects before, so the pad never reached
-    -- the card's real buttons.)
+    -- (These are the card's real rects: with stand-ins here, the pad never
+    -- reached the card's real buttons.)
     local eqCard = win and win._equipSelected and win._drawerPanel and win._drawerPanel._equipCard
     if eqCard and eqCard:isVisible() and eqCard.item then
         local dp = win._drawerPanel
@@ -1993,14 +1999,13 @@ local function _buildEquipmentFocusables(win)
     end
 
     -- LIST MODE branch
-    -- S105 — Equipment body-figure part focusables. Active in LIST mode when
-    -- the defense disclosure is expanded. Mirrors Health/Thermal pattern —
-    -- parts drive the defense detail readout via _equipDefHoveredPart. A is
-    -- a no-op (readout only). Build as local helper inline to avoid bumping
-    -- the forward-declaration count.
+    -- Equipment body-figure part focusables, in LIST mode. Mirrors the
+    -- Health/Thermal pattern — parts drive the defense detail readout via
+    -- _equipDefHoveredPart. A is a no-op (readout only). Built inline as a
+    -- local helper rather than one more forward-declaration at file scope.
     local function _buildEquipBodyParts()
-        -- Defense body figure parts are always pickable now; defense body is
-        -- shown unconditionally at the bottom of the tab.
+        -- The defense body figure has no disclosure of its own (it shows at
+        -- the bottom of the tab), so its parts are pickable whenever it is drawn.
         if not win then return end
         local fig = win._equipDefBodyFigure
         if not fig or not fig.getPartRects then return end
@@ -2036,8 +2041,8 @@ local function _buildEquipmentFocusables(win)
             onFocus = function(w, el)
                 w._gpFocusedEquipSlot = el.slotType
             end,
-            -- A toggles expand/collapse — the disclosure now controls the
-            -- equipped slot list visibility (was: defense body).
+            -- A toggles expand/collapse of the equipped slot list (the
+            -- disclosure once folded the defense body, hence the zone's name).
             onActivate = function(w, _)
                 w._equipListExpanded = not w._equipListExpanded
             end,
@@ -2056,10 +2061,9 @@ local function _buildEquipmentFocusables(win)
             end,
         }
     end
-    -- S105 — Inject body-figure parts between disclosure and groups. When
-    -- the defense disclosure is expanded, the body figure sits in the
-    -- dashboard area immediately below the header, so spatial cone-nav
-    -- order is: disclosure → parts → group headers → slots.
+    -- The body-figure parts go in between the disclosure and the group
+    -- headers: disclosure → parts → group headers → slots. (Cone-nav picks
+    -- by place on screen; this order only matters for the first-stop seed.)
     _buildEquipBodyParts()
 
     -- Group headers (HEAD+FACE, TORSO, etc.) — A toggles the group's
@@ -2075,7 +2079,7 @@ local function _buildEquipmentFocusables(win)
                 slotType = "__group_" .. tostring(gz.id),
                 groupId = gz.id,
                 onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
-                -- S113: A toggles group expand/collapse (= LMB on the header).
+                -- A toggles group expand/collapse (= LMB on the header).
                 onActivate = function(w, el)
                     w._equipExpanded = w._equipExpanded or {}
                     w._equipExpanded[el.groupId] = not w._equipExpanded[el.groupId]
@@ -2086,7 +2090,7 @@ local function _buildEquipmentFocusables(win)
 
     -- Equipment slots (only slots with equipped items get stamped).
     -- A matches mouse-click: enters inline card mode for the selected slot.
-    -- X queues the vanilla ISUnequipAction on the worn item.
+    -- X opens the worn item's context menu, as a right-click does.
     local zones = win and win._equipSlotZones
     if zones then
         for i = 1, #zones do
@@ -2127,7 +2131,7 @@ local function _buildEquipmentFocusables(win)
                     end
                 end,
                 onContextMenu = function(w, el)
-                    -- S118: gamepad X opens the same ZeD context menu RMB does
+                    -- Gamepad X opens the same ZeD context menu RMB does
                     -- (parity with inv-row context menu pattern). Anchored at the
                     -- focused slot row's screen position.
                     if not el.item then return end
@@ -2136,7 +2140,7 @@ local function _buildEquipmentFocusables(win)
                     local pNum = playerObj:getPlayerNum()
                     local inv  = playerObj:getInventory()
                     local isInInv = inv:isInCharacterInventory(playerObj)
-                    -- Anchor at the slot row's left edge, vertically centered.
+                    -- Anchor at the slot row's center.
                     local drawerPanel = w._itemDrawerPanel
                     local panelAbsX = (drawerPanel and drawerPanel.getAbsoluteX
                                        and drawerPanel:getAbsoluteX()) or 0
@@ -2222,7 +2226,7 @@ local function _buildEquipmentFocusables(win)
     return elements
 end
 
--- Health tab focusables: the footer band (Oct 30 2026, punch list 21). In order: the
+-- Health tab focusables: the footer band. In order: the
 -- exercise pop-up box, the session time's - and +, Start (primary, last). With the
 -- exercise list open the stops are its rows instead (the current exercise first; A
 -- picks, B shuts it); shutting it returns the pad to the box. The band is pinned, so
@@ -2276,8 +2280,8 @@ local function _buildHealthBandFocusables(win)
     return elements
 end
 
--- Oct 30 2026, punch list 21 a-f (director: Down from the body figure always reaches
--- the band, at every size and text size): a stop in a scrolling body counts only
+-- So that Down from the body figure always reaches the band, at every window size
+-- and text size, a stop in a scrolling body counts only
 -- where the body shows it, between the pinned header and the footer band (view =
 -- the tab's { x, y, w, h }, stamped each frame). One part hidden is clipped to the
 -- view; one wholly out of view is no stop, so nothing under the band is "below" the
@@ -2291,10 +2295,10 @@ local function _inBodyView(view, y, h)
     return top, bot - top
 end
 
--- S101 — Health tab focusables: injury list rows. A opens the vanilla
--- treatment context menu for the entry's body part (same routing as clicking
--- the body figure). Flat list per design; no per-entry disclosure.
--- (Oct 30 2026: only the rows the body shows; fullY / fullH keep the row's whole rect)
+-- Health tab focusables: injury list rows. A opens the vanilla treatment
+-- context menu for the entry's body part (the menu a right-click on the row
+-- or the figure opens). Flat list; no per-entry disclosure.
+-- (only the rows the body shows; fullY / fullH keep the row's whole rect)
 local function _buildHealthInjuryFocusables(win)
     local zones = win and win._healthInjuryZones
     if not zones or #zones == 0 then return {} end
@@ -2313,7 +2317,7 @@ local function _buildHealthInjuryFocusables(win)
             onActivate = function(w, el)
                 if ZeD.HealthTab and ZeD.HealthTab._onPartClicked then
                     -- _onPartClicked falls back to w._healthContentPanel / w
-                    -- when drawerPanel is nil (patched S101).
+                    -- when drawerPanel is nil.
                     ZeD.HealthTab._onPartClicked(w, el.injuryKey, nil, nil, nil)
                 end
             end,
@@ -2325,9 +2329,9 @@ local function _buildHealthInjuryFocusables(win)
     return elements
 end
 
--- S101 — Health tab focusables: body figure parts. A opens the vanilla
--- treatment context menu for the focused part (same routing as clicking
--- the part on the figure). Only populated when the figure is expanded;
+-- Health tab focusables: body figure parts. A opens the vanilla
+-- treatment context menu for the focused part (the menu a right-click on
+-- the part opens). Only populated when the figure is expanded;
 -- collapsed figure yields empty list and cone-nav flows around it.
 local function _buildHealthBodyPartFocusables(win)
     if not win or not win._healthFigureExpanded then return {} end
@@ -2339,7 +2343,7 @@ local function _buildHealthBodyPartFocusables(win)
     -- coords; the figure panel itself is never attached as a child (the
     -- figure uses :drawAt). getPartRects returns panel-local rects relative
     -- to the content panel, same coord space as exercises + injuries.
-    -- (Oct 30 2026: only the parts the body shows, clipped to it: _inBodyView)
+    -- (only the parts the body shows, clipped to it: _inBodyView)
     local elements = {}
     local view = win._healthView
     for i = 1, #rects do
@@ -2395,10 +2399,10 @@ local function _healthTreatAt(win, panel, x, y)
     return false
 end
 
--- S103 — Health disclosure focusable (element[1] when expanded AND when
--- collapsed — only the disclosure is reachable in the collapsed state).
--- Reuses _healthFigureZone which is stamped per-frame by HealthTab.render.
--- Pattern mirrors _buildThermalFocusables's disclosure element exactly.
+-- Health disclosure focusable: element[1] whether the figure is expanded or
+-- collapsed (collapsed, the figure's parts are no stops). Reuses
+-- _healthFigureZone, which HealthTab.render stamps per frame. Pattern mirrors
+-- _buildThermalFocusables's disclosure element exactly.
 local function _buildHealthDisclosureFocusable(win)
     local fz = win and win._healthFigureZone
     if not fz or (fz.w or 0) <= 0 then return {} end
@@ -2408,7 +2412,7 @@ local function _buildHealthDisclosureFocusable(win)
             id = "health:__disclosure",
             isDisclosure = true,
             onFocus = function(w, el) end,
-            -- S113: A toggles expand/collapse (= LMB on the chevron, mouse parity).
+            -- A toggles expand/collapse (= LMB on the chevron, mouse parity).
             onActivate = function(w, el)
                 w._healthFigureExpanded = not w._healthFigureExpanded
             end,
@@ -2416,10 +2420,11 @@ local function _buildHealthDisclosureFocusable(win)
     }
 end
 
--- S101 — Health tab main builder: concatenates disclosure (S103), body parts,
+-- Health tab main builder: concatenates the disclosure, body parts,
 -- injuries and the footer band (exercise pop-up, - and +, Start last) into one
 -- flat ring element list. Element order matters only for the initial seed
--- (cone-nav uses spatial bounds, not order). Disclosure first per S102 rule.
+-- (cone-nav uses spatial bounds, not order). Disclosure first (the
+-- disclosure-first rule every tab follows).
 -- The open exercise list locks the stops to its rows; shutting it lands on the box.
 local function _buildHealthFocusables(win)
     if not win then return {} end
@@ -2440,8 +2445,8 @@ local function _buildHealthFocusables(win)
     return elements
 end
 
--- Thermal tab focusables: the footer band's View pop-up box (Oct 30 2026, punch
--- list 21). A opens the list. With it open the stops are its rows instead (the current
+-- Thermal tab focusables: the footer band's View pop-up box. A opens the list.
+-- With it open the stops are its rows instead (the current
 -- view first; A picks, B shuts it); shutting it returns the pad to the box. The band
 -- is pinned, so the box is bandStop.
 local function _buildThermalBandFocusables(win)
@@ -2474,7 +2479,7 @@ local function _buildThermalBandFocusables(win)
     return elements
 end
 
--- S102 — Thermal tab focusables: body figure parts. Parts ARE focusable
+-- Thermal tab focusables: body figure parts. Parts ARE focusable
 -- because focus drives the right-column detail-view swap (mirror mouse
 -- hover parity). A is a no-op — no action, just readout. Only populated
 -- when the figure is expanded; collapsed figure yields empty list.
@@ -2484,8 +2489,8 @@ local function _buildThermalBodyPartFocusables(win)
     if not fig or not fig.getPartRects then return {} end
     local rects = fig:getPartRects()
     if not rects or #rects == 0 then return {} end
-    -- (Oct 30 2026, punch list 21 a-f: only the parts the body shows, clipped to it, as
-    -- Health's: _inBodyView; Down from the lowest one shown reaches the grid or the band)
+    -- (only the parts the body shows, clipped to it, as Health's: _inBodyView;
+    -- Down from the lowest one shown reaches the grid or the band)
     local elements = {}
     local view = win._thermalBodyRect
     for i = 1, #rects do
@@ -2508,11 +2513,11 @@ local function _buildThermalBodyPartFocusables(win)
     return elements
 end
 
--- S102 — Thermal grid scroll pseudo-focusable. Grid rows aren't focusable
--- per stats-not-focusable rule, but the user needs a way to scroll the grid
--- with the D-pad. Solution: one pseudo-element covering the visible grid
--- region; D-pad up/down scrolls the thermal scroll (handled in onJoypadDir
--- dispatch), A does nothing. Cone nav from body parts DOWN lands here.
+-- Thermal grid scroll pseudo-focusable. Grid rows aren't focusable (stats
+-- are readout, never stops), but the player needs a way to scroll the grid
+-- with the D-pad. So: one pseudo-element covering the visible grid region;
+-- D-pad up/down scrolls the thermal scroll (its onDpadDir), A does nothing.
+-- Cone nav from body parts DOWN lands here.
 local function _buildThermalGridScrollFocusable(win)
     local gz = win and win._thermalGridScrollZone
     if not gz or (gz.w or 0) <= 0 or (gz.h or 0) <= 0 then return {} end
@@ -2523,8 +2528,8 @@ local function _buildThermalGridScrollFocusable(win)
             isGridScroll = true,
             onFocus = function(w, el) end,
             -- onActivate omitted — A is a no-op here.
-            -- S113: D-pad U/D scrolls the grid; at limits, fall through to
-            -- generic cone-nav so user can escape upward to body parts/pills.
+            -- D-pad U/D scrolls the grid; at limits, fall through to
+            -- generic cone-nav so the player can leave upward to the body parts.
             onDpadDir = function(w, el, dir)
                 local sc = w._thermalScroll
                 if not sc then return false end
@@ -2540,9 +2545,9 @@ local function _buildThermalGridScrollFocusable(win)
     }
 end
 
--- S102 — Thermal tab aggregator. Disclosure FIRST so entering charTabContent
+-- Thermal tab aggregator. Disclosure FIRST so entering charTabContent
 -- via LB/RB lands on the tab-header disclosure (tree-nav semantics — matches
--- Equipment's Defense disclosure being first in list mode). Then body parts, the
+-- the Equipment tab's disclosure being first in list mode). Then body parts, the
 -- grid scroll pseudo-zone and the footer band's View pop-up. Cone-nav uses
 -- spatial bounds, not order, so interleaving is safe for in-zone D-pad movement.
 -- The open View list locks the stops to its rows; shutting it lands on the box.
@@ -2551,7 +2556,7 @@ local function _buildThermalFocusables(win)
     local band = _buildThermalBandFocusables(win)
     if band._menuRows then return band end
     local elements = {}
-    -- Tab-header disclosure (toggles _thermalFigureExpanded via L/R tree-nav).
+    -- Tab-header disclosure (A toggles _thermalFigureExpanded).
     local fz = win._thermalFigureZone
     if fz and (fz.w or 0) > 0 then
         elements[#elements + 1] = {
@@ -2561,7 +2566,7 @@ local function _buildThermalFocusables(win)
             -- No persistent state write — paint reads the live focused
             -- element via Focus.getFocusedElement(win).
             onFocus = function(w, el) end,
-            -- S113: A toggles expand/collapse (= LMB on the chevron, mouse parity).
+            -- A toggles expand/collapse (= LMB on the chevron, mouse parity).
             onActivate = function(w, el)
                 w._thermalFigureExpanded = not w._thermalFigureExpanded
             end,
@@ -2582,12 +2587,12 @@ local function _buildThermalFocusables(win)
     return elements
 end
 
--- S104 — Identity disclosure focusable. Element[1] in charTabContent on the
+-- Identity disclosure focusable. Element[1] in charTabContent on the
 -- Identity tab. Tab header is the disclosure (full pattern parity with
--- Thermal/Health/Skills) — L/R tree-nav toggles _identityPhotoExpanded,
+-- Thermal/Health/Skills) — A toggles _identityPhotoExpanded,
 -- which the ISUI3DModel avatar overlay reads to switch between bust crop
 -- (collapsed) and full-body (expanded). Reads _identityFigureZone, which
--- IdentityTab.render stamps at the TOP each frame (Q100).
+-- IdentityTab.render stamps at the TOP each frame.
 local function _buildIdentityDisclosureFocusable(win)
     local fz = win and win._identityFigureZone
     if not fz or (fz.w or 0) <= 0 then return {} end
@@ -2597,9 +2602,8 @@ local function _buildIdentityDisclosureFocusable(win)
             id = "identity:__disclosure",
             isDisclosure = true,
             onFocus = function(w, el) end,
-            -- S113: A toggles expand/collapse (= LMB on photo, mouse parity).
-            -- Reset zoom/scroll to match click-handler parity (line ~4189 in
-            -- the old onJoypadDirLeft wrapper before S113 strip).
+            -- A toggles expand/collapse (= LMB on the photo, mouse parity),
+            -- and resets zoom and scroll as the click handlers do.
             onActivate = function(w, el)
                 w._identityPhotoExpanded = not w._identityPhotoExpanded
                 w._identityCustomZoom    = 0
@@ -2609,10 +2613,10 @@ local function _buildIdentityDisclosureFocusable(win)
     }
 end
 
--- S104 — Identity grid-scroll pseudo-focusable. Identity's license card and
--- traits list are pure readout (no focusable rows) so the whole visible
--- content region becomes one scroll surface. D-pad up/down in the joypad
--- dispatch scrolls _identityScroll; at bounds, falls through to cone nav
+-- Identity grid-scroll pseudo-focusable: the fallback when the tab has no
+-- stops of its own (ZeD.IdentityTab.focusables, see the aggregator below).
+-- The whole visible content region becomes one scroll surface. D-pad up/down
+-- (its onDpadDir) scrolls _identityScroll; at bounds, falls through to cone nav
 -- which lands back on the disclosure above. A is a no-op. Only populated
 -- when the content actually overflows (IdentityTab.render nils the zone
 -- when needsScroll is false). Mirrors _buildThermalGridScrollFocusable.
@@ -2626,8 +2630,8 @@ local function _buildIdentityGridScrollFocusable(win)
             isGridScroll = true,
             onFocus = function(w, el) end,
             -- onActivate omitted — A is a no-op on grid scroll.
-            -- S113: D-pad U/D scrolls _identityScroll; at limits, fall through
-            -- to cone-nav so user can escape upward to disclosure.
+            -- D-pad U/D scrolls _identityScroll; at limits, fall through
+            -- to cone-nav so the player can leave upward to the disclosure.
             onDpadDir = function(w, el, dir)
                 local sc = w._identityScroll
                 if not sc then return false end
@@ -2643,13 +2647,12 @@ local function _buildIdentityGridScrollFocusable(win)
     }
 end
 
--- S104 — Identity tab aggregator. Disclosure FIRST per the charTabContent
--- disclosure-first rule (S102). Then the grid-scroll pseudo-zone. No other
--- focusables — Identity is pure readout otherwise.
+-- Identity tab aggregator. Disclosure FIRST (the disclosure-first rule),
+-- then the tab's own stops, or the grid-scroll pseudo-zone where it has none.
 local function _buildIdentityFocusables(win)
     if not win then return {} end
     local elements = _buildIdentityDisclosureFocusable(win)
-    -- Oct 26 2026: the Hair and beard rows and each trait are stops (ZeD.IdentityTab.focusables);
+    -- the Hair and beard rows and each trait are stops (ZeD.IdentityTab.focusables);
     -- the tab scrolls to the focused one, so the grid-scroll surface is only the fallback
     local more = (ZeD.IdentityTab and ZeD.IdentityTab.focusables) and ZeD.IdentityTab.focusables(win)
         or _buildIdentityGridScrollFocusable(win)
@@ -2658,11 +2661,11 @@ local function _buildIdentityFocusables(win)
 end
 
 -- ============================================================================
--- S105 — JOURNAL TAB FOCUSABLES
+-- JOURNAL TAB FOCUSABLES
 --
 -- The Journal tab's five pages share one charTabContent zone. LB/RB lands on
--- charTabContent; D-pad handles everything inside. Oct 30 2026 (punch list 21):
--- the page is the header's Page pop-up (the box first, "jpage"; A opens its list,
+-- charTabContent; D-pad handles everything inside. In order: the header's
+-- Page pop-up (the box first, "jpage"; A opens its list,
 -- whose rows alone hold the pad, "jpage:<n>"), then the page's body, then its band.
 -- A page's own open list (Recipes' Category / Sort / Show, Papers' Show, Loadouts'
 -- filter) holds the pad alone too.
@@ -2675,9 +2678,8 @@ local function _buildJournalSubTabFocusables(win)
     return JT.headerFocusables(win)
 end
 
--- S105 — Journal sub-tab: kills disclosure element. Tab-row-like disclosure
--- at the top of the Journal sub-tab content. L/R tree-nav toggles
--- _killsExpanded (mouse parity with L3105 click handler).
+-- Journal page: the kills disclosure, a tab-row-like disclosure at the top
+-- of the page. A toggles _killsExpanded (as a click on the kills row does).
 local function _buildJournalKillsFocusable(win)
     local kz = win and win._journalKillsZone
     if not kz or (kz.w or 0) <= 0 then return {} end
@@ -2688,7 +2690,7 @@ local function _buildJournalKillsFocusable(win)
             isDisclosure = true,
             journalKind = "kills",
             onFocus = function(w, el) end,
-            -- S113: A toggles expand/collapse (= LMB on header, mouse parity).
+            -- A toggles expand/collapse (= LMB on header, mouse parity).
             onActivate = function(w, el)
                 w._killsExpanded = not w._killsExpanded
                 w._journalCache = nil
@@ -2697,8 +2699,8 @@ local function _buildJournalKillsFocusable(win)
     }
 end
 
--- S105 — Journal sub-tab: save button element. A fires the existing save
--- callback (closure on the ZeD_Button onclick stored at window creation).
+-- Journal page: the Save button. A fires the existing save callback (the
+-- button's onclick closure, made at window creation).
 local function _buildJournalSaveFocusable(win)
     local sb = win and win._journalSaveBtnZone
     if not sb or (sb.w or 0) <= 0 then return {} end
@@ -2721,9 +2723,8 @@ local function _buildJournalSaveFocusable(win)
     }
 end
 
--- S105 — Journal sub-tab: month-group header focusables. Each group header
--- is a disclosure — L/R tree-nav toggles _journalGroupCollapsed[key]
--- (mouse parity with L3080 click handler).
+-- Journal page: month-group header focusables. Each group header is a
+-- disclosure — A toggles _journalGroupCollapsed[key] (as a click does).
 local function _buildJournalGroupFocusables(win)
     local zones = win and win._journalGroupZones
     if not zones or #zones == 0 then return {} end
@@ -2736,7 +2737,7 @@ local function _buildJournalGroupFocusables(win)
             journalKind = "group",
             groupKey = z.id,
             onFocus = function(w, el) end,
-            -- S113: A toggles expand/collapse (= LMB on header, mouse parity).
+            -- A toggles expand/collapse (= LMB on header, mouse parity).
             onActivate = function(w, el)
                 w._journalGroupCollapsed = w._journalGroupCollapsed or {}
                 w._journalGroupCollapsed[el.groupKey] = not w._journalGroupCollapsed[el.groupKey]
@@ -2747,8 +2748,9 @@ local function _buildJournalGroupFocusables(win)
     return elements
 end
 
--- S105 — Journal sub-tab: per-entry delete button focusables. A removes the
--- entry from modData (mouse parity with L3091 click handler).
+-- Journal page: per-entry delete button focusables. A asks first where the
+-- tab has a question band (askJournalDelete), else removes the entry from
+-- modData, as a click does. Not among the page's stops (see below).
 local function _buildJournalDeleteFocusables(win)
     local zones = win and win._journalDeleteZones
     if not zones or #zones == 0 then return {} end
@@ -2774,12 +2776,12 @@ local function _buildJournalDeleteFocusables(win)
     return elements
 end
 
--- S105 — Journal sub-tab content aggregator. Kills disclosure + month group
--- headers only. Save button + per-entry delete buttons are intentionally
--- excluded: both sit right-side while the disclosures are full-width, and
--- cone-nav's 2x off-axis weight rejects the horizontal hop. Flagging text
--- entry + save as mouse-only is consistent with the "skip text inputs"
--- scope ruling. Delete deferred to future polish (spatial layout change).
+-- Journal page content aggregator: the kills disclosure, the month group
+-- headers, then Save in the page's band. The per-entry delete buttons are
+-- left out: they sit at the right while the disclosures are full-width, and
+-- cone-nav's 2x off-axis weight rejects the horizontal hop. Text entry stays
+-- mouse-only (no text input is a stop).
+-- TODO: reaching the delete buttons by pad needs a layout change.
 local function _buildJournalSubContent(win)
     if not win then return {} end
     -- a question is up (delete an entry?): its two answers are the only stops (Cancel first; B cancels)
@@ -2788,29 +2790,28 @@ local function _buildJournalSubContent(win)
     local elements = _buildJournalKillsFocusable(win)
     local groups = _buildJournalGroupFocusables(win)
     for i = 1, #groups do elements[#elements + 1] = groups[i] end
-    -- Save, in the page's band (Oct 30 2026)
+    -- Save, in the page's band
     local save = _buildJournalSaveFocusable(win)
     if save[1] then elements[#elements + 1] = save[1] end
     return elements
 end
 
--- S105/S107 — Journal Recipes sub-tab focusables. Thin wrapper over the
--- shared CC.buildFocusables helper (CraftingCore.lua) with readOnly config:
--- no pin (no pinKey), no startAction. Legacy `journalKind` field is still
--- emitted for jrecipe-prefixed elements so existing L/R / cue paint code
--- branching on it keeps working unchanged.
+-- Journal Recipes page focusables. Thin wrapper over the shared
+-- CC.buildFocusables helper (CraftingCore.lua) with readOnly config:
+-- no pin (no pinKey), no startAction. CraftingCore still tags the
+-- jrecipe-prefixed elements with a `journalKind` field; nothing reads it.
 local function _buildJournalRecipesFocusables(win)
     return ZeD.CraftingCore.buildFocusables(win, win and win._jrecipeState,
         "jrecipe", nil, nil)
 end
 
--- S105 — Journal tab aggregator. Sub-tab pills always at elements[1..3],
--- then sub-tab-specific content. Pill order preserved so cone-nav between
--- them matches visual left-to-right.
+-- Journal tab aggregator. The header's stops first (the Page box), then the
+-- open page's own. An open Page list, a page's own open list or a question
+-- holds the pad alone (below).
 local function _buildJournalFocusables(win)
     if not win then return {} end
     -- while the Journal asks before deleting an entry, its answers alone hold the
-    -- controller (the sub-tab pills come back when it is answered)
+    -- controller (the Page box comes back when it is answered)
     if win._journalAsk and (win._journalSubTab or 1) == 1 then return _buildJournalSubContent(win) end
     -- the Page list open: its rows alone
     local JT = ZeD.JournalTab
@@ -2832,7 +2833,7 @@ local function _buildJournalFocusables(win)
         if ZeD.JournalLists and ZeD.JournalLists.state(win).ask then return subEls end
     end
     for i = 1, #subEls do elements[#elements + 1] = subEls[i] end
-    -- a page's own pop-up list open: its rows alone, modal (Oct 30 2026, punch list 21 a-f)
+    -- a page's own pop-up list open: its rows alone, modal
     if listOpen and subEls._menuRows then elements._menuRows = true end
     -- where the page asks the focus to land (an element of the page's, after the Page box;
     -- back from the Page list the box keeps it)
@@ -2840,9 +2841,9 @@ local function _buildJournalFocusables(win)
     return elements
 end
 
--- Build per-tab DRAWER focusables. In the final S98 ring model, charTabContent
--- holds tab-specific secondary content (equipment slots, health exercises,
--- thermal view pills, skill rows). The MAIN inventory list lives in its own
+-- Build per-tab DRAWER focusables. In the ring model, charTabContent holds
+-- the tab's own stops (equipment slots, the health band, the thermal View
+-- box, skill rows). The MAIN inventory list lives in its own
 -- zone (charMainInv), always present regardless of tab. Loot tab has no
 -- separate drawer content, so this returns {} for loot — LB/RB skip it and
 -- go straight to charMainInv which holds the invrows.
@@ -2856,9 +2857,8 @@ _buildPanelFocusables = function(win, content, tabId)
     if tabId == "thermal"  then return _buildThermalFocusables(win)    end
     if tabId == "identity" then return _buildIdentityFocusables(win)   end
     if tabId == "journal"  then return _buildJournalFocusables(win)    end
-    -- S117: Radio is a cross-module focusable builder (lives in RadioTab.lua,
-    -- not a file-local). Guard defensively for symmetry with the World
-    -- window's `maps` branch, which is the only other cross-module dispatch.
+    -- Radio's focusable builder lives in RadioTab.lua, not a file-local.
+    -- Guarded the same way as the World window's `maps` branch.
     if tabId == "radio" then
         if ZeD and ZeD.RadioTab and ZeD.RadioTab.buildFocusables then
             return ZeD.RadioTab.buildFocusables(win)
@@ -2868,7 +2868,7 @@ _buildPanelFocusables = function(win, content, tabId)
     return ZeD_CharacterWindow.extFocusables(win, tabId)
 end
 
--- S98 — Find the index of the currently-active tab in a freshly-built tabEls
+-- Find the index of the currently-active tab in a freshly-built tabEls
 -- array. Used to seed `focusedElementIdx` on the charTabBar zone so the ring
 -- starts on the visually-active tab instead of always idx 1.
 local function _findActiveTabIdx(tabEls, tabId)
@@ -2878,8 +2878,8 @@ local function _findActiveTabIdx(tabEls, tabId)
     return 1
 end
 
--- Oct 30 2026, punch list 21 a-f (director: an open list shuts only on a pick, B, a
--- click outside it, or leaving the tab; never on a hitch or time passing): every
+-- An open list shuts only on a pick, B, a click outside it, or leaving the tab;
+-- never on a hitch or with time passing. Here: every
 -- pop-up list of the window's tabs but keepTab's (nil: all), shut through its owner,
 -- so its rows and zones go with it and the focus lands on its box. Called on a tab
 -- change (_clearGpFocusState) and each frame (the drawer folded, an item card over
@@ -2891,10 +2891,10 @@ local function _shutTabLists(w, keepTab)
     if keepTab ~= "journal" and JT and JT.listsOpen and JT.listsOpen(w) then JT.shutLists(w) end
 end
 
--- S98 — Clear all _gpFocused* chrome state fields on the window + content.
--- Called from _switchTabForNav (Task 2) so a new tab paints with a clean
--- focus cursor. Replaces the S96 _popStaleInvRows helper which combined
--- state-clear with stack-pop; the stack is gone, only the state-clear remains.
+-- Clear all _gpFocused* chrome state fields on the window + content.
+-- Called from _syncRingZonesToActiveTab (every tab switch and ring re-sync)
+-- so a new tab paints with a clean focus cursor. (There is no focus stack to
+-- pop: clearing this state is all a switch needs.)
 _clearGpFocusState = function(w)
     if not w then return end
     w._gpFocusedRowItem      = nil
@@ -2902,24 +2902,24 @@ _clearGpFocusState = function(w)
     w._gpFocusedInjury       = nil
     w._gpFocusedBodyPart     = nil
     w._gpFocusedThermalPart  = nil
-    -- Oct 30 2026: the pop-up lists are shut with the tab, through their owners
-    -- (punch list 21 a-f); the focus goes to the new tab, not back to a list's box
+    -- the pop-up lists are shut with the tab, through their owners; the focus
+    -- goes to the new tab, not back to a list's box
     _shutTabLists(w, nil)
     w._healthReturnToMenu    = nil
     w._thermalReturnToMenu   = nil
     w._gpFocusedEquipSlot    = nil
-    w._gpFocusedRadioCtl     = nil  -- S117: radio drawer chassis control id
-    w._healthActivePart      = nil  -- S103: mirror Thermal's _thermalActivePart clear
-    -- S105: clear journal scroll-follow delta-gate pin so the next visit
+    w._gpFocusedRadioCtl     = nil  -- the radio drawer's focused chassis control id
+    w._healthActivePart      = nil  -- Health's resolved part (pad focus over mouse hover)
+    -- Clear the journal scroll-follow delta-gate pin so the next visit
     -- re-pins on first focus instead of inheriting the previous element's
     -- position as "already correct".
     w._lastPinnedJournalId   = nil
-    -- S107: clear CC scroll-follow delta-gate pins (one per CC-driven prefix).
+    -- Clear the CC scroll-follow delta-gate pins (one per CC-driven prefix).
     -- Same rationale as journal — fresh tab visit must re-pin on first focus.
     w._lastPinnedRecipeId_jrecipe = nil
     w._lastPinnedRecipeId_craft   = nil
     w._lastPinnedRecipeId_build   = nil
-    -- S106: clear MC zone focus + delta-gate pin on tab-switch / mode reset.
+    -- Clear the MC zone focus + delta-gate pin on tab-switch / mode reset.
     w._gpFocusedMCItem       = nil
     w._gpFocusedMCColIdx     = nil
     w._lastPinnedMCItem      = nil
@@ -2934,12 +2934,11 @@ end
 -- yet when this runs, but will by the time any user input arrives).
 local function _attachTabBarCallbacks(win, tabElements)
     for _, el in ipairs(tabElements) do
-        -- S113c (design director): A press is required to switch tabs. D-pad
-        -- focus on a tab no longer auto-switches — supersedes the S98 live-
-        -- switch ruling. User scrolls D-pad through tabs without committing,
-        -- then presses A to activate. Mouse parity (LMB on tab = switch).
+        -- An A press switches tabs; D-pad focus on a tab does not, so the
+        -- player can run the D-pad through the tabs without committing, then
+        -- press A to activate. Mouse parity (LMB on tab = switch).
         -- onFocus left as a no-op so the focus cue still tracks the highlighted
-        -- tab; the active-tab visual remains anchored to _activeTab so users
+        -- tab; the active-tab visual remains anchored to _activeTab so players
         -- can see "I'm hovering tab X but tab Y is still active."
         el.onFocus = function(w, e) end
         el.onActivate = function(w, e)
@@ -2953,9 +2952,8 @@ end
 -- TAB STRIP DRAW — _onPrerender hook for the strip ZeD_Panel
 -- ============================================================================
 
--- Measure total tab strip content height
--- S115: takes win so contextual tabs (e.g. radio) that fail their visibility
--- predicate don't allocate strip space.
+-- Measure total tab strip content height. Takes win so contextual tabs
+-- (e.g. radio) that fail their visibility predicate don't allocate strip space.
 local function measureTabStripH(win)
     local T = ZeD.T
     local totalH = 0
@@ -2977,8 +2975,8 @@ local TAB_ARROW_ROW_H = 16  -- height of the bottom [^ v] scroll row
 -- The strip, when it scrolls, brings the tab that matters into view: the controller's focused
 -- tab, else the active one. Only when that tab changes (a new focus, a new active tab, the
 -- strip just starting to scroll), so the wheel and the arrows can still look elsewhere.
--- (Oct 31 2026, break-it B1: at 1280x720, UI scale 2.0, Large text the strip scrolled, but a
--- controller moving down past Identity focused Journal, Skills, Radio out of sight.)
+-- (At 1280x720, UI scale 2.0 and Large text the strip scrolls; without this a controller
+-- moving down past Identity focused Journal, Skills and Radio out of sight.)
 local function tabStripFollow(win, viewH, scrollOff, maxScroll, focusedId)
     local tgt = focusedId or win._activeTab
     local isPad = focusedId ~= nil
@@ -3022,12 +3020,12 @@ local function drawTabStrip(self, win)
     local fontH  = ZeD.TM:getFontHeight(font)
     local mx, my = self:getMouseX(), self:getMouseY()
 
-    -- Check if tabs overflow (S115 — count visible tabs only)
+    -- Check if tabs overflow (visible tabs only)
     local totalTabH = measureTabStripH(win)
     local scrollOff = win._tabScrollOffset or 0
 
-    -- S115: if the active tab is no longer visible (e.g. radio went out of
-    -- range while focused on Radio tab), fall back to "loot" so the drawer
+    -- If the active tab is no longer visible (e.g. the Radio tab was open
+    -- when the last radio went), fall back to "loot" so the drawer
     -- has something to render and the strip doesn't paint a phantom active.
     do
         local activeStillVisible = false
@@ -3037,9 +3035,9 @@ local function drawTabStrip(self, win)
             end
         end
         if not activeStillVisible then
-            -- (director, Oct 30 2026, punch list 25: back to Loot with the drawer shut, as pressing Loot does. Setting
-            -- only the tab left the drawer open in tab mode, and it drew the "placeholder" card for "loot". An item card
-            -- over the vanished tab stays: only a tab drawer is shut.)
+            -- (back to Loot with the drawer shut, as pressing Loot does. Setting only the tab left the drawer
+            -- open in tab mode, and it drew the "placeholder" card for "loot". An item card over the vanished
+            -- tab stays: only a tab drawer is shut.)
             if win._drawerMode == "tab" and win._mainContent then
                 _switchTabForNav(win, win._mainContent, "loot")
             else
@@ -3051,7 +3049,7 @@ local function drawTabStrip(self, win)
     -- has the focus and the controller is in use (Focus.liveZone), so the mark
     -- never lingers in the other window or under the mouse. The active tab shows
     -- it too (the mark on a solid element leaves out its wash). (Resolved before
-    -- the scroll: a focused tab out of sight scrolls into view, break-it B1.)
+    -- the scroll: a focused tab out of sight scrolls into view.)
     local gpFocusedTabId = nil
     local cuesOn = false
     do
@@ -3126,7 +3124,7 @@ local function drawTabStrip(self, win)
     local lastGroup = 1
 
     for _, tab in ipairs(CHAR_TABS) do
-        -- S115: skip contextual tabs that fail their visibility predicate.
+        -- Skip contextual tabs that fail their visibility predicate.
         -- Group separator suppressed too — it'll fire on the next visible tab
         -- if that tab is in a different group than the last drawn one.
         if not isTabVisible(tab, win) then
@@ -3144,7 +3142,7 @@ local function drawTabStrip(self, win)
         local isActive = (tab.id == win._activeTab)
         local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(TAB_BTN_SZ))
 
-        -- Oct 16 2026 (director): the tabs in lit pixel art (ZeD_TabPx): the
+        -- The tabs are lit pixel art (ZeD_TabPx): the
         -- active tab a bevelled lit accent panel with its icon pressed in, every
         -- icon a small lit object in five tones of the accent. The pointer's
         -- hover is the T.hover wash; the controller's focus is the player's
@@ -3173,7 +3171,7 @@ local function drawTabStrip(self, win)
         end
 
         curY = curY + T.px(TAB_BTN_SZ)
-        end -- close visibility-skip if/else (S115)
+        end -- close visibility-skip if/else
     end
 
     self:clearStencilRect()
@@ -3183,19 +3181,19 @@ end
 -- CONTAINER ENUMERATION
 -- ============================================================================
 
--- A general hook for other mods (ExtraContainers.lua): fn(playerObj, list)
--- returns more containers for the strip ({ container = ItemContainer, item,
--- parentItem, name, texture }); each gets a button and a column like a worn
--- bag. A second call with the same id replaces the first.
+--- A general hook for other mods (ExtraContainers.lua): fn(playerObj, list)
+--- returns more containers for the strip ({ container = ItemContainer, item,
+--- parentItem, name, texture }); each gets a button and a column like a worn
+--- bag. A second call with the same id replaces the first.
 function ZeD_CharacterWindow.addContainerProvider(id, fn)
     ZeD.ExtraContainers.add("char", id, fn)
 end
 
--- A general hook for other mods (StripDecorators.lua): fn(panel, entry, x, y,
--- w, h, win) is called after each strip button's icon is drawn (the main
--- inventory's too), with the window's entry (entry.inventory) and the button's
--- rectangle, to mark it (a fill bar, a badge). A second call with the same id
--- replaces the first.
+--- A general hook for other mods (StripDecorators.lua): fn(panel, entry, x, y,
+--- w, h, win) is called after each strip button's icon is drawn (the main
+--- inventory's too), with the window's entry (entry.inventory) and the button's
+--- rectangle, to mark it (a fill bar, a badge). A second call with the same id
+--- replaces the first.
 function ZeD_CharacterWindow.addStripDecorator(id, fn)
     ZeD.StripDecorators.add("char", id, fn)
 end
@@ -3230,18 +3228,18 @@ end
 
 
 -- ============================================================================
--- CONTAINER STRIP DRAW — redesigned vertical layout
--- Active container pinned top, WT sort toggle, draggable list, scroll arrows
+-- CONTAINER STRIP DRAW — the vertical strip on the window's right edge
+-- Main inventory pinned top, the sort toggle, draggable bag list, scroll arrows
 -- ============================================================================
 
 local STRIP_SCROLL_ROW_H = 16  -- height of the bottom [^ v] scroll row
 
 -- Installs a freshly built bag list and keeps every choice on the same bag it
--- was on, matched by its inventory rather than its place in the list (taking
--- off a bag listed before another one used to switch the pane to the other
--- bag). A viewed bag that is gone falls back to the main inventory; an active
--- bag that is gone falls back to the main inventory and drops its selection;
--- a multi-column bag that is gone loses its column.
+-- was on, matched by its inventory rather than its place in the list (by
+-- place, taking off a bag listed before another one would switch the pane to
+-- the other bag). A viewed bag that is gone falls back to the main inventory;
+-- an active bag that is gone falls back to the main inventory and drops its
+-- selection; a multi-column bag that is gone loses its column.
 local function remapCharContainers(win, content, oldList, newList)
     local function find(oldIdx)
         local old = oldList and oldIdx and oldList[oldIdx]
@@ -3360,7 +3358,7 @@ local function drawContainerStrip(self, win, content)
         win._containerTimer = 0
         remapCharContainers(win, content, win._containers, buildContainers(win._playerObj))
 
-        -- S115: refresh equipped radios + clamp browse index. Wave cache
+        -- Refresh equipped radios + clamp browse index. Wave cache
         -- prunes against the new key set (entry.cacheKey is the equipped slot
         -- tag — Primary/Secondary/Back — set in RadioTab.buildEquippedRadios).
         win._radios = ZeD.RadioTab.buildEquippedRadios(win._playerObj)
@@ -3409,11 +3407,11 @@ local function drawContainerStrip(self, win, content)
 
     -- --------------------------------------------------------
     -- ZONE 1: Main (on-person) container permanently pinned at top.
-    -- S106: previously showed whatever container was active, which caused
-    -- containers to "shuffle to the top" on activation — disruptive for
-    -- gamepad nav (element y-coords shifted underneath the focused cursor)
-    -- and confusing for mouse. Now main is always Zone 1; others live in
-    -- Zone 3 in stable display order.
+    -- Showing whichever container was active here made containers "shuffle
+    -- to the top" on activation — disruptive for gamepad nav (element
+    -- y-coords shifted underneath the focused cursor) and confusing for the
+    -- mouse. So main is always Zone 1; the others live in Zone 3 in a
+    -- stable display order.
     -- --------------------------------------------------------
     local mainCnt = containers[1]  -- buildContainers guarantees main at index 1
     local curY = 0
@@ -3456,7 +3454,7 @@ local function drawContainerStrip(self, win, content)
         end
         -- other mods' marks on the button (StripDecorators.lua); before the badge below so the badge stays on top
         ZeD.StripDecorators.run(self, win, "char", mainCnt, T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
-        -- S108 v2 QA: MC badge for main (player inv) when MC active. Main is
+        -- MC badge for main (player inv) when MC active. Main is
         -- always at the last colSel position when mainVisible=true, so its
         -- badge = #_mcSelected + 1.
         local mcCountM = #(win._mcSelected or {})
@@ -3472,7 +3470,7 @@ local function drawContainerStrip(self, win, content)
         curY = curY + T.px(CONTAINER_BTN_SZ)
     end
 
-    -- Divider below active container
+    -- Divider below the main container
     A.drawDividerH(self, 0, curY, w, true)
     curY = curY + T.px(1)
 
@@ -3514,14 +3512,13 @@ local function drawContainerStrip(self, win, content)
     A.drawDividerH(self, 0, sortRowY + sortRowH - T.px(1), w, true)
 
     -- --------------------------------------------------------
-    -- ZONE 3: Draggable container buttons (non-active, in display order)
+    -- ZONE 3: Draggable container buttons (all but main, in display order)
     -- Scrollable if overflow. Stencil-clipped.
     -- --------------------------------------------------------
     local listStartY = curY
 
-    -- S106: Zone 3 lists all non-MAIN containers in display order. Previously
-    -- excluded the "active" container (which was pinned at Zone 1 top); now
-    -- main is the permanent Zone 1 pin so Zone 3 excludes main (idx 1) only.
+    -- Zone 3 lists every container but main (idx 1, the permanent Zone 1
+    -- pin), in display order.
     local listEntries = {}
     for _, ci in ipairs(order) do
         if ci ~= 1 then
@@ -3546,7 +3543,7 @@ local function drawContainerStrip(self, win, content)
         win._stripScrollOffset = 0
         scrollOff = 0
     end
-    -- Oct 23 2026: where the buttons sit (panel-local), for the controller's
+    -- Where the buttons sit (panel-local), for the controller's
     -- stops (_buildLootFocusables)
     do
         local L = win._stripLay or {}
@@ -3575,7 +3572,7 @@ local function drawContainerStrip(self, win, content)
             local isHover = (mx >= 0 and mx < w and my >= btnY and my < btnY + T.px(CONTAINER_BTN_SZ))
                             and my >= listStartY and my < listStartY + listAreaH and not cuesOn
             local isMcSel = mcSelMap[ci]
-            local isViewed = (ci == viewedCI)  -- S45
+            local isViewed = (ci == viewedCI)
 
             -- One selected look for a shown bag (viewed, or one of the Loot
             -- tab's columns): the T.selectionA wash; else the hover wash. The
@@ -3697,7 +3694,7 @@ local function drawContainerStrip(self, win, content)
 end
 
 -- ============================================================================
--- PINNED SKILLS (ZeD_Pins: from the row's menu, three pins at most of every kind)
+-- PINNED SKILLS (ZeD_Pins: from the row's menu; three pins at most, all kinds)
 -- ============================================================================
 
 

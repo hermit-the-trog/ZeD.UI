@@ -1,8 +1,15 @@
+-- ZeD-UI/42/media/lua/client/ZeD/ZeD_ZoneList.lua
 -- ============================================================================
--- O09: ZeD_ZoneList — scrollable clothing zone list for ItemCard
+-- O09: ZeD_ZoneList — client organism; a scrollable list of clothing zones
 -- ============================================================================
 -- Renders M16 zone rows (drawZoneRow) inside a stencil-clipped, scrollable
 -- ISPanel. Dock buttons are clickable; fires onZonePress(zoneIdx, zone).
+-- Built for the item card, which draws its own zone rows now
+-- (ItemCardOrganism.lua): nothing creates a ZeD_ZoneList at the moment.
+--
+-- Before touching it: _recalcHeights and _dockRect repeat the layout of
+-- drawZoneRow and drawDock (Molecules.lua) without drawing. Change a row there
+-- and change it here, or the hit tests drift from what is drawn.
 --
 -- API:
 --   setZones(zones)       — array of M16 zone config tables
@@ -108,14 +115,14 @@ function ZeD_ZoneList:_recalcHeights()
 end
 
 -- ---------------------------------------------------------------------------
--- PRERENDER: sync theme colors, detect width changes
+-- PRERENDER: the scrollbar's size from the theme, heights again on a width change
 -- ---------------------------------------------------------------------------
 function ZeD_ZoneList:prerender()
     local T = ZeD.T
     self.sb.width  = T.sp.scrollbarW
     self.sb.arrowH = T.sp.scrollbarW
 
-    -- Recalc if width changed (font metrics depend on column split)
+    -- Recalc when the width changes
     local w = self:getWidth()
     if w ~= self._lastWidth then
         self:_recalcHeights()
@@ -182,8 +189,9 @@ end
 -- ---------------------------------------------------------------------------
 -- DOCK BUTTON HIT TESTING
 -- ---------------------------------------------------------------------------
--- Returns the dock button rect {x, y, w, h} for a zone, or nil if no active
--- dock. Coordinates are in panel-local space (before scroll offset).
+-- Returns the dock's rect {x, y, w, h} for a zone, flag and button together,
+-- or nil if no active dock. Coordinates are in panel-local space (before
+-- scroll offset).
 function ZeD_ZoneList:_dockRect(i, contentW)
     local zone = self.zones[i]
     if not zone or not zone.dock or zone.dock.state == "grey" then return nil end
@@ -194,10 +202,10 @@ function ZeD_ZoneList:_dockRect(i, contentW)
     local barH  = T.fillBarH
     local topH  = math.max(bodyH + T.px(4), barH + T.px(4), btnSz)
 
-    -- Dock button lives on the bottom line, right edge
+    -- The dock lives on the bottom line, at the right edge
     local d = zone.dock
     local sTextW = d.flag and ZeD.TM:MeasureStringX(T.fontF1, d.flag) or 0
-    local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)  -- S124 scale: mirrors drawZoneRow / drawDock (2 x padX)
+    local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)  -- scaled: mirrors drawZoneRow / drawDock (2 x padX)
     local dockW  = d.icon and (flagW + btnSz) or flagW
 
     local bx = contentW - dockW

@@ -7,17 +7,18 @@
 -- case's power button) and leaves the bare desktop, so the icons open
 -- everything the menus can: a player who closes the window and never finds the
 -- menu bar still has a way in. Down the screen's right edge, the way a 1993
--- desktop kept them: Project Zomboid, New Game, Load Game,
--- Join a Server, Options, Mods, Mod Uploader (the Workshop, where Steam offers it); the
--- Trash in the bottom corner. 32 x 32 pixel
--- icons drawn at whole multiples.
+-- desktop kept them: Project Zomboid, New Game, Load Game, Join a Server,
+-- Options, Mods, Mod Uploader (the Workshop, where Steam offers it); the Trash
+-- in the bottom corner. 32 x 32 pixel icons drawn at whole multiples.
 -- A click selects an icon (its name turns accent, the picture darkens), a
 -- second click opens it; Return or A opens the selected one, the arrows or the
 -- D-pad move between them. They sit under the windows, as icons do.
 --
--- Down the left edge: the sticky note, always there and typed in place,
--- then CletusWorks (the notepad), ProtoPOP3 Mail and the Documents folder (the notes, ZeD_MainMenuDocs.lua), columns to
--- the right when one fills and never over the right column (ZeD_MainMenuNotes.lua and ZeD_MainMenuMail.lua give MM.leftItems its items).
+-- Down the left edge: the sticky note, always there and typed in place, then
+-- CletusWorks (the notepad), ProtoPOP3 Mail and the Documents folder (the
+-- notes, ZeD_MainMenuDocs.lua), columns to the right when one fills and never
+-- over the right column. ZeD_MainMenuNotes.lua builds that list
+-- (MM.leftItems); ZeD_MainMenuMail.lua adds Mail to it through MM.leftApps.
 --
 -- The Trash opens a small window holding one file: the Computer itself (the
 -- old desktop joke of dragging the computer to the trash). Empty trash throws
@@ -67,10 +68,10 @@ local function items()
 end
 local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() MM.showView("trash") end }   -- (label: a translation key, drawn through ZeD.tr)
 
--- The icon pictures are loose textures the engine streams in after boot, so they loaded
--- slower than their plain-text names: they are asked for
--- now, the menu's wake-up waits for them with the desk's own pictures, and a cell draws
--- its name only once its picture is in, so the two always arrive together
+-- The icon pictures are loose textures the engine streams in after boot, so they arrive
+-- later than their plain-text names would: they are asked for now, the menu's wake-up
+-- waits for them with the desk's own pictures, and a cell draws its name only once its
+-- picture is in, so the two always arrive together
 local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "uploader", "trash", "computer", "cletusworks", "note", "mail", "documents" }
 pcall(function() for _, n in ipairs(ICON_IDS) do Texture.getSharedTexture(ICON_DIR .. n .. ".png", NEAREST) end end)
 local function iconReady(t)
@@ -84,7 +85,8 @@ MM.readyChecks.desktopIcons = function()
     return true
 end
 
--- the icons' places on the screen: { item, x, y, w, h (the cell), ix, iy, isz (the picture), ly (its name) }
+-- the icons' places on the screen: { item, x, y, w, h (the cell), ix, iy, isz (the picture), ly, lh (its name),
+-- left (a left-edge item) }
 local function cells(L)
     local T = ZeD.T
     local k = math.max(1, math.floor((T.scale or 1) + 0.5))
@@ -356,4 +358,5 @@ function ZeD_MMTrash:getFooterPrompts()
 end
 function ZeD_MMTrash:keyEscape() self:joyB(); return true end
 
+-- on the desk as the "trash" view (its icon opens it)
 MM.addView("trash", "trashWin", function() return ZeD_MMTrash:new() end)

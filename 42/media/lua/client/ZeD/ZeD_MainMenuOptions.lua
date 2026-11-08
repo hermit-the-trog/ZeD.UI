@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuOptions.lua
 -- ============================================================================
 -- OPTIONS. Client-side; the Options window organism (ZeD_MMOptions). The
--- Sandbox settings window (and Sandbox in game on top of it) and the
--- character's Looks window derive from it, the Mods window borrows its row
--- controls, and ZeD_MainMenuOptionsSub.lua adds two pages to it.
+-- Sandbox settings window (with Sandbox in game and the server settings
+-- editor on top of it) and the character's Looks window derive from it, the
+-- Mods window borrows its row controls, and ZeD_MainMenuOptionsSub.lua adds
+-- two pages to it.
 --
 -- A ZeD window in place of vanilla's Options: on the desk's monitor at the
 -- main menu, centred over the dimmed world in game (from the pause window).
@@ -803,8 +804,9 @@ function ZeD_MMOptions:openVanillaController(page)
     pcall(function() o.tabs:activateView(getText("UI_optionscreen_controller")) end)
 end
 
--- The answer the controller lands on when a question opens: a question that can lose or
--- write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: Back or Discard with changes can
+-- lose work, so they land on Keep editing and Discard needs a deliberate move; the other
+-- questions land on their main answer (confirm:yes) where they have one.
 local SAFE_ANSWER = { back = "confirm:no", discard = "confirm:no" }
 function ZeD_MMOptions:setConfirm(mode)
     if self.confirm == mode then return end
@@ -1421,7 +1423,8 @@ function ZeD_MMOptions:drawFoldHead(r, rowId, x, y, w, focused)
 end
 
 --- The rows list and the help band. A window built on this one bends it through hooks:
---- noHelpBand / helpBandH, tagsW / drawRowTags, rowDisabled and drawHelp (Sandbox in game).
+--- noHelpBand / helpBandH, tagsW / drawRowTags, rowDisabled and drawHelp (Sandbox in game uses
+--- most of them; the Looks window has no help band; the Sandbox and server windows dim rows).
 function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local T = ZeD.T
     local bs = T.borderS

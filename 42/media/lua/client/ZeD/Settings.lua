@@ -124,8 +124,8 @@ local function copyThemeToCharacter()
     md.ZeD_Theme.size   = ZeD.currentSize
 end
 
--- Sync current theme state back to ModOptions combo boxes (the window box
--- menu and the Select wheel call it after they change the theme)
+--- Sync current theme state back to ModOptions combo boxes (the window box
+--- menu and the Select wheel call it after they change the theme)
 function ZeD.Settings.syncToModOptions()
     if not baseTheme then return end
     baseTheme:setValue(keyToIndex(baseKeys, ZeD.currentBase))
@@ -167,8 +167,8 @@ local uiScale = opts:addComboBox("uiScale", ZeD.tr("UI_ZeD_Settings_UiScale"),
 for i, label in ipairs(scaleLabels) do
     uiScale:addItem((i == 1) and ZeD.tr(label) or label, i == 1)  -- default: Auto (the other steps are numbers)
 end
--- idx: the item just picked (vanilla hands the new index to onChange; the stored
--- value is only updated at Apply). Without it, the stored value is used.
+--- The UI scale applied (also ZeD.Settings.applyScale). idx: the item just picked (vanilla hands the new
+--- index to onChange; the stored value is only updated at Apply). Without it, the stored value is used.
 local function applyScale(idx)
     local v = scaleKeys[tonumber(idx) or uiScale:getValue() or 1]
     if ZeD.Scale then
@@ -180,10 +180,10 @@ end
 uiScale.onChange = function(_, sel) applyScale(sel) end
 uiScale.onChangeApply = function(_, sel) applyScale(sel) end
 ZeD.Settings.applyScale = applyScale
-ZeD.Settings.uiScaleOption = uiScale   -- the QA scripts and the controller's wheel drive it like the options screen
--- The UI scale cap (the rules: ZeD.Scale.fitCap in shared/ZeD/Scale.lua): true when item i of
--- control c is UI scale's fixed step above what fits this screen. ZeD setup's slider, the Mods page's
--- drop-down and the controller's wheel dim such a step and take no pick of it. c: the option or its element.
+ZeD.Settings.uiScaleOption = uiScale   -- the QA scripts (ZeDUI/tools/qa) and the controller's wheel drive it like the options screen
+--- The UI scale cap (the rules: ZeD.Scale.fitCap in shared/ZeD/Scale.lua): true when item i of
+--- control c is UI scale's fixed step above what fits this screen. ZeD setup's slider, the Mods page's
+--- drop-down and the controller's wheel dim such a step and take no pick of it. c: the option or its element.
 function ZeD.Settings.scaleStepOff(c, i)
     if c == nil or not (c == uiScale or c == uiScale.element) then return false end
     local v = scaleKeys[tonumber(i) or 0]
@@ -191,12 +191,12 @@ function ZeD.Settings.scaleStepOff(c, i)
     if Sc and Sc.stepRetired and Sc.stepRetired(v) then return true end   -- 0.5x, not offered in the beta
     return (Sc and Sc.stepTooBig and Sc.stepTooBig(v)) or false
 end
--- true when item i is a retired step (0.5x): the controller's wheel leaves it out; the slider dims it
+--- True when item i is a retired step (0.5x): the controller's wheel leaves it out; the slider dims it.
 function ZeD.Settings.scaleStepRetired(i)
     local Sc = ZeD.Scale
     return (Sc and Sc.stepRetired and Sc.stepRetired(scaleKeys[tonumber(i) or 0])) or false
 end
--- The help line's words while some steps are off: "2x and up: too big for this screen." (nil when none are)
+--- The help line's words while some steps are off: "2x and up: too big for this screen." (nil when none are)
 function ZeD.Settings.scaleTooBigHelp()
     for i = 2, #scaleKeys do
         if ZeD.Scale and ZeD.Scale.stepTooBig and ZeD.Scale.stepTooBig(scaleKeys[i]) then
@@ -299,7 +299,7 @@ glyphDisplay = opts:addComboBox("glyphDisplay", ZeD.tr("UI_ZeD_Settings_Glyphs")
 for i, label in ipairs(glyphLabels) do
     glyphDisplay:addItem(ZeD.tr(label), glyphKeys[i] == "auto")  -- default: auto
 end
--- the picked set's key, live while the options screen is open (ZeD_PadGlyphs reads it every draw)
+--- glyphKey(): the picked set's key, live while the options screen is open (ZeD_PadGlyphs reads it every draw)
 ZeD.Settings.glyphOption = glyphDisplay
 ZeD.Settings.glyphKey = function()
     local el = glyphDisplay.element
@@ -330,8 +330,9 @@ ZeD.Settings.safeModeOption = safeMode
 -- ----- TEST LANGUAGE -----
 -- For checking layouts: ZeD.tr (shared/ZeD/Tr.lua) returns every ZeD phrase about 40%
 -- longer, accented and in brackets, so clipped or overlapping text shows without a real
--- translation. Tr.lua reads this at most every half second. Last in the list: a combo is
--- saved as its item's position, so new options only ever go at the end.
+-- translation. Tr.lua reads this at most every half second. It went in at the end of the
+-- list, as every newer option below did: a combo is saved as its item's position, so new
+-- options only ever go at the end.
 local testLanguage = opts:addComboBox("testLanguage", ZeD.tr("UI_ZeD_Settings_TestLanguage"),
     "UI_ZeD_Settings_TestLanguageTip")   -- the key: the options screen reads it through getText (its text has a % sign, which a second getText of the translated words would choke on)
 testLanguage:addItem(getText("UI_Off"), true)   -- default
@@ -378,7 +379,7 @@ hintStrip:addItem(ZeD.tr("UI_ZeD_Settings_HintAlways"), true)   -- default
 hintStrip:addItem(ZeD.tr("UI_ZeD_Settings_HintFirst"), false)
 hintStrip:addItem(getText("UI_Off"), false)
 ZeD.Settings.hintStripOption = hintStrip
--- "always" | "first" | "off"
+--- "always" | "first" | "off"
 ZeD.Settings.hintStripMode = function() return ({ "always", "first", "off" })[hintStrip:getValue() or 1] or "always" end
 
 -- ----- SANDBOX OPTIONS IN GAME (ZeD_SandboxInGame.lua) -----
@@ -460,7 +461,7 @@ for i, label in ipairs(focusLabels) do focusStyle:addItem(ZeD.tr(label), i == 1)
 ZeD.Settings.focusStyleOption = focusStyle
 ZeD.Settings.focusStyleKeys   = focusKeys
 ZeD.Settings.focusStyleLabels = focusLabels
--- "hand", "corners", "wash" or "ants" (the hand when the option cannot be read)
+--- "hand", "corners", "wash" or "ants" (the hand when the option cannot be read)
 ZeD.Settings.focusStyle = function()
     local ok, i = pcall(liveIdx, focusStyle)
     return (ok and focusKeys[tonumber(i) or 1]) or "hand"
@@ -499,7 +500,7 @@ local hiddenActions = opts:addComboBox("hiddenActions", ZeD.tr("UI_ZeD_Settings_
 for i, label in ipairs(hiddenLabels) do hiddenActions:addItem(ZeD.tr(label), i == 1) end   -- default: folded
 ZeD.Settings.hiddenActionsOption = hiddenActions
 ZeD.Settings.hiddenActionsKeys   = hiddenKeys
--- "folded", "all" or "hide" ("folded" when the option cannot be read)
+--- "folded", "all" or "hide" ("folded" when the option cannot be read)
 ZeD.Settings.hiddenActions = function()
     local ok, i = pcall(liveIdx, hiddenActions)
     return (ok and hiddenKeys[tonumber(i) or 1]) or "folded"
@@ -531,9 +532,9 @@ ZeD.Settings.additionsPresetOption = additionsPreset
 -- ----- ZED SCREENS: players asked to turn one screen off (the belt) and keep the rest, so the mod steps
 -- aside piece by piece instead of shipping as separate modules -----
 -- One switch per ZeD screen that can hand itself back, under Safe mode in ZeD setup and read the same way:
--- On gives that one screen back to the
--- game's own (what safe mode does for all of them, SafeMode.lua), Off (the default) keeps it ZeD's. Not additions:
--- the presets leave them alone. (Combos are saved by position, so these stay after every older option.)
+-- On gives that one screen back to the game's own (what safe mode does for all of them, SafeMode.lua), Off
+-- (the default) keeps it ZeD's. Not additions: the presets leave them alone. (Combos are saved by position,
+-- so these stay after every older option.)
 ZeD.Settings.screenOptions = {}
 for _, sc in ipairs({
     { "screenWindows",   "windows",   "UI_ZeD_Settings_ScreenWindows" },
@@ -568,7 +569,8 @@ local devicesStyle = opts:addComboBox("devicesStyle", ZeD.tr("UI_ZeD_Settings_De
 devicesStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 devicesStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.devicesStyleOption = devicesStyle
--- true while the devices are drawn as simple cards (read as they draw, so a change applies at once)
+--- True while the devices are drawn as simple cards (read as they draw, so a change applies at once).
+--- watchSimple, dashSimple, guideSimple, modsSimple and identitySimple below answer the same for theirs.
 function ZeD.Settings.devicesSimple()
     local ok, v = pcall(devicesStyle.getValue, devicesStyle)
     return ok and v == 2

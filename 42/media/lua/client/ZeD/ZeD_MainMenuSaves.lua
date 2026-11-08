@@ -2,7 +2,9 @@
 -- ============================================================================
 -- LOAD GAME + NEW GAME ON THE MONITOR. Client-side; two window organisms
 -- (ZeD_MMLoad, ZeD_MMNewGame), plus the MM.ui helpers (the band, entries,
--- inset boxes) that the Mods and Options windows share.
+-- inset boxes) that nearly every other main-menu window draws with, which is
+-- why so many ZeD_MainMenu*.lua files require this one: change a helper's
+-- arguments here and you change them all.
 --
 -- Two more ZeD windows on the desk's screen, one view at a time with the
 -- Project Zomboid window (ZeD_MainMenu.lua: MM.showView).
@@ -44,8 +46,8 @@ local function plain(s) return (tostring(s or ""):gsub("<[^>]*>", " "):gsub("%s+
 -- ---------------------------------------------------------------------------
 -- shared: the band at the window's foot, as the screens' specs
 -- ---------------------------------------------------------------------------
---- A screen names the buttons it has: the old left group and right group are one run of push
---- buttons now, right-aligned, the main one last (the band is MM.band, in ZeD_MainMenu.lua). Each
+--- A screen names the buttons it has: its left group and right group run together as one row of
+--- push buttons, right-aligned, the main one last (the band is MM.band, in ZeD_MainMenu.lua). Each
 --- is { id, text, fn, variant, disabled, help }; ask is the band's left line (a question with a
 --- red square, or with plain a label; statusColor gives a plain line its square). The band is
 --- drawn here, in the window's prerender, so a field standing in it is a child that draws over it.
@@ -60,8 +62,8 @@ local function stripSpecs(win, y, w, row, lefts, rights, ask, plain, statusColor
     return MM.bandFieldX(ask)   -- where a field beside the band's line can start
 end
 
--- the band's hit boxes, then every other button the window's specs hold (a pane's own buttons,
--- clipped to the pane), drawn and answered
+--- The band's hit boxes, then every other button the window's specs hold (a pane's own buttons,
+--- clipped to the pane), drawn and answered. A window calls it from its render.
 local function drawStripAndButtons(win)
     local ctx, gp = (win.pctx and win:pctx()) or MM.ctx, MM.gamepad()
     local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
@@ -79,8 +81,8 @@ local function drawStripAndButtons(win)
     end
 end
 
--- an inset box (System 7 list box / field well): the base surface without stacking on the body,
--- a 1u frame. loose = true for a box inside a scrolled list (it must not claim a place in the body)
+--- An inset box (System 7 list box / field well): the base surface without stacking on the body,
+--- a 1u frame. loose = true for a box inside a scrolled list (it must not claim a place in the body).
 local function insetBox(p, x, y, w, h, loose)
     local T = ZeD.T
     if loose then
@@ -92,13 +94,13 @@ local function insetBox(p, x, y, w, h, loose)
     ZeD.Atoms.frame(p, x, y, w, h, T.borderS)
 end
 
--- a ZeD-styled text entry: role face, theme colours (ZeD.Text.fitEntry), inset look
+--- A ZeD-styled text entry, added to win: role face, theme colours (ZeD.Text.fitEntry), inset look.
 local function newEntry(win)
     local e = ISTextEntryBox:new("", 0, 0, 100, 24)
     e:initialise()
     e:instantiate()
     e.font = ZeD.Text.entryFont and ZeD.Text.entryFont() or UIFont.Small
-    -- Escape inside a focused field never reaches the menu (KB Q217): the field leaves
+    -- Escape inside a focused field never reaches the menu: the field leaves
     -- itself, or runs its onEscape (a question's field cancels the question)
     e.onOtherKey = function(entry, key)
         if key == Keyboard.KEY_ESCAPE then
@@ -108,6 +110,8 @@ local function newEntry(win)
     win:addChild(e)
     return e
 end
+--- Place an entry at (x, y, w, h) and give it the theme's well colours; the windows call it from
+--- prerender, so a theme change shows at once.
 local function styleEntry(e, x, y, w, h)
     local T = ZeD.T
     if ZeD.Text.fitEntry then ZeD.Text.fitEntry(e) end
@@ -118,7 +122,8 @@ local function styleEntry(e, x, y, w, h)
     e.borderColor = { r = bs.r, g = bs.g, b = bs.b, a = bs.a or 1 }
 end
 
--- the window's place on the monitor: below the menu bar, margins all round
+--- The window's place on the monitor: below the menu bar, margins all round; with h, that tall
+--- and centred in the space, else as tall as the space allows. Returns the width and height.
 local function placeOnTube(win, h)
     local T, L = ZeD.T, MM.layout()
     local barH = T.px(U.BAR_H)
@@ -142,6 +147,7 @@ end
 -- ============================================================================
 ZeD_MMLoad = ZeD_MMWindow:derive("ZeD_MMLoad")
 
+--- The Load Game window (the desk's "load" view; ZeD_MainMenu.lua makes it).
 function ZeD_MMLoad:new()
     local o = ZeD_MMWindow.new(self, "load")
     o.noResetControl = true
@@ -252,7 +258,9 @@ function ZeD_MMLoad:onShow()
     self.focusId = self.sel and ("save:" .. self.sel) or nil
 end
 
--- vanilla's rules for what may be played (LoadGameScreen:disableBtn), with the reason
+--- Vanilla's rules for what may be played (LoadGameScreen:disableBtn): nil when save s may be
+--- played, else the reason ("none" when no save is picked). ModSupport/BetterModExperience.lua
+--- wraps it with that mod's own checks.
 function ZeD_MMLoad:whyNot(s)
     if not s then return "none" end
     local info = s.info
@@ -443,7 +451,7 @@ function ZeD_MMLoad:setConfirm(mode)
         self.renameEntry:setVisible(false)
         if self.renameEntry:isFocused() then self.renameEntry:unfocus() end
     end
-    if mode == "delete" then self.focusId = "confirm:no"   -- (a question that loses work lands on Cancel, Nov 1 2026)
+    if mode == "delete" then self.focusId = "confirm:no"   -- (a question that loses work lands on Cancel)
     elseif mode == "rename" then self.focusId = "confirm:no"
     else self.focusId = self.sel and ("save:" .. self.sel) or "back" end
 end
@@ -470,7 +478,7 @@ function ZeD_MMLoad:prerender()
     self:drawList(lx, bodyY, listW, bodyH)
     self:drawPreview(px, bodyY, pw, bodyH)
 
-    -- the band at the foot (spec 8): Delete asks in it, Rename puts its field in it
+    -- the band at the foot: Delete asks in it, Rename puts its field in it
     local s = self:selected()
     local why = self:whyNot(s)
     local row = 1000
@@ -823,6 +831,7 @@ end
 -- ============================================================================
 ZeD_MMNewGame = ZeD_MMWindow:derive("ZeD_MMNewGame")
 
+--- The New Game window (the desk's "newgame" view; ZeD_MainMenu.lua makes it).
 function ZeD_MMNewGame:new()
     local o = ZeD_MMWindow.new(self, "newgame")
     o.noResetControl = true
@@ -860,8 +869,9 @@ function ZeD_MMNewGame:isChallengesItem(d)
     return d and GameMode and GameMode.CHALLENGES and d.mode == GameMode.CHALLENGES:toString() and not self.challenges
 end
 
--- NEXT: vanilla's NewGameScreen:clickPlay with this choice (map / spawn, sandbox
--- options, character creation follow as vanilla's screens)
+--- NEXT: vanilla's NewGameScreen:clickPlay with this choice (map / spawn, sandbox
+--- options, character creation follow as vanilla's screens); Challenges opens its list instead.
+--- ModSupport/BetterModExperience.lua wraps it with that mod's own checks.
 function ZeD_MMNewGame:next()
     local items = self:items()
     local d = items[self.sel]
@@ -1066,6 +1076,8 @@ function ZeD_MMNewGame:close() self:back() end
 -- ============================================================================
 -- THE MOUSE WHEEL: whichever panel the engine hands it to, the view's window gets it
 -- ============================================================================
+-- This file starts the chain: MM.wheel here answers Load Game only, and each other window's
+-- file wraps it for its own view (falling through to the one before).
 function MM.wheel(del)
     if MM.view ~= "load" or not MM.root then return false end
     return MM.root.loadWin:wheel(del)
@@ -1074,6 +1086,7 @@ function ZeD_MMGlass:onMouseWheel(del) return MM.wheel(del) end
 function ZeD_MMLoad:onMouseWheel(del) return MM.wheel(del) end
 function ZeD_MMDesk:onMouseWheel(del) return MM.wheel(del) end
 
--- shared with ZeD_MainMenuMods.lua / ZeD_MainMenuOptions.lua
+--- The shared helpers, MM.ui: nearly every ZeD_MainMenu*.lua window (Mods, Options, Sandbox, the
+--- desk's notes and mail, ...) and Sandbox in game draw their bands, fields and boxes with these.
 MM.ui = { insetBox = insetBox, newEntry = newEntry, styleEntry = styleEntry, placeOnTube = placeOnTube,
           stripSpecs = stripSpecs, drawStripAndButtons = drawStripAndButtons, plain = plain }

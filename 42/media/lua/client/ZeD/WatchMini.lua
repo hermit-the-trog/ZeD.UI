@@ -148,8 +148,7 @@ local function hand(p, X, Y, ck, ang, len, w, cl)
     end
 end
 
--- st: hour, minute (24 h), fmt24, speed (0 = paused), armed, dark, lit, night (the sun is down, lit or not)
--- the Simple watch (punch list 60): the small one on the belt is a plain box with the time
+-- the watch's form set to Simple: the small one on the belt is a plain box with the time
 local function drawPlain(p, x, y, st)
     local T = ZeD.T
     local w, h = M.size()
@@ -169,6 +168,8 @@ local function drawPlain(p, x, y, st)
     end
 end
 
+--- Draw the mini watch for a plate at (x, y). st: hour, minute (24 h), fmt24, speed
+--- (0 = paused), armed, dark, lit, night (the sun is down, lit or not).
 function M.draw(p, x, y, plate, st)
     if ZeD.Watch and ZeD.Watch.simple and ZeD.Watch.simple() then drawPlain(p, x, y, st); return end
     local spec = M.SPEC[plate]
@@ -206,8 +207,8 @@ function M.draw(p, x, y, plate, st)
     end
 end
 
--- the control under a point in the box (screen px from the box's corner):
--- "speed", "start", "light" (a Timez's crown), "face", or nil
+--- The control under a point in the box (screen px from the box's corner):
+--- "speed", "start", "light" (a Timez's crown), "face", or nil.
 function M.hit(plate, lx, ly)
     local spec = M.SPEC[plate]
     if not spec then return nil end
