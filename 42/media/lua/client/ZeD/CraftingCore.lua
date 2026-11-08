@@ -311,7 +311,10 @@ function CC.logicScan(data, win, prefix, makeLogic)
     local logic = win[lKey]
     if not logic then
         local ok, l = pcall(makeLogic)
-        if not ok or not l then return false end
+        if not ok or not l then
+            for _, rd in ipairs(recipes) do rd.fromLogic = nil end   -- (as below: no answer, none held)
+            return false
+        end
         logic = l
         win[lKey], win[dKey] = logic, nil
     end
@@ -331,7 +334,14 @@ function CC.logicScan(data, win, prefix, makeLogic)
         end
         logic:setRecipes(win[lk])
     end)
-    if not ok then win[lKey] = nil; return false end
+    if not ok then
+        -- (the game would not answer: its last answers no longer stand. The quick scan and the
+        -- card's count take the recipes back, instead of a craftable answer held until it
+        -- answers again, which the rows rebuilt every 30 frames carried on)
+        win[lKey] = nil
+        for _, rd in ipairs(recipes) do rd.fromLogic = nil end
+        return false
+    end
     local changed = false
     for _, rd in ipairs(recipes) do
         local r = rd.entry.recipe
@@ -1422,7 +1432,8 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
         if state.qty > maxQty and maxQty > 0 then state.qty = maxQty end
         if state.qty < 1 then state.qty = 1 end
         qty = state.qty
-        canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0
+        -- (rd.canStart: the craft's own start check, false when it would refuse; the Craft tab sets it)
+        canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0 and rd.canStart ~= false
     end
     -- the band: surface 2, the structure line, Craft / Build (primary) at the right
     local b = _bandBtns[1]
