@@ -112,7 +112,7 @@ PL.frac = frac
 --           cell into tints, a palette of { r, g, b } lists: the colour of the
 --           light in that cell. Without it every cell takes tint.
 --   needleOwn  a needle keeps its own colour and takes only the level (as if
---           light-piped): the director's pick for needles on green gauges
+--           light-piped): the look chosen for needles on green gauges
 --   glass   the backlit LCD glass: { color, r = rects } redrawn while st.power, with the lights on
 -- A part that makes no light (needles, pointers, tabs, the key, badges, the
 -- clock's hands, the radio's face) takes its colour times the multiplier of
@@ -523,8 +523,7 @@ local function inLight(p, st)
 end
 
 -- a moving strip in the dark: a cell's width at a time, each in the light it lies in
--- (neighbouring cells in the same light are drawn as one stretch: the same pixels in the same colours, fewer rects;
--- Oct 22 2026, the drawing-cost work)
+-- (neighbouring cells in the same light are drawn as one stretch: the same pixels in the same colours, fewer rects)
 local function ribbonLit(cv, p, xx, L)
     local c0, c1, c2 = P.color(p.color), P.shade(p.color, 1.25), P.shade(p.color, 0.6)
     local cy = p.y + p.h / 2
@@ -573,6 +572,8 @@ local function badgeFit(p, label, tag)
     return s, font, scale, lx, tx
 end
 
+--- Draw a plate's live parts from state st, in the order the data lists them; ctx is what the organism lends
+--- (the header). PL.draw calls it after the picture.
 function PL.drawParts(cv, parts, st, ctx)
     ctx = ctx or {}
     local L = ctx.light
@@ -642,8 +643,8 @@ function PL.drawParts(cv, parts, st, ctx)
                 P.digits(cv, txt, p.x, p.y, p.cw, p.ch, p.pitch, p.st or 1, P.color(p.color), p.ghost and P.color(p.ghost) or nil, p.align or "r", p.n)
             end
         elseif t == "drums" then
-            -- the odometers (Nov 6 2026, punch list 92): mechanical wheels turn with or without power and sit in the
-            -- light of the print around them; the LCD kind (p.text, the Dash Elite) shows only with the key on
+            -- the odometers: mechanical wheels turn with or without power and sit in the light of the print
+            -- around them; the LCD kind (p.text, the Dash Elite) shows only with the key on
             if st.power or not p.text then P.drums(cv, p, st[p.src], L, dim) end
         elseif t == "ptr" then
             local a
@@ -745,18 +746,19 @@ function PL.drawParts(cv, parts, st, ctx)
     end
 end
 
--- the plate's picture, then its live parts; w, h = the plate's size (des.w, des.h unless given)
 -- A plate's picture loads in the background the first time it is asked for; until then a face would show its lit
--- parts over nothing. The whole face waits for its picture and then appears at once (director, Oct 30 2026, punch
--- list 26). A picture once ready is remembered, so the check costs nothing after the first frames.
+-- parts over nothing. The whole face waits for its picture and then appears at once. A picture once ready is
+-- remembered, so the check costs nothing after the first frames.
 local _ready = {}
 local function texReady(t)
     if _ready[t] then return true end
     local ok, r = pcall(function() return t:isReady() end)
-    if not ok or r then _ready[t] = true; return true end    -- (no isReady on this build: draw as before)
+    if not ok or r then _ready[t] = true; return true end    -- (no isReady on this build: draw at once)
     return false
 end
 
+--- The plate's picture, then its live parts; w, h = the plate's size (des.w, des.h unless given). Returns false,
+--- drawing nothing, while the picture is still loading; true once the face is drawn.
 function PL.draw(cv, des, st, ctx, w, h)
     w, h = w or des.w, h or des.h
     local plate = ctx.tex(des.plate)
@@ -781,8 +783,8 @@ end
 -- ---------------------------------------------------------------------------
 -- click areas
 -- ---------------------------------------------------------------------------
--- the plate's controls in this state (the look-only areas left out): a list of
--- { id, x, y, w, h, kind, enabled } in plate pixels
+--- The plate's controls in this state (the look-only areas left out): a list of
+--- { id, x, y, w, h, kind, enabled } in plate pixels, written into `out` when given.
 function PL.controls(des, st, out)
     out = out or {}
     for _, h in ipairs(des.hits or {}) do
@@ -795,7 +797,7 @@ function PL.controls(des, st, out)
     return out
 end
 
--- the control under a point (plate pixels), the last listed first
+--- The control under a point (plate pixels), the last listed first.
 function PL.at(list, x, y)
     for i = #list, 1, -1 do
         local h = list[i]
@@ -804,7 +806,7 @@ function PL.at(list, x, y)
     return nil
 end
 
--- the control with this id
+--- The control with this id.
 function PL.find(list, id)
     for _, h in ipairs(list or {}) do if h.id == id then return h end end
     return nil

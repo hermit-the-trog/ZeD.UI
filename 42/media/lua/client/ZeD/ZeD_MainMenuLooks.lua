@@ -208,8 +208,8 @@ function ZeD_MMLooks:rowsNow()
     return rows
 end
 
--- deliberate no-ops: the Options window tracks changes to undo them, but here vanilla's own controls hold
--- every choice as it is made, so there is nothing to mark or keep
+-- deliberate no-ops: the Options window marks changed rows and asks before leaving unapplied changes,
+-- but here vanilla's own controls take every choice as it is made, so there is nothing to mark or ask
 function ZeD_MMLooks:isChanged(r) return false end
 function ZeD_MMLooks:anyChanged() return false end
 function ZeD_MMLooks:snapshot() end
@@ -481,12 +481,13 @@ end
 
 function ZeD_MMLooks:commitText() if self.confirm == "save" then self:saveOutfit() end end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
--- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+-- The answer the controller lands on when a question opens: deleting an outfit loses it, so that
+-- question lands on Cancel and Delete needs a deliberate move; naming an outfit lands on Save, with
+-- the keys already in the name field.
 local SAFE_ANSWER = { delete = "confirm:no" }
 function ZeD_MMLooks:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
@@ -515,6 +516,7 @@ function ZeD_MMLooks:random()
     v:onOptionMouseDown({ internal = "RANDOM" }, 0, 0)
 end
 
+-- Play and Back are vanilla's own NEXT and BACK, after the desk steps aside (MM.toVanilla)
 function ZeD_MMLooks:play()
     local v = looks()
     if not v then return end
