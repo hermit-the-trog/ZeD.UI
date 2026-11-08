@@ -2307,7 +2307,7 @@ mcToggleWorldContainer = function(win, content, cIdx)
         end
         local selected = win._mcSelected
         if #selected == 0 and win._mainVisible then
-            -- S98: floor toggled back to single-only — refresh ring (MC zone empty).
+            -- floor toggled back to single-only — refresh the ring (no column zones left)
             if _syncWorldRingZones then _syncWorldRingZones(win, content) end
             return
         end
@@ -2329,7 +2329,7 @@ mcToggleWorldContainer = function(win, content, cIdx)
                     win._mainVisible = true
                 end
                 exitWorldMC(win, content)  -- snaps window internally
-                -- S98: MC fully exited — refresh ring (MC zone goes non-focusable).
+                -- MC fully exited — refresh the ring (the column zones go non-focusable)
                 if _syncWorldRingZones then _syncWorldRingZones(win, content) end
                 return
             end
@@ -2351,7 +2351,7 @@ mcToggleWorldContainer = function(win, content, cIdx)
             colSel[#colSel + 1] = ci
         end
         if win._mainVisible then
-            -- S108 v2 QA: dedup _activeContainer if already in _mcSelected,
+            -- Dedup _activeContainer if already in _mcSelected,
             -- otherwise the user gets a duplicate column when they tap an
             -- MC-toggled container (tap sets _activeContainer = ci which is
             -- also in selected → colSel = [..., ci, ..., ci]).
@@ -2371,9 +2371,8 @@ mcToggleWorldContainer = function(win, content, cIdx)
 
     snapWorldColumns(win)
 
-    -- S98: MC selection mutated — refresh ring (worldLootMCColumns focusability
-    -- + element list reflect new _mcSelected). Stub returns {} until S99 wires
-    -- real MC focusables, so this currently keeps the zone non-focusable.
+    -- The column set changed — refresh the ring so the worldMC zones match
+    -- the new _mcSelected.
     if _syncWorldRingZones then _syncWorldRingZones(win, content) end
 end
 
@@ -2388,14 +2387,14 @@ local function saveWorldState(win)
     local sc = (T and T.scale) or 1
     local md = po:getModData()
     md.ZeD_WinState = md.ZeD_WinState or {}
-    -- S124 scale: persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
+    -- Persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
     -- _baseInvW already holds design units; x/y/h are screen px and are divided here.
-    -- Pre-S124 saves were written at scale 1.0, so they read back as-is.
+    -- Saves written before the scale system were at scale 1.0, so they read back as-is.
     local baseW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W   -- design units
     md.ZeD_WinState.world = {
         -- the window's own place: a rolled side where it starts unrolled, and a window the engine pushed left
-        -- while a full card holds it against the screen's edge where it stands without the push (punch list 46;
-        -- the Character window saves its anchor, which a push never moves)
+        -- while a full card holds it against the screen's edge where it stands without the push
+        -- (the Character window saves its anchor, which a push never moves)
         x = (win:getX() + (win._drawerCapPush or 0) - (win._rolled and win._rollW or 0)) / sc,
         y = win:getY() / sc,
         w = baseW,
@@ -2420,7 +2419,7 @@ end
 
 -- The window kept on the current screen: no taller than the screen (less 20 units), no wider,
 -- wholly on it, the half-screen width cap measured again. Run after a restore and on a
--- resolution change (Oct 31 2026, break-it B3: a layout saved on a bigger screen, or a screen
+-- resolution change (a layout saved on a bigger screen, or a screen
 -- made smaller, left the window hanging off the bottom; a drag was clamped, these were not).
 local function fitWorldToScreen(win)
     if not win then return end
@@ -2445,12 +2444,12 @@ local function restoreWorldState(win, playerObj)
     local T = ZeD.T
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
-    -- S124 scale: stored values are design units (see saveWorldState). Scale to screen px,
+    -- Stored values are design units (see saveWorldState). Scale to screen px,
     -- then clamp to the screen (a saved position can land off-screen after a root change).
     local xU = ws.x or 40
     local yU = math.max(0, ws.y or 60)
     -- no wider than this screen's cap either (half the screen): a layout saved on a bigger
-    -- screen kept its inventory width (break-it B3)
+    -- screen kept its inventory width
     local capU = math.floor((win._maxWinW or math.floor(screenW * 0.5)) / ((T and T.scale) or 1))
     local wU = math.max(CONTAINER_STRIP_W + 200 + ACTION_TAB_STRIP_W, math.min(ws.w or 464, capU))   -- design units
     local x = T.px(xU)
@@ -2471,7 +2470,7 @@ local function restoreWorldState(win, playerObj)
     win._invDrawerTargetW = T.px(restoredInvW)
     win._baseInvW         = restoredInvW                               -- design units
     win._prevDesiredW     = nil
-    fitWorldToScreen(win)         -- (and the window's own minimums against the screen, break-it B3)
+    fitWorldToScreen(win)         -- (and the window's own minimums against the screen)
 
     -- Restore active tab
     if ws.activeTab then
@@ -2507,20 +2506,20 @@ end
 -- 3x3 grid around player, wall check, safehouse check, all container types.
 -- ============================================================================
 
--- A general hook for other mods (ExtraContainers.lua): fn(playerObj, list)
--- returns more containers for the strip ({ container = ItemContainer, item,
--- parentItem, name, texture }); each gets a button and a column like a
--- container in reach. `list` carries the window's own fields (isFloor, locked,
--- sourceType). A second call with the same id replaces the first.
+--- A general hook for other mods (ExtraContainers.lua): fn(playerObj, list)
+--- returns more containers for the strip ({ container = ItemContainer, item,
+--- parentItem, name, texture }); each gets a button and a column like a
+--- container in reach. `list` carries the window's own fields (isFloor, locked,
+--- sourceType). A second call with the same id replaces the first.
 function ZeD_WorldWindow.addContainerProvider(id, fn)
     ZeD.ExtraContainers.add("world", id, fn)
 end
 
--- A general hook for other mods (StripDecorators.lua): fn(panel, entry, x, y,
--- w, h, win) is called after each strip button's icon is drawn (the floor's
--- too), with the window's entry (entry.inventory) and the button's rectangle,
--- to mark it (a fill bar, a badge). A second call with the same id replaces
--- the first.
+--- A general hook for other mods (StripDecorators.lua): fn(panel, entry, x, y,
+--- w, h, win) is called after each strip button's icon is drawn (the floor's
+--- too), with the window's entry (entry.inventory) and the button's rectangle,
+--- to mark it (a fill bar, a badge). A second call with the same id replaces
+--- the first.
 function ZeD_WorldWindow.addStripDecorator(id, fn)
     ZeD.StripDecorators.add("world", id, fn)
 end
@@ -2606,7 +2605,7 @@ local function buildWorldContainers(playerObj)
                                 -- a nameless body is titled by vanilla's own word for it ("Corpse")
                                 local title = getText("IGUI_ContainerTitle_" .. corpseType)
                                 if instanceof(so, "IsoDeadBody") then
-                                    -- S123: the player's own corpse (and some B42 bodies) hand
+                                    -- The player's own corpse (and some B42 bodies) hands
                                     -- back a description without getForename/getSurname — this
                                     -- threw "Object tried to call nil" every frame after a death.
                                     pcall(function()
@@ -2733,7 +2732,7 @@ local function buildWorldContainers(playerObj)
         end
     end
 
-    -- Floor container always last (pinned at bottom of strip)
+    -- Floor container always last in the list (the strip draws it pinned at the top)
     containers[#containers + 1] = {
         inventory = _floorContainer,
         name = getTextOrNull("IGUI_ContainerTitle_floor") or "Floor",

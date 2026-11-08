@@ -1564,8 +1564,8 @@ _buildInvRowFocusables = function(win)
     end
     -- Seed first-item focus so accent paints immediately on section enter
     -- (before D-pad fires its first onFocus).
-    -- seed only when nothing is remembered: a rebuild (scroll, an item gone) must not
-    -- send focus back to the first row (Oct 19 2026 nav audit; see the seed-stomp rule)
+    -- Seed only when nothing is remembered: a rebuild (scroll, an item gone)
+    -- must not send focus back to the first row.
     if elements[1] and elements[1].item and win._gpFocusedRowItem == nil then
         win._gpFocusedRowItem = elements[1].item
         local cnt = win._mainContent
@@ -1576,30 +1576,25 @@ _buildInvRowFocusables = function(win)
     return elements
 end
 
--- S106 — Character MC column focusables. Covers every column EXCEPT the
--- last rendered one (which is owned by charMainInv). In main-visible MC
--- mode the columns are laid out [mc1, mc2, ..., mcK, main] so main is last
--- and all LEFT columns flow into this zone. In main-hidden MC mode with
--- #mcSel >= 2 the columns are [mc1, ..., mcK] and the rightmost becomes
--- charMainInv's content; this builder covers mc1..mc(K-1). Single-column
--- states (main-only OR one MC with main hidden) return {} — charMainInv
--- covers the whole view and this zone goes non-focusable.
+-- One MC column's stops, for the column `slot` names (1..#_mcSelected). Each
+-- MC selection is its own ring zone (charMC1..charMCN) that the bumpers cycle
+-- like any other; the last rendered column (main when visible, else the
+-- rightmost bag) belongs to charMainInv instead. Single-column states
+-- (main-only, or one MC bag with main hidden) return {} — charMainInv covers
+-- the whole view and this zone goes non-focusable.
 --
 -- Bounds: x = cs.renderX (panel-local), y = per-row yMap stamp (saved per
 -- column by renderMultiColumnContent's save-back block), w = cs.renderW,
 -- h = rowH. Distinct x per column gives cone-nav cross-column spatial hops;
 -- distinct y per row within a column gives intra-column D-pad.
 --
--- Behavior: mirrors charMainInv element shape — A opens ZeD context menu,
--- hold-A does contextual dblclick, X drops to floor. onFocus writes the
--- focused item into content._gpFocusedRowItem so InventoryRenderer's
--- accent-fill cue paints on the right row (the renderer's cue is gated on
--- the focused ring zone being a mainInv or MC zone, S106 extension). Also
--- writes win._gpFocusedMCItem + win._gpFocusedMCColIdx for scroll-follow
--- dispatch and MC zone-specific state (tree-nav, card follow-focus).
--- S108 v2: per-column MC builder. Each MC selection becomes its own ring
--- zone (charMC1..charMCN); bumpers cycle them as standard ring zones. This
--- builder returns elements for ONE column identified by `slot` (1..#_mcSelected).
+-- Behavior mirrors the charMainInv element shape — the same tap / hold /
+-- menu callbacks. onFocus writes the focused item into
+-- content._gpFocusedRowItem so InventoryRenderer's accent-fill cue paints on
+-- the right row (the renderer's cue is gated on the focused ring zone being
+-- a mainInv or MC zone). Also writes win._gpFocusedMCItem +
+-- win._gpFocusedMCColIdx for scroll-follow dispatch and MC zone state
+-- (tree-nav, card follow-focus).
 _buildCharacterMCColumnFocusables = function(win, slot)
     if not win or win._activeTab ~= "loot" then return {} end
     if not slot then return {} end

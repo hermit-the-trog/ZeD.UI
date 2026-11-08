@@ -1407,10 +1407,10 @@ local function renderItemList(self)
 
     -- Responsive columns: drop one at a time as panel narrows
     -- Order: cond first, then cat. Name + WT always stay; the weight's bracket
-    -- takes its room from the name (Oct 29 2026, the director: names shorten
+    -- takes its room from the name (names shorten
     -- before a column drops for it).
     local nameX    = padX + iconW + iconGap
-    local MIN_NAME = T.px(100)   -- (Large text audit: names before categories; at Large the category drops before names crush)
+    local MIN_NAME = T.px(100)   -- (names before categories: at Large text the category drops before names crush)
     local catColW  = colWData.cat
     local condColW = colWData.cond
     local wtColW   = colWData.wt
