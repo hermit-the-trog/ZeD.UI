@@ -5753,5 +5753,9 @@
     "UI_ZeD_Log_T_RepAnswered": "回覆了對 %1 的檢舉，工單 #%2",
     "UI_ZeD_Log_T_RepClosed": "關閉了對 %1 的檢舉，工單 #%2",
     "UI_ZeD_Log_T_RepSpam": "把對 %1 的檢舉標為垃圾，工單 #%2",
-    "UI_ZeD_Log_T_RepDeleted": "刪除了對 %1 的檢舉，工單 #%2"
+    "UI_ZeD_Log_T_RepDeleted": "刪除了對 %1 的檢舉，工單 #%2",
+    "UI_ZeD_CSS_Tag": "經驗 x%1",
+    "UI_ZeD_CSS_TagBook": "經驗 x%1，書 x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 會在接受時排序載入順序。",
+    "UI_ZeD_BME_NotStarted": "未開始：%1 在模組列表中發現問題。"
 }

@@ -5753,5 +5753,9 @@
     "UI_ZeD_Log_T_RepAnswered": "megválaszolta %1 jelentését, #%2 jegy",
     "UI_ZeD_Log_T_RepClosed": "lezárta %1 jelentését, #%2 jegy",
     "UI_ZeD_Log_T_RepSpam": "spamnak jelölte %1 jelentését, #%2 jegy",
-    "UI_ZeD_Log_T_RepDeleted": "törölte %1 jelentését, #%2 jegy"
+    "UI_ZeD_Log_T_RepDeleted": "törölte %1 jelentését, #%2 jegy",
+    "UI_ZeD_CSS_Tag": "TP x%1",
+    "UI_ZeD_CSS_TagBook": "TP x%1, könyv x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 az Elfogadáskor rendezi a betöltési sorrendet.",
+    "UI_ZeD_BME_NotStarted": "Nem indult el: %1 hibát talált a modlistában."
 }

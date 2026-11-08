@@ -5753,5 +5753,9 @@
     "UI_ZeD_Log_T_RepAnswered": "回复了对 %1 的举报，工单 #%2",
     "UI_ZeD_Log_T_RepClosed": "关闭了对 %1 的举报，工单 #%2",
     "UI_ZeD_Log_T_RepSpam": "把对 %1 的举报标为垃圾，工单 #%2",
-    "UI_ZeD_Log_T_RepDeleted": "删除了对 %1 的举报，工单 #%2"
+    "UI_ZeD_Log_T_RepDeleted": "删除了对 %1 的举报，工单 #%2",
+    "UI_ZeD_CSS_Tag": "经验 x%1",
+    "UI_ZeD_CSS_TagBook": "经验 x%1，书 x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 会在接受时排序加载顺序。",
+    "UI_ZeD_BME_NotStarted": "未开始：%1 在模组列表中发现问题。"
 }

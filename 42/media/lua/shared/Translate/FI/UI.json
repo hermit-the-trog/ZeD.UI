@@ -5753,5 +5753,9 @@
     "UI_ZeD_Log_T_RepAnswered": "vastasi ilmoitukseen %1, lippu #%2",
     "UI_ZeD_Log_T_RepClosed": "sulki ilmoituksen %1, lippu #%2",
     "UI_ZeD_Log_T_RepSpam": "merkitsi ilmoituksen %1 roskaksi, lippu #%2",
-    "UI_ZeD_Log_T_RepDeleted": "poisti ilmoituksen %1, lippu #%2"
+    "UI_ZeD_Log_T_RepDeleted": "poisti ilmoituksen %1, lippu #%2",
+    "UI_ZeD_CSS_Tag": "XP x%1",
+    "UI_ZeD_CSS_TagBook": "XP x%1, kirja x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 lajittelee latausjärjestyksen Hyväksy-painalluksella.",
+    "UI_ZeD_BME_NotStarted": "Ei aloitettu: %1 löysi ongelman modiluettelosta."
 }
