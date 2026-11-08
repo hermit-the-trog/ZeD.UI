@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/b8_console_manifest.txt (Nov 8 2026): the Lua console, ZeD alone (Build 5ac83525 typed-line size)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_b8_console.lua | b8dc | timeout=300 | expect=console

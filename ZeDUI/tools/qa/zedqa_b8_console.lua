@@ -131,6 +131,28 @@ step(10, function()
     check(#DC.history() == hist0, "6: the same line twice in a row keeps one history entry (" .. hist0 .. " then " .. #DC.history() .. ")")
 end)
 
+-- ===== 3b. (Nov 8 QA, Build's 5ac83525) text typed in the input line, beside printed lines: the same size as the F3 lines above it
+step(5, function()
+    DC.run('print("a printed line above the typed one")')
+end)
+step(20, function()
+    local inp = DC.win and DC.win.input
+    if inp then pcall(function() inp:setText("typed text in the input line GgYy 0123") end) end
+    check(inp ~= nil, "3b: ZeD's input line exists")
+end)
+step(30, function()
+    local inp = DC.win and DC.win.input
+    if inp then
+        local ok, f = pcall(function() return inp.font end)
+        say("3b typed line face " .. tostring(ok and f) .. ", entry px " .. tostring(inp.zedEntryPx) .. ", F3 px " .. tostring(ZeD.T.fontPx and ZeD.T.fontPx[ZeD.T.fontF3]))
+    end
+    shot("typed")
+end)
+step(5, function()
+    local inp = DC.win and DC.win.input
+    if inp then pcall(function() inp:setText("") end) end
+end)
+
 -- ===== 4 / 5. errors
 step(5, function()
     DC.read()

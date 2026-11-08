@@ -1,0 +1,23 @@
+ZEDQA belm start
+ZEDQA belm PASS the mod's pregame hook is installed (BridgePregame.installed)
+ZEDQA belm PASS the mod's appearance and looks code is loaded
+ZEDQA belm PASS ZeD's Looks window is up
+ZEDQA belm PASS the mod counts this as a new game it can design a companion for
+ZEDQA belm shot 1_zed_looks
+ZEDQA belm PASS the mod's design screen took over (BridgePregame.active)
+ZEDQA belm PASS the mod's design screen is visible
+ZEDQA belm ZeD view now: looks; ZeD desk visible: false
+ZEDQA belm screen size 3840x2160; main screen 3840x2160
+ZEDQA belm lookCombo options: 1
+ZEDQA belm shot 2_companion_design
+ZEDQA belm PASS picking the first preset in the mod's list runs
+ZEDQA belm preset picked: As I found him
+ZEDQA belm shot 3_preset_picked
+ZEDQA belm picked UI at the pointer: nil
+ZEDQA belm PASS the mod's Back runs
+ZEDQA belm after Back: ZeD view looks; mod screen active false; ZeD looks visible true
+ZEDQA belm PASS Back returns to ZeD's Looks window
+ZEDQA belm shot 4_back_to_looks
+ZEDQA belm all checks passed
+ZEDQA belm DONE
+default.txt, ModOptions.ini and autoload put back

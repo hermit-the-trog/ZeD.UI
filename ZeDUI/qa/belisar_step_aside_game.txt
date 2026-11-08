@@ -1,0 +1,2 @@
+ZeD-GUI: screens handed back to a mod that took them (set), and taken back by the player (kept)
+mods=NeatUI_Framework,NeatUI_Equipment,MinimalSidebar,Bridge,ZeD_UI
