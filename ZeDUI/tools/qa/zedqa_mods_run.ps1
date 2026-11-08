@@ -19,6 +19,7 @@ param(
     [ValidateSet("windowed", "fullscreen4k")][string]$Mode = "windowed",
     [string]$Manifest = "",
     [switch]$ZeDFirst,
+    [switch]$NoZeD,     # (Nov 8 2026) no ZeD_UI in the list: the ZeD-off baseline (put ZeDQAShim in the list so the bridge runs)
     [int]$Width = 0,    # (Nov 2 2026) windowed only: passed to zedqa_run.ps1 (1280x800 the Deck, 1280x720)
     [int]$Height = 0
 )
@@ -34,7 +35,7 @@ $snap    = Join-Path ([System.IO.Path]::GetTempPath()) "ZeD-QA.mods-snapshot.$st
 if ((Get-Content $LockFile -Raw -ErrorAction SilentlyContinue) -match '^busy') { Write-Output "not starting: the lock is busy"; exit 2 }
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { Write-Output "not starting: the game is running"; exit 2 }
 $ids = @(Get-Content $ModList | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne "ZeD_UI" })
-$all = $(if ($ZeDFirst) { @("ZeD_UI") + $ids } else { $ids + @("ZeD_UI") })
+$all = $(if ($NoZeD) { $ids } elseif ($ZeDFirst) { @("ZeD_UI") + $ids } else { $ids + @("ZeD_UI") })
 $txt = "VERSION = 1,`r`n`r`nmods`r`n{`r`n" + (($all | ForEach-Object { "    mod = $_," }) -join "`r`n") + "`r`n}`r`n`r`nmaps`r`n{`r`n}`r`n"
 [System.IO.File]::WriteAllText("$Report.mods.txt", $txt, $Utf8NoBom)
 

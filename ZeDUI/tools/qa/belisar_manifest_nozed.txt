@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/belisar_manifest_nozed.txt (Nov 8 2026): the same three mods with ZeD off, the QA shim's bridge (belisar_mods_nozed.txt)
+zedqa_belisar.lua | bel | timeout=200
