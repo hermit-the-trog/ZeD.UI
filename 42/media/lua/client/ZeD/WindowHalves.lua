@@ -561,6 +561,26 @@ local function itemDragging()
     return false
 end
 
+--- True while the pointer (window-local) is on a half's pin: on the rod's pin
+--- while the inventory side is rolled under it, else on the pin in the title bar.
+--- A rolled half stays rolled under its own pin, so the click lands on the pin
+--- (the rod takes the press: ZeD_CurtainRod:onMouseDown) and nothing moves in
+--- under the pointer first (unrolled, the Character window's box sits exactly
+--- where its rod's pin was).
+function H.onPin(win, half, mx, my)
+    local s = win._halves
+    local rod = win._rod
+    if half == "inv" and win._rolled and not win.windowShaded then
+        local r = rod and rod:isVisible() and rod._pinRect
+        if not r then return false end
+        local x, y = mx - (rod:getX() - win:getX()), my - (rod:getY() - win:getY())
+        return x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h
+    end
+    local e = (half == "drawer") and s.side or ((s.side == "left") and "right" or "left")
+    local r = H.pinRect(win, e)
+    return r ~= nil and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h
+end
+
 --- Each update (ZeD_Window:_autoCollapse): the halves' timers, the hover that
 --- brings a rolled half back, the controller's stops, then one step on screen.
 function H.update(win)
@@ -600,8 +620,12 @@ function H.update(win)
             elseif st.rolled then
                 st.out = nil
                 -- (a side rolled by hand stays until its tab is pressed; one the pointer rolled comes back on
-                -- its bar, but not while the player aims through it)
-                if not aiming and ((bar and not st.hand) or (inside and not shown)) then st.rolled = false end
+                -- its bar, but not while the player aims through it, nor while the pointer is on its pin:
+                -- unrolled under the pointer, the Character window's box took the pin's click and the menu
+                -- opened)
+                if not aiming and not H.onPin(win, half, mx, my) and ((bar and not st.hand) or (inside and not shown)) then
+                    st.rolled = false
+                end
             elseif inside or (half == "drawer" and noDrawer) or (half == "inv" and noList) then
                 st.out = nil
             else

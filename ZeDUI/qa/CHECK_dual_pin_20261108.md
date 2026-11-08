@@ -59,7 +59,7 @@ Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, t
 | 3.4 | Character: pin the inventory only. Aim with the pointer off the window. | The drawer folds at once; the inventory stays exactly as it is. |
 | 3.5 | Character: pin the drawer only. Aim. | The inventory rolls under its rod at once; the drawer stays open. |
 | 3.6 | Both pins on. Aim, move away, wait. | Nothing moves. |
-| 3.7 | With the inventory rolled under its rod, click the pin on the rod. | It lights, and the inventory comes back down (pinning brings a rolled half back, as the old pin did). |
+| 3.7 | With the inventory rolled under its rod (by the pointer or by aim), rest the pointer on the pin on the rod, then click it. Both windows. | Resting on the pin leaves the side rolled (nothing moves under the pointer). The click lights the pin and the inventory comes back down (pinning brings a rolled half back, as the old pin did). The window menu never opens. The same on a rolled window's bar: resting on either pin leaves it rolled, the click pins that half and brings it down. |
 | 3.8 | Pinned or not: click the open tab, then click Loot. | Each still folds the drawer in, as before. |
 | 3.9 | Drop an item on a rolled side's rod tab. | It still lands in that side's container. |
 
