@@ -1397,16 +1397,16 @@ local function _buildSkillRowFocusables(win)
             end,
         }
     end
-    -- Seed only when unset (Q95: per-frame builder nil-guard).
+    -- Seed only when unset (this builder runs every frame).
     if elements[1] and elements[1].skillName and win._gpFocusedSkill == nil then
         win._gpFocusedSkill = elements[1].skillName
     end
     return elements
 end
 
--- S103 — Training material chevrons. A toggles expansion + invalidates
+-- Training material chevrons. A toggles expansion + invalidates
 -- _skillsCache so scroll height recomputes on the next render (mirrors the
--- mouse handler). No _skillsGridExpanded guard: training section always
+-- mouse handler). No _skillsGridExpanded guard: the training section always
 -- draws regardless of whether the XP grid is collapsed.
 local function _buildTrainingChevronFocusables(win)
     local zones = win and win._trainingGroupZones
@@ -1432,7 +1432,7 @@ local function _buildTrainingChevronFocusables(win)
     return elements
 end
 
--- S103 — Skills tab aggregator. Disclosure first (tree-nav), then skill rows
+-- Skills tab aggregator. Disclosure first (tree-nav), then skill rows
 -- (when grid expanded), then training chevrons (always). Cone-nav uses
 -- spatial bounds, so interleaving collapsed-state content is safe.
 local function _buildSkillsFocusables(win)

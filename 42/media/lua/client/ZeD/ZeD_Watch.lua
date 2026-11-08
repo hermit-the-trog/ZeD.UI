@@ -410,7 +410,7 @@ function ZeD_Watch:_hitsFrom(des, st, k)
 end
 
 -- ---------------------------------------------------------------------------
--- THE SIMPLE WATCH (the "Simple watch" setting): a plain clock box in
+-- THE SIMPLE WATCH (the watchSimple setting): a plain clock box in
 -- ZeD's own parts, with the same readings and the same buttons as the watch (their ids go to _act unchanged).
 -- Worn: the time large, the weekday and date, the temperature, the game's speed and the alarm, then Start or Pause,
 -- Speed, Alarm and Set; while setting, the alarm hour with - and + and Done. No watch: the four speed keys.
@@ -778,8 +778,8 @@ ZeD.Safe.register("watch", {
 
 Events.OnGameStart.Add(function() W._instance = nil; W.install() end)
 
--- On a server the game's speed controls do nothing and showed at the top right from the join until the watch's
--- first drawing parked them (QA's multiplayer check, Nov 5 2026): kept hidden there on every tick, whether a
+-- On a server the game's speed controls do nothing, yet they showed at the top right from the join until the
+-- watch's first drawing parked them: kept hidden there on every tick, whether a
 -- watch is worn or not (not in safe mode, which hands them back)
 Events.OnTick.Add(function()
     if not isClient() or ZeD.Safe.on("watch") then return end

@@ -1605,9 +1605,9 @@ local WORLD_TAB_DRAWER_WIDTHS = {
     maps   = TAB_DRAWER_W,
     forage = TAB_DRAWER_W,
     animals = TAB_DRAWER_W,
-    radio  = TAB_DRAWER_W,  -- S115 — radio chassis matches the wider tab drawer
-    vehicle = TAB_DRAWER_W, -- S124 — Vehicle tab (item-card width)
-    furniture = TAB_DRAWER_W, -- S124 — Furniture tab
+    radio  = TAB_DRAWER_W,  -- the radio chassis needs the wider tab drawer
+    vehicle = TAB_DRAWER_W,
+    furniture = TAB_DRAWER_W,
 }
 
 local function getWorldTabDrawerW(tab)
@@ -1671,7 +1671,7 @@ local ICON_FALLBACKS = {
 
 
 -- A container with no picture of its own shows the game's own box (its cardboard box / crate icon), never a letter
--- (the director, Nov 2 2026: a letter "takes me to modern day" and out of 1993). Shared by both windows' strips.
+-- glyph — a letter reads as modern UI and breaks the 1993 look. Shared by both windows' strips.
 ZeD.genericContainerTex = ZeD.genericContainerTex or function()
     local I = ContainerButtonIcons
     return I and (I.cardboardbox or I.crate or I.smallbox) or getTexture("media/ui/Container_Crate.png")
@@ -1718,7 +1718,7 @@ end
 -- window's first container scan and refilled by it (see buildWorldContainers)
 local _floorContainer = nil
 
--- Tab strip separator — TAB_SEP_H/TAB_SEP_MAR hoisted up to line ~52 in S94
+-- Tab strip separator — TAB_SEP_H/TAB_SEP_MAR live up with the constants
 -- so _buildWorldTabBarElements can see them as upvalues. TAB_ARROW_ROW_H
 -- stays here because only drawWorldTabStrip (further down) uses it.
 local TAB_ARROW_ROW_H  = 16
@@ -1746,7 +1746,7 @@ end
 -- The strip, when it scrolls, brings the tab that matters into view: the controller's focused
 -- tab, else the active one. Only when that tab changes (a new focus, a new active tab, the
 -- strip just starting to scroll), so the wheel and the arrows can still look elsewhere.
--- (Oct 31 2026, break-it B1: at 1280x720, UI scale 2.0, Large text a controller moving down
+-- (At 1280x720, UI scale 2.0, Large text a controller moving down
 -- past Maps focused Forage, Animals, Radio, Vehicle out of sight.)
 local function worldTabStripFollow(win, viewH, scrollOff, maxScroll, focusedId)
     local tgt = focusedId or win._activeTab
@@ -1774,9 +1774,9 @@ end
 
 local function drawWorldTabStrip(self, win)
     local T  = ZeD.T
-    local A  = ZeD.Atoms  -- S95: was missing; drawTriangleUp/Down calls below crashed
-                          --      when World tab list overflowed and needed scroll arrows
-                          --      (pre-existing latent bug, not an S95 regression).
+    local A  = ZeD.Atoms  -- the scroll arrows need it: without this local the
+                          --      drawTriangleUp/Down calls below crashed the
+                          --      first time the tab list overflowed.
     local w  = T.px(ACTION_TAB_STRIP_W)
     local h  = self:getHeight()
 

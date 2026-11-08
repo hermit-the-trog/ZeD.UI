@@ -629,8 +629,9 @@ function Focus.focusWhere(w, zoneName, pred)
     return nil
 end
 
--- A zone.landOn for cards (FocusManager's landing rule): a move into the
--- card lands on its primary action, the button the player most likely wants.
+--- A zone.landOn for cards (the windows hand it in when they build zones):
+--- a move into the card lands on its primary action, the button the player
+--- most likely wants.
 function Focus.landOnPrimary(w, z)
     for i, e in ipairs(z and z.elements or {}) do
         if e.isPrimary then return i end
@@ -1122,7 +1123,7 @@ local function _windowThatWay(w, dir)
     return best
 end
 
--- The open pop-up list (Oct 30 2026, punch list 21 a-f). Every pop-up list built
+-- The open pop-up list. Every pop-up list built
 -- on Molecules.drawPopupMenu (Craft and Build's Sort and Show, the Journal's Page
 -- and its pages' lists, Health's exercises, Thermal's views, the map's Survey /
 -- Color / Paper) hands the window its rows alone while it is open, the elements
@@ -1189,7 +1190,7 @@ end
 local function _handleSpatialNav(w, dir)
     if not w or not w._focusRing then return end
 
-    -- S113c: X-HOLD DRAG INTERCEPT. If X is held past threshold AND the
+    -- X-HOLD DRAG INTERCEPT. If X is held past threshold AND the
     -- captured drag element has onHoldContextDrag, route D-pad presses to
     -- the element's drag handler instead of cone-nav. Focus does NOT shift
     -- during drag — the element stays locked under X-hold; D-pad mutates

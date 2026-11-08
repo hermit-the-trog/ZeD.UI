@@ -93,7 +93,7 @@ function S.optionRows(modId)
     return out
 end
 
--- how many options a mod has (0 for a mod that is off: its code never ran)
+--- How many options a mod has (0 for a mod that is off: its code never ran).
 function S.count(modId)
     local n = 0
     for _, options in ipairs(OW and OW.forMod(modId) or {}) do
@@ -102,7 +102,8 @@ function S.count(modId)
     return n
 end
 
--- the value of a row, as the Options window's changed dot compares it
+--- The value of a row as a short string, as the Options window's changed dot
+--- compares it.
 function S.sig(r)
     local c = r and r.control
     if not c then return nil end
@@ -119,7 +120,8 @@ function S.sig(r)
     return nil
 end
 
--- keep one row: vanilla's apply for its control, the mod's own apply, the save
+--- Keep one row's value after its control changed: vanilla's apply for its
+--- control, the mod's own apply, the save.
 function S.apply(entry)
     local r = entry and entry.r
     if r and r.opt and r.opt.apply then pcall(r.opt.apply, r.opt) end
