@@ -66,6 +66,9 @@ local GAME = {
     IGUI_health_Scratched = "Scratched", IGUI_perks_Doctor = "First Aid", IGUI_perks_Fishing = "Fishing",
     IGUI_perks_Cooking = "Cooking", IGUI_perks_Carpentry = "Carpentry", IGUI_perks_Foraging = "Foraging",
     IGUI_perks_Trapping = "Trapping", IGUI_perks_Farming = "Farming", UI_Off = "Off", UI_On = "On",
+    IGUI_perks_Masonry = "Masonry", IGUI_perks_Pottery = "Pottery", IGUI_perks_Blacksmith = "Blacksmith",
+    IGUI_perks_Glassmaking = "Glassmaking", IGUI_perks_Husbandry = "Husbandry", IGUI_perks_Butchering = "Butchering",
+    IGUI_perks_Tracking = "Tracking",
     Sandbox_Custom = "Custom",
 }
 local function fill(s, ...)
@@ -123,9 +126,12 @@ PZAPI = { ModOptions = { create = function() lastOpts = newOpts(); return lastOp
 local realRequire = require
 require = function() end
 getCore = function() return { getOptionClock24Hour = function() return CLOCK24 ~= false end } end
-getSpecificPlayer = function() return PLAYER end
-getPlayer = getSpecificPlayer
+-- (split screen: player 2 is its own character)
+getSpecificPlayer = function(pn) if pn == 1 then return PLAYER2 end return PLAYER end
+getPlayer = function() return PLAYER end
 CLOCK24 = true
+CLIENT = false
+isClient = function() return CLIENT end
 
 local function loadSettings(ini)
     FILES["ModOptions.ini"] = ini
@@ -183,6 +189,39 @@ local groups = readFile(LUA .. "client/ZeD/ZeD_MainMenuOptionGroups.lua") or ""
 local addGroup = groups:match('"UI_ZeD_Options_ZedAdditions".-}%s*}%s*},')
 check("its row in ZeD setup's additions group", addGroup and addGroup:find('{ "hiddenFacts", "radio" }', 1, true) ~= nil)
 
+section("Settings: the beta 6 repair still runs with newer additions")
+-- a player beta 6 moved to Custom: Vanilla Access in every row but Identity (Immersive), no line for any newer row
+local B6 = { ammoBox = 2, readMarks = 2, readNext = 2, dimRead = 2, dashLamps = 2, moodleNotices = 2, messagesCatch = 2,
+             messagesToast = 2, putBack = 2, sandboxInGame = 2, loadouts = 2, restock = 3, devicesStyle = 2, watchStyle = 2,
+             dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 1, haloBubble = 2 }
+local function beta6(extra)
+    local lines = { "|ZeD_UI|additionsPreset|4" }
+    for id, v in pairs(B6) do lines[#lines + 1] = "|ZeD_UI|" .. id .. "|" .. v end
+    for id, v in pairs(extra or {}) do lines[#lines + 1] = "|ZeD_UI|" .. id .. "|" .. v end
+    local o = loadSettings(table.concat(lines, "\n"))
+    if not o then return nil end
+    -- (the game reads the file into the options; the stub does it here)
+    for id, v in pairs(B6) do if o.dict[id] then o.dict[id]:setValue(v) end end
+    for id, v in pairs(extra or {}) do if o.dict[id] then o.dict[id]:setValue(v) end end
+    o.dict.additionsPreset:setValue(4)
+    ZeD.Settings.reconcileAdditions()
+    return o
+end
+local r6 = beta6()
+check("beta 6 repair: Identity set Simple", r6 and r6.dict.identityStyle:getValue() == 2)
+check("beta 6 repair: Hidden facts (no saved line) set Always", r6 and r6.dict.hiddenFacts:getValue() == 2)
+check("beta 6 repair: the preset reads Vanilla Access", r6 and r6.dict.additionsPreset:getValue() == 3,
+      r6 and r6.dict.additionsPreset:getValue())
+local r7 = beta6({ hiddenFacts = 1 })
+check("beta 6 repair: a saved Find first is kept", r7 and r7.dict.hiddenFacts:getValue() == 1)
+check("beta 6 repair: Identity still repaired beside a saved newer row", r7 and r7.dict.identityStyle:getValue() == 2)
+local r8 = beta6({ ammoBox = 1 })
+check("beta 6 repair: a real hand pick (Ammo off) is not repaired", r8 and r8.dict.identityStyle:getValue() == 1)
+local st = readFile(LUA .. "client/ZeD/Settings.lua") or ""
+local rep = st:match("local function repairVanillaAccess%(%).-\n    end\r?\n")
+check("beta 6 repair: compares the beta 6 rows only, not every preset row", rep and rep:find("REPAIR_IDS", 1, true) ~= nil
+      and not rep:find("for id, v in pairs(set) do\r?\n%s*local want"))
+
 -- back to a fresh Settings for the pages (Vanilla)
 opts = loadSettings(nil) or newOpts()
 local function setPreset(i)
@@ -211,6 +250,7 @@ local function newPlayer()
     return p
 end
 PLAYER = newPlayer()
+PLAYER2 = newPlayer()
 
 local PAGES = { ["Base.BookFirstAid1"] = 220, ["Base.BookFirstAid2"] = 260, ["Base.BookFirstAid3"] = 300,
                 ["Base.BookFirstAid4"] = 340, ["Base.BookFirstAid5"] = 380 }
@@ -221,14 +261,26 @@ local SCRIPT_ITEMS = {
     { full = "Base.FishingMag1", name = "Angler USA Magazine Vol. 1", learned = { "MakeFishingRod" } },
     { full = "Base.FishingMag2", name = "Angler USA Magazine Vol. 2", learned = { "MakeFishingRod" } },
     { full = "Base.Apple", name = "Apple" },
+    { full = "Base.SmithingMag2", name = "Smithing Vol. 2", learned = { "base:kitchentools", "base:nogroup" } },
 }
 local CRAFT = { MakeFishingRod = "Make Fishing Rod", MakeCakeBatter = "Make Cake Batter", MakePieDough = "Make Pie Dough",
                 MakeCrateTrap = "Make Crate Trap" }
+-- the craft recipes with a MetaRecipe group (recipes_blacksmith_cookware.txt: MetaRecipe = base:kitchentools)
+local CRAFT_ALL = { { "Forge_Cooking_Pot", "base:kitchentools" }, { "Forge_Saucepan", "base:kitchentools" }, { "MakeFishingRod" } }
+local ITEMS_FAIL = 0
 local RADIO
 function getScriptManager()
     return {
         FindItem = function(_, ft) return PAGES[ft] and { getNumberOfPages = function() return PAGES[ft] end } or nil end,
+        getAllCraftRecipes = function()
+            local t = {}
+            for _, c in ipairs(CRAFT_ALL) do
+                t[#t + 1] = { getName = function() return c[1] end, getMetaRecipe = function() return c[2] end }
+            end
+            return jlist(t)
+        end,
         getAllItems = function()
+            if ITEMS_FAIL > 0 then ITEMS_FAIL = ITEMS_FAIL - 1; error("scripts not loaded yet") end
             local t = {}
             for _, it in ipairs(SCRIPT_ITEMS) do
                 t[#t + 1] = { getLearnedRecipes = function() return it.learned and jlist(it.learned) or nil end,
@@ -241,10 +293,15 @@ function getScriptManager()
         end,
     }
 end
-local TRANSMISSION = 1
+local TRANSMISSION, MORTALITY = 1, 5
 local TLABELS = { "Blood and Saliva", "Saliva Only", "Everyone's Infected", "None" }
+local MLABELS = { "Instant", "0-30 Seconds", "0-1 Minutes", "0-12 Hours", "2-3 Days", "1-2 Weeks", "Never" }
 function getSandboxOptions()
     return { getOptionByName = function(_, name)
+        if name == "ZombieLore.Mortality" then
+            return { getValue = function() return MORTALITY end, getTranslatedName = function() return "Infection Mortality" end,
+                     getValueTranslationByIndex = function(_, i) return MLABELS[i] end }
+        end
         if name ~= "ZombieLore.Transmission" then return nil end
         return { getValue = function() return TRANSMISSION end, getTranslatedName = function() return "Transmission" end,
                  getValueTranslationByIndex = function(_, i) return TLABELS[i] end }
@@ -295,7 +352,8 @@ local function setRadio(channels, now)
 end
 
 -- the guide: its Rules table, with the world's infection table it had before (ZeD_SurvivalGuide.lua)
-ZeD.Guide = { Rules = {}, _rulesC = {} }
+local OPENED = {}
+ZeD.Guide = { Rules = {}, _rulesC = {}, open = function(pn, want) OPENED[#OPENED + 1] = { pn, want } end }
 local OLD_INF = { title = "The infection in this world", cols = { "Setting", "This world" }, rows = { { "Transmission", "Blood and Saliva" } }, spoiler = true }
 ZeD.Guide.Rules.SurvivalGuide_zombie_attacks_title = function() return OLD_INF end
 
@@ -319,10 +377,10 @@ local function pages(key)
     return r or {}
 end
 local function last(key) local p = pages(key); return p[#p] end
-local function read(ft, readPages, total)
+local function read(ft, readPages, total, who, stopped)
     local item = { getFullType = function() return ft end, getNumberOfPages = function() return total or -1 end,
                    getAlreadyReadPages = function() return readPages or 0 end }
-    ISReadABook.perform({ item = item, character = PLAYER })
+    ISReadABook.perform({ item = item, character = who or PLAYER, forceStopped = stopped })
 end
 setRadio(CHANNELS or {}, 2 * 1440 + 10 * 60)
 
@@ -394,6 +452,38 @@ setPreset(4)   -- Custom keeps the hand picks (here Always, from Vanilla Access)
 check("Custom with Always: open", not last("SurvivalGuide_television_title").locked)
 opts.dict.hiddenFacts:setValue(1)
 check("Custom with Find first: locked", last("SurvivalGuide_television_title").locked == true)
+
+section("Split screen: each player's own reading")
+setPreset(1)
+PLAYER, PLAYER2 = newPlayer(), newPlayer()
+read("Base.TVMagazine", nil, nil, PLAYER2)
+ZeD.Guide.open(1, "SurvivalGuide_television_title")
+check("the guide's own open still runs", OPENED[#OPENED] and OPENED[#OPENED][1] == 1 and OPENED[#OPENED][2] == "SurvivalGuide_television_title")
+check("player 2 read TV Monthly, opens the guide: open", not last("SurvivalGuide_television_title").locked)
+ZeD.Guide.open(0)
+check("player 1 has not, opens the guide: locked", last("SurvivalGuide_television_title").locked == true)
+read("Base.BookFirstAid1", 220, 220, PLAYER)
+check("player 1 read a First Aid book: the odds open for player 1", not last("SurvivalGuide_zombie_attacks_title").locked)
+ZeD.Guide.open(1)
+check("... and stay locked for player 2", last("SurvivalGuide_zombie_attacks_title").locked == true)
+ZeD.Guide.open(0)
+
+section("Multiplayer finds: a server's client")
+PLAYER = newPlayer()
+CLIENT = true
+-- (on a client the game never moves the pages on: the item and the character both still say 0)
+read("Base.BookFirstAid2", 0, 260)
+check("client: a First Aid book read to the end of the action opens the odds", not last("SurvivalGuide_zombie_attacks_title").locked)
+check("client: kept on the character, as KillTracker keeps its marks", PLAYER.md.ZeD_Finds and PLAYER.md.ZeD_Finds.medical == true)
+PLAYER = newPlayer()
+read("Base.BookFirstAid2", 0, 260, nil, true)
+check("client: a reading stopped early opens nothing", last("SurvivalGuide_zombie_attacks_title").locked == true)
+CLIENT = false
+read("Base.BookFirstAid2", 0, 260)
+check("single player: the page count still decides", last("SurvivalGuide_zombie_attacks_title").locked == true)
+PLAYER.pages["Base.BookFirstAid2"] = 260
+read("Base.BookFirstAid2", 0, 260)
+check("single player: the character's own page count counts too", PLAYER.md.ZeD_Finds and PLAYER.md.ZeD_Finds.medical == true)
 
 -- ---------------------------------------------------------------------------
 -- THE LIVE SCHEDULE
@@ -485,12 +575,33 @@ check("12-hour clock: 9:00 AM", tvp and tvp.rows[1][2] == "9:00 AM", tvp and tvp
 check("12-hour clock: 12:00 AM at midnight", tvp and tvp.rows[2][2] == "12:00 AM", tvp and tvp.rows[2][2])
 check("12-hour clock: 1:05 PM", tvp and tvp.rows[4][2] == "1:05 PM", tvp and tvp.rows[4][2])
 CLOCK24 = true
+setRadio({ chan("Quiet TV", true, 0, { bc(0, 60, { "BOR-1" }) }) }, 0)
+tvp = last("SurvivalGuide_television_title")
+check("nothing that teaches on the air: one line saying so", tvp and #tvp.rows == 1 and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVNone)
+-- a server's client: the channels are there (named from the server's data) but no script is loaded
+local noScript = function(name) return { GetName = function() return name end, IsTv = function() return true end, getCurrentScript = function() return nil end } end
+setRadio({ noScript("Life and Living TV"), noScript("Triple-N") }, 2 * 1440)
+tvp = last("SurvivalGuide_television_title")
+check("client, no scripts: says the schedule is not available here", tvp and #tvp.rows == 1 and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVUnavailable,
+      tvp and tvp.rows[1] and tvp.rows[1][1])
+check("client, no scripts: never says nothing airs", tvp and tvp.rows[1][1] ~= EN.UI_ZeD_Hidden_TVNone)
 setRadio({}, 0)
 tvp = last("SurvivalGuide_television_title")
-check("nothing on the air: one line saying so", tvp and #tvp.rows == 1 and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVNone)
+check("no channels at all: not available here", tvp and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVUnavailable)
 RADIO = nil
 tvp = last("SurvivalGuide_television_title")
-check("no radio (a client before the server's data): the same line, no error", tvp and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVNone)
+check("no radio: not available here, no error", tvp and tvp.rows[1][1] == EN.UI_ZeD_Hidden_TVUnavailable)
+-- one channel that fails leaves the others listed
+local bad = { GetName = function() error("bad channel") end, IsTv = function() error("bad channel") end }
+setRadio({ bad, chan("Life and Living TV", true, 0, { bc(2 * 1440 + 12 * 60, 2 * 1440 + 13 * 60, { "CRP+1" }) }) }, 2 * 1440)
+s = F.schedule() or {}
+check("a bad channel: the good one still listed", #s == 1 and s[1].teaches == "Carpentry", #s)
+-- Build 42's newer skill codes
+setRadio({ chan("Life and Living TV", true, 0, {
+    bc(2 * 1440 + 60, 2 * 1440 + 120, { "MAS+1, POT+1", "BLA+1", "GLA+1, HUS+1", "BUT+1, TRK+1" }) }) }, 2 * 1440)
+s = F.schedule() or {}
+check("the newer skill codes named", s[1] and s[1].teaches == "Masonry, Pottery, Blacksmith, Glassmaking, Husbandry, Butchering, Tracking",
+      s[1] and s[1].teaches)
 
 -- ---------------------------------------------------------------------------
 -- THE ODDS
@@ -511,6 +622,14 @@ end
 local p = last("SurvivalGuide_zombie_attacks_title")
 check("the wounds in the game's words", p and p.rows[1][1] == "Bitten" and p.rows[2][1] == "Laceration" and p.rows[3][1] == "Scratched")
 check("behind the spoiler bar, as the world's table", p and p.spoiler == true)
+check("Mortality not Never: no not-fatal note", p and p.notes[1] ~= nil and not p.notes[1]:find("not fatal", 1, true))
+MORTALITY = 7
+TRANSMISSION = 1
+p = last("SurvivalGuide_zombie_attacks_title")
+check("Mortality Never: says plainly it is not fatal, first", p and p.notes[1] == "The infection is not fatal in this world (Infection Mortality: Never).",
+      p and p.notes[1])
+check("Mortality Never: a bite still reads Always, with that note", p and p.rows[1][2] == "Always")
+MORTALITY = 5
 check("never the character's body: no BodyDamage read", not (readFile(LUA .. "client/ZeD/ZeD_HiddenFacts.lua") or ""):find("getBodyDamage", 1, true))
 
 -- ---------------------------------------------------------------------------
@@ -526,6 +645,13 @@ check("Vanilla Access: names the magazine", F.recipeSourceText("Forge_Tongs") ==
 check("Vanilla Access: two magazines named", F.recipeSourceText("MakeFishingRod") == "Find Angler USA Magazine Vol. 1, Angler USA Magazine Vol. 2",
       F.recipeSourceText("MakeFishingRod"))
 check("Vanilla Access: a recipe no magazine teaches keeps the card's words", F.recipeSourceText("MakeSandwich") == nil)
+check("a group (base:kitchentools) resolves to its recipes", F.recipeSourceText("Forge_Saucepan") == "Find Smithing Vol. 2",
+      F.recipeSourceText("Forge_Saucepan"))
+check("a group with no members: its recipes keep the card's words", F.recipeSourceText("Forge_Tongs") == "Find Smithing Vol. 1")
+F._recipeIdx = nil
+ITEMS_FAIL = 1
+check("a build that fails: the card's words", F.recipeSourceText("Forge_Tongs") == nil)
+check("... and the next card tries again", F.recipeSourceText("Forge_Tongs") == "Find Smithing Vol. 1")
 local cc = readFile(LUA .. "client/ZeD/CraftingCore.lua") or ""
 check("the crafting card asks for it", cc:find("ZeD.Finds.recipeSourceText(entry.name)", 1, true) ~= nil)
 

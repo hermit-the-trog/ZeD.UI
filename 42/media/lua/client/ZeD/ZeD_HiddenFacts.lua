@@ -47,11 +47,15 @@ function F.always()
     return (S and S.hiddenFactsAlways and S.hiddenFactsAlways()) and true or false
 end
 
+-- the reader: the given one, else the player the guide was last opened for (W.open, wrapped below: in split screen
+-- each player's own reading counts), else player 1
 local function player(p)
     if p then return p end
-    local ok, r = pcall(function() return getSpecificPlayer(0) end)
+    local pn = (ZeD.Guide and ZeD.Guide._pn) or 0
+    local ok, r = pcall(function() return getSpecificPlayer(pn) end)
     return ok and r or nil
 end
+F.player = player
 
 -- the game's record: a TV Monthly issue read (IsoGameCharacter.getReadLiterature keeps "TVMagazine_<month>_<year>",
 -- the title ItemCodeOnCreate.onCreateTVMagazine gives the issue)
@@ -93,7 +97,8 @@ function F.has(kind, p)
     return false
 end
 
--- a find read: kept on the character (its mod data goes with the save)
+-- a find read: kept on the character, in its mod data, as KillTracker keeps ZeD_Kills (it goes with the character's
+-- save on a server too; the game's own reading records above are the fallback)
 function F.mark(p, ft)
     local kind = KIND_OF[tostring(ft or "")]
     if not (p and kind) then return false end
@@ -106,6 +111,20 @@ function F.mark(p, ft)
     return ok
 end
 
+-- a timed action of reading came to its end: did it read the book to its last page? In single player the game has
+-- moved the pages on (ISReadABook:update); on a server's client it never does (update counts pages only off the
+-- client), so there the end itself is the answer: the action runs for the whole book (getDuration), and a book too
+-- hard or already outgrown is stopped before it ends (update's forceStop), so perform never comes.
+function F.readToEnd(action, client)
+    local item, p = action.item, action.character
+    local pages = item:getNumberOfPages() or 0
+    if pages <= 0 then return true end
+    if client then return true end
+    if (item:getAlreadyReadPages() or 0) >= pages then return true end
+    local ok, n = pcall(function() return p:getAlreadyReadPages(item:getFullType()) end)
+    return ok and (tonumber(n) or 0) >= pages
+end
+
 -- the read ends (ISReadABook:perform runs on the reader's own machine, in single player and on a server's client)
 function F.hookReading()
     if F._hooked or not ISReadABook or not ISReadABook.perform then return end
@@ -113,13 +132,12 @@ function F.hookReading()
     local perform = ISReadABook.perform
     ISReadABook.perform = function(self, ...)
         pcall(function()
-            local item, p = self.item, self.character
+            local item = self.item
             local ft = item and item:getFullType()
             if not KIND_OF[tostring(ft or "")] then return end
-            -- (a skill book counts when it was read to its last page)
-            local pages = item:getNumberOfPages() or 0
-            if pages > 0 and (item:getAlreadyReadPages() or 0) < pages then return end
-            F.mark(p, ft)
+            if self.forceStopped then return end
+            local okC, client = pcall(isClient)
+            if F.readToEnd(self, okC and client == true) then F.mark(self.character, ft) end
         end)
         return perform(self, ...)
     end
@@ -129,11 +147,20 @@ F.hookReading()
 -- ---------------------------------------------------------------------------
 -- RECIPE SOURCES (Always: the crafting card names the magazine)
 -- ---------------------------------------------------------------------------
--- recipe name -> the names of the items that teach it (the item scripts' LearnedRecipes), built once
+-- recipe name -> the names of the items that teach it (the item scripts' LearnedRecipes), built once it builds whole.
+-- A LearnedRecipes entry can be a group, "base:kitchentools": the craft recipes whose MetaRecipe it is
+-- (CraftRecipe.getMetaRecipe) are its members, each taught by that item. A group with no members stays as it is.
+-- A build that fails is not kept: the next card asks again.
+local function addSource(idx, r, name)
+    local t = idx[r]
+    if not t then t = {}; idx[r] = t end
+    for _, n in ipairs(t) do if n == name then return end end
+    t[#t + 1] = name
+end
 function F.recipeIndex()
     if F._recipeIdx then return F._recipeIdx end
-    local idx = {}
-    pcall(function()
+    local idx, groups = {}, {}
+    local ok = pcall(function()
         local all = getScriptManager():getAllItems()
         for i = 0, all:size() - 1 do
             local it = all:get(i)
@@ -142,15 +169,27 @@ function F.recipeIndex()
                 local name = tostring(it:getDisplayName() or it:getFullName())
                 for j = 0, list:size() - 1 do
                     local r = tostring(list:get(j))
-                    local t = idx[r]
-                    if not t then t = {}; idx[r] = t end
-                    local seen = false
-                    for _, n in ipairs(t) do if n == name then seen = true; break end end
-                    if not seen then t[#t + 1] = name end
+                    addSource(idx, r, name)
+                    if r:find(":", 1, true) then groups[r] = true end
                 end
             end
         end
     end)
+    if not ok then return {} end
+    if next(groups) then
+        local okG = pcall(function()
+            local recipes = getScriptManager():getAllCraftRecipes()
+            for i = 0, recipes:size() - 1 do
+                local rc = recipes:get(i)
+                local meta = rc:getMetaRecipe()
+                local by = meta and groups[tostring(meta)] and idx[tostring(meta)]
+                if by then
+                    for _, name in ipairs(by) do addSource(idx, tostring(rc:getName()), name) end
+                end
+            end
+        end)
+        if not okG then return idx end   -- (the plain names hold; the groups are tried again next time)
+    end
     F._recipeIdx = idx
     return idx
 end
@@ -197,6 +236,9 @@ local SKILL_CODE = {
     FKN = "FlintKnapping", CRV = "Carving", AIM = "Aiming", REL = "Reloading", FIS = "Fishing", TRA = "Trapping",
     FOR = "Foraging", TAI = "Tailoring", MEC = "Mechanics", CMB = "Combat", SPE = "Spear", SBU = "SmallBlunt",
     LBA = "LongBlade", SBA = "SmallBlade",
+    -- (Build 42's newer skills)
+    MAS = "Masonry", POT = "Pottery", BLA = "Blacksmith", GLA = "Glassmaking", HUS = "Husbandry", BUT = "Butchering",
+    TRK = "Tracking",
 }
 F.SKILL_CODE = SKILL_CODE
 
@@ -239,37 +281,43 @@ local function teaches(bc)
 end
 
 F.DAYS = 7
--- the shows that teach, from now to DAYS days on: { at = minutes, day, time, channel, teaches }, by start
+-- one TV channel's shows that teach, into out; true when the channel had a script to read
+local function channelShows(ch, now, today, days, out)
+    local sc = ch:IsTv() and ch:getCurrentScript()
+    if not sc then return false end
+    local base = sc:getStartDayStamp()
+    local bl = sc:getBroadcastList()
+    for j = 0, bl:size() - 1 do
+        local bc = bl:get(j)
+        local st, en = base + bc:getStartStamp(), base + bc:getEndStamp()
+        if en > now and st < (today + days) * 1440 then
+            local what = teaches(bc)
+            if what ~= "" then
+                local d = math.floor(st / 1440)
+                out[#out + 1] = { at = st, day = d - today, mins = st - d * 1440,
+                                  channel = tostring(ch:GetName()), teaches = what }
+            end
+        end
+    end
+    return true
+end
+-- the shows that teach, from now to DAYS days on: { at = minutes, day, time, channel, teaches }, by start; nil when
+-- no TV channel has a script here (a server's client: the server runs the broadcasts and keeps their scripts). Each
+-- channel is read on its own, so one that fails leaves the others listed.
 function F.schedule(days)
     days = days or F.DAYS
-    local out = {}
+    local out, read = {}, 0
     local ok = pcall(function()
         local sm = getZomboidRadio():getScriptManager()
         local now = sm:getCurrentTimeStamp()
         local today = math.floor(now / 1440)
         local list = sm:getChannelsList()
         for i = 0, list:size() - 1 do
-            local ch = list:get(i)
-            local sc = ch:IsTv() and ch:getCurrentScript()
-            if sc then
-                local base = sc:getStartDayStamp()
-                local bl = sc:getBroadcastList()
-                for j = 0, bl:size() - 1 do
-                    local bc = bl:get(j)
-                    local st, en = base + bc:getStartStamp(), base + bc:getEndStamp()
-                    if en > now and st < (today + days) * 1440 then
-                        local what = teaches(bc)
-                        if what ~= "" then
-                            local d = math.floor(st / 1440)
-                            out[#out + 1] = { at = st, day = d - today, mins = st - d * 1440,
-                                              channel = tostring(ch:GetName()), teaches = what }
-                        end
-                    end
-                end
-            end
+            local okC, had = pcall(channelShows, list:get(i), now, today, days, out)
+            if okC and had then read = read + 1 end
         end
     end)
-    if not ok then return nil end
+    if not ok or read == 0 then return nil end
     table.sort(out, function(a, b)
         if a.at ~= b.at then return a.at < b.at end
         return a.channel < b.channel
@@ -291,7 +339,10 @@ function F.tvPage()
     local cut = SandboxVars and tonumber(SandboxVars.LevelForMediaXPCutoff)
     if cut then notes[#notes + 1] = tr("UI_ZeD_Hidden_TVCutoff", cut) end
     local sched = F.schedule()
-    if not sched or #sched == 0 then
+    if not sched then
+        return { title = title, cols = { getText("IGUI_RadioChannel") }, rows = { { tr("UI_ZeD_Hidden_TVUnavailable") } }, notes = notes }
+    end
+    if #sched == 0 then
         return { title = title, cols = { getText("IGUI_RadioChannel") }, rows = { { tr("UI_ZeD_Hidden_TVNone") } }, notes = notes }
     end
     local rows = {}
@@ -323,9 +374,32 @@ function F.infectionPage()
     local okC, choice = pcall(function() return tostring(o:getValueTranslationByIndex(v)) end)
     if not okC then choice = tostring(v) end
     local bite, cut, scratch = F.woundsFor(tonumber(v))
+    local notes = {}
+    -- (Mortality Never, its 7th choice: the infection is caught but never kills; said first, so "Always" never reads as
+    -- a death sentence)
+    local okM, mo = pcall(function() return getSandboxOptions():getOptionByName("ZombieLore.Mortality") end)
+    if okM and mo then
+        local okMV, mv, mlabel = pcall(function() return mo:getValue(), tostring(mo:getTranslatedName()) end)
+        if okMV and tonumber(mv) == 7 then
+            local okMC, mchoice = pcall(function() return tostring(mo:getValueTranslationByIndex(mv)) end)
+            notes[#notes + 1] = tr("UI_ZeD_Hidden_NotFatal", mlabel, okMC and mchoice or tostring(mv))
+        end
+    end
+    notes[#notes + 1] = tr("UI_ZeD_Rules_WorldIs", label, choice)
+    notes[#notes + 1] = tr("UI_ZeD_Hidden_InfNote")
     return { title = title, cols = { tr("UI_ZeD_Hidden_Wound"), tr("UI_ZeD_Hidden_Passes") },
              rows = { { getText("IGUI_health_Bitten"), bite }, { getText("IGUI_health_Cut"), cut }, { getText("IGUI_health_Scratched"), scratch } },
-             notes = { tr("UI_ZeD_Rules_WorldIs", label, choice), tr("UI_ZeD_Hidden_InfNote") }, spoiler = true }
+             notes = notes, spoiler = true }
+end
+
+-- the guide opened: note for whom, so the pages read that player's finds (split screen)
+if W and W.open and not F._openHooked then
+    F._openHooked = true
+    local open = W.open
+    W.open = function(pn, ...)
+        W._pn = pn or 0
+        return open(pn, ...)
+    end
 end
 
 if Rules then
