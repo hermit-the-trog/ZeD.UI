@@ -5598,6 +5598,7 @@
     "UI_ZeD_Log_A_Unban": "membuka ban %1",
     "UI_ZeD_Log_A_Lifted": "ban atas %1 berakhir",
     "UI_ZeD_Log_A_LiftedGame": "ban atas %1 dicabut di dalam game",
+    "UI_ZeD_Log_A_IpLiftedGame": "ban IP atas %1 dicabut di dalam game",
     "UI_ZeD_Log_A_GameBan": "memasang ban game pada %1: %2",
     "UI_ZeD_Log_A_Msg": "mengirim pesan server: %1",
     "UI_ZeD_Log_A_Repeat": "mengatur pesan berulang, %1",

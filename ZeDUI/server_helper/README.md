@@ -1,7 +1,7 @@
 # ZeD host helper
 
-An optional small program for people who run a Project Zomboid server with ZeD-GUI. It makes the bans, unbans and kicks
-ZeD owes the game through the server's own remote console (RCON), so ZeD's rules hold even when no staff member is online.
+An optional small program for people who run a Project Zomboid server with ZeD-GUI. It makes the bans, unbans, kicks and
+voice bans ZeD owes the game through the server's own remote console (RCON), so ZeD's rules hold even when no staff member is online.
 
 Without it nothing breaks: those calls wait for the next staff member to log in, and their game makes them.
 
@@ -10,11 +10,14 @@ Without it nothing breaks: those calls wait for the next staff member to log in,
 - ZeD's server part writes the calls it owes to `<Zomboid>/Lua/ZeD_helper/queue.txt`. The helper reads that file, makes
   each call through RCON and writes the result to `answers.txt` next to it. ZeD reads the result and checks for itself that
   the ban held.
-- It sends only five console commands: `kickuser`, `banuser`, `unbanuser`, `banid`, `unbanid`. It checks every name and Steam
-  ID against strict patterns first (names: 2 to 32 plain letters, digits, `_`, `-` or inner spaces; Steam IDs: 17 digits)
-  and quotes names the way the console expects. Anything else is refused and left to a staff member.
+- It sends only six console commands: `kickuser`, `banuser`, `unbanuser`, `banid`, `unbanid` and `voiceban` (with `-true`
+  only). It checks every name and Steam ID against strict patterns first (names: 2 to 32 plain letters, digits, `_`, `-` or
+  inner spaces, and for `voiceban` never starting with `-`; Steam IDs: 17 digits) and quotes names the way the console
+  expects. Anything else is refused and left to a staff member.
 - IP bans are never the helper's: the game's IP ban needs the player's own connection, which only a staff member's game has.
-- Mutes are not the helper's either. The server cannot reach the game's chat; ZeD's mute is kept by each player's ZeD.
+- A mute's chat side is not the helper's. The server cannot reach the game's chat; ZeD's mute is kept by each player's ZeD.
+  The helper makes only a mute's voice ban (the game's own `/voiceban`), which the game holds for one connection, so ZeD owes
+  it each time a muted player comes on. An unmute is always a staff member's own call.
 - It never prints or writes the RCON password.
 - A call the console fails is tried again half a minute later, three times in all, then left to a staff member. ZeD writes
   one log line a minute at most about failures, with a count.

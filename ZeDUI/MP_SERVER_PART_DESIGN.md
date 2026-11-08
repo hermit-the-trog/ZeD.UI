@@ -1694,6 +1694,10 @@ with sections in `claims_sim.lua`, `extras_sim.lua`, `log_sim.lua`, `tickets_sim
 (item 11) and the outside review's fixes (items 7, 9 and 12: the safe-mode box's width, the hello's margin, the admin spawn) add
 `ZeD_LogProto.lua`, `ZeD_ServerLog.lua` and the key `UI_ZeD_Log_A_LiftedGame` in all 28 languages, with sections in
 `admin_sim.lua` ("the game's unban wins", "spawn items"), `community_cards_sim.lua`, `community_sim.lua` and `log_sim.lua`.
+Item 11 rebuilt on the game's own word, and a mute's voice ban owed for a player who is off (item 8), add `ZeD_Admin.lua` (the
+look, `VoiceBan`), `ZeD_ServerHelper.lua` and the helper (`voiceban`), the key `UI_ZeD_Log_A_IpLiftedGame` in all 28 languages,
+and the sections "the game's unban wins, on the game's own word" and "a mute owes the game's voice ban when they come on" in
+`admin_sim.lua`.
 
 **Settled facts this rests on** (bytecode, 42.22.2): server Lua cannot kick, ban, unban or set one player's role. `GameServer`,
 `ServerWorldDatabase` and `UdpConnection` are not exposed, and the `GlobalObject` admin calls only act on a client. The game's own
@@ -1732,10 +1736,11 @@ from server Lua (it changes the player object's field, not the connection's role
      null). Not on the list: asked for again.
    - an `UnBanSteamID` is read back the same way: still on the list, it is asked for again (`reOweUnban`), `REOWE_MAX` times with a
      line ("game unban did not take"), never while a row of ours bans that ID again.
-   - a name ban has no read-only lookup in reach (`getFirstBannedIPForUser` is the IP's), so the proof is that the player is gone:
-     found on past `VERIFY_S` with the row made, the ban is asked for again. An IP ban is read back by
+   - a name ban has no read-only lookup on the server (`getFirstBannedIPForUser` is the IP's; a staff client's look at the game's
+     user list, item 11, is used only to judge a lift), so a ban that did not take shows as the player still there: found on
+     past `VERIFY_S` with the row made, the ban is asked for again. An IP ban is read back by
      `NetworkUser.new():getFirstBannedIPForUser(name)` (exposed; a read-only `SELECT ip FROM bannedip WHERE username = ?`, one
-     overload taking a String): on the list, it held, and the name with it (`BanSystem.BanUser` bans the name before the IP).
+     overload taking a String): on the list, the IP part held.
    - a Kick: still on past `VERIFY_S` while its reason holds (the row binds or the rules are still unanswered), asked for again.
    Each is asked again `REOWE_MAX` (3) times with a log line ("game ban did not take", "kick did not take"), then one line says
    so. The row still keeps them out (the leave screen, a Kick on a stay). A ban whose game ban held and was then lifted in the
@@ -1766,7 +1771,15 @@ from server Lua (it changes the player object's field, not the connection's role
 8. **Mutes stay client-kept.** The server cannot reach the game's chat (`ChatServer` is not exposed, and `IsoPlayer.setAllChatMuted`
    is read by nothing in the chat path). ZeD's mute is the server's list, kept by each player's ZeD chat; a modified client, or the
    game's own chat box under safe mode, is not stopped, and the words over a player's head are the game's. The voice mute is the
-   game's own (`/voiceban`).
+   game's own (`/voiceban`). **Its voice ban is owed** (Build's call on a review note, Nov 7). `VoiceBanCommand` (javap, 42.21)
+   takes `"(.+)"` and `(-true|-false)`, needs `BanUnbanUser`, finds the player with `getPlayerByUserNameForCommand` ("User X not
+   found." when they are off) and calls `VoiceManager.VMServerBan(onlineId, value)`, the native `RakVoice.SetVoiceBan`: held
+   for that online ID, so for that connection, not saved. So a mute made while the player is on is the staff client's own
+   call, as before, and from then on, whenever a muted player is on and this session has not made it (`T.voiced`, by lower-case
+   name, cleared when they go), the server owes `VoiceBan` (`voiceban "name" -true`) to the next staff client or the host
+   helper. A player muted while off gets it when they next come on. Unmuted first, the owed call goes (and `owedStale` drops one
+   for a name no longer muted); a muter who lost `BanUnbanUser` loses the call too. Gone before it is made, it waits for their
+   next session.
 9. **What the rules gate refused comes back.** Every request a part made before the player agreed came back `perm`. When the
    server takes `m_agree`, the client runs `S.agreed` (`ZeD_ServerLink.lua`): the hello goes again (tickets, admin's `a_hi`,
    extras' settings and the community view fill from it; a hello inside `HELLO_MS` of the last would be refused, so it waits its
@@ -1780,40 +1793,77 @@ from server Lua (it changes the player object's field, not the connection's role
    Steam ID; never the IP, which needs the player on) with a line ("game ban owed"), and is marked `gameBan` so a second start owes
    nothing again. A name's row that kept a client's Steam ID never names it to the game again (a call still waiting for it goes);
    one the game may already hold is lifted with the row (`sidLift`). Rows carry `v = 2`.
-11. **The game's unban wins** (the director, Nov 7 2026). Staff who lift a ban in the game's own admin panel, with `/unbanuser`
-   or `/unbanid`, have lifted it: ZeD notices the game no longer holds the ban and closes its row. It does not ban again, does
-   not gate, and writes "ban lifted in the game" ("the ban on X was lifted in the game", `UI_ZeD_Log_A_LiftedGame`) with how it
-   knows. **Who** is not in reach: the game writes the admin's name in its own user log (`BanSystem.BanUser` calls
-   `addUserlog`), but `ServerWorldDatabase.getUserlog` is not exposed and `requestUserlog` is a client's packet, so the line says
-   "lifted in the game". What the server can read (javap on 42.21, where `NetworkUser` is `zombie.characters.NetworkUser`,
-   exposed under its plain name; both lookups were read on 42.22.2 too, item 5; each one overload taking a String):
-   - **A Steam ID**: `isSteamIdBanned`. Read back on the list when its `BanSteamID` was done, the row is marked `sidHeld`; read
-     back off it later, the game lifted it.
-   - **An IP**: `getFirstBannedIPForUser(name)`. On the list after the `BanIP`, the row is `ipHeld` (and `nameHeld`); off it
-     later, lifted. (The game's own unban of a name lifts its IP too: `BanUser` with unban finds the first banned IP and lifts it.)
-   - **A name**: no read-only lookup. The game keeps a name ban as the account's role (`banUser` sets the whitelist row's role,
-     `authClient` refuses the banned role) and `getUserRoleNameByUsername` is on `ServerWorldDatabase`, not exposed. So the
-     proof is the login: the game refuses a banned name at `authClient`, and a player who logs in while ZeD's row says the game
-     holds their ban was let in by the game. A name ban **held** (`nameHeld`) when its `Ban` was sent while they were on and
-     they were gone by the time it was done, or at a look within `VERIFY_S` after (each second, in memory: a reload proves
-     nothing). Gone because a Kick of ours was sent or is being judged proves nothing (`kickedLately`); still on, it did not take
-     (item 5).
+11. **The game's unban wins** (the director, Nov 7 2026), **on the game's own word only** (rebuilt after review, Nov 7).
+   Staff who lift a ban in the game's own admin panel, with `/unbanuser` or `/unbanid`, have lifted it: ZeD closes its row, does
+   not ban again, does not gate, and writes "ban lifted in the game" ("the ban on X was lifted in the game",
+   `UI_ZeD_Log_A_LiftedGame`) with how it knows. **Who** is not in reach: the game writes the admin's name in its own user log
+   (`BanSystem.BanUser` calls `addUserlog`), but `ServerWorldDatabase.getUserlog` is not exposed and `requestUserlog` is a
+   client's packet, so the line says "lifted in the game".
 
-   **Only on proof.** A row whose game ban was never seen to hold (banned while off, a row from before this build, a done that
-   did not take) is not "lifted in the game" on a login: it is asked for again as before (item 5). A **timed row in its time** is
-   lifted only when the game's own list says so (a Steam ID or an IP read back off it), never by a login. A modified staff client
-   that says done while the banned player happens to quit within the same second would pass as held; staff who collude can
-   already unban.
+   **The first build of this was unsound** and is replaced. It took a name ban as held when its `Ban` went out while the player
+   was on and they were gone a moment later. ZeD's own leave screen disconnects the client itself `LEAVE_S` after the reason
+   shows, and the `Ban` goes out at that same second, so a ban the game never took counted as held; the next login then closed
+   the row and ZeD even lifted the game's other parts. A login, a leaving or a client's "done" is never proof now. Rows saved by
+   that build lose its mark (`nameHeld`) at the next load (`Srv.upgradeBans`).
 
-   **Where it is checked.** At every walk of the players (`checkBan`, before anything is asked again), at the ban gate (the login
-   proof only, no database query: it runs at every command, so the player's first command after logging in is not refused), and
-   for players who are off, the rows marked held are read back `LIFT_LOOK_N` (10) a walk in turn, so the Bans card is right
-   before they come back.
+   **What counts** (javap on 42.21; `NetworkUser` is `zombie.characters.NetworkUser`, exposed under its plain name, and both
+   lookups were read on 42.22.2 too, item 5; each one overload taking a String):
+   - **A Steam ID**: `NetworkUser.new():isSteamIdBanned(id)`. Read on the list when its `BanSteamID` was done, the row is
+     `sidHeld`. Lifted when it reads off the list **twice, `OFF_GAP_S` (5 s) or more apart** (`sidOffAt`). The game catches its
+     own database errors and answers null, the same as "not banned" (`ServerWorldDatabase.isSteamIdBanned` catches
+     `SQLException` and returns null), so one read off proves nothing; a read that finds it again starts over. While a first
+     read off waits for its second, a player found on is neither banned again nor shown the leave screen.
+   - **A name**: the game keeps a name ban as the account's role (`banUser` sets the whitelist row's role to
+     `Roles.getDefaultForBanned()`, the read-only role "banned"; the unban sets the default user role; `authClient` refuses the
+     banned role). Server Lua has no read-only lookup (`getUserRoleNameByUsername` is on `ServerWorldDatabase`, not exposed). But
+     the game sends its **whole user list** to any client whose role has `SeeNetworkUsers`: `requestUsers()` sends
+     `RequestNetworkUsersPacket`, the server answers only such a role, and `NetworkUsersPacket.write` reads every whitelist row
+     (`getWhitelistUsers`: `SELECT world, username, lastConnection, role, ... FROM whitelist`, each row's role by its id,
+     `setInWhitelist(true)`), adds a player on who has no row with their live role and `inWhitelist` false, and the client fires
+     `OnNetworkUsersReceived`; `getUsers()` then lists `NetworkUser`s with `getUsername`, `getRole():getName()` and
+     `isInWhitelist()` (the same list and the same `'banned'` test the game's own Users window uses, `ISUsersList`). So the server
+     asks one staff client online with `SeeNetworkUsers` **and** `BanUnbanUser`, shut out by no gate and not one of the names, to
+     look (`a_look`: up to `LOOK_N` (20) names; the client calls `requestUsers()` and answers from the next list that arrives,
+     `a_looked`: each name's role and `inWhitelist`). A staff member who can lift a ban anyway gains no power by lying here.
+     The server takes the answer only from the client it asked, for the look in flight, within `LOOK_WAIT_S` (10 s), for names
+     it asked, and only rows from the game's database (`inWhitelist` true) with a role; two rows for one name: banned wins.
+     - the role "banned" (`Adm.L.BANNED_ROLE`): the game holds the name's ban (`nameSeen`, the time that look was asked).
+     - another role, in a look asked `LIFT_FRESH_S` (10 s) or more after the one that saw the ban, with no game ban of that row
+       still owed: the game lifted it, and the row closes. (The client answers from the next list that arrives, which may be the
+       reply to a request made a moment before it was asked; the gap keeps such a list from being older than the look that saw
+       the ban.)
+     - a name missing from the list, no role, or `inWhitelist` false (the game's database read failed, so only the players on
+       were sent, with their live roles): nothing.
+     Each name row whose game ban was asked for (`made`, `everMade` or `nameSeen`) is looked at every `LOOK_EVERY_S` (60 s), a
+     new `Ban` `LOOK_SETTLE_S` (3 s) after its done, one look at a time, `LOOK_GAP_S` (2 s) apart at least. A new round of the
+     ban (`reOwe`) clears `nameSeen`. **When a name row the game held finds its player on** (the game's login let them in, which
+     is not proof but a reason to look), their re-ban and leave screen wait for a look, `LOOK_HOLD_S` (25 s) at most
+     (`holdForLook`; every ZeD command stays shut meanwhile): another role closes the row before anything is asked again; the
+     role "banned", no answer, or no staff client to ask, and the row goes on as in item 5. A server whose default role for
+     banned names is not "banned" (`setDefaultRoleFor`) never reads a name as held: its name rows stay as before.
+   - **An IP**: `getFirstBannedIPForUser(name)`. On the list after the `BanIP`, the row is `ipHeld`. It is never proof of the
+     name's ban (the IP row can outlast the name's unban: on a Steam server the game's unban lifts the Steam ID and leaves the
+     IP list alone). Read off it **twice, `OFF_GAP_S` apart**, only the row's IP part goes (`banIp` cleared, a line "ip ban
+     lifted in the game", `UI_ZeD_Log_A_IpLiftedGame`, "the IP ban on X was lifted in the game"): the row and its name ban stay.
+     That read can't tell whose unban cleared it: `ServerWorldDatabase.banIp(ip, user, reason, false)` deletes by the IP first,
+     so the game's unban of another account on the same IP (an alt, a shared home) clears this one's too, and so does a staff
+     member lifting the bare IP. In both the game no longer holds the IP, and only the IP goes.
 
-   **Closing.** The row's owed calls go, whoever was told to leave stays, and what else ZeD made of that ban is lifted too, so
-   the game holds no ban the Bans card does not show and a part it still holds never outlasts the row: the name's ban (with its
-   IP) when the Steam ID or the IP was the part lifted, a Steam ID the game still holds when the name was, the IP when the name
-   was lifted and the IP read back still on the list. A timed row closed this way owes nothing at its end.
+   **Closing lifts nothing.** The row's owed calls go and whoever was told to leave stays. ZeD owes no unban of any part: what
+   the game still holds of that ban (the IP, a Steam ID given by an older build, `sidLift`) is named in the log line ("the game
+   still holds its IP") for staff to lift, through ZeD's Bans card (Unban on a row the game holds, `a_unban` by name, Steam ID
+   or IP) or the game's own window. ZeD lifts a game ban only when staff ask through ZeD, or at a timed row's end. A timed row
+   closed this way owes nothing at its end.
+
+   **Where it is checked.** At every walk of the players (`checkBan`, before anything is asked again: the Steam ID and IP reads,
+   then the hold for a name), and for players who are off, the Steam ID and IP rows are read back `LIFT_LOOK_N` (10) a walk in
+   turn and the name rows by the looks, so the Bans card is right before they come back. The ban gate never lifts anything
+   (it runs at every command; a held player's commands stay shut until the row closes). Without `SeeNetworkUsers` in the game
+   (`Capability.SeeNetworkUsers` nil) there are no looks and name rows stay as before.
+
+   **Weak spots.** A modified staff client with both powers can answer "not banned"; it could lift the ban itself. A server whose
+   staff are never online never looks: its name rows stay as they were (banned again on a login, as in item 5) until one comes
+   on. The host helper can't look: the console has no command that lists names and roles.
 12. **The admin spawn uses the item it found** (outside review, Nov 7). `ScriptManager.FindItem(String)` is
    `FindItem(s, true)`: not found by its full type, it takes the bare type in any module, so "Mod.Axe" finds Base.Axe. `a_spawn`
    spawned and logged the client's string; it now spawns and logs `found:getFullName()` (the Item's `moduleDotType`), stops at the
@@ -1833,11 +1883,14 @@ only). It talks to the game's own remote console and makes the owed calls itself
   default admin role and no connection, so `BanSystem` acts as "System".
 - **The commands** (`zombie.commands.serverCommands`, their `@CommandName` and `@CommandArgs`): `kickuser` (alias `kick`)
   `"(.+)"` or `"(.+)" -r "(.+)"`; `banuser` `"(.+)"` with `-ip` and/or `-r "(.+)"`; `unbanuser "(.+)"`; `banid (.+)` (Steam mode
-  only, a valid Steam ID; the reason is not stored by this path); `unbanid (.+)`. Each needs `BanUnbanUser` (kick `KickUser`). The
+  only, a valid Steam ID; the reason is not stored by this path); `unbanid (.+)`; `voiceban "(.+)" (-true|-false)` (the user
+  must be on; with one argument that is not `-true` or `-false` it is the name, otherwise the executor). Each needs
+  `BanUnbanUser` (kick `KickUser`). The
   line is read by `([^"]\S*|".*?")\s*` with every `"` removed, so a quoted argument can hold spaces but never a quote. Answers:
   "User X kicked.", "User X doesn't exist.", "This user can't be kicked.", "System banned user X", "System unbanned user X",
   "This user can't be banned.", "System banned SteamID X(...", "SteamID X is now unbanned", "Server is not in Steam mode",
-  "Expected SteamID but got ...". The kick compares names with `String.equals`, exactly.
+  "Expected SteamID but got ...", "User X voice is banned.", "User X not found.". The kick compares names with `String.equals`,
+  exactly.
 - **The files.** Server Lua writes `Zomboid/Lua/ZeD_helper/queue.txt` with `getFileWriter(path, true, false)` (one overload; the
   path is under `LuaManager.getLuaCacheDir()`, the server's own Zomboid folder or its `-cachedir`; txt is an allowed extension) and
   reads `answers.txt` with `getFileReader(path, false)` and `readLine`, every `HELPER_POLL_S`. Queue: `ZEDQ 1 <epoch>`, then
@@ -1858,13 +1911,15 @@ only). It talks to the game's own remote console and makes the owed calls itself
   a count of the ones held back, so a console the helper cannot reach never floods the log ring. Either
   answer counts; the call is judged the same way afterwards (item 5). IP calls (`BanIP`, `BanIPOnly`, `UnBanIP`, `UnBanIPOnly`)
   are never the helper's: the game's IP ban needs the player's own connection. Nor a name outside the helper's patterns.
-- **Security.** The helper sends nothing but those five commands, built from targets it checks itself: a name of 2 to 32 ASCII
-  letters, digits, `_`, `-` or inner spaces, quoted; a Steam ID of 17 digits from 7656119. The server checks the same patterns
+- **Security.** The helper sends nothing but those six commands (`voiceban` with `-true` only), built from targets it checks
+  itself: a name of 2 to 32 ASCII letters, digits, `_`, `-` or inner spaces, quoted, and for `voiceban` never starting with
+  `-`, so the console can't read it as the value; a Steam ID of 17 digits from 7656119. A voice ban on someone not on answers
+  "gone", as a Kick does. The server checks the same patterns
   before it queues a call (`H.okTarget`). A reason is the only typed text: the server takes out its tabs and line breaks, the
   helper keeps printable ASCII, turns `"` into `'` and caps it at 200, so it can never close its quotes. Anything else is refused,
   answered "refused" and given to a staff client. The password comes from the server's settings or `ZED_RCON_PASSWORD` and is
   never printed or written. It is the owner's program on the owner's machine. The epoch is not a secret: anything that can
-  write `Lua/ZeD_helper/queue.txt` gets those five commands, and that includes any other server-side Lua mod and, on a machine
+  write `Lua/ZeD_helper/queue.txt` gets those six commands, and that includes any other server-side Lua mod and, on a machine
   where the owner also plays from the same Zomboid folder, client Lua from another server's mods. The README asks for a separate
   `-cachedir` for the server when the helper runs, and one server per Zomboid folder (two servers there share one queue).
 - **Where it lives.** In the repository only (`ZeDUI/` is never staged: `stage_workshop.ps1` ships the version folders and
@@ -1881,6 +1936,7 @@ only). It talks to the game's own remote console and makes the owed calls itself
 | A banned player's ZeD commands | `Srv.gates.ban` in the one listener | refused, every module | **server** |
 | A Steam ID ban | `p:getSteamID()` against the row, as numbers; the game's `BanSteamID` only for an ID staff typed | the server's own ID, whatever the client claims (to about 16 IDs); a client's claim never reaches the game | **server** |
 | The game's unban took | `isSteamIdBanned` read back after `UnBanSteamID` | asked again, `REOWE_MAX` times | **server** |
+| A ban lifted in the game's own window | a Steam ID or IP read off the game's list twice; a name's role read on the game's user list by a staff client (`a_look`) | the row closes (the IP: only its part), nothing lifted by ZeD | **server** for a Steam ID or IP; a name on a staff client's word, which staff with that power could act on anyway |
 | The game's call took | `isSteamIdBanned` read back; presence past `VERIFY_S` for a name or a Kick | asked again, `REOWE_MAX` times | **server** |
 | The join rules: commands before agreeing | `Srv.gates.rules` | refused, every module but hello, `a_hi`, `m_get`, `m_agree` | **server** |
 | The join rules: no answer | the server's walk and `ASKED_MS` | a Kick owed | **server**, through a staff client or the helper |
@@ -1888,6 +1944,7 @@ only). It talks to the game's own remote console and makes the owed calls itself
 | The reason screen, the 12 seconds to read it | `a_leave` | the client shows it and leaves | client, never relied on: the game's ban follows |
 | The IP part of a ban | `BanIP` from a staff client while the player is on | the game refuses an offline player or a Steam relay | **server** when made; dodged by leaving first, as before |
 | A mute | `md.mutes`, each ZeD chat | the muted client will not send; other ZeD chats hide the lines | **client** |
+| A mute's voice | the game's `/voiceban`, owed each session a muted player is on | the game's voice server, for the connection | **server**, once a staff client or the helper makes it |
 | Staff using the game's own window or `/banuser` | the game's packet | the game checks `BanUnbanUser` and `CantBeBannedByUser` only | server (the game's), outside ZeD's rank guard and log |
 
 **What still gets through.** A modified client can agree to the rules without reading them, and can ignore a mute. Until the
@@ -1907,4 +1964,6 @@ client's `getSteamIDFromUsername` (the server's number, copied to it exactly) co
 | E23 | The helper against the real console: login, `banuser "x" -r "y"`, `kickuser "x"` with no reason, `banid`, the answers as read from the bytecode | Run it beside the local server with `RCONPort`, `RCONPassword` and `-Drconlo=true` |
 | E24 | That `-Drconlo=true` reaches `System.getProperty` from `StartServer64.bat` and from `ProjectZomboid64.json` | `netstat` on the RCON port after a start |
 | E25 | The safe mode question in game: the box stays on screen at 720p, the Deck and Large text, and the wheel and the D-pad scroll it (the sim sizes it as `CalcSize` does) | Safe mode on, join a server that asks with a long list |
+| E26 | The look in game: a staff client with `SeeNetworkUsers` gets `OnNetworkUsersReceived` after `requestUsers()`, a banned name's role reads "banned" with `isInWhitelist` true, and after `/unbanuser` reads "user" | Ban a name, unban it in the game's Users window, watch the row close and the line |
+| E27 | That a `/voiceban` lasts one connection (the native ban is by online ID) and does not carry to whoever gets that ID next | Voice-ban a player, have them reconnect, try the mic; log a second player in on the freed ID |
 

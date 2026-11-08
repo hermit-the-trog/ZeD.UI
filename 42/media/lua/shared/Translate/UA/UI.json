@@ -5598,6 +5598,7 @@
     "UI_ZeD_Log_A_Unban": "розбанив %1",
     "UI_ZeD_Log_A_Lifted": "бан %1 закінчився",
     "UI_ZeD_Log_A_LiftedGame": "бан %1 знято в грі",
+    "UI_ZeD_Log_A_IpLiftedGame": "бан за IP %1 знято в грі",
     "UI_ZeD_Log_A_GameBan": "наклав бан гри на %1: %2",
     "UI_ZeD_Log_A_Msg": "надіслав серверне повідомлення: %1",
     "UI_ZeD_Log_A_Repeat": "задав повторюване повідомлення, %1",
