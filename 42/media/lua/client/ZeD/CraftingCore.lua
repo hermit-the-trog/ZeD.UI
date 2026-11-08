@@ -2489,7 +2489,9 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
         -- needToBeLearn hint (prose: F2 in the dim ink)
         if entry.needLearn then
-            local hintStr = ZeD.tr("UI_ZeD_Craft_FindRecipe")
+            -- (Vanilla Access, or Hidden facts on Always: the magazine that teaches it, by name; ZeD_HiddenFacts)
+            local hintStr = (ZeD.Finds and ZeD.Finds.recipeSourceText and ZeD.Finds.recipeSourceText(entry.name))
+                or ZeD.tr("UI_ZeD_Craft_FindRecipe")
             local dc = T.textDim
             panel:drawText(CC.truncText(hintStr, T.fontF2, contentW - T.px(12)), x + T.px(6),
                 curY + math.floor((ROW_H - tm:getFontHeight(T.fontF2)) / 2),

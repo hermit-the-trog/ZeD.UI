@@ -286,6 +286,13 @@ end
 -- Game speed through the Java speed controls (parked, but still the authority)
 -- ---------------------------------------------------------------------------
 local function _speed() local sc = UIManager.getSpeedControls(); return sc and sc:getCurrentGameSpeed() or 1 end
+-- The parked speed controls' visible flag: on in single player (the game's Pause on Focus Loss reads it),
+-- off on a server
+function W.parkSpeed(sc)
+    if not sc then return end
+    local want = not (isClient and isClient())
+    if sc:isVisible() ~= want then pcall(sc.setVisible, sc, want) end
+end
 local SPEED_BUTTON = { [2] = "Fast Forward x 1", [3] = "Fast Forward x 2", [4] = "Wait" }
 local SPEED_MULT = { [2] = 5, [3] = 20, [4] = 40 }
 -- On a server the server sets the time: Start and Speed do nothing there (letting them through raised the
@@ -565,7 +572,11 @@ function ZeD_Watch:prerender()
     if sc then
         local sy = sc:getY()
         if sy >= 0 then W._speedY = sy; pcall(sc.setY, sc, -4000) end
-        if sc:isVisible() then pcall(sc.setVisible, sc, false) end
+        -- Single player keeps their flag on (parked, they still draw nowhere): the game's own Pause on Focus
+        -- Loss (Options, Display; on by default) pauses only while the speed controls are "really visible"
+        -- (IngameState.onDisplayFocusLost, 42.21), so hidden here they silently turned it off (punch list
+        -- 109). A server's stay hidden: there they do nothing.
+        W.parkSpeed(sc)
     end
 
     local PLT = ZeD.Plate
