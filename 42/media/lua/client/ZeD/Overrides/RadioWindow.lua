@@ -11,15 +11,29 @@
 -- in RadioCom/ISRadioWindow.lua:412-413. We unregister both handlers at boot
 -- once vanilla has finished loading.
 --
--- Right-click "Use" on a world radio also calls ISRadioWindow.activate
--- (ISWorldObjectContextMenu.lua:222) — that's user-initiated and rare; left
--- alone this session. Will be replaced by ZeD context menu route in S115b.
+-- EVERY OTHER WAY IN (Nov 7 2026, VANILLA_WINDOWS_20261107.md row B1; the
+-- director: "every route opens ZeD's existing radio card now"): every caller of
+-- ISRadioWindow.activate goes through the wrapper below to ZeD.WorldRoutes.radio:
+--   * left-click on a TV or radio within 1.5 tiles (ISObjectClickHandler.doClick)
+--   * right-click Device Options on a TV, house radio, placed radio or carried
+--     radio (ISRadioAndTvMenu.openTvPanel / openRadioPanel, from the world menu
+--     and the inventory menu), ISWorldObjectContextMenu.activateRadio
+--   * the controller's Interact prompt (ISButtonPrompt:openDeviceOptions)
+--   * the vehicle part menu (ISVehiclePartMenu.onDeviceOptions) and a car's
+--     device parts other than its radio (ISVehicleMenu.onSignalDevice, after
+--     Overrides/CarRadio.lua passes them on)
+-- A radio item goes to the Character window's Radio tab, the car's radio from
+-- a front seat comes up close, anything else goes to the World window's Radio
+-- tab, each on that device. The game's window opens only when ZeD can't show it.
+-- The dedicated TV and house radio faces come when design draws them.
 --
 -- While ZeD's safe mode is on, vanilla's handler is put back (the popup opens
--- on equip again) and taken off once more when safe mode goes off.
+-- on equip again), every route opens the game's window, and both are taken off
+-- once more when safe mode goes off.
 -- ============================================================================
 
 require "ZeD/SafeMode"
+require "ZeD/WorldRoutes"
 
 ZeD = ZeD or {}
 -- kept on the module so a reload of this file still knows whether vanilla's handler is off
@@ -62,6 +76,23 @@ Events.OnGameBoot.Add(function()
 end)
 
 ZeD.Safe.register("radio window", { leave = restoreVanillaRadioAutoOpen, enter = suppressVanillaRadioAutoOpen })
+
+-- Every route into the game's radio window (see the header). Asked at call time: safe mode needs nothing put back.
+local function hookActivate()
+    if ISRadioWindow == nil or ISRadioWindow.activate == nil or ISRadioWindow._zedRoute then return end
+    local vanilla = ISRadioWindow.activate
+    ISRadioWindow._zedRoute = vanilla
+    ISRadioWindow.activate = function(player, device, ...)
+        if ZeD.Safe.on() then return vanilla(player, device, ...) end   -- safe mode: the game's window
+        local ok, handled = pcall(ZeD.WorldRoutes.radio, player, device)
+        if ok and handled then return nil end
+        if not ok then print("[ZeD] RadioWindow: the device kept the game's window: " .. tostring(handled)) end
+        return vanilla(player, device, ...)
+    end
+end
+
+if Events and Events.OnGameBoot then Events.OnGameBoot.Add(hookActivate) end
+hookActivate()
 
 -- S115b: replace vanilla's auto-open behavior with our own — when the player
 -- equips a radio, if the ZeD Character Window is open, refresh its radio list so
