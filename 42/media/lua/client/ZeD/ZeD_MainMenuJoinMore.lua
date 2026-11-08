@@ -448,9 +448,9 @@ function ZeD_MMSrvForm:connect()
     local p = formScreen()
     if not p or self:userProblem() then return end
     MM.clickSound()
-    p.serverPasswordEntry:setText(self.fSrvPwd:getText() or "")
-    p.usernameEntry:setText(self.fUser:getText() or "")
-    p.passwordEntry:setText(self.fPwd:getText() or "")
+    p.serverPasswordEntry:setText(self.fSrvPwd:getInternalText() or "")
+    p.usernameEntry:setText(self.fUser:getInternalText() or "")
+    p.passwordEntry:setText(self.fPwd:getInternalText() or "")
     if p.connectTypeEntry and p.connectTypeEntry.selected then p.connectTypeEntry.selected[1] = self.relay end
     for _, e in ipairs(self._fields) do if e:isFocused() then e:unfocus() end end
     p:onOptionMouseDown(p.connectBtn, 0, 0)

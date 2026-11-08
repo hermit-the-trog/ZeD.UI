@@ -228,7 +228,8 @@ function ISButton:forceClick() if self.onclick then self.onclick(self.target, se
 ISTextEntryBox = ISPanel:derive("ISTextEntryBox")
 function ISTextEntryBox:new(text, x, y, w, h) local o = ISPanel.new(self, x, y, w, h); o.text = text or ""; return o end
 function ISTextEntryBox:setText(s) self.text = s end
-function ISTextEntryBox:getText() return self.text end
+-- (a masked box gives its mask from getText, as the game's UITextBox2 does: the real words only from getInternalText)
+function ISTextEntryBox:getText() if self.masked then return string.rep("*", #(self.text or "")) end; return self.text end
 function ISTextEntryBox:getInternalText() return self.text end
 function ISTextEntryBox:setMasked(m) self.masked = m end
 function ISTextEntryBox:focus() self.hasFocus = true end
@@ -617,8 +618,8 @@ SERVERS = { { getIp = function() return "10.0.0.5" end, getPort = function() ret
 bp:OnSteamServerResponded2("10.0.0.5", 16261, { isHosted = function() return false end })
 check("A2 the server answered: the connect-to view", MM.view == "srvform" and sp:getX() <= -10000, MM.view)
 local sf = W.srvform
-check("A2 the form starts with the game's fields", sf.fUser:getText() == "Aretha" and sf.fSrvPwd:getText() == "hunter2" and sf.relay == true,
-      sf.fUser:getText() .. "/" .. sf.fSrvPwd:getText())
+check("A2 the form starts with the game's fields", sf.fUser:getText() == "Aretha" and sf.fSrvPwd:getInternalText() == "hunter2" and sf.relay == true,
+      sf.fUser:getText() .. "/" .. sf.fSrvPwd:getInternalText())
 draw(sf, "A2 connect to")
 check("A2 Connect live with an account", band(sf, "connect") and not band(sf, "connect").disabled)
 check("A2 Cancel in the band", band(sf, "cancel") ~= nil)
@@ -631,6 +632,7 @@ sf.fUser:setText("Kate")
 sf.fPwd:setText("secret")
 sf.relay = false
 draw(sf, "A2 account typed")
+check("A2 the masked fields hold their real words", sf.fPwd:getText() ~= "secret" and sf.fPwd:getInternalText() == "secret")
 pressBand(sf, "connect")
 local cc = called("ConnectToServer.connect")
 check("A2 Connect runs the game's own with ZeD's fields", cc and cc.a[1] == "Kate" and cc.a[2] == "secret" and cc.a[3] == "10.0.0.5" and cc.a[5] == "hunter2" and cc.a[6] == false,
@@ -900,7 +902,9 @@ ow:joyDir("down")
 local f1 = ow.focusId
 ow:joyDir("down")
 check("A5 pad: down walks the parts", f1 ~= nil and ow.focusId ~= f1, tostring(f1) .. " " .. tostring(ow.focusId))
+JoypadState.controllerTest = true   -- (a test left running)
 ow:joyB()
+check("A5 Back ends a test left running: the pad is not left dead", JoypadState.controllerTest == nil)
 check("A5 B: back to the Options page", ow.sub == nil)
 -- 4K
 LAY = { sw = 3840, sh = 2160, tx = 480, ty = 120, tw = 2880, th = 2160, ox = 0, oy = 0, s = 6 }
