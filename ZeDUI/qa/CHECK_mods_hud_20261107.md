@@ -19,8 +19,8 @@ four together. Two screen sizes for every part:
 Mouse first, then the controller. With the controller, D-pad Left (the Character wheel's Weapons slice, as today) or
 the belt's own way in puts the focus on the belt.
 
-Before any of it: the sim `ZeDUI/tools/qa/belt_mods_sim.lua` passes (78 checks), and with none of the four mods on
-the belt draws exactly as before.
+Before any of it: the sims `ZeDUI/tools/qa/belt_mods_sim.lua` (88 checks) and `ZeDUI/tools/qa/vskdash_sim.lua` (412
+checks, its MASK section) pass, and with none of the four mods on the belt and the dash draw exactly as before.
 
 ## 1. Item Condition Restored
 
@@ -70,8 +70,18 @@ hazmat suit works too).
 8. Wear the SCBA instead: the box shows the SCBA and its oxygen; its menu has Turn on / Turn off; the lamp is lit while it
    is on.
 9. Take the mask off: the box goes and the belt closes up.
-10. Get in a car: the belt and the box hide as usual; the mod's R hold and its firearm wheel slice still replace the
-    filter.
+10. Get in a car: the belt and the box hide as usual, and the mask moves to the dash (the director, Nov 7 2026):
+    - Simple dash (ZeD setup, "Dashboard" set to Simple): in the Readouts row, "Gas Mask: 64% left | spares: 2";
+    - the pixel dash: a small mark on the plate's top edge, left end, in the edge's cream lettering with its shadow
+      (dark lettering on a light top edge): a little mask, ten blocks of filter left, then "+2";
+    - at a quarter or less the lit blocks turn amber; at a tenth or less, and with no filter fitted, the mask turns red
+      (no filter: every block dark);
+    - in the passenger seat the mark sits after "Passenger";
+    - "Alert (only when low)": the mark and the readout only at a quarter or less, or with no filter;
+    - take the mask off in the car: the mark and the readout go;
+    - try three or four designs (a sedan, the pickup, the Dash Elite, the taxi): the mark sits clear of the plate's art
+      and of the controller's hint at the edge's right end.
+    The mod's R hold and its firearm wheel slice still replace the filter; the blocks follow within half a second.
 11. Safe mode on: the mod's own strip is back above the game's hotbar (and its Free position, if picked). Safe mode off:
     it is parked again.
 
@@ -85,16 +95,21 @@ At Deck size with Large text: the box fits the belt like a slot; the hint and th
 
 Set up: the mod on, its defaults (Fade + Slide, hide after 2.5 s).
 
-1. Load in: the whole belt shows (hands, slots, ammo tab, watch, Messages note) for 2 s, then fades and slides down.
-2. Move the pointer to the bottom of the screen under the belt: it comes back; leave it: it goes after 2.5 s.
+1. Load in: the whole belt shows (hands, slots, ammo tab, watch, Messages note) for 2 s, then **the slots** fade and
+   slide down, with the strap and buckle that carry them (the director, Nov 7 2026: the item slots only). The hands,
+   the gun's ammo tab, the watch, the Messages note, the chat key and PvP marker on a server, and the mask's box (part
+   2) stay where they are, never faded.
+2. Move the pointer to the bottom of the screen under the belt, or over the hands: the slots come back; leave it: they
+   go after 2.5 s.
 3. Press a hotbar key (1 to 9): the belt shows for 2 s and the key works as before. Hold a key: the slot's list opens
    above the slot and the belt stays while the list is open.
 4. Click and drag a slot's item off the belt: the belt stays while dragging. Drag an inventory item: it stays (the mod's
    "Dragging an item or slot" option).
 5. Right-click a slot or a hand: the belt stays while the menu is open.
 6. Options > Mods > Auto-Hide Hotbar: try Fade, Slide, Peek (a thin strip stays) and Instant, and a hidden opacity of
-   30%. Each looks the same on the belt as the mod describes it for the hotbar. After every slide the belt sits exactly
-   where it was (the buckle on the screen's center), and clicks land on the boxes.
+   30%. Each looks the same on the slots as the mod describes it for the hotbar, and the hands, watch and note never
+   move or fade. After every slide the belt sits exactly where it was (the buckle on the screen's center), and clicks
+   land on the boxes. Simple belt (ZeD setup): the same, the slots alone (it has no strap).
 7. Tick "The inventory is open": the belt stays while ZeD's Character window or World window is open.
 8. Set a toggle key: it turns auto-hide off and on (the mod's note over the character).
 9. Pick up a controller: the belt always shows (the mod does the same for the hotbar). Focus the belt with the pad: it
@@ -129,8 +144,9 @@ Controller: X on an inventory row after the switch: the list, focus in it.
 
 - Item Condition Restored's direction (vertical or horizontal), opacity and picked colors do not carry over: the belt's
   strip and ring are ZeD's, in the theme's colors.
-- Mask Filter Indicator's position option has no meaning under ZeD: the mask is on the belt. In a vehicle there is no
-  box (the belt is hidden there); ZeD's dash does not show the mask yet.
-- Auto-Hide Hotbar hides the whole belt, the hands and watch with the slots: they are one strip under ZeD.
+- Mask Filter Indicator's position option has no meaning under ZeD: the mask is on the belt, and in a vehicle on the
+  dash (the "+2" spares mark stays on both: Build's call).
+- Auto-Hide Hotbar hides the belt's slots only (with their strap and buckle); the hands, watch, Messages note and the
+  rest stay. Its hover area is the whole belt, so the pointer over a hand also brings the slots back.
 - The belt is player one's only, as the game's hotbar is; split-screen players two to four keep the game's hotbar and
   the mods' own drawing on it.

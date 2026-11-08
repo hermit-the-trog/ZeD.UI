@@ -1322,6 +1322,62 @@ end
 -- ---------------------------------------------------------------------------
 function D.simple() return ZeD.Settings and ZeD.Settings.dashSimple and ZeD.Settings.dashSimple() or false end
 
+-- ---------------------------------------------------------------------------
+-- Other mods on the dash (ModSupport; Nov 7 2026): a general hook, keyed by an id (a second call with the same id
+-- replaces the first), for a mod whose small readout sat on the game's hotbar or above the game's dash, both hidden
+-- while ZeD's dash is up:
+--   D.addExtra(id, spec)  spec.state(chr, vehicle, driver) -> a table while there is something to show, else nil (read
+--                         every frame: the mod keeps its own pace); spec.cell(st) -> name, text: one item in the simple
+--                         strip's Readouts row ("name: text", after a library's readouts); spec.mark(cv, x, y, ink,
+--                         shadow, st) -> the width it drew: a small mark in plate pixels on the plate's top edge, left
+--                         end (after the passenger's word), in the edge's own ink and shadow (shadow nil on a light edge).
+-- A spec that throws is skipped for that frame; the dash goes on. Mask Filter Indicator
+-- (ModSupport/MaskFilterIndicator.lua) is the first.
+-- ---------------------------------------------------------------------------
+D._extras = D._extras or {}
+function D.addExtra(id, spec)
+    local rec = { id = id, spec = spec }
+    for i, r in ipairs(D._extras) do
+        if r.id == id then D._extras[i] = rec; return end
+    end
+    D._extras[#D._extras + 1] = rec
+end
+-- this frame's extras that have something to show: { { spec, st }, ... }, or nil with none
+function D.extrasNow(chr, vehicle, driver)
+    local out = nil
+    for _, r in ipairs(D._extras) do
+        local ok, st = pcall(r.spec.state, chr, vehicle, driver)
+        if ok and type(st) == "table" then
+            out = out or {}
+            out[#out + 1] = { spec = r.spec, st = st }
+        end
+    end
+    return out
+end
+-- the simple strip's items for them (appended to items)
+function D.extraCells(xs, items)
+    for _, x in ipairs(xs or {}) do
+        if x.spec.cell then
+            local ok, name, text = pcall(x.spec.cell, x.st)
+            if ok and type(name) == "string" and type(text) == "string" then
+                items[#items + 1] = { text = ZeD.tr("UI_ZeD_DashPlain_Pair", name, text) }
+            end
+        end
+    end
+    return items
+end
+-- their marks on the plate's top edge from x (plate pixels); returns the x after the last
+local MARK_GAP = 6
+function D.extraMarks(cv, xs, x, y, ink, shadow)
+    for _, e in ipairs(xs or {}) do
+        if e.spec.mark then
+            local ok, w = pcall(e.spec.mark, cv, x, y, ink, shadow, e.st)
+            if ok and type(w) == "number" and w > 0 then x = x + w + MARK_GAP end
+        end
+    end
+    return x
+end
+
 ZeD.trDefaults({
     UI_ZeD_DashPlain_Pair = "%1: %2", UI_ZeD_DashPlain_Speed = "Speed", UI_ZeD_DashPlain_Mph = "mph", UI_ZeD_DashPlain_Rpm = "RPM",
     UI_ZeD_DashPlain_Fuel = "Fuel", UI_ZeD_DashPlain_Oil = "Oil", UI_ZeD_DashPlain_Volts = "Volts", UI_ZeD_DashPlain_Gear = "Gear",
@@ -1885,11 +1941,12 @@ function ZeD_Dashboard:_plain(des, st, k)
     if #clim > 0 then sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Climate"), items = clim } end
     local radio = _radioItems(st)
     if radio then sections[#sections + 1] = { name = ZeD.tr("Tooltip_Dashboard_Radio"), items = radio } end
-    if pub and #pub.cells > 0 then
-        local items = {}
+    local items = {}
+    if pub then
         for _, c in ipairs(pub.cells) do items[#items + 1] = { text = _pair(c.name, c.text or _pct(c.share * 100)) } end
-        sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Readouts"), items = items }
     end
+    if self._xs then D.extraCells(self._xs, items) end      -- (other mods' readouts, D.addExtra)
+    if #items > 0 then sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Readouts"), items = items } end
     for _, sec in ipairs(sections) do
         for _, it in ipairs(sec.items) do
             if it.id then it.w = ZeD.Molecules.buttonW(it.text)
@@ -2001,6 +2058,7 @@ function ZeD_Dashboard:prerender()
         if self._driver then st.pub = pubV.read(vehicle, chr, self._mem) else st.pub = pubV.figures(vehicle, self._mem) end
     end
     D.derive(st, self._mem, dt)
+    self._xs = (#D._extras > 0) and D.extrasNow(chr, vehicle, self._driver) or nil   -- (other mods' readouts, D.addExtra)
     self:_trip(vehicle, st, dt)
     self._st = st
     local scriptName = _safe(function() return tostring(vehicle:getScriptName() or "") end, "")
@@ -2064,10 +2122,17 @@ function ZeD_Dashboard:prerender()
     end
     for _, c in ipairs(pending) do self:_control(c[1], c[2], c[3], c[4], c[5], st, c[6]) end
     -- the top edge's two words: cream with a dark shadow, or a plain dark ink where the design's top edge is light
+    local edgeX = 12
     if not self._driver then
         local pass = ZeD.tr("UI_ZeD_Dash_Passenger")
-        if des.passInk then P.text(cv, pass, 12, 2, P.color(des.passInk), "35", 1, "l")
-        else P.text(cv, pass, 12, 2, P.color("#d8d6cc"), "35", 1, "l", nil, "#101010") end
+        local pw
+        if des.passInk then pw = P.text(cv, pass, 12, 2, P.color(des.passInk), "35", 1, "l")
+        else pw = P.text(cv, pass, 12, 2, P.color("#d8d6cc"), "35", 1, "l", nil, "#101010") end
+        edgeX = 12 + (pw or 0) + MARK_GAP
+    end
+    -- other mods' marks after it, in the same ink (D.addExtra)
+    if self._xs then
+        D.extraMarks(cv, self._xs, edgeX, 2, P.color(des.passInk or "#d8d6cc"), (not des.passInk) and "#101010" or nil)
     end
 
     local Det = ZeD.Input and ZeD.Input.Detector

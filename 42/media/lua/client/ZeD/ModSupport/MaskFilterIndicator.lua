@@ -32,9 +32,18 @@
 --     on the box and the pad comes back to the belt after.
 -- The mod's "Alert (only when low)" shows the box only at a quarter or less, or
 -- with nothing fitted, as the mod shows its strip. The box follows the belt: it
--- shows where the belt does (not in a vehicle, where ZeD's dash replaces the
--- game's; the mod's R key and firearm wheel slice still work there). The
--- position option has no meaning under ZeD: the mask is on the belt.
+-- shows where the belt does. In a vehicle the belt is hidden and ZeD's dash
+-- replaces the game's (where the mod put its strip), so the mask goes on the
+-- dash (the director, Nov 7 2026), through the dash's general hook
+-- ZeD.Dashboard.addExtra, the same reading and the same Alert option:
+--   * the simple dash: one item in its Readouts row, "Gas Mask: 64% left |
+--     spares: 2" (the hint's words);
+--   * the pixel dashes: a small mark on the plate's top edge, left end (after
+--     "Passenger" in a passenger's seat), in the edge's own ink: a mask in plate
+--     pixels, ten blocks of filter left (amber at a quarter or less, red at a
+--     tenth; all dark with nothing fitted) and "+2" for the spares.
+-- The mod's R key and firearm wheel slice still work there. The position option
+-- has no meaning under ZeD: the mask is on the belt, or on the dash.
 -- The mod's strip is parked off-screen while ZeD's belt is in charge (no stray
 -- panel catching clicks where a "Free" strip was), and comes back as the mod
 -- left it in safe mode. The numbers are the mod's own, read through its public
@@ -61,6 +70,7 @@ if not modOn() then return end
 require "ZeD/Tr"
 require "ZeD/ZeD_Belt"
 require "ZeD/SafeMode"
+pcall(require, "ZeD/ZeD_Dashboard")      -- (the dash's hook; the file loads without it)
 pcall(require, "MaskFilterIndicatorOptions")   -- (the mod's files; its globals are read when used, whatever the load order)
 pcall(require, "MaskFilterIndicator")
 pcall(require, "MaskFilterIndicatorHUD")
@@ -153,8 +163,8 @@ function S.state(p)
     return cache.st
 end
 
--- the hover hint: "Gas Mask | 64% left | spares: 2"
-function S.hint(st)
+-- the words: the mask's name, what is left ("64% left", or the game's "No Filter" / "No Tank"), the spares
+function S.words(st)
     local okN, name = pcall(st.item.getDisplayName, st.item)
     if not okN or type(name) ~= "string" then name = "" end
     local left
@@ -163,6 +173,12 @@ function S.hint(st)
     local spare
     if st.spares > 0 then spare = ZeD.tr("UI_ZeD_Belt_MaskSpares", tostring(st.spares))
     else spare = getText(st.tank and "UI_MFI_NoSpareTank" or "UI_MFI_NoSpareFilter") end
+    return name, left, spare
+end
+
+-- the hover hint: "Gas Mask | 64% left | spares: 2"
+function S.hint(st)
+    local name, left, spare = S.words(st)
     return name .. " | " .. left .. " | " .. spare
 end
 
@@ -181,6 +197,54 @@ function S.menu(playerNum, st, x, y, pad)
 end
 
 ZeD.Belt.addBox(MOD_ID, { state = S.state, hint = S.hint, menu = S.menu })
+
+-- ----------------------------------------------------------------------------
+-- On the dash, in a vehicle (ZeD.Dashboard.addExtra)
+-- ----------------------------------------------------------------------------
+-- the simple dash's readout: "Gas Mask: 64% left | spares: 2"
+function S.cell(st)
+    local name, left, spare = S.words(st)
+    return name, left .. " | " .. spare
+end
+
+-- the plate's mark, in plate pixels, 5 tall as the edge's words: a mask (7 wide), ten blocks of 2 with a gap of 1, the
+-- spares in the edge's face. The blocks lit count is rounded up, as the belt's strip: a sliver left is one block.
+local GLYPH = { 1, 0, 5, 1,  0, 1, 2, 1,  3, 1, 1, 1,  5, 1, 2, 1,  0, 2, 7, 1,  1, 3, 5, 1,  2, 4, 3, 1 }
+local LOW_INK, OUT_INK = "#ffb02e", "#ff3a20"   -- the dash's worn and poor lamp colors (ZeD_Dashboard D.LAMP_COLOR)
+S.GLYPH = GLYPH
+function S.lit(st)
+    if not st.has then return 0 end
+    return math.min(10, math.ceil(st.delta * 10 - 1e-9))
+end
+function S.mark(cv, x, y, ink, shadow, st)
+    local P = ZeD.Px
+    if not P then return 0 end
+    local lit = S.lit(st)
+    local bar = ink
+    if not st.has or st.delta <= 0.1 then bar = P.color(OUT_INK)
+    elseif st.delta <= LOW then bar = P.color(LOW_INK) end
+    local sh = shadow and P.color(shadow) or nil
+    local bx = x + 10
+    if sh then
+        P.rects(cv, GLYPH, sh, 1, x + 1, y + 1)
+        for i = 0, lit - 1 do P.rect(cv, bx + i * 3 + 1, y + 1, 2, 5, sh) end
+    end
+    P.rects(cv, GLYPH, (st.has and st.delta > 0.1) and ink or bar, 1, x, y)
+    for i = 0, 9 do
+        if i < lit then P.rect(cv, bx + i * 3, y, 2, 5, bar)
+        else P.rect(cv, bx + i * 3, y, 2, 5, ink, 0.3) end
+    end
+    local w = 10 + 29
+    if st.spares > 0 then
+        w = w + 3 + (P.text(cv, "+" .. tostring(st.spares), x + w + 3, y, ink, "35", 1, "l", nil, shadow) or 0)
+    end
+    return w
+end
+
+local Dash = ZeD.Dashboard
+if Dash and Dash.addExtra then
+    Dash.addExtra(MOD_ID, { state = function(chr) return S.state(chr) end, cell = S.cell, mark = S.mark })
+end
 
 -- ----------------------------------------------------------------------------
 -- The mod's own strip: parked while the belt is in charge, its own again in safe mode
@@ -222,4 +286,4 @@ end
 S.wrapStrip()
 Events.OnGameStart.Add(function() S.wrapStrip(); cache.at = nil end)
 
-print("[ZeD] ModSupport: Mask Filter Indicator (the worn mask's filter on the belt)")
+print("[ZeD] ModSupport: Mask Filter Indicator (the worn mask's filter on the belt, and on the dash in a vehicle)")
