@@ -256,7 +256,8 @@ local _menuItems = MM._notesMenuBase or MM.menuItems
 MM._notesMenuBase = _menuItems
 function MM.menuItems(key)
     local t = _menuItems(key)
-    if key ~= "zed" then return t end
+    -- (the desk after a death has no notepad or app views to show: picking one there blanked the monitor)
+    if key ~= "zed" or MM.respawn then return t end
     local out = {}
     for i, it in ipairs(t) do
         out[#out + 1] = it
