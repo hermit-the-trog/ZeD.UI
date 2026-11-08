@@ -138,11 +138,11 @@ function PJ.unplugged(playerNum)
                       run = function() ISJoypadDisconnectedUI.setKeyboardMouseActivated(); return true end } }
     end
     return ZeD.Messages.pad("p" .. tostring(playerNum), ZeD.tr("UI_ZeD_Pad_Unplugged"),
-        ZeD.tr("UI_ZeD_Pad_UnpluggedText", tostring((playerNum or 0) + 1)), buttons)
+        ZeD.tr("UI_ZeD_Pad_UnpluggedText", tostring((playerNum or 0) + 1)), buttons, playerNum)
 end
 function PJ.replugged(playerNum)
     return ZeD.Messages.pad("p" .. tostring(playerNum), ZeD.tr("UI_ZeD_Pad_PluggedIn"),
-        ZeD.tr("UI_ZeD_Pad_BackText", tostring((playerNum or 0) + 1)), nil)
+        ZeD.tr("UI_ZeD_Pad_BackText", tostring((playerNum or 0) + 1)), nil, playerNum)
 end
 function PJ.disconnectedStub(playerNum)
     local s = { playerNum = playerNum, _zedPadStub = true }

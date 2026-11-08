@@ -24,7 +24,7 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 1. Controller: D-pad Right (World) > Map. Should: one slice, World map, then Back. No Toggle mini-map, no Focus mini-map. The Map slice is still second on the World wheel.
 2. Hold the map key (keyboard) for the game's map wheel. Should: World map only.
 3. A quick action chord that was set on a mini-map slice before: should do nothing (no error in console.txt).
-- Open question for the director: the game's own mini-map window still shows if a save had it open. Hide it, or leave it?
+4. A save that had the game's mini-map showing (or a mod that toggles it): load it. Should: no mini-map on the screen within half a second. Safe mode, or ZeD screens > Wheels given back: the game's mini-map shows again.
 
 ## B8 Read label on a CD or a video tape
 
@@ -59,7 +59,9 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 6. Plug it back in. Should: a balloon CONTROLLER PLUGGED IN ... PLAYER 1'S CONTROLLER IS BACK; the unplugged note is replaced, not added to.
 7. Split screen: unplug player two's controller. Should: the same note for player 2, without the keyboard button.
 8. Every other ZeD notice comes the same way now: let a mod's note be caught, an error, a ticket answer, an invitation (MP rig). Should: each a balloon out of the note, newest lowest, at most three, gone after six seconds; nothing in the top right corner any more.
-9. In a vehicle seat (the belt hides): trigger a notice. Should: the balloons stand at the bottom middle over the dash, without a tail. (There is no Messages icon on screen in a car: see the questions.)
+9. In a vehicle seat (the belt hides), with anything kept in Messages: every dash, full and Simple, shows the Messages note at its top right (the belt's box, paper and count). Trigger a notice. Should: the balloons come out of that note, tail down to it. Click the note: Messages opens. With nothing kept, no note on the dash.
+9b. Split screen: unplug player two's controller. Should: the balloon comes out of player two's belt note when player two has a belt (the per-player belt branch), else player one's.
+9c. Moodle notices: unchanged, still beside the moodles.
 10. Safe mode on: the game's list and banner come back.
 - Deck 1280x800 and 720p: the balloons stay on the screen (they shift left when the note is near the right edge), clear the belt and never cover the hands. Large text does not change the balloons (pixel face).
 
@@ -69,6 +71,7 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 2. Over the tab and the item list: a thin veil and a line at the top, "Paused: look only until the game plays". Clicks, right clicks, drags and double clicks there do nothing; the mouse wheel still scrolls; the tab strip on the left and the bags on the right still work.
 3. Unpause. Should: the veil goes the same frame; everything works again.
 4. The inventory key while paused: opens or closes the Character window alone.
+4b. Open the World window too, then pause. Should: the same veil and line over the World window between its bags (left) and its tab strip (right); its actions held, its tabs and bags free.
 5. Controller, paused: Back wheel > Player Info. Should: the Character window on its tab. A and X on items do nothing while paused (if the pad moves at all while paused: report what happens).
 6. A dead character: as before (the windows close).
 - Deck: the line at the top of the veil fits or truncates cleanly.

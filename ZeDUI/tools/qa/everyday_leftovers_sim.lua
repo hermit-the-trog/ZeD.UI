@@ -673,5 +673,114 @@ do
     end
 end
 
+-- ===========================================================================
+section("ROUND 2 (the director's answers, Nov 7 2026)")
+-- ===========================================================================
+do
+    -- 1. a save that left the game's mini-map showing: hidden
+    ZeD.MiniMapOff = {}
+    local shown = { true, false, false, false }
+    local removed = 0
+    function getPlayerMiniMap(pn)
+        if pn > 1 then return nil end
+        return { isReallyVisible = function() return shown[pn + 1] end,
+                 removeFromUIManager = function() removed = removed + 1; shown[pn + 1] = false end }
+    end
+    local okM, errM = loadZ("Overrides/MiniMap.lua")
+    check("Overrides/MiniMap.lua loads", okM, errM)
+    local MO = ZeD.MiniMapOff
+    if type(MO.hide) == "function" then
+        check("a shown mini-map taken off the screen", MO.hide() and removed == 1)
+        check("nothing shown: nothing done", not MO.hide() and removed == 1)
+        shown[1] = true
+        SAFE.wheels = true
+        check("ZeD's wheels given back: the game's mini-map stays", not MO.hide() and removed == 1)
+        SAFE.wheels = nil
+    else
+        check("ZeD.MiniMapOff.hide exists", false)
+    end
+
+    -- 5. each player's notices from that player's belt; player one's when there is one belt
+    ZeD.Belt = {}
+    local okB, errB = loadZ("ZeD_Belt.lua")
+    check("ZeD_Belt.lua loads", okB, errB)
+    local B = ZeD.Belt
+    local function hud(x, lampX)
+        return { _drawn = true, getIsVisible = function() return true end, getX = function() return x end,
+                 getY = function() return 700 end, _boxes = { { kind = "slot", x = 0, y = 0, w = 10, h = 10 }, { kind = "lamp", x = lampX, y = 4, w = 38, h = 38 } } }
+    end
+    B._hud = hud(100, 500)
+    B._huds = nil
+    local ax = B.noteAnchor(1)
+    check("one belt: player two's notice from player one's note", ax == 100 + 500 + 19, ax)
+    B._huds = { [0] = hud(100, 500), [1] = hud(1000, 400) }
+    check("a belt per player: player two's from player two's note", B.noteAnchor(1) == 1000 + 400 + 19, B.noteAnchor(1))
+    check("... player one's from player one's", B.noteAnchor(0) == 619)
+    check("no belt for player three: player one's", B.noteAnchor(2) == 619)
+    B._huds, B._hud = nil, nil
+    check("no belt at all: none", B.noteAnchor(0) == nil)
+
+    -- notices addressed to a player
+    ZeD.MessagesWindow = {}
+    ZeD.T = { px = function(v) return v end }
+    function getSpecificPlayer(pn) if pn <= 1 then return {} end return nil end
+    local okW, errW = loadZ("ZeD_MessagesWindow.lua")
+    check("ZeD_MessagesWindow.lua loads", okW, errW)
+    local W = ZeD.MessagesWindow
+    if type(W.toastsFor) == "function" then
+        local all = { { head = "a" }, { head = "b", pn = 1 }, { head = "c", pn = 3 } }
+        local p0, p1 = W.toastsFor(0, all), W.toastsFor(1, all)
+        check("player one's balloons: theirs and a player gone's", #p0 == 2 and p0[1].head == "a" and p0[2].head == "c", #p0)
+        check("player two's: theirs", #p1 == 1 and p1[1].head == "b")
+        -- 2. driving: the dash's note, the bubbles out of it
+        ZeD.Messages.count = function() return 1 end
+        local dash = { getIsVisible = function() return true end, getX = function() return 560 end, getY = function() return 900 end,
+                       getWidth = function() return 800 end }
+        ZeD.Dashboard.getInstance = function() return dash end
+        local x, y, w = W.dashNoteRect()
+        check("the dash's note: its top right, over the dash", x == 560 + 800 - 38 - 10 and y == 900 - 38 - 6 and w == 38, tostring(x) .. "," .. tostring(y))
+        local nx, ny, tail = W.noticeAnchor(0)
+        check("driving: the balloons out of the dash's note, with the tail", tail == true and nx == x + 19 and ny == y - 4, tostring(nx) .. "," .. tostring(ny))
+        ZeD.Messages.count = function() return 0 end
+        check("nothing kept: no dash note", W.dashNoteRect() == nil)
+        local _, _, t2 = W.noticeAnchor(0)
+        check("no note anywhere: no tail", t2 == false)
+    else
+        check("ZeD.MessagesWindow.toastsFor exists", false)
+    end
+    -- the controllers' unplugged note goes to that player
+    local M = ZeD.Messages
+    if ZeD.PadJoin and ZeD.PadJoin.unplugged then
+        M.toasts = {}
+        ZeD.PadJoin.unplugged(1)
+        check("player two's controller unplugged: player two's balloon", M.toasts[1] and M.toasts[1].pn == 1, M.toasts[1] and M.toasts[1].pn)
+    end
+
+    -- 4. paused: the World window held too, the same veil
+    local PL = ZeD.PausedLook
+    if type(PL.worldRect) == "function" then
+        local kids = {}
+        local function panel(x, y, w, h) return ISUIElement.new(ISUIElement, x, y, w, h) end
+        local ww = { _containerStrip = panel(0, 20, 36, 400), _actionTabStrip = panel(408, 20, 36, 400), windowShaded = false }
+        function ww:addChild(c) kids[#kids + 1] = c end
+        function ww:removeChild(c) for i = #kids, 1, -1 do if kids[i] == c then table.remove(kids, i) end end end
+        function ww:getChildren() return kids end
+        ZeD_WorldWindow = { getWindow = function() return ww end }
+        ZeD.Input.Focus.liveZone = function() return { zone = "worldMainInv" } end
+        SPEED = 0
+        check("paused: the World window's actions held", PL.blocks(ww, {}))
+        ZeD.Input.Focus.liveZone = function() return { zone = "worldTabBar" } end
+        check("paused: the World window's tab strip free", not PL.blocks(ww, {}))
+        PL.frame()
+        local g = PL._wglass
+        check("paused: the veil over the World window, between its bags and its tabs", g and g:isVisible() and g:getX() == 36 and g:getWidth() == 372, g and g:getX())
+        SPEED = 1
+        PL.frame()
+        check("playing: the World window's veil gone", g and not g:isVisible())
+    else
+        check("ZeD.PausedLook.worldRect exists", false)
+    end
+end
+
 print(string.format("everyday_leftovers_sim: %d checks, %d failed", checks, failed))
 os.exit(failed == 0 and 0 or 1)

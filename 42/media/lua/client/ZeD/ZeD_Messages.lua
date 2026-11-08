@@ -162,10 +162,14 @@ local function when()
     return t
 end
 
-local function toast(kind, head, name, text)
+-- pn: the player the notice is for (its balloon comes out of that player's note; nil: player one)
+local function toast(kind, head, name, text, pn)
     if not toastOn() then return end
-    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS }
-    for i = #M.toasts, 1, -1 do if M.toasts[i].source == name and M.toasts[i].head == head then table.remove(M.toasts, i) end end
+    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS, pn = pn }
+    for i = #M.toasts, 1, -1 do
+        local o = M.toasts[i]
+        if o.source == name and o.head == head and o.pn == pn then table.remove(M.toasts, i) end
+    end
     M.toasts[#M.toasts + 1] = t
     while #M.toasts > 3 do table.remove(M.toasts, 1) end
 end
@@ -270,7 +274,7 @@ end
 -- player (id): the newest replaces the one before it; never more than PAD_NOTES_MAX. buttons: { label, run } each,
 -- pressed on the note's card (ZeD_MessagesWindow); run returns true when it did what it says.
 local PAD_NOTES_MAX = 8
-function M.pad(id, head, text, buttons)
+function M.pad(id, head, text, buttons, pn)
     local name = ZeD.tr("UI_ZeD_Pad_Source")
     local s = M.sources[name]
     if s then
@@ -280,7 +284,7 @@ function M.pad(id, head, text, buttons)
     end
     local it = M.add(name, "mods", { k = "pad", pad = id, head = head, text = text, padButtons = buttons })
     capKind(name, "pad", PAD_NOTES_MAX)
-    toast("warn", head, name, text)
+    toast("warn", head, name, text, pn)
     return it
 end
 
