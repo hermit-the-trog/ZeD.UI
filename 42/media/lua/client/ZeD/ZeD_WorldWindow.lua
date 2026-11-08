@@ -17,6 +17,7 @@ require "ISUI/ISPanel"
 require "ISUI/ISMouseDrag"
 require "ISUI/ISInventoryPage"
 require "ZeD/WindowCurtain"
+require "ZeD/WindowHalves"
 require "ZeD/Tokens"
 require "ZeD/Tr"
 require "ZeD/Atoms"
@@ -2016,6 +2017,8 @@ local function settleCapPush(win)
     win._drawerCapPush = 0
     win._drawerCapLost = 0
 end
+-- (also the halves' snapped fold, WindowHalves)
+ZeD_WorldWindow.settleCapPush = settleCapPush
 
 -- Scroll dispatch per tab — the scrollbar state the open tab uses, nil for none
 local function getWorldActiveScroll(win)
@@ -2434,9 +2437,10 @@ local function saveWorldState(win)
         y = win:getY() / sc,
         w = baseW,
         h = ((win.windowShaded and win.preShadeHeight) or win:getHeight()) / sc,   -- (a rolled-up window: its unrolled height)
-        activeTab  = win._activeTab,
-        drawerMode = (win._drawerMode ~= "object") and win._drawerMode or nil,
-        drawerOpen = win._drawerOpen,
+        -- (a drawer its half folded opens again on its tab, WindowHalves)
+        activeTab  = ZeD.Halves.foldedTab(win) or win._activeTab,
+        drawerMode = ZeD.Halves.foldedTab(win) and "tab" or ((win._drawerMode ~= "object") and win._drawerMode or nil),
+        drawerOpen = ZeD.Halves.foldedTab(win) and true or win._drawerOpen,
         accentKey  = win._accentKey,
     }
 end
@@ -3380,20 +3384,9 @@ function ZeD_WorldWindow.toggle(playerNum)
     local win = ZeD_Window:new(math.floor(screenW / 2) + T.px(5), 0, winW, winH, ZeD.tr("UI_ZeD_World_Title"))
     win:initialise()
     win:addToUIManager()
-    -- the game's own roll-up when not in use (ZeD_Window:_autoCollapse); the pin kept with the character
+    -- the game's own roll-up when not in use, each half on its own (WindowHalves, attached with the
+    -- curtain below); the pins kept with the character
     win.autoCollapse = true
-    pcall(function()
-        local md = getSpecificPlayer(playerNum):getModData()
-        md.ZeD_WinPinned = md.ZeD_WinPinned or {}
-        win.pinned = md.ZeD_WinPinned.world == true
-    end)
-    win.onPinChange = function(_, on)
-        pcall(function()
-            local md = getSpecificPlayer(playerNum):getModData()
-            md.ZeD_WinPinned = md.ZeD_WinPinned or {}
-            md.ZeD_WinPinned.world = on
-        end)
-    end
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
     win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the roll-up and the cards)
@@ -5297,6 +5290,10 @@ function ZeD_WorldWindow.toggle(playerNum)
             Focus.setZoneFocusable(win, "worldContainerStrip", el ~= nil)
         end,
     })
+    -- Halves (WindowHalves.lua): the containers (left) and the drawer (right) each roll up
+    -- and pin on their own; the pins sit at the title bar's two ends (the Maps tab pinned
+    -- open while the containers roll with the pointer)
+    ZeD.Halves.attach(win, { key = "world", side = "right", strip = "_actionTabStrip", zone = "worldTitlePins" })
 
     -- ----------------------------------------------------------------
     -- FLOOR-AWARE TRANSFER

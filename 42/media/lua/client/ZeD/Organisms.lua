@@ -140,9 +140,12 @@ end
 -- bar a moment after the pointer leaves it (at once while aiming) and rolls down when the pointer is over its title
 -- bar; the pin box beside the window box keeps it open. With a controller it is always open (the game pins its
 -- pages for a controller). The roll-up is ZeD's window shade.
+-- The Character and World windows pin and roll each half on its own (WindowHalves.lua, self._halves):
+-- their pinRect is the pin at the bar's right end, and the halves answer for the rest.
 local COLLAPSE_MS = 2000
 function ZeD_Window:pinRect()
     if not self.autoCollapse then return nil end
+    if self._halves and ZeD.Halves then return ZeD.Halves.pinRect(self, "right") end
     local box = self:windowBoxRect()
     if not box then return nil end
     local T = ZeD.T
@@ -151,7 +154,9 @@ function ZeD_Window:pinRect()
     r.x, r.y, r.w, r.h = box.x - T.sp.sm - box.w, box.y, box.w, box.h
     return r
 end
+-- (a window with halves: both halves at once)
 function ZeD_Window:setPinned(on)
+    if self._halves and ZeD.Halves then ZeD.Halves.setPin(self, nil, on); return end
     self.pinned = on and true or false
     if self.onPinChange then pcall(self.onPinChange, self, self.pinned) end
     if self.pinned and self._autoShaded and self.windowShaded then
@@ -162,6 +167,7 @@ end
 -- each update: roll up or down as the game's inventory does
 function ZeD_Window:_autoCollapse()
     if not self.autoCollapse or not self:getIsVisible() then return end
+    if self._halves and ZeD.Halves then return ZeD.Halves.update(self) end
     local pn = self.playerNum or 0
     local pad = JoypadState and JoypadState.players and JoypadState.players[pn + 1] ~= nil
     local now = getTimestampMs()
@@ -529,6 +535,20 @@ local function drawWindowBox(p, x, y, sz, lit)
     end
 end
 
+--- The pin box: the close box's look with the pin icon, lit in the accent while
+--- pinned. p is the panel it draws on (a window, or a curtain's rod), r its rect.
+function ZeD_Window.drawPinBox(p, r, on, hover)
+    local T = ZeD.T
+    local bg = hover and T.hover or T.surf2
+    p:drawRect(r.x, r.y, r.w, r.h, 1, bg.r, bg.g, bg.b)
+    local bs = T.borderS
+    p:drawRectBorder(r.x, r.y, r.w, r.h, bs.a, bs.r, bs.g, bs.b)
+    local ins = T.px(2)
+    if ZeD.Atoms.drawPxIcon then
+        ZeD.Atoms.drawPxIcon(p, "pin", r.x + ins, r.y + ins, r.w - ins * 2, on and 1 or 0.55, on and T.accent or T.textDim)
+    end
+end
+
 -- The title bar: surface 2 (one layer: ZeD.Surface), stripes broken behind the title and the
 -- stats (System 7's knockout, without a second fill), the close box, the title, the stats
 -- right-aligned left of the window box, the window box, and the structure line under it all.
@@ -545,22 +565,26 @@ function ZeD_Window:_drawTitleBar(w, tbH)
     local box = self:windowBoxRect()
     local pinR = self:pinRect()
     local right = (pinR and (pinR.x - sp.md)) or (box and (box.x - sp.md)) or (w - sp.sm)
-    local titleX = sp.sm + T.closeBoxSz + sp.md
+    -- (a window with halves has a pin after its close box: the title moves along)
+    local titleX = sp.sm + T.closeBoxSz + sp.md + ((self._halves and ZeD.Halves) and ZeD.Halves.titleShift(self) or 0)
     local textY = math.floor((tbH - (T.fontF3H or tm:getFontHeight(f3))) / 2)
     local shown, tW = nil, 0
     -- (a window may hide its title to give its stats the bar: the Character window while pins show)
     local title = (not self._hideTitle) and self.title or nil
+    -- (self._titleReserve: room kept after the title for a box drawn there, the curtain's roll
+    -- box: the title is cut short and the stats stop before it)
     if title and title ~= "" then
-        shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - titleX - tbp))
+        shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - titleX - tbp - (self._titleReserve or 0)))
         tW = tm:MeasureStringX(f3, shown)
     end
+    self._titleShownW = tW   -- (the title as drawn: the roll box goes right after it)
 
     -- stats right to left from the window box; one that would reach the title is dropped
     local statL = nil
     local stats = self.titleStats
     if stats and #stats > 0 then
         local mk, mkGap = T.px(6), T.px(4)
-        local minX = titleX + tW + tbp * 2 + sp.md
+        local minX = titleX + tW + tbp * 2 + sp.md + (self._titleReserve or 0)
         local sx = right
         local tc = T.text
         local my = math.floor((tbH - mk) / 2)
@@ -622,15 +646,10 @@ function ZeD_Window:_drawTitleBar(w, tbH)
         ZeD.Atoms.drawCloseBox(self, cb.x, cb.y, cb.w, self._closeHover)
     end
     if box then drawWindowBox(self, box.x, box.y, box.w, self._wboxHover or self._wboxOpen) end
-    if pinR then
-        local bg = self._pinHover and T.hover or T.surf2
-        self:drawRect(pinR.x, pinR.y, pinR.w, pinR.h, 1, bg.r, bg.g, bg.b)
-        local bs = T.borderS
-        self:drawRectBorder(pinR.x, pinR.y, pinR.w, pinR.h, bs.a, bs.r, bs.g, bs.b)
-        local ins = T.px(2)
-        if ZeD.Atoms.drawPxIcon then
-            ZeD.Atoms.drawPxIcon(self, "pin", pinR.x + ins, pinR.y + ins, pinR.w - ins * 2, self.pinned and 1 or 0.55, self.pinned and T.accent or T.textDim)
-        end
+    if self._halves and ZeD.Halves then
+        ZeD.Halves.drawTitlePins(self)
+    elseif pinR then
+        ZeD_Window.drawPinBox(self, pinR, self.pinned, self._pinHover)
     end
 
     -- the structure line under the bar, to the frame's inner edges (a shaded window's frame closes it)
@@ -1175,6 +1194,8 @@ function ZeD_Window:onMouseDown(x, y)
     if box and x >= box.x and x < box.x + box.w and y >= box.y and y < box.y + box.h then return true end
     local pr = self:pinRect()
     if pr and x >= pr.x and x < pr.x + pr.w and y >= pr.y and y < pr.y + pr.h then return true end
+    local lp = self._halves and ZeD.Halves and ZeD.Halves.pinRect(self, "left")
+    if lp and x >= lp.x and x < lp.x + lp.w and y >= lp.y and y < lp.y + lp.h then return true end
 
     local tbH = self:titleBarHeight()
     if y < tbH and y > 0 then
@@ -1334,6 +1355,8 @@ function ZeD_Window.resetLayout(which)
     local worldWin = (which ~= "char") and ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or nil
     for _, w in ipairs({ charWin or false, worldWin or false }) do
         if w and w._rolled and ZeD.Curtain and ZeD.Curtain.finishUnroll then ZeD.Curtain.finishUnroll(w) end
+        -- (a drawer its half folded is forgotten: the reset's Loot is what gets saved, WindowHalves)
+        if w and w._halves and ZeD.Halves then ZeD.Halves.forgetFold(w) end
     end
     if charWin then resetChar(charWin, defW, defH, gap, screenW) end
     if worldWin then resetWorld(worldWin, defW, defH, gap, screenW) end
@@ -1431,7 +1454,9 @@ function ZeD_Window:_watchBoxes()
         self._wboxHover = false
     end
     local pr = self:pinRect()
-    if pr then
+    if self._halves and ZeD.Halves then
+        ZeD.Halves.watch(self, mx, my, down, fresh)   -- (both halves' pins)
+    elseif pr then
         local inside = mx >= pr.x and mx < pr.x + pr.w and my >= pr.y and my < pr.y + pr.h
         if inside and not self:pointerOn() then inside = false end
         self._pinHover = inside
@@ -1463,6 +1488,8 @@ function ZeD_Window:update()
         self:openWindowMenu()
     elseif act == "pin" then
         self:setPinned(not self.pinned)
+    elseif (act == "pin:inv" or act == "pin:drawer") and ZeD.Halves then
+        ZeD.Halves.togglePin(self, act:sub(5))
     end
     self:_autoCollapse()
 
