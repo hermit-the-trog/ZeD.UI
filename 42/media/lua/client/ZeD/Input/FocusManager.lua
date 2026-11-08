@@ -202,9 +202,10 @@ local function _indexOf(w)
 end
 
 -- Push engine-level joypad focus so PZ's onJoypad* dispatch reaches our
--- window's shims. `nil` is valid — clears engine focus (Q87 canonical setter).
--- pcall-wrapped for Java proxy safety. Hardcoded playerID 0 (single-player);
--- split-screen threading deferred.
+-- window's shims. setJoypadFocus is the engine's canonical setter; `nil` is
+-- valid and clears engine focus. The game's Java side can throw, so pcall
+-- turns a crash into a miss. Hardcoded playerID 0; split-screen would need
+-- the player index threaded through.
 local function _pushEngineFocus(control)
     if not setJoypadFocus then return end
     pcall(setJoypadFocus, 0, control)
@@ -376,8 +377,8 @@ function Focus.claimFocus(w)
         local D = ZeD.Input.Detector
         if D and D.getMode and D.getMode() == "gamepad" then _showCues() end
     end
-    -- Oct 23 2026: land on something lit (the last focused element, else the
-    -- list's first row); see Focus.ensureEntry
+    -- land on something lit (the last focused element, else the list's first
+    -- row); see Focus.ensureEntry
     if Focus.ensureEntry then
         local ok, err = pcall(Focus.ensureEntry, w)
         if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
@@ -413,8 +414,8 @@ function Focus.getFocusedWindow()
     return _focusedWindow
 end
 
--- S113: Y-hold no longer toggles a windowshade lock (Y-hold = close pair now).
--- Public reader retained as a permanent `false` so legacy callers don't blow up.
+--- Always false: Y-hold closes the pair now instead of toggling a windowshade
+--- lock. The reader stays so an old caller can't blow up.
 function Focus.isLocked()
     return false
 end

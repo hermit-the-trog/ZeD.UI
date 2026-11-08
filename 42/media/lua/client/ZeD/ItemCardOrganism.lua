@@ -802,7 +802,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
         -- 220w: chevron + ZONES label + overall %, with seg-bar + soil row
         --       drawn beneath when expanded.
         -- 480w: chevron + ZONES + seg-bar (inline middle) + % + DIRTY/WET
-        --       chips (right) all on one row per v15 spec; expanded body
+        --       chips (right) all on one row; the expanded body then
         --       skips the duplicate seg-bar + soil row below.
         do
             -- the disclosure: the pointer's hover wash and its help, then the triangle and the label

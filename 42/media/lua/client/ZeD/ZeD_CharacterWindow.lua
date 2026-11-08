@@ -494,10 +494,10 @@ local function exitMultiContainer(win, content)
     win._lastSetX = snapX
 end
 
--- S108 v2 Q104 forward-decl: mcToggleContainer's tail calls
--- _syncRingZonesToActiveTab to refresh per-column charMC<n> ring zones.
--- Without hoisting, the closure captures the name as a global at creation
--- time and the `if _syncRingZonesToActiveTab then` guard silently skips.
+-- Forward-decl: mcToggleContainer's tail calls _syncRingZonesToActiveTab to
+-- refresh the per-column charMC<n> ring zones. Without hoisting, the closure
+-- captures the name as a global at creation time and the
+-- `if _syncRingZonesToActiveTab then` guard silently skips.
 local _syncRingZonesToActiveTab
 
 local function mcToggleContainer(win, content, cIdx)
@@ -509,7 +509,7 @@ local function mcToggleContainer(win, content, cIdx)
     -- Clicking the main (on-person) container: toggle its visibility
     if containers[cIdx].isMain then
         -- (a bag viewed from another tab stays the list on Loot: main does not show then, so a
-        -- press shows it, as the World window's floor, and opens no other bag as a column)
+        -- press shows it, as the World window's floor button does, and opens no other bag as a column)
         local view = win._viewedContainer
         if win._mainVisible and (view == nil or view == 1) then
             if #(win._mcSelected) > 0 then
@@ -530,7 +530,7 @@ local function mcToggleContainer(win, content, cIdx)
             end
         else
             win._mainVisible = true
-            -- (main lit means main is listed: a bag the pad showed stayed the list under it, FAIV's report, Nov 6 2026;
+            -- (main lit means main is listed: a bag the pad showed used to stay the list under it;
             -- what was selected there does not stay selected unseen)
             if #win._mcSelected == 0 and (win._viewedContainer or win._activeContainer ~= 1) then
                 content._selectedItems = {}
@@ -588,9 +588,9 @@ local function mcToggleContainer(win, content, cIdx)
         for _, ci in ipairs(selected) do
             colSel[#colSel + 1] = ci
         end
-        -- S106: main column = containers[1], never _activeContainer. Previous
-        -- code duplicated a container into colSel when _activeContainer had
-        -- been set to the same idx via D-pad focus.
+        -- Main column = containers[1], never _activeContainer: reading the
+        -- active index here duplicated a container into colSel when D-pad
+        -- focus had set _activeContainer to the same idx.
         if win._mainVisible then
             colSel[#colSel + 1] = 1
         end

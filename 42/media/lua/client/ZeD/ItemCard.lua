@@ -1876,10 +1876,10 @@ end
 
 -- ===========================================================================
 -- PUBLIC NAMESPACE: ZeD.ItemDetail
--- Shared by ZeD_ItemCard (drawer card for inv items) AND EquipmentTab
--- (selected-item view for equipped items). Equipment drawer IS the inspector
--- per design — no separate inspect window. Both render sites consume the same
--- detail-zone primitives.
+-- Shared by ZeD_ItemCard (drawer card for inv items) AND the Equip tab
+-- (selected-item view for equipped items). The equipment drawer IS the
+-- inspector — there is no separate inspect window. Both render sites consume
+-- the same detail-zone primitives.
 -- ===========================================================================
 ZeD                = ZeD or {}
 ZeD.ItemDetail = ZeD.ItemDetail or {}
