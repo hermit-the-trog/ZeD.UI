@@ -165,10 +165,30 @@ add(800, function()
     check(bandage ~= nil, "5: the menu offers Bandage", #names)
     check(#names >= 1, "5: the menu lists the game's treatments")
     ticks(20, function() shot("medic_menu") end)
-    if bandage and bandage.onSelect then
-        pcall(bandage.onSelect, bandage.target, bandage.param1, bandage.param2, bandage.param3, bandage.param4, bandage.param5, bandage.param6, bandage.param7)
-        note("Bandage pressed")
+    -- (Nov 8) the game's Bandage entry is a sub menu header (ISHealthPanel HApplyBandage:addToMenu:
+    -- addOption(Bandage, nil) + addSubMenu, one entry per bandage type); it has no onSelect, so the
+    -- old press did nothing and no bandage was ever applied. Press the sub menu's first live entry.
+    local pressed, why = false, "no Bandage entry"
+    if bandage then
+        local o = bandage
+        if not o.onSelect and o.subOption then
+            local sm = nil
+            pcall(function() sm = m:getSubMenu(o.subOption) end)
+            o = nil
+            for _, so in ipairs(sm and sm.options or {}) do
+                if so.onSelect and not so.notAvailable then o = so; break end
+            end
+            why = o and nil or "the sub menu has no live entry"
+        end
+        if o and o.onSelect then
+            local okP, e = pcall(o.onSelect, o.target, o.param1, o.param2, o.param3, o.param4, o.param5, o.param6, o.param7, o.param8)
+            pressed = okP
+            why = okP and tostring(o.name) or tostring(e)
+        elseif o then
+            why = "the entry has no action"
+        end
     end
+    check(pressed, "5: Bandage pressed (the sub menu's bandage)", why)
     pcall(function() m:hideAndChildren() end)
 end)
 waitFor(40000, function()
