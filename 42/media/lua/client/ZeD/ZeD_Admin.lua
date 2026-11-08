@@ -371,9 +371,12 @@ function M.warn(user, n, reason, cb)
         if M.can("ReadUserLog") then requestUserlog(user) end
     end, cb)
 end
--- the game's own mute is voice alone (/voiceban); chat is ZeD's, on the server's list
-function M.mute(user, on, cb)
+-- the game's own mute is voice alone (/voiceban); chat is ZeD's, on the server's list. The voice ban finds only a player
+-- who is on (VoiceBanCommand: getPlayerByUserNameForCommand), so for an account that is off (here = false) the server's
+-- list is the mute and the game is not asked
+function M.mute(user, on, cb, here)
     act("a_mute", { user = user, on = on }, function()
+        if here == false and M.live() then return end
         SendCommandToServer("/voiceban " .. Q(user) .. (on and " -true" or " -false"))
         if not M.live() then M.voice[user] = on or nil end
     end, cb)

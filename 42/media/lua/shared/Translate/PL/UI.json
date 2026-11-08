@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Bez części serwerowej ZeD to wycisza tylko głos. Czat zostaje otwarty.",
     "UI_ZeD_Adm_VoiceMuted": "%1 nie może używać głosu, dopóki go nie odciszysz.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 znów może używać głosu.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 nie jest online. Wyciszenie blokuje czat od teraz, aż ktoś je zdejmie. Głos można wyciszyć tylko, gdy %1 jest online.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 nie jest online. Bez serwerowej części ZeD wyciszenie blokuje tylko głos, i tylko gdy %1 jest online.",
     "UI_ZeD_Adm_PowersStayOn": "Bez części serwerowej ZeD gra zostawia je włączone, a gracze sami je wyłączają.",
     "UI_ZeD_Adm_WarnDone1": "Dodano 1 punkt ostrzeżeń. %1 widzi powód.",
     "UI_ZeD_Adm_HelpKeepRole": "Zachowaj rolę.",

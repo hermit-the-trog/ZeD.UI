@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "ZeD'in sunucu parçası olmadan bu yalnızca sesini keser. Sohbeti açık kalır.",
     "UI_ZeD_Adm_VoiceMuted": "Sen susturmayı kaldırana kadar %1 sesi kullanamaz.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 yeniden ses kullanabilir.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 çevrim içi değil. Sustur, sohbetini şimdiden biri kaldırana kadar kapatır. Sesi yalnızca çevrim içiyken susturulabilir.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 çevrim içi değil. ZeD'in sunucu kısmı olmadan Sustur yalnızca sesi kapatır, o da yalnızca çevrim içiyken.",
     "UI_ZeD_Adm_PowersStayOn": "ZeD'in sunucu parçası olmadan oyun bunları açık bırakır ve kendileri kapatır.",
     "UI_ZeD_Adm_WarnDone1": "1 uyarı puanı eklendi. %1 nedeni görür.",
     "UI_ZeD_Adm_HelpKeepRole": "Rolü tut.",

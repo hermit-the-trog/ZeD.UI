@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "A ZeD szerverrésze nélkül ez csak a hangjukat állítja le. A chatjük nyitva marad.",
     "UI_ZeD_Adm_VoiceMuted": "%1 nem használhat hangot, amíg fel nem oldod a némítást.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 újra használhat hangot.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 nincs online. A némítás mostantól letiltja a csevegését, amíg valaki fel nem oldja. A hangja csak akkor némítható, amikor online.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 nincs online. A ZeD szerverrésze nélkül a némítás csak a hangot tiltja, és csak amikor online.",
     "UI_ZeD_Adm_PowersStayOn": "A ZeD szerverrésze nélkül a játék bekapcsolva hagyja ezeket, és ők maguk kapcsolják ki.",
     "UI_ZeD_Adm_WarnDone1": "1 figyelmeztető pont hozzáadva. %1 látja az okot.",
     "UI_ZeD_Adm_HelpKeepRole": "Szerepkör marad.",
