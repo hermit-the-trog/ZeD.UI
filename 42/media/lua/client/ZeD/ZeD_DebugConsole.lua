@@ -422,7 +422,9 @@ function W:createChildren()
     ZeD_Window.createChildren(self)
     local T = ZeD.T
     local e = ISTextEntryBox:new("", 0, 0, 100, T.inputH)
-    e.font = T.fontF3
+    -- The game's text box takes the keys; its own text is hidden (fitEntry) and the window draws the
+    -- line in F3, Fira Mono, like the lines above it: the box can only draw the game's baked faces.
+    e.zedDrawsText = true
     e:initialise()
     e:instantiate()
     e.zedEntry = true
@@ -544,6 +546,35 @@ local function charW(font)
     return math.max(1, ZeD.TM:MeasureStringX(font, "0000000000") / 10)
 end
 
+-- The typed line, drawn in F3 over the game's hidden text box: the characters that fit, scrolled so
+-- the cursor stays in view, the placeholder when empty, and a steady caret while focused.
+function W:_drawTyped(inp, x, y, w, h, f, focused)
+    local T = ZeD.T
+    local text = inp:getText() or ""
+    local cur = #text
+    pcall(function() cur = inp.javaObject:getCursorPos() end)
+    cur = math.max(0, math.min(#text, cur or #text))
+    local cw = charW(f)
+    local n = math.max(1, math.floor((w - px(2)) / cw))
+    local start = self._typeStart or 0
+    if cur < start then start = cur end
+    if cur > start + n then start = cur - n end
+    start = math.max(0, math.min(start, math.max(0, #text - n)))
+    self._typeStart, self._typeX, self._typeCw = start, x, cw
+    local ty = y + math.floor((h - fh(f)) / 2)
+    if text == "" then
+        local d = T.textDim
+        if not focused then self:drawText(tr("UI_ZeD_Console_Type"), x, ty, d.r, d.g, d.b, d.a or 1, f) end
+    else
+        local c = T.text
+        self:drawText(text:sub(start + 1, start + n), x, ty, c.r, c.g, c.b, c.a or 1, f)
+    end
+    if focused then
+        local a = T.accent
+        self:drawRect(x + (cur - start) * cw, ty, math.max(1, px(1)), fh(f), a.a or 1, a.r, a.g, a.b)
+    end
+end
+
 function W:prerender()
     local T = ZeD.T
     if not T then return end
@@ -595,12 +626,12 @@ function W:_drawBody()
     self:drawText(mark, mx0, iy + math.floor((ih - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
     local ex = mx0 + ZeD.TM:MeasureStringX(f3, mark) + px(4)
     if inp then
-        if inp.font ~= f3 then inp.font = f3; pcall(function() inp:setFont(f3) end) end
         if inp:getX() ~= ex then inp:setX(ex) end
         if inp:getY() ~= iy then inp:setY(iy) end
         local ew = fx + fw - px(4) - ex
         if inp:getWidth() ~= ew then inp:setWidth(ew) end
         if inp:getHeight() ~= ih then inp:setHeight(ih) end
+        self:_drawTyped(inp, ex, iy, ew, ih, f3, focused)
     end
     if joy and self.zone == "input" and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(self, fx, iy, fw, ih, focusOpts(self)) end
     self._fieldRect = { x = fx, y = iy, w = fw, h = ih }
@@ -830,6 +861,13 @@ function W:onMouseDown(x, y)
     if inRect(self._fieldRect, x, y) then
         self.zone = "input"
         self.input:focus()
+        -- the cursor goes where the click lands in ZeD's drawn line, not the hidden box's own face
+        if self._typeCw and self._typeX then
+            local col = (self._typeStart or 0) + math.floor((x - self._typeX) / self._typeCw + 0.5)
+            local len = #(self.input:getText() or "")
+            col = math.max(0, math.min(len, col))
+            pcall(function() self.input.javaObject:setCursorPos(col) end)
+        end
         return true
     end
     if inRect(self._listRect, x, y) then self:pickAt(y); return true end

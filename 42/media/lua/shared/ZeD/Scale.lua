@@ -392,11 +392,13 @@ function X.fitEntry(entry)
     local T = ZeD.T
     local c, d = T and T.text, T and T.textDim
     if c then
-        local key = string.format("%.3f,%.3f,%.3f,%.3f", c.r, c.g, c.b, c.a or 1)
+        -- (zedDrawsText: the owner draws the typed text itself in ZeD's face; the box keeps only the input)
+        local hide = entry.zedDrawsText == true
+        local key = string.format("%.3f,%.3f,%.3f,%.3f", c.r, c.g, c.b, c.a or 1) .. (hide and "h" or "")
         if entry._zedTextKey ~= key then
             entry._zedTextKey = key
-            entry.javaObject:setTextRGBA(c.r, c.g, c.b, c.a or 1)
-            if d then entry.javaObject:setPlaceholderTextRGBA(d.r, d.g, d.b, d.a or 1) end
+            entry.javaObject:setTextRGBA(c.r, c.g, c.b, hide and 0 or (c.a or 1))
+            if d then entry.javaObject:setPlaceholderTextRGBA(d.r, d.g, d.b, hide and 0 or (d.a or 1)) end
         end
     end
 end
