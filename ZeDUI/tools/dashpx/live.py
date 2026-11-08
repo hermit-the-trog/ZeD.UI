@@ -21,6 +21,11 @@ def derive(st):
     kmh = s.get("speed_kmh", 0) if power else 0
     s["speed_kmh"] = kmh
     s["speed_mph"] = kmh * 0.6214
+    # the digital figures in the game's units (st "metric": its Metric option), the legend in use lit (Nov 7 2026)
+    metric = bool(s.get("metric"))
+    s["speedShown"] = kmh if metric else s["speed_mph"]
+    s["mphLamp"] = power and not metric
+    s["kmhLamp"] = power and metric
     s["rpm"] = s.get("rpm", 0) if s.get("running") else 0
     s["fuel"] = s.get("fuel", 0.6) if power else 0.0
     s["batt"] = batt if power else 0.0

@@ -14,6 +14,9 @@
 --   PASSENGER the World Scale and the odometer from any seat, and no provider run for a passenger
 --   BREAKS  a poll, provider, gear, odometer or scale that throws or lies: ZeD's own value, no error out of the dash
 --   SAFE MODE the real watchdog and the real ZeD.logOnce: another mod's failure never trips it
+--   MASK    (Nov 7 2026) Mask Filter Indicator through the dash's general hook D.addExtra: Simple's Readouts item, the
+--           pixel dash's mark on the top edge (driver and passenger, the blocks, amber and red, no filter, the Alert
+--           option, a light edge's ink), no mask no mark, a mark that throws skipped; and on the dash before the hook, nothing
 -- What it can't show is the real mods' numbers and how it looks: zedqa_roadworthy.lua, in the game with both mods on.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/vskdash_sim.lua
 -- It prints FAIL lines and a last line "vskdash_sim: N checks, M failed", and exits 1 if any failed.
@@ -394,6 +397,13 @@ local function readFile(path)
     return s
 end
 local nowSource = readFile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
+-- the dash before the mask's hook (Nov 7 2026), for the MASK section's proof
+local function gitShowDash()
+    local h = io.popen('git -C "' .. (ROOT == "" and "." or ROOT) .. '" show 6d1f46de:42/media/lua/client/ZeD/ZeD_Dashboard.lua')
+    local t = h and h:read("*a") or ""
+    if h then h:close() end
+    return t
+end
 local oldSource = nil
 do
     -- (Nov 7 2026, punch list 92: ZeD's own dash changed on purpose (the hot lamp's bulb check, the odometers), so
@@ -993,6 +1003,145 @@ do
     trips = {}
     for _ = 1, 400 do clock = clock + 16; ZeD.logOnce("control", "x") end
     check("the watchdog in this rig does trip on logOnce", #trips > 0, #trips)
+end
+
+-- ---------------------------------------------------------------------------
+section("MASK: Mask Filter Indicator on the dash (D.addExtra)")
+-- ---------------------------------------------------------------------------
+-- (Nov 7 2026, Build: the director, "while driving (belt hidden) the mask filter shows on the dashboard". The real
+-- ModSupport/MaskFilterIndicator.lua on a stub of the mod's published shape, as belt_mods_sim.lua has it.)
+local function bootMask(source)
+    local Dm = boot(source, true)
+    local mods = { MaskFilterIndicator = true }
+    getActivatedMods = function()
+        local ids = {}
+        for id in pairs(mods) do ids[#ids + 1] = id end
+        return { size = function() return #ids end, get = function(_, i) return ids[i + 1] end }
+    end
+    ZeD.Belt = { addBox = noop, getHUD = function() return nil end }
+    ZeD.trDefaults({ UI_ZeD_Belt_MaskLeft = "%1% left", UI_ZeD_Belt_MaskSpares = "spares: %1" })
+    local mask = { fitted = true, delta = 0.64, display = "Gas Mask", maskCfg = {} }
+    function mask:getUsedDelta() return self.delta end
+    function mask:getDisplayName() return self.display end
+    function mask:isActivated() return false end
+    local M = { worn = mask, spares = 2 }
+    function M.findWornMask() if M.worn then return M.worn, M.worn.maskCfg end; return nil end
+    function M.hasDrainable(m) return m.fitted == true end
+    function M.listSpareFilters() local t = {}; for i = 1, M.spares do t[i] = 1 end; return t end
+    MaskFilterIndicator = M
+    MaskFilterIndicatorOptions = { mode = 1, isShowDrainBlink = function() return true end }
+    MaskFilterIndicatorOptions.getHudMode = function() return MaskFilterIndicatorOptions.mode end
+    MaskFilterIndicatorHUD = nil
+    dofile(CLIENT .. "ZeD/ModSupport/MaskFilterIndicator.lua")
+    return Dm, M, mask
+end
+do
+    local Dm, M, mask = bootMask(nowSource)
+    check("the dash has the general hook", type(Dm.addExtra) == "function")
+    check("the mask registered on the dash", #(Dm._extras or {}) == 1 and Dm._extras[1].id == "MaskFilterIndicator")
+    local marks = {}
+    local spec = Dm._extras and Dm._extras[1] and Dm._extras[1].spec
+    if spec then
+        local real = spec.mark
+        spec.mark = function(cv, x, y, ink, shadow, st)
+            local w = real(cv, x, y, ink, shadow, st)
+            marks[#marks + 1] = { x = x, y = y, w = w, ink = ink, shadow = shadow }
+            return w
+        end
+    end
+    local function newFrame() marks = {}; return frame(600) end   -- (past the mod's half-second read)
+    -- Simple: one readout in the Readouts row
+    seat(running(scriptOf("nyala")))
+    newDash()
+    env.simple = true
+    local log = newFrame(); log = newFrame()
+    check("Simple: the mask's readout", drewText(log, "Gas Mask: 64% left | spares: 2"))
+    check("Simple: in the Readouts row", drewText(log, "Readouts"))
+    -- the pixel dash: the mark on the top edge, left end
+    env.simple = false
+    log = newFrame()
+    check("the pixel dash: the mark drawn once", #marks == 1, #marks)
+    check("  at the top edge's left end (driver)", marks[1] and marks[1].x == 12 and marks[1].y == 2, marks[1] and marks[1].x)
+    check("  in the edge's cream ink with its shadow", marks[1] and marks[1].shadow == "#101010")
+    check("  the mask, ten blocks and the spares (+2) wide", marks[1] and marks[1].w > 39, marks[1] and marks[1].w)
+    local cream = ZeD.Px.color("#d8d6cc")
+    local creamRGB = string.format("%.4f %.4f %.4f", cream.r, cream.g, cream.b)
+    local function dimBlocks(lg)
+        local n = 0
+        for _, l in ipairs(lg) do
+            if l:find("^drawRect %S+ %S+ %S+ %S+ 0%.3000 ") and l:find(creamRGB, 1, true) then n = n + 1 end
+        end
+        return n
+    end
+    check("  64%: seven blocks lit, three dark", dimBlocks(log) == 3, dimBlocks(log))
+    -- low and out: amber, then red
+    local r0, a0 = drew(log, "#ff3a20"), drew(log, "#ffb02e")
+    mask.delta = 0.2
+    log = newFrame()
+    check("  a quarter or less: the lit blocks amber", drew(log, "#ffb02e") - a0 == 2, drew(log, "#ffb02e") - a0)
+    mask.delta = 0.05
+    log = newFrame()
+    check("  a tenth or less: red, the mask too", drew(log, "#ff3a20") - r0 >= 2, drew(log, "#ff3a20") - r0)
+    mask.fitted = false
+    log = newFrame()
+    check("  no filter: every block dark", dimBlocks(log) == 10, dimBlocks(log))
+    env.simple = true
+    check("Simple: no filter in the game's words", drewText(newFrame(), "Gas Mask: Tooltip_NoFilter | spares: 2"))
+    M.spares = 0
+    check("Simple: no spares in the mod's words", drewText(newFrame(), "Gas Mask: Tooltip_NoFilter | UI_MFI_NoSpareFilter"))
+    env.simple = false
+    mask.fitted, M.spares, mask.delta = true, 2, 0.64
+    -- the mod's Alert option: only when low
+    MaskFilterIndicatorOptions.mode = 2
+    newFrame()
+    check("Alert: no mark above a quarter", #marks == 0, #marks)
+    mask.delta = 0.2
+    newFrame()
+    check("Alert: the mark at a quarter or less", #marks == 1, #marks)
+    MaskFilterIndicatorOptions.mode = 1
+    -- a passenger: after the word
+    seat(running(scriptOf("nyala"), { passenger = true }))
+    newDash()
+    newFrame()
+    check("a passenger: the mark after Passenger", marks[1] and marks[1].x > 12 + 20, marks[1] and marks[1].x)
+    -- a light top edge: the design's own ink, no shadow
+    local lightId = nil
+    for _, id in ipairs(DESIGNS) do if ZeD.DashPx.designs[id].passInk then lightId = id; break end end
+    check("the sim has a design with a light top edge", lightId ~= nil)
+    if lightId then
+        seat(running(scriptOf(lightId)))
+        newDash()
+        newFrame()
+        local ink = ZeD.Px.color(ZeD.DashPx.designs[lightId].passInk)
+        check("a light top edge (" .. lightId .. "): its own ink, no shadow", marks[1] and marks[1].shadow == nil and marks[1].ink == ink)
+    end
+    -- the mask off: nothing
+    M.worn = nil
+    newFrame()
+    check("no mask worn: no mark", #marks == 0, #marks)
+    env.simple = true
+    check("no mask worn: no readout", not drewText(newFrame(), "Gas Mask"))
+    env.simple = false
+    -- a mark that throws: skipped, the dash goes on
+    M.worn = mask
+    if spec then spec.mark = function() error("boom") end end
+    local okF = pcall(newFrame)
+    check("a mark that throws: the dash goes on", okF)
+    check("nothing logged", #env.errors == 0, env.errors[1])
+end
+-- the proof can fail: on the dash before this work (no D.addExtra) the mask shows nowhere
+do
+    local before = gitShowDash()
+    check("the dash before the hook is readable", #before > 10000)
+    if #before > 10000 then
+        bootMask(before)
+        seat(running(scriptOf("nyala")))
+        newDash()
+        env.simple = true
+        frame(600)
+        check("the dash before: no readout (the check can fail)", not drewText(frame(600), "Gas Mask"))
+        env.simple = false
+    end
 end
 
 -- ---------------------------------------------------------------------------

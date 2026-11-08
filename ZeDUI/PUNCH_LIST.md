@@ -2932,3 +2932,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     merges).** The game's debug-mode console (only with -debug: run Lua, read errors and output) rebuilt from ZeD's
     atoms and molecules as a ZeD window: the typed line, history, the output and error list, controller parity (the
     pad keyboard), safe mode hands back the game's own. Find the game's console class and what it offers first.
+107. **Split-screen: ZeD's own windows for every local player (the director, Nov 7 2026: next, before Dec 1).** The Nov 8
+    build gives player 2+ the game's own windows (no sharing) and a belt and dash each. Next: FocusManager,
+    BumperChord and InputModeDetector per player, then one Character and World window per player placed with
+    getPlayerScreen*(pn), then the ~105 no-argument getters; the player-1 map is in the known-issues branch report.
+108. **A drawn controller for Options > Controls (the director, Nov 7 2026).** The Nov 8 build ships the controller map and
+    live test with a plain System 7 box pad; design draws a proper pad in ZeD's pixel art to replace it.

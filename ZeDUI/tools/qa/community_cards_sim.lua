@@ -1259,6 +1259,137 @@ do
     SAFE = "community"
     M.joinScreen()
     check("safe mode: no screen", CM.joinWin == nil and KEYS_ON == true)
+    -- (Nov 7) asked in safe mode: the game's own yes/no box, since the server refuses every command until it is answered
+    local modals = {}
+    local realModal = ISModalDialog
+    ISModalDialog = { new = function(_, x, y, w, h, text, yesno, target, onclick, pn)
+        local m = { text = text, yesno = yesno, onclick = onclick, w = 400, h = 300, inUI = false, passW = w }
+        function m.initialise() end
+        function m.addToUIManager(self) self.inUI = true end
+        function m.getWidth(self) return self.w end
+        function m.getHeight(self) return self.h end
+        function m.setX(self, v) self.x = v end
+        function m.setY(self, v) self.y = v end
+        modals[#modals + 1] = m
+        return m
+    end }
+    view({ ask = true })
+    CLIENT = {}
+    M.joinScreen()
+    local md1 = modals[1]
+    check("safe mode and asked: the plain question instead", CM.joinWin == nil and md1 ~= nil and md1.yesno == true and md1.inUI)
+    check("it holds every rule and the question", md1 and string.find(md1.text, "1. " .. Q.RULES[1], 1, true) ~= nil
+        and string.find(md1.text, "UI_ZeD_Cm_SafeAsk", 1, true) == nil and string.find(md1.text, "\n", 1, true) ~= nil, md1 and md1.text)
+    M.joinScreen()
+    check("asked once", #modals == 1)
+    md1.onclick(nil, { internal = "YES" })
+    check("Yes agrees to these words", lastCmd("m_agree") ~= nil and lastCmd("m_agree").rev == 2)
+    LEFT = 0
+    M.joinScreen()
+    modals[2].onclick(nil, { internal = "NO" })
+    check("No leaves", LEFT == 1)
+    view()
+    M.joinScreen()
+    check("not asked: no question", #modals == 2)
+    -- a rule longer than a line is cut at its spaces, and a word longer than a line is cut too
+    view({ ask = true, rules = { n = 1, { id = 1, rev = 1, text = string.rep("word ", 30) .. string.rep("x", 90) } } })
+    M.joinScreen()
+    local widest = 0
+    for l in string.gmatch(modals[3].text .. "\n", "([^\n]*)\n") do widest = math.max(widest, #l) end
+    check("the plain box stays narrow: no line past 70 characters", modals[3] and widest <= 70, widest)
+    modals[3].onclick(nil, { internal = "YES" })
+    -- (Nov 7 review) a long list on a short screen: the box is sized as the game sizes it (ISModalDialog.CalcSize, UIFont.Small)
+    -- and must stay on screen at every resolution and text size, its rules scrolling, Yes and No in reach by mouse and pad
+    local realFH, realMX = ZeD.TM.getFontHeight, ZeD.TM.MeasureStringX
+    local function calc(text)
+        local fh = ZeD.TM:getFontHeight(UIFont.Small)
+        local n, wid = 0, 0
+        for l in string.gmatch(text .. "\n", "([^\n]*)\n") do n = n + 1; wid = math.max(wid, ZeD.TM:MeasureStringX(UIFont.Small, l)) end
+        return math.max(wid + 10, 232), 20 + n * fh + 20 + 25 + 10, n
+    end
+    local longRules = { n = 40 }
+    for i = 1, 40 do longRules[i] = { id = i, rev = 1, text = "Rule " .. i .. ": " .. string.rep("keep the roads clear and the gates shut ", 3) } end
+    local P = CM._P
+    for _, scr in ipairs({ { 1280, 720 }, { 1280, 800 }, { 1920, 1080 }, { 3840, 2160 }, { 800, 600 } }) do
+        for _, fh in ipairs({ 14, 19, 26 }) do
+            local name = "safe box " .. scr[1] .. "x" .. scr[2] .. " small font " .. fh .. ": "
+            coreOf(scr[1], scr[2])
+            ZeD.TM.getFontHeight = function(self, font) if font == UIFont.Small then return fh end return realFH(self, font) end
+            ZeD.TM.MeasureStringX = function(self, font, s) if font == UIFont.Small then return math.ceil(#tostring(s) * fh * 0.5) end return realMX(self, font, s) end
+            local before = #modals
+            view({ ask = true, rules = longRules })
+            M.joinScreen()
+            local md = modals[before + 1]
+            check(name .. "asked", md ~= nil)
+            if md then
+                local w0, h, n0 = calc(md.text)
+                local w = math.max(md.passW, w0)       -- (CalcSize: the width asked for, or the text's when wider; fixed from here)
+                md.w, md.h = w, h
+                check(name .. "the box fits the screen's height", h <= scr[2], h)
+                check(name .. "and its width", w <= scr[1], w)
+                local st = CM.safeState
+                local full = table.concat(st.tail, "\n")
+                check(name .. "the question and Yes/No always show", string.sub(md.text, -#full) == full)
+
+                -- scrolled to the end by the wheel: the last rule shows, the box never grows
+                local guard = 0
+                local lastWords = string.sub(P.plainWrap("40. " .. longRules[40].text, st.n)[#P.plainWrap("40. " .. longRules[40].text, st.n)], 1, 10)
+                local wSeen = 0
+                while guard < 200 and not string.find(md.text, lastWords, 1, true) do
+                    md.onMouseWheel(md, 1)
+                    guard = guard + 1
+                    wSeen = math.max(wSeen, (calc(md.text)))
+                end
+                check(name .. "the wheel reaches the last rule", string.find(md.text, lastWords, 1, true) ~= nil)
+                check(name .. "no line scrolled in draws past the border", wSeen <= w, tostring(wSeen) .. " > " .. tostring(w))
+                local _, h2 = calc(md.text)
+                check(name .. "scrolling never grows the box", h2 == h, h2)
+                for _ = 1, 100 do md.onJoypadDirUp(md) end
+                check(name .. "the D-pad brings the first rule back", string.find(md.text, "1. " .. "Rule 1:", 1, true) ~= nil)
+                md.onJoypadDirDown(md)
+                if st.rows then check(name .. "the D-pad scrolls down", st.top > 1) end
+                if scr[2] <= 800 then check(name .. "40 rules do not all fit a short screen: they scroll", st.rows ~= nil) end
+                md.onclick(nil, { internal = "YES" })
+                check(name .. "Yes still agrees", lastCmd("m_agree") ~= nil)
+            end
+        end
+    end
+    -- (outside review, Nov 7) short rules first and a wide one far down: the box takes its width when it opens, so it must already
+    -- be as wide as that line, not only the lines showing then
+    local narrowRules = { n = 40 }
+    for i = 1, 40 do narrowRules[i] = { id = i, rev = 1, text = "Rule " .. i .. ": be kind" } end
+    narrowRules[40].text = "Rule 40: " .. string.rep("keep the roads clear and the gates shut ", 3)
+    for _, scr in ipairs({ { 1280, 720 }, { 1280, 800 }, { 800, 600 } }) do
+        local fh = 19
+        local name = "safe box, a wide rule far down, " .. scr[1] .. "x" .. scr[2] .. ": "
+        coreOf(scr[1], scr[2])
+        ZeD.TM.getFontHeight = function(self, font) if font == UIFont.Small then return fh end return realFH(self, font) end
+        ZeD.TM.MeasureStringX = function(self, font, s) if font == UIFont.Small then return math.ceil(#tostring(s) * fh * 0.5) end return realMX(self, font, s) end
+        local before = #modals
+        view({ ask = true, rules = narrowRules })
+        M.joinScreen()
+        local md = modals[before + 1]
+        local st = CM.safeState
+        check(name .. "it scrolls", md ~= nil and st and st.rows ~= nil)
+        if md and st and st.rows then
+            local w0 = calc(md.text)
+            local w = math.max(md.passW, w0)
+            check(name .. "the wide rule is not showing when it opens", string.find(md.text, "Rule 40:", 1, true) == nil)
+            local wSeen, guard = 0, 0
+            while guard < 200 and st.top + st.rows - 1 < #st.body do
+                md.onMouseWheel(md, 1)
+                guard = guard + 1
+                wSeen = math.max(wSeen, (calc(md.text)))
+            end
+            check(name .. "scrolled to it", string.find(md.text, "Rule 40:", 1, true) ~= nil)
+            check(name .. "it stays inside the border it opened with", wSeen <= w, tostring(wSeen) .. " > " .. tostring(w))
+            check(name .. "and the box still fits the screen", w <= scr[1] - 2 * P.SAFE_MARGIN, w)
+            md.onclick(nil, { internal = "YES" })
+        end
+    end
+    ZeD.TM.getFontHeight, ZeD.TM.MeasureStringX = realFH, realMX
+    coreOf(1280, 800)
+    ISModalDialog = realModal
     SAFE = nil
     M.joinScreen()
     w0 = CM.joinWin
@@ -2048,6 +2179,60 @@ do
     M.qaHold, M.qaLink, A2.qaHold, A2.qaLink, TC.qaHold = nil, nil, nil, nil, nil
     M.view = nil
     reset()
+end
+
+-- a whisper: the line empties once it went, and "/w name " comes back when the line is opened again in that tab,
+-- as the game's chat does (ISChat:onCommandEntered keeps it, ISChat:focus gives it back; the outside review of beta 7)
+do
+    local PM = {}
+    local was = proceedPM
+    proceedPM = function(t)
+        PM[#PM + 1] = t
+        local q = t:match('^%s*"([^"]+)"')
+        return q or t:match("^%s*(%S+)") or ""
+    end
+    local cw = chatDraw(chatWin(440, 400))
+    Ch.tab, Ch.keep = "general", nil
+    local function send(text)
+        Ch.slowUntil = 0
+        cw.input:setText(text)
+        cw.input:focus()
+        cw:submit()
+    end
+    send("/w mike_d you there?")
+    check("the whisper went", PM[#PM] == "mike_d you there?", PM[#PM])
+    check("the line is empty once it went", cw.input:getText() == "", cw.input:getText())
+    cw:update()
+    check("and stays empty while you are out of it", cw.input:getText() == "")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("opened again: the whisper's start comes back", cw.input:getText() == "/w mike_d " and cw.input:isFocused(), cw.input:getText())
+    cw.input:unfocus()
+    cw:update()
+    check("left untouched: the line empties again", cw.input:getText() == "")
+    send('/whisper "Big Mags" ok')
+    check("the long command and a quoted name, by the game's answer", Ch.keep and Ch.keep.text == "/whisper Big Mags ", Ch.keep and Ch.keep.text)
+    cw:pickTab("private")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("another tab keeps its own line", cw.input:getText() == "", cw.input:getText())
+    cw.input:unfocus()
+    cw:pickTab("general")
+    cw.input:setText("half a thought")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("a line being written is left alone", cw.input:getText() == "half a thought")
+    cw.input:setText("")
+    send("hello all")
+    check("a plain line leaves the whisper be, as the game's does", Ch.keep and Ch.keep.text == "/whisper Big Mags ")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("so the line still opens on it", cw.input:getText() == "/whisper Big Mags ", cw.input:getText())
+    cw.input:unfocus()
+    cw:update()
+    send("/s hello all")
+    check("another stream's command lets the whisper go", Ch.keep == nil)
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("so the line opens empty", cw.input:getText() == "")
+    cw.input:unfocus()
+    proceedPM = was
+    Ch.keep, Ch.win = nil, nil
 end
 
 print("community_cards_sim: " .. checks .. " checks, " .. failed .. " failed")

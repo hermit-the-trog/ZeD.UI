@@ -207,7 +207,9 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     local th = ZeD.TM:getFontHeight(font)
     local tx = x + math.floor((w - tw) / 2)
     local ty = y + math.floor((h - th) / 2)
-    if pressed then tx = tx + T.px(1); ty = ty + T.px(1) end
+    -- (a gray button does not go down under the pointer: its label dipped and came back on a press that did nothing,
+    -- the outside review of beta 7's Mute on an offline player's card)
+    if pressed and not opts.disabled then tx = tx + T.px(1); ty = ty + T.px(1) end
     panel:drawText(text, tx, ty, textColor.r, textColor.g, textColor.b, (textColor.a or 1) * alpha, font)
 
     if opts.hover then giveHelp(panel, opts) end
@@ -4786,6 +4788,23 @@ local function drawBandCheck(panel, x, by, bh, c, win)
     end
     return { x = x, y = by, w = cw, h = bh, id = c.id }
 end
+
+--- The part of a band from x, w wide that an open item card leaves showing, as left, right.
+-- A drawer tab under a card draws with the card's edge on its panel (the Character window:
+-- _coverX, the card over the right part; the World window: _coverL, over the left part).
+-- The band's words and buttons lay out in what is left, so a tab's own actions (the
+-- Journal's Save, Cancel and Delete) stay in reach while the card is open, the card on
+-- top of the tab (Nov 7 2026, the outside review of beta 7). need: the least room the
+-- band's contents take; with less showing, the band keeps its whole width.
+function ZeD.Molecules.bandRoom(panel, x, w, need)
+    local l, r = x, x + w
+    local cx, cl = panel and panel._coverX, panel and panel._coverL
+    if cx and cx < r then r = cx end
+    if cl and cl > l then l = cl end
+    if r - l < (need or 0) or r <= l then return x, x + w end
+    return l, r
+end
+
 function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -4800,9 +4819,22 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     A.surfaceFill(panel, x, y, w, H, "surf2")
     if not spec.noLine then A.drawDividerH(panel, x, y, w, true) end
 
-    -- the push buttons, right to left (the main one, last in the list, at the right)
-    local right = x + w - edge
+    -- under an item card, the words and buttons go in what the card leaves showing
     local buttons = spec.buttons
+    local roomL, roomR = x, x + w
+    if panel and (panel._coverX or panel._coverL) then
+        local need = 2 * edge
+        if buttons then
+            for i = 1, #buttons do
+                local b = buttons[i]
+                need = need + (b.w or math.max(M.buttonW(b.label), b.minW or 0)) + (i > 1 and gap or 0)
+            end
+        end
+        roomL, roomR = M.bandRoom(panel, x, w, need)
+    end
+
+    -- the push buttons, right to left (the main one, last in the list, at the right)
+    local right = roomR - edge
     if buttons then
         for i = #buttons, 1, -1 do
             local b = buttons[i]
@@ -4820,7 +4852,7 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     end
 
     -- the icon actions, left to right
-    local left = x + edge
+    local left = roomL + edge
     local icons = spec.icons
     if icons then
         for i, ic in ipairs(icons) do

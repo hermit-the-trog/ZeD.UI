@@ -740,7 +740,10 @@ local function renderJournal(panel, win, x, y, w, h)
     if entryBox then
         entryBox:setX(x)
         entryBox:setY(curY)
-        entryBox:setWidth(drawW)
+        -- (an item card open over the tab: the box ends where the card starts, so it and Save
+        -- stay in use; a box the card would lie over hides, as a child panel can't be cut)
+        local _, entryR = M.bandRoom(panel, x, drawW, T.px(80))
+        entryBox:setWidth(entryR - x)
         entryBox:setHeight(T.px(ENTRY_INPUT_H))
         curY = curY + T.px(ENTRY_INPUT_H) + T.sp.xs
     end
@@ -883,7 +886,9 @@ local function renderJournal(panel, win, x, y, w, h)
         M.drawBand(panel, outerX, by, outerW, _saveBandSpec)
         if saveBtn then
             local btnW, btnH = saveBtn:getWidth(), T.buttonH
-            local btnX, btnY = outerX + outerW - T.px(8) - btnW, by + T.px(5)
+            -- (an item card open over the tab: Save sits in the part it leaves showing, as the band's buttons do)
+            local _, roomR = M.bandRoom(panel, outerX, outerW, btnW + 2 * T.px(8))
+            local btnX, btnY = roomR - T.px(8) - btnW, by + T.px(5)
             if saveBtn:getX() ~= btnX or saveBtn:getY() ~= btnY then saveBtn:setX(btnX); saveBtn:setY(btnY) end
             -- S105 gamepad: stamp the save button's hit zone and mark it BEHIND the button's
             -- own render (the button is a drawer child, drawn after this panel, and

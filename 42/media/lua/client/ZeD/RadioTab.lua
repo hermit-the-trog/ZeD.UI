@@ -46,6 +46,7 @@ require "ZeD/TwoWayFace"
 require "ZeD/TwoWayFull"
 require "ZeD/RtvFace"
 require "ZeD/PlainFace"
+require "ZeD/WorldRoutes"
 
 ZeD = ZeD or {}
 ZeD.RadioTab = ZeD.RadioTab or {}
@@ -87,7 +88,17 @@ function ZeD.RadioTab.locationName(tag)
     if tag == "Secondary" then return ZeD.tr("UI_ZeD_Radio_LocSecondary") end
     if tag == "Back" then return ZeD.tr("UI_ZeD_Radio_LocBack") end
     if tag == "Floor" then return getText("ContextMenu_Floor") end
+    if tag == "Vehicle" then return getText("UI_optionscreen_binding_Vehicle") end   -- a car's device part (WorldRoutes.lua)
     return tag or ""
+end
+
+-- a radio's place in a tab list (by its owner: the item, the set or the part), nil when it is not there
+function ZeD.RadioTab.indexOf(list, dev)
+    if dev == nil then return nil end
+    for i, e in ipairs(list or {}) do
+        if e.radioInstance == dev then return i end
+    end
+    return nil
 end
 
 --- Scan the player's equipped slots for radios.
@@ -193,6 +204,9 @@ function ZeD.RadioTab.buildWorldRadios(playerObj)
     end
 
     table.sort(out, function(a, b) return a.distance < b.distance end)
+    -- (Nov 7 2026) a device a route opened the tab on (a TV across the room, a car's device part) stays on the
+    -- list while it is within the game's reach for its window (WorldRoutes.lua)
+    if ZeD.WorldRoutes and ZeD.WorldRoutes.addPinned then out = ZeD.WorldRoutes.addPinned(playerObj, out) end
     return out
 end
 
@@ -1280,6 +1294,12 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         return
     end
 
+    -- (Nov 7 2026) the tab stays on the radio it was opened on or browsed to while the list re-sorts by distance
+    if win._radioFollow then
+        local at = ZeD.RadioTab.indexOf(radios, win._radioFollow)
+        if at then win._radioIdx = at else win._radioFollow = nil end
+    end
+
     -- Clamp index defensively (window refresh may have shrunk the list mid-frame).
     local idx = win._radioIdx or 1
     if idx < 1 then idx = 1 end
@@ -1430,6 +1450,7 @@ local function _browsePrev(win)
     local idx = (win._radioIdx or 1) - 1
     if idx < 1 then idx = n end
     win._radioIdx = idx
+    win._radioFollow = win._radios[idx] and win._radios[idx].radioInstance or nil
     -- Cancel any pending preset-assign that was queued for the old radio.
     win._radioPresetAssignMode = false
 end
@@ -1440,6 +1461,7 @@ local function _browseNext(win)
     local idx = (win._radioIdx or 1) + 1
     if idx > n then idx = 1 end
     win._radioIdx = idx
+    win._radioFollow = win._radios[idx] and win._radios[idx].radioInstance or nil
     win._radioPresetAssignMode = false
 end
 
