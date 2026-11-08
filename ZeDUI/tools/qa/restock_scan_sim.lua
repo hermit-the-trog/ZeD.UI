@@ -7,11 +7,15 @@
 --     and taps, in the same order, as before; the getGridSquare calls are counted, before and after.
 --   What changes in the house: a container opened, the sink drained, the barrel filled, a crate placed (with the
 --     game's OnObjectAdded) or taken away (OnObjectAboutToBeRemoved), a crate placed with no event (seen once the
---     building is walked again, R.BUILDING_MS), force: the same as before at once.
+--     building is walked again, R.BUILDING_MS), a run's start (R.forgetBuildings): the same as before at once;
+--     the build menu, placed furniture and plumbing (wrapped) walk it again; the old buildings dropped.
+--   A Casual run's ticks at 20, 30 and 60 frames a second: the building is not walked every tick (getGridSquare and
+--     the walks counted; this part fails on 29c27bf4, where the run's forced plan walked it each tick).
+--   A clock gone back: the scan, the run tick and the home check carry on.
 --   The ticks by the clock: the home check (what you leave with) waits R.HOME_TICK_MS, not 30 frames.
 --   The Equip tab's fold, shut: the heading's ready count is the same words as before, and the plan (the walk) is
 --     no longer made for it; with the doll's ghosts reading the plan first, the count is the plan's.
--- Run from the repo root:  lua51 ZeDUI/tools/qa/restock_scan_sim.lua
+-- Run from the repo root:  lua51 ZeDUI/tools/qa/restock_scan_sim.lua   (or add a revision: the new code from git)
 -- It prints FAIL lines, the call counts, and a last line "restock_scan_sim: N checks, M failed"; exits 1 if any failed.
 
 local PRE = "7f17686e"   -- main before the fix
@@ -34,8 +38,8 @@ local function readFile(p)
     f:close()
     return s
 end
-local function gitShow(rel)
-    local cmd = 'git -C "' .. (ROOT == "" and "." or ROOT) .. '" show ' .. PRE .. ":" .. rel
+local function gitShowAt(rev, rel)
+    local cmd = 'git -C "' .. (ROOT == "" and "." or ROOT) .. '" show ' .. rev .. ":" .. rel
     local h = io.popen(cmd)
     if not h then return nil end
     local s = h:read("*a")
@@ -43,6 +47,7 @@ local function gitShow(rel)
     if not s or #s < 100 then return nil end
     return s
 end
+local function gitShow(rel) return gitShowAt(PRE, rel) end
 
 -- ---------------------------------------------------------------------------
 -- THE WORLD (shared by the old and the new code)
@@ -72,14 +77,15 @@ local function newObj(o)
     function o:getFluidAmount() return self.water or 0 end
     function o:isTaintedWater() return self.tainted == true end
     function o:getFluidContainer() if self.fluid then return {} end return nil end
-    function o:getUsesExternalWaterSource() return false end
+    function o:getUsesExternalWaterSource() return self.ext == true end
     function o:getName() return self.name or "" end
     function o:isLockedToCharacter() return self.locked == true end
     function o:isLockedByPadlock() return false end
     function o:getKeyId() return -1 end
     function o:getProperties()
-        local cn = self.custom
-        return { get = function(_, k) if k == "CustomName" then return cn end return nil end }
+        local cn, piped = self.custom, self.piped
+        return { get = function(_, k) if k == "CustomName" then return cn end return nil end,
+                 has = function(_, f) return f == "waterPiped" and piped == true end }
     end
     return o
 end
@@ -146,6 +152,10 @@ function P:getX() return self.x + 0.5 end
 function P:getY() return self.y + 0.5 end
 function P:getZ() return self.z end
 function P:isLocalPlayer() return true end
+function P:getStats() return { getNumVisibleZombies = function() return 0 end } end
+function P:getBodyDamage() return { getOverallBodyHealth = function() return 100 end } end
+function P:getInventoryWeight() return 1 end
+function P:getMaxWeight() return 20 end
 function P:getInventory()
     local inv = {}
     function inv.haveThisKeyId() return false end
@@ -179,7 +189,12 @@ local base = {
     getSpecificPlayer = function(n) if n == 0 then return P end return nil end,
     require = function() end,
     Events = setmetatable({}, { __index = function(t, k) local e = event(k); rawset(t, k, e); return e end }),
-    ISTimedActionQueue = { isPlayerDoingAction = function() return false end, clear = function() end },
+    ISTimedActionQueue = { isPlayerDoingAction = function() return false end, clear = function() end, getTimedActionQueue = function() return nil end },
+    IsoFlagType = { waterPiped = "waterPiped" },
+    -- the game's build, placing and plumbing (wrapped by the new code to walk the building again)
+    ISBuildIsoEntity = { create = function() return "built" end },
+    ISMoveableSpriteProps = { placeMoveable = function() return "placed" end },
+    ISPlumbItem = { complete = function() return true end, perform = function() end },
     JoypadState = { players = {} },
 }
 setmetatable(base, { __index = _G })
@@ -194,7 +209,9 @@ local function load(src, name, zed)
     return env
 end
 
-local newSrc = readFile(ZD .. "ZeD_Restock.lua")
+local NEWREV = arg and arg[1]
+local newSrc = NEWREV and gitShowAt(NEWREV, "42/media/lua/client/ZeD/ZeD_Restock.lua") or readFile(ZD .. "ZeD_Restock.lua")
+if NEWREV then print("   the new code from " .. NEWREV) end
 local oldSrc = gitShow("42/media/lua/client/ZeD/ZeD_Restock.lua")
 check("ZeD_Restock.lua found", newSrc ~= nil)
 check("the version before the fix found (git show " .. PRE .. ")", oldSrc ~= nil)
@@ -310,7 +327,7 @@ check("a crate placed with no event: not yet seen inside R.BUILDING_MS (the one 
 W.now = W.now + NEW.BUILDING_MS
 same("... seen once the building is walked again, as before")
 local quiet2 = put(BX + 13, BY + 7, 0, newObj({ conts = { newCont("crate") } }))
-step(); same("force: the building walked at once, as before", true)
+step(); NEW.forgetBuildings(); same("a run starts (R.forgetBuildings): the building walked at once, as before")
 check("R.BUILDING_MS is 10 seconds", NEW.BUILDING_MS == 10000, NEW.BUILDING_MS)
 -- outside the building: only what's in reach
 P.x, P.y = BX - 1, BY - 1
@@ -326,6 +343,124 @@ local g0 = W.gets
 NEW.scan(P)
 check("forget (a Casual run's tick) keeps the building's squares: no walk", W.gets - g0 < 100, W.gets - g0)
 local _ = quiet2
+
+-- ---------------------------------------------------------------------------
+section("built, placed, plumbed; the water a sink gets later")
+-- ---------------------------------------------------------------------------
+-- a dry sink the game marks waterPiped: water from outside comes later with no event (the building walked
+-- since): seen at once, as before
+local pipedSink = put(BX + 10, BY + 15, 0, newObj({ water = 0, custom = "Sink", piped = true }))
+step(); NEW.forgetBuildings(); same("a dry waterPiped sink: as before")
+pipedSink.water = 6
+step(); same("... its water comes: seen at once, as before")
+-- a dry sink plumbed (ISPlumbItem): it uses an outside source from then on
+local drySink = put(BX + 11, BY + 15, 0, newObj({ water = 0, custom = "Sink" }))
+step(); NEW.forgetBuildings(); same("a dry sink, not piped: as before")
+NEW.scan(P, true)
+check("a scan keeps a building", NEW.buildingsKept and NEW.buildingsKept() > 0)
+drySink.ext = true
+check("plumbing completes as the game's own (its return kept)", base.ISPlumbItem.complete({}) == true)
+check("plumbing walks the building again", NEW.buildingsKept and NEW.buildingsKept() == 0)
+step(); same("the plumbed sink, dry: as before")
+drySink.water = 3
+step(); same("... its water comes with no event: seen at once, as before")
+NEW.scan(P, true)
+check("the build menu's create as the game's own (its return kept)", base.ISBuildIsoEntity.create({}, 1, 2, 0) == "built")
+check("building walks the building again", NEW.buildingsKept and NEW.buildingsKept() == 0)
+NEW.scan(P, true)
+check("placing furniture as the game's own", base.ISMoveableSpriteProps.placeMoveable({}) == "placed")
+check("placing furniture walks the building again", NEW.buildingsKept and NEW.buildingsKept() == 0)
+local wrapped = base.ISPlumbItem.complete
+if NEW.wrapBuildHooks then NEW.wrapBuildHooks() end
+check("wrapped once (again at game start: no second wrap)", base.ISPlumbItem.complete == wrapped)
+local lateOrig = function() return "late" end
+base.ISBuildIsoEntity = { create = lateOrig }   -- (the build menu's file loads after this one)
+fire("OnGameStart")
+check("the build menu loaded later is wrapped at game start", base.ISBuildIsoEntity.create ~= lateOrig and base.ISBuildIsoEntity.create() == "late")
+
+-- ---------------------------------------------------------------------------
+section("a forced scan, the old buildings")
+-- ---------------------------------------------------------------------------
+step(); NEW.scan(P)
+local g1 = W.gets
+NEW.scan(P, true)
+check("force (a run's tick) looks again at the squares, never walks the building", W.gets - g1 < 100, W.gets - g1)
+-- six small houses away from here, one after another
+local smalls = {}
+for i = 1, 6 do
+    local sb, sd = {}, {}
+    local sx, sy = 400 + i * 10, 400
+    function sd:getX() return sx end
+    function sd:getY() return sy end
+    function sd:getX2() return sx + 3 end
+    function sd:getY2() return sy + 3 end
+    function sd:getMinLevel() return 0 end
+    function sd:getMaxLevel() return 0 end
+    function sb:getDef() return sd end
+    for yy = sy, sy + 2 do for xx = sx, sx + 2 do newSquare(xx, yy, 0, sb) end end
+    put(sx + 1, sy + 1, 0, newObj({ conts = { newCont("crate") } }))
+    smalls[i] = { x = sx + 1, y = sy }
+end
+for i = 1, 6 do
+    P.x, P.y, P.z = smalls[i].x, smalls[i].y, 0
+    step(); same("small house " .. i .. ": as before")
+end
+check("the last R.BUILDING_KEEP buildings kept, no more", NEW.buildingsKept and NEW.buildingsKept() <= 4, NEW.buildingsKept and NEW.buildingsKept())
+P.x, P.y, P.z = BX + 1, BY + 1, 0
+W.now = W.now + 61000
+same("a minute on, home again: as before")
+check("past a minute the others are dropped", NEW.buildingsKept and NEW.buildingsKept() == 1, NEW.buildingsKept and NEW.buildingsKept())
+
+-- ---------------------------------------------------------------------------
+section("a Casual run's ticks (20, 30, 60 frames a second)")
+-- ---------------------------------------------------------------------------
+-- The run's own plan is stubbed to the part that matters here: R.runJobs asks R.plan(p, { force = true }),
+-- which scans with force; one job out of reach keeps the run waiting while you walk a step a second.
+local realPlan = NEW.plan
+local plans = 0
+NEW.plan = function(p, opts)
+    plans = plans + 1
+    local sc = NEW.scan(p, opts.force)
+    local farSq = W.sq[key(BX + 17, BY + 17, 0)]
+    return { jobs = { { kind = "take", item = { getID = function() return 1 end }, sq = farSq } }, scan = sc, count = {}, rows = {} }
+end
+local SECS = 30
+local function casual(fps, back)
+    local run = { pn = 0, mode = "casual", kind = "restock", acts = {}, z0 = 0, hp0 = 100, tried = {}, list = "" }
+    NEW.runs[0] = run
+    P.x, P.y, P.z = BX + 1, BY + 1, 0
+    if NEW.forgetBuildings then NEW.forgetBuildings() end   -- (the run's start)
+    local g0, w0, p0 = W.gets, NEW.walks or 0, plans
+    local t0 = W.now
+    local pAt = nil
+    for i = 1, SECS * fps do
+        W.now = t0 + math.floor(i * 1000 / fps)
+        if back and i > SECS * fps / 2 then
+            W.now = W.now - 60000   -- (the clock goes back half way)
+            pAt = pAt or plans
+        end
+        if i % fps == 0 then P.x = BX + 1 + (i / fps) % 12 end
+        NEW._onTick()
+    end
+    NEW.runs[0] = nil
+    local pHalf = pAt and (plans - pAt) or 0
+    W.now = t0 + SECS * 1000
+    return W.gets - g0, (NEW.walks or 0) - w0, plans - p0, run, pHalf
+end
+for _, fps in ipairs({ 20, 30, 60 }) do
+    local gets, walks, ticks, run = casual(fps)
+    print(string.format("   Casual run, %d s at %d fps: %d run ticks, %d building walks, getGridSquare %d", SECS, fps, ticks, walks, gets))
+    check(fps .. " fps: the run kept going (no error)", not run.done, run.stopped)
+    local every = math.ceil(167 / (1000 / fps))   -- (frames between run ticks)
+    check(fps .. " fps: the run ticked every R.RUN_TICK_MS (the first frame past it)", ticks >= math.floor(SECS * fps / every) - 1, ticks)
+    -- a walk of this house is ~1,000 getGridSquare; a tick without one ~40
+    local budget = ticks * 60 + (SECS / 10 + 2) * 1100
+    check(fps .. " fps: no building walk per tick (getGridSquare within " .. budget .. ")", gets <= budget, gets)
+    check(fps .. " fps: the building walked at the start and every R.BUILDING_MS only", NEW.walks ~= nil and walks <= SECS / 10 + 1, walks)
+end
+local _, _, _, _, pBack = casual(60, true)
+check("a clock gone back: the run still ticks", pBack > 0, pBack)
+NEW.plan = realPlan
 
 -- ---------------------------------------------------------------------------
 section("the ticks by the clock")
