@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MailStore.lua
 -- ============================================================================
--- MAIL ON THIS COMPUTER (punch list 104). The copy the desk reads at the main menu, where no server can be reached:
+-- MAIL ON THIS COMPUTER. The copy the desk reads at the main menu, where no server can be reached:
 -- one mailbox for each server and username this computer has dialed in to, each with its Inbox (letters handed over),
 -- Outbox (letters written and not sent yet: they go at the next join) and Sent. ZeD_Mail.lua fills it in game;
 -- ZeD_MainMenuMail.lua reads it and writes to the outbox at the desk. No drawing here.

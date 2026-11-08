@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuWorkshop.lua
 -- ============================================================================
--- UPLOADING YOUR MODS (HOOK_MAP row 26; director, Oct 16 2026: "make it easier
--- to upload mods to the workshop"; mockup zed_mod_manager_v1, "boogie!")
+-- UPLOADING YOUR MODS: the Workshop-upload screen, one page instead of
+-- vanilla's wizard. Client-side; an organism.
 --
 -- Vanilla's eight-page wizard (WorkshopSubmitScreen) as one ZeD window on the
 -- monitor, on the game's own SteamWorkshopItem: your folders in
@@ -16,8 +16,7 @@
 -- Vanilla's workshopSubmit:setVisible(true) is redirected here.
 -- The folder picked last, and each folder's change note until it goes up, are
 -- kept in Zomboid/Lua/ZeD_workshop.txt (workshop.txt has no change note, so
--- vanilla's is lost when the game closes; director, Oct 24 2026: "set it up so
--- I can just press upload").
+-- vanilla's is lost when the game closes).
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -145,7 +144,7 @@ function ZeD_MMWorkshop:item() return self.items[self.sel] end
 -- The room for our description: the game adds its own lines when it sends it
 -- (SteamWorkshopItem.getSubmitDescription: a blank line, "Workshop ID: <id>", a "Mod ID:"
 -- line per mod, a "Map Folder:" line per map), and Steam refuses the whole update past 8,000
--- (Oct 25 2026: 7,976 + 58 went over, and Steam answered 8, an invalid field).
+-- (7,976 of ours + 58 of its went over, and Steam answered 8, an invalid field).
 function ZeD_MMWorkshop:descRoom()
     local it = self:item()
     local extra = 0
@@ -180,7 +179,7 @@ end
 
 -- The preview picture's texture, looked up again with each folder check instead of every frame.
 -- The game remembers a texture name that was not there, under that exact spelling, for the rest of
--- the session (QA, Oct 23 2026: a preview.png added while the window was open stayed "no picture"),
+-- the session (a preview.png added while the window was open stayed "no picture"),
 -- so a picture that is still missing is asked for under a fresh spelling of the same path
 -- (a "\.\" in it), a new name each time, up to PV_TRIES.
 local PV_TRIES = 120
@@ -203,7 +202,7 @@ function ZeD_MMWorkshop:checkPreview(it)
 end
 
 -- What goes up, read from the folder on disk (vanilla's validateContents). Touches nothing in the
--- form: it runs on a pick and again whenever the folder may have changed (Oct 23 2026: a Contents
+-- form: it runs on a pick and again whenever the folder may have changed (a Contents
 -- folder made while the window was open kept reading "no Contents folder" until the item was
 -- picked again, and picking again reloads the form from the item and drops unsaved edits).
 function ZeD_MMWorkshop:checkContents()
@@ -215,7 +214,7 @@ function ZeD_MMWorkshop:checkContents()
     if not it then return end
     local ok, err = pcall(function() return it:validateContents() end)
     self._checkCost = MM.now() - t0   -- (a big Contents folder takes longer to walk: the timer backs off)
-    -- (Oct 22 2026: was `ok and (err or false) or tostring(err)`, which turns a clean folder's
+    -- (was `ok and (err or false) or tostring(err)`, which turns a clean folder's
     -- false into the text "nil": every valid folder read "nil" under WHAT GOES UP and could not upload)
     if ok then self.contents = err or false else self.contents = tostring(err) end
     if self.contents and ok then   -- vanilla's own words for the code (UI_WorkshopError_*)
@@ -323,12 +322,12 @@ function ZeD_MMWorkshop:back()
     MM.showView("main")
 end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { leave = "confirm:cancel", upload = "confirm:no" }
 function ZeD_MMWorkshop:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self._backFocus
@@ -744,7 +743,7 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
                 self.unsaved = {}; self:setConfirm(false); MM.showView("main") end, "primary" } },
             ZeD.tr("UI_ZeD_Workshop_AskSave"))
     else
-        -- (Oct 22 2026: was `it and self:blocker() or ...`, which read "Nothing to upload" whenever
+        -- (was `it and self:blocker() or ...`, which read "Nothing to upload" whenever
         -- nothing blocked the folder, so Upload never lit)
         local block
         if it then block = self:blocker() else block = ZeD.tr("UI_ZeD_Workshop_NothingToUpload") end

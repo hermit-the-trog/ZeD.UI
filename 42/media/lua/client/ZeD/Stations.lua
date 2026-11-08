@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Stations.lua
 -- ============================================================================
--- CRAFTING STATIONS — HOOK_MAP rows 1 and 14
+-- CRAFTING STATIONS (client) — discovery, binding and shared station chrome.
 -- The World window's Craft tab works at a station as well as by hand. This
 -- module owns the station side of that:
 --   * discovery  — every usable station within reach of the player: craft
@@ -13,9 +13,9 @@
 --                  when the tab goes back to Hand, the player walks away, gets
 --                  in a vehicle, or the World window closes;
 --   * drawing    — the STATION selector, its dropdown and the station band.
--- The bound views live in CraftingTab (benches), StationMachine (racks) and
--- StationAppliance (oven, microwave). Vanilla entry points are routed here by
--- Overrides/Stations.lua.
+-- The bound views live in CraftingTab (benches), StationMachine (racks),
+-- StationAppliance (oven, microwave) and StationGeneral (a mod's other
+-- stations). Vanilla entry points are routed here by Overrides/Stations.lua.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -53,11 +53,11 @@ ST.isEntityKind = isEntityKind
 -- ----------------------------------------------------------------------------
 -- CLASSIFY — what kind of station an object is, and its working component.
 -- ----------------------------------------------------------------------------
--- general (vanilla windows B15, Nov 7 2026): an entity the game opens its station window for (ISEntityUI.OpenWindow)
+-- general: an entity the game opens its station window for (ISEntityUI.OpenWindow)
 -- that is none of these is a "general" station, its working part the first cycle logic it has (FurnaceLogic,
 -- MashingLogic), or none (a tank, a store). Only the open route asks for it: the nearby scan and the STATION list
 -- keep to the kinds ZeD has known views for, so every barrel in reach does not join the list.
--- the game's own entities that open its station window (the review, Nov 7 2026): they keep what opened before
+-- The game's own few entities that open its station window keep what opened before; only a mod's land in general.
 local VANILLA_ENTITY = { butcherhook = true, logbench = true, logstool = true, logtable = true, otherlogstool = true }
 local function squash(s) return string.lower((tostring(s or "")):gsub("[%s_%-]", "")) end
 -- a mod's entity: its script names a mod that is not the game's, and it is none of the game's own above. Anything
@@ -132,7 +132,7 @@ function ST.iconOf(obj, kind)
     return nil
 end
 
-ST.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+ST.DOT = "|"   -- the separator between facts on one line: ZeD's pipe, never a middle dot
 
 -- the keys of the kind words on the station band (translated where they are drawn)
 local KIND_LABEL = { bench = "UI_ZeD_Station_KindBench", machine = "UI_ZeD_Station_KindMachine",
@@ -512,8 +512,8 @@ function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hover
     local arrowSz = T.px(5)
     local arrowX = x + w - arrowSz - T.sp.inputPadX
     local vf = T.fontF2
-    -- the label goes when the label and the value do not fit together: the value wins (Oct 31
-    -- 2026, break-it B2: at UI scale 2.0 with Large text Craft's box read "Station ..")
+    -- the label goes when the label and the value do not fit together: the value
+    -- wins (at UI scale 2.0 with Large text the box once read "Station ..")
     if label and label ~= "" then
         local s = A.textCase(label)
         local lw = tm:MeasureStringX(lf, s) + T.px(6)
@@ -744,7 +744,7 @@ end
 
 function ST.dropdownWheel(state, del)
     local ms = state._stRows and ST.dropdownMaxScroll(state._stRows) or 0
-    -- PZ: positive del = scroll down (Q5)
+    -- PZ: positive del = scroll down
     state.stDropdownScroll = math.max(0, math.min(ms, (state.stDropdownScroll or 0) + (del > 0 and 1 or -1)))
     return true
 end

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuWorld.lua
 -- ============================================================================
--- WORLD SELECT ON THE MONITOR (VANILLA_WINDOWS_20261107.md A3; the director,
--- Nov 7 2026: every vanilla window replaced)
+-- WORLD SELECT ON THE MONITOR: New Game's which-world step. Client-side; an
+-- organism.
 --
 -- When map mods make more than one map group, vanilla's New Game asks which
 -- world to play (WorldSelect: New Game > Sandbox > Next, and Sandbox's Back

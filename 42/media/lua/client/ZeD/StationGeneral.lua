@@ -1,12 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StationGeneral.lua
 -- ============================================================================
--- GENERAL STATION VIEW — the Craft tab bound to a station ZeD has no view of
--- its own for (vanilla windows B15, Nov 7 2026; HOOK_MAP row 1)
--- Benches (StationMachine's sibling CraftingTab), drying racks and any other
--- plain craft machine (StationMachine) and ovens (StationAppliance) have their
--- views. Anything else the game's ISEntityUI.OpenWindow would open (in 42.22
--- only mods add these: a furnace or mashing logic, a tank, a store of items)
--- lands here, read from the components the entity has:
+-- GENERAL STATION VIEW (client) — the Craft tab bound to a station ZeD has no
+-- view of its own for.
+-- Benches (CraftingTab), drying racks and any other plain craft machine
+-- (StationMachine) and ovens (StationAppliance) have their views. Anything
+-- else the game's ISEntityUI.OpenWindow would open (in 42.22 only mods add
+-- these: a furnace or mashing logic, a tank, a store of items) lands here,
+-- read from the components the entity has:
 --   * a logic with a cycle (FurnaceLogic, MashingLogic, any component with
 --     isRunning / canStart / start / stop / getProgress / getCurrentRecipe /
 --     getPossibleRecipe): the recipe line, Start or Stop through the game's
@@ -18,7 +18,7 @@
 --   * From your bags: what the station's item inputs accept (Resource
 --     acceptsItem), each kind with Add (ISItemSlotAddAction).
 -- Every call is asked by name under pcall (ST.call), so a mod's component that
--- lacks one simply leaves that part out.
+-- lacks one leaves that part out.
 -- ============================================================================
 
 require "ZeD/Stations"
@@ -29,7 +29,7 @@ local SG = ZeD.StationGeneral
 local ST = ZeD.Stations
 local call = ST.call
 
-local PAD, ROW_H, REFRESH = 10, 24, 20
+local PAD, ROW_H, REFRESH = 10, 24, 20   -- body padding and row height (design px); frames between snapshots
 
 local function texOf(item) return call(item, "getTex") or call(item, "getNormalTexture") end
 local function nameOf(item) return call(item, "getDisplayName") or call(item, "getName") or "?" end
@@ -52,7 +52,7 @@ local function amount(v)
     return string.format("%.1f", v)
 end
 
--- Snapshot of the station: the logic's cycle, each resource, what the bags hold for the inputs.
+--- Snapshot of the station: the logic's cycle, each resource, what the bags hold for the inputs.
 local function gather(st, player)
     local d = { res = {}, bag = {} }
     local logic = st.comp
@@ -181,7 +181,8 @@ local function kindWord(e)
     return nil
 end
 
--- the body's rows, in order (each { kind, h, ... }): measured once, drawn once
+--- The body's rows in draw order (each { kind, e?, g? }). One list serves both
+--- the height measure and the draw.
 local function rows(d)
     local out = {}
     if d.logic then
@@ -209,6 +210,9 @@ local function rows(d)
 end
 SG.rows = rows
 
+--- The view's whole frame: station header, the scrolling row body, the
+--- dropdown overlay last. CraftingTab hands the tab over while a general
+--- station is bound.
 function SG.render(panel, win, x, y, w, h, state, st)
     local T, A, M, tm = ZeD.T, ZeD.Atoms, ZeD.Molecules, ZeD.TM
     local player = win._playerObj
@@ -331,6 +335,7 @@ end
 -- ----------------------------------------------------------------------------
 local function hit(z, x, y) return x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 
+--- Run a hit zone's action: take, add, or start / stop the cycle.
 local function activate(player, st, z)
     if z.type == "gTake" then SG.take(player, st, z.res, z.group)
     elseif z.type == "gAdd" then SG.add(player, st, z.group)
@@ -340,6 +345,8 @@ local function activate(player, st, z)
 end
 SG.activate = activate
 
+--- A left click in the view: the header (select, open dropdown) first, then
+--- the zones. Always handled — nothing falls through to the tab under it.
 function SG.onClick(win, state, st, x, y)
     local player = win._playerObj
     if ST.viewHeaderClick(state, player, x, y) then return true end
@@ -358,6 +365,8 @@ function SG.onMouseWheel(win, state, st, del, x, y)
     return true
 end
 
+--- The controller's elements for this frame: the station select, then every
+--- enabled zone, each activating as a click would.
 function SG.buildFocusables(win, state, st)
     if state.stDropdownOpen then return ST.dropdownFocusables(state, win._playerObj, "craft") end
     local out = {}
@@ -376,6 +385,7 @@ function SG.buildFocusables(win, state, st)
     return out
 end
 
+--- Rebuild focusables when the station's contents change shape.
 function SG.focusKey(win, state, st)
     local d = st._gd
     if not d then return "g" end

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_AdminUsers.lua
 -- ============================================================================
--- THE USERS CARDS (ZeDUI/VANILLA_WINDOWS_20261107.md, C9; the director, Nov 7: every admin tool becomes a ZeD card). They
+-- THE USERS CARDS. Client-only; the rule that every admin tool becomes a ZeD card, applied to accounts. They
 -- take over the game's Users List (ISUsersList) and the windows it opens. The Admin tab's Users row opens:
 --   Users     Find with Online only, the count, every account a row (name, role, last seen or online, warning points), pages;
 --             Add user below; a row for the game's banned IPs and Steam IDs, which the Bans card already holds
@@ -179,11 +179,11 @@ function U.act(kind, r, reason)
     return ok
 end
 
--- THE BANS ON AN ACCOUNT (the director, Nov 7: one record for every ban). With ZeD's server part a ban by IP or by Steam ID is
+-- THE BANS ON AN ACCOUNT: one record for every ban. With ZeD's server part a ban by IP or by Steam ID is
 -- ZeD's ban of that kind, as the Bans card and the Player card make it: a reason, a length, a row in ZeD's Bans list, and the
 -- game's ban owed by the server (a_ban, a_owed). By IP: ZeD's ban on the name with its IP (M.ban, banIp). By Steam ID: the
--- account's own Steam ID from the game's user list, which counts as typed by staff (MP_SERVER_PART_DESIGN.md, the rules that
--- hold, item 4), so the game is given it (M.banTyped). Without the server part: the game's own calls, as before.
+-- account's own Steam ID from the game's user list, which counts as typed by staff,
+-- so the game is given it (M.banTyped). Without the server part: the game's own calls alone.
 function U.ban(kind, r, reason, len, cb)
     if M.live() then
         if kind == "banip" then M.ban(r.user, reason, len, true, cb) else M.banTyped(r.sid, reason, len, cb) end
@@ -503,7 +503,7 @@ function P.userItems(win, st, t, card, r)
     if card.open == "pass" then
         B.sub(items, tr("UI_ZeD_Adm_PassLine", r.user))
         F.field(items, "upass", 1, tr("UI_ZeD_Adm_PassHint"), true, NAME_MAX)
-        items[#items].mask = true      -- (starred, safe on a stream: the director, Nov 7)
+        items[#items].mask = true      -- (starred, so a password is safe on a stream)
         -- (Cancel here, not in the foot: Set password alone there fits the narrowest card)
         F.flow(items, { { id = "upcancel", text = getText("UI_Cancel"), help = tr("UI_ZeD_Adm_HelpKeepUser"), run = function(ww) P.closePass(ww, st, card) end } })
     else
@@ -579,7 +579,7 @@ TC.kinds.user = {
     data = function(card) return U.row(card.user) end,
     tick = function(win)
         U.watch()
-        -- the password box stars what is typed (the game's own UITextBox2.setMasked, javap). The box is made on its first
+        -- the password box stars what is typed (the Java side's own UITextBox2.setMasked). The box is made on its first
         -- draw, so this looks each frame until it is set
         local inner = D.fieldInner(D.fieldOf(win, "upass"))
         if inner and not inner._zedMasked then

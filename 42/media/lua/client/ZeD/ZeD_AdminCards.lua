@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_AdminCards.lua
 -- ============================================================================
--- THE ADMIN CARDS (ZeDUI/MP_ADMIN_SCOPE.md, Phase 2; the drawing is mockups/zed_admin_tools_v1.html). Drawing and input
+-- THE ADMIN CARDS: the staff side of the World window's Admin tab. Client-only. Drawing and input
 -- only: ZeD_Admin.lua is the model. The cards run on the ticket cards' engine (ZeD_TicketCards.lua): the back bar, the
 -- scroll, the fields, the foot and its confirm swap, the pad stops and the help band are all that file's.
 --   the Admin tab's list   AC.homeItems: Tickets, Players, Admin powers, Server message, Roles, Bans, Spawn items
@@ -42,7 +42,7 @@ local AL = Adm.L
 local SPAWN_PAGE = 20                 -- items in one page of the spawn card
 local SWATCH = 22                     -- design units
 local ROW_V, GAP = 6, 6
-local COLORS = {                      -- the drawing's ten, for a role's name and tag
+local COLORS = {                      -- the ten colors a role may be given, for its name and tag
     { 0.83, 0.83, 0.85 }, { 0.48, 0.48, 0.48 }, { 0.31, 0.53, 0.78 }, { 0.25, 0.65, 0.60 }, { 0.35, 0.60, 0.29 },
     { 0.77, 0.69, 0.25 }, { 0.83, 0.57, 0.16 }, { 0.77, 0.56, 0.25 }, { 0.77, 0.25, 0.25 }, { 0.60, 0.42, 0.77 },
 }
@@ -56,7 +56,7 @@ local function px(n) return ZeD.T.px(n) end
 -- ---------------------------------------------------------------------------
 -- SMALL PARTS
 -- ---------------------------------------------------------------------------
--- the role as a tag in its own color, as drawn; a tag never by color alone: it holds the role's name
+-- the role as a tag in its own color; never by color alone: the tag holds the role's name
 local _tag = { keepCase = true }
 function F.roleColor(name)
     local r = M.role(name)
@@ -535,7 +535,7 @@ function AC.leaveLines(info)
     return out
 end
 
--- the screen a banned client shows. Phase 5 sets M.leaveScreen, which fills in the appeal line and calls this. It covers the
+-- the screen a banned client shows. ZeD_CommunityCards.lua sets M.leaveScreen, which fills in the appeal line and comes back here. It covers the
 -- game, the words wrap, and Leave ends it early; the model's clock ends it anyway.
 ZeD_LeaveScreen = ISPanel:derive("ZeD_LeaveScreen")
 
@@ -724,7 +724,7 @@ function P.message(out, win, st, t)
     end
 end
 
--- the list above Safehouses, Factions and More tools, as drawn. Rebuilt when the model changes
+-- the list above Safehouses, Factions and More tools (AdminTab.lua draws those). Rebuilt when the model changes
 function AC.homeItems(out, win, st, p)
     local t = TC.qaState(st)
     local me = M.me()
@@ -764,7 +764,7 @@ function AC.homeItems(out, win, st, p)
         P.summary(L, "sum:bans", tr("UI_ZeD_Adm_BansSum"), nil, "BanUnbanUser", function(ww) AC.openBans(ww, st) end)
         L[#L + 1] = { k = "head", text = tr("UI_ZeD_Adm_Spawn") }
         P.summary(L, "sum:spawn", tr("UI_ZeD_Adm_SpawnSum"), nil, "AddItem", function(ww) AC.openSpawn(ww, st) end)
-        -- RULES AND NEWS (Phase 5: ZeD_CommunityCards.lua, on a server with that part), then SERVER EXTRAS (ZeD_ExtrasCards.lua)
+        -- RULES AND NEWS (ZeD_CommunityCards.lua, on a server with that part), then SERVER EXTRAS (ZeD_ExtrasCards.lua)
         if AC.homeExtra then AC.homeExtra(L, win, st) end
         if AC.extrasHome then AC.extrasHome(L, win, st) end
         for _, it in ipairs(L) do it.win = win end
@@ -775,7 +775,7 @@ end
 
 function AC.homeHelp() return tr("UI_ZeD_Adm_HelpHome") end
 
--- the head of the tab, as drawn: your own role, in its color
+-- the head of the tab: your own role, in its color
 function AC.drawYou(panel, x, y, w, h)
     local T = ZeD.T
     local name = M.myRoleName()
@@ -796,7 +796,7 @@ end
 
 -- once a frame on the tab, card or list
 function AC.frame(win, st)
-    if M.openPlayerNext then           -- (chat's Player card)
+    if M.openPlayerNext then           -- (chat or the main menu's player list asked for a Player card)
         local user = M.openPlayerNext
         M.openPlayerNext = nil
         st.card, st.screen = nil, nil
@@ -841,10 +841,10 @@ function P.rolePick(win, st, card, row, view, self)
         return { label = tr("UI_ZeD_Adm_Role"), value = tr("UI_ZeD_Adm_OwnRole", name or "user") }
     end
     -- (closed with no role on the record: the power's sentence as plain text that wraps, like the Status row; in a
-    -- one-line box it ran past the card's edge at 1280x800, QA Nov 7 2026. The box was grayed and refused anyway.)
+    -- one-line box it ran past the card's edge at 1280x800, and the box was grayed and refused anyway.)
     if closed then return { label = tr("UI_ZeD_Adm_Role"), value = M.why("SeeNetworkUsers") } end
     local c = F.gate({ id = "role", box = true, text = card.newRole or name or M.why("SeeNetworkUsers"), help = tr("UI_ZeD_Adm_HelpRolePick") }, "ChangeAccessLevel", function()
-        -- (closed: an account that is off takes the game's power for every account, the director's ruling; with no role
+        -- (closed: an account that is off takes the game's power for every account; with no role
         -- to read, the confirm could not say what they lose, and the server refuses it too)
         if view and view.closed then return M.why("SeeNetworkUsers") end
         if not M.can("ModifyNetworkUsers") then return M.why("ModifyNetworkUsers") end
@@ -908,7 +908,7 @@ function P.notOn(user, on)
 end
 
 -- the card's own line under its acts: the last press's answer, or why a gray one is gray. The help band says it too, but
--- that is where hover already said it, so a press read as doing nothing (the outside review of beta 7, Mute on tjk's card)
+-- hover already said it there, so a press that spoke only in the band read as doing nothing
 function P.say(card, text)
     card.said = text
     M.bump()
@@ -941,7 +941,7 @@ function P.acts(items, win, st, card, row, view, t)
     local on = isOn() and true or false
     local muteWord = live and (muted and "UI_ZeD_Adm_Unmuted" or "UI_ZeD_Adm_Muted") or (muted and "UI_ZeD_Adm_VoiceUnmuted" or "UI_ZeD_Adm_VoiceMuted")
     -- with the server part the mute is its list of names, which holds an account that is off as well (a_mute asks nothing of
-    -- them being on), so Mute works on tjk and says so; the game's voice ban needs them on, so it is left for when they are.
+    -- them being on), so Mute works on someone who is off and says so; the game's voice ban needs them on, so it is left for when they are.
     -- Without the part Mute is the game's voice ban alone, which finds only a player who is on: gray, saying that
     local muteHelp = (live and not on and not muted) and tr("UI_ZeD_Adm_HelpMuteOff", user) or tr(live and "UI_ZeD_Adm_HelpMute" or "UI_ZeD_Adm_HelpMuteVoice")
     ctls[3] = F.gate({ id = "mute", text = getText(muted and "UI_Scoreboard_Unmute" or "UI_Scoreboard_Mute"), help = muteHelp,
@@ -1758,9 +1758,9 @@ function AC.openSpawn(win, st)
     t.spawnGen = (t.spawnGen or 0) + 1
 end
 
--- "1 x Axe to you" / "to the ground" / "to lootdrop99": base is the key for a player ("%1 x %2 to %3"); you and the
+-- "1 x Axe to you" / "to the ground" / "to <name>": base is the key for a player ("%1 x %2 to %3"); you and the
 -- ground have whole sentences of their own (P.SPAWN_KEYS), never a pronoun glued in for %3, so each language gives
--- them its own preposition and case (German: "an dich", "auf den Boden", "an lootdrop99"). The keys are written out
+-- them its own preposition and case (German: "an dich", "auf den Boden", "an <Name>"). The keys are written out
 -- whole so the translation guard can find them.
 P.SPAWN_KEYS = {
     UI_ZeD_Adm_SpawnLine = { me = "UI_ZeD_Adm_SpawnLineMe", ground = "UI_ZeD_Adm_SpawnLineGround" },

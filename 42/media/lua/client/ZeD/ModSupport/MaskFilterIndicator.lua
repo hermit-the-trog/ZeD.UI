@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/MaskFilterIndicator.lua
 -- ============================================================================
 -- SUPPORT FOR MASK FILTER INDICATOR (mod id MaskFilterIndicator, Workshop
--- 3832759095, by movinow). Nov 7 2026.
+-- 3832759095). Client.
 --
 -- While a gas mask, a respirator, an improvised mask or an SCBA (oxygen tank)
 -- is worn, the mod shows a strip above the game's hotbar (MaskFilterIndicatorHUD;
@@ -34,7 +34,7 @@
 -- with nothing fitted, as the mod shows its strip. The box follows the belt: it
 -- shows where the belt does. In a vehicle the belt is hidden and ZeD's dash
 -- replaces the game's (where the mod put its strip), so the mask goes on the
--- dash (the director, Nov 7 2026), through the dash's general hook
+-- dash, through the dash's general hook
 -- ZeD.Dashboard.addExtra, the same reading and the same Alert option:
 --   * the simple dash: one item in its Readouts row, "Gas Mask: 64% left |
 --     spares: 2" (the hint's words);

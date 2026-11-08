@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_DeskNotes.lua
 -- ============================================================================
--- THE DESK'S NOTES, THE MODEL (punch list 104; the director, Nov 7 2026). No drawing: the sticky note on the
+-- THE DESK'S NOTES, THE MODEL. Client, no drawing of its own: the sticky note on the
 -- desktop and the CletusWorks Notepad (ZeD_MainMenuNotes.lua) read this and call it.
 --
 -- Everything is a plain file under Zomboid/Lua, the way ZeD keeps its own files (getFileWriter / getFileReader are

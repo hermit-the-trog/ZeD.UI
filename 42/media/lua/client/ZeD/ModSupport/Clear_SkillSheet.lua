@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/Clear_SkillSheet.lua
 -- ============================================================================
--- SUPPORT FOR CLEAR SKILL SHEET (mod id Clear_SkillSheet, Workshop 3834856444,
--- by m4as). Written Nov 7 2026 from the mod's own code (compatibility round 6:
--- the director picked it for support).
+-- SUPPORT FOR CLEAR SKILL SHEET (mod id Clear_SkillSheet, Workshop 3834856444).
+-- Client.
 --
 -- What the mod does: it redraws the game's skills page (it replaces the
 -- methods of ISCharacterInfo, the game's Skills view, at load time) as two
@@ -20,8 +19,8 @@
 -- (ten segments) and the XP of the level in the help line and the row's card.
 -- What it did not show is the rate and the book multiplier, so this file adds
 -- them through the tab's general hook (ZeD.SkillsTab.addExtras):
---   * a row tag beside ZeD's boost tag (left of it; the director, Nov 7 2026:
---     beside it, not in its place): "XP x1.33" with the mod's color as the
+--   * a row tag beside ZeD's boost tag (left of it — beside it, never in its
+--     place): "XP x1.33" with the mod's color as the
 --     tag's square (a status square, the words in default ink), and ", book x3"
 --     while a skill book's multiplier runs. Rows learning below x1 with no
 --     boost and no book get no tag. Fitness, Strength and Sprinting never learn
@@ -42,6 +41,7 @@
 
 local MOD_ID = "Clear_SkillSheet"
 
+-- Is the mod on? An id from getActivatedMods() can carry a leading backslash.
 local function modOn()
     local list = getActivatedMods and getActivatedMods()
     if not list then return false end
@@ -187,5 +187,5 @@ function X.cardLines(char, perk, skill)
     return lines
 end
 
-S.X = X   -- (the QA scripts drive it)
+S.X = X   -- (exposed so the QA scripts can reach the extras)
 ZeD.SkillsTab.addExtras(MOD_ID, X)

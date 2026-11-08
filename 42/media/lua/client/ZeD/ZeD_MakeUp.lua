@@ -1,8 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MakeUp.lua
 -- ============================================================================
--- MAKE-UP — a part of the Identity tab's Hair and beard section (vanilla
--- windows B9; the director, Nov 7 2026: "Makeup is supposed to go with the
--- hair"). The game's make-up window (ISMakeUpUI, from an inventory make-up
+-- MAKE-UP — a part of the Identity tab's Hair and beard section: make-up
+-- goes with the hair, not in a window of its own. Client-side; the rows and
+-- rules only (ZeD_HairBeard.lua draws them).
+-- The game's make-up window (ISMakeUpUI, from an inventory make-up
 -- item's Make Up option) is replaced by a third part beside Hair and Beard
 -- (ZeD_HairBeard.lua draws it with the same rows, figures, Now and After): the
 -- spots the make-up carried can do (the game's MakeUpDefinitions: each spot by

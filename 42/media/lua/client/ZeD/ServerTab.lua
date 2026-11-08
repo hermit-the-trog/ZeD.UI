@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ServerTab.lua
 -- ============================================================================
--- THE SERVER TAB (the director's multiplayer decisions, Nov 5 2026: ZeDUI/MP_DECISIONS.md, section 1)
--- "You on this server", in the Character window, only on a server (in single player the tab is not there):
+-- THE SERVER TAB — client; a Character window tab.
+-- "You on this server", only on a server (in single player the tab is not there):
 --   SERVER     the server's name, the message of the day and The rules (a row that opens their card, ZeD_CommunityCards.lua, on
 --              a server with that part), the players on it, your role; the server options to read (a card: OPTIONS below)
 --   PVP        while the server's safety system is on: PvP on or off, the seconds left while it switches, a
@@ -12,13 +12,13 @@
 --   EXTRAS     this server's extras in plain words, and your vehicle claims (ZeD_ExtrasCards.lua), with the server part
 --   TICKETS    after the Server block, as drawn: N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and
 --              its two cards, Ask the admins and my ticket, pushed on top of this list behind st.card)
---   MAIL       on a server that keeps mail: the dial-in, Inbox, Write a letter (ZeD_MailCards.lua, punch list 104)
+--   MAIL       on a server that keeps mail: the dial-in, Inbox, Write a letter (ZeD_MailCards.lua)
 --   FACTION    yours as a row that opens its card; or Create Faction where the server allows
 --   SAFEHOUSE  yours as a row that opens its card; or Can I claim this?, the server's rules and Claim Safehouse
 --   WARS       on a server with wars: a row that opens their card
 -- The game's user panel (ISUserPanelUI) is a set of buttons that open windows; this tab and its cards replace those for
 -- players. Faction, safehouse and wars are ZeD_ClaimCards.lua, on the same frame as the ticket cards. Wording is the game's
--- own (MP_DECISIONS.md, section 6).
+-- own wherever the game has a word for it.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -153,7 +153,7 @@ local function line(L, text) add(L, { k = "line", text = text }) end
 local function btn(L, id, text, help, disabled) add(L, { k = "btn", id = id, text = S.btnWords(text), help = help, disabled = disabled }) end
 
 -- ---------------------------------------------------------------------------
--- OPTIONS (ZeDUI/VANILLA_WINDOWS_20261107.md, C2): the server's options to read, a card on the tab's frame in place of the
+-- OPTIONS: the server's options to read, a card on the tab's frame in place of the
 -- game's ISServerOptions. The game's own list: ServerOptions:getPublicOptions(), by name as its window sorts them, each
 -- value as its window shows it (an enum's own words; on and off as the game's Yes and No). Staff who may change options
 -- (ChangeAndReloadServerOptions) get the game's own window from the card's foot: changing stays the game's.
@@ -319,7 +319,7 @@ local function build(p, win, st)
     -- TICKETS
     local function btnItem(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end
     ZeD.TicketCards.playerItems(L, win, st, btnItem)
-    -- MAIL (punch list 104), on a server that keeps it
+    -- MAIL, on a server that keeps it
     if ZeD.MailCards then ZeD.MailCards.serverItems(L, win, st) end
     -- FACTION, SAFEHOUSE, WARS
     ZeD.ClaimCards.blocks(L, win, st, btnItem)
@@ -472,7 +472,7 @@ function S.render(panel, win, x, y, w, h)
     M.drawTabHeader(panel, x, y, w, tr("UI_ZeD_Char_TabServer"), false, false, true)
     if needs then scroll:draw(panel) end
     TC.endList(panel, win, st, sy, sy + sh)
-    -- (...and that clip comes off here: the tab ends with the clips it started with; punch list 95)
+    -- (...and that clip comes off here: the tab ends with the clips it started with)
     panel:clearStencilRect()
 end
 

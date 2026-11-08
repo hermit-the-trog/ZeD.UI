@@ -1,8 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Dashboard.lua
 -- ============================================================================
 -- VEHICLE DASHBOARD v6 — pixel art, one plate per design, live parts from data.
+-- Client. Organism (ZeD_Dashboard on ZeD_Panel), one per local player.
 --
--- Art (director, Oct 16 2026): ZeDUI/tools/dashpx/ paints every dash as a lit
+-- The art is generated: ZeDUI/tools/dashpx/ paints every dash as a lit
 -- height field (the binnacle sunk under the brow, its shadow over the dials) and
 -- writes ZeD/DashPx.lua: per design the plate, its state sprites, and the live
 -- parts the game draws over it — needles, ribbons, lamps, LEDs, gear letters,
@@ -18,12 +19,12 @@
 -- verb (ISVehicleMenu / ISVehiclePartMenu / vehicle client commands / radio
 -- device data), so behaviour and MP commands stay identical to vanilla.
 --
--- Gamepad: the D-pad stays with the wheels in the driver's seat (director, Oct
--- 24 2026); the World wheel's Vehicle > Dashboard hands the pad to the dash
+-- Gamepad: the D-pad stays with the wheels in the driver's seat; the World
+-- wheel's Vehicle > Dashboard hands the pad to the dash
 -- (D.takePad: a FocusManager window only while it holds the pad). D-pad
 -- cone-nav across the controls, A fires, X = the secondary (remove key, tune
 -- down, volume, store preset), B lets go.
--- Passengers see the dash read-only. HOOK_MAP.md #2 / #4.
+-- Passengers see the dash read-only.
 --
 -- The radio slot shows the radio that is actually fitted: its small pixel face,
 -- the display drawn in pixel figures from the same state the radio up close
@@ -53,7 +54,7 @@ local TEXDIR = "media/textures/ZeD/dashpx/"
 D.scale = D.scale or 1.0   -- organism multiplier on top of the root scale
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m
@@ -123,7 +124,7 @@ local function _join(words, i, j)
     return s
 end
 
--- The console's mark (director, Oct 29 2026): picked by the car's own maker, never by the dash. The maker's own when the
+-- The console's mark: picked by the car's own maker, never by the dash. The maker's own when the
 -- dash has it cut (des.brands); a maker we don't know (a modded car's) gets the plaque. nil: a dash with no marks (the
 -- fleet keeps its unit stencils, the race car has no badge).
 local function _brandOf(design, make)
@@ -168,7 +169,7 @@ local function _badges(design, vehicle, scriptName, ownFamily)
     fleet = fleet or livery:match("^(%S+)") or make
     local id = 0; pcall(function() id = vehicle:getId() or 0 end)
     local wordKey = (fleet == "TAXI") and "UI_ZeD_Dash_UnitCab" or ((fleet == "FIRE") and "UI_ZeD_Dash_UnitEngine" or "UI_ZeD_Dash_UnitUnit")
-    -- painted on the car: a plain hyphen (no middle dots, director Oct 16 2026)
+    -- painted on the car: a plain hyphen, never a middle dot
     local unit = ZeD.tr(wordKey, fleet, string.format("%02d", 10 + (id % 90)))
     local sub = design.sub or ""
     local tag = (sub ~= "" and not model:find(sub, 1, true)) and sub or ""
@@ -181,8 +182,8 @@ D._badges = _badges   -- exposed for QA probes (a modded car's name on a game ca
 -- Vehicle state (per frame, every read guarded)
 -- ---------------------------------------------------------------------------
 local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
--- the same for one method call with no arguments, without making a closure each time (these are read every frame;
--- Oct 22 2026, the drawing-cost work): o:m(), its value or the default when it fails or gives nil
+-- the same for one method call with no arguments, without making a closure each time (these are read every
+-- frame, so a closure per read would show in the draw cost): o:m(), its value or the default when it fails or gives nil
 local function _inv(o, m) return o[m](o) end
 local function _get(o, m, default)
     if o == nil then return default end
@@ -225,7 +226,7 @@ local function _state(vehicle, chr)
     st.battRaw  = _get(vehicle, "getBatteryCharge", 0)
     st.engineCond = _safe(function() return vehicle:getPartById("Engine"):getCondition() end, 100)
     st.engWarn  = st.engineCond < 40     -- (the temperature needle's hot side; the engine lamp reads the condition steps, D.derive)
-    -- the parts the lamps and their hover text read (mockup zed_belt_ammo_dash_v1; approved Oct 26 2026): condition
+    -- the parts the lamps and their hover text read: condition
     -- 0..100, nil where the part or its item is missing
     st.battCond = _partCond(vehicle, "Battery")
     st.heaterCond = _partCond(vehicle, "Heater")
@@ -270,7 +271,7 @@ local SETTLE = { speed_mph = 140, speed_kmh = 140, rpm = 160, fuel = 900, batt =
                  tempF = 80, fanF = 80, modeF = 80 }
 local FROM_REST = { speed_mph = true, speed_kmh = true, rpm = true, fuel = true, batt = true, temp = true, oil = true, volts = true }
 
--- The condition steps (mockup zed_belt_ammo_dash_v1; approved Oct 26 2026): f 0..1 -> "good" / "worn" (under 60%) /
+-- The condition steps: f 0..1 -> "good" / "worn" (under 60%) /
 -- "poor" (under 30%) / "dead" (under 10%); nil stays nil (no such part)
 D.LAMP_COLOR = { worn = "#ffb02e", poor = "#ff3a20", dead = "#c41a10" }
 D.BLINK_MS = 500
@@ -349,8 +350,8 @@ function D.derive(st, mem, dtMs)
         mem[key] = cur
         st[key] = cur
     end
-    -- the digital speed figures (the Lang 4000, the Cossette) in the player's units, the legend in use lit (director,
-    -- Nov 7 2026: digital readouts only; the dials and the wheels stay printed in mph and miles)
+    -- the digital speed figures (the Lang 4000, the Cossette) in the player's units, the legend in use lit
+    -- (digital readouts only: the dials and the wheels stay printed in mph and miles)
     local metric = _metric()
     st.speedShown = metric and st.speed_kmh or st.speed_mph
     st.mphLamp    = st.power and not metric
@@ -358,7 +359,7 @@ function D.derive(st, mem, dtMs)
     local check = st.power and not st.running         -- key on, engine off: the bulb check
     st.check      = check
     st.oilLamp    = check
-    -- the battery and engine lamps (mockup zed_belt_ammo_dash_v1, "Warning only"; approved Oct 26 2026): dark while
+    -- the battery and engine lamps warn, never decorate: dark while
     -- the part is fine, amber when worn (under 60%), red when poor (under 30%), red and blinking under 10%. The battery
     -- follows the weaker of its condition and its charge (amber under 40%, red under 20%, blinking under 10%). The
     -- bulb check (key on, engine off) still lights every lamp in its own colour. A lamp's state: true = its own
@@ -366,7 +367,7 @@ function D.derive(st, mem, dtMs)
     st.battTone   = D.worse(D.tone(st.battCond and st.battCond / 100 or nil), D.chargeTone(st.power and batt or nil))
     st.engTone    = D.tone(st.engineCond and st.engineCond / 100 or nil)
     st.heaterTone = D.tone(st.heaterCond and st.heaterCond / 100 or nil)
-    -- (ZeD setup's "Dashboard warning lamps", off for a new player since Oct 30 2026: off, the lamps as before: the battery under 20% charge,
+    -- (ZeD setup's "Dashboard warning lamps", off for a new player. Off, the lamps are plain: the battery under 20% charge,
     -- the engine under 40%, the heater's light plain)
     local lampsOn = D.lampsOn()
     st.lampsOn    = lampsOn
@@ -377,14 +378,14 @@ function D.derive(st, mem, dtMs)
         st.genLamp = check or (st.power and batt < 0.2)
         st.engLamp = check or (st.running and st.engWarn) or false
     end
-    -- (Nov 6 2026, punch list 92: the brake, belt and oil lamps have nothing to show yet, so they stay dark but for the
-    -- bulb check. ROADWORTHY HOOK: when its states can be read (QA hasn't run it yet), the coolant, seat belt, oil and
+    -- (the brake, belt and oil lamps have nothing to show yet, so they stay dark but for the
+    -- bulb check. ROADWORTHY HOOK, still to wire: when its states can be read, the coolant, seat belt, oil and
     -- high beam lamps take them here, over ZeD's own; a mod on Vehicle Kit Library already reaches them through
     -- D.applyPublished)
     st.brakeLamp  = check
     st.beltLamp   = check
     st.fuelLamp   = st.power and v.fuel < 0.15
-    -- the hot lamp bulb-checks with the rest (Nov 6 2026; the race car's WATER jewel is this lamp too). st.hot is the
+    -- the hot lamp bulb-checks with the rest (the race car's WATER jewel is this lamp too). st.hot is the
     -- engine really running hot, without the bulb check: the Simple dash's Temperature bar reads that (_plainCells)
     st.hot        = st.power and v.temp > 0.8 or false
     st.tempLamp   = check or st.hot
@@ -408,7 +409,7 @@ function D.derive(st, mem, dtMs)
 end
 
 -- ---------------------------------------------------------------------------
--- Night (director, Oct 21 2026): no gauge is backlit; small incandescent bulbs
+-- Night: no gauge is backlit; small incandescent bulbs
 -- in the cluster panel's corners and a lamp under the brow light what they can
 -- (ZeDUI/tools/dashpx/night.py bakes it; ZeD_Plate.lua draws it). How dark the
 -- dash is follows the game's own light at the car (IsoGridSquare:getLightLevel,
@@ -496,8 +497,8 @@ ACT.lights = function(chr, v) ISVehicleMenu.onToggleHeadlights(chr) end
 -- (ZeD_ash), one tray a car, saved with it. Single player writes it there. On a server the press is written to this
 -- client's copy at once (so it shows now) and asked of the server (DP.ASH, as the player who pressed), which writes its
 -- own copy, kept with the world, and sends the car out to the clients near it: the other seats see the same tray, and a
--- copy the server sends out later still has it. The client never sends the whole table (punch list 94; known issue
--- Nov 7 2026: before, each player's tray stayed in their own game's memory for the session)
+-- copy the server sends out later still has it. The client never sends the whole table (transmitModData would replace
+-- the server's whole copy of the car's modData); a tray written only here would stay in this game's memory for the session
 ACT.ash    = function(chr, v, st)
     local open = not st.ashIsOpen
     local md = _get(v, "getModData", nil)
@@ -506,7 +507,7 @@ ACT.ash    = function(chr, v, st)
     local S, Pr = ZeD.ServerPart, ZeD.DashProto
     if S and S.send and Pr and Pr.ASH then S.send(Pr.MOD, Pr.ASH, { veh = _get(v, "getId", 0), open = open }, chr) end
 end
--- the odometers (Nov 6 2026, punch list 92): the stem by the trip wheels zeroes the trip; the electronic dashes' window
+-- the odometers: the stem by the trip wheels zeroes the trip; the electronic dashes' window
 -- (cossette, luxury, dashelite) switches ODO / TRIP, and its second verb zeroes the trip, only while the trip shows
 -- (so a stray X on the odometer does nothing). dash: the ZeD_Dashboard (_fire hands it over)
 ACT.tripReset = function(chr, v, st, secondary, dash) if dash then dash:_tripZero(v) end end
@@ -644,7 +645,7 @@ ZeD.trDefaults({
 })
 
 -- ---------------------------------------------------------------------------
--- The lamps' hover text (mockup zed_belt_ammo_dash_v1; approved Oct 26 2026): pointing at the battery, engine or
+-- The lamps' hover text: pointing at the battery, engine or
 -- headlight lamp, or the heater's light (its button where the plate has no light of its own), shows the library's detail
 -- card after the shared delay: the part's name, then its condition, the battery's charge, the heater's on / off, each
 -- headlight. The lamps stay off the controller's path (the Vehicle tab lists every part's condition for the pad).
@@ -744,7 +745,7 @@ function ZeD_Dashboard:_layout()
     local w, h = BASE_W * k, BASE_H * k
     local pn = self.playerNum
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
-    local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h      -- flush on the screen's edge (Oct 29 2026)
+    local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h      -- flush on the screen's bottom edge
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
     if self:getX() ~= x then self:setX(x) end
@@ -825,7 +826,7 @@ end
 -- ---------------------------------------------------------------------------
 -- the trip meter and the taxi's fare meter (session distance, per vehicle)
 --
--- The meter (director, Oct 24 2026: "working meter"; the fares are ZeD's
+-- The meter really meters, no prop (the fares are ZeD's
 -- sandbox options, so a server's rates reach every player): the flag pulled
 -- down starts it at the flag drop; each fifth of a mile driven and each minute
 -- waiting (under 5 km/h, the engine running) adds its rate. The extras are the
@@ -861,7 +862,7 @@ function ZeD_Dashboard:_tripOf(vehicle)
 end
 
 -- ---------------------------------------------------------------------------
--- the odometer and the trip odometer (Nov 6 2026, punch list 92; ZeDUI/HANDOFF_design_dash_roadworthy_20261106.md):
+-- the odometer and the trip odometer:
 -- miles with decimals, kept on the car's modData (ZeD_odo, ZeD_trip; ZeD_odoTrip: the electronic dashes are showing
 -- the trip), so they survive sessions and every player in the car reads the same figures. The game keeps no mileage,
 -- so a car ZeD has not seen before gets one, once, from its id and its engine's condition (a wreck has gone further):
@@ -871,11 +872,11 @@ end
 -- figures to the other seats (a passenger's dash also asks for them as it sits down: ZeD_Dashboard:_odoAsk), and sends
 -- the car's whole modData out only at the coarse moments (a first mileage, a press, the engine off, the driver
 -- leaving). Never the client's transmitModData: it replaces the server's whole copy of the car's modData, and a
--- key another mod keeps only there (Roadworthy's) would be lost (punch list 94). The taxi's fare keeps its own counter
+-- key another mod keeps only there (Roadworthy's) would be lost. The taxi's fare keeps its own counter
 -- (_trips[id].fareMiles).
 -- ROADWORTHY HOOK: a mod that keeps its own odometer and trip (on Vehicle Kit Library: VSKDash's pub.odoMiles and
--- pub.tripMiles) is read over these in D.applyPublished, so its dash and ours agree; when QA has Roadworthy running,
--- a direct read of its figures goes there too.
+-- pub.tripMiles) is read over these in D.applyPublished, so its dash and ours agree; a direct read of Roadworthy's
+-- own figures belongs there too, still to wire.
 -- ---------------------------------------------------------------------------
 local ODO_BASE, ODO_SPREAD, ODO_WORN = 20000, 60000, 60000   -- a found car: 20000 miles, up to 60000 more by its id,
                                                              -- up to 60000 more for a worn-out engine
@@ -938,7 +939,7 @@ end
 -- still goes once when the last send wasn't one, so what the server took reaches the clients near the car.
 -- Single player sends nothing: the car's modData is the game's own there.
 -- Each dash sends as its own player (ZeD.ServerPart.send's player): the server takes only the driver's, so a second
--- split-screen player at the wheel sends as themselves and their miles are kept (known issue Nov 7 2026)
+-- split-screen player at the wheel sends as themselves and their miles are kept
 function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     if not (isClient and isClient()) then return end
     local at = self._odoSentAt
@@ -1177,10 +1178,10 @@ function ZeD_Dashboard:_trip(vehicle, st, dtMs)
 end
 
 -- ---------------------------------------------------------------------------
--- the key in the lock (director, Oct 24 2026: "key needs turning animation
--- when starting"): ACC with the key in (director, Nov 7 2026: the key in the
--- ignition lights every lamp, so "it should be in accessory mode"; ACC sits left
--- of OFF), START while the starter turns, ON while the engine runs. It travels
+-- the key in the lock, drawn turning as it starts the car: ACC with the key
+-- in (a key in the ignition lights every lamp, so its rest position is
+-- accessory; ACC sits left of OFF), START while the starter turns, ON while
+-- the engine runs. It travels
 -- ACC - OFF - ON - START a step at a time and rests a step on ON between the
 -- ends: a start shows OFF, ON, then START; a start that does not catch steps
 -- back through ON and OFF to ACC; shutting off holds ON a step, then OFF, then
@@ -1218,7 +1219,7 @@ function ZeD_Dashboard:_keyPos(st, now)
 end
 
 -- ---------------------------------------------------------------------------
--- the ash tray and the van's right side (director, Oct 24 2026)
+-- the ash tray and the van's right side
 --
 -- Every car with a tray (a design with an "ash" hit) has its own: shut on 6
 -- cars in 10, the others open at one of the design's levels (two, four or six
@@ -1284,7 +1285,7 @@ function ZeD_Dashboard:_tray(vehicle, des, designId, st, scriptName)
 end
 
 -- ---------------------------------------------------------------------------
--- the taxi's hula girl (director, Oct 24 2026): frame 0 at rest; above 5 km/h
+-- the taxi's hula girl: frame 0 at rest; above 5 km/h
 -- in a turn she leans out of it (1 or 2 by the way the car turns); a hard
 -- change of speed or a bump flicks her once, 1 then 2. Each frame holds at
 -- least HULA_HOLD_MS, so she sways rather than flickers. The turn is read from
@@ -1372,7 +1373,7 @@ function ZeD_Dashboard:_ctx(des, pending)
 end
 
 -- ---------------------------------------------------------------------------
--- THE SIMPLE DASH (the director, Nov 2 2026, punch list 60; ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): a plain strip in
+-- THE SIMPLE DASH: a plain strip in
 -- ZeD's own parts where the pixel dash sits, showing what this car's dash shows and reaching what it reaches. ZeD
 -- setup's "Dashboard" row picks it (ZeD.Settings.dashSimple); a change takes effect the next frame, mid-drive too.
 --   heading   the car's name (Passenger at the right for a passenger)
@@ -1389,7 +1390,7 @@ end
 function D.simple() return ZeD.Settings and ZeD.Settings.dashSimple and ZeD.Settings.dashSimple() or false end
 
 -- ---------------------------------------------------------------------------
--- Other mods on the dash (ModSupport; Nov 7 2026): a general hook, keyed by an id (a second call with the same id
+-- Other mods on the dash (ModSupport): a general hook, keyed by an id (a second call with the same id
 -- replaces the first), for a mod whose small readout sat on the game's hotbar or above the game's dash, both hidden
 -- while ZeD's dash is up:
 --   D.addExtra(id, spec)  spec.state(chr, vehicle, driver) -> a table while there is something to show, else nil (read
@@ -1467,7 +1468,7 @@ local PLAIN_W, PLAIN_PAD, PLAIN_GAP, PLAIN_BIG_W, PLAIN_ROW_W, PLAIN_BIG_SEGS = 
 local PLAIN_STATIC = { hasTrunk = true, hasHeater = true, hasLightbar = true, vanTray = true }
 local CLIMATE_IDS = { temp = true, tempup = true, tempdn = true, heat = true, fan = true, fanup = true, fandn = true,
                       ac = true, def = true, off = true, mode = true }
--- the plate's controls the strip shows as a readout instead (Nov 7 2026: the Trip cell zeroes the trip)
+-- the plate's controls the strip shows as a readout instead (the Trip cell zeroes the trip)
 local PLAIN_CELL_IDS = { tripReset = true, odoButton = true }
 -- the warning lamps in the strip's order, their names and their colours (theme tokens: never the plate's own colours)
 local LAMP_ORDER = { "genLamp", "engLamp", "oilLamp", "brakeLamp", "beltLamp", "fuelLamp", "tempLamp", "shiftLamp",
@@ -1706,7 +1707,7 @@ local function _distText(miles, tenths, metric)
     local s = tenths and string.format("%.1f", math.floor(v * 10) / 10) or tostring(math.floor(v))
     return ZeD.tr(metric and "UI_ZeD_DashPlain_Km" or "UI_ZeD_DashPlain_Miles", s)
 end
--- the speed as the strip shows it, in the same units as its Odometer and Trip (review of beta 7: it showed mph beside
+-- the speed as the strip shows it, in the same units as its Odometer and Trip (so mph never sits beside
 -- km): the figure, whole, and its unit's key. (The bar under it is a share of the plate's dial, the same either way.
 -- The plates' dials and wheels stay in mph and miles, as printed; their digital speed figures follow, D.derive.)
 function D.plainSpeed(st, metric)
@@ -1727,7 +1728,7 @@ local function _plainCells(st, pl, out)
     local gear = st.gearSel or ""
     if gear == "D" and st.running and g:match("^%d$") then gear = gear .. " " .. g end
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Gear"), st.gearPub or gear)
-    -- the odometer and the trip (Nov 7 2026, punch list 92): the plate's figures, in the player's units; A on Trip zeroes it
+    -- the odometer and the trip: the plate's figures, in the player's units; A on Trip zeroes it
     local metric = _metric()
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), _distText(st.odo, false, metric))
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Trip"), _distText(st.trip, true, metric), nil, nil, "tripReset")
@@ -2079,7 +2080,7 @@ function ZeD_Dashboard:prerender()
     -- Getting out sends them in D.hide, since this dash is hidden then; _odoLeave drops a send that comes too late)
     if self._odoCar and self._odoCar ~= vehicle then self:_odoLeave() end
     -- (the car lost some way other than getting out: let go of the controller and the focus
-    -- ring too, so an unseen dash keeps neither; code audit Oct 17 2026)
+    -- ring too, so an unseen dash keeps neither)
     if not chr or not vehicle then
         self:setVisible(false); self.vehicle = nil; self._odoAsking = nil; self:_release(); self:_unregister()
         return
@@ -2118,8 +2119,8 @@ function ZeD_Dashboard:prerender()
     self._st = st
     local scriptName = _safe(function() return tostring(vehicle:getScriptName() or "") end, "")
     self._scriptLow = scriptName:lower()
-    -- the design and the badge lines, worked out again only for another car or language (Oct 22 2026, the
-    -- drawing-cost work: they were read every frame)
+    -- the design and the badge lines, worked out again only for another car or language (working them
+    -- out every frame showed in the draw cost)
     local bk = self._badgeKey
     if ZeD.trTestOn then ZeD.trTestOn() end   -- (keeps the test-language state fresh)
     local trs = ZeD._trState
@@ -2131,7 +2132,7 @@ function ZeD_Dashboard:prerender()
         des, designId, ownFamily = _designFor(scriptName)
         -- every state picture of the design asked for now, as the dash first shows the car: the game loads a picture
         -- in the background the first time it is asked for, and one first wanted mid-drive was missing for a frame
-        -- (the hula girl's first sway, QA Oct 25 2026)
+        -- (the hula girl's first sway was the one to show it)
         for name in pairs(des.sprites or {}) do tex(name) end
         self._badge = _badges(des, vehicle, scriptName, ownFamily)
         self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily }
@@ -2169,7 +2170,7 @@ function ZeD_Dashboard:prerender()
     self._cv = cv
     local pending = {}
     local okD, eD = pcall(PL.draw, cv, des, st, self:_ctx(des, pending), BASE_W, BASE_H)
-    if not okD then ZeD.logOnce("dash plate", eD); return end  -- (code audit Oct 17 2026)
+    if not okD then ZeD.logOnce("dash plate", eD); return end  -- (a broken plate logs once and skips the frame)
     -- controls last, so a focus cue sits over the art
     self._over = self:isMouseOver()
     for _, hz in ipairs(des.hits) do
@@ -2198,7 +2199,7 @@ function ZeD_Dashboard:prerender()
         local ink, shadow = P.color(des.hintInk or "#ece8dc"), (not des.hintInk) and "#101010" or nil
         if self._focEl and set then
             -- the buttons as their small pictures, each before its word, right-aligned at DashPx.hintRight
-            -- (ZeD_PadGlyphs; director, Oct 24 2026)
+            -- (ZeD_PadGlyphs)
             local segs = { { "A", self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress") } }
             if self._focEl.promptX then segs[#segs + 1] = { "X", self._focEl.promptX } end
             segs[#segs + 1] = { "B", ZeD.tr("UI_ZeD_Dash_PromptDrive") }
@@ -2332,10 +2333,10 @@ function ZeD_Dashboard:_unregister()
 end
 
 -- ---------------------------------------------------------------------------
--- Lifecycle + hooks (contract unchanged from the S123 first cut)
+-- Lifecycle + hooks
 -- ---------------------------------------------------------------------------
--- One dash a local player (split-screen, known issue Nov 7 2026: the second player had the game's own dash, with no
--- miles): each placed on its player's screen (ZeD_Dashboard:_layout), each counting and sending its own driver's miles
+-- One dash a local player (split-screen gets one each, not the game's own dash for the second
+-- player): each placed on its player's screen (ZeD_Dashboard:_layout), each counting and sending its own driver's miles
 -- as that player (ZeD.ServerPart.send's player). D._instances by player number; D._instance stays the first player's,
 -- for the callers that know of one dash. The controller goes to a dash only for the first player: the focus
 -- (ZeD.Input.Focus) follows the first player's pad (D.canTakePad)
@@ -2392,8 +2393,8 @@ function D.takePad(character)
     return true
 end
 
--- The heater key and the vehicle wheel's Heater slice (Overrides/Heater.lua; the director, Nov 7 2026, B6: "the key
--- and the wheel slice go to the dash's own climate controls"). The game's ISVehicleMenu.onToggleHeater opened its
+-- The heater key and the vehicle wheel's Heater slice (Overrides/Heater.lua) land on the dash's own climate
+-- controls. The game's ISVehicleMenu.onToggleHeater opened its
 -- heater window from any seat; here the heater goes on or off as the slice says (the game's own rule: turning it on
 -- needs the engine running or the key in, ISVehicleACUI:updateButtons; off always works; its temperature kept) and
 -- the dash shows its climate controls: lit for a moment, and a driver on a controller gets the pad on the first of

@@ -202,7 +202,7 @@ local function splitCol(id)
 end
 
 --- The doll slot a worn location shows in: a small slot's id while the bands show, else its big slot's
--- (the loadouts' missing things are drawn there: ZeD_EquipLoadout.ghosts).
+--- (the loadouts' missing things are drawn there: ZeD_EquipLoadout.ghosts).
 function D.slotForLoc(loc, bands)
     if not loc then return nil end
     if bands then return LOC_TO_SMALL[loc] or LOC_TO_BIG[loc] end
@@ -221,12 +221,14 @@ end
 -- ----------------------------------------------------------------------------
 -- The view (List or Doll), a ZeD option
 -- ----------------------------------------------------------------------------
+--- The Equip tab's view, "list" or "doll" (the equipView option's value).
 function D.view()
     local o = ZeD.Settings and ZeD.Settings.equipViewOption
     local v = o and call(o, "getValue")
     return (v == 2) and "doll" or "list"
 end
 
+--- Sets the view ("list" or "doll") and saves the option.
 function D.setView(v)
     local o = ZeD.Settings and ZeD.Settings.equipViewOption
     if not o then return end
@@ -245,9 +247,9 @@ local function normLoc(loc)
     return (ls:gsub("_", ""))
 end
 
--- slots[id] = { def, items } (outermost first); small[id] likewise (the bands showing only);
--- main, off; belt = ZeD.Belt.slots. bands: the small slots show; without them every location folds
--- back into its big slot as a layer, so nothing is lost at any width.
+--- slots[id] = { def, items } (outermost first); small[id] likewise (the bands showing only);
+--- main, off; belt = ZeD.Belt.slots. bands: the small slots show; without them every location folds
+--- back into its big slot as a layer, so nothing is lost at any width.
 function D.gather(p, pn, bands)
     bands = bands and true or false
     local out = { slots = {}, small = {}, bands = bands, main = nil, off = nil, belt = {} }
@@ -299,7 +301,7 @@ local function itemsFor(data, key)
     return {}
 end
 
--- The card's item for the selection: item, layer index, layer count
+--- The card's item for the selection: item, layer index, layer count.
 function D.selection(win)
     local key = win and win._equipSelected
     if not (type(key) == "string" and key:sub(1, 5) == "doll:") then return nil end
@@ -312,6 +314,7 @@ function D.selection(win)
     return items[i], i, n
 end
 
+--- True for a doll selection key ("doll:torso", "doll:main", "doll:belt3").
 function D.isDollKey(key) return type(key) == "string" and key:sub(1, 5) == "doll:" end
 
 -- ----------------------------------------------------------------------------
@@ -327,7 +330,7 @@ end
 -- MIN_FIT of full size tall, then the tab scrolls), and whether the bands show: they do while the
 -- 466-unit doll fits across at BANDS_FIT or more (the full card does; the half card and narrower don't).
 -- On a short screen the doll shrinks to the height, bands or not, down to MIN_FIT (a small slot of 14
--- units) before the tab scrolls (director, Oct 30 2026: shrink the slots rather than scroll).
+-- units) before the tab scrolls: the slots shrink rather than scroll.
 local function fit(w, viewH, nBelt)
     local U = ZeD.T.px(1000) / 1000
     local bands = w >= WIDE_W * BANDS_FIT * U
@@ -336,6 +339,7 @@ local function fit(w, viewH, nBelt)
     return math.min(1, byW, math.max(MIN_FIT, byH)), bands
 end
 
+--- The doll's height in screen px for a drawer w wide with viewH to show it in.
 function D.measure(win, w, viewH)
     local data = win._equipDollData
     local nBelt = data and #data.belt or 0
@@ -443,7 +447,7 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         end
         local f = condOf(item)
         if f then
-            -- (ten segments: 52 units less 8 is 21 px at the smallest doll at 0.75, a pixel a segment)
+            -- (ten segments even at the floor: the smallest doll on a 0.75 UI scale leaves ~21 px, a pixel a segment)
             local ch = T.px(5)
             condHov = ZeD.Atoms.drawFillBar(panel, bx + T.px(4), by + b - T.px(3) - ch, b - T.px(8), f, false, condColor(T, f), ch)
                 and f or nil
@@ -477,8 +481,8 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
     return over
 end
 
--- one small slot: a big slot's box at 24 units (the stripe fill and the strong frame; the item's
--- picture at 18 units, centred one unit high; a 2-unit condition strip inset 2 units at the bottom),
+-- one small slot: a big slot's box at 20 units (the stripe fill and the strong frame; the item's
+-- picture at 16 units, centred one unit high; a 2-unit condition strip inset 2 units at the bottom),
 -- empty ones dashed, a pair's empty slot with its faint L or R, the layer count as a big slot shows
 -- it; no label (the group's name stands above). u = screen px per doll unit. place = the place's
 -- name, for the help line.
@@ -544,11 +548,11 @@ local function groupName(g)
     return ZeD.textCase(t)
 end
 
--- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
--- win._equipSlotZones (filled slots: the card), win._equipBeltZones (empty
--- belt slots: the attach list), win._equipDollPhoto (the model's rectangle),
--- win._equipDollLines (for the line layer), win._equipDollHint,
--- win._equipDollAll (every slot's box, for a drop). Returns height.
+--- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
+--- win._equipSlotZones (filled slots: the card), win._equipBeltZones (empty
+--- belt slots: the attach list), win._equipDollPhoto (the model's rectangle),
+--- win._equipDollLines (for the line layer), win._equipDollHint,
+--- win._equipDollAll (every slot's box, for a drop). Returns height.
 function D.draw(panel, win, x, y, w, viewH, mx, my)
     local T, tm = ZeD.T, ZeD.TM
     win._equipDollTimer = (win._equipDollTimer or 0) + 1
@@ -563,16 +567,15 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     local nBelt = #data.belt
     local s = fit(w, viewH, nBelt)
     local k = s * ZeD.T.px(1000) / 1000
-    local off = bands and BAND_W or 0          -- every x of the 520-unit doll moves right by this
+    local off = bands and BAND_W or 0          -- the row below keeps base-doll x values; they move right past the left band
     local ox = x
     local function P(v) return math.floor(v * k + 0.5) end
     local b = P(BOX)
     -- The width the doll leaves spare (shrunk to a short window's height, it is narrower than the card)
     -- goes between its parts, each the size it is: the bands to the card's edges, the figure in the
-    -- middle, the big slots' columns half way between (director, Oct 30 2026: "fill the width of the
-    -- space for the equipment doll"). S(v): how far right a doll x (units) moves, its part's share.
-    -- Each band takes a share first (director, the same day: "balance the boxes out better, some
-    -- things still seem crammed"): bandX wider, its small slots half that further apart, its group
+    -- middle, the big slots' columns half way between, so the doll fills the drawer's width. S(v):
+    -- how far right a doll x (units) moves, its part's share. Each band takes a share first, so its
+    -- boxes never sit crammed: bandX wider, its small slots half that further apart, its group
     -- names that much more room. The rest goes into the gaps: five in the split (two left columns),
     -- two in the narrow doll.
     local spare = math.max(0, w - (bands and WIDE_W or BASE_W) * k)
@@ -700,7 +703,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     win._equipSlotZones = zones
     win._equipBeltZones = beltZones
     win._equipDollEmpty = empties
-    win._equipDollLines = {}   -- (no leader lines since Oct 30 2026: the line layer draws only the hint)
+    win._equipDollLines = {}   -- (no leader lines any more: the line layer draws only the hint)
     win._equipDollAll = rects
     win._equipDollDot = math.max(2, P(2.5))
     win._equipDollHintCand = hint
@@ -838,6 +841,7 @@ local function dpadSplit(w, zi, zone, el, def, dir)
     return false
 end
 
+--- A D-pad press from a doll slot (el = the focused element); true when it moved the focus.
 function D.dpad(w, el, dir)
     local key = el and el.slotType
     local zi, zone = charZone(w)
@@ -924,7 +928,7 @@ function D.newLineLayer(win)
     layer.onMouseDown = function() return false end
     layer.onMouseUp = function() return false end
     layer.onMouseWheel = function() return false end
-    layer.onRightMouseDown = function() return false end   -- (42.22: a handler that returns nothing takes the click)
+    layer.onRightMouseDown = function() return false end   -- (B42.22: a handler that returns nothing takes the click)
     layer.onRightMouseUp = function() return false end
     layer:setVisible(false)
     return layer
@@ -969,9 +973,9 @@ end
 -- The List | Doll toggle in the Equipped heading, and the card's layer strip
 -- ----------------------------------------------------------------------------
 
--- List | Doll: two separate icon buttons 4u apart at the heading's right edge,
--- the active one solid accent; each names itself in the library's hint after the
--- pause. Stamps win._equipViewZones.
+--- List | Doll: two separate icon buttons 4u apart at the heading's right edge,
+--- the active one solid accent; each names itself in the library's hint after the
+--- pause. Stamps win._equipViewZones.
 local _toggleOpts = {}
 function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
     local T = ZeD.T
@@ -997,8 +1001,8 @@ function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
     win._equipViewZones = zones
 end
 
--- The card's layer strip: "LAYER 1 OF 2 | OUTERMOST" with Outer / Inner.
--- Stamps win._equipLayerZones. Returns its height.
+--- The card's layer strip: "LAYER 1 OF 2 | OUTERMOST" with Outer / Inner.
+--- Stamps win._equipLayerZones. Returns its height.
 function D.layerStripH() return ZeD.T.px(34) end
 
 -- A band of the card's (the library's band: surface 2, its structure line on
@@ -1037,6 +1041,7 @@ function D.drawLayerStrip(panel, win, x, y, w, idx, n, mx, my)
     return h
 end
 
+--- Steps the selected slot's layer: dir 1 goes inward, -1 back out.
 function D.stepLayer(win, dir)
     local _, i, n = D.selection(win)
     if not (i and n and n > 1) then return end

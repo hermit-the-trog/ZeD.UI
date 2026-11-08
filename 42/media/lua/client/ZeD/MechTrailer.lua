@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/MechTrailer.lua
 -- ============================================================================
--- ANIMAL TRAILER PAGE — the Vehicle tab's page for an animal trailer
--- (HOOK_MAP row 23, mockup ZeDUI/mockups/zed_trailer_animals_v1.html)
+-- ANIMAL TRAILER PAGE — client; the Vehicle tab's page for an animal trailer.
 --
 -- Vanilla shows a trailer's animals in ISVehicleAnimalUI: a space bar, an
 -- Add Animal button and a grid of 3D figures with right-click menus. Here the
@@ -21,7 +20,7 @@
 -- MechanicsTab.lua owns the page and hands this module its shared helpers
 -- (ZeD.MechanicsTab._h: stamp, markAt, focusFor, dotLine...). Everything here is
 -- looked up at call time, so either file can be hot-reloaded alone.
--- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
+-- Every layout number is a DESIGN UNIT and goes through T.px at use.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -55,7 +54,7 @@ local ITEMS_TTL_MS = 700   -- water and feed lists
 local THIRST_MIN  = 0.1    -- vanilla offers water / feed past these (ISVehicleAnimalUI)
 local HUNGER_MIN  = 0.1
 
-local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+local DOT = "|"   -- the separator: ZeD OS's pipe (no middle dots anywhere)
 
 -- ----------------------------------------------------------------------------
 -- Small helpers

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_HairBeard.lua
 -- ============================================================================
--- HAIR AND BEARD — the Identity tab's section under the license (mockup
--- zed_hair_beard_v1, approved "as recommended" Oct 26 2026).
+-- HAIR AND BEARD — the Identity tab's section under the license. Client side;
+-- not a class: the tab calls HB.layout, HB.draw, HB.onClick and HB.focusables.
 --
 -- The game keeps haircuts and beard trims behind the Hair and Beard buttons of
 -- its Character screen (ISCharacterScreen:hairMenu / beardMenu), which ZeD never
@@ -17,16 +17,15 @@
 --     (NeatUI_Hairstyler) turn the menu into "Tie Hair" / "Cut Hair" / "Trim Beard"
 --     entries that open their picture windows; their lists of choices are read
 --     into rows here. Every row already shows the style on the character, so
---     their picture window is not offered from here (director, Oct 26 2026:
---     "use game avatars for each style").
+--     their picture window is not offered from here.
 -- What the character cannot do now (a row that needs a tool they lack, a style the
 -- hair is too short for) folds under one quiet row, by ZeD setup's Hidden actions
 -- (ZeD.Disclose); opened, those rows show greyed with the reason. One press does
 -- it (no confirm).
 -- Each row, and the Now and After heads, show the game's own 3D figure of the
 -- character wearing that style (AVATARS below).
--- Make-up (the director, Nov 7 2026, vanilla windows B9: "Makeup is supposed to
--- go with the hair"): a third part, Make Up, beside Hair and Beard while the
+-- Make-up belongs with the hair, not in a window of its own: a third part,
+-- Make Up, sits beside Hair and Beard while the
 -- character carries or wears make-up. Its rows (ZeD_MakeUp.lua) are the spots
 -- the carried make-up can do, by the game's categories, and the make-up worn
 -- under Remove; the figures wear the row's make-up; the verb button is Apply
@@ -94,11 +93,11 @@ local function isHairdo(it) return it:hasTag(ItemTag.DO_HAIRDO) or isGel(it) or 
 
 -- The first of each tool the character carries, bags included. One walk in Lua over the
 -- inventory, each item tested for all five: the container's own items first, then each
--- bag's (the order the game's getFirstEvalRecurse uses). Nov 2 2026 (QA, compat round 5):
--- handing these tests to the game's getFirstEvalRecurse, which calls back into Lua for
--- every item, made Kahlua throw "Cannot assign field callFrame because a is null" at
--- ReturnValues.put with nine popular mods on (each half alone did not); the walk makes no
--- such call back, and goes over the inventory once instead of five times.
+-- bag's (the order the game's getFirstEvalRecurse uses). Why not getFirstEvalRecurse:
+-- handing these tests to it means Java calls back into Lua for every item, and that
+-- made Kahlua itself throw "Cannot assign field callFrame because a is null" at
+-- ReturnValues.put with nine popular mods on together (each half alone did not); the walk
+-- makes no such call back, and goes over the inventory once instead of five times.
 local TOOL_TESTS = { { "razor", isRazor }, { "scissors", isScissors }, { "gel", isGel },
                      { "spray", isSpray }, { "hairdo", isHairdo } }
 -- Every item in a container and its bags, in the game's search order, handed to visit(item);
@@ -139,8 +138,8 @@ local function tools(p)
 end
 
 -- Doing a cut or a trim. The game's handlers (ISCharacterScreen.onCutHair / onTrimBeard) find
--- the tool with getFirstEvalRecurse, the call back of KB Q275; with some mod sets that call fails
--- for everyone (QA, Nov 2 2026: round 5's nine mods; vanilla's own car spawn failed the same way)
+-- the tool with getFirstEvalRecurse, the Java-calls-Lua-back search above; with some mod sets
+-- that call fails for everyone (the same nine mods; vanilla's own car spawn failed the same way)
 -- and the handler stops before the action is queued. These are the same steps, the tool found by
 -- ZeD's walk. They stand in only for the game's own handlers: a hair mod that put its own
 -- handler in place keeps it (the game's are kept here as the file loads, before any mod's).
@@ -298,8 +297,8 @@ end
 
 -- The game's menus ask the character's inventory, per style, whether a razor, scissors or a
 -- hairdo item is on hand (containsEvalRecurse with a Lua test the game calls back for every
--- item: the call back KB Q275 warns of, which threw with round 5's nine mods on; QA, Nov 2
--- 2026). While ZeD reads a menu, the character it is given answers those from one Lua walk
+-- item: the same call back that threw with the nine-mod set on, see the tools walk above).
+-- While ZeD reads a menu, the character it is given answers those from one Lua walk
 -- over the inventory (the items gathered once per read); everything else goes to the real
 -- character. The options keep the real character (put back after the read: see harvest).
 local function forwarder(real)

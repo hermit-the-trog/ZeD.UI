@@ -1,19 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemCardOrganism.lua
 -- ============================================================================
--- ITEM CARD ORGANISM (S121 - Phase 5)
--- Assembles the Phase 1-4 atoms / molecules / facts panels into a complete
--- universal item card per locked S119 mockups v13/v15/v16.
+-- ITEM CARD ORGANISM - client; the draw half of O08 (ZeD_ItemCard).
+-- Assembles atoms, molecules and facts panels into the complete universal
+-- item card: renderBody, defined here, paints the whole card every frame.
 --
 -- Organism contract:
 --   ZeD_ItemCard:renderBody({sourceContext, marks?})
 --     sourceContext = "equipped" | "inventory" | "container" | "ground"
---     marks         = optional precomputed {fav, nocraft, dispose} from item modData
+--     marks         = optional precomputed {fav, nocraft, dispose}
 --
--- It branches on width and source context - NEVER on item class.
--- Item-type dispatch goes through ZeD.ItemFactsPanel.factsFor(item).
+-- It branches on width, source context and categoryOf's coarse category
+-- (verbs; clothing body vs generic). Finer item-type dispatch goes through
+-- ZeD.ItemFactsPanel.factsFor(item), never through instanceof chains here.
 --
--- Loads alphabetically after ItemCard.lua (defines ZeD_ItemCard class) and
--- before ItemFactsPanel.lua (whose registry we query at runtime, not load time).
+-- Loads alphabetically after ItemCard.lua (defines the ZeD_ItemCard class)
+-- and before ItemFactsPanel.lua (whose registry is read at runtime, not
+-- load time).
 -- ============================================================================
 
 require "ZeD/Tr"

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/MapSymbolSizeSlider.lua
 -- ============================================================================
 -- SUPPORT FOR MAP SYMBOL SIZE SLIDER (mod id MapSymbolSizeSlider, Workshop
--- 2734705913). Mockup zed_map_overlays_v1, approved "as recommended" Oct 26 2026.
+-- 2734705913). Client.
 --
 -- The mod puts a Symbol Size slider under the game's map symbols panel. It sets
 -- the size marks and notes are made at (ISMap.SCALE, through its
@@ -25,6 +25,7 @@
 
 local MOD_ID = "MapSymbolSizeSlider"
 
+-- Is the mod on? An id from getActivatedMods() can carry a leading backslash.
 local function modOn()
     local list = getActivatedMods and getActivatedMods()
     if not list then return false end
@@ -98,5 +99,5 @@ function X.mapMade(mp, win)
     if not S._restored then S._restored = true; restore() end
 end
 
-S.X = X   -- (the QA scripts drive it)
+S.X = X   -- (exposed so the QA scripts can reach the extension)
 ZeD.MapsTab.addExtension(MOD_ID, X)

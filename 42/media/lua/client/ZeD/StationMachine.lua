@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StationMachine.lua
 -- ============================================================================
--- MACHINE VIEW — the Craft tab bound to a drying rack (HOOK_MAP row 1)
+-- MACHINE VIEW (client) — the Craft tab bound to a drying rack, or any other
+-- craft machine on the same Java contract.
 -- A drying rack is a machine, not a bench: items go into its input slots, a
 -- START begins the drying cycle, finished items land in its output slots.
 -- Vanilla shows this through ISCraftLogicPanel; ZeD draws it from scratch on
@@ -305,7 +306,7 @@ local function drawCell(panel, x, y, w, h, kind, item, p, focused, hovered)
     end
     if kind == "dry" then
         local bh = A.fillBarCompactH()
-        A.drawSmoothBar(panel, x + T.px(3), y + h - T.px(3) - bh, w - T.px(6), math.max(0, math.min(1, p or 0)), false, T.accent, bh)   -- (crafting: smooth)
+        A.drawSmoothBar(panel, x + T.px(3), y + h - T.px(3) - bh, w - T.px(6), math.max(0, math.min(1, p or 0)), false, T.accent, bh)   -- progress is smooth, not the ten-segment bar
     end
 end
 
@@ -320,6 +321,8 @@ local function label(panel, text, x, y, h, color)
     return ZeD.TM:MeasureStringX(f, s)
 end
 
+--- The view's whole frame: station header, the scrolling body, the dropdown
+--- overlay last. CraftingTab hands the tab over while a machine is bound.
 function SM.render(panel, win, x, y, w, h, state, st)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -425,7 +428,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     local px0 = lx + bw + T.px(8)
     local pbw = math.max(T.px(30), rx - px0 - (ptw > 0 and (ptw + T.px(8)) or 0))
     local pbh = T.fillBarH
-    A.drawSmoothBar(panel, px0, cy + math.floor((rowH - pbh) / 2), pbw, d.running and d.progress or 0, false, T.accent, pbh)   -- (crafting: smooth)
+    A.drawSmoothBar(panel, px0, cy + math.floor((rowH - pbh) / 2), pbw, d.running and d.progress or 0, false, T.accent, pbh)   -- progress is smooth, not the ten-segment bar
     if ptw > 0 then
         A.drawTextRight(panel, ptxt, rx, cy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, T.text)
     end
@@ -457,7 +460,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     lw = label(panel, ZeD.tr("UI_ZeD_Machine_FromBags"), lx, cy, rowH)
     cy = cy + rowH
     if #d.bag == 0 then
-        -- (a drying rack says so; another machine on the same contract, Nov 7 2026, says it plainly)
+        -- a drying rack's line names the rack; any other machine gets the plain words
         local dryer = st.comp and instanceof(st.comp, "DryingCraftLogic")
         M.drawEmptyLine(panel, lx, cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), iw,
             ZeD.tr(dryer and "UI_ZeD_Machine_NothingFits" or "UI_ZeD_Machine_NothingFitsAny"))
@@ -495,6 +498,7 @@ end
 -- ----------------------------------------------------------------------------
 local function hit(z, x, y) return x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 
+--- Run a hit zone's action: take one, take all, add, or start / stop the cycle.
 local function activate(player, st, z)
     if z.type == "mInRemove" then SM.take(player, st, { z.entry })
     elseif z.type == "mOutTake" then SM.take(player, st, { z.entry })
@@ -505,6 +509,8 @@ local function activate(player, st, z)
     end
 end
 
+--- A left click in the view: the header (select, open dropdown) first, then
+--- the zones. Always handled — nothing falls through to the tab under it.
 function SM.onClick(win, state, st, x, y)
     local player = win._playerObj
     if ST.viewHeaderClick(state, player, x, y) then return true end
@@ -523,6 +529,8 @@ function SM.onMouseWheel(win, state, st, del, x, y)
     return true
 end
 
+--- The controller's elements for this frame: the station select, then every
+--- zone but the read-only drying slots, each activating as a click would.
 function SM.buildFocusables(win, state, st)
     if state.stDropdownOpen then return ST.dropdownFocusables(state, win._playerObj, "craft") end
     local out = {}
@@ -541,7 +549,7 @@ function SM.buildFocusables(win, state, st)
     return out
 end
 
--- Rebuild focusables when the machine's contents change shape.
+--- Rebuild focusables when the machine's contents change shape.
 function SM.focusKey(win, state, st)
     local d = st._md
     if not d then return "m" end

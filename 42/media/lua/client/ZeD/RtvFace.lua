@@ -1,17 +1,16 @@
 -- ZeD-UI/42/media/lua/client/ZeD/RtvFace.lua
 -- ============================================================================
--- THE ORDINARY RADIOS', THE CD PLAYER'S AND THE TVS' FACES — the radio tab
--- (RadioTab.lua) draws them in place of the drawn chassis. Handoff
--- ZeDUI/HANDOFF_radio_tv_laundry_20261030.md, approved by the director Oct 30
--- 2026 ("Looks good. No changes. Get it ready for code").
+-- THE ORDINARY RADIOS', THE CD PLAYER'S AND THE TVS' FACES — client; the
+-- radio tab (RadioTab.lua) draws them in place of the drawn chassis.
 --
--- Seven faces, plates in PhysPx.lua (ZeDUI/tools/physpx/d_rtv.py, d_rtv_make.py)
--- drawn by the shared plate template (ZeD_Plate.lua), as the walkies are:
+-- Seven faces, plates baked into PhysPx.lua (a generated file; never edit the
+-- plates by hand), drawn by the shared plate template (ZeD_Plate.lua), as the
+-- walkies are:
 --   radio_black, radio_red, radio_handbuilt, cd_player   the half card
 --   tv_widescreen, tv_black, tv_antique                   the full card
 -- picked by the item's full type (PhysPx.rtv.items). A radio or TV placed in a
--- house wears the face of the item it turns into when picked up (director, Oct
--- 30 2026): a radio dropped on the floor by its item, a placed set by its tile's
+-- house wears the face of the item it turns into when picked up:
+-- a radio dropped on the floor by its item, a placed set by its tile's
 -- CustomItem, else by its tile: each item's WorldObjectSprite, the four turns of
 -- a set being four tiles in a row. A radio with no face (a modded one) keeps
 -- the simple card (RadioTab.drawSimple).
@@ -181,7 +180,7 @@ function R.plateFor(entry)
     return id, ZeD.PhysPx.plates[id]
 end
 
--- a radio's face for the half card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): the widest of its widths whose
+-- a radio's face for the half card: the widest of its widths whose
 -- PANEL at zoom k fits the half card's room (220 units less the scrollbar); its id, plate and panel width (plate
 -- px), nil when none fits (the hand-built radio at 0.75 and 1.5: no 154 face)
 function R.halfFace(pid, k)
@@ -353,7 +352,7 @@ function R.read(dev)
     for i, p in ipairs(st.presets) do if p.freq == st.channel then st.presetIdx = i; break end end
     st.name = O.chanName(st.channel)
     -- on air: the game's flag is true only at the moment a line arrives, so a station also counts while it has shown a
-    -- line in the last HEARD_MS (QA, Nov 2 2026: 98.0 NNR read "no signal" between lines)
+    -- line in the last HEARD_MS (without this, 98.0 NNR read "no signal" between its lines)
     st.signal = _get(dd, "isReceivingSignal", false)
     if not st.signal then
         local h = R._heard[st.key]
@@ -756,8 +755,8 @@ function R.chStep(chr, dev, st, dir, wrap)
     local s = R.stopOf(st.channel)
     local i
     if wrap then
-        -- (wrap: down on the first stop goes to the last, up on the last to the first; director, Oct 30 2026, punch
-        -- list 23. Kahlua's % keeps a negative dividend's sign, so -1 % n is -1 here: add n before taking it)
+        -- (wrap: down on the first stop goes to the last, up on the last to the first. Kahlua's % keeps a
+        -- negative dividend's sign, so -1 % n is -1 here: add n before taking it)
         local n = #stops
         i = s and (((s.i - 1 + dir + n) % n) + 1) or (dir > 0 and 1 or n)
     else

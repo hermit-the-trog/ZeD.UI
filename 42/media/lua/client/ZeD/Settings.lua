@@ -1,11 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Settings.lua
 -- ============================================================================
--- MOD OPTIONS INTEGRATION
+-- MOD OPTIONS — client; every ZeD option is registered and applied here.
 -- Registration happens at FILE LOAD TIME so options appear in the MODS tab
 -- of the Options screen from the main menu (before any game starts).
 -- Theme application happens at OnGameStart when the game world exists.
+-- One thing to know before touching it: a combo is saved by its item's
+-- POSITION, so a list only ever grows at the end (first section below).
 --
--- API notes (from reading ModOptions.lua source + in-game testing):
+-- The PZAPI.ModOptions calls used here (vanilla PZAPI/ModOptions.lua):
 --   PZAPI.ModOptions:create(id, displayName) returns an options object
 --   opts:addComboBox(id, name, tooltip) returns a combo box option
 --   option:addItem(displayName, isSelected) — colon call, two args
@@ -36,7 +38,7 @@ local accentLabels = {"ContextMenu_Red", "ContextMenu_Orange", "ContextMenu_Yell
 local sizeKeys   = {"small", "large"}
 local sizeLabels = {"UI_optionscreen_Small", "UI_optionscreen_Large"}
 
--- UI scale (Oct 13 2026, director): Auto fits the screen (1x at 1080p, 2x at 4K,
+-- UI scale: Auto fits the screen (1x at 1080p, 2x at 4K,
 -- nudged by the engine font-size option); the fixed steps override it.
 local scaleKeys   = {"auto", 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0}
 -- (no "%" in labels: ModOptions runs every label through getText, which chokes on it; the steps are
@@ -44,12 +46,13 @@ local scaleKeys   = {"auto", 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0}
 local scaleLabels = {"UI_ZeD_Settings_ScaleAuto", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"}
 
 -- Gamepad glyph display — which set of button pictures ZeD draws
--- (ZeD_PadGlyphs.lua; director, Oct 24 2026). "Auto" follows the game's
+-- (ZeD_PadGlyphs.lua). "Auto" follows the game's
 -- controller button style (the game switches it to PlayStation by itself on
 -- a PlayStation pad); an explicit set forces that one; "Keyboard/mouse" and
--- "Off" draw the buttons as lettered boxes, as before the pictures.
--- (Steam Deck added Oct 24 2026, after PlayStation: nothing read this setting
--- before, so a stored index that moved changes nothing a player saw.)
+-- "Off" draw the buttons as lettered boxes instead of pictures.
+-- (Deck sits mid-list, against the grow-at-the-end rule: that was safe only
+-- because nothing had shipped reading this option yet, so a stored index
+-- that moved changed nothing a player saw. Never move an item again.)
 local glyphKeys   = {"auto", "xbox", "ps", "deck", "nintendo", "kbm", "off"}
 local glyphLabels = {"UI_ZeD_Settings_Auto", "UI_optionscreen_ControllerButtonStyle1", "UI_optionscreen_ControllerButtonStyle2", "UI_optionscreen_ControllerButtonStyle3", "Nintendo", "UI_ZeD_Settings_KeyboardMouse", "UI_Off"}   -- (Nintendo: a name, as is)
 
@@ -86,7 +89,7 @@ local function saveModOptions()
     end
 end
 
--- Expose for footer theme controls
+-- Shared with the window box menu, the controller's wheels and ZeD setup
 ZeD.Settings = ZeD.Settings or {}
 ZeD.Settings.baseKeys      = baseKeys
 ZeD.Settings.accentKeys    = accentKeys
@@ -102,9 +105,9 @@ ZeD.Settings.scaleLabels   = scaleLabels
 ZeD.Settings.save          = function() saveModOptions() end
 
 -- Forward-declare combo box locals so syncToModOptions() can capture them
--- (Lua locals are only visible after their declaration line — Q16)
+-- (Lua locals are only visible after their declaration line)
 local baseTheme, accentColor, textSize
--- S91 gamepad options: glyphDisplay chooses button-prompt artwork;
+-- gamepad options: glyphDisplay chooses button-prompt artwork;
 -- inputModeLock overrides the InputModeDetector auto-detection.
 local glyphDisplay, inputModeLock
 
@@ -121,7 +124,8 @@ local function copyThemeToCharacter()
     md.ZeD_Theme.size   = ZeD.currentSize
 end
 
--- Sync current theme state back to ModOptions combo boxes (called after footer button changes)
+-- Sync current theme state back to ModOptions combo boxes (the window box
+-- menu and the Select wheel call it after they change the theme)
 function ZeD.Settings.syncToModOptions()
     if not baseTheme then return end
     baseTheme:setValue(keyToIndex(baseKeys, ZeD.currentBase))
@@ -176,15 +180,15 @@ end
 uiScale.onChange = function(_, sel) applyScale(sel) end
 uiScale.onChangeApply = function(_, sel) applyScale(sel) end
 ZeD.Settings.applyScale = applyScale
-ZeD.Settings.uiScaleOption = uiScale   -- QA bridge drives it like the options screen
--- The UI scale cap (punch list 39; the rules: ZeD.Scale.fitCap in shared/ZeD/Scale.lua): true when item i of
+ZeD.Settings.uiScaleOption = uiScale   -- the QA scripts and the controller's wheel drive it like the options screen
+-- The UI scale cap (the rules: ZeD.Scale.fitCap in shared/ZeD/Scale.lua): true when item i of
 -- control c is UI scale's fixed step above what fits this screen. ZeD setup's slider, the Mods page's
 -- drop-down and the controller's wheel dim such a step and take no pick of it. c: the option or its element.
 function ZeD.Settings.scaleStepOff(c, i)
     if c == nil or not (c == uiScale or c == uiScale.element) then return false end
     local v = scaleKeys[tonumber(i) or 0]
     local Sc = ZeD.Scale
-    if Sc and Sc.stepRetired and Sc.stepRetired(v) then return true end   -- 0.5x, not offered in the beta (item 58)
+    if Sc and Sc.stepRetired and Sc.stepRetired(v) then return true end   -- 0.5x, not offered in the beta
     return (Sc and Sc.stepTooBig and Sc.stepTooBig(v)) or false
 end
 -- true when item i is a retired step (0.5x): the controller's wheel leaves it out; the slider dims it
@@ -202,9 +206,9 @@ function ZeD.Settings.scaleTooBigHelp()
     return nil
 end
 
--- ----- MOODLES (Oct 14 2026, director: "options would be best. each of the
--- three placements are good for different users") -----
--- Where vanilla's moodles sit; they are drawn as vanilla draws them in all
+-- ----- MOODLES -----
+-- Where vanilla's moodles sit — an option because each placement suits a
+-- different player; they are drawn as vanilla draws them in all
 -- three (ZeD_Moodles.lua reads this option every frame, so a change applies
 -- at once). A display preference: lives in the mod options, not in the save.
 local moodleLabels = {"UI_ZeD_Settings_MoodlesRight", "UI_ZeD_Settings_MoodlesLeft", "UI_ZeD_Settings_MoodlesBottom"}
@@ -216,8 +220,7 @@ end
 ZeD.Settings.moodlePlaceOption = moodlePlace
 ZeD.Settings.moodleLabels = moodleLabels
 
--- ----- EQUIPPED VIEW (Oct 19 2026, director: "avatar view ... and list view
--- are the two we want") -----
+-- ----- EQUIPPED VIEW -----
 -- The Equip tab's two views; the toggle in its Equipped heading sets this
 -- too, so the choice is remembered across saves (EquipDoll.lua reads it).
 local equipView = opts:addComboBox("equipView", ZeD.tr("UI_ZeD_Settings_EquipView"),
@@ -226,8 +229,7 @@ equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)  -- default: the lis
 equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewDoll"), false)
 ZeD.Settings.equipViewOption = equipView
 
--- ----- RESTOCK (Oct 29 2026, handoff equip_doll_v4_loadouts part B5; director: "1, 2 and 3.
--- 3 being the accessible option, 1 being hardcore, and 2 being casual") -----
+-- ----- RESTOCK -----
 -- How the Equip tab's Restock and Unpack go (ZeD_Restock.lua reads it each time): Hardcore takes
 -- from what is in reach now, Casual (the default) as containers come into reach, Accessible walks
 -- the building for you. The choice lives here, never in a first-run question.
@@ -237,8 +239,8 @@ restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockCasual"), true)   -- default
 restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockAccessible"), false)
 ZeD.Settings.restockOption = restock
 
--- ----- THE OTHER VIEW CHOICES (Oct 19 2026, director: "people can have all lists
--- or all grids options for the most used menus") -----
+-- ----- THE OTHER VIEW CHOICES: all lists or all grids for the most used
+-- menus -----
 -- The inventory's view for every container that hasn't one of its own (each
 -- column's List | Grid toggle still sets one container; InventoryRenderer).
 local invView = opts:addComboBox("inventoryView", ZeD.tr("UI_ZeD_Settings_Inventory"),
@@ -257,13 +259,14 @@ ZeD.Settings.contextStyleOption = ctxStyle
 -- top right corner as before. No watch worn: the tape deck keys stay in the corner.
 local watchPlace = opts:addComboBox("watchPlace", ZeD.tr("UI_ZeD_Settings_Watch"),
     ZeD.tr("UI_ZeD_Settings_WatchTip"))
-watchPlace:addItem(ZeD.tr("UI_ZeD_Settings_WatchBelt"), true)   -- default (director, Oct 19 2026)
+watchPlace:addItem(ZeD.tr("UI_ZeD_Settings_WatchBelt"), true)   -- default
 watchPlace:addItem(ZeD.tr("UI_ZeD_Settings_WatchCorner"), false)
 ZeD.Settings.watchPlaceOption = watchPlace
 
--- ----- ACTION BAR (Oct 19 2026, mockup ZeDUI/mockups/zed_action_bar_v2.html; director: "ship it") -----
+-- ----- ACTION BAR -----
 -- The bar over the character's head while an action runs (ZeD_ActionBar.lua reads this
--- every frame, so a change applies at once). Detailed is the default ("Verbose" until punch list 110).
+-- every frame, so a change applies at once). Detailed is the default (its
+-- translation key still reads "Verbose", the row's old name).
 local actionBar = opts:addComboBox("actionBar", ZeD.tr("UI_ZeD_Settings_ActionBar"),
     ZeD.tr("UI_ZeD_Settings_ActionBarTip"))
 actionBar:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarVerbose"), true)   -- default
@@ -287,10 +290,10 @@ for i, label in ipairs(accentLabels) do
 end
 worldAccent:addItem(ZeD.tr("UI_ZeD_Settings_SameAsAccent"), true)
 
--- ----- GLYPH DISPLAY (S91 Gamepad Phase 1) -----
+-- ----- GLYPH DISPLAY -----
 -- Sets which button-prompt artwork is used in footer prompt strips.
 -- Auto follows the connected controller; explicit choices override.
--- Phase 1 stores the preference; GlyphManager (Phase 4) renders from it.
+-- ZeD_PadGlyphs reads the picked set every draw (glyphKey, below).
 glyphDisplay = opts:addComboBox("glyphDisplay", ZeD.tr("UI_ZeD_Settings_Glyphs"),
     ZeD.tr("UI_ZeD_Settings_GlyphsTip"))
 for i, label in ipairs(glyphLabels) do
@@ -303,7 +306,7 @@ ZeD.Settings.glyphKey = function()
     return glyphKeys[(el and el.selected) or glyphDisplay:getValue() or 1] or "auto"
 end
 
--- ----- INPUT MODE LOCK (S91 Gamepad Phase 1) -----
+-- ----- INPUT MODE LOCK -----
 -- Overrides InputModeDetector's auto-detection. Useful when the detector
 -- is misbehaving on a weird controller or when the player wants to pin
 -- the UI to one mode. Wired directly to ZeD.Input.Detector.setLockedMode.
@@ -313,8 +316,8 @@ for i, label in ipairs(inputLockLabels) do
     inputModeLock:addItem(ZeD.tr(label), inputLockKeys[i] == "auto")  -- default: auto
 end
 
--- ----- SAFE MODE (Oct 19 2026, director: if ZeD ever fails to open, a bad day
--- is a setting flip rather than a hotfix) -----
+-- ----- SAFE MODE: if ZeD ever fails to open, a bad day is a setting flip
+-- rather than a hotfix -----
 -- On hands the game back to its own interface (SafeMode.lua reads this at most
 -- every half second, so a change applies at once); ZeD also steps aside by itself
 -- for a session when it hits an error that keeps repeating.
@@ -324,7 +327,7 @@ safeMode:addItem(getText("UI_Off"), true)   -- default
 safeMode:addItem(ZeD.tr("UI_ZeD_Settings_SafeModeOn"), false)
 ZeD.Settings.safeModeOption = safeMode
 
--- ----- TEST LANGUAGE (translation groundwork, Oct 20 2026) -----
+-- ----- TEST LANGUAGE -----
 -- For checking layouts: ZeD.tr (shared/ZeD/Tr.lua) returns every ZeD phrase about 40%
 -- longer, accented and in brackets, so clipped or overlapping text shows without a real
 -- translation. Tr.lua reads this at most every half second. Last in the list: a combo is
@@ -335,20 +338,20 @@ testLanguage:addItem(getText("UI_Off"), true)   -- default
 testLanguage:addItem(getText("UI_On"), false)
 ZeD.Settings.testLanguageOption = testLanguage
 
--- ----- PUT THINGS BACK (director, Oct 24 2026; QUICK_CHORDS_SPEC.md; ZeD_PutBack.lua) -----
+-- ----- PUT THINGS BACK (ZeD_PutBack.lua) -----
 -- After an action, what it took out of a bag, a container in reach or off the floor
 -- goes back there, and the hands as they were, by the game's own moves. Off for a
--- new player ("Should putting things back be on or off for a new player?" "Off").
+-- new player.
 local putBack = opts:addComboBox("putBack", ZeD.tr("UI_ZeD_Settings_PutBack"), ZeD.tr("UI_ZeD_Settings_PutBackTip"))
 putBack:addItem(getText("UI_Off"), true)   -- default
 putBack:addItem(getText("UI_On"), false)
 ZeD.Settings.putBackOption = putBack
 ZeD.Settings.putBackOn = function() return (putBack:getValue() or 1) == 2 end
 
--- ----- MESSAGES (director, Oct 24 2026; MESSAGES_SPEC.md; ZeD_Messages.lua) -----
+-- ----- MESSAGES (ZeD_Messages.lua) -----
 -- Another mod's note (one OK) is kept in the Messages window instead of covering the game,
--- and a toast says it came. Both off for a new player (director, Oct 30 2026: every addition
--- starts off, the Vanilla preset below; they were on until then).
+-- and a toast says it came. Both off for a new player: every addition starts
+-- off (the Vanilla preset below).
 -- (item 1 Off, item 2 On: ZeD setup's on/off switch and the saved values read them so)
 local msgCatch = opts:addComboBox("messagesCatch", ZeD.tr("UI_ZeD_Settings_MsgCatch"), ZeD.tr("UI_ZeD_Settings_MsgCatchTip"))
 msgCatch:addItem(getText("UI_Off"), true)   -- default
@@ -360,16 +363,16 @@ msgToast:addItem(getText("UI_Off"), true)   -- default
 msgToast:addItem(getText("UI_On"), false)
 ZeD.Settings.messagesToastOption = msgToast
 ZeD.Settings.messagesToastOn = function() return (msgToast:getValue() or 1) == 2 end
--- the game's overhead notes ("Too heavy", "Can't reach") in ZeD's bubble and the Messages log (the director, Nov 4
--- 2026; ZeD_HaloText.lua). An addition like the others: off for a vanilla run, on in Vanilla Plus and Access.
+-- the game's overhead notes ("Too heavy", "Can't reach") in ZeD's bubble and the Messages log
+-- (ZeD_HaloText.lua). An addition like the others: off for a vanilla run, on in Vanilla Plus and Access.
 local haloBubble = opts:addComboBox("haloBubble", ZeD.tr("UI_ZeD_Settings_HaloBubble"), ZeD.tr("UI_ZeD_Settings_HaloBubbleTip"))
 haloBubble:addItem(getText("UI_Off"), true)   -- default
 haloBubble:addItem(getText("UI_On"), false)
 ZeD.Settings.haloBubbleOption = haloBubble
 ZeD.Settings.haloBubbleOn = function() return (haloBubble:getValue() or 1) == 2 end
 -- the hint strip: what you can do with what is in front of you, your key or button and the game's own words
--- (the director, Nov 4 2026: "It's always on by default. The next one is first hours. And then the next option is
--- off."; ZeD_HintStrip.lua). Not one of the presets' additions: the presets leave it as it is.
+-- (ZeD_HintStrip.lua). Always (the default), First hours, or Off. Not one of
+-- the presets' additions: the presets leave it as it is.
 local hintStrip = opts:addComboBox("hintStrip", ZeD.tr("UI_ZeD_Settings_HintStrip"), ZeD.tr("UI_ZeD_Settings_HintStripTip"))
 hintStrip:addItem(ZeD.tr("UI_ZeD_Settings_HintAlways"), true)   -- default
 hintStrip:addItem(ZeD.tr("UI_ZeD_Settings_HintFirst"), false)
@@ -378,17 +381,16 @@ ZeD.Settings.hintStripOption = hintStrip
 -- "always" | "first" | "off"
 ZeD.Settings.hintStripMode = function() return ({ "always", "first", "off" })[hintStrip:getValue() or 1] or "always" end
 
--- ----- SANDBOX OPTIONS IN GAME (director, Oct 24 2026; mockup zed_sandbox_ingame_v1;
--- ZeD_SandboxInGame.lua) -----
+-- ----- SANDBOX OPTIONS IN GAME (ZeD_SandboxInGame.lua) -----
 -- A "Sandbox options" line in the pause window: this save's sandbox settings, changed
--- without starting over. Off for a new player ("default off"). Single player only.
+-- without starting over. Off for a new player. Single player only.
 local sandboxIG = opts:addComboBox("sandboxInGame", ZeD.tr("UI_ZeD_Settings_SandboxIG"), ZeD.tr("UI_ZeD_Settings_SandboxIGTip"))
 sandboxIG:addItem(getText("UI_Off"), true)   -- default
 sandboxIG:addItem(getText("UI_On"), false)
 ZeD.Settings.sandboxInGameOption = sandboxIG
 ZeD.Settings.sandboxInGameOn = function() return (sandboxIG:getValue() or 1) == 2 end
 
--- ----- DIM READ ITEMS (Oct 26 2026, mockup zed_read_marks_v1; approved "as recommended") -----
+-- ----- DIM READ ITEMS -----
 -- In the item lists, books, magazines, maps and tapes already read are faded so the unread ones stand out
 -- (ReadMarks.lua reads this every frame). Off for a new player: a dimmed row can look unavailable.
 local dimRead = opts:addComboBox("dimRead", ZeD.tr("UI_ZeD_Settings_DimRead"), ZeD.tr("UI_ZeD_Settings_DimReadTip"))
@@ -397,9 +399,9 @@ dimRead:addItem(getText("UI_On"), false)
 ZeD.Settings.dimReadOption = dimRead
 ZeD.Settings.dimReadOn = function() return (dimRead:getValue() or 1) == 2 end
 
--- ----- WHAT VANILLA DOES NOT DO (director, Oct 26 2026: "Things the vanilla game doesn't do by default should be
--- an option to turn on/off"). Each off for a new player (director, Oct 30 2026: every addition starts off, the
--- Vanilla preset below; they were on until then); off puts that part back as it was. Read every frame by
+-- ----- WHAT VANILLA DOES NOT DO: each thing the vanilla game does not do
+-- is a switch. Each off for a new player (every addition starts off, the
+-- Vanilla preset below); off puts that part back as it was. Read every frame by
 -- ZeD_Belt, ReadMarks / InventoryRenderer, ZeD_Dashboard and ZeD_Moodles, so a change applies at once.
 local function onSwitch(id, nameKey, tipKey)
     local o = opts:addComboBox(id, ZeD.tr(nameKey), ZeD.tr(tipKey))
@@ -423,9 +425,9 @@ local moodleNotices = onSwitch("moodleNotices", "UI_ZeD_Settings_MoodleNotices",
 ZeD.Settings.moodleNoticesOption = moodleNotices
 ZeD.Settings.moodleNoticesOn = function() return (moodleNotices:getValue() or 1) == 2 end
 
--- ----- THE WINDOWS: SEE-THROUGH, SOLID WHILE IN USE, CONTROLLER HIGHLIGHT (director, Oct 26 2026,
--- the cohesion picks; COHESION_SPEC.md sections 4 and 10). Also in every window's window box menu
--- (ZeD_WindowMenu.lua) and on the Select wheel. -----
+-- ----- THE WINDOWS: SEE-THROUGH, SOLID WHILE IN USE, CONTROLLER HIGHLIGHT.
+-- Also in every window's window box menu (ZeD_WindowMenu.lua) and on the
+-- Select wheel. -----
 -- The pick the player has made, live while the options screen is open (vanilla keeps it on
 -- the control until Apply), else the stored one
 local function liveIdx(opt)
@@ -463,7 +465,7 @@ ZeD.Settings.focusStyle = function()
     local ok, i = pcall(liveIdx, focusStyle)
     return (ok and focusKeys[tonumber(i) or 1]) or "hand"
 end
--- How the controller's wheels are worked (punch list 91, RADIAL_WHEELS_SPEC.md; ZeD_WheelGesture.lua reads these
+-- How the controller's wheels are worked (ZeD_WheelGesture.lua reads these
 -- as a wheel opens, the dead zone every frame). Wheel open: Tap, the wheel stays up; Hold, up while the direction is
 -- held. Wheel commit: Flick-release, letting the stick go takes; Stick click, R3 takes. Wheel toggle mode: the stick
 -- or the D-pad moves the highlight, A takes; it overrides the other two. The dead zone is the stick's magnitude for
@@ -488,9 +490,9 @@ ZeD.Settings.wheelOpen = function() return ((liveIdx(wheelOpen) or 1) == 2) and 
 ZeD.Settings.wheelCommit = function() return ((liveIdx(wheelCommit) or 1) == 2) and "click" or "flick" end
 ZeD.Settings.wheelToggle = function() return (liveIdx(wheelToggle) or 1) == 2 end
 ZeD.Settings.wheelDeadZone = function() return wheelZones[liveIdx(wheelDeadZone) or 4] or 0.35 end
--- Hidden actions (director, Oct 26 2026): the actions that cannot be taken right now, folded
--- under a hint row that opens, all shown greyed, or hidden. On ZeD setup only: never asked in
--- a pop-up ("Interruptions in this game can quickly get you killed").
+-- Hidden actions: the actions that cannot be taken right now, folded
+-- under a hint row that opens, all shown greyed, or hidden. On ZeD setup only, never asked in
+-- a pop-up: interruptions in this game can quickly get you killed.
 local hiddenKeys   = { "folded", "all", "hide" }
 local hiddenLabels = { "UI_ZeD_Settings_HiddenFolded", "UI_ZeD_Settings_HiddenAll", "UI_ZeD_Settings_HiddenHide" }
 local hiddenActions = opts:addComboBox("hiddenActions", ZeD.tr("UI_ZeD_Settings_HiddenActions"), ZeD.tr("UI_ZeD_Settings_HiddenActionsTip"))
@@ -503,8 +505,8 @@ ZeD.Settings.hiddenActions = function()
     return (ok and hiddenKeys[tonumber(i) or 1]) or "folded"
 end
 
--- ----- LOADOUTS AND OUTFITS (director, Oct 30 2026: "Loadouts and outfits with Journal lists (new switch).
--- Restock follows Loadouts") -----
+-- ----- LOADOUTS AND OUTFITS (one switch for all of it; Restock follows
+-- Loadouts) -----
 -- The Equip tab's Loadouts fold and its to-do, the Journal's Loadouts page, the item card's Lists mark, the
 -- right-click Save to outfit / Save to loadout, the controller's Loadouts ring, and Restock with its pinned
 -- list. Off hides them all and Restock does nothing; the saved loadouts and outfits stay with the character,
@@ -516,7 +518,7 @@ loadouts:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup
 ZeD.Settings.loadoutsOption = loadouts
 ZeD.Settings.loadoutsOn = function() return (loadouts:getValue() or 1) == 2 end
 
--- ----- THE ADDITIONS' PRESET (director, Oct 30 2026) -----
+-- ----- THE ADDITIONS' PRESET -----
 -- Vanilla (a new player's start), Vanilla Plus, Vanilla Accessible, or Custom: what the switches for the things
 -- vanilla does not do are set to (the table in setUpAdditions, below). Never the look.
 local additionsPreset = opts:addComboBox("additionsPreset", ZeD.tr("UI_ZeD_Settings_Preset"), ZeD.tr("UI_ZeD_Settings_PresetTip"))
