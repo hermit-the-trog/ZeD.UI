@@ -3121,6 +3121,8 @@
     "UI_ZeD_Belt_AmmoCarried": "พกอยู่: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "พกอยู่: ไม่มี %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "เหลือ %1%%",
+    "UI_ZeD_Belt_MaskSpares": "สำรอง: %1",
     "UI_ZeD_Dash_LampCond": "สภาพ %1",
     "UI_ZeD_Dash_LampCharge": "ประจุ %1",
     "UI_ZeD_Dash_LampLeft": "ซ้าย %1",

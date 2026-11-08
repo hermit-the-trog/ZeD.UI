@@ -3121,6 +3121,8 @@
     "UI_ZeD_Belt_AmmoCarried": "所持: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "所持: %1なし",
     "UI_ZeD_Belt_AmmoCountOf": "%2 x%1",
+    "UI_ZeD_Belt_MaskLeft": "残り %1%%",
+    "UI_ZeD_Belt_MaskSpares": "予備: %1",
     "UI_ZeD_Dash_LampCond": "状態 %1",
     "UI_ZeD_Dash_LampCharge": "充電 %1",
     "UI_ZeD_Dash_LampLeft": "左 %1",

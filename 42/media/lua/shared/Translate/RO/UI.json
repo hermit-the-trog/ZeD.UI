@@ -3121,6 +3121,8 @@
     "UI_ZeD_Belt_AmmoCarried": "Purtate: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "Purtate: fără %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "%1%% rămas",
+    "UI_ZeD_Belt_MaskSpares": "rezerve: %1",
     "UI_ZeD_Dash_LampCond": "stare %1",
     "UI_ZeD_Dash_LampCharge": "încărcare %1",
     "UI_ZeD_Dash_LampLeft": "stânga %1",
