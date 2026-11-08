@@ -15,6 +15,10 @@
 -- Lua cannot delete a file, so a deleted note's file is emptied and its id is free again: a new note takes the lowest
 -- free id, and the folder never holds more than MAX note files.
 --
+-- Files edited on disk cannot get round the caps: never more than MAX slots are read (ids 1 to MAX only), a note's
+-- file is read no further than TEXT_MAX characters (an oversized one is treated as cut there), the sticky's no further
+-- than STICKY_MAX, and the index no further than a few lines past MAX.
+--
 -- Words round-trip exactly: a file is the words and one line break more, read back line by line and joined with line
 -- breaks (the game's reader drops the last). Carriage returns are taken out on the way in.
 --
@@ -53,15 +57,18 @@ end
 -- ---------------------------------------------------------------------------
 -- FILES
 -- ---------------------------------------------------------------------------
--- every line of a file, or nil when there is none
-local function readLines(name)
+-- every line of a file, or nil when there is none. maxChars / maxLines: stop there (a file grown on disk is never read whole)
+local function readLines(name, maxChars, maxLines)
     local ok, r = pcall(N.io.reader, name)
     if not ok or not r then return nil end
     local out = {}
     local okR, err = pcall(function()
         local l = r:readLine()
+        local n = 0
         while l ~= nil do
             out[#out + 1] = l
+            n = n + #l + 1
+            if (maxChars and n > maxChars) or (maxLines and #out >= maxLines) then break end
             l = r:readLine()
         end
     end)
@@ -91,10 +98,12 @@ function N.clean(s, max)
     return s
 end
 
-local function readWords(name)
-    local lines = readLines(name)
+local function readWords(name, max)
+    local lines = readLines(name, max and (max + 2) or nil)
     if not lines then return nil end
-    return table.concat(lines, "\n")
+    local s = table.concat(lines, "\n")
+    if max and #s > max then s = string.sub(s, 1, max) end
+    return s
 end
 local function writeWords(name, text) return writeText(name, text .. "\n") end
 
@@ -129,12 +138,12 @@ end
 function N.list()
     if N._list then return N._list end
     local list = {}
-    local lines = readLines(N.INDEX_FILE) or {}
+    local lines = readLines(N.INDEX_FILE, nil, N.MAX * 4 + 1) or {}
     local seen = {}
     for i = 2, #lines do                 -- (line 1 is the header)
         local id, t, name = string.match(lines[i], "^(%d+)|(%d*)|(.*)$")
         id = tonumber(id)
-        if id and id >= 1 and id <= N.MAX * 4 and not seen[id] and #list < N.MAX then
+        if id and id >= 1 and id <= N.MAX and not seen[id] and #list < N.MAX then
             seen[id] = true
             name = N.cleanName(name)
             if name == "" then name = "?" end
@@ -192,7 +201,7 @@ end
 -- ---------------------------------------------------------------------------
 function N.read(id)
     if not N.get(id) then return nil end
-    return readWords(N.fileOf(id)) or ""
+    return readWords(N.fileOf(id), N.TEXT_MAX) or ""
 end
 
 -- a new, empty note; nil and "full" when the desktop holds MAX
@@ -260,7 +269,7 @@ end
 -- THE STICKY NOTE
 -- ---------------------------------------------------------------------------
 function N.sticky()
-    if N._sticky == nil then N._sticky = readWords(N.STICKY_FILE) or "" end
+    if N._sticky == nil then N._sticky = readWords(N.STICKY_FILE, N.STICKY_MAX) or "" end
     return N._sticky
 end
 
@@ -278,14 +287,16 @@ end
 -- ---------------------------------------------------------------------------
 function N.draft()
     if N._draft == nil then
-        local lines = readLines(N.DRAFT_FILE)
+        local lines = readLines(N.DRAFT_FILE, N.TEXT_MAX + 200)
         N._draft = false
         if lines and #lines >= 1 then
             local id, name = string.match(lines[1], "^(%d+)|(.*)$")
             if id then
                 local body = {}
                 for i = 2, #lines do body[#body + 1] = lines[i] end
-                N._draft = { id = tonumber(id), name = N.cleanName(name), text = table.concat(body, "\n") }
+                local text = table.concat(body, "\n")
+                if #text > N.TEXT_MAX then text = string.sub(text, 1, N.TEXT_MAX) end
+                N._draft = { id = tonumber(id), name = N.cleanName(name), text = text }
             end
         end
     end

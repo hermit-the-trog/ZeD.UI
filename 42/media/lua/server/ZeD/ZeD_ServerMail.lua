@@ -17,6 +17,9 @@
 --
 --   p_dial   the dial-in: this player can be mailed from now on; the first batch of their waiting letters comes down
 --   p_got    { ids }: the client has these; the server forgets them and sends the next batch
+--   p_mute   { names }: the players this player muted (their own list, ZeD_Chat.lua). Their letters are no longer
+--            delivered, and any already waiting go. The sender is told nothing: the answer is the same ok as a letter
+--            delivered (the director, Nov 7 2026: "muting a player also stops their mail to you")
 --   p_send   { to, subj, text, cid }: a letter. To any player seen on this server since mail came (online or not).
 --            Refusals: "to" (nobody by that name here), "text", "subj", "wait" (Ml.L.SEND_MS), "hour" (Ml.L.HOUR_MAX),
 --            "frozen". A cid already delivered answers ok again and delivers nothing (an answer that was lost).
@@ -70,6 +73,7 @@ local function open()
     md.sent = md.sent or {}           -- lower-case username -> { n, [i] = cid }, the sender's last CIDS letter numbers
     md.chars = md.chars or 0          -- every letter's words and subject
     md.nextId = md.nextId or 1
+    md.mutes = md.mutes or {}         -- lower-case username -> { [lower-case name] = true }: whose letters they refuse
     if md.schema > SCHEMA then
         T.frozen = true               -- data from a newer ZeD: read it, never change it
     end
@@ -189,9 +193,12 @@ end
 -- ---------------------------------------------------------------------------
 local function reg(command, opts, fn) Srv.register(Ml.MOD, command, opts, fn) end
 
+local applyMutes     -- (below; declared here so p_dial's closure finds it, not a global of that name)
+
 reg("p_dial", { limit = ML.DIAL_MS }, function(p, a, rid)
     local md = open()
     know(md, p)
+    if a.mutes ~= nil and not T.frozen then applyMutes(md, p, a.mutes) end
     local b = boxOf(md, low(p:getUsername()), false)
     Srv.ack(p, rid, true, nil, { waiting = b and b.n or 0, frozen = T.frozen and true or nil, v = Ml.PROTO })
     sendBatch(md, p)
@@ -225,6 +232,41 @@ reg("p_got", {}, function(p, a, rid)
     end
     if rid then Srv.ack(p, rid, true) end
     sendBatch(md, p)
+end)
+
+-- a player's mute list, the whole list each time; false when it is not one a client of ours sends
+function applyMutes(md, p, names)
+    if type(names) ~= "table" or not (names.n == 0 or Tk.whole(names.n)) or names.n > ML.MUTES_MAX then
+        Srv.bad(p, "p_mute")
+        return false
+    end
+    local set, any = {}, false
+    for i = 1, names.n do
+        local n = Ml.line(names[i], ML.TO_MAX)
+        if n then set[low(n)] = true; any = true end
+    end
+    local k = low(p:getUsername())
+    md.mutes[k] = any and set or nil
+    -- (what already waits from someone now muted goes too)
+    local b = boxOf(md, k, false)
+    local i = 1
+    while any and b and i <= b.n do
+        if set[low(b[i].from)] then
+            dropAt(md, k, b, i)
+            b = boxOf(md, k, false)
+        else
+            i = i + 1
+        end
+    end
+    return true
+end
+
+-- p_mute: the client sends its list at every change (and with the dial-in, before anything comes down)
+reg("p_mute", { limit = ML.MUTE_MS }, function(p, a, rid)
+    local md = open()
+    if T.frozen then Srv.ack(p, rid, false, "frozen"); return end
+    if not applyMutes(md, p, a.names) then Srv.ack(p, rid, false, "bad"); return end
+    Srv.ack(p, rid, true)
 end)
 
 -- the letters this player sent in the last hour: false when they have sent HOUR_MAX
@@ -287,8 +329,14 @@ reg("p_send", { limit = ML.SEND_MS, mark = false }, function(p, a, rid)
     local id = md.nextId
     md.nextId = id + 1
     local m = { id = id, from = me, to = dest.user, subj = subj, text = text, t = getTimestamp(), day = Srv.day() }
-    deliver(md, low(dest.user), m)
     rememberCid(md, k, cid)
+    -- muted by the one it is for: not delivered, and the sender hears the same ok as ever (a mute is nobody else's business)
+    local muted = md.mutes[low(dest.user)]
+    if muted and muted[k] then
+        Srv.ack(p, rid, true, nil, { cid = cid, to = dest.user })
+        return
+    end
+    deliver(md, low(dest.user), m)
     Srv.ack(p, rid, true, nil, { cid = cid, to = dest.user })
     -- online: it comes down now, as everything does, through the same handover
     -- (only this letter: any others still waiting come with the next batch, after this one's p_got)

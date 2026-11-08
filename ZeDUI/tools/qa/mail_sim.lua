@@ -230,8 +230,17 @@ local function clientJoin(p)
         end,
         logOnce = function(k, m) c.errors[#c.errors + 1] = tostring(k) .. ": " .. tostring(m); check("no client error", false, tostring(k) .. ": " .. tostring(m)) end,
         Messages = { ticket = function() end, ticketNew = function() end, adminNote = function() end, sources = {},
-                     add = function(name, kind, item) c.notes = (c.notes or 0) + 1; c.lastNote = item.text; return item end },
+                     add = function(name, kind, item) c.notes = (c.notes or 0) + 1; c.lastNote = item.text; return item end,
+                     halo = function(text) c.halos = (c.halos or 0) + 1 end },
+        -- the over-head notes and the player's own mute list (ZeD_Chat.lua keeps it per server, on this computer)
+        Bubbles = { note = function(pn, text) c.bubbles = c.bubbles or {}; c.bubbles[#c.bubbles + 1] = text end },
+        Chat = { myMutes = W.mutes[p.name] or {} },
     }
+    local Ch = env.ZeD.Chat
+    function Ch.mutedByMe(name) return Ch.myMutes[string.lower(tostring(name))] == true end
+    function Ch.setMuted(name, on) Ch.myMutes[string.lower(name)] = on and true or nil; W.mutes[p.name] = Ch.myMutes end
+    c.sounds = {}
+    env.getSoundManager = function() return { playUISound = function(_, n) c.sounds[#c.sounds + 1] = n end } end
     env.ISAdminMessage = { AddAdminMessage = function() end }
     env.getTickets, env.addTicket = function() end, function() end
     env.sendClientCommand = function(pl, module, command, args)
@@ -255,7 +264,7 @@ local function leave(c) offline(c.p); W.clock = W.clock + 6000 end
 
 local function world()
     W = { clock = 1793913240000, net = {}, logs = {}, online = {}, players = {}, clients = {}, moddata = {}, hours = 300,
-          uuid = 0, ip = "10.0.0.5", port = "16261", disks = {}, as = {} }
+          uuid = 0, ip = "10.0.0.5", port = "16261", disks = {}, as = {}, mutes = {} }
 end
 
 -- a command straight from a client of anyone's making, as the server hears it
@@ -555,6 +564,86 @@ raw(ned, "p_send", { to = "Rosa", text = "x", cid = "fz1", rid = 900 })
 check("a frozen table takes no letters", lastAck(ned) and lastAck(ned).err == "frozen")
 check("and says so in the log", (function() for _, l in ipairs(W.logs) do if l.line:find("mail table frozen", 1, true) then return true end end return false end)())
 t2.schema = 1
+
+section("the dial-in: the modem once a connection, the note over the head")
+world()
+serverStart()
+local dee, eve = player("Dee"), player("Eve")
+local ce = clientJoin(eve)
+leave(ce)
+local cd = clientJoin(dee)
+leave(cd)
+MS(cd).queue(box(cd), "Eve", "", "one")
+W.clock = W.clock + 3000
+raw(eve, "p_send", { to = "Dee", text = "hello Dee", cid = "e1", rid = 1 })
+W.clock = W.clock + 3000
+raw(eve, "p_send", { to = "Dee", text = "again", cid = "e2", rid = 2 })
+cd = clientJoin(dee)
+check("the modem plays once at the dial-in", #cd.sounds == 1 and cd.sounds[1] == "ZeDModemDial", #cd.sounds)
+check("the note over the head: sending 1, receiving 2", cd.bubbles and cd.bubbles[1] == "UI_ZeD_Mail_Connecting(1,2)", cd.bubbles and cd.bubbles[1])
+check("and it is kept in Messages' log of over-head notes", (cd.halos or 0) == 1)
+M(cd).state = nil
+M(cd).dial()
+advance(6000)
+check("a second dial-in in the same connection plays nothing more", #cd.sounds == 1 and #cd.bubbles == 1, #cd.sounds)
+check("the sound's script is the mod's own, a UI sound on a .wav made here", (function()
+    local f = io.open(ROOT .. "42/media/scripts/ZeD_Sounds.txt", "r")
+    if not f then return false end
+    local t = f:read("*a"); f:close()
+    local w = io.open(ROOT .. "42/media/sound/ZeD_modem.wav", "rb")
+    if not w then return false end
+    local head = w:read(12); w:close()
+    return t:find("sound ZeDModemDial", 1, true) ~= nil and t:find("category = UI", 1, true) ~= nil and t:find("media/sound/ZeD_modem.wav", 1, true) ~= nil
+        and head:sub(1, 4) == "RIFF" and head:sub(9, 12) == "WAVE"
+end)())
+
+section("mute: a muted player's letters stop, and the sender is told nothing")
+leave(cd)
+W.mutes.Dee = { eve = true }
+W.clock = W.clock + 3000
+raw(eve, "p_send", { to = "Dee", text = "you muted me", cid = "e3", rid = 3 })
+check("before Dee dials again, it waits (the server has not heard of the mute yet)", md().boxes.dee and md().boxes.dee.n == 1)
+cd = clientJoin(dee)
+check("the mute list goes with the dial-in", md().mutes.dee and md().mutes.dee.eve == true)
+check("a letter waiting from someone muted goes, unread", (function()
+    for _, m in ipairs(inbox(cd)) do if m.text == "you muted me" then return false end end
+    return true
+end)() and md().boxes.dee == nil)
+eve.box = {}
+W.clock = W.clock + 3000
+raw(eve, "p_send", { to = "Dee", text = "still muted", cid = "e4", rid = 4 })
+local a4 = lastAck(eve)
+check("the sender gets the same ok as any letter", a4 and a4.ok == true and a4.to == "Dee" and a4.err == nil)
+check("and the same fields: nothing says muted", a4 and a4.muted == nil and a4.again == nil)
+advance(3000)
+check("nothing delivered to Dee", md().boxes.dee == nil and (function()
+    for _, m in ipairs(inbox(cd)) do if m.text == "still muted" then return false end end
+    return true
+end)())
+local inN = count(dee, "p_in")
+cd.env.ZeD.Chat.setMuted("Eve", false)
+advance(2500)
+check("unmuting reaches the server at once", md().mutes.dee == nil)
+W.clock = W.clock + 3000
+raw(eve, "p_send", { to = "Dee", text = "heard now", cid = "e5", rid = 5 })
+advance(3000)
+check("letters come again", inbox(cd)[1] and inbox(cd)[1].text == "heard now" and count(dee, "p_in") > inN)
+cd.env.ZeD.Chat.setMuted("eve", true)
+advance(2500)
+check("muting while on reaches the server at once", md().mutes.dee and md().mutes.dee.eve == true)
+advance(2500)
+dee.box = {}
+raw(dee, "p_mute", { names = "everyone", rid = 9 })
+check("a mute list that is not a list is refused", lastAck(dee) and lastAck(dee).err == "bad")
+advance(2500)
+local many = { n = 201 }
+for i = 1, 201 do many[i] = "p" .. i end
+raw(dee, "p_mute", { names = many, rid = 10 })
+check("past MUTES_MAX is refused", lastAck(dee) and lastAck(dee).err == "bad")
+check("no line in the log says who muted whom", (function()
+    for _, l in ipairs(W.logs) do if l.line:find("mute", 1, true) and not l.line:find("bad arguments", 1, true) then return false end end
+    return true
+end)())
 
 section("a server without mail")
 world()

@@ -18,8 +18,8 @@
 -- D-pad move between them. They sit under the windows, as icons do.
 --
 -- Down the left edge (punch list 104; the director, Nov 7 2026): the sticky note, always there and typed in place,
--- then CletusWorks (the notepad) and Mail, then the notepad's files as icons, columns to the right when one fills
--- and never over the right column (ZeD_MainMenuNotes.lua and ZeD_MainMenuMail.lua give MM.leftItems its items).
+-- then CletusWorks (the notepad), ProtoPOP3 Mail and the Documents folder (the notes, ZeD_MainMenuDocs.lua), columns to
+-- the right when one fills and never over the right column (ZeD_MainMenuNotes.lua and ZeD_MainMenuMail.lua give MM.leftItems its items).
 --
 -- The Trash opens a small window holding one file: the Computer itself (Oct 21
 -- 2026, was system32.dll; the old desktop joke of dragging the computer to the
@@ -74,7 +74,7 @@ local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() 
 -- icon pictures are loose textures the engine streams in after boot: they are asked for
 -- now, the menu's wake-up waits for them with the desk's own pictures, and a cell draws
 -- its name only once its picture is in, so the two always arrive together
-local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "uploader", "trash", "computer", "cletusworks", "note", "mail" }
+local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "uploader", "trash", "computer", "cletusworks", "note", "mail", "documents" }
 pcall(function() for _, n in ipairs(ICON_IDS) do Texture.getSharedTexture(ICON_DIR .. n .. ".png", NEAREST) end end)
 local function iconReady(t)
     if not t then return true end

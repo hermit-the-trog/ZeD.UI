@@ -4,7 +4,9 @@
 -- computer. The frame is the ticket cards' (ZeD_TicketCards.lua), in the Server tab, ZeD's social place in a world:
 --   the Mail block    the dial-in's state, Inbox with its new letters (a row that opens the Mail card), Write a letter
 --   mlinbox           the Mail card: Write a letter, the Inbox, the Outbox while letters wait in it
---   mlread            one letter: who, when, the words; Reply and Delete (Delete asks in the foot)
+--   mlread            one letter: who, when, the words; Report, Delete, Reply (Report and Delete ask in the foot). Report
+--                     (the director, Nov 7 2026) files a ticket through ZeD's tickets with the letter as the report's
+--                     lines: its words reach staff only because the player chose to send them, logged as any report
 --   mlwrite           a new letter: To, Subject, the letter; Send puts it in the Outbox and it goes at once
 -- A letter can go to any player who has joined this server since it began keeping mail, online or not: the server holds
 -- it until they join. Letters are private (ZeD_ServerMail.lua): the help says the server forgets each one once it is
@@ -129,6 +131,7 @@ TC.kinds.mlread = {
     key = function(t, card) return tostring(card.folder) .. ":" .. tostring(MS.seq) end,
     title = function(card) return P.subj(card.m) end,
     help = function(t)
+        if t.confirm == "report" then return tr("UI_ZeD_Mail_HelpReport") end
         if t.confirm then return tr("UI_ZeD_Mail_AskDelete") end
         return tr("UI_ZeD_Mail_HelpPrivate")
     end,
@@ -148,6 +151,11 @@ TC.kinds.mlread = {
         return items
     end,
     foot = function(win, st, t, card, m)
+        if t.confirm == "report" then
+            return { question = tr("UI_ZeD_Mail_AskReport"), main = {
+                D.btn("mlrno", getText("UI_btn_cancel"), function(ww) t.confirm = nil; D.focusId(ww, st, "tk:mlrep") end, nil, tr("UI_ZeD_Mail_HelpKeep")),
+                D.btn("mlryes", tr("UI_ZeD_Mail_Report"), function(ww) t.confirm = nil; P.report(ww, st, t, m) end, "primary", tr("UI_ZeD_Mail_HelpReport")) } }
+        end
         if t.confirm then
             return { question = tr("UI_ZeD_Mail_AskDelete"), main = {
                 D.btn("mlno", getText("UI_btn_cancel"), function(ww) t.confirm = nil; D.focusId(ww, st, "tk:mldel") end, nil, tr("UI_ZeD_Mail_HelpKeep")),
@@ -165,6 +173,15 @@ TC.kinds.mlread = {
             if m.returned or (m.from or "") == "" then D.disable(reply, tr("UI_ZeD_Mail_NoReply")) end
             main[#main + 1] = reply
         end
+        if card.folder == "inbox" then
+            local rep = D.btn("mlrep", tr("UI_ZeD_Mail_Report"), function(ww)
+                t.confirm = "report"
+                D.focusId(ww, st, "tk:mlrno")             -- (sending a private letter to staff lands on Cancel)
+            end, nil, tr("UI_ZeD_Mail_HelpReport"))
+            local why = P.reportWhy(m, t)
+            if why then D.disable(rep, why) end
+            table.insert(main, 1, rep)
+        end
         table.insert(main, 1, D.btn("mldel", getText("UI_btn_delete"), function(ww)
             t.confirm = true
             D.focusId(ww, st, "tk:mlno")              -- (a question that loses something lands on Cancel)
@@ -178,6 +195,46 @@ TC.kinds.mlread = {
         return true
     end,
 }
+
+-- why Report is gray, or nil. A report keeps the letter's words on the ticket's record, which needs the server part's
+-- reports (the game's own tickets are public: the words never go there)
+function P.reportWhy(m, t)
+    local S2 = ZeD.ServerPart
+    if m.returned or (m.from or "") == "" then return tr("UI_ZeD_Mail_NoReply") end
+    if not (S2 and S2.available() and not S2.frozen and S2.cm == true) then return tr("UI_ZeD_Mail_NoReport") end
+    if t and t.busy then return tr("UI_ZeD_Tk_Busy") end
+    return nil
+end
+
+-- the letter as a report's lines: the sender named, the words in pieces of the report's line length
+function P.reportOf(m)
+    local L = ZeD.Tk.LIMITS
+    local text = string.gsub(m.text or "", "\n", " ")
+    local rep = { who = tostring(m.from), n = 0 }
+    local i = 1
+    while i <= #text and rep.n < L.REPORT_LINES do
+        rep.n = rep.n + 1
+        rep[rep.n] = { who = tostring(m.from), text = string.sub(text, i, i + L.REPORT_TEXT - 1), mark = rep.n == 1 }
+        i = i + L.REPORT_TEXT
+    end
+    return rep
+end
+
+function P.report(win, st, t, m)
+    if P.reportWhy(m, t) then return end
+    local C = ZeD.Tickets
+    t.busy = true
+    local r = C.ask("GRIEF", false, tr("UI_ZeD_Mail_ReportText", m.from, P.subj(m)), function(a)
+        t.busy = nil
+        if a.ok == false then D.flash(t, C.errText(a.err, a.left)); return end
+        m.reported = true
+        D.flash(t, tr("UI_ZeD_Mail_Reported", a.id or ""))
+    end, P.reportOf(m))
+    if r ~= "sent" then
+        t.busy = nil
+        D.flash(t, C.errText(r == "wait" and "fail" or "text"))
+    end
+end
 
 function P.reply(win, st, m)
     local subj = m.subj or ""
