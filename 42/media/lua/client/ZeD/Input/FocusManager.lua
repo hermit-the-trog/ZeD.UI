@@ -1090,6 +1090,13 @@ function Focus.showWin(w)
     if w.windowShaded and w.setWindowShaded then w:setWindowShaded(false) end
 end
 
+--- True while a window is rolled up, or (a window with halves) has a half rolled by itself.
+function Focus.isRolled(w)
+    if not w then return false end
+    if w.windowShaded then return true end
+    return (w._halves and ZeD.Halves and ZeD.Halves.anyRolled(w)) and true or false
+end
+
 --- A bumper tapped while a D-pad wheel is up (ZeD_WheelGesture): the bumpers
 --- close the wheel and open the windows — the pair open and showing, the pad
 --- on that bumper's window. side: "char" or "world".
@@ -1642,8 +1649,10 @@ local function _handleYTap()
     local worldWin = WW.getWindow  and WW.getWindow()
     if not charWin or not worldWin then return end
 
-    local charShaded  = charWin.windowShaded
-    local worldShaded = worldWin.windowShaded
+    -- (a window with a half rolled by itself counts as rolled: one Y brings that half
+    -- back, and never rolls the pinned half beside it, WindowHalves)
+    local charShaded  = Focus.isRolled(charWin)
+    local worldShaded = Focus.isRolled(worldWin)
     local bothShaded  = charShaded and worldShaded
     local bothVisible = (not charShaded) and (not worldShaded)
 

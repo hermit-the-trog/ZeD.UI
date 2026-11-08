@@ -251,13 +251,23 @@ local function pinElement(half, x, y, w, h)
 end
 
 --- The pins as controller stops, window-local, left to right (the rod's pin
---- where the rod is).
+--- where the rod is). A pin on the bar is a stop as wide as the strip under it
+--- (the tab strip under the drawer's, the bag strip under the inventory's): the
+--- box itself overlaps its strip by a few pixels only, too little for the D-pad's
+--- "lined up" test, and Up from the top tab or bag must land on it. The mark
+--- still draws on the box (drawTitlePins).
 function H.padElements(win)
     local s = win._halves
     local out = {}
     for _, e in ipairs(ENDS) do
         local r = H.pinRect(win, e)
-        if r then out[#out + 1] = pinElement(H.halfAt(win, e), r.x, r.y, r.w, r.h) end
+        if r then
+            local half = H.halfAt(win, e)
+            local strip = (half == "drawer") and win[s.strip] or win._containerStrip
+            local x, w = r.x, r.w
+            if strip and strip:isVisible() and strip:getWidth() > 0 then x, w = strip:getX(), strip:getWidth() end
+            out[#out + 1] = pinElement(half, x, r.y, w, r.h)
+        end
     end
     local rod = win._rod
     local rr = win._rolled and rod and rod:isVisible() and rod._pinRect
@@ -294,42 +304,108 @@ local function drawerOpen(win)
     return win._drawerOpen and win._drawerMode == "tab"
 end
 
--- the tab drawer folds only as a plain tab: no card over it
+local function columnsOpen(win)
+    return #(win._mcSelected or {}) > 0
+end
+
+-- The tab drawer folds only as a plain tab: no card over it, no Loot columns,
+-- and the inventory showing beside it (a drawer as wide as the window has no
+-- inventory to fold back to).
 local function foldable(win)
-    return drawerOpen(win) and not win._drawerObject and not win._drawerItem
-        and win._activeTab ~= nil and win._activeTab ~= "loot"
+    return drawerOpen(win) and not win._drawerObject and not win._drawerItem and not columnsOpen(win)
+        and win._invDrawerOpen ~= false and win._activeTab ~= nil and win._activeTab ~= "loot"
 end
 
--- A press on a tab, through the strip's own handler (as openTab does), so
--- every side effect matches the mouse: a second press on the open tab folds it.
-local function clickTab(win, tabId)
-    local strip = win[win._halves.strip]
-    for _, z in ipairs(strip and strip._hitZones or {}) do
-        if z.id == "tab:" .. tostring(tabId) then
-            strip:onMouseDown(z.x + 2, z.y + 2)
-            return true
-        end
+-- the controller's stops follow the tab (both windows' own ring sync)
+local function syncRing(win)
+    local M = (win._halves.key == "char") and ZeD_CharacterWindow or ZeD_WorldWindow
+    if M and M.syncRing then pcall(M.syncRing, win) end
+end
+
+-- The drawer shut at once: no closing slide (a half folded while the window is
+-- rolled up must not show folding when the window comes down). The Character
+-- window keeps its right edge, the World window its left.
+local function snapShut(win)
+    local effW = math.floor(win._drawerEffW or 0)
+    if effW <= 0 then return end
+    local newW = win:getWidth() - effW
+    win._drawerEffW, win._prevEffW = 0, 0
+    win:setWidth(newW)
+    if win._halves.side == "left" and win._anchorRightEdge then
+        win:setX(win._anchorRightEdge - newW)
+        win._lastSetX = win:getX()
     end
-    return false
 end
 
-local function fold(win)
+-- The fold and unfold set the drawer's own fields, as a second press of the open
+-- tab closes it and a press opens it again, but nothing else: the tab's scroll,
+-- caches, selection and Equip pick stay as they were, so the drawer comes back
+-- exactly as it went. (Pressing the tab through the strip went down its "new tab"
+-- path: it scrolled the tab to the top, dropped its caches and the selection.)
+local function fold(win, snap)
     local s = win._halves
-    local tab = win._activeTab
-    if clickTab(win, tab) and not drawerOpen(win) then s.foldTab = tab end
+    s.foldTab = win._activeTab
+    win._activeTab, win._drawerOpen, win._drawerMode, win._tabUnder = "loot", false, nil, nil
+    if snap then snapShut(win) end
+    syncRing(win)
 end
 
 local function unfold(win)
     local s = win._halves
     local tab = s.foldTab
     s.foldTab = nil
-    if tab and not drawerOpen(win) then clickTab(win, tab) end
+    if not tab or drawerOpen(win) then return end
+    if s.key == "char" then win._preDrawerW = win:getWidth() end
+    win._activeTab, win._drawerMode, win._drawerOpen, win._tabUnder = tab, "tab", true, nil
+    syncRing(win)
 end
 
 --- The tab a folded drawer half keeps, for the saved layout (a window closed
 --- with its drawer folded opens on that tab again), else nil.
 function H.foldedTab(win)
     return win and win._halves and win._halves.foldTab or nil
+end
+
+--- True while a half has rolled by itself (the pointer, aim): Y counts such a
+--- window as rolled up. A side rolled by hand does not count.
+function H.anyRolled(win)
+    local s = win and win._halves
+    if not s then return false end
+    return s.foldTab ~= nil or (win._rolled and not s.inv.hand) or false
+end
+
+--- A folded drawer forgotten (Reset this window: its Loot is what gets saved).
+function H.forgetFold(win)
+    local s = win and win._halves
+    if not s then return end
+    s.foldTab = nil
+    s.drawer.rolled = false
+    s.drawer.out = nil
+end
+
+-- the inventory list on show, or would be once the window comes down (a drawer as
+-- wide as the window hides it; a rolled window keeps what it last saw)
+local function invShown(win)
+    local s = win._halves
+    if win.windowShaded then return s.invShown ~= false end
+    if win._rolled then s.invShown = true; return true end
+    local c = win._contentPanel or win._mainContent
+    local on = c == nil or (c:isVisible() and c:getWidth() > 0)
+    s.invShown = on
+    return on
+end
+
+-- the curtain rolls the inventory now, its rod already up when rolled from a rolled window
+local function rollInv(win, atOnce)
+    local s = win._halves
+    s.driving = true
+    ZeD.Curtain.roll(win)
+    s.driving = false
+    local rod = win._rod
+    if atOnce and win._rolled and rod then
+        rod._h = ZeD.T.titleBarH
+        rod:setHeight(rod._h)
+    end
 end
 
 --- Brings what the halves want on screen, one step per call (each update):
@@ -340,15 +416,21 @@ function H.drive(win)
     local s = win._halves
     if not s then return end
     local inv, drw = s.inv, s.drawer
-    -- (a tab opened by hand under a folded half: the half is down again)
-    if s.foldTab and drawerOpen(win) then s.foldTab = nil; drw.rolled = false end
+    -- (a tab, Loot columns or an item card opened by hand under a folded half: that is the
+    -- player's drawer now, and the half is down again)
+    if s.foldTab and (drawerOpen(win) or columnsOpen(win) or win._drawerItem or win._drawerObject) then
+        s.foldTab = nil; drw.rolled = false
+    end
     local hasDrawer = s.foldTab ~= nil or win._rolled or drawerOpen(win)
     local shaded = win.windowShaded
     if not hasDrawer and drw.rolled and not shaded then drw.rolled = false end
+    local listShown = invShown(win)
     local effW = win._drawerEffW
     local settled = effW == s.lastEffW
     s.lastEffW = effW
-    if inv.rolled and (drw.rolled or not hasDrawer) then
+    local cs = win._curtain
+    -- (an inventory side with no list showing has nothing to keep: it rolls with the drawer)
+    if (inv.rolled or not listShown) and (drw.rolled or not hasDrawer) and (inv.rolled or drw.rolled) then
         if not shaded then
             s.driving = true
             -- (the whole bar at the window's full width, as the window always rolled)
@@ -363,10 +445,16 @@ function H.drive(win)
         -- a pinned half comes down with the window (only the unpinned one stays rolled)
         if H.isPinned(win, "inv") and not inv.hand then inv.rolled = false end
         if H.isPinned(win, "drawer") then drw.rolled = false end
+        -- The half that stays rolled is put away before the window shows, so only the
+        -- half brought back appears (no 100 ms of the whole window first): the drawer
+        -- folds shut at once, and the inventory rolls with its rod already up.
+        if drw.rolled and hasDrawer and not s.foldTab and foldable(win) then fold(win, true) end
+        if not drw.rolled and s.foldTab then unfold(win) end
         s.driving = true
         win._autoShaded = false
         win:setWindowShaded(false)
         s.driving = false
+        if inv.rolled and not win._rolled and cs and cs.canRoll() and invShown(win) then rollInv(win, true) end
         return
     end
     if drw.rolled and hasDrawer and not s.foldTab then
@@ -379,13 +467,8 @@ function H.drive(win)
         return
     end
     if not drw.rolled and s.foldTab then unfold(win); return end
-    local cs = win._curtain
     if inv.rolled and not win._rolled then
-        if cs and cs.canRoll() and settled and (effW or 0) > 0 then
-            s.driving = true
-            ZeD.Curtain.roll(win)
-            s.driving = false
-        end
+        if cs and cs.canRoll() and listShown and settled and (effW or 0) > 0 then rollInv(win, false) end
     elseif not inv.rolled and win._rolled then
         local rod = win._rod
         if not (rod and rod._target and rod._target > ZeD.T.titleBarH) then ZeD.Curtain.unroll(win) end
@@ -402,8 +485,16 @@ function H.split(win)
     local w = win:getWidth()
     local x = win._dividerX
     if not x then
-        if win._rolled or (drawerOpen(win) and not s.foldTab) then
+        local bags = win._containerStrip
+        if win._rolled then
             x = (s.side == "left") and w or 0
+        elseif drawerOpen(win) and not s.foldTab then
+            -- (a drawer as wide as the window: the bag strip is still the inventory side's)
+            if bags and bags:isVisible() then
+                x = (s.side == "left") and bags:getX() or (bags:getX() + bags:getWidth())
+            else
+                x = (s.side == "left") and w or 0
+            end
         else
             local strip = win[s.strip]
             local pr = H.pinRect(win, s.side)
@@ -473,9 +564,13 @@ function H.update(win)
         -- (no drawer at all: the whole window, bar and all, is the inventory's)
         local noDrawer = not (drawerOpen(win) or s.foldTab or win._rolled)
         local invSplit = noDrawer and ((s.side == "left") and 0 or win:getWidth()) or split
+        -- (no inventory list showing, a drawer as wide as the window: the bar and the bag strip
+        -- are the drawer's, and the inventory side has nothing to roll)
+        local noList = s.invShown == false and not noDrawer
+        local drwSplit = noList and ((s.side == "left") and win:getWidth() or 0) or split
         for _, half in ipairs(HALVES) do
             local st = s[half]
-            local inside, bar = H.hit(win, half, mx, my, half == "inv" and invSplit or split)
+            local inside, bar = H.hit(win, half, mx, my, half == "inv" and invSplit or drwSplit)
             local shown = win.windowShaded or (half == "inv" and win._rolled) or (half == "drawer" and s.foldTab ~= nil)
             if H.isPinned(win, half) then
                 st.out = nil
@@ -484,7 +579,7 @@ function H.update(win)
                 -- (a side rolled by hand stays until its tab is pressed; one the pointer rolled comes back on
                 -- its bar, but not while the player aims through it)
                 if not aiming and ((bar and not st.hand) or (inside and not shown)) then st.rolled = false end
-            elseif inside or (half == "drawer" and noDrawer) then
+            elseif inside or (half == "drawer" and noDrawer) or (half == "inv" and noList) then
                 st.out = nil
             else
                 st.out = st.out or now

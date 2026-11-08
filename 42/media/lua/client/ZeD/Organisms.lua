@@ -571,17 +571,20 @@ function ZeD_Window:_drawTitleBar(w, tbH)
     local shown, tW = nil, 0
     -- (a window may hide its title to give its stats the bar: the Character window while pins show)
     local title = (not self._hideTitle) and self.title or nil
+    -- (self._titleReserve: room kept after the title for a box drawn there, the curtain's roll
+    -- box: the title is cut short and the stats stop before it)
     if title and title ~= "" then
-        shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - titleX - tbp))
+        shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - titleX - tbp - (self._titleReserve or 0)))
         tW = tm:MeasureStringX(f3, shown)
     end
+    self._titleShownW = tW   -- (the title as drawn: the roll box goes right after it)
 
     -- stats right to left from the window box; one that would reach the title is dropped
     local statL = nil
     local stats = self.titleStats
     if stats and #stats > 0 then
         local mk, mkGap = T.px(6), T.px(4)
-        local minX = titleX + tW + tbp * 2 + sp.md
+        local minX = titleX + tW + tbp * 2 + sp.md + (self._titleReserve or 0)
         local sx = right
         local tc = T.text
         local my = math.floor((tbH - mk) / 2)
@@ -1352,6 +1355,8 @@ function ZeD_Window.resetLayout(which)
     local worldWin = (which ~= "char") and ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or nil
     for _, w in ipairs({ charWin or false, worldWin or false }) do
         if w and w._rolled and ZeD.Curtain and ZeD.Curtain.finishUnroll then ZeD.Curtain.finishUnroll(w) end
+        -- (a drawer its half folded is forgotten: the reset's Loot is what gets saved, WindowHalves)
+        if w and w._halves and ZeD.Halves then ZeD.Halves.forgetFold(w) end
     end
     if charWin then resetChar(charWin, defW, defH, gap, screenW) end
     if worldWin then resetWorld(worldWin, defW, defH, gap, screenW) end
