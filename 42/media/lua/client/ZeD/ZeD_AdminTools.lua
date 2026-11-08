@@ -268,7 +268,7 @@ TC.kinds.stats = {
         return table.concat(parts, ":")
     end,
     title = function() return getText("IGUI_AdminPanel_HeaderShowStatistics") end,
-    help = function() return tr("UI_ZeD_Adm_HelpStatsCard") end,
+    help = function() return tr("UI_ZeD_Adm_HelpStatisticsCard") end,
     items = function(win, st, t, card) return P.statsItems(win, st, t, card) end,
     foot = function() return { main = {} } end,
     back = function() P.statsSwitch(false) end,

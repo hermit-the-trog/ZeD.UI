@@ -96,7 +96,11 @@ end
 local function card(id) return function(p, win, st) return ZeD.AdminTools.open(win, st, id) end end
 local MORE = {
     { id = "options", cap = "SeePublicServerOptions", key = "IGUI_AdminPanel_SeeServerOptions",
-      run = function(p) closeOld(ISServerOptions); openUI(ISServerOptions:new(50, 50, 900, 800, p)) end },
+      -- (the Server tab's card, ServerTab.lua; it hands staff who change options on to the game's window)
+      run = function(p)
+          if ZeD.ServerTab and ZeD.ServerTab.openOptionsFor and ZeD.ServerTab.openOptionsFor(p) then return end
+          closeOld(ISServerOptions); openUI(ISServerOptions:new(50, 50, 900, 800, p))
+      end },
     { id = "sandbox", cap = "SandboxOptions",      key = "IGUI_AdminPanel_SandboxOptions", card = true, run = card("sandbox") },
     { id = "pvplog",  cap = "PVPLogTool",          key = "IGUI_AdminPanel_PVPLogTool", card = true, run = card("pvplog") },
     { id = "zones",   cap = "CanSetupSafehouses", capAlt = "CanSetupNonPVPZone", key = "IGUI_AdminPanel_ZoneEditor", card = true, run = card("zones") },

@@ -1010,8 +1010,10 @@ MM.act = {
     end,
     -- in game
     resume    = function() fire("returnOption") end,
-    players   = function() fire("scoreOption") end,
-    invite    = function() fire("inviteOption") end,
+    -- Players and Invite: pages of the pause window (ZeD_MainMenuPlayers.lua), on the game's data and calls; the game's
+    -- own screens only when that file is missing
+    players   = function() if not (MM.openPage and MM.openPage("players")) then fire("scoreOption") end end,
+    invite    = function() if not (MM.openPage and MM.openPage("invite")) then fire("inviteOption") end end,
     -- the pause window's MODS: its own Mods page (vanilla's was a small unstyled list in the
     -- screen's corner, ISPauseModListUI), on vanilla's data
     modList   = function() local w = MM.pause; if w then w.page = "mods"; w.focusId = nil; clickSound() end end,
@@ -2086,7 +2088,7 @@ function ZeD_MMWindow:build()
         self._small = blk
         if blk then w = math.max(T.px(200), L.tw - blk.edge * 2 - blk.w - blk.gap) end
     else
-        w = T.px(PAUSE_W)
+        w = T.px((MM.pageOf(self) and MM.pageOf(self).W) or PAUSE_W)
     end
     local y = tb
     local row = 0
@@ -2128,7 +2130,12 @@ function ZeD_MMWindow:build()
         self._head = { y = y, h = T.px(HEAD_H), when = info.when }
         y = y + T.px(HEAD_H) + pad
         self._mods = nil
-        if self.page == "mods" then
+        local pg = MM.pageOf(self)
+        if pg then
+            -- a page of its own (ZeD_MainMenuPlayers.lua: Players, Invite): its rows are specs like the buttons
+            self._head.label = pg.label(self)
+            y, row = pg.build(self, add, y, w, pad, row)
+        elseif self.page == "mods" then
             -- the game's mods, each with vanilla's word on it (ISPauseModListUI's checks)
             self._head.label = getText("UI_NewGame_Mods")
             local rh = T.px(MOD_ROW_H)
@@ -2173,6 +2180,8 @@ function ZeD_MMWindow:build()
             if m and m.workshopOption then btns[#btns + 1] = { id = "workshop", text = getText("UI_mainscreen_workshop"), fn = A.workshop, help = ZeD.tr("UI_ZeD_MMHelp_Workshop") } end
             btns[#btns + 1] = { id = "credits", text = getText("UI_mainscreen_credits"), fn = A.credits, help = ZeD.tr("UI_ZeD_MMHelp_Credits") }
             btns[#btns + 1] = { id = "quit", text = getText("UI_mainscreen_exit"), fn = A.askQuit, disabled = cooling, help = ZeD.tr("UI_ZeD_MMHelp_Quit") }
+        elseif MM.pageOf(self) then
+            btns, self._ask = MM.pageOf(self).band(self)
         elseif self.page == "mods" then
             btns = { { id = "back", text = getText("UI_btn_back"), fn = function() self.page = nil; self.focusId = nil; clickSound() end, help = ZeD.tr("UI_ZeD_MMHelp_BackPause") } }
         else
@@ -2290,6 +2299,8 @@ end
 -- the nearest that way at all); the old row grid only where controls have no
 -- rectangles (the New Game icon grid, the server pick lists)
 function ZeD_MMWindow:joyDir(dir)
+    local pg = MM.pageOf(self)
+    if pg and pg.joyDir and pg.joyDir(self, dir) then return end
     local rows, ri, ci = self:focusPos()
     if not ri then return end
     local cur = rows[ri][ci]
@@ -2337,7 +2348,9 @@ end
 -- B: answer No to a question; in game, otherwise resume
 function ZeD_MMWindow:joyB()
     if self.confirm then self:setConfirm(false); return end
-    if self.page then self.page = nil; self.focusId = nil; clickSound(); return end   -- (the pause window's Mods page)
+    local pg = MM.pageOf(self)
+    if pg and pg.cancel and pg.cancel(self) then clickSound(); return end   -- (a page's own question: B is its Cancel)
+    if self.page then MM.leavePage(self); clickSound(); return end   -- (the pause window's own pages)
     if self.kind == "pause" then MM.act.resume() end
 end
 
@@ -2458,6 +2471,8 @@ function ZeD_MMWindow:prerender()
     local gp = MM.gamepad()
     self._hits = {}
     MM.band(self, self._strip.y, w, self._bandRow, self._bandBtns, self._ask)
+    local pg = MM.pageOf(self)
+    if pg and pg.draw then pg.draw(self) end
     MM.bandHits(self)
     if gp then self:focusPos() end
     for _, b in ipairs(self._specs) do
@@ -2465,8 +2480,8 @@ function ZeD_MMWindow:prerender()
             local hid = self.kind .. ":" .. b.id
             local hot = not gp and ctx.hot == hid
             local focus = gp and self.focusId == b.id
-            -- (the Continue button is the card's own main action: solid accent when it has the focus)
-            drawBtn(self, b, hot, focus, hot and ctx.press == hid)
+            -- (the Continue button is the card's own main action: solid accent when it has the focus; a page's row draws itself)
+            if b.draw then b.draw(self, b, hot, focus) else drawBtn(self, b, hot, focus, hot and ctx.press == hid) end
             self._hits[#self._hits + 1] = { id = hid, x = ax + b.x, y = ay + b.y, w = b.w, h = b.h, fn = b.fn, disabled = b.disabled, sound = true }
         end
     end
@@ -2481,11 +2496,40 @@ end
 -- no dragging, no WindowShade: the window sits where the menu puts it
 function ZeD_MMWindow:onMouseDown(x, y) return true end
 
+-- the wheel over a page's list scrolls it (ZeD_MainMenuPlayers.lua)
+function ZeD_MMWindow:onMouseWheel(del)
+    local pg = MM.pageOf(self)
+    if not (pg and pg.wheel) then return false end
+    pg.wheel(self, del)
+    return true
+end
+
+-- The pause window's pages beyond Mods (MM.pages[name] = { W, label, build, band, draw, joyDir, wheel, leave }; the
+-- page file opens them with MM.openPage): the page this window shows, if it is one of them
+function MM.pageOf(win)
+    local p = win and win.page
+    return p and MM.pages and MM.pages[p] or nil
+end
+-- leaving any page (Back, B, the menu shut and opened again): the page's own leave first (Invite keeps its list)
+function MM.leavePage(win)
+    if not win then return end
+    local pg = MM.pageOf(win)
+    if pg and pg.leave then
+        local ok, err = pcall(pg.leave, win)
+        if not ok and ZeD.logOnce then ZeD.logOnce("pause page leave", err) end
+    end
+    -- (the controller lands back on the pause window's button that opened the page: its id is the page's name)
+    local back = (win.kind == "pause" and (pg or win.page == "mods")) and win.page or nil
+    win.page = nil
+    win.focusId = back
+    win._ask = nil
+end
+
 -- Escape opened the pause menu (vanilla's ToggleEscapeMenu calls onEnterFromGame on
 -- MainScreen's children): no question pending, the controller on Resume.
 function ZeD_MMWindow:onEnterFromGame()
     self.confirm = false
-    self.page = nil
+    MM.leavePage(self)
     self.focusId = "resume"
     self.ctx.hot, self.ctx.press = nil, nil
 end
