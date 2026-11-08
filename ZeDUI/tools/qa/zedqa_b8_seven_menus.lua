@@ -216,7 +216,7 @@ step(10, function()
         local ids = {}
         local list = getActivatedMods()
         for i = 0, list:size() - 1 do ids[#ids + 1] = (tostring(list:get(i)):gsub("^\\", "")) end
-        local errs = S.errors("b8menu", ids, true)
+        local errs = S.errors({}, ids, true)   -- (Nov 8 QA: the owner is a screen table; a string made the mod's preview throw)
         check(errs == nil, "the mod's preview of the current list (" .. #ids .. " mods) holds nothing back" .. (errs and (": " .. tostring(errs[1])) or ""))
     end
     say("(manual: Options > Mods folds, Load / Continue / New Game / Host notes and the Mods screen are main-menu screens)")

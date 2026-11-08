@@ -1,0 +1,17 @@
+VERSION = 1,
+
+mods
+{
+    mod = AutoHideHotbar,
+    mod = ItemConditionRestored,
+    mod = MaskFilterIndicator,
+    mod = BetterItemTransfer,
+    mod = Clear_SkillSheet,
+    mod = VIF_DualRender_B42,
+    mod = BetterModExperience,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

@@ -41,7 +41,7 @@ local IDS = {
     "group", "carry_animal", "undecided", "come_here", "clap", "thumbs_up", "thumbs_down", "yes", "no", "insult",
     "chat", "target", "target_off", "back", "plus", "minus", "info", "help", "play", "pause", "ff1", "ff2", "wait",
     "seek", "gears", "zoom_in", "zoom_out", "theme", "textsize", "focus", "scale", "seethrough", "progress", "inbox",
-    "smiley", "guide", "gamepad", "alarm", "heart", "safemode", "crate", "jacket", "thermometer", "idcard",
+    "smiley", "guide", "gamepad", "alarm", "heart", "safemode", "crate", "jacket", "thermometer", "idcard", "pencil", "bug",   -- (Nov 8 QA: the Lua console slice, debug mode)
     "notebook", "skills", "craft", "bricks", "mirror", "traits",
 }
 -- vanilla's words: { key, picture or false, id }

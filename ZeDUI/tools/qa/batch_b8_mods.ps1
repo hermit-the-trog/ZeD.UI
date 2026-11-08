@@ -25,15 +25,15 @@ try {
         }
     }
     "copied $($Copied.Count) mod folders"
-    $runs = @()
+    $runList = @()
     foreach ($r in ($Runs -split ",")) {
         switch ($r.Trim()) {
-            "wo"    { $runs += @{ tag = "wo_zedlast";  list = "b8_wo_mods.txt";    man = "b8_wo_manifest.txt";    first = $false }
-                      $runs += @{ tag = "wo_zedfirst"; list = "b8_wo_mods.txt";    man = "b8_wo_manifest.txt";    first = $true } }
-            "seven" { $runs += @{ tag = "seven_zedlast"; list = "b8_seven_mods.txt"; man = "b8_seven_manifest.txt"; first = $false } }
+            "wo"    { $runList += @{ tag = "wo_zedlast";  list = "b8_wo_mods.txt";    man = "b8_wo_manifest.txt";    first = $false }
+                      $runList += @{ tag = "wo_zedfirst"; list = "b8_wo_mods.txt";    man = "b8_wo_manifest.txt";    first = $true } }
+            "seven" { $runList += @{ tag = "seven_zedlast"; list = "b8_seven_mods.txt"; man = "b8_seven_manifest.txt"; first = $false } }
         }
     }
-    foreach ($run in $runs) {
+    foreach ($run in $runList) {
         $a = @("-NoProfile", "-File", "$Qa\zedqa_mods_run.ps1", "-ModList", "$Qa\$($run.list)", "-Mode", "fullscreen4k", "-Manifest", "$Qa\$($run.man)")
         if ($run.first) { $a += "-ZeDFirst" }
         "== $($run.tag)"

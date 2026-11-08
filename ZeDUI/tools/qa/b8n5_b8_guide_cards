@@ -1,0 +1,506 @@
+# ZeD-UI regression - 2026-11-08 04:21 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-08 04:21:13 |
+| Finished | 2026-11-08 04:24:32 (3 min 19 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta7 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\b8_guide_cards.txt (8 scripts) |
+| Result | **8/8 pass**, 0 warn, 0 fail, 0 timeout |
+| Go numbers | 23784 to 23793 |
+
+Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 23792, 23793)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 5 |  |  |
+| 2 | zedqa_pin_windows.lua | pnw | PASS | 1 |  |  |
+| 3 | zedqa_b8_recipes.lua | b8rc | PASS | 41 | zqa_b8_makes_saw.png, zqa_b8_makes_hammer.png, zqa_b8_makes_log.png, zqa_b8_makes_nails.png, zqa_b8_makes_carrot.png, zqa_b8_makes_key.png, zqa_b8_makes_pad.png, zqa_b8_makes_opened.png, zqa_b8_makes_more.png, zqa_b8_skillcard.png |  |
+| 4 | zedqa_b8_focus.lua | b8fo | PASS | 9 |  |  |
+| 5 | zedqa_b8_hidden.lua | b8hf | PASS | 14 | zqa_b8_hf_tv_locked.png, zqa_b8_hf_inf_locked.png, zqa_b8_hf_tv_found.png, zqa_b8_hf_inf_found_spoiler_shown.png, zqa_b8_hf_tv_window.png, zqa_b8_hf_inf_window.png, zqa_b8_hf_tv_always.png |  |
+| 6 | zedqa_b8_forms.lua | b8fm | PASS | 3 | zqa_b8_forms_guide.png |  |
+| 7 | zedqa_b8_known.lua | b8ki | PASS | 2 |  |  |
+| 8 | zedqa_b8_guide.lua | b8gd | PASS | 19 | zqa_b8_gd_first_spread.png, zqa_b8_gd_contents.png, zqa_b8_gd_contents_end_intro.png, zqa_b8_gd_tv_rules.png, zqa_b8_gd_third_1_third_optima_eyes.png, zqa_b8_gd_third_2_third_invisible_sledgehammer.png, zqa_b8_gd_third_3_third_nolans_used_cars.png, zqa_b8_gd_third_4_third_echo_creek_feed_seed.png, zqa_b8_gd_third_5_third_homeward_real_estate.png, zqa_b8_gd_third_6_third_u_store_it.png |  |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 5 s
+
+- go 23784 at 04:22:12
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=909,13059 grid=19 inCar=false vehicles=47 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre moved from 909,13059,0 to the drag strip
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 299 frames 300
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
+
+- go 23785 at 04:22:20
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pnw pinned both windows
+[ZeD.QA] run #2 ok=true
+ZEDQA pnw DONE
+```
+
+### 3. zedqa_b8_recipes.lua (`ZEDQA b8rc`) - PASS, 41 s
+
+- go 23786 at 04:22:24
+- screenshots: zqa_b8_makes_saw.png, zqa_b8_makes_hammer.png, zqa_b8_makes_log.png, zqa_b8_makes_nails.png, zqa_b8_makes_carrot.png, zqa_b8_makes_key.png, zqa_b8_makes_pad.png, zqa_b8_makes_opened.png, zqa_b8_makes_more.png, zqa_b8_skillcard.png
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8rc start
+[ZeD.QA] run #3 ok=true
+ZEDQA b8rc PASS ZeD.RecipeIndex is loaded
+ZEDQA b8rc PASS the skill index was built as the game started (not on the first card)
+ZEDQA b8rc before: See Not Known Recipes true, Recipes skills teach item 1, Character tab loot, World tab loot
+ZEDQA b8rc saw: 6 rows and 114 more, 4 ms: Break Down Metal [Known]; Chopping Block [Known]; Cut Up Tire [Known]; Fix Saw [Known]; Forge File [Known]; Heckle Comb [Known]
+ZEDQA b8rc PASS saw: six rows at most
+ZEDQA b8rc PASS saw: 'N more' only past six
+ZEDQA b8rc PASS saw: the known recipes come first
+ZEDQA b8rc PASS saw: every row is on the game's own list for the item
+ZEDQA b8rc hammer: 6 rows and 188 more, 6 ms: Assemble Bladed Item [Known]; Assemble Long Implement [Known]; Assemble Mace [Known]; Assemble Medium Implement [Known]; Assemble Spear [Known]; Assemble Stone Mace [Known]
+ZEDQA b8rc PASS hammer: six rows at most
+ZEDQA b8rc PASS hammer: 'N more' only past six
+ZEDQA b8rc PASS hammer: the known recipes come first
+ZEDQA b8rc PASS hammer: every row is on the game's own list for the item
+ZEDQA b8rc log: 6 rows and 43 more, 1 ms: Advanced Forge [Known]; Burn Wood into Charcoal [Known]; Chop Log Into Firewood [Known]; Chopping Block [Known]; Drill Plank [Known]; Fire 2 Limestone [Known]
+ZEDQA b8rc PASS log: six rows at most
+ZEDQA b8rc PASS log: 'N more' only past six
+ZEDQA b8rc PASS log: the known recipes come first
+ZEDQA b8rc PASS log: every row is on the game's own list for the item
+ZEDQA b8rc nails: 6 rows and 110 more, 3 ms: Butcher Hook [Known]; Butter Churn [Known]; Chicken Hutch (Dark Wood) [Known]; Chicken Hutch (Light Wood) [Known]; Composter (Basic) [Known]; Double Tall Wooden Gate [Known]
+ZEDQA b8rc PASS nails: six rows at most
+ZEDQA b8rc PASS nails: 'N more' only past six
+ZEDQA b8rc PASS nails: the known recipes come first
+ZEDQA b8rc PASS nails: every row is on the game's own list for the item
+ZEDQA b8rc carrot: 1 rows and 0 more, 0 ms: Make Jar of Preserved Food [Known]
+ZEDQA b8rc PASS carrot: six rows at most
+ZEDQA b8rc PASS carrot: 'N more' only past six
+ZEDQA b8rc PASS carrot: the known recipes come first
+ZEDQA b8rc PASS carrot: every row is on the game's own list for the item
+ZEDQA b8rc key: 1 rows and 0 more, 0 ms: Copy Building Key [Known]
+ZEDQA b8rc PASS key: six rows at most
+ZEDQA b8rc PASS key: 'N more' only past six
+ZEDQA b8rc PASS key: the known recipes come first
+ZEDQA b8rc PASS key: every row is on the game's own list for the item
+ZEDQA b8rc note: the key has 1 rows here (Copy Building Key [Known]): look at the card, a human decides
+ZEDQA b8rc PASS the saw goes into at least one recipe
+ZEDQA b8rc PASS saw: its row is in the Character window's inventory list (card opened)
+ZEDQA b8rc PASS saw: the card is open on it
+ZEDQA b8rc PASS saw: the card draws 7 'Used to make' rows (the list says 7)
+ZEDQA b8rc shot makes_saw
+ZEDQA b8rc PASS hammer: its row is in the Character window's inventory list (card opened)
+ZEDQA b8rc PASS hammer: the card is open on it
+ZEDQA b8rc PASS hammer: the card draws 7 'Used to make' rows (the list says 7)
+ZEDQA b8rc shot makes_hammer
+ZEDQA b8rc PASS log: its row is in the Character window's inventory list (card opened)
+ZEDQA b8rc PASS log: the card is open on it
+ZEDQA b8rc PASS log: the card draws 7 'Used to make' rows (the list says 7)
+ZEDQA b8rc shot makes_log
+ZEDQA b8rc PASS nails: its row is in the Character window's inventory list (card opened)
+ZEDQA b8rc PASS nails: the card is open on it
+ZEDQA b8rc PASS nails: the card draws 7 'Used to make' rows (the list says 7)
+ZEDQA b8rc shot makes_nails
+ZEDQA b8rc PASS carrot: its row is in the Character window's inventory list (card opened)
+ZEDQA b8rc PASS carrot: the card is open on it
+ZEDQA b8rc PASS carrot: the card draws 1 'Used to make' rows (the list says 1)
+ZEDQA b8rc shot makes_carrot
+ZEDQA b8rc PASS key: its row is in the Character window's inventory list (card opened)
+ZEDQA b8rc PASS key: the card is open on it
+ZEDQA b8rc PASS key: the card draws 1 'Used to make' rows (the list says 1)
+ZEDQA b8rc shot makes_key
+ZEDQA b8rc PASS controller: only rows in view are stops (7 stops, 7 in view of 7)
+ZEDQA b8rc PASS controller: Down from the card's verbs reaches a 'Used to make' row (make_1 after 3 presses)
+ZEDQA b8rc shot makes_pad
+ZEDQA b8rc PASS controller: A on a row opens the World window's Craft or Build tab (now craft)
+ZEDQA b8rc PASS controller: that recipe is the pick (ScrapMetal)
+ZEDQA b8rc shot makes_opened
+ZEDQA b8rc PASS mouse: the first row has a press
+ZEDQA b8rc PASS mouse: a row opens the Craft tab (now craft)
+ZEDQA b8rc PASS mouse: the row's recipe is selected (ScrapMetal)
+ZEDQA b8rc an item with 'N more': saw
+ZEDQA b8rc PASS 'N more' is the last row (make_7)
+ZEDQA b8rc PASS 'N more': the Craft tab opens (now craft)
+ZEDQA b8rc PASS 'N more': the Craft tab's search holds the item (Hacksaw)
+ZEDQA b8rc shot makes_more
+ZEDQA b8rc note: no spawned item goes into a build recipe here; the Build tab way in not exercised
+ZEDQA b8rc note: no unlearned must-learn recipe takes a saw here; the Known flip not exercised
+ZEDQA b8rc PASS See Not Known Recipes set false
+ZEDQA b8rc PASS off: the item card lists no must-learn recipe not learned (459 recipes over the six items)
+ZEDQA b8rc PASS off: the skill card counts no must-learn recipe not learned (157 counted)
+ZEDQA b8rc PASS off: the Craft tab lists no must-learn recipe not learned (873 listed)
+ZEDQA b8rc PASS See Not Known Recipes set true
+ZEDQA b8rc on: 481 recipes over the six items (off: 459), 22 of them must-learn and unlearned
+ZEDQA b8rc PASS on: the lists are never shorter than with it off
+ZEDQA b8rc PASS on: the Craft tab lists at least as many (969 vs 873)
+ZEDQA b8rc See Not Known Recipes put back to true
+ZEDQA b8rc PASS Carpentry at level 2 has card lines
+ZEDQA b8rc Carpentry 2: Recipes that need each level | Level 3: 24 | Butcher Hook | Chicken Hutch (Dark Wood) | Chicken Hutch (Light Wood) | and 21 more | Level 4: 13 | Level 5: 19 | Level 6: 13 | Level 7: 5
+ZEDQA b8rc PASS the first line is 'Recipes that need each level'
+ZEDQA b8rc PASS then 'Level N' with a count (Level 3=24)
+ZEDQA b8rc PASS the next level's recipes by name: 4 lines for 24 recipes
+ZEDQA b8rc PASS 'and 21 more' follows the three names
+ZEDQA b8rc Cooking recipes by level in the index:
+ZEDQA b8rc note: this game's data has no Cooking recipe for level 1; no card lines to check
+ZEDQA b8rc PASS Cooking at level 0 has card lines
+ZEDQA b8rc Cooking 0:
+ZEDQA b8rc PASS Sprinting: no recipe needs it, no lines
+ZEDQA b8rc PASS Fitness: no recipe needs it, no lines
+ZEDQA b8rc PASS a skill at 10: no lines
+ZEDQA b8rc PASS switch on: the card reads it
+ZEDQA b8rc Woodwork at level 0 with the switch on: Recipes that need each level | Level 1: 21 | Can-Reinforce Short Weapon | Chopping Block | Crude Wooden Stool | and 18 more | Level 2: 19 | Level 3: 24 | Level 4: 13 | Level 5: 19 | Level 6: 13 | Level 7: 5 | Learned by itself at each level | Level 3: 1 | Can-Reinforce Short Weapon | Level 4: 2 | Level 5: 2 | Level 6: 1 | Level 7: 7 | Level 8: 4 | Level 9: 2
+ZEDQA b8rc PASS Woodwork: the 'Learned by itself' block follows the needs block
+ZEDQA b8rc PASS switch off: the card reads it
+ZEDQA b8rc PASS presets: Vanilla and Vanilla Plus off, Vanilla Access on for 'Recipes skills teach'
+ZEDQA b8rc PASS presets: Hidden facts Find first, Find first, Always
+ZEDQA b8rc focus on the Blacksmithing row (level 5): true
+ZEDQA b8rc PASS the hover card is up on the focused row (Blacksmithing)
+ZEDQA b8rc shot skillcard
+ZEDQA b8rc 77 passed, 0 failed
+ZEDQA b8rc DONE
+```
+
+### 4. zedqa_b8_focus.lua (`ZEDQA b8fo`) - PASS, 9 s
+
+- go 23787 at 04:23:09
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8fo start
+[ZeD.QA] run #4 ok=true
+ZEDQA b8fo PASS single player (not a server's client)
+ZEDQA b8fo the game's Pause on Focus Loss reads: false
+ZEDQA b8fo PASS getOptionPauseOnFocusloss is readable
+ZEDQA b8fo PASS the game has speed controls
+ZEDQA b8fo speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo the watch screen switch reads item 1 (1 = ZeD's)
+ZEDQA b8fo a watch is installed: nil
+ZEDQA b8fo PASS Pause on Focus Loss set On by hand
+ZEDQA b8fo PASS option On: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8fo PASS Pause on Focus Loss set Off by hand
+ZEDQA b8fo PASS option Off: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8fo PASS ZeD left the option as set (Off)
+ZEDQA b8fo PASS ZeD left the option as set (On)
+ZEDQA b8fo PASS option On again: the speed controls stayed visible = true and parked over 60 frames
+ZEDQA b8fo watch switch On (the game's own): speed controls: visible true, y 10; clock: visible true, y 10
+ZEDQA b8fo diag poll 1: ms 1794140593610, value 2 (number)
+ZEDQA b8fo diag poll 2: ms 1794140593878, value 2 (number)
+ZEDQA b8fo diag poll 3: ms 1794140594140, value 2 (number)
+ZEDQA b8fo diag poll 4: ms 1794140594414, value 2 (number)
+ZEDQA b8fo diag poll 5: ms 1794140594677, value 2 (number)
+ZEDQA b8fo diag poll 6: ms 1794140594929, value 2 (number)
+ZEDQA b8fo diag poll 7: ms 1794140595191, value 2 (number)
+ZEDQA b8fo diag poll 8: ms 1794140595445, value 2 (number)
+ZEDQA b8fo a second later: speed controls: visible true, y 10; clock: visible false, y 10
+ZEDQA b8fo diag: Safe.on('watch') true, W._speedY 10, W._clockY 10, switch 2, same object as the Safe-mode switch: true, that one reads 2, ZeD.Safe.on()=false
+ZEDQA b8fo PASS watch handed back: the speed controls are on screen again (y 10)
+ZEDQA b8fo after taking the watch back: speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo PASS watch taken back: the speed controls parked again, flag still on
+ZEDQA b8fo PASS the game's option is back at false
+ZEDQA b8fo 13 passed, 0 failed
+ZEDQA b8fo DONE
+```
+
+### 5. zedqa_b8_hidden.lua (`ZEDQA b8hf`) - PASS, 14 s
+
+- go 23788 at 04:23:21
+- screenshots: zqa_b8_hf_tv_locked.png, zqa_b8_hf_inf_locked.png, zqa_b8_hf_tv_found.png, zqa_b8_hf_inf_found_spoiler_shown.png, zqa_b8_hf_tv_window.png, zqa_b8_hf_inf_window.png, zqa_b8_hf_tv_always.png
+
+```text
+[ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8hf start
+[ZeD.QA] run #5 ok=true
+ZEDQA b8hf before: Hidden facts item 1, guide look 1, 24-hour clock true, the character's marks false
+ZEDQA b8hf PASS single player
+ZEDQA b8hf PASS the reading hook on ISReadABook:perform is installed
+ZEDQA b8hf PASS the finds: TV Monthly opens the schedule, a First Aid book the odds, other books nothing
+ZEDQA b8hf Find first, marks cleared: TV find held false, First Aid find held false
+ZEDQA b8hf PASS Always is off on Find first
+ZEDQA b8hf PASS TV: the locked page is one column and one row
+ZEDQA b8hf PASS TV: it names TV Monthly (Read Magazine: TV Monthly to add the broadcast schedule here.)
+ZEDQA b8hf PASS TV: it says what more it could show
+ZEDQA b8hf PASS odds: the locked page is one column and one row
+ZEDQA b8hf PASS odds: it names the First Aid skill (Read a First Aid book to add the infection odds here.)
+ZEDQA b8hf PASS F1's book opens (Full)
+ZEDQA b8hf PASS Television/Radio has a rules page in the book (1 page(s))
+ZEDQA b8hf Television/Radio rules page(s) at 20, locked now: true
+ZEDQA b8hf shot tv_locked
+ZEDQA b8hf PASS Zombie Attacks has a rules page in the book (2 page(s))
+ZEDQA b8hf Zombie Attacks rules pages at 28 to 29; the last is: Infection odds | Read a First Aid book to add the infection odds here. | note: This page can show which wounds can pass the infection on in this world.
+ZEDQA b8hf shot inf_locked
+ZEDQA b8hf PASS other reading opens nothing
+ZEDQA b8hf TV Monthly pages -1, read-to-end test true
+ZEDQA b8hf PASS a magazine with no pages counts when read
+ZEDQA b8hf PASS TV Monthly read: the schedule is open
+ZEDQA b8hf PASS TV Monthly read: the odds are as they were (false)
+ZEDQA b8hf First Aid I pages 220
+ZEDQA b8hf PASS First Aid I is a book with pages
+ZEDQA b8hf PASS a First Aid book not yet read does not count
+ZEDQA b8hf PASS a First Aid book half read does not count
+ZEDQA b8hf PASS half read: the odds are as they were
+ZEDQA b8hf PASS read to the last page: counts
+ZEDQA b8hf PASS First Aid read to the end: the odds are open
+ZEDQA b8hf PASS on a server's client the end of the reading counts
+ZEDQA b8hf PASS the game's clock (RadioScriptManager current time stamp) reads 15140
+ZEDQA b8hf PASS the schedule reads in single player (the stations have scripts)
+ZEDQA b8hf the schedule: 8 teaching shows in the next 7 days
+ZEDQA b8hf day +0 12:00 Life and Living TV teaches Carpentry
+ZEDQA b8hf day +0 18:00 Life and Living TV teaches Trapping, Recipe: Make Crate Trap
+ZEDQA b8hf day +1 06:00 Life and Living TV teaches Cooking, Recipe: Make Cake Batter
+ZEDQA b8hf day +1 12:00 Life and Living TV teaches Carpentry
+ZEDQA b8hf PASS the shows are sorted by start
+ZEDQA b8hf PASS every show is on now or ahead (the show list holds the one in progress: it started up to 6 hours back) and starts within 7 days
+ZEDQA b8hf PASS every show has a day, a time, a channel and what it teaches
+ZEDQA b8hf PASS the page has day / time / channel / teaches columns and a row a show (8 rows)
+ZEDQA b8hf first show's time: 24-hour '12:00', 12-hour '12:00 PM'
+ZEDQA b8hf PASS 24-hour clock: hh:mm
+ZEDQA b8hf PASS 12-hour clock: the time reads with AM or PM
+ZEDQA b8hf columns: Day | Time | Channel | Teaches; notes: 2
+ZEDQA b8hf PASS no channel script: the page says the schedule is not available here
+ZEDQA b8hf PASS woundsFor: Blood and Saliva, Saliva Only, Everyone, None
+ZEDQA b8hf PASS the odds page is open (a First Aid book was read)
+ZEDQA b8hf PASS three rows (Bitten, Cut, Scratched), behind the spoiler bar
+ZEDQA b8hf this world's Transmission is 1; page: Infection odds | Bitten / Always | Laceration / Sometimes | Scratched / Sometimes | note: Transmission in this world: Blood and Saliva. | note: How often a scratch or a laceration passes it on is kept in the game's code, not in the world's settings, so the guide cannot read it. Whether you have it is never shown.
+ZEDQA b8hf PASS the page follows this world's Transmission
+ZEDQA b8hf PASS Mortality 5 (not Never): the world line and the odds note only (2 notes)
+ZEDQA b8hf PASS TV rules page present with the find held
+ZEDQA b8hf shot tv_found
+ZEDQA b8hf shot inf_found_spoiler_shown
+ZEDQA b8hf PASS Simple look: F1 opens the window
+ZEDQA b8hf shot tv_window
+ZEDQA b8hf shot inf_window
+ZEDQA b8hf recipe sources indexed: 408 recipes; sample BarbedWireWeapon
+ZEDQA b8hf PASS the item scripts' LearnedRecipes index builds
+ZEDQA b8hf PASS Find first: the crafting card keeps its own words (no magazine named)
+ZEDQA b8hf PASS Hidden facts item 2 reads Always
+ZEDQA b8hf Always, 'BarbedWireWeapon' -> Find Magazine: Bloody Japanese Wrestling Deathmatch!
+ZEDQA b8hf PASS Always: How to learn names the magazine
+ZEDQA b8hf PASS Always: both pages open with nothing read
+ZEDQA b8hf PASS Always: neither page is the locked page
+ZEDQA b8hf PASS Always: the book has the TV page
+ZEDQA b8hf shot tv_always
+ZEDQA b8hf 46 passed, 0 failed
+ZEDQA b8hf DONE
+```
+
+### 6. zedqa_b8_forms.lua (`ZEDQA b8fm`) - PASS, 3 s
+
+- go 23789 at 04:23:39
+- screenshots: zqa_b8_forms_guide.png
+
+```text
+[ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8fm start
+[ZeD.QA] run #6 ok=true
+ZEDQA b8fm language EN
+ZEDQA b8fm PASS the option groups are loaded
+ZEDQA b8fm PASS Immersive or simple holds the six, in order (beltStyle, devicesStyle, watchStyle, dashStyle, guideStyle, identityStyle)
+ZEDQA b8fm PASS the Identity card has left Look (it is in UI_ZeD_Options_ZedForms)
+ZEDQA b8fm PASS the Action bar sits in HUD (UI_ZeD_Options_ZedHud)
+ZEDQA b8fm PASS the Mods screen sits in Windows (UI_ZeD_Options_ZedWindows)
+ZEDQA b8fm PASS Windows: Inventory, Context menu, Equipped items lead (inventoryView, contextStyle, equipView, modsStyle, charAccent, worldAccent, hiddenActions)
+ZEDQA b8fm PASS HUD: the Action bar comes after Watch place (moodlePlace, watchPlace, actionBar)
+ZEDQA b8fm PASS beltStyle shows in one section (1)
+ZEDQA b8fm PASS devicesStyle shows in one section (1)
+ZEDQA b8fm PASS watchStyle shows in one section (1)
+ZEDQA b8fm PASS dashStyle shows in one section (1)
+ZEDQA b8fm PASS guideStyle shows in one section (1)
+ZEDQA b8fm PASS identityStyle shows in one section (1)
+ZEDQA b8fm PASS actionBar shows in one section (1)
+ZEDQA b8fm PASS modsStyle shows in one section (1)
+ZEDQA b8fm PASS contextStyle shows in one section (1)
+ZEDQA b8fm PASS equipView shows in one section (1)
+ZEDQA b8fm PASS inventoryView shows in one section (1)
+ZEDQA b8fm PASS the section has a name in this language (Immersive or simple)
+ZEDQA b8fm PASS the section reads 'Immersive or simple'
+ZEDQA b8fm PASS beltStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS devicesStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS watchStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS dashStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS guideStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS identityStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS actionBar reads item 1 or 2 (1)
+ZEDQA b8fm PASS modsStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS contextStyle reads item 1 or 2 (1)
+ZEDQA b8fm PASS equipView reads item 1 or 2 (1)
+ZEDQA b8fm saved choices now: actionBar=1, beltStyle=1, contextStyle=1, dashStyle=1, devicesStyle=1, equipView=1, guideStyle=1, identityStyle=1, modsStyle=1, watchStyle=1
+ZEDQA b8fm PASS the additions' presets load
+ZEDQA b8fm PASS Vanilla Plus keeps devicesStyle on item 1 (the rich form)
+ZEDQA b8fm PASS Vanilla Access picks Simple for devicesStyle
+ZEDQA b8fm PASS Vanilla Plus keeps watchStyle on item 1 (the rich form)
+ZEDQA b8fm PASS Vanilla Access picks Simple for watchStyle
+ZEDQA b8fm PASS Vanilla Plus keeps dashStyle on item 1 (the rich form)
+ZEDQA b8fm PASS Vanilla Access picks Simple for dashStyle
+ZEDQA b8fm PASS Vanilla Plus keeps guideStyle on item 1 (the rich form)
+ZEDQA b8fm PASS Vanilla Access picks Simple for guideStyle
+ZEDQA b8fm PASS Vanilla Plus keeps modsStyle on item 1 (the rich form)
+ZEDQA b8fm PASS Vanilla Access picks Simple for modsStyle
+ZEDQA b8fm PASS Vanilla Plus keeps identityStyle on item 1 (the rich form)
+ZEDQA b8fm PASS Vanilla Access picks Simple for identityStyle
+ZEDQA b8fm PASS every changed key has text in this language
+ZEDQA b8fm PASS Immersive reads Immersive
+ZEDQA b8fm PASS Detailed reads Detailed
+ZEDQA b8fm PASS BeltTip reads 'Immersive: ... Simple: ...'
+ZEDQA b8fm PASS DevicesTip reads 'Immersive: ... Simple: ...'
+ZEDQA b8fm PASS WatchStyleTip reads 'Immersive: ... Simple: ...'
+ZEDQA b8fm PASS DashTip reads 'Immersive: ... Simple: ...'
+ZEDQA b8fm PASS GuideTip reads 'Immersive: ... Simple: ...'
+ZEDQA b8fm PASS IdentityTip reads 'Immersive: ... Simple: ...'
+ZEDQA b8fm PASS ActionBarTip reads 'Detailed: ... Simple: ...'
+ZEDQA b8fm PASS ModsTip reads 'Detailed: ... Simple: ...'
+ZEDQA b8fm PASS UI_ZeD_GCh_zed_setup_Title says Immersive, not Full
+ZEDQA b8fm PASS UI_ZeD_GCh_zed_setup_Text says Immersive, not Full
+ZEDQA b8fm PASS UI_ZeD_GCh_whatsnew_beta3_Text says Immersive, not Full
+ZEDQA b8fm PASS the guide has the ZeD setup chapter (page 101)
+ZEDQA b8fm shot forms_guide
+ZEDQA b8fm 58 passed, 0 failed
+ZEDQA b8fm DONE
+```
+
+### 7. zedqa_b8_known.lua (`ZEDQA b8ki`) - PASS, 2 s
+
+- go 23790 at 04:23:45
+
+```text
+[ZeD.QA] state #7 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8ki start
+[ZeD.QA] run #7 ok=true
+ZEDQA b8ki language EN, players: 1
+ZEDQA b8ki PASS ZeD.windowsFor exists
+ZEDQA b8ki PASS the first player (and nobody named) has ZeD's windows
+ZEDQA b8ki PASS players 2 to 4 have the game's own
+ZEDQA b8ki PASS the first player has a belt of their own
+ZEDQA b8ki PASS no belt for a player 2 who is not in this game
+ZEDQA b8ki PASS no argument: the first player's belt
+ZEDQA b8ki PASS the inventory key opens ZeD's pair for the first player
+ZEDQA b8ki PASS a second press shuts them
+ZEDQA b8ki PASS all 24 month words have text in EN
+ZEDQA b8ki Journal month words in EN: Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+ZEDQA b8ki PASS English keeps its capitals (12 of 12 equal Jan..Dec)
+ZEDQA b8ki Journal entry stamp pattern: Day x1 x2 x3, ; ticket short date: x1 x2
+ZEDQA b8ki 10 passed, 0 failed
+ZEDQA b8ki DONE
+```
+
+### 8. zedqa_b8_guide.lua (`ZEDQA b8gd`) - PASS, 19 s
+
+- go 23791 at 04:23:50
+- screenshots: zqa_b8_gd_first_spread.png, zqa_b8_gd_contents.png, zqa_b8_gd_contents_end_intro.png, zqa_b8_gd_tv_rules.png, zqa_b8_gd_third_1_third_optima_eyes.png, zqa_b8_gd_third_2_third_invisible_sledgehammer.png, zqa_b8_gd_third_3_third_nolans_used_cars.png, zqa_b8_gd_third_4_third_echo_creek_feed_seed.png, zqa_b8_gd_third_5_third_homeward_real_estate.png, zqa_b8_gd_third_6_third_u_store_it.png
+
+```text
+[ZeD.QA] state #8 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8gd start
+[ZeD.QA] run #8 ok=true
+ZEDQA b8gd ads in the book's lists: 3 full, 7 half, 44 third, 12 quarter (66)
+ZEDQA b8gd PASS 44 third-size ads (12 + 32 new); the list has 44
+ZEDQA b8gd PASS 32 third-size ads are new this build (32)
+ZEDQA b8gd PASS no ad named twice
+ZEDQA b8gd PASS every ad's art file loads
+ZEDQA b8gd PASS every ad's art is in its size's proportion
+ZEDQA b8gd PASS the deck holds every third once (44 of 44)
+ZEDQA b8gd PASS all 32 new thirds are in the deck
+ZEDQA b8gd PASS F1 on Full opens the book
+ZEDQA b8gd screen 3840x2160, unit 1.75, 112 pages, 2 contents page(s), intro on page 6
+ZEDQA b8gd PASS page 1 is the copyright page and page 2 the title page
+ZEDQA b8gd PASS the contents start on page 3 (2 page(s))
+ZEDQA b8gd PASS page 3 is contents part 1
+ZEDQA b8gd PASS page 4 is contents part 2
+ZEDQA b8gd PASS the introduction is on page 6
+ZEDQA b8gd PASS the introduction sits on a right-hand page
+ZEDQA b8gd PASS the copyright page lays out (16 lines)
+ZEDQA b8gd PASS the page prints exactly the keys' words, in order
+ZEDQA b8gd PASS the printing line is last (10 9 8 7 6 5 4 3 2 1)
+ZEDQA b8gd PASS the block starts under the top margin (749.9, margin 52.5)
+ZEDQA b8gd PASS the block ends on the text foot (last baseline 1157.6, foot 1162.0)
+ZEDQA b8gd PASS no copyright line is wider than the text block
+ZEDQA b8gd PASS UI_ZeD_Guide_Copy1 to 5 have text
+ZEDQA b8gd PASS the copyright line carries its years
+ZEDQA b8gd copyright line 1: Survive the Apocalypse: Survive an Outbreak Like It's a Vacation
+ZEDQA b8gd copyright line 2: Second Edition
+ZEDQA b8gd copyright line 3: by Stevie Whetstone
+ZEDQA b8gd copyright line 4: Copyright © 1984, 1987 by Doidbros and Buzzlord Division of Survival Emergency
+ZEDQA b8gd copyright line 5: Publications LLC. All rights reserved. No part of this book may be reproduced, stored in a
+ZEDQA b8gd copyright line 6: retrieval system or transmitted in any form or by any means, electronic, mechanical,
+ZEDQA b8gd copyright line 7: photocopying, recording or otherwise, without the prior written permission of the publisher.
+ZEDQA b8gd copyright line 8: Brand names in this book are trademarks of their respective holders and are used for
+ZEDQA b8gd copyright line 9: identification only.
+ZEDQA b8gd copyright line 10: Limits of liability and disclaimer of warranty: the author and the publisher have used their
+ZEDQA b8gd copyright line 11: best efforts in preparing this book and the methods in it. They make no warranty of any
+ZEDQA b8gd copyright line 12: kind, expressed or implied, with regard to the methods or the advice in this book. The first
+ZEDQA b8gd PASS the title page's publisher line has text (by Stevie Whetstone)
+ZEDQA b8gd shot first_spread
+ZEDQA b8gd shot contents
+ZEDQA b8gd shot contents_end_intro
+ZEDQA b8gd PASS every section has a page
+ZEDQA b8gd PASS the sections run in order
+ZEDQA b8gd chapters (page / spread now, for the gallery retakes): 1:Movement=p7/spread 4; 2:Loot=p12/spread 6; 3:Interactables=p14/spread 7; 4:Combat=p22/spread 11; 5:Food & Water=p33/spread 17; 6:Character=p39/spread 20; 7:Crafting and Building=p59/spread 30; 8:Vehicles=p65/spread 33; 9:Weather=p70/spread 35; 10:Foraging & Mining=p72/spread 36; 11:Farming=p74/spread 37; 12:Ranching=p82/spread 41; 13:Fishing=p89/spread 45; 14:Cleaning=p92/spread 46; 15:Multiplayer=p95/spread 48; 16:ZeD=p98/spread 49; 17:First Days=p102/spread 51; 18:Coming from Build 41=p106/spread 53; 19:Your Controls=p108/spread 54; 20:What's New in ZeD=p111/spread 56
+ZEDQA b8gd PASS Television/Radio has a rules page (page 20)
+ZEDQA b8gd PASS the rules page follows the topic (topic on page 19)
+ZEDQA b8gd Television/Radio rules page: TV schedule (1 rows)
+ZEDQA b8gd shot tv_rules
+ZEDQA b8gd thirds dealt per reading over 10 seeds: 36,36,36,36,36,36,36,36,36,36; the union covers 44 of 44 (32 of the 32 new)
+ZEDQA b8gd PASS the new thirds are dealt into the book
+ZEDQA b8gd this reading's deal: 36 thirds, 26 of them new. ZeD guide ads (text x1.00, keyboard): full pages 4 (1 with no full ad left), the house ad up front; 310 slots 21 (8 with no half or pair left); 205 slots 36 (0 with no third left); NOTES blocks 15; dealt full 4/4, half 7/7, quarter 12/12, third 36/44
+ZEDQA b8gd new thirds in view of a picture: 25
+ZEDQA b8gd shot third_1_third_optima_eyes
+ZEDQA b8gd shot third_2_third_invisible_sledgehammer
+ZEDQA b8gd shot third_3_third_nolans_used_cars
+ZEDQA b8gd shot third_4_third_echo_creek_feed_seed
+ZEDQA b8gd shot third_5_third_homeward_real_estate
+ZEDQA b8gd shot third_6_third_u_store_it
+ZEDQA b8gd PASS every new third dealt is drawn at design size inside the text block (12 measured of 25 dealt)
+ZEDQA b8gd 29 passed, 0 failed
+ZEDQA b8gd DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    2x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```
