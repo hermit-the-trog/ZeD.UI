@@ -19,6 +19,34 @@ require "ZeD/ZeD_RestockPin"
 ZeD = ZeD or {}
 ZeD.EquipmentTab = {}
 
+-- (Nov 7 2026, perf review #12) the tab's data refreshes run on the clock, not on frames drawn: 15
+-- frames was 250 ms at 60 FPS and ran 2.4-4 times as often at 144-240 Hz. True once periodMs has
+-- passed since owner[key] (or on the first call, or forced: the cache was dropped). The runs keep a
+-- beat of periodMs; a forced run, or one after a gap (the tab not drawn), starts the period again,
+-- as the frame count went back to 0. A window's first run starts at its own
+-- phase (owner._zedPhase, shared by the tabs of one window), so windows opened together don't
+-- refresh on the same frame. Only differences of the clock are taken (no %: it is past 2^31).
+local function dueMs(owner, key, periodMs, force)
+    local now = getTimestampMs()
+    local last = owner[key]
+    if not force and last and now >= last and now - last < periodMs then return false end
+    if last == nil then
+        local ph = owner._zedPhase
+        if not ph then
+            ZeD._throttleN = (ZeD._throttleN or 0) + 1
+            local g = ZeD._throttleN * 0.6180339887
+            ph = g - math.floor(g)
+            owner._zedPhase = ph
+        end
+        owner[key] = now - math.floor(ph * periodMs)
+    elseif force or now < last or now - last >= periodMs * 2 then
+        owner[key] = now               -- (forced, or after a gap: the period starts again)
+    else
+        owner[key] = last + periodMs   -- (on the beat: a late frame doesn't stretch the next period)
+    end
+    return true
+end
+
 -- ============================================================================
 -- SLOT DEFINITIONS
 -- Each group has an ordered list of slots. Each slot has a 3-letter type code,
@@ -395,9 +423,13 @@ function ZeD.EquipmentTab.gatherData(playerObj)
 
     -- Fill slots from worn items — vanilla pattern: getWornItems(), 1-based,
     -- wornItem:getLocation() for the body location string (not getBodyLocation()).
+    -- (Nov 8 2026, code flags) the game keeps worn items innermost first (WornItems.setItem inserts by
+    -- the BodyLocations.lua order, "declared in render-order"), so the list is read from its end: the
+    -- first item a slot takes is its outermost layer (a jacket over a sweater shows the jacket), as
+    -- the doll (EquipDoll.gather) leads with it.
     local wornItems = character:getWornItems()
     if wornItems then
-        for i = 1, wornItems:size() do
+        for i = wornItems:size(), 1, -1 do
             local wornItem = wornItems:get(i - 1)
             if wornItem then
                 local item = wornItem:getItem()
@@ -1227,10 +1259,8 @@ end
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
 
-    -- Throttled data refresh
-    win._equipTimer = (win._equipTimer or 0) + 1
-    if win._equipTimer >= 15 or not win._equipCache then
-        win._equipTimer = 0
+    -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
+    if dueMs(win, "_equipAt", 250, not win._equipCache) then
         win._equipCache = ZeD.EquipmentTab.gatherData(win._playerObj)
     end
     local data = win._equipCache
@@ -1335,10 +1365,8 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- ================================================================
     local scroll = win._equipScroll
 
-    -- Throttled protection data refresh
-    win._equipProtTimer = (win._equipProtTimer or 0) + 1
-    if win._equipProtTimer >= 15 or not win._equipProtCache then
-        win._equipProtTimer = 0
+    -- Throttled protection data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
+    if dueMs(win, "_equipProtAt", 250, not win._equipProtCache) then
         win._equipProtCache = ZeD.ProtectionTab.gatherData(win._playerObj)
     end
     local protData = win._equipProtCache
