@@ -23,3 +23,9 @@ option ZeD.TaxiPerExtraPassenger
 	type = double, min = 0.0, max = 50.0, default = 0.5,
 	page = ZeD, translation = ZeD_TaxiPerExtraPassenger,
 }
+
+option ZeD.HostHelper
+{
+	type = boolean, default = false,
+	page = ZeD, translation = ZeD_HostHelper,
+}

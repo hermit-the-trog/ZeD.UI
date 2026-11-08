@@ -592,7 +592,7 @@ local function eachRing(md, fn)
 end
 
 -- the lines whose target can be an IP address or a Steam ID: those a ban takes. The Bans card asks BanUnbanUser for the same
-local ID_LINE = { ban = true, unban = true, ["ban lifted"] = true, ["game ban"] = true, ["game call dropped"] = true, ["owed game calls full"] = true }
+local ID_LINE = { ban = true, unban = true, ["ban lifted"] = true, ["ban lifted in the game"] = true, ["game ban"] = true, ["game call dropped"] = true, ["owed game calls full"] = true }
 
 local function isAbove(r, p, name)
     if name == nil then return false end

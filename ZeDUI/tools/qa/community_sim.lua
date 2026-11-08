@@ -4,7 +4,8 @@
 -- ZeD_ServerCommunity, and on each simulated client ZeD_ServerLink, ZeD_Tickets, ZeD_Admin and ZeD_Community. Every message crosses
 -- a stub of the network with the game's rules, a step at a time. Permissions, hostile arguments, the views, saving, revisions and
 -- NEW, joining and agreeing, never trapping a player, the news, the appeal line, reports from chat, restarts, a server without any
--- of this.
+-- of this. Nov 7: the join rules hold (every command refused until a player agrees, a Kick owed after five minutes, the walk
+-- finds a client that never says hello).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/community_sim.lua
 -- It prints FAIL lines and a last line "community_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -159,6 +160,7 @@ local function player(name, roleName, x, y, z)
     function p.getZ(self) return self.z end
     function p.getOnlineID(self) return 7 end
     function p.getSteamID(self) return self.steamNum or 0 end
+    function p.getPlayerNum(self) return self.num or 0 end       -- (the server's index for a split-screen player: 0 the first)
     function p.getDescriptor(self)
         return { getCharacterProfession = function() return "carpenter" end }
     end
@@ -221,6 +223,7 @@ local FILES = {
     ["ZeD/ZeD_CommunityProto"] = "42/media/lua/shared/ZeD/ZeD_CommunityProto.lua",
     ["ZeD/ZeD_ServerCore"] = "42/media/lua/server/ZeD/ZeD_ServerCore.lua",
     ["ZeD/ZeD_ServerTickets"] = "42/media/lua/server/ZeD/ZeD_ServerTickets.lua",
+    ["ZeD/ZeD_ServerHelper"] = "42/media/lua/server/ZeD/ZeD_ServerHelper.lua",
     ["ZeD/ZeD_ServerLink"] = "42/media/lua/client/ZeD/ZeD_ServerLink.lua",
     ["ZeD/ZeD_Tickets"] = "42/media/lua/client/ZeD/ZeD_Tickets.lua",
 }
@@ -1344,6 +1347,184 @@ do
     check("a ban with a reason still reads", M.isRemoved("You are banned from this server. Reason: griefing"))
     check("cut at the reason", M.isRemoved("You were kicked. Reason: griefing"))
     check("a lost server still does not", not M.isRemoved("Connection lost"))
+end
+
+
+-- ---------------------------------------------------------------------------
+-- RULES THAT HOLD (the director, Nov 7 2026): until a player agrees every ZeD command is refused; five minutes unanswered owes
+-- a Kick; a player who never says hello is found by the server's own walk
+-- ---------------------------------------------------------------------------
+section("the join rules: every ZeD command refused until they agree")
+do
+    local a = boot()
+    save(a, { ask = true, rules = rulesOf("One") })
+    local Srv = W.server.ZeD.Srv
+    local ran = {}
+    for _, mod in ipairs({ "ZeDC", "ZeDX", "ZeDL", "ZeDDash" }) do
+        Srv.modules[mod] = true
+        Srv.register(mod, "probe", {}, function() ran[mod] = (ran[mod] or 0) + 1 end)
+    end
+    local u = player("Lee", "user")
+    local cu = clientJoin(u)
+    cu.env.ZeD.Community.qaHold = true
+    advance(600)
+    local function fire(mod, cmd, args)
+        u.box = {}
+        nolimit(u)
+        net(function() W.server.Events.OnClientCommand.fire(mod, cmd, u, wire(args or {})) end)
+        drain()
+    end
+    for _, mod in ipairs({ "ZeDC", "ZeDX", "ZeDL", "ZeDDash" }) do
+        fire(mod, "probe")
+        check("not agreed: " .. mod .. " (claims, extras, log, dash) refused", ran[mod] == nil)
+    end
+    fire("ZeDT", "t_mine")
+    check("not agreed: tickets refused", errOf(u) == "perm" and got(u, "t_mine") == nil)
+    fire("ZeDA", "a_players")
+    check("not agreed: admin refused", errOf(u) == "perm")
+    fire("ZeDM", "m_post", { text = "hi" })
+    check("not agreed: community refused", errOf(u) == "perm")
+    check("a line says why, one a minute", logHas("refused | Lee | - | - | has not agreed to the rules"))
+    fire("ZeD", "hello", { v = 1 })
+    check("the hello stays open", got(u, "hello") ~= nil)
+    fire("ZeDM", "m_get")
+    check("reading the rules stays open", got(u, "m_view") ~= nil)
+    fire("ZeDM", "m_agree", { rev = 1 })
+    check("agreeing stays open", okOf(u) and cmd().agreed.lee ~= nil)
+    for _, mod in ipairs({ "ZeDC", "ZeDX", "ZeDL", "ZeDDash" }) do
+        fire(mod, "probe")
+        check("agreed: " .. mod .. " runs", ran[mod] == 1)
+    end
+    fire("ZeDT", "t_mine")
+    check("agreed: tickets answer", got(u, "t_mine") ~= nil)
+    -- nobody asked mid-play: a rule changed while someone is on shuts nothing
+    local v = player("Bea", "user")
+    clientJoin(v)
+    nolimit(v)
+    sayM(v, "m_agree", { rev = 1 })
+    save(a, { rules = rulesOf({ id = cmd().rules[1].id, text = "One" }, "Two") })
+    nolimit(v)
+    sayT(v, "t_mine", {})
+    check("a rule added while on: still open", got(v, "t_mine") ~= nil)
+end
+
+section("the join rules answered: every part asks again for what the gate refused")
+do
+    local a = boot()
+    save(a, { ask = true, rules = rulesOf("One") })
+    local Srv = W.server.ZeD.Srv
+    -- (a handler runs only past the gates and its limit: what ran for this player is what the server answered)
+    local ran = {}
+    for _, h in pairs(Srv.handlers) do
+        local fn, name = h.fn, h.name
+        h.fn = function(p, ...)
+            if p:getUsername() == "Rae" then ran[name] = (ran[name] or 0) + 1 end
+            return fn(p, ...)
+        end
+    end
+    local u = player("Rae", "user")
+    local cu = clientJoin(u)
+    advance(600)
+    check("asked at joining: the hello was answered", ran.hello == 1 and Mo(cu).view ~= nil and Mo(cu).view.ask == true)
+    check("meanwhile the gate refused my tickets (admin's hello is left open)", ran.t_mine == nil and ran.a_hi == 1)
+    Mo(cu).agree(Mo(cu).view.rev)
+    advance(600)
+    check("the agreement is taken", cmd().agreed.rae ~= nil and ran.m_agree == 1)
+    check("the client counts it", cu.env.ZeD.ServerPart.agreedN == 1)
+    check("the hello waits out its limit rather than be refused", ran.hello == 1 and cu.env.ZeD.ServerPart.helloDue ~= nil)
+    local SP = cu.env.ZeD.ServerPart
+    check("with a second to spare, so jitter can't land it early and get it refused", SP.helloDue and SP.helloAt
+        and SP.helloDue - SP.helloAt >= W.server.ZeD.Tk.LIMITS.HELLO_MS + 1000, SP.helloDue and SP.helloAt and (SP.helloDue - SP.helloAt))
+    advance(W.server.ZeD.Tk.LIMITS.HELLO_MS)
+    check("then the hello goes again and is answered", ran.hello == 2)
+    check("tickets asked again: my tickets come", ran.t_mine == 1)
+    check("admin's hello again, past its own limit", ran.a_hi == 2)
+    check("the view comes again: nothing left to ask", Mo(cu).view ~= nil and Mo(cu).view.ask ~= true)
+    advance(20000)
+    check("and nothing asks twice", ran.hello == 2 and ran.t_mine == 1 and ran.a_hi == 2)
+end
+
+section("the join rules: five minutes unanswered owes a Kick")
+do
+    local a, ca = boot()
+    save(a, { ask = true, rules = rulesOf("One") })
+    local L = Cm().L
+    local u = player("Lee", "user")
+    local cu = clientJoin(u)
+    cu.env.ZeD.Community.qaHold = true
+    local v = player("Bea", "user")
+    local cv = clientJoin(v)
+    cv.env.ZeD.Community.qaHold = true
+    advance(L.ASKED_MS - 60000)
+    nolimit(v)
+    sayM(v, "m_agree", { rev = 1 })
+    advance(60000 + L.ASKED_LOOK_MS + 2000)
+    check("unanswered: the log says a kick is owed", logHas("rules not answered | Lee | - |") and logHas("a kick is owed"))
+    check("a staff client makes it, with the game's own words", has(ca.slash, '/kickuser "Lee"') and not has(ca.slash, '/kickuser "Lee" -r'))
+    check("whoever answered in time is not kicked", not has(ca.slash, '/kickuser "Bea"'))
+    -- answered while the Kick waits for a staff client: it goes, nobody is kicked
+    local m = player("Mo", "user")
+    local cm = clientJoin(m)
+    cm.env.ZeD.Community.qaHold = true
+    offline(a)
+    W.clients.Hermit.up = false
+    advance(L.ASKED_MS + L.ASKED_LOOK_MS + 2000)
+    local waiting = false
+    for _, e in pairs(md().owed) do if e.act == "Kick" and e.target == "Mo" then waiting = true end end
+    check("with no staff on, the Kick waits", waiting)
+    nolimit(m)
+    sayM(m, "m_agree", { rev = 1 })
+    W.online[#W.online + 1] = a
+    W.clients.Hermit.up = true
+    ca.slash = {}
+    advance(3000)
+    check("answered before it landed: dropped, with a line", not has(ca.slash, '/kickuser "Mo"') and logHas("the rules were answered"))
+    -- a role the game will not kick is only written down
+    local s = player("Sam", "admin")
+    local cs = clientJoin(s)
+    cs.env.ZeD.Community.qaHold = true
+    advance(L.ASKED_MS + L.ASKED_LOOK_MS + 2000)
+    check("a role the game will not kick: a line, no Kick", logHas("rules not answered | Sam") and not has(ca.slash, '/kickuser "Sam"'))
+end
+
+section("the join rules: a client that never says hello is found by the walk")
+do
+    local a, ca = boot()
+    save(a, { ask = true, rules = rulesOf("One") })
+    local L = Cm().L
+    -- on the server, with no ZeD client at all
+    local q = player("Quiet", "user")
+    advance(L.ASKED_LOOK_MS + 1000)
+    check("the walk makes the record", CT().here.quiet ~= nil and CT().here.quiet.ask == true)
+    nolimit(q)
+    sayT(q, "t_mine", {})
+    check("and the gate holds", errOf(q) == "perm")
+    advance(L.ASKED_MS + L.ASKED_LOOK_MS)
+    check("five minutes on: a line and a Kick", logHas("rules not answered | Quiet") and has(ca.slash, '/kickuser "Quiet"'))
+    -- a command before any walk or hello makes the record too
+    local r = player("Rush", "user")
+    nolimit(r)
+    sayT(r, "t_mine", {})
+    check("the first word makes the record", errOf(r) == "perm" and CT().here.rush ~= nil)
+    -- split screen: a guest on someone's connection can never answer (ZeD's client speaks for its first player only) and the
+    -- game's kick by name drops the whole connection, so nothing is owed for a guest and the first player is not kicked
+    local host = player("Host", "user")
+    clientJoin(host)
+    nolimit(host)
+    sayM(host, "m_agree", { rev = 1 })
+    local guest = player("Guest", "user")
+    guest.num = 1
+    advance(L.ASKED_LOOK_MS + 1000)
+    check("split screen: the first player answered", CT().here.host ~= nil and not W.server.ZeD.Srv.rulesUnanswered("Host"))
+    check("split screen: the walk makes no record for the guest", CT().here.guest == nil)
+    nolimit(guest)
+    sayT(guest, "t_mine", {})
+    advance(L.ASKED_MS + L.ASKED_LOOK_MS + 2000)
+    check("split screen: no line and no Kick for the guest", not logHas("rules not answered | Guest") and not has(ca.slash, '/kickuser "Guest"'))
+    check("split screen: nor for the first player", not has(ca.slash, '/kickuser "Host"'))
+    local owedGuest = false
+    for _, e in pairs(md().owed) do if e.target == "Guest" or e.target == "Host" then owedGuest = true end end
+    check("split screen: nothing owed on that connection", not owedGuest)
 end
 
 print("community_sim: " .. checks .. " checks, " .. failed .. " failed")

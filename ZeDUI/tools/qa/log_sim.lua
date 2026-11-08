@@ -361,6 +361,7 @@ local FILES = {
     ["ZeD/ZeD_AdminProto"] = "42/media/lua/shared/ZeD/ZeD_AdminProto.lua",
     ["ZeD/ZeD_ServerCore"] = "42/media/lua/server/ZeD/ZeD_ServerCore.lua",
     ["ZeD/ZeD_ServerTickets"] = "42/media/lua/server/ZeD/ZeD_ServerTickets.lua",
+    ["ZeD/ZeD_ServerHelper"] = "42/media/lua/server/ZeD/ZeD_ServerHelper.lua",
     ["ZeD/ZeD_LogProto"] = "42/media/lua/shared/ZeD/ZeD_LogProto.lua",
     ["ZeD/ZeD_ExtrasProto"] = "42/media/lua/shared/ZeD/ZeD_ExtrasProto.lua",
     ["ZeD/ZeD_ServerAdmin"] = "42/media/lua/server/ZeD/ZeD_ServerAdmin.lua",
@@ -1424,6 +1425,8 @@ do
         { 'banned x (3 days): "y"', "admin", "ban", "x", "d3: y" },
         { "unbanned x", "admin", "unban", "x" },
         { "the ban on x ran out", "admin", "ban lifted", "x", "the time ran out" },
+        { "the ban on x was lifted in the game", "admin", "ban lifted in the game", "x", "lifted in the game: the game's user list no longer has the name banned" },
+        { "the IP ban on x was lifted in the game", "admin", "ip ban lifted in the game", "x", "the IP is off the game's list; the ban on the name stands" },
         { 'sent a server message: "Restart soon"', "admin", "server message", nil, "Restart soon" },
         { "set a repeating message, 15 min: x", "admin", "repeating message", nil, "15 min: x" },
         { "spawned 10 x Bandage to Rosa", "admin", "spawn", "Rosa", "10 x Base.Bandage to Rosa" },
@@ -2738,6 +2741,35 @@ do
     local b3 = player("Hermit", "admin")
     local cb3 = clientJoin(b3)
     check("and the rest runs", cb3.env.ZeD.ServerPart.cm == false and cb3.env.ZeD.ServerPart.lg == true)
+end
+
+section("the join rules answered: the Log asks again for what the gate refused")
+do
+    local a, ca = boot()
+    local Lm = L(ca)
+    Srv().action("admin", "Hermit", "mute", "x")
+    Srv().gates.qa = function(p, module) if W.shut and module ~= "ZeD" then return "has not agreed to the rules" end end
+    W.shut = true
+    local said
+    Lm.ask({ when = "today" }, function(r) said = r end)
+    advance(1)
+    check("refused by the gate: no page", Lm.page == nil and said ~= nil and said.ok == false)
+    W.shut = nil
+    nolimit(a)
+    ca.env.ZeD.ServerPart.agreed()
+    advance(1)
+    check("agreed: the read asked again and the page comes", Lm.page ~= nil and Lm.page.qid == Lm.qid)
+    Lm.close()
+    W.shut = true
+    Lm.ask({ when = "today" })
+    advance(1)
+    Lm.close()
+    W.shut = nil
+    local q = Lm.qid
+    ca.env.ZeD.ServerPart.agreed()
+    advance(1)
+    check("a read closed meanwhile is not asked again", Lm.qid == q and Lm.page == nil)
+    Srv().gates.qa = nil
 end
 
 print("log_sim: " .. checks .. " checks, " .. failed .. " failed")

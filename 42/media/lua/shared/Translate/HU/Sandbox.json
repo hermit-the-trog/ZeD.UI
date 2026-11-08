@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxióra: percenkénti várakozás",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollár, amit az óra hozzáad a taxi várakozásának minden valós percéért (5 km/h alatt, járó motorral), lehúzott zászlóval.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxióra: minden további utas",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollár, ami az EXTRÁK alatt látszik az első után minden utasért. A sofőr nem számít."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollár, ami az EXTRÁK alatt látszik az első után minden utasért. A sofőr nem számít.",
+    "Sandbox_ZeD_HostHelper": "Gazdasegéd (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "Be: a kitiltások, feloldások és kirúgások, amelyekkel a ZeD tartozik a játéknak, a Zomboid/Lua/ZeD_helper/ mappába is kiíródnak a ZeD gazdasegéd számára, ami egy külön program, amit a szerver tulajdonosa futtat a szervergépen. A szerver távoli konzolján keresztül hajtja végre őket (RCONPort és RCONPassword a szerver beállításaiban), így adminisztrátor nélkül is érvényesülnek. Ki: megvárják, amíg valaki a csapatból bejelentkezik."
 }

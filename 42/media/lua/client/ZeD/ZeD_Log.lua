@@ -40,6 +40,7 @@ end
 -- q: kind, who, when, find, page, around. Refused, cb gets the answer
 function Lm.ask(q, cb)
     if Lm.qaHold then return end
+    Lm.lastQ, Lm.lastCb = q, cb       -- (asked again when the join rules are answered: the gate refused it until then)
     Lm.qid = Lm.qid + 1
     Lm.waiting = true
     C.requestOn(Lg.MOD, "l_query", { qid = Lm.qid, kind = q.kind, who = q.who, when = q.when, find = q.find, codes = Lm.findCodes(q.find), page = q.page, around = q.around }, function(a)
@@ -53,8 +54,14 @@ end
 
 function Lm.close()
     Lm.page, Lm.waiting = nil, nil
+    Lm.lastQ, Lm.lastCb = nil, nil
     Lm.qid = Lm.qid + 1
 end
+
+-- the join rules answered: the read still wanted is asked again
+S.onAgreed("log", function()
+    if Lm.lastQ and Lm.live() then Lm.ask(Lm.lastQ, Lm.lastCb) end
+end)
 
 function Lm.toNote(id, s, cb) return C.requestOn(Lg.MOD, "l_tonote", { id = id, s = s }, cb) end
 
