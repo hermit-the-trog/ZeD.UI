@@ -3012,3 +3012,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     Sidebar has no effect: ZeD's belt wraps the sidebar render, so the mod's fade never hooks a button (0 of 14). Give
     the belt a hook so the mod's fade (and its settings) apply to ZeD's belt; HOOK_MAP row and a QA script with the
     mod on.
+112. **Dual pinning: each half of the Character and World windows rolls up and pins on its own (the director, Nov 8
+    2026, from FAIV's report on pinned windows in combat; build now).** "Each window needs to have dual pinning. So each
+    half rolls up independently, and each half can be pinned independently on each window. Clicking on a tab, or
+    clicking on the inventory tab still folds the tabs in, though." Rulings: a pinned half stays exactly as it is (no
+    aim or click override); the inventory side and the tab drawer side each auto-roll with the pointer (2 s after it
+    leaves, or on aim) unless that half is pinned; one pin per half, each in its own part of the title bar; on aim the
+    unpinned half rolls and the pinned half stays; on a pad both pins are stops in the focus ring, A toggles. Example
+    that must work: the World window with the map tab pinned open while its inventory side and the Character window
+    roll with the pointer.
