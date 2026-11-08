@@ -1,13 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCards.lua
 -- ============================================================================
--- OBJECT CARDS — HOOK_MAP rows 11 and 12 (mockup zed_info_cards_v1.html)
--- One card in the World window's card drawer for world objects that vanilla
--- answers with a small read-only "Info" window: generators, fires (campfire,
--- charcoal barbecue, fireplace, propane barbecue) and farm plots.
+-- OBJECT CARDS (client): the card system and its organism, ZeD_ObjectCard
+-- One card in the World window's card drawer for things vanilla answers with
+-- a small window of its own — generators, fires, farm plots, troughs, hutches,
+-- hooks, padlocks, fluids, laundry, animal tracks, 3D placement, trades,
+-- medical checks — and for ZeD's own recipe preview.
 --
 -- The card is an organism (ZeD_ObjectCard) that lives beside the item card in
 -- the drawer overlay. Each kind of object registers a definition here
--- (ObjectCardPower / ObjectCardFire / ObjectCardFarm):
+-- (one ObjectCard* file per kind):
 --   def.resolve(player, obj)  -> target table { obj, sq, key, ... } or nil
 --   def.valid(t)              -> still in the world?
 --   def.nearby(player)        -> targets of the same kind in reach (browse)
@@ -17,7 +18,7 @@
 --                                nil for a plain tag, and optionally a mark colour)
 --   def.body(card, x, y, w, t, player) -> draws the body, returns its height
 --   def.status(t)  (optional)  -> { text, c } a state line in the band at the foot
---   def.foot(t, player, card) (optional, Nov 7 2026: the trade card) -> the band at the
+--   def.foot(t, player, card) (optional; the trade card uses it) -> the band at the
 --                                foot with the card's own actions: { status = { text, c },
 --                                check = { id, label, on, disabled, help, run },
 --                                buttons = { { id, label, variant, disabled, help, run }, ... }
@@ -53,7 +54,7 @@ OC.LEASH   = 6       -- tiles: the card closes past this (vanilla's plant window
 OC.CARD_W  = 480     -- design units
 OC.REFRESH = 15      -- frames between data refreshes
 OC.BROWSE_EVERY = 60 -- frames between nearby-object scans
-OC.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+OC.DOT = "|"   -- the separator between facts: ZeD draws a pipe, never a middle dot
 OC.kinds = OC.kinds or {}
 
 -- Safe Java / Lua method call: nil when the method is missing or throws.
@@ -373,7 +374,7 @@ function UI.meter(card, x, y, w, label, value, dotC, pct, fillC, zone, lockText)
     if dotC then A.drawStatusDot(card, vx - T.px(10), y + math.floor((lineH - T.px(6)) / 2), dotC, T.px(6)) end
     local by = y + lineH + T.px(4)
     local bh = T.fillBarH
-    -- ten segments (Oct 30 2026); the help line the meter's own reading ("Water 64%", or the word a low
+    -- ten segments; the help line the meter's own reading ("Water 64%", or the word a low
     -- skill reads), none while the skill locks it
     if A.drawSegFill(card, x, by, w, bh, A.FILL_SEGS, lockText and 0 or A.fillSegsLit(math.max(0, math.min(100, pct or 0)) / 100),
             fillC or ac) and not lockText and value and value ~= "" then
@@ -392,7 +393,7 @@ end
 
 -- Two-column "Label value" row (pass nil to leave a side empty).
 -- one label and its value in a column cw wide: the label at the left, the value right-aligned after it; a value too
--- long for the room after its label is cut short, never drawn over the label (director, Oct 30 2026, punch list 24)
+-- long for the room after its label is cut short, never drawn over the label
 local function pairOne(card, px, y, h, cw, l, v)
     if not l then return end
     local T, tm = ZeD.T, ZeD.TM
@@ -608,7 +609,7 @@ function UI.cookRows(card, x, y, w, container, on)
 end
 
 -- ---------------------------------------------------------------------------
--- Hardware: 1993 control-panel parts (Visual Catalog A22-A26, M41)
+-- Hardware: 1993 control-panel parts (design inventory A22-A26, M41)
 -- Faceplates, lamps, gauges, knobs and the padlock keep their printed looks: they
 -- are real parts, not window chrome.
 -- ---------------------------------------------------------------------------
@@ -972,7 +973,7 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
     local bsz = T.buttonH
     local by = math.floor((hh - bsz) / 2)
     local bx = T.px(8)
-    -- the close key's X, as the item card's (director, Oct 30 2026)
+    -- the close key's X, as the item card's
     M.drawCloseKey(self, bx, by, bsz, { hover = hv == "oc:back", focus = self:focusOf("oc:back"), win = win })
     self:zone({ fid = "oc:back", x = bx, y = by, w = bsz, h = bsz, run = function() self:close() end,
         help = ZeD.tr("UI_ZeD_Card_HelpClose") })
@@ -1014,7 +1015,7 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
     local nf = T.fontF4
     local name = kindCall(e, def.title, t) or "?"
     local nameRoom = rightX - cx - pillW - T.px(10)
-    -- A narrow card (the half card, 220; punch list 99) with no room for the whole name beside the tag:
+    -- A narrow card (the half card, 220) with no room for the whole name beside the tag:
     -- the tag goes to a row of its own under the header (prerender draws it), and the name takes the
     -- whole row. A full card never does this, so its header is unchanged.
     local pillBelow = false
@@ -1097,8 +1098,8 @@ function ZeD_ObjectCard:drawVerbs(e, y, win)
         local fid = "oc:verb:" .. tostring(v.id or i)
         local bw = M.buttonW(v.label)
         local label = v.label
-        -- A button wider than the whole row (a long verb in the half card, 220, in some languages; punch
-        -- list 99): it is cut to the row, its words ending in "...". The help line still names the verb.
+        -- A button wider than the whole row (a long verb in the half card, 220, in some languages):
+        -- it is cut to the row, its words ending in "...". The help line still names the verb.
         if bw > maxX - padX then
             bw = maxX - padX
             label = A.truncateText(ZeD.btnCase(label or ""), T.fontF3, bw - T.sp.buttonPadX * 2)
@@ -1142,8 +1143,8 @@ function ZeD_ObjectCard:drawVerbs(e, y, win)
     return cy + T.hair
 end
 
--- A half card's foot line that will not fit the band (Nov 7 2026, punch list 99: the padlock card at
--- 220 cut "Lock the container? It shuts to everyone." to a word): its words wrapped into a strip above
+-- A half card's foot line that will not fit the band (at 220 the padlock card once cut
+-- "Lock the container? It shuts to everyone." to a word): its words wrapped into a strip above
 -- the band instead. Only half cards do this, so a full card's foot is unchanged. The room is reckoned
 -- as M.drawBand reckons it: the edges, the band's buttons and their gaps, and the dot before the words.
 -- Returns the wrapped lines, or nil when the line fits the band.
@@ -1239,7 +1240,7 @@ function ZeD_ObjectCard:prerender()
     local player = self:player()
     if not player then return end
     -- (a card kind's own calls run every frame: a throw closes the card or drops that piece,
-    -- logged once, rather than repeating each frame; code audit Oct 17 2026)
+    -- logged once, rather than repeating each frame)
     local okT, alive = pcall(OC.tick, e, player)
     if not okT then ZeD.logOnce("ObjectCards tick " .. tostring(e.def and e.def.id), alive) end
     if not (okT and alive) then
@@ -1324,7 +1325,7 @@ function ZeD_ObjectCard:prerender()
     self:setStencilRect(0, viewY, bw, viewH)
     local pad = T.px(10)
     -- a machine plate's room: the body's width without the scrollbar, so the face picked and its zoom never flip
-    -- with it (Oct 30 2026: the plates that fill the card; a face up to it overhangs the body by at most half the
+    -- with it (the plates fill the card; a face up to it overhangs the body by at most half the
     -- scrollbar's width each side, inside the margins)
     self._plateRoom = w - pad * 2
     local ok, bodyH = pcall(def.body, self, pad, viewY + T.px(8) - off, bw - pad * 2, t, player)
@@ -1415,7 +1416,7 @@ end
 -- are hit-tested here from the raw mouse state and fire on release over the
 -- zone that was pressed (the item card's pattern). Polled on every frame drawn
 -- (render): the engine runs update() only every 100 ms (42.22), and a click
--- between two updates was missed (Oct 30 2026).
+-- between two updates was missed.
 function ZeD_ObjectCard:update()
     ISPanel.update(self)
 end
@@ -1535,7 +1536,7 @@ function ZeD_ObjectCard:buildFocusables(win)
             -- the card top to bottom; scroll-follow brings the focused one in
             out[#out + 1] = {
                 x = z.x, y = z.body and (z.y + off) or z.y, w = z.w, h = z.h, id = z.fid, zone = z,
-                isPrimary = z.primary,   -- (Oct 23 2026: where a move into the card lands)
+                isPrimary = z.primary,   -- (where a move into the card lands)
                 onFocus = function(w, el) end,
                 onActivate = function(w, el) if zz.run then zz.run(card, card:player()) end end,
                 onCancel = function(w, el)

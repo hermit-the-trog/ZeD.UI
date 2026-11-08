@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuServer.lua
 -- ============================================================================
--- SERVER SETTINGS ON THE MONITOR (HOOK_MAP row 26; director, Oct 14 2026:
--- menus delegated, no mockups)
+-- SERVER SETTINGS ON THE MONITOR: the main menu's server-settings editor,
+-- reached from the Host screen. Client-side; an organism built on the
+-- sandbox window (ZeD_MMSandbox).
 --
 -- Vanilla's ServerSettingsScreen stays built and hidden as the engine. Its
 -- pages keep flipping their own visibility as vanilla navigates, so this one
@@ -1091,12 +1092,12 @@ end
 function ZeD_MMServer:back() self:act("back") end
 function ZeD_MMServer:next() end
 
--- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { discard = "confirm:no" }
 function ZeD_MMServer:setConfirm(mode)
     if self.confirm == mode then return end
-    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self:commitCell()
     self.confirm = mode
@@ -1113,7 +1114,7 @@ function ZeD_MMServer:buildStrip(stripY, stripH, w)
     local cancel = getText("UI_btn_cancel")
     local lefts, rights = { { "back", getText("UI_btn_back"), function() self:act("back") end } }, {}
     if self.confirm == "discard" then
-        -- (spec 11: Cancel stays and edits on; Discard changes is the danger answer)
+        -- (Cancel stays and edits on; Discard changes is the danger answer)
         ask = ZeD.tr("UI_ZeD_Server_AskLeave")
         lefts = {}
         rights = { { "confirm:no", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },

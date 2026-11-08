@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/SafeMode.lua
 -- ============================================================================
--- SAFE MODE (Oct 19 2026, director: if ZeD ever fails to open, a bad day is a
--- setting flip rather than a hotfix; a player is never left with no inventory)
+-- SAFE MODE — client; the mod's escape hatch. If ZeD ever breaks, a bad day
+-- is a setting flip rather than a hotfix: ZeD steps aside, the game's own
+-- interface comes back, and a player is never left with no inventory.
 --
--- ZeD steps aside and the game's own interface comes back:
+-- ZeD steps aside:
 --   * while the "Safe mode" option is On (Options > Mods > ZeD UI), until it
 --     is turned Off again;
 --   * for the rest of the session once the watchdog trips: a ZeD window that
@@ -24,7 +25,7 @@
 --   ZeD.Safe.fault(key, err)   a failure at key that happens every frame
 --                              (ZeD.logOnce and ZeD.Safe.guard call it)
 --   ZeD.Safe.trip(where, err)  step aside now, for this session
---   ZeD.Safe.reset()           take a trip back (QA; the option going Off does it too)
+--   ZeD.Safe.reset()           take a trip back by hand (the option going Off clears one too)
 --   ZeD.Safe.reread()          read the option now rather than within half a second
 --   ZeD.Safe.register(name, { enter = fn, leave = fn })
 --       a piece of ZeD that parks something of vanilla's (hides its pages,
@@ -90,9 +91,9 @@ local function readOption()
     return ok and v == 2
 end
 
--- ZeD screens (director, Nov 2 2026, punch list 55: "instead of doing a modular release, just allow our mod
--- to step aside"): each of ZeD's screens with a hand-back can be given back to the game on its own. The switch
--- is read like the safe mode option, at most every half second per screen.
+-- ZeD screens: each of ZeD's screens with a hand-back can be given back to the game on its own — the mod
+-- steps aside piece by piece instead of shipping as separate modules. The switch is read like the safe mode
+-- option, at most every half second per screen.
 local pieceOptions = S._pieceOptions or {}
 S._pieceOptions = pieceOptions
 local pieceRead = {}   -- name -> { off = bool, next = ms }

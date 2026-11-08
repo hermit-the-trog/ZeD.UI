@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_FormCard.lua
 -- ============================================================================
--- THE FORM CARD: a small ZeD window for a game window that is a short form (ZeDUI/VANILLA_WINDOWS_20261107.md: C5 map
--- mark sharing, C15 the admin item editor; ZeD_MpLeftovers.lua builds both). The striped title bar with its close box,
+-- THE FORM CARD: a small ZeD window for a game window that is a short form — today the map's mark sharing and the
+-- admin item editor, both built by ZeD_MpLeftovers.lua. Client-side organism. The striped title bar with its close box,
 -- an optional head (a picture, a name, a line under it), rows, the band at the foot with the answers (the main one
 -- last, at the right) and the window's help line. Like ZeD_Prompt it is a top-level window that hit-tests its own
 -- clicks, and the controller holds it directly (setJoypadFocus): Up and Down step through the rows and the band, Left
@@ -21,7 +21,7 @@
 --   cancel(card)   B, Escape and the close box
 --   playerNum
 --   dock()  -> panel, x, y, w, h: the card lives in that panel (a window's drawer) at the right of that box, as tall as
---             the box allows, instead of on its own over the screen (C5: the map's drawer)
+--             the box allows, instead of on its own over the screen (the mark-sharing card rides the map's drawer)
 -- }
 -- ============================================================================
 
@@ -65,7 +65,7 @@ function ZeD_FormCard:createChildren()
     self.minimumWidth, self.minimumHeight = 0, 0
 end
 
--- the text in a field (its first text until the field is made)
+--- The text in a field (its first text until the field is made).
 function ZeD_FormCard:text(id)
     local e = self._fields[id]
     if e and e.javaObject then return e:getInternalText() end
@@ -360,7 +360,7 @@ function ZeD_FormCard:openKeyboard(e)
     end
 end
 
--- closes the card: its fields let go of the keyboard, the controller goes back where it was
+--- Closes the card: its fields let go of the keyboard, the controller goes back where it was.
 function ZeD_FormCard:finish()
     if self._done then return end
     self._done = true
@@ -445,7 +445,7 @@ function ZeD_FormCard:update()
     local jf = nil
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     if jd and jd.focus == self then jf = jd end
-    if FC.qaJoy then jf = FC.qaJoy end
+    if FC.qaJoy then jf = FC.qaJoy end   -- QA: the controller look without a controller
     self.joyfocus = jf
 end
 
@@ -496,6 +496,8 @@ end
 -- ---------------------------------------------------------------------------
 -- OPENING ONE
 -- ---------------------------------------------------------------------------
+--- Builds and shows a card from a spec (see the header). Returns the card, or
+--- nil when the spec docks and its drawer is not on screen. Takes the pad.
 function FC.open(spec)
     local card = ZeD_FormCard:new(spec)
     card:initialise()

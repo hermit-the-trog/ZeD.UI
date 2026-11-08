@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuModsSeps.lua
 -- ============================================================================
--- SEPARATORS IN THE LOAD ORDER (MOD_FOLDERS_SPEC.md sections 7, 8, 10, 11; MODS_LOAD_ORDER_SPEC
--- 1.3, 4; stage 3 of the Mods screen work, punch lists 37 and 41; mockups zed_mod_folders_v1 b,
--- d, d2 and v2 b)
+-- SEPARATORS IN THE LOAD ORDER. Client-side; part of the ZeD_MMMods organism:
+-- it extends the load order page (ZeD_MainMenuModsOrder.lua) by wrapping its
+-- methods, and that page calls back in to draw separator rows and build the band.
 --
 -- Separators sort the load order, MO2-style: headings inside the list of mods that are on, where
 -- a mod's place under a separator is its place in the order. They are ZeD's own: kept with the
@@ -38,10 +38,10 @@ local UI = MM.ui
 local O  = ZeD.ModOrder
 local F  = ZeD.ModFolders
 
--- design units (as the load order's own rows)
+-- design units (row, heading and gap heights match the load order page's)
 local ROW_H, HEAD_H, GAP_H, SEP_H = 32, 26, 18, 30
 local DOUBLE_MS = 450
-local NAME_MAX = 48            -- (as folders: typing stops here)
+local NAME_MAX = 48            -- typing stops here (the same cap as folder names)
 local LIST_MAX = 300           -- (the pane lists this many of a separator's mods at most)
 
 local EMPTY = {}
@@ -63,7 +63,8 @@ local function setOf(t)
     return s
 end
 
--- the separators' modes of the band's question (a name typed, or Replace asked)
+-- New... and Rename... join the band's field modes, so their questions open with a text
+-- field; the Replace question is a plain confirm and needs no entry here
 local FM = ZeD_MMMods.FIELD_MODES
 if FM then FM.snew = true; FM.srename = true end
 
@@ -125,9 +126,9 @@ function ZeD_MMMods:sepListName()
 end
 
 -- ----------------------------------------------------------------------------
--- THE LIST'S ENTRIES WITH SEPARATORS (MODS_LOAD_ORDER_SPEC 1.2 to 1.4; MOD_FOLDERS_SPEC 7, 8):
--- the pinned blocks, the top, each separator's heading with its mods (and its mods that are off,
--- dimmed, in place), the gaps Find leaves. Once per change and per Find text.
+-- THE LIST'S ENTRIES WITH SEPARATORS: the pinned blocks, the top, each separator's heading with
+-- its mods (and its mods that are off, dimmed, in place), the gaps Find leaves. Once per change
+-- and per Find text.
 -- ----------------------------------------------------------------------------
 local _orderEntries = ZeD_MMMods.orderEntries
 function ZeD_MMMods:orderEntries(q, skip, heads, pfx)
@@ -307,9 +308,9 @@ function ZeD_MMMods:sepEntries(q, skip, pfx)
 end
 
 -- ----------------------------------------------------------------------------
--- DRAWING A SEPARATOR ROW AND A DIMMED ROW (mockup v1 b)
+-- DRAWING A SEPARATOR ROW AND A DIMMED ROW
 -- ----------------------------------------------------------------------------
--- the box: ticked (its mods on), empty (off), the dash (some on, some off: spec 8.4)
+-- the box: ticked (its mods on), empty (off), the dash (some on, some off)
 local function boxState(e)
     local sp = e.sp
     if sp.on then return (e.nHeld > 0) and "mix" or "on" end
@@ -351,6 +352,8 @@ function ZeD_MMMods:sepParts(e)
     return sp
 end
 
+--- One separator heading row: box, triangle, name on a rule, count (the order page's row loop
+--- calls this for every "sep" entry in sight).
 function ZeD_MMMods:drawSepRow(e, x, ry, rw, vy, vh, gp, modal)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -413,6 +416,8 @@ function ZeD_MMMods:drawSepRow(e, x, ry, rw, vy, vh, gp, modal)
     self._hits[#self._hits + 1] = h3
 end
 
+--- One dimmed row: a mod that is off, kept in its place, the reason on the right (the order
+--- page's row loop calls this for every "held" entry in sight).
 function ZeD_MMMods:drawHeldRow(e, x, ry, rw, vy, vh, gp, modal)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -424,7 +429,7 @@ function ZeD_MMMods:drawHeldRow(e, x, ry, rw, vy, vh, gp, modal)
     self:drawRect(x, ry + e.h - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
     local a = onFocus and 1 or T.disabledAlpha
     local d3 = onFocus and T.textOnFocus or T.textDim
-    -- (no number: the numbers close up over it, spec 8.1; a hollow square where the dot goes)
+    -- (no number: the numbers close up over it; a hollow square where the dot goes)
     local numW = self._numW or MM.textW(f3, "0000")
     local nx = x + T.px(14) + numW
     local dsz = T.px(7)
@@ -449,8 +454,8 @@ function ZeD_MMMods:drawHeldRow(e, x, ry, rw, vy, vh, gp, modal)
     self._hits[#self._hits + 1] = h1
 end
 
--- the stops of separator and dimmed rows out of sight: the one just above, the one just below,
--- the focused one (the D-pad lands on them, and the list follows)
+--- The stops of separator and dimmed rows out of sight: the one just above, the one just below,
+--- the focused one (the D-pad lands on them, and the list follows).
 function ZeD_MMMods:sepOffStops(v, k0, k1)
     local ents = v.ents
     local function add(k)
@@ -477,6 +482,7 @@ function ZeD_MMMods:sepScrollTo(sid, center)
     elseif e.y + e.h > self.scroll + vh then self.scroll = e.y + e.h - vh end
 end
 
+--- Pick separator uid: its pane opens, the focus and the scroll follow (center: mid-list).
 function ZeD_MMMods:sepSelect(uid, center)
     self.oSepSel, self.oHeldSel = uid, nil
     self.focusId = "osep:" .. tostring(uid)
@@ -516,7 +522,7 @@ function ZeD_MMMods:clickOrderRow(i)
 end
 
 -- ----------------------------------------------------------------------------
--- MAKING, RENAMING, DELETING, COLLAPSING, MOVING SEPARATORS (spec 7.1 to 7.3)
+-- MAKING, RENAMING, DELETING, COLLAPSING, MOVING SEPARATORS
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:sepAskNew()
     if self.page ~= "order" or self.pick then return end
@@ -550,7 +556,7 @@ local function nameTaken(lo, name, exceptUid)
 end
 
 -- the new separator: above the picked mod (it, and the mods under it down to the next
--- separator, go under the new one), above the picked separator, or at the end (spec 7.1)
+-- separator, go under the new one), above the picked separator, or at the end
 function ZeD_MMMods:sepNew(name)
     local lo = self.oLo
     self:orderSnap()
@@ -580,7 +586,7 @@ function ZeD_MMMods:sepNew(name)
     MM.clickSound()
 end
 
--- a separator's label set or cleared (nil); Undo brings the last one back, as for a rename
+--- A separator's label set or cleared (nil); Undo brings the last one back, as for a rename.
 function ZeD_MMMods:sepSetLabel(uid, key)
     local sp = self:sepGet(uid)
     if not sp or sp.label == key then return end
@@ -602,7 +608,7 @@ function ZeD_MMMods:sepRename(uid, name)
     MM.clickSound()
 end
 
--- no question (spec 7.2): its mods stay where they are, now under the separator above; Undo and
+-- no question asked: its mods stay where they are, now under the separator above; Undo and
 -- Back bring it back
 function ZeD_MMMods:sepDelete(uid)
     local sp, k = self:sepGet(uid)
@@ -652,7 +658,7 @@ function ZeD_MMMods:sepOpenClose(uid, want)
     MM.clickSound()
 end
 
--- a separator and its mods up (-1) or down (1) past the next separator (spec 7.3)
+-- a separator and its mods up (-1) or down (1) past the next separator
 function ZeD_MMMods:sepShift(uid, delta)
     local lo = self.oLo
     local sp, k = self:sepGet(uid)
@@ -668,21 +674,22 @@ function ZeD_MMMods:sepShift(uid, delta)
 end
 
 -- ----------------------------------------------------------------------------
--- ON AND OFF (spec 8): the game's own rules, as a tick on the Mods page; nothing reaches the game
+-- ON AND OFF: the game's own rules, as a tick on the Mods page; nothing reaches the game
 -- until Accept there; Undo and Back put them back
 -- ----------------------------------------------------------------------------
--- the mods that are on made to be exactly want (Undo, Back)
+--- The mods that are on made to be exactly want (Undo, Back).
 function ZeD_MMMods:sepMatchActive(want)
     if not (model() and want) then return end
-    -- (the player's own earlier set: back exactly, as one batch; QA Nov 1 2026, mhd: one at a
-    -- time, Undo lost The Only Cure+ to The Only Cure)
+    -- (the player's own earlier set, back exactly, as one batch: restored one at a time the
+    -- game settles conflicts itself, and an Undo once brought back The Only Cure in place of
+    -- The Only Cure+)
     local go, _, off = self:applyOnSet(want, true)
     if off or #go > 0 then self:dirty() end
 end
 
 -- after mods went on or off: the ones that went off with them (they need one) are shown dimmed
 -- where they are, with the reason; the order is laid out again with every mod on now, each in its
--- section (a mod back on goes to its place, a mod new to the list to the end, spec 7.4, 7.5)
+-- section (a mod back on goes to its place, a mod new to the list to the end)
 function ZeD_MMMods:sepReconcile(before, after, mine)
     local m = model()
     local all = self._infoAll or EMPTY
@@ -710,7 +717,7 @@ function ZeD_MMMods:sepReconcile(before, after, mine)
     self:orderChanged()
 end
 
--- ids on: one batch (QA Nov 1 2026, msp 3d), through the Mods screen's own (modsOnBatch). Two
+-- ids on: one batch, through the Mods screen's own (modsOnBatch). Two
 -- mods of the batch that conflict go on together only when both were on together when the
 -- separator went off (together: that set); otherwise the first in the list goes on. A mod that
 -- stays off is shown dimmed in its place with the reason.
@@ -800,7 +807,7 @@ function ZeD_MMMods:sepBox(uid)
     MM.clickSound()
 end
 
--- a dimmed mod turned on by itself (spec 8.4): back in its place; its separator's box shows the
+-- a dimmed mod turned on by itself: back in its place; its separator's box shows the
 -- mixed mark while the separator is off
 function ZeD_MMMods:heldTurnOn(id)
     local m = model()
@@ -818,8 +825,8 @@ function ZeD_MMMods:heldTurnOn(id)
     MM.clickSound()
 end
 
--- a mod that landed under a separator: a collapsed one opens; under one that is off it turns off
--- (spec 8.3). True when it turned off.
+-- a mod that landed under a separator: a collapsed one opens; under one that is off it
+-- turns off. True when it turned off.
 function ZeD_MMMods:sepLanded(id, uid)
     if uid == 0 then return false end
     local sp = self:sepGet(uid)
@@ -833,7 +840,7 @@ function ZeD_MMMods:sepLanded(id, uid)
 end
 
 -- ----------------------------------------------------------------------------
--- MOVING MODS UNDER SEPARATORS (spec 7.3; MODS_LOAD_ORDER_SPEC 8)
+-- MOVING MODS UNDER SEPARATORS
 -- ----------------------------------------------------------------------------
 -- one place: at the edge of a section, the mod crosses the separator (one step: the end of the
 -- section above, or the top of the one below), its place in the order unchanged
@@ -916,7 +923,7 @@ function ZeD_MMMods:sepMoveModTo(id, uid)
 end
 
 -- a rule made toward a mod in another section takes this mod into that section when the rule
--- moves it (MODS_LOAD_ORDER_SPEC 3.3, 3.9)
+-- moves it
 local _pickerConfirm = ZeD_MMMods.pickerConfirm
 function ZeD_MMMods:pickerConfirm()
     local P = self.pick
@@ -945,7 +952,7 @@ function ZeD_MMMods:pickerConfirm()
 end
 
 -- ----------------------------------------------------------------------------
--- MOVE IT UP (spec 7.6): a mod that needs one under a later separator
+-- MOVE IT UP: a mod that needs one under a later separator
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:sepCrossNeed()
     local c = self._sCross
@@ -997,7 +1004,7 @@ function ZeD_MMMods:sepMoveItUp()
 end
 
 -- ----------------------------------------------------------------------------
--- START SEPARATORS FROM FOLDERS (spec 11; the director's pick: only mods that are on)
+-- START SEPARATORS FROM FOLDERS: only mods that are on get sections
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:sepFromFolders(confirmed)
     if self.page ~= "order" or self.pick or not F.any() then return end
@@ -1050,6 +1057,8 @@ end
 -- ----------------------------------------------------------------------------
 -- THE BAND: New separator..., Start separators from folders, Move it up; the questions
 -- ----------------------------------------------------------------------------
+--- The band's separator buttons, added to rights; when a mod needs one under a later separator,
+--- the returned status and color turn the band's line red.
 function ZeD_MMMods:sepStrip(rights, res, status, color)
     local T = ZeD.T
     local who, need = self:sepCrossNeed()
@@ -1125,7 +1134,7 @@ function ZeD_MMMods:fieldEnter()
 end
 
 -- ----------------------------------------------------------------------------
--- MENUS (spec 8: A on a row, Shift+F10 or the menu key, right-click)
+-- MENUS: A on a row, Shift+F10 or the menu key, right-click
 -- ----------------------------------------------------------------------------
 -- where a menu opened from the keyboard or the controller sits: at the focused entry
 function ZeD_MMMods:sepAnchor()
@@ -1138,7 +1147,7 @@ function ZeD_MMMods:sepAnchor()
     return { x = ax + T.px(60), y = ay + T.px(60), w = T.px(10), h = T.px(10) }
 end
 
--- a mod row's menu gets Move to separator... and New separator...
+--- A mod row's menu gets Move to separator... and New separator...
 function ZeD_MMMods:sepRowItems(items, id)
     if self.page ~= "order" then return end
     items[#items + 1] = "-"
@@ -1223,7 +1232,7 @@ function ZeD_MMMods:rightClick(mx, my)
 end
 
 -- ----------------------------------------------------------------------------
--- THE PANE: a separator's (mockup v1 b), a dimmed mod's
+-- THE PANE: a separator's, a dimmed mod's
 -- ----------------------------------------------------------------------------
 local function btn(id, text, fn, disabled, help)
     return { id = id, text = text, fn = fn, variant = "default", disabled = disabled, help = help }
@@ -1311,8 +1320,8 @@ function ZeD_MMMods:heldDetailItems(items, rw, id)
 end
 
 -- ----------------------------------------------------------------------------
--- CONTROLLER AND KEYS (the director's pad rules: the focus returns where it was, lands on the
--- primary, the common actions cheapest)
+-- CONTROLLER AND KEYS: the focus returns where it was, lands on the primary, and the
+-- common actions stay cheapest
 -- ----------------------------------------------------------------------------
 -- A on a separator or a dimmed row: its menu (as A on a mod row)
 local _orderJoyA = ZeD_MMMods.orderJoyA

@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/KADropnLoot.lua
 -- ============================================================================
 -- SUPPORT FOR EASY DROP'N'LOOT (mod id KADropnLoot, Workshop 2871469707).
+-- Client.
 --
 -- The mod puts two buttons straight onto the game's inventory page (its
 -- EDNLUI.lua adds ISButtons to ISInventoryPage in createChildren), not into

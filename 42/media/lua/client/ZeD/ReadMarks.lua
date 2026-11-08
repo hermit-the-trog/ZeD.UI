@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ReadMarks.lua
 -- ============================================================================
--- READ MARKS in the item lists (mockup ZeDUI/mockups/zed_read_marks_v1.html, style B; approved Oct 26 2026).
+-- READ MARKS in the item lists — client; a helper, no component of its own
+-- (InventoryRenderer and ItemFactsPanel ask it for statuses and marks).
 --
 -- The game remembers what the character has read: the pages read in each skill book, the maps, fliers and
 -- brochures, the titled books, the tapes and discs, the recipes known. This reads those records (the same
@@ -15,6 +16,8 @@
 -- for part read (or some recipes known), full for read; the accent for unread and part read, the green "good"
 -- colour for read. A skill book below the character's level counts as read (the game teaches nothing more
 -- from it). "Dim read items" in ZeD setup (off by default) fades the read ones.
+-- One thing to know: statuses are cached for a second (R.state), so a page
+-- just read can take up to a second to show in the list.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -205,8 +208,8 @@ function R.state(p, item)
 end
 function R.clear() _cache, _cacheAt = {}, 0 end
 
--- ZeD setup's switches: "Read marks in item lists", "Next level on skill books" (both off for a new player since
--- Oct 30 2026, the Vanilla preset); off, the lists are as before
+-- ZeD setup's switches: "Read marks in item lists", "Next level on skill books" (both off for a new player,
+-- the Vanilla preset); off, the lists are as before
 function R.on()
     local S = ZeD.Settings
     return S and S.readMarksOn and S.readMarksOn() or false

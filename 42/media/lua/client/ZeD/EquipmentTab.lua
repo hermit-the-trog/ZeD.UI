@@ -1,9 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/EquipmentTab.lua
 -- ============================================================================
--- EQUIPMENT TAB — Grouped slot list with click-to-inspect item cards.
--- Zone A: collapsible group headers with slot rows (list mode)
--- Zone B: item card with body figure coverage overlay (card mode)
--- First implementation.
+-- EQUIPMENT TAB — client; the Character window's Equip drawer (an organism-
+-- scale tab renderer, registered as "equip" in the drawer dispatch table).
+-- Three faces: the grouped slot list (worn and held slots, the belt's hotbar
+-- rows, the defense dashboard at the foot), the doll view (EquipDoll.lua),
+-- and card mode — a selected slot hands its item to a ZeD_ItemCard child.
+-- Everything else draws immediate-mode into the drawer panel, stamping zones
+-- on the window each frame; CharacterWindow routes clicks and the controller
+-- through those zones.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -62,8 +66,8 @@ local EQUIP_GROUPS = {
     }},
 }
 
--- The words for a group or a slot: vanilla's own text where it has the same words
--- (vkey), else ZeD's (key). Looked up where drawn and measured, so the language applies.
+--- The words for a group or a slot: vanilla's own text where it has the same words
+--- (vkey), else ZeD's (key). Looked up where drawn and measured, so the language applies.
 function ZeD.EquipmentTab.wordsOf(def)
     if not def then return "" end
     if def.vkey then return getText(def.vkey) end
@@ -72,9 +76,9 @@ function ZeD.EquipmentTab.wordsOf(def)
 end
 
 -- A slot's short words ("Glv" for Gloves, "Inr" for Inner): the SLOT column takes them
--- before an item's name is cut (Oct 31 2026, punch list 29, the director's pick: at the
--- half card the names read "T-shi..." beside "Inner"). Words of four letters or fewer
--- stay whole. Through ZeD.tr, so a language gives its own.
+-- before an item's name is cut — at the half card the names otherwise read "T-shi..."
+-- beside a whole "Inner". Words of four letters or fewer stay whole. Through ZeD.tr,
+-- so a language gives its own.
 local SHORT_KEY = {
     HAT = "UI_ZeD_Equip_Short_HAT", EYE = "UI_ZeD_Equip_Short_EYE", MSK = "UI_ZeD_Equip_Short_MSK",
     EAR = "UI_ZeD_Equip_Short_EAR", SCF = "UI_ZeD_Equip_Short_SCF",
@@ -148,7 +152,7 @@ local PROT_COL_W = 32  -- protection stat column width
 
 -- Pre-computed label column width (widest label across all slots, measured lazily)
 local _labelColW = nil
-local _labelColWScale = nil  -- S124 scale: re-measure when T.scale (root x text size) changes
+local _labelColWScale = nil  -- re-measure when T.scale (root x text size) changes
 local function getLabelColW()
     -- re-measured when the scale changes, or the test language is switched
     local sig = tostring(ZeD.T.scale) .. (ZeD.trTestOn() and "t" or "")
@@ -169,7 +173,7 @@ local function getLabelColW()
     return _labelColW
 end
 
--- The SLOT column at its short words (punch list 29), measured the same way
+-- The SLOT column at its short words, measured the same way
 local _shortColW, _shortColWScale = nil, nil
 local function getShortColW()
     local sig = tostring(ZeD.T.scale) .. (ZeD.trTestOn() and "t" or "")
@@ -187,9 +191,9 @@ local function getShortColW()
     return _shortColW
 end
 
--- The protection and weight columns as narrow as what they hold (punch list 29, again, Oct 31
--- 2026): a protection column its dot or its head word ("Bite"), the weight its number ("00.0")
--- or "Wt", each with 2u either side; measured the same way
+-- The protection and weight columns as narrow as what they hold: a protection column its
+-- dot or its head word ("Bite"), the weight its number ("00.0") or "Wt", each with 2u
+-- either side; measured the same way
 local PROT_HEADS = { "IGUI_health_Bite", "UI_ZeD_Equip_ColScratch", "UI_ZeD_Equip_ColBullet" }
 local _narrowProtW, _narrowWtW, _narrowSig = nil, nil, nil
 local function getNarrowColW()
@@ -253,17 +257,17 @@ local function calcEquipColumns(w, win)
     local nameX = padX + iconW + iconGap
     local nameW = w - nameX - rightCols
     -- the names lack room at the full slot words (the half card): the slot words shorten
-    -- first ("Glv", "Inr"), before a name is cut (Oct 31 2026, punch list 29). A width the
-    -- player dragged stays theirs; the row then picks the words that fit it.
-    -- Checked in game the same night, the names still read "T-shi...", "Leat...": the
-    -- columns to the right (a 84u condition column, three 32u protection columns, a 40u
-    -- weight column) wanted 270u of a ~205u half card, so the name sat at its 40u least
-    -- and protection and weight drew past the card's edge. Now, while the widest worn
-    -- name lacks room, in turn: the slot words shorten (4u pads); the condition bar goes
-    -- to its least (ten segments, ZeD.Atoms.fillBarMinW); protection and weight become
-    -- as narrow as what they hold and the right margin 4u; then the name keeps the room
-    -- it needs and the columns that no longer fit inside the card are left out from the
-    -- right (weight, then the three protection columns together).
+    -- first ("Glv", "Inr"), before a name is cut. A width the player dragged stays theirs;
+    -- the row then picks the words that fit it.
+    -- Short words alone are not enough: the columns to the right (a 84u condition column,
+    -- three 32u protection columns, a 40u weight column) want 270u of a ~205u half card,
+    -- so the name would sit at its 40u least and protection and weight would draw past
+    -- the card's edge. So, while the widest worn name lacks room, in turn: the slot
+    -- words shorten (4u pads); the condition bar goes to its least (ten segments,
+    -- ZeD.Atoms.fillBarMinW); protection and weight become as narrow as what they hold
+    -- and the right margin 4u; then the name keeps the room it needs and the columns
+    -- that no longer fit inside the card are left out from the right (weight, then the
+    -- three protection columns together).
     local slotShort, slotPad, wtPad, protOn, wtOn = false, padX, padX, true, true
     local need = (win and win._equipNameNeed) or 0
     if not (win and win._equipColWidths) and nameW < need then
@@ -393,8 +397,9 @@ function ZeD.EquipmentTab.gatherData(playerObj)
         groups[gi] = g
     end
 
-    -- Fill slots from worn items — vanilla pattern: getWornItems(), 1-based,
-    -- wornItem:getLocation() for the body location string (not getBodyLocation()).
+    -- Fill slots from worn items — vanilla's own pattern: getWornItems() (a Java
+    -- list, get is 0-based), wornItem:getLocation() for the body location string
+    -- (not getBodyLocation()).
     local wornItems = character:getWornItems()
     if wornItems then
         for i = 1, wornItems:size() do
@@ -413,7 +418,7 @@ function ZeD.EquipmentTab.gatherData(playerObj)
                     local mapping = LOCATION_TO_SLOT[locStr]
                     if mapping then
                         local slot = groups[mapping.gi].slots[mapping.si]
-                        -- Only fill if empty (first item wins — outermost layer)
+                        -- Only fill if empty: the first match in worn order wins
                         if not slot.item then
                             slot.item   = item
                             slot.cond   = condRatio(item)
@@ -456,10 +461,11 @@ function ZeD.EquipmentTab.gatherData(playerObj)
 end
 
 -- ============================================================================
--- DEFENSE DASHBOARD — aggregate protection overview (replaces Protection tab)
+-- DEFENSE DASHBOARD — the protection overview that took the Protection tab's
+-- place: body figure + aggregate stats at the foot of this tab.
+-- ProtectionTab.lua still computes the data and colours; headers and rows
+-- come from the molecules every tab shares.
 -- ============================================================================
-
--- Uses T.rowH via M.drawSectionHeader (shared molecule across all tabs)
 
 local function _ensureDefBodyFigure(win)
     local T = ZeD.T
@@ -496,12 +502,12 @@ end
 local function _measureDefenseDashboard(win, protData, w)
     local T    = ZeD.T
     local headerH = ZeD.Molecules.getTabHeaderH()
-    -- Defense body is always shown now (no separate disclosure for it); the
-    -- pinned header toggles the equipped INVENTORY list instead.
+    -- The defense body always shows (no disclosure of its own); the pinned
+    -- header toggles the equipped INVENTORY list instead.
     local pad    = ZeD.Molecules.getTabPad()
     local figH = T.sp.figureH
     local rightColH = ZeD.ProtectionTab._measureRightColumn(protData)
-    -- padTop not included — render's drawY already starts at scrollY + padTop
+    -- no top padding here: render puts figureGap above the body instead
     local contentH = math.max(figH, rightColH) + pad
     return headerH + contentH
 end

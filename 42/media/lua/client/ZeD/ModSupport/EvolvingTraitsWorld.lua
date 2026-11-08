@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/EvolvingTraitsWorld.lua
 -- ============================================================================
--- SUPPORT FOR EVOLVING TRAITS WORLD (mod id EvolvingTraitsWorld, Workshop 2914075159, by MusicManiac)
--- In the look of the approved Traits tab (mockup zed_traits_tab_v1, ModSupport/traitsAsSkills.lua).
+-- SUPPORT FOR EVOLVING TRAITS WORLD (mod id EvolvingTraitsWorld, Workshop 2914075159).
+-- Client. Drawn in the Traits tab's own look (ModSupport/traitsAsSkills.lua).
 --
 -- The mod makes traits change with play and puts its own "ETW" page in the game's
 -- Character window, which ZeD never shows (its UI/ETW_CharacterPage.lua: sub-tabs
@@ -66,7 +66,7 @@ S.hosted = HOSTED
 
 -- design units (the Traits tab's: ModSupport/traitsAsSkills.lua)
 local PAD, CAT_H, BADGE_W, NAME_W, STRIP_W, STRIP_H, DET_H, FIND_W, KEY_W = 10, 20, 20, 112, 138, 13, 218, 150, 76
--- the fill and square strengths of a Skills row (SkillsTab getProgressColors), the approved look
+-- the fill and square strengths of a Skills row (SkillsTab getProgressColors)
 local FILL_A, FILL_TOP_A, SQ_ON_A, SQ_OFF_A = 0.45, 0.55, 0.25, 0.12
 -- the mod's groups in its page's order; the first two are its Permanent Traits sub-tabs,
 -- the next two its Non-permanent ones, the last its Delayed Traits System list
@@ -1219,7 +1219,7 @@ function SRC.drawDetail(panel, win, id, x, y, w, h, sc)
         sc:setScrollPos(0)
     end
     -- one clip, set once the width is known: a second one set inside the first was never cleared
-    -- and hid the tab's header and scrollbar drawn after it (punch list 95). With a scrollbar the
+    -- and hid the tab's header and scrollbar drawn after it. With a scrollbar the
     -- clip stops short of it, so the bar, drawn once the clip is off, still shows.
     panel:setStencilRect(x, y + T.px(1), needs and (w - sbW) or w, innerH)
     local cy = y + T.px(8) - off
@@ -1456,7 +1456,7 @@ function S.render(panel, win, x, y, w, h)
     end
     if needs then scroll:draw(panel) end
     -- (the tab ends with the clips it started with: one left on hides the window's tab strip and
-    -- footer; punch list 95)
+    -- footer)
     panel:clearStencilRect()
     hs.rendered = true
 end

@@ -1,22 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/BetterItemTransfer.lua
 -- ============================================================================
 -- SUPPORT FOR BETTER ITEM TRANSFER (mod id BetterItemTransfer, Workshop
--- 3830103302, by SuperOl3g). Nov 7 2026.
+-- 3830103302). Client.
 --
 -- The mod rearranges the item right-click menu (where to take or move items,
 -- exact amounts, its own icons) and its options are in Options > Mods. Its menu
 -- shows in full in both of ZeD's menu styles; nothing here changes it.
 --
--- What this file fixes: QA's compatibility round 6 (zedqa_ctxlist.lua,
--- zedqa_ctx_bit.lua) found that with the mod on, the first right-click after
--- ZeD's "Context menu" option was switched to the list came up as the icon strip
--- (4 runs of 4). The cause is not the menu. The mod reads its options through
+-- What this file fixes: with the mod on, the first right-click after ZeD's
+-- "Context menu" option was switched to the list came up as the icon strip.
+-- The cause is not the menu. The mod reads its options through
 -- BetterItemTransferOptions.get, which on its first call ever runs
 -- PZAPI.ModOptions:load(): every mod's options are read back from
 -- ModOptions.ini, ZeD's among them. That first call is the first right-click on
--- an item, so a ZeD option changed in game and not yet in the file (QA's scripts
--- set the style that way; so does anything that sets a value and saves later)
--- went back to the file's value just before ZeD's menu read its style.
+-- an item, so a ZeD option changed in game and not yet in the file (anything
+-- that sets a value and saves later) went back to the file's value just before
+-- ZeD's menu read its style.
 --
 -- ZeD's side: at game start, once the game has read the options itself, ZeD
 -- writes the options as they stand (PZAPI.ModOptions:save, as ZeD's own settings

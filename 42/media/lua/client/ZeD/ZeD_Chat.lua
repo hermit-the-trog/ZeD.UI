@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Chat.lua
 -- ============================================================================
--- CHAT (the director's multiplayer decisions, Nov 5 2026: ZeDUI/MP_DECISIONS.md, section 2)
+-- CHAT — multiplayer chat as a ZeD window. Client organism (ZeD_ChatWindow, a
+-- ZeD_Window) plus the ZeD.Chat table the belt and the admin feed call into.
 -- On a server, the game's chat box at the lower left is replaced by:
 --   * a chat key on the belt, next to the Messages note, with the count of new lines (ZeD_Belt.lua)
 --   * a chat window you drag and size, which stays where you put it (kept in Lua/ZeD_chatwin.txt). Tabs as the
@@ -8,8 +9,8 @@
 --     admins). When idle it dims where it is; a new line brings it back to full strength. No fading out.
 --   * the game's chat key (T) opens it with the line to type in; on a controller the chat key opens it to read,
 --     and the pad keyboard opens only when you pick the line (A on it).
---   * pick a line for what you can do about its sender (MP_ADMIN_SCOPE.md, Phase 5, as drawn in
---     mockups/zed_community_v1.html): Report to the admins, Mute (for you, kept in Lua/ZeD_chatmute.txt, nobody told), and for
+--   * pick a line for what you can do about its sender: Report to the admins,
+--     Mute (for you, kept in Lua/ZeD_chatmute.txt, nobody told), and for
 --     admins Player card and Teleport. The buttons sit in the list under the line. On a controller Up and Down step through the
 --     lines with a sender in view and scroll on past them, A picks, Left and Right walk the buttons, B goes back.
 -- The game's chat stays the engine and is never shown: every line still arrives through the game's OnAddMessage,
@@ -345,8 +346,8 @@ function C.flowActions(list, w)
 end
 
 -- ---------------------------------------------------------------------------
--- NAME COLORS (the director, Nov 5 2026: "Allow players to select their username color in the chat. So it helps
--- distinguish who's talking.") The game already has the setting: the multiplayer text color (its Options' color
+-- NAME COLORS — a line's name drawn in its author's own color, so you can tell
+-- who is talking. The game already has the setting: the multiplayer text color (its Options' color
 -- picker, getCore():getMpTextColor()), the color of your speech over your head, which the server shares with every
 -- player (setSpeakColourInfo, sendPersonalColor). A line's name is drawn in its author's speak color; a player out of
 -- reach, or a color that would not read on this player's window (under 3:1 against its surface), takes the theme's
@@ -1106,7 +1107,7 @@ function C.open(typing, pad)
         local T = ZeD.T
         local sc = (T and T.scale) or 1
         local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
-        -- (every value kept: safe() hands back only the first, and the rest came back nil, QA Nov 5 2026)
+        -- (pcall, not safe(): safe() hands back only the first value, and readPlace returns five)
         local ok, x, y, w, h, tab = pcall(readPlace)
         if not ok then x = nil end
         if x and y and w and h then x, y, w, h = x * sc, y * sc, w * sc, h * sc

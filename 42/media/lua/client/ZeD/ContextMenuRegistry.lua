@@ -1,13 +1,16 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ContextMenuRegistry.lua
 -- ============================================================================
--- CONTEXT MENU REGISTRY (S88)
--- Pure-data module. Transforms vanilla ISContextMenu.options[] into the
--- ActionDef tree that ZeD_ContextMenu renders. Also handles:
---   - Category keyword mapping (hybrid hardcode + log-unknown)
---   - Pinned action persistence via Player ModData
---   - Target meta formatting (food / weapon / clothing / fluid / literature)
---   - Icon texture resolution (migrated from old Overrides/ContextMenu.lua)
--- No rendering ? UI calls live in the organism + molecules.
+-- CONTEXT MENU REGISTRY (client; pure data, no drawing).
+-- Turns vanilla ISContextMenu.options[] into the ActionDef tree that the ZeD
+-- menus render (ZeD_ContextMenu, the strip; ZeD_ContextList, the list). Also
+-- here:
+--   - the category each option sorts under (keyword lists, English and the
+--     player's language)
+--   - pinned actions, kept in the player's ModData
+--   - the target card's meta line (food / weapon / clothing / fluid /
+--     literature)
+--   - the icon for an option's name (ZeD's own map first, vanilla's after)
+-- Drawing lives in the organisms and molecules; nothing here touches the UI.
 -- ============================================================================
 
 require "ZeD/ContextIcons"   -- provides ZeD.ContextIcons
@@ -21,13 +24,13 @@ local Registry = {}
 
 -- ============================================================================
 -- CATEGORY KEYWORD MAP
--- Substring match against option names. First-match-wins in iteration order;
--- to keep ordering deterministic we list (keyword, category) pairs instead of
--- a plain table. All comparisons are case-insensitive.
+-- Substring match against option names, first match wins, case-insensitive.
+-- A list of (keyword, category) pairs rather than a plain table: pairs()
+-- walks a table in no fixed order, and the match order must never change.
 --
--- Category order (locked S87): USE ? ACTION ? CRAFT ? EQUIP ? TRANSFER ? INFO ? ADMIN
--- Unknown names fall back to ACTION. DEBUG_LOG_UNKNOWN_CATEGORIES toggles
--- first-sight logging so we can grow the map from real runs.
+-- Category order: USE -> ACTION -> CRAFT -> EQUIP -> TRANSFER -> INFO -> ADMIN
+-- Unknown names fall back to ACTION. DEBUG_LOG_UNKNOWN_CATEGORIES logs each
+-- unknown name once, so the map can grow from real play.
 -- ============================================================================
 
 Registry.CATEGORIES = { "USE", "ACTION", "CRAFT", "EQUIP", "TRANSFER", "INFO", "ADMIN" }
@@ -100,9 +103,9 @@ Registry.CATEGORY_KEYWORDS = {
     { "Destroy",     "ADMIN" },
 }
 
--- Debug channel: when true, first-sight unknown names print to console so we
--- can grow CATEGORY_KEYWORDS empirically. Set true in a dev build or via
--- ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_CATEGORIES = true at runtime.
+-- When true, each unknown option name prints once, so CATEGORY_KEYWORDS can
+-- grow from real play. Flip it in the game console:
+--   ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_CATEGORIES = true
 Registry.DEBUG_LOG_UNKNOWN_CATEGORIES = false
 Registry._loggedUnknowns = {}
 
@@ -292,16 +295,17 @@ function Registry.categorize(optionName)
 end
 
 -- ============================================================================
--- ICON TEXTURE RESOLUTION (migrated from old Overrides/ContextMenu.lua)
+-- ICON TEXTURE RESOLUTION
 -- Vanilla options may already carry iconTexture or itemForTexture; otherwise
--- we look up option.name in ZeD.ContextIcons (which ships a large English-
--- keyed mapping to our SmashIcons PNG set). Translation keys are reverse-
--- resolved to display names so localized builds still match.
+-- option.name is looked up in ZeD.ContextIcons, a large English-keyed map to
+-- the SmashIcons PNG set. Translation keys are resolved to display names
+-- first, so the lookup works in every language.
 -- ============================================================================
 
--- A picture name drawn by ZeD's pixel icon (ZeD.ContextPxIcons, Oct 28 2026) gives its
--- 16 drawing and its id: the cell draws the id's drawing that fits its icon box, at its
--- own size (ZeD.Atoms.drawPxIcon). A name a mod adds keeps its picture from icons/.
+-- A picture name with a ZeD pixel icon (ZeD.ContextPxIcons) gives its texture
+-- for a 16 px box and its id: the cell draws the id's drawing that fits its
+-- icon box, at its own size (ZeD.Atoms.drawPxIcon). A name a mod adds keeps
+-- its picture from icons/.
 local _iconCache = {}
 local function getIconTexture(codepoint)
     if not codepoint then return nil end
@@ -313,22 +317,20 @@ local function getIconTexture(codepoint)
     return _iconCache[codepoint] or nil
 end
 
--- Exact-match cache: full option name (localized or raw) ? codepoint.
+-- Exact-match cache: full option name (localized or raw) -> codepoint.
 local _translatedNameCache = nil
--- First-word cache: leading word only ? codepoint. Used as fallback when the
--- option name has a dynamic suffix (e.g. "Read Doctor Magazine", "Repair
--- Baseball Bat", "Equip Shotgun") that the exact-match path would miss.
--- Vanilla composes many labels as `getText("ContextMenu_X") .. " " .. target`;
--- the leading word survives this composition and carries the action semantics.
+-- First-word cache: leading word only -> codepoint. The fallback for option
+-- names with a changing tail ("Read Doctor Magazine", "Repair Baseball Bat")
+-- that the exact-match path would miss. Vanilla composes many labels as
+-- getText("ContextMenu_X") .. " " .. target; the leading word survives that
+-- and carries the action.
 local _firstWordCache = nil
 
 local function _firstWord(s)
     if not s then return nil end
-    -- Plain-text search for a literal space. Previously used "%s" with the
-    -- plain=true flag, which made Lua look for the LITERAL two characters
-    -- '%' and 's' rather than the whitespace class ? find never matched and
-    -- _firstWord("Place Item") returned "Place Item" whole. (Confirmed from
-    -- the debug log: "first word: 'Place Item'" should have been "Place".)
+    -- A plain find for a literal space. With plain=true a "%s" pattern is the
+    -- two characters '%' and 's', not the whitespace class: it never matches,
+    -- and "Place Item" would come back whole.
     local sp = s:find(" ", 1, true)
     if sp then return s:sub(1, sp - 1) end
     return s
@@ -433,26 +435,18 @@ local function buildTranslatedCache()
     -- without a key).
     for name, cp in pairs(icons) do put(name, cp) end
 
-    -- Pass 2: build first-word index from the materialized exact-match cache.
-    -- Two-pass so translation-key resolutions (which only populate _translated-
-    -- NameCache above) also contribute their localized first words here.
-    -- Longer map keys win if multiple entries share a first word ? e.g.
-    -- "Equip Primary" and "Equip" both start with "Equip"; we want
-    -- "Equip Shotgun" ? first-word-fallback ? "Equip" (the generic verb), not
-    -- "Equip Primary" (a specific slot). Generic single-word entries naturally
-    -- win because a bare "Equip" key has first-word "Equip" with no competing
-    -- shorter candidate. For conflicts where both entries are multi-word, we
-    -- keep the first-seen (deterministic given Lua 5.1 table order is stable
-    -- within a session ? unordered across reloads, but every option name that
-    -- would fall back is a dynamic label anyway, so the icon picked is still
-    -- semantically "close enough").
+    -- Pass 2: the first-word index, built from the finished exact-match cache
+    -- so names resolved from translation keys contribute their localized
+    -- first words too. Only single-word entries go in: a bare "Equip" is the
+    -- answer for any "Equip <thing>" label, while a multi-word entry such as
+    -- "Equip Primary" stays out, so its leading word never claims labels that
+    -- belong to the bare verb..
     for name, cp in pairs(_translatedNameCache) do
         local fw = _firstWord(name)
         if fw and fw ~= name then
-            -- Multi-word map entry: don't pollute the first-word index with
-            -- its leading word. The bare single-word entry (if any) wins; if
-            -- there's no bare entry, no entry is the right answer (the user
-            -- hasn't expressed intent for that action).
+            -- A multi-word entry stays out of the first-word index: its
+            -- leading word must not claim other labels. With no bare entry,
+            -- no answer is the right answer.
         elseif fw then
             -- Single-word map entry: it IS the first-word answer.
             if _firstWordCache[fw] == nil then
@@ -462,10 +456,9 @@ local function buildTranslatedCache()
     end
 end
 
--- Debug toggle: when true, prints each unmatched option name once so we can
--- grow the map from real-play labels. Default ON during S103 icon-work cycle;
--- flip to false once the map is stable by running in the in-game console:
---   ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_ICONS = false
+-- When true, prints each unmatched option name once, so the icon map can grow
+-- from real play. Flip it in the game console:
+--   ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_ICONS = true
 Registry.DEBUG_LOG_UNKNOWN_ICONS = false
 Registry._loggedUnknownIcons = {}
 
@@ -483,11 +476,9 @@ local function resolveIconForName(optionName)
         if string.find(optionName, entry[1]) then return getIconTexture(entry[2]) end
     end
 
-    -- Prefix-word fallback for dynamic labels. "Read Doctor Magazine" ?
-    -- first word "Read" ? use the Read icon. Preserves the action's
-    -- semantic while tolerating vanilla's `verb + " " + target` composition.
-    -- Only triggers when the leading word is a distinct token (i.e. the
-    -- label has a space). Bare-word labels already took the exact path.
+    -- First-word fallback for labels with a changing tail: "Read Doctor
+    -- Magazine" -> first word "Read" -> the Read icon. Only labels with a
+    -- space get here; bare words already took the exact path.
     local fw = _firstWord(optionName)
     if fw and fw ~= optionName then
         cp = _firstWordCache and _firstWordCache[fw]

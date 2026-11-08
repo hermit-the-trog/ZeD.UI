@@ -1,12 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MailCards.lua
 -- ============================================================================
--- MAIL IN GAME (punch list 104). Drawing and input only: ZeD_Mail.lua is the model, ZeD_MailStore.lua the copy on this
+-- MAIL IN GAME. Drawing and input only: ZeD_Mail.lua is the model, ZeD_MailStore.lua the copy on this
 -- computer. The frame is the ticket cards' (ZeD_TicketCards.lua), in the Server tab, ZeD's social place in a world:
 --   the Mail block    the dial-in's state, Inbox with its new letters (a row that opens the Mail card), Write a letter
 --   mlinbox           the Mail card: Write a letter, the Inbox, the Outbox while letters wait in it
 --   mlread            one letter: who, when, the words; Report, Delete, Reply (Report and Delete ask in the foot). Report
---                     (the director, Nov 7 2026) files a ticket through ZeD's tickets with the letter as the report's
---                     lines: its words reach staff only because the player chose to send them, logged as any report
+--                     files a ticket through ZeD's tickets with the letter as the report's lines: its words reach staff
+--                     only because the player chose to send them, logged as any report
 --   mlwrite           a new letter: To, Subject, the letter; Send puts it in the Outbox and it goes at once
 -- A letter can go to any player who has joined this server since it began keeping mail, online or not: the server holds
 -- it until they join. Letters are private (ZeD_ServerMail.lua): the help says the server forgets each one once it is

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/ContainerCapacityIndicator.lua
 -- ============================================================================
 -- SUPPORT FOR CONTAINER CAPACITY INDICATOR [B42] (mod id
--- ContainerCapacityIndicator, Workshop 3789660055).
+-- ContainerCapacityIndicator, Workshop 3789660055). Client.
 --
 -- The mod wraps the render of every container button the game's inventory and
 -- loot pages create (ISInventoryPage:addContainerButton) and draws a thin
@@ -59,8 +59,9 @@ ZeD.ModSupport.ContainerCapacityIndicator = S
 local RED_FROM   = 0.95
 local AMBER_FROM = 0.75
 
--- What the decorator drew last, per container (QA reads it): ratio, bar width,
--- band name, the time it was drawn. Records are reused, so no garbage per frame.
+-- What the decorator drew last, per container (the QA scripts read it): ratio,
+-- bar width, band name, the time it was drawn. Records are reused, so no
+-- garbage per frame.
 S.last = {}
 
 -- The mod's number for one container (its getCapacityRatio): nil when the

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Claims.lua
 -- ============================================================================
--- SAFEHOUSES AND FACTIONS, THE CLIENT'S MODEL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 3). No drawing: ZeD_ClaimCards.lua reads
+-- SAFEHOUSES AND FACTIONS, THE CLIENT'S MODEL. Client file, no drawing: ZeD_ClaimCards.lua reads
 -- this and calls it. Every act goes through the game's own global (sendSafehouseClaim, sendFactionCreate ...), exactly as
 -- its windows call them; its server checks them all, so this works on a server without ZeD's server part. The server
 -- part only adds what a client cannot learn (ZeD_ServerClaims.lua).

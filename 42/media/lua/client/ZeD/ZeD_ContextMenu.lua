@@ -1,22 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ContextMenu.lua
 -- ============================================================================
--- ZeD_ContextMenu — Unified Interaction Layer organism (S88)
--- One horizontal icon strip. Serves mouse RMB AND gamepad, identically. See
--- CONTEXT_MENU_SPEC.md for the full design. This file owns render + input
--- routing + open/close lifecycle + settle-timer management.
+-- ZeD_ContextMenu — the right-click menu as one horizontal icon strip. Client
+-- organism. Serves mouse RMB AND gamepad, identically; the other look, the
+-- list, is ZeD_ContextList (the ZeD option "Context menu" picks). This file
+-- owns render + input routing + open/close lifecycle + settle-timer
+-- management.
 --
--- Assembly stack (top → bottom):
---   floating label (absolute, tracks selected cell X)
+-- Assembly stack (top → bottom; flipped when the click is near the top edge):
+--   info bubble (action name headline, body and state rows; downward pointer)
 --     ▼
 --   [bumper] [chev?] [strip] [chev?] [bumper]      — strip row, flow
---     │
---   target card (static, centered under strip)
 --     ▲
---   balloon    (static, centered under target card; upward pointer)
+--   the click target itself (the cursor rests just under the strip)
 --
 -- The organism delegates all pixel work to molecules (drawContextStrip,
--- drawContextBumpers, drawContextFloatingLabel, drawContextTargetCard,
--- drawContextBalloon). This file is pure state + routing + layout math.
+-- drawContextBumpers, drawContextBalloon). This file is pure state + routing
+-- + layout math.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -53,7 +52,7 @@ function ZeD_ContextMenu:new(player, anchorMode, anchorX, anchorY, target, actio
     o._anchorY    = anchorY or 0
     o.vanillaMenu = vanillaMenu
 
-    -- Core state (see CONTEXT_MENU_SPEC §4 for spec)
+    -- Core state
     o._ctx = {
         open        = false,
         target      = target,
