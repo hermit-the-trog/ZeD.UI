@@ -422,6 +422,12 @@ _buildWorldLootFocusables = function(win)
             onHoldActivate = function(w, el)
                 local c = w._mainContent
                 if not c then return end
+                -- (Nov 8 2026, bug flags: hold-A opened a locked container, as a column or the view; tap-A's check)
+                local cnt = w._containers and w._containers[el.containerIdx]
+                if cnt and cnt.locked then
+                    if cnt.isoObject and ZeD.ObjectCardLock then pcall(ZeD.ObjectCardLock.openFor, w._playerObj, cnt.isoObject, false) end
+                    return
+                end
                 if w._activeTab == "loot" then
                     if mcToggleWorldContainer then
                         mcToggleWorldContainer(w, c, el.containerIdx)
@@ -484,6 +490,12 @@ _buildWorldLootFocusables = function(win)
             onHoldActivate = function(w, el)
                 local c = w._mainContent
                 if not c then return end
+                -- (Nov 8 2026, bug flags: hold-A opened a locked container, as a column or the view; tap-A's check)
+                local cnt = w._containers and w._containers[el.containerIdx]
+                if cnt and cnt.locked then
+                    if cnt.isoObject and ZeD.ObjectCardLock then pcall(ZeD.ObjectCardLock.openFor, w._playerObj, cnt.isoObject, false) end
+                    return
+                end
                 if w._activeTab == "loot" then
                     if mcToggleWorldContainer then
                         mcToggleWorldContainer(w, c, el.containerIdx)
