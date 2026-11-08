@@ -203,46 +203,50 @@ end
 -- DATA GATHERING — cheap per-frame: skill checks only (no learned checks)
 -- ============================================================================
 
+local ROWS_MS = 1000   -- the rows' refresh (was 30 frames: 2.4-4x as often at 144-240 Hz)
+
 function ZeD.BuildingTab.gatherData(playerObj, win)
     buildBuildCatalog(playerObj)
     if not _flatRecipes then return { recipes = {}, categories = _categories, flatRecipes = _flatRecipes } end
 
-    -- Throttled (every 30 frames)
-    win._buildTimer = (win._buildTimer or 0) + 1
-    if win._buildTimer < 30 and win._buildCache then
-        return win._buildCache
+    -- Throttled: every ROWS_MS (was 30 frames), at once when the cache was dropped
+    local prev = win._buildCache
+    if not CC.due(win, "_buildRowsAt", ROWS_MS, not prev) then
+        return prev
     end
-    win._buildTimer = 0
 
-    local recipes = {}
+    -- The rows are rewritten in place (CC.refreshRow), as the Craft tab's are; a dropped cache
+    -- starts a new data table and nothing carries into it, as before.
+    local data = prev
+    if not data then
+        data = { recipes = {} }
+    end
+    data.categories, data.flatRecipes = _categories, _flatRecipes
+    local recipes = data.recipes
+    local pool, gen = CC.rowsBegin(win, "build")
+    local prevGen = prev and prev.gen or nil
+    local levels = {}   -- (each skill's level asked once per refresh)
+    local n, changed = 0, prev == nil
 
     for _, entry in ipairs(_flatRecipes) do
         -- Skill check
         local hasSkill = true
         local playerLevel = 0
         if entry.skillName then
-            local perkType = CC.getPerkType(entry.skillName)
-            if perkType and perkType ~= Perks.None then
-                playerLevel = playerObj:getPerkLevel(perkType)
-            end
+            playerLevel = CC.perkLevelOf(levels, playerObj, entry.skillName)
             hasSkill = playerLevel >= entry.requiredLevel
         end
 
         local status = hasSkill and "unlocked" or "locked"
 
-        recipes[#recipes + 1] = {
-            entry       = entry,
-            status      = status,
-            hasSkill    = hasSkill,
-            learned     = true,  -- building recipes don't need to be learned
-            playerLevel = playerLevel,
-            ingredients  = nil,
-            missingCount = 0,
-        }
+        -- (building recipes don't need to be learned)
+        local rd = CC.refreshRow(pool, entry, gen, prevGen, status, hasSkill, true, playerLevel)
+        n = n + 1
+        if recipes[n] ~= rd then recipes[n] = rd; changed = true end
     end
 
-    local data = { recipes = recipes, categories = _categories, flatRecipes = _flatRecipes }
-    CC.carryStatus(win._buildCache, data)
+    CC.rowsEnd(data, n, changed)
+    data.gen = gen
     win._buildCache = data
     return data
 end
@@ -357,7 +361,7 @@ function ZeD.BuildingTab.startBuild(win, state)
     state.qty = 1
     state.filterDirty = true
     win._buildCache = nil
-    win["_buildContainerTimer"] = 90
+    win["_buildContainerAt"] = nil
     win["_buildTypeCache"] = nil      -- invalidate type cache
 end
 
@@ -405,13 +409,7 @@ function ZeD.BuildingTab.render(panel, win, x, y, w, h)
 
     -- Gather detail for selected recipe
     if state.selected then
-        local selRd = nil
-        for _, rd in ipairs(data.recipes) do
-            if rd.entry.name == state.selected then
-                selRd = rd
-                break
-            end
-        end
+        local selRd = data.byName and data.byName[state.selected] or nil
         if selRd then
             gatherDetail(selRd, win._playerObj, win)
         end
