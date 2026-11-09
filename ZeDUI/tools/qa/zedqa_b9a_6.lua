@@ -74,16 +74,26 @@ local function turn(which)
     local function W() return which == "char" and CW() or WW() end
     local tab = which == "char" and "equip" or "maps"
     local title0
+    -- The staging: the window down and whole with both pins on (nothing rolls while the pointer travels), the pointer in
+    -- the list, and only then both pins off. (Unpinned first, the window rolled up whole before the pointer arrived: the
+    -- run's first picture shows the Character window rolled to its bar, and every step after it read a rolled window.)
     add(1200, function()
         local w = W()
-        H.setPin(w, "inv", false); H.setPin(w, "drawer", false)
+        H.setPin(w, "inv", true); H.setPin(w, "drawer", true)
         w:setWindowShaded(false)
+        if w._rolled and ZeD.Curtain then ZeD.Curtain.finishUnroll(w) end
+        if H.showAll then H.showAll(w) end
         if which == "char" then CWm.openTab(0, tab) else WWm.openTab(0, tab) end
     end)
     add(800, function()
         local w = W()
         title0 = tostring(w.title)
         req("move " .. table.concat({ mid(w._mainContent) }, " "))   -- (looking around the inventory)
+    end)
+    add(300, function()
+        local w = W()
+        check(not w.windowShaded and not w._rolled and w._drawerOpen, which .. ": (staged) down and whole on " .. tab .. ", the pointer in the list")
+        H.setPin(w, "inv", false); H.setPin(w, "drawer", false)
     end)
     addWhen(6000, function() return H.foldedTab(W()) == tab end, function()   -- (folds 2 s after the pointer leaves it; up to 6 s)
         local w = W()
@@ -93,7 +103,8 @@ local function turn(which)
         shot(which .. "_1_rolled_in")
         req("move " .. table.concat({ drawerBar(w) }, " "))
     end)
-    add(1200, function()
+    -- (on as soon as it is back: resting on the drawer's bar is outside the inventory, whose own 2 s are running)
+    addWhen(3000, function() return W()._drawerOpen and H.foldedTab(W()) == nil end, function()
         local w = W()
         check(w._drawerOpen and w._activeTab == tab and H.foldedTab(w) == nil, which .. ": resting on the drawer's part of the bar: back on " .. tab)
         shot(which .. "_2_back")
