@@ -624,6 +624,29 @@ local function segCells(n, gap, w)
     return cells
 end
 
+-- m equal cells cellW wide, gap apart, from rx, in colour c: one rect when there is no gap; else one draw
+-- from the line texture seg.png (its row for this cell width and gap: cellW lit, gap clear, repeated,
+-- at 1:1 across and stretched down, nearest filtering: the cells' own pixels, tinted), where the panel's
+-- rects are the plain ones (ZeD.Atoms.lineJo, AtomExtensions); else one rect a cell.
+local SEG_MAX_CELL, SEG_MAX_GAP, SEG_LEN = 64, 4, 1024
+local function segRun(panel, rx, y, m, cellW, gap, h, c)
+    local runW = m * cellW + (m - 1) * gap
+    if gap <= 0 then
+        panel:drawRect(rx, y, runW, h, 1, c.r, c.g, c.b)
+        return
+    end
+    local A = ZeD.Atoms
+    local jo = A.lineJo and cellW <= SEG_MAX_CELL and gap <= SEG_MAX_GAP and gap == math.floor(gap)
+               and runW <= SEG_LEN and A.lineJo(panel)
+    local tex = jo and A.lineTex("seg")
+    if tex then
+        jo:DrawSubTextureRGBA(tex, 0, (gap - 1) * SEG_MAX_CELL + cellW - 1, runW, 1, rx, y, runW, h, c.r, c.g, c.b, 1)
+        return
+    end
+    local pitch = cellW + gap
+    for i = 0, m - 1 do panel:drawRect(rx + i * pitch, y, cellW, h, 1, c.r, c.g, c.b) end
+end
+
 function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, opts)
     local T = ZeD.T
     if n <= 0 then return 0 end
@@ -640,11 +663,20 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
         x, y, w, h = x + bw, y + bw, w - 2 * bw, fh - 2 * bw
         panel:drawRect(x, y, w, h, 1, bg.r, bg.g, bg.b)
         onColor = onColor or T.accent
-        -- the cells share the inside evenly in whole pixels (none more than one wider than
-        -- another), the last meeting the frame, so a full meter has no strip of well at its end; an inside
-        -- too short for a pixel per cell and every gap closes the gaps rather than drop a cell
+        -- an inside too short for a pixel per cell and every gap closes the gaps rather than drop a cell
         if w < n + (n - 1) * gap then gap = 0 end
-        -- (each cell's left edge and width from the inside's left, kept by n, gap and width: segCells)
+        -- Every cell the same whole-pixel width, the pixels left over split as well at the two ends (the
+        -- frame stays where it is). The lit run and the dark run are each one draw (segRun), not one a cell.
+        local cellW = math.floor((w - (n - 1) * gap) / n)
+        if cellW >= 1 then
+            local pitch = cellW + gap
+            local x0 = x + math.floor((w - (n * cellW + (n - 1) * gap)) / 2)
+            if k > 0 and onColor then segRun(panel, x0, y, k, cellW, gap, h, onColor) end
+            if k < n and offColor then segRun(panel, x0 + k * pitch, y, n - k, cellW, gap, h, offColor) end
+            return fh
+        end
+        -- (narrower than a pixel a cell: the cells share the inside unevenly, as they always did;
+        -- each cell's left edge and width from the inside's left, kept by n, gap and width: segCells)
         local cells = segCells(n, gap, w)
         local i2 = 0
         for i = 1, n do
