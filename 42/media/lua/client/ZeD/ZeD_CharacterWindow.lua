@@ -3164,10 +3164,15 @@ local function drawTabStrip(self, win)
         -- Hit zone — always active, clicking exits mc mode if needed
         if curY + T.px(TAB_BTN_SZ) > 0 and curY < tabAreaH then
             self:addHitZone("tab:" .. tab.id, 0, curY, w, T.px(TAB_BTN_SZ))
-            -- hover hint: the tab's name beside the icon after the pause (mouse only)
+            -- the tab's name in a balloon beside it: after the pause for the mouse, at once for the
+            -- controller's focus
             if isHover and my < tabAreaH and (not self.isMouseOver or self:isMouseOver()) then
                 win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_CharacterWindow.tabLabel(tab),
                                      x = self:getX(), y = self:getY() + curY, w = w, h = T.px(TAB_BTN_SZ), side = "r" }
+                ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
+            elseif cuesOn and gpFocusedTabId == tab.id and not win._tabHintCand then
+                win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_CharacterWindow.tabLabel(tab),
+                                     x = self:getX(), y = self:getY() + curY, w = w, h = T.px(TAB_BTN_SZ), side = "r", now = true }
                 ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
             end
         end

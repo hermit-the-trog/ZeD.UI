@@ -1094,7 +1094,10 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
             if i == sel then A.frame(self, x - T.px(3), sy - T.px(3), sz + 2 * T.px(3), sz + 2 * T.px(3), th, 1, T.px(2))
             elseif isHot(id) then
                 A.frame(self, x - T.px(2), sy - T.px(2), sz + 2 * T.px(2), sz + 2 * T.px(2), th)
-                A.requestHint(self, kind .. ":" .. id, name, self)
+                local wr = self._wellR
+                if not wr then wr = {}; self._wellR = wr end
+                wr.x, wr.y, wr.w, wr.h = x, sy, sz, sz
+                A.requestHint(self, kind .. ":" .. id, name, self, wr)
             end
             hit(id, x, sy, sz, sz, pick(i), { disabled = c.disabled })
         end
