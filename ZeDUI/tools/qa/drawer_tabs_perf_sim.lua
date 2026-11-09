@@ -12,7 +12,9 @@
 --     and compares them: the help lines in their order, and the draws word for word; where a frame's draws differ
 --     (a chevron or a dashed edge drawn from the line textures instead of rect by rect) every draw but the thin
 --     ones must still match one for one, and sampled frames are painted both ways, pixel by pixel (rects, and the
---     line textures' own pixels from linetex_pixels.lua), and must come out the same. Also at the half card, in
+--     line textures' own pixels from linetex_pixels.lua), and must come out the same, but for the framed fill
+--     bars' cells, which are equal now: there the same cells in the same colours, each within a pixel of its old
+--     width, the leftover split at the two ends. Also at the half card, in
 --     Simple, with the full photo, the figure folded, another view, a window's own colours.
 --   * Counts per frame, old against new: Lua instructions (a count hook), the engine's text measures, wrap and
 --     truncate calls, Java calls on the stand-ins (each draw is one), draws, and the Lua memory a frame allocates
@@ -571,6 +573,19 @@ local function newWorld(label, getSrc)
     local w0, t0 = A.wrapText, A.truncateText
     A.wrapText = function(...) C.wrap = C.wrap + 1; return w0(...) end
     A.truncateText = function(...) C.trunc = C.trunc + 1; return t0(...) end
+    -- each framed fill bar's inside, written down with the frame's draws (log runs only): its cells may move
+    -- (equal cells now), so the comparison looks at them cell by cell instead of pixel by pixel
+    local sb0 = A.drawSegBar
+    A.drawSegBar = function(panel, x, y, w, h, n, k, on, off, gap, opts)
+        if opts and opts.framed and not world.nolog and world.cmds then
+            local T = Z.T
+            local fh = opts.exactH and h or math.max(h, T.px(8))
+            local bw = T.line(T.borderW)
+            local b = T.base
+            world.cmds[#world.cmds + 1] = { "bar", 0, x + bw, y + bw, w - 2 * bw, fh - 2 * bw, b.r, b.g, b.b }
+        end
+        return sb0(panel, x, y, w, h, n, k, on, off, gap, opts)
+    end
     return world
 end
 
@@ -747,7 +762,14 @@ local function lineTexOf(t)
     local m = n and string.match(n, "lines/([%w_]+)%.png$")
     return m and LINETEX[m] or nil
 end
+-- seg.png by its rule (make_line_tex.py checks the PNG against it): row (gap - 1) * 64 + (cell - 1), cell lit, gap clear
+LINETEX.seg = { w = 1024, h = 256, rule = function(u, v)
+    if u < 0 or u >= 1024 or v < 0 or v >= 256 then return false end
+    local g, c = math.floor(v / 64) + 1, v - math.floor(v / 64) * 64 + 1
+    return u - math.floor(u / (c + g)) * (c + g) < c
+end }
 local function texelLit(tx, u, v)
+    if tx.rule then return tx.rule(u, v) end
     local row = tx.rows[v + 1]
     if not row or u < 0 then return false end
     for i = 1, #row, 2 do if u >= row[i] and u < row[i + 1] then return true end end
@@ -814,24 +836,93 @@ local function paint(cmds)
     end
     return cv
 end
-local function sameCanvas(a, b)
+-- the framed fill bars' insides a frame drew ({ x, y, w, h, base r, g, b })
+local function barsOf(cmds)
+    local out = {}
+    for _, c in ipairs(cmds or {}) do
+        if c[1] == "bar" then out[#out + 1] = { c[3], c[4], c[5], c[6], c[7], c[8], c[9] } end
+    end
+    return out
+end
+local function inBar(bars, px, py)
+    for _, b in ipairs(bars) do
+        if px + 0.5 >= b[1] and px + 0.5 < b[1] + b[3] and py + 0.5 >= b[2] and py + 0.5 < b[2] + b[4] then return true end
+    end
+    return false
+end
+-- a bar's cells along its middle row: the runs of pixels that are not the well's colour, { start, width, r, g, b }
+local function barCells(cv, b)
+    local py = math.floor(b[2] + b[4] / 2)
+    local runs, cur = {}, nil
+    for px = math.ceil(b[1] - 0.5), math.ceil(b[1] + b[3] - 0.5) - 1 do
+        local i = py * 8192 + px
+        local r, g, bl = cv.R[i] or 0, cv.G[i] or 0, cv.B[i] or 0
+        local well = math.abs(r - b[5]) < 1e-9 and math.abs(g - b[6]) < 1e-9 and math.abs(bl - b[7]) < 1e-9
+        if well then cur = nil
+        elseif cur and math.abs(cur[3] - r) < 1e-9 and math.abs(cur[4] - g) < 1e-9 and math.abs(cur[5] - bl) < 1e-9 then
+            cur[2] = cur[2] + 1
+        else
+            cur = { px, 1, r, g, bl }
+            runs[#runs + 1] = cur
+        end
+    end
+    return runs
+end
+-- Outside the bars, every pixel the same; inside, the same cells in the same colours, each the same width as the
+-- others (all but where cells of one colour meet with no gap), each within a pixel of the old cell's width, the
+-- pixels left over split as well at the two ends.
+local function sameCanvas(a, b, bars)
     for _, ch in ipairs({ "R", "G", "B" }) do
         local A, B = a[ch], b[ch]
         for i, v in pairs(A) do
-            if math.abs(v - (B[i] or 0)) > 1e-9 then return (i % 8192) .. "," .. math.floor(i / 8192) end
+            local px, py = i % 8192, math.floor(i / 8192)
+            if math.abs(v - (B[i] or 0)) > 1e-9 and not inBar(bars, px, py) then return px .. "," .. py end
         end
         for i, v in pairs(B) do
-            if math.abs(v - (A[i] or 0)) > 1e-9 then return (i % 8192) .. "," .. math.floor(i / 8192) end
+            local px, py = i % 8192, math.floor(i / 8192)
+            if math.abs(v - (A[i] or 0)) > 1e-9 and not inBar(bars, px, py) then return px .. "," .. py end
+        end
+    end
+    for _, bar in ipairs(bars) do
+        local o, n = barCells(a, bar), barCells(b, bar)
+        local where = "the bar at " .. fmt(bar[1]) .. "," .. fmt(bar[2])
+        if #o ~= #n then return where .. ": " .. #o .. " cells before, " .. #n .. " now" end
+        local lead, trail = nil, nil
+        for i = 1, #n do
+            if math.abs(o[i][3] - n[i][3]) > 1e-9 or math.abs(o[i][4] - n[i][4]) > 1e-9 or math.abs(o[i][5] - n[i][5]) > 1e-9 then
+                return where .. ": cell " .. i .. " another colour"
+            end
+            if math.abs(o[i][2] - n[i][2]) > 1 and #n > 2 then
+                return where .. ": cell " .. i .. " " .. o[i][2] .. " px before, " .. n[i][2] .. " now"
+            end
+            if #n > 2 and i > 1 and i < #n and n[i][2] ~= n[2][2] then return where .. ": cells of unequal width" end
+        end
+        if #n > 2 then
+            local x0, x1 = math.ceil(bar[1] - 0.5), math.ceil(bar[1] + bar[3] - 0.5)
+            lead, trail = n[1][1] - x0, x1 - (n[#n][1] + n[#n][2])
+            -- (a dark run off: the last cell drawn is short of the end by the dark cells too; only a full bar checks the ends)
+            if n[#n][2] == n[1][2] and math.abs(lead - trail) > 1 and o[#o][1] + o[#o][2] == x1 then
+                return where .. ": the leftover not split at the ends (" .. lead .. " and " .. trail .. ")"
+            end
         end
     end
     return nil
 end
--- every draw but the thin ones (a 1 to 3 px rect: a chevron's row, a dash; a draw from a line texture), word for word
+-- every draw but the thin ones (a 1 to 3 px rect: a chevron's row, a dash; a draw from a line texture) and the bars'
+-- cells (the rects or the draws inside a bar's well, not the well itself), word for word
 local function thickSeq(cmds)
     local out = {}
+    local bars = barsOf(cmds)
     for _, c in ipairs(cmds or {}) do
         local k = c[1]
         local thin = (k == "drawRect" and (c[5] <= 3 or c[6] <= 3)) or (k == "jo:DrawSubTextureRGBA" and lineTexOf(c[3]) ~= nil)
+        if not thin and k == "drawRect" then
+            for _, b in ipairs(bars) do
+                local x, y, w, h = c[3], c[4], c[5], c[6]
+                if x >= b[1] and y >= b[2] and x + w <= b[1] + b[3] and y + h <= b[2] + b[4]
+                   and not (x == b[1] and y == b[2] and w == b[3] and h == b[4]) then thin = true; break end
+            end
+        end
         if not thin then
             local parts = { k }
             for i = 3, c[2] + 2 do parts[#parts + 1] = fmt(c[i]) end
@@ -877,7 +968,7 @@ for _, tab in ipairs(TABS) do
                     if ok and (f == 21 or f == 50 or f == FRAMES) then
                         painted = painted + 1
                         local a, b = paint(ol.cmds[f]), paint(nl.cmds[f])
-                        local diff = sameCanvas(a, b)
+                        local diff = sameCanvas(a, b, barsOf(nl.cmds[f]))
                         if diff then ok = false; print("  " .. label .. " frame " .. f .. ": a pixel differs at " .. diff) end
                     end
                 end
