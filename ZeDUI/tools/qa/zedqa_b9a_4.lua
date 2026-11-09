@@ -129,6 +129,12 @@ local function turn(which)
         -- the press again on the row as it is now (each request answered before the next)
         local it, x, y = rowOf(s, ft)
         if it and x then sx, sy = x, y end
+        -- (the Deck's char turn pressed over no row: say where the row is now and what lies under that point)
+        local c = s._mainContent
+        local zz = sx and c and c.hitZoneAt and c:hitZoneAt(sx - c:getAbsoluteX(), sy - c:getAbsoluteY())
+        say(which .. ": the press point " .. tostring(sx) .. "," .. tostring(sy) .. " (row found " .. tostring(it ~= nil)
+            .. ", list " .. (c and (c:getAbsoluteX() .. "," .. c:getAbsoluteY() .. " " .. c:getWidth() .. "x" .. c:getHeight()) or "-")
+            .. ") over " .. tostring(zz and (type(zz.id) == "string" and zz.id or (zz.id and zz.id.getFullType and zz.id:getFullType()))))
         if sx then req("down " .. sx .. " " .. sy) end
     end)
     add(100, function()
