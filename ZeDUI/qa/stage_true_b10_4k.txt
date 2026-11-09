@@ -1,0 +1,3 @@
+== 2026-11-09 09:44 the true staged check of 0.3.0-beta10
+10:02:53 true staged check:   ZeD settings: the director's ModOptions.ini put back | 18/19 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-09_beta10_check_true_4k.md | no report at C:\Users\danie\Zomboid\mods\ZeD-UI\C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-09_beta10_check_true_4k.md
+10:02:53 true check done
