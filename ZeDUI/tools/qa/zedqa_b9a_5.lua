@@ -59,8 +59,35 @@ local function onBack()
     local s = B.slots(0)[backIndex() or 1]
     return s and s.item or nil
 end
--- the screen point of a rect stamped in a panel
-local function at(panel, r) return math.floor(panel:getAbsoluteX() + r.x + r.w / 2), math.floor(panel:getAbsoluteY() + r.y + r.h / 2) end
+-- The screen point of a rect stamped in a panel, or nil while it is scrolled out of the panel's view. (The run at 4K
+-- released on the Back box and the Back row at y 805 and 866, below the 735-tall window: both were stamped past the
+-- Equip tab's scroll, so the drop landed on no slot and nothing was attached.)
+local function at(panel, r)
+    if not (panel and r) then return nil end
+    local cy = r.y + r.h / 2
+    if cy < 0 or cy >= panel:getHeight() then return nil end
+    return math.floor(panel:getAbsoluteX() + r.x + r.w / 2), math.floor(panel:getAbsoluteY() + cy)
+end
+-- the Equip tab scrolled one notch toward its end each call (an addWhen condition): true once the target shows
+local function scrollUntil(target)
+    if target() then return true end
+    local s = CW() and CW()._equipScroll
+    if s and s.setScrollPos then s:setScrollPos((s.scrollPos or 0) + 0.1) end
+    return false
+end
+-- Is the row really under its point (the list's own hit zone there is that thing)? One wheel notch toward it each call.
+local function revealRow(win, it)
+    local c = win and win._mainContent
+    local y = it and c and c._itemRenderYMap and c._itemRenderYMap[it]
+    if not y or not c.hitZoneAt then return false end
+    local ly = y + ZeD.T.rowH / 2
+    if ly >= 0 and ly < c:getHeight() then
+        local z = c:hitZoneAt(((c._itemRenderXMap and c._itemRenderXMap[it]) or 0) + 170, ly)
+        if z and z.id == it then return true end
+    end
+    if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end
+    return false
+end
 local function dollBack()
     local c = CW()
     for _, r in ipairs(c._equipDollAll or {}) do if r.id == "back" then return at(c._equipDollPanel, r) end end
@@ -78,7 +105,13 @@ end
 local function isBat(b) return b ~= nil and b:getFullType() == "Base.BaseballBat" end
 local function dragBat(label, fromWin, target)
     local sx, sy, held
-    add(900, function()
+    -- (first the target into the Equip tab's view, then the bat's row into its list's view: each a notch a frame)
+    addWhen(4000, function() return scrollUntil(target) end, function()
+        local x, y = target()
+        say(label .. ": the target at " .. tostring(x) .. "," .. tostring(y) .. " (the Character window's foot at " .. (CW():getAbsoluteY() + CW():getHeight()) .. ")")
+    end)
+    addWhen(5000, function() local w = fromWin(); return w ~= nil and revealRow(w, (rowOf(w, "Base.BaseballBat"))) end, function() end)
+    add(300, function()
         sx, sy, held = nil, nil, false
         local it, x, y = nil, nil, nil
         if fromWin() then it, x, y = rowOf(fromWin(), "Base.BaseballBat") end

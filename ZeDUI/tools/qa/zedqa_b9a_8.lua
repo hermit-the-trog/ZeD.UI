@@ -83,9 +83,27 @@ add(500, function()
     CWm.openTab(0, "loot")
     p:getInventory():AddItem("Base.WaterBottle")
 end)
-add(1500, function()
+-- Is the row really under its point (the list's own hit zone there is that thing)? One wheel notch toward it each
+-- call. (The 4K run right-clicked a garment: its menu had Wear and Save to outfit, no Drink or Pin. The bottle's row was
+-- past the long list's view, and its point landed on another row.)
+local function revealRow(win, it)
+    local c = win and win._mainContent
+    local y = it and c and c._itemRenderYMap and c._itemRenderYMap[it]
+    if not y or not c.hitZoneAt then return false end
+    local ly = y + ZeD.T.rowH / 2
+    if ly >= 0 and ly < c:getHeight() then
+        local z = c:hitZoneAt(((c._itemRenderXMap and c._itemRenderXMap[it]) or 0) + 170, ly)
+        if z and z.id == it then return true end
+    end
+    if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end
+    return false
+end
+addWhen(5000, function() return revealRow(CW(), (rowOf(CW(), "Base.WaterBottle"))) end, function() end)
+add(300, function()
     local it, x, y = rowOf(CW(), "Base.WaterBottle")
-    if check(it ~= nil, "the bottle's row is on screen") then req("right " .. x .. " " .. y) end
+    -- (what the pin menu reads of it: a kind means "Pin to title bar" must be in its menu)
+    say("the bottle's pin kind: " .. tostring(it and ZeD.Pins and ZeD.Pins.kindOf and ZeD.Pins.kindOf(it)))
+    if check(it ~= nil and revealRow(CW(), it), "the bottle's row is on screen, under its point") then req("right " .. x .. " " .. y) end
 end)
 addWhen(4000, function() return hasOption(ZeD.tr("UI_ZeD_Pin_Pin")) end, function()   -- (the menu fills on the right-click; up to 4 s)
     readMenu("unpinned", ZeD.tr("UI_ZeD_Pin_Pin"))
@@ -97,7 +115,8 @@ addWhen(4000, function() return hasOption(ZeD.tr("UI_ZeD_Pin_Pin")) end, functio
     end
     if v then pcall(function() v:hideAndChildren() end) end   -- (as zedqa_b8_seven_menus closes it)
 end)
-add(1000, function()
+addWhen(5000, function() return revealRow(CW(), (rowOf(CW(), "Base.WaterBottle"))) end, function() end)
+add(300, function()
     local it, x, y = rowOf(CW(), "Base.WaterBottle")
     if it then req("right " .. x .. " " .. y) end
 end)
