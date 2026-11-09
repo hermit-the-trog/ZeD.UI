@@ -750,6 +750,10 @@ end
 --- For caches built on measures (ZeD.Atoms.truncateText): a number that changes whenever the kept
 --- measures start over, or nil while measures are not kept (the fonts still loading)
 function X.measureEpoch()
+    -- (mcOn's test inline first, as in MeasureStringX: every truncate asks this)
+    if X._fontsSettled and MC.T == ZeD.T and MC.root == S._root and MC.gen == ZeD._trGen and MC.fs == MC.fsNow then
+        return MC.epoch
+    end
     if not mcOn() then return nil end
     return MC.epoch
 end
@@ -791,6 +795,12 @@ function TM:MeasureStringY(font, str)
 end
 --- a font's line height in screen px, zoomed for a role font; kept, as above
 function TM:getFontHeight(font)
+    -- (mcOn's test inline first, as in MeasureStringX)
+    if font ~= nil and X._fontsSettled and MC.T == ZeD.T and MC.root == S._root and MC.gen == ZeD._trGen
+       and MC.fs == MC.fsNow then
+        local v = MC.h[font]
+        if v then return v end
+    end
     if font == nil or not mcOn() then
         return X.realTM():getFontHeight(font) * X.zoomOf(font)
     end

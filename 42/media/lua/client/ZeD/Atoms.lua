@@ -594,6 +594,36 @@ end
 --                 { framed = true, exactH = true }: framed at h exactly (the fill bars:
 --                 ZeD.Atoms.drawSegFill, whose grid-cell and slot strips are under 8u).
 -- @return height  the height drawn (framed: at least 8u, or h with exactH)
+-- The framed strip's cells for n cells in an inside w wide with gap between them: a flat list, each
+-- cell's left edge from the inside's left then its width (2 numbers a cell), worked out as the strip
+-- always did. Kept by n, gap and w (every fill bar of a list asks the same few each frame); past
+-- SEG_KEEP kept the store starts over.
+local SEG_KEEP = 256
+local _seg, _segN = {}, 0
+local function segCells(n, gap, w)
+    local byN = _seg[n]
+    if not byN then byN = {}; _seg[n] = byN end
+    local byG = byN[gap]
+    if not byG then byG = {}; byN[gap] = byG end
+    local cells = byG[w]
+    if cells then return cells end
+    cells = {}
+    local span = w + gap
+    for i = 1, n do
+        local s = math.floor((i - 1) * span / n)
+        cells[#cells + 1] = s
+        cells[#cells + 1] = math.floor(i * span / n) - gap - s
+    end
+    if _segN >= SEG_KEEP then _seg, _segN = {}, 0 end
+    _segN = _segN + 1
+    if w == w then
+        byN = _seg[n] or {}; _seg[n] = byN
+        byG = byN[gap] or {}; byN[gap] = byG
+        byG[w] = cells
+    end
+    return cells
+end
+
 function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, opts)
     local T = ZeD.T
     if n <= 0 then return 0 end
@@ -614,14 +644,14 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
         -- another), the last meeting the frame, so a full meter has no strip of well at its end; an inside
         -- too short for a pixel per cell and every gap closes the gaps rather than drop a cell
         if w < n + (n - 1) * gap then gap = 0 end
-        local span = w + gap
+        -- (each cell's left edge and width from the inside's left, kept by n, gap and width: segCells)
+        local cells = segCells(n, gap, w)
+        local i2 = 0
         for i = 1, n do
             local c = (i <= k) and onColor or offColor
-            if c then
-                local sx = x + math.floor((i - 1) * span / n)
-                local ex = x + math.floor(i * span / n) - gap
-                if ex > sx then panel:drawRect(sx, y, ex - sx, h, 1, c.r, c.g, c.b) end
-            end
+            local cw = cells[i2 + 2]
+            if c and cw > 0 then panel:drawRect(x + cells[i2 + 1], y, cw, h, 1, c.r, c.g, c.b) end
+            i2 = i2 + 2
         end
         return fh
     end
