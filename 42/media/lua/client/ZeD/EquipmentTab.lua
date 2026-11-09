@@ -1310,6 +1310,7 @@ end
 --- grouped list with the belt rows, the loadouts' fold and the defense body.
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
+    win._equipPanel = panel   -- (the drawer its zones are stamped in: a drop reads the pointer there, EquipDoll.takeDrop)
     -- the state the kept draws hang on (ZeD.DrawMemo.epoch), read once for the rows and columns below
     win._eqEpoch = ZeD.DrawMemo.epoch()
 
