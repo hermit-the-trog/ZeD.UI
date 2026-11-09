@@ -3097,3 +3097,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     languages), and the player card carries the same line before any press. The users list's IP and Steam ID bans
     already said so with the game's own words. The end-of-ban restore note is in server_helper/README.md. Sim: the
     protected-role section of admin_cards_sim.lua; in-game: the player-protected-* states of mp_admin_cards.lua.
+124. **No large bright whites: paper toned down to 70% (the director, Nov 8 2026; beta 10).** "The survival guide, the
+    white background is too bright ... like the full screen map ... Snow in this game is just blinding. So we have to
+    tone things down a lot more than whites." Standing rule: no large near-white areas. The survival guide's page
+    (book and Simple), paper maps, the reader, notes, the Light theme's big panels and tooltip balloons use a paper at
+    70% of today's brightness (level C in ZeDUI/mockups/paper_tone/, approved). Text stays fully dark: keep 4.5:1 or
+    better on the dimmer paper. Prefer one paper token over per-file color edits; QA pictures at 4K and Deck.
