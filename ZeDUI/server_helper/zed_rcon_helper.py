@@ -8,13 +8,16 @@ Helper (RCON)" (ZeD.HostHelper) and run this next to the server.
 
 How the two talk (both files under <Zomboid>/Lua/ZeD_helper/, the server's own Lua folder):
   queue.txt    written by the server: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated),
-               then "ZEDQ end". The game writes it in pieces, so a queue without that last line is left for the next pass
+               then "ZEDQ end". The game writes it in pieces, so a queue without that last line is left for the next pass.
+               A lifted ban's role restore is id, try, SetRole, name, role, restore
   answers.txt  written here: "ZEDA 1 <epoch> <unix seconds>", then one answer a line: id, try, result, text
 
-Security. The queue is only ever read as data. This helper sends nothing but a fixed allow-list of six console commands
-(kickuser, banuser, unbanuser, banid, unbanid, and voiceban with -true only), each built here from a target it checks itself: a
-username of 2 to 32 ASCII letters, digits, _ - or inner spaces, quoted as the console expects (for voiceban never starting
-with "-", so it can't read as the command's own -true or -false); a Steam ID of 17 digits. A ban's reason is cut to plain
+Security. The queue is only ever read as data. This helper sends nothing but a fixed allow-list of seven console commands
+(kickuser, banuser, unbanuser, banid, unbanid, voiceban with -true only, and setaccesslevel only for a lifted ban's role
+restore: a SetRole line whose sixth field is "restore"), each built here from a target it checks itself: a username of 2 to 32
+ASCII letters, digits, _ - or inner spaces, quoted as the console expects (for voiceban never starting with "-", so it can't
+read as the command's own -true or -false); a Steam ID of 17 digits; a role of 1 to 32 ASCII letters, digits or _ (the
+console reads it as one word). A SetRole without the restore mark is refused. A ban's reason is cut to plain
 printable ASCII with its double quotes turned to single ones, so it cannot end its own quotes. Anything else is refused and
 answered "refused", and ZeD gives that call to a staff member's game instead. The RCON password is read from the server's
 settings file or the ZED_RCON_PASSWORD environment variable and is never printed or written anywhere.
@@ -39,6 +42,8 @@ VERSION = "1"
 # ---------------------------------------------------------------------------
 USER_RE = re.compile(r"[A-Za-z0-9_-][A-Za-z0-9_ -]{0,30}[A-Za-z0-9_-]", re.ASCII)
 SID_RE = re.compile(r"7656119[0-9]{10}", re.ASCII)
+ROLE_RE = re.compile(r"[A-Za-z0-9_]{1,32}", re.ASCII)   # (SetAccessLevelCommand reads the role as (\w+): one word)
+RESTORE = "restore"      # a queue line's sixth field: the SetRole is a lifted ban's role restore
 EPOCH_RE = re.compile(r"[0-9A-Za-z-]{1,64}", re.ASCII)
 NUM_RE = re.compile(r"[0-9]{1,9}", re.ASCII)
 REASON_MAX = 200
@@ -77,8 +82,14 @@ def _with_reason(cmd, reason):
     return cmd + (' -r "' + r + '"' if r else "")
 
 
-def build_command(act, target, reason=""):
+def build_command(act, target, reason="", restore=False):
     """The console line for an allowed call, or None when the call is not allowed or its target fails the patterns."""
+    if act == "SetRole":
+        # (only a lifted ban's restore, with the role ZeD's server recorded at the ban: setaccesslevel "<name>" "<role>")
+        if restore is not True or not isinstance(reason, str) or not ROLE_RE.fullmatch(reason):
+            return None
+        q = _quoted_user(target)
+        return q and "setaccesslevel " + q + ' "' + reason + '"'
     if act == "Kick":
         q = _quoted_user(target)
         return q and _with_reason("kickuser " + q, reason)
@@ -103,8 +114,10 @@ def build_command(act, target, reason=""):
     return None
 
 
-# what the game answers (the strings in BanSystem, KickUserCommand, UnbanSteamIDCommand, VoiceBanCommand)
+# what the game answers (the strings in BanSystem, KickUserCommand, UnbanSteamIDCommand, VoiceBanCommand, and
+# ServerWorldDatabase.setRole for setaccesslevel)
 _OK = {
+    "SetRole": re.compile(r"^User .+ is now [A-Za-z0-9_]+$"),
     "Kick": re.compile(r"^User .+ kicked\.$"),
     "Ban": re.compile(r" banned user "),
     "UnBan": re.compile(r" unbanned user "),
@@ -112,7 +125,8 @@ _OK = {
     "UnBanSteamID": re.compile(r"^SteamID [0-9]+ is now unbanned"),
     "VoiceBan": re.compile(r"^User .+ voice is banned\.$"),
 }
-_REFUSED = re.compile(r"can't be (?:kicked|banned)|don't have capability|not in Steam mode|Expected SteamID")
+_REFUSED = re.compile(r"can't be (?:kicked|banned)|don't have capability|not in Steam mode|Expected SteamID"
+                      r"|^Access Level '.*' unknown|is not in the whitelist|do not have sufficient rights")
 
 
 def classify(act, response):
@@ -218,11 +232,12 @@ class Rcon:
 # The two files
 # ---------------------------------------------------------------------------
 def read_queue(path):
-    """(epoch, [call]) or (None, []) when there is no whole queue. Each call: id, try, act, target, reason.
+    """(epoch, [call]) or (None, []) when there is no whole queue. Each call: id, try, act, target, reason, restore.
 
     Whole means its last line is QUEUE_END followed by a line break: the server rewrites the file in place and the game's writer
     sends it in pieces, so a file read mid-write lacks that line and is left for the next pass. Every call line has exactly five
-    fields, so a line cut short (a name cut to a shorter name) is never made even if the end check were fooled."""
+    fields, so a line cut short (a name cut to a shorter name) is never made even if the end check were fooled. A role
+    restore has a sixth, exactly "restore", after its role: cut short, it loses that mark first and is refused."""
     try:
         with open(path, "r", encoding="utf-8", errors="replace", newline="") as f:
             text = f.read()
@@ -241,9 +256,10 @@ def read_queue(path):
         if not line:
             continue
         f = line.split("\t")
-        if len(f) != 5 or not NUM_RE.fullmatch(f[0]) or not NUM_RE.fullmatch(f[1]):
+        restore = len(f) == 6 and f[2] == "SetRole" and f[5] == RESTORE
+        if (len(f) != 5 and not restore) or not NUM_RE.fullmatch(f[0]) or not NUM_RE.fullmatch(f[1]):
             continue
-        calls.append({"id": int(f[0]), "try": int(f[1]), "act": f[2], "target": f[3], "reason": f[4]})
+        calls.append({"id": int(f[0]), "try": int(f[1]), "act": f[2], "target": f[3], "reason": f[4], "restore": restore})
     return parts[2], calls
 
 
@@ -308,7 +324,7 @@ def run_once(folder, host, port, password, timeout=5.0, now=None):
         key = (c["id"], c["try"])
         if key in keep:
             continue
-        line = build_command(c["act"], c["target"], c["reason"])
+        line = build_command(c["act"], c["target"], c["reason"], c.get("restore") is True)
         if line is None:
             made[key] = ("refused", "not on the helper's allow-list, or a target outside its patterns")
             log("refused call %d: %s" % (c["id"], one_line(c["act"])[:40]))
@@ -355,7 +371,7 @@ def read_ini(path):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="ZeD host helper: makes ZeD's owed bans, unbans, kicks and voice bans through the server's RCON.")
+    ap = argparse.ArgumentParser(description="ZeD host helper: makes ZeD's owed bans, unbans, kicks, voice bans and lifted bans' role restores through the server's RCON.")
     ap.add_argument("--zomboid", default=os.path.join(os.path.expanduser("~"), "Zomboid"),
                     help="the server's Zomboid folder (the one holding Server/ and Lua/; the -cachedir if you set one)")
     ap.add_argument("--server", default="servertest", help="the server's name: its settings are Server/<name>.ini")

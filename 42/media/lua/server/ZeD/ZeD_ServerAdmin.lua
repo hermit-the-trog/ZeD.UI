@@ -466,7 +466,8 @@ end
 -- act: Ban (user, reason), BanIP (user, reason, online only), BanSteamID (target, reason), BanIPOnly (target), Kick (user,
 -- reason), UnBan (user), UnBanIP (user), UnBanSteamID (target), UnBanIPOnly (target), VoiceBan (user, on only: the game's
 -- /voiceban needs them on). at: not before this second.
--- opts: banId, the ban it belongs to; after, the id of a call that goes first
+-- opts: banId, the ban it belongs to; after, the id of a call that goes first; restore, a SetRole that gives back the role
+-- the server recorded when the ban was made (undoGame): the only SetRole the host helper may make
 local GAME_BAN = { Ban = true, BanSteamID = true, BanIPOnly = true }
 local ON_SID = { BanSteamID = true, UnBanSteamID = true }
 
@@ -499,7 +500,7 @@ local function owe(md, act, target, reason, delay, by, opts)
     md.nextOwe = id + 1
     opts = opts or {}
     md.owed[id] = { id = id, act = act, target = target, reason = reason, at = getTimestamp() + (delay or 0), by = by,
-        banId = opts.banId, after = opts.after, why = opts.why, n = opts.n }
+        banId = opts.banId, after = opts.after, why = opts.why, n = opts.n, restore = opts.restore }
     return id
 end
 
@@ -541,7 +542,7 @@ local function undoGame(md, b, by)
         local un = owe(md, b.banIp and "UnBanIP" or "UnBan", b.user, "", 0, by)
         -- the game's unban puts the account back to the default user role, so a role it held when banned is set again
         local r = b.role and string.lower(b.role)
-        if r and r ~= "user" and r ~= "banned" and roleNamed(b.role) then owe(md, "SetRole", b.user, b.role, 0, by, { after = un }) end
+        if r and r ~= "user" and r ~= "banned" and roleNamed(b.role) then owe(md, "SetRole", b.user, b.role, 0, by, { after = un, restore = true }) end
     end
     local lift = b.sidGame or b.sidLift
     if lift then owe(md, "UnBanSteamID", lift, "", 0, by) end
@@ -1444,6 +1445,11 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
         if new:hasCapability(c) and not (old and old:hasCapability(c)) and not keep[pw.id] then off[#off + 1] = pw.id end
     end
     md.watch[a.user] = { role = new:getName(), off = off, at = getTimestamp() }
+    -- a banned name's rows take the new role, so the lift gives back this one, not the one it had when banned
+    local low = string.lower(a.user)
+    for _, b in pairs(md.bans) do
+        if b.user and string.lower(b.user) == low then b.role = new:getName() end
+    end
     logAt(p, "role", a.user, new:getName())
     Srv.ack(p, rid, true)
 end)
@@ -1586,7 +1592,7 @@ reg("a_unban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, func
     if frozen(p, rid) then return end
     local me = p:getUsername()
     local mine = md.players[me]
-    if owedRoom(md) < 2 then Srv.ack(p, rid, false, "full"); return end
+    if owedRoom(md) < 3 then Srv.ack(p, rid, false, "full"); return end
     if Tk.whole(a.id) then
         local b = md.bans[a.id]
         if not b then Srv.ack(p, rid, false, "gone"); return end

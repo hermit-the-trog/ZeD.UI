@@ -1579,6 +1579,17 @@ do
     nolimit(a)
     say(a, "a_ban", { target = "Next", reason = "x", len = "perm" })
     check("a ban too", errOf(a) == "full")
+    -- an unban asks room for three calls: the unban, the role it gives back, a Steam ID's lift
+    for id in pairs(md().owed) do md().owed[id] = nil end
+    local max = W.server.ZeD.Adm.L.OWED_MAX
+    for i = 1, max - 2 do md().owed[1000 + i] = { id = 1000 + i, act = "UnBan", target = "t" .. i, reason = "", at = now + 99999 } end
+    nolimit(a)
+    say(a, "a_unban", { user = "Someone" })
+    check("an unban with room for two calls: refused", errOf(a) == "full")
+    md().owed[1000 + max - 2] = nil
+    nolimit(a)
+    say(a, "a_unban", { user = "Someone" })
+    check("room for three: taken", okOf(a))
 end
 
 section("a banned player's own view")
@@ -1877,6 +1888,20 @@ do
     W.clock = W.clock + 3600 * 1000 + 5000
     advance(2000)
     check("a user's unban owes no role", owedOf("SetRole", "Plain") == nil and not has(ca.game, "SetRole:Plain:"))
+    -- a role changed while banned: the row takes it, so the lift gives back the new one, not a stale one
+    local w = player("Wren", "gm")
+    clientJoin(w)
+    nolimit(a)
+    say(a, "a_ban", { user = "Wren", reason = "x", len = "h1" })
+    local wb = nil
+    for _, b in pairs(md().bans) do if b.user == "Wren" then wb = b end end
+    check("the row keeps the role it had", wb ~= nil and wb.role == "gm")
+    nolimit(a)
+    say(a, "a_role", { user = "Wren", role = "moderator" })
+    check("a role change on a banned name acks", okOf(a))
+    check("and its row takes the new role", wb ~= nil and wb.role == "moderator")
+    -- a staff role change is never an owed call, so never the host helper's
+    check("a staff role change owes no game call", owedOf("SetRole", "Wren") == nil)
 end
 
 section("a client can't steer a Steam ID ban onto a neighbor's account")
@@ -2676,6 +2701,42 @@ do
     ans(tostring(e.id) .. "\t1\tok\tSystem unbanned user Dee\n")
     adv(3000)
     check("made by the helper with nobody on", owedOf("UnBan", "Dee") == nil)
+    -- a timed ban's end gives back the role: the restore is the helper's too, marked so by the server, after its unban
+    nolimit(back)
+    md().players.Mo = { t = 1, role = "moderator" }
+    W.online[#W.online + 1] = back
+    say(back, "a_ban", { user = "Mo", reason = "x", len = "h1" })
+    offline(back)
+    adv(1000)
+    e = owedOf("Ban", "Mo")
+    ans(tostring(e.id) .. "\t1\tok\tSystem banned user Mo\n")
+    adv(3000)
+    W.clock = W.clock + 3600 * 1000
+    adv(3000)
+    local sr = owedOf("SetRole", "Mo")
+    check("a lapsed ban owes the role back, marked a restore", sr ~= nil and sr.restore == true and sr.reason == "moderator")
+    check("and that restore is the helper's to make", sr ~= nil and H.can(sr) == true)
+    check("not before its unban", not string.find(W.files["ZeD_helper/queue.txt"], "\tSetRole\t", 1, true), W.files["ZeD_helper/queue.txt"])
+    e = owedOf("UnBan", "Mo")
+    ans(tostring(e.id) .. "\t1\tok\tSystem unbanned user Mo\n")
+    adv(3000)
+    adv(3000)                        -- (handed to the helper on one pass, written at its next poll)
+    check("then in the queue, the role and the mark last", string.find(W.files["ZeD_helper/queue.txt"], "\t1\tSetRole\tMo\tmoderator\trestore\n", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    ans(tostring(sr.id) .. "\t1\tok\tUser Mo is now moderator\n")
+    adv(3000)
+    check("the role given back by the helper with nobody on", owedOf("SetRole", "Mo") == nil)
+    -- a SetRole without the server's mark is never the helper's: not a staff role change, not one a client could shape
+    check("an unmarked SetRole is not the helper's", H.can({ act = "SetRole", target = "Mo", reason = "moderator" }) == false)
+    check("nor a mark that is not true", H.can({ act = "SetRole", target = "Mo", reason = "moderator", restore = "true" }) == false)
+    check("nor a role the console cannot read as one word", H.can({ act = "SetRole", target = "Mo", reason = "mod erator", restore = true }) == false
+        and H.can({ act = "SetRole", target = "Mo", reason = "", restore = true }) == false
+        and H.can({ act = "SetRole", target = "Mo", reason = string.rep("r", 33), restore = true }) == false)
+    -- (the queue file is written only from owed rows, and a mark only from the restore: a hand-made row is still judged)
+    md().owed[md().nextOwe] = { id = md().nextOwe, act = "SetRole", target = "Mo", reason = "admin", at = 0, helper = true }
+    md().nextOwe = md().nextOwe + 1
+    adv(3000)
+    check("an unmarked SetRole never reaches the queue", not string.find(W.files["ZeD_helper/queue.txt"], "\tSetRole\tMo\tadmin", 1, true), W.files["ZeD_helper/queue.txt"])
+    for id, ow in pairs(md().owed) do if ow.act == "SetRole" then md().owed[id] = nil end end
     -- off: no file at all
     world()
     local z = player("Hermit", "admin")
