@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: obrir aquest tema",
     "UI_ZeD_Guide_HelpOpenSection": "%1: mostrar-ne els temes",
     "UI_ZeD_Guide_HelpFoldSection": "%1: amagar-ne els temes",
-    "UI_ZeD_Guide_HelpStartup": "Obrir la guia sola en començar una partida",
+    "UI_ZeD_Guide_HelpStartup": "Oferir la guia de supervivència en un globus de Missatges la primera vegada que comença una partida.",
     "UI_ZeD_Guide_HelpPrev": "El tema anterior a aquest",
     "UI_ZeD_Guide_HelpNext": "El tema següent a aquest",
     "UI_ZeD_Guide_Bubble": "Ets nou al comtat de Knox? Fes un cop d'ull a aquesta pràctica guia de supervivència. Deixa de canviar de finestra per buscar informació: fes clic en aquest globus o prem %1. Pots descartar aquest globus en qualsevol moment.",

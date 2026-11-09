@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: このトピックを開く",
     "UI_ZeD_Guide_HelpOpenSection": "%1: トピックを表示",
     "UI_ZeD_Guide_HelpFoldSection": "%1: トピックを隠す",
-    "UI_ZeD_Guide_HelpStartup": "ゲーム開始時にガイドを自動で開く",
+    "UI_ZeD_Guide_HelpStartup": "初めてゲームを始めたとき、メッセージから吹き出しでサバイバルガイドを案内する。",
     "UI_ZeD_Guide_HelpPrev": "ひとつ前のトピック",
     "UI_ZeD_Guide_HelpNext": "ひとつ後のトピック",
     "UI_ZeD_Guide_Bubble": "ノックス郡は初めてですか？この便利なサバイバルガイドをご覧ください。情報を探してAlt+Tabで切り替える必要はもうありません。この吹き出しをクリックするか、代わりに%1を押してください。この吹き出しはいつでも閉じられます。",

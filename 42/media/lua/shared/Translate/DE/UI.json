@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: dieses Thema öffnen",
     "UI_ZeD_Guide_HelpOpenSection": "%1: Themen anzeigen",
     "UI_ZeD_Guide_HelpFoldSection": "%1: Themen ausblenden",
-    "UI_ZeD_Guide_HelpStartup": "Das Handbuch beim Spielstart von selbst öffnen",
+    "UI_ZeD_Guide_HelpStartup": "Den Überlebensführer beim ersten Spielstart als Sprechblase aus den Nachrichten anbieten.",
     "UI_ZeD_Guide_HelpPrev": "Das Thema vor diesem",
     "UI_ZeD_Guide_HelpNext": "Das Thema nach diesem",
     "UI_ZeD_Guide_Bubble": "Neu in Knox County? Wirf einen Blick in diesen praktischen Überlebensführer. Schluss mit dem Alt-Tabben für Infos: Klick auf diese Sprechblase oder drück stattdessen %1. Du kannst diese Sprechblase jederzeit wegklicken.",

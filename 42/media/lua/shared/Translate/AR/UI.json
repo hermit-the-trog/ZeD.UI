@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: افتح هذا الموضوع",
     "UI_ZeD_Guide_HelpOpenSection": "%1: اعرض مواضيعه",
     "UI_ZeD_Guide_HelpFoldSection": "%1: أخفِ مواضيعه",
-    "UI_ZeD_Guide_HelpStartup": "افتح الدليل تلقائيًا عند بدء اللعبة",
+    "UI_ZeD_Guide_HelpStartup": "Ofrecer la guía de supervivencia en un globo de Mensajes la primera vez que empieza una partida.",
     "UI_ZeD_Guide_HelpPrev": "الموضوع الذي قبل هذا",
     "UI_ZeD_Guide_HelpNext": "الموضوع الذي بعد هذا",
     "UI_ZeD_Guide_Bubble": "¿Sos nuevo en el condado de Knox? Mirá esta práctica guía de supervivencia. Dejá de cambiar de ventana para buscar información: hacé clic en este globo o apretá %1. Podés descartar este globo cuando quieras.",

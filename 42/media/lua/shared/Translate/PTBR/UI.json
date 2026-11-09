@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: abrir este tópico",
     "UI_ZeD_Guide_HelpOpenSection": "%1: mostrar os tópicos",
     "UI_ZeD_Guide_HelpFoldSection": "%1: ocultar os tópicos",
-    "UI_ZeD_Guide_HelpStartup": "Abrir o guia sozinho ao iniciar um jogo",
+    "UI_ZeD_Guide_HelpStartup": "Oferecer o guia de sobrevivência em um balão das Mensagens na primeira vez que um jogo começa.",
     "UI_ZeD_Guide_HelpPrev": "O tópico antes deste",
     "UI_ZeD_Guide_HelpNext": "O tópico depois deste",
     "UI_ZeD_Guide_Bubble": "Novo no condado de Knox? Confira este guia de sobrevivência prático. Pare de usar o alt-tab para buscar informações: clique neste balão ou aperte %1. Você pode dispensar este balão a qualquer momento.",

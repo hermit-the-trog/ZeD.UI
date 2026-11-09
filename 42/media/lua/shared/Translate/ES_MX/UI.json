@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: abrir este tema",
     "UI_ZeD_Guide_HelpOpenSection": "%1: mostrar sus temas",
     "UI_ZeD_Guide_HelpFoldSection": "%1: ocultar sus temas",
-    "UI_ZeD_Guide_HelpStartup": "Abrir la guía sola al iniciar una partida",
+    "UI_ZeD_Guide_HelpStartup": "Ofrecer la guía de supervivencia en un globo de Mensajes la primera vez que empieza una partida.",
     "UI_ZeD_Guide_HelpPrev": "El tema anterior a este",
     "UI_ZeD_Guide_HelpNext": "El tema siguiente a este",
     "UI_ZeD_Guide_Bubble": "¿Eres nuevo en el condado de Knox? Échale un vistazo a esta práctica guía de supervivencia. Deja de cambiar de ventana para buscar información: da clic en este globo o presiona %1. Puedes descartar este globo en cualquier momento.",

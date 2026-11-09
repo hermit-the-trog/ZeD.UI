@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: åbn emnet",
     "UI_ZeD_Guide_HelpOpenSection": "%1: vis dets emner",
     "UI_ZeD_Guide_HelpFoldSection": "%1: skjul dets emner",
-    "UI_ZeD_Guide_HelpStartup": "Åbn guiden af sig selv, når et spil starter",
+    "UI_ZeD_Guide_HelpStartup": "Tilbyd overlevelsesguiden i en boble fra Beskeder første gang et spil starter.",
     "UI_ZeD_Guide_HelpPrev": "Emnet før dette",
     "UI_ZeD_Guide_HelpNext": "Emnet efter dette",
     "UI_ZeD_Guide_Bubble": "Ny i Knox County? Se denne praktiske overlevelsesguide. Stop med at alt-tabbe efter oplysninger: klik på denne boble eller tryk %1 i stedet. Du kan lukke denne boble når som helst.",
