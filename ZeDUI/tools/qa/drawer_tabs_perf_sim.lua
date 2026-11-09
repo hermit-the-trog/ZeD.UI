@@ -3,8 +3,9 @@
 -- game running, before and after the drawing-cost work.
 --   * Loads the real Scale, Tokens, Tr, Atoms, AtomExtensions, Molecules, ZeD_BodyFigure, ProtectionTab, EquipDoll
 --     and the four tabs twice, each into its own sandbox on the same stubs: as they are in BASE and as they are in
---     the checkout. BASE is a folder (made by ZeDUI/tools/qa/p120_base.py: main less the first round of this work,
---     which QA measured slower in the game) or a revision (default origin/main).
+--     the checkout. BASE is a revision (origin/main, to check a change against main) or a folder holding those
+--     files; with none, the checkout alone: every frame drawn, counted and printed, nothing compared (so a sim
+--     loop that gives no argument passes).
 --   * A stand-in player (worn clothes, a stocked inventory, 40 skills, traits, a thermoregulator), a stand-in
 --     TextManager whose widths add up letter by letter, and a panel that writes down every draw (its Java element's
 --     too), every surface strip's claim on the window body, and the help line's words.
@@ -21,13 +22,12 @@
 --     (GC stopped). Fails when the new draws, Java calls or memory a frame are more than the base's.
 --   * With -prof, prints where the instructions, the Java calls and the draws go, by function, for the checkout.
 -- Run from the repo root:
---   python -I ZeDUI/tools/qa/p120_base.py <dir>
---   lua51 ZeDUI/tools/qa/drawer_tabs_perf_sim.lua <dir> [-prof]
+--   lua51 ZeDUI/tools/qa/drawer_tabs_perf_sim.lua [origin/main | <rev> | <dir>] [-prof]
 -- It prints FAIL lines, the numbers, and a last line "drawer_tabs_perf_sim: N checks, M failed", and exits 1 if any
 -- failed.
 
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]drawer_tabs_perf_sim%.lua$", "")
-local BASE, PROF = "origin/main", false
+local BASE, PROF = nil, false   -- (no base given: the checkout alone, see below)
 LINEPROF = os.getenv("LINEPROF") ~= nil   -- (-prof by line, not by function)
 for _, a in ipairs(arg or {}) do
     if a == "-prof" then PROF = true else BASE = a end
@@ -338,7 +338,8 @@ local function newPanel(world)
         isVisible = function() return true end, getIsVisible = function() return true end,
     }
     return setmetatable(P, { __index = function(t, k)
-        if type(k) == "string" and (string.sub(k, 1, 4) == "draw" or k == "setStencilRect" or k == "clearStencilRect"
+        -- (string.find, not string.sub: a field asked every draw, isCollapsed, must not make a string each time)
+        if type(k) == "string" and (string.find(k, "draw", 1, true) == 1 or k == "setStencilRect" or k == "clearStencilRect"
                 or k == "repaintStencilRect" or k == "suspendStencil" or k == "resumeStencil") then
             local f = function(self, ...) log(k, ...) end
             rawset(t, k, f)
@@ -668,6 +669,16 @@ for _, base in ipairs({ { "skills", "Skills" }, { "thermal", "Thermal" }, { "ide
                         variant = true, frame = windowColours }
 end
 
+-- Calls n deep (not tail calls) with room for locals at each: this Lua's full collect shrinks the stack and
+-- its call list, and a frame that grew them back counted it as memory the tab allocates (a deeper call
+-- chain, more "memory"). They are grown back before the frame is measured. (Kahlua has no such count.)
+local function stackRoom(n)
+    if n <= 0 then return 0 end
+    local a, b, c, d, e, f, g, h = n, n, n, n, n, n, n, n
+    local r = stackRoom(n - 1)
+    return r + a - b + c - d + e - f + g - h
+end
+
 -- one tab, N frames. mode "log": every draw of every frame written down; "count": the instructions (a count
 -- hook) and the calls; "mem": the memory a frame allocates (nothing else running: no log, no hook)
 local function runTab(world, tab, frames, pointer, mode, profile)
@@ -721,6 +732,7 @@ local function runTab(world, tab, frames, pointer, mode, profile)
         if f == 21 then hookN = 0 end   -- (the first frames fill the caches: the work counted from the 21st)
         collectgarbage("collect")
         collectgarbage("stop")
+        stackRoom(400)   -- (the full collect above shrinks the Lua stack: grown back here, not counted as the tab's)
         local m0 = collectgarbage("count")
         lastM = nil
         if mode == "count" then debug.sethook(hook, "", STEP) end
@@ -750,8 +762,10 @@ end
 -- ===========================================================================
 local newW = newWorld("new", readFile)
 local oldW = nil
-local hasBase = gitShow(FILES[1]) ~= nil
-if hasBase then oldW = newWorld("old", gitShow) else print("(no " .. BASE .. ": the checkout alone)") end
+local hasBase = BASE ~= nil and gitShow(FILES[1]) ~= nil
+if hasBase then oldW = newWorld("old", gitShow)
+elseif BASE then check("the base " .. BASE .. " has the files", false)
+else print("(no base given: the checkout alone, every frame drawn and counted, nothing compared; to compare, give a revision such as origin/main)") end
 
 -- ===========================================================================
 -- PAINTING A FRAME: where the draws differ (a line texture for rects), the pixels must not
@@ -957,6 +971,7 @@ for _, tab in ipairs(TABS) do
             n.alloc = runTab(newW, tab, FRAMES, pointer, "mem").alloc
             if o then o.alloc = runTab(oldW, tab, FRAMES, pointer, "mem").alloc end
         end
+        if not ol then check(label .. ": " .. FRAMES .. " frames drawn", #nl.frames == FRAMES) end
         if ol then
             -- each frame: the help lines the same; the draws the same word for word, or else every draw but the
             -- thin ones the same and (sampled) the painted pixels the same
