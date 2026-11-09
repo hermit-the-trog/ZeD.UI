@@ -91,6 +91,7 @@ function G.done(why)
     local st = G.st
     if not st or st.done then return end
     st.done, st.why = true, why
+    if why == "opened" then G.markShown() end   -- (the player found the guide by themself: no offer next game either)
     if st.toast and ZeD.Messages and ZeD.Messages.dropToast then ZeD.Messages.dropToast(st.toast) end
     st.toast = nil
 end
