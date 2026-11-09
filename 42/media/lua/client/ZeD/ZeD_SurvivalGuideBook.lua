@@ -93,10 +93,16 @@ ZeD.GuideAds = {
 local TOP = 34
 
 local INK = { r = 0.137, g = 0.165, b = 0.227 }
+-- PAPER is the stock's own color, kept for words printed in it on ink; PAGE is the sheet as drawn, at the
+-- paper tone (Tokens.lua: no large near-white areas)
 local PAPER = { r = 0.961, g = 0.925, b = 0.824 }
+local PAGE = ZeD.paperTone(PAPER)
 -- the button pictures printed in the book: its ink on its paper (ZeD_PadGlyphs.draw's palette)
-local BOOK_PAL = { text = INK, surf3 = PAPER, surf1 = PAPER, base = PAPER }
-local TINT = { r = 0.788, g = 0.769, b = 0.706 }
+local BOOK_PAL = { text = INK, surf3 = PAGE, surf1 = PAGE, base = PAGE }
+-- the rules' grey bar: a step under the page, light enough that the ink on it still reads 4.5 : 1
+local TINT = ZeD.paperTone({ r = 0.85, g = 0.828, b = 0.76 })
+-- the page block's edge, under the page
+local EDGE_C = ZeD.paperTone({ r = 0.75, g = 0.71, b = 0.62 })
 local DESK = { r = 0.0, g = 0.0, b = 0.0, a = 0.62 }
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
@@ -1811,8 +1817,8 @@ function ZeD_GuideBook:prerender()
     self:drawRect(0, 0, self.width, self.height, DESK.a, DESK.r, DESK.g, DESK.b)
     -- the book: its edge, the two pages, the gutter's shade
     local bk = g.book
-    self:drawRect(bk.x - U.EDGE * u, bk.y + 3 * u, bk.w + U.EDGE * 2 * u, bk.h, 1, 0.75, 0.71, 0.62)
-    self:drawRect(bk.x, bk.y, bk.w, bk.h, 1, PAPER.r, PAPER.g, PAPER.b)
+    self:drawRect(bk.x - U.EDGE * u, bk.y + 3 * u, bk.w + U.EDGE * 2 * u, bk.h, 1, EDGE_C.r, EDGE_C.g, EDGE_C.b)
+    self:drawRect(bk.x, bk.y, bk.w, bk.h, 1, PAGE.r, PAGE.g, PAGE.b)
     local gx = bk.x + bk.w / 2
     for k = 1, 10 do
         local a = 0.05 * (11 - k) / 10

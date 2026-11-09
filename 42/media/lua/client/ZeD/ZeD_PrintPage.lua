@@ -41,6 +41,8 @@ local TM = getTextManager()
 local function fontOf(name) return (name and UIFont[name]) or UIFont.SdfOldRegular end
 local function wordW(font, w, size) return TM:MeasureStringX(font, w) * size / BASE end
 local function lineH(font, size) return TM:getFontHeight(font) * size / BASE end
+-- the plain sheet under a page ZeD sets itself, at the paper tone (Tokens.lua: no large near-white areas)
+local SHEET = ZeD.paperTone({ r = 0.86, g = 0.85, b = 0.83 })
 
 -- ---------------------------------------------------------------------------
 -- the piece's data (an item's modData.printMedia, or an id)
@@ -290,7 +292,7 @@ end
 
 --- The page (P.page) painted at scale k with its top-left at (ox, oy) in the panel.
 function P.draw(panel, pg, ox, oy, k)
-    panel:drawRect(ox, oy, pg.w * k, pg.h * k, 1, 0.86, 0.85, 0.83)   -- the paper itself, under everything
+    panel:drawRect(ox, oy, pg.w * k, pg.h * k, 1, SHEET.r, SHEET.g, SHEET.b)   -- the paper itself, under everything
     for _, e in ipairs(pg.els) do
         if e.type == "texture" and not e.taken then
             -- (the tilted under-sheets and the mirrored wrinkle overlays are left out: the paper is drawn plain)
@@ -461,7 +463,7 @@ end
 --- read yet (reading it is vanilla's timed action; the tab never gives the words away).
 function P.drawArt(panel, pg, ox, oy, k, a)
     a = a or 1
-    panel:drawRect(ox, oy, pg.w * k, pg.h * k, a, 0.86, 0.85, 0.83)
+    panel:drawRect(ox, oy, pg.w * k, pg.h * k, a, SHEET.r, SHEET.g, SHEET.b)
     for _, e in ipairs(pg.els) do
         if e.type == "texture" and not e.taken and (e.angle or 0) == 0 and (e.scaleX or 1) > 0 and (e.scaleY or 1) > 0 then
             local w, h = (e.width or pg.w) * k, (e.height or pg.h) * k

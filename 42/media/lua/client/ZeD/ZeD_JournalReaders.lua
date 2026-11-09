@@ -35,11 +35,12 @@ local J = ZeD.JournalReaders
 local P = ZeD.Print
 local N = ZeD.Notes
 
--- the page's paper and ink (as the full reader's)
-local PAPER   = { r = 0.91, g = 0.886, b = 0.824 }
+-- the page's paper and ink (as the full reader's): the paper, its rules and margin at the paper tone
+-- (Tokens.lua: no large near-white areas)
+local PAPER   = ZeD.paperTone({ r = 0.91, g = 0.886, b = 0.824 })
 local INK     = { r = 0.141, g = 0.133, b = 0.118 }
-local RULE    = { r = 0.725, g = 0.776, b = 0.839 }
-local MARGIN  = { r = 0.827, g = 0.604, b = 0.573 }
+local RULE    = ZeD.paperTone({ r = 0.725, g = 0.776, b = 0.839 })
+local MARGIN  = ZeD.paperTone({ r = 0.827, g = 0.604, b = 0.573 })
 
 local FILTERS = {
     { id = "all",   key = "UI_All" },                  -- (the game's own "All")
