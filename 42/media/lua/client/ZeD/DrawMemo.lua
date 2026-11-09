@@ -161,14 +161,87 @@ function DM.hovered(panel, hovers, i)
     return ZeD.Atoms.mouseIn(panel, h[1], h[2], h[3], h[4], h[5])
 end
 
---- What the kept draws also hang on beyond the caller's key: a number that changes with the
---- measures (fonts, root scale, language, text size, palette: ZeD.Text.measureEpoch) and with
---- the test language (ZeD.tr's stretched words); nil while the fonts are still loading, when
---- nothing should be kept.
+-- The palette a block's colours come from. ZeD.T is rebuilt on a theme, accent, text size or scale
+-- change, but a window with its own accent swaps colours into it for its own drawing (accent,
+-- hover, text, borders, surfaces: ZeD_Window._drawFrame), and its see-through puts the surfaces
+-- in tables of its own whose alpha moves while it fades to solid in use (_swapSurfaces). So the
+-- state is told by the swapped colours' tables and the surfaces' values, not ZeD.T alone.
+local SIG_REFS = { "accent", "accentBright", "hover", "text", "textHead", "textDim", "toneHi", "toneLo",
+    "textOnFocus", "border", "borderS" }
+local SIG_SURF = { "base", "surf1", "surf2", "surf3", "surf4" }
+local snap = {}                      -- the last state seen, field by field
+local stateId, stateNext = nil, 0    -- its number; numbers are never given twice to different states
+local stateIds, stateN = {}, 0       -- a state seen before keeps its number (past 256 kept, new numbers)
+local refIds, refN = {}, 0           -- a colour table's number, for the state's words
+local function refId(t)
+    if t == nil then return 0 end
+    local id = refIds[t]
+    if not id then
+        if refN >= 512 then refIds, refN = {}, 0 end
+        refN = refN + 1
+        stateNext = stateNext + 1
+        id = stateNext
+        refIds[t] = id
+    end
+    return id
+end
+local function sameState(T, e, test)
+    if snap.T ~= T or snap.e ~= e or snap.test ~= test then return false end
+    for i = 1, #SIG_REFS do
+        if snap[i] ~= T[SIG_REFS[i]] then return false end
+    end
+    local j = #SIG_REFS
+    for i = 1, #SIG_SURF do
+        local c = T[SIG_SURF[i]]
+        if snap[j + 1] ~= c then return false end
+        if c and (snap[j + 2] ~= c.r or snap[j + 3] ~= c.g or snap[j + 4] ~= c.b or snap[j + 5] ~= c.a) then return false end
+        j = j + 5
+    end
+    return true
+end
+local function newState(T, e, test)
+    snap.T, snap.e, snap.test = T, e, test
+    local words = { refId(T), e, test and 1 or 0 }
+    for i = 1, #SIG_REFS do
+        local v = T[SIG_REFS[i]]
+        snap[i] = v
+        words[#words + 1] = refId(v)
+    end
+    local j = #SIG_REFS
+    for i = 1, #SIG_SURF do
+        local c = T[SIG_SURF[i]]
+        snap[j + 1] = c
+        words[#words + 1] = refId(c)
+        if c then
+            snap[j + 2], snap[j + 3], snap[j + 4], snap[j + 5] = c.r, c.g, c.b, c.a
+            words[#words + 1] = string.format("%.6f %.6f %.6f %.6f", c.r or 0, c.g or 0, c.b or 0, c.a or 1)
+        end
+        j = j + 5
+    end
+    local sig = table.concat(words, "|")
+    local id = stateIds[sig]
+    if not id then
+        if stateN >= 256 then stateIds, stateN = {}, 0 end
+        stateNext = stateNext + 1
+        id = stateNext
+        stateIds[sig] = id
+        stateN = stateN + 1
+    end
+    stateId = id
+    return id
+end
+
+--- What the kept draws also hang on beyond the caller's key: a number for the state they were
+--- drawn in: the measures (fonts, root scale, language, text size: ZeD.Text.measureEpoch), the
+--- test language (ZeD.tr's stretched words) and the palette as this window draws it (above).
+--- nil while the fonts are still loading, when nothing should be kept.
 function DM.epoch()
     local X = ZeD.Text
     local e = X and X.measureEpoch and X.measureEpoch() or nil
     if e == nil then return nil end
     local st = ZeD._trState
-    return e * 2 + ((st and st.on) and 1 or 0)
+    local test = (st and st.on) and true or false
+    local T = ZeD.T
+    if stateId and sameState(T, e, test) then return stateId end
+    return newState(T, e, test)
 end

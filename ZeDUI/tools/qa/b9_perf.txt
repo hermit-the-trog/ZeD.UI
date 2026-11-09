@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/b9_perf.txt (Nov 8 2026, Build): the drawer tabs' ms per tick, the same steps before and after
+# a change (punch list 120: Equipment, Thermal, Identity and Skills against Loot). Both windows pinned first:
+# unpinned windows roll up when the pointer is away, and a suite_perf run without pnw is invalid.
+# pwsh ZeDUI/tools/qa/zedqa_run.ps1 -Mode fullscreen4k -Manifest ZeDUI/tools/qa/b9_perf.txt -Report <name>
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away
+suite_perf.lua | perf | timeout=240         # ms per tick on every tab (180-tick windows after 30 settle frames) + recipe builder cost

@@ -1418,7 +1418,7 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
 
     -- its description shows on hover and on controller focus (drawTraitHint); the
     -- zone is kept for both
-    local key = _traitIds[trait.name]
+    local key = trait.name ~= nil and _traitIds[trait.name] or nil
     if not key then
         key = "identity:trait:" .. tostring(trait.name)
         if trait.name ~= nil then _traitIds[trait.name] = key end
