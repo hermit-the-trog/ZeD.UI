@@ -163,13 +163,61 @@ local function _arrowOffsets(s)
     return rows
 end
 
+-- ---------------------------------------------------------------------------
+-- LINE TEXTURES — pixel lines drawn as one textured draw instead of one rect a
+-- dash or a row (media/textures/ZeD/lines, made by ZeDUI/tools/linetex/
+-- make_line_tex.py): white where the line is, clear elsewhere, tinted with the
+-- colour and alpha the rects had and drawn at 1:1 with nearest filtering, so
+-- the pixels are the rects' pixels. Each rect is a call from Lua into the
+-- engine, and those calls, not the Lua, are most of what a panel costs to draw.
+-- ---------------------------------------------------------------------------
+local LINE_DIR = "media/textures/ZeD/lines/"
+local _lineTex = {}
+--- One of the line textures ("dash_h", "dash_v", "chev"), loaded once; nil when the game has none.
+function ZeD.Atoms.lineTex(name)
+    local t = _lineTex[name]
+    if t == nil then
+        t = (Texture and Texture.getSharedTexture(LINE_DIR .. name .. ".png", 3)) or false   -- 3 = nearest filtering
+        _lineTex[name] = t
+    end
+    return t or nil
+end
+
+--- The panel's Java element, when its rects are the plain ones (a class with a drawRect of its own,
+--- such as a fade, keeps its rects) and it draws at all; else nil, and the caller draws rects.
+function ZeD.Atoms.lineJo(panel)
+    if panel.isCollapsed then return nil end
+    local dr = panel.drawRect
+    local L, UI = ZeD.LeanDraw, ISUIElement
+    if not ((L and dr == L.drawRect) or (UI and dr == UI.drawRect)) then return nil end
+    return panel.javaObject
+end
+
+-- each size's row in chev.png: the four arrows (right, left, down, up) side by side, s + 1 apart
+local CHEV_MAX = 40
+local _chevY = {}
+do
+    local y = 0
+    for s = 2, CHEV_MAX do _chevY[s] = y; y = y + s + 1 end
+end
+local CHEV_COL = { rt = 0, lf = 1, dn = 2 }   -- (anything else is "up", the fourth)
+
 local function _drawArrow(panel, name, x, y, size, color)
     local c = color or ZeD.T.textDim
     local s = math.floor(size)
     if s < 2 then return end
+    local a, r, g, b = c.a or 1, c.r, c.g, c.b
+    -- the arrow as one draw from chev.png, where the panel's rects are the plain ones
+    if s <= CHEV_MAX then
+        local jo = ZeD.Atoms.lineJo(panel)
+        local tex = jo and ZeD.Atoms.lineTex("chev")
+        if tex then
+            jo:DrawSubTextureRGBA(tex, (CHEV_COL[name] or 3) * (s + 1), _chevY[s], s, s, x, y, s, s, r, g, b, a)
+            return
+        end
+    end
     local rows = _arrowOffsets(s)
     local t = rows.t
-    local a, r, g, b = c.a or 1, c.r, c.g, c.b
     if name == "rt" then
         local off = rows.fwd
         for row = 0, s - 1 do panel:drawRect(x + off[row + 1], y + row, t, 1, a, r, g, b) end

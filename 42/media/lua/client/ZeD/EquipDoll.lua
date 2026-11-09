@@ -34,7 +34,6 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Tr"
-require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.EquipDoll = ZeD.EquipDoll or {}
@@ -362,6 +361,18 @@ local function dashed(p, x, y, w, h, c, a)
     local d, one = T.px(3), T.px(1)
     local r, g, b = c.r, c.g, c.b
     local yb, xr = y + h - one, x + w - one
+    -- each edge as one draw from the dash textures (ZeD.Atoms.lineTex: d lit, d clear, from the
+    -- edge's start), where the panel's rects are the plain ones: four draws, not one a dash
+    local A = ZeD.Atoms
+    local jo = A.lineJo and d >= 1 and d <= 32 and w <= 1024 and h <= 1024 and A.lineJo(p)
+    local th, tv = jo and A.lineTex("dash_h"), jo and A.lineTex("dash_v")
+    if th and tv then
+        jo:DrawSubTextureRGBA(th, 0, d - 1, w, 1, x, y, w, one, r, g, b, a)
+        jo:DrawSubTextureRGBA(th, 0, d - 1, w, 1, x, yb, w, one, r, g, b, a)
+        jo:DrawSubTextureRGBA(tv, d - 1, 0, 1, h, x, y, one, h, r, g, b, a)
+        jo:DrawSubTextureRGBA(tv, d - 1, 0, 1, h, xr, y, one, h, r, g, b, a)
+        return
+    end
     for i = 0, w - 1, d * 2 do
         local l = w - i
         if d < l then l = d end
@@ -550,7 +561,7 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
 end
 
 -- The doll's words (the slots' labels, the groups' names, the places), kept by what they are
--- made from while the language, the test language and the measures hold (ZeD.DrawMemo.epoch):
+-- made from while the language, the test language and the measures hold (ZeD.Text.wordsEpoch):
 -- seventy phrases a frame otherwise
 local _words = {}
 local function dollWords(ep)
@@ -576,7 +587,7 @@ end
 --- win._equipDollAll (every slot's box, for a drop). Returns height.
 function D.draw(panel, win, x, y, w, viewH, mx, my)
     local T, tm = ZeD.T, ZeD.TM
-    local wd = dollWords(ZeD.DrawMemo.epoch())   -- (the slots' words, kept)
+    local wd = dollWords(ZeD.Text.wordsEpoch())   -- (the slots' words, kept)
     win._equipDollTimer = (win._equipDollTimer or 0) + 1
     local data = win._equipDollData
     local _, bands = fit(w, viewH, data and #data.belt or 0)

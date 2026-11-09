@@ -19,7 +19,6 @@ require "ZeD/ProtectionTab"
 require "ZeD/EquipDoll"
 require "ZeD/ZeD_EquipLoadout"
 require "ZeD/ZeD_RestockPin"
-require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.EquipmentTab = {}
@@ -265,12 +264,12 @@ end
 local calcEquipColumnsRaw
 -- The layout is the same for every row of a frame (the header, each slot row, the belt rows ask
 -- it): the last answer is kept while what decides it holds (the width, the dragged widths, the
--- widest worn name, the palette, the measures). The callers only read it.
+-- widest worn name, the palette, the language and the measures). The callers only read it.
 local _cols = {}
 local function calcEquipColumns(w, win)
     local cw = win and win._equipColWidths
     local need = (win and win._equipNameNeed) or 0
-    local epoch = (win and win._eqEpoch) or ZeD.DrawMemo.epoch()
+    local epoch = ZeD.Text.wordsEpoch()
     local k = _cols
     if epoch and k.c and k.ep == epoch and k.T == ZeD.T and k.w == w and k.need == need and k.cw == cw
        and (not cw or (k.s == cw.slot and k.cd == cw.cond and k.wt == cw.wt)) then
@@ -783,27 +782,6 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     -- Column layout: NAME SLOT COND BITE SCR BUL WT
     local c = calcEquipColumns(w, win)
 
-    -- The rest of the row is drawn once and played back (ZeD.DrawMemo) while its key holds: the
-    -- slot's data (a refresh every 250 ms brings new data, the name and weight read with it),
-    -- the place, the columns, the focus wash and selection, the palette and the measures. The
-    -- condition strip asks for the pointer again each frame, for its help line.
-    local DM = ZeD.DrawMemo
-    local epoch = win._eqEpoch or DM.epoch()
-    local memos = win._equipRowMemos
-    if not memos then memos = {}; win._equipRowMemos = memos end
-    local m = memos[slot.type]
-    if m and epoch and m.ep == epoch and m.T == T and m.slot == slot and m.x == x and m.y == y and m.w == w
-       and m.c == c and m.washed == washed and m.sel == selected and m.rowH == rowH then
-        DM.play(panel, m.cmds)
-        if m.condHov and DM.hovered(panel, m.hovers, 1) and ZeD.Help then
-            ZeD.Help.set(panel, A.fillBarHelp(m.condF, ZeD.tr("IGUI_invpanel_Condition")))
-        end
-        return
-    end
-    m = m or {}
-    memos[slot.type] = m
-    panel = DM.begin(panel)   -- (the row below draws into the recorder)
-
     local bodyFH = tm:getFontHeight(T.fontF2)
     local secFH = tm:getFontHeight(T.fontF1)
     local secTextY = y + math.floor((rowH - secFH) / 2)
@@ -873,13 +851,6 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
 
     -- Bottom divider
     A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
-
-    m.cmds, m.hovers = DM.finish(panel)
-    -- (the condition strip's hover test is the row's only one: its help line, as drawFillBar words it)
-    m.condHov = #m.hovers == 1
-    m.condF = math.max(0.0, math.min(1.0, slot.cond or 0))
-    m.ep, m.T, m.slot, m.x, m.y, m.w, m.c, m.washed, m.sel, m.rowH = epoch, T, slot, x, y, w, c, washed, selected, rowH
-    if #m.hovers > 1 then m.ep = nil end
 end
 
 -- ============================================================================
@@ -1310,8 +1281,6 @@ end
 --- grouped list with the belt rows, the loadouts' fold and the defense body.
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
-    -- the state the kept draws hang on (ZeD.DrawMemo.epoch), read once for the rows and columns below
-    win._eqEpoch = ZeD.DrawMemo.epoch()
 
     -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
     if dueMs(win, "_equipAt", 250, not win._equipCache) then
@@ -1555,7 +1524,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         -- region of this drawer.
         -- the widest worn name: the SLOT column shortens when the names lack it
         -- (worked out again with each data refresh and each new scale or language, not each frame)
-        local needEp = win._eqEpoch
+        local needEp = ZeD.Text.wordsEpoch()
         if win._equipNameNeedData ~= data or win._equipNameNeedEp ~= needEp or not needEp then
             local need = 0
             for _, g in ipairs(data.groups) do

@@ -26,7 +26,6 @@ require "ZeD/Molecules"
 require "ZeD/Tr"
 require "ZeD/ZeD_HairBeard"
 require "ZeD/KillTracker"
-require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.IdentityTab = {}
@@ -708,9 +707,7 @@ end
 
 -- where the window puts the model (win._identityPhotoRect, the same frame as the draw) and
 -- what picks the photo (the zone: the frame, with the model's margins). One table each.
-local _photoLog = nil   -- (while the card records: each photo placed, for its play to place again)
 local function setPhoto(win, x, y, w, h, expanded, zx, zy, zw, zh)
-    if _photoLog then _photoLog[#_photoLog + 1] = { x, y, w, h, expanded, zx, zy, zw, zh } end
     local pr = win._idPhotoR or {}
     win._idPhotoR = pr
     pr.x, pr.y, pr.w, pr.h, pr.expanded = x, y, w, h, expanded or nil
@@ -1523,40 +1520,14 @@ local function measureZoneA(data, tall, simple, expanded, layoutW)
     return measureWideH(expanded)
 end
 
--- The card is drawn once and played back (ZeD.DrawMemo) while what it shows holds: the data (a
--- refresh every 30 frames), the place, the style, the photo's size, the window's accent, the
--- view (the pattern's rows outside it are left out), the palette and the measures. The photo's
--- place for the model is set again on each play, as the card sets it.
 local function renderZoneA(panel, win, data, x, drawY, w, tall, simple, layoutW)
-    local DM, T = ZeD.DrawMemo, ZeD.T
-    local ep = DM.epoch()
-    local v = win._idView
-    local vy, vh = v and v.y, v and v.h
-    local exp = win._identityPhotoExpanded and true or false
-    local m = win._idCardMemo
-    if m and ep and m.ep == ep and m.T == T and m.data == data and m.x == x and m.y == drawY and m.w == w
-       and m.tall == tall and m.simple == simple and m.lw == layoutW and m.exp == exp and m.acc == win._accentKey
-       and m.vy == vy and m.vh == vh then
-        DM.play(panel, m.cmds)
-        for _, p in ipairs(m.photos) do setPhoto(win, p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9]) end
-        return
-    end
-    m = m or {}
-    local log = {}
-    _photoLog = log
-    local dp = DM.begin(panel)
     if simple then
-        renderSimple(dp, win, data, x, drawY, w, tall, layoutW)
+        renderSimple(panel, win, data, x, drawY, w, tall, layoutW)
     elseif tall then
-        renderLicenseTall(dp, win, data, x, drawY, w, layoutW)
+        renderLicenseTall(panel, win, data, x, drawY, w, layoutW)
     else
-        renderLicenseWide(dp, win, data, x, drawY, w)
+        renderLicenseWide(panel, win, data, x, drawY, w)
     end
-    _photoLog = nil
-    m.cmds, m.photos = DM.finish(dp), log
-    m.ep, m.T, m.data, m.x, m.y, m.w, m.tall, m.simple, m.lw, m.exp = ep, T, data, x, drawY, w, tall, simple, layoutW, exp
-    m.acc, m.vy, m.vh = win._accentKey, vy, vh
-    win._idCardMemo = m
 end
 
 function ZeD.IdentityTab.render(panel, win, x, y, w, h)
