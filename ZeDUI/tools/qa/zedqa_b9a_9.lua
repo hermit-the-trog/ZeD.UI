@@ -18,10 +18,27 @@ local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
 local function CW() return CWm.getWindow() end
 local function WW() return WWm.getWindow() end
 local H = ZeD.Halves
-local function req(s) local f = getFileWriter("zedqa_click.txt", true, false); f:write(s .. "\n"); f:close() end
+-- The real-mouse helper (release_check_mouse.ps1) takes ONE request at a time: it deletes zedqa_click.txt, acts
+-- (down, move and up 250 ms each) and writes zedqa_click_done.txt. So, as zedqa_dual_pin's req and mouse(): clear the
+-- done file, write the request, and the plan waits for "done" before it counts the next step's delay (drive below).
+-- Back-to-back requests without the wait overwrote each other: drags never started and clicks were lost.
+local pending, pendAt = nil, 0
+local function req(s)
+    pcall(function() local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close() end)
+    pcall(function() local f = getFileWriter("zedqa_click.txt", true, false); f:write(s); f:close() end)
+    pending, pendAt = s, getTimestampMs()
+end
+local function done()
+    local r = getFileReader("zedqa_click_done.txt", false)
+    local l = r and r:readLine()
+    if r then r:close() end
+    return l ~= nil and l:find("done", 1, true) ~= nil
+end
 local function shot(n) pcall(function() core:TakeFullScreenshot("zqa_" .. TAG .. "_" .. sw .. "x" .. sh .. "_" .. n .. ".png") end); say("shot " .. n) end
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
+-- a step that runs once cond() is true, or after max ms (a timed action ending, a state settling)
+local function addWhen(max, cond, fn) plan[#plan + 1] = { ms = max, cond = cond, fn = fn } end
 local keepPins, keepTabs = nil, {}
 local function mid(panel) return math.floor(panel:getAbsoluteX() + panel:getWidth() / 2), math.floor(panel:getAbsoluteY() + panel:getHeight() / 2) end
 -- where the roll box sat: right after the title as drawn
@@ -67,14 +84,14 @@ local function turn(which)
         check(not w._rolled and not w._halves.inv.hand, which .. ": a real click where the box was rolls nothing")
         req("move " .. table.concat({ mid(w[which == "char" and "_tabStripPanel" or "_actionTabStrip"]) }, " "))
     end)
-    add(3200, function()
+    addWhen(6000, function() return W()._rolled == true end, function()   -- (rolls 2 s after the pointer leaves it; up to 6 s)
         local w = W()
-        check(w._rolled == true and w._drawerOpen, which .. ": the pointer off the inventory 3 s: the unpinned inventory rolls, the pinned drawer stays")
+        check(w._rolled == true and w._drawerOpen, which .. ": the pointer off the inventory: the unpinned inventory rolls, the pinned drawer stays")
         shot(which .. "_2_rolled")
         local rod = w._rod
         if rod then req("move " .. math.floor(rod:getAbsoluteX() + rod:getWidth() / 2) .. " " .. math.floor(rod:getAbsoluteY() + w:titleBarHeight() / 2)) end
     end)
-    add(1000, function()
+    addWhen(3000, function() return not W()._rolled end, function()   -- (the rest on a rod is 0.3 s; up to 3 s)
         local w = W()
         check(not w._rolled, which .. ": resting on its rod brings it down (no roll by hand to keep it up)")
         local s = w[which == "char" and "_tabStripPanel" or "_actionTabStrip"]
@@ -107,10 +124,25 @@ add(1000, function()
     say("DONE")
 end)
 local function drive()
+    local now = getTimestampMs()
+    if pending then
+        if done() then
+            pending = nil; t0 = now
+        elseif now - pendAt > 8000 then
+            fail = fail + 1; say("ERR the mouse helper never answered: " .. tostring(pending)); pending = nil; t0 = now
+        else
+            return
+        end
+    end
     local st = plan[i]
     if not st then Events.OnTick.Remove(drive); return end
-    if getTimestampMs() - t0 < st.ms then return end
-    t0 = getTimestampMs(); i = i + 1
+    if st.cond then
+        local okC, met = pcall(st.cond)
+        if not (okC and met) and now - t0 < st.ms then return end
+    elseif now - t0 < st.ms then
+        return
+    end
+    t0 = now; i = i + 1
     local ok, e = pcall(st.fn)
     if not ok then fail = fail + 1; say("ERR step " .. (i - 1) .. ": " .. tostring(e)) end
 end
