@@ -114,7 +114,8 @@ for _, place in ipairs({ { 1, "right" }, { 2, "left" }, { 3, "bottom" } }) do
         L.getMouseX = function() return lx end
         L.getMouseY = function() return ly end
     end)
-    step(10, function()
+    -- (beta 10: the pointer's moodle shows a balloon after the shared hover pause, 0.45 s; up to 3 s allowed)
+    waitFor(2, 3000, function() local L = MO.getLayer(pn); return L and L._chip and L._chip.idx == 2 and L._chip.balloon end, function()
         local L = MO.getLayer(pn)
         local c, s = L._chip, L._size or 0
         local mx0, my0 = 0, s + 10                 -- moodle 2's cell in the layer
@@ -122,7 +123,14 @@ for _, place in ipairs({ { 1, "right" }, { 2, "left" }, { 3, "bottom" } }) do
         say(string.format("%s bubble: moodle %s, cloud %s, trail %s from %s", place[2], tostring(c and c.idx),
             c and (c.x .. "," .. c.y .. " " .. c.w .. "x" .. c.h) or "-", c and c.dir or "-", c and (c.tox .. "," .. c.toy) or "-"))
         check(c and c.idx == 2, place[2] .. ": the bubble is for the moodle under the pointer")
-        if c then
+        if c and c.balloon then
+            -- the balloon beside its moodle (panel px), off the moodle's cell, on the side away from the edge
+            local beside
+            if place[2] == "bottom" then beside = c.y + c.h <= my0 and c.x < mx0 + s and c.x + c.w > mx0
+            elseif place[2] == "left" then beside = c.x >= mx0 + s and c.y < my0 + s and c.y + c.h > my0
+            else beside = c.x + c.w <= mx0 and c.y < my0 + s and c.y + c.h > my0 end
+            check(beside, place[2] .. ": the balloon sits beside its moodle, clear of it")
+        elseif c then
             local k, len = c.k, ZeD.Bubbles.TRAIL_LEN * c.tk / c.k   -- (the trail is drawn at 2k: its length in the cloud's units)
             local fromCloud, toMoodle
             if place[2] == "bottom" then
