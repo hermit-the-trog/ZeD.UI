@@ -3080,3 +3080,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     information: click this bubble or press F1 instead. You can dismiss this bubble at any time." Why a bubble: "that
     introduces them to notifications, and it introduces them to the survival guide. Two birds, one notification." On a controller, the key shown follows the guide's device-aware keys, and
     the director sees that variant before it ships.
+123. **Ban button says why a protected role can't be banned (QA, Nov 8 2026; beta 10).** Moderator and admin carry the
+    game's CantBeBannedByUser, so ZeD's server answers "protected" and no timed ban is made. The Ban button or its
+    help line should say so plainly before the press (and the admin docs should note that the end-of-ban role restore
+    applies to unprotected roles such as gm). From ZeDUI/qa/B9_HELPER_ROLE_CHECK_20261108.md.
