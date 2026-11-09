@@ -3118,3 +3118,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     misses. Fix idea: while the halves have a folded tab (s.foldTab), skip the give-back (newW = want). Also hold off
     the at-rest clearing of _drawerCapLost and the base-width tracking while folded, or the 53 px get saved as a
     smaller inventory width. Medium risk (the anchor is touched in several places): after the Nov 13 reset.
+
+127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
+    Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).
+    Touch points: Settings.lua accentColor's default (line 154, `accentKeys[i] == "orange"`) and the fallback at line 965
+    (`accentIdx or 2` and `or "orange"`); Tokens.lua's ZeD.currentAccent, the unknown-key fallback and the boot
+    applyTheme("dark", "orange", ...); the hover wash alpha (Orange's 0.22 today: use Teal's); any "Orange is the
+    default" text in ZeD setup's help, the survival guide, the Workshop description and the change note; the main
+    menu desk if anything there is Orange-fixed; QA scripts that assume Orange (gallery_t14_look's "Dark + Orange").
+    Who moves (Build's call): a player whose options file has no ZeD accent yet (a fresh install) starts on PZ Teal.
+    A saved Orange stays Orange: PZ's mod options file keeps every option once it's saved, so a player who left
+    Orange alone can't be told from one who chose it, and nobody's colors change under them. Not a design change to
+    any component, so no mockup; QA pictures the main menu, a window and a balloon in Teal at 4K and Deck.
