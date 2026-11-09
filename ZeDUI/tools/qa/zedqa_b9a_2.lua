@@ -187,6 +187,11 @@ add(800, function() end)   -- (the list draws as rows and stamps its chevrons)
 addWhen(5000, function() return revealRow(CW(), (rowOf(CW(), "Base.Nails", 1))) end, function() end)
 add(300, function()
     local x, y = zonePoint(CW(), "stack:Base.Nails")
+    -- (the Deck run's click opened nothing: the window's state and the list's rect at the click)
+    local w = CW(); local c = w and w._mainContent
+    say("the chevron click at " .. tostring(x) .. "," .. tostring(y) .. ": rolled " .. tostring(w and w._rolled) .. ", shaded "
+        .. tostring(w and w.windowShaded) .. ", list " .. (c and (c:getAbsoluteX() .. "," .. c:getAbsoluteY() .. " " .. c:getWidth() .. "x"
+        .. c:getHeight() .. " shown " .. tostring(c:isReallyVisible())) or "-"))
     if check(x ~= nil, "the nails stack's chevron is on screen") then req("left " .. x .. " " .. y) end
 end)
 addWhen(3000, function() return rowOf(CW(), "Base.Nails", 2) ~= nil end, function()
