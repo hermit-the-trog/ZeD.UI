@@ -56,6 +56,8 @@ class Game:
         self.sids = set()
         self.voice = set()
         self.protected = {"Owner"}
+        self.roles = {"admin", "moderator", "gm", "observer", "user", "banned"}
+        self.role_of = {}
         self.logins = 0
 
     def run(self, line):
@@ -107,6 +109,15 @@ class Game:
                     return "User %s not found." % u
                 (self.voice.add if on else self.voice.discard)(u)
                 return "User %s voice is %s." % (u, "banned" if on else "unbanned")
+            if name == "setaccesslevel":
+                # (SetAccessLevelCommand: CommandArgs (.+) and (\w+); GameServer.changeRole: Roles.getRole by exact name,
+                # else the list; ServerWorldDatabase.setRole answers "User <name> is now <role>")
+                if len(args) != 2 or not re.fullmatch(r"\w+", args[1], re.ASCII):
+                    return "UI_command_arg_parse_failed"
+                if args[1] not in self.roles:
+                    return "Access Level '%s' unknown, list of access level: %s" % (args[1], ", ".join(sorted(self.roles)))
+                self.role_of[args[0]] = args[1]
+                return "User %s is now %s" % (args[0], args[1])
             return "Unknown command " + name
 
 
@@ -316,6 +327,53 @@ with tempfile.TemporaryDirectory() as d:
     for t in ["-true", "-false", "-", "Kade\nquit", 'Ka"de', "", None, 5, "x", "y" * 33]:
         check("build_command refuses the voice ban of %r" % (t,), H.build_command("VoiceBan", t) is None)
     check("an unmute is never the helper's", H.build_command("VoiceUnban", "Kade") is None and H.build_command("UnVoiceBan", "Kade") is None)
+
+# ---------------------------------------------------------------------------
+# A lifted ban's role restore: setaccesslevel, only for a SetRole line marked restore, its name and role checked and quoted
+# ---------------------------------------------------------------------------
+with tempfile.TemporaryDirectory() as d:
+    GAME.reset()
+    queue(d, EPOCH, [(100, 1, "UnBan", "Gemma", ""), (101, 1, "SetRole", "Gemma", "moderator", "restore"),
+                     (102, 1, "SetRole", "Big Sam", "gm", "restore")])
+    made, out = run(d)
+    check("a flagged restore goes as the console expects, after its unban", GAME.commands == ['unbanuser "Gemma"', 'setaccesslevel "Gemma" "moderator"', 'setaccesslevel "Big Sam" "gm"'], GAME.commands)
+    check("the game reads the name and the role", GAME.parsed[1] == ["setaccesslevel", "Gemma", "moderator"] and GAME.parsed[2] == ["setaccesslevel", "Big Sam", "gm"], GAME.parsed)
+    check("its success answer is ok", made[(101, 1)] == ("ok", "User Gemma is now moderator") and made[(102, 1)][0] == "ok" and GAME.role_of == {"Gemma": "moderator", "Big Sam": "gm"}, made)
+    check("and written back", "101\t1\tok\tUser Gemma is now moderator\n" in answers(d), answers(d))
+    # not flagged: refused, nothing sent
+    GAME.reset()
+    notflag = [(110, 1, "SetRole", "Gemma", "admin"),                       # five fields: a role change, not a restore
+               (111, 1, "SetRole", "Gemma", "admin", "Restore"),            # the mark is exact
+               (112, 1, "SetRole", "Gemma", "admin", "restore "),
+               (113, 1, "SetRole", "Gemma", "admin", "yes"),
+               (114, 1, "Kick", "Torch", "", "restore"),                    # the mark gives no other call a sixth field
+               (115, 1, "SetRole", "Gemma", "admin", "restore", "x")]
+    queue(d, EPOCH, notflag)
+    made, out = run(d)
+    check("a SetRole not marked restore never reaches the console", GAME.commands == [] and GAME.logins == 0, GAME.commands)
+    check("a five-field SetRole is answered refused", made.get((110, 1), ("",))[0] == "refused", made)
+    check("a line with a wrong sixth field is not a call", all((r[0], 1) not in made for r in notflag[1:]), made)
+    # a bad role string: refused, nothing sent
+    GAME.reset()
+    badr = [(120, 1, "SetRole", "Gemma", "", "restore"), (121, 1, "SetRole", "Gemma", "admin moderator", "restore"),
+            (122, 1, "SetRole", "Gemma", 'admin" "x', "restore"), (123, 1, "SetRole", "Gemma", "r" * 33, "restore"),
+            (124, 1, "SetRole", "Gemma", "admin;quit", "restore"), (125, 1, "SetRole", "Gemma", "möd", "restore"),
+            (126, 1, "SetRole", 'Gemma" "admin', "gm", "restore"), (127, 1, "SetRole", "-x", "gm", "restore")]
+    queue(d, EPOCH, badr[:7])
+    made, out = run(d)
+    check("a restore with a bad role or name never reaches the console", GAME.commands == [] and all(made[(r[0], 1)][0] == "refused" for r in badr[:7]), (GAME.commands, made))
+    for role in ["", "admin moderator", 'a"b', "r" * 33, "a;b", "a\nb", "möd", None, 5, "-r"]:
+        check("build_command refuses the role %r" % (role,), H.build_command("SetRole", "Gemma", role, True) is None)
+    check("build_command refuses an unflagged SetRole", H.build_command("SetRole", "Gemma", "gm") is None and H.build_command("SetRole", "Gemma", "gm", "restore") is None and H.build_command("SetRole", "Gemma", "gm", 1) is None)
+    check("build_command takes a flagged one", H.build_command("SetRole", "Gemma", "gm", True) == 'setaccesslevel "Gemma" "gm"')
+    # the game's answers
+    check("classify: setaccesslevel success", H.classify("SetRole", "User Gemma is now moderator") == "ok" and H.classify("SetRole", "User Big Sam is now gm") == "ok")
+    check("classify: an unknown role is refused", H.classify("SetRole", "Access Level 'mod' unknown, list of access level: admin, user") == "refused")
+    check("classify: anything else failed", H.classify("SetRole", "UI_command_arg_parse_failed") == "failed" and H.classify("Ban", "User Gemma is now moderator") == "failed")
+    GAME.reset()
+    queue(d, EPOCH, [(130, 1, "SetRole", "Gemma", "superadmin", "restore")])
+    made, out = run(d)
+    check("a role the game does not have: sent, refused by the game", GAME.commands == ['setaccesslevel "Gemma" "superadmin"'] and made[(130, 1)][0] == "refused", made)
 
 # ---------------------------------------------------------------------------
 # A queue read while the server writes it (the game's writer sends it in pieces, in place)
