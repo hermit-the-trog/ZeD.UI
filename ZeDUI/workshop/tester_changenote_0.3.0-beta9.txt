@@ -9,6 +9,7 @@ Windows
 
 Context menu
 - In the List style, a submenu that opens over its parent menu no longer closes when you point at it.
+- A submenu opens when the pointer rests on its row, the first row included.
 
 Dashboards
 - With Metric units, every odometer and trip shows kilometers. The car still keeps its miles.
@@ -17,7 +18,8 @@ Mods
 - Minimal Sidebar is supported: ZeD's belt fades the way the mod fades the game's sidebar, with its speed and on/off option.
 
 Servers
-- A timed ban gives the player their old role back when it ends.
+- A timed ban gives the player their old role back when it ends; with no staff online, the host helper does it.
+- After joining a server from the main menu, Restart after a death opens ZeD's desk.
 - Mail no longer loses letters after the server's mail store starts over, and letters reach players the server has met before.
 - A reported letter's card says the server keeps no copy of letters.
 
