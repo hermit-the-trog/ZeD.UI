@@ -567,13 +567,17 @@ function H.hit(win, half, mx, my, split)
     return inX, inX and my < tbH
 end
 
+-- an item held from this window: a row of its lists, or an Equip slot's
+local function dragFrom(w)
+    local c = w and w._mainContent
+    if c and c._drag and c._drag:isActive() then return true end
+    return (w and w._equipDrag and w._equipDrag:isActive()) and true or false
+end
+
 -- an item held in either window (the windows stay as they are until it drops)
 local function itemDragging()
     for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
-        local w = get and get()
-        local c = w and w._mainContent
-        if c and c._drag and c._drag:isActive() then return true end
-        if w and w._equipDrag and w._equipDrag:isActive() then return true end
+        if get and dragFrom(get()) then return true end
     end
     return false
 end
@@ -598,6 +602,41 @@ function H.onPin(win, half, mx, my)
     return r ~= nil and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h
 end
 
+-- Where each half's part of the window starts, for the pointer: the inventory's
+-- and the drawer's split, and whether there is no drawer or no list at all.
+local function splits(win)
+    local s = win._halves
+    local split = H.split(win)
+    -- (no drawer at all: the whole window, bar and all, is the inventory's)
+    local noDrawer = not (drawerOpen(win) or s.foldTab or win._rolled)
+    local invSplit = noDrawer and ((s.side == "left") and 0 or win:getWidth()) or split
+    -- (no inventory list showing, a drawer as wide as the window: the bar and the bag strip
+    -- are the drawer's, and the inventory side has nothing to roll)
+    local noList = s.invShown == false and not noDrawer
+    local drwSplit = noList and ((s.side == "left") and win:getWidth() or 0) or split
+    return invSplit, drwSplit, noDrawer, noList
+end
+
+-- An item held over a rolled half brings that half down at once, whatever the
+-- other half's pin, so the drop lands in its list or on its tab: the inventory
+-- from its rod, the drawer from its tab strip or its part of the title bar. (Only
+-- a whole rolled window had this; a half rolled beside a pinned one stayed up.)
+local function dragOver(win, mx, my)
+    local s = win._halves
+    local inv, drw = s.inv, s.drawer
+    local invSplit, drwSplit = splits(win)
+    if inv.rolled and win._rolled and H.hit(win, "inv", mx, my, invSplit) then
+        inv.rolled, inv.hand, inv.restSince = false, false, nil
+        -- (at once, not the rod's roll down: the release may come before it ends)
+        s.driving = true
+        ZeD.Curtain.finishUnroll(win)
+        s.driving = false
+    end
+    if drw.rolled and s.foldTab and H.hit(win, "drawer", mx, my, drwSplit) then
+        drw.rolled, drw.restSince = false, nil
+    end
+end
+
 --- Each update (ZeD_Window:_autoCollapse): the halves' timers, the hover that
 --- brings a rolled half back, the controller's stops, then one step on screen.
 function H.update(win)
@@ -611,6 +650,8 @@ function H.update(win)
     if drag and win.windowShaded and not pad and mx >= 0 and mx <= win:getWidth() and my >= 0 and my < win:titleBarHeight() then
         win._autoShaded = false
         win:setWindowShaded(false)
+    elseif drag and not pad and not win.windowShaded then
+        dragOver(win, mx, my)
     end
     local aiming = false
     local p = getSpecificPlayer(pn)
@@ -620,14 +661,7 @@ function H.update(win)
     local hold = pad or drag or win.moving or isMouseButtonDown(0) or (isMouseButtonDown(1) and not aiming)
         or (win._outSince ~= nil and now < win._outSince)
     if not hold then
-        local split = H.split(win)
-        -- (no drawer at all: the whole window, bar and all, is the inventory's)
-        local noDrawer = not (drawerOpen(win) or s.foldTab or win._rolled)
-        local invSplit = noDrawer and ((s.side == "left") and 0 or win:getWidth()) or split
-        -- (no inventory list showing, a drawer as wide as the window: the bar and the bag strip
-        -- are the drawer's, and the inventory side has nothing to roll)
-        local noList = s.invShown == false and not noDrawer
-        local drwSplit = noList and ((s.side == "left") and win:getWidth() or 0) or split
+        local invSplit, drwSplit, noDrawer, noList = splits(win)
         for _, half in ipairs(HALVES) do
             local st = s[half]
             local inside, bar = H.hit(win, half, mx, my, half == "inv" and invSplit or drwSplit)
