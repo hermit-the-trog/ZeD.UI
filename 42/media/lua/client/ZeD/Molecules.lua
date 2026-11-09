@@ -250,7 +250,10 @@ end
 --              true), hint = its name (shown after the delay), id = a key for the
 --              hint, help, win, iconSize (default 16u), tint }
 -- @return x, y, w, h
-local _icC, _icFocus = {}, {}
+local _icC, _icFocus, _icHint = {}, {}, {}
+-- (opts.hintSide: "right" / "left" for a button in a column; the focus's balloon shows without the pause)
+local _icSide = { above = { side = "above" }, right = { side = "right" }, left = { side = "left" } }
+local _icNow = { above = { side = "above", now = true }, right = { side = "right", now = true }, left = { side = "left", now = true } }
 function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -292,11 +295,19 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
         A.drawIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
     end
 
+    -- the hint points at the button: after the pause for the mouse, at once for the controller's focus
+    local hintRect = nil
+    if (opts.hover or onFocus) and opts.hint and A.requestHint then
+        hintRect = _icHint
+        hintRect.x, hintRect.y, hintRect.w, hintRect.h = x, y, size, size
+    end
     if opts.hover then
         giveHelp(panel, opts)
-        if opts.hint and A.requestHint then
-            A.requestHint(opts.win or A.windowOf(panel), opts.id or opts.hint, opts.hint, panel)
+        if hintRect then
+            A.requestHint(opts.win or A.windowOf(panel), opts.id or opts.hint, opts.hint, panel, hintRect, opts.hintSide and _icSide[opts.hintSide])
         end
+    elseif onFocus and hintRect then
+        A.requestHint(opts.win or A.windowOf(panel), opts.id or opts.hint, opts.hint, panel, hintRect, _icNow[opts.hintSide or "above"])
     end
     return x, y, size, size
 end
@@ -4145,11 +4156,11 @@ function ZeD.Molecules.drawContextBumpers(panel, stripX, stripY, stripW, stripH,
     local rightChevX = stripX + stripW + gutter
 
     -- Left chev (hit zones are panel-local per ZeD_Panel convention)
-    A.drawTruncChevron(panel, leftChevX, stripY, "left", T)
+    A.drawTruncChevron(panel, leftChevX, stripY, "left", T, pressedId == "ctxchev_l")
     panel:addHitZone("ctxchev_l", leftChevX, stripY, chevW, stripH)
 
     -- Right chev
-    A.drawTruncChevron(panel, rightChevX, stripY, "right", T)
+    A.drawTruncChevron(panel, rightChevX, stripY, "right", T, pressedId == "ctxchev_r")
     panel:addHitZone("ctxchev_r", rightChevX, stripY, chevW, stripH)
 
     return leftChevX, (rightChevX + chevW)
@@ -4299,207 +4310,61 @@ function ZeD.Molecules.drawContextTargetCard(panel, centerX, topY,
 end
 
 -- ---------------------------------------------------------------------------
--- drawContextBalloon — the combined info bubble. Sits ABOVE the icon strip
--- with a downward pointer toward the strip's selected cell (or below it with
--- an upward pointer when state.pointerDir = "up"). It subsumes what were once
--- a separate floating label (action name) AND a balloon (body/state): one
--- piece of chrome, adaptive height — the action name always (breadcrumbed in
--- submenus), plus optional body and state rows that collapse when empty.
---   centerX:    horizontal center of the bubble + pointer apex
---   apexY:      where the pointer apex touches the strip top
---   state:      { labelText, parentChain, bodyText (description),
---                 stateText (availability reason), stateKind ("ok" | "bad" —
---                 drives the dot color), isSubmenu }
+-- drawContextBalloon — the strip's balloon (and the wheels'): the option's name
+-- as the title (its submenu path before it), then what the game's tooltip says,
+-- as the balloon (Balloon.lua) in the theme's colors with its tail on the cell.
+-- A requirement list (the game's rich text, ZeD.RichTip) is drawn as two
+-- columns with a check or cross per row, once.
+--   centerX, apexY: where the old pointer's apex touched (the wheels); the strip
+--                   passes state.anchor instead
+--   state: { labelText, parentChain, bodyText (the tooltip as words), bodyRich
+--            (its requirement list), pic (the tooltip's picture), stateText and
+--            stateKind ("ok" | "bad": a reason the body does not already give),
+--            labelPads (a quick action chord), pointerDir ("down": above the
+--            control, "up": under it), anchor (the cell in panel space), below
+--            (panel y the area under the strip starts at), key }
+-- Returns w, h, x, y of the box in panel space (0, 0 when another balloon is up).
+local _ctxA = {}
 function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
-    local A = ZeD.Atoms
-    -- The info bubble uses LOCKED System 7 chrome — paper white fill, ink
-    -- black border + text — regardless of active theme: the balloon is
-    -- white-on-black by design. Theme-driven body text is hard to read on a
-    -- forced-white pill, so we hardcode for legibility.
-    local ink    = { r = 0,    g = 0,    b = 0,    a = 1 }
-    local paper  = { r = 1,    g = 1,    b = 1,    a = 1 }
-    local muted  = { r = 0.42, g = 0.42, b = 0.42, a = 1 }
-    local textC  = ink                                   -- primary text
-    local good   = { r = 0.16, g = 0.49, b = 0.16, a = 1 }   -- darker green readable on white
-    local bad    = { r = 0.76, g = 0.16, b = 0.16, a = 1 }   -- darker red readable on white
-    local labelFont = T.fontF1   -- F1 Chrome — mono bold (was the floating label font)
-    local bodyFont  = T.fontF2   -- F2 Body
-    local stateFont = T.fontF5   -- F5 Micro
-    local tm = ZeD.TM
-
-    -- Build label segments for breadcrumb support. Top-level: just the action
-    -- name in full ink. Submenu: "Parent > Child > Current" with parents and
-    -- separators muted, current in full ink.
-    local labelText  = state.labelText or ""
-    local parentChain = state.parentChain or {}
-    local segments = {}
-    if #parentChain > 0 then
-        for _, pname in ipairs(parentChain) do
-            segments[#segments + 1] = { text = pname, color = muted }
-            segments[#segments + 1] = { text = " > ", color = muted }
+    local Bn = ZeD.Balloon
+    local label = state.labelText or ""
+    local body = state.bodyText or ""
+    local st = state.stateText or ""
+    -- the content, rebuilt only when its words change (the balloon keeps the one that is up)
+    local c = panel._zedBalloonC
+    local sig = label .. "\1" .. body .. "\1" .. st .. "\1" .. tostring(state.stateKind) .. "\1"
+        .. table.concat(state.parentChain or {}, "\2") .. "\1" .. tostring(state.bodyRich) .. "\1" .. tostring(state.pic)
+        .. "\1" .. tostring(state.labelPads and state.labelPads[1]) .. tostring(state.labelPads and state.labelPads[2])
+    if not c or panel._zedBalloonSig ~= sig then
+        c = { kind = "rich", title = label, path = state.parentChain, pads = state.labelPads }
+        if state.bodyRich then
+            c.req = state.bodyRich
+            c.pic = state.pic
+        elseif body ~= "" and body ~= label then
+            local lines = {}
+            for para in body:gmatch("[^\n]+") do lines[#lines + 1] = para end
+            c.lines = lines
         end
+        -- the reason it cannot be done, when the body does not already say it: a condition row
+        if st ~= "" and st ~= body and not state.bodyRich then
+            c.req = { rows = {}, conds = { { t = st, st = (state.stateKind == "bad") and "bad" or nil } }, sig = st }
+        end
+        panel._zedBalloonC, panel._zedBalloonSig = c, sig
     end
-    segments[#segments + 1] = { text = labelText, color = textC }
-
-    -- Decide which extra sections show. Body only renders when it's present
-    -- AND differs from labelText (otherwise it'd just duplicate the action
-    -- name). State row only renders when there's a reason — gated actions
-    -- get a "● Missing X" line, available actions get nothing.
-    local rawBody  = state.bodyText
-    local hasBody  = rawBody and rawBody ~= "" and rawBody ~= labelText
-    local rawState = state.stateText
-    local hasState = rawState and rawState ~= ""
-
-    -- Sizing
-    local padH       = T.px(10)
-    local padV       = T.px(5)
-    local rowGap     = T.px(3)
-    local dividerGap = T.px(5)
-    local maxW       = T.px(250)
-    local minW       = T.px(80)
-
-    local labelH = tm:getFontHeight(labelFont)
-    local bodyH  = tm:getFontHeight(bodyFont)
-    local stateH = tm:getFontHeight(stateFont)
-
-    -- (state.labelPads, the wheels: a quick action chord's two buttons after
-    -- the name, as ZeD's pictures, ZeD_PadGlyphs; as words "LB + X" when the
-    -- glyph setting draws no pictures)
-    local pads = state.labelPads
-    local PG = ZeD.PadGlyphs
-    local padSet = pads and PG and PG.set()
-    local padK = padSet and PG.k(tm:getFontHeight(labelFont)) or 1
-    local plusW = tm:MeasureStringX(labelFont, "+")
-    local padW = 0
-    if pads and padSet then
-        padW = T.px(8) + PG.width({ pads[1] }, padK, padSet) + T.px(3) + plusW + T.px(3) + PG.width({ pads[2] }, padK, padSet)
-    elseif pads then
-        segments[#segments + 1] = { text = "  " .. pads[1] .. " + " .. pads[2], color = muted }
-    end
-
-    -- Total label width across all segments
-    local labelW = padW
-    for _, seg in ipairs(segments) do
-        labelW = labelW + tm:MeasureStringX(labelFont, seg.text)
-    end
-
-    -- Bubble width: fits label snugly when no extras, expands toward maxW
-    -- when body/state need wrapping room.
-    local needsWideContent = hasBody or hasState
-    local balW
-    if needsWideContent and state.snug then
-        -- (state.snug, the wheels: as wide as the words, up to maxW; the
-        -- strip's descriptions keep the full width)
-        local w = labelW
-        if hasBody then w = math.max(w, tm:MeasureStringX(bodyFont, rawBody)) end
-        if hasState then w = math.max(w, tm:MeasureStringX(stateFont, rawState) + T.px(12)) end
-        balW = math.max(minW, math.min(maxW, w + padH * 2))
-    elseif needsWideContent then
-        balW = maxW
+    local a = _ctxA
+    local x0, y0 = panel:getAbsoluteX(), panel:getAbsoluteY()
+    local r = state.anchor
+    if r then
+        a.x, a.y, a.w, a.h = x0 + r.x, y0 + r.y, r.w, r.h
     else
-        balW = math.max(minW, math.min(maxW, labelW + padH * 2))
+        a.x, a.y, a.w, a.h = x0 + centerX - 1, y0 + apexY - 1, 2, 1
     end
-    local innerW = balW - padH * 2
-
-    -- Wrap body and state to inner width
-    local wrap = ZeD.Atoms.wrapText
-    local bodyLines, stateLines, bodyTotalH, stateTotalH = {}, {}, 0, 0
-    if hasBody then
-        bodyLines = (wrap and wrap(rawBody, bodyFont, innerW)) or { rawBody }
-        bodyTotalH = #bodyLines * bodyH
-    end
-    if hasState then
-        stateLines = (wrap and wrap(rawState, stateFont, innerW - T.px(10))) or { rawState }
-        stateTotalH = #stateLines * stateH
-    end
-
-    -- Compute height — label always shown, body/state appended conditionally
-    local balH = padV + labelH + padV
-    if hasBody then
-        balH = balH + rowGap + bodyTotalH
-    end
-    if hasState then
-        balH = balH + dividerGap + T.px(1) + rowGap + stateTotalH
-    end
-
-    -- Position — direction set by state.pointerDir ("down" = default; bubble
-    -- ABOVE strip with downward tail. "up" = bubble BELOW strip with upward
-    -- tail; used when there isn't enough room above the cursor).
-    local pointerH = T.px(3)
-    local pointerDir = state.pointerDir or "down"
-    local balX = centerX - math.floor(balW / 2)
-    local balY
-    if pointerDir == "up" then
-        balY = apexY + pointerH       -- bubble starts pointerH below the apex
-    else
-        balY = apexY - pointerH - balH    -- bubble extends UP from apexY
-    end
-
-    -- Chrome — shadow, fill, border
-    A.drawSteppedShadow(panel, balX, balY, balW, balH, ink)
-    panel:drawRect(balX, balY, balW, balH, paper.a or 1, paper.r, paper.g, paper.b)
-    panel:drawRectBorder(balX, balY, balW, balH, ink.a or 1, ink.r, ink.g, ink.b)
-
-    -- Pointer — at the apex side of the bubble (top for "up", bottom for "down")
-    if pointerDir == "up" then
-        A.drawContextPointerUp(panel, centerX, balY - pointerH, ink, paper)
-    else
-        A.drawContextPointerDown(panel, centerX, balY + balH, ink, paper)
-    end
-
-    local y = balY + padV
-
-    -- Label row (centered horizontally, multi-segment for breadcrumb)
-    local cursorX = balX + math.floor((balW - labelW) / 2)
-    for _, seg in ipairs(segments) do
-        panel:drawText(seg.text, cursorX, y,
-            seg.color.r, seg.color.g, seg.color.b, 1, labelFont)
-        cursorX = cursorX + tm:MeasureStringX(labelFont, seg.text)
-    end
-    if padW > 0 then
-        cursorX = cursorX + T.px(8)
-        cursorX = cursorX + PG.draw(panel, { pads[1] }, cursorX, y, labelH, padK, padSet) + T.px(3)
-        panel:drawText("+", cursorX, y, muted.r, muted.g, muted.b, 1, labelFont)
-        cursorX = cursorX + plusW + T.px(3)
-        PG.draw(panel, { pads[2] }, cursorX, y, labelH, padK, padSet)
-    end
-    y = y + labelH
-
-    -- Body (left-aligned, wrapped)
-    if hasBody then
-        y = y + rowGap
-        for _, line in ipairs(bodyLines) do
-            panel:drawText(line, balX + padH, y,
-                textC.r, textC.g, textC.b, 1, bodyFont)
-            y = y + bodyH
-        end
-    end
-
-    -- State row (preceded by dashed divider)
-    if hasState then
-        y = y + dividerGap
-        local dashX, dashEndX = balX + padH, balX + balW - padH
-        while dashX < dashEndX do
-            local dashW = math.min(T.px(4), dashEndX - dashX)
-            panel:drawRect(dashX, y, dashW, T.px(1),
-                muted.a or 0.6, muted.r, muted.g, muted.b)
-            dashX = dashX + T.px(6)
-        end
-        y = y + T.px(1) + rowGap
-
-        local dotC = (state.stateKind == "bad") and bad or good
-        local dotSz = T.px(4)
-        local dotY = y + math.floor((stateH - dotSz) / 2)
-        A.drawStatusDot(panel, balX + padH, dotY, dotC, dotSz)
-        local textOffset = dotSz + T.px(6)
-        for _, line in ipairs(stateLines) do
-            panel:drawText(line, balX + padH + textOffset, y,
-                muted.r, muted.g, muted.b, 1, stateFont)
-            y = y + stateH
-        end
-    end
-
-    return balW, balH + pointerH
+    a.below = state.below and (y0 + state.below) or nil
+    a.noFlip = state.noFlip
+    local pref = (state.pointerDir == "up") and "below" or "above"
+    local x, y, w, h = Bn.draw(panel, c, a, pref, { key = state.key or sig, prio = 2, owner = panel })
+    if not x then return 0, 0, 0, 0 end
+    return w, h, x, y
 end
 
 -- ============================================================================
@@ -4978,77 +4843,56 @@ function ZeD.Molecules.drawEmptyLine(panel, x, y, w, text)
 end
 
 -- ----------------------------------------------------------------------------
--- HOVER BOXES: the hint (ZeD.Atoms.drawHintBox) and the detail card
+-- HOVER BOXES: the hint (ZeD.Atoms.drawHintBox) and the detail card, both the balloon (Balloon.lua)
 -- ----------------------------------------------------------------------------
 
---- The one-line hint for an anchor point (the pointer) in panel space.
-function ZeD.Molecules.drawHint(panel, text, ax, ay)
-    return ZeD.Atoms.drawHintBox(panel, text, ax, ay)
+--- The one-line hint for a control: rect = the control in panel space (nil: the point (ax, ay)),
+--- side = "above" (default) | "right" | "left".
+function ZeD.Molecules.drawHint(panel, text, ax, ay, rect, side)
+    return ZeD.Atoms.drawHintBox(panel, text, ax, ay, rect, side)
 end
 
--- a detail card line's font
-local function cardFont(T, f)
-    if f == "F3" then return T.fontF3 end
-    if f == "F1" then return T.fontF1 end
-    if f ~= nil and type(f) ~= "string" then return f end
-    return T.fontF2
+--- A detail card as the balloon's content: the title, then the lines (F2 words, F3 figures, each in its
+--- own color). Kept on the card table, so a card asked for every frame is one content.
+function ZeD.Molecules.cardContent(card)
+    if not card then return nil end
+    local c = card._balloon
+    if c and c.title == card.title and c.lines == card.lines then return c end
+    c = { kind = "rich", title = card.title, lines = card.lines }
+    card._balloon = c
+    return c
 end
 
---- The detail card: a title in F4, then lines in F2 (words) or F3 (figures), on
--- surface 1, solid, with a 1u frame and the hard shadow, wrapped to its width.
+--- The detail card: a title in F4, then lines in F2 (words) or F3 (figures), as the balloon.
 -- card = {
 --   title = "Baseball Bat",
 --   lines = { "Two-handed, pushes zombies back.", { text = "2.0 kg", font = "F3", color = T.textDim }, ... },
---   maxW  = the widest it gets, in design units (default 260),
---   exact = true: (ax, ay) is the card's top-left; else it is the pointer and the
---           card goes below-right of it, flipped to stay on screen
+--   anchor = the control in panel space { x, y, w, h } the balloon points at (else the point (ax, ay)),
+--   side  = "above" (default) | "right" | "left",
+--   exact = true: no tail, the box's top-left at (ax, ay),
 -- }
--- Usually asked for with ZeD.Atoms.requestDetailCard(win, key, card) (shown after
--- the shared delay by the window's overlay pass); this draws it now.
--- @return x, y, w, h
+-- Usually asked for with ZeD.Atoms.requestDetailCard(win, key, card, panel, rect) (shown after the shared
+-- delay by the window's overlay pass); this draws it now (the controller's focus: at once).
+-- @return x, y, w, h in panel space, or nil when another balloon is up
+local _cardA = {}
 function ZeD.Molecules.drawDetailCard(panel, ax, ay, card)
     if not card then return end
-    local T = ZeD.T
-    local A = ZeD.Atoms
-    local tm = ZeD.TM
-    local padX, padY, lgap = T.px(10), T.px(8), T.px(2)
-    local maxW = T.px(card.maxW or 260)
-    local innerMax = maxW - padX * 2
-    local f4 = T.fontF4
-    local rows, widest, h = {}, 0, padY * 2
-    if card.title and card.title ~= "" then
-        for _, s in ipairs(wrapped(card.title, f4, innerMax)) do
-            rows[#rows + 1] = { s = s, f = f4, c = T.textHead }
-            widest = math.max(widest, tm:MeasureStringX(f4, s))
-            h = h + tm:getFontHeight(f4) + lgap
-        end
-        if card.lines and #card.lines > 0 then h = h + T.px(4); rows[#rows + 1] = { gap = T.px(4) } end
+    local Bn = ZeD.Balloon
+    local c = ZeD.Molecules.cardContent(card)
+    if card.exact then
+        local lay = Bn.drawBox(panel, c, ax, ay)
+        return ax, ay, lay.w, lay.h
     end
-    for _, ln in ipairs(card.lines or NO_OPTS) do
-        local text, f, c = ln, T.fontF2, T.text
-        if type(ln) == "table" then text, f, c = ln.text, cardFont(T, ln.font), ln.color or T.text end
-        for _, s in ipairs(wrapped(text, f, innerMax)) do
-            rows[#rows + 1] = { s = s, f = f, c = c }
-            widest = math.max(widest, tm:MeasureStringX(f, s))
-            h = h + tm:getFontHeight(f) + lgap
-        end
+    local a = _cardA
+    local x0, y0 = panel:getAbsoluteX(), panel:getAbsoluteY()
+    local r = card.anchor
+    if r then
+        a.x, a.y, a.w, a.h = x0 + r.x, y0 + r.y, r.w or 1, r.h or r.w or 1
+    else
+        a.x, a.y, a.w, a.h = x0 + (ax or 0), y0 + (ay or 0), 1, 1
     end
-    h = h - lgap
-    local w = math.min(maxW, widest + padX * 2)
-    local x, y = ax, ay
-    if not card.exact then x, y = A.hoverBoxPlace(panel, ax, ay, w, h) end
-    A.drawHoverShell(panel, x, y, w, h)
-    local cy = y + padY
-    for _, r in ipairs(rows) do
-        if r.gap then
-            cy = cy + r.gap
-        else
-            local c = r.c
-            panel:drawText(r.s, x + padX, cy, c.r, c.g, c.b, c.a or 1, r.f)
-            cy = cy + tm:getFontHeight(r.f) + lgap
-        end
-    end
-    return x, y, w, h
+    a.below, a.noFlip = nil, nil
+    return Bn.draw(panel, c, a, card.side or "above", { key = card.key or ("card:" .. tostring(card.title)), owner = panel })
 end
 
 -- ============================================================================

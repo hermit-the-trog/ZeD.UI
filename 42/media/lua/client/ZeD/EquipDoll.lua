@@ -706,6 +706,16 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     win._equipDollLines = {}   -- (no leader lines any more: the line layer draws only the hint)
     win._equipDollAll = rects
     win._equipDollDot = math.max(2, P(2.5))
+    -- the controller's focus on a box with an item: its name at once, the same balloon the pointer gets
+    local fk = win._gpFocusedEquipSlot
+    if not hint and fk and gpFocused(win, fk) then
+        for _, z in ipairs(zones) do
+            if z.type == fk and z.item then
+                hint = { key = fk, text = call(z.item, "getDisplayName") or "?", x = z.x, y = z.y, w = z.w, now = true }
+                break
+            end
+        end
+    end
     win._equipDollHintCand = hint
     return math.floor(baseH(nBelt) * k + 0.5)
 end
@@ -962,11 +972,19 @@ function D.renderLines(layer, win)
 end
 
 -- An icon-only box names its item after the pause: the library's hint, asked of
--- the window's overlay (one delay, placed by the pointer, over everything).
--- c = { key, text, ... }; st and clip are no longer needed (kept for callers).
+-- the window's overlay (one delay, over everything), its balloon pointing at the box.
+-- c = { key, text, x, y, w } (the box in the doll panel's space); st and clip are no
+-- longer needed (kept for callers).
+local _hintR, _hintNow = {}, { now = true }
 function D.drawHint(layer, win, c, st, clip)
     if not c then return end
-    ZeD.Atoms.requestHint(win, c.key, c.text, layer)
+    local panel = win._equipDollPanel
+    if panel and c.x then
+        _hintR.x, _hintR.y, _hintR.w, _hintR.h = c.x, c.y, c.w or 1, c.h or c.w or 1
+        ZeD.Atoms.requestHint(win, c.key, c.text, panel, _hintR, c.now and _hintNow or nil)
+    else
+        ZeD.Atoms.requestHint(win, c.key, c.text, layer)
+    end
 end
 
 -- ----------------------------------------------------------------------------

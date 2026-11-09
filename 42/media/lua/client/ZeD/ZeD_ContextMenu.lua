@@ -423,39 +423,70 @@ function ZeD_ContextMenu:prerender()
     local stateKind = (def and def.stateKind) and def.stateKind(target) or "ok"
     local parentChain = self:_parentChain()
 
-    -- Bubble centers on the strip horizontally (stable; doesn't chase
-    -- selection X). Apex sits a couple of pixels OFF the strip — above when
-    -- normal orientation, below when flipped (cursor near top of screen).
+    -- The balloon points at the selected cell: above the strip, its tail at the
+    -- cell; with no room above (the strip flipped near the screen's top), under
+    -- the strip with the tail up. It never covers the strip.
     local bubbleCenterX = cache.stripX + math.floor(cache.stripW / 2)
-    local apexGap = T.px(2)
-    local apexY
-    local pointerDir
-    if self._flipped then
-        apexY = cache.stripY + cache.stripH + apexGap
-        pointerDir = "up"      -- pointer at TOP of bubble, points UP at strip
-    else
-        apexY = cache.stripY - apexGap
-        pointerDir = "down"    -- pointer at BOTTOM of bubble, points DOWN at strip
-    end
-
-    local bubbleState = {
-        labelText   = labelText,
-        parentChain = parentChain,
-        bodyText    = rawBody or "",
-        stateText   = rawState or "",
-        stateKind   = stateKind,
-        isSubmenu   = #self._ctx.path > 0,
-        pointerDir  = pointerDir,
-    }
-    local balW, balH = M.drawContextBalloon(self, bubbleCenterX, apexY, bubbleState, T)
-    cache.balloonX = bubbleCenterX - math.floor(balW / 2)
-    cache.balloonY = self._flipped and apexY or (apexY - balH)
+    local cell = self:_selectedCellRect(cache)
+    local bs = self._bubbleState
+    if not bs then bs = { anchor = {} }; self._bubbleState = bs end
+    bs.labelText   = labelText
+    bs.parentChain = parentChain
+    bs.bodyText    = rawBody or ""
+    bs.bodyRich    = def and def.bodyRich or nil
+    bs.pic         = def and def.bodyRich and def.tipTex or nil
+    bs.stateText   = rawState or ""
+    bs.stateKind   = stateKind
+    bs.isSubmenu   = #self._ctx.path > 0
+    bs.pointerDir  = self._flipped and "up" or "down"
+    bs.anchor.x, bs.anchor.y, bs.anchor.w, bs.anchor.h = cell.x, cell.y, cell.w, cell.h
+    bs.below       = cache.stripY + cache.stripH
+    bs.key         = def and ("ctx:" .. tostring(def)) or "ctx:none"
+    local balW, balH, balX, balY = 0, 0, 0, 0
+    if labelText ~= "" then balW, balH, balX, balY = M.drawContextBalloon(self, bubbleCenterX, cache.stripY, bs, T) end
+    cache.balloonX = balX
+    cache.balloonY = balY
     cache.balloonW = balW
     cache.balloonH = balH
     cache.cardX, cache.cardW, cache.cardH = 0, 0, 0   -- card removed
 
     -- The selected option, told to the game's menu every frame, as its render does
     ZeD.ContextMenu.Registry.highlight(self, def)
+end
+
+-- The selected cell's place in panel space: its hit zone from this frame's strip
+-- (the carousel draws a cell up to three times; the one inside the strip's box),
+-- else the strip's middle cell.
+local _cellR = { x = 0, y = 0, w = 0, h = 0 }
+function ZeD_ContextMenu:_selectedCellRect(cache)
+    local T = ZeD.T
+    local N = #(self._ctx.items or {})
+    local sel = self._ctx.selected
+    local x0, x1 = cache.stripX, cache.stripX + cache.stripW
+    local best, bestIn = nil, -1
+    if N > 0 then
+        for _, z in ipairs(self._hitZones or {}) do
+            local id = z.id
+            if type(id) == "string" and id:sub(1, 8) == "ctxcell_" then
+                local k = tonumber(id:sub(9))
+                if k and ((k - 1) % N) + 1 == sel and z.x + z.w > x0 and z.x < x1 then
+                    -- (the copy most inside the strip)
+                    local inside = math.min(z.x + z.w, x1) - math.max(z.x, x0)
+                    if inside > bestIn then best, bestIn = z, inside end
+                end
+            end
+        end
+    end
+    if best then
+        local z = best
+        _cellR.x = math.max(z.x, x0)
+        _cellR.w = math.min(z.x + z.w, x1) - _cellR.x
+        _cellR.y, _cellR.h = z.y, z.h
+    else
+        local cw = T.ctx.cellW
+        _cellR.x, _cellR.y, _cellR.w, _cellR.h = cache.stripX + math.floor((cache.stripW - cw) / 2), cache.innerY or cache.stripY, cw, T.ctx.cellH
+    end
+    return _cellR
 end
 
 -- ============================================================================

@@ -64,7 +64,7 @@ local AMMO_W = 100         -- the ammo tab's words and rounds, one segment per r
                            -- attached to the belt
 local AMMO_ICON = 24       -- the ammo's picture in the tab
 local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
-local AMMO_CARD_W = 280      -- the widest the gun's detail card gets
+local HINT_NOW = { now = true }   -- the controller's focus gets a box's balloon without the pause
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe, never a middle dot
@@ -1887,16 +1887,6 @@ function ZeD_BeltHUD:_drawAmmo(t, a)
     end
 end
 
--- the height of a detail card of a title and one line, for the vanilla item tooltip to stand clear of it
-function ZeD_BeltHUD:_cardH(title, line, maxW)
-    local T, tm = ZeD.T, ZeD.TM
-    local f4, f2 = T.fontF4, T.fontF2
-    local innerW = T.px(maxW) - T.px(20)
-    local h = T.px(16) + tm:getFontHeight(f4) + T.px(4)
-    local rows = ZeD.Atoms.wrapText and #ZeD.Atoms.wrapText(line, f2, innerW) or 1
-    return h + math.max(1, rows) * (tm:getFontHeight(f2) + T.px(2))
-end
-
 -- B.addSplit's frame (sp: nil, or the mod's stand-in javaObject j, the real element and where the mod put it, x and y):
 -- slots true draws through the mod's stand-in where the mod put the belt, false on the real element at the belt's home.
 -- Switched only when it changes; the mod's own clean-up after the frame finds the belt either way.
@@ -2049,6 +2039,7 @@ function ZeD_BeltHUD:_prerender()
     -- delay: a hint (one line) for a box's name, a detail card for the gun's count
     local A = ZeD.Atoms
     local tipUp = nil      -- the item tooltip stands above the hover box
+    local hintKey, hintText = nil, nil
     -- (the pointer, or the controller's focus on the main hand: the ammo box is off the pad's path)
     local ahb = (hv and hv.b) or (gpTarget and gpTarget.kind == "hand" and gpTarget.which == "p" and gpTarget) or nil
     local am = (ahb and (ahb.kind == "ammo" or (ahb.kind == "hand" and ahb.which == "p"))) and self:_ammoState(p) or nil
@@ -2057,28 +2048,28 @@ function ZeD_BeltHUD:_prerender()
         local ab = ahb
         for _, bx in ipairs(self._boxes) do if bx.kind == "ammo" then ab = bx end end
         local l1, l2 = B.ammoLines(am)
-        local card = { title = l1, lines = { l2 }, maxW = AMMO_CARD_W }
-        tipUp = self:_cardH(l1, l2, AMMO_CARD_W)
-        if hv then A.requestDetailCard(self, "ammo", card, self)
+        local card = { title = l1, lines = { l2 }, anchor = ab, key = "ammo" }
+        tipUp = ZeD.Balloon and ZeD.Balloon.stackHeight(ZeD.Molecules.cardContent(card)) or nil
+        if hv then A.requestDetailCard(self, "ammo", card, self, ab)
         else ZeD.Molecules.drawDetailCard(self, ab.x, ab.y, card) end   -- the controller has no pointer to rest: at once
     elseif hv and hv.b.kind == "slot" then
         local s = hv.b.s
-        A.requestHint(self, "slot" .. hv.b.i, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", s.name, s.key) or s.name, self)
+        hintKey, hintText = "slot" .. hv.b.i, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", s.name, s.key) or s.name
     elseif hv and hv.b.kind == "hand" then
-        A.requestHint(self, "hand" .. hv.b.which, B.handName(hv.b.which), self)
+        hintKey, hintText = "hand" .. hv.b.which, B.handName(hv.b.which)
     elseif hv and hv.b.kind == "lamp" then
         local un = ZeD.Messages.unread()
-        A.requestHint(self, "lamp", ZeD.tr(un > 0 and "UI_ZeD_Msg_LampNew" or "UI_ZeD_Msg_Title", un), self)
+        hintKey, hintText = "lamp", ZeD.tr(un > 0 and "UI_ZeD_Msg_LampNew" or "UI_ZeD_Msg_Title", un)
     elseif hv and hv.b.kind == "chat" then
         local un = ZeD.Chat and ZeD.Chat.unread and ZeD.Chat.unread() or 0
-        A.requestHint(self, "chat", ZeD.tr(un > 0 and "UI_ZeD_Chat_KeyNew" or "UI_ZeD_Chat_Title", un), self)
+        hintKey, hintText = "chat", ZeD.tr(un > 0 and "UI_ZeD_Chat_KeyNew" or "UI_ZeD_Chat_Title", un)
     elseif hv and hv.b.kind == "pvp" then
-        A.requestHint(self, "pvp", ZeD.tr("UI_ZeD_Srv_PvPMarker"), self)
+        hintKey, hintText = "pvp", ZeD.tr("UI_ZeD_Srv_PvPMarker")
     elseif hv and hv.b.kind == "extra" then
         local spec, st = extraSpec(hv.b.id), self._xs and self._xs[hv.b.id]
         local okH, words = false, nil
         if spec and st and spec.hint then okH, words = pcall(spec.hint, st) end
-        if okH and type(words) == "string" and words ~= "" then A.requestHint(self, "x" .. tostring(hv.b.id), words, self) end
+        if okH and type(words) == "string" and words ~= "" then hintKey, hintText = "x" .. tostring(hv.b.id), words end
     elseif hv and hv.b.kind == "watch" then
         local id = ZeD.WatchMini.hit(hv.b.plate, mx - hv.b.x, my - hv.b.y)
         local name = call(hv.b.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch")
@@ -2088,12 +2079,26 @@ function ZeD_BeltHUD:_prerender()
             or (id == "light" and ZeD.tr("UI_ZeD_Belt_WatchLight"))
             or (id == "face" and ZeD.tr((ZeD.Watch.getInstance() and ZeD.Watch.getInstance()._popped) and "UI_ZeD_Belt_WatchTuck" or "UI_ZeD_Belt_WatchFull", name))
             or name
-        A.requestHint(self, "watch" .. tostring(id), lbl, self)
+        hintKey, hintText = "watch" .. tostring(id), lbl
+    elseif not hv and gpTarget and gpTarget.kind == "slot" and gpTarget.s then
+        -- the controller's focus on a slot or a hand: the same balloon, at once
+        local s = gpTarget.s
+        hintKey, hintText = "slot" .. gpTarget.i, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", s.name, s.key) or s.name
+    elseif not hv and gpTarget and gpTarget.kind == "hand" then
+        hintKey, hintText = "hand" .. gpTarget.which, B.handName(gpTarget.which)
+    end
+    -- the hint's balloon stands above its box; the game's item box stands above the balloon
+    local hb = (hv and hv.b) or (hintText and gpTarget) or nil
+    if hintText and hb then
+        A.requestHint(self, hintKey, hintText, self, hb, (not hv) and HINT_NOW or nil)
+        local hc = self._hintC
+        if not hc or hc.title ~= hintText then hc = { kind = "plain", title = hintText }; self._hintC = hc end
+        tipUp = ZeD.Balloon and ZeD.Balloon.stackHeight(hc) or nil
     end
     if dragging and over and over.kind == "slot" then
         local st, it = self:_dropState(over, dragging)
         local cur = over.s.item
-        if st == "fit" and cur then A.requestHint(self, "replace" .. over.i, ZeD.tr("UI_ZeD_Belt_Replace", cur:getDisplayName()), self) end
+        if st == "fit" and cur then A.requestHint(self, "replace" .. over.i, ZeD.tr("UI_ZeD_Belt_Replace", cur:getDisplayName()), self, over) end
     end
     self:_tooltip(hv and hv.item or nil, hv and hv.b or nil, tipUp)
 

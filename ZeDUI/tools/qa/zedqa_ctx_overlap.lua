@@ -73,7 +73,7 @@ end
 local function center(z) return z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2) end
 
 -- ---------------------------------------------------------------- the list
-local top, sub, px
+local top, sub, px, eatAt
 step(2, function()
     if not (ZeD_CharacterWindow.getWindow() and ZeD_CharacterWindow.getWindow():isVisible()) then ZeD_CharacterWindow.toggleBothPaired(0) end
     giveApple()
@@ -92,12 +92,33 @@ step(30, function()
     check(eat ~= nil, "LIST an Eat row")
     if not eat then return end
     local z = zone(menu, "row:1:" .. eat)
-    if z then ptr.x, ptr.y = center(z) end
+    eatAt = z and { center(z) }
+    -- (the menu opens with its first live row selected, and Eat is that row: the pointer first goes to another row, then
+    -- onto Eat, the way a hand arrives; the "still on the preselected first row" case is noted below)
+    local zo = zone(menu, "row:1:" .. (eat + 2))
+    if zo then ptr.x, ptr.y = center(zo) end
 end)
-step(12, function() end)   -- (the pointer rests on Eat: 180 ms, the submenu opens)
+local eatT
+step(6, function() if eatAt then ptr.x, ptr.y = eatAt[1], eatAt[2]; eatT = getTimestampMs() end end)
+-- the pointer rests perfectly still on Eat: the submenu opens once it has rested 180 ms. Waited on the clock, not on
+-- ticks (the list's update runs every 100 ms whatever the frame rate), up to 600 ms; the check reads the list's state
+-- when it fails.
+step(1, function()
+    local el = eatT and (getTimestampMs() - eatT) or 0
+    local opened = menu and menu._levels and menu._levels[2] ~= nil
+    if not opened and el < 600 then return "again" end
+    check(opened, "LIST a pointer perfectly still on Eat opens its submenu (" .. el .. " ms; nav " .. tostring(menu and menu._nav)
+        .. ", hoverRow " .. tostring(menu and menu._hoverRow) .. ", hoverLi " .. tostring(menu and menu._hoverLi)
+        .. ", sel " .. tostring(top and top.sel) .. ")")
+end)
+for j = 1, 40 do   -- (a real hand never rests exactly: one pixel of jitter every 3 ticks, 40 times: well past the 180 ms rest whatever the frame rate)
+    step(3, function() ptr.x = ptr.x + ((j % 2 == 1) and 1 or -1) end)
+end
+step(12, function() end)
 step(12, function()
     if not menu then return end
     sub = menu._levels[2]
+    if not sub then say("INFO diag ptr " .. ptr.x .. "," .. ptr.y .. " hoverRow " .. tostring(menu._hoverRow) .. " sel " .. tostring(top.sel) .. " lastM " .. tostring(menu._lastMx) .. "," .. tostring(menu._lastMy) .. " levelAt " .. tostring(menu:_levelAt(ptr.x, ptr.y)) .. " mouseX " .. tostring(menu:getMouseX()) .. " eatAt " .. tostring(eatAt and eatAt[1]) .. "," .. tostring(eatAt and eatAt[2]) .. " top " .. top.x .. "," .. top.y .. "," .. top.w .. "," .. top.h) end
     check(sub ~= nil, "LIST the Eat submenu opened on hover")
     if not sub then return end
     say("LIST submenu x=" .. sub.x .. " w=" .. sub.w .. " (" .. (sub.x < top.x and "left of" or "right of") .. " the parent) | rows: " .. names(sub.rows))
@@ -224,6 +245,7 @@ local function onTick()
     cur = nil
     qi = qi + 1
     local ok, e = pcall(s.fn)
+    if ok and e == "again" then qi = qi - 1; return end   -- (a step waiting on the clock runs again next time)
     if not ok then
         fails = fails + 1
         say("ERR step " .. (qi - 1) .. " " .. tostring(e))

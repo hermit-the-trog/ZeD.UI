@@ -458,7 +458,7 @@ end
 function ZeD.Atoms.drawBumper(panel, x, y, w, h, label, isPressed, T)
     T = T or ZeD.T
     -- Context-menu bumpers use locked paper/ink so they read the same
-    -- on every theme (matches drawContextCell + drawContextBalloon).
+    -- on every theme (matches drawContextCell).
     local ink   = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
     local paper = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
     local dx, dy = 0, 0
@@ -483,33 +483,34 @@ function ZeD.Atoms.drawBumper(panel, x, y, w, h, label, isPressed, T)
 end
 
 -- ---------------------------------------------------------------------------
--- drawTruncChevron — 12-wide × cellH-tall ink block with a paper triangle
--- glyph centered. Used only when the strip is truncating (N > 10). Uses the
--- drawTriangleLeft/Right atoms because PZ bitmap fonts lack reliable
--- arrow glyphs.
---   dir: "left"  → ◂-style (points at start of the list)
---        "right" → ▸-style (points at end of the list)
+-- drawTruncChevron — the strip's end box: 12 wide, as tall as a cell, filled
+-- with the accent and framed in the strip's ink, its 5px triangle in the
+-- accent's own text color (every accent clears 3 : 1 against it). Used only
+-- when the strip is truncating (N > 10). The triangle is the drawTriangle
+-- atoms because PZ bitmap fonts lack reliable arrow glyphs.
+--   dir:     "left" points at the start of the list, "right" at its end
+--   pressed: the content shifts 1u into the shadow, as the bumper's does
 -- ---------------------------------------------------------------------------
-function ZeD.Atoms.drawTruncChevron(panel, x, y, dir, T)
+local CHEV_INK = { r = 0.08, g = 0.08, b = 0.08, a = 1 }   -- the strip's locked ink (drawContextCell)
+function ZeD.Atoms.drawTruncChevron(panel, x, y, dir, T, pressed)
     T = T or ZeD.T
     local ctx   = T.ctx
-    -- Locked context-menu palette so the ink-block chevron + paper
-    -- glyph read identically on every theme.
-    local ink   = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
-    local paper = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
     local w, h  = ctx.chevW, ctx.cellH
-    -- Shadow first (reads as depth from below-right)
-    ZeD.Atoms.drawSteppedShadow(panel, x, y, w, h, ink)
-    -- Solid ink block background
-    panel:drawRect(x, y, w, h, ink.a or 1, ink.r, ink.g, ink.b)
-    -- Paper glyph centered
+    local ac, on = T.accent, T.textOnAccent or CHEV_INK
+    if pressed then
+        x, y = x + T.px(1), y + T.px(1)
+    else
+        ZeD.Atoms.drawSteppedShadow(panel, x, y, w, h, CHEV_INK)
+    end
+    panel:drawRect(x, y, w, h, 1, ac.r, ac.g, ac.b)
+    ZeD.Atoms.frame(panel, x, y, w, h, CHEV_INK, 1, T.hair)
     local triSz = T.px(5)
     local tx = x + math.floor((w - triSz) / 2)
     local ty = y + math.floor((h - triSz) / 2)
     if dir == "left" or dir == "prev" then
-        ZeD.Atoms.drawTriangleLeft(panel, tx, ty, triSz, paper)
+        ZeD.Atoms.drawTriangleLeft(panel, tx, ty, triSz, on)
     else
-        ZeD.Atoms.drawTriangleRight(panel, tx, ty, triSz, paper)
+        ZeD.Atoms.drawTriangleRight(panel, tx, ty, triSz, on)
     end
 end
 
