@@ -16,6 +16,7 @@ Windows
 - A fully rolled title bar splits evenly between its two halves.
 - The roll boxes are gone from the Character and World title bars. The pins stay.
 - The Equipment, Thermal, Identity and Skills tabs draw with far fewer calls.
+- Paper is dimmer: the survival guide, the reader, notebooks, the sticky note and paper maps no longer glare.
 
 Inventory
 - Dragging a closed stack moves the whole stack.
