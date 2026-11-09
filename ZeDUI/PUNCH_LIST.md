@@ -3155,10 +3155,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     over the "Right Click More" hint strip just above the belt, so they read as one line ("Back | key 1 More"). The
     belt's balloons sit clear of the hint strip (above it), or the strip steps aside while a belt balloon shows.
 
-132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; director's call).** In the List style, a submenu opens when
+132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; beta 11).** In the List style, a submenu opens when
     the pointer rests on its row (beta 9). In the Strip style, resting on Disassemble shows its balloon, but the
     submenu needs a click. Build's read: the strip should match the list (the same 0.18 s rest), since beta 9's note
-    didn't name the style. Ask the director before building.
+    didn't name the style. The director left it to Build (Nov 9): the strip matches the list.
 
 133. **Strip scrolling (QA's Mac run, Nov 9 2026; minor).** An overflowing strip scrolls one icon per arrow click and
     leaves the edge icon cut in half. Scroll a page of whole icons per click, and stop on whole icons.
