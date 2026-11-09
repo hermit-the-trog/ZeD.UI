@@ -2575,6 +2575,32 @@ local function pointerOverUI()
     return (not ok) or over
 end
 
+--- The things a drag from a list carries: a closed stack's row is every thing in
+--- the stack, as vanilla's drag moves the whole stack; an open stack's rows each
+--- carry their own thing. The grid opens no stacks, so a grid cell is always the
+--- whole stack. content: the list dragged from (its source column, if any, in
+--- content._dragSourceCol); items: the rows dragged. Returns a new list.
+local function dragItems(content, items, srcInventory)
+    local cs = content._dragSourceCol and content._colStates and content._colStates[content._dragSourceCol] or nil
+    local stacks = cs and cs.stacks or content._stacks
+    if not stacks then return items end
+    local open = (cs and cs.expandedStacks) or content._expandedStacks or {}
+    local grid = ZeD.InventoryRenderer.isGridKey(containerKeyOf(srcInventory or content._inventory, content._playerObj))
+    local out, seen = {}, {}
+    for _, item in ipairs(items) do
+        local stk = stacks[item]
+        local rows = (stk and stk.count > 1 and stk.items and (grid or not open[stk.key])) and stk.items or nil
+        if rows then
+            for _, si in ipairs(rows) do
+                if not seen[si] then seen[si] = true; out[#out + 1] = si end
+            end
+        elseif not seen[item] then
+            seen[item] = true; out[#out + 1] = item
+        end
+    end
+    return out
+end
+
 local function handleDrop(content, items, srcInventory)
     if not items or #items == 0 then return end
     ZeD.InventoryRenderer.dirtyModels()   -- (a drop moves things: every list model rebuilds)
@@ -2595,6 +2621,11 @@ local function handleDrop(content, items, srcInventory)
         local ok, took = pcall(ZeD.Belt.takeDrop, playerNum, items)
         if ok and took then return end
     end
+
+    -- From here on the drop is a move into a container or onto the floor: a row
+    -- dragged from a list carries its whole closed stack (the doll and the belt
+    -- above take the one thing). An Equip slot's drag is no list's (no source set).
+    if content._dragSourceInv ~= nil then items = dragItems(content, items, srcContainer) end
 
     -- A rolled-up side's tab (WindowCurtain) takes the drop for its container;
     -- otherwise: is the mouse over a different column (multi-column transfer)
@@ -2727,6 +2758,7 @@ ZeD.InventoryRenderer.countSelected              = countSelected
 ZeD.InventoryRenderer.findIndex                  = findIndex
 ZeD.InventoryRenderer.collectSelectedItems       = collectSelectedItems
 ZeD.InventoryRenderer.handleDrop                 = handleDrop
+ZeD.InventoryRenderer.dragItems                  = dragItems
 ZeD.InventoryRenderer.buildContainers            = buildContainers
 ZeD.InventoryRenderer.rebuildColStates           = rebuildColStates
 ZeD.InventoryRenderer.syncColStates              = syncColStates
