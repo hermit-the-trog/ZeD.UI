@@ -636,6 +636,44 @@ both(function(e) e.card._scrollPixels = 0 end)
 frame("shirt after the fold checks")
 
 -- ---------------------------------------------------------------------------
+-- B9A 7 (hotfix beta 9a): the card scrolls until its last row clears the care verbs' band at the foot (an
+-- opened "Used to make" list's last rows stayed behind the band: the scroll's end left the band out)
+-- ---------------------------------------------------------------------------
+section("B9A 7: the scroll's end clears the band at the foot")
+local function scrollEnd(e, band)
+    local c = e.card
+    if not c._sb then
+        -- the card's own initialise builds its scrollbar and the scroll's onScroll (the real one)
+        e.ISPanel.initialise = function() end
+        e.ZeD_ScrollbarState = { new = function() return { setScrollPos = function() end } end }
+        local keepLoad = c._loadFoldStates
+        c._loadFoldStates = function() end
+        e.ZeD_ItemCard.initialise(c)
+        c._loadFoldStates = keepLoad
+    end
+    c._contentH, c._headH, c._verbStripResvH = 2000, 100, band
+    c._sb.visible = true
+    c._sb.onScroll(1)   -- (the thumb, the wheel or the arrows at the bottom)
+    local byBar = c._scrollPixels
+    c._scrollPixels = 0
+    if c.scrollToContentY then c:scrollToContentY(1000000) end
+    local byJump = c._scrollPixels
+    c._scrollPixels, c._sb.visible = 0, false
+    return byBar, byJump, c:getHeight()
+end
+for _, band in ipairs({ 26, 44 }) do   -- (the band at Normal and at Large text)
+    local bar, jump, h = scrollEnd(NEW, band)
+    local want = 2000 - (h - 100 - band)
+    check("B9A 7: band " .. band .. ": the scroll's end puts the last row right above the band", bar == want, bar .. " want " .. want)
+    check("B9A 7: band " .. band .. ": a jump to the end (the controller's) stops there too", jump == want, jump .. " want " .. want)
+end
+if haveBase then
+    local bar, _, h = scrollEnd(OLD, 26)
+    check("TEETH: the old card's scroll stopped the band's height short", bar == 2000 - (h - 100), bar)
+end
+frame("shirt after the scroll checks")
+
+-- ---------------------------------------------------------------------------
 -- TEETH: a model kept with no readings would show stale numbers
 -- ---------------------------------------------------------------------------
 section("TEETH: with the readings taken away, the sim sees the stale card")
