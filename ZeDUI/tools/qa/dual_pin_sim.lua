@@ -1038,7 +1038,7 @@ do
         check("REST " .. key .. ": ... still rolled at 200 ms", w.windowShaded == true)
         CLOCK = CLOCK + 50; tick(1)
         check("REST " .. key .. ": a 350 ms rest on the bar brings it back", not w.windowShaded,
-            string.format("inv %s drw %s split %s rolled %s", tostring(w._halves.inv.rolled), tostring(w._halves.drawer.rolled), tostring(w._halves.lastSplit), tostring(w._rolled)))
+            string.format("inv %s drw %s split %s rolled %s", tostring(w._halves.inv.rolled), tostring(w._halves.drawer.rolled), tostring(H.split(w)), tostring(w._rolled)))
         -- an item held over the rolled bar still brings it down at once
         away(); w:setWindowShaded(true); tick(1)
         local content = w._lay.content
@@ -1047,6 +1047,48 @@ do
         CLOCK = CLOCK + 100; w:update()
         check("REST " .. key .. ": an item held over the rolled bar: down at once", not w.windowShaded)
         content._drag = nil
+    end
+    WW = nil
+end
+
+-- ===========================================================================
+-- EVEN (the director: "Split the bar evenly"): a window rolled to its title bar after its drawer folded
+-- gives each half half the bar to hover; a rest on each half brings back only that half. The pins keep
+-- their places. Both windows.
+-- ===========================================================================
+do
+    for _, key in ipairs({ "char", "world" }) do
+        -- staged: the drawer folds (the pointer on the inventory), then the pointer leaves and the window rolls up
+        local function staged()
+            PLAYER.md = { ZeD_WinPinned = { charInv = false, charTabs = false, worldInv = false, worldTabs = false } }
+            PLAYER.aiming = false
+            local w
+            if key == "char" then w = fresh(PLAYER.md.ZeD_WinPinned); WW = nil
+            else CW = nil; WW = makeWindow("world"); w = WW end
+            pointAt(w, (key == "char") and (36 + 300 + 100) or 100, 200)
+            tick(22)
+            away(); tick(22)
+            return w
+        end
+        local w = staged()
+        check("EVEN " .. key .. ": (staged) the drawer folded, then the whole window rolled", w.windowShaded and H.foldedTab(w) ~= nil)
+        local W = w:getWidth()
+        check("EVEN " .. key .. ": the rolled bar splits evenly", H.split(w) == math.floor(W / 2), H.split(w) .. " of " .. W)
+        local lp, rp = H.pinRect(w, "left"), H.pinRect(w, "right")
+        check("EVEN " .. key .. ": the pins keep their places (left after the close box, right before the window box)",
+            lp and rp and lp.x == 4 + 14 + 4 and rp.x == w:windowBoxRect().x - 4 - 14)
+        -- the drawer's half: a quarter of the way in from the drawer's end, well past the old sliver
+        local drawerX = (key == "char") and math.floor(W * 0.3) or math.floor(W * 0.7)
+        local invX = (key == "char") and math.floor(W * 0.7) or math.floor(W * 0.3)
+        pointAt(w, drawerX, 10); rest(); tick(3)
+        check("EVEN " .. key .. ": a rest on the drawer's half of the bar brings back only the drawer",
+            not w.windowShaded and w._drawerOpen and H.foldedTab(w) == nil and w._rolled == true,
+            tostring(w.windowShaded) .. " " .. tostring(w._drawerOpen) .. " " .. tostring(w._rolled))
+        w = staged()
+        pointAt(w, invX, 10); rest(); tick(3)
+        check("EVEN " .. key .. ": a rest on the inventory's half brings back only the inventory",
+            not w.windowShaded and not w._rolled and not w._drawerOpen and H.foldedTab(w) ~= nil,
+            tostring(w.windowShaded) .. " " .. tostring(w._rolled) .. " " .. tostring(w._drawerOpen))
     end
     WW = nil
 end
