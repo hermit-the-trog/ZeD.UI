@@ -21,8 +21,11 @@ local missing = {}
 step(60, function()
     was.video = core:getOptionDoVideoEffects()
     core:setOptionDoVideoEffects(false)
+    -- (Nov 9 2026: the default guide look is the book now; these pictures are the window, so the look is Simple for the run)
+    local lopt = ZeD.Settings and ZeD.Settings.guideStyleOption
+    if lopt then was.look = lopt:getValue(); pcall(function() lopt:setValue(2) end) end
     pcall(function() Mouse.setXY(sw - 4, sh - 4) end)
-    G.open(0)
+    if was.look then triggerEvent("OnKeyPressed", core:getKey(KeybindId.TOGGLE_SURVIVAL_GUIDE)) else G.open(0) end
 end)
 -- every topic, effects off: its still
 local N = 0
@@ -81,6 +84,7 @@ step(10, function()
     w._findField.onFilter(w._findField, "")
     w:close()
     core:setOptionDoVideoEffects(was.video)
+    if was.look then pcall(function() ZeD.Settings.guideStyleOption:setValue(was.look) end) end
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     say("put back: video effects " .. tostring(was.video))
     say(string.format("RESULT %d pass, %d fail", passes, fails))
