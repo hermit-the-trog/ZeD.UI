@@ -7,8 +7,8 @@ $Qa = $PSScriptRoot
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 $Rep = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression")
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }
-$Cache = "C:\Users\you\Zomboid\zedqa_mp"
-$Lua = "C:\Users\you\Zomboid\Lua"
+$Cache = "$($env:USERPROFILE)\Zomboid\zedqa_mp"
+$Lua = "$($env:USERPROFILE)\Zomboid\Lua"
 $Keep = Join-Path $env:TEMP "zedqa_mp_keep_tk"
 New-Item -ItemType Directory -Force $Keep | Out-Null
 Copy-Item "$Cache\db\zedqa.db" "$Keep\zedqa.db" -Force
@@ -21,7 +21,7 @@ function Phase($n) {
     Set-Content "$Lua\zedqa_tk_phase.txt" "$n" -NoNewline
     $o = & "$Qa\zedqa_run.ps1" -Manifest "$Qa\mp_tk_b.txt" -Mp -Mode windowed -Width 1280 -Height 800 -Report "$Rep\2026-11-05_tk_b$n.md" 2>&1
     Note "phase $n : $(($o | Select-Object -Last 1) -join ' ')"
-    Copy-Item "C:\Users\you\Zomboid\console.txt" "$Keep\console_phase$n.txt" -Force
+    Copy-Item "$($env:USERPROFILE)\Zomboid\console.txt" "$Keep\console_phase$n.txt" -Force
     $z = Get-ChildItem "$Cache\Logs" -Filter "*_ZeD.txt" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($z) { Copy-Item $z.FullName "$Keep\zed_log_phase$n.txt" -Force }
 }
@@ -45,7 +45,7 @@ try {
     if (-not $NoBig) {
     $o = & "$Qa\zedqa_run.ps1" -Manifest "$Qa\mp_tk_big.txt" -Mp -Mode windowed -Width 1280 -Height 800 -Report "$Rep\2026-11-05_tk_big.md" 2>&1
     Note "big list : $(($o | Select-Object -Last 1) -join ' ')"
-    Copy-Item "C:\Users\you\Zomboid\console.txt" "$Keep\console_big.txt" -Force
+    Copy-Item "$($env:USERPROFILE)\Zomboid\console.txt" "$Keep\console_big.txt" -Force
     Copy-Item "$Cache\server-stdout.txt" "$Keep\server_big.txt" -Force
     }
 }

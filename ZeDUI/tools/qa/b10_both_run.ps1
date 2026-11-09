@@ -1,4 +1,4 @@
-# QA (Nov 9 2026): the beta 10 true staged check from its own -cachedir (C:\Users\you\ZomboidStaged) at 4K, then on
+# QA (Nov 9 2026): the beta 10 true staged check from its own -cachedir (%USERPROFILE%\ZomboidStaged) at 4K, then on
 # the Deck (1280x800), with the reruns Build asked for (b10_stage.txt; no pnw: it pins the windows the scripts stage).
 # Each run goes through Start-Process with its output to a file and WaitForExit (never piped: the game it starts would
 # hold the pipe open). Lines go to b10_both_run.log as they happen.

@@ -10,7 +10,7 @@ import os, re, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-ZOMBOID = r"C:\Users\you\Zomboid"
+ZOMBOID = os.path.join(os.path.expanduser("~"), "Zomboid")
 SHOTS = os.path.join(ZOMBOID, "Screenshots")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ZOMBOID, r"mods\ZeD-UI\ZeDUI\qa\Oct30_tab_strips_clean")
 RX = re.compile(r"ZEDQA g3z rect (\S+) drawer (\d+) (\d+) (\d+) (\d+) window (\d+) (\d+) (\d+) (\d+) header (\d+) footer (\d+) tab (\S+)")

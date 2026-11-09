@@ -2,10 +2,10 @@
 # ZeDUI/tools/qa/batch_b6a_gallery_stage.ps1  (Nov 6 2026, QA): the Ranching pictures retaken on the hot fix (the save comes back after), then 0.3.0-beta6a staged and the true staged check.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Z = "C:\Users\you\Zomboid"
+$Z = "$($env:USERPROFILE)\Zomboid"
 $Shots = "$Z\Screenshots"
 $Save = "$Z\Saves\Sandbox\ZeD-QA"
-$KeepSave = "C:\Users\you\ZedQaSaveKeep_b6a"
+$KeepSave = "$($env:USERPROFILE)\ZedQaSaveKeep_b6a"
 if (Test-Path $KeepSave) { Write-Output "keep folder exists, stop"; exit 1 }
 $Before = "$Shots\gallery_t14\_before_b6a"
 New-Item -ItemType Directory -Force $Before | Out-Null

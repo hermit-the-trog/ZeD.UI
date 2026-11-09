@@ -9,9 +9,9 @@
 param([string]$Runs = "wo,seven")
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Mods = "C:\Users\you\Zomboid\mods"
+$Mods = "$($env:USERPROFILE)\Zomboid\mods"
 $Src = "C:\steamcmd\steamapps\workshop\content\108600"
-$Rec = "C:\Users\you\Zomboid\Lua\ZeD_step_aside.txt"
+$Rec = "$($env:USERPROFILE)\Zomboid\Lua\ZeD_step_aside.txt"
 $Ids = "3775026731 3835479468 3834708364 3832759095 3830103302 3834856444 3834889317 3834902827" -split " "
 $Out = [System.IO.Path]::GetFullPath("$Qa\..\..\qa")
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { "the game is running, stop"; exit 2 }
@@ -38,7 +38,7 @@ try {
         if ($run.first) { $a += "-ZeDFirst" }
         "== $($run.tag)"
         & pwsh @a 2>&1 | Select-Object -Last 14
-        Copy-Item "C:\Users\you\Zomboid\console.txt" "$Out\b8_console_$($run.tag).txt" -Force -ErrorAction SilentlyContinue
+        Copy-Item "$($env:USERPROFILE)\Zomboid\console.txt" "$Out\b8_console_$($run.tag).txt" -Force -ErrorAction SilentlyContinue
         # the record the run left (the hand-back), kept beside the console for the report, then the saved one back
         if (Test-Path $Rec) { Copy-Item $Rec "$Out\b8_step_aside_$($run.tag).txt" -Force -ErrorAction SilentlyContinue }
         if ($recBak) { [System.IO.File]::WriteAllBytes($Rec, $recBak) } elseif (Test-Path $Rec) { Remove-Item $Rec -Force }

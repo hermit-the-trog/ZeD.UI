@@ -1,6 +1,6 @@
 {
   "note": "Workshop gallery v3 (Oct 21 2026), from Screenshots/gallery_v3 (see INVENTORY.md there). High contrast + PZ Teal unless a picture says otherwise. Boxes and anchors in source pixels. Copy is manual style: say what each thing is and does. The Oct 20-21 set is in out/_v2_oct21. Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors and keep-clear boxes).",
-  "screens": "C:/Users/you/Zomboid/Screenshots/gallery_v3",
+  "screens": "~/Zomboid/Screenshots/gallery_v3",
   "out": "out",
   "patches": [
     [

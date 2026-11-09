@@ -70,9 +70,9 @@
     the game takes a square PNG of 256 or 512).
 
 .EXAMPLE
-    & C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -DryRun
+    & %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -DryRun
 .EXAMPLE
-    & C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-test1
+    & %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-test1
 .EXAMPLE
     & .../stage_workshop.ps1 -Version 0.3.0-beta1 -Title "ZeD-GUI [BETA]" -Description ZeDUI/workshop/tester_description_0.3.0-beta1.bbcode -ChangeNote ZeDUI/workshop/tester_changenote_0.3.0-beta1.txt -Preview ZeDUI/workshop/gallery/thumb_512_beta.png
 #>

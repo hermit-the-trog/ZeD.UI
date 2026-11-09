@@ -12,9 +12,9 @@
     Holds Zomboid/Lua/zedqa.lock. Exit 0 every check passed, 1 a failure, 2 refused.
 #>
 param([switch]$Quit)
-$Lua = "C:\Users\you\Zomboid\Lua"
+$Lua = "$($env:USERPROFILE)\Zomboid\Lua"
 $QA = $PSScriptRoot
-$log = "C:\Users\you\Zomboid\console.txt"
+$log = "$($env:USERPROFILE)\Zomboid\console.txt"
 $lock = Join-Path $Lua "zedqa.lock"
 if (-not (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue)) { "the game is not running"; exit 2 }
 if ((Get-Content $lock -Raw -ErrorAction SilentlyContinue) -match '^busy') { "the lock says busy; not starting"; exit 2 }

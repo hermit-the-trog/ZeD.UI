@@ -5,9 +5,9 @@
 # $env:ZEDQA_NOSTEAM = "1".
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Mods = "C:\Users\you\Zomboid\mods"
+$Mods = "$($env:USERPROFILE)\Zomboid\mods"
 $Src = "C:\steamcmd\steamapps\workshop\content\108600\3642084851"
-$Con = "C:\Users\you\Zomboid\console.txt"
+$Con = "$($env:USERPROFILE)\Zomboid\console.txt"
 $Out = [System.IO.Path]::GetFullPath("$Qa\..\..\qa")
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { "the game is running, stop"; exit 2 }
 $Copied = @()

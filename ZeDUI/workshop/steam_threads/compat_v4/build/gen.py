@@ -3,7 +3,7 @@
 import json, os, re, sys
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = r"C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\workshop\steam_threads\compat_v3"
+OUT = os.path.normpath(os.path.join(HERE, "..", "..", "compat_v3"))
 old = json.load(open(os.path.join(HERE, "old.json"), encoding="utf-8"))
 U = "https://steamcommunity.com/sharedfiles/filedetails/?id="
 DROP = {"3619862853"}  # ZombieBuddy: no plans to test Java mods

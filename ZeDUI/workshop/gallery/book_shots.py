@@ -13,7 +13,7 @@ each callout goes so it covers nothing), then sets the result as a page spread i
 
 Run (from the repo root, or anywhere with --root):
     python book_shots.py ZeDUI/workshop/shots/shots.json [--only id1,id2] [--out DIR]
-      --zomboid DIR   where the shot list's C:/Users/you/Zomboid paths really are (default: as written)
+      --zomboid DIR   where the shot list's ~/Zomboid paths really are (default: this user's home)
       --fonts DIR     ChicagoFLF.ttf, FiraSans-Regular/SemiBold.ttf, FiraMono-Bold.ttf (make_shots.py's fonts)
 """
 import argparse
@@ -31,7 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import page_px as pp   # noqa: E402
 
-ZOMBOID_AS_WRITTEN = "C:/Users/you/Zomboid"
+ZOMBOID_AS_WRITTEN = "~/Zomboid"
 OW, OH, S = pp.OW, pp.OH, pp.S
 
 
@@ -255,6 +255,7 @@ def main():
     ms = load_make_shots(release, fonts)
     screens = a.screens or spec["screens"]
     if a.zomboid: screens = screens.replace(ZOMBOID_AS_WRITTEN, a.zomboid)
+    screens = pp.home_path(screens)
     os.makedirs(a.out, exist_ok=True)
     if a.jpg:
         os.makedirs(a.jpg, exist_ok=True)

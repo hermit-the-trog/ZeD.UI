@@ -5,7 +5,7 @@ param([Parameter(Mandatory)][ValidateSet("McKline", "Kohners", "Plizken", "Laura
 $save = if ($Who -eq "Laura") { "ZeD-Shots-Rosa" } else { "ZeD-Shots-$Who" }
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
-$lua = "C:\Users\you\Zomboid\Lua"
+$lua = "$($env:USERPROFILE)\Zomboid\Lua"
 foreach ($f in "zedqa_click.txt", "zedqa_click_done.txt", "zedqa_click_stop.txt") { $p = Join-Path $lua $f; if (Test-Path $p) { Remove-Item $p -Force } }
 $helper = Start-Process pwsh -ArgumentList @("-NoProfile", "-File", (Join-Path $here "release_check_mouse.ps1")) -WindowStyle Hidden -PassThru
 try {

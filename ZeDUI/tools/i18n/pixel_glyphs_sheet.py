@@ -10,6 +10,7 @@ Usage: py -I pixel_glyphs_sheet.py [output.png]
 """
 import os
 import re
+import tempfile
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
@@ -17,9 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 CLIENT = os.path.join(ROOT, "42", "media", "lua", "client", "ZeD")
-DEFAULT_OUT = os.path.join(
-    os.environ.get("LOCALAPPDATA", ""), "Temp", "claude", "C--Users-you-Zomboid",
-    "bc20a731-3edf-404d-99ca-934f503e9abc", "scratchpad", "pixel_glyphs.png")
+DEFAULT_OUT = os.path.join(tempfile.gettempdir(), "pixel_glyphs.png")
 
 BG = (24, 26, 30)
 PANEL = (34, 37, 43)

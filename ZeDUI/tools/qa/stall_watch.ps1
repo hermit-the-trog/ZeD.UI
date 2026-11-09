@@ -5,8 +5,8 @@
 #   STALL  none of the watched files has changed for -Minutes (default 5): the run is waiting on something that
 #          is not happening (a dialog, a game that never opened, a server that never said ready)
 # It never stops or touches anything; it only reports. Usage:
-#   pwsh -File stall_watch.ps1 -RunPid 1234 -Minutes 5 -Files C:\Users\you\Zomboid\console.txt,C:\...\server-console.txt
-param([int]$RunPid = 0, [int]$Minutes = 5, [string[]]$Files = @("C:\Users\you\Zomboid\console.txt"))
+#   pwsh -File stall_watch.ps1 -RunPid 1234 -Minutes 5 -Files %USERPROFILE%\Zomboid\console.txt,C:\...\server-console.txt
+param([int]$RunPid = 0, [int]$Minutes = 5, [string[]]$Files = @("$($env:USERPROFILE)\Zomboid\console.txt"))
 function Stamp { ($Files | ForEach-Object { if (Test-Path $_) { (Get-Item $_).LastWriteTimeUtc.Ticks } else { 0 } } | Measure-Object -Maximum).Maximum }
 $Files = @($Files | ForEach-Object { $_ -split "," } | Where-Object { $_ })   # (-File passes a comma list as one string)
 $last = Stamp; $since = Get-Date

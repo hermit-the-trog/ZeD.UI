@@ -4,7 +4,7 @@
 # read the screen size, they never set it. Check Lua\zedqa.lock first; never while the game is already running.
 param([string]$Report = "")
 $Qa = $PSScriptRoot
-$Lua = "C:\Users\you\Zomboid\Lua"
+$Lua = "$($env:USERPROFILE)\Zomboid\Lua"
 if (-not $Report) { $Report = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression\$(Get-Date -Format yyyy-MM-dd_HHmm)_b9a.md") }
 Remove-Item "$Lua\zedqa_click_stop.txt", "$Lua\zedqa_click.txt" -ErrorAction SilentlyContinue
 $h = Start-Process pwsh -ArgumentList "-NoProfile", "-File", "$Qa\release_check_mouse.ps1", "-MaxMinutes", "30" -WindowStyle Hidden -PassThru

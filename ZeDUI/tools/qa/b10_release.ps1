@@ -5,8 +5,8 @@
 # beside it on that log and console.txt. The staged Workshop copy is held aside for the run and put back after.
 $here = $PSScriptRoot
 $log = Join-Path $here "b10_release.log"
-$Ws = "C:\Users\you\Zomboid\Workshop\ZeD-UI"
-$lock = "C:/Users/you/Zomboid/Lua/zedqa.lock"
+$Ws = "$($env:USERPROFILE)\Zomboid\Workshop\ZeD-UI"
+$lock = "$($env:USERPROFILE.Replace('\','/'))/Zomboid/Lua/zedqa.lock"
 function Say([string]$s) { "{0}  {1}" -f (Get-Date -Format "HH:mm:ss"), $s | Add-Content -LiteralPath $log }
 function Wait-Free {
     while ($true) {
@@ -32,7 +32,7 @@ try {
     Stage "2 regression" @("-File", "$here\zedqa_run.ps1", "-Mode", "fullscreen4k", "-Manifest", "$here\regression.txt", "-Report", "b10r_regression")
     Stage "3 tooltips and context menu" @("-File", "$here\zedqa_run.ps1", "-Mode", "fullscreen4k", "-Manifest", "$here\b10_check_manifest.txt", "-Report", "b10r_check")
     Stage "4 guide frames and bubble" @("-File", "$here\zedqa_run.ps1", "-Mode", "fullscreen4k", "-Manifest", "$here\b10_gframes_manifest.txt", "-Report", "b10r_gframes")
-    Stage "5 hotfix 9a scripts" @("-File", "$here\batch_b9a.ps1", "-Report", "C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-09_b10_b9a_4k.md")
+    Stage "5 hotfix 9a scripts" @("-File", "$here\batch_b9a.ps1", "-Report", "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-09_b10_b9a_4k.md")
     $empty = Join-Path $here "b8_empty_mods.txt"; Set-Content -LiteralPath $empty -Value ""
     Stage "6 corkboard" @("-File", "$here\zedqa_menu_mods_run.ps1", "-ModList", $empty, "-Script", "$here\zedqa_menunote_shot.lua", "-Tag", "mmn", "-TimeoutSec", "400")
 } finally {

@@ -8,7 +8,7 @@
     quits through the bridge and puts back default.txt, pz_modlist_settings.cfg, ModOptions.ini and zedqa.autoload.
     Upload is never pressed. Holds Zomboid/Lua/zedqa.lock. Exit 0 every script reached DONE, 1 one did not, 2 refused.
 #>
-$Zomboid = "C:\Users\you\Zomboid"
+$Zomboid = "$($env:USERPROFILE)\Zomboid"
 $Lua = Join-Path $Zomboid "Lua"
 $QA = $PSScriptRoot
 $log = Join-Path $Zomboid "console.txt"

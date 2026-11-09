@@ -3,9 +3,9 @@
 # options.ini goes back after; the pictures are moved by language.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Opt = "C:\Users\you\Zomboid\options.ini"
+$Opt = "$($env:USERPROFILE)\Zomboid\options.ini"
 $Keep = Join-Path $env:TEMP "options_lang_keep.ini"
-$Shots = "C:\Users\you\Zomboid\Screenshots"
+$Shots = "$($env:USERPROFILE)\Zomboid\Screenshots"
 Copy-Item $Opt $Keep -Force
 try {
     foreach ($lang in "DE", "RU") {

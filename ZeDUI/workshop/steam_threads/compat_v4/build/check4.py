@@ -3,7 +3,7 @@
 import os, re, sys, json
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = os.path.dirname(os.path.abspath(__file__))
-NEW = r"C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\workshop\steam_threads\compat_v4"
+NEW = os.path.normpath(os.path.join(HERE, ".."))
 LIMIT = 7800
 ID = re.compile(r"sharedfiles/filedetails/\?id=(\d+)")
 v3 = set(json.load(open(os.path.join(HERE, "v3_mods.json"), encoding="utf-8")))

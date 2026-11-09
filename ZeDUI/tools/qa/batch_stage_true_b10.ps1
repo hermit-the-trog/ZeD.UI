@@ -5,9 +5,9 @@
 # loaded. Stops at the check: the upload is the director's.
 param([string]$Tag = "4k", [int]$Width = 0, [int]$Height = 0, [string]$Manifest = "b10_stage.txt")
 $Qa = $PSScriptRoot
-$Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
-$Z = "C:\Users\you\Zomboid"
-$Stg = "C:\Users\you\ZomboidStaged"
+$Root = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI"
+$Z = "$($env:USERPROFILE)\Zomboid"
+$Stg = "$($env:USERPROFILE)\ZomboidStaged"
 $env:ZEDQA_NOSTEAM = "1"
 $Out = "$Root\ZeDUI\qa\stage_true_b10_$Tag.txt"
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }

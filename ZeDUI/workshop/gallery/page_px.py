@@ -15,6 +15,13 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def home_path(p):
+    """A path starting with ~ in a shot list is under this user's home folder."""
+    if isinstance(p, str) and p.startswith("~"):
+        return os.path.expanduser(p).replace(chr(92), "/")
+    return p
 FD = os.path.join(HERE, "fonts")
 BALL = os.path.join(FD, "Caveat.ttf") if os.path.exists(os.path.join(FD, "Caveat.ttf")) else os.path.join(FD, "WnznHAc5bAfYB2QRah7pcpNvOx-pjRV6SII.ttf")
 def _font(name, fallback):
@@ -174,8 +181,9 @@ def render(shot, screens, out):
     # the figures: crop 0 on the left page, crop 1 on the right (more crops share a page later)
     src_cache = {}
     def get(name):
+        name = home_path(name)
         p = name if os.path.isabs(name) or ":" in name[:3] else os.path.join(screens, name)
-        p = p.replace("C:/Users/you/Zomboid/Screenshots", screens.rsplit("/", 1)[0]) if not os.path.exists(p) else p
+        p = p.replace(home_path("~/Zomboid/Screenshots"), screens.rsplit("/", 1)[0]) if not os.path.exists(p) else p
         if p not in src_cache: src_cache[p] = Image.open(p).convert("RGB")
         return src_cache[p]
     crops = shot.get("crops", [])
@@ -254,7 +262,7 @@ def render(shot, screens, out):
 if __name__ == "__main__":
     spec = json.load(open(sys.argv[1]))
     shot = next(s for s in spec["shots"] if s.get("id") == sys.argv[3])
-    render(shot, sys.argv[2], sys.argv[4])
+    render(shot, home_path(sys.argv[2]), sys.argv[4])
 
 
 def art_layer_close(seed, side="right"):
