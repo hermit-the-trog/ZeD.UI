@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: avaa aihe",
     "UI_ZeD_Guide_HelpOpenSection": "%1: näytä sen aiheet",
     "UI_ZeD_Guide_HelpFoldSection": "%1: piilota sen aiheet",
-    "UI_ZeD_Guide_HelpStartup": "Avaa opas itsestään pelin alkaessa",
+    "UI_ZeD_Guide_HelpStartup": "Tarjoa selviytymisopas kuplana Viesteistä pelin ensimmäisellä käynnistyskerralla.",
     "UI_ZeD_Guide_HelpPrev": "Tätä edeltävä aihe",
     "UI_ZeD_Guide_HelpNext": "Tätä seuraava aihe",
     "UI_ZeD_Guide_Bubble": "Uusi Knoxin piirikunnassa? Tutustu tähän kätevään selviytymisoppaaseen. Älä enää vaihda ikkunaa tiedon takia: napsauta tätä puhekuplaa tai paina sen sijaan %1. Voit sulkea tämän kuplan milloin tahansa.",

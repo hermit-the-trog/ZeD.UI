@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: 이 주제 열기",
     "UI_ZeD_Guide_HelpOpenSection": "%1: 주제 보기",
     "UI_ZeD_Guide_HelpFoldSection": "%1: 주제 숨기기",
-    "UI_ZeD_Guide_HelpStartup": "게임을 시작할 때 지침서를 자동으로 열기",
+    "UI_ZeD_Guide_HelpStartup": "처음 게임을 시작할 때 메시지에서 말풍선으로 생존 가이드를 안내합니다.",
     "UI_ZeD_Guide_HelpPrev": "이 주제의 앞 주제",
     "UI_ZeD_Guide_HelpNext": "이 주제의 다음 주제",
     "UI_ZeD_Guide_Bubble": "녹스 카운티가 처음이신가요? 이 편리한 생존 가이드를 확인해 보세요. 정보를 찾으려고 Alt+Tab을 누르지 마세요. 이 말풍선을 클릭하거나 대신 %1 키를 누르세요. 이 말풍선은 언제든 닫을 수 있습니다.",

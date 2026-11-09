@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: åpne dette emnet",
     "UI_ZeD_Guide_HelpOpenSection": "%1: vis emnene",
     "UI_ZeD_Guide_HelpFoldSection": "%1: skjul emnene",
-    "UI_ZeD_Guide_HelpStartup": "Åpne guiden av seg selv når et spill starter",
+    "UI_ZeD_Guide_HelpStartup": "Tilby overlevelsesguiden i en snakkeboble fra Meldinger første gang et spill starter.",
     "UI_ZeD_Guide_HelpPrev": "Emnet før dette",
     "UI_ZeD_Guide_HelpNext": "Emnet etter dette",
     "UI_ZeD_Guide_Bubble": "Ny i Knox County? Ta en titt på denne praktiske overlevelsesguiden. Slutt å alt-tabbe for å finne informasjon: klikk på denne snakkeboblen eller trykk %1 i stedet. Du kan lukke denne snakkeboblen når som helst.",

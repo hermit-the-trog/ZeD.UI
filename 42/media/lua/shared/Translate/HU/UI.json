@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: téma megnyitása",
     "UI_ZeD_Guide_HelpOpenSection": "%1: témáinak megjelenítése",
     "UI_ZeD_Guide_HelpFoldSection": "%1: témáinak elrejtése",
-    "UI_ZeD_Guide_HelpStartup": "A játék indulásakor magától nyíljon meg az útmutató",
+    "UI_ZeD_Guide_HelpStartup": "A túlélési útmutató felajánlása buborékban az Üzenetekből a játék első indításakor.",
     "UI_ZeD_Guide_HelpPrev": "Az előző téma",
     "UI_ZeD_Guide_HelpNext": "A következő téma",
     "UI_ZeD_Guide_Bubble": "Új vagy Knox megyében? Nézd meg ezt a hasznos túlélési útmutatót. Ne válts többé ablakot információkért: kattints erre a buborékra, vagy inkább nyomd meg a(z) %1 gombot. Ezt a buborékot bármikor elvetheted.",

@@ -4403,7 +4403,7 @@
     "UI_ZeD_Guide_HelpTopic": "%1: dit onderwerp openen",
     "UI_ZeD_Guide_HelpOpenSection": "%1: onderwerpen tonen",
     "UI_ZeD_Guide_HelpFoldSection": "%1: onderwerpen verbergen",
-    "UI_ZeD_Guide_HelpStartup": "De gids zelf openen als een spel begint",
+    "UI_ZeD_Guide_HelpStartup": "Bied de overlevingsgids aan in een tekstballon uit Berichten de eerste keer dat een spel start.",
     "UI_ZeD_Guide_HelpPrev": "Het onderwerp voor dit",
     "UI_ZeD_Guide_HelpNext": "Het onderwerp na dit",
     "UI_ZeD_Guide_Bubble": "Nieuw in Knox County? Bekijk deze handige overlevingsgids. Stop met alt-tabben voor informatie: klik op deze tekstballon of druk in plaats daarvan op %1. Je kunt deze tekstballon op elk moment sluiten.",
