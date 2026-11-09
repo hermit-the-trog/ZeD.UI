@@ -153,9 +153,11 @@ local function composeWorldTitle(win)
     if win._rolled then return end
     local base = win._titleBase or ZeD.tr("UI_ZeD_World_Title")
     local sub = nil
-    if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
+    -- (a tab drawer rolled in by its half keeps its tab in the title, WindowHalves)
+    local tabId = (win._drawerOpen and win._drawerMode == "tab" and win._activeTab) or ZeD.Halves.foldedTab(win)
+    if tabId then
         for _, tab in ipairs(WORLD_TABS) do
-            if tab.id == win._activeTab then
+            if tab.id == tabId then
                 sub = ZeD_WorldWindow.tabLabel(tab)
                 break
             end
