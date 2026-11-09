@@ -17,6 +17,9 @@ Without it nothing breaks: those calls wait for the next staff member to log in,
 - `setaccesslevel` is only for the end of a ban. The game's unban puts the account back to a plain user, so ZeD gives back
   the role the player had when banned (a moderator comes back a moderator). The helper takes only that one role call, marked
   as such by ZeD's server, with a role of 1 to 32 plain letters, digits or `_`. Any other role change is a staff member's own.
+  The restore applies to unprotected roles such as `gm`. Moderator and admin carry the game's `CantBeBannedByUser`, so
+  ZeD's server answers "protected" and makes no ban for them: there is no ban to end and no role to restore. ZeD's
+  admin cards say so before the press, with the Ban button grayed and the reason on the card.
 - IP bans are never the helper's: the game's IP ban needs the player's own connection, which only a staff member's game has.
 - A mute's chat side is not the helper's. The server cannot reach the game's chat; ZeD's mute is kept by each player's ZeD.
   The helper makes only a mute's voice ban (the game's own `/voiceban`), which the game holds for one connection, so ZeD owes

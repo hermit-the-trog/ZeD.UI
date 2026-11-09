@@ -922,6 +922,15 @@ function P.act(win, st, card, send, okText)
     end)
 end
 
+--- The words when this role cannot be banned, else nil. Moderator and admin carry the game's CantBeBannedByUser, so
+--- ZeD's server answers "protected" and makes no ban; saying so before the press saves the trip. Roles without it
+--- (gm, observer, user) are banned as ever, and their role comes back at the end of a timed ban.
+function P.banProtected(roleName)
+    local r = roleName and M.role(roleName)
+    if r and r.caps and r.caps.CantBeBannedByUser then return tr("UI_ZeD_Adm_BanProtected", roleName) end
+    return nil
+end
+
 function P.acts(items, win, st, card, row, view, t)
     local user = card.user
     local function isOn()
@@ -965,11 +974,15 @@ function P.acts(items, win, st, card, row, view, t)
             end }, "BanUnbanUser")
     elseif row.role ~= "banned" then
         ctls[6] = F.gate({ id = "ban", text = getText("IGUI_UserList_Ban"), danger = true, help = tr("UI_ZeD_Adm_HelpBan"),
-            run = function(ww) P.openPart(ww, st, card, "ban", "tk:f:reason") end }, "BanUnbanUser")
+            run = function(ww) P.openPart(ww, st, card, "ban", "tk:f:reason") end }, "BanUnbanUser", function() return P.banProtected(row.role) end)
     end
     for _, c in pairs(ctls) do c.onGray = function(why) P.say(card, why) end end
     F.flow(items, ctls)
-    if card.said then items[#items + 1] = { k = "aline", text = card.said, tone = "text" } end
+    -- a role that cannot be banned: the reason stands in the card before any press (the Ban button is gray, and a
+    -- press on it says the same in the help band)
+    local safe = (not ban and row.role ~= "banned") and P.banProtected(row.role) or nil
+    if safe then items[#items + 1] = { k = "aline", text = safe, tone = "text" } end
+    if card.said and card.said ~= safe then items[#items + 1] = { k = "aline", text = card.said, tone = "text" } end
 end
 
 function P.openPart(win, st, card, part, focus)
@@ -1068,7 +1081,10 @@ function P.banPart(items, win, st, card)
                         P.closePart(ww, st, card, "tk:back")
                         M.loadCard(user, true)
                     end)
-                end }, nil, function() return P.timedGate(card) or P.reasonGate(win)() end),
+                end }, nil, function()
+                    local r = M.row(user)
+                    return P.banProtected(r and r.role) or P.timedGate(card) or P.reasonGate(win)()
+                end),
         })
     end)
 end
@@ -1700,7 +1716,9 @@ function P.bansItems(win, st, t, card)
             if target == "" then return tr("UI_ZeD_Adm_WriteTarget") end
             if F.text(win, "breason") == "" then return tr("UI_ZeD_Adm_WriteReason") end
             if Adm.targetKind(target) == "ip" and Adm.LENGTH[card.len].sec then return tr("UI_ZeD_Adm_IpPermOnly") end
-            return P.timedGate(card)
+            -- (a name typed in that belongs to a protected role: said before the press, as on the player's card)
+            local r = M.row(target)
+            return P.banProtected(r and r.role) or P.timedGate(card)
         end) })
     local rows = M.banRows()
     B.label(items, tr("UI_ZeD_Adm_Banned2"), tostring(#rows))

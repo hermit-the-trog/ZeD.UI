@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/guide_bubble.txt  (Nov 8 2026): punch list 122, the survival guide as a belt bubble (zedqa_run.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_guide_bubble.lua | gbub | timeout=180

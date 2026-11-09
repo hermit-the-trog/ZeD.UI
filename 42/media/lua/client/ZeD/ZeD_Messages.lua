@@ -164,15 +164,21 @@ end
 -- pn: the player the notice is for (its balloon comes out of that player's note; nil: player one)
 -- force: shown whatever ZeD setup's notices setting says (a controller plugged in or unplugged: they replace
 -- windows the game always showed)
-local function toast(kind, head, name, text, pn, force)
+-- opts (optional, for a notice that does something): ms = how long it stays, run = what a click on it does (it then
+-- goes), dismiss = what a right-click on it does (it goes), long = room for a longer text, bare = the text without the
+-- source's name before it
+local function toast(kind, head, name, text, pn, force, opts)
     if not force and not toastOn() then return end
-    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS, pn = pn }
+    opts = opts or {}
+    local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + (opts.ms or TOAST_MS), pn = pn,
+        run = opts.run, dismiss = opts.dismiss, long = opts.long, bare = opts.bare }
     for i = #M.toasts, 1, -1 do
         local o = M.toasts[i]
         if o.source == name and o.head == head and o.pn == pn then table.remove(M.toasts, i) end
     end
     M.toasts[#M.toasts + 1] = t
     while #M.toasts > 3 do table.remove(M.toasts, 1) end
+    return t
 end
 
 function M.add(name, kind, item)
@@ -247,10 +253,29 @@ end
 
 -- a notice of ZeD's own (every ZeD notice comes out of Messages): filed under head,
 -- with the toast out of the belt's Messages note
-function M.notice(head, text)
-    local it = M.add(head, "mods", { k = "notice", text = text })
-    toast("warn", head, head, text)
-    return it
+--- opts (optional): key = this notice again is the same line (a repeat toasts the line it has, adds none), run = what
+--- a click on the balloon and the line's Open button do, dismiss = what a right-click on the balloon does, ms = how
+--- long the balloon stays, long = a long text (the balloon gets more lines), pn = the player whose belt it comes from.
+--- The survival guide's bubble uses all of them (ZeD_GuideBubble.lua).
+function M.notice(head, text, opts)
+    opts = opts or {}
+    local it = nil
+    if opts.key then
+        local s = M.sources[head]
+        for _, x in ipairs(s and s.items or {}) do
+            if x.k == "notice" and x.key == opts.key then it = x; break end
+        end
+    end
+    if not it then it = M.add(head, "mods", { k = "notice", text = text, key = opts.key, run = opts.run }) end
+    local t = toast("warn", head, head, text, opts.pn, false, { ms = opts.ms, run = opts.run, dismiss = opts.dismiss, long = opts.long, bare = opts.run ~= nil })
+    return it, t
+end
+
+--- Takes a balloon off the screen (clicked or dismissed); the line in Messages stays.
+function M.dropToast(t)
+    for i = #M.toasts, 1, -1 do
+        if M.toasts[i] == t then table.remove(M.toasts, i) end
+    end
 end
 
 -- notes any player can cause: the oldest of this kind goes past its cap, and only that kind

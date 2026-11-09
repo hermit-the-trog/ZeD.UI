@@ -3080,7 +3080,20 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     information: click this bubble or press F1 instead. You can dismiss this bubble at any time." Why a bubble: "that
     introduces them to notifications, and it introduces them to the survival guide. Two birds, one notification." On a controller, the key shown follows the guide's device-aware keys, and
     the director sees that variant before it ships.
+    BUILT (Nov 8 2026, beta 10): ZeD_GuideBubble.lua. ZeD's start handler no longer opens the guide and the game's is
+    off the event. 30 s after player one is playable, a long balloon comes out of the belt's Messages note (bubble text
+    UI_ZeD_Guide_Bubble, 28 languages): a click opens the guide, a right-click dismisses it, the line stays in Messages
+    with an Open. It comes back every 12 minutes through the first hour of play (real time) until opened, dismissed or
+    the line is cleared. Once ever per machine (Zomboid/Lua/ZeD_guidebubble.txt, written at the first showing); skipped
+    on a server, in the tutorial, with the game's "Show the guide on startup" unticked, and with balloons off in ZeD
+    setup. On a controller the key words are "D-pad Right, then Survival Guide" (the Help wheel), for the director's eye.
+    Sim: guide_bubble_sim.lua; in game: zedqa_guide_bubble.lua (manifest guide_bubble.txt).
 123. **Ban button says why a protected role can't be banned (QA, Nov 8 2026; beta 10).** Moderator and admin carry the
     game's CantBeBannedByUser, so ZeD's server answers "protected" and no timed ban is made. The Ban button or its
     help line should say so plainly before the press (and the admin docs should note that the end-of-ban role restore
     applies to unprotected roles such as gm). From ZeDUI/qa/B9_HELPER_ROLE_CHECK_20261108.md.
+    BUILT (Nov 8 2026, beta 10): the player card's Ban, the ban part's Ban and the Bans screen's typed-name Ban gray out
+    with "A player with the %1 role can't be banned. The game protects that role." (UI_ZeD_Adm_BanProtected, 28
+    languages), and the player card carries the same line before any press. The users list's IP and Steam ID bans
+    already said so with the game's own words. The end-of-ban restore note is in server_helper/README.md. Sim: the
+    protected-role section of admin_cards_sim.lua; in-game: the player-protected-* states of mp_admin_cards.lua.
