@@ -35,3 +35,6 @@ ZeDUI/workshop/gallery/out_book/
 ZeDUI/workshop/gallery/out/
 # thumb_px.py's scratch card (written beside it, removed after each run)
 ZeDUI/workshop/gallery/_thumb_card.png
+
+# local Claude Code files (settings, hookify rules, worktrees): never in the public repo (the director, Nov 9 2026)
+.claude/
