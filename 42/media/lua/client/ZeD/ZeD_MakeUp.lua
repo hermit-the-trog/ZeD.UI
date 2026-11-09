@@ -84,20 +84,36 @@ end
 
 -- the game's mirror rule, asked of its own menu function on a stand-in menu (one option: available or not, and why)
 local function recorder()
-    local rec = { options = {} }
+    -- numOptions counts as the game's menu does, from 1 (the next option's place): a mod that patches the menu function
+    -- reads the option it just made as options[numOptions - 1] (Ellie's Tattoo Parlor does)
+    local rec = { options = {}, numOptions = 1 }
     function rec:addOption(name, target, onSelect, p1)
         local o = { name = name, target = target, onSelect = onSelect, param1 = p1 }
         self.options[#self.options + 1] = o
+        self.numOptions = self.numOptions + 1
         return o
     end
     return setmetatable(rec, { __index = function() return function() end end })
 end
-local STAND_IN = { getFullType = function() return "" end }
+-- a make-up item with no kind: what the menu function and the mods' patches of it read (full type, kind, name), and
+-- nothing they would take for a tattoo
+local STAND_IN = {
+    getFullType = function() return "" end,
+    getMakeUpType = function() return "" end,
+    getDisplayName = function() return "" end,
+}
 function MU.mirror(p, item)
     local fn = ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.doMakeUpMenu
     if not (p and fn) then return false, getText("Tooltip_NeedMirror") end
     local rec = recorder()
     local ok, err = pcall(fn, rec, item or STAND_IN, p)
+    if not ok and item then
+        -- a patch can choke on the real item; the rule is the same for the stand-in (but the foundation, which is
+        -- its own mirror)
+        if ZeD.logOnce then ZeD.logOnce("makeup mirror item", err) end
+        rec = recorder()
+        ok, err = pcall(fn, rec, STAND_IN, p)
+    end
     if not ok then
         if ZeD.logOnce then ZeD.logOnce("makeup mirror", err) end
         return false, getText("Tooltip_NeedMirror")

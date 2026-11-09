@@ -516,6 +516,11 @@ for _, prof in ipairs(PROFILES) do
                 frame("admin", p, prof.w, prof.h)
                 local list = verify(name, "admin", p, prof.w, prof.h)
                 whyAll(name, list)
+                -- (a state that checks itself, as the in-game run does: the protected-role states of punch list 123)
+                if s.check then
+                    ZeD_WorldWindow.getWindow = function() return WINS.admin end
+                    check(name .. " self-check", s.check(win, st) == true)
+                end
                 local t = st.tk
                 local sc = st.card and t.scroll or st.scroll
                 if sc.visible then
@@ -701,6 +706,61 @@ local a = sent("a_ban")
 check("the ban goes with its length, on the row's name", a and a.user == "Kade_R" and a.target == nil and a.len == "d1" and a.banIp == false and a.sid == nil)
 ack("a_ban", { id = 3 })
 check("no game call from the card: the server owes it", #SEND == 0 and #GAMECALLS == 0)
+
+-- punch list 123: the Ban button says why a protected role cannot be banned. Moderator and admin carry the game's
+-- CantBeBannedByUser, so the server answers "protected" and makes no ban; the card says so before the press
+do
+    -- (fresh() rebuilds the roles and the rows from the mockup, so each case sets its own roles after it)
+    local function prep(protectedMod, userRoles)
+        fresh()
+        for _, r in ipairs(M.qaRoles) do
+            if r.name == "moderator" or r.name == "admin" then r.caps.CantBeBannedByUser = protectedMod or nil end
+            if r.name == "GM" then r.caps.CantBeBannedByUser = nil end
+        end
+        for user, role in pairs(userRoles or {}) do M.row(user).role = role end
+    end
+    local function aline(text)
+        for _, it in ipairs(st.tk.items or {}) do if it.k == "aline" and it.text == text then return true end end
+        return false
+    end
+    local why = ZeD.tr("UI_ZeD_Adm_BanProtected", "moderator")
+    check("protected: the sentence names the role and says it cannot be banned", string.find(why, "moderator", 1, true) and string.find(why, "can't be banned", 1, true), why)
+    prep(true)
+    press("adm:tk:p:Rosa")
+    check("protected: Ban is gray with that sentence", grayWhy("tk:ban") == why, grayWhy("tk:ban"))
+    check("protected: the card says it before any press", aline(why))
+    press("tk:ban")
+    check("protected: a press opens no ban part and sends nothing", st.card.open ~= "ban" and sent("a_ban") == nil)
+    check("protected: Kick is not touched", grayWhy("tk:kick") == nil)
+    -- an admin is protected too, with its own name in the sentence
+    prep(true)
+    press("adm:tk:p:Hermit")
+    check("protected: an admin's card says the same with admin", grayWhy("tk:ban") == ZeD.tr("UI_ZeD_Adm_BanProtected", "admin"), grayWhy("tk:ban"))
+    -- gm has no protection: Ban works, and the card carries no such line
+    prep(true, { Rosa = "GM" })
+    press("adm:tk:p:Rosa")
+    check("unprotected gm: Ban is not gray", grayWhy("tk:ban") == nil, grayWhy("tk:ban"))
+    check("unprotected gm: no protected line", not aline(ZeD.tr("UI_ZeD_Adm_BanProtected", "GM")))
+    press("tk:ban")
+    check("unprotected gm: the ban part opens", st.card.open == "ban")
+    typeIn("reason", "Griefing")
+    check("unprotected gm: Ban lights with a reason", grayWhy("tk:byes") == nil, grayWhy("tk:byes"))
+    -- a moderator role without the protection (a server that changed its roles) is banned as ever
+    prep(false)
+    press("adm:tk:p:Rosa")
+    check("a moderator without the protection is banned as ever", grayWhy("tk:ban") == nil, grayWhy("tk:ban"))
+    -- the Bans screen's typed name: a protected player's name grays Ban with the same sentence
+    prep(true)
+    press("adm:tk:sum:bans")
+    typeIn("btarget", "Rosa")
+    typeIn("breason", "Griefing")
+    check("typed name of a protected role: Ban says why", grayWhy("tk:bgo") == why, grayWhy("tk:bgo"))
+    typeIn("btarget", "Kade_R")
+    check("typed name of a user: Ban lights", grayWhy("tk:bgo") == nil, grayWhy("tk:bgo"))
+    -- and the same mockup state as the flows below expect
+    prep(true)
+    press("adm:tk:p:Kade_R")
+end
 
 -- warning points
 clear()

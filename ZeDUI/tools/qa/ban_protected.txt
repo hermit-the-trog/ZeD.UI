@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/ban_protected.txt  (Nov 8 2026): punch list 123, the Ban button says why a protected role cannot be banned
+# (the Admin tab's own states of mp_admin_cards.lua; the player-protected-* and player-unprotected-* states check themselves:
+# grep "ZEDQA mac" for PASS / FAIL, pictures mac_player-protected-moderator.png and its neighbors)
+#   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/ban_protected.txt
+mp_admin_cards.lua | mac | timeout=300

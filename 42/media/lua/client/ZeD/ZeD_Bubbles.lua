@@ -557,20 +557,25 @@ end
 -- ---------------------------------------------------------------------------
 B.NOTICE_MAXW = 150      -- a notice's line wraps here
 B.NOTICE_LINES = 4       -- past this the last line kept ends "..."
+B.NOTICE_LONG_MAXW = 230  -- a long notice's line wraps here (the survival guide's bubble)
+B.NOTICE_LONG_LINES = 9   -- and keeps this many lines
 B.NOTICE_EDGE = 4        -- from the screen's edge
 
 -- a notice's lines: what it is (its head), then what it is about, in the balloon's face; and the widest one
-function B.noticeLines(head, body)
+function B.noticeLines(head, body, long)
     local lines, tw = {}, 0
+    -- (a long notice, the survival guide's bubble, wraps wider and keeps more lines; the others are as before)
+    local maxW = long and B.NOTICE_LONG_MAXW or B.NOTICE_MAXW
+    local maxLines = long and B.NOTICE_LONG_LINES or B.NOTICE_LINES
     for _, part in ipairs({ head or "", body or "" }) do
         local t = B.clean(part)
         if t ~= "" then
-            local ls = B.wrap(t, B.NOTICE_MAXW)
+            local ls = B.wrap(t, maxW)
             for i = 1, #ls do lines[#lines + 1] = ls[i] end
         end
     end
-    if #lines > B.NOTICE_LINES then
-        while #lines > B.NOTICE_LINES do table.remove(lines) end
+    if #lines > maxLines then
+        while #lines > maxLines do table.remove(lines) end
         lines[#lines] = lines[#lines] .. "..."
     end
     for i = 1, #lines do tw = math.max(tw, P.textWidth(lines[i], "57", 1)) end
