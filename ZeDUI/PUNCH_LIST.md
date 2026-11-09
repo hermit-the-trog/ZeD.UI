@@ -3130,3 +3130,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     A saved Orange stays Orange: PZ's mod options file keeps every option once it's saved, so a player who left
     Orange alone can't be told from one who chose it, and nobody's colors change under them. Not a design change to
     any component, so no mockup; QA pictures the main menu, a window and a balloon in Teal at 4K and Deck.
+
+128. **The gallery book's running head uses a middle dot (QA, Nov 9 2026).** Every left page reads
+    "Bitchin' znix Programs · Doidbros & Buzzlord", against the never-"·" rule. The book is a printed prop, so a hyphen:
+    "Bitchin' znix Programs - Doidbros & Buzzlord". It's in every spread's "head" (spreads/*.json) and any default in
+    spread.py/title_spread.py. Change all at once, then re-render all 70 pictures with the next full gallery refresh,
+    not one page at a time.

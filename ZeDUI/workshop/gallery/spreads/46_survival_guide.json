@@ -7,7 +7,7 @@
  ],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  \u00b7  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
   "blocks": [
    {
     "chapter": [
@@ -19,7 +19,7 @@
     "p": "The Survival Guide opens with *F1*. It has two looks, chosen in *ZeD setup*: *Full*, a 1987 manual, and *Simple*, a plain window. A page shows your keys, or your controller's buttons."
    },
    {
-    "at": 662
+    "at": 700
    },
    {
     "caption": [
@@ -40,11 +40,10 @@
     "scale": 0.26,
     "at": [
      270,
-     300
+     340
     ],
     "tape": [
-     "tl",
-     "br"
+     "l"
     ]
    },
    {
@@ -58,11 +57,10 @@
     "scale": 0.26,
     "at": [
      526,
-     300
+     340
     ],
     "tape": [
-     "t",
-     "br"
+     "r"
     ]
    },
    {
@@ -76,7 +74,7 @@
     "scale": 0.33,
     "at": [
      270,
-     716
+     756
     ],
     "tape": [
      "tl",
