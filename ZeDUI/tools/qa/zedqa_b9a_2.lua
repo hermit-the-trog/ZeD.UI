@@ -98,6 +98,18 @@ local function drag(label, fromWin, fullType, nth, to)
     local sx, sy
     -- (the row scrolled into the list's view first: a long list keeps it below, and a press there lands elsewhere)
     addWhen(5000, function() local w = fromWin(); return w ~= nil and revealRow(w, (rowOf(w, fullType, nth))) end, function() end)
+    -- (and the row still: the World list rebuilds as new floor items arrive, and at Deck size a window can still be
+    -- settling; a press read off a moving row lands beside it and no drag starts. The Deck run's first drag did.)
+    local lastPt
+    addWhen(3000, function()
+        local w = fromWin()
+        local _, x, y = nil, nil, nil
+        if w then _, x, y = rowOf(w, fullType, nth) end
+        local pt = x and (x .. "," .. y .. "," .. w:getAbsoluteX() .. "," .. w:getWidth()) or nil
+        local still = pt ~= nil and pt == lastPt
+        lastPt = pt
+        return still
+    end, function() end)
     add(300, function()
         sx, sy = nil, nil
         local w = fromWin()
