@@ -55,6 +55,36 @@ local function rowOf(win, fullType)
     end
 end
 local function barMid(w) return math.floor(w:getAbsoluteX() + w:getWidth() / 2), math.floor(w:getAbsoluteY() + w:titleBarHeight() / 2) end
+-- Is the row really under its point (the list's own hit zone there is that thing)? A long list keeps rows past its
+-- view: their render y is beyond the list, and a press there landed on another row or off the window.
+local function rowShown(win, it)
+    local c = win and win._mainContent
+    local y = it and c and c._itemRenderYMap and c._itemRenderYMap[it]
+    if not y or not c.hitZoneAt then return false end
+    local x = (c._itemRenderXMap and c._itemRenderXMap[it]) or 0
+    local cell = c._gridCell
+    local lx, ly = x + (cell and cell / 2 or 170), y + (cell and cell / 2 or ZeD.T.rowH / 2)
+    if ly < 0 or ly >= c:getHeight() then return false end
+    local z = c:hitZoneAt(lx, ly)
+    return z ~= nil and z.id == it
+end
+-- one wheel notch toward the row each call (an addWhen condition, once a frame): true once it shows
+local function revealRow(win, it)
+    if not it then return false end
+    if rowShown(win, it) then return true end
+    local c = win._mainContent
+    local y = c._itemRenderYMap and c._itemRenderYMap[it] or 0
+    if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end
+    return false
+end
+-- the window down and whole, both pins on (nothing rolls while the pointer travels), on its tab
+local function stageDown(w, tab, isChar)
+    H.setPin(w, "inv", true); H.setPin(w, "drawer", true)
+    w:setWindowShaded(false)
+    if w._rolled and ZeD.Curtain then ZeD.Curtain.finishUnroll(w) end
+    if H.showAll then H.showAll(w) end
+    if tab then if isChar then CWm.openTab(0, tab) else WWm.openTab(0, tab) end end
+end
 
 add(500, function()
     local t = p:getModData().ZeD_WinPinned
@@ -71,18 +101,24 @@ local function turn(which)
     local tab = which == "char" and "equip" or "maps"
     local ft = which == "char" and "Base.Spoon" or "Base.Nails"
     local sx, sy
+    -- The staging: both windows down and whole with their pins on, the item's row scrolled into view, the pointer
+    -- on it, and only then every pin off. (Unpinned first, the source window rolled up before the pointer arrived.)
     add(1500, function()
-        for _, w in ipairs({ CW(), WW() }) do H.setPin(w, "inv", false); H.setPin(w, "drawer", false); w:setWindowShaded(false) end
-        if which == "char" then CWm.openTab(0, tab) else WWm.openTab(0, tab) end
+        stageDown(T(), nil, which ~= "char")
+        stageDown(S(), tab, which == "char")
     end)
+    addWhen(5000, function() return S() ~= nil and revealRow(S(), (rowOf(S(), ft))) end, function() end)
     local held = false
-    add(800, function()
+    add(300, function()
         sx, sy = nil, nil
         local it, x, y = nil, nil, nil
         if S() then it, x, y = rowOf(S(), ft) end
-        if not check(it ~= nil and x ~= nil, which .. ": the item's row is on screen") then return end
+        if not check(it ~= nil and x ~= nil and rowShown(S(), it), which .. ": the item's row is on screen") then return end
         sx, sy = x, y
         req("move " .. x .. " " .. y)   -- (looking through the list)
+    end)
+    add(300, function()
+        for _, w in ipairs({ CW(), WW() }) do H.setPin(w, "inv", false); H.setPin(w, "drawer", false) end
     end)
     -- (the drawer folds 2 s after the pointer leaves it; the other window rolls 2 s after: wait on both, up to 6 s)
     addWhen(6000, function() local s, t = S(), T(); return H.foldedTab(s) == tab and t and t.windowShaded == true end, function()

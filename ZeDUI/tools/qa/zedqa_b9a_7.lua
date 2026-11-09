@@ -38,7 +38,7 @@ local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
 -- a step that runs once cond() is true, or after max ms (a timed action ending, a state settling)
 local function addWhen(max, cond, fn) plan[#plan + 1] = { ms = max, cond = cond, fn = fn } end
-local keepPins, keepTab
+local keepPins, keepTab, keepHidden
 local function rowOf(win, fullType)
     local c = win._mainContent
     for _, it in ipairs(c and c._flatItems or {}) do
@@ -102,8 +102,14 @@ add(500, function()
     CWm.openTab(0, "loot")
     -- a baseball bat: a weapon card has the care verbs' band (Repair) and a "Used to make" (the spiked bat), the case
     -- the director saw; nails as well, for a long "Used to make"
-    p:getInventory():AddItem("Base.BaseballBat")
+    local bat = p:getInventory():AddItem("Base.BaseballBat")
     p:getInventory():AddItem("Base.Nails")
+    -- (the care verbs' band shows a verb the character can do, or with "Show all" every sensible one: the bat half worn
+    -- makes Repair sensible, and Show all draws it even without the means. The setting is put back at the end. The
+    -- first run's cards had no band at all, so they could not show the footer case.)
+    pcall(function() bat:setCondition(math.max(1, math.floor(bat:getConditionMax() / 2))) end)
+    keepHidden = ZeD.Settings and ZeD.Settings.hiddenActions
+    if ZeD.Settings then ZeD.Settings.hiddenActions = function() return "all" end end
 end)
 -- the card opens on a plain click's release, as in zedqa_card_real: the window's own _drawerItem says it is up
 local cardFt = "Base.BaseballBat"
@@ -134,7 +140,8 @@ add(1500, function()
     end
 end)
 -- (a slot's card opens on the release over the same slot: win._equipSelected says it is up)
-addWhen(4000, function() local w = CW(); return w and w._equipSelected ~= nil end, function()
+-- (the slot is picked on the release; its card is made on the next draw of the tab: wait for the card itself, up to 4 s)
+addWhen(4000, function() local w = CW(); local pn = w and w._equipPanel; return w and w._equipSelected ~= nil and pn and pn._equipCard ~= nil and pn._equipCard.item ~= nil end, function()
     local w = CW()
     local panel = w and w._equipPanel
     local card = panel and panel._equipCard
@@ -145,6 +152,7 @@ add(1200, function() end)
 scrollToEnd("the Equip card", function() local panel = CW()._equipPanel; return panel and panel._equipCard end)
 add(800, function()
     CW()._equipSelected = nil
+    if ZeD.Settings and keepHidden then ZeD.Settings.hiddenActions = keepHidden end
     if keepPins then
         p:getModData().ZeD_WinPinned = keepPins
         local a, b = keepPins.charInv, keepPins.charTabs
