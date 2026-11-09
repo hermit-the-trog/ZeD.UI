@@ -45,9 +45,18 @@ ZeD.T = { px = function(v) return v end, hair = 1, line = function(n) return n o
           surf2 = C(0.11, 0.11, 0.11), surf3 = C(0.14, 0.14, 0.14), borderS = C(0.22, 0.22, 0.22),
           text = C(0.85, 0.85, 0.85), textHead = C(0.9, 0.9, 0.9), textSec = C(0.6, 0.6, 0.6), textDim = C(0.6, 0.6, 0.6),
           positiveText = C(0.48, 0.60, 0.20), dangerText = C(0.87, 0.44, 0.27), positive = C(0.48, 0.6, 0.2), danger = C(0.77, 0.35, 0.16) }
-ZeD.TM = { MeasureStringX = function(_, f, s) return #tostring(s) * ((f.n == 4) and 8 or 7) end,
-           getFontHeight = function(_, f) return (f.n == 4) and 18 or 15 end }
-ZeD.Text = { measureEpoch = function() return 1 end }
+-- the measure: a letter 8 px in F4 (9 at Large), 7 in the others; a space 4 px (3 in the others); and, as the game's
+-- measure seems to, a trailing space counts for nothing (QA's "Disassemble> Metal Cabinet")
+local LARGE = false
+ZeD.TM = { MeasureStringX = function(_, f, s)
+               s = tostring(s):gsub(" +$", "")
+               local sp = select(2, s:gsub(" ", ""))
+               local cw = (f.n == 4) and (LARGE and 9 or 8) or 7
+               return (#s - sp) * cw + sp * ((f.n == 4) and 4 or 3)
+           end,
+           getFontHeight = function(_, f) return (f.n == 4) and (LARGE and 21 or 18) or 15 end }
+local EPOCH = 1
+ZeD.Text = { measureEpoch = function() return EPOCH end }
 ZeD.Atoms = setmetatable({ drawHardShadow = noop,
     frame = function(p, x, y, w, h, c, a, t) t = t or 1; p:drawRect(x, y, w, t, 1, c.r, c.g, c.b) end },
     { __index = function() return noop end })
@@ -231,6 +240,41 @@ for _, gated in ipairs({ false, true }) do
         ok(same(hit, T.text), "PLAIN " .. look[1] .. " in the text color (gated " .. tostring(gated) .. ")")
     end
 end
+
+-- GAP: the title "Disassemble > Mahogany Drawers": at least one space between every pair of words, ">" included,
+-- in the strip and the list, Small and Large text (the trailing-space measure above dropped them all before)
+for _, large in ipairs({ false, true }) do
+    LARGE, EPOCH = large, EPOCH + 1
+    local spaceW = 4
+    for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
+        local p
+        if look[1] == "list" then
+            -- (the list's path is the parent row's name: a level with Disassemble open)
+            local lp = setmetatable(recorder(0, 0), { __index = ZeD_ContextList })
+            lp._levels = { { rows = { { def = { name = "Disassemble" } } } }, { parentRow = 1, rows = {} } }
+            lp._ctx = { target = nil }
+            NOW = NOW + 1000
+            ZeD_ContextList._drawBalloon(lp, { def = def, li = 2, body = def.body or "", st = def.state(nil) or "", key = "2:" .. NOW,
+                                               a = { x = 100, y = 200, w = 300, h = 24 } })
+            p = lp
+        else
+            p = look[2](def)
+        end
+        local words = {}
+        for _, w in ipairs({ "Disassemble", ">", "Mahogany", "Drawers" }) do words[#words + 1] = find(p, w)[1] end
+        local good = #words == 4
+        for i = 1, 3 do
+            local a, b = words[i], words[i + 1]
+            if not (a and b) then good = false
+            elseif b.y == a.y then
+                local g = b.x - (a.x + ZeD.TM:MeasureStringX(T.fontF4, a.s))
+                if g < spaceW then good = false; print("  gap " .. a.s .. " | " .. b.s .. " = " .. g) end
+            end
+        end
+        ok(good, "GAP " .. look[1] .. (large and " Large" or " Small") .. ": a space or more around \">\" and between the title's words")
+    end
+end
+LARGE, EPOCH = false, EPOCH + 1
 
 -- TAIL: the strip's selected cell, from this frame's hit zones (a carousel draws a cell up to three times)
 do
