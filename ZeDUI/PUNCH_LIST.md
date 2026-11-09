@@ -3142,3 +3142,35 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     each end of the bar, no roll boxes; list view, the gallery_t14 look's window places and blur, the belt in view;
     see ZeDUI/workshop/gallery/B10_RECAPTURE.md) and fixes the running head's middle dot (128). One full re-render of
     all 70 pictures.
+
+130. **The Player card keeps a changed role (QA's Mac run, Nov 9 2026; real; beta 11).** After a role change from the
+    Player card's Role dropdown, the card (badge and dropdown) still shows the old role, even reopened and after
+    ZeD.Admin.refreshRows(); the Users card and the server log have the new one. M.row(user) is built by M.refreshRows
+    from the game's cached getUsers(), which nothing refreshes after the change, so Ban stays enabled and the
+    "protected role" message (P.banProtected, punch list 123) never shows for an offline moderator or admin. Fix:
+    after a role change, update the cached row from the change itself (or ask the server for the user list again and
+    rebuild on its answer). Also test an online moderator.
+
+131. **The belt's balloon over the hint strip (QA's Mac run, Nov 9 2026; beta 11).** Hovering Back draws its balloon
+    over the "Right Click More" hint strip just above the belt, so they read as one line ("Back | key 1 More"). The
+    belt's balloons sit clear of the hint strip (above it), or the strip steps aside while a belt balloon shows.
+
+132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; director's call).** In the List style, a submenu opens when
+    the pointer rests on its row (beta 9). In the Strip style, resting on Disassemble shows its balloon, but the
+    submenu needs a click. Build's read: the strip should match the list (the same 0.18 s rest), since beta 9's note
+    didn't name the style. Ask the director before building.
+
+133. **Strip scrolling (QA's Mac run, Nov 9 2026; minor).** An overflowing strip scrolls one icon per arrow click and
+    leaves the edge icon cut in half. Scroll a page of whole icons per click, and stop on whole icons.
+
+134. **Custom Map Labels don't draw on ZeD's map (QA's Mac run, Nov 9 2026; investigate).** No error now; the mod
+    writes 82 labels into the map symbols at start (Muldraugh and others), but none show on ZeD's map near the player,
+    even zoomed out. Check: what the mod writes (text symbols? which layer or style?), whether ZeD's map hides them
+    (MapsTab hideLabels in Paper; the text layers; a symbol filter), whether the game's own map hides symbols in
+    unexplored cells, and how the same labels look on the game's map without ZeD.
+
+135. **The held item's box (QA's Mac run, Nov 9 2026; director's call, QA asking).** A held axe shows the game's own item
+    box (Encumbrance, Sharpness, bars) above ZeD's "Primary" balloon. By design: the balloon spec keeps the game's item
+    box over the belt, so tooltip mods' lines still show. Beta 10's note ("Every hover box is now one Balloon Help
+    balloon") overclaims. Either restyle the game's item box as a balloon carrying the mods' lines, or word the next
+    note so it doesn't claim every box.
