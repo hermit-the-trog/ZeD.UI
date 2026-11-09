@@ -3155,7 +3155,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     over the "Right Click More" hint strip just above the belt, so they read as one line ("Back | key 1 More"). The
     belt's balloons sit clear of the hint strip (above it), or the strip steps aside while a belt balloon shows.
 
-132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; beta 11).** In the List style, a submenu opens when
+132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; CLOSED, no change: the director, via QA: "No, click only").** The Strip opens a submenu on a click; resting shows only the balloon. A change note that mentions rest names the List only. In the List style, a submenu opens when
     the pointer rests on its row (beta 9). In the Strip style, resting on Disassemble shows its balloon, but the
     submenu needs a click. Build's read: the strip should match the list (the same 0.18 s rest), since beta 9's note
     didn't name the style. The director left it to Build (Nov 9): the strip matches the list.
@@ -3172,5 +3172,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
 135. **The held item's box (QA's Mac run, Nov 9 2026; director's call, QA asking).** A held axe shows the game's own item
     box (Encumbrance, Sharpness, bars) above ZeD's "Primary" balloon. By design: the balloon spec keeps the game's item
     box over the belt, so tooltip mods' lines still show. Beta 10's note ("Every hover box is now one Balloon Help
-    balloon") overclaims. Either restyle the game's item box as a balloon carrying the mods' lines, or word the next
-    note so it doesn't claim every box.
+    balloon") overclaims. The director (via QA, Nov 9): "Balloon it too". After the Nov 13 reset (too big for the light week):
+    the held item's box over the belt is drawn as a ZeD balloon, title the item's name, then the game's lines
+    (Encumbrance, Sharpness, condition bars as the balloon's bars). Tooltip mods add lines to the game's item box
+    (ISToolTipInv / ObjectTooltip DoTooltip hooks): read the lines they add and carry them in the balloon, so no mod's
+    line is lost; QA tests with a tooltip mod or two. Until then the next note doesn't claim every box.
