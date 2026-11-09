@@ -262,6 +262,7 @@ function ZeD_ContextList:prerender()
     local mx, my = getMouseX(), getMouseY()
     local nav = self._nav
     local balloon = nil
+    local topLi = self:_levelAt(mx, my)   -- the one level the pointer is on
     for li, lv in ipairs(self._levels) do
         local x, y, w, h = lv.x, lv.y, lv.w, lv.h
         lv.inkRow = nil
@@ -306,7 +307,7 @@ function ZeD_ContextList:prerender()
                 local def = r.def
                 r.y = cy - y
                 local off = disabled(def, self._ctx.target)
-                local over = mx >= x and mx < x + w and my >= cy and my < cy + rowH
+                local over = li == topLi and mx >= x and mx < x + w and my >= cy and my < cy + rowH
                 local isSel = (lv.sel == ri)
                 local openParent = self._levels[li + 1] and self._levels[li + 1].parentRow == ri
                 -- the row the cue is on, the deepest level's winning (a submenu with nothing picked
@@ -421,11 +422,29 @@ end
 -- ----------------------------------------------------------------------------
 -- mouse: the pointed row is the selection; hovering a submenu row opens it
 -- ----------------------------------------------------------------------------
+-- The deepest level whose box holds the point. A cascade drawn over its parent is the
+-- one that takes the pointer there; the parent's rows under it do not exist. (hitZoneAt
+-- answers the first zone registered, the top level's, so it alone put the parent's row
+-- under the cascade and the cascade closed the moment the pointer crossed it.)
+function ZeD_ContextList:_levelAt(x, y)
+    for li = #self._levels, 1, -1 do
+        local lv = self._levels[li]
+        if x >= lv.x and x < lv.x + lv.w and y >= lv.y and y < lv.y + lv.h then return li end
+    end
+    return nil
+end
+
 local function rowAt(self, x, y)
-    local z = self:hitZoneAt(x, y)
-    if not (z and type(z.id) == "string") then return nil end
-    local li, ri = z.id:match("^row:(%d+):(%d+)$")
-    return tonumber(li), tonumber(ri)
+    local top = self:_levelAt(x, y)
+    if not top then return nil end
+    -- only that level's rows answer; its padding or heading answers nothing
+    for _, z in ipairs(self._hitZones) do
+        if type(z.id) == "string" and self:hitTest(x, y, z.x, z.y, z.w, z.h) then
+            local li, ri = z.id:match("^row:(%d+):(%d+)$")
+            if tonumber(li) == top then return top, tonumber(ri) end
+        end
+    end
+    return nil
 end
 
 function ZeD_ContextList:update()
@@ -438,7 +457,15 @@ function ZeD_ContextList:update()
         self._nav = (self._joyfocus and D and D.getMode and D.getMode() == "gamepad") and "pad" or "mouse"
         self._lastMx, self._lastMy = mx, my
     end
-    if mx == self._lastMx and my == self._lastMy then return end   -- the controller keeps its row while the mouse rests
+    if mx == self._lastMx and my == self._lastMy then
+        -- the controller keeps its row while the mouse rests; a pointer resting on a row still opens its submenu
+        local hl = self._hoverLi
+        if self._nav == "mouse" and hl and not self._levels[hl + 1] and getTimestampMs() - (self._hoverAt or 0) > 180 then
+            self._hoverLi = nil   -- (one try per rest: a row with no submenu is not asked again every update)
+            self:_openSub(hl, false)
+        end
+        return
+    end
     self._lastMx, self._lastMy = mx, my
     self._nav = "mouse"
     local li, ri = rowAt(self, mx, my)
@@ -446,10 +473,14 @@ function ZeD_ContextList:update()
     local lv = self._levels[li]
     if not lv then return end
     if not live(lv.rows[ri] and lv.rows[ri].def) then return end   -- (a heading is not a choice)
-    if lv.sel ~= ri then
-        lv.sel = ri
-        for k = #self._levels, li + 1, -1 do self._levels[k] = nil end
-        self._hoverAt, self._hoverRow = getTimestampMs(), li .. ":" .. ri
+    local key = li .. ":" .. ri
+    if lv.sel ~= ri or self._hoverRow ~= key then
+        -- (the first row is selected when the list opens, so a row the pointer reaches starts its rest even if selected)
+        if lv.sel ~= ri then
+            lv.sel = ri
+            for k = #self._levels, li + 1, -1 do self._levels[k] = nil end
+        end
+        self._hoverAt, self._hoverRow, self._hoverLi = getTimestampMs(), key, li
     end
     -- System 7 opens a hierarchical menu once the pointer rests on its row
     if self._hoverRow == li .. ":" .. ri and not self._levels[li + 1] and getTimestampMs() - (self._hoverAt or 0) > 180 then

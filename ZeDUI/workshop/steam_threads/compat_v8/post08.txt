@@ -1,0 +1,60 @@
+[h2]👍 Compatible, Q to Sm (part 7 of 9)[/h2]
+🍎 Retested Nov 8 2026 on macOS (Apple M4 Pro, 1920x1080, UI scale auto), Project Zomboid 42.21, ZeD-GUI 0.3.0-beta8, single player. ✔ after a mod = on this Mac it loaded with its group (12 to 50 mods at once, ZeD-GUI last), showed no errors of its own beyond any listed here, and every Character and World tab, the pause menu and Options opened. 🚗✔ = a car from the pack was spawned and ZeD's dashboard showed with the driver seated. No mark = not retested on this Mac.
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts ⚠️ "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 11.
+[h3]Q[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3669016488][B42] [MP] Quick Remove Broken Glass[/url] ✔
+[/list]
+[h3]R[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3659543622]Radio Frequency Manager [B42][/url]: Its frequency window opens from its own button at the left, clear of ZeD's windows. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2956146279]Rain Cleans Blood [B42.20 + MP][/url] by Akamir ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2818577583]Random Zombies[/url] by belette ✔ On this Mac: one error of its own at game start (randomzombies_server.lua:23). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3718883428]RC's Structures Framework [B42.17+ MP][/url] by RedChili: A library for Better Building Plus. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3656190498]Reactive Sound Events[/url] by JulianFVM ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3051276857][KYR] Real Weather Mod[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2699828474]Rebalanced Prop Moving[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2901962885]Reorder Containers - Backpack Orders[/url] by Notloc: ⚠️ Part of it does not show: it orders the game's container buttons; ZeD's container strip keeps its own order. [i](expected)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2142622992]Repair Any Clothes[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3006882690][B41&B42] Repair Wall[/url] by Kamer ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3378304610]Repairable Windows[/url] by albion ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2944344655]Replace Bandage[/url] by Sioyth ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3641027178][42] Rip All Button In context Menu[/url]: Its Rip Clothing row is in ZeD's item menu. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3797874733]Roaming Survivors[/url]: Its rows (Survivors, Reputation, Quest journal) are in ZeD's world menu. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3261334016][B41 & B42] Rope Towing[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3621388762]RPGSkillTree[42.13][SP][/url]: Its skill tree opens full screen (pausing the game, as without ZeD-GUI) and closes back to ZeD's windows. Some of its labels show as text keys: its own. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3397207461]Run and Reload [B42][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3618427553]RV Interior Expansion [B42][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3622163276]RV Interior Expansion Part 2 [B42][/url] ✔
+[/list]
+[h3]S[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3825312974]Sandbox Control - Cheat & Creative Menu [B42.21][/url]: Its window opens from its own button (pausing the game, as without ZeD-GUI), and its rows are in ZeD's item and world menus. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3386906181]Sandbox Options[/url] by Zky (not retested on this Mac: the game did not load its Workshop copy here)
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3409143790]Sapph's Cooking[/url] by sapph ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3651954650]SaucedCarts - Pushable Carts[/url]: ⚠️ Part of it does not show: its cart handling patches the game's inventory and loot windows. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3751668602]Second Back Slot [B42.20][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3596827035]ShelterHold: Beehive[/url] by Rocco ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3404461962]Show Sowing Season In Seed Tooltip[/url]: Its sowing lines go on the item tooltip through Starlit Library: from ZeD-GUI 0.2.0-t7 they show on ZeD's item tooltip; in 0.2.0-t6 ZeD's tooltip leaves them out. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3716522633][B41,B42] Show VHS skills in tooltip[/url]: Its lines show on ZeD's item tooltip. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3002666175][B41&B42] Show Wall Health[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3796440093]SideWinder's Placement+[/url] by Side Winder ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2852704777]Simon MDs Tiles [B41/B42][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3625933422][B42] Simple Belt Flashlight! (Fix for angled flashlight)[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3778709615][B42.20/B42.21] Simple Belt Flashlight+ (Better Flashlights Compatible)[/url]: It shares its mod id with Simple Belt Flashlight, and the game loads only one of them. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3394588830]Simple Flashlight on Belt![/url] by Kameron! ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2991923398]Simple Lockpicking[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3402171609]Simple Moodle Indicators[/url]: ⚠️ Part of it does not show: its level marks are for Moodles in lua's drawing. [i](expected)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2891170430][B42MP] Simple Show XP[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2868394326][B42]Simple sling mod[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2867431511]Simple Status[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3399432867][B42.13+] SimpleStatus-Fixed[/url]: Its status bars show at the left. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2863908612]SixthSense[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3456675747][B42.20+ MP] Skateboard![/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3557111695]Skill Book Expansion[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3778511497]Skully's Zombie Collision [B42.20+][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3698401476]Skullys Lowerback Dufflebags, Chest Rigs + Fannypack, Container Rebalance [42.20][/url] ✔ On this Mac: one error of its own at load (an item it adjusts does not exist on 42.21). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2686624983]Sleep with Friends v2.1[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2716710487]Slower Sprinters \ B42[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3494108029]Smart Radial Menu [B42 Stable][/url]: From ZeD-GUI 0.2.0-t7 its own wheel opens with ZeD-GUI on (the game's wheels stay ZeD's). In 0.2.0-t6 it errors and no wheel draws. ✔
+[/list]

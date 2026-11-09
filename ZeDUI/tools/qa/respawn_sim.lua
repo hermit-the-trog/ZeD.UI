@@ -737,5 +737,30 @@ check("made in the hometown", WORLD.x == 6400 and WORLD.y == 5300 and called("se
 check("the desk is down", MM.root == nil and MM.respawn == nil)
 TOWNS[#TOWNS] = nil
 
+-- ---------------------------------------------------------------------------
+section("Joined a server from the main menu: the menu's desk is a leftover in MM.root (b9)")
+reset()
+PLAYERS = { [0] = { dead = true } }
+local staleDesk = { isVisible = function() return true end }
+MM.root = staleDesk
+MainScreen.instance.inGame = true
+local deadS = deathScreen(0)
+restart(deadS)
+check("a leftover menu desk does not block the respawn desk", MM.respawn ~= nil and MM.root ~= nil and MM.root ~= staleDesk and MM.root.respawn == true, tostring(MM.root))
+check("the respawn desk is on the screen", MM.root and uiIndex(MM.root) ~= nil)
+check("the Spawn window shows", MM.view == "spawn", tostring(MM.view))
+R.finish()
+check("the desk is down and the menu's leftover is put back as it was", MM.respawn == nil and MM.root == staleDesk)
+MM.root = nil
+
+section("A real main menu desk (no game loaded) still blocks a second desk (b9)")
+reset()
+MM.root = staleDesk
+MainScreen.instance.inGame = false
+local okB, gotB = pcall(R.begin, {})
+check("no second desk over the main menu", okB and gotB == false and MM.respawn == nil and MM.root == staleDesk, tostring(gotB))
+MM.root = nil
+MainScreen.instance.inGame = true
+
 print("respawn_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
