@@ -1421,7 +1421,11 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
         if trait.name ~= nil then _traitIds[trait.name] = key end
     end
     local zones = win._idTraitZones
-    zones[#zones + 1] = { x = tx, y = ty, w = tw, h = rh, id = key, name = trait.name, desc = trait.desc }
+    local n = (zones.n or #zones) + 1
+    zones.n = n
+    local z = zones[n] or {}
+    z.x, z.y, z.w, z.h, z.id, z.name, z.desc = tx, ty, tw, rh, key, trait.name, trait.desc
+    zones[n] = z
 
     -- the hover wash and the controller's mark under the words
     local hover = A.mouseIn(panel, tx, ty, tw, rh, win._idView)   -- (the tab's view bounds the hover)
@@ -1645,8 +1649,13 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     -- ================================================================
     -- ZONE B: Traits
     -- ================================================================
-    win._idTraitZones = {}
+    -- (the trait zones' list and tables are the window's, refilled each frame: zones.n are live)
+    local tz = win._idTraitZoneList or {}
+    win._idTraitZoneList = tz
+    tz.n = 0
+    win._idTraitZones = tz
     renderZoneB(panel, win, data, x, drawY + zoneAH + zoneHH, contentW, traitCols)
+    for i = tz.n + 1, #tz do tz[i] = nil end
 
     panel:clearStencilRect()
 
