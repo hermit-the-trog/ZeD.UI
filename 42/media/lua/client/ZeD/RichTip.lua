@@ -52,17 +52,32 @@ end
 
 --- A run's color as the game meant it: "ok" when it is the game's good highlight color, "bad" for
 --- its bad one, nil for white and greys. The game prints the color with two decimals, so a match is
---- within 0.03. A strong color that is neither (a mod's pure <RGB:1,0,0>, <RED>) goes to the nearer.
+--- within 0.03. A strong red or green that is neither (a mod's pure <RGB:1,0,0>, <RED>) goes to the nearer;
+--- any other color (the game's magenta debug line, a mod's blue) is neutral.
 function RT.state(c)
     if not c then return nil end
     local good = coreColor("getGoodHighlitedColor") or GOOD_DEF
     local bad = coreColor("getBadHighlitedColor") or BAD_DEF
     if near(c, good, 0.03) then return "ok" end
     if near(c, bad, 0.03) then return "bad" end
-    local mx, mn = math.max(c.r, c.g, c.b), math.min(c.r, c.g, c.b)
-    if mx - mn < 0.2 then return nil end
+    -- (red or green leads the other two by a clear margin; magenta, cyan, yellow, blue and greys do not)
+    local redish = c.r - math.max(c.g, c.b) >= 0.3
+    local greenish = c.g - math.max(c.r, c.b) >= 0.3
+    if not (redish or greenish) then return nil end
     if dist2(c, good) <= dist2(c, bad) then return "ok" end
     return "bad"
+end
+
+-- a label in a color of its own (white and greys are the game's labels): the game's debug line ("SCRIPT NAME:", in
+-- magenta, added only with debug on) and lines like it are information, not requirements
+local function coloredLabel(runs)
+    for _, r in ipairs(runs) do
+        if r.c then
+            local mx, mn = math.max(r.c.r, r.c.g, r.c.b), math.min(r.c.r, r.c.g, r.c.b)
+            return mx - mn >= 0.2
+        end
+    end
+    return false
 end
 
 local function trim(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
@@ -151,7 +166,12 @@ function RT.parse(s, title)
     local tl = lower(title)
     for _, l in ipairs(lines) do
         local label = join(l.label)
-        if anySetx and l.setx then
+        if anySetx and l.setx and label ~= "" and coloredLabel(l.label) then
+            -- an information line (the game's debug "SCRIPT NAME: furniture_storage_02_0"): plain words, no
+            -- column and no mark, as the game shows it (only with debug on: the game adds it only then)
+            local value = join(l.value)
+            conds[#conds + 1] = { t = (value ~= "") and (label .. " " .. value) or label, st = nil, info = true }
+        elseif anySetx and l.setx then
             local value = join(l.value)
             local st = stOf(l.value) or stOf(l.label)
             if label == "" then

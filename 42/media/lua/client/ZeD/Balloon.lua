@@ -230,13 +230,12 @@ function B._layout(c)
         tw[#tw + 1] = { s = ">", role = "path" }
     end
     for _, w in ipairs(wordsOf(c.title)) do tw[#tw + 1] = { s = w, role = "title" } end
-    -- (each word is drawn on its own, at the width of the line before it and a space: the title is
-    -- measured the same way, so the last word ends where the measure said)
-    local titleNat, tsoFar = 0, ""
-    for _, w in ipairs(tw) do
-        titleNat = ((tsoFar == "") and 0 or mw(tk, tsoFar .. " ")) + mw(tk, w.s)
-        tsoFar = (tsoFar == "") and w.s or (tsoFar .. " " .. w.s)
-    end
+    -- Each title word is drawn on its own (the path and the name have their own colors), so the gap between
+    -- words is a width of its own: the face's space measured alone, never less than a quarter of the line's
+    -- height. (A trailing space did not survive the game's measure: "Disassemble> Metal Cabinet".)
+    local gap = math.max(mw(tk, " "), math.floor(fh(tk) / 4 + 0.5))
+    local titleNat = 0
+    for i, w in ipairs(tw) do titleNat = titleNat + ((i > 1) and gap or 0) + mw(tk, w.s) end
     local longest = 0
     for _, w in ipairs(tw) do longest = math.max(longest, mw(tk, w.s)) end
 
@@ -281,24 +280,24 @@ function B._layout(c)
     local lay = { w = w, padX = padX, padY = padY, gapT = gapT, lead = lead, tk = tk, inner = inner,
                   markW = markW, colGap = colGap, picSz = picSz, picW = picW, plain = plain, padSet = padSet }
 
-    -- the title, wrapped; each word keeps its x on its line (measured as the line so far)
-    local tLines, cur, curS = {}, nil, ""
-    local function flush() if cur then tLines[#tLines + 1] = cur end; cur, curS = nil, "" end
+    -- the title, wrapped; each word keeps its x on its line (the words before it and a gap after each)
+    local tLines, cur, curX = {}, nil, 0
+    local function flush() if cur then tLines[#tLines + 1] = cur end; cur, curX = nil, 0 end
     for _, wd in ipairs(tw) do
-        local test = (curS == "") and wd.s or (curS .. " " .. wd.s)
-        if cur and mw(tk, curS .. " ") + mw(tk, wd.s) > inner then flush(); test = wd.s end
-        if mw(tk, wd.s) > inner then
+        local ww = mw(tk, wd.s)
+        if cur and curX + gap + ww > inner then flush() end
+        if ww > inner then
             -- one word wider than the box: its pieces each take a line
             flush()
             local pieces = {}
             local last = breakWord(wd.s, tk, inner, pieces)
             for _, pc in ipairs(pieces) do tLines[#tLines + 1] = { { s = pc, x = 0, role = wd.role } } end
-            cur, curS = { { s = last, x = 0, role = wd.role } }, last
+            cur, curX = { { s = last, x = 0, role = wd.role } }, mw(tk, last)
         else
+            local x = cur and (curX + gap) or 0
             if not cur then cur = {} end
-            local x = (curS == "") and 0 or mw(tk, curS .. " ")
             cur[#cur + 1] = { s = wd.s, x = x, role = wd.role }
-            curS = test
+            curX = x + ww
         end
     end
     flush()
