@@ -551,7 +551,13 @@ end
 -- ============================================================================
 
 function ZeD_BodyFigure:setPartColor(displayName, r, g, b, a)
-    self.colorMap[displayName] = {r=r, g=g, b=b, a=a or 1.0}
+    -- (the part's colour table is reused: the tabs set every part every frame)
+    local c = self.colorMap[displayName]
+    if c then
+        c.r, c.g, c.b, c.a = r, g, b, a or 1.0
+    else
+        self.colorMap[displayName] = {r=r, g=g, b=b, a=a or 1.0}
+    end
 end
 
 function ZeD_BodyFigure:clearColors()
@@ -662,6 +668,10 @@ function ZeD_BodyFigure:getPartRects()
     if not s or s <= 0 then return {} end
     local xOff = self._drawAtX or 0
     local yOff = self._drawAtY or 0
+    -- (the last answer while the figure stands where it stood: the tabs and their stops ask every frame;
+    -- a new place gets a new list, so a list kept from before keeps its rects)
+    local k = self._rectsKey
+    if k and k.s == s and k.x == xOff and k.y == yOff and k.layout == self.activeLayout then return k.out end
     local out = {}
     for _, e in ipairs(self.activeLayout) do
         local displayName = SUFFIX_TO_DISPLAY[e.suffix]
@@ -676,6 +686,7 @@ function ZeD_BodyFigure:getPartRects()
             }
         end
     end
+    self._rectsKey = { s = s, x = xOff, y = yOff, layout = self.activeLayout, out = out }
     return out
 end
 

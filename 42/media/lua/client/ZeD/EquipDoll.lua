@@ -580,6 +580,24 @@ local function groupName(g, wd)
     return s
 end
 
+-- The doll's lists of boxes (filled slots, empty ones, every box) are kept on the window and filled
+-- again each frame in the tables they had: forty-odd new tables a frame otherwise, all garbage.
+local function boxList(win, field)
+    local l = win[field]
+    if not l then l = {}; win[field] = l end
+    l.n = 0
+    return l
+end
+local function slotBox(list, x, y, w, h)
+    local n = list.n + 1
+    list.n = n
+    local t = list[n]
+    if not t then t = {}; list[n] = t end
+    t.x, t.y, t.w, t.h = x, y, w, h
+    return t
+end
+local function trimList(l) for i = l.n + 1, #l do l[i] = nil end end
+
 --- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
 --- win._equipSlotZones (filled slots: the card), win._equipBeltZones (empty
 --- belt slots: the attach list), win._equipDollPhoto (the model's rectangle),
@@ -626,7 +644,9 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     -- no frame behind the figure: the model stands on the panel (CharacterWindow draws it into this rectangle)
     local phx = bands and SPLIT_PHOTO_X or PHOTO.x
     local fx, fy, fw, fh = ox + P(phx) + S(phx), y + P(PHOTO.y), P(PHOTO.w), P(PHOTO.h)
-    win._equipDollPhoto = { x = fx + T.px(1), y = fy + T.px(1), w = fw - T.px(2), h = fh - T.px(2) }
+    local photo = win._equipDollPhoto or {}   -- (one table, refilled)
+    photo.x, photo.y, photo.w, photo.h = fx + T.px(1), fy + T.px(1), fw - T.px(2), fh - T.px(2)
+    win._equipDollPhoto = photo
     if bands then
         -- faint rules between the bands and the doll (half way across the gap the spare width opens)
         local rw = T.px(1)
@@ -634,7 +654,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         panel:drawRect(ox + P(RULE_R) + bandX + math.floor(rest * 0.9 + 0.5), fy, rw, fh, 0.05, 1, 1, 1)
     end
 
-    local zones, beltZones, empties, rects = {}, {}, {}, {}
+    local zones, beltZones, empties, rects = boxList(win, "_dollZones"), {}, boxList(win, "_dollEmpty"), boxList(win, "_dollRects")
     local hint = nil
     -- what the loadout and outfit applied are missing, where it goes (ZeD_EquipLoadout)
     local EL = ZeD.EquipLoadout
@@ -652,9 +672,9 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         if not label then label = ZeD.textCase(ZeD.tr(def.key)); wd.label[def] = label end
         local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
         if not item and ghosts and ghosts[def.id] then EL.drawGhost(panel, bx, by, b, ghosts[def.id]) end
-        rects[#rects + 1] = { x = bx, y = by, w = b, h = b, id = def.id }
+        slotBox(rects, bx, by, b, b).id = def.id
         if item then
-            zones[#zones + 1] = { x = bx, y = by, w = b, h = b, type = key, item = item }
+            local zb = slotBox(zones, bx, by, b, b); zb.type, zb.item = key, item
             if over then
                 local t = call(item, "getDisplayName") or "?"
                 if #items > 1 then t = ZeD.tr("UI_ZeD_Doll_Under", t, #items - 1) end
@@ -663,7 +683,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         else
             -- an empty slot is still a stop for the pad, so D-pad moves keep to
             -- the doll's columns and rows (nothing happens on A)
-            empties[#empties + 1] = { x = bx, y = by, w = b, h = b, type = key }
+            slotBox(empties, bx, by, b, b).type = key
         end
         win._equipSlotYMap[key] = by
     end
@@ -688,18 +708,18 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             if not place then place = ZeD.tr(sm.place); wd.place[sm] = place end
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
             if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
-            rects[#rects + 1] = { x = sbx, y = sby, w = ss, h = ss, id = sm.id }
+            slotBox(rects, sbx, sby, ss, ss).id = sm.id
             local ptext = wd.ptext[sm]
             if not ptext then ptext = ZeD.textCase(place); wd.ptext[sm] = ptext end
             if item then
-                zones[#zones + 1] = { x = sbx, y = sby, w = ss, h = ss, type = key, item = item }
+                local zb = slotBox(zones, sbx, sby, ss, ss); zb.type, zb.item = key, item
                 if over then
                     local t = call(item, "getDisplayName") or "?"
                     if #items > 1 then t = ZeD.tr("UI_ZeD_Doll_Under", t, #items - 1) end
                     hint = { key = key, text = t .. " | " .. ptext, x = sbx, y = sby, w = ss }
                 end
             else
-                empties[#empties + 1] = { x = sbx, y = sby, w = ss, h = ss, type = key }
+                slotBox(empties, sbx, sby, ss, ss).type = key
                 if over then hint = { key = key, text = ptext, x = sbx, y = sby, w = ss } end
             end
             win._equipSlotYMap[key] = sby
@@ -714,10 +734,10 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         if not item and ghosts and gid and ghosts[gid] then EL.drawGhost(panel, bx, by, b, ghosts[gid]) end
         win._equipSlotYMap[key] = by
         if item then
-            zones[#zones + 1] = { x = bx, y = by, w = b, h = b, type = key, item = item }
+            local zb = slotBox(zones, bx, by, b, b); zb.type, zb.item = key, item
             if over then hint = { key = key, text = call(item, "getDisplayName") or "?", x = bx, y = by, w = b } end
         elseif not beltSlot then
-            empties[#empties + 1] = { x = bx, y = by, w = b, h = b, type = key }
+            slotBox(empties, bx, by, b, b).type = key
         elseif beltSlot then
             -- an empty belt slot: A / a click opens its attach list (the list's ATTACH)
             local fid = "belt:" .. tostring(beltSlot.i)
@@ -737,6 +757,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
               bs.key and tostring(bs.key) or nil, bs)
     end
 
+    trimList(zones); trimList(empties); trimList(rects)
     win._equipSlotZones = zones
     win._equipBeltZones = beltZones
     win._equipDollEmpty = empties

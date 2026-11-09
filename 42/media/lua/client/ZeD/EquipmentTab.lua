@@ -533,7 +533,7 @@ local function _drawDefenseFigure(panel, win, protData, px, py, pw, ph)
     if protData.isFemale ~= nil then
         fig:setSex(protData.isFemale)
     end
-    fig:clearColors()
+    -- (no clearColors: every part the figure maps is coloured again below each frame, in tables it reuses)
     local ALL_PARTS    = ZeD.ProtectionTab.ALL_PARTS
     local PART_TO_FIG  = ZeD.ProtectionTab.PART_TO_FIGURE
     local colorForDef  = ZeD.ProtectionTab.protectionColorForDef
@@ -832,14 +832,11 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
         local tierColor = ZeD.ProtectionTab.tierColor
         local dotSz = T.px(6)
         local dotY = y + math.floor((rowH - dotSz) / 2)
-        local function drawProtDot(val, colX)
-            if val > 0 then
-                A.drawStatusDot(panel, x + colX + math.floor((c.protColW - dotSz) / 2), dotY, tierColor(val), dotSz)
-            end
-        end
-        drawProtDot(p.bite, c.biteX)
-        drawProtDot(p.scratch, c.scrX)
-        drawProtDot(p.bullet, c.bulX)
+        local dx = math.floor((c.protColW - dotSz) / 2)
+        -- (the three dots written out: a helper made inside the row was a new function a row a frame)
+        if p.bite > 0 then A.drawStatusDot(panel, x + c.biteX + dx, dotY, tierColor(p.bite), dotSz) end
+        if p.scratch > 0 then A.drawStatusDot(panel, x + c.scrX + dx, dotY, tierColor(p.scratch), dotSz) end
+        if p.bullet > 0 then A.drawStatusDot(panel, x + c.bulX + dx, dotY, tierColor(p.bullet), dotSz) end
     end
 
     -- Weight
@@ -1069,12 +1066,17 @@ local function _drawEquipHeader(panel, x, y, w, win)
     end
 
     -- Divider hit zones for column resize (6px wide, centered on column edge)
-    local divZones = {}
-    divZones[#divZones + 1] = { col = "slot", x = x + cl.slotX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
-    divZones[#divZones + 1] = { col = "cond", x = x + cl.condX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
-    if cl.wtOn then
-        divZones[#divZones + 1] = { col = "wt",   x = x + cl.wtX   - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
+    -- (the list and its three zones are the window's, refilled each frame)
+    local divZones = (win and win._equipDivZones) or {}
+    local dw, dh = T.px(DIV_W), T.px(EQUIP_HDR_H)
+    local function divZone(i, col, cx)
+        local z = divZones[i] or {}
+        z.col, z.x, z.y, z.w, z.h = col, cx - dw / 2, y, dw, dh
+        divZones[i] = z
     end
+    divZone(1, "slot", x + cl.slotX)
+    divZone(2, "cond", x + cl.condX)
+    if cl.wtOn then divZone(3, "wt", x + cl.wtX) else divZones[3] = nil end
     if win then win._equipDivZones = divZones end
 
     -- Divider hover feedback (2px accent line)
@@ -1196,7 +1198,7 @@ function ZeD.EquipmentTab.pressSlot(win, panel, x, y)
     if not zone then return false end
     local d = equipDrag(win)
     d:cancel()
-    win._equipPress = zone
+    win._equipPress = { type = zone.type, item = zone.item }   -- (a copy: the zone tables are refilled each frame)
     d:beginPending({ zone.item }, zone.item, getMouseX(), getMouseY())
     return true
 end
@@ -1549,7 +1551,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
             -- Store group zone + stamp Y for scroll-follow (keyed by group focus id)
             gzi = gzi + 1
-            win._equipGroupZones[gzi] = { x = x, y = drawY, w = contentW, h = T.px(GROUP_H), id = g.id }
+            -- (the zone tables are refilled each frame, not made anew)
+            local gz = win._equipGroupZones[gzi] or {}
+            gz.x, gz.y, gz.w, gz.h, gz.id = x, drawY, contentW, T.px(GROUP_H), g.id
+            win._equipGroupZones[gzi] = gz
             win._equipSlotYMap["__group_" .. tostring(g.id)] = drawY
             drawY = drawY + T.px(GROUP_H)
 
@@ -1565,7 +1570,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                     -- Store slot zone + stamp Y for gamepad scroll-follow (only if item present)
                     if s.item then
                         szi = szi + 1
-                        win._equipSlotZones[szi] = { x = x, y = drawY, w = contentW, h = T.rowH, type = s.type, item = s.item }
+                        local sz = win._equipSlotZones[szi] or {}
+                        sz.x, sz.y, sz.w, sz.h, sz.type, sz.item = x, drawY, contentW, T.rowH, s.type, s.item
+                        win._equipSlotZones[szi] = sz
                         win._equipSlotYMap[s.type] = drawY
                     end
                     drawY = drawY + T.rowH
