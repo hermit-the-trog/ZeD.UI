@@ -1,5 +1,5 @@
 #!/bin/bash
-ROOT=/c/Users/you/Zomboid/mods/ZeD-UI
+ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 E="/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 PAGE=$(cygpath -m "$ROOT/ZeDUI/tools/plates/plates_watch.html")
 OUT=$(cygpath -m "$ROOT/42/media/textures/ZeD/watch"); JOUT="$ROOT/ZeDUI/tools/plates/out_watch"; mkdir -p "$JOUT"

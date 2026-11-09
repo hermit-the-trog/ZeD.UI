@@ -9,10 +9,10 @@ param([switch]$MainMenu, [switch]$NoSteam, [int]$Width = 1920, [int]$Height = 10
 $S = $PSScriptRoot
 # (Nov 8 2026) with ZEDQA_ZDIR set (a true staged check from its own -cachedir) everything follows that folder:
 # options.ini, the autoload flag, console.txt and the launch's -cachedir; the staged-copy refusal does not apply there
-$Z = $(if ($env:ZEDQA_ZDIR) { $env:ZEDQA_ZDIR } else { "C:\Users\you\Zomboid" })
+$Z = $(if ($env:ZEDQA_ZDIR) { $env:ZEDQA_ZDIR } else { "$($env:USERPROFILE)\Zomboid" })
 # refuse to launch while a Workshop staging copy of ZeD-UI exists: the game scans
 # Workshop\*\Contents\mods before Zomboid\mods and the first folder with the mod id wins
-$staged = @(Get-ChildItem -Path "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
+$staged = @(Get-ChildItem -Path "$($env:USERPROFILE.Replace('\','/'))/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "$($env:USERPROFILE.Replace('\','/'))/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "$($env:USERPROFILE.Replace('\','/'))/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
     Where-Object { Select-String -LiteralPath $_.FullName -Pattern '^\s*id=ZeD_UI\s*$' -Quiet -ErrorAction SilentlyContinue } |
     ForEach-Object { $_.FullName -replace '[\\/]mods[\\/].*$', '' } | Select-Object -Unique)
 if ($staged.Count -gt 0 -and -not $env:ZEDQA_ZDIR) {

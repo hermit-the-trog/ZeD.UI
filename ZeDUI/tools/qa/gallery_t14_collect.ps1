@@ -23,13 +23,13 @@ param(
 )
 $Shots = Join-Path $PSScriptRoot "..\..\workshop\shots\shots.json"
 $Shots = [System.IO.Path]::GetFullPath($Shots)
-$Scr = "C:\Users\you\Zomboid\Screenshots"
+$Scr = "$($env:USERPROFILE)\Zomboid\Screenshots"
 $Out = Join-Path $Scr "gallery_t14"
 # (the list is $KeepNames, not $Kept: PowerShell names ignore case, and $kept below is the count)
 $KeepNames = @('^van_\d+_', '^zqa_r6p_taxi_extras\.png$')
 New-Item -ItemType Directory -Force $Out | Out-Null
 $j = Get-Content $Shots -Raw | ConvertFrom-Json
-$screens = $j.screens -replace '/', '\'
+$screens = ($j.screens -replace '^~', $env:USERPROFILE) -replace '/', '\'
 $src = New-Object 'System.Collections.Generic.HashSet[string]'
 foreach ($s in $j.shots) {
     if ($s.src) { [void]$src.Add($s.src) }
@@ -37,7 +37,7 @@ foreach ($s in $j.shots) {
 }
 $fresh = 0; $kept = 0; $missing = @()
 foreach ($p in $src) {
-    $path = $p -replace '/', '\'
+    $path = ($p -replace '^~', $env:USERPROFILE) -replace '/', '\'
     if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $screens $path }
     if (-not $path.StartsWith($Scr, [StringComparison]::OrdinalIgnoreCase)) { continue }   # the controller drawing
     $name = [System.IO.Path]::GetFileName($path)
@@ -55,8 +55,8 @@ foreach ($p in $src) {
 if ($Switch) {
     if ($missing.Count -gt 0) { "not switching: $($missing.Count) missing"; exit 1 }
     $t = Get-Content $Shots -Raw
-    $t = $t.Replace('"screens": "C:/Users/you/Zomboid/Screenshots/gallery_t13"', '"screens": "C:/Users/you/Zomboid/Screenshots/gallery_t14"')
-    $t = $t.Replace('C:/Users/you/Zomboid/Screenshots/workshop_src_t8/', '')
+    $t = $t.Replace('"screens": "~/Zomboid/Screenshots/gallery_t13"', '"screens": "~/Zomboid/Screenshots/gallery_t14"')
+    $t = $t.Replace('~/Zomboid/Screenshots/workshop_src_t8/', '')
     [System.IO.File]::WriteAllText($Shots, $t, (New-Object System.Text.UTF8Encoding($false)))
     "shots.json now reads Screenshots/gallery_t14"
 }

@@ -4,9 +4,10 @@ import subprocess
 from pathlib import Path
 from PIL import Image, ImageOps
 
-SRC_DIR = Path(r"C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\icon_matcher\uicons-solid-straight\svg")
-OUT_DIR = Path(r"C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\icon_matcher\uicons-solid-straight\png")
-IM_DIR = Path(r"C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\ImageMagick-main")
+HERE = Path(__file__).resolve().parent
+SRC_DIR = HERE / "uicons-solid-straight" / "svg"
+OUT_DIR = HERE / "uicons-solid-straight" / "png"
+IM_DIR = HERE.parent / "ImageMagick-main"
 
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 

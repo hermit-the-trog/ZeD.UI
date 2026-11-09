@@ -3,12 +3,12 @@
 # server replies, declined; invitation while bob is off, back, accepted; the mute on every stream; Check stats. Results in ZeDUI/qa/two_players_beta6a.txt. Both clients and the server close after.
 param([switch]$KeepAfterJoin)
 $Qa = $PSScriptRoot
-$Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
+$Root = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI"
 $Log = "$Root\ZeDUI\qa\two_players_beta6a.txt"
-$Lua = "C:\Users\you\Zomboid\Lua"
+$Lua = "$($env:USERPROFILE)\Zomboid\Lua"
 $Lock = "$Lua\zedqa.lock"
 $env:ZEDQA_NOSTEAM = "1"
-$Con = "C:\Users\you\Zomboid\zedqa_p2\console.txt"
+$Con = "$($env:USERPROFILE)\Zomboid\zedqa_p2\console.txt"
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Log }
 function Main($f, $t, $s = 120) { & "$Qa\mp_client2.ps1" -Main -Run "$Qa\$f" -Tag $t -TimeoutSec $s | ForEach-Object { Note $_ } }
 function Bob($f, $t, $s = 180) { & "$Qa\mp_client2.ps1" -Run "$Qa\$f" -Tag $t -TimeoutSec $s | ForEach-Object { Note $_ } }
@@ -23,14 +23,14 @@ function BobIn {
     Note "bob never reached the game"
     return $false
 }
-$Cache = "C:\Users\you\Zomboid\zedqa_mp"
+$Cache = "$($env:USERPROFILE)\Zomboid\zedqa_mp"
 $Keep = Join-Path $env:TEMP "zedqa_mp_keep_two"
 New-Item -ItemType Directory -Force $Keep | Out-Null
 if (Test-Path "$Cache\db\zedqa.db") { Copy-Item "$Cache\db\zedqa.db" "$Keep\zedqa.db" -Force }
 $MO = "$Lua\ModOptions.ini"; Copy-Item $MO "$Keep\ModOptions.ini" -Force
 Copy-Item "$Cache\Server\zedqa.ini" "$Keep\zedqa.ini" -Force
 & "$Qa\mp_server.ps1" -Start -Mods "ZeD_UI;ZeDQAShim" -Set "PlayerSafehouse=true;AdminSafehouse=true;DoLuaChecksum=false;SafehouseAllowNonResidential=true" | ForEach-Object { if ($_ -match "^set ") { Note $_ } }; Note "server up"   # (safehouses are off on the test server until set)
-$P2Shim = "C:\Users\you\Zomboid\zedqa_p2\mods\ZeDQAShim"; if (Test-Path $P2Shim) { Remove-Item $P2Shim -Recurse -Force }; Copy-Item "C:\Users\you\Zomboid\mods\ZeDQAShim" $P2Shim -Recurse   # (the server requires it of every client)
+$P2Shim = "$($env:USERPROFILE)\Zomboid\zedqa_p2\mods\ZeDQAShim"; if (Test-Path $P2Shim) { Remove-Item $P2Shim -Recurse -Force }; Copy-Item "$($env:USERPROFILE)\Zomboid\mods\ZeDQAShim" $P2Shim -Recurse   # (the server requires it of every client)
 try {
     $o = & "$Qa\zedqa_run.ps1" -Manifest "$Qa\mp_pin_only.txt" -Mp -Mode windowed -Width 1280 -Height 800 -KeepOpen -Report "$Root\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md" 2>&1
     Note "admin in: $(($o | Select-Object -Last 1) -join ' ')"

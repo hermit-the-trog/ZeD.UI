@@ -21,7 +21,7 @@ or the edges, and prefers the backdrop to the picture.
 
 Shot list (see ZeDUI/workshop/shots/shots.json):
 {
-  "screens": "C:/Users/you/Zomboid/Screenshots",     source folder (relative paths resolve here)
+  "screens": "~/Zomboid/Screenshots",     source folder (relative paths resolve here)
   "out": "out",                                         relative to the JSON's folder
   "patches": [[x0,y0,x1,y1,dx,dy]],                     copy pixels over a corner of every source
                                                         (a shot's own "patches" replace these; a 7th
@@ -72,6 +72,13 @@ import os
 import sys
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+
+def home_path(p):
+    """A path starting with ~ in a shot list is under this user's home folder."""
+    if isinstance(p, str) and p.startswith("~"):
+        return os.path.expanduser(p).replace(chr(92), "/")
+    return p
 
 W, H = 1920, 1080
 JPG_MAX = 1_000_000            # Steam's gallery limit is 1 MB; stay under a decimal megabyte
@@ -586,7 +593,8 @@ def render(shot, screens, n, stub, debug, patches=()):
     cache = {}
 
     def get(name):
-        path = name if os.path.isabs(name) else os.path.join(screens, name)
+        nm = home_path(name)
+        path = nm if os.path.isabs(nm) else os.path.join(screens, nm)
         if path not in cache:
             cache[path] = load_src(path, stub)
             if cache[path] is None:
@@ -756,7 +764,7 @@ def render(shot, screens, n, stub, debug, patches=()):
             if c.get("frame") is False:
                 # a drawing on a transparent ground (the controller map's pad): no window frame,
                 # pasted with its own alpha onto the card's body
-                spath = c.get("src") or shot["src"]
+                spath = home_path(c.get("src") or shot["src"])
                 if not os.path.isabs(spath):
                     spath = os.path.join(screens, spath)
                 rs = Image.NEAREST if c.get("resample") == "nearest" else Image.LANCZOS   # pixel art stays crisp
@@ -828,7 +836,7 @@ def main():
     with open(a.spec, encoding="utf-8") as fh:
         spec = json.load(fh)
     base = os.path.dirname(os.path.abspath(a.spec))
-    screens = spec.get("screens", "C:/Users/you/Zomboid/Screenshots")
+    screens = home_path(spec.get("screens", "~/Zomboid/Screenshots"))
     out = a.out or os.path.join(base, spec.get("out", "out"))
     os.makedirs(out, exist_ok=True)
     only = set(s for s in a.only.split(",") if s)

@@ -3,7 +3,7 @@
 # -Skip is a pattern of names to leave. Prints what's fresh and what stays older, by first word. Touches neither the game nor the lock.
 param([Parameter(Mandatory)][datetime]$Since, [string]$Skip = '^$')
 $Spreads = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\workshop\gallery\spreads")
-$Scr = "C:\Users\you\Zomboid\Screenshots"; $To = "$Scr\gallery_t14"
+$Scr = "$($env:USERPROFILE)\Zomboid\Screenshots"; $To = "$Scr\gallery_t14"
 $names = New-Object 'System.Collections.Generic.HashSet[string]'
 Get-ChildItem "$Spreads\*.json" | ForEach-Object { foreach ($m in [regex]::Matches((Get-Content $_.FullName -Raw), '"src"\s*:\s*"([^"]+)"')) { [void]$names.Add((Split-Path $m.Groups[1].Value -Leaf)) } }
 $copied = 0; $old = @{}; $none = @()

@@ -3,14 +3,14 @@
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
 $env:ZEDQA_KEEP_ADDITIONS = "1"
-$Lua = "C:\Users\you\Zomboid\Lua"
+$Lua = "$($env:USERPROFILE)\Zomboid\Lua"
 $MO = "$Lua\ModOptions.ini"
 $Mark = "$Lua\ZeD_presetRepair.txt"
 $Keep = Join-Path $env:TEMP "zedqa_repair_keep"
 New-Item -ItemType Directory -Force $Keep | Out-Null
 Copy-Item $MO "$Keep\ModOptions.ini" -Force
 if (Test-Path $Mark) { Copy-Item $Mark "$Keep\mark.txt" -Force }
-$Rep = "C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression"
+$Rep = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression"
 try {
     $ids = "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "haloBubble"
     $vals = @{ additionsPreset = 4; restock = 3; devicesStyle = 2; watchStyle = 2; dashStyle = 2; guideStyle = 2; modsStyle = 2; identityStyle = 1 }

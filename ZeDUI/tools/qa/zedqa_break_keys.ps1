@@ -10,9 +10,9 @@
     game quits at the end. Holds Zomboid/Lua/zedqa.lock. Exit 0 no errors, 1 errors, 2 refused.
 #>
 param([switch]$Quit, [int]$Presses = 400)
-$Lua = "C:\Users\you\Zomboid\Lua"
+$Lua = "$($env:USERPROFILE)\Zomboid\Lua"
 $QA = $PSScriptRoot
-$log = "C:\Users\you\Zomboid\console.txt"
+$log = "$($env:USERPROFILE)\Zomboid\console.txt"
 $lock = Join-Path $Lua "zedqa.lock"
 $proc = Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $proc) { "the game is not running"; exit 2 }

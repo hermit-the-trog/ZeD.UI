@@ -19,9 +19,9 @@
     (Mouse.setXY does not move the pointer at the main menu, hence real input.)
     Exit codes: 0 every check passed, 1 a check failed or the run broke, 2 refused.
 #>
-$Lua = "C:\Users\you\Zomboid\Lua"
+$Lua = "$($env:USERPROFILE)\Zomboid\Lua"
 $QA = $PSScriptRoot
-$log = "C:\Users\you\Zomboid\console.txt"
+$log = "$($env:USERPROFILE)\Zomboid\console.txt"
 $lock = Join-Path $Lua "zedqa.lock"
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { "the game is running; not starting"; exit 2 }
 if ((Get-Content $lock -Raw -ErrorAction SilentlyContinue) -match '^busy') { "the lock says busy; not starting"; exit 2 }

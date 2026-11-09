@@ -22,8 +22,8 @@ def esc(s):
 d = read("tester_description_%s.bbcode" % v)
 c = read("tester_changenote_%s.txt" % v)
 rows = [("appid", "108600"), ("publishedfileid", "3824968485"),
-        ("contentfolder", "C:/Users/you/Zomboid/Workshop/ZeD-UI/Contents"),
-        ("previewfile", "C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/workshop/thumbnail/year_1993_animated.gif"),
+        ("contentfolder", os.path.join(os.path.expanduser("~"), "Zomboid", "Workshop", "ZeD-UI", "Contents").replace(chr(92), "/")),
+        ("previewfile", os.path.join(w, "thumbnail", "year_1993_animated.gif").replace(chr(92), "/")),
         ("description", esc(d)), ("changenote", esc(c))]
 if len(sys.argv) > 2 and sys.argv[2] == "--note-only":   # (Nov 6 2026: Steam accepted this and posted no entry. A note only lands with a content upload.)
     rows = [r for r in rows if r[0] in ("appid", "publishedfileid", "changenote")]

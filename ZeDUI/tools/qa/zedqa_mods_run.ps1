@@ -26,8 +26,8 @@ param(
 $ErrorActionPreference = "Stop"
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $QaDir   = $PSScriptRoot
-$QaSave  = "C:\Users\you\Zomboid\Saves\Sandbox\ZeD-QA"
-$LockFile = "C:\Users\you\Zomboid\Lua\zedqa.lock"
+$QaSave  = "$($env:USERPROFILE)\Zomboid\Saves\Sandbox\ZeD-QA"
+$LockFile = "$($env:USERPROFILE)\Zomboid\Lua\zedqa.lock"
 $stamp   = Get-Date -Format "yyyy-MM-dd_HHmm"
 $Report  = [System.IO.Path]::GetFullPath((Join-Path $QaDir "..\..\qa\regression\${stamp}_mods_$Mode.md"))
 $snap    = Join-Path ([System.IO.Path]::GetTempPath()) "ZeD-QA.mods-snapshot.$stamp"

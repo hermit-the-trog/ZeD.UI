@@ -1,12 +1,12 @@
 # ZeDUI/tools/qa/release_check_mouse.ps1  (Nov 2 2026, QA; punch list 70)
-# The release check's real mouse. Watches C:\Users\you\Zomboid\Lua\zedqa_click.txt ("right x y", "left x y" or "move x y" (the cursor only, Nov 3 2026),
+# The release check's real mouse. Watches %USERPROFILE%\Zomboid\Lua\zedqa_click.txt ("right x y", "left x y" or "move x y" (the cursor only, Nov 3 2026),
 # the game's pixels, turned into the desktop's through the game window's client corner); for each request brings the game to the front (pzfront.ps1), moves the desktop cursor there and
 # presses the button, then writes "done" to zedqa_click_done.txt and deletes the request. Stops by itself after
 # -MaxMinutes, or when the file zedqa_click_stop.txt appears. Started by release_check.ps1; never on its own while the
 # director uses the machine.
 param([int]$MaxMinutes = 15)
 $ErrorActionPreference = "Stop"
-$lua = $(if ($env:ZEDQA_ZDIR) { Join-Path $env:ZEDQA_ZDIR "Lua" } else { "C:\Users\you\Zomboid\Lua" })
+$lua = $(if ($env:ZEDQA_ZDIR) { Join-Path $env:ZEDQA_ZDIR "Lua" } else { "$($env:USERPROFILE)\Zomboid\Lua" })
 $req = Join-Path $lua "zedqa_click.txt"
 $done = Join-Path $lua "zedqa_click_done.txt"
 $stop = Join-Path $lua "zedqa_click_stop.txt"

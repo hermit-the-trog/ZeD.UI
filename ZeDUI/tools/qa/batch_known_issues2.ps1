@@ -22,7 +22,7 @@ $A = "SuperOl3gContextMenuIcons,ImmersiveMoodles,ParavelsEnhancedUI,ParavelsEnha
 Note "hair sets done"
 
 # multiplayer
-$Cache = "C:\Users\you\Zomboid\zedqa_mp"
+$Cache = "$($env:USERPROFILE)\Zomboid\zedqa_mp"
 $Keep = Join-Path $env:TEMP "zedqa_mp_keep"
 New-Item -ItemType Directory -Force $Keep | Out-Null
 Copy-Item "$Cache\db\zedqa.db" "$Keep\zedqa.db" -Force

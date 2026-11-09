@@ -15,6 +15,6 @@ $empty = Join-Path $Qa "b8_empty_mods.txt"; Set-Content -LiteralPath $empty -Val
 Run "corkboard" @("$Qa\zedqa_menu_mods_run.ps1", "-ModList", $empty, "-Script", "$Qa\zedqa_menunote_shot.lua", "-Tag", "mmn", "-TimeoutSec", "400")
 $m = Join-Path $Qa "b11_deck_reruns.txt"
 Set-Content $m @("zedqa_prelude.lua | pre | timeout=240", "zedqa_b9a_2.lua | b9a2 | timeout=240", "zedqa_b9a_4.lua | b9a4 | timeout=240", "zedqa_dual_pin.lua | dpn | timeout=960")
-Run "deck" @("$Qa\release_check.ps1", "-Manifest", "b11_deck_reruns.txt", "-Width", "1280", "-Height", "800", "-Report", "C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-09_b11_deck_reruns.md")
+Run "deck" @("$Qa\release_check.ps1", "-Manifest", "b11_deck_reruns.txt", "-Width", "1280", "-Height", "800", "-Report", "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-09_b11_deck_reruns.md")
 Run "restore" @("$Qa\pzrestorewin.ps1")
 "== $(Get-Date -Format 'HH:mm:ss') end" | Add-Content $Log

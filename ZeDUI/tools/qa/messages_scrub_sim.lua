@@ -19,7 +19,7 @@ end
 local function hook() return { Add = function() end, Remove = function() end } end
 Events = setmetatable({}, { __index = function(t, k) local e = hook(); rawset(t, k, e); return e end })
 function require() end
-DOC = "C:\\Users\\you Q\\Zomboid"
+DOC = "C:\\Users\\Sam Q\\Zomboid"
 function getMyDocumentFolder() return DOC end
 function getModInfoByID() return nil end
 function getActivatedMods() return { size = function() return 0 end } end
@@ -34,16 +34,16 @@ check("the file loads with its scrub", M and M.scrub and M.SCRUB_NOTE)
 local ERR = table.concat({
     "attempted index: x of non-table: null",
     "function: tick -- file: Foo.lua line # 12 | MOD: Foo",
-    "at C:\\Users\\you Q\\Zomboid\\Workshop\\Foo\\Contents\\mods\\Foo\\42\\media\\lua\\client\\Foo.lua:12",
-    "at c:/users/you q/zomboid/Lua/foo_settings.txt",
-    "at C:\\USERS\\you Q\\AppData\\Local\\Temp\\x.tmp",
-    "at C:/Users/you Q/Downloads/thing.lua",
+    "at C:\\Users\\Sam Q\\Zomboid\\Workshop\\Foo\\Contents\\mods\\Foo\\42\\media\\lua\\client\\Foo.lua:12",
+    "at c:/users/sam q/zomboid/Lua/foo_settings.txt",
+    "at C:\\USERS\\Sam Q\\AppData\\Local\\Temp\\x.tmp",
+    "at C:/Users/Sam Q/Downloads/thing.lua",
     "Steam at E:/Project Zomboid/steamapps/common/ProjectZomboid/media/lua/shared/x.lua",
 }, "\n")
 M.sources.Foo = { name = "Foo", kind = "err", items = { { k = "err", count = 1, texts = { ERR }, whens = { "10:02" } } } }
 
 local function verify(label, text)
-    check(label .. ": no user folder name", not string.find(string.lower(text), "danie q", 1, true), text)
+    check(label .. ": no user folder name", not string.find(string.lower(text), "sam q", 1, true), text)
     check(label .. ": no Users folder", not string.find(string.lower(text), ":\\users\\", 1, true) and not string.find(string.lower(text), ":/users/", 1, true))
     check(label .. ": the Zomboid folder reads ~/Zomboid", string.find(text, "~/Zomboid\\Workshop\\Foo", 1, true) and string.find(text, "~/Zomboid/Lua/foo_settings.txt", 1, true))
     check(label .. ": another folder reads ~\\ or ~/", string.find(text, "~\\AppData\\Local", 1, true) and string.find(text, "~/Downloads/thing.lua", 1, true))

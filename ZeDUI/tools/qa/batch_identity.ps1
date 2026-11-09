@@ -1,8 +1,8 @@
 #Requires -Version 7.0
 # ZeDUI/tools/qa/batch_identity.ps1  (Nov 5 2026, QA): the Identity tab at 4K, then at the Deck, with the mouse helper; the QA save and ModOptions are put back.
 $Qa = $PSScriptRoot
-$Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
-$save = "C:\Users\you\Zomboid\Saves\Sandbox\ZeD-QA"; $snap = Join-Path $env:TEMP "ZeD-QA.identity-snapshot"
+$Root = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI"
+$save = "$($env:USERPROFILE)\Zomboid\Saves\Sandbox\ZeD-QA"; $snap = Join-Path $env:TEMP "ZeD-QA.identity-snapshot"
 if (Test-Path $snap) { Remove-Item -Recurse -Force $snap }
 Copy-Item -Recurse $save $snap
 try {

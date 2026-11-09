@@ -7,7 +7,7 @@
 param([string]$Sets = "a,b", [string]$Manifest = "compat_r5.txt")
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Mods = "C:\Users\you\Zomboid\mods"
+$Mods = "$($env:USERPROFILE)\Zomboid\mods"
 $Src = "C:\steamcmd\steamapps\workshop\content\108600"
 $Ids = "3830045886 3789836701 3832114824 3508537032 3816406671 3763913359 3829853258 3833987918 3832759095 3830103302 3829124374 3830007154 3829468590 3001154607 3835479468 3834570592 3834902827 3834856444 3834889317 3834708364 3833717583" -split " "
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { Write-Output "the game is running, stop"; exit 2 }

@@ -4,7 +4,7 @@
 param([Parameter(Mandatory)][ValidateSet("EN", "TR", "CN", "PTBR", "PT", "ES", "ES_MX", "AR", "ES_CL", "FR", "DE", "IT", "CA", "NL", "DA", "NO", "FI", "PL", "CS", "HU", "RO", "RU", "UA", "CH", "JP", "KO", "TH", "ID")][string]$Lang, [string]$Manifest = "lang_check.txt")
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
-$ini = "C:\Users\you\Zomboid\options.ini"
+$ini = "$($env:USERPROFILE)\Zomboid\options.ini"
 $text = Get-Content -Raw $ini
 $was = if ($text -match '(?m)^language=(.*)$') { $Matches[1].Trim() } else { "EN" }
 try {

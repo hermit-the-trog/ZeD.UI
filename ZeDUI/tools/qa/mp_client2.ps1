@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
     ZeDUI/tools/qa/mp_client2.ps1  (Nov 5 2026, QA; the director: yes, a second copy of the game): a second player on the local test server, a plain
-    player with no admin rights. Its own folder, C:\Users\you\Zomboid\zedqa_p2, with its own options, saves and copy of ZeD; nothing in the director's
+    player with no admin rights. Its own folder, %USERPROFILE%\Zomboid\zedqa_p2, with its own options, saves and copy of ZeD; nothing in the director's
     Zomboid folder changes. Launched without -debug (a -debug client may only join as an admin), so its copy of QABridge.lua is patched to arm anyway.
     That copy is never staged; the repo's file is untouched.
       -Start        copy ZeD in, write the options, start the second client, wait for its bridge, join the server as -User
@@ -11,7 +11,7 @@
 param([switch]$Start, [switch]$Stop, [switch]$Main, [switch]$Click, [string]$Run = "", [string]$Tag = "", [string]$User = "bob", [int]$TimeoutSec = 180)   # (-Main: -Run on the first client, the admin, in Zomboid\; -Click: "click to start" on the second client's window)
 $ErrorActionPreference = "Stop"
 $U = New-Object System.Text.UTF8Encoding($false)
-$Z = "C:\Users\you\Zomboid"
+$Z = "$($env:USERPROFILE)\Zomboid"
 $P2 = "$Z\zedqa_p2"
 $Lua = $(if ($Main) { "$Z\Lua" } else { "$P2\Lua" })
 $Con = $(if ($Main) { "$Z\console.txt" } else { "$P2\console.txt" })

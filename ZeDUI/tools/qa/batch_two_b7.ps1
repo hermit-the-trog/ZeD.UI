@@ -6,15 +6,15 @@
 # Results in ZeDUI/qa/two_players_b7.txt; pictures in the scratchpad. Both clients and the server close after.
 param([switch]$ClaimsOnly)
 $Qa = $PSScriptRoot
-$Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
+$Root = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI"
 $Log = "$Root\ZeDUI\qa\two_players_b7.txt"
-$Z = "C:\Users\you\Zomboid"
+$Z = "$($env:USERPROFILE)\Zomboid"
 $Lua = "$Z\Lua"
 $Lock = "$Lua\zedqa.lock"
 $env:ZEDQA_NOSTEAM = "1"
 $Con = "$Z\zedqa_p2\console.txt"
 $Shots = "$Z\Screenshots"
-$Out = "C:\Users\you\AppData\Local\Temp\claude\927f5331f6a7940b\8d4042f4-6e83-4cb6-9f64-0a1e0b9a2dae\scratchpad\two_b7"
+$Out = "$($env:USERPROFILE)\AppData\Local\Temp\claude\927f5331f6a7940b\8d4042f4-6e83-4cb6-9f64-0a1e0b9a2dae\scratchpad\two_b7"
 New-Item -ItemType Directory -Force $Out | Out-Null
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Log }
 function Main($f, $t, $s = 120) { & "$Qa\mp_client2.ps1" -Main -Run "$Qa\$f" -Tag $t -TimeoutSec $s | ForEach-Object { Note $_ } }

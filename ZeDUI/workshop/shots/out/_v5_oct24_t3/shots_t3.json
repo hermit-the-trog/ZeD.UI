@@ -1,6 +1,6 @@
 {
  "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards).",
- "screens": "C:/Users/you/Zomboid/Screenshots/gallery_v3",
+ "screens": "~/Zomboid/Screenshots/gallery_v3",
  "out": "out",
  "patches": [
   [
@@ -983,7 +983,7 @@
   {
    "id": "car_radio",
    "kind": "feature",
-   "src": "C:/Users/you/Zomboid/Screenshots/workshop_src/ws_27_car_radio_up_close.png",
+   "src": "~/Zomboid/Screenshots/workshop_src/ws_27_car_radio_up_close.png",
    "title": "The car radio",
    "caption": "Each car's radio opens up close: tune it and store your stations.",
    "layout": {
@@ -1463,7 +1463,7 @@
   {
    "id": "controller_map",
    "kind": "feature",
-   "src": "C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png",
+   "src": "~/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png",
    "title": "Controller",
    "patches": [],
    "caption": "Every mouse action has a button: A is left click, X is right click, B backs out.",
@@ -1670,7 +1670,7 @@
   {
    "id": "controller",
    "kind": "feature",
-   "src": "C:/Users/you/Zomboid/Screenshots/workshop_src/g3_wheel_character_eat.png",
+   "src": "~/Zomboid/Screenshots/workshop_src/g3_wheel_character_eat.png",
    "title": "On a controller",
    "caption": "Hold a D-pad direction for a wheel: Character, World, Social, Here and now. Point with the right stick, let go to take.",
    "layout": {
@@ -1689,7 +1689,7 @@
      "label": "CHARACTER"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/workshop_src/g3_wheel_use_smoke.png",
+     "src": "~/Zomboid/Screenshots/workshop_src/g3_wheel_use_smoke.png",
      "box": [
       1690,
       895,
@@ -1700,7 +1700,7 @@
      "label": "CHARACTER > USE"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/workshop_src/g3_car_vehicle_dashboard.png",
+     "src": "~/Zomboid/Screenshots/workshop_src/g3_car_vehicle_dashboard.png",
      "box": [
       1690,
       800,
@@ -1772,7 +1772,7 @@
   {
    "id": "quick_actions",
    "kind": "feature",
-   "src": "C:/Users/you/Zomboid/Screenshots/workshop_src/g3_setup_putback.png",
+   "src": "~/Zomboid/Screenshots/workshop_src/g3_setup_putback.png",
    "title": "Quick actions",
    "caption": "Hold LB or RB and press A, B, X, Y, L3 or R3: twelve actions from the wheels, set in ZeD setup or from a wheel.",
    "layout": {
@@ -1790,7 +1790,7 @@
      "tag": "ZED SETUP"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/workshop_src/g3_setup_list.png",
+     "src": "~/Zomboid/Screenshots/workshop_src/g3_setup_list.png",
      "box": [
       1920,
       1170,
@@ -1862,7 +1862,7 @@
   {
    "id": "thermal",
    "kind": "feature",
-   "src": "C:/Users/you/Zomboid/Screenshots/zed_66_thermal_skin.png",
+   "src": "~/Zomboid/Screenshots/zed_66_thermal_skin.png",
    "title": "Thermal tab",
    "caption": "Character window, Thermal tab.",
    "layout": {
@@ -1871,7 +1871,7 @@
    },
    "crops": [
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/zed_66_thermal_skin.png",
+     "src": "~/Zomboid/Screenshots/zed_66_thermal_skin.png",
      "box": [
       296,
       0,
@@ -1881,7 +1881,7 @@
      "tag": "SKIN TEMPERATURE"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/zed_70_thermal_insulation.png",
+     "src": "~/Zomboid/Screenshots/zed_70_thermal_insulation.png",
      "box": [
       296,
       0,
@@ -1891,7 +1891,7 @@
      "tag": "INSULATION"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/zed_72_thermal_wetness.png",
+     "src": "~/Zomboid/Screenshots/zed_72_thermal_wetness.png",
      "box": [
       296,
       0,
@@ -1934,7 +1934,7 @@
   {
    "id": "watches",
    "kind": "feature",
-   "src": "C:/Users/you/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
+   "src": "~/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
    "title": "Watches",
    "caption": "The small watch on the belt shows the watch worn on the wrist.",
    "layout": {
@@ -1954,7 +1954,7 @@
      "tag": "CAZIO"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
+     "src": "~/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
      "box": [
       2300,
       2025,
@@ -1965,7 +1965,7 @@
      "tag": "TIMEZ"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/zed_79_belt_watch_ClassicGold.png",
+     "src": "~/Zomboid/Screenshots/zed_79_belt_watch_ClassicGold.png",
      "box": [
       2300,
       2025,
@@ -1976,7 +1976,7 @@
      "tag": "CAZIO CLASSIC"
     },
     {
-     "src": "C:/Users/you/Zomboid/Screenshots/zed_80_belt_watch_DigitalRed.png",
+     "src": "~/Zomboid/Screenshots/zed_80_belt_watch_DigitalRed.png",
      "box": [
       2300,
       2025,

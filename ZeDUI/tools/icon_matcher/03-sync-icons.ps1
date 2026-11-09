@@ -9,8 +9,8 @@
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $smashRoot = Join-Path $scriptDir "Smashicons"
-$luaPath   = "C:\Users\you\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
-$destRoot  = "C:\Users\you\Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons"
+$luaPath   = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
+$destRoot  = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons"
 
 New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
 

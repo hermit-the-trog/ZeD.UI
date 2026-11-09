@@ -348,7 +348,8 @@ def render(sp, screens, out_path):
     imgs, maps, pboxes, tapes = {}, [], [], []
     for side in ("left", "right"):                               # his prints, taped over the paragraphs
         for k, p in enumerate(sp[side].get("prints", [])):
-            src = p["src"] if os.path.isabs(p["src"]) else os.path.join(screens, p["src"])
+            psrc = pp.home_path(p["src"])
+            src = psrc if os.path.isabs(psrc) else os.path.join(screens, psrc)
             if src not in imgs:
                 imgs[src] = Image.open(src).convert("RGB")
             if p.get("printed"):                                  # the publisher's own figure, printed in the column
@@ -490,9 +491,9 @@ def load_spreads(path):
         for f in sorted(os.listdir(path)):
             if f.endswith(".json") and not f.startswith("_"):
                 sps.append(json.load(open(os.path.join(path, f), encoding="utf-8")))
-        return book["screens"], sps
+        return pp.home_path(book["screens"]), sps
     spec = json.load(open(path, encoding="utf-8"))
-    return spec["screens"], spec["spreads"]
+    return pp.home_path(spec["screens"]), spec["spreads"]
 
 
 def main():
