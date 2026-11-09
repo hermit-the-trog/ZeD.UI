@@ -1,0 +1,11 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_b9a_1.lua | b9a1 | timeout=120
+zedqa_b9a_2.lua | b9a2 | timeout=120
+zedqa_b9a_3.lua | b9a3 | timeout=90
+zedqa_b9a_4.lua | b9a4 | timeout=120
+zedqa_b9a_5.lua | b9a5 | timeout=120
+zedqa_b9a_6.lua | b9a6 | timeout=90
+zedqa_b9a_7.lua | b9a7 | timeout=90
+zedqa_b9a_8.lua | b9a8 | timeout=60
+zedqa_b9a_9.lua | b9a9 | timeout=90
+zedqa_dual_pin.lua | dpn | timeout=480

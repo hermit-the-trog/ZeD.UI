@@ -386,6 +386,12 @@ ZeD.ContextIcons = {
     ["IGUI_PlaceObject"]                          = "arrow-down-to-square",
     ["IGUI_SelectBodyLocation"]                   = "person-circle-question",
 
+    -- ZED'S OWN OPTIONS: pin a thing to the Character window's title bar, or unpin it
+    -- (ZeD_Pins.lua). "portal-enter" is the picture ContextPxIcons draws as ZeD's pin, the
+    -- drawing the title bar's own pin boxes use.
+    ["UI_ZeD_Pin_Pin"]                            = "portal-enter",
+    ["UI_ZeD_Pin_Unpin"]                          = "portal-enter",
+
     -- FALLBACK VERBS (single-word root entries for first-word resolution)
     -- These cover the long tail of "Verb + Target" context options (e.g.
     -- "Add Fertilizer", "Grab half", "Insert Magazine") where the multi-word

@@ -16,6 +16,9 @@
 --               F1; picture, for the director's eye. The real pad run is the director's (A on the Messages line)
 --   8  START2   the game's own start handler is gone from OnGameStart and the guide is closed at the start
 -- Put back: constants, the flag, the guide closed, Messages emptied.
+-- The steps run on OnRenderTick, not OnTick: the open guide pauses the game (as the game's own guide does) and OnTick
+-- stops while it is paused, so on OnTick the run stopped at step 3's open and never reached DONE (Nov 8 2026: reported
+-- as a freeze; the frames were still drawn, ZeDUI/tools/qa/guide_open_freeze_sim.lua).
 local function say(s) print("ZEDQA gbub " .. tostring(s)) end
 local core = getCore()
 local sw, sh = core:getScreenWidth(), core:getScreenHeight()
@@ -199,7 +202,7 @@ step(10, function()
 end)
 local function tick()
     local q = Q[qi + 1]
-    if not q then Events.OnTick.Remove(tick); return end
+    if not q then Events.OnRenderTick.Remove(tick); return end
     wait = wait + 1
     if q.cond then
         if q.cond() or wait >= q.max then wait = 0; qi = qi + 1; local ok, e = pcall(q.fn); if not ok then fail = fail + 1; say("ERR " .. tostring(e)) end end
@@ -211,5 +214,5 @@ local function tick()
     local ok, err = pcall(q.fn)
     if not ok then fail = fail + 1; say("ERR step " .. qi .. ": " .. tostring(err)) end
 end
-Events.OnTick.Add(tick)
+Events.OnRenderTick.Add(tick)
 say("start")
