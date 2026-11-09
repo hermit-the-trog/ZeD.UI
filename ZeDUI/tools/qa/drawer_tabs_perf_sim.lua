@@ -3,8 +3,9 @@
 -- game running, before and after the drawing-cost work.
 --   * Loads the real Scale, Tokens, Tr, Atoms, AtomExtensions, Molecules, ZeD_BodyFigure, ProtectionTab, EquipDoll
 --     and the four tabs twice, each into its own sandbox on the same stubs: as they are in BASE and as they are in
---     the checkout. BASE is a folder (made by ZeDUI/tools/qa/p120_base.py: main less the first round of this work,
---     which QA measured slower in the game) or a revision (default origin/main).
+--     the checkout. BASE is a revision (origin/main, to check a change against main) or a folder holding those
+--     files; with none, the checkout alone: every frame drawn, counted and printed, nothing compared (so a sim
+--     loop that gives no argument passes).
 --   * A stand-in player (worn clothes, a stocked inventory, 40 skills, traits, a thermoregulator), a stand-in
 --     TextManager whose widths add up letter by letter, and a panel that writes down every draw (its Java element's
 --     too), every surface strip's claim on the window body, and the help line's words.
@@ -12,20 +13,21 @@
 --     and compares them: the help lines in their order, and the draws word for word; where a frame's draws differ
 --     (a chevron or a dashed edge drawn from the line textures instead of rect by rect) every draw but the thin
 --     ones must still match one for one, and sampled frames are painted both ways, pixel by pixel (rects, and the
---     line textures' own pixels from linetex_pixels.lua), and must come out the same. Also at the half card, in
+--     line textures' own pixels from linetex_pixels.lua), and must come out the same, but for the framed fill
+--     bars' cells: there the same cells in the same colours, the middle ones equal and each within a pixel of its
+--     old width, the end ones wider by the leftover split between them, meeting the frame. Also at the half card, in
 --     Simple, with the full photo, the figure folded, another view, a window's own colours.
 --   * Counts per frame, old against new: Lua instructions (a count hook), the engine's text measures, wrap and
 --     truncate calls, Java calls on the stand-ins (each draw is one), draws, and the Lua memory a frame allocates
 --     (GC stopped). Fails when the new draws, Java calls or memory a frame are more than the base's.
 --   * With -prof, prints where the instructions, the Java calls and the draws go, by function, for the checkout.
 -- Run from the repo root:
---   python -I ZeDUI/tools/qa/p120_base.py <dir>
---   lua51 ZeDUI/tools/qa/drawer_tabs_perf_sim.lua <dir> [-prof]
+--   lua51 ZeDUI/tools/qa/drawer_tabs_perf_sim.lua [origin/main | <rev> | <dir>] [-prof]
 -- It prints FAIL lines, the numbers, and a last line "drawer_tabs_perf_sim: N checks, M failed", and exits 1 if any
 -- failed.
 
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]drawer_tabs_perf_sim%.lua$", "")
-local BASE, PROF = "origin/main", false
+local BASE, PROF = nil, false   -- (no base given: the checkout alone, see below)
 LINEPROF = os.getenv("LINEPROF") ~= nil   -- (-prof by line, not by function)
 for _, a in ipairs(arg or {}) do
     if a == "-prof" then PROF = true else BASE = a end
@@ -336,7 +338,8 @@ local function newPanel(world)
         isVisible = function() return true end, getIsVisible = function() return true end,
     }
     return setmetatable(P, { __index = function(t, k)
-        if type(k) == "string" and (string.sub(k, 1, 4) == "draw" or k == "setStencilRect" or k == "clearStencilRect"
+        -- (string.find, not string.sub: a field asked every draw, isCollapsed, must not make a string each time)
+        if type(k) == "string" and (string.find(k, "draw", 1, true) == 1 or k == "setStencilRect" or k == "clearStencilRect"
                 or k == "repaintStencilRect" or k == "suspendStencil" or k == "resumeStencil") then
             local f = function(self, ...) log(k, ...) end
             rawset(t, k, f)
@@ -571,6 +574,19 @@ local function newWorld(label, getSrc)
     local w0, t0 = A.wrapText, A.truncateText
     A.wrapText = function(...) C.wrap = C.wrap + 1; return w0(...) end
     A.truncateText = function(...) C.trunc = C.trunc + 1; return t0(...) end
+    -- each framed fill bar's inside, written down with the frame's draws (log runs only): its cells may move
+    -- (equal cells now), so the comparison looks at them cell by cell instead of pixel by pixel
+    local sb0 = A.drawSegBar
+    A.drawSegBar = function(panel, x, y, w, h, n, k, on, off, gap, opts)
+        if opts and opts.framed and not world.nolog and world.cmds then
+            local T = Z.T
+            local fh = opts.exactH and h or math.max(h, T.px(8))
+            local bw = T.line(T.borderW)
+            local b = T.base
+            world.cmds[#world.cmds + 1] = { "bar", 0, x + bw, y + bw, w - 2 * bw, fh - 2 * bw, b.r, b.g, b.b }
+        end
+        return sb0(panel, x, y, w, h, n, k, on, off, gap, opts)
+    end
     return world
 end
 
@@ -653,6 +669,16 @@ for _, base in ipairs({ { "skills", "Skills" }, { "thermal", "Thermal" }, { "ide
                         variant = true, frame = windowColours }
 end
 
+-- Calls n deep (not tail calls) with room for locals at each: this Lua's full collect shrinks the stack and
+-- its call list, and a frame that grew them back counted it as memory the tab allocates (a deeper call
+-- chain, more "memory"). They are grown back before the frame is measured. (Kahlua has no such count.)
+local function stackRoom(n)
+    if n <= 0 then return 0 end
+    local a, b, c, d, e, f, g, h = n, n, n, n, n, n, n, n
+    local r = stackRoom(n - 1)
+    return r + a - b + c - d + e - f + g - h
+end
+
 -- one tab, N frames. mode "log": every draw of every frame written down; "count": the instructions (a count
 -- hook) and the calls; "mem": the memory a frame allocates (nothing else running: no log, no hook)
 local function runTab(world, tab, frames, pointer, mode, profile)
@@ -706,6 +732,7 @@ local function runTab(world, tab, frames, pointer, mode, profile)
         if f == 21 then hookN = 0 end   -- (the first frames fill the caches: the work counted from the 21st)
         collectgarbage("collect")
         collectgarbage("stop")
+        stackRoom(400)   -- (the full collect above shrinks the Lua stack: grown back here, not counted as the tab's)
         local m0 = collectgarbage("count")
         lastM = nil
         if mode == "count" then debug.sethook(hook, "", STEP) end
@@ -735,8 +762,10 @@ end
 -- ===========================================================================
 local newW = newWorld("new", readFile)
 local oldW = nil
-local hasBase = gitShow(FILES[1]) ~= nil
-if hasBase then oldW = newWorld("old", gitShow) else print("(no " .. BASE .. ": the checkout alone)") end
+local hasBase = BASE ~= nil and gitShow(FILES[1]) ~= nil
+if hasBase then oldW = newWorld("old", gitShow)
+elseif BASE then check("the base " .. BASE .. " has the files", false)
+else print("(no base given: the checkout alone, every frame drawn and counted, nothing compared; to compare, give a revision such as origin/main)") end
 
 -- ===========================================================================
 -- PAINTING A FRAME: where the draws differ (a line texture for rects), the pixels must not
@@ -747,7 +776,14 @@ local function lineTexOf(t)
     local m = n and string.match(n, "lines/([%w_]+)%.png$")
     return m and LINETEX[m] or nil
 end
+-- seg.png by its rule (make_line_tex.py checks the PNG against it): row (gap - 1) * 64 + (cell - 1), gap lit, cell clear
+LINETEX.seg = { w = 1024, h = 256, rule = function(u, v)
+    if u < 0 or u >= 1024 or v < 0 or v >= 256 then return false end
+    local g, c = math.floor(v / 64) + 1, v - math.floor(v / 64) * 64 + 1
+    return u - math.floor(u / (c + g)) * (c + g) < g
+end }
 local function texelLit(tx, u, v)
+    if tx.rule then return tx.rule(u, v) end
     local row = tx.rows[v + 1]
     if not row or u < 0 then return false end
     for i = 1, #row, 2 do if u >= row[i] and u < row[i + 1] then return true end end
@@ -814,24 +850,110 @@ local function paint(cmds)
     end
     return cv
 end
-local function sameCanvas(a, b)
+-- the framed fill bars' insides a frame drew ({ x, y, w, h, base r, g, b })
+local function barsOf(cmds)
+    local out = {}
+    for _, c in ipairs(cmds or {}) do
+        if c[1] == "bar" then out[#out + 1] = { c[3], c[4], c[5], c[6], c[7], c[8], c[9] } end
+    end
+    return out
+end
+local function inBar(bars, px, py)
+    for _, b in ipairs(bars) do
+        if px + 0.5 >= b[1] and px + 0.5 < b[1] + b[3] and py + 0.5 >= b[2] and py + 0.5 < b[2] + b[4] then return true end
+    end
+    return false
+end
+-- a bar's cells along its middle row: the runs of pixels that are not the well's colour, { start, width, r, g, b }
+local function barCells(cv, b)
+    local py = math.floor(b[2] + b[4] / 2)
+    local runs, cur = {}, nil
+    for px = math.ceil(b[1] - 0.5), math.ceil(b[1] + b[3] - 0.5) - 1 do
+        local i = py * 8192 + px
+        local r, g, bl = cv.R[i] or 0, cv.G[i] or 0, cv.B[i] or 0
+        local well = math.abs(r - b[5]) < 1e-9 and math.abs(g - b[6]) < 1e-9 and math.abs(bl - b[7]) < 1e-9
+        if well then cur = nil
+        elseif cur and math.abs(cur[3] - r) < 1e-9 and math.abs(cur[4] - g) < 1e-9 and math.abs(cur[5] - bl) < 1e-9 then
+            cur[2] = cur[2] + 1
+        else
+            cur = { px, 1, r, g, bl }
+            runs[#runs + 1] = cur
+        end
+    end
+    return runs
+end
+-- Outside the bars, every pixel the same; inside, the same cells in the same colours: the middle cells all the
+-- same width, each within a pixel of the old cell's; the end cells wider by the pixels left over, split between
+-- them as evenly as they go (each at most half the leftover, rounded up, wider); a bar whose cells met the frame
+-- at both ends still meets it.
+local function sameCanvas(a, b, bars)
     for _, ch in ipairs({ "R", "G", "B" }) do
         local A, B = a[ch], b[ch]
         for i, v in pairs(A) do
-            if math.abs(v - (B[i] or 0)) > 1e-9 then return (i % 8192) .. "," .. math.floor(i / 8192) end
+            local px, py = i % 8192, math.floor(i / 8192)
+            if math.abs(v - (B[i] or 0)) > 1e-9 and not inBar(bars, px, py) then return px .. "," .. py end
         end
         for i, v in pairs(B) do
-            if math.abs(v - (A[i] or 0)) > 1e-9 then return (i % 8192) .. "," .. math.floor(i / 8192) end
+            local px, py = i % 8192, math.floor(i / 8192)
+            if math.abs(v - (A[i] or 0)) > 1e-9 and not inBar(bars, px, py) then return px .. "," .. py end
+        end
+    end
+    for _, bar in ipairs(bars) do
+        local o, n = barCells(a, bar), barCells(b, bar)
+        local where = "the bar at " .. fmt(bar[1]) .. "," .. fmt(bar[2])
+        if #o ~= #n then return where .. ": " .. #o .. " cells before, " .. #n .. " now" end
+        local x0, x1 = math.ceil(bar[1] - 0.5), math.ceil(bar[1] + bar[3] - 0.5)
+        for i = 1, #n do
+            if math.abs(o[i][3] - n[i][3]) > 1e-9 or math.abs(o[i][4] - n[i][4]) > 1e-9 or math.abs(o[i][5] - n[i][5]) > 1e-9 then
+                return where .. ": cell " .. i .. " another colour"
+            end
+        end
+        -- the ends: a bar that met the frame on a side still meets it
+        if #o > 0 then
+            if o[1][1] == x0 and n[1][1] ~= x0 then return where .. ": the first cell no longer meets the frame" end
+            if o[#o][1] + o[#o][2] == x1 and n[#n][1] + n[#n][2] ~= x1 then return where .. ": the last cell no longer meets the frame" end
+        end
+        if #n > 2 then
+            -- the cells drawn run to the bar's far end (dark cells drawn too): the last is an end cell, else a middle one
+            local full = n[#n][1] + n[#n][2] == x1
+            local last = full and #n - 1 or #n
+            local mid = n[2][2]
+            for i = 2, last do
+                if n[i][2] ~= mid then return where .. ": middle cells of unequal width" end
+                if math.abs(o[i][2] - n[i][2]) > 1 then
+                    return where .. ": cell " .. i .. " " .. o[i][2] .. " px before, " .. n[i][2] .. " now"
+                end
+            end
+            local e1, e2 = n[1][2] - mid, full and (n[#n][2] - mid) or nil
+            if e1 < 0 or (e2 and e2 < 0) then return where .. ": an end cell narrower than the middle ones" end
+            if e2 then
+                -- the leftover (less than a pixel a cell) split between the two ends as evenly as it goes
+                local r = e1 + e2
+                if r >= #n or math.abs(e1 - e2) > 1 or e1 > math.ceil(r / 2) or e2 > math.ceil(r / 2) then
+                    return where .. ": the leftover not split at the ends (" .. e1 .. " and " .. e2 .. ")"
+                end
+            elseif e1 >= #n then
+                return where .. ": the first cell " .. e1 .. " px wider than the middle ones"
+            end
         end
     end
     return nil
 end
--- every draw but the thin ones (a 1 to 3 px rect: a chevron's row, a dash; a draw from a line texture), word for word
+-- every draw but the thin ones (a 1 to 3 px rect: a chevron's row, a dash; a draw from a line texture) and the bars'
+-- insides (the well, the cells and their gaps: compared painted, cell by cell), word for word
 local function thickSeq(cmds)
     local out = {}
+    local bars = barsOf(cmds)
     for _, c in ipairs(cmds or {}) do
         local k = c[1]
         local thin = (k == "drawRect" and (c[5] <= 3 or c[6] <= 3)) or (k == "jo:DrawSubTextureRGBA" and lineTexOf(c[3]) ~= nil)
+        if not thin and k == "drawRect" then
+            for _, b in ipairs(bars) do
+                local x, y, w, h = c[3], c[4], c[5], c[6]
+                if x >= b[1] and y >= b[2] and x + w <= b[1] + b[3] and y + h <= b[2] + b[4]
+                   then thin = true; break end
+            end
+        end
         if not thin then
             local parts = { k }
             for i = 3, c[2] + 2 do parts[#parts + 1] = fmt(c[i]) end
@@ -866,6 +988,7 @@ for _, tab in ipairs(TABS) do
             n.alloc = runTab(newW, tab, FRAMES, pointer, "mem").alloc
             if o then o.alloc = runTab(oldW, tab, FRAMES, pointer, "mem").alloc end
         end
+        if not ol then check(label .. ": " .. FRAMES .. " frames drawn", #nl.frames == FRAMES) end
         if ol then
             -- each frame: the help lines the same; the draws the same word for word, or else every draw but the
             -- thin ones the same and (sampled) the painted pixels the same
@@ -877,7 +1000,7 @@ for _, tab in ipairs(TABS) do
                     if ok and (f == 21 or f == 50 or f == FRAMES) then
                         painted = painted + 1
                         local a, b = paint(ol.cmds[f]), paint(nl.cmds[f])
-                        local diff = sameCanvas(a, b)
+                        local diff = sameCanvas(a, b, barsOf(nl.cmds[f]))
                         if diff then ok = false; print("  " .. label .. " frame " .. f .. ": a pixel differs at " .. diff) end
                     end
                 end
