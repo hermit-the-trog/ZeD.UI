@@ -3068,3 +3068,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     choice: which pad button (the game's run/sprint button or sneak), run vs sprint on the hold, the stick-push
     threshold for 'moving', and an on/off switch in ZeD setup. Keep vanilla's stakes (no stamina cheat), nothing that
     changes state on L3/R3, and check the game's own joypad run/sneak handling on 42.21 first.
+122. **The survival guide stops blasting players at game start (the director, Nov 8 2026; beta 10).** "I love the survival
+    guide. I don't like blasting it." Players want to get in, take a breath and look around first. The guide no longer
+    opens full screen when a game starts. Instead a speech bubble pops out of the Messages icon on the belt (wording to
+    the director, along the lines of "New to Knox County? The survival guide is in your pocket."); clicking it opens the
+    guide, and it stays in Messages as a line that opens it. Rulings: it appears about 30 seconds after the game is
+    playable; it comes back now and then during the first in-game hour unless opened or dismissed; only the very first
+    time anyone starts a game with ZeD. Check how the game's own first-start guide is triggered and keep it from opening;
+    controller path to open it from the bubble; split-screen and multiplayer.
