@@ -1,0 +1,31 @@
+0.3.0-beta10
+
+Balloons
+- Every hover box is now one Balloon Help balloon in the theme's colors, with a tail that points at its control, sized to its words at every text size.
+- The requirement balloon on a greyed-out menu option lists what you have in green and what's missing in red, in two columns, once.
+- The context strip's arrow boxes are in your accent color.
+- A submenu opens when the pointer rests on its row, the first row included.
+
+Survival guide
+- The guide no longer opens by itself when a game starts. A bubble from the Messages icon offers it instead, during your first hour of play.
+
+Windows
+- An item dragged over a rolled half brings that half down, even with the other half pinned.
+- Picking up an item brings back a drawer that rolled in, and both windows stay open until you drop it.
+- A rolled drawer keeps its tab selected instead of switching to Loot. A drag started on its tab brings it back; on a controller, A on that tab does too.
+- A fully rolled title bar splits evenly between its two halves.
+- The roll boxes are gone from the Character and World title bars. The pins stay.
+- The Equipment, Thermal, Identity and Skills tabs draw with far fewer calls.
+
+Inventory
+- Dragging a closed stack moves the whole stack.
+- A bat or other weapon dropped on a Back slot goes on your back.
+- The item card scrolls far enough for its last rows to clear the buttons at its foot.
+- Pin to title bar and Unpin from title bar show the pin icon.
+
+Servers
+- The Ban button says when a role can't be banned because the game protects it.
+
+Mods
+- Ellie's Tattoo Parlor: Make Up no longer asks for a mirror you already have.
+- Custom Map Labels: its labels show on ZeD's map.
