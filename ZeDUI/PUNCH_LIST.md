@@ -3050,7 +3050,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     tooltips on menu rows (ZeD's strip and list styles, and the game's option tooltips as ZeD draws them) follow System
     7.1.2 Balloon Help per the Visual Catalog v2.0, and the box is sized to the wrapped text measured at the current
     scale and text size, never spilling. Read the Visual Catalog first; a before/after mockup to the director before
-    building. QA: every theme, Large text, 4K and 1280x800, long DE and RU strings. Must-fix part (the director, Nov 8:
+    building. QA: every theme, Large text, 4K and 1280x800, long DE and RU strings. Design's before/after mockup and spec (Nov 8): mockups/zed_tooltips_balloon_v1.html, it covers 119 too. Approved by the director Nov 8 ("That's the one") with text-safe status colors (new tokens), the tooltip picture in and a 10-cell tail: HANDOFF_design_tooltips_balloon_20261108.md. Must-fix part (the director, Nov 8:
     "Beta 10, not beta 9"): the requirement tooltip on a greyed-out option (World menu > Disassemble) keeps the game's
     red/green per requirement and its two columns, and shows the list once (ZeD drew it colorless, columns collapsed,
     twice). A fix is prepared on its own branch; it merges after beta 9 ships.
