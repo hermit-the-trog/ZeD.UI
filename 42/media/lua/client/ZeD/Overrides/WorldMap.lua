@@ -94,8 +94,24 @@ local function _centerWhenReady(playerNum, centerX, centerY, zoom)
     Events.OnTick.Add(tick)
 end
 
+-- Mods that open the game's map to read or write its marks (Custom Map Labels does, at game start) need the game's
+-- map object to exist. A ModSupport file adds a { id, fn } to ZeD.WorldMapHook.vanillaWhen (this file may load
+-- before or after it, so both make the table); while any fn(playerNum) says yes the call goes to the game's own
+-- Show, whose map the mod then closes itself.
+ZeD = ZeD or {}
+ZeD.WorldMapHook = ZeD.WorldMapHook or {}
+ZeD.WorldMapHook.vanillaWhen = ZeD.WorldMapHook.vanillaWhen or {}
+local function _vanillaAsked(playerNum)
+    for _, e in ipairs(ZeD.WorldMapHook.vanillaWhen) do
+        local ok, yes = pcall(e.fn, playerNum)
+        if ok and yes then return true end
+    end
+    return false
+end
+
 function ISWorldMap.ShowWorldMap(playerNum, centerX, centerY, zoom)
     if ZeD.Safe.on() then return _origShow(playerNum, centerX, centerY, zoom) end   -- safe mode: vanilla's map
+    if _vanillaAsked(playerNum) then return _origShow(playerNum, centerX, centerY, zoom) end
     if not ISWorldMap.IsAllowed() then return end   -- no world map on this server / sandbox, or the Tutorial (vanilla's first check)
     if _zedOpenUnfolded(playerNum) then _centerWhenReady(playerNum, centerX, centerY, zoom); return end
     return _origShow(playerNum, centerX, centerY, zoom)
