@@ -13,7 +13,7 @@ over 8,000. Post 00 has its own shortened paragraph.
 | Post | Retest line | Characters |
 |---|---|---|
 | 00 first | shortened | 7,997 |
-| 01 | full | 6,320 |
+| 01 | full | 6,929 (with Minimal Sidebar) |
 | 02 | full | 6,706 |
 | 03 | short | 7,840 |
 | 04 | short | 7,930 |
@@ -24,7 +24,7 @@ over 8,000. Post 00 has its own shortened paragraph.
 | 09 | full | 7,985 |
 | 10 | short | 7,730 |
 | 11 | full | 7,630 |
-| 12 | short | 7,995 |
+| 12 | short | 7,774 |
 | 13 | full | 7,966 |
 | 14 | full | 5,468 |
 
@@ -32,4 +32,4 @@ Post 00 got a shorter retest paragraph (same facts). Post 03's last two C entrie
 
 ## Posting
 
-See the Posting status section below, written when the edits were made through the Steam client.
+Posted Nov 8 2026 (QA, through the Steam client, by mouse and the right-click Paste): the first post and replies 1 to 14 edited in place, each checked by its first lines after saving. Minimal Sidebar (beta 9) is at the top of reply 1 under "Supported, continued (from the first post)"; counts are Supported 22, Not needed 48. Nothing added or deleted.

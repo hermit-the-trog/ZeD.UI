@@ -3061,3 +3061,45 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     twice as long to draw as loot? We should address that. In beta 10.").** At 4K 1.75x with pinned windows they read
     about 16-18 ms per tick against Loot's 9-10 (since about Nov 2). Target: near Loot's ms, measured with pnw before
     and after on the same manifest (ZeDUI/tools/qa/b9_perf.txt). A suite_perf run without pnw is invalid.
+121. **Controller: run and sneak on one button, by movement (the director, Nov 8 2026, an idea).** Modeled on Skyrim's
+    "Sprint or Sneak for Controller" (Nexus SSE 198488): standing still, hold the button to crouch or stand; moving, hold
+    it to run or sprint for as long as it's held; crouched and moving, a hold stands and runs; a tap stays free for
+    whatever already uses it. Keyboard unchanged. Before building, design questions to the director as multiple
+    choice: which pad button (the game's run/sprint button or sneak), run vs sprint on the hold, the stick-push
+    threshold for 'moving', and an on/off switch in ZeD setup. Keep vanilla's stakes (no stamina cheat), nothing that
+    changes state on L3/R3, and check the game's own joypad run/sneak handling on 42.21 first.
+122. **The survival guide stops blasting players at game start (the director, Nov 8 2026; beta 10).** "I love the survival
+    guide. I don't like blasting it." Players want to get in, take a breath and look around first. The guide no longer
+    opens full screen when a game starts. Instead a speech bubble pops out of the Messages icon on the belt (wording to
+    the director, along the lines of "New to Knox County? The survival guide is in your pocket."); clicking it opens the
+    guide, and it stays in Messages as a line that opens it. Rulings: it appears about 30 seconds after the game is
+    playable; it comes back now and then during the first in-game hour unless opened or dismissed; only the very first
+    time anyone starts a game with ZeD. Check how the game's own first-start guide is triggered and keep it from opening;
+    controller path to open it from the bubble; split-screen and multiplayer. The director's wording (Nov 8, use as
+    written, revised the same day): "New to Knox County? Check out this handy survival guide. Stop alt-tabbing for
+    information: click this bubble or press F1 instead. You can dismiss this bubble at any time." Why a bubble: "that
+    introduces them to notifications, and it introduces them to the survival guide. Two birds, one notification." On a controller, the key shown follows the guide's device-aware keys, and
+    the director sees that variant before it ships.
+    BUILT (Nov 8 2026, beta 10): ZeD_GuideBubble.lua. ZeD's start handler no longer opens the guide and the game's is
+    off the event. 30 s after player one is playable, a long balloon comes out of the belt's Messages note (bubble text
+    UI_ZeD_Guide_Bubble, 28 languages): a click opens the guide, a right-click dismisses it, the line stays in Messages
+    with an Open. It comes back every 12 minutes through the first hour of play (real time) until opened, dismissed or
+    the line is cleared. Once ever per machine (Zomboid/Lua/ZeD_guidebubble.txt, written at the first showing); skipped
+    on a server, in the tutorial, with the game's "Show the guide on startup" unticked, and with balloons off in ZeD
+    setup. On a controller the key words are "D-pad Right, then Survival Guide" (the Help wheel), for the director's eye.
+    Sim: guide_bubble_sim.lua; in game: zedqa_guide_bubble.lua (manifest guide_bubble.txt).
+123. **Ban button says why a protected role can't be banned (QA, Nov 8 2026; beta 10).** Moderator and admin carry the
+    game's CantBeBannedByUser, so ZeD's server answers "protected" and no timed ban is made. The Ban button or its
+    help line should say so plainly before the press (and the admin docs should note that the end-of-ban role restore
+    applies to unprotected roles such as gm). From ZeDUI/qa/B9_HELPER_ROLE_CHECK_20261108.md.
+    BUILT (Nov 8 2026, beta 10): the player card's Ban, the ban part's Ban and the Bans screen's typed-name Ban gray out
+    with "A player with the %1 role can't be banned. The game protects that role." (UI_ZeD_Adm_BanProtected, 28
+    languages), and the player card carries the same line before any press. The users list's IP and Steam ID bans
+    already said so with the game's own words. The end-of-ban restore note is in server_helper/README.md. Sim: the
+    protected-role section of admin_cards_sim.lua; in-game: the player-protected-* states of mp_admin_cards.lua.
+124. **No large bright whites: paper toned down to 70% (the director, Nov 8 2026; beta 10).** "The survival guide, the
+    white background is too bright ... like the full screen map ... Snow in this game is just blinding. So we have to
+    tone things down a lot more than whites." Standing rule: no large near-white areas. The survival guide's page
+    (book and Simple), paper maps, the reader, notes, the Light theme's big panels and tooltip balloons use a paper at
+    70% of today's brightness (level C in ZeDUI/mockups/paper_tone/, approved). Text stays fully dark: keep 4.5:1 or
+    better on the dimmer paper. Prefer one paper token over per-file color edits; QA pictures at 4K and Deck.

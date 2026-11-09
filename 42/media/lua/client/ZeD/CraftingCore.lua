@@ -2611,7 +2611,8 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         -- Skill requirements: the status square carries met / not met, the words stay default
         if rd.skills and #rd.skills > 0 then
             for _, sk in ipairs(rd.skills) do
-                local skColor = sk.met and T.positive or T.danger
+                -- (the text-safe status colors, as the balloons' checks and crosses: 4.5 : 1 in every theme)
+                local skColor = sk.met and (T.positiveText or T.positive) or (T.dangerText or T.danger)
                 local dotSz = T.px(6)
                 A.drawStatusDot(panel, x + T.px(6), curY + math.floor((ROW_H - dotSz) / 2), skColor, dotSz)
                 local skStr = ZeD.tr("UI_ZeD_Craft_SkillLevel", sk.name, sk.required)

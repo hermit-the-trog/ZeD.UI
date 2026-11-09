@@ -34,6 +34,7 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Tr"
+require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.EquipDoll = ZeD.EquipDoll or {}
@@ -357,16 +358,21 @@ local function condColor(T, f)
 end
 
 local function dashed(p, x, y, w, h, c, a)
-    local d = ZeD.T.px(3)
+    local T = ZeD.T
+    local d, one = T.px(3), T.px(1)
+    local r, g, b = c.r, c.g, c.b
+    local yb, xr = y + h - one, x + w - one
     for i = 0, w - 1, d * 2 do
-        local l = math.min(d, w - i)
-        p:drawRect(x + i, y, l, ZeD.T.px(1), a, c.r, c.g, c.b)
-        p:drawRect(x + i, y + h - ZeD.T.px(1), l, ZeD.T.px(1), a, c.r, c.g, c.b)
+        local l = w - i
+        if d < l then l = d end
+        p:drawRect(x + i, y, l, one, a, r, g, b)
+        p:drawRect(x + i, yb, l, one, a, r, g, b)
     end
     for i = 0, h - 1, d * 2 do
-        local l = math.min(d, h - i)
-        p:drawRect(x, y + i, ZeD.T.px(1), l, a, c.r, c.g, c.b)
-        p:drawRect(x + w - ZeD.T.px(1), y + i, ZeD.T.px(1), l, a, c.r, c.g, c.b)
+        local l = h - i
+        if d < l then l = d end
+        p:drawRect(x, y + i, one, l, a, r, g, b)
+        p:drawRect(xr, y + i, one, l, a, r, g, b)
     end
 end
 
@@ -486,9 +492,11 @@ end
 -- empty ones dashed, a pair's empty slot with its faint L or R, the layer count as a big slot shows
 -- it; no label (the group's name stands above). u = screen px per doll unit. place = the place's
 -- name, for the help line.
+-- a small slot's units in screen px, at u px a unit (at least 1)
+local function pu(v, u) return math.max(1, math.floor(v * u + 0.5)) end
+
 local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, place, mx, my, u)
     local T, tm = ZeD.T, ZeD.TM
-    local function pu(v) return math.max(1, math.floor(v * u + 0.5)) end
     local over = mx >= bx and mx < bx + b and my >= by and my < by + b
     local hover = over and not cuesOn()
     if item then
@@ -511,13 +519,13 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
         local bs = T.borderS
         panel:drawRectBorder(bx, by, b, b, bs.a or 1, bs.r, bs.g, bs.b)
         local tex = itemTex(item)
-        local isz = pu(16)
+        local isz = pu(16, u)
         if tex then
-            panel:drawTextureScaledAspect(tex, bx + math.floor((b - isz) / 2), by + math.floor((b - isz) / 2) - pu(1), isz, isz, 1, 1, 1, 1)
+            panel:drawTextureScaledAspect(tex, bx + math.floor((b - isz) / 2), by + math.floor((b - isz) / 2) - pu(1, u), isz, isz, 1, 1, 1, 1)
         end
         local f = condOf(item)
         if f then
-            local ch, inset = pu(2), pu(2)
+            local ch, inset = pu(2, u), pu(2, u)
             local cx, cw = bx + inset, b - inset * 2
             local cy = by + b - inset - ch
             local bg, fc = T.base, condColor(T, f)
@@ -533,7 +541,7 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
             panel:drawText(lt, bx + math.floor((b - lw) / 2), by + math.floor((b - f5h) / 2), dc.r, dc.g, dc.b, (dc.a or 1) * T.disabledAlpha, f5)
         end
     end
-    if nLayers and nLayers > 1 then layerCount(panel, bx, by, b, nLayers, f5, f5h, pu(4), pu(1)) end
+    if nLayers and nLayers > 1 then layerCount(panel, bx, by, b, nLayers, f5, f5h, pu(4, u), pu(1, u)) end
     if hover then
         ZeD.Help.set(panel, item and ZeD.tr("UI_ZeD_Doll_SlotHelp", call(item, "getDisplayName") or place)
             or ZeD.tr("UI_ZeD_Doll_EmptyHelp", place))
@@ -541,11 +549,24 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
     return over
 end
 
--- A group's name: the game's words for its places, joined with " | "
-local function groupName(g)
+-- The doll's words (the slots' labels, the groups' names, the places), kept by what they are
+-- made from while the language, the test language and the measures hold (ZeD.DrawMemo.epoch):
+-- seventy phrases a frame otherwise
+local _words = {}
+local function dollWords(ep)
+    if not ep or _words.ep ~= ep then _words = { ep = ep, label = {}, group = {}, place = {}, ptext = {} } end
+    return _words
+end
+
+-- A group's name: the game's words for its places, joined with " | " (wd: dollWords)
+local function groupName(g, wd)
+    local s = wd.group[g]
+    if s then return s end
     local t = ""
     for i, k in ipairs(g.name) do t = t .. (i > 1 and " | " or "") .. ZeD.tr(k) end
-    return ZeD.textCase(t)
+    s = ZeD.textCase(t)
+    wd.group[g] = s
+    return s
 end
 
 --- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
@@ -555,6 +576,7 @@ end
 --- win._equipDollAll (every slot's box, for a drop). Returns height.
 function D.draw(panel, win, x, y, w, viewH, mx, my)
     local T, tm = ZeD.T, ZeD.TM
+    local wd = dollWords(ZeD.DrawMemo.epoch())   -- (the slots' words, kept)
     win._equipDollTimer = (win._equipDollTimer or 0) + 1
     local data = win._equipDollData
     local _, bands = fit(w, viewH, data and #data.belt or 0)
@@ -615,7 +637,9 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local items = data.slots[def.id].items
         local item = items[1]
         local key = "doll:" .. def.id
-        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.textCase(ZeD.tr(def.key)), mx, my)
+        local label = wd.label[def]
+        if not label then label = ZeD.textCase(ZeD.tr(def.key)); wd.label[def] = label end
+        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
         if not item and ghosts and ghosts[def.id] then EL.drawGhost(panel, bx, by, b, ghosts[def.id]) end
         rects[#rects + 1] = { x = bx, y = by, w = b, h = b, id = def.id }
         if item then
@@ -642,18 +666,20 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         for _, g in ipairs(D.GROUPS) do
             -- the name sits on its row's y; on a shrunk doll it rises just enough to clear its slots
             local ny = math.min(y + P(g.y), y + P(g.y + SM_NAME_DY) - f5h - 1)
-            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4) + bandX), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
+            panel:drawText(ZeD.Atoms.truncateText(groupName(g, wd), f5, P(BAND_W - 4) + bandX), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
         end
         for _, sm in ipairs(D.SMALL) do
             local items = data.small[sm.id].items
             local item = items[1]
             local key = "doll:" .. sm.id
             local sbx, sby = ox + P(sm.x) + S(sm.x) + (sm.col - 1) * stepX, y + P(sm.y)
-            local place = ZeD.tr(sm.place)
+            local place = wd.place[sm]
+            if not place then place = ZeD.tr(sm.place); wd.place[sm] = place end
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
             if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
             rects[#rects + 1] = { x = sbx, y = sby, w = ss, h = ss, id = sm.id }
-            local ptext = ZeD.textCase(place)
+            local ptext = wd.ptext[sm]
+            if not ptext then ptext = ZeD.textCase(place); wd.ptext[sm] = ptext end
             if item then
                 zones[#zones + 1] = { x = sbx, y = sby, w = ss, h = ss, type = key, item = item }
                 if over then
@@ -706,6 +732,16 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     win._equipDollLines = {}   -- (no leader lines any more: the line layer draws only the hint)
     win._equipDollAll = rects
     win._equipDollDot = math.max(2, P(2.5))
+    -- the controller's focus on a box with an item: its name at once, the same balloon the pointer gets
+    local fk = win._gpFocusedEquipSlot
+    if not hint and fk and gpFocused(win, fk) then
+        for _, z in ipairs(zones) do
+            if z.type == fk and z.item then
+                hint = { key = fk, text = call(z.item, "getDisplayName") or "?", x = z.x, y = z.y, w = z.w, now = true }
+                break
+            end
+        end
+    end
     win._equipDollHintCand = hint
     return math.floor(baseH(nBelt) * k + 0.5)
 end
@@ -885,28 +921,68 @@ local function wearLoc(item)
     return normLoc(l)
 end
 
+local function inZone(z, mx, my) return mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h end
+
+-- The belt slot (its index in the game's hotbar) under the pointer: a belt row of
+-- the list, a box under the doll (empty: _equipBeltZones; filled: a "doll:beltN"
+-- slot zone), or the doll's Back, which is the hotbar's Back slot for a weapon
+-- or tool (the game's always-there first slot).
+local function beltSlotAt(win, pn, mx, my, hit)
+    for _, z in ipairs(win._equipBeltZones or {}) do
+        if z.i and inZone(z, mx, my) then return z.i end
+    end
+    for _, z in ipairs(win._equipSlotZones or {}) do
+        local n = type(z.type) == "string" and z.type:match("^doll:belt(%d+)$")
+        if n and inZone(z, mx, my) then return tonumber(n) end
+    end
+    if hit and hit.id == "back" and ZeD.Belt then
+        for _, s in ipairs(ZeD.Belt.slots(pn)) do
+            if s.slot and s.slot.slotType == "Back" then return s.i end
+        end
+    end
+    return nil
+end
+
+--- A drop on the Equip tab: clothing over a doll slot it fits is worn there; a
+--- weapon or tool over a belt slot (or the doll's Back) is attached there by the
+--- game's own action (ISHotbar:attachItem: the timed attach, out of a bag first,
+--- as the belt on the HUD takes it). True when it took the drop.
 function D.takeDrop(pn, items)
     local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-    if not (win and win._equipDollShown and win._equipDollAll and win._equipDollPanel) then return false end
+    if not win then return false end
     if win._drawerMode ~= "tab" or win._activeTab ~= "equip" or win._equipSelected or (win._drawerEffW or 0) <= 0 then return false end
     if not (items and items[1]) then return false end
-    local panel, clip = win._equipDollPanel, win._equipDollClip
+    local doll = win._equipDollShown and win._equipDollAll and win._equipDollPanel
+    local panel = doll and win._equipDollPanel or win._equipPanel
+    if not (panel and panel:isVisible()) then return false end
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    if clip and not (mx >= clip.x and mx < clip.x + clip.w and my >= clip.y and my < clip.y + clip.h) then return false end
+    if mx < 0 or my < 0 or mx >= panel:getWidth() or my >= panel:getHeight() then return false end
+    local clip = doll and win._equipDollClip
+    if clip and not inZone(clip, mx, my) then return false end
     local hit
-    for _, r in ipairs(win._equipDollAll) do
-        if mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h then hit = r; break end
+    for _, r in ipairs(doll and win._equipDollAll or {}) do
+        if inZone(r, mx, my) then hit = r; break end
     end
-    if not hit then return false end
-    local p = getSpecificPlayer(pn)
-    local bands = win._equipDollBands
-    for _, item in ipairs(items) do
-        local loc = wearLoc(item)
-        local id = loc and (bands and (LOC_TO_SMALL[loc] or LOC_TO_BIG[loc]) or LOC_FOLD[loc])
-        if id == hit.id and not call(p, "isEquippedClothing", item) then
-            ISInventoryPaneContextMenu.wearItem(item, pn)
-            win._equipDollTimer = 99    -- the slots read the new clothes at once
-            return true
+    if hit then
+        local p = getSpecificPlayer(pn)
+        local bands = win._equipDollBands
+        for _, item in ipairs(items) do
+            local loc = wearLoc(item)
+            local id = loc and (bands and (LOC_TO_SMALL[loc] or LOC_TO_BIG[loc]) or LOC_FOLD[loc])
+            if id == hit.id and not call(p, "isEquippedClothing", item) then
+                ISInventoryPaneContextMenu.wearItem(item, pn)
+                win._equipDollTimer = 99    -- the slots read the new clothes at once
+                return true
+            end
+        end
+    end
+    local slotI = beltSlotAt(win, pn, mx, my, hit)
+    if slotI and ZeD.Belt then
+        for _, item in ipairs(items) do
+            if ZeD.Belt.attach(pn, item, slotI) then
+                win._equipCache, win._equipDollTimer = nil, 99   -- (the rows read the belt again at once)
+                return true
+            end
         end
     end
     return false
@@ -962,11 +1038,19 @@ function D.renderLines(layer, win)
 end
 
 -- An icon-only box names its item after the pause: the library's hint, asked of
--- the window's overlay (one delay, placed by the pointer, over everything).
--- c = { key, text, ... }; st and clip are no longer needed (kept for callers).
+-- the window's overlay (one delay, over everything), its balloon pointing at the box.
+-- c = { key, text, x, y, w } (the box in the doll panel's space); st and clip are no
+-- longer needed (kept for callers).
+local _hintR, _hintNow = {}, { now = true }
 function D.drawHint(layer, win, c, st, clip)
     if not c then return end
-    ZeD.Atoms.requestHint(win, c.key, c.text, layer)
+    local panel = win._equipDollPanel
+    if panel and c.x then
+        _hintR.x, _hintR.y, _hintR.w, _hintR.h = c.x, c.y, c.w or 1, c.h or c.w or 1
+        ZeD.Atoms.requestHint(win, c.key, c.text, panel, _hintR, c.now and _hintNow or nil)
+    else
+        ZeD.Atoms.requestHint(win, c.key, c.text, layer)
+    end
 end
 
 -- ----------------------------------------------------------------------------

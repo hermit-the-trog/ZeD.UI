@@ -15,10 +15,12 @@
 --           vanilla's textures for the Moodle size option, the backing tinted
 --           grey -> the Good / Bad highlight colour by level / 4, the outline
 --           ring, vanilla's order, the wiggle when a level changes
--- Hover text: a ZeD note (status square, vanilla's name for the level, vanilla's
--- description) in a thought bubble whose trail runs to its moodle; with ZeD
--- setup's "Moodle notices" on, it also shows by itself for a few seconds when a
--- moodle comes on or changes level. A ZeD layer lies exactly over vanilla's
+-- Hover text: ZeD's balloon (Balloon.lua: vanilla's name for the level as its
+-- title, vanilla's description as its line) beside the moodle, its tail on it,
+-- after the shared hover pause. With ZeD setup's "Moodle notices" on, a note
+-- (status square, name, description) also shows by itself for a few seconds
+-- when a moodle comes on or changes level, in a thought bubble whose trail runs
+-- to its moodle: a notice, not pointed at. A ZeD layer lies exactly over vanilla's
 -- column; UIManager hands a mouse move to the topmost element under the pointer
 -- only, so the column never sees the pointer and never draws its own text, while
 -- it keeps drawing the moodles. Clicks pass through, as they do on vanilla's column.
@@ -544,13 +546,56 @@ function ZeD_MoodleLayer:prerender()
     -- (a stand-in draws the row itself, at M.rect)
     if self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
     local i = self:_hoverIndex()
+    -- the moodle under the pointer: its name and description in the balloon beside it, after the shared pause
+    self._hvSt = self._hvSt or {}
+    local hm = i and self._list[i]
+    local A = ZeD.Atoms
+    if A and A.hoverReady and A.hoverReady(self._hvSt, hm and hm.key or nil) and hm then
+        self:_drawBalloon(hm, i)
+        return
+    end
+    if hm then return end
+    -- (the pointer went from the moodle onto its balloon: it stays)
+    if ZeD.Balloon and ZeD.Balloon.redrawHeld(self, self) then return end
     -- (ZeD setup's "Moodle notices", off for a new player: while it is off, a note shows only under the pointer)
     local S = ZeD.Settings
     local notices = S and S.moodleNoticesOn and S.moodleNoticesOn() or false
-    if not i and notices and self._notices[1] then
+    if notices and self._notices[1] then
         for k, m in ipairs(self._list or {}) do if m.key == self._notices[1] then i = k end end
+        if i then self:_drawChip(self._list[i], i) end
     end
-    if i then self:_drawChip(self._list[i], i) end
+end
+
+-- The moodle's balloon: the game's name for its level as the title, its description as the line,
+-- beside the column (the side away from the screen's edge) or above the row, the tail on the moodle.
+-- A notice that shows by itself keeps the thought bubble (_drawChip): it is not pointed at.
+function ZeD_MoodleLayer:_drawBalloon(m, idx)
+    local p = self:player()
+    local md = p and p:getMoodles()
+    if not (md and ZeD.Balloon) then return end
+    local name = safe(md.getMoodleDisplayString, md, m.type) or ""
+    local desc = safe(md.getMoodleDescriptionString, md, m.type) or ""
+    local c = self._bc
+    if not c or c.title ~= name or self._bcDesc ~= desc then
+        c = { kind = "rich", title = name, lines = (desc ~= "") and { desc } or nil }
+        self._bc, self._bcDesc = c, desc
+    end
+    local size = self._size or 32
+    local a = self._ba
+    if not a then a = {}; self._ba = a end
+    local ox, oy = self:getAbsoluteX(), self:getAbsoluteY()
+    local side
+    if self._mode == "bottom" then
+        a.x, a.y, side = ox + (idx - 1) * (size + GAP), oy, "above"
+    else
+        a.x, a.y = ox, oy + (idx - 1) * (size + GAP)
+        side = (self._mode == "left") and "right" or "left"
+    end
+    a.w, a.h, a.below, a.noFlip = size, size, nil, nil
+    local x, y, w, h = ZeD.Balloon.draw(self, c, a, side, { key = "moodle:" .. tostring(m.key), owner = self })
+    if x then
+        self._chip = { idx = idx, key = m.key, x = x, y = y, w = w, h = h, balloon = true }   -- (the in-game test scripts read it)
+    end
 end
 function ZeD_MoodleLayer:render() end
 

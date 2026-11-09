@@ -424,9 +424,13 @@ local trm, trmN, trmGen, trmOn = {}, 0, nil, nil
 --- registered with ZeD.trDefault when the files lack the key, and failing that the key itself
 function ZeD.tr(key, ...)
     if key == nil then return "" end
-    key = tostring(key)
+    if type(key) ~= "string" then key = tostring(key) end
     local a1, a2, a3, a4 = ...
-    a1, a2, a3, a4 = argText(a1), argText(a2), argText(a3), argText(a4)
+    -- (argText inline: the windows ask for hundreds of phrases a frame)
+    if type(a1) == "number" then a1 = tostring(a1) end
+    if type(a2) == "number" then a2 = tostring(a2) end
+    if type(a3) == "number" then a3 = tostring(a3) end
+    if type(a4) == "number" then a4 = tostring(a4) end
 
     local on = testOn()
     if trmGen ~= ZeD._trGen or trmOn ~= on or trmN >= TRM_MAX then trm, trmN, trmGen, trmOn = {}, 0, ZeD._trGen, on end

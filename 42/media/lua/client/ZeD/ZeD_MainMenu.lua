@@ -2046,11 +2046,16 @@ function ZeD_MMGlass:prerender()
         local r = MM.root
         MM.drawHitOverlay(self, { r, r.bar, r.drop, MM.activeWindow() })
     end
-    -- the power button's name: the library hint, after the shared delay, at the pointer
+    -- the power button's name: the library hint, after the shared delay, its balloon pointing at the button
     local A = ZeD.Atoms
     self._powerHint = self._powerHint or {}
     if A.hoverReady(self._powerHint, MM.ctx.hot == "power" and "power" or nil) then
-        A.drawHintBox(self, getText("IGUI_Exit"), getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY())
+        local pr = self._hits and self._hits[1]
+        if pr and pr.id == "power" then
+            A.drawHintBox(self, getText("IGUI_Exit"), 0, 0, pr, "above", "power")
+        else
+            A.drawHintBox(self, getText("IGUI_Exit"), getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY())
+        end
     end
 end
 

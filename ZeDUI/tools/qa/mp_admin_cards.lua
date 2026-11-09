@@ -165,7 +165,16 @@ function Q.bind(TC, AC, M, Adm)
         M.bump()
     end
     local out = {}
-    local function S1(name, fn) out[#out + 1] = { name = name, tab = "admin", reset = reset, run = fn } end
+    -- chk(win, st) returns true/false (a state that checks itself: the run says PASS or FAIL under its name)
+    local function S1(name, fn, chk) out[#out + 1] = { name = name, tab = "admin", reset = reset, run = fn, check = chk } end
+    -- punch list 123: moderator and admin carry CantBeBannedByUser; the Ban stop says why, before any press
+    local function protect(on) for _, r in ipairs(M.qaRoles) do if r.name == "moderator" or r.name == "admin" then r.caps.CantBeBannedByUser = on or nil end end end
+    local function grayOf(id)
+        for _, e in ipairs(ZeD.AdminTab.buildFocusables(ZeD_WorldWindow.getWindow())) do
+            if e.id == id then return e.tkWhy and e.tkWhy() or nil end
+        end
+        return "no stop " .. id
+    end
     local function player(user, win, st) AC.qaOpen(win, st, "player", user) end
 
     -- the tab
@@ -206,6 +215,14 @@ function Q.bind(TC, AC, M, Adm)
     S1("player-role-powers", function(win, st) player("Kade_R", win, st); AC.qaPart(st, "role", "GM") end)
     S1("player-role-kept", function(win, st) player("Kade_R", win, st); AC.qaPart(st, "role", "GM"); st.card.keep.GodMod = true end)
     S1("player-role-down", function(win, st) player("Rosa", win, st); AC.qaPart(st, "role", "user") end)
+    S1("player-protected-moderator", function(win, st) protect(true); player("Rosa", win, st) end,
+        function() return grayOf("tk:ban") == ZeD.tr("UI_ZeD_Adm_BanProtected", "moderator") end)
+    S1("player-protected-admin", function(win, st) protect(true); M.row("Rosa").role = "admin"; player("Rosa", win, st) end,
+        function() return grayOf("tk:ban") == ZeD.tr("UI_ZeD_Adm_BanProtected", "admin") end)
+    S1("player-unprotected-gm", function(win, st) protect(true); M.row("Rosa").role = "GM"; player("Rosa", win, st) end,
+        function() return grayOf("tk:ban") == nil end)
+    S1("player-unprotected-user", function(win, st) protect(true); player("Kade_R", win, st) end,
+        function() return grayOf("tk:ban") == nil end)
     S1("player-flash", function(win, st) player("Kade_R", win, st); TC.qaFlash(st, ZeD.tr("UI_ZeD_Adm_Kicked", "Kade_R")) end)
 
     -- roles
@@ -324,6 +341,10 @@ for _, s in ipairs(states) do
         local win = WW()
         say(s.name .. ": " .. #ZeD.AdminTab.buildFocusables(win) .. " stops")
         pcall(function() getCore():TakeFullScreenshot("mac_" .. s.name .. ".png") end)
+        if s.check then
+            local okc, res = pcall(s.check, win, win._adminTab)
+            say((okc and res) and ("PASS " .. s.name) or ("FAIL " .. s.name .. (okc and "" or (" " .. tostring(res)))))
+        end
     end)
 end
 add(500, function()

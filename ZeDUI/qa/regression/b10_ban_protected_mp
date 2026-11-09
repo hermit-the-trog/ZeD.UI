@@ -1,0 +1,170 @@
+# ZeD-UI regression - 2026-11-08 21:12 - windowed (1280x800 window)
+
+| | |
+|---|---|
+| Started | 2026-11-08 21:12:27 |
+| Finished | 2026-11-08 21:17:05 (4 min 37 s) |
+| Mode | windowed (1280x800 window) |
+| Display | fullScreen=false height=800 width=1280 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta10 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\ban_protected.txt (1 scripts) |
+| Result | **1/1 pass**, 0 warn, 0 fail, 0 timeout |
+| Go numbers | 24267 to 24271 |
+
+Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale Auto (1280x800 window), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzlaunchwin.ps1: launched windowed; at the main menu
+- multiplayer: at the main menu, joining 127.0.0.1:16261 as the test server's admin
+- clicked again at 1929,1118 (the bridge had not armed in game after 31 s)
+- clicked again at 1929,1118 (the bridge had not armed in game after 60 s)
+- the bridge armed in game on the multiplayer server ()
+- quit: quit to the main menu, then to the desktop (go 24270, 24271)
+- pzrestorewin.ps1: fullScreen=true height=2160 width=3840
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | mp_admin_cards.lua | mac | PASS | 160 |  |  |
+
+## Scripts
+
+### 1. mp_admin_cards.lua (`ZEDQA mac`) - PASS, 160 s
+
+- go 24269 at 21:14:01
+
+```text
+LOG : Lua f:229 st:109,683,290> [ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=15 inCar=false vehicles=5 missing=get
+LOG : Lua f:229 st:109,683,295> [ZeD.QA] windows reset (R)
+LOG : Lua f:229 st:109,683,297> [ZeD.QA] run #2 ok=true
+LOG : Lua f:356 st:109,684,975> ZEDQA mac home: 57 stops
+LOG : Lua f:491 st:109,686,644> ZEDQA mac home-find: 50 stops
+LOG : Lua f:638 st:109,688,321> ZEDQA mac home-nobody: 49 stops
+LOG : Lua f:785 st:109,690,007> ZEDQA mac home-online: 55 stops
+LOG : Lua f:952 st:109,691,674> ZEDQA mac home-repeat: 57 stops
+LOG : Lua f:1123 st:109,693,340> ZEDQA mac home-no-repeats: 56 stops
+LOG : Lua f:1290 st:109,694,993> ZEDQA mac home-long: 117 stops
+LOG : Lua f:1463 st:109,696,659> ZEDQA mac home-empty: 49 stops
+LOG : Lua f:1530 st:109,698,474> ZEDQA mac home-moderator: 49 stops
+LOG : Lua f:1550 st:109,701,811> ZEDQA mac home-gm: 57 stops
+LOG : Lua f:1585 st:109,703,566> ZEDQA mac home-nothing: 49 stops
+LOG : Lua f:1618 st:109,705,275> ZEDQA mac home-no-part: 56 stops
+LOG : Lua f:1657 st:109,707,011> ZEDQA mac home-flash: 57 stops
+LOG : Lua f:1768 st:109,708,730> ZEDQA mac tickets-screen: 12 stops
+LOG : Lua f:1947 st:109,710,390> ZEDQA mac player: 25 stops
+LOG : Lua f:2123 st:109,712,047> ZEDQA mac player-self: 13 stops
+LOG : Lua f:2296 st:109,713,705> ZEDQA mac player-offline: 13 stops
+LOG : Lua f:2474 st:109,715,363> ZEDQA mac player-banned: 10 stops
+LOG : Lua f:2653 st:109,717,017> ZEDQA mac player-never-seen: 10 stops
+LOG : Lua f:2830 st:109,718,690> ZEDQA mac player-moderator: 25 stops
+LOG : Lua f:3004 st:109,720,358> ZEDQA mac player-nothing: 23 stops
+LOG : Lua f:3183 st:109,722,021> ZEDQA mac player-no-part: 12 stops
+LOG : Lua f:3355 st:109,723,680> ZEDQA mac player-muted: 25 stops
+LOG : Lua f:3529 st:109,725,344> ZEDQA mac player-all-skills: 27 stops
+LOG : Lua f:3699 st:109,727,005> ZEDQA mac player-kick: 28 stops
+LOG : Lua f:3878 st:109,728,664> ZEDQA mac player-ban: 34 stops
+LOG : Lua f:4054 st:109,730,325> ZEDQA mac player-ban-perm: 34 stops
+LOG : Lua f:4223 st:109,731,997> ZEDQA mac player-warn: 30 stops
+LOG : Lua f:4405 st:109,733,664> ZEDQA mac player-warn-max: 30 stops
+LOG : Lua f:4576 st:109,735,325> ZEDQA mac player-role-powers: 29 stops
+LOG : Lua f:4753 st:109,736,985> ZEDQA mac player-role-kept: 29 stops
+LOG : Lua f:4933 st:109,738,647> ZEDQA mac player-role-down: 15 stops
+LOG : Lua f:5109 st:109,740,315> ZEDQA mac player-protected-moderator: 13 stops
+LOG : Lua f:5109 st:109,740,467> ZEDQA mac PASS player-protected-moderator
+LOG : Lua f:5286 st:109,741,972> ZEDQA mac player-protected-admin: 13 stops
+LOG : Lua f:5286 st:109,742,134> ZEDQA mac PASS player-protected-admin
+LOG : Lua f:5458 st:109,743,627> ZEDQA mac player-unprotected-gm: 13 stops
+LOG : Lua f:5458 st:109,743,787> ZEDQA mac PASS player-unprotected-gm
+LOG : Lua f:5625 st:109,745,280> ZEDQA mac player-unprotected-user: 25 stops
+LOG : Lua f:5625 st:109,745,427> ZEDQA mac PASS player-unprotected-user
+LOG : Lua f:5801 st:109,746,939> ZEDQA mac player-flash: 25 stops
+LOG : Lua f:5976 st:109,748,596> ZEDQA mac roles: 10 stops
+LOG : Lua f:6153 st:109,750,249> ZEDQA mac roles-nothing: 10 stops
+LOG : Lua f:6317 st:109,751,916> ZEDQA mac role-moderator: 120 stops
+LOG : Lua f:6479 st:109,753,575> ZEDQA mac role-locked: 120 stops
+LOG : Lua f:6651 st:109,755,230> ZEDQA mac role-user: 119 stops
+LOG : Lua f:6815 st:109,756,887> ZEDQA mac role-read-only: 120 stops
+LOG : Lua f:6976 st:109,758,544> ZEDQA mac role-changed: 120 stops
+LOG : Lua f:7138 st:109,760,200> ZEDQA mac role-new: 117 stops
+LOG : Lua f:7311 st:109,761,849> ZEDQA mac role-shut: 23 stops
+LOG : Lua f:7485 st:109,763,515> ZEDQA mac role-confirm: 119 stops
+LOG : Lua f:7656 st:109,765,180> ZEDQA mac bans: 11 stops
+LOG : Lua f:7816 st:109,766,847> ZEDQA mac bans-none: 9 stops
+LOG : Lua f:7987 st:109,768,497> ZEDQA mac bans-game: 13 stops
+LOG : Lua f:8161 st:109,770,147> ZEDQA mac bans-stayed: 12 stops
+LOG : Lua f:8338 st:109,771,819> ZEDQA mac bans-confirm: 13 stops
+LOG : Lua f:8516 st:109,773,487> ZEDQA mac bans-no-power: 11 stops
+LOG : Lua f:8689 st:109,775,147> ZEDQA mac bans-no-part: 11 stops
+LOG : Lua f:8870 st:109,776,824> ZEDQA mac spawn: 24 stops
+LOG : Lua f:9044 st:109,778,488> ZEDQA mac spawn-find: 3 stops
+LOG : Lua f:9220 st:109,780,155> ZEDQA mac spawn-none: 2 stops
+LOG : Lua f:9401 st:109,781,824> ZEDQA mac spawn-picked: 39 stops
+LOG : Lua f:9575 st:109,783,488> ZEDQA mac spawn-page-2: 8 stops
+LOG : Lua f:9743 st:109,785,159> ZEDQA mac spawn-to-player: 39 stops
+LOG : Lua f:9923 st:109,786,824> ZEDQA mac spawn-no-part: 39 stops
+LOG : Lua f:10102 st:109,788,498> ZEDQA mac spawn-max: 39 stops
+LOG : Lua f:10271 st:109,790,158> ZEDQA mac stats: 28 stops
+LOG : Lua f:10445 st:109,791,822> ZEDQA mac stats-self: 26 stops
+LOG : Lua f:10620 st:109,793,471> ZEDQA mac stats-not-seen: 4 stops
+LOG : Lua f:10793 st:109,795,149> ZEDQA mac stats-moderator: 28 stops
+LOG : Lua f:10967 st:109,796,822> ZEDQA mac stats-rank: 28 stops
+LOG : Lua f:11144 st:109,798,480> ZEDQA mac stats-all-skills: 30 stops
+LOG : Lua f:11319 st:109,800,131> ZEDQA mac stats-name: 31 stops
+LOG : Lua f:11495 st:109,801,804> ZEDQA mac stats-display: 31 stops
+LOG : Lua f:11669 st:109,803,464> ZEDQA mac stats-weight: 31 stops
+LOG : Lua f:11849 st:109,805,122> ZEDQA mac stats-prof: 44 stops
+LOG : Lua f:12028 st:109,806,771> ZEDQA mac stats-prof-page-2: 39 stops
+LOG : Lua f:12208 st:109,808,439> ZEDQA mac stats-prof-picked: 44 stops
+LOG : Lua f:12382 st:109,810,101> ZEDQA mac stats-role: 38 stops
+LOG : Lua f:12563 st:109,811,764> ZEDQA mac stats-role-no-power: 38 stops
+LOG : Lua f:12626 st:109,814,196> ZEDQA mac stats-trait: 47 stops
+LOG : Lua f:12635 st:109,816,639> ZEDQA mac stats-trait-bad: 41 stops
+LOG : Lua f:12666 st:109,818,454> ZEDQA mac stats-trait-picked: 47 stops
+LOG : Lua f:12698 st:109,820,187> ZEDQA mac stats-xp: 39 stops
+LOG : Lua f:12737 st:109,821,966> ZEDQA mac stats-xp-picked: 39 stops
+LOG : Lua f:12812 st:109,823,636> ZEDQA mac stats-warn: 33 stops
+LOG : Lua f:12989 st:109,825,305> ZEDQA mac stats-log: 31 stops
+LOG : Lua f:13165 st:109,826,963> ZEDQA mac stats-rm-trait: 30 stops
+LOG : Lua f:13340 st:109,828,622> ZEDQA mac stats-rm-log: 30 stops
+LOG : Lua f:13520 st:109,830,288> ZEDQA mac inv: 11 stops
+LOG : Lua f:13701 st:109,831,946> ZEDQA mac inv-picked: 11 stops
+LOG : Lua f:13881 st:109,833,614> ZEDQA mac inv-confirm: 9 stops
+LOG : Lua f:14064 st:109,835,288> ZEDQA mac inv-self: 11 stops
+LOG : Lua f:14239 st:109,836,947> ZEDQA mac inv-empty: 5 stops
+LOG : Lua f:14421 st:109,838,613> ZEDQA mac inv-wait: 5 stops
+LOG : Lua f:14604 st:109,840,279> ZEDQA mac inv-not-on: 5 stops
+LOG : Lua f:14784 st:109,841,938> ZEDQA mac inv-no-power: 5 stops
+LOG : Lua f:14827 st:109,842,438> ZEDQA mac DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N st:0 at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    1x ERROR: General f:N st:0 at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeD-UI\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeD-UI\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeDQAShim\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeDQAShim\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeDQAShim\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown  :: java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\mods\ZeDQAShim\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
+    1x ERROR: General f:N st:0 at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N st:0 at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N st:0 at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N st:109,681,523 at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

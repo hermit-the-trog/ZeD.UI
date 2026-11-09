@@ -1,0 +1,3 @@
+Line for the Compatibility thread's Supported list (first post, [h2]Supported[/h2]), in the thread's style. The version is the build it ships in.
+
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3559737194][B42] Custom Map Labels[/url]: Its labels for map mods are written at game start as they are without ZeD (the game's map is made for the mod for that moment, then shut), and show on ZeD's map as on the game's map and mini-map. From ZeD-GUI 0.3.0-beta10.
