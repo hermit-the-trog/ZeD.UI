@@ -905,6 +905,32 @@ do
             check("B9A 4 char: an Equip slot picked up: the inventory comes back", not CW._rolled and not CW._halves.inv.rolled)
             DOWN, DRAG = false, nil; tick(1)
         end
+        -- the press on a list row opens its card at once (the windows' mouse down), before the drag starts: the
+        -- card takes the folded drawer for that moment; the drag that follows puts the card away (the threshold)
+        -- and the drawer must come back on its tab, not stay on Loot (QA, Nov 8 2026, 4K: "drawer is back on maps")
+        pair({ false, false }, { false, false })
+        w = (which == "char") and CW or WW
+        openOn(w, tab)
+        inInv(w); tick(25)
+        check("B9A 4b " .. which .. ": (staged) the drawer rolled in", w._halves.foldTab == tab)
+        DOWN = true
+        w._drawerItem, w._drawerMode, w._drawerOpen = { item = true }, "item", true   -- (the press's card)
+        tick(1)
+        check("B9A 4b " .. which .. ": (staged) the press's card took the drawer, the window on Loot", w._activeTab == "loot" and w._halves.foldTab == nil)
+        w._drawerItem = nil; DRAG = which   -- (past the threshold: the card hidden, the item held)
+        tick(1)
+        check("B9A 4b " .. which .. ": the press became a drag: the drawer back on " .. tab, w._activeTab == tab and w._drawerOpen and w._drawerMode == "tab", w._activeTab)
+        DOWN, DRAG = false, nil; tick(1)
+        -- a plain click (no drag): the card stays the drawer, on Loot
+        pair({ false, false }, { false, false })
+        w = (which == "char") and CW or WW
+        openOn(w, tab)
+        inInv(w); tick(25)
+        DOWN = true
+        w._drawerItem, w._drawerMode, w._drawerOpen = { item = true }, "item", true
+        tick(1); DOWN = false; tick(2)
+        check("B9A 4b " .. which .. ": a plain click's card stays (Loot under it)", w._drawerItem ~= nil and w._activeTab == "loot" and w._halves.pressTab == nil)
+        w._drawerItem, w._drawerMode, w._drawerOpen = nil, nil, false
     end
     WW = nil
 end
