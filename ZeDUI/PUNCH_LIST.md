@@ -3050,7 +3050,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     tooltips on menu rows (ZeD's strip and list styles, and the game's option tooltips as ZeD draws them) follow System
     7.1.2 Balloon Help per the Visual Catalog v2.0, and the box is sized to the wrapped text measured at the current
     scale and text size, never spilling. Read the Visual Catalog first; a before/after mockup to the director before
-    building. QA: every theme, Large text, 4K and 1280x800, long DE and RU strings.
+    building. QA: every theme, Large text, 4K and 1280x800, long DE and RU strings. Must-fix part (the director, Nov 8:
+    "Beta 10, not beta 9"): the requirement tooltip on a greyed-out option (World menu > Disassemble) keeps the game's
+    red/green per requirement and its two columns, and shows the list once (ZeD drew it colorless, columns collapsed,
+    twice). A fix is prepared on its own branch; it merges after beta 9 ships.
 119. **The context menu strip's overflow arrow boxes in the accent color (the director, Nov 8 2026; beta 10).** "The
     color behind those arrows is always black, and it's hard to see. Let's make that box ... the accent color." Both
     end boxes fill with the accent; the arrow is drawn in a contrasting color, readable in every theme and accent.
+120. **The heavy drawers draw as cheaply as Loot (the director, Nov 8 2026: "Equipment, thermal, identity, skills,
+    twice as long to draw as loot? We should address that. In beta 10.").** At 4K 1.75x with pinned windows they read
+    about 16-18 ms per tick against Loot's 9-10 (since about Nov 2). Target: near Loot's ms, measured with pnw before
+    and after on the same manifest (ZeDUI/tools/qa/b9_perf.txt). A suite_perf run without pnw is invalid.
