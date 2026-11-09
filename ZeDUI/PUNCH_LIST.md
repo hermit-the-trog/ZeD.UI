@@ -3061,3 +3061,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     twice as long to draw as loot? We should address that. In beta 10.").** At 4K 1.75x with pinned windows they read
     about 16-18 ms per tick against Loot's 9-10 (since about Nov 2). Target: near Loot's ms, measured with pnw before
     and after on the same manifest (ZeDUI/tools/qa/b9_perf.txt). A suite_perf run without pnw is invalid.
+121. **Controller: run and sneak on one button, by movement (the director, Nov 8 2026, an idea).** Modeled on Skyrim's
+    "Sprint or Sneak for Controller" (Nexus SSE 198488): standing still, hold the button to crouch or stand; moving, hold
+    it to run or sprint for as long as it's held; crouched and moving, a hold stands and runs; a tap stays free for
+    whatever already uses it. Keyboard unchanged. Before building, design questions to the director as multiple
+    choice: which pad button (the game's run/sprint button or sneak), run vs sprint on the hold, the stick-push
+    threshold for 'moving', and an on/off switch in ZeD setup. Keep vanilla's stakes (no stamina cheat), nothing that
+    changes state on L3/R3, and check the game's own joypad run/sneak handling on 42.21 first.
