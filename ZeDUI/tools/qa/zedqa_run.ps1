@@ -149,6 +149,13 @@ $script:Launched    = $false
 # Small helpers
 # ============================================================================
 function Write-Text([string]$Path, [string]$Text) {
+    # (a report is pushed to the public repo: the user folder goes out as %USERPROFILE%, in either slash form)
+    if ($Path -like "*.md" -and $env:USERPROFILE) {
+        $home1 = $env:USERPROFILE; $home2 = $home1.Replace("\", "/")
+        $Text = [regex]::Replace($Text, [regex]::Escape($home1), "%USERPROFILE%", "IgnoreCase")
+        $Text = [regex]::Replace($Text, [regex]::Escape($home2), "%USERPROFILE%", "IgnoreCase")
+        $Text = [regex]::Replace($Text, "C--Users-" + [regex]::Escape((Split-Path $home1 -Leaf)), "C--Users-you", "IgnoreCase")
+    }
     [System.IO.File]::WriteAllText($Path, $Text, $Utf8NoBom)
 }
 
