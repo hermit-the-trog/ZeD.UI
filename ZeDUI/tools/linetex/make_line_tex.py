@@ -1,0 +1,131 @@
+"""The pixel-line textures the drawer tabs draw from, so a dashed box edge or a disclosure chevron is one draw
+instead of one per dash or one per row (punch list 120). White where the line is, clear elsewhere; the panel tints
+them with the colour and alpha the rects had, at 1:1 (nearest filtering), so the pixels are the rects' pixels.
+
+  42/media/textures/ZeD/lines/dash_h.png   1024 x 32: row d-1 is the horizontal dash of a d px step, d on, d off
+  42/media/textures/ZeD/lines/dash_v.png   32 x 1024: column d-1, the same dash run downwards
+  42/media/textures/ZeD/lines/chev.png     256 x 1024: the chevrons of AtomExtensions' _drawArrow, sizes 2 to 40,
+                                           four to a size (right, left, down, up) at x = k * (s + 1), the size's
+                                           row at y = the sum of (n + 1) for n from 2 to s - 1
+  42/media/textures/ZeD/lines/seg.png      1024 x 256: the gaps between the fill bars' cells (Atoms' segGaps), row
+                                           (gap - 1) * 64 + (cell - 1): gap px lit, cell px clear, repeated;
+                                           read back and checked against that rule (the sim works its pixels
+                                           out by the rule, so it is not in the dump)
+  ZeDUI/tools/qa/linetex_pixels.lua        the three other PNGs read back, as runs of lit pixels, for
+                                           drawer_tabs_perf_sim's pixel comparison (the game does not read it)
+
+The chevron's rows are worked out as AtomExtensions' _arrowOffsets works them out (keep the two the same).
+usage: python -I ZeDUI/tools/linetex/make_line_tex.py   (from the repo root)
+"""
+import math
+import os
+from PIL import Image
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+OUT = os.path.join(ROOT, "42", "media", "textures", "ZeD", "lines")
+DUMP = os.path.join(ROOT, "ZeDUI", "tools", "qa", "linetex_pixels.lua")
+DASH_N, DASH_LEN = 32, 1024
+CHEV_MIN, CHEV_MAX, CHEV_W, CHEV_H = 2, 40, 256, 1024
+SEG_CELL, SEG_GAP, SEG_LEN = 64, 4, 1024
+SEG_ROWS = SEG_CELL * SEG_GAP
+WHITE, CLEAR = (255, 255, 255, 255), (0, 0, 0, 0)
+
+
+def arrow_offsets(s):
+    """AtomExtensions._arrowOffsets, line for line: (t, fwd, back)."""
+    t = max(1, math.floor(s / 6 + 0.5))
+    half = math.floor(s / 2)
+    w = half + t
+    ox = math.floor((s - w) / 2)
+    fwd, back = [], []
+    for row in range(s):
+        e = math.floor(abs(row - (s - 1) / 2))
+        p = max(0, half - e)
+        fwd.append(ox + p)
+        back.append(ox + (w - t - p))
+    return t, fwd, back
+
+
+def chev_y(s):
+    return sum(n + 1 for n in range(CHEV_MIN, s))
+
+
+def main():
+    os.makedirs(OUT, exist_ok=True)
+    dh = Image.new("RGBA", (DASH_LEN, DASH_N), CLEAR)
+    dv = Image.new("RGBA", (DASH_N, DASH_LEN), CLEAR)
+    for d in range(1, DASH_N + 1):
+        for i in range(DASH_LEN):
+            if i % (2 * d) < d:
+                dh.putpixel((i, d - 1), WHITE)
+                dv.putpixel((d - 1, i), WHITE)
+    ch = Image.new("RGBA", (CHEV_W, CHEV_H), CLEAR)
+    for s in range(CHEV_MIN, CHEV_MAX + 1):
+        t, fwd, back = arrow_offsets(s)
+        y0 = chev_y(s)
+        assert y0 + s <= CHEV_H and 4 * (s + 1) <= CHEV_W
+        for k, name in enumerate(("rt", "lf", "dn", "up")):
+            x0 = k * (s + 1)
+            for row in range(s):
+                for j in range(t):
+                    if name == "rt":
+                        ch.putpixel((x0 + fwd[row] + j, y0 + row), WHITE)
+                    elif name == "lf":
+                        ch.putpixel((x0 + back[row] + j, y0 + row), WHITE)
+                    elif name == "dn":
+                        ch.putpixel((x0 + row, y0 + fwd[row] + j), WHITE)
+                    else:
+                        ch.putpixel((x0 + row, y0 + back[row] + j), WHITE)
+    # the gaps between the fill bars' cells (Atoms' segGaps): row (gap - 1) * 64 + (cell - 1) is gap px lit, cell px clear, repeated
+    sg = Image.new("RGBA", (SEG_LEN, SEG_ROWS), CLEAR)
+    for g in range(1, SEG_GAP + 1):
+        for c in range(1, SEG_CELL + 1):
+            row = (g - 1) * SEG_CELL + c - 1
+            for i in range(SEG_LEN):
+                if i % (c + g) < g:
+                    sg.putpixel((i, row), WHITE)
+    sg.save(os.path.join(OUT, "seg.png"), optimize=True)
+    back = Image.open(os.path.join(OUT, "seg.png")).convert("RGBA").load()
+    for g in range(1, SEG_GAP + 1):
+        for c in range(1, SEG_CELL + 1):
+            row = (g - 1) * SEG_CELL + c - 1
+            for i in range(SEG_LEN):
+                assert (back[i, row][3] > 0) == (i % (c + g) < g), ("seg", c, g, i)
+    files = {"dash_h": dh, "dash_v": dv, "chev": ch}
+    for name, im in files.items():
+        im.save(os.path.join(OUT, name + ".png"), optimize=True)
+    # the PNGs read back (what the game will load), as runs of lit pixels per row
+    lines = ["-- ZeDUI/tools/qa/linetex_pixels.lua: generated by ZeDUI/tools/linetex/make_line_tex.py (do not edit).",
+             "-- The line textures read back from their PNGs: per texture its size and, per row, the lit runs",
+             "-- { x0, x1 } (x1 exclusive). drawer_tabs_perf_sim paints the panel's textured draws from it.",
+             "return {"]
+    for name in files:
+        im = Image.open(os.path.join(OUT, name + ".png")).convert("RGBA")
+        w, h = im.size
+        px = im.load()
+        rows = []
+        for y in range(h):
+            runs, x = [], 0
+            while x < w:
+                if px[x, y][3] > 0:
+                    assert px[x, y] == WHITE, (name, x, y, px[x, y])
+                    x1 = x
+                    while x1 < w and px[x1, y][3] > 0:
+                        x1 += 1
+                    runs.append("%d,%d" % (x, x1))
+                    x = x1
+                else:
+                    x += 1
+            rows.append("{" + ",".join(runs) + "}")
+        lines.append("    %s = { w = %d, h = %d, rows = {" % (name, w, h))
+        for i in range(0, len(rows), 16):
+            lines.append("        " + ", ".join(rows[i:i + 16]) + ",")
+        lines.append("    } },")
+    lines.append("}")
+    with open(DUMP, "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(lines) + "\n")
+    print("wrote", OUT, "and", DUMP)
+
+
+if __name__ == "__main__":
+    main()

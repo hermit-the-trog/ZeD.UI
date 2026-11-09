@@ -1,8 +1,9 @@
 # Put back the director's fullscreen display settings after a windowed QA run.
 # Run only once the game has closed (the game rewrites options.ini on exit).
 $S = $PSScriptRoot
-$opt = "$env:USERPROFILE\Zomboid\options.ini"
-$bak = Join-Path $S "options.ini.fullscreen.bak"
+$Z = $(if ($env:ZEDQA_ZDIR) { $env:ZEDQA_ZDIR } else { "$env:USERPROFILE\Zomboid" })   # (Nov 8 2026: a staged -cachedir run restores its own folder)
+$opt = Join-Path $Z "options.ini"
+$bak = $(if ($env:ZEDQA_ZDIR) { Join-Path $Z "options.ini.fullscreen.bak" } else { Join-Path $S "options.ini.fullscreen.bak" })
 if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { "the game is still running"; exit 1 }
 if (-not (Test-Path $bak)) { "no backup"; exit 1 }
 $t = Get-Content $opt

@@ -451,7 +451,13 @@ function H.drive(win)
     if s.foldTab then
         local other = columnsOpen(win) or win._drawerItem or win._drawerObject
         if drawerOpen(win) or other or win._activeTab ~= s.foldTab then
-            if other and win._activeTab == s.foldTab and not drawerOpen(win) then win._activeTab = "loot" end
+            if other and win._activeTab == s.foldTab and not drawerOpen(win) then
+                -- (a press on a list row opens that row's card at once, before it can tell a click
+                -- from a drag: the tab is kept, so a drag that grows out of the press brings the
+                -- drawer back on it, H.update)
+                if win._drawerItem and isMouseButtonDown(0) then s.pressTab = s.foldTab end
+                win._activeTab = "loot"
+            end
             s.foldTab = nil; drw.rolled = false
         elseif win._invDrawerOpen == false then
             -- (the inventory hidden under a folded drawer, by the main bag's button: the drawer
@@ -515,11 +521,13 @@ end
 
 --- Where the drawer half meets the inventory half, window-local x: the divider
 --- line while both show; the whole window while one is rolled away; the tab
---- strip (and the drawer's pin) while no drawer shows. A rolled window keeps
---- the last one.
+--- strip (and the drawer's pin) while no drawer shows. A window rolled to its
+--- title bar is split evenly: each half hovers half the bar, whatever had folded
+--- before (a folded drawer's part was a sliver beside its pin); the pins keep
+--- their places.
 function H.split(win)
     local s = win._halves
-    if win.windowShaded then return s.lastSplit or math.floor(win:getWidth() / 2) end
+    if win.windowShaded then return math.floor(win:getWidth() / 2) end
     local w = win:getWidth()
     local x = win._dividerX
     if not x then
@@ -544,9 +552,6 @@ function H.split(win)
             end
         end
     end
-    -- (kept for a rolled-up bar only while both halves share the window: a rod's window, or a
-    -- frame caught mid-unroll, is all drawer and would leave the inventory no part of the bar)
-    if not win._rolled and x > 0 and x < w then s.lastSplit = x end
     return x
 end
 
@@ -654,6 +659,17 @@ function H.update(win)
     if mine and not s.dragMine then
         s.drawer.rolled = false
         if not s.inv.hand then s.inv.rolled = false end
+        -- The press that started this drag opened its row's card over the rolled-in drawer
+        -- (drive forgot the fold for it), and the drag has put the card away again: the
+        -- drawer comes back on the tab it had, as it would have unfolded.
+        local tab = s.pressTab
+        s.pressTab = nil
+        if tab and win._activeTab == "loot" and not win._drawerItem then
+            win._activeTab, win._drawerMode, win._drawerOpen, win._tabUnder = tab, "tab", true, nil
+            syncRing(win)
+        end
+    elseif s.pressTab and not drag and not isMouseButtonDown(0) then
+        s.pressTab = nil   -- (a plain click: the card it opened stays the drawer)
     end
     s.dragMine = mine
     -- (an item held over a rolled window's title bar rolls it down, once, so its list takes the drop)

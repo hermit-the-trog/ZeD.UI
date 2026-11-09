@@ -7,25 +7,28 @@
 # once the QA bridge has armed there.
 param([switch]$MainMenu, [switch]$NoSteam, [int]$Width = 1920, [int]$Height = 1080)   # (Oct 29 2026: -Width / -Height for the small-screen passes: 1280x800 Deck, 1280x720)
 $S = $PSScriptRoot
+# (Nov 8 2026) with ZEDQA_ZDIR set (a true staged check from its own -cachedir) everything follows that folder:
+# options.ini, the autoload flag, console.txt and the launch's -cachedir; the staged-copy refusal does not apply there
+$Z = $(if ($env:ZEDQA_ZDIR) { $env:ZEDQA_ZDIR } else { "$env:USERPROFILE\Zomboid" })
 # refuse to launch while a Workshop staging copy of ZeD-UI exists: the game scans
 # Workshop\*\Contents\mods before Zomboid\mods and the first folder with the mod id wins
 $staged = @(Get-ChildItem -Path "$env:USERPROFILE/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "$env:USERPROFILE/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "$env:USERPROFILE/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
     Where-Object { Select-String -LiteralPath $_.FullName -Pattern '^\s*id=ZeD_UI\s*$' -Quiet -ErrorAction SilentlyContinue } |
     ForEach-Object { $_.FullName -replace '[\\/]mods[\\/].*$', '' } | Select-Object -Unique)
-if ($staged.Count -gt 0) {
+if ($staged.Count -gt 0 -and -not $env:ZEDQA_ZDIR) {
     foreach ($folder in $staged) { Write-Output "A Workshop staging copy of ZeD-UI is at $folder; the game would load it instead of the dev mod. Remove its Contents folder (stage it again right before an upload)." }
     exit 3
 }
-$opt = "$env:USERPROFILE\Zomboid\options.ini"
-$bak = Join-Path $S "options.ini.fullscreen.bak"
+$opt = Join-Path $Z "options.ini"
+$bak = $(if ($env:ZEDQA_ZDIR) { Join-Path $Z "options.ini.fullscreen.bak" } else { Join-Path $S "options.ini.fullscreen.bak" })
 if (-not (Test-Path $bak)) { Copy-Item $opt $bak }
 $t = Get-Content $opt
 $t = $t -replace '^fullScreen=.*', 'fullScreen=false' -replace '^width=.*', "width=$Width" -replace '^height=.*', "height=$Height"
 Set-Content -Path $opt -Value $t
-Set-Content -Path "$env:USERPROFILE\Zomboid\Lua\zedqa.autoload" -Value ($(if ($MainMenu) { "0" } else { "1" })) -NoNewline
+Set-Content -Path (Join-Path $Z "Lua\zedqa.autoload") -Value ($(if ($MainMenu) { "0" } else { "1" })) -NoNewline
 $dir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
-Start-Process -FilePath "$dir\ProjectZomboid64.exe" -ArgumentList $(if ($NoSteam) { "-debug -nosteam" } else { "-debug" }) -WorkingDirectory $dir
-$log = "$env:USERPROFILE\Zomboid\console.txt"
+Start-Process -FilePath "$dir\ProjectZomboid64.exe" -ArgumentList ($(if ($NoSteam) { "-debug -nosteam" } else { "-debug" }) + $(if ($env:ZEDQA_ZDIR) { " -cachedir=$Z" } else { "" })) -WorkingDirectory $dir
+$log = Join-Path $Z "console.txt"
 Start-Sleep -Seconds 10
 $want = $(if ($MainMenu) { "bridge armed \(main menu" } else { "game loading took" })
 $loaded = $false

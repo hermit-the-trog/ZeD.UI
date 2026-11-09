@@ -58,6 +58,17 @@ end
 local function rect(r) return r and string.format("%d,%d %dx%d", r.x, r.y, r.w, r.h) or "none" end
 local function centre(win, r) return win:getAbsoluteX() + r.x + r.w / 2, win:getAbsoluteY() + r.y + r.h / 2 end
 local function mapOpen(w) return w._activeTab == "maps" and w._drawerOpen and w._drawerMode == "tab" end
+-- An Equip drag as the windows read it: the halves ask isActive, the window's render draws its ghost every frame (a
+-- bare { isActive } threw "tried to call nil" in render on every frame it was held)
+local function heldStub()
+    return { isActive = function() return true end, isPending = function() return false end, drawGhost = function() end,
+             updateGhostPos = function() end, cancel = function() end, items = {} }
+end
+-- The drawer's part of the Character window's rolled bar (screen x): a rolled bar splits evenly (the director:
+-- "Split the bar evenly"), the drawer's half on the left, so a quarter of the way in, clear of its pin
+local function drawerBarX(c)
+    return c:getAbsoluteX() + math.floor(c:getWidth() * 0.25)
+end
 
 -- 1 SETUP
 step(30, function()
@@ -193,7 +204,7 @@ step(10, function()
     local c = CW()
     pcall(function() c:setWindowShaded(true) end)
     check(c.windowShaded == true, "2.2b: the Character window rolled for the drag test")
-    c._equipDrag = { isActive = function() return true end }   -- an item held (as itemDragging reads it)
+    c._equipDrag = heldStub()   -- an item held (as itemDragging reads it)
     pointerAt(c:getAbsoluteX() + 150, c:getAbsoluteY() + c:titleBarHeight() / 2)
 end)
 waitMs(250, function()
@@ -213,7 +224,7 @@ end)
 waitMs(800, function()
     local c = CW()
     check(c._rolled == true and c._drawerOpen and not c.windowShaded, "2.2c: (staged) drawer pinned, the inventory rolled under its rod")
-    c._equipDrag = { isActive = function() return true end }   -- an item held (as the halves read it)
+    c._equipDrag = heldStub()   -- an item held (as the halves read it)
     local rod = c._rod
     if rod then pointerAt(rod:getAbsoluteX() + rod:getWidth() / 2, rod:getAbsoluteY() + c:titleBarHeight() / 2) end
 end)
@@ -238,7 +249,7 @@ waitMs(800, function()
     check(c._activeTab == "health", "2.6b: ... the window still on Health (not Loot)")
     shot("2_6b_inventory_part")
     pcall(function() c:setWindowShaded(true) end)
-    pointerAt(c:getAbsoluteX() + c:getWidth() * 0.2, c:getAbsoluteY() + c:titleBarHeight() / 2)
+    pointerAt(drawerBarX(c), c:getAbsoluteY() + c:titleBarHeight() / 2)
 end)
 waitMs(800, function()
     local c = CW()

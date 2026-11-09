@@ -19,10 +19,27 @@ local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
 local function CW() return CWm.getWindow() end
 local function WW() return WWm.getWindow() end
 local H = ZeD.Halves
-local function req(s) local f = getFileWriter("zedqa_click.txt", true, false); f:write(s .. "\n"); f:close() end
+-- The real-mouse helper (release_check_mouse.ps1) takes ONE request at a time: it deletes zedqa_click.txt, acts
+-- (down, move and up 250 ms each) and writes zedqa_click_done.txt. So, as zedqa_dual_pin's req and mouse(): clear the
+-- done file, write the request, and the plan waits for "done" before it counts the next step's delay (drive below).
+-- Back-to-back requests without the wait overwrote each other: drags never started and clicks were lost.
+local pending, pendAt = nil, 0
+local function req(s)
+    pcall(function() local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close() end)
+    pcall(function() local f = getFileWriter("zedqa_click.txt", true, false); f:write(s); f:close() end)
+    pending, pendAt = s, getTimestampMs()
+end
+local function done()
+    local r = getFileReader("zedqa_click_done.txt", false)
+    local l = r and r:readLine()
+    if r then r:close() end
+    return l ~= nil and l:find("done", 1, true) ~= nil
+end
 local function shot(n) pcall(function() core:TakeFullScreenshot("zqa_" .. TAG .. "_" .. sw .. "x" .. sh .. "_" .. n .. ".png") end); say("shot " .. n) end
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
+-- a step that runs once cond() is true, or after max ms (a timed action ending, a state settling)
+local function addWhen(max, cond, fn) plan[#plan + 1] = { ms = max, cond = cond, fn = fn } end
 local keepPins, keepTabs = nil, {}
 local function mid(panel) return math.floor(panel:getAbsoluteX() + panel:getWidth() / 2), math.floor(panel:getAbsoluteY() + panel:getHeight() / 2) end
 local function rowOf(win, fullType)
@@ -38,6 +55,36 @@ local function rowOf(win, fullType)
     end
 end
 local function barMid(w) return math.floor(w:getAbsoluteX() + w:getWidth() / 2), math.floor(w:getAbsoluteY() + w:titleBarHeight() / 2) end
+-- Is the row really under its point (the list's own hit zone there is that thing)? A long list keeps rows past its
+-- view: their render y is beyond the list, and a press there landed on another row or off the window.
+local function rowShown(win, it)
+    local c = win and win._mainContent
+    local y = it and c and c._itemRenderYMap and c._itemRenderYMap[it]
+    if not y or not c.hitZoneAt then return false end
+    local x = (c._itemRenderXMap and c._itemRenderXMap[it]) or 0
+    local cell = c._gridCell
+    local lx, ly = x + (cell and cell / 2 or 170), y + (cell and cell / 2 or ZeD.T.rowH / 2)
+    if ly < 0 or ly >= c:getHeight() then return false end
+    local z = c:hitZoneAt(lx, ly)
+    return z ~= nil and z.id == it
+end
+-- one wheel notch toward the row each call (an addWhen condition, once a frame): true once it shows
+local function revealRow(win, it)
+    if not it then return false end
+    if rowShown(win, it) then return true end
+    local c = win._mainContent
+    local y = c._itemRenderYMap and c._itemRenderYMap[it] or 0
+    if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end
+    return false
+end
+-- the window down and whole, both pins on (nothing rolls while the pointer travels), on its tab
+local function stageDown(w, tab, isChar)
+    H.setPin(w, "inv", true); H.setPin(w, "drawer", true)
+    w:setWindowShaded(false)
+    if w._rolled and ZeD.Curtain then ZeD.Curtain.finishUnroll(w) end
+    if H.showAll then H.showAll(w) end
+    if tab then if isChar then CWm.openTab(0, tab) else WWm.openTab(0, tab) end end
+end
 
 add(500, function()
     local t = p:getModData().ZeD_WinPinned
@@ -54,45 +101,65 @@ local function turn(which)
     local tab = which == "char" and "equip" or "maps"
     local ft = which == "char" and "Base.Spoon" or "Base.Nails"
     local sx, sy
+    -- The staging: both windows down and whole with their pins on, the item's row scrolled into view, the pointer
+    -- on it, and only then every pin off. (Unpinned first, the source window rolled up before the pointer arrived.)
     add(1500, function()
-        for _, w in ipairs({ CW(), WW() }) do H.setPin(w, "inv", false); H.setPin(w, "drawer", false); w:setWindowShaded(false) end
-        if which == "char" then CWm.openTab(0, tab) else WWm.openTab(0, tab) end
+        stageDown(T(), nil, which ~= "char")
+        stageDown(S(), tab, which == "char")
     end)
-    add(800, function()
-        local it, x, y = rowOf(S(), ft)
-        if not check(it ~= nil, which .. ": the item's row is on screen") then return end
+    addWhen(5000, function() return S() ~= nil and revealRow(S(), (rowOf(S(), ft))) end, function() end)
+    local held = false
+    add(300, function()
+        sx, sy = nil, nil
+        local it, x, y = nil, nil, nil
+        if S() then it, x, y = rowOf(S(), ft) end
+        if not check(it ~= nil and x ~= nil and rowShown(S(), it), which .. ": the item's row is on screen") then return end
         sx, sy = x, y
         req("move " .. x .. " " .. y)   -- (looking through the list)
     end)
-    add(3500, function()
+    add(300, function()
+        for _, w in ipairs({ CW(), WW() }) do H.setPin(w, "inv", false); H.setPin(w, "drawer", false) end
+    end)
+    -- (the drawer folds 2 s after the pointer leaves it; the other window rolls 2 s after: wait on both, up to 6 s)
+    addWhen(6000, function() local s, t = S(), T(); return H.foldedTab(s) == tab and t and t.windowShaded == true end, function()
         local s = S()
-        check(H.foldedTab(s) == tab and not s._drawerOpen, which .. ": (staged) looking through the list 3.5 s, the drawer rolled in")
+        check(H.foldedTab(s) == tab and not s._drawerOpen, which .. ": (staged) looking through the list, the drawer rolled in")
         check(T().windowShaded == true, which .. ": (staged) the other window rolled up meanwhile")
         shot(which .. "_1_rolled_in")
+        -- the press again on the row as it is now (each request answered before the next)
+        local it, x, y = rowOf(s, ft)
+        if it and x then sx, sy = x, y end
         if sx then req("down " .. sx .. " " .. sy) end
     end)
-    add(700, function() if sx then req("move " .. (sx + 40) .. " " .. (sy + 30)) end end)
-    add(700, function()
+    add(150, function() if sx then req("move " .. (sx + 12) .. " " .. (sy + 10)) end end)
+    add(150, function() if sx then req("move " .. (sx + 40) .. " " .. (sy + 30)) end end)
+    add(400, function()
+        if not sx then return end
         local s = S()
-        check(s._mainContent._drag:isActive(), which .. ": the item is held (the drag object is active)")
-        check(s._drawerOpen and s._activeTab == tab and H.foldedTab(s) == nil, which .. ": the item picked up: the drawer is back on " .. tab)
+        held = check(s._mainContent._drag:isActive(), which .. ": the item is held (the drag object is active)")
+        if held then check(s._drawerOpen and s._activeTab == tab and H.foldedTab(s) == nil, which .. ": the item picked up: the drawer is back on " .. tab) end
         shot(which .. "_2_drawer_back")
     end)
     add(4000, function()
         local s = S()
-        check(s._drawerOpen and not s._rolled and not s.windowShaded, which .. ": carried over its own list 4 s: both halves stay open")
-        req("move " .. table.concat({ barMid(T()) }, " "))
+        if held then check(s._drawerOpen and not s._rolled and not s.windowShaded, which .. ": carried over its own list 4 s: both halves stay open") end
+        local t = T()
+        if t then req("move " .. table.concat({ barMid(t) }, " ")) end
     end)
     add(700, function()
-        check(not T().windowShaded, which .. ": over the other window's rolled bar, it comes down")
-        req("move " .. table.concat({ mid(T()._mainContent) }, " "))
+        if held then check(not T().windowShaded, which .. ": over the other window's rolled bar, it comes down") end
+        local t = T()
+        if t and t._mainContent then req("move " .. table.concat({ mid(t._mainContent) }, " ")) end
     end)
     add(3000, function()
         local t, s = T(), S()
-        check(not t.windowShaded and not t._rolled, which .. ": held over the other window's list 3 s, it stays down")
-        check(s._drawerOpen and not s.windowShaded, which .. ": ... and the source window's drawer stays too")
+        if held then
+            check(not t.windowShaded and not t._rolled, which .. ": held over the other window's list 3 s, it stays down")
+            check(s._drawerOpen and not s.windowShaded, which .. ": ... and the source window's drawer stays too")
+        end
         shot(which .. "_3_held_over_target")
-        req("up " .. table.concat({ mid(t._mainContent) }, " "))
+        local x, y = mid(t._mainContent)
+        req("up " .. x .. " " .. y)
     end)
     add(2500, function() shot(which .. "_4_dropped") end)
 end
@@ -116,10 +183,25 @@ add(1000, function()
     say("DONE")
 end)
 local function drive()
+    local now = getTimestampMs()
+    if pending then
+        if done() then
+            pending = nil; t0 = now
+        elseif now - pendAt > 8000 then
+            fail = fail + 1; say("ERR the mouse helper never answered: " .. tostring(pending)); pending = nil; t0 = now
+        else
+            return
+        end
+    end
     local st = plan[i]
     if not st then Events.OnTick.Remove(drive); return end
-    if getTimestampMs() - t0 < st.ms then return end
-    t0 = getTimestampMs(); i = i + 1
+    if st.cond then
+        local okC, met = pcall(st.cond)
+        if not (okC and met) and now - t0 < st.ms then return end
+    elseif now - t0 < st.ms then
+        return
+    end
+    t0 = now; i = i + 1
     local ok, e = pcall(st.fn)
     if not ok then fail = fail + 1; say("ERR step " .. (i - 1) .. ": " .. tostring(e)) end
 end

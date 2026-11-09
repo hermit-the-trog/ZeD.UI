@@ -18,7 +18,6 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Tr"
-require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.SkillsTab = {}
@@ -597,9 +596,16 @@ local function drawRowTags(panel, playerObj, skill, x, y, rowH, nameX, minNameW)
     local T = ZeD.T
     local nameR = x
     local at = x - T.px(2)
-    for i, tg in ipairs(ZeD.SkillsTab.rowTags(playerObj, skill)) do
-        if i > 1 and at - rowTagW(tg.text) - nameX < minNameW then break end
-        at = drawRowTag(panel, at, y, rowH, tg.text, tg.color or T.positive)
+    -- (ZeD.SkillsTab.rowTags' tags in its order, walked without building its list: rows draw every frame)
+    local first = true
+    if skill.boost and skill.boost > 0 then
+        at = drawRowTag(panel, at, y, rowH, boostText(skill.boost), T.positive)
+        nameR = at
+        first = false
+    end
+    local xtag = extrasTag(playerObj, skill)
+    if xtag and (first or at - rowTagW(xtag.text) - nameX >= minNameW) then
+        at = drawRowTag(panel, at, y, rowH, xtag.text, xtag.color or T.positive)
         nameR = at
     end
     return nameR
@@ -728,6 +734,27 @@ local TM_STATUS_MAP = {
 local TM_DOT_GAP   = 4
 local TM_DETAIL_PAD = 26
 
+-- The tab's hit zones (rows, training rows) are kept on the window and filled again each frame in the
+-- tables they had: a new table a row a frame otherwise, all garbage. list.n is how many are live.
+local function zoneList(win, field)
+    local l = win and win[field]
+    if not l then l = {}; if win then win[field] = l end end
+    l.n = 0
+    return l
+end
+local function nextZone(list)
+    local n = list.n + 1
+    list.n = n
+    local z = list[n]
+    if not z then z = {}; list[n] = z end
+    return z
+end
+local function endZones(list) for i = list.n + 1, #list do list[i] = nil end end
+local LEGEND = { TM_STATUS_MAP.read, TM_STATUS_MAP.reading, TM_STATUS_MAP.collected, TM_STATUS_MAP.missing }
+local _col1, _col2 = {}, {}                  -- (the training rows' two columns, refilled each frame)
+local _columns, _colCounts = { {}, {} }, { 0, 0 }   -- (the skill groups' two columns, refilled each frame)
+local function clearList(l) for i = #l, 1, -1 do l[i] = nil end end
+
 local _rowIds = {}     -- a skill row's controller id by skill name ("skill:Carpentry")
 local _trainIds = {}   -- a training row's controller id by its expand key ("training:col1_Cooking")
 local _trainKeys = {}  -- a training row's expand key by column and skill ("col1" -> "Cooking" -> "col1_Cooking")
@@ -815,9 +842,9 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                                     headerH, groupGap, font, win, view)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local zones = {}
+    local zones = zoneList(win, "_trainingZoneList")
 
-    if not training or #training == 0 then return zones end
+    if not training or #training == 0 then endZones(zones); return zones end
 
     local collapsedRowH = math.max(secH + T.px(10), T.px(26))
     local detailRowH    = secH + T.px(12)
@@ -829,12 +856,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
         nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
 
     -- Legend row (left-aligned below heading)
-    local legendDefs = {
-        TM_STATUS_MAP.read,
-        TM_STATUS_MAP.reading,
-        TM_STATUS_MAP.collected,
-        TM_STATUS_MAP.missing,
-    }
+    local legendDefs = LEGEND
     local legRowH = secH + T.px(4)
     local legX = x
     local legDotY = cy + math.floor((legRowH - T.px(A.SWATCH_H)) / 2)
@@ -854,8 +876,8 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
 
     -- ── Split groups into 2 columns (a plain half-split) ──
     local half = math.ceil(#training / 2)
-    local col1 = {}
-    local col2 = {}
+    local col1, col2 = _col1, _col2
+    clearList(col1); clearList(col2)
     for i, group in ipairs(training) do
         if i <= half then
             col1[#col1 + 1] = group
@@ -867,13 +889,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
     local colStartY = cy
 
     -- ── Draw a training materials column ──
-    -- each row's chevron, name, dots and rule kept (ZeD.DrawMemo) while its group (a refresh), place,
-    -- fold, focus, the palette and the measures hold; the hover wash and the mark stay outside
-    local DM = ZeD.DrawMemo
-    local epoch = DM.epoch()
-    local memos = win and win._trainMemos
-    if win and not memos then memos = {}; win._trainMemos = memos end
-    local keysByCol = _trainKeys
+    local keysByCol = _trainKeys   -- (the rows' expand keys, made once)
 
     local function drawTMColumn(startX, colWidth, dataList, columnKey)
         local dy = colStartY
@@ -902,14 +918,6 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             if fo then onFocus = ZeD.Focus.mark(panel, startX, dy, colWidth, collapsedRowH, fo) end
 
             if vis then
-            local tm = memos and memos[expandKey]
-            local open = isExpanded and true or false
-            if tm and epoch and tm.ep == epoch and tm.T == T and tm.group == skillGroup and tm.x == startX
-               and tm.y == dy and tm.w == colWidth and tm.open == open and tm.foc == onFocus and tm.font == font
-               and tm.secH == secH then
-                DM.play(panel, tm.cmds)
-            else
-            local panel = DM.begin(panel)   -- (the row below draws into the recorder)
             -- Chevron icon (scaled smaller than font height for visual balance)
             local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
             local chevX = startX + T.px(8)
@@ -943,22 +951,11 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             -- Row separator
             local bd = T.border
             panel:drawRect(startX, dy + collapsedRowH, colWidth, T.px(1), bd.a * 0.15, bd.r, bd.g, bd.b)
-            tm = tm or {}
-            if memos then memos[expandKey] = tm end
-            tm.cmds = DM.finish(panel)
-            tm.ep, tm.T, tm.group, tm.x, tm.y, tm.w, tm.open, tm.foc, tm.font, tm.secH =
-                epoch, T, skillGroup, startX, dy, colWidth, open, onFocus, font, secH
-            end
             end -- vis
 
             -- Click zone
-            zones[#zones + 1] = {
-                id = expandKey,
-                x  = startX,
-                y  = dy,
-                w  = colWidth,
-                h  = collapsedRowH,
-            }
+            local zn = nextZone(zones)
+            zn.id, zn.x, zn.y, zn.w, zn.h = expandKey, startX, dy, colWidth, collapsedRowH
 
             dy = dy + collapsedRowH + T.px(1)
 
@@ -1002,6 +999,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
 
     local y1 = drawTMColumn(col1X, colW, col1, "col1")
     local y2 = drawTMColumn(col2X, colW, col2, "col2")
+    endZones(zones)
 
     return zones, math.max(y1, y2) - startY
 end
@@ -1070,7 +1068,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- disclosure focusable builds into element[1]. Without this, the first
     -- frame of Skills returns [skill rows, chevrons] only, idx=1 lands on
     -- the first skill row, and the disclosure-first entry point is missed.
-    win._skillsGridZone = { x = x, y = y, w = w, h = tabHeaderH }
+    local gz = win._skillsGridZone or {}   -- (one table, refilled)
+    gz.x, gz.y, gz.w, gz.h = x, y, w, tabHeaderH
+    win._skillsGridZone = gz
 
     -- ================================================================
     -- SCROLL SETUP (area starts below pinned tab header)
@@ -1084,8 +1084,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- Distribute groups across 2 columns (load-balanced by skill count); all in the first when
     -- two columns would cut a name (the width taken as if the scroll bar shows)
     win._skillsOneCol = skillsOneColumn(data.categories, math.floor((w - scrollW - pad * 2 - colGap) / 2), T.fontF2)
-    local columns = { {}, {} }
-    local colCounts = { 0, 0 }
+    local columns, colCounts = _columns, _colCounts
+    clearList(columns[1]); clearList(columns[2])
+    colCounts[1], colCounts[2] = 0, 0
 
     for _, group in ipairs(data.categories) do
         local minCol = 1
@@ -1118,7 +1119,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- the extras' block at the top of the scroll (width: the scroll's, less its bar)
     local extraHeadH = (gridExpanded and #ZeD.SkillsTab.extras > 0) and extrasHeadH(win, w - scrollW - pad * 2) or 0
     local totalContentH = padTop + (gridExpanded and (xpGridH + extraHeadH) or 0) + trainingH
-    local view = { x = x, y = y + tabHeaderH, w = w, h = h - tabHeaderH }   -- (what the pointer may hover)
+    local view = win._skillsHoverView or {}   -- (what the pointer may hover; one table, refilled)
+    view.x, view.y, view.w, view.h = x, y + tabHeaderH, w, h - tabHeaderH
+    win._skillsHoverView = view
 
     -- Scroll area starts below pinned tab header
     local scrollY = y + tabHeaderH
@@ -1218,7 +1221,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local col2X = x + pad + colW + colGap
 
     -- Skill row hit zones for click-to-pin (rebuilt each frame)
-    win._skillRowZones = {}
+    local rowZones = zoneList(win, "_skillRowZoneList")
+    win._skillRowZones = rowZones
     local pins = win._pinnedSkills or {}
 
     if gridExpanded then
@@ -1227,36 +1231,16 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- are laid out but not drawn: the stencil clipped them before, at the full cost of
     -- their draws (the Skills tab took 4.8 ms a frame at 4K on a well-stocked character)
     local bandTop, bandBot = scrollY, scrollY + scrollH
-    -- the rows' kept draws (ZeD.DrawMemo), by skill name, on the window
-    local DM = ZeD.DrawMemo
-    local epoch = DM.epoch()
-    local rowMemos = win._skillRowMemos
-    if not rowMemos then rowMemos = {}; win._skillRowMemos = rowMemos end
-    local headMemos = win._skillHeadMemos
-    if not headMemos then headMemos = {}; win._skillHeadMemos = headMemos end
     local rowIds = _rowIds   -- (each row's controller id, "skill:<name>", made once)
-    local fitSig = fit.badge * 1000000 + fit.gap * 1000 + fit.edge
-    local hasTagExtras = false
-    for _, e in ipairs(ZeD.SkillsTab.extras) do if e.tag then hasTagExtras = true end end
     local function drawColumn(startX, colWidth, colGroups)
         local cy = zoneABottom
         local skillRowIdx = 0
 
         for _, group in ipairs(colGroups) do
             -- Group header: the section head, the category's name in sentence case
-            -- (the molecule draws its content line); kept as the rows are
-            local hm = headMemos[group.name]
-            if not hm then hm = {}; headMemos[group.name] = hm end
-            if epoch and hm.ep == epoch and hm.T == T and hm.x == startX and hm.y == cy and hm.w == colWidth then
-                DM.play(panel, hm.cmds)
-            else
-                local dp = DM.begin(panel)
-                hm.h = ZeD.Molecules.drawSectionHeader(dp, startX, cy, colWidth, group.name,
-                    nil, true, false, nil, nil, nil, nil, true)
-                hm.cmds = DM.finish(dp)
-                hm.ep, hm.T, hm.x, hm.y, hm.w = epoch, T, startX, cy, colWidth
-            end
-            cy = cy + hm.h + T.sp.afterGroove
+            -- (the molecule draws its content line)
+            cy = cy + ZeD.Molecules.drawSectionHeader(panel, startX, cy, colWidth, group.name,
+                nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
 
             for _, skill in ipairs(group.skills) do
                 local vis = (cy + rowH > bandTop) and (cy < bandBot)   -- the row reaches the view
@@ -1293,54 +1277,31 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 if fo then onFocus = ZeD.Focus.mark(panel, startX, cy, colWidth, rowH, fo) end
 
                 if vis then
-                    -- The badge, the bar, the tags and the name: drawn once, then played back
-                    -- (ZeD.DrawMemo) while the row's key holds: its place and size, level, name,
-                    -- pin, focus, tags, the spacing, the palette and the measures. The bar's
-                    -- help line goes by the pointer each frame, outside the kept draws.
-                    local rm = rowMemos[skill.name]
-                    if not rm then rm = {}; rowMemos[skill.name] = rm end
-                    local xt = hasTagExtras and extrasTag(win._playerObj, skill) or nil
-                    local xtText, xtColor = xt and xt.text or false, xt and xt.color or false
-                    if not (epoch and rm.ep == epoch and rm.T == T and rm.x == startX and rm.y == cy
-                            and rm.w == colWidth and rm.h == baseRowH and rm.lv == skill.level and rm.pin == isPinned
-                            and rm.foc == onFocus and rm.boost == skill.boost and rm.xt == xtText and rm.xc == xtColor
-                            and rm.fit == fitSig and rm.barW == barW and rm.barMin == barMin and rm.barH == barH
-                            and rm.font == font and rm.bodyH == bodyH) then
-                        local dp = DM.begin(panel)
-                        -- Level badge
-                        drawLevelBadge(dp, startX, cy, baseRowH, skill.level, font, fit.badge)
+                    -- Level badge
+                    drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font, fit.badge)
 
-                        -- The level bar at the right: ten segments, one per level (its help line: the XP to the next).
-                        -- A name short of room takes it from the bar first, down to the bar's least; the
-                        -- level number (the badge) stays (without this, at 1280x720,
-                        -- UI scale 2.0, Large text, the names read "A...")
-                        local nameX = startX + fit.badge + fit.gap
-                        local rowBar = barW
-                        local over = skillNameW(skill.name, font) - (startX + colWidth - fit.edge - barW - fit.gap - nameX)
-                        if over > 0 then rowBar = math.max(barMin, barW - over) end
-                        local barX = startX + colWidth - fit.edge - rowBar
-                        local barY = cy + math.floor((baseRowH - barH) / 2)
-                        A.drawSegFill(dp, barX, barY, rowBar, barH, 10, skill.level, levelBarColor(T, skill.level, isPinned))
-
-                        -- The boost tag (right-aligned, before the bar), a row extra's tag beside it
-                        local nameR = drawRowTags(dp, win._playerObj, skill, barX, cy, baseRowH, nameX,
-                            fit.gap + ZeD.TM:MeasureStringX(font, "A..."))
-
-                        -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
-                        local nameY = cy + math.floor((baseRowH - bodyH) / 2)
-                        local nc = onFocus and T.textOnFocus or T.toneNorm
-                        dp:drawText(A.truncateText(skill.name, font, nameR - fit.gap - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
-                        rm.cmds = DM.finish(dp)
-                        rm.barX, rm.barY, rm.rowBar = barX, barY, rowBar
-                        rm.ep, rm.T, rm.x, rm.y, rm.w, rm.h, rm.lv, rm.pin = epoch, T, startX, cy, colWidth, baseRowH, skill.level, isPinned
-                        rm.foc, rm.boost, rm.xt, rm.xc, rm.fit = onFocus, skill.boost, xtText, xtColor, fitSig
-                        rm.barW, rm.barMin, rm.barH, rm.font, rm.bodyH = barW, barMin, barH, font, bodyH
-                    else
-                        DM.play(panel, rm.cmds)
-                    end
-                    if A.mouseIn(panel, rm.barX, rm.barY, rm.rowBar, barH) then
+                    -- The level bar at the right: ten segments, one per level (its help line: the XP to the next).
+                    -- A name short of room takes it from the bar first, down to the bar's least; the
+                    -- level number (the badge) stays (without this, at 1280x720,
+                    -- UI scale 2.0, Large text, the names read "A...")
+                    local nameX = startX + fit.badge + fit.gap
+                    local rowBar = barW
+                    local over = skillNameW(skill.name, font) - (startX + colWidth - fit.edge - barW - fit.gap - nameX)
+                    if over > 0 then rowBar = math.max(barMin, barW - over) end
+                    local barX = startX + colWidth - fit.edge - rowBar
+                    if A.drawSegFill(panel, barX, cy + math.floor((baseRowH - barH) / 2), rowBar, barH, 10,
+                            skill.level, levelBarColor(T, skill.level, isPinned)) then
                         help(win, ZeD.SkillsTab.barHelp(skill))
                     end
+
+                    -- The boost tag (right-aligned, before the bar), a row extra's tag beside it
+                    local nameR = drawRowTags(panel, win._playerObj, skill, barX, cy, baseRowH, nameX,
+                        fit.gap + ZeD.TM:MeasureStringX(font, "A..."))
+
+                    -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
+                    local nameY = cy + math.floor((baseRowH - bodyH) / 2)
+                    local nc = onFocus and T.textOnFocus or T.toneNorm
+                    panel:drawText(A.truncateText(skill.name, font, nameR - fit.gap - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
                     -- a row extra's strip in its own lane under the row
                     if laneH > 0 then
@@ -1349,11 +1310,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 end
 
                 -- Register hit zone for click-to-pin
-                win._skillRowZones[#win._skillRowZones + 1] = {
-                    x = startX, y = cy, w = colWidth, h = rowH,
-                    name = skill.name,
-                    skill = skill,
-                }
+                local rz = nextZone(rowZones)
+                rz.x, rz.y, rz.w, rz.h, rz.name, rz.skill = startX, cy, colWidth, rowH, skill.name, skill
 
                 cy = cy + rowH + rowGap
                 skillRowIdx = skillRowIdx + 1
@@ -1376,6 +1334,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     end
 
     end -- gridExpanded
+    endZones(rowZones)   -- (the rows not drawn this frame leave the list)
 
     -- Training materials section (below XP grid when expanded, or directly below header when collapsed);
     -- it keeps its own two columns when the skills are in one
