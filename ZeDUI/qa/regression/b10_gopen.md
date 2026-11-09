@@ -9,11 +9,11 @@
 | Game build | 42.21.0 4a0e9546ec |
 | Mod version | 0.3.0-beta10 |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\b10_gopen_manifest.txt (2 scripts) |
+| Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\b10_gopen_manifest.txt (2 scripts) |
 | Result | **1/2 pass**, 0 warn, 0 fail, 1 timeout |
 | Go numbers | 24248 to 24252 |
 
-Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -24,7 +24,7 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - stopped after b10_guide_open_repro.lua: no DONE within 60 s; the script may still be running in the game
 - quit: the game was still running after the quit (go 24250, 24251, 24252); close it by hand
-- ZeD settings NOT put back (the game is still running): copy C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\b10_gopen.md.modoptions.ini over C:\Users\you\Zomboid\Lua\ModOptions.ini once it has closed
+- ZeD settings NOT put back (the game is still running): copy %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\b10_gopen.md.modoptions.ini over %USERPROFILE%\Zomboid\Lua\ModOptions.ini once it has closed
 
 ## Results
 

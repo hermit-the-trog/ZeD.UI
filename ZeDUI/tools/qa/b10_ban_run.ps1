@@ -9,7 +9,7 @@ function L($s) { "$(Get-Date -Format 'HH:mm:ss') $s" | Add-Content $Log }
 "== $(Get-Date -Format 'HH:mm:ss') start" | Set-Content $Log
 $srvOut = Join-Path $Qa "b10_ban_srv.log"
 # the staged beta 9 (Build's, for the upload) is held aside for this dev-code run and put back after
-$Ws = "C:\Users\you\Zomboid\Workshop\ZeD-UI"
+$Ws = "$env:USERPROFILE\Zomboid\Workshop\ZeD-UI"
 if (Test-Path "$Ws\Contents") { L "9a staged: not starting"; exit 3 }
 try {
     $sp = Start-Process pwsh -ArgumentList "-NoProfile", "-File", "$Qa\mp_server.ps1", "-Start", "-Mods", "ZeD_UI;ZeDQAShim", "-Set", "DoLuaChecksum=false" -RedirectStandardOutput $srvOut -NoNewWindow -PassThru; $sp.WaitForExit()
