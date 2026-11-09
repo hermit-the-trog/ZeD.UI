@@ -291,7 +291,14 @@ local function fmt(v)
 end
 local function newPanel(world)
     local P = { x = 0, y = 0, width = 900, height = 1600, mx = -500, my = -500, __name = "panel" }
-    local function log(kind, ...)
+    local log
+    -- the panel's Java element (the license's pattern draws on it straight): its calls go in the log too
+    P.javaObject = setmetatable({ __name = "javaObject" }, { __index = function(t, k)
+        local f = function(self, ...) log("jo:" .. k, ...) end
+        rawset(t, k, f)
+        return f
+    end })
+    log = function(kind, ...)
         C.draw = C.draw + 1
         jcount(kind)
         if C.byCaller then
@@ -517,12 +524,14 @@ local function newWorld(label, getSrc)
     local Z = env.ZeD
     world.ZeD = Z
     -- what the tabs read of the rest of ZeD
-    -- the help line's words and a surface strip's claim on the window body go in the frame's log with the draws
+    -- a surface strip's claim on the window body goes in the frame's log with the draws; the help line's words
+    -- in their own list (only their order among themselves counts: a stamp, read after the frame)
     local function note(s) if not world.nolog then world.frame[#world.frame + 1] = s end end
+    local function noteHelp(s) if not world.nolog then world.helps[#world.helps + 1] = s end end
     -- (a recorder passes for its panel: ZeD.Help.set finds the window through its fields, which are the panel's)
     Z.Help = { set = function(p, text)
-        if p.__name ~= "panel" then note("help from another panel") end
-        note("help " .. tostring(text))
+        if p.__name ~= "panel" then noteHelp("help from another panel") end
+        noteHelp("help " .. tostring(text))
     end }
     Z.Surface = {
         fill = function(p, x, y, w, h, key)
@@ -566,12 +575,30 @@ local function newWin(world)
     }
 end
 
+-- (the variants the counts are not reported for: the same frames compared, at the half card, with the
+-- other style, the photo or the figure folded the other way)
+local HALF = 385   -- (the half card at 1.75x: 220 units)
 local TABS = {
     { id = "skills", name = "Skills", fn = function(Z) return Z.SkillsTab.render end },
     { id = "thermal", name = "Thermal", fn = function(Z) return Z.ThermalTab.render end },
     { id = "identity", name = "Identity", fn = function(Z) return Z.IdentityTab.render end },
     { id = "equip", name = "Equip list", fn = function(Z) return Z.EquipmentTab.render end, view = 1 },
     { id = "equip", name = "Equip doll", fn = function(Z) return Z.EquipmentTab.render end, view = 2 },
+    { id = "skills", name = "Skills, half card", fn = function(Z) return Z.SkillsTab.render end, W = HALF, variant = true },
+    { id = "thermal", name = "Thermal, figure folded", fn = function(Z) return Z.ThermalTab.render end, variant = true,
+      setup = function(Z, win) win._thermalFigureExpanded = false; win._thermalView = 1 end },
+    { id = "thermal", name = "Thermal, insulation view", fn = function(Z) return Z.ThermalTab.render end, variant = true,
+      setup = function(Z, win) win._thermalView = 5 end },
+    { id = "identity", name = "Identity, half card", fn = function(Z) return Z.IdentityTab.render end, W = HALF, variant = true },
+    { id = "identity", name = "Identity, full photo", fn = function(Z) return Z.IdentityTab.render end, variant = true,
+      setup = function(Z, win) win._identityPhotoExpanded = true end },
+    { id = "identity", name = "Identity, Simple", fn = function(Z) return Z.IdentityTab.render end, variant = true,
+      setup = function(Z, win) Z.IdentityTab.qaStyle = "simple" end, teardown = function(Z) Z.IdentityTab.qaStyle = nil end },
+    { id = "identity", name = "Identity, Simple, half card", fn = function(Z) return Z.IdentityTab.render end, W = HALF,
+      variant = true, setup = function(Z, win) Z.IdentityTab.qaStyle = "simple" end,
+      teardown = function(Z) Z.IdentityTab.qaStyle = nil end },
+    { id = "equip", name = "Equip list, half card", fn = function(Z) return Z.EquipmentTab.render end, view = 1, W = HALF,
+      variant = true },
 }
 
 -- one tab, N frames. mode "log": every draw of every frame written down; "count": the instructions (a count
@@ -585,7 +612,8 @@ local function runTab(world, tab, frames, pointer, mode, profile)
     local win = newWin(world)
     local panel = newPanel(world)
     local render = tab.fn(Z)
-    local W, H = 840, 1500   -- (the full card at 4K 1.75x: 480 units)
+    local W, H = tab.W or 840, 1500   -- (the full card at 4K 1.75x: 480 units)
+    if tab.setup then tab.setup(Z, win) end
     local out = { frames = {}, instr = 0, alloc = 0 }
     world.counts = newCounts()
     C = world.counts
@@ -607,11 +635,13 @@ local function runTab(world, tab, frames, pointer, mode, profile)
     for f = 1, frames do
         clock.ms = clock.ms + 16
         if pointer then
-            panel.mx, panel.my = 60 + (f % 13) * 60, 60 + (f * 37) % 1400
+            -- (down the card in small steps, in turn over the left and right columns' bars, the names, the figure)
+            local XS = { 365, 395, 785, 805, 520, 150, 300, 700 }
+            panel.mx, panel.my = XS[(f % #XS) + 1], 40 + (f * 11) % 1460
         else
             panel.mx, panel.my = -500, -500
         end
-        world.frame = {}
+        world.frame, world.helps = {}, {}
         if f == 21 then hookN = 0 end   -- (the first frames fill the caches: the work counted from the 21st)
         collectgarbage("collect")
         collectgarbage("stop")
@@ -626,8 +656,9 @@ local function runTab(world, tab, frames, pointer, mode, profile)
             break
         end
         if f > 20 then out.alloc = out.alloc + (m1 - m0) end
-        out.frames[f] = table.concat(world.frame, "\n")
+        out.frames[f] = table.concat(world.frame, "\n") .. "\n-- the help line, in order:\n" .. table.concat(world.helps, "\n")
     end
+    if tab.teardown then tab.teardown(Z) end
     out.instr = hookN * STEP * frames / (frames - 20)
     out.counts = world.counts
     out.prof = prof
@@ -651,16 +682,25 @@ for _, tab in ipairs(TABS) do
         local label = tab.name .. (pointer and " (pointer over)" or "")
         local nl = runTab(newW, tab, FRAMES, pointer, "log")
         local ol = oldW and runTab(oldW, tab, FRAMES, pointer, "log")
-        local n = runTab(newW, tab, FRAMES, pointer, "count", PROF and not pointer)
-        local o = oldW and runTab(oldW, tab, FRAMES, pointer, "count")
-        n.alloc = runTab(newW, tab, FRAMES, pointer, "mem").alloc
-        if o then o.alloc = runTab(oldW, tab, FRAMES, pointer, "mem").alloc end
-        if o then
+        local n, o = nil, nil
+        if not tab.variant then
+            n = runTab(newW, tab, FRAMES, pointer, "count", PROF and not pointer)
+            o = oldW and runTab(oldW, tab, FRAMES, pointer, "count")
+            n.alloc = runTab(newW, tab, FRAMES, pointer, "mem").alloc
+            if o then o.alloc = runTab(oldW, tab, FRAMES, pointer, "mem").alloc end
+        end
+        if ol then
             local same, first = 0, nil
             for f = 1, FRAMES do
                 if ol.frames[f] == nl.frames[f] then same = same + 1 elseif not first then first = f end
             end
             check(label .. ": " .. FRAMES .. " frames drawn", #nl.frames == FRAMES and #ol.frames == FRAMES)
+            if pointer and not tab.variant then
+                -- (the pointer's path crosses rows and bars: some frames carry a help line, so those are compared too)
+                local withHelp = 0
+                for f = 1, FRAMES do if string.find(nl.frames[f] or "", "\nhelp ", 1, true) then withHelp = withHelp + 1 end end
+                check(label .. ": the pointer brings up help lines", withHelp > 0, withHelp)
+            end
             check(label .. ": every frame draws the same as before", same == FRAMES, same .. "/" .. FRAMES)
             if first and failed <= 3 then
                 local a, b = ol.frames[first] or "", nl.frames[first] or ""
@@ -672,6 +712,7 @@ for _, tab in ipairs(TABS) do
                 end
             end
         end
+        if n then
         local function per(r, k) return r.counts[k] / FRAMES end
         local function line(tag, r)
             return string.format("    %s instr %7.0f  java %6.1f  draws %5.1f  measures %6.2f  wraps %5.1f  truncs %5.1f  alloc %6.1f KB",
@@ -681,7 +722,7 @@ for _, tab in ipairs(TABS) do
         rows[#rows + 1] = "  " .. label
         if o then rows[#rows + 1] = line("old", o) end
         rows[#rows + 1] = line("new", n)
-        if o then
+        if o and not PROF then   -- (-prof: the profile's own work is in the new count)
             check(label .. ": no more Lua work than before", n.instr <= o.instr * 1.02, n.instr .. " vs " .. o.instr)
             check(label .. ": no more draws than before", n.counts.draw <= o.counts.draw, n.counts.draw .. " vs " .. o.counts.draw)
         end
@@ -705,6 +746,7 @@ for _, tab in ipairs(TABS) do
             s = {}
             for i = 1, math.min(10, #dl) do s[#s + 1] = dl[i][1] .. " " .. string.format("%.1f", dl[i][2] / FRAMES) end
             rows[#rows + 1] = "    draws a frame by who asks: " .. table.concat(s, ", ")
+        end
         end
     end
 end

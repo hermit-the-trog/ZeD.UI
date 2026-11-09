@@ -23,9 +23,24 @@ local DM = ZeD.DrawMemo
 -- (getMouseX, a field such as zedScaled or javaObject, a field written) is
 -- the real panel's.
 local recMT = {}
+-- A block that draws on the panel's Java element itself (panel.javaObject:DrawSubTextureRGBA, the
+-- license's pattern) gets a stand-in for it too: each call written down as "__jo:<method>", for
+-- the play to make on the panel's own element.
+local joMT = {}
+joMT.__index = function(jr, k)
+    return function(_, ...)
+        local cmds = rawget(rawget(jr, "_rec"), "_cmds")
+        cmds[#cmds + 1] = { "__jo:" .. k, select("#", ...), ... }
+    end
+end
 recMT.__index = function(rec, k)
     local real = rawget(rec, "_real")
     local v = real[k]
+    if k == "javaObject" and v ~= nil then
+        local jr = rawget(rec, "_jo")
+        if not jr then jr = setmetatable({ _rec = rec }, joMT); rawset(rec, "_jo", jr) end
+        return jr
+    end
     if type(v) == "function" then
         if type(k) == "string" and (string.sub(k, 1, 4) == "draw" or k == "setStencilRect" or k == "clearStencilRect") then
             return function(_, ...)
@@ -79,6 +94,22 @@ local function playFill(panel, x, y, w, h, tokenName)
     ZeD.Surface.fill(panel, x, y, w, h, tokenName)
 end
 
+-- what plays the written-down calls that are not the panel's own methods: the fills, and a
+-- call on the panel's Java element (one caller made per method, the first time it is played)
+local special = { __fill = playFill }
+local function specialFor(name)
+    local f = special[name]
+    if f == nil and string.sub(name, 1, 5) == "__jo:" then
+        local m = string.sub(name, 6)
+        f = function(panel, ...)
+            local jo = panel.javaObject
+            if jo ~= nil then return jo[m](jo, ...) end
+        end
+        special[name] = f
+    end
+    return f
+end
+
 --- A recorder for panel: draw the block into it, then DM.finish plays the block on the panel
 --- and returns what it kept. Recorders nest (each its own).
 function DM.begin(panel)
@@ -92,7 +123,7 @@ function DM.play(panel, cmds)
     for i = 1, #cmds do
         local c = cmds[i]
         local f = panel[c[1]]
-        if f == nil and c[1] == "__fill" then f = playFill end
+        if f == nil then f = specialFor(c[1]) end
         local n = c[2]
         -- (as many values as the block passed: a draw that tests for a missing colour still sees one missing)
         if n == 8 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10])
@@ -105,7 +136,10 @@ function DM.play(panel, cmds)
         elseif n == 2 then f(panel, c[3], c[4])
         elseif n == 1 then f(panel, c[3])
         elseif n == 0 then f(panel)
-        else f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) end
+        elseif n == 10 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12])
+        elseif n == 12 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13], c[14])
+        elseif n == 13 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13], c[14], c[15])
+        else f(panel, unpack(c, 3, n + 2)) end
     end
 end
 

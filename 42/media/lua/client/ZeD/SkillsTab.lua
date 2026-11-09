@@ -727,6 +727,10 @@ local TM_STATUS_MAP = {
 local TM_DOT_GAP   = 4
 local TM_DETAIL_PAD = 26
 
+local _rowIds = {}     -- a skill row's controller id by skill name ("skill:Carpentry")
+local _trainIds = {}   -- a training row's controller id by its expand key ("training:col1_Cooking")
+local _trainKeys = {}  -- a training row's expand key by column and skill ("col1" -> "Cooking" -> "col1_Cooking")
+
 -- Truncate text to fit within maxW, appending "..." if clipped.
 local function truncTextRaw(str, font, maxW)
     local tm = ZeD.TM
@@ -862,11 +866,22 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
     local colStartY = cy
 
     -- ── Draw a training materials column ──
+    -- each row's chevron, name, dots and rule kept (ZeD.DrawMemo) while its group (a refresh), place,
+    -- fold, focus, the palette and the measures hold; the hover wash and the mark stay outside
+    local DM = ZeD.DrawMemo
+    local epoch = DM.epoch()
+    local memos = win and win._trainMemos
+    if win and not memos then memos = {}; win._trainMemos = memos end
+    local keysByCol = _trainKeys
+
     local function drawTMColumn(startX, colWidth, dataList, columnKey)
         local dy = colStartY
+        local keys = keysByCol[columnKey]
+        if not keys then keys = {}; keysByCol[columnKey] = keys end
 
         for si, skillGroup in ipairs(dataList) do
-            local expandKey = columnKey .. "_" .. skillGroup.label
+            local expandKey = keys[skillGroup.label]
+            if not expandKey then expandKey = columnKey .. "_" .. skillGroup.label; keys[skillGroup.label] = expandKey end
             local isExpanded = expandedMap and expandedMap[expandKey]
             local dispName = skillGroup.disp or skillGroup.label
             -- a row wholly outside the scroll view is laid out, not drawn
@@ -880,10 +895,20 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                 help(win, ZeD.tr(isExpanded and "UI_ZeD_Skills_HelpBooksHide" or "UI_ZeD_Skills_HelpBooksShow", dispName))
             end
             local onFocus = false
-            local fo = win and focusOf(win, "training:" .. expandKey)
+            local tid = _trainIds[expandKey]
+            if not tid then tid = "training:" .. expandKey; _trainIds[expandKey] = tid end
+            local fo = win and focusOf(win, tid)
             if fo then onFocus = ZeD.Focus.mark(panel, startX, dy, colWidth, collapsedRowH, fo) end
 
             if vis then
+            local tm = memos and memos[expandKey]
+            local open = isExpanded and true or false
+            if tm and epoch and tm.ep == epoch and tm.T == T and tm.group == skillGroup and tm.x == startX
+               and tm.y == dy and tm.w == colWidth and tm.open == open and tm.foc == onFocus and tm.font == font
+               and tm.secH == secH then
+                DM.play(panel, tm.cmds)
+            else
+            local panel = DM.begin(panel)   -- (the row below draws into the recorder)
             -- Chevron icon (scaled smaller than font height for visual balance)
             local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
             local chevX = startX + T.px(8)
@@ -917,6 +942,12 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             -- Row separator
             local bd = T.border
             panel:drawRect(startX, dy + collapsedRowH, colWidth, T.px(1), bd.a * 0.15, bd.r, bd.g, bd.b)
+            tm = tm or {}
+            if memos then memos[expandKey] = tm end
+            tm.cmds = DM.finish(panel)
+            tm.ep, tm.T, tm.group, tm.x, tm.y, tm.w, tm.open, tm.foc, tm.font, tm.secH =
+                epoch, T, skillGroup, startX, dy, colWidth, open, onFocus, font, secH
+            end
             end -- vis
 
             -- Click zone
@@ -1200,6 +1231,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local epoch = DM.epoch()
     local rowMemos = win._skillRowMemos
     if not rowMemos then rowMemos = {}; win._skillRowMemos = rowMemos end
+    local headMemos = win._skillHeadMemos
+    if not headMemos then headMemos = {}; win._skillHeadMemos = headMemos end
+    local rowIds = _rowIds   -- (each row's controller id, "skill:<name>", made once)
     local fitSig = fit.badge * 1000000 + fit.gap * 1000 + fit.edge
     local hasTagExtras = false
     for _, e in ipairs(ZeD.SkillsTab.extras) do if e.tag then hasTagExtras = true end end
@@ -1209,9 +1243,19 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
         for _, group in ipairs(colGroups) do
             -- Group header: the section head, the category's name in sentence case
-            -- (the molecule draws its content line)
-            cy = cy + ZeD.Molecules.drawSectionHeader(panel, startX, cy, colWidth, group.name,
-                nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
+            -- (the molecule draws its content line); kept as the rows are
+            local hm = headMemos[group.name]
+            if not hm then hm = {}; headMemos[group.name] = hm end
+            if epoch and hm.ep == epoch and hm.T == T and hm.x == startX and hm.y == cy and hm.w == colWidth then
+                DM.play(panel, hm.cmds)
+            else
+                local dp = DM.begin(panel)
+                hm.h = ZeD.Molecules.drawSectionHeader(dp, startX, cy, colWidth, group.name,
+                    nil, true, false, nil, nil, nil, nil, true)
+                hm.cmds = DM.finish(dp)
+                hm.ep, hm.T, hm.x, hm.y, hm.w = epoch, T, startX, cy, colWidth
+            end
+            cy = cy + hm.h + T.sp.afterGroove
 
             for _, skill in ipairs(group.skills) do
                 local vis = (cy + rowH > bandTop) and (cy < bandBot)   -- the row reaches the view
@@ -1242,7 +1286,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     help(win, ZeD.tr(isPinned and "UI_ZeD_Skills_HelpUnpin" or "UI_ZeD_Skills_HelpPin", skill.name))
                 end
                 local onFocus = false
-                local fo = focusOf(win, "skill:" .. tostring(skill.name))
+                local fid = rowIds[skill.name]
+                if not fid then fid = "skill:" .. tostring(skill.name); rowIds[skill.name] = fid end
+                local fo = focusOf(win, fid)
                 if fo then onFocus = ZeD.Focus.mark(panel, startX, cy, colWidth, rowH, fo) end
 
                 if vis then
