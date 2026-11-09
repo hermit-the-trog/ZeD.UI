@@ -376,7 +376,10 @@ function B.place(lay, a, pref, bx, by, bw, bh)
     local depth = B.TAIL * cell
     local inset, m = px(B.INSET), px(B.MARGIN)
     local w, h = lay.w, lay.h
-    local function vertical(side)
+    local beside
+    -- above or under; a box too tall for either goes beside the control (its tail can always reach the control's
+    -- middle there), and only when neither side has room either does it slide over, the tail kept on its base
+    local function vertical(side, last)
         local tipX = math.floor(a.x + math.min(px(B.TIP_IN), a.w / 2) + 0.5)
         local corner, x = "left", tipX - inset
         if x + w > bx + bw - m then corner = "right"; x = tipX + cell + inset - w end
@@ -384,27 +387,39 @@ function B.place(lay, a, pref, bx, by, bw, bh)
         local below = a.below or (a.y + a.h)
         local yA = a.y - cell - depth - h
         local yB = below + cell + depth
+        local fitA, fitB = yA >= by + m, yB + h <= by + bh - m
+        if not (fitA or fitB or a.noFlip or last) then
+            local pl = beside("right", true)
+            if pl then return pl end
+        end
         local y
         if side == "above" then
-            if yA >= by + m or a.noFlip or yB + h > by + bh - m then y = yA else side, y = "below", yB end
+            if fitA or a.noFlip or not fitB then y = yA else side, y = "below", yB end
         else
-            if yB + h <= by + bh - m or a.noFlip or yA < by + m then y = yB else side, y = "above", yA end
+            if fitB or a.noFlip or not fitA then y = yB else side, y = "above", yA end
         end
-        y = math.max(by + m, math.min(y, by + bh - m - h))   -- still too big: it slides, the tail keeps its tip
+        y = math.max(by + m, math.min(y, by + bh - m - h))
         return { x = x, y = y, side = side, corner = corner, tipX = tipX, cell = cell, depth = depth }
     end
-    if pref == "above" or pref == "below" then return vertical(pref) end
-    local tipY = math.floor(a.y + a.h / 2 + 0.5)
-    local xR = a.x + a.w + cell + depth
-    local xL = a.x - cell - depth - w
-    local side = pref
-    if side == "right" and xR + w > bx + bw - m then side = "left" end
-    if side == "left" and xL < bx + m then
-        if pref == "left" and xR + w <= bx + bw - m then side = "right" else return vertical("above") end
+    -- beside; nil (when asked from vertical) if neither side has room
+    beside = function(want, fromVertical)
+        local tipY = math.floor(a.y + a.h / 2 + 0.5)
+        local xR = a.x + a.w + cell + depth
+        local xL = a.x - cell - depth - w
+        local fitR, fitL = xR + w <= bx + bw - m, xL >= bx + m
+        local side
+        if want == "right" then side = fitR and "right" or (fitL and "left" or nil)
+        else side = fitL and "left" or (fitR and "right" or nil) end
+        if not side then
+            if fromVertical then return nil end
+            return vertical("above", true)
+        end
+        local x = (side == "right") and xR or xL
+        local y = math.max(by + m, math.min(tipY - inset, by + bh - m - h))
+        return { x = x, y = y, side = side, corner = "top", tipY = tipY, cell = cell, depth = depth }
     end
-    local x = (side == "right") and xR or xL
-    local y = math.max(by + m, math.min(tipY - inset, by + bh - m - h))
-    return { x = x, y = y, side = side, corner = "top", tipY = tipY, cell = cell, depth = depth }
+    if pref == "above" or pref == "below" then return vertical(pref) end
+    return beside(pref)
 end
 
 --- Where the tail's cells go for a placed box (screen px): the tip's cell, for the checks. The tail is
