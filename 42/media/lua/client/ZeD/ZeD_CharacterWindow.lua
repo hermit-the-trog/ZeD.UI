@@ -1372,6 +1372,21 @@ end
 -- _skillsGridExpanded: when the grid is collapsed, the draw loop skips the
 -- skill rows entirely and _skillRowZones is not refreshed; returning [] here
 -- prevents the ring from holding phantom focusables at stale coords.
+-- (the rows' callbacks: made once, not once a row a frame; each reads the row from el)
+local function _skillRowOnFocus(w, el)
+    w._gpFocusedSkill = el.skillName
+end
+-- A or X: the row's menu, with Pin to title bar (a press never pins on its own)
+local function _skillRowOnActivate(w, el)
+    if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
+end
+-- the one column (a narrow card): Left and Right do nothing;
+-- Down and Up go through the column (cone-nav)
+local function _skillRowOnDpadDir(w, el, dir)
+    if w._skillsOneCol and (dir == "left" or dir == "right") then return true end
+    return false
+end
+local _skillRowIds = {}   -- (each row's id, "skill:<name>", made once)
 local function _buildSkillRowFocusables(win)
     if not win or not win._skillsGridExpanded then return {} end
     local zones = win._skillRowZones
@@ -1380,26 +1395,19 @@ local function _buildSkillRowFocusables(win)
     for i = 1, #zones do
         local z = zones[i]
         local skillName = z.name
+        local id = skillName and _skillRowIds[skillName]
+        if not id then
+            id = "skill:" .. tostring(skillName or i)
+            if skillName then _skillRowIds[skillName] = id end
+        end
         elements[#elements + 1] = {
             x = z.x, y = z.y, w = z.w, h = z.h,
-            id = "skill:" .. tostring(skillName or i),
+            id = id,
             skillName = skillName,
-            onFocus = function(w, el)
-                w._gpFocusedSkill = el.skillName
-            end,
-            -- A or X: the row's menu, with Pin to title bar (a press never pins on its own)
-            onActivate = function(w, el)
-                if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
-            end,
-            onContextMenu = function(w, el)
-                if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
-            end,
-            -- the one column (a narrow card): Left and Right do nothing;
-            -- Down and Up go through the column (cone-nav)
-            onDpadDir = function(w, el, dir)
-                if w._skillsOneCol and (dir == "left" or dir == "right") then return true end
-                return false
-            end,
+            onFocus = _skillRowOnFocus,
+            onActivate = _skillRowOnActivate,
+            onContextMenu = _skillRowOnActivate,
+            onDpadDir = _skillRowOnDpadDir,
         }
     end
     -- Seed only when unset (this builder runs every frame).
@@ -1413,25 +1421,33 @@ end
 -- _skillsCache so scroll height recomputes on the next render (mirrors the
 -- mouse handler). No _skillsGridExpanded guard: the training section always
 -- draws regardless of whether the XP grid is collapsed.
+local function _trainingOnFocus(w, el)
+    w._gpFocusedTraining = el.trainingId
+end
+local function _trainingOnActivate(w, el)
+    if not el.trainingId then return end
+    w._trainingExpanded = w._trainingExpanded or {}
+    w._trainingExpanded[el.trainingId] = not w._trainingExpanded[el.trainingId]
+    w._skillsCache = nil  -- force scroll height recalc
+end
+local _trainingIds = {}   -- (each row's id, "training:<key>", made once)
 local function _buildTrainingChevronFocusables(win)
     local zones = win and win._trainingGroupZones
     if not zones or #zones == 0 then return {} end
     local elements = {}
     for i = 1, #zones do
         local z = zones[i]
+        local id = z.id and _trainingIds[z.id]
+        if not id then
+            id = "training:" .. tostring(z.id or i)
+            if z.id then _trainingIds[z.id] = id end
+        end
         elements[#elements + 1] = {
             x = z.x, y = z.y, w = z.w, h = z.h,
-            id = "training:" .. tostring(z.id or i),
+            id = id,
             trainingId = z.id,
-            onFocus = function(w, el)
-                w._gpFocusedTraining = el.trainingId
-            end,
-            onActivate = function(w, el)
-                if not el.trainingId then return end
-                w._trainingExpanded = w._trainingExpanded or {}
-                w._trainingExpanded[el.trainingId] = not w._trainingExpanded[el.trainingId]
-                w._skillsCache = nil  -- force scroll height recalc
-            end,
+            onFocus = _trainingOnFocus,
+            onActivate = _trainingOnActivate,
         }
     end
     return elements
@@ -1859,6 +1875,83 @@ _buildCardActionFocusables = function(win)
     return els
 end
 
+-- The list's and the doll's stops share their callbacks: made once, not once a stop a frame
+-- (the builder below runs every frame the stops are kept fresh); each reads its stop from el.
+local function _equipStopOnFocus(w, el) w._gpFocusedEquipSlot = el.slotType end
+local function _equipPartOnFocus(w, el)
+    w._equipDefHoveredPart = el.partName
+    w._gpFocusedEquipSlot = el.slotType
+end
+local function _equipDollDpad(w, el, dir) return ZeD.EquipDoll.dpad(w, el, dir) end
+local function _equipGroupOnActivate(w, el)
+    w._equipExpanded = w._equipExpanded or {}
+    w._equipExpanded[el.groupId] = not w._equipExpanded[el.groupId]
+end
+local function _equipSlotOnActivate(w, el)
+    w._equipSelected = el.slotType
+    w._equipCache = nil
+    w._gpFocusedEquipSlot = nil  -- reseed to card back button
+    -- Race guard: the card renderer fires AFTER this prerender,
+    -- so on frame N the real back/action bounds aren't stamped
+    -- yet. Without fallback bounds the first D-pad press after
+    -- A is eaten (cone-nav on an empty ring is silent).
+    -- Pre-stamp approximate bounds so cone has something to
+    -- work with; real values overwrite next frame.
+    if not (w._equipBackBtnZone and (w._equipBackBtnZone.w or 0) > 0) then
+        local Tk = ZeD.T
+        local dW = math.floor(w._drawerEffW or Tk.px(220))
+        w._equipBackBtnZone = { x = dW - Tk.px(108), y = Tk.px(4), w = Tk.px(100), h = Tk.buttonH }
+    end
+    if not (w._equipActionZones and #w._equipActionZones > 0) then
+        local Tk = ZeD.T
+        local dW = math.floor(w._drawerEffW or Tk.px(220))
+        local ay, bw, gap = Tk.px(260), Tk.px(70), Tk.px(4)
+        w._equipActionZones = {
+            { x = dW - Tk.px(10) - (bw * 2 + gap), y = ay, w = bw, h = Tk.buttonH, id = "drop" },
+            { x = dW - Tk.px(10) - bw,             y = ay, w = bw, h = Tk.buttonH, id = "unequip" },
+        }
+    end
+end
+local function _equipSlotOnContextMenu(w, el)
+    -- Gamepad X opens the same ZeD context menu RMB does
+    -- (parity with inv-row context menu pattern). Anchored at the
+    -- focused slot row's screen position.
+    if not el.item then return end
+    local playerObj = getSpecificPlayer(ZeD.playerNumOf(w))
+    if not playerObj then return end
+    local pNum = playerObj:getPlayerNum()
+    local inv  = playerObj:getInventory()
+    local isInInv = inv:isInCharacterInventory(playerObj)
+    -- Anchor at the slot row's center.
+    local drawerPanel = w._itemDrawerPanel
+    local panelAbsX = (drawerPanel and drawerPanel.getAbsoluteX
+                       and drawerPanel:getAbsoluteX()) or 0
+    local panelAbsY = (drawerPanel and drawerPanel.getAbsoluteY
+                       and drawerPanel:getAbsoluteY()) or 0
+    local mx = panelAbsX + (el.x or 0) + math.floor((el.w or 0) / 2)
+    local my = panelAbsY + (el.y or 0) + math.floor((el.h or 0) / 2)
+    ISInventoryPaneContextMenu.createMenu(
+        pNum, isInInv, { el.item }, mx, my
+    )
+end
+local function _equipBeltOnActivate(w, el)
+    local p = w._itemDrawerPanel
+    local b = el.zone.btn
+    local ax = (p and p:getAbsoluteX() or 0) + b.x + math.floor(b.w / 2)
+    local ay = (p and p:getAbsoluteY() or 0) + b.y
+    ZeD.EquipmentTab.beltAction(w, el.zone, ax, ay)
+end
+local function _equipBeltOnContextMenu(w, el)
+    local p = w._itemDrawerPanel
+    local ax = (p and p:getAbsoluteX() or 0) + el.x + math.floor(el.w / 2)
+    local ay = (p and p:getAbsoluteY() or 0) + el.y
+    if el.zone.item then
+        ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), true, { el.zone.item }, ax, ay)
+    elseif ZeD.Belt then
+        ZeD.Belt.slotMenu(ZeD.playerNumOf(w), el.zone.i, ax, ay)
+    end
+end
+
 -- Equipment tab focusables. Ring zone `charTabContent` treats the
 -- equipment drawer as a single flow: disclosure at the top, equipment slots
 -- below. D-pad up/down cones navigate between them; A on the disclosure
@@ -2020,10 +2113,7 @@ local function _buildEquipmentFocusables(win)
                 id = "equippart:" .. tostring(r.name),
                 slotType = "__part_" .. tostring(r.name),
                 partName = r.name,
-                onFocus = function(w, el)
-                    w._equipDefHoveredPart = el.partName
-                    w._gpFocusedEquipSlot = el.slotType
-                end,
+                onFocus = _equipPartOnFocus,
                 -- onActivate omitted — body part is readout only, focus
                 -- drives the right-column defense detail view.
             }
@@ -2080,12 +2170,8 @@ local function _buildEquipmentFocusables(win)
                 id = "equipgroup:" .. tostring(gz.id),
                 slotType = "__group_" .. tostring(gz.id),
                 groupId = gz.id,
-                onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
-                -- A toggles group expand/collapse (= LMB on the header).
-                onActivate = function(w, el)
-                    w._equipExpanded = w._equipExpanded or {}
-                    w._equipExpanded[el.groupId] = not w._equipExpanded[el.groupId]
-                end,
+                onFocus = _equipStopOnFocus,
+                onActivate = _equipGroupOnActivate,   -- (A toggles the group, = LMB on the header)
             }
         end
     end
@@ -2102,58 +2188,11 @@ local function _buildEquipmentFocusables(win)
                 id = "equipslot:" .. tostring(z.type or i),
                 slotType = z.type,
                 item = z.item,
-                onFocus = function(w, el)
-                    w._gpFocusedEquipSlot = el.slotType
-                end,
+                onFocus = _equipStopOnFocus,
                 -- the doll: Left / Right cross the figure to the other column
-                onDpadDir = function(w, el, dir) return ZeD.EquipDoll.dpad(w, el, dir) end,
-                onActivate = function(w, el)
-                    w._equipSelected = el.slotType
-                    w._equipCache = nil
-                    w._gpFocusedEquipSlot = nil  -- reseed to card back button
-                    -- Race guard: the card renderer fires AFTER this prerender,
-                    -- so on frame N the real back/action bounds aren't stamped
-                    -- yet. Without fallback bounds the first D-pad press after
-                    -- A is eaten (cone-nav on an empty ring is silent).
-                    -- Pre-stamp approximate bounds so cone has something to
-                    -- work with; real values overwrite next frame.
-                    if not (w._equipBackBtnZone and (w._equipBackBtnZone.w or 0) > 0) then
-                        local Tk = ZeD.T
-                        local dW = math.floor(w._drawerEffW or Tk.px(220))
-                        w._equipBackBtnZone = { x = dW - Tk.px(108), y = Tk.px(4), w = Tk.px(100), h = Tk.buttonH }
-                    end
-                    if not (w._equipActionZones and #w._equipActionZones > 0) then
-                        local Tk = ZeD.T
-                        local dW = math.floor(w._drawerEffW or Tk.px(220))
-                        local ay, bw, gap = Tk.px(260), Tk.px(70), Tk.px(4)
-                        w._equipActionZones = {
-                            { x = dW - Tk.px(10) - (bw * 2 + gap), y = ay, w = bw, h = Tk.buttonH, id = "drop" },
-                            { x = dW - Tk.px(10) - bw,             y = ay, w = bw, h = Tk.buttonH, id = "unequip" },
-                        }
-                    end
-                end,
-                onContextMenu = function(w, el)
-                    -- Gamepad X opens the same ZeD context menu RMB does
-                    -- (parity with inv-row context menu pattern). Anchored at the
-                    -- focused slot row's screen position.
-                    if not el.item then return end
-                    local playerObj = getSpecificPlayer(ZeD.playerNumOf(w))
-                    if not playerObj then return end
-                    local pNum = playerObj:getPlayerNum()
-                    local inv  = playerObj:getInventory()
-                    local isInInv = inv:isInCharacterInventory(playerObj)
-                    -- Anchor at the slot row's center.
-                    local drawerPanel = w._itemDrawerPanel
-                    local panelAbsX = (drawerPanel and drawerPanel.getAbsoluteX
-                                       and drawerPanel:getAbsoluteX()) or 0
-                    local panelAbsY = (drawerPanel and drawerPanel.getAbsoluteY
-                                       and drawerPanel:getAbsoluteY()) or 0
-                    local mx = panelAbsX + (el.x or 0) + math.floor((el.w or 0) / 2)
-                    local my = panelAbsY + (el.y or 0) + math.floor((el.h or 0) / 2)
-                    ISInventoryPaneContextMenu.createMenu(
-                        pNum, isInInv, { el.item }, mx, my
-                    )
-                end,
+                onDpadDir = _equipDollDpad,
+                onActivate = _equipSlotOnActivate,
+                onContextMenu = _equipSlotOnContextMenu,
             }
         end
     end
@@ -2171,24 +2210,9 @@ local function _buildEquipmentFocusables(win)
                 id = "equipbelt:" .. tostring(z.i),
                 slotType = z.fid,
                 zone = z,
-                onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
-                onActivate = function(w, el)
-                    local p = w._itemDrawerPanel
-                    local b = el.zone.btn
-                    local ax = (p and p:getAbsoluteX() or 0) + b.x + math.floor(b.w / 2)
-                    local ay = (p and p:getAbsoluteY() or 0) + b.y
-                    ZeD.EquipmentTab.beltAction(w, el.zone, ax, ay)
-                end,
-                onContextMenu = function(w, el)
-                    local p = w._itemDrawerPanel
-                    local ax = (p and p:getAbsoluteX() or 0) + el.x + math.floor(el.w / 2)
-                    local ay = (p and p:getAbsoluteY() or 0) + el.y
-                    if el.zone.item then
-                        ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), true, { el.zone.item }, ax, ay)
-                    elseif ZeD.Belt then
-                        ZeD.Belt.slotMenu(ZeD.playerNumOf(w), el.zone.i, ax, ay)
-                    end
-                end,
+                onFocus = _equipStopOnFocus,
+                onActivate = _equipBeltOnActivate,
+                onContextMenu = _equipBeltOnContextMenu,
             }
         end
     end
@@ -2199,8 +2223,8 @@ local function _buildEquipmentFocusables(win)
         elements[#elements + 1] = {
             x = z.x, y = z.y, w = z.w, h = z.h,
             id = "equipslot:" .. z.type, slotType = z.type,
-            onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
-            onDpadDir = function(w, el, dir) return ZeD.EquipDoll.dpad(w, el, dir) end,
+            onFocus = _equipStopOnFocus,
+            onDpadDir = _equipDollDpad,
         }
     end
 
@@ -2485,6 +2509,10 @@ end
 -- because focus drives the right-column detail-view swap (mirror mouse
 -- hover parity). A is a no-op — no action, only readout. Only populated
 -- when the figure is expanded; collapsed figure yields empty list.
+local function _thermalPartOnFocus(w, el)
+    w._gpFocusedThermalPart = el.partName
+end
+local _thermalPartIds = {}   -- (each part's id, "thermalpart:<name>", made once)
 local function _buildThermalBodyPartFocusables(win)
     if not win or not win._thermalFigureExpanded then return {} end
     local fig = win._thermalBodyFigure
@@ -2498,13 +2526,16 @@ local function _buildThermalBodyPartFocusables(win)
     for i = 1, #rects do
         local r = rects[i]
         local vy, vh = _inBodyView(view, r.y, r.h)
+        local id = vy and _thermalPartIds[r.name]
+        if vy and not id then
+            id = "thermalpart:" .. tostring(r.name)
+            if r.name then _thermalPartIds[r.name] = id end
+        end
         if vy then elements[#elements + 1] = {
             x = r.x, y = vy, w = r.w, h = vh, fullY = r.y, fullH = r.h,
-            id = "thermalpart:" .. tostring(r.name),
+            id = id,
             partName = r.name,
-            onFocus = function(w, el)
-                w._gpFocusedThermalPart = el.partName
-            end,
+            onFocus = _thermalPartOnFocus,
             -- onActivate intentionally omitted — thermal parts are readout
             -- only; focus drives the detail-view swap, A does nothing.
         } end

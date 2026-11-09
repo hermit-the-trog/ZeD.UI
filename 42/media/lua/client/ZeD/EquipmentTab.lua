@@ -19,6 +19,7 @@ require "ZeD/ProtectionTab"
 require "ZeD/EquipDoll"
 require "ZeD/ZeD_EquipLoadout"
 require "ZeD/ZeD_RestockPin"
+require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.EquipmentTab = {}
@@ -261,7 +262,26 @@ end
 
 -- Shared column layout: NAME SLOT COND BITE SCR BUL WT
 -- Returns table of column X positions and widths
+local calcEquipColumnsRaw
+-- The layout is the same for every row of a frame (the header, each slot row, the belt rows ask
+-- it): the last answer is kept while what decides it holds (the width, the dragged widths, the
+-- widest worn name, the palette, the measures). The callers only read it.
+local _cols = {}
 local function calcEquipColumns(w, win)
+    local cw = win and win._equipColWidths
+    local need = (win and win._equipNameNeed) or 0
+    local epoch = ZeD.DrawMemo.epoch()
+    local k = _cols
+    if epoch and k.c and k.ep == epoch and k.T == ZeD.T and k.w == w and k.need == need and k.cw == cw
+       and (not cw or (k.s == cw.slot and k.cd == cw.cond and k.wt == cw.wt)) then
+        return k.c
+    end
+    local c = calcEquipColumnsRaw(w, win)
+    k.c, k.ep, k.T, k.w, k.need, k.cw = c, epoch, ZeD.T, w, need, cw
+    if cw then k.s, k.cd, k.wt = cw.slot, cw.cond, cw.wt end
+    return c
+end
+calcEquipColumnsRaw = function(w, win)
     local T     = ZeD.T
     local sp    = T.sp
     local scale = T.scale or 1
@@ -763,6 +783,27 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     -- Column layout: NAME SLOT COND BITE SCR BUL WT
     local c = calcEquipColumns(w, win)
 
+    -- The rest of the row is drawn once and played back (ZeD.DrawMemo) while its key holds: the
+    -- slot's data (a refresh every 250 ms brings new data, the name and weight read with it),
+    -- the place, the columns, the focus wash and selection, the palette and the measures. The
+    -- condition strip asks for the pointer again each frame, for its help line.
+    local DM = ZeD.DrawMemo
+    local epoch = DM.epoch()
+    local memos = win._equipRowMemos
+    if not memos then memos = {}; win._equipRowMemos = memos end
+    local m = memos[slot.type]
+    if m and epoch and m.ep == epoch and m.T == T and m.slot == slot and m.x == x and m.y == y and m.w == w
+       and m.c == c and m.washed == washed and m.sel == selected and m.rowH == rowH then
+        DM.play(panel, m.cmds)
+        if m.condHov and DM.hovered(panel, m.hovers, 1) and ZeD.Help then
+            ZeD.Help.set(panel, A.fillBarHelp(m.condF, ZeD.tr("IGUI_invpanel_Condition")))
+        end
+        return
+    end
+    m = m or {}
+    memos[slot.type] = m
+    panel = DM.begin(panel)   -- (the row below draws into the recorder)
+
     local bodyFH = tm:getFontHeight(T.fontF2)
     local secFH = tm:getFontHeight(T.fontF1)
     local secTextY = y + math.floor((rowH - secFH) / 2)
@@ -832,6 +873,13 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
 
     -- Bottom divider
     A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
+
+    m.cmds, m.hovers = DM.finish(panel)
+    -- (the condition strip's hover test is the row's only one: its help line, as drawFillBar words it)
+    m.condHov = #m.hovers == 1
+    m.condF = math.max(0.0, math.min(1.0, slot.cond or 0))
+    m.ep, m.T, m.slot, m.x, m.y, m.w, m.c, m.washed, m.sel, m.rowH = epoch, T, slot, x, y, w, c, washed, selected, rowH
+    if #m.hovers > 1 then m.ep = nil end
 end
 
 -- ============================================================================
@@ -1504,16 +1552,21 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         -- Column headers FIRST — equipped inventory list is the most-accessed
         -- region of this drawer.
         -- the widest worn name: the SLOT column shortens when the names lack it
-        local need = 0
-        for _, g in ipairs(data.groups) do
-            for _, s in ipairs(g.slots) do
-                if s.item then
-                    local nw = nameWidth(safeGet(s.item, "getDisplayName") or "?")
-                    if nw > need then need = nw end
+        -- (worked out again with each data refresh and each new scale or language, not each frame)
+        local needEp = ZeD.DrawMemo.epoch()
+        if win._equipNameNeedData ~= data or win._equipNameNeedEp ~= needEp or not needEp then
+            local need = 0
+            for _, g in ipairs(data.groups) do
+                for _, s in ipairs(g.slots) do
+                    if s.item then
+                        local nw = nameWidth(safeGet(s.item, "getDisplayName") or "?")
+                        if nw > need then need = nw end
+                    end
                 end
             end
+            win._equipNameNeed = need
+            win._equipNameNeedData, win._equipNameNeedEp = data, needEp
         end
-        win._equipNameNeed = need
         _drawEquipHeader(panel, x, drawY, contentW, win)
         drawY = drawY + T.px(EQUIP_HDR_H)
 

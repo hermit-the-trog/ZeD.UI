@@ -34,6 +34,7 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Tr"
+require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.EquipDoll = ZeD.EquipDoll or {}
@@ -491,9 +492,11 @@ end
 -- empty ones dashed, a pair's empty slot with its faint L or R, the layer count as a big slot shows
 -- it; no label (the group's name stands above). u = screen px per doll unit. place = the place's
 -- name, for the help line.
+-- a small slot's units in screen px, at u px a unit (at least 1)
+local function pu(v, u) return math.max(1, math.floor(v * u + 0.5)) end
+
 local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, place, mx, my, u)
     local T, tm = ZeD.T, ZeD.TM
-    local function pu(v) return math.max(1, math.floor(v * u + 0.5)) end
     local over = mx >= bx and mx < bx + b and my >= by and my < by + b
     local hover = over and not cuesOn()
     if item then
@@ -516,13 +519,13 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
         local bs = T.borderS
         panel:drawRectBorder(bx, by, b, b, bs.a or 1, bs.r, bs.g, bs.b)
         local tex = itemTex(item)
-        local isz = pu(16)
+        local isz = pu(16, u)
         if tex then
-            panel:drawTextureScaledAspect(tex, bx + math.floor((b - isz) / 2), by + math.floor((b - isz) / 2) - pu(1), isz, isz, 1, 1, 1, 1)
+            panel:drawTextureScaledAspect(tex, bx + math.floor((b - isz) / 2), by + math.floor((b - isz) / 2) - pu(1, u), isz, isz, 1, 1, 1, 1)
         end
         local f = condOf(item)
         if f then
-            local ch, inset = pu(2), pu(2)
+            local ch, inset = pu(2, u), pu(2, u)
             local cx, cw = bx + inset, b - inset * 2
             local cy = by + b - inset - ch
             local bg, fc = T.base, condColor(T, f)
@@ -538,7 +541,7 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
             panel:drawText(lt, bx + math.floor((b - lw) / 2), by + math.floor((b - f5h) / 2), dc.r, dc.g, dc.b, (dc.a or 1) * T.disabledAlpha, f5)
         end
     end
-    if nLayers and nLayers > 1 then layerCount(panel, bx, by, b, nLayers, f5, f5h, pu(4), pu(1)) end
+    if nLayers and nLayers > 1 then layerCount(panel, bx, by, b, nLayers, f5, f5h, pu(4, u), pu(1, u)) end
     if hover then
         ZeD.Help.set(panel, item and ZeD.tr("UI_ZeD_Doll_SlotHelp", call(item, "getDisplayName") or place)
             or ZeD.tr("UI_ZeD_Doll_EmptyHelp", place))
@@ -546,11 +549,26 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
     return over
 end
 
+-- The doll's words (the slots' labels, the groups' names, the places), kept by what they are
+-- made from while the language, the test language and the measures hold (ZeD.DrawMemo.epoch):
+-- seventy phrases a frame otherwise
+local _words = {}
+local function dollWords()
+    local ep = ZeD.DrawMemo.epoch()
+    if not ep or _words.ep ~= ep then _words = { ep = ep, label = {}, group = {}, place = {}, ptext = {} } end
+    return _words
+end
+
 -- A group's name: the game's words for its places, joined with " | "
 local function groupName(g)
+    local wd = dollWords()
+    local s = wd.group[g]
+    if s then return s end
     local t = ""
     for i, k in ipairs(g.name) do t = t .. (i > 1 and " | " or "") .. ZeD.tr(k) end
-    return ZeD.textCase(t)
+    s = ZeD.textCase(t)
+    wd.group[g] = s
+    return s
 end
 
 --- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
@@ -620,7 +638,10 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local items = data.slots[def.id].items
         local item = items[1]
         local key = "doll:" .. def.id
-        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.textCase(ZeD.tr(def.key)), mx, my)
+        local wd = dollWords()
+        local label = wd.label[def]
+        if not label then label = ZeD.textCase(ZeD.tr(def.key)); wd.label[def] = label end
+        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
         if not item and ghosts and ghosts[def.id] then EL.drawGhost(panel, bx, by, b, ghosts[def.id]) end
         rects[#rects + 1] = { x = bx, y = by, w = b, h = b, id = def.id }
         if item then
@@ -654,11 +675,14 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             local item = items[1]
             local key = "doll:" .. sm.id
             local sbx, sby = ox + P(sm.x) + S(sm.x) + (sm.col - 1) * stepX, y + P(sm.y)
-            local place = ZeD.tr(sm.place)
+            local wd = dollWords()
+            local place = wd.place[sm]
+            if not place then place = ZeD.tr(sm.place); wd.place[sm] = place end
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
             if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
             rects[#rects + 1] = { x = sbx, y = sby, w = ss, h = ss, id = sm.id }
-            local ptext = ZeD.textCase(place)
+            local ptext = wd.ptext[sm]
+            if not ptext then ptext = ZeD.textCase(place); wd.ptext[sm] = ptext end
             if item then
                 zones[#zones + 1] = { x = sbx, y = sby, w = ss, h = ss, type = key, item = item }
                 if over then
