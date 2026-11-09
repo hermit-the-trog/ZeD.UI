@@ -11,8 +11,9 @@
 --
 --   inventory rolled:  the curtain rolls it under its rod (the rod carries
 --                      the inventory's pin while it is rolled)
---   drawer rolled:     the tab drawer folds in, as a second press of its tab
---                      does; the tab comes back out when the half unrolls
+--   drawer rolled:     the tab drawer folds in, its tab still selected in the
+--                      strip and named in the title; it comes back out on that
+--                      tab when the half unrolls
 --   both rolled:       the whole window rolls to its title bar, as it always has
 --
 -- One pin per half, each in its own end of the title bar: the drawer's pin on
@@ -366,10 +367,13 @@ end
 -- caches, selection and Equip pick stay as they were, so the drawer comes back
 -- exactly as it went. (Pressing the tab through the strip went down its "new tab"
 -- path: it scrolled the tab to the top, dropped its caches and the selection.)
+-- The tab stays the window's while its drawer is rolled in: still selected in the
+-- strip and named in the title, as a rolled inventory side keeps its tab on the
+-- rod. (Set to Loot, a fold read as the window switching tabs on its own.)
 local function fold(win, snap)
     local s = win._halves
     s.foldTab = win._activeTab
-    win._activeTab, win._drawerOpen, win._drawerMode, win._tabUnder = "loot", false, nil, nil
+    win._drawerOpen, win._drawerMode, win._tabUnder = false, nil, nil
     if snap then snapShut(win) end
     syncRing(win)
 end
@@ -441,10 +445,19 @@ function H.drive(win)
     local s = win._halves
     if not s then return end
     local inv, drw = s.inv, s.drawer
-    -- (a tab, Loot columns or an item card opened by hand under a folded half: that is the
-    -- player's drawer now, and the half is down again)
-    if s.foldTab and (drawerOpen(win) or columnsOpen(win) or win._drawerItem or win._drawerObject) then
-        s.foldTab = nil; drw.rolled = false
+    -- (a tab, Loot or another tab pressed, Loot columns or an item card opened by hand under a
+    -- folded half: that is the player's drawer now, and the half is down again. A card or the
+    -- columns take the drawer's place, so the folded tab gives way to Loot, as its press would)
+    if s.foldTab then
+        local other = columnsOpen(win) or win._drawerItem or win._drawerObject
+        if drawerOpen(win) or other or win._activeTab ~= s.foldTab then
+            if other and win._activeTab == s.foldTab and not drawerOpen(win) then win._activeTab = "loot" end
+            s.foldTab = nil; drw.rolled = false
+        elseif win._invDrawerOpen == false then
+            -- (the inventory hidden under a folded drawer, by the main bag's button: the drawer
+            -- comes back, or the window would show its two strips alone)
+            drw.rolled = false
+        end
     end
     local hasDrawer = s.foldTab ~= nil or win._rolled or drawerOpen(win)
     local shaded = win.windowShaded
