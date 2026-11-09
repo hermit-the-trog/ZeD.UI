@@ -27,6 +27,12 @@
 -- Lines "PASS ..." / "FAIL ..."; grep "ZEDQA wpt".
 local p = getPlayer()
 local pn = p:getPlayerNum()
+-- (the player's list as rows for this run: in the grid, Right from a cell moves to the next cell, not the strip; the
+-- Nov 9 runs had it as a grid: "Right from a row lands on the bag on show" failed. Put back at the end.)
+local IRw = ZeD.InventoryRenderer
+local playerKeyW = IRw and IRw.containerKey and IRw.containerKey(p:getInventory(), p)
+local playerGridW = playerKeyW and IRw.isGridKey(playerKeyW) or false
+if playerGridW then IRw.setGridKey(playerKeyW, false) end
 local Focus, Det = ZeD.Input.Focus, ZeD.Input.Detector
 local function say(s) print("ZEDQA wpt " .. tostring(s)) end
 local nPass, nFail = 0, 0
@@ -744,6 +750,7 @@ step(10, function()
     for i = 0, (objs and objs:size() or 0) - 1 do if objs:get(i) == crate then still = true end end
     say("cleanup: " .. (deepCrate and "the deep run's crate kept, this run's things out" or ("crate gone " .. tostring(not still))) .. ", size " .. tostring(ZeD.currentSize))
     Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)
+    if playerGridW then IRw.setGridKey(playerKeyW, true) end
     say(nPass .. " passed, " .. nFail .. " failed")
     say("DONE")
 end)
