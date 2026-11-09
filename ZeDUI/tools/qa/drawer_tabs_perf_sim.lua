@@ -14,8 +14,8 @@
 --     (a chevron or a dashed edge drawn from the line textures instead of rect by rect) every draw but the thin
 --     ones must still match one for one, and sampled frames are painted both ways, pixel by pixel (rects, and the
 --     line textures' own pixels from linetex_pixels.lua), and must come out the same, but for the framed fill
---     bars' cells, which are equal now: there the same cells in the same colours, each within a pixel of its old
---     width, the leftover split at the two ends. Also at the half card, in
+--     bars' cells: there the same cells in the same colours, the middle ones equal and each within a pixel of its
+--     old width, the end ones wider by the leftover split between them, meeting the frame. Also at the half card, in
 --     Simple, with the full photo, the figure folded, another view, a window's own colours.
 --   * Counts per frame, old against new: Lua instructions (a count hook), the engine's text measures, wrap and
 --     truncate calls, Java calls on the stand-ins (each draw is one), draws, and the Lua memory a frame allocates
@@ -776,11 +776,11 @@ local function lineTexOf(t)
     local m = n and string.match(n, "lines/([%w_]+)%.png$")
     return m and LINETEX[m] or nil
 end
--- seg.png by its rule (make_line_tex.py checks the PNG against it): row (gap - 1) * 64 + (cell - 1), cell lit, gap clear
+-- seg.png by its rule (make_line_tex.py checks the PNG against it): row (gap - 1) * 64 + (cell - 1), gap lit, cell clear
 LINETEX.seg = { w = 1024, h = 256, rule = function(u, v)
     if u < 0 or u >= 1024 or v < 0 or v >= 256 then return false end
     local g, c = math.floor(v / 64) + 1, v - math.floor(v / 64) * 64 + 1
-    return u - math.floor(u / (c + g)) * (c + g) < c
+    return u - math.floor(u / (c + g)) * (c + g) < g
 end }
 local function texelLit(tx, u, v)
     if tx.rule then return tx.rule(u, v) end
@@ -882,9 +882,10 @@ local function barCells(cv, b)
     end
     return runs
 end
--- Outside the bars, every pixel the same; inside, the same cells in the same colours, each the same width as the
--- others (all but where cells of one colour meet with no gap), each within a pixel of the old cell's width, the
--- pixels left over split as well at the two ends.
+-- Outside the bars, every pixel the same; inside, the same cells in the same colours: the middle cells all the
+-- same width, each within a pixel of the old cell's; the end cells wider by the pixels left over, split between
+-- them as evenly as they go (each at most half the leftover, rounded up, wider); a bar whose cells met the frame
+-- at both ends still meets it.
 local function sameCanvas(a, b, bars)
     for _, ch in ipairs({ "R", "G", "B" }) do
         local A, B = a[ch], b[ch]
@@ -901,29 +902,45 @@ local function sameCanvas(a, b, bars)
         local o, n = barCells(a, bar), barCells(b, bar)
         local where = "the bar at " .. fmt(bar[1]) .. "," .. fmt(bar[2])
         if #o ~= #n then return where .. ": " .. #o .. " cells before, " .. #n .. " now" end
-        local lead, trail = nil, nil
+        local x0, x1 = math.ceil(bar[1] - 0.5), math.ceil(bar[1] + bar[3] - 0.5)
         for i = 1, #n do
             if math.abs(o[i][3] - n[i][3]) > 1e-9 or math.abs(o[i][4] - n[i][4]) > 1e-9 or math.abs(o[i][5] - n[i][5]) > 1e-9 then
                 return where .. ": cell " .. i .. " another colour"
             end
-            if math.abs(o[i][2] - n[i][2]) > 1 and #n > 2 then
-                return where .. ": cell " .. i .. " " .. o[i][2] .. " px before, " .. n[i][2] .. " now"
-            end
-            if #n > 2 and i > 1 and i < #n and n[i][2] ~= n[2][2] then return where .. ": cells of unequal width" end
+        end
+        -- the ends: a bar that met the frame on a side still meets it
+        if #o > 0 then
+            if o[1][1] == x0 and n[1][1] ~= x0 then return where .. ": the first cell no longer meets the frame" end
+            if o[#o][1] + o[#o][2] == x1 and n[#n][1] + n[#n][2] ~= x1 then return where .. ": the last cell no longer meets the frame" end
         end
         if #n > 2 then
-            local x0, x1 = math.ceil(bar[1] - 0.5), math.ceil(bar[1] + bar[3] - 0.5)
-            lead, trail = n[1][1] - x0, x1 - (n[#n][1] + n[#n][2])
-            -- (a dark run off: the last cell drawn is short of the end by the dark cells too; only a full bar checks the ends)
-            if n[#n][2] == n[1][2] and math.abs(lead - trail) > 1 and o[#o][1] + o[#o][2] == x1 then
-                return where .. ": the leftover not split at the ends (" .. lead .. " and " .. trail .. ")"
+            -- the cells drawn run to the bar's far end (dark cells drawn too): the last is an end cell, else a middle one
+            local full = n[#n][1] + n[#n][2] == x1
+            local last = full and #n - 1 or #n
+            local mid = n[2][2]
+            for i = 2, last do
+                if n[i][2] ~= mid then return where .. ": middle cells of unequal width" end
+                if math.abs(o[i][2] - n[i][2]) > 1 then
+                    return where .. ": cell " .. i .. " " .. o[i][2] .. " px before, " .. n[i][2] .. " now"
+                end
+            end
+            local e1, e2 = n[1][2] - mid, full and (n[#n][2] - mid) or nil
+            if e1 < 0 or (e2 and e2 < 0) then return where .. ": an end cell narrower than the middle ones" end
+            if e2 then
+                -- the leftover (less than a pixel a cell) split between the two ends as evenly as it goes
+                local r = e1 + e2
+                if r >= #n or math.abs(e1 - e2) > 1 or e1 > math.ceil(r / 2) or e2 > math.ceil(r / 2) then
+                    return where .. ": the leftover not split at the ends (" .. e1 .. " and " .. e2 .. ")"
+                end
+            elseif e1 >= #n then
+                return where .. ": the first cell " .. e1 .. " px wider than the middle ones"
             end
         end
     end
     return nil
 end
 -- every draw but the thin ones (a 1 to 3 px rect: a chevron's row, a dash; a draw from a line texture) and the bars'
--- cells (the rects or the draws inside a bar's well, not the well itself), word for word
+-- insides (the well, the cells and their gaps: compared painted, cell by cell), word for word
 local function thickSeq(cmds)
     local out = {}
     local bars = barsOf(cmds)
@@ -934,7 +951,7 @@ local function thickSeq(cmds)
             for _, b in ipairs(bars) do
                 local x, y, w, h = c[3], c[4], c[5], c[6]
                 if x >= b[1] and y >= b[2] and x + w <= b[1] + b[3] and y + h <= b[2] + b[4]
-                   and not (x == b[1] and y == b[2] and w == b[3] and h == b[4]) then thin = true; break end
+                   then thin = true; break end
             end
         end
         if not thin then
