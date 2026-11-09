@@ -45,9 +45,18 @@ ZeD.T = { px = function(v) return v end, hair = 1, line = function(n) return n o
           surf2 = C(0.11, 0.11, 0.11), surf3 = C(0.14, 0.14, 0.14), borderS = C(0.22, 0.22, 0.22),
           text = C(0.85, 0.85, 0.85), textHead = C(0.9, 0.9, 0.9), textSec = C(0.6, 0.6, 0.6), textDim = C(0.6, 0.6, 0.6),
           positiveText = C(0.48, 0.60, 0.20), dangerText = C(0.87, 0.44, 0.27), positive = C(0.48, 0.6, 0.2), danger = C(0.77, 0.35, 0.16) }
-ZeD.TM = { MeasureStringX = function(_, f, s) return #tostring(s) * ((f.n == 4) and 8 or 7) end,
-           getFontHeight = function(_, f) return (f.n == 4) and 18 or 15 end }
-ZeD.Text = { measureEpoch = function() return 1 end }
+-- the measure: a letter 8 px in F4 (9 at Large), 7 in the others; a space 4 px (3 in the others); and, as the game's
+-- measure seems to, a trailing space counts for nothing (QA's "Disassemble> Metal Cabinet")
+local LARGE = false
+ZeD.TM = { MeasureStringX = function(_, f, s)
+               s = tostring(s):gsub(" +$", "")
+               local sp = select(2, s:gsub(" ", ""))
+               local cw = (f.n == 4) and (LARGE and 9 or 8) or 7
+               return (#s - sp) * cw + sp * ((f.n == 4) and 4 or 3)
+           end,
+           getFontHeight = function(_, f) return (f.n == 4) and (LARGE and 21 or 18) or 15 end }
+local EPOCH = 1
+ZeD.Text = { measureEpoch = function() return EPOCH end }
 ZeD.Atoms = setmetatable({ drawHardShadow = noop,
     frame = function(p, x, y, w, h, c, a, t) t = t or 1; p:drawRect(x, y, w, t, 1, c.r, c.g, c.b) end },
     { __index = function() return noop end })
@@ -179,6 +188,43 @@ for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
     ok(same(find(p, "Disassemble")[1] or (name == "list" and { r = T.textSec.r, g = T.textSec.g, b = T.textSec.b }), T.textSec), name .. " the path in textSec")
 end
 
+-- DEBUG: with debug on the game adds "SCRIPT NAME:" and the sprite's name in magenta (ISMoveableSpriteProps
+-- getInfoPanelDescription). Not a requirement: plain words in the text color, no column, no mark, once.
+do
+    local M = { 255, 0, 255 }
+    local info2 = { infoTable[1], L("SCRIPT NAME:", M, "furniture_storage_02_0", M) }
+    for i = 2, #infoTable do info2[#info2 + 1] = infoTable[i] end
+    local d2 = ""
+    for _, t1 in ipairs(info2) do
+        d2 = string.format("%s <RGB:%.2f,%.2f,%.2f> %s", d2, t1[1].r / 255, t1[1].g / 255, t1[1].b / 255, t1[1].txt)
+        if #t1 == 2 then
+            d2 = string.format("%s <SETX:%d> <INDENT:%d> <RGB:%.2f,%.2f,%.2f> %s", d2, 96, 96, t1[2].r / 255, t1[2].g / 255, t1[2].b / 255, t1[2].txt)
+        end
+        d2 = d2 .. " <LINE> <INDENT:0> "
+    end
+    local dd = makeActionDef({ name = "Mahogany Drawers", notAvailable = true, toolTip = { description = d2 } }, 1, nil, nil)
+    local m = dd.bodyRich
+    local asRow = false
+    for _, r in ipairs(m and m.rows or {}) do if r.label:find("SCRIPT", 1, true) then asRow = true end end
+    ok(m and not asRow and #m.rows == 3, "DEBUG the script name line is not a requirement row")
+    local info
+    for _, k in ipairs(m and m.conds or {}) do if k.t:find("SCRIPT NAME", 1, true) then info = k end end
+    ok(info and info.st == nil and info.t == "SCRIPT NAME: furniture_storage_02_0", "DEBUG it is a plain line with no mark (" .. tostring(info and info.t) .. ")")
+    ok(ZeD.RichTip.state({ r = 1, g = 0, b = 1 }) == nil, "DEBUG magenta is neither met nor missing")
+    ok(ZeD.RichTip.state({ r = 1, g = 0, b = 0 }) == "bad" and ZeD.RichTip.state({ r = 0, g = 1, b = 0 }) == "ok", "DEBUG a plain red / green still reads missing / met")
+    for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
+        local p = look[2](dd)
+        local hits = find(p, "SCRIPT NAME: furniture_storage_02_0")
+        ok(#hits == 1 and same(hits[1], T.text), "DEBUG " .. look[1] .. ": drawn once, plain, in the text color")
+        local markY = hits[1] and hits[1].y
+        local marked = false
+        for _, r in ipairs(p.rects) do
+            if markY and r.y >= markY and r.y < markY + 15 and (same(r, T.dangerText) or same(r, T.positiveText)) then marked = true end
+        end
+        ok(not marked, "DEBUG " .. look[1] .. ": no check or cross on it")
+    end
+end
+
 -- PLAIN: a tooltip without tags, live and gated, still drawn once in the text color
 for _, gated in ipairs({ false, true }) do
     local o = { name = "Open can", notAvailable = gated, toolTip = { description = "Needs a can opener" } }
@@ -194,6 +240,41 @@ for _, gated in ipairs({ false, true }) do
         ok(same(hit, T.text), "PLAIN " .. look[1] .. " in the text color (gated " .. tostring(gated) .. ")")
     end
 end
+
+-- GAP: the title "Disassemble > Mahogany Drawers": at least one space between every pair of words, ">" included,
+-- in the strip and the list, Small and Large text (the trailing-space measure above dropped them all before)
+for _, large in ipairs({ false, true }) do
+    LARGE, EPOCH = large, EPOCH + 1
+    local spaceW = 4
+    for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
+        local p
+        if look[1] == "list" then
+            -- (the list's path is the parent row's name: a level with Disassemble open)
+            local lp = setmetatable(recorder(0, 0), { __index = ZeD_ContextList })
+            lp._levels = { { rows = { { def = { name = "Disassemble" } } } }, { parentRow = 1, rows = {} } }
+            lp._ctx = { target = nil }
+            NOW = NOW + 1000
+            ZeD_ContextList._drawBalloon(lp, { def = def, li = 2, body = def.body or "", st = def.state(nil) or "", key = "2:" .. NOW,
+                                               a = { x = 100, y = 200, w = 300, h = 24 } })
+            p = lp
+        else
+            p = look[2](def)
+        end
+        local words = {}
+        for _, w in ipairs({ "Disassemble", ">", "Mahogany", "Drawers" }) do words[#words + 1] = find(p, w)[1] end
+        local good = #words == 4
+        for i = 1, 3 do
+            local a, b = words[i], words[i + 1]
+            if not (a and b) then good = false
+            elseif b.y == a.y then
+                local g = b.x - (a.x + ZeD.TM:MeasureStringX(T.fontF4, a.s))
+                if g < spaceW then good = false; print("  gap " .. a.s .. " | " .. b.s .. " = " .. g) end
+            end
+        end
+        ok(good, "GAP " .. look[1] .. (large and " Large" or " Small") .. ": a space or more around \">\" and between the title's words")
+    end
+end
+LARGE, EPOCH = false, EPOCH + 1
 
 -- TAIL: the strip's selected cell, from this frame's hit zones (a carousel draws a cell up to three times)
 do
