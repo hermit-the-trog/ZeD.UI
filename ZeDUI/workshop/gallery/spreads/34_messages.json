@@ -38,13 +38,14 @@
   ],
   "prints": [
    {"src": "zqa_g4_window_radio.png", "box": [1250, 650, 2592, 1505], "scale": 0.45, "at": [1036, 262], "tape": ["tl", "tr"]},
-   {"src": "zqa_g4_belt_toast.png", "box": [1975, 2012, 2318, 2148], "scale": 0.85, "at": [1348, 862], "tape": ["tl", "br"]}
+   {"src": "zqa_g4_guide_bubble.png", "box": [1960, 1880, 2600, 2150], "scale": 0.5, "at": [1320, 822], "tape": ["tl", "br"]}
   ],
   "marks": [
    {"text": "Each mod that sent something, with a count.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0, "to": [1, 1641, 762]},
    {"text": "The mod's own Ok button works here.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [1, 2470, 860]},
    {"text": "A mod's notes can be shown as pop-ups again.", "pen": "blu", "at": [1676, 516], "maxw": 184, "bend": 0.3, "to": [1, 1281, 1431]},
-   {"text": "The paper note on the belt opens Messages, with the count of new notes.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [[2, 2250, 2088], [2, 2277, 2055]]}
+   {"text": "In a new game's first hour, the guide offers itself here.", "pen": "blu", "at": [1676, 640], "maxw": 184, "to": [2, 2200, 1940]},
+   {"text": "The paper note on the belt opens Messages, with the count of new notes.", "pen": "blu", "at": [1676, 900], "maxw": 184, "to": [[2, 2250, 2088], [2, 2277, 2055]]}
   ],
   "sticky": {"at": [1044, 860], "w": 270, "h": 146, "text": "Notes from other mods wait in one window."}
  }

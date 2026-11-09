@@ -16,10 +16,10 @@
     ]
    },
    {
-    "p": "On a server, the *Character* window gains a *Server* tab. It gives the server's name, the players online and your role, then PvP, the player list, your faction, your safehouse and your tickets."
+    "p": "On a server, the *Character* window gains a *Server* tab. It gives the server's name, the players online and your role, then the server's extras, your tickets, your faction, your safehouse and the server's rules for safehouses, PvP and the player list."
    },
    {
-    "at": 966
+    "at": 974
    },
    {
     "caption": [
@@ -58,7 +58,7 @@
     "scale": 0.5,
     "at": [
      270,
-     580
+     572
     ],
     "tape": [
      "t",
@@ -71,16 +71,16 @@
      1400,
      1990,
      2500,
-     2160
+     2138
     ],
     "scale": 0.45,
     "at": [
      270,
-     872
+     862
     ],
     "tape": [
      "tr",
-     "bl"
+     "l"
     ]
    }
   ],
@@ -121,7 +121,7 @@
     ]
    },
    {
-    "text": "PvP is off. The button turns it on.",
+    "text": "Ask the admins opens a ticket.",
     "pen": "blu",
     "at": [
      62,
@@ -130,22 +130,22 @@
     "maxw": 186,
     "to": [
      0,
-     464,
-     411
+     400,
+     470
     ]
    },
    {
-    "text": "Faction, safehouse and tickets: Ask the admins.",
+    "text": "PvP is off. The button turns it on.",
     "pen": "blu",
     "at": [
      62,
-     640
+     760
     ],
     "maxw": 186,
     "to": [
      1,
-     483,
-     653
+     400,
+     572
     ]
    },
    {
@@ -195,7 +195,7 @@
     "p": "The chat key on the belt opens the chat window, with *General*, *Private* and *Admin* channels. Admins also get an *Admin* tab."
    },
    {
-    "at": 970
+    "at": 974
    },
    {
     "caption": [
@@ -247,12 +247,12 @@
      2635,
      100,
      3550,
-     650
+     616
     ],
     "scale": 0.4,
     "at": [
      1036,
-     440
+     432
     ],
     "tape": [
      "t",
@@ -270,7 +270,7 @@
     "scale": 0.4,
     "at": [
      1036,
-     752
+     732
     ],
     "tape": [
      "tl",
@@ -288,7 +288,7 @@
     "scale": 0.4,
     "at": [
      1426,
-     752
+     732
     ],
     "tape": [
      "t",
@@ -355,7 +355,7 @@
   "sticky": {
    "at": [
     1036,
-    688
+    668
    ],
    "w": 340,
    "h": 64,

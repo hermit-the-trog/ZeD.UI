@@ -192,7 +192,7 @@
     ],
     "tape": [
      "t",
-     "bl"
+     "l"
     ]
    },
    {
@@ -201,7 +201,7 @@
      1004,
      468,
      2832,
-     1300
+     1340
     ],
     "scale": 0.19,
     "at": [
@@ -248,7 +248,7 @@
     ]
    },
    {
-    "text": "A page names your keys: E, Left Click.",
+    "text": "A page names your keys and your controller's buttons.",
     "pen": "blu",
     "at": [
      1676,
@@ -257,8 +257,8 @@
     "maxw": 180,
     "to": [
      5,
-     2210,
-     924
+     2286,
+     1308
     ]
    },
    {
@@ -266,7 +266,7 @@
     "pen": "blu",
     "at": [
      1496,
-     826
+     815
     ],
     "maxw": 350,
     "to": [
@@ -286,11 +286,11 @@
   "sticky": {
    "at": [
     1560,
-    920
+    880
    ],
    "w": 300,
-   "h": 106,
-   "text": "The rules come from the game itself."
+   "h": 150,
+   "text": "Why Alt-Tab to a wiki when you could F1 to live rules and data?"
   }
  }
 }

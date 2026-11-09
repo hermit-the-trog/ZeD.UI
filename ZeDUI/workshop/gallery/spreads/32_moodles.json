@@ -14,7 +14,7 @@
               ["Left edge", "Down the left edge of the screen (Figure 32-1)."],
               ["Bottom", "In a row above the belt, in the middle of the screen. ZNIX draws this copy."]]}},
    {"at": 960},
-   {"caption": ["Figure 32-1", "The moodles on the left edge, with one note open."]}
+   {"caption": ["Figure 32-1", "The moodles on the left edge, with one balloon open."]}
   ],
   "prints": [
    {"src": "zqa_mood_left_hover.png", "box": [0, 940, 620, 1210], "scale": 0.75, "at": [268, 726], "printed": true}
@@ -29,17 +29,17 @@
   "head": "Moodles",
   "blocks": [
    {"h2": "Reading a Moodle"},
-   {"p": "To learn what a moodle means, point at it. A thought bubble opens next to it, with the name of the moodle and a line that says what it means. Figure 32-2 shows the row above the belt with the note for one moodle open, and the same moodles on the right edge of the screen."},
+   {"p": "To learn what a moodle means, point at it. A balloon opens beside it, its tail on the moodle, with the name of the moodle and a line that says what it means. Figure 32-2 shows the row above the belt with the balloon for one moodle open, and the same moodles on the right edge of the screen."},
    {"at": 866},
    {"caption": ["Figure 32-2", "Above the belt, top, and on the right edge, bottom."]},
-   {"p": "On the edges the moodles are the game's own; above the belt they are a copy drawn by ZNIX. The note is drawn by ZNIX in all three places."}
+   {"p": "On the edges the moodles are the game's own; above the belt they are a copy drawn by ZNIX. The balloon is drawn by ZNIX in all three places."}
   ],
   "prints": [
-   {"src": "zqa_mood_bottom_hover.png", "box": [1536, 1760, 2250, 2160], "scale": 0.75, "at": [1046, 262], "tape": ["tl", "tr"]},
+   {"src": "zqa_mood_bottom_hover.png", "box": [1620, 1780, 2334, 2160], "scale": 0.75, "at": [1046, 262], "tape": ["tl", "tr"]},
    {"src": "zqa_mood_right_hover.png", "box": [3220, 940, 3840, 1210], "scale": 0.75, "at": [1176, 600], "tape": ["tl", "b"]}
   ],
   "marks": [
-   {"text": "Point at a moodle and a thought bubble names it and says what it means.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [1, 1806, 1846]},
+   {"text": "Point at a moodle and a balloon names it and says what it means.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [1, 1990, 1900]},
    {"text": "Or in a row above the belt, in the middle of the screen. ZeD draws this copy.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [1, 2013, 1990]},
    {"text": "Or on the right edge, the game's own place for it.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [2, 3812, 1103]}
   ],
