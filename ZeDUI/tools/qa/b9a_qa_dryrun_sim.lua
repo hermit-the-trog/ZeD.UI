@@ -74,6 +74,17 @@ local function window(key)
     local content = panel(left and 900 or 63, 46, 654, 680, w)
     content._flatItems, content._itemRenderYMap, content._itemRenderXMap, content._expandedStacks = {}, {}, {}, {}
     content._drag = { isActive = function() return false end }
+    content._scroll = { handleMouseWheel = function() end }
+    content._hitZones = {}
+    -- (the list's hit zones as the renderer stamps them: each row's thing over its row)
+    function content:hitZoneAt(lx, ly)
+        for _, it in ipairs(self._flatItems) do
+            local y = self._itemRenderYMap[it]
+            if y and ly >= y and ly < y + 46 then return { id = it } end
+        end
+        for _, z in ipairs(self._hitZones) do if lx >= z.x and lx < z.x + z.w and ly >= z.y and ly < z.y + z.h then return z end end
+        return nil
+    end
     content._inventory = left and PINV or FLOOR
     w._mainContent = content
     w._curtain = { canRoll = function() return w._drawerOpen and w._drawerMode == "tab" end }
@@ -82,6 +93,7 @@ local function window(key)
     w._equipDollAll = { { x = 600, y = 40, w = 80, h = 80, id = "back" } }
     w._equipPanel = panel(63, 46, 840, 680, w)
     w._equipDollPanel = w._equipPanel
+    w._equipScroll = { scrollPos = 0, setScrollPos = function(sb, v) sb.scrollPos = math.max(0, math.min(1, v)) end }
     w._itemCard = panel(63, 46, 385, 680, w)
     w._itemCard._sb = { visible = true, x = 360, y = 120, width = 25, height = 500, arrowH = 25 }
     w._itemCard._headH, w._itemCard._contentH, w._itemCard._scrollPixels = 120, 900, 0
@@ -99,6 +111,7 @@ local function list(win, inv)
     for i, it in ipairs(inv.items) do
         if it.inv == inv then c._flatItems[#c._flatItems + 1] = it; c._itemRenderYMap[it] = 40 + (#c._flatItems - 1) * 46 end
     end
+    c._hitZones = { { id = "stack:Base.Nails", x = 0, y = 40, w = 30, h = 46 } }
 end
 
 local function world()
@@ -162,6 +175,8 @@ local function world()
     function H.titleShift() return 30 end
     function H.drive() end
     function H.aim() end
+    function H.showAll() end
+    function H.split(w) return math.floor(w.w / 2) end
     BELT = { slots = { { i = 1, slot = { slotType = "Back" } } } }
     ZeD = {
         T = { rowH = 46, sp = { sm = 7, md = 14, titleBoxPad = 7 }, closeBoxSz = 23, px = function(v) return v end, fontF3 = "F3", scale = 1.75 },
@@ -170,7 +185,8 @@ local function world()
         Halves = H,
         Curtain = { finishUnroll = function(w) w._rolled = false end },
         Input = { Focus = { showWin = function() end, claimFocus = function() end } },
-        Settings = { textSize = function() return 1 end },
+        Settings = { textSize = function() return 1 end, hiddenActions = function() return "folded" end },
+        Pins = { kindOf = function() return "fluid" end },
         InventoryRenderer = { containerKey = function() return "floor" end, setGridKey = function() end, dirtyModels = function() end },
         EquipDoll = { view = function() return "list" end, setView = function() end },
         Belt = { slots = function() return BELT.slots end, detach = function() BELT.slots[1].item = nil end },

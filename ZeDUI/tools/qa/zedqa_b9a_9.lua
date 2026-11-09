@@ -59,13 +59,19 @@ end)
 local function turn(which)
     local function W() return which == "char" and CW() or WW() end
     local tab = which == "char" and "health" or "maps"
+    -- The staging: down and whole with both pins on, the pointer in the list, and only then the inventory's pin off
+    -- (the drawer stays pinned: the window stays down to look at). Unpinned first, the World's inventory rolled under
+    -- its rod before the pointer arrived (the run's world_1_bar picture), and the check after the click read that roll.
     add(1500, function()
         local w = W()
-        H.setPin(w, "inv", false); H.setPin(w, "drawer", true)   -- (the drawer pinned: the window stays down to look at)
+        H.setPin(w, "inv", true); H.setPin(w, "drawer", true)
         w:setWindowShaded(false)
+        if w._rolled and ZeD.Curtain then ZeD.Curtain.finishUnroll(w) end
+        if H.showAll then H.showAll(w) end
         if which == "char" then CWm.openTab(0, tab) else WWm.openTab(0, tab) end
-        req("move " .. table.concat({ mid(w._mainContent) }, " "))
     end)
+    add(500, function() local w = W(); req("move " .. table.concat({ mid(w._mainContent) }, " ")) end)
+    add(300, function() H.setPin(W(), "inv", false) end)
     add(800, function()
         local w = W()
         check(w._curtain and w._curtain.canRoll(), which .. ": (staged) on " .. tab .. " with the inventory beside the drawer (a roll box would show)")

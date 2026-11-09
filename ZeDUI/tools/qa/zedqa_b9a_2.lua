@@ -58,6 +58,35 @@ local function rowOf(win, fullType, nth)
     end
 end
 local function nailsHeld() return p:getInventory():getCountTypeRecurse("Base.Nails") end
+-- Is the row really under its point (the list's own hit zone there is that thing)? A long list keeps rows past its
+-- view: their render y is beyond the list, and a press there landed on another row or off the window.
+local function rowShown(win, it)
+    local c = win and win._mainContent
+    local y = it and c and c._itemRenderYMap and c._itemRenderYMap[it]
+    if not y or not c.hitZoneAt then return false end
+    local x = (c._itemRenderXMap and c._itemRenderXMap[it]) or 0
+    local cell = c._gridCell
+    local lx, ly = x + (cell and cell / 2 or 170), y + (cell and cell / 2 or ZeD.T.rowH / 2)
+    if ly < 0 or ly >= c:getHeight() then return false end
+    local z = c:hitZoneAt(lx, ly)
+    return z ~= nil and z.id == it
+end
+-- one wheel notch toward the row each call (an addWhen condition, once a frame): true once it shows
+local function revealRow(win, it)
+    if not it then return false end
+    if rowShown(win, it) then return true end
+    local c = win._mainContent
+    local y = c._itemRenderYMap and c._itemRenderYMap[it] or 0
+    if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end
+    return false
+end
+-- a real click on a hit zone of a window's list (the stack's chevron), screen point or nil
+local function zonePoint(win, id)
+    local c = win and win._mainContent
+    for _, z in ipairs(c and c._hitZones or {}) do
+        if z.id == id then return math.floor(c:getAbsoluteX() + z.x + z.w / 2), math.floor(c:getAbsoluteY() + z.y + z.h / 2) end
+    end
+end
 -- a point over the world, clear of both windows and the belt
 local function worldPoint()
     local bot = math.max(CW():getAbsoluteY() + CW():getHeight(), WW():getAbsoluteY() + WW():getHeight())
@@ -67,7 +96,9 @@ end
 -- moves, carry halfway, onto the target, release there. A row not on screen is a FAIL line and no drag.
 local function drag(label, fromWin, fullType, nth, to)
     local sx, sy
-    add(800, function()
+    -- (the row scrolled into the list's view first: a long list keeps it below, and a press there lands elsewhere)
+    addWhen(5000, function() local w = fromWin(); return w ~= nil and revealRow(w, (rowOf(w, fullType, nth))) end, function() end)
+    add(300, function()
         sx, sy = nil, nil
         local w = fromWin()
         local it, x, y = nil, nil, nil
@@ -102,10 +133,14 @@ add(500, function()
     local sq = p:getCurrentSquare()
     for _ = 1, 6 do sq:AddWorldInventoryItem("Base.Nails", 0.5, 0.5, 0) end
 end)
+-- (both lists' nails stacks closed, by their chevrons, if a run before left one open)
+for _, W in ipairs({ CW, WW }) do
+    addWhen(3000, function() local it = rowOf(W(), "Base.Nails", 1); return it == nil or revealRow(W(), it) end, function()
+        local x, y = zonePoint(W(), "stack:Base.Nails")
+        if x and rowOf(W(), "Base.Nails", 2) then req("left " .. x .. " " .. y) end
+    end)
+end
 add(1500, function()
-    local wc, cc = WW()._mainContent, CW()._mainContent
-    if wc._expandedStacks then wc._expandedStacks["Base.Nails"] = nil end
-    if cc._expandedStacks then cc._expandedStacks["Base.Nails"] = nil end
     before = nailsHeld()
     say("nails held before: " .. before)
     shot("1_floor_stack")
@@ -135,19 +170,29 @@ addWhen(9000, heldReaches(function() return nailsHeld() - before >= 6 end), func
     check(nailsHeld() - before >= 6, "a grid cell (the grid opens no stacks): all six moved (" .. before .. " to " .. nailsHeld() .. ")")
     local inv = WW()._mainContent._inventory
     IR.setGridKey(IR.containerKey(inv, p), false)
-    -- 4 the stack opened in the Character list: one row of it moves one nail
-    local cc = CW()._mainContent
-    cc._expandedStacks = cc._expandedStacks or {}
-    cc._expandedStacks["Base.Nails"] = true
-    if IR.dirtyModels then IR.dirtyModels() end
     before = nailsHeld()
 end)
-add(800, function() shot("5_open_stack") end)
+-- 4 the stack opened in the Character list by its own chevron (a real click: setting the open stacks from the script
+-- left the list's kept model closed, so the second row never showed): then one row of it moves one nail
+addWhen(5000, function() return revealRow(CW(), (rowOf(CW(), "Base.Nails", 1))) end, function() end)
+add(300, function()
+    local x, y = zonePoint(CW(), "stack:Base.Nails")
+    if check(x ~= nil, "the nails stack's chevron is on screen") then req("left " .. x .. " " .. y) end
+end)
+addWhen(3000, function() return rowOf(CW(), "Base.Nails", 2) ~= nil end, function()
+    check(rowOf(CW(), "Base.Nails", 2) ~= nil, "the chevron opens the stack (a second nails row)")
+    before = nailsHeld()
+    shot("5_open_stack")
+end)
 drag("one row of an open stack", CW, "Base.Nails", 2, function() return mid(WW()._mainContent) end)
 add(4000, function()
     check(before - nailsHeld() == 1, "an open stack's row moves only its own nail (" .. before .. " to " .. nailsHeld() .. ")")
     shot("6_one_moved")
-    CW()._mainContent._expandedStacks["Base.Nails"] = nil
+end)
+-- (the stack closed again by its chevron, as the run found it)
+addWhen(5000, function() return revealRow(CW(), (rowOf(CW(), "Base.Nails", 1))) end, function()
+    local x, y = zonePoint(CW(), "stack:Base.Nails")
+    if x and rowOf(CW(), "Base.Nails", 2) then req("left " .. x .. " " .. y) end
 end)
 add(1000, function()
     if keepPins then

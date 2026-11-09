@@ -51,46 +51,42 @@ end)
 local function turn(which)
     local function W() return which == "char" and CW() or WW() end
     local tab = which == "char" and "equip" or "maps"
-    -- Each half's part of the bar, read while the window is down: over the middle of the inventory list, and over the
-    -- middle of the open drawer (between its tab strip and the divider). The strips' own ends sit under the close box,
-    -- the pins and the window box, so they are not used.
-    local function invX(w)
-        local c = w and w._mainContent
-        return c and math.floor(c:getAbsoluteX() + c:getWidth() / 2) or nil
-    end
-    local function drwX(w)
-        local s = w and w[which == "char" and "_tabStripPanel" or "_actionTabStrip"]
-        if not s then return nil end
-        local d = w._dividerX and (w:getAbsoluteX() + w._dividerX)
-        if which == "char" then
-            local a = s:getAbsoluteX() + s:getWidth()
-            return math.floor(d and (a + d) / 2 or a + 60)
-        end
-        local b = s:getAbsoluteX()
-        return math.floor(d and (d + b) / 2 or b - 60)
+    -- Each half's part of the rolled bar, read from the rolled window itself (ZeD.Halves.split: where the halves meet on
+    -- the bar), at the middle of that part. Read before the window rolled, a target went stale: a drawer that folded first
+    -- narrows the window, and the old point was off it.
+    local function partX(w, part)
+        local split = H.split(w)
+        local width = w:getWidth()
+        local left = (part == "drawer") == (which == "char")   -- (the Character's drawer is its left part)
+        return math.floor(w:getAbsoluteX() + (left and split / 2 or (split + width) / 2))
     end
     local function barY(w) return math.floor(w:getAbsoluteY() + w:titleBarHeight() / 2) end
     local wantX, wantY
     for _, part in ipairs({ "inventory", "drawer" }) do
+        -- The staging: the window down and whole with both pins on (nothing rolls), the pointer away from both windows,
+        -- and only then both pins off, so both halves leave together and roll at once: the whole bar, the drawer not
+        -- folded first. (Unpinned first, a pointer resting in the list folded the drawer before the window rolled.)
         add(1200, function()
             local w = W()
-            H.setPin(w, "inv", false); H.setPin(w, "drawer", false)
+            H.setPin(w, "inv", true); H.setPin(w, "drawer", true)
             w:setWindowShaded(false)
+            if w._rolled and ZeD.Curtain then ZeD.Curtain.finishUnroll(w) end
+            if H.showAll then H.showAll(w) end
             if which == "char" then CWm.openTab(0, tab) else WWm.openTab(0, tab) end
         end)
-        add(800, function()
-            -- (the strips' places, read while the window is down: a rolled window hides them)
+        add(800, function() req("move " .. math.floor(sw / 2) .. " " .. (sh - 60)) end)   -- (away from both windows)
+        add(300, function()
             local w = W()
-            wantX = (part == "inventory") and invX(w) or drwX(w)
-            wantY = barY(w)
-            say(which .. " " .. part .. ": its part of the bar at " .. tostring(wantX) .. "," .. tostring(wantY))
-            req("move " .. math.floor(sw / 2) .. " " .. (sh - 60))   -- (away from both windows)
+            check(not w.windowShaded and not w._rolled and w._drawerOpen and H.foldedTab(w) == nil, which .. " " .. part .. ": (staged) down and whole on " .. tab .. ", pinned")
+            H.setPin(w, "inv", false); H.setPin(w, "drawer", false)
         end)
-        -- (both halves roll 2 s after the pointer leaves: wait on the window's state, up to 6 s)
+        -- (both halves roll 2 s after the pin comes off: wait on the window's state, up to 6 s)
         addWhen(6000, function() return W().windowShaded == true end, function()
             local w = W()
-            check(w.windowShaded == true and w._activeTab == tab, which .. " " .. part .. ": (staged) both halves unpinned, the whole window rolled up on " .. tab)
-            if not check(wantX ~= nil, which .. " " .. part .. ": its strip was on screen") then return end
+            check(w.windowShaded == true and w._activeTab == tab and H.foldedTab(w) == nil,
+                which .. " " .. part .. ": (staged) both halves unpinned, the whole window rolled up on " .. tab .. ", the drawer not folded first")
+            wantX, wantY = partX(w, part), barY(w)
+            say(which .. " " .. part .. ": its part of the rolled bar at " .. wantX .. "," .. wantY .. " (the halves meet at " .. H.split(w) .. " of " .. w:getWidth() .. ")")
             req("move " .. wantX .. " " .. wantY)
         end)
         add(200, function()
