@@ -1,7 +1,7 @@
 -- ZeDUI/tools/qa/guide_open_freeze_sim.lua  (Nov 8 2026, Build; the beta 10 "guide open freeze" report)
 -- The survival guide opened and drawn frame after frame with no game running, every Lua call counted, so a draw that
 -- never ends shows here as a FAIL with its place instead of a frozen game.
---   * Loads the real Scale, Tokens, Tr, ZeD_Surface, Atoms, AtomExtensions, Molecules, DrawMemo, Balloon, RichTip,
+--   * Loads the real Scale, Tokens, Tr, ZeD_Surface, Atoms, AtomExtensions, Molecules, Balloon, RichTip,
 --     PixelFonts, ZeD_PadGlyphs, ZeD_GuideChapters, ZeD_SurvivalGuide, ZeD_SurvivalGuideBook and ZeD_GuideBubble on
 --     stubs of the game: a 3840 x 2160 screen at the 1.75x root scale (4K), the game's own topics from its English
 --     SurvivalGuide.json, ZeD's English UI.json.
@@ -63,7 +63,6 @@ local FILES = {
     "42/media/lua/client/ZeD/Atoms.lua",
     "42/media/lua/client/ZeD/AtomExtensions.lua",
     "42/media/lua/client/ZeD/Molecules.lua",
-    "42/media/lua/client/ZeD/DrawMemo.lua",
     "42/media/lua/client/ZeD/Balloon.lua",
     "42/media/lua/client/ZeD/RichTip.lua",
     "42/media/lua/client/ZeD/PixelFonts.lua",

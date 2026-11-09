@@ -46,6 +46,7 @@ ZeD_CharacterWindow = {}
 -- Tab content dispatch table — each tab file registers its renderer here.
 -- Unregistered tabs fall back to placeholder text.
 local TAB_RENDERERS = {}
+ZeD_CharacterWindow._tabRenderers = TAB_RENDERERS   -- (QA probes time a tab through it: ZeDUI/tools/qa/zedqa_tab_cost.lua)
 ZeD.HealthTab.register(TAB_RENDERERS)
 ZeD.SkillsTab.register(TAB_RENDERERS)
 ZeD.ThermalTab.register(TAB_RENDERERS)
