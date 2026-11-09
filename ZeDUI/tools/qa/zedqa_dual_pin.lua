@@ -227,7 +227,9 @@ end)
 waitMs(800, function()
     local c = CW()
     check(c._rolled == true and c._drawerOpen and not c.windowShaded, "2.2c: (staged) drawer pinned, the inventory rolled under its rod")
-    c._equipDrag = heldStub()   -- an item held (as the halves read it)
+    -- an item held from the World window: one from this window's own list brings its halves back by the rod's
+    -- roll down (WindowHalves "mine"), which can run past 0.25 s; 2.2c is the drop from elsewhere, at once
+    WW()._equipDrag = heldStub()
     local rod = c._rod
     if rod then pointerAt(rod:getAbsoluteX() + rod:getWidth() / 2, rod:getAbsoluteY() + c:titleBarHeight() / 2) end
 end)
@@ -235,7 +237,7 @@ waitMs(250, function()
     local c = CW()
     check(not c._rolled and not c._halves.inv.rolled, "2.2c: an item held over the rod brings the inventory down within 0.25 s, the drawer pinned")
     check(c._drawerOpen, "2.2c: ... the pinned drawer still open")
-    c._equipDrag = nil
+    WW()._equipDrag = nil
 end)
 -- 2.6b REST, EACH HALF  (hotfix beta 9a) both unpinned, the whole window rolled: resting on each half's part of the
 -- bar brings back only that half (the inventory's part: the drawer stays rolled in, on its tab)

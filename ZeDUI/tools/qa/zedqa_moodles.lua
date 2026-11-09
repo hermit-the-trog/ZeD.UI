@@ -121,7 +121,7 @@ for _, place in ipairs({ { 1, "right" }, { 2, "left" }, { 3, "bottom" } }) do
         local mx0, my0 = 0, s + 10                 -- moodle 2's cell in the layer
         if place[2] == "bottom" then mx0, my0 = s + 10, 0 end
         say(string.format("%s bubble: moodle %s, cloud %s, trail %s from %s", place[2], tostring(c and c.idx),
-            c and (c.x .. "," .. c.y .. " " .. c.w .. "x" .. c.h) or "-", c and c.dir or "-", c and (c.tox .. "," .. c.toy) or "-"))
+            c and (tostring(c.x) .. "," .. tostring(c.y) .. " " .. tostring(c.w) .. "x" .. tostring(c.h)) or "-", c and tostring(c.dir or (c.balloon and "balloon")) or "-", c and (tostring(c.tox) .. "," .. tostring(c.toy)) or "-"))
         check(c and c.idx == 2, place[2] .. ": the bubble is for the moodle under the pointer")
         if c and c.balloon then
             -- the balloon beside its moodle (panel px), off the moodle's cell, on the side away from the edge
