@@ -19,7 +19,6 @@ require "ZeD/ProtectionTab"
 require "ZeD/EquipDoll"
 require "ZeD/ZeD_EquipLoadout"
 require "ZeD/ZeD_RestockPin"
-require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.EquipmentTab = {}
@@ -265,12 +264,12 @@ end
 local calcEquipColumnsRaw
 -- The layout is the same for every row of a frame (the header, each slot row, the belt rows ask
 -- it): the last answer is kept while what decides it holds (the width, the dragged widths, the
--- widest worn name, the palette, the measures). The callers only read it.
+-- widest worn name, the palette, the language and the measures). The callers only read it.
 local _cols = {}
 local function calcEquipColumns(w, win)
     local cw = win and win._equipColWidths
     local need = (win and win._equipNameNeed) or 0
-    local epoch = (win and win._eqEpoch) or ZeD.DrawMemo.epoch()
+    local epoch = ZeD.Text.wordsEpoch()
     local k = _cols
     if epoch and k.c and k.ep == epoch and k.T == ZeD.T and k.w == w and k.need == need and k.cw == cw
        and (not cw or (k.s == cw.slot and k.cd == cw.cond and k.wt == cw.wt)) then
@@ -534,7 +533,7 @@ local function _drawDefenseFigure(panel, win, protData, px, py, pw, ph)
     if protData.isFemale ~= nil then
         fig:setSex(protData.isFemale)
     end
-    fig:clearColors()
+    -- (no clearColors: every part the figure maps is coloured again below each frame, in tables it reuses)
     local ALL_PARTS    = ZeD.ProtectionTab.ALL_PARTS
     local PART_TO_FIG  = ZeD.ProtectionTab.PART_TO_FIGURE
     local colorForDef  = ZeD.ProtectionTab.protectionColorForDef
@@ -783,27 +782,6 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     -- Column layout: NAME SLOT COND BITE SCR BUL WT
     local c = calcEquipColumns(w, win)
 
-    -- The rest of the row is drawn once and played back (ZeD.DrawMemo) while its key holds: the
-    -- slot's data (a refresh every 250 ms brings new data, the name and weight read with it),
-    -- the place, the columns, the focus wash and selection, the palette and the measures. The
-    -- condition strip asks for the pointer again each frame, for its help line.
-    local DM = ZeD.DrawMemo
-    local epoch = win._eqEpoch or DM.epoch()
-    local memos = win._equipRowMemos
-    if not memos then memos = {}; win._equipRowMemos = memos end
-    local m = memos[slot.type]
-    if m and epoch and m.ep == epoch and m.T == T and m.slot == slot and m.x == x and m.y == y and m.w == w
-       and m.c == c and m.washed == washed and m.sel == selected and m.rowH == rowH then
-        DM.play(panel, m.cmds)
-        if m.condHov and DM.hovered(panel, m.hovers, 1) and ZeD.Help then
-            ZeD.Help.set(panel, A.fillBarHelp(m.condF, ZeD.tr("IGUI_invpanel_Condition")))
-        end
-        return
-    end
-    m = m or {}
-    memos[slot.type] = m
-    panel = DM.begin(panel)   -- (the row below draws into the recorder)
-
     local bodyFH = tm:getFontHeight(T.fontF2)
     local secFH = tm:getFontHeight(T.fontF1)
     local secTextY = y + math.floor((rowH - secFH) / 2)
@@ -854,14 +832,11 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
         local tierColor = ZeD.ProtectionTab.tierColor
         local dotSz = T.px(6)
         local dotY = y + math.floor((rowH - dotSz) / 2)
-        local function drawProtDot(val, colX)
-            if val > 0 then
-                A.drawStatusDot(panel, x + colX + math.floor((c.protColW - dotSz) / 2), dotY, tierColor(val), dotSz)
-            end
-        end
-        drawProtDot(p.bite, c.biteX)
-        drawProtDot(p.scratch, c.scrX)
-        drawProtDot(p.bullet, c.bulX)
+        local dx = math.floor((c.protColW - dotSz) / 2)
+        -- (the three dots written out: a helper made inside the row was a new function a row a frame)
+        if p.bite > 0 then A.drawStatusDot(panel, x + c.biteX + dx, dotY, tierColor(p.bite), dotSz) end
+        if p.scratch > 0 then A.drawStatusDot(panel, x + c.scrX + dx, dotY, tierColor(p.scratch), dotSz) end
+        if p.bullet > 0 then A.drawStatusDot(panel, x + c.bulX + dx, dotY, tierColor(p.bullet), dotSz) end
     end
 
     -- Weight
@@ -873,13 +848,6 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
 
     -- Bottom divider
     A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
-
-    m.cmds, m.hovers = DM.finish(panel)
-    -- (the condition strip's hover test is the row's only one: its help line, as drawFillBar words it)
-    m.condHov = #m.hovers == 1
-    m.condF = math.max(0.0, math.min(1.0, slot.cond or 0))
-    m.ep, m.T, m.slot, m.x, m.y, m.w, m.c, m.washed, m.sel, m.rowH = epoch, T, slot, x, y, w, c, washed, selected, rowH
-    if #m.hovers > 1 then m.ep = nil end
 end
 
 -- ============================================================================
@@ -1098,12 +1066,17 @@ local function _drawEquipHeader(panel, x, y, w, win)
     end
 
     -- Divider hit zones for column resize (6px wide, centered on column edge)
-    local divZones = {}
-    divZones[#divZones + 1] = { col = "slot", x = x + cl.slotX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
-    divZones[#divZones + 1] = { col = "cond", x = x + cl.condX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
-    if cl.wtOn then
-        divZones[#divZones + 1] = { col = "wt",   x = x + cl.wtX   - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
+    -- (the list and its three zones are the window's, refilled each frame)
+    local divZones = (win and win._equipDivZones) or {}
+    local dw, dh = T.px(DIV_W), T.px(EQUIP_HDR_H)
+    local function divZone(i, col, cx)
+        local z = divZones[i] or {}
+        z.col, z.x, z.y, z.w, z.h = col, cx - dw / 2, y, dw, dh
+        divZones[i] = z
     end
+    divZone(1, "slot", x + cl.slotX)
+    divZone(2, "cond", x + cl.condX)
+    if cl.wtOn then divZone(3, "wt", x + cl.wtX) else divZones[3] = nil end
     if win then win._equipDivZones = divZones end
 
     -- Divider hover feedback (2px accent line)
@@ -1225,7 +1198,7 @@ function ZeD.EquipmentTab.pressSlot(win, panel, x, y)
     if not zone then return false end
     local d = equipDrag(win)
     d:cancel()
-    win._equipPress = zone
+    win._equipPress = { type = zone.type, item = zone.item }   -- (a copy: the zone tables are refilled each frame)
     d:beginPending({ zone.item }, zone.item, getMouseX(), getMouseY())
     return true
 end
@@ -1311,8 +1284,6 @@ end
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
     win._equipPanel = panel   -- (the drawer its zones are stamped in: a drop reads the pointer there, EquipDoll.takeDrop)
-    -- the state the kept draws hang on (ZeD.DrawMemo.epoch), read once for the rows and columns below
-    win._eqEpoch = ZeD.DrawMemo.epoch()
 
     -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
     if dueMs(win, "_equipAt", 250, not win._equipCache) then
@@ -1556,7 +1527,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         -- region of this drawer.
         -- the widest worn name: the SLOT column shortens when the names lack it
         -- (worked out again with each data refresh and each new scale or language, not each frame)
-        local needEp = win._eqEpoch
+        local needEp = ZeD.Text.wordsEpoch()
         if win._equipNameNeedData ~= data or win._equipNameNeedEp ~= needEp or not needEp then
             local need = 0
             for _, g in ipairs(data.groups) do
@@ -1580,7 +1551,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
             -- Store group zone + stamp Y for scroll-follow (keyed by group focus id)
             gzi = gzi + 1
-            win._equipGroupZones[gzi] = { x = x, y = drawY, w = contentW, h = T.px(GROUP_H), id = g.id }
+            -- (the zone tables are refilled each frame, not made anew)
+            local gz = win._equipGroupZones[gzi] or {}
+            gz.x, gz.y, gz.w, gz.h, gz.id = x, drawY, contentW, T.px(GROUP_H), g.id
+            win._equipGroupZones[gzi] = gz
             win._equipSlotYMap["__group_" .. tostring(g.id)] = drawY
             drawY = drawY + T.px(GROUP_H)
 
@@ -1596,7 +1570,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                     -- Store slot zone + stamp Y for gamepad scroll-follow (only if item present)
                     if s.item then
                         szi = szi + 1
-                        win._equipSlotZones[szi] = { x = x, y = drawY, w = contentW, h = T.rowH, type = s.type, item = s.item }
+                        local sz = win._equipSlotZones[szi] or {}
+                        sz.x, sz.y, sz.w, sz.h, sz.type, sz.item = x, drawY, contentW, T.rowH, s.type, s.item
+                        win._equipSlotZones[szi] = sz
                         win._equipSlotYMap[s.type] = drawY
                     end
                     drawY = drawY + T.rowH

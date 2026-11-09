@@ -14,7 +14,6 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/ZeD_BodyFigure"
-require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.ThermalTab = {}
@@ -408,34 +407,19 @@ end
 function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
     local T = ZeD.T
     local M = ZeD.Molecules
-    local DM = ZeD.DrawMemo
-    -- drawn once and played back while the readings (a data refresh), the place, the unit, the
-    -- palette and the measures hold (ZeD.DrawMemo)
     local celsius = win._thermalCelsiusNow
     if celsius == nil then celsius = ZeD.ThermalTab.useCelsius() end
-    local epoch = DM.epoch()
-    local m = win._thermalHeadMemo
-    if m and epoch and m.ep == epoch and m.T == T and m.data == data and m.x == rx and m.y == ry and m.w == rw
-       and m.c == celsius then
-        DM.play(panel, m.cmds)
-        return
-    end
-    local dp = DM.begin(panel)
     local curY = ry
     -- the readings are degrees C from the thermoregulator; shown in the player's unit
-    curY = curY + M.drawStatRow(dp, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Core"),
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Core"),
         ZeD.ThermalTab.tempText(data.coreTemp, celsius), T.toneNorm) + T.sp.rowGap
-    curY = curY + M.drawStatRow(dp, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Air"),
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Air"),
         ZeD.ThermalTab.tempText(data.airTemp, celsius), T.toneNorm) + T.sp.rowGap
-    curY = curY + M.drawStatRow(dp, rx, curY, rw, ZeD.tr("IGUI_Fishing_Wind"),
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("IGUI_Fishing_Wind"),
         ZeD.ThermalTab.tempText(data.windTemp, celsius), T.toneNorm) + T.sp.rowGap
     -- Core temperature gauge: the chunky framed strip (the standard bar height), not a thin line;
     -- 30 to 42 °C runs across it
-    ZeD.Atoms.drawGradientBar(dp, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
-    m = m or {}
-    m.cmds = DM.finish(dp)
-    m.ep, m.T, m.data, m.x, m.y, m.w, m.c = epoch, T, data, rx, ry, rw, celsius
-    win._thermalHeadMemo = m
+    ZeD.Atoms.drawGradientBar(panel, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
 end
 
 -- ============================================================================
@@ -501,8 +485,8 @@ function ZeD.ThermalTab._renderBand(panel, win, x, y, w)
     M.drawBand(panel, x, y, w, _bandSpec)
 
     -- the box is as wide as the longest view's words, so picking another never changes it
-    -- (kept while the palette and the measures hold: seven phrases measured every frame otherwise)
-    local epoch = ZeD.DrawMemo.epoch()
+    -- (kept while the palette, the language and the measures hold: seven phrases measured every frame otherwise)
+    local epoch = ZeD.Text.wordsEpoch()
     local nat = 0
     if epoch and _bandNat.ep == epoch and _bandNat.T == T then
         nat = _bandNat.w
@@ -627,31 +611,8 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     -- Active view
     local viewIdx = win._thermalView or 1
     local view = VIEWS[viewIdx]
-
-    -- The grid is drawn once and played back while the readings (a data refresh), the view, the
-    -- place, the unit, the palette and the measures hold (ZeD.DrawMemo); a row's bar asks for the
-    -- pointer again each frame, for its help line ("<part> <value>"), as the row does.
-    local DM = ZeD.DrawMemo
     local celsius = win._thermalCelsiusNow
     if celsius == nil then celsius = ZeD.ThermalTab.useCelsius() end
-    local epoch = DM.epoch()
-    local m = win._thermalGridMemo
-    if m and epoch and m.ep == epoch and m.T == T and m.data == data and m.view == viewIdx and m.x == rx
-       and m.y == ry and m.w == rw and m.c == celsius then
-        DM.play(panel, m.cmds)
-        if ZeD.Help then
-            for i = 1, #m.labels do
-                if DM.hovered(panel, m.hovers, i) then
-                    ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Bar_Help", m.labels[i], m.values[i]))
-                end
-            end
-        end
-        return
-    end
-    m = m or {}
-    m.labels, m.values = {}, {}
-    local dp = DM.begin(panel)
-    panel = dp   -- (the grid below draws into the recorder)
 
     local uiKey = view.id .. "_ui"
     local rawKey = view.id
@@ -693,20 +654,12 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
             valStr = string.format("%.2f", uiVal)
         end
 
-        local label = ZeD.partLabel(partName)
-        m.labels[#m.labels + 1], m.values[#m.values + 1] = label, valStr
-        local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, label, fillPct, fc, T.toneNorm)
+        local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, ZeD.partLabel(partName), fillPct, fc, T.toneNorm)
 
         if isLeft then leftY = cy + rowH + rowGap
         else rightY = cy + rowH + rowGap end
     end
 
-    m.cmds, m.hovers = DM.finish(dp)
-    -- (one hover test a row, in the rows' order: the help lines above ask them again)
-    if #m.hovers ~= #m.labels then m.cmds = nil end
-    m.ep, m.T, m.data, m.view, m.x, m.y, m.w, m.c = epoch, T, data, viewIdx, rx, ry, rw, celsius
-    if m.cmds == nil then m.ep = nil end
-    win._thermalGridMemo = m
 end
 
 -- ============================================================================

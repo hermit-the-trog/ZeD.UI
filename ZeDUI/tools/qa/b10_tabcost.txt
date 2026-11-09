@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/b10_tabcost.txt (Nov 8 2026, Build; punch list 120): where the drawer tabs' ms per tick go, in the
+# game: each tab as it is, inside its own draw function, with its draw switched off, with the stops left to wait,
+# Identity without its 3D portrait, and its draws a frame by kind. Both windows pinned first (pnw).
+# pwsh ZeDUI/tools/qa/zedqa_run.ps1 -Mode fullscreen4k -Manifest ZeDUI/tools/qa/b10_tabcost.txt -Report <name>
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away
+zedqa_tab_cost.lua | tc | timeout=600     # about 32 windows of 210 ticks

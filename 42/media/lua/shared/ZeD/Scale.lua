@@ -757,6 +757,14 @@ function X.measureEpoch()
     if not mcOn() then return nil end
     return MC.epoch
 end
+--- For caches of words and their widths: measureEpoch, also changed by the test language
+--- (ZeD.tr's stretched words); nil while measures are not kept
+function X.wordsEpoch()
+    local e = X.measureEpoch()
+    if e == nil then return nil end
+    local st = ZeD._trState
+    return e * 2 + ((st and st.on) and 1 or 0)
+end
 if Events then
     if Events.OnPreUIDraw then Events.OnPreUIDraw.Add(mcFrame) end
     if Events.OnResolutionChange then Events.OnResolutionChange.Add(function() mcReset(); MC.T = false end) end
