@@ -66,8 +66,11 @@ local function heldStub()
 end
 -- The drawer's part of the Character window's rolled bar (screen x): a rolled bar splits evenly (the director:
 -- "Split the bar evenly"), the drawer's half on the left, so a quarter of the way in, clear of its pin
+-- Read from the live window (ZeD.Halves.split, where the halves meet on that bar): the same quarter on beta 10's
+-- even split, and still the drawer's part on a build that splits a rolled bar elsewhere. (The fixed quarter failed on
+-- the 9a stage, whose rolled bar gave a folded drawer only the tab strip's end: the run's one FAIL.)
 local function drawerBarX(c)
-    return c:getAbsoluteX() + math.floor(c:getWidth() * 0.25)
+    return c:getAbsoluteX() + math.floor(H.split(c) / 2)
 end
 
 -- 1 SETUP

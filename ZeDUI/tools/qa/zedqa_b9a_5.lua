@@ -80,9 +80,12 @@ local function revealRow(win, it)
     local c = win and win._mainContent
     local y = it and c and c._itemRenderYMap and c._itemRenderYMap[it]
     if not y or not c.hitZoneAt then return false end
-    local ly = y + ZeD.T.rowH / 2
+    -- (the grid's cell middle, or the list's name: the same point rowOf presses)
+    local cell = c._gridCell
+    local lx = ((c._itemRenderXMap and c._itemRenderXMap[it]) or 0) + (cell and cell / 2 or 170)
+    local ly = y + (cell and cell / 2 or ZeD.T.rowH / 2)
     if ly >= 0 and ly < c:getHeight() then
-        local z = c:hitZoneAt(((c._itemRenderXMap and c._itemRenderXMap[it]) or 0) + 170, ly)
+        local z = c:hitZoneAt(lx, ly)
         if z and z.id == it then return true end
     end
     if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end
