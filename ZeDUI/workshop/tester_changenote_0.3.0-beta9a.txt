@@ -1,0 +1,12 @@
+0.3.0-beta9a
+
+Fixes
+- An item dragged over a rolled half brings that half down at once, even with the other half pinned.
+- Dragging a closed stack moves the whole stack, to the other window or to the floor.
+- Resting on the inventory's part of a rolled title bar brings back only the inventory.
+- Picking up an item brings back a drawer that rolled in, and both windows stay open until you drop it.
+- A bat or other weapon dropped on the Equip tab's Back goes on your back.
+- The tab drawer rolls in with its tab still selected instead of switching to Loot.
+- The item card scrolls far enough for its last rows to clear the buttons at its foot.
+- Pin to title bar and Unpin from title bar show the pin icon in the right-click menu.
+- The roll boxes are gone from the Character and World title bars. The pins stay.

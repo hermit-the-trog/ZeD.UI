@@ -698,9 +698,11 @@ local function composeCharTitle(win)
     local p = win._playerObj
     if win._ttP ~= p then win._ttP, win._ttName = p, charTitleName(p) end
     local sub = win._titleSub
-    if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
+    -- (a tab drawer rolled in by its half keeps its tab in the title, WindowHalves)
+    local tabId = (win._drawerOpen and win._drawerMode == "tab" and win._activeTab) or ZeD.Halves.foldedTab(win)
+    if tabId then
         for _, tab in ipairs(CHAR_TABS) do
-            if tab.id == win._activeTab then
+            if tab.id == tabId then
                 sub = ZeD_CharacterWindow.tabLabel(tab)
                 break
             end
@@ -993,7 +995,11 @@ end
 -- branch, calls _syncRingZonesToActiveTab so the ring reflects the new tab.
 local function _switchTabForNav(win, content, tabId)
     if not win or not content or not tabId then return false end
-    if win._activeTab == tabId then return false end  -- no-op on same tab
+    if win._activeTab == tabId then
+        -- (a drawer folded by the pointer keeps its tab selected: A on that tab brings it back)
+        if ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) == tabId then ZeD.Halves.showAll(win); return true end
+        return false
+    end
     local T = ZeD.T
 
     local mcSel = win._mcSelected or {}

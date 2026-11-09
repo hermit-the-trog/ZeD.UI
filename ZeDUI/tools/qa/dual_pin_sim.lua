@@ -58,6 +58,9 @@ function getMouseX() return MX end
 function getMouseY() return MY end
 local RDOWN = false
 function isMouseButtonDown(b) if b == 1 then return RDOWN end return b == 0 and DOWN end
+-- the window an item is held from ("char", "world", "charEquip" or nil): each window's list drag
+-- object (content._drag) and Equip drag (win._equipDrag) answer isActive from it
+local DRAG = nil
 JoypadState = { players = {} }
 local PLAYER = { md = {}, aiming = false }
 function PLAYER:getModData() return self.md end
@@ -249,6 +252,8 @@ local function makeWindow(key)
     local content = ISPanel:new(0, 26, INV, 360)
     win:addChild(content)
     content._selectedItems = {}
+    content._drag = { isActive = function() return DRAG == key end }
+    win._equipDrag = { isActive = function() return DRAG == key .. "Equip" end }
     local bags = ISPanel:new(0, 26, CSTRIP, 360)
     win:addChild(bags)
     win._containerStrip = bags
@@ -766,18 +771,177 @@ do
 end
 
 -- ===========================================================================
--- ROLLBOX (review 8): the roll box goes after the title as drawn
+-- ROLLBOX: the windows with halves have no roll box (hotfix beta 9a, fix 9: the pins and the
+-- pointer roll the halves; a tab, or the inventory tab, still folds the drawer by hand)
 -- ===========================================================================
 do
     local w = fresh()
     w.title = string.rep("Character window ", 6)
     w._titleShownW = 70   -- (the title bar drew it cut short)
     C.drawRollButton(w)
-    local r = w._rollBtn
-    check("ROLLBOX: right after the cut-short title", r and r.x == 4 + 14 + 8 + H.titleShift(w) + 70 + 4 + 2, r and r.x)
-    check("ROLLBOX: the bar keeps its room from the title and the stats", w._titleReserve == 14 + 4 + 2)
-    w._rolled = true; C.drawRollButton(w); w._rolled = false
-    check("ROLLBOX: no box, no room kept", w._titleReserve == nil)
+    check("ROLLBOX b9a9: no roll box after the title", w._rollBtn == nil, w._rollBtn and w._rollBtn.x)
+    check("ROLLBOX b9a9: no room kept for one in the bar", w._titleReserve == nil, w._titleReserve)
+    -- a press where the box was is the title bar's (no roll)
+    pointAt(w, 4 + 14 + 8 + H.titleShift(w) + 70 + 6, 10)
+    w:onMouseDown(4 + 14 + 8 + H.titleShift(w) + 70 + 6, 10); w.moving = false
+    check("ROLLBOX b9a9: a press there rolls nothing", not w._rolled and not w._halves.inv.rolled)
+    WW = makeWindow("world")
+    C.drawRollButton(WW)
+    check("ROLLBOX b9a9: none on the World window either", WW._rollBtn == nil and WW._titleReserve == nil)
+    WW = nil
+end
+
+-- ===========================================================================
+-- B9A: hotfix beta 9a, the director's own sequences at 4K with the mouse
+-- ===========================================================================
+-- both windows, nothing rolled; pins per window ({ inv, tabs })
+local function pair(cp, wp)
+    PLAYER.md = { ZeD_WinPinned = { charInv = cp[1], charTabs = cp[2], worldInv = wp[1], worldTabs = wp[2] } }
+    PLAYER.aiming = false
+    DOWN, DRAG = false, nil
+    CW = makeWindow("char")
+    WW = makeWindow("world")
+end
+-- the pointer resting in a window's inventory list (Character: right of the drawer; World: left of it)
+local function inInv(w) if w == CW then pointAt(w, 36 + 300 + 100, 200) else pointAt(w, 36 + 100, 200) end end
+local function inDrawer(w) if w == CW then pointAt(w, 100, 200) else pointAt(w, 36 + INV + 100, 200) end end
+-- a point on a window's rod (window-independent: the rod is its own panel)
+local function onRod(w) local rod = w._rod; MX, MY = rod:getX() + math.floor(rod:getWidth() / 2), rod:getY() + 10 end
+-- a point on the folded drawer's tab strip
+local function onStrip(w) local st = w._lay.strip; MX, MY = st:getAbsoluteX() + 10, st:getAbsoluteY() + 60 end
+-- a window on a tab, its drawer open (a press only when it is not already: a press on the open tab folds it)
+local function openOn(w, tab)
+    if not (w._activeTab == tab and w._drawerOpen) then stripPress(w, tab) end
+    layout(w)
+end
+
+-- fix 1: an item dragged over a rolled half brings it down at once, whatever the other half's pin
+do
+    for _, which in ipairs({ "char", "world" }) do
+        pair({ false, which == "char" }, { false, which == "world" })
+        local w = (which == "char") and CW or WW
+        local other = (which == "char") and WW or CW
+        openOn(w, which == "char" and "equip" or "maps")
+        inDrawer(w); tick(25)
+        check("B9A 1 " .. which .. ": (staged) drawer pinned, inventory rolled under its rod", w._rolled == true and w._drawerOpen and not w.windowShaded)
+        -- the director's drag: from the other window's list, held, over the rolled side's rod
+        inInv(other); DOWN = true; DRAG = (which == "char") and "world" or "char"
+        tick(1)
+        onRod(w); tick(1)
+        check("B9A 1 " .. which .. ": an item held over the rolled side's rod brings it down at once", not w._rolled and not w._halves.inv.rolled,
+            tostring(w._rolled))
+        check("B9A 1 " .. which .. ": ... and the pinned drawer stays open", w._drawerOpen)
+        tick(30)
+        check("B9A 1 " .. which .. ": ... and nothing rolls while the item is held", not w._rolled and not w.windowShaded and not other.windowShaded)
+        DOWN, DRAG = false, nil; tick(1)
+        -- the inventory pinned, the drawer folded: an item held over its tab strip brings it out
+        pair({ which == "char", false }, { which == "world", false })
+        w = (which == "char") and CW or WW
+        other = (which == "char") and WW or CW
+        inInv(w); tick(25)
+        check("B9A 1 " .. which .. ": (staged) inventory pinned, drawer folded", w._halves.foldTab ~= nil and not w._drawerOpen)
+        inInv(other); DOWN = true; DRAG = (which == "char") and "world" or "char"
+        tick(1)
+        onStrip(w); tick(1)
+        check("B9A 1 " .. which .. ": an item held over the folded drawer's tab strip brings it out at once", w._drawerOpen and w._halves.foldTab == nil)
+        DOWN, DRAG = false, nil; tick(1)
+    end
+    WW = nil
+end
+
+-- fix 3: both unpinned, the whole window rolled; resting on the inventory's part of the bar brings back the
+-- inventory half only: the drawer half stays rolled in, its tab still the window's (not Loot)
+do
+    for _, which in ipairs({ "char", "world" }) do
+        pair({ false, false }, { false, false })
+        local w = (which == "char") and CW or WW
+        openOn(w, which == "char" and "equip" or "maps")
+        away(); tick(25)
+        check("B9A 3 " .. which .. ": (staged) the whole window rolled", w.windowShaded == true)
+        local x = (which == "char") and 600 or 100   -- (the inventory's part: Character right, World left)
+        pointAt(w, x, 10); rest(); tick(2)
+        local tab = (which == "char") and "equip" or "maps"
+        check("B9A 3 " .. which .. ": the inventory's part brings the window down", not w.windowShaded)
+        check("B9A 3 " .. which .. ": ... with only the inventory half: the drawer rolled in", not w._drawerOpen and w._halves.drawer.rolled and w._halves.foldTab == tab)
+        check("B9A 3 " .. which .. ": ... and the window still on its tab, not Loot", w._activeTab == tab, w._activeTab)
+        -- and the drawer's part brings back the drawer only
+        pair({ false, false }, { false, false })
+        w = (which == "char") and CW or WW
+        openOn(w, tab)
+        away(); tick(25)
+        pointAt(w, (which == "char") and 100 or 600, 10); rest(); tick(2)
+        check("B9A 3 " .. which .. ": the drawer's part brings back the drawer, the inventory under its rod", not w.windowShaded and w._drawerOpen and w._rolled == true)
+    end
+    WW = nil
+end
+
+-- fix 4: an item picked up in a window holds both its halves open until the drop: a drawer that folded while the
+-- player looked through the list comes back the moment the item is picked up, and nothing folds while it is held
+do
+    for _, which in ipairs({ "char", "world" }) do
+        pair({ false, false }, { false, false })
+        local w = (which == "char") and CW or WW
+        local other = (which == "char") and WW or CW
+        local tab = (which == "char") and "equip" or "maps"
+        openOn(w, tab)
+        other._outSince = CLOCK + 600000   -- (the target window kept down while the staging runs)
+        inInv(w); tick(25)
+        check("B9A 4 " .. which .. ": (staged) looking through the list, the drawer folded", w._halves.foldTab == tab and not w._drawerOpen)
+        DOWN = true; tick(1); DRAG = which; other._outSince = nil; tick(1)
+        check("B9A 4 " .. which .. ": the item picked up: the drawer comes back on its tab", w._drawerOpen and w._activeTab == tab and w._halves.foldTab == nil)
+        tick(40)
+        check("B9A 4 " .. which .. ": ... and stays open while the item is held (4 s)", w._drawerOpen and not w._rolled and not w.windowShaded)
+        inDrawer(w); tick(40)
+        check("B9A 4 " .. which .. ": ... held over the drawer, the inventory stays too", not w._rolled and w._drawerOpen)
+        check("B9A 4 " .. which .. ": the other window rolls nothing while the item is held", not other.windowShaded and not other._rolled)
+        DOWN, DRAG = false, nil; tick(1)
+        -- an Equip slot picked up with the inventory under its rod: the inventory comes back to take it
+        if which == "char" then
+            pair({ false, false }, { false, false })
+            stripPress(CW, "equip"); layout(CW)
+            inDrawer(CW); tick(25)
+            check("B9A 4 char: (staged) inventory rolled under its rod", CW._rolled == true)
+            DOWN = true; tick(1); DRAG = "charEquip"; tick(1); rodSettle(CW); tick(1)
+            check("B9A 4 char: an Equip slot picked up: the inventory comes back", not CW._rolled and not CW._halves.inv.rolled)
+            DOWN, DRAG = false, nil; tick(1)
+        end
+    end
+    WW = nil
+end
+
+-- fix 6: the drawer half rolls in with its tab still selected and named, and comes back on rest
+do
+    local w = fresh()
+    stripPress(w, "equip"); layout(w)
+    inInv(w); tick(25)
+    check("B9A 6: looking through the inventory: the Equip drawer rolls in", w._halves.foldTab == "equip" and not w._drawerOpen and w._halves.drawer.rolled)
+    check("B9A 6: ... the window still on Equip (no switch to Loot)", w._activeTab == "equip", w._activeTab)
+    check("B9A 6: ... the title names the folded tab (ZeD.Halves.foldedTab)", H.foldedTab(w) == "equip")
+    pointAt(w, 10, 10); rest(); tick(1)
+    check("B9A 6: resting on its part of the bar brings it back on Equip", w._drawerOpen and w._activeTab == "equip" and w._halves.foldTab == nil)
+    -- pressing Loot while it is rolled in: Loot, and the rest no longer brings the tab back
+    inInv(w); tick(25)
+    stripPress(w, "loot"); layout(w); tick(1)
+    check("B9A 6: Loot pressed while rolled in: Loot, the fold forgotten", w._activeTab == "loot" and w._halves.foldTab == nil and not w._halves.drawer.rolled)
+    pointAt(w, 10, 10); rest(); tick(2)
+    check("B9A 6: ... and the bar no longer opens the old tab", not w._drawerOpen and w._activeTab == "loot")
+    -- its own tab pressed while rolled in: open again, the half down
+    w = fresh()
+    stripPress(w, "equip"); layout(w)
+    inInv(w); tick(25)
+    stripPress(w, "equip"); layout(w); tick(1)
+    check("B9A 6: its tab pressed while rolled in opens it again", w._drawerOpen and w._activeTab == "equip" and w._halves.foldTab == nil)
+    -- the inventory hidden by the main bag's button while rolled in: the drawer comes back
+    inInv(w); tick(25)
+    w._invDrawerOpen = false; tick(1)
+    check("B9A 6: the inventory hidden while rolled in: the drawer comes back", w._drawerOpen and w._halves.foldTab == nil)
+    w._invDrawerOpen = true
+    -- an item card opened while rolled in: it takes the drawer, and the tab gives way to Loot (as beta 9)
+    w = fresh()
+    inInv(w); tick(25)
+    w._drawerItem, w._drawerMode, w._drawerOpen = { item = true }, "item", true
+    tick(1)
+    check("B9A 6: an item card opened while rolled in: the fold forgotten, the tab gives way to Loot", w._halves.foldTab == nil and w._activeTab == "loot")
 end
 
 -- ===========================================================================

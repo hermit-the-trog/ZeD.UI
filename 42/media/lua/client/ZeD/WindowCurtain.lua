@@ -249,7 +249,9 @@ end
 -- an up triangle in it
 function C.drawRollButton(win)
     win._rollBtn = nil
-    if win._rolled or win.windowShaded or not (win._curtain and win._curtain.canRoll()) then
+    -- (a window with halves has no roll box: the pointer and its pins roll each half,
+    -- WindowHalves; a tab, or the inventory tab, still folds the drawer by hand)
+    if win._halves or win._rolled or win.windowShaded or not (win._curtain and win._curtain.canRoll()) then
         win._titleReserve = nil
         return
     end
