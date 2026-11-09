@@ -39,14 +39,22 @@ local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
 -- a step that runs once cond() is true, or after max ms (a timed action ending, a state settling)
 local function addWhen(max, cond, fn) plan[#plan + 1] = { ms = max, cond = cond, fn = fn } end
 local keepTab, keepPinsMd
+-- A row's point in its list, list-local: on the name in the list view, the cell's middle in the grid. (The player's
+-- list is a grid at the QA setting: a list-view point, 170 px in, landed on another cell.)
+local function rowPoint(c, it)
+    local y = c._itemRenderYMap and c._itemRenderYMap[it]
+    if not y then return nil end
+    local x = (c._itemRenderXMap and c._itemRenderXMap[it]) or 0
+    local cell = c._gridCell
+    return x + (cell and cell / 2 or 170), y + (cell and cell / 2 or ZeD.T.rowH / 2)
+end
 local function rowOf(win, fullType)
     local c = win._mainContent
     for _, it in ipairs(c and c._flatItems or {}) do
         if it:getFullType() == fullType then
-            local y = c._itemRenderYMap and c._itemRenderYMap[it]
-            if not y then return nil end
-            local x = (c._itemRenderXMap and c._itemRenderXMap[it]) or 0
-            return it, math.floor(c:getAbsoluteX() + x + 170), math.floor(c:getAbsoluteY() + y + ZeD.T.rowH / 2)
+            local lx, ly = rowPoint(c, it)
+            if not lx then return nil end
+            return it, math.floor(c:getAbsoluteX() + lx), math.floor(c:getAbsoluteY() + ly)
         end
     end
 end
@@ -90,9 +98,9 @@ local function revealRow(win, it)
     local c = win and win._mainContent
     local y = it and c and c._itemRenderYMap and c._itemRenderYMap[it]
     if not y or not c.hitZoneAt then return false end
-    local ly = y + ZeD.T.rowH / 2
+    local lx, ly = rowPoint(c, it)
     if ly >= 0 and ly < c:getHeight() then
-        local z = c:hitZoneAt(((c._itemRenderXMap and c._itemRenderXMap[it]) or 0) + 170, ly)
+        local z = c:hitZoneAt(lx, ly)
         if z and z.id == it then return true end
     end
     if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end

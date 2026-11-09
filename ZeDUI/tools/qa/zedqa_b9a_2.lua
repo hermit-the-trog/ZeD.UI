@@ -174,6 +174,16 @@ addWhen(9000, heldReaches(function() return nailsHeld() - before >= 6 end), func
 end)
 -- 4 the stack opened in the Character list by its own chevron (a real click: setting the open stacks from the script
 -- left the list's kept model closed, so the second row never showed): then one row of it moves one nail
+-- (the Character list as a list for this part: the grid opens no stacks, so a grid has no chevron to press. The 4K and
+-- Deck runs had the player's list as a grid: "the nails stack's chevron is on screen" failed. Put back at the end.)
+local playerKey, playerGrid
+add(300, function()
+    playerKey = IR.containerKey(p:getInventory(), p)
+    playerGrid = IR.isGridKey(playerKey)
+    say("the player's list: " .. (playerGrid and "grid" or "list") .. " (" .. tostring(playerKey) .. ")")
+    if playerGrid then IR.setGridKey(playerKey, false) end
+end)
+add(800, function() end)   -- (the list draws as rows and stamps its chevrons)
 addWhen(5000, function() return revealRow(CW(), (rowOf(CW(), "Base.Nails", 1))) end, function() end)
 add(300, function()
     local x, y = zonePoint(CW(), "stack:Base.Nails")
@@ -194,6 +204,7 @@ addWhen(5000, function() return revealRow(CW(), (rowOf(CW(), "Base.Nails", 1))) 
     local x, y = zonePoint(CW(), "stack:Base.Nails")
     if x and rowOf(CW(), "Base.Nails", 2) then req("left " .. x .. " " .. y) end
 end)
+add(600, function() if playerGrid and playerKey then IR.setGridKey(playerKey, true) end end)
 add(1000, function()
     if keepPins then
         p:getModData().ZeD_WinPinned = keepPins

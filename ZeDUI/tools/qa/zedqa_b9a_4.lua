@@ -131,8 +131,21 @@ local function turn(which)
         if it and x then sx, sy = x, y end
         if sx then req("down " .. sx .. " " .. sy) end
     end)
-    add(150, function() if sx then req("move " .. (sx + 12) .. " " .. (sy + 10)) end end)
+    add(100, function()
+        -- (what the press did, for a drag that does not start: the Deck run's char turn held nothing)
+        local s = S()
+        local c = s and s._mainContent
+        local d = c and c._drag
+        local lx, ly = getMouseX() - c:getAbsoluteX(), getMouseY() - c:getAbsoluteY()
+        local z = c.hitZoneAt and c:hitZoneAt(lx, ly)
+        say(which .. ": after the press: pending " .. tostring(d and d.isPending and d:isPending()) .. ", card " .. tostring(s._drawerItem ~= nil)
+            .. ", tab " .. tostring(s._activeTab) .. ", the pointer at " .. getMouseX() .. "," .. getMouseY() .. " over "
+            .. tostring(z and (type(z.id) == "string" and z.id or (z.id and z.id.getFullType and z.id:getFullType()))) .. ", the list at "
+            .. c:getAbsoluteX() .. "," .. c:getAbsoluteY())
+        if sx then req("move " .. (sx + 12) .. " " .. (sy + 10)) end
+    end)
     add(150, function() if sx then req("move " .. (sx + 40) .. " " .. (sy + 30)) end end)
+    add(150, function() if sx then req("move " .. (sx + 80) .. " " .. (sy + 60)) end end)   -- (well past any threshold)
     add(400, function()
         if not sx then return end
         local s = S()

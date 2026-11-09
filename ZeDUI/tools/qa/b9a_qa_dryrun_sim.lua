@@ -177,6 +177,7 @@ local function world()
     function H.aim() end
     function H.showAll() end
     function H.split(w) return math.floor(w.w / 2) end
+    function H.hit(w, half, mx, my, split) local inX = (half == "drawer") == (mx < split); return inX, inX and my < 46 end
     BELT = { slots = { { i = 1, slot = { slotType = "Back" } } } }
     ZeD = {
         T = { rowH = 46, sp = { sm = 7, md = 14, titleBoxPad = 7 }, closeBoxSz = 23, px = function(v) return v end, fontF3 = "F3", scale = 1.75 },
@@ -187,7 +188,8 @@ local function world()
         Input = { Focus = { showWin = function() end, claimFocus = function() end } },
         Settings = { textSize = function() return 1 end, hiddenActions = function() return "folded" end },
         Pins = { kindOf = function() return "fluid" end },
-        InventoryRenderer = { containerKey = function() return "floor" end, setGridKey = function() end, dirtyModels = function() end },
+        InventoryRenderer = { containerKey = function() return "floor" end, setGridKey = function() end, dirtyModels = function() end,
+                              isGridKey = function() return true end },
         EquipDoll = { view = function() return "list" end, setView = function() end },
         Belt = { slots = function() return BELT.slots end, detach = function() BELT.slots[1].item = nil end },
         ContextMenu = { Registry = { resolveIconForName = function() return "tex", "pin" end } },

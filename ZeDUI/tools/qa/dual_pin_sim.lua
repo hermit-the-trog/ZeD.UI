@@ -945,6 +945,25 @@ do
     check("B9A 6: ... the title names the folded tab (ZeD.Halves.foldedTab)", H.foldedTab(w) == "equip")
     pointAt(w, 10, 10); rest(); tick(1)
     check("B9A 6: resting on its part of the bar brings it back on Equip", w._drawerOpen and w._activeTab == "equip" and w._halves.foldTab == nil)
+    -- the rest on the folded drawer's part of the bar, read once the window has narrowed, beside the drawer's pin (where
+    -- zedqa_b9a_6 rests): both windows, the World's drawer on its right
+    for _, which in ipairs({ "char", "world" }) do
+        pair({ false, false }, { false, false })
+        local ww = (which == "char") and CW or WW
+        local tab = (which == "char") and "equip" or "maps"
+        openOn(ww, tab)
+        inInv(ww); tick(25)
+        local e = (which == "char") and "left" or "right"
+        local r = H.pinRect(ww, e)
+        local x = (e == "left") and (r.x + r.w + 2) or (r.x - 2)
+        pointAt(ww, x, 10); rest(); tick(1)
+        check("B9A 6 " .. which .. ": a rest beside the drawer's pin on the narrowed window brings it back on " .. tab,
+            ww._drawerOpen and ww._activeTab == tab and ww._halves.foldTab == nil, tostring(ww._halves.foldTab))
+    end
+    WW = nil
+    w = fresh()
+    stripPress(w, "equip"); layout(w)
+    inInv(w); tick(25)
     -- pressing Loot while it is rolled in: Loot, and the rest no longer brings the tab back
     inInv(w); tick(25)
     stripPress(w, "loot"); layout(w); tick(1)
