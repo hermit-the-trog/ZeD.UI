@@ -8,6 +8,7 @@
 #   pwsh -File stall_watch.ps1 -RunPid 1234 -Minutes 5 -Files C:\Users\danie\Zomboid\console.txt,C:\...\server-console.txt
 param([int]$RunPid = 0, [int]$Minutes = 5, [string[]]$Files = @("C:\Users\danie\Zomboid\console.txt"))
 function Stamp { ($Files | ForEach-Object { if (Test-Path $_) { (Get-Item $_).LastWriteTimeUtc.Ticks } else { 0 } } | Measure-Object -Maximum).Maximum }
+$Files = @($Files | ForEach-Object { $_ -split "," } | Where-Object { $_ })   # (-File passes a comma list as one string)
 $last = Stamp; $since = Get-Date
 while ($true) {
     Start-Sleep -Seconds 30
