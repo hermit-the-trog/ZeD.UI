@@ -1719,17 +1719,18 @@ end
 --- The shared detail card: this section's rows use it, and so do the Identity tab's traits and
 --- the Traits tab that the Traits as Skills support adds. The mouse asks the window's overlay
 --- for it (it appears after the shared pause); focused (the controller's focus) draws it at
---- once, under the element (rect = its place on panel). body is a line of words, or a list of lines.
+--- once. Either way its balloon points at the element from beside it (rect = its place on panel).
+--- body is a line of words, or a list of lines.
+local HB_SIDE = { side = "right" }
 function HB.hoverCard(panel, win, key, title, body, rect, focused)
     local lines = nil
     if type(body) == "table" then lines = body
     elseif body and body ~= "" then lines = { body } end
-    local card = { title = title, lines = lines, maxW = 280 }
+    local card = { title = title, lines = lines, anchor = rect, side = "right", key = key }
     if focused then
-        local T = ZeD.T
-        ZeD.Molecules.drawDetailCard(panel, rect.x + T.px(8), rect.y + rect.h - T.px(14), card)
+        ZeD.Molecules.drawDetailCard(panel, 0, 0, card)
     else
-        ZeD.Atoms.requestDetailCard(win, key, card, panel)
+        ZeD.Atoms.requestDetailCard(win, key, card, panel, rect, HB_SIDE)
     end
 end
 

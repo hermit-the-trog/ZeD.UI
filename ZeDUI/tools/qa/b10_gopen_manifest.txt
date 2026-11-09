@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+b10_guide_open_repro.lua | gopen | timeout=60

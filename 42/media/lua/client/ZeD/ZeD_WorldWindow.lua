@@ -153,9 +153,11 @@ local function composeWorldTitle(win)
     if win._rolled then return end
     local base = win._titleBase or ZeD.tr("UI_ZeD_World_Title")
     local sub = nil
-    if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
+    -- (a tab drawer rolled in by its half keeps its tab in the title, WindowHalves)
+    local tabId = (win._drawerOpen and win._drawerMode == "tab" and win._activeTab) or ZeD.Halves.foldedTab(win)
+    if tabId then
         for _, tab in ipairs(WORLD_TABS) do
-            if tab.id == win._activeTab then
+            if tab.id == tabId then
                 sub = ZeD_WorldWindow.tabLabel(tab)
                 break
             end
@@ -1938,10 +1940,15 @@ local function drawWorldTabStrip(self, win)
             -- Hit zone
             if curY + T.px(ACTION_TAB_BTN_SZ) > 0 and curY < tabAreaH then
                 self:addHitZone("tab:" .. tab.id, 0, curY, w, T.px(ACTION_TAB_BTN_SZ))
-                -- hover hint: the tab's name beside the icon after the pause (mouse only)
+                -- the tab's name in a balloon beside it: after the pause for the mouse, at once for the
+                -- controller's focus
                 if isHover and my < tabAreaH and (not self.isMouseOver or self:isMouseOver()) then
                     win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab),
                                          x = self:getX(), y = self:getY() + curY, w = w, h = T.px(ACTION_TAB_BTN_SZ), side = "l" }
+                    ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
+                elseif cuesOn and gpFocusedTabId == tab.id and not win._tabHintCand then
+                    win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab),
+                                         x = self:getX(), y = self:getY() + curY, w = w, h = T.px(ACTION_TAB_BTN_SZ), side = "l", now = true }
                     ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
                 end
             end
@@ -2226,7 +2233,11 @@ end
 -- _switchTabForNav in ZeD_CharacterWindow.
 _switchWorldTabForNav = function(win, content, tabId)
     if not win or not content or not tabId then return false end
-    if win._activeTab == tabId then return false end
+    if win._activeTab == tabId then
+        -- (a drawer folded by the pointer keeps its tab selected: A on that tab brings it back)
+        if ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) == tabId then ZeD.Halves.showAll(win); return true end
+        return false
+    end
     local T = ZeD.T
     dropObjectCard(win)
 

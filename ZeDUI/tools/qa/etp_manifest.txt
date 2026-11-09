@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/etp_manifest.txt (Nov 8 2026): Ellie's Tattoo Parlor V4 with ZeD's Make Up rows (punch list 116):
+# zedqa_mods_run.ps1 -ModList etp_mods.txt -Mode fullscreen4k -Manifest .../etp_manifest.txt
+zedqa_prelude.lua | pre
+zedqa_etp.lua | etp | timeout=120

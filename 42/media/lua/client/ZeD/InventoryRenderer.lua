@@ -888,7 +888,7 @@ local function drawGridCell(self, GV, item, cx, cy)
     if over then
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
-        self._gridHintCand = { key = item, text = nm, read = rs }
+        self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cell, h = cell }
         if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm)) end   -- (on the strip: its condition)
     end
     self:addHitZone(item, ax, cy, cell, cell)
@@ -1042,13 +1042,13 @@ end
 -- A readable item's hover card, the library's detail
 -- card: its name, its read status in the game's own words, and the next level a
 -- skill book suits. Asked of the window's overlay, which shows it after the
--- shared pause, below-right of the pointer.
+-- shared pause, pointing at the item.
 local function requestReadCard(self, hc)
     local rs = hc.read
     local lines = {}
     for _, l in ipairs(rs.lines or {}) do lines[#lines + 1] = l end
     if rs.next and ZeD.ReadMarks.nextOn() then lines[#lines + 1] = ZeD.tr("UI_ZeD_Read_NextFor", rs.next) end
-    ZeD.Atoms.requestDetailCard(ZeD.Atoms.windowOf(self), hc.key, { title = hc.text, lines = lines }, self)
+    ZeD.Atoms.requestDetailCard(ZeD.Atoms.windowOf(self), hc.key, { title = hc.text, lines = lines }, self, hc.x and hc or nil)
     self._readHintAt = getTimestampMs()   -- (when the card was last asked for)
 end
 
@@ -1073,12 +1073,12 @@ ZeD.InventoryRenderer._drawReadCond = drawReadCond
 
 -- A grid cell names its item in a hint, a readable row or cell shows its read
 -- card: the library's hover boxes, asked of the window's overlay (which keeps
--- the one pause and places them by the pointer, over everything)
+-- the one pause and points them at the cell, over everything)
 local function drawGridHint(self, GV, xOff, colW, contentTop)
     local hc = self._gridHintCand
     if not hc then return end
     if hc.read then return requestReadCard(self, hc) end
-    ZeD.Atoms.requestHint(ZeD.Atoms.windowOf(self), hc.key, hc.text, self)
+    ZeD.Atoms.requestHint(ZeD.Atoms.windowOf(self), hc.key, hc.text, self, hc.x and hc or nil)
 end
 
 -- ============================================================================
@@ -1998,9 +1998,10 @@ local function renderItemList(self)
             hZ("stack:" .. stackInfo.key, 0, y, nameX + T.px(16), rowH)
         end
         hZ(item, 0, y, scrollX, rowH)
-        -- a readable row shows its read card after the pause (the library's detail card, by the pointer)
+        -- a readable row shows its read card after the pause (the library's detail card, its balloon
+        -- above the row's icon and name)
         if rs and mouseInCol and my >= y and my < y + rowH and my >= contentTop and my < contentTop + visibleH and localMx < scrollX then
-            self._gridHintCand = { key = item, text = baseName, read = rs }
+            self._gridHintCand = { key = item, text = baseName, read = rs, x = xOff, y = y, w = math.min(scrollX, nameX + T.px(60)), h = rowH }
         end
 
         y      = y + rowH
@@ -2575,6 +2576,32 @@ local function pointerOverUI()
     return (not ok) or over
 end
 
+--- The things a drag from a list carries: a closed stack's row is every thing in
+--- the stack, as vanilla's drag moves the whole stack; an open stack's rows each
+--- carry their own thing. The grid opens no stacks, so a grid cell is always the
+--- whole stack. content: the list dragged from (its source column, if any, in
+--- content._dragSourceCol); items: the rows dragged. Returns a new list.
+local function dragItems(content, items, srcInventory)
+    local cs = content._dragSourceCol and content._colStates and content._colStates[content._dragSourceCol] or nil
+    local stacks = cs and cs.stacks or content._stacks
+    if not stacks then return items end
+    local open = (cs and cs.expandedStacks) or content._expandedStacks or {}
+    local grid = ZeD.InventoryRenderer.isGridKey(containerKeyOf(srcInventory or content._inventory, content._playerObj))
+    local out, seen = {}, {}
+    for _, item in ipairs(items) do
+        local stk = stacks[item]
+        local rows = (stk and stk.count > 1 and stk.items and (grid or not open[stk.key])) and stk.items or nil
+        if rows then
+            for _, si in ipairs(rows) do
+                if not seen[si] then seen[si] = true; out[#out + 1] = si end
+            end
+        elseif not seen[item] then
+            seen[item] = true; out[#out + 1] = item
+        end
+    end
+    return out
+end
+
 local function handleDrop(content, items, srcInventory)
     if not items or #items == 0 then return end
     ZeD.InventoryRenderer.dirtyModels()   -- (a drop moves things: every list model rebuilds)
@@ -2595,6 +2622,11 @@ local function handleDrop(content, items, srcInventory)
         local ok, took = pcall(ZeD.Belt.takeDrop, playerNum, items)
         if ok and took then return end
     end
+
+    -- From here on the drop is a move into a container or onto the floor: a row
+    -- dragged from a list carries its whole closed stack (the doll and the belt
+    -- above take the one thing). An Equip slot's drag is no list's (no source set).
+    if content._dragSourceInv ~= nil then items = dragItems(content, items, srcContainer) end
 
     -- A rolled-up side's tab (WindowCurtain) takes the drop for its container;
     -- otherwise: is the mouse over a different column (multi-column transfer)
@@ -2727,6 +2759,7 @@ ZeD.InventoryRenderer.countSelected              = countSelected
 ZeD.InventoryRenderer.findIndex                  = findIndex
 ZeD.InventoryRenderer.collectSelectedItems       = collectSelectedItems
 ZeD.InventoryRenderer.handleDrop                 = handleDrop
+ZeD.InventoryRenderer.dragItems                  = dragItems
 ZeD.InventoryRenderer.buildContainers            = buildContainers
 ZeD.InventoryRenderer.rebuildColStates           = rebuildColStates
 ZeD.InventoryRenderer.syncColStates              = syncColStates

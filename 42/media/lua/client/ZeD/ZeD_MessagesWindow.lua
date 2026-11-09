@@ -201,6 +201,9 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), bans = true, primary = true }
         elseif it.k == "invite" then
             btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), invite = true, primary = true }
+        elseif it.k == "notice" and it.run then
+            -- (a notice of ZeD's that does something, the survival guide's: its Open does it)
+            btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), noticeRun = it.run, primary = true }
         elseif it.k == "adminmsg" and it.tp then
             -- (the game's pop-up asked "Teleport?" under a place: ZeD_MpLeftovers.lua sends its own answer)
             btns[#btns + 1] = { label = btnLabel(getText("UI_Scoreboard_Teleport")), teleport = true, primary = true }
@@ -544,6 +547,14 @@ function ZeD_MessagesWindow:pressCard(b)
             if ZeD.Claims then ZeD.Claims.openNext = "invite" end
             b.card.it.read = true
         end)
+        return
+    end
+    if b.noticeRun then
+        -- the line's Open: with a controller Messages closes first (the thing it opens takes the controller), as above
+        b.card.it.read = true
+        if self.joyfocus ~= nil then self:close() end
+        local ok, err = pcall(b.noticeRun)
+        if not ok then ZeD.logOnce("messages: a notice's Open", err) end
         return
     end
     if b.padRun then
@@ -990,9 +1001,10 @@ function ZeD_MessagesToasts:prerender()
     -- each toast's balloon: its head, then where it is from and what it says (the list's own order, oldest first)
     local items = {}
     for i, t in ipairs(list) do
-        local body = tostring(t.source or "") .. ((t.text and t.text ~= "") and (" | " .. t.text) or "")
-        local lines, tw0 = Bb.noticeLines(t.head, body)
-        items[i] = { lines = lines, tw = tw0, dot = (t.kind == "crit" and T.danger) or (t.kind == "info" and (T.info or T.accent)) or (T.warning or T.accent), source = t.source }
+        -- (a bare notice, the survival guide's bubble: its head is its name already, so the text stands alone)
+        local body = t.bare and tostring(t.text or "") or (tostring(t.source or "") .. ((t.text and t.text ~= "") and (" | " .. t.text) or ""))
+        local lines, tw0 = Bb.noticeLines(t.head, body, t.long)
+        items[i] = { lines = lines, tw = tw0, dot = (t.kind == "crit" and T.danger) or (t.kind == "info" and (T.info or T.accent)) or (T.warning or T.accent), source = t.source, toast = t }
     end
     local sl = getPlayerScreenLeft(pn)
     local sr = sl + getPlayerScreenWidth(pn)
@@ -1006,7 +1018,7 @@ function ZeD_MessagesToasts:prerender()
     -- (the click areas, in the element's pixels)
     self._boxes = {}
     for _, n in ipairs(items) do
-        self._boxes[#self._boxes + 1] = { x = (n.x - x0) * k, y = (n.y - y0) * k, w = n.w * k, h = n.h * k, source = n.source }
+        self._boxes[#self._boxes + 1] = { x = (n.x - x0) * k, y = (n.y - y0) * k, w = n.w * k, h = n.h * k, source = n.source, toast = n.toast }
     end
     self._list, self._ox, self._oy, self._k, self._tail = items, -x0, -y0, k, tail
 end
@@ -1037,7 +1049,30 @@ function ZeD_MessagesToasts:onMouseDown(x, y)
     for _, b in ipairs(self._boxes) do
         if y >= b.y and y < b.y + b.h and x >= b.x and x < b.x + b.w then
             sound("UIActivateButton")
+            -- (a balloon that does something, the survival guide's: the click does it, and the balloon goes)
+            local t = b.toast
+            if t and t.run then
+                MS.dropToast(t)
+                local ok, err = pcall(t.run)
+                if not ok then ZeD.logOnce("messages: a balloon's click", err) end
+                return true
+            end
             MS.open(b.source)
+            return true
+        end
+    end
+    return false
+end
+
+-- a right-click on a balloon that can be dismissed sends it away and tells its owner (the survival guide's bubble
+-- then stops coming back); the plain notices have nothing to dismiss and keep their click
+function ZeD_MessagesToasts:onRightMouseDown(x, y)
+    for _, b in ipairs(self._boxes or {}) do
+        if y >= b.y and y < b.y + b.h and x >= b.x and x < b.x + b.w and b.toast and b.toast.dismiss then
+            sound("UIActivateButton")
+            MS.dropToast(b.toast)
+            local ok, err = pcall(b.toast.dismiss)
+            if not ok then ZeD.logOnce("messages: a balloon's dismiss", err) end
             return true
         end
     end

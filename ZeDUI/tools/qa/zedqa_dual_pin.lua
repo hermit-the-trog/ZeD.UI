@@ -13,6 +13,10 @@
 --   6  AIM     aiming with the pointer away: the unpinned halves roll, the pinned drawers stay open
 --   7  RODPIN  a real click on the Character's inventory pin on its rod: pinned, and it comes down (pinning brings back)
 --   8  TABS    a real click on the open tab still folds the drawer by hand; again opens it
+--   2.2c       (hotfix beta 9a) the drawer pinned, the inventory rolled under its rod: an item held over the rod brings
+--              the inventory down at once
+--   2.6b       (hotfix beta 9a) both unpinned, the whole window rolled: resting on the inventory's part of the bar brings
+--              back only the inventory (the drawer stays rolled in, on Health); on the drawer's part only the drawer
 --   9  PAD     the pins are the title bar's stops (left to right), A toggles (onActivate, as the A tap fires it); the pad's
 --              aiming escape (ZeD.Halves.aim) rolls only the unpinned halves; Y / a bumper (Focus.showWin) brings them down
 -- Pins, tabs and windows are put back at the end.
@@ -197,6 +201,52 @@ waitMs(250, function()
     check(not c.windowShaded, "2.2b: an item held over the rolled title bar brings the window down within 0.25 s")
     c._equipDrag = nil
     pointerAt(nil)
+end)
+-- 2.2c DRAG, ONE HALF  (hotfix beta 9a) the drawer pinned, the inventory rolled under its rod: an item held over the
+-- rod brings the inventory down at once (only a whole rolled window did)
+step(10, function()
+    local c = CW()
+    H.setPin(c, "drawer", true); H.setPin(c, "inv", false)
+    pointerAt(c:getAbsoluteX() + 100, c:getAbsoluteY() + c:getHeight() / 2)   -- (in the drawer)
+    c._halves.inv.rolled = true; H.drive(c)
+end)
+waitMs(800, function()
+    local c = CW()
+    check(c._rolled == true and c._drawerOpen and not c.windowShaded, "2.2c: (staged) drawer pinned, the inventory rolled under its rod")
+    c._equipDrag = { isActive = function() return true end }   -- an item held (as the halves read it)
+    local rod = c._rod
+    if rod then pointerAt(rod:getAbsoluteX() + rod:getWidth() / 2, rod:getAbsoluteY() + c:titleBarHeight() / 2) end
+end)
+waitMs(250, function()
+    local c = CW()
+    check(not c._rolled and not c._halves.inv.rolled, "2.2c: an item held over the rod brings the inventory down within 0.25 s, the drawer pinned")
+    check(c._drawerOpen, "2.2c: ... the pinned drawer still open")
+    c._equipDrag = nil
+end)
+-- 2.6b REST, EACH HALF  (hotfix beta 9a) both unpinned, the whole window rolled: resting on each half's part of the
+-- bar brings back only that half (the inventory's part: the drawer stays rolled in, on its tab)
+step(10, function()
+    local c = CW()
+    H.setPin(c, "drawer", false); H.setPin(c, "inv", false)
+    pcall(function() c:setWindowShaded(true) end)
+    pointerAt(c:getAbsoluteX() + c:getWidth() * 0.8, c:getAbsoluteY() + c:titleBarHeight() / 2)
+end)
+waitMs(800, function()
+    local c = CW()
+    check(not c.windowShaded and not c._rolled and not c._drawerOpen and H.foldedTab(c) == "health",
+        "2.6b: the inventory's part of the rolled bar: only the inventory comes back, the drawer still rolled in")
+    check(c._activeTab == "health", "2.6b: ... the window still on Health (not Loot)")
+    shot("2_6b_inventory_part")
+    pcall(function() c:setWindowShaded(true) end)
+    pointerAt(c:getAbsoluteX() + c:getWidth() * 0.2, c:getAbsoluteY() + c:titleBarHeight() / 2)
+end)
+waitMs(800, function()
+    local c = CW()
+    check(not c.windowShaded and c._drawerOpen and c._rolled == true, "2.6b: the drawer's part: only the drawer comes back, the inventory under its rod")
+    shot("2_6b_drawer_part")
+    pointerAt(nil)
+    ZeD.Curtain.finishUnroll(c)
+    H.setPin(c, "inv", true); H.setPin(c, "drawer", true)
 end)
 -- 9 PAD
 step(30, function()
