@@ -64,13 +64,10 @@ local function heldStub()
     return { isActive = function() return true end, isPending = function() return false end, drawGhost = function() end,
              updateGhostPos = function() end, cancel = function() end, items = {} }
 end
--- The drawer's part of the Character window's bar (screen x) with its drawer folded: the tab strip's end of the bar,
--- right of its pin (the drawer's part is only that wide then; a fixed share of the width lands on the inventory's)
+-- The drawer's part of the Character window's rolled bar (screen x): a rolled bar splits evenly (the director:
+-- "Split the bar evenly"), the drawer's half on the left, so a quarter of the way in, clear of its pin
 local function drawerBarX(c)
-    local lp = H.pinRect(c, "left")
-    local s = c._tabStripPanel
-    local right = math.max(s and (s:getX() + s:getWidth()) or 0, lp and (lp.x + lp.w) or 0)
-    return c:getAbsoluteX() + (lp and (lp.x + lp.w + 2) or math.floor(right / 2))
+    return c:getAbsoluteX() + math.floor(c:getWidth() * 0.25)
 end
 
 -- 1 SETUP

@@ -515,11 +515,13 @@ end
 
 --- Where the drawer half meets the inventory half, window-local x: the divider
 --- line while both show; the whole window while one is rolled away; the tab
---- strip (and the drawer's pin) while no drawer shows. A rolled window keeps
---- the last one.
+--- strip (and the drawer's pin) while no drawer shows. A window rolled to its
+--- title bar is split evenly: each half hovers half the bar, whatever had folded
+--- before (a folded drawer's part was a sliver beside its pin); the pins keep
+--- their places.
 function H.split(win)
     local s = win._halves
-    if win.windowShaded then return s.lastSplit or math.floor(win:getWidth() / 2) end
+    if win.windowShaded then return math.floor(win:getWidth() / 2) end
     local w = win:getWidth()
     local x = win._dividerX
     if not x then
@@ -544,9 +546,6 @@ function H.split(win)
             end
         end
     end
-    -- (kept for a rolled-up bar only while both halves share the window: a rod's window, or a
-    -- frame caught mid-unroll, is all drawer and would leave the inventory no part of the bar)
-    if not win._rolled and x > 0 and x < w then s.lastSplit = x end
     return x
 end
 
