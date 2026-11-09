@@ -449,7 +449,8 @@ local function dropOn(id, items)
     local r = rectOf(id)
     if not r then return nil, "no rect" end
     local real = w._equipDollPanel
-    w._equipDollPanel = { getMouseX = function() return r.x + math.floor(r.w / 2) end, getMouseY = function() return r.y + math.floor(r.h / 2) end }
+    w._equipDollPanel = { getMouseX = function() return r.x + math.floor(r.w / 2) end, getMouseY = function() return r.y + math.floor(r.h / 2) end,
+        isVisible = function() return true end, getWidth = function() return real:getWidth() end, getHeight = function() return real:getHeight() end }   -- (takeDrop checks these since beta 9a)
     local took = Doll.takeDrop(pn, items)
     w._equipDollPanel = real
     return took, string.format("rect %d,%d %dx%d clip %s", r.x, r.y, r.w, r.h, w._equipDollClip and (w._equipDollClip.x .. "," .. w._equipDollClip.y .. " " .. w._equipDollClip.w .. "x" .. w._equipDollClip.h) or "nil")
