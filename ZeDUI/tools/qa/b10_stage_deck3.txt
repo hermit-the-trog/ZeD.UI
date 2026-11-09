@@ -1,0 +1,3 @@
+zedqa_prelude.lua | pre | timeout=240
+zedqa_staged_ver.lua | sv | timeout=60
+zedqa_b9a_2.lua | b9a2 | timeout=240
