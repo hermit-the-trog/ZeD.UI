@@ -1,0 +1,12 @@
+# Nov 9 2026: rerun of the moodle hovers and the notebook only, with the Lua console hidden (gallery_hidecon first).
+# gallery_b10_glasses puts the QA character's prescription glasses on (the full run gets them from gallery_v3_stage);
+# without them these came out soft.
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_moodles.lua | mood | timeout=240
+zedqa_notebook.lua | nb | timeout=180
+zedqa_guide82_stills.lua | g8s | timeout=600
+gallery_t14_end.lua | g14e | timeout=60

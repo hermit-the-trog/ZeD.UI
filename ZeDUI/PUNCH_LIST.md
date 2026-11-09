@@ -3136,3 +3136,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     "Bitchin' znix Programs - Doidbros & Buzzlord". It's in every spread's "head" (spreads/*.json) and any default in
     spread.py/title_spread.py. Change all at once, then re-render all 70 pictures with the next full gallery refresh,
     not one page at a time.
+
+129. **The gallery after beta 11 (QA, Nov 9 2026).** With PZ Teal the default (127), the whole gallery is retaken in
+    Dark + PZ Teal once beta 11 ships. The same pass takes the Tier 2 title-bar retakes left from beta 10 (pins at
+    each end of the bar, no roll boxes; list view, the gallery_t14 look's window places and blur, the belt in view;
+    see ZeDUI/workshop/gallery/B10_RECAPTURE.md) and fixes the running head's middle dot (128). One full re-render of
+    all 70 pictures.
