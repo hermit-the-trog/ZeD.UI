@@ -1,5 +1,5 @@
 22:24:29 server up
-22:25:36 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+22:25:36 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
 22:28:52 ZEDQA acm FAIL a safehouse held
 22:28:52 ZEDQA acm DONE
 22:30:20 second client joining as bob
@@ -11,7 +11,7 @@
 22:37:11 second client stopped
 22:37:13 closed
 22:39:28 server up
-22:40:35 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+22:40:35 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
 22:43:51 ZEDQA acm FAIL a safehouse held
 22:43:51 ZEDQA acm DONE
 22:44:34 second client joining as bob
@@ -22,7 +22,7 @@
 22:56:51 set PlayerSafehouse=true
 22:56:51 set AdminSafehouse=true
 22:57:25 server up
-22:58:32 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+22:58:32 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
 23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
 23:01:48 ZEDQA acm no claim: Spawn location. Cannot be claimed.
 23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
@@ -72,7 +72,7 @@
 23:09:58 set DoLuaChecksum=false
 23:09:58 set SafehouseAllowNonResidential=true
 23:10:33 server up
-23:11:40 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+23:11:40 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
 23:14:55 ZEDQA acm PASS a safehouse held (zedqa)
 23:14:55 ZEDQA acm DONE
 23:15:35 second client joining as bob
@@ -108,7 +108,7 @@
 23:26:34 set DoLuaChecksum=false
 23:26:34 set SafehouseAllowNonResidential=true
 23:27:06 server up
-23:28:44 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+23:28:44 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
 23:31:59 ZEDQA acm PASS a safehouse held (zedqa)
 23:31:59 ZEDQA acm DONE
 23:32:40 second client joining as bob

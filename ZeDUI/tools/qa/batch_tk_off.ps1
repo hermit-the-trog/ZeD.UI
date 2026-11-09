@@ -1,12 +1,12 @@
 #Requires -Version 7.0
 # ZeDUI/tools/qa/batch_tk_off.ps1  (Nov 6 2026, QA): step 10: the fallback, forced on a server with ZeD's server part, then for real on one without it.
 $Qa = $PSScriptRoot
-$Shots = "C:\Users\danie\Zomboid\Screenshots"
+$Shots = "$env:USERPROFILE\Zomboid\Screenshots"
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 $Rep = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression")
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }
 & "$Qa\batch_tickets.ps1" -Runs "mp_tk_off.txt:tk_off_forced:1280:800"
-$Cache = "C:\Users\danie\Zomboid\zedqa_mp"; $Keep = Join-Path $env:TEMP "zedqa_mp_keep_tk"; $Lua = "C:\Users\danie\Zomboid\Lua"
+$Cache = "$env:USERPROFILE\Zomboid\zedqa_mp"; $Keep = Join-Path $env:TEMP "zedqa_mp_keep_tk"; $Lua = "$env:USERPROFILE\Zomboid\Lua"
 Copy-Item "$Cache\db\zedqa.db" "$Keep\zedqa.db" -Force; Copy-Item "$Cache\Server\zedqa.ini" "$Keep\zedqa.ini" -Force; Copy-Item "$Lua\ModOptions.ini" "$Keep\ModOptions.ini" -Force
 Set-Content "$Lua\zedqa_tk_real.txt" "1" -NoNewline
 try {

@@ -3,9 +3,9 @@
 # mods, the bridge, the test save and the options, so neither the repo's 42/ nor the real Zomboid folder is touched. The run prints the version and folder the game loaded.
 # Stops at the check: the upload is the director's.
 $Qa = $PSScriptRoot
-$Root = "C:\Users\danie\Zomboid\mods\ZeD-UI"
-$Z = "C:\Users\danie\Zomboid"
-$Stg = "C:\Users\danie\ZomboidStaged"
+$Root = "$env:USERPROFILE\Zomboid\mods\ZeD-UI"
+$Z = "$env:USERPROFILE\Zomboid"
+$Stg = "$env:USERPROFILE\ZomboidStaged"
 $env:ZEDQA_NOSTEAM = "1"
 $Out = "$Root\ZeDUI\qa\tickets_20261105.txt"
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }

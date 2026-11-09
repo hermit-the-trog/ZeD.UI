@@ -1,4 +1,4 @@
 {
   "note": "The gallery as a worked-through 1993 manual: one open spread per slide (spread.py). Per page: the running head, the publisher's printed blocks (chapter, h2, p, table, caption, note, gap, at), his prints (a capture, its box in the capture, scale, top-left on the page, which corners are taped), his marks (text in blu with 'to' = [print, x, y in the capture] for a red arrow; circle in grn round a word or a box in a print) and one sticky note in black. Printed words are the publisher's, dry; *bold* for what is on the screen, `mono` for anything typed. His words are the director's to write.",
-  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_t14"
+  "screens": "%USERPROFILE%/Zomboid/Screenshots/gallery_t14"
 }

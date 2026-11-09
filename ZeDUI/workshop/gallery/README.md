@@ -51,7 +51,7 @@ It renders nothing: run the three renderers first. `spread.py --jpg <folder>` al
 | `fonts/` | the fonts, with their licences in `fonts/FONTS.md` |
 | `book_shots.py`, `out_book/` | the Oct 30 single-page book, replaced by the spreads on Nov 1; kept for reference |
 
-The captures are in `C:/Users/danie/Zomboid/Screenshots/gallery_t14` (4K), and `../shots/shots.json` names them,
+The captures are in `%USERPROFILE%/Zomboid/Screenshots/gallery_t14` (4K), and `../shots/shots.json` names them,
 with their crops, points, captions and callouts. A spread's `src` names the capture it prints.
 
 Scale on the cover's desk: the book is about 7.4 x 9.2 inches, about 27 art pixels to the inch; everything beside it

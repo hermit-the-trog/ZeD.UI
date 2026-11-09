@@ -693,7 +693,7 @@ LOG  : General      f:0> ErosionGlobals.Boot() start
 LOG  : General      f:0> ErosionGlobals.Boot() end
 LOG  : General      f:0> WorldDictionary.init() start
 LOG  : General      f:0> WorldDictionary: Checking dictionary...
-LOG  : General      f:0> Loading WorldDictionary:C:\Users\danie\ZomboidStaged\Saves\Sandbox\ZeD-QA\WorldDictionary.bin
+LOG  : General      f:0> Loading WorldDictionary:%USERPROFILE%\ZomboidStaged\Saves\Sandbox\ZeD-QA\WorldDictionary.bin
 LOG  : General      f:0> WorldDictionary.init() end
 LOG  : General      f:0> GameEntityManager.Init() start
 LOG  : General      f:0> GameEntityManager.Init() end
@@ -1225,7 +1225,7 @@ LOG  : Lua          f:2190> ZEDQA rel RESULT PASS: all 16 checks
 LOG  : Lua          f:2190> ZEDQA rel DONE
 LOG  : Lua          f:2625> [ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
 LOG  : Lua          f:2625> [ZeD.QA] windows reset (R)
-LOG  : Lua          f:2625> ZEDQA sv version=0.3.0-beta8a dir=C:\Users\danie\ZomboidStaged\mods\ZeD-UI
+LOG  : Lua          f:2625> ZEDQA sv version=0.3.0-beta8a dir=%USERPROFILE%\ZomboidStaged\mods\ZeD-UI
 LOG  : Lua          f:2625> [ZeD.QA] run #4 ok=true
 LOG  : Lua          f:2645> ZEDQA sv DONE
 LOG  : Lua          f:3135> [ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
@@ -1278,7 +1278,7 @@ LOG  : Lua          f:4265> ZEDQA b8arp Zomboid folder found: yes, under a Users
 LOG  : Lua          f:4265> ZEDQA b8arp start
 LOG  : Lua          f:4265> [ZeD.QA] run #7 ok=true
 ERROR: General      f:4279> Lua(Vanilla).boom> Exception thrown
-	se.krka.kahlua.vm.KahluaException: ZEDQA-b8arp-planted in C:\Users\danie\ZomboidStaged\Lua\b8arp.txt; C:/Users/danie/ZomboidStaged/Saves/b8arp; C:\Users\danie\AppData\Local\b8arp.tmp; c:/USERS/DANIE/Downloads/b8arp.lua at BaseLib.error(BaseLib.java:307).
+	se.krka.kahlua.vm.KahluaException: ZEDQA-b8arp-planted in %USERPROFILE%\ZomboidStaged\Lua\b8arp.txt; %USERPROFILE%/ZomboidStaged/Saves/b8arp; %USERPROFILE%\AppData\Local\b8arp.tmp; %USERPROFILE%/Downloads/b8arp.lua at BaseLib.error(BaseLib.java:307).
 	Stack trace:
 		se.krka.kahlua.stdlib.BaseLib.error(BaseLib.java:307)
 		se.krka.kahlua.stdlib.BaseLib.call(BaseLib.java:127)

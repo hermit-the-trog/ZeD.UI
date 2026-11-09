@@ -3,7 +3,7 @@
 Verdict: PASS for the restore, with one deviation: a moderator cannot be banned through ZeD (see below), so the role used was gm.
 
 ## Setup
-- Test server (zedqa_mp) with RCONPort 27015, a random RCONPassword (never printed or kept), DoLuaChecksum=false, sandbox HostHelper = true. Helper `zed_rcon_helper.py --zomboid C:\Users\danie\Zomboid\zedqa_mp --server zedqa`, output in `ZeDUI/tools/qa/b9_hr_helper.log`.
+- Test server (zedqa_mp) with RCONPort 27015, a random RCONPassword (never printed or kept), DoLuaChecksum=false, sandbox HostHelper = true. Helper `zed_rcon_helper.py --zomboid %USERPROFILE%\Zomboid\zedqa_mp --server zedqa`, output in `ZeDUI/tools/qa/b9_hr_helper.log`.
 - Admin client (zedqa, windowed 1280x800) and a second client logged in as the new account b9_mod (the account must have been on the server once: ZeD takes a timed ban only for a name it has seen).
 - Script `zedqa_b9_helper_role.lua` (tag b9hr), driver `b9_helper_role_run.ps1`, log `b9_hr_run.log`.
 

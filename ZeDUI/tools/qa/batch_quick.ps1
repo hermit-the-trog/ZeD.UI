@@ -3,9 +3,9 @@
 param([string]$Manifest, [string]$Tag)
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Z = "C:\Users\danie\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Save = "$Z\Saves\Sandbox\ZeD-QA"
-$KeepSave = "C:\Users\danie\ZedQaSaveKeep_quick"
+$KeepSave = "$env:USERPROFILE\ZedQaSaveKeep_quick"
 if (Test-Path $KeepSave) { Write-Output "keep folder exists, stop"; exit 1 }
 Copy-Item $Save $KeepSave -Recurse
 try { & pwsh -NoProfile -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\$Manifest" -Report "$Z\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_$Tag.md" -Mode fullscreen4k 2>&1 | Select-Object -Last 1 }

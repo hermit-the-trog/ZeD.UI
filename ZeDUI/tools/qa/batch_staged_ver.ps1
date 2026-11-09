@@ -3,7 +3,7 @@
 $Qa = $PSScriptRoot
 $Root = [IO.Path]::GetFullPath("$Qa/../../..")
 $env:ZEDQA_NOSTEAM = "1"
-$dest = "C:/Users/danie/Zomboid/Workshop/ZeD-UI/Contents/mods/ZeD-UI/42/media/lua/client/ZeD"
+$dest = "$env:USERPROFILE/Zomboid/Workshop/ZeD-UI/Contents/mods/ZeD-UI/42/media/lua/client/ZeD"
 Copy-Item "$Root/42/media/lua/client/ZeD/QABridge.lua" $dest -Force
 try { & pwsh -NoProfile -File "$Qa/zedqa_run.ps1" -Manifest "$Qa/staged_ver.txt" -Report "$Root/ZeDUI/qa/regression/2026-11-06_staged_ver.md" -StagedCopy 2>&1 | Select-Object -Last 1 }
 finally { Remove-Item "$dest/QABridge.lua" -Force -ErrorAction SilentlyContinue }

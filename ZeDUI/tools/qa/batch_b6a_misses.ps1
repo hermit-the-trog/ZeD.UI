@@ -2,12 +2,12 @@
 # ZeDUI/tools/qa/batch_b6a_misses.ps1  (Nov 6 2026, QA): a real right click on dropped items on the save the regression ran on, then that save aside, the 5:05 pm backup back, and the regression's four misses again.
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Z = "C:\Users\danie\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Lua = "$Z\Lua"
 $Shots = "$Z\Screenshots"
 $Rep = "$Z\mods\ZeD-UI\ZeDUI\qa\regression"
 $Save = "$Z\Saves\Sandbox\ZeD-QA"
-$Aside = "C:\Users\danie\ZedQaSavePen_20261106"
+$Aside = "$env:USERPROFILE\ZedQaSavePen_20261106"
 $Clean = "D:\ZeD-UI backup\2026-11-06-beta6\Saves_Sandbox_ZeD-QA"
 Remove-Item "$Lua\zedqa_click_stop.txt", "$Lua\zedqa_click.txt" -ErrorAction SilentlyContinue
 $h = Start-Process pwsh -ArgumentList "-NoProfile", "-File", "$Qa\release_check_mouse.ps1", "-MaxMinutes", "4" -WindowStyle Hidden -PassThru

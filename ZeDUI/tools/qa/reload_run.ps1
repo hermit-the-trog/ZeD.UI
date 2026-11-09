@@ -6,7 +6,7 @@
 #   pwsh -File ZeDUI/tools/qa/reload_run.ps1
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
-$lua = "C:\Users\danie\Zomboid\Lua"
+$lua = "$env:USERPROFILE\Zomboid\Lua"
 $ini = Join-Path $lua "ModOptions.ini"
 $copy = Join-Path $lua "zedqa_reload_ini.txt"
 $was = [System.IO.File]::ReadAllBytes($ini)

@@ -14,8 +14,8 @@ import math
 from PIL import Image, ImageFont, ImageDraw
 
 # ── Config ──────────────────────────────────────────────────────────────
-TTF_PATH = r"C:\Users\danie\Downloads\flexi_ibm_vga_true\Flexi_IBM_VGA_True.ttf"
-OUT_ROOT = r"C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\fonts\EN"
+TTF_PATH = os.path.expanduser(r"~\Downloads\flexi_ibm_vga_true\Flexi_IBM_VGA_True.ttf")
+OUT_ROOT = os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\42\media\fonts\EN")
 FACE_NAME = "Flexi IBM VGA True"
 
 # Font sizes: (output_name, base_px)

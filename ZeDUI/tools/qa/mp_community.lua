@@ -1,5 +1,5 @@
 -- ZeDUI/tools/qa/mp_community.lua  (Nov 6 2026, QA): multiplayer Phase 5, community, on the local server. grep "ZEDQA mcom", then the
--- server's logs in C:\Users\danie\Zomboid\zedqa_mp\Logs (*_ZeD.txt and *_DebugLog-server.txt).
+-- server's logs in %USERPROFILE%\Zomboid\zedqa_mp\Logs (*_ZeD.txt and *_DebugLog-server.txt).
 --   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"     (the shim carries ZeDQA.role)
 --   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_community.txt
 -- The test client joins as admin (a -debug client must). ZeDQA.role changes the role the server part reads and leaves the connection's,

@@ -26,7 +26,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $QaDir = $PSScriptRoot
-$Z = "C:\Users\danie\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Lua = Join-Path $Z "Lua"
 $Lock = Join-Path $Lua "zedqa.lock"
 $GoFile = Join-Path $Lua "zedqa.go"

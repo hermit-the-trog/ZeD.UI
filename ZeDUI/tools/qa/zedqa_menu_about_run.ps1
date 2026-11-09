@@ -13,7 +13,7 @@
     ... -Width 1920 -Height 1080 -Scripts "zedqa_menu_desk_v4.lua|mdv|90","zedqa_menu_about.lua|mab|90"
 #>
 param([int]$Width = 1280, [int]$Height = 720, [string[]]$Scripts = @("zedqa_menu_about.lua|mab|90"))   # each "file|tag|seconds"; the look and end scripts wrap them
-$Zomboid = "C:\Users\danie\Zomboid"
+$Zomboid = "$env:USERPROFILE\Zomboid"
 $Lua = Join-Path $Zomboid "Lua"
 $QA = $PSScriptRoot
 $log = Join-Path $Zomboid "console.txt"

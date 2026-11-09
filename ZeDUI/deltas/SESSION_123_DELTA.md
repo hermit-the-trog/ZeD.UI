@@ -67,7 +67,7 @@ Debug mode is on (`-debug` Steam launch option) so the in-game Command Console h
 ```
 function zq() local r=getFileReader('zedqa.lua',false) local s='' local l=r:readLine() while l do s=s..l..string.char(10) l=r:readLine() end r:close() print('zedqa',pcall(loadstring(s))) end
 ```
-Then any test is: write `C:\Users\danie\Zomboid\Lua\zedqa.lua` from the shell → type `zq()` in the console → grep `ZEDQA` in `console.txt` (strip NULs with `tr -d '\000'`). Scripts schedule follow-up checks with an `Events.OnTick` counter so one `zq()` covers a whole sequence. `loadstring` exists in PZ's Kahlua.
+Then any test is: write `%USERPROFILE%\Zomboid\Lua\zedqa.lua` from the shell → type `zq()` in the console → grep `ZEDQA` in `console.txt` (strip NULs with `tr -d '\000'`). Scripts schedule follow-up checks with an `Events.OnTick` counter so one `zq()` covers a whole sequence. `loadstring` exists in PZ's Kahlua.
 
 ### Verb dispatch results (temp `ZeD_ItemCard` + `_dispatchHeaderVerb`, real TimedActions)
 | Verb | Item | Queue head | State after | `_effectiveContext()` |

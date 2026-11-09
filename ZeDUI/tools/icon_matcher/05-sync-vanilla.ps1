@@ -7,8 +7,8 @@
 
 $scriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $vanillaDir = Join-Path $scriptDir "vanilla-icons"
-$luaPath    = "C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
-$destRoot   = "C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons"
+$luaPath    = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
+$destRoot   = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons"
 
 New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
 

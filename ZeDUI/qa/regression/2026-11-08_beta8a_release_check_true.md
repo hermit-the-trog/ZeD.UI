@@ -9,17 +9,17 @@
 | Game build | 42.21.0 4a0e9546ec |
 | Mod version | 0.3.0-beta8a |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\b8a_stage.txt (7 scripts) |
+| Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\b8a_stage.txt (7 scripts) |
 | Result | **7/7 pass**, 0 warn, 0 fail, 0 timeout |
 | Go numbers | 10000 to 10008 |
 
-Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
 - ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
 - pzrestorewin.ps1 (before a fullscreen run): no backup
-- started ProjectZomboid64.exe -debug -nosteam -cachedir=C:\Users\danie\ZomboidStaged (fullscreen, the director's options.ini)
+- started ProjectZomboid64.exe -debug -nosteam -cachedir=%USERPROFILE%\ZomboidStaged (fullscreen, the director's options.ini)
 - loaded; clicked the screen centre (1920,1080) to pass 'click to start'
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - quit: quit to the main menu, then to the desktop (go 10007, 10008)
@@ -110,7 +110,7 @@ ZEDQA rel DONE
 ```text
 [ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=38 missing=get
 [ZeD.QA] windows reset (R)
-ZEDQA sv version=0.3.0-beta8a dir=C:\Users\danie\ZomboidStaged\mods\ZeD-UI
+ZEDQA sv version=0.3.0-beta8a dir=%USERPROFILE%\ZomboidStaged\mods\ZeD-UI
 [ZeD.QA] run #4 ok=true
 ZEDQA sv DONE
 ```
@@ -178,7 +178,7 @@ ZEDQA b8arp Zomboid folder found: yes, under a Users folder: yes
 ZEDQA b8arp start
 [ZeD.QA] run #7 ok=true
 ERROR: General f:4279> Lua(Vanilla).boom> Exception thrown   (expected)
-    se.krka.kahlua.vm.KahluaException: ZEDQA-b8arp-planted in C:\Users\danie\ZomboidStaged\Lua\b8arp.txt; C:/Users/danie/ZomboidStaged/Saves/b8arp; C:\Users\danie\AppData\Local\b8arp.tmp; c:/USERS/DANIE/Downloads/b8arp.lua at BaseLib.error(BaseLib.java:307).
+    se.krka.kahlua.vm.KahluaException: ZEDQA-b8arp-planted in %USERPROFILE%\ZomboidStaged\Lua\b8arp.txt; %USERPROFILE%/ZomboidStaged/Saves/b8arp; %USERPROFILE%\AppData\Local\b8arp.tmp; %USERPROFILE%/Downloads/b8arp.lua at BaseLib.error(BaseLib.java:307).
     Lua(Vanilla).boom(Apocalypse.lua:75)
 ZEDQA b8arp PASS the planted error is filed in Messages
 ZEDQA b8arp PASS Copy (one error): the planted error is in the copy

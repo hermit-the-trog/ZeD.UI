@@ -1,6 +1,6 @@
 import sys; sys.stdout.reconfigure(encoding="utf-8")
 import re, json, os, glob
-D = r"C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\workshop\steam_threads"
+D = os.path.expanduser(r"~\Zomboid\mods\ZeD-UI\ZeDUI\workshop\steam_threads")
 FILES = ["2_compatibility.txt","2_compatibility_b_notes.txt","2_compatibility_c_grade_a_1.txt","2_compatibility_c_grade_a_2.txt","6_credits.txt","2_compatibility_round2.txt","2_compatibility_round2_vehicles.txt"]
 WS = r"E:\Project Zomboid\SteamApps\workshop\content\108600"
 pat = re.compile(r"\[url=https://steamcommunity\.com/sharedfiles/filedetails/\?id=(\d+)\](.*?)\[/url\](.*?)(?=\[url=https://steamcommunity\.com/sharedfiles|\n|$)")

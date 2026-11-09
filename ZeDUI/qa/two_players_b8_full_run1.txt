@@ -7,7 +7,7 @@
 02:34:38 started the server, PID 94052; waiting for it to be ready
 02:35:10 ready after 32 s
 02:35:10 server up
-02:36:17 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
+02:36:17 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
 02:37:02 second client joining as bob
 02:37:24 -- bob runs mp_p2_newchar.lua
 02:39:25 TIMEOUT
@@ -496,7 +496,7 @@
 03:59:14 helper started, PID 95880
 03:59:17 E23: the helper's answers.txt is fresh (the helper reached the console and logged in): True
 03:59:18 E24: RCON listening on 27015: True  (the flag -Drconlo=true cannot be added by this kit's server launcher: manual)
-04:00:26 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
+04:00:26 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
 04:01:13 second client joining as bob
 04:01:35 -- bob runs mp_p2_newchar.lua
 04:03:36 TIMEOUT
@@ -550,7 +550,7 @@
 04:18:29 ZEDQA b8hp 16 passed, 1 failed
 04:18:29 ZEDQA b8hp DONE
 04:18:29 E22: the queue file exists in the server's own Lua folder: True
-04:18:29 helper> 2026-11-08 03:59:14 ZeD host helper 1: C:\Users\danie\Zomboid\zedqa_mp\Lua\ZeD_helper, console 127.0.0.1:27015 (password from the settings file)
+04:18:29 helper> 2026-11-08 03:59:14 ZeD host helper 1: %USERPROFILE%\Zomboid\zedqa_mp\Lua\ZeD_helper, console 127.0.0.1:27015 (password from the settings file)
 04:18:29 helper> 2026-11-08 04:04:35 ok Ban bob: System banned user bob
 04:18:29 helper> 2026-11-08 04:04:43 ok UnBan bob: System unbanned user bob
 04:18:29 E23: the helper made banuser: False, unbanuser: False, voiceban: False, kickuser: False

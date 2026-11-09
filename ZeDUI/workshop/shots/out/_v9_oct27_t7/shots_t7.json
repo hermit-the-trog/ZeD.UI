@@ -1,6 +1,6 @@
 {
   "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6. Oct 27 2026 (0.2.0-t7): every card retaken on this build and laid out again (balloons kept off what they explain: \"avoid\" boxes and the overlap report in make_shots.py); new cards: Every window, See-through, Controller highlight, Hidden actions, List or grid, Crafting, Building, Foraging and furniture, The belt, Moodles, Ovens and microwaves, Reading and writing, Fishing, Questions; renumbered 1-55. The t6 set is in out/_v8_oct27_t6_final.",
-  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_t7",
+  "screens": "%USERPROFILE%/Zomboid/Screenshots/gallery_t7",
   "out": "out",
   "patches": [
     [
@@ -1604,7 +1604,7 @@
       "id": "every_window",
       "n": 15,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_02_dark_small_window_menu_theme.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_02_dark_small_window_menu_theme.png",
       "title": "Every window",
       "caption": "The window menu and the help line are on every ZeD window.",
       "crops": [
@@ -1622,7 +1622,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_01_dark_small_card.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_01_dark_small_card.png",
           "box": [
             751,
             690,
@@ -1637,7 +1637,7 @@
           "tag": "AT REST"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_14_focus_hand_inventory_row.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_14_focus_hand_inventory_row.png",
           "box": [
             943,
             690,
@@ -1735,7 +1735,7 @@
       "id": "see_through",
       "n": 16,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_08_seethrough_100.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_08_seethrough_100.png",
       "title": "See-through",
       "caption": "See-through runs from 100 to 60, and 90 is the default. Solid while in use makes the window under the pointer solid.",
       "layout": {
@@ -1755,7 +1755,7 @@
           "tag": "SEE-THROUGH 100"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_12_seethrough_60.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_12_seethrough_60.png",
           "box": [
             930,
             0,
@@ -1792,7 +1792,7 @@
       "id": "controller_highlight",
       "n": 17,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_14_focus_hand_inventory_row.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_14_focus_hand_inventory_row.png",
       "title": "Controller highlight",
       "caption": "Four ways to mark what the controller is on. Pick one in the window menu, under Controller highlight.",
       "layout": {
@@ -1804,7 +1804,7 @@
       },
       "crops": [
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_14_focus_hand_inventory_row.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_14_focus_hand_inventory_row.png",
           "box": [
             1352,
             452,
@@ -1814,7 +1814,7 @@
           "tag": "POINTING HAND"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_16_focus_corners_inventory_row.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_16_focus_corners_inventory_row.png",
           "box": [
             1352,
             452,
@@ -1824,7 +1824,7 @@
           "tag": "CORNER MARKS"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_18_focus_wash_inventory_row.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_18_focus_wash_inventory_row.png",
           "box": [
             1352,
             452,
@@ -1834,7 +1834,7 @@
           "tag": "ONE WASH"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_20_focus_ants_inventory_row.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_20_focus_ants_inventory_row.png",
           "box": [
             1352,
             452,
@@ -1899,7 +1899,7 @@
       "id": "hidden_actions",
       "n": 18,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_29_hair_beard_folded.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_29_hair_beard_folded.png",
       "title": "Hidden actions",
       "caption": "Hidden actions: Folded (the default), Show all or Hide. Shown on Hair and beard, with no scissors or razor.",
       "layout": {
@@ -1919,7 +1919,7 @@
           "tag": "FOLDED, THE DEFAULT"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_cw_30_hair_beard_show_all.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_cw_30_hair_beard_show_all.png",
           "box": [
             552,
             112,
@@ -3161,12 +3161,12 @@
       "id": "belt",
       "n": 30,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ht_01_two.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ht_01_two.png",
       "title": "The belt",
       "caption": "The hands sit at the left end of the belt, then the strap. A gun in the main hand adds a tab for its rounds.",
       "crops": [
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ht_01_two.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ht_01_two.png",
           "box": [
             1415,
             2027,
@@ -3181,7 +3181,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ht_02_both.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ht_02_both.png",
           "box": [
             1478,
             2027,
@@ -3196,7 +3196,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ht_06_rightwatch_pistol.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ht_06_rightwatch_pistol.png",
           "box": [
             1106,
             2027,
@@ -3306,7 +3306,7 @@
       "id": "bubbles",
       "n": 31,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_bub_both_dark.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_bub_both_dark.png",
       "title": "Speech, thoughts and hands",
       "caption": "What your character says, and the action under way, over the head. The hands sit at the belt's left end, each with a condition ring.",
       "crops": [
@@ -3326,7 +3326,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ht_01_two.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ht_01_two.png",
           "box": [
             1425,
             2020,
@@ -3341,7 +3341,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ht_02_both.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ht_02_both.png",
           "box": [
             1488,
             2020,
@@ -3423,12 +3423,12 @@
       "id": "moodles",
       "n": 32,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mood_right_hover.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mood_right_hover.png",
       "title": "Moodles",
       "caption": "The moodles are the game's own. ZeD places them where you choose and draws the note that explains one.",
       "crops": [
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mood_left_hover.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mood_left_hover.png",
           "box": [
             0,
             940,
@@ -3443,7 +3443,7 @@
           "tag": "LEFT EDGE"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mood_bottom_hover.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mood_bottom_hover.png",
           "box": [
             1536,
             1760,
@@ -3682,7 +3682,7 @@
       "id": "messages",
       "n": 34,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g4_window_radio.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g4_window_radio.png",
       "title": "Messages",
       "caption": "Notes from other mods go into one window instead of covering the game. Questions still ask at once.",
       "crops": [
@@ -3701,7 +3701,7 @@
           "tag": "MESSAGES"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g4_belt_toast.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g4_belt_toast.png",
           "box": [
             3105,
             255,
@@ -3716,7 +3716,7 @@
           "tag": "THE TOAST"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g4_belt_toast.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g4_belt_toast.png",
           "box": [
             1995,
             2018,
@@ -3999,7 +3999,7 @@
       "id": "dashboards",
       "n": 36,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_r6p_taxi_extras.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_r6p_taxi_extras.png",
       "title": "Dashboards",
       "caption": "The key turns as the engine starts, the ash tray opens with a click, and the taxi's meter runs.",
       "layout": {
@@ -4080,7 +4080,7 @@
       "id": "two_way_radios",
       "n": 37,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_tw_1b_valutech_tab.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_tw_1b_valutech_tab.png",
       "title": "Two-way radios",
       "caption": "Walkie talkies, the ManPack and the ham sets each have their own face in the radio tab.",
       "crops": [
@@ -4099,7 +4099,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_tw_5_ham_civilian_tab.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_tw_5_ham_civilian_tab.png",
           "box": [
             2646,
             44,
@@ -4114,7 +4114,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_tw_3a_valutech_full_view.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_tw_3a_valutech_full_view.png",
           "box": [
             2660,
             600,
@@ -4244,7 +4244,7 @@
       "id": "ovens",
       "n": 38,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ap_1_tab_stove.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ap_1_tab_stove.png",
       "title": "Ovens and microwaves",
       "caption": "An oven or microwave shows its own controls in the Craft tab, and they can pop out into a window.",
       "patches": [
@@ -4281,7 +4281,7 @@
           "tag": "IN THE CRAFT TAB"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ap_2b_popout_stove_on.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ap_2b_popout_stove_on.png",
           "box": [
             1200,
             748,
@@ -4296,7 +4296,7 @@
           "tag": "POPPED OUT"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_ap_4_popout_microwave.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_ap_4_popout_microwave.png",
           "box": [
             1200,
             690,
@@ -4380,7 +4380,7 @@
       "id": "reading_writing",
       "n": 39,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_rd_01_paper.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_rd_01_paper.png",
       "title": "Reading and writing",
       "caption": "A newspaper opens in a reader, and a notebook opens as a page to write on.",
       "crops": [
@@ -4399,7 +4399,7 @@
           "tag": "THE PAPER"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_rd_02_words.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_rd_02_words.png",
           "box": [
             895,
             198,
@@ -4414,7 +4414,7 @@
           "tag": "THE WORDS"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_nb_01_page1.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_nb_01_page1.png",
           "box": [
             880,
             198,
@@ -4520,7 +4520,7 @@
       "id": "fishing",
       "n": 40,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_fi_1_slack.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_fi_1_slack.png",
       "title": "Fishing",
       "caption": "While the line is out, the rod in your hands shows its tension above the belt.",
       "crops": [
@@ -4539,7 +4539,7 @@
           "tag": "SLACK"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_fi_3_tight.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_fi_3_tight.png",
           "box": [
             1330,
             1600,
@@ -4554,7 +4554,7 @@
           "tag": "TIGHT"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_fi_5_limit.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_fi_5_limit.png",
           "box": [
             1330,
             1690,
@@ -4640,7 +4640,7 @@
       "id": "questions",
       "n": 41,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_pr_01_sleep.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_pr_01_sleep.png",
       "title": "Questions",
       "caption": "The game's own questions and prompts, drawn as ZeD windows. The pad gets an on-screen keyboard.",
       "crops": [
@@ -4659,7 +4659,7 @@
           "tag": "A QUESTION"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_pr_07_alarm.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_pr_07_alarm.png",
           "box": [
             1640,
             845,
@@ -4674,7 +4674,7 @@
           "tag": "SET A TIME"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_pr_06_keyboard.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_pr_06_keyboard.png",
           "box": [
             1410,
             915,
@@ -4777,7 +4777,7 @@
     {
       "id": "controller_map",
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png",
+      "src": "%USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png",
       "title": "Controller",
       "patches": [],
       "caption": "Every mouse action has a button: A is left click, X is right click, B backs out.",
@@ -4986,7 +4986,7 @@
       "id": "controller",
       "n": 43,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g3_wheel_character_eat.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g3_wheel_character_eat.png",
       "title": "On a controller",
       "caption": "Hold a D-pad direction for a wheel: Character, World, Social, Here and now. Point with the right stick, let go to take.",
       "crops": [
@@ -5004,7 +5004,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g3_wheel_now_light.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g3_wheel_now_light.png",
           "box": [
             1690,
             875,
@@ -5018,7 +5018,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g3_wheel_use_smoke.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g3_wheel_use_smoke.png",
           "box": [
             1690,
             875,
@@ -5032,7 +5032,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g3_footer_pad.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g3_footer_pad.png",
           "box": [
             1128,
             566,
@@ -5116,7 +5116,7 @@
       "id": "quick_actions",
       "n": 44,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g3_setup_putback.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g3_setup_putback.png",
       "title": "Quick actions",
       "caption": "Hold LB or RB and press A, B, X, Y, L3 or R3: twelve actions from the wheels, set in ZeD setup or from a wheel.",
       "crops": [
@@ -5135,7 +5135,7 @@
           ]
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_g3_setup_list.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_g3_setup_list.png",
           "box": [
             1920,
             1403,
@@ -5580,12 +5580,12 @@
       "id": "sandbox_ingame",
       "n": 49,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_sbx_world_help.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_sbx_world_help.png",
       "title": "Sandbox options in game",
       "caption": "Change this save's sandbox settings from the pause window. Off until you turn it on in ZeD setup.",
       "crops": [
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_sbx_pause_line.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_sbx_pause_line.png",
           "box": [
             1590,
             795,
@@ -5924,7 +5924,7 @@
       "id": "mod_settings",
       "n": 51,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_r1_reset_files.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_r1_reset_files.png",
       "title": "A mod's settings",
       "caption": "A mod's own options, the sandbox settings it adds to each game, and Reset settings, which asks first.",
       "crops": [
@@ -5943,7 +5943,7 @@
           "tag": "OPTIONS"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_5_srm_sandbox.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_5_srm_sandbox.png",
           "box": [
             1980,
             372,
@@ -5958,7 +5958,7 @@
           "tag": "SANDBOX, MOD OFF"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_r2_reset_confirm.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_r2_reset_confirm.png",
           "box": [
             1000,
             1557,
@@ -6054,7 +6054,7 @@
       "id": "file_picks",
       "n": 52,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_8_picker_picked.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_8_picker_picked.png",
       "title": "Picking files",
       "caption": "Two mods with the same code file: pick whose copy the game runs, file by file. Single player only.",
       "crops": [
@@ -6073,7 +6073,7 @@
           "tag": "PICK FILES"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_9_picked.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_9_picked.png",
           "box": [
             1980,
             686,
@@ -6173,7 +6173,7 @@
       "id": "turn_off",
       "n": 53,
       "kind": "feature",
-      "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_12_turnoff_items.png",
+      "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_12_turnoff_items.png",
       "title": "Turning a mod off",
       "caption": "What turning a mod off does to a save: careful or not safe, and why. In a save's own list, a mod that is not safe asks first.",
       "crops": [
@@ -6192,7 +6192,7 @@
           "tag": "IN THE MAIN LIST"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_14_ask_off.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_14_ask_off.png",
           "box": [
             1980,
             372,
@@ -6207,7 +6207,7 @@
           "tag": "IN A SAVE'S OWN LIST"
         },
         {
-          "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src_t7/zqa_mp_14_ask_off.png",
+          "src": "%USERPROFILE%/Zomboid/Screenshots/workshop_src_t7/zqa_mp_14_ask_off.png",
           "box": [
             1000,
             1557,

@@ -36,7 +36,7 @@
   ],
   "prints": [
    {
-    "src": "C:/Users/danie/Zomboid/Screenshots/gallery_beta2/story_04b_vehicle_tab_tire.png",
+    "src": "%USERPROFILE%/Zomboid/Screenshots/gallery_beta2/story_04b_vehicle_tab_tire.png",
     "box": [
      2222,
      45,
@@ -187,7 +187,7 @@
   ],
   "prints": [
    {
-    "src": "C:/Users/danie/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
+    "src": "%USERPROFILE%/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
     "box": [
      2230,
      118,
@@ -205,7 +205,7 @@
     ]
    },
    {
-    "src": "C:/Users/danie/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
+    "src": "%USERPROFILE%/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
     "box": [
      1735,
      850,

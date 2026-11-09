@@ -6,7 +6,7 @@
 $scriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $vanillaDir = Join-Path $scriptDir "vanilla-icons"
 $outputPath = Join-Path $scriptDir "vanilla-catalog.html"
-$luaPath    = "C:\Users\danie\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
+$luaPath    = "$env:USERPROFILE\Zomboid\mods\ZeD-UI\42\media\lua\shared\ZeD\ContextIcons.lua"
 
 if (-not (Test-Path $vanillaDir)) {
     Write-Host "ERROR: vanilla-icons folder not found at $vanillaDir" -ForegroundColor Red
@@ -80,6 +80,7 @@ if (Test-Path $luaPath) {
 $totalIcons  = $iconList.Count
 $totalCats   = $catCounts.Count
 $vanillaRoot = $vanillaDir -replace '\\', '\\\\'  # escaped for JS string literal
+$modIconsJs = (Join-Path $env:USERPROFILE 'Zomboid\mods\ZeD-UI\42\media\textures\ZeD\icons').Replace('\', '\\').Replace("'", "\'")   # likewise, from the user folder
 
 # =============================================================================
 # HTML TEMPLATE
@@ -964,7 +965,7 @@ function renderMockup(){
 // ================================================================
 function renderExport(){
   const vanillaRoot=DATA.root_path;
-  const modIcons='C:\\Users\\danie\\Zomboid\\mods\\ZeD-UI\\42\\media\\textures\\ZeD\\icons';
+  const modIcons=DATA.mod_icons;   // (set by the build script, from the user folder)
   const entries=PZ_ACTIONS.filter(a=>getAssignedIcon(a.name)!==null);
   if(!entries.length){
     document.getElementById('luaTa').value='-- No icons assigned yet.\n-- Assign icons in the Actions panel, then return here.';
@@ -1146,7 +1147,7 @@ function copyText(text,btnId){
 $htmlBottom = @"
 ;
 // Build config
-const DATA={root_path:'$vanillaRoot',total_icons:$totalIcons,total_categories:$totalCats};
+const DATA={root_path:'$vanillaRoot',mod_icons:'$modIconsJs',total_icons:$totalIcons,total_categories:$totalCats};
 $seededJs
 try{init();}catch(e){document.getElementById('hStats').textContent='JS ERROR: '+e.message+' :: '+e.stack.split('\n')[1];}
 </script>

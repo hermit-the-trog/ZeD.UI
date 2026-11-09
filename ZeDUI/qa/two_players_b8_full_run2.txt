@@ -7,7 +7,7 @@
 05:24:20 started the server, PID 92744; waiting for it to be ready
 05:24:52 ready after 32 s
 05:24:52 server up
-05:26:02 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
+05:26:02 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_b8_mp_start.md
 05:26:49 second client joining as bob
 05:27:12 -- bob runs mp_p2_newchar.lua
 05:29:12 TIMEOUT

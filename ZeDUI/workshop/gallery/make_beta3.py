@@ -10,7 +10,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 UP = os.path.join(HERE, "upload")
 OUT = os.path.join(HERE, sys.argv[1] if len(sys.argv) > 1 else "upload_beta3")
-SHOTS = "C:/Users/danie/Zomboid/Screenshots"
+SHOTS = os.path.expanduser("~/Zomboid/Screenshots")
 G14 = SHOTS + "/gallery_t14"
 
 CIN = os.path.join(HERE, "cinema")

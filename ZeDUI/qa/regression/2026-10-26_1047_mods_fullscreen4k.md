@@ -9,11 +9,11 @@
 | Game build | 42.21.0 4a0e9546ec |
 | Mod version | 0.1.1242300k |
 | Save | Saves/Sandbox/ZeD-QA |
-| Manifest | C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/hairbeard_manifest.txt (2 scripts) |
+| Manifest | %USERPROFILE%/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/hairbeard_manifest.txt (2 scripts) |
 | Result | **0/2 pass**, 0 warn, 2 fail, 0 timeout |
 | Go numbers | 13306 to 13316 |
 
-Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
 ## Run notes
 
@@ -24,7 +24,7 @@ Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
 - stopped after zedqa_hairbeard.lua: the game dropped to the main menu during this script
 - quit: the game was still running after the quit (go 13312, 13315, 13316); close it by hand
-- ZeD settings NOT put back (the game is still running): copy C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-26_1047_mods_fullscreen4k.md.modoptions.ini over C:\Users\danie\Zomboid\Lua\ModOptions.ini once it has closed
+- ZeD settings NOT put back (the game is still running): copy %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-10-26_1047_mods_fullscreen4k.md.modoptions.ini over %USERPROFILE%\Zomboid\Lua\ModOptions.ini once it has closed
 
 ## Results
 

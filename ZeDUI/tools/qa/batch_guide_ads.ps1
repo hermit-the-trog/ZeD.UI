@@ -5,11 +5,11 @@
 param([switch]$Only1080)
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
-$Z = "C:\Users\danie\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Save = "$Z\Saves\Sandbox\ZeD-QA"
-$KeepSave = "C:\Users\danie\ZedQaSaveKeep_gad"
+$KeepSave = "$env:USERPROFILE\ZedQaSaveKeep_gad"
 $Shots = "$Z\Screenshots"
-$Out = "C:\Users\danie\AppData\Local\Temp\claude\927f5331f6a7940b\8d4042f4-6e83-4cb6-9f64-0a1e0b9a2dae\scratchpad\gad"
+$Out = "$env:USERPROFILE\AppData\Local\Temp\claude\927f5331f6a7940b\8d4042f4-6e83-4cb6-9f64-0a1e0b9a2dae\scratchpad\gad"
 $Reg = "$Z\mods\ZeD-UI\ZeDUI\qa\regression"
 New-Item -ItemType Directory -Force $Out | Out-Null
 if (Test-Path $KeepSave) { Write-Output "keep folder exists, stop"; exit 1 }

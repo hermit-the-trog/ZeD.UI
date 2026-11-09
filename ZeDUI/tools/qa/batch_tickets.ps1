@@ -7,12 +7,12 @@ $Qa = $PSScriptRoot
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 $Rep = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression")
 function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }
-$Cache = "C:\Users\danie\Zomboid\zedqa_mp"
+$Cache = "$env:USERPROFILE\Zomboid\zedqa_mp"
 $Keep = Join-Path $env:TEMP "zedqa_mp_keep_tk"
 New-Item -ItemType Directory -Force $Keep | Out-Null
 if (Test-Path "$Cache\db\zedqa.db") { Copy-Item "$Cache\db\zedqa.db" "$Keep\zedqa.db" -Force }
 Copy-Item "$Cache\Server\zedqa.ini" "$Keep\zedqa.ini" -Force
-$MO = "C:\Users\danie\Zomboid\Lua\ModOptions.ini"; Copy-Item $MO "$Keep\ModOptions.ini" -Force
+$MO = "$env:USERPROFILE\Zomboid\Lua\ModOptions.ini"; Copy-Item $MO "$Keep\ModOptions.ini" -Force
 try {
     & "$Qa\mp_server.ps1" -Start -Mods "ZeD_UI;ZeDQAShim" -Set $Set | ForEach-Object { Note $_ }
     foreach ($r in ($Runs -split ",")) {
