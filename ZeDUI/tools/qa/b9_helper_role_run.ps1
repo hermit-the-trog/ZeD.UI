@@ -6,7 +6,7 @@
 # in a pipeline keeps it open forever). ALWAYS puts back: Contents, the server's ini, sandbox file and db, ModOptions.
 $env:ZEDQA_NOSTEAM = "1"
 $Qa = $PSScriptRoot
-$Z = "C:\Users\danie\Zomboid"
+$Z = "$env:USERPROFILE\Zomboid"
 $Cache = "$Z\zedqa_mp"
 $Lua = "$Z\Lua"
 $Lock = "$Lua\zedqa.lock"
@@ -15,8 +15,8 @@ $ConB = "$Z\zedqa_p2\console.txt"
 $Log = "$Qa\b9_hr_run.log"
 $Tmp = "$Qa\b9_hr_tmp"
 $HelperLog = "$Qa\b9_hr_helper.log"
-$Py = "C:\Users\danie\Documents\ComfyUI\.venv\Scripts\python.exe"
-$Ws = "C:\Users\danie\Zomboid\Workshop\ZeD-UI"
+$Py = "$env:USERPROFILE\Documents\ComfyUI\.venv\Scripts\python.exe"
+$Ws = "$env:USERPROFILE\Zomboid\Workshop\ZeD-UI"
 $Keep = "$Z\zedqa_b9hr_keep"
 function L($s) { "$(Get-Date -Format 'HH:mm:ss') $s" | Add-Content $Log }
 function ConText($p) { try { (Get-Content -LiteralPath $p -Raw -ErrorAction Stop) -replace "`0", "" } catch { "" } }
