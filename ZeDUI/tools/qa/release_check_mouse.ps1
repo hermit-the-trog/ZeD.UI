@@ -21,9 +21,11 @@ Add-Type -Namespace ZedQA -Name Mouse -MemberDefinition @'
 $front = Join-Path $PSScriptRoot "pzfront.ps1"
 $until = (Get-Date).AddMinutes($MaxMinutes)
 while ((Get-Date) -lt $until -and -not (Test-Path $stop)) {
+    # (Nov 9 2026: a read or delete that races the game's write of the request used to stop the helper for good under
+    # ErrorAction Stop, and every later step said "the mouse helper never answered"; now that request is tried again)
     if (Test-Path $req) {
-        $line = (Get-Content $req -Raw).Trim()
-        Remove-Item $req -Force
+        try { $line = ([string](Get-Content $req -Raw -ErrorAction Stop)).Trim(); Remove-Item $req -Force -ErrorAction Stop }
+        catch { Start-Sleep -Milliseconds 100; continue }
         if ($line -match '^(right|left|move|down|up)\s+(\d+)\s+(\d+)$') {   # (down, up: Nov 6 2026, the left button held for a real drag)
             $btn, $x, $y = $Matches[1], [int]$Matches[2], [int]$Matches[3]
             if (Test-Path $front) { & $front | Out-Null }
