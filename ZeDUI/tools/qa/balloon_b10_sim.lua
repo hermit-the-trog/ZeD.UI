@@ -279,6 +279,26 @@ do
     ok(y >= strip.y + strip.h, "with no room above, the balloon goes under the strip and does not cover it")
 end
 
+-- TALL: a balloon too tall for above or under goes beside the control, its tip still on it
+do
+    SW, SH = 1280, 800
+    local T = setT("dark", 800 / 1080, "large")
+    local lines = {}
+    for i = 1, 30 do lines[i] = "A line of requirement words, number " .. i end
+    local c = { kind = "rich", title = "Tall", lines = lines }
+    local a = { x = 400, y = 380, w = T.px(22), h = T.px(22) }
+    local lay = B.layout(c)
+    ok(lay.h > 380, "TALL the balloon is taller than the room above or under (" .. lay.h .. ")")
+    local p = recorder(0, 0)
+    NOW = NOW + 1000
+    local x, y, w, h = B.draw(p, c, a, "above", { key = "tall" })
+    local pl = B.lastPlace
+    local tip = tipOf(p, nil, { x = x, y = y, w = w, h = h })
+    ok(pl.side == "right" or pl.side == "left", "TALL it goes beside (" .. tostring(pl.side) .. ")")
+    ok(tip and tip.y >= a.y and tip.y < a.y + a.h, "TALL the tail's tip at the control's height")
+    ok(x >= a.x + a.w or x + w <= a.x, "TALL the box does not cover the control")
+end
+
 -- ---------------------------------------------------------------- ONE at a time
 do
     SW, SH = 1920, 1080
@@ -433,13 +453,40 @@ local function lum(c)
     return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b)
 end
 local function ratio(a, b) local x, y = lum(a), lum(b); if x < y then x, y = y, x end; return (x + 0.05) / (y + 0.05) end
+-- the live palette: the real ZeD.applyTheme (the accent's tint on the surfaces, the see-through alphas), then every
+-- surface the derivation covers (each translucent surface flattened over the worst world grey, the hover and
+-- selection washes, the status badge wash) and surface 2 drawn solid, as the balloon draws it
+local function flat(world, s, c, ca)
+    local sa = s.a or 1
+    local r, g, b = s.r * sa + world * (1 - sa), s.g * sa + world * (1 - sa), s.b * sa + world * (1 - sa)
+    if c then r, g, b = c.r * ca + r * (1 - ca), c.g * ca + g * (1 - ca), c.b * ca + b * (1 - ca) end
+    return { r = r, g = g, b = b }
+end
 for _, theme in ipairs({ "dark", "light", "hicon" }) do
     for acc in pairs(ZeD.AccentColors) do
-        local T = setT(theme, 1, "small", acc)
-        local s2 = ZeD.BaseThemes[theme].surf2
-        local rp, rd = ratio(T.positiveText, s2), ratio(T.dangerText, s2)
-        ok(rp >= 4.5, string.format("TOKENS %s %s: positiveText on surface 2 %.2f : 1", theme, acc, rp))
-        ok(rd >= 4.5, string.format("TOKENS %s %s: dangerText on surface 2 %.2f : 1", theme, acc, rd))
+        local okA, errA = pcall(ZeD.applyTheme, theme, acc, "small")
+        ok(okA, "TOKENS " .. theme .. " " .. acc .. ": applyTheme runs (" .. tostring(errA) .. ")")
+        local T = ZeD.T
+        local base = ZeD.BaseThemes[theme]
+        local world = (theme ~= "light") and 1 or 0
+        local bwA = math.max(base.badgeBgA, 0.12)
+        local surf = {
+            { "solid surface 2", { r = T.surf2.r, g = T.surf2.g, b = T.surf2.b } },
+            { "surface 1", flat(world, T.surf1) }, { "surface 2", flat(world, T.surf2) },
+            { "stripe", flat(world, T.surf1, base.stripe, base.stripe.a) },
+            { "hover on 1", flat(world, T.surf1, T.hover, T.hover.a) }, { "hover on 2", flat(world, T.surf2, T.hover, T.hover.a) },
+            { "selection", flat(world, T.surf1, T.accent, base.selectionA) }, { "accent wash", flat(world, T.surf1, T.accent, 0.22) },
+        }
+        for _, tok in ipairs({ { "positiveText", base.positive }, { "dangerText", base.danger } }) do
+            local c = T[tok[1]]
+            local worst, where = 99, ""
+            local all = { surf[1], surf[2], surf[3], surf[4], surf[5], surf[6], surf[7], surf[8], { "badge wash", flat(world, T.surf1, tok[2], bwA) } }
+            for _, s in ipairs(all) do
+                local r = ratio(c, s[2])
+                if r < worst then worst, where = r, s[1] end
+            end
+            ok(worst >= 4.5, string.format("TOKENS %s %s: %s at least 4.5 : 1 on every live surface (lowest %.2f on %s)", theme, acc, tok[1], worst, where))
+        end
         local ra = ratio(T.textOnAccent, T.accent)
         ok(ra >= 3.0, string.format("TOKENS %s %s: the strip's arrow on the accent %.2f : 1", theme, acc, ra))
     end

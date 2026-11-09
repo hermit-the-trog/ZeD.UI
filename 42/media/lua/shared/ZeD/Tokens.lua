@@ -800,9 +800,18 @@ function ZeD.deriveReadable(P, baseKey)
         return ZeD.legible(c, 4.6, list, up)
     end
     P.textOnWarning, P.textOnDanger = ZeD.textOn(base.warning), ZeD.textOn(base.danger)   -- label on a solid status fill
-    -- (positiveText and dangerText are the base theme's own, chosen to pass 4.5 : 1 on surface 2)
-    P.dangerText, P.warningText = base.dangerText or variant(base.danger, bw), variant(base.warning, bw)
-    P.positiveText, P.infoText  = base.positiveText or variant(base.positive, bw), variant(base.info, bw)
+    -- positiveText and dangerText start from the base theme's design values (lighter / darker than the plain
+    -- colors where those miss 4.5 : 1) and are moved like the others, on every surface above and on surface 2
+    -- drawn solid (the balloons): the accent's tint on the surfaces can take a design value under 4.5 : 1.
+    local function statusText(seed, hue)
+        list[n + 1] = flatOver(world, s1, hue, bw)
+        list[n + 2] = { r = s2.r, g = s2.g, b = s2.b }
+        local c = ZeD.legible(seed or hue, 4.6, list, up)
+        list[n + 2] = nil
+        return c
+    end
+    P.dangerText, P.warningText = statusText(base.dangerText, base.danger), variant(base.warning, bw)
+    P.positiveText, P.infoText  = statusText(base.positiveText, base.positive), variant(base.info, bw)
     P.soiledWetText   = variant(base.soiledWet, 0.20)
     P.soiledBloodText = variant(base.soiledBlood, 0.20)
     P.soiledDirtText  = variant(base.soiledDirt, 0.20)
