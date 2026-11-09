@@ -7,8 +7,8 @@ them with the colour and alpha the rects had, at 1:1 (nearest filtering), so the
   42/media/textures/ZeD/lines/chev.png     256 x 1024: the chevrons of AtomExtensions' _drawArrow, sizes 2 to 40,
                                            four to a size (right, left, down, up) at x = k * (s + 1), the size's
                                            row at y = the sum of (n + 1) for n from 2 to s - 1
-  42/media/textures/ZeD/lines/seg.png      1024 x 256: the fill bars' equal cells (Atoms' segRun), row
-                                           (gap - 1) * 64 + (cell - 1): cell px lit, gap px clear, repeated;
+  42/media/textures/ZeD/lines/seg.png      1024 x 256: the gaps between the fill bars' cells (Atoms' segGaps), row
+                                           (gap - 1) * 64 + (cell - 1): gap px lit, cell px clear, repeated;
                                            read back and checked against that rule (the sim works its pixels
                                            out by the rule, so it is not in the dump)
   ZeDUI/tools/qa/linetex_pixels.lua        the three other PNGs read back, as runs of lit pixels, for
@@ -76,13 +76,13 @@ def main():
                         ch.putpixel((x0 + row, y0 + fwd[row] + j), WHITE)
                     else:
                         ch.putpixel((x0 + row, y0 + back[row] + j), WHITE)
-    # the fill bars' cells (Atoms' segRun): row (gap - 1) * 64 + (cell - 1) is cell px lit, gap px clear, repeated
+    # the gaps between the fill bars' cells (Atoms' segGaps): row (gap - 1) * 64 + (cell - 1) is gap px lit, cell px clear, repeated
     sg = Image.new("RGBA", (SEG_LEN, SEG_ROWS), CLEAR)
     for g in range(1, SEG_GAP + 1):
         for c in range(1, SEG_CELL + 1):
             row = (g - 1) * SEG_CELL + c - 1
             for i in range(SEG_LEN):
-                if i % (c + g) < c:
+                if i % (c + g) < g:
                     sg.putpixel((i, row), WHITE)
     sg.save(os.path.join(OUT, "seg.png"), optimize=True)
     back = Image.open(os.path.join(OUT, "seg.png")).convert("RGBA").load()
@@ -90,7 +90,7 @@ def main():
         for c in range(1, SEG_CELL + 1):
             row = (g - 1) * SEG_CELL + c - 1
             for i in range(SEG_LEN):
-                assert (back[i, row][3] > 0) == (i % (c + g) < c), ("seg", c, g, i)
+                assert (back[i, row][3] > 0) == (i % (c + g) < g), ("seg", c, g, i)
     files = {"dash_h": dh, "dash_v": dv, "chev": ch}
     for name, im in files.items():
         im.save(os.path.join(OUT, name + ".png"), optimize=True)
