@@ -60,6 +60,10 @@ ZeD.BaseThemes = {
         danger   = hex("#C45A2A"),
         warning  = hex("#C49A2A"),
         positive = hex("#7A9A34"),
+        -- status colors safe as text, at least 4.5 : 1 on surface 2 (the balloons' checks and crosses,
+        -- the crafting card's met and unmet). Danger itself reads 3.9 : 1 here, so its text is lighter.
+        positiveText = hex("#7A9A34"),
+        dangerText   = hex("#DE7045"),
         info     = hex("#5A8A9A"),
         violet   = hex("#9A6AC4"),                   -- a ticket's Appeal label
         -- Border weight (pixels) — High Contrast overrides this
@@ -134,6 +138,9 @@ ZeD.BaseThemes = {
         danger   = hex("#7A2A11"),
         warning  = hex("#6B5510"),
         positive = hex("#2A5511"),
+        -- (positive reads 4.3 : 1 on surface 2 here, so its text is darker)
+        positiveText = hex("#204A0C"),
+        dangerText   = hex("#7A2A11"),
         info     = hex("#1A5566"),
         violet   = hex("#552288"),
         borderW  = 1,
@@ -196,6 +203,8 @@ ZeD.BaseThemes = {
         danger   = hex("#FF5533"),
         warning  = hex("#FFCC22"),
         positive = hex("#44DD44"),
+        positiveText = hex("#44DD44"),
+        dangerText   = hex("#FF5533"),
         info     = hex("#44CCFF"),
         violet   = hex("#CC99FF"),
         borderW  = 2,     -- thicker borders for accessibility
@@ -791,8 +800,9 @@ function ZeD.deriveReadable(P, baseKey)
         return ZeD.legible(c, 4.6, list, up)
     end
     P.textOnWarning, P.textOnDanger = ZeD.textOn(base.warning), ZeD.textOn(base.danger)   -- label on a solid status fill
-    P.dangerText, P.warningText = variant(base.danger, bw), variant(base.warning, bw)
-    P.positiveText, P.infoText  = variant(base.positive, bw), variant(base.info, bw)
+    -- (positiveText and dangerText are the base theme's own, chosen to pass 4.5 : 1 on surface 2)
+    P.dangerText, P.warningText = base.dangerText or variant(base.danger, bw), variant(base.warning, bw)
+    P.positiveText, P.infoText  = base.positiveText or variant(base.positive, bw), variant(base.info, bw)
     P.soiledWetText   = variant(base.soiledWet, 0.20)
     P.soiledBloodText = variant(base.soiledBlood, 0.20)
     P.soiledDirtText  = variant(base.soiledDirt, 0.20)

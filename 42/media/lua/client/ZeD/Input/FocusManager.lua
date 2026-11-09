@@ -1698,6 +1698,8 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
     if not w then return end
     _fresh(w)
     _showCues()
+    -- B also hides the balloon that is up until the focus moves on (B still does its own job)
+    if button == Joypad.BButton and ZeD.Balloon and ZeD.Balloon.dismiss then ZeD.Balloon.dismiss() end
     local actions = ZeD.Input.Action and ZeD.Input.Action.fromGamepadButton
                     and ZeD.Input.Action.fromGamepadButton(button)
     if not actions then return end

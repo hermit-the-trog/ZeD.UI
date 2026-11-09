@@ -1942,7 +1942,7 @@ function ZeD_Dashboard:_plainLampHover(st, zones, mx, my)
             local name, lines = D.lampText(z.id, st)
             if name then
                 self._lampHov = z.id
-                ZeD.Atoms.requestDetailCard(self, "lamp:" .. z.id, { title = name, lines = lines, maxW = 220 }, self)
+                ZeD.Atoms.requestDetailCard(self, "lamp:" .. z.id, { title = name, lines = lines }, self, z)
             end
             return
         end
@@ -2274,7 +2274,11 @@ function ZeD_Dashboard:_lampHover(des, st, k)
     local name, lines = D.lampText(hz.id, st)
     if not name then return end
     self._lampHov = hz.id
-    ZeD.Atoms.requestDetailCard(self, "lamp:" .. hz.id, { title = name, lines = lines, maxW = 220 }, self)
+    -- (the lamp zones are design units of the plate: its balloon points at the lamp in px)
+    local lr = self._lampR
+    if not lr then lr = {}; self._lampR = lr end
+    lr.x, lr.y, lr.w, lr.h = hz.x * k, hz.y * k, hz.w * k, hz.h * k
+    ZeD.Atoms.requestDetailCard(self, "lamp:" .. hz.id, { title = name, lines = lines }, self, lr)
 end
 
 function ZeD_Dashboard:_fire(id, secondary)

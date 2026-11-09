@@ -888,7 +888,7 @@ local function drawGridCell(self, GV, item, cx, cy)
     if over then
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
-        self._gridHintCand = { key = item, text = nm, read = rs }
+        self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cell, h = cell }
         if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm)) end   -- (on the strip: its condition)
     end
     self:addHitZone(item, ax, cy, cell, cell)
@@ -1042,13 +1042,13 @@ end
 -- A readable item's hover card, the library's detail
 -- card: its name, its read status in the game's own words, and the next level a
 -- skill book suits. Asked of the window's overlay, which shows it after the
--- shared pause, below-right of the pointer.
+-- shared pause, pointing at the item.
 local function requestReadCard(self, hc)
     local rs = hc.read
     local lines = {}
     for _, l in ipairs(rs.lines or {}) do lines[#lines + 1] = l end
     if rs.next and ZeD.ReadMarks.nextOn() then lines[#lines + 1] = ZeD.tr("UI_ZeD_Read_NextFor", rs.next) end
-    ZeD.Atoms.requestDetailCard(ZeD.Atoms.windowOf(self), hc.key, { title = hc.text, lines = lines }, self)
+    ZeD.Atoms.requestDetailCard(ZeD.Atoms.windowOf(self), hc.key, { title = hc.text, lines = lines }, self, hc.x and hc or nil)
     self._readHintAt = getTimestampMs()   -- (when the card was last asked for)
 end
 
@@ -1073,12 +1073,12 @@ ZeD.InventoryRenderer._drawReadCond = drawReadCond
 
 -- A grid cell names its item in a hint, a readable row or cell shows its read
 -- card: the library's hover boxes, asked of the window's overlay (which keeps
--- the one pause and places them by the pointer, over everything)
+-- the one pause and points them at the cell, over everything)
 local function drawGridHint(self, GV, xOff, colW, contentTop)
     local hc = self._gridHintCand
     if not hc then return end
     if hc.read then return requestReadCard(self, hc) end
-    ZeD.Atoms.requestHint(ZeD.Atoms.windowOf(self), hc.key, hc.text, self)
+    ZeD.Atoms.requestHint(ZeD.Atoms.windowOf(self), hc.key, hc.text, self, hc.x and hc or nil)
 end
 
 -- ============================================================================
@@ -1998,9 +1998,10 @@ local function renderItemList(self)
             hZ("stack:" .. stackInfo.key, 0, y, nameX + T.px(16), rowH)
         end
         hZ(item, 0, y, scrollX, rowH)
-        -- a readable row shows its read card after the pause (the library's detail card, by the pointer)
+        -- a readable row shows its read card after the pause (the library's detail card, its balloon
+        -- above the row's icon and name)
         if rs and mouseInCol and my >= y and my < y + rowH and my >= contentTop and my < contentTop + visibleH and localMx < scrollX then
-            self._gridHintCand = { key = item, text = baseName, read = rs }
+            self._gridHintCand = { key = item, text = baseName, read = rs, x = xOff, y = y, w = math.min(scrollX, nameX + T.px(60)), h = rowH }
         end
 
         y      = y + rowH
