@@ -104,9 +104,14 @@ local function viaUpdate(el, fn)
         self._qaPressDone = true
     end
 end
+-- (beta 10 took the roll boxes off the Character and World title bars: with no box, the curtain's own roll)
 local function rollNow(w)
     local r = w._rollBtn
-    if not r then return false end
+    if not r then
+        if not (ZeD.Curtain and ZeD.Curtain.roll) then return false end
+        viaUpdate(w, function(self) ZeD.Curtain.roll(self) end)
+        return true
+    end
     viaUpdate(w, function(self) self:onMouseDown(r.x + 2, r.y + 2); self:onMouseUp(r.x + 2, r.y + 2) end)
     return true
 end

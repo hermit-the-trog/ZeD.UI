@@ -69,6 +69,11 @@ local function waitMs(ms, fn)
     local t0
     Q[#Q + 1] = { n = 0, max = 100000, cond = function() t0 = t0 or getTimestampMs(); return getTimestampMs() - t0 >= ms end, fn = fn }
 end
+-- waits until pred() is true or ms have gone by, whichever comes first, then runs fn
+local function waitFor(ms, pred, fn)
+    local t0
+    Q[#Q + 1] = { n = 0, max = 100000, cond = function() t0 = t0 or getTimestampMs(); return pred() or getTimestampMs() - t0 >= ms end, fn = fn }
+end
 
 -- 1 START
 step(30, function()
@@ -117,7 +122,13 @@ end)
 waitMs(3000, function()
     check(toastsOf() == 1 and lineCount() == 1, "4: the first showing, one line")
 end)
-waitMs(5500, function()
+local gone4 = false   -- (the first balloon must go before the second counts)
+waitFor(12000, function()
+    local up = false
+    for _, x in ipairs(MS.toasts) do if x.source == G.head() then up = true end end
+    if not up then gone4 = true end
+    return gone4 and up
+end, function()
     check(lineCount() == 1, "4: it came back and the line is not doubled")
     local t = nil
     for _, x in ipairs(MS.toasts) do if x.source == G.head() then t = x end end

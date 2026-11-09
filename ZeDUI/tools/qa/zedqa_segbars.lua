@@ -34,14 +34,34 @@ function P:drawText() end
 function P:drawTextRight() end
 local function reset(mx, my) P.rects = {}; P._helpText = nil; P.mx = mx or -1000; P.my = my or -1000 end
 local function same(c, r) return math.abs(c.r - r.r) < 1e-6 and math.abs(c.g - r.g) < 1e-6 and math.abs(c.b - r.b) < 1e-6 end
--- the cells drawn: lit (the test colour) and dark (T.surf3), left to right
+-- the cells drawn: lit (the test colour) and dark (T.surf3), left to right. Beta 10 draws a bar in four
+-- calls (the lit cells as one rect, the dark ones as one, the gaps over them), so the rects are painted in
+-- order onto one pixel row through the middle of the bar and each run of lit or dark pixels is a cell.
 local function cells()
-    local lit, dark, all = 0, 0, {}
+    local first
+    for _, r in ipairs(P.rects) do if same(LIT, r) or same(T.surf3, r) then first = r; break end end
+    if not first then return 0, 0, {} end
+    local row = first.y + math.floor(first.h / 2)
+    local x0, x1 = math.huge, -math.huge
     for _, r in ipairs(P.rects) do
-        if same(LIT, r) then lit = lit + 1; all[#all + 1] = r
-        elseif same(T.surf3, r) then dark = dark + 1; all[#all + 1] = r end
+        if r.y <= row and row < r.y + r.h then x0 = math.min(x0, r.x); x1 = math.max(x1, r.x + r.w) end
     end
-    table.sort(all, function(a, b) return a.x < b.x end)
+    local px = {}
+    for _, r in ipairs(P.rects) do
+        if r.y <= row and row < r.y + r.h then
+            local kind = same(LIT, r) and 1 or (same(T.surf3, r) and 2 or 0)
+            for i = math.floor(r.x), math.floor(r.x + r.w) - 1 do px[i] = kind end
+        end
+    end
+    local lit, dark, all, run = 0, 0, {}, nil
+    for i = math.floor(x0), math.floor(x1) do
+        local k = px[i] or 0
+        if run and run.kind ~= k then all[#all + 1] = run; run = nil end
+        if k ~= 0 and not run then run = { kind = k, x = i, w = 0, y = row } end
+        if run then run.w = run.w + 1 end
+    end
+    if run then all[#all + 1] = run end
+    for _, c in ipairs(all) do if c.kind == 1 then lit = lit + 1 else dark = dark + 1 end end
     return lit, dark, all
 end
 

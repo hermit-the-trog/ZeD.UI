@@ -53,12 +53,13 @@ local function tick()
         say(r.id .. ": opening")
         local ok, err = pcall(r.fn)
         check(ok, r.id .. ": the open returns" .. (ok and "" or (" (" .. tostring(err) .. ")")))
-        check(guideOpen(), r.id .. ": the guide is open")
         check(getGameSpeed() == 0, r.id .. ": the game is paused while it is open")
         phase, n, t0 = "count", 0, getTimestampMs()
         return
     end
     if phase == "count" then
+        -- (the window shows on the frame after the open, so "open" is read a couple of frames in)
+        if n == 2 then check(guideOpen(), r.id .. ": the guide is open") end
         if n == 60 then pcall(function() core:TakeFullScreenshot("zqa_gframes_" .. sw .. "x" .. sh .. "_" .. r.id .. ".png") end) end
         if n < 120 then return end
         local ms = getTimestampMs() - t0
