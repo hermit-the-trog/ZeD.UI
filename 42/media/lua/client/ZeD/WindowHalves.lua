@@ -646,6 +646,16 @@ function H.update(win)
     local now = getTimestampMs()
     local drag = itemDragging()
     local mx, my = getMouseX() - win:getAbsoluteX(), getMouseY() - win:getAbsoluteY()
+    -- An item picked up in this window: the halves that rolled by themselves come
+    -- back, so the drawer (an Equip slot) or the list is there to take it, and both
+    -- stay until the drop (the timers below hold). Each half opens away from the
+    -- other, so nothing moves under the pointer.
+    local mine = drag and not pad and dragFrom(win)
+    if mine and not s.dragMine then
+        s.drawer.rolled = false
+        if not s.inv.hand then s.inv.rolled = false end
+    end
+    s.dragMine = mine
     -- (an item held over a rolled window's title bar rolls it down, once, so its list takes the drop)
     if drag and win.windowShaded and not pad and mx >= 0 and mx <= win:getWidth() and my >= 0 and my < win:titleBarHeight() then
         win._autoShaded = false
