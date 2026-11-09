@@ -1262,6 +1262,7 @@ end
 --- grouped list with the belt rows, the loadouts' fold and the defense body.
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
+    win._equipPanel = panel   -- (the drawer its zones are stamped in: a drop reads the pointer there, EquipDoll.takeDrop)
 
     -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
     if dueMs(win, "_equipAt", 250, not win._equipCache) then

@@ -885,28 +885,68 @@ local function wearLoc(item)
     return normLoc(l)
 end
 
+local function inZone(z, mx, my) return mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h end
+
+-- The belt slot (its index in the game's hotbar) under the pointer: a belt row of
+-- the list, a box under the doll (empty: _equipBeltZones; filled: a "doll:beltN"
+-- slot zone), or the doll's Back, which is the hotbar's Back slot for a weapon
+-- or tool (the game's always-there first slot).
+local function beltSlotAt(win, pn, mx, my, hit)
+    for _, z in ipairs(win._equipBeltZones or {}) do
+        if z.i and inZone(z, mx, my) then return z.i end
+    end
+    for _, z in ipairs(win._equipSlotZones or {}) do
+        local n = type(z.type) == "string" and z.type:match("^doll:belt(%d+)$")
+        if n and inZone(z, mx, my) then return tonumber(n) end
+    end
+    if hit and hit.id == "back" and ZeD.Belt then
+        for _, s in ipairs(ZeD.Belt.slots(pn)) do
+            if s.slot and s.slot.slotType == "Back" then return s.i end
+        end
+    end
+    return nil
+end
+
+--- A drop on the Equip tab: clothing over a doll slot it fits is worn there; a
+--- weapon or tool over a belt slot (or the doll's Back) is attached there by the
+--- game's own action (ISHotbar:attachItem: the timed attach, out of a bag first,
+--- as the belt on the HUD takes it). True when it took the drop.
 function D.takeDrop(pn, items)
     local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-    if not (win and win._equipDollShown and win._equipDollAll and win._equipDollPanel) then return false end
+    if not win then return false end
     if win._drawerMode ~= "tab" or win._activeTab ~= "equip" or win._equipSelected or (win._drawerEffW or 0) <= 0 then return false end
     if not (items and items[1]) then return false end
-    local panel, clip = win._equipDollPanel, win._equipDollClip
+    local doll = win._equipDollShown and win._equipDollAll and win._equipDollPanel
+    local panel = doll and win._equipDollPanel or win._equipPanel
+    if not (panel and panel:isVisible()) then return false end
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    if clip and not (mx >= clip.x and mx < clip.x + clip.w and my >= clip.y and my < clip.y + clip.h) then return false end
+    if mx < 0 or my < 0 or mx >= panel:getWidth() or my >= panel:getHeight() then return false end
+    local clip = doll and win._equipDollClip
+    if clip and not inZone(clip, mx, my) then return false end
     local hit
-    for _, r in ipairs(win._equipDollAll) do
-        if mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h then hit = r; break end
+    for _, r in ipairs(doll and win._equipDollAll or {}) do
+        if inZone(r, mx, my) then hit = r; break end
     end
-    if not hit then return false end
-    local p = getSpecificPlayer(pn)
-    local bands = win._equipDollBands
-    for _, item in ipairs(items) do
-        local loc = wearLoc(item)
-        local id = loc and (bands and (LOC_TO_SMALL[loc] or LOC_TO_BIG[loc]) or LOC_FOLD[loc])
-        if id == hit.id and not call(p, "isEquippedClothing", item) then
-            ISInventoryPaneContextMenu.wearItem(item, pn)
-            win._equipDollTimer = 99    -- the slots read the new clothes at once
-            return true
+    if hit then
+        local p = getSpecificPlayer(pn)
+        local bands = win._equipDollBands
+        for _, item in ipairs(items) do
+            local loc = wearLoc(item)
+            local id = loc and (bands and (LOC_TO_SMALL[loc] or LOC_TO_BIG[loc]) or LOC_FOLD[loc])
+            if id == hit.id and not call(p, "isEquippedClothing", item) then
+                ISInventoryPaneContextMenu.wearItem(item, pn)
+                win._equipDollTimer = 99    -- the slots read the new clothes at once
+                return true
+            end
+        end
+    end
+    local slotI = beltSlotAt(win, pn, mx, my, hit)
+    if slotI and ZeD.Belt then
+        for _, item in ipairs(items) do
+            if ZeD.Belt.attach(pn, item, slotI) then
+                win._equipCache, win._equipDollTimer = nil, 99   -- (the rows read the belt again at once)
+                return true
+            end
         end
     end
     return false
