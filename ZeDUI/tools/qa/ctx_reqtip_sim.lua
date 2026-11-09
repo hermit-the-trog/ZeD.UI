@@ -179,6 +179,43 @@ for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
     ok(same(find(p, "Disassemble")[1] or (name == "list" and { r = T.textSec.r, g = T.textSec.g, b = T.textSec.b }), T.textSec), name .. " the path in textSec")
 end
 
+-- DEBUG: with debug on the game adds "SCRIPT NAME:" and the sprite's name in magenta (ISMoveableSpriteProps
+-- getInfoPanelDescription). Not a requirement: plain words in the text color, no column, no mark, once.
+do
+    local M = { 255, 0, 255 }
+    local info2 = { infoTable[1], L("SCRIPT NAME:", M, "furniture_storage_02_0", M) }
+    for i = 2, #infoTable do info2[#info2 + 1] = infoTable[i] end
+    local d2 = ""
+    for _, t1 in ipairs(info2) do
+        d2 = string.format("%s <RGB:%.2f,%.2f,%.2f> %s", d2, t1[1].r / 255, t1[1].g / 255, t1[1].b / 255, t1[1].txt)
+        if #t1 == 2 then
+            d2 = string.format("%s <SETX:%d> <INDENT:%d> <RGB:%.2f,%.2f,%.2f> %s", d2, 96, 96, t1[2].r / 255, t1[2].g / 255, t1[2].b / 255, t1[2].txt)
+        end
+        d2 = d2 .. " <LINE> <INDENT:0> "
+    end
+    local dd = makeActionDef({ name = "Mahogany Drawers", notAvailable = true, toolTip = { description = d2 } }, 1, nil, nil)
+    local m = dd.bodyRich
+    local asRow = false
+    for _, r in ipairs(m and m.rows or {}) do if r.label:find("SCRIPT", 1, true) then asRow = true end end
+    ok(m and not asRow and #m.rows == 3, "DEBUG the script name line is not a requirement row")
+    local info
+    for _, k in ipairs(m and m.conds or {}) do if k.t:find("SCRIPT NAME", 1, true) then info = k end end
+    ok(info and info.st == nil and info.t == "SCRIPT NAME: furniture_storage_02_0", "DEBUG it is a plain line with no mark (" .. tostring(info and info.t) .. ")")
+    ok(ZeD.RichTip.state({ r = 1, g = 0, b = 1 }) == nil, "DEBUG magenta is neither met nor missing")
+    ok(ZeD.RichTip.state({ r = 1, g = 0, b = 0 }) == "bad" and ZeD.RichTip.state({ r = 0, g = 1, b = 0 }) == "ok", "DEBUG a plain red / green still reads missing / met")
+    for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
+        local p = look[2](dd)
+        local hits = find(p, "SCRIPT NAME: furniture_storage_02_0")
+        ok(#hits == 1 and same(hits[1], T.text), "DEBUG " .. look[1] .. ": drawn once, plain, in the text color")
+        local markY = hits[1] and hits[1].y
+        local marked = false
+        for _, r in ipairs(p.rects) do
+            if markY and r.y >= markY and r.y < markY + 15 and (same(r, T.dangerText) or same(r, T.positiveText)) then marked = true end
+        end
+        ok(not marked, "DEBUG " .. look[1] .. ": no check or cross on it")
+    end
+end
+
 -- PLAIN: a tooltip without tags, live and gated, still drawn once in the text color
 for _, gated in ipairs({ false, true }) do
     local o = { name = "Open can", notAvailable = gated, toolTip = { description = "Needs a can opener" } }
