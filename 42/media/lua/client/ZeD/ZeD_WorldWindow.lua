@@ -2233,7 +2233,11 @@ end
 -- _switchTabForNav in ZeD_CharacterWindow.
 _switchWorldTabForNav = function(win, content, tabId)
     if not win or not content or not tabId then return false end
-    if win._activeTab == tabId then return false end
+    if win._activeTab == tabId then
+        -- (a drawer folded by the pointer keeps its tab selected: A on that tab brings it back)
+        if ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) == tabId then ZeD.Halves.showAll(win); return true end
+        return false
+    end
     local T = ZeD.T
     dropObjectCard(win)
 
