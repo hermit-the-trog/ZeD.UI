@@ -3109,3 +3109,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the unroll restores the saved spot (864 design units x 0.75 = 648) rather than the live one (644, beside the
     Character window). One pixel rule for both: round the saved spot the way the live layout does, or restore the live
     spot. Small; after beta 10.
+
+126. **The Character list slides when its drawer folds at small sizes (QA's staged Deck run, Nov 9 2026; also in
+    beta 9).** At 1280x800 (0.75) with Equip's full card open, the half-screen cap costs the window 53 px and pushes it
+    4 px past x 0. When the drawer folds, ZeD_CharacterWindow's drawer._onPrerender takes those 53 px back and returns
+    to the saved right edge, so the list slides 57 px left under a resting pointer over about 0.25 s. That breaks the
+    halves' own rule that nothing moves under the pointer. Rows move only sideways, so only a press during the slide
+    misses. Fix idea: while the halves have a folded tab (s.foldTab), skip the give-back (newW = want). Also hold off
+    the at-rest clearing of _drawerCapLost and the base-width tracking while folded, or the 53 px get saved as a
+    smaller inventory width. Medium risk (the anchor is touched in several places): after the Nov 13 reset.

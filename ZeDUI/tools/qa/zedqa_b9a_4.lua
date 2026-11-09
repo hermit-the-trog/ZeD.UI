@@ -121,7 +121,17 @@ local function turn(which)
         for _, w in ipairs({ CW(), WW() }) do H.setPin(w, "inv", false); H.setPin(w, "drawer", false) end
     end)
     -- (the drawer folds 2 s after the pointer leaves it; the other window rolls 2 s after: wait on both, up to 6 s)
-    addWhen(6000, function() local s, t = S(), T(); return H.foldedTab(s) == tab and t and t.windowShaded == true end, function()
+    -- (and the fold finished: foldedTab is set as the fold starts, and at Deck size the list slides ~57 px over the next
+    -- quarter second as the window takes back what the half-screen cap cost it; a press then lands on nothing)
+    local lastX
+    addWhen(6000, function()
+        local s, t = S(), T()
+        if not (H.foldedTab(s) == tab and t and t.windowShaded == true and (s._drawerEffW or 0) <= 0) then lastX = nil; return false end
+        local x = s._mainContent and s._mainContent:getAbsoluteX()
+        local still = (lastX ~= nil and x == lastX)
+        lastX = x
+        return still
+    end, function()
         local s = S()
         check(H.foldedTab(s) == tab and not s._drawerOpen, which .. ": (staged) looking through the list, the drawer rolled in")
         check(T().windowShaded == true, which .. ": (staged) the other window rolled up meanwhile")
