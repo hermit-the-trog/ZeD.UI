@@ -1,0 +1,3 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_b10_tooltips.lua | b10tt | timeout=900
+zedqa_ctx_overlap.lua | ctxov | timeout=300
