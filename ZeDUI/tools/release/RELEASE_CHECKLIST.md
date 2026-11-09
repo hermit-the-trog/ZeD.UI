@@ -60,6 +60,9 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
     - bump `42/mod.info`'s modversion to the next version (the corkboard heading reads it);
     - set `42/media/lua/client/ZeD/MenuNote.lua`'s five lines (ten characters each, capitals) from the punch list and
       the director's plan for that build, shown to the director for approval before they're committed.
+    - copy the last tester_description into the new version's file, keeping the line right after the GitHub
+      paragraph: [url=https://claude.ai/artifact/CYvs9hqtbx1153ZooxhHkz]ZeD-GUI's design system[/url]. (director,
+      Nov 9 2026: the design system link stays next to GitHub in every update.)
     The note can change during the cycle if the plan does; step 5's pre-staging check and the release check's picture
     still confirm it before staging.
 
