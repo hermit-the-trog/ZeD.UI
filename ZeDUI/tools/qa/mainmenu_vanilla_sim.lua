@@ -281,6 +281,7 @@ MapGroups = { new = function()
              setWorld = function(_, i) rec("MapGroups.setWorld", i) end }
 end }
 function getWorld() return { getGameMode = function() return "Sandbox" end } end
+GameMode = GameMode or { MULTIPLAYER = "Multiplayer", SANDBOX = "Sandbox", SURVIVAL = "Survival", APOCALYPSE = "Apocalypse", BUILDER = "Builder", TUTORIAL = "Tutorial", CHALLENGE = "Challenge", LAST_STAND = "LastStand" }   -- (42.22 vanilla compares getGameMode() to GameMode enum values)
 
 -- ============================================================================
 -- THE FILES
