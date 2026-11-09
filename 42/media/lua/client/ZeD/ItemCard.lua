@@ -734,10 +734,17 @@ function ZeD_ItemCard:initialise()
     sb.reserveBottom = 0
     local cardRef = self
     sb.onScroll = function(pos)
-        local maxScroll = math.max(0, cardRef._contentH - (cardRef:getHeight() - cardRef._headH))
+        local maxScroll = math.max(0, (cardRef._contentH or 0) - cardRef:viewH())
         cardRef._scrollPixels = math.floor(pos * maxScroll)
     end
     self._sb = sb
+end
+
+--- The height the body scrolls in: under the sticky head and above the care
+--- verbs' band at the foot. (The scroll's end once left the band out, so the
+--- last rows of an opened "Used to make" stayed behind the band.)
+function ZeD_ItemCard:viewH()
+    return self:getHeight() - (self._headH or 0) - (self._verbStripResvH or 0)
 end
 
 -- Called when a structural dock button is clicked: opens the part's tailoring
@@ -1877,8 +1884,7 @@ end
 -- visible body). Clamps to [0, maxScroll]. No-op when body fits without scrolling.
 function ZeD_ItemCard:scrollToContentY(contentY)
     if not self._sb or not self._sb.visible then return end
-    local viewH     = self:getHeight() - self._headH
-    local maxScroll = math.max(0, self._contentH - viewH)
+    local maxScroll = math.max(0, self._contentH - self:viewH())
     if maxScroll <= 0 then return end
     local target = contentY - self._headH
     if target < 0 then target = 0 end
