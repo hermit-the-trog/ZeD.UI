@@ -161,10 +161,13 @@ function ZeD_MMRespawnDesk:onJoypadDirRight(joypadData) joyDir("right") end
 -- ============================================================================
 -- The desk goes up as the game builds its respawn screens, before the first of them shows.
 function R.begin(coop)
-    if MM.root or MM.respawn then return false end   -- (a desk is already up)
     local m = MainScreen and MainScreen.instance
     if not m then return false end
-    local r = { coop = coop, joypadData = coop.joypadData, playerIndex = coop.playerIndex, ms = m, hadMain = rawget(m, "charCreationMain") }
+    -- a desk is already up: the main menu's, with no game loaded. In game MM.root is only a leftover (joining a server
+    -- from the main menu does not rebuild the Lua state, so the menu's desk stays set); it is kept and put back after.
+    local stale = MM.root
+    if MM.respawn or (stale and not m.inGame) then return false end
+    local r = { stale = stale, coop = coop, joypadData = coop.joypadData, playerIndex = coop.playerIndex, ms = m, hadMain = rawget(m, "charCreationMain") }
     MM.respawn = r
     -- the views find the game's screens where they find the main menu's (the game itself sets
     -- MainScreen.instance.desc and .charCreationProfession here; the looks screen it leaves out)
@@ -191,7 +194,7 @@ function R.finish()
     if not r then return end
     MM.respawn = nil
     local desk = r.desk
-    if MM.root == desk then MM.root = nil end
+    if MM.root == desk then MM.root = r.stale end   -- (the menu's leftover desk, if any, as it was)
     if MM._zedSafeRoot == desk then MM._zedSafeRoot = nil end   -- (safe mode's hand-back kept it to bring back)
     if desk then
         pcall(MM.unfocusEntries, desk)

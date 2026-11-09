@@ -1,0 +1,56 @@
+[h2]👍 Compatible, N to P (part 6 of 9)[/h2]
+🍎 Retested Nov 8 2026 on a Mac on ZeD-GUI 0.3.0-beta8: ✔ = loaded and every window opened; 🚗✔ = driven; no mark = not retested. Details in the first post.
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts ⚠️ "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 11.
+[h3]N[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3785033563]N3WO Map Overhaul [B42][/url]: ⚠️ Part of it does not show: it changes the game's map; the map key opens ZeD's map. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2732294885]Named skill VHS tapes[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3540503606]Neat Crafting & Neat Building - XP & Mod Display[/url] by Afyrmo: ⚠️ Part of it does not show: it adds the XP and the mod's name to the lists of Neat Crafting and Neat Building (both Not needed with ZeD); ZeD's Craft and Build tabs do not show them. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3783535220]Neat Lockpicking[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3508537032]NeatUI Framework[/url] by Rocco: A library for Rocco's mods. [i](expected)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3760545452]NeatUI XP Drop [42.21][/url]: Its XP bar shows at the top right; ZeD's World window covers its left edge while the Vehicle drawer is open. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392116408]Neon moodle levels[/url]: ⚠️ Part of it does not show: its level colours are for Moodles in lua's drawing. [i](expected)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3438126404]Nepenthe's High Beams[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3739256725]New Music[/url] by talismon ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2842179206]Night Vision Chucked[/url] ✔
+[/list]
+[h3]O[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3773985930]O.C.D. Inventory[/url] by Monster: It sorts the game's inventory list; ZeD's lists sort themselves. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3739168410]Obvious Skill Tapes - highlight useful VHS tapes[/url]: ⚠️ Part of it does not show: its tape highlight is drawn on the game's inventory list. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3386486141]Old moodles +new [B42+][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3056481712]On the Door[/url] by PePePePePeil: Its alert at game start shows raw text keys on 42.21: its translations are in the old format. Not ZeD. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3465040406]Open All Containers[/url] by carlesturo ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3391145494][B42] OSRS Exp Drops[/url]: Its XP bar shows at the top right, below ZeD's watch. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3413529369][B42] OSRS XP Drops Retextured[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3808805481]Over the Shoulder[/url] ✔
+[/list]
+[h3]P[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3540903327]Pack Mule[/url] by Balance: Moves watches to its own watch slot; ZeD's belt finds the watch there. (not retested on this Mac: the game did not load its Workshop copy here)
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2837923608]PertsPartyTiles[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3422220305]Picking Meister[/url] by PePePePePeil ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=1911132112]Pillow's Random Spawns [B42][/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776262249]Ping Items! Friends! 42.20 MP Official[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3793657917]Pixel Strike Indicator & Health Bar[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3613917826]Place Anywhere[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3716934959]Playable Minigames (Previously Playable Pool)[/url]: Its Debug Minigames row is in ZeD's world menu. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3749848348]Plysken Attachments Reborn[/url]: Its rows are in ZeD's item menu. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3725311427]Plysken Solar Revolution[/url]: ⚠️ Part of it may not show: it draws on the game's inventory list. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3802480042]PM2 - Complete Repair Overhaul[/url] by CakeDayZ ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3765795716]Practice Crafting Skills[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3803984183]Project A-Life[/url] by Vice ✔ On this Mac: its "ALIVE." logo and a notice show over ZeD's desk at the main menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3645980077]Project Arcade[/url] by Bass ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3490188370]Project Cook[/url] by Rocco: Its button beside the game's Crafting button does not show; its window opens from the item menu. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3543229299][B42]Project RV Interior[/url] by Mickey Knox ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3412105017]Project Seasons[/url] by Drago1212 ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3796402502]Project Writing [42.21][/url]: Pauses the game while its notebook is open (its own option, on by default), and quitting to the main menu waits until the notebook is closed. Its map tools are for the game's map. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3821280085]Proper Ragdolls[/url] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2847184718]Proximity Inventory[/url] by Mxswat FRV Enthusiast: ⚠️ Part of it does not show: its one container of everything nearby is added to the game's loot window. ZeD's World window shows each container in reach as its own column. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3740165370]Proximity Inventory[/url]: ⚠️ Part of it does not show: its one container goes on the game's loot window. [i](by reading its code)[/i] It shares its mod id with two other Proximity Inventory items, and the game loads only one of them. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3669550831][FIXED] Proximity Inventory B42.20 COMPATIBLE [SP/MP][/url] by Juliosy: ⚠️ Part of it does not show: its one container of everything nearby goes on the game's loot window. ZeD's World window shows each container in reach as its own column. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3770149036]PZ Map[/url] by qwerto ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3753700423]PZ Pulse[/url] by qwerto ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3820590495]PZ Relationship (Build 42)[/url] by BostonTee: Tested in single player only; its menu on other players is for multiplayer. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2695471997]PZ-ClothingUI - Clothing items grid view (B41 + B42 Updated)[/url] by Ramp and pagep: Its clothing window opens from its own button and sits beside ZeD's windows. ✔
+[/list]

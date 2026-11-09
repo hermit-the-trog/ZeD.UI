@@ -3037,3 +3037,27 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     before copying. Ruled wording ("Plainer"), shown in both places, the copied report's last line and beside Copy:
     "Your user name is taken out of this report. Files like console.txt still have it: look them over before you post
     them." Every language as the project's labeled drafts.
+116. **Ellie's Tattoo Parlor V4 with ZeD's Make Up rows (Mac rig compat retest, Nov 8 2026; beta 10 unless the director
+    says sooner).** ZeD's Make Up rows read the mirror rule through the game's make-up menu; the mod's patch of that menu
+    (ETPMakeUpUIFix.lua:9) errors on ZeD's stand-in item, so ZeD falls back to "needs a mirror". From code reading. Give
+    the stand-in what the mod's patch reads, or read the mirror rule without the patched menu.
+117. **[B42] Custom Map Labels reads the game's map at start (Mac rig compat retest, Nov 8 2026; beta 10).** One error at
+    game start (CustomMapLabels.lua:93): it opens the game's map to read labels, ZeD opens its own map instead, so the
+    labels are never read. Let the game's map object exist for a mod that asks, or guard, and show its labels in ZeD's
+    map if possible.
+118. **Context menu tooltips on brand and sized to their text (the director, Nov 8 2026; beta 10).** "Tooltips in the
+    context menu are not on brand. They look like modern web stuff. That and text does not fit in the box." The hover
+    tooltips on menu rows (ZeD's strip and list styles, and the game's option tooltips as ZeD draws them) follow System
+    7.1.2 Balloon Help per the Visual Catalog v2.0, and the box is sized to the wrapped text measured at the current
+    scale and text size, never spilling. Read the Visual Catalog first; a before/after mockup to the director before
+    building. QA: every theme, Large text, 4K and 1280x800, long DE and RU strings. Design's before/after mockup and spec (Nov 8): mockups/zed_tooltips_balloon_v1.html, it covers 119 too. Approved by the director Nov 8 ("That's the one") with text-safe status colors (new tokens), the tooltip picture in and a 10-cell tail: HANDOFF_design_tooltips_balloon_20261108.md. Must-fix part (the director, Nov 8:
+    "Beta 10, not beta 9"): the requirement tooltip on a greyed-out option (World menu > Disassemble) keeps the game's
+    red/green per requirement and its two columns, and shows the list once (ZeD drew it colorless, columns collapsed,
+    twice). A fix is prepared on its own branch; it merges after beta 9 ships.
+119. **The context menu strip's overflow arrow boxes in the accent color (the director, Nov 8 2026; beta 10).** "The
+    color behind those arrows is always black, and it's hard to see. Let's make that box ... the accent color." Both
+    end boxes fill with the accent; the arrow is drawn in a contrasting color, readable in every theme and accent.
+120. **The heavy drawers draw as cheaply as Loot (the director, Nov 8 2026: "Equipment, thermal, identity, skills,
+    twice as long to draw as loot? We should address that. In beta 10.").** At 4K 1.75x with pinned windows they read
+    about 16-18 ms per tick against Loot's 9-10 (since about Nov 2). Target: near Loot's ms, measured with pnw before
+    and after on the same manifest (ZeDUI/tools/qa/b9_perf.txt). A suite_perf run without pnw is invalid.

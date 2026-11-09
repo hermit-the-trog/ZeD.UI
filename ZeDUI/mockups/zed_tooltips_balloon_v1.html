@@ -1,0 +1,967 @@
+<title>ZeD Balloon Help</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&family=Fira+Sans:wght@400;500&display=swap">
+<style>
+/* ZeD mockup chrome: dark-first, one look (the game UI inside the canvases follows the Theme control).
+   Layout: a ZeD window per section, Before and After side by side, the spec at the foot. */
+:root{
+  --base:#0c0c0c; --s1:#141414; --s2:#1c1c1c; --s3:#242424; --border:#202020; --borderS:#383838;
+  --text:#d9d9d9; --dim:#9a9a9a; --head:#e6e6e6; --accent:#d4922a; --toa:#0c0c0c; --danger:#c45a2a; --positive:#7a9a34;
+  --stripe1:#333338; --stripe2:#2a2a2e;
+  --mono:"Fira Mono", ui-monospace, Menlo, Consolas, monospace;
+  --sans:"Fira Sans Condensed", "Fira Sans", "Arial Narrow", Arial, sans-serif;
+  --body:"Fira Sans", Arial, sans-serif;
+  color-scheme: dark;
+}
+body{background:var(--base);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.45;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:12px 56px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.win{background:var(--s1);border:1px solid var(--borderS);min-width:0}
+.tb{height:20px;display:flex;align-items:center;justify-content:center;position:relative;
+  background:repeating-linear-gradient(180deg,var(--stripe1) 0 2px,var(--stripe2) 2px 4px);border-bottom:1px solid var(--borderS)}
+.tb span{background:var(--s2);padding:0 10px;font:700 12px/20px var(--mono);color:var(--accent);letter-spacing:.02em;white-space:nowrap;
+  max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+h1{margin:0;font:600 22px/1.2 var(--sans);color:var(--head);text-wrap:balance}
+p{margin:0;max-width:78ch}
+.lede{color:var(--text)}
+.sec-h{font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.groove{height:2px;background:linear-gradient(180deg,rgba(0,0,0,.5) 0 1px,rgba(255,255,255,.06) 1px 2px)}
+.controls{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:flex-start}
+.ctl{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ctl > b{font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+.radios{display:flex;flex-wrap:wrap;gap:4px 12px}
+.radio{display:inline-flex;align-items:center;gap:5px;font:400 13px/1.2 var(--mono);color:var(--text);cursor:pointer;user-select:none}
+.radio input{appearance:none;width:13px;height:13px;margin:0;border:1px solid var(--borderS);border-radius:50%;background:var(--s2);display:grid;place-content:center;cursor:pointer}
+.radio input::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);transform:scale(0)}
+.radio input:checked::before{transform:scale(1)}
+.radio input:focus-visible{outline:1px dashed var(--accent);outline-offset:2px}
+.swatches{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.sw{width:18px;height:18px;border:1px solid var(--borderS);padding:0;cursor:pointer;position:relative}
+.sw[aria-checked="true"]{outline:1px solid var(--accent);outline-offset:2px}
+.sw:focus-visible{outline:1px dashed var(--head);outline-offset:3px}
+.swname{font:400 13px/1 var(--mono);color:var(--text);margin-left:6px}
+.pair{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.pane{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:100%}
+.pane > i{font:700 11px/1 var(--mono);font-style:normal;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+.pane > i.after{color:var(--accent)}
+.stage{overflow-x:auto;max-width:100%;border:1px solid var(--border)}
+.stage canvas{display:block}
+.notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;max-width:86ch}
+.notes li::marker{color:var(--accent)}
+.mini{display:flex;flex-wrap:wrap;gap:16px 20px;align-items:flex-start}
+.mini > .pane{max-width:100%}
+.tbl{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;font:400 12px/1.3 var(--mono);font-variant-numeric:tabular-nums}
+th,td{padding:4px 6px;text-align:center;border-bottom:1px solid var(--border)}
+th{font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-size:11px}
+td.l{text-align:left;color:var(--dim)}
+.ok{color:var(--positive)} .bad{color:var(--danger)}
+.spec{display:flex;flex-direction:column;gap:12px}
+.spec h3{margin:0;font:600 17px/1.2 var(--sans);color:var(--head)}
+.spec ol,.spec ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-width:90ch}
+.spec code,.mono{font-family:var(--mono);font-size:13px;color:var(--head)}
+pre.raster{margin:0;font:400 13px/1.15 var(--mono);color:var(--head);background:var(--s2);border:1px solid var(--borderS);padding:8px 10px;overflow-x:auto;max-width:100%}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;max-width:90ch}
+.kv dt{font:700 12px/1.45 var(--mono);color:var(--dim)} .kv dd{margin:0}
+.foot{color:var(--dim);font-size:13px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<section class="win" aria-labelledby="t0">
+  <div class="tb"><span id="t0">Tooltips: Balloon Help v1</span></div>
+  <div class="body">
+    <h1>ZeD's tooltips as System 7 Balloon Help</h1>
+    <p class="lede">Punch list 118 and 119, for beta 10. Every pop-up that explains a control becomes one balloon in the theme's colors, with a tail that points at the thing it explains, sized to its text at every scale and text size. The context strip's end arrows fill with the accent. Inputs: the Mac's tooltip survey on beta9-test2, the Visual Catalog v2.0 (A07 Tooltip), the tooltip research of Nov 8, and today's code.</p>
+    <div class="groove"></div>
+    <div class="controls" id="controls"></div>
+  </div>
+</section>
+
+<section class="win" aria-labelledby="t1">
+  <div class="tb"><span id="t1">1. The icon strip's balloon</span></div>
+  <div class="body">
+    <p>The right-click menu as an icon strip; the balloon names the cell under the pointer or the controller's focus. Today it is a white box forced on every theme, the name in Fira Mono Bold, centered and never wrapped, so a long name runs out of both sides of a box that stops at 250. Try Russian with Large text.</p>
+    <div class="controls" id="stripCtl"></div>
+    <div class="pair" id="s1"></div>
+    <ul class="notes">
+      <li>The balloon takes the theme: surface 2, the strong border (2u in High contrast), System 7's hard shadow. The target card under the strip already does.</li>
+      <li>The tail starts at the balloon's lower left corner and its tip touches the cell; near the right edge it moves to the lower right corner, and with no room above, the balloon goes under the target card with the tail pointing up.</li>
+      <li>The name is in the heading face (Fira Sans Condensed SemiBold), wraps at 320u (368u at Large) and never leaves the box. In a submenu the path before it is in the accent.</li>
+      <li>Item 119: both end boxes fill with the accent, framed in the strip's ink, the arrow in the accent's own text color.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="win" aria-labelledby="t2">
+  <div class="tb"><span id="t2">2. A disabled action: the requirement balloon</span></div>
+  <div class="body">
+    <p>World menu, Disassemble, Mahogany Drawers, with no saw and the drawers still full. The game sends its requirements in two columns, green for what you have and red for what is missing. Today ZeD prints them twice, large and then small and grey, with every color gone, so nothing says the saws are missing or that the drawers must be emptied.</p>
+    <div class="pair" id="s2"></div>
+    <ul class="notes">
+      <li>The game's picture of the thing, then two columns: the game's label, then its values one under another. A met requirement gets a check, a missing one a cross, in text-safe positive and danger colors (new tokens, at least 4.5:1 in every theme), so color is never the only sign.</li>
+      <li>A condition with no label (the game's "- Has items in container.") gets the cross and spans the width, without the dash.</li>
+      <li>The list is printed once. The game's Name row is left out: the title already names the thing.</li>
+      <li>Rows keep the game's order whether they are met or not, so the layout never jumps between options.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="win" aria-labelledby="t3">
+  <div class="tb"><span id="t3">3. The list style</span></div>
+  <div class="body">
+    <p>The same menu with Context menu set to List. Today's balloon sits beside the menu at a fixed 280 with no tail, and it turns the game's line breaks into spaces, so the labels and values run together in one paragraph.</p>
+    <div class="pair" id="s3"></div>
+    <ul class="notes">
+      <li>The balloon sits beside the row, the tail on its left edge pointing at the row; with no room on the right it goes on the left with the tail on its right edge.</li>
+      <li>The same requirement layout as the strip: one look, one set of rules.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="win" aria-labelledby="t4">
+  <div class="tb"><span id="t4">4. Hover hints and the moodle balloon</span></div>
+  <div class="body">
+    <p>ZeD's other hover boxes: the one-line hint on icon-only controls and the detail card. Today they open below and right of the pointer, so they move with it and land on whatever comes next; a disabled control's hint is drawn as faint as the control.</p>
+    <div class="mini" id="s4"></div>
+    <ul class="notes">
+      <li>One-line hints use the body face (Fira Sans) and wrap at 200u (230u at Large). A balloon with a title and lines uses the heading face for the title, as the detail card does.</li>
+      <li>The balloon is anchored to the control, not the pointer: above it for a row of controls (the belt), beside it for a column (a tab strip, the moodles). The pad's focus gets the same balloon at once; the mouse after ZeD's 450 ms rest.</li>
+      <li>A disabled control's balloon is drawn at full contrast.</li>
+      <li>The moodle hover is the game's own today (drawn by the game, not by ZeD); the balloon shown is what ZeD draws if Build can take it over.</li>
+      <li>The game's item box over the belt (ISToolTipInv) stays the game's: half the Workshop hooks its renderer, and replacing it is what makes tooltip mods fight.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="win" aria-labelledby="t5">
+  <div class="tb"><span id="t5">5. Item 119: the strip's arrows in every accent</span></div>
+  <div class="body">
+    <p>Today both end boxes are near-black on every theme. Now: the accent, framed in the strip's ink, the arrow in the accent's own text color. The ratio under each is the arrow against the box; a graphic needs 3:1.</p>
+    <div class="tbl" id="s5"></div>
+  </div>
+</section>
+
+<section class="win" aria-labelledby="t6">
+  <div class="tb"><span id="t6">6. Fit test: the longest strip name</span></div>
+  <div class="body">
+    <p>"Put in Container (Driver's Seat)" in English, German and Russian at Small and Large text, at the scale chosen above. Red marks text outside its box. The numbers are the box width and the longest line, in screen pixels.</p>
+    <div class="tbl" id="s6"></div>
+  </div>
+</section>
+
+<section class="win" aria-labelledby="t7">
+  <div class="tb"><span id="t7">7. Spec for Build (beta 10)</span></div>
+  <div class="body spec">
+    <h3>One balloon</h3>
+    <ol>
+      <li>Every pop-up that explains a control draws one balloon: the context strip's balloon, the context list's balloon, the hint (requestHint), the detail card (requestDetailCard) and the requirement balloon. ZeD_Tooltip in Atoms.lua becomes the same balloon.</li>
+      <li>Box: <code>T.surf2</code> at alpha 1 (hover boxes never go see-through), a frame of <code>T.borderS</code> at <code>T.borderW</code> hairlines, <code>drawHardShadow</code>. Square corners. The strip's balloon leaves its locked paper and ink: only the strip's cells, bumpers and arrows keep them.</li>
+      <li>Padding 8u at the sides, 5u top and bottom. Line step: the face's height plus 2u. 3u between the title and what follows.</li>
+      <li>Faces: a one-line hint in F2 <code>T.text</code>; a title in F4 <code>T.textHead</code>, a submenu path before it in F4 <code>T.textSec</code> with " &gt; " between; lines in F2 <code>T.text</code>; numbers in F3. No F1 in balloons.</li>
+      <li>Width: the longest unwrapped line plus the padding, up to 200u for a one-line hint and 320u for anything with a title, both times 1.15 at Large text. Every line wraps at word breaks to that width, the title too. A word longer than the width widens the box up to 1.5 times; past that the word breaks. Height follows the lines. Nothing is clipped and nothing spills.</li>
+      <li>Measure with <code>ZeD.TM</code> in the live faces at the live scale and text size, every time the text, the scale, the text size or the language changes (<code>ZeD.Text.measureEpoch</code>).</li>
+    </ol>
+    <h3>The tail</h3>
+    <p>Drawn with <code>drawRect</code> on the hairline grid (one cell = <code>T.hair</code>), as the strip's pointer is. Outer triangle in <code>T.borderS</code>, inner triangle in <code>T.surf2</code> inset by the frame's width, and the frame under the tail's base filled with <code>T.surf2</code> so the tail opens into the box. 10 cells deep. Its straight edge sits 6u in from the box's corner. The tip stops one hairline short of the thing it points at.</p>
+<pre class="raster">tail under the box, lower left corner (# border, . fill); the box's bottom frame is
+opened over the dots in the first row
+
+#........#
+#.......#
+#......#
+#.....#
+#....#
+#...#
+#..#
+#.#
+##
+#      &lt;- tip, 1 hairline above the control</pre>
+    <p>Mirror it for the lower right corner, flip it for a balloon under the control, and turn it a quarter for a balloon beside a control (tail on the box's left or right edge, its straight edge along the top, 6u down).</p>
+    <h3>Placement</h3>
+    <ol>
+      <li>Anchor to the control's rectangle, never to the pointer. The strip and a row of controls (the belt, a footer): above, tail at the lower left, tip over the control's left part (12u in, or its middle when narrower). A column (the tab strips, the moodles) and the list menu: beside, tail on the near edge, tip at the control's middle height.</li>
+      <li>Keep 4u inside the screen: past the right edge, use the lower right corner; past the top, go under (for the strip: under the target card); past the right edge beside, go to the left side. A box that still does not fit slides inside the screen, and the tail stays on its target.</li>
+      <li>Never cover the strip, the target card, the hovered row or the control.</li>
+    </ol>
+    <h3>Behavior (from the Nov 8 research)</h3>
+    <ol>
+      <li>Mouse: after <code>ZeD.HINT_DELAY_MS</code> (450 ms) of rest; moving onto a neighbor while a balloon is up shows the neighbor's at once. Pad and keys: at once on focus, the same balloon.</li>
+      <li>It stays while the pointer is on the control or on the balloon itself, with no timer (WCAG 1.4.13). Escape or B hides it until the pointer or focus moves on; in the context menu B still closes the menu.</li>
+      <li>One balloon at a time. It appears and goes at once (no fades).</li>
+      <li>A disabled control's balloon is at full contrast.</li>
+    </ol>
+    <h3>The requirement balloon</h3>
+    <ol>
+      <li>Parse the option's tooltip description, which the game writes as ISToolTip rich text (ISDisassembleMenu builds it from the moveable's info table): <code>&lt;LINE&gt;</code> ends a line, <code>&lt;SETX:n&gt;</code> splits it into label and value, <code>&lt;RGB:r,g,b&gt;</code> colors what follows; drop the other tags (<code>&lt;INDENT&gt;</code> and the rest). A line with an empty label adds its value to the row above: that is how the game lists the tools that each do. A line with no <code>&lt;SETX&gt;</code> is a condition row.</li>
+      <li>State from color: the game's good highlight color (<code>getCore():getGoodHighlitedColor()</code>) is met, its bad highlight color missing, anything else neutral. A description with no <code>&lt;SETX&gt;</code> anywhere keeps its lines as plain lines, with the same marks for good and bad lines.</li>
+      <li>Columns: when the tooltip has a picture (<code>toolTip.texture</code>, the furniture's sprite), it comes first, 32u square on <code>T.surf3</code> in a 1u <code>T.borderS</code> frame, drawn at its aspect, then 8u. Labels in F2 <code>T.text</code>, as wide as the widest label; 8u; a 7-cell mark and 4u; the values in F2, wrapping inside their column. A condition row spans the label and value columns with its mark, the leading "- " dropped. The rows block is at least as tall as the picture.</li>
+      <li>Colors (new tokens, the director's call, Nov 8): marks and values use <code>T.positiveText</code> and <code>T.dangerText</code>, status colors safe for text. Dark: <code>dangerText</code> #DE7045 (5.3:1 on surface 2), <code>positiveText</code> = positive #7A9A34 (5.3:1). Light: <code>positiveText</code> #204A0C (5.1:1), <code>dangerText</code> = danger #7A2A11 (4.8:1). High contrast: both = its positive and danger. Neutral values in <code>T.text</code>. The crafting card's met and unmet lines move to the same tokens.</li>
+      <li>Print it once (drop the state rows when the body is the requirement list), keep the game's row order, and leave out a Name row whose value repeats the title.</li>
+    </ol>
+<pre class="raster">check           cross
+......#         #.....#
+.....##         ##...##
+#...##.         .##.##.
+##.##..         ..###..
+.###...         .##.##.
+..#....         ##...##
+.......         #.....#</pre>
+    <h3>Item 119</h3>
+    <p><code>drawTruncChevron</code>: fill <code>T.accent</code>, a 1u frame in the strip's ink, the 5px triangle in <code>T.textOnAccent</code>, the hard shadow as now. The pressed state shifts the content 1u into the shadow, as the bumper does.</p>
+    <h3>Still open</h3>
+    <ul>
+      <li>The research's bigger question: a quick hover preview for items next to the drawer (the drawer stays the deep view). Not part of 118.</li>
+    </ul>
+    <h3>QA (from item 118)</h3>
+    <p>Every theme and accent, Small and Large text, 4K at 1.75x and 1280x800, DE and RU: no text outside a box, tails on target, the strip and the target card never covered, pad focus showing the same balloon.</p>
+    <p class="foot">Mockup only: Fira from Google Fonts stands in for the game's distance-field Fira, so widths can differ by a pixel or two. The strip icons are ZeD's own 16 px pixel icons. Tokens from Tokens.lua as of Nov 8 2026.</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+'use strict';
+const ICONS = {
+  equip: ["................", "......##........", "...##.##.##.....", "...##.##.##.....", "...##.##.##.##..", "...##.##.##.##..", "...##.##.##.##..", "...###########..", "##.###########..", ".#.###########..", ".#########......", "..########...#..", "...#######...#..", "....######.#####", ".....#####...#..", ".............#.."],
+  hand_main: ["................", "......##........", "...##.##.##.....", "...##.##.##.....", "...##.##.##.##..", "...##.##.##.##..", "...##.##.##.##..", "...###########..", "##.###########..", ".#.###########..", ".#########......", "..########...#..", "...#######...##.", "....######.#####", ".....#####...##.", ".............#.."],
+  hand_off: ["................", "........##......", ".....##.##.##...", ".....##.##.##...", "..##.##.##.##...", "..##.##.##.##...", "..##.##.##.##...", "..###########...", "..###########.##", "..###########.#.", "...#######......", "...#######...#..", "....######..##..", ".....#####.#####", "......####..##..", ".............#.."],
+  to_floor: ["................", ".......##.......", ".......##.......", ".......##.......", ".......##.......", ".......##.......", "...##########...", "....########....", ".....######.....", "......####......", ".......##.......", "................", "................", ".##.##.##.##.##.", ".##.##.##.##.##.", "................"],
+  pencil: ["................", "...........##...", "..........####..", ".........#..###.", "........#....##.", ".......####.#...", "......######....", ".....######.....", "....######......", "...######.......", "..######........", "..#####.........", ".##.##..........", ".###............", ".##.............", "................"],
+  tray_in: ["................", ".......##.......", ".......##.......", ".......##.......", ".......##.......", ".......##.......", ".......##.......", "....########....", ".....######.....", ".##...####...##.", ".##....##....##.", ".##..........##.", ".#####....#####.", ".##############.", ".##############.", "................"],
+  tray_out: ["................", ".......##.......", "......####......", ".....######.....", "....########....", ".......##.......", ".......##.......", ".......##.......", ".......##.......", ".##....##....##.", ".##....##....##.", ".##..........##.", ".#####....#####.", ".##############.", ".##############.", "................"],
+  link: ["................", "...........####.", "..........##.##.", ".........##...#.", "........##...##.", ".......###..##..", ".......######...", ".....#######....", "....#######.....", "...######.......", "..##..###.......", ".##...##........", ".#...##.........", ".##.##..........", ".####...........", "................"],
+  box_down: ["................", ".......##.......", ".......##.......", "....########....", ".....######.....", "......####......", ".......##.......", "................", ".##############.", ".##############.", "................", "..############..", "..####....####..", "..############..", "..############..", "................"],
+  star: ["................", "................", ".......##.......", ".......##.......", "......####......", "......####......", ".##############.", "..############..", "...##########...", "....########....", "....########....", "...##########...", "...####..####...", "..####....####..", "..##........##..", "................"],
+  gears: ["................", ".......##.......", ".......##.......", "...##..##..##...", "...##########...", "....########....", "....###..###....", ".#####....#####.", ".#####....#####.", "....###..###....", "....########....", "...##########...", "...##..##..##...", ".......##.......", ".......##.......", "................"],
+  more: ["................", "................", "................", "................", "................", "................", "..##...##...##..", ".####.####.####.", ".####.####.####.", "..##...##...##..", "................", "................", "................", "................", "................", "................"],
+  walk: [".......###......", "......#####.....", "......#####.....", "......#####.....", ".......###......", "................", "......###.......", ".....####.......", "....#.###.#.....", "...#..###..#....", "......###...#...", "......####......", ".....##..##.....", "....##....##....", "...##......##...", "...#........##.."],
+  sit_ground: ["................", "................", "................", "......###.......", ".....#####......", ".....#####......", ".....#####......", "......###.......", "................", ".....###........", "...#.###........", "...#.###........", "..#..###.....#..", "..#..#########..", ".....#########..", "................"],
+  screwdriver: ["................", "..............#.", ".............##.", "............##..", "...........##...", "..........##....", ".........##.....", "........##......", "......###.......", ".....#.###......", "....#####.......", "...#.###........", "..#####.........", ".#####..........", ".###............", "................"],
+  arrow_left: ["................", "................", "......#.........", ".....##.........", "....###.........", "...####.........", "..#####.........", ".##############.", ".##############.", "..#####.........", "...####.........", "....###.........", ".....##.........", "......#.........", "................", "................"],
+  backpack: ["................", "......####......", ".....#....#.....", "....########....", "...##########...", "...##########...", "...##########...", "................", "...##########...", "...##..##..##...", "...##.####.##...", "...##.####.##...", "...##.####.##...", "...##......##...", "....########....", "................"],
+  hammer: ["................", ".....##.........", "....####........", "....#####.......", ".....#####......", "......#####.....", ".......#####....", "......##.####...", ".....##...##.#..", "....##.....#..#.", "...##...........", "..##............", ".##.............", "##..............", "................", "................"],
+  skills: ["................", ".............##.", ".............##.", ".............##.", ".........##..##.", ".........##..##.", ".........##..##.", ".....##..##..##.", ".....##..##..##.", ".....##..##..##.", ".##..##..##..##.", ".##..##..##..##.", ".##..##..##..##.", ".##..##..##..##.", "................", "................"],
+  info: ["................", ".....######.....", "...##########...", "..#####..#####..", "..#####..#####..", ".##############.", ".######..######.", ".######..######.", ".######..######.", ".######..######.", ".######..######.", "..#####..#####..", "..#####..#####..", "...##########...", ".....######.....", "................"],
+  view_grid: ["................", ".######..######.", ".######..######.", ".######..######.", ".######..######.", ".######..######.", ".######..######.", "................", "................", ".######..######.", ".######..######.", ".######..######.", ".######..######.", ".######..######.", ".######..######.", "................"],
+  saw: ["................", "................", "...........####.", "..........#####.", "..........##.###", ".........###..##", ".......#####..##", ".....#######..##", "....########..##", "..##############", ".#########.#####", "##########.####.", ".#########.###..", "................", "................", "................"],
+  unequip: ["................", "......##........", "...##.##.##.....", "...##.##.##.....", "...##.##.##.##..", "...##.##.##.##..", "...##.##.##.##..", "...###########..", "##.###########..", ".#.###########..", ".#########......", "..########......", "...#######......", "....######.#####", ".....#####......", "................"],
+  hand: ["................", "......##........", "...##.##.##.....", "...##.##.##.....", "...##.##.##.##..", "...##.##.##.##..", "...##.##.##.##..", "...###########..", "##.###########..", ".#.###########..", ".############...", "..###########...", "...#########....", "....#######.....", ".....#####......", "................"]
+};
+
+
+// ---------------------------------------------------------------- tokens (Tokens.lua, Nov 8 2026)
+const THEMES = {
+  dark:  { name:'Dark', base:'#0C0C0C', surf1:'#141414', surf2:'#1C1C1C', surf3:'#242424', border:'#202020', borderS:'#383838',
+           text:'rgba(218,218,218,0.90)', textDim:'rgba(161,161,161,0.65)', textHead:'rgba(230,230,230,0.92)',
+           danger:'#C45A2A', positive:'#7A9A34', dangerText:'#DE7045', positiveText:'#7A9A34', borderW:1, accSet:'dark' },
+  light: { name:'Light', base:'#C6C6C6', surf1:'#BEBEBE', surf2:'#B6B6B6', surf3:'#AEAEAE', border:'#969696', borderS:'#767676',
+           text:'rgba(12,12,12,0.95)', textDim:'rgba(12,12,12,0.72)', textHead:'rgba(5,5,5,1)',
+           danger:'#7A2A11', positive:'#2A5511', dangerText:'#7A2A11', positiveText:'#204A0C', borderW:1, accSet:'light' },
+  hicon: { name:'High contrast', base:'#050505', surf1:'#111111', surf2:'#191919', surf3:'#202020', border:'#353535', borderS:'#555555',
+           text:'rgba(255,255,255,0.95)', textDim:'rgba(199,199,199,0.75)', textHead:'rgba(255,255,255,0.98)',
+           danger:'#FF5533', positive:'#44DD44', dangerText:'#FF5533', positiveText:'#44DD44', borderW:2, accSet:'dark' },
+};
+const ACCENTS = [
+  ['red','Red','#CC4444','#7A1A1A'], ['orange','Orange','#D4922A','#7A5010'], ['yellow','Yellow','#CCAA22','#6B5F0A'],
+  ['green','Green','#44AA44','#125518'], ['blue','Blue','#4488CC','#1A4477'], ['teal','Teal','#47A18C','#1A6655'],
+  ['purple','Purple','#8855BB','#441888'], ['pink','Pink','#DD5588','#882244'], ['mono','Mono','#888888','#3A3A3A'] ];
+const TOA = { dark:'#0C0C0C', light:'#F2F0EC' };
+const PAPER = '#F2F2F2', INK = '#141414';            // the context strip's locked paper and ink
+const SIZES = { small:{ F1:11, F2:13, F3:11, F4:15, F5:9, ts:1.00 }, large:{ F1:13, F2:15, F3:13, F4:17, F5:11, ts:1.15 } };
+const FACES = { F1:'700 PXpx "Fira Mono", ui-monospace, monospace', F2:'500 PXpx "Fira Sans", Arial, sans-serif',
+                F3:'400 PXpx "Fira Mono", ui-monospace, monospace', F4:'600 PXpx "Fira Sans Condensed", "Arial Narrow", sans-serif',
+                F5:'400 PXpx "Fira Sans Condensed", "Arial Narrow", sans-serif' };
+
+// ---------------------------------------------------------------- the game's and ZeD's own strings
+const STR = {
+  en: { equipBoth:'Equip in Both Hands', putIn:'Put in Container', seat:"Driver's Seat", moveTo:'Move to', floor:'Floor',
+        disassemble:'Disassemble', drawers:'Mahogany Drawers', name:'Name', skill:'Skill', tool:'Tool needed', carpentry:'Carpentry',
+        hammers:['Ball-peen Hammer','Claw Hammer','Smithing Hammer','Stone Hammer'], saws:['Hacksaw','Simple Wood Saw','Wood Saw'],
+        hasItems:'Has items in container.', walkTo:'Walk to', sitGround:'Sit on ground', thirsty:'Thirsty', dehydrated:'Dehydrated.',
+        slotKey:'%1 | key %2', back:'Back', transferAll:'Transfer All', skills:'Skills', clawHammer:'Claw Hammer', secondary:'Secondary' },
+  de: { equipBoth:'Beidhändig ausrüsten', putIn:'Lege in Behälter', seat:'Fahrersitz', moveTo:'Verschieben nach', floor:'Boden',
+        disassemble:'Abbauen', drawers:'Schicke Schubladen aus Eiche', name:'Name', skill:'Fähigkeit', tool:'Benötigt Werkzeug', carpentry:'Tischlerei',
+        hammers:['Schlosserhammer','Hammer','Schmiedehammer','Steinhammer'], saws:['Säge','Einfache Holzsäge','Gartensäge'],
+        hasItems:'Der Container enthält Gegenstände.', walkTo:'Gehe zu', sitGround:'Auf dem Boden sitzen', thirsty:'Durstig', dehydrated:'Dehydriert.',
+        slotKey:'%1 | Taste %2', back:'Rücken', transferAll:'Alles verschieben', skills:'Fähigkeiten', clawHammer:'Hammer', secondary:'Sekundär' },
+  ru: { equipBoth:'Взять в обе руки', putIn:'Положить в контейнер', seat:'Водительское сиденье', moveTo:'Переместить в', floor:'Пол',
+        disassemble:'Разобрать', drawers:'Тумба из красного дерева', name:'Название', skill:'Треб. навык', tool:'Треб. инструмент', carpentry:'Плотничество',
+        hammers:['Молоток с круглым бойком','Молоток-гвоздодёр','Кузнечный молот','Каменный молоток'], saws:['Ножовка','Грубая пила','Пила'],
+        hasItems:'Содержит предметы внутри.', walkTo:'Пойти сюда', sitGround:'Сесть на землю', thirsty:'Умеренная жажда',
+        dehydrated:'Умеренное обезвоживание. Незначительное недомогание.',
+        slotKey:'%1 | клавиша %2', back:'Спина', transferAll:'Переместить всё', skills:'Навыки', clawHammer:'Молоток-гвоздодёр', secondary:'Дополнительная рука' },
+};
+const MARKS = {
+  check: ['......#','.....##','#...##.','##.##..','.###...','..#....','.......'],
+  cross: ['#.....#','##...##','.##.##.','..###..','.##.##.','##...##','#.....#'],
+};
+const TRI_R = ['#..','##.','###','##.','#..'], TRI_L = ['..#','.##','###','.##','..#'];
+
+// ---------------------------------------------------------------- state
+const state = { view:'both', theme:'dark', accent:'orange', size:'small', scale:1.75, lang:'en', strip:'long' };
+if (window.innerWidth < 760) state.scale = 1;   // a phone starts at 1080p pixels
+try { const s = JSON.parse(localStorage.getItem('zedBalloon') || 'null'); if (s) Object.assign(state, s); } catch (e) {}
+function save() { try { localStorage.setItem('zedBalloon', JSON.stringify(state)); } catch (e) {} }
+
+// ---------------------------------------------------------------- environment and primitives (they mirror ZeD's Lua atoms)
+function makeEnv(o) {
+  const st = Object.assign({}, state, o || {});
+  const th = THEMES[st.theme], a = ACCENTS.find(x => x[0] === st.accent);
+  const S = st.scale, hair = Math.max(1, Math.round(S));
+  return { st, S, hair, th, accent: th.accSet === 'light' ? a[3] : a[2], toa: TOA[th.accSet], sz: SIZES[st.size],
+           L: STR[st.lang], bw: th.borderW * hair };
+}
+const P = (E, n) => Math.round(n * E.S);
+const fontOf = (E, role) => FACES[role].replace('PX', (E.sz[role] * E.S).toFixed(2));
+const faceH = (E, role) => Math.round(E.sz[role] * E.S * 1.2);
+const lineStep = (E, role) => faceH(E, role) + P(E, 2);
+function measure(c, E, role, s) { c.font = fontOf(E, role); return c.measureText(s).width; }
+function rect(c, x, y, w, h, col) { if (w <= 0 || h <= 0) return; c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
+function frame(c, x, y, w, h, col, t) { rect(c, x, y, w, t, col); rect(c, x, y + h - t, w, t, col); rect(c, x, y + t, t, h - 2 * t, col); rect(c, x + w - t, y + t, t, h - 2 * t, col); }
+function hardShadow(c, E, x, y, w, h) { const u = E.hair; rect(c, x + w, y + u, u, h, 'rgba(0,0,0,0.5)'); rect(c, x + u, y + h, w - u, u, 'rgba(0,0,0,0.5)'); }
+function text(c, E, role, s, x, y, col) { c.font = fontOf(E, role); c.fillStyle = col; c.textBaseline = 'top'; c.fillText(s, Math.round(x), Math.round(y)); }
+function bitmap(c, rows, x, y, cell, col) {
+  c.fillStyle = col;
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]; let run = -1;
+    for (let i = 0; i <= row.length; i++) {
+      const on = row[i] === '#';
+      if (on && run < 0) run = i;
+      if (!on && run >= 0) { c.fillRect(x + run * cell, y + r * cell, (i - run) * cell, cell); run = -1; }
+    }
+  }
+}
+const _iconCache = {};
+function icon(c, E, id, x, y, box, col) {      // 16 px drawing scaled with nearest filtering, as drawPxIcon does
+  const key = id + '|' + col;
+  let off = _iconCache[key];
+  if (!off) { off = document.createElement('canvas'); off.width = 16; off.height = 16; bitmap(off.getContext('2d'), ICONS[id], 0, 0, 1, col); _iconCache[key] = off; }
+  c.imageSmoothingEnabled = false;
+  c.drawImage(off, Math.round(x), Math.round(y), Math.round(box), Math.round(box));
+}
+function wrapWords(c, E, role, s, maxW) {
+  c.font = fontOf(E, role);
+  const words = String(s).split(/\s+/).filter(Boolean), lines = [];
+  let cur = '';
+  for (const w of words) {
+    const t = cur ? cur + ' ' + w : w;
+    if (!cur || c.measureText(t).width <= maxW) cur = t; else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  const out = [];
+  for (const ln of lines) {
+    if (c.measureText(ln).width <= maxW) { out.push(ln); continue; }
+    let part = '';
+    for (const ch of ln) { if (part && c.measureText(part + ch).width > maxW) { out.push(part); part = ch; } else part += ch; }
+    if (part) out.push(part);
+  }
+  return out.length ? out : [''];
+}
+function seeded(n) { let s = n >>> 0; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+function ground(c, w, h, seed) {
+  c.fillStyle = '#3a4431'; c.fillRect(0, 0, w, h);
+  const rnd = seeded(seed || 7), b = 4;
+  for (let y = 0; y < h; y += b) for (let x = 0; x < w; x += b) {
+    const v = rnd();
+    if (v < 0.22) { c.fillStyle = 'rgba(18,24,12,0.16)'; c.fillRect(x, y, b, b); }
+    else if (v > 0.93) { c.fillStyle = 'rgba(150,170,110,0.08)'; c.fillRect(x, y, b, b); }
+  }
+}
+function contrast(a, b) {
+  const lum = hx => { const n = parseInt(hx.slice(1), 16), ch = [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]; };
+  const A = lum(a), B = lum(b); return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05);
+}
+
+// ---------------------------------------------------------------- canvases
+function makeCanvas(E, w, h, label) {
+  const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+  const cw = Math.round(w * E.S), ch = Math.round(h * E.S);
+  const cv = document.createElement('canvas');
+  cv.width = cw * dpr; cv.height = ch * dpr; cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', label || '');
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.imageSmoothingEnabled = false;
+  return { cv, c, w: cw, h: ch };
+}
+function pane(kind, E, w, h, label, draw) {
+  const el = document.createElement('div'); el.className = 'pane';
+  const t = document.createElement('i'); t.textContent = kind === 'before' ? 'Before (today)' : 'After'; if (kind === 'after') t.className = 'after';
+  const st = document.createElement('div'); st.className = 'stage';
+  const k = makeCanvas(E, w, h, label);
+  st.appendChild(k.cv); el.appendChild(t); el.appendChild(st);
+  draw(k.c, k.w, k.h);
+  return el;
+}
+function panes(host, w, h, label, before, after) {
+  host.textContent = '';
+  const E = makeEnv();
+  if (state.view !== 'after') host.appendChild(pane('before', E, w, h, label + ', today', (c, cw, ch) => before(c, E, cw, ch)));
+  if (state.view !== 'before') host.appendChild(pane('after', E, w, h, label + ', after', (c, cw, ch) => after(c, E, cw, ch)));
+}
+
+// ---------------------------------------------------------------- the context strip (cells unchanged; arrows before/after)
+const CTX = { cellW:22, cellH:22, gap:1, chevW:12, gutter:3 };
+function stripGeom(E, x0, y0, n) {
+  const cw = P(E, CTX.cellW), gap = Math.max(1, P(E, CTX.gap)), hw = E.hair;
+  return { x: x0, y: y0, cw, gap, hw, w: hw * 2 + n * cw + (n - 1) * gap, h: hw * 2 + cw };
+}
+function cellRect(g, i) { return { x: g.x + g.hw + i * (g.cw + g.gap), y: g.y + g.hw, w: g.cw, h: g.cw }; }
+function drawStrip(c, E, g, cells, sel, opts) {
+  hardShadow(c, E, g.x, g.y, g.w, g.h);
+  rect(c, g.x, g.y, g.w, g.h, INK);
+  cells.forEach((id, i) => {
+    const r = cellRect(g, i);
+    const isSel = i === sel, dis = opts && opts.disabled && opts.disabled.includes(i);
+    rect(c, r.x, r.y, r.w, r.h, isSel ? E.accent : PAPER);
+    if (id === 'back') {
+      const tri = Math.max(1, P(E, 8));
+      bitmap(c, TRI_L, r.x + Math.floor((r.w - 3 * Math.ceil(tri / 5)) / 2), r.y + Math.floor((r.h - 5 * Math.ceil(tri / 5)) / 2), Math.ceil(tri / 5), isSel ? PAPER : E.accent);
+    } else {
+      icon(c, E, id, r.x + P(E, 3), r.y + P(E, 3), P(E, 16), isSel ? E.toa : INK);
+    }
+    if (dis) {   // drawDisabledStipple, 1u dots on a / diagonal
+      const u = E.hair; c.fillStyle = isSel ? 'rgba(12,12,12,0.35)' : 'rgba(20,20,20,0.35)';
+      for (let dy = 0; dy < r.h; dy += u) for (let dx = ((dy / u) % 2) * u; dx < r.w; dx += u * 2) c.fillRect(r.x + dx, r.y + dy, u, u);
+    }
+  });
+  if (opts && opts.arrows) {
+    const cw = P(E, CTX.chevW), gut = P(E, CTX.gutter), cy = g.y + g.hw, ch = g.cw;
+    [['l', g.x - gut - cw], ['r', g.x + g.w + gut]].forEach(([d, x]) => {
+      hardShadow(c, E, x, cy, cw, ch);
+      if (opts.arrows === 'before') { rect(c, x, cy, cw, ch, INK); }
+      else { rect(c, x, cy, cw, ch, E.accent); frame(c, x, cy, cw, ch, INK, E.hair); }
+      const cell = Math.max(1, Math.round(P(E, 5) / 5));
+      const tw = 3 * cell, th = 5 * cell;
+      bitmap(c, d === 'l' ? TRI_L : TRI_R, x + Math.floor((cw - tw) / 2), cy + Math.floor((ch - th) / 2), cell, opts.arrows === 'before' ? PAPER : E.toa);
+    });
+  }
+}
+function drawTargetCard(c, E, cx, y, iconId, name) {
+  const th = E.th, iconSz = P(E, 18), padL = P(E, 2), padR = P(E, 6), padV = P(E, 2), gap = P(E, 5);
+  const nameW = measure(c, E, 'F2', name), contentH = Math.max(iconSz, faceH(E, 'F2'));
+  const w = Math.round(padL + iconSz + gap + nameW + padR), h = contentH + padV * 2, x = Math.round(cx - w / 2);
+  hardShadow(c, E, x, y, w, h); rect(c, x, y, w, h, th.surf1); frame(c, x, y, w, h, th.borderS, E.hair);
+  const ix = x + padL, iy = y + Math.floor((h - iconSz) / 2);
+  rect(c, ix, iy, iconSz, iconSz, th.surf3); frame(c, ix, iy, iconSz, iconSz, th.borderS, E.hair);
+  icon(c, E, iconId, ix + E.hair, iy + E.hair, iconSz - 2 * E.hair, '#e8e8e8');
+  text(c, E, 'F2', name, ix + iconSz + gap, y + Math.floor((h - faceH(E, 'F2')) / 2), th.text);
+  return { x, y, w, h };
+}
+
+// ---------------------------------------------------------------- BEFORE: today's strip balloon (Molecules.drawContextBalloon)
+function beforeStripBalloon(c, E, centerX, apexY, s) {
+  const ink = '#000', paper = '#fff', muted = '#6b6b6b', good = '#297d29', bad = '#c22929';
+  const padH = P(E, 10), padV = P(E, 5), rowGap = P(E, 3), divGap = P(E, 5), maxW = P(E, 250), minW = P(E, 80);
+  const segs = []; (s.parents || []).forEach(p => { segs.push([p, muted]); segs.push([' > ', muted]); }); segs.push([s.label, ink]);
+  const labelW = segs.reduce((a, g) => a + measure(c, E, 'F1', g[0]), 0);
+  const hasBody = !!s.body, hasState = !!s.state;
+  const balW = (hasBody || hasState) ? maxW : Math.max(minW, Math.min(maxW, Math.round(labelW + padH * 2)));
+  const inner = balW - padH * 2;
+  const bodyLines = hasBody ? [].concat(...s.body.split('\n').map(p => wrapWords(c, E, 'F2', p, inner))) : [];
+  const stateLines = hasState ? [].concat(...s.state.split('\n').map(p => wrapWords(c, E, 'F5', p, inner - P(E, 10)))) : [];
+  const lH = faceH(E, 'F1'), bH = faceH(E, 'F2'), sH = faceH(E, 'F5');
+  let balH = padV + lH + padV;
+  if (hasBody) balH += rowGap + bodyLines.length * bH;
+  if (hasState) balH += divGap + E.hair + rowGap + stateLines.length * sH;
+  const pH = P(E, 3), balX = Math.round(centerX - balW / 2), balY = apexY - pH - balH;
+  hardShadow(c, E, balX, balY, balW, balH); rect(c, balX, balY, balW, balH, paper); frame(c, balX, balY, balW, balH, ink, 1);
+  // drawContextPointerDown: 6x3 ink, 4x2 paper carve
+  const p1 = E.hair, px = Math.round(centerX), py = balY + balH;
+  rect(c, px - 3 * p1, py, 6 * p1, p1, ink); rect(c, px - 2 * p1, py + p1, 4 * p1, p1, ink); rect(c, px - p1, py + 2 * p1, 2 * p1, p1, ink);
+  rect(c, px - 2 * p1, py, 4 * p1, p1, paper); rect(c, px - p1, py + p1, 2 * p1, p1, paper);
+  let y = balY + padV, cx = balX + Math.floor((balW - labelW) / 2);
+  const spill = labelW > balW - 2;
+  segs.forEach(g => { text(c, E, 'F1', g[0], cx, y, g[1]); cx += measure(c, E, 'F1', g[0]); });
+  if (spill) { c.strokeStyle = '#ff3b30'; c.lineWidth = 1; c.strokeRect(balX + Math.floor((balW - labelW) / 2) - 1.5, y - 1.5, labelW + 3, lH + 3); }
+  y += lH;
+  if (hasBody) { y += rowGap; bodyLines.forEach(l => { text(c, E, 'F2', l, balX + padH, y, ink); y += bH; }); }
+  if (hasState) {
+    y += divGap;
+    for (let dx = balX + padH; dx < balX + balW - padH; dx += P(E, 6)) rect(c, dx, y, Math.min(P(E, 4), balX + balW - padH - dx), E.hair, muted);
+    y += E.hair + rowGap;
+    const dot = P(E, 4); rect(c, balX + padH, y + Math.floor((sH - dot) / 2), dot, dot, s.bad ? bad : good);
+    stateLines.forEach(l => { text(c, E, 'F5', l, balX + padH + dot + P(E, 6), y, muted); y += sH; });
+  }
+  return { x: balX, y: balY, w: balW, h: balH, spill, labelW };
+}
+
+// ---------------------------------------------------------------- AFTER: the one balloon
+// content: { kind:'plain'|'rich', title:[[text, color]...] (rich) or text (plain), lines:[str], req:{rows:[{label, values, st}], cond:[{t, st}]} }
+function layoutBalloon(c, E, ct) {
+  const th = E.th, padX = P(E, 8), padY = P(E, 5), gapT = P(E, 3);
+  const maxW = Math.round(P(E, ct.kind === 'plain' ? 200 : 320) * E.sz.ts);
+  const titleRole = ct.kind === 'plain' ? 'F2' : 'F4';
+  const titleWords = [];
+  const segs = typeof ct.title === 'string' ? [[ct.title, ct.kind === 'plain' ? th.text : th.textHead]] : (ct.title || []);
+  segs.forEach(([t, col]) => t.split(/(\s+)/).forEach(w => { if (w && !/^\s+$/.test(w)) titleWords.push([w, col]); }));
+  const space = measure(c, E, titleRole, ' ');
+  const wordW = w => measure(c, E, titleRole, w);
+  const titleNat = titleWords.reduce((a, w, i) => a + wordW(w[0]) + (i ? space : 0), 0);
+  const longestWord = titleWords.reduce((a, w) => Math.max(a, wordW(w[0])), 0);
+  const lineNat = (ct.lines || []).reduce((a, l) => Math.max(a, measure(c, E, 'F2', l)), 0);
+  const markW = 7 * E.hair + P(E, 4), colGap = P(E, 8);
+  let labelW = 0, valNat = 0, condNat = 0;
+  if (ct.req) {
+    ct.req.rows.forEach(r => { labelW = Math.max(labelW, measure(c, E, 'F2', r.label)); r.values.forEach(v => valNat = Math.max(valNat, measure(c, E, 'F2', v))); });
+    ct.req.cond.forEach(k => condNat = Math.max(condNat, markW + measure(c, E, 'F2', k.t)));
+  }
+  const picW = ct.pic ? P(E, 32) + P(E, 8) : 0;
+  const tableNat = ct.req ? picW + Math.max(labelW + colGap + markW + valNat, condNat) : 0;
+  let w = Math.ceil(Math.max(titleNat, lineNat, tableNat)) + padX * 2;
+  w = Math.min(w, maxW);
+  const minInner = Math.max(longestWord, ct.req ? picW + labelW + colGap + markW + P(E, 60) : 0);
+  if (w - padX * 2 < minInner) w = Math.min(Math.ceil(minInner) + padX * 2, Math.round(maxW * 1.5));
+  const inner = w - padX * 2;
+  // title lines (word wrap with colors)
+  const tLines = []; let cur = [], curW = 0;
+  titleWords.forEach(([t, col]) => {
+    const ww = wordW(t), add = cur.length ? space + ww : ww;
+    if (cur.length && curW + add > inner) { tLines.push(cur); cur = [[t, col]]; curW = ww; } else { cur.push([t, col]); curW += add; }
+  });
+  if (cur.length) tLines.push(cur);
+  const lines = [].concat(...(ct.lines || []).map(l => wrapWords(c, E, 'F2', l, inner)));
+  let rows = [], conds = [];
+  if (ct.req) {
+    const valW = inner - picW - labelW - colGap - markW;
+    rows = ct.req.rows.map(r => ({ r, label: wrapWords(c, E, 'F2', r.label, labelW + 1), vals: [].concat(...r.values.map(v => wrapWords(c, E, 'F2', v, valW))) }));
+    conds = ct.req.cond.map(k => ({ k, lines: wrapWords(c, E, 'F2', k.t, inner - picW - markW) }));
+  }
+  const tStep = lineStep(E, titleRole), bStep = lineStep(E, 'F2');
+  let h = padY;
+  if (tLines.length) h += tLines.length * tStep - P(E, 2);
+  if (lines.length) h += (tLines.length ? gapT : 0) + lines.length * bStep - P(E, 2);
+  if (rows.length || conds.length) {
+    h += gapT + P(E, 2);
+    let th0 = 0;
+    rows.forEach(x => th0 += Math.max(x.label.length, x.vals.length) * bStep);
+    conds.forEach(x => th0 += x.lines.length * bStep);
+    th0 -= P(E, 2);
+    h += Math.max(th0, ct.pic ? P(E, 32) : 0);
+  }
+  h += padY;
+  return { picW, w, h: Math.round(h), padX, padY, gapT, titleRole, tLines, lines, rows, conds, labelW, colGap, markW, inner, space, maxW };
+}
+function placeBalloon(E, lay, a, pref, bounds) {
+  const cell = E.hair, T = 10 * cell, inset = P(E, 6), m = P(E, 4);
+  const B = Object.assign({ x: 0, y: 0, w: 1e9, h: 1e9 }, bounds || {});
+  let side = pref;
+  if (side === 'above' || side === 'below') {
+    const tipX = Math.round(a.x + Math.min(P(E, 12), a.w / 2));
+    let corner = 'left', x = tipX - inset;
+    if (x + lay.w > B.x + B.w - m) { corner = 'right'; x = tipX + cell + inset - lay.w; }
+    x = Math.max(B.x + m, Math.min(x, B.x + B.w - m - lay.w));      // clamp; the tail keeps its tip
+    let y;
+    if (side === 'above') { y = a.y - cell - T - lay.h; if (y < B.y + m && pref === 'above' && !lay.noFlip) { side = 'below'; } }
+    if (side === 'below') { const ay = a.below != null ? a.below : a.y + a.h; y = ay + cell + T; }
+    return { x: Math.round(x), y: Math.round(y), side, corner, tipX, cell, T, inset };
+  }
+  const tipY = Math.round(a.y + a.h / 2);
+  let x = a.x + a.w + cell + T;
+  if (side === 'right' && x + lay.w > B.x + B.w - m) side = 'left';
+  if (side === 'left') x = a.x - cell - T - lay.w;
+  let y = tipY - inset; y = Math.max(B.y + m, Math.min(y, B.y + B.h - m - lay.h));
+  return { x: Math.round(x), y: Math.round(y), side, corner: 'top', tipY, cell, T, inset };
+}
+function drawTail(c, E, box, pl, fill, border) {
+  const cell = pl.cell, bw = Math.max(1, Math.round(E.bw / cell)), n = 10;
+  const put = (col, ox, oy, cx, cy, w, h) => rect(c, ox + cx * cell, oy + cy * cell, w * cell, h * cell, col);
+  if (pl.side === 'above' || pl.side === 'below') {
+    const down = pl.side === 'above';
+    let x0 = pl.corner === 'left' ? pl.tipX : pl.tipX - (n - 1) * cell;   // from the tip, so it stays on target
+    x0 = Math.max(box.x + bw * cell, Math.min(x0, box.x + box.w - bw * cell - n * cell));
+    const yBase = down ? box.y + box.h : box.y - cell;   // first tail row next to the box
+    for (let r = 0; r < n; r++) {
+      const wOut = n - r, yy = down ? yBase + r * cell : yBase - r * cell;
+      const sx = pl.corner === 'left' ? 0 : r;                 // first cell of the row (relative to x0)
+      put(border, x0, yy, sx, 0, wOut, 1);
+      const wIn = wOut - 2 * bw; if (wIn > 0) put(fill, x0, yy, sx + bw, 0, wIn, 1);
+    }
+    // open the frame under the tail's base
+    const oy = down ? box.y + box.h - E.bw : box.y;
+    rect(c, x0 + bw * cell, oy, (n - 2 * bw) * cell, E.bw, fill);
+  } else {
+    const left = pl.side === 'right';                        // balloon to the right: tail on its left edge
+    const y0 = Math.max(box.y + bw * cell, Math.min(pl.tipY, box.y + box.h - bw * cell - n * cell)), xBase = left ? box.x - cell : box.x + box.w;
+    for (let k = 0; k < n; k++) {
+      const hOut = n - k, xx = left ? xBase - k * cell : xBase + k * cell;
+      put(border, xx, y0, 0, 0, 1, hOut);
+      const hIn = hOut - 2 * bw; if (hIn > 0) put(fill, xx, y0, 0, bw, 1, hIn);
+    }
+    const ox = left ? box.x : box.x + box.w - E.bw;
+    rect(c, ox, y0 + bw * cell, E.bw, (n - 2 * bw) * cell, fill);
+  }
+}
+
+// the game's tooltip picture (toolTip:setTexture, the furniture's sprite); a stand-in drawing of drawers here
+const DRAWERS = {
+  wood: ['................','..############..','..#..........#..','..#.########.#..','..#.#......#.#..','..#.########.#..','..#..........#..','..#.########.#..','..#.#......#.#..','..#.########.#..','..#..........#..','..#.########.#..','..#.#......#.#..','..#.########.#..','..############..','...##......##...'],
+};
+function drawPic(c, E, x, y, sz) {
+  const th = E.th;
+  rect(c, x, y, sz, sz, th.surf3); frame(c, x, y, sz, sz, th.borderS, E.hair);
+  const k = sz / 16, rows = DRAWERS.wood;
+  c.fillStyle = '#7a4a2c'; c.fillRect(x + 3 * k, y + 2 * k, 10 * k, 12 * k);
+  c.fillStyle = '#9c6440'; [4, 8, 12].forEach(r => c.fillRect(x + 4 * k, y + (r - 1) * k, 8 * k, 2 * k));
+  bitmap(c, rows, x, y, k, '#2b1a10');
+  c.fillStyle = '#d9b46a'; [4, 8, 12].forEach(r => c.fillRect(x + 7 * k, y + r * k - k / 2, 2 * k, k));
+}
+function drawBalloon(c, E, ct, anchor, pref, bounds) {
+  const th = E.th, lay = layoutBalloon(c, E, ct);
+  if (ct.noFlip) lay.noFlip = true;
+  const pl = placeBalloon(E, lay, anchor, pref, bounds);
+  const box = { x: pl.x, y: pl.y, w: lay.w, h: lay.h };
+  hardShadow(c, E, box.x, box.y, box.w, box.h);
+  rect(c, box.x, box.y, box.w, box.h, th.surf2);
+  frame(c, box.x, box.y, box.w, box.h, th.borderS, E.bw);
+  drawTail(c, E, box, pl, th.surf2, th.borderS);
+  let y = box.y + lay.padY;
+  const tStep = lineStep(E, lay.titleRole), bStep = lineStep(E, 'F2');
+  lay.tLines.forEach(words => {
+    let x = box.x + lay.padX;
+    words.forEach(([t, col], i) => { if (i) x += lay.space; text(c, E, lay.titleRole, t, x, y, col); x += measure(c, E, lay.titleRole, t); });
+    y += tStep;
+  });
+  if (lay.tLines.length) y -= P(E, 2);
+  if (lay.lines.length) { if (lay.tLines.length) y += lay.gapT; lay.lines.forEach(l => { text(c, E, 'F2', l, box.x + lay.padX, y, th.text); y += bStep; }); y -= P(E, 2); }
+  if (lay.rows.length || lay.conds.length) {
+    y += lay.gapT + P(E, 2);
+    if (ct.pic) drawPic(c, E, box.x + lay.padX, y, P(E, 32));
+    const lx = box.x + lay.padX + lay.picW, mx = lx + lay.labelW + lay.colGap, vx = mx + lay.markW;
+    const markY = yy => yy + Math.floor((faceH(E, 'F2') - 7 * E.hair) / 2);
+    lay.rows.forEach(({ r, label, vals }) => {
+      label.forEach((l, i) => text(c, E, 'F2', l, lx, y + i * bStep, th.text));
+      const col = r.st === 'ok' ? th.positiveText : r.st === 'bad' ? th.dangerText : th.text;
+      if (r.st) bitmap(c, r.st === 'ok' ? MARKS.check : MARKS.cross, mx, markY(y), E.hair, col);
+      vals.forEach((v, i) => text(c, E, 'F2', v, vx, y + i * bStep, col));
+      y += Math.max(label.length, vals.length) * bStep;
+    });
+    lay.conds.forEach(({ k, lines }) => {
+      const col = k.st === 'bad' ? th.dangerText : th.positiveText;
+      bitmap(c, k.st === 'bad' ? MARKS.cross : MARKS.check, lx, markY(y), E.hair, col);
+      lines.forEach((l, i) => text(c, E, 'F2', l, lx + lay.markW, y + i * bStep, col));
+      y += lines.length * bStep;
+    });
+  }
+  return { box, pl, lay };
+}
+
+// ---------------------------------------------------------------- scene 1: the icon strip
+function stripModel(E) {
+  const L = E.L, mode = E.st.strip;
+  if (mode === 'sub') return { cells: ['back', 'to_floor', 'tray_in', 'box_down', 'tray_out', 'link', 'star', 'more', 'gears', 'pencil'], sel: 1, parents: [L.moveTo], label: L.floor };
+  if (mode === 'short') return { cells: ['hand_main', 'equip', 'hand_off', 'to_floor', 'pencil', 'tray_in', 'link', 'box_down', 'star', 'gears'], sel: 1, parents: [], label: L.equipBoth };
+  return { cells: ['hand_main', 'equip', 'hand_off', 'to_floor', 'pencil', 'tray_in', 'link', 'box_down', 'star', 'gears'], sel: 5, parents: [], label: L.putIn + ' (' + L.seat + ')' };
+}
+function scene1(host) {
+  const W = 500, H = 190;
+  const draw = (kind) => (c, E, cw, ch) => {
+    ground(c, cw, ch, 11);
+    const m = stripModel(E), g = stripGeom(E, P(E, 120), P(E, 100), m.cells.length);
+    drawStrip(c, E, g, m.cells, m.sel, { arrows: kind });
+    const card = drawTargetCard(c, E, g.x + g.w / 2, g.y + g.h + P(E, 10), 'hammer', E.L.clawHammer);
+    const r = cellRect(g, m.sel);
+    if (kind === 'before') beforeStripBalloon(c, E, r.x + r.w / 2, g.y, { label: m.label, parents: m.parents });
+    else {
+      const title = []; m.parents.forEach(p => { title.push([p, E.accent]); title.push(['>', E.accent]); }); title.push([m.label, E.th.textHead]);
+      drawBalloon(c, E, { kind: 'rich', title }, { x: r.x, y: g.y, w: r.w, h: r.h, below: card.y + card.h }, 'above', { x: 0, y: 0, w: cw, h: ch });
+    }
+  };
+  panes(host, W, H, 'The icon strip', draw('before'), draw('after'));
+}
+
+// ---------------------------------------------------------------- scene 2: the requirement balloon
+function reqModel(E) {
+  const L = E.L;
+  return {
+    rows: [{ label: L.name, values: [L.drawers], st: null, isName: true }, { label: L.skill, values: [L.carpentry], st: 'ok' },
+           { label: L.tool, values: L.hammers, st: 'ok' }, { label: L.tool, values: L.saws, st: 'bad' }],
+    cond: [{ t: L.hasItems, st: 'bad' }],
+  };
+}
+function reqPlainText(E) {          // the game's description after ContextMenuRegistry.plainTip (tags gone, lines kept)
+  const m = reqModel(E), out = [];
+  m.rows.forEach(r => { out.push(r.label + ': ' + r.values[0]); r.values.slice(1).forEach(v => out.push(v)); });
+  m.cond.forEach(k => out.push('- ' + k.t));
+  return out.join('\n');
+}
+function scene2(host) {
+  const W = 520, H = 520;
+  const draw = (kind) => (c, E, cw, ch) => {
+    ground(c, cw, ch, 23);
+    const L = E.L, cells = ['walk', 'sit_ground', 'screwdriver', 'tray_out'];
+    const g = stripGeom(E, P(E, 200), P(E, 440), cells.length);
+    drawStrip(c, E, g, cells, 2, { disabled: [2] });
+    const card = drawTargetCard(c, E, g.x + g.w / 2, g.y + g.h + P(E, 10), 'box_down', L.drawers);
+    const r = cellRect(g, 2);
+    if (kind === 'before') {
+      const t = reqPlainText(E);
+      beforeStripBalloon(c, E, r.x + r.w / 2, g.y, { label: L.drawers, parents: [L.disassemble], body: t, state: t, bad: true });
+    } else {
+      const m = reqModel(E);
+      const req = { rows: m.rows.filter(x => !x.isName), cond: m.cond };
+      drawBalloon(c, E, { kind: 'rich', title: [[L.disassemble, E.accent], ['>', E.accent], [L.drawers, E.th.textHead]], req, pic: true, noFlip: true },
+        { x: r.x, y: g.y, w: r.w, h: r.h, below: card.y + card.h }, 'above', { x: 0, y: 0, w: cw, h: ch });
+    }
+  };
+  panes(host, W, H, 'The requirement balloon', draw('before'), draw('after'));
+}
+
+// ---------------------------------------------------------------- scene 3: the list style
+function drawListMenu(c, E, x, y, heading, rows, hover, opts) {
+  const th = E.th, rowH = P(E, E.st.size === 'large' ? 28 : 24), headH = P(E, 26), padX = P(E, 8), iconBox = P(E, 16);
+  const w = Math.ceil(Math.max(measure(c, E, 'F1', heading) + padX * 2, ...rows.map(r => padX + iconBox + P(E, 6) + measure(c, E, 'F2', r.t) + P(E, 18)))) ;
+  const h = headH + rows.length * rowH + P(E, 4);
+  hardShadow(c, E, x, y, w, h); rect(c, x, y, w, h, th.surf1);
+  rect(c, x, y, w, headH, th.surf2);
+  text(c, E, 'F1', heading, x + padX, y + Math.floor((headH - faceH(E, 'F1')) / 2), E.accent);
+  rect(c, x, y + headH - E.hair, w, E.hair, th.borderS);
+  const rects = [];
+  rows.forEach((r, i) => {
+    const ry = y + headH + P(E, 2) + i * rowH;
+    if (i === hover || (opts && opts.open === i)) rect(c, x + E.hair, ry, w - 2 * E.hair, rowH, hexA(E.accent, 0.30));
+    const col = r.dis ? fade(th.text, 0.42) : th.text;
+    icon(c, E, r.ic, x + padX, ry + Math.floor((rowH - iconBox) / 2), iconBox, col);
+    text(c, E, 'F2', r.t, x + padX + iconBox + P(E, 6), ry + Math.floor((rowH - faceH(E, 'F2')) / 2), col);
+    if (r.sub) { const cell = Math.max(1, Math.round(P(E, 5) / 5)); bitmap(c, TRI_R, x + w - padX - 3 * cell, ry + Math.floor((rowH - 5 * cell) / 2), cell, col); }
+    rects.push({ x, y: ry, w, h: rowH });
+  });
+  frame(c, x, y, w, h, th.borderS, E.bw);
+  return { x, y, w, h, rects };
+}
+function hexA(hx, a) { const n = parseInt(hx.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function fade(rgba, k) { const m = rgba.match(/rgba?\(([^)]+)\)/); if (!m) return rgba; const p = m[1].split(',').map(Number); return `rgba(${p[0]},${p[1]},${p[2]},${((p[3] == null ? 1 : p[3]) * k).toFixed(3)})`; }
+function beforeListBalloon(c, E, bx, by, lvx, txt) {      // ZeD_ContextList:_drawBalloon
+  const th = E.th, bw = P(E, 280), pad = P(E, 8);
+  const flat = txt.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+  const lines = wrapWords(c, E, 'F2', flat, bw - pad * 2), lh = faceH(E, 'F2') + P(E, 2), bh = lines.length * lh + pad * 2;
+  const x = bx + P(E, 6);
+  hardShadow(c, E, x, by, bw, bh); rect(c, x, by, bw, bh, th.surf1); frame(c, x, by, bw, bh, th.borderS, E.hair);
+  lines.forEach((l, i) => text(c, E, 'F2', l, x + pad, by + pad + i * lh, th.text));
+}
+function scene3(host) {
+  const W = 720, H = 300;
+  const draw = (kind) => (c, E, cw, ch) => {
+    ground(c, cw, ch, 31);
+    const L = E.L;
+    const main = drawListMenu(c, E, P(E, 24), P(E, 30), L.drawers.toUpperCase(),
+      [{ ic: 'walk', t: L.walkTo }, { ic: 'sit_ground', t: L.sitGround }, { ic: 'screwdriver', t: L.disassemble, sub: true }], -1, { open: 2 });
+    const casX = main.x + main.w + P(E, 2), casY = main.rects[2].y - P(E, 28);
+    const cas = drawListMenu(c, E, casX, casY, L.disassemble.toUpperCase(), [{ ic: 'box_down', t: L.drawers, dis: true }], 0);
+    const row = cas.rects[0];
+    if (kind === 'before') beforeListBalloon(c, E, cas.x + cas.w, row.y, cas.x, reqPlainText(E));
+    else {
+      const m = reqModel(E);
+      drawBalloon(c, E, { kind: 'rich', title: [[L.disassemble, E.accent], ['>', E.accent], [L.drawers, E.th.textHead]], req: { rows: m.rows.filter(x => !x.isName), cond: m.cond }, pic: true },
+        { x: cas.x, y: row.y, w: cas.w, h: row.h }, 'right', { x: 0, y: 0, w: cw, h: ch });
+    }
+  };
+  panes(host, W, H, 'The list style', draw('before'), draw('after'));
+}
+
+// ---------------------------------------------------------------- scene 4: hints
+function beforeHint(c, E, s, ax, ay, bounds, faint) {        // Atoms.drawHintBox at the pointer
+  const th = E.th, padX = P(E, 8), padY = P(E, 4), w = Math.round(measure(c, E, 'F2', s) + padX * 2), h = faceH(E, 'F2') + padY * 2;
+  let x = ax + P(E, 12), y = ay + P(E, 18);
+  if (x + w > bounds.w) x = ax - P(E, 4) - w;
+  if (y + h > bounds.h) y = ay - P(E, 4) - h;
+  hardShadow(c, E, x, y, w, h); rect(c, x, y, w, h, th.surf1); frame(c, x, y, w, h, th.borderS, E.hair);
+  text(c, E, 'F2', s, x + padX, y + padY, faint ? fade(th.text, 0.42) : th.text);
+}
+function pointer(c, E, x, y) {        // the arrow pointer, System 6 style
+  const rows = ['#.........','##........','#.#.......','#..#......','#...#.....','#....#....','#.....#...','#......#..','#....####.','#..#.#....','#.#..#....','##....#...','#.....#...','......##..'];
+  const cell = Math.max(1, Math.round(E.S));
+  const fillRows = rows.map(r => r.replace(/#/g, 'o'));
+  // white body then black outline
+  for (let r = 0; r < rows.length; r++) { const row = rows[r]; const a = row.indexOf('#'), b = row.lastIndexOf('#'); if (a >= 0 && b > a) rect(c, x + (a + 1) * cell, y + r * cell, (b - a - 1) * cell, cell, '#fff'); }
+  bitmap(c, rows, x, y, cell, '#000');
+}
+function drawSlot(c, E, x, y, w, h, ic, key) {
+  const th = E.th;
+  rect(c, x, y, w, h, th.surf3); frame(c, x, y, w, h, th.borderS, E.hair);
+  icon(c, E, ic, x + Math.floor((w - P(E, 16)) / 2), y + Math.floor((h - P(E, 16)) / 2), P(E, 16), '#e6e6e6');
+  if (key) { const kw = P(E, 11); rect(c, x, y, kw, kw, E.accent); text(c, E, 'F5', key, x + P(E, 3), y, E.toa); }
+}
+function scene4(host) {
+  host.textContent = '';
+  const E = makeEnv(), L = E.L;
+  const minis = [
+    { title: 'Belt slot', W: 300, H: 170, draw: (c, E, cw, ch, kind) => {
+        ground(c, cw, ch, 41);
+        const by = P(E, 120), sw = P(E, 36);
+        rect(c, P(E, 20), by - P(E, 6), cw - P(E, 40), sw + P(E, 12), '#4a3524'); rect(c, P(E, 20), by - P(E, 6), cw - P(E, 40), E.hair, '#2a1d12');
+        drawSlot(c, E, P(E, 40), by, sw, sw, 'hand_off', null); drawSlot(c, E, P(E, 84), by, sw, sw, 'hammer', null);
+        drawSlot(c, E, P(E, 150), by, sw, sw, 'backpack', '1'); drawSlot(c, E, P(E, 194), by, sw, sw, 'link', '2');
+        const s = L.slotKey.replace('%1', L.back).replace('%2', '1');
+        if (kind === 'before') { pointer(c, E, P(E, 168), by + P(E, 14)); beforeHint(c, E, s, P(E, 168), by + P(E, 14), { w: cw, h: ch }); }
+        else { drawBalloon(c, E, { kind: 'plain', title: s }, { x: P(E, 150), y: by, w: sw, h: sw }, 'above', { x: 0, y: 0, w: cw, h: ch }); pointer(c, E, P(E, 168), by + P(E, 14)); }
+      } },
+    { title: 'Tab strip', W: 300, H: 170, draw: (c, E, cw, ch, kind) => {
+        ground(c, cw, ch, 43);
+        const th = E.th, tx = P(E, 18), ty = P(E, 14), tw = P(E, 30), tabs = ['backpack', 'hand_main', 'skills', 'info'];
+        rect(c, tx, ty, cw - P(E, 30), ch - P(E, 28), th.surf1); frame(c, tx, ty, cw - P(E, 30), ch - P(E, 28), th.borderS, E.hair);
+        tabs.forEach((id, i) => { const y = ty + P(E, 6) + i * P(E, 32); rect(c, tx + E.hair, y, tw, P(E, 30), i === 0 ? hexA(E.accent, 0.30) : th.surf2); icon(c, E, id, tx + E.hair + Math.floor((tw - P(E, 16)) / 2), y + P(E, 7), P(E, 16), th.text); });
+        const hy = ty + P(E, 6) + 2 * P(E, 32);
+        if (kind === 'before') { pointer(c, E, tx + P(E, 14), hy + P(E, 12)); beforeHint(c, E, L.skills, tx + P(E, 14), hy + P(E, 12), { w: cw, h: ch }); }
+        else { drawBalloon(c, E, { kind: 'plain', title: L.skills }, { x: tx + E.hair, y: hy, w: tw, h: P(E, 30) }, 'right', { x: 0, y: 0, w: cw, h: ch }); pointer(c, E, tx + P(E, 14), hy + P(E, 12)); }
+      } },
+    { title: 'Disabled footer button', W: 300, H: 170, draw: (c, E, cw, ch, kind) => {
+        ground(c, cw, ch, 47);
+        const th = E.th, fx = P(E, 16), fy = P(E, 110), fw = cw - P(E, 32), fh = P(E, 34);
+        rect(c, fx, P(E, 16), fw, fy - P(E, 16), th.surf1); rect(c, fx, fy, fw, fh, th.surf2); frame(c, fx, P(E, 16), fw, fy + fh - P(E, 16), th.borderS, E.hair);
+        const bx = fx + P(E, 10), by = fy + P(E, 6), bs = P(E, 22);
+        ['tray_out', 'tray_in', 'more'].forEach((id, i) => icon(c, E, id, bx + i * P(E, 30) + P(E, 3), by + P(E, 3), P(E, 16), fade(th.text, i === 0 ? 0.42 : 1)));
+        if (kind === 'before') { pointer(c, E, bx + P(E, 10), by + P(E, 12)); beforeHint(c, E, L.transferAll, bx + P(E, 10), by + P(E, 12), { w: cw, h: ch }, true); }
+        else { drawBalloon(c, E, { kind: 'plain', title: L.transferAll }, { x: bx, y: by, w: bs, h: bs }, 'above', { x: 0, y: 0, w: cw, h: ch }); pointer(c, E, bx + P(E, 10), by + P(E, 12)); }
+      } },
+    { title: 'Moodle', W: 340, H: 190, draw: (c, E, cw, ch, kind) => {
+        ground(c, cw, ch, 53);
+        const mx = cw - P(E, 52), sz = P(E, 36);
+        [['#2c5d8c', 'D'], ['#8c6a2c', 'T'], ['#5a2c2c', 'P']].forEach(([col], i) => { const y = P(E, 18) + i * P(E, 42); rect(c, mx, y, sz, sz, col); frame(c, mx, y, sz, sz, '#000', E.hair); icon(c, E, i === 0 ? 'info' : i === 1 ? 'more' : 'star', mx + P(E, 10), y + P(E, 10), P(E, 16), '#f0f0f0'); });
+        const ay = P(E, 18);
+        if (kind === 'before') {        // the game's own moodle box (approximate, from the survey)
+          c.font = fontOf(E, 'F2');
+          const t1 = '■ ' + L.thirsty, lines = wrapWords(c, E, 'F2', L.dehydrated, P(E, 220));
+          const w = Math.max(measure(c, E, 'F2', t1), ...lines.map(l => measure(c, E, 'F2', l))) + P(E, 20), lh = faceH(E, 'F2') + P(E, 2), h = (lines.length + 1) * lh + P(E, 14);
+          const x = mx - P(E, 8) - w, y = ay;
+          c.fillStyle = 'rgba(0,0,0,0.72)'; c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, P(E, 8)) : c.rect(x, y, w, h); c.fill();
+          text(c, E, 'F2', t1, x + P(E, 10), y + P(E, 7), '#e8e8e8'); lines.forEach((l, i) => text(c, E, 'F2', l, x + P(E, 10), y + P(E, 7) + (i + 1) * lh, '#bdbdbd'));
+          pointer(c, E, mx + P(E, 16), ay + P(E, 14));
+        } else {
+          drawBalloon(c, E, { kind: 'rich', title: L.thirsty, lines: [L.dehydrated] }, { x: mx, y: ay, w: sz, h: sz }, 'left', { x: 0, y: 0, w: cw, h: ch });
+          pointer(c, E, mx + P(E, 16), ay + P(E, 14));
+        }
+      } },
+  ];
+  minis.forEach(mi => {
+    const box = document.createElement('div'); box.className = 'pane';
+    const h = document.createElement('i'); h.textContent = mi.title; box.appendChild(h);
+    const pr = document.createElement('div'); pr.className = 'pair';
+    ['before', 'after'].forEach(kind => {
+      if ((kind === 'before' && state.view === 'after') || (kind === 'after' && state.view === 'before')) return;
+      pr.appendChild(pane(kind, E, mi.W, mi.H, mi.title + (kind === 'before' ? ', today' : ', after'), (c, cw, ch) => mi.draw(c, E, cw, ch, kind)));
+    });
+    box.appendChild(pr); host.appendChild(box);
+  });
+}
+
+// ---------------------------------------------------------------- scene 5: arrows in every accent
+function scene5(host) {
+  host.textContent = '';
+  const tbl = document.createElement('table'); const head = document.createElement('tr');
+  head.innerHTML = '<th></th>' + ACCENTS.map(a => `<th>${a[1]}</th>`).join('');
+  tbl.appendChild(head);
+  const rowOf = (label, theme, before) => {
+    const tr = document.createElement('tr'); const th0 = document.createElement('td'); th0.className = 'l'; th0.textContent = label; tr.appendChild(th0);
+    ACCENTS.forEach(a => {
+      const E = makeEnv({ theme, accent: a[0], scale: 1 });
+      const td = document.createElement('td'); const k = makeCanvas(E, 100, 36, label + ' ' + a[1]);
+      const c = k.c; ground(c, k.w, k.h, 61);
+      const g = stripGeom(E, 21, 6, 2);
+      drawStrip(c, E, g, ['star', 'gears'], -1, { arrows: before ? 'before' : 'after' });
+      td.appendChild(k.cv);
+      const r = document.createElement('div'); const cr = before ? contrast(PAPER, INK) : contrast(E.toa, E.accent);
+      r.textContent = cr.toFixed(1) + ':1'; r.className = cr >= 3 ? 'ok' : 'bad'; td.appendChild(r);
+      tr.appendChild(td);
+    });
+    return tr;
+  };
+  tbl.appendChild(rowOf('Today, every theme', 'dark', true));
+  tbl.appendChild(rowOf('Dark', 'dark', false));
+  tbl.appendChild(rowOf('Light', 'light', false));
+  tbl.appendChild(rowOf('High contrast', 'hicon', false));
+  host.appendChild(tbl);
+}
+
+// ---------------------------------------------------------------- scene 6: fit test
+function scene6(host) {
+  host.textContent = '';
+  const combos = [['en', 'small'], ['en', 'large'], ['de', 'small'], ['de', 'large'], ['ru', 'small'], ['ru', 'large']];
+  const kinds = ['before', 'after'].filter(k => !((k === 'before' && state.view === 'after') || (k === 'after' && state.view === 'before')));
+  const tbl = document.createElement('table'); const head = document.createElement('tr');
+  head.innerHTML = '<th></th>' + kinds.map(k => `<th>${k === 'before' ? 'Today' : 'After'}</th>`).join('');
+  tbl.appendChild(head);
+  combos.forEach(([lang, size]) => {
+    const tr = document.createElement('tr'); const t0 = document.createElement('td'); t0.className = 'l';
+    t0.textContent = lang.toUpperCase() + ' ' + (size === 'small' ? 'Small' : 'Large'); tr.appendChild(t0);
+    kinds.forEach(kind => {
+      const E = makeEnv({ lang, size });
+      const td = document.createElement('td'); const k = makeCanvas(E, 400, 110, kind + ' ' + lang + ' ' + size);
+      const c = k.c; ground(c, k.w, k.h, 71);
+      const L = E.L, label = L.putIn + ' (' + L.seat + ')';
+      const g = stripGeom(E, P(E, 150), P(E, 72), 6);
+      drawStrip(c, E, g, ['hand_main', 'equip', 'to_floor', 'pencil', 'tray_in', 'link'], 4, { arrows: kind });
+      const r = cellRect(g, 4);
+      let info;
+      if (kind === 'before') { const b = beforeStripBalloon(c, E, r.x + r.w / 2, g.y, { label }); info = { box: b.w, line: Math.round(b.labelW), bad: b.spill }; }
+      else {
+        const b = drawBalloon(c, E, { kind: 'rich', title: [[label, E.th.textHead]] }, { x: r.x, y: g.y, w: r.w, h: r.h }, 'above', { x: 0, y: 0, w: k.w, h: k.h });
+        const lw = Math.max(...b.lay.tLines.map(ws => ws.reduce((a, w, i) => a + measure(c, E, 'F4', w[0]) + (i ? b.lay.space : 0), 0)));
+        info = { box: b.box.w, line: Math.round(lw), bad: lw > b.box.w - 2 * b.lay.padX + 0.5 };
+      }
+      td.appendChild(k.cv);
+      const d = document.createElement('div'); d.className = info.bad ? 'bad' : 'ok';
+      d.textContent = `box ${info.box} · line ${info.line}${info.bad ? ' · spills' : ''}`; td.appendChild(d);
+      tr.appendChild(td);
+    });
+    tbl.appendChild(tr);
+  });
+  host.appendChild(tbl);
+}
+
+// ---------------------------------------------------------------- controls
+const CONTROLS = [
+  { key: 'view', label: 'Show', opts: [['both', 'Before and after'], ['before', 'Before'], ['after', 'After']] },
+  { key: 'theme', label: 'Theme', opts: [['dark', 'Dark'], ['light', 'Light'], ['hicon', 'High contrast']] },
+  { key: 'size', label: 'Text size', opts: [['small', 'Small'], ['large', 'Large']] },
+  { key: 'scale', label: 'Screen', opts: [[0.74, '1280x800'], [1, '1080p'], [1.75, '4K at 1.75x']] },
+  { key: 'lang', label: 'Language', opts: [['en', 'EN'], ['de', 'DE'], ['ru', 'RU']] },
+];
+function radioGroup(host, def) {
+  const ctl = document.createElement('div'); ctl.className = 'ctl'; ctl.setAttribute('role', 'radiogroup');
+  const b = document.createElement('b'); b.textContent = def.label; b.id = 'lbl-' + def.key; ctl.setAttribute('aria-labelledby', b.id); ctl.appendChild(b);
+  const rs = document.createElement('div'); rs.className = 'radios';
+  def.opts.forEach(([v, t], i) => {
+    const lab = document.createElement('label'); lab.className = 'radio';
+    const inp = document.createElement('input'); inp.type = 'radio'; inp.name = def.key; inp.id = def.key + '-' + i; inp.checked = state[def.key] === v;
+    inp.addEventListener('change', () => { state[def.key] = v; save(); render(); });
+    lab.appendChild(inp); lab.appendChild(document.createTextNode(t)); rs.appendChild(lab);
+  });
+  ctl.appendChild(rs); host.appendChild(ctl);
+}
+function buildControls() {
+  const host = document.getElementById('controls'); host.textContent = '';
+  CONTROLS.forEach(d => radioGroup(host, d));
+  const ctl = document.createElement('div'); ctl.className = 'ctl';
+  const b = document.createElement('b'); b.textContent = 'Accent'; ctl.appendChild(b);
+  const row = document.createElement('div'); row.className = 'swatches'; row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', 'Accent');
+  const nm = document.createElement('span'); nm.className = 'swname';
+  ACCENTS.forEach(a => {
+    const s = document.createElement('button'); s.type = 'button'; s.className = 'sw'; s.id = 'acc-' + a[0];
+    s.style.background = THEMES[state.theme].accSet === 'light' ? a[3] : a[2];
+    s.setAttribute('role', 'radio'); s.setAttribute('aria-checked', String(state.accent === a[0])); s.setAttribute('aria-label', a[1]);
+    s.addEventListener('click', () => { state.accent = a[0]; save(); render(); });
+    row.appendChild(s);
+  });
+  nm.textContent = ACCENTS.find(a => a[0] === state.accent)[1]; row.appendChild(nm);
+  ctl.appendChild(row); host.appendChild(ctl);
+  const sh = document.getElementById('stripCtl'); sh.textContent = '';
+  radioGroup(sh, { key: 'strip', label: 'Pointed cell', opts: [['long', "Put in Container (Driver's Seat)"], ['short', 'Equip in Both Hands'], ['sub', 'Move to > Floor (submenu)']] });
+}
+function render() {
+  const E = makeEnv();
+  document.documentElement.style.setProperty('--accent', ACCENTS.find(a => a[0] === state.accent)[2]);   // the page chrome is dark: the dark set
+  buildControls();
+  scene1(document.getElementById('s1'));
+  scene2(document.getElementById('s2'));
+  scene3(document.getElementById('s3'));
+  scene4(document.getElementById('s4'));
+  scene5(document.getElementById('s5'));
+  scene6(document.getElementById('s6'));
+}
+const faces = ['700 13px "Fira Mono"', '400 13px "Fira Mono"', '500 13px "Fira Sans"', '600 15px "Fira Sans Condensed"', '400 11px "Fira Sans Condensed"'];
+Promise.all(faces.map(f => document.fonts.load(f, 'AaЖжÄä'))).catch(() => {}).then(() => document.fonts.ready).then(render, render);
+render();
+</script>
