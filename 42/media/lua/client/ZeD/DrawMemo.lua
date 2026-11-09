@@ -1,0 +1,140 @@
+-- ZeD-UI/42/media/lua/client/ZeD/DrawMemo.lua
+-- ============================================================================
+-- DRAW MEMO — client; a helper under the atoms. Writes down the draws a block
+-- of a tab asks of its panel (a skill row, the thermal grid, a slot row) and
+-- plays them back on later frames while nothing the block depends on has
+-- changed, so the block's layout, measuring and colour picking run once
+-- instead of every frame. The panel gets exactly the same calls with exactly
+-- the same values, in the same order; a surface strip (ZeD.Surface.fill: its
+-- draw and its claim on the window body) is asked for again on each play.
+-- The one thing to know: the caller decides when the kept draws are still
+-- good (its own key: the block's data, place, size, focus, the palette ZeD.T
+-- and ZeD.DrawMemo.epoch()). Nothing that hangs on the pointer or the clock
+-- is kept: a block's hover tests are written down (DM.hovers) for the caller
+-- to ask again each frame, and its hover washes stay outside the block.
+-- ============================================================================
+
+ZeD = ZeD or {}
+ZeD.DrawMemo = ZeD.DrawMemo or {}
+local DM = ZeD.DrawMemo
+
+-- The recorder: stands in for the panel while a block draws. Draw calls are
+-- written down (their name, how many values, the values); anything else
+-- (getMouseX, a field such as zedScaled or javaObject, a field written) is
+-- the real panel's.
+local recMT = {}
+recMT.__index = function(rec, k)
+    local real = rawget(rec, "_real")
+    local v = real[k]
+    if type(v) == "function" then
+        if type(k) == "string" and (string.sub(k, 1, 4) == "draw" or k == "setStencilRect" or k == "clearStencilRect") then
+            return function(_, ...)
+                local cmds = rawget(rec, "_cmds")
+                cmds[#cmds + 1] = { k, select("#", ...), ... }
+            end
+        end
+        return function(_, ...) return v(real, ...) end
+    end
+    return v
+end
+recMT.__newindex = function(rec, k, v) rawget(rec, "_real")[k] = v end
+
+local function isRec(p) return type(p) == "table" and getmetatable(p) == recMT end
+
+-- While a block records, two library calls are watched for it: a surface fill (written down
+-- whole as "__fill": the play asks ZeD.Surface.fill of the panel, which draws the strip and
+-- claims it, in its place among the draws) and a hover test (written down for DM.hovered).
+-- Both pass straight through for any other panel. They are put in place on the first
+-- recording and taken out when the last one ends.
+local depth = 0
+local origFill, origMouseIn = nil, nil
+local function recFill(p, x, y, w, h, tokenName)
+    if isRec(p) then
+        local cmds = rawget(p, "_cmds")
+        cmds[#cmds + 1] = { "__fill", 5, x, y, w, h, tokenName }
+        return
+    end
+    return origFill(p, x, y, w, h, tokenName)
+end
+local function recMouseIn(p, x, y, w, h, view)
+    if isRec(p) then
+        local hv = rawget(p, "_hovers")
+        hv[#hv + 1] = { x, y, w, h, view }
+    end
+    return origMouseIn(p, x, y, w, h, view)
+end
+local function watchOn()
+    local S, A = ZeD.Surface, ZeD.Atoms
+    if S and S.fill and S.fill ~= recFill then origFill = S.fill; S.fill = recFill end
+    if A and A.mouseIn and A.mouseIn ~= recMouseIn then origMouseIn = A.mouseIn; A.mouseIn = recMouseIn end
+end
+local function watchOff()
+    local S, A = ZeD.Surface, ZeD.Atoms
+    if S and S.fill == recFill then S.fill = origFill end
+    if A and A.mouseIn == recMouseIn then A.mouseIn = origMouseIn end
+end
+
+-- a kept surface fill, asked again of the panel
+local function playFill(panel, x, y, w, h, tokenName)
+    ZeD.Surface.fill(panel, x, y, w, h, tokenName)
+end
+
+--- A recorder for panel: draw the block into it, then DM.finish plays the block on the panel
+--- and returns what it kept. Recorders nest (each its own).
+function DM.begin(panel)
+    if depth == 0 then watchOn() end
+    depth = depth + 1
+    return setmetatable({ _real = panel, _cmds = {}, _hovers = {} }, recMT)
+end
+
+--- Plays kept draws on panel, each with the values it was asked with.
+function DM.play(panel, cmds)
+    for i = 1, #cmds do
+        local c = cmds[i]
+        local f = panel[c[1]]
+        if f == nil and c[1] == "__fill" then f = playFill end
+        local n = c[2]
+        -- (as many values as the block passed: a draw that tests for a missing colour still sees one missing)
+        if n == 8 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10])
+        elseif n == 9 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11])
+        elseif n == 7 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9])
+        elseif n == 6 then f(panel, c[3], c[4], c[5], c[6], c[7], c[8])
+        elseif n == 5 then f(panel, c[3], c[4], c[5], c[6], c[7])
+        elseif n == 4 then f(panel, c[3], c[4], c[5], c[6])
+        elseif n == 3 then f(panel, c[3], c[4], c[5])
+        elseif n == 2 then f(panel, c[3], c[4])
+        elseif n == 1 then f(panel, c[3])
+        elseif n == 0 then f(panel)
+        else f(panel, c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) end
+    end
+end
+
+--- Ends a recording: plays the block on the real panel (this frame draws it as it always did)
+--- and returns the kept draws for DM.play, and the block's hover tests (DM.hovers).
+function DM.finish(rec)
+    depth = depth - 1
+    if depth <= 0 then depth = 0; watchOff() end
+    local cmds = rawget(rec, "_cmds")
+    DM.play(rawget(rec, "_real"), cmds)
+    return cmds, rawget(rec, "_hovers")
+end
+
+--- The hover tests a recorded block made (ZeD.Atoms.mouseIn), in order, asked again of panel:
+--- true for the i-th when the pointer is on it this frame.
+function DM.hovered(panel, hovers, i)
+    local h = hovers and hovers[i]
+    if not h then return false end
+    return ZeD.Atoms.mouseIn(panel, h[1], h[2], h[3], h[4], h[5])
+end
+
+--- What the kept draws also hang on beyond the caller's key: a number that changes with the
+--- measures (fonts, root scale, language, text size, palette: ZeD.Text.measureEpoch) and with
+--- the test language (ZeD.tr's stretched words); nil while the fonts are still loading, when
+--- nothing should be kept.
+function DM.epoch()
+    local X = ZeD.Text
+    local e = X and X.measureEpoch and X.measureEpoch() or nil
+    if e == nil then return nil end
+    local st = ZeD._trState
+    return e * 2 + ((st and st.on) and 1 or 0)
+end

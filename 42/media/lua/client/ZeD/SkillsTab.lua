@@ -18,6 +18,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Tr"
+require "ZeD/DrawMemo"
 
 ZeD = ZeD or {}
 ZeD.SkillsTab = {}
@@ -1194,6 +1195,14 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- are laid out but not drawn: the stencil clipped them before, at the full cost of
     -- their draws (the Skills tab took 4.8 ms a frame at 4K on a well-stocked character)
     local bandTop, bandBot = scrollY, scrollY + scrollH
+    -- the rows' kept draws (ZeD.DrawMemo), by skill name, on the window
+    local DM = ZeD.DrawMemo
+    local epoch = DM.epoch()
+    local rowMemos = win._skillRowMemos
+    if not rowMemos then rowMemos = {}; win._skillRowMemos = rowMemos end
+    local fitSig = fit.badge * 1000000 + fit.gap * 1000 + fit.edge
+    local hasTagExtras = false
+    for _, e in ipairs(ZeD.SkillsTab.extras) do if e.tag then hasTagExtras = true end end
     local function drawColumn(startX, colWidth, colGroups)
         local cy = zoneABottom
         local skillRowIdx = 0
@@ -1237,31 +1246,54 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 if fo then onFocus = ZeD.Focus.mark(panel, startX, cy, colWidth, rowH, fo) end
 
                 if vis then
-                    -- Level badge
-                    drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font, fit.badge)
+                    -- The badge, the bar, the tags and the name: drawn once, then played back
+                    -- (ZeD.DrawMemo) while the row's key holds: its place and size, level, name,
+                    -- pin, focus, tags, the spacing, the palette and the measures. The bar's
+                    -- help line goes by the pointer each frame, outside the kept draws.
+                    local rm = rowMemos[skill.name]
+                    if not rm then rm = {}; rowMemos[skill.name] = rm end
+                    local xt = hasTagExtras and extrasTag(win._playerObj, skill) or nil
+                    local xtText, xtColor = xt and xt.text or false, xt and xt.color or false
+                    if not (epoch and rm.ep == epoch and rm.T == T and rm.x == startX and rm.y == cy
+                            and rm.w == colWidth and rm.h == baseRowH and rm.lv == skill.level and rm.pin == isPinned
+                            and rm.foc == onFocus and rm.boost == skill.boost and rm.xt == xtText and rm.xc == xtColor
+                            and rm.fit == fitSig and rm.barW == barW and rm.barMin == barMin and rm.barH == barH
+                            and rm.font == font and rm.bodyH == bodyH) then
+                        local dp = DM.begin(panel)
+                        -- Level badge
+                        drawLevelBadge(dp, startX, cy, baseRowH, skill.level, font, fit.badge)
 
-                    -- The level bar at the right: ten segments, one per level (its help line: the XP to the next).
-                    -- A name short of room takes it from the bar first, down to the bar's least; the
-                    -- level number (the badge) stays (without this, at 1280x720,
-                    -- UI scale 2.0, Large text, the names read "A...")
-                    local nameX = startX + fit.badge + fit.gap
-                    local rowBar = barW
-                    local over = skillNameW(skill.name, font) - (startX + colWidth - fit.edge - barW - fit.gap - nameX)
-                    if over > 0 then rowBar = math.max(barMin, barW - over) end
-                    local barX = startX + colWidth - fit.edge - rowBar
-                    if A.drawSegFill(panel, barX, cy + math.floor((baseRowH - barH) / 2), rowBar, barH, 10,
-                            skill.level, levelBarColor(T, skill.level, isPinned)) then
+                        -- The level bar at the right: ten segments, one per level (its help line: the XP to the next).
+                        -- A name short of room takes it from the bar first, down to the bar's least; the
+                        -- level number (the badge) stays (without this, at 1280x720,
+                        -- UI scale 2.0, Large text, the names read "A...")
+                        local nameX = startX + fit.badge + fit.gap
+                        local rowBar = barW
+                        local over = skillNameW(skill.name, font) - (startX + colWidth - fit.edge - barW - fit.gap - nameX)
+                        if over > 0 then rowBar = math.max(barMin, barW - over) end
+                        local barX = startX + colWidth - fit.edge - rowBar
+                        local barY = cy + math.floor((baseRowH - barH) / 2)
+                        A.drawSegFill(dp, barX, barY, rowBar, barH, 10, skill.level, levelBarColor(T, skill.level, isPinned))
+
+                        -- The boost tag (right-aligned, before the bar), a row extra's tag beside it
+                        local nameR = drawRowTags(dp, win._playerObj, skill, barX, cy, baseRowH, nameX,
+                            fit.gap + ZeD.TM:MeasureStringX(font, "A..."))
+
+                        -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
+                        local nameY = cy + math.floor((baseRowH - bodyH) / 2)
+                        local nc = onFocus and T.textOnFocus or T.toneNorm
+                        dp:drawText(A.truncateText(skill.name, font, nameR - fit.gap - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
+                        rm.cmds = DM.finish(dp)
+                        rm.barX, rm.barY, rm.rowBar = barX, barY, rowBar
+                        rm.ep, rm.T, rm.x, rm.y, rm.w, rm.h, rm.lv, rm.pin = epoch, T, startX, cy, colWidth, baseRowH, skill.level, isPinned
+                        rm.foc, rm.boost, rm.xt, rm.xc, rm.fit = onFocus, skill.boost, xtText, xtColor, fitSig
+                        rm.barW, rm.barMin, rm.barH, rm.font, rm.bodyH = barW, barMin, barH, font, bodyH
+                    else
+                        DM.play(panel, rm.cmds)
+                    end
+                    if A.mouseIn(panel, rm.barX, rm.barY, rm.rowBar, barH) then
                         help(win, ZeD.SkillsTab.barHelp(skill))
                     end
-
-                    -- The boost tag (right-aligned, before the bar), a row extra's tag beside it
-                    local nameR = drawRowTags(panel, win._playerObj, skill, barX, cy, baseRowH, nameX,
-                        fit.gap + ZeD.TM:MeasureStringX(font, "A..."))
-
-                    -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
-                    local nameY = cy + math.floor((baseRowH - bodyH) / 2)
-                    local nc = onFocus and T.textOnFocus or T.toneNorm
-                    panel:drawText(A.truncateText(skill.name, font, nameR - fit.gap - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
                     -- a row extra's strip in its own lane under the row
                     if laneH > 0 then

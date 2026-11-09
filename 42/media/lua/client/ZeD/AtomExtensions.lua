@@ -143,22 +143,45 @@ end
 -- so they stay sharp at every size and UI scale. In a size x size box: the
 -- stroke size / 6 thick (at least 1 px), its point at the box's middle.
 -- ---------------------------------------------------------------------------
-local function _drawArrow(panel, name, x, y, size, color)
-    local c = color or ZeD.T.textDim
-    local s = math.floor(size)
-    if s < 2 then return end
+-- (each row's stroke offset, kept by size: the arrows of a list are drawn every frame at one size)
+local _arrowRows = {}
+local function _arrowOffsets(s)
+    local rows = _arrowRows[s]
+    if rows then return rows end
     local t = math.max(1, math.floor(s / 6 + 0.5))
     local half = math.floor(s / 2)
     local w = half + t                                     -- the chevron's depth
     local ox = math.floor((s - w) / 2)
-    local a, r, g, b = c.a or 1, c.r, c.g, c.b
+    rows = { t = t, fwd = {}, back = {} }
     for row = 0, s - 1 do
         local e = math.floor(math.abs(row - (s - 1) / 2))  -- rows away from the point
         local p = math.max(0, half - e)                    -- the stroke's place along the depth
-        if name == "rt" then panel:drawRect(x + ox + p, y + row, t, 1, a, r, g, b)
-        elseif name == "lf" then panel:drawRect(x + ox + (w - t - p), y + row, t, 1, a, r, g, b)
-        elseif name == "dn" then panel:drawRect(x + row, y + ox + p, 1, t, a, r, g, b)
-        else panel:drawRect(x + row, y + ox + (w - t - p), 1, t, a, r, g, b) end
+        rows.fwd[row + 1] = ox + p                         -- (right and down)
+        rows.back[row + 1] = ox + (w - t - p)              -- (left and up)
+    end
+    _arrowRows[s] = rows
+    return rows
+end
+
+local function _drawArrow(panel, name, x, y, size, color)
+    local c = color or ZeD.T.textDim
+    local s = math.floor(size)
+    if s < 2 then return end
+    local rows = _arrowOffsets(s)
+    local t = rows.t
+    local a, r, g, b = c.a or 1, c.r, c.g, c.b
+    if name == "rt" then
+        local off = rows.fwd
+        for row = 0, s - 1 do panel:drawRect(x + off[row + 1], y + row, t, 1, a, r, g, b) end
+    elseif name == "lf" then
+        local off = rows.back
+        for row = 0, s - 1 do panel:drawRect(x + off[row + 1], y + row, t, 1, a, r, g, b) end
+    elseif name == "dn" then
+        local off = rows.fwd
+        for row = 0, s - 1 do panel:drawRect(x + row, y + off[row + 1], 1, t, a, r, g, b) end
+    else
+        local off = rows.back
+        for row = 0, s - 1 do panel:drawRect(x + row, y + off[row + 1], 1, t, a, r, g, b) end
     end
 end
 

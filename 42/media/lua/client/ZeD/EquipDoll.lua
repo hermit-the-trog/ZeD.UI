@@ -357,16 +357,21 @@ local function condColor(T, f)
 end
 
 local function dashed(p, x, y, w, h, c, a)
-    local d = ZeD.T.px(3)
+    local T = ZeD.T
+    local d, one = T.px(3), T.px(1)
+    local r, g, b = c.r, c.g, c.b
+    local yb, xr = y + h - one, x + w - one
     for i = 0, w - 1, d * 2 do
-        local l = math.min(d, w - i)
-        p:drawRect(x + i, y, l, ZeD.T.px(1), a, c.r, c.g, c.b)
-        p:drawRect(x + i, y + h - ZeD.T.px(1), l, ZeD.T.px(1), a, c.r, c.g, c.b)
+        local l = w - i
+        if d < l then l = d end
+        p:drawRect(x + i, y, l, one, a, r, g, b)
+        p:drawRect(x + i, yb, l, one, a, r, g, b)
     end
     for i = 0, h - 1, d * 2 do
-        local l = math.min(d, h - i)
-        p:drawRect(x, y + i, ZeD.T.px(1), l, a, c.r, c.g, c.b)
-        p:drawRect(x + w - ZeD.T.px(1), y + i, ZeD.T.px(1), l, a, c.r, c.g, c.b)
+        local l = h - i
+        if d < l then l = d end
+        p:drawRect(x, y + i, one, l, a, r, g, b)
+        p:drawRect(xr, y + i, one, l, a, r, g, b)
     end
 end
 
