@@ -698,9 +698,11 @@ local function composeCharTitle(win)
     local p = win._playerObj
     if win._ttP ~= p then win._ttP, win._ttName = p, charTitleName(p) end
     local sub = win._titleSub
-    if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
+    -- (a tab drawer rolled in by its half keeps its tab in the title, WindowHalves)
+    local tabId = (win._drawerOpen and win._drawerMode == "tab" and win._activeTab) or ZeD.Halves.foldedTab(win)
+    if tabId then
         for _, tab in ipairs(CHAR_TABS) do
-            if tab.id == win._activeTab then
+            if tab.id == tabId then
                 sub = ZeD_CharacterWindow.tabLabel(tab)
                 break
             end
