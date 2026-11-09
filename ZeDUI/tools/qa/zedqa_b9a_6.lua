@@ -18,15 +18,44 @@ local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
 local function CW() return CWm.getWindow() end
 local function WW() return WWm.getWindow() end
 local H = ZeD.Halves
-local function req(s) local f = getFileWriter("zedqa_click.txt", true, false); f:write(s .. "\n"); f:close() end
+-- The real-mouse helper (release_check_mouse.ps1) takes ONE request at a time: it deletes zedqa_click.txt, acts
+-- (down, move and up 250 ms each) and writes zedqa_click_done.txt. So, as zedqa_dual_pin's req and mouse(): clear the
+-- done file, write the request, and the plan waits for "done" before it counts the next step's delay (drive below).
+-- Back-to-back requests without the wait overwrote each other: drags never started and clicks were lost.
+local pending, pendAt = nil, 0
+local function req(s)
+    pcall(function() local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close() end)
+    pcall(function() local f = getFileWriter("zedqa_click.txt", true, false); f:write(s); f:close() end)
+    pending, pendAt = s, getTimestampMs()
+end
+local function done()
+    local r = getFileReader("zedqa_click_done.txt", false)
+    local l = r and r:readLine()
+    if r then r:close() end
+    return l ~= nil and l:find("done", 1, true) ~= nil
+end
 local function shot(n) pcall(function() core:TakeFullScreenshot("zqa_" .. TAG .. "_" .. sw .. "x" .. sh .. "_" .. n .. ".png") end); say("shot " .. n) end
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
+-- a step that runs once cond() is true, or after max ms (a timed action ending, a state settling)
+local function addWhen(max, cond, fn) plan[#plan + 1] = { ms = max, cond = cond, fn = fn } end
 local keepPins, keepTabs = nil, {}
 local function mid(panel) return math.floor(panel:getAbsoluteX() + panel:getWidth() / 2), math.floor(panel:getAbsoluteY() + panel:getHeight() / 2) end
 local function stripOf(w) return w[w == CW() and "_tabStripPanel" or "_actionTabStrip"] end
--- the drawer's part of the bar: above the tab strip
-local function drawerBar(w) local s = stripOf(w); return math.floor(s:getAbsoluteX() + s:getWidth() / 2), math.floor(w:getAbsoluteY() + w:titleBarHeight() / 2) end
+-- The drawer's part of the bar while it is rolled in: the tab strip's end, beside the drawer's pin and never on it or
+-- on the close box (the Character's: right of its left pin; the World's: left of its right pin). That part is only as
+-- wide as the tab strip then.
+local function drawerBar(w)
+    local y = math.floor(w:getAbsoluteY() + w:titleBarHeight() / 2)
+    local e = (w == CW()) and "left" or "right"
+    local r = H.pinRect(w, e)
+    if r then
+        local x = (e == "left") and (r.x + r.w + 2) or (r.x - 2)
+        return math.floor(w:getAbsoluteX() + x), y
+    end
+    local s = stripOf(w)
+    return math.floor(s:getAbsoluteX() + s:getWidth() / 2), y
+end
 local function tabZone(w, id)
     local s = stripOf(w)
     for _, z in ipairs(s and s._hitZones or {}) do
@@ -56,9 +85,9 @@ local function turn(which)
         title0 = tostring(w.title)
         req("move " .. table.concat({ mid(w._mainContent) }, " "))   -- (looking around the inventory)
     end)
-    add(3500, function()
+    addWhen(6000, function() return H.foldedTab(W()) == tab end, function()   -- (folds 2 s after the pointer leaves it; up to 6 s)
         local w = W()
-        check(H.foldedTab(w) == tab and not w._drawerOpen, which .. ": 3.5 s in the inventory: the drawer half rolled in")
+        check(H.foldedTab(w) == tab and not w._drawerOpen, which .. ": looking around the inventory: the drawer half rolled in")
         check(w._activeTab == tab, which .. ": ... the tab strip still on " .. tab .. " (no switch to Loot)")
         check(tostring(w.title) == title0, which .. ": ... the title unchanged (" .. tostring(w.title) .. ")")
         shot(which .. "_1_rolled_in")
@@ -70,7 +99,7 @@ local function turn(which)
         shot(which .. "_2_back")
         req("move " .. table.concat({ mid(w._mainContent) }, " "))
     end)
-    add(3500, function()
+    addWhen(6000, function() return H.foldedTab(W()) == tab end, function()
         local w = W()
         check(H.foldedTab(w) == tab, which .. ": (staged) rolled in again")
         local x, y = tabZone(w, "loot")
@@ -107,10 +136,25 @@ add(1000, function()
     say("DONE")
 end)
 local function drive()
+    local now = getTimestampMs()
+    if pending then
+        if done() then
+            pending = nil; t0 = now
+        elseif now - pendAt > 8000 then
+            fail = fail + 1; say("ERR the mouse helper never answered: " .. tostring(pending)); pending = nil; t0 = now
+        else
+            return
+        end
+    end
     local st = plan[i]
     if not st then Events.OnTick.Remove(drive); return end
-    if getTimestampMs() - t0 < st.ms then return end
-    t0 = getTimestampMs(); i = i + 1
+    if st.cond then
+        local okC, met = pcall(st.cond)
+        if not (okC and met) and now - t0 < st.ms then return end
+    elseif now - t0 < st.ms then
+        return
+    end
+    t0 = now; i = i + 1
     local ok, e = pcall(st.fn)
     if not ok then fail = fail + 1; say("ERR step " .. (i - 1) .. ": " .. tostring(e)) end
 end

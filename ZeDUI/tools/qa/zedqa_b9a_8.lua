@@ -17,10 +17,27 @@ say("screen " .. sw .. "x" .. sh)
 local CWm = ZeD_CharacterWindow
 local function CW() return CWm.getWindow() end
 local R = ZeD.ContextMenu and ZeD.ContextMenu.Registry
-local function req(s) local f = getFileWriter("zedqa_click.txt", true, false); f:write(s .. "\n"); f:close() end
+-- The real-mouse helper (release_check_mouse.ps1) takes ONE request at a time: it deletes zedqa_click.txt, acts
+-- (down, move and up 250 ms each) and writes zedqa_click_done.txt. So, as zedqa_dual_pin's req and mouse(): clear the
+-- done file, write the request, and the plan waits for "done" before it counts the next step's delay (drive below).
+-- Back-to-back requests without the wait overwrote each other: drags never started and clicks were lost.
+local pending, pendAt = nil, 0
+local function req(s)
+    pcall(function() local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close() end)
+    pcall(function() local f = getFileWriter("zedqa_click.txt", true, false); f:write(s); f:close() end)
+    pending, pendAt = s, getTimestampMs()
+end
+local function done()
+    local r = getFileReader("zedqa_click_done.txt", false)
+    local l = r and r:readLine()
+    if r then r:close() end
+    return l ~= nil and l:find("done", 1, true) ~= nil
+end
 local function shot(n) pcall(function() core:TakeFullScreenshot("zqa_" .. TAG .. "_" .. sw .. "x" .. sh .. "_" .. n .. ".png") end); say("shot " .. n) end
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
+-- a step that runs once cond() is true, or after max ms (a timed action ending, a state settling)
+local function addWhen(max, cond, fn) plan[#plan + 1] = { ms = max, cond = cond, fn = fn } end
 local keepTab, keepPinsMd
 local function rowOf(win, fullType)
     local c = win._mainContent
@@ -32,6 +49,11 @@ local function rowOf(win, fullType)
             return it, math.floor(c:getAbsoluteX() + x + 170), math.floor(c:getAbsoluteY() + y + ZeD.T.rowH / 2)
         end
     end
+end
+local function hasOption(name)
+    local v = getPlayerContextMenu(0)
+    for _, o in ipairs(v and v.options or {}) do if tostring(o.name) == name then return true end end
+    return false
 end
 -- the open menu's options: each one's icon (the registry's answer for its name), the pin ones checked
 local function readMenu(label, want)
@@ -65,7 +87,7 @@ add(1500, function()
     local it, x, y = rowOf(CW(), "Base.WaterBottle")
     if check(it ~= nil, "the bottle's row is on screen") then req("right " .. x .. " " .. y) end
 end)
-add(1500, function()
+addWhen(4000, function() return hasOption(ZeD.tr("UI_ZeD_Pin_Pin")) end, function()   -- (the menu fills on the right-click; up to 4 s)
     readMenu("unpinned", ZeD.tr("UI_ZeD_Pin_Pin"))
     shot("1_pin")
     -- pin it by the option itself, as a click on it does
@@ -73,20 +95,20 @@ add(1500, function()
     for _, o in ipairs(v and v.options or {}) do
         if tostring(o.name) == ZeD.tr("UI_ZeD_Pin_Pin") and o.onSelect then pcall(o.onSelect, o.target, o.param1, o.param2) end
     end
-    if v and v.setVisible then v:setVisible(false) end
+    if v then pcall(function() v:hideAndChildren() end) end   -- (as zedqa_b8_seven_menus closes it)
 end)
 add(1000, function()
     local it, x, y = rowOf(CW(), "Base.WaterBottle")
     if it then req("right " .. x .. " " .. y) end
 end)
-add(1500, function()
+addWhen(4000, function() return hasOption(ZeD.tr("UI_ZeD_Pin_Unpin")) end, function()
     readMenu("pinned", ZeD.tr("UI_ZeD_Pin_Unpin"))
     shot("2_unpin")
     local v = getPlayerContextMenu(0)
     for _, o in ipairs(v and v.options or {}) do
         if tostring(o.name) == ZeD.tr("UI_ZeD_Pin_Unpin") and o.onSelect then pcall(o.onSelect, o.target, o.param1, o.param2) end
     end
-    if v and v.setVisible then v:setVisible(false) end
+    if v then pcall(function() v:hideAndChildren() end) end   -- (as zedqa_b8_seven_menus closes it)
 end)
 add(800, function()
     if keepPinsMd then p:getModData().ZeD_Pins = keepPinsMd end
@@ -95,10 +117,25 @@ add(800, function()
     say("DONE")
 end)
 local function drive()
+    local now = getTimestampMs()
+    if pending then
+        if done() then
+            pending = nil; t0 = now
+        elseif now - pendAt > 8000 then
+            fail = fail + 1; say("ERR the mouse helper never answered: " .. tostring(pending)); pending = nil; t0 = now
+        else
+            return
+        end
+    end
     local st = plan[i]
     if not st then Events.OnTick.Remove(drive); return end
-    if getTimestampMs() - t0 < st.ms then return end
-    t0 = getTimestampMs(); i = i + 1
+    if st.cond then
+        local okC, met = pcall(st.cond)
+        if not (okC and met) and now - t0 < st.ms then return end
+    elseif now - t0 < st.ms then
+        return
+    end
+    t0 = now; i = i + 1
     local ok, e = pcall(st.fn)
     if not ok then fail = fail + 1; say("ERR step " .. (i - 1) .. ": " .. tostring(e)) end
 end
