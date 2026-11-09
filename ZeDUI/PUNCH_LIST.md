@@ -3045,3 +3045,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     game start (CustomMapLabels.lua:93): it opens the game's map to read labels, ZeD opens its own map instead, so the
     labels are never read. Let the game's map object exist for a mod that asks, or guard, and show its labels in ZeD's
     map if possible.
+118. **Context menu tooltips on brand and sized to their text (the director, Nov 8 2026; beta 10).** "Tooltips in the
+    context menu are not on brand. They look like modern web stuff. That and text does not fit in the box." The hover
+    tooltips on menu rows (ZeD's strip and list styles, and the game's option tooltips as ZeD draws them) follow System
+    7.1.2 Balloon Help per the Visual Catalog v2.0, and the box is sized to the wrapped text measured at the current
+    scale and text size, never spilling. Read the Visual Catalog first; a before/after mockup to the director before
+    building. QA: every theme, Large text, 4K and 1280x800, long DE and RU strings.
+119. **The context menu strip's overflow arrow boxes in the accent color (the director, Nov 8 2026; beta 10).** "The
+    color behind those arrows is always black, and it's hard to see. Let's make that box ... the accent color." Both
+    end boxes fill with the accent; the arrow is drawn in a contrasting color, readable in every theme and accent.
