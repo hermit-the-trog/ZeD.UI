@@ -1173,6 +1173,30 @@ function ZeD.colorBlend(base, overlay, strength)
 end
 
 -- ---------------------------------------------------------------------------
+-- PAPER TONE: no large near-white areas
+-- Every big light sheet ZeD draws (the guide's book page, a paper map, the reader's
+-- page, notebooks, the desk's sticky note) sits at 70% of its printed brightness:
+-- a bright page in a dark game glares the way the game's snow does. Only the paper
+-- and its light fills dim; ink and pictures keep their colors, and each surface's
+-- text is checked for 4.5 : 1 on the dimmer paper (paper_tone_b10_sim.lua).
+-- ---------------------------------------------------------------------------
+ZeD.PAPER_TONE = 0.70
+
+--- A paper color at the paper tone: the same hue, each channel times PAPER_TONE. A new table.
+function ZeD.paperTone(c)
+    local k = ZeD.PAPER_TONE
+    return { r = c.r * k, g = c.g * k, b = c.b * k, a = c.a }
+end
+
+--- A sheet already drawn at full brightness (a texture the engine draws: a paper map, the game's
+--- printed page) brought to the paper tone: black over it at 1 - PAPER_TONE, which multiplies
+--- every pixel under it by PAPER_TONE. x, y, w, h in the panel's own coordinates.
+function ZeD.paperToneOver(panel, x, y, w, h)
+    if w <= 0 or h <= 0 then return end
+    panel:drawRect(x, y, w, h, 1 - ZeD.PAPER_TONE, 0, 0, 0)
+end
+
+-- ---------------------------------------------------------------------------
 -- BUTTON LABELS: sentence case
 -- Every button reads in sentence case ("Load game", "Take all", "New..."),
 -- never all caps: a row of all-caps buttons tires the eye.

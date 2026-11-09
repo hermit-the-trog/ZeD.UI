@@ -139,6 +139,7 @@ end
 -- ---------------------------------------------------------------------------
 local function col(r, g, b) return { r = r, g = g, b = b, a = 1 } end
 ZeD = {
+    paperTone = function(c) return { r = c.r * 0.7, g = c.g * 0.7, b = c.b * 0.7, a = c.a } end,   -- (Tokens.lua's paper tone)
     T = { scale = 1, px = function(n) return n end, fontF1 = 1, fontF2 = 2, fontF3 = 3, fontF4 = 4, titleBarH = 20, buttonH = 22, tabH = 20,
           accent = col(0.3, 0.5, 0.9), text = col(1, 1, 1), textDim = col(0.6, 0.6, 0.6), textOnAccent = col(1, 1, 1), surf1 = col(0.2, 0.2, 0.2),
           surf2 = col(0.25, 0.25, 0.25), borderS = col(0.5, 0.5, 0.5), border = col(0.4, 0.4, 0.4), base = col(0.1, 0.1, 0.1),

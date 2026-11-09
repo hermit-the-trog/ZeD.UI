@@ -45,10 +45,15 @@ local U = { W = 1180, H = 980, PAD = 10, SIDE = 270, GAP = 8, EDGE = 8, HEAD_H =
             PAGE_W = 700, PAGE_PAD = 40, ROW_PAD = 8,
             LABEL_W = 640, LABEL_H = 440 }   -- (a CD's or a tape's label: the words alone, no side column)
 local ZOOMS = { 1, 1.25, 1.5, 2, 2.5, 3 }
--- the page's paper and ink (a printed page reads the same on every theme)
-local PAPER = { r = 0.91, g = 0.886, b = 0.824 }
+-- the page's paper and ink (a printed page reads the same on every theme); the paper at the paper tone
+-- (Tokens.lua: no large near-white areas), and the grey ink dark enough to read 4.5 : 1 on it and on a
+-- picture's box
+local PAPER = ZeD.paperTone({ r = 0.91, g = 0.886, b = 0.824 })
 local INK   = { r = 0.141, g = 0.133, b = 0.118 }
-local INK_DIM = { r = 0.424, g = 0.404, b = 0.361 }
+local INK_DIM = { r = 0.19, g = 0.18, b = 0.16 }
+-- a picture's box in the Words view: a step under the paper, and its frame
+local PIC_FILL = ZeD.paperTone({ r = 0.867, g = 0.839, b = 0.765 })
+local PIC_EDGE = ZeD.paperTone({ r = 0.706, g = 0.671, b = 0.584 })
 -- the dark table the paper lies on (the same on every theme, like the paper itself)
 local TABLE = { r = 0.035, g = 0.043, b = 0.039 }
 
@@ -241,6 +246,11 @@ function ZeD_Reader:drawPaper(c)
     -- the page as the game draws it; ZeD's own setting of it only if that cannot be built
     self._vanillaPage = P.vanillaPlace(self, self.media, c, ox, oy, k)
     if not self._vanillaPage then P.draw(self, pg, ox, oy, k) end
+    -- the game's page draws its own paper texture at full brightness, after this panel: the part of it in
+    -- the canvas is brought to the paper tone in render, over it
+    local x1, y1 = math.max(c.x, ox), math.max(c.y, oy)
+    local x2, y2 = math.min(c.x + c.w, ox + pw), math.min(c.y + c.h, oy + ph)
+    self._pageTone = { x = x1, y = y1, w = x2 - x1, h = y2 - y1 }
     self._hits[#self._hits + 1] = { id = "canvas", x = c.x, y = c.y, w = c.w, h = c.h, drag = true }
 end
 
@@ -279,8 +289,8 @@ function ZeD_Reader:drawWords(c)
                 local lines = A.wrapText(ZeD.tr("UI_ZeD_Reader_Picture", b.text), f3, tw0 - T.px(16))
                 local bh = #lines * (fh(f3) + T.px(2)) + T.px(12)
                 if drawIt then
-                    self:drawRect(px + pad, y, tw0, bh, 1, 0.867, 0.839, 0.765)
-                    self:drawRectBorder(px + pad, y, tw0, bh, 1, 0.706, 0.671, 0.584)
+                    self:drawRect(px + pad, y, tw0, bh, 1, PIC_FILL.r, PIC_FILL.g, PIC_FILL.b)
+                    self:drawRectBorder(px + pad, y, tw0, bh, 1, PIC_EDGE.r, PIC_EDGE.g, PIC_EDGE.b)
                     local yy = y + T.px(6)
                     for _, l in ipairs(lines) do self:drawText(l, px + pad + T.px(8), yy, INK_DIM.r, INK_DIM.g, INK_DIM.b, 1, f3); yy = yy + fh(f3) + T.px(2) end
                 end
@@ -552,7 +562,11 @@ end
 
 function ZeD_Reader:render()
     ZeD_Window.render(self)
-    if self._vanillaPage then P.vanillaRender(self) end
+    if self._vanillaPage then
+        P.vanillaRender(self)
+        local r = self._pageTone
+        if r then ZeD.paperToneOver(self, r.x, r.y, r.w, r.h) end
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -771,8 +785,9 @@ function ZeD_Reader:onJoypadDirRight() if self.mode == "notebook" then return se
 -- note without a pencil, opens to read only.
 -- (MARGIN: the red line about a seventh of the page in, as on the real sheet)
 local NB = { LINES = 15, LETTERS = 80, RAIL = 230, PAGE_W = 760, HOLE = 14, MARGIN = 104 }
-local RULE = { r = 0.725, g = 0.776, b = 0.839 }
-local MARGIN_C = { r = 0.827, g = 0.604, b = 0.573 }
+-- (the rules and the margin are printed on the paper: they dim with it, so they stay a step off it)
+local RULE = ZeD.paperTone({ r = 0.725, g = 0.776, b = 0.839 })
+local MARGIN_C = ZeD.paperTone({ r = 0.827, g = 0.604, b = 0.573 })
 
 function ZeD_Reader:setNotebook(item, action, editable)
     self.mode = "notebook"
