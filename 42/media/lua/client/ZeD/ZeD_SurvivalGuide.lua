@@ -16,10 +16,11 @@
 -- their words, the inline pictures, the two ways and the rules through ZeD.Guide, so a change
 -- here shows in both looks.
 --
--- The game's behaviour is kept: F1 and the controller's Help wheel toggle it, it opens by
--- itself on a new game while "Show the guide on startup" is ticked, the game pauses while it
--- is open, and other windows open it on a topic (SurvivalGuide.openEntry). F1 opens it on
--- the topic for what you are doing (the active Character or World tab).
+-- The game's behaviour is kept: F1 and the controller's Help wheel toggle it, the game pauses
+-- while it is open, and other windows open it on a topic (SurvivalGuide.openEntry). F1 opens it on
+-- the topic for what you are doing (the active Character or World tab). It no longer opens by
+-- itself when a game starts (punch list 122): ZeD_GuideBubble.lua offers it as a bubble out of
+-- the belt's Messages icon, once ever.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -1696,6 +1697,8 @@ end
 --- Open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window. Every open
 --- hides the spoilers again and reads the rules afresh.
 function W.open(pn, want)
+    -- (the guide opened by any road ends the first-game bubble: nothing is left to offer)
+    if ZeD.GuideBubble and ZeD.GuideBubble.done then ZeD.GuideBubble.done("opened") end
     W.spoil = {}
     W._rulesC = {}
     if W.useBook() then return ZeD.GuideBook.open(pn or 0, want) end
@@ -1776,13 +1779,26 @@ local function onKey(key)
     W.toggle(0)
 end
 
+--- What the bubble names for opening the guide: the player's own key for it on a keyboard (F1 unless rebound), the
+--- controller's Help wheel on a controller (the game's guide is a slice of the wheel on D-pad Right; ISDPadWheels).
+function W.bubbleKey(pn)
+    if W.onPad(pn or 0) then return ZeD.tr("UI_ZeD_Guide_BubblePad") end
+    local ok, code = pcall(function() return getCore():getKey(KeybindId.TOGGLE_SURVIVAL_GUIDE) end)
+    if ok and code and code ~= 0 then return keyName(code) end
+    return "F1"
+end
+
+-- The game opened its guide by itself when a game started (SurvivalGuide.OnGameStart); ZeD's handler used to do the
+-- same. Neither does now. If the game's own window is up all the same at the start (a load order that kept its
+-- handler), it is closed and the speed it paused is given back.
 local function onGameStart()
     if isServer() then return end
-    local core = getCore()
-    if not core:getOptionShowSurvivalGuide() then return end
-    if tostring(core:getGameMode()) == "Tutorial" and SurvivalGuide and SurvivalGuide.blockSurvivalGuide then return end
-    if isDemo and isDemo() and ISDemoPopup and ISDemoPopup.instance then return end
-    W.open(0)
+    if tostring(getCore():getGameMode()) == "Tutorial" then return end   -- (the tutorial runs its own guide steps)
+    local inst = SurvivalGuide and SurvivalGuide.instance
+    if inst and inst.isVisible and inst:isVisible() then
+        pcall(function() inst:setVisible(false) end)
+        pcall(setGameSpeed, 1)
+    end
 end
 
 local function hook()
