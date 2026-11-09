@@ -253,6 +253,9 @@ local function moodleFrame(w, notices)
     local M = w.env.ZeD.Moodles
     for pn = 0, 1 do local L = M.getLayer(pn); if L then L:prerender() end end
     local out = {}
+    -- (beta 10: the note for the moodle under the pointer is the balloon, after the hover pause, not the cloud; while
+    -- the pointer is on the layer the note is left out of the comparison, the notices that show by themselves stay in)
+    local hov = (w.MX or -1) >= 0
     for pn = 0, 1 do
         local L = M.getLayer(pn)
         if L then
@@ -260,11 +263,11 @@ local function moodleFrame(w, notices)
             for i, m in ipairs(L._list or {}) do list[i] = m.key .. ":" .. m.level .. ":" .. m.gbn .. ":" .. m.art .. ":" .. ser(m.type) end
             out[#out + 1] = table.concat({ "P" .. pn, tostring(L._mode), tostring(L._show), ser({ L.x, L.y, L.w, L.h }),
                 ser(L._rect), ser(M.rect(pn)), "mui " .. w.mui[pn].x .. "," .. w.mui[pn].y, table.concat(list, ";") }, " | ")
-            if notices then out[#out + 1] = "notices " .. ser(L._notices) .. " at " .. tostring(L._noticeAt) .. " chip " .. ser(L._chip) end
+            if notices then out[#out + 1] = "notices " .. ser(L._notices) .. " at " .. tostring(L._noticeAt) .. " chip " .. ser((not hov) and L._chip or nil) end
         end
     end
     for _, s in ipairs(w.log) do
-        if notices or s:sub(1, 4) ~= "chip" then out[#out + 1] = s end
+        if (notices and not hov) or s:sub(1, 4) ~= "chip" then out[#out + 1] = s end
     end
     return table.concat(out, "\n")
 end

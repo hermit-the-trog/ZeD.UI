@@ -1227,6 +1227,7 @@ end
 -- One ink's swatch at (sx, sy), sz square: the hover wash and the controller's
 -- mark in a 2u ring round it, the ink (greyed without its pen), a 1u edge, and a
 -- 1u ring in the text colour round the ink in use. Its zone goes in win._mapColorZones.
+local _swR = {}   -- (the swatch the hint's balloon points at)
 local function _swatch(panel, win, ci, sx, sy, sz, ink, focId, hov)
     local T, A = ZeD.T, ZeD.Atoms
     local c, pen = MAP_COLORS[ci], MAP_COLOR_PENS[ci]
@@ -1239,7 +1240,8 @@ local function _swatch(panel, win, ci, sx, sy, sz, ink, focId, hov)
         local name = pen and (getItemNameFromFullType("Base." .. pen.item) or pen.item) or ""
         ZeD.Help.set(panel, has and ZeD.tr("UI_ZeD_Map_HelpInk", name)
             or ZeD.tr("UI_ZeD_Map_HelpCant", name, getText(pen and pen.need or "Tooltip_Map_CantWrite")))
-        A.requestHint(A.windowOf(panel), COLOR_FIDS[ci], name, panel)
+        _swR.x, _swR.y, _swR.w, _swR.h = rx, ry, rs, rs
+        A.requestHint(A.windowOf(panel), COLOR_FIDS[ci], name, panel, _swR)
     end
     if focId == COLOR_FIDS[ci] then ZeD.Focus.mark(panel, rx, ry, rs, rs, FOCUS) end
     local a = has and 1 or T.disabledAlpha

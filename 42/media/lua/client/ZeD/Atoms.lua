@@ -925,23 +925,22 @@ end
 
 -- ============================================================================
 -- 07. TOOLTIP BUBBLE (component factory)
--- A floating panel for hover information. Created as an ISPanel that gets
--- added to UIManager when shown, removed when hidden.
+-- A floating panel for hover information, drawn as the balloon (Balloon.lua):
+-- the first "heading" line is its title, the rest its lines. Created as an
+-- ISPanel that gets added to UIManager when shown, removed when hidden; it is
+-- the box alone (no tail), sized to its words.
 -- ============================================================================
 
 ZeD_Tooltip = ISPanel:derive("ZeD_Tooltip")
 
 function ZeD_Tooltip:new(x, y)
-    -- Start with minimal size — it resizes to fit content
     local o = ISPanel:new(x, y, ZeD.T.px(100), ZeD.T.px(40))
     setmetatable(o, self)
     self.__index = self
     o.lines = {}           -- Array of {text=, variant=} where variant is "heading","body","secondary"
-    o.maxWidth = 250   -- maxWidth / padX / padY stay design units; wrapped with T.px where used
-    o.padX = 10
-    o.padY = 6
     o.moveWithMouse = false
     o.visible = false
+    o.background = false
     return o
 end
 
@@ -952,57 +951,38 @@ function ZeD_Tooltip:setContent(lines)
     self:recalcSize()
 end
 
-function ZeD_Tooltip:recalcSize()
+-- the balloon content for the lines: a heading is the title, a secondary line is figures (F3, dim)
+function ZeD_Tooltip:_content()
     local T = ZeD.T
-    local maxW = 0
-    local totalH = 0
-
+    local c = { kind = "rich", title = nil, lines = {} }
     for _, line in ipairs(self.lines) do
-        local font
-        if line.variant == "heading" then font = T.fontF4
-        elseif line.variant == "secondary" then font = T.fontF3
-        else font = T.fontF2 end
-
-        local w = ZeD.TM:MeasureStringX(font, line.text)
-        local h = ZeD.TM:MeasureStringY(font, line.text)
-        maxW = math.max(maxW, w)
-        totalH = totalH + h + T.px(2)  -- 2px line spacing
+        if line.variant == "heading" and not c.title then
+            c.title = line.text
+        elseif line.variant == "secondary" then
+            c.lines[#c.lines + 1] = { text = line.text, font = "F3", color = T.textDim }
+        else
+            c.lines[#c.lines + 1] = line.text
+        end
     end
-
-    self:setWidth(math.min(maxW + T.px(self.padX) * 2, T.px(self.maxWidth)))
-    self:setHeight(totalH + T.px(self.padY) * 2)
+    if not c.title then
+        -- one line and no heading: a hint
+        if #c.lines == 1 and type(c.lines[1]) == "string" then c = { kind = "plain", title = c.lines[1] } end
+    end
+    self._c = c
+    return c
 end
 
--- The detail card's look (ZeD.Molecules.drawDetailCard): surface 1, solid (hover
--- boxes never go see-through), a 1u frame and System 7's hard shadow.
-function ZeD_Tooltip:prerender()
-    local T = ZeD.T
-    local s1 = T.surf1
-    ZeD.Atoms.drawHardShadow(self, 0, 0, self.width, self.height)
-    self:drawRect(0, 0, self.width, self.height, 1, s1.r, s1.g, s1.b)
-    ZeD.Atoms.frame(self, 0, 0, self.width, self.height, T.borderS)
+function ZeD_Tooltip:recalcSize()
+    local lay = ZeD.Balloon.layout(self:_content())
+    self:setWidth(lay.w)
+    self:setHeight(lay.h)
 end
+
+function ZeD_Tooltip:prerender() end
 
 function ZeD_Tooltip:render()
-    local T = ZeD.T
-    local y = T.px(self.padY)
-
-    for _, line in ipairs(self.lines) do
-        local font, color
-        if line.variant == "heading" then
-            font = T.fontF4
-            color = T.textHead
-        elseif line.variant == "secondary" then
-            font = T.fontF3
-            color = T.textDim
-        else
-            font = T.fontF2
-            color = T.text
-        end
-
-        self:drawText(line.text, T.px(self.padX), y, color.r, color.g, color.b, color.a, font)
-        y = y + ZeD.TM:MeasureStringY(font, line.text) + T.px(2)
-    end
+    local c = self._c or self:_content()
+    ZeD.Balloon.drawBox(self, c, 0, 0)
 end
 
 -- Register the tooltip class so it's available globally
@@ -1010,25 +990,25 @@ ZeD.Atoms.Tooltip = ZeD_Tooltip
 
 -- ============================================================================
 -- 07b. HOVER BOXES
--- Two boxes, one look: the hint (one line of F2, for icon-only buttons) and the
--- detail card (a title in F4, lines in F2 / F3; ZeD.Molecules.drawDetailCard).
--- Both are surface 1, solid, framed in 1u borderS with System 7's hard shadow,
--- shown after ZeD.HINT_DELAY_MS of rest, placed below-right of the pointer and
--- flipped to stay on screen.
+-- The hint (one line, for icon-only controls) and the detail card (a title and
+-- lines) are both the balloon (Balloon.lua), anchored to the control: above a
+-- row of controls, beside a column. The mouse sees it after ZeD.HINT_DELAY_MS
+-- of rest (at once when a balloon was just up: moving along a row reads each
+-- name); the controller's focus sees it at once (opts.now).
 --
--- A box must sit above everything in its window, so a control does not draw it
--- itself: it asks for it each frame it is hovered (requestHint /
--- requestDetailCard, keyed by its window) and the window's overlay pass draws it
--- (ZeD.Focus.drawOverlay -> drawPendingHover). A request lives for one frame; the
--- delay restarts whenever the key changes. Surfaces that keep their own hover
--- state can use hoverReady(state, key) for the same delay.
+-- A balloon must sit above everything in its window, so a control does not draw
+-- it itself: it asks for it each frame it is hovered or focused (requestHint /
+-- requestDetailCard, keyed by its window, with its rectangle) and the window's
+-- overlay pass draws it (ZeD.Focus.drawOverlay -> drawPendingHover). A request
+-- lives for one frame; the delay restarts whenever the key changes. Surfaces
+-- that keep their own hover state can use hoverReady(state, key) for the same
+-- delay.
 -- ============================================================================
 
 local HOVER_STALE_MS = 150   -- a request older than this is from an earlier frame
 
---- Where a hover box of w x h goes for an anchor point (the pointer) at (ax, ay)
--- in panel space: below-right, clear of the arrow pointer, flipped left / up when
--- it would leave the screen.
+--- (Older callers) where a box of w x h went for a point (ax, ay) in panel space: below-right of it,
+-- flipped to stay on screen. The balloons place themselves (ZeD.Balloon.place).
 function ZeD.Atoms.hoverBoxPlace(panel, ax, ay, w, h)
     local T = ZeD.T
     local x, y = ax + T.px(12), ay + T.px(18)
@@ -1044,69 +1024,107 @@ function ZeD.Atoms.hoverBoxPlace(panel, ax, ay, w, h)
     return x, y
 end
 
---- The hover box's shell: shadow, solid surface 1, 1u frame.
+--- The balloon's box without its tail: shadow, solid surface 2, the strong border (two hairlines in
+-- High contrast). For a hover card that lays out its own words.
 function ZeD.Atoms.drawHoverShell(panel, x, y, w, h)
     local T = ZeD.T
-    local s1 = T.surf1
+    local s2 = T.surf2
     ZeD.Atoms.drawHardShadow(panel, x, y, w, h)
-    panel:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
-    ZeD.Atoms.frame(panel, x, y, w, h, T.borderS)
+    panel:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
+    ZeD.Atoms.frame(panel, x, y, w, h, T.borderS, 1, T.line(T.borderW or 1))
 end
 
---- Draw the one-line hint for an anchor point (ax, ay) in panel space.
--- @return x, y, w, h of the box
-function ZeD.Atoms.drawHintBox(panel, text, ax, ay)
+-- the control's rectangle in screen px from a rect in a panel's space (or the point (ax, ay) in it)
+local function anchorOf(out, panel, rect, ax, ay)
+    local x0, y0 = panel:getAbsoluteX(), panel:getAbsoluteY()
+    if rect then
+        out.x, out.y, out.w, out.h = x0 + rect.x, y0 + rect.y, rect.w or 1, rect.h or rect.w or 1
+    else
+        out.x, out.y, out.w, out.h = x0 + (ax or 0), y0 + (ay or 0), 1, 1
+    end
+    out.below, out.noFlip = nil, nil
+    return out
+end
+
+local _hintC, _hintA = { kind = "plain" }, {}
+--- Draw the one-line hint now on panel. rect = the control in panel space ({ x, y, w, h }; nil: the
+-- point (ax, ay)); side = "above" (default: a row of controls) or "right" / "left" (a column).
+-- @return x, y, w, h of the box in panel space, or nil when another balloon is up
+function ZeD.Atoms.drawHintBox(panel, text, ax, ay, rect, side, key)
     if not text or text == "" then return end
-    local T = ZeD.T
-    local f2 = T.fontF2
-    local padX, padY = T.px(8), T.px(4)
-    local w = ZeD.TM:MeasureStringX(f2, text) + padX * 2
-    local h = ZeD.TM:getFontHeight(f2) + padY * 2
-    local x, y = ZeD.Atoms.hoverBoxPlace(panel, ax, ay, w, h)
-    ZeD.Atoms.drawHoverShell(panel, x, y, w, h)
-    local tc = T.text
-    panel:drawText(text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
-    return x, y, w, h
+    -- (a new table only when the words change: the balloon that is up keeps the one it drew)
+    if _hintC.title ~= text then _hintC = { kind = "plain", title = text } end
+    return ZeD.Balloon.draw(panel, _hintC, anchorOf(_hintA, panel, rect, ax, ay), side or "above",
+        { key = key or ("hint:" .. text), owner = panel })
 end
 
 --- The shared hover delay for a surface that keeps its own state: call it every
 -- frame with the hovered thing's key (nil when nothing is hovered); true once the
--- same key has been hovered for ZeD.HINT_DELAY_MS.
+-- same key has been hovered for ZeD.HINT_DELAY_MS, or at once when a balloon was
+-- just up (moving from one control to the next).
 function ZeD.Atoms.hoverReady(st, key)
     if not st then return false end
     if key == nil then st.hoverKey = nil; return false end
     local now = getTimestampMs()
-    if st.hoverKey ~= key then st.hoverKey, st.hoverSince = key, now; return false end
+    if st.hoverKey ~= key then
+        st.hoverKey, st.hoverSince = key, now
+        st.hoverWarm = ZeD.Balloon and ZeD.Balloon.warm() or false
+    end
+    if st.hoverWarm then return true end
     return now - (st.hoverSince or now) >= ZeD.HINT_DELAY_MS
 end
 
-local _hoverReq = {}   -- [owner] = { kind, key, text, card, t, panel }: this frame's request
-local _hoverSt  = {}   -- [owner] = { key, since, lastT }: the delay
+local _hoverReq = {}   -- [owner] = { kind, key, text, card, t, panel, rect, side, now }: this frame's request
+local _hoverSt  = {}   -- [owner] = { key, since, lastT, warm }: the delay
 
-local function hoverRequest(owner, key, panel)
+local function hoverRequest(owner, key, panel, rect, opts)
     local r = _hoverReq[owner]
     if not r then r = {}; _hoverReq[owner] = r end
     r.key, r.t, r.panel = key, getTimestampMs(), panel
+    if rect then
+        r.rx, r.ry, r.rw, r.rh = rect.x, rect.y, rect.w or 1, rect.h or rect.w or 1
+    else
+        r.rx = nil
+    end
+    r.side = opts and opts.side or nil
+    r.now = opts and opts.now or false
+    r.below = opts and opts.below or nil
     return r
 end
 
 --- Ask for the hint over `owner` (the window, or a HUD panel) this frame.
 -- key names the hovered control (its id); panel = the control's panel (lets an
--- overlay of a window the owner sits in find the request).
-function ZeD.Atoms.requestHint(owner, key, text, panel)
+-- overlay of a window the owner sits in find the request); rect = the control in
+-- panel's space { x, y, w, h }, which the balloon points at; opts = { side =
+-- "above" (default) | "right" | "left" | "below", now = true (the controller's
+-- focus: no pause) }.
+function ZeD.Atoms.requestHint(owner, key, text, panel, rect, opts)
     if not owner or not text or text == "" then return end
-    local r = hoverRequest(owner, key or text, panel)
+    local r = hoverRequest(owner, key or text, panel, rect, opts)
     r.kind, r.text, r.card = "hint", text, nil
 end
 
---- Ask for a detail card (the ZeD.Molecules.drawDetailCard spec) this frame.
-function ZeD.Atoms.requestDetailCard(owner, key, card, panel)
+--- Ask for a detail card (the ZeD.Molecules.drawDetailCard spec) this frame; rect and opts as requestHint.
+function ZeD.Atoms.requestDetailCard(owner, key, card, panel, rect, opts)
     if not owner or not card then return end
-    local r = hoverRequest(owner, key or card.title or "card", panel)
+    local r = hoverRequest(owner, key or card.title or "card", panel, rect, opts)
     r.kind, r.text, r.card = "card", nil, card
 end
 
---- Draw the hover box asked for in `win` this frame, at the pointer, once the
+-- a request's content: a new table only when its words change (the balloon keeps the one that is up)
+local function contentOf(st, r)
+    if r.kind == "card" then
+        local c = ZeD.Molecules and ZeD.Molecules.cardContent and ZeD.Molecules.cardContent(r.card)
+        return c
+    end
+    if st.cText ~= r.text or not st.c then
+        st.cText = r.text
+        st.c = { kind = "plain", title = r.text }
+    end
+    return st.c
+end
+
+--- Draw the balloon asked for in `win` this frame, pointing at its control, once the
 -- delay has passed. Called by the window's overlay pass (ZeD.Focus.drawOverlay)
 -- and by the windows' hint layers; whichever runs first in a frame draws it.
 function ZeD.Atoms.drawPendingHover(ov, win)
@@ -1120,35 +1138,53 @@ function ZeD.Atoms.drawPendingHover(ov, win)
     local st = _hoverSt[win]
     if not st then st = {}; _hoverSt[win] = st end
     local now = getTimestampMs()
+    local Bn = ZeD.Balloon
     if not r then
         if st.lastT and now - st.lastT > HOVER_STALE_MS then st.key = nil end
+        -- the pointer went from the control onto its balloon: it stays
+        if Bn then Bn.redrawHeld(win, ov) end
         return
     end
     _hoverReq[owner] = nil
     if now - (r.t or 0) > HOVER_STALE_MS then st.key = nil; return end
     st.lastT = r.t
-    if st.key ~= r.key then st.key, st.since = r.key, now; return end
-    if now - (st.since or now) < ZeD.HINT_DELAY_MS then return end
-    local mx, my = ov:getMouseX(), ov:getMouseY()
-    if r.kind == "card" then
-        local M = ZeD.Molecules
-        if M and M.drawDetailCard then M.drawDetailCard(ov, mx, my, r.card) end
-    else
-        ZeD.Atoms.drawHintBox(ov, r.text, mx, my)
+    if st.key ~= r.key then
+        st.key, st.since = r.key, now
+        st.warm = r.now or (Bn and Bn.warm()) or false
+        -- (the place the pointer was when the hover began, for a caller that gave no rectangle)
+        st.px, st.py = getMouseX(), getMouseY()
     end
+    if not st.warm and now - (st.since or now) < ZeD.HINT_DELAY_MS then
+        if Bn then Bn.redrawHeld(win, ov) end
+        return
+    end
+    local c = contentOf(st, r)
+    if not (c and Bn) then return end
+    local a = st.a
+    if not a then a = {}; st.a = a end
+    local p = r.panel or ov
+    if r.rx then
+        a.x, a.y, a.w, a.h, a.below, a.noFlip = p:getAbsoluteX() + r.rx, p:getAbsoluteY() + r.ry, r.rw, r.rh, nil, nil
+    else
+        a.x, a.y, a.w, a.h, a.below, a.noFlip = st.px or 0, st.py or 0, 1, 1, nil, nil
+    end
+    if r.below then a.below = p:getAbsoluteY() + r.below end
+    Bn.draw(ov, c, a, r.side or "above", { key = r.key, since = st.since, owner = win })
 end
 
 -- ----------------------------------------------------------------------------
 -- Hover hint layer: the hint for controls that sit at a window's edge, where
 -- their own panel is too narrow or sits under later siblings. The window keeps a
 -- click-through layer as its LAST child; each frame the control's draw code
--- stamps win[field] = { key, text, x, y, w, h, side = "r"|"l" } (window space,
--- the control's rect) while the pointer rests on it, and the layer draws the
--- hint box at the pointer after ZeD.HINT_DELAY_MS. Nothing stamped = no hint
--- (the stamp is consumed). The layer also draws any hover box the library's
+-- stamps win[field] = { key, text, x, y, w, h, side = "r"|"l", now } (window
+-- space, the control's rect) while the pointer rests on it or the controller's
+-- focus is on it, and the layer draws the balloon beside it after
+-- ZeD.HINT_DELAY_MS (at once for the focus). Nothing stamped = no hint (the
+-- stamp is consumed). The layer also draws any hover box the library's
 -- controls asked for in this window (drawPendingHover).
 -- ----------------------------------------------------------------------------
 
+local _layerA = {}
 function ZeD.Atoms.newHintLayer(win, field)
     local layer = ISPanel:new(0, 0, 10, 10)
     layer:initialise()
@@ -1168,12 +1204,24 @@ function ZeD.Atoms.newHintLayer(win, field)
         ZeD.Atoms.drawPendingHover(self, win)
         local c = win[field]
         win[field] = nil
-        local kf, sf = field .. "Key", field .. "Since"
-        if not c then win[kf] = nil; return end
+        local kf, sf, wf = field .. "Key", field .. "Since", field .. "Warm"
+        local Bn = ZeD.Balloon
+        if not c then
+            win[kf] = nil
+            if Bn then Bn.redrawHeld(self, self) end
+            return
+        end
         local now = getTimestampMs()
-        if win[kf] ~= c.key then win[kf], win[sf] = c.key, now; return end
-        if now - (win[sf] or now) < ZeD.HINT_DELAY_MS then return end
-        ZeD.Atoms.drawHintBox(self, c.text, self:getMouseX(), self:getMouseY())
+        if win[kf] ~= c.key then win[kf], win[sf], win[wf] = c.key, now, c.now or (Bn and Bn.warm()) or false end
+        if not win[wf] and now - (win[sf] or now) < ZeD.HINT_DELAY_MS then return end
+        if not Bn then return end
+        local a = _layerA
+        a.x, a.y = win:getAbsoluteX() + (c.x or 0), win:getAbsoluteY() + (c.y or 0)
+        a.w, a.h, a.below, a.noFlip = c.w or 1, c.h or 1, nil, nil
+        local side = (c.side == "l") and "left" or ((c.side == "r") and "right" or (c.side or "above"))
+        local cc = win[field .. "C"]
+        if not cc or cc.title ~= c.text then cc = { kind = "plain", title = c.text }; win[field .. "C"] = cc end
+        Bn.draw(self, cc, a, side, { key = c.key, since = win[sf], owner = self })
     end
     return layer
 end

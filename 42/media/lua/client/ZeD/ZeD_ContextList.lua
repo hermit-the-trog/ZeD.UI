@@ -35,7 +35,7 @@ ZeD_ContextList = ZeD_Panel:derive("ZeD_ContextList")
 -- design units (1 unit = 1 px at 1080p), the main menu's pull-down sizes
 local ROW_H, PAD_X, PAD_Y, SEP_H, MIN_W, MAX_W = 24, 12, 4, 9, 200, 420
 -- (ICON 16: the pixel icons' smallest drawing, drawn at its own size at 1x)
-local ICON, HEAD_H, BALLOON_W = 16, 26, 280
+local ICON, HEAD_H = 16, 26
 
 function ZeD_ContextList:new(player, anchorMode, anchorX, anchorY, target, actionTree, vanillaMenu)
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
@@ -375,11 +375,16 @@ function ZeD_ContextList:prerender()
                     A.drawTriangleRight(self, x + w - padX - T.px(6), cy + math.floor((rowH - T.px(8)) / 2), T.px(8), onFocus and T.textOnFocus or T.textDim)
                 end
                 self:addHitZone("row:" .. li .. ":" .. ri, x, cy, w, rowH)
-                if isSel and (nav ~= "mouse" or over or openParent) then
+                if isSel and (nav ~= "mouse" or over or openParent) and (def.body or def.bodyRich or def.state) then
                     local body = def.body or ""
                     local st = def.state and def.state(self._ctx.target) or ""
-                    local txt = (st ~= "" and st ~= body) and ((body ~= "" and (body .. " ") or "") .. st) or body
-                    if txt ~= "" then balloon = { text = txt, x = x + w, y = cy, lvx = x, key = li .. ":" .. ri } end
+                    if body ~= "" or st ~= "" or def.bodyRich then
+                        balloon = self._bl
+                        if not balloon then balloon = { a = {} }; self._bl = balloon end
+                        balloon.def, balloon.li, balloon.body, balloon.st = def, li, body, st
+                        balloon.key = li .. ":" .. ri
+                        balloon.a.x, balloon.a.y, balloon.a.w, balloon.a.h = x, cy, w, rowH
+                    end
                 end
                 cy = cy + rowH
             end
@@ -388,35 +393,59 @@ function ZeD_ContextList:prerender()
         A.frame(self, x, y, w, h, bs)
     end
     ZeD.ContextMenu.Registry.highlight(self, hl)   -- every frame, as the game's menu render does
-    -- the pointed row's tooltip, in a balloon beside its menu (System 7's Balloon Help): at
-    -- once for the pad and the keys, after the shared hover delay for the mouse
+    -- the pointed row's tooltip, in a balloon beside the row with its tail on it (System 7's
+    -- Balloon Help): at once for the pad and the keys, after the shared hover delay for the
+    -- mouse. With the pointer moved off the row onto the balloon, it stays.
     local ready = A.hoverReady(self._hv, balloon and balloon.key or nil)
-    if balloon and (nav ~= "mouse" or ready) then self:_drawBalloon(balloon) end
+    if balloon and (nav ~= "mouse" or ready) then
+        self:_drawBalloon(balloon)
+    elseif not balloon and nav == "mouse" and ZeD.Balloon then
+        ZeD.Balloon.redrawHeld(self, self)
+    end
     ZeD.Focus.drawOverlay(self, self)
 end
 
-function ZeD_ContextList:_drawBalloon(b)
-    local T, tm = ZeD.T, ZeD.TM
-    local f2 = T.fontF2
-    local bw = T.px(BALLOON_W)
-    local pad = T.px(8)
-    -- vanilla tooltips carry rich-text tags (<RGB:..>, <LINE>): drop them, keep the words
-    local txt = tostring(b.text or ""):gsub("<[^>]*>", " "):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
-    local lines = ZeD.Atoms.wrapText(txt, f2, bw - pad * 2)
-    local lh = (T.fontF2H or tm:getFontHeight(f2)) + T.px(2)
-    local bh = #lines * lh + pad * 2
-    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
-    local x = b.x + T.px(6)
-    if x + bw > sw - T.px(4) then x = b.lvx - bw - T.px(6) end
-    local y = math.min(b.y, sh - bh - T.px(4))
-    -- a hover box: solid surface 1, the 1u frame, the hard shadow
-    local s1, bs, tc = T.surf1, T.borderS, T.text
-    ZeD.Atoms.drawHardShadow(self, x, y, bw, bh)
-    self:drawRect(x, y, bw, bh, 1, s1.r, s1.g, s1.b)
-    ZeD.Atoms.frame(self, x, y, bw, bh, bs)
-    for i, l in ipairs(lines) do
-        self:drawText(l, x + pad, y + pad + (i - 1) * lh, tc.r, tc.g, tc.b, tc.a or 1, f2)
+-- the path of submenu names down to level li (the parents' selected rows)
+function ZeD_ContextList:_pathTo(li)
+    local path = {}
+    for k = 1, li - 1 do
+        local lv = self._levels[k]
+        local nx = self._levels[k + 1]
+        local r = lv and nx and lv.rows[nx.parentRow]
+        if r and r.def and r.def.name then path[#path + 1] = tostring(r.def.name) end
     end
+    return path
+end
+
+-- b = { def, li, body, st, key, a = the row in screen px (the list covers the screen from 0, 0) }
+function ZeD_ContextList:_drawBalloon(b)
+    local def = b.def
+    local sig = b.key .. "\1" .. tostring(def) .. "\1" .. b.body .. "\1" .. b.st
+    local c = self._blC
+    if not c or self._blSig ~= sig then
+        c = { kind = "rich", title = tostring(def.name or ""), path = self:_pathTo(b.li) }
+        if def.bodyRich then
+            c.req, c.pic = def.bodyRich, def.tipTex
+        else
+            if b.body ~= "" then
+                local lines = {}
+                for para in b.body:gmatch("[^\n]+") do lines[#lines + 1] = para end
+                c.lines = lines
+            end
+            -- the reason it cannot be done, when the body does not already say it
+            if b.st ~= "" and b.st ~= b.body then
+                local bad = def.stateKind and def.stateKind(self._ctx.target) == "bad"
+                c.req = { rows = {}, conds = { { t = b.st, st = bad and "bad" or nil } }, sig = b.st }
+            end
+        end
+        self._blC, self._blSig = c, sig
+    end
+    local ox, oy = self:getAbsoluteX(), self:getAbsoluteY()
+    local a = b.a
+    local sa = self._blA
+    if not sa then sa = {}; self._blA = sa end
+    sa.x, sa.y, sa.w, sa.h, sa.below, sa.noFlip = ox + a.x, oy + a.y, a.w, a.h, nil, nil
+    ZeD.Balloon.draw(self, c, sa, "right", { key = "list:" .. sig, prio = 2, owner = self })
 end
 
 -- ----------------------------------------------------------------------------
@@ -458,11 +487,17 @@ function ZeD_ContextList:update()
         self._lastMx, self._lastMy = mx, my
     end
     if mx == self._lastMx and my == self._lastMy then
-        -- the controller keeps its row while the mouse rests; a pointer resting on a row still opens its submenu
+        -- the controller keeps its row while the mouse rests; a pointer resting on a row still opens its submenu.
+        -- The test is the pointer itself (still on the row the mouse picked, and that row still the selection),
+        -- not who moved last: a key or a pad event in between left the old test waiting for the next move.
         local hl = self._hoverLi
-        if self._nav == "mouse" and hl and not self._levels[hl + 1] and getTimestampMs() - (self._hoverAt or 0) > 180 then
-            self._hoverLi = nil   -- (one try per rest: a row with no submenu is not asked again every update)
-            self:_openSub(hl, false)
+        if hl and not self._levels[hl + 1] and getTimestampMs() - (self._hoverAt or 0) > 180 then
+            local li, ri = rowAt(self, mx, my)
+            local lv = self._levels[hl]
+            if li == hl and lv and lv.sel == ri and self._hoverRow == li .. ":" .. ri then
+                self._hoverLi = nil   -- (one try per rest: a row with no submenu is not asked again every update)
+                self:_openSub(hl, false)
+            end
         end
         return
     end
@@ -538,7 +573,9 @@ function ZeD_ContextList:onJoypadDirLeft() self._nav = "pad"; if #self._levels >
 local NAV = {}
 function ZeD_ContextList:isKeyConsumed(key) return NAV[key] == true end
 function ZeD_ContextList:onKeyPress(key)
-    self._nav = "key"
+    -- (only the menu's own keys hand the selection to the keyboard: a modifier or another key
+    -- the menu ignores leaves the mouse's row and its balloon alone)
+    if NAV[key] then self._nav = "key" end
     if key == Keyboard.KEY_UP then self:move(-1)
     elseif key == Keyboard.KEY_DOWN then self:move(1)
     elseif key == Keyboard.KEY_RIGHT then self:_openSub(#self._levels, true)

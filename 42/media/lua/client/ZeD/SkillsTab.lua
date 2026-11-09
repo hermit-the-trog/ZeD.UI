@@ -659,8 +659,9 @@ ZeD.SkillsTab._skillCard = skillCard   -- (the QA sims read it: ZeDUI/tools/qa/c
 
 -- The card layer: a click-through panel kept as the window's last child (as
 -- ZeD.Atoms.newHintLayer), for the controller's focused row, whose card is drawn at
--- once under the row (the mouse's card is asked of the window's overlay instead, after
+-- once beside the row (the mouse's card is asked of the window's overlay instead, after
 -- the shared pause). The Skills tab stamps win._skillCardStamp each frame a card is up.
+local SKILL_SIDE = { side = "right" }   -- (a skill's card sits beside its row: the rows are a column)
 function ZeD.SkillsTab.cardLayer(win)
     local layer = win._skillCardLayer
     if not layer then
@@ -1376,14 +1377,16 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
             if card then
                 if padMode then
                     -- stamped for the window's card layer (drawn above the drawer's siblings: a
-                    -- card drawn on the drawer itself stayed under them); the anchor is the
-                    -- row's lower right, the card goes below-right of it and flips to stay on screen
+                    -- card drawn on the drawer itself stayed under them); its balloon points at
+                    -- the row from beside it, at once
                     local ox = panel:getAbsoluteX() - win:getAbsoluteX()
                     local oy = panel:getAbsoluteY() - win:getAbsoluteY()
-                    win._skillCardStamp = { ax = hz.x + hz.w + ox - T.px(24), ay = hz.y + hz.h + oy - T.px(18), card = card }
+                    card.anchor = { x = hz.x + ox, y = hz.y + oy, w = hz.w, h = hz.h }
+                    card.side, card.key = "right", "skill:" .. tostring(hz.name)
+                    win._skillCardStamp = { ax = 0, ay = 0, card = card }
                     ZeD.SkillsTab.cardLayer(win)
                 else
-                    ZeD.Atoms.requestDetailCard(win, "skill:" .. tostring(hz.name), card, panel)
+                    ZeD.Atoms.requestDetailCard(win, "skill:" .. tostring(hz.name), card, panel, hz, SKILL_SIDE)
                 end
             end
         end

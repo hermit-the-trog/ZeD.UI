@@ -702,6 +702,16 @@ local function makeActionDef(option, index, vanillaMenu, target)
     -- shows. The molecule collapses an empty body section.
     if option.toolTip and option.toolTip.description then
         def.body = plainTip(option.toolTip.description)
+        -- the game's requirement list (label and value columns, green and red) kept as rows, so the
+        -- balloon draws it in two columns with a check or cross per row (ZeD.RichTip); the tooltip's
+        -- picture (the furniture's sprite) goes with it
+        local RT = ZeD.RichTip
+        if RT and RT.parse then
+            local okR, rich = pcall(RT.parse, option.toolTip.description, option.name)
+            if okR then def.bodyRich = rich end
+        end
+        local tex = option.toolTip.texture
+        if tex and type(tex) ~= "string" then def.tipTex = tex end
     else
         def.body = nil
     end
