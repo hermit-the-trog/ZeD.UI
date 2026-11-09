@@ -1135,6 +1135,9 @@ function ZeD_WorldMap:render()
     -- the toolbar or the tab strip. One clip, set and cleared here:
     -- nothing inside sets its own (stencils do not nest).
     self:setStencilRect(0, 0, self:getWidth(), self:getHeight())
+    -- a paper map (an item read, or the Paper style's illustration) at the paper tone: the engine draws
+    -- the sheet at full brightness, so it dims here, over the map and under ZeD's own marks
+    if self._paperItem or self.paper then ZeD.paperToneOver(self, 0, 0, self:getWidth(), self:getHeight()) end
     if self._paperItem then
         ZeD.PaperMap.frame(self)   -- (a paper map shows its own marks only, as vanilla's ISMap)
     else

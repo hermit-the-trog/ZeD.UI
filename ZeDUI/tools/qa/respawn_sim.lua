@@ -260,6 +260,7 @@ end
 
 -- ZeD's library, as far as the desk's glue reads it
 ZeD = {
+    paperTone = function(c) return { r = c.r * 0.7, g = c.g * 0.7, b = c.b * 0.7, a = c.a } end,   -- (Tokens.lua's paper tone)
     T = setmetatable({ px = function(n) return n end, scale = 1 }, { __index = function() return { r = 0, g = 0, b = 0, a = 1 } end }),
     TM = getTextManager(),
     tr = function(k) return k end,
