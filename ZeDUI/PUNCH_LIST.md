@@ -3103,3 +3103,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (book and Simple), paper maps, the reader, notes, the Light theme's big panels and tooltip balloons use a paper at
     70% of today's brightness (level C in ZeDUI/mockups/paper_tone/, approved). Text stays fully dark: keep 4.5:1 or
     better on the dimmer paper. Prefer one paper token over per-file color edits; QA pictures at 4K and Deck.
+
+125. **A tab closed while its window is rolled puts the window back 4 px off (QA's staged Deck run, Nov 9 2026).** At
+    1280x800 (scale 0.75), zedqa_curtain's "tab closed while rolled" put the World window at 648,0 where it sat at 644,0:
+    the unroll restores the saved spot (864 design units x 0.75 = 648) rather than the live one (644, beside the
+    Character window). One pixel rule for both: round the saved spot the way the live layout does, or restore the live
+    spot. Small; after beta 10.
