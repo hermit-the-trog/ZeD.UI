@@ -553,15 +553,13 @@ end
 -- made from while the language, the test language and the measures hold (ZeD.DrawMemo.epoch):
 -- seventy phrases a frame otherwise
 local _words = {}
-local function dollWords()
-    local ep = ZeD.DrawMemo.epoch()
+local function dollWords(ep)
     if not ep or _words.ep ~= ep then _words = { ep = ep, label = {}, group = {}, place = {}, ptext = {} } end
     return _words
 end
 
--- A group's name: the game's words for its places, joined with " | "
-local function groupName(g)
-    local wd = dollWords()
+-- A group's name: the game's words for its places, joined with " | " (wd: dollWords)
+local function groupName(g, wd)
     local s = wd.group[g]
     if s then return s end
     local t = ""
@@ -578,6 +576,7 @@ end
 --- win._equipDollAll (every slot's box, for a drop). Returns height.
 function D.draw(panel, win, x, y, w, viewH, mx, my)
     local T, tm = ZeD.T, ZeD.TM
+    local wd = dollWords(ZeD.DrawMemo.epoch())   -- (the slots' words, kept)
     win._equipDollTimer = (win._equipDollTimer or 0) + 1
     local data = win._equipDollData
     local _, bands = fit(w, viewH, data and #data.belt or 0)
@@ -638,7 +637,6 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local items = data.slots[def.id].items
         local item = items[1]
         local key = "doll:" .. def.id
-        local wd = dollWords()
         local label = wd.label[def]
         if not label then label = ZeD.textCase(ZeD.tr(def.key)); wd.label[def] = label end
         local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
@@ -668,14 +666,13 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         for _, g in ipairs(D.GROUPS) do
             -- the name sits on its row's y; on a shrunk doll it rises just enough to clear its slots
             local ny = math.min(y + P(g.y), y + P(g.y + SM_NAME_DY) - f5h - 1)
-            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4) + bandX), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
+            panel:drawText(ZeD.Atoms.truncateText(groupName(g, wd), f5, P(BAND_W - 4) + bandX), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
         end
         for _, sm in ipairs(D.SMALL) do
             local items = data.small[sm.id].items
             local item = items[1]
             local key = "doll:" .. sm.id
             local sbx, sby = ox + P(sm.x) + S(sm.x) + (sm.col - 1) * stepX, y + P(sm.y)
-            local wd = dollWords()
             local place = wd.place[sm]
             if not place then place = ZeD.tr(sm.place); wd.place[sm] = place end
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)

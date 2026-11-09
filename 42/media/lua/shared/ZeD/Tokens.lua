@@ -1004,14 +1004,16 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     local sc = root * (size.scale or 1)
     T.scale = sc
     T.root  = root
-    -- (the answers are kept by units for this palette, the first 512 values asked: the panels ask the
-    -- same few hundred literals thousands of times a frame; the sum below decides each one, as before)
+    -- (the answers are kept by units for this palette: the panels ask the same few hundred literals
+    -- thousands of times a frame; past 512 kept the store starts over, so a drawer sliding open, which
+    -- asks a new fraction each frame, never crowds them out; the sum below decides each one, as before)
     local pxKept, pxN, floor = {}, 0, math.floor
     T.px    = function(units)
         local v = pxKept[units]
         if v then return v end
         v = floor(units * sc + 0.5)
-        if pxN < 512 and units == units then
+        if units == units then
+            if pxN >= 512 then pxKept, pxN = {}, 0 end
             pxKept[units] = v
             pxN = pxN + 1
         end

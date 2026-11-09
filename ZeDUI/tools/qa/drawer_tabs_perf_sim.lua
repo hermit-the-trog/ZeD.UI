@@ -1,22 +1,24 @@
 -- ZeDUI/tools/qa/drawer_tabs_perf_sim.lua  (Nov 8 2026, Build; punch list 120): the Character window's four heavy
 -- drawer tabs (Equipment with the list and the doll, Thermal, Identity, Skills) drawn frame after frame with no
 -- game running, before and after the drawing-cost work.
---   * Loads the real Tokens, Scale, Tr, Atoms, AtomExtensions, Molecules, ZeD_BodyFigure, ProtectionTab, EquipDoll
---     and the four tabs twice, each into its own sandbox on the same stubs: as they were at BASE (git show, default
---     origin/main) and as they are in the checkout.
+--   * Loads the real Scale, Tokens, Tr, Atoms, AtomExtensions, Molecules, DrawMemo, ZeD_BodyFigure, ProtectionTab,
+--     EquipDoll and the four tabs twice, each into its own sandbox on the same stubs: as they were at BASE (git show,
+--     default dc9aa53b: the last main before the work) and as they are in the checkout.
 --   * A stand-in player (worn clothes, a stocked inventory, 40 skills, traits, a thermoregulator), a stand-in
---     TextManager whose widths add up letter by letter, and a panel that writes down every draw.
---   * Plays the same frames into both (16 ms apart; the pointer away, then over the rows) and compares every
---     draw of every frame, word for word: the frames must look identical.
+--     TextManager whose widths add up letter by letter, and a panel that writes down every draw (its Java element's
+--     too), every surface strip's claim on the window body, and the help line's words.
+--   * Plays the same frames into both (16 ms apart; the pointer away, then down the card over the bars and rows)
+--     and compares every draw of every frame, word for word, and the help lines in their order: the frames must
+--     look identical. Also at the half card, in Simple, with the full photo, the figure folded, another view.
 --   * Counts per frame, old against new: Lua instructions (a count hook), the engine's text measures, wrap and
 --     truncate calls, Java calls on the stand-ins, draws, and the Lua memory a frame allocates (GC stopped).
---   * With -prof, prints where the instructions go, by function, for the checkout.
+--   * With -prof, prints where the instructions, the Java calls and the draws go, by function, for the checkout.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/drawer_tabs_perf_sim.lua [base-rev] [-prof]
 -- It prints FAIL lines, the numbers, and a last line "drawer_tabs_perf_sim: N checks, M failed", and exits 1 if any
 -- failed.
 
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]drawer_tabs_perf_sim%.lua$", "")
-local BASE, PROF = "origin/main", false
+local BASE, PROF = "dc9aa53b", false
 for _, a in ipairs(arg or {}) do
     if a == "-prof" then PROF = true else BASE = a end
 end
@@ -600,6 +602,44 @@ local TABS = {
     { id = "equip", name = "Equip list, half card", fn = function(Z) return Z.EquipmentTab.render end, view = 1, W = HALF,
       variant = true },
 }
+-- A window's own colours, as ZeD_Window swaps them into ZeD.T for its drawing: from frame 30 its accent and
+-- text colours (other tables), from frame 45 its see-through surfaces in tables of its own whose alpha moves
+-- each frame (fading to solid in use), from frame 65 the theme's own again. The kept draws must follow.
+local SWAP_KEYS = { "accent", "hover", "text", "textHead", "textDim", "toneHi", "toneLo", "border", "borderS" }
+local SURF = { "base", "surf1", "surf2", "surf3", "surf4" }
+local function windowColours(Z, f, st)
+    local T = Z.T
+    if f == 30 then
+        st.saved = {}
+        for _, k in ipairs(SWAP_KEYS) do
+            local c = T[k]
+            st.saved[k] = c
+            T[k] = { r = c.b, g = c.r, b = c.g, a = c.a }
+        end
+    end
+    if f >= 45 and f < 65 then
+        st.mine = st.mine or {}
+        st.surf = st.surf or {}
+        for _, k in ipairs(SURF) do
+            if not st.surf[k] then st.surf[k] = T[k] end
+            local c = st.surf[k]
+            local m = st.mine[k] or {}
+            st.mine[k] = m
+            m.r, m.g, m.b, m.a = c.r, c.g, c.b, 0.6 + ((f - 45) % 7) * 0.05
+            T[k] = m
+        end
+    end
+    if f == 65 then
+        for k, c in pairs(st.saved or {}) do T[k] = c end
+        for k, c in pairs(st.surf or {}) do T[k] = c end
+    end
+end
+for _, base in ipairs({ { "skills", "Skills" }, { "thermal", "Thermal" }, { "identity", "Identity" }, { "equip", "Equip list" } }) do
+    local src
+    for _, t in ipairs(TABS) do if t.name == base[2] then src = t end end
+    TABS[#TABS + 1] = { id = src.id, name = base[2] .. ", the window's own colours", fn = src.fn, view = src.view,
+                        variant = true, frame = windowColours }
+end
 
 -- one tab, N frames. mode "log": every draw of every frame written down; "count": the instructions (a count
 -- hook) and the calls; "mem": the memory a frame allocates (nothing else running: no log, no hook)
@@ -614,6 +654,7 @@ local function runTab(world, tab, frames, pointer, mode, profile)
     local render = tab.fn(Z)
     local W, H = tab.W or 840, 1500   -- (the full card at 4K 1.75x: 480 units)
     if tab.setup then tab.setup(Z, win) end
+    local frameState = {}
     local out = { frames = {}, instr = 0, alloc = 0 }
     world.counts = newCounts()
     C = world.counts
@@ -634,6 +675,7 @@ local function runTab(world, tab, frames, pointer, mode, profile)
     end
     for f = 1, frames do
         clock.ms = clock.ms + 16
+        if tab.frame then tab.frame(Z, f, frameState) end
         if pointer then
             -- (down the card in small steps, in turn over the left and right columns' bars, the names, the figure)
             local XS = { 365, 395, 785, 805, 520, 150, 300, 700 }

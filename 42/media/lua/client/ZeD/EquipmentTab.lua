@@ -270,7 +270,7 @@ local _cols = {}
 local function calcEquipColumns(w, win)
     local cw = win and win._equipColWidths
     local need = (win and win._equipNameNeed) or 0
-    local epoch = ZeD.DrawMemo.epoch()
+    local epoch = (win and win._eqEpoch) or ZeD.DrawMemo.epoch()
     local k = _cols
     if epoch and k.c and k.ep == epoch and k.T == ZeD.T and k.w == w and k.need == need and k.cw == cw
        and (not cw or (k.s == cw.slot and k.cd == cw.cond and k.wt == cw.wt)) then
@@ -788,7 +788,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     -- the place, the columns, the focus wash and selection, the palette and the measures. The
     -- condition strip asks for the pointer again each frame, for its help line.
     local DM = ZeD.DrawMemo
-    local epoch = DM.epoch()
+    local epoch = win._eqEpoch or DM.epoch()
     local memos = win._equipRowMemos
     if not memos then memos = {}; win._equipRowMemos = memos end
     local m = memos[slot.type]
@@ -1310,6 +1310,8 @@ end
 --- grouped list with the belt rows, the loadouts' fold and the defense body.
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
+    -- the state the kept draws hang on (ZeD.DrawMemo.epoch), read once for the rows and columns below
+    win._eqEpoch = ZeD.DrawMemo.epoch()
 
     -- Throttled data refresh (every 250 ms on the clock: 15 frames at 60 FPS)
     if dueMs(win, "_equipAt", 250, not win._equipCache) then
@@ -1553,7 +1555,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         -- region of this drawer.
         -- the widest worn name: the SLOT column shortens when the names lack it
         -- (worked out again with each data refresh and each new scale or language, not each frame)
-        local needEp = ZeD.DrawMemo.epoch()
+        local needEp = win._eqEpoch
         if win._equipNameNeedData ~= data or win._equipNameNeedEp ~= needEp or not needEp then
             local need = 0
             for _, g in ipairs(data.groups) do

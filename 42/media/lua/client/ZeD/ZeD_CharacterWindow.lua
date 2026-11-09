@@ -2526,7 +2526,7 @@ local function _buildThermalBodyPartFocusables(win)
     for i = 1, #rects do
         local r = rects[i]
         local vy, vh = _inBodyView(view, r.y, r.h)
-        local id = vy and _thermalPartIds[r.name]
+        local id = vy and r.name and _thermalPartIds[r.name]
         if vy and not id then
             id = "thermalpart:" .. tostring(r.name)
             if r.name then _thermalPartIds[r.name] = id end
