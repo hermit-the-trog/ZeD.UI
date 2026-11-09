@@ -98,6 +98,7 @@ readJson(ROOT .. "42/media/lua/shared/Translate/EN/UI.json", EN)
 
 local logs = {}
 ZeD = {
+    paperTone = function(c) return { r = c.r * 0.7, g = c.g * 0.7, b = c.b * 0.7, a = c.a } end,   -- (Tokens.lua's paper tone)
     tr = function(k, ...)
         local s = EN[k] or k
         local a = { ... }

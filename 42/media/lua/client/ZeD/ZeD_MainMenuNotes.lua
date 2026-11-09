@@ -44,11 +44,12 @@ local PAGE_W = 720                   -- the notepad window's widest
 local PAGE_LINES = 1000
 
 -- the sticky's paper: pale yellow on every theme (a note stuck on the screen), its strip a shade darker
-local PAPER = { r = 1.0, g = 0.95, b = 0.6 }
-local PAPER_TOP = { r = 0.93, g = 0.84, b = 0.38 }
+-- (paper and strip at the paper tone, Tokens.lua: no large near-white areas; the hint ink dark enough for 4.5 : 1 on it)
+local PAPER = ZeD.paperTone({ r = 1.0, g = 0.95, b = 0.6 })
+local PAPER_TOP = ZeD.paperTone({ r = 0.93, g = 0.84, b = 0.38 })
 local PAPER_EDGE = { r = 0.32, g = 0.27, b = 0.1 }
 local INK = { r = 0.1, g = 0.1, b = 0.12 }
-local INK_HINT = { r = 0.42, g = 0.38, b = 0.24 }
+local INK_HINT = { r = 0.24, g = 0.215, b = 0.135 }
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function gamepadJoy() return MM.gamepad() and JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad() or nil end
