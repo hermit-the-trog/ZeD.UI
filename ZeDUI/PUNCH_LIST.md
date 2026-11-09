@@ -3076,6 +3076,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     playable; it comes back now and then during the first in-game hour unless opened or dismissed; only the very first
     time anyone starts a game with ZeD. Check how the game's own first-start guide is triggered and keep it from opening;
     controller path to open it from the bubble; split-screen and multiplayer. The director's wording (Nov 8, use as
-    written): "New to Knox County? Check out this handy survival guide. Click on the notification bubble or press F1. You
-    can click to dismiss this at any time." On a controller, the key shown follows the guide's device-aware keys, and
+    written, revised the same day): "New to Knox County? Check out this handy survival guide. Stop alt-tabbing for
+    information: click this bubble or press F1 instead. You can dismiss this bubble at any time." Why a bubble: "that
+    introduces them to notifications, and it introduces them to the survival guide. Two birds, one notification." On a controller, the key shown follows the guide's device-aware keys, and
     the director sees that variant before it ships.
