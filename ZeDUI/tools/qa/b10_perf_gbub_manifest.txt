@@ -1,0 +1,4 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+suite_perf.lua | perf | timeout=240
+zedqa_guide_bubble.lua | gbub | timeout=240
