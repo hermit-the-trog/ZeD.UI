@@ -152,4 +152,11 @@ body would be, above the thumb. Both had the same bottom-right arrow badge and o
   them; `zw_hand_main_16/24.png`, `zw_hand_off_16/24.png` are the new pictures.
 - In `i_ctx5.py`, `hand_main` and `hand_off`: draw `i_char.hand` shifted right, then the arrow from `hands.py`
   (`ARROW[16]`, `ARROW[24]`) at the top left, rows 2-6 at 16 and 2-7 at 24; `hand_off` is that mirrored. Export.
+- **A 1 and a 2 in the palms** (director, Nov 9: "fine with the numbers in both the 16 and the 24"): knocked out of the
+  palm in ZeD's own pixel faces, the 3 x 5 at 16 and the 5 x 7 at 24 (`PixelFont` digits). The 1 on the primary at
+  (8, 8) at 16 and (12, 12) at 24; the 2 on the secondary, drawn after mirroring so it reads the right way, at (5, 8)
+  and (7, 12). `digits.py` places them; `hands_digits_v1.png` shows the result.
+- **The 24's heel rounded on the pinky side** to match the 16: on the primary, rows 15-20 stop at columns 22, 22, 21,
+  20, 19 and 17 (mirrored on the secondary). It's in `hands.py`. If it suits, give the plain `hand` 24 the same edge.
+- The `zw_hand_main_16/24.png` and `zw_hand_off_16/24.png` beside them are the finished pictures, numbers in.
 - They stay ink: the arrow says which hand, not add or remove.

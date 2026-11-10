@@ -19,6 +19,9 @@ def main_hand(s):
     thumb pointing into the hand"""
     dx,ay=(2,2) if s==16 else (4,2)
     on={(x+dx,y) for (x,y) in load('hand',s) if x+dx<s}
+    if s==24:   # round the heel of the hand on the pinky side, as the 16 does
+        edge={15:22,16:22,17:21,18:20,19:19,20:17}
+        on={(x,y) for (x,y) in on if x<=edge.get(y,99)}
     for j,r in enumerate(ARROW[s]):
         for i,ch in enumerate(r):
             if ch=='#': on.add((i,ay+j))
