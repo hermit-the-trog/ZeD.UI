@@ -1282,6 +1282,9 @@ local function resetChar(charWin, defW, defH, gap, screenW)
     charWin:setX(math.floor(screenW / 2) - defW - gap)
     charWin:setY(0)
     charWin._anchorRightEdge = charWin:getX() + defW
+    -- (what the half-screen cap pushed or took before the reset is not owed to the reset's place: punch list 125)
+    charWin._drawerCapPush = 0
+    charWin._drawerCapLost = 0
     charWin._lastSetX = charWin:getX()
     charWin._preDrawerW = nil
     -- Reset saved settings: tab, drawer, accent
@@ -1318,6 +1321,11 @@ local function resetWorld(worldWin, defW, defH, gap, screenW)
     worldWin:setX(math.floor(screenW / 2) + gap)
     worldWin:setY(0)
     worldWin._anchorRightEdge = worldWin:getX() + defW
+    -- (what the half-screen cap pushed or took before the reset is not owed to the reset's place: a push kept from
+    -- before was saved on top of the new x and given back when the next drawer closed, 4 px right at Deck size,
+    -- punch list 125)
+    worldWin._drawerCapPush = 0
+    worldWin._drawerCapLost = 0
     worldWin._lastSetX = worldWin:getX()
     worldWin._preDrawerW = nil
     worldWin._drawerOpen = false

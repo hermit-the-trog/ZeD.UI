@@ -3109,6 +3109,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the unroll restores the saved spot (864 design units x 0.75 = 648) rather than the live one (644, beside the
     Character window). One pixel rule for both: round the saved spot the way the live layout does, or restore the live
     spot. Small; after beta 10.
+    - **Build, Nov 10 2026: done, waiting on QA in the game. The cause wasn't the rounding.** QA's own log shows it:
+      after ZeD_Window.resetLayout the World window sat at 644 with its saved x at 864 design units (648 px). The push
+      the half-screen cap had made earlier in the run (4 px, _drawerCapPush) stayed on the window through the reset,
+      was saved on top of the reset's x, and was given back when the next drawer closed. resetLayout now clears both
+      windows' push and lost width (_drawerCapPush, _drawerCapLost). Organisms.lua. Sim: reset_cap_push_sim 8/0 (it
+      reads the 864 on the old code). **Check (QA, Mac or Deck size):** zedqa_curtain at 1280 x 800: "tab closed
+      while rolled" ok at 644.
 
 126. **The Character list slides when its drawer folds at small sizes (QA's staged Deck run, Nov 9 2026; also in
     beta 9).** At 1280x800 (0.75) with Equip's full card open, the half-screen cap costs the window 53 px and pushes it
