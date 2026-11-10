@@ -262,24 +262,20 @@ function ZeD_ContextMenu:_layout(T)
 
     -- Target values for interpolation
     local targetOriginX
+    local step = ctx.cellW + ctx.gap
+    local slot = self:_anchorSlot(visibleCount)
     if self._ctx.truncating then
-        -- Selected cell centered in the visible window
-        targetOriginX = innerW / 2
-                        - ((self._ctx.pos - 1) * (ctx.cellW + ctx.gap) + ctx.cellW / 2)
+        -- The window holds whole cells (punch list 133: it used to centre the anchor cell, which with an even count
+        -- left half a cell at each end): the anchor (pos) sits in slot `slot`, the cells before it fill the left
+        self._ctx.firstVisible = self._ctx.pos - slot
+        targetOriginX = -((self._ctx.firstVisible - 1) * step)
     else
         targetOriginX = 0
     end
 
-    -- Label X (panel-local). In truncating mode the selected cell is always
-    -- at the visual center of the strip, so label centers on strip center.
-    -- In non-truncating mode label tracks the actual cell.
-    local labelTargetX
-    if self._ctx.truncating then
-        labelTargetX = nil  -- will compute after stripX is known
-    else
-        -- Offset from strip interior left edge
-        labelTargetX = T.px(1) + (self._ctx.selected - 1) * (ctx.cellW + ctx.gap) + ctx.cellW / 2
-    end
+    -- Label X (panel-local), from the strip interior's left edge: the anchor's slot in truncating mode, the cell
+    -- itself otherwise
+    local labelTargetX = T.px(1) + (self._ctx.truncating and slot or (self._ctx.selected - 1)) * step + ctx.cellW / 2
 
     -- Kick a new animation if targets changed
     if self._animToOriginX ~= targetOriginX then
@@ -338,11 +334,7 @@ function ZeD_ContextMenu:_layout(T)
     local stripX = panelCenterX - math.floor(housingW / 2)
 
     -- Now resolve labelX properly
-    if self._ctx.truncating then
-        labelTargetX = stripX + math.floor(housingW / 2)
-    else
-        labelTargetX = stripX + labelTargetX
-    end
+    labelTargetX = stripX + labelTargetX
     if self._animToLabelX ~= labelTargetX then
         self._animFromLabelX = self._currentLabelX or labelTargetX
         self._animToLabelX   = labelTargetX
@@ -514,6 +506,41 @@ function ZeD_ContextMenu:prev()
         self:_scheduleSettle()
     end
 end
+
+-- The slot (0-based) the carousel's anchor cell sits in: the middle, the left one of the two when the count is even.
+function ZeD_ContextMenu:_anchorSlot(visibleCount)
+    return math.floor(((visibleCount or math.min(#self._ctx.items, ZeD.T.ctx.maxVisible)) - 1) / 2)
+end
+
+-- A page of whole cells (the strip's arrows, punch list 133): the window moves by as many cells as it shows, and
+-- the selection goes to the cell in the anchor's slot. A strip that doesn't overflow steps one cell, as before.
+function ZeD_ContextMenu:page(dir)
+    local N = #self._ctx.items
+    if N == 0 then return end
+    if not self._ctx.truncating then
+        if dir > 0 then self:next() else self:prev() end
+        return
+    end
+    local ctx = ZeD.T.ctx
+    local V = math.min(N, ctx.maxVisible)
+    local slot = self:_anchorSlot(V)
+    -- (a second click before the last slide settled can page past the three copies the track holds: first move the
+    -- view one copy back, the slide in flight with it. The copies are the same cells, so nothing moves on screen.)
+    local first = self._ctx.pos + dir * V - slot
+    if first < 1 or first + V - 1 > 3 * N then
+        local shift = -dir * N
+        local px = shift * (ctx.cellW + ctx.gap)
+        self._ctx.pos = self._ctx.pos + shift
+        self._currentOriginX = (self._currentOriginX or 0) - px
+        self._animFromOriginX = (self._animFromOriginX or 0) - px
+        self._animToOriginX = (self._animToOriginX or 0) - px
+    end
+    self._ctx.pos = self._ctx.pos + dir * V
+    self._ctx.selected = ((self._ctx.pos - 1) % N) + 1
+    self:_scheduleSettle()
+end
+function ZeD_ContextMenu:nextPage() self:page(1) end
+function ZeD_ContextMenu:prevPage() self:page(-1) end
 
 -- Group jump — skip to first item of next category. Wraps.
 function ZeD_ContextMenu:nextGroup()
@@ -768,9 +795,9 @@ function ZeD_ContextMenu:onMouseUp(x, y)
     elseif zone.id == "ctxbump_r" then
         self:nextGroup()
     elseif zone.id == "ctxchev_l" then
-        self:prev()
+        self:prevPage()
     elseif zone.id == "ctxchev_r" then
-        self:next()
+        self:nextPage()
     elseif type(zone.id) == "string" and zone.id:sub(1, 8) == "ctxcell_" then
         -- Cell click → confirm (selection was already set on hover)
         self:confirm()

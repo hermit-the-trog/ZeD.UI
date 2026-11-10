@@ -3172,6 +3172,16 @@ Items QA has confirmed in the game in full (their history stays in place above; 
 
 133. **Strip scrolling (QA's Mac run, Nov 9 2026; minor).** An overflowing strip scrolls one icon per arrow click and
     leaves the edge icon cut in half. Scroll a page of whole icons per click, and stop on whole icons.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** The cause: an overflowing strip centred its anchor cell,
+      and with 10 showing that left half a cell at each end. Now the window holds whole cells, the anchor in the 5th
+      slot; each arrow click moves it 10 cells (the selection to the anchor's cell), sliding as before and stopping on
+      whole cells. The keyboard's and the pad's one step still move one cell; the bumpers still jump a group; a strip
+      of 10 or fewer steps one cell per arrow, as before. Two quick clicks move the view a copy back first, so the
+      page never runs off the three copies (nothing moves on screen). ZeD_ContextMenu.lua (page, nextPage, prevPage,
+      the layout's whole-cell offset). Sim: strip_page_sim 308/0 (11 to 31 cells at 1x and 1.75x).
+      **Check (QA, Mac):** a menu with 15 or more options (a crate of mixed things, or a car's): click the right
+      arrow 3 times, then the left 3 times, at 1x and 1.75x: no icon cut at either end, each click shows the next 10
+      with none skipped or repeated, and you land back on the first page.
 
 134. **Custom Map Labels don't draw on ZeD's map (QA's Mac run, Nov 9 2026; investigate).** No error now; the mod
     writes 82 labels into the map symbols at start (Muldraugh and others), but none show on ZeD's map near the player,
