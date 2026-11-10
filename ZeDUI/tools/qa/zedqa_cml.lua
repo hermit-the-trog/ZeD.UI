@@ -7,6 +7,11 @@
 --   2. the symbol store holds text symbols the mod wrote (isText, not user defined, key MapLabel_*): how many
 --   3. ZeD's map opens on the Maps tab (ISWorldMap.ShowWorldMap, the M key's route) at a label's place if there is one, and
 --      is ZeD's, not the game's; shot
+--   4. (Nov 10 2026, punch list 134: the labels are in the store but none draw on ZeD's map) LAYERS: the text layers the
+--      labels name (their layer id), their own colour and alpha, and for each of ZeD's three styles (Survey, Color,
+--      Paper) whether the map's style has that layer and its fill alpha at each zoom stop (Paper sets the map's own
+--      label layers to alpha 0, MapsTab hideLabels: a label written into one of those layers would vanish with them);
+--      a shot in each style at the label's place. Info lines, "ZEDQA cml layer ...", for Build
 -- By hand: console.txt has no "CustomMapLabels.lua:93" error at the start. Shots zqa_cml_*.png. grep "ZEDQA cml ".
 local function say(s) print("ZEDQA cml " .. tostring(s)) end
 local fails = 0
@@ -56,6 +61,88 @@ step(120, function()
     check(ISWorldMap_instance == nil or not ISWorldMap_instance:isVisible(), "the game's map stayed shut")
     shot("zed_map")
 end)
+-- 4. LAYERS (every call guarded: the symbol and style objects' getters differ between builds)
+local function try(o, ...)
+    for _, m in ipairs({ ... }) do
+        local f = o and o[m]
+        if f then
+            local ok, v = pcall(f, o)
+            if ok and v ~= nil then return v, m end
+        end
+    end
+    return nil
+end
+local layerIds = {}
+step(10, function()
+    local api = ZeD.MapNotes and ZeD.MapNotes.api and ZeD.MapNotes.api()
+    if not api then say("layer: no symbol store"); return end
+    local n = 0
+    for i = 0, api:getSymbolCount() - 1 do
+        local sym = api:getSymbolByIndex(i)
+        local k = sym and sym:isText() and not sym:isUserDefined() and sym:getUntranslatedText()
+        if k and tostring(k):find("^MapLabel_") then
+            local lid, how = try(sym, "getLayerID", "getLayerId", "getLayer", "getLayerName")
+            local key = tostring(lid)
+            if not layerIds[key] then
+                layerIds[key] = { n = 0, id = lid, how = how }
+            end
+            layerIds[key].n = layerIds[key].n + 1
+            n = n + 1
+            if n <= 3 then
+                say(("layer label %s at %s,%s: layer %s (%s) rgba %s,%s,%s,%s scale %s visited-only %s"):format(tostring(k),
+                    tostring(sym:getWorldX()), tostring(sym:getWorldY()), key, tostring(how),
+                    tostring(try(sym, "getRed")), tostring(try(sym, "getGreen")), tostring(try(sym, "getBlue")), tostring(try(sym, "getAlpha")),
+                    tostring(try(sym, "getScale")), tostring(try(sym, "isVisibleOnlyIfVisited", "isMatchPerspective"))))
+            end
+        end
+    end
+    for key, v in pairs(layerIds) do say("layer id " .. key .. ": " .. v.n .. " labels") end
+    local dl = try(api, "getDefaultTextLayerID")
+    say("layer the store's default text layer id: " .. tostring(dl))
+end)
+-- ZeD's map object (MapsTab: the window keeps it as _worldMapPanel; the pop-out has its own window)
+local function cmlMap()
+    for _, w in ipairs({ ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or false }) do
+        if w then
+            if w._worldMapPanel then return w._worldMapPanel end
+            if w._mapPopout and w._mapPopout._worldMapPanel then return w._mapPopout._worldMapPanel end
+        end
+    end
+    return nil
+end
+local function reportStyle(name)
+    local mp = cmlMap()
+    if not (mp and mp.mapAPI) then say("layer " .. name .. ": no map object found"); return end
+    local styleAPI = mp.mapAPI:getStyleAPI()
+    for key, v in pairs(layerIds) do
+        local layer = nil
+        if type(v.id) == "string" then local ok, l = pcall(function() return styleAPI:getLayerByName(v.id) end); layer = ok and l or nil end
+        if not layer and type(v.id) == "number" then
+            local ok, l = pcall(function() return styleAPI:getLayerByIndex(v.id) end)
+            layer = ok and l or nil
+        end
+        if not layer then
+            say("layer " .. name .. " " .. key .. ": not in the map's style")
+        else
+            local stops = {}
+            local ok = pcall(function()
+                for i = 0, layer:getFillStops() - 1 do
+                    local z = (layer.getFillZoom and layer:getFillZoom(i)) or "?"
+                    local a = (layer.getFillAlpha and layer:getFillAlpha(i)) or "?"
+                    stops[#stops + 1] = "z" .. tostring(z) .. "=a" .. tostring(a)
+                end
+            end)
+            say("layer " .. name .. " " .. key .. ": in the style (" .. tostring(try(layer, "getId", "getName")) .. "), fill " .. (ok and table.concat(stops, " ") or "unread"))
+        end
+    end
+end
+for _, st in ipairs({ "survey", "color", "paper" }) do
+    step(10, function()
+        local mp = cmlMap()
+        if mp and mp.applyStyle then pcall(mp.applyStyle, mp, st) else say("layer: no applyStyle on the map object") end
+    end)
+    step(60, function() reportStyle(st); shot("layer_" .. st) end)
+end
 step(10, function()
     pcall(ISWorldMap.HideWorldMap, 0)
     say(fails == 0 and "all checks passed" or (fails .. " failed"))

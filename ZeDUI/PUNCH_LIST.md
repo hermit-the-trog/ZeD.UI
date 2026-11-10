@@ -3240,6 +3240,19 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     even zoomed out. Check: what the mod writes (text symbols? which layer or style?), whether ZeD's map hides them
     (MapsTab hideLabels in Paper; the text layers; a symbol filter), whether the game's own map hides symbols in
     unexplored cells, and how the same labels look on the game's map without ZeD.
+    - **Build, Nov 10 2026: investigated from here; needs one in-game run to settle.** The likeliest cause is ZeD's own
+      Paper style: hideLabels (MapsTab.lua) sets every fill stop of the map's place-label text layers (text-town,
+      text-place, text-street and the rest) to alpha 0, so Paper's illustration doesn't print names twice. Since 42.11
+      a text symbol carries a layer id (WorldMapSymbols addTranslatedText(text, layerID, x, y, r, g, b, a)), and a
+      mod that names places would naturally write into those same layers; if it does, Paper hides its labels along
+      with the map's own. Survey and Color don't touch the layers, so the labels should show there, unless the mod
+      uses a layer ZeD's style never makes (initDefaultTextLayersV3 makes the vanilla set only). The probe:
+      zedqa_cml.lua step 4 now reports each label's layer id, its own colour, and, in Survey, Color and Paper, whether
+      the map's style has that layer and its fill alpha at each zoom stop, with a shot of each style at a label's
+      place. **Check (QA, Mac):** run cml_manifest.txt with a map mod the mod has labels for (or its Vanilla labels
+      option on); send the "ZEDQA cml layer" lines and the three shots. **If Paper is the cause:** Paper keeps those
+      layers and hides the map's own annotation labels another way (Build to find one that leaves symbols alone), or
+      Paper shows mod labels and accepts some doubled names (the director's call).
 
 135. **The held item's box (QA's Mac run, Nov 9 2026; director's call, QA asking).** A held axe shows the game's own item
     box (Encumbrance, Sharpness, bars) above ZeD's "Primary" balloon. By design: the balloon spec keeps the game's item
