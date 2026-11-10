@@ -2570,6 +2570,10 @@ local function stripDropTarget(win)
         ci = zid
     elseif type(zid) == "string" and zid:sub(1, 4) == "cnt:" then
         ci = tonumber(zid:sub(5))
+    elseif zid == "main_toggle" then
+        -- the Character window's top button, the main inventory (QA's Mac run, Nov 10 2026: eight rows dropped on it
+        -- moved nothing; its zone is named, not numbered)
+        for i, c in ipairs(win._containers or {}) do if c.isMain then ci = i; break end end
     end
     local cnt = ci and win._containers and win._containers[ci]
     if not cnt or cnt.locked then return nil end

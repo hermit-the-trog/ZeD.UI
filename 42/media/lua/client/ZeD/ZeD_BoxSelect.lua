@@ -94,38 +94,22 @@ function BS.draw(content)
 end
 
 -- ---------------------------------------------------------------------------
--- CTRL+A (punch list 146, the director, Nov 10 2026, after the streamer's clips: a whole crate selected in one step,
--- then dropped on a container button). The windows register their list panels; Ctrl+A with the pointer over one
--- selects every row of the list (the column) under it (the panel's zedSelectAll). The game still hears the A, as it
--- hears every key: QA checks the character doesn't step aside.
+-- SELECT ALL: a double-click on empty space (punch list 146, the director, Nov 10 2026, after QA's Mac run: Ctrl+A
+-- walked the character, the A being a movement key the game always hears, and was heard only on its release, when Ctrl
+-- already read up). The second press of a double-click on the list's empty space, where a box would start, selects
+-- every row of that list (the window's zedSelectAll); a single press there still starts a box.
 -- ---------------------------------------------------------------------------
-BS._lists = BS._lists or setmetatable({}, { __mode = "k" })
---- A list panel Ctrl+A may select in (it has zedSelectAll).
-function BS.register(content) if content then BS._lists[content] = true end end
-
-local function pointerOn(c)
-    if not (c.isReallyVisible and c:isReallyVisible()) then return false end
-    local mx, my = getMouseX(), getMouseY()
-    local ax, ay = c:getAbsoluteX(), c:getAbsoluteY()
-    return mx >= ax and my >= ay and mx < ax + c:getWidth() and my < ay + c:getHeight()
-end
-
---- Ctrl+A: the list under the pointer, all selected. True when a list took it.
-function BS.selectAllUnderPointer()
-    for c in pairs(BS._lists) do
-        if c.zedSelectAll and pointerOn(c) then
-            local ok, took = pcall(c.zedSelectAll, c)
-            if ok and took then return true end
-        end
+BS.DOUBLE_MS = 400
+--- A press on empty space at (x, y), panel-local: true when it is the second of a double-click there.
+function BS.doubleEmpty(content, x, y)
+    local now = getTimestampMs and getTimestampMs() or 0
+    local e = content._emptyPress
+    local T = ZeD.T
+    local near = (T and T.px and T.px(4)) or 4
+    if e and now - e.t <= BS.DOUBLE_MS and math.abs(x - e.x) <= near and math.abs(y - e.y) <= near then
+        content._emptyPress = nil
+        return true
     end
+    content._emptyPress = { t = now, x = x, y = y }
     return false
-end
-
-if Events and Events.OnKeyPressed and Keyboard and not BS._keyHooked then
-    BS._keyHooked = true
-    Events.OnKeyPressed.Add(function(key)
-        if key ~= Keyboard.KEY_A then return end
-        if not (isCtrlKeyDown and isCtrlKeyDown()) then return end
-        BS.selectAllUnderPointer()
-    end)
 end

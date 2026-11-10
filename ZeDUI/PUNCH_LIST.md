@@ -3645,6 +3645,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     right edge; Damage reads "0.8 - 2.0". "Moving" only on the one moving matches vanilla (the streamer's clip: one
     green row at a time at 6.5, 7.0, 8.0 s), so it stays. fast_loot_sim 74/0. Open for the director: what replaces
     Ctrl+A, and which button the drop missed.
+    **The director, Nov 10 2026: "Double-click empty space"** in place of Ctrl+A: the second press of a double-click
+    on a list's empty space (where a box would start) selects every row of it (ZeD_BoxSelect.doubleEmpty); Ctrl+A is
+    gone. **The missed drop:** the Character window's container strip names its top button, the main inventory,
+    "main_toggle", and the strip's drop target read only numbered containers, so a drop there found nothing (the
+    loot window's strip has no inventory button); it takes the main inventory now (InventoryRenderer
+    stripDropTarget). fast_loot_sim 79/0. **Recheck (QA, Mac):** double-click below the rows of a loot list: every
+    row selected, no card; drag them onto the Character window's top (Inventory) button: they move; the card on the
+    last rows of a short window, whole; past the row's name; Damage "0.8 - 2.0".
 
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the

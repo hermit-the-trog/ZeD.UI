@@ -246,21 +246,21 @@ frame()
 check("QUEUE: once moved, nil again", IT.queued(list, moving) == nil)
 
 -- ---------------------------------------------------------------------------
--- CTRL+A: the list under the pointer, all selected
+-- SELECT ALL: a double-click on empty space (Ctrl+A walked the character: QA's Mac run)
 -- ---------------------------------------------------------------------------
 do
-    getMouseX, getMouseY = function() return 50 end, function() return 50 end
-    local took = 0
-    local function lst(x)
-        return { isReallyVisible = function() return true end, getAbsoluteX = function() return x end, getAbsoluteY = function() return 0 end,
-                 getWidth = function() return 100 end, getHeight = function() return 100 end,
-                 zedSelectAll = function() took = took + 1; return true end }
-    end
-    local under, away = lst(0), lst(500)
-    BS.register(under); BS.register(away)
-    check("CTRL+A: the list under the pointer takes it", BS.selectAllUnderPointer() == true and took == 1, took)
-    getMouseX = function() return 300 end
-    check("CTRL+A: over no list, nothing", BS.selectAllUnderPointer() == false and took == 1)
+    local c = {}
+    NOW = 5000
+    check("SELECT ALL: one press on empty space is no double-click", BS.doubleEmpty(c, 10, 300) == false)
+    NOW = 5250
+    check("SELECT ALL: a second press there within 400 ms is", BS.doubleEmpty(c, 12, 301) == true)
+    NOW = 5300
+    check("SELECT ALL: a third press starts over", BS.doubleEmpty(c, 12, 301) == false)
+    NOW = 5900
+    check("SELECT ALL: too slow is two single presses", BS.doubleEmpty(c, 12, 301) == false)
+    NOW = 6000
+    check("SELECT ALL: too far apart is two single presses", BS.doubleEmpty(c, 40, 301) == false)
+    check("SELECT ALL: no Ctrl+A key any more (the A walks)", BS.selectAllUnderPointer == nil)
 end
 
 -- ---------------------------------------------------------------------------
@@ -339,6 +339,7 @@ check("WIRED: list rows and grid cells ask for the card, with their place", w1 =
 local _, qm = ir:gsub("[^n]%squeueMark%(self, item,", "")   -- (the calls, not the function's own line)
 check("WIRED: rows and cells show the queue", qm == 3, qm)
 check("WIRED: the help line names Alt", ir:find("UI_ZeD_Inv_RowHelpLoot", 1, true) ~= nil)
+check("WIRED: a drop on the Character window's main inventory button lands there", ir:find('elseif zid == "main_toggle" then', 1, true) ~= nil)
 check("WIRED: the grid's name hint gives way to it", ir:find("ZeD.InvTip.wantedBy(self, hc.key)", 1, true) ~= nil)
 for _, w in ipairs({ "ZeD_CharacterWindow.lua", "ZeD_WorldWindow.lua" }) do
     local s = read(w)
@@ -349,7 +350,8 @@ for _, w in ipairs({ "ZeD_CharacterWindow.lua", "ZeD_WorldWindow.lua" }) do
     check("WIRED: " .. w .. " finishes it on either release", ends == 2, ends)
     local _, picks = s:gsub("self%._padMarks = true   %-%- %(picking rows", "")
     check("WIRED: " .. w .. " Ctrl- and Shift-picks keep the card shut", picks == 2, picks)
-    check("WIRED: " .. w .. " has Ctrl+A", s:find("content.zedSelectAll = function(self)", 1, true) ~= nil and s:find("ZeD.BoxSelect.register(content)", 1, true) ~= nil)
+    check("WIRED: " .. w .. " selects all on a double-click on empty space", s:find("content.zedSelectAll = function(self)", 1, true) ~= nil
+          and s:find("ZeD.BoxSelect.doubleEmpty(self, x, y) and self.zedSelectAll", 1, true) ~= nil)
     check("WIRED: " .. w .. " draws it after the rows", s:find("content._onRender = function(self) if self._box and ZeD.BoxSelect then ZeD.BoxSelect.draw(self) end end", 1, true) ~= nil)
 end
 

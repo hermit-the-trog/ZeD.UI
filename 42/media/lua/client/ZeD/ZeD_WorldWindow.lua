@@ -5385,7 +5385,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     local findIndex            = r.findIndex
     local handleDrop           = r.handleDrop
 
-    -- Ctrl+A over the list: every row of it (the column under the pointer) selected, the card shut (punch list 146)
+    -- Select all: every row of the list (the column under the pointer), the card shut; a double-click on the list's
+    -- empty space (ZeD_BoxSelect.doubleEmpty; punch list 146)
     content.zedSelectAll = function(self)
         local _, cs = getColumnAtX(self, self:getMouseX())
         local sel = (cs and cs.selectedItems) or self._selectedItems
@@ -5399,7 +5400,6 @@ function ZeD_WorldWindow.toggle(playerNum)
         updateDrawer()
         return true
     end
-    if ZeD.BoxSelect and ZeD.BoxSelect.register then ZeD.BoxSelect.register(content) end
 
     content.onMouseDown = function(self, x, y)
         self._padMarks = nil   -- (a mouse press: the mouse's card rule again)
@@ -5431,7 +5431,12 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         local zone = self:hitZoneAt(x, y)
         if not zone then
-            -- empty space: a drag from here draws a box that selects the rows it crosses (punch list 146)
+            -- empty space: a double-click selects every row; a drag from here draws a box that selects the rows it
+            -- crosses (punch list 146)
+            if ZeD.BoxSelect and ZeD.BoxSelect.doubleEmpty and ZeD.BoxSelect.doubleEmpty(self, x, y) and self.zedSelectAll then
+                self:zedSelectAll()
+                return true
+            end
             if ZeD.BoxSelect then
                 local _, bCs = getColumnAtX(self, x)
                 local bSel = (bCs and bCs.selectedItems) or self._selectedItems
