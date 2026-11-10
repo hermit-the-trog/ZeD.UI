@@ -31,7 +31,7 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 | 143 | Status bars take five cells, rounded up; one status color rule for bars and their readings (director) | built Nov 10; waiting on the Mac |
 | 144 | Status colors: Standard or Color blind (blue, yellow, orange), in ZeD setup's Look (director) | built Nov 10, status_colors_sim; waiting on the Mac |
 | 145 | The portrait studio: a near full-height figure, pull-down backdrops, Take photo; pauses the game (director) | ruled Nov 10: single player only, a camera button on the ID photo; step 1 next |
-| 146 | Fast looting: ZeD's loot card by the pointer (Alt: the game's tooltip), worn figures, Ctrl+A, the queue in the rows, picks keep the card shut, box select (director, from the streamer's clips) | built Nov 10, fast_loot_sim 69/0; waiting on the Mac |
+| 146 | Fast looting: ZeD's loot card by the pointer (Alt: the game's tooltip), worn figures, Ctrl+A, the queue in the rows, picks keep the card shut, box select (director, from the streamer's clips) | QA Nov 10 on fb771b1: mostly passes; the card's clipping, place and Damage dash fixed (fast_loot_sim 74/0); open: Ctrl+A (walks, heard on release) and a missed drop on an inventory button |
 | 147 | The ID's permit stamp: a space between PERMIT and REVOKED (director, QA shots) | built Nov 10; waiting on the Mac |
 | 139 | The pointer says what a click or a drop will do (an idea from the director, Nov 10; mockup in ZeDUI/mockups/zed_pointer_hint_v1) | parked by the director (research later); not in beta 11 |
 | 132 | Strip submenus open on rest | closed: the director chose click only; a note that mentions rest names the List only |

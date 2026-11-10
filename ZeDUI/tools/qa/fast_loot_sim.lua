@@ -58,13 +58,27 @@ isKeyDown = function(k) return ALT and (k == 56 or k == 184) end
 ISMouseDrag = {}
 local WIN = { _playerObj = PLAYER }
 local BALLOONS = {}
+-- the card's layer: a top-level panel; what it draws is recorded
+ISPanel = {}
+ISPanel.__index = ISPanel
+function ISPanel:new(x, y, w, h) return setmetatable({ x = x, y = y, w = w, h = h, visible = true }, ISPanel) end
+function ISPanel:initialise() end
+function ISPanel:instantiate() self.javaObject = { setConsumeMouseEvents = function() end } end
+function ISPanel:addToUIManager() self.inUI = true end
+function ISPanel:setAlwaysOnTop(v) self.onTop = v end
+function ISPanel:isVisible() return self.visible end
+function ISPanel:setVisible(v) self.visible = v end
+function ISPanel:bringToTop() end
 local NOW = 1000
 getTimestampMs = function() return NOW end
 getText = function(k) return k end
 -- (the game's classes: a stub item says what it is)
 instanceof = function(o, cls) return type(o) == "table" and o._is ~= nil and o._is[cls] == true end
 local function status(f, text) local lit = (f <= 0) and 0 or math.max(1, math.ceil(math.min(1, f) * 5 - 1e-6)); return lit >= 4 and "G" or (lit >= 2 and (text and "y" or "Y") or "R") end
-ZeD = { T = { px = function(v) return v end, accent = { r = 1, g = 0, b = 0 }, scale = 1, fontF2 = "F2", fontF3 = "F3",
+ZeD = { Balloon = { draw = function(p, content, a, side, opts)
+            BALLOONS[#BALLOONS + 1] = { content = content, rect = { x = a.x, y = a.y, w = a.w, h = a.h }, side = side, key = opts and opts.key, layer = p }
+        end },
+        T = { px = function(v) return v end, accent = { r = 1, g = 0, b = 0 }, scale = 1, fontF2 = "F2", fontF3 = "F3",
               text = { r = 1, g = 1, b = 1 }, textSec = { r = 0.6, g = 0.6, b = 0.6 } },
         tr = function(k, a) return a and (k .. "(" .. tostring(a) .. ")") or k end,
         TM = { MeasureStringX = function(_, _, s2) return #tostring(s2) * 6 end, getFontHeight = function() return 14 end },
@@ -89,7 +103,10 @@ local IT, BS = ZeD.InvTip, ZeD.BoxSelect
 -- ---------------------------------------------------------------------------
 -- TIP
 -- ---------------------------------------------------------------------------
-local list = { visible = true, isReallyVisible = function(s) return s.visible end, getMouseX = function() return 40 end }
+local list = { visible = true, isReallyVisible = function(s) return s.visible end, getMouseX = function() return 40 end,
+               getAbsoluteX = function() return 100 end, getAbsoluteY = function() return 200 end }
+-- the card's layer draws what was asked this frame
+local function drawLayer() if IT._layer then IT._layer.render(IT._layer) end end
 local axe, knife = { name = "Axe" }, { name = "Knife" }
 -- (the game's tooltip is Alt's since the loot card: QA's checks below hold it down)
 ALT = true
@@ -137,8 +154,31 @@ PLAYER.getWornItem = function(_, loc) return loc == "Jacket" and worn or nil end
 BALLOONS = {}
 frame()
 IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
-check("CARD: a row without Alt asks for ZeD's card at once", #BALLOONS == 1 and BALLOONS[1].opts.now == true and BALLOONS[1].opts.side == "right")
-check("CARD: by the pointer, on the row", BALLOONS[1] and BALLOONS[1].rect.x == 40 and BALLOONS[1].rect.y == 20 and BALLOONS[1].rect.h == 16, BALLOONS[1] and BALLOONS[1].rect.x)
+drawLayer()
+check("CARD: a row without Alt shows ZeD's card at once, on its own top layer", #BALLOONS == 1 and BALLOONS[1].side == "right"
+      and IT._layer and IT._layer.onTop == true and IT._layer.inUI == true)
+check("CARD: by the pointer, on the row (screen px)", BALLOONS[1] and BALLOONS[1].rect.x == 140 and BALLOONS[1].rect.y == 220 and BALLOONS[1].rect.h == 16, BALLOONS[1] and BALLOONS[1].rect.x)
+-- the name drawn past the pointer: the tail goes after it (QA: the card covered the row's name)
+BALLOONS = {}
+IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+IT.nameEnd(list, jacket, 90)
+drawLayer()
+check("CARD: past the row's name", BALLOONS[1] and BALLOONS[1].rect.x == 100 + 94, BALLOONS[1] and BALLOONS[1].rect.x)
+BALLOONS = {}
+IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+IT.nameEnd(list, jacket, 10)
+drawLayer()
+check("CARD: a name ending before the pointer leaves it at the pointer", BALLOONS[1] and BALLOONS[1].rect.x == 140, BALLOONS[1] and BALLOONS[1].rect.x)
+BALLOONS = {}
+IT.want(list, jacket, { x = 300, y = 20, w = 52, h = 52 }, nil, true)
+drawLayer()
+check("CARD: a grid cell's card stands at the cell's right edge", BALLOONS[1] and BALLOONS[1].rect.x == 100 + 351, BALLOONS[1] and BALLOONS[1].rect.x)
+BALLOONS = {}
+frame(); frame()
+drawLayer()
+check("CARD: nothing asked for two frames: no card", #BALLOONS == 0)
+IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+drawLayer()
 frame()
 check("CARD: the game's tooltip stays away without Alt", not (IT._tip and IT._tip.inUI))
 local c = BALLOONS[1] and BALLOONS[1].content
@@ -157,7 +197,7 @@ local blade = item({ is = { HandWeapon = true }, getName = "Axe", getActualWeigh
                      getCondition = 9, getMinDamage = 0.8, getMaxDamage = 2.0, hasSharpness = true, getSharpness = 0.8, getMaxRange = 1.2 })
 local FB = ZeD.LootCard.facts(blade, PLAYER)
 check("CARD: a weapon: what it weighs held", row(FB, "UI_ZeD_Weight")[3] == "UI_ZeD_Loot_Held(0.9)", tostring(row(FB, "UI_ZeD_Weight")[3]))
-check("CARD: damage, sharpness, reach", row(FB, "Tooltip_weapon_Damage") and row(FB, "Tooltip_weapon_Damage")[2] == "0.8–2.0"
+check("CARD: damage (a plain hyphen: the en dash isn't in the face), sharpness, reach", row(FB, "Tooltip_weapon_Damage") and row(FB, "Tooltip_weapon_Damage")[2] == "0.8 - 2.0"
       and row(FB, "UI_ZeD_Loot_Sharpness") and row(FB, "UI_ZeD_Loot_Sharpness")[2] == "80%" and row(FB, "UI_ZeD_Card_Reach"))
 local broken = item({ is = { HandWeapon = true }, getName = "Kitchen Knife", isBroken = true, getActualWeight = 0.3, getConditionMax = 10, getCondition = 0 })
 local FK = ZeD.LootCard.facts(broken, PLAYER)
@@ -174,6 +214,7 @@ check("CARD: a bag: what it holds of what it can, its weight reduction", row(FG,
 BALLOONS = {}
 ALT = true
 IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+drawLayer()
 check("CARD: with Alt, no card", #BALLOONS == 0)
 frame()
 check("CARD: with Alt, the game's tooltip", IT._tip and IT._tip.inUI and IT._tip.item == jacket)
@@ -182,6 +223,7 @@ frame(); frame()
 BALLOONS = {}
 WIN._drawerItem = jacket
 IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+drawLayer()
 check("CARD: not while that item's card is open", #BALLOONS == 0)
 WIN._drawerItem = nil
 
@@ -291,7 +333,8 @@ end
 local function read(name) local f = io.open(CDIR .. name, "rb"); local s = f:read("*a"); f:close(); return s end
 local ir = read("InventoryRenderer.lua")
 local _, w1 = ir:gsub("ZeD%.InvTip%.want%(self, item, r%)", "")
-local _, w2 = ir:gsub("ZeD%.InvTip%.want%(self, item, r, count%)", "")
+local _, w2 = ir:gsub("ZeD%.InvTip%.want%(self, item, r, count, true%)", "")
+check("WIRED: a row hands the card its name's end", ir:find("ZeD.InvTip.nameEnd(self, item, xOff + afterName)", 1, true) ~= nil)
 check("WIRED: list rows and grid cells ask for the card, with their place", w1 == 1 and w2 == 1, w1 .. "/" .. w2)
 local _, qm = ir:gsub("[^n]%squeueMark%(self, item,", "")   -- (the calls, not the function's own line)
 check("WIRED: rows and cells show the queue", qm == 3, qm)

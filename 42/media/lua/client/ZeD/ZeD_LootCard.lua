@@ -96,7 +96,8 @@ function LC.facts(item, chr)
             if mx > 0 then rows[#rows + 1] = { label("Tooltip_weapon_Ammo"), tostring(safe(item, "getCurrentAmmoCount") or 0) .. " / " .. mx, nil, nil } end
         else
             local mn, mx = safe(item, "getMinDamage"), safe(item, "getMaxDamage")
-            if mn and mx then rows[#rows + 1] = { label("Tooltip_weapon_Damage"), f1(mn) .. "–" .. f1(mx), nil, nil } end
+            -- (a plain hyphen: the en dash isn't in ZeD's data face, and "0.8–2.0" read "0.82.0": QA's Mac run)
+            if mn and mx then rows[#rows + 1] = { label("Tooltip_weapon_Damage"), f1(mn) .. " - " .. f1(mx), nil, nil } end
             if safe(item, "hasSharpness") then
                 local sh = safe(item, "getSharpness")
                 if sh then rows[#rows + 1] = { tr("UI_ZeD_Loot_Sharpness"), pct(sh * 100), nil, nil } end

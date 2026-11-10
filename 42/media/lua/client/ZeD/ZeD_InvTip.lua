@@ -35,25 +35,73 @@ IT.altDown = altDown
 local blocked   -- (below)
 
 --- The row or cell under the pointer, while it draws: item, hovered in owner (a list or grid panel); rect = the
---- row or cell in owner's space { x, y, w, h }; count = a stack's count. ZeD's loot card is asked for at once (the
---- window's overlay draws it this frame), or with Alt held, the game's tooltip (shown before the next frame draws).
-function IT.want(owner, item, rect, count)
+--- row or cell in owner's space { x, y, w, h }; count = a stack's count; beside = true for a grid cell (the card
+--- stands beside the cell rather than over it). ZeD's loot card is drawn this frame by the card's own layer, on top
+--- of every window (ZeD_LootCard's layer, below), or with Alt held, the game's tooltip (shown before the next frame).
+function IT.want(owner, item, rect, count, beside)
     if not (owner and item) then return end
     local w = IT._want
     if not w then w = {}; IT._want = w end
     w.owner, w.item, w.frame = owner, item, IT._frame
     w.alt = altDown()
-    if w.alt or not (rect and ZeD.LootCard and ZeD.Atoms and ZeD.Atoms.requestBalloon) then return end
+    w.content = nil
+    if w.alt or not (rect and ZeD.LootCard) then return end
     local ok, no, chr = pcall(blocked, w)
     if not ok or no then return end
     local okC, c = pcall(ZeD.LootCard.content, item, chr, count)
     if not (okC and c) then return end
-    -- by the pointer: the balloon's tail on the row where the pointer is, the card to its right
+    -- by the pointer: the balloon's tail on the row where the pointer is, the card to its right; a row's name, once
+    -- drawn, moves the tail past it (IT.nameEnd); a grid cell's card stands at the cell's right edge
+    local ox, oy = owner:getAbsoluteX(), owner:getAbsoluteY()
     local mx = owner.getMouseX and owner:getMouseX() or rect.x
-    local a = IT._rect or {}
-    IT._rect = a
-    a.x, a.y, a.w, a.h = math.max(rect.x, math.min(rect.x + (rect.w or 1) - 1, mx)), rect.y, 1, rect.h or 1
-    ZeD.Atoms.requestBalloon(ZeD.Atoms.windowOf(owner), item, c, owner, a, { side = "right", now = true })
+    local rw = rect.w or 1
+    w.content, w.count = c, count
+    w.rx, w.rw, w.ox, w.oy = rect.x, rw, ox, oy
+    w.ax = beside and (rect.x + rw - 1) or math.max(rect.x, math.min(rect.x + rw - 1, mx))
+    w.ay, w.ah = rect.y, rect.h or 1
+    IT.showLayer()
+end
+
+--- A hovered row's name ends at x (owner's space): the card's tail goes past it, so the name stays in sight (QA's
+--- Mac run, Nov 10 2026: the card covered the row's own name).
+function IT.nameEnd(owner, item, x)
+    local w = IT._want
+    if not (w and w.content and w.frame == IT._frame and w.owner == owner and w.item == item) then return end
+    local T = ZeD.T
+    local nx = x + T.px(4)
+    if nx > w.ax then w.ax = math.min(w.rx + w.rw - 1, nx) end
+end
+
+-- THE CARD'S LAYER: a top-level panel, above every window, that draws the card asked for this frame (the windows'
+-- own overlays clip at their edges: on the last rows the card lost its bottom lines, QA's Mac run, Nov 10 2026)
+local Layer = nil
+function IT.showLayer()
+    if Layer then
+        if not Layer:isVisible() then Layer:setVisible(true) end
+        Layer:bringToTop()
+        return
+    end
+    if not ISPanel then return end
+    Layer = ISPanel:new(0, 0, 1, 1)
+    Layer.background = false
+    Layer.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
+    Layer.borderColor = { r = 0, g = 0, b = 0, a = 0 }
+    Layer:initialise()
+    Layer:instantiate()
+    pcall(function() Layer.javaObject:setConsumeMouseEvents(false) end)
+    Layer.prerender = function() end
+    Layer.render = function(self)
+        local w = IT._want
+        -- (this frame's, or the last frame's when the layer draws before the lists do)
+        if not (w and w.content and w.frame >= IT._frame - 1 and ZeD.Balloon) then return end
+        local a = IT._rect or {}
+        IT._rect = a
+        a.x, a.y, a.w, a.h, a.below, a.noFlip = w.ox + w.ax, w.oy + w.ay, 1, w.ah, nil, nil
+        ZeD.Balloon.draw(self, w.content, a, "right", { key = w.item, owner = self })
+    end
+    Layer:addToUIManager()
+    Layer:setAlwaysOnTop(true)
+    IT._layer = Layer
 end
 
 --- True when owner asked for item's tooltip this frame (its own hover box then stays away: one box at the pointer).

@@ -3627,6 +3627,24 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     game's tooltip; Ctrl-click four rows: no card opens; Ctrl+A over the loot list: all selected (and the character
     doesn't step left); drag the selection onto a container button: the rows say "Moving" and the bar fills down the
     list; the grid view: the card and the bar on cells.
+    **QA, Mac, Nov 10 2026, on fb771b1: most of it works; Ctrl+A fails.** Passes: the card at once by the pointer;
+    a worse jacket than the worn one shows -10 / -20 in red, a better one +30 / +30 in green (the game's tooltip
+    under Alt agrees); an axe shows held weight, sharpness, reach; Alt swaps in the game's tooltip; four Ctrl-clicks
+    add four rows and open no card (Ctrl made to read held by the rig, the clicks real); the grid shows the card and
+    the bar. Found:
+    - *Ctrl+A:* nothing selected (ZeD heard the key on its release, when Ctrl already reads up) and the character
+      steps about half a tile (A still walks left with Ctrl down). And with -debug the game's own Ctrl+A (a debug
+      spawn) throws a single-player game back to the main menu: Ctrl+A checks need -debug off.
+    - *The card clipped* at the window's bottom edge on the last rows (the jacket lost its Scratch line).
+    - *The card over the row's own name and category.*
+    - *Damage read "0.82.0":* the en dash isn't in the data face.
+    - *"Moving" only on the item moving now;* the rows waiting keep their category.
+    - *A drop on "the Inventory header button" moved nothing* (the drag showed x8); on the inventory list it worked.
+    **Build answered:** the card draws on a layer of its own above every window (ZeD_InvTip.lua), so no window
+    clips it; its tail goes past the hovered row's name (IT.nameEnd), and a grid cell's card stands at the cell's
+    right edge; Damage reads "0.8 - 2.0". "Moving" only on the one moving matches vanilla (the streamer's clip: one
+    green row at a time at 6.5, 7.0, 8.0 s), so it stays. fast_loot_sim 74/0. Open for the director: what replaces
+    Ctrl+A, and which button the drop missed.
 
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the

@@ -915,7 +915,7 @@ local function drawGridCell(self, GV, item, cx, cy)
         if ZeD.InvTip and not cuesOn() then   -- (the loot card, Alt the game's tooltip: punch list 146)
             local r = _tipRect
             r.x, r.y, r.w, r.h = ax, cy, cell, cell
-            ZeD.InvTip.want(self, item, r, count)
+            ZeD.InvTip.want(self, item, r, count, true)   -- (beside the cell, not over it)
         end
         if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", nm)) end   -- (on the strip: its condition)
     end
@@ -1992,6 +1992,7 @@ local function renderItemList(self)
         dT(displayName, nameX + childIndent + chevW, textY,
             nameColor.r, nameColor.g, nameColor.b, (nameColor.a or 1) * dimA, T.fontF2)
         local afterName = nameX + childIndent + chevW + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
+        if ZeD.InvTip then ZeD.InvTip.nameEnd(self, item, xOff + afterName) end   -- (the loot card's tail past the name)
         if nextTag then
             rowTag(self, xOff + afterName, y, rowH, nextTag, focusTxt)
             afterName = afterName + nextW + T.px(6)
