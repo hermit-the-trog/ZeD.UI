@@ -4709,6 +4709,25 @@ function ZeD_CharacterWindow.toggle(playerNum)
             or (mcActive and (screenW - T.px(10)))
             or (win._maxWinW or math.floor(screenW * 0.5))
 
+        -- (a drawer its half folded, WindowHalves: the window narrows by the drawer alone, so the list beside it stays
+        -- under a resting pointer; the width the cap took is owed until the drawer really closes, punch list 126)
+        local folded = ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) ~= nil
+        -- a fold that ended with the drawer still shut (another tab, a reset): what it owed is paid now, as the close
+        -- would have, so the inventory comes back to its width. (An unfold opens the drawer, which keeps the debt.)
+        if win._wasFolded and not folded and drawerDelta == 0 and effectiveW == 0 and not win._drawerOpen
+            and (win._drawerCapLost or 0) > 0 then
+            local cap = maxW - (win._rolled and (win._rollW or 0) or 0)
+            local newW = math.min(win:getWidth() + win._drawerCapLost, cap)
+            win._drawerCapLost = 0
+            win:setWidth(newW)
+            local newX = win._anchorRightEdge - newW
+            local pushed = 0
+            if newX < 0 then pushed = -newX; newX = 0 end
+            win._drawerCapPush = pushed
+            win:setX(newX)
+            win._lastSetX = newX
+        end
+        win._wasFolded = folded
         if drawerDelta ~= 0 then
             -- A card opening in MC mode expands the window like tab mode
             -- does, rather than evicting MC columns up front: shrinking the inv
@@ -4725,6 +4744,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if drawerDelta > 0 then
                 newW = math.min(want, cap)
                 lost = lost + (want - newW)
+            elseif folded then
+                newW = math.min(want, cap)
             else
                 local back = math.min(lost, -drawerDelta)
                 lost = lost - back
@@ -4747,8 +4768,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
         else
             -- At rest: accept user resize
             if win:getWidth() > maxW then win:setWidth(maxW) end
-            -- (a window the player made narrower than the cap has nothing to give back)
-            if (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then win._drawerCapLost = 0 end
+            -- (a window the player made narrower than the cap has nothing to give back; a folded drawer's window is
+            -- narrower by the drawer, not by the player)
+            if not folded and (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then win._drawerCapLost = 0 end
             win._lastSetX = win:getX()
             -- (a window pinned at the screen's edge by an open drawer keeps its anchor, less the push)
             win._anchorRightEdge = win:getX() + win:getWidth() - (win._drawerCapPush or 0)
@@ -4764,7 +4786,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         -- Track baseInvW ONLY when user manually resized (not from our snaps).
         -- Compare current width to what _baseInvW would produce — if different, user dragged.
-        if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 then
+        -- (not while a drawer is folded: the width the cap holds back would be saved as a narrower inventory)
+        if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 and not folded then
             local expectedW = T.px(TAB_STRIP_W) + T.px(win._baseInvW or 372) + T.px(CONTAINER_STRIP_W)
             if win:getWidth() ~= expectedW then
                 -- _baseInvW is stored in design units (screen px / T.scale);

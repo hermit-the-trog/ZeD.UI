@@ -3125,6 +3125,19 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     misses. Fix idea: while the halves have a folded tab (s.foldTab), skip the give-back (newW = want). Also hold off
     the at-rest clearing of _drawerCapLost and the base-width tracking while folded, or the 53 px get saved as a
     smaller inventory width. Medium risk (the anchor is touched in several places): after the Nov 13 reset.
+    - **Build, Nov 10 2026: done as the fix idea says, waiting on QA in the game.** While the drawer is folded
+      (ZeD.Halves.foldedTab) the window narrows by the drawer alone: no give-back, the lost width stays owed, the
+      at-rest clearing and the base-width tracking hold off. An unfold opens the drawer back to the cap with the
+      debt still owed for the real close; a fold that ends with the drawer still shut (another tab, a reset) pays the
+      53 px back at once, so the inventory keeps its width. Left: the window opens pinned 4 px past x 0, and as the
+      drawer narrows that push runs out, so the list moves 4 px left once (holding it would move the anchor 4 px
+      right for good, the bug the push was made to stop). ZeD_CharacterWindow.lua's width model. Sim: fold_slide_sim
+      16/0, which cuts the real width model out of the file and runs it frame by frame (on the old code it reads
+      the 57 px slide).
+      **Check (QA, Deck size, 1280 x 800):** Equip's full card open, the pointer resting on the Character list: let
+      the drawer fold in (pointer on the inventory past 2 s): the list moves no more than 4 px; then point at the
+      drawer's bar: it comes back where it was; then fold again and pick another tab: the inventory is as wide as
+      before the card.
 
 127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
     Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).
