@@ -153,9 +153,29 @@ function ZeD_MMSticky:place(c)
 end
 
 function ZeD_MMSticky:prerender()
-    -- (not placed in the last half second: the icon layer stopped drawing it, so the field goes too)
-    local shown = self._placedAt ~= nil and MM.now() - self._placedAt < 500
+    -- (not placed in the last half second: the icon layer stopped drawing it, so the field goes too; a note under
+    -- another has its words drawn by the icon layer instead, ZeD_MMSticky:live)
+    local shown = self._placedAt ~= nil and MM.now() - self._placedAt < 500 and self:live()
     if self.entry:isVisible() ~= shown then self.entry:setVisible(shown) end
+end
+
+--- Is this note's own text box up? The game's box draws over every paper the icon layer draws, so a note that lies
+--- under another one shows its words through the icon layer instead, in the pile's order (QA's Mac run, Nov 10
+--- 2026: a lower note's words showed over the note on top of it). Its box comes up while it is typed in, and for a
+--- moment after a press or an open wakes it (which also brings it to the top).
+function ZeD_MMSticky:live()
+    local e = self.entry
+    if e and e:isFocused() then return true end
+    if self._wokeAt ~= nil and MM.now() - self._wokeAt < 400 then return true end
+    return not self._covered
+end
+
+--- Bring this note to the top of the pile and its text box up, before a press or an open reaches it.
+function ZeD_MMSticky:wake()
+    self._wokeAt = MM.now()
+    self._covered = false
+    if self.pastieId then N.raisePastie(self.pastieId) end
+    if self.entry and not self.entry:isVisible() then self.entry:setVisible(true) end
 end
 
 function ZeD_MMSticky:update()
@@ -184,21 +204,34 @@ function MM.entryUnder(mx, my)
     local e = _entryUnder(mx, my)
     if e then return e end
     if MM.ctx.open or MM.waking or MM.powerOff or MM.poweringOn() or MM.blocked() then return nil end
-    -- (the notes in the order they lie, the newest on top: the last one under the pointer has it)
-    local se = nil
+    -- (the notes in the order they lie, the top of the pile last: the last one under the pointer has it, and its
+    -- words take the press only where the press lands in them; a note's box can be down while another lies over
+    -- it, so its place is read from its field, placed every frame)
+    local top = nil
     for _, pa in ipairs(N.pasties()) do
         local st = fieldOf(pa.id)
-        local e2 = st and st.entry
-        if e2 and e2:isVisible() then
-            local ex, ey = e2:getAbsoluteX(), e2:getAbsoluteY()
-            if mx >= ex and my >= ey and mx < ex + e2.width and my < ey + e2.height then se = e2 end
+        if st and st.entry and st._placedAt and MM.now() - st._placedAt < 500 then
+            local ax, ay = st:getAbsoluteX(), st:getAbsoluteY()
+            if mx >= ax and my >= ay and mx < ax + st.width and my < ay + st.height then top = st end
         end
+    end
+    local se = nil
+    if top then
+        local e2 = top.entry
+        local ex, ey = e2:getAbsoluteX(), e2:getAbsoluteY()
+        if mx >= ex and my >= ey and mx < ex + e2.width and my < ey + e2.height then se = e2 end
     end
     if not se then return nil end
     local w = MM.activeWindow()
     if w and w ~= MM.root.icons and w:isVisible() then
         local wx, wy = w:getAbsoluteX(), w:getAbsoluteY()
         if mx >= wx and my >= wy and mx < wx + w.width and my < wy + w.height then return nil end
+    end
+    -- (a note under another had its box down: up it comes, on top, with the caret, as the press goes on to it)
+    if not se:isVisible() or not N.pasties()[#N.pasties()] or N.pasties()[#N.pasties()].id ~= top.pastieId then
+        local hidden = not se:isVisible()
+        top:wake()
+        if hidden then editField(se) end
     end
     return se
 end
@@ -223,13 +256,14 @@ end
 -- a note asking "Throw this note away?" (its close box pressed with words on it): id -> true
 MM._pastieAsk = MM._pastieAsk or {}
 
--- the question's two buttons, in the desk's coordinates (Throw away on the left, Keep on the right)
+-- the question's two buttons, in the desk's coordinates: Throw away over Keep, each the note's width (side by side
+-- each had half of it, and "Throw away" read "Throw ..." at 1x and 1.75x: QA's Mac run, Nov 10 2026)
 local function askButtons(c)
     local T = ZeD.T
-    local pad, bh = T.px(STICKY_PAD), T.px(18)
-    local bw = math.floor((c.w - pad * 3) / 2)
-    local y = c.y + c.h - pad - bh
-    return { x = c.x + pad, y = y, w = bw, h = bh }, { x = c.x + pad * 2 + bw, y = y, w = c.w - pad * 3 - bw, h = bh }
+    local pad, bh, gap = T.px(STICKY_PAD), T.px(18), T.px(4)
+    local bw = c.w - pad * 2
+    local yKeep = c.y + c.h - pad - bh
+    return { x = c.x + pad, y = yKeep - gap - bh, w = bw, h = bh }, { x = c.x + pad, y = yKeep, w = bw, h = bh }
 end
 
 local function drawButton(p, b, text, danger, over)
@@ -242,6 +276,55 @@ local function drawButton(p, b, text, danger, over)
     local tw = MM.textW(f, s)
     local ink = danger and ZeD.Ctx and ZeD.Ctx.markRemove or INK
     p:drawText(s, b.x + math.floor((b.w - tw) / 2), b.y + math.floor((b.h - MM.fontH(f)) / 2), ink.r, ink.g, ink.b, 1, f)
+end
+
+-- does a note higher in the pile lie over this one? (the icon layer's cells, in the order they draw: the notes last,
+-- the top of the pile last)
+local function covered(c)
+    local icons = MM.root and MM.root.icons
+    local cells = icons and icons._cells
+    if not cells then return false end
+    local after = false
+    for _, o in ipairs(cells) do
+        if o == c then after = true
+        elseif after and o.item and o.item.pastieId and o.x < c.x + c.w and c.x < o.x + o.w and o.y < c.y + c.h and c.y < o.y + o.h then
+            return true
+        end
+    end
+    return false
+end
+
+-- lines of text wrapped to w in font f: the words greedily, each line break kept, at most n lines
+local function wrapLines(text, f, w, n)
+    local out = {}
+    for para in (text .. "\n"):gmatch("(.-)\n") do
+        local cur = nil
+        for word in para:gmatch("%S+") do
+            local try = cur and (cur .. " " .. word) or word
+            if cur and MM.textW(f, try) > w then out[#out + 1] = cur; cur = word else cur = try end
+        end
+        out[#out + 1] = cur or ""
+        if #out >= n then break end
+    end
+    while #out > n do out[#out] = nil end
+    return out
+end
+
+-- a note's words as its box would show them (or its hint, empty), for a note whose box is down
+local function drawWords(p, st, c)
+    local T = ZeD.T
+    local e = st.entry
+    local pad = T.px(3)
+    local x0, y0 = c.x + e.x + pad, c.y + e.y + pad
+    local w = e.width - pad * 2
+    local text = e:getText() or ""
+    local f, ink = e._zedFont or T.fontF2, INK
+    if not string.find(text, "%S") then text, f, ink = tr("UI_ZeD_Desk_StickyHint"), T.fontF2, INK_HINT end
+    local lh = MM.fontH(f)
+    local room = math.max(1, math.floor((e.height - pad) / lh))
+    for i, l in ipairs(wrapLines(text, f, w, math.min(room, STICKY_LINES))) do
+        p:drawText(l, x0, y0 + (i - 1) * lh, ink.r, ink.g, ink.b, 1, f)
+    end
 end
 
 -- the paper, drawn by the icon layer (under the windows); sel: the desktop's selection is on it
@@ -302,7 +385,13 @@ local function drawSticky(p, c, sel)
         if st then st:place({ x = -10000, y = -10000, w = c.w, h = c.h }) end   -- (the words step aside while it asks)
         return
     end
-    if st then st:place(c) end
+    if not st then return end
+    st:place(c)
+    -- under another note: the words (or the hint) drawn here, in the pile's order, and the game's box down
+    st._covered = covered(c)
+    local live = st:live()
+    if st.entry:isVisible() ~= live then st.entry:setVisible(live) end
+    if not live then drawWords(p, st, c) end
 end
 
 -- ============================================================================
@@ -333,8 +422,10 @@ local function noteItem(pid)
         draw = drawSticky,
         open = function()
             local st = fieldOf(pid)
-            if st and st.entry and not MM._pastieAsk[pid] then editField(st.entry) end
+            if st and st.entry and not MM._pastieAsk[pid] then st:wake(); editField(st.entry) end
         end,
+        -- picked up or dragged: on top of the pile
+        raise = function() N.raisePastie(pid) end,
         place = function() local pa = N.pastie(pid); if pa then return pa.fx, pa.fy end end,
         moveTo = function(fx, fy, keep) N.movePastie(pid, fx, fy, keep) end,
         grabH = function() return ZeD.T.px(STICKY_TOP) end,
@@ -376,12 +467,14 @@ function MM.newPastie()
     local room = MM.deskRoom and MM.deskRoom(iw, ih)
     local icons = MM.root and MM.root.icons
     local c = icons and icons:find("pasties")
-    local fx, fy = 0, 0
+    local fx, fy, clear = 0, 0, true
     if room then
         local x0 = c and (c.x + c.w + T.px(8)) or room.x0
         local y0 = c and c.y or room.y0
         local k = #N.pasties() * T.px(14)
-        fx, fy = MM._stickyFractions(room, x0 + k, y0 + k)
+        local x, y
+        x, y, clear = MM.pastieSpot(room, iw, ih, x0 + k, y0 + k)
+        fx, fy = MM._stickyFractions(room, x, y)
     end
     local id = N.newPastie(fx, fy)
     if not id then return nil end
@@ -390,9 +483,34 @@ function MM.newPastie()
     MM.clickSound()
     if icons then
         icons.focusId = "pastie:" .. id
-        if not MM.gamepad() and st and st.entry then st.entry:focus() end
+        -- (the caret goes in only where the note shows: one under a window would take the typing out of sight)
+        if not MM.gamepad() and clear and st and st.entry then st:wake(); st.entry:focus() end
     end
     return id
+end
+
+--- Where a new note goes (the desk's coordinates, its top left): at (x, y) when the open window leaves it clear,
+--- else the nearest clear place beside the window (right of it, below, above, left of it); the third answer is
+--- false when no place on the desk is clear (the note goes to (x, y), under the window). QA's Mac run, Nov 10 2026:
+--- with the Main menu window open, as it is at the start, a new note opened under it and the typing went into it.
+function MM.pastieSpot(room, iw, ih, x, y)
+    local T = ZeD.T
+    local function within(px, py) return px >= room.x0 and px <= room.x1 and py >= room.y0 and py <= room.y1 end
+    x, y = math.max(room.x0, math.min(room.x1, x)), math.max(room.y0, math.min(room.y1, y))
+    local icons = MM.root and MM.root.icons
+    local w = (MM.view ~= "desktop") and MM.activeWindow() or nil
+    if not (icons and w and w ~= icons and w:isVisible()) then return x, y, true end
+    local ox, oy = icons:getAbsoluteX(), icons:getAbsoluteY()
+    local wx, wy, ww, wh = w:getAbsoluteX() - ox, w:getAbsoluteY() - oy, w.width, w.height
+    local function clearAt(px, py) return px + iw <= wx or px >= wx + ww or py + ih <= wy or py >= wy + wh end
+    if clearAt(x, y) then return x, y, true end
+    local gap = T.px(8)
+    for _, s in ipairs({ { wx + ww + gap, y }, { x, wy + wh + gap }, { x, wy - ih - gap }, { wx - iw - gap, y } }) do
+        local px = math.max(room.x0, math.min(room.x1, s[1]))
+        local py = math.max(room.y0, math.min(room.y1, s[2]))
+        if within(s[1], s[2]) and clearAt(px, py) then return px, py, true end
+    end
+    return x, y, false
 end
 
 local PASTIES_ITEM = { id = "pasties", label = "", open = function() MM.newPastie() end, off = function() return N.pastiesFull() end }

@@ -3439,6 +3439,21 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     three times: three notes stepped from the icon, the caret in the newest; type, restart: words and places kept;
     close an empty one (gone at once) and one with words (asks; Keep, then Throw away); make 8: the icon greys; on a
     pad the same with A / X / Y / B; at 1x and 1.75x. A desk that had words on the old note shows them as one Pastie.
+    **QA, Mac, Nov 10 2026, on 0d55e59: works end to end; four problems.** Build answered:
+    1. *Typed words about 2.5 times the hint's size at 1.75x (right at 1x).* The entry face picker trusted its table's
+       26 px for Intro; when that slot draws a far larger face, its measured line height now decides, so 1.75x falls to
+       Dialogue (Scale.lua entryFaces; 55e1f2ed). If the words still come out large, a probe of each slot's height next.
+    2. *A lower note's words showed over the note on top.* The game's text box draws over every paper, so only the
+       note being typed in, or one with no note over it, keeps its box up; a note under another has its words (or its
+       hint) drawn by the icon layer in the pile's order. A press on a lower note's words, an open, a pick-up or a drag
+       brings that note to the top of the pile (N.raisePastie; the order is kept in the Pasties file).
+    3. *A new note opened under the Main menu window, and the typing went into it.* A new note goes beside the icon
+       when that is clear of the open window, else the nearest clear place beside the window (right, below, above,
+       left: MM.pastieSpot); with no clear place it goes beside the icon with no caret.
+    4. *"Throw away" read "Throw ...".* The question's buttons stack, Throw away over Keep, each the note's width.
+    desk_sim 194/0 (a new section for the four). **Recheck (QA, Mac):** at 1.75x the typed words the hint's size; two
+    notes overlapping: the lower one's words under the upper paper, a press on them brings it up with the caret; with
+    the Main menu window open a new note lands beside it and takes the typing; the question's two buttons read whole.
 
 143. **Status bars take five cells, rounded up (the director, Nov 10 2026: "Skills you want 10 segments because there
     are 10 levels. Conditions should be OK with 5"; then "Every status bar" and "Round up, red at 20%").** Every

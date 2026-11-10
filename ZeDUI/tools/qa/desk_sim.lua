@@ -284,6 +284,89 @@ MM.showView("desktop")
 D.frame()
 
 -- ---------------------------------------------------------------------------
+section("Pasties: QA's Mac run, Nov 10 2026 (stacked words, a new note under a window, Throw away)")
+do
+    MM.showView("desktop"); D.frame()
+    local ids0 = {}
+    for _, pa in ipairs(N.pasties()) do ids0[#ids0 + 1] = pa.id end
+    for _, id in ipairs(ids0) do N.throwPastie(id) end
+    D.frame()
+    -- two notes, the second dragged over the first
+    root.icons:open("pasties"); D.frame()
+    root.icons:open("pasties"); D.frame()
+    local a, b = N.pasties()[1].id, N.pasties()[2].id
+    root.pasties[a].entry:setText("under words"); root.pasties[a]:keep()
+    root.pasties[a].entry:unfocus(); root.pasties[b].entry:unfocus()
+    local ca, cbb = D.cell("pastie:" .. a), D.cell("pastie:" .. b)
+    N.movePastie(b, N.pastie(b).fx, N.pastie(b).fy, true)
+    -- (b sits 14 down and right of a: they overlap; a moment on, so the new notes' boxes have settled)
+    D.frame(500); D.frame()
+    check("QA 2: the lower note's own box is down", not root.pasties[a].entry:isVisible())
+    check("QA 2: the top note's box is up", root.pasties[b].entry:isVisible())
+    -- its words are drawn by the icon layer, in the pile's order
+    local drawn = {}
+    local real = root.icons.drawText
+    root.icons.drawText = function(self, s2) drawn[#drawn + 1] = tostring(s2) end
+    D.frame()
+    root.icons.drawText = real
+    local saw = false
+    for _, t in ipairs(drawn) do if t == "under words" then saw = true end end
+    check("QA 2: the icon layer draws the lower note's words", saw)
+    -- a press on the lower note's words where they show: it comes up, on top, with the caret
+    local ea = root.pasties[a].entry
+    local px, py = ea:getAbsoluteX() + 3, ea:getAbsoluteY() + 3      -- (its top left: b's starts 14 to the right)
+    local got = MM.entryUnder(px, py)
+    check("QA 2: a press on the lower note's words reaches them", got == ea)
+    check("QA 2: and brings that note to the top of the pile", N.pasties()[#N.pasties()].id == a, N.pasties()[#N.pasties()].id)
+    check("QA 2: its box up with the caret", ea:isVisible() and ea:isFocused())
+    D.frame()
+    check("QA 2: now the other one's box is down", not root.pasties[b].entry:isVisible())
+    -- a press where the top note lies over the lower one goes to the top note only
+    ea:unfocus(); D.frame(600)
+    local eb = root.pasties[b].entry
+    local qx, qy = eb:getAbsoluteX() + 3, eb:getAbsoluteY() + 3
+    check("QA 2: where they overlap the top note has the press", MM.entryUnder(qx, qy) ~= eb)
+    -- dragging a note by its strip brings it to the top
+    local cb2 = D.cell("pastie:" .. b)
+    MM.ctx.hot = "desk:pastie:" .. b
+    W.mouse.x, W.mouse.y = cb2.x + 20, cb2.y + 3
+    W.down = true; D.frame(); W.down = false; D.frame()
+    MM.ctx.hot = nil
+    check("QA 2: a note picked up by its strip lies on top", N.pasties()[#N.pasties()].id == b)
+    -- the ask: Throw away over Keep, each the note's width
+    root.pasties[b].entry:setText("x"); root.pasties[b]:keep()
+    local cB = D.cell("pastie:" .. b)
+    cB.item.close(); D.frame()
+    local hs = cB.item.hits(nil, D.cell("pastie:" .. b))
+    local th, kp = hs[1], hs[2]
+    check("QA 4: Throw away over Keep", th.y + th.h <= kp.y and th.x == kp.x, th.y .. " / " .. kp.y)
+    check("QA 4: each the note's width less its pads", th.w == cB.w - 10 and kp.w == cB.w - 10, th.w)
+    MM.answerPastie(b, false); D.frame()
+    -- a new note with the main window over the place beside the icon: it goes beside the window, the caret in it
+    for _, id in ipairs({ a, b }) do N.throwPastie(id) end
+    D.frame()
+    MM.showView("main")
+    local pz2 = D.cell("pasties")
+    root.win.x, root.win.y, root.win.width, root.win.height = pz2.x + pz2.w, D.L.ty + 30, 400, 400
+    root.win.visible = true
+    D.frame()
+    local id3 = MM.newPastie(); D.frame()
+    local c3 = D.cell("pastie:" .. id3)
+    local wx = root.win:getAbsoluteX() - root.icons:getAbsoluteX()
+    check("QA 3: a new note goes beside the window, not under it", c3 and c3.x >= wx + root.win.width, c3 and (c3.x .. " vs " .. (wx + root.win.width)))
+    check("QA 3: the caret in it", root.pasties[id3].entry:isFocused())
+    root.pasties[id3].entry:unfocus()
+    -- a window over the whole desk: the note goes beside the icon, and no caret (the typing would go out of sight)
+    root.win.x, root.win.y, root.win.width, root.win.height = D.L.tx, D.L.ty, D.L.tw, D.L.th
+    D.frame()
+    local id4 = MM.newPastie(); D.frame()
+    check("QA 3: under a window over the whole desk, no caret", id4 and not root.pasties[id4].entry:isFocused())
+    for _, id in ipairs({ id3, id4 }) do if id then N.throwPastie(id) end end
+    root.win.visible = false
+    MM.showView("desktop"); D.frame()
+end
+
+-- ---------------------------------------------------------------------------
 section("a quick double-click on an icon, counted on the frames drawn")
 do
     MM.showView("desktop")

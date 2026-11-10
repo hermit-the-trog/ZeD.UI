@@ -366,6 +366,7 @@ function ZeD_MMIcons:dragFrame()
                 else
                     self._drag = { id = it.id, dx = mx - c.x, dy = my - c.y }
                     self.focusId = it.id
+                    if it.raise then it.raise() end   -- (a Pastie picked up lies on top of the pile)
                 end
                 return
             end
@@ -465,6 +466,7 @@ function ZeD_MMIcons:joyA()
         -- pick it up: B puts it back where it was
         local fx, fy = c.item.place()
         self._carry = { id = c.item.id, fx = fx, fy = fy }
+        if c.item.raise then c.item.raise() end
         MM.clickSound()
         return
     end

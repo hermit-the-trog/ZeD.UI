@@ -309,7 +309,7 @@ local function writePasties()
     return writeText(N.PASTIES_FILE, table.concat(out, "\n") .. "\n")
 end
 
---- The notes on the desk, oldest first: { id, fx, fy } each.
+--- The notes on the desk, bottom of the pile first: { id, fx, fy } each.
 function N.pasties()
     if N._pasties then return N._pasties end
     N._pasties, N._pastieText = {}, {}
@@ -365,6 +365,22 @@ function N.newPastie(fx, fy)
     writePasties()
     bump()
     return id
+end
+
+--- Bring a note to the top of the pile (the last one lies on top): touched, picked up or typed in. True when it moved.
+function N.raisePastie(id)
+    local list = N.pasties()
+    for i, p in ipairs(list) do
+        if p.id == id then
+            if i == #list then return false end
+            table.remove(list, i)
+            list[#list + 1] = p
+            writePasties()
+            bump()
+            return true
+        end
+    end
+    return false
 end
 
 --- Move a note (fractions). keep: write it now (the drop), else in memory only (a drag in progress).
