@@ -6,12 +6,17 @@
 --   1. SIGNATURES: loadCursor and initCustomCursor called with nothing, with a picture path, with a path and a hotspot,
 --      each in pcall; every error is printed (Kahlua's errors often name the arguments a Java call wants). The picture
 --      is one of ZeD's own (the 32 px drop-to-floor icon), so nothing new ships for the test.
---   2. HIDE BY EYE: the notice "THE POINTER SHOULD BE GONE" for 5 s with setCursorVisible(false), then "BACK" with true.
---   3. CUSTOM BY EYE: if a call in step 1 ran without an error, the notice "THE POINTER SHOULD LOOK LIKE A DOWN ARROW" for
---      5 s; then the probe tries to put the game's own pointer back (loadCursor / initCustomCursor with no arguments, if
---      those ran); if it can't, the custom pointer may stay until the game restarts (use a throwaway copy).
+--   2. HIDE BY EYE: notices A (Mouse.setCursorVisible) and B (getCore():setDisplayCursor): "THE POINTER SHOULD BE GONE"
+--      for 5 s, then "BACK".
+--   3. CUSTOM BY EYE: notices C (loadCursor with the media path) and D (with the full path in the mod's folder): "A RED
+--      DOWN ARROW?" for 5 s each; then E, initCustomCursor() to put the game's own pointer back. If it can't, the custom
+--      pointer may stay until the game restarts (use a throwaway copy).
 --   4. READS: getCore():isDisplayCursor(), UIManager.isForceCursorVisible(), UIManager.getLastMouseTexture() (as text).
 -- Any save, -debug, the QA bridge, after zedqa_prelude.lua. grep "ZEDQA pt2". Note what you SAW at each notice.
+-- Nov 10 2026, run 2 (after QA's Mac run): the game's Lua has no next(), so steps 4 and 5 stopped ("tried to call nil");
+-- loops now. loadCursor takes one argument and initCustomCursor none (their errors said so). Added: a second way to hide
+-- (getCore():setDisplayCursor(false), the probe 1 find), and loadCursor with the picture's full path in the mod's folder
+-- as well as the media path, each with its own notice.
 local function say(s) print("ZEDQA pt2 " .. tostring(s)) end
 local PIC = "media/textures/ZeD/wheel/32/zw_to_floor.png"
 
@@ -65,37 +70,57 @@ step(10, function()
         end
     end
     local any = false
-    for n, a in pairs(works) do any = true; say("ran without an error: " .. n .. "(" .. a .. ")") end
+    for n, a in pairs(works) do any = true; say("ran without an error: " .. tostring(n) .. "(" .. tostring(a) .. ")") end
     if not any then say("no picture call ran without an error") end
 end)
 
--- 2. HIDE BY EYE
+-- 2. HIDE BY EYE (A: Mouse.setCursorVisible; B: getCore():setDisplayCursor)
 step(10, function()
     try("setCursorVisible(false)", function() Mouse.setCursorVisible(false) end)
-    show("THE POINTER SHOULD BE GONE (5 s). Move the mouse: is it?")
+    show("A: THE POINTER SHOULD BE GONE (5 s). Move the mouse: is it?")
 end)
 step(300, function()
     try("setCursorVisible(true)", function() Mouse.setCursorVisible(true) end)
-    show("THE POINTER SHOULD BE BACK. Is it?")
+    show("A: THE POINTER SHOULD BE BACK. Is it?")
 end)
-
--- 3. CUSTOM BY EYE
 step(180, function()
-    local n, a = next(works)
-    if not n then show(nil); say("custom: skipped (no picture call ran)"); return end
-    local f = Mouse[n]
-    if a == "path" then pcall(f, PIC) else pcall(f, PIC, 0, 0) end
-    show("THE POINTER SHOULD LOOK LIKE A RED DOWN ARROW (5 s). Does it? (" .. n .. ")")
+    try("getCore():setDisplayCursor(false)", function() getCore():setDisplayCursor(false) end)
+    show("B: THE POINTER SHOULD BE GONE (5 s). Move the mouse: is it?")
 end)
 step(300, function()
-    if next(works) then
-        -- the game's own pointer back, if a no-argument call does it
-        for _, name in ipairs({ "initCustomCursor", "loadCursor" }) do
-            local f = Mouse and Mouse[name]
-            if f then try(name .. "() to put the game's pointer back", function() f() end) end
-        end
-        show("THE GAME'S OWN POINTER SHOULD BE BACK. Is it?")
-    end
+    try("getCore():setDisplayCursor(true)", function() getCore():setDisplayCursor(true) end)
+    show("B: THE POINTER SHOULD BE BACK. Is it?")
+end)
+
+-- 3. CUSTOM BY EYE: loadCursor(path), the media path, then the full path in the mod's folder
+local function modPic()
+    local p = nil
+    pcall(function()
+        local info = getModInfoByID("ZeD_UI")
+        local dir = info and ((info.getVersionDir and info:getVersionDir()) or info:getDir())
+        if dir then p = tostring(dir) .. "/" .. PIC end
+    end)
+    return p
+end
+local hasLoad = false
+step(180, function()
+    hasLoad = Mouse ~= nil and Mouse.loadCursor ~= nil
+    if not hasLoad then show(nil); say("custom: skipped (no Mouse.loadCursor)"); return end
+    try("loadCursor(media path)", function() Mouse.loadCursor(PIC) end)
+    show("C: THE POINTER SHOULD LOOK LIKE A RED DOWN ARROW (5 s). Does it?")
+end)
+step(300, function()
+    if not hasLoad then return end
+    local full = modPic()
+    say("the picture's full path: " .. tostring(full))
+    if full then try("loadCursor(full path)", function() Mouse.loadCursor(full) end) end
+    show("D: NOW, WITH THE FULL PATH: A RED DOWN ARROW (5 s)? Did it change from C?")
+end)
+step(300, function()
+    if not hasLoad then return end
+    -- the game's own pointer back: initCustomCursor takes no arguments (QA's run 1)
+    try("initCustomCursor() to put the game's pointer back", function() Mouse.initCustomCursor() end)
+    show("E: THE GAME'S OWN POINTER SHOULD BE BACK. Is it?")
 end)
 
 -- 4. READS
@@ -110,6 +135,7 @@ step(180, function()
     local ok3, v3 = pcall(function() return UIManager.getLastMouseTexture() end)
     say("UIManager.getLastMouseTexture() -> " .. tostring(ok3 and v3 or ("error: " .. tostring(v3))))
     pcall(function() Mouse.setCursorVisible(true) end)
+    pcall(function() getCore():setDisplayCursor(true) end)
     say("DONE")
 end)
 

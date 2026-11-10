@@ -3397,4 +3397,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       and prints each error (to learn their arguments), and puts up big notices while the pointer should be hidden or
       changed. If either call takes a picture, the set can be the game's own pointer swapped (clean); if not, ZeD hides
       the pointer and draws its own.
+    - **QA, Mac, Nov 10 2026 (probe 2, two runs, watched): hiding doesn't work on the Mac.** setCursorVisible(false)
+      ran and read back false, but the pointer stayed on screen both times, so "ZeD draws its own" would leave the
+      system pointer showing under ZeD's. loadCursor takes one argument (a path) and ran; initCustomCursor takes none.
+      The custom-picture check never ran: the game's Lua has no next(), and the probe stopped there. isDisplayCursor()
+      true. **Probe 2, run 2:** fixed (loops, no next()); adds getCore():setDisplayCursor(false) as a second way to hide
+      (notice B) and loadCursor with the full path in the mod's folder as well as the media path (notices C, D), then
+      initCustomCursor() to put the game's pointer back (E). If loadCursor takes a picture, the set is a picture swap;
+      if nothing hides or swaps it on the Mac, the fallback is the badge beside the pointer (draft from earlier).
 
