@@ -251,7 +251,7 @@ CTX = [
     (1, "arrows-from-dotted-line", "rip"), (1, "benefit-hand", "equip"), (1, "person-circle-minus", "unequip"),
     (1, "hood-cloak", "jacket"), (1, "hat-cowboy", "cap"), (1, "face-mask", "mask"), (1, "smile", "smiley"), (1, "scarf", "scarf"),
     # group 2: food and cooking (dishes, ingredients, cooking's actions, the food types)
-    (2, "user-eating", "apple"), (2, "canned-food", "can"), (2, "can-food", "can"), (2, "pan-food", "pan"),
+    (2, "user-eating", "eat"), (2, "canned-food", "can"), (2, "can-food", "can"), (2, "pan-food", "pan"),
     (2, "pan-frying", "pan"), (2, "poke-bowl", "pan"), (2, "miso-soup", "soup"), (2, "bowl-chopsticks-noodles", "soup"),
     (2, "pot", "pot"), (2, "pie", "pie"), (2, "cake-slice", "cake"), (2, "cheese-cake", "cake"), (2, "sandwich", "sandwich"),
     (2, "hamburger", "burger"), (2, "burger-alt", "burger"), (2, "salad", "salad"), (2, "fork-spaghetti", "pasta"),
@@ -341,6 +341,8 @@ CTX = [
     (6, "bug", "bug"),
     (6, "handshake", "group"), (6, "follow", "follow_me"), (6, "flag", "flag"), (6, "shield-minus", "shield_minus"),
     (6, "shield", "shield_plain"),
+    # the safehouse rows' own pictures (design, Nov 9 2026: the boarded-up house; the shields stay for the rest)
+    (6, "safehouse", "safehouse"), (6, "safehouse-claim", "safehouse_claim"), (6, "safehouse-release", "safehouse_release"),
     (6, "info", "info"), (6, "info-guide", "guide"), (6, "exclamation", "warning"), (6, "triangle-warning", "warning"),
     (6, "bars-filter", "more"), (6, "apps", "view_grid"), (6, "square-1", "one"), (6, "plus", "plus"),
     (6, "tally", "tally"), (6, "trash", "trash"), (6, "trash-check", "trash"), (6, "clock", "watch"),

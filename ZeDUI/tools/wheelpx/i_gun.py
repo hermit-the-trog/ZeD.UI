@@ -31,11 +31,13 @@ def _pistol(c, s):
 
 
 def _arrow(c, s, inward):
-    """the arrow in the pocket, under the guard: pointing left at the grip (in) or right (out)"""
-    if s == 16:
-        for i in range(3): c.rect(6 + (i if inward else 2 - i), 11 - i, 1, 1 + 2 * i)
-    else:
-        for i in range(4): c.rect(10 + (i if inward else 3 - i), 15 - i, 1, 2 + 2 * i)
+    """the arrow in the pocket, under the guard: pointing left at the grip (in) or right (out); it is the icon's
+    mark (Load blue, Unload red: marks.py)"""
+    with c.mark():
+        if s == 16:
+            for i in range(3): c.rect(6 + (i if inward else 2 - i), 11 - i, 1, 1 + 2 * i)
+        else:
+            for i in range(4): c.rect(10 + (i if inward else 3 - i), 15 - i, 1, 2 + 2 * i)
 
 
 def _bullet(c, s, x, y, w=None):

@@ -326,6 +326,71 @@ def shield_minus(c, s):
     _shield(c, s); c.badge("minus")
 
 
+
+# ------------------------------------------------------------------ the safehouse (design, Nov 9 2026; option A)
+# A house with its window boarded up, the two planks sticking out past the walls so they read as boards nailed on, not
+# a vent (mockups/zed_menu_marks_v1/safeA.py). It replaces the shields on the three safehouse rows, which get picture
+# names of their own (ContextIcons.lua): the shields stay for Reinforce and anything else that uses them.
+HOUSE16 = [
+    "................",
+    ".......##.##....",
+    "......######....",
+    ".....######.....",
+    "....########....",
+    "...##########...",
+    "..############..",
+    ".##############.",
+    "...##########...",
+    "...##......##...",
+    "..############..",
+    "...##......##...",
+    "..############..",
+    "...##......##...",
+    "...##########...",
+    "................",
+]
+HOUSE24 = [
+    "........................",
+    "...........##...........",
+    "..........####.###......",
+    ".........#########......",
+    "........##########......",
+    ".......###########......",
+    "......############......",
+    ".....##############.....",
+    "....################....",
+    "...##################...",
+    "..####################..",
+    ".######################.",
+    "....################....",
+    "....################....",
+    "....###..........###....",
+    "..####################..",
+    "..####################..",
+    "....###..........###....",
+    "....###..........###....",
+    "..####################..",
+    "..####################..",
+    "....###..........###....",
+    "....################....",
+    "........................",
+]
+
+
+@icon("safehouse", "ctx6", "a house, its window boarded up: see the safehouse", ["ContextMenu_ViewSafehouse"])
+def safehouse(c, s):
+    c.grid(HOUSE16 if s == 16 else HOUSE24)
+
+
+@icon("safehouse_claim", "ctx6", "the boarded-up house, a plus: claim the safehouse", ["ContextMenu_SafehouseClaim"])
+def safehouse_claim(c, s):
+    c.grid(HOUSE16 if s == 16 else HOUSE24); c.badge("plus")
+
+
+@icon("safehouse_release", "ctx6", "the boarded-up house, a minus: give up the safehouse", ["ContextMenu_SafehouseRelease"])
+def safehouse_release(c, s):
+    c.grid(HOUSE16 if s == 16 else HOUSE24); c.badge("minus")
+
 # ------------------------------------------------------------------ the rest: warnings, more, one, counts
 @icon("warning", "ctx6", "a warning sign: a triangle, an exclamation mark: a warning, can't do it now", ["ContextMenu_Fuel_Full", "ContextMenu_DigWithHandsTT"])
 def warning(c, s):

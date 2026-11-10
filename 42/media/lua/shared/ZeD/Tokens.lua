@@ -527,6 +527,13 @@ ZeD.Ctx = {
 
     -- STATE CHROME
     drilledBorderTop = 2, -- strip top border thickens 1px -> 2px when a submenu is open
+
+    -- THE MARKS (punch list 138; design handoff Nov 9 2026): the plus or minus, in or out arrow, or strike that
+    -- tells the two actions of a pair apart, colored at rest over the ink. Literals like the paper and ink they sit
+    -- on (#F2F2F2, #141414), not theme colors: blue 5.5 : 1 and red 4.6 : 1 on the paper, and the two hold apart
+    -- under all three kinds of color blindness. ZeD.PxIconMark (ContextPxIcons.lua) says which icon takes which.
+    markAdd    = { r = 0x0B / 255, g = 0x63 / 255, b = 0xB0 / 255, a = 1 },   -- #0B63B0: add, take, load, in, on, up
+    markRemove = { r = 0xC2 / 255, g = 0x41 / 255, b = 0x0C / 255, a = 1 },   -- #C2410C: remove, put, drop, out, off
 }
 
 -- ---------------------------------------------------------------------------

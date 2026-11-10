@@ -327,13 +327,29 @@ end
 --- True when ZeD has a pixel icon of this id.
 function PXI.has(id) return id ~= nil and pxTex(16, id) ~= nil end
 
+--- The color of icon `id`'s mark (ZeD.PxIconMark: "add" blue, "remove" red), or nil when it has none.
+function PXI.markColor(id)
+    local kind = id and ZeD.PxIconMark and ZeD.PxIconMark[id]
+    if not kind then return nil end
+    local C = ZeD.Ctx
+    return C and ((kind == "add") and C.markAdd or C.markRemove) or nil
+end
+
 --- Draw pixel icon `id` centred in the box (x, y, box), tinted (default T.text).
-function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint)
+--- marks: also draw the icon's mark in its color over the tint (punch list 138), the mark's own picture
+--- (zw_<id>_mk.png at the same size) over the whole icon. Callers ask for it at rest only: a pointed cell or row
+--- draws the whole icon in its one tint, marks included.
+function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint, marks)
     local tex, s = PXI.tex(id, box)
     if not tex then return end
     local c = tint or ZeD.T.text
     local o = math.floor((box - s) / 2)
     panel:drawTextureScaledAspect(tex, x + o, y + o, s, s, alpha or 1, c.r, c.g, c.b)
+    if marks then
+        local mc = PXI.markColor(id)
+        local mt = mc and pxTex(s, id .. "_mk")
+        if mt then panel:drawTextureScaledAspect(mt, x + o, y + o, s, s, alpha or 1, mc.r, mc.g, mc.b) end
+    end
 end
 
 function ZeD.Atoms.drawIcon(panel, texture, x, y, size, alpha, tint)

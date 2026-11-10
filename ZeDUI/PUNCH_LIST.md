@@ -3227,3 +3227,19 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     Sneak off, and the boarded-up Safehouse with claim and release; `kit.badge` 8 wide at 24 so every 24 plus sits
     centered; the screwdriver turned handle up. Check: the handoff's own QA list (marks read as color at 1.75x and up,
     shape only below; no color left on the pointed cell; nothing outside the tables colored).
+    - **Build, Nov 10 2026: the strip and the wheels done, the list menu waiting on the director.** wheelpx: the canvas
+      keeps a mark layer (badges, strikes and the hand-marked arrows draw on it too); `marks.py` holds the table (46
+      icons) and its check; `export.py --game` writes `zw_<id>_mk.png` at 16/24/32/48 and `ZeD.PxIconMark` at the end
+      of ContextPxIcons.lua. `kit.badge` is 8 wide at 24: every 24 badge moved a pixel (31 icons, the 16s untouched;
+      `come_here`'s left arrow moved one column in to stay on the icon). New: `eat` (Eat and its parts, and the two
+      other "user-eating" rows, Set animal hungry and the hunger fluid property), `sneak` and `sneak_off` (the x top
+      left; the 24's x is the new 8-wide one, the mockup had 7), `safehouse`, `safehouse_claim`, `safehouse_release`
+      (their rows have picture names of their own in ContextIcons.lua; Reinforce keeps its shield), the screwdriver
+      turned handle up. All match the design's PNGs pixel for pixel but that one x. Game: `ZeD.Ctx.markAdd` /
+      `markRemove` in Tokens.lua; `ZeD.Atoms.drawPxIcon(..., marks)` draws the mark's picture over the icon in its
+      color; the strip's cell (and so the wheels', which now hand it the icon's id) asks for marks at rest only.
+      The container pair follows the rule, not the handoff table's ids: in the game `tray_in` is Take / Take Out /
+      Loot all (blue) and `tray_out` Put In / Transfer all (red). Sims: menu_marks_sim 504/0 (53 of its checks fail
+      on the old code), `python marks.py` 0 problems. **Open:** the list menu sits on the theme's surface, not the
+      paper: the two colors fall to about 3 : 1 there (blue 3.0 on Dark, red 2.8 on Light), so its rows stay ink
+      until the director picks.

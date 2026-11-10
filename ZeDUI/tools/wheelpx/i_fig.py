@@ -51,7 +51,6 @@ approved("salute", "a person saluting: salute", ["IGUI_Emote_Salute", "emotes/sa
 approved("walk", "a person walking: walk")
 approved("run", "a person running: run")
 approved("sit", "a person sitting on a chair: sit on a seat", ["UI_ZeD_Wheel_SitSeat", "ContextMenu_SitOnSeat"], "sit_seat")
-approved("crouch", "a person crouched low: sneak", ["IGUI_LeftStickButtonRadial_ToggleCrouch", "emotes/crouch_on"], "sneak")
 approved("climb", "a person climbing a ladder: climb")
 approved("carry", "a person carrying a box: carry")
 
@@ -339,7 +338,6 @@ def pose(id_, means, slices=(), name=None, mark=None, dx16=0, dx24=0, src=None):
 
 pose("sit_ground", "a person sitting on the ground: sit down", ["IGUI_LeftStickButtonRadial_ToggleSitOnGround", "emotes/sit_on", "UI_ZeD_Wheel_Sit"])
 pose("sit_ground_off", "the person on the ground, an x: stand up", ["emotes/sit_off"], name="sit_ground", mark="x")
-pose("sneak_off", "the crouched person, an x: stop sneaking", ["emotes/crouch_off"], src="crouch", mark="x", dx16=-2, dx24=-4)
 pose("autowalk", "a person walking, an arrow on: walk on by itself", ["IGUI_LeftStickButtonRadial_ToggleAutoWalk", "emotes/autowalk_on", "UI_ZeD_Wheel_Walk"], src="walk", mark="right", dx16=-2, dx24=-3)
 pose("autowalk_off", "the walking person, an x: stop walking on", ["emotes/autowalk_off"], src="walk", mark="x", dx16=-2, dx24=-3)
 pose("wave_bye", "a person walking off, waving back: wave goodbye", ["emotes/wavebye"])
@@ -368,7 +366,7 @@ def _come_here(c, s):
     if s == 16:
         g16(c, F16.G16["stand"], -3); c.badge("left", at=(11, 6))
     else:
-        p24(c, fig24("stand"), -5); c.badge("left", at=(17, 9))
+        p24(c, fig24("stand"), -5); c.badge("left", at=(16, 9))   # (8 wide at 24: one column left keeps it on the icon)
 
 
 icon("come_here", "fig", "a person, an arrow coming to them: come here, come from the front", ["emotes/comehere", "emotes/comefromfront"])(_come_here)
@@ -509,3 +507,64 @@ def thumbs_up(c, s):
 @icon("thumbs_down", "hand", "a thumb down: no, bad, the hostile emotes", ["emotes/thumbsdown", "emotes/thumbdown"])
 def thumbs_down(c, s):
     _thumb(c, s); c.flip_v()
+
+
+# ------------------------------------------------------------------ Sneak (design, Nov 9 2026; the director picked option A)
+# A hunched figure creeping on its toes, paws up in front (mockups/zed_menu_marks_v1/sneakA.py; the 24 is the 16 at one
+# and a half times with the doll's 7 disc for a head). It replaces the crouch for sneaking (the ToggleCrouch radial, the
+# Crouch slice, emotes/crouch_on and crouch_off). Stop sneaking takes the x top LEFT: the head fills the top right, and
+# the doll's rule puts a figure's badge where the figure isn't. The figure doesn't move.
+SNEAK16 = [
+    "................",
+    "................",
+    "................",
+    "................",
+    "..........###...",
+    ".........#####..",
+    ".........#####..",
+    ".........#####..",
+    "....####..###...",
+    "...#######...##.",
+    "...########.##..",
+    "....#####.......",
+    "....##..##......",
+    "...##....#......",
+    "...#.....#......",
+    "..#......##.....",
+]
+SNEAK24 = [
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "...............###......",
+    "..............#####.....",
+    ".............#######....",
+    ".............#######....",
+    ".............#######....",
+    "..............#####.....",
+    "......######...###......",
+    ".....##########.....##..",
+    "....###########...###...",
+    "....##############......",
+    ".....#########..........",
+    "......########..........",
+    "......###...###.........",
+    ".....####...###.........",
+    "....####.....##.........",
+    "....##.......##.........",
+    "...###.......###........",
+    "...##........####.......",
+]
+
+
+@icon("sneak", "fig", "a person creeping on their toes: sneak", ["IGUI_LeftStickButtonRadial_ToggleCrouch", "emotes/crouch_on"])
+def sneak(c, s):
+    c.grid(SNEAK16 if s == 16 else SNEAK24)
+
+
+@icon("sneak_off", "fig", "the creeping person, an x top left: stop sneaking", ["emotes/crouch_off"])
+def sneak_off(c, s):
+    c.grid(SNEAK16 if s == 16 else SNEAK24); c.badge("x", "tl")

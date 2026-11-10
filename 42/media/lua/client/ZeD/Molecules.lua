@@ -3987,9 +3987,10 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         else
             tint = T.iconWhite
         end
-        -- def.pxIcon (ZeD's pixel icon's id): its drawing that fits the box, at its own size
+        -- def.pxIcon (ZeD's pixel icon's id): its drawing that fits the box, at its own size; at rest on the
+        -- paper its mark (a pair's plus or minus, arrow or strike) takes its color (punch list 138)
         if def.pxIcon then
-            A.drawPxIcon(panel, def.pxIcon, iconX, iconY, ctx.iconPx, alpha, tint)
+            A.drawPxIcon(panel, def.pxIcon, iconX, iconY, ctx.iconPx, alpha, tint, def.iconTintable and not flags.isActive)
         else
             A.drawIcon(panel, def.iconTexture, iconX, iconY, ctx.iconPx, alpha, tint)
         end

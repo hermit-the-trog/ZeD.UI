@@ -84,12 +84,13 @@ def _arrow(c, s, x, y, up, head, shaft):
     cx = s // 2
     rows = []
     for i in range(head): rows.append(2 + 2 * i if s == 16 else max(2, 2 + 2 * i))
-    if up:
-        for i, w in enumerate(rows): c.rect(cx - w // 2, y + i, w, 1)
-        c.rect(cx - sw // 2, y + head, sw, shaft)
-    else:
-        c.rect(cx - sw // 2, y, sw, shaft)
-        for i, w in enumerate(reversed(rows)): c.rect(cx - w // 2, y + shaft + i, w, 1)
+    with c.mark():       # (the arrow is the icon's mark: Take blue, Put in and Drop red, marks.py)
+        if up:
+            for i, w in enumerate(rows): c.rect(cx - w // 2, y + i, w, 1)
+            c.rect(cx - sw // 2, y + head, sw, shaft)
+        else:
+            c.rect(cx - sw // 2, y, sw, shaft)
+            for i, w in enumerate(reversed(rows)): c.rect(cx - w // 2, y + shaft + i, w, 1)
 
 
 @icon("same_nearby", "row", "arrows out both ways from a dotted line: the same type, to every container nearby",
@@ -113,13 +114,15 @@ def to_floor(c, s):
 @icon("trash", "row", "a bin, its lid and handle: delete all (a trash can)", ["IGUI_invpage_RemoveAll"])
 def trash(c, s):
     if s == 16:
-        c.rect(6, 1, 4, 1)                                                      # the handle
-        c.rect(1, 2, 14, 2)                                                     # the lid
+        with c.mark():                                                          # (the lid is Dispose's mark, red)
+            c.rect(6, 1, 4, 1)                                                  # the handle
+            c.rect(1, 2, 14, 2)                                                 # the lid
         c.rect(3, 5, 10, 9); c.rect(4, 14, 8, 1)                                # the can, its bottom rounded
         c.rect(6, 7, 1, 5, v=0); c.rect(9, 7, 1, 5, v=0)                        # the slots
     else:
-        c.rect(8, 1, 8, 3); c.rect(10, 2, 4, 2, v=0)                        # the handle, an arch
-        c.rect(1, 4, 22, 3)                                                     # the lid
+        with c.mark():
+            c.rect(8, 1, 8, 3); c.rect(10, 2, 4, 2, v=0)                    # the handle, an arch
+            c.rect(1, 4, 22, 3)                                                 # the lid
         c.rect(3, 8, 18, 14); c.rect(4, 22, 16, 1)                              # the can
         for x in (6, 11, 16): c.rect(x, 11, 2, 8, v=0)                          # the slots
 

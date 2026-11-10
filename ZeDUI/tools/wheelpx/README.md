@@ -31,6 +31,10 @@ pointed), the figures on a template ("follow a template or doll"). Signed off Oc
   animals, the safehouse and the rest), 199 new; signed off by the director group by group. `map.py` CTX gives each
   of the menu's 389 picture names (`shared/ZeD/ContextIcons.lua`) its icon; `export.py --game` writes that table as
   `42/media/lua/shared/ZeD/ContextPxIcons.lua`, which `ContextMenuRegistry` reads.
+- `marks.py` (Nov 10 2026, punch list 138): which icons' marks take a color (`MARKS`: id -> add or remove) and a
+  check. A badge, a strike, and the arrows marked by hand (`with c.mark():` in i_row, i_gun, i_sym, i_world) land on the
+  canvas's mark layer as well; `export.py` writes `zw_<id>_mk.png` beside each marked icon and the table
+  `ZeD.PxIconMark` at the end of ContextPxIcons.lua. `python marks.py` checks every marked icon has a mark at 16 and 24.
 - `review_ctx.py <group>`: their review sheets in `ZeDUI/mockups/zed_menu_icons_v1/` (real menus today against new at
   1x and 1.75x, then the group's catalogue).
 
@@ -46,7 +50,8 @@ Pillow is the only need.
 - one colour, white on clear; the game tints it (ink on the paper cell, the theme's text-on-accent when pointed)
 - 16: objects in the 14 x 14 live area, 1 px details; 24: objects in 22 x 22, 2 px lines
 - masses solid, details cut out of them; outlines only where a mass would hide the meaning
-- badges bottom right (top right on a figure, whose feet fill the bottom), one clear pixel round them
+- badges bottom right (top right on a figure, whose feet fill the bottom), one clear pixel round them; 5 x 5 at 16,
+  8 x 8 at 24 (an even width, so a 2 px bar sits dead centre)
 - turning a thing off strikes it through; stopping something a figure does takes the x; in and out are arrows; add
   and remove are plus and minus
 - review every icon at true size and zoomed
