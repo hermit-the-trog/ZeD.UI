@@ -681,15 +681,20 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
         onColor = onColor or T.accent
         -- an inside too short for a pixel per cell and every gap closes the gaps rather than drop a cell
         if w < n + (n - 1) * gap then gap = 0 end
-        -- The middle cells all the same whole-pixel width; the pixels left over go to the two end cells, split
-        -- as evenly as they go, so the cells meet the frame at both ends. Four draws a bar, not twelve: the
-        -- frame, the lit cells as one rect, the dark cells (or the well) as one, then the gaps between them in
-        -- the well's colour as one (segGaps).
+        -- Every cell within a pixel of the others (the director, Nov 10 2026, after QA measured the Cond column:
+        -- "Keep 10, spread evenly"; the two end cells used to take every pixel left over, 5 and 6 px beside 3):
+        -- the spare pixels go one a cell to the cells nearest the two ends, as many at each end as they go, so the
+        -- cells meet the frame at both ends. At most seven draws a bar: the frame, the lit cells as one rect, the
+        -- dark cells (or the well) as one, then the gaps in the well's colour, a run per stretch of equal cells (segGaps).
         local cellW = math.floor((w - (n - 1) * gap) / n)
         if cellW >= 1 then
             local pitch = cellW + gap
-            local lead = math.floor((w - (n * cellW + (n - 1) * gap)) / 2)   -- (the first cell's extra; the last takes the rest)
-            local litEnd = (k >= n) and (x + w) or (x + lead + k * pitch - gap)   -- (the k-th cell's right edge)
+            local r = w - (n * cellW + (n - 1) * gap)        -- (spare pixels, fewer than n)
+            local wa = math.ceil(r / 2)                       -- (the first wa cells and the last r - wa a pixel wider)
+            local wbFrom = n - (r - wa)                       -- (cells past this one are wide at the far end)
+            local function left(i) local j = i - 1; return x + j * pitch + math.min(j, wa) + math.max(0, j - wbFrom) end
+            local function width(i) return cellW + (((i <= wa) or (i > wbFrom)) and 1 or 0) end
+            local litEnd = (k >= n) and (x + w) or (left(k) + width(k))   -- (the k-th cell's right edge)
             if k > 0 then panel:drawRect(x, y, litEnd - x, h, 1, onColor.r, onColor.g, onColor.b) end
             local rest = offColor or bg
             if k < n then
@@ -698,7 +703,18 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
             end
             -- (with no dark colour the cells past the lit ones are the well already: only the lit ones' gaps)
             local gaps = offColor and (n - 1) or math.max(0, k - 1)
-            if gap > 0 then segGaps(panel, x + lead + cellW, y, gaps, cellW, gap, h, bg) end
+            if gap > 0 and gaps > 0 then
+                -- the gap after cell i sits at left(i) + width(i); runs of gaps the same distance apart, one draw a run
+                local i = 1
+                while i <= gaps do
+                    local gx = left(i) + width(i)
+                    local cw = (i < gaps) and width(i + 1) or cellW
+                    local m = 1
+                    while i + m <= gaps and width(i + m) == cw do m = m + 1 end
+                    segGaps(panel, gx, y, m, cw, gap, h, bg)
+                    i = i + m
+                end
+            end
             return fh
         end
         panel:drawRect(x, y, w, h, 1, bg.r, bg.g, bg.b)

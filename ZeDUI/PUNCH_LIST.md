@@ -3409,6 +3409,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the Journal's Lists page and the item card's Lists mark show the new icons; a radio with presets: its "+" is Teal
     (and follows another accent).
 
+141. **The fill bars' cells spread evenly (the director, Nov 10 2026: "Keep 10, spread evenly", after QA measured the
+    Cond column).** The end cells took every pixel left over: 5 and 6 px beside 3 px middle cells at 1x, 9 beside 5 at
+    1.75x (punch list 120's "wider end cells"). Now the spare pixels go one a cell to the cells nearest the two ends,
+    so no two cells differ by more than a pixel and the bar still meets its frame. Ten cells stay (Skills is one a
+    level). A bar draws in at most seven calls (was four): the gaps go in a run per stretch of equal cells. Atoms.lua
+    drawSegBar. Sims: seg_bar_spread_sim 31795/0 (4974 fail on the old code); drawer_tabs_perf_sim's bar check now
+    reads the new rule, 73/0. **Check (QA):** the Cond column and a skill bar at 1x and 1.75x: cells even; the
+    drawers' ms with pinned windows against beta 10's (b9_perf.txt).
+
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips
