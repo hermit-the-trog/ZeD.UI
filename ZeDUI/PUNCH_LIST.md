@@ -3587,6 +3587,20 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     **The director, Nov 10 2026: all four.** The card: the weight once worn and the defenses against what is worn
     there; the card by the pointer, on the hovered row; Ctrl+A selects every row of a list; items waiting to move show
     it in their rows. The mockup first for the card and the rows.
+    **Two more clips (the director, Nov 10 2026; 20 s each, read the same way).** Taking from the ground and storing
+    into a crate:
+    - Pick while reading: he reads a row's tooltip, Ctrl-clicks it if he wants it, reads the next; eight rows picked
+      that way in about six seconds, then one drag moves them all into his inventory. Storing, a Shift-click range of
+      his weapons goes into the crate in one drag. The hovered row's tooltip shows whatever is selected.
+    - What he reads on weapons: sharpness, condition and damage bars (a hatchet's head and handle condition from a
+      mod), "Limited impact when used one-handed"; on books, pages read; on ground items, the search focus. Nearly
+      every tooltip ends with a mod's line ("Mod: Bushcraft Gear - Tools", "Mod: Carry Visible Items").
+    - Walking off, both windows roll up to their title bars; the pointer over one unrolls it.
+    - Twice a small "Drop all | Drop one" choice appears at the pointer as a stack is let go over a container (a mod's
+      or the game's: not told by the clip).
+    What it adds for ZeD: Ctrl- and Shift-clicks must not open the item card (today the first Ctrl-click opens it,
+    one item being selected, and the second closes it: a flash per pick); a blade's card shows its sharpness; with
+    that many mod lines on his setup, Alt for the game's tooltip matters.
 
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the

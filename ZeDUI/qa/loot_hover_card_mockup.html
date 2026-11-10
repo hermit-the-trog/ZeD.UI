@@ -63,6 +63,7 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
       <li>At once, as vanilla's tooltip: no pause. It follows the pointer from row to row in the same frame, in the list and the grid.</li>
       <li>It stands to the right of the pointer on the hovered row, its tail at the pointer: where the eye already is, over the row's own columns, never over the rows below. Without room on the right it goes to the left.</li>
       <li>Ctrl+A selects every row of the list under the pointer; the selection drags onto a container button as one.</li>
+      <li>Ctrl- and Shift-clicks pick rows without opening the item card, so reading and picking go row after row; only a plain click opens the card.</li>
       <li>Items waiting to move show it in their rows: "Moving", and a thin bar filling along the row's foot as each goes.</li>
       <li>It goes while items are dragged, while a selection box is drawn, while a right-click menu is open, while that item's card is open, and on a controller.</li>
       <li>Kinds: a weapon shows damage and reach (a gun its ammo); food its hunger, thirst and freshness; clothing bite and scratch protection; a bag its capacity, what it holds and its weight reduction; a book its progress. Every card: name, tags, condition when the item has one, weight.</li>
@@ -95,9 +96,9 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
     { kind: "Clothing", note: "What the streamer reads in every tooltip: the weight once worn, and bite and scratch against the jacket he has on, green better, red worse.",
       rows: [["Leather Jacket", "Clothing", 0.45, "1.0"], ["Jeans", "Clothing", 0.88, "0.8"], ["Wool Socks", "Clothing", 0.15, "0.1"], ["Baseball Cap", "Clothing", 1.0, "0.2"]], hover: 0, ptr: 84,
       card: { name: "Leather Jacket", tags: [["Wet", "warn"]], cond: 0.45, weight: "1.0 kg", worn: "0.3 worn", stats: [["Bite", "30%", "-10", "bad"], ["Scratch", "60%", "+15", "good"]] } },
-    { kind: "Weapon", note: "Condition first, the weight in the hand, the two figures that decide whether it's worth carrying.",
+    { kind: "Weapon", note: "Condition first, the weight in the hand, then damage and, for a blade, its sharpness (both read in every weapon tooltip in the clips).",
       rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 0, ptr: 40,
-      card: { name: "Axe", tags: [], cond: 0.69, weight: "3.0 kg", worn: "0.9 held", stats: [["Damage", "0.8–2.0", null], ["Reach", "1.2", null]] } },
+      card: { name: "Axe", tags: [], cond: 0.69, weight: "3.0 kg", worn: "0.9 held", stats: [["Damage", "0.8–2.0", null], ["Sharpness", "80%", null], ["Reach", "1.2", null]] } },
     { kind: "Broken", note: "A broken item says so before anything else: the red tag, the empty bar.",
       rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 3, ptr: 70,
       card: { name: "Kitchen Knife", tags: [["Broken", "bad"]], cond: 0.0, weight: "0.3 kg", worn: null, stats: [["Damage", "0.3–0.7", null], ["Reach", "0.9", null]] } },
