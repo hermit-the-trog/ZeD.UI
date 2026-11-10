@@ -341,7 +341,12 @@ local function entryFaces()
             -- load (an older font manifest) breaks the run and is skipped
             local h = tm:getFontHeight(f)
             if h and h > lastH then
-                faces[#faces + 1] = { font = f, px = (e[2] > 0) and e[2] or h * 0.75 }
+                -- the face's size read off its own line height when that is far from the one baked for the slot: the
+                -- slot then holds another face than ZeD's. On QA's Mac (Nov 10 2026) a note's typed words came out
+                -- about 2.5 times its hint's size at 1.75x: Intro was picked as a 26 px face and drew far larger
+                local px = (e[2] > 0) and e[2] or h * 0.75
+                if e[2] > 0 and math.abs(h * 0.75 - e[2]) > e[2] * 0.25 then px = h * 0.75 end
+                faces[#faces + 1] = { font = f, px = px }
                 lastH = h
             end
         end
