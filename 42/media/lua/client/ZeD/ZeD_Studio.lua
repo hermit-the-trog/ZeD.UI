@@ -266,15 +266,24 @@ function ZeD_StudioRoom:drawBar(L)
     end
 end
 
--- the backdrops' tray above the bar: a swatch of each, named, the one hanging outlined in the accent
+-- the backdrops' tray: a column of swatches down the left side, above the bar, named, the one hanging outlined in the
+-- accent; a second column when one doesn't fit the height. On the left, clear of the figure: across the bar's top the
+-- figure's panel (above the studio's own drawing, and taking the pointer) lay over the last swatches, so Lasers and
+-- the flag couldn't be picked and the shoes drew over them (QA's Mac run, Nov 10 2026); and from there the backdrop
+-- changing behind the character shows while picking.
 function ZeD_StudioRoom:drawTray(barY)
     local T = ZeD.T
     local n = #ST.BACKDROPS
     local tw, th, gap, pad = T.px(128), T.px(72), T.px(8), T.px(8)
     local f = T.fontF2
     local lh = ZeD.TM:getFontHeight(f)
-    local w = n * tw + (n - 1) * gap + pad * 2
-    local h = th + lh + T.px(6) + pad * 2
+    local cellH = th + lh + T.px(6)
+    local top = T.px(ROLLER) + T.px(GAP)
+    local room = barY - T.px(6) - top - pad * 2
+    local rows = math.max(1, math.min(n, math.floor((room + gap) / (cellH + gap))))
+    local cols = math.ceil(n / rows)
+    local w = cols * tw + (cols - 1) * gap + pad * 2
+    local h = rows * cellH + (rows - 1) * gap + pad * 2
     local x0, y0 = T.px(GAP) * 2, barY - h - T.px(6)
     local s2, bs = T.surf2, T.borderS
     self:drawRect(x0, y0, w, h, 1, s2.r, s2.g, s2.b)
@@ -282,7 +291,8 @@ function ZeD_StudioRoom:drawTray(barY)
     self:addHitZone("trayBox", x0, y0, w, h)
     local mx, my = self:getMouseX(), self:getMouseY()
     for i, b in ipairs(ST.BACKDROPS) do
-        local x, y = x0 + pad + (i - 1) * (tw + gap), y0 + pad
+        local col, row = math.floor((i - 1) / rows), (i - 1) % rows
+        local x, y = x0 + pad + col * (tw + gap), y0 + pad + row * (cellH + gap)
         drawBackdrop(self, b, x, y, tw, th, 1)
         local over = mx >= x and mx < x + tw and my >= y and my < y + th + lh + T.px(6)
         local oc = (i == self.bd) and T.accent or (over and T.text or bs)

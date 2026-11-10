@@ -208,6 +208,10 @@ local tz = zone("tray")
 room:onMouseUp(tz.x + 2, tz.y + 2)
 room:prerender()
 check("BACKDROPS: it opens the tray, a swatch each", room.tray == true and zone("bd:1") and zone("bd:7"))
+-- clear of the figure: every swatch left of its panel (the panel takes the pointer over what it covers)
+local clear = true
+for i = 1, #ST.BACKDROPS do local z = zone("bd:" .. i); if not z or z.x + z.w > room.fig.x then clear = false end end
+check("BACKDROPS: every swatch clear of the figure, so each can be picked (QA: the last two were under it)", clear)
 local sz = zone("bd:2")
 room:onMouseUp(sz.x + 4, sz.y + 4)
 check("BACKDROPS: a swatch picks: the tray shuts, the roll begins", room.tray == false and room.bd == 2 and room.roll ~= nil and room.roll.from == 1)

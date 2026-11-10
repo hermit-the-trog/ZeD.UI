@@ -3607,6 +3607,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     of six and five stars), the height filling the screen and the fly cut at the right; draped (a few slow waves, at
     twice the size so the edges stay smooth), shaded along its folds, a little out of focus. The blue field sits at
     the top left, clear of the face. "American flag" in all 28 languages. studio_sim 56/0.
+    **QA, Mac, Nov 10 2026, on 8c00041 (the branch's mod files; the zip went to the director's chat, not the Mac):**
+    seven named swatches, the hanging one outlined; the rolls (up, a dark wall a moment, down); a clean photo on each
+    of the seven, paper to the edges, no bar or tray; Knox County a sunset over a field; the flag's blue field top
+    left, just clear of the figure; Three-quarter now hair to hips, the head whole; the action bar names each item in
+    a seven-item move (Canned Beans 2/7, Claw Hammer 3/7, Firefighter Axe 5/7). The wheel: three injected ticks did
+    nothing (maybe the rig). **Faults:** at 1920 x 1080 the figure's panel lay over the tray's last two swatches, so
+    Lasers and the flag couldn't be clicked, and the shoes drew over the flag swatch. **Build answered:** the tray is
+    a column down the left side (a second column when the height runs out), clear of the figure, and the backdrop
+    changing behind the character shows while picking. studio_sim 57/0 (the new check fails on the old tray).
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
