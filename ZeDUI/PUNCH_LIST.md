@@ -3177,3 +3177,26 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (Encumbrance, Sharpness, condition bars as the balloon's bars). Tooltip mods add lines to the game's item box
     (ISToolTipInv / ObjectTooltip DoTooltip hooks): read the lines they add and carry them in the balloon, so no mod's
     line is lost; QA tests with a tooltip mod or two. Until then the next note doesn't claim every box.
+
+136. **The bigger Lua console (the director, Nov 9 2026: "1", a full plan; build after the Nov 13 reset).** Source:
+    docs/reference/RESEARCH_console_tooling_20261108.md (the director's research, Nov 8). Rulings: debug mode only
+    (no guarded mode for normal players); the server command list is in. Beta 8/9 already did the ZeD window over the
+    game's console (parked engine, its output box, history, Tab suggestion, Copy/Clear/Run, drag, the menu on top,
+    error frames, the controller). Not attempted (Java-only, per the research): the Java log stream beyond what the
+    game's box already shows, custom server commands, a profiler, the Admin Panel's role editor, RCON.
+    Phase 0, verify on 42.22 first (the research's open questions): getLuaDebuggerErrors in and out of debug and on a
+    save reload; loadstring present; what UIDebugConsole.DebugLog routes; a Lua path that sends a slash command as chat
+    does, and what it returns; which reflection helpers list a Java object's methods; whether getFileReader reaches
+    console.txt (expected no).
+    Phase 1, the log: the output and the F11 error list in one list, filterable by mod, file and kind (print, error,
+    warning), with a search field and Export to a .log file in the Lua folder; an error's stack picked whole (exists).
+    Phase 2, the scratchpad: a multi-line box beside the one-line command, past 256 characters, Shift+Enter for a new
+    line, run with loadstring (a clear message if a hotfix removes it again); history and saved snippets kept on disk
+    (getFileWriter .txt), Up/Down through runs.
+    Phase 3, discoverability: autocomplete of globals and table fields by walking the environment; Java methods if
+    Phase 0 finds a helper; a short Help page in the window (what runs where, the keys).
+    Phase 4, the command list: every server slash command (the 78 under 92 names) with its syntax, an example and the
+    capability it needs, filtered to the player's role; a click fills the line; in single player each points at its
+    debug-menu equivalent. Sending from Lua only if Phase 0 finds the chat path; otherwise it fills the chat box.
+    Each phase: mockup first for anything new on screen (System 7 window, ZeD atoms), sims, QA at 4K and Deck,
+    controller parity, translations for every new string.
