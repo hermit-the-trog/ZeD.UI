@@ -213,8 +213,22 @@ function ZeD_HintStripHUD:prerender()
     self._p = p
 end
 
+-- True while a balloon that is up overlaps the strip (screen px): the belt's balloons stand right above the belt, where
+-- the strip sits, and the two read as one line ("Back | key 1 More"). The strip steps aside until the balloon is down
+-- (punch list 131).
+function H.covered(ax, ay, w, h)
+    local B = ZeD.Balloon
+    local S = B and B._slot
+    if not (S and S.box and B.up and B.up()) then return false end
+    local b = S.box
+    -- (a few units of room: a balloon that only touches the strip still reads as part of its line)
+    local g = (ZeD.T and ZeD.T.px) and ZeD.T.px(4) or 4
+    return b.x < ax + w + g and b.x + b.w > ax - g and b.y < ay + h + g and b.y + b.h > ay - g
+end
+
 function ZeD_HintStripHUD:render()
     if not self._p then return end
+    if H.covered(self:getAbsoluteX(), self:getAbsoluteY(), self.width, self.height) then return end
     local T = ZeD.T
     ZeD.PadGlyphs.drawStrip(self, 0, 0, self.width, self._p)
     ZeD.Atoms.frame(self, 0, 0, self.width, self.height, T.borderS)

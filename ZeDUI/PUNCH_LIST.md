@@ -3174,6 +3174,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
 131. **The belt's balloon over the hint strip (QA's Mac run, Nov 9 2026; beta 11).** Hovering Back draws its balloon
     over the "Right Click More" hint strip just above the belt, so they read as one line ("Back | key 1 More"). The
     belt's balloons sit clear of the hint strip (above it), or the strip steps aside while a belt balloon shows.
+    - **Build, Nov 10 2026: done (the strip steps aside), waiting on QA in the game.** The hint strip isn't drawn while a
+      balloon that is up covers it or comes within 4 units of it, and draws again once the balloon is down (150 ms,
+      the balloon's own stale time). Any balloon, not only the belt's: one over the strip leaves it unreadable
+      anyway. ZeD_HintStrip.lua (H.covered). Sim: hint_strip_cover_sim 9/0.
+      **Check (QA, Mac):** with the hint strip on (always) and something in front of you that gives it words, hover
+      Back, a slot and a hand on the belt: the strip is gone while the balloon shows and back when it goes; on a
+      controller, focus on a belt slot does the same.
 
 132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; CLOSED, no change: the director, via QA: "No, click only").** The Strip opens a submenu on a click; resting shows only the balloon. A change note that mentions rest names the List only. In the List style, a submenu opens when
     the pointer rests on its row (beta 9). In the Strip style, resting on Disassemble shows its balloon, but the
