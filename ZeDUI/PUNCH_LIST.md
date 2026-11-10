@@ -3470,6 +3470,25 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     **Check (QA):** ZeD setup > Look > Status colors: Color blind turns the Cond column, a Mechanics part list, the
     Health tab and the crafting card's met / unmet blue, yellow and orange at once, in all three themes, and back.
 
+145. **The portrait studio (the director, Nov 10 2026: "Add a popout XL avatar option to the ID. Almost full screen
+    height so the users can view their character up close and for screenshots. OR! Enter the studio and there are
+    pull down backdrops you can choose like the old glamour shots did."; then "Studio has to auto pause the game").**
+    Rulings, Nov 10: the studio, in two steps; Build drafts the backdrops and the director refines them; Take photo
+    is a clean shot with a flash; built after the Pasties fixes, in beta 11. Not open yet: what multiplayer does (a
+    client cannot stop a server's clock). The name stays ZeD's own (Glamour Shots is a real company's).
+    - **Step 1: the room.** Entered from the ID card's photo. The character's own 3D figure (ISUI3DModel, as the
+      ID photo and the hair menu use) near the screen's full height, over one plain seamless backdrop; drag turns it
+      (as now), the wheel and presets frame it (full body, three-quarter, bust). **Entering pauses the game**
+      (setGameSpeed 0 and the "Game Paused" box hidden, as the Survival Guide book does) and leaving puts the speed
+      back. **Take photo** hides every control and the pointer for a frame, takes the game's screenshot
+      (Zomboid/Screenshots), then a shutter flash and the file's name in the help line.
+    - **Step 2: the backdrops.** Pull-down backdrops on a roller, chosen and rolled down as a 1990s mall studio's
+      were: first drafts of 5 or 6 (mottled blue, sky and clouds, autumn, plain grey seamless, a Knox County one) at
+      a size and safe area handed to the director with them. The light is the figure's own (UI3DModel's is fixed),
+      so any studio light is painted into the backdrop.
+    - **To probe on the Mac first:** whether the figure animates while the game is paused, and which poses beyond
+      idle the figure can take (its states and animation variables).
+
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips
