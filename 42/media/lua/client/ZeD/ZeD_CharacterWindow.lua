@@ -4681,6 +4681,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if effectiveW == 0 then
             win._preDrawerW = nil
             win._drawerCapPush = nil
+            win._foldDebt = nil
         end
 
         -- Detect user drag: if X differs from what we set last frame, adjust anchor
@@ -4712,11 +4713,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- (a drawer its half folded, WindowHalves: the window narrows by the drawer alone, so the list beside it stays
         -- under a resting pointer; the width the cap took is owed until the drawer really closes, punch list 126)
         local folded = ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) ~= nil
-        -- a fold that ended any other way than its own tab coming back (another tab, a card, the drawer shut, a reset):
-        -- what it owed is paid now, as the close would have, so the inventory comes back to its width before anything
-        -- else opens. (The same tab back reopens the same width, which owes the same again: that keeps the debt.)
+        -- a fold that ended any other way than its own tab coming back. Another drawer opening (another tab, a card):
+        -- the debt rides through it, kept from the at-rest clearing below, and is paid as that drawer closes, so the
+        -- list stays put while it opens (QA's Mac recheck, Nov 10 2026: paying it at once held the list 53 px left for
+        -- about 10 frames). The drawer shut (Loot, a reset): paid now, as the close would have. (The same tab back
+        -- reopens the same width, which owes the same again: that keeps the debt as it is.)
         local sameBack = win._drawerOpen and win._drawerMode == "tab" and win._activeTab == win._wasFoldTab
-        if win._wasFolded and not folded and not sameBack and (win._drawerCapLost or 0) > 0 then
+        if win._wasFolded and not folded and not sameBack and (win._drawerCapLost or 0) > 0 and win._drawerOpen then
+            win._foldDebt = win._drawerCapLost
+        elseif win._wasFolded and not folded and not sameBack and (win._drawerCapLost or 0) > 0 then
             local cap = maxW - (win._rolled and (win._rollW or 0) or 0)
             local newW = math.min(win:getWidth() + win._drawerCapLost, cap)
             win._drawerCapLost = 0
@@ -4772,7 +4777,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win:getWidth() > maxW then win:setWidth(maxW) end
             -- (a window the player made narrower than the cap has nothing to give back; a folded drawer's window is
             -- narrower by the drawer, not by the player)
-            if not folded and (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then win._drawerCapLost = 0 end
+            -- (what a fold left owed for the drawer after it stays owed: _foldDebt, above)
+            if not folded and (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then
+                win._drawerCapLost = math.min(win._drawerCapLost, win._foldDebt or 0)
+            end
             win._lastSetX = win:getX()
             -- (a window pinned at the screen's edge by an open drawer keeps its anchor, less the push)
             win._anchorRightEdge = win:getX() + win:getWidth() - (win._drawerCapPush or 0)

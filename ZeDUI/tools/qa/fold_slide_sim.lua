@@ -12,7 +12,8 @@
 --   CLOSE   a fold that ends with the drawer shut (another tab): the 53 px are paid back at once, the inventory as wide
 --           as before the card opened
 --   PLAIN   with no fold, a drawer that closes gives the 53 back as it always did
---   OTHER   a fold that ends on another tab pays the debt first, so the new drawer opens from the inventory's own width
+--   OTHER   a fold that ends on another tab keeps its debt through the new drawer (the list stays put) and pays it as
+--           that drawer closes
 --   SNAP    WindowHalves' instant fold (snapShut: the window back from rolled-up, drawer folded) pays the debt on purpose
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/fold_slide_sim.lua
 -- It prints FAIL lines and a last line "fold_slide_sim: N checks, M failed", and exits 1 if any failed.
@@ -107,25 +108,28 @@ check("UNFOLD: the window at the cap again", w.w == SCREEN / 2, w.w)
 check("UNFOLD: the list where it was before the fold", listX(w, DRAWER) == listOpen, listX(w, DRAWER) - listOpen)
 check("UNFOLD: still 53 owed for the real close", w._drawerCapLost == (w0 + DRAWER) - SCREEN / 2, w._drawerCapLost)
 
--- OTHER: fold, then another tab opens (Health, 300 px): the debt is paid as the fold ends, so the new drawer opens from
--- the inventory's own width (QA's Mac run, Nov 10 2026, read the old debt still owed)
-do
+-- OTHER: fold, then another tab opens: the fold's debt rides through the new drawer and is paid as it closes, so the
+-- list stays put while it opens (QA's Mac recheck, Nov 10 2026: paying it at once held the list 53 px left for ~10
+-- frames), and the inventory is back to its own width once it closes (the old code left it 53 px narrow)
+for _, HEALTH in ipairs({ 300, 360 }) do
+    local tag = "OTHER (" .. HEALTH .. "): "
     local o = newWin()
     run(o, 0); open(o)
     FOLD = "equip"; o._drawerOpen = false
     for i = 11, 0, -1 do run(o, math.floor(DRAWER * i / 12)) end
     run(o, 0)
+    local folded = listX(o, 0)
     FOLD = nil; o._activeTab = "health"; o._drawerOpen = true
-    local HEALTH = 300
-    for i = 1, 12 do run(o, math.floor(HEALTH * i / 12)) end
-    run(o, HEALTH); run(o, HEALTH)
-    local want = w0 + HEALTH
-    check("OTHER: Health opens as wide as it would with no card before it", o.w == math.min(want, SCREEN / 2), o.w .. " vs " .. math.min(want, SCREEN / 2))
-    check("OTHER: only Health's own excess is owed", (o._drawerCapLost or 0) == math.max(0, want - SCREEN / 2), o._drawerCapLost)
+    local lo, hi = folded, folded
+    for i = 1, 12 do local e = math.floor(HEALTH * i / 12); run(o, e); local lx = listX(o, e); lo = math.min(lo, lx); hi = math.max(hi, lx) end
+    for _ = 1, 3 do run(o, HEALTH) end
+    check(tag .. "while it opens the list moves no more than the 4 px push", folded - lo <= 4 and hi - folded <= 4, lo .. ".." .. hi .. " from " .. folded)
+    check(tag .. "the debt is still owed while it is open", (o._drawerCapLost or 0) >= (w0 + DRAWER) - SCREEN / 2, o._drawerCapLost)
     o._drawerOpen = false
     for i = 11, 0, -1 do run(o, math.floor(HEALTH * i / 12)) end
     run(o, 0); run(o, 0)
-    check("OTHER: Health closed, the inventory as wide as before any drawer", run(o, 0) == invBefore and o.x == x0, run(o, 0) .. " at " .. o.x)
+    check(tag .. "closed, the inventory as wide as before any drawer", run(o, 0) == invBefore and o.x == x0, run(o, 0) .. " at " .. o.x)
+    check(tag .. "and nothing owed", (o._drawerCapLost or 0) == 0, o._drawerCapLost)
 end
 
 -- SNAP: the instant fold (WindowHalves' snapShut: the whole window back from rolled-up with the drawer half staying

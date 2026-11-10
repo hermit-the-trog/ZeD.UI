@@ -3180,6 +3180,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       while folded with the list sliding. **Check (QA):** fold, pick another tab, close it: the inventory back to 279.
     - **The director, Nov 10 2026: keep the current version** (the inventory stays as the cap made it while folded; the
       list doesn't move).
+    - **QA, Mac, Nov 10 2026 (recheck at 1280 x 800, real clicks): ok.** Fold (the list 4 px once), Health opened (226,
+      53 owed: right, Health's 360 is over the cap too), Health closed: the inventory back to 279, nothing owed. One
+      thing seen: as Health opened from the fold, and as it closed, the list sat 53 px left (383 to 330) for about 10
+      frames. That was the fix paying the debt at once while the new drawer slid open. **Build, Nov 10:** the fold's
+      debt now rides through the new drawer (kept from the at-rest clearing, _foldDebt) and is paid as that drawer
+      closes; the drawer shut (Loot, a reset) still pays at once. fold_slide_sim 27/0 (OTHER at 300 and 360 px reads
+      the 330 on the previous code). **Check (QA):** the same steps: the list no more than 4 px as Health opens and
+      closes, and 279 after.
 
 127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
     Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).
