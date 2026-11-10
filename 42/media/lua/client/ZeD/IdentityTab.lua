@@ -776,7 +776,10 @@ local function drawStamp(panel, data, acc, cx, cy, maxW)
     local padX, padY = T.px(8), T.px(3)
     local room = maxW - (frame + padX) * 2
     local rv = (data.permit == "revoked") and ZeD.tr("UI_ZeD_Identity_Revoked") or nil
-    local sp = rv and freeW(f, " ", zoom) or 0
+    -- the word space between PERMIT and REVOKED: read as "a a" less "aa" (a lone space measures 0 in this face, and the
+    -- stamp read "PERMITREVOKED": QA's Mac shots, Nov 10 2026), never under a quarter of the line
+    local sp = 0
+    if rv then sp = math.max(freeW(f, "a a", zoom) - freeW(f, "aa", zoom), math.floor(lh / 4)) end
     local rw = rv and freeW(f, rv, zoom) or 0
     local l1 = fitFree(f, ZeD.tr("UI_ZeD_Identity_StampLine1"), room, zoom)
     local l2 = fitFree(f, ZeD.tr("UI_ZeD_Identity_StampLine2"), room - sp - rw, zoom)

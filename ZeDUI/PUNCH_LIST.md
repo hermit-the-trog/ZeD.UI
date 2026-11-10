@@ -3547,6 +3547,23 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (if one is on the rig) shows them; drag a box from below the rows over three rows: three selected; Ctrl adds; the
     same in the world window and a multi-container view. Then the timed run: the same kitchen looted in vanilla and in
     ZeD, the clicks and the seconds.
+    **QA, Mac, Nov 10 2026, on 2b7fc27: the box and the hiding pass in both windows; the tooltip had one fault.** It
+    drew nothing on the first hover of a session, until the pointer had left the lists once: a new ISToolTipInv
+    already reports itself visible, so "add it to the screen when it isn't visible" never ran (QA proved it in the
+    game: a fresh tooltip says visible, and ZeD's was in no UI list). Once up it changes item within a frame (about
+    33 ms), shows the game's lines in ZeD's box (weight, condition, the beans' nutrition), and goes while a row is
+    dragged, a box is drawn, or that item's card is open. Not testable on the rig: Ctrl adding to a box (an injected
+    Ctrl may not be held through a drag), and the timed run (it needs a person at the mouse). Not checked: the grid
+    view, a multi-container view, a mod adding tooltip lines. **Build answered:** ZeD keeps whether the tooltip is on
+    screen itself (ZeD_InvTip.lua); fast_loot_sim's stub tooltip now starts "visible" as the game's does, and the old
+    code fails it. **Recheck (QA):** the first hover after a load shows the tooltip.
+
+
+147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the
+    Identity tab at 1x and 1.75x).** drawStamp (IdentityTab.lua) draws the line and the red REVOKED as two pieces with
+    a word space between, read as the width of " ": in the stamp's face a lone space measures 0. The space is read
+    as "a a" less "aa" now, never under a quarter of the line. **Check (QA):** a revoked permit's stamp at 1x and
+    1.75x, "PERMIT REVOKED" with a space.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

@@ -66,11 +66,15 @@ local function blocked(w)
     return false, chr
 end
 
+-- (whether the tooltip is on screen is kept here, not read from it: a new ISToolTipInv already reports itself
+-- visible, so "add it when it isn't visible" never added it, and the first hover of a session drew nothing until the
+-- pointer had left the lists once: QA's Mac run, Nov 10 2026)
 local function hide()
     local tip = IT._tip
-    if tip and tip:isVisible() then
+    if tip and tip._zedShown then
         tip:setVisible(false)
         tip:removeFromUIManager()
+        tip._zedShown = false
     end
 end
 IT.hide = hide
@@ -97,9 +101,10 @@ local function frame()
     -- (beside the pointer, as vanilla's inventory has it; never pinned where the belt's stands)
     tip.followMouse = true
     tip.anchorBottomLeft = nil
-    if not tip:isVisible() then
+    if not tip._zedShown then
         tip:setVisible(true)
         tip:addToUIManager()
+        tip._zedShown = true
     end
     tip:bringToTop()
 end

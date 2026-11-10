@@ -34,7 +34,8 @@ ISToolTipInv = {}
 ISToolTipInv.__index = ISToolTipInv
 function ISToolTipInv:new(item)
     made = made + 1
-    return setmetatable({ item = item, visible = false, inUI = false, followMouse = false }, ISToolTipInv)
+    -- (as the game's: a new one already reports itself visible, though it is in no UI list yet; QA's Mac run)
+    return setmetatable({ item = item, visible = true, inUI = false, followMouse = false }, ISToolTipInv)
 end
 function ISToolTipInv:initialise() end
 function ISToolTipInv:setItem(i) self.item = i end
@@ -76,7 +77,7 @@ IT.want(list, axe)
 check("TIP: wantedBy the row that asked, this frame", IT.wantedBy(list, axe) and not IT.wantedBy(list, knife))
 frame()
 local tip = IT._tip
-check("TIP: the next frame shows the game's tooltip", tip and tip.visible and tip.inUI and tip.item == axe)
+check("TIP: the next frame shows the game's tooltip, on screen the first time too", tip and tip.visible and tip.inUI and tip.item == axe)
 check("TIP: following the pointer", tip and tip.followMouse == true and tip.anchorBottomLeft == nil)
 check("TIP: for the window's character", tip and tip.chr == PLAYER and tip.owner == list)
 IT.want(list, knife); frame()
