@@ -34,7 +34,7 @@ getTimestampMs = function() return W.now end
 getSoundManager = function() return { playUISound = function() end } end
 Keyboard = { KEY_ESCAPE = 1 }
 GameKeyboard = { eatKeyPress = function() end }
-Joypad = { AButton = 0, BButton = 1, LBumper = 4, RBumper = 5 }
+Joypad = { AButton = 0, BButton = 1, LBumper = 4, RBumper = 5, YButton = 3 }
 JoypadState = { players = {} }
 updateJoypadFocus = function() end
 require = function() end
@@ -54,10 +54,16 @@ IsoDirections = { S = dir(5) }
 local Panel = {}
 Panel.__index = Panel
 function Panel:derive(name) local c = setmetatable({}, { __index = self }); c.__index = c; c.Type = name; return c end
+W.subs = {}
 function Panel:new(x, y, w, h)
     local o = setmetatable({ x = x, y = y, width = w, height = h, visible = true, children = {}, _hitZones = {}, draws = 0 }, self)
+    o.javaObject = { DrawSubTextureRGBA = function(_, tex, sx, sy, sw, sh, dx, dy, dw, dh)
+        W.subs[#W.subs + 1] = { tex = tex, sx = sx, sy = sy, sw = sw, sh = sh, dx = dx, dy = dy, dw = dw, dh = dh }
+    end }
     return o
 end
+-- the backdrops' textures: 1024 x 576, as make_backdrops.py paints them
+getTexture = function(path) return { path = path, getWidth = function() return 1024 end, getHeight = function() return 576 end } end
 function Panel:initialise() end
 function Panel:instantiate() if self.createChildren then self:createChildren() end end
 function Panel:addToUIManager() W.ui[self] = true end
@@ -184,6 +190,55 @@ afterDraw()
 check("PHOTO: one shot a press", #W.shots == 1)
 
 -- ---------------------------------------------------------------------------
+-- BACKDROPS (step 2): six, the grey drawn here, five painted; a tray; a pick rolls the old up and the new down
+-- ---------------------------------------------------------------------------
+check("BACKDROPS: six, the grey first and drawn here", #ST.BACKDROPS == 6 and ST.BACKDROPS[1].id == "grey" and ST.BACKDROPS[1].tex == nil)
+local allTex = true
+for i = 2, 6 do
+    local fh = io.open(ROOT .. "42/media/textures/ZeD/studio/backdrop_" .. ST.BACKDROPS[i].id .. ".png", "rb")
+    if fh then fh:close() else allTex = false end
+end
+check("BACKDROPS: the five painted ones are in the mod", allTex)
+local function zone(id) for _, z in ipairs(room._hitZones) do if z.id == id then return z end end end
+room.saved = nil
+room:prerender()
+check("BACKDROPS: a Backdrop button", zone("tray") ~= nil)
+local tz = zone("tray")
+room:onMouseUp(tz.x + 2, tz.y + 2)
+room:prerender()
+check("BACKDROPS: it opens the tray, a swatch each", room.tray == true and zone("bd:1") and zone("bd:6"))
+local sz = zone("bd:2")
+room:onMouseUp(sz.x + 4, sz.y + 4)
+check("BACKDROPS: a swatch picks: the tray shuts, the roll begins", room.tray == false and room.bd == 2 and room.roll ~= nil and room.roll.from == 1)
+W.now = W.now + 190
+W.subs = {}
+room:prerender()
+check("BACKDROPS: first the old paper rolls up (the grey, half up)", #W.subs == 0)
+local sh0 = #W.shots
+room:photo()
+check("BACKDROPS: no photo while a paper moves", room.shoot == nil)
+W.now = W.now + 380
+W.subs = {}
+room:prerender()
+local sub = W.subs[1]
+check("BACKDROPS: then the new one rolls down (half its height, its top half)", sub and math.abs(sub.dh - 540) <= 1 and math.abs(sub.sh - 288) <= 1,
+      sub and (sub.dh .. " / " .. sub.sh))
+W.now = W.now + 400
+room:prerender()
+check("BACKDROPS: and hangs", room.roll == nil and W.subs[#W.subs].dh == 1080)
+check("BACKDROPS: the whole texture on a 16:9 screen", W.subs[#W.subs].sx == 0 and W.subs[#W.subs].sy == 0 and W.subs[#W.subs].sw == 1024)
+-- a taller screen (16:10): the sides cropped, the height whole
+W.subs = {}
+ST._drawBackdrop(room, ST.BACKDROPS[2], 0, 0, 1920, 1200, 1)
+local c = W.subs[1]
+check("BACKDROPS: on 16:10 the sides cropped, the height whole", c and c.sy == 0 and c.sh == 576 and c.sx > 0 and math.abs(c.sw - 1024 * (1920 / 1200) / (1024 / 576)) < 1, c and (c.sx .. "," .. c.sw))
+room:onJoypadDown(Joypad.YButton)
+check("BACKDROPS: Y on the pad, the next", room.bd == 3 and room.roll ~= nil)
+W.now = W.now + 1000
+room:prerender()
+check("BACKDROPS: remembered for the session", ST.backdrop == 3)
+
+-- ---------------------------------------------------------------------------
 -- LEAVE
 -- ---------------------------------------------------------------------------
 check("LEAVE: Escape is the studio's", room:isKeyConsumed(Keyboard.KEY_ESCAPE) == true)
@@ -193,6 +248,7 @@ check("LEAVE: the speed as it was (2)", W.speed == 2, W.speed)
 check("LEAVE: the paused box as it was", W.pausedBox == true)
 W.speed = 0
 ST.open(CHR)
+check("BACKDROPS: the next visit opens on it", ST.room.bd == 3)
 ST.close()
 check("LEAVE: a game paused before stays paused", W.speed == 0, W.speed)
 W.speed = 1

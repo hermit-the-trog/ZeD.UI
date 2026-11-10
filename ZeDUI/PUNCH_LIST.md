@@ -3584,6 +3584,20 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     straight between; Three-quarter is zoom 11 at -0.70; the wheel walks the same curve. The shoes from behind stay
     as the game draws them. studio_sim 41/0. **Recheck (QA):** Three-quarter: head whole, a little paper above;
     the wheel from full body to bust: the head never cut.
+    **Step 2, the backdrops (the director, Nov 10 2026: "go ahead with those backdrops").** Six: Grey seamless (drawn
+    by the studio), and five painted drafts for the director to refine (ZeDUI/tools/studio/make_backdrops.py:
+    fractal noise, gradients, glows, bokeh; 1024 x 576 in 42/media/textures/ZeD/studio/backdrop_<id>.png): Mottled
+    blue (the mall studio's, a light behind the head), Sky, Autumn (an out-of-focus wood, leaf bokeh), Knox County
+    (a sundown over rolling hills, a water tower far off, a white plank fence either side), Lasers (picture day).
+    ZeDUI/art/studio_backdrops: each at 1920 x 1080 to paint over, safe_area_1920.png (where the figure stands, where
+    the head sits, the bar that covers the foot while setting up), contact_sheet.png. In the studio: each hangs from
+    a roller along the top and fills the screen (cover: scaled to fill, the edges cropped on screens of another
+    shape); a Backdrop button opens a tray of named swatches above the bar, the hanging one outlined in the accent;
+    a pick rolls the hanging paper up into the roller, then the new one down (0.38 s each, a weighted foot on the
+    moving edge); no photo while a paper moves; the photo shows the paper alone (no roller); Y on the pad steps to
+    the next; the last pick is kept for the session. Seven new words in all 28 languages. studio_sim 55/0.
+    **Check (QA, Mac):** the tray, each swatch, the roll up and down; a photo on each backdrop (paper edge to edge,
+    no roller); a 16:10 screen: the sides cropped, nothing stretched; Leave and back: the same backdrop.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

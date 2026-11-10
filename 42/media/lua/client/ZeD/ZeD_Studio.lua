@@ -13,7 +13,7 @@
 -- turn it a step. Opening it pauses the game and hides the game's "Game Paused" box (as the Survival Guide book does);
 -- leaving puts the speed back as it was. Take photo draws one frame with nothing but the backdrop and the figure, takes
 -- the game's screenshot of it (Zomboid/Screenshots) after that frame, then flashes and names the file.
--- The controller: A takes the photo, B leaves, LB and RB turn, Up and Down frame.
+-- The controller: A takes the photo, B leaves, LB and RB turn, Up and Down frame, Y the next backdrop.
 -- Poses: standing only for now (the director, Nov 10 2026). The probe (ZeDUI/tools/qa/zedqa_studio_probe.lua) found no
 -- state, emote or variable that poses this figure; the game's own walk and run events do, as moving loops, and the
 -- figure freezes while the game is paused.
@@ -59,6 +59,7 @@ function ZeD_StudioRoom:new(chr)
     local o = ZeD_Panel.new(self, 0, 0, sw, sh)
     o.chr = chr
     o.t = 0                 -- the framing, 0 full body to 1 bust
+    o.bd = ST.backdrop or 1 -- the backdrop hanging
     o.anchorRight, o.anchorBottom = false, false
     o._hitZones = {}
     o:setWantKeyEvents(true)
@@ -116,24 +117,106 @@ function ZeD_StudioRoom:layout()
     return { bx = bx, by = by, bw = bw, bh = bh, fx = math.floor((sw - fw) / 2), fy = by + bh - fh, fw = fw, fh = fh, bar = bar }
 end
 
-local function drawPaper(p, L)
-    -- a vertical sweep in strips: the paper darkening to its top, lighter where it curves into the floor
+local function drawPaper(p, L, vis)
+    -- a vertical sweep in strips: the paper darkening to its top, lighter where it curves into the floor; vis: how
+    -- much of it hangs down from the top (a roll), all of it when nil
     local n = 48
+    local limit = L.by + (vis or L.bh)
     for i = 0, n - 1 do
         local f = i / (n - 1)
         local c = { r = PAPER_TOP.r + (PAPER_LOW.r - PAPER_TOP.r) * f, g = PAPER_TOP.g + (PAPER_LOW.g - PAPER_TOP.g) * f,
                     b = PAPER_TOP.b + (PAPER_LOW.b - PAPER_TOP.b) * f }
         local y0 = L.by + math.floor(L.bh * i / n)
-        local y1 = L.by + math.floor(L.bh * (i + 1) / n)
-        p:drawRect(L.bx, y0, L.bw, y1 - y0, 1, c.r, c.g, c.b)
+        local y1 = math.min(limit, L.by + math.floor(L.bh * (i + 1) / n))
+        if y1 > y0 then p:drawRect(L.bx, y0, L.bw, y1 - y0, 1, c.r, c.g, c.b) end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- THE BACKDROPS (step 2; the director, Nov 10 2026: "go ahead with those backdrops"). Painted drafts for the director
+-- to refine (ZeDUI/tools/studio/make_backdrops.py; the guide and the 1920 x 1080 copies in ZeDUI/art/studio_backdrops):
+-- each hangs from a roller along the top of the screen and fills it ("cover": scaled to fill, the edges cropped on
+-- screens of another shape). Picking one rolls the paper that hangs up into the roller, then the new one down.
+-- ---------------------------------------------------------------------------
+local TEX = "media/textures/ZeD/studio/backdrop_"
+ST.BACKDROPS = {
+    { id = "grey", key = "UI_ZeD_Studio_BdGrey" },                                 -- (drawn here: drawPaper)
+    { id = "mottled", key = "UI_ZeD_Studio_BdMottled", tex = TEX .. "mottled.png" },
+    { id = "sky", key = "UI_ZeD_Studio_BdSky", tex = TEX .. "sky.png" },
+    { id = "autumn", key = "UI_ZeD_Studio_BdAutumn", tex = TEX .. "autumn.png" },
+    { id = "knox", key = "UI_ZeD_Studio_BdKnox", tex = TEX .. "knox.png" },
+    { id = "lasers", key = "UI_ZeD_Studio_BdLasers", tex = TEX .. "lasers.png" },
+}
+ST.backdrop = ST.backdrop or 1          -- (the last one picked, for the session)
+ST.ROLL_MS = 380                        -- each half of a change: the old paper up, the new one down
+local ROLLER = 12                       -- the roller's height, design units
+
+local function texOf(b)
+    if not b.tex then return nil end
+    if b._t == nil then b._t = (getTexture and getTexture(b.tex)) or false end
+    return b._t or nil
+end
+ST.texOf = texOf
+
+-- backdrop b over (x, y, w, h), its paper down frac of the way from the roller (1: all of it)
+local function drawBackdrop(p, b, x, y, w, h, frac)
+    local vis = math.floor(h * math.max(0, math.min(1, frac)))
+    if vis <= 0 then return end
+    local tex = texOf(b)
+    if not tex then
+        drawPaper(p, { bx = x, by = y, bw = w, bh = h }, vis)
+        return
+    end
+    local tw, th = tex:getWidth(), tex:getHeight()
+    local sc = math.max(w / tw, h / th)
+    local sw, sh = w / sc, h / sc
+    local sx, sy = (tw - sw) / 2, (th - sh) / 2
+    p.javaObject:DrawSubTextureRGBA(tex, sx, sy, sw, sh * vis / h, x, y, w, vis, 1, 1, 1, 1)
+end
+ST._drawBackdrop = drawBackdrop
+
+--- Pick backdrop i: the paper that hangs rolls up, then i's rolls down.
+function ZeD_StudioRoom:pickBackdrop(i)
+    self.tray = false
+    if not ST.BACKDROPS[i] or i == self.bd or self.roll then return end
+    self.roll = { from = self.bd, to = i, t0 = getTimestampMs() }
+    self.bd = i
+    ST.backdrop = i
+end
+
+-- the stage: the wall, the paper (rolling, when it is), the roller; returns how far down the paper hangs
+function ZeD_StudioRoom:drawStage()
+    local T = ZeD.T
+    local W, H = self.width, self.height
+    local base = T.base
+    self:drawRect(0, 0, W, H, 1, base.r * 0.5, base.g * 0.5, base.b * 0.5)   -- (the wall behind the paper)
+    local b, frac = ST.BACKDROPS[self.bd] or ST.BACKDROPS[1], 1
+    local r = self.roll
+    if r then
+        local e = getTimestampMs() - r.t0
+        if e < ST.ROLL_MS then b, frac = ST.BACKDROPS[r.from] or b, 1 - e / ST.ROLL_MS
+        elseif e < ST.ROLL_MS * 2 then frac = (e - ST.ROLL_MS) / ST.ROLL_MS
+        else self.roll = nil end
+    end
+    drawBackdrop(self, b, 0, 0, W, H, frac)
+    if self.shoot then return frac end   -- (the photo: the paper alone, no roller)
+    -- the paper's weighted foot while it moves, and the roller along the top
+    local rh = T.px(ROLLER)
+    if frac < 1 then
+        local fy = math.floor(H * frac)
+        self:drawRect(0, fy - T.px(3), W, T.px(4), 1, 0.16, 0.15, 0.14)
+    end
+    self:drawRect(0, 0, W, rh, 1, 0.20, 0.20, 0.22)
+    self:drawRect(0, math.floor(rh * 0.25), W, math.max(1, math.floor(rh * 0.2)), 1, 0.42, 0.42, 0.45)
+    self:drawRect(0, rh - T.px(1), W, T.px(1), 1, 0.08, 0.08, 0.09)
+    return frac
 end
 
 function ZeD_StudioRoom:prerender()
     local L = self:layout()
     -- the paper from edge to edge, so the photo (the game's screenshot is the whole screen) is all studio (the
     -- director, Nov 10 2026, after QA's first portrait showed the dark room either side: "Paper fills the screen")
-    drawPaper(self, { bx = 0, by = 0, bw = self.width, bh = self.height })
+    self:drawStage()
     local m = self.fig
     if m and (m.x ~= L.fx or m.y ~= L.fy or m.width ~= L.fw or m.height ~= L.fh) then
         m:setX(L.fx); m:setY(L.fy); m:setWidth(L.fw); m:setHeight(L.fh)
@@ -162,6 +245,8 @@ function ZeD_StudioRoom:drawBar(L)
         self:addHitZone(id, x, by, w, bh)
         x = x + w + T.px(6)
     end
+    button("tray", tr("UI_ZeD_Studio_Backdrop"), self.tray)
+    x = x + T.px(12)
     for i, fr in ipairs(FRAMES) do button("frame:" .. i, tr(fr.key), math.abs(self.t - fr.t) < 0.01) end
     x = x + T.px(12)
     button("turn:-1", tr("UI_ZeD_Studio_TurnL"))
@@ -169,6 +254,7 @@ function ZeD_StudioRoom:drawBar(L)
     x = x + T.px(12)
     button("photo", tr("UI_ZeD_Studio_Photo"))
     button("leave", tr("UI_ZeD_Studio_Leave"))
+    if self.tray then self:drawTray(y0) end
     -- the help line, or what the last photo was saved as
     local msg = self.saved and tr("UI_ZeD_Studio_Saved", self.saved) or tr("UI_ZeD_Studio_Help")
     local tc = T.textSec or T.textDim
@@ -176,6 +262,35 @@ function ZeD_StudioRoom:drawBar(L)
     if room > T.px(40) then
         local s = ZeD.Atoms.truncateText(msg, f, room)
         self:drawText(s, x + T.px(GAP), y0 + math.floor((L.bar - ZeD.TM:getFontHeight(f)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f)
+    end
+end
+
+-- the backdrops' tray above the bar: a swatch of each, named, the one hanging outlined in the accent
+function ZeD_StudioRoom:drawTray(barY)
+    local T = ZeD.T
+    local n = #ST.BACKDROPS
+    local tw, th, gap, pad = T.px(128), T.px(72), T.px(8), T.px(8)
+    local f = T.fontF2
+    local lh = ZeD.TM:getFontHeight(f)
+    local w = n * tw + (n - 1) * gap + pad * 2
+    local h = th + lh + T.px(6) + pad * 2
+    local x0, y0 = T.px(GAP) * 2, barY - h - T.px(6)
+    local s2, bs = T.surf2, T.borderS
+    self:drawRect(x0, y0, w, h, 1, s2.r, s2.g, s2.b)
+    self:drawRectBorder(x0, y0, w, h, 1, bs.r, bs.g, bs.b)
+    self:addHitZone("trayBox", x0, y0, w, h)
+    local mx, my = self:getMouseX(), self:getMouseY()
+    for i, b in ipairs(ST.BACKDROPS) do
+        local x, y = x0 + pad + (i - 1) * (tw + gap), y0 + pad
+        drawBackdrop(self, b, x, y, tw, th, 1)
+        local over = mx >= x and mx < x + tw and my >= y and my < y + th + lh + T.px(6)
+        local oc = (i == self.bd) and T.accent or (over and T.text or bs)
+        self:drawRectBorder(x, y, tw, th, 1, oc.r, oc.g, oc.b)
+        if i == self.bd then self:drawRectBorder(x + 1, y + 1, tw - 2, th - 2, 1, oc.r, oc.g, oc.b) end
+        local name = ZeD.Atoms.truncateText(tr(b.key), f, tw)
+        local tc = T.text
+        self:drawText(name, x, y + th + T.px(4), tc.r, tc.g, tc.b, tc.a or 1, f)
+        self:addHitZone("bd:" .. i, x, y, tw, th + lh + T.px(6))
     end
 end
 
@@ -189,10 +304,18 @@ function ZeD_StudioRoom:render()
 end
 
 function ZeD_StudioRoom:onMouseUp(x, y)
-    local z = self:hitZoneAt(x, y)
+    -- (the last zone under the pointer: a swatch over the tray's box)
+    local z = nil
+    for _, zz in ipairs(self._hitZones or {}) do
+        if x >= zz.x and y >= zz.y and x < zz.x + zz.w and y < zz.y + zz.h then z = zz end
+    end
+    if not z then self.tray = false end
     if not z then return true end
     local id = tostring(z.id)
-    if id:sub(1, 6) == "frame:" then self:frameTo(FRAMES[tonumber(id:sub(7))].t)
+    if id == "tray" then self.tray = not self.tray
+    elseif id:sub(1, 3) == "bd:" then self:pickBackdrop(tonumber(id:sub(4)))
+    elseif id == "trayBox" then return true
+    elseif id:sub(1, 6) == "frame:" then self:frameTo(FRAMES[tonumber(id:sub(7))].t)
     elseif id:sub(1, 5) == "turn:" then self:turn(tonumber(id:sub(6)))
     elseif id == "photo" then self:photo()
     elseif id == "leave" then ST.close() end
@@ -203,7 +326,8 @@ function ZeD_StudioRoom:onMouseWheel(del) self:frameBy(del * 0.08); return true 
 
 --- Take a photo: the next frame draws clean, the shot is taken after it (ST's OnPostUIDraw), then the flash.
 function ZeD_StudioRoom:photo()
-    if self.shoot then return end
+    if self.shoot or self.roll then return end   -- (not while a paper moves)
+    self.tray = false
     self.shoot = 1
 end
 
@@ -217,7 +341,8 @@ function ZeD_StudioRoom:onJoypadDown(button)
     if button == Joypad.AButton then self:photo()
     elseif button == Joypad.BButton then ST.close()
     elseif button == Joypad.LBumper then self:turn(-1)
-    elseif button == Joypad.RBumper then self:turn(1) end
+    elseif button == Joypad.RBumper then self:turn(1)
+    elseif button == Joypad.YButton then self:pickBackdrop(self.bd % #ST.BACKDROPS + 1) end
 end
 function ZeD_StudioRoom:onJoypadDirUp() self:frameBy(0.25) end
 function ZeD_StudioRoom:onJoypadDirDown() self:frameBy(-0.25) end
