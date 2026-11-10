@@ -132,9 +132,9 @@ LU.canKind = canKind
 local function addSaveTo(context, p, items, kind)
     local key = (kind == "outfit") and "UI_ZeD_Lists_SaveToOutfit" or "UI_ZeD_Lists_SaveToLoadout"
     local option = context:addOption(ZeD.tr(key))
-    option.zedPx = L.icon(kind)
+    option.zedPx = L.icon(kind, "add")          -- (Save to: the list's icon with its plus)
     option.zedCategory = "INFO"
-    pcall(function() option.iconTexture = ZeD.PxIcon.tex(L.icon(kind), 16) end)
+    pcall(function() option.iconTexture = ZeD.PxIcon.tex(L.icon(kind, "add"), 16) end)
     local sub = context:getNew(context)
     context:addSubMenu(option, sub)
     for _, l in ipairs(L.all(p, kind)) do

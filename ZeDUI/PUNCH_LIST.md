@@ -3326,6 +3326,19 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       and the list each show blue on Equip / Take / Zoom in and red on Unequip / Put in / Drop / Dispose's lid / a
       strike; the pointed cell or row has no color left; Eat, Sneak and the safehouse rows show the new icons; the
       24 plus sits centred (Equip in a wheel at 1.75x).
+140. **The outfit and loadout icons in the game; the radio's preset "+" follows the accent (the director, Nov 10 2026:
+    "Yes, add those. Put them in the game." and "it should follow the accent").** The six list icons drawn Oct 30
+    (HANDOFF_list_icons_20261030.md) had never been exported: the game showed the stand-ins (the hanger and the list
+    view). Now `L.ICON = { outfit = "outfit", loadout = "loadout" }` (ZeD_Lists.lua), so the Journal, the item card's
+    mark strip, the wheels and the menus show the shirt on its hanger and the clipboard; Save to outfit / Save to
+    loadout (right-click) and the Equip bar's Save what you wear / carry take the plus versions (L.icon(kind, "add")).
+    The plus and minus are marks (blue, red) by 138's rule for a new pair. The minus versions are in the game for a
+    take-out row; none uses them yet (a checked list's row takes the item out). RadioTab.lua: the radio face's preset
+    "+" button is the accent (bright in assign mode, text on accent), not a fixed orange. Sims: menu_marks_sim 584/0
+    (its LISTS checks). **Check (QA, Mac):** an item's right-click > Save to outfit shows the hanger with a blue plus;
+    the Journal's Lists page and the item card's Lists mark show the new icons; a radio with presets: its "+" is Teal
+    (and follows another accent).
+
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; not ruled yet).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips

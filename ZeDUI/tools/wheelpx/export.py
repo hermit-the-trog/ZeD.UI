@@ -48,8 +48,6 @@ def main(game=False):
             if game and same_pixels(path, im): continue      # (unchanged drawings keep their files: no churn in git)
             im.save(path, optimize=True); written += 1
     for id_ in kit.ICONS:
-        # (the lists' own icons, i_lists, are drawn but not in the game yet: they stay out of the mod's folder)
-        if game and kit.ICONS[id_]["cat"] == "lists": continue
         save(id_, kit.render(id_, 16), kit.render(id_, 24))
     for id_ in MK.MARKS:
         save(id_ + "_mk", MK.mark_image(id_, 16), MK.mark_image(id_, 24))

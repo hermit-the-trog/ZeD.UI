@@ -14,7 +14,7 @@ A new pair follows the same rule.
 
 Left ink on purpose: arrows that say where with no twin (hand_main, hand_off, holster*, tent_down, the figures'
 arrows), pairs told apart by a changed shape (padlock / padlock_open, link / unlink), the window controls, emotes and
-the check; the lists' own plus and minus (outfit_*, loadout_*), which aren't in the menu yet.
+the check.
 """
 
 ADD, REMOVE = "add", "remove"
@@ -46,6 +46,9 @@ MARKS = {
     "zoom_in": ADD, "zoom_out": REMOVE,
     "move_up": ADD, "move_down": REMOVE,
     "box_up": ADD, "box_down": REMOVE,
+    # the lists' own (in the game from Nov 10 2026: Save to outfit / loadout, the Equip bar's Save): a new pair, the
+    # same rule
+    "outfit_add": ADD, "outfit_remove": REMOVE, "loadout_add": ADD, "loadout_remove": REMOVE,
 }
 
 WHOLE = {"plus", "minus", "move_up", "move_down"}       # the glyph is all mark

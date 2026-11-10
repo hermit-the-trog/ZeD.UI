@@ -68,13 +68,14 @@ for id, kind in pairs(MARK) do
         check("TABLE: " .. id .. " has its mark at " .. s, exists(pic(s, id .. "_mk")))
     end
 end
-check("TABLE: 46 icons take a mark", nMarks == 46, nMarks)
+check("TABLE: 50 icons take a mark", nMarks == 50, nMarks)
 -- the handoff's pairs, both sides
 local PAIRS = {
     { "plus", "minus" }, { "equip", "unequip" }, { "tray_in", "tray_out" }, { "mag_in", "mag_out" },
     { "rounds_in", "rounds_out" }, { "battery_in", "battery_out" }, { "fill", "empty" },
     { "safehouse_claim", "safehouse_release" }, { "car_enter", "car_exit" }, { "window_open", "window_close" },
     { "zoom_in", "zoom_out" }, { "move_up", "move_down" }, { "box_up", "box_down" }, { "autowalk", "autowalk_off" },
+    { "outfit_add", "outfit_remove" }, { "loadout_add", "loadout_remove" },
 }
 for _, p in ipairs(PAIRS) do
     check("TABLE: " .. p[1] .. " is blue", MARK[p[1]] == "add", MARK[p[1]])
@@ -85,7 +86,7 @@ for _, id in ipairs({ "to_floor", "trash", "bandage_off", "unplug", "bulb_remove
 end
 -- left ink on purpose
 for _, id in ipairs({ "hand_main", "hand_off", "holster", "tent_down", "padlock", "padlock_open", "link", "unlink",
-                      "thumbs_up", "thumbs_down", "expand", "contract", "pop_out", "outfit_add", "loadout_remove",
+                      "thumbs_up", "thumbs_down", "expand", "contract", "pop_out", "outfit", "loadout",
                       "sneak", "eat", "safehouse", "shield_minus" }) do
     check("TABLE: " .. id .. " stays ink", MARK[id] == nil, MARK[id])
 end
@@ -187,6 +188,26 @@ if A and A.drawPxIcon then
     check("DRAW: an icon with no mark draws once", #p.draws == 1, #p.draws)
     p = panel(); A.drawPxIcon(p, "equip", 0, 0, 16, 1, INK)
     check("DRAW: the old call (no marks argument) is unchanged", #p.draws == 1, #p.draws)
+
+    -- LISTS: the outfit and loadout icons are in the game (the director, Nov 10 2026), their plus and minus versions on
+    -- the rows that add to a list (ZeD_Lists.lua's L.icon)
+    setmetatable(_G, { __index = function() return stub end })
+    local okL, errL = load(CLIENT .. "ZeD_Lists.lua")
+    setmetatable(_G, nil)
+    local Lst = rawget(ZeD, "Lists")
+    check("LISTS: ZeD_Lists.lua loads on the stubs", okL and Lst and Lst.icon, errL)
+    if Lst and Lst.icon then
+        check("LISTS: an outfit is the shirt on its hanger", Lst.icon("outfit") == "outfit", Lst.icon("outfit"))
+        check("LISTS: a loadout is the clipboard", Lst.icon("loadout") == "loadout", Lst.icon("loadout"))
+        check("LISTS: Save to outfit takes its plus", Lst.icon("outfit", "add") == "outfit_add", Lst.icon("outfit", "add"))
+        check("LISTS: Save to loadout takes its plus", Lst.icon("loadout", "add") == "loadout_add", Lst.icon("loadout", "add"))
+        check("LISTS: and the minus is there for a take-out row", Lst.icon("loadout", "remove") == "loadout_remove")
+        for _, id in ipairs({ "outfit", "loadout", "outfit_add", "loadout_add", "outfit_remove", "loadout_remove" }) do
+            for _, sz in ipairs(SIZES) do check("LISTS: " .. id .. " is in the mod at " .. sz, exists(pic(sz, id))) end
+        end
+        local pl = panel(); A.drawPxIcon(pl, Lst.icon("outfit", "add"), 0, 0, 16, 1, INK, true)
+        check("LISTS: Save to outfit's plus is blue at rest", #pl.draws == 2 and near(pl.draws[2], 0x0B, 0x63, 0xB0))
+    end
 
     -- LIST: the theme's own pair on its surfaces (the director approved the shades Nov 10 2026)
     local SHADES = { dark = { 0x44, 0x91, 0xE2, 0xD9, 0x57, 0x2A }, hicon = { 0x44, 0x91, 0xE2, 0xD9, 0x57, 0x2A },

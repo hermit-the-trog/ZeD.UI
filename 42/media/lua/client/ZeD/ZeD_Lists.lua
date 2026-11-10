@@ -49,10 +49,10 @@ L.VERSION = 1
 L.KEY = "ZeD_Lists"
 L.KINDS = { "loadout", "outfit" }
 
--- The two lists' pixel icons (ZeD.PxIcon ids). TODO: these stand in until the lists get
--- their own hanger and list icons; swap the ids here and every surface follows (the
--- Journal page, the right-click menu, the item card's mark strip).
-L.ICON = { outfit = "hanger", loadout = "view_list" }
+-- The two lists' pixel icons (ZeD.PxIcon ids): a shirt on its hanger and a clipboard with its list, each with a plus
+-- and a minus version (<id>_add, <id>_remove: HANDOFF_list_icons_20261030.md, in the game Nov 10 2026). Swap the ids
+-- here and every surface follows (the Journal page, the right-click menu, the item card's mark strip, the wheels).
+L.ICON = { outfit = "outfit", loadout = "loadout" }
 
 -- bumped on every change: surfaces that keep something per frame check it
 L.gen = L.gen or 0
@@ -836,8 +836,16 @@ function L.namesFor(p, item)
     return table.concat(names, ", ")
 end
 
---- The pixel icon of a list's kind (L.ICON: the one place to swap the icons).
-function L.icon(kind) return L.ICON[kind == "outfit" and "outfit" or "loadout"] end
+--- The pixel icon of a list's kind (L.ICON: the one place to swap the icons). verb "add" or "remove": its plus or minus
+--- version, for a row that puts something on a list or takes it off (the base icon when that version isn't drawn).
+function L.icon(kind, verb)
+    local id = L.ICON[kind == "outfit" and "outfit" or "loadout"]
+    if verb == "add" or verb == "remove" then
+        local v = id .. "_" .. verb
+        if ZeD.PxIcon and ZeD.PxIcon.has and ZeD.PxIcon.has(v) then return v end
+    end
+    return id
+end
 
 --- The store holds only what the save can keep (strings, numbers, booleans, tables of
 --- them). Returns true, or false and the path of the first value that isn't.
