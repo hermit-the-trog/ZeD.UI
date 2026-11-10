@@ -12,8 +12,7 @@ When it's unclear which is first (the director's call: the player's side decides
 minus or an out-arrow red, except the container pair, where Take is blue and Put in red whatever way the arrow points.
 A new pair follows the same rule.
 
-Left ink on purpose: arrows that say where with no twin (hand_main, hand_off, holster*, tent_down, the figures'
-arrows), pairs told apart by a changed shape (padlock / padlock_open, link / unlink), the window controls, emotes and
+Left ink on purpose: arrows that say where with no twin (holster*, tent_down, the figures' arrows), pairs told apart by a changed shape (padlock / padlock_open, link / unlink), the window controls, emotes and
 the check.
 """
 
@@ -49,6 +48,10 @@ MARKS = {
     # the lists' own (in the game from Nov 10 2026: Save to outfit / loadout, the Equip bar's Save): a new pair, the
     # same rule
     "outfit_add": ADD, "outfit_remove": REMOVE, "loadout_add": ADD, "loadout_remove": REMOVE,
+    # Equip Primary / Equip Secondary: the which-hand arrow goes blue in the menus, so the row reads as the add side of
+    # Equip / Unequip beside Unequip's red minus (the director, Nov 10 2026, after QA's Mac run; the handoff had kept
+    # them ink as arrows that say where). Only the menus color marks: the belt's hands stay ink.
+    "hand_main": ADD, "hand_off": ADD,
 }
 
 WHOLE = {"plus", "minus", "move_up", "move_down"}       # the glyph is all mark

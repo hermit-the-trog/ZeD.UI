@@ -68,7 +68,7 @@ for id, kind in pairs(MARK) do
         check("TABLE: " .. id .. " has its mark at " .. s, exists(pic(s, id .. "_mk")))
     end
 end
-check("TABLE: 50 icons take a mark", nMarks == 50, nMarks)
+check("TABLE: 52 icons take a mark", nMarks == 52, nMarks)
 -- the handoff's pairs, both sides
 local PAIRS = {
     { "plus", "minus" }, { "equip", "unequip" }, { "tray_in", "tray_out" }, { "mag_in", "mag_out" },
@@ -85,7 +85,10 @@ for _, id in ipairs({ "to_floor", "trash", "bandage_off", "unplug", "bulb_remove
     check("TABLE: " .. id .. " is red", MARK[id] == "remove", MARK[id])
 end
 -- left ink on purpose
-for _, id in ipairs({ "hand_main", "hand_off", "holster", "tent_down", "padlock", "padlock_open", "link", "unlink",
+for _, id in ipairs({ "hand_main", "hand_off" }) do
+    check("TABLE: " .. id .. "'s which-hand arrow is blue (Equip Primary / Secondary)", MARK[id] == "add", MARK[id])
+end
+for _, id in ipairs({ "holster", "tent_down", "padlock", "padlock_open", "link", "unlink",
                       "thumbs_up", "thumbs_down", "expand", "contract", "pop_out", "outfit", "loadout",
                       "sneak", "eat", "safehouse", "shield_minus" }) do
     check("TABLE: " .. id .. " stays ink", MARK[id] == nil, MARK[id])
