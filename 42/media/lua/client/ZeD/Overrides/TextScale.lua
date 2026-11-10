@@ -239,11 +239,57 @@ flagZedClasses()
 -- rename boxes) switch to the baked face that matches the scale, and take the
 -- theme's text colours (ZeD.Text.fitEntry). Vanilla entries are untouched.
 require "ISUI/ISTextEntryBox"
+-- An entry's placeholder, drawn by ZeD (X.ownPlaceholder): the game's own placeholder keeps one fixed face whatever
+-- the scale (QA's Mac run, Nov 10 2026: the sticky note's "Type a note here." and the Journal's "Search lists..." were
+-- too large at 1x and cut to a word at 1.75x). ZeD's F2 face, dim, while the box is empty and not focused: one line
+-- cut to fit (an ellipsis), or wrapped over the lines a multi-line box has room for.
+local function drawPlaceholder(e)
+    local text = e._zedPh
+    if not text or text == "" then return end
+    local ok, empty = pcall(function() return (e:getText() or "") == "" and not e:isFocused() end)
+    if not (ok and empty) then return end
+    local T = ZeD.T
+    if not (T and T.fontF2 and ZeD.TM) then return end
+    local font, c = T.fontF2, e._zedPhColor or T.textDim
+    local pad = T.px(3)
+    local w = (e.width or 0) - pad * 2
+    if w <= 0 then return end
+    local lh = ZeD.TM:getFontHeight(font)
+    if e._zedPhLines and e._zedPhLines > 1 then
+        local lines, cur = {}, nil
+        for word in text:gmatch("%S+") do
+            local try = cur and (cur .. " " .. word) or word
+            if cur and ZeD.TM:MeasureStringX(font, try) > w then lines[#lines + 1] = cur; cur = word else cur = try end
+        end
+        if cur then lines[#lines + 1] = cur end
+        local room = math.max(1, math.floor(((e.height or lh) - pad) / lh))
+        for i = 1, math.min(#lines, room, e._zedPhLines) do
+            local s = lines[i]
+            if ZeD.TM:MeasureStringX(font, s) > w and ZeD.Atoms and ZeD.Atoms.truncateText then s = ZeD.Atoms.truncateText(s, font, w) end
+            e:drawText(s, pad, pad + (i - 1) * lh, c.r, c.g, c.b, c.a or 1, font)
+        end
+    else
+        local s = text
+        if ZeD.TM:MeasureStringX(font, s) > w and ZeD.Atoms and ZeD.Atoms.truncateText then s = ZeD.Atoms.truncateText(s, font, w) end
+        e:drawText(s, pad, math.floor(((e.height or lh) - lh) / 2), c.r, c.g, c.b, c.a or 1, font)
+    end
+end
+
+--- Have ZeD draw entry's placeholder (text; color: optional {r,g,b,a}, the theme's dim text by default; lines: how many
+--- lines a multi-line box may wrap it over, 1 by default). The game's own placeholder is emptied.
+function X.ownPlaceholder(entry, text, color, lines)
+    if not entry then return end
+    entry._zedPh, entry._zedPhColor, entry._zedPhLines = text or "", color, lines or 1
+    pcall(function() entry.javaObject:setPlaceholderText("") end)
+end
+
 if ISTextEntryBox and not ISTextEntryBox._zedEntryPatched then
     ISTextEntryBox._zedEntryPatched = true
     local origEntryPrerender = ISTextEntryBox.prerender
     function ISTextEntryBox:prerender()
         if self.zedEntry then X.fitEntry(self) end
-        return origEntryPrerender(self)
+        local r = origEntryPrerender(self)
+        if self._zedPh then drawPlaceholder(self) end
+        return r
     end
 end

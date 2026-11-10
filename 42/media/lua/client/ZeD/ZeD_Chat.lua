@@ -554,7 +554,8 @@ function ZeD_ChatWindow:createChildren()
     entry:instantiate()
     entry.zedEntry = true
     entry.javaObject:setCentreVertically(true)
-    entry:setPlaceholderText(tr("UI_ZeD_Chat_Type"))
+    if ZeD.Text and ZeD.Text.ownPlaceholder then ZeD.Text.ownPlaceholder(entry, tr("UI_ZeD_Chat_Type"))
+    else entry:setPlaceholderText(tr("UI_ZeD_Chat_Type")) end
     entry.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     entry:setMaxTextLength(500)

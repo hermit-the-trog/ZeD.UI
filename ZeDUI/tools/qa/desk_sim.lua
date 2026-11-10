@@ -186,6 +186,7 @@ do
     W.down = false; D.frame()
     check("114: released on it, the note goes", D.cell("sticky") == nil)
     check("114: kept as closed", DISK[N.PLACE_FILE]:sub(1, 2) == "0|", DISK[N.PLACE_FILE])
+    check("114: with the mouse nothing is selected after (not the icon under it)", root.icons.focusId ~= "cletusworks" and root.icons.focusId ~= "mail", root.icons.focusId)
     D.frame(600)
     check("114: its field goes with it", not root.sticky.entry:isVisible())
     check("114: and takes no press", MM.entryUnder(s3.x + 40, s3.y + 60) == nil)

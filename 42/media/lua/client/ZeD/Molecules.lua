@@ -722,7 +722,9 @@ function ZeD_SearchField:createChildren()
     -- swaps in the baked face each frame; Overrides/TextScale.lua)
     entry.zedEntry = true
     entry.javaObject:setCentreVertically(true)
-    entry:setPlaceholderText(self.placeholder or "")
+    -- (ZeD draws the placeholder, in its own face at the scale: ZeD.Text.ownPlaceholder)
+    if ZeD.Text and ZeD.Text.ownPlaceholder then ZeD.Text.ownPlaceholder(entry, self.placeholder or "")
+    else entry:setPlaceholderText(self.placeholder or "") end
     self._shownPlaceholder = self.placeholder or ""
     entry.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.borderColor = { r = 0, g = 0, b = 0, a = 0 }
@@ -758,7 +760,8 @@ function ZeD_SearchField:prerender()
         local ph = self.placeholder or ""
         if self._shownPlaceholder ~= ph then
             self._shownPlaceholder = ph
-            self.input:setPlaceholderText(ph)
+            if ZeD.Text and ZeD.Text.ownPlaceholder then ZeD.Text.ownPlaceholder(self.input, ph)
+            else self.input:setPlaceholderText(ph) end
         end
     end
     -- Background matches input

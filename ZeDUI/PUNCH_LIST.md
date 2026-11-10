@@ -3053,6 +3053,16 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       on the test 2 code). Pad, 1.75x, Light and High contrast not run yet. In test 4.
     - **QA, Mac, Nov 10 2026: ok.** Dropped over CletusWorks and Mail it draws on top, and its strip still drags it out.
       Pad, 1.75x, Light and High contrast still to run.
+    - **QA, Mac, Nov 10 2026 (1.75x at 4K): drag, edges, Show note and the restart ok; two faults.** (1) A click on the
+      close box also lit CletusWorks under it. It was the close moving the selection to the next icon, meant for the
+      pad; with the mouse nothing is selected now (desk_sim 162/0; the new check reads cletusworks on the old code).
+      (2) The empty note's "Type a note here." stays one large size whatever the scale ("Type a" at 1.75x, "Type" at
+      1x), like the Journal's "Search lists...". The game's placeholder keeps its own fixed face; ZeD's entries only
+      switched their typed text. **Build:** ZeD draws the placeholder itself (ZeD.Text.ownPlaceholder,
+      Overrides/TextScale.lua) in its F2 face at the scale: wrapped on the note, cut with an ellipsis in one-line boxes;
+      used by the note, every ZeD search field and the chat box. **Check (QA):** the empty note and the Journal's
+      search at 1x and 1.75x: the whole hint, ZeD's size. Also seen: the list menu draws under the debug Lua console
+      (only with -debug), not looked into.
 115. **Bug reports hide the player's account name (the director, Nov 8 2026: "Hopefully yes"; beta 9).** ZeD_Messages.lua
     reportHeader / report / reportOne / reportAll and the Messages window's Copy / Copy all replace the Windows user
     folder (C:\Users\<name>\ and the forward-slash form -> ~\) and the Zomboid folder (getMyDocumentFolder -> ~/Zomboid)

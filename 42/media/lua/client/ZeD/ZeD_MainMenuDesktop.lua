@@ -367,11 +367,17 @@ function ZeD_MMIcons:closeItem(c)
     if self._carry and self._carry.id == c.item.id then self._carry = nil end
     c.item.close()
     MM.clickSound()
-    -- (the controller's selection goes to the next thing on the desktop)
+    -- (on a controller the selection goes to the next thing on the desktop; with the mouse nothing is selected after,
+    -- as a closed window leaves nothing selected: QA's Mac run, Nov 10 2026, read CletusWorks lit under the closed note
+    -- as the click going through to it)
     if self.focusId == c.item.id then
-        local nxt = nil
-        for _, o in ipairs(self._cells or {}) do if o ~= c and o.left and not (o.item.off and o.item.off()) then nxt = o.item.id; break end end
-        self.focusId = nxt or "pz"
+        if MM.gamepad() then
+            local nxt = nil
+            for _, o in ipairs(self._cells or {}) do if o ~= c and o.left and not (o.item.off and o.item.off()) then nxt = o.item.id; break end end
+            self.focusId = nxt or "pz"
+        else
+            self.focusId = nil
+        end
     end
 end
 

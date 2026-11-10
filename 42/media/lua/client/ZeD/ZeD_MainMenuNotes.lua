@@ -131,7 +131,12 @@ function ZeD_MMSticky:place(c)
     local f = ZeD.Text and ZeD.Text.entryFont and ZeD.Text.entryFont()
     if f and e._zedFont ~= f then e._zedFont = f; e:setFont(f) end
     local hint = tr("UI_ZeD_Desk_StickyHint")
-    if self._hint ~= hint then self._hint = hint; pcall(function() e:setPlaceholderText(hint) end) end
+    -- (ZeD draws the hint, in its face at the scale, wrapped to the paper: ZeD.Text.ownPlaceholder)
+    if self._hint ~= hint then
+        self._hint = hint
+        if ZeD.Text and ZeD.Text.ownPlaceholder then ZeD.Text.ownPlaceholder(e, hint, INK_HINT, STICKY_LINES)
+        else pcall(function() e:setPlaceholderText(hint) end) end
+    end
     self._placedAt = MM.now()
 end
 
