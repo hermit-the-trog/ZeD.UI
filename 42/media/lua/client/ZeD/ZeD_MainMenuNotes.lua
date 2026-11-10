@@ -207,14 +207,20 @@ function MM.entryUnder(mx, my)
     -- (the notes in the order they lie, the top of the pile last: the last one under the pointer has it, and its
     -- words take the press only where the press lands in them; a note's box can be down while another lies over
     -- it, so its place is read from its field, placed every frame)
-    local top = nil
+    -- (the paper's place, from the icon layer's cell: a note asking "Throw this note away?" has its field moved off,
+    -- and a press on its Keep went through to the note under it, which came to the top: QA's Mac run, Nov 10 2026)
+    local icons = MM.root and MM.root.icons
+    local ox, oy = icons and icons:getAbsoluteX() or 0, icons and icons:getAbsoluteY() or 0
+    local top, topAsks = nil, false
     for _, pa in ipairs(N.pasties()) do
         local st = fieldOf(pa.id)
-        if st and st.entry and st._placedAt and MM.now() - st._placedAt < 500 then
-            local ax, ay = st:getAbsoluteX(), st:getAbsoluteY()
-            if mx >= ax and my >= ay and mx < ax + st.width and my < ay + st.height then top = st end
+        local c = icons and icons:find("pastie:" .. pa.id)
+        if st and st.entry and c and st._placedAt and MM.now() - st._placedAt < 500 then
+            local ax, ay = ox + c.x, oy + c.y
+            if mx >= ax and my >= ay and mx < ax + c.w and my < ay + c.h then top, topAsks = st, MM._pastieAsk[pa.id] == true end
         end
     end
+    if topAsks then return nil end   -- (its question's buttons have the press)
     local se = nil
     if top then
         local e2 = top.entry
@@ -489,26 +495,68 @@ function MM.newPastie()
     return id
 end
 
---- Where a new note goes (the desk's coordinates, its top left): at (x, y) when the open window leaves it clear,
---- else the nearest clear place beside the window (right of it, below, above, left of it); the third answer is
---- false when no place on the desk is clear (the note goes to (x, y), under the window). QA's Mac run, Nov 10 2026:
---- with the Main menu window open, as it is at the start, a new note opened under it and the typing went into it.
+--- Where a new note goes (the desk's coordinates, its top left): at (x, y), the stepped place beside the icon, when
+--- that is clear; else the nearest clear place beside the open window, an icon or another note. Clear means, in
+--- turn: off the open window, the desktop's icons and nearly on top of another note (each note's strip still shows,
+--- as the stepped ones do); off the window and the icons; off the window alone. The third answer is false when no
+--- place on the desk is off the window (the note goes to (x, y), under it).
+--- QA's Mac runs, Nov 10 2026: with the Main menu window open, as it is at the start, a new note opened under it and
+--- the typing went into it; then, beside it, the notes lay over the Project Zomboid and New game icons, and a second
+--- note almost on top of the first (the step stopped at the desk's right edge).
 function MM.pastieSpot(room, iw, ih, x, y)
     local T = ZeD.T
-    local function within(px, py) return px >= room.x0 and px <= room.x1 and py >= room.y0 and py <= room.y1 end
+    local gap, step = T.px(8), T.px(14)
     x, y = math.max(room.x0, math.min(room.x1, x)), math.max(room.y0, math.min(room.y1, y))
     local icons = MM.root and MM.root.icons
+    local wins, things, notes = {}, {}, {}
     local w = (MM.view ~= "desktop") and MM.activeWindow() or nil
-    if not (icons and w and w ~= icons and w:isVisible()) then return x, y, true end
-    local ox, oy = icons:getAbsoluteX(), icons:getAbsoluteY()
-    local wx, wy, ww, wh = w:getAbsoluteX() - ox, w:getAbsoluteY() - oy, w.width, w.height
-    local function clearAt(px, py) return px + iw <= wx or px >= wx + ww or py + ih <= wy or py >= wy + wh end
-    if clearAt(x, y) then return x, y, true end
-    local gap = T.px(8)
-    for _, s in ipairs({ { wx + ww + gap, y }, { x, wy + wh + gap }, { x, wy - ih - gap }, { wx - iw - gap, y } }) do
-        local px = math.max(room.x0, math.min(room.x1, s[1]))
-        local py = math.max(room.y0, math.min(room.y1, s[2]))
-        if within(s[1], s[2]) and clearAt(px, py) then return px, py, true end
+    if icons and w and w ~= icons and w:isVisible() then
+        local ox, oy = icons:getAbsoluteX(), icons:getAbsoluteY()
+        wins[1] = { x = w:getAbsoluteX() - ox, y = w:getAbsoluteY() - oy, w = w.width, h = w.height }
+    end
+    for _, c in ipairs(icons and icons._cells or {}) do
+        local r = { x = c.x, y = c.y, w = c.w, h = c.h }
+        if c.item and c.item.pastieId then notes[#notes + 1] = r else things[#things + 1] = r end
+    end
+    local function over(list, px, py)
+        for _, r in ipairs(list) do
+            if px < r.x + r.w and r.x < px + iw and py < r.y + r.h and r.y < py + ih then return true end
+        end
+        return false
+    end
+    local function onTop(px, py)
+        for _, r in ipairs(notes) do if math.abs(px - r.x) < step and math.abs(py - r.y) < step then return true end end
+        return false
+    end
+    local function clear(tier, px, py)
+        if over(wins, px, py) then return false end
+        if tier <= 2 and over(things, px, py) then return false end
+        if tier == 1 and onTop(px, py) then return false end
+        return true
+    end
+    -- the places to try: beside every window, icon and note, and a step on from each note
+    local xs, ys = { x }, { y }
+    for _, list in ipairs({ wins, things, notes }) do
+        for _, r in ipairs(list) do
+            xs[#xs + 1] = r.x + r.w + gap; xs[#xs + 1] = r.x - iw - gap; xs[#xs + 1] = r.x
+            ys[#ys + 1] = r.y + r.h + gap; ys[#ys + 1] = r.y - ih - gap; ys[#ys + 1] = r.y
+        end
+    end
+    for _, r in ipairs(notes) do xs[#xs + 1] = r.x + step; ys[#ys + 1] = r.y + step end
+    for tier = 1, 3 do
+        if clear(tier, x, y) then return x, y, true end
+        local bx, by, bd = nil, nil, nil
+        for _, cx in ipairs(xs) do
+            if cx >= room.x0 and cx <= room.x1 then
+                for _, cy in ipairs(ys) do
+                    if cy >= room.y0 and cy <= room.y1 and clear(tier, cx, cy) then
+                        local d = (cx - x) * (cx - x) + (cy - y) * (cy - y)
+                        if not bd or d < bd then bx, by, bd = cx, cy, d end
+                    end
+                end
+            end
+        end
+        if bx then return bx, by, true end
     end
     return x, y, false
 end

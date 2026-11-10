@@ -3454,6 +3454,26 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     desk_sim 194/0 (a new section for the four). **Recheck (QA, Mac):** at 1.75x the typed words the hint's size; two
     notes overlapping: the lower one's words under the upper paper, a press on them brings it up with the caret; with
     the Main menu window open a new note lands beside it and takes the typing; the question's two buttons read whole.
+    **QA, Mac, Nov 10 2026, on 12a1890 (the fixes of 103a0144): three of four hold.** The stacked words, the new note
+    beside the Main menu window and the whole buttons pass at 1x and 1.75x. The typing at 1.75x was still large; the
+    probe of each slot's line height at 4K, ZeD 1.75x: Small 65 px, Large 76, Dialogue 23, Intro 33. Found besides:
+    the notes beside the window lay over the Project Zomboid and New game icons; a second note there sat almost on top
+    of the first (both against the desk's right edge); pressing Keep on a note brought the note under it to the top;
+    an empty note showed no hint while the caret was in it. Build answered:
+    1. *The typing.* The picker kept a slot only when it was taller than the one before, so it dropped Dialogue and
+       Intro (ZeD's own entry faces) behind the game's 65 and 76 px Small and Large and typed in Small, about 49 px.
+       Every slot is measured now, the face nearest the size wins: at 4K 1.75x Intro, ZeD's 26 px face (Scale.lua
+       entryFaces). entry_font_sim 16/0 on QA's heights.
+    2. *Over the icons, almost on top.* A new note takes the stepped place beside the icon when it is clear, else the
+       nearest place clear of the open window, the desktop's icons and nearly on top of another note; failing that,
+       clear of the window and the icons; failing that, of the window (MM.pastieSpot).
+    3. *Keep went through.* A press is matched to the note whose paper is under it, read from the icon layer's cells:
+       an asking note's field is moved off while it asks, so the press went to the note under it. A press on an
+       asking note is its question's now.
+    4. *No hint while typing.* As every ZeD text box does, the hint shows while the box is empty and not being typed
+       in; with the caret in it the hint goes. Unchanged; the director's call if notes should keep it under the caret.
+    desk_sim 199/0. **Recheck (QA, Mac):** at 4K 1.75x the typed words the hint's size; with the Main menu window
+    open two new notes off the window and the icons, apart; Keep on a note over another leaves the pile as it was.
 
 143. **Status bars take five cells, rounded up (the director, Nov 10 2026: "Skills you want 10 segments because there
     are 10 levels. Conditions should be OK with 5"; then "Every status bar" and "Round up, red at 20%").** Every

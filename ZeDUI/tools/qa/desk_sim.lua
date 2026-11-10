@@ -341,6 +341,13 @@ do
     local th, kp = hs[1], hs[2]
     check("QA 4: Throw away over Keep", th.y + th.h <= kp.y and th.x == kp.x, th.y .. " / " .. kp.y)
     check("QA 4: each the note's width less its pads", th.w == cB.w - 10 and kp.w == cB.w - 10, th.w)
+    -- a press on the question (its Keep button) is the asking note's, not the note under it (QA: Keep brought the
+    -- note underneath to the top)
+    local under = D.cell("pastie:" .. a)
+    local kx, ky = root.icons:getAbsoluteX() + kp.x + 2, root.icons:getAbsoluteY() + kp.y + 2
+    local before = N.pasties()[#N.pasties()].id
+    check("QA 7: a press on Keep reaches no note's words", MM.entryUnder(kx, ky) == nil)
+    check("QA 7: and the pile's order stays", N.pasties()[#N.pasties()].id == before and before == b, before)
     MM.answerPastie(b, false); D.frame()
     -- a new note with the main window over the place beside the icon: it goes beside the window, the caret in it
     for _, id in ipairs({ a, b }) do N.throwPastie(id) end
@@ -353,9 +360,25 @@ do
     local id3 = MM.newPastie(); D.frame()
     local c3 = D.cell("pastie:" .. id3)
     local wx = root.win:getAbsoluteX() - root.icons:getAbsoluteX()
-    check("QA 3: a new note goes beside the window, not under it", c3 and c3.x >= wx + root.win.width, c3 and (c3.x .. " vs " .. (wx + root.win.width)))
+    local wy = root.win:getAbsoluteY() - root.icons:getAbsoluteY()
+    local function offWin(c) return c.x >= wx + root.win.width or c.x + c.w <= wx or c.y >= wy + root.win.height or c.y + c.h <= wy end
+    local function offIcons(c)
+        for _, o in ipairs(root.icons._cells) do
+            if o ~= c and not (o.item and o.item.pastieId) and o.x < c.x + c.w and c.x < o.x + o.w and o.y < c.y + c.h and c.y < o.y + o.h then return false, o.item.id end
+        end
+        return true
+    end
+    check("QA 3: a new note goes beside the window, not under it", c3 and offWin(c3), c3 and (c3.x .. "," .. c3.y))
     check("QA 3: the caret in it", root.pasties[id3].entry:isFocused())
+    local okI, onIcon = offIcons(c3)
+    check("QA 5: and off the desktop's icons", okI, onIcon)
     root.pasties[id3].entry:unfocus()
+    local id5 = MM.newPastie(); D.frame()
+    local c5 = D.cell("pastie:" .. id5)
+    check("QA 6: a second one is off the window and the icons too", c5 and offWin(c5) and offIcons(c5), c5 and (c5.x .. "," .. c5.y))
+    check("QA 6: and not almost on top of the first", c5 and (math.abs(c5.x - c3.x) >= 14 or math.abs(c5.y - c3.y) >= 14), c5 and (c5.x - c3.x) .. "," .. (c5.y - c3.y))
+    root.pasties[id5].entry:unfocus()
+    N.throwPastie(id5); D.frame()
     -- a window over the whole desk: the note goes beside the icon, and no caret (the typing would go out of sight)
     root.win.x, root.win.y, root.win.width, root.win.height = D.L.tx, D.L.ty, D.L.tw, D.L.th
     D.frame()
