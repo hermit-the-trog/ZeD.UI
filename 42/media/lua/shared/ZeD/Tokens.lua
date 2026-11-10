@@ -42,6 +42,10 @@ ZeD.BaseThemes = {
 
     dark = {
         name     = "Dark",
+        -- the list menu's marks on surface 1 (punch list 138, the director approved Nov 10 2026): the paper pair's
+        -- hues made light enough for 4.5 : 1 here (blue 5.6, red 4.7), apart under all three kinds of color blindness
+        markAdd    = hex("#4491E2"),
+        markRemove = hex("#D9572A"),
         base     = hex("#0C0C0C", 0.92),   -- deepest background (neutral grey)
         onBand   = hex("#030303", 1.0),     -- the Mods list: the solid band under a mod that is on (darker than base)
         surf1    = hex("#141414", 0.92),    -- window background
@@ -118,6 +122,9 @@ ZeD.BaseThemes = {
 
     light = {
         name     = "Light",
+        -- the list menu's marks: dark enough for 4.5 : 1 on the grey surface (blue 4.6, red 4.8; the red reads as rust)
+        markAdd    = hex("#014E8E"),
+        markRemove = hex("#872801"),
         base     = hex("#C6C6C6", 0.97),
         onBand   = hex("#A6A6A6", 1.0),
         surf1    = hex("#BEBEBE", 0.97),
@@ -186,6 +193,8 @@ ZeD.BaseThemes = {
 
     hicon = {
         name     = "High contrast",
+        markAdd    = hex("#4491E2"),   -- the list menu's marks: Dark's pair (blue 5.7 : 1, red 4.8 here)
+        markRemove = hex("#D9572A"),
         base     = hex("#050505", 0.95),
         onBand   = hex("#000000", 1.0),
         surf1    = hex("#111111", 0.95),
@@ -886,6 +895,9 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
 
     -- Surface colors from base theme
     T.base     = base.base
+    -- the marks on this theme's own surfaces (the list menu); the strip and the wheels sit on the locked paper and
+    -- use ZeD.Ctx.markAdd / markRemove
+    T.marks    = { add = base.markAdd, remove = base.markRemove }
     T.onBand   = base.onBand or base.base
     T.surf1    = base.surf1
     T.surf2    = base.surf2

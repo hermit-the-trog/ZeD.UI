@@ -3240,6 +3240,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       color; the strip's cell (and so the wheels', which now hand it the icon's id) asks for marks at rest only.
       The container pair follows the rule, not the handoff table's ids: in the game `tray_in` is Take / Take Out /
       Loot all (blue) and `tray_out` Put In / Transfer all (red). Sims: menu_marks_sim 504/0 (53 of its checks fail
-      on the old code), `python marks.py` 0 problems. **Open:** the list menu sits on the theme's surface, not the
-      paper: the two colors fall to about 3 : 1 there (blue 3.0 on Dark, red 2.8 on Light), so its rows stay ink
-      until the director picks.
+      on the old code), `python marks.py` 0 problems.
+    - **The list menu, Nov 10 2026 (the director: "Shades per theme", then approved the sheet).** The list sits on the
+      theme's surface, not the paper, where the paper pair falls to about 3 : 1. Each base theme carries its own pair
+      for it (T.marks): Dark and High contrast blue #4491E2 / red #D9572A, Light blue #014E8E / red #872801 (the red
+      reads as rust there), all at 4.5 : 1 or more on surface 1, the same hues as the paper pair, and further apart
+      under the three kinds of color blindness than the paper pair (Light about the same). Rows at rest only: the row
+      the pointer or pad is on, and a row whose submenu is open, keep the whole icon in their words' color.
+      menu_marks_sim 513/0. **Check (QA, Mac):** at 1x and 1.75x, Dark, Light and High contrast: the strip, a wheel
+      and the list each show blue on Equip / Take / Zoom in and red on Unequip / Put in / Drop / Dispose's lid / a
+      strike; the pointed cell or row has no color left; Eat, Sneak and the safehouse rows show the new icons; the
+      24 plus sits centred (Equip in a wheel at 1.75x).

@@ -7,6 +7,8 @@
 --   DRAW   Tokens.lua and Atoms.lua: ZeD.Ctx.markAdd is #0B63B0 and markRemove #C2410C; drawPxIcon with marks draws
 --          the icon in its tint and then the mark's picture, the same size, in the mark's color (blue for add, red for
 --          remove); without marks, or for an icon with no mark, only the icon
+--   LIST   each base theme's own pair for the list menu (T.marks: Dark and High contrast #4491E2 / #D9572A, Light
+--          #014E8E / #872801), and drawPxIcon given a pair draws in it
 --   CELL   Molecules.lua's drawContextCell (the strip's cell, which the wheels draw too): at rest a ZeD icon's mark is
 --          colored; the pointed cell draws the whole icon in the accent's text color; a colored picture (not ZeD's)
 --          gets no mark
@@ -185,6 +187,23 @@ if A and A.drawPxIcon then
     check("DRAW: an icon with no mark draws once", #p.draws == 1, #p.draws)
     p = panel(); A.drawPxIcon(p, "equip", 0, 0, 16, 1, INK)
     check("DRAW: the old call (no marks argument) is unchanged", #p.draws == 1, #p.draws)
+
+    -- LIST: the theme's own pair on its surfaces (the director approved the shades Nov 10 2026)
+    local SHADES = { dark = { 0x44, 0x91, 0xE2, 0xD9, 0x57, 0x2A }, hicon = { 0x44, 0x91, 0xE2, 0xD9, 0x57, 0x2A },
+                     light = { 0x01, 0x4E, 0x8E, 0x87, 0x28, 0x01 } }
+    for key, v in pairs(SHADES) do
+        if ZeD.BaseThemes[key] then
+            pcall(ZeD.applyTheme, key, "teal", "small")
+            local m = ZeD.T and ZeD.T.marks
+            check("LIST: " .. key .. "'s blue", m and near(m.add, v[1], v[2], v[3]))
+            check("LIST: " .. key .. "'s red", m and near(m.remove, v[4], v[5], v[6]))
+            p = panel(); A.drawPxIcon(p, "unequip", 0, 0, 16, 1, INK, m)
+            check("LIST: " .. key .. ": the mark takes the theme's red, not the paper's", #p.draws == 2 and near(p.draws[2], v[4], v[5], v[6]))
+        else
+            check("LIST: the base theme " .. key .. " exists", false)
+        end
+    end
+    pcall(ZeD.applyTheme, "dark", "teal", "small")
 else
     check("DRAW: ZeD.Atoms.drawPxIcon", false)
 end
