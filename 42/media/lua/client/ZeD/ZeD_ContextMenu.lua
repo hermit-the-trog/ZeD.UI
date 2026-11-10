@@ -617,7 +617,39 @@ function ZeD_ContextMenu:confirm()
     if def.onFire then
         pcall(def.onFire, self._ctx.target)
     end
+    -- (an option that asks to stay: the menu is rebuilt in place, ModSupport/ResponsiveUI.lua)
+    if def.keepOpen and self._ctx.open then return end
     self:close()
+end
+
+-- A mod rebuilt the game's menu while this strip is open (ModSupport/ResponsiveUI.lua): the new actions go in
+-- where the old ones were. The strip stays where it is; the submenu path and the selected action are found again
+-- by name (and which one of that name). A submenu whose row is gone goes back up to the level that is left; a
+-- selected action that is gone leaves the selection at the same place, or the last.
+function ZeD_ContextMenu:refreshTree(tree, target)
+    local R = ZeD.ContextMenu.Registry
+    local ctx = self._ctx
+    local oldItems = ctx.items or self:_currentItems()
+    local oldSel, oldIdx, oldN, oldPos, oldDepth = oldItems[ctx.selected], ctx.selected, #oldItems, ctx.pos, #ctx.path
+    local path, node, newNode, whole = {}, ctx.actions, tree, true
+    for _, p in ipairs(ctx.path) do
+        local d = node[p]
+        local i, nd = R.findByKey(newNode, R.keyOf(node, d))
+        local kids = nd and R.childrenOf(nd, target)
+        if not (kids and #kids > 0) then whole = false; break end
+        path[#path + 1] = i
+        node, newNode = d.children or {}, kids
+    end
+    ctx.actions, ctx.target, ctx.path = tree, target, path
+    local items = self:_currentItems()
+    local sel = whole and oldSel and R.findByKey(items, R.keyOf(oldItems, oldSel)) or nil
+    if not sel then sel = whole and oldIdx or (#path > 0 and 2 or 1) end
+    ctx.selected = math.max(1, math.min(sel, #items))
+    self:_rebuildTrack()
+    if ctx.truncating and #items == oldN and #path == oldDepth and ctx.selected == oldIdx then ctx.pos = oldPos end
+    -- (anything moved: snap to it, no slide)
+    if ctx.pos ~= oldPos or #items ~= oldN then self._suppressFrames = 1 end
+    self._relightDef = items[ctx.selected]
 end
 
 function ZeD_ContextMenu:cancel()

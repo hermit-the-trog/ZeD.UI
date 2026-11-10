@@ -587,6 +587,7 @@ function Registry.highlight(holder, def)
         tellMenu(was, nil)
     end
     holder._hlMenu = menu
+    holder._hlDef = def   -- (the lit row, found again when the menu is rebuilt in place: ModSupport/ResponsiveUI.lua)
     if menu then
         menu._zedLit = true
         tellMenu(menu, opt)
@@ -750,6 +751,10 @@ local function makeActionDef(option, index, vanillaMenu, target)
         end
     end
 
+    -- a supported mod may add to the def (ModSupport/ResponsiveUI.lua: its keep-open options); unset without it
+    local deco = ZeD.ContextMenu and ZeD.ContextMenu.decorateDef
+    if deco then pcall(deco, def, option, vanillaMenu) end
+
     return def
 end
 
@@ -757,6 +762,48 @@ end
 --- mods fill a submenu only on hover, through option.onSubMenu, so the
 --- build-time snapshot can miss children that appear when the player drills in.
 Registry._makeActionDef = makeActionDef
+
+--- A def's place among its siblings that outlives a rebuild of the menu: its name and which one of that name it
+--- is (1 for the first). A menu rebuilt in place (ModSupport/ResponsiveUI.lua) finds its open submenus and its
+--- selected row again by it. nil for a def not in the list.
+function Registry.keyOf(list, def)
+    if not def then return nil end
+    local n = 0
+    for _, d in ipairs(list or {}) do
+        if d.name == def.name then n = n + 1 end
+        if d == def then return def.name, n end
+    end
+    return nil
+end
+
+--- The index and def in list with that key (Registry.keyOf), or nil.
+function Registry.findByKey(list, name, nth)
+    if name == nil then return nil end
+    local n = 0
+    for i, d in ipairs(list or {}) do
+        if d.name == name then
+            n = n + 1
+            if n == nth then return i, d end
+        end
+    end
+    return nil
+end
+
+--- A def's children, filled the lazy way (onSubMenu, as the menus' drill-in does) when the build had none.
+function Registry.childrenOf(def, target)
+    if def.subOption and def._vanillaMenu and (not def.children or #def.children == 0) then
+        local vm, opt = def._vanillaMenu, def.vanillaRef
+        if opt and opt.onSubMenu then pcall(function() opt:onSubMenu(vm, opt) end) end
+        if vm.getSubMenu then
+            local ok, sub = pcall(function() return vm:getSubMenu(def.subOption) end)
+            if ok and sub and sub.options and #sub.options > 0 then
+                def.children = {}
+                for j, so in ipairs(sub.options) do def.children[#def.children + 1] = makeActionDef(so, j, sub, target) end
+            end
+        end
+    end
+    return def.children
+end
 
 -- Names of submenus flattened into the parent list. Vanilla buckets overflow
 -- inventory actions (Rename, Show Build Recipes Used...) under "More" so its

@@ -236,6 +236,46 @@ function ZeD_ContextList:cancel()
     if #self._levels > 1 then self._levels[#self._levels] = nil else self:close() end
 end
 
+-- A mod rebuilt the game's menu while this list is open (ModSupport/ResponsiveUI.lua): the new actions go in where
+-- the old ones were. Each level stays where it is; its open submenu and its selected row are found again by name
+-- (and which one of that name). A level whose row is gone closes; a selected row that is gone leaves the selection
+-- on the nearest choice at the same place.
+local function rowOf(rows, def)
+    for ri, r in ipairs(rows) do if r.def == def then return ri end end
+    return nil
+end
+function ZeD_ContextList:refreshTree(tree, target)
+    local R = ZeD.ContextMenu.Registry
+    local old, lit = self._levels, self._hlDef
+    self._ctx.actions, self._ctx.target = tree, target
+    self._relightDef = nil
+    local levels, items, parentRow = {}, tree, nil
+    for li, lv in ipairs(old) do
+        local nl = { items = items, head = lv.head, parentRow = parentRow }
+        nl.rows = rowsOf(items)
+        self:_measure(nl, nl.head)
+        self:_place(nl, lv.x, lv.y, levels[li - 1])
+        local was = lv.sel and lv.rows[lv.sel] and lv.rows[lv.sel].def
+        local _, now = R.findByKey(items, R.keyOf(lv.items, was))
+        if now then nl.sel = rowOf(nl.rows, now)
+        elseif lv.sel then nl.sel = self:_firstLive(nl, math.min(lv.sel, #nl.rows), 1) end
+        if li == 1 and not nl.sel then nl.sel = self:_firstLive(nl, 1, 1) or 1 end
+        if was and was == lit then self._relightDef = nl.sel and nl.rows[nl.sel] and nl.rows[nl.sel].def end
+        levels[li] = nl
+        local nx = old[li + 1]
+        local opened = nx and lv.rows[nx.parentRow] and lv.rows[nx.parentRow].def
+        local _, pdef = R.findByKey(items, R.keyOf(lv.items, opened))
+        local kids = pdef and R.childrenOf(pdef, target)
+        if not (kids and #kids > 0) then break end
+        items, parentRow = kids, rowOf(nl.rows, pdef)
+    end
+    self._levels = levels
+    -- the pointer's resting row follows its level's selection (the rest still opens a submenu)
+    local hl = self._hoverLi
+    if hl and levels[hl] and levels[hl].sel then self._hoverRow = hl .. ":" .. levels[hl].sel
+    else self._hoverLi, self._hoverRow = nil, nil end
+end
+
 function ZeD_ContextList:move(dir)
     local lv = self._levels[#self._levels]
     if not lv then return end

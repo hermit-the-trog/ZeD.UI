@@ -266,6 +266,10 @@ end
 local origClear = V.clear
 function ISContextMenu:clear()
     origClear(self)
+    -- A supported mod that rebuilds the open menu in place (ModSupport/ResponsiveUI.lua) keeps ZeD's menu up
+    -- through the rebuild: the new options go to it (ZeD.ContextMenu.refreshInPlace), no new menu opens.
+    local hold = ZeD.ContextMenu and ZeD.ContextMenu.holdOnClear
+    if hold and self._zedMenu and self._zedMenu._ctx and self._zedMenu._ctx.open and hold(self) then return end
     self._zedSpawned = false
     self._zedFailed = false
     -- If the previous RMB's ZeD organism is still alive (user re-clicked
@@ -275,6 +279,36 @@ function ISContextMenu:clear()
         pcall(function() self._zedMenu:close() end)
     end
     self._zedMenu = nil
+end
+
+-- The game's menu was rebuilt while ZeD's menu, held through the clear above, stays open: the rebuilt options go
+-- to that menu (refreshTree keeps its place, its open submenus and its selection). Nothing left to show closes it,
+-- as a fresh right-click with nothing to show opens none. Returns true when the menu took the new options.
+ZeD.ContextMenu = ZeD.ContextMenu or {}
+function ZeD.ContextMenu.refreshInPlace(context, held)
+    if not (context and held and held._ctx and held._ctx.open and held.refreshTree) then return false end
+    local Registry = ZeD.ContextMenu.Registry
+    if context.addDefaultOptions then pcall(context.addDefaultOptions, context) end
+    local okT, tree = pcall(function()
+        local t = Registry.buildActionsFromVanilla(context.options, context._zedTarget, context)
+        Registry.applyPins(t, context._zedTarget)
+        return t
+    end)
+    if not okT or type(tree) ~= "table" or #tree == 0 or context:isEmpty() then
+        pcall(held.close, held)
+        return false
+    end
+    held.vanillaMenu = context
+    local okR, err = pcall(held.refreshTree, held, tree, context._zedTarget)
+    if not okR then
+        ZeD.logOnce("ContextMenu refresh failed", err)
+        pcall(held.close, held)
+        return false
+    end
+    context._zedMenu, context._zedSpawned, context._zedFailed = held, true, false
+    context:setX(-100000)
+    context:setY(-100000)
+    return true
 end
 
 -- ---------------------------------------------------------------------------
