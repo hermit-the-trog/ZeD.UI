@@ -4712,10 +4712,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- (a drawer its half folded, WindowHalves: the window narrows by the drawer alone, so the list beside it stays
         -- under a resting pointer; the width the cap took is owed until the drawer really closes, punch list 126)
         local folded = ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) ~= nil
-        -- a fold that ended with the drawer still shut (another tab, a reset): what it owed is paid now, as the close
-        -- would have, so the inventory comes back to its width. (An unfold opens the drawer, which keeps the debt.)
-        if win._wasFolded and not folded and drawerDelta == 0 and effectiveW == 0 and not win._drawerOpen
-            and (win._drawerCapLost or 0) > 0 then
+        -- a fold that ended any other way than its own tab coming back (another tab, a card, the drawer shut, a reset):
+        -- what it owed is paid now, as the close would have, so the inventory comes back to its width before anything
+        -- else opens. (The same tab back reopens the same width, which owes the same again: that keeps the debt.)
+        local sameBack = win._drawerOpen and win._drawerMode == "tab" and win._activeTab == win._wasFoldTab
+        if win._wasFolded and not folded and not sameBack and (win._drawerCapLost or 0) > 0 then
             local cap = maxW - (win._rolled and (win._rollW or 0) or 0)
             local newW = math.min(win:getWidth() + win._drawerCapLost, cap)
             win._drawerCapLost = 0
@@ -4728,6 +4729,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             win._lastSetX = newX
         end
         win._wasFolded = folded
+        win._wasFoldTab = folded and ZeD.Halves.foldedTab(win) or nil
         if drawerDelta ~= 0 then
             -- A card opening in MC mode expands the window like tab mode
             -- does, rather than evicting MC columns up front: shrinking the inv

@@ -3051,6 +3051,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       not be grabbed again. **Build, Nov 10:** a moved note is laid out after every icon, so it draws over them and its
       hit is the last registered (the desk's pointer takes the last hit under it). desk_sim 161/0 (both new checks fail
       on the test 2 code). Pad, 1.75x, Light and High contrast not run yet. In test 4.
+    - **QA, Mac, Nov 10 2026: ok.** Dropped over CletusWorks and Mail it draws on top, and its strip still drags it out.
+      Pad, 1.75x, Light and High contrast still to run.
 115. **Bug reports hide the player's account name (the director, Nov 8 2026: "Hopefully yes"; beta 9).** ZeD_Messages.lua
     reportHeader / report / reportOne / reportAll and the Messages window's Copy / Copy all replace the Windows user
     folder (C:\Users\<name>\ and the forward-slash form -> ~\) and the Zomboid folder (getMyDocumentFolder -> ~/Zomboid)
@@ -3136,6 +3138,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       windows' push and lost width (_drawerCapPush, _drawerCapLost). Organisms.lua. Sim: reset_cap_push_sim 8/0 (it
       reads the 864 on the old code). **Check (QA, Mac or Deck size):** zedqa_curtain at 1280 x 800: "tab closed
       while rolled" ok at 644.
+    - **QA, Mac, Nov 10 2026 (1280 x 800): ok.** "tab closed while rolled" at 644,0; the curtain run's 312 lines have no
+      FAIL, no ERR, no Lua error. **Done** but for the Workshop upload.
 
 126. **The Character list slides when its drawer folds at small sizes (QA's staged Deck run, Nov 9 2026; also in
     beta 9).** At 1280x800 (0.75) with Equip's full card open, the half-screen cap costs the window 53 px and pushes it
@@ -3158,6 +3162,22 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       the drawer fold in (pointer on the inventory past 2 s): the list moves no more than 4 px; then point at the
       drawer's bar: it comes back where it was; then fold again and pick another tab: the inventory is as wide as
       before the card.
+    - **QA, Mac, Nov 10 2026 (1280 x 800, the Firefighter Axe's card in Equipment, the list recorded each frame).**
+      First fold ok: the list moved 4 px once (387 to 383), 53 px stayed owed; the drawer's bar brought it back where
+      it was. Two more reads: (1) "the second fold", after the inventory half rolled up and came back: the list came
+      back at 334 with the debt paid (x 307, 333 wide). That is WindowHalves' instant fold (snapShut): the whole window
+      back from rolled-up with the drawer half folded pays the debt on purpose, so the inventory reappears at its full
+      width (dual_pin_sim CAP: 444 wide, not 160); the window was rolled up, so nothing slid under a resting pointer.
+      Kept as it is. QA saw one frame at 694 first: a flash as the window comes down, not looked into. (2) Another tab
+      while folded: with Health open the inventory read 226 with 53 owed. With a drawer open at the Deck size 226 is the
+      cap's width, so that read is right, but the debt was a stale one from the fold: had Health been narrower than
+      the card, it would have opened 53 px narrower than it could, and the inventory stayed 53 px narrow after Health
+      closed. **Build, Nov 10:** a fold that ends any way other than its own tab coming back (another tab, a card, the
+      drawer shut) pays the debt at once, so the next drawer opens from the inventory's own width. fold_slide_sim 22/0
+      (OTHER fails on the old code: 226 after Health closed). **Trade-off for the director:** while a drawer is folded
+      the inventory stays as narrow as the cap made it (53 px at the Deck with the axe's card; with a 480 px drawer it
+      would be 284, a very narrow inventory), so the list doesn't move. The alternative is the old way, full width
+      while folded with the list sliding. **Check (QA):** fold, pick another tab, close it: the inventory back to 279.
 
 127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
     Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).
@@ -3230,6 +3250,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       the strip, not over it, so it stayed. **Build, Nov 10:** the strip now steps aside while any balloon of the belt's
       is up, wherever it stands (the balloon slot's owner is the belt), as well as for any balloon over it.
       hint_strip_cover_sim 12/0 (the belt's balloon off to the side). In test 4.
+    - **QA, Mac, Nov 10 2026: ok.** The strip goes while Back, Secondary or Primary shows its balloon and comes back
+      after. **Done.**
 
 132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; CLOSED, no change: the director, via QA: "No, click only").** The Strip opens a submenu on a click; resting shows only the balloon. A change note that mentions rest names the List only. In the List style, a submenu opens when
     the pointer rests on its row (beta 9). In the Strip style, resting on Disassemble shows its balloon, but the
@@ -3277,6 +3299,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       without ZeD (ZeD off, the same mod list): do the mod's labels draw there? If they do, ZeD's map is missing
       something the game's map has (a layer setting, the symbols' colour taken from the layer); if they don't, the mod
       itself doesn't draw them in that place, and it isn't ZeD's.
+    - **QA, Mac, Nov 10 2026: not ZeD's.** With ZeD off (only Custom Map Labels and the harness), the game's own map on
+      the same revealed Muldraugh area draws its street names and the store holds the same 82 symbols, but none of the
+      mod's labels show (Muldraugh, Wrecking Yard, Store-A-Max), at zoom 15 or 13.8. With the labels' own colour fully
+      transparent, it points at the mod. **Closed for ZeD**; worth a word to the mod's author (the director's call).
 
 135. **The held item's box (QA's Mac run, Nov 9 2026; director's call, QA asking).** A held axe shows the game's own item
     box (Encumbrance, Sharpness, bars) above ZeD's "Primary" balloon. By design: the balloon spec keeps the game's item
