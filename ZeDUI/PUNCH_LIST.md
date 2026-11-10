@@ -3397,6 +3397,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       and the list each show blue on Equip / Take / Zoom in and red on Unequip / Put in / Drop / Dispose's lid / a
       strike; the pointed cell or row has no color left; Eat, Sneak and the safehouse rows show the new icons; the
       24 plus sits centred (Equip in a wheel at 1.75x).
+    - **The director, Nov 10 2026, on QA's two questions:** Place Item keeps the red Drop arrow (putting a thing down
+      in the world is its "leaves you" side); Grab (the floor's, a corpse, an animal from a hutch) takes the Take icon
+      with its blue arrow: its own picture name, "grab", so Smash keeps the fist. menu_marks_sim 606/0.
 140. **The outfit and loadout icons in the game; the radio's preset "+" follows the accent (the director, Nov 10 2026:
     "Yes, add those. Put them in the game." and "it should follow the accent").** The six list icons drawn Oct 30
     (HANDOFF_list_icons_20261030.md) had never been exported: the game showed the stand-ins (the hanger and the list

@@ -131,6 +131,11 @@ do
         check("NAMES: Release safehouse draws the house with a minus", id("ContextMenu_SafehouseRelease") == "safehouse_release", id("ContextMenu_SafehouseRelease"))
         check("NAMES: View safehouse draws the house", id("ContextMenu_ViewSafehouse") == "safehouse", id("ContextMenu_ViewSafehouse"))
         check("NAMES: Reinforce keeps its shield", id("Reinforce") == "reinforce", id("Reinforce"))
+        -- Grab takes the Take icon, blue; Smash keeps the fist; Place Item keeps the red Drop arrow (the director, Nov 10)
+        check("NAMES: Grab draws Take", id("Grab") == "tray_in", id("Grab"))
+        check("NAMES: ... Grab with its thing after (the first word)", id("Grab Hammer") == "tray_in", id("Grab Hammer"))
+        check("NAMES: ... and its blue mark", MK and MK.tray_in == "add")
+        check("NAMES: Smash keeps the fist", id("Smash") == "fist", id("Smash"))
         for _, k in ipairs({ "ContextMenu_Eat", "ContextMenu_Eat_All", "ContextMenu_Eat_Half", "ContextMenu_Eat_Quarter" }) do
             check("NAMES: " .. k .. " draws the eat figure", id(k) == "eat", id(k))
         end

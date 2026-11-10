@@ -310,6 +310,8 @@ CTX = [
     (5, "gun-shooting", "gun_fire"), (5, "burst", "gun_fire"), (5, "target", "target"), (5, "person-rifle", "target"),
     (5, "angle-double-small-up", "mag_in"), (5, "unload-bullet", "rounds_out"), (5, "arrows-alt-h", "rack"),
     (5, "arrow-right-to-bracket", "push"), (5, "hiking-boot", "boot"), (5, "fist-move", "fist"),
+    # Grab (the floor's, a corpse's, a hutch's animal): the Take icon with its blue arrow (the director, Nov 10 2026)
+    (1, "grab", "tray_in"),
     (5, "primary-hand", "hand_main"), (5, "secondary-hand", "hand_off"), (5, "on-back", "backpack"),
     (5, "holster-gun-left", "holster_left"), (5, "holster-gun-right", "holster_right"), (5, "arrow-alt-to-bottom", "holster"),
     (5, "square-dashed-circle-plus", "link"), (5, "octagon-minus", "unlink"), (5, "rifle_scope", "scope"),

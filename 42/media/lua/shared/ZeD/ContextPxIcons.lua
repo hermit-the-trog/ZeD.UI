@@ -39,6 +39,7 @@ ZeD.ContextPxIcons = {
     ["employee-handbook"] = "notebook",
     ["face-mask"] = "mask",
     ["face-sleeping"] = "bed",
+    ["grab"] = "tray_in",
     ["graduation-cap"] = "skills",
     ["hair-clipper"] = "razor",
     ["hairbrush"] = "comb",

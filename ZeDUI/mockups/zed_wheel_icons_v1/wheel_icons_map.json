@@ -4602,6 +4602,11 @@
    "id": "fist"
   },
   {
+   "group": 1,
+   "picture": "grab",
+   "id": "tray_in"
+  },
+  {
    "group": 5,
    "picture": "primary-hand",
    "id": "hand_main"

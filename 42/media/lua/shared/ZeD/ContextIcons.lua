@@ -409,7 +409,7 @@ ZeD.ContextIcons = {
     ["Attach"]                                    = "square-dashed-circle-plus",
     ["Change"]                                    = "rotate-reverse",
     ["Insert"]                                    = "arrow-right-to-bracket",
-    ["Grab"]                                      = "fist-move",
+    ["Grab"]                                      = "grab",   -- (the Take icon, blue: the director, Nov 10 2026; Smash keeps the fist)
     ["Pick"]                                      = "arrow-up-right-from-square",
     ["Turn"]                                      = "rotate-left",
 
