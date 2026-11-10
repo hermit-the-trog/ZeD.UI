@@ -3598,6 +3598,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the next; the last pick is kept for the session. Seven new words in all 28 languages. studio_sim 55/0.
     **Check (QA, Mac):** the tray, each swatch, the roll up and down; a photo on each backdrop (paper edge to edge,
     no roller); a 16:10 screen: the sides cropped, nothing stretched; Leave and back: the same backdrop.
+    **The director, Nov 10 2026, on Knox County:** "just has a floating object on the middle left ... Just a sunset
+    would be fine with a field in the background. Doesn't have to be too much." Redrawn: a sunset sky (dusk purple to
+    gold at the horizon, the sun's haze low behind the figure) over a plain field with a gentle roll at its edge;
+    the water tower and the fence gone.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

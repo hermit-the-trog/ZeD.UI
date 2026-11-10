@@ -133,42 +133,25 @@ def autumn():
 
 
 def knox():
-    """Knox County at sundown: a warm sky, rolling Kentucky hills fading into haze, a white plank fence either side"""
+    """Knox County at sundown: just a sunset over a field (the director, Nov 10 2026: "Just a sunset would be fine with a
+    field in the background. Doesn't have to be too much." The first draft's water tower read as a floating object,
+    and its fence went with it)"""
     x, y = grids()
-    col = ramp(y, [(0.0, (88, 72, 128)), (0.28, (196, 108, 112)), (0.5, (240, 160, 96)), (0.62, (250, 206, 140)), (1.0, (250, 206, 140))])
-    img = to_img(col)
-    d = ImageDraw.Draw(img)
-    rng = np.random.default_rng(41)
-    # the hills: four ridges, far to near, each a smooth wave, hazier the farther
-    ridges = [(0.56, 0.035, (150, 128, 140)), (0.62, 0.045, (118, 112, 116)), (0.70, 0.05, (84, 98, 78)), (0.80, 0.04, (58, 78, 50))]
-    for k, (base, amp, c) in enumerate(ridges):
-        ph = rng.random() * 6.28
-        ph2 = rng.random() * 6.28
-        pts = [(0, H)]
-        for i in range(0, W + 8, 8):
-            t = i / W
-            yy = base + amp * np.sin(t * (3 + k) + ph) + amp * 0.5 * np.sin(t * (9 + 2 * k) + ph2)
-            pts.append((i, yy * H))
-        pts.append((W, H))
-        d.polygon(pts, fill=c)
-    # a water tower on the far ridge, left of centre (a small silhouette: a landmark, any county's)
-    tx, ty = int(W * 0.22), int(H * 0.53)
-    d.rectangle([tx - 14, ty - 34, tx + 14, ty - 18], fill=(120, 104, 120))
-    for lx in (tx - 11, tx - 3, tx + 3, tx + 11):
-        d.line([lx, ty - 18, lx + (lx - tx) // 3, ty + 4], fill=(120, 104, 120), width=2)
-    img = img.filter(ImageFilter.GaussianBlur(2.2))
-    # the fence, near and sharp, either side of the middle (the figure stands between)
-    d = ImageDraw.Draw(img)
-    fy = int(H * 0.80)
-    for x0, x1 in ((0, int(W * 0.34)), (int(W * 0.66), W)):
-        for rail in (fy, fy + 22):
-            d.rectangle([x0, rail, x1, rail + 6], fill=(236, 232, 222))
-            d.line([x0, rail + 6, x1, rail + 6], fill=(170, 160, 150), width=2)
-        post = x0 + 18
-        while post < x1:
-            d.rectangle([post, fy - 14, post + 10, fy + 44], fill=(244, 240, 230))
-            d.line([post + 10, fy - 14, post + 10, fy + 44], fill=(176, 166, 154), width=2)
-            post += 96
+    hz = 0.64                                            # the horizon
+    sky = ramp(y / hz, [(0.0, (74, 62, 118)), (0.45, (186, 104, 116)), (0.8, (238, 152, 92)), (1.0, (252, 208, 138))])
+    # the sun's warm haze, low behind the figure, and a hazy far edge of the field
+    sun = glow(0.5, hz, 0.55, 1.6)
+    sky = sky * (1 - 0.35 * sun[..., None]) + np.array((255, 226, 168), np.float32) * 0.35 * sun[..., None]
+    t = np.clip((y - hz) / (1 - hz), 0, 1)
+    field = ramp(t, [(0.0, (176, 140, 96)), (0.12, (128, 120, 72)), (0.5, (92, 98, 52)), (1.0, (62, 72, 38))])
+    grass = noise(W, H, octaves=5, base=24, persist=0.5, seed=42)
+    field *= (0.88 + 0.24 * grass)[..., None]
+    field = field * (1 - 0.25 * sun[..., None]) + np.array((236, 186, 110), np.float32) * 0.25 * sun[..., None]
+    # a gentle roll in the horizon, so the field isn't a ruler line
+    edge = hz + 0.012 * np.sin(x * 5.0 + 1.3) + 0.006 * np.sin(x * 13.0 + 0.4)
+    m = (y >= edge)[..., None]
+    col = np.where(m, field, sky)
+    img = to_img(col).filter(ImageFilter.GaussianBlur(1.6))
     arr = np.asarray(img, np.float32) * vignette(0.3)[..., None]
     return to_img(arr)
 
