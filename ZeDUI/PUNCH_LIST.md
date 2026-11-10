@@ -3381,6 +3381,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       cloud session. **The probe:** `zedqa_pointer_probe.lua` (pointer_manifest.txt) lists what Lua reaches on Mouse,
       getCore() and UIManager about the pointer, tries the likely names, hides the pointer for a second if it can
       (two shots), and looks for the game's own pointer pictures. **Check (QA, Mac):** run it, send the "ZEDQA ptr"
-      lines and the two shots. Then design: a pointer set in ZeD's pixel style (the resting hand still to be ruled:
-      the game's or ZeD's own).
+      lines and the two shots. Then design: a pointer set in ZeD's pixel style.
+    - **The director, Nov 10 2026: a ZeD pixel-art hand at rest, "so the whole set matches".** The set: the resting
+      hand, then one pointer per drop (Floor, Put in, Take, Equip), marks coloured as in the menus.
 
