@@ -3200,3 +3200,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     debug-menu equivalent. Sending from Lua only if Phase 0 finds the chat path; otherwise it fills the chat box.
     Each phase: mockup first for anything new on screen (System 7 window, ZeD atoms), sims, QA at 4K and Deck,
     controller parity, translations for every new string.
+
+137. **Responsive Context Menus [B42] support (the director via QA, Nov 9 2026; DONE for beta 11).** Workshop 3783387236,
+    mod id ResponsiveUI. ZeD's menu (Strip and List) takes the mod's 250 ms rebuilds in place: same place, submenu path
+    and selection, greyed state and balloons refreshed, responsiveUIKeepOpen honoured, and it closes with the mod's
+    close and its Escape. ModSupport/ResponsiveUI.lua; responsiveui_sim 47/0; zedqa_responsiveui 30/0 at 4K
+    (regression/2026-11-09_1732_mods_fullscreen4k.md). With the mod off nothing changes (menus 3/3). At beta 11: a
+    change-note line under Mods ("Responsive Context Menus: menus update in place as you move, light changes or a tool
+    comes into reach; options that keep the menu open work"), and the mod goes on the compatibility thread's Supported
+    list.
