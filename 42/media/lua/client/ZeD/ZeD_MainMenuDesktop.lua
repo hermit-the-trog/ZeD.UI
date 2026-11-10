@@ -14,7 +14,7 @@
 -- second click opens it; Return or A opens the selected one, the arrows or the
 -- D-pad move between them. They sit under the windows, as icons do.
 --
--- Down the left edge: the sticky note, always there and typed in place, then
+-- Down the left edge: Pasties (the sticky notes' app: its notes lie where they are put), then
 -- CletusWorks (the notepad), ProtoPOP3 Mail and the Documents folder (the
 -- notes, ZeD_MainMenuDocs.lua), columns to the right when one fills and never
 -- over the right column. ZeD_MainMenuNotes.lua builds that list
@@ -257,10 +257,12 @@ function ZeD_MMIcons:prerender()
         local sel = self.focusId == it.id
         local tex = icon(it.icon or it.id)
         local ready = iconReady(tex)
-        if it.draw then                                   -- (an item that draws itself: the sticky note)
+        if it.draw then                                   -- (an item that draws itself: a Pastie)
             it.draw(self, c, sel)
             ready = false
             self._hits[#self._hits + 1] = { id = "desk:" .. it.id, x = c.x, y = c.y, w = c.w, h = c.h, fn = function() self:click(it.id) end }
+            -- (its own boxes over it, a note's question's buttons: registered after it, so they take the pointer)
+            if it.hits then for _, h in ipairs(it.hits(self, c) or {}) do self._hits[#self._hits + 1] = h end end
         end
         local k = sel and 0.55 or 1                       -- a selected icon darkens, as they did
         if ready then                                     -- (picture and name come together)
@@ -316,6 +318,14 @@ local function fractions(room, x, y)
 end
 MM._stickyFractions = fractions
 
+--- The room a moved item of iw x ih moves in, the desktop under the menu bar (cells' own room): x0, y0, x1, y1.
+function MM.deskRoom(iw, ih)
+    local T, L = ZeD.T, MM.layout()
+    local top = L.ty + T.px(U.BAR_H) + T.px(EDGE)
+    return { x0 = L.tx + T.px(EDGE), y0 = top, x1 = math.max(L.tx + T.px(EDGE), L.tx + L.tw - T.px(EDGE) - iw),
+             y1 = math.max(top, L.ty + L.th - T.px(EDGE) - ih) }
+end
+
 -- the press, the drag and the release, seen every frame (the desk's own pointer runs every 100 ms); only where the
 -- desk's pointer has the item under it (MM.ctx.hot), so a window over the note keeps its own part
 function ZeD_MMIcons:dragFrame()
@@ -365,7 +375,8 @@ end
 
 function ZeD_MMIcons:closeItem(c)
     if self._carry and self._carry.id == c.item.id then self._carry = nil end
-    c.item.close()
+    -- (close returns false when the item asks first, a Pastie with words: it stays, and so does the selection)
+    if c.item.close() == false then MM.clickSound(); return end
     MM.clickSound()
     -- (on a controller the selection goes to the next thing on the desktop; with the mouse nothing is selected after,
     -- as a closed window leaves nothing selected: QA's Mac run, Nov 10 2026, read CletusWorks lit under the closed note
@@ -390,6 +401,10 @@ end
 -- the controller's prompts along the foot: what A, X and Y do on the note, or while carrying it
 function ZeD_MMIcons:prompts()
     local dpad = ZeD.tr("UI_ZeD_Desktop_PromptDpad")
+    local ask = self:movable()
+    if ask and ask.item.asking and ask.item.asking() then
+        return { { glyph = "A", label = ZeD.tr("UI_ZeD_Desk_PastieThrow") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Cl_Keep") } }
+    end
     if self._carry then
         return { dpad, { glyph = "A", label = ZeD.tr("UI_ZeD_Desk_StickyPutDown") }, { glyph = "B", label = getText("UI_Cancel") } }
     end
@@ -424,6 +439,15 @@ function ZeD_MMIcons:joyDir(dir)
     if best then self.focusId = best.item.id; MM.hoverSound() end
 end
 function ZeD_MMIcons:joyA()
+    local q = self:movable()
+    if q and q.item.asking and q.item.asking() then        -- (a note asking: A throws it away)
+        if q.item.answer(true) then
+            local nxt = nil
+            for _, o in ipairs(self._cells or {}) do if o ~= q and o.left and not (o.item.off and o.item.off()) then nxt = o.item.id; break end end
+            self.focusId = nxt or "pz"
+        end
+        return
+    end
     local carry = self._carry
     if carry then
         -- put it down where it is
@@ -447,6 +471,8 @@ function ZeD_MMIcons:joyA()
     self:open(self.focusId or "pz")
 end
 function ZeD_MMIcons:joyB()
+    local q = self:movable()
+    if q and q.item.asking and q.item.asking() then q.item.answer(false); return end   -- (B keeps it)
     local carry = self._carry
     if not carry then return end
     self._carry = nil
@@ -456,16 +482,22 @@ function ZeD_MMIcons:joyB()
 end
 function ZeD_MMIcons:joyX()
     if self._carry then return end
+    local q = self:movable()
+    if q and q.item.asking and q.item.asking() then return end
     local c = self:movable()
     if c then self:open(c.item.id) end          -- (writes on the note: the keyboard comes up)
 end
 function ZeD_MMIcons:joyY()
     if self._carry then return end
+    local q = self:movable()
+    if q and q.item.asking and q.item.asking() then return end
     local c = self:movable()
     if c and c.item.close then self:closeItem(c) end
 end
 function ZeD_MMIcons:getFooterPrompts() return nil end
 function ZeD_MMIcons:keyEscape()
+    local q = self:movable()
+    if q and q.item.asking and q.item.asking() then q.item.answer(false); return true end   -- (a note asking: Escape keeps it)
     if self._carry then self:joyB(); return true end   -- (carrying the note: Escape puts it back, as B does)
     return false
 end

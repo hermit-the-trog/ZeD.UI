@@ -7,9 +7,10 @@
 -- rooted there and refuse any "..": nothing here can reach anywhere else). They live on the player's computer, so they
 -- outlast every update of the mod and every save:
 --   ZeD_desk_sticky.txt      the sticky note's words
---   ZeD_desk_sticky_place.txt where the sticky sits and whether it shows: "shown|fx|fy" (1 or 0, then its place as
---                            fractions of the room it can move in, empty when it keeps its spot at the top of the left
---                            column). Fractions, so a place outlasts a change of screen size (punch list 114)
+--   ZeD_desk_pasties.txt     the Pasties (the sticky notes) on the desk: "id|fx|fy" a line, oldest first
+--   ZeD_desk_pastie_<id>.txt a Pastie's words (ids 1 to 8)
+--   ZeD_desk_sticky.txt and ZeD_desk_sticky_place.txt: the one sticky note from before Pasties, read once to move its
+--                            words into Pastie 1
 --   ZeD_desk_notes.txt       the notepad's index: a header line, then one line a file, "id|modified|name"
 --   ZeD_desk_note_<id>.txt   a file's words
 --   ZeD_desk_draft.txt       words typed in the notepad and not saved yet: "id|name" on the first line, then the words.
@@ -286,58 +287,126 @@ function N.saveSticky(text)
     return true
 end
 
--- where the sticky sits (punch list 114, the director, Nov 8 2026: "Being able to drag the note around to other spots on
--- the desktop or close it would be nice"): N._place = { shown, fx, fy }, read once
-local function place()
-    if N._place == nil then
-        N._place = { shown = true }
-        local lines = readLines(N.PLACE_FILE, 64, 1)
-        local on, fx, fy = string.match(lines and lines[1] or "", "^([01])|([%d%.]*)|([%d%.]*)$")
-        if on then
-            N._place.shown = on == "1"
-            fx, fy = tonumber(fx), tonumber(fy)
-            if fx and fy then N._place.fx, N._place.fy = math.max(0, math.min(1, fx)), math.max(0, math.min(1, fy)) end
+-- ---------------------------------------------------------------------------
+-- PASTIES (the director, Nov 10 2026: "what if sticky was an icon, when clicked it creates a new sticky on the desk.
+-- Starts with none." and "'Pasties' is the app name"). Up to PASTIES_MAX notes, each a slot id 1 to 8: its place in
+-- PASTIES_FILE ("id|fx|fy" a line, in the order they were made; fx, fy the fractions of the room a note moves in, so a
+-- place outlasts a change of screen size) and its words in ZeD_desk_pastie_<id>.txt. Closing one throws it away: its
+-- line goes and its file is emptied. Replaces punch list 114's one note: the first read moves that note's words, if it
+-- had any, into Pastie 1 at its place, and empties its file.
+-- ---------------------------------------------------------------------------
+N.PASTIES_FILE = "ZeD_desk_pasties.txt"
+N.PASTIE_PREFIX = "ZeD_desk_pastie_"
+N.PASTIES_MAX = 8
+N.PASTIE_MAX = N.STICKY_MAX     -- characters on one
+
+local function f4(v) return string.format("%.4f", v or 0) end
+local function pastieFile(id) return N.PASTIE_PREFIX .. tostring(id) .. ".txt" end
+
+local function writePasties()
+    local out = {}
+    for _, p in ipairs(N._pasties) do out[#out + 1] = tostring(p.id) .. "|" .. f4(p.fx) .. "|" .. f4(p.fy) end
+    return writeText(N.PASTIES_FILE, table.concat(out, "\n") .. "\n")
+end
+
+--- The notes on the desk, oldest first: { id, fx, fy } each.
+function N.pasties()
+    if N._pasties then return N._pasties end
+    N._pasties, N._pastieText = {}, {}
+    local lines = readLines(N.PASTIES_FILE, 64 * (N.PASTIES_MAX + 1), N.PASTIES_MAX + 1)
+    if lines then
+        local seen = {}
+        for _, l in ipairs(lines) do
+            local id, fx, fy = string.match(l, "^(%d+)|([%d%.]+)|([%d%.]+)$")
+            id, fx, fy = tonumber(id), tonumber(fx), tonumber(fy)
+            if id and fx and fy and id >= 1 and id <= N.PASTIES_MAX and not seen[id] and #N._pasties < N.PASTIES_MAX then
+                seen[id] = true
+                N._pasties[#N._pasties + 1] = { id = id, fx = math.max(0, math.min(1, fx)), fy = math.max(0, math.min(1, fy)) }
+            end
         end
-    end
-    return N._place
-end
-local function f4(v) return v and string.format("%.4f", v) or "" end
-local function writePlace()
-    local p = place()
-    return writeText(N.PLACE_FILE, (p.shown and "1" or "0") .. "|" .. f4(p.fx) .. "|" .. f4(p.fy) .. "\n")
-end
-
---- Does the sticky show on the desktop?
-function N.stickyShown() return place().shown end
-
---- Its place as fractions of the room it moves in (0 to 1 across and down), or nil while it keeps its spot at the
---- top of the left column.
-function N.stickyPlace()
-    local p = place()
-    return p.fx, p.fy
-end
-
---- Move it (fx, fy: fractions; nil: back to its spot in the column). keep: write it to the file now (the drop), else
---- only in memory (a drag in progress).
-function N.moveSticky(fx, fy, keep)
-    local p = place()
-    if fx and fy then
-        p.fx, p.fy = math.max(0, math.min(1, fx)), math.max(0, math.min(1, fy))
     else
-        p.fx, p.fy = nil, nil
+        -- (no Pasties yet: the one sticky note from before, if it had words, becomes Pastie 1 where it sat)
+        local old = readWords(N.STICKY_FILE, N.STICKY_MAX) or ""
+        if string.find(old, "%S") then
+            local fx, fy = 0, 0
+            local pl = readLines(N.PLACE_FILE, 64, 1)
+            local _, ox, oy = string.match(pl and pl[1] or "", "^([01])|([%d%.]*)|([%d%.]*)$")
+            if tonumber(ox) and tonumber(oy) then fx, fy = tonumber(ox), tonumber(oy) end
+            N._pasties[1] = { id = 1, fx = math.max(0, math.min(1, fx)), fy = math.max(0, math.min(1, fy)) }
+            writeWords(pastieFile(1), old)
+            N._pastieText[1] = old
+            writeWords(N.STICKY_FILE, "")
+        end
+        writePasties()
     end
-    if keep then return writePlace() end
+    return N._pasties
+end
+
+--- The note with slot id, or nil.
+function N.pastie(id)
+    for _, p in ipairs(N.pasties()) do if p.id == id then return p end end
+    return nil
+end
+
+--- True when the desk holds PASTIES_MAX notes.
+function N.pastiesFull() return #N.pasties() >= N.PASTIES_MAX end
+
+--- A new, empty note at (fx, fy). Returns its id, or nil when the desk is full.
+function N.newPastie(fx, fy)
+    local list = N.pasties()
+    if #list >= N.PASTIES_MAX then return nil end
+    local used = {}
+    for _, p in ipairs(list) do used[p.id] = true end
+    local id = 1
+    while used[id] do id = id + 1 end
+    list[#list + 1] = { id = id, fx = math.max(0, math.min(1, fx or 0)), fy = math.max(0, math.min(1, fy or 0)) }
+    N._pastieText[id] = ""
+    writeWords(pastieFile(id), "")
+    writePasties()
+    bump()
+    return id
+end
+
+--- Move a note (fractions). keep: write it now (the drop), else in memory only (a drag in progress).
+function N.movePastie(id, fx, fy, keep)
+    local p = N.pastie(id)
+    if not p then return false end
+    p.fx, p.fy = math.max(0, math.min(1, fx or 0)), math.max(0, math.min(1, fy or 0))
+    if keep then return writePasties() end
     return true
 end
 
---- Show it or put it away (the close box; Show note in the ZeD menu brings it back where it last was).
-function N.showSticky(on)
-    local p = place()
-    on = on and true or false
-    if p.shown == on then return true end
-    p.shown = on
-    bump()
-    return writePlace()
+--- A note's words.
+function N.pastieText(id)
+    N.pasties()
+    if N._pastieText[id] == nil then N._pastieText[id] = readWords(pastieFile(id), N.PASTIE_MAX) or "" end
+    return N._pastieText[id]
+end
+
+--- Keep a note's words.
+function N.savePastie(id, text)
+    if not N.pastie(id) then return nil, "gone" end
+    text = N.clean(text, N.PASTIE_MAX)
+    if text == N.pastieText(id) then return true end
+    if not writeWords(pastieFile(id), text) then return nil, "write" end
+    N._pastieText[id] = text
+    return true
+end
+
+--- Throw a note away: its line goes, its file is emptied (Lua cannot delete a file), its slot is free again.
+function N.throwPastie(id)
+    local list = N.pasties()
+    for i, p in ipairs(list) do
+        if p.id == id then
+            table.remove(list, i)
+            writeWords(pastieFile(id), "")
+            N._pastieText[id] = nil
+            writePasties()
+            bump()
+            return true
+        end
+    end
+    return false
 end
 
 -- ---------------------------------------------------------------------------
@@ -378,7 +447,7 @@ end
 
 -- forget what was read (the sims start over; a reload reads the files again)
 function N.reset()
-    N._list, N._sticky, N._draft, N._place = nil, nil, nil, nil
+    N._list, N._sticky, N._draft, N._pasties, N._pastieText = nil, nil, nil, nil, nil
 end
 
 return N

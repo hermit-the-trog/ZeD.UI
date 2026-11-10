@@ -70,27 +70,36 @@ local function noteIds()
 end
 add(500, function()
     check(MM.root ~= nil, "the desk is up")
-    sticky0 = N.sticky()
+    sticky0 = #N.pasties()
     for _, id in ipairs(noteIds()) do ids0[id] = true end
-    note("at the start: " .. N.count() .. " notes, sticky '" .. tostring(sticky0) .. "'")
+    note("at the start: " .. N.count() .. " notes, " .. tostring(sticky0) .. " Pasties")
     local items = MM.leftItems()
     local o = {}
     for _, it in ipairs(items) do o[#o + 1] = it.id end
     note("the left column: " .. table.concat(o, ", "))
-    check(o[1] == "sticky" and o[2] == "cletusworks", "1: the left column starts with the sticky and CletusWorks", table.concat(o, ","))
-    check(o[#o] == "documents", "1: it ends with Documents", o[#o])
+    -- (Nov 10 2026: the sticky became Pasties, an icon; its notes come after Documents in the list, laid out where they lie)
+    check(o[1] == "pasties" and o[2] == "cletusworks", "1: the left column starts with Pasties and CletusWorks", table.concat(o, ","))
+    local docAt
+    for i, id in ipairs(o) do if id == "documents" then docAt = i end end
+    check(docAt ~= nil and (docAt == #o or tostring(o[docAt + 1]):find("^pastie:")), "1: the column ends with Documents", tostring(docAt))
     local mailAt
     for i, id in ipairs(o) do if id == "mail" then mailAt = i end end
-    check(mailAt ~= nil and mailAt > 2 and mailAt < #o, "1: ProtoPOP3 Mail sits between them", mailAt)
+    check(mailAt ~= nil and mailAt > 2 and mailAt < (docAt or #o), "1: ProtoPOP3 Mail sits between them", mailAt)
     check(has(ZeD.tr("UI_ZeD_Mail_AppName"), "protopop3"), "1: the app is named ProtoPOP3 Mail", ZeD.tr("UI_ZeD_Mail_AppName"))
-    check(MM.root.sticky ~= nil and MM.root.sticky.entry ~= nil, "1: the sticky note is there with its field")
+    check(MM.root.pasties ~= nil and MM.root.pasties[1] ~= nil and MM.root.pasties[1].entry ~= nil, "1: the Pasties' fields are there")
     ticks(30, function() shot("desk_desktop") end)
 end)
+local madePastie = nil
 add(800, function()
-    N.saveSticky("b8 sticky words")
-    check(N.sticky() == "b8 sticky words", "1: the sticky keeps its words", N.sticky())
-    N.saveSticky(string.rep("s", 700))
-    check(#N.sticky() == N.STICKY_MAX, "1: the sticky stops at 600 characters", #N.sticky())
+    madePastie = N.newPastie(0.5, 0.5)
+    if madePastie then
+        N.savePastie(madePastie, "b8 sticky words")
+        check(N.pastieText(madePastie) == "b8 sticky words", "1: a Pastie keeps its words", N.pastieText(madePastie))
+        N.savePastie(madePastie, string.rep("s", 700))
+        check(#N.pastieText(madePastie) == N.STICKY_MAX, "1: a Pastie stops at 600 characters", #N.pastieText(madePastie))
+    else
+        note("1: eight Pasties on this desk already: the cap checks skipped")
+    end
 end)
 
 -- ---- CletusWorks
@@ -195,7 +204,7 @@ add(500, function()
         if not ids0[n.id] then pcall(N.delete, n.id) end
     end
     N.clearDraft()
-    N.saveSticky(sticky0 or "")
+    if madePastie then N.throwPastie(madePastie) end
     check(N.count() == (function() local c = 0; for _ in pairs(ids0) do c = c + 1 end; return c end)(), "5: the notes are as they were before the run (restored)", N.count())
 end)
 

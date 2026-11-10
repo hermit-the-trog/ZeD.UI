@@ -2,11 +2,12 @@
 -- real ZeD_MainMenuDesktop.lua, ZeD_MainMenuNotes.lua, ZeD_DeskNotes.lua and ZeD_MainMenuMail.lua run against desk_stub.lua.
 --   the desktop's left side: the sticky first, CletusWorks and Mail, the files, columns, never over the right column, the
 --     right column's block unchanged (the small layout reads it)
---   the sticky: typed in place, saved after the typing stops and on letting go, a press outside lets go, the field under the
---     pointer only where no window lies over it, the controller's X brings up the keyboard
---   114 (Nov 10 2026): the sticky dragged by its strip, kept where it was let go (and read back), held on the desktop,
---     closed by its box, brought back by Show note; on a controller A picks it up, the D-pad moves it, A puts it down,
---     B and Escape put it back, X writes and Y closes; Enter writes
+--   Pasties (Nov 10 2026): none at first; the icon sticks a note beside it, stepped, up to eight (the icon gray then);
+--     typed in place, saved after the typing stops and on letting go, the field under the pointer only where no window
+--     lies over it; the close box throws a note away, asking first when it has words (Throw away, Keep; on a pad Y, A,
+--     B, Escape); dragged by its strip, kept where it was let go, held on the desktop, over the icons; on a pad A picks
+--     it up, the D-pad moves it, A puts it down, B puts it back, X writes; Enter writes; the one sticky note from
+--     before moves into Pastie 1
 --   CletusWorks: a new page, save (the icon appears), open from an icon, Save changes? on leaving (Discard, Cancel, Save),
 --     rename (empty, taken), delete asks and lands on Cancel, the desktop full, the draft brought back after a restart, the
 --     ZeD menu's items
@@ -44,12 +45,13 @@ end
 section("the desktop's left side")
 MM.showView("desktop")
 D.frame()
-local st = D.cell("sticky")
-check("the sticky is drawn", st ~= nil)
-check("the sticky is first on the left, at the top", st and st.x == D.L.tx + 14 and st.y == D.L.ty + 24 + 14, st and (st.x .. "," .. st.y))
-check("the sticky is 124 x 124 design units", st and st.w == 124 and st.h == 124)
+local pz = D.cell("pasties")
+check("Pasties heads the left column", pz and pz.x == D.L.tx + 14 and pz.y == D.L.ty + 24 + 14, pz and (pz.x .. "," .. pz.y))
+check("its label reads Pasties (the key)", pz and pz.item.label == "UI_ZeD_Desk_Pasties")
+check("Pasties has its own picture", pz and (pz.item.icon or pz.item.id) == "pasties")
+check("the desk starts with no notes", #N.pasties() == 0 and not ids():find("pastie:", 1, true), ids())
 local cw = D.cell("cletusworks")
-check("CletusWorks under the sticky", cw and cw.y > st.y + st.h and cw.left)
+check("CletusWorks under Pasties", cw and cw.y > pz.y and cw.left)
 check("its label reads CletusWorks (the key)", cw and cw.item.label == "UI_ZeD_Desk_CletusWorks")
 check("CletusWorks has its own picture", cw and (cw.item.icon or cw.item.id) == "cletusworks")
 if MAIL then
@@ -58,196 +60,228 @@ if MAIL then
 end
 local block = MM.iconBlock(D.L)
 check("the right column's block leaves the left side out", block.w < 200, block.w)
-check("the sticky's field is placed over its paper", root.sticky.x == st.x and root.sticky.y == st.y and root.sticky.entry:isVisible())
 local right = D.cell("pz")
 check("the right column is still there", right and right.x > D.L.tx + D.L.tw / 2)
 
 -- ---------------------------------------------------------------------------
-section("the sticky note")
-local se = root.sticky.entry
-check("an empty sticky reads the file's words", se:getText() == "")
-check("its hint", se.placeholder == "UI_ZeD_Desk_StickyHint")
+section("Pasties: a note")
+root.icons:open("pasties")
+D.frame()
+local n1 = D.cell("pastie:1")
+check("opening Pasties sticks a note on the desk", n1 ~= nil and #N.pasties() == 1, ids())
+check("124 x 124 design units", n1 and n1.w == 124 and n1.h == 124)
+check("beside the icon, at its top", n1 and n1.x == pz.x + pz.w + 8 and n1.y == pz.y, n1 and (n1.x .. "," .. n1.y))
+check("kept in the Pasties file", DISK[N.PASTIES_FILE] and DISK[N.PASTIES_FILE]:sub(1, 2) == "1|", DISK[N.PASTIES_FILE])
+check("selected", root.icons.focusId == "pastie:1", root.icons.focusId)
+local se = root.pasties[1].entry
+check("with the mouse the caret is in it", se:isFocused())
+check("its field is placed over its paper", root.pasties[1].x == n1.x and root.pasties[1].y == n1.y and se:isVisible())
+check("its hint", se._zedPh == "UI_ZeD_Desk_StickyHint" or se.placeholder == "UI_ZeD_Desk_StickyHint", se._zedPh or se.placeholder)
 check("it holds STICKY_MAX", se.maxLen == N.STICKY_MAX)
--- the pointer over the sticky's field: the glass hands the press to it on the bare desktop
-local ex, ey = se:getAbsoluteX() + 5, se:getAbsoluteY() + 5
-check("the field takes the press on the desktop", MM.entryUnder(ex, ey) == se)
-se:focus()
+local F1 = N.PASTIE_PREFIX .. "1.txt"
 se:type("seed 7741")
-check("while typing, the desktop's keys are the sticky's", root.icons:keyOther(Keyboard.KEY_UP) == false)
+check("while typing, the desktop's keys are the note's", root.icons:keyOther(Keyboard.KEY_UP) == false)
 D.frame(100)
-check("not saved while typing", DISK[N.STICKY_FILE] == nil)
+check("not saved while typing", DISK[F1] == "\n", DISK[F1])
 D.frame(900)
-check("saved once the typing stops", DISK[N.STICKY_FILE] == "seed 7741\n", DISK[N.STICKY_FILE])
+check("saved once the typing stops", DISK[F1] == "seed 7741\n", DISK[F1])
 se:type("\nserver pw: dog")
--- a press outside the sticky lets go of the keys and saves at once
-W.mouse.x, W.mouse.y, W.down = D.L.tx + 500, D.L.ty + 400, true
+local ex, ey = se:getAbsoluteX() + 5, se:getAbsoluteY() + 5
+W.mouse.x, W.mouse.y, W.down = D.L.tx + 500, D.L.ty + 600, true
 D.frame(16)
 W.down = false
 D.frame(16)
 check("a press outside lets go", not se:isFocused())
-check("letting go saves", DISK[N.STICKY_FILE] == "seed 7741\nserver pw: dog\n")
--- with the main window up: the sticky beside it still takes a press, a press inside the window does not reach it
+check("letting go saves", DISK[F1] == "seed 7741\nserver pw: dog\n", DISK[F1])
+check("the field takes the press on the desktop", MM.entryUnder(ex, ey) == se)
 MM.showView("main")
-root.win.x, root.win.y, root.win.width, root.win.height = D.L.tx + 150, D.L.ty + 30, 660, 500
+root.win.x, root.win.y, root.win.width, root.win.height = n1.x + 300, D.L.ty + 30, 500, 500
 root.win.visible = true
 D.frame()
-check("beside the main window the sticky takes the press", MM.entryUnder(ex, ey) == se)
+check("beside the main window the note takes the press", MM.entryUnder(ex, ey) == se)
 root.win.x = D.L.tx
 check("under the main window it does not", MM.entryUnder(ex, ey) == nil)
-root.win.x = D.L.tx + 150
+root.win.x = n1.x + 300
 MM.ctx.open = "file"
 check("not while a menu is open", MM.entryUnder(ex, ey) == nil)
 MM.ctx.open = nil
--- the controller: the D-pad reaches it, X brings up the keyboard on its field (A picks it up: punch list 114)
 MM.showView("desktop")
 D.frame()
+-- the controller reaches it from the icon, X brings up the keyboard on its field
 W.pad = true
-root.icons.focusId = "cletusworks"
-root.icons:joyDir("up")
-check("up from CletusWorks is the sticky", root.icons.focusId == "sticky", root.icons.focusId)
+root.icons.focusId = "pasties"
+root.icons:joyDir("right")
+check("right from the Pasties icon is its note", root.icons.focusId == "pastie:1", root.icons.focusId)
 W.kbd = {}
 root.icons:joyX()
-check("X on the sticky brings up the keyboard on its field", W.kbd[1] == se)
+check("X on a note brings up the keyboard on its field", W.kbd[1] == se)
 W.pad = false
--- a fresh start reads the sticky back
+se:unfocus()
 N.reset()
-local se2 = ZeD_MMSticky:new()
+local se2 = ZeD_MMSticky:new(1)
 root:addChild(se2)
-check("the sticky reads its words at the next start", se2.entry:getText() == "seed 7741\nserver pw: dog")
+check("a note reads its words at the next start", se2.entry:getText() == "seed 7741\nserver pw: dog")
+check("and its place", N.pastie(1) ~= nil)
 
 -- ---------------------------------------------------------------------------
-section("114: the sticky moves and closes")
+section("Pasties: up to eight, stepped")
+for _ = 2, 8 do root.icons:open("pasties"); D.frame() end
+check("eight on the desk", #N.pasties() == 8, #N.pasties())
+for k = 2, 8 do
+    local c = D.cell("pastie:" .. k)
+    check("note " .. k .. " stepped 14 down and right from the one before", c and c.x == n1.x + 14 * (k - 1) and c.y == n1.y + 14 * (k - 1), c and (c.x .. "," .. c.y))
+end
+check("the icon is gray at eight", D.cell("pasties").item.off() == true)
+root.icons:open("pasties"); D.frame()
+check("a ninth isn't made", #N.pasties() == 8)
+local function zedItem(text) for _, it in ipairs(MM.menuItems("zed")) do if type(it) == "table" and it.text == text then return it end end end
+check("Pasties in the ZeD menu, gray at eight", zedItem("UI_ZeD_Desk_Pasties") and zedItem("UI_ZeD_Desk_Pasties").disabled == true)
+local last = D.cell("pastie:8")
+local lastHit
+for _, h in ipairs(root.icons._hits) do
+    if last.x + 20 >= h.x and last.x + 20 < h.x + h.w and last.y + 3 >= h.y and last.y + 3 < h.y + h.h then lastHit = h.id end
+end
+check("the newest lies on top: its strip takes the pointer", lastHit == "desk:pastie:8", lastHit)
+
+-- ---------------------------------------------------------------------------
+section("Pasties: closing throws away")
+local function pressRelease(x, y)
+    W.mouse.x, W.mouse.y = x, y
+    W.down = true; D.frame(16); W.down = false; D.frame(16)
+end
+local c8 = D.cell("pastie:8")
+MM.ctx.hot = "desk:pastie:8"
+local cb = c8.item.closeBox(c8)
+pressRelease(cb.x + 2, cb.y + 2)
+check("an empty note goes at once", D.cell("pastie:8") == nil and #N.pasties() == 7, #N.pasties())
+check("its file emptied", DISK[N.PASTIE_PREFIX .. "8.txt"] == "\n")
+check("with the mouse nothing is selected after", root.icons.focusId == nil, root.icons.focusId)
+check("the icon is live again", not D.cell("pasties").item.off())
+-- a note with words asks first
+local c1 = D.cell("pastie:1")
+MM.ctx.hot = "desk:pastie:1"
+cb = c1.item.closeBox(c1)
+pressRelease(cb.x + 2, cb.y + 2)
+check("a note with words asks first", D.cell("pastie:1") ~= nil and MM._pastieAsk[1] == true)
+local function hitFn(id) for _, h in ipairs(root.icons._hits) do if h.id == id then return h.fn end end end
+check("its question's buttons take the pointer", hitFn("desk:pastie:1:throw") ~= nil and hitFn("desk:pastie:1:keep") ~= nil)
+hitFn("desk:pastie:1:keep")(); D.frame()
+check("Keep: still there, its words too", D.cell("pastie:1") ~= nil and N.pastieText(1) == "seed 7741\nserver pw: dog" and not MM._pastieAsk[1])
+pressRelease(cb.x + 2, cb.y + 2)
+hitFn("desk:pastie:1:throw")(); D.frame()
+check("Throw away: gone, its words with it", D.cell("pastie:1") == nil and DISK[F1] == "\n" and #N.pasties() == 6)
+root.icons:open("pasties"); D.frame()
+check("a new note takes the freed slot, empty", D.cell("pastie:1") ~= nil and root.pasties[1].entry:getText() == "")
+-- the controller: Y asks, B keeps, Y and A throw away
+local c2 = D.cell("pastie:2")
+root.pasties[2].entry:setText("milk"); root.pasties[2]:keep()
+W.pad = true
+root.icons.focusId = "pastie:2"
+root.icons:joyY(); D.frame()
+check("Y on a note with words asks", MM._pastieAsk[2] == true and D.cell("pastie:2") ~= nil)
+check("the prompts: A Throw away, B Keep", root.icons:prompts()[1].label == "UI_ZeD_Desk_PastieThrow" and root.icons:prompts()[2].label == "UI_ZeD_Cl_Keep")
+root.icons:joyB(); D.frame()
+check("B keeps it", not MM._pastieAsk[2] and D.cell("pastie:2") ~= nil)
+root.icons:joyY(); root.icons:joyA(); D.frame()
+check("Y then A throws it away", D.cell("pastie:2") == nil)
+check("the focus moves on", root.icons.focusId ~= "pastie:2" and root.icons.focusId ~= nil, root.icons.focusId)
+root.icons.focusId = "pastie:3"
+root.pasties[3].entry:setText("x"); root.pasties[3]:keep()
+root.icons:joyY()
+check("Escape keeps an asking note", root.icons:keyEscape() == true and not MM._pastieAsk[3] and D.cell("pastie:3") ~= nil)
+W.pad = false
+MM.ctx.hot = nil
+
+-- ---------------------------------------------------------------------------
+section("Pasties: a note moves (punch list 114)")
 do
-    MM.showView("desktop")
-    W.pad = false
     W.down = false
-    root.sticky.entry:unfocus()
     D.frame()
-    local s0 = D.cell("sticky")
-    local top = s0.y
-    local c0 = D.cell("cletusworks")
-    check("114: the sticky starts in its column", s0 and not s0.free and s0.room ~= nil)
-    -- the mouse: its top strip takes a drag, where the desk's pointer has it (MM.ctx.hot)
-    MM.ctx.hot = "desk:sticky"
+    local s0 = D.cell("pastie:3")
+    local room = s0.room
+    MM.ctx.hot = "desk:pastie:3"
     W.mouse.x, W.mouse.y = s0.x + 20, s0.y + 3
     W.down = true; D.frame()
     W.mouse.x, W.mouse.y = s0.x + 220, s0.y + 153
     D.frame()
-    local s1 = D.cell("sticky")
+    local s1 = D.cell("pastie:3")
     check("114: it follows the pointer while held", s1.x == s0.x + 200 and s1.y == s0.y + 150, s1.x .. "," .. s1.y)
-    check("114: nothing written until it is let go", DISK[N.PLACE_FILE] == nil)
+    local before = DISK[N.PASTIES_FILE]
     W.down = false; D.frame()
-    s1 = D.cell("sticky")
-    check("114: let go, it stays there", s1.free and s1.x == s0.x + 200 and s1.y == s0.y + 150, s1.x .. "," .. s1.y)
-    check("114: its place is kept in its file", DISK[N.PLACE_FILE] ~= nil and DISK[N.PLACE_FILE]:sub(1, 2) == "1|", DISK[N.PLACE_FILE])
-    check("114: CletusWorks takes the top of the column", D.cell("cletusworks").y == top, D.cell("cletusworks").y)
-    check("114: the field moved with its paper", root.sticky.x == s1.x and root.sticky.y == s1.y)
-    -- a press below the strip is the field's, not a drag
+    s1 = D.cell("pastie:3")
+    check("114: let go, it stays there", s1.x == s0.x + 200 and s1.y == s0.y + 150)
+    check("114: its place is kept", DISK[N.PASTIES_FILE] ~= before)
+    check("114: the field moved with its paper", root.pasties[3].x == s1.x and root.pasties[3].y == s1.y)
     W.mouse.x, W.mouse.y = s1.x + 40, s1.y + 60
     W.down = true; D.frame(); W.mouse.x = W.mouse.x + 100; D.frame(); W.down = false; D.frame()
-    check("114: a press on the words doesn't move it", D.cell("sticky").x == s1.x)
-    -- dragged past the edges: it stays on the desktop, under the menu bar
+    check("114: a press on the words doesn't move it", D.cell("pastie:3").x == s1.x)
     W.mouse.x, W.mouse.y = s1.x + 20, s1.y + 3
     W.down = true; D.frame(); W.mouse.x, W.mouse.y = -500, -500; D.frame(); W.down = false; D.frame()
-    local s2 = D.cell("sticky")
-    check("114: it stops at the desktop's corner", s2.x == D.L.tx + 14 and s2.y == top, s2.x .. "," .. s2.y)
-    -- dropped over the column's icons: it lies over them, and its strip is still the one under the pointer (QA's Mac
-    -- run, Nov 10: in the top left corner it sat under CletusWorks and Mail and could not be picked up again)
-    local idxS, idxC = 0, 0
-    for i, c in ipairs(root.icons._cells) do
-        if c.item.id == "sticky" then idxS = i elseif c.item.id == "cletusworks" then idxC = i end
-    end
-    check("114: a moved note is drawn after the icons", idxS > idxC and idxC > 0, idxS .. " / " .. idxC)
-    local lastHit = nil
+    local s2 = D.cell("pastie:3")
+    check("114: it stops at the desktop's corner", s2.x == D.L.tx + 14 and s2.y == room.y0, s2.x .. "," .. s2.y)
+    local lastHit
     for _, h in ipairs(root.icons._hits) do
         if s2.x + 20 >= h.x and s2.x + 20 < h.x + h.w and s2.y + 3 >= h.y and s2.y + 3 < h.y + h.h then lastHit = h.id end
     end
-    check("114: over CletusWorks, the note's strip takes the pointer", lastHit == "desk:sticky", lastHit)
+    check("114: over the Pasties icon its strip still takes the pointer", lastHit == "desk:pastie:3", lastHit)
     W.mouse.x, W.mouse.y = s2.x + 20, s2.y + 3
     W.down = true; D.frame(); W.mouse.x, W.mouse.y = 5000, 5000; D.frame(); W.down = false; D.frame()
-    local s3 = D.cell("sticky")
+    local s3 = D.cell("pastie:3")
     check("114: and at the far one", s3.x + s3.w == D.L.tx + D.L.tw - 14 and s3.y + s3.h == D.L.ty + D.L.th - 14, s3.x .. "," .. s3.y)
-    -- a window over the strip: the desk's pointer doesn't have the note, so no drag
     MM.ctx.hot = nil
     W.mouse.x, W.mouse.y = s3.x + 20, s3.y + 3
     W.down = true; D.frame(); W.mouse.x = W.mouse.x - 300; D.frame(); W.down = false; D.frame()
-    check("114: not where something lies over it", D.cell("sticky").x == s3.x)
-    MM.ctx.hot = "desk:sticky"
-    -- a fresh start reads the place back
+    check("114: not where something lies over it", D.cell("pastie:3").x == s3.x)
     N.reset(); D.frame()
-    check("114: the place is read back at the next start", D.cell("sticky").x == s3.x and D.cell("sticky").y == s3.y)
-
-    -- the close box: a press and a release on it put the note away
-    local cb = D.cell("sticky").item.closeBox(D.cell("sticky"))
-    check("114: the close box sits at the strip's right end", cb.x + cb.w <= s3.x + s3.w and cb.y >= s3.y and cb.y + cb.h <= s3.y + 9)
-    W.mouse.x, W.mouse.y = cb.x + 2, cb.y + 2
-    W.down = true; D.frame()
-    check("114: a press on the box doesn't drag", D.cell("sticky") and D.cell("sticky").x == s3.x)
-    W.down = false; D.frame()
-    check("114: released on it, the note goes", D.cell("sticky") == nil)
-    check("114: kept as closed", DISK[N.PLACE_FILE]:sub(1, 2) == "0|", DISK[N.PLACE_FILE])
-    check("114: with the mouse nothing is selected after (not the icon under it)", root.icons.focusId ~= "cletusworks" and root.icons.focusId ~= "mail", root.icons.focusId)
-    D.frame(600)
-    check("114: its field goes with it", not root.sticky.entry:isVisible())
-    check("114: and takes no press", MM.entryUnder(s3.x + 40, s3.y + 60) == nil)
-    -- Show note in the ZeD menu brings it back where it was
-    local function menuItem()
-        for _, it in ipairs(MM.menuItems("zed")) do if type(it) == "table" and it.text == "UI_ZeD_Desk_StickyShow" then return it end end
-    end
-    local sn = menuItem()
-    check("114: Show note in the ZeD menu", sn ~= nil and not sn.disabled)
-    sn.fn(); D.frame()
-    check("114: the note is back where it last was", D.cell("sticky") and D.cell("sticky").x == s3.x and D.cell("sticky").y == s3.y)
-    check("114: Show note is gray while it shows", menuItem().disabled == true)
-    -- a press on the box that slides off before the release closes nothing
-    cb = D.cell("sticky").item.closeBox(D.cell("sticky"))
-    W.mouse.x, W.mouse.y = cb.x + 2, cb.y + 2
-    W.down = true; D.frame(); W.mouse.x = W.mouse.x - 60; D.frame(); W.down = false; D.frame()
-    check("114: slid off the box: still there", D.cell("sticky") ~= nil)
-
-    -- the controller: A picks it up, the D-pad moves it, A puts it down, B puts it back, Y closes it
+    check("114: the place is read back at the next start", D.cell("pastie:3").x == s3.x and D.cell("pastie:3").y == s3.y)
+    -- the controller: A picks it up, the D-pad moves it, A puts it down, B and Escape put it back
     W.pad = true
-    root.icons.focusId = "sticky"
-    local p0 = D.cell("sticky")
-    local px0, py0 = p0.x, p0.y
-    local pr = root.icons:prompts()
-    check("114: the prompts on the note: Pick up, Write, Close", pr[2].label == "UI_ZeD_Desk_StickyPickUp" and pr[3].glyph == "X" and pr[4].glyph == "Y", pr[2].label)
+    root.icons.focusId = "pastie:3"
+    local p0 = D.cell("pastie:3")
     root.icons:joyA()
     check("114: A picks it up", root.icons._carry ~= nil)
-    check("114: the prompts while carrying: Put down, Cancel", root.icons:prompts()[2].label == "UI_ZeD_Desk_StickyPutDown")
+    check("114: the prompts while carrying: Put down", root.icons:prompts()[2].label == "UI_ZeD_Desk_StickyPutDown")
     root.icons:joyDir("left"); D.frame(); root.icons:joyDir("left"); D.frame(); root.icons:joyDir("up"); D.frame()
-    local p1 = D.cell("sticky")
-    check("114: the D-pad moves it a step each press", p1.x == px0 - 32 and p1.y == py0 - 16, p1.x .. "," .. p1.y)
-    check("114: the focus stays on it", root.icons.focusId == "sticky")
-    local before = DISK[N.PLACE_FILE]
+    local p1 = D.cell("pastie:3")
+    check("114: the D-pad moves it a step each press", p1.x == p0.x - 32 and p1.y == p0.y - 16, p1.x .. "," .. p1.y)
     root.icons:joyA(); D.frame()
-    check("114: A puts it down, kept", root.icons._carry == nil and DISK[N.PLACE_FILE] ~= before)
-    root.icons:joyA(); root.icons:joyDir("right"); root.icons:joyDir("down"); D.frame()
-    root.icons:joyB(); D.frame()
-    check("114: B puts it back where it was picked up", D.cell("sticky").x == p1.x and D.cell("sticky").y == p1.y and root.icons._carry == nil)
-    root.icons:joyA(); root.icons:joyDir("right"); D.frame()
-    check("114: Escape puts it back too", root.icons:keyEscape() == true and root.icons._carry == nil)
-    D.frame()
-    check("114: back", D.cell("sticky").x == p1.x)
-    W.kbd = {}
-    root.icons:joyX()
-    check("114: X writes on it", W.kbd[1] == root.sticky.entry)
-    root.icons:joyY(); D.frame()
-    check("114: Y closes it", D.cell("sticky") == nil and not N.stickyShown())
-    check("114: the focus moves on", root.icons.focusId ~= "sticky", root.icons.focusId)
-    MM.showSticky(); D.frame()
-    -- the keyboard: Enter on the note writes on it, as before
+    check("114: A puts it down", root.icons._carry == nil)
+    root.icons:joyA(); root.icons:joyDir("right"); D.frame(); root.icons:joyB(); D.frame()
+    check("114: B puts it back", D.cell("pastie:3").x == p1.x and D.cell("pastie:3").y == p1.y)
     W.pad = false
-    root.icons.focusId = "sticky"
-    root.sticky.entry:unfocus()
+    root.icons.focusId = "pastie:3"
+    root.pasties[3].entry:unfocus()
     root.icons:keyOther(Keyboard.KEY_RETURN)
-    check("114: Enter on the note writes on it", root.sticky.entry:isFocused())
-    root.sticky.entry:unfocus()
-    -- back to its column for the sections after
-    N.moveSticky(nil, nil, true); D.frame()
-    check("114: a place cleared, it is back at the top of its column", D.cell("sticky").x == s0.x and D.cell("sticky").y == s0.y)
-    MM.ctx.hot = nil
+    check("114: Enter on a note writes on it", root.pasties[3].entry:isFocused())
+    root.pasties[3].entry:unfocus()
 end
+
+-- ---------------------------------------------------------------------------
+section("Pasties: the one sticky note from before")
+do
+    local saved = {}
+    for k, v in pairs(DISK) do saved[k] = v end
+    for k in pairs(saved) do if k:find("^ZeD_desk_pastie") then DISK[k] = nil end end
+    DISK[N.STICKY_FILE] = "old words\nsecond line\n"
+    DISK[N.PLACE_FILE] = "1|0.5000|0.2500\n"
+    N.reset()
+    local list = N.pasties()
+    check("its words become Pastie 1", #list == 1 and list[1].id == 1 and N.pastieText(1) == "old words\nsecond line")
+    check("where it sat", list[1].fx == 0.5 and list[1].fy == 0.25)
+    check("the old note's file is emptied", DISK[N.STICKY_FILE] == "\n")
+    check("the Pasties file is written", DISK[N.PASTIES_FILE] ~= nil and DISK[N.PASTIES_FILE]:sub(1, 2) == "1|")
+    N.reset()
+    check("read once: the next start keeps it", #N.pasties() == 1)
+    for k in pairs(DISK) do if k:find("^ZeD_desk_pastie") then DISK[k] = nil end end
+    DISK[N.STICKY_FILE] = "\n"
+    N.reset()
+    check("an empty old note brings none", #N.pasties() == 0)
+    for k in pairs(DISK) do DISK[k] = nil end
+    for k, v in pairs(saved) do DISK[k] = v end
+    N.reset(); D.frame()
+end
+MM.showView("desktop")
+D.frame()
 
 -- ---------------------------------------------------------------------------
 section("a quick double-click on an icon, counted on the frames drawn")
@@ -395,13 +429,14 @@ section("CletusWorks: the cap of 24, a full note")
 while not N.full() do N.create(N.freshName("n")) end
 MM.showView("desktop"); D.frame()
 local maxX = 0
+-- (the column's items only: a Pastie lies where it was put, anywhere on the desk)
 for _, c in ipairs(root.icons._cells) do
-    if c.left and c.x + c.w > maxX then maxX = c.x + c.w end
+    if c.left and not c.free and c.x + c.w > maxX then maxX = c.x + c.w end
 end
-check("the left side never reaches the right column", maxX < right.x, maxX .. " vs " .. right.x)
+check("the left column never reaches the right column", maxX < right.x, maxX .. " vs " .. right.x)
 local lefts = 0
-for _, c in ipairs(root.icons._cells) do if c.left then lefts = lefts + 1 end end
-check("24 notes still make only the four left items", lefts == (MAIL and 4 or 3), lefts)
+for _, c in ipairs(root.icons._cells) do if c.left and not c.free then lefts = lefts + 1 end end
+check("24 notes still make only the four column items", lefts == (MAIL and 4 or 3), lefts)
 MM.openDocs(); D.frame()
 check("Documents lists all 24", D.spec(dw, "row:24") ~= nil and D.spec(dw, "row:25") == nil)
 MM.showView("notepad"); D.frame()
@@ -437,6 +472,7 @@ local items = MM.menuItems("zed")
 local found = {}
 for _, it in ipairs(items) do if type(it) == "table" and it.text then found[it.text] = it end end
 check("CletusWorks Notepad in the ZeD menu", found["UI_ZeD_Desk_NotepadTitle"] ~= nil)
+check("Pasties in the ZeD menu", found["UI_ZeD_Desk_Pasties"] ~= nil)
 if MAIL then check("Mail in the ZeD menu", found["UI_ZeD_Mail_AppName"] ~= nil) end
 check("the About block stays first", items[1].about == true)
 

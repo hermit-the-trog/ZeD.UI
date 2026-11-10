@@ -3063,6 +3063,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       used by the note, every ZeD search field and the chat box. **Check (QA):** the empty note and the Journal's
       search at 1x and 1.75x: the whole hint, ZeD's size. Also seen: the list menu draws under the debug Lua console
       (only with -debug), not looked into.
+    - **Superseded by 142 (Pasties), Nov 10 2026:** the one note became many, made from an icon; Show note is gone.
 115. **Bug reports hide the player's account name (the director, Nov 8 2026: "Hopefully yes"; beta 9).** ZeD_Messages.lua
     reportHeader / report / reportOne / reportAll and the Messages window's Copy / Copy all replace the Windows user
     folder (C:\Users\<name>\ and the forward-slash form -> ~\) and the Zomboid folder (getMyDocumentFolder -> ~/Zomboid)
@@ -3417,6 +3418,24 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     drawSegBar. Sims: seg_bar_spread_sim 31795/0 (4974 fail on the old code); drawer_tabs_perf_sim's bar check now
     reads the new rule, 73/0. **Check (QA):** the Cond column and a skill bar at 1x and 1.75x: cells even; the
     drawers' ms with pinned windows against beta 10's (b9_perf.txt).
+
+142. **Pasties: the sticky note becomes an app (the director, Nov 10 2026: "what if sticky was an icon, when clicked it
+    creates a new sticky on the desk. Starts with none." and "'Pasties' is the app name").** Rulings, Nov 10: closing
+    a note throws it away (one with words asks first: Throw away or Keep); up to 8 on the desk; a new one lands beside
+    the icon, each stepped down and right from the last. Built: the Pasties icon heads the desktop's left column (a
+    pad of yellow notes, bake_desktop_icons.py); opening it, or ZeD menu > Pasties, sticks a new note (the icon and the
+    menu item grey at 8; with the mouse the caret goes in, on a pad the selection does). Each note is 114's note: its
+    strip drags it, it lies over the icons, its place kept as fractions; on a pad A carries it, the D-pad moves it, A
+    puts it down, B puts it back, X writes, Y throws it away (A / B answer the question). Show note is gone (nothing
+    hides now). Model: ZeD_DeskNotes.lua N.pasties (slots 1 to 8: ZeD_desk_pasties.txt for the places,
+    ZeD_desk_pastie_<id>.txt for the words); the first read moves the old sticky's words, if any, into Pastie 1 where
+    it sat. The desk makes one field a slot, all under the windows. New words: Pasties, "Throw this note away?",
+    Throw away, in all 28 languages (Pasties kept as the name); Keep is UI_ZeD_Cl_Keep; UI_ZeD_Desk_StickyShow
+    removed. Sims: desk_sim 180/0 (the Pasties sections, the old note's move), desk_notes_sim 63/0;
+    zedqa_b8_mp_bob_desk.lua checks Pasties now. **Check (QA, Mac):** a fresh desk has no notes; double-click Pasties
+    three times: three notes stepped from the icon, the caret in the newest; type, restart: words and places kept;
+    close an empty one (gone at once) and one with words (asks; Keep, then Throw away); make 8: the icon greys; on a
+    pad the same with A / X / Y / B; at 1x and 1.75x. A desk that had words on the old note shows them as one Pastie.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

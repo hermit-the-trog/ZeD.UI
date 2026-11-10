@@ -18,6 +18,7 @@ Writes 42/media/textures/ZeD/mainmenu/icons/<name>.png:
   note      a CletusWorks document on the desktop (a page of typed lines)
   mail      ProtoPOP3 Mail (an envelope and its stamp under a modem's waves)
   documents Documents (the lilac folder with two pages showing: the notepad's notes)
+  pasties   Pasties, the sticky notes (a pad of yellow notes, the top one's corner lifting: Nov 10 2026)
 
 Usage:  py ZeDUI/tools/mainmenu/bake_desktop_icons.py [--sheet out.png]
 """
@@ -353,9 +354,33 @@ def icon_documents():
     return ic
 
 
+def icon_pasties():
+    """Pasties (the director, Nov 10 2026: the sticky note became an app, "Pasties" its name): a square pad of yellow notes
+    in the desk note's own yellow, the sheets under it showing at the right and the foot, the top sheet's darker strip
+    at its head, a few lines of handwriting, its bottom right corner lifting"""
+    NY, NS, ND = (255, 242, 153, 255), (237, 214, 97, 255), (190, 165, 60, 255)
+    ic = Icon()
+    ic.box(7, 7, 28, 28, NY)                      # the sheets under it
+    ic.hline(8, 27, 27, ND); ic.vline(27, 8, 26, ND)
+    ic.box(4, 4, 25, 25, NY)                      # the top sheet
+    ic.rect(5, 5, 24, 8, NS); ic.hline(5, 24, 9, ND)   # its strip
+    writing(ic, (13, 16, 19), x0=7, x1=21, c=B)
+    for i in range(5):                             # the corner lifting: the paper folded back, its underside darker
+        ic.hline(25 - 4 + i, 25, 25 - 4 + i, (0, 0, 0, 0)) if False else None
+    for i in range(4):
+        ic.hline(21 + i, 25, 21 + 4 - i, (0, 0, 0, 0))
+    ic.line(21, 25, 25, 21, K)
+    for i in range(1, 4):
+        ic.hline(21 + i, 21 + i, 25 - i + 0, ND)
+    ic.rect(22, 24, 22, 24, NS); ic.p(23, 23, NS)
+    ic.vline(25, 4, 21, K); ic.hline(4, 21, 25, K)
+    return ic
+
+
 ICONS = {"pz": icon_pz, "newgame": icon_newgame, "load": icon_load, "join": icon_join,
          "options": icon_options, "mods": icon_mods, "trash": icon_trash, "computer": icon_computer,
-         "uploader": icon_uploader, "cletusworks": icon_cletusworks, "note": icon_note, "mail": icon_mail, "documents": icon_documents}
+         "uploader": icon_uploader, "cletusworks": icon_cletusworks, "note": icon_note, "mail": icon_mail, "documents": icon_documents,
+         "pasties": icon_pasties}
 
 
 def main():
