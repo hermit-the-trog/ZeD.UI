@@ -3326,3 +3326,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       and the list each show blue on Equip / Take / Zoom in and red on Unequip / Put in / Drop / Dispose's lid / a
       strike; the pointed cell or row has no color left; Eat, Sneak and the safehouse rows show the new icons; the
       24 plus sits centred (Equip in a wheel at 1.75x).
+139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; not ruled yet).** "If you're
+    going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
+    Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips
+    and a drop's target decides Take, Put in, Equip or Drop, with nothing on screen saying which until it happens. Out
+    in the world a plain left click does little (picking up and using go through the menu or a key), so the menus'
+    own icons already say it there. The idea: a small icon beside the pointer, drawn by ZeD (as a dragged item's
+    picture already follows it), from the menu set with its mark: Take blue, Put in and Drop red, Equip blue.
+    Changing the pointer itself (the arrow) needs the game's Java checked first (whether Lua can hide or replace the
+    cursor); the icon beside it does not. Controllers have no pointer: nothing changes there. Mockup:
+    `ZeDUI/mockups/zed_pointer_hint_v1/pointer_hint_v1.png` (four moments on a Dark list). **Director:** go or not,
+    and which moments (hover a row, dragging, both).
+
