@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_responsiveui.lua | rui | timeout=600
