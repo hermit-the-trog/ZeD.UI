@@ -484,7 +484,7 @@ at(1490, function()
     local z = l and ZeD.ListsUI.openPopup(0, book, 700, 500)
     tickRun.z = z
     local _, ri, def = tickRow(z)
-    tickRun.before = def and def.check() or nil
+    if def then tickRun.before = def.check() end   -- (not "and ... or nil": that turns false into nil)
     check(z ~= nil and ri ~= nil and tickRun.before == false, "TICK: the Lists pop-up is open with the test list unticked")
     shot("tick_before")
 end)
@@ -492,7 +492,7 @@ at(1520, tickPress)
 at(1550, function()
     local z = tickRun.z
     local _, ri, def = tickRow(z)
-    tickRun.after = def and def.check() or nil
+    if def then tickRun.after = def.check() end
     check(z ~= nil and z._ctx.open == true and z == ZeD.ListsUI.popup and ri ~= nil, "TICK: the same pop-up is still open after the press")
     check(tickRun.after == true, "TICK: the row's tick flipped on")
     shot("tick_after")

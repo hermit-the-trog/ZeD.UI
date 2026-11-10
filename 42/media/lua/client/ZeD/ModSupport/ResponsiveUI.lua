@@ -141,3 +141,21 @@ end
 
 install()
 if Events and Events.OnGameStart then Events.OnGameStart.Add(install) end
+
+-- The mod's Escape on a keep-open menu (and anything else that hides the game's menu without clearing it) sets the
+-- game's menu invisible directly, which ZeD never hears: ZeD's menu would stay up, stale. Each tick, a ZeD menu
+-- whose game menu has gone hidden closes too (QA, Nov 9 2026: "ZeD's menu stayed open after Escape and is stale").
+local function followHidden()
+    if ZeD.Safe and ZeD.Safe.on() then return end
+    for pn = 0, 3 do
+        local root, held = heldFor(pn)
+        local shown = root and ((root.getIsVisible and root:getIsVisible()) or (not root.getIsVisible and root.isVisible and root:isVisible()))
+        if held and root and not shown and S.holding ~= root then
+            pcall(held.close, held)
+        end
+    end
+end
+if Events and Events.OnTick and not S._followHidden then
+    S._followHidden = true
+    Events.OnTick.Add(followHidden)
+end

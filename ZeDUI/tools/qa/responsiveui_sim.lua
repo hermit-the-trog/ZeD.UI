@@ -307,6 +307,15 @@ sub.sel = rowNamed(sub, "Check bulb")
 m:confirm()
 ok(not m._ctx.open, "LIST a plain row still closes it")
 
+-- ESC: the mod's Escape hides the game's menu directly (no clear); ZeD's menu follows on the next tick
+m = open(1)
+ok(m and m._ctx.open and ROOT:getIsVisible(), "ESC strip open over a shown game menu")
+later(10)
+ok(m._ctx.open, "ESC a tick with the game menu shown leaves ZeD's menu up")
+ROOT:setVisible(false)
+later(10)
+ok(not m._ctx.open, "ESC the game menu hidden directly: ZeD's menu closes on the next tick")
+
 -- ---------------------------------------------------------------------------
 -- OFF: neither mod
 -- ---------------------------------------------------------------------------
