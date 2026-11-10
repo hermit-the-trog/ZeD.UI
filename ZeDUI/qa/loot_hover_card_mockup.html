@@ -46,7 +46,7 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
 <div class="wrap">
   <header style="display:flex;flex-direction:column;gap:8px">
     <h1>Loot hover card</h1>
-    <p class="lede">The card a looting player sees the moment the pointer lands on a row, built from ZeD's own parts: the balloon (surface 2, the strong border, the hard shadow, square corners, the stepped tail), the item's name in the heading face, status tags, the five-cell condition bar, and two or three figures for its kind. Holding Alt swaps in the game's full tooltip, so lines other mods add are one key away. The item card stays a click away. Example items and figures; the drawing follows ZeD's sizes at the scale you pick.</p>
+    <p class="lede">The card a looting player sees the moment the pointer lands on a row, built from ZeD's own parts: the balloon (surface 2, the strong border, the hard shadow, square corners, the stepped tail), the item's name in the heading face, status tags, the five-cell condition bar, and two or three figures for its kind, with the weight once worn and, for clothing, bite and scratch against what is worn there (the figures the streamer reads in every tooltip). It stands by the pointer, on the hovered row. Holding Alt swaps in the game's full tooltip, so lines other mods add are one key away. The item card stays a click away. Example items and figures; the drawing follows ZeD's sizes at the scale you pick.</p>
   </header>
 
   <div class="controls" role="group" aria-label="Mockup settings">
@@ -61,7 +61,9 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
     <h2 id="h-rules">How it behaves</h2>
     <ul class="note">
       <li>At once, as vanilla's tooltip: no pause. It follows the pointer from row to row in the same frame, in the list and the grid.</li>
-      <li>It stands beside the list, its tail on the hovered row, so it never covers the rows below the pointer. Without room on the right it goes to the left.</li>
+      <li>It stands to the right of the pointer on the hovered row, its tail at the pointer: where the eye already is, over the row's own columns, never over the rows below. Without room on the right it goes to the left.</li>
+      <li>Ctrl+A selects every row of the list under the pointer; the selection drags onto a container button as one.</li>
+      <li>Items waiting to move show it in their rows: "Moving", and a thin bar filling along the row's foot as each goes.</li>
       <li>It goes while items are dragged, while a selection box is drawn, while a right-click menu is open, while that item's card is open, and on a controller.</li>
       <li>Kinds: a weapon shows damage and reach (a gun its ammo); food its hunger, thirst and freshness; clothing bite and scratch protection; a bag its capacity, what it holds and its weight reduction; a book its progress. Every card: name, tags, condition when the item has one, weight.</li>
       <li>The help line under the list says Alt shows the game's full tooltip.</li>
@@ -87,25 +89,27 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
              std: { good: "#44DD44", warn: "#FFCC22", bad: "#FF5533" }, cb: { good: "#5AAEFF", warn: "#FFDD33", bad: "#E84A22" } },
   };
   // the examples: the loot list's rows, the hovered one, and its card
+  // the examples: the loot list's rows (name, category, condition or null, weight, queued 0..1 or null), the hovered
+  // one, where the pointer is on it, and its card. A stat: [label, value, against what is worn (or null), "good" | "bad"]
   const EXAMPLES = [
-    { kind: "Weapon", note: "Condition first, the two figures that decide whether it's worth carrying.",
-      rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 0,
-      card: { name: "Axe", tags: [], cond: 0.69, weight: "3.0 kg", stats: [["Damage", "0.8–2.0"], ["Reach", "1.2"]] } },
+    { kind: "Clothing", note: "What the streamer reads in every tooltip: the weight once worn, and bite and scratch against the jacket he has on, green better, red worse.",
+      rows: [["Leather Jacket", "Clothing", 0.45, "1.0"], ["Jeans", "Clothing", 0.88, "0.8"], ["Wool Socks", "Clothing", 0.15, "0.1"], ["Baseball Cap", "Clothing", 1.0, "0.2"]], hover: 0, ptr: 84,
+      card: { name: "Leather Jacket", tags: [["Wet", "warn"]], cond: 0.45, weight: "1.0 kg", worn: "0.3 worn", stats: [["Bite", "30%", "-10", "bad"], ["Scratch", "60%", "+15", "good"]] } },
+    { kind: "Weapon", note: "Condition first, the weight in the hand, the two figures that decide whether it's worth carrying.",
+      rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 0, ptr: 40,
+      card: { name: "Axe", tags: [], cond: 0.69, weight: "3.0 kg", worn: "0.9 held", stats: [["Damage", "0.8–2.0", null], ["Reach", "1.2", null]] } },
     { kind: "Broken", note: "A broken item says so before anything else: the red tag, the empty bar.",
-      rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 3,
-      card: { name: "Kitchen Knife", tags: [["Broken", "bad"]], cond: 0.0, weight: "0.3 kg", stats: [["Damage", "0.3–0.7"], ["Reach", "0.9"]] } },
-    { kind: "Food", note: "No condition bar: freshness is the tag, hunger and thirst the figures (as the item card words them).",
-      rows: [["Canned Beans (open)", "Food", null, "0.6"], ["Apple", "Food", null, "0.2"], ["Bread", "Food", null, "0.3"], ["Bottle of Water", "Water", null, "1.0"]], hover: 0,
-      card: { name: "Canned Beans (open)", tags: [["Fresh", "good"]], cond: null, weight: "0.6 kg", stats: [["Hunger", "+20"], ["Thirst", "-5"]] } },
-    { kind: "Clothing", note: "Worn and wet: two tags, the yellow bar, the protection that matters in a fight.",
-      rows: [["Leather Jacket", "Clothing", 0.45, "1.0"], ["Jeans", "Clothing", 0.88, "0.8"], ["Wool Socks", "Clothing", 0.15, "0.1"], ["Baseball Cap", "Clothing", 1.0, "0.2"]], hover: 0,
-      card: { name: "Leather Jacket", tags: [["Wet", "warn"]], cond: 0.45, weight: "1.0 kg", stats: [["Bite", "30%"], ["Scratch", "60%"]] } },
-    { kind: "Container", note: "A bag: what it holds against what it can, and how much it lightens.",
-      rows: [["Hiking Bag", "Container", 0.95, "6.2"], ["Plastic Bag", "Container", null, "0.1"], ["Duffel Bag", "Container", 0.60, "1.0"], ["Purse", "Container", 0.80, "0.4"]], hover: 0,
-      card: { name: "Hiking Bag", count: null, tags: [], cond: 0.95, weight: "6.2 kg", stats: [["Holds", "5.4 / 18"], ["Weight cut", "70%"]] } },
-    { kind: "A stack", note: "A stack names its count after the name; the figures are one item's.",
-      rows: [["Nails", "Material", null, "(0.5)"], ["Screws", "Material", null, "(0.3)"], ["Duct Tape", "Material", null, "0.1"], ["Glue", "Material", null, "0.1"]], hover: 0,
-      card: { name: "Nails", count: 50, tags: [], cond: null, weight: "0.01 kg", stats: [["All", "0.5 kg"]] } },
+      rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 3, ptr: 70,
+      card: { name: "Kitchen Knife", tags: [["Broken", "bad"]], cond: 0.0, weight: "0.3 kg", worn: null, stats: [["Damage", "0.3–0.7", null], ["Reach", "0.9", null]] } },
+    { kind: "Food", note: "No condition bar: freshness is the tag, hunger and thirst the figures.",
+      rows: [["Canned Beans (open)", "Food", null, "0.6"], ["Apple", "Food", null, "0.2"], ["Bread", "Food", null, "0.3"], ["Bottle of Water", "Water", null, "1.0"]], hover: 1, ptr: 30,
+      card: { name: "Apple", tags: [["Fresh", "good"]], cond: null, weight: "0.2 kg", worn: null, stats: [["Hunger", "+10", null], ["Thirst", "+5", null]] } },
+    { kind: "Moving", note: "Items waiting to move say so in their rows, a bar filling as each goes, so the next rows can be read while they move. Ctrl+A had selected the list; it was dropped on the Trunk's button.",
+      rows: [["Hiking Bag", "Container", 0.95, "6.2", 0.7], ["Duffel Bag", "Container", 0.60, "1.0", 0.0], ["Purse", "Container", 0.80, "0.4", 0.0], ["Plastic Bag", "Container", null, "0.1"]], hover: 3, ptr: 46,
+      card: { name: "Plastic Bag", tags: [], cond: null, weight: "0.1 kg", worn: null, stats: [["Holds", "0 / 5", null], ["Weight cut", "0%", null]] } },
+    { kind: "A stack", note: "A stack names its count after the name; the figures are one item's, the stack's weight last.",
+      rows: [["Nails", "Material", null, "(0.5)"], ["Screws", "Material", null, "(0.3)"], ["Duct Tape", "Material", null, "0.1"], ["Glue", "Material", null, "0.1"]], hover: 0, ptr: 26,
+      card: { name: "Nails", count: 50, tags: [], cond: null, weight: "0.01 kg", worn: null, stats: [["All 50", "0.5 kg", null]] } },
   ];
   const state = { theme: "dark", status: "std", zoom: 1.5 };
   try { const s = JSON.parse(localStorage.getItem("zedLootCard") || "null"); if (s && THEMES[s.theme]) Object.assign(state, s); } catch (e) { /* defaults */ }
@@ -126,7 +130,7 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
   function draw(canvas, ex) {
     const th = THEMES[state.theme], pal = th[state.status], u = state.zoom;
     const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
-    const W = 470, H = 196;
+    const W = 500, H = 196;
     canvas.width = Math.round(W * u * dpr); canvas.height = Math.round(H * u * dpr); canvas.style.width = (W * u) + "px";
     const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
     const P = v => Math.round(v * u);
@@ -157,12 +161,18 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
     ex.rows.forEach((r, i) => {
       const y = y0 + i * rowH;
       if (i % 2 === 1) rect(wx, y, ww, rowH, th.stripe);
+      if (r[4] !== undefined && r[4] !== null) rect(wx, y, ww, rowH, th.sel);
       if (i === ex.hover) { rect(wx, y, ww, rowH, th.hover); hovY = y; }
       rect(wx + 8, y + 3, 16, 16, th.surf3);                          // (the item's picture)
       let name = r[0]; const room = colCond - (wx + 30) - 6;
       while (tw(name, "F2", 13) > room && name.length > 3) name = name.slice(0, -2) + "…";
       text(name, wx + 30, y + rowH / 2, th.text, "F2", 13);
-      if (r[2] !== null) segBar(colCond, y + (rowH - 8) / 2, 46, 8, statusLit(r[2]), pal[statusKey(r[2])]);
+      if (r[4] !== undefined && r[4] !== null) {
+        // waiting to move: the category gives way to "Moving", a smooth bar along the row's foot fills as it goes
+        text("Moving", colCond + 2, y + rowH / 2, th.accent, "F5", 10);
+        rect(wx + 30, y + rowH - 3, ww - 38, 2, th.base);
+        if (r[4] > 0) rect(wx + 30, y + rowH - 3, Math.round((ww - 38) * r[4]), 2, th.accent);
+      } else if (r[2] !== null) segBar(colCond, y + (rowH - 8) / 2, 46, 8, statusLit(r[2]), pal[statusKey(r[2])]);
       text(r[3], colWt + 26, y + rowH / 2, th.textSec, "F3", 11, "right");
     });
     rect(wx, wy + wh - 22, ww, 1, th.borderS);
@@ -174,14 +184,15 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
     const title = c.name + (c.count ? "  ×" + c.count : "");
     const lines = [];
     if (c.cond !== null) lines.push({ kind: "bar" });
-    lines.push({ kind: "row", label: "Weight", value: c.weight });
-    c.stats.forEach(s => lines.push({ kind: "row", label: s[0], value: s[1] }));
+    lines.push({ kind: "row", label: "Weight", value: c.weight, extra: c.worn, cls: null });
+    c.stats.forEach(s => lines.push({ kind: "row", label: s[0], value: s[1], extra: s[2], cls: s[3] }));
     const lineH = 18, tagH = 14;   // (the balloon's line step: the face's height and its 2-unit lead)
     const labelW = Math.max(...lines.filter(l => l.kind === "row").map(l => tw(l.label, "F2", 13)), tw("Condition", "F2", 13));
-    const valW = Math.max(46 + 6 + tw("100%", "F3", 11), ...lines.filter(l => l.kind === "row").map(l => tw(l.value, "F3", 11)));
+    const exW = Math.max(0, ...lines.filter(l => l.kind === "row" && l.extra).map(l => tw(l.extra, "F3", 11) + 8));
+    const valW = Math.max(46 + 6 + tw("100%", "F3", 11), ...lines.filter(l => l.kind === "row").map(l => tw(l.value, "F3", 11) + exW));
     const bw = Math.ceil(Math.max(tw(title, "F4", 15), padX * 0 + labelW + 12 + valW) + padX * 2);
     const bh = padY * 2 + 17 + 3 + (c.tags.length ? tagH + 4 : 0) + lines.length * lineH;
-    const tail = 10, bx = wx + ww + tail + 4, by = Math.max(4, Math.min(H - bh - 6, hovY + rowH / 2 - 16));
+    const ptrX = wx + 30 + ex.ptr, tail = 10, bx = ptrX + 14 + tail, by = Math.max(4, Math.min(H - bh - 6, hovY + rowH / 2 - 16));
     rect(bx + 3, by + 3, bw, bh, th.shadow);
     rect(bx, by, bw, bh, th.borderS);
     rect(bx + th.frame, by + th.frame, bw - th.frame * 2, bh - th.frame * 2, th.surf2);
@@ -217,12 +228,23 @@ ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 
         text(Math.round(c.cond * 100) + "%", bx + bw - padX, cy, th.text, "F3", 11, "right");
       } else {
         text(l.label, bx + padX, cy, th.textSec, "F2", 13);
-        text(l.value, bx + bw - padX, cy, th.text, "F3", 11, "right");
+        if (l.extra) {
+          const col = l.cls ? pal[l.cls] : th.textSec;
+          text(l.extra, bx + bw - padX, cy, col, "F3", 11, "right");
+          text(l.value, bx + bw - padX - exW, cy, th.text, "F3", 11, "right");
+        } else text(l.value, bx + bw - padX, cy, th.text, "F3", 11, "right");
       }
       ly += lineH;
     });
+    drawPointer(ctx, ptrX, hovY + rowH / 2 - 4, u);
   }
 
+  function drawPointer(ctx, x, y, u) {
+    const P = v => Math.round(v * u);
+    const shape = [[0,0],[0,13],[3,10],[6,16],[8,15],[5,9],[9,9]];
+    ctx.beginPath(); shape.forEach(([a, b], i) => i ? ctx.lineTo(P(x + a), P(y + b)) : ctx.moveTo(P(x + a), P(y + b))); ctx.closePath();
+    ctx.fillStyle = "#FFFFFF"; ctx.fill(); ctx.lineWidth = Math.max(1, u); ctx.strokeStyle = "#000000"; ctx.stroke();
+  }
   function render() {
     seg("theme", [["dark", "Dark"], ["light", "Light"], ["hicon", "High contrast"]], "theme");
     seg("status", [["std", "Standard"], ["cb", "Color blind"]], "status");
