@@ -12,6 +12,10 @@
 --          counts the press; in the list, the same row in a submenu keeps the submenu open
 --   PUTIN  a crate is built 6 tiles off the player; the menu is opened, the player steps beside the crate: Put in
 --          Container appears in the same open menu. The crate is removed at the end (and old ones swept at the start).
+--   ESC    the mod's Escape key path on a keep-open submenu (List, then Strip), after one keep-open press: ZeD's menu must
+--          close; open and stale is FAIL, open but still refreshing is INFO
+--   TICK   the Lists pop-up's tick boxes (keepOpen rows): a temporary loadout "ZEDQA tick" is ticked and unticked; the
+--          same pop-up stays open and the tick flips each press. The pop-up is List look only (the Strip has no tick rows)
 -- Pictures zqa_rui_*.png. The style, the time, the place and the book are put back. grep "ZEDQA rui".
 local function say(s) print("ZEDQA rui " .. tostring(s)) end
 local p = getPlayer()
@@ -66,6 +70,87 @@ end
 local function closeMenus()
     local v = getPlayerContextMenu(0); if v then v:hideAndChildren() end
     local _, z = menu(); if z and z._ctx and z._ctx.open then z:close() end
+end
+
+-- ESC in a keep-open submenu: the mod's own key handler (ResponsiveUI.onStickyKeyStartPressed, Client.lua) when it is
+-- reachable; else what it does (close the game's menu for player 0, forget the session)
+local escRun = {}
+local function pressEscape()
+    local v = getPlayerContextMenu(0)
+    local h = ResponsiveUI and ResponsiveUI.onStickyKeyStartPressed
+    say(string.format("ESC: game menu visible %s, mod handler reachable %s, Main Menu key is ESC %s",
+        tostring(v and v:getIsVisible()), tostring(type(h) == "function"),
+        tostring(pcall(function() return getCore():isKey("Main Menu", Keyboard.KEY_ESCAPE) end))))
+    if type(h) == "function" then
+        local ok, e = pcall(h, Keyboard.KEY_ESCAPE)
+        say("ESC: the mod's handler ran " .. tostring(ok) .. (ok and "" or (" " .. tostring(e))))
+    else
+        if v then
+            if type(v.closeAll) == "function" then v:closeAll() else v:hideAndChildren() end
+        end
+        if ResponsiveUI and ResponsiveUI.controller then pcall(function() ResponsiveUI.controller:forget(0) end) end
+        say("ESC: no handler reachable; closed the game's menu by hand")
+    end
+end
+-- the keep-open pick inside the submenu, Strip: step 1 goes into the submenu, step 2 presses its keep-open row
+local function stripIntoSub()
+    local _, z = menu()
+    held = z
+    local i = z and defStarting(z._ctx.items, "ZEDQA keep submenu")
+    if i then z._ctx.selected = i; z:confirm() else say("ESC strip: no keep submenu row") end
+end
+local function stripPressSub()
+    local _, z = menu()
+    local items = z and z:_currentItems()
+    local i
+    for ri, d in ipairs(items or {}) do if tostring(d.name):find("ZEDQA keep%-open") then i = ri end end
+    if i then z._ctx.selected = i; z:confirm() else say("ESC strip: no keep-open row in the submenu") end
+end
+local function listPressSub()
+    local _, z = menu()
+    held = z
+    local top = z and z._levels and z._levels[1]
+    if not top then say("ESC list: no list"); return end
+    for ri, r in ipairs(top.rows) do if r.def and r.def.name == "ZEDQA keep submenu" then top.sel = ri end end
+    z:_openSub(1, true)
+    local sub = z._levels[2]
+    if not sub then say("ESC list: the submenu did not open"); return end
+    for ri, r in ipairs(sub.rows) do if r.def and tostring(r.def.name):find("ZEDQA keep%-open") then sub.sel = ri end end
+    z:confirm()
+end
+-- fire ESC once the menu is proven open after the keep-open pick; the flag flips so a stale menu shows
+local function escFire(name)
+    local _, z = menu()
+    local sub = z and ((z._levels and #z._levels == 2) or (z._ctx and #z._ctx.path == 1))
+    escRun.z, escRun.p0 = z, presses
+    check(z ~= nil and z._ctx.open == true and sub == true, "ESC " .. name .. ": the keep-open pick left the menu open in its submenu")
+    liveOn = false
+    pressEscape()
+end
+-- 30 ticks later: closed is a PASS; open is FAIL when stale (no refresh follows), INFO when it still refreshes
+local function escCheck(name)
+    local _, z = menu()
+    local open = z ~= nil and z._ctx ~= nil and z._ctx.open == true
+    local ours = escRun.z ~= nil and escRun.z._ctx ~= nil and escRun.z._ctx.open == true
+    escRun.open = open or ours
+    say(string.format("ESC %s: ZeD menu open %s (the one held %s), game menu visible %s", name, tostring(open), tostring(ours),
+        tostring(getPlayerContextMenu(0) and getPlayerContextMenu(0):getIsVisible())))
+    if not escRun.open then check(true, "ESC " .. name .. ": ZeD's menu closed on Escape") end
+    shot("esc_" .. name)
+end
+-- ~100 ticks after that (the mod refreshes every ~15 ticks): an open menu must have taken the flag flip
+local function escStale(name)
+    if not escRun.open then closeMenus(); return end
+    local _, cur = menu()
+    local z, d = (cur and cur._ctx and cur._ctx.open) and cur or escRun.z, nil
+    if z and z._ctx and z._ctx.open then
+        local _, nd = defStarting(z._ctx.actions, "ZEDQA live")   -- (both menus replace actions on a refresh)
+        d = nd
+    end
+    local live = d ~= nil and greyed(d) == false
+    if live then say("INFO ESC " .. name .. ": ZeD's menu stayed open after Escape but it still refreshes (live)")
+    else check(false, "ESC " .. name .. ": ZeD's menu stayed open after Escape and is stale (no refresh)") end
+    closeMenus()
 end
 
 local function report(tag)
@@ -359,9 +444,74 @@ at(1010, function()
         tostring(z == held), tostring(z and z._ctx.open), tostring(z and z._levels and #z._levels), tostring(r and r.def and r.def.name)))
     shot("keep_list")
 end)
--- put everything back (the crate too)
-at(1030, function()
+-- ESC in a keep-open submenu, List (the mod's Escape closes the game's menu; ZeD's must go with it)
+at(1030, function() closeMenus(); liveOn = true; opt:setValue(2) end)
+at(1050, function() ISInventoryPaneContextMenu.createMenu(0, true, { book }, 700, 500) end)
+at(1070, listPressSub)
+at(1100, function() escFire("list") end)
+at(1130, function() escCheck("list") end)
+at(1230, function() escStale("list") end)
+-- ESC in a keep-open submenu, Strip
+at(1250, function() closeMenus(); liveOn = true; escRun = {}; opt:setValue(1) end)
+at(1270, function() ISInventoryPaneContextMenu.createMenu(0, true, { book }, 700, 500) end)
+at(1290, stripIntoSub)
+at(1310, stripPressSub)
+at(1340, function() escFire("strip") end)
+at(1370, function() escCheck("strip") end)
+at(1470, function() escStale("strip") end)
+
+-- THE LISTS TICK BOXES: the mark strip's Lists pop-up (ZeD.ListsUI.openPopup, only ever the List look: the Strip
+-- has no tick-box rows). A temporary loadout is made; a keepOpen row is pressed twice through the menu's own confirm.
+local tickRun = {}
+local function tickRow(z)
+    local top = z and z._levels and z._levels[1]
+    for ri, r in ipairs(top and top.rows or {}) do
+        if r.def and r.def.keepOpen and r.def.name == tickRun.name then return top, ri, r.def end
+    end
+end
+local function tickPress()
+    local z = tickRun.z
+    local top, ri, def = tickRow(z)
+    if not ri then say("TICK no row for the test list"); return end
+    top.sel = ri
+    z:confirm()
+end
+at(1490, function()
     closeMenus()
+    liveOn = true
+    local l = ZeD.Lists.create(p, "loadout", "ZEDQA tick")
+    tickRun.list, tickRun.name = l, l and l.name
+    local z = l and ZeD.ListsUI.openPopup(0, book, 700, 500)
+    tickRun.z = z
+    local _, ri, def = tickRow(z)
+    tickRun.before = def and def.check() or nil
+    check(z ~= nil and ri ~= nil and tickRun.before == false, "TICK: the Lists pop-up is open with the test list unticked")
+    shot("tick_before")
+end)
+at(1520, tickPress)
+at(1550, function()
+    local z = tickRun.z
+    local _, ri, def = tickRow(z)
+    tickRun.after = def and def.check() or nil
+    check(z ~= nil and z._ctx.open == true and z == ZeD.ListsUI.popup and ri ~= nil, "TICK: the same pop-up is still open after the press")
+    check(tickRun.after == true, "TICK: the row's tick flipped on")
+    shot("tick_after")
+end)
+at(1570, tickPress)
+at(1600, function()
+    local z = tickRun.z
+    local _, ri, def = tickRow(z)
+    check(z ~= nil and z._ctx.open == true and def ~= nil and def.check() == false, "TICK: pressed again, still open and ticked back off")
+    say(string.format("TICK check %s -> %s -> %s", tostring(tickRun.before), tostring(tickRun.after), tostring(def and def.check())))
+    if z and z._ctx.open then z:close() end
+    if tickRun.list then ZeD.Lists.delete(p, tickRun.list.id) end   -- the temporary loadout goes
+    say("TICK test list removed")
+end)
+
+-- put everything back (the crate too)
+at(1620, function()
+    closeMenus()
+    liveOn = true
     Events.OnFillInventoryObjectContextMenu.Remove(addKeep)
     opt:setValue(was.style)
     getGameTime():setTimeOfDay(was.tod)
@@ -381,6 +531,6 @@ local function onTick()
             if not ok then say("ERR step " .. s.n .. ": " .. tostring(e)) end
         end
     end
-    if tick > 1040 then Events.OnTick.Remove(onTick) end
+    if tick > 1640 then Events.OnTick.Remove(onTick) end
 end
 Events.OnTick.Add(onTick)
