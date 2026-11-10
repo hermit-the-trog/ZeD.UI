@@ -3405,4 +3405,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       (notice B) and loadCursor with the full path in the mod's folder as well as the media path (notices C, D), then
       initCustomCursor() to put the game's pointer back (E). If loadCursor takes a picture, the set is a picture swap;
       if nothing hides or swaps it on the Mac, the fallback is the badge beside the pointer (draft from earlier).
+    - **QA, Mac, Nov 10 2026 (probe 2, run 2, watched; 42.22.2, -nosteam, 1920 x 1080 window on a 4K screen): nothing
+      hides or changes the pointer.** All five ran without an error: setCursorVisible(false) and setDisplayCursor(false)
+      left the pointer on screen; loadCursor with the media path and with the full path in the mod's folder left the
+      game's own pointer; initCustomCursor() changed nothing. So on the Mac neither the picture swap nor "hide it and
+      draw ZeD's own" works; only the badge beside the pointer does. Windows not tried (it may differ). The pixel hand
+      (ruled above) only matters if a swap works somewhere. **Director:** the badge on every system, or a Windows run of
+      the probe first.
 
