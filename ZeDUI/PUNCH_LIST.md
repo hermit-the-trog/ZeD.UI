@@ -3489,8 +3489,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     height so the users can view their character up close and for screenshots. OR! Enter the studio and there are
     pull down backdrops you can choose like the old glamour shots did."; then "Studio has to auto pause the game").**
     Rulings, Nov 10: the studio, in two steps; Build drafts the backdrops and the director refines them; Take photo
-    is a clean shot with a flash; built after the Pasties fixes, in beta 11. Not open yet: what multiplayer does (a
-    client cannot stop a server's clock). The name stays ZeD's own (Glamour Shots is a real company's).
+    is a clean shot with a flash; built after the Pasties fixes, in beta 11. Then: **single player only** (a client
+    cannot stop a server's clock: in multiplayer the way in is grayed, its help line saying it needs a paused game),
+    and **a camera button in the ID photo frame's corner** opens it (a click on the photo still switches bust and
+    full body). The name stays ZeD's own (Glamour Shots is a real company's).
     - **Step 1: the room.** Entered from the ID card's photo. The character's own 3D figure (ISUI3DModel, as the
       ID photo and the hair menu use) near the screen's full height, over one plain seamless backdrop; drag turns it
       (as now), the wheel and presets frame it (full body, three-quarter, bust). **Entering pauses the game**
