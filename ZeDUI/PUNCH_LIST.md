@@ -3384,4 +3384,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       lines and the two shots. Then design: a pointer set in ZeD's pixel style.
     - **The director, Nov 10 2026: a ZeD pixel-art hand at rest, "so the whole set matches".** The set: the resting
       hand, then one pointer per drop (Floor, Put in, Take, Equip), marks coloured as in the menus.
+    - **Draft 1, Nov 10 2026:** `ZeDUI/mockups/zed_pointer_v1/pointer_v1.png` (and its script). A 16 px pointing hand
+      in ink on paper, hotspot at the fingertip; the drag pointers are the menu icons with their marks and a 1 px paper
+      rim (Floor, Put in, Take, Equip, and the warning for a place that takes nothing), hotspot at the top left of the
+      live area. Waiting on the director's notes, and on the probe for how it can be shown.
 
