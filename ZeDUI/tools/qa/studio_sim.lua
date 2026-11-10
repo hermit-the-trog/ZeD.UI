@@ -221,5 +221,9 @@ check("WIRED: the camera button added after the figure (over it)", addModel and 
 check("WIRED: placed in the photo's corner", cw:find("cam:setX(identityModel.x + identityModel.width - s - T.px(4))", 1, true) ~= nil)
 check("WIRED: shown with the ID photo only", cw:find('local camOn = showAvatar and win._activeTab == "identity" or false', 1, true) ~= nil)
 
+local fp = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_PausedLook.lua", "rb"); local pl = fp:read("*a"); fp:close()
+check("WIRED: paused, the glass leaves the camera button bright", pl:find("local cx, cy, cw, ch = camRect(self)", 1, true) ~= nil)
+check("WIRED: paused, a press on the camera button reaches it", pl:find("if cam.onMouseUp then cam:onMouseUp(x - cx, y - cy) end", 1, true) ~= nil)
+
 print("studio_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)

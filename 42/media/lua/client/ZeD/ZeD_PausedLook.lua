@@ -70,11 +70,36 @@ function ZeD_PausedGlass:new(win)
     return o
 end
 
+-- the portrait studio's camera button on the ID photo, where the glass lies over it: the studio moves nothing and uses
+-- nothing, and it pauses the game anyway, so the button stays bright and takes its press (QA's Mac run, Nov 10 2026:
+-- from a paused game the button did nothing). Its rectangle in the glass's space, or nil.
+local function camRect(g)
+    local cam = g.win and g.win._studioBtn
+    if not (cam and cam:isVisible() and ZeD.Studio and ZeD.Studio.available and ZeD.Studio.available()) then return nil end
+    local x, y = cam:getAbsoluteX() - g:getAbsoluteX(), cam:getAbsoluteY() - g:getAbsoluteY()
+    local w, h = cam:getWidth(), cam:getHeight()
+    if x + w <= 0 or y + h <= 0 or x >= g.width or y >= g.height then return nil end
+    return x, y, w, h
+end
+PL._camRect = camRect
+
 function ZeD_PausedGlass:prerender()
     local T = ZeD.T
     if not T then return end
     local db = T.drawerBg or T.surf1
-    self:drawRect(0, 0, self.width, self.height, VEIL_A, db.r, db.g, db.b)
+    local cx, cy, cw, ch = camRect(self)
+    if cx then
+        -- the veil round the camera button: above it, below it, and either side of it
+        local W, H = self.width, self.height
+        local x0, y0 = math.max(0, cx), math.max(0, cy)
+        local x1, y1 = math.min(W, cx + cw), math.min(H, cy + ch)
+        self:drawRect(0, 0, W, y0, VEIL_A, db.r, db.g, db.b)
+        self:drawRect(0, y1, W, H - y1, VEIL_A, db.r, db.g, db.b)
+        self:drawRect(0, y0, x0, y1 - y0, VEIL_A, db.r, db.g, db.b)
+        self:drawRect(x1, y0, W - x1, y1 - y0, VEIL_A, db.r, db.g, db.b)
+    else
+        self:drawRect(0, 0, self.width, self.height, VEIL_A, db.r, db.g, db.b)
+    end
     -- the line at the top: why nothing answers (a surface strip across, the words in the default ink)
     local text = ZeD.tr("UI_ZeD_Char_PausedLook")
     local f = T.fontF2
@@ -90,7 +115,15 @@ end
 
 local function eat() return true end
 ZeD_PausedGlass.onMouseDown = eat
-ZeD_PausedGlass.onMouseUp = eat
+-- (a release on the camera button opens the studio: camRect)
+function ZeD_PausedGlass:onMouseUp(x, y)
+    local cx, cy, cw, ch = camRect(self)
+    if cx and x >= cx and y >= cy and x < cx + cw and y < cy + ch then
+        local cam = self.win._studioBtn
+        if cam.onMouseUp then cam:onMouseUp(x - cx, y - cy) end
+    end
+    return true
+end
 ZeD_PausedGlass.onRightMouseDown = eat
 ZeD_PausedGlass.onRightMouseUp = eat
 ZeD_PausedGlass.onMouseDoubleClick = eat

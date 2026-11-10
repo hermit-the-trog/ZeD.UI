@@ -3549,6 +3549,24 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     probe. **Check (QA, Mac):** the camera button on the ID photo; the studio: the game paused, the figure tall and
     sharp, the framings, drag and buttons turn it; Take photo: a shot without the bar in Screenshots, the flash;
     Leave and Escape: the game's speed as before; in multiplayer the button grey.
+    **QA, Mac, Nov 10 2026, on ec3fb25: the probe and the room.**
+    - *The probe:* all 45 shots are the idle stance; every state, emote, sitting variable and anim set ran without an
+      error and changed nothing. What does work: the game's own character creation drives this figure by events,
+      idle, walk and run (reportEvent); walk gives a stride, run a running lean, both moving loops. No sitting, wave
+      or salute by any route tried. Paused, the figure freezes (the two paused shots pixel-identical).
+    - *The room:* the camera button in the photo's corner; the studio pauses and keeps the paused box hidden; the
+      figure tall and sharp; Full body and Bust right; drag and Turn left turn it; the photo is clean (no bar, no
+      flash: the shot reads the clean frame) and the help line names it; Leave and Escape put the speed back, and
+      Escape doesn't open the game's pause menu.
+    - *Faults:* Three-quarter framed collar to shins, the head cut off; from a game already paused the camera button
+      did nothing (the paused windows' glass takes every press).
+    - *To decide:* the photo is the whole screen, the dark room either side of the paper in it; in Full body turned
+      three-quarters away the shoes are cut flat.
+    **Build answered:** the paused glass leaves the camera button bright and passes its press on (ZeD_PausedLook.lua;
+    the studio pauses anyway). Three-quarter can't be fixed from here (how the y offset moves the figure at a zoom
+    isn't readable in the cloud): the framing probe (zedqa_studio_frame_probe.lua, studio_frame_manifest.txt)
+    opens the real studio and shoots zoom 6, 11 and 15 at y 0 to -1.6, and Full body at zoom -2, -1 and 0 turned
+    three-quarters, for the shoes. studio_sim 38/0.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
