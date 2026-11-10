@@ -130,15 +130,20 @@ check("OPEN: the game's paused box hidden", W.pausedBox == false)
 check("OPEN: on top of everything", W.ui[room] and room.onTop == true)
 local fig = room.fig
 check("OPEN: the character's figure, idle, facing south", fig and fig.chr == CHR and fig.state == "idle" and fig.dir.name == "S")
-check("OPEN: at full body", fig.zoom == 0 and fig.yoff == 0)
+check("OPEN: at full body (zoom 0, the figure's own 0)", fig.zoom == 0 and fig.yoff == 0)
 
 -- ---------------------------------------------------------------------------
 -- FRAME, TURN
 -- ---------------------------------------------------------------------------
 room:frameTo(1)
 check("FRAME: the bust is the ID photo's", fig.zoom == 19 and math.abs(fig.yoff + 0.875) < 1e-9, fig.zoom)
-room:frameTo(0.55)
-check("FRAME: three-quarter between", math.abs(fig.zoom - 19 * 0.55) < 1e-9)
+room:frameTo(ST.FRAMES[2].t)
+check("FRAME: three-quarter is zoom 11 at -0.70 (QA's pick)", math.abs(fig.zoom - 11) < 1e-9 and math.abs(fig.yoff + 0.70) < 1e-9, fig.zoom .. " " .. fig.yoff)
+check("FRAME: QA's picks at zoom 6 and 15", math.abs(ST.yAt(6) + 0.6) < 1e-9 and math.abs(ST.yAt(15) + 0.79) < 1e-9)
+check("FRAME: just past full body the curve starts at -0.5 (y 0 sits there)", math.abs(ST.yAt(0.01) + 0.5) < 0.001, ST.yAt(0.01))
+local mono = true
+for i = 1, 190 do if ST.yAt(i / 10) > ST.yAt((i - 1) / 10) + 1e-12 and i > 1 then mono = false end end
+check("FRAME: between them the y only goes down as the zoom goes up", mono)
 room:frameTo(0)
 for _ = 1, 30 do room:onMouseWheel(-1) end
 check("FRAME: the wheel stops at full body", room.t == 0, room.t)

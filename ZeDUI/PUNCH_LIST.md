@@ -3570,6 +3570,20 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     **The director, Nov 10 2026: "Standing only for now"** (no pose picker; revisit if a sitting or wave route turns
     up) **and "Paper fills the screen"**: the backdrop runs edge to edge, in the studio and in the photo, so the
     saved portrait is all studio (ZeD_Studio.lua prerender).
+    **QA, Mac, Nov 10 2026, on 9195b95:** the studio opens from a paused game (the button bright under the glass;
+    after Leave the game still paused); the photo is 1920 x 1080 with paper in all four corners, no bar, no flash.
+    The framing probe and finer steps after it: the head whole with the least paper above it at zoom 6 y -0.6, zoom
+    11 y -0.70 (23 px of paper), zoom 15 y -0.79 (35 px); at -0.6, 11 and 15 already cut the head. Found: y 0 is not
+    a zero, it sits where about -0.5 would (0 to +0.05 jumped the figure 484 px where the slope gives 44): why
+    halfway between the framings cut the head; more negative y moves the figure down, about 880 px per 1.0 at zoom 0,
+    2200 at zoom 15; the figure draws only inside its element (rows 47 to 1019 at 1080p). The shoes: whole at every
+    zoom facing the camera; turned away or from behind the soles are cut flat at any zoom and offset, and the cut
+    moves with the figure: the model itself is clipped there, no framing fixes it.
+    **Build answered:** the framings follow QA's picks (ZeD_Studio.lua yAt): full body zoom 0 at the figure's own 0;
+    from just past it the y runs -0.5 (zoom 0), -0.6 (6), -0.70 (11), -0.79 (15), -0.875 (19, the ID photo's bust),
+    straight between; Three-quarter is zoom 11 at -0.70; the wheel walks the same curve. The shoes from behind stay
+    as the game draws them. studio_sim 41/0. **Recheck (QA):** Three-quarter: head whole, a little paper above;
+    the wheel from full body to bust: the head never cut.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

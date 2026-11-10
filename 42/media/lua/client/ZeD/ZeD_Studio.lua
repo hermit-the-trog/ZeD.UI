@@ -28,7 +28,22 @@ local ST = ZeD.Studio
 local function tr(k, ...) return ZeD.tr(k, ...) end
 -- the two framings the ID photo uses (ZeD_CharacterWindow: full body zoom 0, y 0; the bust 19, -0.875)
 local BUST_ZOOM, BUST_Y = 19, -0.875
-local FRAMES = { { key = "UI_ZeD_Studio_Full", t = 0 }, { key = "UI_ZeD_Studio_ThreeQ", t = 0.55 }, { key = "UI_ZeD_Studio_Bust", t = 1 } }
+-- The y offset that keeps the head whole with a little paper above it, by zoom, measured on QA's Mac (Nov 10 2026,
+-- zedqa_studio_frame_probe.lua and finer steps after it): zoom 6 at -0.6, 11 at -0.70, 15 at -0.79; the bust is the
+-- ID photo's (19, -0.875). A y of exactly 0 is the figure's own centring, which sits where about -0.5 would (from 0 to
+-- +0.05 the figure jumped 484 px where the slope gives 44), so full body keeps its 0 and the curve starts at -0.5.
+-- (Three-quarter as halfway between the two framings' zoom and y, 10.45 at -0.48, framed collar to shins.)
+local YAT = { { 0, -0.5 }, { 6, -0.6 }, { 11, -0.70 }, { 15, -0.79 }, { 19, -0.875 } }
+local function yAt(z)
+    if z <= 0 then return 0 end
+    for i = 2, #YAT do
+        local a, b = YAT[i - 1], YAT[i]
+        if z <= b[1] then return a[2] + (b[2] - a[2]) * (z - a[1]) / (b[1] - a[1]) end
+    end
+    return YAT[#YAT][2]
+end
+ST.yAt = yAt
+local FRAMES = { { key = "UI_ZeD_Studio_Full", t = 0 }, { key = "UI_ZeD_Studio_ThreeQ", t = 11 / 19 }, { key = "UI_ZeD_Studio_Bust", t = 1 } }
 ST.FRAMES = FRAMES
 -- the seamless paper: a studio grey, the same in every theme (it is the set, not the UI), lighter at the sweep
 local PAPER_TOP, PAPER_LOW = { r = 0.47, g = 0.49, b = 0.52 }, { r = 0.62, g = 0.64, b = 0.66 }
@@ -71,8 +86,9 @@ function ZeD_StudioRoom:frameTo(t)
     t = math.max(0, math.min(1, t or 0))
     self.t = t
     if self.fig then
-        self.fig:setZoom(BUST_ZOOM * t)
-        self.fig:setYOffset(BUST_Y * t)
+        local z = BUST_ZOOM * t
+        self.fig:setZoom(z)
+        self.fig:setYOffset(yAt(z))
     end
 end
 function ZeD_StudioRoom:frameBy(d) self:frameTo(self.t + d) end
