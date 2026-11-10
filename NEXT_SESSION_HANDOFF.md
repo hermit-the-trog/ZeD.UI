@@ -6,6 +6,7 @@ Read this first, then STATE.md for what ships and ZeDUI/PUNCH_LIST.md for every 
 
 - **Live:** 0.3.0-beta10, uploaded Nov 9 2026 10:22 am, Workshop item 3824968485, tag `v0.3.0-beta10`. Built for Project Zomboid 42.22.2, which became the public stable build on Nov 9 (it was 42.21).
 - **On main:** `42/mod.info` reads 0.3.0-beta11. The beta 11 cycle opened Nov 9.
+- **Nov 10:** the director runs a second account's cloud session on ZeD this week (it writes the code and sends test zips; the Mac tests them in a local session). The Nov 13 reset below is the first account's limit only. Test builds so far: `0.3.0-beta11-test1` and `-test2`; the in-game checks are in `ZeDUI/qa/CHECK_b11_test1_20261110.md`.
 - **Week:** a light week until the usage reset on Friday Nov 13, 4 am. Bug reports and minor updates only; long runs go to one Sonnet helper; no full regression per change. Bigger work is queued for after the reset (below).
 - **Repository history was rewritten on Nov 9** to take personal information out (the owner's user folder, personal email and full name, plus a browser-printed roadmap PDF). Every commit and tag hash before then changed: use tag names, never old hashes. Any older clone must be re-cloned or reset onto origin/main; never merge an old-history branch back in. GitHub's "Protect main" ruleset is Active (no force-push, no deleting main, no bypass); a future rewrite needs the director to disable it for that one push.
 
@@ -15,16 +16,17 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 
 | Punch list | What | Status |
 |---|---|---|
-| 114 | The main menu desk's sticky note can be dragged and closed (NOTE FIXES) | open |
-| 126 | The Character list slides sideways for a quarter second when its drawer folds at Deck size (LIST SLIDE; also in beta 9) | open |
-| 125 | Closing a tab while its window is rolled puts the window back 4 px off at Deck size (WIN SPOT) | open |
-| 127 | PZ Teal is the default accent for a fresh install; a saved accent (Orange included) stays. Test: delete ZeD's accent from the options file or use a clean cachedir, expect Teal | open |
-| 130 | The Player card keeps the old role after a role change on an offline account, so Ban never shows the protected-role message; update the cached row from the change; test an online moderator too | open |
-| 131 | The belt's balloon draws over the "Right Click More" hint strip | open |
-| 133 | The context strip scrolls one icon per arrow click and cuts the edge icon: a page of whole icons per click | open |
-| 134 | Custom Map Labels: no error now and its labels reach the map store, but none draw on ZeD's map; investigate layer, Paper's label hiding, unexplored cells | investigate |
+| 114 | The main menu desk's sticky note can be dragged and closed (NOTE FIXES) | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check |
+| 126 | The Character list slides sideways for a quarter second when its drawer folds at Deck size (LIST SLIDE; also in beta 9) | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check |
+| 125 | Closing a tab while its window is rolled puts the window back 4 px off at Deck size (WIN SPOT) | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check |
+| 127 | PZ Teal is the default accent for a fresh install; a saved accent (Orange included) stays. Test: delete ZeD's accent from the options file or use a clean cachedir, expect Teal | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check |
+| 130 | The Player card keeps the old role after a role change on an offline account, so Ban never shows the protected-role message; update the cached row from the change; test an online moderator too | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check |
+| 131 | The belt's balloon draws over the "Right Click More" hint strip | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check |
+| 133 | The context strip scrolls one icon per arrow click and cuts the edge icon: a page of whole icons per click | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check |
+| 134 | Custom Map Labels: no error now and its labels reach the map store, but none draw on ZeD's map; investigate layer, Paper's label hiding, unexplored cells | investigated Nov 10: likely Paper hiding the place-label layers the labels sit in; zedqa_cml step 4 probes it on the Mac |
 | 137 | Responsive Context Menus support: ZeD's Strip and List take the mod's live rebuilds in place; keep-open honored; Escape closes | **done, QA 30/30 at 4K** (regression/2026-11-09_1732_mods_fullscreen4k.md); add the change-note line and the Compatibility thread's Supported entry at ship |
-| 138 | Menu marks: blue and red tell paired actions apart (add/remove, on/off, either way), plus new Eat, Sneak and Safehouse icons, the centered 24 badge and the screwdriver handle up. Design handoff: `ZeDUI/HANDOFF_design_menu_marks_eat_20261109.md` (the director put the marks in beta 11, Nov 10) | open, Build |
+| 138 | Menu marks: blue and red tell paired actions apart (add/remove, on/off, either way), plus new Eat, Sneak and Safehouse icons, the centered 24 badge and the screwdriver handle up. Design handoff: `ZeDUI/HANDOFF_design_menu_marks_eat_20261109.md` (the director put the marks in beta 11, Nov 10) | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check; the list menu uses each theme's own shades (director approved Nov 10) |
+| 139 | The pointer says what a click or a drop will do (an idea from the director, Nov 10; mockup in ZeDUI/mockups/zed_pointer_hint_v1) | waiting on the director: go or not |
 | 132 | Strip submenus open on rest | closed: the director chose click only; a note that mentions rest names the List only |
 
 DECK FIXES and REPORTS are the umbrella for 125, 126, 130, 131 and 133 plus any new player reports before the upload.
