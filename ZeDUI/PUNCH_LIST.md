@@ -3374,4 +3374,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     cursor); the icon beside it does not. Controllers have no pointer: nothing changes there. Mockup:
     `ZeDUI/mockups/zed_pointer_hint_v1/pointer_hint_v1.png` (four moments on a Dark list). **Director:** go or not,
     and which moments (hover a row, dragging, both).
+    - **The director, Nov 10 2026: the pointer itself changes**, not a badge beside it: "like the hand in the game ...
+      if you're dragging to drop something, then that would show the drop to floor icon instead of the finger." Two
+      ways, depending on the game: Lua sets the pointer's picture (clean), or Lua hides the pointer and ZeD draws its
+      own every frame (can lag a frame, may not draw over the game's own pop-ups). Neither can be checked from the
+      cloud session. **The probe:** `zedqa_pointer_probe.lua` (pointer_manifest.txt) lists what Lua reaches on Mouse,
+      getCore() and UIManager about the pointer, tries the likely names, hides the pointer for a second if it can
+      (two shots), and looks for the game's own pointer pictures. **Check (QA, Mac):** run it, send the "ZEDQA ptr"
+      lines and the two shots. Then design: a pointer set in ZeD's pixel style (the resting hand still to be ruled:
+      the game's or ZeD's own).
 
