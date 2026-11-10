@@ -157,6 +157,8 @@ body would be, above the thumb. Both had the same bottom-right arrow badge and o
   (8, 8) at 16 and (12, 12) at 24; the 2 on the secondary, drawn after mirroring so it reads the right way, at (5, 8)
   and (7, 12). `digits.py` places them; `hands_digits_v1.png` shows the result.
 - **The 24's heel rounded on the pinky side** to match the 16: on the primary, rows 15-20 stop at columns 22, 22, 21,
-  20, 19 and 17 (mirrored on the secondary). It's in `hands.py`. If it suits, give the plain `hand` 24 the same edge.
+  20, 19 and 17 (mirrored on the secondary). It's in `hands.py`. The director prefers it rounded, so the plain `hand`
+  24 gets the same edge (rows 15-20 stop at columns 18, 18, 17, 16, 15 and 13; `zw_hand_24.png`). Best done once in
+  `i_char.hand` at 24, which all three draw from.
 - The `zw_hand_main_16/24.png` and `zw_hand_off_16/24.png` beside them are the finished pictures, numbers in.
 - They stay ink: the arrow says which hand, not add or remove.
