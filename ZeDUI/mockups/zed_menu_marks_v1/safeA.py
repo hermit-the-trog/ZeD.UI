@@ -23,7 +23,7 @@ def boarded(n):
         rect(g,7,y+2,10,8,'.'); rect(g,2,y+3,20,2); rect(g,2,y+7,20,2)
     return g
 def badge(g,kind):
-    n=len(g); b=5 if n==16 else 7; t=1 if n==16 else 2; x0=n-b; y0=n-b; m=b//2
+    n=len(g); b=5 if n==16 else 8; t=1 if n==16 else 2; x0=n-b; y0=n-b; m=b//2   # 24: an even 8, so the 2 px bars sit dead centre
     rect(g,x0-1,y0-1,b+1,b+1,'.')
     rect(g,x0,y0+m-t//2,b,t,'m')
     if kind=='plus': rect(g,x0+m-t//2,y0,t,b,'m')

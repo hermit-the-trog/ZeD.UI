@@ -96,6 +96,11 @@ sticking out past the walls so they read as boards nailed on, not a vent. It rep
   beside it (`zw_safehouse*_16/24.png`), and for the two with marks, the mark alone (`*_mk.png`), the shape section 1's
   export would write.
 - The badge sits bottom right, cut clear of the house as `kit.badge` does.
+- **The 24's plus is off centre everywhere, not just here** (director, Nov 9: "it's not centered"). `kit.badge` draws
+  a 7-wide badge at 24 with 2 px bars, and a 2 px bar can't sit in the middle of 7: today's `zw_equip` 24 has two
+  rows above the bar and three below. `safeA.py` uses an 8-wide badge at 24, so the bars sit dead centre. Make
+  `kit.badge` do the same at 24 (`b = 5 if n == 16 else 8`; check the four arrows and the x still draw well at 8), and
+  re-export: every 24 badge moves by a pixel.
 - Move them into `i_ctx6.py` beside the shields and export. The three menu rows share their picture names with other
   options (`shield-plus` is also Reinforce's, `shield` and `shield-minus` may be used by mods), so give the three rows
   in `ContextIcons.lua` picture names of their own (`safehouse`, `safehouse-claim`, `safehouse-release`) and map
