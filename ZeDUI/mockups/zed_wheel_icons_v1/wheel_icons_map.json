@@ -1612,12 +1612,12 @@
   },
   "hand_main": {
    "group": "ctx5",
-   "means": "the open hand, an arrow right: equip in the main hand",
+   "means": "the open hand, an arrow into it from the right: equip in the main hand",
    "mapped": true
   },
   "hand_off": {
    "group": "ctx5",
-   "means": "the open hand mirrored, an arrow left: equip in the off hand",
+   "means": "the open hand mirrored, an arrow into it from the left: equip in the off hand",
    "mapped": true
   },
   "holster": {
