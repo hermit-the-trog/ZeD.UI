@@ -3363,7 +3363,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the Journal's Lists page and the item card's Lists mark show the new icons; a radio with presets: its "+" is Teal
     (and follows another accent).
 
-139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; not ruled yet).** "If you're
+139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips
     and a drop's target decides Take, Put in, Equip or Drop, with nothing on screen saying which until it happens. Out
@@ -3412,4 +3412,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       draw ZeD's own" works; only the badge beside the pointer does. Windows not tried (it may differ). The pixel hand
       (ruled above) only matters if a swap works somewhere. **Director:** the badge on every system, or a Windows run of
       the probe first.
+    - **Parked (the director, Nov 10 2026: "research it later ... not that worried about it").** Nothing to build now.
+      Later: the director remembers a pointer mod that was a file copied into the game's own folder by hand, which
+      would mean the game reads its pointer picture from its install at start, outside the mod system. To check then:
+      the game install's pointer pictures (names with cursor or mouse), that mod's install steps, and whether a copied
+      file gives ZeD's pixel hand at rest (an optional manual extra; the drop icons would still be the badge). Probes:
+      zedqa_pointer_probe.lua, zedqa_pointer_probe2.lua; drafts: zed_pointer_hint_v1, zed_pointer_v1.
 
