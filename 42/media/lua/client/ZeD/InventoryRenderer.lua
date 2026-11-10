@@ -889,6 +889,7 @@ local function drawGridCell(self, GV, item, cx, cy)
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
         self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cell, h = cell }
+        if ZeD.InvTip and not cuesOn() then ZeD.InvTip.want(self, item) end   -- (the game's tooltip: punch list 146)
         if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm)) end   -- (on the strip: its condition)
     end
     self:addHitZone(item, ax, cy, cell, cell)
@@ -1077,6 +1078,8 @@ ZeD.InventoryRenderer._drawReadCond = drawReadCond
 local function drawGridHint(self, GV, xOff, colW, contentTop)
     local hc = self._gridHintCand
     if not hc then return end
+    -- (the game's tooltip is up for it: it names the item, so no second box; punch list 146)
+    if ZeD.InvTip and ZeD.InvTip.wantedBy(self, hc.key) then return end
     if hc.read then return requestReadCard(self, hc) end
     ZeD.Atoms.requestHint(ZeD.Atoms.windowOf(self), hc.key, hc.text, self, hc.x and hc or nil)
 end
@@ -1431,7 +1434,11 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
         local hv = T.hover
         self:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
     end
-    if hover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", item:getName() or "")) end
+    if hover then
+        ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", item:getName() or ""))
+        -- the game's item tooltip at once, as vanilla's list shows it (punch list 146: ZeD_InvTip.lua)
+        if ZeD.InvTip then ZeD.InvTip.want(self, item) end
+    end
     if item ~= self._gpFocusedRowItem then return false end
     local fo = gpFocusedItem(item)
     if not fo then return false end

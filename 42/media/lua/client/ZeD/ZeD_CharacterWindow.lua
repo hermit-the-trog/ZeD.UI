@@ -5948,6 +5948,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     content._deferredSelect = nil
 
     -- Draw hooks — inventory always visible
+    -- the selection box being drawn from empty space, over the rows of every column (punch list 146)
+    content._onRender = function(self) if self._box and ZeD.BoxSelect then ZeD.BoxSelect.draw(self) end end
     content._onPrerender = function(self)
         -- Safety: clear any stencil leaked from drawer panel's tab renderer
         self:clearStencilRect()
@@ -6528,7 +6530,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
         local zone = self:hitZoneAt(x, y)
-        if not zone then return true end
+        if not zone then
+            -- empty space: a drag from here draws a box that selects the rows it crosses (punch list 146)
+            if ZeD.BoxSelect then
+                local _, bCs = getColumnAtX(self, x)
+                local bSel = (bCs and bCs.selectedItems) or self._selectedItems
+                if bSel then
+                    ZeD.BoxSelect.start(self, x, y, bSel, bCs and function(px) return (getColumnAtX(self, px)) end or nil)
+                end
+            end
+            return true
+        end
         local zid = zone.id
 
         -- XFER button click (multi-container transfer)
@@ -6726,6 +6738,16 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
         self._scroll:handleMouseUp()
 
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer(self)
+            return true
+        end
+
         -- Column divider drag → finalize
         if self._colDrag then
             self._colDrag = nil
@@ -6787,6 +6809,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     content.onMouseMove = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         local T = ZeD.T
         local my = self:getMouseY()
         self._scroll:handleMouseMove(my)
@@ -6814,6 +6837,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     content.onMouseMoveOutside = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         local T = ZeD.T
         -- Column divider drag continues outside (negate delta for right-aligned columns)
         if self._colDrag then
@@ -6830,6 +6854,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     content.onMouseUpOutside = function(self, x, y)
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer(self)
+            return true
+        end
         -- Column divider drag → finalize
         if self._colDrag then
             self._colDrag = nil

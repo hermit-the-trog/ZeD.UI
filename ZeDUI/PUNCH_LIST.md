@@ -3506,6 +3506,28 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     - **To probe on the Mac first:** whether the figure animates while the game is paused, and which poses beyond
       idle the figure can take (its states and animation variables).
 
+146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
+    on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
+    select, checking item stats and conditions from hover tooltips ... for looting stats need to show quick, without
+    a click").** The survey: hovering a ZeD row showed only a help line, the stats were behind a click (the item card),
+    a grid cell named its item after 450 ms, and every drag moved items. Ctrl-click, Shift-click, double-click and the
+    drag to a container already worked as vanilla's. Rulings, Nov 10: the game's tooltip in ZeD's look; at once, as
+    vanilla; a box dragged from empty space; looting before the studio (145).
+    - **Hover:** the game's own item tooltip (ISToolTipInv, already restyled by Overrides/Tooltip.lua) on every list
+      row and grid cell under the pointer, at once, following the pointer from row to row; so every line other mods
+      add to it shows too. Away while items are dragged, while a box is drawn, while a right-click menu is open, while
+      that item's card is open, and on a controller. A grid cell's name hint and a readable row's read card give way to
+      it (one box at the pointer; the read word stays in the Cond column). ZeD_InvTip.lua; InventoryRenderer.lua asks.
+    - **Box select:** a drag from empty space in the list draws a box, and the rows it crosses are selected (Ctrl or
+      Shift at the press adds to the selection); in a multi-container view it keeps to its column. A drag from a row
+      still moves. The rows on screen only (no scrolling while the box is drawn). ZeD_BoxSelect.lua; both windows.
+    - The item card is unchanged: a click, for the thorough look and the repairs.
+    Sims: fast_loot_sim 38/0. **Check (QA, Mac):** sweep the pointer down a loot list: the tooltip at once on each row,
+    with condition and weight; it goes while dragging and while that item's card is open; a mod that adds tooltip lines
+    (if one is on the rig) shows them; drag a box from below the rows over three rows: three selected; Ctrl adds; the
+    same in the world window and a multi-container view. Then the timed run: the same kitchen looted in vanilla and in
+    ZeD, the clicks and the seconds.
+
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips

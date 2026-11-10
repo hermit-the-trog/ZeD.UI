@@ -4632,6 +4632,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     --   * Animals zone-draw cursor   → onDpadDir on isZoneDraw element
 
     -- Draw hook: render item list + update title bar stats
+    -- the selection box being drawn from empty space, over the rows of every column (punch list 146)
+    content._onRender = function(self) if self._box and ZeD.BoxSelect then ZeD.BoxSelect.draw(self) end end
     content._onPrerender = function(self)
         local T = ZeD.T
         -- Suppress vanilla loot panel if it re-shows (not once safe mode has handed
@@ -5412,7 +5414,17 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         local zone = self:hitZoneAt(x, y)
-        if not zone then return true end
+        if not zone then
+            -- empty space: a drag from here draws a box that selects the rows it crosses (punch list 146)
+            if ZeD.BoxSelect then
+                local _, bCs = getColumnAtX(self, x)
+                local bSel = (bCs and bCs.selectedItems) or self._selectedItems
+                if bSel then
+                    ZeD.BoxSelect.start(self, x, y, bSel, bCs and function(px) return (getColumnAtX(self, px)) end or nil)
+                end
+            end
+            return true
+        end
         local zid = zone.id
 
         -- XFER button click (multi-container transfer)
@@ -5601,6 +5613,16 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
         self._scroll:handleMouseUp()
 
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer()
+            return true
+        end
+
         -- Column divider drag finalize
         if self._colDrag then
             self._colDrag = nil
@@ -5663,6 +5685,15 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseUpOutside = function(self, x, y)
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer()
+            return true
+        end
         if self._colDrag then
             self._colDrag = nil
             self:setCapture(false)
@@ -5690,6 +5721,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseMove = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         ISPanel.onMouseMove(self, dx, dy)
         local T = ZeD.T
         self._scroll:handleMouseMove(self:getMouseY())
@@ -5717,6 +5749,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseMoveOutside = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         local T = ZeD.T
         if self._colDrag then
             local cd = self._colDrag
