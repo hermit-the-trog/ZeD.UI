@@ -140,3 +140,16 @@ shows it beside today's and the shovel; `zw_screwdriver_16/24.png` are the turne
 
 - In `i_world.py`, `screwdriver` (Disassemble): rotate the drawn icon 180 degrees at 16 and at 24 (reverse the grid's
   rows and each row's characters at 16; do the same to whatever draws the 24), then export.
+
+## 6. Equip primary and Equip secondary
+
+Director, Nov 9: the two "look way too similar"; each arrow should point into the hand from where the middle of the
+body would be, above the thumb. Both had the same bottom-right arrow badge and only the hand flipped.
+
+- New: the open hand moved over (2 at 16, 4 at 24), and an arrow above the thumb, on the body's side, pointing into
+  the hand: from the left for the primary hand (`hand_main`), from the right for the secondary (`hand_off`, the whole
+  icon mirrored). No badge, so no cut into the hand. `hands_v1.png` shows today's and the new pair; `hands.py` draws
+  them; `zw_hand_main_16/24.png`, `zw_hand_off_16/24.png` are the new pictures.
+- In `i_ctx5.py`, `hand_main` and `hand_off`: draw `i_char.hand` shifted right, then the arrow from `hands.py`
+  (`ARROW[16]`, `ARROW[24]`) at the top left, rows 2-6 at 16 and 2-7 at 24; `hand_off` is that mirrored. Export.
+- They stay ink: the arrow says which hand, not add or remove.
