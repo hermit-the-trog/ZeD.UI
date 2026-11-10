@@ -50,7 +50,7 @@ DECK FIXES and REPORTS are the umbrella for 125, 126, 130, 131 and 133 plus any 
 
 - Approve the beta 11 corkboard, change note and page; give the upload go; paste the SteamCMD line.
 - Gallery images on the Workshop page: Steam's Add/Edit Images page in the Steam app takes one file at a time and showed no confirmation when QA tried; the director uploads them by hand (same file name replaces the old picture in place).
-- Optional: ask GitHub Support to purge the old pull request refs after the history rewrite.
+- GitHub Support was asked on Nov 9 (by the director) to purge the old pull request refs after the history rewrite; the reply goes to the director's email. Nothing to do unless they ask something.
 
 ## How to work
 
