@@ -3031,6 +3031,21 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     back, controller) go to the director as multiple choice before building. Ruled Nov 8: a small X close box in the
     note's corner (System 7 style); a 'Show note' item in the desk's menu bar brings it back where it last was; on a
     pad the note is a stop, A picks it up, the D-pad moves it, A puts it down, Y closes it.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** The director, Nov 10: on a pad X writes on the note (A was
+      typing; it now picks the note up). Mouse: the note's top strip drags it anywhere on the desktop under the menu
+      bar, kept where it is let go; the X box at the strip's right end closes it (pressed and released on the box).
+      ZeD menu > Show note (after CletusWorks Notepad, gray while the note shows) brings it back where it last was.
+      Pad: the note stays a stop; A picks it up (its shadow lengthens), the D-pad moves it 16 units a press, A puts
+      it down, B or Escape puts it back where it was picked up, X writes on it, Y closes it; the foot's prompts say
+      so. Keyboard: Enter on the note still writes. The place is kept as fractions of the desktop (so it outlasts a
+      change of screen size) in `Zomboid/Lua/ZeD_desk_sticky_place.txt`; a note never moved keeps its spot at the top
+      of the left column, and once moved the column closes up under it. ZeD_DeskNotes.lua, ZeD_MainMenuDesktop.lua,
+      ZeD_MainMenuNotes.lua. New words: Show note, Pick up, Put down, in all 28 languages as machine drafts (Write and
+      Close are existing keys). Sim: desk_sim's "114" section, desk_sim 159/0.
+      **Check (QA, Mac):** drag the note by its strip to the desktop's middle, quit to the desktop and start again:
+      it's where you left it; drag it past each edge: it stops on the desktop; close it with the box, then ZeD menu >
+      Show note: back where it was; on a pad, select it, A, D-pad a few times, A (kept), A, D-pad, B (put back), X
+      (keyboard), Y (closed); at 1x and 1.75x.
 115. **Bug reports hide the player's account name (the director, Nov 8 2026: "Hopefully yes"; beta 9).** ZeD_Messages.lua
     reportHeader / report / reportOne / reportAll and the Messages window's Copy / Copy all replace the Windows user
     folder (C:\Users\<name>\ and the forward-slash form -> ~\) and the Zomboid folder (getMyDocumentFolder -> ~/Zomboid)

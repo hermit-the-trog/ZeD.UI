@@ -186,15 +186,41 @@ function MM.stickyTyping()
     return st ~= nil and st.entry ~= nil and st.entry:isFocused()
 end
 
+-- the close box at the strip's right end (punch list 114, the director: "a small X close box in the note's corner"),
+-- in the desk's coordinates
+local function closeBox(c)
+    local T = ZeD.T
+    local top = T.px(STICKY_TOP)
+    local s = math.max(T.px(5), top - T.px(2))
+    return { x = c.x + c.w - T.px(2) - s, y = c.y + math.floor((top - s) / 2), w = s, h = s }
+end
+
 -- the paper, drawn by the icon layer (under the windows); sel: the desktop's selection is on it
 local function drawSticky(p, c, sel)
     local T = ZeD.T
     local top = T.px(STICKY_TOP)
-    p:drawRect(c.x + T.px(2), c.y + T.px(2), c.w, c.h, 0.35, 0, 0, 0)                     -- (its shadow)
+    -- (picked up on a controller or held by the mouse: lifted off the desk, its shadow longer)
+    local icons = MM.root and MM.root.icons
+    local held = icons and ((icons._carry and icons._carry.id == "sticky") or (icons._drag and icons._drag.id == "sticky"))
+    local sh = held and T.px(5) or T.px(2)
+    p:drawRect(c.x + sh, c.y + sh, c.w, c.h, 0.35, 0, 0, 0)                                -- (its shadow)
     p:drawRect(c.x, c.y, c.w, c.h, 1, PAPER.r, PAPER.g, PAPER.b)
     p:drawRect(c.x, c.y, c.w, top, 1, PAPER_TOP.r, PAPER_TOP.g, PAPER_TOP.b)
     p:drawRect(c.x, c.y + top, c.w, T.px(1), 1, PAPER_EDGE.r, PAPER_EDGE.g, PAPER_EDGE.b)
     p:drawRectBorder(c.x, c.y, c.w, c.h, 1, PAPER_EDGE.r, PAPER_EDGE.g, PAPER_EDGE.b)
+    -- the close box: an outlined square with an x, in the paper's edge ink; the pointer on it fills it
+    local b = closeBox(c)
+    local mx, my = getMouseX(), getMouseY()
+    local over = MM.ctx.hot == "desk:sticky" and mx >= b.x and mx < b.x + b.w and my >= b.y and my < b.y + b.h
+    if over then p:drawRect(b.x, b.y, b.w, b.h, 1, PAPER.r, PAPER.g, PAPER.b) end
+    p:drawRectBorder(b.x, b.y, b.w, b.h, 1, PAPER_EDGE.r, PAPER_EDGE.g, PAPER_EDGE.b)
+    -- (the x in whole units, a unit square a step, so it keeps its pixels at every scale)
+    local u = math.max(1, T.px(1))
+    local n = math.floor((b.w - u * 4) / u)
+    for i = 0, n - 1 do
+        p:drawRect(b.x + u * (2 + i), b.y + u * (2 + i), u, u, 1, PAPER_EDGE.r, PAPER_EDGE.g, PAPER_EDGE.b)
+        p:drawRect(b.x + u * (1 + n - i), b.y + u * (2 + i), u, u, 1, PAPER_EDGE.r, PAPER_EDGE.g, PAPER_EDGE.b)
+    end
     -- the desktop's selection (the controller's focus): the accent round it
     local typing = MM.stickyTyping()
     if (sel and MM.view == "desktop") or typing then
@@ -218,7 +244,26 @@ local STICKY_ITEM = {
         local st = MM.root and MM.root.sticky
         if st and st.entry then editField(st.entry) end
     end,
+    -- it moves and closes (punch list 114): ZeD_MainMenuDesktop.lua drags it by its strip and places it
+    hide = function() return not N.stickyShown() end,
+    place = function() return N.stickyPlace() end,
+    moveTo = function(fx, fy, keep) N.moveSticky(fx, fy, keep) end,
+    grabH = function() return ZeD.T.px(STICKY_TOP) end,
+    closeBox = closeBox,
+    close = function()
+        local st = MM.root and MM.root.sticky
+        if st and st.entry and st.entry:isFocused() then st.entry:unfocus() end
+        if st and st.keep then st:keep() end
+        N.showSticky(false)
+    end,
 }
+
+--- Show note (the ZeD menu): the sticky back where it last was.
+function MM.showSticky()
+    MM.ctx.open = nil
+    N.showSticky(true)
+    MM.clickSound()
+end
 
 --- Show the notepad, on page id when given (openNote is the same door, for the Documents list).
 function MM.openNotepad(id)
@@ -265,6 +310,8 @@ function MM.menuItems(key)
         if i == 1 then
             out[#out + 1] = "-"
             out[#out + 1] = { text = tr("UI_ZeD_Desk_NotepadTitle"), fn = function() MM.openNotepad() end }
+            -- (the sticky note, closed by its box, comes back here: punch list 114)
+            out[#out + 1] = { text = tr("UI_ZeD_Desk_StickyShow"), fn = MM.showSticky, disabled = N.stickyShown() }
             for _, a in ipairs(MM.leftApps) do
                 if a.menu then out[#out + 1] = { text = tr(a.menu), fn = a.open } end
             end

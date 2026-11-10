@@ -7,6 +7,9 @@
 -- rooted there and refuse any "..": nothing here can reach anywhere else). They live on the player's computer, so they
 -- outlast every update of the mod and every save:
 --   ZeD_desk_sticky.txt      the sticky note's words
+--   ZeD_desk_sticky_place.txt where the sticky sits and whether it shows: "shown|fx|fy" (1 or 0, then its place as
+--                            fractions of the room it can move in, empty when it keeps its spot at the top of the left
+--                            column). Fractions, so a place outlasts a change of screen size (punch list 114)
 --   ZeD_desk_notes.txt       the notepad's index: a header line, then one line a file, "id|modified|name"
 --   ZeD_desk_note_<id>.txt   a file's words
 --   ZeD_desk_draft.txt       words typed in the notepad and not saved yet: "id|name" on the first line, then the words.
@@ -30,6 +33,7 @@ ZeD.DeskNotes = ZeD.DeskNotes or {}
 local N = ZeD.DeskNotes
 
 N.STICKY_FILE = "ZeD_desk_sticky.txt"
+N.PLACE_FILE = "ZeD_desk_sticky_place.txt"
 N.INDEX_FILE = "ZeD_desk_notes.txt"
 N.DRAFT_FILE = "ZeD_desk_draft.txt"
 N.NOTE_PREFIX = "ZeD_desk_note_"
@@ -282,6 +286,60 @@ function N.saveSticky(text)
     return true
 end
 
+-- where the sticky sits (punch list 114, the director, Nov 8 2026: "Being able to drag the note around to other spots on
+-- the desktop or close it would be nice"): N._place = { shown, fx, fy }, read once
+local function place()
+    if N._place == nil then
+        N._place = { shown = true }
+        local lines = readLines(N.PLACE_FILE, 64, 1)
+        local on, fx, fy = string.match(lines and lines[1] or "", "^([01])|([%d%.]*)|([%d%.]*)$")
+        if on then
+            N._place.shown = on == "1"
+            fx, fy = tonumber(fx), tonumber(fy)
+            if fx and fy then N._place.fx, N._place.fy = math.max(0, math.min(1, fx)), math.max(0, math.min(1, fy)) end
+        end
+    end
+    return N._place
+end
+local function f4(v) return v and string.format("%.4f", v) or "" end
+local function writePlace()
+    local p = place()
+    return writeText(N.PLACE_FILE, (p.shown and "1" or "0") .. "|" .. f4(p.fx) .. "|" .. f4(p.fy) .. "\n")
+end
+
+--- Does the sticky show on the desktop?
+function N.stickyShown() return place().shown end
+
+--- Its place as fractions of the room it moves in (0 to 1 across and down), or nil while it keeps its spot at the
+--- top of the left column.
+function N.stickyPlace()
+    local p = place()
+    return p.fx, p.fy
+end
+
+--- Move it (fx, fy: fractions; nil: back to its spot in the column). keep: write it to the file now (the drop), else
+--- only in memory (a drag in progress).
+function N.moveSticky(fx, fy, keep)
+    local p = place()
+    if fx and fy then
+        p.fx, p.fy = math.max(0, math.min(1, fx)), math.max(0, math.min(1, fy))
+    else
+        p.fx, p.fy = nil, nil
+    end
+    if keep then return writePlace() end
+    return true
+end
+
+--- Show it or put it away (the close box; Show note in the ZeD menu brings it back where it last was).
+function N.showSticky(on)
+    local p = place()
+    on = on and true or false
+    if p.shown == on then return true end
+    p.shown = on
+    bump()
+    return writePlace()
+end
+
 -- ---------------------------------------------------------------------------
 -- THE DRAFT: unsaved words, one at a time. id 0: a note not made yet (the notepad's new page)
 -- ---------------------------------------------------------------------------
@@ -320,7 +378,7 @@ end
 
 -- forget what was read (the sims start over; a reload reads the files again)
 function N.reset()
-    N._list, N._sticky, N._draft = nil, nil, nil
+    N._list, N._sticky, N._draft, N._place = nil, nil, nil, nil
 end
 
 return N
