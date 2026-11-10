@@ -117,6 +117,7 @@ local function cells(L)
     -- (clear of the controller's prompts along the screen's foot, which sit at the left: the same place with a mouse)
     local colW, bottom = 0, L.ty + L.th - T.px(EDGE) - T.sp.scrollbarW - T.px(GAP)
     local full = false
+    local free = {}           -- moved items: laid out last (below)
     for _, it in ipairs(MM.leftItems and MM.leftItems() or {}) do
         local iw, ih = cw, ch
         if it.size then iw, ih = it.size() end
@@ -130,8 +131,8 @@ local function cells(L)
             if fx and fy then
                 local cx = math.floor(room.x0 + fx * (room.x1 - room.x0) + 0.5)
                 local cy = math.floor(room.y0 + fy * (room.y1 - room.y0) + 0.5)
-                out[#out + 1] = { item = it, x = cx, y = cy, w = iw, h = ih, ix = cx + math.floor((iw - isz) / 2), iy = cy, isz = isz,
-                                  ly = cy + isz + T.px(6), lh = labelH, left = true, free = true, room = room }
+                free[#free + 1] = { item = it, x = cx, y = cy, w = iw, h = ih, ix = cx + math.floor((iw - isz) / 2), iy = cy, isz = isz,
+                                    ly = cy + isz + T.px(6), lh = labelH, left = true, free = true, room = room }
             else
                 if ly > top and ly + ih > bottom then lx = lx + colW + T.px(GAP); ly = top; colW = 0 end
                 local colAfter = math.max(colW, iw)
@@ -147,6 +148,10 @@ local function cells(L)
             end
         end
     end
+    -- a moved item is a note stuck on the screen: drawn after every icon and its hit registered last, so it lies over
+    -- an icon it was dropped on and its strip still takes the pointer there (QA's Mac run, Nov 10 2026: dropped in the
+    -- top left corner it sat under CletusWorks and Mail, and could not be picked up again)
+    for _, c in ipairs(free) do out[#out + 1] = c end
     return out
 end
 MM._deskCells = cells

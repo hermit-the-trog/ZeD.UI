@@ -1,7 +1,8 @@
 -- ZeDUI/tools/qa/hint_strip_cover_sim.lua  (Nov 10 2026, Build; punch list 131, the belt's balloon over the hint strip)
 -- With no game running, the real ZeD_HintStrip.lua on stubs: a balloon slot (Balloon.lua's B._slot and B.up) and a
 -- strip that counts its draws. It checks the strip steps aside while a balloon that is up covers it, or touches it
--- (within 4 units), and draws again once the balloon is down or elsewhere.
+-- (within 4 units), or is the belt's wherever it stands (the hands' balloons), and draws again once the balloon is down
+-- or is someone else's elsewhere.
 -- What it can't show: the belt on screen (QA: hover Back and a slot on the belt with the hint strip on).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/hint_strip_cover_sim.lua
 -- It prints FAIL lines and a last line "hint_strip_cover_sim: N checks, M failed", and exits 1 if any failed.
@@ -31,7 +32,7 @@ setmetatable(_G, nil)
 check("ZeD_HintStrip.lua loads on the stubs", fn and ok, err or e)
 local H = ZeD.HintStrip
 -- the strip at 800,1000, 300 x 24
-local strip = setmetatable({ _p = { 1 }, width = 300, height = 24,
+local strip = setmetatable({ _p = { 1 }, width = 300, height = 24, playerNum = 0,
     getAbsoluteX = function() return 800 end, getAbsoluteY = function() return 1000 end }, { __index = ZeD_HintStripHUD })
 local function drawn(box, up)
     SLOT.box, UP, DRAWS = box, up, 0
@@ -46,5 +47,15 @@ check("a balloon 10 px above: the strip draws", drawn({ x = 850, y = 940, w = 60
 check("a balloon off to the side: the strip draws", drawn({ x = 100, y = 990, w = 60, h = 30 }, true))
 check("the balloon down: the strip draws again", drawn({ x = 850, y = 990, w = 60, h = 30 }, false))
 check("covered() answers the same", H.covered(800, 1000, 300, 24) == false)
+-- a balloon of the belt's: the strip steps aside wherever it stands (the hands' balloons sit beside it, not over it:
+-- QA's Mac run, Nov 10 2026)
+local BELT = {}
+ZeD.Belt = { getHUD = function(pn) return pn == 0 and BELT or nil end }
+SLOT.owner = BELT
+check("a belt balloon off to the side: the strip steps aside", not drawn({ x = 100, y = 990, w = 60, h = 30 }, true))
+check("a belt balloon down: the strip draws", drawn({ x = 100, y = 990, w = 60, h = 30 }, false))
+SLOT.owner = {}
+check("someone else's balloon off to the side: the strip draws", drawn({ x = 100, y = 990, w = 60, h = 30 }, true))
+SLOT.owner = nil
 print("hint_strip_cover_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)

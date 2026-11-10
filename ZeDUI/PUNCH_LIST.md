@@ -3046,6 +3046,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       it's where you left it; drag it past each edge: it stops on the desktop; close it with the box, then ZeD menu >
       Show note: back where it was; on a pad, select it, A, D-pad a few times, A (kept), A, D-pad, B (put back), X
       (keyboard), Y (closed); at 1x and 1.75x.
+    - **QA, Mac, Nov 10 2026 (test 2): drag, edge stop, close box, Show note and the place kept after a restart ok;
+      one fault.** Dropped in the top left corner it lay under CletusWorks and Mail, which hid it, and its strip could
+      not be grabbed again. **Build, Nov 10:** a moved note is laid out after every icon, so it draws over them and its
+      hit is the last registered (the desk's pointer takes the last hit under it). desk_sim 161/0 (both new checks fail
+      on the test 2 code). Pad, 1.75x, Light and High contrast not run yet. In test 4.
 115. **Bug reports hide the player's account name (the director, Nov 8 2026: "Hopefully yes"; beta 9).** ZeD_Messages.lua
     reportHeader / report / reportOne / reportAll and the Messages window's Copy / Copy all replace the Windows user
     folder (C:\Users\<name>\ and the forward-slash form -> ~\) and the Zomboid folder (getMyDocumentFolder -> ~/Zomboid)
@@ -3216,6 +3221,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       **Check (QA, Mac):** with the hint strip on (always) and something in front of you that gives it words, hover
       Back, a slot and a hand on the belt: the strip is gone while the balloon shows and back when it goes; on a
       controller, focus on a belt slot does the same.
+    - **QA, Mac, Nov 10 2026 (test 2): Back and Belt L ok; the hands not.** Primary and Secondary's balloons stand beside
+      the strip, not over it, so it stayed. **Build, Nov 10:** the strip now steps aside while any balloon of the belt's
+      is up, wherever it stands (the balloon slot's owner is the belt), as well as for any balloon over it.
+      hint_strip_cover_sim 12/0 (the belt's balloon off to the side). In test 4.
 
 132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; CLOSED, no change: the director, via QA: "No, click only").** The Strip opens a submenu on a click; resting shows only the balloon. A change note that mentions rest names the List only. In the List style, a submenu opens when
     the pointer rests on its row (beta 9). In the Strip style, resting on Disassemble shows its balloon, but the
@@ -3234,6 +3243,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       **Check (QA, Mac):** a menu with 15 or more options (a crate of mixed things, or a car's): click the right
       arrow 3 times, then the left 3 times, at 1x and 1.75x: no icon cut at either end, each click shows the next 10
       with none skipped or repeated, and you land back on the first page.
+    - **QA, Mac, Nov 10 2026 (test 2): ok at 1x**, paged from the harness (the arrow functions). QA's own clicks on
+      the arrow closed the strip, which QA thinks missed the arrow (a click outside the strip's parts closes the
+      menu). Recheck by hand at 1x and 1.75x: a click on the arrow pages and never closes.
 
 134. **Custom Map Labels don't draw on ZeD's map (QA's Mac run, Nov 9 2026; investigate).** No error now; the mod
     writes 82 labels into the map symbols at start (Muldraugh and others), but none show on ZeD's map near the player,
@@ -3253,6 +3265,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       option on); send the "ZEDQA cml layer" lines and the three shots. **If Paper is the cause:** Paper keeps those
       layers and hides the map's own annotation labels another way (Build to find one that leaves symbols alone), or
       Paper shows mod labels and accepts some doubled names (the director's call).
+    - **QA, Mac, Nov 10 2026 (the probe, test 2): Paper is not the only cause.** The labels are visited-only (they
+      show only in cells you've seen), sit in the map's own label layers (Paper sets those to alpha 0; Survey and Color
+      keep them), and each label's own colour reads rgba 0,0,0,0. In a revealed area of Muldraugh, Survey draws the
+      game's street names but none of the mod's labels. **Next (QA):** the same revealed place on the game's own map
+      without ZeD (ZeD off, the same mod list): do the mod's labels draw there? If they do, ZeD's map is missing
+      something the game's map has (a layer setting, the symbols' colour taken from the layer); if they don't, the mod
+      itself doesn't draw them in that place, and it isn't ZeD's.
 
 135. **The held item's box (QA's Mac run, Nov 9 2026; director's call, QA asking).** A held axe shows the game's own item
     box (Encumbrance, Sharpness, bars) above ZeD's "Primary" balloon. By design: the balloon spec keeps the game's item

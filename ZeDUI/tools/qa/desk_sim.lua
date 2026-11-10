@@ -151,6 +151,18 @@ do
     W.down = true; D.frame(); W.mouse.x, W.mouse.y = -500, -500; D.frame(); W.down = false; D.frame()
     local s2 = D.cell("sticky")
     check("114: it stops at the desktop's corner", s2.x == D.L.tx + 14 and s2.y == top, s2.x .. "," .. s2.y)
+    -- dropped over the column's icons: it lies over them, and its strip is still the one under the pointer (QA's Mac
+    -- run, Nov 10: in the top left corner it sat under CletusWorks and Mail and could not be picked up again)
+    local idxS, idxC = 0, 0
+    for i, c in ipairs(root.icons._cells) do
+        if c.item.id == "sticky" then idxS = i elseif c.item.id == "cletusworks" then idxC = i end
+    end
+    check("114: a moved note is drawn after the icons", idxS > idxC and idxC > 0, idxS .. " / " .. idxC)
+    local lastHit = nil
+    for _, h in ipairs(root.icons._hits) do
+        if s2.x + 20 >= h.x and s2.x + 20 < h.x + h.w and s2.y + 3 >= h.y and s2.y + 3 < h.y + h.h then lastHit = h.id end
+    end
+    check("114: over CletusWorks, the note's strip takes the pointer", lastHit == "desk:sticky", lastHit)
     W.mouse.x, W.mouse.y = s2.x + 20, s2.y + 3
     W.down = true; D.frame(); W.mouse.x, W.mouse.y = 5000, 5000; D.frame(); W.down = false; D.frame()
     local s3 = D.cell("sticky")
