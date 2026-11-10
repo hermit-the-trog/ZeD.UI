@@ -3565,6 +3565,24 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     weight, two or three figures for its kind); holding Alt swaps in the game's full tooltip, with every mod's lines;
     a mockup first: ZeDUI/qa/loot_hover_card_mockup.html (published for the director as an artifact). The card is
     ZeD's balloon beside the list, its tail on the hovered row, at once; the help line names Alt.
+    **The streamer's clip (the director, Nov 10 2026; 49 s of vanilla looting at 2560 x 1440, read frame by frame at
+    2 a second, 0 to 36 s and 40 to 44 s, and the select-all moment at 10).** What a fast vanilla player does:
+    - His Inventory and the loot window sit side by side across the top of the screen, short (14 rows) and wide
+      (about 900 px each); his inventory, unpinned, rolls up to its title bar when the pointer leaves it and opens
+      when the pointer or a drag comes over it.
+    - Most of the time is hover-reading: the wheel scrolls, a new tooltip about every half second. What he reads is the
+      comparison with what he wears: Encumbrance "3.0 (0.9 equipped)", Bite and Scratch Defense "60 (+15)" in green
+      or red. A stack shows its Stack Encumbrance; a mod's name closes the tooltip ("Mod: Frockin Splendor! Vol.5").
+    - Single items: dragged from the loot list into his inventory one after another, never waiting for the transfer.
+    - Whole crates: the full list selected in one step (no drag over the rows: most likely a select-all key), then
+      dragged onto a container button in the side strip (the Trunk); twice a crate went from 50 to 0 that way.
+    - The transfers queue in the rows themselves (a green bar, "Moving to container", "Taking from container") while
+      he keeps reading the next items. The next crate is a click on its container button.
+    - No right-click menu, no double-click, nothing like the item card in the clip.
+    What it says for ZeD: the hover card must carry the comparison with what is worn in that place (the mockup has
+    none); a card at the window's edge would sit far from the pointer in windows that wide; ZeD's lists have no
+    select-all; and ZeD's rows don't show the queue (nothing in InventoryRenderer reads it). The drop on a container
+    button is ZeD's already (handleDrop).
 
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the
