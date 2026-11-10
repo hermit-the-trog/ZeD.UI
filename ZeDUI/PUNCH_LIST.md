@@ -3474,6 +3474,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
        in; with the caret in it the hint goes. Unchanged; the director's call if notes should keep it under the caret.
     desk_sim 199/0. **Recheck (QA, Mac):** at 4K 1.75x the typed words the hint's size; with the Main menu window
     open two new notes off the window and the icons, apart; Keep on a note over another leaves the pile as it was.
+    **QA, Mac, Nov 10 2026, on 2b7fc27: all pass** (the typing at 4K 1.75x the hint's size; two notes beside the open
+    window off it and the icons; Keep leaves the pile as it was). The second note there lands a strip below the
+    first, its words covered. **The director, Nov 10: "cascade"**: kept, beside the window as beside the icon.
 
 143. **Status bars take five cells, rounded up (the director, Nov 10 2026: "Skills you want 10 segments because there
     are 10 levels. Conditions should be OK with 5"; then "Every status bar" and "Round up, red at 20%").** Every
