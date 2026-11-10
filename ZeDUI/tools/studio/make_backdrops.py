@@ -183,7 +183,55 @@ def lasers():
     return img
 
 
-BACKDROPS = [("mottled", mottled_blue), ("sky", sky), ("autumn", autumn), ("knox", knox), ("lasers", lasers)]
+def flag():
+    """the American flag, draped (the director, Nov 10 2026: "Can you also add one that is the American flag?"): 13
+    stripes and 50 stars at the flag's own proportions (the blue field 7/13 of the hoist high and 0.76 of it wide, the
+    stars in nine rows of six and five), the height filling the screen and the fly cut at the right; soft folds and a
+    little out of focus, as a studio's cloth flag hangs. The blue field sits at the top left, clear of the face."""
+    S = 2                                               # (drawn at twice the size, then brought down: clean edges)
+    w, h = W * S, H * S
+    red, white, blue = (178, 34, 52), (244, 241, 234), (60, 59, 110)
+    img = Image.new("RGB", (w, h), white)
+    d = ImageDraw.Draw(img)
+    for i in range(13):
+        if i % 2 == 0:
+            d.rectangle([0, round(h * i / 13), w, round(h * (i + 1) / 13) - 1], fill=red)
+    cw, ch = round(0.76 * h), round(h * 7 / 13)
+    d.rectangle([0, 0, cw, ch], fill=blue)
+    # the stars: rows at 0.054 of the hoist, columns at 0.063; a star 0.0616 across
+    r_out = 0.0616 * h / 2
+    r_in = r_out * 0.382
+    for row in range(9):
+        for col in range(11):
+            if (row % 2 == 0) != (col % 2 == 0):
+                continue
+            cx, cy = 0.063 * h * (col + 1), 0.054 * h * (row + 1)
+            pts = []
+            for k in range(10):
+                ang = -np.pi / 2 + k * np.pi / 5
+                rr = r_out if k % 2 == 0 else r_in
+                pts.append((cx + rr * np.cos(ang), cy + rr * np.sin(ang)))
+            d.polygon(pts, fill=white)
+    # the drape: the cloth shifted by a few slow waves (at twice the size, so the stripes' edges stay smooth once
+    # brought down), then lit and shaded along its folds
+    arr = np.asarray(img, np.float32)
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+    ux, uy = xs / (w - 1), ys / (h - 1)
+    dx = S * (6 * np.sin(uy * 9.0 + ux * 3.0) + 3 * np.sin(ux * 17.0 + 1.1))
+    dy = S * (5 * np.sin(ux * 7.0 + 0.6) + 2 * np.sin(ux * 19.0 + uy * 4.0))
+    sx = np.clip(np.rint(xs + dx), 0, w - 1).astype(int)
+    sy = np.clip(np.rint(ys + dy), 0, h - 1).astype(int)
+    img = to_img(arr[sy, sx]).resize((W, H), Image.LANCZOS)
+    arr = np.asarray(img, np.float32)
+    x, y = grids()
+    fold = np.sin(x * 11.0 + y * 2.5 + 0.3) * 0.5 + np.sin(x * 23.0 - y * 1.5) * 0.25
+    arr = arr * (0.9 + 0.13 * fold)[..., None]
+    img = to_img(arr).filter(ImageFilter.GaussianBlur(1.4))
+    arr = np.asarray(img, np.float32) * vignette(0.35)[..., None]
+    return to_img(arr)
+
+
+BACKDROPS = [("mottled", mottled_blue), ("sky", sky), ("autumn", autumn), ("knox", knox), ("lasers", lasers), ("flag", flag)]
 
 
 def safe_area():
@@ -220,7 +268,8 @@ def main():
     safe_area().save(os.path.join(ART, "safe_area_1920.png"))
     # the contact sheet: two across, each with the guide over it
     tw, th = 640, 360
-    sheet = Image.new("RGB", (tw * 2 + 30, (th + 34) * 3 + 10), (24, 24, 28))
+    rows = (len(thumbs) + 1) // 2
+    sheet = Image.new("RGB", (tw * 2 + 30, (th + 34) * rows + 10), (24, 24, 28))
     d = ImageDraw.Draw(sheet)
     guide = safe_area().resize((tw, th))
     for i, (bid, img) in enumerate(thumbs):

@@ -192,13 +192,14 @@ check("PHOTO: one shot a press", #W.shots == 1)
 -- ---------------------------------------------------------------------------
 -- BACKDROPS (step 2): six, the grey drawn here, five painted; a tray; a pick rolls the old up and the new down
 -- ---------------------------------------------------------------------------
-check("BACKDROPS: six, the grey first and drawn here", #ST.BACKDROPS == 6 and ST.BACKDROPS[1].id == "grey" and ST.BACKDROPS[1].tex == nil)
+check("BACKDROPS: seven, the grey first and drawn here", #ST.BACKDROPS == 7 and ST.BACKDROPS[1].id == "grey" and ST.BACKDROPS[1].tex == nil)
+check("BACKDROPS: the American flag among them", ST.BACKDROPS[7].id == "flag")
 local allTex = true
-for i = 2, 6 do
+for i = 2, #ST.BACKDROPS do
     local fh = io.open(ROOT .. "42/media/textures/ZeD/studio/backdrop_" .. ST.BACKDROPS[i].id .. ".png", "rb")
     if fh then fh:close() else allTex = false end
 end
-check("BACKDROPS: the five painted ones are in the mod", allTex)
+check("BACKDROPS: the painted ones are in the mod", allTex)
 local function zone(id) for _, z in ipairs(room._hitZones) do if z.id == id then return z end end end
 room.saved = nil
 room:prerender()
@@ -206,7 +207,7 @@ check("BACKDROPS: a Backdrop button", zone("tray") ~= nil)
 local tz = zone("tray")
 room:onMouseUp(tz.x + 2, tz.y + 2)
 room:prerender()
-check("BACKDROPS: it opens the tray, a swatch each", room.tray == true and zone("bd:1") and zone("bd:6"))
+check("BACKDROPS: it opens the tray, a swatch each", room.tray == true and zone("bd:1") and zone("bd:7"))
 local sz = zone("bd:2")
 room:onMouseUp(sz.x + 4, sz.y + 4)
 check("BACKDROPS: a swatch picks: the tray shuts, the roll begins", room.tray == false and room.bd == 2 and room.roll ~= nil and room.roll.from == 1)

@@ -3602,6 +3602,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     would be fine with a field in the background. Doesn't have to be too much." Redrawn: a sunset sky (dusk purple to
     gold at the horizon, the sun's haze low behind the figure) over a plain field with a gentle roll at its edge;
     the water tower and the fence gone.
+    **The director, Nov 10 2026: "Can you also add one that is the American flag?"** Added, the seventh: 13 stripes
+    and 50 stars at the flag's own proportions (the blue field 7/13 of the hoist high and 0.76 of it wide, nine rows
+    of six and five stars), the height filling the screen and the fly cut at the right; draped (a few slow waves, at
+    twice the size so the edges stay smooth), shaded along its folds, a little out of focus. The blue field sits at
+    the top left, clear of the face. "American flag" in all 28 languages. studio_sim 56/0.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

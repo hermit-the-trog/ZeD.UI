@@ -146,6 +146,7 @@ ST.BACKDROPS = {
     { id = "autumn", key = "UI_ZeD_Studio_BdAutumn", tex = TEX .. "autumn.png" },
     { id = "knox", key = "UI_ZeD_Studio_BdKnox", tex = TEX .. "knox.png" },
     { id = "lasers", key = "UI_ZeD_Studio_BdLasers", tex = TEX .. "lasers.png" },
+    { id = "flag", key = "UI_ZeD_Studio_BdFlag", tex = TEX .. "flag.png" },   -- (the director, Nov 10 2026)
 }
 ST.backdrop = ST.backdrop or 1          -- (the last one picked, for the session)
 ST.ROLL_MS = 380                        -- each half of a change: the old paper up, the new one down
