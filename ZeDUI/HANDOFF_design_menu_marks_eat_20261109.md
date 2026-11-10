@@ -131,3 +131,12 @@ sticking out past the walls so they read as boards nailed on, not a vent. It rep
   options (`shield-plus` is also Reinforce's, `shield` and `shield-minus` may be used by mods), so give the three rows
   in `ContextIcons.lua` picture names of their own (`safehouse`, `safehouse-claim`, `safehouse-release`) and map
   those in `map.py` CTX, rather than remapping the shields. The shield icons stay for everything else.
+
+## 5. Screwdriver, handle up
+
+Director, Nov 9: "flip the screwdriver so the handle is up ... it looks too much like the shovel." Turned half a turn,
+both sizes: the handle at the top right, the tip at the bottom left, the shovel's blade end. `screwdriver_flip.png`
+shows it beside today's and the shovel; `zw_screwdriver_16/24.png` are the turned pictures.
+
+- In `i_world.py`, `screwdriver` (Disassemble): rotate the drawn icon 180 degrees at 16 and at 24 (reverse the grid's
+  rows and each row's characters at 16; do the same to whatever draws the 24), then export.
