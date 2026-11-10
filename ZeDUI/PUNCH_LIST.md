@@ -3209,3 +3209,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     change-note line under Mods ("Responsive Context Menus: menus update in place as you move, light changes or a tool
     comes into reach; options that keep the menu open work"), and the mod goes on the compatibility thread's Supported
     list.
+138. **Menu marks and four icons (design, Nov 9-10 2026; the director approved all of it; beta 11).** Handoff:
+    `ZeDUI/HANDOFF_design_menu_marks_eat_20261109.md`, sheets and scripts in `ZeDUI/mockups/zed_menu_marks_v1/`
+    (moved from the old-history design branch onto main, Nov 10). Build: color marks the difference between paired
+    actions, blue `#0B63B0` for the first (add, on, in, open, enter) and red `#C2410C` for the second, on the strip,
+    the list menu and the wheels at rest only (a pointed cell draws as today); new Eat (three-tined fork), Sneak and
+    Sneak off, and the boarded-up Safehouse with claim and release; `kit.badge` 8 wide at 24 so every 24 plus sits
+    centered; the screwdriver turned handle up. Check: the handoff's own QA list (marks read as color at 1.75x and up,
+    shape only below; no color left on the pointed cell; nothing outside the tables colored).

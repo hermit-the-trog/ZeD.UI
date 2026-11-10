@@ -24,6 +24,7 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 | 133 | The context strip scrolls one icon per arrow click and cuts the edge icon: a page of whole icons per click | open |
 | 134 | Custom Map Labels: no error now and its labels reach the map store, but none draw on ZeD's map; investigate layer, Paper's label hiding, unexplored cells | investigate |
 | 137 | Responsive Context Menus support: ZeD's Strip and List take the mod's live rebuilds in place; keep-open honored; Escape closes | **done, QA 30/30 at 4K** (regression/2026-11-09_1732_mods_fullscreen4k.md); add the change-note line and the Compatibility thread's Supported entry at ship |
+| 138 | Menu marks: blue and red tell paired actions apart (add/remove, on/off, either way), plus new Eat, Sneak and Safehouse icons, the centered 24 badge and the screwdriver handle up. Design handoff: `ZeDUI/HANDOFF_design_menu_marks_eat_20261109.md` (the director put the marks in beta 11, Nov 10) | open, Build |
 | 132 | Strip submenus open on rest | closed: the director chose click only; a note that mentions rest names the List only |
 
 DECK FIXES and REPORTS are the umbrella for 125, 126, 130, 131 and 133 plus any new player reports before the upload.
