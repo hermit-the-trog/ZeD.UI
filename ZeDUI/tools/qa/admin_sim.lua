@@ -2747,5 +2747,61 @@ do
     check("off: no queue written", W.files["ZeD_helper/queue.txt"] == nil)
 end
 
+section("130: a changed role shows at once, on and off")
+do
+    local a, ca = boot()
+    W.userList = true
+    local m = M(ca)
+    -- an offline moderator: the server's record and the game's list both say moderator
+    local u = player("Wren", "moderator")
+    clientJoin(u)
+    advance(6000)
+    offline(u)
+    W.clock = W.clock + 6000
+    nolimit(a); m.watch(); drain()
+    pcall(ca.env.requestUsers); drain(); m.refreshRows()
+    check("130: the row starts as moderator", m.row("Wren") and m.row("Wren").role == "moderator", m.row("Wren") and m.row("Wren").role)
+    nolimit(a)
+    local looked = ca.looked or 0
+    m.setRole("Wren", "user", {}, function(r) ca.r = r end)
+    drain()
+    check("130: the change acks", ca.r and ca.r.ok == true)
+    check("130: the server's saved record takes the new role", md().players.Wren.role == "user", md().players.Wren.role)
+    check("130: the row shows it at once", m.row("Wren").role == "user", m.row("Wren").role)
+    check("130: the game's call", has(ca.game, "SetRole:Wren:user"))
+    check("130: the game was asked for its list again", (ca.looked or 0) > looked, ca.looked)
+    -- the server's rows and card, asked again, say the same (they read the saved record of an account that is off)
+    W.clock = W.clock + 6000
+    nolimit(a); m.watch(); drain()
+    check("130: the server's Players rows say user", m.srvRows.Wren and m.srvRows.Wren.role == "user", m.srvRows.Wren and m.srvRows.Wren.role)
+    nolimit(a)
+    say(a, "a_card", { user = "Wren" })
+    local c = got(a, "a_card")
+    check("130: the card says user", c and c.role == "user", c and c.role)
+    m.refreshRows()
+    check("130: the row still says user after a refresh", m.row("Wren").role == "user", m.row("Wren").role)
+    -- the hold lets go once both lists agree, and in any case after two minutes
+    W.clock = W.clock + 121000
+    m.refreshRows()
+    check("130: nothing held after two minutes", next(m.roleSet) == nil)
+    check("130: and the row reads the server's", m.row("Wren").role == "user", m.row("Wren").role)
+    -- an online moderator: the game's live role changes, the row follows
+    local o = player("Ash", "moderator")
+    local co = clientJoin(o)
+    advance(6000)
+    nolimit(a); m.watch(); drain()
+    nolimit(a)
+    m.setRole("Ash", "user", {}, function(r) ca.r = r end)
+    drain()
+    check("130 online: the change acks", ca.r and ca.r.ok == true)
+    check("130 online: the game applied it", o.role == ROLES.user)
+    check("130 online: the row shows it at once", m.row("Ash") and m.row("Ash").role == "user", m.row("Ash") and m.row("Ash").role)
+    W.clock = W.clock + 6000
+    nolimit(a); m.watch(); drain()
+    m.refreshRows()
+    check("130 online: and after the lists come back", m.row("Ash").role == "user", m.row("Ash").role)
+    W.userList = nil
+end
+
 print("admin_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)

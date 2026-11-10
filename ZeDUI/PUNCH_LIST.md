@@ -3160,6 +3160,16 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     "protected role" message (P.banProtected, punch list 123) never shows for an offline moderator or admin. Fix:
     after a role change, update the cached row from the change itself (or ask the server for the user list again and
     rebuild on its answer). Also test an online moderator.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** Two causes. The server: for an account that is off, its
+      card and the Players rows read the role saved from the player's last visit (md.players), and a_role never wrote
+      it, so both kept the old role, and the client's rows take the server's role over the game's list. Now a_role
+      saves the new role on the record. The client: the game's list is a cache only requestUsers refreshes. Now a
+      role changed from the card asks for the list again and holds the new role on its row until the game's list and
+      the server's rows both show it (two minutes at most). ZeD_ServerAdmin.lua, ZeD_Admin.lua. Sim: admin_sim's "130"
+      section (offline and online moderator), 561/0; its checks fail on the old code.
+      **Check (QA, Mac, two players on a local server):** an offline moderator: Player card > Role > user > Change
+      role: the badge and the box say user at once and after reopening the card; Ban now shows (or, the other way, a
+      user made moderator shows the protected-role message). The same with the moderator online.
 
 131. **The belt's balloon over the hint strip (QA's Mac run, Nov 9 2026; beta 11).** Hovering Back draws its balloon
     over the "Right Click More" hint strip just above the belt, so they read as one line ("Back | key 1 More"). The
