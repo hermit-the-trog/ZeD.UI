@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/studio_manifest.txt (Nov 10 2026): the portrait studio's pose probe (punch list 145). -debug OFF.
+# A large figure of the player over a plain backdrop, a label naming each step; about 90 s of shots
+# (zqa_studio_*.png). Note which shots show a pose that differs from idle. Throwaway save copy.
+zedqa_prelude.lua | pre
+zedqa_studio_probe.lua | st | timeout=150

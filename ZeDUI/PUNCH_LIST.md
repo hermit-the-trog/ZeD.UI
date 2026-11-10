@@ -3528,6 +3528,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       so any studio light is painted into the backdrop.
     - **To probe on the Mac first:** whether the figure animates while the game is paused, and which poses beyond
       idle the figure can take (its states and animation variables).
+    **The director, Nov 10 2026: "start the studio"; "it needs poses if there are some"; "Props, like a chair to sit
+    in. Table with flowers"; "Prop options, set options".** Told: the figure (the game's 3D character, ISUI3DModel) is
+    the only 3D thing in the studio and can't hold a 3D chair or table, so props would be painted layers behind and in
+    front of it; sitting in a chair needs a sitting pose the figure may or may not take. Rulings: **props held off**;
+    **pieces, not sets** (the backdrop and the pose each picked on its own); **the probe first, then the room**.
+    The probe: ZeDUI/tools/qa/zedqa_studio_probe.lua (what the figure answers to, every state and emote tried with a
+    shot, and whether it moves while the game is paused).
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
