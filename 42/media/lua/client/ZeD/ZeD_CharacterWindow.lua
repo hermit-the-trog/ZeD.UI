@@ -4527,6 +4527,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
             identityModel:setZoom(BUST_ZOOM)
             identityModel:setYOffset(BUST_Y_OFFSET)
         end
+        -- the portrait studio's camera button in the photo's bottom right corner, over the figure (punch list 145)
+        local cam = win._studioBtn
+        if cam then
+            local s = T.px(18)
+            cam:setX(identityModel.x + identityModel.width - s - T.px(4))
+            cam:setY(identityModel.y + identityModel.height - s - T.px(4))
+        end
         return true
     end
     win._identityCustomZoom = 0  -- scroll wheel zoom for expanded mode
@@ -4935,6 +4942,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 end
 
                 local showAvatar = win._placeIdentityModel(effectiveW)
+                local cam = win._studioBtn
+                if cam then
+                    local camOn = showAvatar and win._activeTab == "identity" or false
+                    if cam:isVisible() ~= camOn then cam:setVisible(camOn) end
+                end
 
                 -- The Equip tab's doll (EquipDoll.lua): the same model, full body, in the
                 -- doll's photo frame. A model can't be clipped, so a frame partly
@@ -5645,6 +5657,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Identity avatar: after containerStrip (above drawer content), before itemDrawer
     win:addChild(identityModel)
+    -- the portrait studio's camera button, after the figure so it lies over it and takes its own press (punch list
+    -- 145: ZeD_Studio.lua); placed by _placeIdentityModel, shown with the ID photo
+    if ZeD.Studio and ZeD.Studio.newCamButton then
+        local cam = ZeD.Studio.newCamButton(win)
+        win:addChild(cam)
+        win._studioBtn = cam
+    end
     -- The Equip doll's leader lines: above the model so their dots land on the
     -- body; mouse events pass through to the drawer (EquipDoll.newLineLayer)
     if ZeD.EquipDoll then

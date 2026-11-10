@@ -3535,6 +3535,20 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     **pieces, not sets** (the backdrop and the pose each picked on its own); **the probe first, then the room**.
     The probe: ZeDUI/tools/qa/zedqa_studio_probe.lua (what the figure answers to, every state and emote tried with a
     shot, and whether it moves while the game is paused).
+    **Built, step 1, the room** (ZeD_Studio.lua): a camera button in the ID photo's bottom right corner (a pixel
+    camera; over the figure, added after it in the Character window, shown with the ID photo; in multiplayer it is
+    grey and its help line says the studio pauses the game, so single player only). The studio takes the whole
+    screen: a dark room, a plain seamless backdrop (a studio grey in every theme, lighter at the sweep), the
+    character's own figure near the screen's full height, idle and turning on a drag. The bar along the foot: Full
+    body, Three-quarter, Bust (the ID photo's two framings and one between; the wheel frames by steps), Turn left,
+    Turn right, Take photo, Leave, and the help line. Opening pauses the game and hides its paused box; leaving puts
+    the speed back as it was (a game paused before stays paused). Take photo: two frames with nothing but the paper
+    and the figure, the game's screenshot after the second (zed_portrait_<time>.png in Zomboid/Screenshots), one
+    more clean frame, then a white flash and the file's name in the help line. Escape leaves; on a pad A shoots, B
+    leaves, LB / RB turn, Up / Down frame. Eleven new words in all 28 languages. studio_sim 36/0. Poses wait on the
+    probe. **Check (QA, Mac):** the camera button on the ID photo; the studio: the game paused, the figure tall and
+    sharp, the framings, drag and buttons turn it; Take photo: a shot without the bar in Screenshots, the flash;
+    Leave and Escape: the game's speed as before; in multiplayer the button grey.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
