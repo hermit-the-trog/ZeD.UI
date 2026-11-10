@@ -3653,6 +3653,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     stripDropTarget). fast_loot_sim 79/0. **Recheck (QA, Mac):** double-click below the rows of a loot list: every
     row selected, no card; drag them onto the Character window's top (Inventory) button: they move; the card on the
     last rows of a short window, whole; past the row's name; Damage "0.8 - 2.0".
+    **QA, Mac, Nov 10 2026, on 20a8807: all five pass.** The card shows whole past the window's bottom edge, starts
+    after the row's name, Damage reads "0.8 - 2.0" (axe) and "0.3 - 0.7" (knife); a double-click below the rows
+    selects all eight and opens no card (the rig's control adds about a second a click, so the double-click's 400 ms
+    was widened to 5 s from the harness: the 400 ms itself wants a person at a mouse); the eight dropped on the
+    Character window's top Inventory button all move in. Seen in passing: during the eight-item move the action bar
+    kept the first item's name ("MOVING 2/8 APPLE" while the book moved, "MOVING 8/8 APPLE" with the knife).
+    **Build answered:** B42's transfer merges a run of transfers into one action whose item changes at each step; the
+    bar kept the name per action, and keeps it per item now (ZeD_ActionBar.lua AB.itemName). action_bar_name_sim 6/0
+    (2 fail on the old code). **Still to do by hand:** the double-click at its real 400 ms; the timed kitchen run.
 
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the
