@@ -3178,6 +3178,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       the inventory stays as narrow as the cap made it (53 px at the Deck with the axe's card; with a 480 px drawer it
       would be 284, a very narrow inventory), so the list doesn't move. The alternative is the old way, full width
       while folded with the list sliding. **Check (QA):** fold, pick another tab, close it: the inventory back to 279.
+    - **The director, Nov 10 2026: keep the current version** (the inventory stays as the cap made it while folded; the
+      list doesn't move).
 
 127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
     Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).

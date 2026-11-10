@@ -17,7 +17,7 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 | Punch list | What | Status |
 |---|---|---|
 | 114 | The main menu desk's sticky note can be dragged and closed (NOTE FIXES) | **QA ok** (Mac, mouse); pad, 1.75x, Light and High contrast still to run |
-| 126 | The Character list slides sideways for a quarter second when its drawer folds at Deck size (LIST SLIDE; also in beta 9) | QA (Mac): the fold ok (4 px once); fixed a stale debt after another tab; the snapped fold from rolled-up pays on purpose; a trade-off for the director (punch list) |
+| 126 | The Character list slides sideways for a quarter second when its drawer folds at Deck size (LIST SLIDE; also in beta 9) | QA (Mac): the fold ok (4 px once); fixed a stale debt after another tab (to recheck: fold, other tab, close, inventory back to 279); the director kept the narrow-while-folded version |
 | 125 | Closing a tab while its window is rolled puts the window back 4 px off at Deck size (WIN SPOT) | **QA ok** (Mac, 1280 x 800) |
 | 127 | PZ Teal is the default accent for a fresh install; a saved accent (Orange included) stays. Test: delete ZeD's accent from the options file or use a clean cachedir, expect Teal | **QA ok** (Mac, test 2, main menu); a window and a balloon not looked at |
 | 130 | The Player card keeps the old role after a role change on an offline account, so Ban never shows the protected-role message; update the cached row from the change; test an online moderator too | **QA ok offline both ways** (Mac, test 2); online needs a second client |
