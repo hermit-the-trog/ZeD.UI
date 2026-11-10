@@ -85,6 +85,13 @@ ZeD = {
     },
     Atoms = {
         drawStatusDot = function(panel, x, y, c, sz) rec("dot", x, y, c, sz) end,
+        statusColor = function(f, text)   -- (Atoms.lua's status rule, punch list 143)
+            local T = ZeD.T
+            local lit = (f or 0) <= 0 and 0 or math.max(1, math.ceil(math.min(1, f) * 5 - 1e-6))
+            if lit >= 4 then return T.positive end
+            if lit >= 2 then return (text and T.warningText) or T.warning end
+            return T.danger
+        end,
         drawDividerH = function(panel, x, y, w, b) rec("div", x, y, w, b) end,
     },
     Molecules = { drawTag = function(panel, x, y, text, c) rec("tag", x, y, text, c) end },

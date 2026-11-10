@@ -2084,14 +2084,7 @@ function ZeD_ItemGrid:render()
                 local barY = cy + cellH - barH - T.px(2)
                 local fillW = math.floor(barW * item.condition)
 
-                local barColor
-                if item.condition > 0.6 then
-                    barColor = T.positive
-                elseif item.condition > 0.25 then
-                    barColor = T.warning
-                else
-                    barColor = T.danger
-                end
+                local barColor = ZeD.Atoms.statusColor(item.condition)   -- (the status bars' rule, punch list 143)
                 self:drawRect(barX, barY, fillW, barH, 1, barColor.r, barColor.g, barColor.b)
             end
         end

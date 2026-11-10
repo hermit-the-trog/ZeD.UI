@@ -96,10 +96,8 @@ local function help(panel, key, ...)
 end
 local function now() return (getTimestampMs and getTimestampMs()) or 0 end
 local function hit(z, x, y) return z ~= nil and x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
-local function statusColor(T, pct)
-    if pct > 60 then return T.positive elseif pct > 30 then return T.warning end
-    return T.danger
-end
+-- (the status bars' rule, so a reading and its bar agree: ZeD.Atoms.statusColor, punch list 143)
+local function statusColor(T, pct) return ZeD.Atoms.statusColor(pct / 100) end
 local function thousands(n)
     local s = tostring(math.floor(n + 0.5))
     local out = ""
@@ -995,7 +993,7 @@ local function dotLine(panel, x, y, w, color, text, font)
 end
 
 -- A condition bar for a list row: the framed strip at the compact height, centred
--- on cy, ten segments graduated (green over 60, amber over 30, red below); its help
+-- on cy, a status bar's five segments (green over 60, amber over 20, red below); its help
 -- line "Condition 64%"
 local function miniBar(panel, x, cy, w, pct)
     local A = ZeD.Atoms
@@ -1064,7 +1062,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
         yy = yy + T.fontF1H + T.px(10)
         yy = yy + drawLabelValue(panel, sx, yy, sw, getText("IGUI_invpanel_Condition"), (p.missing or p.smashed) and "-" or (tostring(p.cond) .. "%")) + T.px(4)
         if p.missing or p.smashed then
-            A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.FILL_SEGS, 0)   -- (no reading: "-" above it)
+            A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.STATUS_SEGS, 0)   -- (no reading: "-" above it)
         else
             A.drawFillBar(panel, sx, yy, sw, p.cond / 100, true, nil, nil, ZeD.tr("IGUI_invpanel_Condition"))
         end
@@ -1574,7 +1572,7 @@ local function renderDiagram(panel, win, s, x, top, w, bodyH, v, chr, inspected,
     else
         local yy = cy
         yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), "?") + T.px(4)
-        A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.FILL_SEGS, 0)   -- (not known yet: no reading in the help line)
+        A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.STATUS_SEGS, 0)   -- (not known yet: no reading in the help line)
         yy = yy + T.fillBarH + T.px(8)
         local dc = T.textDim
         yy = yy + dotLine(panel, sx, yy, sw, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, ZeD.tr("UI_ZeD_Veh_NotInspected")) + T.px(8)

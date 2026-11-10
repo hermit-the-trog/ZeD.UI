@@ -373,9 +373,8 @@ end
 
 -- ============================================================================
 -- 04. FILL BAR (draw helper)
--- A horizontal bar showing a value as a proportion of a maximum: ten separate
--- segments in the framed strip. Supports graduated color (green → yellow → red
--- based on percentage).
+-- A horizontal bar showing a value as a proportion of a maximum: separate segments in the framed strip, ten for an
+-- amount, five for a status (graduated: green, yellow, red, a condition or a health).
 -- ============================================================================
 
 --- Draw a fill bar
@@ -383,7 +382,7 @@ end
 -- @param x, y      Top-left position
 -- @param w         Total width of the bar (at least ZeD.Atoms.fillBarMinW() for ten distinct segments)
 -- @param percent   Fill amount, 0.0 to 1.0
--- @param graduated If true, color shifts based on percentage thresholds
+-- @param graduated If true, a status bar: five segments and the status color (ZeD.Atoms.statusColor)
 -- @param fillColor Optional fixed fill color (overrides graduated logic)
 -- @param h         Optional height; default T.fillBarH (13 / 15 Large). List rows use ZeD.Atoms.fillBarCompactH()
 -- @param label     Optional: what the bar reads, for the help line ("Condition" gives "Condition 64%");
@@ -393,9 +392,11 @@ end
 -- The System 7 "About This Macintosh" bar — a chunky strip, not a glowing line:
 -- a framed strip with a dark well; no 1-5 unit lines, no glow, no gradient. Every condition and amount bar
 -- draws through here.
--- The fill is ten separate segments (ZeD.Atoms.drawSegFill), lit or dark, never part-lit, one per tenth —
+-- An amount's fill is ten separate segments (ZeD.Atoms.drawSegFill), lit or dark, never part-lit, one per tenth —
 -- the segments help read the amount at a glance. Rounding is strict: a
--- segment lights only when its whole tenth is reached (4% lights none, 64% six, 100% all ten). Pointing at the
+-- segment lights only when its whole tenth is reached (4% lights none, 64% six, 100% all ten). A status bar (a
+-- condition, a health: graduated) has five, rounded up, so it reads empty only at nothing left and a nearly new item
+-- full (punch list 143, the director, Nov 10 2026: "Conditions should be OK with 5"). Pointing at the
 -- bar puts the exact value in the window's help line. What moves on its own stays smooth (ZeD.Atoms.drawSmoothBar:
 -- the progress band, uploads, crafting, a timed action's busy bar), as does a slider's track (its thumb sits
 -- anywhere along it).
@@ -407,6 +408,10 @@ local FILL_SEGS = 10
 ZeD.Atoms.FILL_SEGS = FILL_SEGS
 local SEG_FILL = { framed = true, exactH = true }   -- (the segment atom's framed look at the caller's height)
 
+-- A status bar's segments (a condition, a health: ZeD.Atoms.drawFillBar's graduated bars). Skills keep ten, one a level.
+local STATUS_SEGS = 5
+ZeD.Atoms.STATUS_SEGS = STATUS_SEGS
+
 --- How many of n segments a share lights: whole steps only (n default 10)
 function ZeD.Atoms.fillSegsLit(percent, n)
     n = n or FILL_SEGS
@@ -414,6 +419,27 @@ function ZeD.Atoms.fillSegsLit(percent, n)
     if p <= 0 then return 0 end
     if p >= 1 then return n end
     return math.floor(p * n + 1e-6)   -- (the 1e-6: 0.7 * 10 is 6.999... in floating point)
+end
+
+--- How many of a status bar's five segments a share lights: rounded up, so any share above nothing lights one and
+--- only a whole one lights all five (95% reads as full, a broken item as empty)
+function ZeD.Atoms.statusSegsLit(percent)
+    local p = percent or 0
+    if p <= 0 then return 0 end
+    if p >= 1 then return STATUS_SEGS end
+    return math.max(1, math.ceil(p * STATUS_SEGS - 1e-6))   -- (the 1e-6: 0.6 * 5 is 3.0000000000000004)
+end
+
+--- The status color of a share (a condition, a health, 0 to 1), by the segments it lights on a status bar: four or
+--- five green (over 60%), two or three yellow, one or none red (20% and under). Every status bar and every reading
+--- colored beside one asks here, so a bar and its words never disagree (punch list 143). text: the warning's text
+--- shade (T.warningText) for words.
+function ZeD.Atoms.statusColor(percent, text)
+    local T = ZeD.T
+    local lit = ZeD.Atoms.statusSegsLit(percent)
+    if lit >= 4 then return T.positive end
+    if lit >= 2 then return (text and T.warningText) or T.warning end
+    return T.danger
 end
 
 --- The narrowest fill bar that still shows n (default 10) distinct segments: a hairline each, a hairline gap
@@ -448,7 +474,8 @@ end
 --- Draw n separate segments in the framed strip, k of them lit: the one look of every fill bar.
 -- 1u frame (2u High contrast) round the T.base well, the cells inside sharing its width evenly with a hairline
 -- of well between them; lit cells flat in the bar's colour, dark ones T.surf3. Skills give one segment per level
--- (n = 10), a farm plot's stages one per stage (n = 6); every other bar asks ZeD.Atoms.drawFillBar (n = 10).
+-- (n = 10), a farm plot's stages one per stage (n = 6); every other bar asks ZeD.Atoms.drawFillBar (an amount 10,
+-- a status 5).
 -- @return hovered  true while the pointer is on the strip (the caller words the help line)
 function ZeD.Atoms.drawSegFill(panel, x, y, w, h, n, k, color)
     local T = ZeD.T
@@ -461,16 +488,13 @@ function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h,
     h = h or T.fillBarH
     percent = math.max(0.0, math.min(1.0, percent or 0))
     local fc = fillColor
-    if not fc then
-        if graduated then
-            if percent > 0.6 then fc = T.positive
-            elseif percent > 0.3 then fc = T.warning
-            else fc = T.danger end
-        else
-            fc = T.accent
-        end
+    if not fc then fc = graduated and ZeD.Atoms.statusColor(percent) or T.accent end
+    local hov
+    if graduated then
+        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, STATUS_SEGS, ZeD.Atoms.statusSegsLit(percent), fc)
+    else
+        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, FILL_SEGS, ZeD.Atoms.fillSegsLit(percent), fc)
     end
-    local hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, FILL_SEGS, ZeD.Atoms.fillSegsLit(percent), fc)
     if hov and ZeD.Help then ZeD.Help.set(panel, ZeD.Atoms.fillBarHelp(percent, label)) end
     return hov
 end
@@ -499,13 +523,7 @@ function ZeD.Atoms.drawSmoothBar(panel, x, y, w, percent, graduated, fillColor, 
         if fillColor then
             fc = fillColor
         elseif graduated then
-            if percent > 0.6 then
-                fc = T.positive
-            elseif percent > 0.3 then
-                fc = T.warning
-            else
-                fc = T.danger
-            end
+            fc = ZeD.Atoms.statusColor(percent)
         else
             fc = T.accent
         end

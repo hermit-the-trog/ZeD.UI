@@ -1910,7 +1910,7 @@ function ZeD.Molecules.drawFillBar(panel, x, y, w, ratio, h, label)
     local T = ZeD.T
     local barH = h or T.fillBarH
 
-    -- Graduated color: green > 60%, amber 30-60%, red < 30% (ten segments: ZeD.Atoms.drawFillBar)
+    -- A status bar: green over 60%, amber over 20%, red at 20% and under (five segments: ZeD.Atoms.drawFillBar)
     ZeD.Atoms.drawFillBar(panel, x, y, w, ratio, true, nil, barH, label)
 
     return barH

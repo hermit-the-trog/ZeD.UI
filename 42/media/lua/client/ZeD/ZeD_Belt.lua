@@ -1443,11 +1443,8 @@ local function frameBox(p, x, y, w, h, T)
 end
 B.frameBox = frameBox
 
--- the strip's graduated colours (ZeD.Atoms.drawFillBar)
-local function wearColor(T, f)
-    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warning end
-    return T.danger
-end
+-- the strip's graduated colours (ZeD.Atoms.drawFillBar's status rule: ZeD.Atoms.statusColor, punch list 143)
+local function wearColor(T, f) return ZeD.Atoms.statusColor(f) end
 
 -- The hands' condition: the slots' framed strip bent round inside the outline — the same chunky framed strip as
 -- the other status bars, as the action bar's progress line is too (ZeD_ActionBar.lua).

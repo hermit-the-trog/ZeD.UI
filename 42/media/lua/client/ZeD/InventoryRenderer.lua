@@ -742,10 +742,10 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     return tW + padX
 end
 
--- A grid cell's condition: the framed strip (ZeD.Atoms.drawFillBar, ten segments) along
+-- A grid cell's condition: the framed strip (ZeD.Atoms.drawFillBar, a status bar's five segments) along
 -- the cell's bottom, compact to fit under the icon. Returns its top (or the cell's
 -- bottom when there is none) and true while the pointer is on it (its help line:
--- "Condition 64%"). 52 units less 6: 34 px at 0.75, two or three a segment.
+-- "Condition 64%"). 52 units less 6: 34 px at 0.75, six a segment.
 local function drawCellCondition(self, item, ax, cy, cell)
     local T = ZeD.T
     local condMax = item:getConditionMax()
@@ -1446,7 +1446,7 @@ local function rowTag(self, x, y, rowH, text, focusTxt)
     ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, nil, _rowTagOpts)
 end
 
--- A row's condition in the COND column: the framed strip (ZeD.Atoms.drawFillBar, ten segments;
+-- A row's condition in the COND column: the framed strip (ZeD.Atoms.drawFillBar, five segments;
 -- the column less 4 units is 34 px at 0.75) at the list rows' compact height, centred in the row, in
 -- the condition's colours
 local function rowCondition(self, item, x, y, w, rowH)

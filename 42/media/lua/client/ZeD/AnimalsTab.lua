@@ -363,9 +363,8 @@ end
 -- ============================================================================
 
 local function dotColorForValue(T, val)
-    if val > 60 then return T.positive end
-    if val > 30 then return T.warning end
-    return T.danger
+    -- (the status bars' rule: ZeD.Atoms.statusColor, punch list 143)
+    return ZeD.Atoms.statusColor(val / 100)
 end
 
 -- ============================================================================

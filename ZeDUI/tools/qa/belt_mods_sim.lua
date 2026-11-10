@@ -257,6 +257,13 @@ local function installZeD()
     ZeD.TM = { getFontHeight = function() return 10 end, MeasureStringX = function(_, _, s) return #tostring(s) * 6 end }
     ZeD.Atoms = recorder({
         fillBarCompactH = function() return 8 end,
+        statusColor = function(f, text)   -- (Atoms.lua's status rule, punch list 143)
+            local T = ZeD.T
+            local lit = (f or 0) <= 0 and 0 or math.max(1, math.ceil(math.min(1, f) * 5 - 1e-6))
+            if lit >= 4 then return T.positive end
+            if lit >= 2 then return (text and T.warningText) or T.warning end
+            return T.danger
+        end,
         requestHint = function(_, key, words) env.hints[#env.hints + 1] = { key = key, words = words } end,
         drawFillBar = function(_, x, y, w, f, graduated, fc, h)
             LOG[#LOG + 1] = table.concat({ "drawFillBar", logv(x), logv(y), logv(w), logv(f), tostring(graduated), fc and fc.name or "nil", logv(h) }, " ")

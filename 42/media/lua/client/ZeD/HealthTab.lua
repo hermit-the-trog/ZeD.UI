@@ -50,12 +50,8 @@ local function dueMs(owner, key, periodMs, force)
     return true
 end
 
-local function pctToStatusColor(pct)
-    local T = ZeD.T
-    if pct > 60 then return T.positive
-    elseif pct > 30 then return T.warning
-    else return T.danger end
-end
+-- (the status bars' rule: ZeD.Atoms.statusColor, punch list 143)
+local function pctToStatusColor(pct) return ZeD.Atoms.statusColor(pct / 100) end
 
 -- The controller's mark options for the element with this id: set only when the
 -- window is the focused one, the controller is in use and that element has the

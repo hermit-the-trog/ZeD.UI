@@ -28,6 +28,7 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 | 138 | Menu marks: blue and red tell paired actions apart (add/remove, on/off, either way), plus new Eat, Sneak and Safehouse icons, the centered 24 badge and the screwdriver handle up. Design handoff: `ZeDUI/HANDOFF_design_menu_marks_eat_20261109.md` (the director put the marks in beta 11, Nov 10) | built Nov 10 (cloud session, branch `claude/keen-meitner-optdjj`, PR #3), sim passes; waiting on the Mac's in-game check; the list menu uses each theme's own shades (director approved Nov 10) |
 | 141 | The fill bars' cells spread evenly, no two more than a pixel apart (director) | built Nov 10, seg_bar_spread_sim; waiting on the Mac |
 | 142 | Pasties: the sticky note becomes an app, up to 8 notes made from an icon, thrown away on close (director) | built Nov 10, desk_sim; waiting on the Mac |
+| 143 | Status bars take five cells, rounded up; one status color rule for bars and their readings (director) | built Nov 10; waiting on the Mac |
 | 139 | The pointer says what a click or a drop will do (an idea from the director, Nov 10; mockup in ZeDUI/mockups/zed_pointer_hint_v1) | parked by the director (research later); not in beta 11 |
 | 132 | Strip submenus open on rest | closed: the director chose click only; a note that mentions rest names the List only |
 

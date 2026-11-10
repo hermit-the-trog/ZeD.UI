@@ -4,7 +4,8 @@
 -- a pixel row, through the gap texture's path (seg.png's row: a gap lit, the cell clear, repeated) and through the
 -- plain rects. For 5 and 10 cells, inside widths 20 to 400 px, gaps of 1 and 2 px, 0, 3 and all cells lit, it checks:
 -- the right number of cells, every cell within a pixel of the others, the cells meeting the frame at both ends, and at
--- most seven draws a bar on the texture path.
+-- most seven draws a bar on the texture path. STATUS (punch list 143): the status bars' five cells, rounded up, and their
+-- color by cells lit.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/seg_bar_spread_sim.lua
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]seg_bar_spread_sim%.lua$", "")
 if ROOT == "" then ROOT = "./" end
@@ -50,6 +51,23 @@ for _, texture in ipairs({ true, false }) do
             if texture then check(tag .. ": seven draws at most", draws <= 7, draws) end
         end
     end end end end
+end
+-- STATUS (punch list 143, Nov 10 2026): a status bar's five cells light rounded up, and its color goes by cells lit:
+-- four or five green, two or three yellow, one or none red
+ZeD.T.positive, ZeD.T.warning, ZeD.T.warningText, ZeD.T.danger = "G", "Y", "y", "R"
+check("STATUS: five cells", A.STATUS_SEGS == 5, A.STATUS_SEGS)
+for _, c in ipairs({ { 0, 0, "R" }, { 0.001, 1, "R" }, { 0.2, 1, "R" }, { 0.2001, 2, "Y" }, { 0.4, 2, "Y" }, { 0.6, 3, "Y" },
+                     { 0.6001, 4, "G" }, { 0.8, 4, "G" }, { 0.81, 5, "G" }, { 0.95, 5, "G" }, { 1, 5, "G" }, { 1.5, 5, "G" },
+                     { -1, 0, "R" } }) do
+    check(("STATUS: %.4f lights %d"):format(c[1], c[2]), A.statusSegsLit(c[1]) == c[2], A.statusSegsLit(c[1]))
+    check(("STATUS: %.4f is %s"):format(c[1], c[3]), A.statusColor(c[1]) == c[3], A.statusColor(c[1]))
+end
+check("STATUS: the text shade for words", A.statusColor(0.5, true) == "y", A.statusColor(0.5, true))
+-- every share in whole hundredths and thousandths: the color always matches the cells lit
+for i = 0, 1000 do
+    local f = i / 1000
+    local lit, col = A.statusSegsLit(f), A.statusColor(f)
+    check("STATUS: color by cells at " .. f, (lit >= 4 and col == "G") or (lit >= 2 and lit <= 3 and col == "Y") or (lit <= 1 and col == "R"), lit .. " " .. col)
 end
 print("seg_bar_spread_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)

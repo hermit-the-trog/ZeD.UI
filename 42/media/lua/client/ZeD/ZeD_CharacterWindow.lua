@@ -5985,11 +5985,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local maxWt = self._playerObj:getMaxWeight()
         local bd = self._playerObj:getBodyDamage()
         local hp = math.floor(bd:getOverallBodyHealth() + 0.5)
-        local hpColor
-        if hp > 60 then      hpColor = T.positive
-        elseif hp > 30 then  hpColor = T.warning
-        else                  hpColor = T.danger
-        end
+        local hpColor = ZeD.Atoms.statusColor(hp / 100)   -- (the status bars' rule, punch list 143)
         -- Build title stats: pins | HP | weight (right-to-left rendering)
         win.titleStats = {}
 

@@ -597,11 +597,7 @@ local function getClothingZones(item)
         local zoneR = (hasHole and not patchStr) and 0.0 or condR
 
         -- Condition fill color
-        local condCol
-        if zoneR > 0.6 then condCol = T.positive
-        elseif zoneR > 0.3 then condCol = T.warning
-        else condCol = T.danger
-        end
+        local condCol = ZeD.Atoms.statusColor(zoneR)   -- (the status bars' rule, punch list 143)
 
         -- Condition fill segments (main + optional patch bonus)
         local fillSegs = {

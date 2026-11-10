@@ -3440,6 +3440,20 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     close an empty one (gone at once) and one with words (asks; Keep, then Throw away); make 8: the icon greys; on a
     pad the same with A / X / Y / B; at 1x and 1.75x. A desk that had words on the old note shows them as one Pastie.
 
+143. **Status bars take five cells, rounded up (the director, Nov 10 2026: "Skills you want 10 segments because there
+    are 10 levels. Conditions should be OK with 5"; then "Every status bar" and "Round up, red at 20%").** Every
+    graduated bar (green, yellow, red: item condition in the Cond column, a grid cell, the Equipment card and the
+    doll, a vehicle part's and the vehicle's overall, a body part's health, the trailer's animals) draws five cells;
+    Skills keep ten (one a level) and every amount bar (food, fluid, power, capacity) ten. A cell lights rounded up,
+    so a nearly new item reads full and only a broken one empty; the color goes by cells lit: four or five green
+    (over 60%), two or three yellow, one red (20% and under; was 30%). Sims: seg_bar_spread_sim 32824/0 (the STATUS
+    checks), belt_mods_sim 141/0, animals_speed_sim 36/0, drawer_tabs_perf_sim 73/0. One rule, ZeD.Atoms.statusColor, now colors
+    every reading beside a status bar too (part condition, body health, the HP number, the animals' dots, the belt's
+    hand rings, the item card's zones, the old grid's bars), so a bar and its words never disagree. Atoms.lua
+    (STATUS_SEGS, statusSegsLit, statusColor), MechanicsTab, MechTrailer, EquipDoll, AnimalsTab, ObjectCardMedic,
+    ZeD_Belt, ItemCard, HealthTab, Organisms, ZeD_CharacterWindow. **Check (QA):** the Cond column at 1x and 1.75x
+    (five even cells), an item at 95% (full), one near broken (one red cell), the Mechanics parts list.
+
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips

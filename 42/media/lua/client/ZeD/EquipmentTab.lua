@@ -166,7 +166,7 @@ local function eqHover(panel, win, x, y, w, h)
     return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
 
--- A row's condition: the framed strip (ZeD.Atoms.drawFillBar, ten segments) at the list
+-- A row's condition: the framed strip (ZeD.Atoms.drawFillBar, five segments) at the list
 -- rows' compact height, its middle at cy, in the condition's colours. True while the
 -- pointer is on it (its help line: "Condition 64%")
 local function eqCondition(panel, x, cy, w, f)
