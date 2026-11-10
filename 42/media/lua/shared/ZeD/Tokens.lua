@@ -836,9 +836,13 @@ end
 -- ---------------------------------------------------------------------------
 ZeD.T = {}
 
+-- The accent a fresh install starts on, and the fallback for a saved key that names nothing.
+-- PZ Teal from beta 11 (punch list 127); a saved Orange stays Orange.
+ZeD.DEFAULT_ACCENT = "teal"
+
 -- Current setting keys (persisted through ModOptions)
 ZeD.currentBase   = "dark"
-ZeD.currentAccent = "orange"
+ZeD.currentAccent = ZeD.DEFAULT_ACCENT
 ZeD.currentSize   = "small"
 
 -- ---------------------------------------------------------------------------
@@ -854,7 +858,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- A key that names nothing (an old or hand-edited save) falls back to the default
     -- rather than throwing below
     if not ZeD.BaseThemes[ZeD.currentBase]     then ZeD.currentBase   = "dark"   end
-    if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = "orange" end
+    if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = ZeD.DEFAULT_ACCENT end
     -- a saved "medium" (a preset that is gone) falls back to small, as does any size that names nothing
     if ZeD.currentSize == "medium" or not ZeD.TextSizes[ZeD.currentSize] then ZeD.currentSize = "small" end
     local base   = ZeD.BaseThemes[ZeD.currentBase]
@@ -1313,4 +1317,4 @@ end
 -- before ModOptions loads saved preferences. ModOptions will call
 -- ZeD.applyTheme() again with the player's saved choices.
 -- ---------------------------------------------------------------------------
-ZeD.applyTheme("dark", "orange", "small")
+ZeD.applyTheme("dark", ZeD.DEFAULT_ACCENT, "small")

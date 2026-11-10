@@ -3130,6 +3130,16 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     A saved Orange stays Orange: PZ's mod options file keeps every option once it's saved, so a player who left
     Orange alone can't be told from one who chose it, and nobody's colors change under them. Not a design change to
     any component, so no mockup; QA pictures the main menu, a window and a balloon in Teal at 4K and Deck.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** `ZeD.DEFAULT_ACCENT = "teal"` in Tokens.lua is the boot
+      theme, ZeD.currentAccent's start and applyTheme's fallback for a key that names nothing; Settings.lua's Accent
+      color combo marks Teal as its default item, and a missing or out-of-range stored index lands on it too. A saved
+      Orange (item 2) stays Orange. Teal's Dark hover wash was already Orange's 0.22, so nothing changed there. No
+      player-facing text names Orange as the default (game strings, the beta 11 page). Sim: default_accent_sim 24/0
+      (9 of its checks fail on the old code). Left as is: RadioTab.lua's preset "+" button paints a fixed orange (its
+      comment says it bypasses the theme on purpose); whether that radio face should follow the accent is the
+      director's call. The gallery scripts' "Dark + Orange" look moves to Teal with the retake (129).
+      **Check (QA, Mac):** delete `accentColor` from `~/Zomboid/Lua/ModOptions.ini` (or use a clean cachedir), start,
+      expect Teal on the main menu, a window and a balloon; set Orange, restart, expect Orange.
 
 128. **The gallery book's running head uses a middle dot (QA, Nov 9 2026).** Every left page reads
     "Bitchin' znix Programs · Doidbros & Buzzlord", against the never-"·" rule. The book is a printed prop, so a hyphen:

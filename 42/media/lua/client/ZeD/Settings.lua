@@ -151,7 +151,7 @@ end
 accentColor = opts:addComboBox("accentColor", ZeD.tr("UI_ZeD_Settings_AccentColor"),
     ZeD.tr("UI_ZeD_Settings_AccentColorTip"))
 for i, label in ipairs(accentLabels) do
-    accentColor:addItem(ZeD.tr(label), accentKeys[i] == "orange")  -- default: orange
+    accentColor:addItem(ZeD.tr(label), accentKeys[i] == ZeD.DEFAULT_ACCENT)  -- default: PZ Teal
 end
 
 -- ----- TEXT SIZE -----
@@ -962,7 +962,7 @@ local function applyFromOptions(changed, sel)
     end
 
     local base   = baseKeys[baseIdx or 1]     or "dark"
-    local accent = accentKeys[accentIdx or 2] or "orange"
+    local accent = (accentIdx and accentKeys[accentIdx]) or ZeD.DEFAULT_ACCENT
     local size   = sizeKeys[sizeIdx or 1]     or "small"
 
     -- the see-through value goes in with the theme: applyTheme sets the surfaces' alpha from it,
