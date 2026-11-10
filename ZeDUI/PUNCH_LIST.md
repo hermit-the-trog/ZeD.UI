@@ -3388,4 +3388,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       in ink on paper, hotspot at the fingertip; the drag pointers are the menu icons with their marks and a 1 px paper
       rim (Floor, Put in, Take, Equip, and the warning for a place that takes nothing), hotspot at the top left of the
       live area. Waiting on the director's notes, and on the probe for how it can be shown.
+    - **QA, Mac, Nov 10 2026 (probe 1):** Mouse has setCursorVisible / isCursorVisible (the read-back works both ways),
+      initCustomCursor, loadCursor and renderCursorTexture; no setCursor / setCursorTexture / setNativeCursor, no cursor
+      calls on getCore() but setDisplayCursor / isDisplayCursor; UIManager has getLastMouseTexture / setLastMouseTexture
+      and isForceCursorVisible; none of the cursor picture names tried load. The game's screenshots never hold the
+      pointer, so the hide was confirmed only by the read-back. **Probe 2** (`zedqa_pointer_probe2.lua`,
+      pointer2_manifest.txt) needs a person watching: it calls loadCursor / initCustomCursor with one of ZeD's icons
+      and prints each error (to learn their arguments), and puts up big notices while the pointer should be hidden or
+      changed. If either call takes a picture, the set can be the game's own pointer swapped (clean); if not, ZeD hides
+      the pointer and draws its own.
 
