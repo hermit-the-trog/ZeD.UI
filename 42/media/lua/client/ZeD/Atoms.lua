@@ -1234,8 +1234,17 @@ function ZeD.Atoms.requestDetailCard(owner, key, card, panel, rect, opts)
     r.kind, r.text, r.card = "card", nil, card
 end
 
+--- Ask for a balloon of any content (the ZeD.Balloon content spec, a body and all: the loot card) this frame;
+--- rect and opts as requestHint. The caller keeps content the same table while it shows the same thing.
+function ZeD.Atoms.requestBalloon(owner, key, content, panel, rect, opts)
+    if not owner or not content then return end
+    local r = hoverRequest(owner, key or content, panel, rect, opts)
+    r.kind, r.text, r.card, r.content = "content", nil, nil, content
+end
+
 -- a request's content: a new table only when its words change (the balloon keeps the one that is up)
 local function contentOf(st, r)
+    if r.kind == "content" then return r.content end
     if r.kind == "card" then
         local c = ZeD.Molecules and ZeD.Molecules.cardContent and ZeD.Molecules.cardContent(r.card)
         return c

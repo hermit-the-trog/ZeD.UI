@@ -1,6 +1,11 @@
 -- ============================================================================
--- ZeD_InvTip.lua: the game's item tooltip over ZeD's inventory and loot lists (punch list 146)
+-- ZeD_InvTip.lua: what the pointer shows over ZeD's inventory and loot lists (punch list 146)
 -- ============================================================================
+-- Since the director's "use our parts" (Nov 10 2026): the row under the pointer shows ZeD's loot card
+-- (ZeD_LootCard.lua, ZeD's balloon by the pointer, at once); holding Alt shows the game's own tooltip below instead,
+-- with every line mods add to it. This file also keeps the transfers waiting in the player's queue, for the rows
+-- that show them (IT.queued). What follows is the game's tooltip, as first built:
+--
 -- The director, Nov 10 2026, after watching a fast vanilla player loot on a stream: "for looting stats need to show
 -- quick, without a click". Rulings: the game's own item tooltip (ISToolTipInv, in ZeD's look: Overrides/Tooltip.lua),
 -- shown at once as vanilla's inventory shows it, following the pointer from row to row; the item card stays a click
@@ -20,12 +25,35 @@ local IT = ZeD.InvTip
 IT._frame = IT._frame or 0
 IT._want = nil
 
---- Ask for the tooltip of item, hovered in owner (a list or grid panel) this frame.
-function IT.want(owner, item)
+-- Alt held (either one): the game's tooltip rather than ZeD's card
+local function altDown()
+    if not (isKeyDown and Keyboard) then return false end
+    return isKeyDown(Keyboard.KEY_LMENU) or isKeyDown(Keyboard.KEY_RMENU)
+end
+IT.altDown = altDown
+
+local blocked   -- (below)
+
+--- The row or cell under the pointer, while it draws: item, hovered in owner (a list or grid panel); rect = the
+--- row or cell in owner's space { x, y, w, h }; count = a stack's count. ZeD's loot card is asked for at once (the
+--- window's overlay draws it this frame), or with Alt held, the game's tooltip (shown before the next frame draws).
+function IT.want(owner, item, rect, count)
     if not (owner and item) then return end
     local w = IT._want
     if not w then w = {}; IT._want = w end
     w.owner, w.item, w.frame = owner, item, IT._frame
+    w.alt = altDown()
+    if w.alt or not (rect and ZeD.LootCard and ZeD.Atoms and ZeD.Atoms.requestBalloon) then return end
+    local ok, no, chr = pcall(blocked, w)
+    if not ok or no then return end
+    local okC, c = pcall(ZeD.LootCard.content, item, chr, count)
+    if not (okC and c) then return end
+    -- by the pointer: the balloon's tail on the row where the pointer is, the card to its right
+    local mx = owner.getMouseX and owner:getMouseX() or rect.x
+    local a = IT._rect or {}
+    IT._rect = a
+    a.x, a.y, a.w, a.h = math.max(rect.x, math.min(rect.x + (rect.w or 1) - 1, mx)), rect.y, 1, rect.h or 1
+    ZeD.Atoms.requestBalloon(ZeD.Atoms.windowOf(owner), item, c, owner, a, { side = "right", now = true })
 end
 
 --- True when owner asked for item's tooltip this frame (its own hover box then stays away: one box at the pointer).
@@ -52,7 +80,7 @@ local function held(owner)
     if d ~= nil and (type(d) ~= "table" or #d > 0) then return true end
     return false
 end
-local function blocked(w)
+blocked = function(w)
     local owner, item = w.owner, w.item
     if not (owner.isReallyVisible and owner:isReallyVisible()) then return true end
     if held(owner) then return true end
@@ -83,7 +111,7 @@ IT.hide = hide
 local function frame()
     IT._frame = IT._frame + 1
     local w = IT._want
-    if not (w and w.frame == IT._frame - 1 and w.item) then hide(); return end
+    if not (w and w.frame == IT._frame - 1 and w.item and w.alt) then hide(); return end
     local ok, no, chr = pcall(blocked, w)
     if not ok or no then hide(); return end
     local tip = IT._tip
@@ -109,6 +137,41 @@ local function frame()
     tip:bringToTop()
 end
 IT._onFrame = frame
+
+-- ---------------------------------------------------------------------------
+-- THE QUEUE: the items waiting to move (ISInventoryTransferAction in the player's timed action queue), read once a
+-- frame per player, for the rows that say so (InventoryRenderer's queueMark). 0..1: the one moving now, how far.
+-- ---------------------------------------------------------------------------
+local Q = { frame = -1, chr = nil, map = {}, any = false }
+IT._queue = Q
+local function readQueue(chr)
+    Q.frame, Q.chr = IT._frame, chr
+    if Q.any then Q.map = {}; Q.any = false end
+    if not (chr and ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue) then return end
+    local ok, q = pcall(ISTimedActionQueue.getTimedActionQueue, chr)
+    local list = ok and q and q.queue
+    if not list then return end
+    for i, act in ipairs(list) do
+        local it = act and act.item
+        if it and (act.Type == "ISInventoryTransferAction" or (act.srcContainer and act.destContainer)) then
+            local d = 0
+            if i == 1 and act.action then
+                local okD, v = pcall(function() return act.action:getJobDelta() end)
+                if okD and type(v) == "number" then d = math.max(0, math.min(1, v)) end
+            end
+            Q.map[it] = d
+            Q.any = true
+        end
+    end
+end
+--- How far item, shown in owner's list, is in its move: nil (not waiting), 0 (waiting), to 1 (all but there).
+function IT.queued(owner, item)
+    local win = ZeD.Atoms and ZeD.Atoms.windowOf and ZeD.Atoms.windowOf(owner) or nil
+    local chr = characterOf(win)
+    if Q.frame ~= IT._frame or Q.chr ~= chr then readQueue(chr) end
+    if not Q.any then return nil end
+    return Q.map[item]
+end
 
 if Events and Events.OnPreUIDraw and not IT._hooked then
     IT._hooked = true

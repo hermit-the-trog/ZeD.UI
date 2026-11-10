@@ -92,3 +92,40 @@ function BS.draw(content)
     content:drawRect(x0, y0, w, h, 0.12, ac.r, ac.g, ac.b)
     content:drawRectBorder(x0, y0, w, h, 0.9, ac.r, ac.g, ac.b)
 end
+
+-- ---------------------------------------------------------------------------
+-- CTRL+A (punch list 146, the director, Nov 10 2026, after the streamer's clips: a whole crate selected in one step,
+-- then dropped on a container button). The windows register their list panels; Ctrl+A with the pointer over one
+-- selects every row of the list (the column) under it (the panel's zedSelectAll). The game still hears the A, as it
+-- hears every key: QA checks the character doesn't step aside.
+-- ---------------------------------------------------------------------------
+BS._lists = BS._lists or setmetatable({}, { __mode = "k" })
+--- A list panel Ctrl+A may select in (it has zedSelectAll).
+function BS.register(content) if content then BS._lists[content] = true end end
+
+local function pointerOn(c)
+    if not (c.isReallyVisible and c:isReallyVisible()) then return false end
+    local mx, my = getMouseX(), getMouseY()
+    local ax, ay = c:getAbsoluteX(), c:getAbsoluteY()
+    return mx >= ax and my >= ay and mx < ax + c:getWidth() and my < ay + c:getHeight()
+end
+
+--- Ctrl+A: the list under the pointer, all selected. True when a list took it.
+function BS.selectAllUnderPointer()
+    for c in pairs(BS._lists) do
+        if c.zedSelectAll and pointerOn(c) then
+            local ok, took = pcall(c.zedSelectAll, c)
+            if ok and took then return true end
+        end
+    end
+    return false
+end
+
+if Events and Events.OnKeyPressed and Keyboard and not BS._keyHooked then
+    BS._keyHooked = true
+    Events.OnKeyPressed.Add(function(key)
+        if key ~= Keyboard.KEY_A then return end
+        if not (isCtrlKeyDown and isCtrlKeyDown()) then return end
+        BS.selectAllUnderPointer()
+    end)
+end

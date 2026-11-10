@@ -50,13 +50,31 @@ local CTX = { open = false }
 getPlayerContextMenu = function() return { isAnyVisible = function() return CTX.open end } end
 local PLAYER = { getPlayerNum = function() return 0 end }
 getSpecificPlayer = function() return PLAYER end
-local CTRL = false
+local CTRL, ALT = false, false
 isCtrlKeyDown = function() return CTRL end
 isShiftKeyDown = function() return false end
+Keyboard = { KEY_LMENU = 56, KEY_RMENU = 184, KEY_A = 30 }
+isKeyDown = function(k) return ALT and (k == 56 or k == 184) end
 ISMouseDrag = {}
 local WIN = { _playerObj = PLAYER }
-ZeD = { T = { px = function(v) return v end, accent = { r = 1, g = 0, b = 0 } },
-        Atoms = { windowOf = function() return WIN end } }
+local BALLOONS = {}
+local NOW = 1000
+getTimestampMs = function() return NOW end
+getText = function(k) return k end
+-- (the game's classes: a stub item says what it is)
+instanceof = function(o, cls) return type(o) == "table" and o._is ~= nil and o._is[cls] == true end
+local function status(f, text) local lit = (f <= 0) and 0 or math.max(1, math.ceil(math.min(1, f) * 5 - 1e-6)); return lit >= 4 and "G" or (lit >= 2 and (text and "y" or "Y") or "R") end
+ZeD = { T = { px = function(v) return v end, accent = { r = 1, g = 0, b = 0 }, scale = 1, fontF2 = "F2", fontF3 = "F3",
+              text = { r = 1, g = 1, b = 1 }, textSec = { r = 0.6, g = 0.6, b = 0.6 } },
+        tr = function(k, a) return a and (k .. "(" .. tostring(a) .. ")") or k end,
+        TM = { MeasureStringX = function(_, _, s2) return #tostring(s2) * 6 end, getFontHeight = function() return 14 end },
+        Molecules = { drawTag = function() return 30, 16 end },
+        Atoms = { windowOf = function() return WIN end, statusColor = status, tagW = function(t) return #t * 6 + 10 end,
+                  fillBarCompactH = function() return 8 end, STATUS_SEGS = 5, statusSegsLit = function() return 3 end,
+                  drawSegFill = function() end, drawTextRight = function() end,
+                  requestBalloon = function(owner, key, content, panel, rect, opts)
+                      BALLOONS[#BALLOONS + 1] = { owner = owner, key = key, content = content, rect = { x = rect.x, y = rect.y, w = rect.w, h = rect.h }, opts = opts }
+                  end } }
 
 local function load(name)
     local f, err = loadfile(CDIR .. name)
@@ -65,13 +83,16 @@ local function load(name)
 end
 load("ZeD_InvTip.lua")
 load("ZeD_BoxSelect.lua")
+load("ZeD_LootCard.lua")
 local IT, BS = ZeD.InvTip, ZeD.BoxSelect
 
 -- ---------------------------------------------------------------------------
 -- TIP
 -- ---------------------------------------------------------------------------
-local list = { visible = true, isReallyVisible = function(s) return s.visible end }
+local list = { visible = true, isReallyVisible = function(s) return s.visible end, getMouseX = function() return 40 end }
 local axe, knife = { name = "Axe" }, { name = "Knife" }
+-- (the game's tooltip is Alt's since the loot card: QA's checks below hold it down)
+ALT = true
 frame()
 IT.want(list, axe)
 check("TIP: wantedBy the row that asked, this frame", IT.wantedBy(list, axe) and not IT.wantedBy(list, knife))
@@ -95,6 +116,110 @@ check("TIP: not while a right-click menu is open", not shownWith(function() CTX.
 check("TIP: not while that item's card is open", not shownWith(function() WIN._drawerItem = axe end, function() WIN._drawerItem = nil end))
 check("TIP: another item's card open, it shows", shownWith(function() WIN._drawerItem = knife end, function() WIN._drawerItem = nil end))
 check("TIP: not while the list is hidden", not shownWith(function() list.visible = false end, function() list.visible = true end))
+
+ALT = false
+
+-- ---------------------------------------------------------------------------
+-- CARD: without Alt, ZeD's loot card at once, by the pointer; the game's tooltip stays away
+-- ---------------------------------------------------------------------------
+local function item(t)
+    local o = { _is = t.is or {} }
+    for k, v in pairs(t) do
+        if k ~= "is" then o[k] = function() return v end end
+    end
+    return o
+end
+local jacket = item({ is = { Clothing = true }, getName = "Leather Jacket", getActualWeight = 1.0, getEquippedWeight = 0.3,
+                      getConditionMax = 10, getCondition = 4, getBodyLocation = "Jacket", getBiteDefense = 30, getScratchDefense = 60,
+                      getWetness = 40 })
+local worn = item({ is = { Clothing = true }, getBiteDefense = 40, getScratchDefense = 45 })
+PLAYER.getWornItem = function(_, loc) return loc == "Jacket" and worn or nil end
+BALLOONS = {}
+frame()
+IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+check("CARD: a row without Alt asks for ZeD's card at once", #BALLOONS == 1 and BALLOONS[1].opts.now == true and BALLOONS[1].opts.side == "right")
+check("CARD: by the pointer, on the row", BALLOONS[1] and BALLOONS[1].rect.x == 40 and BALLOONS[1].rect.y == 20 and BALLOONS[1].rect.h == 16, BALLOONS[1] and BALLOONS[1].rect.x)
+frame()
+check("CARD: the game's tooltip stays away without Alt", not (IT._tip and IT._tip.inUI))
+local c = BALLOONS[1] and BALLOONS[1].content
+check("CARD: titled with the item's name", c and c.title == "Leather Jacket", c and c.title)
+check("CARD: its body measured", c and c.body and c.body.w > 0 and c.body.h > 0 and type(c.body.draw) == "function")
+local F = ZeD.LootCard.facts(jacket, PLAYER)
+local function row(f, lab) for _, r in ipairs(f.rows) do if r[1] == lab then return r end end end
+check("CARD: clothing's condition", F.cond and math.abs(F.cond - 0.4) < 1e-6, F.cond)
+check("CARD: a wet tag", F.tags[1] and F.tags[1][1] == "UI_ZeD_Loot_Wet" and F.tags[1][2] == "warn")
+local wr = row(F, "UI_ZeD_Weight")
+check("CARD: the weight and what it weighs worn", wr and wr[2] == "1.0 kg" and wr[3] == "UI_ZeD_Loot_Worn(0.3)", wr and tostring(wr[3]))
+local bite, scr = row(F, "IGUI_health_Bite"), row(F, "IGUI_health_Scratch")
+check("CARD: bite against what is worn there: -10, red", bite and bite[2] == "30%" and bite[3] == "-10" and bite[4] == "bad", bite and tostring(bite[3]))
+check("CARD: scratch against it: +15, green", scr and scr[2] == "60%" and scr[3] == "+15" and scr[4] == "good", scr and tostring(scr[3]))
+local blade = item({ is = { HandWeapon = true }, getName = "Axe", getActualWeight = 3.0, getEquippedWeight = 0.9, getConditionMax = 13,
+                     getCondition = 9, getMinDamage = 0.8, getMaxDamage = 2.0, hasSharpness = true, getSharpness = 0.8, getMaxRange = 1.2 })
+local FB = ZeD.LootCard.facts(blade, PLAYER)
+check("CARD: a weapon: what it weighs held", row(FB, "UI_ZeD_Weight")[3] == "UI_ZeD_Loot_Held(0.9)", tostring(row(FB, "UI_ZeD_Weight")[3]))
+check("CARD: damage, sharpness, reach", row(FB, "Tooltip_weapon_Damage") and row(FB, "Tooltip_weapon_Damage")[2] == "0.8–2.0"
+      and row(FB, "UI_ZeD_Loot_Sharpness") and row(FB, "UI_ZeD_Loot_Sharpness")[2] == "80%" and row(FB, "UI_ZeD_Card_Reach"))
+local broken = item({ is = { HandWeapon = true }, getName = "Kitchen Knife", isBroken = true, getActualWeight = 0.3, getConditionMax = 10, getCondition = 0 })
+local FK = ZeD.LootCard.facts(broken, PLAYER)
+check("CARD: broken says so first", FK.tags[1] and FK.tags[1][1] == "UI_ZeD_Loot_Broken" and FK.tags[1][2] == "bad" and FK.cond == 0)
+local apple = item({ is = { Food = true }, getName = "Apple", getActualWeight = 0.2, isFresh = true, getHungerChange = -0.1, getThirstChange = -0.05, getConditionMax = 0 })
+local FA = ZeD.LootCard.facts(apple, PLAYER)
+check("CARD: food: fresh, no condition bar, hunger and thirst", FA.tags[1] and FA.tags[1][1] == "Tooltip_food_Fresh" and FA.cond == nil
+      and row(FA, "Tooltip_food_Hunger")[2] == "+10" and row(FA, "Tooltip_food_Thirst")[2] == "+5")
+local bagInv = { getCapacityWeight = function() return 5.4 end, getCapacity = function() return 18 end }
+local bag = item({ is = { InventoryContainer = true }, getName = "Hiking Bag", getActualWeight = 6.2, getCapacity = 18, getInventory = bagInv, getWeightReduction = 70 })
+local FG = ZeD.LootCard.facts(bag, PLAYER)
+check("CARD: a bag: what it holds of what it can, its weight reduction", row(FG, "UI_ZeD_Loot_Holds") and row(FG, "UI_ZeD_Loot_Holds")[2] == "5.4 / 18"
+      and row(FG, "UI_ZeD_Card_WeightReduce")[2] == "70%")
+BALLOONS = {}
+ALT = true
+IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+check("CARD: with Alt, no card", #BALLOONS == 0)
+frame()
+check("CARD: with Alt, the game's tooltip", IT._tip and IT._tip.inUI and IT._tip.item == jacket)
+ALT = false
+frame(); frame()
+BALLOONS = {}
+WIN._drawerItem = jacket
+IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+check("CARD: not while that item's card is open", #BALLOONS == 0)
+WIN._drawerItem = nil
+
+-- ---------------------------------------------------------------------------
+-- QUEUE: the items waiting to move, from the player's timed action queue
+-- ---------------------------------------------------------------------------
+local moving, waiting, still = { n = 1 }, { n = 2 }, { n = 3 }
+local QUEUE = { queue = {} }
+ISTimedActionQueue = { getTimedActionQueue = function() return QUEUE end }
+frame()
+check("QUEUE: nothing waits: nil", IT.queued(list, moving) == nil)
+QUEUE.queue = { { Type = "ISInventoryTransferAction", item = moving, action = { getJobDelta = function() return 0.4 end } },
+                { Type = "ISInventoryTransferAction", item = waiting } }
+frame()
+check("QUEUE: the one moving now, how far", IT.queued(list, moving) == 0.4, IT.queued(list, moving))
+check("QUEUE: one waiting its turn: 0", IT.queued(list, waiting) == 0)
+check("QUEUE: one not in the queue: nil", IT.queued(list, still) == nil)
+QUEUE.queue = {}
+frame()
+check("QUEUE: once moved, nil again", IT.queued(list, moving) == nil)
+
+-- ---------------------------------------------------------------------------
+-- CTRL+A: the list under the pointer, all selected
+-- ---------------------------------------------------------------------------
+do
+    getMouseX, getMouseY = function() return 50 end, function() return 50 end
+    local took = 0
+    local function lst(x)
+        return { isReallyVisible = function() return true end, getAbsoluteX = function() return x end, getAbsoluteY = function() return 0 end,
+                 getWidth = function() return 100 end, getHeight = function() return 100 end,
+                 zedSelectAll = function() took = took + 1; return true end }
+    end
+    local under, away = lst(0), lst(500)
+    BS.register(under); BS.register(away)
+    check("CTRL+A: the list under the pointer takes it", BS.selectAllUnderPointer() == true and took == 1, took)
+    getMouseX = function() return 300 end
+    check("CTRL+A: over no list, nothing", BS.selectAllUnderPointer() == false and took == 1)
+end
 
 -- ---------------------------------------------------------------------------
 -- BOX
@@ -165,8 +290,12 @@ end
 -- ---------------------------------------------------------------------------
 local function read(name) local f = io.open(CDIR .. name, "rb"); local s = f:read("*a"); f:close(); return s end
 local ir = read("InventoryRenderer.lua")
-local _, wants = ir:gsub("ZeD%.InvTip%.want%(self, item%)", "")
-check("WIRED: list rows and grid cells ask for the tooltip", wants == 2, wants)
+local _, w1 = ir:gsub("ZeD%.InvTip%.want%(self, item, r%)", "")
+local _, w2 = ir:gsub("ZeD%.InvTip%.want%(self, item, r, count%)", "")
+check("WIRED: list rows and grid cells ask for the card, with their place", w1 == 1 and w2 == 1, w1 .. "/" .. w2)
+local _, qm = ir:gsub("[^n]%squeueMark%(self, item,", "")   -- (the calls, not the function's own line)
+check("WIRED: rows and cells show the queue", qm == 3, qm)
+check("WIRED: the help line names Alt", ir:find("UI_ZeD_Inv_RowHelpLoot", 1, true) ~= nil)
 check("WIRED: the grid's name hint gives way to it", ir:find("ZeD.InvTip.wantedBy(self, hc.key)", 1, true) ~= nil)
 for _, w in ipairs({ "ZeD_CharacterWindow.lua", "ZeD_WorldWindow.lua" }) do
     local s = read(w)
@@ -175,6 +304,9 @@ for _, w in ipairs({ "ZeD_CharacterWindow.lua", "ZeD_WorldWindow.lua" }) do
     check("WIRED: " .. w .. " moves it inside and outside", moves == 2, moves)
     local _, ends = s:gsub("ZeD%.BoxSelect%.finish%(self%)", "")
     check("WIRED: " .. w .. " finishes it on either release", ends == 2, ends)
+    local _, picks = s:gsub("self%._padMarks = true   %-%- %(picking rows", "")
+    check("WIRED: " .. w .. " Ctrl- and Shift-picks keep the card shut", picks == 2, picks)
+    check("WIRED: " .. w .. " has Ctrl+A", s:find("content.zedSelectAll = function(self)", 1, true) ~= nil and s:find("ZeD.BoxSelect.register(content)", 1, true) ~= nil)
     check("WIRED: " .. w .. " draws it after the rows", s:find("content._onRender = function(self) if self._box and ZeD.BoxSelect then ZeD.BoxSelect.draw(self) end end", 1, true) ~= nil)
 end
 

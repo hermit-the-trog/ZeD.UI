@@ -5385,6 +5385,22 @@ function ZeD_WorldWindow.toggle(playerNum)
     local findIndex            = r.findIndex
     local handleDrop           = r.handleDrop
 
+    -- Ctrl+A over the list: every row of it (the column under the pointer) selected, the card shut (punch list 146)
+    content.zedSelectAll = function(self)
+        local _, cs = getColumnAtX(self, self:getMouseX())
+        local sel = (cs and cs.selectedItems) or self._selectedItems
+        local flat = (cs and cs.flatItems) or self._flatItems
+        if not (sel and flat) then return false end
+        for k in pairs(sel) do sel[k] = nil end
+        for _, it in ipairs(flat) do sel[it] = true end
+        local last = flat[#flat]
+        if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+        self._padMarks = true
+        updateDrawer()
+        return true
+    end
+    if ZeD.BoxSelect and ZeD.BoxSelect.register then ZeD.BoxSelect.register(content) end
+
     content.onMouseDown = function(self, x, y)
         self._padMarks = nil   -- (a mouse press: the mouse's card rule again)
         -- the container buttons' row
@@ -5551,6 +5567,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         local isShift = isKeyDown(Keyboard.KEY_LSHIFT) or isKeyDown(Keyboard.KEY_RSHIFT)
 
         if isCtrl then
+            self._padMarks = true   -- (picking rows: the card stays shut, even at one; punch list 146)
             if sel[item] then sel[item] = nil
             else sel[item] = true end
             if colCs then colCs.lastClickedItem = item
@@ -5562,6 +5579,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
 
         elseif isShift and lastClicked then
+            self._padMarks = true   -- (picking rows: the card stays shut, even at one; punch list 146)
             local fromIdx = findIndex(flatItems, lastClicked)
             local toIdx   = findIndex(flatItems, item)
             if fromIdx and toIdx then
@@ -5616,6 +5634,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         if self._box then
             local last, bCol = ZeD.BoxSelect.finish(self)
             if last then
+                self._padMarks = true   -- (rows picked by a box: the card stays shut, even at one)
                 local cs = bCol and self._colStates and self._colStates[bCol]
                 if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
             end
@@ -5688,6 +5707,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         if self._box then
             local last, bCol = ZeD.BoxSelect.finish(self)
             if last then
+                self._padMarks = true   -- (rows picked by a box: the card stays shut, even at one)
                 local cs = bCol and self._colStates and self._colStates[bCol]
                 if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
             end

@@ -664,6 +664,28 @@ local function cuesOn()
     return Focus and Focus.cuesVisible and Focus.cuesVisible() or false
 end
 
+local _tipRect = { x = 0, y = 0, w = 0, h = 0 }   -- (the hovered row or cell, handed to ZeD.InvTip.want)
+
+-- An item waiting to move (punch list 146, after the streamer's clips: vanilla's rows say "Moving to container" with
+-- a bar while he reads on): "Moving" in the category column (wordW > 0) and a thin bar along the row's or cell's
+-- foot, filling as it goes. True when the item is waiting.
+local function queueMark(self, item, wordX, wordY, wordW, rx, ry, rw, rh)
+    local IT = ZeD.InvTip
+    local d = IT and IT.queued and IT.queued(self, item)
+    if d == nil then return false end
+    local T = ZeD.T
+    local ac, base = T.accent, T.base
+    local bh = T.px(2)
+    self:drawRect(rx, ry + rh - bh, rw, bh, 1, base.r, base.g, base.b)
+    if d > 0 then self:drawRect(rx, ry + rh - bh, math.max(1, math.floor(rw * d)), bh, 1, ac.r, ac.g, ac.b) end
+    if wordW and wordW > 0 then
+        local s = ZeD.Atoms.truncateText(ZeD.tr("UI_ZeD_Inv_Moving"), T.fontF1, wordW)
+        local c = T.accentText or ac
+        self:drawText(s, wordX, wordY, c.r, c.g, c.b, 1, T.fontF1)
+    end
+    return true
+end
+
 -- A tag's width as ZeD.Molecules.drawTag draws it (F1, sentence case, 5u each side)
 local function tagW(text)
     local T = ZeD.T
@@ -885,12 +907,17 @@ local function drawGridCell(self, GV, item, cx, cy)
         RM.drawMark(self, ax + T.px(3), cy + cell - ms - T.px(3), rs.st)
         if rs.next and RM.nextOn() then RM.drawUp(self, ax + T.px(2) + (GV._beltW > 0 and GV._beltW + T.px(2) or 0), cy + T.px(2)) end
     end
+    queueMark(self, item, nil, nil, 0, ax, cy, cell, cell)   -- (waiting to move: the bar along its foot)
     if over then
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
         self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cell, h = cell }
-        if ZeD.InvTip and not cuesOn() then ZeD.InvTip.want(self, item) end   -- (the game's tooltip: punch list 146)
-        if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm)) end   -- (on the strip: its condition)
+        if ZeD.InvTip and not cuesOn() then   -- (the loot card, Alt the game's tooltip: punch list 146)
+            local r = _tipRect
+            r.x, r.y, r.w, r.h = ax, cy, cell, cell
+            ZeD.InvTip.want(self, item, r, count)
+        end
+        if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", nm)) end   -- (on the strip: its condition)
     end
     self:addHitZone(item, ax, cy, cell, cell)
 end
@@ -1435,9 +1462,13 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
         self:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
     end
     if hover then
-        ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", item:getName() or ""))
-        -- the game's item tooltip at once, as vanilla's list shows it (punch list 146: ZeD_InvTip.lua)
-        if ZeD.InvTip then ZeD.InvTip.want(self, item) end
+        ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", item:getName() or ""))
+        -- the loot card at once, by the pointer; Alt: the game's tooltip (punch list 146: ZeD_InvTip.lua)
+        if ZeD.InvTip then
+            local r = _tipRect
+            r.x, r.y, r.w, r.h = x, y, w, rowH
+            ZeD.InvTip.want(self, item, r)
+        end
     end
     if item ~= self._gpFocusedRowItem then return false end
     local fo = gpFocusedItem(item)
@@ -1981,9 +2012,14 @@ local function renderItemList(self)
         local secTextY = y + math.floor((rowH - secFH) / 2)
 
         if showCat then
-            local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
-            local cc = focusTxt or T.toneHi
-            dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
+            -- (waiting to move: "Moving" in place of the category, a bar along the row's foot; punch list 146)
+            if not queueMark(self, item, catX + padX, secTextY, catColW - padX * 2, xOff, y, scrollX, rowH) then
+                local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
+                local cc = focusTxt or T.toneHi
+                dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
+            end
+        else
+            queueMark(self, item, nil, nil, 0, xOff, y, scrollX, rowH)
         end
 
         if showCond and rs then

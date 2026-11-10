@@ -3601,6 +3601,32 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     What it adds for ZeD: Ctrl- and Shift-clicks must not open the item card (today the first Ctrl-click opens it,
     one item being selected, and the second closes it: a flash per pick); a blade's card shows its sharpness; with
     that many mod lines on his setup, Alt for the game's tooltip matters.
+    **The director, Nov 10 2026: "go ahead, build all five". Built:**
+    1. *The loot card* (ZeD_LootCard.lua): ZeD's balloon, at once, by the pointer (its tail on the hovered row where
+       the pointer is, the card to the right), in the list and the grid. Title: the name (a grid stack's count after
+       it). Body: tags (Broken, Wet, Frozen, Burnt; food Fresh, Stale, Rotten), the condition's five-cell bar and
+       percent, the weight, then the kind's figures: a weapon's damage, a blade's sharpness, reach (a gun's rounds);
+       food's hunger and thirst; clothing's bite and scratch; a bag's holds and weight reduction; a book's pages; a
+       drainable's remaining. Balloon.lua takes a body (content.body: measured and drawn by its maker); Atoms gets
+       requestBalloon. Alt held: the game's tooltip as before (ZeD_InvTip.lua), with every mod's lines. The help
+       line names Alt (UI_ZeD_Inv_RowHelpLoot). The grid's name hint and the read card give way to it.
+    2. *The worn figures:* the weight worn or held when it differs ("0.3 worn", "0.9 held": getEquippedWeight), and a
+       piece of clothing's bite and scratch against what is worn in its place (getWornItem of its body location),
+       "+15" in the good status color, "-10" in the bad.
+    3. *Ctrl+A* (ZeD_BoxSelect.lua): over a list, every row of it (the column under the pointer) selected; the windows
+       register their lists (zedSelectAll). The game still hears the A: QA checks the character doesn't step aside.
+    4. *The queue in the rows:* an item waiting in the player's timed action queue to move shows "Moving" in place of
+       its category and a thin bar along its row's foot (a grid cell's too), filling for the one moving now
+       (IT.queued reads ISTimedActionQueue once a frame; InventoryRenderer's queueMark).
+    5. *Picks keep the card shut:* Ctrl- and Shift-clicks, and a box, set the windows' "card hidden even at one"
+       flag (the controller's marks used it already); a plain click opens the card as before.
+    Eleven new words in all 28 languages. Sims: fast_loot_sim 69/0 (the card's facts for clothing, a blade, a broken
+    knife, food, a bag; the card without Alt and the game's tooltip with it; the queue; Ctrl+A; the wiring).
+    **Check (QA, Mac):** hover rows in a loot list: the card at once by the pointer, following row to row; a jacket
+    while wearing one: bite and scratch with +/- against it; an axe: "held" weight, damage, sharpness; hold Alt: the
+    game's tooltip; Ctrl-click four rows: no card opens; Ctrl+A over the loot list: all selected (and the character
+    doesn't step left); drag the selection onto a container button: the rows say "Moving" and the bar fills down the
+    list; the grid view: the card and the bar on cells.
 
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the
