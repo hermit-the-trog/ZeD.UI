@@ -3180,6 +3180,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       director's call. The gallery scripts' "Dark + Orange" look moves to Teal with the retake (129).
       **Check (QA, Mac):** delete `accentColor` from `~/Zomboid/Lua/ModOptions.ini` (or use a clean cachedir), start,
       expect Teal on the main menu, a window and a balloon; set Orange, restart, expect Orange.
+    - **QA, Mac, Nov 10 2026 (test 2): ok** on the main menu: a fresh start is Teal, a saved Orange stays after a restart.
+      A window and a balloon in Teal not looked at yet.
 
 128. **The gallery book's running head uses a middle dot (QA, Nov 9 2026).** Every left page reads
     "Bitchin' znix Programs · Doidbros & Buzzlord", against the never-"·" rule. The book is a printed prop, so a hyphen:
@@ -3210,6 +3212,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       **Check (QA, Mac, two players on a local server):** an offline moderator: Player card > Role > user > Change
       role: the badge and the box say user at once and after reopening the card; Ban now shows (or, the other way, a
       user made moderator shows the protected-role message). The same with the moderator online.
+    - **QA, Mac, Nov 10 2026 (test 2): ok for an offline account, both ways.** user to moderator: the badge at once,
+      Ban greyed with the protected-role message; moderator to user: Ban back; both hold after reopening the card. The
+      online case needs a second client, which the Mac can't run: still open.
 
 131. **The belt's balloon over the hint strip (QA's Mac run, Nov 9 2026; beta 11).** Hovering Back draws its balloon
     over the "Right Click More" hint strip just above the belt, so they read as one line ("Back | key 1 More"). The
