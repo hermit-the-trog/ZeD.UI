@@ -3560,6 +3560,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     view, a multi-container view, a mod adding tooltip lines. **Build answered:** ZeD keeps whether the tooltip is on
     screen itself (ZeD_InvTip.lua); fast_loot_sim's stub tooltip now starts "visible" as the game's does, and the old
     code fails it. **Recheck (QA):** the first hover after a load shows the tooltip.
+    **The director, Nov 10 2026: "The looting tooltips are vanilla. We need to simplify them and use our parts."**
+    Rulings: a compact ZeD card (name and count, status tags, the five-cell condition bar when the item has one,
+    weight, two or three figures for its kind); holding Alt swaps in the game's full tooltip, with every mod's lines;
+    a mockup first: ZeDUI/qa/loot_hover_card_mockup.html (published for the director as an artifact). The card is
+    ZeD's balloon beside the list, its tail on the hovered row, at once; the help line names Alt.
 
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the

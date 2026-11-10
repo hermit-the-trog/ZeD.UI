@@ -1,0 +1,245 @@
+<title>Loot Hover Card</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&family=Fira+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: a review bench. One strip of settings, then one loot window per item kind, each with its hovered row and the
+   card beside it. The page chrome stays neutral so the ZeD window (drawn in its own theme) carries the color. */
+:root {
+  --bg: #ECEDEF; --panel: #F7F7F8; --ink: #17181B; --ink-2: #555A63; --rule: #D3D5DA; --focus: #1F5FA8;
+  --f-body: "Fira Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "Fira Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #141518; --panel: #1C1D21; --ink: #E6E7EA; --ink-2: #9EA3AD; --rule: #2E3036; --focus: #7DB0F0; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #141518; --panel: #1C1D21; --ink: #E6E7EA; --ink-2: #9EA3AD; --rule: #2E3036; --focus: #7DB0F0; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 17px; font-weight: 600; margin: 0; }
+p { margin: 0; max-width: 70ch; }
+.lede, .note { color: var(--ink-2); }
+.note { font-size: 13px; }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; padding: 14px 16px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
+.ctl { display: flex; flex-direction: column; gap: 6px; }
+.ctl > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); font-weight: 500; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+.seg button { font: inherit; font-size: 14px; padding: 6px 12px; background: transparent; color: var(--ink); border: 0; border-right: 1px solid var(--rule); cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
+.ex { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ex h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.ex .note { min-height: 2.6em; }
+.canvasbox { overflow-x: auto; }
+canvas { display: block; max-width: none; border-radius: 3px; }
+.rules { display: flex; flex-direction: column; gap: 10px; }
+.rules li { max-width: 72ch; }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>Loot hover card</h1>
+    <p class="lede">The card a looting player sees the moment the pointer lands on a row, built from ZeD's own parts: the balloon (surface 2, the strong border, the hard shadow, square corners, the stepped tail), the item's name in the heading face, status tags, the five-cell condition bar, and two or three figures for its kind. Holding Alt swaps in the game's full tooltip, so lines other mods add are one key away. The item card stays a click away. Example items and figures; the drawing follows ZeD's sizes at the scale you pick.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Mockup settings">
+    <div class="ctl"><span id="l-theme">Theme</span><div class="seg" id="theme" aria-labelledby="l-theme"></div></div>
+    <div class="ctl"><span id="l-status">Status colors</span><div class="seg" id="status" aria-labelledby="l-status"></div></div>
+    <div class="ctl"><span id="l-zoom">Size</span><div class="seg" id="zoom" aria-labelledby="l-zoom"></div></div>
+  </div>
+
+  <section class="grid" id="grid" aria-label="Examples"></section>
+
+  <section class="rules" aria-labelledby="h-rules">
+    <h2 id="h-rules">How it behaves</h2>
+    <ul class="note">
+      <li>At once, as vanilla's tooltip: no pause. It follows the pointer from row to row in the same frame, in the list and the grid.</li>
+      <li>It stands beside the list, its tail on the hovered row, so it never covers the rows below the pointer. Without room on the right it goes to the left.</li>
+      <li>It goes while items are dragged, while a selection box is drawn, while a right-click menu is open, while that item's card is open, and on a controller.</li>
+      <li>Kinds: a weapon shows damage and reach (a gun its ammo); food its hunger, thirst and freshness; clothing bite and scratch protection; a bag its capacity, what it holds and its weight reduction; a book its progress. Every card: name, tags, condition when the item has one, weight.</li>
+      <li>The help line under the list says Alt shows the game's full tooltip.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const THEMES = {
+    dark:  { name: "Dark", base: "#0C0C0C", surf1: "#141414", surf2: "#1C1C1C", surf3: "#242424", borderS: "#383838",
+             text: "#DADADA", textSec: "#9A9A9A", hover: "rgba(71,161,140,0.22)", sel: "rgba(71,161,140,0.30)", accent: "#47A18C",
+             stripe: "rgba(255,255,255,0.04)", frame: 1, light: false, shadow: "rgba(0,0,0,0.55)",
+             std: { good: "#7A9A34", warn: "#C49A2A", bad: "#C45A2A" }, cb: { good: "#4491E2", warn: "#F0D060", bad: "#D9572A" } },
+    light: { name: "Light", base: "#C6C6C6", surf1: "#BEBEBE", surf2: "#B6B6B6", surf3: "#AEAEAE", borderS: "#767676",
+             text: "#141414", textSec: "#3F3F3F", hover: "rgba(26,102,85,0.15)", sel: "rgba(26,102,85,0.25)", accent: "#1A6655",
+             stripe: "rgba(0,0,0,0.04)", frame: 1, light: true, shadow: "rgba(0,0,0,0.35)",
+             std: { good: "#2A5511", warn: "#6B5510", bad: "#7A2A11" }, cb: { good: "#014E8E", warn: "#8C6E00", bad: "#6E1E00" } },
+    hicon: { name: "High contrast", base: "#050505", surf1: "#111111", surf2: "#191919", surf3: "#202020", borderS: "#555555",
+             text: "#F2F2F2", textSec: "#B4B4B4", hover: "rgba(71,161,140,0.25)", sel: "rgba(71,161,140,0.35)", accent: "#47A18C",
+             stripe: "rgba(255,255,255,0.05)", frame: 2, light: false, shadow: "rgba(0,0,0,0.7)",
+             std: { good: "#44DD44", warn: "#FFCC22", bad: "#FF5533" }, cb: { good: "#5AAEFF", warn: "#FFDD33", bad: "#E84A22" } },
+  };
+  // the examples: the loot list's rows, the hovered one, and its card
+  const EXAMPLES = [
+    { kind: "Weapon", note: "Condition first, the two figures that decide whether it's worth carrying.",
+      rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 0,
+      card: { name: "Axe", tags: [], cond: 0.69, weight: "3.0 kg", stats: [["Damage", "0.8–2.0"], ["Reach", "1.2"]] } },
+    { kind: "Broken", note: "A broken item says so before anything else: the red tag, the empty bar.",
+      rows: [["Axe", "Weapon", 0.69, "3.0"], ["Baseball Bat", "Weapon", 0.92, "1.5"], ["Hammer", "Tool", 0.30, "1.0"], ["Kitchen Knife", "Weapon", 0.0, "0.3"]], hover: 3,
+      card: { name: "Kitchen Knife", tags: [["Broken", "bad"]], cond: 0.0, weight: "0.3 kg", stats: [["Damage", "0.3–0.7"], ["Reach", "0.9"]] } },
+    { kind: "Food", note: "No condition bar: freshness is the tag, hunger and thirst the figures (as the item card words them).",
+      rows: [["Canned Beans (open)", "Food", null, "0.6"], ["Apple", "Food", null, "0.2"], ["Bread", "Food", null, "0.3"], ["Bottle of Water", "Water", null, "1.0"]], hover: 0,
+      card: { name: "Canned Beans (open)", tags: [["Fresh", "good"]], cond: null, weight: "0.6 kg", stats: [["Hunger", "+20"], ["Thirst", "-5"]] } },
+    { kind: "Clothing", note: "Worn and wet: two tags, the yellow bar, the protection that matters in a fight.",
+      rows: [["Leather Jacket", "Clothing", 0.45, "1.0"], ["Jeans", "Clothing", 0.88, "0.8"], ["Wool Socks", "Clothing", 0.15, "0.1"], ["Baseball Cap", "Clothing", 1.0, "0.2"]], hover: 0,
+      card: { name: "Leather Jacket", tags: [["Wet", "warn"]], cond: 0.45, weight: "1.0 kg", stats: [["Bite", "30%"], ["Scratch", "60%"]] } },
+    { kind: "Container", note: "A bag: what it holds against what it can, and how much it lightens.",
+      rows: [["Hiking Bag", "Container", 0.95, "6.2"], ["Plastic Bag", "Container", null, "0.1"], ["Duffel Bag", "Container", 0.60, "1.0"], ["Purse", "Container", 0.80, "0.4"]], hover: 0,
+      card: { name: "Hiking Bag", count: null, tags: [], cond: 0.95, weight: "6.2 kg", stats: [["Holds", "5.4 / 18"], ["Weight cut", "70%"]] } },
+    { kind: "A stack", note: "A stack names its count after the name; the figures are one item's.",
+      rows: [["Nails", "Material", null, "(0.5)"], ["Screws", "Material", null, "(0.3)"], ["Duct Tape", "Material", null, "0.1"], ["Glue", "Material", null, "0.1"]], hover: 0,
+      card: { name: "Nails", count: 50, tags: [], cond: null, weight: "0.01 kg", stats: [["All", "0.5 kg"]] } },
+  ];
+  const state = { theme: "dark", status: "std", zoom: 1.5 };
+  try { const s = JSON.parse(localStorage.getItem("zedLootCard") || "null"); if (s && THEMES[s.theme]) Object.assign(state, s); } catch (e) { /* defaults */ }
+  function save() { try { localStorage.setItem("zedLootCard", JSON.stringify(state)); } catch (e) { /* fine */ } }
+
+  function seg(id, items, key) {
+    const el = document.getElementById(id); el.innerHTML = "";
+    items.forEach(([v, label]) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.id = id + "-" + String(v).replace(".", "_");
+      b.setAttribute("aria-pressed", String(state[key] === v));
+      b.addEventListener("click", () => { state[key] = v; save(); render(); });
+      el.appendChild(b);
+    });
+  }
+  function statusLit(p) { if (p <= 0) return 0; if (p >= 1) return 5; return Math.max(1, Math.ceil(p * 5 - 1e-6)); }
+  function statusKey(p) { const l = statusLit(p); return l >= 4 ? "good" : l >= 2 ? "warn" : "bad"; }
+
+  function draw(canvas, ex) {
+    const th = THEMES[state.theme], pal = th[state.status], u = state.zoom;
+    const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+    const W = 470, H = 196;
+    canvas.width = Math.round(W * u * dpr); canvas.height = Math.round(H * u * dpr); canvas.style.width = (W * u) + "px";
+    const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
+    const P = v => Math.round(v * u);
+    const rect = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(P(x), P(y), P(x + w) - P(x), P(y + h) - P(y)); };
+    const font = (role, size, weight) => ({ F1: `700 ${size * u}px "Fira Mono", monospace`, F2: `500 ${size * u}px "Fira Sans", sans-serif`,
+      F3: `400 ${size * u}px "Fira Mono", monospace`, F4: `600 ${size * u}px "Fira Sans Condensed", sans-serif`, F5: `400 ${size * u}px "Fira Sans Condensed", sans-serif` })[role];
+    const text = (s, x, y, c, role, size, align) => { ctx.font = font(role, size); ctx.fillStyle = c; ctx.textAlign = align || "left"; ctx.textBaseline = "middle"; ctx.fillText(s, P(x), P(y)); };
+    const tw = (s, role, size) => { ctx.font = font(role, size); return ctx.measureText(s).width / u; };
+    function segBar(x, y, w, h, k, on) {
+      const bw = th.frame; rect(x, y, w, h, th.borderS);
+      const X0 = P(x + bw), Y0 = P(y + bw), IW = P(x + w - bw) - X0, IH = P(y + h - bw) - Y0, G = Math.max(1, Math.round(u)), n = 5;
+      const cw0 = Math.floor((IW - (n - 1) * G) / n), r = IW - (n * cw0 + (n - 1) * G), wa = Math.ceil(r / 2), wb = n - (r - wa);
+      let cx = X0;
+      for (let i = 1; i <= n; i++) { const cw = cw0 + ((i <= wa || i > wb) ? 1 : 0); ctx.fillStyle = i <= k ? on : th.surf3; ctx.fillRect(cx, Y0, cw, IH); cx += cw;
+        if (i < n) { ctx.fillStyle = th.base; ctx.fillRect(cx, Y0, G, IH); cx += G; } }
+    }
+    // the loot window: title bar, column heads, four rows, the help line
+    const wx = 6, wy = 6, ww = 248, wh = 184;
+    rect(wx + 3, wy + 3, ww, wh, th.shadow);
+    rect(wx, wy, ww, wh, th.surf1);
+    rect(wx, wy, ww, 20, th.surf2);
+    text("Floor", wx + 8, wy + 10, th.text, "F1", 11);
+    rect(wx, wy + 20, ww, 1, th.borderS);
+    const hy = wy + 22, rowH = 22, colCond = wx + ww - 96, colWt = wx + ww - 34;
+    text("NAME", wx + 30, hy + 8, th.textSec, "F5", 9); text("COND", colCond + 2, hy + 8, th.textSec, "F5", 9); text("WT", colWt + 26, hy + 8, th.textSec, "F5", 9, "right");
+    const y0 = hy + 16;
+    let hovY = 0;
+    ex.rows.forEach((r, i) => {
+      const y = y0 + i * rowH;
+      if (i % 2 === 1) rect(wx, y, ww, rowH, th.stripe);
+      if (i === ex.hover) { rect(wx, y, ww, rowH, th.hover); hovY = y; }
+      rect(wx + 8, y + 3, 16, 16, th.surf3);                          // (the item's picture)
+      let name = r[0]; const room = colCond - (wx + 30) - 6;
+      while (tw(name, "F2", 13) > room && name.length > 3) name = name.slice(0, -2) + "…";
+      text(name, wx + 30, y + rowH / 2, th.text, "F2", 13);
+      if (r[2] !== null) segBar(colCond, y + (rowH - 8) / 2, 46, 8, statusLit(r[2]), pal[statusKey(r[2])]);
+      text(r[3], colWt + 26, y + rowH / 2, th.textSec, "F3", 11, "right");
+    });
+    rect(wx, wy + wh - 22, ww, 1, th.borderS);
+    let help = ex.card.name + ": press for its card, Alt for the game's tooltip";
+    while (tw(help, "F5", 9.5) > ww - 16 && help.length > 4) help = help.slice(0, -2) + "…";
+    text(help, wx + 8, wy + wh - 11, th.textSec, "F5", 9.5);
+    // the card: beside the list, its tail on the hovered row
+    const c = ex.card, padX = 8, padY = 5;
+    const title = c.name + (c.count ? "  ×" + c.count : "");
+    const lines = [];
+    if (c.cond !== null) lines.push({ kind: "bar" });
+    lines.push({ kind: "row", label: "Weight", value: c.weight });
+    c.stats.forEach(s => lines.push({ kind: "row", label: s[0], value: s[1] }));
+    const lineH = 18, tagH = 14;   // (the balloon's line step: the face's height and its 2-unit lead)
+    const labelW = Math.max(...lines.filter(l => l.kind === "row").map(l => tw(l.label, "F2", 13)), tw("Condition", "F2", 13));
+    const valW = Math.max(46 + 6 + tw("100%", "F3", 11), ...lines.filter(l => l.kind === "row").map(l => tw(l.value, "F3", 11)));
+    const bw = Math.ceil(Math.max(tw(title, "F4", 15), padX * 0 + labelW + 12 + valW) + padX * 2);
+    const bh = padY * 2 + 17 + 3 + (c.tags.length ? tagH + 4 : 0) + lines.length * lineH;
+    const tail = 10, bx = wx + ww + tail + 4, by = Math.max(4, Math.min(H - bh - 6, hovY + rowH / 2 - 16));
+    rect(bx + 3, by + 3, bw, bh, th.shadow);
+    rect(bx, by, bw, bh, th.borderS);
+    rect(bx + th.frame, by + th.frame, bw - th.frame * 2, bh - th.frame * 2, th.surf2);
+    // the stepped tail, its tip one hairline short of the row
+    const tipY = hovY + rowH / 2;
+    for (let i = 0; i < tail; i++) {
+      const x = bx - tail + i, half = Math.round((i + 1) * 0.6);
+      rect(x, tipY - half, 1, half * 2, th.borderS);
+      if (i > 0) rect(x, tipY - half + th.frame, 1, Math.max(0, half * 2 - th.frame * 2), th.surf2);
+    }
+    rect(bx, tipY - Math.round(tail * 0.6) + th.frame, th.frame, Math.round(tail * 0.6) * 2 - th.frame * 2, th.surf2);
+    let ly = by + padY + 8;
+    text(c.name, bx + padX, ly, th.text, "F4", 15);
+    if (c.count) text("×" + c.count, bx + padX + tw(c.name, "F4", 15) + 6, ly + 1, th.textSec, "F3", 11);
+    ly += 9 + 3;
+    if (c.tags.length) {
+      let tx = bx + padX;
+      c.tags.forEach(([t, k]) => {
+        const col = pal[k], w = tw(t, "F1", 10) + 10;
+        rect(tx, ly, w, tagH, col); rect(tx + 1, ly + 1, w - 2, tagH - 2, th.surf2);
+        ctx.globalAlpha = 0.18; rect(tx + 1, ly + 1, w - 2, tagH - 2, col); ctx.globalAlpha = 1;
+        text(t, tx + 5, ly + tagH / 2 + 0.5, th.light ? col : col, "F1", 10);
+        tx += w + 4;
+      });
+      ly += tagH + 4;
+    }
+    lines.forEach(l => {
+      const cy = ly + lineH / 2;
+      if (l.kind === "bar") {
+        text("Condition", bx + padX, cy, th.textSec, "F2", 13);
+        const vx = bx + bw - padX - valW;
+        segBar(vx, cy - 4, 46, 8, statusLit(c.cond), pal[statusKey(c.cond)]);
+        text(Math.round(c.cond * 100) + "%", bx + bw - padX, cy, th.text, "F3", 11, "right");
+      } else {
+        text(l.label, bx + padX, cy, th.textSec, "F2", 13);
+        text(l.value, bx + bw - padX, cy, th.text, "F3", 11, "right");
+      }
+      ly += lineH;
+    });
+  }
+
+  function render() {
+    seg("theme", [["dark", "Dark"], ["light", "Light"], ["hicon", "High contrast"]], "theme");
+    seg("status", [["std", "Standard"], ["cb", "Color blind"]], "status");
+    seg("zoom", [[1, "1x"], [1.5, "1.5x"], [2, "2x"]], "zoom");
+    const grid = document.getElementById("grid"); grid.innerHTML = "";
+    EXAMPLES.forEach(ex => {
+      const box = document.createElement("article"); box.className = "ex";
+      const h = document.createElement("h3"); h.textContent = ex.kind;
+      const n = document.createElement("p"); n.className = "note"; n.textContent = ex.note;
+      const cb = document.createElement("div"); cb.className = "canvasbox";
+      const c = document.createElement("canvas"); c.setAttribute("role", "img");
+      c.setAttribute("aria-label", `${ex.kind}: the loot list with ${ex.card.name} hovered and its card beside it`);
+      cb.appendChild(c); box.append(h, n, cb); grid.appendChild(box);
+      draw(c, ex);
+    });
+  }
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+})();
+</script>
