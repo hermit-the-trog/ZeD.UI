@@ -29,6 +29,7 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 | 141 | The fill bars' cells spread evenly, no two more than a pixel apart (director) | built Nov 10, seg_bar_spread_sim; waiting on the Mac |
 | 142 | Pasties: the sticky note becomes an app, up to 8 notes made from an icon, thrown away on close (director) | built Nov 10, desk_sim; waiting on the Mac |
 | 143 | Status bars take five cells, rounded up; one status color rule for bars and their readings (director) | built Nov 10; waiting on the Mac |
+| 144 | Status colors: Standard or Color blind (blue, yellow, orange), in ZeD setup's Look (director) | built Nov 10, status_colors_sim; waiting on the Mac |
 | 139 | The pointer says what a click or a drop will do (an idea from the director, Nov 10; mockup in ZeDUI/mockups/zed_pointer_hint_v1) | parked by the director (research later); not in beta 11 |
 | 132 | Strip submenus open on rest | closed: the director chose click only; a note that mentions rest names the List only |
 

@@ -815,7 +815,8 @@ function ZeD.deriveReadable(P, baseKey)
         list[n + 1] = flatOver(world, s1, c, washA)
         return ZeD.legible(c, 4.6, list, up)
     end
-    P.textOnWarning, P.textOnDanger = ZeD.textOn(base.warning), ZeD.textOn(base.danger)   -- label on a solid status fill
+    local st = ZeD.statusSet(baseKey)                  -- (the status colors: the theme's or the color blind set)
+    P.textOnWarning, P.textOnDanger = ZeD.textOn(st.warning), ZeD.textOn(st.danger)   -- label on a solid status fill
     -- positiveText and dangerText start from the base theme's design values (lighter / darker than the plain
     -- colors where those miss 4.5 : 1) and are moved like the others, on every surface above and on surface 2
     -- drawn solid (the balloons): the accent's tint on the surfaces can take a design value under 4.5 : 1.
@@ -826,8 +827,8 @@ function ZeD.deriveReadable(P, baseKey)
         list[n + 2] = nil
         return c
     end
-    P.dangerText, P.warningText = statusText(base.dangerText, base.danger), variant(base.warning, bw)
-    P.positiveText, P.infoText  = statusText(base.positiveText, base.positive), variant(base.info, bw)
+    P.dangerText, P.warningText = statusText(st.dangerText, st.danger), variant(st.warning, bw)
+    P.positiveText, P.infoText  = statusText(st.positiveText, st.positive), variant(base.info, bw)
     P.soiledWetText   = variant(base.soiledWet, 0.20)
     P.soiledBloodText = variant(base.soiledBlood, 0.20)
     P.soiledDirtText  = variant(base.soiledDirt, 0.20)
@@ -851,6 +852,30 @@ end
 -- directly — they reference ZeD.T.
 -- ---------------------------------------------------------------------------
 ZeD.T = {}
+
+-- ---------------------------------------------------------------------------
+-- STATUS COLORS (punch list 144, the director, Nov 10 2026: "Add as an option", after the swatch page
+-- ZeDUI/qa/status_colors_swatches.html). Standard: each base theme's own green, yellow and red. Color blind:
+-- good and bad take the menu marks' blue and red-orange, and warning stands off red by brightness, so the three
+-- stay apart under deuteranopia, protanopia and tritanopia (good to bad 5 to 6 under deuteranopia in Dark and
+-- Light before, over 80 here; warning to bad 27 to 36). Light's red is a shade darker than its mark and High
+-- contrast's blue brighter than its mark, for the same reason. Text shades are solved from these fills
+-- (deriveReadable), so the set carries no text seeds.
+-- ---------------------------------------------------------------------------
+ZeD.StatusColors = {
+    cb = {
+        dark  = { positive = hex("#4491E2"), warning = hex("#F0D060"), danger = hex("#D9572A") },
+        light = { positive = hex("#014E8E"), warning = hex("#8C6E00"), danger = hex("#6E1E00") },
+        hicon = { positive = hex("#5AAEFF"), warning = hex("#FFDD33"), danger = hex("#E84A22") },
+    },
+}
+ZeD.currentStatus = "standard"    -- "standard" or "cb" (Settings.lua's Status colors)
+--- The status set a base theme draws with: the theme itself (its positive, warning, danger and the text seeds
+--- positiveText / dangerText), or the color blind set for it
+function ZeD.statusSet(baseKey)
+    local base = ZeD.BaseThemes[baseKey] or ZeD.BaseThemes.dark
+    return (ZeD.currentStatus == "cb" and ZeD.StatusColors.cb[baseKey]) or base
+end
 
 -- The accent a fresh install starts on, and the fallback for a saved key that names nothing.
 -- PZ Teal from beta 11 (punch list 127); a saved Orange stays Orange.
@@ -929,10 +954,11 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.textDim  = base.textDim  -- structural chrome (scrollbar arrows, grip lines, ridges)
     T.textHead = base.textHead
 
-    -- Status colors from base theme
-    T.danger   = base.danger
-    T.warning  = base.warning
-    T.positive = base.positive
+    -- Status colors: the base theme's, or the color blind set (ZeD.statusSet)
+    local st = ZeD.statusSet(ZeD.currentBase)
+    T.danger   = st.danger
+    T.warning  = st.warning
+    T.positive = st.positive
     T.info     = base.info
     T.violet   = base.violet
 

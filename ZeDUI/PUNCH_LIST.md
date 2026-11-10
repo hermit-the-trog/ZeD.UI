@@ -3454,6 +3454,22 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     ZeD_Belt, ItemCard, HealthTab, Organisms, ZeD_CharacterWindow. **Check (QA):** the Cond column at 1x and 1.75x
     (five even cells), an item at 95% (full), one near broken (one red cell), the Mechanics parts list.
 
+144. **Status colors: a color blind option (the director, Nov 10 2026: "Should we change our Good color to the blue we
+    use in the context icons? Be color blind friendly?", then, after the swatch page, "Add as an option").** The page
+    (ZeDUI/qa/status_colors_swatches.html; published for the director as an artifact) measured today's colors: under
+    deuteranopia Dark's green and red differ by 6 (CIELAB), Light's by 5, High contrast's by 12, so they read as one
+    color. New in ZeD setup's Look, after Accent: **Status colors, Standard (the default) or Color blind**, also on
+    the Mods page. Color blind swaps every good, warning and bad color, not only the bars: good takes the menu marks'
+    blue, bad their red-orange, warning a yellow that stands off red by brightness (Dark #4491E2 / #F0D060 /
+    #D9572A; Light #014E8E / #8C6E00 / #6E1E00, red a shade darker than the mark; High contrast #5AAEFF / #FFDD33 /
+    #E84A22, blue brighter than the mark). Good to bad goes past 80 under deuteranopia; warning to bad 27 to 36. The
+    text shades are solved from the new fills as ZeD solves them now (4.6 : 1). Tokens.lua (ZeD.StatusColors,
+    ZeD.statusSet; applyTheme and deriveReadable read it), Settings.lua (statusColors; the windows' own palettes are
+    rebuilt on a change), ZeD_MainMenuOptionGroups.lua; four words in all 28 languages. Sims: status_colors_sim
+    52/0 (the combo, both sets in all three themes, text contrast, the three apart under all three kinds).
+    **Check (QA):** ZeD setup > Look > Status colors: Color blind turns the Cond column, a Mechanics part list, the
+    Health tab and the crafting card's met / unmet blue, yellow and orange at once, in all three themes, and back.
+
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips
