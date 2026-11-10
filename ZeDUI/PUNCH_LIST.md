@@ -3567,6 +3567,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     isn't readable in the cloud): the framing probe (zedqa_studio_frame_probe.lua, studio_frame_manifest.txt)
     opens the real studio and shoots zoom 6, 11 and 15 at y 0 to -1.6, and Full body at zoom -2, -1 and 0 turned
     three-quarters, for the shoes. studio_sim 38/0.
+    **The director, Nov 10 2026: "Standing only for now"** (no pose picker; revisit if a sitting or wave route turns
+    up) **and "Paper fills the screen"**: the backdrop runs edge to edge, in the studio and in the photo, so the
+    saved portrait is all studio (ZeD_Studio.lua prerender).
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

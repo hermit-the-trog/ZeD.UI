@@ -8,13 +8,15 @@
 -- sets; props held off. The name stays ZeD's own.
 --
 -- The room: the whole screen, the player's own 3D figure (ISUI3DModel, as the ID photo uses) near the screen's full
--- height over a plain seamless backdrop. Drag the figure to turn it (the model's own drag), the wheel or the three
+-- height over a plain seamless backdrop that runs edge to edge (so the photo is all studio). Drag the figure to turn it (the model's own drag), the wheel or the three
 -- framings (full body, three-quarter, bust: the ID photo's two framings and one between) to frame it, two buttons to
 -- turn it a step. Opening it pauses the game and hides the game's "Game Paused" box (as the Survival Guide book does);
 -- leaving puts the speed back as it was. Take photo draws one frame with nothing but the backdrop and the figure, takes
 -- the game's screenshot of it (Zomboid/Screenshots) after that frame, then flashes and names the file.
 -- The controller: A takes the photo, B leaves, LB and RB turn, Up and Down frame.
--- Poses wait for the probe (ZeDUI/tools/qa/zedqa_studio_probe.lua).
+-- Poses: standing only for now (the director, Nov 10 2026). The probe (ZeDUI/tools/qa/zedqa_studio_probe.lua) found no
+-- state, emote or variable that poses this figure; the game's own walk and run events do, as moving loops, and the
+-- figure freezes while the game is paused.
 -- ============================================================================
 
 require "ISUI/ISUI3DModel"
@@ -112,12 +114,10 @@ local function drawPaper(p, L)
 end
 
 function ZeD_StudioRoom:prerender()
-    local T = ZeD.T
     local L = self:layout()
-    -- the room: dark, the paper lit
-    local base = T.base
-    self:drawRect(0, 0, self.width, self.height, 1, base.r * 0.6, base.g * 0.6, base.b * 0.6)
-    drawPaper(self, L)
+    -- the paper from edge to edge, so the photo (the game's screenshot is the whole screen) is all studio (the
+    -- director, Nov 10 2026, after QA's first portrait showed the dark room either side: "Paper fills the screen")
+    drawPaper(self, { bx = 0, by = 0, bw = self.width, bh = self.height })
     local m = self.fig
     if m and (m.x ~= L.fx or m.y ~= L.fy or m.width ~= L.fw or m.height ~= L.fh) then
         m:setX(L.fx); m:setY(L.fy); m:setWidth(L.fw); m:setHeight(L.fh)
