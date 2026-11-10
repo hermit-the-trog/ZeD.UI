@@ -435,11 +435,6 @@
    "means": "a person sitting on a chair: sit on a seat",
    "mapped": true
   },
-  "sneak": {
-   "group": "fig",
-   "means": "a person crouched low: sneak",
-   "mapped": true
-  },
   "climb": {
    "group": "fig",
    "means": "a person climbing a ladder: climb",
@@ -458,11 +453,6 @@
   "sit_ground_off": {
    "group": "fig",
    "means": "the person on the ground, an x: stand up",
-   "mapped": true
-  },
-  "sneak_off": {
-   "group": "fig",
-   "means": "the crouched person, an x: stop sneaking",
    "mapped": true
   },
   "autowalk": {
@@ -538,6 +528,16 @@
   "thumbs_down": {
    "group": "hand",
    "means": "a thumb down: no, bad, the hostile emotes",
+   "mapped": true
+  },
+  "sneak": {
+   "group": "fig",
+   "means": "a person creeping on their toes: sneak",
+   "mapped": true
+  },
+  "sneak_off": {
+   "group": "fig",
+   "means": "the creeping person, an x top left: stop sneaking",
    "mapped": true
   },
   "yes": {
@@ -1280,6 +1280,11 @@
    "means": "a bulb of garlic: garlic",
    "mapped": true
   },
+  "eat": {
+   "group": "ctx2",
+   "means": "a person raising a fork: eat",
+   "mapped": true
+  },
   "mug": {
    "group": "ctx3",
    "means": "a steaming mug: tea, herbal tea, a kettle",
@@ -1838,6 +1843,21 @@
   "shield_minus": {
    "group": "ctx6",
    "means": "the shield, a minus: give up the safehouse",
+   "mapped": true
+  },
+  "safehouse": {
+   "group": "ctx6",
+   "means": "a house, its window boarded up: see the safehouse",
+   "mapped": true
+  },
+  "safehouse_claim": {
+   "group": "ctx6",
+   "means": "the boarded-up house, a plus: claim the safehouse",
+   "mapped": true
+  },
+  "safehouse_release": {
+   "group": "ctx6",
+   "means": "the boarded-up house, a minus: give up the safehouse",
    "mapped": true
   },
   "warning": {
@@ -3574,7 +3594,7 @@
   {
    "group": 2,
    "picture": "user-eating",
-   "id": "apple"
+   "id": "eat"
   },
   {
    "group": 2,
@@ -5050,6 +5070,21 @@
    "group": 6,
    "picture": "shield",
    "id": "shield_plain"
+  },
+  {
+   "group": 6,
+   "picture": "safehouse",
+   "id": "safehouse"
+  },
+  {
+   "group": 6,
+   "picture": "safehouse-claim",
+   "id": "safehouse_claim"
+  },
+  {
+   "group": 6,
+   "picture": "safehouse-release",
+   "id": "safehouse_release"
   },
   {
    "group": 6,
