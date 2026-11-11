@@ -5855,6 +5855,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- title, every frame, from the window itself, whichever way the tab changed
     local origPrerender = win.prerender
     win.prerender = function(self)
+        -- (Loot with the drawer left in tab mode folds every frame the window shows, not only when the drawer draws)
+        lootDrawerFallback(self)
         composeWorldTitle(self)
         origPrerender(self)
     end

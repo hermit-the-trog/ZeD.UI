@@ -6471,6 +6471,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- the strip, LB / RB, the D-pad, a script) shows in it
     local _baseWinPrerender = win.prerender
     win.prerender = function(self)
+        -- (Loot with the drawer left in tab mode folds every frame the window shows, not only when the drawer draws:
+        -- a drawer still sliding could miss it; QA's b11n run, Nov 11 2026)
+        lootDrawerFallback(self)
         composeCharTitle(self)
         _baseWinPrerender(self)
     end
