@@ -76,5 +76,5 @@ DECK FIXES and REPORTS are the umbrella for 125, 126, 130, 131 and 133 plus any 
 - **Long runs:** Start-Process with output to a file and WaitForExit (never pipe a command that starts the game or a server, never `-Wait`), with `stall_watch.ps1` beside it. A performance result counts only with the windows pinned.
 - **Test a staged build from its own cachedir** (`ZomboidStaged`); the staged Workshop Contents does not shadow the dev mod.
 - **Never kill a process the session did not start** (by PID only).
-- **Words:** American spelling, no Oxford comma, never a middle dot; every new string in all 28 languages as labeled machine drafts. Code comments follow COMMENT_VOICE.md.
+- **Words:** American spelling, no Oxford comma, never a middle dot; every new string in all 28 languages as labeled machine drafts. `AR` is Argentine Spanish (the game's "Español (Argentina)"), never Arabic: write its new strings in Spanish with voseo (podés, Elegí), as `ZeDUI/i18n/mt_notes/AR.txt` describes; `mt.py check` fails Arabic letters in it. Code comments follow COMMENT_VOICE.md.
 - **Gamepad rules** (the director): focus returns to its origin; directions match the screen; land on the primary action; common actions cost the fewest presses; the belt is never a trap.

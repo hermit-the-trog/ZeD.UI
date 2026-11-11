@@ -7,7 +7,9 @@ until players have checked it. This tool keeps the drafts honest:
                                   it shows and its longest length (from ZeDUI/i18n/UI_ZeD.context.md), as part_NN.json
   check <file> [--lang L]         a translated part or a whole UI.json against the English: valid JSON, only known
                                   keys, every %1-%4 and %% kept, markup like <LINE> kept, no lone %, no English left
-                                  where a translation is expected (reported, not failed: some words stay the same)
+                                  where a translation is expected (reported, not failed: some words stay the same),
+                                  no letters of a script the language does not use (AR is Argentine Spanish, not
+                                  Arabic); the language comes from --lang or the file's Translate/<LANG> folder
   merge <parts_dir> <LANG>        the translated parts into 42/media/lua/shared/Translate/<LANG>/UI.json, in the
                                   English key order, with the Sandbox and ItemName files beside it if parts hold them
   pack <out_dir> [--size N] [--with LANG]
@@ -40,6 +42,12 @@ FILES = ('UI.json', 'Sandbox.json', 'ItemName.json')
 PLACE = re.compile(r'%[1-9]')
 MARKUP = re.compile(r'<[A-Z_]+(?::[^>]*)?>')
 MOJIBAKE = re.compile('[ÂÃ][\u0080-¿]|â€|�')
+# Letters a language's file must never hold. The game's AR is Argentine Spanish ("Español (Argentina)" in its language
+# list), but the code reads like Arabic, and drafts since beta 3 had put 279 Arabic phrases in it (Nov 11 2026).
+WRONG_SCRIPT = {
+    'AR': (re.compile('[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]'),
+           'Arabic letters: AR is Argentine Spanish (Español (Argentina)), not Arabic'),
+}
 
 
 def load_json(path):
@@ -88,9 +96,10 @@ def split(out_dir, size=300):
     print('split %d keys into %d parts in %s' % (len(keys), n, out_dir))
 
 
-def check_pairs(pairs, en):
-    """pairs: {key: translation}. Returns (errors, warnings)."""
+def check_pairs(pairs, en, lang=None):
+    """pairs: {key: translation}; lang, when known, adds that language's wrong-script check. Returns (errors, warnings)."""
     errs, warns = [], []
+    wrong = WRONG_SCRIPT.get(lang)
     for k, t in pairs.items():
         if k not in en:
             errs.append('%s: not an English key' % k)
@@ -112,6 +121,8 @@ def check_pairs(pairs, en):
             errs.append('%s: empty' % k)
         if MOJIBAKE.search(t) and not MOJIBAKE.search(e):
             errs.append('%s: garbled letters (UTF-8 read as Latin-1, e.g. "Ã³" for "ó")' % k)
+        if wrong and wrong[0].search(t):
+            errs.append('%s: %s' % (k, wrong[1]))
         if t == e and re.search(r'[A-Za-z]{4,}', e):
             warns.append('%s: same as English (%r)' % (k, e[:40]))
     return errs, warns
@@ -120,11 +131,16 @@ def check_pairs(pairs, en):
 def check(path, lang=None):
     en = english()
     data = load_json(path)
+    if lang is None:
+        # a shipped file (.../Translate/<LANG>/UI.json) names its language by its folder
+        parent = os.path.basename(os.path.dirname(os.path.abspath(path)))
+        if os.path.basename(os.path.dirname(os.path.dirname(os.path.abspath(path)))) == 'Translate':
+            lang = parent
     # a part file may still carry the English layout ({key: {"en":..}}): take "tr" from it
     pairs = {}
     for k, v in data.items():
         pairs[k] = v.get('tr') if isinstance(v, dict) else v
-    errs, warns = check_pairs(pairs, en)
+    errs, warns = check_pairs(pairs, en, lang)
     missing = [k for k in en if k not in pairs] if os.path.basename(path) == 'UI.json' else []
     for e in errs[:60]:
         print('  FAIL ' + e)
@@ -142,7 +158,7 @@ def merge(parts_dir, lang):
         if fn.startswith('part_') and fn.endswith('.json'):
             for k, v in load_json(os.path.join(parts_dir, fn)).items():
                 got[k] = v.get('tr') if isinstance(v, dict) else v
-    errs, warns = check_pairs(got, en)
+    errs, warns = check_pairs(got, en, lang)
     if errs:
         for e in errs[:60]:
             print('  FAIL ' + e)
@@ -317,7 +333,7 @@ if __name__ == '__main__':
         size = int(a[a.index('--size') + 1]) if '--size' in a else 300
         split(a[1], size)
     elif a[0] == 'check':
-        sys.exit(check(a[1]))
+        sys.exit(check(a[1], a[a.index('--lang') + 1] if '--lang' in a else None))
     elif a[0] == 'merge':
         sys.exit(merge(a[1], a[2]))
     elif a[0] == 'pack':
