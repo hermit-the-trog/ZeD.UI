@@ -278,16 +278,19 @@ def relief(seed, base=10, light=(-0.7, -0.7)):
     return np.clip(s, -1, 1)
 
 
-def folds(seed, freq=4.5, slant=0.06):
-    """a hanging cloth's folds: broad, near-vertical ridges, wider toward the foot, their phase wandering a little;
-    rounded crests and valleys (the director, Nov 11 2026, after QA called the first a satin curtain with strong
-    diagonal folds: "Soften the drape folds")"""
-    x, y = grids()
-    wander = noise(W, H, octaves=3, base=2, seed=seed)
-    ph = ((x - 0.5) / (0.75 + 0.35 * y) + slant * y) * freq + wander * 0.7
+def folds(seed, freq=5.5):
+    """a hanging cloth's folds, straight down: each fold's place, width and depth depend on how far across it is, never
+    how far down, so no fold leans (the director, Nov 11 2026: "The problem is the drapes are slanted. They should be
+    vertical"; the first two drafts fanned the folds out toward the foot and let their wander change with height);
+    rounded crests and valleys"""
+    x, _ = grids()
+    across = noise(W, 8, octaves=3, base=3, seed=seed)[4][None, :]        # (one row: varies across, not down)
+    depth = noise(W, 8, octaves=2, base=2, seed=seed + 1)[4][None, :]
+    ph = (x - 0.5) * freq + across * 0.7
     w = 0.5 + 0.5 * np.sin(ph * 2 * np.pi)
     w2 = 0.5 + 0.5 * np.sin(ph * 2 * np.pi * 2.3 + 1.1)
-    return (w ** 1.3 * 0.88 + w2 ** 1.5 * 0.12) * 2 - 0.85
+    f = (w ** 1.3 * 0.88 + w2 ** 1.5 * 0.12) * 2 - 0.85
+    return f * (0.7 + 0.6 * depth)
 
 
 def canvas(wall, floor, glow_at=(0.5, 0.36), glow_r=0.55, glow_k=0.55, vig=0.55, seed=0, tex=None, tint=None):
@@ -321,7 +324,7 @@ def canvas(wall, floor, glow_at=(0.5, 0.36), glow_r=0.55, glow_k=0.55, vig=0.55,
     d = np.clip((y - HZ) / (1 - HZ), 0, 1)
     grain = streaks(seed + 10, "h", k=14, octaves=5, base=5)
     ft = 0.35 + 0.4 * grain + 0.25 * d
-    if "folds" in tex: ft = ft + folds(seed + 11, freq=5.0, slant=-0.8) * 0.25 * tex["folds"]
+    if "folds" in tex: ft = ft + folds(seed + 6) * 0.25 * tex["folds"]     # (the same folds, run on into the floor)
     fcol = ramp(ft, floor)
     fcol *= (0.78 + 0.22 * glow(glow_at[0], HZ + 0.12, 0.5, 2.2) * 1.4)[..., None]
     fcol *= (1 - 0.35 * np.clip(1 - d / 0.12, 0, 1))[..., None]          # (the shadow where it meets the wall)
@@ -372,7 +375,7 @@ def c_dusk():
 def c_drape():
     return canvas([(0, (36, 24, 18)), (0.45, (92, 68, 52)), (0.75, (132, 104, 82)), (1, (166, 136, 110))],
                   [(0, (48, 34, 26)), (1, (130, 102, 80))], seed=160, glow_k=0.35,
-                  tex={"cloud": 0.6, "folds": 0.24})
+                  tex={"cloud": 0.5, "folds": 0.32})
 
 
 def p_rust():

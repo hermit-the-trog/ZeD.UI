@@ -3665,10 +3665,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     hard-edged, runs in 4s at Full body; the wheel: no shimmer worth noting as the backdrop steps in; the tray's
     swatches smooth, Lasers' lines whole; the first open of the studio after launch: the paper there at once.
     **The director, Nov 11 2026: "Soften the drape folds, keep the other two"** (Gold and violet and Black stucco
-    stay as they are). Drape redrawn: fewer, broader folds (4.5 across, not 7), rounded at the ridges and in the
-    valleys, hanging nearly straight down (the slant and the wander cut), less contrast between ridge and valley;
-    still a cloth, not another mottle (a first pass took the folds down so far it read as one). Only Drape's files
-    changed. **Check (QA, Mac):** Drape at Full body and Bust: soft hanging folds, no satin sheen.
+    stay as they are). A first softening (fewer, broader, rounder folds) still leaned. **The director: "The problem is
+    the drapes are slanted. They should be vertical."** The cause: the folds fanned out toward the floor and their
+    wander changed with height, so each one bent. Redrawn so each fold's place, width and depth depend only on how far
+    across it is: every fold hangs straight down, five or six across, rounded, varying in width and depth from one to
+    the next, running on into the floor. Only Drape's files
+    changed. **Check (QA, Mac):** Drape at Full body and Bust: straight hanging folds, soft, no lean, no satin sheen.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
