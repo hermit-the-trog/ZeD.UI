@@ -1,0 +1,3 @@
+Line for the Compatibility thread's Supported list, in the thread's style. The version is the build it ships in.
+
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3783387236]Responsive Context Menus [B42][/url] by MEH: ZeD's right-click menu, Strip and List, updates in place while it is open as the mod refreshes it (options appear, grey out or come back as you move, pick something up or walk into reach), on the same spot with the same row selected. Options a mod marks to keep the menu open keep ZeD's menu and its submenu open; Escape closes it. From ZeD-GUI 0.3.0-beta11.

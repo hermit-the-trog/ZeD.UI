@@ -1,6 +1,7 @@
 [h2]✅ Supported, continued (from the first post)[/h2]
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3642084851]Minimal Sidebar (Auto Hide)[/url] by Devilzcore: ZeD's belt fades out until the pointer is near it and fades back in, as the mod fades the game's sidebar, by the mod's options (Enable Mod, Animation Speed). A hand that holds something stays, an empty hand fades. The belt stays while the controller is on it or a slot is dragged off it; the watch and the Messages note stay. The mod's Show Heart on Pulse has nothing to show on the belt. From ZeD-GUI 0.3.0-beta9. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3783387236]Responsive Context Menus [B42][/url] by MEH: ZeD's right-click menu, Strip and List, updates in place while it is open as the mod refreshes it (options appear, grey out or come back as you move, pick something up or walk into reach), on the same spot with the same row selected. Options a mod marks to keep the menu open keep ZeD's menu and its submenu open; Escape closes it. From ZeD-GUI 0.3.0-beta11.
 [/list]
 [h2]⭐ Works well with ZeD[/h2]
 🍎 Retested Nov 8 2026 on macOS (Apple M4 Pro, 1920x1080, UI scale auto), Project Zomboid 42.21, ZeD-GUI 0.3.0-beta8, single player. ✔ after a mod = on this Mac it loaded with its group (12 to 50 mods at once, ZeD-GUI last), showed no errors of its own beyond any listed here, and every Character and World tab, the pause menu and Options opened. 🚗✔ = a car from the pack was spawned and ZeD's dashboard showed with the driver seated. No mark = not retested on this Mac.
@@ -43,3 +44,4 @@ These fill a gap or show well in ZeD's windows. ZeD-GUI has no code of its own f
 
 [h2]📝 To add a mod to the list[/h2]
 Reply with the mod's name, its Workshop link, the ZeD-GUI version, and what happened: it works, part of it does not show (say which), or it does not work. For an error, the Bug reports thread says what to include.
+
