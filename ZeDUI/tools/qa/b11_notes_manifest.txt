@@ -1,0 +1,6 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_bubbles.lua | bub | timeout=300
+zedqa_halo_notes.lua | timeout=300
+zedqa_reader.lua | rd | timeout=180
+zedqa_notebook.lua | nb | timeout=180
+zedqa_guide_bubble.lua | gbub | timeout=240

@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_b11_notes.lua | b11n | timeout=600
