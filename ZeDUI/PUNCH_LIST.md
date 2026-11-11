@@ -4158,31 +4158,32 @@ to be proposed.
     let's just have a left hand and a right hand. Keep it simple. Put icons there.").** The empty rings read
     "Second." and "Primary", cut at 1x. The small left ring is the secondary (left hand), the large right one the
     primary (right hand). Scope: the belt only (the director, Nov 11); the Equipment tab's Held rows and the Equip
-    menus keep the game's Primary / Secondary.
+    menus keep the game's Primary / Secondary. **Built (944809c):** zw_hand_right / zw_hand_left (the wheelpx kit's open hand and its mirror) in the empty rings, dim; the belt's hint reads the game's Right Hand / Left Hand (IGUI_health_*). belt_hand_icons_check passes. QA: test 14.
 156. **The Loot tab's "Coming soon" half card goes (the director: "a blank half card that says loot tab card
     placeholder ... quite a bit").** `renderPlaceholder` in ZeD_WorldWindow.lua, drawn when the Loot drawer is open
-    with no item card; the capture scripts pin drawers open. Plan: the drawer folds when it has no card.
+    with no item card; the capture scripts pin drawers open. Plan: the drawer folds when it has no card. **Built (a18ad11):** renderPlaceholder is gone; lootDrawerFallback turns a Loot view in tab mode into the item card, the object card, the columns or a folded drawer (a context tab that hides while open, a restored state). loot_drawer_fallback_sim 10/0. QA: test 14.
 157. **An empty list says "Nothing here." (the director: "It's on a ground tile. So it should say nothing here,
     right? And that would also work for any container too.").** `UI_ZeD_Inv_Empty` (EN) "Nothing in here." to
-    "Nothing here."; `UI_ZeD_St_InvEmpty` "Nothing in it." to match. ES, DE, FR already say it.
+    "Nothing here."; `UI_ZeD_St_InvEmpty` "Nothing in it." to match. ES, DE, FR already say it. **Built (a18ad11):** EN only; `UI_ZeD_St_InvEmpty` (the admin Stats card) left as it is. PTBR still reads "Nada aqui dentro."; the other languages weren't reviewed.
 158. **Speech bubbles in lowercase, in Fira Mono Regular (the director: "much easier to read ... much easier on
     dyslexia. People remember shapes of words"; "mono would probably work fine").** `B.clean` in ZeD_Bubbles.lua
     upper-cases every line for the capitals-only 5 x 7 face. Wanted: `T.fontF3` (Mono Regular, the director's pick
     Nov 11), the case as typed. To check: the balloon's size and pitch (`B.LINE = 9`), ZeD_HaloText.lua's head notes
-    on the same face, and what CN, CH, JP, KO and TH get today.
+    on the same face, and what CN, CH, JP, KO and TH get today. **Built (b70175b):** B.clean keeps the case; lines measure and draw in ZeD.Font.sdf.stat through ZeD.Text (which swaps the game's faces in for CN, CH, JP, KO, TH and the Dyslexic font); pitch 13 on an 11-unit face. Went further than asked: the head notes and the Messages / guide notices too (same balloon, same B.clean); speech-only is a one-line revert. RtvFace's screens keep the 5 x 7 face. bubbles_mono_sim 29/0. QA: test 14.
 159. **Windows jumping and overlapping during the gallery shoot (the director: "The windows are jumping all over the
     place and overlapping other windows ... we'll address that tomorrow").** Not looked into. QA compares new
     captures with their old twins first: the scripts' staging at 1.75x, the Mac stand-in for the runner, or the mod.
 160. **Secondary text as bright as body text (the director on "Used to make": "Why vanilla text color?").** It is
     ZeD's `T.textSec`: #CDC3B3 under Orange, #B7C5C2 under Teal, against body #C5C4C3 in Dark, so labels don't read
     as secondary (the hover card's too). Build proposes values with contrast in every theme and accent, before and
-    after, for the director to approve. **Measured (Nov 11, Tokens.lua as loaded):** in Dark, body text is about 12.8 : 1 on the window
-    and textSec 7.9 to 10.5 : 1; Light is already apart (9.5 against 7.0 to 8.4). The cause is deriveReadable's ghost
+    after, for the director to approve. **Measured (Nov 11, Tokens.lua as loaded):** in Dark, body text draws at alpha 0.9, so on screen it is
+    #C4C6C5, 10.5 : 1 on the window (QA measured #C5C4C3); textSec is opaque at 7.9 to 10.5 : 1, as bright as body
+    text under Orange and Yellow. Light is already apart (9.5 against 7.0 to 8.4). The cause is deriveReadable's ghost
     tier: the faintest colour that passes 4.6 : 1 on every surface over a white world behind the see-through windows
-    (the selection wash over snow or daylight is the worst), which pushes it up toward the text. **Proposed:** Dark's
+    (the selection wash over snow or daylight is the worst), which pushes it up to the text. **Proposed, A:** Dark's
     textSec at 7 : 1 on the window (4.5 over a white world on the plain surface): Teal #93A7A2, Orange #B2A48D, Blue
-    #99A7B5, Green #93A993, Yellow #ABA485, Pink #B89DA7 (Red and Purple barely move: they already sit near 7). The
-    cost: on a selected row over a bright scene it can drop to 3.1 to 4.4 : 1. Before and after:
+    #99A7B5, Red #B9A0A0, Green #93A993, Yellow #ABA485, Purple #A79DB1, Pink #B89DA7. The cost: on a selected row over
+    a bright scene it can drop to 3.1 to 4.4 : 1. **B, with A:** body text opaque (12.8 : 1). Sheet:
     `ZeDUI/mockups/zed_textsec_v1/textsec_dark_before_after.png`. Waiting on the director.
 161. **QA: two sources side by side show no Cond / Amt column** (Name and Wt only); the gallery's hero shots are staged
     that way and B11_RECAPTURE.md asks for the column. **Build looked (Nov 11):** by design. Two or more sources side by side set `_compactMode` (InventoryRenderer.lua), which draws Name and Wt only; the narrowing rule isn't involved. B11_RECAPTURE.md now asks for one source open in 01 and 19, so the column shows. Giving the compact layout a bar is the director's call.

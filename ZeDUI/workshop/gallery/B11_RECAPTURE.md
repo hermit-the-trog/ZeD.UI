@@ -28,6 +28,13 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
 - **Menus (138, 140):** blue and red marks on paired actions; new Eat, Sneak, Safehouse, outfit and loadout icons.
 - **The ID card (145):** a camera button in the photo's corner (the portrait studio).
 - **The desk (142):** the single sticky note is gone; the Pasties icon heads the desktop's left column.
+- **Speech balloons, head notes and notices (158):** the line in lowercase Fira Mono, as said, no longer in pixel
+  capitals; the balloon is a little taller a line.
+- **The belt's empty hands (155):** a right hand icon in the main (large) ring, a left hand in the off (small) ring,
+  no words.
+- **The Loot drawer (156):** the "Coming soon" half card is gone. A Loot drawer open with no card in it now folds, so
+  the World window is narrower there than in the old pictures: that is intended, not a jump (159).
+- **Empty lists (157):** "Nothing here." (was "Nothing in here.").
 - **The item card (152, 153):** a liquid container shows Liquid Facts with its litres; "Used to make" sits flush left.
 
 ## Tier 1: the content changed (retake, and check what each shows)
@@ -41,7 +48,7 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
 | 07 barricading | story_05a_barricade_menu.png, story_05b_barricade_bar.png | The barricade menu with its marks; the action bar. |
 | 08 stocking shelves | story_07b_drag_to_shelf.png | The drag to the shelf: the Cond / Amt column; if the shot catches it, rows waiting to move say so. |
 | 10 pumping gas | story_09b_gas_can_card.png, story_09c_dash_fuel_full.png | The gas can's item card: Liquid Facts, Gasoline's litres and "Amount ... / ... L" (the game's red Tainted on gasoline is expected). The dash's full tank. |
-| 11 customers | story_10_customers_queue.png, zqa_ht_06_rightwatch_pistol.png | The queue in the rows; the belt with the pistol: its ring in five cells. |
+| 11 customers | story_10_customers_queue.png, zqa_ht_06_rightwatch_pistol.png | The queue in the rows; the belt with the pistol: its ring in five cells; an empty hand shows its hand icon (155). |
 | 12 smoke break | story_11_smoke_break.png | The smoke break with the lighter's bar in light neutral cells wherever it shows. |
 | 15 every window | zqa_cw_02_dark_small_window_menu_theme.png, zqa_cw_01_dark_small_card.png, zqa_cw_14_focus_hand_inventory_row.png | Windows with the new title bars and the Cond / Amt column. |
 | 16 see-through | zqa_cw_12b_solid_in_use.png, zqa_cw_08_seethrough_100.png, zqa_cw_12_seethrough_60.png | The same three see-through levels, with the new columns. |
@@ -52,10 +59,10 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
 | 22 equip doll | zed_10_equip_doll.png | The Equipment tab: the Equipped list's bars by the one-bar rule; a hooded top under Torso, Outer if worn. |
 | 23 health | zed_11_health_exercise.png (van_11 stays) | The Health tab with its five-cell bars; injury rows' percents whole. |
 | 25 context menus | zed_20_ctx_strip.png, zed_21_ctx_list.png (van_20 stays) | The strip with its arrow boxes in the accent and blue/red marks, one action named above; the list with a submenu open. |
-| 30 belt | zqa_ht_01_two.png, zqa_ht_02_both.png, zqa_ht_06_rightwatch_pistol.png | The belt: hand rings in five cells; one hand holding a water bottle (ten blue cells) if the layout allows. |
-| 31 bubbles | zqa_ht_01_two.png, zqa_ht_02_both.png (shared with 30), zqa_bub_both_dark.png | As 30; the bubbles keep the thought bubble. |
+| 30 belt | zqa_ht_01_two.png, zqa_ht_02_both.png, zqa_ht_06_rightwatch_pistol.png | The belt: hand rings in five cells; one hand holding a water bottle (ten blue cells) if the layout allows; an empty hand shows its hand icon (155). |
+| 31 bubbles | zqa_ht_01_two.png, zqa_ht_02_both.png (shared with 30), zqa_bub_both_dark.png | As 30; the bubbles keep the thought bubble; the balloon's line in lowercase Fira Mono (158). |
 | 32 moodles | zqa_mood_left_hover.png, zqa_mood_bottom_hover.png, zqa_mood_right_hover.png | zedqa_moodles.lua takes these: the pointer's moodle with its balloon, in the three places. |
-| 34 messages | zqa_g4_belt_toast.png, zqa_g4_window_radio.png, zqa_g4_guide_bubble.png (new in beta 10) | The guide bubble out of the Messages icon (zedqa_guide_bubble.lua step 2, "2_bubble_from_belt", copied under this name). |
+| 34 messages | zqa_g4_belt_toast.png, zqa_g4_window_radio.png, zqa_g4_guide_bubble.png (new in beta 10) | The guide bubble out of the Messages icon (zedqa_guide_bubble.lua step 2, "2_bubble_from_belt", copied under this name); the toast and the bubble in lowercase Fira Mono (158). |
 | 39 reading and writing | zqa_nb_01_page1.png, zqa_rd_01_paper.png | A notebook's first page and the reader on a newspaper, on the 70% paper. |
 | 43 controller | zqa_g3_wheel_character_eat.png, zqa_g3_wheel_now_light.png, zqa_g3_wheel_use_smoke.png, zqa_g3_footer_pad.png | The wheels with the new Eat icon (the figure with a fork) and the blue/red marks. |
 | 45 themes | theme_dark_orange.png, theme_dark_green.png, theme_light_blue.png, theme_light_red.png, theme_hicon_teal.png, theme_hicon_purple.png, zqa_cw_02_dark_small_window_menu_theme.png | **Each in the theme and accent its name says** (not Teal throughout), with the new title bars and columns. |

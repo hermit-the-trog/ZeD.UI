@@ -13,10 +13,12 @@ Looting
 - Ctrl-clicking rows picks them without opening their card.
 - Items waiting to move say so in their rows, and the bar fills down the list.
 - The action bar names each item in a move of several.
+- An empty container or floor tile says "Nothing here."
 
 Bars and colors
 - Condition bars have five cells, rounded up: one red cell means nearly broken.
 - The rings round your hands and the belt's strips follow the same rule: condition in five cells cut like a clock's face, how full in ten.
+- An empty hand on the belt shows a right or a left hand instead of Primary and Secondary.
 - Skill bars keep ten cells, now spread evenly.
 - The condition column is now Cond / Amt: bottles, cans and things that run down (lighters, batteries) show how full they are in ten cells, things that wear their condition in five, and things that do neither no bar. Its heading sits at the left again; only Weight is right-aligned.
 - New in ZeD setup > Look: Status colors. Color blind shows good to bad in blue, yellow and orange.
@@ -32,6 +34,8 @@ Windows
 - At Steam Deck size, closing a tab while its window is rolled keeps the window in place, and the Character list stays put when the drawer folds.
 - On screens where opening a full card made the windows shift (1280 wide, 1366 x 768), they open narrower so nothing moves. At 1280 wide the condition column gives way.
 - The hint strip steps aside for the belt's balloons.
+- The Loot tab's "Coming soon" half card is gone: with no item card open, its drawer folds.
+- Speech balloons, the notes over your head and the notices read in lowercase, in plain Fira Mono, as they were said. Easier to read than the pixel capitals.
 - The Health tab's injury list no longer cuts off the percent at its edge.
 - A revoked permit's stamp on the ID reads PERMIT REVOKED, with the space.
 - Hooded jackets and sweaters are listed with the other tops on the Equipment tab, not as hats.
