@@ -343,7 +343,7 @@ end
 -- reached from here, so the same logic is repeated - keep the two in step.
 local function categoryOf(item)
     if not item then return "Item" end
-    if safeGet(item, "getFluidContainer") then return "Fluid" end
+    if safeGet(item, "getFluidContainer") or (ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item)) then return "Fluid" end   -- (on the floor: its world object's)
     if instanceof(item, "HandWeapon") then
         local ammo = safeGet(item, "getAmmoType")
         if ammo and ammo ~= "" then return "Firearm" end
@@ -729,7 +729,7 @@ local function liveProbe(item, m, out)
     end
     if m.pUses then n = n + 1; out[n] = safeGet(item, "getUsedDelta") end
     if m.pFluid then
-        local fc = safeGet(item, "getFluidContainer")
+        local fc = (ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item)) or safeGet(item, "getFluidContainer")
         n = n + 1; out[n] = fc and safeGet(fc, "getAmount")
         -- sealed or opened (InventoryItem.isSealed; read only for a fluid container)
         n = n + 1; out[n] = safeGet(item, "isSealed")

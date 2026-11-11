@@ -3957,6 +3957,45 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     saucepan of water, an empty bottle, a gas can and (if the save has one) a bottle of river water: the liquid's
     name and "of" amounts, Empty on the empty one, Tainted in red on the river water where the game's tooltip (Alt)
     says Tainted too.
+    **QA, Mac, Nov 11 2026, on test 8 (aa679e4): doesn't pass yet.** In a backpack's list all six right (a part-full
+    water bottle "Water 0.80 / 1.00 L", a saucepan's condition, damage and reach then its water, an empty bottle
+    "Empty 0.00 / 1.00 L", a gas can "Gasoline 7.5 / 10.0 L", tainted water "Tainted" in red, a wine and water
+    "Mixture"), at 1x and 1.75x; in the Ground list none of them showed a liquid. The cause: for an item on the floor
+    item:getFluidContainer() is nil; the game keeps the liquid on the world object (item:getWorldItem():
+    getFluidContainer()). Gasoline reads Tainted, as the game's own tooltip does under Alt. **Build answered:** one
+    lookup for every new liquid read, the item's own container or its world object's (ZeD.ItemMeter.fluidOf): the
+    loot card, the list's bar, the item card's facts and its kind. And the design moved on the same day (152): the
+    hover card shows the level, the litres went to the item card.
+
+152. **The COND / AMT column: one bar an item, its condition or how full it is (the director, Nov 11 2026: "I think
+    the condition column in the inventory should be dual condition / amount ... condition is not always conditioned.
+    Sometimes it's how much is in something. At a quick glance that is hovering over something, you're only going to
+    be able to look at it and tell by the level ... It's not until you inspect it, that would be clicking the card to
+    inspect it, where you see how much is in it"; then "I miscommunicated in a previous session to include that
+    column's header right aligned. Change that back to left aligned. Only the weight, since it's a number, will be
+    right aligned").** Rulings, Nov 11: one bar, amount wins (not a split: the list's bar is 8 units tall, 2 to 3 px a
+    half at 1x and 1 to 2 on the Deck); hovering shows the level, the litres on the item card; amount for liquids and
+    use-ups; a condition only for what wears. **Built:** ZeD.ItemMeter (ItemMeter.lua): a liquid container (its own or,
+    on the floor, its world object's) its fill, the fill bar's ten cells in the liquid blue; a use-up (a lighter, a
+    battery, thread, glue, propane) what is left, ten in the accent; a weapon (any tool, pot or bottle swung), clothing
+    or anything below its full condition (a vehicle part) its condition, the status bar's five; anything else no bar
+    (a can of beans, a book, a key no longer show a full bar that can't change); the game's hidden level, none. The
+    list's rows and the grid cells draw it (InventoryRenderer rowCondition, drawCellCondition; the help line
+    "Condition 64%" or "Remaining 50%"), and the column sorts by it (no bar below an empty one). The heading "Cond /
+    Amt" (in all 28 languages), left aligned as Name and Category, only Weight at the right (the right edge had
+    shipped in beta 10); the column as wide as its heading needs, up to 90 units. The loot card: the item's one bar,
+    a liquid a level bar under its name (no number), what runs down a level bar under "Remaining", Tainted a red tag,
+    Unknown where the level is hidden. The item card: a Liquid Facts panel, first in the list (ItemFactsPanel
+    LiquidFacts): each liquid and its litres, the total in the capacity ("Amount"), Tainted, Empty, Unknown; a
+    saucepan's combat facts after its water. New words: Liquid Facts, Amount, the heading, in all 28 languages.
+    Sims: item_meter_sim 28/0 (METER, FACTS, COLUMN), fast_loot_sim 94/0 (LIQUID: the level bar, the floor, a
+    lighter), inv_model_sort_sim 403/0 (its frozen reference compared with the old condition rule standing in).
+    **Check (QA, Mac):** a loot list with a water bottle, a saucepan of water, an empty bottle, a gas can, a lighter, a
+    hammer, a jacket, a can of beans and a book, in a bag and on the Ground: the bottle, pan, can and empty bottle
+    ten blue cells (the empty one dark), the lighter ten accent cells, the hammer and jacket five status cells, the
+    beans and book no bar; the heading "Cond / Amt" at the left, Weight at the right; sort by it both ways; the grid
+    view's cells the same. Hover each: the card's level bar under the liquid's name (no litres), Tainted on river
+    water. Click one (the item card): Liquid Facts with the litres and "Amount 0.80 L / 1.00 L". At 1x and 1.75x.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

@@ -8,7 +8,7 @@ Looting
 - Hovering an item shows its card at once, by the pointer. Hold Alt for the game's own tooltip.
 - An item on the belt shows the same card above its box. Alt shows the game's box there too.
 - Clothing is compared with what you wear: bite and scratch protection, plus or minus.
-- A bottle, pot or can shows its liquid and how much: Water 0.80 / 1.00 L, Empty, or Tainted in red.
+- A bottle, pot or can shows its liquid and how full it is at a glance; open its card for the exact amount.
 - Drag a box from the empty space below the rows to select them, or double-click that space to select them all.
 - Ctrl-clicking rows picks them without opening their card.
 - Items waiting to move say so in their rows, and the bar fills down the list.
@@ -18,6 +18,7 @@ Bars and colors
 - Condition bars have five cells, rounded up: one red cell means nearly broken.
 - The rings round your hands on the belt show condition in the same five cells, cut like a clock's face.
 - Skill bars keep ten cells, now spread evenly.
+- The condition column is now Cond / Amt: bottles, cans and things that run down (lighters, batteries) show how full they are in ten cells, things that wear their condition in five, and things that do neither no bar. Its heading sits at the left again; only Weight is right-aligned.
 - New in ZeD setup > Look: Status colors. Color blind shows good to bad in blue, yellow and orange.
 - PZ Teal is the default accent on a new install. A color you already picked stays.
 

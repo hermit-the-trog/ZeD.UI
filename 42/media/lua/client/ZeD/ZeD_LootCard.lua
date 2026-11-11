@@ -17,11 +17,13 @@
 --       streamer reads in every tooltip)
 --     a bag: what it holds of what it can, its weight reduction
 --     a book: the pages read; a drainable: what is left
---   and whatever the kind, a liquid container's liquid (punch list 151; the director, Nov 11 2026: "add the water
---     amount in beta 11", after QA saw a saucepan of water's card list none): the liquid's name ("Water", the game's
---     "Mixture" for several) and how much of how much ("0.80 / 1.00 L"), the game's "Tainted" in red where its own
---     tooltip says so, "Unknown" where the game hides the level; an empty one "Empty" and what it holds. The water
---     card's own rules (ObjectCardFluid.lua, ZeD.Fluid), so the two read the same.
+--   and whatever the kind, how full it is when it holds a liquid or runs down (punch lists 151, 152; the director,
+--     Nov 11 2026: "At a quick glance that is hovering over something, you're only going to be able to look at it and
+--     tell by the level ... It's not until you inspect it ... where you see how much is in it"): a level bar, the fill
+--     bar's ten cells, under the liquid's name ("Water", the game's "Mixture" for several; "Empty") in the liquid
+--     blue, or "Remaining" in the accent for what runs down; no numbers (the litres are on the item card); the game's
+--     "Tainted" as a red tag where its own tooltip shows it; "Unknown" where the game hides the level. The item's one
+--     bar is ItemMeter's: an item that holds something shows how full, not its condition.
 -- Content is kept per item for half a second (the figures move: a transfer, wear), and per scale and theme.
 -- ============================================================================
 
@@ -82,8 +84,14 @@ function LC.facts(item, chr)
     end
     if safe(item, "isFrozen") then tags[#tags + 1] = { tr("UI_ZeD_Loot_Frozen"), nil } end
 
-    local cm = safe(item, "getConditionMax")
-    if cm and cm > 0 and not food then f.cond = math.max(0, math.min(1, (safe(item, "getCondition") or cm) / cm)) end
+    -- the item's one bar (ItemMeter.lua): its condition when it wears, how full when it holds or runs down
+    local IM = ZeD.ItemMeter
+    local mk, mf = nil, nil
+    if IM then mk, mf = IM.of(item) end
+    if mk == "cond" and not food then f.cond = mf end
+    if mk == "uses" then f.amount = { label = IM.label("uses"), f = mf, color = nil } end
+    local fc = IM and IM.fluidOf(item)
+    if fc then LC.liquid(f, fc, mk, mf) end
 
     -- the weight, and worn or held when that is lighter
     local wt = safe(item, "getActualWeight") or safe(item, "getWeight") or 0
@@ -137,46 +145,35 @@ function LC.facts(item, chr)
     elseif isA(item, "Literature") then
         local n = safe(item, "getNumberOfPages") or 0
         if n > 0 then rows[#rows + 1] = { tr("UI_ZeD_Loot_Pages"), tostring(safe(item, "getAlreadyReadPages") or 0) .. " / " .. n, nil, nil } end
-    elseif isA(item, "DrainableComboItem") then
-        local u = safe(item, "getCurrentUsesFloat") or safe(item, "getUsedDelta")
-        if u then rows[#rows + 1] = { label("IGUI_invpanel_Remaining"), pct(u * 100), nil, nil } end
     end
-    local fc = safe(item, "getFluidContainer")
-    if fc then rows[#rows + 1] = LC.liquidRow(fc) end
     return f
 end
 
--- how much of how much, the decimals by the container's size as the water card's ("0.80 / 1.00 L", "12.5 / 20.0 L")
-local function litres(a, cap)
-    local fmt = (cap >= 100 and "%.0f") or (cap >= 10 and "%.1f") or "%.2f"
-    return string.format(fmt .. " / " .. fmt .. " L", a, cap)
-end
-LC._litres = litres
-
---- A fluid container's row: { label, value, extra, key }
-function LC.liquidRow(fc)
+--- A liquid container on the card: its level bar (f.amount) under the liquid's name, "Tainted" as a red tag where the
+--- game's tooltip shows it, "Unknown" (a row) where the game hides the level. The water card's rules (ZeD.Fluid).
+function LC.liquid(f, fc, mk, mf)
     local FL = ZeD.Fluid
-    local cap = safe(fc, "getCapacity") or 0
-    local amt = safe(fc, "getAmount") or 0
-    local hidden = safe(fc, "isHiddenAmount")
-    if safe(fc, "isEmpty") then return { label("Fluid_Empty"), litres(0, cap), nil, nil } end
     local liquids = {}
     if FL and FL.liquidsOf then
         local ok, v = pcall(FL.liquidsOf, fc)
         if ok and type(v) == "table" then liquids = v end
     end
-    local name = FL and FL.fluidLabel and FL.fluidLabel(liquids)
-    if not name then
-        local pf = safe(fc, "getPrimaryFluid")
-        name = pf and (safe(pf, "getTranslatedName") or safe(pf, "getFluidTypeString"))
+    local name
+    if safe(fc, "isEmpty") then name = label("Fluid_Empty")
+    else
+        name = FL and FL.fluidLabel and FL.fluidLabel(liquids)
+        if not name then
+            local pf = safe(fc, "getPrimaryFluid")
+            name = pf and (safe(pf, "getTranslatedName") or safe(pf, "getFluidTypeString"))
+        end
+        name = tostring(name or label("Fluid_Mixture"))
     end
-    local tainted = false
     if FL and FL.taintedShown then
         local ok, v = pcall(FL.taintedShown, fc, liquids)
-        tainted = ok and v == true
+        if ok and v == true then f.tags[#f.tags + 1] = { label("Tooltip_tainted"), "bad" } end
     end
-    local value = hidden and label("Fluid_Unknown") or litres(amt, cap)
-    return { tostring(name or label("Fluid_Mixture")), value, tainted and label("Tooltip_tainted") or nil, tainted and "bad" or nil }
+    if mk == "hidden" then f.rows[#f.rows + 1] = { name, label("Fluid_Unknown"), nil, nil }
+    elseif mk == "fluid" then f.amount = { label = name, f = mf, color = ZeD.T and ZeD.T.info, liquid = true } end
 end
 
 -- ---------------------------------------------------------------------------
@@ -208,15 +205,16 @@ local function makeBody(f)
     local condLabel = (getText("IGUI_invpanel_Condition") or ""):gsub("%s*:%s*$", "")
     local labW = f.cond and TM:MeasureStringX(f2, condLabel) or 0
     local valW, exW = 0, 0
+    if f.amount then labW = math.max(labW, TM:MeasureStringX(f2, f.amount.label)) end
     for _, r in ipairs(f.rows) do
         labW = math.max(labW, TM:MeasureStringX(f2, r[1]))
         valW = math.max(valW, TM:MeasureStringX(f3, r[2]))
         if r[3] then exW = math.max(exW, TM:MeasureStringX(f3, r[3])) end
     end
     local pctW = TM:MeasureStringX(f3, "100%")
-    local rightW = math.max(valW + (exW > 0 and (gap + exW) or 0), f.cond and (barW + gap + pctW) or 0)
+    local rightW = math.max(valW + (exW > 0 and (gap + exW) or 0), (f.cond or f.amount) and (barW + gap + pctW) or 0)
     local w = math.max(tagsW, labW + colGap + rightW)
-    local n = #f.rows + (f.cond and 1 or 0)
+    local n = #f.rows + (f.cond and 1 or 0) + (f.amount and 1 or 0)
     local h = (tagH > 0 and (tagH + T.px(4)) or 0) + n * lineH - lead
     local body = { w = w, h = h }
     body.draw = function(p, x, y)
@@ -240,6 +238,15 @@ local function makeBody(f)
             A.drawSegFill(p, bx, cy + math.floor((lineH - lead - barH) / 2), barW, barH, A.STATUS_SEGS, A.statusSegsLit(f.cond), A.statusColor(f.cond))
             cy = cy + lineH
         end
+        if f.amount then
+            -- the level: the fill bar's ten cells across the bar's and the percent's room, no number
+            local am = f.amount
+            p:drawText(am.label, x, textY(f2), sc.r, sc.g, sc.b, sc.a or 1, f2)
+            local aw = barW + gap + pctW
+            A.drawSegFill(p, right - aw, cy + math.floor((lineH - lead - barH) / 2), aw, barH, A.FILL_SEGS or 10,
+                A.fillSegsLit(am.f, A.FILL_SEGS or 10), am.color or T.accent)
+            cy = cy + lineH
+        end
         for _, r in ipairs(f.rows) do
             p:drawText(r[1], x, textY(f2), sc.r, sc.g, sc.b, sc.a or 1, f2)
             if r[3] then
@@ -253,7 +260,8 @@ local function makeBody(f)
         end
     end
     -- what it shows, for the balloon's layout cache
-    local sig = { tostring(f.cond and math.floor(f.cond * 100) or "-") }
+    local sig = { tostring(f.cond and math.floor(f.cond * 100) or "-"),
+                  f.amount and (f.amount.label .. "~" .. tostring(ZeD.Atoms.fillSegsLit(f.amount.f, ZeD.Atoms.FILL_SEGS or 10))) or "-" }
     for _, t in ipairs(f.tags) do sig[#sig + 1] = t[1] end
     for _, r in ipairs(f.rows) do sig[#sig + 1] = r[1] .. "=" .. r[2] .. "/" .. tostring(r[3]) end
     body.sig = table.concat(sig, "|") .. "@" .. tostring(T.scale) .. tostring(T)

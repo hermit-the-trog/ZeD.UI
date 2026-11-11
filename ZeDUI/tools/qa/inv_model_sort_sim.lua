@@ -258,6 +258,14 @@ instanceof = function(o, cls) return type(o) == "table" and o._class == cls end
 
 ZeD = ZeD or {}
 ZeD.InventoryRenderer = {}
+-- (the COND / AMT column's sort reads ItemMeter since Nov 11 2026, punch list 152: what the bar shows, not always the
+-- condition; item_meter_sim checks that rule. Here the old condition rule stands in, so ORDER still compares the
+-- model's plumbing against the frozen reference)
+ZeD.ItemMeter = { sortKey = function(item)
+    local mx = item:getConditionMax()
+    if not mx or mx <= 0 then return -1 end
+    return item:getCondition() / mx
+end }
 function ZeD.InventoryRenderer.catKey(item)   -- (the file's own, as it is)
     local dc = item:getDisplayCategory()
     if dc and dc ~= "" then return dc end

@@ -59,10 +59,10 @@ function ZeD.InventoryRenderer.catLabel(key)
     return s
 end
 
+-- the COND / AMT column's share: the item's one bar, its condition or how full it is (ItemMeter.lua, punch list
+-- 152); no bar sorts below an empty one
 local function getCondPct(item)
-    local mx = item:getConditionMax()
-    if not mx or mx <= 0 then return -1 end
-    return item:getCondition() / mx
+    return ZeD.ItemMeter.sortKey(item)
 end
 
 local function makeSorter(col, asc)
@@ -764,18 +764,19 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     return tW + padX
 end
 
--- A grid cell's condition: the framed strip (ZeD.Atoms.drawFillBar, a status bar's five segments) along
--- the cell's bottom, compact to fit under the icon. Returns its top (or the cell's
--- bottom when there is none) and true while the pointer is on it (its help line:
--- "Condition 64%"). 52 units less 6: 34 px at 0.75, six a segment.
+-- A grid cell's bar: the framed strip (ZeD.Atoms.drawFillBar) along the cell's bottom, compact to fit under the
+-- icon: its condition in a status bar's five segments, or how full it is in the fill bar's ten (ItemMeter.lua,
+-- punch list 152). Returns its top (or the cell's bottom when there is none) and true while the pointer is on it
+-- (its help line: "Condition 64%", "Remaining 50%"). 52 units less 6: 34 px at 0.75.
 local function drawCellCondition(self, item, ax, cy, cell)
     local T = ZeD.T
-    local condMax = item:getConditionMax()
-    if not (condMax and condMax > 0) then return cy + cell, false end
-    local f = math.max(0, math.min(1, item:getCondition() / condMax))
+    local IM = ZeD.ItemMeter
+    local kind, f = IM.of(item)
+    if kind == nil or kind == "hidden" then return cy + cell, false end
+    local fc, graduated = IM.style(kind)
     local bh = T.px(5)
     local by = cy + cell - T.px(3) - bh
-    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, true, nil, bh, ZeD.tr("IGUI_invpanel_Condition"))
+    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, graduated, fc, bh, IM.label(kind))
     return by, hov
 end
 
@@ -1235,8 +1236,7 @@ local function sortRec(item, col)
     if col == "cat" then
         k = ZeD.InventoryRenderer.catKey(item)
     elseif col == "cond" then
-        local mx = item:getConditionMax()   -- (getCondPct)
-        if not mx or mx <= 0 then k = -1 else k = item:getCondition() / mx end
+        k = ZeD.ItemMeter.sortKey(item)   -- (getCondPct: the column's bar)
     else
         k = item:getUnequippedWeight()
     end
@@ -1484,16 +1484,20 @@ local function rowTag(self, x, y, rowH, text, focusTxt)
     ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, nil, _rowTagOpts)
 end
 
--- A row's condition in the COND column: the framed strip (ZeD.Atoms.drawFillBar, five segments;
--- the column less 4 units is 34 px at 0.75) at the list rows' compact height, centred in the row, in
--- the condition's colours
+-- A row's bar in the COND / AMT column: the framed strip (ZeD.Atoms.drawFillBar) at the list rows' compact height,
+-- centred in the row. One bar an item (the director, Nov 11 2026: "condition is not always condition. Sometimes it's
+-- how much is in something"; ItemMeter.lua, punch list 152): something that wears, its condition in the status
+-- bar's five segments and colours; something that holds a liquid or runs down, how full it is in the fill bar's ten
+-- (a liquid blue, the rest the accent); nothing for what neither wears nor holds.
 local function rowCondition(self, item, x, y, w, rowH)
-    local condMax = item:getConditionMax()
-    if not (condMax and condMax > 0) or w <= 0 then return end
+    if w <= 0 then return end
+    local IM = ZeD.ItemMeter
+    local kind, f = IM.of(item)
+    if kind == nil or kind == "hidden" then return end
     local A = ZeD.Atoms
-    local pct = math.max(0, math.min(1, item:getCondition() / condMax))
+    local fc, graduated = IM.style(kind)
     local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
-    A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, pct, true, nil, ch, ZeD.tr("IGUI_invpanel_Condition"))
+    A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, f, graduated, fc, ch, IM.label(kind))
 end
 
 local function renderItemList(self)
@@ -1556,7 +1560,9 @@ local function renderItemList(self)
             cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
             -- (a book's read status takes the column, a dot and a word; room
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
-            cond = readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
+            -- (and room for its heading, "Cond / Amt", whole: up to 90 units, past that it shortens)
+            cond = math.max(readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
+                            math.min(math.ceil(ZeD.TM:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))),
             readOn = readOn,
             -- (a stack's row shows its total in brackets, "(2.5)"; wtU is an item's
             -- own, the width the bracket gives way to, see wtFit)
@@ -1736,9 +1742,9 @@ local function renderItemList(self)
         colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCat"),  "cat",  catX + padX,  catX,   catColW}
     end
     if showCond then
-        -- (Condition and Weight headings sit at the right, over their values' right edge; the 6th field
-        -- is that edge: the condition strip ends 2u short of its column, as rowCondition is given it)
-        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW, condX + condColW - T.px(2)}
+        -- (left, as Name and Category: only Weight, a number, sits at the right, over its values' right edge, the
+        -- 6th field; the director, Nov 11 2026: "I miscommunicated ... Change that back to left aligned")
+        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW}
     end
     colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW, wtX + wtColW - padX}
     -- the grid has no columns: its bar carries the same sort keys end to end
