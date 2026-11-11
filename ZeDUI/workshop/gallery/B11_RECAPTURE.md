@@ -4,7 +4,8 @@ Build's list for QA (punch list 129, with 128). It replaces B10_RECAPTURE.md: th
 so they are folded in here. One full pass, then one full re-render of all 70 pictures.
 
 **How to take them.** 4K (3840 x 2160), UI scale 1.75x, the Dark theme and the **PZ Teal** accent, the list view,
-unless a spread says otherwise below. Same framing, window places, blur and belt in view as the gallery_t14 set, so
+unless a spread says otherwise below. The game's own **Font Size at 19px** (`fontSize=2` in options.ini; the director's
+setting, Nov 11), never "Scale with window height": the prelude's `vanilla: font size` line should read 2. Same framing, window places, blur and belt in view as the gallery_t14 set, so
 each picture drops into its spread's crop. Put the files in `~/Zomboid/Screenshots/gallery_t14` under the **same
 names** (the spreads pick them up by name), and first move the old ones to `gallery_t14/_before_b11`. Spreads 06, 62
 and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake those under the same names there.
@@ -101,6 +102,7 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
 ## Keep (don't retake)
 
 - The vanilla pictures: van_01_hero_mid, van_11_health, van_20_ctx_menu, van_32_action_bar_reading.
+  They were taken on the Windows rig before the font size was pinned; the director keeps them as they are (Nov 11).
 - 33 watches (gbw_* plates) and 42 the controller map (drawn from the repo's controller_pad_px.png).
 - If a Tier 2 picture shows no accent and no title bar at all, it can stay; say which in the report.
 
