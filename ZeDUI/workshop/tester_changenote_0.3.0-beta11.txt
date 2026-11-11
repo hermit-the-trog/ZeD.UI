@@ -1,10 +1,10 @@
 0.3.0-beta11
 
-This beta refines what's already there so it's easier to read and use: words in plain lowercase, a clear step between text, labels and hints, bars that say what they mean at a glance, a color blind option, and pictures where words were cut short. Two new things come with it.
+This beta refines what's already there so it's easier to read and use: words in plain lowercase, a clear step between text, labels and hints, bars that say what they mean at a glance, a color blind option and pictures where words were cut short. Two new things come with it.
 
 Easier to read
 - Speech balloons, the notes over your head and the notices read in lowercase, in plain Fira Mono, as they were said. Lowercase words keep their shape, which is easier on everyone and on dyslexia.
-- In Dark, the body text is solid, labels sit a step dimmer than the values beside them, and hints a step dimmer again.
+- In Dark, the body text is solid, labels sit a step dimmer than the values beside them and hints a step dimmer again.
 - New in ZeD setup > Look: Status colors. Color blind shows good to bad in blue, yellow and orange.
 - An empty hand on the belt shows a right or a left hand instead of Primary and Secondary, which were cut short.
 - An empty container or floor tile says "Nothing here."
