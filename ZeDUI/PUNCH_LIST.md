@@ -3377,6 +3377,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     so the balloon that is up was the layer's and the belt's own hint under it no longer counted. ZeD_HintStrip
     (H.covered) now steps aside while the belt has its card asked for (hint_strip_cover_sim 15/0; its new check fails
     on the old code). **Recheck (QA):** hover a held item on the belt: the hint strip gives way while the card is up.
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok:** the hint strip steps aside while the belt's card is up and comes back after.
 
 136. **The bigger Lua console (the director, Nov 9 2026: "1", a full plan; build after the Nov 13 reset).** Source:
     docs/reference/RESEARCH_console_tooling_20261108.md (the director's research, Nov 8). Rulings: debug mode only
@@ -3888,6 +3889,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (HealthTab.lua; its badge rows measured at the same width). **Check (QA):** the same window, Health with a few
     injuries scrolled into view: each row's percent whole, "%" and all, at 1x and 1.75x, with and without the
     scrollbar.
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok:** each row's percent whole at 1x and 1.75x, at 700 tall and at the default height scrolled down.
 
 149. **The belt's hand rings in segments (the director, Nov 11 2026: "segmented bar on primary and secondary circle
     status bar"; then, on Build's first try: "you divide a ring like a pie or a clock from the center to the edge.
@@ -3907,6 +3909,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     main and off hand with items at 92% (five green), 55% (three yellow), 10% (one red) and broken (none): the gaps
     on the radii like a clock's five, the lit cells ending on them, at 1x and 1.75x, Dark, Light and High contrast;
     Color blind's colours; a pot of water in a hand (ten blue cells).
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok** at 1x and 1.75x in Dark, Light and High contrast and with Color blind: five, three, one and no lit
+    cells, the gaps along the radius. QA called "a pot of water: ten blue cells" wrong: a saucepan of water showed five
+    green cells. **Build answered:** the check was Build's mistake, not the ring's. ZeD's belt has never read a
+    container's liquid: the rings and the slots' strips show the item's condition (the saucepan's own), and the blue
+    ten-cell ring comes only from a mod's meter (Item Condition Restored's liquid, ModSupport/ItemConditionRestored.lua;
+    belt_mods_sim's ICR section draws it). Nothing to fix. Still to see in the game: a liquid's ring with Item
+    Condition Restored on, if the rig has it. QA also saw the pot's card list no water amount: 151.
 
 150. **The inventory narrower where a full card would shift the window (the director, Nov 11 2026: "Make steam deck
     inventory narrower for those resolutions. They lose the condition column, but get rid of the window shifting and
@@ -3926,6 +3935,17 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     inventories narrower, the Cond column gone; open Equip's full card, Health, then close them: neither window moves
     or changes width, the list never shifts; a World window full card (Crafting) the same; at 1920 x 1080 and 4K the
     windows as before.
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok.** 1280 x 800: both inventories 222 px (were 279), the Cond column gone; Equip's full card, Health
+    and closing them: the list at x 387 every frame, nothing pushed or owed; the World window's full card (Crafting,
+    Build) the same. 1366 x 768: 265 px, nothing shifts, the Cond column stays at that width. 1920 x 1080 and 4K as
+    before (444 and 777 wide, Cond there). QA's reading of the check: the Character window still grows left as its
+    drawer opens (x 360, 276 wide, to x 0, 636 wide), as it always has; what is gone is the shift: its right edge and
+    the list stay put, no push, no squeeze. (The check's "neither moves nor changes width" was Build's loose wording.)
+
+151. **The loot card shows no liquid in a container (QA's Mac run on test 7, Nov 11 2026, seen in passing).** A
+    saucepan of water's card lists no water amount: ZeD_LootCard.lua reads the older drainables (what is left) but not
+    the game's fluid containers (getFluidContainer: pots, bottles, jugs), so a bottle of water shows no amount or kind
+    when looting. **Open:** the director's call, beta 11 or after (a line like "Water 0.8 / 1.0 L" in the card's body).
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

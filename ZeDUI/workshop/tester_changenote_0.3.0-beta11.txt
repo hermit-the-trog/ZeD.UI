@@ -28,7 +28,7 @@ Menus
 
 Windows
 - At Steam Deck size, closing a tab while its window is rolled keeps the window in place, and the Character list stays put when the drawer folds.
-- On screens where opening a full card made the windows shift (1280 wide, 1366 x 768), they open narrower so nothing moves. The condition column gives way there.
+- On screens where opening a full card made the windows shift (1280 wide, 1366 x 768), they open narrower so nothing moves. At 1280 wide the condition column gives way.
 - The hint strip steps aside for the belt's balloons.
 - The Health tab's injury list no longer cuts off the percent at its edge.
 - A revoked permit's stamp on the ID reads PERMIT REVOKED, with the space.
