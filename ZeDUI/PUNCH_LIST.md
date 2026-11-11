@@ -4037,6 +4037,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     fast_loot_sim 94/0, belt_mods_sim 156/0. **Check (QA):** a lighter in a list, on the belt and in a hand: ten cells
     in the light neutral, plainly apart from a water bottle's blue, in PZ Teal and one blue accent; a hooded padded
     jacket worn: the Equipped list's Torso, Outer row, the Hat row empty.
+    **QA, Mac, Nov 11 2026, on test 11 (f517850), in PZ Teal:** **pass:** a lighter in a list and in a hand, ten light neutral cells, plainly apart from the bottle's blue, in Teal
+    and in Blue (a flashlight the same); the hooded padded jacket under Torso, Outer. (No Hat row is drawn while
+    nothing is in it: Head + face held only the glasses.) Not run: a lighter on a belt slot (it doesn't fit that
+    belt), the hover card's neutral bar, the doll. Release check 14/16.
 
 153. **The item card's "Used to make" rows flush left (the director, Nov 11 2026, after QA's colour note on test 9:
     "flush left with the rest of the card"; the secondary colour stays: "if it's secondary color that is ok").** The
@@ -4055,6 +4059,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     probe's (zedqa_book83_lang.lua) and 83's own say so. guide_lang_sim 15/0 (its AR check fails on the old line).
     **Check (QA, Mac):** the game in Español (Argentina), the guide on Immersive: F1 opens the book; its title page,
     contents and a chapter opener read whole in the book's faces; Simple still gives the window.
+    **QA, Mac, Nov 11 2026, on test 11 (f517850), in PZ Teal:** **the code passes:** in Español (Argentina) F1 opens the book, Simple the window; the chapter pages read whole
+    in Argentine Spanish. But the title page (title, subtitle, some copyright lines), the contents (its heading,
+    chapters 1 to 15's descriptions), the author's note and the buttons under the book and the window draw blank or
+    as stray dots: this build's AR file still has 279 Arabic strings (63 in the guide's keys), and the book's faces have
+    no Arabic glyphs. PR #4's redraft is the fix. **Recheck (QA) after PR #4 merges:** the AR book's title page,
+    contents, author's note and buttons whole.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
