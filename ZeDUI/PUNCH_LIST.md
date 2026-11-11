@@ -4004,6 +4004,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     of its checks fail on the old belt). **Check (QA, Mac):** a water bottle in a hand and on a belt slot: ten blue
     cells to its level; a lighter on a slot: ten accent cells; a hammer: five status cells; a can of beans on a slot:
     no strip; the Equipment tab's belt list the same.
+    **The director, Nov 11 2026, on QA's test 8 note (gasoline reads "Tainted", as the game's own tooltip does):**
+    "Most people waft or smell gasoline to tell if it's tainted ... That's a tough question. I guess leave it like the
+    game." Kept: Tainted shows wherever the game's tooltip shows it, fuel included (ZeD.Fluid.taintedShown).
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
