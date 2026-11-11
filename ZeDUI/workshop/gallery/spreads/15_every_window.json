@@ -19,7 +19,7 @@
   "marks": [
    {"text": "The box at the right end of every title bar pulls down the window menu.", "pen": "blu", "at": [62, 252], "maxw": 188, "to": [0, 1884, 44], "bend": -0.2},
    {"text": "Theme, Accent, Text size, See-through and Controller highlight each open a list. Reset and ZeD setup are at the bottom of the menu.", "pen": "blu", "at": [62, 410], "maxw": 188, "to": [[0, 1600, 105], [0, 1640, 410]]},
-   {"text": "The help line at the foot shows the window's own count: 35 items, 0.0 of 8 kg.", "pen": "blu", "at": [62, 742], "maxw": 188, "to": [1, 815, 2121]},
+   {"text": "The help line at the foot shows the window's own count: 37 items, 0.0 of 8 kg.", "pen": "blu", "at": [62, 742], "maxw": 188, "to": [1, 815, 2121]},
    {"circle": {"print": 0, "box": [1910, 70, 2002, 96]}, "pen": "grn"}
   ],
   "sticky": {"at": [548, 880], "w": 336, "text": "The window box pulls down the window menu."}

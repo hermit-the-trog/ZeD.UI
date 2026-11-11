@@ -8,7 +8,7 @@
   "blocks": [
    {"chapter": ["8", "Stocking Shelves"]},
    {"p": "Angel puts stock back on the shelves of the station. The *Character* window holds what he carries; the *World* window holds the containers around him."},
-   {"p": "The title bar of each window counts the containers open in it, and each container has a column of its own. Each column header gives the container's name, its weight against what it holds at most, and the number of items in it. To move an item, drag it from one column to another."},
+   {"p": "The badge over the container buttons of each window counts the containers open in it, and each container has a column of its own. Each column header gives the container's name, its weight against what it holds at most, and the number of items in it. To move an item, drag it from one column to another."},
    {"at": 672},
    {"caption": ["Figure 8-1", "The Character window: the backpack and the inventory."]},
    {"p": "Angel's backpack holds the stock: candy, chips, cigarettes and colas. The row of the item being dragged is lit in its column."},
@@ -16,12 +16,12 @@
    {"p": "A row with a count, such as *Diet Cola x2*, is a stack; its weight is given in parentheses."}
   ],
   "prints": [
-   {"src": "story_07b_drag_to_shelf.png", "box": [961, 0, 1905, 520], "scale": 0.5, "at": [262, 360], "tape": ["tl", "br"]}
+   {"src": "story_07b_drag_to_shelf.png", "box": [1025, 0, 1975, 525], "scale": 0.5, "at": [262, 360], "tape": ["tl", "br"]}
   ],
   "marks": [
-   {"text": "The title bar counts the containers: 2 here,", "pen": "blu", "at": [62, 248], "maxw": 186, "bend": 0.0, "to": [0, 1222, 15]},
-   {"text": "Each column header shows its weight and item count.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.0, "to": [0, 1052, 100]},
-   {"text": "Drag an item from one column to another to move it.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.0, "to": [0, 1143, 489]}
+   {"text": "The badge counts the containers: 2 here,", "pen": "blu", "at": [62, 248], "maxw": 186, "bend": 0.0, "to": [0, 1925, 100]},
+   {"text": "Each column header shows its weight and item count.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.0, "to": [0, 1212, 130]},
+   {"text": "Drag an item from one column to another to move it.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.0, "to": [0, 1212, 520]}
   ],
   "sticky": {"at": [600, 900], "w": 280, "h": 120, "text": "Stocking the shelves, one drag at a time."}
  },
@@ -36,18 +36,18 @@
    {"p": "Every column works the same way, whether its container is a shelf or the ground. A container has a column only while it is in reach."},
    {"at": 752},
    {"caption": ["Figure 8-2", "The World window: three shelves and the ground."]},
-   {"p": "Drop the item on a column to put it in that container. The shelves of the station hold the stock: the first holds jerky, candy and chips; the second batteries, candles, rope and a hose."}
+   {"p": "Drop the item on a column to put it in that container. The shelves of the station hold the stock: the first holds chips, snacks and drinks; the second candles, a gas can, rope and a hose; the third gum and sweets."}
   ],
   "prints": [
-   {"src": "story_07b_drag_to_shelf.png", "box": [1905, 0, 2800, 430], "scale": 0.5, "at": [1194, 240], "tape": ["t", "bl"]},
-   {"src": "story_07b_drag_to_shelf.png", "box": [2800, 0, 3640, 360], "scale": 0.5, "at": [1222, 512], "tape": ["tr", "bl"]}
+   {"src": "story_07b_drag_to_shelf.png", "box": [1980, 0, 2890, 430], "scale": 0.5, "at": [1194, 240], "tape": ["t", "bl"]},
+   {"src": "story_07b_drag_to_shelf.png", "box": [2895, 0, 3745, 360], "scale": 0.5, "at": [1222, 512], "tape": ["tr", "bl"]}
   ],
   "marks": [
-   {"text": "and 4 here.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 2119, 21]},
-   {"text": "Here, a Diet Cola is dragged to the first shelf.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 2276, 300]},
-   {"text": "These buttons list the containers in reach: three shelves and the ground.", "pen": "blu", "at": [1676, 493], "maxw": 184, "bend": 0.0, "to": [1, 1978, 338]},
-   {"text": "The ground is a column too. Nothing is on it here.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [2, 3446, 174]},
-   {"text": "Each shelf in reach has its own column.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [2, 3190, 329]}
+   {"text": "and 4 here.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 2000, 100]},
+   {"text": "Here, a Diet Cola is dragged to the first shelf.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 2318, 330]},
+   {"text": "These buttons list the containers in reach: three shelves and the ground.", "pen": "blu", "at": [1676, 493], "maxw": 184, "bend": 0.0, "to": [1, 2005, 290]},
+   {"text": "The ground is a column too. Nothing is on it here.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [2, 3195, 175]},
+   {"text": "Each shelf in reach has its own column.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [2, 3000, 300]}
   ],
   "sticky": {"at": [1520, 884], "w": 280, "h": 132, "text": "Three shelves and the ground, all in reach."}
  }

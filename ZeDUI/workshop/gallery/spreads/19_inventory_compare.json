@@ -27,19 +27,19 @@
   "head": "Inventory and Loot",
   "blocks": [
    {"h2": "Containers as Columns"},
-   {"p": "In ZNIX each open container sits beside the others as a column. The *Character* window holds what you carry: in Figure 19-2, the military backpack and the inventory. The *World* window holds every container in reach: the trunk of the car, a duffel bag and the ground."},
+   {"p": "In ZNIX each open container sits beside the others as a column. The *Character* window holds what you carry: in Figure 19-2, the inventory. The *World* window holds what is in reach: here, the ground. The buttons beside the columns open the other containers, each in a column of its own."},
    {"at": 506},
-   {"p": "Each column has a header with the name of the container, its weight against what it can hold, and the number of items in it. Below the header the items are listed, under column heads that sort them."},
    {"at": 772},
    {"caption": ["Figure 19-2", "The same moment in ZNIX: the Character window, left, and the World window, right."]},
    {"p": "To move an item, drag it to another column. The item goes into the container of the column you drop it on."}
   ],
   "prints": [
-   {"src": "zed_01_hero_mid.png", "box": [961, 0, 3320, 735], "scale": 0.342, "at": [1030, 476], "tape": ["tl", "br"]}
+   {"src": "zed_01_hero_mid.png", "box": [1130, 0, 2710, 740], "scale": 0.342, "at": [1074, 476], "tape": ["tl", "tr"]}
   ],
   "marks": [
-   {"text": "Character window: the military backpack and the inventory, each in its own column.", "pen": "blu", "at": [1040, 360], "maxw": 280, "to": [[1, 1180, 61], [1, 1583, 61]]},
-   {"text": "World window: each container in reach has its own column: the trunk, a duffel bag and the ground.", "pen": "blu", "at": [1456, 360], "maxw": 400, "to": [[1, 2043, 61], [1, 2553, 61], [1, 2978, 61]]}
+   {"text": "Character window: the inventory, in a column of its own.", "pen": "blu", "at": [1040, 380], "maxw": 280, "to": [1, 1300, 75]},
+   {"text": "World window: the ground. The buttons beside it open the other containers in reach.", "pen": "blu", "at": [1400, 360], "maxw": 300, "to": [[1, 2160, 75], [1, 1945, 280]]},
+   {"text": "The gas can's level, in blue cells.", "pen": "blu", "at": [1676, 520], "maxw": 184, "to": [1, 2440, 205]}
   ],
   "sticky": {"at": [1330, 904], "w": 332, "h": 112, "text": "In ZeD every container is a column."}
  }

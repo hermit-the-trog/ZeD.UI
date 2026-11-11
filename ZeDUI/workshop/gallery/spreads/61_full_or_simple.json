@@ -12,11 +12,11 @@
    {
     "chapter": [
      "61",
-     "Full or Simple"
+     "Immersive or Simple"
     ]
    },
    {
-    "p": "The *Full or simple* section of *ZeD setup* sets how seven parts of the screen are drawn. For the belt, the devices, the watch and the dashboard, *Full* draws the real thing and *Simple* draws a plain card with the same buttons and readings, in the same order. The action bar, the context menu and the equipped items have choices of their own."
+    "p": "The *Immersive or simple* section of *ZeD setup* sets how six parts of the screen are drawn: the belt, the devices, the watch, the dashboard, the Survival Guide and the identity card. *Immersive* draws the real thing and *Simple* draws a plain card with the same buttons and readings, in the same order."
    },
    {
     "at": 690
@@ -24,7 +24,7 @@
    {
     "caption": [
      "Figure 61-1",
-     "The Full or simple section of ZeD setup."
+     "The Immersive or simple section of ZeD setup."
     ]
    },
    {
@@ -33,11 +33,11 @@
    {
     "caption": [
      "Figure 61-2",
-     "The watch, Simple, left; the belt, Full and Simple, right."
+     "The watch, Simple, left; the belt, both looks, right."
     ]
    },
    {
-    "p": "*Full* is the default. The *Access* preset, under *Additions*, picks *Simple* for the devices, the watch and the dashboard."
+    "p": "*Immersive* is the default. The *Access* preset, under *Additions*, picks *Simple* for the devices, the watch and the dashboard."
    }
   ],
   "prints": [
@@ -46,17 +46,17 @@
     "box": [
      1450,
      540,
-     2330,
-     985
+     2380,
+     935
     ],
-    "scale": 0.52,
+    "scale": 0.492,
     "at": [
      310,
      424
     ],
     "tape": [
      "tl",
-     "r"
+     "br"
     ]
    },
    {
@@ -125,18 +125,18 @@
     "maxw": 184,
     "to": [
      0,
-     2161,
-     900
+     2232,
+     733
     ]
    },
    {
     "circle": {
      "print": 0,
      "box": [
-      2135,
-      820,
-      2310,
-      978
+      2215,
+      640,
+      2340,
+      805
      ]
     },
     "pen": "grn"
@@ -167,7 +167,7 @@
  },
  "right": {
   "kind": "taped",
-  "head": "Full or Simple",
+  "head": "Immersive or Simple",
   "blocks": [
    {
     "h2": "Devices and the Dashboard"

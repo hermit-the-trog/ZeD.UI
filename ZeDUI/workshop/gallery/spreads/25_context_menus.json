@@ -41,14 +41,14 @@
    {
     "src": "van_20_ctx_menu.png",
     "box": [
-     1160,
-     205,
-     1625,
-     512
+     1165,
+     208,
+     1385,
+     375
     ],
-    "scale": 0.8,
+    "scale": 1.6,
     "at": [
-     258,
+     268,
      386
     ],
     "printed": true
@@ -66,8 +66,8 @@
     "bend": 0,
     "to": [
      0,
-     1290,
-     300
+     1255,
+     266
     ]
    }
   ]
@@ -80,7 +80,7 @@
     "h2": "The Strip and the List"
    },
    {
-    "p": "Figure 25-2 shows the menu for an apple in both styles. *Eat*, *Move to* and *Save to loadout* each open a submenu."
+    "p": "Figure 25-2 shows the menu for an apple in both styles. *Move to* and *Save to loadout* open a submenu; *Eat* is grayed."
    },
    {
     "at": 900
@@ -97,14 +97,14 @@
     "src": "zed_20_ctx_strip.png",
     "box": [
      1706,
-     962,
-     2140,
+     900,
+     2150,
      1072
     ],
     "scale": 1.0,
     "at": [
      1200,
-     296
+     262
     ],
     "tape": [
      "tl",
@@ -142,8 +142,8 @@
     "bend": 0,
     "to": [
      1,
-     1945,
-     994
+     1765,
+     935
     ]
    },
    {
@@ -151,7 +151,7 @@
     "pen": "blu",
     "at": [
      1500,
-     446
+     460
     ],
     "maxw": 160,
     "to": [

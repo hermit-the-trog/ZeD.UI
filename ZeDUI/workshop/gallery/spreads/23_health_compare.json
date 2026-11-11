@@ -35,14 +35,14 @@
    {
     "src": "van_11_health.png",
     "box": [
-     2411,
-     790,
-     2981,
-     1810
+     2412,
+     792,
+     2800,
+     1372
     ],
-    "scale": 0.45,
+    "scale": 0.78,
     "at": [
-     446,
+     423,
      430
     ],
     "printed": true
@@ -59,8 +59,8 @@
     "maxw": 300,
     "to": [
      0,
-     2591,
-     860
+     2520,
+     822
     ]
    }
   ]
@@ -73,7 +73,7 @@
     "h2": "Reading the Tab"
    },
    {
-    "p": "Figure 23-2 shows the tab with push-ups picked: the figure of the body at the left, overall health and the exercise at the right, and the controls for the exercise along the foot."
+    "p": "Figure 23-2 shows the tab with push-ups picked: the figure of the body at the left, overall health at the right, and the controls for the exercise along the foot."
    },
    {
     "at": 800
@@ -85,17 +85,17 @@
     ]
    },
    {
-    "p": "To exercise, pick the exercise from the *Exercise* pop-up, set the minutes with *-* and *+*, from 10 to 60, and click *Start*. The text under the exercise's name says what it trains."
+    "p": "To exercise, pick the exercise from the *Exercise* pop-up, set the minutes with *-* and *+*, from 10 to 60, and click *Start*."
    }
   ],
   "prints": [
    {
     "src": "zed_11_health_exercise.png",
     "box": [
-     354,
+     358,
      56,
-     1199,
-     694
+     1200,
+     640
     ],
     "scale": 0.6,
     "at": [
@@ -105,6 +105,24 @@
     "tape": [
      "tl",
      "tr"
+    ]
+   },
+   {
+    "src": "zed_11_health_exercise.png",
+    "box": [
+     358,
+     2030,
+     1200,
+     2095
+    ],
+    "scale": 0.6,
+    "at": [
+     1135,
+     676
+    ],
+    "tape": [
+     "bl",
+     "br"
     ]
    }
   ],
@@ -120,8 +138,8 @@
     "bend": 0,
     "to": [
      1,
-     522,
-     430
+     560,
+     400
     ]
    },
    {
@@ -135,12 +153,12 @@
     "bend": 0,
     "to": [
      1,
-     1150,
-     176
+     1160,
+     205
     ]
    },
    {
-    "text": "This text says what the exercise trains.",
+    "text": "No injuries: the tab says Healthy.",
     "pen": "blu",
     "at": [
      1676,
@@ -150,8 +168,8 @@
     "bend": 0,
     "to": [
      1,
-     1064,
-     311
+     905,
+     242
     ]
    },
    {
@@ -159,13 +177,13 @@
     "pen": "blu",
     "at": [
      1190,
-     730
+     746
     ],
     "maxw": 220,
     "to": [
-     1,
+     2,
      560,
-     660
+     2062
     ]
    },
    {
@@ -173,13 +191,13 @@
     "pen": "blu",
     "at": [
      1440,
-     730
+     746
     ],
     "maxw": 230,
     "to": [
-     1,
-     994,
-     660
+     2,
+     1012,
+     2062
     ]
    }
   ],

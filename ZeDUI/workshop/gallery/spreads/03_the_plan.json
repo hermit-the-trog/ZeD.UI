@@ -22,7 +22,7 @@
     "p": "The *Journal* tab keeps a log of your days. The *Page* pop-up at the top left chooses what the tab shows: the journal, notebooks, papers or recipes. To add an entry, type it in the box under the search field and click *Save*. *Into* shows where the entry goes: here, the log only. Entries are grouped by month, and each carries the day and the time it was written."
    },
    {
-    "at": 888
+    "at": 856
    },
    {
     "caption": [
@@ -38,10 +38,10 @@
    {
     "src": "story_02a_journal_entry.png",
     "box": [
-     296,
+     712,
      0,
-     1200,
-     735
+     1640,
+     620
     ],
     "scale": 0.42,
     "at": [
@@ -50,6 +50,23 @@
     ],
     "tape": [
      "l",
+     "r"
+    ]
+   },
+   {
+    "src": "story_02a_journal_entry.png",
+    "box": [
+     712,
+     2035,
+     1640,
+     2140
+    ],
+    "scale": 0.42,
+    "at": [
+     390,
+     800
+    ],
+    "tape": [
      "r"
     ]
    }
@@ -66,8 +83,8 @@
     "bend": 0.03,
     "to": [
      0,
-     392,
-     94
+     880,
+     131
     ]
    },
    {
@@ -81,8 +98,8 @@
     "bend": 0.03,
     "to": [
      0,
-     402,
-     232
+     950,
+     285
     ]
    },
    {
@@ -96,8 +113,8 @@
     "bend": 0.03,
     "to": [
      0,
-     386,
-     425
+     1000,
+     480
     ]
    },
    {
@@ -110,9 +127,9 @@
     "maxw": 186,
     "bend": 0.03,
     "to": [
-     0,
-     1098,
-     662
+     1,
+     1545,
+     2070
     ]
    }
   ],
@@ -222,12 +239,12 @@
     "bend": 0.03,
     "to": [
      [
-      2,
+      3,
       2730,
       478
      ],
      [
-      2,
+      3,
       2645,
       522
      ]
@@ -243,7 +260,7 @@
     "maxw": 184,
     "bend": 0.0,
     "to": [
-     3,
+     4,
      1168,
      1890
     ]

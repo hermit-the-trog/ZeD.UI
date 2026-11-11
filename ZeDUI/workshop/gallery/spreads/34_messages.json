@@ -8,9 +8,9 @@
   "blocks": [
    {"chapter": ["34", "Messages"]},
    {"p": "Some mods open a note when the game starts or when something changes. ZNIX keeps the notes in one window, *Messages*, instead of showing them over the game, and nothing pauses the game."},
-   {"p": "When a note comes in, a strip at the right of the screen names the mod for a few seconds (Figure 34-1). Click the strip to open *Messages* at that mod. The paper note at the right end of the belt counts the notes that are new."},
+   {"p": "When a note comes in, a bubble out of the paper note on the belt names the mod for a few seconds (Figure 34-1); click it to open *Messages* at that mod. The paper note counts new notes."},
    {"p": "A mod's errors wait here too, each with *Copy*; *Bug report* on the ZeD wheel copies them all, with the mods that are on."},
-   {"at": 650},
+   {"at": 654},
    {"caption": ["Figure 34-1", "Notes from two mods have come in."]},
    {"p": "To read the notes a mod has sent:"},
    {"list": ["Click the paper note on the belt. On a controller, choose *Messages* on the ZeD wheel.",
@@ -19,10 +19,10 @@
    {"note": "Questions are not kept. A question from a mod, such as one answered *Yes* or *No*, is asked at once, and a copy of the answer is kept in *Messages*."}
   ],
   "prints": [
-   {"src": "zqa_g4_belt_toast.png", "box": [3100, 245, 3740, 395], "scale": 0.6, "at": [300, 534], "printed": true}
+   {"src": "zqa_g4_belt_toast.png", "box": [2000, 1830, 2420, 2135], "scale": 0.38, "at": [360, 516], "printed": true}
   ],
   "marks": [
-   {"text": "A strip names the mod for a few seconds. Click it to read.", "pen": "blu", "at": [62, null], "maxw": 184, "to": [0, 3145, 287]},
+   {"text": "A bubble names the mod for a few seconds. Click it to read.", "pen": "blu", "at": [62, null], "maxw": 184, "to": [0, 2190, 1870]},
    {"circle": {"word": "newest"}, "pen": "grn"}
   ]
  },

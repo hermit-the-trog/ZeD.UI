@@ -29,12 +29,12 @@
    {"caption": ["Figure 7-1", "The context menu on the front window, top, and the action bar while Angel barricades it, bottom."]}
   ],
   "prints": [
-   {"src": "story_05a_barricade_menu.png", "box": [1660, 940, 2200, 1200], "scale": 0.9, "at": [1156, 322], "tape": ["tl", "tr"]},
+   {"src": "story_05a_barricade_menu.png", "box": [1700, 930, 2330, 1220], "scale": 0.77, "at": [1156, 322], "tape": ["tl", "tr"]},
    {"src": "story_05b_barricade_bar.png", "box": [1660, 860, 2200, 1120], "scale": 0.9, "at": [1156, 594], "tape": ["bl", "br"]}
   ],
   "marks": [
-   {"text": "The label names the action under the pointer: Window, Barricade (Planks).", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [0, 2070, 994]},
-   {"text": "The strip is a submenu: < goes back, the lit button is the one under the pointer.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [0, 1980, 1047]},
+   {"text": "The label names the action under the pointer: Window, Barricade (Planks).", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [0, 2300, 977]},
+   {"text": "The strip is a submenu: < goes back, the lit button is the one under the pointer.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [0, 1978, 1047]},
    {"circle": {"print": 0, "box": [1864, 1030, 1898, 1064]}, "pen": "grn"},
    {"text": "The action bar shows the action, the step and the percent: step 2 of 3, 40 percent.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [1, 2013, 927]}
   ],

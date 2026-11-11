@@ -14,13 +14,13 @@
    {"caption": ["Figure 13-1", "The Journal tab, with the Zombies Killed section open."]}
   ],
   "prints": [
-   {"src": "journal_kills_1.png", "box": [1146, 344, 2064, 1456], "scale": 0.5, "at": [258, 286], "tape": ["t", "r"]}
+   {"src": "journal_kills_1.png", "box": [1080, 344, 1998, 1456], "scale": 0.5, "at": [258, 286], "tape": ["t", "r"]}
   ],
   "marks": [
-   {"text": "Zombies killed, with the total at the right end of the heading. Click the heading to show or hide the list.", "pen": "blu", "at": [62, 219], "maxw": 188, "to": [0, 1290, 497], "bend": -0.3},
-   {"circle": {"print": 0, "box": [1932, 485, 2000, 511]}, "pen": "grn"},
-   {"text": "Fire, vehicle and explosion kills have a colored square and count toward the total.", "pen": "blu", "at": [62, 384], "maxw": 188, "to": [0, 1268, 579]},
-   {"text": "The other rows count kills by weapon type.", "pen": "blu", "at": [62, 548], "maxw": 188, "to": [0, 1300, 896]}
+   {"text": "Zombies killed, with the total at the right end of the heading. Click the heading to show or hide the list.", "pen": "blu", "at": [62, 219], "maxw": 188, "to": [0, 1224, 497], "bend": -0.3},
+   {"circle": {"print": 0, "box": [1866, 485, 1934, 511]}, "pen": "grn"},
+   {"text": "Fire, vehicle and explosion kills have a colored square and count toward the total.", "pen": "blu", "at": [62, 384], "maxw": 188, "to": [0, 1202, 579]},
+   {"text": "The other rows count kills by weapon type.", "pen": "blu", "at": [62, 548], "maxw": 188, "to": [0, 1234, 896]}
   ],
   "sticky": {"at": [612, 910], "w": 268, "h": 108, "text": "The Journal keeps count for you."}
  },
@@ -42,7 +42,7 @@
      ]}},
    {"note": "The twelve rows add up to the total in the heading, 212."},
    {"h2": "The Log"},
-   {"p": "Below the counts is the log. Its entries are grouped by month, as the July entry in Figure 13-1 is. To add an entry:"},
+   {"p": "Below the counts is the log. Its entries are grouped by month, as the September entry in Figure 13-1 is. To add an entry:"},
    {"list": ["Click in the *Write something...* box under the counts.", "Type the entry.", "Click *Save*. The entry is added with the day and time."], "numbered": true}
   ],
   "marks": [

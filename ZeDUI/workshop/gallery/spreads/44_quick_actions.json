@@ -31,12 +31,12 @@
    {"caption": ["Figure 44-2", "Put things back, top, and the list."]}
   ],
   "prints": [
-   {"src": "zqa_g3_setup_putback.png", "box": [1460, 955, 2760, 1560], "scale": 0.46, "at": [1040, 290], "tape": ["l", "r"]},
-   {"src": "zqa_g3_setup_list.png", "box": [2000, 1588, 2732, 2150], "scale": 0.46, "at": [1040, 612], "tape": ["l", "tr"]}
+   {"src": "~/Zomboid/Screenshots/gallery_b3a/zqa_g3_setup_putback.png", "box": [1460, 955, 2760, 1560], "scale": 0.46, "at": [1040, 290], "tape": ["l", "r"]},
+   {"src": "zqa_g3_setup_list.png", "box": [1910, 1588, 2690, 2150], "scale": 0.42, "at": [1040, 612], "tape": ["l", "tr"]}
   ],
   "marks": [
    {"text": "Put things back after an action. Off until you turn it on.", "pen": "blu", "at": [1676, null], "maxw": 186, "to": [[1, 2074, 986], [1, 2700, 1462]]},
-   {"text": "Every action on the wheels, in a list. The one on the chord you are editing is marked \u00ab.", "pen": "blu", "at": [1416, 760], "maxw": 244, "to": [2, 2147, 2116]}
+   {"text": "Every action on the wheels, in a list. The one on the chord you are editing is marked \u00ab.", "pen": "blu", "at": [1416, 760], "maxw": 244, "to": [2, 2105, 2117]}
   ],
   "sticky": {"at": [1520, 908], "w": 300, "h": 104, "text": "Put things back is off until you turn it on."}
  }

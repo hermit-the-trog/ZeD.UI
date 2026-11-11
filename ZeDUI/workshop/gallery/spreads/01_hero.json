@@ -17,7 +17,7 @@
    {"src": "zed_02_hero_close.png", "box": [0, 0, 3840, 2160], "scale": 0.28, "at": [412, 302], "tape": ["tl", "r"], "cross": true}
   ],
   "marks": [
-   {"text": "Character window. Everything about you: what you carry and wear, health, temperature, ID, journal and skills.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.01, "to": [0, 1000, 196]},
+   {"text": "Character window. Everything about you: what you carry and wear, health, temperature, ID, journal and skills.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.01, "to": [0, 1150, 240]},
    {"text": "The belt: your off hand and main hand at the left end, then the numbered slots on a strap. The green ring shows the main hand's condition.", "pen": "blu", "at": [62, 944], "maxw": 600, "to": [0, 1546, 2085]}
   ]
  },
@@ -35,7 +35,7 @@
    {"caption": ["Figure 1-1", "The screen in play: two windows and the belt."]}
   ],
   "marks": [
-   {"text": "World window. The world around you: containers, crafting, building, furniture, maps, foraging, animals and vehicles.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.01, "to": [0, 3285, 78]}
+   {"text": "World window. The world around you: containers, crafting, building, furniture, maps, foraging, animals and vehicles.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.01, "to": [0, 2690, 230]}
   ],
   "sticky": {"at": [1576, 882], "w": 270, "h": 140, "text": "The whole screen: two windows and the belt."}
  }

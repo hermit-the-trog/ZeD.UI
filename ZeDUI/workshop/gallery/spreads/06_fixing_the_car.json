@@ -27,20 +27,20 @@
    {
     "caption": [
      "Figure 6-1",
-     "The Vehicle tab, at the front left tire."
+     "The Vehicle tab, at the front right tire."
     ]
    },
    {
-    "p": "The front left tire of the wagon is missing. Angel has an old tire in his inventory, at 100 percent condition; the other two kinds of tire are not nearby."
+    "p": "The front right tire of the wagon is missing. Angel has an old tire in his inventory, at 100 percent condition; the other two kinds of tire are not nearby."
    }
   ],
   "prints": [
    {
     "src": "~/Zomboid/Screenshots/gallery_beta2/story_04b_vehicle_tab_tire.png",
     "box": [
-     2222,
+     2578,
      45,
-     3120,
+     3480,
      705
     ],
     "scale": 0.65,
@@ -66,7 +66,7 @@
     "bend": 0.0,
     "to": [
      0,
-     2983,
+     3340,
      663
     ]
    },
@@ -81,7 +81,7 @@
     "bend": 0.02,
     "to": [
      0,
-     2955,
+     3312,
      226
     ]
    },
@@ -96,7 +96,7 @@
     "bend": 0.02,
     "to": [
      0,
-     2803,
+     3160,
      348
     ]
    },
@@ -111,7 +111,7 @@
     "bend": 0.02,
     "to": [
      0,
-     2325,
+     2682,
      276
     ]
    },
@@ -126,7 +126,7 @@
     "bend": 0.0,
     "to": [
      0,
-     3098,
+     3455,
      518
     ]
    },
@@ -134,9 +134,9 @@
     "circle": {
      "print": 0,
      "box": [
-      2662,
+      3019,
       374,
-      3017,
+      3374,
       438
      ]
     },
@@ -189,9 +189,9 @@
    {
     "src": "~/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
     "box": [
-     2230,
+     2595,
      118,
-     3050,
+     3415,
      182
     ],
     "scale": 0.64,
@@ -207,10 +207,10 @@
    {
     "src": "~/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
     "box": [
-     1735,
-     850,
-     2150,
-     1180
+     1760,
+     870,
+     2175,
+     1200
     ],
     "scale": 0.9,
     "at": [
@@ -235,8 +235,8 @@
     "bend": 0.02,
     "to": [
      1,
-     2962,
-     134
+     3330,
+     138
     ]
    },
    {
@@ -250,8 +250,8 @@
     "bend": 0.02,
     "to": [
      2,
-     1927,
-     925
+     1945,
+     922
     ]
    }
   ],

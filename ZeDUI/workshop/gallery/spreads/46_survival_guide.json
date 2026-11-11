@@ -16,7 +16,7 @@
     ]
    },
    {
-    "p": "The Survival Guide opens with *F1*. It has two looks, chosen in *ZeD setup*: *Full*, a 1987 manual, and *Simple*, a plain window. A page shows your keys, or your controller's buttons."
+    "p": "The Survival Guide opens with *F1*. It has two looks, chosen in *ZeD setup*: *Immersive*, a 1987 manual, and *Simple*, a plain window. A page shows your keys, or your controller's buttons."
    },
    {
     "at": 700
@@ -24,7 +24,7 @@
    {
     "caption": [
      "Figure 46-1",
-     "The *Full* look: the title page, left, and the contents, right."
+     "The *Immersive* look: the title page, left, and the contents, right."
     ]
    }
   ],
@@ -84,7 +84,7 @@
   ],
   "marks": [
    {
-    "text": "Full is a 1987 manual.",
+    "text": "Immersive is a 1987 manual.",
     "pen": "blu",
     "at": [
      62,
@@ -152,7 +152,7 @@
    {
     "caption": [
      "Figure 46-2",
-     "The rules page: *Full*, top; *Simple*, below."
+     "The rules page: *Immersive*, top; *Simple*, below."
     ]
    }
   ],
@@ -176,7 +176,7 @@
     ]
    },
    {
-    "src": "gw_zqa_g82s_3840x2160_2b_skill_books_rules_full.png",
+    "src": "~/Zomboid/Screenshots/gallery_t14/_before_b11/gw_zqa_g82s_3840x2160_2b_skill_books_rules_full.png",
     "box": [
      1800,
      880,
@@ -260,7 +260,7 @@
     ]
    },
    {
-    "text": "Full and Simple give the same rules. The book changes with the game, for your version.",
+    "text": "Immersive and Simple give the same rules. The book changes with the game, for your version.",
     "pen": "blu",
     "at": [
      1496,

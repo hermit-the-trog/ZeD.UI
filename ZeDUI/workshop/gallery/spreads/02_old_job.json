@@ -37,7 +37,7 @@
    {"src": "story_00a_identity_tall.png", "box": [902, 0, 1806, 1690], "scale": 0.5, "at": [1190, 150], "tape": ["t", "br"]}
   ],
   "marks": [
-   {"text": "A mechanic, six days in, 23 zombies killed.", "pen": "blu", "at": [1676, 440], "maxw": 184, "bend": 0.04, "to": [[1, 1612, 353], [1, 1454, 603], [1, 1536, 694]]},
+   {"text": "A mechanic, six days in, 37 zombies killed.", "pen": "blu", "at": [1676, 440], "maxw": 184, "bend": 0.04, "to": [[1, 1612, 353], [1, 1454, 603], [1, 1536, 694]]},
    {"text": "Hair and beard: Now is your look, After previews a pick.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 1215, 940]},
    {"text": "Good traits carry a green mark.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.04, "to": [1, 1771, 1328]},
    {"text": "Bad ones carry a red mark.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.04, "to": [1, 1771, 1543]}

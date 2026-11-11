@@ -19,7 +19,7 @@
    {"src": "story_08c_footer_blue.png", "box": [2335, 30, 3035, 560], "scale": 0.5, "at": [300, 372], "tape": ["tl", "tr"]}
   ],
   "marks": [
-   {"text": "Accent: eight colors or None for this window, or Same as Accent color. The Fossoil uses Blue.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.0, "to": [0, 2714, 291]}
+   {"text": "Accent: nine choices, eight colors and None, for this window, or Same as Accent color. The Fossoil uses Blue.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.0, "to": [0, 2714, 291]}
   ],
   "sticky": {"at": [600, 884], "w": 280, "h": 132, "text": "The Fossoil's colors: Light and Blue."}
  },
