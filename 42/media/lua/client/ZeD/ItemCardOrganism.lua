@@ -1365,7 +1365,7 @@ local function drawMakes(card, item, x, y, w, compact, viewTop, viewBot)
     local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
     local function row(i, label, value, cls, help, onPress)
         local id = "make_" .. i
-        local h = M.drawFactsRow(card, x, cy, w, label, value, cls, true)
+        local h = M.drawFactsRow(card, x, cy, w, label, value, cls, true, nil, true)   -- (flush: no parent row above them)
         if ZeD.Atoms.mouseIn(card, x, cy, w, h) then
             local hv = T.hover
             card:drawRect(x, cy, w, h, hv.a, hv.r, hv.g, hv.b)

@@ -42,3 +42,4 @@ ZeDUI/workshop/gallery/_thumb_card.png
 # Windows-path sims write their discarded output to "nul", a real file off Windows
 /nul
 /NUL
+/luac.out

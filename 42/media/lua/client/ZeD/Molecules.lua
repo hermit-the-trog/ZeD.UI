@@ -2935,7 +2935,10 @@ end
 ---                          getter not yet verified in-game and may firm up
 ---                          into a real number later
 --- @return height
-function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub, needsProbe)
+-- flush: a sub row (the smaller label in the secondary colour) without the indent, for a list under its own title
+-- with no parent row to hang from (the item card's "Used to make": the director, Nov 11 2026, "flush left with the
+-- rest of the card")
+function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub, needsProbe, flush)
     local T = ZeD.T
 
     -- label: sans-serif weight 600 (~T.fontF4 small) for main rows, fontF2 for sub
@@ -2948,7 +2951,7 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     local valueH = T.fontF1H or ZeD.TM:getFontHeight(valueFont)
     local rowH   = math.max(labelH, valueH) + T.px(2)  -- 2px breathe
 
-    local indent = isSub and T.px(14) or 0
+    local indent = (isSub and not flush) and T.px(14) or 0
     local labelC = isSub and T.textSec or T.text
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)

@@ -128,6 +128,12 @@ local _, nMeter = esrc:gsub("ZeD%.ItemMeter%.of%(s?l?o?t?%.?s?%.?item%)", "")
 check("COLUMN the Equipment tab's Equipped rows and belt rows read ItemMeter",
       esrc:find("mk, f = ZeD.ItemMeter.of(slot.item)", 1, true) ~= nil and esrc:find("mk, f = ZeD.ItemMeter.of(s.item)", 1, true) ~= nil)
 check("COLUMN and draw its kind's bar (eqCondition takes it)", esrc:find("local function eqCondition(panel, x, cy, w, f, kind)", 1, true) ~= nil)
+-- the item card's "Used to make" rows flush left (153; the director: "flush left with the rest of the card"): a sub
+-- row's small label and secondary colour, without the indent
+local fmo = io.open(CDIR .. "Molecules.lua", "rb"); local msrc = fmo:read("*a"); fmo:close()
+local fic = io.open(CDIR .. "ItemCardOrganism.lua", "rb"); local isrc = fic:read("*a"); fic:close()
+check("COLUMN (153) a flush sub row has no indent", msrc:find("local indent = (isSub and not flush) and T.px(14) or 0", 1, true) ~= nil)
+check("COLUMN (153) the recipes ask for it", isrc:match("local function drawMakes%(.-M%.drawFactsRow%(card, x, cy, w, label, value, cls, true, nil, true%)") ~= nil)
 -- every language has the heading, the panel's title and Amount
 local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT", "JP",
                 "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }

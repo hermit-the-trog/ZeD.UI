@@ -4025,6 +4025,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     one type). **Recheck (QA):** the Equipped list's Held rows with a water bottle and a lighter in the hands: ten blue
     and ten accent cells to their levels.
 
+153. **The item card's "Used to make" rows flush left (the director, Nov 11 2026, after QA's colour note on test 9:
+    "flush left with the rest of the card"; the secondary colour stays: "if it's secondary color that is ok").** The
+    recipes were drawn as sub rows (ItemCardOrganism drawMakes: drawFactsRow's isSub), indented 14 units under no
+    parent row. drawFactsRow takes a flush flag now (Molecules.lua): a sub row's smaller label and secondary colour,
+    no indent; the recipes ask for it. card_model_sim 2623/0 (its OLD / NEW drawing logs leave the flag out, so they
+    still compare the card's model, and a check of its own reads the recipes drawn flush). **Check (QA):** an item
+    card with "Used to make" (a shirt: Rag): the recipe names start at the card's left edge, as the facts above
+    them, in the secondary colour.
+
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
     Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips

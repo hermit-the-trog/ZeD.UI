@@ -39,6 +39,7 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 | 150 | The inventory narrower where a full card would shift the window, both windows (the director) | QA Nov 11 on test 7: **ok** (1280: 222 px, Cond gone, nothing shifts; 1366: 265 px; 1920 and 4K as before) |
 | 151 | The loot card shows no liquid in a fluid container (QA, seen in passing on test 7) | QA Nov 11 on test 9: **pass** (the floor fixed; reworked into 152) |
 | 152 | The COND / AMT column: one bar an item, its condition or how full; hover shows the level, the item card the litres; the heading left aligned (director) | QA Nov 11 on test 9: **pass**; the Equipped list's Held rows fixed after (they read condition); recheck in test 10 |
+| 153 | The item card's "Used to make" rows flush left (director) | built Nov 11 (card_model_sim 2623/0); in test 10 |
 | 139 | The pointer says what a click or a drop will do (an idea from the director, Nov 10; mockup in ZeDUI/mockups/zed_pointer_hint_v1) | parked by the director (research later); not in beta 11 |
 | 132 | Strip submenus open on rest | closed: the director chose click only; a note that mentions rest names the List only |
 
@@ -76,5 +77,5 @@ DECK FIXES and REPORTS are the umbrella for 125, 126, 130, 131 and 133 plus any 
 - **Long runs:** Start-Process with output to a file and WaitForExit (never pipe a command that starts the game or a server, never `-Wait`), with `stall_watch.ps1` beside it. A performance result counts only with the windows pinned.
 - **Test a staged build from its own cachedir** (`ZomboidStaged`); the staged Workshop Contents does not shadow the dev mod.
 - **Never kill a process the session did not start** (by PID only).
-- **Words:** American spelling, no Oxford comma, never a middle dot; every new string in all 28 languages as labeled machine drafts. Code comments follow COMMENT_VOICE.md.
+- **Words:** American spelling, no Oxford comma, never a middle dot; every new string in all 28 languages as labeled machine drafts. **AR is Argentine Spanish in Project Zomboid, not Arabic** (Nov 11 2026: Build wrote Arabic into AR for the studio's backdrop names, the COND / AMT heading, Liquid Facts and Amount; PR #4, stacked on PR #3, redrafts all 279 Arabic values in Argentine Spanish and makes `mt.py check` fail any Arabic letter in AR). Write AR in Argentine Spanish (voseo, as the file has it). Code comments follow COMMENT_VOICE.md.
 - **Gamepad rules** (the director): focus returns to its origin; directions match the screen; land on the primary action; common actions cost the fewest presses; the belt is never a trap.
