@@ -231,7 +231,276 @@ def flag():
     return to_img(arr)
 
 
-BACKDROPS = [("mottled", mottled_blue), ("sky", sky), ("autumn", autumn), ("knox", knox), ("lasers", lasers), ("flag", flag)]
+# ---------------------------------------------------------------------------------------------------------------------
+# THE PAINTED CANVASES (the director, Nov 11 2026, from three sets of references: classic hand-painted portrait cloths
+# and plasters, "a bit pixelated like the other art we have done, but not sooooo heavy"). One engine: a wall of paint
+# with a light behind the head and a darker edge, meeting a floor of the same paint at HZ; each canvas picks its
+# palette and its textures. ZeD's own paintings in that style; none copies a reference.
+# ---------------------------------------------------------------------------------------------------------------------
+HZ = 0.80          # where the wall meets the floor (the figure, full body, stands with its feet on the floor below it)
+
+
+def streaks(seed, axis="h", k=8, octaves=5, base=4):
+    """noise smeared along an axis (brush strokes, a floor's grain): drawn small that way, then stretched"""
+    if axis == "h":     # (strokes running across: few samples across, many down, stretched across)
+        n = noise(max(8, W // k), H, octaves=octaves, base=base, seed=seed)
+    else:
+        n = noise(W, max(8, H // k), octaves=octaves, base=base, seed=seed)
+    return np.asarray(Image.fromarray((n * 255).astype(np.uint8)).resize((W, H), Image.BICUBIC), np.float32) / 255.0
+
+
+def diag_streaks(seed, angle=30, k=8):
+    """brush strokes on a slant"""
+    big = int(np.hypot(W, H)) + 4
+    n = noise(big, max(8, big // k), octaves=5, base=4, seed=seed)
+    img = Image.fromarray((n * 255).astype(np.uint8)).resize((big, big), Image.BICUBIC).rotate(angle, Image.BICUBIC)
+    ox, oy = (big - W) // 2, (big - H) // 2
+    return np.asarray(img.crop((ox, oy, ox + W, oy + H)), np.float32) / 255.0
+
+
+def specks(seed, density=0.06, base=90):
+    """fine granite: light and dark specks in -1..1"""
+    n = noise(W, H, octaves=2, base=base, persist=0.5, seed=seed)
+    hi = np.clip((n - (1 - density)) / density, 0, 1)
+    lo = np.clip((density - n) / density, 0, 1)
+    return hi - lo
+
+
+def relief(seed, base=10, light=(-0.7, -0.7)):
+    """stucco: a height map of ridged noise, lit from the upper left; -1..1"""
+    n = noise(W, H, octaves=6, base=base, persist=0.55, seed=seed)
+    h = 1 - np.abs(2 * n - 1)
+    gy, gx = np.gradient(h)
+    s = -(gx * light[0] + gy * light[1]) * 18
+    return np.clip(s, -1, 1)
+
+
+def folds(seed, freq=7.0, slant=0.18):
+    """a hanging cloth's folds: near-vertical ridges, wider toward the foot, their phase wandering; sharp crests, soft
+    troughs (cloth hangs in rounded valleys and folds over at the ridges)"""
+    x, y = grids()
+    wander = noise(W, H, octaves=3, base=2, seed=seed)
+    ph = ((x - 0.5) / (0.75 + 0.35 * y) + slant * y) * freq + wander * 1.1
+    w = 0.5 + 0.5 * np.sin(ph * 2 * np.pi)
+    w2 = 0.5 + 0.5 * np.sin(ph * 2 * np.pi * 2.3 + 1.1)
+    return (w ** 2.2 * 0.75 + w2 ** 3 * 0.25) * 2 - 0.6
+
+
+def canvas(wall, floor, glow_at=(0.5, 0.36), glow_r=0.55, glow_k=0.55, vig=0.55, seed=0, tex=None, tint=None):
+    """a painted cloth or plaster wall meeting its floor at HZ.
+    wall, floor: colour stops for ramp(); tex: {"cloud": w, "speck": w, "brush": w, "vbrush": w, "dbrush": w,
+    "relief": w, "flecks": w, "folds": w}; tint: optional (stops, field) laid over the wall (gold to violet)"""
+    tex = tex or {}
+    x, y = grids()
+    n1 = noise(W, H, octaves=7, base=3, persist=0.6, seed=seed + 1)
+    n2 = noise(W, H, octaves=5, base=9, persist=0.5, seed=seed + 2)
+    t = (0.62 * n1 + 0.38 * n2) * tex.get("cloud", 1.0) + 0.5 * (1 - tex.get("cloud", 1.0))
+    if "brush" in tex: t = t + (streaks(seed + 3, "h") - 0.5) * tex["brush"]
+    if "vbrush" in tex: t = t + (streaks(seed + 4, "v") - 0.5) * tex["vbrush"]
+    if "dbrush" in tex: t = t + (diag_streaks(seed + 5) - 0.5) * tex["dbrush"]
+    if "folds" in tex: t = t + folds(seed + 6) * tex["folds"]
+    # the light behind the head lifts the cloth's own mottle rather than painting a disc on it (a disc's outline turns
+    # into rings when the colours are counted down)
+    gl = glow(glow_at[0], glow_at[1], glow_r, 1.25) * (0.75 + 0.5 * n2)
+    t = np.clip(t + (gl - 0.35) * glow_k * 0.55, 0, 1)
+    col = ramp(t, wall)
+    if tint is not None:
+        stops, field = tint
+        tc = ramp(field, stops)
+        col = col * 0.25 + tc * 0.75
+    if "relief" in tex: col = col * (1 + 0.28 * tex["relief"] * relief(seed + 7)[..., None])
+    if "speck" in tex: col = col * (1 + 0.22 * tex["speck"] * specks(seed + 8)[..., None])
+    if "flecks" in tex:
+        f = np.clip((noise(W, H, octaves=3, base=40, seed=seed + 9) - 0.78) / 0.12, 0, 1) * tex["flecks"]
+        col = col * (1 - f[..., None]) + np.array((236, 232, 222), np.float32) * f[..., None]
+    # the floor: the same paint laid flat, its grain running across, lighter toward the viewer, a shadow at the wall
+    d = np.clip((y - HZ) / (1 - HZ), 0, 1)
+    grain = streaks(seed + 10, "h", k=14, octaves=5, base=5)
+    ft = 0.35 + 0.4 * grain + 0.25 * d
+    if "folds" in tex: ft = ft + folds(seed + 11, freq=5.0, slant=-0.8) * 0.25 * tex["folds"]
+    fcol = ramp(ft, floor)
+    fcol *= (0.78 + 0.22 * glow(glow_at[0], HZ + 0.12, 0.5, 2.2) * 1.4)[..., None]
+    fcol *= (1 - 0.35 * np.clip(1 - d / 0.12, 0, 1))[..., None]          # (the shadow where it meets the wall)
+    if "speck" in tex: fcol = fcol * (1 + 0.15 * tex["speck"] * specks(seed + 12)[..., None])
+    # the wall darkens toward its foot, the junction a soft dark line, not a ruler
+    col *= (1 - 0.32 * np.clip((y - (HZ - 0.12)) / 0.12, 0, 1))[..., None]
+    edge = HZ + 0.006 * np.sin(x * 9.0 + seed) + 0.004 * (n2 - 0.5)
+    m = np.clip((y - edge) / 0.008, 0, 1)[..., None]
+    out = col * (1 - m) + fcol * m
+    out *= vignette(vig)[..., None]
+    return to_img(out)
+
+
+def c_slate():
+    return canvas([(0, (20, 21, 24)), (0.45, (48, 50, 54)), (0.75, (84, 86, 90)), (1, (124, 126, 128))],
+                  [(0, (34, 35, 38)), (1, (88, 90, 92))], seed=100, glow_k=0.8, tex={"cloud": 0.9, "speck": 1.0})
+
+
+def c_sage():
+    return canvas([(0, (30, 44, 40)), (0.4, (62, 86, 78)), (0.7, (108, 132, 116)), (1, (156, 168, 140))],
+                  [(0, (40, 58, 54)), (1, (104, 126, 112))], seed=110, tex={"cloud": 1.0, "brush": 0.12})
+
+
+def c_tan():
+    return canvas([(0, (96, 64, 36)), (0.4, (160, 116, 70)), (0.72, (206, 166, 112)), (1, (236, 206, 158))],
+                  [(0, (128, 92, 58)), (1, (218, 180, 128))], seed=120, glow_k=0.7, vig=0.45,
+                  tex={"cloud": 0.9, "speck": 0.4, "vbrush": 0.1})
+
+
+def c_cream():
+    return canvas([(0, (70, 44, 40)), (0.4, (168, 128, 106)), (0.75, (226, 198, 164)), (1, (246, 228, 196))],
+                  [(0, (150, 116, 94)), (1, (226, 200, 166))], seed=130, glow_k=0.9, glow_r=0.66, vig=0.8,
+                  tex={"cloud": 0.7})
+
+
+def c_spotlight():
+    return canvas([(0, (4, 8, 14)), (0.35, (20, 40, 58)), (0.65, (72, 112, 138)), (1, (176, 206, 220))],
+                  [(0, (8, 16, 24)), (1, (120, 158, 180))], seed=140, glow_k=1.15, glow_r=0.6, glow_at=(0.5, 0.4), vig=0.9,
+                  tex={"cloud": 0.9})
+
+
+def c_dusk():
+    return canvas([(0, (52, 24, 46)), (0.4, (120, 50, 70)), (0.7, (190, 100, 96)), (1, (236, 166, 128))],
+                  [(0, (90, 44, 60)), (1, (204, 132, 116))], seed=150, glow_k=0.8,
+                  tex={"cloud": 0.8, "brush": 0.3})
+
+
+def c_drape():
+    return canvas([(0, (36, 24, 18)), (0.45, (92, 68, 52)), (0.75, (132, 104, 82)), (1, (166, 136, 110))],
+                  [(0, (48, 34, 26)), (1, (130, 102, 80))], seed=160, glow_k=0.35,
+                  tex={"cloud": 0.75, "folds": 0.22})
+
+
+def p_rust():
+    return canvas([(0, (44, 22, 12)), (0.4, (110, 52, 22)), (0.7, (164, 92, 44)), (1, (204, 140, 80))],
+                  [(0, (64, 32, 16)), (1, (160, 96, 50))], seed=200, glow_k=0.4,
+                  tex={"cloud": 0.9, "speck": 1.2, "relief": 0.5})
+
+
+def p_stucco():
+    return canvas([(0, (12, 11, 10)), (0.45, (36, 34, 31)), (0.75, (64, 60, 54)), (1, (96, 90, 80))],
+                  [(0, (20, 19, 18)), (1, (70, 66, 60))], seed=210, glow_k=0.3,
+                  tex={"cloud": 0.7, "relief": 1.6})
+
+
+def p_orange():
+    return canvas([(0, (60, 26, 8)), (0.4, (126, 58, 16)), (0.72, (174, 92, 30)), (1, (210, 136, 60))],
+                  [(0, (84, 38, 12)), (1, (176, 100, 40))], seed=220, glow_k=0.5,
+                  tex={"cloud": 0.8, "brush": 0.18})
+
+
+def p_lavender():
+    return canvas([(0, (78, 62, 96)), (0.4, (138, 118, 152)), (0.72, (190, 172, 196)), (1, (232, 218, 220))],
+                  [(0, (100, 84, 116)), (1, (196, 180, 196))], seed=230, glow_k=0.7,
+                  tex={"cloud": 1.0})
+
+
+def p_goldviolet():
+    x, y = grids()
+    n = noise(W, H, octaves=6, base=3, persist=0.6, seed=241)
+    field = np.clip(1.05 - 0.85 * x - 0.45 * y + (n - 0.5) * 0.6, 0, 1)
+    tint = ([(0, (52, 34, 92)), (0.35, (112, 70, 128)), (0.6, (186, 120, 104)), (0.82, (226, 172, 86)),
+             (1, (246, 214, 132))], field)
+    return canvas([(0, (90, 70, 80)), (0.5, (180, 150, 120)), (1, (240, 220, 170))],
+                  [(0, (110, 86, 96)), (1, (210, 180, 130))], seed=240, glow_k=0.4, glow_at=(0.38, 0.3),
+                  tex={"cloud": 0.6, "dbrush": 0.35}, tint=tint)
+
+
+def planks(img, hz=HZ, base=((120, 84, 52), (150, 108, 70), (100, 70, 44)), seed=0, light=1.0):
+    """a plank floor in perspective from HZ down, its seams running to a vanishing point over the middle"""
+    d = ImageDraw.Draw(img)
+    rng = np.random.default_rng(seed)
+    top = int(hz * H)
+    vx, vy = W * 0.5, top - H * 0.9
+    n = 22
+    xs = [W * 0.5 + (i - n / 2) * (W * 2.4 / n) for i in range(n + 1)]
+    for i in range(n):
+        c = np.array(base[rng.integers(len(base))], np.float32) * (0.85 + 0.3 * rng.random()) * light
+        x0b, x1b = xs[i], xs[i + 1]
+        t0 = (top - vy) / (H - vy)
+        x0t, x1t = vx + (x0b - vx) * t0, vx + (x1b - vx) * t0
+        d.polygon([(x0t, top), (x1t, top), (x1b, H), (x0b, H)], fill=tuple(int(v) for v in c))
+        d.line([(x0t, top), (x0b, H)], fill=(40, 28, 18), width=2)
+    arr = np.asarray(img, np.float32)
+    x, y = grids()
+    m = (y >= hz)
+    grain = streaks(seed + 1, "v", k=10, octaves=4, base=8)
+    dd = np.clip((y - hz) / (1 - hz), 0, 1)
+    shade = (0.82 + 0.18 * grain) * (0.75 + 0.25 * dd) * (1 - 0.4 * np.clip(1 - dd / 0.1, 0, 1))
+    arr[m] = arr[m] * shade[m][:, None]
+    return to_img(arr)
+
+
+def s_brick():
+    """brick and boards: a brick wall, a pool of light on it from above, a plank floor"""
+    x, y = grids()
+    img = Image.new("RGB", (W, H), (60, 40, 32))
+    d = ImageDraw.Draw(img)
+    rng = np.random.default_rng(300)
+    bh = int(H * 0.046)
+    bw = int(bh * 2.3)
+    mort = max(2, bh // 7)
+    reds = [(150, 62, 44), (134, 54, 38), (168, 78, 50), (122, 60, 46), (176, 92, 60), (110, 46, 34), (140, 100, 84)]
+    top = int(HZ * H)
+    row = 0
+    yy = 0
+    while yy < top:
+        off = (bw // 2) if row % 2 else 0
+        xx = -off
+        while xx < W:
+            c = np.array(reds[rng.integers(len(reds))], np.float32) * (0.82 + 0.3 * rng.random())
+            d.rectangle([xx + mort, yy + mort, xx + bw - 1, min(top, yy + bh) - 1], fill=tuple(int(v) for v in c))
+            xx += bw
+        yy += bh
+        row += 1
+    arr = np.asarray(img, np.float32)
+    tex = noise(W, H, octaves=5, base=40, seed=301)
+    arr *= (0.86 + 0.28 * tex)[..., None]
+    arr *= (0.55 + 0.75 * glow(0.5, 0.18, 0.75, 1.0))[..., None]
+    img = to_img(arr)
+    img = planks(img, base=((96, 70, 48), (118, 86, 58), (84, 60, 40)), seed=302)
+    arr = np.asarray(img, np.float32) * vignette(0.55)[..., None]
+    return to_img(arr)
+
+
+def s_plaster():
+    """old plaster and boards: a warm weathered plaster wall, a dark baseboard, a plank floor"""
+    img = canvas([(0, (74, 50, 30)), (0.4, (140, 100, 64)), (0.72, (196, 156, 108)), (1, (230, 200, 156))],
+                 [(0, (90, 62, 40)), (1, (150, 110, 74))], seed=310, glow_k=0.7, vig=0.5,
+                 tex={"cloud": 0.9, "relief": 0.7, "vbrush": 0.15})
+    img = planks(img, base=((128, 92, 60), (150, 110, 74), (112, 80, 52)), seed=311, light=1.05)
+    d = ImageDraw.Draw(img)
+    top = int(HZ * H)
+    d.rectangle([0, top - int(H * 0.028), W, top], fill=(54, 36, 24))
+    d.line([0, top - int(H * 0.028), W, top - int(H * 0.028)], fill=(96, 70, 48), width=2)
+    return img
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# THE PIXEL PASS ("a bit pixelated like the other art we have done, but not sooooo heavy"): each painting brought down
+# to a 480 x 270 grid of art pixels in about 40 colours, no dithering; the game's texture doubles each art pixel
+# (960 x 540, sharp under the game's filtering); the director's copies are exact four-times pixel art (1920 x 1080).
+# ---------------------------------------------------------------------------------------------------------------------
+ART_W, ART_H, COLORS = 480, 270, 96      # (the main menu's desk: the same grid, some 260 colours, no dithering)
+
+
+def pixelate(img, seed=7):
+    """the grid, the counted colours, no dithering; a whisper of noise first, so a step between two colours wanders
+    the way a painted edge does rather than following a gradient's contour"""
+    small = np.asarray(img.resize((ART_W, ART_H), Image.BOX), np.float32)
+    small += np.random.default_rng(seed).normal(0, 2.2, small.shape[:2])[..., None]
+    small = Image.fromarray(np.clip(small, 0, 255).astype(np.uint8))
+    return small.quantize(colors=COLORS, method=Image.Quantize.MEDIANCUT, kmeans=3,
+                          dither=Image.Dither.NONE).convert("RGB")
+
+
+# the set, in the tray's order after the grey (drawn by the studio): the canvases, the plasters, the two sets, the
+# three kept from the first drafts (Mottled blue, Sky and Autumn went: the canvases cover that ground; the director,
+# Nov 11 2026, "go ahead with those")
+BACKDROPS = [("slate", c_slate), ("sage", c_sage), ("tan", c_tan), ("cream", c_cream), ("spotlight", c_spotlight),
+             ("dusk", c_dusk), ("drape", c_drape), ("rust", p_rust), ("stucco", p_stucco), ("orange", p_orange),
+             ("lavender", p_lavender), ("goldviolet", p_goldviolet), ("brick", s_brick), ("plaster", s_plaster),
+             ("knox", knox), ("lasers", lasers), ("flag", flag)]
 
 
 def safe_area():
@@ -260,24 +529,29 @@ def main():
     os.makedirs(ART, exist_ok=True)
     thumbs = []
     for bid, fn in BACKDROPS:
-        img = fn()
-        img.save(os.path.join(OUT, "backdrop_%s.png" % bid), optimize=True)
-        img.resize((1920, 1080), Image.BICUBIC).save(os.path.join(ART, "%s_1920.png" % bid), optimize=True)
-        thumbs.append((bid, img))
+        art = pixelate(fn())
+        art.resize((ART_W * 2, ART_H * 2), Image.NEAREST).save(os.path.join(OUT, "backdrop_%s.png" % bid), optimize=True)
+        art.resize((ART_W * 4, ART_H * 4), Image.NEAREST).save(os.path.join(ART, "%s_1920.png" % bid), optimize=True)
+        thumbs.append((bid, art.resize((W, H), Image.NEAREST)))
         print("backdrop", bid)
+    # (the drafts no longer in the set)
+    for gone in ("mottled", "sky", "autumn"):
+        for path in (os.path.join(OUT, "backdrop_%s.png" % gone), os.path.join(ART, "%s_1920.png" % gone)):
+            if os.path.exists(path): os.remove(path)
     safe_area().save(os.path.join(ART, "safe_area_1920.png"))
     # the contact sheet: two across, each with the guide over it
-    tw, th = 640, 360
-    rows = (len(thumbs) + 1) // 2
-    sheet = Image.new("RGB", (tw * 2 + 30, (th + 34) * rows + 10), (24, 24, 28))
+    tw, th = 480, 270
+    cols = 3
+    rows = (len(thumbs) + cols - 1) // cols
+    sheet = Image.new("RGB", (tw * cols + 10 * (cols + 1), (th + 30) * rows + 10), (24, 24, 28))
     d = ImageDraw.Draw(sheet)
     guide = safe_area().resize((tw, th))
     for i, (bid, img) in enumerate(thumbs):
-        x, y = 10 + (i % 2) * (tw + 10), 10 + (i // 2) * (th + 34)
-        t = img.resize((tw, th)).convert("RGBA")
+        x, y = 10 + (i % cols) * (tw + 10), 10 + (i // cols) * (th + 30)
+        t = img.resize((tw, th), Image.NEAREST).convert("RGBA")
         t = Image.alpha_composite(t, guide)
         sheet.paste(t.convert("RGB"), (x, y))
-        d.text((x, y + th + 8), bid, fill=(230, 230, 230))
+        d.text((x, y + th + 6), bid, fill=(230, 230, 230))
     sheet.save(os.path.join(ART, "contact_sheet.png"))
     print("contact sheet and guide in", ART)
 

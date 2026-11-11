@@ -133,20 +133,28 @@ local function drawPaper(p, L, vis)
 end
 
 -- ---------------------------------------------------------------------------
--- THE BACKDROPS (step 2; the director, Nov 10 2026: "go ahead with those backdrops"). Painted drafts for the director
--- to refine (ZeDUI/tools/studio/make_backdrops.py; the guide and the 1920 x 1080 copies in ZeDUI/art/studio_backdrops):
--- each hangs from a roller along the top of the screen and fills it ("cover": scaled to fill, the edges cropped on
--- screens of another shape). Picking one rolls the paper that hangs up into the roller, then the new one down.
+-- THE BACKDROPS (step 2; the director, Nov 10 2026: "go ahead with those backdrops"; Nov 11: the painted canvases, "a
+-- bit pixelated like the other art we have done, but not sooooo heavy"). ZeD's own paintings after the classic
+-- portrait cloths, plasters and sets (ZeDUI/tools/studio/make_backdrops.py; the guide and the 1920 x 1080 copies in
+-- ZeDUI/art/studio_backdrops), on the main menu desk's grid of 480 x 270 art pixels. Each hangs from a roller along the
+-- top of the screen and fills it ("cover": scaled to fill, the edges cropped on screens of another shape). Picking one
+-- rolls the paper that hangs up into the roller, then the new one down.
 -- ---------------------------------------------------------------------------
 local TEX = "media/textures/ZeD/studio/backdrop_"
+local function bd(id, key) return { id = id, key = "UI_ZeD_Studio_Bd" .. key, tex = TEX .. id .. ".png" } end
 ST.BACKDROPS = {
     { id = "grey", key = "UI_ZeD_Studio_BdGrey" },                                 -- (drawn here: drawPaper)
-    { id = "mottled", key = "UI_ZeD_Studio_BdMottled", tex = TEX .. "mottled.png" },
-    { id = "sky", key = "UI_ZeD_Studio_BdSky", tex = TEX .. "sky.png" },
-    { id = "autumn", key = "UI_ZeD_Studio_BdAutumn", tex = TEX .. "autumn.png" },
-    { id = "knox", key = "UI_ZeD_Studio_BdKnox", tex = TEX .. "knox.png" },
-    { id = "lasers", key = "UI_ZeD_Studio_BdLasers", tex = TEX .. "lasers.png" },
-    { id = "flag", key = "UI_ZeD_Studio_BdFlag", tex = TEX .. "flag.png" },   -- (the director, Nov 10 2026)
+    -- the canvases: mottled cloth, lighter behind the head, meeting a floor of the same paint
+    bd("slate", "Slate"), bd("sage", "Sage"), bd("tan", "Tan"), bd("cream", "Cream"), bd("spotlight", "Spotlight"),
+    bd("dusk", "Dusk"), bd("drape", "Drape"),
+    -- the plasters: speckle, stucco relief, brush
+    bd("rust", "Rust"), bd("stucco", "Stucco"), bd("orange", "Orange"), bd("lavender", "Lavender"),
+    bd("goldviolet", "GoldViolet"),
+    -- the sets: a wall and a plank floor
+    bd("brick", "Brick"), bd("plaster", "Plaster"),
+    -- kept from the first drafts (Mottled blue, Sky and Autumn went: the canvases cover that ground)
+    bd("knox", "Knox"), bd("lasers", "Lasers"),
+    bd("flag", "Flag"),                                                              -- (the director, Nov 10 2026)
 }
 ST.backdrop = ST.backdrop or 1          -- (the last one picked, for the session)
 ST.ROLL_MS = 380                        -- each half of a change: the old paper up, the new one down
@@ -159,8 +167,15 @@ local function texOf(b)
 end
 ST.texOf = texOf
 
--- backdrop b over (x, y, w, h), its paper down frac of the way from the roller (1: all of it)
-local function drawBackdrop(p, b, x, y, w, h, frac)
+-- THE BACKDROP ZOOMS WITH THE FRAMING (the director, Nov 11 2026): at Full body the floor shows under the feet; toward
+-- the bust the camera leans in on the cloth too, less than on the figure (the cloth is further away), so the floor
+-- leaves the frame by Three-quarter and the cloth stays behind the head. 1 at Full body to 1 + BD_ZOOM at Bust, into a
+-- point BD_AT down from the top (the paintings' floors meet the wall at 0.80 of their height).
+ST.BD_ZOOM, ST.BD_AT = 0.6, 0.15
+
+-- backdrop b over (x, y, w, h), its paper down frac of the way from the roller (1: all of it), zoomed in z times
+-- (1, or nil: the whole painting)
+local function drawBackdrop(p, b, x, y, w, h, frac, z)
     local vis = math.floor(h * math.max(0, math.min(1, frac)))
     if vis <= 0 then return end
     local tex = texOf(b)
@@ -172,6 +187,12 @@ local function drawBackdrop(p, b, x, y, w, h, frac)
     local sc = math.max(w / tw, h / th)
     local sw, sh = w / sc, h / sc
     local sx, sy = (tw - sw) / 2, (th - sh) / 2
+    z = math.max(1, z or 1)
+    if z > 1 then
+        local zw, zh = sw / z, sh / z
+        sx, sy = sx + (sw - zw) * 0.5, sy + (sh - zh) * ST.BD_AT
+        sw, sh = zw, zh
+    end
     p.javaObject:DrawSubTextureRGBA(tex, sx, sy, sw, sh * vis / h, x, y, w, vis, 1, 1, 1, 1)
 end
 ST._drawBackdrop = drawBackdrop
@@ -200,7 +221,7 @@ function ZeD_StudioRoom:drawStage()
         elseif e < ST.ROLL_MS * 2 then frac = (e - ST.ROLL_MS) / ST.ROLL_MS
         else self.roll = nil end
     end
-    drawBackdrop(self, b, 0, 0, W, H, frac)
+    drawBackdrop(self, b, 0, 0, W, H, frac, 1 + ST.BD_ZOOM * self.t)
     if self.shoot then return frac end   -- (the photo: the paper alone, no roller)
     -- the paper's weighted foot while it moves, and the roller along the top
     local rh = T.px(ROLLER)

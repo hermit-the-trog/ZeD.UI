@@ -3621,6 +3621,30 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     head whole, over the paper and over the figure; the rig sends a many-tick scroll as one event, why it looked dead
     before). Found: the tray shut after each pick. **Build answered:** it stays open, to try the next behind the
     character; it shuts on the Backdrop button, a press on the paper, or Take photo. studio_sim 58/0.
+    **The painted canvases (the director, Nov 11 2026, after three sets of references: classic hand-painted portrait
+    cloths, warm plasters, a big tan canvas; "go ahead with those"; then "A bit pixelated like the other art we have
+    done, but not sooooo heavy").** The references are direction only (one carries a stock site's watermark); what
+    ships is ZeD's own painting (make_backdrops.py, one canvas engine: a wall of paint with a light behind the head
+    and a darker edge, meeting a floor of the same paint at 0.80 of the height, each picking its palette and its
+    textures). Eighteen in all: Grey seamless; seven canvases, Charcoal (granite specks), Sage, Warm tan (the big
+    reference), Cream (a dark vignette), Spotlight (a blue pool on black), Dusk (red-violet, brushed across), Drape
+    (a hanging brown cloth's folds); five plasters, Rust (speckle and relief), Black stucco (lit relief), Burnt orange
+    (brushed), Lavender (cloud), Gold and violet (a slanting wash); two sets, Brick wall (a pool of light from above,
+    plank floor) and Old plaster (weathered plaster, a dark baseboard, planks); then Knox County, Lasers and the flag,
+    kept. Mottled blue, Sky and Autumn gone (the canvases cover that ground). **The pixel pass:** each painting brought
+    to the main menu desk's grid, 480 x 270 art pixels, 96 colours counted by k-means, no dithering (the desk has
+    none), a whisper of noise first so a step between two colours wanders as a painted edge does (40 colours turned
+    every light into target rings; Build's first try, not shipped); the texture doubles each art pixel (960 x 540,
+    sharp under the game's filtering, about 2.6 MB for the 17); the copies in ZeDUI/art/studio_backdrops are exact
+    4x pixel art at 1920 x 1080. **The backdrop zooms with the framing:** 1 at Full body to 1.6 at Bust (ST.BD_ZOOM),
+    into a point 0.15 down from the top (ST.BD_AT), less than the figure (the cloth is further off): the floor under
+    the feet at Full body, its edge out of the frame by Three-quarter, the cloth's light behind the head at Bust; the
+    photo shoots what shows; the tray's swatches stay whole. At Bust an art pixel is about 6 screen pixels. The tray at
+    1080p: two columns of nine. Fourteen names in all 28 languages, the three dropped ones removed. studio_sim 66/0.
+    **Check (QA, Mac):** the tray, two columns, every swatch picks; each backdrop at Full body (the floor under the
+    shoes, the junction a soft dark line, not a ruler), Three-quarter (no floor edge) and Bust (the light behind the
+    head, the pixels crisp, not blurred, and not heavy); the wheel from Full body to Bust: the backdrop leans in
+    smoothly with the figure; a photo at Bust on Brick wall; a 16:10 screen still cropped at the sides.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

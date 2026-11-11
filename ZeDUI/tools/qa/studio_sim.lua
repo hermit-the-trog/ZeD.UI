@@ -62,8 +62,8 @@ function Panel:new(x, y, w, h)
     end }
     return o
 end
--- the backdrops' textures: 1024 x 576, as make_backdrops.py paints them
-getTexture = function(path) return { path = path, getWidth = function() return 1024 end, getHeight = function() return 576 end } end
+-- the backdrops' textures: 960 x 540 (480 x 270 art pixels, each doubled), as make_backdrops.py paints them
+getTexture = function(path) return { path = path, getWidth = function() return 960 end, getHeight = function() return 540 end } end
 function Panel:initialise() end
 function Panel:instantiate() if self.createChildren then self:createChildren() end end
 function Panel:addToUIManager() W.ui[self] = true end
@@ -190,10 +190,34 @@ afterDraw()
 check("PHOTO: one shot a press", #W.shots == 1)
 
 -- ---------------------------------------------------------------------------
--- BACKDROPS (step 2): six, the grey drawn here, five painted; a tray; a pick rolls the old up and the new down
+-- BACKDROPS (step 2, the painted canvases): eighteen, the grey drawn here, seventeen painted; a tray; a pick rolls the
+-- old up and the new down; the backdrop zooms with the framing
 -- ---------------------------------------------------------------------------
-check("BACKDROPS: seven, the grey first and drawn here", #ST.BACKDROPS == 7 and ST.BACKDROPS[1].id == "grey" and ST.BACKDROPS[1].tex == nil)
-check("BACKDROPS: the American flag among them", ST.BACKDROPS[7].id == "flag")
+check("BACKDROPS: eighteen, the grey first and drawn here", #ST.BACKDROPS == 18 and ST.BACKDROPS[1].id == "grey" and ST.BACKDROPS[1].tex == nil)
+local ids = {}
+for i, b in ipairs(ST.BACKDROPS) do ids[#ids + 1] = b.id end
+check("BACKDROPS: the canvases, the plasters, the sets, then Knox, Lasers and the flag",
+      table.concat(ids, " ") == "grey slate sage tan cream spotlight dusk drape rust stucco orange lavender goldviolet brick plaster knox lasers flag",
+      table.concat(ids, " "))
+local gone = true
+for _, b in ipairs(ST.BACKDROPS) do if b.id == "mottled" or b.id == "sky" or b.id == "autumn" then gone = false end end
+check("BACKDROPS: Mottled blue, Sky and Autumn gone", gone)
+-- every name in every language
+local named, missing = true, ""
+local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT", "JP",
+                "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }
+for _, L in ipairs(LANGS) do
+    local fh = io.open(ROOT .. "42/media/lua/shared/Translate/" .. L .. "/UI.json", "rb")
+    local txt = fh and fh:read("*a") or ""
+    if fh then fh:close() end
+    for _, b in ipairs(ST.BACKDROPS) do
+        if not txt:find('"' .. b.key .. '"', 1, true) then named = false; missing = missing .. L .. ":" .. b.key .. " " end
+    end
+    for _, k in ipairs({ "BdMottled", "BdSky", "BdAutumn" }) do
+        if txt:find('"UI_ZeD_Studio_' .. k .. '"', 1, true) then named = false; missing = missing .. L .. ":" .. k .. "(left) " end
+    end
+end
+check("BACKDROPS: every name in all 28 languages, the dropped ones gone", named, missing)
 local allTex = true
 for i = 2, #ST.BACKDROPS do
     local fh = io.open(ROOT .. "42/media/textures/ZeD/studio/backdrop_" .. ST.BACKDROPS[i].id .. ".png", "rb")
@@ -207,7 +231,10 @@ check("BACKDROPS: a Backdrop button", zone("tray") ~= nil)
 local tz = zone("tray")
 room:onMouseUp(tz.x + 2, tz.y + 2)
 room:prerender()
-check("BACKDROPS: it opens the tray, a swatch each", room.tray == true and zone("bd:1") and zone("bd:7"))
+check("BACKDROPS: it opens the tray, a swatch each", room.tray == true and zone("bd:1") and zone("bd:18"))
+local xs, nx = {}, 0
+for i = 1, #ST.BACKDROPS do local z = zone("bd:" .. i); if z and not xs[z.x] then xs[z.x] = true; nx = nx + 1 end end
+check("BACKDROPS: at 1080 the tray holds them in two columns", nx == 2, nx)
 -- clear of the figure: every swatch left of its panel (the panel takes the pointer over what it covers)
 local clear = true
 for i = 1, #ST.BACKDROPS do local z = zone("bd:" .. i); if not z or z.x + z.w > room.fig.x then clear = false end end
@@ -230,17 +257,37 @@ W.now = W.now + 380
 W.subs = {}
 room:prerender()
 local sub = W.subs[1]
-check("BACKDROPS: then the new one rolls down (half its height, its top half)", sub and math.abs(sub.dh - 540) <= 1 and math.abs(sub.sh - 288) <= 1,
+check("BACKDROPS: then the new one rolls down (half its height, its top half)", sub and math.abs(sub.dh - 540) <= 1 and math.abs(sub.sh - 270) <= 1,
       sub and (sub.dh .. " / " .. sub.sh))
 W.now = W.now + 400
 room:prerender()
 check("BACKDROPS: and hangs", room.roll == nil and W.subs[#W.subs].dh == 1080)
-check("BACKDROPS: the whole texture on a 16:9 screen", W.subs[#W.subs].sx == 0 and W.subs[#W.subs].sy == 0 and W.subs[#W.subs].sw == 1024)
+check("BACKDROPS: the whole texture on a 16:9 screen at Full body", W.subs[#W.subs].sx == 0 and W.subs[#W.subs].sy == 0 and W.subs[#W.subs].sw == 960)
+-- the zoom with the framing: the floor (from 0.80 of the painting's height) under the feet at Full body, out of the
+-- frame by Three-quarter, the cloth behind the head at Bust; the tray's swatches never zoomed
+local function hung() W.subs = {}; room:prerender(); return W.subs[1] end
+local s0 = hung()
+check("BACKDROPS ZOOM: Full body, the floor in", s0 and (s0.sy + s0.sh) / 540 > 0.95)
+room:frameTo(ST.FRAMES[2].t)
+local s1 = hung()
+check("BACKDROPS ZOOM: Three-quarter, the floor out of the frame", s1 and s1.sw < 960 and (s1.sy + s1.sh) / 540 < 0.79,
+      s1 and ((s1.sy + s1.sh) / 540))
+check("BACKDROPS ZOOM: centred across", s1 and math.abs(s1.sx + s1.sw / 2 - 480) < 0.5)
+room:frameTo(1)
+room.tray = true
+local s2 = hung()
+check("BACKDROPS ZOOM: Bust, 1.6 times, the top still near the top", s2 and math.abs(s2.sw - 600) < 0.5 and s2.sy < 40,
+      s2 and (s2.sw .. " " .. s2.sy))
+local swz = true
+for i = 2, #W.subs do if W.subs[i].dw == 128 and W.subs[i].sw ~= 960 then swz = false end end
+check("BACKDROPS ZOOM: the tray's swatches whole", swz and #W.subs > 10, #W.subs)
+room.tray = false
+room:frameTo(0)
 -- a taller screen (16:10): the sides cropped, the height whole
 W.subs = {}
 ST._drawBackdrop(room, ST.BACKDROPS[2], 0, 0, 1920, 1200, 1)
 local c = W.subs[1]
-check("BACKDROPS: on 16:10 the sides cropped, the height whole", c and c.sy == 0 and c.sh == 576 and c.sx > 0 and math.abs(c.sw - 1024 * (1920 / 1200) / (1024 / 576)) < 1, c and (c.sx .. "," .. c.sw))
+check("BACKDROPS: on 16:10 the sides cropped, the height whole", c and c.sy == 0 and c.sh == 540 and c.sx > 0 and math.abs(c.sw - 960 * (1920 / 1200) / (960 / 540)) < 1, c and (c.sx .. "," .. c.sw))
 room:onJoypadDown(Joypad.YButton)
 check("BACKDROPS: Y on the pad, the next", room.bd == 3 and room.roll ~= nil)
 W.now = W.now + 1000
