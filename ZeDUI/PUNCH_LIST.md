@@ -4147,3 +4147,39 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       the game install's pointer pictures (names with cursor or mouse), that mod's install steps, and whether a copied
       file gives ZeD's pixel hand at rest (an optional manual extra; the drop icons would still be the badge). Probes:
       zedqa_pointer_probe.lua, zedqa_pointer_probe2.lua; drafts: zed_pointer_hint_v1, zed_pointer_v1.
+
+## Beta 12: the director's notes from the Nov 10 shoot (recorded Nov 11 2026)
+
+From `qa/HANDOFF_director_notes_20261110.md` (QA's Mac), the director's words quoted there. Beta 12 unless the
+director says otherwise. Answers given Nov 11: belt only, Mono Regular, retake the vanilla pictures, textSec values
+to be proposed.
+
+155. **The belt's hands as a left and a right hand, icons (the director: "Instead of saying secondary, primary,
+    let's just have a left hand and a right hand. Keep it simple. Put icons there.").** The empty rings read
+    "Second." and "Primary", cut at 1x. The small left ring is the secondary (left hand), the large right one the
+    primary (right hand). Scope: the belt only (the director, Nov 11); the Equipment tab's Held rows and the Equip
+    menus keep the game's Primary / Secondary.
+156. **The Loot tab's "Coming soon" half card goes (the director: "a blank half card that says loot tab card
+    placeholder ... quite a bit").** `renderPlaceholder` in ZeD_WorldWindow.lua, drawn when the Loot drawer is open
+    with no item card; the capture scripts pin drawers open. Plan: the drawer folds when it has no card.
+157. **An empty list says "Nothing here." (the director: "It's on a ground tile. So it should say nothing here,
+    right? And that would also work for any container too.").** `UI_ZeD_Inv_Empty` (EN) "Nothing in here." to
+    "Nothing here."; `UI_ZeD_St_InvEmpty` "Nothing in it." to match. ES, DE, FR already say it.
+158. **Speech bubbles in lowercase, in Fira Mono Regular (the director: "much easier to read ... much easier on
+    dyslexia. People remember shapes of words"; "mono would probably work fine").** `B.clean` in ZeD_Bubbles.lua
+    upper-cases every line for the capitals-only 5 x 7 face. Wanted: `T.fontF3` (Mono Regular, the director's pick
+    Nov 11), the case as typed. To check: the balloon's size and pitch (`B.LINE = 9`), ZeD_HaloText.lua's head notes
+    on the same face, and what CN, CH, JP, KO and TH get today.
+159. **Windows jumping and overlapping during the gallery shoot (the director: "The windows are jumping all over the
+    place and overlapping other windows ... we'll address that tomorrow").** Not looked into. QA compares new
+    captures with their old twins first: the scripts' staging at 1.75x, the Mac stand-in for the runner, or the mod.
+160. **Secondary text as bright as body text (the director on "Used to make": "Why vanilla text color?").** It is
+    ZeD's `T.textSec`: #CDC3B3 under Orange, #B7C5C2 under Teal, against body #C5C4C3 in Dark, so labels don't read
+    as secondary (the hover card's too). Build proposes values with contrast in every theme and accent, before and
+    after, for the director to approve.
+161. **QA: two sources side by side show no Cond / Amt column** (Name and Wt only); the gallery's hero shots are staged
+    that way and B11_RECAPTURE.md asks for the column. To look into: the narrowing rule.
+162. **QA: a stack's row takes its first item's name and bar** ("Empty Plastic Bottle x4" with a dark bar one way,
+    "Water (Plastic Bottle) x4" at 80% the other).
+163. **QA: no Hat row when it's empty** (the Equipped list draws only filled rows). As designed today; the director's
+    call if it should show.

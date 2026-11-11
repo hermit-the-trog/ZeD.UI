@@ -101,10 +101,14 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
 | 60 laundry | g14_ldy_combo.png, g14_ldy_washer.png, g14_ldy_dryer.png |
 | 63 cooking | zqa_c80_3840x2160_2_stew_plan.png, zqa_c80_3840x2160_5_dish_list.png (in gallery_beta2) |
 
+## The vanilla pictures (retake at 19px, ZeD off)
+
+The director, Nov 11: retake them. They were shot on the Windows rig at "Scale with window height", so the game's text
+is oversized beside the ZeD shot of the same scene. One launch with ZeD off, the game's Font Size at 19px, same
+framing and names: van_01_hero_mid, van_11_health, van_20_ctx_menu, van_32_action_bar_reading.
+
 ## Keep (don't retake)
 
-- The vanilla pictures: van_01_hero_mid, van_11_health, van_20_ctx_menu, van_32_action_bar_reading.
-  They were taken on the Windows rig before the font size was pinned; the director keeps them as they are (Nov 11).
 - 33 watches (gbw_* plates) and 42 the controller map (drawn from the repo's controller_pad_px.png).
 - If a Tier 2 picture shows no accent and no title bar at all, it can stay; say which in the report.
 
