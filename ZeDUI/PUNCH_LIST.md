@@ -4200,3 +4200,10 @@ to be proposed.
     tone at the print's place over the notebook. A player reading a flyer, then writing in a notebook, gets it too.
     **Built:** notebook mode takes the print's page off and render tones only a print. reader_notebook_tone_sim 5/0.
     QA: test 14 (at 1x and 1.75x, a print read first).
+
+165. **b11n's first run after load (QA's true staged check of beta 11, Nov 11 2026; for beta 12, test side).** 156 failed
+    once in six (the first 4K run after load): the script set the Loot drawer to tab mode while the Character window was
+    likely not on screen yet, so no prerender ran to fold it. The fold runs in both windows' prerender (3de432df), so a
+    shown window never draws it unfolded; the script should wait for the window to be visible (isReallyVisible) before
+    setting tab mode and reading. Also 155's off-ring peek read nil once in six (timing), and 162's list reveal still
+    doesn't scroll ("row y 736, list height 650, scroll 0" at both sizes; the grid passes): scroll the list explicitly.
