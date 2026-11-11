@@ -4148,10 +4148,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       file gives ZeD's pixel hand at rest (an optional manual extra; the drop icons would still be the badge). Probes:
       zedqa_pointer_probe.lua, zedqa_pointer_probe2.lua; drafts: zed_pointer_hint_v1, zed_pointer_v1.
 
-## Beta 12: the director's notes from the Nov 10 shoot (recorded Nov 11 2026)
+## Beta 11, before it ships: the director's notes from the Nov 10 shoot (recorded Nov 11 2026)
 
-From `qa/HANDOFF_director_notes_20261110.md` (QA's Mac), the director's words quoted there. Beta 12 unless the
-director says otherwise. Answers given Nov 11: belt only, Mono Regular, retake the vanilla pictures, textSec values
+From `qa/HANDOFF_director_notes_20261110.md` (QA's Mac), the director's words quoted there. All in beta 11 (the
+director, Nov 11: "We're not shipping beta 11 today ... Everything is in beta 11"); beta 11 ships Nov 12. Answers given Nov 11: belt only, Mono Regular, retake the vanilla pictures, textSec values
 to be proposed.
 
 155. **The belt's hands as a left and a right hand, icons (the director: "Instead of saying secondary, primary,

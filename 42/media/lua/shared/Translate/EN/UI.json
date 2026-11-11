@@ -1243,7 +1243,7 @@
     "UI_ZeD_Inv_ColCond": "Cond / Amt",
     "UI_ZeD_Inv_ColName": "Name",
     "UI_ZeD_Inv_ColWt": "Wt",
-    "UI_ZeD_Inv_Empty": "Nothing in here.",
+    "UI_ZeD_Inv_Empty": "Nothing here.",
     "UI_ZeD_Inv_GridView": "Grid view",
     "UI_ZeD_Inv_ItemsMany": "%1 items",
     "UI_ZeD_Inv_ItemsOne": "%1 item",

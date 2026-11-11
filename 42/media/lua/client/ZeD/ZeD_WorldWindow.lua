@@ -86,6 +86,20 @@ local ACTION_TAB_BTN_SZ    = 36
 local TAB_SEP_H            = 0   -- separator off: the tab borders already divide them
 local TAB_SEP_MAR          = 0
 
+-- The Loot view has no tab drawer of its own (the director, Nov 10 2026: the "Coming soon" half card goes). When
+-- the Loot tab is shown with the drawer in tab mode (a context tab hid while open, a restored state, a script),
+-- the drawer becomes what is left in it: the item card, the object card, the extra columns, or nothing, folded.
+local function lootDrawerFallback(win)
+    if not win or win._activeTab ~= "loot" or win._drawerMode ~= "tab" then return end
+    win._tabUnder = nil
+    if win._drawerItem then win._drawerMode = "item"; win._drawerOpen = true
+    elseif win._drawerObject then win._drawerMode = "object"; win._drawerOpen = true
+    else
+        win._drawerMode = nil
+        win._drawerOpen = #(win._mcSelected or {}) > 0
+    end
+end
+
 -- Drop the object card from the drawer. Declared above all its consumers
 -- (tab switches, MC entry, item selection, the public close).
 local function dropObjectCard(win)
@@ -1908,7 +1922,7 @@ local function drawWorldTabStrip(self, win)
     for _, tab in ipairs(WORLD_TABS) do
         if not isTabVisible(tab, win) then
             -- If the hidden tab was active, fall back to loot
-            if tab.id == win._activeTab then win._activeTab = "loot" end
+            if tab.id == win._activeTab then win._activeTab = "loot"; lootDrawerFallback(win) end
         else
             -- Group separator
             if tab.group ~= lastGroup then
@@ -2040,28 +2054,6 @@ local function getWorldActiveScroll(win)
     return nil
 end
 
--- Placeholder card for tabs without a registered renderer
-local function renderPlaceholder(panel, tabDef, x, y, w, h)
-    local T   = ZeD.T
-    local pad = T.sp.sm
-
-    -- Heading
-    local font = T.fontF4
-    local tc   = T.textHead
-    panel:drawText(ZeD_WorldWindow.tabLabel(tabDef), x + pad, y + pad,
-        tc.r, tc.g, tc.b, tc.a, font)
-
-    local headH = ZeD.TM:getFontHeight(font)
-    local grooveY = y + pad + headH + T.sp.headGap
-
-    -- Groove divider
-    local bd = T.border
-    panel:drawRect(x + pad, grooveY, w - pad * 2, T.px(1), bd.a, bd.r, bd.g, bd.b)
-
-    -- Description
-    local descY = grooveY + T.px(1) + T.px(8)
-    ZeD.Molecules.drawEmptyLine(panel, x + pad, descY, w - pad * 2, ZeD.tr("UI_ZeD_World_ComingSoon"))
-end
 
 -- ============================================================================
 -- MULTI-CONTAINER HELPERS
@@ -2536,7 +2528,7 @@ local function restoreWorldState(win, playerObj)
     end
 
     -- Restore drawer state (tab drawer reopens where it was)
-    if ws.drawerMode == "tab" and ws.drawerOpen then
+    if ws.drawerMode == "tab" and ws.drawerOpen and win._activeTab ~= "loot" then
         win._drawerMode = "tab"
         win._drawerOpen = true
     end
@@ -4245,14 +4237,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                         ZeD.logOnce("world tab " .. tostring(win._activeTab), errR)
                     end
                 else
-                    -- Placeholder for unregistered tabs
-                    local tabDef
-                    for _, t in ipairs(WORLD_TABS) do
-                        if t.id == win._activeTab then tabDef = t; break end
-                    end
-                    if tabDef then
-                        renderPlaceholder(self, tabDef, 0, 0, targetW, dh)
-                    end
+                    -- (no tab drawer: the Loot view. Nothing is drawn; the drawer becomes what is left in it)
+                    lootDrawerFallback(win)
                 end
             end
 
