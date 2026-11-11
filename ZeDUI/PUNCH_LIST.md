@@ -4161,7 +4161,7 @@ to be proposed.
     menus keep the game's Primary / Secondary. **Built (944809c):** zw_hand_right / zw_hand_left (the wheelpx kit's open hand and its mirror) in the empty rings, dim; the belt's hint reads the game's Right Hand / Left Hand (IGUI_health_*). belt_hand_icons_check passes. QA: test 14.
 156. **The Loot tab's "Coming soon" half card goes (the director: "a blank half card that says loot tab card
     placeholder ... quite a bit").** `renderPlaceholder` in ZeD_WorldWindow.lua, drawn when the Loot drawer is open
-    with no item card; the capture scripts pin drawers open. Plan: the drawer folds when it has no card. **Built (a18ad11):** renderPlaceholder is gone; lootDrawerFallback turns a Loot view in tab mode into the item card, the object card, the columns or a folded drawer (a context tab that hides while open, a restored state). loot_drawer_fallback_sim 10/0. QA: test 14.
+    with no item card; the capture scripts pin drawers open. Plan: the drawer folds when it has no card. **Built (a18ad11):** renderPlaceholder is gone; lootDrawerFallback turns a Loot view in tab mode into the item card, the object card, the columns or a folded drawer (a context tab that hides while open, a restored state). loot_drawer_fallback_sim 10/0. QA: test 14. **The Character window's twin (QA's Mac shoot, Nov 11):** it drew an English "Tab content - placeholder" for Loot in tab mode, through the whole gallery; the same lootDrawerFallback there (4ab9b1d), sim 16/0.
 157. **An empty list says "Nothing here." (the director: "It's on a ground tile. So it should say nothing here,
     right? And that would also work for any container too.").** `UI_ZeD_Inv_Empty` (EN) "Nothing in here." to
     "Nothing here."; `UI_ZeD_St_InvEmpty` "Nothing in it." to match. ES, DE, FR already say it. **Built (a18ad11):** EN only; `UI_ZeD_St_InvEmpty` (the admin Stats card) left as it is. PTBR still reads "Nada aqui dentro."; the other languages weren't reviewed.
@@ -4194,3 +4194,9 @@ to be proposed.
     "Water (Plastic Bottle) x4" at 80% the other). The game stacks them as one type, and the row shows the first item's facts. To decide: a stack of mixed levels shows the lowest, the average, or no bar. **The director, Nov 11: the lowest ("Your rec."). Built:** ItemMeter.ofStack, the list's row and the grid's cell; the head's name stays the game's. item_meter_sim 37/0.
 163. **QA: no Hat row when it's empty** (the Equipped list draws only filled rows). As designed today; the director's
     call if it should show.
+164. **A grey box over the notebook (QA's Mac shoot, Nov 11 2026: all five zqa_nb pictures at 1.75x, a see-through grey
+    rectangle over the left 55% of the paper).** zedqa_reader runs just before zedqa_notebook in the same reader window:
+    the print's page stayed placed (`_vanillaPage`), notebook mode never cleared it, and render laid the print's paper
+    tone at the print's place over the notebook. A player reading a flyer, then writing in a notebook, gets it too.
+    **Built:** notebook mode takes the print's page off and render tones only a print. reader_notebook_tone_sim 5/0.
+    QA: test 14 (at 1x and 1.75x, a print read first).

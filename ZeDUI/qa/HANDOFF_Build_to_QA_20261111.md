@@ -1,6 +1,6 @@
 # Build to QA, Nov 11 2026: test 14, then the gallery shoot
 
-Branch `claude/keen-meitner-optdjj` (PR #5), tip 94c0d70 or later. `42/mod.info` stays 0.3.0-beta11; the test pack names itself
+Branch `claude/keen-meitner-optdjj` (PR #5), tip of the branch (after the placeholder and notebook fixes). `42/mod.info` stays 0.3.0-beta11; the test pack names itself
 0.3.0-beta11-test14. Beta 11 ships Nov 12 (the director); everything below is in it. Run in PZ Teal at the game's
 Font Size 19px (`fontSize=2`).
 
@@ -15,6 +15,13 @@ The director's Nov 10 notes (punch list 155 to 160, 162), all new code, not seen
 - 160 Dark: body text opaque, labels (textSec) at 7 : 1, dim text (hints, slot names) at about 5.9 : 1, a step apart.
 - 162 a stack's bar is its emptiest item's.
 Report each as ok, wrong (with a picture) or not run, plus the release check and any ZeD Lua errors.
+
+Added after QA stopped the shoot (Nov 11):
+- The Character window's Loot placeholder ("Tab content - placeholder") is gone; its drawer folds as the World
+  window's does.
+- 164, the notebook's grey box: the reader's flyer page (zedqa_reader runs just before) stayed placed, and its paper
+  tone drew over the notebook. Fixed; the reader's tone draws only on a print.
+The notebook window over the World window in that picture: tell Build if it's still there after the fix (159).
 
 ## 2. Then the gallery: `workshop/gallery/B11_RECAPTURE.md`
 Changed since you last read it:
