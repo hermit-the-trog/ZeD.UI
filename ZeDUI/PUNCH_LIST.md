@@ -2452,8 +2452,8 @@ item says so.
     built, QA to check (b1fae517). Mockup ZeDUI/mockups/zed_survival_guide_v7.html (the look settled with the director:
     the 1983 bookstore guide's chapter openers, the 1990 magazine's grey bar, no marks, no drop caps). Code:
     42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua; ZeD_SurvivalGuide.lua opens it while ZeD setup's new Full or
-    simple row "Survival guide" is Full (the default; the Access preset picks Simple). Chinese, Japanese, Korean, Thai
-    and Arabic keep the window. The game's own faces at any size (Old Standard TT, Roberto Sans Bold Italic, Open Sans),
+    simple row "Survival guide" is Full (the default; the Access preset picks Simple). Chinese, Japanese, Korean and Thai
+    keep the window (AR, the game's Argentine Spanish, gets the book since 154; it was read as Arabic). The game's own faces at any size (Old Standard TT, Roberto Sans Bold Italic, Open Sans),
     drawn as the print pages are. One topic a page; a chapter's first topic opens with "Chapter n", the chapter in heavy
     italic capitals, the clip (or its still), an italic caption, a bold Title Case line; a topic with rules has them on
     the next page; a long topic runs on. Front: the title page, the contents (page numbers, dotted leaders) facing the
@@ -4024,6 +4024,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     reads "Empty Plastic Bottle x4" sorted one way and "Water (Plastic Bottle) x4" the other (the game stacks them as
     one type). **Recheck (QA):** the Equipped list's Held rows with a water bottle and a lighter in the hands: ten blue
     and ten accent cells to their levels.
+    **QA, Mac, Nov 11 2026, on test 10 (93b4b02), in PZ Teal (tests 7 to 9 ran in the rig's old saved Orange: their colour measurements are Orange's):** **pass** at 1x and 1.75x: the Equipped list's Held rows ten blue and ten accent to the bottle's and the lighter's
+    levels, as the belt and the Inventory list. Two notes for the director, not faults: in PZ Teal the liquid's blue
+    (T.info) and the accent's teal of a use-up sit close in the Held rows; and a padded (hooded) jacket is listed under
+    Head + face as "Hat" (the Equipment tab's slot table puts jackethat, jackethatbulky and sweaterhat in HAT, none in
+    the torso's Outer). Not run: another language; test 7's leftovers.
 
 153. **The item card's "Used to make" rows flush left (the director, Nov 11 2026, after QA's colour note on test 9:
     "flush left with the rest of the card"; the secondary colour stays: "if it's secondary color that is ok").** The
@@ -4033,6 +4038,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     still compare the card's model, and a check of its own reads the recipes drawn flush). **Check (QA):** an item
     card with "Used to make" (a shirt: Rag): the recipe names start at the card's left edge, as the facts above
     them, in the secondary colour.
+    **QA, Mac, Nov 11 2026, on test 10 (93b4b02), in PZ Teal (tests 7 to 9 ran in the rig's old saved Orange: their colour measurements are Orange's):** **pass** at 1x and 1.75x: the recipe names flush with the card's left edge, in the secondary colour.
+
+154. **The survival guide's book for AR, the game's Argentine Spanish (found by the session that redrafted the AR file,
+    Nov 11 2026; the director: in beta 11).** ZeD_SurvivalGuide.lua's NO_BOOK_LANGS listed AR among the languages the
+    book's faces can't draw, read as Arabic; in Project Zomboid AR is Argentine Spanish, so Argentine players got the
+    plain window instead of the book. AR is off the list (CN, CH, JP, KO, TH keep the window); the comment, the QA
+    probe's (zedqa_book83_lang.lua) and 83's own say so. guide_lang_sim 15/0 (its AR check fails on the old line).
+    **Check (QA, Mac):** the game in Español (Argentina), the guide on Immersive: F1 opens the book; its title page,
+    contents and a chapter opener read whole in the book's faces; Simple still gives the window.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

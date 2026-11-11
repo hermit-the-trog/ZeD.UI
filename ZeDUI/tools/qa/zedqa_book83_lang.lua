@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/zedqa_book83_lang.lua  (Nov 3 2026, QA; punch list 83: the guide in the game's language)
--- With the guide on Full: which look F1 opens (the book for Latin, Greek and Cyrillic; the window for Chinese,
--- Japanese, Korean, Thai, Arabic), and pictures: the book's title page, contents and introduction, a chapter opener,
+-- With the guide on Full: which look F1 opens (the book for Latin, Greek and Cyrillic, AR (the game's Argentine
+-- Spanish) included; the window for Chinese, Japanese, Korean, Thai), and pictures: the book's title page, contents and introduction, a chapter opener,
 -- Skill Books and its rules; or the window on Skill Books and Find. grep "ZEDQA b8l". Shots zqa_b8l_<lang>_*.png.
 local function say(s) print("ZEDQA b8l " .. tostring(s)) end
 local B, G = ZeD.GuideBook, ZeD.Guide
