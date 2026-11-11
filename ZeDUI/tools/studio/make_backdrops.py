@@ -278,15 +278,16 @@ def relief(seed, base=10, light=(-0.7, -0.7)):
     return np.clip(s, -1, 1)
 
 
-def folds(seed, freq=7.0, slant=0.18):
-    """a hanging cloth's folds: near-vertical ridges, wider toward the foot, their phase wandering; sharp crests, soft
-    troughs (cloth hangs in rounded valleys and folds over at the ridges)"""
+def folds(seed, freq=4.5, slant=0.06):
+    """a hanging cloth's folds: broad, near-vertical ridges, wider toward the foot, their phase wandering a little;
+    rounded crests and valleys (the director, Nov 11 2026, after QA called the first a satin curtain with strong
+    diagonal folds: "Soften the drape folds")"""
     x, y = grids()
     wander = noise(W, H, octaves=3, base=2, seed=seed)
-    ph = ((x - 0.5) / (0.75 + 0.35 * y) + slant * y) * freq + wander * 1.1
+    ph = ((x - 0.5) / (0.75 + 0.35 * y) + slant * y) * freq + wander * 0.7
     w = 0.5 + 0.5 * np.sin(ph * 2 * np.pi)
     w2 = 0.5 + 0.5 * np.sin(ph * 2 * np.pi * 2.3 + 1.1)
-    return (w ** 2.2 * 0.75 + w2 ** 3 * 0.25) * 2 - 0.6
+    return (w ** 1.3 * 0.88 + w2 ** 1.5 * 0.12) * 2 - 0.85
 
 
 def canvas(wall, floor, glow_at=(0.5, 0.36), glow_r=0.55, glow_k=0.55, vig=0.55, seed=0, tex=None, tint=None):
@@ -371,7 +372,7 @@ def c_dusk():
 def c_drape():
     return canvas([(0, (36, 24, 18)), (0.45, (92, 68, 52)), (0.75, (132, 104, 82)), (1, (166, 136, 110))],
                   [(0, (48, 34, 26)), (1, (130, 102, 80))], seed=160, glow_k=0.35,
-                  tex={"cloud": 0.75, "folds": 0.22})
+                  tex={"cloud": 0.6, "folds": 0.24})
 
 
 def p_rust():

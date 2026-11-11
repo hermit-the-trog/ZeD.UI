@@ -3664,7 +3664,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     checks fail on bb67bff). **Recheck (QA, Mac):** Brick wall at Full body and Bust, a 1:1 crop: the mortar lines
     hard-edged, runs in 4s at Full body; the wheel: no shimmer worth noting as the backdrop steps in; the tray's
     swatches smooth, Lasers' lines whole; the first open of the studio after launch: the paper there at once.
-    Waiting on the director: Drape, Gold and violet, Black stucco.
+    **The director, Nov 11 2026: "Soften the drape folds, keep the other two"** (Gold and violet and Black stucco
+    stay as they are). Drape redrawn: fewer, broader folds (4.5 across, not 7), rounded at the ridges and in the
+    valleys, hanging nearly straight down (the slant and the wander cut), less contrast between ridge and valley;
+    still a cloth, not another mottle (a first pass took the folds down so far it read as one). Only Drape's files
+    changed. **Check (QA, Mac):** Drape at Full body and Bust: soft hanging folds, no satin sheen.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
