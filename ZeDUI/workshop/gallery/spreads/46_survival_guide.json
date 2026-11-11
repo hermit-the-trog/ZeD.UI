@@ -176,12 +176,12 @@
     ]
    },
    {
-    "src": "~/Zomboid/Screenshots/gallery_t14/_before_b11/gw_zqa_g82s_3840x2160_2b_skill_books_rules_full.png",
+    "src": "gw_zqa_g82s_3840x2160_2b_skill_books_rules_full.png",
     "box": [
      1800,
-     880,
+     795,
      2570,
-     1480
+     1395
     ],
     "scale": 0.42,
     "at": [
@@ -275,8 +275,8 @@
      ],
      [
       4,
-      1936,
-      927
+      1900,
+      882
      ]
     ]
    }

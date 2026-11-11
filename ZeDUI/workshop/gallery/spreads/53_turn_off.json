@@ -119,14 +119,14 @@
   ],
   "prints": [
    {
-    "src": "~/Zomboid/Screenshots/gallery_t14/_before_nov1/zqa_mp_12_turnoff_items.png",
+    "src": "zqa_mp_12_turnoff_items.png",
     "box": [
-     1955,
-     944,
+     1895,
+     870,
      2835,
-     1440
+     1340
     ],
-    "scale": 0.5,
+    "scale": 0.47,
     "at": [
      1200,
      246
@@ -137,14 +137,14 @@
     ]
    },
    {
-    "src": "~/Zomboid/Screenshots/gallery_t14/_before_nov1/zqa_mp_14_ask_off.png",
+    "src": "zqa_mp_14_ask_off.png",
     "box": [
-     1955,
-     836,
+     1895,
+     767,
      2835,
-     1090
+     1021
     ],
-    "scale": 0.5,
+    "scale": 0.47,
     "at": [
      1200,
      590
@@ -155,7 +155,7 @@
     ]
    },
    {
-    "src": "~/Zomboid/Screenshots/gallery_t14/_before_nov1/zqa_mp_14_ask_off.png",
+    "src": "zqa_mp_14_ask_off.png",
     "box": [
      955,
      1558,
@@ -184,8 +184,8 @@
     "maxw": 190,
     "to": [
      0,
-     2730,
-     1000
+     2700,
+     925
     ]
    },
    {
@@ -198,8 +198,8 @@
     "maxw": 190,
     "to": [
      0,
-     2300,
-     1096
+     2240,
+     987
     ]
    },
    {
@@ -212,8 +212,8 @@
     "maxw": 190,
     "to": [
      1,
-     2316,
-     931
+     2262,
+     856
     ]
    },
    {

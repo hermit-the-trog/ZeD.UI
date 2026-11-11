@@ -29,6 +29,8 @@ TRIES = [(92, 0), (90, 0), (88, 0), (85, 0), (92, 2), (88, 2), (84, 2), (80, 2)]
 
 def save_under(png, jpg):
     im = Image.open(png).convert("RGB")
+    if im.width > 1920 or im.height > 1080:                       # 4K masters (the extras) go up at 1920x1080
+        im = im.resize((1920, 1080), Image.LANCZOS)
     tmp = jpg + ".tmp"
     for q, ss in TRIES:
         im.save(tmp, "JPEG", quality=q, subsampling=ss, optimize=True)
