@@ -126,7 +126,7 @@ S.step(30, function()
     local ww = ZeD_WorldWindow.getWindow()
     if ww then
         ww._moreDetailOpen = true
-        pcall(function() ww:setWidth(math.floor(getCore():getScreenWidth() * 0.27)); ww:setHeight(math.floor(getCore():getScreenHeight() * 0.8)); ww:setY(24); ww:setX(getCore():getScreenWidth() - ww:getWidth()); S.say("forage window " .. ww:getWidth() .. "x" .. ww:getHeight()) end)
+        pcall(function() ww:setWidth(math.floor(getCore():getScreenWidth() * 0.27)); ww:setHeight(math.floor(getCore():getScreenHeight() * 0.8)); ww:setY(24); ww:setX(0); S.say("forage window " .. ww:getWidth() .. "x" .. ww:getHeight()) end)
     end
     local mgr = ISSearchManager.getManager(p)
     if mgr and not mgr.isSearchMode then pcall(function() ZeD.ForagingTab.toggleSearch(ww) end) end
@@ -167,12 +167,9 @@ S.step(90, function()
     S.say("forage: " .. #q .. " finds (" .. table.concat(names, ", ") .. ") | search " .. tostring(mgr and mgr.isSearchMode) .. " | sneaking " .. tostring(p:isSneaking()))
     pcall(function() p:setSneaking(true) end)
 end)
--- the camera follows the aim a little toward the pointer (parked at the bottom right): aiming for a moment slides Laura left on
--- the screen, clear of the window's left edge (the window cannot go further right)
-S.step(5, function() pcall(function() p:setIsAiming(true) end) end)
-S.poll(10, 12, function() pcall(function() p:setIsAiming(true); p:setSneaking(true) end); return false end)
+-- (Nov 11: the World window sits at the left edge; Laura stays centered, clear of it on the right)
+S.poll(10, 12, function() pcall(function() p:setSneaking(true) end); return false end)
 S.step(40, function() C.shot(S, "lau_forage") end)
-S.step(2, function() pcall(function() p:setIsAiming(false) end) end)
 S.step(10, function()
     local mgr = ISSearchManager.getManager(p)
     if mgr and mgr.isSearchMode then pcall(function() mgr:toggleSearchMode(false) end) end
