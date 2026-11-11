@@ -121,6 +121,13 @@ local cellFn = src:match("local function drawCellCondition%(.-\nend")
 check("COLUMN a row draws ItemMeter's bar", rowFn and rowFn:find("IM.of(item)", 1, true) and rowFn:find("IM.style(kind)", 1, true))
 check("COLUMN a grid cell too", cellFn and cellFn:find("IM.of(item)", 1, true))
 check("COLUMN the sort follows the bar", src:find("return ZeD.ItemMeter.sortKey(item)", 1, true) ~= nil)
+-- the Equipment tab: the Equipped list's rows (worn and held) and its belt rows draw the same one bar (QA's test 9:
+-- the Held rows showed a water bottle's condition)
+local fe = io.open(CDIR .. "EquipmentTab.lua", "rb"); local esrc = fe:read("*a"); fe:close()
+local _, nMeter = esrc:gsub("ZeD%.ItemMeter%.of%(s?l?o?t?%.?s?%.?item%)", "")
+check("COLUMN the Equipment tab's Equipped rows and belt rows read ItemMeter",
+      esrc:find("mk, f = ZeD.ItemMeter.of(slot.item)", 1, true) ~= nil and esrc:find("mk, f = ZeD.ItemMeter.of(s.item)", 1, true) ~= nil)
+check("COLUMN and draw its kind's bar (eqCondition takes it)", esrc:find("local function eqCondition(panel, x, cy, w, f, kind)", 1, true) ~= nil)
 -- every language has the heading, the panel's title and Amount
 local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT", "JP",
                 "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }

@@ -825,12 +825,19 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     panel:drawText(typeStr, x + c.slotX + c.slotPad, secTextY,
         typeColor.r, typeColor.g, typeColor.b, typeColor.a or 0.9, T.fontF1)
 
-    -- Condition: the framed strip, as the inventory lists'
+    -- The item's one bar, as the inventory lists' and the belt's (ZeD.ItemMeter, punch list 152): a worn item's
+    -- condition, a held bottle's or lighter's how full (QA's Mac run on test 9, Nov 11 2026: the Held rows showed a
+    -- water bottle's and a lighter's condition, five full green cells), the framed strip
     if slot.item then
-        local condMax = safeGet(slot.item, "getConditionMax") or 0
-        if condMax and condMax > 0 then
-            eqCondition(panel, x + c.condX + T.px(2), y + math.floor(rowH / 2), c.condColW - T.px(4), slot.cond)
+        local mk, f = nil, nil
+        if ZeD.ItemMeter then
+            mk, f = ZeD.ItemMeter.of(slot.item)
+            if mk == "hidden" then f = nil end
+        else
+            local condMax = safeGet(slot.item, "getConditionMax") or 0
+            if condMax > 0 then f = slot.cond end
         end
+        if f then eqCondition(panel, x + c.condX + T.px(2), y + math.floor(rowH / 2), c.condColW - T.px(4), f, mk) end
     end
 
     -- Protection columns (bite / scratch / bullet) — colored status dots

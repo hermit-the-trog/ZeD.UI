@@ -4007,6 +4007,23 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     **The director, Nov 11 2026, on QA's test 8 note (gasoline reads "Tainted", as the game's own tooltip does):**
     "Most people waft or smell gasoline to tell if it's tainted ... That's a tough question. I guess leave it like the
     game." Kept: Tainted shows wherever the game's tooltip shows it, fuel included (ZeD.Fluid.taintedShown).
+    **QA, Mac, Nov 11 2026, on test 9 (f3d4302, e8eb779's mod files): pass** on everything that could be run, at 1x and
+    1.75x: the list's bars on the Ground and in a bag (ten blue for the liquids, ten dark for the empty bottle, ten
+    accent for the lighter, five status for the hammer and jacket, none for the beans and book); "Cond / Amt", the
+    sort both ways (no bar together at one end), the grid's strips; the hover card on the Ground (test 8's fault
+    fixed) and in the bag (a level bar under Water, Gasoline, Mixture or Empty, no litres; Remaining; Tainted red);
+    the item card from the Ground ("Water 0.80 L", "Amount 0.80 L / 1.00 L"; the saucepan's water before its combat;
+    the mixture's two; Empty); the belt (a bottle in either hand ten blue, the lighter ten accent, the hammer five on
+    its slot, beans none); the Equipment tab's belt list. Release check 14/16 (the right-click step). Not as written:
+    no bottle, lighter or beans fits that belt's slots (a saucepan of water on Back for the liquid strip: ten blue,
+    seven lit). **Fault, outside the checklist:** the Equipment tab's Equipped list, Held + belt rows: a water bottle
+    at 60% and a lighter at 40% showed five full green cells. **Build answered:** that row read the item's condition;
+    it reads ZeD.ItemMeter now (worn and held), the kind's bar drawn (item_meter_sim 30/0). Seen in passing: two
+    sources side by side show Name and Wt only (the multi-column compact layout, by design since the columns came:
+    no bar column there); a stack's row takes its first item's name and bar, so a stack of empty and full bottles
+    reads "Empty Plastic Bottle x4" sorted one way and "Water (Plastic Bottle) x4" the other (the game stacks them as
+    one type). **Recheck (QA):** the Equipped list's Held rows with a water bottle and a lighter in the hands: ten blue
+    and ten accent cells to their levels.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
