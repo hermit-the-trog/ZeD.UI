@@ -183,10 +183,19 @@ local function headerZone(c, cat)
     return false
 end
 local function nm(it) return string.lower(it:getName() or "") end
-local function condPct(it)
-    local mx = it:getConditionMax()
-    if not mx or mx <= 0 then return -1 end
-    return it:getCondition() / mx
+-- a row's COND / AMT key as the list sorts it. Beta 11 (punch list 152) made the column one bar an item, its
+-- condition or how full it is (ItemMeter.lua), and the Cond sort follows the bar shown: ItemMeter.sortKey, with no
+-- bar (a can, a book, food at full condition) below an empty one. A stack's row shows its emptiest item's bar
+-- (punch list 162), so a stack head is read by that. Before beta 11 this read the raw condition.
+local function condPct(col, it)
+    local IM = ZeD.ItemMeter
+    local s = col.stacks and col.stacks[it]
+    if s and s.count > 1 and s.items then
+        local kind, f = IM.ofStack(it, s.items)
+        if kind == nil or kind == "hidden" then return -1 end
+        return f or -1
+    end
+    return IM.sortKey(it)
 end
 -- a row's weight as the list sorts it: a stack's total (the number its row shows), else the item's own
 local function wtOf(col, it)
@@ -206,7 +215,7 @@ local function inOrder(col, key, asc)
                 if key == "name" then
                     if asc then bad = nm(prev) > nm(it) else bad = nm(prev) < nm(it) end
                 elseif key == "cond" then
-                    bad = condPct(prev) > condPct(it)
+                    bad = condPct(col, prev) > condPct(col, it)
                 elseif key == "wt" then
                     bad = wtOf(col, prev) > wtOf(col, it)
                 else

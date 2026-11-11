@@ -23,6 +23,10 @@ local opt = ZeD.Settings.haloBubbleOption
 local keep = { opt = opt:getValue() }
 local Q, qi, wait = {}, 0, 0
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
+-- a step that waits real time, ms after keep[key] (getTimestampMs): the notes' clock is milliseconds, and frames
+-- are not (Nov 11 2026: at the Deck's 1280x800 the game ran about 85 fps, so 200 frames were 2.4 s and the
+-- "gone after 3.1 s" and the switch-off checks ran while the notes were still up)
+local function stepAt(key, ms, fn) Q[#Q + 1] = { n = 1, fn = fn, gate = function() return keep[key] and getTimestampMs() - keep[key] >= ms end } end
 local function src() return M and M.sources and M.sources[ZeD.tr("UI_ZeD_Msg_OverHead")] end
 local function items() local s = src(); return s and s.items or {} end
 local function notes() return B and B._notes and B._notes[pn] or {} end
@@ -41,6 +45,7 @@ step(10, function()
     local act = ISReadABook:new(p, book)
     act:doHaloText()
     HaloTextHelper.addGoodText(p, getText("IGUI_HaloNote_LearnedRecipe", "Make Plank"), "[br/]")
+    keep.notesAt = getTimestampMs()
 end)
 step(18, function()
     local ns = notes()
@@ -51,15 +56,16 @@ step(18, function()
     check(bad == 1 and good == 1, "the book's real line (bad) and a learned recipe (good) are in the bubble")
     shot("1_two_notes_with_speech")
 end)
-step(100, function() shot("2_at_2s") end)
-step(55, function() shot("3_fading") end)
-step(45, function()
+stepAt("notesAt", 2000, function() shot("2_at_2s") end)
+stepAt("notesAt", 2900, function() shot("3_fading") end)
+stepAt("notesAt", 3600, function()
     shot("4_gone")
     check(#notes() == 0, "the notes are gone after about 3.1 s")
 end)
 -- 3: the same line three times
 step(10, function()
     for _ = 1, 3 do HaloTextHelper.addBadText(p, getText("IGUI_Sleep_NotSafe")) end
+    keep.repeatAt = getTimestampMs()
 end)
 step(10, function()
     local same = 0
@@ -79,10 +85,17 @@ step(10, function()
     pcall(ZeD.MessagesWindow.open, pn, ZeD.tr("UI_ZeD_Msg_OverHead"))
 end)
 step(60, function() shot("6_messages") end)
--- 5: XP with the game's halo flag
+-- 5: XP with the game's halo flag. The card sums what the game hands its AddXP event, after the game's own
+-- multipliers (no skill boost x0.25, a learning trait, the sandbox's XP setting), never the 12 + 8 asked for: the
+-- QA character got 5.0 on Nov 4 and 6.5 on Nov 11 for the same 20. So the script sums what the event reported.
+local function xpSeen(chr, perk, amount)
+    if chr == p and perk == Perks.Woodwork and type(amount) == "number" then keep.xpGot = (keep.xpGot or 0) + amount end
+end
 step(10, function()
     pcall(function() local w = ZeD.MessagesWindow.get(pn); if w then w:close() end end)
     keep.xp0 = #items()
+    keep.xpGot = 0
+    Events.AddXP.Add(xpSeen)
     p:getXp():AddXP(Perks.Woodwork, 12, true, true, false, true)
 end)
 step(12, function() shot("7_xp_game_line") end)
@@ -90,9 +103,13 @@ step(10, function()
     p:getXp():AddXP(Perks.Woodwork, 8, true, true, false, true)
 end)
 step(30, function()
+    pcall(function() Events.AddXP.Remove(xpSeen) end)
     local top = items()[1]
-    say("after two XP adds, the top card: " .. tostring(top and top.text) .. " sumKey " .. tostring(top and top.sumKey) .. " amount " .. tostring(top and top.amount))
-    check(top and top.sumKey ~= nil and math.abs((top.amount or 0) - 20) < 3, "Messages sums the XP on one card (about 20)")
+    local got = keep.xpGot or 0
+    say("after two XP adds, the top card: " .. tostring(top and top.text) .. " sumKey " .. tostring(top and top.sumKey) .. " amount " .. tostring(top and top.amount)
+        .. "; the game's AddXP event reported " .. tostring(got))
+    check(top and top.sumKey ~= nil and got > 0 and math.abs((top.amount or 0) - got) < 0.05,
+        "Messages sums the XP on one card (" .. string.format("%.2f", top and top.amount or 0) .. ", the game gave " .. string.format("%.2f", got) .. ")")
     local inBubble = false
     for _, n in ipairs(notes()) do if string.upper(tostring(n.text)):find(string.upper(getText("IGUI_perks_Carpentry")), 1, true) then inBubble = true end end
     check(not inBubble, "the XP is not also in ZeD's bubble (the game draws its own)")
@@ -105,8 +122,8 @@ step(30, function()
     check(#items() > keep.lv0, "a level up is logged in Messages")
     shot("8_level_up")
 end)
--- 7: switch off
-step(10, function()
+-- 7: switch off (once the repeat's note has run out, 3.1 s: "nothing to the bubble" means an empty one)
+stepAt("repeatAt", 3400, function()
     opt:setValue(1)
     keep.off0 = #items()
     HaloTextHelper.addBadText(p, getText("ContextMenu_TooDark"))
@@ -127,6 +144,7 @@ local function tick()
     if not q then Events.OnTick.Remove(tick); return end
     wait = wait + 1
     if wait < q.n then return end
+    if q.gate and not q.gate() and wait < 1200 then return end   -- (a real-time step; 1200 frames: never stuck)
     wait = 0
     qi = qi + 1
     local ok, err = pcall(q.fn)
