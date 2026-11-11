@@ -124,10 +124,13 @@ local function rowShown(win, it)
 end
 local function revealRow(win, it)
     if not it then return false end
-    if rowShown(win, it) then return true end
     local c = win._mainContent
-    local y = c._itemRenderYMap and c._itemRenderYMap[it] or 0
-    if c._scroll and c._scroll.handleMouseWheel then c._scroll:handleMouseWheel((y < 0) and -1 or 1) end
+    local y = c._itemRenderYMap and c._itemRenderYMap[it]
+    local h = c._gridCell or ZeD.T.rowH
+    if y and y >= 0 and y + h <= c:getHeight() then return true end
+    -- (the list's scroll-follow pins its focused row into view on its next draw: a wheel notch aimed at the row missed it
+    -- at the Deck's short list)
+    c._gpFocusedRowItem, c._lastPinnedRowItem = it, nil
     return false
 end
 
@@ -339,6 +342,17 @@ local function bareTile(sq)
     local objs = sq:getObjects()
     return objs ~= nil and objs:size() <= 1
 end
+-- (the World window's floor list gathers the 3 x 3 tiles around the character: all nine must be bare)
+local function bareNine(x, y, z)
+    for dy = -1, 1 do for dx = -1, 1 do
+        local sq = getCell():getGridSquare(x + dx, y + dy, z)
+        if not sq then return false end
+        local wo = sq:getWorldObjects()
+        if wo and wo:size() > 0 then return false end
+        if dx == 0 and dy == 0 and not bareTile(sq) then return false end
+    end end
+    return true
+end
 add(300, function()
     homePos = { p:getX(), p:getY(), p:getZ() }
     local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
@@ -348,7 +362,7 @@ add(300, function()
             if not found and (math.abs(dx) == r or math.abs(dy) == r) then
                 local sq = getCell():getGridSquare(px + dx, py + dy, pz)
                 -- (its neighbors bare too: the crate is built beside the character)
-                local nb = bareTile(sq) and bareTile(getCell():getGridSquare(px + dx + 1, py + dy, pz))
+                local nb = sq ~= nil and bareNine(px + dx, py + dy, pz) and bareTile(getCell():getGridSquare(px + dx + 1, py + dy, pz))
                 if nb then found = { px + dx + 0.5, py + dy + 0.5, pz } end
             end
         end end
@@ -356,8 +370,12 @@ add(300, function()
     end
     check(found ~= nil, "157 setup: a bare tile was found near the QA spot" .. (found and (" (" .. found[1] .. "," .. found[2] .. ")") or ""))
     if found then goTo(found[1], found[2], found[3]) end
+    local ww0 = WW(); if ww0 then ww0._containerTimer = 30 end
 end)
-add(2000, function()
+add(1500, function() local ww0 = WW(); if ww0 then ww0._containerTimer = 30 end end)
+add(1500, function()
+    local sq = p:getCurrentSquare()
+    say("157 after the move: player " .. string.format("%.2f,%.2f", p:getX(), p:getY()) .. ", square " .. tostring(sq and (sq:getX() .. "," .. sq:getY())))
     local ww = WW()
     WWm.openTab(0, "loot")
     local floor = ww._mainContent and ww._mainContent._inventory
@@ -372,11 +390,12 @@ add(1500, function()
     shot("8_world_floor_empty")
 end)
 -- an empty crate beside the character (the World window's strip), then a carried empty bag (the Character window's)
-local crate, crateSq, crateInv, bag, bagLoc, bagPrev
+local crate, crateSq, crateInv, bag, bagLoc, bagPrev, bagInHand
 local function unwearBag()
     if bag then pcall(function() p:removeWornItem(bag) end) end
     if bagPrev and bagLoc then pcall(function() p:setWornItem(bagLoc, bagPrev) end) end
     bagPrev = nil
+    if bagInHand then pcall(function() p:setSecondaryHandItem(nil) end); bagInHand = nil end
 end
 local function findInfo(full)
     local infos = SpriteConfigManager.GetObjectInfoList()
@@ -419,8 +438,16 @@ add(300, function()
         bagLoc = bag:getBodyLocation()
         bagPrev = p:getWornItem(bagLoc)
         pcall(function() p:setWornItem(bagLoc, bag) end)
+        say("157 bag worn at " .. tostring(bagLoc) .. ": isEquipped " .. tostring(p:isEquipped(bag)))
+        if not p:isEquipped(bag) then
+            -- (not worn: held, which the strip counts too)
+            bagInHand = true
+            p:setSecondaryHandItem(bag)
+            say("157 bag held instead: isEquipped " .. tostring(p:isEquipped(bag)))
+        end
+        local w = CW(); if w then w._containerTimer = 30 end
     end
-    check(bag ~= nil and p:isEquipped(bag), "157 setup: an empty schoolbag is worn")
+    check(bag ~= nil and p:isEquipped(bag), "157 setup: an empty schoolbag is worn or held")
 end)
 -- (the strips look for new containers every 30 frames)
 addWhen(5000, function() return crateInv ~= nil and elFor(WW(), "worldContainerStrip", crateInv) ~= nil end, function() end)
@@ -442,6 +469,9 @@ end)
 addWhen(5000, function() return bag ~= nil and elFor(CW(), "charContainerStrip", bag:getInventory()) ~= nil end, function() end)
 add(300, function()
     local w = CW()
+    local stops = {}
+    for _, c in ipairs(w._containers or {}) do stops[#stops + 1] = tostring(c.name) end
+    say("157 Character strip stops: " .. table.concat(stops, ", "))
     local el = bag and elFor(w, "charContainerStrip", bag:getInventory())
     if check(el ~= nil and el.onActivate ~= nil, "157 the bag has a stop in the Character window's container strip") then el.onActivate(w, el) end
     H.empties = {}
@@ -542,6 +572,11 @@ local function barCheck(tag, sortAsc, grid)
     local want = emptiest(s)
     local own = select(2, IM.of(rep))
     local r = barOf(c, rep, grid and c._gridCell or ZeD.T.rowH, grid and c._gridCell or nil)
+    if not r then
+        say("162 " .. tag .. " not drawn: row y " .. tostring(c._itemRenderYMap and c._itemRenderYMap[rep]) .. ", list height " .. c:getHeight()
+            .. ", scroll " .. tostring(c._scroll and c._scroll.scrollPos) .. ", bars seen " .. #H.bars)
+    end
+    c._gpFocusedRowItem = nil
     say(string.format("162 %s: sort Cond %s, the stack's head item holds %.2f, the emptiest holds %.2f, bar drawn %s", tag, sortAsc and "ascending" or "descending", own or -1, want, r and string.format("%.2f", r.f) or "none (row not drawn)"))
     check(near(want, 0, 0.001), "162 " .. tag .. ": the emptiest bottle is the empty one (" .. string.format("%.2f", want) .. ")")
     if check(r ~= nil, "162 " .. tag .. ": the stack's bar was drawn") then
