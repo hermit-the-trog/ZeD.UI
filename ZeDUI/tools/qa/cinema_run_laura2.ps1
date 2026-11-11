@@ -9,11 +9,12 @@ $lua = "$($env:USERPROFILE)\Zomboid\Lua"
 foreach ($f in "zedqa_click.txt", "zedqa_click_done.txt", "zedqa_click_stop.txt") { $p = Join-Path $lua $f; if (Test-Path $p) { Remove-Item $p -Force } }
 $helper = Start-Process pwsh -ArgumentList @("-NoProfile", "-File", (Join-Path $here "release_check_mouse.ps1")) -WindowStyle Hidden -PassThru
 try {
-    & pwsh -File (Join-Path $here "zedqa_run.ps1") -Mode fullscreen4k -ShotSave $save -Manifest (Join-Path $here "cinema_laura2.txt")
+    & pwsh -File (Join-Path $here "zedqa_run.ps1") -Mode fullscreen4k -ShotSave $save -Manifest (Join-Path $here $(if ($env:CLAU2_MANIFEST) { $env:CLAU2_MANIFEST } else { "cinema_laura2.txt" }))
 }
 finally {
     Set-Content -Path (Join-Path $lua "zedqa_click_stop.txt") -Value "stop"
     Start-Sleep -Milliseconds 600
     if (-not $helper.HasExited) { Stop-Process -Id $helper.Id -Force }   # (only the helper this script started)
 }
+
 

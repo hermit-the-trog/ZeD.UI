@@ -1,0 +1,7 @@
+# Nov 11 2026: Laura's forage shot alone (cin_lau_forage), 4K, Rosa shot save: cinema_run_laura2.ps1 reads cinema_laura2.txt
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60
+gallery_cinema_laura2_forage.lua | clonly | timeout=30
+gallery_cinema_laura2.lua | clau2 | timeout=900
+gallery_t14_end.lua | g14e | timeout=60

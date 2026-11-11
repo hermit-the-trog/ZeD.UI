@@ -67,7 +67,15 @@ step(10, function() Wn().scroll = 0 end)
 step(40, function() shot("1_skill_books_still") end)
 step(10, function() core:setOptionDoVideoEffects(true) end)
 step(150, function() shot("2_skill_books_rules_clip") end)
-step(10, function() local w = Wn(); w.scroll = w._maxS or 0 end)
+-- (Nov 11 2026) the Skill Books topic now ends on the occupation and trait tables: scroll to the first rules table (The Rules in
+-- Numbers, the XP table) instead of the bottom
+step(10, function()
+    local w = Wn()
+    local y = nil
+    for _, it in ipairs((w._g and w._g.items) or {}) do if it.kind == "rules" then y = it.y; break end end
+    w.scroll = math.min(w._maxS or 0, math.max(0, (y or (w._maxS or 0)) - ZeD.T.px(60)))
+    say("2b: rules table at " .. tostring(y) .. ", scroll " .. tostring(w.scroll) .. " of " .. tostring(w._maxS))
+end)
 step(60, function() shot("2b_skill_books_rules_full"); Wn().scroll = 0 end)
 step(10, function() local t = topicBy("SurvivalGuide_barricades_title") or topicBy("SurvivalGuide_vaulting_title"); if t then Wn():choose(t.id, true); say("mid-clip topic: " .. tostring(t.title)) end end)
 step(150, function() shot("3_mid_clip") end)

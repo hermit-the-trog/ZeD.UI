@@ -488,6 +488,8 @@ $out = New-Object System.Collections.Generic.List[string]
 try {
     # the test's mod list, ZeD last but ZeD picks after it (the game keeps this order)
     $list = @("ConeVisionOutline", "GaelGunStore_B42", "ModernFirearmsSystem", "Constown42", "newhartburg", "ZeD_UI", "ZeD_Picks")
+    # (Nov 11 2026) B11_DROP_MFS=1: without ModernFirearmsSystem (its current Workshop build and GaelGunStore stop the game at script load: Duplicate Prop2 in recipe OpenBoxOfBullets50)
+    if ($env:B11_DROP_MFS) { $list = @($list | Where-Object { $_ -ne "ModernFirearmsSystem" }) }
     $txt = "VERSION = 1,`n`nmods`n{`n" + (($list | ForEach-Object { "    mod = $_," }) -join "`n") + "`n}`n`nmaps`n{`n}`n"
     Set-Content -Path $DefaultMods -Value $txt -NoNewline
     Remove-Item $PicksList -ErrorAction SilentlyContinue
@@ -577,6 +579,9 @@ try {
     Check ($l -match 'optGael=([1-9]\d*)') "GaelGunStore-Firearms' options (named unlike the mod) are found as its own ($($Matches[1]))"
     Check ($l -match 'optMfs=([1-9]\d*)') "AAA_ModernFirearmsSystem's options (AWCWF_42_Patch) are found as its own"
     Shot "6_gael_conflict"
+    # (Nov 11 2026) B11_DROP_MFS: no ModernFirearmsSystem, so the two mods have no shared files and the picker steps would open an empty
+    # "Choose files" page and fail. Skipped then (the picks pages 7 to 9 need both mods).
+    if (-not $env:B11_DROP_MFS) {
     $l = Run-Job "pickerOpen"
     Check ($l -match 'page=picks files=(1[3-9]|[2-9]\d)') "the picker opens with the shared files"
     Check ($l -match 'diff=6') "ISGunAddBatteryAction.lua: 6 lines differ"
@@ -616,6 +621,9 @@ try {
     $l = Run-Job "undo"
     Check ($l -match 'picksLeft=0') "Undo picks clears them"
     Check ($l -match 'FollowLoadOrder=2/2') "ZeD picks' copies then follow load order (AAA_ModernFirearmsSystem's text)"
+    }
+    # the reload above (when it ran) drops the look script's hooks: the desk's Debug menu is back in the bar. Put the look on again.
+    Push-File "gallery_b11_look_menu.lua" "g14l"
     $l = Run-Job "same"
     Check ($l -match 'file:true:1') "Constown B42 and New Hartburg: one shared file, the same text"
     Check ($l -match 'count=0') "it is not counted as a conflict"

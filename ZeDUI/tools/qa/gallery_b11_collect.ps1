@@ -46,7 +46,7 @@ $Names = @(
     'g14_radio_handbuilt', 'g14_radio_cd', 'g14_radio_red', 'g14_radio_black', 'gfr_yard', 'gfr_crop_grown', 'gfr_zone', 'gfr_hutch_open',
     'gfr_ranch', 'gfr_animal', 'gfr_butcher', 'g14_ldy_combo', 'g14_ldy_washer', 'g14_ldy_dryer',
     'zqa_c80_3840x2160_2_stew_plan', 'zqa_c80_3840x2160_5_dish_list',
-    'van_01_hero_mid', 'van_11_health', 'van_20_ctx_menu', 'van_32_action_bar_reading', 'cin_lau_forage', 'cin_lau_fishing')
+    'zqa_mp_r1_reset_files', 'zqa_mp_5_srm_sandbox', 'zqa_mp_r2_reset_confirm', 'zqa_mp_12_turnoff_items', 'zqa_mp_14_ask_off', 'van_01_hero_mid', 'van_11_health', 'van_20_ctx_menu', 'van_32_action_bar_reading', 'cin_lau_forage', 'cin_lau_fishing')
 $before = @{ $T14 = (Join-Path $T14 "_before_b11"); $B2 = (Join-Path $B2 "_before_b11") }
 foreach ($d in $before.Values) { New-Item -ItemType Directory -Force $d | Out-Null }
 foreach ($n in $Names) {

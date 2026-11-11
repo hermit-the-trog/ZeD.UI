@@ -1,0 +1,13 @@
+# Nov 11 2026: beta 11 rerun of spread 44's put-back picture (gallery_nov1_t3.lua: the options scrolled to the put-back rows)
+# and spread 46's Skill Books rules still (zedqa_guide82_stills.lua, now scrolled to the rules table), away from the farm
+# leftovers. PZ Teal, 4K.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b11_away.lua | away | timeout=200
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_nov1_t3.lua | n1t | timeout=300
+zedqa_guide82_stills.lua | g8s | timeout=600
+gallery_t14_end.lua | g14e | timeout=60
