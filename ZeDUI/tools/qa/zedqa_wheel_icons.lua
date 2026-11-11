@@ -43,6 +43,9 @@ local IDS = {
     "seek", "gears", "zoom_in", "zoom_out", "theme", "textsize", "focus", "scale", "seethrough", "progress", "inbox",
     "smiley", "guide", "gamepad", "alarm", "heart", "safemode", "crate", "jacket", "thermometer", "idcard", "pencil", "bug",   -- (Nov 8 QA: the Lua console slice, debug mode)
     "notebook", "skills", "craft", "bricks", "mirror", "traits",
+    -- (beta 11, punch list 140: the lists got their own icons, ZeD_Lists.lua L.ICON = { outfit = "outfit",
+    -- loadout = "loadout" }, zw_loadout / zw_outfit drawn at 16/24/32/48 with _add / _remove versions)
+    "loadout", "outfit", "loadout_add", "loadout_remove", "outfit_add", "outfit_remove",
 }
 -- vanilla's words: { key, picture or false, id }
 local TEXT = {
@@ -138,7 +141,7 @@ local ZED = {
     { "character", "ContextMenu_Sleep", "bed" },
     { "character", "UI_ZeD_Wheel_Clothing", "shirt" },
     { "character", "UI_ZeD_Wheel_Use", "backpack" },
-    { "character", "UI_ZeD_Wheel_Loadouts (Oct 29 2026)", "view_list" },
+    { "character", "UI_ZeD_Wheel_Loadouts (Oct 29 2026; beta 11 punch list 140: its own clipboard icon)", "loadout" },
     { "character > Weapons", "UI_ZeD_Wheel_HandsFree", "hand" },
     { "character > Medicine", "the wounds (H.treatments' entries)", "bandage" },
     { "character > Medicine, Clothing, Radio", "the tab slices (Health, Equipment, Radio)", "heart / jacket / walkie" },

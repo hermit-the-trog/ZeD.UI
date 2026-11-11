@@ -606,17 +606,23 @@ step(10, function()
     check(clipCount.set > 0 and clipCount.set == clipCount.clear, "the drawer's clip is set and cleared in pairs with a ham showing ("
         .. clipCount.set .. " sets, " .. clipCount.clear .. " clears)")
 end)
-local bandWas
+local bandWas, tuneDir
+-- the marker moves the way the frequency does (Nov 11 2026: a fresh set can start near the band's top, and the
+-- tuning wraps past the top to the bottom by design, ZeD_RadioOps.lua O.tuneStep; Windows beta 11 QA started at
+-- 0.9976 and wrapped to 0.0918. So the ten turns go down from the upper half, up from the lower.)
+local function moved(now) if tuneDir > 0 then return now > bandWas end return now < bandWas end
 step(5, function()
     local s = ps(hams.ham_civilian, "ham_civilian")
     bandWas = s.bandF
+    tuneDir = ((bandWas or 0) > 0.5) and -1 or 1
     check(s.range == ZeD.tr("UI_ZeD_Radio_Range", "7.5"), "civilian ham: RANGE matches its transmit range (" .. tostring(s.range) .. ")")
-    for _ = 1, 10 do TW.turn(p, hams.ham_civilian, "tune", 1, 25) end
+    for _ = 1, 10 do TW.turn(p, hams.ham_civilian, "tune", tuneDir, 25) end
 end)
 -- (the ten turns land over a few frames; at 1080p five were not enough, so wait for the marker)
-waitFor(5, 150, function() return ps(hams.ham_civilian, "ham_civilian").bandF > bandWas end, function()
+waitFor(5, 150, function() return moved(ps(hams.ham_civilian, "ham_civilian").bandF) end, function()
     local now = ps(hams.ham_civilian, "ham_civilian").bandF
-    check(now > bandWas, "civilian ham: the band marker follows the frequency up (" .. tostring(bandWas) .. " -> " .. tostring(now) .. ")")
+    check(moved(now), "civilian ham: the band marker follows the frequency " .. (tuneDir > 0 and "up" or "down")
+        .. " (" .. tostring(bandWas) .. " -> " .. tostring(now) .. ")")
     local z = WW()._radioFullZone
     RT.onClick(WW(), z.x + 2, z.y + 2)
 end)
