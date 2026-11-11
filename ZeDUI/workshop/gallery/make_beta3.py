@@ -21,9 +21,13 @@ BREAKS = [
     ("14b_break_kohners_map", CIN + "/cin_koh_maps.jpg"),        # the story: the route, a paper map
     ("18b_break_plizken_windows", CIN + "/cin_plz_equip.jpg"),   # every window: both open
     ("26b_break_mckline_health", CIN + "/cin_mck_health.jpg"),   # items and the character: the Health tab
-    ("29b_break_laura_crafting", CIN + "/cin_lau_craft.jpg"),    # making things: Crafting at the camp
+    # (Nov 11 2026, the director's two new breaks: foraging after the foraging spread, fishing after the fishing
+    # spread; crafting moves up one to follow Crafting and Building, the radio up to follow the two-way radios)
+    ("28b_break_laura_crafting", CIN + "/cin_lau_craft.jpg"),    # making things: Crafting at the camp (27, 28)
+    ("29b_break_laura_forage", CIN + "/cin_lau_forage.jpg"),     # foraging: a sneak in search mode, the Forage tab
     ("33b_break_laura_camp", CIN + "/cin_lau_wide.jpg"),         # on screen: the belt with its holsters
-    ("41b_break_mckline_radio", CIN + "/cin_mck_radio.jpg"),     # machines and media: the walkie in the Radio tab
+    ("37b_break_mckline_radio", CIN + "/cin_mck_radio.jpg"),     # the two-way radios: the walkie in the Radio tab
+    ("40b_break_laura_fishing", CIN + "/cin_lau_fishing.jpg"),   # fishing: rod in hand, the line-tension display
     ("44b_break_plizken_stadium", CIN + "/cin_plz_wide.jpg"),    # the controller run ends: the stadium
     ("49b_break_laura_building", CIN + "/cin_lau_build.jpg"),    # looks: the Light theme, Skills and Building
     ("55b_break_plizken_vehicle", CIN + "/cin_plz_vehicle.jpg"), # mods: the ID card (Veteran) and a wreck
