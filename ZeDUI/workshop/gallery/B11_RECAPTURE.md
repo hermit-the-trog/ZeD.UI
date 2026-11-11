@@ -34,7 +34,7 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
 
 | Spread | Capture names | What each must show |
 |---|---|---|
-| 01 hero | zed_02_hero_close.png | The Character window close: the Cond / Amt column, the title bar's pins, the belt's segmented rings. |
+| 01 hero | zed_02_hero_close.png | The Character window close, **one source open** (two side by side draw the compact Name and Wt layout, no Cond / Amt): the Cond / Amt column, the title bar's pins, the belt's segmented rings. |
 | 02 old job | story_00b_skills_tall.png, story_00a_identity_tall.png | Skills: ten evenly spread cells. Identity: the camera button in the photo's corner. |
 | 03 the plan | story_02a_journal_entry.png, story_01a_flyer_reader.png | The Journal entry and the flyer in the reader, on the 70% paper. |
 | 04 the route | story_03_route_map.png, story_03b_route_note.png | The paper map with the route and its note, on the dimmer paper. |
@@ -46,7 +46,7 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
 | 15 every window | zqa_cw_02_dark_small_window_menu_theme.png, zqa_cw_01_dark_small_card.png, zqa_cw_14_focus_hand_inventory_row.png | Windows with the new title bars and the Cond / Amt column. |
 | 16 see-through | zqa_cw_12b_solid_in_use.png, zqa_cw_08_seethrough_100.png, zqa_cw_12_seethrough_60.png | The same three see-through levels, with the new columns. |
 | 17 controller highlight | zqa_cw_14/16/18/20_focus_*_inventory_row.png | The four highlight styles on an inventory row, in Teal. |
-| 19 inventory compare | zed_01_hero_mid.png (van_01 stays) | The Character window mid: Cond / Amt with a water bottle (blue level) and a worn or wielded item (five cells). |
+| 19 inventory compare | zed_01_hero_mid.png (van_01 is retaken too) | The Character window mid, **one source open**: Cond / Amt with a water bottle (blue level) and a worn or wielded item (five cells). |
 | 20 grid view | zed_13_crafting.png, zed_53_grid.png | The list with "Cond / Amt" heading at the left; the grid, its strips the same as the list's bars. |
 | 21 item cards | zed_18_card_food.png, zed_19_card_weapon.png | The food and weapon cards; if the card has "Used to make", flush left. |
 | 22 equip doll | zed_10_equip_doll.png | The Equipment tab: the Equipped list's bars by the one-bar rule; a hooded top under Torso, Outer if worn. |

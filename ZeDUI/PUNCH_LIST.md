@@ -4178,8 +4178,8 @@ to be proposed.
     as secondary (the hover card's too). Build proposes values with contrast in every theme and accent, before and
     after, for the director to approve.
 161. **QA: two sources side by side show no Cond / Amt column** (Name and Wt only); the gallery's hero shots are staged
-    that way and B11_RECAPTURE.md asks for the column. To look into: the narrowing rule.
+    that way and B11_RECAPTURE.md asks for the column. **Build looked (Nov 11):** by design. Two or more sources side by side set `_compactMode` (InventoryRenderer.lua), which draws Name and Wt only; the narrowing rule isn't involved. B11_RECAPTURE.md now asks for one source open in 01 and 19, so the column shows. Giving the compact layout a bar is the director's call.
 162. **QA: a stack's row takes its first item's name and bar** ("Empty Plastic Bottle x4" with a dark bar one way,
-    "Water (Plastic Bottle) x4" at 80% the other).
+    "Water (Plastic Bottle) x4" at 80% the other). The game stacks them as one type, and the row shows the first item's facts. To decide: a stack of mixed levels shows the lowest, the average, or no bar.
 163. **QA: no Hat row when it's empty** (the Equipped list draws only filled rows). As designed today; the director's
     call if it should show.
