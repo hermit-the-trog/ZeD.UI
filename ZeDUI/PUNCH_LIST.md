@@ -3645,6 +3645,26 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     shoes, the junction a soft dark line, not a ruler), Three-quarter (no floor edge) and Bust (the light behind the
     head, the pixels crisp, not blurred, and not heavy); the wheel from Full body to Bust: the backdrop leans in
     smoothly with the figure; a photo at Bust on Brick wall; a 16:10 screen still cropped at the sides.
+    **QA, Mac, Nov 11 2026, on bb67bff:** the tray two columns of nine, named, the hanging one outlined; three picks
+    in a row (Black stucco, Drape, Brick wall) with the tray open; all 18 at Full body with the floor under the
+    shoes and a soft dark band where wall meets floor; Three-quarter no floor edge (Knox County's horizon is its
+    picture); Bust the light behind the head; the wheel: the backdrop leans in step by step with the figure; a clean
+    Bust photo on Brick wall. **Fault: the pixels blurred** ("the game smooths the texture as it scales it, so there
+    is no visible pixel grid"; one row of Brick wall: runs of one colour mostly 1 or 2 screen pixels, where 4x art
+    gives multiples of 4). On the art: Drape reads as a satin curtain with strong diagonal folds; Gold and violet as
+    a soft wash; Black stucco very dark (red hair and a pale head stand out, black backpack straps nearly vanish;
+    dark hair not checked). Not run: 16:10, a pad, 1.75x. Screens: qa/screens/b11studio4/.
+    **Build answered:** plain getTexture filters linearly; ZeD's pixel art (the desk, the fishing rod, the mechanics
+    figures) is asked for with Texture.getSharedTexture(path, 3), nearest. The studio's paper now is too, at its own
+    480 x 270 (the doubled 960 x 540 bought nothing under nearest; indexed, 96 colours, as the Survival Guide's pages
+    ship: 1.9 MB for paper and swatches together), so each art pixel lands 4 screen pixels wide at 1080p, about 6 at
+    Bust. The tray's swatches draw from their own small smooth copies (backdrop_<id>_sw.png, 256 x 144): nearest
+    shrinking a 480-wide painting to 128 drops whole pixels and breaks the lasers' lines. The textures are asked for
+    as the file loads, so the first roll isn't blank while they stream in. studio_sim 69/0 (the nearest and swatch
+    checks fail on bb67bff). **Recheck (QA, Mac):** Brick wall at Full body and Bust, a 1:1 crop: the mortar lines
+    hard-edged, runs in 4s at Full body; the wheel: no shimmer worth noting as the backdrop steps in; the tray's
+    swatches smooth, Lasers' lines whole; the first open of the studio after launch: the paper there at once.
+    Waiting on the director: Drape, Gold and violet, Black stucco.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

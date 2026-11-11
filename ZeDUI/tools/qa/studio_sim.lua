@@ -62,8 +62,18 @@ function Panel:new(x, y, w, h)
     end }
     return o
 end
--- the backdrops' textures: 960 x 540 (480 x 270 art pixels, each doubled), as make_backdrops.py paints them
-getTexture = function(path) return { path = path, getWidth = function() return 960 end, getHeight = function() return 540 end } end
+-- the backdrops' textures, as make_backdrops.py paints them: the paper 480 x 270 (the art pixels themselves, loaded
+-- with nearest filtering), the tray's swatch 256 x 144 (smooth); W.texLoads records how each was asked for
+W.texLoads = {}
+local function stubTex(path)
+    local sw = path:find("_sw%.png$") ~= nil
+    return { path = path, getWidth = function() return sw and 256 or 480 end, getHeight = function() return sw and 144 or 270 end }
+end
+getTexture = function(path) W.texLoads[#W.texLoads + 1] = { path = path, how = "smooth" }; return stubTex(path) end
+Texture = { getSharedTexture = function(path, flags)
+    W.texLoads[#W.texLoads + 1] = { path = path, how = (flags == 3) and "nearest" or ("flags " .. tostring(flags)) }
+    return stubTex(path)
+end }
 function Panel:initialise() end
 function Panel:instantiate() if self.createChildren then self:createChildren() end end
 function Panel:addToUIManager() W.ui[self] = true end
@@ -257,37 +267,58 @@ W.now = W.now + 380
 W.subs = {}
 room:prerender()
 local sub = W.subs[1]
-check("BACKDROPS: then the new one rolls down (half its height, its top half)", sub and math.abs(sub.dh - 540) <= 1 and math.abs(sub.sh - 270) <= 1,
+check("BACKDROPS: then the new one rolls down (half its height, its top half)", sub and math.abs(sub.dh - 540) <= 1 and math.abs(sub.sh - 135) <= 1,
       sub and (sub.dh .. " / " .. sub.sh))
 W.now = W.now + 400
 room:prerender()
 check("BACKDROPS: and hangs", room.roll == nil and W.subs[#W.subs].dh == 1080)
-check("BACKDROPS: the whole texture on a 16:9 screen at Full body", W.subs[#W.subs].sx == 0 and W.subs[#W.subs].sy == 0 and W.subs[#W.subs].sw == 960)
+check("BACKDROPS: the whole texture on a 16:9 screen at Full body", W.subs[#W.subs].sx == 0 and W.subs[#W.subs].sy == 0 and W.subs[#W.subs].sw == 480)
+-- the pixels stay square (QA's Mac run on bb67bff: the game smoothed the paper): the paper by nearest filtering, at
+-- its own 480 x 270; the swatches their own smooth copies
+local paperHow, swHow = {}, {}
+for _, l in ipairs(W.texLoads) do
+    if l.path:find("_sw%.png$") then swHow[l.how] = true else paperHow[l.how] = true end
+end
+check("BACKDROPS PIXELS: every paper asked for with nearest filtering, never smoothed", paperHow.nearest and not paperHow.smooth,
+      (paperHow.smooth and "smooth " or "") .. (paperHow.nearest and "nearest" or ""))
+check("BACKDROPS PIXELS: the hanging paper is the full-size texture", W.subs[#W.subs].tex and not W.subs[#W.subs].tex.path:find("_sw"))
+local filesOk = true
+for i = 2, #ST.BACKDROPS do
+    local fh = io.open(ROOT .. "42/media/textures/ZeD/studio/backdrop_" .. ST.BACKDROPS[i].id .. "_sw.png", "rb")
+    if fh then fh:close() else filesOk = false end
+end
+check("BACKDROPS PIXELS: every swatch's small copy in the mod", filesOk)
 -- the zoom with the framing: the floor (from 0.80 of the painting's height) under the feet at Full body, out of the
 -- frame by Three-quarter, the cloth behind the head at Bust; the tray's swatches never zoomed
 local function hung() W.subs = {}; room:prerender(); return W.subs[1] end
 local s0 = hung()
-check("BACKDROPS ZOOM: Full body, the floor in", s0 and (s0.sy + s0.sh) / 540 > 0.95)
+check("BACKDROPS ZOOM: Full body, the floor in", s0 and (s0.sy + s0.sh) / 270 > 0.95)
 room:frameTo(ST.FRAMES[2].t)
 local s1 = hung()
-check("BACKDROPS ZOOM: Three-quarter, the floor out of the frame", s1 and s1.sw < 960 and (s1.sy + s1.sh) / 540 < 0.79,
-      s1 and ((s1.sy + s1.sh) / 540))
-check("BACKDROPS ZOOM: centred across", s1 and math.abs(s1.sx + s1.sw / 2 - 480) < 0.5)
+check("BACKDROPS ZOOM: Three-quarter, the floor out of the frame", s1 and s1.sw < 480 and (s1.sy + s1.sh) / 270 < 0.79,
+      s1 and ((s1.sy + s1.sh) / 270))
+check("BACKDROPS ZOOM: centred across", s1 and math.abs(s1.sx + s1.sw / 2 - 240) < 0.5)
 room:frameTo(1)
 room.tray = true
 local s2 = hung()
-check("BACKDROPS ZOOM: Bust, 1.6 times, the top still near the top", s2 and math.abs(s2.sw - 600) < 0.5 and s2.sy < 40,
+check("BACKDROPS ZOOM: Bust, 1.6 times, the top still near the top", s2 and math.abs(s2.sw - 300) < 0.5 and s2.sy < 20,
       s2 and (s2.sw .. " " .. s2.sy))
 local swz = true
-for i = 2, #W.subs do if W.subs[i].dw == 128 and W.subs[i].sw ~= 960 then swz = false end end
-check("BACKDROPS ZOOM: the tray's swatches whole", swz and #W.subs > 10, #W.subs)
+local nsw = 0
+for i = 2, #W.subs do
+    if W.subs[i].dw == 128 then
+        nsw = nsw + 1
+        if W.subs[i].sw ~= 256 or not W.subs[i].tex.path:find("_sw%.png$") then swz = false end
+    end
+end
+check("BACKDROPS ZOOM: the tray's swatches whole, from their small smooth copies", swz and nsw == 17, nsw)
 room.tray = false
 room:frameTo(0)
 -- a taller screen (16:10): the sides cropped, the height whole
 W.subs = {}
 ST._drawBackdrop(room, ST.BACKDROPS[2], 0, 0, 1920, 1200, 1)
 local c = W.subs[1]
-check("BACKDROPS: on 16:10 the sides cropped, the height whole", c and c.sy == 0 and c.sh == 540 and c.sx > 0 and math.abs(c.sw - 960 * (1920 / 1200) / (960 / 540)) < 1, c and (c.sx .. "," .. c.sw))
+check("BACKDROPS: on 16:10 the sides cropped, the height whole", c and c.sy == 0 and c.sh == 270 and c.sx > 0 and math.abs(c.sw - 480 * (1920 / 1200) / (480 / 270)) < 1, c and (c.sx .. "," .. c.sw))
 room:onJoypadDown(Joypad.YButton)
 check("BACKDROPS: Y on the pad, the next", room.bd == 3 and room.roll ~= nil)
 W.now = W.now + 1000

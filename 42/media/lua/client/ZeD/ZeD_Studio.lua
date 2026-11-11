@@ -141,7 +141,9 @@ end
 -- rolls the paper that hangs up into the roller, then the new one down.
 -- ---------------------------------------------------------------------------
 local TEX = "media/textures/ZeD/studio/backdrop_"
-local function bd(id, key) return { id = id, key = "UI_ZeD_Studio_Bd" .. key, tex = TEX .. id .. ".png" } end
+local function bd(id, key)
+    return { id = id, key = "UI_ZeD_Studio_Bd" .. key, tex = TEX .. id .. ".png", sw = TEX .. id .. "_sw.png" }
+end
 ST.BACKDROPS = {
     { id = "grey", key = "UI_ZeD_Studio_BdGrey" },                                 -- (drawn here: drawPaper)
     -- the canvases: mottled cloth, lighter behind the head, meeting a floor of the same paint
@@ -160,12 +162,38 @@ ST.backdrop = ST.backdrop or 1          -- (the last one picked, for the session
 ST.ROLL_MS = 380                        -- each half of a change: the old paper up, the new one down
 local ROLLER = 12                       -- the roller's height, design units
 
-local function texOf(b)
-    if not b.tex then return nil end
-    if b._t == nil then b._t = (getTexture and getTexture(b.tex)) or false end
-    return b._t or nil
+-- THE PIXELS STAY SQUARE (QA's Mac run, Nov 11 2026, on bb67bff: "the game smooths the texture as it scales it, so
+-- there is no visible pixel grid"; runs of one colour 1 or 2 screen pixels long where 4x art gives 4): the paper is
+-- loaded with nearest filtering (Texture flag 3, as the main menu's desk, the fishing rod and the mechanics figures
+-- are), at its native 480 x 270, so each art pixel lands 4 screen pixels wide at 1080p. The tray's swatches have
+-- their own small smooth copies (256 x 144, filtered): a 480-wide painting shrunk to 128 by nearest drops whole
+-- pixels, and the lasers' thin lines break up.
+local NEAREST = 3
+local function texOf(b, small)
+    local path = small and b.sw or b.tex
+    if not path then return nil end
+    local k = small and "_ts" or "_t"
+    if b[k] == nil then
+        local t = nil
+        if small then t = getTexture and getTexture(path)
+        else
+            pcall(function() t = Texture.getSharedTexture(path, NEAREST) end)
+            if not t and getTexture then t = getTexture(path) end
+        end
+        b[k] = t or false
+    end
+    return b[k] or nil
 end
 ST.texOf = texOf
+
+-- asked for once as the file loads, so the first roll isn't blank while the engine streams them in (as the main
+-- menu's desk is; not cached here, so a texture system not ready yet can't leave a "missing" behind)
+pcall(function()
+    for _, b in ipairs(ST.BACKDROPS) do
+        if b.tex then Texture.getSharedTexture(b.tex, NEAREST) end
+        if b.sw and getTexture then getTexture(b.sw) end
+    end
+end)
 
 -- THE BACKDROP ZOOMS WITH THE FRAMING (the director, Nov 11 2026): at Full body the floor shows under the feet; toward
 -- the bust the camera leans in on the cloth too, less than on the figure (the cloth is further away), so the floor
@@ -174,11 +202,11 @@ ST.texOf = texOf
 ST.BD_ZOOM, ST.BD_AT = 0.6, 0.15
 
 -- backdrop b over (x, y, w, h), its paper down frac of the way from the roller (1: all of it), zoomed in z times
--- (1, or nil: the whole painting)
-local function drawBackdrop(p, b, x, y, w, h, frac, z)
+-- (1, or nil: the whole painting); small: the tray's swatch (the smooth copy)
+local function drawBackdrop(p, b, x, y, w, h, frac, z, small)
     local vis = math.floor(h * math.max(0, math.min(1, frac)))
     if vis <= 0 then return end
-    local tex = texOf(b)
+    local tex = texOf(b, small)
     if not tex then
         drawPaper(p, { bx = x, by = y, bw = w, bh = h }, vis)
         return
@@ -315,7 +343,7 @@ function ZeD_StudioRoom:drawTray(barY)
     for i, b in ipairs(ST.BACKDROPS) do
         local col, row = math.floor((i - 1) / rows), (i - 1) % rows
         local x, y = x0 + pad + col * (tw + gap), y0 + pad + row * (cellH + gap)
-        drawBackdrop(self, b, x, y, tw, th, 1)
+        drawBackdrop(self, b, x, y, tw, th, 1, 1, true)
         local over = mx >= x and mx < x + tw and my >= y and my < y + th + lh + T.px(6)
         local oc = (i == self.bd) and T.accent or (over and T.text or bs)
         self:drawRectBorder(x, y, tw, th, 1, oc.r, oc.g, oc.b)

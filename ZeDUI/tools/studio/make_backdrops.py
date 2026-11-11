@@ -1,16 +1,19 @@
-"""The portrait studio's backdrops, first drafts (punch list 145, step 2; the director, Nov 10 2026: "go ahead with
-those backdrops"). Build drafts them; the director refines or repaints them.
+"""The portrait studio's backdrops (punch list 145, step 2; the director, Nov 10 2026: "go ahead with those
+backdrops"; Nov 11: the painted canvases, "a bit pixelated like the other art we have done, but not sooooo heavy").
 
-Each backdrop is painted procedurally (fractal noise, gradients, glows, bokeh) at 1024 x 576 (16:9) and saved as
-42/media/textures/ZeD/studio/backdrop_<id>.png, which the studio draws over the whole screen ("cover": scaled to fill,
-the edges cropped on screens of another shape). The plain grey seamless is drawn by the studio itself (no texture).
+Each backdrop is painted procedurally (fractal noise, gradients, glows; the canvases, plasters and sets in one canvas
+engine) at 1024 x 576 (16:9), then brought to the main menu desk's grid (the pixel pass: 480 x 270, 96 colours, no
+dithering) and saved as 42/media/textures/ZeD/studio/backdrop_<id>.png, which the studio loads with nearest filtering
+and draws over the whole screen ("cover": scaled to fill, the edges cropped on screens of another shape), and
+backdrop_<id>_sw.png, a small smooth copy for the tray's swatch. The plain grey seamless is drawn by the studio itself
+(no texture).
 
 For the director: ZeDUI/art/studio_backdrops/
-  contact_sheet.png     the five, named
+  contact_sheet.png     every one, named, the guide over it
   safe_area_1920.png    a 1920 x 1080 guide, transparent but for the zones: where the figure stands (full body,
                         centred, rows 46 to 1020 at 1080p), where the head sits in each framing, and the bar along the
                         foot (44 px at 1x) that covers the paper while setting up (not in the photo)
-  <id>_1920.png         each draft at 1920 x 1080, to paint over
+  <id>_1920.png         each at 1920 x 1080, exact 4x pixel art, to paint over
 
 Run from the repo root:  python3 ZeDUI/tools/studio/make_backdrops.py
 """
@@ -478,9 +481,10 @@ def s_plaster():
 
 # ---------------------------------------------------------------------------------------------------------------------
 # THE PIXEL PASS ("a bit pixelated like the other art we have done, but not sooooo heavy"): each painting brought down
-# to a 480 x 270 grid of art pixels in about 40 colours, no dithering; the game's texture doubles each art pixel
-# (960 x 540, sharp under the game's filtering); the director's copies are exact four-times pixel art (1920 x 1080).
+# to a 480 x 270 grid of art pixels in 96 colours, no dithering; the game's texture is that grid, drawn with nearest
+# filtering; the director's copies are exact four-times pixel art (1920 x 1080).
 # ---------------------------------------------------------------------------------------------------------------------
+SW_W, SW_H = 256, 144                     # the tray's swatches (128 x 72 design units, at up to 2x)
 ART_W, ART_H, COLORS = 480, 270, 96      # (the main menu's desk: the same grid, some 260 colours, no dithering)
 
 
@@ -490,8 +494,8 @@ def pixelate(img, seed=7):
     small = np.asarray(img.resize((ART_W, ART_H), Image.BOX), np.float32)
     small += np.random.default_rng(seed).normal(0, 2.2, small.shape[:2])[..., None]
     small = Image.fromarray(np.clip(small, 0, 255).astype(np.uint8))
-    return small.quantize(colors=COLORS, method=Image.Quantize.MEDIANCUT, kmeans=3,
-                          dither=Image.Dither.NONE).convert("RGB")
+    # (kept indexed: 96 colours in a palette PNG, as the Survival Guide's pages ship, a third the size of RGB)
+    return small.quantize(colors=COLORS, method=Image.Quantize.MEDIANCUT, kmeans=3, dither=Image.Dither.NONE)
 
 
 # the set, in the tray's order after the grey (drawn by the studio): the canvases, the plasters, the two sets, the
@@ -530,9 +534,14 @@ def main():
     thumbs = []
     for bid, fn in BACKDROPS:
         art = pixelate(fn())
-        art.resize((ART_W * 2, ART_H * 2), Image.NEAREST).save(os.path.join(OUT, "backdrop_%s.png" % bid), optimize=True)
+        # the game's: the art pixels themselves (the studio loads it with nearest filtering, so each lands 4 screen
+        # pixels wide at 1080p: QA found the doubled 960 x 540 smoothed by the game's default filtering), and the
+        # tray's swatch, a small smooth copy (nearest shrinking would drop whole pixels)
+        art.save(os.path.join(OUT, "backdrop_%s.png" % bid), optimize=True)
+        art.convert("RGB").resize((SW_W, SW_H), Image.LANCZOS).save(os.path.join(OUT, "backdrop_%s_sw.png" % bid),
+                                                                    optimize=True)
         art.resize((ART_W * 4, ART_H * 4), Image.NEAREST).save(os.path.join(ART, "%s_1920.png" % bid), optimize=True)
-        thumbs.append((bid, art.resize((W, H), Image.NEAREST)))
+        thumbs.append((bid, art.convert("RGB").resize((W, H), Image.NEAREST)))
         print("backdrop", bid)
     # (the drafts no longer in the set)
     for gone in ("mottled", "sky", "autumn"):
