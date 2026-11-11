@@ -3616,6 +3616,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     Lasers and the flag couldn't be clicked, and the shoes drew over the flag swatch. **Build answered:** the tray is
     a column down the left side (a second column when the height runs out), clear of the figure, and the backdrop
     changing behind the character shows while picking. studio_sim 57/0 (the new check fails on the old tray).
+    **QA, Mac, Nov 11 2026, on 21daa54: both pass.** Lasers and the flag pick with a click from the left column,
+    nothing over it; the wheel works (six single ticks step the framing evenly from full body toward the bust, the
+    head whole, over the paper and over the figure; the rig sends a many-tick scroll as one event, why it looked dead
+    before). Found: the tray shut after each pick. **Build answered:** it stays open, to try the next behind the
+    character; it shuts on the Backdrop button, a press on the paper, or Take photo. studio_sim 58/0.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to

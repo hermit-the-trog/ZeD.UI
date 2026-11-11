@@ -214,14 +214,18 @@ for i = 1, #ST.BACKDROPS do local z = zone("bd:" .. i); if not z or z.x + z.w > 
 check("BACKDROPS: every swatch clear of the figure, so each can be picked (QA: the last two were under it)", clear)
 local sz = zone("bd:2")
 room:onMouseUp(sz.x + 4, sz.y + 4)
-check("BACKDROPS: a swatch picks: the tray shuts, the roll begins", room.tray == false and room.bd == 2 and room.roll ~= nil and room.roll.from == 1)
+check("BACKDROPS: a swatch picks: the roll begins, the tray stays open for the next", room.tray == true and room.bd == 2 and room.roll ~= nil and room.roll.from == 1)
 W.now = W.now + 190
 W.subs = {}
 room:prerender()
-check("BACKDROPS: first the old paper rolls up (the grey, half up)", #W.subs == 0)
+local full = 0
+for _, sb in ipairs(W.subs) do if sb.dw == room.width then full = full + 1 end end
+check("BACKDROPS: first the old paper rolls up (the grey, half up: no painted paper across the screen yet)", full == 0, full)
 local sh0 = #W.shots
 room:photo()
 check("BACKDROPS: no photo while a paper moves", room.shoot == nil)
+room:onMouseUp(room.width / 2, room.height / 3)   -- (a press on the paper, no zone there)
+check("BACKDROPS: a press on the paper shuts the tray", room.tray == false)
 W.now = W.now + 380
 W.subs = {}
 room:prerender()

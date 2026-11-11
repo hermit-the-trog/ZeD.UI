@@ -177,8 +177,9 @@ end
 ST._drawBackdrop = drawBackdrop
 
 --- Pick backdrop i: the paper that hangs rolls up, then i's rolls down.
+--- (The tray stays open after a pick, to try the next one behind the character: QA's Mac run, Nov 11 2026, found it
+--- shut after each. It shuts on the Backdrop button, a press on the paper, or Take photo.)
 function ZeD_StudioRoom:pickBackdrop(i)
-    self.tray = false
     if not ST.BACKDROPS[i] or i == self.bd or self.roll then return end
     self.roll = { from = self.bd, to = i, t0 = getTimestampMs() }
     self.bd = i
