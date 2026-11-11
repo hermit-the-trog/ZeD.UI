@@ -14,6 +14,8 @@
 --   PLAIN   with no fold, a drawer that closes gives the 53 back as it always did
 --   OTHER   a fold that ends on another tab keeps its debt through the new drawer (the list stays put) and pays it as
 --           that drawer closes, in step with its slide (the list eases home; it jumped 53 px in two frames: QA, test 4)
+--   NARROW  at a screen where the full card would shift the window, it opens at ZeD.Scale.fitInvW's width (Scale.lua):
+--           the full card fits beside it, nothing lost, no push, the list never moves (the director, Nov 11 2026)
 --   SNAP    WindowHalves' instant fold (snapShut: the window back from rolled-up, drawer folded) pays the debt on purpose
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/fold_slide_sim.lua
 -- It prints FAIL lines and a last line "fold_slide_sim: N checks, M failed", and exits 1 if any failed.
@@ -165,6 +167,48 @@ do
         fnSnap(o)
         check("SNAP: the window comes down at the inventory's full width, the debt paid", o.w == w0 and (o._drawerCapLost or 0) == 0, o.w .. " / " .. tostring(o._drawerCapLost))
         check("SNAP: on its right edge", o.x + o.w == 636, o.x)
+    end
+end
+
+-- NARROW (the director, Nov 11 2026: "Make steam deck inventory narrower for those resolutions ... get rid of the
+-- window shifting and changing"): ZeD.Scale.fitInvW, cut from the real Scale.lua, gives the inventory width the
+-- window opens at here; opened at it, a full card fits beside it: nothing lost to the cap, no push at the screen's
+-- edge, the list never moves, and the card closes back to the same place
+do
+    local fs = io.open(ROOT .. "42/media/lua/shared/ZeD/Scale.lua", "rb")
+    local ss = fs:read("*a"); fs:close()
+    local a3 = ss:find("S.INV_W_U, S.INV_MIN_U, S.FULL_CARD_U", 1, true)
+    local b3 = a3 and ss:find("\nend\n", ss:find("function S.fitInvW", a3, true), true)
+    check("NARROW: fitInvW is found in Scale.lua", a3 and b3)
+    if a3 and b3 then
+        local S = loadstring("local S = ...\n" .. ss:sub(a3, b3 + 4) .. "\nreturn S")({})
+        local room = math.min(SCREEN / 2, SCREEN / 2 - T.px(5))
+        local fitU = S.fitInvW(T, room, 72)
+        check("NARROW: at 1280 x 800 (0.75) the inventory opens narrower: 296 units (222 px)", fitU == 296, fitU)
+        local o = newWin()
+        o._baseInvW = fitU
+        o.w = T.px(36) + T.px(fitU) + T.px(36)
+        o.x = 636 - o.w
+        o._lastSetX = o.x
+        local inv0 = run(o, 0)
+        local home, x0n = listX(o, 0), o.x
+        local lo, hi = home, home
+        o._drawerOpen = true
+        for i = 1, 12 do local e = math.floor(DRAWER * i / 12); run(o, e); local lx = listX(o, e); lo = math.min(lo, lx); hi = math.max(hi, lx) end
+        run(o, DRAWER)
+        check("NARROW: the full card open, nothing lost to the cap", (o._drawerCapLost or 0) == 0, o._drawerCapLost)
+        check("NARROW: no push at the screen's edge (the window on its anchor)", (o._drawerCapPush or 0) == 0 and o.x >= 0, o.x)
+        check("NARROW: the list never moves as it opens", lo == home and hi == home, lo .. ".." .. hi .. " from " .. home)
+        check("NARROW: the inventory keeps its width beside it", run(o, DRAWER) == inv0, run(o, DRAWER) .. " vs " .. inv0)
+        o._drawerOpen = false
+        for i = 11, 0, -1 do local e = math.floor(DRAWER * i / 12); run(o, e); local lx = listX(o, e); lo = math.min(lo, lx); hi = math.max(hi, lx) end
+        run(o, 0); run(o, 0)
+        check("NARROW: closed, the window where it was and the list never moved", o.x == x0n and lo == home and hi == home, o.x .. " " .. lo .. ".." .. hi)
+        -- where the usual width fits, nothing changes; where nothing fits, nothing changes
+        local T1 = { px = function(v) return math.floor(v + 0.5) end, scale = 1 }
+        check("NARROW: 1920 wide at 1x: the usual width", S.fitInvW(T1, 955, 72) == nil)
+        check("NARROW: 1366 wide at 0.75: narrower too (it shifted there)", S.fitInvW(T, 679, 72) == 353, S.fitInvW(T, 679, 72))
+        check("NARROW: 1280 wide at 1x (Large text): nothing fits at the minimum, the squeeze as before", S.fitInvW(T1, 635, 72) == nil)
     end
 end
 

@@ -1459,7 +1459,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         zoneBH = zoneBH + T.px(1) + T.sp.afterLine
         for _, entry in ipairs(data.entries) do
             zoneBH = zoneBH + bodyH + T.px(2)
-            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - T.px(4))
+            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - pad * 2)   -- (the list's own width)
             if tagsH > 0 then zoneBH = zoneBH + tagsH + T.sp.xs end
             zoneBH = zoneBH + T.px(1) + T.sp.afterGroove
         end
@@ -1597,8 +1597,11 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         -- Zone divider (full width, no padding)
         A.drawDividerH(panel, x, curY, w, true)
         curY = curY + T.px(1) + T.sp.afterLine
+        -- (padded both sides: the list began a pad in from the left but took the whole content width, so its right
+        -- edge ran a pad past the stencil and the percent lost its "%": QA's Mac run on test 4 and 6, Nov 11 2026,
+        -- punch list 148)
         local listX = x + pad
-        local listW = contentW
+        local listW = contentW - pad * 2
         local st = T.stripe
         local sq = T.px(6)
         local tagsOpts = nil

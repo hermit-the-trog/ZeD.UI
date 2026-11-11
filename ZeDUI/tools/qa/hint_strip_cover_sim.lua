@@ -56,6 +56,17 @@ check("a belt balloon off to the side: the strip steps aside", not drawn({ x = 1
 check("a belt balloon down: the strip draws", drawn({ x = 100, y = 990, w = 60, h = 30 }, false))
 SLOT.owner = {}
 check("someone else's balloon off to the side: the strip draws", drawn({ x = 100, y = 990, w = 60, h = 30 }, true))
+-- the belt's held-item card (135): drawn last on ZeD_InvTip's layer, so the balloon slot is the layer's while the belt's
+-- own hint stands under it (QA's Mac run on test 6, Nov 11 2026: the strip stayed up beside the card)
+local LAYER = {}
+SLOT.owner = LAYER
+ZeD.InvTip = { _frame = 10, _want = { owner = BELT, content = {}, frame = 10 } }
+check("the belt's card up (the layer's balloon, off to the side): the strip steps aside", not drawn({ x = 100, y = 990, w = 60, h = 30 }, true))
+ZeD.InvTip._want.owner = {}
+check("a loot list's card off to the side: the strip draws", drawn({ x = 100, y = 990, w = 60, h = 30 }, true))
+ZeD.InvTip._want.owner = BELT; ZeD.InvTip._frame = 14
+check("the belt's card asked for frames ago: the strip draws", drawn({ x = 100, y = 990, w = 60, h = 30 }, true))
+ZeD.InvTip = nil
 SLOT.owner = nil
 print("hint_strip_cover_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)

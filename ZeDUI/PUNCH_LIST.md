@@ -3208,6 +3208,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the screen's edge). A plain close (no fold) is as before. fold_slide_sim 31/0 (its new checks read 25 and 30 px in
     one frame on the old code). **Recheck (QA, Mac, 1280 x 800):** fold, open Health, close it: as Health closes the
     list slides back with it, no jump, and ends where it was before the card, the inventory 279.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok:** as Health closes the list eases home, 8 px on the first frame then 3 to 4 px a frame, ending at
+    330 with the inventory 279, nothing owed.
 
 127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
     Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).
@@ -3311,6 +3313,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     where it shows (which also stops the hover over an arrow selecting a hidden cell). strip_page_sim 314/0: its HIT
     section clicks the arrows over hidden copies (five of its checks fail on the old lookup, "confirm" for an arrow).
     **Recheck (QA, Mac):** real clicks on both arrows at 1x and 1.75x: each pages, never confirms or closes.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok** at 1x and 1.75x: each real click on either arrow pages by ten (selection 1, 11, 6, 1 on 15
+    options), the strip stays open, nothing fires; resting on an arrow leaves the selection alone. QA's note: with 14
+    options three clicks right land on option 3, not the first page (ten at a time round 14). **By design:** the strip
+    is a loop and a page is the ten cells shown; three pages of 14 come round to 30 mod 14. Only a count that divides
+    into pages of ten lands back on the first.
 
 134. **Custom Map Labels don't draw on ZeD's map (QA's Mac run, Nov 9 2026; investigate).** No error now; the mod
     writes 82 labels into the map symbols at start (Muldraugh and others), but none show on ZeD's map near the player,
@@ -3362,6 +3369,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     hand, the off hand and a belt slot with an item in each: ZeD's card above the box's hint at once (name, condition,
     weight, the item's own figures); hold Alt: the game's box there instead, let go: the card back; with a tooltip mod
     on, its lines under Alt; a right-click menu on the belt: no card; at 1x and 1.75x.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok:** ZeD's card at once on the main and off hand at 1x and 1.75x and on a belt slot at 1x; Alt swaps in
+    the game's box and letting go brings the card back; the card goes while dragging. Not run: a right-click menu
+    open on the belt, a tooltip mod's lines under Alt. **QA asked:** the "Right Click More" hint strip stays up beside
+    the belt's card, where under 131 it steps aside for a belt balloon: intended? **Build answered:** no, a slip of
+    135's. The strip steps aside while a balloon of the belt's is up; the card is drawn last, on ZeD_InvTip's layer,
+    so the balloon that is up was the layer's and the belt's own hint under it no longer counted. ZeD_HintStrip
+    (H.covered) now steps aside while the belt has its card asked for (hint_strip_cover_sim 15/0; its new check fails
+    on the old code). **Recheck (QA):** hover a held item on the belt: the hint strip gives way while the card is up.
 
 136. **The bigger Lua console (the director, Nov 9 2026: "1", a full plan; build after the Nov 13 reset).** Source:
     docs/reference/RESEARCH_console_tooling_20261108.md (the director's research, Nov 8). Rulings: debug mode only
@@ -3435,6 +3450,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (the open hand), which shows on a plain "Equip" row; a weapon's "Equip Primary" draws the hand with an arrow.
     **Recheck (QA):** at 1.75x, an item's right-click > Save to outfit (the hanger, 140): the plus's bars in the middle
     of its badge, as many pixels above as below.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok:** on Save to outfit at 1.75x the plus has 3 pixels above its bar and 3 below; Save to loadout the
+    same.
 
 140. **The outfit and loadout icons in the game; the radio's preset "+" follows the accent (the director, Nov 10 2026:
     "Yes, add those. Put them in the game." and "it should follow the accent").** The six list icons drawn Oct 30
@@ -3863,6 +3880,52 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     passing).** On the Health tab a body part's percent is cut off where the drawer ends. **Open:** QA's picture
     (qa/screens/b11t4/ on the Mac) with the screen size, the scale and the theme, then the fix. Not yet decided for beta
     11.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** the picture: 1920 x 1080 windowed, Auto (1x), Dark, the Character window 924 wide and 700 tall; the row
+    "Left Forearm" reads "59" with its "%" cut off by the drawer's edge; at the default height those rows are below
+    the fold. **Build answered:** the injury list started a pad in from the tab's left but took the tab's whole width,
+    so its right edge ran a pad past the content and the right-aligned percent lost its last character to the
+    stencil (whenever the injury rows show; scrolled to, at the default height). The list is padded both sides now
+    (HealthTab.lua; its badge rows measured at the same width). **Check (QA):** the same window, Health with a few
+    injuries scrolled into view: each row's percent whole, "%" and all, at 1x and 1.75x, with and without the
+    scrollbar.
+
+149. **The belt's hand rings in segments (the director, Nov 11 2026: "segmented bar on primary and secondary circle
+    status bar"; then, on Build's first try: "you divide a ring like a pie or a clock from the center to the edge.
+    It's not always a straight line because you got a circle. You don't draw a grid. That's how you cut up a tin of
+    brownies. Not a donut.").** The rings round the main and off hand showed a condition as one continuous arc; the
+    straight condition bars have been five cells since 143. **Built** (ZeD_Belt.lua condRing, ringSegs): a condition
+    in the status bar's five cells (statusSegsLit: rounded up, one red cell nearly broken; the status colour, the
+    colour-blind set too), a fixed colour's meter (a liquid's) in the fill bar's ten; the dark cells in T.surf3, a
+    hairline gap in the well's colour between each two. Cut like a pie: each pixel of the band is the cell its
+    middle's angle from twelve falls in, and each gap runs along its radius from the inner edge to the outer (Build's
+    first try cut square across the ring, horizontal and vertical bars: never shipped). The lit cells are drawn as
+    the fill always was (the ring's picture, cut square where it ends) and the few pixels where that square cut and the
+    radius part are put right, with the gaps, from lists worked out once per size: about 15 to 30 more draws a ring
+    for a condition. belt_ring_sim 310/0 (the real drawing rasterised and read by angle: LIT, WHOLE, GAP, RADIAL, DARK
+    at 1x, 1.75x, 2x and High contrast; the square-cut try fails 71, the old ring 44); belt_mods_sim 149/0 (its SAME
+    comparison reads the conditions as none on both sides now: the ring is belt_ring_sim's). **Check (QA, Mac):** the
+    main and off hand with items at 92% (five green), 55% (three yellow), 10% (one red) and broken (none): the gaps
+    on the radii like a clock's five, the lit cells ending on them, at 1x and 1.75x, Dark, Light and High contrast;
+    Color blind's colours; a pot of water in a hand (ten blue cells).
+
+150. **The inventory narrower where a full card would shift the window (the director, Nov 11 2026: "Make steam deck
+    inventory narrower for those resolutions. They lose the condition column, but get rid of the window shifting and
+    changing."; rulings: any screen it would shift on, worked out rather than listed; both windows).** At 1280 wide
+    the windows are capped at half the screen (640 px): the inventory's 279 px, the strips and a full card (360) came
+    to 693, 53 over, so a full card squeezed the inventory and pinned the window against the screen's edge, and it
+    moved again as the card closed (125, 126). **Built:** ZeD.Scale.fitInvW (Scale.lua): where the strips, the usual
+    372-unit inventory and a full card are wider than the window may grow (half the screen and the room on its side
+    of the middle), the window opens at the inventory width that fits beside a full card: 296 units (222 px) at 1280
+    x 800 or 720 (0.75), 353 at 1366 x 768 (0.75); unchanged where the usual width fits (1920 and up) and where even
+    the 200-unit minimum wouldn't (Large text on the Deck: the squeeze as before). Both windows' fresh open, their
+    restore (a saved width wider than that is brought to it, the Character window's right edge and the World window's
+    left edge kept) and the reset. A window the player drags wider keeps that width for the session (the old
+    behaviour, their choice) and opens narrow again next time. fold_slide_sim 41/0 (NARROW: at 1280 x 800 the full
+    card opens and closes with nothing lost to the cap, no push, the list never moving), reset_cap_push_sim 13/0 (the
+    reset's narrow width, both windows). **Check (QA, Mac, 1280 x 800):** a fresh open (or Reset both windows): both
+    inventories narrower, the Cond column gone; open Equip's full card, Health, then close them: neither window moves
+    or changes width, the list never shifts; a World window full card (Crafting) the same; at 1920 x 1080 and 4K the
+    windows as before.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

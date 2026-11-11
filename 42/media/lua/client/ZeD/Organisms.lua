@@ -1355,6 +1355,12 @@ function ZeD_Window.resetLayout(which)
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
     local defW = math.min(T.px(444), math.floor(screenW * 0.5))   -- 36 + 372 + 36 design units, as a fresh open
+    -- (narrower where a full card would shift the windows, as a fresh open: ZeD.Scale.fitInvW; the smaller of the
+    -- two sides' room, so both fit)
+    local gap0 = T.px(5)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and ZeD.Scale.fitInvW(T,
+        math.min(math.floor(screenW * 0.5), math.floor(screenW / 2) - gap0, screenW - math.floor(screenW / 2) - gap0), 72)
+    if type(fitU) == "number" then defW = math.min(defW, T.px(36) + T.px(fitU) + T.px(36)) end
     local defH = math.min(T.px(420), screenH - T.px(80))
     local gap = T.px(5)  -- 5px each side = 10px total gap
 

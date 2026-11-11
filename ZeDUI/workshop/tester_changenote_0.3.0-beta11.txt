@@ -15,6 +15,7 @@ Looting
 
 Bars and colors
 - Condition bars have five cells, rounded up: one red cell means nearly broken.
+- The rings round your hands on the belt show condition in the same five cells, cut like a clock's face.
 - Skill bars keep ten cells, now spread evenly.
 - New in ZeD setup > Look: Status colors. Color blind shows good to bad in blue, yellow and orange.
 - PZ Teal is the default accent on a new install. A color you already picked stays.
@@ -27,7 +28,9 @@ Menus
 
 Windows
 - At Steam Deck size, closing a tab while its window is rolled keeps the window in place, and the Character list stays put when the drawer folds.
+- On screens where opening a full card made the windows shift (1280 wide, 1366 x 768), they open narrower so nothing moves. The condition column gives way there.
 - The hint strip steps aside for the belt's balloons.
+- The Health tab's injury list no longer cuts off the percent at its edge.
 - A revoked permit's stamp on the ID reads PERMIT REVOKED, with the space.
 
 Servers

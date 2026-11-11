@@ -4,7 +4,8 @@
 -- mods are stubs of their published shape, written here from their Lua (Workshop 3835479468, 3832759095, 3834708364,
 -- 3830103302): only the functions ZeD calls, never their drawing.
 --   SAME     with none of the mods on, the belt draws exactly as before this work (git show BASE:ZeD_Belt.lua): every
---            draw call equal, Full and Simple, slots with and without items, one item in both hands, a pad focus;
+--            draw call equal, Full and Simple, slots with and without items, one item in both hands, a pad focus
+--            (the conditions read as none on both sides since the hands' rings went to segments: belt_ring_sim);
 --            and none of the four files registers anything or leaves a global behind
 --   ICR      Item Condition Restored's number on the strips and rings: liquid in T.info, its one-color styles in
 --            T.positive, multicolor graduated, None and items it has nothing for back to ZeD's own condition; a
@@ -257,6 +258,19 @@ local function installZeD()
     ZeD.TM = { getFontHeight = function() return 10 end, MeasureStringX = function(_, _, s) return #tostring(s) * 6 end }
     ZeD.Atoms = recorder({
         fillBarCompactH = function() return 8 end,
+        -- (Atoms.lua's segment rules: the hands' rings light whole cells, as the strips do)
+        STATUS_SEGS = 5, FILL_SEGS = 10,
+        statusSegsLit = function(f)
+            if (f or 0) <= 0 then return 0 end
+            if f >= 1 then return 5 end
+            return math.max(1, math.ceil(f * 5 - 1e-6))
+        end,
+        fillSegsLit = function(f, n)
+            n = n or 10
+            if (f or 0) <= 0 then return 0 end
+            if f >= 1 then return n end
+            return math.floor(f * n + 1e-6)
+        end,
         statusColor = function(f, text)   -- (Atoms.lua's status rule, punch list 143)
             local T = ZeD.T
             local lit = (f or 0) <= 0 and 0 or math.max(1, math.ceil(math.min(1, f) * 5 - 1e-6))
@@ -398,9 +412,11 @@ end
 if OLD ~= "" then
     for _, simple in ipairs({ false, true }) do
         for n = 1, 4 do
-            boot(OLD); env.simple = simple; scenario(n)
+            -- (the conditions read as none on both sides: the hands' rings are in segments since Nov 11 2026, the
+            -- director's call, and belt_ring_sim checks them; this compares everything else the belt draws)
+            boot(OLD); env.simple = simple; scenario(n); ZeD.Belt.cond = function() return nil end
             local a = frame(); local a2 = frame()
-            boot(NEW); env.simple = simple; scenario(n)
+            boot(NEW); env.simple = simple; scenario(n); ZeD.Belt.cond = function() return nil end
             local b = frame(); local b2 = frame()
             local nLines = select(2, string.gsub(b, "\n", "")) + 1
             check("SAME the frame draws (" .. (simple and "Simple" or "Full") .. " " .. n .. ")", nLines > 40, nLines)

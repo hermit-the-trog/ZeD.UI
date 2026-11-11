@@ -222,6 +222,12 @@ function H.covered(ax, ay, w, h, pn)
     if not (S and B.up and B.up()) then return false end
     local belt = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn or 0)
     if belt and S.owner == belt then return true end
+    -- (the belt's held-item card, 135: drawn last, on ZeD_InvTip's layer, so the balloon that is up is the layer's
+    -- while the belt's own hint stands under it; the strip steps aside for it as for the hint. QA's Mac run on test 6,
+    -- Nov 11 2026: the strip stayed up beside the card)
+    local IT = ZeD.InvTip
+    local want = IT and IT._want
+    if belt and want and want.owner == belt and want.content and (want.frame or -9) >= (IT._frame or 0) - 1 then return true end
     if not S.box then return false end
     local b = S.box
     -- (a few units of room: a balloon that only touches the strip still reads as part of its line)

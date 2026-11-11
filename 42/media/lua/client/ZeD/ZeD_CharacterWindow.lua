@@ -244,6 +244,16 @@ local function restoreCharState(win, playerObj)
     local clampedX = math.max(0, math.min(x, screenW - w))
     anchor = anchor + (clampedX - x)
     x = clampedX
+    -- a saved width wider than this screen lets a full card open beside it without shifting: the fitting width, the
+    -- right edge kept (ZeD.Scale.fitInvW; the director, Nov 11 2026)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
+        ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), anchor), TAB_STRIP_W + CONTAINER_STRIP_W)
+    if type(fitU) == "number" and wU - TAB_STRIP_W - CONTAINER_STRIP_W > fitU then
+        wU = TAB_STRIP_W + fitU + CONTAINER_STRIP_W
+        local w2 = T.px(wU)
+        x = math.max(0, x + w - w2)
+        w = w2
+    end
     win:setX(x)
     win:setY(y)
     win:setWidth(w)
@@ -3902,6 +3912,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local screenH = getCore():getScreenHeight()
     local maxWinW = math.floor(screenW * 0.5)
     local invW = 372                                     -- design units (default inventory width)
+    -- (narrower where a full card beside it would shift the window: ZeD.Scale.fitInvW; it grows left from here)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
+        ZeD.Scale.fitInvW(T, math.min(maxWinW, math.floor(screenW / 2) - T.px(5)), TAB_STRIP_W + CONTAINER_STRIP_W)
+    if type(fitU) == "number" then invW = fitU end
     local winW = T.px(TAB_STRIP_W) + T.px(invW) + T.px(CONTAINER_STRIP_W)  -- 36 + 372 + 36 = 444 design units
     winW = math.min(winW, maxWinW)
     local winH = math.min(T.px(420), screenH - T.px(80))

@@ -94,6 +94,29 @@ S.FIT_TAB_U   = 36
 S.FIT_HELP_U  = 22
 S.FIT_STEPS   = { 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0 }   -- (Settings.lua's fixed steps)
 
+-- THE INVENTORY'S OPENING WIDTH ON A SMALL SCREEN (the director, Nov 11 2026: "Make steam deck inventory narrower for
+-- those resolutions. They lose the condition column, but get rid of the window shifting and changing."; rulings: any
+-- screen it would shift on, worked out rather than listed, and both windows). Where the two strips, the usual 372-unit
+-- inventory and a full card (480) are wider than the window may grow (half the screen, and the room on its side of
+-- the middle), opening a full card hit the cap: the inventory squeezed and the window pinned at the screen's edge,
+-- and it moved again as the card closed (punch lists 125, 126). There the windows open at the inventory width that
+-- fits beside a full card, so nothing moves: at 1280 x 800 (0.75) 296 units, 222 px, and the Cond column gives way.
+-- Where even the 200-unit minimum wouldn't fit (Large text on the Deck), nothing changes: the squeeze as before.
+S.INV_W_U, S.INV_MIN_U, S.FULL_CARD_U = 372, 200, 480
+
+--- The inventory width (design units) a window opens at where the usual one would shift: room = the most the window
+--- may be wide, screen px; stripsU = its two strips' width, design units. nil where the usual width fits, or where
+--- nothing at the minimum would.
+function S.fitInvW(T, room, stripsU)
+    local half = math.floor((stripsU or 72) / 2)
+    local function total(u) return T.px(half) + T.px(u) + T.px((stripsU or 72) - half) + T.px(S.FULL_CARD_U) end
+    if total(S.INV_W_U) <= room then return nil end
+    local u = math.floor((room - total(0)) / (T.scale or 1))
+    while u >= S.INV_MIN_U and total(u) > room do u = u - 1 end
+    if u < S.INV_MIN_U then return nil end
+    return math.min(u, S.INV_W_U)
+end
+
 --- the screen's width and height in px; 1920 x 1080 when the game can't say
 function S.screenSize()
     local w, h = 1920, S.BASE_H

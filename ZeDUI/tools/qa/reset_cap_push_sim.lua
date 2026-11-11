@@ -51,5 +51,23 @@ check("the Character window's push from before is not owed", CW._drawerCapPush =
 check("nor its lost width", CW._drawerCapLost == 0, CW._drawerCapLost)
 -- what the World window saves from there: x + push, in design units (saveWorldState): 644 / 0.75, not 864
 check("the save would read the reset's x", (WW.x + (WW._drawerCapPush or 0)) / SC ~= 864, (WW.x + (WW._drawerCapPush or 0)) / SC)
+-- NARROW (the director, Nov 11 2026: the Deck's inventory narrower, so a full card never shifts the window): with the
+-- real ZeD.Scale.fitInvW (cut from Scale.lua), the reset puts both windows at the narrow width a fresh open has here,
+-- 36 + 296 + 36 units (276 px at 0.75), each beside the middle
+do
+    local fs = io.open(ROOT .. "42/media/lua/shared/ZeD/Scale.lua", "rb")
+    local ss = fs:read("*a"); fs:close()
+    local a3 = ss:find("S.INV_W_U, S.INV_MIN_U, S.FULL_CARD_U", 1, true)
+    local b3 = a3 and ss:find("\nend\n", ss:find("function S.fitInvW", a3, true), true)
+    check("NARROW: fitInvW is found in Scale.lua", a3 and b3)
+    if a3 and b3 then
+        rawset(ZeD, "Scale", loadstring("local S = ...\n" .. ss:sub(a3, b3 + 4) .. "\nreturn S")({}))
+        local okN, eN = pcall(ZeD_Window.resetLayout)
+        check("NARROW: resetLayout runs", okN, eN)
+        check("NARROW: the Character window at the narrow width, its right edge 4 px left of the middle", CW.w == 276 and CW.x + CW.w == 636, CW.w .. " at " .. CW.x)
+        check("NARROW: the World window at the narrow width, from 4 px right of the middle", WW.w == 276 and WW.x == 644, WW.w .. " at " .. WW.x)
+        check("NARROW: their inventories 296 units", math.abs(CW._baseInvW - 296) < 0.01 and math.abs(WW._baseInvW - 296) < 0.01, CW._baseInvW)
+    end
+end
 print("reset_cap_push_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)
