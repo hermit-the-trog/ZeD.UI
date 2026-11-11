@@ -3199,6 +3199,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       closes; the drawer shut (Loot, a reset) still pays at once. fold_slide_sim 27/0 (OTHER at 300 and 360 px reads
       the 330 on the previous code). **Check (QA):** the same steps: the list no more than 4 px as Health opens and
       closes, and 279 after.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **partly:** the list stays put through the fold and while Health opens; the inventory ends at 279,
+    nothing owed; but it still moves 53 px as Health closes. **Build answered:** that move is the window going home
+    (the list ends where it was before any card opened, the window at its own place), but it went in the close's first
+    two frames (the debt paid as fast as the drawer narrowed: 30 px, then 23), so it read as a jump. The fold's debt
+    is now paid in step with that drawer's close, what is still owed shrinking with what is left of the drawer: the
+    list eases home over the slide in 4 or 5 px steps (8 on the first frame, which also lets go of the 4 px push at
+    the screen's edge). A plain close (no fold) is as before. fold_slide_sim 31/0 (its new checks read 25 and 30 px in
+    one frame on the old code). **Recheck (QA, Mac, 1280 x 800):** fold, open Health, close it: as Health closes the
+    list slides back with it, no jump, and ends where it was before the card, the inventory 279.
 
 127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
     Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).
@@ -3294,6 +3303,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     - **QA, Mac, Nov 10 2026 (test 2): ok at 1x**, paged from the harness (the arrow functions). QA's own clicks on
       the arrow closed the strip, which QA thinks missed the arrow (a click outside the strip's parts closes the
       menu). Recheck by hand at 1x and 1.75x: a click on the arrow pages and never closes.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **wrong:** real clicks on the arrows don't page. The right arrow opened the "Move to" submenu and the
+    left one equipped the hammer: the carousel registers a zone for every copy of every cell it lays out, the copies
+    scrolled past the strip's edges too, before the arrows register theirs, and the panel's lookup takes the first
+    zone that holds the point, so a cell hidden under an arrow took its click. **Build answered:** the strip's own
+    hit test (ZeD_ContextMenu:hitZoneAt): the arrows and bumpers win, and a cell counts only inside the strip's box,
+    where it shows (which also stops the hover over an arrow selecting a hidden cell). strip_page_sim 314/0: its HIT
+    section clicks the arrows over hidden copies (five of its checks fail on the old lookup, "confirm" for an arrow).
+    **Recheck (QA, Mac):** real clicks on both arrows at 1x and 1.75x: each pages, never confirms or closes.
 
 134. **Custom Map Labels don't draw on ZeD's map (QA's Mac run, Nov 9 2026; investigate).** No error now; the mod
     writes 82 labels into the map symbols at start (Muldraugh and others), but none show on ZeD's map near the player,
@@ -3412,6 +3429,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     - **The director, Nov 10 2026, on QA's two questions:** Place Item keeps the red Drop arrow (putting a thing down
       in the world is its "leaves you" side); Grab (the floor's, a corpse, an animal from a hutch) takes the Take icon
       with its blue arrow: its own picture name, "grab", so Smash keeps the fist. menu_marks_sim 606/0.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass at 1.75x** in Dark, Light and High contrast: blue and red right, the pointed cell one colour (1x
+    passed on an earlier build, not rerun). QA couldn't confirm "the 24 plus centred on Equip": Equip drew a blue arrow
+    there. **Build answered:** the check's example was wrong, not the icon. The centred plus is the badge on `equip`
+    (the open hand), which shows on a plain "Equip" row; a weapon's "Equip Primary" draws the hand with an arrow.
+    **Recheck (QA):** at 1.75x, an item's right-click > Save to outfit (the hanger, 140): the plus's bars in the middle
+    of its badge, as many pixels above as below.
+
 140. **The outfit and loadout icons in the game; the radio's preset "+" follows the accent (the director, Nov 10 2026:
     "Yes, add those. Put them in the game." and "it should follow the accent").** The six list icons drawn Oct 30
     (HANDOFF_list_icons_20261030.md) had never been exported: the game showed the stand-ins (the hanger and the list
@@ -3433,6 +3457,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     drawSegBar. Sims: seg_bar_spread_sim 31795/0 (4974 fail on the old code); drawer_tabs_perf_sim's bar check now
     reads the new rule, 73/0. **Check (QA):** the Cond column and a skill bar at 1x and 1.75x: cells even; the
     drawers' ms with pinned windows against beta 10's (b9_perf.txt).
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass:** ten even cells at both scales. Not run: the drawers' ms against beta 10's.
 
 142. **Pasties: the sticky note becomes an app (the director, Nov 10 2026: "what if sticky was an icon, when clicked it
     creates a new sticky on the desk. Starts with none." and "'Pasties' is the app name").** Rulings, Nov 10: closing
@@ -3503,6 +3528,8 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (STATUS_SEGS, statusSegsLit, statusColor), MechanicsTab, MechTrailer, EquipDoll, AnimalsTab, ObjectCardMedic,
     ZeD_Belt, ItemCard, HealthTab, Organisms, ZeD_CharacterWindow. **Check (QA):** the Cond column at 1x and 1.75x
     (five even cells), an item at 95% (full), one near broken (one red cell), the Mechanics parts list.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass** at 1x and 1.75x: five even cells; an axe at 92% five green, a hammer at 10% one red. Not
+    run: the Mechanics parts list (no car in the save).
 
 144. **Status colors: a color blind option (the director, Nov 10 2026: "Should we change our Good color to the blue we
     use in the context icons? Be color blind friendly?", then, after the swatch page, "Add as an option").** The page
@@ -3519,6 +3546,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     52/0 (the combo, both sets in all three themes, text contrast, the three apart under all three kinds).
     **Check (QA):** ZeD setup > Look > Status colors: Color blind turns the Cond column, a Mechanics part list, the
     Health tab and the crafting card's met / unmet blue, yellow and orange at once, in all three themes, and back.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass:** Color blind turns the Cond column and the Health tab blue, yellow and orange in Dark, Light
+    and High contrast; Standard puts them back. Not run: a Mechanics part list (no car), the crafting card's met and
+    unmet.
 
 145. **The portrait studio (the director, Nov 10 2026: "Add a popout XL avatar option to the ID. Almost full screen
     height so the users can view their character up close and for screenshots. OR! Enter the studio and there are
@@ -3683,6 +3713,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     across it is: every fold hangs straight down, five or six across, rounded, varying in width and depth from one to
     the next, running on into the floor. Only Drape's files
     changed. **Check (QA, Mac):** Drape at Full body and Bust: straight hanging folds, soft, no lean, no satin sheen.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass.** Brick wall at Full body: every run of one colour a multiple of 4 screen pixels, the mortar
+    lines hard-edged at Bust; the tray's swatches smooth, Lasers' lines whole; the paper there at once on the first open
+    after launch; Drape's folds hang straight; 1280 x 800 (16:10) fills, nothing stretched.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
@@ -3817,13 +3850,19 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     **Build answered:** B42's transfer merges a run of transfers into one action whose item changes at each step; the
     bar kept the name per action, and keeps it per item now (ZeD_ActionBar.lua AB.itemName). action_bar_name_sim 6/0
     (2 fail on the old code). **Still to do by hand:** the double-click at its real 400 ms; the timed kitchen run.
-
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** not run: the real 400 ms double-click and the timed kitchen run need a person at the mouse.
 
 147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the
     Identity tab at 1x and 1.75x).** drawStamp (IdentityTab.lua) draws the line and the red REVOKED as two pieces with
     a word space between, read as the width of " ": in the stamp's face a lone space measures 0. The space is read
     as "a a" less "aa" now, never under a quarter of the line. **Check (QA):** a revoked permit's stamp at 1x and
     1.75x, "PERMIT REVOKED" with a space.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass:** "PERMIT REVOKED" with its space at 1x and 1.75x.
+
+148. **The Health tab cuts a body part's percent at the drawer's edge (QA's Mac run, Nov 11 2026, on test 4, seen in
+    passing).** On the Health tab a body part's percent is cut off where the drawer ends. **Open:** QA's picture
+    (qa/screens/b11t4/ on the Mac) with the screen size, the scale and the theme, then the fix. Not yet decided for beta
+    11.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
@@ -3880,4 +3919,3 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       the game install's pointer pictures (names with cursor or mouse), that mod's install steps, and whether a copied
       file gives ZeD's pixel hand at rest (an optional manual extra; the drop icons would still be the badge). Probes:
       zedqa_pointer_probe.lua, zedqa_pointer_probe2.lua; drafts: zed_pointer_hint_v1, zed_pointer_v1.
-

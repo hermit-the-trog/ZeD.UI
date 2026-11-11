@@ -10,6 +10,9 @@
 --          copies; the left arrow pages back the same way
 --   STEP   the keyboard's and pad's one step still moves one cell, the window still whole
 --   SHORT  a strip that doesn't overflow (10 or fewer) steps one cell per arrow, as before
+--   HIT    a click on an arrow pages, though the carousel's hidden cell copies lie under it (QA's Mac run on test 4:
+--          the right arrow opened Move to's submenu, the left equipped the hammer); a hidden copy outside the strip
+--          takes nothing; a cell inside the strip still confirms
 -- What it can't show: the slide on screen (QA: click an overflowing strip's arrows at 1x and 1.75x).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/strip_page_sim.lua
 -- It prints FAIL lines and a last line "strip_page_sim: N checks, M failed", and exits 1 if any failed.
@@ -32,7 +35,14 @@ stub = setmetatable({}, { __index = function() return stub end, __call = functio
 function require() end
 local NOW = 0
 getTimestampMs = function() return NOW end
-ZeD_Panel = { derive = function(self, name) return setmetatable({ Type = name }, { __index = self }) end, update = function() end }
+ZeD_Panel = { derive = function(self, name) return setmetatable({ Type = name }, { __index = self }) end, update = function() end,
+              hitTest = function(_, mx, my, x, y, w, h) return mx >= x and mx < x + w and my >= y and my < y + h end }   -- (ZeD_Panel's own)
+function ZeD_Panel:hitZoneAt(mx, my)   -- (ZeD_Panel's own: the first zone that holds the point)
+    for _, zone in ipairs(self._hitZones) do
+        if self:hitTest(mx, my, zone.x, zone.y, zone.w, zone.h) then return zone end
+    end
+    return nil
+end
 ZeD = setmetatable({ ContextMenu = { Registry = { getPinnedIds = function() return {} end } } }, { __index = function() return stub end })
 
 local fn, err = loadfile(CLIENT .. "ZeD_ContextMenu.lua")
@@ -163,6 +173,33 @@ for _, scale in ipairs({ 1, 1.75 }) do
     check(scale .. "x SHORT: an arrow steps one cell", s._ctx.selected == 2, s._ctx.selected)
     s:prevPage(); s:prevPage()
     check(scale .. "x SHORT: and back, wrapping", s._ctx.selected == 8, s._ctx.selected)
+end
+
+-- HIT: the zones as a frame registers them, the cells first (every copy the carousel lays out, past the strip's
+-- edges too), then the bumpers and the arrows; the strip's box from x 100 to 330
+do
+    local T = tokens(1)
+    local o = menu(15, T)
+    o._layoutCache = { stripX = 100, stripY = 10, stripW = 230, stripH = 24 }
+    o._hitZones = {}
+    for k = 1, 14 do o._hitZones[#o._hitZones + 1] = { id = "ctxcell_" .. k, x = 54 + (k - 1) * 23, y = 11, w = 22, h = 22 } end
+    local function add(id, x, w) o._hitZones[#o._hitZones + 1] = { id = id, x = x, y = 11, w = w, h = 22 } end
+    add("ctxbump_l", 57, 28); add("ctxchev_l", 85, 12); add("ctxchev_r", 333, 12); add("ctxbump_r", 348, 28)
+    local did = {}
+    o.prevPage = function() did[#did + 1] = "prevPage" end
+    o.nextPage = function() did[#did + 1] = "nextPage" end
+    o.prevGroup = function() did[#did + 1] = "prevGroup" end
+    o.nextGroup = function() did[#did + 1] = "nextGroup" end
+    o.confirm = function() did[#did + 1] = "confirm" end
+    o.close = function() did[#did + 1] = "close" end
+    local function click(x) did = {}; o:onMouseDown(x, 20); o:onMouseUp(x, 20); return did[1] end
+    check("HIT the left arrow pages back, over a hidden cell copy", click(90) == "prevPage", tostring(did[1]))
+    check("HIT the right arrow pages on, over a hidden cell copy", click(336) == "nextPage", tostring(did[1]))
+    check("HIT the bumpers jump groups", click(60) == "prevGroup" and click(360) == "nextGroup")
+    check("HIT a cell inside the strip confirms", click(150) == "confirm", tostring(did[1]))
+    local z = o:hitZoneAt(98, 20)
+    check("HIT a hidden copy outside the strip, under no arrow, takes nothing", z == nil, z and z.id)
+    check("HIT the hover over an arrow is the arrow, not the cell under it", (o:hitZoneAt(90, 20) or {}).id == "ctxchev_l")
 end
 
 print("strip_page_sim: " .. checks .. " checks, " .. failed .. " failed")

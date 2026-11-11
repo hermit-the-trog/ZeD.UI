@@ -13,7 +13,7 @@
 --           as before the card opened
 --   PLAIN   with no fold, a drawer that closes gives the 53 back as it always did
 --   OTHER   a fold that ends on another tab keeps its debt through the new drawer (the list stays put) and pays it as
---           that drawer closes
+--           that drawer closes, in step with its slide (the list eases home; it jumped 53 px in two frames: QA, test 4)
 --   SNAP    WindowHalves' instant fold (snapShut: the window back from rolled-up, drawer folded) pays the debt on purpose
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/fold_slide_sim.lua
 -- It prints FAIL lines and a last line "fold_slide_sim: N checks, M failed", and exits 1 if any failed.
@@ -114,7 +114,9 @@ check("UNFOLD: still 53 owed for the real close", w._drawerCapLost == (w0 + DRAW
 for _, HEALTH in ipairs({ 300, 360 }) do
     local tag = "OTHER (" .. HEALTH .. "): "
     local o = newWin()
-    run(o, 0); open(o)
+    run(o, 0)
+    local home = listX(o, 0)
+    open(o)
     FOLD = "equip"; o._drawerOpen = false
     for i = 11, 0, -1 do run(o, math.floor(DRAWER * i / 12)) end
     run(o, 0)
@@ -126,8 +128,19 @@ for _, HEALTH in ipairs({ 300, 360 }) do
     check(tag .. "while it opens the list moves no more than the 4 px push", folded - lo <= 4 and hi - folded <= 4, lo .. ".." .. hi .. " from " .. folded)
     check(tag .. "the debt is still owed while it is open", (o._drawerCapLost or 0) >= (w0 + DRAWER) - SCREEN / 2, o._drawerCapLost)
     o._drawerOpen = false
-    for i = 11, 0, -1 do run(o, math.floor(HEALTH * i / 12)) end
+    -- (QA's Mac run, Nov 11 2026, on test 4: paid as fast as the drawer narrowed, the list jumped 53 px in the close's
+    -- first two frames; now it eases home with the slide)
+    local prev, step = listX(o, HEALTH), 0
+    for i = 11, 0, -1 do
+        local e = math.floor(HEALTH * i / 12)
+        run(o, e)
+        local lx = listX(o, e)
+        step = math.max(step, math.abs(lx - prev)); prev = lx
+    end
     run(o, 0); run(o, 0)
+    -- (the first frame also lets go of the 4 px push at the screen's edge, as FOLD does: 4 plus one share)
+    check(tag .. "as it closes the list eases home with the slide, no frame more than 9 px (it was 53 in two)", step <= 9, step)
+    check(tag .. "and ends where it was before any card", listX(o, 0) == home, listX(o, 0) .. " vs " .. home)
     check(tag .. "closed, the inventory as wide as before any drawer", run(o, 0) == invBefore and o.x == x0, run(o, 0) .. " at " .. o.x)
     check(tag .. "and nothing owed", (o._drawerCapLost or 0) == 0, o._drawerCapLost)
 end

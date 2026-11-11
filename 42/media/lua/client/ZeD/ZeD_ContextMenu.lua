@@ -768,6 +768,30 @@ end
 -- MOUSE INPUT
 -- ============================================================================
 
+-- What the pointer is on (punch list 133; QA's Mac run, Nov 11 2026, on test 4: "a click on the right arrow opened
+-- the Move to submenu, and a click on the left arrow equipped the hammer"). The carousel registers a zone for every
+-- copy of every cell it lays out, the copies scrolled past the strip's edges too, before the arrows and bumpers
+-- register theirs; the panel's own lookup takes the first zone that holds the point, so a cell hidden under an arrow
+-- took the arrow's click (and its hover chose that hidden cell). Here the arrows and bumpers win, and a cell counts
+-- only inside the strip's box, where it shows.
+function ZeD_ContextMenu:hitZoneAt(mx, my)
+    local cache = self._layoutCache
+    local x0 = cache and cache.stripX
+    local x1 = x0 and cache.stripW and (x0 + cache.stripW) or nil
+    local cell = nil
+    for _, zone in ipairs(self._hitZones or {}) do
+        if self:hitTest(mx, my, zone.x, zone.y, zone.w, zone.h) then
+            local id = zone.id
+            if type(id) == "string" and id:sub(1, 8) == "ctxcell_" then
+                if not cell and (not x1 or (mx >= x0 and mx < x1)) then cell = zone end
+            else
+                return zone
+            end
+        end
+    end
+    return cell
+end
+
 function ZeD_ContextMenu:onMouseDown(x, y)
     local zone = self:hitZoneAt(x, y)
     if not zone then return end

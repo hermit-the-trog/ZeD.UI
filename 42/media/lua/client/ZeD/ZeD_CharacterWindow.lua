@@ -4762,6 +4762,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 newW = math.min(want, cap)
             else
                 local back = math.min(lost, -drawerDelta)
+                -- a fold's debt riding through another drawer (above) is paid in step with that drawer's close, what
+                -- is still owed shrinking with what is left of the drawer, so the list eases back to its place over
+                -- the slide (QA's Mac run, Nov 11 2026, on test 4: paid as fast as the drawer narrowed, the list
+                -- jumped 53 px in the close's first two frames). The last frame pays what is left.
+                if win._foldDebt and prevEffW > 0 then
+                    back = math.min(lost, math.floor(lost * (-drawerDelta) / prevEffW + 0.5))
+                end
                 lost = lost - back
                 newW = math.min(want + back, cap)
             end
