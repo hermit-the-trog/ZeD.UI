@@ -4217,3 +4217,13 @@ to be proposed.
     through beginPending. drag_cascade_sim 13/0. QA: drag one item, two of different kinds, a mixed selection and a
     whole stack, in both windows, list and grid, at 4K and Deck; check the chips never cover the drop target under the
     pointer.
+
+167. **The World window's Fishing tab (the director, Nov 11 2026: "The tab!! We made one for the world window" ...
+    "Yes, mockup first"; beta 12).** Designed in April (ZeDUI/mockups/zed_two_windows_v1.html: a contextual World tab
+    with the rod, the bait and its count and the Fishing skill; the S65 roadmap's contextual tabs Fishing / Forage /
+    Animal) but never built: Forage and Animals shipped as tabs, fishing only got the rod-in-hand tension meter
+    (Overrides/Fishing.lua). Now: a contextual World tab while holding a rod or by water, showing the rod, line, bait
+    and count, Fishing skill and the catch log, with Cast / Reel / bait actions in the band. Mockup first
+    (ZeDUI/mockups/zed_fishing_tab_v1.html), the director's approval, then the build with sims, QA at 4K and Deck,
+    controller parity and all 28 languages. The gallery's fishing cinema break (40b) waits for it: QA reshoots Laura
+    with the tab open.
