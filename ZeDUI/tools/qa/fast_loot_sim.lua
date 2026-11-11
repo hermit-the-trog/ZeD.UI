@@ -213,6 +213,59 @@ check("CARD: damage (a plain hyphen: the en dash isn't in the face), sharpness, 
 local broken = item({ is = { HandWeapon = true }, getName = "Kitchen Knife", isBroken = true, getActualWeight = 0.3, getConditionMax = 10, getCondition = 0 })
 local FK = ZeD.LootCard.facts(broken, PLAYER)
 check("CARD: broken says so first", FK.tags[1] and FK.tags[1][1] == "UI_ZeD_Loot_Broken" and FK.tags[1][2] == "bad" and FK.cond == 0)
+-- LIQUID (punch list 151; the director: "add the water amount in beta 11", after QA saw a saucepan of water's card list
+-- none): a fluid container's liquid, whatever the item's kind, by the water card's rules (ZeD.Fluid)
+local function fcOf(t) return item(t) end
+local FLUID_TAINT = false
+ZeD.Fluid = {
+    liquidsOf = function(fc) return fc._liquids and fc._liquids() or {} end,
+    fluidLabel = function(l) if #l == 0 then return nil end if #l == 1 then return l[1].name end return "Fluid_Mixture" end,
+    taintedShown = function() return FLUID_TAINT end,
+}
+local function bottle(fc, extra)
+    local t = { is = {}, getName = "Water Bottle", getActualWeight = 1.0, getFluidContainer = fc }
+    for k, v in pairs(extra or {}) do t[k] = v end
+    return item(t)
+end
+local water = fcOf({ getCapacity = 1.0, getAmount = 0.8, isEmpty = false, isHiddenAmount = false, _liquids = { { name = "Water", amt = 0.8 } } })
+local lr = row(ZeD.LootCard.facts(bottle(water), PLAYER), "Water")
+check("LIQUID: a bottle of water: its name and how much of how much", lr and lr[2] == "0.80 / 1.00 L" and lr[3] == nil, lr and lr[2])
+local mix = fcOf({ getCapacity = 4.0, getAmount = 3.0, isEmpty = false, isHiddenAmount = false,
+                   _liquids = { { name = "Water", amt = 2 }, { name = "Bleach", amt = 1 } } })
+local mr = row(ZeD.LootCard.facts(bottle(mix), PLAYER), "Fluid_Mixture")
+check("LIQUID: several: the game's Mixture", mr and mr[2] == "3.00 / 4.00 L", mr and mr[2])
+FLUID_TAINT = true
+local tr2 = row(ZeD.LootCard.facts(bottle(water), PLAYER), "Water")
+check("LIQUID: tainted where the game's tooltip says so: its word, in red", tr2 and tr2[3] == "Tooltip_tainted" and tr2[4] == "bad", tr2 and tostring(tr2[3]))
+FLUID_TAINT = false
+local empty = fcOf({ getCapacity = 1.5, getAmount = 0, isEmpty = true, isHiddenAmount = false })
+local er = row(ZeD.LootCard.facts(bottle(empty), PLAYER), "Fluid_Empty")
+check("LIQUID: an empty one: Empty, and what it holds", er and er[2] == "0.00 / 1.50 L", er and er[2])
+local hid = fcOf({ getCapacity = 0.5, getAmount = 0.3, isEmpty = false, isHiddenAmount = true, _liquids = { { name = "Pop", amt = 0.3 } } })
+local hr = row(ZeD.LootCard.facts(bottle(hid), PLAYER), "Pop")
+check("LIQUID: the level hidden as the game hides it: Unknown", hr and hr[2] == "Fluid_Unknown", hr and hr[2])
+local big = fcOf({ getCapacity = 20, getAmount = 12.5, isEmpty = false, isHiddenAmount = false, _liquids = { { name = "Gasoline", amt = 12.5 } } })
+local br = row(ZeD.LootCard.facts(bottle(big), PLAYER), "Gasoline")
+check("LIQUID: a big can: one decimal, as the water card", br and br[2] == "12.5 / 20.0 L", br and br[2])
+-- a saucepan of water is cookware with a condition: its own rows and the liquid's
+local pan = item({ is = { HandWeapon = true }, getName = "Saucepan", getActualWeight = 1.2, getConditionMax = 10, getCondition = 9,
+                   getMinDamage = 0.4, getMaxDamage = 0.9, getFluidContainer = water })
+local FP = ZeD.LootCard.facts(pan, PLAYER)
+check("LIQUID: a saucepan of water: its condition, its damage and the water", FP.cond and row(FP, "Tooltip_weapon_Damage") and row(FP, "Water"))
+check("LIQUID: no fluid container: no liquid row", #ZeD.LootCard.facts(blade, PLAYER).rows == #FB.rows)
+-- without the water card's rules loaded: the primary fluid's own name
+local saveFL = ZeD.Fluid
+ZeD.Fluid = nil
+local plain = fcOf({ getCapacity = 1.0, getAmount = 0.5, isEmpty = false, isHiddenAmount = false,
+                     getPrimaryFluid = item({ getTranslatedName = "Water" }) })
+local pr = row(ZeD.LootCard.facts(bottle(plain), PLAYER), "Water")
+check("LIQUID: without the water card's rules: the primary fluid's name", pr and pr[2] == "0.50 / 1.00 L", pr and pr[2])
+ZeD.Fluid = saveFL
+do
+    local fo = io.open(CDIR .. "ObjectCardFluid.lua", "rb"); local os2 = fo:read("*a"); fo:close()
+    check("LIQUID: the water card shares its rules (ZeD.Fluid: L, liquidsOf, taintedShown, fluidLabel)",
+          os2:find("ZeD.Fluid.L, ZeD.Fluid.liquidsOf, ZeD.Fluid.taintedShown, ZeD.Fluid.fluidLabel = L, liquidsOf, taintedShown, fluidLabel", 1, true) ~= nil)
+end
 local apple = item({ is = { Food = true }, getName = "Apple", getActualWeight = 0.2, isFresh = true, getHungerChange = -0.1, getThirstChange = -0.05, getConditionMax = 0 })
 local FA = ZeD.LootCard.facts(apple, PLAYER)
 check("CARD: food: fresh, no condition bar, hunger and thirst", FA.tags[1] and FA.tags[1][1] == "Tooltip_food_Fresh" and FA.cond == nil

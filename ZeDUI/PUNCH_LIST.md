@@ -3946,6 +3946,17 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     saucepan of water's card lists no water amount: ZeD_LootCard.lua reads the older drainables (what is left) but not
     the game's fluid containers (getFluidContainer: pots, bottles, jugs), so a bottle of water shows no amount or kind
     when looting. **Open:** the director's call, beta 11 or after (a line like "Water 0.8 / 1.0 L" in the card's body).
+    **The director, Nov 11 2026: "add the water amount in beta 11".** **Built:** the loot card (ZeD_LootCard.lua
+    LC.liquidRow) gives any item with a fluid container a row, whatever its kind (a saucepan keeps its condition and
+    damage too): the liquid's name ("Water"; the game's "Mixture" for several) and how much of how much ("0.80 / 1.00
+    L", the decimals by the container's size), the game's "Tainted" in red where its own tooltip shows it, "Unknown"
+    where the game hides the level, and an empty one "Empty" with what it holds. The water card's rules, shared
+    (ObjectCardFluid.lua exports ZeD.Fluid: L, liquidsOf, taintedShown, fluidLabel), so the two read the same; the
+    game's own words (Fluid_Empty, Tooltip_tainted, Fluid_Unknown, Fluid_Mixture), so nothing new to translate.
+    fast_loot_sim 91/0 (LIQUID: eight of its checks fail on the old card). **Check (QA, Mac):** hover a water bottle, a
+    saucepan of water, an empty bottle, a gas can and (if the save has one) a bottle of river water: the liquid's
+    name and "of" amounts, Empty on the empty one, Tainted in red on the river water where the game's tooltip (Alt)
+    says Tainted too.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

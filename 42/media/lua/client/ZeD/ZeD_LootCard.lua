@@ -17,6 +17,11 @@
 --       streamer reads in every tooltip)
 --     a bag: what it holds of what it can, its weight reduction
 --     a book: the pages read; a drainable: what is left
+--   and whatever the kind, a liquid container's liquid (punch list 151; the director, Nov 11 2026: "add the water
+--     amount in beta 11", after QA saw a saucepan of water's card list none): the liquid's name ("Water", the game's
+--     "Mixture" for several) and how much of how much ("0.80 / 1.00 L"), the game's "Tainted" in red where its own
+--     tooltip says so, "Unknown" where the game hides the level; an empty one "Empty" and what it holds. The water
+--     card's own rules (ObjectCardFluid.lua, ZeD.Fluid), so the two read the same.
 -- Content is kept per item for half a second (the figures move: a transfer, wear), and per scale and theme.
 -- ============================================================================
 
@@ -136,7 +141,42 @@ function LC.facts(item, chr)
         local u = safe(item, "getCurrentUsesFloat") or safe(item, "getUsedDelta")
         if u then rows[#rows + 1] = { label("IGUI_invpanel_Remaining"), pct(u * 100), nil, nil } end
     end
+    local fc = safe(item, "getFluidContainer")
+    if fc then rows[#rows + 1] = LC.liquidRow(fc) end
     return f
+end
+
+-- how much of how much, the decimals by the container's size as the water card's ("0.80 / 1.00 L", "12.5 / 20.0 L")
+local function litres(a, cap)
+    local fmt = (cap >= 100 and "%.0f") or (cap >= 10 and "%.1f") or "%.2f"
+    return string.format(fmt .. " / " .. fmt .. " L", a, cap)
+end
+LC._litres = litres
+
+--- A fluid container's row: { label, value, extra, key }
+function LC.liquidRow(fc)
+    local FL = ZeD.Fluid
+    local cap = safe(fc, "getCapacity") or 0
+    local amt = safe(fc, "getAmount") or 0
+    local hidden = safe(fc, "isHiddenAmount")
+    if safe(fc, "isEmpty") then return { label("Fluid_Empty"), litres(0, cap), nil, nil } end
+    local liquids = {}
+    if FL and FL.liquidsOf then
+        local ok, v = pcall(FL.liquidsOf, fc)
+        if ok and type(v) == "table" then liquids = v end
+    end
+    local name = FL and FL.fluidLabel and FL.fluidLabel(liquids)
+    if not name then
+        local pf = safe(fc, "getPrimaryFluid")
+        name = pf and (safe(pf, "getTranslatedName") or safe(pf, "getFluidTypeString"))
+    end
+    local tainted = false
+    if FL and FL.taintedShown then
+        local ok, v = pcall(FL.taintedShown, fc, liquids)
+        tainted = ok and v == true
+    end
+    local value = hidden and label("Fluid_Unknown") or litres(amt, cap)
+    return { tostring(name or label("Fluid_Mixture")), value, tainted and label("Tooltip_tainted") or nil, tainted and "bad" or nil }
 end
 
 -- ---------------------------------------------------------------------------

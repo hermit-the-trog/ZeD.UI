@@ -114,6 +114,10 @@ local function fluidLabel(liquids)
     return txt("Fluid_Mixture", "Mixture")
 end
 
+-- (shared with the loot card, ZeD_LootCard.lua, so a container's liquid reads the same on both: punch list 151)
+ZeD.Fluid = ZeD.Fluid or {}
+ZeD.Fluid.L, ZeD.Fluid.liquidsOf, ZeD.Fluid.taintedShown, ZeD.Fluid.fluidLabel = L, liquidsOf, taintedShown, fluidLabel
+
 local function sameContainer(a, b)
     return a ~= nil and b ~= nil and a:getFluidContainer() == b:getFluidContainer()
 end
