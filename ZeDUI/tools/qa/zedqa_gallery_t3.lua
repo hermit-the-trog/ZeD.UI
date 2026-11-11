@@ -28,7 +28,7 @@ end
 
 step(20, function()
     Det.setLockedMode("gamepad")
-    D.Z.theme("dark", "orange", look.size)
+    D.Z.theme((GAL_LOOK and GAL_LOOK[1]) or "dark", (GAL_LOOK and GAL_LOOK[2]) or "orange", look.size)
     local ui = UIManager.getUI()
     for i = 0, ui:size() - 1 do local e = ui:get(i); if e:getClass():getSimpleName() == "UIDebugConsole" then e:setVisible(false) end end
     say("set: " .. tostring(ZeD.PadGlyphs.set()) .. ", look " .. tostring(ZeD.currentBase) .. " / " .. tostring(ZeD.currentAccent))

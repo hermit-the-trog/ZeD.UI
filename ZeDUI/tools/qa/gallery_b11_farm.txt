@@ -1,0 +1,9 @@
+# Nov 11 2026: the Farm and Ranch pictures (spreads 58, 59) in PZ Teal, 4K: gallery_farm_ranch.txt with the Teal look.
+zedqa_prelude.lua | pre
+gallery_b11_look.lua | g14l | timeout=60
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_farm_pre.lua | gfp | timeout=20
+zedqa_animals.lua | an | timeout=60 | end=setup done
+gallery_farm_ranch.lua | gfr | timeout=150
+gallery_t14_end.lua | g14e | timeout=60

@@ -1,0 +1,14 @@
+# Nov 11 2026: the beta 11 gallery recapture, part 4: the survival guide, the guide bubble, cooking and the vehicle tab.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_b11_t1d.txt -Report gallery_b11_t1d   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_book83.lua | b83 | timeout=900
+zedqa_guide82_stills.lua | g8s | timeout=600
+zedqa_guide_bubble.lua | gbub | timeout=300
+zedqa_cook80.lua | c80 | timeout=1500
+zedqa_mech79.lua | m79 | timeout=1200
+gallery_t14_end.lua | g14e | timeout=60

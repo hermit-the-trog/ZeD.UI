@@ -130,6 +130,15 @@ function Z.lightBlue()
         local c0, w0 = Z.CW(), Z.WW()
         if c0 then c0._accentKey = nil end
         if w0 then w0._accentKey = nil end
+        -- (Nov 11 2026) beat 8's window-menu accent choices were saved as the windows' own accents (charAccent, worldAccent):
+        -- back to "follow the accent" (10), or beats 9-11 keep the blue windows
+        pcall(function()
+            local opts = PZAPI.ModOptions:getOptions("ZeD_UI")
+            for _, id in ipairs({ "charAccent", "worldAccent" }) do local o = opts:getOption(id); if o then o:setValue(10) end end
+            ZeD.Settings.reapplyFromOptions()
+            if c0 then c0._accentKey = nil end
+            if w0 then w0._accentKey = nil end
+        end)
         return
     end
     ZeD.applyTheme("light", (STORY_GLOBAL_BLUE ~= false) and "blue" or nil, nil)

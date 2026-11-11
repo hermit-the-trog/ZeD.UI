@@ -1,0 +1,13 @@
+# Nov 11 2026: the four vanilla gallery pictures (van_01_hero_mid, van_11_health, van_20_ctx_menu, van_32_action_bar_reading)
+# with ZeD off, the game's Font Size at 19px (zedqa_run.ps1 pins fontSize=2), 4K:
+#   zedqa_mods_run.ps1 -ModList gallery_b11_van_mods.txt -NoZeD -Mode fullscreen4k -Manifest gallery_b11_van.txt
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_v3_core.lua | g3c | timeout=600
+gallery_v3_reveal.lua | g3r | timeout=300
+gallery_v3_stage.lua | g3s | timeout=600
+gallery_v3_van.lua | g3v | timeout=900
+gallery_v3_teardown.lua | g3t | timeout=600
+gallery_t14_end.lua | g14e | timeout=60

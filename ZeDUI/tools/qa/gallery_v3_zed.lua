@@ -227,7 +227,15 @@ S.step(40, function() Z.charTab("loot"); Z.worldTab("loot"); Z.place() end)
 
 -- ---- hero --------------------------------------------------------------------
 if want("hero") then
-    S.poll(10, 600, function() return Z.mc(true) end, function() say("note: the columns did not all come on") end)
+    -- GAL_ONE_SOURCE (gallery_b11_hero.lua, Nov 11 2026): one source open in each window and the inventory as a list, so the
+    -- wide layout shows Cond / Amt (two side by side draw the compact Name and Wt layout)
+    S.step(2, function()
+        if GAL_ONE_SOURCE then
+            local IR = ZeD.InventoryRenderer
+            if IR and IR.setGridKey then IR.setGridKey("player", false); IR.setGridKey("world", false) end
+        end
+    end)
+    S.poll(10, 600, function() return Z.mc(not GAL_ONE_SOURCE) end, function() say("note: the columns did not all come on") end)
     S.step(10, function() Z.sortSplit() end)
     S.step(40, function()
         Z.sortSplit()

@@ -1,0 +1,16 @@
+# Nov 11 2026: the beta 11 gallery recapture, part 2: the Fossoil story, journal_kills, the four beta2 spread-06 shots.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_b11_t1b.txt -Report gallery_b11_t1b   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_story_stage.lua | sts | timeout=600
+gallery_story_who.lua | gsk | timeout=300
+gallery_story_traits.lua | git | timeout=300
+gallery_story_shots.lua | stz | timeout=1500
+gallery_nov1_story.lua | n1s | timeout=1080
+gallery_story_teardown.lua | stt | timeout=600
+gallery_b11_look.lua | g14l2 | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_journal_kills.lua | jk | timeout=300
+gallery_t14_end.lua | g14e | timeout=60

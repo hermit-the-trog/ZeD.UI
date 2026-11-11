@@ -1,0 +1,13 @@
+# Nov 11 2026: the hero shots zed_01_hero_mid / zed_02_hero_close with ONE source open per window and the list view
+# (punch list 161: two sources side by side draw the compact layout, no Cond / Amt). PZ Teal, Dark, 4K.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_v3_core.lua | g3c | timeout=600
+gallery_v3_reveal.lua | g3r | timeout=300
+gallery_v3_stage.lua | g3s | timeout=600
+gallery_b11_hero.lua | b11h | timeout=60
+gallery_v3_zed.lua | g3z | timeout=900
+gallery_v3_teardown.lua | g3t | timeout=600
+gallery_t14_end.lua | g14e | timeout=60

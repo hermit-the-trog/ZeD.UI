@@ -83,6 +83,8 @@ step(5, function()
     say("Bug report: " .. tostring(n) .. " errors copied")
 end)
 step(30, function() shot("gb_bugreport_dialog"); prompts(function(t) pcall(function() t:pressPrimary() end) end) end)
+-- (Nov 11 2026) the two made errors left an error notice on the Messages icon in the pictures after this one: cleared here
+step(20, function() MS.sources = {}; MS.toasts = {}; pcall(function() if MS.bubbles then MS.bubbles = {} end end); say('error notices cleared') end)
 -- 3. the Simple watch, worn, in the corner
 local watch
 step(10, function()

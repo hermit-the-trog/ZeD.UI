@@ -1,0 +1,17 @@
+# Nov 11 2026: beta 11 gallery reruns: story beats 9-11 (Teal windows), the pictures whose scripts hardcoded Orange (g4 belt
+# toast / window radio, g3 wheels and footer) and the gb_* pictures without the error notice.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b11_story_only.lua | sto | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_story_shots.lua | stz | timeout=1500
+gallery_story_teardown.lua | stt | timeout=600
+gallery_b11_look.lua | g14l2 | timeout=60
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_gallery_t4.lua | g4 | timeout=240
+zedqa_gallery_t3.lua | g3 | timeout=300
+gallery_beta_new.lua | gbn | timeout=600 | expect=qaGalleryError
+gallery_t14_end.lua | g14e | timeout=60

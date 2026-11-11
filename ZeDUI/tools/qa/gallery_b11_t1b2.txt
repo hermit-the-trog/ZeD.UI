@@ -1,0 +1,8 @@
+# Nov 11 2026: the rest of part 2 (the hidecon tag was wrong in t1b): journal_kills_1.
+zedqa_prelude.lua | pre | timeout=120
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_journal_kills.lua | jk | timeout=300
+gallery_t14_end.lua | g14e | timeout=60

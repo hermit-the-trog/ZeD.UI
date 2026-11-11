@@ -1,0 +1,27 @@
+# Nov 11 2026: the beta 11 gallery recapture, part 3: the QA captures (belt, bubbles, moodles, radios, ovens, fishing,
+# prompts, wheels, sandbox, reader, notebook, taxi, beta_new, indoor, radios). Glasses on, console hidden.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_b11_t1c.txt -Report gallery_b11_t1c   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_hands_together.lua | ht | timeout=300
+zedqa_bubbles.lua | bub | timeout=300
+zedqa_moodles.lua | mood | timeout=240
+zedqa_gallery_t4.lua | g4 | timeout=240
+zedqa_twoway.lua | tw | timeout=900
+zedqa_appliances.lua | ap | timeout=240
+zedqa_reader.lua | rd | timeout=180
+zedqa_notebook.lua | nb | timeout=180
+zedqa_fishing.lua | fi | timeout=180
+zedqa_prompts.lua | pr | timeout=240
+zedqa_gallery_t3.lua | g3 | timeout=300
+gallery_nov1_t3.lua | n1t | timeout=300
+zedqa_sandbox_ig.lua | sbx | timeout=240
+zedqa_dash_r6_parts.lua | r6p | timeout=600
+gallery_t14_radios.lua | g14r | timeout=300
+gallery_t14_indoor.lua | g14i | timeout=900
+gallery_beta_new.lua | gbn | timeout=600 | expect=qaGalleryError
+gallery_t14_end.lua | g14e | timeout=60

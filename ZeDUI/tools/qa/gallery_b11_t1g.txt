@@ -1,0 +1,13 @@
+# Nov 11 2026: beta 11 rerun of the pictures taken after the farm run left its hutch and animals at the QA home: the
+# character stands ~70 squares away on open ground (gallery_b11_away.lua), then g4, g3 and the gb_* pictures again.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b11_away.lua | away | timeout=200
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_gallery_t4.lua | g4 | timeout=240
+zedqa_gallery_t3.lua | g3 | timeout=300
+gallery_beta_new.lua | gbn | timeout=600 | expect=qaGalleryError
+gallery_t14_end.lua | g14e | timeout=60
