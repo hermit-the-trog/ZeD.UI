@@ -22,6 +22,8 @@ whole. Do the packs in order, and keep your own word choices the same from pack 
 Keep tool calls few (credits): one Read and one Write per pack is the aim. Do not read your out files back to proofread them, and do not read the glossary twice; the check in the last step finds the mechanical slips.
 
 ## Rules for every line
+- `AR` is Argentine Spanish (the game's "Español (Argentina)"), not Arabic. Its lines are Spanish with voseo
+  (podés, tenés, Hacé clic, Elegí, Presioná); `mt.py check` fails any Arabic letter in it.
 - Keep `%1` `%2` `%3` `%4` exactly (you may move them where your grammar needs them), keep `%%` (a percent sign), keep
   markup such as `<LINE>` `<RGB:1,0,0>` `<SIZE:small>` untouched, and keep `\n` as the two characters backslash and n.
 - Where the English is ALL CAPITALS (pixel faces, headings, the action bar), write capitals too, when your script has them.
