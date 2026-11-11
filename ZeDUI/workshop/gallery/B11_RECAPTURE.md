@@ -36,6 +36,10 @@ and 63 read from `~/Zomboid/Screenshots/gallery_beta2` by full path: retake thos
   the World window is narrower there than in the old pictures: that is intended, not a jump (159).
 - **Empty lists (157):** "Nothing here." (was "Nothing in here.").
 - **The item card (152, 153):** a liquid container shows Liquid Facts with its litres; "Used to make" sits flush left.
+- **Dark's text (160):** body text is opaque and brighter, secondary text a clear step under it (7 : 1), dim text the
+  faintest (about 6 : 1). Every Dark picture is out of date for this alone, so Tier 2 is not optional for Dark shots.
+- **Stacks (162):** a closed stack's bar shows its emptiest item, in the list and the grid.
+- **Notebooks (164):** no grey box from a print read before; the page opens clean.
 
 ## Tier 1: the content changed (retake, and check what each shows)
 
