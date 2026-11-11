@@ -809,6 +809,15 @@ function ZeD.deriveReadable(P, baseKey)
     P.textDim = ZeD.legible({
         r = f1.r + (tx.r - f1.r) * 0.40, g = f1.g + (tx.g - f1.g) * 0.40, b = f1.b + (tx.b - f1.b) * 0.40,
     }, 4.6, bgs, up)
+    if baseKey == "dark" then
+        -- (the director, Nov 11 2026: dim text the faintest of the three, under the secondary tier. A neutral grey a
+        -- quarter of the way from the window to the text, then 5 : 1 on the window and at least 4.5 : 1 over a white
+        -- world: about 5.9 : 1, against textSec's 7 and the body text's 12.8)
+        local d1 = flatOver(0, s1)
+        P.textDim = ZeD.legible(ZeD.legible({
+            r = d1.r + (tx.r - d1.r) * 0.25, g = d1.g + (tx.g - d1.g) * 0.25, b = d1.b + (tx.b - d1.b) * 0.25,
+        }, 5.0, { d1 }, true), 4.5, { f1 }, true)
+    end
 
     -- label on a solid accent fill: ink or paper
     P.textOnAccent = ZeD.textOn(ac)

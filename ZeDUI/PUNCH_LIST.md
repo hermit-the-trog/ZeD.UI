@@ -4186,8 +4186,8 @@ to be proposed.
     a bright scene it can drop to 3.1 to 4.4 : 1. **B, with A:** body text opaque (12.8 : 1). Sheet:
     `ZeDUI/mockups/zed_textsec_v1/textsec_dark_before_after.png`. **The director, Nov 11: "A plus B". Built:** Dark's
     body text opaque (Tokens.lua), and deriveReadable's ghost tier (textSec, toneLo, accentDim) in Dark at 7 : 1 on the
-    window, 4.5 over a white world; Light and High contrast unchanged. Seen: Dark's textDim (#BABBBA under Teal) now reads
-    brighter than textSec; the director's call. QA: test 14.
+    window, 4.5 over a white world; Light and High contrast unchanged. Dark's textDim read brighter than textSec (#BABBBA under Teal); the director, Nov
+    11: dim the faintest. A neutral grey at 5 : 1 on the window, 4.5 over a white world: about 5.9 : 1 (#919392 under Teal). QA: test 14.
 161. **QA: two sources side by side show no Cond / Amt column** (Name and Wt only); the gallery's hero shots are staged
     that way and B11_RECAPTURE.md asks for the column. **Build looked (Nov 11):** by design. Two or more sources side by side set `_compactMode` (InventoryRenderer.lua), which draws Name and Wt only; the narrowing rule isn't involved. B11_RECAPTURE.md now asks for one source open in 01 and 19, so the column shows. Giving the compact layout a bar is the director's call.
 162. **QA: a stack's row takes its first item's name and bar** ("Empty Plastic Bottle x4" with a dark bar one way,
