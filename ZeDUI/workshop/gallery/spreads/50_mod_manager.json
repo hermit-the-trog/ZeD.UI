@@ -4,7 +4,7 @@
  "pages": [120, 121],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["50", "Mods"]},
    {"p": "The *Mods* window lists the mods you have. The tabs along the top of the list choose what it shows: *All*, *On*, *Problems*, *Conflicts* and *Workshop*, each with its count. The mod chosen in the list is shown in its info pane, at the right of the window."},

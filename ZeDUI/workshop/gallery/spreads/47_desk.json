@@ -4,7 +4,7 @@
  "pages": [114, 115],
  "left": {
   "kind": "manual",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["47", "The Desk"]},
    {"p": "When the game starts, it opens on a desk with a monitor on it. The monitor holds the main menu: the menu bar along its top, a column of icons down its right side, and the windows that the menu opens. Each screen of the main menu opens in a window on the monitor."},

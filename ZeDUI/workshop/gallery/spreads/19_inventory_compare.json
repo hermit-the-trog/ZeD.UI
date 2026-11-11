@@ -4,7 +4,7 @@
  "pages": [58, 59],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["19", "Inventory and Loot"]},
    {"p": "The game itself shows what you carry in an inventory window and what is around you in a loot window. Each window shows one container at a time; to see another, click its button on the right edge of the window."},

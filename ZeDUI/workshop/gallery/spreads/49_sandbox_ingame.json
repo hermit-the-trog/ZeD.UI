@@ -4,7 +4,7 @@
  "pages": [118, 119],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["49", "Sandbox Options in Game"]},
    {"p": "The sandbox settings of a saved game can be changed while you play it, from the pause window. The feature is off until you turn it on: in *ZeD setup*, under *Additions*, switch on *Sandbox options in game*. With it on, the pause window has a *Sandbox options* line under *Options*."},

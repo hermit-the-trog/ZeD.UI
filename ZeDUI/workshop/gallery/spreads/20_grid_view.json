@@ -4,12 +4,12 @@
  "pages": [60, 61],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["20", "List or Grid"]},
    {"p": "Each column of the *Character* and *World* windows shows its items as a list or as a grid. The two buttons at the right of its header choose the view; the one in use is solid in the accent color."},
    {"at": 478},
-   {"p": "In the list, each item has a row of its own: its picture and its name, then its category, its condition and its weight, under the column heads *Name*, *Cat*, *Cond* and *Wt*. Click a column head to sort the list by it. Items that stack show as one row with their count. Figure 20-1 shows the inventory of the *Character* window as a list, sorted by name, with the list button lit."},
+   {"p": "In the list, each item has a row of its own: its picture and its name, then its category, its condition or how full it is, and its weight, under the column heads *Name*, *Cat*, *Cond / Amt* and *Wt*. Click a column head to sort the list by it. Items that stack show as one row with their count. Figure 20-1 shows the inventory of the *Character* window as a list, sorted by name, with the list button lit."},
    {"at": 884},
    {"caption": ["Figure 20-1", "The inventory as a list."]},
    {"p": "With a controller, click the left stick in a window to sort the list, and the right stick to switch between the list and the grid."}

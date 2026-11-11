@@ -58,7 +58,7 @@ DECK FIXES and REPORTS are the umbrella for 125, 126, 130, 131 and 133 plus any 
 
 ## After the Nov 13 reset
 
-- **129** The whole gallery retaken in PZ Teal with the new title bars (a pin at each end, no roll boxes), plus **128** the running head's middle dot changed to a hyphen, in one full re-render. Recapture list: `ZeDUI/workshop/gallery/B10_RECAPTURE.md`. Tier 2 retakes need the list view and the gallery look's window places and blur.
+- **129** The whole gallery retaken in PZ Teal by QA (the director, Nov 11), from Build's list `ZeDUI/workshop/gallery/B11_RECAPTURE.md` (it replaces B10_RECAPTURE.md); **128** (the running head's hyphen) is done in the spreads and shows with that full re-render.
 - **136** The bigger Lua console (debug mode only; the server command list is in): verify the 42.22 hooks, then the log with filters, search and export; a multi-line scratchpad with history and snippets; autocomplete and a Help page; the command list. A mockup first for each phase. Source: `docs/reference/RESEARCH_console_tooling_20261108.md`.
 - **The design system** (https://claude.ai/artifact/CYvs9hqtbx1153ZooxhHkz, linked on the Workshop page): fill in every component in one pass (Molecules 01-24, atoms, window chrome, context menus, wheel, item cards, belt, focus styles). When beta 11 ships, its accent default changes to PZ Teal too.
 - Still open from before: 107 split-screen windows per player (before Dec 1), 108 a drawn controller, 109 what players alt-tab for, 121 run and sneak on one pad button (an idea).

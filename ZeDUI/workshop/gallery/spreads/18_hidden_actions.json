@@ -4,7 +4,7 @@
  "pages": [56, 57],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["18", "Hidden Actions"]},
    {"p": "A ZNIX window shows an action only when it can be done: now, or after a step that ZNIX takes for you, such as walking over to the thing or taking off a hat. An action that needs something the character lacks, such as a tool, an ingredient, parts or a skill level, is hidden. An action that makes no sense at the moment, such as *Put out* on a fire that is already out, is gone, and is never hinted at."},

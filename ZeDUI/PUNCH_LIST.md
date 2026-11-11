@@ -3240,12 +3240,21 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     "Bitchin' znix Programs - Doidbros & Buzzlord". It's in every spread's "head" (spreads/*.json) and any default in
     spread.py/title_spread.py. Change all at once, then re-render all 70 pictures with the next full gallery refresh,
     not one page at a time.
+    **Done, Nov 11 2026 (Build):** every spread's left running head reads "Bitchin' znix Programs - Doidbros &
+    Buzzlord" (63 spreads; SPREADS.md's rule too). It shows with the full re-render in 129.
 
 129. **The gallery after beta 11 (QA, Nov 9 2026).** With PZ Teal the default (127), the whole gallery is retaken in
     Dark + PZ Teal once beta 11 ships. The same pass takes the Tier 2 title-bar retakes left from beta 10 (pins at
     each end of the bar, no roll boxes; list view, the gallery_t14 look's window places and blur, the belt in view;
     see ZeDUI/workshop/gallery/B10_RECAPTURE.md) and fixes the running head's middle dot (128). One full re-render of
     all 70 pictures.
+    **The director, Nov 11 2026: QA takes the pictures and renders.** Build's list:
+    ZeDUI/workshop/gallery/B11_RECAPTURE.md (it replaces B10_RECAPTURE.md): Tier 1, the content beta 11 changed (Cond /
+    Amt, the clock-cut rings, five-cell bars, menu marks and icons, the ID's camera button, Pasties on the desk, Liquid
+    Facts, the 70% paper), with what each picture must show; Tier 2, the accent and title bars only; what stays (the
+    vanilla pictures, the watch plates, the controller map). 09 and 14 keep the story's Blue, 45 each theme by its
+    name. Spread 20's text now names the column "Cond / Amt". QA to count the accents for spread 09's "eight colors
+    or None". The studio, Pasties, the loot card and Status colors have no picture yet: the director's call.
 
 130. **The Player card keeps a changed role (QA's Mac run, Nov 9 2026; real; beta 11).** After a role change from the
     Player card's Role dropdown, the card (badge and dropdown) still shows the old role, even reopened and after

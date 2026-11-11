@@ -4,7 +4,7 @@
  "pages": [92, 93],
  "left": {
   "kind": "manual",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["36", "Dashboards"]},
    {"p": "While you drive, ZNIX draws the dashboard of the car at the foot of the screen, in place of the game's own. Each model has its own badge and its own console, with the controls for the heater that a car of its kind would have had."},
