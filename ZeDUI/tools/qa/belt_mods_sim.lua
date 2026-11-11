@@ -1064,5 +1064,44 @@ do
     hud.getMouseX, hud.getMouseY = nil, nil
 end
 
+-- ---------------------------------------------------------------------------
+section("METER: the belt's one bar, the inventory's rule (punch list 152)")
+-- ---------------------------------------------------------------------------
+-- The director, Nov 11 2026: "yes, belt follows the same rule": with no mod's meter speaking, the rings and strips
+-- read ZeD.ItemMeter (the real ItemMeter.lua): a liquid how full in ten blue cells, a use-up what is left in ten in
+-- the accent, what wears its condition (the status five), anything else none
+do
+    boot(NEW)
+    assert(loadfile(CLIENT .. "ZeD/ItemMeter.lua"))()
+    local B = ZeD.Belt
+    local function fluid(amt, cap) return { getCapacity = function() return cap end, getAmount = function() return amt end,
+                                             isHiddenAmount = function() return false end, isEmpty = function() return amt <= 0 end } end
+    local bottle = item({ name = "WaterBottle", condMax = 10, cond = 10, fluid = fluid(0.8, 1.0) })
+    local lighter = item({ name = "Lighter", class = "DrainableComboItem", condMax = 10, cond = 10 })
+    function lighter:getCurrentUsesFloat() return 0.35 end
+    local hammer = item({ name = "Hammer", class = "HandWeapon", condMax = 10, cond = 10 })
+    local beans = item({ name = "TinnedBeans", condMax = 10, cond = 10 })
+    local f, k = B.meter(bottle, "hand")
+    check("METER a water bottle in hand: how full, a liquid", f and math.abs(f - 0.8) < 1e-6 and k == "fluid", tostring(f) .. " " .. tostring(k))
+    check("METER its colour the liquid blue", B.meterColor(ZeD.T, k) == ZeD.T.info)
+    f, k = B.meter(lighter, "slot")
+    check("METER a lighter on the belt: what is left, in the accent", f and math.abs(f - 0.35) < 1e-6 and k == "uses" and B.meterColor(ZeD.T, k) == ZeD.T.accent,
+          tostring(f) .. " " .. tostring(k))
+    f, k = B.meter(hammer, "slot")
+    check("METER a hammer: its condition, the status colours", f == 1 and k == nil and B.meterColor(ZeD.T, k) == nil)
+    f = B.meter(beans, "slot")
+    check("METER a can of beans: no strip (it never wears, holds nothing)", f == nil, tostring(f))
+    env.hotbar.attachedItems = { [1] = bottle, [2] = lighter, [3] = beans }
+    env.player.pri, env.player.sec = nil, nil
+    frame()
+    check("METER the slot strips: the bottle ten blue, the lighter ten accent, the beans none",
+          #env.bars == 2 and env.bars[1].color == "info" and env.bars[1].graduated == false
+          and env.bars[2].color == "accent" and env.bars[2].graduated == false, #env.bars)
+    env.player.pri = bottle
+    local log = frame()
+    check("METER the hand ring of a bottle in the liquid blue", log:find(string.format("%.4f", ZeD.T.info.r), 1, true) ~= nil)
+    ZeD.ItemMeter = nil
+end
+
 print(string.format("belt_mods_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

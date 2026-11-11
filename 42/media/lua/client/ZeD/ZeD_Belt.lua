@@ -579,12 +579,23 @@ function B.alphaFor(hud, kind, box)
     return a
 end
 
--- The strip or ring under an item: a mod's meter when one speaks for it, else its condition. Returns f, kind.
+-- The strip or ring under an item: a mod's meter when one speaks for it, else the item's one bar, as the inventory's
+-- COND / AMT column reads it (ZeD.ItemMeter; the director, Nov 11 2026: "yes, belt follows the same rule"): a liquid
+-- how full ("fluid", ten blue cells), what runs down what is left ("uses", ten in the accent), what wears its
+-- condition (the status five), anything else none (a water bottle no longer shows a full condition ring). Returns
+-- f, kind.
 function B.meter(item, where)
     if item == nil then return nil end
     for _, m in ipairs(B._meters) do
         local ok, f, kind = pcall(m.fn, item, where)
         if ok and type(f) == "number" and f == f then return math.max(0, math.min(1, f)), kind end
+    end
+    local IM = ZeD.ItemMeter
+    if IM and IM.of then
+        local kind, f = IM.of(item)
+        if kind == "fluid" or kind == "uses" then return f, kind end
+        if kind == "cond" then return f, nil end
+        return nil
     end
     return B.cond(item), nil
 end
@@ -593,6 +604,7 @@ end
 function B.meterColor(T, kind)
     if kind == "fluid" then return T.info end
     if kind == "flat" then return T.positive end
+    if kind == "uses" then return T.accent end
     return nil
 end
 

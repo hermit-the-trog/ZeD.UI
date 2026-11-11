@@ -169,10 +169,17 @@ end
 -- A row's condition: the framed strip (ZeD.Atoms.drawFillBar, five segments) at the list
 -- rows' compact height, its middle at cy, in the condition's colours. True while the
 -- pointer is on it (its help line: "Condition 64%")
-local function eqCondition(panel, x, cy, w, f)
+-- (kind: ItemMeter's, for a belt slot's item: a liquid's or a use-up's fill bar in place of a condition; nil, a
+-- condition, the clothes' rows)
+local function eqCondition(panel, x, cy, w, f, kind)
     if not f or w <= 0 then return false end
     local A = ZeD.Atoms
     local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
+    local IM = ZeD.ItemMeter
+    if kind and kind ~= "cond" and IM then
+        local fc, graduated = IM.style(kind)
+        return A.drawFillBar(panel, x, cy - math.floor(ch / 2), w, f, graduated, fc, ch, IM.label(kind))
+    end
     return A.drawFillBar(panel, x, cy - math.floor(ch / 2), w, f, true, nil, ch, ZeD.tr("IGUI_invpanel_Condition"))
 end
 local COND_BAR_W = 80  -- condition bar width
@@ -991,10 +998,15 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         local sub = ZeD.textCase(B.slotName(s.slot)) .. DOT .. from
         local th = washB and T.textOnFocus or T.toneHi
         panel:drawText(A.truncateText(sub, f1, subW), tx, ty + f2h + T.px(2), th.r, th.g, th.b, th.a or 0.9, f1)
-        -- condition, in the COND column level with the name: the framed strip
-        -- (left out when the verb takes its room: the item's card still shows it)
-        local f = s.item and (x + c.condX + c.condColW - T.px(2) <= rightEdge - T.px(6)) and B.cond(s.item)
-        local condHov = f and eqCondition(panel, x + c.condX + T.px(2), ty + math.floor(f2h / 2), c.condColW - T.px(4), f)
+        -- the item's one bar, in the COND column level with the name: its condition or how full it is, as the belt
+        -- and the inventory read it (ZeD.ItemMeter; the director, Nov 11 2026: "belt follows the same rule"), the framed
+        -- strip (left out when the verb takes its room: the item's card still shows it)
+        local mk, f = nil, nil
+        if s.item and (x + c.condX + c.condColW - T.px(2) <= rightEdge - T.px(6)) then
+            if ZeD.ItemMeter then mk, f = ZeD.ItemMeter.of(s.item); if mk == "hidden" then f = nil end
+            else f = B.cond(s.item) end
+        end
+        local condHov = f and eqCondition(panel, x + c.condX + T.px(2), ty + math.floor(f2h / 2), c.condColW - T.px(4), f, mk)
         local btnHover = rowHover and A.mouseIn(panel, bx, by, bw, bh)
         if rowHover and not condHov then   -- (on the strip the help line keeps its condition)
             ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Equip_BeltRowHelp", s.item and (safeGet(s.item, "getDisplayName") or "?") or ZeD.tr("UI_ZeD_Equip_Empty"), ZeD.btnCase(label)))

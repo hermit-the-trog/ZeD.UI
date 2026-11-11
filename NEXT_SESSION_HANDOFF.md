@@ -38,7 +38,7 @@ The corkboard note (MenuNote.lua, approved by the director): NOTE FIXES / LIST S
 | 149 | The belt's hand rings in segments, cut like a pie (the director) | QA Nov 11 on test 7: **ok** at 1x and 1.75x, all themes, Color blind (the "ten blue" check was Build's mistake: liquid rings come only from Item Condition Restored) |
 | 150 | The inventory narrower where a full card would shift the window, both windows (the director) | QA Nov 11 on test 7: **ok** (1280: 222 px, Cond gone, nothing shifts; 1366: 265 px; 1920 and 4K as before) |
 | 151 | The loot card shows no liquid in a fluid container (QA, seen in passing on test 7) | QA Nov 11 on test 8: right in a bag, missing on the floor (the world object holds the liquid); fixed (ItemMeter.fluidOf) and reworked into 152; in test 9 |
-| 152 | The COND / AMT column: one bar an item, its condition or how full; hover shows the level, the item card the litres; the heading left aligned (director) | built Nov 11 (item_meter_sim 28/0, fast_loot_sim 94/0); in test 9 |
+| 152 | The COND / AMT column: one bar an item, its condition or how full; hover shows the level, the item card the litres; the heading left aligned (director) | built Nov 11, the belt and the Equipment tab's belt rows too (the director: "belt follows the same rule"; item_meter_sim 28/0, fast_loot_sim 94/0, belt_mods_sim 156/0); in test 9 |
 | 139 | The pointer says what a click or a drop will do (an idea from the director, Nov 10; mockup in ZeDUI/mockups/zed_pointer_hint_v1) | parked by the director (research later); not in beta 11 |
 | 132 | Strip submenus open on rest | closed: the director chose click only; a note that mentions rest names the List only |
 

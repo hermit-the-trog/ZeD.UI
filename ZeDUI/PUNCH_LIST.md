@@ -3996,6 +3996,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     beans and book no bar; the heading "Cond / Amt" at the left, Weight at the right; sort by it both ways; the grid
     view's cells the same. Hover each: the card's level bar under the liquid's name (no litres), Tainted on river
     water. Click one (the item card): Liquid Facts with the litres and "Amount 0.80 L / 1.00 L". At 1x and 1.75x.
+    **The director, Nov 11 2026: "yes, belt follows the same rule"** (Build had asked: a water bottle in hand showed
+    five full green cells while the inventory showed its water). **Built:** the belt's B.meter reads ZeD.ItemMeter
+    after any mod's meter (Item Condition Restored's still first): a liquid's ring and strip in ten blue cells, a
+    use-up's in ten in the accent (B.meterColor "uses"), what wears its condition in the status five, anything else
+    none; the Equipment tab's belt rows the same (eqCondition takes ItemMeter's kind). belt_mods_sim 156/0 (METER: six
+    of its checks fail on the old belt). **Check (QA, Mac):** a water bottle in a hand and on a belt slot: ten blue
+    cells to its level; a lighter on a slot: ten accent cells; a hammer: five status cells; a can of beans on a slot:
+    no strip; the Equipment tab's belt list the same.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."

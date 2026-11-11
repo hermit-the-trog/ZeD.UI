@@ -16,7 +16,7 @@ Looting
 
 Bars and colors
 - Condition bars have five cells, rounded up: one red cell means nearly broken.
-- The rings round your hands on the belt show condition in the same five cells, cut like a clock's face.
+- The rings round your hands and the belt's strips follow the same rule: condition in five cells cut like a clock's face, how full in ten.
 - Skill bars keep ten cells, now spread evenly.
 - The condition column is now Cond / Amt: bottles, cans and things that run down (lighters, batteries) show how full they are in ten cells, things that wear their condition in five, and things that do neither no bar. Its heading sits at the left again; only Weight is right-aligned.
 - New in ZeD setup > Look: Status colors. Color blind shows good to bad in blue, yellow and orange.
