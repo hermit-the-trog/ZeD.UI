@@ -228,6 +228,55 @@ for _, L in ipairs(LANGS) do
     end
 end
 check("BACKDROPS: every name in all 28 languages, the dropped ones gone", named, missing)
+-- every name fits its swatch, measured in the face the tray draws it in (ZeD's body face, 13 px at 1x: the .fnt's
+-- advances and kerning) against the swatch's 128 px less a little room; QA's Mac run on test 12, Nov 11 2026, found
+-- "Bandera estadouni..." cut short. (Chinese, Japanese, Korean and Thai draw in the game's own fonts: not measured.)
+do
+    local adv, kern = {}, {}
+    for line in io.lines(ROOT .. "42/media/fonts/body.fnt") do
+        if line:find("^char ") then
+            local id, xa = line:match("id=(%d+)"), line:match("xadvance=(%-?%d+)")
+            if id and xa then adv[tonumber(id)] = tonumber(xa) end
+        elseif line:find("^kerning ") then
+            local a, b, n = line:match("first=(%d+)"), line:match("second=(%d+)"), line:match("amount=(%-?%d+)")
+            if a and b and n then kern[tonumber(a) * 65536 + tonumber(b)] = tonumber(n) end
+        end
+    end
+    local function codes(str)   -- UTF-8 to code points
+        local out, i = {}, 1
+        while i <= #str do
+            local c = str:byte(i)
+            local n = (c < 0x80 and 1) or (c < 0xE0 and 2) or (c < 0xF0 and 3) or 4
+            local cp = (n == 1) and c or (c % (2 ^ (8 - n - 1)))
+            for j = 2, n do cp = cp * 64 + (str:byte(i + j - 1) % 64) end
+            out[#out + 1] = cp
+            i = i + n
+        end
+        return out
+    end
+    local function width(str)
+        local w, prev = 0, nil
+        for _, cp in ipairs(codes(str)) do
+            w = w + (adv[cp] or 0)
+            if prev then w = w + (kern[prev * 65536 + cp] or 0) end
+            prev = cp
+        end
+        return w
+    end
+    local over = ""
+    for _, L in ipairs(LANGS) do
+        if L ~= "CN" and L ~= "CH" and L ~= "JP" and L ~= "KO" and L ~= "TH" then
+            local fh = io.open(ROOT .. "42/media/lua/shared/Translate/" .. L .. "/UI.json", "rb")
+            local txt = fh and fh:read("*a") or ""
+            if fh then fh:close() end
+            for key, val in txt:gmatch('"(UI_ZeD_Studio_Bd%w+)": "([^"]*)"') do
+                local w = width(val)
+                if w > 124 then over = over .. L .. ":" .. key:sub(17) .. " " .. w .. "px; " end
+            end
+        end
+    end
+    check("BACKDROPS: every name fits its swatch (measured in the tray's face, Latin and Cyrillic)", over == "", over)
+end
 local allTex = true
 for i = 2, #ST.BACKDROPS do
     local fh = io.open(ROOT .. "42/media/textures/ZeD/studio/backdrop_" .. ST.BACKDROPS[i].id .. ".png", "rb")

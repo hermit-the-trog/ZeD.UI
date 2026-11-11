@@ -3734,6 +3734,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass.** Brick wall at Full body: every run of one colour a multiple of 4 screen pixels, the mortar
     lines hard-edged at Bust; the tray's swatches smooth, Lasers' lines whole; the paper there at once on the first open
     after launch; Drape's folds hang straight; 1280 x 800 (16:10) fills, nothing stretched.
+    **QA, Mac, Nov 11 2026, on test 12, in AR:** one name too long for its swatch, "Bandera estadouni..." (the flag).
+    **Build answered:** every backdrop name measured in the tray's own face (ZeD's body .fnt, 13 px at 1x) against the
+    swatch: seven over in Latin and Cyrillic, now shorter: the flag "Bandera de EE. UU." (AR, ES, ES_CL, ES_MX),
+    "Bandera dels EUA" (CA), "Amerikansk flagg" (NO), "Amerikansk flag" (DA), "Флаг США" (RU), "Прапор США" (UA); Burnt
+    orange "Тёмно-оранжевый" (RU), "Теракотовий" (UA); Gold and violet "Золото и лиловый" (RU), "Золото й ліловий"
+    (UA). studio_sim 70/0: its new check measures every name and fails one wider than 124 px (the old names fail it).
+    **Check (QA):** the tray in Español and in Русский: every name whole.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
@@ -4065,6 +4072,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     as stray dots: this build's AR file still has 279 Arabic strings (63 in the guide's keys), and the book's faces have
     no Arabic glyphs. PR #4's redraft is the fix. **Recheck (QA) after PR #4 merges:** the AR book's title page,
     contents, author's note and buttons whole.
+    **QA, Mac, Nov 11 2026, on test 12 (d24cecb, PR #4 merged), in Español (Argentina): pass.** The book whole: the
+    title page ("SOBREVIVIR AL APOCALIPSIS", "Segunda edición", the copyright page), the contents ("ÍNDICE", all twenty
+    chapters described), the introduction, the buttons ("Página anterior", "Índice", "Página siguiente"); Simple's
+    window ("Anterior", "Siguiente"); the studio's names in Spanish, "Cond. / Cant.", "Datos del líquido" (Agua 0.30 L,
+    Cantidad 0.30 L / 0.60 L); release check 14/16 in AR. Not run: 1.75x in AR, the in-book ad pages, a native
+    reader's check.
 
 139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
     going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
