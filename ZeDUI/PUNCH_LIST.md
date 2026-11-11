@@ -4184,10 +4184,13 @@ to be proposed.
     textSec at 7 : 1 on the window (4.5 over a white world on the plain surface): Teal #93A7A2, Orange #B2A48D, Blue
     #99A7B5, Red #B9A0A0, Green #93A993, Yellow #ABA485, Purple #A79DB1, Pink #B89DA7. The cost: on a selected row over
     a bright scene it can drop to 3.1 to 4.4 : 1. **B, with A:** body text opaque (12.8 : 1). Sheet:
-    `ZeDUI/mockups/zed_textsec_v1/textsec_dark_before_after.png`. Waiting on the director.
+    `ZeDUI/mockups/zed_textsec_v1/textsec_dark_before_after.png`. **The director, Nov 11: "A plus B". Built:** Dark's
+    body text opaque (Tokens.lua), and deriveReadable's ghost tier (textSec, toneLo, accentDim) in Dark at 7 : 1 on the
+    window, 4.5 over a white world; Light and High contrast unchanged. Seen: Dark's textDim (#BABBBA under Teal) now reads
+    brighter than textSec; the director's call. QA: test 14.
 161. **QA: two sources side by side show no Cond / Amt column** (Name and Wt only); the gallery's hero shots are staged
     that way and B11_RECAPTURE.md asks for the column. **Build looked (Nov 11):** by design. Two or more sources side by side set `_compactMode` (InventoryRenderer.lua), which draws Name and Wt only; the narrowing rule isn't involved. B11_RECAPTURE.md now asks for one source open in 01 and 19, so the column shows. Giving the compact layout a bar is the director's call.
 162. **QA: a stack's row takes its first item's name and bar** ("Empty Plastic Bottle x4" with a dark bar one way,
-    "Water (Plastic Bottle) x4" at 80% the other). The game stacks them as one type, and the row shows the first item's facts. To decide: a stack of mixed levels shows the lowest, the average, or no bar.
+    "Water (Plastic Bottle) x4" at 80% the other). The game stacks them as one type, and the row shows the first item's facts. To decide: a stack of mixed levels shows the lowest, the average, or no bar. **The director, Nov 11: the lowest ("Your rec."). Built:** ItemMeter.ofStack, the list's row and the grid's cell; the head's name stays the game's. item_meter_sim 37/0.
 163. **QA: no Hat row when it's empty** (the Equipped list draws only filled rows). As designed today; the director's
     call if it should show.

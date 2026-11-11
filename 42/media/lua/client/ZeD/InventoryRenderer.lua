@@ -768,10 +768,10 @@ end
 -- icon: its condition in a status bar's five segments, or how full it is in the fill bar's ten (ItemMeter.lua,
 -- punch list 152). Returns its top (or the cell's bottom when there is none) and true while the pointer is on it
 -- (its help line: "Condition 64%", "Remaining 50%"). 52 units less 6: 34 px at 0.75.
-local function drawCellCondition(self, item, ax, cy, cell)
+local function drawCellCondition(self, item, ax, cy, cell, stackInfo)
     local T = ZeD.T
     local IM = ZeD.ItemMeter
-    local kind, f = IM.of(item)
+    local kind, f = IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)   -- (162)
     if kind == nil or kind == "hidden" then return cy + cell, false end
     local fc, graduated = IM.style(kind)
     local bh = T.px(5)
@@ -865,7 +865,7 @@ local function drawGridCell(self, GV, item, cx, cy)
     -- condition, the framed strip along the bottom (the list's colours); a readable
     -- item shows its read mark instead, as the list's COND column does
     local condTop, condHov = cy + cell, false
-    if not rs then condTop, condHov = drawCellCondition(self, item, ax, cy, cell) end
+    if not rs then condTop, condHov = drawCellCondition(self, item, ax, cy, cell, stackInfo) end
     -- on the belt: its key, top left (the list's BELT n tag), drawn below; measured here for the weight's room
     local f5 = T.fontF5
     local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
@@ -1489,10 +1489,11 @@ end
 -- how much is in something"; ItemMeter.lua, punch list 152): something that wears, its condition in the status
 -- bar's five segments and colours; something that holds a liquid or runs down, how full it is in the fill bar's ten
 -- (a liquid blue, the rest a light neutral); nothing for what neither wears nor holds.
-local function rowCondition(self, item, x, y, w, rowH)
+local function rowCondition(self, item, x, y, w, rowH, stackInfo)
     if w <= 0 then return end
     local IM = ZeD.ItemMeter
-    local kind, f = IM.of(item)
+    -- (a stack's head: its emptiest item's bar, punch list 162)
+    local kind, f = IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)
     if kind == nil or kind == "hidden" then return end
     local A = ZeD.Atoms
     local fc, graduated = IM.style(kind)
@@ -2033,7 +2034,7 @@ local function renderItemList(self)
             drawReadCond(self, rs, xOff + condX + T.px(6), y, rowH, condColW - T.px(6), padX, focusTxt)
         elseif showCond then
             -- the framed condition strip (ZeD.Atoms.drawFillBar), compact, centred in the row
-            rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH)
+            rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH, stackInfo)
         end
 
         -- Weight (F3, the data voice); a stack's head shows its total in brackets

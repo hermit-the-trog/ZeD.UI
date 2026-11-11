@@ -119,8 +119,8 @@ check("COLUMN the column as wide as its heading needs, up to 90 units",
       src:find('MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))', 1, true) ~= nil)
 local rowFn = src:match("local function rowCondition%(.-\nend")
 local cellFn = src:match("local function drawCellCondition%(.-\nend")
-check("COLUMN a row draws ItemMeter's bar", rowFn and rowFn:find("IM.of(item)", 1, true) and rowFn:find("IM.style(kind)", 1, true))
-check("COLUMN a grid cell too", cellFn and cellFn:find("IM.of(item)", 1, true))
+check("COLUMN a row draws ItemMeter's bar", rowFn and rowFn:find("IM.ofStack(item,", 1, true) and rowFn:find("IM.style(kind)", 1, true))
+check("COLUMN a grid cell too", cellFn and cellFn:find("IM.ofStack(item,", 1, true))
 check("COLUMN the sort follows the bar", src:find("return ZeD.ItemMeter.sortKey(item)", 1, true) ~= nil)
 -- the Equipment tab: the Equipped list's rows (worn and held) and its belt rows draw the same one bar (QA's test 9:
 -- the Held rows showed a water bottle's condition)
@@ -141,6 +141,21 @@ local hatLocs = esrc:match('type = "HAT".-locs = (%b{})')
 local outLocs = esrc:match('type = "OUT".-locs = (%b{})')
 check("COLUMN hooded tops are Outer, not Hat", hatLocs and outLocs and not hatLocs:find("jackethat", 1, true) and not hatLocs:find("sweaterhat", 1, true)
       and outLocs:find('"jackethat"', 1, true) and outLocs:find('"jackethatbulky"', 1, true) and outLocs:find('"sweaterhat"', 1, true))
+-- a stack's one bar: its emptiest item's (162, the director: "Your rec.")
+local function bottle(a) return item({ getConditionMax = 10, getCondition = 10, getFluidContainer = item({ getCapacity = 1.0, getAmount = a, isHiddenAmount = false }) }) end
+local b1, b2, b3 = bottle(0.8), bottle(0.0), bottle(0.5)
+k, f = IM.ofStack(b1, { b1, b2, b3 })
+check("STACK full, empty and half bottles: the empty one's level", k == "fluid" and f == 0, f)
+k, f = IM.ofStack(b1, nil)
+check("STACK one item: its own bar", k == "fluid" and math.abs(f - 0.8) < 1e-6, f)
+local can = item({ getConditionMax = 10, getCondition = 10 })
+k, f = IM.ofStack(can, { can, can })
+check("STACK things with no bar: none", k == nil)
+local fis = io.open(CDIR .. "InventoryRenderer.lua", "rb"); local irs = fis:read("*a"); fis:close()
+check("STACK the list's row and the grid's cell read the stack's bar",
+      irs:find("IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)", 1, true) ~= nil
+      and select(2, irs:gsub("IM%.ofStack%(item, stackInfo", "")) == 2
+      and irs:find("rowH, stackInfo)", 1, true) ~= nil and irs:find("cell, stackInfo) end", 1, true) ~= nil)
 -- every language has the heading, the panel's title and Amount
 local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT", "JP",
                 "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }

@@ -21,6 +21,8 @@ Bars and colors
 - An empty hand on the belt shows a right or a left hand instead of Primary and Secondary.
 - Skill bars keep ten cells, now spread evenly.
 - The condition column is now Cond / Amt: bottles, cans and things that run down (lighters, batteries) show how full they are in ten cells, things that wear their condition in five, and things that do neither no bar. Its heading sits at the left again; only Weight is right-aligned.
+- In Dark, labels sit a step dimmer than the values beside them, and the body text is solid.
+- A stack's bar shows its emptiest item: four bottles, one empty, read empty.
 - New in ZeD setup > Look: Status colors. Color blind shows good to bad in blue, yellow and orange.
 - PZ Teal is the default accent on a new install. A color you already picked stays.
 
