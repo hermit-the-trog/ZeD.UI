@@ -4207,3 +4207,13 @@ to be proposed.
     shown window never draws it unfolded; the script should wait for the window to be visible (isReallyVisible) before
     setting tab mode and reading. Also 155's off-ring peek read nil once in six (timing), and 162's list reveal still
     doesn't scroll ("row y 736, list height 650, scroll 0" at both sizes; the grid passes): scroll the list explicitly.
+
+166. **Dragging several items shows several chips (the director, Nov 11 2026; beta 12).** "Instead of it showing just one
+    chip with the item the mouse started the drag with ... that chip plus all the other chips cascaded behind it. No
+    more than 5 chips, though, or maybe 3." Built: three chips at most, the dragged item's in front with its weight and
+    count, two more cascaded up and to the right behind it (other kinds first, then more of the same kind, so a stack
+    shows as several), dimmer, their icon only. Picked once at the drag's start (no per-frame cost; about eight extra
+    draws a frame while dragging). Molecules.lua ZeD_DragState (pickBehind, drawGhost); every inventory drag goes
+    through beginPending. drag_cascade_sim 13/0. QA: drag one item, two of different kinds, a mixed selection and a
+    whole stack, in both windows, list and grid, at 4K and Deck; check the chips never cover the drop target under the
+    pointer.

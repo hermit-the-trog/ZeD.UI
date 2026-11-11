@@ -1230,6 +1230,7 @@ function ZeD_DragState:beginPending(items, ghostItem, screenX, screenY)
     self.items      = items
     self.ghostItem  = ghostItem
     self.ghostCount = #items
+    self.ghostBehind = ZeD_DragState.pickBehind(items, ghostItem)
     self.startX     = screenX
     self.startY     = screenY
     self.ghostX     = screenX
@@ -1263,6 +1264,36 @@ function ZeD_DragState:updateGhostPos(screenX, screenY)
     self.ghostY = screenY
 end
 
+-- The chips cascaded behind the dragged item's chip when several items are dragged (the director, Nov 11 2026: show
+-- that more than one item is moving; three chips at most, so it reads as "several" without hiding what is under the
+-- pointer). Up to two other items, picked once when the drag starts: different kinds first, then more of the same
+-- kind, so a stack of one kind still shows as several.
+ZeD_DragState.BEHIND_MAX = 2
+function ZeD_DragState.pickBehind(items, front)
+    local out = {}
+    if not items or #items < 2 then return out end
+    local frontType = front and front.getFullType and front:getFullType() or nil
+    local seen = {}
+    if frontType then seen[frontType] = true end
+    -- (first pass: other kinds; second pass: anything but the front item itself)
+    for pass = 1, 2 do
+        for i = 1, #items do
+            if #out >= ZeD_DragState.BEHIND_MAX then return out end
+            local it = items[i]
+            if it and it ~= front then
+                local ft = it.getFullType and it:getFullType() or tostring(i)
+                local taken = false
+                for _, o in ipairs(out) do if o == it then taken = true end end
+                if not taken and (pass == 2 or not seen[ft]) then
+                    out[#out + 1] = it
+                    seen[ft] = true
+                end
+            end
+        end
+    end
+    return out
+end
+
 function ZeD_DragState:drawGhost(panel)
     if not self.active then return end
     local T = ZeD.T
@@ -1278,6 +1309,23 @@ function ZeD_DragState:drawGhost(panel)
     -- Convert screen coords to panel-local, offset so cursor is top-left
     local lx = self.ghostX - panel:getAbsoluteX() + T.px(12)
     local ly = self.ghostY - panel:getAbsoluteY() - T.px(8)
+
+    -- Several items: the other chips first, cascaded up and to the right behind the front chip, the farthest first.
+    -- Each is the chip's box and its item's icon only, dimmer, so the front chip's weight and count stay the reading.
+    local behind = self.ghostBehind
+    if behind and #behind > 0 then
+        local step = T.px(6)
+        local bc2 = T.borderS or T.textDim
+        for k = #behind, 1, -1 do
+            local bx, by = lx + step * k, ly - step * k
+            panel:drawRect(bx, by, gw, gh, 0.85, T.surf2.r, T.surf2.g, T.surf2.b)
+            panel:drawRectBorder(bx, by, gw, gh, 0.9, bc2.r, bc2.g, bc2.b)
+            local btex = behind[k].getTex and behind[k]:getTex()
+            if btex then
+                panel:drawTextureScaledAspect(btex, bx + math.floor((gw - iconSz) / 2), by + pad, iconSz, iconSz, 0.55, 1, 1, 1)
+            end
+        end
+    end
 
     -- Background + border
     local bg = T.surf2
@@ -1309,6 +1357,7 @@ function ZeD_DragState:cancel()
     self.items      = nil
     self.ghostItem  = nil
     self.ghostCount = 0
+    self.ghostBehind = nil
     ISMouseDrag.dragging      = nil
     ISMouseDrag.draggingFocus = nil
 end
@@ -1321,6 +1370,7 @@ function ZeD_DragState:complete()
     self.items      = nil
     self.ghostItem  = nil
     self.ghostCount = 0
+    self.ghostBehind = nil
     ISMouseDrag.dragging      = nil
     ISMouseDrag.draggingFocus = nil
     return items
