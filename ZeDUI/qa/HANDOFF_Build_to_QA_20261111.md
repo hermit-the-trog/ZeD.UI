@@ -1,6 +1,6 @@
 # Build to QA, Nov 11 2026: test 14, then the gallery shoot
 
-Branch `claude/keen-meitner-optdjj` (PR #5), tip 5b1c986. `42/mod.info` stays 0.3.0-beta11; the test pack names itself
+Branch `claude/keen-meitner-optdjj` (PR #5), tip 94c0d70 or later. `42/mod.info` stays 0.3.0-beta11; the test pack names itself
 0.3.0-beta11-test14. Beta 11 ships Nov 12 (the director); everything below is in it. Run in PZ Teal at the game's
 Font Size 19px (`fontSize=2`).
 
