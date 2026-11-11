@@ -4176,7 +4176,14 @@ to be proposed.
 160. **Secondary text as bright as body text (the director on "Used to make": "Why vanilla text color?").** It is
     ZeD's `T.textSec`: #CDC3B3 under Orange, #B7C5C2 under Teal, against body #C5C4C3 in Dark, so labels don't read
     as secondary (the hover card's too). Build proposes values with contrast in every theme and accent, before and
-    after, for the director to approve.
+    after, for the director to approve. **Measured (Nov 11, Tokens.lua as loaded):** in Dark, body text is about 12.8 : 1 on the window
+    and textSec 7.9 to 10.5 : 1; Light is already apart (9.5 against 7.0 to 8.4). The cause is deriveReadable's ghost
+    tier: the faintest colour that passes 4.6 : 1 on every surface over a white world behind the see-through windows
+    (the selection wash over snow or daylight is the worst), which pushes it up toward the text. **Proposed:** Dark's
+    textSec at 7 : 1 on the window (4.5 over a white world on the plain surface): Teal #93A7A2, Orange #B2A48D, Blue
+    #99A7B5, Green #93A993, Yellow #ABA485, Pink #B89DA7 (Red and Purple barely move: they already sit near 7). The
+    cost: on a selected row over a bright scene it can drop to 3.1 to 4.4 : 1. Before and after:
+    `ZeDUI/mockups/zed_textsec_v1/textsec_dark_before_after.png`. Waiting on the director.
 161. **QA: two sources side by side show no Cond / Amt column** (Name and Wt only); the gallery's hero shots are staged
     that way and B11_RECAPTURE.md asks for the column. **Build looked (Nov 11):** by design. Two or more sources side by side set `_compactMode` (InventoryRenderer.lua), which draws Name and Wt only; the narrowing rule isn't involved. B11_RECAPTURE.md now asks for one source open in 01 and 19, so the column shows. Giving the compact layout a bar is the director's call.
 162. **QA: a stack's row takes its first item's name and bar** ("Empty Plastic Bottle x4" with a dark bar one way,
