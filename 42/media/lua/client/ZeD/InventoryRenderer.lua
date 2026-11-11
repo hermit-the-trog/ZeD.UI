@@ -1488,7 +1488,7 @@ end
 -- centred in the row. One bar an item (the director, Nov 11 2026: "condition is not always condition. Sometimes it's
 -- how much is in something"; ItemMeter.lua, punch list 152): something that wears, its condition in the status
 -- bar's five segments and colours; something that holds a liquid or runs down, how full it is in the fill bar's ten
--- (a liquid blue, the rest the accent); nothing for what neither wears nor holds.
+-- (a liquid blue, the rest a light neutral); nothing for what neither wears nor holds.
 local function rowCondition(self, item, x, y, w, rowH)
     if w <= 0 then return end
     local IM = ZeD.ItemMeter

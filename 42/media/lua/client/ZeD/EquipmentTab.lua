@@ -60,14 +60,16 @@ end
 
 local EQUIP_GROUPS = {
     { id = "head", key = "UI_ZeD_Equip_GroupHead", slots = {
-        { type = "HAT", vkey = "UI_ClothingType_Hat",   locs = {"hat", "fullhat", "sweaterhat", "jackethat", "jackethatbulky", "fullsuithead", "fullsuitheadscba"} },
+        -- (a hooded jacket or sweater, the game's JacketHat and SweaterHat, is a top: the torso's Outer, where a player
+        -- looks for it; the director, Nov 11 2026, after QA found a padded jacket listed under Head + face as "Hat")
+        { type = "HAT", vkey = "UI_ClothingType_Hat",   locs = {"hat", "fullhat", "fullsuithead", "fullsuitheadscba"} },
         { type = "EYE", key = "UI_ZeD_Equip_Eyewear",   locs = {"eyes", "lefteye", "righteye"} },
         { type = "MSK", vkey = "UI_ClothingType_Mask",  locs = {"mask", "maskeyes", "maskfull"} },
         { type = "EAR", vkey = "UI_ClothingType_Ears",  locs = {"ears", "eartop"} },
         { type = "SCF", vkey = "UI_ClothingType_Scarf", locs = {"scarf", "necktexture"} },
     }},
     { id = "torso", key = "UI_ZeD_Equip_GroupTorso", slots = {
-        { type = "OUT", key = "UI_ZeD_Equip_Outer",         locs = {"jacket", "jacketdown", "jacketbulky", "jacketsuit", "boilersuit", "fullsuit", "fulltop", "bathrobe", "fullrobe", "bodycostume", "sweater", "jersey"} },
+        { type = "OUT", key = "UI_ZeD_Equip_Outer",         locs = {"jacket", "jacketdown", "jacketbulky", "jacketsuit", "boilersuit", "fullsuit", "fulltop", "bathrobe", "fullrobe", "bodycostume", "sweater", "jersey", "sweaterhat", "jackethat", "jackethatbulky"} },
         { type = "INR", key = "UI_ZeD_Equip_Inner",         locs = {"tshirt", "tanktop", "shirt", "shortsleeveshirt", "torso1", "torso1legs1", "torsoextra"} },
         { type = "VST", vkey = "UI_ClothingType_Vest",      locs = {"torsoextravest", "torsoextravestbullet", "cuirass", "gorget", "vesttexture", "shoulderholster"} },
         { type = "UND", vkey = "UI_ClothingType_Underwear", locs = {"underwear", "underweartop", "underwearbottom", "underwearextra1", "underwearextra2"} },

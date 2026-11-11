@@ -4029,6 +4029,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (T.info) and the accent's teal of a use-up sit close in the Held rows; and a padded (hooded) jacket is listed under
     Head + face as "Hat" (the Equipment tab's slot table puts jackethat, jackethatbulky and sweaterhat in HAT, none in
     the torso's Outer). Not run: another language; test 7's leftovers.
+    **The director, Nov 11 2026, on QA's two test 10 notes: "A light neutral"** for what runs down (the accent's teal
+    sat close to the liquid blue), and hooded jackets and sweaters **"Torso, as Outer"**. **Built:** a use-up's bar in
+    the text's own tone (ItemMeter.style "uses", the belt's meterColor, the loot card), never close to the liquid blue
+    or any accent and no status colour; the Equipment tab's slot table moves jackethat, jackethatbulky and sweaterhat
+    from Hat to the torso's Outer, as the doll already had them (EquipDoll's outer). item_meter_sim 33/0,
+    fast_loot_sim 94/0, belt_mods_sim 156/0. **Check (QA):** a lighter in a list, on the belt and in a hand: ten cells
+    in the light neutral, plainly apart from a water bottle's blue, in PZ Teal and one blue accent; a hooded padded
+    jacket worn: the Equipped list's Torso, Outer row, the Hat row empty.
 
 153. **The item card's "Used to make" rows flush left (the director, Nov 11 2026, after QA's colour note on test 9:
     "flush left with the rest of the card"; the secondary colour stays: "if it's secondary color that is ok").** The

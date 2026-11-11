@@ -581,7 +581,7 @@ end
 
 -- The strip or ring under an item: a mod's meter when one speaks for it, else the item's one bar, as the inventory's
 -- COND / AMT column reads it (ZeD.ItemMeter; the director, Nov 11 2026: "yes, belt follows the same rule"): a liquid
--- how full ("fluid", ten blue cells), what runs down what is left ("uses", ten in the accent), what wears its
+-- how full ("fluid", ten blue cells), what runs down what is left ("uses", ten in a light neutral), what wears its
 -- condition (the status five), anything else none (a water bottle no longer shows a full condition ring). Returns
 -- f, kind.
 function B.meter(item, where)
@@ -604,7 +604,7 @@ end
 function B.meterColor(T, kind)
     if kind == "fluid" then return T.info end
     if kind == "flat" then return T.positive end
-    if kind == "uses" then return T.accent end
+    if kind == "uses" then return T.text end          -- (the light neutral: ItemMeter.style)
     return nil
 end
 

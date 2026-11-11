@@ -59,9 +59,10 @@ k = kf(item({ getConditionMax = 10, getCondition = 10 }))
 check("METER a can of beans at full: no bar (it never wears)", k == nil, k)
 check("METER the sort key: no bar below an empty one", IM.sortKey(item({ getConditionMax = 10, getCondition = 10 })) == -1
       and IM.sortKey(item({ getFluidContainer = item({ getCapacity = 1, getAmount = 0, isEmpty = true }) })) == 0)
+ZeD.T.text = { name = "text" }
 local fc1, gr1 = IM.style("cond"); local fc2, gr2 = IM.style("fluid"); local fc3, gr3 = IM.style("uses")
-check("METER the bars: condition the status five, a liquid the fill ten in blue, a use-up the fill ten in the accent",
-      fc1 == nil and gr1 == true and fc2 and fc2.name == "info" and gr2 == false and fc3 == nil and gr3 == false)
+check("METER the bars: condition the status five, a liquid the fill ten in blue, a use-up the fill ten in a light neutral (the text's tone)",
+      fc1 == nil and gr1 == true and fc2 and fc2.name == "info" and gr2 == false and fc3 and fc3.name == "text" and gr3 == false)
 
 -- FACTS
 check("FACTS Liquid Facts is first in the item card's list", FP._registry[1] and FP._registry[1].key == "liquid", FP._registry[1] and FP._registry[1].key)
@@ -134,6 +135,12 @@ local fmo = io.open(CDIR .. "Molecules.lua", "rb"); local msrc = fmo:read("*a");
 local fic = io.open(CDIR .. "ItemCardOrganism.lua", "rb"); local isrc = fic:read("*a"); fic:close()
 check("COLUMN (153) a flush sub row has no indent", msrc:find("local indent = (isSub and not flush) and T.px(14) or 0", 1, true) ~= nil)
 check("COLUMN (153) the recipes ask for it", isrc:match("local function drawMakes%(.-M%.drawFactsRow%(card, x, cy, w, label, value, cls, true, nil, true%)") ~= nil)
+-- hooded tops (the game's JacketHat, SweaterHat) under the torso's Outer, as the doll has them (the director: "Torso,
+-- as Outer"; QA's test 10 found a padded jacket listed as "Hat")
+local hatLocs = esrc:match('type = "HAT".-locs = (%b{})')
+local outLocs = esrc:match('type = "OUT".-locs = (%b{})')
+check("COLUMN hooded tops are Outer, not Hat", hatLocs and outLocs and not hatLocs:find("jackethat", 1, true) and not hatLocs:find("sweaterhat", 1, true)
+      and outLocs:find('"jackethat"', 1, true) and outLocs:find('"jackethatbulky"', 1, true) and outLocs:find('"sweaterhat"', 1, true))
 -- every language has the heading, the panel's title and Amount
 local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT", "JP",
                 "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }

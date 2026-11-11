@@ -34,6 +34,10 @@ Windows
 - The hint strip steps aside for the belt's balloons.
 - The Health tab's injury list no longer cuts off the percent at its edge.
 - A revoked permit's stamp on the ID reads PERMIT REVOKED, with the space.
+- Hooded jackets and sweaters are listed with the other tops on the Equipment tab, not as hats.
+
+Survival guide
+- In Español (Argentina) F1 opens the book, as in the other languages it can draw.
 
 Servers
 - The Player card shows a changed role at once, so Ban says when the new role is protected.

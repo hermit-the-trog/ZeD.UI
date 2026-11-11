@@ -269,8 +269,8 @@ check("LIQUID: on the floor: the liquid from its world object (QA's test 8 fault
 local lighter = item({ is = { DrainableComboItem = true }, getName = "Lighter", getActualWeight = 0.1, getConditionMax = 10, getCondition = 10,
                        getCurrentUsesFloat = 0.35 })
 local FL2 = ZeD.LootCard.facts(lighter, PLAYER)
-check("LIQUID: a lighter: Remaining as a level bar in the accent, no condition bar", FL2.amount and FL2.amount.label == "IGUI_invpanel_Remaining"
-      and FL2.amount.color == nil and math.abs(FL2.amount.f - 0.35) < 1e-6 and FL2.cond == nil)
+check("LIQUID: a lighter: Remaining as a level bar in a light neutral (the text's tone), no condition bar", FL2.amount and FL2.amount.label == "IGUI_invpanel_Remaining"
+      and FL2.amount.color == ZeD.T.text and math.abs(FL2.amount.f - 0.35) < 1e-6 and FL2.cond == nil)
 check("LIQUID: no fluid container, nothing running down: no level bar", ZeD.LootCard.facts(blade, PLAYER).amount == nil)
 local content = ZeD.LootCard.content(bottle(water), PLAYER)
 check("LIQUID: the card's body makes room for the level", content and content.body and content.body.h > 0)

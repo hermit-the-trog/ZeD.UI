@@ -5,8 +5,9 @@
 -- inventory's COND / AMT column, the grid cells' strip and the loot card read one bar per item from here:
 --   "fluid"  a liquid container (a bottle, a pot, a gas can): how full, the fill bar's ten cells in the liquid
 --            blue (T.info); its condition, if it has one, on the item card (the director: "One bar: amount wins")
---   "uses"   something that runs down (a lighter, a battery, thread, glue, propane): what is left, ten cells in the
---            accent, the fill bar's own colour
+--   "uses"   something that runs down (a lighter, a battery, thread, glue, propane): what is left, ten cells in a light
+--            neutral, the text's own tone (the director, Nov 11 2026, after QA saw the accent's teal sit close to the
+--            liquid blue: "A light neutral"), never close to the liquid blue or any accent, and no status colour
 --   "cond"   something that wears: a weapon (any tool, pot or bottle swung), clothing, or anything already below
 --            its full condition (a vehicle part, say): the status bar's five cells in the status colours
 --   "hidden" a liquid container whose level the game hides (it shows none either)
@@ -65,7 +66,7 @@ end
 function IM.style(kind)
     if kind == "cond" then return nil, true end
     if kind == "fluid" then return ZeD.T and ZeD.T.info, false end
-    return nil, false                    -- (uses: the fill bar's accent)
+    return ZeD.T and ZeD.T.text, false   -- (uses: the light neutral, the text's tone)
 end
 
 --- What the bar's help line calls it ("Condition 64%", "Remaining 50%")

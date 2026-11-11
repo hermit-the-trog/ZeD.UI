@@ -21,7 +21,7 @@
 --     Nov 11 2026: "At a quick glance that is hovering over something, you're only going to be able to look at it and
 --     tell by the level ... It's not until you inspect it ... where you see how much is in it"): a level bar, the fill
 --     bar's ten cells, under the liquid's name ("Water", the game's "Mixture" for several; "Empty") in the liquid
---     blue, or "Remaining" in the accent for what runs down; no numbers (the litres are on the item card); the game's
+--     blue, or "Remaining" in a light neutral (the text's tone) for what runs down; no numbers (the litres are on the item card); the game's
 --     "Tainted" as a red tag where its own tooltip shows it; "Unknown" where the game hides the level. The item's one
 --     bar is ItemMeter's: an item that holds something shows how full, not its condition.
 -- Content is kept per item for half a second (the figures move: a transfer, wear), and per scale and theme.
@@ -89,7 +89,7 @@ function LC.facts(item, chr)
     local mk, mf = nil, nil
     if IM then mk, mf = IM.of(item) end
     if mk == "cond" and not food then f.cond = mf end
-    if mk == "uses" then f.amount = { label = IM.label("uses"), f = mf, color = nil } end
+    if mk == "uses" then f.amount = { label = IM.label("uses"), f = mf, color = IM.style("uses") } end
     local fc = IM and IM.fluidOf(item)
     if fc then LC.liquid(f, fc, mk, mf) end
 

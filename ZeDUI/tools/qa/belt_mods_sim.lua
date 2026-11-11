@@ -1085,7 +1085,7 @@ do
     check("METER a water bottle in hand: how full, a liquid", f and math.abs(f - 0.8) < 1e-6 and k == "fluid", tostring(f) .. " " .. tostring(k))
     check("METER its colour the liquid blue", B.meterColor(ZeD.T, k) == ZeD.T.info)
     f, k = B.meter(lighter, "slot")
-    check("METER a lighter on the belt: what is left, in the accent", f and math.abs(f - 0.35) < 1e-6 and k == "uses" and B.meterColor(ZeD.T, k) == ZeD.T.accent,
+    check("METER a lighter on the belt: what is left, in a light neutral (the text's tone)", f and math.abs(f - 0.35) < 1e-6 and k == "uses" and B.meterColor(ZeD.T, k) == ZeD.T.text,
           tostring(f) .. " " .. tostring(k))
     f, k = B.meter(hammer, "slot")
     check("METER a hammer: its condition, the status colours", f == 1 and k == nil and B.meterColor(ZeD.T, k) == nil)
@@ -1094,9 +1094,9 @@ do
     env.hotbar.attachedItems = { [1] = bottle, [2] = lighter, [3] = beans }
     env.player.pri, env.player.sec = nil, nil
     frame()
-    check("METER the slot strips: the bottle ten blue, the lighter ten accent, the beans none",
+    check("METER the slot strips: the bottle ten blue, the lighter ten in the light neutral, the beans none",
           #env.bars == 2 and env.bars[1].color == "info" and env.bars[1].graduated == false
-          and env.bars[2].color == "accent" and env.bars[2].graduated == false, #env.bars)
+          and env.bars[2].color == "text" and env.bars[2].graduated == false, #env.bars)
     env.player.pri = bottle
     local log = frame()
     check("METER the hand ring of a bottle in the liquid blue", log:find(string.format("%.4f", ZeD.T.info.r), 1, true) ~= nil)
