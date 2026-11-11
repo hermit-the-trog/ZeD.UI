@@ -12,6 +12,6 @@
 -- ============================================================================
 
 ZeD = ZeD or {}
-ZeD.MenuNote = { "NOTE FIXES", "LIST SLIDE", "WIN SPOT", "DECK FIXES", "REPORTS" }
+ZeD.MenuNote = { "CONSOLE", "SPLIT VIEW", "PAD MAP", "RUN+SNEAK", "BUG FIXES" }
 
 return ZeD.MenuNote
