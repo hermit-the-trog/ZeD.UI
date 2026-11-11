@@ -325,7 +325,39 @@ local function checkNothing(tag, text)
         check(text == "Nothing here.", "157 " .. tag .. ": the words are Nothing here. (not Nothing in here.)")
     end
 end
+-- the QA spot's floor holds things: the character goes to a bare tile nearby (no world items, nothing built on it),
+-- and comes back at the end
+local homePos
+local function goTo(x, y, z)
+    pcall(function() p:teleportTo(x, y, z) end)
+    pcall(function() p:setX(x); p:setY(y); p:setZ(z); p:setLastX(x); p:setLastY(y); p:setLastZ(z) end)
+end
+local function bareTile(sq)
+    if not sq or not sq:isFree(false) then return false end
+    local wo = sq:getWorldObjects()
+    if wo and wo:size() > 0 then return false end
+    local objs = sq:getObjects()
+    return objs ~= nil and objs:size() <= 1
+end
 add(300, function()
+    homePos = { p:getX(), p:getY(), p:getZ() }
+    local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
+    local found
+    for r = 1, 8 do
+        for dy = -r, r do for dx = -r, r do
+            if not found and (math.abs(dx) == r or math.abs(dy) == r) then
+                local sq = getCell():getGridSquare(px + dx, py + dy, pz)
+                -- (its neighbors bare too: the crate is built beside the character)
+                local nb = bareTile(sq) and bareTile(getCell():getGridSquare(px + dx + 1, py + dy, pz))
+                if nb then found = { px + dx + 0.5, py + dy + 0.5, pz } end
+            end
+        end end
+        if found then break end
+    end
+    check(found ~= nil, "157 setup: a bare tile was found near the QA spot" .. (found and (" (" .. found[1] .. "," .. found[2] .. ")") or ""))
+    if found then goTo(found[1], found[2], found[3]) end
+end)
+add(2000, function()
     local ww = WW()
     WWm.openTab(0, "loot")
     local floor = ww._mainContent and ww._mainContent._inventory
@@ -334,13 +366,18 @@ add(300, function()
     check(n == 0, "157 setup: the floor tile under the character is empty (move the character to a bare tile if not)")
     H.empties = {}
 end)
-add(900, function()
+add(1500, function()
     local ww = WW()
     checkNothing("World, empty floor", emptyFor(ww._mainContent))
     shot("8_world_floor_empty")
 end)
 -- an empty crate beside the character (the World window's strip), then a carried empty bag (the Character window's)
-local crate, crateSq, crateInv, bag
+local crate, crateSq, crateInv, bag, bagLoc, bagPrev
+local function unwearBag()
+    if bag then pcall(function() p:removeWornItem(bag) end) end
+    if bagPrev and bagLoc then pcall(function() p:setWornItem(bagLoc, bagPrev) end) end
+    bagPrev = nil
+end
 local function findInfo(full)
     local infos = SpriteConfigManager.GetObjectInfoList()
     for k = 0, infos:size() - 1 do
@@ -377,7 +414,13 @@ add(300, function()
     crateInv = crate and crate:getContainer()
     check(crateInv ~= nil and crateInv:getItems():size() == 0, "157 setup: an empty crate was built beside the character")
     bag = spawn("Base.Bag_Schoolbag")
-    check(bag ~= nil, "157 setup: an empty schoolbag is carried")
+    -- (the strip lists a bag only when it is worn: the back's own bag is put back at the end)
+    if bag then
+        bagLoc = bag:getBodyLocation()
+        bagPrev = p:getWornItem(bagLoc)
+        pcall(function() p:setWornItem(bagLoc, bag) end)
+    end
+    check(bag ~= nil and p:isEquipped(bag), "157 setup: an empty schoolbag is worn")
 end)
 -- (the strips look for new containers every 30 frames)
 addWhen(5000, function() return crateInv ~= nil and elFor(WW(), "worldContainerStrip", crateInv) ~= nil end, function() end)
@@ -416,7 +459,7 @@ add(1200, function()
         pcall(function() crate:getSquare():transmitRemoveItemFromSquare(crate) end)
     end
     crate = nil
-    removeThing(bag); bag = nil
+    unwearBag(); removeThing(bag); bag = nil
 end)
 
 -- ================================================================== 160 Dark text contrast
@@ -516,6 +559,15 @@ local function setView(grid, asc)
     H.bars = {}
 end
 local function ready() local c = CW()._mainContent; local rep = wbStack(c); return rep ~= nil and revealRow(CW(), rep) end
+-- rows back in view (the Deck's list scrolls them out), then the bars drawn afresh and the head's seen
+local function waitBars(grid)
+    addWhen(6000, function()
+        local c = CW()._mainContent
+        local rep = wbStack(c)
+        if not (rep and revealRow(CW(), rep)) then return false end
+        return barOf(c, rep, grid and c._gridCell or ZeD.T.rowH, grid and c._gridCell or nil) ~= nil
+    end, function() end)
+end
 add(300, function()
     for _, f in ipairs(LEVELS) do
         local it = spawn(WB)
@@ -541,21 +593,21 @@ add(300, function()
 end)
 -- list, ascending then descending (descending puts the fullest bottle first: the head item is no longer the emptiest)
 addWhen(5000, ready, function() end)
-add(900, function() H.bars = {} end)
-add(500, function() barCheck("list", true, false); shot("13_stack_list_asc") end)
+waitBars(false)
+add(300, function() barCheck("list", true, false); shot("13_stack_list_asc") end)
 add(300, function() setView(false, false) end)
 addWhen(5000, ready, function() end)
-add(900, function() H.bars = {} end)
-add(500, function() barCheck("list", false, false); shot("14_stack_list_desc") end)
+waitBars(false)
+add(300, function() barCheck("list", false, false); shot("14_stack_list_desc") end)
 -- grid, both orders
 add(300, function() setView(true, true) end)
 addWhen(5000, ready, function() end)
-add(900, function() H.bars = {} end)
-add(500, function() barCheck("grid", true, true); shot("15_stack_grid_asc") end)
+waitBars(true)
+add(300, function() barCheck("grid", true, true); shot("15_stack_grid_asc") end)
 add(300, function() setView(true, false) end)
 addWhen(5000, ready, function() end)
-add(900, function() H.bars = {} end)
-add(500, function() barCheck("grid", false, true); shot("16_stack_grid_desc") end)
+waitBars(true)
+add(300, function() barCheck("grid", false, true); shot("16_stack_grid_desc") end)
 -- the stack opened in the list: each row its own level
 add(300, function()
     setView(false, true)
@@ -574,9 +626,19 @@ addWhen(5000, function()
     if bottleRows(c) < 4 then return false end
     for _, it in ipairs(c._flatItems or {}) do if it:getFullType() == WB and not revealRow(CW(), it) then return false end end
     return true
+end, function() H.bars = {} end)
+addWhen(6000, function()
+    local c = CW()._mainContent
+    local n = 0
+    for _, it in ipairs(c._flatItems or {}) do
+        if it:getFullType() == WB then
+            if not revealRow(CW(), it) then return false end
+            if barOf(c, it, ZeD.T.rowH, nil) then n = n + 1 end
+        end
+    end
+    return n >= 4
 end, function() end)
-add(900, function() H.bars = {} end)
-add(500, function()
+add(300, function()
     local c = CW()._mainContent
     local rows = bottleRows(c)
     check(rows >= 4, "162 the stack opens into its own rows (" .. rows .. " bottle rows)")
@@ -615,6 +677,8 @@ add(500, function()
     end)
     pcall(function() selectCard(CW(), nil) end)
     p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil)
+    unwearBag()
+    if homePos then goTo(homePos[1], homePos[2], homePos[3]) end
     for _, it in ipairs(S.added) do removeThing(it) end
     if crate and crate:getSquare() then
         pcall(function() crate:getContainer():removeAllItems() end)
