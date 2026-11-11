@@ -3741,6 +3741,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     orange "Тёмно-оранжевый" (RU), "Теракотовий" (UA); Gold and violet "Золото и лиловый" (RU), "Золото й ліловий"
     (UA). studio_sim 70/0: its new check measures every name and fails one wider than 124 px (the old names fail it).
     **Check (QA):** the tray in Español and in Русский: every name whole.
+    **QA, Mac, Nov 11 2026, on test 13 (40b7555): pass.** Español (Argentina): "Bandera de EE. UU." whole, all eighteen
+    names whole, the top four included; Русский: "Тёмно-оранжевый", "Золото и лиловый", "Флаг США" and the other
+    fifteen whole (the widest, "Чёрная штукатурка" and "Старая штукатурка", fit). Release check 14/16 in AR. Not run:
+    Українська and Norsk (each a restart), 1.75x.
 
 146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
     on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
