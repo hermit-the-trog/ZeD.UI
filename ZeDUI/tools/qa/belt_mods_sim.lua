@@ -992,5 +992,61 @@ assert(loadfile(CLIENT .. "ZeD/ModSupport/BetterItemTransfer.lua"))()
 local okB = pcall(fire, "OnGameStart")
 check("BIT the mod's options table missing: nothing breaks", okB and ZeD.ModSupport.BetterItemTransfer.primed == false)
 
+-- ---------------------------------------------------------------------------
+section("CARD: the held item's card (punch list 135)")
+-- ---------------------------------------------------------------------------
+-- The director, Nov 11 2026: "belt tooltips for items is still vanilla game UI. hover over primary with an item in
+-- primary to see." Rulings: the loot card (ZeD_LootCard, on ZeD_InvTip's layer), Alt for the game's box. Here the
+-- belt's side: what it asks the card's layer for, and when the game's box shows instead.
+do
+    boot(NEW)
+    local axe = item({ name = "Axe", class = "HandWeapon", cond = 6, condMax = 10 })
+    env.hotbar.attachedItems = {}
+    env.player.pri, env.player.sec = axe, nil
+    local wants, ALT = {}, false
+    ZeD.LootCard = {}
+    ZeD.InvTip = { altDown = function() return ALT end,
+                   want = function(owner, it, rect, count, beside, pref)
+                       wants[#wants + 1] = { owner = owner, item = it, rect = rect, count = count, beside = beside, pref = pref }
+                   end }
+    local made, tips = 0, {}
+    ISToolTipInv = { new = function(_, it)
+        made = made + 1
+        local t = { item = it, shown = false }
+        for _, m in ipairs({ 'initialise', 'addToUIManager', 'setOwner', 'setCharacter', 'bringToTop' }) do t[m] = function() end end
+        t.setItem = function(self2, i) self2.item = i end
+        t.setVisible = function(self2, v) self2.shown = v end
+        tips[#tips + 1] = t
+        return t
+    end }
+    local _, hud = frame()
+    local hb = nil
+    for _, b in ipairs(hud._boxes) do if b.kind == "hand" and b.which == "p" then hb = b end end
+    hud.getMouseX = function() return hb.x + 2 end
+    hud.getMouseY = function() return hb.y + 2 end
+    wants = {}; frame()
+    local w = wants[1]
+    check("CARD the main hand with an axe: ZeD's loot card asked for, the axe, by the belt, above",
+          #wants == 1 and w.item == axe and w.owner == hud and w.pref == "above" and w.beside == nil, #wants)
+    check("CARD it stands over the box and the room its hint takes (the box's column, down to the box's foot)",
+          w and w.rect.x == hb.x and w.rect.w == hb.w and w.rect.y < hb.y and w.rect.y + w.rect.h == hb.y + hb.h,
+          w and (w.rect.y .. " " .. w.rect.h .. " / box " .. hb.y .. " " .. hb.h))
+    check("CARD the game's box not made", made == 0, made)
+    ALT = true; wants = {}; frame()
+    check("CARD Alt held: the game's own box instead, standing above the box", #wants == 0 and made == 1 and tips[1].shown == true
+          and tips[1].item == axe and tips[1].followMouse == false and tips[1].anchorBottomLeft ~= nil)
+    ALT = false; wants = {}; frame()
+    check("CARD Alt let go: the card again, the game's box hidden", #wants == 1 and tips[1].shown == false)
+    env.ctx.visible = true; wants = {}; frame()
+    check("CARD a right-click menu open over the belt: neither", #wants == 0 and tips[1].shown == false)
+    env.ctx.visible = false
+    env.player.pri = nil; wants = {}; frame()
+    check("CARD an empty hand: no card", #wants == 0)
+    env.player.pri = axe
+    ZeD.InvTip = nil; wants = {}; frame()
+    check("CARD without the card's layer (InvTip not loaded): the game's box, as before", #wants == 0 and tips[1].shown == true)
+    hud.getMouseX, hud.getMouseY = nil, nil
+end
+
 print(string.format("belt_mods_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

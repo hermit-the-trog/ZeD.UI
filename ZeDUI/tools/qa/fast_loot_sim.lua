@@ -173,6 +173,17 @@ BALLOONS = {}
 IT.want(list, jacket, { x = 300, y = 20, w = 52, h = 52 }, nil, true)
 drawLayer()
 check("CARD: a grid cell's card stands at the cell's right edge", BALLOONS[1] and BALLOONS[1].rect.x == 100 + 351, BALLOONS[1] and BALLOONS[1].rect.x)
+-- the belt's boxes (punch list 135): the card above the box, its tail on the box's column, not by the pointer
+BALLOONS = {}
+IT.want(list, jacket, { x = 300, y = -40, w = 52, h = 92 }, nil, nil, "above")
+drawLayer()
+check("CARD: asked above a box (the belt's), it stands above, over the box's whole width", BALLOONS[1] and BALLOONS[1].side == "above"
+      and BALLOONS[1].rect.x == 400 and BALLOONS[1].rect.w == 52 and BALLOONS[1].rect.y == 160 and BALLOONS[1].rect.h == 92,
+      BALLOONS[1] and (BALLOONS[1].side .. " " .. BALLOONS[1].rect.x .. "," .. BALLOONS[1].rect.y))
+BALLOONS = {}
+IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })
+drawLayer()
+check("CARD: a row after it is by the pointer again", BALLOONS[1] and BALLOONS[1].side == "right" and BALLOONS[1].rect.w == 1)
 BALLOONS = {}
 frame(); frame()
 drawLayer()

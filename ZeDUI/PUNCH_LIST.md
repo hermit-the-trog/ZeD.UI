@@ -3333,6 +3333,18 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (Encumbrance, Sharpness, condition bars as the balloon's bars). Tooltip mods add lines to the game's item box
     (ISToolTipInv / ObjectTooltip DoTooltip hooks): read the lines they add and carry them in the balloon, so no mod's
     line is lost; QA tests with a tooltip mod or two. Until then the next note doesn't claim every box.
+    **The director, Nov 11 2026: "belt tooltips for items is still vanilla game UI. hover over primary with an item in
+    primary to see."** Rulings: **the loot card, Alt for the game's** (fast looting's ZeD loot card, 146, rather than a
+    balloon copying the game's lines), **in beta 11**. **Built:** the belt's _tooltip (ZeD_Belt.lua) asks ZeD_InvTip's
+    card layer for the loot card (IT.want with "above": the card stands above the hovered box and the room its hint
+    balloon takes, its tail on the box's column; on the layer above every window); the game's ISToolTipInv only while
+    Alt is held, where it stood before, with every line other mods add; neither while a right-click menu is open or an
+    item is dragged off the belt; without ZeD_InvTip loaded, the game's box as before. The card reads the belt's own
+    player (InvTip's characterOf takes the owner's playerNum when the owner is in no window). belt_mods_sim 149/0 (the
+    CARD section; four of its checks fail on the old belt), fast_loot_sim 81/0. **Check (QA, Mac):** hover the main
+    hand, the off hand and a belt slot with an item in each: ZeD's card above the box's hint at once (name, condition,
+    weight, the item's own figures); hold Alt: the game's box there instead, let go: the card back; with a tooltip mod
+    on, its lines under Alt; a right-click menu on the belt: no card; at 1x and 1.75x.
 
 136. **The bigger Lua console (the director, Nov 9 2026: "1", a full plan; build after the Nov 13 reset).** Source:
     docs/reference/RESEARCH_console_tooling_20261108.md (the director's research, Nov 8). Rulings: debug mode only

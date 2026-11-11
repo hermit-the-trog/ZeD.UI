@@ -38,7 +38,9 @@ local blocked   -- (below)
 --- row or cell in owner's space { x, y, w, h }; count = a stack's count; beside = true for a grid cell (the card
 --- stands beside the cell rather than over it). ZeD's loot card is drawn this frame by the card's own layer, on top
 --- of every window (ZeD_LootCard's layer, below), or with Alt held, the game's tooltip (shown before the next frame).
-function IT.want(owner, item, rect, count, beside)
+--- pref = "above": the card stands above rect, its tail on it, rather than by the pointer (the belt's boxes: the
+--- belt keeps its own game box for Alt, so it asks only without Alt).
+function IT.want(owner, item, rect, count, beside, pref)
     if not (owner and item) then return end
     local w = IT._want
     if not w then w = {}; IT._want = w end
@@ -58,7 +60,8 @@ function IT.want(owner, item, rect, count, beside)
     w.content, w.count = c, count
     w.rx, w.rw, w.ox, w.oy = rect.x, rw, ox, oy
     w.ax = beside and (rect.x + rw - 1) or math.max(rect.x, math.min(rect.x + rw - 1, mx))
-    w.ay, w.ah = rect.y, rect.h or 1
+    w.ay, w.ah, w.aw, w.pref = rect.y, rect.h or 1, 1, nil
+    if pref == "above" then w.ax, w.aw, w.pref = rect.x, rw, "above" end
     IT.showLayer()
 end
 
@@ -96,8 +99,8 @@ function IT.showLayer()
         if not (w and w.content and w.frame >= IT._frame - 1 and ZeD.Balloon) then return end
         local a = IT._rect or {}
         IT._rect = a
-        a.x, a.y, a.w, a.h, a.below, a.noFlip = w.ox + w.ax, w.oy + w.ay, 1, w.ah, nil, nil
-        ZeD.Balloon.draw(self, w.content, a, "right", { key = w.item, owner = self })
+        a.x, a.y, a.w, a.h, a.below, a.noFlip = w.ox + w.ax, w.oy + w.ay, w.aw or 1, w.ah, nil, nil
+        ZeD.Balloon.draw(self, w.content, a, w.pref or "right", { key = w.item, owner = self })
     end
     Layer:addToUIManager()
     Layer:setAlwaysOnTop(true)
@@ -133,7 +136,7 @@ blocked = function(w)
     if not (owner.isReallyVisible and owner:isReallyVisible()) then return true end
     if held(owner) then return true end
     local win = ZeD.Atoms and ZeD.Atoms.windowOf and ZeD.Atoms.windowOf(owner) or nil
-    local chr = characterOf(win)
+    local chr = characterOf(win or owner)   -- (the belt is in no window: its own player)
     local pn = chr and chr.getPlayerNum and chr:getPlayerNum() or 0
     local ctx = getPlayerContextMenu and getPlayerContextMenu(pn) or nil
     if ctx and ctx.isAnyVisible and ctx:isAnyVisible() then return true end

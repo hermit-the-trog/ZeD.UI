@@ -6,6 +6,7 @@ New
 
 Looting
 - Hovering an item shows its card at once, by the pointer. Hold Alt for the game's own tooltip.
+- An item on the belt shows the same card above its box. Alt shows the game's box there too.
 - Clothing is compared with what you wear: bite and scratch protection, plus or minus.
 - Drag a box from the empty space below the rows to select them, or double-click that space to select them all.
 - Ctrl-clicking rows picks them without opening their card.

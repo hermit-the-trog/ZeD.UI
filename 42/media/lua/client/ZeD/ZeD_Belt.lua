@@ -2114,12 +2114,24 @@ end
 
 function ZeD_BeltHUD:render() end
 
--- the vanilla item tooltip (ISToolTipInv, the same one the hotbar used),
--- standing above the hovered box and the room for its hover box rather than following
--- the pointer over the belt
+-- THE HELD ITEM'S CARD (punch list 135; the director, Nov 9 2026: "Balloon it too"; Nov 11, after hovering the main
+-- hand with an item held: "belt tooltips for items is still vanilla game UI"; rulings: the loot card, Alt for the
+-- game's, in beta 11): ZeD's loot card, the one the loot lists show (ZeD_LootCard.lua, on ZeD_InvTip's layer above
+-- every window), standing above the hovered box and its hint balloon (chipH: the room the hint takes). Holding Alt
+-- shows the game's own item box there instead (ISToolTipInv, the same one the hotbar used), with every line other
+-- mods add to it.
 function ZeD_BeltHUD:_tooltip(item, b, chipH)
     local ctx = getPlayerContextMenu(self.playerNum)
-    if item and b and not (ctx and ctx:isAnyVisible()) and not self._out then
+    local show = item and b and not (ctx and ctx:isAnyVisible()) and not self._out
+    local T = ZeD.T
+    chipH = chipH or (ZeD.TM:getFontHeight(T.fontF2) + T.px(8))   -- (clear of a one-line hint box)
+    local IT = ZeD.InvTip
+    if show and IT and IT.want and ZeD.LootCard and not IT.altDown() then
+        if self._tip then self._tip:setVisible(false) end
+        IT.want(self, item, { x = b.x, y = b.y - chipH, w = b.w, h = b.h + chipH }, nil, nil, "above")
+        return
+    end
+    if show then
         if not self._tip then
             self._tip = ISToolTipInv:new(item)
             self._tip:initialise()
@@ -2134,8 +2146,6 @@ function ZeD_BeltHUD:_tooltip(item, b, chipH)
             self._tip:bringToTop()
         end
         self._tipChr = self:player()
-        local T = ZeD.T
-        chipH = chipH or (ZeD.TM:getFontHeight(T.fontF2) + T.px(8))   -- (clear of a one-line hint box)
         self._tip.followMouse = false
         self._tip.anchorBottomLeft = { x = self:getAbsoluteX() + b.x, y = self:getAbsoluteY() + b.y - chipH - T.px(12) }
         self._tip:setVisible(true)
