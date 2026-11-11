@@ -289,12 +289,17 @@ MM.ui = {
     plain = function(s) return s end,
 }
 
--- the desk: the icon layer, the sticky's field, the main window and every view's window, as ZeD_MMDesk:createChildren builds them
+-- the desk: the icon layer, the Pasties' fields, the main window and every view's window, as ZeD_MMDesk:createChildren builds them
 function D.buildDesk()
     local root = ISPanel:new(0, 0, 1920, 1080)
     MM.root = root
     root.icons = ZeD_MMIcons:new(); root:addChild(root.icons)
-    if ZeD_MMSticky then root.sticky = ZeD_MMSticky:new(); root:addChild(root.sticky) end
+    if ZeD_MMSticky then
+        root.pasties = {}
+        for id = 1, (ZeD.DeskNotes and ZeD.DeskNotes.PASTIES_MAX or 8) do
+            local f = ZeD_MMSticky:new(id); root:addChild(f); root.pasties[id] = f
+        end
+    end
     root.win = ZeD_MMWindow.new(ZeD_MMWindow, "main"); root:addChild(root.win)
     for _, v in ipairs(MM.views) do
         local w = v.make()
@@ -305,15 +310,15 @@ function D.buildDesk()
     return root
 end
 
--- one frame: the icon layer draws (and places the sticky), then the view's window; then the updates
+-- one frame: the icon layer draws (and places the Pasties' fields), then the view's window; then the updates
 function D.frame(ms)
     W.clock = W.clock + (ms or 16)
     local r = MM.root
     r.icons:prerender()
-    if r.sticky then r.sticky:prerender() end
+    for _, f in pairs(r.pasties or {}) do f:prerender() end
     local w = MM.activeWindow()
     if w and w ~= r.icons and w ~= r.win then w:prerender() end
-    if r.sticky then r.sticky:update() end
+    for _, f in pairs(r.pasties or {}) do f:update() end
     if w and w ~= r.icons and w ~= r.win and w.update then w:update() end
 end
 

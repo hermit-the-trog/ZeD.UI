@@ -13,7 +13,7 @@ You do not need to translate item names, body parts, skills, traits, moodles or 
 
 ## How
 
-1. Copy the two files into a folder named for your language, next to `EN`: `Translate/FR/`, `Translate/DE/`, `Translate/RU/`... Use the same language codes the game uses (AR CA CH CN CS DA DE ES ES_CL ES_MX FI FR HU ID IT JP KO NL NO PL PT PTBR RO RU TH TR UA).
+1. Copy the two files into a folder named for your language, next to `EN`: `Translate/FR/`, `Translate/DE/`, `Translate/RU/`... Use the same language codes the game uses (AR CA CH CN CS DA DE ES ES_CL ES_MX FI FR HU ID IT JP KO NL NO PL PT PTBR RO RU TH TR UA). `AR` is Argentine Spanish (Español (Argentina) in the game's list), not Arabic; the game has no Arabic.
 2. Open each file in a text editor. **Save as UTF-8.** Change only the right-hand side of each line. Never change the key on the left, and never remove the quotes or commas.
 3. Keep the `%1`, `%2`, `%3`, `%4` markers. The game puts a number or a name there. You may move them to suit your grammar ("%1 of %2" can become "%2 / %1"). Keep markup such as `<LINE>` as written.
 4. A phrase with no translation falls back to English, so you can send a partial file and finish it later.

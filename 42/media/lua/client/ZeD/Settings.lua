@@ -151,7 +151,7 @@ end
 accentColor = opts:addComboBox("accentColor", ZeD.tr("UI_ZeD_Settings_AccentColor"),
     ZeD.tr("UI_ZeD_Settings_AccentColorTip"))
 for i, label in ipairs(accentLabels) do
-    accentColor:addItem(ZeD.tr(label), accentKeys[i] == "orange")  -- default: orange
+    accentColor:addItem(ZeD.tr(label), accentKeys[i] == ZeD.DEFAULT_ACCENT)  -- default: PZ Teal
 end
 
 -- ----- TEXT SIZE -----
@@ -160,6 +160,17 @@ textSize = opts:addComboBox("textSize", ZeD.tr("UI_ZeD_Settings_TextSize"),
 for i, label in ipairs(sizeLabels) do
     textSize:addItem(ZeD.tr(label), sizeKeys[i] == "small")  -- default: small
 end
+
+-- ----- STATUS COLORS -----
+-- Good, warning and bad everywhere (condition and health bars, their readings, checks and crosses): each theme's
+-- green, yellow and red, or a blue, yellow and orange set that stays apart for every kind of color blindness
+-- (ZeD.StatusColors in Tokens.lua; punch list 144). Applied with the theme (applyFromOptions, below).
+local statusKeys = { "standard", "cb" }
+local statusColors = opts:addComboBox("statusColors", ZeD.tr("UI_ZeD_Settings_StatusColors"), ZeD.tr("UI_ZeD_Settings_StatusColorsTip"))
+statusColors:addItem(ZeD.tr("UI_ZeD_Settings_StatusStandard"), true)   -- default
+statusColors:addItem(ZeD.tr("UI_ZeD_Settings_StatusColorBlind"), false)
+ZeD.Settings.statusColorsOption = statusColors
+ZeD.Settings.statusKeys = statusKeys
 
 -- ----- UI SCALE -----
 local uiScale = opts:addComboBox("uiScale", ZeD.tr("UI_ZeD_Settings_UiScale"),
@@ -665,6 +676,7 @@ do
     local nameKeys = {
         baseTheme = "UI_ZeD_Settings_BaseTheme", accentColor = "UI_ZeD_Settings_AccentColor",
         textSize = "UI_ZeD_Settings_TextSize", uiScale = "UI_ZeD_Settings_UiScale",
+        statusColors = "UI_ZeD_Settings_StatusColors",
         moodlePlace = "UI_ZeD_Settings_Moodles", equipView = "UI_ZeD_Settings_EquipView",
         inventoryView = "UI_ZeD_Settings_Inventory", contextStyle = "UI_ZeD_Settings_ContextMenu",
         watchPlace = "UI_ZeD_Settings_Watch", actionBar = "UI_ZeD_Settings_ActionBar",
@@ -962,7 +974,7 @@ local function applyFromOptions(changed, sel)
     end
 
     local base   = baseKeys[baseIdx or 1]     or "dark"
-    local accent = accentKeys[accentIdx or 2] or "orange"
+    local accent = (accentIdx and accentKeys[accentIdx]) or ZeD.DEFAULT_ACCENT
     local size   = sizeKeys[sizeIdx or 1]     or "small"
 
     -- the see-through value goes in with the theme: applyTheme sets the surfaces' alpha from it,
@@ -971,6 +983,11 @@ local function applyFromOptions(changed, sel)
     local see = (seeKeys[seeIdx or 2] or 90) / 100
     if see ~= ZeD.surfaceAlpha and ZeD_Window and ZeD_Window.clearPaletteCache then ZeD_Window.clearPaletteCache() end
     ZeD.surfaceAlpha = see
+    -- the status colors too: the windows' own palettes solve their status text shades from them
+    local stIdx = (changed == statusColors and tonumber(sel)) or (changed and pickedIdx(statusColors)) or statusColors:getValue()
+    local status = statusKeys[stIdx or 1] or "standard"
+    if status ~= ZeD.currentStatus and ZeD_Window and ZeD_Window.clearPaletteCache then ZeD_Window.clearPaletteCache() end
+    ZeD.currentStatus = status
 
     ZeD.applyTheme(base, accent, size)
 end
@@ -991,6 +1008,8 @@ accentColor.onChangeApply = onThemeApply
 textSize.onChangeApply    = onThemeApply
 seeThrough.onChange       = onThemeChange
 seeThrough.onChangeApply  = onThemeApply
+statusColors.onChange      = onThemeChange
+statusColors.onChangeApply = onThemeApply
 
 --- The window box's menu and the Select wheel set these as ZeD setup does, and save at once
 --- (no Apply there): see-through re-applies the theme with the new alpha

@@ -38,3 +38,8 @@ ZeDUI/workshop/gallery/_thumb_card.png
 
 # local Claude Code files (settings, hookify rules, worktrees): never in the public repo (the director, Nov 9 2026)
 .claude/
+
+# Windows-path sims write their discarded output to "nul", a real file off Windows
+/nul
+/NUL
+/luac.out

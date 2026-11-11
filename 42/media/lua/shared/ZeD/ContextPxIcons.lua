@@ -2,17 +2,17 @@
 -- ============================================================================
 -- THE PIXEL ICON FOR EACH CONTEXT-MENU PICTURE: a generated data table, read by the
 -- right-click menu and the controller's wheels. Written by ZeDUI/tools/wheelpx/export.py
--- --game from map.py CTX: do not edit by hand.
+-- --game from map.py CTX and marks.py: do not edit by hand.
 --
 -- ZeD.ContextPxIcons: a picture name from ZeD.ContextIcons -> the id of ZeD's pixel icon
 -- drawn for it (ZeD.PxIcon, media/textures/ZeD/wheel/). A name not here (one a mod adds)
 -- keeps its picture from media/textures/ZeD/icons/. The groups are map.py's: 1 everyday
 -- actions, 2 food and cooking, 3 drinks and fluids, 4 crafting and building, 5 combat and
 -- medical, 6 vehicles, power, farming, animals and the rest.
+-- ZeD.PxIconMark (at the end): the icons whose mark is colored.
 -- Shared: loads on the client and on a dedicated server alike; plain data, nothing
 -- client-only. Pure ASCII.
 -- ============================================================================
--- Reload-safe: loading this file twice reuses the table instead of wiping it
 ZeD = ZeD or {}
 ZeD.ContextPxIcons = {
     -- group 1
@@ -39,6 +39,7 @@ ZeD.ContextPxIcons = {
     ["employee-handbook"] = "notebook",
     ["face-mask"] = "mask",
     ["face-sleeping"] = "bed",
+    ["grab"] = "tray_in",
     ["graduation-cap"] = "skills",
     ["hair-clipper"] = "razor",
     ["hairbrush"] = "comb",
@@ -179,7 +180,7 @@ ZeD.ContextPxIcons = {
     ["sushi"] = "fish",
     ["taco"] = "taco",
     ["turkey"] = "drumstick",
-    ["user-eating"] = "apple",
+    ["user-eating"] = "eat",
     ["waffle"] = "waffle",
     -- group 3
     ["apple-juice"] = "juice",
@@ -398,6 +399,9 @@ ZeD.ContextPxIcons = {
     ["poo"] = "compost",
     ["portal-enter"] = "pin",
     ["power"] = "generator",
+    ["safehouse"] = "safehouse",
+    ["safehouse-claim"] = "safehouse_claim",
+    ["safehouse-release"] = "safehouse_release",
     ["scythe"] = "scythe",
     ["seedling"] = "seed",
     ["shield"] = "shield_plain",
@@ -410,4 +414,64 @@ ZeD.ContextPxIcons = {
     ["trash"] = "trash",
     ["trash-check"] = "trash",
     ["triangle-warning"] = "warning",
+}
+
+-- ZeD.PxIconMark: an icon id -> "add" or "remove". The icon's mark (a plus or minus, an in or
+-- out arrow, the strike of an "off": the part that tells it from its twin) is drawn in
+-- ZeD.Ctx.markAdd (blue) or ZeD.Ctx.markRemove (red) over the ink, at rest in the strip, the
+-- list menu and the wheels (ZeD.Atoms.drawPxIcon's marks). The mark's own picture is
+-- media/textures/ZeD/wheel/<size>/zw_<id>_mk.png. Design handoff Nov 9 2026 (punch list 138).
+ZeD.PxIconMark = {
+    ["alarm_off"] = "remove",
+    ["ammo_off"] = "remove",
+    ["autowalk"] = "add",
+    ["autowalk_off"] = "remove",
+    ["bandage_off"] = "remove",
+    ["battery_in"] = "add",
+    ["battery_out"] = "remove",
+    ["box_down"] = "remove",
+    ["box_up"] = "add",
+    ["bulb_off"] = "remove",
+    ["bulb_remove"] = "remove",
+    ["car_enter"] = "add",
+    ["car_exit"] = "remove",
+    ["craft_off"] = "remove",
+    ["empty"] = "remove",
+    ["equip"] = "add",
+    ["eye_off"] = "remove",
+    ["fill"] = "add",
+    ["hand_main"] = "add",
+    ["hand_off"] = "add",
+    ["headlight_off"] = "remove",
+    ["hotwire_off"] = "remove",
+    ["key_off"] = "remove",
+    ["loadout_add"] = "add",
+    ["loadout_remove"] = "remove",
+    ["mag_in"] = "add",
+    ["mag_out"] = "remove",
+    ["magnifier_off"] = "remove",
+    ["minus"] = "remove",
+    ["move_down"] = "remove",
+    ["move_up"] = "add",
+    ["outfit_add"] = "add",
+    ["outfit_remove"] = "remove",
+    ["plus"] = "add",
+    ["rounds_in"] = "add",
+    ["rounds_out"] = "remove",
+    ["safehouse_claim"] = "add",
+    ["safehouse_release"] = "remove",
+    ["sit_ground_off"] = "remove",
+    ["sneak_off"] = "remove",
+    ["star_off"] = "remove",
+    ["target_off"] = "remove",
+    ["to_floor"] = "remove",
+    ["trash"] = "remove",
+    ["tray_in"] = "add",
+    ["tray_out"] = "remove",
+    ["unequip"] = "remove",
+    ["unplug"] = "remove",
+    ["window_close"] = "remove",
+    ["window_open"] = "add",
+    ["zoom_in"] = "add",
+    ["zoom_out"] = "remove",
 }

@@ -1,0 +1,389 @@
+<title>ZeD Status Colors</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600&family=Fira+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a review bench. One strip of controls, the numbers table, then a Now | Proposed grid, one row per kind of vision.
+   The page chrome stays quiet and neutral so the ZeD panels (drawn in their own theme) carry all the color. */
+:root {
+  --bg: #ECEDEF;
+  --panel: #F7F7F8;
+  --ink: #17181B;
+  --ink-2: #555A63;
+  --rule: #D3D5DA;
+  --focus: #1F5FA8;
+  --clear: #2C6E3F;  --clear-bg: #DDEEE2;
+  --hard:  #7A5A00;  --hard-bg:  #F3E8C8;
+  --same:  #8A2A10;  --same-bg:  #F5DDD5;
+  --f-body: "Fira Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "Fira Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141518; --panel: #1C1D21; --ink: #E6E7EA; --ink-2: #9EA3AD; --rule: #2E3036; --focus: #7DB0F0;
+    --clear: #8FD3A2; --clear-bg: #1E3326; --hard: #E8C870; --hard-bg: #3A3120; --same: #F2A08A; --same-bg: #3D231C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141518; --panel: #1C1D21; --ink: #E6E7EA; --ink-2: #9EA3AD; --rule: #2E3036; --focus: #7DB0F0;
+  --clear: #8FD3A2; --clear-bg: #1E3326; --hard: #E8C870; --hard-bg: #3A3120; --same: #F2A08A; --same-bg: #3D231C;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 17px; font-weight: 600; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--ink-2); }
+.head { display: flex; flex-direction: column; gap: 8px; }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; padding: 14px 16px; background: var(--panel);
+  border: 1px solid var(--rule); border-radius: 6px; }
+.ctl { display: flex; flex-direction: column; gap: 6px; }
+.ctl > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); font-weight: 500; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+.seg button { font: inherit; font-size: 14px; padding: 6px 12px; background: transparent; color: var(--ink); border: 0;
+  border-right: 1px solid var(--rule); cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:focus-visible, label.chk input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+label.chk { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; padding-block: 6px; cursor: pointer; }
+.section { display: flex; flex-direction: column; gap: 12px; }
+.tablebox { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); font-weight: 500; }
+tbody tr:last-child td { border-bottom: 0; }
+td.pal { white-space: nowrap; }
+.chips { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: 6px; }
+.chips i { width: 14px; height: 14px; border-radius: 2px; display: inline-block; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); }
+.trio { display: flex; gap: 4px; flex-wrap: nowrap; }
+.pill { font-family: var(--f-data); font-variant-numeric: tabular-nums; font-size: 12px; padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+.pill.clear { color: var(--clear); background: var(--clear-bg); }
+.pill.hard  { color: var(--hard);  background: var(--hard-bg); }
+.pill.same  { color: var(--same);  background: var(--same-bg); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--ink-2); align-items: center; }
+.grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 10px 14px; align-items: start; }
+.grid .colhead { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); font-weight: 500; }
+.grid .rowhead { font-size: 13px; color: var(--ink-2); writing-mode: vertical-rl; transform: rotate(180deg); align-self: center;
+  white-space: nowrap; font-weight: 500; letter-spacing: 0.02em; }
+.grid canvas { display: block; max-width: 100%; height: auto; border-radius: 3px; min-width: 0; }
+.cell { min-width: 0; }
+.note { font-size: 13px; color: var(--ink-2); }
+code, .mono { font-family: var(--f-data); font-size: 13px; }
+@media (max-width: 720px) {
+  .grid { grid-template-columns: 1fr; }
+  .grid .colhead.blank { display: none; }
+  .grid .rowhead { writing-mode: horizontal-tb; transform: none; align-self: start; margin-top: 8px; }
+  .grid .colhead { display: none; }
+  .cell::before { content: attr(data-label); display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-2); margin-bottom: 4px; font-weight: 500; }
+}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <h1>ZeD status colors</h1>
+    <p class="lede">The five-cell status bars from punch list 143, drawn with ZeD's bar geometry and theme colors. On the left, today's green, yellow and red. On the right, the proposal: good and bad take the menu marks' blue and red-orange, and warning gets lighter (darker in Light) so it stands apart from red by brightness. Each row puts the same panels through a color-blindness simulation (Machado 2009, full strength).</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Swatch settings">
+    <div class="ctl"><span id="lbl-theme">Theme</span><div class="seg" id="theme" aria-labelledby="lbl-theme"></div></div>
+    <div class="ctl"><span id="lbl-accent">Accent (amount bars)</span><div class="seg" id="accent" aria-labelledby="lbl-accent"></div></div>
+    <div class="ctl"><span id="lbl-zoom">Size</span><div class="seg" id="zoom" aria-labelledby="lbl-zoom"></div></div>
+    <div class="ctl"><span>More</span><label class="chk"><input type="checkbox" id="tritan"> Add tritanopia</label></div>
+  </div>
+
+  <section class="section" aria-labelledby="h-num">
+    <h2 id="h-num">How far apart the three colors are</h2>
+    <p class="note">Each cell gives the color difference (CIELAB ΔE) for good–warning, good–bad and warning–bad. As a rough guide: under 10 reads as the same color, 10 to 20 is hard to tell apart at a glance, 20 and over is clear.</p>
+    <div class="legend"><span><span class="pill same">&lt; 10</span> same</span><span><span class="pill hard">10–19</span> hard</span><span><span class="pill clear">20+</span> clear</span></div>
+    <div class="tablebox"><table id="numbers"></table></div>
+  </section>
+
+  <section class="section" aria-labelledby="h-pan">
+    <h2 id="h-pan">In the windows</h2>
+    <p class="note" id="pan-note"></p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="h-what">
+    <h2 id="h-what">What's on each panel</h2>
+    <p class="note">The inventory's Cond column at 100, 95, 72, 55, 38, 21, 12 and 0 percent, which crosses every color boundary. A Mechanics part list with its colored percentages. An animal's three stat dots, the one place where color is the only cue. Last, a 10-cell amount bar in the accent beside a healthy status bar, to show whether the two can be told apart. Text colors are moved toward light or dark only as far as they need to read at 4.6 : 1, the way ZeD builds its status text shades. Bars and dots keep the plain colors.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // ---------------------------------------------------------------- the themes (Tokens.lua, base themes)
+  const THEMES = {
+    dark:  { name: "Dark", base: "#0C0C0C", surf1: "#141414", surf2: "#1C1C1C", surf3: "#242424", borderS: "#383838",
+             text: "#C6C6C6", textSec: "#7C7C7C", stripe: "rgba(255,255,255,0.04)", frame: 1, light: false,
+             accent: { teal: "#47A18C", blue: "#4488CC" } },
+    light: { name: "Light", base: "#C6C6C6", surf1: "#BEBEBE", surf2: "#B6B6B6", surf3: "#AEAEAE", borderS: "#767676",
+             text: "#141414", textSec: "#3F3F3F", stripe: "rgba(0,0,0,0.04)", frame: 1, light: true,
+             accent: { teal: "#1A6655", blue: "#1A4477" } },
+    hicon: { name: "High contrast", base: "#050505", surf1: "#111111", surf2: "#191919", surf3: "#202020", borderS: "#555555",
+             text: "#F2F2F2", textSec: "#9C9C9C", stripe: "rgba(255,255,255,0.05)", frame: 2, light: false,
+             accent: { teal: "#47A18C", blue: "#4488CC" } },
+  };
+  const PALETTES = {
+    now: {
+      dark:  { good: "#7A9A34", warn: "#C49A2A", bad: "#C45A2A", goodText: "#7A9A34", badText: "#DE7045" },
+      light: { good: "#2A5511", warn: "#6B5510", bad: "#7A2A11", goodText: "#204A0C", badText: "#7A2A11" },
+      hicon: { good: "#44DD44", warn: "#FFCC22", bad: "#FF5533", goodText: "#44DD44", badText: "#FF5533" },
+    },
+    proposed: {
+      dark:  { good: "#4491E2", warn: "#F0D060", bad: "#D9572A" },
+      light: { good: "#014E8E", warn: "#8C6E00", bad: "#6E1E00" },
+      hicon: { good: "#5AAEFF", warn: "#FFDD33", bad: "#E84A22" },
+    },
+  };
+  const VISIONS = [
+    { id: "normal", name: "Typical vision" },
+    { id: "deutan", name: "Deuteranopia" },
+    { id: "protan", name: "Protanopia" },
+    { id: "tritan", name: "Tritanopia" },
+  ];
+  const M = {
+    deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]],
+    protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+    tritan: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]],
+  };
+
+  // ---------------------------------------------------------------- color math
+  function hex(h) { h = h.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
+  function toHex(c) { return "#" + c.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join(""); }
+  function lin(v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  function gam(v) { v = Math.max(0, Math.min(1, v)); return 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055); }
+  function simRGB(rgb, kind) {
+    if (kind === "normal") return rgb;
+    const l = rgb.map(lin), m = M[kind];
+    return [0, 1, 2].map(i => gam(m[i][0] * l[0] + m[i][1] * l[1] + m[i][2] * l[2]));
+  }
+  function parseColor(s) {
+    if (s[0] === "#") return { rgb: hex(s), a: 1 };
+    const m = s.match(/rgba?\(([^)]+)\)/); const p = m[1].split(",").map(Number);
+    return { rgb: [p[0], p[1], p[2]], a: p.length > 3 ? p[3] : 1 };
+  }
+  function sim(s, kind) {
+    const c = parseColor(s); const o = simRGB(c.rgb, kind).map(Math.round);
+    return c.a < 1 ? `rgba(${o[0]},${o[1]},${o[2]},${c.a})` : toHex(o);
+  }
+  function lum(rgb) { const l = rgb.map(lin); return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]; }
+  function contrast(a, b) { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  function lab(rgb) {
+    const [r, g, b] = rgb.map(lin);
+    const X = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047, Y = 0.2126 * r + 0.7152 * g + 0.0722 * b,
+          Z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+    const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  }
+  function dE(a, b) { const p = lab(a), q = lab(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); }
+  // the text shade: the same hue moved toward white (dark themes) or black (Light) until it reads 4.6 : 1 on both surfaces
+  function legible(c, th) {
+    const target = th.light ? [0, 0, 0] : [255, 255, 255];
+    const s1 = hex(th.surf1), s2 = hex(th.surf2);
+    let rgb = hex(c);
+    for (let t = 0; t <= 1.0001; t += 0.02) {
+      const m = rgb.map((v, i) => v + (target[i] - v) * t);
+      if (contrast(m, s1) >= 4.6 && contrast(m, s2) >= 4.6) return toHex(m);
+    }
+    return toHex(target);
+  }
+  function textShades(pal, th) {
+    return {
+      good: pal.goodText ? legible(pal.goodText, th) : legible(pal.good, th),
+      warn: legible(pal.warn, th),
+      bad: pal.badText ? legible(pal.badText, th) : legible(pal.bad, th),
+    };
+  }
+
+  // ---------------------------------------------------------------- ZeD's status rule (Atoms.lua, punch list 143)
+  function statusLit(p) { if (p <= 0) return 0; if (p >= 1) return 5; return Math.max(1, Math.ceil(p * 5 - 1e-6)); }
+  function statusKey(p) { const lit = statusLit(p); return lit >= 4 ? "good" : lit >= 2 ? "warn" : "bad"; }
+  function fillLit(p) { if (p <= 0) return 0; if (p >= 1) return 10; return Math.floor(p * 10 + 1e-6); }
+
+  // ---------------------------------------------------------------- state
+  const state = { theme: "dark", accent: "teal", zoom: 1.5, tritan: false };
+  try {
+    const saved = JSON.parse(localStorage.getItem("zedStatusSwatches") || "null");
+    if (saved && THEMES[saved.theme]) Object.assign(state, saved);
+  } catch (e) { /* no storage: the defaults */ }
+  function save() { try { localStorage.setItem("zedStatusSwatches", JSON.stringify(state)); } catch (e) { /* fine */ } }
+
+  function segButtons(el, items, key) {
+    el.innerHTML = "";
+    items.forEach(([val, label]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = label; b.id = `${el.id}-${String(val).replace(".", "_")}`;
+      b.setAttribute("aria-pressed", String(state[key] === val));
+      b.addEventListener("click", () => { state[key] = val; save(); renderAll(); });
+      el.appendChild(b);
+    });
+  }
+
+  // ---------------------------------------------------------------- the numbers table
+  function pill(v) {
+    const cls = v < 10 ? "same" : v < 20 ? "hard" : "clear";
+    return `<span class="pill ${cls}" title="${v.toFixed(1)}">${Math.round(v)}</span>`;
+  }
+  function renderNumbers() {
+    const vis = VISIONS.filter(v => v.id !== "tritan" || state.tritan);
+    let h = "<thead><tr><th>Theme</th><th>Palette</th>" + vis.map(v => `<th>${v.name}<br><span class="mono" style="text-transform:none;letter-spacing:0">G–Y · G–R · Y–R</span></th>`).join("") + "</tr></thead><tbody>";
+    for (const tk of ["dark", "light", "hicon"]) {
+      for (const pk of ["now", "proposed"]) {
+        const pal = PALETTES[pk][tk];
+        const G = hex(pal.good), Y = hex(pal.warn), R = hex(pal.bad);
+        h += `<tr><td>${pk === "now" ? THEMES[tk].name : ""}</td><td class="pal"><span class="chips"><i style="background:${pal.good}"></i><i style="background:${pal.warn}"></i><i style="background:${pal.bad}"></i></span>${pk === "now" ? "Now" : "Proposed"}</td>`;
+        for (const v of vis) {
+          const g = simRGB(G, v.id), y = simRGB(Y, v.id), r = simRGB(R, v.id);
+          h += `<td><span class="trio">${pill(dE(g, y))}${pill(dE(g, r))}${pill(dE(y, r))}</span></td>`;
+        }
+        h += "</tr>";
+      }
+    }
+    document.getElementById("numbers").innerHTML = h + "</tbody>";
+  }
+
+  // ---------------------------------------------------------------- the panels
+  const ITEMS = [["Axe", 1.0], ["Kitchen Knife", 0.95], ["Crowbar", 0.72], ["Baseball Bat", 0.55],
+                 ["Hammer", 0.38], ["Hunting Knife", 0.21], ["Screwdriver", 0.12], ["Pipe", 0.0]];
+  const PARTS = [["Front left door", 0.84], ["Engine", 0.63], ["Battery", 0.47], ["Front left tire", 0.18]];
+  const STATS = [["Health", 0.8], ["Hunger", 0.45], ["Thirst", 0.15]];
+  const W = 210;   // the panel's width in ZeD units
+
+  function drawPanel(canvas, th, pal, vision) {
+    const u = state.zoom;
+    const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+    const rowH = 16, pad = 8, headH = 18, barW = 46, barH = 8, gapSec = 10;
+    const H = pad + headH + ITEMS.length * rowH + gapSec + headH + PARTS.length * rowH + gapSec + headH + rowH + gapSec + headH + 2 * rowH + pad;
+    canvas.width = Math.round(W * u * dpr); canvas.height = Math.round(H * u * dpr);
+    canvas.style.width = (W * u) + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    const S = c => sim(c, vision);
+    const px = v => Math.round(v * u);
+    const rect = (x, y, w, h, c) => { ctx.fillStyle = S(c); ctx.fillRect(px(x), px(y), px(x + w) - px(x), px(y + h) - px(y)); };
+    const text = (s, x, y, c, size, weight, align) => {
+      ctx.fillStyle = S(c); ctx.font = `${weight || 400} ${Math.round(size * u)}px "Fira Sans", "Segoe UI", sans-serif`;
+      ctx.textAlign = align || "left"; ctx.textBaseline = "middle"; ctx.fillText(s, px(x), px(y));
+    };
+    const shades = textShades(pal, th);
+
+    // a framed segment bar, as ZeD.Atoms.drawSegBar draws it (frame, cells spread evenly, a hairline of well between)
+    function segBar(x, y, w, h, n, k, on) {
+      const bw = th.frame, gap = 1;
+      rect(x, y, w, h, th.borderS);
+      const ix = x + bw, iy = y + bw, iw = w - 2 * bw, ih = h - 2 * bw;
+      // in screen pixels so the cells keep whole pixels at the chosen size, as the game does at its scale
+      const X0 = px(ix), Y0 = px(iy), IW = px(ix + iw) - X0, IH = px(iy + ih) - Y0, G = Math.max(1, Math.round(gap * u));
+      const cellW = Math.floor((IW - (n - 1) * G) / n), r = IW - (n * cellW + (n - 1) * G), wa = Math.ceil(r / 2), wbFrom = n - (r - wa);
+      let cx = X0;
+      for (let i = 1; i <= n; i++) {
+        const cw = cellW + ((i <= wa || i > wbFrom) ? 1 : 0);
+        ctx.fillStyle = S(i <= k ? on : th.surf3); ctx.fillRect(cx, Y0, cw, IH);
+        cx += cw;
+        if (i < n) { ctx.fillStyle = S(th.base); ctx.fillRect(cx, Y0, G, IH); cx += G; }
+      }
+    }
+    function head(label, y) {
+      rect(0, y, W, headH, th.surf2);
+      text(label.toUpperCase(), pad, y + headH / 2, th.textSec, 10, 500);
+    }
+
+    rect(0, 0, W, H, th.surf1);
+    let y = pad;
+    // the inventory's Cond column
+    head("Inventory", y);
+    text("COND", W - pad - barW / 2, y + headH / 2, th.textSec, 10, 500, "center");
+    y += headH;
+    ITEMS.forEach(([name, p], i) => {
+      if (i % 2 === 1) { ctx.fillStyle = th.stripe; ctx.fillRect(px(0), px(y), px(W), px(y + rowH) - px(y)); }
+      text(name, pad, y + rowH / 2, th.text, 12);
+      text(Math.round(p * 100) + "%", W - pad - barW - 6, y + rowH / 2, th.textSec, 11, 400, "right");
+      segBar(W - pad - barW, y + (rowH - barH) / 2, barW, barH, 5, statusLit(p), pal[statusKey(p)]);
+      y += rowH;
+    });
+    y += gapSec;
+    // a Mechanics part list: the reading in its status text shade
+    head("Mechanics · parts", y); y += headH;
+    PARTS.forEach(([name, p], i) => {
+      if (i % 2 === 1) { ctx.fillStyle = th.stripe; ctx.fillRect(px(0), px(y), px(W), px(y + rowH) - px(y)); }
+      text(name, pad, y + rowH / 2, th.text, 12);
+      text(Math.round(p * 100) + "%", W - pad - barW - 6, y + rowH / 2, shades[statusKey(p)], 12, 500, "right");
+      segBar(W - pad - barW, y + (rowH - barH) / 2, barW, barH, 5, statusLit(p), pal[statusKey(p)]);
+      y += rowH;
+    });
+    y += gapSec;
+    // an animal's stat dots: color alone
+    head("Animal · stats", y); y += headH;
+    let dx = pad;
+    STATS.forEach(([name, p]) => {
+      const cxp = dx + 4, cyp = y + rowH / 2;
+      ctx.fillStyle = S(pal[statusKey(p)]); ctx.beginPath(); ctx.arc(px(cxp), px(cyp), 4 * u, 0, Math.PI * 2); ctx.fill();
+      text(name, dx + 11, cyp, th.text, 12);
+      ctx.font = `400 ${Math.round(12 * u)}px "Fira Sans", sans-serif`;
+      dx += 11 + ctx.measureText(name).width / u + 14;
+    });
+    y += rowH + gapSec;
+    // an amount bar in the accent beside a healthy status bar
+    head("Amount beside status", y); y += headH;
+    const acc = th.accent[state.accent];
+    const longW = 90;
+    text("Water (amount)", pad, y + rowH / 2, th.text, 12);
+    segBar(W - pad - longW, y + (rowH - barH) / 2, longW, barH, 10, fillLit(0.7), acc);
+    y += rowH;
+    text("Condition (status)", pad, y + rowH / 2, th.text, 12);
+    segBar(W - pad - longW, y + (rowH - barH) / 2, longW, barH, 5, statusLit(0.9), pal.good);
+  }
+
+  function renderGrid() {
+    const th = THEMES[state.theme];
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    const vis = VISIONS.filter(v => v.id !== "tritan" || state.tritan);
+    const add = (el) => { grid.appendChild(el); return el; };
+    const div = (cls, txt) => { const d = document.createElement("div"); d.className = cls; if (txt) d.textContent = txt; return d; };
+    add(div("colhead blank", ""));
+    add(div("colhead", "Now"));
+    add(div("colhead", "Proposed"));
+    for (const v of vis) {
+      add(div("rowhead", v.name));
+      for (const pk of ["now", "proposed"]) {
+        const cell = div("cell"); cell.setAttribute("data-label", `${v.name} · ${pk === "now" ? "Now" : "Proposed"}`);
+        const c = document.createElement("canvas");
+        c.setAttribute("role", "img");
+        c.setAttribute("aria-label", `${th.name} theme, ${pk === "now" ? "current" : "proposed"} status colors, ${v.name.toLowerCase()}`);
+        cell.appendChild(c); add(cell);
+        drawPanel(c, th, PALETTES[pk][state.theme], v.id);
+      }
+    }
+    const accName = state.accent === "teal" ? "PZ Teal" : "Blue";
+    document.getElementById("pan-note").textContent =
+      `${th.name} theme, ${accName} accent, ${state.zoom}x. The panels are drawn at ZeD's 1x layout times the size you pick, with whole-pixel cells.`;
+  }
+
+  function renderAll() {
+    segButtons(document.getElementById("theme"), [["dark", "Dark"], ["light", "Light"], ["hicon", "High contrast"]], "theme");
+    segButtons(document.getElementById("accent"), [["teal", "PZ Teal"], ["blue", "Blue"]], "accent");
+    segButtons(document.getElementById("zoom"), [[1, "1x"], [1.5, "1.5x"], [2, "2x"]], "zoom");
+    const tr = document.getElementById("tritan"); tr.checked = !!state.tritan;
+    renderNumbers();
+    renderGrid();
+  }
+  document.getElementById("tritan").addEventListener("change", e => { state.tritan = e.target.checked; save(); renderAll(); });
+
+  renderAll();
+  // (draw again once Fira Sans has loaded, so the panels' words are in ZeD's face)
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderGrid);
+})();
+</script>

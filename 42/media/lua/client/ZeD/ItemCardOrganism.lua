@@ -343,7 +343,7 @@ end
 -- reached from here, so the same logic is repeated - keep the two in step.
 local function categoryOf(item)
     if not item then return "Item" end
-    if safeGet(item, "getFluidContainer") then return "Fluid" end
+    if safeGet(item, "getFluidContainer") or (ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item)) then return "Fluid" end   -- (on the floor: its world object's)
     if instanceof(item, "HandWeapon") then
         local ammo = safeGet(item, "getAmmoType")
         if ammo and ammo ~= "" then return "Firearm" end
@@ -729,7 +729,7 @@ local function liveProbe(item, m, out)
     end
     if m.pUses then n = n + 1; out[n] = safeGet(item, "getUsedDelta") end
     if m.pFluid then
-        local fc = safeGet(item, "getFluidContainer")
+        local fc = (ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item)) or safeGet(item, "getFluidContainer")
         n = n + 1; out[n] = fc and safeGet(fc, "getAmount")
         -- sealed or opened (InventoryItem.isSealed; read only for a fluid container)
         n = n + 1; out[n] = safeGet(item, "isSealed")
@@ -1365,7 +1365,7 @@ local function drawMakes(card, item, x, y, w, compact, viewTop, viewBot)
     local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
     local function row(i, label, value, cls, help, onPress)
         local id = "make_" .. i
-        local h = M.drawFactsRow(card, x, cy, w, label, value, cls, true)
+        local h = M.drawFactsRow(card, x, cy, w, label, value, cls, true, nil, true)   -- (flush: no parent row above them)
         if ZeD.Atoms.mouseIn(card, x, cy, w, h) then
             local hv = T.hover
             card:drawRect(x, cy, w, h, hv.a, hv.r, hv.g, hv.b)

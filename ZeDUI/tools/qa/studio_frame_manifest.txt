@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/studio_frame_manifest.txt (Nov 10 2026): the studio's framings (punch list 145). -debug OFF, single
+# player. Opens the real studio and shoots 30 framings, each named in the bar (zqa_frame_*.png). For each zoom (6, 11,
+# 15), the best y: the head whole, the least paper over it; and which full body zoom (-2, -1, 0) keeps the shoes whole
+# turned three-quarters. Throwaway save copy.
+zedqa_prelude.lua | pre
+zedqa_studio_frame_probe.lua | fr | timeout=90

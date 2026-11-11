@@ -2,6 +2,8 @@
 searching, lights and power, fire, seats"""
 import math
 
+from PIL import Image
+
 from kit import icon
 
 
@@ -235,14 +237,14 @@ def eye_off(c, s):
 
 @icon("box_up", "world", "a storage box, its lid on, an arrow up: pick up", ["IGUI_Pickup", "Furniture_Pickup"])
 def box_up(c, s):
-    if s == 16:
-        for i in range(4): c.rect(7 - i, 1 + i, 2 + 2 * i, 1)                 # the arrow
-        c.rect(7, 5, 2, 2)
-        _box(c, s)
-    else:
-        for i in range(6): c.rect(11 - i, 1 + i, 2 + 2 * i, 1)
-        c.rect(10, 7, 4, 4)
-        _box(c, s)
+    with c.mark():                                                              # (the arrow is the mark)
+        if s == 16:
+            for i in range(4): c.rect(7 - i, 1 + i, 2 + 2 * i, 1)
+            c.rect(7, 5, 2, 2)
+        else:
+            for i in range(6): c.rect(11 - i, 1 + i, 2 + 2 * i, 1)
+            c.rect(10, 7, 4, 4)
+    _box(c, s)
 
 
 def _box(c, s):
@@ -255,14 +257,14 @@ def _box(c, s):
 
 @icon("box_down", "world", "the storage box, an arrow down onto it: place", ["Furniture_Place"])
 def box_down(c, s):
-    if s == 16:
-        c.rect(7, 1, 2, 2)
-        for i in range(4): c.rect(4 + i, 3 + i, 8 - 2 * i, 1)
-        _box(c, s)
-    else:
-        c.rect(10, 1, 4, 4)
-        for i in range(6): c.rect(6 + i, 5 + i, 12 - 2 * i, 1)
-        _box(c, s)
+    with c.mark():                                                              # (the arrow is the mark)
+        if s == 16:
+            c.rect(7, 1, 2, 2)
+            for i in range(4): c.rect(4 + i, 3 + i, 8 - 2 * i, 1)
+        else:
+            c.rect(10, 1, 4, 4)
+            for i in range(6): c.rect(6 + i, 5 + i, 12 - 2 * i, 1)
+    _box(c, s)
 
 
 @icon("rotate", "world", "a turning arrow: rotate, reset", ["Furniture_Rotate", "UI_ZeD_Wheel_ResetWindows"])
@@ -302,6 +304,9 @@ def screwdriver(c, s):
         c.line([(2.5, 21.5), (9, 15)], 5.2)
         c.line([(9.5, 14.5), (11.5, 12.5)], 3.2)
         c.line([(4.5, 17.5), (7.5, 14.5)], 1, v=0)
+    # turned half a turn, handle up at the top right: the tip at the bottom left, so it stops reading as the shovel
+    # (the director, Nov 9 2026: "flip the screwdriver so the handle is up ... it looks too much like the shovel")
+    c.transpose(Image.ROTATE_180)
 
 
 @icon("wrench", "world", "a wrench, its jaw cut to a nut's flats, a hex in its ring end: repair", ["Furniture_Repair", "Furniture_On2"])

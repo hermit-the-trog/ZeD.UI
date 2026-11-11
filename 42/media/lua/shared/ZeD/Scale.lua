@@ -94,6 +94,29 @@ S.FIT_TAB_U   = 36
 S.FIT_HELP_U  = 22
 S.FIT_STEPS   = { 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0 }   -- (Settings.lua's fixed steps)
 
+-- THE INVENTORY'S OPENING WIDTH ON A SMALL SCREEN (the director, Nov 11 2026: "Make steam deck inventory narrower for
+-- those resolutions. They lose the condition column, but get rid of the window shifting and changing."; rulings: any
+-- screen it would shift on, worked out rather than listed, and both windows). Where the two strips, the usual 372-unit
+-- inventory and a full card (480) are wider than the window may grow (half the screen, and the room on its side of
+-- the middle), opening a full card hit the cap: the inventory squeezed and the window pinned at the screen's edge,
+-- and it moved again as the card closed (punch lists 125, 126). There the windows open at the inventory width that
+-- fits beside a full card, so nothing moves: at 1280 x 800 (0.75) 296 units, 222 px, and the Cond column gives way.
+-- Where even the 200-unit minimum wouldn't fit (Large text on the Deck), nothing changes: the squeeze as before.
+S.INV_W_U, S.INV_MIN_U, S.FULL_CARD_U = 372, 200, 480
+
+--- The inventory width (design units) a window opens at where the usual one would shift: room = the most the window
+--- may be wide, screen px; stripsU = its two strips' width, design units. nil where the usual width fits, or where
+--- nothing at the minimum would.
+function S.fitInvW(T, room, stripsU)
+    local half = math.floor((stripsU or 72) / 2)
+    local function total(u) return T.px(half) + T.px(u) + T.px((stripsU or 72) - half) + T.px(S.FULL_CARD_U) end
+    if total(S.INV_W_U) <= room then return nil end
+    local u = math.floor((room - total(0)) / (T.scale or 1))
+    while u >= S.INV_MIN_U and total(u) > room do u = u - 1 end
+    if u < S.INV_MIN_U then return nil end
+    return math.min(u, S.INV_W_U)
+end
+
 --- the screen's width and height in px; 1920 x 1080 when the game can't say
 function S.screenSize()
     local w, h = 1920, S.BASE_H
@@ -332,17 +355,21 @@ local function entryFaces()
     if _entryFaces then return _entryFaces end
     local faces = {}
     local tm = X.realTM()
-    local lastH = 0
     local slots = X.fallback and GAME_ENTRY_SLOTS or ENTRY_SLOTS
     for _, e in ipairs(slots) do
         local f = UIFont and UIFont[e[1]]
         if f then
-            -- each baked face is taller than the one before; a slot that did not
-            -- load (an older font manifest) breaks the run and is skipped
+            -- every slot measured, and each face's size read off its own line height when that is far from the one
+            -- baked for the slot (the slot then holds another face than ZeD's). QA's Mac run, Nov 10 2026, at 4K
+            -- with ZeD at 1.75x: Small 65 px, Large 76, Dialogue 23, Intro 33. The faces were kept only while each
+            -- was taller than the one before, so Dialogue and Intro (ZeD's own entry faces, the right ones there)
+            -- were dropped and the typing came out in Small at about 49 px. A slot that reports no height (still
+            -- loading) is left out.
             local h = tm:getFontHeight(f)
-            if h and h > lastH then
-                faces[#faces + 1] = { font = f, px = (e[2] > 0) and e[2] or h * 0.75 }
-                lastH = h
+            if h and h > 0 then
+                local px = (e[2] > 0) and e[2] or h * 0.75
+                if e[2] > 0 and math.abs(h * 0.75 - e[2]) > e[2] * 0.25 then px = h * 0.75 end
+                faces[#faces + 1] = { font = f, px = px }
             end
         end
     end

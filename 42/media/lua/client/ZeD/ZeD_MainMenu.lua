@@ -1471,11 +1471,16 @@ function ZeD_MMDesk:createChildren()
         self.icons:initialise()
         self:addChild(self.icons)
     end
-    -- the sticky note's field, on the desktop under every window (ZeD_MainMenuNotes.lua; the icon layer draws its paper)
+    -- the Pasties' fields, one a slot, on the desktop under every window (ZeD_MainMenuNotes.lua; the icon layer draws
+    -- their paper and places the fields of the notes on the desk)
     if ZeD_MMSticky then
-        self.sticky = ZeD_MMSticky:new()
-        self.sticky:initialise()
-        self:addChild(self.sticky)
+        self.pasties = {}
+        for id = 1, (ZeD.DeskNotes and ZeD.DeskNotes.PASTIES_MAX or 8) do
+            local f = ZeD_MMSticky:new(id)
+            f:initialise()
+            self:addChild(f)
+            self.pasties[id] = f
+        end
     end
     self.win = ZeD_MMWindow:new("main")
     self.win:initialise()

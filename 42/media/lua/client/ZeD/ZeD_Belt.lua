@@ -579,12 +579,23 @@ function B.alphaFor(hud, kind, box)
     return a
 end
 
--- The strip or ring under an item: a mod's meter when one speaks for it, else its condition. Returns f, kind.
+-- The strip or ring under an item: a mod's meter when one speaks for it, else the item's one bar, as the inventory's
+-- COND / AMT column reads it (ZeD.ItemMeter; the director, Nov 11 2026: "yes, belt follows the same rule"): a liquid
+-- how full ("fluid", ten blue cells), what runs down what is left ("uses", ten in a light neutral), what wears its
+-- condition (the status five), anything else none (a water bottle no longer shows a full condition ring). Returns
+-- f, kind.
 function B.meter(item, where)
     if item == nil then return nil end
     for _, m in ipairs(B._meters) do
         local ok, f, kind = pcall(m.fn, item, where)
         if ok and type(f) == "number" and f == f then return math.max(0, math.min(1, f)), kind end
+    end
+    local IM = ZeD.ItemMeter
+    if IM and IM.of then
+        local kind, f = IM.of(item)
+        if kind == "fluid" or kind == "uses" then return f, kind end
+        if kind == "cond" then return f, nil end
+        return nil
     end
     return B.cond(item), nil
 end
@@ -593,6 +604,7 @@ end
 function B.meterColor(T, kind)
     if kind == "fluid" then return T.info end
     if kind == "flat" then return T.positive end
+    if kind == "uses" then return T.text end          -- (the light neutral: ItemMeter.style)
     return nil
 end
 
@@ -1319,9 +1331,11 @@ end
 -- to that quarter; the last quarter is cut again where the fill ends, across the ring: down the
 -- ring where it runs flat (near twelve, three, six, nine), along it where it runs upright, so a
 -- thin ring ends square. Five draws at most, like the outline itself.
-local function ringArc(p, x, y, s, t, f, a, c)
-    if f <= 0 then return end
-    local e = roundShape(s, t)
+-- (its pieces: up to four boxes in the s x s box, { x0, y0, x1, y1 }, the last cut where the fill ends)
+local function arcRects(s, t, f, out)
+    out = out or {}
+    for i = #out, 1, -1 do out[i] = nil end
+    if f <= 0 then return out end
     local cx = math.floor(s / 2)
     local rad = s / 2 - t / 2                     -- the middle of the ring's thickness
     -- the quarters clockwise from twelve: their boxes (x0, y0, x1, y1) within the s x s box
@@ -1341,10 +1355,102 @@ local function ringArc(p, x, y, s, t, f, a, c)
             elseif q == 3 then if early then x0 = cx - d else y0 = cx + d end
             else if early then y0 = cx - d else x1 = cx - d end end
         end
-        roundDrawPart(p, x, y, e, a, c, x0, y0, x1 - x0, y1 - y0)
+        out[#out + 1] = { x0, y0, x1, y1 }
+    end
+    return out
+end
+local _arcBuf = {}
+local function ringArc(p, x, y, s, t, f, a, c)
+    if f <= 0 then return end
+    local e = roundShape(s, t)
+    for _, r in ipairs(arcRects(s, t, f, _arcBuf)) do
+        roundDrawPart(p, x, y, e, a, c, r[1], r[2], r[3] - r[1], r[4] - r[2])
     end
 end
-B._disc, B._ring, B._roundShape, B._ringArc = disc, ring, roundShape, ringArc
+-- A ring in n cells, cut like a pie (the director, Nov 11 2026: "you divide a ring like a pie or a clock from the
+-- center to the edge ... You don't draw a grid. That's how you cut up a tin of brownies. Not a donut."): each pixel of
+-- the band is the cell its middle's angle from twelve falls in, clockwise, and a gap g pixels wide runs along the
+-- radius at every boundary, from the inner edge to the outer. The lit cells are drawn as ringArc draws a fill (the
+-- picture, cut square where the fill ends) and then put right where that square cut and the radius part: those few
+-- pixels, and the gaps, are worked out once per size and kept as rectangles.
+--   ringSegs(s, t, n, g) -> { gaps = { rect }, fix = { [k] = { lit = { rect }, dark = { rect } } } }, rect = { x, y, w, h }
+local _segs, _segsN = {}, 0
+local function runsOf(px)
+    -- pixels { [y * 4096 + x] = true } as rectangles: runs along each row, a run under an identical run grown down
+    local keys = {}
+    for k in pairs(px) do keys[#keys + 1] = k end
+    table.sort(keys)
+    local runs, prevRow, prev, cur = {}, -1, {}, {}
+    local i = 1
+    while i <= #keys do
+        local y, x0 = math.floor(keys[i] / 4096), keys[i] % 4096
+        local x1 = x0 + 1
+        while i + 1 <= #keys and keys[i + 1] == y * 4096 + x1 do i = i + 1; x1 = x1 + 1 end
+        if y ~= prevRow then prev, cur, prevRow = (y == prevRow + 1) and cur or {}, {}, y end
+        local key = x0 * 4096 + (x1 - x0)
+        local r = prev[key]
+        if r and r[2] + r[4] == y then r[4] = r[4] + 1 else r = { x0, y, x1 - x0, 1 }; runs[#runs + 1] = r end
+        cur[key] = r
+        i = i + 1
+    end
+    return runs
+end
+local function ringSegs(s, t, n, g)
+    local key = s .. ":" .. t .. ":" .. n .. ":" .. g
+    local c = _segs[key]
+    if c then return c end
+    local e = roundShape(s, t)
+    local cxp, cyp = math.floor(s / 2), s / 2          -- (the circle's middle as roundShape draws it)
+    local step = 2 * math.pi / n
+    local band = {}                                     -- [key] = the cell, or -1 in a gap
+    local gaps = {}
+    for i = 1, e.n do
+        for yy = e.y[i], e.y[i] + e.h[i] - 1 do
+            for xx = e.x[i], e.x[i] + e.w[i] - 1 do
+                local dx, dy = xx + 0.5 - cxp, yy + 0.5 - cyp
+                local ang = math.atan2(dx, -dy)
+                if ang < 0 then ang = ang + 2 * math.pi end
+                local cell = math.floor(ang / step) % n
+                -- in a gap: within g/2 of a boundary's radius (measured square to it), on its side of the middle; a
+                -- pixel exactly g/2 off counts on one side only, so a radius between two pixel columns (twelve, six)
+                -- takes g of them, not g + 1
+                for j = 0, n - 1 do
+                    local th = j * step
+                    local ux, uy = math.sin(th), -math.cos(th)
+                    local off = dx * uy - dy * ux
+                    if dx * ux + dy * uy > 0 and off > -g / 2 - 1e-9 + 1e-6 and off <= g / 2 + 1e-9 then cell = -1; break end
+                end
+                local k = yy * 4096 + xx
+                band[k] = cell
+                if cell < 0 then gaps[k] = true end
+            end
+        end
+    end
+    c = { gaps = runsOf(gaps), fix = {} }
+    local buf = {}
+    for k = 1, n - 1 do
+        -- what ringArc lights for k cells, against what the pie says
+        local rects = arcRects(s, t, k / n, buf)
+        local lit, dark = {}, {}
+        for pk, cell in pairs(band) do
+            if cell >= 0 then
+                local xx, yy = pk % 4096, math.floor(pk / 4096)
+                local covered = false
+                for _, r in ipairs(rects) do
+                    if xx >= r[1] and xx < r[3] and yy >= r[2] and yy < r[4] then covered = true; break end
+                end
+                if covered and cell >= k then dark[pk] = true
+                elseif not covered and cell < k then lit[pk] = true end
+            end
+        end
+        c.fix[k] = { lit = runsOf(lit), dark = runsOf(dark) }
+    end
+    _segsN = _segsN + 1
+    if _segsN > 32 then _segs, _segsN = {}, 1 end
+    _segs[key] = c
+    return c
+end
+B._disc, B._ring, B._roundShape, B._ringArc, B._ringSegs = disc, ring, roundShape, ringArc, ringSegs
 
 function ZeD_BeltHUD:_drawStrap()
     local T = ZeD.T
@@ -1443,31 +1549,44 @@ local function frameBox(p, x, y, w, h, T)
 end
 B.frameBox = frameBox
 
--- the strip's graduated colours (ZeD.Atoms.drawFillBar)
-local function wearColor(T, f)
-    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warning end
-    return T.danger
-end
-
 -- The hands' condition: the slots' framed strip bent round inside the outline — the same chunky framed strip as
 -- the other status bars, as the action bar's progress line is too (ZeD_ActionBar.lua).
 -- One unit in from the two-unit outline and six units across: a frame line each side (T.borderS, two on
--- High contrast, as the strip's), the solid T.base well between, a flat fill clockwise from twelve. Whole
+-- High contrast, as the strip's), the solid T.base well between, the cells clockwise from twelve. Whole
 -- hairlines (T.line), so the frames and the outline keep one weight at every scale.
+-- IN SEGMENTS, AS THE STRIPS ARE (the director, Nov 11 2026: "segmented bar on primary and secondary circle status
+-- bar"): a condition in the status bar's five cells (ZeD.Atoms.statusSegsLit: rounded up, one red cell nearly
+-- broken; its colour the status colour, the colour-blind set too), a fixed colour's meter (a liquid's) in the fill
+-- bar's ten; the dark cells in T.surf3; a hairline gap in the well's colour between each two, cut like a pie, along
+-- the radius (ringSegs). A ring: the well, the dark band, the lit arc and its few corrected pixels, the gaps, the
+-- two frame lines.
 local RING_IN, RING_T = 3, 6
+local function rects(p, x, y, list, c)
+    for _, r in ipairs(list) do p:drawRect(x + r[1], y + r[2], r[3], r[4], 1, c.r, c.g, c.b) end
+end
 local function condRing(p, b, f, T, fc)
     local ins, t, fw = T.line(RING_IN), T.line(RING_T), T.line(T.borderW)
     local x, y, s = b.x + ins, b.y + ins, b.w - ins * 2
     ring(p, x, y, s, t, 1, T.base)
-    if f > 0 then
-        -- two units of fill at least, as on the strip
-        f = math.max(f, T.px(2) / (math.pi * (s - t)))
-        ringArc(p, x + fw, y + fw, s - fw * 2, t - fw * 2, f, 1, fc or wearColor(T, f))   -- (fc: a fixed color, a liquid's)
+    local A = ZeD.Atoms
+    local n, k
+    if fc then n = A.FILL_SEGS or 10; k = A.fillSegsLit(f, n)
+    else n = A.STATUS_SEGS or 5; k = A.statusSegsLit(f) end
+    local fx, fy, fs, ft = x + fw, y + fw, s - fw * 2, t - fw * 2
+    local sg = ringSegs(fs, ft, n, T.hair or 1)
+    ring(p, fx, fy, fs, ft, 1, T.surf3)                                     -- (the dark cells)
+    if k > 0 then
+        local lc = fc or A.statusColor(f)
+        ringArc(p, fx, fy, fs, ft, k / n, 1, lc)
+        local fix = sg.fix[k]
+        if fix then rects(p, fx, fy, fix.lit, lc); rects(p, fx, fy, fix.dark, T.surf3) end
     end
+    rects(p, fx, fy, sg.gaps, T.base)
     local bc, i = T.borderS, t - fw
     ring(p, x, y, s, fw, bc.a or 1, bc)
     ring(p, x + i, y + i, s - i * 2, fw, bc.a or 1, bc)
 end
+B._condRing = condRing
 
 -- The pointer's wash (T.hover) on a pressable belt box; the hands' is a disc. Off while the controller's mark shows,
 -- so a pointer left resting on the belt never lights a second box beside the pad's.
@@ -2117,12 +2236,24 @@ end
 
 function ZeD_BeltHUD:render() end
 
--- the vanilla item tooltip (ISToolTipInv, the same one the hotbar used),
--- standing above the hovered box and the room for its hover box rather than following
--- the pointer over the belt
+-- THE HELD ITEM'S CARD (punch list 135; the director, Nov 9 2026: "Balloon it too"; Nov 11, after hovering the main
+-- hand with an item held: "belt tooltips for items is still vanilla game UI"; rulings: the loot card, Alt for the
+-- game's, in beta 11): ZeD's loot card, the one the loot lists show (ZeD_LootCard.lua, on ZeD_InvTip's layer above
+-- every window), standing above the hovered box and its hint balloon (chipH: the room the hint takes). Holding Alt
+-- shows the game's own item box there instead (ISToolTipInv, the same one the hotbar used), with every line other
+-- mods add to it.
 function ZeD_BeltHUD:_tooltip(item, b, chipH)
     local ctx = getPlayerContextMenu(self.playerNum)
-    if item and b and not (ctx and ctx:isAnyVisible()) and not self._out then
+    local show = item and b and not (ctx and ctx:isAnyVisible()) and not self._out
+    local T = ZeD.T
+    chipH = chipH or (ZeD.TM:getFontHeight(T.fontF2) + T.px(8))   -- (clear of a one-line hint box)
+    local IT = ZeD.InvTip
+    if show and IT and IT.want and ZeD.LootCard and not IT.altDown() then
+        if self._tip then self._tip:setVisible(false) end
+        IT.want(self, item, { x = b.x, y = b.y - chipH, w = b.w, h = b.h + chipH }, nil, nil, "above")
+        return
+    end
+    if show then
         if not self._tip then
             self._tip = ISToolTipInv:new(item)
             self._tip:initialise()
@@ -2137,8 +2268,6 @@ function ZeD_BeltHUD:_tooltip(item, b, chipH)
             self._tip:bringToTop()
         end
         self._tipChr = self:player()
-        local T = ZeD.T
-        chipH = chipH or (ZeD.TM:getFontHeight(T.fontF2) + T.px(8))   -- (clear of a one-line hint box)
         self._tip.followMouse = false
         self._tip.anchorBottomLeft = { x = self:getAbsoluteX() + b.x, y = self:getAbsoluteY() + b.y - chipH - T.px(12) }
         self._tip:setVisible(true)

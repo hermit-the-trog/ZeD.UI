@@ -242,7 +242,16 @@ local function newEnv(label, sources, clock)
         local log = env.LOG
         local args = { ... }
         local parts = {}
-        for i = 1, select("#", ...) do parts[i] = ser(args[i], 0, env.card) end
+        local n = select("#", ...)
+        -- (a facts row's flush flag, added Nov 11 2026 for the "Used to make" rows, punch list 153: a change of look
+        -- the director asked for, not of the model; left out of the log so OLD and NEW still compare the model, and
+        -- checked on its own below)
+        -- (the log leaves out the card itself: x is args[1], isSub args[7], needsProbe args[8], flush args[9])
+        if name == "M.drawFactsRow" and n > 7 then
+            if args[9] == true then env.FLUSH = (env.FLUSH or 0) + 1 end
+            n = 7
+        end
+        for i = 1, n do parts[i] = ser(args[i], 0, env.card) end
         log[#log + 1] = name .. "(" .. table.concat(parts, ",") .. ")"
     end
     env.require = noop
@@ -692,5 +701,8 @@ NEW.ZeD_ItemCard._cardModel = savedProbe
 frame("bat: the readings back")
 
 print(string.format("   %d frames compared, %d differed (the poison lag left out)", frames, diffs - (caughtTeeth and 1 or 0)))
+-- (153, Nov 11 2026: the "Used to make" rows drawn flush, the director's "flush left with the rest of the card")
+check("153 the card's recipe rows drawn flush left (no indent), as the old card's were not", (NEW.FLUSH or 0) > 0 and (OLD.FLUSH or 0) == 0,
+      tostring(NEW.FLUSH) .. " / " .. tostring(OLD.FLUSH))
 print(string.format("card_model_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

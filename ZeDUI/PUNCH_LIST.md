@@ -2452,8 +2452,8 @@ item says so.
     built, QA to check (b1fae517). Mockup ZeDUI/mockups/zed_survival_guide_v7.html (the look settled with the director:
     the 1983 bookstore guide's chapter openers, the 1990 magazine's grey bar, no marks, no drop caps). Code:
     42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua; ZeD_SurvivalGuide.lua opens it while ZeD setup's new Full or
-    simple row "Survival guide" is Full (the default; the Access preset picks Simple). Chinese, Japanese, Korean, Thai
-    and Arabic keep the window. The game's own faces at any size (Old Standard TT, Roberto Sans Bold Italic, Open Sans),
+    simple row "Survival guide" is Full (the default; the Access preset picks Simple). Chinese, Japanese, Korean and Thai
+    keep the window (AR, the game's Argentine Spanish, gets the book since 154; it was read as Arabic). The game's own faces at any size (Old Standard TT, Roberto Sans Bold Italic, Open Sans),
     drawn as the print pages are. One topic a page; a chapter's first topic opens with "Chapter n", the chapter in heavy
     italic capitals, the clip (or its still), an italic caption, a bold Title Case line; a topic with rules has them on
     the next page; a long topic runs on. Front: the title page, the contents (page numbers, dotted leaders) facing the
@@ -3031,6 +3031,39 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     back, controller) go to the director as multiple choice before building. Ruled Nov 8: a small X close box in the
     note's corner (System 7 style); a 'Show note' item in the desk's menu bar brings it back where it last was; on a
     pad the note is a stop, A picks it up, the D-pad moves it, A puts it down, Y closes it.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** The director, Nov 10: on a pad X writes on the note (A was
+      typing; it now picks the note up). Mouse: the note's top strip drags it anywhere on the desktop under the menu
+      bar, kept where it is let go; the X box at the strip's right end closes it (pressed and released on the box).
+      ZeD menu > Show note (after CletusWorks Notepad, gray while the note shows) brings it back where it last was.
+      Pad: the note stays a stop; A picks it up (its shadow lengthens), the D-pad moves it 16 units a press, A puts
+      it down, B or Escape puts it back where it was picked up, X writes on it, Y closes it; the foot's prompts say
+      so. Keyboard: Enter on the note still writes. The place is kept as fractions of the desktop (so it outlasts a
+      change of screen size) in `Zomboid/Lua/ZeD_desk_sticky_place.txt`; a note never moved keeps its spot at the top
+      of the left column, and once moved the column closes up under it. ZeD_DeskNotes.lua, ZeD_MainMenuDesktop.lua,
+      ZeD_MainMenuNotes.lua. New words: Show note, Pick up, Put down, in all 28 languages as machine drafts (Write and
+      Close are existing keys). Sim: desk_sim's "114" section, desk_sim 159/0.
+      **Check (QA, Mac):** drag the note by its strip to the desktop's middle, quit to the desktop and start again:
+      it's where you left it; drag it past each edge: it stops on the desktop; close it with the box, then ZeD menu >
+      Show note: back where it was; on a pad, select it, A, D-pad a few times, A (kept), A, D-pad, B (put back), X
+      (keyboard), Y (closed); at 1x and 1.75x.
+    - **QA, Mac, Nov 10 2026 (test 2): drag, edge stop, close box, Show note and the place kept after a restart ok;
+      one fault.** Dropped in the top left corner it lay under CletusWorks and Mail, which hid it, and its strip could
+      not be grabbed again. **Build, Nov 10:** a moved note is laid out after every icon, so it draws over them and its
+      hit is the last registered (the desk's pointer takes the last hit under it). desk_sim 161/0 (both new checks fail
+      on the test 2 code). Pad, 1.75x, Light and High contrast not run yet. In test 4.
+    - **QA, Mac, Nov 10 2026: ok.** Dropped over CletusWorks and Mail it draws on top, and its strip still drags it out.
+      Pad, 1.75x, Light and High contrast still to run.
+    - **QA, Mac, Nov 10 2026 (1.75x at 4K): drag, edges, Show note and the restart ok; two faults.** (1) A click on the
+      close box also lit CletusWorks under it. It was the close moving the selection to the next icon, meant for the
+      pad; with the mouse nothing is selected now (desk_sim 162/0; the new check reads cletusworks on the old code).
+      (2) The empty note's "Type a note here." stays one large size whatever the scale ("Type a" at 1.75x, "Type" at
+      1x), like the Journal's "Search lists...". The game's placeholder keeps its own fixed face; ZeD's entries only
+      switched their typed text. **Build:** ZeD draws the placeholder itself (ZeD.Text.ownPlaceholder,
+      Overrides/TextScale.lua) in its F2 face at the scale: wrapped on the note, cut with an ellipsis in one-line boxes;
+      used by the note, every ZeD search field and the chat box. **Check (QA):** the empty note and the Journal's
+      search at 1x and 1.75x: the whole hint, ZeD's size. Also seen: the list menu draws under the debug Lua console
+      (only with -debug), not looked into.
+    - **Superseded by 142 (Pasties), Nov 10 2026:** the one note became many, made from an icon; Show note is gone.
 115. **Bug reports hide the player's account name (the director, Nov 8 2026: "Hopefully yes"; beta 9).** ZeD_Messages.lua
     reportHeader / report / reportOne / reportAll and the Messages window's Copy / Copy all replace the Windows user
     folder (C:\Users\<name>\ and the forward-slash form -> ~\) and the Zomboid folder (getMyDocumentFolder -> ~/Zomboid)
@@ -3109,6 +3142,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the unroll restores the saved spot (864 design units x 0.75 = 648) rather than the live one (644, beside the
     Character window). One pixel rule for both: round the saved spot the way the live layout does, or restore the live
     spot. Small; after beta 10.
+    - **Build, Nov 10 2026: done, waiting on QA in the game. The cause wasn't the rounding.** QA's own log shows it:
+      after ZeD_Window.resetLayout the World window sat at 644 with its saved x at 864 design units (648 px). The push
+      the half-screen cap had made earlier in the run (4 px, _drawerCapPush) stayed on the window through the reset,
+      was saved on top of the reset's x, and was given back when the next drawer closed. resetLayout now clears both
+      windows' push and lost width (_drawerCapPush, _drawerCapLost). Organisms.lua. Sim: reset_cap_push_sim 8/0 (it
+      reads the 864 on the old code). **Check (QA, Mac or Deck size):** zedqa_curtain at 1280 x 800: "tab closed
+      while rolled" ok at 644.
+    - **QA, Mac, Nov 10 2026 (1280 x 800): ok.** "tab closed while rolled" at 644,0; the curtain run's 312 lines have no
+      FAIL, no ERR, no Lua error. **Done** but for the Workshop upload.
 
 126. **The Character list slides when its drawer folds at small sizes (QA's staged Deck run, Nov 9 2026; also in
     beta 9).** At 1280x800 (0.75) with Equip's full card open, the half-screen cap costs the window 53 px and pushes it
@@ -3118,6 +3160,56 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     misses. Fix idea: while the halves have a folded tab (s.foldTab), skip the give-back (newW = want). Also hold off
     the at-rest clearing of _drawerCapLost and the base-width tracking while folded, or the 53 px get saved as a
     smaller inventory width. Medium risk (the anchor is touched in several places): after the Nov 13 reset.
+    - **Build, Nov 10 2026: done as the fix idea says, waiting on QA in the game.** While the drawer is folded
+      (ZeD.Halves.foldedTab) the window narrows by the drawer alone: no give-back, the lost width stays owed, the
+      at-rest clearing and the base-width tracking hold off. An unfold opens the drawer back to the cap with the
+      debt still owed for the real close; a fold that ends with the drawer still shut (another tab, a reset) pays the
+      53 px back at once, so the inventory keeps its width. Left: the window opens pinned 4 px past x 0, and as the
+      drawer narrows that push runs out, so the list moves 4 px left once (holding it would move the anchor 4 px
+      right for good, the bug the push was made to stop). ZeD_CharacterWindow.lua's width model. Sim: fold_slide_sim
+      16/0, which cuts the real width model out of the file and runs it frame by frame (on the old code it reads
+      the 57 px slide).
+      **Check (QA, Deck size, 1280 x 800):** Equip's full card open, the pointer resting on the Character list: let
+      the drawer fold in (pointer on the inventory past 2 s): the list moves no more than 4 px; then point at the
+      drawer's bar: it comes back where it was; then fold again and pick another tab: the inventory is as wide as
+      before the card.
+    - **QA, Mac, Nov 10 2026 (1280 x 800, the Firefighter Axe's card in Equipment, the list recorded each frame).**
+      First fold ok: the list moved 4 px once (387 to 383), 53 px stayed owed; the drawer's bar brought it back where
+      it was. Two more reads: (1) "the second fold", after the inventory half rolled up and came back: the list came
+      back at 334 with the debt paid (x 307, 333 wide). That is WindowHalves' instant fold (snapShut): the whole window
+      back from rolled-up with the drawer half folded pays the debt on purpose, so the inventory reappears at its full
+      width (dual_pin_sim CAP: 444 wide, not 160); the window was rolled up, so nothing slid under a resting pointer.
+      Kept as it is. QA saw one frame at 694 first: a flash as the window comes down, not looked into. (2) Another tab
+      while folded: with Health open the inventory read 226 with 53 owed. With a drawer open at the Deck size 226 is the
+      cap's width, so that read is right, but the debt was a stale one from the fold: had Health been narrower than
+      the card, it would have opened 53 px narrower than it could, and the inventory stayed 53 px narrow after Health
+      closed. **Build, Nov 10:** a fold that ends any way other than its own tab coming back (another tab, a card, the
+      drawer shut) pays the debt at once, so the next drawer opens from the inventory's own width. fold_slide_sim 22/0
+      (OTHER fails on the old code: 226 after Health closed). **Trade-off for the director:** while a drawer is folded
+      the inventory stays as narrow as the cap made it (53 px at the Deck with the axe's card; with a 480 px drawer it
+      would be 284, a very narrow inventory), so the list doesn't move. The alternative is the old way, full width
+      while folded with the list sliding. **Check (QA):** fold, pick another tab, close it: the inventory back to 279.
+    - **The director, Nov 10 2026: keep the current version** (the inventory stays as the cap made it while folded; the
+      list doesn't move).
+    - **QA, Mac, Nov 10 2026 (recheck at 1280 x 800, real clicks): ok.** Fold (the list 4 px once), Health opened (226,
+      53 owed: right, Health's 360 is over the cap too), Health closed: the inventory back to 279, nothing owed. One
+      thing seen: as Health opened from the fold, and as it closed, the list sat 53 px left (383 to 330) for about 10
+      frames. That was the fix paying the debt at once while the new drawer slid open. **Build, Nov 10:** the fold's
+      debt now rides through the new drawer (kept from the at-rest clearing, _foldDebt) and is paid as that drawer
+      closes; the drawer shut (Loot, a reset) still pays at once. fold_slide_sim 27/0 (OTHER at 300 and 360 px reads
+      the 330 on the previous code). **Check (QA):** the same steps: the list no more than 4 px as Health opens and
+      closes, and 279 after.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **partly:** the list stays put through the fold and while Health opens; the inventory ends at 279,
+    nothing owed; but it still moves 53 px as Health closes. **Build answered:** that move is the window going home
+    (the list ends where it was before any card opened, the window at its own place), but it went in the close's first
+    two frames (the debt paid as fast as the drawer narrowed: 30 px, then 23), so it read as a jump. The fold's debt
+    is now paid in step with that drawer's close, what is still owed shrinking with what is left of the drawer: the
+    list eases home over the slide in 4 or 5 px steps (8 on the first frame, which also lets go of the 4 px push at
+    the screen's edge). A plain close (no fold) is as before. fold_slide_sim 31/0 (its new checks read 25 and 30 px in
+    one frame on the old code). **Recheck (QA, Mac, 1280 x 800):** fold, open Health, close it: as Health closes the
+    list slides back with it, no jump, and ends where it was before the card, the inventory 279.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok:** as Health closes the list eases home, 8 px on the first frame then 3 to 4 px a frame, ending at
+    330 with the inventory 279, nothing owed.
 
 127. **The default accent is PZ Teal (the director, Nov 9 2026, via QA: "Change default to PZ Teal with beta 11.").**
     Orange becomes one of the nine like the rest; PZ Teal is "teal" in Tokens.lua (#47a18c Dark, #1a6655 Light).
@@ -3130,6 +3222,18 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     A saved Orange stays Orange: PZ's mod options file keeps every option once it's saved, so a player who left
     Orange alone can't be told from one who chose it, and nobody's colors change under them. Not a design change to
     any component, so no mockup; QA pictures the main menu, a window and a balloon in Teal at 4K and Deck.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** `ZeD.DEFAULT_ACCENT = "teal"` in Tokens.lua is the boot
+      theme, ZeD.currentAccent's start and applyTheme's fallback for a key that names nothing; Settings.lua's Accent
+      color combo marks Teal as its default item, and a missing or out-of-range stored index lands on it too. A saved
+      Orange (item 2) stays Orange. Teal's Dark hover wash was already Orange's 0.22, so nothing changed there. No
+      player-facing text names Orange as the default (game strings, the beta 11 page). Sim: default_accent_sim 24/0
+      (9 of its checks fail on the old code). Left as is: RadioTab.lua's preset "+" button paints a fixed orange (its
+      comment says it bypasses the theme on purpose); whether that radio face should follow the accent is the
+      director's call. The gallery scripts' "Dark + Orange" look moves to Teal with the retake (129).
+      **Check (QA, Mac):** delete `accentColor` from `~/Zomboid/Lua/ModOptions.ini` (or use a clean cachedir), start,
+      expect Teal on the main menu, a window and a balloon; set Orange, restart, expect Orange.
+    - **QA, Mac, Nov 10 2026 (test 2): ok** on the main menu: a fresh start is Teal, a saved Orange stays after a restart.
+      A window and a balloon in Teal not looked at yet.
 
 128. **The gallery book's running head uses a middle dot (QA, Nov 9 2026).** Every left page reads
     "Bitchin' znix Programs · Doidbros & Buzzlord", against the never-"·" rule. The book is a printed prop, so a hyphen:
@@ -3150,10 +3254,36 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     "protected role" message (P.banProtected, punch list 123) never shows for an offline moderator or admin. Fix:
     after a role change, update the cached row from the change itself (or ask the server for the user list again and
     rebuild on its answer). Also test an online moderator.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** Two causes. The server: for an account that is off, its
+      card and the Players rows read the role saved from the player's last visit (md.players), and a_role never wrote
+      it, so both kept the old role, and the client's rows take the server's role over the game's list. Now a_role
+      saves the new role on the record. The client: the game's list is a cache only requestUsers refreshes. Now a
+      role changed from the card asks for the list again and holds the new role on its row until the game's list and
+      the server's rows both show it (two minutes at most). ZeD_ServerAdmin.lua, ZeD_Admin.lua. Sim: admin_sim's "130"
+      section (offline and online moderator), 561/0; its checks fail on the old code.
+      **Check (QA, Mac, two players on a local server):** an offline moderator: Player card > Role > user > Change
+      role: the badge and the box say user at once and after reopening the card; Ban now shows (or, the other way, a
+      user made moderator shows the protected-role message). The same with the moderator online.
+    - **QA, Mac, Nov 10 2026 (test 2): ok for an offline account, both ways.** user to moderator: the badge at once,
+      Ban greyed with the protected-role message; moderator to user: Ban back; both hold after reopening the card. The
+      online case needs a second client, which the Mac can't run: still open.
 
 131. **The belt's balloon over the hint strip (QA's Mac run, Nov 9 2026; beta 11).** Hovering Back draws its balloon
     over the "Right Click More" hint strip just above the belt, so they read as one line ("Back | key 1 More"). The
     belt's balloons sit clear of the hint strip (above it), or the strip steps aside while a belt balloon shows.
+    - **Build, Nov 10 2026: done (the strip steps aside), waiting on QA in the game.** The hint strip isn't drawn while a
+      balloon that is up covers it or comes within 4 units of it, and draws again once the balloon is down (150 ms,
+      the balloon's own stale time). Any balloon, not only the belt's: one over the strip leaves it unreadable
+      anyway. ZeD_HintStrip.lua (H.covered). Sim: hint_strip_cover_sim 9/0.
+      **Check (QA, Mac):** with the hint strip on (always) and something in front of you that gives it words, hover
+      Back, a slot and a hand on the belt: the strip is gone while the balloon shows and back when it goes; on a
+      controller, focus on a belt slot does the same.
+    - **QA, Mac, Nov 10 2026 (test 2): Back and Belt L ok; the hands not.** Primary and Secondary's balloons stand beside
+      the strip, not over it, so it stayed. **Build, Nov 10:** the strip now steps aside while any balloon of the belt's
+      is up, wherever it stands (the balloon slot's owner is the belt), as well as for any balloon over it.
+      hint_strip_cover_sim 12/0 (the belt's balloon off to the side). In test 4.
+    - **QA, Mac, Nov 10 2026: ok.** The strip goes while Back, Secondary or Primary shows its balloon and comes back
+      after. **Done.**
 
 132. **Strip submenus on rest (QA's Mac run, Nov 9 2026; CLOSED, no change: the director, via QA: "No, click only").** The Strip opens a submenu on a click; resting shows only the balloon. A change note that mentions rest names the List only. In the List style, a submenu opens when
     the pointer rests on its row (beta 9). In the Strip style, resting on Disassemble shows its balloon, but the
@@ -3162,12 +3292,62 @@ Items QA has confirmed in the game in full (their history stays in place above; 
 
 133. **Strip scrolling (QA's Mac run, Nov 9 2026; minor).** An overflowing strip scrolls one icon per arrow click and
     leaves the edge icon cut in half. Scroll a page of whole icons per click, and stop on whole icons.
+    - **Build, Nov 10 2026: done, waiting on QA in the game.** The cause: an overflowing strip centred its anchor cell,
+      and with 10 showing that left half a cell at each end. Now the window holds whole cells, the anchor in the 5th
+      slot; each arrow click moves it 10 cells (the selection to the anchor's cell), sliding as before and stopping on
+      whole cells. The keyboard's and the pad's one step still move one cell; the bumpers still jump a group; a strip
+      of 10 or fewer steps one cell per arrow, as before. Two quick clicks move the view a copy back first, so the
+      page never runs off the three copies (nothing moves on screen). ZeD_ContextMenu.lua (page, nextPage, prevPage,
+      the layout's whole-cell offset). Sim: strip_page_sim 308/0 (11 to 31 cells at 1x and 1.75x).
+      **Check (QA, Mac):** a menu with 15 or more options (a crate of mixed things, or a car's): click the right
+      arrow 3 times, then the left 3 times, at 1x and 1.75x: no icon cut at either end, each click shows the next 10
+      with none skipped or repeated, and you land back on the first page.
+    - **QA, Mac, Nov 10 2026 (test 2): ok at 1x**, paged from the harness (the arrow functions). QA's own clicks on
+      the arrow closed the strip, which QA thinks missed the arrow (a click outside the strip's parts closes the
+      menu). Recheck by hand at 1x and 1.75x: a click on the arrow pages and never closes.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **wrong:** real clicks on the arrows don't page. The right arrow opened the "Move to" submenu and the
+    left one equipped the hammer: the carousel registers a zone for every copy of every cell it lays out, the copies
+    scrolled past the strip's edges too, before the arrows register theirs, and the panel's lookup takes the first
+    zone that holds the point, so a cell hidden under an arrow took its click. **Build answered:** the strip's own
+    hit test (ZeD_ContextMenu:hitZoneAt): the arrows and bumpers win, and a cell counts only inside the strip's box,
+    where it shows (which also stops the hover over an arrow selecting a hidden cell). strip_page_sim 314/0: its HIT
+    section clicks the arrows over hidden copies (five of its checks fail on the old lookup, "confirm" for an arrow).
+    **Recheck (QA, Mac):** real clicks on both arrows at 1x and 1.75x: each pages, never confirms or closes.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok** at 1x and 1.75x: each real click on either arrow pages by ten (selection 1, 11, 6, 1 on 15
+    options), the strip stays open, nothing fires; resting on an arrow leaves the selection alone. QA's note: with 14
+    options three clicks right land on option 3, not the first page (ten at a time round 14). **By design:** the strip
+    is a loop and a page is the ten cells shown; three pages of 14 come round to 30 mod 14. Only a count that divides
+    into pages of ten lands back on the first.
 
 134. **Custom Map Labels don't draw on ZeD's map (QA's Mac run, Nov 9 2026; investigate).** No error now; the mod
     writes 82 labels into the map symbols at start (Muldraugh and others), but none show on ZeD's map near the player,
     even zoomed out. Check: what the mod writes (text symbols? which layer or style?), whether ZeD's map hides them
     (MapsTab hideLabels in Paper; the text layers; a symbol filter), whether the game's own map hides symbols in
     unexplored cells, and how the same labels look on the game's map without ZeD.
+    - **Build, Nov 10 2026: investigated from here; needs one in-game run to settle.** The likeliest cause is ZeD's own
+      Paper style: hideLabels (MapsTab.lua) sets every fill stop of the map's place-label text layers (text-town,
+      text-place, text-street and the rest) to alpha 0, so Paper's illustration doesn't print names twice. Since 42.11
+      a text symbol carries a layer id (WorldMapSymbols addTranslatedText(text, layerID, x, y, r, g, b, a)), and a
+      mod that names places would naturally write into those same layers; if it does, Paper hides its labels along
+      with the map's own. Survey and Color don't touch the layers, so the labels should show there, unless the mod
+      uses a layer ZeD's style never makes (initDefaultTextLayersV3 makes the vanilla set only). The probe:
+      zedqa_cml.lua step 4 now reports each label's layer id, its own colour, and, in Survey, Color and Paper, whether
+      the map's style has that layer and its fill alpha at each zoom stop, with a shot of each style at a label's
+      place. **Check (QA, Mac):** run cml_manifest.txt with a map mod the mod has labels for (or its Vanilla labels
+      option on); send the "ZEDQA cml layer" lines and the three shots. **If Paper is the cause:** Paper keeps those
+      layers and hides the map's own annotation labels another way (Build to find one that leaves symbols alone), or
+      Paper shows mod labels and accepts some doubled names (the director's call).
+    - **QA, Mac, Nov 10 2026 (the probe, test 2): Paper is not the only cause.** The labels are visited-only (they
+      show only in cells you've seen), sit in the map's own label layers (Paper sets those to alpha 0; Survey and Color
+      keep them), and each label's own colour reads rgba 0,0,0,0. In a revealed area of Muldraugh, Survey draws the
+      game's street names but none of the mod's labels. **Next (QA):** the same revealed place on the game's own map
+      without ZeD (ZeD off, the same mod list): do the mod's labels draw there? If they do, ZeD's map is missing
+      something the game's map has (a layer setting, the symbols' colour taken from the layer); if they don't, the mod
+      itself doesn't draw them in that place, and it isn't ZeD's.
+    - **QA, Mac, Nov 10 2026: not ZeD's.** With ZeD off (only Custom Map Labels and the harness), the game's own map on
+      the same revealed Muldraugh area draws its street names and the store holds the same 82 symbols, but none of the
+      mod's labels show (Muldraugh, Wrecking Yard, Store-A-Max), at zoom 15 or 13.8. With the labels' own colour fully
+      transparent, it points at the mod. **Closed for ZeD**; worth a word to the mod's author (the director's call).
 
 135. **The held item's box (QA's Mac run, Nov 9 2026; director's call, QA asking).** A held axe shows the game's own item
     box (Encumbrance, Sharpness, bars) above ZeD's "Primary" balloon. By design: the balloon spec keeps the game's item
@@ -3177,6 +3357,27 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (Encumbrance, Sharpness, condition bars as the balloon's bars). Tooltip mods add lines to the game's item box
     (ISToolTipInv / ObjectTooltip DoTooltip hooks): read the lines they add and carry them in the balloon, so no mod's
     line is lost; QA tests with a tooltip mod or two. Until then the next note doesn't claim every box.
+    **The director, Nov 11 2026: "belt tooltips for items is still vanilla game UI. hover over primary with an item in
+    primary to see."** Rulings: **the loot card, Alt for the game's** (fast looting's ZeD loot card, 146, rather than a
+    balloon copying the game's lines), **in beta 11**. **Built:** the belt's _tooltip (ZeD_Belt.lua) asks ZeD_InvTip's
+    card layer for the loot card (IT.want with "above": the card stands above the hovered box and the room its hint
+    balloon takes, its tail on the box's column; on the layer above every window); the game's ISToolTipInv only while
+    Alt is held, where it stood before, with every line other mods add; neither while a right-click menu is open or an
+    item is dragged off the belt; without ZeD_InvTip loaded, the game's box as before. The card reads the belt's own
+    player (InvTip's characterOf takes the owner's playerNum when the owner is in no window). belt_mods_sim 149/0 (the
+    CARD section; four of its checks fail on the old belt), fast_loot_sim 81/0. **Check (QA, Mac):** hover the main
+    hand, the off hand and a belt slot with an item in each: ZeD's card above the box's hint at once (name, condition,
+    weight, the item's own figures); hold Alt: the game's box there instead, let go: the card back; with a tooltip mod
+    on, its lines under Alt; a right-click menu on the belt: no card; at 1x and 1.75x.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok:** ZeD's card at once on the main and off hand at 1x and 1.75x and on a belt slot at 1x; Alt swaps in
+    the game's box and letting go brings the card back; the card goes while dragging. Not run: a right-click menu
+    open on the belt, a tooltip mod's lines under Alt. **QA asked:** the "Right Click More" hint strip stays up beside
+    the belt's card, where under 131 it steps aside for a belt balloon: intended? **Build answered:** no, a slip of
+    135's. The strip steps aside while a balloon of the belt's is up; the card is drawn last, on ZeD_InvTip's layer,
+    so the balloon that is up was the layer's and the belt's own hint under it no longer counted. ZeD_HintStrip
+    (H.covered) now steps aside while the belt has its card asked for (hint_strip_cover_sim 15/0; its new check fails
+    on the old code). **Recheck (QA):** hover a held item on the belt: the hint strip gives way while the card is up.
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok:** the hint strip steps aside while the belt's card is up and comes back after.
 
 136. **The bigger Lua console (the director, Nov 9 2026: "1", a full plan; build after the Nov 13 reset).** Source:
     docs/reference/RESEARCH_console_tooling_20261108.md (the director's research, Nov 8). Rulings: debug mode only
@@ -3209,3 +3410,731 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     change-note line under Mods ("Responsive Context Menus: menus update in place as you move, light changes or a tool
     comes into reach; options that keep the menu open work"), and the mod goes on the compatibility thread's Supported
     list.
+138. **Menu marks and four icons (design, Nov 9-10 2026; the director approved all of it; beta 11).** Handoff:
+    `ZeDUI/HANDOFF_design_menu_marks_eat_20261109.md`, sheets and scripts in `ZeDUI/mockups/zed_menu_marks_v1/`
+    (moved from the old-history design branch onto main, Nov 10). Build: color marks the difference between paired
+    actions, blue `#0B63B0` for the first (add, on, in, open, enter) and red `#C2410C` for the second, on the strip,
+    the list menu and the wheels at rest only (a pointed cell draws as today); new Eat (three-tined fork), Sneak and
+    Sneak off, and the boarded-up Safehouse with claim and release; `kit.badge` 8 wide at 24 so every 24 plus sits
+    centered; the screwdriver turned handle up. Check: the handoff's own QA list (marks read as color at 1.75x and up,
+    shape only below; no color left on the pointed cell; nothing outside the tables colored).
+    - **Build, Nov 10 2026: the strip and the wheels done, the list menu waiting on the director.** wheelpx: the canvas
+      keeps a mark layer (badges, strikes and the hand-marked arrows draw on it too); `marks.py` holds the table (46
+      icons) and its check; `export.py --game` writes `zw_<id>_mk.png` at 16/24/32/48 and `ZeD.PxIconMark` at the end
+      of ContextPxIcons.lua. `kit.badge` is 8 wide at 24: every 24 badge moved a pixel (31 icons, the 16s untouched;
+      `come_here`'s left arrow moved one column in to stay on the icon). New: `eat` (Eat and its parts, and the two
+      other "user-eating" rows, Set animal hungry and the hunger fluid property), `sneak` and `sneak_off` (the x top
+      left; the 24's x is the new 8-wide one, the mockup had 7), `safehouse`, `safehouse_claim`, `safehouse_release`
+      (their rows have picture names of their own in ContextIcons.lua; Reinforce keeps its shield), the screwdriver
+      turned handle up. All match the design's PNGs pixel for pixel but that one x. Game: `ZeD.Ctx.markAdd` /
+      `markRemove` in Tokens.lua; `ZeD.Atoms.drawPxIcon(..., marks)` draws the mark's picture over the icon in its
+      color; the strip's cell (and so the wheels', which now hand it the icon's id) asks for marks at rest only.
+      The container pair follows the rule, not the handoff table's ids: in the game `tray_in` is Take / Take Out /
+      Loot all (blue) and `tray_out` Put In / Transfer all (red). Sims: menu_marks_sim 504/0 (53 of its checks fail
+      on the old code), `python marks.py` 0 problems.
+    - **The list menu, Nov 10 2026 (the director: "Shades per theme", then approved the sheet).** The list sits on the
+      theme's surface, not the paper, where the paper pair falls to about 3 : 1. Each base theme carries its own pair
+      for it (T.marks): Dark and High contrast blue #4491E2 / red #D9572A, Light blue #014E8E / red #872801 (the red
+      reads as rust there), all at 4.5 : 1 or more on surface 1, the same hues as the paper pair, and further apart
+      under the three kinds of color blindness than the paper pair (Light about the same). Rows at rest only: the row
+      the pointer or pad is on, and a row whose submenu is open, keep the whole icon in their words' color.
+      menu_marks_sim 513/0. **Check (QA, Mac):** at 1x and 1.75x, Dark, Light and High contrast: the strip, a wheel
+      and the list each show blue on Equip / Take / Zoom in and red on Unequip / Put in / Drop / Dispose's lid / a
+      strike; the pointed cell or row has no color left; Eat, Sneak and the safehouse rows show the new icons; the
+      24 plus sits centred (Equip in a wheel at 1.75x).
+    - **The director, Nov 10 2026, on QA's two questions:** Place Item keeps the red Drop arrow (putting a thing down
+      in the world is its "leaves you" side); Grab (the floor's, a corpse, an animal from a hutch) takes the Take icon
+      with its blue arrow: its own picture name, "grab", so Smash keeps the fist. menu_marks_sim 606/0.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass at 1.75x** in Dark, Light and High contrast: blue and red right, the pointed cell one colour (1x
+    passed on an earlier build, not rerun). QA couldn't confirm "the 24 plus centred on Equip": Equip drew a blue arrow
+    there. **Build answered:** the check's example was wrong, not the icon. The centred plus is the badge on `equip`
+    (the open hand), which shows on a plain "Equip" row; a weapon's "Equip Primary" draws the hand with an arrow.
+    **Recheck (QA):** at 1.75x, an item's right-click > Save to outfit (the hanger, 140): the plus's bars in the middle
+    of its badge, as many pixels above as below.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** **ok:** on Save to outfit at 1.75x the plus has 3 pixels above its bar and 3 below; Save to loadout the
+    same.
+
+140. **The outfit and loadout icons in the game; the radio's preset "+" follows the accent (the director, Nov 10 2026:
+    "Yes, add those. Put them in the game." and "it should follow the accent").** The six list icons drawn Oct 30
+    (HANDOFF_list_icons_20261030.md) had never been exported: the game showed the stand-ins (the hanger and the list
+    view). Now `L.ICON = { outfit = "outfit", loadout = "loadout" }` (ZeD_Lists.lua), so the Journal, the item card's
+    mark strip, the wheels and the menus show the shirt on its hanger and the clipboard; Save to outfit / Save to
+    loadout (right-click) and the Equip bar's Save what you wear / carry take the plus versions (L.icon(kind, "add")).
+    The plus and minus are marks (blue, red) by 138's rule for a new pair. The minus versions are in the game for a
+    take-out row; none uses them yet (a checked list's row takes the item out). RadioTab.lua: the radio face's preset
+    "+" button is the accent (bright in assign mode, text on accent), not a fixed orange. Sims: menu_marks_sim 584/0
+    (its LISTS checks). **Check (QA, Mac):** an item's right-click > Save to outfit shows the hanger with a blue plus;
+    the Journal's Lists page and the item card's Lists mark show the new icons; a radio with presets: its "+" is Teal
+    (and follows another accent).
+
+141. **The fill bars' cells spread evenly (the director, Nov 10 2026: "Keep 10, spread evenly", after QA measured the
+    Cond column).** The end cells took every pixel left over: 5 and 6 px beside 3 px middle cells at 1x, 9 beside 5 at
+    1.75x (punch list 120's "wider end cells"). Now the spare pixels go one a cell to the cells nearest the two ends,
+    so no two cells differ by more than a pixel and the bar still meets its frame. Ten cells stay (Skills is one a
+    level). A bar draws in at most seven calls (was four): the gaps go in a run per stretch of equal cells. Atoms.lua
+    drawSegBar. Sims: seg_bar_spread_sim 31795/0 (4974 fail on the old code); drawer_tabs_perf_sim's bar check now
+    reads the new rule, 73/0. **Check (QA):** the Cond column and a skill bar at 1x and 1.75x: cells even; the
+    drawers' ms with pinned windows against beta 10's (b9_perf.txt).
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass:** ten even cells at both scales. Not run: the drawers' ms against beta 10's.
+
+142. **Pasties: the sticky note becomes an app (the director, Nov 10 2026: "what if sticky was an icon, when clicked it
+    creates a new sticky on the desk. Starts with none." and "'Pasties' is the app name").** Rulings, Nov 10: closing
+    a note throws it away (one with words asks first: Throw away or Keep); up to 8 on the desk; a new one lands beside
+    the icon, each stepped down and right from the last. Built: the Pasties icon heads the desktop's left column (a
+    pad of yellow notes, bake_desktop_icons.py); opening it, or ZeD menu > Pasties, sticks a new note (the icon and the
+    menu item grey at 8; with the mouse the caret goes in, on a pad the selection does). Each note is 114's note: its
+    strip drags it, it lies over the icons, its place kept as fractions; on a pad A carries it, the D-pad moves it, A
+    puts it down, B puts it back, X writes, Y throws it away (A / B answer the question). Show note is gone (nothing
+    hides now). Model: ZeD_DeskNotes.lua N.pasties (slots 1 to 8: ZeD_desk_pasties.txt for the places,
+    ZeD_desk_pastie_<id>.txt for the words); the first read moves the old sticky's words, if any, into Pastie 1 where
+    it sat. The desk makes one field a slot, all under the windows. New words: Pasties, "Throw this note away?",
+    Throw away, in all 28 languages (Pasties kept as the name); Keep is UI_ZeD_Cl_Keep; UI_ZeD_Desk_StickyShow
+    removed. Sims: desk_sim 180/0 (the Pasties sections, the old note's move), desk_notes_sim 63/0;
+    zedqa_b8_mp_bob_desk.lua checks Pasties now. **Check (QA, Mac):** a fresh desk has no notes; double-click Pasties
+    three times: three notes stepped from the icon, the caret in the newest; type, restart: words and places kept;
+    close an empty one (gone at once) and one with words (asks; Keep, then Throw away); make 8: the icon greys; on a
+    pad the same with A / X / Y / B; at 1x and 1.75x. A desk that had words on the old note shows them as one Pastie.
+    **QA, Mac, Nov 10 2026, on 0d55e59: works end to end; four problems.** Build answered:
+    1. *Typed words about 2.5 times the hint's size at 1.75x (right at 1x).* The entry face picker trusted its table's
+       26 px for Intro; when that slot draws a far larger face, its measured line height now decides, so 1.75x falls to
+       Dialogue (Scale.lua entryFaces; 55e1f2ed). If the words still come out large, a probe of each slot's height next.
+    2. *A lower note's words showed over the note on top.* The game's text box draws over every paper, so only the
+       note being typed in, or one with no note over it, keeps its box up; a note under another has its words (or its
+       hint) drawn by the icon layer in the pile's order. A press on a lower note's words, an open, a pick-up or a drag
+       brings that note to the top of the pile (N.raisePastie; the order is kept in the Pasties file).
+    3. *A new note opened under the Main menu window, and the typing went into it.* A new note goes beside the icon
+       when that is clear of the open window, else the nearest clear place beside the window (right, below, above,
+       left: MM.pastieSpot); with no clear place it goes beside the icon with no caret.
+    4. *"Throw away" read "Throw ...".* The question's buttons stack, Throw away over Keep, each the note's width.
+    desk_sim 194/0 (a new section for the four). **Recheck (QA, Mac):** at 1.75x the typed words the hint's size; two
+    notes overlapping: the lower one's words under the upper paper, a press on them brings it up with the caret; with
+    the Main menu window open a new note lands beside it and takes the typing; the question's two buttons read whole.
+    **QA, Mac, Nov 10 2026, on 12a1890 (the fixes of 103a0144): three of four hold.** The stacked words, the new note
+    beside the Main menu window and the whole buttons pass at 1x and 1.75x. The typing at 1.75x was still large; the
+    probe of each slot's line height at 4K, ZeD 1.75x: Small 65 px, Large 76, Dialogue 23, Intro 33. Found besides:
+    the notes beside the window lay over the Project Zomboid and New game icons; a second note there sat almost on top
+    of the first (both against the desk's right edge); pressing Keep on a note brought the note under it to the top;
+    an empty note showed no hint while the caret was in it. Build answered:
+    1. *The typing.* The picker kept a slot only when it was taller than the one before, so it dropped Dialogue and
+       Intro (ZeD's own entry faces) behind the game's 65 and 76 px Small and Large and typed in Small, about 49 px.
+       Every slot is measured now, the face nearest the size wins: at 4K 1.75x Intro, ZeD's 26 px face (Scale.lua
+       entryFaces). entry_font_sim 16/0 on QA's heights.
+    2. *Over the icons, almost on top.* A new note takes the stepped place beside the icon when it is clear, else the
+       nearest place clear of the open window, the desktop's icons and nearly on top of another note; failing that,
+       clear of the window and the icons; failing that, of the window (MM.pastieSpot).
+    3. *Keep went through.* A press is matched to the note whose paper is under it, read from the icon layer's cells:
+       an asking note's field is moved off while it asks, so the press went to the note under it. A press on an
+       asking note is its question's now.
+    4. *No hint while typing.* As every ZeD text box does, the hint shows while the box is empty and not being typed
+       in; with the caret in it the hint goes. Unchanged; the director's call if notes should keep it under the caret.
+    desk_sim 199/0. **Recheck (QA, Mac):** at 4K 1.75x the typed words the hint's size; with the Main menu window
+    open two new notes off the window and the icons, apart; Keep on a note over another leaves the pile as it was.
+    **QA, Mac, Nov 10 2026, on 2b7fc27: all pass** (the typing at 4K 1.75x the hint's size; two notes beside the open
+    window off it and the icons; Keep leaves the pile as it was). The second note there lands a strip below the
+    first, its words covered. **The director, Nov 10: "cascade"**: kept, beside the window as beside the icon.
+
+143. **Status bars take five cells, rounded up (the director, Nov 10 2026: "Skills you want 10 segments because there
+    are 10 levels. Conditions should be OK with 5"; then "Every status bar" and "Round up, red at 20%").** Every
+    graduated bar (green, yellow, red: item condition in the Cond column, a grid cell, the Equipment card and the
+    doll, a vehicle part's and the vehicle's overall, a body part's health, the trailer's animals) draws five cells;
+    Skills keep ten (one a level) and every amount bar (food, fluid, power, capacity) ten. A cell lights rounded up,
+    so a nearly new item reads full and only a broken one empty; the color goes by cells lit: four or five green
+    (over 60%), two or three yellow, one red (20% and under; was 30%). Sims: seg_bar_spread_sim 32824/0 (the STATUS
+    checks), belt_mods_sim 141/0, animals_speed_sim 36/0, drawer_tabs_perf_sim 73/0. One rule, ZeD.Atoms.statusColor, now colors
+    every reading beside a status bar too (part condition, body health, the HP number, the animals' dots, the belt's
+    hand rings, the item card's zones, the old grid's bars), so a bar and its words never disagree. Atoms.lua
+    (STATUS_SEGS, statusSegsLit, statusColor), MechanicsTab, MechTrailer, EquipDoll, AnimalsTab, ObjectCardMedic,
+    ZeD_Belt, ItemCard, HealthTab, Organisms, ZeD_CharacterWindow. **Check (QA):** the Cond column at 1x and 1.75x
+    (five even cells), an item at 95% (full), one near broken (one red cell), the Mechanics parts list.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass** at 1x and 1.75x: five even cells; an axe at 92% five green, a hammer at 10% one red. Not
+    run: the Mechanics parts list (no car in the save).
+
+144. **Status colors: a color blind option (the director, Nov 10 2026: "Should we change our Good color to the blue we
+    use in the context icons? Be color blind friendly?", then, after the swatch page, "Add as an option").** The page
+    (ZeDUI/qa/status_colors_swatches.html; published for the director as an artifact) measured today's colors: under
+    deuteranopia Dark's green and red differ by 6 (CIELAB), Light's by 5, High contrast's by 12, so they read as one
+    color. New in ZeD setup's Look, after Accent: **Status colors, Standard (the default) or Color blind**, also on
+    the Mods page. Color blind swaps every good, warning and bad color, not only the bars: good takes the menu marks'
+    blue, bad their red-orange, warning a yellow that stands off red by brightness (Dark #4491E2 / #F0D060 /
+    #D9572A; Light #014E8E / #8C6E00 / #6E1E00, red a shade darker than the mark; High contrast #5AAEFF / #FFDD33 /
+    #E84A22, blue brighter than the mark). Good to bad goes past 80 under deuteranopia; warning to bad 27 to 36. The
+    text shades are solved from the new fills as ZeD solves them now (4.6 : 1). Tokens.lua (ZeD.StatusColors,
+    ZeD.statusSet; applyTheme and deriveReadable read it), Settings.lua (statusColors; the windows' own palettes are
+    rebuilt on a change), ZeD_MainMenuOptionGroups.lua; four words in all 28 languages. Sims: status_colors_sim
+    52/0 (the combo, both sets in all three themes, text contrast, the three apart under all three kinds).
+    **Check (QA):** ZeD setup > Look > Status colors: Color blind turns the Cond column, a Mechanics part list, the
+    Health tab and the crafting card's met / unmet blue, yellow and orange at once, in all three themes, and back.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass:** Color blind turns the Cond column and the Health tab blue, yellow and orange in Dark, Light
+    and High contrast; Standard puts them back. Not run: a Mechanics part list (no car), the crafting card's met and
+    unmet.
+
+145. **The portrait studio (the director, Nov 10 2026: "Add a popout XL avatar option to the ID. Almost full screen
+    height so the users can view their character up close and for screenshots. OR! Enter the studio and there are
+    pull down backdrops you can choose like the old glamour shots did."; then "Studio has to auto pause the game").**
+    Rulings, Nov 10: the studio, in two steps; Build drafts the backdrops and the director refines them; Take photo
+    is a clean shot with a flash; built after the Pasties fixes, in beta 11. Then: **single player only** (a client
+    cannot stop a server's clock: in multiplayer the way in is grayed, its help line saying it needs a paused game),
+    and **a camera button in the ID photo frame's corner** opens it (a click on the photo still switches bust and
+    full body). The name stays ZeD's own (Glamour Shots is a real company's).
+    - **Step 1: the room.** Entered from the ID card's photo. The character's own 3D figure (ISUI3DModel, as the
+      ID photo and the hair menu use) near the screen's full height, over one plain seamless backdrop; drag turns it
+      (as now), the wheel and presets frame it (full body, three-quarter, bust). **Entering pauses the game**
+      (setGameSpeed 0 and the "Game Paused" box hidden, as the Survival Guide book does) and leaving puts the speed
+      back. **Take photo** hides every control and the pointer for a frame, takes the game's screenshot
+      (Zomboid/Screenshots), then a shutter flash and the file's name in the help line.
+    - **Step 2: the backdrops.** Pull-down backdrops on a roller, chosen and rolled down as a 1990s mall studio's
+      were: first drafts of 5 or 6 (mottled blue, sky and clouds, autumn, plain grey seamless, a Knox County one) at
+      a size and safe area handed to the director with them. The light is the figure's own (UI3DModel's is fixed),
+      so any studio light is painted into the backdrop.
+    - **To probe on the Mac first:** whether the figure animates while the game is paused, and which poses beyond
+      idle the figure can take (its states and animation variables).
+    **The director, Nov 10 2026: "start the studio"; "it needs poses if there are some"; "Props, like a chair to sit
+    in. Table with flowers"; "Prop options, set options".** Told: the figure (the game's 3D character, ISUI3DModel) is
+    the only 3D thing in the studio and can't hold a 3D chair or table, so props would be painted layers behind and in
+    front of it; sitting in a chair needs a sitting pose the figure may or may not take. Rulings: **props held off**;
+    **pieces, not sets** (the backdrop and the pose each picked on its own); **the probe first, then the room**.
+    The probe: ZeDUI/tools/qa/zedqa_studio_probe.lua (what the figure answers to, every state and emote tried with a
+    shot, and whether it moves while the game is paused).
+    **Built, step 1, the room** (ZeD_Studio.lua): a camera button in the ID photo's bottom right corner (a pixel
+    camera; over the figure, added after it in the Character window, shown with the ID photo; in multiplayer it is
+    grey and its help line says the studio pauses the game, so single player only). The studio takes the whole
+    screen: a dark room, a plain seamless backdrop (a studio grey in every theme, lighter at the sweep), the
+    character's own figure near the screen's full height, idle and turning on a drag. The bar along the foot: Full
+    body, Three-quarter, Bust (the ID photo's two framings and one between; the wheel frames by steps), Turn left,
+    Turn right, Take photo, Leave, and the help line. Opening pauses the game and hides its paused box; leaving puts
+    the speed back as it was (a game paused before stays paused). Take photo: two frames with nothing but the paper
+    and the figure, the game's screenshot after the second (zed_portrait_<time>.png in Zomboid/Screenshots), one
+    more clean frame, then a white flash and the file's name in the help line. Escape leaves; on a pad A shoots, B
+    leaves, LB / RB turn, Up / Down frame. Eleven new words in all 28 languages. studio_sim 36/0. Poses wait on the
+    probe. **Check (QA, Mac):** the camera button on the ID photo; the studio: the game paused, the figure tall and
+    sharp, the framings, drag and buttons turn it; Take photo: a shot without the bar in Screenshots, the flash;
+    Leave and Escape: the game's speed as before; in multiplayer the button grey.
+    **QA, Mac, Nov 10 2026, on ec3fb25: the probe and the room.**
+    - *The probe:* all 45 shots are the idle stance; every state, emote, sitting variable and anim set ran without an
+      error and changed nothing. What does work: the game's own character creation drives this figure by events,
+      idle, walk and run (reportEvent); walk gives a stride, run a running lean, both moving loops. No sitting, wave
+      or salute by any route tried. Paused, the figure freezes (the two paused shots pixel-identical).
+    - *The room:* the camera button in the photo's corner; the studio pauses and keeps the paused box hidden; the
+      figure tall and sharp; Full body and Bust right; drag and Turn left turn it; the photo is clean (no bar, no
+      flash: the shot reads the clean frame) and the help line names it; Leave and Escape put the speed back, and
+      Escape doesn't open the game's pause menu.
+    - *Faults:* Three-quarter framed collar to shins, the head cut off; from a game already paused the camera button
+      did nothing (the paused windows' glass takes every press).
+    - *To decide:* the photo is the whole screen, the dark room either side of the paper in it; in Full body turned
+      three-quarters away the shoes are cut flat.
+    **Build answered:** the paused glass leaves the camera button bright and passes its press on (ZeD_PausedLook.lua;
+    the studio pauses anyway). Three-quarter can't be fixed from here (how the y offset moves the figure at a zoom
+    isn't readable in the cloud): the framing probe (zedqa_studio_frame_probe.lua, studio_frame_manifest.txt)
+    opens the real studio and shoots zoom 6, 11 and 15 at y 0 to -1.6, and Full body at zoom -2, -1 and 0 turned
+    three-quarters, for the shoes. studio_sim 38/0.
+    **The director, Nov 10 2026: "Standing only for now"** (no pose picker; revisit if a sitting or wave route turns
+    up) **and "Paper fills the screen"**: the backdrop runs edge to edge, in the studio and in the photo, so the
+    saved portrait is all studio (ZeD_Studio.lua prerender).
+    **QA, Mac, Nov 10 2026, on 9195b95:** the studio opens from a paused game (the button bright under the glass;
+    after Leave the game still paused); the photo is 1920 x 1080 with paper in all four corners, no bar, no flash.
+    The framing probe and finer steps after it: the head whole with the least paper above it at zoom 6 y -0.6, zoom
+    11 y -0.70 (23 px of paper), zoom 15 y -0.79 (35 px); at -0.6, 11 and 15 already cut the head. Found: y 0 is not
+    a zero, it sits where about -0.5 would (0 to +0.05 jumped the figure 484 px where the slope gives 44): why
+    halfway between the framings cut the head; more negative y moves the figure down, about 880 px per 1.0 at zoom 0,
+    2200 at zoom 15; the figure draws only inside its element (rows 47 to 1019 at 1080p). The shoes: whole at every
+    zoom facing the camera; turned away or from behind the soles are cut flat at any zoom and offset, and the cut
+    moves with the figure: the model itself is clipped there, no framing fixes it.
+    **Build answered:** the framings follow QA's picks (ZeD_Studio.lua yAt): full body zoom 0 at the figure's own 0;
+    from just past it the y runs -0.5 (zoom 0), -0.6 (6), -0.70 (11), -0.79 (15), -0.875 (19, the ID photo's bust),
+    straight between; Three-quarter is zoom 11 at -0.70; the wheel walks the same curve. The shoes from behind stay
+    as the game draws them. studio_sim 41/0. **Recheck (QA):** Three-quarter: head whole, a little paper above;
+    the wheel from full body to bust: the head never cut.
+    **Step 2, the backdrops (the director, Nov 10 2026: "go ahead with those backdrops").** Six: Grey seamless (drawn
+    by the studio), and five painted drafts for the director to refine (ZeDUI/tools/studio/make_backdrops.py:
+    fractal noise, gradients, glows, bokeh; 1024 x 576 in 42/media/textures/ZeD/studio/backdrop_<id>.png): Mottled
+    blue (the mall studio's, a light behind the head), Sky, Autumn (an out-of-focus wood, leaf bokeh), Knox County
+    (a sundown over rolling hills, a water tower far off, a white plank fence either side), Lasers (picture day).
+    ZeDUI/art/studio_backdrops: each at 1920 x 1080 to paint over, safe_area_1920.png (where the figure stands, where
+    the head sits, the bar that covers the foot while setting up), contact_sheet.png. In the studio: each hangs from
+    a roller along the top and fills the screen (cover: scaled to fill, the edges cropped on screens of another
+    shape); a Backdrop button opens a tray of named swatches above the bar, the hanging one outlined in the accent;
+    a pick rolls the hanging paper up into the roller, then the new one down (0.38 s each, a weighted foot on the
+    moving edge); no photo while a paper moves; the photo shows the paper alone (no roller); Y on the pad steps to
+    the next; the last pick is kept for the session. Seven new words in all 28 languages. studio_sim 55/0.
+    **Check (QA, Mac):** the tray, each swatch, the roll up and down; a photo on each backdrop (paper edge to edge,
+    no roller); a 16:10 screen: the sides cropped, nothing stretched; Leave and back: the same backdrop.
+    **The director, Nov 10 2026, on Knox County:** "just has a floating object on the middle left ... Just a sunset
+    would be fine with a field in the background. Doesn't have to be too much." Redrawn: a sunset sky (dusk purple to
+    gold at the horizon, the sun's haze low behind the figure) over a plain field with a gentle roll at its edge;
+    the water tower and the fence gone.
+    **The director, Nov 10 2026: "Can you also add one that is the American flag?"** Added, the seventh: 13 stripes
+    and 50 stars at the flag's own proportions (the blue field 7/13 of the hoist high and 0.76 of it wide, nine rows
+    of six and five stars), the height filling the screen and the fly cut at the right; draped (a few slow waves, at
+    twice the size so the edges stay smooth), shaded along its folds, a little out of focus. The blue field sits at
+    the top left, clear of the face. "American flag" in all 28 languages. studio_sim 56/0.
+    **QA, Mac, Nov 10 2026, on 8c00041 (the branch's mod files; the zip went to the director's chat, not the Mac):**
+    seven named swatches, the hanging one outlined; the rolls (up, a dark wall a moment, down); a clean photo on each
+    of the seven, paper to the edges, no bar or tray; Knox County a sunset over a field; the flag's blue field top
+    left, just clear of the figure; Three-quarter now hair to hips, the head whole; the action bar names each item in
+    a seven-item move (Canned Beans 2/7, Claw Hammer 3/7, Firefighter Axe 5/7). The wheel: three injected ticks did
+    nothing (maybe the rig). **Faults:** at 1920 x 1080 the figure's panel lay over the tray's last two swatches, so
+    Lasers and the flag couldn't be clicked, and the shoes drew over the flag swatch. **Build answered:** the tray is
+    a column down the left side (a second column when the height runs out), clear of the figure, and the backdrop
+    changing behind the character shows while picking. studio_sim 57/0 (the new check fails on the old tray).
+    **QA, Mac, Nov 11 2026, on 21daa54: both pass.** Lasers and the flag pick with a click from the left column,
+    nothing over it; the wheel works (six single ticks step the framing evenly from full body toward the bust, the
+    head whole, over the paper and over the figure; the rig sends a many-tick scroll as one event, why it looked dead
+    before). Found: the tray shut after each pick. **Build answered:** it stays open, to try the next behind the
+    character; it shuts on the Backdrop button, a press on the paper, or Take photo. studio_sim 58/0.
+    **The painted canvases (the director, Nov 11 2026, after three sets of references: classic hand-painted portrait
+    cloths, warm plasters, a big tan canvas; "go ahead with those"; then "A bit pixelated like the other art we have
+    done, but not sooooo heavy").** The references are direction only (one carries a stock site's watermark); what
+    ships is ZeD's own painting (make_backdrops.py, one canvas engine: a wall of paint with a light behind the head
+    and a darker edge, meeting a floor of the same paint at 0.80 of the height, each picking its palette and its
+    textures). Eighteen in all: Grey seamless; seven canvases, Charcoal (granite specks), Sage, Warm tan (the big
+    reference), Cream (a dark vignette), Spotlight (a blue pool on black), Dusk (red-violet, brushed across), Drape
+    (a hanging brown cloth's folds); five plasters, Rust (speckle and relief), Black stucco (lit relief), Burnt orange
+    (brushed), Lavender (cloud), Gold and violet (a slanting wash); two sets, Brick wall (a pool of light from above,
+    plank floor) and Old plaster (weathered plaster, a dark baseboard, planks); then Knox County, Lasers and the flag,
+    kept. Mottled blue, Sky and Autumn gone (the canvases cover that ground). **The pixel pass:** each painting brought
+    to the main menu desk's grid, 480 x 270 art pixels, 96 colours counted by k-means, no dithering (the desk has
+    none), a whisper of noise first so a step between two colours wanders as a painted edge does (40 colours turned
+    every light into target rings; Build's first try, not shipped); the texture doubles each art pixel (960 x 540,
+    sharp under the game's filtering, about 2.6 MB for the 17); the copies in ZeDUI/art/studio_backdrops are exact
+    4x pixel art at 1920 x 1080. **The backdrop zooms with the framing:** 1 at Full body to 1.6 at Bust (ST.BD_ZOOM),
+    into a point 0.15 down from the top (ST.BD_AT), less than the figure (the cloth is further off): the floor under
+    the feet at Full body, its edge out of the frame by Three-quarter, the cloth's light behind the head at Bust; the
+    photo shoots what shows; the tray's swatches stay whole. At Bust an art pixel is about 6 screen pixels. The tray at
+    1080p: two columns of nine. Fourteen names in all 28 languages, the three dropped ones removed. studio_sim 66/0.
+    **Check (QA, Mac):** the tray, two columns, every swatch picks; each backdrop at Full body (the floor under the
+    shoes, the junction a soft dark line, not a ruler), Three-quarter (no floor edge) and Bust (the light behind the
+    head, the pixels crisp, not blurred, and not heavy); the wheel from Full body to Bust: the backdrop leans in
+    smoothly with the figure; a photo at Bust on Brick wall; a 16:10 screen still cropped at the sides.
+    **QA, Mac, Nov 11 2026, on bb67bff:** the tray two columns of nine, named, the hanging one outlined; three picks
+    in a row (Black stucco, Drape, Brick wall) with the tray open; all 18 at Full body with the floor under the
+    shoes and a soft dark band where wall meets floor; Three-quarter no floor edge (Knox County's horizon is its
+    picture); Bust the light behind the head; the wheel: the backdrop leans in step by step with the figure; a clean
+    Bust photo on Brick wall. **Fault: the pixels blurred** ("the game smooths the texture as it scales it, so there
+    is no visible pixel grid"; one row of Brick wall: runs of one colour mostly 1 or 2 screen pixels, where 4x art
+    gives multiples of 4). On the art: Drape reads as a satin curtain with strong diagonal folds; Gold and violet as
+    a soft wash; Black stucco very dark (red hair and a pale head stand out, black backpack straps nearly vanish;
+    dark hair not checked). Not run: 16:10, a pad, 1.75x. Screens: qa/screens/b11studio4/.
+    **Build answered:** plain getTexture filters linearly; ZeD's pixel art (the desk, the fishing rod, the mechanics
+    figures) is asked for with Texture.getSharedTexture(path, 3), nearest. The studio's paper now is too, at its own
+    480 x 270 (the doubled 960 x 540 bought nothing under nearest; indexed, 96 colours, as the Survival Guide's pages
+    ship: 1.9 MB for paper and swatches together), so each art pixel lands 4 screen pixels wide at 1080p, about 6 at
+    Bust. The tray's swatches draw from their own small smooth copies (backdrop_<id>_sw.png, 256 x 144): nearest
+    shrinking a 480-wide painting to 128 drops whole pixels and breaks the lasers' lines. The textures are asked for
+    as the file loads, so the first roll isn't blank while they stream in. studio_sim 69/0 (the nearest and swatch
+    checks fail on bb67bff). **Recheck (QA, Mac):** Brick wall at Full body and Bust, a 1:1 crop: the mortar lines
+    hard-edged, runs in 4s at Full body; the wheel: no shimmer worth noting as the backdrop steps in; the tray's
+    swatches smooth, Lasers' lines whole; the first open of the studio after launch: the paper there at once.
+    **The director, Nov 11 2026: "Soften the drape folds, keep the other two"** (Gold and violet and Black stucco
+    stay as they are). A first softening (fewer, broader, rounder folds) still leaned. **The director: "The problem is
+    the drapes are slanted. They should be vertical."** The cause: the folds fanned out toward the floor and their
+    wander changed with height, so each one bent. Redrawn so each fold's place, width and depth depend only on how far
+    across it is: every fold hangs straight down, five or six across, rounded, varying in width and depth from one to
+    the next, running on into the floor. Only Drape's files
+    changed. **Check (QA, Mac):** Drape at Full body and Bust: straight hanging folds, soft, no lean, no satin sheen.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass.** Brick wall at Full body: every run of one colour a multiple of 4 screen pixels, the mortar
+    lines hard-edged at Bust; the tray's swatches smooth, Lasers' lines whole; the paper there at once on the first open
+    after launch; Drape's folds hang straight; 1280 x 800 (16:10) fills, nothing stretched.
+    **QA, Mac, Nov 11 2026, on test 12, in AR:** one name too long for its swatch, "Bandera estadouni..." (the flag).
+    **Build answered:** every backdrop name measured in the tray's own face (ZeD's body .fnt, 13 px at 1x) against the
+    swatch: seven over in Latin and Cyrillic, now shorter: the flag "Bandera de EE. UU." (AR, ES, ES_CL, ES_MX),
+    "Bandera dels EUA" (CA), "Amerikansk flagg" (NO), "Amerikansk flag" (DA), "Флаг США" (RU), "Прапор США" (UA); Burnt
+    orange "Тёмно-оранжевый" (RU), "Теракотовий" (UA); Gold and violet "Золото и лиловый" (RU), "Золото й ліловий"
+    (UA). studio_sim 70/0: its new check measures every name and fails one wider than 124 px (the old names fail it).
+    **Check (QA):** the tray in Español and in Русский: every name whole.
+    **QA, Mac, Nov 11 2026, on test 13 (40b7555): pass.** Español (Argentina): "Bandera de EE. UU." whole, all eighteen
+    names whole, the top four included; Русский: "Тёмно-оранжевый", "Золото и лиловый", "Флаг США" and the other
+    fifteen whole (the widest, "Чёрная штукатурка" and "Старая штукатурка", fit). Release check 14/16 in AR. Not run:
+    Українська and Norsk (each a restart), 1.75x.
+
+146. **Fast looting: stats on hover, a box to select (the director, Nov 10 2026, after watching a vanilla player loot
+    on a stream: "They are moving fast through the inventory windows, scrolling, selecting multiples, dragging to
+    select, checking item stats and conditions from hover tooltips ... for looting stats need to show quick, without
+    a click").** The survey: hovering a ZeD row showed only a help line, the stats were behind a click (the item card),
+    a grid cell named its item after 450 ms, and every drag moved items. Ctrl-click, Shift-click, double-click and the
+    drag to a container already worked as vanilla's. Rulings, Nov 10: the game's tooltip in ZeD's look; at once, as
+    vanilla; a box dragged from empty space; looting before the studio (145).
+    - **Hover:** the game's own item tooltip (ISToolTipInv, already restyled by Overrides/Tooltip.lua) on every list
+      row and grid cell under the pointer, at once, following the pointer from row to row; so every line other mods
+      add to it shows too. Away while items are dragged, while a box is drawn, while a right-click menu is open, while
+      that item's card is open, and on a controller. A grid cell's name hint and a readable row's read card give way to
+      it (one box at the pointer; the read word stays in the Cond column). ZeD_InvTip.lua; InventoryRenderer.lua asks.
+    - **Box select:** a drag from empty space in the list draws a box, and the rows it crosses are selected (Ctrl or
+      Shift at the press adds to the selection); in a multi-container view it keeps to its column. A drag from a row
+      still moves. The rows on screen only (no scrolling while the box is drawn). ZeD_BoxSelect.lua; both windows.
+    - The item card is unchanged: a click, for the thorough look and the repairs.
+    Sims: fast_loot_sim 38/0. **Check (QA, Mac):** sweep the pointer down a loot list: the tooltip at once on each row,
+    with condition and weight; it goes while dragging and while that item's card is open; a mod that adds tooltip lines
+    (if one is on the rig) shows them; drag a box from below the rows over three rows: three selected; Ctrl adds; the
+    same in the world window and a multi-container view. Then the timed run: the same kitchen looted in vanilla and in
+    ZeD, the clicks and the seconds.
+    **QA, Mac, Nov 10 2026, on 2b7fc27: the box and the hiding pass in both windows; the tooltip had one fault.** It
+    drew nothing on the first hover of a session, until the pointer had left the lists once: a new ISToolTipInv
+    already reports itself visible, so "add it to the screen when it isn't visible" never ran (QA proved it in the
+    game: a fresh tooltip says visible, and ZeD's was in no UI list). Once up it changes item within a frame (about
+    33 ms), shows the game's lines in ZeD's box (weight, condition, the beans' nutrition), and goes while a row is
+    dragged, a box is drawn, or that item's card is open. Not testable on the rig: Ctrl adding to a box (an injected
+    Ctrl may not be held through a drag), and the timed run (it needs a person at the mouse). Not checked: the grid
+    view, a multi-container view, a mod adding tooltip lines. **Build answered:** ZeD keeps whether the tooltip is on
+    screen itself (ZeD_InvTip.lua); fast_loot_sim's stub tooltip now starts "visible" as the game's does, and the old
+    code fails it. **Recheck (QA):** the first hover after a load shows the tooltip.
+    **The director, Nov 10 2026: "The looting tooltips are vanilla. We need to simplify them and use our parts."**
+    Rulings: a compact ZeD card (name and count, status tags, the five-cell condition bar when the item has one,
+    weight, two or three figures for its kind); holding Alt swaps in the game's full tooltip, with every mod's lines;
+    a mockup first: ZeDUI/qa/loot_hover_card_mockup.html (published for the director as an artifact). The card is
+    ZeD's balloon beside the list, its tail on the hovered row, at once; the help line names Alt.
+    **The streamer's clip (the director, Nov 10 2026; 49 s of vanilla looting at 2560 x 1440, read frame by frame at
+    2 a second, 0 to 36 s and 40 to 44 s, and the select-all moment at 10).** What a fast vanilla player does:
+    - His Inventory and the loot window sit side by side across the top of the screen, short (14 rows) and wide
+      (about 900 px each); his inventory, unpinned, rolls up to its title bar when the pointer leaves it and opens
+      when the pointer or a drag comes over it.
+    - Most of the time is hover-reading: the wheel scrolls, a new tooltip about every half second. What he reads: the
+      weight and the weight once worn (Encumbrance "3.0 (0.9 equipped)"), and Bite and Scratch Defense against what
+      he wears there ("60 (+15)", green better, red worse). A stack shows its Stack Encumbrance; a mod's name closes
+      the tooltip ("Mod: Frockin Splendor! Vol.5").
+    - Single items: dragged from the loot list into his inventory one after another, never waiting for the transfer.
+    - Whole crates: the full list selected in one step (no drag over the rows: most likely a select-all key), then
+      dragged onto a container button in the side strip (the Trunk); twice a crate went from 50 to 0 that way.
+    - The transfers queue in the rows themselves (a green bar, "Moving to container", "Taking from container") while
+      he keeps reading the next items. The next crate is a click on its container button.
+    - No right-click menu, no double-click, nothing like the item card in the clip.
+    What it says for ZeD: the hover card must carry the weight once worn and the defenses against what is worn there
+    (the mockup has neither); a card at the window's edge would sit far from the pointer in windows that wide; ZeD's lists have no
+    select-all; and ZeD's rows don't show the queue (nothing in InventoryRenderer reads it). The drop on a container
+    button is ZeD's already (handleDrop).
+    **The director, Nov 10 2026: all four.** The card: the weight once worn and the defenses against what is worn
+    there; the card by the pointer, on the hovered row; Ctrl+A selects every row of a list; items waiting to move show
+    it in their rows. The mockup first for the card and the rows.
+    **Two more clips (the director, Nov 10 2026; 20 s each, read the same way).** Taking from the ground and storing
+    into a crate:
+    - Pick while reading: he reads a row's tooltip, Ctrl-clicks it if he wants it, reads the next; eight rows picked
+      that way in about six seconds, then one drag moves them all into his inventory. Storing, a Shift-click range of
+      his weapons goes into the crate in one drag. The hovered row's tooltip shows whatever is selected.
+    - What he reads on weapons: sharpness, condition and damage bars (a hatchet's head and handle condition from a
+      mod), "Limited impact when used one-handed"; on books, pages read; on ground items, the search focus. Nearly
+      every tooltip ends with a mod's line ("Mod: Bushcraft Gear - Tools", "Mod: Carry Visible Items").
+    - Walking off, both windows roll up to their title bars; the pointer over one unrolls it.
+    - Twice a small "Drop all | Drop one" choice appears at the pointer as a stack is let go over a container (a mod's
+      or the game's: not told by the clip).
+    What it adds for ZeD: Ctrl- and Shift-clicks must not open the item card (today the first Ctrl-click opens it,
+    one item being selected, and the second closes it: a flash per pick); a blade's card shows its sharpness; with
+    that many mod lines on his setup, Alt for the game's tooltip matters.
+    **The director, Nov 10 2026: "go ahead, build all five". Built:**
+    1. *The loot card* (ZeD_LootCard.lua): ZeD's balloon, at once, by the pointer (its tail on the hovered row where
+       the pointer is, the card to the right), in the list and the grid. Title: the name (a grid stack's count after
+       it). Body: tags (Broken, Wet, Frozen, Burnt; food Fresh, Stale, Rotten), the condition's five-cell bar and
+       percent, the weight, then the kind's figures: a weapon's damage, a blade's sharpness, reach (a gun's rounds);
+       food's hunger and thirst; clothing's bite and scratch; a bag's holds and weight reduction; a book's pages; a
+       drainable's remaining. Balloon.lua takes a body (content.body: measured and drawn by its maker); Atoms gets
+       requestBalloon. Alt held: the game's tooltip as before (ZeD_InvTip.lua), with every mod's lines. The help
+       line names Alt (UI_ZeD_Inv_RowHelpLoot). The grid's name hint and the read card give way to it.
+    2. *The worn figures:* the weight worn or held when it differs ("0.3 worn", "0.9 held": getEquippedWeight), and a
+       piece of clothing's bite and scratch against what is worn in its place (getWornItem of its body location),
+       "+15" in the good status color, "-10" in the bad.
+    3. *Ctrl+A* (ZeD_BoxSelect.lua): over a list, every row of it (the column under the pointer) selected; the windows
+       register their lists (zedSelectAll). The game still hears the A: QA checks the character doesn't step aside.
+    4. *The queue in the rows:* an item waiting in the player's timed action queue to move shows "Moving" in place of
+       its category and a thin bar along its row's foot (a grid cell's too), filling for the one moving now
+       (IT.queued reads ISTimedActionQueue once a frame; InventoryRenderer's queueMark).
+    5. *Picks keep the card shut:* Ctrl- and Shift-clicks, and a box, set the windows' "card hidden even at one"
+       flag (the controller's marks used it already); a plain click opens the card as before.
+    Eleven new words in all 28 languages. Sims: fast_loot_sim 69/0 (the card's facts for clothing, a blade, a broken
+    knife, food, a bag; the card without Alt and the game's tooltip with it; the queue; Ctrl+A; the wiring).
+    **Check (QA, Mac):** hover rows in a loot list: the card at once by the pointer, following row to row; a jacket
+    while wearing one: bite and scratch with +/- against it; an axe: "held" weight, damage, sharpness; hold Alt: the
+    game's tooltip; Ctrl-click four rows: no card opens; Ctrl+A over the loot list: all selected (and the character
+    doesn't step left); drag the selection onto a container button: the rows say "Moving" and the bar fills down the
+    list; the grid view: the card and the bar on cells.
+    **QA, Mac, Nov 10 2026, on fb771b1: most of it works; Ctrl+A fails.** Passes: the card at once by the pointer;
+    a worse jacket than the worn one shows -10 / -20 in red, a better one +30 / +30 in green (the game's tooltip
+    under Alt agrees); an axe shows held weight, sharpness, reach; Alt swaps in the game's tooltip; four Ctrl-clicks
+    add four rows and open no card (Ctrl made to read held by the rig, the clicks real); the grid shows the card and
+    the bar. Found:
+    - *Ctrl+A:* nothing selected (ZeD heard the key on its release, when Ctrl already reads up) and the character
+      steps about half a tile (A still walks left with Ctrl down). And with -debug the game's own Ctrl+A (a debug
+      spawn) throws a single-player game back to the main menu: Ctrl+A checks need -debug off.
+    - *The card clipped* at the window's bottom edge on the last rows (the jacket lost its Scratch line).
+    - *The card over the row's own name and category.*
+    - *Damage read "0.82.0":* the en dash isn't in the data face.
+    - *"Moving" only on the item moving now;* the rows waiting keep their category.
+    - *A drop on "the Inventory header button" moved nothing* (the drag showed x8); on the inventory list it worked.
+    **Build answered:** the card draws on a layer of its own above every window (ZeD_InvTip.lua), so no window
+    clips it; its tail goes past the hovered row's name (IT.nameEnd), and a grid cell's card stands at the cell's
+    right edge; Damage reads "0.8 - 2.0". "Moving" only on the one moving matches vanilla (the streamer's clip: one
+    green row at a time at 6.5, 7.0, 8.0 s), so it stays. fast_loot_sim 74/0. Open for the director: what replaces
+    Ctrl+A, and which button the drop missed.
+    **The director, Nov 10 2026: "Double-click empty space"** in place of Ctrl+A: the second press of a double-click
+    on a list's empty space (where a box would start) selects every row of it (ZeD_BoxSelect.doubleEmpty); Ctrl+A is
+    gone. **The missed drop:** the Character window's container strip names its top button, the main inventory,
+    "main_toggle", and the strip's drop target read only numbered containers, so a drop there found nothing (the
+    loot window's strip has no inventory button); it takes the main inventory now (InventoryRenderer
+    stripDropTarget). fast_loot_sim 79/0. **Recheck (QA, Mac):** double-click below the rows of a loot list: every
+    row selected, no card; drag them onto the Character window's top (Inventory) button: they move; the card on the
+    last rows of a short window, whole; past the row's name; Damage "0.8 - 2.0".
+    **QA, Mac, Nov 10 2026, on 20a8807: all five pass.** The card shows whole past the window's bottom edge, starts
+    after the row's name, Damage reads "0.8 - 2.0" (axe) and "0.3 - 0.7" (knife); a double-click below the rows
+    selects all eight and opens no card (the rig's control adds about a second a click, so the double-click's 400 ms
+    was widened to 5 s from the harness: the 400 ms itself wants a person at a mouse); the eight dropped on the
+    Character window's top Inventory button all move in. Seen in passing: during the eight-item move the action bar
+    kept the first item's name ("MOVING 2/8 APPLE" while the book moved, "MOVING 8/8 APPLE" with the knife).
+    **Build answered:** B42's transfer merges a run of transfers into one action whose item changes at each step; the
+    bar kept the name per action, and keeps it per item now (ZeD_ActionBar.lua AB.itemName). action_bar_name_sim 6/0
+    (2 fail on the old code). **Still to do by hand:** the double-click at its real 400 ms; the timed kitchen run.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** not run: the real 400 ms double-click and the timed kitchen run need a person at the mouse.
+
+147. **The ID's permit stamp read "CONCEALED CARRY PERMITREVOKED" (the director, Nov 10 2026, from QA's shots of the
+    Identity tab at 1x and 1.75x).** drawStamp (IdentityTab.lua) draws the line and the red REVOKED as two pieces with
+    a word space between, read as the width of " ": in the stamp's face a lone space measures 0. The space is read
+    as "a a" less "aa" now, never under a quarter of the line. **Check (QA):** a revoked permit's stamp at 1x and
+    1.75x, "PERMIT REVOKED" with a space.
+    **QA, Mac, Nov 11 2026, on test 4 (the branch tip, its mod files):** **pass:** "PERMIT REVOKED" with its space at 1x and 1.75x.
+
+148. **The Health tab cuts a body part's percent at the drawer's edge (QA's Mac run, Nov 11 2026, on test 4, seen in
+    passing).** On the Health tab a body part's percent is cut off where the drawer ends. **Open:** QA's picture
+    (qa/screens/b11t4/ on the Mac) with the screen size, the scale and the theme, then the fix. Not yet decided for beta
+    11.
+    **QA, Mac, Nov 11 2026, on test 6 (8ef6f3a):** the picture: 1920 x 1080 windowed, Auto (1x), Dark, the Character window 924 wide and 700 tall; the row
+    "Left Forearm" reads "59" with its "%" cut off by the drawer's edge; at the default height those rows are below
+    the fold. **Build answered:** the injury list started a pad in from the tab's left but took the tab's whole width,
+    so its right edge ran a pad past the content and the right-aligned percent lost its last character to the
+    stencil (whenever the injury rows show; scrolled to, at the default height). The list is padded both sides now
+    (HealthTab.lua; its badge rows measured at the same width). **Check (QA):** the same window, Health with a few
+    injuries scrolled into view: each row's percent whole, "%" and all, at 1x and 1.75x, with and without the
+    scrollbar.
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok:** each row's percent whole at 1x and 1.75x, at 700 tall and at the default height scrolled down.
+
+149. **The belt's hand rings in segments (the director, Nov 11 2026: "segmented bar on primary and secondary circle
+    status bar"; then, on Build's first try: "you divide a ring like a pie or a clock from the center to the edge.
+    It's not always a straight line because you got a circle. You don't draw a grid. That's how you cut up a tin of
+    brownies. Not a donut.").** The rings round the main and off hand showed a condition as one continuous arc; the
+    straight condition bars have been five cells since 143. **Built** (ZeD_Belt.lua condRing, ringSegs): a condition
+    in the status bar's five cells (statusSegsLit: rounded up, one red cell nearly broken; the status colour, the
+    colour-blind set too), a fixed colour's meter (a liquid's) in the fill bar's ten; the dark cells in T.surf3, a
+    hairline gap in the well's colour between each two. Cut like a pie: each pixel of the band is the cell its
+    middle's angle from twelve falls in, and each gap runs along its radius from the inner edge to the outer (Build's
+    first try cut square across the ring, horizontal and vertical bars: never shipped). The lit cells are drawn as
+    the fill always was (the ring's picture, cut square where it ends) and the few pixels where that square cut and the
+    radius part are put right, with the gaps, from lists worked out once per size: about 15 to 30 more draws a ring
+    for a condition. belt_ring_sim 310/0 (the real drawing rasterised and read by angle: LIT, WHOLE, GAP, RADIAL, DARK
+    at 1x, 1.75x, 2x and High contrast; the square-cut try fails 71, the old ring 44); belt_mods_sim 149/0 (its SAME
+    comparison reads the conditions as none on both sides now: the ring is belt_ring_sim's). **Check (QA, Mac):** the
+    main and off hand with items at 92% (five green), 55% (three yellow), 10% (one red) and broken (none): the gaps
+    on the radii like a clock's five, the lit cells ending on them, at 1x and 1.75x, Dark, Light and High contrast;
+    Color blind's colours; a pot of water in a hand (ten blue cells).
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok** at 1x and 1.75x in Dark, Light and High contrast and with Color blind: five, three, one and no lit
+    cells, the gaps along the radius. QA called "a pot of water: ten blue cells" wrong: a saucepan of water showed five
+    green cells. **Build answered:** the check was Build's mistake, not the ring's. ZeD's belt has never read a
+    container's liquid: the rings and the slots' strips show the item's condition (the saucepan's own), and the blue
+    ten-cell ring comes only from a mod's meter (Item Condition Restored's liquid, ModSupport/ItemConditionRestored.lua;
+    belt_mods_sim's ICR section draws it). Nothing to fix. Still to see in the game: a liquid's ring with Item
+    Condition Restored on, if the rig has it. QA also saw the pot's card list no water amount: 151.
+
+150. **The inventory narrower where a full card would shift the window (the director, Nov 11 2026: "Make steam deck
+    inventory narrower for those resolutions. They lose the condition column, but get rid of the window shifting and
+    changing."; rulings: any screen it would shift on, worked out rather than listed; both windows).** At 1280 wide
+    the windows are capped at half the screen (640 px): the inventory's 279 px, the strips and a full card (360) came
+    to 693, 53 over, so a full card squeezed the inventory and pinned the window against the screen's edge, and it
+    moved again as the card closed (125, 126). **Built:** ZeD.Scale.fitInvW (Scale.lua): where the strips, the usual
+    372-unit inventory and a full card are wider than the window may grow (half the screen and the room on its side
+    of the middle), the window opens at the inventory width that fits beside a full card: 296 units (222 px) at 1280
+    x 800 or 720 (0.75), 353 at 1366 x 768 (0.75); unchanged where the usual width fits (1920 and up) and where even
+    the 200-unit minimum wouldn't (Large text on the Deck: the squeeze as before). Both windows' fresh open, their
+    restore (a saved width wider than that is brought to it, the Character window's right edge and the World window's
+    left edge kept) and the reset. A window the player drags wider keeps that width for the session (the old
+    behaviour, their choice) and opens narrow again next time. fold_slide_sim 41/0 (NARROW: at 1280 x 800 the full
+    card opens and closes with nothing lost to the cap, no push, the list never moving), reset_cap_push_sim 13/0 (the
+    reset's narrow width, both windows). **Check (QA, Mac, 1280 x 800):** a fresh open (or Reset both windows): both
+    inventories narrower, the Cond column gone; open Equip's full card, Health, then close them: neither window moves
+    or changes width, the list never shifts; a World window full card (Crafting) the same; at 1920 x 1080 and 4K the
+    windows as before.
+    **QA, Mac, Nov 11 2026, on test 7 (8a409da):** **ok.** 1280 x 800: both inventories 222 px (were 279), the Cond column gone; Equip's full card, Health
+    and closing them: the list at x 387 every frame, nothing pushed or owed; the World window's full card (Crafting,
+    Build) the same. 1366 x 768: 265 px, nothing shifts, the Cond column stays at that width. 1920 x 1080 and 4K as
+    before (444 and 777 wide, Cond there). QA's reading of the check: the Character window still grows left as its
+    drawer opens (x 360, 276 wide, to x 0, 636 wide), as it always has; what is gone is the shift: its right edge and
+    the list stay put, no push, no squeeze. (The check's "neither moves nor changes width" was Build's loose wording.)
+
+151. **The loot card shows no liquid in a container (QA's Mac run on test 7, Nov 11 2026, seen in passing).** A
+    saucepan of water's card lists no water amount: ZeD_LootCard.lua reads the older drainables (what is left) but not
+    the game's fluid containers (getFluidContainer: pots, bottles, jugs), so a bottle of water shows no amount or kind
+    when looting. **Open:** the director's call, beta 11 or after (a line like "Water 0.8 / 1.0 L" in the card's body).
+    **The director, Nov 11 2026: "add the water amount in beta 11".** **Built:** the loot card (ZeD_LootCard.lua
+    LC.liquidRow) gives any item with a fluid container a row, whatever its kind (a saucepan keeps its condition and
+    damage too): the liquid's name ("Water"; the game's "Mixture" for several) and how much of how much ("0.80 / 1.00
+    L", the decimals by the container's size), the game's "Tainted" in red where its own tooltip shows it, "Unknown"
+    where the game hides the level, and an empty one "Empty" with what it holds. The water card's rules, shared
+    (ObjectCardFluid.lua exports ZeD.Fluid: L, liquidsOf, taintedShown, fluidLabel), so the two read the same; the
+    game's own words (Fluid_Empty, Tooltip_tainted, Fluid_Unknown, Fluid_Mixture), so nothing new to translate.
+    fast_loot_sim 91/0 (LIQUID: eight of its checks fail on the old card). **Check (QA, Mac):** hover a water bottle, a
+    saucepan of water, an empty bottle, a gas can and (if the save has one) a bottle of river water: the liquid's
+    name and "of" amounts, Empty on the empty one, Tainted in red on the river water where the game's tooltip (Alt)
+    says Tainted too.
+    **QA, Mac, Nov 11 2026, on test 8 (aa679e4): doesn't pass yet.** In a backpack's list all six right (a part-full
+    water bottle "Water 0.80 / 1.00 L", a saucepan's condition, damage and reach then its water, an empty bottle
+    "Empty 0.00 / 1.00 L", a gas can "Gasoline 7.5 / 10.0 L", tainted water "Tainted" in red, a wine and water
+    "Mixture"), at 1x and 1.75x; in the Ground list none of them showed a liquid. The cause: for an item on the floor
+    item:getFluidContainer() is nil; the game keeps the liquid on the world object (item:getWorldItem():
+    getFluidContainer()). Gasoline reads Tainted, as the game's own tooltip does under Alt. **Build answered:** one
+    lookup for every new liquid read, the item's own container or its world object's (ZeD.ItemMeter.fluidOf): the
+    loot card, the list's bar, the item card's facts and its kind. And the design moved on the same day (152): the
+    hover card shows the level, the litres went to the item card.
+
+152. **The COND / AMT column: one bar an item, its condition or how full it is (the director, Nov 11 2026: "I think
+    the condition column in the inventory should be dual condition / amount ... condition is not always conditioned.
+    Sometimes it's how much is in something. At a quick glance that is hovering over something, you're only going to
+    be able to look at it and tell by the level ... It's not until you inspect it, that would be clicking the card to
+    inspect it, where you see how much is in it"; then "I miscommunicated in a previous session to include that
+    column's header right aligned. Change that back to left aligned. Only the weight, since it's a number, will be
+    right aligned").** Rulings, Nov 11: one bar, amount wins (not a split: the list's bar is 8 units tall, 2 to 3 px a
+    half at 1x and 1 to 2 on the Deck); hovering shows the level, the litres on the item card; amount for liquids and
+    use-ups; a condition only for what wears. **Built:** ZeD.ItemMeter (ItemMeter.lua): a liquid container (its own or,
+    on the floor, its world object's) its fill, the fill bar's ten cells in the liquid blue; a use-up (a lighter, a
+    battery, thread, glue, propane) what is left, ten in the accent; a weapon (any tool, pot or bottle swung), clothing
+    or anything below its full condition (a vehicle part) its condition, the status bar's five; anything else no bar
+    (a can of beans, a book, a key no longer show a full bar that can't change); the game's hidden level, none. The
+    list's rows and the grid cells draw it (InventoryRenderer rowCondition, drawCellCondition; the help line
+    "Condition 64%" or "Remaining 50%"), and the column sorts by it (no bar below an empty one). The heading "Cond /
+    Amt" (in all 28 languages), left aligned as Name and Category, only Weight at the right (the right edge had
+    shipped in beta 10); the column as wide as its heading needs, up to 90 units. The loot card: the item's one bar,
+    a liquid a level bar under its name (no number), what runs down a level bar under "Remaining", Tainted a red tag,
+    Unknown where the level is hidden. The item card: a Liquid Facts panel, first in the list (ItemFactsPanel
+    LiquidFacts): each liquid and its litres, the total in the capacity ("Amount"), Tainted, Empty, Unknown; a
+    saucepan's combat facts after its water. New words: Liquid Facts, Amount, the heading, in all 28 languages.
+    Sims: item_meter_sim 28/0 (METER, FACTS, COLUMN), fast_loot_sim 94/0 (LIQUID: the level bar, the floor, a
+    lighter), inv_model_sort_sim 403/0 (its frozen reference compared with the old condition rule standing in).
+    **Check (QA, Mac):** a loot list with a water bottle, a saucepan of water, an empty bottle, a gas can, a lighter, a
+    hammer, a jacket, a can of beans and a book, in a bag and on the Ground: the bottle, pan, can and empty bottle
+    ten blue cells (the empty one dark), the lighter ten accent cells, the hammer and jacket five status cells, the
+    beans and book no bar; the heading "Cond / Amt" at the left, Weight at the right; sort by it both ways; the grid
+    view's cells the same. Hover each: the card's level bar under the liquid's name (no litres), Tainted on river
+    water. Click one (the item card): Liquid Facts with the litres and "Amount 0.80 L / 1.00 L". At 1x and 1.75x.
+    **The director, Nov 11 2026: "yes, belt follows the same rule"** (Build had asked: a water bottle in hand showed
+    five full green cells while the inventory showed its water). **Built:** the belt's B.meter reads ZeD.ItemMeter
+    after any mod's meter (Item Condition Restored's still first): a liquid's ring and strip in ten blue cells, a
+    use-up's in ten in the accent (B.meterColor "uses"), what wears its condition in the status five, anything else
+    none; the Equipment tab's belt rows the same (eqCondition takes ItemMeter's kind). belt_mods_sim 156/0 (METER: six
+    of its checks fail on the old belt). **Check (QA, Mac):** a water bottle in a hand and on a belt slot: ten blue
+    cells to its level; a lighter on a slot: ten accent cells; a hammer: five status cells; a can of beans on a slot:
+    no strip; the Equipment tab's belt list the same.
+    **The director, Nov 11 2026, on QA's test 8 note (gasoline reads "Tainted", as the game's own tooltip does):**
+    "Most people waft or smell gasoline to tell if it's tainted ... That's a tough question. I guess leave it like the
+    game." Kept: Tainted shows wherever the game's tooltip shows it, fuel included (ZeD.Fluid.taintedShown).
+    **QA, Mac, Nov 11 2026, on test 9 (f3d4302, e8eb779's mod files): pass** on everything that could be run, at 1x and
+    1.75x: the list's bars on the Ground and in a bag (ten blue for the liquids, ten dark for the empty bottle, ten
+    accent for the lighter, five status for the hammer and jacket, none for the beans and book); "Cond / Amt", the
+    sort both ways (no bar together at one end), the grid's strips; the hover card on the Ground (test 8's fault
+    fixed) and in the bag (a level bar under Water, Gasoline, Mixture or Empty, no litres; Remaining; Tainted red);
+    the item card from the Ground ("Water 0.80 L", "Amount 0.80 L / 1.00 L"; the saucepan's water before its combat;
+    the mixture's two; Empty); the belt (a bottle in either hand ten blue, the lighter ten accent, the hammer five on
+    its slot, beans none); the Equipment tab's belt list. Release check 14/16 (the right-click step). Not as written:
+    no bottle, lighter or beans fits that belt's slots (a saucepan of water on Back for the liquid strip: ten blue,
+    seven lit). **Fault, outside the checklist:** the Equipment tab's Equipped list, Held + belt rows: a water bottle
+    at 60% and a lighter at 40% showed five full green cells. **Build answered:** that row read the item's condition;
+    it reads ZeD.ItemMeter now (worn and held), the kind's bar drawn (item_meter_sim 30/0). Seen in passing: two
+    sources side by side show Name and Wt only (the multi-column compact layout, by design since the columns came:
+    no bar column there); a stack's row takes its first item's name and bar, so a stack of empty and full bottles
+    reads "Empty Plastic Bottle x4" sorted one way and "Water (Plastic Bottle) x4" the other (the game stacks them as
+    one type). **Recheck (QA):** the Equipped list's Held rows with a water bottle and a lighter in the hands: ten blue
+    and ten accent cells to their levels.
+    **QA, Mac, Nov 11 2026, on test 10 (93b4b02), in PZ Teal (tests 7 to 9 ran in the rig's old saved Orange: their colour measurements are Orange's):** **pass** at 1x and 1.75x: the Equipped list's Held rows ten blue and ten accent to the bottle's and the lighter's
+    levels, as the belt and the Inventory list. Two notes for the director, not faults: in PZ Teal the liquid's blue
+    (T.info) and the accent's teal of a use-up sit close in the Held rows; and a padded (hooded) jacket is listed under
+    Head + face as "Hat" (the Equipment tab's slot table puts jackethat, jackethatbulky and sweaterhat in HAT, none in
+    the torso's Outer). Not run: another language; test 7's leftovers.
+    **The director, Nov 11 2026, on QA's two test 10 notes: "A light neutral"** for what runs down (the accent's teal
+    sat close to the liquid blue), and hooded jackets and sweaters **"Torso, as Outer"**. **Built:** a use-up's bar in
+    the text's own tone (ItemMeter.style "uses", the belt's meterColor, the loot card), never close to the liquid blue
+    or any accent and no status colour; the Equipment tab's slot table moves jackethat, jackethatbulky and sweaterhat
+    from Hat to the torso's Outer, as the doll already had them (EquipDoll's outer). item_meter_sim 33/0,
+    fast_loot_sim 94/0, belt_mods_sim 156/0. **Check (QA):** a lighter in a list, on the belt and in a hand: ten cells
+    in the light neutral, plainly apart from a water bottle's blue, in PZ Teal and one blue accent; a hooded padded
+    jacket worn: the Equipped list's Torso, Outer row, the Hat row empty.
+    **QA, Mac, Nov 11 2026, on test 11 (f517850), in PZ Teal:** **pass:** a lighter in a list and in a hand, ten light neutral cells, plainly apart from the bottle's blue, in Teal
+    and in Blue (a flashlight the same); the hooded padded jacket under Torso, Outer. (No Hat row is drawn while
+    nothing is in it: Head + face held only the glasses.) Not run: a lighter on a belt slot (it doesn't fit that
+    belt), the hover card's neutral bar, the doll. Release check 14/16.
+
+153. **The item card's "Used to make" rows flush left (the director, Nov 11 2026, after QA's colour note on test 9:
+    "flush left with the rest of the card"; the secondary colour stays: "if it's secondary color that is ok").** The
+    recipes were drawn as sub rows (ItemCardOrganism drawMakes: drawFactsRow's isSub), indented 14 units under no
+    parent row. drawFactsRow takes a flush flag now (Molecules.lua): a sub row's smaller label and secondary colour,
+    no indent; the recipes ask for it. card_model_sim 2623/0 (its OLD / NEW drawing logs leave the flag out, so they
+    still compare the card's model, and a check of its own reads the recipes drawn flush). **Check (QA):** an item
+    card with "Used to make" (a shirt: Rag): the recipe names start at the card's left edge, as the facts above
+    them, in the secondary colour.
+    **QA, Mac, Nov 11 2026, on test 10 (93b4b02), in PZ Teal (tests 7 to 9 ran in the rig's old saved Orange: their colour measurements are Orange's):** **pass** at 1x and 1.75x: the recipe names flush with the card's left edge, in the secondary colour.
+
+154. **The survival guide's book for AR, the game's Argentine Spanish (found by the session that redrafted the AR file,
+    Nov 11 2026; the director: in beta 11).** ZeD_SurvivalGuide.lua's NO_BOOK_LANGS listed AR among the languages the
+    book's faces can't draw, read as Arabic; in Project Zomboid AR is Argentine Spanish, so Argentine players got the
+    plain window instead of the book. AR is off the list (CN, CH, JP, KO, TH keep the window); the comment, the QA
+    probe's (zedqa_book83_lang.lua) and 83's own say so. guide_lang_sim 15/0 (its AR check fails on the old line).
+    **Check (QA, Mac):** the game in Español (Argentina), the guide on Immersive: F1 opens the book; its title page,
+    contents and a chapter opener read whole in the book's faces; Simple still gives the window.
+    **QA, Mac, Nov 11 2026, on test 11 (f517850), in PZ Teal:** **the code passes:** in Español (Argentina) F1 opens the book, Simple the window; the chapter pages read whole
+    in Argentine Spanish. But the title page (title, subtitle, some copyright lines), the contents (its heading,
+    chapters 1 to 15's descriptions), the author's note and the buttons under the book and the window draw blank or
+    as stray dots: this build's AR file still has 279 Arabic strings (63 in the guide's keys), and the book's faces have
+    no Arabic glyphs. PR #4's redraft is the fix. **Recheck (QA) after PR #4 merges:** the AR book's title page,
+    contents, author's note and buttons whole.
+    **QA, Mac, Nov 11 2026, on test 12 (d24cecb, PR #4 merged), in Español (Argentina): pass.** The book whole: the
+    title page ("SOBREVIVIR AL APOCALIPSIS", "Segunda edición", the copyright page), the contents ("ÍNDICE", all twenty
+    chapters described), the introduction, the buttons ("Página anterior", "Índice", "Página siguiente"); Simple's
+    window ("Anterior", "Siguiente"); the studio's names in Spanish, "Cond. / Cant.", "Datos del líquido" (Agua 0.30 L,
+    Cantidad 0.30 L / 0.60 L); release check 14/16 in AR. Not run: 1.75x in AR, the in-book ad pages, a native
+    reader's check.
+
+139. **The pointer says what a click or a drop will do (the director, Nov 10 2026: an idea; parked for later research).** "If you're
+    going to click on something to pick it up or whatever the action is ... it gives some sort of indication of that."
+    Prompted by the marks (138). Where it pays: the inventory and loot windows, where a double-click moves or equips
+    and a drop's target decides Take, Put in, Equip or Drop, with nothing on screen saying which until it happens. Out
+    in the world a plain left click does little (picking up and using go through the menu or a key), so the menus'
+    own icons already say it there. The idea: a small icon beside the pointer, drawn by ZeD (as a dragged item's
+    picture already follows it), from the menu set with its mark: Take blue, Put in and Drop red, Equip blue.
+    Changing the pointer itself (the arrow) needs the game's Java checked first (whether Lua can hide or replace the
+    cursor); the icon beside it does not. Controllers have no pointer: nothing changes there. Mockup:
+    `ZeDUI/mockups/zed_pointer_hint_v1/pointer_hint_v1.png` (four moments on a Dark list). **Director:** go or not,
+    and which moments (hover a row, dragging, both).
+    - **The director, Nov 10 2026: the pointer itself changes**, not a badge beside it: "like the hand in the game ...
+      if you're dragging to drop something, then that would show the drop to floor icon instead of the finger." Two
+      ways, depending on the game: Lua sets the pointer's picture (clean), or Lua hides the pointer and ZeD draws its
+      own every frame (can lag a frame, may not draw over the game's own pop-ups). Neither can be checked from the
+      cloud session. **The probe:** `zedqa_pointer_probe.lua` (pointer_manifest.txt) lists what Lua reaches on Mouse,
+      getCore() and UIManager about the pointer, tries the likely names, hides the pointer for a second if it can
+      (two shots), and looks for the game's own pointer pictures. **Check (QA, Mac):** run it, send the "ZEDQA ptr"
+      lines and the two shots. Then design: a pointer set in ZeD's pixel style.
+    - **The director, Nov 10 2026: a ZeD pixel-art hand at rest, "so the whole set matches".** The set: the resting
+      hand, then one pointer per drop (Floor, Put in, Take, Equip), marks coloured as in the menus.
+    - **Draft 1, Nov 10 2026:** `ZeDUI/mockups/zed_pointer_v1/pointer_v1.png` (and its script). A 16 px pointing hand
+      in ink on paper, hotspot at the fingertip; the drag pointers are the menu icons with their marks and a 1 px paper
+      rim (Floor, Put in, Take, Equip, and the warning for a place that takes nothing), hotspot at the top left of the
+      live area. Waiting on the director's notes, and on the probe for how it can be shown.
+    - **QA, Mac, Nov 10 2026 (probe 1):** Mouse has setCursorVisible / isCursorVisible (the read-back works both ways),
+      initCustomCursor, loadCursor and renderCursorTexture; no setCursor / setCursorTexture / setNativeCursor, no cursor
+      calls on getCore() but setDisplayCursor / isDisplayCursor; UIManager has getLastMouseTexture / setLastMouseTexture
+      and isForceCursorVisible; none of the cursor picture names tried load. The game's screenshots never hold the
+      pointer, so the hide was confirmed only by the read-back. **Probe 2** (`zedqa_pointer_probe2.lua`,
+      pointer2_manifest.txt) needs a person watching: it calls loadCursor / initCustomCursor with one of ZeD's icons
+      and prints each error (to learn their arguments), and puts up big notices while the pointer should be hidden or
+      changed. If either call takes a picture, the set can be the game's own pointer swapped (clean); if not, ZeD hides
+      the pointer and draws its own.
+    - **QA, Mac, Nov 10 2026 (probe 2, two runs, watched): hiding doesn't work on the Mac.** setCursorVisible(false)
+      ran and read back false, but the pointer stayed on screen both times, so "ZeD draws its own" would leave the
+      system pointer showing under ZeD's. loadCursor takes one argument (a path) and ran; initCustomCursor takes none.
+      The custom-picture check never ran: the game's Lua has no next(), and the probe stopped there. isDisplayCursor()
+      true. **Probe 2, run 2:** fixed (loops, no next()); adds getCore():setDisplayCursor(false) as a second way to hide
+      (notice B) and loadCursor with the full path in the mod's folder as well as the media path (notices C, D), then
+      initCustomCursor() to put the game's pointer back (E). If loadCursor takes a picture, the set is a picture swap;
+      if nothing hides or swaps it on the Mac, the fallback is the badge beside the pointer (draft from earlier).
+    - **QA, Mac, Nov 10 2026 (probe 2, run 2, watched; 42.22.2, -nosteam, 1920 x 1080 window on a 4K screen): nothing
+      hides or changes the pointer.** All five ran without an error: setCursorVisible(false) and setDisplayCursor(false)
+      left the pointer on screen; loadCursor with the media path and with the full path in the mod's folder left the
+      game's own pointer; initCustomCursor() changed nothing. So on the Mac neither the picture swap nor "hide it and
+      draw ZeD's own" works; only the badge beside the pointer does. Windows not tried (it may differ). The pixel hand
+      (ruled above) only matters if a swap works somewhere. **Director:** the badge on every system, or a Windows run of
+      the probe first.
+    - **Parked (the director, Nov 10 2026: "research it later ... not that worried about it").** Nothing to build now.
+      Later: the director remembers a pointer mod that was a file copied into the game's own folder by hand, which
+      would mean the game reads its pointer picture from its install at start, outside the mod system. To check then:
+      the game install's pointer pictures (names with cursor or mouse), that mod's install steps, and whether a copied
+      file gives ZeD's pixel hand at rest (an optional manual extra; the drop icons would still be the badge). Probes:
+      zedqa_pointer_probe.lua, zedqa_pointer_probe2.lua; drafts: zed_pointer_hint_v1, zed_pointer_v1.

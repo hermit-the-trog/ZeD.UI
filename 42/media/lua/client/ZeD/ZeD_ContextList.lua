@@ -353,7 +353,8 @@ function ZeD_ContextList:prerender()
                 -- the row the cue is on, the deepest level's winning (a submenu with nothing picked
                 -- yet leaves its parent lit). For the mouse lv.sel outlives the pointer, so it counts
                 -- only on the row the mouse is on, or one whose submenu is open.
-                if isSel and (nav ~= "mouse" or over or openParent) then hl = def end
+                local pointed = isSel and (nav ~= "mouse" or over or openParent)
+                if pointed then hl = def end
                 -- the row whose submenu is open is selected: the one accent wash
                 if openParent then
                     self:drawRect(x + u, cy, w - 2 * u, rowH, T.selectionA, ac.r, ac.g, ac.b)
@@ -380,7 +381,9 @@ function ZeD_ContextList:prerender()
                     local cs = T.checkboxSz
                     A.drawCheckbox(self, ix + math.floor((isz - cs) / 2), cy + math.floor((rowH - cs) / 2), checked(def), false, off)
                 elseif def.pxIcon then
-                    A.drawPxIcon(self, def.pxIcon, ix, cy + math.floor((rowH - isz) / 2), isz, a, tc)
+                    -- at rest a pair's mark takes the theme's shade of its color (punch list 138); the row the
+                    -- selection is on keeps the whole icon in its words' color
+                    A.drawPxIcon(self, def.pxIcon, ix, cy + math.floor((rowH - isz) / 2), isz, a, tc, (not pointed and not openParent) and T.marks or nil)
                 elseif def.iconTexture then
                     local tint = def.iconTintable and tc or { r = 1, g = 1, b = 1 }
                     A.drawIcon(self, def.iconTexture, ix, cy + math.floor((rowH - isz) / 2), isz, a, tint)

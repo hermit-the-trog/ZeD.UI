@@ -36,7 +36,7 @@ end
 
 local function getItemCategory(item)
     if not item then return "Item" end
-    if safeGet(item, "getFluidContainer") then return "Fluid" end
+    if safeGet(item, "getFluidContainer") or (ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item)) then return "Fluid" end   -- (on the floor: its world object's)
     if instanceof(item, "HandWeapon") then
         local ammo = safeGet(item, "getAmmoType")
         if ammo and ammo ~= "" then return "Firearm" end
@@ -126,7 +126,7 @@ local function formatClothing(item)
 end
 local function formatFluid(item)
     local T=ZeD.T; local s={}
-    local fc=safeGet(item,"getFluidContainer"); if not fc then return s end
+    local fc=(ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item)) or safeGet(item,"getFluidContainer"); if not fc then return s end
     local fluid=safeGet(fc,"getPrimaryFluid")
     if fluid then local fn=safeGet(fluid,"getTranslatedName") or safeGet(fluid,"getFluidTypeString"); if fn and tostring(fn)~="" then table.insert(s,{label="Contents",value=tostring(fn)}) end end
     local amt,cap=safeGet(fc,"getAmount"),safeGet(fc,"getCapacity")
@@ -189,7 +189,7 @@ local function getBarsForItem(item)
     if c=="Drainable" then local u=safeGet(item,"getCurrentUsesFloat"); if u then table.insert(bars,{label="Uses",ratio=math.max(0,math.min(1,u))}) end end
     if c=="Firearm" then local cu=safeGet(item,"getCurrentAmmoCount"); local mx=safeGet(item,"getMaxAmmo"); if cu and mx and mx>0 then table.insert(bars,{label="Ammo",ratio=math.max(0,math.min(1,cu/mx))}) end end
     if c=="Clothing" then local w=safeGet(item,"getWetness"); if w and w>0 then table.insert(bars,{label="Wetness",ratio=math.max(0,math.min(1,w/100))}) end end
-    if c=="Fluid" then local fc=safeGet(item,"getFluidContainer"); if fc then local a=safeGet(fc,"getAmount"); local cp=safeGet(fc,"getCapacity"); if a and cp and cp>0 then table.insert(bars,{label="Fill",ratio=math.max(0,math.min(1,a/cp))}) end end end
+    if c=="Fluid" then local fc=(ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item)) or safeGet(item,"getFluidContainer"); if fc then local a=safeGet(fc,"getAmount"); local cp=safeGet(fc,"getCapacity"); if a and cp and cp>0 then table.insert(bars,{label="Fill",ratio=math.max(0,math.min(1,a/cp))}) end end end
     if c=="Literature" then local pg=safeGet(item,"getNumberOfPages"); local rd=safeGet(item,"getAlreadyReadPages"); if pg and pg>0 and rd then table.insert(bars,{label="Read",ratio=math.max(0,math.min(1,rd/pg))}) end end
     local cond=safeGet(item,"getCondition"); local mc=safeGet(item,"getConditionMax")
     if cond and mc and mc>0 then table.insert(bars,{label="Condition",ratio=math.max(0,math.min(1,cond/mc))}) end; return bars
@@ -597,11 +597,7 @@ local function getClothingZones(item)
         local zoneR = (hasHole and not patchStr) and 0.0 or condR
 
         -- Condition fill color
-        local condCol
-        if zoneR > 0.6 then condCol = T.positive
-        elseif zoneR > 0.3 then condCol = T.warning
-        else condCol = T.danger
-        end
+        local condCol = ZeD.Atoms.statusColor(zoneR)   -- (the status bars' rule, punch list 143)
 
         -- Condition fill segments (main + optional patch bonus)
         local fillSegs = {

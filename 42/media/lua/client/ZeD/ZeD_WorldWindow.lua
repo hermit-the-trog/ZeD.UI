@@ -2508,6 +2508,14 @@ local function restoreWorldState(win, playerObj)
     local h = math.max(win.minimumHeight or T.px(220), math.min(T.px(ws.h or 600), screenH - T.px(20)))
     if y + h > screenH then y = math.max(0, screenH - h) end
     x = math.max(0, math.min(x, screenW - w))
+    -- a saved width wider than this screen lets a full card open beside it without shifting: the fitting width
+    -- (ZeD.Scale.fitInvW; the director, Nov 11 2026; the window grows right, so its left edge stays)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
+        ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), screenW - x), CONTAINER_STRIP_W + ACTION_TAB_STRIP_W)
+    if type(fitU) == "number" and wU - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W > fitU then
+        wU = CONTAINER_STRIP_W + fitU + ACTION_TAB_STRIP_W
+        w = T.px(wU)
+    end
     win:setX(x)
     win:setY(y)
     win:setWidth(w)
@@ -3387,6 +3395,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     local screenH = getCore():getScreenHeight()
     local maxWinW = math.floor(screenW * 0.5)
     local invW = 372                                     -- design units (default inventory width)
+    -- (narrower where a full card beside it would shift the window: ZeD.Scale.fitInvW; it grows right from here)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
+        ZeD.Scale.fitInvW(T, math.min(maxWinW, screenW - (math.floor(screenW / 2) + T.px(5))), CONTAINER_STRIP_W + ACTION_TAB_STRIP_W)
+    if type(fitU) == "number" then invW = fitU end
     local winW = T.px(CONTAINER_STRIP_W) + T.px(invW) + T.px(ACTION_TAB_STRIP_W)  -- 36 + 372 + 36 = 444 design units
     winW = math.min(winW, maxWinW)
     local winH = math.min(T.px(420), screenH - T.px(80))
@@ -4632,6 +4644,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     --   * Animals zone-draw cursor   → onDpadDir on isZoneDraw element
 
     -- Draw hook: render item list + update title bar stats
+    -- the selection box being drawn from empty space, over the rows of every column (punch list 146)
+    content._onRender = function(self) if self._box and ZeD.BoxSelect then ZeD.BoxSelect.draw(self) end end
     content._onPrerender = function(self)
         local T = ZeD.T
         -- Suppress vanilla loot panel if it re-shows (not once safe mode has handed
@@ -5383,6 +5397,22 @@ function ZeD_WorldWindow.toggle(playerNum)
     local findIndex            = r.findIndex
     local handleDrop           = r.handleDrop
 
+    -- Select all: every row of the list (the column under the pointer), the card shut; a double-click on the list's
+    -- empty space (ZeD_BoxSelect.doubleEmpty; punch list 146)
+    content.zedSelectAll = function(self)
+        local _, cs = getColumnAtX(self, self:getMouseX())
+        local sel = (cs and cs.selectedItems) or self._selectedItems
+        local flat = (cs and cs.flatItems) or self._flatItems
+        if not (sel and flat) then return false end
+        for k in pairs(sel) do sel[k] = nil end
+        for _, it in ipairs(flat) do sel[it] = true end
+        local last = flat[#flat]
+        if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+        self._padMarks = true
+        updateDrawer()
+        return true
+    end
+
     content.onMouseDown = function(self, x, y)
         self._padMarks = nil   -- (a mouse press: the mouse's card rule again)
         -- the container buttons' row
@@ -5412,7 +5442,22 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         local zone = self:hitZoneAt(x, y)
-        if not zone then return true end
+        if not zone then
+            -- empty space: a double-click selects every row; a drag from here draws a box that selects the rows it
+            -- crosses (punch list 146)
+            if ZeD.BoxSelect and ZeD.BoxSelect.doubleEmpty and ZeD.BoxSelect.doubleEmpty(self, x, y) and self.zedSelectAll then
+                self:zedSelectAll()
+                return true
+            end
+            if ZeD.BoxSelect then
+                local _, bCs = getColumnAtX(self, x)
+                local bSel = (bCs and bCs.selectedItems) or self._selectedItems
+                if bSel then
+                    ZeD.BoxSelect.start(self, x, y, bSel, bCs and function(px) return (getColumnAtX(self, px)) end or nil)
+                end
+            end
+            return true
+        end
         local zid = zone.id
 
         -- XFER button click (multi-container transfer)
@@ -5539,6 +5584,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         local isShift = isKeyDown(Keyboard.KEY_LSHIFT) or isKeyDown(Keyboard.KEY_RSHIFT)
 
         if isCtrl then
+            self._padMarks = true   -- (picking rows: the card stays shut, even at one; punch list 146)
             if sel[item] then sel[item] = nil
             else sel[item] = true end
             if colCs then colCs.lastClickedItem = item
@@ -5550,6 +5596,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
 
         elseif isShift and lastClicked then
+            self._padMarks = true   -- (picking rows: the card stays shut, even at one; punch list 146)
             local fromIdx = findIndex(flatItems, lastClicked)
             local toIdx   = findIndex(flatItems, item)
             if fromIdx and toIdx then
@@ -5600,6 +5647,17 @@ function ZeD_WorldWindow.toggle(playerNum)
             self._activeScroll = nil
         end
         self._scroll:handleMouseUp()
+
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                self._padMarks = true   -- (rows picked by a box: the card stays shut, even at one)
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer()
+            return true
+        end
 
         -- Column divider drag finalize
         if self._colDrag then
@@ -5663,6 +5721,16 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseUpOutside = function(self, x, y)
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                self._padMarks = true   -- (rows picked by a box: the card stays shut, even at one)
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer()
+            return true
+        end
         if self._colDrag then
             self._colDrag = nil
             self:setCapture(false)
@@ -5690,6 +5758,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseMove = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         ISPanel.onMouseMove(self, dx, dy)
         local T = ZeD.T
         self._scroll:handleMouseMove(self:getMouseY())
@@ -5717,6 +5786,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseMoveOutside = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         local T = ZeD.T
         if self._colDrag then
             local cd = self._colDrag

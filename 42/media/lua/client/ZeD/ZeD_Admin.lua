@@ -56,8 +56,10 @@ M.steamNames = M.steamNames or {}     -- Steam ID -> the name on Steam, once rea
 M.gameIps = M.gameIps or {}           -- the game's own banned lists
 M.gameSids = M.gameSids or {}
 M.srvRows = M.srvRows or {}           -- username -> the server's row
+M.roleSet = M.roleSet or {}           -- username -> { role, t }: a role changed from here, until the lists show it
 
 local function now() return getTimestampMs() end
+local ROLE_HOLD_MS = 120000   -- how long a role changed from here holds on its row if the lists never show it
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
 local function tr(k, ...) return ZeD.tr(k, ...) end
 --- Mark the model changed: M.seq bumps and the cards read it again.
@@ -223,10 +225,15 @@ function M.refreshRows()
         byUser[row.user] = row
         out[#out + 1] = row
     end
+    M.gameRoles = {}
     if M.can("SeeNetworkUsers") then
         pcall(function()
             local list = getUsers()
-            for i = 0, list:size() - 1 do add(readUser(list:get(i))) end
+            for i = 0, list:size() - 1 do
+                local r = readUser(list:get(i))
+                M.gameRoles[r.user] = r.role
+                add(r)
+            end
         end)
     end
     for u, r in pairs(M.srvRows) do
@@ -237,6 +244,20 @@ function M.refreshRows()
             row.role = r.role or row.role
         else
             add({ user = u, on = r.on, role = r.role, lastT = r.last })
+        end
+    end
+    -- a role changed from here holds on its row until the game's list and the server's both show it (punch list 130:
+    -- the game's list is a cache only requestUsers refreshes, and the server's rows came from its saved record)
+    local t = now()
+    for u, s in pairs(M.roleSet) do
+        local row = byUser[u]
+        -- (a list this client can't read counts as showing it)
+        local game = M.can("SeeNetworkUsers") and M.gameRoles[u] or s.role
+        local srv = M.srvRows[u] and M.srvRows[u].role
+        if (game == s.role and (srv == nil or srv == s.role)) or t - s.t > ROLE_HOLD_MS then
+            M.roleSet[u] = nil
+        elseif row then
+            row.role = s.role
         end
     end
     local Tab = ZeD.ServerTab
@@ -402,7 +423,15 @@ function M.muted(user) return M.isMuted(user) or M.voice[user] == true end
 --- Give the player a role. keep: the ids of the powers the new role brings that stay on; the server has the
 --- rest switched off (a_powersoff).
 function M.setRole(user, role, keep, cb)
-    act("a_role", { user = user, role = role, keep = keep }, function() networkUserAction("SetRole", user, role) end, cb)
+    act("a_role", { user = user, role = role, keep = keep }, function() networkUserAction("SetRole", user, role) end, function(a)
+        if a and a.ok then
+            -- the card and the rows show the new role at once (punch list 130), and the game is asked for its list again
+            M.roleSet[user] = { role = role, t = now() }
+            pcall(requestUsers)
+            M.refreshRows()
+        end
+        if cb then cb(a) end
+    end)
 end
 --- Level Up and Level Down (dir) need the player's own XP, which only the server holds for everyone; the card is
 --- read again after.

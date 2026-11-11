@@ -74,16 +74,18 @@ def fist(c, s):
     c.rect(u(4), u(13), u(12) - u(4), u(15) - u(13))                              # the wrist
 
 
-@icon("hand_main", "ctx5", "the open hand, an arrow right: equip in the main hand", ["Equip Primary"])
+# (the arrows point into the hand: the director, Nov 10 2026, "one of them is pointing outside of the hand"; the main
+# hand's pointed right, away from it. The two are mirror images: the hand and its arrow, bottom right and bottom left)
+@icon("hand_main", "ctx5", "the open hand, an arrow into it from the right: equip in the main hand", ["Equip Primary"])
 def hand_main(c, s):
     import i_char
-    i_char.hand(c, s); c.badge("right")
+    i_char.hand(c, s); c.badge("left")
 
 
-@icon("hand_off", "ctx5", "the open hand mirrored, an arrow left: equip in the off hand", ["Equip Secondary"])
+@icon("hand_off", "ctx5", "the open hand mirrored, an arrow into it from the left: equip in the off hand", ["Equip Secondary"])
 def hand_off(c, s):
     import i_char
-    i_char.hand(c, s); c.flip_h(); c.badge("left")
+    i_char.hand(c, s); c.flip_h(); c.badge("right", "bl")
 
 
 @icon("holster", "ctx5", "the firearm wheel's pistol, an arrow down: holster it", ["Holster"])

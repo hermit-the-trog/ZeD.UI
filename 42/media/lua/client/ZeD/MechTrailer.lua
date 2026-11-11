@@ -81,10 +81,8 @@ local function call(o, m, ...)
 end
 -- space in whole units (vanilla's sizes carry decimals: a ewe takes 89.6)
 local function fmt(n) return tostring(math.floor((n or 0) + 0.5)) end
-local function statusColor(T, pct)
-    if pct > 60 then return T.positive elseif pct > 30 then return T.warning end
-    return T.danger
-end
+-- (the status bars' rule, so a reading and its bar agree: ZeD.Atoms.statusColor, punch list 143)
+local function statusColor(T, pct) return ZeD.Atoms.statusColor(pct / 100) end
 local TEXCACHE = {}
 local function texture(path)
     if not path then return nil end
@@ -1052,7 +1050,7 @@ local function vital(panel, x, y, w, label, value, pct, dotColor)
     if pct then
         local bw = T.px(VBAR_W)
         local bh = A.fillBarCompactH()
-        -- ten segments; the help line the row's own reading ("Hunger Peckish": the word, as the Animals
+        -- a status bar's five segments; the help line the row's own reading ("Hunger Peckish": the word, as the Animals
         -- tab gives it, no figure the game keeps back)
         if A.drawFillBar(panel, right - bw, y + math.floor((rh - bh) / 2), bw, math.max(0, math.min(1, pct / 100)), true, nil, bh) then
             ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Bar_Help", label, value))

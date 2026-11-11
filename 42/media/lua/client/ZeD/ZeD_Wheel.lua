@@ -320,7 +320,8 @@ local function drawCell(menu, x, y, cell, icon, slice, active)
     -- a wheel icon: its drawing for this box, centred in the cell at its own size
     local tex, tint, px = slice._zedTex or nil, slice._zedTint, icon
     if slice._zedIcon then tex, px = W.iconTex(slice._zedIcon, icon); tint = true end
-    local def = { iconTexture = tex, iconTintable = tint, name = slice.text }
+    -- (pxIcon: the cell draws the id's drawing for its box, the one W.iconTex picked, and its mark's color at rest)
+    local def = { iconTexture = tex, iconTintable = tint, name = slice.text, pxIcon = tex and slice._zedIcon or nil }
     local flags = { isActive = active, isDisabled = W.isOff(slice), hasSub = W.hasSub(slice), isBack = W.isBack(slice) }
     A.drawSteppedShadow(menu, x, y, cell, cell, INK)
     local ctx = T.ctx

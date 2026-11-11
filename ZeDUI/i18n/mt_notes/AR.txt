@@ -25,3 +25,11 @@ Dates 90/91: %1 expected to be a short month name, written "%2 %1 %3". 88/89 kee
 Log lines (854 on) follow a player's name as a verb in the third person: mató a %1, baneó a %1, se unió a %1.
 Shortened to fit: Herram. pincel, TP del personal en mapa, Todas las hab., Banear con IP, Vía de apelación, %1 noticias (English "posts").
 Lines 347 and "%1 %2" shapes (253, 900, 1102) keep the English shape; what the slots hold is not visible.
+
+Arabic lines re-drafted (Nov 11 2026):
+Sessions since beta 3 had read AR as Arabic and written 279 lines in Arabic (beta 10 shipped 258 of them): the survival
+guide's front matter and blurbs, Hidden facts (TV schedule, infection odds), Mail, the desk notes, the controller
+plug-in notes, the window pin help, the studio backdrops, the COND / AMT heading. All re-drafted from the English in
+this file's voseo and words (Mando, computadora, personal for staff, Refrescar, Eliminar, Denunciar, cebo, nafta, auto).
+Guide intro (the book's own voice): canillas, bañadera, ahí afuera, toma el agua; the mail-order coupon keeps usted like
+the rest of the ad. Backdrops: Revoque viejo (plaster, as REVOCANDO), Estuco negro. Check these first.

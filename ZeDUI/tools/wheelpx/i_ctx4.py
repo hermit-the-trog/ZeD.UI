@@ -314,7 +314,7 @@ def tombstone(c, s):
 
 def _rot(c, src, s, transpose):
     src(c, s)
-    c.im = c.im.transpose(transpose); c.d = ImageDraw.Draw(c.im)
+    c.transpose(transpose)   # (the mark layer turns with it)
 
 
 @icon("arrow_right", "ctx4", "an arrow pointing right: a sign's right arrow", ["ContextMenu_SignRightArrow"])

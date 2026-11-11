@@ -1684,8 +1684,9 @@ W.entryText = entryText
 
 -- The Immersive look is the book, "Survive the Apocalypse" (ZeD setup's Survival guide: Immersive or Simple). The
 -- book's faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
--- Chinese, Japanese, Korean, Thai or Arabic shows the window.
-local NO_BOOK_LANGS = { CN = true, CH = true, JP = true, KO = true, TH = true, AR = true }
+-- Chinese, Japanese, Korean or Thai shows the window. (AR is the game's Argentine Spanish, not Arabic: it gets the
+-- book. It was on this list by that misreading until Nov 11 2026, punch list 154.)
+local NO_BOOK_LANGS = { CN = true, CH = true, JP = true, KO = true, TH = true }
 function W.useBook()
     if not (ZeD.GuideBook and ZeD.GuideBook.open) then return false end
     if ZeD.Settings and ZeD.Settings.guideSimple and ZeD.Settings.guideSimple() then return false end

@@ -307,6 +307,60 @@ function M.ContainerFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
+-- LiquidFacts - a liquid container: what is in it, exactly (punch list 152; the director, Nov 11 2026: hovering
+-- shows the level, "It's not until you inspect it ... where you see how much is in it"). Each liquid and how much of
+-- it, largest first; the game's "Tainted" on it where the game's tooltip shows that; the total in the container's
+-- capacity; "Empty" or "Unknown" (the game's words) where so. The water card's rules (ObjectCardFluid.lua,
+-- ZeD.Fluid). First in the list, so a saucepan of water shows its water, then its combat facts below.
+-- ---------------------------------------------------------------------------
+function M.LiquidFacts(item)
+    if not item then return nil end
+    local fc = ZeD.ItemMeter and ZeD.ItemMeter.fluidOf(item) or safeGet(item, "getFluidContainer")
+    if not fc then return nil end
+    local cap = safeGet(fc, "getCapacity") or 0
+    if cap <= 0 then return nil end
+    local FL = ZeD.Fluid
+    local function word(k, fb) local t = getTextOrNull and getTextOrNull(k); return t or fb end
+    local L = (FL and FL.L) or function(v) return string.format("%.2f L", v or 0) end
+    local hidden = safeGet(fc, "isHiddenAmount")
+    local liquids = {}
+    if FL and FL.liquidsOf then
+        local ok, v = pcall(FL.liquidsOf, fc)
+        if ok and type(v) == "table" then liquids = v end
+    end
+    local tainted = false
+    if FL and FL.taintedShown then
+        local ok, v = pcall(FL.taintedShown, fc, liquids)
+        tainted = ok and v == true
+    end
+    local panel = { title = ZeD.tr("UI_ZeD_Card_FactsLiquid"), hasDisclosure = false, groups = {} }
+    local rows = {}
+    if safeGet(fc, "isEmpty") then
+        rows[#rows + 1] = { label = word("Fluid_Empty", "Empty"), value = "-", valueClass = "dim" }
+    elseif #liquids == 0 then
+        local pf = safeGet(fc, "getPrimaryFluid")
+        local nm = pf and (safeGet(pf, "getTranslatedName") or safeGet(pf, "getFluidTypeString")) or word("Fluid_Mixture", "Mixture")
+        rows[#rows + 1] = { label = tostring(nm), value = hidden and word("Fluid_Unknown", "Unknown") or L(safeGet(fc, "getAmount") or 0),
+                            valueClass = tainted and "bad" or nil }
+    else
+        for _, l in ipairs(liquids) do
+            rows[#rows + 1] = { label = tostring(l.name), value = hidden and "?" or L(l.amt),
+                                valueClass = (tainted and (l.tainted or l.poison)) and "bad" or nil }
+        end
+    end
+    panel.groups[#panel.groups + 1] = { rows = rows }
+    local total = { label = ZeD.tr("UI_ZeD_Card_Amount"),
+                    value = hidden and word("Fluid_Unknown", "Unknown") or (L(safeGet(fc, "getAmount") or 0) .. " / " .. L(cap)) }
+    local g2 = { rows = { total } }
+    if tainted then g2.rows[#g2.rows + 1] = { label = word("Tooltip_tainted", "Tainted"), value = "", valueClass = "bad" } end
+    panel.groups[#panel.groups + 1] = g2
+    -- (a pot or a bottle swung is a weapon too: its combat facts follow)
+    local combat = M.CombatFacts and M.CombatFacts(item)
+    if combat then for _, g in ipairs(combat.groups or {}) do panel.groups[#panel.groups + 1] = g end end
+    return panel
+end
+
+-- ---------------------------------------------------------------------------
 -- ReadingFacts - books / magazines / recipe sources
 -- ---------------------------------------------------------------------------
 function M.ReadingFacts(item)
@@ -382,6 +436,7 @@ end
 -- Priority order: most-specific first. ContainerFacts last so a bag-of-food
 -- shows NutritionFacts on the food, not the bag's container stats.
 M._registry = {
+    {key = "liquid",    factory = M.LiquidFacts},   -- (first: a liquid container's liquid before a weapon's combat)
     {key = "reading",   factory = M.ReadingFacts},
     {key = "nutrition", factory = M.NutritionFacts},
     {key = "combat",    factory = M.CombatFacts},

@@ -882,10 +882,9 @@ local function barCells(cv, b)
     end
     return runs
 end
--- Outside the bars, every pixel the same; inside, the same cells in the same colours: the middle cells all the
--- same width, each within a pixel of the old cell's; the end cells wider by the pixels left over, split between
--- them as evenly as they go (each at most half the leftover, rounded up, wider); a bar whose cells met the frame
--- at both ends still meets it.
+-- Outside the bars, every pixel the same; inside, the same cells in the same colours: every cell within a pixel
+-- of the others (the spare pixels spread one a cell from the ends, Nov 10 2026), the middle ones within a pixel of
+-- the old cell's; a bar whose cells met the frame at both ends still meets it.
 local function sameCanvas(a, b, bars)
     for _, ch in ipairs({ "R", "G", "B" }) do
         local A, B = a[ch], b[ch]
@@ -914,26 +913,15 @@ local function sameCanvas(a, b, bars)
             if o[#o][1] + o[#o][2] == x1 and n[#n][1] + n[#n][2] ~= x1 then return where .. ": the last cell no longer meets the frame" end
         end
         if #n > 2 then
-            -- the cells drawn run to the bar's far end (dark cells drawn too): the last is an end cell, else a middle one
-            local full = n[#n][1] + n[#n][2] == x1
-            local last = full and #n - 1 or #n
-            local mid = n[2][2]
-            for i = 2, last do
-                if n[i][2] ~= mid then return where .. ": middle cells of unequal width" end
+            -- every cell within a pixel of the others (the director, Nov 10 2026: "Keep 10, spread evenly"), the cells
+            -- drawn running to the bar's far end when they did; each within a pixel of the old cell's
+            local mn, mx = 1e9, 0
+            for i = 1, #n do mn = math.min(mn, n[i][2]); mx = math.max(mx, n[i][2]) end
+            if mx - mn > 1 then return where .. ": cells " .. mn .. " to " .. mx .. " px wide (more than a pixel apart)" end
+            for i = 2, #n - 1 do
                 if math.abs(o[i][2] - n[i][2]) > 1 then
                     return where .. ": cell " .. i .. " " .. o[i][2] .. " px before, " .. n[i][2] .. " now"
                 end
-            end
-            local e1, e2 = n[1][2] - mid, full and (n[#n][2] - mid) or nil
-            if e1 < 0 or (e2 and e2 < 0) then return where .. ": an end cell narrower than the middle ones" end
-            if e2 then
-                -- the leftover (less than a pixel a cell) split between the two ends as evenly as it goes
-                local r = e1 + e2
-                if r >= #n or math.abs(e1 - e2) > 1 or e1 > math.ceil(r / 2) or e2 > math.ceil(r / 2) then
-                    return where .. ": the leftover not split at the ends (" .. e1 .. " and " .. e2 .. ")"
-                end
-            elseif e1 >= #n then
-                return where .. ": the first cell " .. e1 .. " px wider than the middle ones"
             end
         end
     end

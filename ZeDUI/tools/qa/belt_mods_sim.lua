@@ -4,7 +4,8 @@
 -- mods are stubs of their published shape, written here from their Lua (Workshop 3835479468, 3832759095, 3834708364,
 -- 3830103302): only the functions ZeD calls, never their drawing.
 --   SAME     with none of the mods on, the belt draws exactly as before this work (git show BASE:ZeD_Belt.lua): every
---            draw call equal, Full and Simple, slots with and without items, one item in both hands, a pad focus;
+--            draw call equal, Full and Simple, slots with and without items, one item in both hands, a pad focus
+--            (the conditions read as none on both sides since the hands' rings went to segments: belt_ring_sim);
 --            and none of the four files registers anything or leaves a global behind
 --   ICR      Item Condition Restored's number on the strips and rings: liquid in T.info, its one-color styles in
 --            T.positive, multicolor graduated, None and items it has nothing for back to ZeD's own condition; a
@@ -257,6 +258,26 @@ local function installZeD()
     ZeD.TM = { getFontHeight = function() return 10 end, MeasureStringX = function(_, _, s) return #tostring(s) * 6 end }
     ZeD.Atoms = recorder({
         fillBarCompactH = function() return 8 end,
+        -- (Atoms.lua's segment rules: the hands' rings light whole cells, as the strips do)
+        STATUS_SEGS = 5, FILL_SEGS = 10,
+        statusSegsLit = function(f)
+            if (f or 0) <= 0 then return 0 end
+            if f >= 1 then return 5 end
+            return math.max(1, math.ceil(f * 5 - 1e-6))
+        end,
+        fillSegsLit = function(f, n)
+            n = n or 10
+            if (f or 0) <= 0 then return 0 end
+            if f >= 1 then return n end
+            return math.floor(f * n + 1e-6)
+        end,
+        statusColor = function(f, text)   -- (Atoms.lua's status rule, punch list 143)
+            local T = ZeD.T
+            local lit = (f or 0) <= 0 and 0 or math.max(1, math.ceil(math.min(1, f) * 5 - 1e-6))
+            if lit >= 4 then return T.positive end
+            if lit >= 2 then return (text and T.warningText) or T.warning end
+            return T.danger
+        end,
         requestHint = function(_, key, words) env.hints[#env.hints + 1] = { key = key, words = words } end,
         drawFillBar = function(_, x, y, w, f, graduated, fc, h)
             LOG[#LOG + 1] = table.concat({ "drawFillBar", logv(x), logv(y), logv(w), logv(f), tostring(graduated), fc and fc.name or "nil", logv(h) }, " ")
@@ -391,9 +412,11 @@ end
 if OLD ~= "" then
     for _, simple in ipairs({ false, true }) do
         for n = 1, 4 do
-            boot(OLD); env.simple = simple; scenario(n)
+            -- (the conditions read as none on both sides: the hands' rings are in segments since Nov 11 2026, the
+            -- director's call, and belt_ring_sim checks them; this compares everything else the belt draws)
+            boot(OLD); env.simple = simple; scenario(n); ZeD.Belt.cond = function() return nil end
             local a = frame(); local a2 = frame()
-            boot(NEW); env.simple = simple; scenario(n)
+            boot(NEW); env.simple = simple; scenario(n); ZeD.Belt.cond = function() return nil end
             local b = frame(); local b2 = frame()
             local nLines = select(2, string.gsub(b, "\n", "")) + 1
             check("SAME the frame draws (" .. (simple and "Simple" or "Full") .. " " .. n .. ")", nLines > 40, nLines)
@@ -984,6 +1007,101 @@ stubModOptions(); BetterItemTransferOptions = nil
 assert(loadfile(CLIENT .. "ZeD/ModSupport/BetterItemTransfer.lua"))()
 local okB = pcall(fire, "OnGameStart")
 check("BIT the mod's options table missing: nothing breaks", okB and ZeD.ModSupport.BetterItemTransfer.primed == false)
+
+-- ---------------------------------------------------------------------------
+section("CARD: the held item's card (punch list 135)")
+-- ---------------------------------------------------------------------------
+-- The director, Nov 11 2026: "belt tooltips for items is still vanilla game UI. hover over primary with an item in
+-- primary to see." Rulings: the loot card (ZeD_LootCard, on ZeD_InvTip's layer), Alt for the game's box. Here the
+-- belt's side: what it asks the card's layer for, and when the game's box shows instead.
+do
+    boot(NEW)
+    local axe = item({ name = "Axe", class = "HandWeapon", cond = 6, condMax = 10 })
+    env.hotbar.attachedItems = {}
+    env.player.pri, env.player.sec = axe, nil
+    local wants, ALT = {}, false
+    ZeD.LootCard = {}
+    ZeD.InvTip = { altDown = function() return ALT end,
+                   want = function(owner, it, rect, count, beside, pref)
+                       wants[#wants + 1] = { owner = owner, item = it, rect = rect, count = count, beside = beside, pref = pref }
+                   end }
+    local made, tips = 0, {}
+    ISToolTipInv = { new = function(_, it)
+        made = made + 1
+        local t = { item = it, shown = false }
+        for _, m in ipairs({ 'initialise', 'addToUIManager', 'setOwner', 'setCharacter', 'bringToTop' }) do t[m] = function() end end
+        t.setItem = function(self2, i) self2.item = i end
+        t.setVisible = function(self2, v) self2.shown = v end
+        tips[#tips + 1] = t
+        return t
+    end }
+    local _, hud = frame()
+    local hb = nil
+    for _, b in ipairs(hud._boxes) do if b.kind == "hand" and b.which == "p" then hb = b end end
+    hud.getMouseX = function() return hb.x + 2 end
+    hud.getMouseY = function() return hb.y + 2 end
+    wants = {}; frame()
+    local w = wants[1]
+    check("CARD the main hand with an axe: ZeD's loot card asked for, the axe, by the belt, above",
+          #wants == 1 and w.item == axe and w.owner == hud and w.pref == "above" and w.beside == nil, #wants)
+    check("CARD it stands over the box and the room its hint takes (the box's column, down to the box's foot)",
+          w and w.rect.x == hb.x and w.rect.w == hb.w and w.rect.y < hb.y and w.rect.y + w.rect.h == hb.y + hb.h,
+          w and (w.rect.y .. " " .. w.rect.h .. " / box " .. hb.y .. " " .. hb.h))
+    check("CARD the game's box not made", made == 0, made)
+    ALT = true; wants = {}; frame()
+    check("CARD Alt held: the game's own box instead, standing above the box", #wants == 0 and made == 1 and tips[1].shown == true
+          and tips[1].item == axe and tips[1].followMouse == false and tips[1].anchorBottomLeft ~= nil)
+    ALT = false; wants = {}; frame()
+    check("CARD Alt let go: the card again, the game's box hidden", #wants == 1 and tips[1].shown == false)
+    env.ctx.visible = true; wants = {}; frame()
+    check("CARD a right-click menu open over the belt: neither", #wants == 0 and tips[1].shown == false)
+    env.ctx.visible = false
+    env.player.pri = nil; wants = {}; frame()
+    check("CARD an empty hand: no card", #wants == 0)
+    env.player.pri = axe
+    ZeD.InvTip = nil; wants = {}; frame()
+    check("CARD without the card's layer (InvTip not loaded): the game's box, as before", #wants == 0 and tips[1].shown == true)
+    hud.getMouseX, hud.getMouseY = nil, nil
+end
+
+-- ---------------------------------------------------------------------------
+section("METER: the belt's one bar, the inventory's rule (punch list 152)")
+-- ---------------------------------------------------------------------------
+-- The director, Nov 11 2026: "yes, belt follows the same rule": with no mod's meter speaking, the rings and strips
+-- read ZeD.ItemMeter (the real ItemMeter.lua): a liquid how full in ten blue cells, a use-up what is left in ten in
+-- the accent, what wears its condition (the status five), anything else none
+do
+    boot(NEW)
+    assert(loadfile(CLIENT .. "ZeD/ItemMeter.lua"))()
+    local B = ZeD.Belt
+    local function fluid(amt, cap) return { getCapacity = function() return cap end, getAmount = function() return amt end,
+                                             isHiddenAmount = function() return false end, isEmpty = function() return amt <= 0 end } end
+    local bottle = item({ name = "WaterBottle", condMax = 10, cond = 10, fluid = fluid(0.8, 1.0) })
+    local lighter = item({ name = "Lighter", class = "DrainableComboItem", condMax = 10, cond = 10 })
+    function lighter:getCurrentUsesFloat() return 0.35 end
+    local hammer = item({ name = "Hammer", class = "HandWeapon", condMax = 10, cond = 10 })
+    local beans = item({ name = "TinnedBeans", condMax = 10, cond = 10 })
+    local f, k = B.meter(bottle, "hand")
+    check("METER a water bottle in hand: how full, a liquid", f and math.abs(f - 0.8) < 1e-6 and k == "fluid", tostring(f) .. " " .. tostring(k))
+    check("METER its colour the liquid blue", B.meterColor(ZeD.T, k) == ZeD.T.info)
+    f, k = B.meter(lighter, "slot")
+    check("METER a lighter on the belt: what is left, in a light neutral (the text's tone)", f and math.abs(f - 0.35) < 1e-6 and k == "uses" and B.meterColor(ZeD.T, k) == ZeD.T.text,
+          tostring(f) .. " " .. tostring(k))
+    f, k = B.meter(hammer, "slot")
+    check("METER a hammer: its condition, the status colours", f == 1 and k == nil and B.meterColor(ZeD.T, k) == nil)
+    f = B.meter(beans, "slot")
+    check("METER a can of beans: no strip (it never wears, holds nothing)", f == nil, tostring(f))
+    env.hotbar.attachedItems = { [1] = bottle, [2] = lighter, [3] = beans }
+    env.player.pri, env.player.sec = nil, nil
+    frame()
+    check("METER the slot strips: the bottle ten blue, the lighter ten in the light neutral, the beans none",
+          #env.bars == 2 and env.bars[1].color == "info" and env.bars[1].graduated == false
+          and env.bars[2].color == "text" and env.bars[2].graduated == false, #env.bars)
+    env.player.pri = bottle
+    local log = frame()
+    check("METER the hand ring of a bottle in the liquid blue", log:find(string.format("%.4f", ZeD.T.info.r), 1, true) ~= nil)
+    ZeD.ItemMeter = nil
+end
 
 print(string.format("belt_mods_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

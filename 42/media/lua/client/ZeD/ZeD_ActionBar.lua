@@ -274,7 +274,14 @@ end
 -- per frame under -debug even inside pcall.
 function AB.itemName(action)
     if not action then return "" end
-    if action._zedItemName ~= nil then return action._zedItemName end
+    -- the name is kept per item, not per action: B42's transfer moves a merged run of items in one action, its item
+    -- changing at each step (QA's Mac run, Nov 10 2026: "MOVING 8/8 APPLE" while the knife moved)
+    local first = nil
+    for _, f in ipairs(ITEM_FIELDS) do
+        local v = action[f]
+        if v ~= nil and instanceof(v, "InventoryItem") then first = v; break end
+    end
+    if action._zedItemName ~= nil and action._zedItemFor == first then return action._zedItemName end
     local out = ""
     for _, f in ipairs(ITEM_FIELDS) do
         local v = action[f]
@@ -283,7 +290,7 @@ function AB.itemName(action)
             if ok and name and name ~= "" then out = AB.clean(name); break end
         end
     end
-    action._zedItemName = out
+    action._zedItemName, action._zedItemFor = out, first
     return out
 end
 

@@ -184,15 +184,17 @@ def _mag(c, s):
 @icon("zoom_in", "sym", "a magnifier with a plus: zoom in", ["IGUI_BackButton_Zoom_In"])
 def zoom_in(c, s):
     _mag(c, s)
-    if s == 16: c.rect(4, 6, 5, 1); c.rect(6, 4, 1, 5)
-    else: c.rect(6, 9, 8, 2); c.rect(9, 6, 2, 8)
+    with c.mark():
+        if s == 16: c.rect(4, 6, 5, 1); c.rect(6, 4, 1, 5)
+        else: c.rect(6, 9, 8, 2); c.rect(9, 6, 2, 8)
 
 
 @icon("zoom_out", "sym", "a magnifier with a minus: zoom out", ["IGUI_BackButton_Zoom_Out"])
 def zoom_out(c, s):
     _mag(c, s)
-    if s == 16: c.rect(4, 6, 5, 1)
-    else: c.rect(6, 9, 8, 2)
+    with c.mark():
+        if s == 16: c.rect(4, 6, 5, 1)
+        else: c.rect(6, 9, 8, 2)
 
 
 # ------------------------------------------------------------------ the ZeD setup wheel

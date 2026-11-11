@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/pointer2_manifest.txt (Nov 10 2026): the pointer probe, part 2 (punch list 139). A PERSON WATCHES THE
+# SCREEN: big red notices say what the pointer should be doing; note what you saw at each. Throwaway save copy.
+zedqa_prelude.lua | pre
+zedqa_pointer_probe2.lua | pt2 | timeout=150

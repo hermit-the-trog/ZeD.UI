@@ -722,7 +722,9 @@ function ZeD_SearchField:createChildren()
     -- swaps in the baked face each frame; Overrides/TextScale.lua)
     entry.zedEntry = true
     entry.javaObject:setCentreVertically(true)
-    entry:setPlaceholderText(self.placeholder or "")
+    -- (ZeD draws the placeholder, in its own face at the scale: ZeD.Text.ownPlaceholder)
+    if ZeD.Text and ZeD.Text.ownPlaceholder then ZeD.Text.ownPlaceholder(entry, self.placeholder or "")
+    else entry:setPlaceholderText(self.placeholder or "") end
     self._shownPlaceholder = self.placeholder or ""
     entry.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.borderColor = { r = 0, g = 0, b = 0, a = 0 }
@@ -758,7 +760,8 @@ function ZeD_SearchField:prerender()
         local ph = self.placeholder or ""
         if self._shownPlaceholder ~= ph then
             self._shownPlaceholder = ph
-            self.input:setPlaceholderText(ph)
+            if ZeD.Text and ZeD.Text.ownPlaceholder then ZeD.Text.ownPlaceholder(self.input, ph)
+            else self.input:setPlaceholderText(ph) end
         end
     end
     -- Background matches input
@@ -1907,7 +1910,7 @@ function ZeD.Molecules.drawFillBar(panel, x, y, w, ratio, h, label)
     local T = ZeD.T
     local barH = h or T.fillBarH
 
-    -- Graduated color: green > 60%, amber 30-60%, red < 30% (ten segments: ZeD.Atoms.drawFillBar)
+    -- A status bar: green over 60%, amber over 20%, red at 20% and under (five segments: ZeD.Atoms.drawFillBar)
     ZeD.Atoms.drawFillBar(panel, x, y, w, ratio, true, nil, barH, label)
 
     return barH
@@ -2932,7 +2935,10 @@ end
 ---                          getter not yet verified in-game and may firm up
 ---                          into a real number later
 --- @return height
-function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub, needsProbe)
+-- flush: a sub row (the smaller label in the secondary colour) without the indent, for a list under its own title
+-- with no parent row to hang from (the item card's "Used to make": the director, Nov 11 2026, "flush left with the
+-- rest of the card")
+function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub, needsProbe, flush)
     local T = ZeD.T
 
     -- label: sans-serif weight 600 (~T.fontF4 small) for main rows, fontF2 for sub
@@ -2945,7 +2951,7 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     local valueH = T.fontF1H or ZeD.TM:getFontHeight(valueFont)
     local rowH   = math.max(labelH, valueH) + T.px(2)  -- 2px breathe
 
-    local indent = isSub and T.px(14) or 0
+    local indent = (isSub and not flush) and T.px(14) or 0
     local labelC = isSub and T.textSec or T.text
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
@@ -3987,9 +3993,10 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         else
             tint = T.iconWhite
         end
-        -- def.pxIcon (ZeD's pixel icon's id): its drawing that fits the box, at its own size
+        -- def.pxIcon (ZeD's pixel icon's id): its drawing that fits the box, at its own size; at rest on the
+        -- paper its mark (a pair's plus or minus, arrow or strike) takes its color (punch list 138)
         if def.pxIcon then
-            A.drawPxIcon(panel, def.pxIcon, iconX, iconY, ctx.iconPx, alpha, tint)
+            A.drawPxIcon(panel, def.pxIcon, iconX, iconY, ctx.iconPx, alpha, tint, def.iconTintable and not flags.isActive)
         else
             A.drawIcon(panel, def.iconTexture, iconX, iconY, ctx.iconPx, alpha, tint)
         end

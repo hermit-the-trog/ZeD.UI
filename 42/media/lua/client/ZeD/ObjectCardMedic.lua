@@ -163,11 +163,8 @@ function def.title(t) return getText("IGUI_health_playerHealth", patientName(t.p
 function def.icon(t) return nil end
 function def.pxIcon(t) return "stethoscope" end
 
-local function pctColor(pct)
-    local T = ZeD.T
-    if pct > 60 then return T.positive elseif pct > 30 then return T.warning end
-    return T.danger
-end
+-- (the status bars' rule: ZeD.Atoms.statusColor, punch list 143)
+local function pctColor(pct) return ZeD.Atoms.statusColor(pct / 100) end
 
 function def.pill(t)
     if t.blocking or not t.d then return nil end

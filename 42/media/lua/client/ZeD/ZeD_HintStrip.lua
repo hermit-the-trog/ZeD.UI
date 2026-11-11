@@ -213,8 +213,31 @@ function ZeD_HintStripHUD:prerender()
     self._p = p
 end
 
+-- True while the strip should step aside (punch list 131): a balloon of the belt's is up (its balloons stand right above
+-- the belt, where the strip sits, and the two read as one line, "Back | key 1 More"; the hands' too, beside it: QA's Mac
+-- run, Nov 10), or any balloon that is up overlaps the strip (screen px). Until the balloon is down.
+function H.covered(ax, ay, w, h, pn)
+    local B = ZeD.Balloon
+    local S = B and B._slot
+    if not (S and B.up and B.up()) then return false end
+    local belt = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn or 0)
+    if belt and S.owner == belt then return true end
+    -- (the belt's held-item card, 135: drawn last, on ZeD_InvTip's layer, so the balloon that is up is the layer's
+    -- while the belt's own hint stands under it; the strip steps aside for it as for the hint. QA's Mac run on test 6,
+    -- Nov 11 2026: the strip stayed up beside the card)
+    local IT = ZeD.InvTip
+    local want = IT and IT._want
+    if belt and want and want.owner == belt and want.content and (want.frame or -9) >= (IT._frame or 0) - 1 then return true end
+    if not S.box then return false end
+    local b = S.box
+    -- (a few units of room: a balloon that only touches the strip still reads as part of its line)
+    local g = (ZeD.T and ZeD.T.px) and ZeD.T.px(4) or 4
+    return b.x < ax + w + g and b.x + b.w > ax - g and b.y < ay + h + g and b.y + b.h > ay - g
+end
+
 function ZeD_HintStripHUD:render()
     if not self._p then return end
+    if H.covered(self:getAbsoluteX(), self:getAbsoluteY(), self.width, self.height, self.playerNum) then return end
     local T = ZeD.T
     ZeD.PadGlyphs.drawStrip(self, 0, 0, self.width, self._p)
     ZeD.Atoms.frame(self, 0, 0, self.width, self.height, T.borderS)

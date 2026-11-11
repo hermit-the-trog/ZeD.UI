@@ -36,6 +36,7 @@ local function panel(x, y, w, h, parent)
     function o:getWidth() return self.w end
     function o:getHeight() return self.h end
     function o:isVisible() return self.visible end
+    function o:isReallyVisible() local p = self; while p do if p.visible == false then return false end; p = p.parent end; return true end
     function o:getMouseX() return MX - self:getAbsoluteX() end
     function o:getMouseY() return MY - self:getAbsoluteY() end
     return o

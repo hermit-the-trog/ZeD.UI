@@ -59,10 +59,10 @@ function ZeD.InventoryRenderer.catLabel(key)
     return s
 end
 
+-- the COND / AMT column's share: the item's one bar, its condition or how full it is (ItemMeter.lua, punch list
+-- 152); no bar sorts below an empty one
 local function getCondPct(item)
-    local mx = item:getConditionMax()
-    if not mx or mx <= 0 then return -1 end
-    return item:getCondition() / mx
+    return ZeD.ItemMeter.sortKey(item)
 end
 
 local function makeSorter(col, asc)
@@ -664,6 +664,28 @@ local function cuesOn()
     return Focus and Focus.cuesVisible and Focus.cuesVisible() or false
 end
 
+local _tipRect = { x = 0, y = 0, w = 0, h = 0 }   -- (the hovered row or cell, handed to ZeD.InvTip.want)
+
+-- An item waiting to move (punch list 146, after the streamer's clips: vanilla's rows say "Moving to container" with
+-- a bar while he reads on): "Moving" in the category column (wordW > 0) and a thin bar along the row's or cell's
+-- foot, filling as it goes. True when the item is waiting.
+local function queueMark(self, item, wordX, wordY, wordW, rx, ry, rw, rh)
+    local IT = ZeD.InvTip
+    local d = IT and IT.queued and IT.queued(self, item)
+    if d == nil then return false end
+    local T = ZeD.T
+    local ac, base = T.accent, T.base
+    local bh = T.px(2)
+    self:drawRect(rx, ry + rh - bh, rw, bh, 1, base.r, base.g, base.b)
+    if d > 0 then self:drawRect(rx, ry + rh - bh, math.max(1, math.floor(rw * d)), bh, 1, ac.r, ac.g, ac.b) end
+    if wordW and wordW > 0 then
+        local s = ZeD.Atoms.truncateText(ZeD.tr("UI_ZeD_Inv_Moving"), T.fontF1, wordW)
+        local c = T.accentText or ac
+        self:drawText(s, wordX, wordY, c.r, c.g, c.b, 1, T.fontF1)
+    end
+    return true
+end
+
 -- A tag's width as ZeD.Molecules.drawTag draws it (F1, sentence case, 5u each side)
 local function tagW(text)
     local T = ZeD.T
@@ -742,18 +764,19 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     return tW + padX
 end
 
--- A grid cell's condition: the framed strip (ZeD.Atoms.drawFillBar, ten segments) along
--- the cell's bottom, compact to fit under the icon. Returns its top (or the cell's
--- bottom when there is none) and true while the pointer is on it (its help line:
--- "Condition 64%"). 52 units less 6: 34 px at 0.75, two or three a segment.
+-- A grid cell's bar: the framed strip (ZeD.Atoms.drawFillBar) along the cell's bottom, compact to fit under the
+-- icon: its condition in a status bar's five segments, or how full it is in the fill bar's ten (ItemMeter.lua,
+-- punch list 152). Returns its top (or the cell's bottom when there is none) and true while the pointer is on it
+-- (its help line: "Condition 64%", "Remaining 50%"). 52 units less 6: 34 px at 0.75.
 local function drawCellCondition(self, item, ax, cy, cell)
     local T = ZeD.T
-    local condMax = item:getConditionMax()
-    if not (condMax and condMax > 0) then return cy + cell, false end
-    local f = math.max(0, math.min(1, item:getCondition() / condMax))
+    local IM = ZeD.ItemMeter
+    local kind, f = IM.of(item)
+    if kind == nil or kind == "hidden" then return cy + cell, false end
+    local fc, graduated = IM.style(kind)
     local bh = T.px(5)
     local by = cy + cell - T.px(3) - bh
-    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, true, nil, bh, ZeD.tr("IGUI_invpanel_Condition"))
+    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, graduated, fc, bh, IM.label(kind))
     return by, hov
 end
 
@@ -885,11 +908,17 @@ local function drawGridCell(self, GV, item, cx, cy)
         RM.drawMark(self, ax + T.px(3), cy + cell - ms - T.px(3), rs.st)
         if rs.next and RM.nextOn() then RM.drawUp(self, ax + T.px(2) + (GV._beltW > 0 and GV._beltW + T.px(2) or 0), cy + T.px(2)) end
     end
+    queueMark(self, item, nil, nil, 0, ax, cy, cell, cell)   -- (waiting to move: the bar along its foot)
     if over then
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
         self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cell, h = cell }
-        if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm)) end   -- (on the strip: its condition)
+        if ZeD.InvTip and not cuesOn() then   -- (the loot card, Alt the game's tooltip: punch list 146)
+            local r = _tipRect
+            r.x, r.y, r.w, r.h = ax, cy, cell, cell
+            ZeD.InvTip.want(self, item, r, count, true)   -- (beside the cell, not over it)
+        end
+        if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", nm)) end   -- (on the strip: its condition)
     end
     self:addHitZone(item, ax, cy, cell, cell)
 end
@@ -1077,6 +1106,8 @@ ZeD.InventoryRenderer._drawReadCond = drawReadCond
 local function drawGridHint(self, GV, xOff, colW, contentTop)
     local hc = self._gridHintCand
     if not hc then return end
+    -- (the game's tooltip is up for it: it names the item, so no second box; punch list 146)
+    if ZeD.InvTip and ZeD.InvTip.wantedBy(self, hc.key) then return end
     if hc.read then return requestReadCard(self, hc) end
     ZeD.Atoms.requestHint(ZeD.Atoms.windowOf(self), hc.key, hc.text, self, hc.x and hc or nil)
 end
@@ -1205,8 +1236,7 @@ local function sortRec(item, col)
     if col == "cat" then
         k = ZeD.InventoryRenderer.catKey(item)
     elseif col == "cond" then
-        local mx = item:getConditionMax()   -- (getCondPct)
-        if not mx or mx <= 0 then k = -1 else k = item:getCondition() / mx end
+        k = ZeD.ItemMeter.sortKey(item)   -- (getCondPct: the column's bar)
     else
         k = item:getUnequippedWeight()
     end
@@ -1431,7 +1461,15 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
         local hv = T.hover
         self:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
     end
-    if hover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", item:getName() or "")) end
+    if hover then
+        ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", item:getName() or ""))
+        -- the loot card at once, by the pointer; Alt: the game's tooltip (punch list 146: ZeD_InvTip.lua)
+        if ZeD.InvTip then
+            local r = _tipRect
+            r.x, r.y, r.w, r.h = x, y, w, rowH
+            ZeD.InvTip.want(self, item, r)
+        end
+    end
     if item ~= self._gpFocusedRowItem then return false end
     local fo = gpFocusedItem(item)
     if not fo then return false end
@@ -1446,16 +1484,20 @@ local function rowTag(self, x, y, rowH, text, focusTxt)
     ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, nil, _rowTagOpts)
 end
 
--- A row's condition in the COND column: the framed strip (ZeD.Atoms.drawFillBar, ten segments;
--- the column less 4 units is 34 px at 0.75) at the list rows' compact height, centred in the row, in
--- the condition's colours
+-- A row's bar in the COND / AMT column: the framed strip (ZeD.Atoms.drawFillBar) at the list rows' compact height,
+-- centred in the row. One bar an item (the director, Nov 11 2026: "condition is not always condition. Sometimes it's
+-- how much is in something"; ItemMeter.lua, punch list 152): something that wears, its condition in the status
+-- bar's five segments and colours; something that holds a liquid or runs down, how full it is in the fill bar's ten
+-- (a liquid blue, the rest a light neutral); nothing for what neither wears nor holds.
 local function rowCondition(self, item, x, y, w, rowH)
-    local condMax = item:getConditionMax()
-    if not (condMax and condMax > 0) or w <= 0 then return end
+    if w <= 0 then return end
+    local IM = ZeD.ItemMeter
+    local kind, f = IM.of(item)
+    if kind == nil or kind == "hidden" then return end
     local A = ZeD.Atoms
-    local pct = math.max(0, math.min(1, item:getCondition() / condMax))
+    local fc, graduated = IM.style(kind)
     local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
-    A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, pct, true, nil, ch, ZeD.tr("IGUI_invpanel_Condition"))
+    A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, f, graduated, fc, ch, IM.label(kind))
 end
 
 local function renderItemList(self)
@@ -1518,7 +1560,9 @@ local function renderItemList(self)
             cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
             -- (a book's read status takes the column, a dot and a word; room
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
-            cond = readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
+            -- (and room for its heading, "Cond / Amt", whole: up to 90 units, past that it shortens)
+            cond = math.max(readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
+                            math.min(math.ceil(ZeD.TM:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))),
             readOn = readOn,
             -- (a stack's row shows its total in brackets, "(2.5)"; wtU is an item's
             -- own, the width the bracket gives way to, see wtFit)
@@ -1698,9 +1742,9 @@ local function renderItemList(self)
         colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCat"),  "cat",  catX + padX,  catX,   catColW}
     end
     if showCond then
-        -- (Condition and Weight headings sit at the right, over their values' right edge; the 6th field
-        -- is that edge: the condition strip ends 2u short of its column, as rowCondition is given it)
-        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW, condX + condColW - T.px(2)}
+        -- (left, as Name and Category: only Weight, a number, sits at the right, over its values' right edge, the
+        -- 6th field; the director, Nov 11 2026: "I miscommunicated ... Change that back to left aligned")
+        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW}
     end
     colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW, wtX + wtColW - padX}
     -- the grid has no columns: its bar carries the same sort keys end to end
@@ -1954,6 +1998,7 @@ local function renderItemList(self)
         dT(displayName, nameX + childIndent + chevW, textY,
             nameColor.r, nameColor.g, nameColor.b, (nameColor.a or 1) * dimA, T.fontF2)
         local afterName = nameX + childIndent + chevW + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
+        if ZeD.InvTip then ZeD.InvTip.nameEnd(self, item, xOff + afterName) end   -- (the loot card's tail past the name)
         if nextTag then
             rowTag(self, xOff + afterName, y, rowH, nextTag, focusTxt)
             afterName = afterName + nextW + T.px(6)
@@ -1974,9 +2019,14 @@ local function renderItemList(self)
         local secTextY = y + math.floor((rowH - secFH) / 2)
 
         if showCat then
-            local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
-            local cc = focusTxt or T.toneHi
-            dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
+            -- (waiting to move: "Moving" in place of the category, a bar along the row's foot; punch list 146)
+            if not queueMark(self, item, catX + padX, secTextY, catColW - padX * 2, xOff, y, scrollX, rowH) then
+                local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
+                local cc = focusTxt or T.toneHi
+                dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
+            end
+        else
+            queueMark(self, item, nil, nil, 0, xOff, y, scrollX, rowH)
         end
 
         if showCond and rs then
@@ -2526,6 +2576,10 @@ local function stripDropTarget(win)
         ci = zid
     elseif type(zid) == "string" and zid:sub(1, 4) == "cnt:" then
         ci = tonumber(zid:sub(5))
+    elseif zid == "main_toggle" then
+        -- the Character window's top button, the main inventory (QA's Mac run, Nov 10 2026: eight rows dropped on it
+        -- moved nothing; its zone is named, not numbered)
+        for i, c in ipairs(win._containers or {}) do if c.isMain then ci = i; break end end
     end
     local cnt = ci and win._containers and win._containers[ci]
     if not cnt or cnt.locked then return nil end

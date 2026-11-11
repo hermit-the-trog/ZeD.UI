@@ -409,7 +409,7 @@ ZeD.ContextIcons = {
     ["Attach"]                                    = "square-dashed-circle-plus",
     ["Change"]                                    = "rotate-reverse",
     ["Insert"]                                    = "arrow-right-to-bracket",
-    ["Grab"]                                      = "fist-move",
+    ["Grab"]                                      = "grab",   -- (the Take icon, blue: the director, Nov 10 2026; Smash keeps the fist)
     ["Pick"]                                      = "arrow-up-right-from-square",
     ["Turn"]                                      = "rotate-left",
 
@@ -764,9 +764,9 @@ ZeD.ContextIcons = {
 
     -- SAFEHOUSE / CLAIMS
     ["ContextMenu_WarClaim"]                      = "flag",
-    ["ContextMenu_SafehouseClaim"]                = "shield-plus",
-    ["ContextMenu_SafehouseRelease"]              = "shield-minus",
-    ["ContextMenu_ViewSafehouse"]                 = "shield",
+    ["ContextMenu_SafehouseClaim"]                = "safehouse-claim",
+    ["ContextMenu_SafehouseRelease"]              = "safehouse-release",
+    ["ContextMenu_ViewSafehouse"]                 = "safehouse",
 
     -- TRAPS
     ["ContextMenu_TrapControllerTrigger"]         = "V_BearTrap",

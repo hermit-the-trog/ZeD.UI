@@ -327,13 +327,33 @@ end
 --- True when ZeD has a pixel icon of this id.
 function PXI.has(id) return id ~= nil and pxTex(16, id) ~= nil end
 
+--- The color of icon `id`'s mark (ZeD.PxIconMark: "add" blue, "remove" red), or nil when it has none.
+--- set: a pair { add =, remove = } (the theme's, T.marks, on a theme surface), or nil for the paper's pair
+--- (ZeD.Ctx.markAdd / markRemove: the strip and the wheels).
+function PXI.markColor(id, set)
+    local kind = id and ZeD.PxIconMark and ZeD.PxIconMark[id]
+    if not kind then return nil end
+    if type(set) == "table" and set.add then return (kind == "add") and set.add or set.remove end
+    local C = ZeD.Ctx
+    return C and ((kind == "add") and C.markAdd or C.markRemove) or nil
+end
+
 --- Draw pixel icon `id` centred in the box (x, y, box), tinted (default T.text).
-function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint)
+--- marks: also draw the icon's mark in its color over the tint (punch list 138), the mark's own picture
+--- (zw_<id>_mk.png at the same size) over the whole icon: true for the paper's pair, or a pair { add =, remove = }
+--- (T.marks on a theme surface). Callers ask for it at rest only: a pointed cell or row draws the whole icon in its
+--- one tint, marks included.
+function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint, marks)
     local tex, s = PXI.tex(id, box)
     if not tex then return end
     local c = tint or ZeD.T.text
     local o = math.floor((box - s) / 2)
     panel:drawTextureScaledAspect(tex, x + o, y + o, s, s, alpha or 1, c.r, c.g, c.b)
+    if marks then
+        local mc = PXI.markColor(id, marks)
+        local mt = mc and pxTex(s, id .. "_mk")
+        if mt then panel:drawTextureScaledAspect(mt, x + o, y + o, s, s, alpha or 1, mc.r, mc.g, mc.b) end
+    end
 end
 
 function ZeD.Atoms.drawIcon(panel, texture, x, y, size, alpha, tint)
@@ -353,9 +373,8 @@ end
 
 -- ============================================================================
 -- 04. FILL BAR (draw helper)
--- A horizontal bar showing a value as a proportion of a maximum: ten separate
--- segments in the framed strip. Supports graduated color (green → yellow → red
--- based on percentage).
+-- A horizontal bar showing a value as a proportion of a maximum: separate segments in the framed strip, ten for an
+-- amount, five for a status (graduated: green, yellow, red, a condition or a health).
 -- ============================================================================
 
 --- Draw a fill bar
@@ -363,7 +382,7 @@ end
 -- @param x, y      Top-left position
 -- @param w         Total width of the bar (at least ZeD.Atoms.fillBarMinW() for ten distinct segments)
 -- @param percent   Fill amount, 0.0 to 1.0
--- @param graduated If true, color shifts based on percentage thresholds
+-- @param graduated If true, a status bar: five segments and the status color (ZeD.Atoms.statusColor)
 -- @param fillColor Optional fixed fill color (overrides graduated logic)
 -- @param h         Optional height; default T.fillBarH (13 / 15 Large). List rows use ZeD.Atoms.fillBarCompactH()
 -- @param label     Optional: what the bar reads, for the help line ("Condition" gives "Condition 64%");
@@ -373,9 +392,11 @@ end
 -- The System 7 "About This Macintosh" bar — a chunky strip, not a glowing line:
 -- a framed strip with a dark well; no 1-5 unit lines, no glow, no gradient. Every condition and amount bar
 -- draws through here.
--- The fill is ten separate segments (ZeD.Atoms.drawSegFill), lit or dark, never part-lit, one per tenth —
+-- An amount's fill is ten separate segments (ZeD.Atoms.drawSegFill), lit or dark, never part-lit, one per tenth —
 -- the segments help read the amount at a glance. Rounding is strict: a
--- segment lights only when its whole tenth is reached (4% lights none, 64% six, 100% all ten). Pointing at the
+-- segment lights only when its whole tenth is reached (4% lights none, 64% six, 100% all ten). A status bar (a
+-- condition, a health: graduated) has five, rounded up, so it reads empty only at nothing left and a nearly new item
+-- full (punch list 143, the director, Nov 10 2026: "Conditions should be OK with 5"). Pointing at the
 -- bar puts the exact value in the window's help line. What moves on its own stays smooth (ZeD.Atoms.drawSmoothBar:
 -- the progress band, uploads, crafting, a timed action's busy bar), as does a slider's track (its thumb sits
 -- anywhere along it).
@@ -387,6 +408,10 @@ local FILL_SEGS = 10
 ZeD.Atoms.FILL_SEGS = FILL_SEGS
 local SEG_FILL = { framed = true, exactH = true }   -- (the segment atom's framed look at the caller's height)
 
+-- A status bar's segments (a condition, a health: ZeD.Atoms.drawFillBar's graduated bars). Skills keep ten, one a level.
+local STATUS_SEGS = 5
+ZeD.Atoms.STATUS_SEGS = STATUS_SEGS
+
 --- How many of n segments a share lights: whole steps only (n default 10)
 function ZeD.Atoms.fillSegsLit(percent, n)
     n = n or FILL_SEGS
@@ -394,6 +419,27 @@ function ZeD.Atoms.fillSegsLit(percent, n)
     if p <= 0 then return 0 end
     if p >= 1 then return n end
     return math.floor(p * n + 1e-6)   -- (the 1e-6: 0.7 * 10 is 6.999... in floating point)
+end
+
+--- How many of a status bar's five segments a share lights: rounded up, so any share above nothing lights one and
+--- only a whole one lights all five (95% reads as full, a broken item as empty)
+function ZeD.Atoms.statusSegsLit(percent)
+    local p = percent or 0
+    if p <= 0 then return 0 end
+    if p >= 1 then return STATUS_SEGS end
+    return math.max(1, math.ceil(p * STATUS_SEGS - 1e-6))   -- (the 1e-6: 0.6 * 5 is 3.0000000000000004)
+end
+
+--- The status color of a share (a condition, a health, 0 to 1), by the segments it lights on a status bar: four or
+--- five green (over 60%), two or three yellow, one or none red (20% and under). Every status bar and every reading
+--- colored beside one asks here, so a bar and its words never disagree (punch list 143). text: the warning's text
+--- shade (T.warningText) for words.
+function ZeD.Atoms.statusColor(percent, text)
+    local T = ZeD.T
+    local lit = ZeD.Atoms.statusSegsLit(percent)
+    if lit >= 4 then return T.positive end
+    if lit >= 2 then return (text and T.warningText) or T.warning end
+    return T.danger
 end
 
 --- The narrowest fill bar that still shows n (default 10) distinct segments: a hairline each, a hairline gap
@@ -428,7 +474,8 @@ end
 --- Draw n separate segments in the framed strip, k of them lit: the one look of every fill bar.
 -- 1u frame (2u High contrast) round the T.base well, the cells inside sharing its width evenly with a hairline
 -- of well between them; lit cells flat in the bar's colour, dark ones T.surf3. Skills give one segment per level
--- (n = 10), a farm plot's stages one per stage (n = 6); every other bar asks ZeD.Atoms.drawFillBar (n = 10).
+-- (n = 10), a farm plot's stages one per stage (n = 6); every other bar asks ZeD.Atoms.drawFillBar (an amount 10,
+-- a status 5).
 -- @return hovered  true while the pointer is on the strip (the caller words the help line)
 function ZeD.Atoms.drawSegFill(panel, x, y, w, h, n, k, color)
     local T = ZeD.T
@@ -441,16 +488,13 @@ function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h,
     h = h or T.fillBarH
     percent = math.max(0.0, math.min(1.0, percent or 0))
     local fc = fillColor
-    if not fc then
-        if graduated then
-            if percent > 0.6 then fc = T.positive
-            elseif percent > 0.3 then fc = T.warning
-            else fc = T.danger end
-        else
-            fc = T.accent
-        end
+    if not fc then fc = graduated and ZeD.Atoms.statusColor(percent) or T.accent end
+    local hov
+    if graduated then
+        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, STATUS_SEGS, ZeD.Atoms.statusSegsLit(percent), fc)
+    else
+        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, FILL_SEGS, ZeD.Atoms.fillSegsLit(percent), fc)
     end
-    local hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, FILL_SEGS, ZeD.Atoms.fillSegsLit(percent), fc)
     if hov and ZeD.Help then ZeD.Help.set(panel, ZeD.Atoms.fillBarHelp(percent, label)) end
     return hov
 end
@@ -479,13 +523,7 @@ function ZeD.Atoms.drawSmoothBar(panel, x, y, w, percent, graduated, fillColor, 
         if fillColor then
             fc = fillColor
         elseif graduated then
-            if percent > 0.6 then
-                fc = T.positive
-            elseif percent > 0.3 then
-                fc = T.warning
-            else
-                fc = T.danger
-            end
+            fc = ZeD.Atoms.statusColor(percent)
         else
             fc = T.accent
         end
@@ -661,15 +699,20 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
         onColor = onColor or T.accent
         -- an inside too short for a pixel per cell and every gap closes the gaps rather than drop a cell
         if w < n + (n - 1) * gap then gap = 0 end
-        -- The middle cells all the same whole-pixel width; the pixels left over go to the two end cells, split
-        -- as evenly as they go, so the cells meet the frame at both ends. Four draws a bar, not twelve: the
-        -- frame, the lit cells as one rect, the dark cells (or the well) as one, then the gaps between them in
-        -- the well's colour as one (segGaps).
+        -- Every cell within a pixel of the others (the director, Nov 10 2026, after QA measured the Cond column:
+        -- "Keep 10, spread evenly"; the two end cells used to take every pixel left over, 5 and 6 px beside 3):
+        -- the spare pixels go one a cell to the cells nearest the two ends, as many at each end as they go, so the
+        -- cells meet the frame at both ends. At most seven draws a bar: the frame, the lit cells as one rect, the
+        -- dark cells (or the well) as one, then the gaps in the well's colour, a run per stretch of equal cells (segGaps).
         local cellW = math.floor((w - (n - 1) * gap) / n)
         if cellW >= 1 then
             local pitch = cellW + gap
-            local lead = math.floor((w - (n * cellW + (n - 1) * gap)) / 2)   -- (the first cell's extra; the last takes the rest)
-            local litEnd = (k >= n) and (x + w) or (x + lead + k * pitch - gap)   -- (the k-th cell's right edge)
+            local r = w - (n * cellW + (n - 1) * gap)        -- (spare pixels, fewer than n)
+            local wa = math.ceil(r / 2)                       -- (the first wa cells and the last r - wa a pixel wider)
+            local wbFrom = n - (r - wa)                       -- (cells past this one are wide at the far end)
+            local function left(i) local j = i - 1; return x + j * pitch + math.min(j, wa) + math.max(0, j - wbFrom) end
+            local function width(i) return cellW + (((i <= wa) or (i > wbFrom)) and 1 or 0) end
+            local litEnd = (k >= n) and (x + w) or (left(k) + width(k))   -- (the k-th cell's right edge)
             if k > 0 then panel:drawRect(x, y, litEnd - x, h, 1, onColor.r, onColor.g, onColor.b) end
             local rest = offColor or bg
             if k < n then
@@ -678,7 +721,18 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
             end
             -- (with no dark colour the cells past the lit ones are the well already: only the lit ones' gaps)
             local gaps = offColor and (n - 1) or math.max(0, k - 1)
-            if gap > 0 then segGaps(panel, x + lead + cellW, y, gaps, cellW, gap, h, bg) end
+            if gap > 0 and gaps > 0 then
+                -- the gap after cell i sits at left(i) + width(i); runs of gaps the same distance apart, one draw a run
+                local i = 1
+                while i <= gaps do
+                    local gx = left(i) + width(i)
+                    local cw = (i < gaps) and width(i + 1) or cellW
+                    local m = 1
+                    while i + m <= gaps and width(i + m) == cw do m = m + 1 end
+                    segGaps(panel, gx, y, m, cw, gap, h, bg)
+                    i = i + m
+                end
+            end
             return fh
         end
         panel:drawRect(x, y, w, h, 1, bg.r, bg.g, bg.b)
@@ -1180,8 +1234,17 @@ function ZeD.Atoms.requestDetailCard(owner, key, card, panel, rect, opts)
     r.kind, r.text, r.card = "card", nil, card
 end
 
+--- Ask for a balloon of any content (the ZeD.Balloon content spec, a body and all: the loot card) this frame;
+--- rect and opts as requestHint. The caller keeps content the same table while it shows the same thing.
+function ZeD.Atoms.requestBalloon(owner, key, content, panel, rect, opts)
+    if not owner or not content then return end
+    local r = hoverRequest(owner, key or content, panel, rect, opts)
+    r.kind, r.text, r.card, r.content = "content", nil, nil, content
+end
+
 -- a request's content: a new table only when its words change (the balloon keeps the one that is up)
 local function contentOf(st, r)
+    if r.kind == "content" then return r.content end
     if r.kind == "card" then
         local c = ZeD.Molecules and ZeD.Molecules.cardContent and ZeD.Molecules.cardContent(r.card)
         return c

@@ -1445,6 +1445,9 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
         if new:hasCapability(c) and not (old and old:hasCapability(c)) and not keep[pw.id] then off[#off + 1] = pw.id end
     end
     md.watch[a.user] = { role = new:getName(), off = off, at = getTimestamp() }
+    -- the saved record takes the new role now (punch list 130): an account that is off has no live role to read, so
+    -- its card and the Players rows read this one, which only a visit used to bring up to date
+    if md.players[a.user] then md.players[a.user].role = new:getName() end
     -- a banned name's rows take the new role, so the lift gives back this one, not the one it had when banned
     local low = string.lower(a.user)
     for _, b in pairs(md.bans) do

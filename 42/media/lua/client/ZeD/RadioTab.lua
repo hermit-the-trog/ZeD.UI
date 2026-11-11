@@ -802,16 +802,18 @@ function radioPresetBank(panel, x, y, w, h, brand, dd, win)
         end
     end
 
-    -- Add button — hard accent orange (T.accent was rendering as fallback grey
-    -- through the flat-button color path; bypass the theme indirection and
-    -- paint directly so the orange is guaranteed across themes/reloads).
-    -- Brighter shade in assign mode = "armed for slot pick" cue.
+    -- Add button: the accent (the director, Nov 10 2026: it was a fixed orange, which stood out once PZ Teal became the
+    -- default). Its colours are passed to the button explicitly, read from the palette as it draws, so the flat button's
+    -- own colour path (which gave a fallback grey once) never decides them. The bright shade in assign mode is the
+    -- "armed for slot pick" cue.
+    local ac, acB = T.accent, T.accentBright or T.accent
     local assignMode = win and win._radioPresetAssignMode == true
     local addBg     = assignMode
-        and { r = 1.00, g = 0.60, b = 0.20, a = 1.0 }   -- accent bright
-        or  { r = 0.85, g = 0.48, b = 0.12, a = 1.0 }   -- accent
-    local addBorder = { r = 1.00, g = 0.66, b = 0.26, a = 1.0 }
-    local addText   = { r = 0.06, g = 0.06, b = 0.06, a = 1.0 }
+        and { r = acB.r, g = acB.g, b = acB.b, a = 1.0 }
+        or  { r = ac.r, g = ac.g, b = ac.b, a = 1.0 }
+    local addBorder = { r = acB.r, g = acB.g, b = acB.b, a = 1.0 }
+    local tOn = T.textOnAccent or { r = 0.06, g = 0.06, b = 0.06 }
+    local addText   = { r = tOn.r, g = tOn.g, b = tOn.b, a = 1.0 }
     local addBtnColors = {
         bg = addBg, border = addBorder, text = addText, font = ZeD.T.fontF2,
     }

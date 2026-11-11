@@ -143,6 +143,9 @@ end
 --                                                    conds = { { t, st } } }; st = "ok" | "bad" | nil,
 --   pic   = a Texture (the requirement balloon's picture),
 --   pads  = { a, b }: a quick action chord's two buttons (the wheels), drawn under the title,
+--   body  = { w, h, sig, draw = function(p, x, y, lay) }: a body that measures and draws itself under the title and
+--           the lines, w and h in screen px at the scale it was made for, sig what it shows (the loot card's tags,
+--           bar and figures: ZeD_LootCard.lua),
 -- }
 -- ---------------------------------------------------------------------------
 
@@ -158,6 +161,7 @@ local function sigOf(c)
     if c.req then p[#p + 1] = "\4" .. (c.req.sig or tostring(c.req)) end
     if c.pic then p[#p + 1] = "\5pic" end
     if c.pads then p[#p + 1] = "\6" .. tostring(c.pads[1]) .. "+" .. tostring(c.pads[2]) end
+    if c.body then p[#p + 1] = "\7" .. tostring(c.body.sig or c.body) end
     return table.concat(p)
 end
 
@@ -270,11 +274,13 @@ function B._layout(c)
         tableNat = picW + math.max(hasRows and (labelW + colGap + markW + valNat) or 0, condNat)
     end
 
-    local w = math.ceil(math.max(titleNat, lineNat, tableNat, padsW)) + padX * 2
+    local bodyW = c.body and c.body.w or 0
+    local w = math.ceil(math.max(titleNat, lineNat, tableNat, padsW, bodyW)) + padX * 2
     w = math.min(w, cap)
     local minInner = longest
     if hasRows then minInner = math.max(minInner, picW + labelW + colGap + markW + px(B.MIN_VAL)) end
     if w - padX * 2 < minInner then w = math.min(math.ceil(minInner) + padX * 2, math.floor(cap * B.WIDEN)) end
+    if bodyW > 0 and w < bodyW + padX * 2 then w = math.ceil(bodyW) + padX * 2 end   -- (a body is never cut)
     local inner = w - padX * 2
 
     local lay = { w = w, padX = padX, padY = padY, gapT = gapT, lead = lead, tk = tk, inner = inner,
@@ -340,6 +346,12 @@ function B._layout(c)
         h = h + (above and gapT or 0)
         for _, ln in ipairs(lines) do h = h + fh(ln.k) + lead end
         h = h - lead
+        above = true
+    end
+    if c.body then
+        if above then h = h + gapT + lead end
+        lay.bodyAt = h
+        h = h + (c.body.h or 0)
         above = true
     end
     if #rows > 0 or #conds > 0 then
@@ -572,6 +584,7 @@ function B.drawWords(p, c, x, y, lay)
         end
         cy = cy - lay.lead
     end
+    if lay.bodyAt and c.body and c.body.draw then c.body.draw(p, x + lay.padX, y + lay.bodyAt, lay) end
     if lay.tableAt then
         local ty = y + lay.tableAt
         if c.pic then

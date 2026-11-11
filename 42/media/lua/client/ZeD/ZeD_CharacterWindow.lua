@@ -244,6 +244,16 @@ local function restoreCharState(win, playerObj)
     local clampedX = math.max(0, math.min(x, screenW - w))
     anchor = anchor + (clampedX - x)
     x = clampedX
+    -- a saved width wider than this screen lets a full card open beside it without shifting: the fitting width, the
+    -- right edge kept (ZeD.Scale.fitInvW; the director, Nov 11 2026)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
+        ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), anchor), TAB_STRIP_W + CONTAINER_STRIP_W)
+    if type(fitU) == "number" and wU - TAB_STRIP_W - CONTAINER_STRIP_W > fitU then
+        wU = TAB_STRIP_W + fitU + CONTAINER_STRIP_W
+        local w2 = T.px(wU)
+        x = math.max(0, x + w - w2)
+        w = w2
+    end
     win:setX(x)
     win:setY(y)
     win:setWidth(w)
@@ -3902,6 +3912,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local screenH = getCore():getScreenHeight()
     local maxWinW = math.floor(screenW * 0.5)
     local invW = 372                                     -- design units (default inventory width)
+    -- (narrower where a full card beside it would shift the window: ZeD.Scale.fitInvW; it grows left from here)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
+        ZeD.Scale.fitInvW(T, math.min(maxWinW, math.floor(screenW / 2) - T.px(5)), TAB_STRIP_W + CONTAINER_STRIP_W)
+    if type(fitU) == "number" then invW = fitU end
     local winW = T.px(TAB_STRIP_W) + T.px(invW) + T.px(CONTAINER_STRIP_W)  -- 36 + 372 + 36 = 444 design units
     winW = math.min(winW, maxWinW)
     local winH = math.min(T.px(420), screenH - T.px(80))
@@ -4527,6 +4541,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
             identityModel:setZoom(BUST_ZOOM)
             identityModel:setYOffset(BUST_Y_OFFSET)
         end
+        -- the portrait studio's camera button in the photo's bottom right corner, over the figure (punch list 145)
+        local cam = win._studioBtn
+        if cam then
+            local s = T.px(18)
+            cam:setX(identityModel.x + identityModel.width - s - T.px(4))
+            cam:setY(identityModel.y + identityModel.height - s - T.px(4))
+        end
         return true
     end
     win._identityCustomZoom = 0  -- scroll wheel zoom for expanded mode
@@ -4681,6 +4702,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if effectiveW == 0 then
             win._preDrawerW = nil
             win._drawerCapPush = nil
+            win._foldDebt = nil
         end
 
         -- Detect user drag: if X differs from what we set last frame, adjust anchor
@@ -4709,6 +4731,31 @@ function ZeD_CharacterWindow.toggle(playerNum)
             or (mcActive and (screenW - T.px(10)))
             or (win._maxWinW or math.floor(screenW * 0.5))
 
+        -- (a drawer its half folded, WindowHalves: the window narrows by the drawer alone, so the list beside it stays
+        -- under a resting pointer; the width the cap took is owed until the drawer really closes, punch list 126)
+        local folded = ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) ~= nil
+        -- a fold that ended any other way than its own tab coming back. Another drawer opening (another tab, a card):
+        -- the debt rides through it, kept from the at-rest clearing below, and is paid as that drawer closes, so the
+        -- list stays put while it opens (QA's Mac recheck, Nov 10 2026: paying it at once held the list 53 px left for
+        -- about 10 frames). The drawer shut (Loot, a reset): paid now, as the close would have. (The same tab back
+        -- reopens the same width, which owes the same again: that keeps the debt as it is.)
+        local sameBack = win._drawerOpen and win._drawerMode == "tab" and win._activeTab == win._wasFoldTab
+        if win._wasFolded and not folded and not sameBack and (win._drawerCapLost or 0) > 0 and win._drawerOpen then
+            win._foldDebt = win._drawerCapLost
+        elseif win._wasFolded and not folded and not sameBack and (win._drawerCapLost or 0) > 0 then
+            local cap = maxW - (win._rolled and (win._rollW or 0) or 0)
+            local newW = math.min(win:getWidth() + win._drawerCapLost, cap)
+            win._drawerCapLost = 0
+            win:setWidth(newW)
+            local newX = win._anchorRightEdge - newW
+            local pushed = 0
+            if newX < 0 then pushed = -newX; newX = 0 end
+            win._drawerCapPush = pushed
+            win:setX(newX)
+            win._lastSetX = newX
+        end
+        win._wasFolded = folded
+        win._wasFoldTab = folded and ZeD.Halves.foldedTab(win) or nil
         if drawerDelta ~= 0 then
             -- A card opening in MC mode expands the window like tab mode
             -- does, rather than evicting MC columns up front: shrinking the inv
@@ -4725,8 +4772,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if drawerDelta > 0 then
                 newW = math.min(want, cap)
                 lost = lost + (want - newW)
+            elseif folded then
+                newW = math.min(want, cap)
             else
                 local back = math.min(lost, -drawerDelta)
+                -- a fold's debt riding through another drawer (above) is paid in step with that drawer's close, what
+                -- is still owed shrinking with what is left of the drawer, so the list eases back to its place over
+                -- the slide (QA's Mac run, Nov 11 2026, on test 4: paid as fast as the drawer narrowed, the list
+                -- jumped 53 px in the close's first two frames). The last frame pays what is left.
+                if win._foldDebt and prevEffW > 0 then
+                    back = math.min(lost, math.floor(lost * (-drawerDelta) / prevEffW + 0.5))
+                end
                 lost = lost - back
                 newW = math.min(want + back, cap)
             end
@@ -4747,8 +4803,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
         else
             -- At rest: accept user resize
             if win:getWidth() > maxW then win:setWidth(maxW) end
-            -- (a window the player made narrower than the cap has nothing to give back)
-            if (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then win._drawerCapLost = 0 end
+            -- (a window the player made narrower than the cap has nothing to give back; a folded drawer's window is
+            -- narrower by the drawer, not by the player)
+            -- (what a fold left owed for the drawer after it stays owed: _foldDebt, above)
+            if not folded and (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then
+                win._drawerCapLost = math.min(win._drawerCapLost, win._foldDebt or 0)
+            end
             win._lastSetX = win:getX()
             -- (a window pinned at the screen's edge by an open drawer keeps its anchor, less the push)
             win._anchorRightEdge = win:getX() + win:getWidth() - (win._drawerCapPush or 0)
@@ -4764,7 +4824,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         -- Track baseInvW ONLY when user manually resized (not from our snaps).
         -- Compare current width to what _baseInvW would produce — if different, user dragged.
-        if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 then
+        -- (not while a drawer is folded: the width the cap holds back would be saved as a narrower inventory)
+        if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 and not folded then
             local expectedW = T.px(TAB_STRIP_W) + T.px(win._baseInvW or 372) + T.px(CONTAINER_STRIP_W)
             if win:getWidth() ~= expectedW then
                 -- _baseInvW is stored in design units (screen px / T.scale);
@@ -4902,6 +4963,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 end
 
                 local showAvatar = win._placeIdentityModel(effectiveW)
+                local cam = win._studioBtn
+                if cam then
+                    local camOn = showAvatar and win._activeTab == "identity" or false
+                    if cam:isVisible() ~= camOn then cam:setVisible(camOn) end
+                end
 
                 -- The Equip tab's doll (EquipDoll.lua): the same model, full body, in the
                 -- doll's photo frame. A model can't be clipped, so a frame partly
@@ -5612,6 +5678,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Identity avatar: after containerStrip (above drawer content), before itemDrawer
     win:addChild(identityModel)
+    -- the portrait studio's camera button, after the figure so it lies over it and takes its own press (punch list
+    -- 145: ZeD_Studio.lua); placed by _placeIdentityModel, shown with the ID photo
+    if ZeD.Studio and ZeD.Studio.newCamButton then
+        local cam = ZeD.Studio.newCamButton(win)
+        win:addChild(cam)
+        win._studioBtn = cam
+    end
     -- The Equip doll's leader lines: above the model so their dots land on the
     -- body; mouse events pass through to the drawer (EquipDoll.newLineLayer)
     if ZeD.EquipDoll then
@@ -5915,6 +5988,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     content._deferredSelect = nil
 
     -- Draw hooks — inventory always visible
+    -- the selection box being drawn from empty space, over the rows of every column (punch list 146)
+    content._onRender = function(self) if self._box and ZeD.BoxSelect then ZeD.BoxSelect.draw(self) end end
     content._onPrerender = function(self)
         -- Safety: clear any stencil leaked from drawer panel's tab renderer
         self:clearStencilRect()
@@ -5952,11 +6027,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local maxWt = self._playerObj:getMaxWeight()
         local bd = self._playerObj:getBodyDamage()
         local hp = math.floor(bd:getOverallBodyHealth() + 0.5)
-        local hpColor
-        if hp > 60 then      hpColor = T.positive
-        elseif hp > 30 then  hpColor = T.warning
-        else                  hpColor = T.danger
-        end
+        local hpColor = ZeD.Atoms.statusColor(hp / 100)   -- (the status bars' rule, punch list 143)
         -- Build title stats: pins | HP | weight (right-to-left rendering)
         win.titleStats = {}
 
@@ -6469,6 +6540,22 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local findIndex            = r.findIndex
     local handleDrop           = r.handleDrop
 
+    -- Select all: every row of the list (the column under the pointer), the card shut; a double-click on the list's
+    -- empty space (ZeD_BoxSelect.doubleEmpty; punch list 146)
+    content.zedSelectAll = function(self)
+        local _, cs = getColumnAtX(self, self:getMouseX())
+        local sel = (cs and cs.selectedItems) or self._selectedItems
+        local flat = (cs and cs.flatItems) or self._flatItems
+        if not (sel and flat) then return false end
+        for k in pairs(sel) do sel[k] = nil end
+        for _, it in ipairs(flat) do sel[it] = true end
+        local last = flat[#flat]
+        if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+        self._padMarks = true
+        updateDrawer(self)
+        return true
+    end
+
     content.onMouseDown = function(self, x, y)
         self._padMarks = nil   -- (a mouse press: the mouse's card rule again)
         -- the container buttons' row
@@ -6499,7 +6586,22 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
         local zone = self:hitZoneAt(x, y)
-        if not zone then return true end
+        if not zone then
+            -- empty space: a double-click selects every row; a drag from here draws a box that selects the rows it
+            -- crosses (punch list 146)
+            if ZeD.BoxSelect and ZeD.BoxSelect.doubleEmpty and ZeD.BoxSelect.doubleEmpty(self, x, y) and self.zedSelectAll then
+                self:zedSelectAll()
+                return true
+            end
+            if ZeD.BoxSelect then
+                local _, bCs = getColumnAtX(self, x)
+                local bSel = (bCs and bCs.selectedItems) or self._selectedItems
+                if bSel then
+                    ZeD.BoxSelect.start(self, x, y, bSel, bCs and function(px) return (getColumnAtX(self, px)) end or nil)
+                end
+            end
+            return true
+        end
         local zid = zone.id
 
         -- XFER button click (multi-container transfer)
@@ -6630,6 +6732,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
         if isCtrlKeyDown() then
+            self._padMarks = true   -- (picking rows: the card stays shut, even at one; punch list 146)
             if sel[item] then
                 sel[item] = nil
             else
@@ -6644,6 +6747,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
 
         elseif isShiftKeyDown() and lastClicked then
+            self._padMarks = true   -- (picking rows: the card stays shut, even at one; punch list 146)
             local fromIdx = findIndex(flatItems, lastClicked)
             local toIdx   = findIndex(flatItems, item)
             if fromIdx and toIdx then
@@ -6696,6 +6800,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
             self._activeScroll = nil
         end
         self._scroll:handleMouseUp()
+
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                self._padMarks = true   -- (rows picked by a box: the card stays shut, even at one)
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer(self)
+            return true
+        end
 
         -- Column divider drag → finalize
         if self._colDrag then
@@ -6758,6 +6873,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     content.onMouseMove = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         local T = ZeD.T
         local my = self:getMouseY()
         self._scroll:handleMouseMove(my)
@@ -6785,6 +6901,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     content.onMouseMoveOutside = function(self, dx, dy)
+        if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         local T = ZeD.T
         -- Column divider drag continues outside (negate delta for right-aligned columns)
         if self._colDrag then
@@ -6801,6 +6918,16 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     content.onMouseUpOutside = function(self, x, y)
+        if self._box then
+            local last, bCol = ZeD.BoxSelect.finish(self)
+            if last then
+                self._padMarks = true   -- (rows picked by a box: the card stays shut, even at one)
+                local cs = bCol and self._colStates and self._colStates[bCol]
+                if cs then cs.lastClickedItem = last else self._lastClickedItem = last end
+            end
+            updateDrawer(self)
+            return true
+        end
         -- Column divider drag → finalize
         if self._colDrag then
             self._colDrag = nil

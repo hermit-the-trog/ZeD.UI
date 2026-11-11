@@ -1,0 +1,46 @@
+0.3.0-beta11
+
+New
+- Portrait studio: the camera button on the ID card's photo opens a studio with your character near the screen's full height. Pick from 18 painted backdrops that roll down from the top, frame full body, three-quarter or bust, turn, and take a clean screenshot. The game pauses while you're in it. Single player only.
+- Pasties: the desk's sticky note is now an app. Open Pasties to stick a new note, up to 8. Closing a note throws it away; one with words asks first. Your old sticky note's words carry over.
+
+Looting
+- Hovering an item shows its card at once, by the pointer. Hold Alt for the game's own tooltip.
+- An item on the belt shows the same card above its box. Alt shows the game's box there too.
+- Clothing is compared with what you wear: bite and scratch protection, plus or minus.
+- A bottle, pot or can shows its liquid and how full it is at a glance; open its card for the exact amount.
+- Drag a box from the empty space below the rows to select them, or double-click that space to select them all.
+- Ctrl-clicking rows picks them without opening their card.
+- Items waiting to move say so in their rows, and the bar fills down the list.
+- The action bar names each item in a move of several.
+
+Bars and colors
+- Condition bars have five cells, rounded up: one red cell means nearly broken.
+- The rings round your hands and the belt's strips follow the same rule: condition in five cells cut like a clock's face, how full in ten.
+- Skill bars keep ten cells, now spread evenly.
+- The condition column is now Cond / Amt: bottles, cans and things that run down (lighters, batteries) show how full they are in ten cells, things that wear their condition in five, and things that do neither no bar. Its heading sits at the left again; only Weight is right-aligned.
+- New in ZeD setup > Look: Status colors. Color blind shows good to bad in blue, yellow and orange.
+- PZ Teal is the default accent on a new install. A color you already picked stays.
+
+Menus
+- Blue and red marks tell paired actions apart: blue on Equip, Take and Zoom in; red on Unequip, Put in and Drop.
+- New icons for Eat, Sneak, the safehouse options, Save to outfit and Save to loadout. Disassemble's screwdriver has its handle up.
+- The context strip pages by whole icons, none cut at the edge.
+- The radio's preset + button follows your accent color.
+
+Windows
+- At Steam Deck size, closing a tab while its window is rolled keeps the window in place, and the Character list stays put when the drawer folds.
+- On screens where opening a full card made the windows shift (1280 wide, 1366 x 768), they open narrower so nothing moves. At 1280 wide the condition column gives way.
+- The hint strip steps aside for the belt's balloons.
+- The Health tab's injury list no longer cuts off the percent at its edge.
+- A revoked permit's stamp on the ID reads PERMIT REVOKED, with the space.
+- Hooded jackets and sweaters are listed with the other tops on the Equipment tab, not as hats.
+
+Survival guide
+- In Español (Argentina) F1 opens the book, as in the other languages it can draw.
+
+Servers
+- The Player card shows a changed role at once, so Ban says when the new role is protected.
+
+Mods
+- Responsive Context Menus: menus update in place as you move, light changes or a tool comes into reach; options that keep the menu open work.

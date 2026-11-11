@@ -42,6 +42,10 @@ ZeD.BaseThemes = {
 
     dark = {
         name     = "Dark",
+        -- the list menu's marks on surface 1 (punch list 138, the director approved Nov 10 2026): the paper pair's
+        -- hues made light enough for 4.5 : 1 here (blue 5.6, red 4.7), apart under all three kinds of color blindness
+        markAdd    = hex("#4491E2"),
+        markRemove = hex("#D9572A"),
         base     = hex("#0C0C0C", 0.92),   -- deepest background (neutral grey)
         onBand   = hex("#030303", 1.0),     -- the Mods list: the solid band under a mod that is on (darker than base)
         surf1    = hex("#141414", 0.92),    -- window background
@@ -118,6 +122,9 @@ ZeD.BaseThemes = {
 
     light = {
         name     = "Light",
+        -- the list menu's marks: dark enough for 4.5 : 1 on the grey surface (blue 4.6, red 4.8; the red reads as rust)
+        markAdd    = hex("#014E8E"),
+        markRemove = hex("#872801"),
         base     = hex("#C6C6C6", 0.97),
         onBand   = hex("#A6A6A6", 1.0),
         surf1    = hex("#BEBEBE", 0.97),
@@ -186,6 +193,8 @@ ZeD.BaseThemes = {
 
     hicon = {
         name     = "High contrast",
+        markAdd    = hex("#4491E2"),   -- the list menu's marks: Dark's pair (blue 5.7 : 1, red 4.8 here)
+        markRemove = hex("#D9572A"),
         base     = hex("#050505", 0.95),
         onBand   = hex("#000000", 1.0),
         surf1    = hex("#111111", 0.95),
@@ -527,6 +536,13 @@ ZeD.Ctx = {
 
     -- STATE CHROME
     drilledBorderTop = 2, -- strip top border thickens 1px -> 2px when a submenu is open
+
+    -- THE MARKS (punch list 138; design handoff Nov 9 2026): the plus or minus, in or out arrow, or strike that
+    -- tells the two actions of a pair apart, colored at rest over the ink. Literals like the paper and ink they sit
+    -- on (#F2F2F2, #141414), not theme colors: blue 5.5 : 1 and red 4.6 : 1 on the paper, and the two hold apart
+    -- under all three kinds of color blindness. ZeD.PxIconMark (ContextPxIcons.lua) says which icon takes which.
+    markAdd    = { r = 0x0B / 255, g = 0x63 / 255, b = 0xB0 / 255, a = 1 },   -- #0B63B0: add, take, load, in, on, up
+    markRemove = { r = 0xC2 / 255, g = 0x41 / 255, b = 0x0C / 255, a = 1 },   -- #C2410C: remove, put, drop, out, off
 }
 
 -- ---------------------------------------------------------------------------
@@ -799,7 +815,8 @@ function ZeD.deriveReadable(P, baseKey)
         list[n + 1] = flatOver(world, s1, c, washA)
         return ZeD.legible(c, 4.6, list, up)
     end
-    P.textOnWarning, P.textOnDanger = ZeD.textOn(base.warning), ZeD.textOn(base.danger)   -- label on a solid status fill
+    local st = ZeD.statusSet(baseKey)                  -- (the status colors: the theme's or the color blind set)
+    P.textOnWarning, P.textOnDanger = ZeD.textOn(st.warning), ZeD.textOn(st.danger)   -- label on a solid status fill
     -- positiveText and dangerText start from the base theme's design values (lighter / darker than the plain
     -- colors where those miss 4.5 : 1) and are moved like the others, on every surface above and on surface 2
     -- drawn solid (the balloons): the accent's tint on the surfaces can take a design value under 4.5 : 1.
@@ -810,8 +827,8 @@ function ZeD.deriveReadable(P, baseKey)
         list[n + 2] = nil
         return c
     end
-    P.dangerText, P.warningText = statusText(base.dangerText, base.danger), variant(base.warning, bw)
-    P.positiveText, P.infoText  = statusText(base.positiveText, base.positive), variant(base.info, bw)
+    P.dangerText, P.warningText = statusText(st.dangerText, st.danger), variant(st.warning, bw)
+    P.positiveText, P.infoText  = statusText(st.positiveText, st.positive), variant(base.info, bw)
     P.soiledWetText   = variant(base.soiledWet, 0.20)
     P.soiledBloodText = variant(base.soiledBlood, 0.20)
     P.soiledDirtText  = variant(base.soiledDirt, 0.20)
@@ -836,9 +853,37 @@ end
 -- ---------------------------------------------------------------------------
 ZeD.T = {}
 
+-- ---------------------------------------------------------------------------
+-- STATUS COLORS (punch list 144, the director, Nov 10 2026: "Add as an option", after the swatch page
+-- ZeDUI/qa/status_colors_swatches.html). Standard: each base theme's own green, yellow and red. Color blind:
+-- good and bad take the menu marks' blue and red-orange, and warning stands off red by brightness, so the three
+-- stay apart under deuteranopia, protanopia and tritanopia (good to bad 5 to 6 under deuteranopia in Dark and
+-- Light before, over 80 here; warning to bad 27 to 36). Light's red is a shade darker than its mark and High
+-- contrast's blue brighter than its mark, for the same reason. Text shades are solved from these fills
+-- (deriveReadable), so the set carries no text seeds.
+-- ---------------------------------------------------------------------------
+ZeD.StatusColors = {
+    cb = {
+        dark  = { positive = hex("#4491E2"), warning = hex("#F0D060"), danger = hex("#D9572A") },
+        light = { positive = hex("#014E8E"), warning = hex("#8C6E00"), danger = hex("#6E1E00") },
+        hicon = { positive = hex("#5AAEFF"), warning = hex("#FFDD33"), danger = hex("#E84A22") },
+    },
+}
+ZeD.currentStatus = "standard"    -- "standard" or "cb" (Settings.lua's Status colors)
+--- The status set a base theme draws with: the theme itself (its positive, warning, danger and the text seeds
+--- positiveText / dangerText), or the color blind set for it
+function ZeD.statusSet(baseKey)
+    local base = ZeD.BaseThemes[baseKey] or ZeD.BaseThemes.dark
+    return (ZeD.currentStatus == "cb" and ZeD.StatusColors.cb[baseKey]) or base
+end
+
+-- The accent a fresh install starts on, and the fallback for a saved key that names nothing.
+-- PZ Teal from beta 11 (punch list 127); a saved Orange stays Orange.
+ZeD.DEFAULT_ACCENT = "teal"
+
 -- Current setting keys (persisted through ModOptions)
 ZeD.currentBase   = "dark"
-ZeD.currentAccent = "orange"
+ZeD.currentAccent = ZeD.DEFAULT_ACCENT
 ZeD.currentSize   = "small"
 
 -- ---------------------------------------------------------------------------
@@ -854,7 +899,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- A key that names nothing (an old or hand-edited save) falls back to the default
     -- rather than throwing below
     if not ZeD.BaseThemes[ZeD.currentBase]     then ZeD.currentBase   = "dark"   end
-    if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = "orange" end
+    if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = ZeD.DEFAULT_ACCENT end
     -- a saved "medium" (a preset that is gone) falls back to small, as does any size that names nothing
     if ZeD.currentSize == "medium" or not ZeD.TextSizes[ZeD.currentSize] then ZeD.currentSize = "small" end
     local base   = ZeD.BaseThemes[ZeD.currentBase]
@@ -875,6 +920,9 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
 
     -- Surface colors from base theme
     T.base     = base.base
+    -- the marks on this theme's own surfaces (the list menu); the strip and the wheels sit on the locked paper and
+    -- use ZeD.Ctx.markAdd / markRemove
+    T.marks    = { add = base.markAdd, remove = base.markRemove }
     T.onBand   = base.onBand or base.base
     T.surf1    = base.surf1
     T.surf2    = base.surf2
@@ -906,10 +954,11 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.textDim  = base.textDim  -- structural chrome (scrollbar arrows, grip lines, ridges)
     T.textHead = base.textHead
 
-    -- Status colors from base theme
-    T.danger   = base.danger
-    T.warning  = base.warning
-    T.positive = base.positive
+    -- Status colors: the base theme's, or the color blind set (ZeD.statusSet)
+    local st = ZeD.statusSet(ZeD.currentBase)
+    T.danger   = st.danger
+    T.warning  = st.warning
+    T.positive = st.positive
     T.info     = base.info
     T.violet   = base.violet
 
@@ -1313,4 +1362,4 @@ end
 -- before ModOptions loads saved preferences. ModOptions will call
 -- ZeD.applyTheme() again with the player's saved choices.
 -- ---------------------------------------------------------------------------
-ZeD.applyTheme("dark", "orange", "small")
+ZeD.applyTheme("dark", ZeD.DEFAULT_ACCENT, "small")

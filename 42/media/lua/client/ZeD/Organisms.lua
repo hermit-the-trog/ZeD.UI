@@ -1282,6 +1282,9 @@ local function resetChar(charWin, defW, defH, gap, screenW)
     charWin:setX(math.floor(screenW / 2) - defW - gap)
     charWin:setY(0)
     charWin._anchorRightEdge = charWin:getX() + defW
+    -- (what the half-screen cap pushed or took before the reset is not owed to the reset's place: punch list 125)
+    charWin._drawerCapPush = 0
+    charWin._drawerCapLost = 0
     charWin._lastSetX = charWin:getX()
     charWin._preDrawerW = nil
     -- Reset saved settings: tab, drawer, accent
@@ -1318,6 +1321,11 @@ local function resetWorld(worldWin, defW, defH, gap, screenW)
     worldWin:setX(math.floor(screenW / 2) + gap)
     worldWin:setY(0)
     worldWin._anchorRightEdge = worldWin:getX() + defW
+    -- (what the half-screen cap pushed or took before the reset is not owed to the reset's place: a push kept from
+    -- before was saved on top of the new x and given back when the next drawer closed, 4 px right at Deck size,
+    -- punch list 125)
+    worldWin._drawerCapPush = 0
+    worldWin._drawerCapLost = 0
     worldWin._lastSetX = worldWin:getX()
     worldWin._preDrawerW = nil
     worldWin._drawerOpen = false
@@ -1347,6 +1355,12 @@ function ZeD_Window.resetLayout(which)
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
     local defW = math.min(T.px(444), math.floor(screenW * 0.5))   -- 36 + 372 + 36 design units, as a fresh open
+    -- (narrower where a full card would shift the windows, as a fresh open: ZeD.Scale.fitInvW; the smaller of the
+    -- two sides' room, so both fit)
+    local gap0 = T.px(5)
+    local fitU = ZeD.Scale and ZeD.Scale.fitInvW and ZeD.Scale.fitInvW(T,
+        math.min(math.floor(screenW * 0.5), math.floor(screenW / 2) - gap0, screenW - math.floor(screenW / 2) - gap0), 72)
+    if type(fitU) == "number" then defW = math.min(defW, T.px(36) + T.px(fitU) + T.px(36)) end
     local defH = math.min(T.px(420), screenH - T.px(80))
     local gap = T.px(5)  -- 5px each side = 10px total gap
 
@@ -2076,14 +2090,7 @@ function ZeD_ItemGrid:render()
                 local barY = cy + cellH - barH - T.px(2)
                 local fillW = math.floor(barW * item.condition)
 
-                local barColor
-                if item.condition > 0.6 then
-                    barColor = T.positive
-                elseif item.condition > 0.25 then
-                    barColor = T.warning
-                else
-                    barColor = T.danger
-                end
+                local barColor = ZeD.Atoms.statusColor(item.condition)   -- (the status bars' rule, punch list 143)
                 self:drawRect(barX, barY, fillW, barH, 1, barColor.r, barColor.g, barColor.b)
             end
         end

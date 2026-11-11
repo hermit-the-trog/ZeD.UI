@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/pointer_manifest.txt (Nov 10 2026): what Lua can do with the game's pointer (punch list 139).
+# Any save, -debug, the QA bridge: the prelude, then the probe. Send the "ZEDQA ptr" lines and zqa_ptr_*.png.
+zedqa_prelude.lua | pre
+zedqa_pointer_probe.lua | ptr | timeout=60

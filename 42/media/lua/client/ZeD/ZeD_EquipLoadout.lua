@@ -234,14 +234,14 @@ local function saveMenu(panel, win, z)
     local pn = pnum(win)
     local sx, sy = menuUnder(panel, win, z)
     menuAt(win, sx, sy, {
-        { name = ZeD.tr("UI_ZeD_Lists_SaveWear"), category = "a", pxIcon = L.icon("outfit"), iconTexture = ZeD.PxIcon.tex(L.icon("outfit"), 16), iconTintable = true,
+        { name = ZeD.tr("UI_ZeD_Lists_SaveWear"), category = "a", pxIcon = L.icon("outfit", "add"), iconTexture = ZeD.PxIcon.tex(L.icon("outfit", "add"), 16), iconTintable = true,
           onFire = function()
               ZeD.ListsUI.askName(pn, ZeD.tr("UI_ZeD_Lists_NameOutfit"), L.uniqueName(p, "outfit"), function(name)
                   local l = L.saveWear(p, L.uniqueName(p, "outfit", name))
                   if l then R.setOutfit(p, l.id) end
               end)
           end },
-        { name = ZeD.tr("UI_ZeD_Lists_SaveCarry"), category = "a", pxIcon = L.icon("loadout"), iconTexture = ZeD.PxIcon.tex(L.icon("loadout"), 16), iconTintable = true,
+        { name = ZeD.tr("UI_ZeD_Lists_SaveCarry"), category = "a", pxIcon = L.icon("loadout", "add"), iconTexture = ZeD.PxIcon.tex(L.icon("loadout", "add"), 16), iconTintable = true,
           onFire = function()
               ZeD.ListsUI.askName(pn, ZeD.tr("UI_ZeD_Lists_NameLoadout"), L.uniqueName(p, "loadout"), function(name)
                   local l = L.saveCarry(p, L.uniqueName(p, "loadout", name))

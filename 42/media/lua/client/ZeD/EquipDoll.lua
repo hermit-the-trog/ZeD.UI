@@ -351,10 +351,8 @@ end
 -- ----------------------------------------------------------------------------
 -- Drawing
 -- ----------------------------------------------------------------------------
-local function condColor(T, f)
-    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warningText end
-    return T.danger
-end
+-- (the status bars' rule, the warning in its text shade: ZeD.Atoms.statusColor, punch list 143)
+local function condColor(T, f) return ZeD.Atoms.statusColor(f, true) end
 
 local function dashed(p, x, y, w, h, c, a)
     local T = ZeD.T
@@ -464,9 +462,9 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         end
         local f = condOf(item)
         if f then
-            -- (ten segments even at the floor: the smallest doll on a 0.75 UI scale leaves ~21 px, a pixel a segment)
+            -- (a status bar's five segments: the smallest doll on a 0.75 UI scale leaves ~21 px, 3 px a segment)
             local ch = T.px(5)
-            condHov = ZeD.Atoms.drawFillBar(panel, bx + T.px(4), by + b - T.px(3) - ch, b - T.px(8), f, false, condColor(T, f), ch)
+            condHov = ZeD.Atoms.drawFillBar(panel, bx + T.px(4), by + b - T.px(3) - ch, b - T.px(8), f, true, condColor(T, f), ch)
                 and f or nil
         end
     else
