@@ -449,7 +449,7 @@ do
         check("a long notice: at most NOTICE_LINES lines", #lines == B.NOTICE_LINES, #lines)
         check("... the last ends ...", lines[#lines]:sub(-3) == "...")
         local _, y0 = B.layoutNoticeBalloons({ { lines = { "A" }, tw = 6 } }, -500, 500, false)
-        check("no note on the screen: no tail room", y0 == -B.GAP - (1 * B.LINE - 2 + B.PAD * 2), y0)
+        check("no note on the screen: no tail room", y0 == -B.GAP - B.boxH(1), y0)
     end
     -- the toasts window draws them out of the belt's note
     local src = io.open(CLIENT .. "ZeD_MessagesWindow.lua"):read("*a")
