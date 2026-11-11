@@ -44,7 +44,7 @@ ZeD = ZeD or {}
 ZeD_CharacterWindow = {}
 
 -- Tab content dispatch table — each tab file registers its renderer here.
--- Unregistered tabs fall back to placeholder text.
+-- An unregistered tab (only Loot) draws no drawer: lootDrawerFallback folds it.
 local TAB_RENDERERS = {}
 ZeD_CharacterWindow._tabRenderers = TAB_RENDERERS   -- (QA probes time a tab through it: ZeDUI/tools/qa/zedqa_tab_cost.lua)
 ZeD.HealthTab.register(TAB_RENDERERS)
@@ -68,6 +68,21 @@ end
 -- The shared list renderer (ZeD.InventoryRenderer), fetched on first use so
 -- nothing here cares when its file ran.
 local R = nil
+
+-- The Loot view has no tab drawer of its own (punch list 156, QA's Mac shoot Nov 11 2026: the Character window's twin
+-- of the World window's "Coming soon" card, an English "Tab content - placeholder", showed through the gallery). When
+-- Loot is shown with the drawer in tab mode (a restored state, a script, a tab that hid while open), the drawer becomes
+-- what is left in it: the item card, the extra columns, or nothing, folded.
+local function lootDrawerFallback(win)
+    if not win or win._activeTab ~= "loot" or win._drawerMode ~= "tab" then return end
+    win._tabUnder = nil
+    if win._drawerItem then win._drawerMode = "item"; win._drawerOpen = true
+    else
+        win._drawerMode = nil
+        win._drawerOpen = #(win._mcSelected or {}) > 0
+    end
+end
+ZeD_CharacterWindow._lootDrawerFallback = lootDrawerFallback
 
 local function getR()
     if not R then R = ZeD.InventoryRenderer end
@@ -272,7 +287,7 @@ local function restoreCharState(win, playerObj)
         win._activeTab = cs.activeTab
     end
     -- Restore drawer state (tab drawer reopens where it was)
-    if cs.drawerMode == "tab" and cs.drawerOpen then
+    if cs.drawerMode == "tab" and cs.drawerOpen and win._activeTab ~= "loot" then
         win._drawerMode = "tab"
         win._drawerOpen = true
     end
@@ -5065,18 +5080,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         ZeD.logOnce("tab " .. tostring(win._activeTab), errR)
                     end
                 else
-                    -- Placeholder for unimplemented tabs
-                    local label = win._activeTab
-                    for _, tab in ipairs(CHAR_TABS) do
-                        if tab.id == win._activeTab then
-                            label = ZeD_CharacterWindow.tabLabel(tab)
-                            break
-                        end
-                    end
-                    local pad = T.sp.sm
-                    ZeD.Atoms.drawHeading(self, label, pad, pad)
-                    local secY = pad + ZeD.TM:getFontHeight(T.fontF1) + T.px(4)
-                    ZeD.Atoms.drawSecondary(self, "Tab content \226\128\148 placeholder", pad, secY)
+                    -- (no tab drawer: the Loot view. Nothing is drawn; the drawer becomes what is left in it)
+                    lootDrawerFallback(win)
                 end
             end
 
