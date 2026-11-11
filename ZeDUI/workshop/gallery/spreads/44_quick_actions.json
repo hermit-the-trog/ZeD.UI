@@ -4,7 +4,7 @@
  "pages": [108, 109],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  \u00b7  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["44", "Quick Actions"]},
    {"p": "A quick action runs an action from the wheels with one chord. In the world, hold *LB* or *RB* and press *A*, *B*, *X*, *Y*, *L3* or *R3*: the action set on that chord runs, as it would from its wheel. There are twelve chords, and each holds one action."},

@@ -49,6 +49,7 @@ local B = ZeD.Belt
 local BOX, HAND, OFF_HAND = 44, 56, 44
 local HAND_GAP, PEEK = 6, 14
 local HAND_PIC = 34        -- the main hand's picture; the off hand's is a slot's (SLOT_PIC)
+local HAND_ICON, HAND_ICON_OFF = 24, 16   -- an empty hand's icon box (155): the main hand's, the off hand's
 local GAP, SIDE_GAP, PAD, END_GAP = 11, 14, 12, 10   -- GAP is wide enough that each slot's strap material shows between the boxes
 local BUCKLE_W, BUCKLE_H = 58, 40   -- the profession buckle's own size (58 x 40 texels, one a unit)
 local STRAP_H = 30
@@ -384,12 +385,20 @@ function B.shortName(slotType, slot)
     c[k] = s
     return s
 end
--- "Primary" / "Secondary" (vanilla's words for the two hands)
+-- the belt names its hands "Right hand" / "Left hand" (punch list 155, the director, Nov 10 2026: "Instead of saying
+-- secondary, primary, let's just have a left hand and a right hand"), in the game's own words for the body parts; the
+-- Equipment tab and the menus keep "Primary" / "Secondary" (the director, Nov 11: the belt only)
 function B.handName(which)
     local c = names().hand
     local k = (which == "p") and "p" or "s"
     local s = c[k]
     if s then return s end
+    s = getTextOrNull(k == "p" and "IGUI_health_Right_Hand" or "IGUI_health_Left_Hand")
+    if s then
+        s = ZeD.textCase and ZeD.textCase(s) or s
+        c[k] = s
+        return s
+    end
     -- ZeD's own short word where the player's language has one (the game's Turkish "Ikincil Donanim"
     -- was cut off in the hand circle), else the game's word
     local zk = (k == "p") and "UI_ZeD_Radio_LocPrimary" or "UI_ZeD_Radio_LocSecondary"
@@ -1654,6 +1663,11 @@ function ZeD_BeltHUD:_drawBox(b, o)
             local iy = round and (b.y + math.floor((b.h - isz) / 2)) or (b.y + math.floor((stripTop - isz) / 2))
             self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - isz) / 2), iy, isz, isz, o.inHand and 0.25 or 1, 1, 1, 1)
         end
+    elseif o.icon then
+        -- an empty hand's icon, dim like the slots' names, centred in the ring (the main hand's larger)
+        local box = T.px((b.which == "p") and HAND_ICON or HAND_ICON_OFF)
+        local dc = onFocus and T.textOnFocus or T.textDim
+        ZeD.Atoms.drawPxIcon(self, o.icon, b.x + math.floor((b.w - box) / 2), b.y + math.floor((b.h - box) / 2), box, dc.a or 1, dc)
     elseif o.label then
         local f5 = T.fontF5
         local label = o.label
@@ -2121,8 +2135,14 @@ function ZeD_BeltHUD:_prerender()
             local item = b.which == "p" and pri or (not two and sec or nil)
             o.item = item
             o.label = B.handName(b.which)
+            -- an empty hand shows which hand it is, a right or a left hand (punch list 155, the director: "a left hand
+            -- and a right hand. Keep it simple. Put icons there."); the word stays for the hint line and a missing icon
+            if not item then
+                local id = (b.which == "p") and "hand_right" or "hand_left"
+                if ZeD.PxIcon and ZeD.PxIcon.has(id) then o.icon, o.label = id, nil end
+            end
             -- one item in both hands: the off hand peeks from under the main hand, empty of picture and words
-            if b.peek then o.label, o.peek = nil, true end
+            if b.peek then o.label, o.icon, o.peek = nil, nil, true end
             o.lit = item and call(item, "canBeActivated") and call(item, "isActivated")
         elseif b.kind == "extra" then
             -- another mod's box (B.addBox): its item, its own meter or none, its lamp and badge

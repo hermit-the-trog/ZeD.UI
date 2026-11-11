@@ -45,6 +45,16 @@
    "means": "an open hand: hands free, nothing held",
    "mapped": true
   },
+  "hand_right": {
+   "group": "char",
+   "means": "the right hand, seen from its back: the belt's empty main hand",
+   "mapped": false
+  },
+  "hand_left": {
+   "group": "char",
+   "means": "the left hand, the right mirrored: the belt's empty off hand",
+   "mapped": false
+  },
   "cigarette": {
    "group": "char",
    "means": "a cigarette with smoke: smoke",

@@ -587,7 +587,7 @@ local function drawPicture(cv, sp, st, tube)
     if h.wrapW ~= maxw then                    -- wrapped again only when the lines or the screen change
         local out = {}
         for _, l in ipairs(h.lines) do
-            local ls = ZeD.Bubbles.wrap(l, maxw)
+            local ls = ZeD.Bubbles.wrap(l, maxw, true)   -- (measured in the 5 x 7 face it draws in)
             for _, x in ipairs(ls) do out[#out + 1] = x end
         end
         h.wrapped, h.wrapW = out, maxw

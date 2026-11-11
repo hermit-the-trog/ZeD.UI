@@ -4,7 +4,7 @@
  "pages": [52, 53],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["16", "See-through"]},
    {"p": "*See-through* sets how much of the scene shows through the windows. It runs from 100, where a window is solid, down to 60, in steps of 10, and 90 is the default. It is set in *ZeD setup*, and from the window menu under *See-through*."},

@@ -4,7 +4,7 @@
  "pages": [54, 55],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["17", "Controller Highlight"]},
    {"p": "With a controller, a mark shows what the controller is on. There are four marks to choose from. Figure 17-1 shows each of them on the same row of the *Character* window, the row for the apples, with the inventory shown as a list. The four are described in Table 17-1 on the facing page."},

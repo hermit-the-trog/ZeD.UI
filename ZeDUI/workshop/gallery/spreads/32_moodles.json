@@ -4,7 +4,7 @@
  "pages": [84, 85],
  "left": {
   "kind": "manual",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["32", "Moodles"]},
    {"p": "The moodles are the game's own small round marks for the state your character is in. ZNIX does not change them: it places them where you choose, and draws the note that explains one."},

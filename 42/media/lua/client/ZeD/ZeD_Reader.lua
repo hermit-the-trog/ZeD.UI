@@ -201,7 +201,14 @@ function ZeD_Reader:prerender()
     if not T then return end
     self:place()
     self._hits = {}
-    if self.mode == "notebook" then return self:prerenderNotebook() end
+    if self.mode == "notebook" then
+        -- (a print read before in this window leaves its page placed: the notebook has none. Left set, render laid the
+        -- print's paper tone, a see-through grey box, over the notebook at the print's place; QA's Mac shoot, Nov 11
+        -- 2026, after zedqa_reader in all five notebook pictures)
+        if self._vanillaPage then self._vanillaPage = false; P.vanillaHide() end
+        self._pageTone = nil
+        return self:prerenderNotebook()
+    end
     local who = self.character:getDescriptor()
     local name = who and (who:getForename() .. " " .. who:getSurname()) or ""
     self.title = name .. "  +  " .. titleOf(self)
@@ -562,7 +569,7 @@ end
 
 function ZeD_Reader:render()
     ZeD_Window.render(self)
-    if self._vanillaPage then
+    if self._vanillaPage and self.mode ~= "notebook" then
         P.vanillaRender(self)
         local r = self._pageTone
         if r then ZeD.paperToneOver(self, r.x, r.y, r.w, r.h) end

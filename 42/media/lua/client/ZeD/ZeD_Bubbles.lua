@@ -5,7 +5,8 @@
 --
 --   speech   what a local player says over their head, in the gallery's System 7
 --            balloon: stepped round corners, a 1-unit ink line, a hard shadow, a
---            wedge tail to the head; the line in the 5 x 7 face, in capitals.
+--            wedge tail to the head; the line in Fira Mono Regular, in the case it was
+--            said (the director, Nov 10 2026: lowercase reads easier, and on dyslexia).
 --   thought  the action bar's VERBOSE layout inside a rounded bubble, a trail of
 --            three small bubbles down to the head (ZeD_ActionBar.lua draws the
 --            layout; the frame and the trail are drawn here).
@@ -59,7 +60,9 @@ end
 B.SPEECH_MAXW = 120      -- a balloon's line wraps here
 B.SIDE_MAXW = 96         -- ... and here when it sits beside the thought bubble
 B.PAD = 5                -- balloon padding
-B.LINE = 9               -- line pitch of the 5 x 7 face
+B.LINE = 13              -- line pitch: Fira Mono's line (77 on its 64 face) at B.FONT_PX
+B.FONT_PX = 11           -- the balloons' text: Fira Mono Regular (F3 Data, its distance-field face), in units
+B.TRIM = 3               -- the face's line box starts this far above its capitals: the padding gives it back
 B.GAP = 3                -- head top to the tail tip / the trail's end
 B.TAIL_H = 9
 B.THOUGHT_PAD = 7
@@ -300,7 +303,7 @@ end
 -- ---------------------------------------------------------------------------
 -- text
 -- ---------------------------------------------------------------------------
--- capitals, the chat markup a multiplayer line can carry taken off, spaces collapsed
+-- the chat markup a multiplayer line can carry taken off, spaces collapsed; the case as it was said
 function B.clean(s)
     s = tostring(s or "")
     s = s:gsub("%[/?%a+[^%]]*%]", "")
@@ -308,20 +311,58 @@ function B.clean(s)
     s = s:gsub("%s+", " ")
     s = s:gsub("^ ", "")
     s = s:gsub(" $", "")
-    return ZeD.upper and ZeD.upper(s) or string.upper(s)
+    return s
+end
+
+-- The balloons' face: ZeD's Fira Mono Regular distance-field entry (ZeD.Font.sdf.stat; ZeD.Text.checkRoleFonts points
+-- it at the game's stand-in under Chinese, Japanese, Korean, Thai or the Dyslexic font, and ZeD.Text.scriptSwap draws
+-- a script the face lacks in the face that has it). Without ZeD.Text (a sim, or before it loads) the 5 x 7 face
+-- measures and draws, as before.
+local function face()
+    local X, F = ZeD.Text, ZeD.Font
+    local f = F and F.sdf and F.sdf.stat
+    if f and X and X.width and X.draw and X.realTM then return f, X end
+    return nil
+end
+-- a line's width in units
+function B.textW(str)
+    local f, X = face()
+    if f then
+        local ok, w = pcall(X.width, f, str, B.FONT_PX / (f.face or 64))
+        if ok and type(w) == "number" then return math.ceil(w) end
+    end
+    return P.textWidth(str, "57", 1)
+end
+-- a balloon's height for n lines
+function B.boxH(n) return n * B.LINE + (B.PAD - B.TRIM) * 2 end
+-- a line drawn at (x, y) units, y where its capitals start (align "l" | "c"), alpha a
+function B.drawLine(cv, str, x, y, c, a, align)
+    local f, X = face()
+    if f then
+        local k = cv.k
+        local ok = pcall(X.draw, cv.el, f, str, cv.ox + x * k, cv.oy + (y - B.TRIM) * k, B.FONT_PX * k / (f.face or 64),
+            c.r, c.g, c.b, a, align)
+        if ok then return end
+    end
+    local el = cv.el
+    el._zedAlpha = a
+    P.text(cv, str, x, y, c, "57", 1, align, nil, nil)
+    el._zedAlpha = 1
 end
 -- words to lines no wider than maxw (a word wider than that stands alone); the widest line's width
-function B.wrap(text, maxw)
+-- (pixel: measure in the 5 x 7 face, for a caller that draws in it: RtvFace's screens)
+function B.wrap(text, maxw, pixel)
+    local tw = pixel and function(t) return P.textWidth(t, "57", 1) end or B.textW
     local lines, cur = {}, ""
     for w in string.gmatch(text, "%S+") do
         local nxt = (cur == "") and w or (cur .. " " .. w)
-        if cur == "" or P.textWidth(nxt, "57", 1) <= maxw then cur = nxt
+        if cur == "" or tw(nxt) <= maxw then cur = nxt
         else lines[#lines + 1] = cur; cur = w end
     end
     if cur ~= "" then lines[#lines + 1] = cur end
-    local tw = 0
-    for i = 1, #lines do tw = math.max(tw, P.textWidth(lines[i], "57", 1)) end
-    return lines, tw
+    local w = 0
+    for i = 1, #lines do w = math.max(w, tw(lines[i])) end
+    return lines, w
 end
 
 -- ---------------------------------------------------------------------------
@@ -354,7 +395,7 @@ function B.layout(L, bar, iw, sp, rightU, W, H, gap)
     if sp then
         local lines, tw = sp.lines, sp.tw
         if bx then lines, tw = sp.sideLines, sp.sideW end
-        local w, h = tw + B.PAD * 2, #lines * B.LINE - 2 + B.PAD * 2
+        local w, h = tw + B.PAD * 2, B.boxH(#lines)
         local x, y, tail
         if bx then
             x, y = bx + bw + 2, byy + bh - 4 - h
@@ -438,18 +479,15 @@ function B.drawSpeech(cv, T, L, a)
     rectsA(cv, tail.ink, T.borderS, a, 0, 0)
     rectsA(cv, tail.fill, B.solid.surf1, a, 0, 0)
     local lines = L.lines
-    local el = cv.el
-    el._zedAlpha = a * (T.text.a or 1)
     for i = 1, #lines do
-        P.text(cv, lines[i], x + math.floor(w / 2), y + B.PAD + (i - 1) * B.LINE, T.text, "57", 1, "c", nil, nil)
+        B.drawLine(cv, lines[i], x + math.floor(w / 2), y + B.PAD + (i - 1) * B.LINE, T.text, a * (T.text.a or 1), "c")
     end
-    el._zedAlpha = 1
 end
 
 -- ---------------------------------------------------------------------------
 -- OVERHEAD NOTES. The game's red and green lines over the head ("Too heavy", "Can't
 -- reach") were nearly unreadable: they become this same balloon, and the Messages window logs them too
--- (ZeD_HaloText.lua hands each line to both). A note is the speech balloon without its tail: the line in the 5 x 7 face, a status mark before it
+-- (ZeD_HaloText.lua hands each line to both). A note is the speech balloon without its tail: the line in the balloons' face, a status mark before it
 -- (positive for good news, danger for bad, none for plain), never coloured text. Up to NOTE_N stack above whatever is
 -- over the head, the newest nearest; each holds NOTE_MS and fades over NOTE_FADE_MS. The same line again while it
 -- shows starts its clock again instead of stacking.
@@ -509,7 +547,7 @@ function B.layoutNotes(L, notes, rightU)
     for i = #notes, 1, -1 do
         local n = notes[i]
         local w = n.tw + B.PAD * 2 + (n.tone and (B.NOTE_DOT * 2) or 0)
-        local h = #n.lines * B.LINE - 2 + B.PAD * 2
+        local h = B.boxH(#n.lines)
         local x = -math.floor(w / 2)
         if rightU and x + w + 2 > rightU then x = rightU - w - 2 end
         local y = base - B.NOTE_GAP - h
@@ -527,7 +565,6 @@ function B.drawNotes(cv, T, L)
     local notes = L.notes
     if not notes then return end
     local sh = B._shadow
-    local el = cv.el
     for i = 1, #notes do
         local n = notes[i]
         local a = n.a or 1
@@ -536,14 +573,12 @@ function B.drawNotes(cv, T, L)
         local tx = n.x + B.PAD
         if n.tone then
             local c = (n.tone == "good") and T.positive or T.danger
-            rectA(cv, tx, n.y + B.PAD + 2, B.NOTE_DOT, B.NOTE_DOT, c, a)
+            rectA(cv, tx, n.y + B.PAD + 3, B.NOTE_DOT, B.NOTE_DOT, c, a)
             tx = tx + B.NOTE_DOT * 2
         end
-        el._zedAlpha = a * (T.text.a or 1)
         for j = 1, #n.lines do
-            P.text(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, "57", 1, "l", nil, nil)
+            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l")
         end
-        el._zedAlpha = 1
     end
 end
 
@@ -578,7 +613,7 @@ function B.noticeLines(head, body, long)
         while #lines > maxLines do table.remove(lines) end
         lines[#lines] = lines[#lines] .. "..."
     end
-    for i = 1, #lines do tw = math.max(tw, P.textWidth(lines[i], "57", 1)) end
+    for i = 1, #lines do tw = math.max(tw, B.textW(lines[i])) end
     return lines, tw
 end
 
@@ -592,7 +627,7 @@ function B.layoutNoticeBalloons(list, leftU, rightU, tail)
     for i = #list, 1, -1 do
         local n = list[i]
         local w = n.tw + B.PAD * 2 + (n.dot and (B.NOTE_DOT * 2) or 0)
-        local h = #n.lines * B.LINE - 2 + B.PAD * 2
+        local h = B.boxH(#n.lines)
         local x = -math.floor(w / 3)
         if tail and i == #list then
             -- the tail's base (-5 .. 6) stays inside the balloon, 3 units in from each end
@@ -613,7 +648,6 @@ end
 -- the balloons: shadow, body, the status mark, the lines; the newest one's tail (tail set) to the anchor
 function B.drawNoticeBalloons(cv, T, list, tail, a)
     local sh = B._shadow
-    local el = cv.el
     a = a or 1
     for i = 1, #list do
         local n = list[i]
@@ -627,14 +661,12 @@ function B.drawNoticeBalloons(cv, T, list, tail, a)
         end
         local tx = n.x + B.PAD
         if n.dot then
-            rectA(cv, tx, n.y + B.PAD + 2, B.NOTE_DOT, B.NOTE_DOT, n.dot, a)
+            rectA(cv, tx, n.y + B.PAD + 3, B.NOTE_DOT, B.NOTE_DOT, n.dot, a)
             tx = tx + B.NOTE_DOT * 2
         end
-        el._zedAlpha = a * (T.text.a or 1)
         for j = 1, #n.lines do
-            P.text(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, "57", 1, "l", nil, nil)
+            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l")
         end
-        el._zedAlpha = 1
     end
 end
 

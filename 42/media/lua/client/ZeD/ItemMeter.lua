@@ -62,6 +62,18 @@ function IM.of(item)
     return nil
 end
 
+--- A stack's one bar (punch list 162, the director, Nov 11 2026): the lowest of its items of the head's kind, so a
+--- stack of full and empty bottles never reads fuller than its emptiest. items: the stack's items (nil or one: the head's)
+function IM.ofStack(head, items)
+    local kind, f = IM.of(head)
+    if not items or #items < 2 or kind == nil or kind == "hidden" then return kind, f end
+    for i = 1, #items do
+        local k2, f2 = IM.of(items[i])
+        if k2 == kind and f2 and f2 < f then f = f2 end
+    end
+    return kind, f
+end
+
 --- The bar's colour and whether it is the status bar's graduated five (cond) or the fill bar's ten
 function IM.style(kind)
     if kind == "cond" then return nil, true end

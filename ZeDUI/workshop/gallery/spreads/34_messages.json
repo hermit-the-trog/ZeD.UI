@@ -4,7 +4,7 @@
  "pages": [88, 89],
  "left": {
   "kind": "manual",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["34", "Messages"]},
    {"p": "Some mods open a note when the game starts or when something changes. ZNIX keeps the notes in one window, *Messages*, instead of showing them over the game, and nothing pauses the game."},

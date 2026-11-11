@@ -4,7 +4,7 @@
  "pages": [46, 47],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["13", "Keeping Count"]},
    {"p": "Angel Cross keeps count. The *Journal* tab of the *Character* window holds a count of the zombies the character has killed, set out by kind, together with the character's own log. Figure 13-1 shows the tab with the *Zombies Killed* section open."},

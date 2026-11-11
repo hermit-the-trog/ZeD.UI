@@ -1657,7 +1657,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Inv_ColCond` | `Cond` | Inventory list: column heading for item condition | 6 |
 | `UI_ZeD_Inv_ColName` | `Name` | Inventory list: column heading, and the name of the sort order in the grid's order line | 8 |
 | `UI_ZeD_Inv_ColWt` | `Wt` | Inventory list: column heading for item weight | 4 |
-| `UI_ZeD_Inv_Empty` | `Nothing in here.` | Inventory list: centered message when a container has no items | 24 |
+| `UI_ZeD_Inv_Empty` | `Nothing here.` | Inventory list: centered message when a container, a floor tile or any list has no items | 24 |
 | `UI_ZeD_Inv_GridView` | `Grid view` | Inventory lists: hover hint on the grid button of the List/Grid toggle | - |
 | `UI_ZeD_Inv_ItemsMany` | `%1 items` | Inventory lists (both windows), compact container header: how many items it holds (several or none) | 12 |
 | `UI_ZeD_Inv_ItemsOne` | `%1 item` | Inventory lists (both windows), compact container header: how many items it holds (one) | - |

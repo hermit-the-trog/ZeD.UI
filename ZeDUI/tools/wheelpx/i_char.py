@@ -173,6 +173,19 @@ def hand(c, s):
         c.rect(5, 11, 15, 1)
 
 
+
+# (the belt's empty hands, punch list 155: the director, Nov 10 2026, "Instead of saying secondary, primary, let's
+# just have a left hand and a right hand. Keep it simple. Put icons there." The open hand is seen from its back, the
+# thumb on the left: the right hand, the main one; mirrored it is the left, the off hand)
+@icon("hand_right", "char", "the right hand, seen from its back: the belt's empty main hand", [])
+def hand_right(c, s):
+    hand(c, s)
+
+
+@icon("hand_left", "char", "the left hand, the right mirrored: the belt's empty off hand", [])
+def hand_left(c, s):
+    hand(c, s); c.flip_h()
+
 @icon("cigarette", "char", "a cigarette with smoke: smoke", ["ContextMenu_Smoke"])
 def cigarette(c, s):
     if s == 16:

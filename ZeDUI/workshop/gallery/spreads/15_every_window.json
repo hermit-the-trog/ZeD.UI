@@ -4,7 +4,7 @@
  "pages": [50, 51],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["15", "Every Window"]},
    {"p": "Every ZNIX window has the same two parts at its edges: a window box at the right end of the title bar, which pulls down the window menu, and a help line along the foot of the window. Figure 15-1 shows both on the *Character* window."},

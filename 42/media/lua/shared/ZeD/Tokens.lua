@@ -55,7 +55,8 @@ ZeD.BaseThemes = {
         border   = hex("#202020", 1.0),     -- soft dividers between rows
         borderS  = hex("#383838", 1.0),     -- strong structural borders
         -- (frameS / frameHi, the belt's slot frame: unset here, so the strong border and no outer line)
-        text     = rgba(0.855, 0.855, 0.855, 0.90),  -- neutral off-white body text
+        text     = rgba(0.855, 0.855, 0.855, 1.0),   -- neutral off-white body text, opaque (punch list 160: at 0.9 it
+                                                     -- drew #C4C6C5, no brighter than the secondary text)
         textSec  = rgba(0.63, 0.63, 0.63, 0.65),     -- neutral secondary (overwritten to accent at runtime)
         textDim  = rgba(0.63, 0.63, 0.63, 0.65),     -- structural chrome: scrollbar arrows, grip lines, ridges
         textHead = rgba(0.90, 0.90, 0.90, 0.92),     -- neutral bright chrome/headings
@@ -791,10 +792,32 @@ function ZeD.deriveReadable(P, baseKey)
         b = (f1.b + (tx.b - f1.b) * 0.45) * 0.70 + ac.b * 0.30,
     }
     local ghost = ZeD.legible(g0, 4.6, bgs, up)
+    if baseKey == "dark" then
+        -- (punch list 160, the director, Nov 11 2026: "A plus B". Dark's secondary tier read as bright as body text,
+        -- because the 4.6 floor over a white world behind every wash pushed it up. It starts from the same mix over a
+        -- dark world and stops at 7 : 1 on the window, then at least 4.5 : 1 on the window over a white world; on a
+        -- selected row over a bright scene it can drop to about 3.1 to 4.4 : 1, the accepted cost.)
+        local d1 = flatOver(0, s1)
+        local gd = {
+            r = (d1.r + (tx.r - d1.r) * 0.45) * 0.70 + ac.r * 0.30,
+            g = (d1.g + (tx.g - d1.g) * 0.45) * 0.70 + ac.g * 0.30,
+            b = (d1.b + (tx.b - d1.b) * 0.45) * 0.70 + ac.b * 0.30,
+        }
+        ghost = ZeD.legible(ZeD.legible(gd, 7.0, { d1 }, true), 4.5, { f1 }, true)
+    end
     P.toneLo, P.textSec, P.accentDim = ghost, ghost, ghost
     P.textDim = ZeD.legible({
         r = f1.r + (tx.r - f1.r) * 0.40, g = f1.g + (tx.g - f1.g) * 0.40, b = f1.b + (tx.b - f1.b) * 0.40,
     }, 4.6, bgs, up)
+    if baseKey == "dark" then
+        -- (the director, Nov 11 2026: dim text the faintest of the three, under the secondary tier. A neutral grey a
+        -- quarter of the way from the window to the text, then 5 : 1 on the window and at least 4.5 : 1 over a white
+        -- world: about 5.9 : 1, against textSec's 7 and the body text's 12.8)
+        local d1 = flatOver(0, s1)
+        P.textDim = ZeD.legible(ZeD.legible({
+            r = d1.r + (tx.r - d1.r) * 0.25, g = d1.g + (tx.g - d1.g) * 0.25, b = d1.b + (tx.b - d1.b) * 0.25,
+        }, 5.0, { d1 }, true), 4.5, { f1 }, true)
+    end
 
     -- label on a solid accent fill: ink or paper
     P.textOnAccent = ZeD.textOn(ac)

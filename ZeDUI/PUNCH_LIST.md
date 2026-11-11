@@ -3240,12 +3240,21 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     "Bitchin' znix Programs - Doidbros & Buzzlord". It's in every spread's "head" (spreads/*.json) and any default in
     spread.py/title_spread.py. Change all at once, then re-render all 70 pictures with the next full gallery refresh,
     not one page at a time.
+    **Done, Nov 11 2026 (Build):** every spread's left running head reads "Bitchin' znix Programs - Doidbros &
+    Buzzlord" (63 spreads; SPREADS.md's rule too). It shows with the full re-render in 129.
 
 129. **The gallery after beta 11 (QA, Nov 9 2026).** With PZ Teal the default (127), the whole gallery is retaken in
     Dark + PZ Teal once beta 11 ships. The same pass takes the Tier 2 title-bar retakes left from beta 10 (pins at
     each end of the bar, no roll boxes; list view, the gallery_t14 look's window places and blur, the belt in view;
     see ZeDUI/workshop/gallery/B10_RECAPTURE.md) and fixes the running head's middle dot (128). One full re-render of
     all 70 pictures.
+    **The director, Nov 11 2026: QA takes the pictures and renders.** Build's list:
+    ZeDUI/workshop/gallery/B11_RECAPTURE.md (it replaces B10_RECAPTURE.md): Tier 1, the content beta 11 changed (Cond /
+    Amt, the clock-cut rings, five-cell bars, menu marks and icons, the ID's camera button, Pasties on the desk, Liquid
+    Facts, the 70% paper), with what each picture must show; Tier 2, the accent and title bars only; what stays (the
+    vanilla pictures, the watch plates, the controller map). 09 and 14 keep the story's Blue, 45 each theme by its
+    name. Spread 20's text now names the column "Cond / Amt". QA to count the accents for spread 09's "eight colors
+    or None". The studio, Pasties, the loot card and Status colors have no picture yet: the director's call.
 
 130. **The Player card keeps a changed role (QA's Mac run, Nov 9 2026; real; beta 11).** After a role change from the
     Player card's Role dropdown, the card (badge and dropdown) still shows the old role, even reopened and after
@@ -4138,3 +4147,56 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       the game install's pointer pictures (names with cursor or mouse), that mod's install steps, and whether a copied
       file gives ZeD's pixel hand at rest (an optional manual extra; the drop icons would still be the badge). Probes:
       zedqa_pointer_probe.lua, zedqa_pointer_probe2.lua; drafts: zed_pointer_hint_v1, zed_pointer_v1.
+
+## Beta 11, before it ships: the director's notes from the Nov 10 shoot (recorded Nov 11 2026)
+
+From `qa/HANDOFF_director_notes_20261110.md` (QA's Mac), the director's words quoted there. All in beta 11 (the
+director, Nov 11: "We're not shipping beta 11 today ... Everything is in beta 11"); beta 11 ships Nov 12. Answers given Nov 11: belt only, Mono Regular, retake the vanilla pictures, textSec values
+to be proposed.
+
+155. **The belt's hands as a left and a right hand, icons (the director: "Instead of saying secondary, primary,
+    let's just have a left hand and a right hand. Keep it simple. Put icons there.").** The empty rings read
+    "Second." and "Primary", cut at 1x. The small left ring is the secondary (left hand), the large right one the
+    primary (right hand). Scope: the belt only (the director, Nov 11); the Equipment tab's Held rows and the Equip
+    menus keep the game's Primary / Secondary. **Built (944809c):** zw_hand_right / zw_hand_left (the wheelpx kit's open hand and its mirror) in the empty rings, dim; the belt's hint reads the game's Right Hand / Left Hand (IGUI_health_*). belt_hand_icons_check passes. QA: test 14.
+156. **The Loot tab's "Coming soon" half card goes (the director: "a blank half card that says loot tab card
+    placeholder ... quite a bit").** `renderPlaceholder` in ZeD_WorldWindow.lua, drawn when the Loot drawer is open
+    with no item card; the capture scripts pin drawers open. Plan: the drawer folds when it has no card. **Built (a18ad11):** renderPlaceholder is gone; lootDrawerFallback turns a Loot view in tab mode into the item card, the object card, the columns or a folded drawer (a context tab that hides while open, a restored state). loot_drawer_fallback_sim 10/0. QA: test 14. **The Character window's twin (QA's Mac shoot, Nov 11):** it drew an English "Tab content - placeholder" for Loot in tab mode, through the whole gallery; the same lootDrawerFallback there (4ab9b1d), sim 16/0.
+157. **An empty list says "Nothing here." (the director: "It's on a ground tile. So it should say nothing here,
+    right? And that would also work for any container too.").** `UI_ZeD_Inv_Empty` (EN) "Nothing in here." to
+    "Nothing here."; `UI_ZeD_St_InvEmpty` "Nothing in it." to match. ES, DE, FR already say it. **Built (a18ad11):** EN only; `UI_ZeD_St_InvEmpty` (the admin Stats card) left as it is. PTBR still reads "Nada aqui dentro."; the other languages weren't reviewed.
+158. **Speech bubbles in lowercase, in Fira Mono Regular (the director: "much easier to read ... much easier on
+    dyslexia. People remember shapes of words"; "mono would probably work fine").** `B.clean` in ZeD_Bubbles.lua
+    upper-cases every line for the capitals-only 5 x 7 face. Wanted: `T.fontF3` (Mono Regular, the director's pick
+    Nov 11), the case as typed. To check: the balloon's size and pitch (`B.LINE = 9`), ZeD_HaloText.lua's head notes
+    on the same face, and what CN, CH, JP, KO and TH get today. **Built (b70175b):** B.clean keeps the case; lines measure and draw in ZeD.Font.sdf.stat through ZeD.Text (which swaps the game's faces in for CN, CH, JP, KO, TH and the Dyslexic font); pitch 13 on an 11-unit face. Went further than asked: the head notes and the Messages / guide notices too (same balloon, same B.clean); speech-only is a one-line revert. RtvFace's screens keep the 5 x 7 face. bubbles_mono_sim 29/0. QA: test 14.
+159. **Windows jumping and overlapping during the gallery shoot (the director: "The windows are jumping all over the
+    place and overlapping other windows ... we'll address that tomorrow").** Not looked into. QA compares new
+    captures with their old twins first: the scripts' staging at 1.75x, the Mac stand-in for the runner, or the mod.
+160. **Secondary text as bright as body text (the director on "Used to make": "Why vanilla text color?").** It is
+    ZeD's `T.textSec`: #CDC3B3 under Orange, #B7C5C2 under Teal, against body #C5C4C3 in Dark, so labels don't read
+    as secondary (the hover card's too). Build proposes values with contrast in every theme and accent, before and
+    after, for the director to approve. **Measured (Nov 11, Tokens.lua as loaded):** in Dark, body text draws at alpha 0.9, so on screen it is
+    #C4C6C5, 10.5 : 1 on the window (QA measured #C5C4C3); textSec is opaque at 7.9 to 10.5 : 1, as bright as body
+    text under Orange and Yellow. Light is already apart (9.5 against 7.0 to 8.4). The cause is deriveReadable's ghost
+    tier: the faintest colour that passes 4.6 : 1 on every surface over a white world behind the see-through windows
+    (the selection wash over snow or daylight is the worst), which pushes it up to the text. **Proposed, A:** Dark's
+    textSec at 7 : 1 on the window (4.5 over a white world on the plain surface): Teal #93A7A2, Orange #B2A48D, Blue
+    #99A7B5, Red #B9A0A0, Green #93A993, Yellow #ABA485, Purple #A79DB1, Pink #B89DA7. The cost: on a selected row over
+    a bright scene it can drop to 3.1 to 4.4 : 1. **B, with A:** body text opaque (12.8 : 1). Sheet:
+    `ZeDUI/mockups/zed_textsec_v1/textsec_dark_before_after.png`. **The director, Nov 11: "A plus B". Built:** Dark's
+    body text opaque (Tokens.lua), and deriveReadable's ghost tier (textSec, toneLo, accentDim) in Dark at 7 : 1 on the
+    window, 4.5 over a white world; Light and High contrast unchanged. Dark's textDim read brighter than textSec (#BABBBA under Teal); the director, Nov
+    11: dim the faintest. A neutral grey at 5 : 1 on the window, 4.5 over a white world: about 5.9 : 1 (#919392 under Teal). QA: test 14.
+161. **QA: two sources side by side show no Cond / Amt column** (Name and Wt only); the gallery's hero shots are staged
+    that way and B11_RECAPTURE.md asks for the column. **Build looked (Nov 11):** by design. Two or more sources side by side set `_compactMode` (InventoryRenderer.lua), which draws Name and Wt only; the narrowing rule isn't involved. B11_RECAPTURE.md now asks for one source open in 01 and 19, so the column shows. Giving the compact layout a bar is the director's call.
+162. **QA: a stack's row takes its first item's name and bar** ("Empty Plastic Bottle x4" with a dark bar one way,
+    "Water (Plastic Bottle) x4" at 80% the other). The game stacks them as one type, and the row shows the first item's facts. To decide: a stack of mixed levels shows the lowest, the average, or no bar. **The director, Nov 11: the lowest ("Your rec."). Built:** ItemMeter.ofStack, the list's row and the grid's cell; the head's name stays the game's. item_meter_sim 37/0.
+163. **QA: no Hat row when it's empty** (the Equipped list draws only filled rows). As designed today; the director's
+    call if it should show.
+164. **A grey box over the notebook (QA's Mac shoot, Nov 11 2026: all five zqa_nb pictures at 1.75x, a see-through grey
+    rectangle over the left 55% of the paper).** zedqa_reader runs just before zedqa_notebook in the same reader window:
+    the print's page stayed placed (`_vanillaPage`), notebook mode never cleared it, and render laid the print's paper
+    tone at the print's place over the notebook. A player reading a flyer, then writing in a notebook, gets it too.
+    **Built:** notebook mode takes the print's page off and render tones only a print. reader_notebook_tone_sim 5/0.
+    QA: test 14 (at 1x and 1.75x, a print read first).

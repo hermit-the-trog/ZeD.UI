@@ -221,6 +221,35 @@ function Restore-ZeDSettings([string]$Keep) {
     Add-Note "ZeD settings: the director's ModOptions.ini put back"
 }
 
+# The game's own Font Size (Nov 11 2026, director: "19"): every run pins fontSize=2 (19px) in options.ini, so the
+# vanilla text in a capture can't drift (the Mac rig's "Scale with window height" blew it up at 4K, Nov 10). The
+# director's own line goes back once the game has closed; a missing key is added for the run and taken out after.
+$PinFontSize = 2
+function Set-FontSize {
+    $t = Read-Text $OptionsIni
+    if ($null -eq $t) { Add-Note "font size NOT pinned (no options.ini)"; return }
+    $m = [regex]::Match($t, '(?m)^fontSize=[^\r\n]*')
+    $script:FontSizeWas = $(if ($m.Success) { $m.Value } else { "" })
+    $pin = "fontSize=$PinFontSize"
+    if ($m.Success) { $t = $t.Substring(0, $m.Index) + $pin + $t.Substring($m.Index + $m.Length) }
+    else { $t = $t.TrimEnd("`r", "`n") + "`r`n" + $pin + "`r`n" }
+    [IO.File]::WriteAllText($OptionsIni, $t)
+    Add-Note "font size: $pin for the run (was $(if ($m.Success) { $m.Value } else { 'no fontSize line' }))"
+}
+function Restore-FontSize {
+    if ($null -eq $script:FontSizeWas) { return }
+    if (Test-GameRunning) { Add-Note "font size NOT put back (the game is still running): set $(if ($script:FontSizeWas) { $script:FontSizeWas } else { 'no fontSize line' }) once it has closed"; return }
+    $t = Read-Text $OptionsIni
+    if ($null -eq $t) { return }
+    $m = [regex]::Match($t, '(?m)^fontSize=[^\r\n]*(\r?\n)?')
+    if ($m.Success) {
+        $new = $(if ($script:FontSizeWas) { $script:FontSizeWas + $m.Groups[1].Value } else { "" })
+        $t = $t.Substring(0, $m.Index) + $new + $t.Substring($m.Index + $m.Length)
+        [IO.File]::WriteAllText($OptionsIni, $t)
+    }
+    Add-Note "font size: the director's line put back ($(if ($script:FontSizeWas) { $script:FontSizeWas } else { 'none' }))"
+}
+
 function Set-Lock([string]$State) {
     try { Write-Text $LockFile $State } catch { Write-Warning "could not write $LockFile ($State): $($_.Exception.Message)" }
 }
@@ -1057,9 +1086,10 @@ Write-Host "zedqa_run: $($items.Count) scripts, $Mode; report $Report"
 try {
     Set-Lock "busy"   # (inside the try: the finally below always writes "free")
     Reset-ZeDSettings $Mode ($Report + ".modoptions.ini")
+    Set-FontSize
     if ($Mode -eq "windowed") { Start-GameWindowed } else { Start-Game4K }
     $opt = Read-Text $OptionsIni
-    if ($opt) { $info.Display = ((([regex]::Matches($opt, '(?m)^(fullScreen|width|height)=\S+')) | ForEach-Object { $_.Value }) -join " ") }
+    if ($opt) { $info.Display = ((([regex]::Matches($opt, '(?m)^(fullScreen|width|height|fontSize)=\S+')) | ForEach-Object { $_.Value }) -join " ") }
     # the prelude runs inside Wait-BridgeInGame (a paused game gets another click)
     $preludeFirst = ($items[0].Name -ieq "zedqa_prelude.lua")
     if ($preludeFirst) { Wait-BridgeInGame $items[0] $results[0] } else { Wait-BridgeInGame }
@@ -1099,6 +1129,8 @@ finally {
                 Add-Note "pzrestorewin.ps1: $($out -replace '\s*\r?\n\s*', ' / ')"
             }
         }
+        if (-not $KeepOpen) { Restore-FontSize }
+        else { Add-Note "-KeepOpen: options.ini still has the run's fontSize=$PinFontSize" }
         if (-not $KeepOpen) { Restore-ZeDSettings ($Report + ".modoptions.ini") }
         else { Add-Note "-KeepOpen: ZeD settings are still the test's; the director's file is $Report.modoptions.ini" }
         $info.Finished = Get-Date

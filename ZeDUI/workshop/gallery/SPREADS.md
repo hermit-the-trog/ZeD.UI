@@ -43,7 +43,7 @@ When words carry it (a long list, a table of buttons), both pages may be manual.
 
 - Left page starts with `{"chapter": ["<n>", "<Title>"]}`. Title = the slide's title from shots.json, Title Case. The
   three untitled photo slides: 1 "Introduction", 11 "Customers", 47 "The Desk".
-- Running heads: left `"Bitchin' znix Programs  \u00b7  Doidbros & Buzzlord"`, right = the chapter title (short).
+- Running heads: left `"Bitchin' znix Programs - Doidbros & Buzzlord"` (a hyphen, never a middle dot: punch list 128), right = the chapter title (short).
 - Voice: dry, plain, present tense, second person. "To open the card for an item, click the item." "The card
   opens in the drawer at the left of the window." No jokes, no hype, no exclamation marks, no "you'll love".
   *Bold* for names on the screen (buttons, tabs, menu items, window names): `*Equip*`. `` `Mono` `` only for anything

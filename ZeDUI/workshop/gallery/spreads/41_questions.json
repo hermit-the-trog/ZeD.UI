@@ -4,7 +4,7 @@
  "pages": [102, 103],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["41", "Questions"]},
    {"p": "Some of the game's actions ask a question before they go ahead, such as \"Are you sure you want to sleep?\" Others ask for a time or a name. Each question opens in a small window of its own, drawn as a ZNIX window: a close box at the left of its bar, the window box at the right, the question in the body and the answers as buttons in the band at its foot. Figure 41-1 shows a question with two answers and the window that sets the alarm."},
