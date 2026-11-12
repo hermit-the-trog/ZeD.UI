@@ -58,11 +58,36 @@ local function breedOf(kind)
     local def = AnimalDefinitions.getDef(kind)
     return def and def:getBreeds():get(0)
 end
+-- A square for an animal near (x, y): open floor with a free square beside it the character can walk to. The drag
+-- strip has rails, a trailer and fences; a cow made where nothing beside it is free can never be milked (the game's
+-- walk to its side fails and the milking ends at once).
+local function openSquare(x, y)
+    for r = 0, 5 do
+        for dy = -r, r do
+            for dx = -r, r do
+                if math.max(math.abs(dx), math.abs(dy)) == r then
+                    local ok, good = pcall(function()
+                        local sq = getCell():getGridSquare(x + dx, y + dy, 0)
+                        return sq ~= nil and sq:isFree(false) and AdjacentFreeTileFinder.Find(sq, p) ~= nil
+                    end)
+                    if ok and good then return x + dx, y + dy end
+                end
+            end
+        end
+    end
+    say("no open square near " .. x .. "," .. y .. ": the animal goes there anyway")
+    return x, y
+end
 local function spawn(kind, x, y)
-    local a = addAnimal(getCell(), x, y, 0, kind, breedOf(kind))
+    local sx, sy = openSquare(x, y)
+    local a = addAnimal(getCell(), sx, sy, 0, kind, breedOf(kind))
     if a then mark(a); LG.animals[#LG.animals + 1] = a; pcall(function() a:setDebugStress(0) end) end
+    say("made a " .. kind .. " at " .. sx .. "," .. sy .. (a and "" or " (failed)"))
     return a
 end
+-- the stops are read straight from w._focusRing: keep them fresh while the mouse is the input (put back at the end)
+LG.freshWas = ZEDQA_FRESH_STOPS
+ZEDQA_FRESH_STOPS = true
 local function makeZone(name, x1, y1, x2, y2)
     LG.zones[#LG.zones + 1] = name
     return pcall(function() DesignationZoneAnimal.new(name, x1, y1, 0, x2, y2, true) end)
@@ -98,6 +123,7 @@ local function restore(why)
     pcall(function() if LG.primary and p:getInventory():contains(LG.primary) then p:setPrimaryHandItem(LG.primary) end end)
     pcall(function() if LG.secondary and p:getInventory():contains(LG.secondary) then p:setSecondaryHandItem(LG.secondary) end end)
     pcall(function() p:setGodMod(LG.god) end)
+    ZEDQA_FRESH_STOPS = LG.freshWas
     pcall(function() p:setX(HOME[1]); p:setY(HOME[2]); p:setLastX(HOME[1]); p:setLastY(HOME[2]) end)
     pcall(function() AP.refreshCache() end)
     pcall(function() if LG.opened and CWm.isOpen() then CWm.toggleBothPaired(0) end end)
@@ -309,6 +335,7 @@ add(500, function()
     check(V.seen2, "d the run reached the second cow")
     check(V.seen2 and V.doneAtHandover == 1 and V.c1Milk == false, "d the second cow was handed over only when the first was done (done " .. tostring(V.doneAtHandover) .. ", first cow still has milk: " .. tostring(V.c1Milk) .. ")")
     check(not V.multi, "d never two milkings queued at once")
+    say("d the run ended: " .. tostring(AQ.last and AQ.last.why) .. " | cause " .. tostring(AQ.last and AQ.last.cause))
     check(AQ.last ~= nil and AQ.last.why == ZeD.tr("UI_ZeD_Animals_RunDone", 2, 2), "d the run ended Done 2 of 2", AQ.last and AQ.last.why)
     check(queueNames() == "", "d nothing left in the queue", queueNames())
 end)
@@ -332,13 +359,24 @@ waitFor(20000, function() return AQ.run == nil end, "the run to stop after the w
 add(1500, function()
     check(AQ.run == nil, "e walking away: the run is over")
     check(AQ.last ~= nil and AQ.last.verb == "milk", "e it says how it ended", AQ.last and AQ.last.why)
+    check(AQ.last ~= nil and AQ.last.cause == "away", "e it ended because the player was moved off", AQ.last and AQ.last.cause)
     check(queueNames() == "" and not ISTimedActionQueue.isPlayerDoingAction(p), "e nothing is left queued or running", queueNames())
     local held = {}
     for k, c in pairs({ c1 = A.c1, c2 = A.c2, ewe = A.ewe, hungry = A.hungry }) do
         local b = nil
         pcall(function() b = c:getBehavior() end)
+        -- (the behaviour has no getter for its hold, and a call to one that is not there is what logged "Object
+        -- tried to call nil" four times: read the field, as the game's debug object viewer does; outside -debug
+        -- the field reads are not there and this says nil)
         local blocked = nil
-        if b then pcall(function() blocked = b:isBlockMovement() end) end
+        if b and getNumClassFields and getClassField and getClassFieldVal then
+            pcall(function()
+                for f = 0, getNumClassFields(b) - 1 do
+                    local fld = getClassField(b, f)
+                    if tostring(fld):find("blockMovement", 1, true) then blocked = getClassFieldVal(b, fld) end
+                end
+            end)
+        end
         if blocked == true then held[#held + 1] = k end
         say("animal " .. k .. " blockMovement " .. tostring(blocked))
     end

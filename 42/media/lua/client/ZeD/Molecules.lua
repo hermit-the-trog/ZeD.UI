@@ -4677,6 +4677,7 @@ end
 --   win      = the window (help and hints; default: the window the panel is in)
 --   noLine   = true leaves out the structure line (a band right under another line)
 --   edge     = the band's side margin in screen px (default 8u; the Craft band short of room: 4u)
+--   gap      = the space between neighbouring buttons in screen px (default 8u; the Animals zone band short of room: 4u)
 -- }
 -- @return height, rects = { buttons = { [i] = {x, y, w, h, id} }, lead = { ... }, icons = { ... }, check = {x, y, w, h, id} }
 local _bandBtn, _bandIcon = {}, {}
@@ -4730,7 +4731,7 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     local M = ZeD.Molecules
     spec = spec or NO_OPTS
     local H = M.bandH()
-    local edge, gap = spec.edge or T.px(8), T.px(8)   -- (spec.edge: screen px, a band short of room closes it up)
+    local edge, gap = spec.edge or T.px(8), spec.gap or T.px(8)   -- (screen px: a band short of room closes them up)
     local bh = T.buttonH
     local by = y + T.px(5)
     local out = { buttons = {}, icons = {}, lead = {} }
