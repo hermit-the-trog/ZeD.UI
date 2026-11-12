@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Kullanması zor bir çubuk ya da basılı tutması zor tuşlar için. Açmak için dokun, sağ çubuk veya D-pad vurguyu hareket ettirir, A seçer, B kapatır ve sen kapatana kadar çark açık kalır.",
     "UI_ZeD_Settings_WheelDeadZone": "Çark çubuğu ölü bölgesi",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Bir dilim aydınlanmadan önce sağ çubuğun ne kadar hareket etmesi gerektiği. Kayan bir çubuk daha yüksek bir sayı ister.",
+    "UI_ZeD_Settings_RunSneak": "Koş tuşuyla eğil",
+    "UI_ZeD_Settings_RunSneakTip": "Kontrolcüde. Dururken Koş'u basılı tutarak eğil, tekrar basılı tutarak doğrul. Hareket halindeyken Koş'u basılı tuttuğun sürece koşarsın; eğilmişsen önce doğrulursun. Kısa bir dokunuş her zamanki işini yapar. Koş, oyunun kontrolcü ayarlarında bir tuşa veya tetiğe atanmış olmalı.",
     "UI_ZeD_Settings_FocusStyle": "Kontrolcü vurgusu",
     "UI_ZeD_Settings_FocusStyleTip": "Kontrolcünün üzerinde durduğu şeyi nasıl işaretlediği: İşaret eden el, Köşe işaretleri, Tek dolgu (vurgu renginin bir kez sürülmesi) veya Yürüyen karıncalar.",
     "UI_ZeD_Settings_FocusHand": "İşaret eden el",

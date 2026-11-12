@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Untuk stik yang sulit dipakai, atau tombol yang sulit ditahan. Ketuk untuk membuka, stik kanan atau D-pad menggeser sorotan, A memilih, B menutup, dan roda tetap terbuka sampai Anda menutupnya.",
     "UI_ZeD_Settings_WheelDeadZone": "Zona mati stik roda",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Seberapa jauh stik kanan harus bergerak sebelum satu irisan menyala. Stik yang melenceng butuh angka lebih tinggi.",
+    "UI_ZeD_Settings_RunSneak": "Tombol Lari juga merunduk",
+    "UI_ZeD_Settings_RunSneakTip": "Dengan kontroler. Saat diam, tahan Lari untuk merunduk dan tahan lagi untuk berdiri. Saat bergerak, tahan Lari untuk berlari selama ditahan; saat merunduk, Anda berdiri dulu. Ketukan singkat tetap seperti biasa. Lari harus dipasang di tombol atau pelatuk pada pengaturan kontroler game.",
     "UI_ZeD_Settings_FocusStyle": "Sorotan kontroler",
     "UI_ZeD_Settings_FocusStyleTip": "Cara kontroler menandai yang sedang dituju: tangan menunjuk, tanda sudut, satu lapis warna aksen, atau semut berbaris.",
     "UI_ZeD_Settings_FocusHand": "Tangan menunjuk",

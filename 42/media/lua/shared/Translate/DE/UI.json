@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Für einen Stick, der schwer zu bedienen ist, oder Tasten, die schwer zu halten sind. Antippen öffnet, der rechte Stick oder das Steuerkreuz bewegt die Markierung, A nimmt, B schließt, und das Rad bleibt offen, bis du es schließt.",
     "UI_ZeD_Settings_WheelDeadZone": "Totzone des Rad-Sticks",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Wie weit sich der rechte Stick bewegen muss, bis ein Segment leuchtet. Ein Stick, der driftet, braucht einen höheren Wert.",
+    "UI_ZeD_Settings_RunSneak": "Rennen-Taste duckt auch",
+    "UI_ZeD_Settings_RunSneakTip": "Mit Controller. Im Stand Rennen halten zum Ducken, erneut halten zum Aufstehen. In Bewegung Rennen halten, um zu rennen, solange du hältst; geduckt stehst du zuerst auf. Kurzes Antippen tut, was es immer tat. Rennen muss in der Controller-Belegung des Spiels auf einer Taste oder einem Trigger liegen.",
     "UI_ZeD_Settings_FocusStyle": "Controller-Hervorhebung",
     "UI_ZeD_Settings_FocusStyleTip": "Wie der Controller markiert, worauf er steht: eine zeigende Hand, Eckmarken, ein Farbschleier in der Akzentfarbe oder wandernde Ameisen.",
     "UI_ZeD_Settings_FocusHand": "Zeigende Hand",

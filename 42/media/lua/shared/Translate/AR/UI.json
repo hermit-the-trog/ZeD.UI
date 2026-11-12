@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Para un stick difícil de usar o botones difíciles de mantener. Tocá para abrir, el stick derecho o la cruceta mueven el resaltado, A elige, B cierra, y la rueda queda abierta hasta que la cierres.",
     "UI_ZeD_Settings_WheelDeadZone": "Zona muerta del stick",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Cuánto tiene que moverse el stick derecho para que se ilumine una porción. Un stick que se desvía necesita un número más alto.",
+    "UI_ZeD_Settings_RunSneak": "Botón Correr también agacha",
+    "UI_ZeD_Settings_RunSneakTip": "Con un mando. Quieto, mantené Correr para agacharte y mantenelo otra vez para pararte. En movimiento, mantené Correr para correr mientras lo sostengas; agachado, primero te para. Un toque rápido hace lo de siempre. Necesita Correr en un botón o gatillo en los controles del mando del juego.",
     "UI_ZeD_Settings_FocusStyle": "Resaltado del mando",
     "UI_ZeD_Settings_FocusStyleTip": "Cómo marca el mando lo que tiene seleccionado: una mano que señala, marcas en las esquinas, un baño del color de acento u hormigas marchando.",
     "UI_ZeD_Settings_FocusHand": "Mano que señala",

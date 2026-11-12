@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Voor een stick die moeilijk te bedienen is, of knoppen die moeilijk vast te houden zijn. Tik om te openen, de rechterstick of het richtingkruis verplaatst de markering, A pakt, B sluit, en het wiel blijft open tot jij het sluit.",
     "UI_ZeD_Settings_WheelDeadZone": "Dode zone wielstick",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Hoe ver de rechterstick moet bewegen voordat een segment oplicht. Een stick die drijft heeft een hoger getal nodig.",
+    "UI_ZeD_Settings_RunSneak": "Rennen-knop hurkt ook",
+    "UI_ZeD_Settings_RunSneakTip": "Met een controller. Stilstaand houd je Rennen vast om te hurken, en nog eens om op te staan. In beweging houd je Rennen vast om te rennen zolang je vasthoudt; gehurkt sta je eerst op. Een korte tik doet wat hij altijd deed. Rennen moet op een knop of trigger staan in de controllerindeling van het spel.",
     "UI_ZeD_Settings_FocusStyle": "Controllermarkering",
     "UI_ZeD_Settings_FocusStyleTip": "Hoe de controller markeert waar hij op staat: een wijzende hand, hoekmarkeringen, één veeg van de accentkleur of marcherende mieren.",
     "UI_ZeD_Settings_FocusHand": "Wijzende hand",
