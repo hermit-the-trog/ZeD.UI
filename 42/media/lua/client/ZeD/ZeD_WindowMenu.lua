@@ -16,6 +16,7 @@
 --   Controller highlight > Pointing hand, Corner marks, One wash, Marching ants
 --   ----
 --   Reset this window (and Reset both windows on the Character / World pair)
+--   Save position, Go to saved position (greyed while nothing is saved)
 --   ----
 --   ZeD setup...
 --
@@ -27,6 +28,7 @@
 
 require "ZeD/ZeD_ContextList"
 require "ZeD/Tr"
+require "ZeD/ZeD_WindowPlaces"
 
 ZeD = ZeD or {}
 ZeD.WindowMenu = ZeD.WindowMenu or {}
@@ -220,6 +222,16 @@ function WM.build(win)
         if pair then
             items[#items + 1] = { name = tr("UI_ZeD_WinMenu_ResetBoth"), category = "reset",
                                   onFire = function() if ZeD_Window and ZeD_Window.resetLayout then ZeD_Window.resetLayout() end end }
+        end
+        -- this window's own saved place, kept for every save on this computer (ZeD_WindowPlaces.lua); a window with
+        -- no lasting name has no saved place, so it gets neither row
+        local WP = ZeD.WindowPlaces
+        if WP and WP.keyOf(win) then
+            items[#items + 1] = { name = tr("UI_ZeD_WinMenu_SavePos"), category = "reset", onFire = function() WP.save(win) end }
+            items[#items + 1] = { name = tr("UI_ZeD_WinMenu_GoSaved"), category = "reset",
+                                  onFire = function() WP.goTo(win) end,
+                                  disabled = function() return not WP.has(win) end,
+                                  state = function() return WP.has(win) and "" or tr("UI_ZeD_WinMenu_NoSaved") end }
         end
     end
     items[#items + 1] = { name = tr("UI_ZeD_WinMenu_Setup"), category = "setup", onFire = function() WM.openSetup(win) end }

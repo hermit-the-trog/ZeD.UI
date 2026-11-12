@@ -2452,18 +2452,14 @@ end
 -- PERSISTENCE — save/restore window position + size via modData
 -- ============================================================================
 
-local function saveWorldState(win)
-    local po = win._playerObj
-    if not po then return end
+local function worldStateOf(win)
     local T  = ZeD.T
     local sc = (T and T.scale) or 1
-    local md = po:getModData()
-    md.ZeD_WinState = md.ZeD_WinState or {}
     -- Persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
     -- _baseInvW already holds design units; x/y/h are screen px and are divided here.
     -- Saves written before the scale system were at scale 1.0, so they read back as-is.
     local baseW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W   -- design units
-    md.ZeD_WinState.world = {
+    return {
         -- the window's own place: a rolled side where it starts unrolled, and a window the engine pushed left
         -- while a full card holds it against the screen's edge where it stands without the push
         -- (the Character window saves its anchor, which a push never moves)
@@ -2477,6 +2473,16 @@ local function saveWorldState(win)
         drawerOpen = ZeD.Halves.foldedTab(win) and true or win._drawerOpen,
         accentKey  = win._accentKey,
     }
+end
+--- The window's place as the save keeps it (design units, the drawer's tab), for "Save position" (ZeD_WindowPlaces.lua).
+ZeD_WorldWindow.stateOf = worldStateOf
+
+local function saveWorldState(win)
+    local po = win._playerObj
+    if not po then return end
+    local md = po:getModData()
+    md.ZeD_WinState = md.ZeD_WinState or {}
+    md.ZeD_WinState.world = worldStateOf(win)
 end
 
 -- The remembered layout is also written while the window is open, about once
@@ -2510,10 +2516,7 @@ local function fitWorldToScreen(win)
 end
 ZeD_WorldWindow.fitToScreen = fitWorldToScreen
 
-local function restoreWorldState(win, playerObj)
-    local md = playerObj:getModData()
-    local ws = md.ZeD_WinState and md.ZeD_WinState.world
-    if not ws then return end
+local function applyWorldState(win, ws)
     local T = ZeD.T
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
@@ -2570,6 +2573,14 @@ local function restoreWorldState(win, playerObj)
     elseif ZeD._pendingWorldAccent then
         win._accentKey = ZeD._pendingWorldAccent
     end
+end
+--- A kept place put back on the open window, clamped to this screen ("Go to saved position", ZeD_WindowPlaces.lua).
+ZeD_WorldWindow.applyState = applyWorldState
+
+local function restoreWorldState(win, playerObj)
+    local md = playerObj:getModData()
+    local ws = md.ZeD_WinState and md.ZeD_WinState.world
+    if ws then applyWorldState(win, ws) end
 end
 
 -- ============================================================================

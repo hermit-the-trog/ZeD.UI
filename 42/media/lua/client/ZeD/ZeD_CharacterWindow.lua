@@ -169,13 +169,9 @@ local ARROW_SZ          = 5   -- scroll arrow / chevron size (used in scroll ind
 -- PERSISTENCE — save/restore window position, size, tab, drawer state
 -- ============================================================================
 
-local function saveCharState(win)
-    local po = win._playerObj
-    if not po then return end
+local function charStateOf(win)
     local T  = ZeD.T
     local sc = (T and T.scale) or 1
-    local md = po:getModData()
-    md.ZeD_WinState = md.ZeD_WinState or {}
     -- Save base width (without drawer) so restore opens at inventory-only size.
     -- Persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
     -- _baseInvW already holds design units; positions/heights are screen px and are
@@ -183,7 +179,7 @@ local function saveCharState(win)
     -- read back as-is.
     local baseW  = TAB_STRIP_W + (win._baseInvW or 372) + CONTAINER_STRIP_W   -- design units
     local anchor = ((win._anchorRightEdge or (win:getX() + T.px(baseW))) + (win._rolled and win._rollW or 0)) / sc   -- design units (a rolled side: its unrolled right edge)
-    md.ZeD_WinState.char = {
+    return {
         x = anchor - baseW,
         y = win:getY() / sc,
         w = baseW,
@@ -195,6 +191,16 @@ local function saveCharState(win)
         drawerOpen = ZeD.Halves.foldedTab(win) and true or win._drawerOpen,
         accentKey  = win._accentKey,
     }
+end
+--- The window's place as the save keeps it (design units, the drawer's tab), for "Save position" (ZeD_WindowPlaces.lua).
+ZeD_CharacterWindow.stateOf = charStateOf
+
+local function saveCharState(win)
+    local po = win._playerObj
+    if not po then return end
+    local md = po:getModData()
+    md.ZeD_WinState = md.ZeD_WinState or {}
+    md.ZeD_WinState.char = charStateOf(win)
 end
 
 -- The remembered layout is also written while the window is open, about once
@@ -234,10 +240,7 @@ local function fitCharToScreen(win)
 end
 ZeD_CharacterWindow.fitToScreen = fitCharToScreen
 
-local function restoreCharState(win, playerObj)
-    local md = playerObj:getModData()
-    local cs = md.ZeD_WinState and md.ZeD_WinState.char
-    if not cs then return end
+local function applyCharState(win, cs)
     local T = ZeD.T
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
@@ -298,6 +301,14 @@ local function restoreCharState(win, playerObj)
     elseif ZeD._pendingCharAccent then
         win._accentKey = ZeD._pendingCharAccent
     end
+end
+--- A kept place put back on the open window, clamped to this screen ("Go to saved position", ZeD_WindowPlaces.lua).
+ZeD_CharacterWindow.applyState = applyCharState
+
+local function restoreCharState(win, playerObj)
+    local md = playerObj:getModData()
+    local cs = md.ZeD_WinState and md.ZeD_WinState.char
+    if cs then applyCharState(win, cs) end
 end
 
 -- Per-tab drawer width: every tab listed here asks for the full card (SKILLS_DRAWER_W);
