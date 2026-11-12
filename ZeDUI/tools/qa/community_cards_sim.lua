@@ -325,6 +325,20 @@ function ZeD_Window:new(x, y, w, h, title)
 end
 function ZeD_Window:titleBarHeight() return ZeD.T.titleBarH end
 function ZeD_Window:footerHeight() return ZeD.T.px(22) end
+-- (Organisms.lua's placeSelf, Nov 11 2026: a window that places itself keeps a drag or a saved place; copied as is)
+function ZeD_Window:placeSelf(x, y, l, t, sw, sh)
+    local last = self._selfPlace
+    local nx, ny = self:getX(), self:getY()
+    if last and (nx ~= last.x or ny ~= last.y) then self._placeKept = true end
+    if self._placeKept then
+        x = math.max(l, math.min(nx, l + sw - self:getWidth()))
+        y = math.max(t, math.min(ny, t + sh - self:getHeight()))
+    end
+    if nx ~= x then self:setX(x) end
+    if ny ~= y then self:setY(y) end
+    if not last then last = {}; self._selfPlace = last end
+    last.x, last.y = self:getX(), self:getY()
+end
 function ZeD_Window:createChildren() self._closeBtnRect = {} end
 function ZeD_Window:prerender() end
 function ZeD_Window:render() end
