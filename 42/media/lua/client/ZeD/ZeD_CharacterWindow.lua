@@ -2871,12 +2871,14 @@ end
 
 -- Journal page: per-entry delete button focusables. A asks first where the
 -- tab has a question band (askJournalDelete), else removes the entry from
--- modData, as a click does. Not among the page's stops (see below).
+-- modData, as a click does. Only the entries near the log's view (inPadReach).
 local function _buildJournalDeleteFocusables(win)
     local zones = win and win._journalDeleteZones
     if not zones or #zones == 0 then return {} end
     local elements = {}
+    local JT = ZeD.JournalTab
     for _, z in ipairs(zones) do
+      if not (JT and JT.inPadReach) or JT.inPadReach(win, z) then
         elements[#elements + 1] = {
             x = z.x, y = z.y, w = z.w, h = z.h,
             id = "journal:del:" .. tostring(z.entryIdx),
@@ -2893,27 +2895,32 @@ local function _buildJournalDeleteFocusables(win)
                 w._journalCache = nil
             end,
         }
+      end
     end
     return elements
 end
 
--- Journal page content aggregator: the kills disclosure, the month group
--- headers, then Save in the page's band. The per-entry delete buttons are
--- left out: they sit at the right while the disclosures are full-width, and
--- cone-nav's 2x off-axis weight rejects the horizontal hop. Text entry stays
--- mouse-only (no text input is a stop).
--- TODO: reaching the delete buttons by pad needs a layout change.
+-- Journal page content aggregator: the kills disclosure, the tag picks under
+-- the write box, the month group headers, each entry's tags and delete cross
+-- (in its head row, right of the date: the D-pad walks them left and right),
+-- then Save in the page's band. X on any of them clears the search. Text entry
+-- stays mouse-only (no text input is a stop).
 local function _buildJournalSubContent(win)
     if not win then return {} end
     -- a question is up (delete an entry?): its two answers are the only stops (Cancel first; B cancels)
     local JT = ZeD.JournalTab
     if win._journalAsk and JT and JT.askFocusables then return JT.askFocusables(win) end
     local elements = _buildJournalKillsFocusable(win)
+    local tags = JT and JT.tagFocusables and JT.tagFocusables(win) or {}
+    for i = 1, #tags do elements[#elements + 1] = tags[i] end
     local groups = _buildJournalGroupFocusables(win)
     for i = 1, #groups do elements[#elements + 1] = groups[i] end
+    local dels = _buildJournalDeleteFocusables(win)
+    for i = 1, #dels do elements[#elements + 1] = dels[i] end
     -- Save, in the page's band
     local save = _buildJournalSaveFocusable(win)
     if save[1] then elements[#elements + 1] = save[1] end
+    if JT and JT.withClear then JT.withClear(elements) end
     return elements
 end
 
@@ -4493,27 +4500,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer:addChild(journalInput)
     win._journalInput = journalInput
 
-    -- Journal save button
+    -- Journal save button: the entry with its ticked tags (ZeD.JournalTab.save; Into a
+    -- notebook, the character writes it there first and the log keeps it after)
     local saveBtn = ZeD.Molecules.Button(0, 0, nil, getText("UI_btn_save"), nil, function()
-        local text = journalInput:getText()
-        if not text or text == "" then return end
-        -- Into a notebook: the character writes it there first; the log keeps it after
-        if ZeD.JournalReaders and ZeD.JournalReaders.saveLog(win, text) then return end
-        local gt = getGameTime()
-        local md = win._playerObj:getModData()
-        md.ZeD_Journal = md.ZeD_Journal or { entries = {} }
-        local survDay = math.floor((win._playerObj:getHoursSurvived() or 0) / 24) + 1
-        table.insert(md.ZeD_Journal.entries, 1, {
-            month  = gt:getMonth(),
-            day    = gt:getDay(),
-            year   = gt:getYear(),
-            hour   = gt:getHour(),
-            minute = math.floor((gt:getTimeOfDay() % 1) * 60),
-            survivalDay = survDay,
-            text   = text,
-        })
-        journalInput:clear()
-        win._journalCache = nil  -- force refresh
+        ZeD.JournalTab.save(win, journalInput:getText())
     end)
     saveBtn:initialise()
     saveBtn:setVisible(false)
@@ -5380,6 +5370,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
             -- (No map clicks here: the Maps page — disclosure chevron, icon tools,
             -- color swatches, pan / drag — is the World window's.)
+            -- Journal tags: a pick under the write box ticks, a tag on an entry searches for it
+            if win._activeTab == "journal" and ZeD.JournalTab.onBodyClick and ZeD.JournalTab.onBodyClick(win, x, y) then
+                return true
+            end
             -- Journal group collapse/expand (only in Journal sub-tab)
             if win._activeTab == "journal" and (win._journalSubTab or 1) == 1 and win._journalGroupZones then
                 for _, zone in ipairs(win._journalGroupZones) do
@@ -6251,9 +6245,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             -- Journal: its last stop, Save, sits in the band and never moves, so the
-            -- log's scroll and the Page list key the rebuild
+            -- log's scroll, the Page list and the log's own layout (padKey: the picks, the
+            -- tags, the groups) key the rebuild
             if win._activeTab == "journal" and jsub == 1 then
                 scrollKey = tostring(win._journalScroll and win._journalScroll.scrollPos or 0) .. ":" .. tostring(win._journalPageOpen)
+                    .. ":" .. (ZeD.JournalTab.padKey and ZeD.JournalTab.padKey(win) or "")
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             if win._activeTab == "journal" and jsub == 4 then
