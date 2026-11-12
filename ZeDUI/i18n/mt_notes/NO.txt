@@ -21,3 +21,5 @@ Log lines are verb phrases after a name (kastet ut, la til, genererte ...); 910 
 Cheats named "juks" (Dyrkingsjuks, Byggjuksmodus); Warning points = advarselspoeng.
 Appeal = Anke; Griefing = Hærverk; Bug = Feil; Unmute (1012) "%1 uten demping" is clumsy.
 Kicks count (300) = "Utkast" - check.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

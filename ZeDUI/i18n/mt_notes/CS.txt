@@ -25,3 +25,5 @@ Line 90/91 date order set to "%2. %1 %3" assuming %1 = month, %2 = day.
 Action wheel: Tap = Klepnuti, Hold = Drzeni, Flick-release = Svih a pustit, Stick click = Stisk packy.
 Traits kept as "traity" (line 350). Immersive = Plna on the Identity card.
 Counts: where %1 can be 1, 2 or 5 I used "Label: %1" forms (Hracu: %1, Otevreno: %1); seconds as "%1 s".
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

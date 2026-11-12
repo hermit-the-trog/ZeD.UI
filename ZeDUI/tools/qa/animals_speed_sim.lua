@@ -78,6 +78,7 @@ ZeD = {
         text = color(1), textDim = color(0.6), textOnFocus = color(0.1),
         hover = { r = 1, g = 1, b = 1, a = 0.08 },
         positive = "pos", warning = "warn", danger = "dng", info = "inf",
+        checkboxSz = 24,
     },
     TM = {
         MeasureStringX = function(self, f, s) return #s * 7 end,
@@ -93,6 +94,8 @@ ZeD = {
             return T.danger
         end,
         drawDividerH = function(panel, x, y, w, b) rec("div", x, y, w, b) end,
+        drawCheckbox = function(panel, x, y, on, hover, dis) rec("check", x, y, on, hover, dis) end,
+        mouseIn = function() return false end,
     },
     Molecules = { drawTag = function(panel, x, y, text, c) rec("tag", x, y, text, c) end },
     textCase = function(s) return s end,
@@ -169,17 +172,23 @@ local function oldDrawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus
         panel:drawRect(x, y, w, rowH, hc.a or 0.08, hc.r, hc.g, hc.b)
     end
 
+    -- (the selection box added since, drawn as the new row draws it, unticked)
+    local cb = T.checkboxSz
+    local cbx, cby = x + T.px(AROW_PAD), y + math.floor((rowH - cb) / 2)
+    A.drawCheckbox(panel, cbx, cby, false, false, false)
+    local px0 = cbx + cb + T.px(AROW_PAD)
+
     -- Portrait icon (32px, vertically centered)
     local portraitPath = ad.resolvePortrait(animal)
     local tex = getTexture(portraitPath)
     local iconY = y + math.floor((rowH - T.px(AROW_ICON_SZ)) / 2)
     if tex then
-        panel:drawTextureScaledAspect(tex, x + T.px(AROW_PAD), iconY, T.px(AROW_ICON_SZ), T.px(AROW_ICON_SZ), 0.9, 1, 1, 1)
+        panel:drawTextureScaledAspect(tex, px0, iconY, T.px(AROW_ICON_SZ), T.px(AROW_ICON_SZ), 0.9, 1, 1, 1)
     end
 
     -- === TOP LINE (y + 4px) ===
     local topY = y + T.px(4)
-    local textX = x + T.px(AROW_PAD) + T.px(AROW_ICON_SZ) + T.px(AROW_PAD)
+    local textX = px0 + T.px(AROW_ICON_SZ) + T.px(AROW_PAD)
 
     -- Name
     local nameFont = T.fontF2

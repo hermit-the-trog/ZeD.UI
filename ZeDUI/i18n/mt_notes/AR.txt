@@ -33,3 +33,5 @@ plug-in notes, the window pin help, the studio backdrops, the COND / AMT heading
 this file's voseo and words (Mando, computadora, personal for staff, Refrescar, Eliminar, Denunciar, cebo, nafta, auto).
 Guide intro (the book's own voice): canillas, bañadera, ahí afuera, toma el agua; the mail-order coupon keeps usted like
 the rest of the ad. Backdrops: Revoque viejo (plaster, as REVOCANDO), Estuco negro. Check these first.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first. Voseo as above (Marcá, Sacá, Caminá, ordeñalo, esquilalo); bucket = balde; "acá" for here.

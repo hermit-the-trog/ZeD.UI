@@ -24,3 +24,5 @@ Log lines are past-tense masculine verb phrases ("zabił: %1"); the actor's gend
 God Mode, No Clip left in English; LootZed kept. Grifing and Błąd (Bug) chosen as the player-facing words.
 Singular count lines (%1 wpis, %1 zasada) are singular-only variants; plurals use "Wpisów: %1" patterns.
 Most doubtful: "Odwołanie" for Appeal, "Newsy" for News, "Zwolnij" for Release (claim), "Utknięcie" for Stuck.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

@@ -9,3 +9,5 @@ Verb phrases in %1 slots (441, 444, 445) are verbal nouns (sürme, çekme, sökm
 Log lines name the vehicle with "aracı" and a person with "kişisini"; check suffix grammar when %1 is a name.
 Griefing = Zorbalık; Stuck = Takıldım; Appeal = İtiraz; Kicks (300) = Atılma.
 Turkish suffixes on %1 are avoided where possible (Gidiliyor: %1, Atıldın: %1).
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

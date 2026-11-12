@@ -21,3 +21,5 @@ Log kept as "Log" where the limit is tight; Registo elsewhere.
 Licence card: Licença de porte, CARTA Nº, VAL., EMIS.
 Log lines are past-tense phrases after a name; 976 reads "o banimento de %1 acabou".
 Tight: 344 "Ver todas", 575/576 "Ir até um jogador / um local", 970 "deu voz a %1".
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first. European forms (A ordenhar, ordenha-o).

@@ -24,3 +24,5 @@ Licence card: Permis de port, Port ascuns, NR. PERM., OMORÂRI, SUPRAVIEȚUIT (c
 Log lines read after a name; 976 "banul lui %1 a expirat". 1066/1067 use "Postări: %1" for the singular chips as well.
 Tight: 31 NR. PERM., 344 "Vezi toate" (limit 16), 598 "Schimbă vremea".
 Quote marks around role names use „ ”.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

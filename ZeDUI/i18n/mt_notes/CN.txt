@@ -13,3 +13,5 @@ Log lines (853 on) start straight after a player's name, no space added: 杀死�
 Punctuation: full-width ，。：？ in prose; quotes “ ”; ASCII "..." kept.
 Doubtful: 故障 for Bug, 恶意破坏 for Griefing, 协管员, 拆零件 for take parts, 隐蔽携带 for Concealed carry.
 Lines 346 and the "%1 %2" shapes (252, 899, 1101) left as the English shape; the meaning of the slots is not visible.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

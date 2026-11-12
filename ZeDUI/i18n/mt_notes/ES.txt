@@ -24,3 +24,5 @@ Spawned "to %3" lines use a parenthesis "(%3)" because %3 can be "tú" or "el su
 Short labels cut to fit: Cualq. jugador, Reg. de botín, Mov. rápido, Todas las hab., TP por mapa (personal), Color etiqueta.
 License card caps: PORTE OCULTO, N.º CARNÉ, VENCE, EXPED., SOBREVIVIÓ; "BARBA" for FACIAL, "MUERTES" for KILLS.
 Griefing kept in English (players say it).
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
