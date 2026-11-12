@@ -538,10 +538,29 @@ function ZeD_MoodleLayer:_noticeTick()
     end
 end
 
+-- The layer was added at game start, under every window opened since: a note drawn from it lay half
+-- behind the World window (the director's review, Nov 11 2026). While a note or a balloon shows, the
+-- layer stands over every window, as the inventory's loot card does (ZeD_InvTip's layer); once it goes,
+-- the layer drops back, so windows pulled over the moodle column take the pointer again.
+function ZeD_MoodleLayer:_raise(on)
+    if on == (self._raised == true) then return end
+    self._raised = on
+    pcall(function()
+        self:setAlwaysOnTop(on)
+        if on then self:bringToTop() end
+    end)
+end
+
 function ZeD_MoodleLayer:prerender()
     if not ZeD.T or not self._mode then return end
     self:_noticeTick()
     self._chip = nil
+    self._held = nil
+    self:_prerenderNotes()
+    self:_raise(self._chip ~= nil or self._held == true)
+end
+
+function ZeD_MoodleLayer:_prerenderNotes()
     if not self._show then return end
     -- (a stand-in draws the row itself, at M.rect)
     if self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
@@ -556,7 +575,7 @@ function ZeD_MoodleLayer:prerender()
     end
     if hm then return end
     -- (the pointer went from the moodle onto its balloon: it stays)
-    if ZeD.Balloon and ZeD.Balloon.redrawHeld(self, self) then return end
+    if ZeD.Balloon and ZeD.Balloon.redrawHeld(self, self) then self._held = true; return end
     -- (ZeD setup's "Moodle notices", off for a new player: while it is off, a note shows only under the pointer)
     local S = ZeD.Settings
     local notices = S and S.moodleNoticesOn and S.moodleNoticesOn() or false

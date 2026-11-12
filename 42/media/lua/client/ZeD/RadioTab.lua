@@ -1205,6 +1205,13 @@ local function _radioFillRead(win, dev)
     for i, l in ipairs(lines or {}) do
         d.heard[i] = { id = "fill:radio:heard:" .. i, label = l, read = true }
     end
+    -- nothing shown yet on this channel this session: the block stays, with one dim line saying so (an empty
+    -- block drew nothing, and the review read that as Heard missing)
+    local nHeard = #d.heard
+    d.heardN = nHeard
+    if nHeard == 0 then
+        d.heard[1] = { id = "fill:radio:heard:none", label = ZeD.tr("UI_ZeD_Radio_NothingHeard"), dim = true, read = true }
+    end
     local pw = d.power
     if st.battery then
         if st.hasBattery then
@@ -1217,7 +1224,8 @@ local function _radioFillRead(win, dev)
         local inv = win._playerObj and win._playerObj:getInventory()
         local n = inv and _fillGet(inv, "getCountTypeRecurse", "Base.Battery") or 0
         if n > 0 then
-            pw[#pw + 1] = { id = "fill:radio:spare", label = getItemNameFromFullType("Base.Battery"), value = "x" .. n }
+            -- (Spare, not the item's name: the row above already says Battery, QA's review, Nov 11 2026)
+            pw[#pw + 1] = { id = "fill:radio:spare", label = ZeD.tr("UI_ZeD_Radio_Spare"), value = "x" .. n }
         else
             pw[#pw + 1] = { id = "fill:radio:spare", dot = T.textDim, hollow = true, label = ZeD.tr("UI_ZeD_Radio_NoBatteries") }
         end
@@ -1256,7 +1264,7 @@ function ZeD.RadioTab.renderFill(panel, win, tw, x, y, w)
     _radioFillOpts.view = tw.view
     local h = F.block(panel, win, "radio", "channels", x, y, w,
         ZeD.tr(world and "UI_ZeD_Plain_Presets" or "UI_ZeD_Radio_Channels"), #d.presets, d.presets, _radioFillOpts)
-    h = h + F.block(panel, win, "radio", "heard", x, y + h, w, ZeD.tr("UI_ZeD_Radio_Heard"), #d.heard, d.heard, _radioFillOpts)
+    h = h + F.block(panel, win, "radio", "heard", x, y + h, w, ZeD.tr("UI_ZeD_Radio_Heard"), d.heardN or #d.heard, d.heard, _radioFillOpts)
     h = h + F.block(panel, win, "radio", "power", x, y + h, w, getText("IGUI_RadioPower"), nil, d.power, _radioFillOpts)
     return h
 end

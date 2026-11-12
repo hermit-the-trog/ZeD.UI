@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "MUTE",
     "UI_ZeD_Radio_NameChannel": "Naam kanaal %1 (leeg wist het)",
     "UI_ZeD_Radio_NoBatteries": "Geen batterijen bij je",
+    "UI_ZeD_Radio_Spare": "Reserve",
+    "UI_ZeD_Radio_NothingHeard": "Nog niets gehoord",
     "UI_ZeD_Radio_NoCds": "Geen cd's bij je",
     "UI_ZeD_Radio_NoHeadphones": "Geen koptelefoon of oordopjes bij je",
     "UI_ZeD_Radio_None": "Geen radio binnen bereik",

@@ -407,6 +407,27 @@ check("PAD: X's prompt hides once there is nothing to clear", byId["view:fbar:cl
 byId["view:filter:" .. CRATE.key].onActivate(win, byId["view:filter:" .. CRATE.key])
 check("PAD: A on the Filter button shuts the bar", not SW.open)
 
+section("QA FLOOR (Nov 11 2026: 4 found where the script wanted 7)")
+do
+    -- the floor zedqa_inventory_filter drops, by the game's 42.22 names: only the scrap is named metal, so the filter
+    -- (names, as the mockup says) finds 4; the script's fixed 7 was wrong, and it now counts the floor's own names
+    local FLOOR = mkInv("floor:13935,5729,0", {
+        { "Scrap Metal", "Material", 4 }, { "Steel Sheet", "Material", 2 }, { "Iron Pipe", "Weapon", 1 }, { "Rope", "Material", 1 },
+    })
+    local fp = mkPanel(nil, { FLOOR })
+    local SF = IF.of(fp)
+    local MF = model(FLOOR)
+    frame(fp, true, { MF })   -- (the window first sees its containers: a filter typed before that would be emptied)
+    IF.toggleOpen(SF)
+    IF.setQuery(SF, "metal")
+    frame(fp, true, { MF })
+    check("FLOOR: 'metal' finds the four Scrap Metal, not the Steel Sheet or the Iron Pipe",
+        SF.agg.matched == 4 and SF.agg.total == 8, SF.agg.matched .. " of " .. SF.agg.total)
+    local qs = readFile("ZeDUI/tools/qa/zedqa_inventory_filter.lua") or ""
+    check("FLOOR: the script counts the floor's own names", qs:find("S.agg.matched >= want", 1, true) ~= nil
+        and qs:find("S.agg.matched >= 7", 1, true) == nil)
+end
+
 section("WIRED")
 local CW = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua")
 local WW = readFile("42/media/lua/client/ZeD/ZeD_WorldWindow.lua")

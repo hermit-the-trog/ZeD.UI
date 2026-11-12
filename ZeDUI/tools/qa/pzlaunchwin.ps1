@@ -62,4 +62,11 @@ $pt = New-Object PZW+POINT; $pt.X = [int](($r.R - $r.L) / 2); $pt.Y = [int](($r.
 [void][PZW]::SetCursorPos($pt.X + 2, $pt.Y + 2); Start-Sleep -Milliseconds 300
 [PZW]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150
 [PZW]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)
-"launched windowed; clicked client centre ($($pt.X),$($pt.Y)) of $($r.R - $r.L)x$($r.B - $r.T)"
+# (Nov 11 2026) the pointer parked in the client's bottom-right corner after the click: left at the centre it sat over
+# an inventory row in every picture after it, and the row's loot card showed (the director's review: the JS-2000
+# Shotgun's card over the Inventory). A script's Mouse.setXY does not move what the game reads; this does.
+Start-Sleep -Milliseconds 300
+$park = New-Object PZW+POINT; $park.X = [int]($r.R - $r.L - 4); $park.Y = [int]($r.B - $r.T - 4)
+[void][PZW]::ClientToScreen($h, [ref]$park)
+[void][PZW]::SetCursorPos($park.X, $park.Y)
+"launched windowed; clicked client centre ($($pt.X),$($pt.Y)) of $($r.R - $r.L)x$($r.B - $r.T); pointer parked at ($($park.X),$($park.Y))"

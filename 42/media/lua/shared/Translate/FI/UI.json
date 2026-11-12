@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "MYKKÄ",
     "UI_ZeD_Radio_NameChannel": "Nimeä kanava %1 (tyhjä unohtaa)",
     "UI_ZeD_Radio_NoBatteries": "Ei paristoja mukana",
+    "UI_ZeD_Radio_Spare": "Vara",
+    "UI_ZeD_Radio_NothingHeard": "Ei vielä mitään kuultu",
     "UI_ZeD_Radio_NoCds": "Ei CD-levyjä mukana",
     "UI_ZeD_Radio_NoHeadphones": "Ei kuulokkeita mukana",
     "UI_ZeD_Radio_None": "Ei radiota kantomatkalla",

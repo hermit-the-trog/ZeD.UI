@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "靜音",
     "UI_ZeD_Radio_NameChannel": "為頻道 %1 命名（留空則清除）",
     "UI_ZeD_Radio_NoBatteries": "你身上沒有電池",
+    "UI_ZeD_Radio_Spare": "備用",
+    "UI_ZeD_Radio_NothingHeard": "尚未聽到任何內容",
     "UI_ZeD_Radio_NoCds": "你身上沒有 CD",
     "UI_ZeD_Radio_NoHeadphones": "你身上沒有耳機",
     "UI_ZeD_Radio_None": "範圍內沒有收音機",

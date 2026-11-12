@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "MUT",
     "UI_ZeD_Radio_NameChannel": "Numele canalului %1 (gol = îl uită)",
     "UI_ZeD_Radio_NoBatteries": "Nicio baterie la tine",
+    "UI_ZeD_Radio_Spare": "Rezervă",
+    "UI_ZeD_Radio_NothingHeard": "Nimic auzit încă",
     "UI_ZeD_Radio_NoCds": "Niciun CD la tine",
     "UI_ZeD_Radio_NoHeadphones": "Fără căști la tine",
     "UI_ZeD_Radio_None": "Niciun radio în rază",

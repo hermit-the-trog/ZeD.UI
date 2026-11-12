@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "NÉMA",
     "UI_ZeD_Radio_NameChannel": "Csatorna %1 neve (üresen törli)",
     "UI_ZeD_Radio_NoBatteries": "Nincs nálad elem",
+    "UI_ZeD_Radio_Spare": "Tartalék",
+    "UI_ZeD_Radio_NothingHeard": "Még semmi nem hallatszott",
     "UI_ZeD_Radio_NoCds": "Nincs nálad CD",
     "UI_ZeD_Radio_NoHeadphones": "Nincs nálad fejhallgató vagy fülhallgató",
     "UI_ZeD_Radio_None": "Nincs rádió hatótávon belül",

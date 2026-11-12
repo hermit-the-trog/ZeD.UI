@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "CISZA",
     "UI_ZeD_Radio_NameChannel": "Nazwa kanału %1 (puste usuwa)",
     "UI_ZeD_Radio_NoBatteries": "Nie masz baterii",
+    "UI_ZeD_Radio_Spare": "Zapasowe",
+    "UI_ZeD_Radio_NothingHeard": "Jeszcze nic nie słychać",
     "UI_ZeD_Radio_NoCds": "Nie masz płyt CD",
     "UI_ZeD_Radio_NoHeadphones": "Nie masz słuchawek",
     "UI_ZeD_Radio_None": "Brak radia w zasięgu",

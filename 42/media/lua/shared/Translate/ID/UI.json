@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "BISU",
     "UI_ZeD_Radio_NameChannel": "Nama saluran %1 (kosong = hapus)",
     "UI_ZeD_Radio_NoBatteries": "Anda tidak membawa baterai",
+    "UI_ZeD_Radio_Spare": "Cadangan",
+    "UI_ZeD_Radio_NothingHeard": "Belum ada yang terdengar",
     "UI_ZeD_Radio_NoCds": "Tak ada CD di Anda",
     "UI_ZeD_Radio_NoHeadphones": "Anda tidak membawa headphone atau earbud",
     "UI_ZeD_Radio_None": "Tak ada radio dalam jangkauan",

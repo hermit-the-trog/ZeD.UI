@@ -182,6 +182,63 @@ do
     check("the fill's stops join the controller's", (readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua") or ""):find('ZeD.TabFill.focusables(win, "health"', 1, true) ~= nil)
 end
 
+section("RADIO")
+do
+    -- the director's second review (Nov 11 2026): Power said Battery twice (the charge, then the spares by the item's
+    -- name) and Heard was missing (an empty block draws nothing, and nothing had been heard yet)
+    local src = readFile("42/media/lua/client/ZeD/RadioTab.lua") or ""
+    local a = src:find("local function _fillGet(o, m, ...)", 1, true)
+    local b = src:find("-- the face, its footer and the scrollbar under the header", 1, true)
+    check("the radio fill is in the file", a and b)
+    if a and b and okLoad then
+        ZeD.RadioTab = {}
+        getItemNameFromFullType = function() return "Battery" end
+        local HEARD = {}
+        local SPARES = 1
+        ZeD.RadioOps = { chanName = function() return nil end, freqText = function(f) return tostring(f) end, recall = noop }
+        ZeD.Rtv = {
+            read = function() return { dd = {}, presets = {}, battery = true, hasBattery = true, charge = 0.8, min = 88000, max = 108000 } end,
+            heardLines = function() return HEARD end,
+        }
+        local chunk, err = loadstring(src:sub(a, b - 1), "=RadioTab.lua (cut)")
+        check("the radio fill cuts and loads", chunk ~= nil, err)
+        if chunk then
+            chunk()
+            local inv = { getCountTypeRecurse = function() return SPARES end }
+            local win = { _playerObj = { getInventory = function() return inv end } }
+            local tw = { dev = {}, view = { x = 0, y = 0, w = 480, h = 2000 } }
+            local function draw()
+                tw.fill = nil
+                F.begin(win, "radio")
+                local p = panel()
+                local h = ZeD.RadioTab.renderFill(p, win, tw, 0, 0, 464)
+                local ids = {}
+                for _, z in ipairs(F.zones(win, "radio")) do ids[z.id] = z end
+                return h, p, ids
+            end
+            local _, p, ids = draw()
+            local nBatt = 0
+            for _, s in ipairs(p.texts) do if s == "Tooltip_Dashboard_Battery" or s == "Battery" then nBatt = nBatt + 1 end end
+            check("Power: Battery once", nBatt == 1, nBatt)
+            check("Power: the spares on a Spare row", tw.fill.power[2].label == "UI_ZeD_Radio_Spare" and tw.fill.power[2].value == "x1")
+            check("Heard: the block shows with nothing heard", ids["fill:radio:head:heard"] ~= nil)
+            check("Heard: its one line says nothing was heard yet", ids["fill:radio:heard:none"] ~= nil
+                and tw.fill.heard[1].label == "UI_ZeD_Radio_NothingHeard" and tw.fill.heard[1].dim == true)
+            check("Heard: the head counts no lines", tw.fill.heardN == 0)
+            HEARD = { "This is a test of the emergency broadcast", "Stay indoors" }
+            _, p, ids = draw()
+            check("Heard: the lines once heard, no empty line", ids["fill:radio:heard:1"] ~= nil and ids["fill:radio:heard:2"] ~= nil
+                and ids["fill:radio:heard:none"] == nil and tw.fill.heardN == 2)
+            SPARES = 0
+            draw()
+            check("Power: no spares says so", tw.fill.power[2].label == "UI_ZeD_Radio_NoBatteries")
+        end
+    end
+    local en = readFile("42/media/lua/shared/Translate/EN/UI.json") or ""
+    check("EN: Spare", en:find('"UI_ZeD_Radio_Spare": "Spare"', 1, true) ~= nil)
+    check("EN: Nothing heard yet", en:find('"UI_ZeD_Radio_NothingHeard": "Nothing heard yet"', 1, true) ~= nil)
+end
+
 section("SOURCE")
 do
     local th = readFile("42/media/lua/client/ZeD/ThermalTab.lua") or ""

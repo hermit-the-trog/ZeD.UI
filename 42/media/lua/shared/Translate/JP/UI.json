@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "ミュート",
     "UI_ZeD_Radio_NameChannel": "チャンネル%1の名前 (空欄で消去)",
     "UI_ZeD_Radio_NoBatteries": "電池を持っていません",
+    "UI_ZeD_Radio_Spare": "予備",
+    "UI_ZeD_Radio_NothingHeard": "まだ何も受信していません",
     "UI_ZeD_Radio_NoCds": "CDを持っていません",
     "UI_ZeD_Radio_NoHeadphones": "ヘッドホンやイヤホンを持っていません",
     "UI_ZeD_Radio_None": "範囲内にラジオなし",

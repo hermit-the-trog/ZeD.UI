@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "LYDLØS",
     "UI_ZeD_Radio_NameChannel": "Navngiv kanal %1 (tom glemmer den)",
     "UI_ZeD_Radio_NoBatteries": "Ingen batterier på dig",
+    "UI_ZeD_Radio_Spare": "Reserve",
+    "UI_ZeD_Radio_NothingHeard": "Intet hørt endnu",
     "UI_ZeD_Radio_NoCds": "Ingen cd'er på dig",
     "UI_ZeD_Radio_NoHeadphones": "Ingen hovedtelefoner eller ørepropper på dig",
     "UI_ZeD_Radio_None": "Ingen radio inden for rækkevidde",

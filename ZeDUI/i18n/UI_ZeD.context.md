@@ -3117,12 +3117,14 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Radio_NameChannel` | `Name channel %1 (empty forgets it)` | Car radio: title of the text box asking for a channel's name; %1 = the channel number, two digits | 50 |
 | `UI_ZeD_Radio_NoCds` | `No CDs on you` | Car radio: the disc list when the character carries no CD | 30 |
 | `UI_ZeD_Radio_None` | `No radio in range` | Character / World window, Radio tab: empty state, centered | 40 |
+| `UI_ZeD_Radio_NothingHeard` | `Nothing heard yet` | Character / World window, Radio tab: the one dim line of the Heard block while the set has shown no broadcast line on this channel this session | 36 |
 | `UI_ZeD_Radio_Range` | `RANGE %1 KM` | Two-way radio, line printed on the face; %1 = the range in kilometres (may have a decimal) | 16 |
 | `UI_ZeD_Radio_Scan` | `SCAN` | Car radio and dash head unit display: station scan running | 6 |
 | `UI_ZeD_Radio_Seek` | `SEEK` | Character / World window, Radio tab: control strip silkscreen label before the seek buttons | 6 |
 | `UI_ZeD_Radio_Sig` | `SIG` | Character / World window, Radio tab: display readout label for signal, and the corner label of the signal wave | 5 |
 | `UI_ZeD_Radio_SigGood` | `GOOD` | Character / World window, Radio tab: display readout value, signal received | 6 |
 | `UI_ZeD_Radio_SigWeak` | `WEAK` | Character / World window, Radio tab: display readout value, no signal | 6 |
+| `UI_ZeD_Radio_Spare` | `Spare` | Character / World window, Radio tab, Power block: the row under the Battery row counting the spare batteries you carry ("Spare  x2"); an adjective or short noun for spare batteries | 14 |
 | `UI_ZeD_Radio_Stereo` | `STEREO` | Character / World window, Radio tab: chassis display chip (decorative, always off) | 8 |
 | `UI_ZeD_Radio_Store` | `STORE %1` | Radio display flash after holding a preset button; %1 = the preset number (1 to 6). Small faces show P%1 instead | 16 |
 | `UI_ZeD_Radio_TwoWayBase` | `* 2-WAY BASE SET` | Character / World window, Radio tab: right end of a ham radio's brand bar (the brand name stays English) | 24 |

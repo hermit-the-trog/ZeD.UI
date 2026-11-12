@@ -193,5 +193,81 @@ do
     end
 end
 
+-- ---- the second review (Nov 11 2026, director_review_20261111) ----
+
+section("MOODLE: the note over the windows")
+do
+    local src = readFile("42/media/lua/client/ZeD/ZeD_Moodles.lua") or ""
+    local raise, pre = cutFn(src, "function ZeD_MoodleLayer:_raise("), cutFn(src, "function ZeD_MoodleLayer:prerender(")
+    check("_raise and prerender cut", raise ~= nil and pre ~= nil)
+    if raise and pre then
+        ZeD_MoodleLayer = {}
+        local chunk, err = loadstring(raise .. pre, "=ZeD_Moodles.lua (cut)")
+        check("they load", chunk ~= nil, err)
+        if chunk then
+            chunk()
+            local L = setmetatable({ _mode = "right", on = nil, tops = 0, NOTE = false, HELD = false }, { __index = ZeD_MoodleLayer })
+            function L:_noticeTick() end
+            function L:_prerenderNotes() if self.NOTE then self._chip = { idx = 1 } end; if self.HELD then self._held = true end end
+            function L:setAlwaysOnTop(b) self.on = b end
+            function L:bringToTop() self.tops = self.tops + 1 end
+            L:prerender()
+            check("no note: the layer stays in its place", L.on == nil and L.tops == 0)
+            L.NOTE = true; L:prerender()
+            check("a note: the layer over every window", L.on == true and L.tops == 1 and L._raised)
+            L:prerender()
+            check("raised once, not every frame", L.tops == 1)
+            L.NOTE = false; L:prerender()
+            check("the note gone: the layer drops back", L.on == false and not L._raised)
+            L.HELD = true; L:prerender()
+            check("a balloon held by the pointer raises it too", L.on == true and L.tops == 2)
+        end
+    end
+end
+
+section("LOADOUTS: the empty line wraps")
+do
+    local src = readFile("42/media/lua/client/ZeD/ZeD_EquipLoadout.lua") or ""
+    local piece = cutFn(src, "local function wrapEmpty(")
+    check("wrapEmpty cut", piece ~= nil)
+    if piece then
+        ZeD.tr = function(k) return (k == "UI_ZeD_EqBar_EmptyLine") and "lists from the Journal, to restock before you head out" or k end
+        ZeD.Atoms = { wrapText = function(text, _, w)
+            local out, line = {}, ""
+            for word in tostring(text):gmatch("%S+") do
+                local try = (line == "") and word or (line .. " " .. word)
+                if #try * 8 > w and line ~= "" then out[#out + 1] = line; line = word else line = try end
+            end
+            if line ~= "" or #out == 0 then out[#out + 1] = line end
+            return out
+        end }
+        local chunk, err = loadstring("local BAR_ROW = 38\nlocal emptyWrap = {}\nlocal function fh(f) return ZeD.TM:getFontHeight(f) end\n"
+            .. piece .. "return wrapEmpty\n", "=ZeD_EquipLoadout.lua (cut)")
+        check("it loads", chunk ~= nil, err)
+        if chunk then
+            local wrapEmpty = chunk()
+            -- the second row at 1080p 1x (the drawer's 460): the line, Restock 0:00, Save
+            local empty = { k = "empty", w = 320 }
+            local row = { empty, { k = "verb", w = 104, right = true }, { k = "save", w = 52, right = true } }
+            local h = wrapEmpty(row, 460)
+            local words = table.concat(empty.lines or {}, " ")
+            check("every word kept", words == "lists from the Journal, to restock before you head out", words)
+            check("more than one line, the row as tall as its lines", #empty.lines > 1 and h == math.max(38, #empty.lines * F1_H + 8),
+                #(empty.lines or {}) .. " lines, " .. h)
+            local room = 460 - 16 - 104 - 8 - 52 - 8
+            local fits = true
+            for _, s in ipairs(empty.lines) do if #s * 8 > room then fits = false end end
+            check("each line fits the room the draw gives it", fits)
+            -- the Deck: narrower still, more lines, still whole
+            local deck = { k = "empty", w = 320 }
+            wrapEmpty({ deck, { k = "verb", w = 104, right = true }, { k = "save", w = 52, right = true } }, 340)
+            check("at the Deck every word kept", table.concat(deck.lines, " ") == words)
+            check("a row with no empty line keeps its height", wrapEmpty({ { k = "ready", w = 80 } }, 460) == 38)
+        end
+    end
+    check("the line is no longer cut", not src:find('trunc(ZeD.tr("UI_ZeD_EqBar_EmptyLine")', 1, true))
+    check("the bar's height sums its rows", src:find("for _, rh in ipairs(hs) do h = h + rh end", 1, true) ~= nil)
+end
+
 print(string.format("director_review_fixes_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

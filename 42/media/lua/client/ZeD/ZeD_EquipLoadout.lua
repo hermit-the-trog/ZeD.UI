@@ -407,25 +407,60 @@ local function barParts(win)
     return parts
 end
 
--- the rows the parts take at width w: { { part, ... }, ... } (the left run, then the right buttons)
+-- The empty line's words wrapped to the room its row leaves it (a hint is never cut: the director's
+-- review, Nov 11 2026, read "to restock bef..."). The room is what the draw gives it: from the row's
+-- left pad and the parts before it to the right-hand buttons. Sets pt.lines; returns the row's height.
+local emptyWrap = {}
+local function wrapEmpty(row, w)
+    local T = ZeD.T
+    local pad, gap = T.px(8), T.px(8)
+    local rh = T.px(BAR_ROW)
+    local room = w - pad * 2
+    local mine = nil
+    for _, pt in ipairs(row) do
+        if pt.k == "empty" then mine = pt else room = room - pt.w - gap end
+    end
+    if not mine then return rh end
+    local f1 = T.fontF1
+    room = math.max(T.px(40), room)
+    local s = ZeD.tr("UI_ZeD_EqBar_EmptyLine")
+    local c = emptyWrap
+    if c.s ~= s or c.room ~= room or c.f ~= f1 then   -- (wrapped again only when the words, the room or the font change)
+        c.s, c.room, c.f, c.lines = s, room, f1, ZeD.Atoms.wrapText(s, f1, room)
+    end
+    mine.lines = c.lines
+    return math.max(rh, #c.lines * fh(f1) + T.px(8))
+end
+
+-- the rows the parts take at width w: { { part, ... }, ... } (the left run, then the right buttons), and
+-- each row's height (a row with the empty line grows to its wrapped words)
 local function barRows(win, w)
     local T = ZeD.T
     local pad, gap = T.px(8), T.px(8)
     local parts = barParts(win)
     local total = pad * 2
     for _, pt in ipairs(parts) do total = total + pt.w + gap end
-    if total - gap <= w then return { parts }, parts end
-    -- two rows: the drop-downs and the days, then the rest
-    local r1, r2 = {}, {}
-    for _, pt in ipairs(parts) do
-        if pt.k == "outfit" or pt.k == "loadout" or pt.k == "days" then r1[#r1 + 1] = pt else r2[#r2 + 1] = pt end
+    local rows
+    if total - gap <= w then
+        rows = { parts }
+    else
+        -- two rows: the drop-downs and the days, then the rest
+        local r1, r2 = {}, {}
+        for _, pt in ipairs(parts) do
+            if pt.k == "outfit" or pt.k == "loadout" or pt.k == "days" then r1[#r1 + 1] = pt else r2[#r2 + 1] = pt end
+        end
+        rows = { r1, r2 }
     end
-    return { r1, r2 }, parts
+    local hs = {}
+    for i, row in ipairs(rows) do hs[i] = wrapEmpty(row, w) end
+    return rows, parts, hs
 end
 
 function EL.barH(win, w)
-    local rows = barRows(win, w)
-    return ZeD.T.px(BAR_ROW) * #rows
+    local _, _, hs = barRows(win, w)
+    local h = 0
+    for _, rh in ipairs(hs) do h = h + rh end
+    return h
 end
 
 function EL.drawBar(panel, win, x, y, w)
@@ -434,15 +469,17 @@ function EL.drawBar(panel, win, x, y, w)
     if not p then return 0 end
     local s = st(win)
     local o, lo = R.current(p)
-    local rows = barRows(win, w)
-    local rh = T.px(BAR_ROW)
-    local h = rh * #rows
+    local rows, _, hs = barRows(win, w)
+    local h = 0
+    for _, v in ipairs(hs) do h = h + v end
     A.surfaceFill(panel, x, y, w, h, "surf2")
     A.drawDividerH(panel, x, y + h - T.hair, w, false)
     local pad, gap = T.px(8), T.px(8)
     local bh = T.buttonH
+    local ry = y
     for ri, row in ipairs(rows) do
-        local ry = y + (ri - 1) * rh
+        local rh = hs[ri]
+        if ri > 1 then ry = ry + hs[ri - 1] end
         local by = ry + math.floor((rh - bh) / 2)
         -- the right-hand buttons first (Save at the edge, the verb before it)
         local right = x + w - pad
@@ -478,10 +515,14 @@ function EL.drawBar(panel, win, x, y, w)
                 elseif pt.k == "days" then
                     drawDays(panel, win, cx, by, bh)
                 elseif pt.k == "empty" then
+                    -- (wrapped in barRows to the same room: right - cx)
                     local dc = T.textDim
                     local f1 = T.fontF1
-                    local room = right - cx
-                    panel:drawText(trunc(ZeD.tr("UI_ZeD_EqBar_EmptyLine"), f1, room), cx, ry + math.floor((rh - fh(f1)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f1)
+                    local lines = pt.lines or {}
+                    local ty = ry + math.floor((rh - #lines * fh(f1)) / 2)
+                    for li, s in ipairs(lines) do
+                        panel:drawText(s, cx, ty + (li - 1) * fh(f1), dc.r, dc.g, dc.b, dc.a or 1, f1)
+                    end
                 elseif pt.k == "ready" then
                     -- "ready 4 of 9", underlined: it opens the to-do
                     local f1 = T.fontF1

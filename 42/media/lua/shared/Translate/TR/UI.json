@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "SESSİZ",
     "UI_ZeD_Radio_NameChannel": "Kanal %1 adı (boş bırakırsanız silinir)",
     "UI_ZeD_Radio_NoBatteries": "Yanınızda pil yok",
+    "UI_ZeD_Radio_Spare": "Yedek",
+    "UI_ZeD_Radio_NothingHeard": "Henüz bir şey duyulmadı",
     "UI_ZeD_Radio_NoCds": "Yanınızda CD yok",
     "UI_ZeD_Radio_NoHeadphones": "Yanınızda kulaklık yok",
     "UI_ZeD_Radio_None": "Menzilde radyo yok",

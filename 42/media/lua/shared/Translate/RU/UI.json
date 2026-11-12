@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "ТИХО",
     "UI_ZeD_Radio_NameChannel": "Название канала %1 (пусто: забыть)",
     "UI_ZeD_Radio_NoBatteries": "При вас нет батареек",
+    "UI_ZeD_Radio_Spare": "Запасные",
+    "UI_ZeD_Radio_NothingHeard": "Пока ничего не слышно",
     "UI_ZeD_Radio_NoCds": "При вас нет CD",
     "UI_ZeD_Radio_NoHeadphones": "При вас нет наушников",
     "UI_ZeD_Radio_None": "Нет радио в зоне действия",

@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "MUTE",
     "UI_ZeD_Radio_NameChannel": "Nom del canal %1 (buit l'oblida)",
     "UI_ZeD_Radio_NoBatteries": "Cap bateria a sobre",
+    "UI_ZeD_Radio_Spare": "Recanvi",
+    "UI_ZeD_Radio_NothingHeard": "Encara no s'ha sentit res",
     "UI_ZeD_Radio_NoCds": "Cap CD a sobre",
     "UI_ZeD_Radio_NoHeadphones": "Cap auricular a sobre",
     "UI_ZeD_Radio_None": "Cap ràdio a l'abast",

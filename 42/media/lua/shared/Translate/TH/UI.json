@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "เงียบ",
     "UI_ZeD_Radio_NameChannel": "ตั้งชื่อช่อง %1 (เว้นว่างเพื่อลบ)",
     "UI_ZeD_Radio_NoBatteries": "ไม่มีแบตเตอรี่ติดตัว",
+    "UI_ZeD_Radio_Spare": "สำรอง",
+    "UI_ZeD_Radio_NothingHeard": "ยังไม่ได้ยินอะไร",
     "UI_ZeD_Radio_NoCds": "ไม่มีซีดีติดตัว",
     "UI_ZeD_Radio_NoHeadphones": "ไม่มีหูฟังติดตัว",
     "UI_ZeD_Radio_None": "ไม่มีวิทยุในระยะ",

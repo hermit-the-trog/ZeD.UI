@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "DEMP",
     "UI_ZeD_Radio_NameChannel": "Navn på kanal %1 (tom glemmer den)",
     "UI_ZeD_Radio_NoBatteries": "Ingen batterier på deg",
+    "UI_ZeD_Radio_Spare": "Reserve",
+    "UI_ZeD_Radio_NothingHeard": "Ingenting hørt ennå",
     "UI_ZeD_Radio_NoCds": "Ingen CD-er på deg",
     "UI_ZeD_Radio_NoHeadphones": "Ingen hodetelefoner eller øreplugger på deg",
     "UI_ZeD_Radio_None": "Ingen radio innen rekkevidde",

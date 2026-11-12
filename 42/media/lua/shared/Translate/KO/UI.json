@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "음소거",
     "UI_ZeD_Radio_NameChannel": "채널 %1 이름 (비우면 삭제)",
     "UI_ZeD_Radio_NoBatteries": "소지한 배터리 없음",
+    "UI_ZeD_Radio_Spare": "예비",
+    "UI_ZeD_Radio_NothingHeard": "아직 들은 내용 없음",
     "UI_ZeD_Radio_NoCds": "소지한 CD 없음",
     "UI_ZeD_Radio_NoHeadphones": "소지한 헤드폰이나 이어폰 없음",
     "UI_ZeD_Radio_None": "범위 내 라디오 없음",

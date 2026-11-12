@@ -15,6 +15,11 @@
 -- ready X of Y, a square per line, the radio buttons). The tags with no boxes, in the full pass: char_health_full
 -- (the injury tags: square under the part's square, word under its name), char_loot_full (Belt 2 after the M9's name,
 -- secondary ink), char_equip_list_full (the belt rows).
+-- The second review's fixes, retaken in the same pictures (Nov 11 2026): no loot card over the Inventory (the pointer
+-- parked by pzlaunchwin), both windows solid (see-through 100 for the run), the moodle note over the World window
+-- (char_health_full), Power with one Battery row and Spare, Heard with "Nothing heard yet" (char_radio_full,
+-- world_radio_full), no notebook in any bag (char_journal_notebooks_none_full), the Loadouts line wrapped, not cut
+-- (char_equip_list_full).
 -- Everything spawned is removed again; the teardown script puts the rest back. grep "ZEDQA drv".
 local G = GAL
 DRV_N = (DRV_N or 0) + 1
@@ -156,6 +161,15 @@ function Z.finish(name)
         if not (c and w) then return end
         say(string.format("size %s: char %dx%d tab %s | world %dx%d tab %s", name, c:getWidth(), c:getHeight(), tostring(c._activeTab),
             w:getWidth(), w:getHeight(), tostring(w._activeTab)))
+        -- (Nov 11 2026) what else is in the picture: a loot card means the real pointer sat on a row (pzlaunchwin
+        -- parks it now); a moodle note says whether its layer stood over the windows
+        local IT = ZeD.InvTip
+        local wt = IT and IT._want
+        if wt and wt.content and wt.frame and IT._frame and wt.frame >= IT._frame - 1 then
+            say("WARN " .. name .. ": a loot card is up (" .. tostring(wt.item and wt.item:getName()) .. "): the pointer is on a row")
+        end
+        local ml = ZeD.Moodles and ZeD.Moodles.getLayer and ZeD.Moodles.getLayer(0)
+        if ml and ml._chip then say(name .. ": moodle note up, over the windows " .. tostring(ml._raised == true)) end
     else S.err(name, Z.sc.why) end
 end
 function Z.T(name, which, tab, settle, fn)
@@ -203,6 +217,14 @@ S.step(2, function()
         pcall(function() Opt.applyScale(4) end)
     end
     Z.theme()
+    -- solid windows for the pictures (Nov 11 2026): the run keeps the director's see-through 90 with "Solid while in
+    -- use" on, so the window the pointer was not over drew see-through (the World window in loot_full and
+    -- health_full). See-through 100 for the review; the director's value is put back at the end of the last pass.
+    if Opt.setSeeThrough and Opt.seeThroughIndex then
+        if DRV_SEE_WAS == nil then DRV_SEE_WAS = Opt.seeThroughIndex() end
+        pcall(function() Opt.setSeeThrough(1) end)
+        say("see-through " .. tostring(Opt.seeThrough and Opt.seeThrough()) .. " (was option " .. tostring(DRV_SEE_WAS) .. ")")
+    end
     say(string.format("mode %s | theme %s %s | scale option %s (was %s) -> %s | screen %dx%d", MODE, tostring(ZeD.currentBase),
         tostring(ZeD.currentAccent), tostring(Opt.uiScaleOption and Opt.uiScaleOption:getValue()), tostring(DRV_SCALE_WAS),
         tostring(ZeD.Scale and ZeD.Scale.userScale) .. " px(100)=" .. tostring(ZeD.T.px(100)), core:getScreenWidth(), core:getScreenHeight()))
@@ -370,20 +392,30 @@ do
     if not E then
         Z.T("journal_notebooks_" .. ST, "c", "journal", 45, function() Z.CW()._journalSubTab = 2 end)
         -- no notebook on the character: every notebook, journal and diary off them for the picture
+        -- (Nov 11 2026: the tab looks in every bag, and the stage's satchel holds a notebook: the first retake took
+        -- only the main inventory's and the satchel's stayed listed. Every container now, each put back where it was.)
         S.step(2, function()
             Z.tmp.nb = {}
-            local items = inv:getItems()
-            for i = items:size() - 1, 0, -1 do
-                local it = items:get(i)
-                if it:getCategory() == "Literature" and it:canBeWrite() then Z.tmp.nb[#Z.tmp.nb + 1] = it end
+            local function walk(c)
+                local items = c:getItems()
+                for i = items:size() - 1, 0, -1 do
+                    local it = items:get(i)
+                    if it:getCategory() == "Literature" and it:canBeWrite() then Z.tmp.nb[#Z.tmp.nb + 1] = { it = it, c = c } end
+                    if instanceof(it, "InventoryContainer") then walk(it:getInventory()) end
+                end
             end
-            for _, it in ipairs(Z.tmp.nb) do pcall(function() inv:Remove(it) end) end
+            walk(inv)
+            local where = {}
+            for _, e in ipairs(Z.tmp.nb) do
+                pcall(function() e.c:Remove(e.it) end)
+                where[#where + 1] = (e.c == inv) and "main" or tostring(e.c:getType())
+            end
             pcall(function() ZeD.JournalReaders.refresh(Z.CW()) end)
-            say("notebooks off for the picture: " .. #Z.tmp.nb)
+            say("notebooks off for the picture: " .. #Z.tmp.nb .. " (" .. table.concat(where, " ") .. ")")
         end)
         Z.T("journal_notebooks_none_" .. ST, "c", "journal", 45, function() Z.CW()._journalSubTab = 2 end)
         S.step(2, function()
-            for _, it in ipairs(Z.tmp.nb or {}) do pcall(function() inv:AddItem(it) end) end
+            for _, e in ipairs(Z.tmp.nb or {}) do pcall(function() e.c:AddItem(e.it) end) end
             Z.tmp.nb = nil
             pcall(function() ZeD.JournalReaders.refresh(Z.CW()) end)
         end)
@@ -427,6 +459,11 @@ S.step(10, function()
         Opt.uiScaleOption:setValue(DRV_SCALE_WAS)
         pcall(function() Opt.applyScale(DRV_SCALE_WAS) end)
         say("UI scale option back: " .. tostring(Opt.uiScaleOption:getValue()))
+    end
+    if MODE == "full" and DRV_SEE_WAS and Opt.setSeeThrough then
+        pcall(function() Opt.setSeeThrough(DRV_SEE_WAS) end)
+        say("see-through back: " .. tostring(Opt.seeThrough and Opt.seeThrough()))
+        DRV_SEE_WAS = nil
     end
 end)
 S.start()

@@ -2223,6 +2223,8 @@
     "UI_ZeD_Radio_Mute": "TICHO",
     "UI_ZeD_Radio_NameChannel": "Název kanálu %1 (prázdný ho smaže)",
     "UI_ZeD_Radio_NoBatteries": "Nemáš baterie",
+    "UI_ZeD_Radio_Spare": "Náhradní",
+    "UI_ZeD_Radio_NothingHeard": "Zatím nic nezachyceno",
     "UI_ZeD_Radio_NoCds": "Nemáš žádná CD",
     "UI_ZeD_Radio_NoHeadphones": "Nemáš sluchátka ani špunty",
     "UI_ZeD_Radio_None": "Žádné rádio v dosahu",

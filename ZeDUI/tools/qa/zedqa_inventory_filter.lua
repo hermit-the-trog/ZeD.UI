@@ -138,7 +138,14 @@ add(1000, function()
 end)
 add(800, function()
     local c = WC(); local S = IF.of(c)
-    check(S.open and S.agg and S.agg.matched >= 7, "the floor narrowed to the metal", IF.countText(S, S.agg))
+    -- the filter matches names, and on 42.22 only the scrap is named "metal" (Scrap Metal x4; the sheet is "Steel
+    -- Sheet", the pipe "Iron Pipe"): the floor's own names give the count wanted, not a fixed 7 (QA, Nov 11 2026)
+    local want = 0
+    for _, it in ipairs(FLOOR) do
+        if string.find(string.lower(it:getName() or ""), "metal", 1, true) then want = want + 1 end
+    end
+    check(S.open and S.agg and want > 0 and S.agg.matched >= want, "the floor narrowed to the metal",
+        IF.countText(S, S.agg) .. " (named metal on the floor: " .. want .. ")")
     local keys = {}
     for _, ch in ipairs(S.agg.chips) do keys[#keys + 1] = ch.key .. "=" .. ch.n end
     say("world chips " .. table.concat(keys, " "))
