@@ -1004,9 +1004,10 @@ function CK.render(panel, win, x, y, w, h)
     local chr = win._playerObj or getSpecificPlayer(0)
     if not chr then return end
     scan(s, chr, false)
-    -- the dish: kept while a base for it is in reach, else the first one there is
+    -- the dish: kept while a base for it is in reach, else the first one something in reach goes into
+    -- (the one that put the tab up), else the first there is
     if not (s.dish and s.bases and s.bases[s.dish]) then
-        s.dish, s.baseIdx, s.plan, s.qty = (s.dishList or {})[1], 1, {}, 1
+        s.dish, s.baseIdx, s.plan, s.qty = CK.firstDish(s, chr), 1, {}, 1
     end
     local CC = ZeD.CraftingCore
     local headH = renderHeader(panel, s, x, y, w, chr)
@@ -1115,6 +1116,27 @@ function CK.scrollKey(win)
     return tostring(s.dish) .. ":" .. tostring(s.baseIdx) .. ":" .. tostring(#s.plan) .. ":" .. tostring(s.popup) .. ":"
         .. tostring(math.floor(s.listScroll or 0)) .. ":" .. tostring(math.floor(s.dishScroll or 0)) .. ":" .. tostring(#s.zones)
         .. ":" .. tostring(s.sort) .. ":" .. tostring(s.qty)
+end
+
+-- The dish the tab opens on: the first (by name) with a base on the player that something in reach
+-- goes into, as CK.visible asks it. The first by name alone was often one nothing goes into (a
+-- Beverage in an empty cup beside a pot of water and vegetables), and the tab then read "Nothing in
+-- reach goes into this dish". With none such, the first there is.
+function CK.firstDish(s, chr)
+    local list = s.dishList or {}
+    for _, key in ipairs(list) do
+        for _, o in ipairs(s.bases[key] or {}) do
+            if o.mine then
+                local ok, items = pcall(function() return o.recipe:getItemsCanBeUse(chr, o.item, s.containers) end)
+                if ok and items then
+                    for i = 0, items:size() - 1 do
+                        if items:get(i) ~= o.item then return key end   -- (the base itself is no ingredient)
+                    end
+                end
+            end
+        end
+    end
+    return list[1]
 end
 
 -- Shown while a base is on the player and something in reach goes into it (looked at

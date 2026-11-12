@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Kræver %1",
     "UI_ZeD_Craft_BadgeUnknown": "Ukendt",
     "UI_ZeD_Craft_Compatible": "Kompatible",
+    "UI_ZeD_Craft_EmptyNone": "Ingen opskrifter at vise.",
+    "UI_ZeD_Craft_EmptyReady": "Intet kan laves med det, der er inden for rækkevidde.",
     "UI_ZeD_Craft_FilterAlts": "Filtrér alternativer...",
     "UI_ZeD_Craft_FindNamed": "Find %1",
     "UI_ZeD_Craft_FindRecipe": "Find opskriftsmagasin eller tegning",

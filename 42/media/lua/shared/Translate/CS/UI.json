@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Vyžaduje %1",
     "UI_ZeD_Craft_BadgeUnknown": "Neznámý",
     "UI_ZeD_Craft_Compatible": "Kompatibilní",
+    "UI_ZeD_Craft_EmptyNone": "Žádné recepty k zobrazení.",
+    "UI_ZeD_Craft_EmptyReady": "Z toho, co je po ruce, nelze nic vyrobit.",
     "UI_ZeD_Craft_FilterAlts": "Filtrovat alternativy...",
     "UI_ZeD_Craft_FindNamed": "Najdi %1",
     "UI_ZeD_Craft_FindRecipe": "Najdi časopis s receptem nebo schéma",

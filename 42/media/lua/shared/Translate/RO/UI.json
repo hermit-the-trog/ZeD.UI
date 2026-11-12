@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Cere %1",
     "UI_ZeD_Craft_BadgeUnknown": "Neștiută",
     "UI_ZeD_Craft_Compatible": "Compatibil",
+    "UI_ZeD_Craft_EmptyNone": "Nicio rețetă de afișat.",
+    "UI_ZeD_Craft_EmptyReady": "Nimic nu poate fi făcut cu ce este la îndemână.",
     "UI_ZeD_Craft_FilterAlts": "Filtrează alternativele...",
     "UI_ZeD_Craft_FindNamed": "Găsește %1",
     "UI_ZeD_Craft_FindRecipe": "Găsește revista cu rețeta sau schema",

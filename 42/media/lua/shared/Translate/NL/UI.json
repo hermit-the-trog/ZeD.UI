@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Vereist %1",
     "UI_ZeD_Craft_BadgeUnknown": "Onbekend",
     "UI_ZeD_Craft_Compatible": "Compatibel",
+    "UI_ZeD_Craft_EmptyNone": "Geen recepten om te tonen.",
+    "UI_ZeD_Craft_EmptyReady": "Met wat binnen bereik is, kan niets worden gemaakt.",
     "UI_ZeD_Craft_FilterAlts": "Filter alternatieven...",
     "UI_ZeD_Craft_FindNamed": "Vind %1",
     "UI_ZeD_Craft_FindRecipe": "Zoek een receptentijdschrift of schema",

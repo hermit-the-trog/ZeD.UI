@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "需要 %1",
     "UI_ZeD_Craft_BadgeUnknown": "未學會",
     "UI_ZeD_Craft_Compatible": "相容",
+    "UI_ZeD_Craft_EmptyNone": "沒有可列出的配方。",
+    "UI_ZeD_Craft_EmptyReady": "手邊的物品還不夠製作任何配方。",
     "UI_ZeD_Craft_FilterAlts": "篩選替代品...",
     "UI_ZeD_Craft_FindNamed": "尋找%1",
     "UI_ZeD_Craft_FindRecipe": "尋找配方雜誌或圖紙",

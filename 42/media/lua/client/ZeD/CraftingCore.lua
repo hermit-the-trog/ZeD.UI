@@ -554,6 +554,21 @@ function CC.truncText(str, font, maxW)
     return string.sub(str, 1, lo) .. "..."
 end
 
+-- A recipe's description on one line: its line breaks (and a "<br>" left in) become spaces, runs of
+-- space one. Made once per recipe and kept on the entry.
+function CC.oneLine(entry)
+    local s = entry._descLine
+    if s then return s end
+    s = tostring(entry.description or "")
+    s = string.gsub(s, "<br>", " ")
+    s = string.gsub(s, "[\r\n\t]", " ")
+    s = string.gsub(s, "  +", " ")
+    s = string.gsub(s, "^ ", "")
+    s = string.gsub(s, " $", "")
+    entry._descLine = s
+    return s
+end
+
 -- ============================================================================
 -- PIN MANAGEMENT — parameterized by modData key
 -- ============================================================================
@@ -860,6 +875,14 @@ function CC.setShow(state, id)
     state.show = id
     state.showAll = (id == "all")
     state.filterDirty = true
+end
+
+-- The line an empty recipe list shows: what the search found nothing for, else what Show holds back
+function CC.emptyListText(state, config)
+    local q = state.search or ""
+    if #q > 0 then return ZeD.tr("UI_ZeD_TAS_Nothing", q) end
+    if CC.showMode(state, config) == "ready" then return ZeD.tr("UI_ZeD_Craft_EmptyReady") end
+    return ZeD.tr("UI_ZeD_Craft_EmptyNone")
 end
 
 -- The band's pop-up choices, {id, key, label}: made once, the labels refreshed where
@@ -2076,6 +2099,13 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         end
     end
 
+    -- An empty list says why, as the other empty lists do ("Nothing here."), under its "(0)" head:
+    -- the search found nothing, or nothing is ready, or nothing to list. The search box and the band
+    -- stay, being the way back to a full list.
+    if #(state.filteredCache or {}) == 0 and not state.allCollapsed then
+        M.drawEmptyLine(panel, x + T.px(6), curY + T.px(8), contentW - T.px(12), CC.emptyListText(state, config))
+    end
+
     if not zreuse then
         state._rowZoneCache = {
             sections = sections, x = x, y0 = y - scrollOff, w = contentW, rowH = ROW_H,
@@ -2524,9 +2554,10 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local hc = T.textHead
     panel:drawText(nameStr, nameX, curY + T.px(6), hc.r, hc.g, hc.b, hc.a or 1, nameFont)
 
-    -- Description (pre-baked during catalog build)
+    -- Description (pre-baked during catalog build), one line: the game's text can break a line (the
+    -- Advanced Forge's drew as two, split at its <br>), and the second line ran into the Required rows
     if entry.description then
-        local descStr = CC.truncText(entry.description, T.fontF5, contentW - (nameX - x) - T.px(6))
+        local descStr = CC.truncText(CC.oneLine(entry), T.fontF5, contentW - (nameX - x) - T.px(6))
         local descY = curY + T.px(6) + tm:getFontHeight(nameFont) + T.px(2)
         panel:drawText(descStr, nameX, descY, T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF5)
     end

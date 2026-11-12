@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Requer %1",
     "UI_ZeD_Craft_BadgeUnknown": "Desconh.",
     "UI_ZeD_Craft_Compatible": "Compatível",
+    "UI_ZeD_Craft_EmptyNone": "Nenhuma receita para mostrar.",
+    "UI_ZeD_Craft_EmptyReady": "Nada pode ser feito com o que está ao alcance.",
     "UI_ZeD_Craft_FilterAlts": "Filtrar alternativas...",
     "UI_ZeD_Craft_FindNamed": "Encontra %1",
     "UI_ZeD_Craft_FindRecipe": "Encontra a revista ou o esquema da receita",

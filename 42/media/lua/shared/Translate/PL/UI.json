@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Wymaga %1",
     "UI_ZeD_Craft_BadgeUnknown": "Nieznana",
     "UI_ZeD_Craft_Compatible": "Zgodne",
+    "UI_ZeD_Craft_EmptyNone": "Brak przepisów do wyświetlenia.",
+    "UI_ZeD_Craft_EmptyReady": "Z tego, co jest w zasięgu, nic nie da się zrobić.",
     "UI_ZeD_Craft_FilterAlts": "Filtruj zamienniki...",
     "UI_ZeD_Craft_FindNamed": "Znajdź %1",
     "UI_ZeD_Craft_FindRecipe": "Znajdź magazyn z recepturą lub schemat",

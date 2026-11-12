@@ -624,10 +624,16 @@ local function topStatsForItem(item)
                 value = string.format("%d - %d", lvlMin, lvlMax)}
         end
     elseif cat == "Container" then
-        local cap = safeGet(item, "getItemCapacity") or 0
-        rows[#rows + 1] = {label = ZeD.tr("Tooltip_container_Capacity"),
-            value = string.format("%d", math.floor(cap + 0.5))}
+        -- the weight it holds, as Container Facts below shows it ("5.8 / 28 kg"). Not getItemCapacity:
+        -- that is not a bag's capacity (a Military Backpack reads -1)
         local inner = safeGet(item, "getInventory")
+        local cap = (inner and safeGet(inner, "getCapacity")) or safeGet(item, "getCapacity")
+        local held = inner and safeGet(inner, "getContentsWeight")
+        if cap and cap > 0 then
+            rows[#rows + 1] = {label = ZeD.tr("Tooltip_container_Capacity"),
+                value = held and string.format("%.1f / %d kg", held, math.floor(cap + 0.5))
+                    or string.format("%d kg", math.floor(cap + 0.5))}
+        end
         if inner then
             local count = safeGet(inner, "getItems")
             local n = (count and count.size) and count:size() or 0

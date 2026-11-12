@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Braucht %1",
     "UI_ZeD_Craft_BadgeUnknown": "Unbekannt",
     "UI_ZeD_Craft_Compatible": "Passend",
+    "UI_ZeD_Craft_EmptyNone": "Keine Rezepte anzuzeigen.",
+    "UI_ZeD_Craft_EmptyReady": "Mit dem, was in Reichweite ist, lässt sich nichts herstellen.",
     "UI_ZeD_Craft_FilterAlts": "Alternativen filtern...",
     "UI_ZeD_Craft_FindNamed": "Finde %1",
     "UI_ZeD_Craft_FindRecipe": "Rezeptmagazin oder Bauplan finden",

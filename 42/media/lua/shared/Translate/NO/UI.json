@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Trenger %1",
     "UI_ZeD_Craft_BadgeUnknown": "Ukjent",
     "UI_ZeD_Craft_Compatible": "Kompatible",
+    "UI_ZeD_Craft_EmptyNone": "Ingen oppskrifter å vise.",
+    "UI_ZeD_Craft_EmptyReady": "Ingenting kan lages med det som er innen rekkevidde.",
     "UI_ZeD_Craft_FilterAlts": "Filtrer alternativer...",
     "UI_ZeD_Craft_FindNamed": "Finn %1",
     "UI_ZeD_Craft_FindRecipe": "Finn oppskriftsmagasin eller skjema",

@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Kell: %1",
     "UI_ZeD_Craft_BadgeUnknown": "Ismeretlen",
     "UI_ZeD_Craft_Compatible": "Kompatibilis",
+    "UI_ZeD_Craft_EmptyNone": "Nincs megjeleníthető recept.",
+    "UI_ZeD_Craft_EmptyReady": "Az elérhető dolgokból most semmi sem készíthető el.",
     "UI_ZeD_Craft_FilterAlts": "Alternatívák szűrése...",
     "UI_ZeD_Craft_FindNamed": "Keresd: %1",
     "UI_ZeD_Craft_FindRecipe": "Keress hozzá receptmagazint vagy tervrajzot",

@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Gerekli: %1",
     "UI_ZeD_Craft_BadgeUnknown": "Bilinmiyor",
     "UI_ZeD_Craft_Compatible": "Uyumlu",
+    "UI_ZeD_Craft_EmptyNone": "Gösterilecek tarif yok.",
+    "UI_ZeD_Craft_EmptyReady": "Yakındaki eşyalarla yapılabilecek bir şey yok.",
     "UI_ZeD_Craft_FilterAlts": "Alternatifleri filtrele...",
     "UI_ZeD_Craft_FindNamed": "%1 bul",
     "UI_ZeD_Craft_FindRecipe": "Tarif dergisini veya şemayı bul",
