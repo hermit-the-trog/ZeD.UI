@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 件物品",
     "UI_ZeD_Inv_OrderLine": "順序：%1，與列表相同",
     "UI_ZeD_Inv_OrderWt": "重量",
+    "UI_ZeD_Inv_PickedMany": "已選 %1 / %2 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "已選 %1 / %2 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "教學（遊戲原版，不載入模組）",
     "UI_ZeD_MMHelp_PadRow": "手把的一個部分及其在遊戲中的作用。點一下以新增或移除動作。",
     "UI_ZeD_MMHelp_TermsAccept": "接受：同意服務條款和隱私權政策，然後繼續。",

@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5089.
+Total keys: 5098.
 
 ## Areas
 
@@ -51,7 +51,7 @@ Total keys: 5089.
 - [Hud](#hud) (1)
 - [Hutch](#hutch) (41)
 - [Identity](#identity) (21)
-- [Inv](#inv) (17)
+- [Inv](#inv) (19)
 - [ItemAct](#itemact) (3)
 - [ItemMenu](#itemmenu) (1)
 - [Join](#join) (44)
@@ -1884,6 +1884,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Inv_ItemsOne` | `%1 item` | Inventory lists (both windows), compact container header: how many items it holds (one) | - |
 | `UI_ZeD_Inv_OrderLine` | `Order: %1, as the list` | Inventory grid, column bar: names the list's sort order the grid follows; %1 is NAME, CATEGORY, CONDITION or WEIGHT | - |
 | `UI_ZeD_Inv_OrderWt` | `Weight` | Inventory grid, order line: name of the sort order (by weight) | 14 |
+| `UI_ZeD_Inv_PickedMany` | `%1 of %2 picked \| %3 kg` | Inventory side's help line (both windows, at rest): while several rows are picked, %1 how many things are picked, %2 how many the list or shown columns hold, %3 the picked things' weight (one decimal). Like a file browser's "3 of 48 selected" | 40 |
+| `UI_ZeD_Inv_PickedOne` | `%1 of %2 picked \| %3 kg` | Inventory side's help line (both windows, at rest): while one thing is picked (%1 is 1), %2 how many the list holds, %3 its weight | 40 |
 | `UI_ZeD_Inv_RowHelp` | `%1: LMB for its card, drag to move it, RMB for its menu` | Inventory list: help line over an item's row; %1 = the item's name. LMB / RMB: mouse button abbreviation, keep short | - |
 | `UI_ZeD_Inv_ColHelp` | `Sort by %1: press again to turn the order around` | Inventory list: help line over a column heading; %1 = the heading's text | - |
 | `UI_ZeD_Inv_CatFoldHelp` | `Press to fold this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is open | - |

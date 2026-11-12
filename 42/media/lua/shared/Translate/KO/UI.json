@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "물건 %1개",
     "UI_ZeD_Inv_OrderLine": "정렬: %1, 목록과 같음",
     "UI_ZeD_Inv_OrderWt": "무게",
+    "UI_ZeD_Inv_PickedMany": "%2개 중 %1개 선택 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%2개 중 %1개 선택 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "튜토리얼 (게임 기본, 모드 없음)",
     "UI_ZeD_MMHelp_PadRow": "컨트롤러의 한 부분과 게임에서의 기능입니다. 클릭해 동작을 추가하거나 뺍니다.",
     "UI_ZeD_MMHelp_TermsAccept": "동의: 서비스 약관과 개인정보 처리방침에 동의하고 진행합니다.",

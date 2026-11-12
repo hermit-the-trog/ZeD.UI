@@ -6150,10 +6150,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
             -- the title keeps the character's name; what the inventory side shows follows it
             win._titleSub = (#colSel == 1) and ZeD.tr("UI_ZeD_Char_ContainersOne", #colSel) or ZeD.tr("UI_ZeD_Char_ContainersMany", #colSel)
-            win._statusLine = win._titleSub
             self._ccEntry = nil
 
             r.renderMultiColumnContent(self)
+            -- (after the columns drew: they now hold this frame's picks) the help line's own words,
+            -- every shown column's things, and what is picked across them (InventoryPicked.lua)
+            win._statusLine = ZeD.InventoryPicked.line(self, self._colStates, nil,
+                "UI_ZeD_Char_ItemsOne", "UI_ZeD_Char_ItemsMany", win._playerObj)
         else
             -- Single container mode: determine which container to show
             local viewIdx
@@ -6180,9 +6183,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         or ZeD.tr("UI_ZeD_Char_WeightOfMax", string.format("%.1f", cWeight), string.format("%.0f", cMax)),
                     count   = (cItems == 1) and ZeD.tr("UI_ZeD_Char_ItemsOne", cItems) or ZeD.tr("UI_ZeD_Char_ItemsMany", cItems),
                 }
-                -- the help line's own words when the pointer is on nothing that has help
-                win._statusLine = self._containerInfo.count .. " | " .. self._containerInfo.stats
                 self._inventory = cInv
+                -- the help line's own words when the pointer is on nothing that has help: "48 items",
+                -- or "3 of 48 picked | 4.2 kg" while rows are picked (InventoryPicked.lua). No weight
+                -- at rest: the heading shows the container's, the title bar the character's load.
+                win._statusLine = ZeD.InventoryPicked.line(self, nil, cItems,
+                    "UI_ZeD_Char_ItemsOne", "UI_ZeD_Char_ItemsMany", win._playerObj)
             end
             self._ccEntry = cnt
             r.renderItemList(self)

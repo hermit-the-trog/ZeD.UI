@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "アイテム%1個",
     "UI_ZeD_Inv_OrderLine": "順序: %1 (一覧と同じ)",
     "UI_ZeD_Inv_OrderWt": "重量",
+    "UI_ZeD_Inv_PickedMany": "%2個中%1個を選択 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%2個中%1個を選択 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "チュートリアル（ゲーム本来のもの、MODなし）",
     "UI_ZeD_MMHelp_PadRow": "コントローラーの部位とゲーム内での働きです。クリックでアクションを追加・解除します。",
     "UI_ZeD_MMHelp_TermsAccept": "同意する: 利用規約とプライバシーポリシーに同意して進みます。",

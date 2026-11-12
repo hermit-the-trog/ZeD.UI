@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "Esineitä: %1",
     "UI_ZeD_Inv_OrderLine": "Järjestys: %1, kuten listassa",
     "UI_ZeD_Inv_OrderWt": "Paino",
+    "UI_ZeD_Inv_PickedMany": "Valittu: %1 / %2 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "Valittu: %1 / %2 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Opetus (pelin oma, ilman modeja)",
     "UI_ZeD_MMHelp_PadRow": "Ohjaimen osa ja mitä se tekee pelissä. Napsauta lisätäksesi tai poistaaksesi toimintoja.",
     "UI_ZeD_MMHelp_TermsAccept": "Hyväksy: hyväksy käyttöehdot ja tietosuojakäytäntö ja jatka.",
