@@ -4434,3 +4434,12 @@ to be proposed.
       and the item cards are mostly blank; Equipped hides its grade panel below the fold. Proposals in section 4.
    e. **QA.** Rerun the full catalog on today's main so the 36 tabs get an after picture; add Light, High contrast,
       Large text and the controller highlight for a few tabs.
+176. **Console Pro 93: the Lua console as its own mod (the director, Nov 12 2026, via QA: "I want to release this as a
+   separate mod. Just the console. Call it like Console Pro 93"; ships with beta 12, the same day, after QA passes
+   both).** Debug mode only, for mod makers. Built by ZeDUI/tools/products/build_consolepro93.py from ZeD's own console
+   files (one source: every console fix reaches both), into products/ConsolePro93/42 and, staged, Zomboid/mods/
+   ConsolePro93. No clash with ZeD-GUI: its own Lua, texture and font paths (ConsolePro93/), its own Translate keys
+   (UI_CP93_*) and globals (CP93); with ZeD-GUI on, every file returns early and ZeD-GUI's console is used. Name
+   "Console Pro 93" is the director's working name, in one place in the tool. QA: alone on vanilla, both installed
+   in each order, its own release check (ZeDUI/qa/CHECK_consolepro93.md). Its own Workshop item, gallery and update
+   track: the upload is the director's go. Waits on the console fixes from the Nov 12 bug hunt.
