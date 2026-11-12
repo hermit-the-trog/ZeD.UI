@@ -14,8 +14,8 @@
 -- the game only once the last one is done (AQ.tick).
 -- The game's handlers read points on the animal's body (its sides, its head) that
 -- are only known while it is drawn near the player; for an animal further off they
--- are nil and the handler throws. So ZeD walks up first and hands the act over
--- when the walk is done.
+-- are nil and the handler throws. So ZeD walks up first, holding the animal still as
+-- the game's menu does, and hands the act over when the walk is done.
 -- ============================================================================
 
 require "ZeD/AnimalsData"
@@ -28,6 +28,13 @@ local function AD() return ZeD.AnimalsData end
 
 -- A hunger the detail view words as Hungry or Starving (0-100, higher is hungrier)
 AQ.HUNGRY = 50
+-- The hunger the game's world menu offers Feed at, on the same scale (its 0.1; the trailer's
+-- menu too: only an animal held in the hands is offered Feed at any hunger at all)
+AQ.FEED_AT = 10
+-- Milk is drunk only past the game's 0.1 hunger or thirst (AnimalData.eatItem), compared in
+-- single precision, where 0.1 is 0.1000000015: on this scale a hair over 10, so an animal at
+-- exactly 10 drinks none
+AQ.MILK_PAST = 10.0000005
 -- How long the tool checks are kept (they look through the inventory)
 AQ.CHECK_MS = 500
 -- Ticks to wait for a handed-over action to show up in the queue before the run moves on
@@ -37,8 +44,11 @@ AQ.START_GRACE = 30
 AQ.AWAY = 6
 -- Ticks the queue may hold actions with none of them running before the run calls it stuck
 AQ.STALL_TICKS = 60
--- The longest one animal may take, walk and act together (ms)
+-- The longest one animal may take, walk and act together (ms of the game running)
 AQ.WAIT_MS = 180000
+-- A gap between two ticks longer than this (ms) is the game paused, not time taken: no tick
+-- fires while a single-player game is paused, and the clock is the wall clock
+AQ.PAUSE_MS = 1000
 
 local function ocall(o, m, ...)
     if o == nil or not o[m] then return nil end
@@ -88,7 +98,8 @@ end
 -- ============================================================================
 
 -- The milk containers the game offers (getAvailableFluidContainer for the breed's milk); the
--- radial menu takes the first, and milking with "all" moves on to the next when one fills.
+-- radial menu takes the first, and milking with "all" moves on to another of the same kind
+-- when one fills (a run hands the animal over again for a container of another kind).
 -- The game's rule (InventoryItem.isAvailableFluidContainer): any carried thing with a fluid
 -- container that is empty, or whose main fluid is this milk, a water bottle as much as a
 -- bucket; only the main inventory counts, not the bags in it. The rule does not ask for room:
@@ -128,65 +139,112 @@ end
 
 -- ============================================================================
 -- THE FOOD — the game's hand-feeding test (AnimalContextMenu.doFeedFromHandMenu)
--- The game offers Feed only to an animal with any hunger at all, and lists the
--- carried things that pass its test and whose kind is on the animal's
--- getEatTypePossibleFromHand list. Its menu shows one line per name (a fluid by
--- the fluid's name), so ZeD groups the food by that name too.
+-- The game's world menu offers Feed to an animal at AQ.FEED_AT hunger or more,
+-- and lists the carried things that pass its test and whose kind is on the
+-- animal's getEatTypePossibleFromHand list. Its menu shows one line per name (a
+-- fluid by the fluid's name), so ZeD groups the food by that name too. Milk is
+-- drunk only past AQ.MILK_PAST hunger or thirst: any less and the game's feeding
+-- takes none of it, so ZeD offers milk only to an animal that will drink it.
+-- Each carried item and each animal is read once (itemFacts, animalFacts) and the
+-- two are matched in Lua: the band asks every half second, and Java calls for
+-- every item with every animal stall a frame with a big herd and a full pack.
 -- ============================================================================
 
---- True when the game's menu would offer Feed for this animal (any hunger at all).
-function AQ.wantsFood(animal)
-    return (AD().getHunger(animal) or 0) > 0
+-- True when an animal at this hunger (0-100) is hungry enough for the game's menu: its world
+-- menu's AQ.FEED_AT, or any hunger at all for one held in the hands (the inventory menu)
+local function feedGate(animal, hunger)
+    if ocall(animal, "isExistInTheWorld") == false and not ocall(animal, "getVehicle") then return hunger > 0 end
+    return hunger >= AQ.FEED_AT
 end
 
--- The fluid of the animal's own milk, and the milk's name
-local function milkFluid(animal)
+--- True when the game's menu would offer Feed for this animal (see AQ.FEED_AT).
+function AQ.wantsFood(animal)
+    return feedGate(animal, AD().getHunger(animal) or 0)
+end
+
+-- (the game's walk over the inventory and its bags takes a test; one function, made once)
+local function maybeFood(it)
+    return it:getFluidContainer() ~= nil or it:isAnimalFeed() or instanceof(it, "Food")
+end
+
+-- Everything carried that might be food (the inventory and the bags in it); the
+-- game's own test per animal comes after.
+local function carried(player)
+    local inv = ocall(player, "getInventory")
+    if not inv then return {} end
+    local list = ocall(inv, "getAllEvalRecurse", maybeFood)
+    local out = {}
+    if not list then return out end
+    for i = 0, list:size() - 1 do out[#out + 1] = list:get(i) end
+    return out
+end
+
+-- What the feed tests need of one carried item, read once: its fluid container and whether that
+-- holds only animal milk, animal feed and its kind, a food and its type, fresh produce or milk food
+-- that fills (not rotten, not a spice), its full type. own[milk name] fills in as animals ask.
+local function itemFacts(item)
+    local fc = ocall(item, "getFluidContainer")
+    local f = { item = item, fc = fc, own = {}, fullType = ocall(item, "getFullType") }
+    f.animalMilk = fc ~= nil and Fluid ~= nil and Fluid.AnimalMilk ~= nil and ocall(fc, "isPureFluid", Fluid.AnimalMilk) == true
+    f.isFeed = ocall(item, "isAnimalFeed") == true
+    if f.isFeed then f.feedType = ocall(item, "getAnimalFeedType") end
+    f.food = instanceof(item, "Food") == true
+    if f.food then
+        local ft = ocall(item, "getFoodType")
+        f.foodType = ft
+        f.fresh = (ft == "Fruits" or ft == "Vegetables" or ocall(item, "getMilkType") ~= nil)
+            and (ocall(item, "getHungerChange") or 0) < 0 and not ocall(item, "isRotten") and not ocall(item, "isSpice")
+    end
+    return f
+end
+
+-- What the feed tests need of one animal, read once: its own milk (the name and the game's
+-- fluid), the kinds it takes from the hand (a set), its hunger and thirst (0-100)
+local function animalFacts(animal, hunger)
     local breed = ocall(animal, "getBreed")
     local mt = breed and ocall(breed, "getMilkType")
-    if not (mt and Fluid and Fluid.Get) then return nil, mt end
-    local ok, f = pcall(Fluid.Get, mt)
-    return ok and f or nil, mt
-end
-
--- (the game's two milk tests: the animal's own milk, or any animal milk)
-local function pureMilk(fc, animal)
-    local mf, mt = milkFluid(animal)
-    if mf and ocall(fc, "isPureFluid", mf) then return mt end
-    if Fluid and Fluid.AnimalMilk and ocall(fc, "isPureFluid", Fluid.AnimalMilk) then return "AnimalMilk" end
-    return nil
-end
-
--- The game's first test: milk the animal drinks, animal feed, or a fresh fruit,
--- vegetable or milk food that fills (not rotten, not a spice).
-local function isFeedFor(item, animal)
-    local fc = ocall(item, "getFluidContainer")
-    if fc and pureMilk(fc, animal) then return true end
-    if ocall(item, "isAnimalFeed") then return true end
-    if not instanceof(item, "Food") then return false end
-    local ft = ocall(item, "getFoodType")
-    return (ft == "Fruits" or ft == "Vegetables" or ocall(item, "getMilkType") ~= nil)
-        and (ocall(item, "getHungerChange") or 0) < 0 and not ocall(item, "isRotten") and not ocall(item, "isSpice")
-end
-
--- The kinds the game looks up on the animal's list, in its order: the full type,
--- a milk's name over it, the food type as a second, an animal feed's own kind over all.
-local function feedKinds(item, animal)
-    local k1, k2 = ocall(item, "getFullType"), nil
-    local fc = ocall(item, "getFluidContainer")
-    local milk = fc and pureMilk(fc, animal)
-    if milk then k1 = milk end
-    if instanceof(item, "Food") then k2 = ocall(item, "getFoodType") end
-    if ocall(item, "isAnimalFeed") then k1 = ocall(item, "getAnimalFeedType") end
-    return k1, k2
-end
-
---- True when the game's Feed menu would list this item for this animal.
-function AQ.eats(animal, item)
-    if not isFeedFor(item, animal) then return false end
+    local an = { mt = mt, eats = {}, hunger = hunger or AD().getHunger(animal) or 0, thirst = AD().getThirst(animal) or 0 }
+    if mt and Fluid and Fluid.Get then
+        local ok, mf = pcall(Fluid.Get, mt)
+        if ok then an.mf = mf end
+    end
     local list = ocall(animal, "getEatTypePossibleFromHand")
-    if not list then return false end
-    local k1, k2 = feedKinds(item, animal)
-    return (k1 ~= nil and list:contains(k1)) or (k2 ~= nil and list:contains(k2))
+    if list then
+        for i = 0, list:size() - 1 do an.eats[list:get(i)] = true end
+    end
+    return an
+end
+
+-- True when the animal takes this item from the hand: the game's first test (milk of its own kind
+-- or any animal milk, animal feed, or fresh produce), a kind on its list, and a container of milk
+-- only while the animal is hungry or thirsty enough to drink
+local function takes(f, an)
+    local milk = nil
+    if f.fc then
+        if an.mf then
+            local own = f.own[an.mt]
+            if own == nil then
+                own = ocall(f.fc, "isPureFluid", an.mf) == true
+                f.own[an.mt] = own
+            end
+            if own then milk = an.mt end
+        end
+        if f.animalMilk then milk = "AnimalMilk" end
+    end
+    if not (milk or f.isFeed or f.fresh) then return false end
+    -- the kinds the game looks up on the animal's list, in its order: the full type, a milk's
+    -- name over it, an animal feed's own kind over all, the food type as a second
+    local k1 = milk or f.fullType
+    if f.isFeed then k1 = f.feedType end
+    if not ((k1 ~= nil and an.eats[k1]) or (f.foodType ~= nil and an.eats[f.foodType])) then return false end
+    if milk and not f.food and not f.isFeed then return an.hunger > AQ.MILK_PAST or an.thirst > AQ.MILK_PAST end
+    return true
+end
+
+--- True when the game would feed this item to this animal from the hand: its Feed menu lists it,
+-- and milk only while the animal is hungry or thirsty enough to drink (AQ.MILK_PAST).
+function AQ.eats(animal, item)
+    return takes(itemFacts(item), animalFacts(animal))
 end
 
 --- The name the game's Feed menu gives the item (a fluid by the fluid's name): the food's key.
@@ -196,59 +254,66 @@ function AQ.foodName(item)
     return s or ocall(item, "getDisplayName") or "?"
 end
 
--- Everything carried that might be food (the inventory and the bags in it); the
--- game's own test per animal comes after.
-local function carried(player)
-    local inv = ocall(player, "getInventory")
-    if not inv then return {} end
-    local list = ocall(inv, "getAllEvalRecurse", function(it)
-        return it:getFluidContainer() ~= nil or it:isAnimalFeed() or instanceof(it, "Food")
-    end)
+-- The carried items of the named food, each read once (the run's start, each hand-over)
+local function foodItems(player, food)
     local out = {}
-    if not list then return out end
-    for i = 0, list:size() - 1 do out[#out + 1] = list:get(i) end
+    for _, it in ipairs(carried(player)) do
+        if AQ.foodName(it) == food then out[#out + 1] = itemFacts(it) end
+    end
     return out
 end
 
---- The first carried item of that food the animal eats (the one the game's menu would hand over), or nil.
-function AQ.findFood(player, animal, food)
-    for _, it in ipairs(carried(player)) do
-        if AQ.foodName(it) == food and AQ.eats(animal, it) then return it end
+-- The first of those items the animal takes (the one the game's menu would hand over), or nil
+local function firstTaken(items, animal)
+    if #items == 0 then return nil end
+    local an = animalFacts(animal)
+    for _, f in ipairs(items) do
+        if takes(f, an) then return f.item end
     end
     return nil
 end
 
+--- The first carried item of that food the animal takes (the one the game's menu would hand over), or nil.
+function AQ.findFood(player, animal, food)
+    return firstTaken(foodItems(player, food), animal)
+end
+
+local function byName(x, y) return x.name < y.name end
+
 --- The picker's foods for these animals: only the hungry ones count, and only a food
--- at least one of them eats is offered. Returns the list, sorted by name, each
--- { name, tex, have (how many carried), suits (how many of the hungry eat it) },
+-- at least one of them takes is offered. Returns the list, sorted by name, each
+-- { name, tex, have (how many carried), suits (how many of the hungry take it) },
 -- then the reason when the list is empty, then how many are hungry.
 function AQ.feedChoices(player, animals)
-    local hungry = {}
+    local hungry, facts = {}, {}
     for _, a in ipairs(animals) do
-        if AQ.wantsFood(a) then hungry[#hungry + 1] = a end
+        local h = AD().getHunger(a) or 0
+        if feedGate(a, h) then
+            hungry[#hungry + 1] = a
+            facts[#facts + 1] = animalFacts(a, h)
+        end
     end
     if #hungry == 0 then return {}, ZeD.tr("UI_ZeD_Animals_NotHungry"), 0 end
-    local byName, out = {}, {}
+    local named, out = {}, {}
     for _, it in ipairs(carried(player)) do
-        local fits = nil
-        for _, a in ipairs(hungry) do
-            if AQ.eats(a, it) then fits = fits or {}; fits[#fits + 1] = a end
-        end
-        if fits then
-            local name = AQ.foodName(it)
-            local c = byName[name]
-            if not c then
-                c = { name = name, tex = ocall(it, "getTex"), have = 0, suits = 0, _who = {} }
-                byName[name] = c
-                out[#out + 1] = c
-            end
-            c.have = c.have + 1
-            for _, a in ipairs(fits) do
+        local f, c = itemFacts(it), nil
+        for i, a in ipairs(hungry) do
+            if takes(f, facts[i]) then
+                if not c then
+                    local name = AQ.foodName(it)
+                    c = named[name]
+                    if not c then
+                        c = { name = name, tex = ocall(it, "getTex"), have = 0, suits = 0, _who = {} }
+                        named[name] = c
+                        out[#out + 1] = c
+                    end
+                    c.have = c.have + 1
+                end
                 if not c._who[a] then c._who[a] = true; c.suits = c.suits + 1 end
             end
         end
     end
-    table.sort(out, function(x, y) return x.name < y.name end)
+    table.sort(out, byName)
     if #out == 0 then return out, ZeD.tr("UI_ZeD_Animals_NeedFood"), #hungry end
     return out, nil, #hungry
 end
@@ -301,7 +366,8 @@ function AQ.canGoTo(player, animal)
     return true, nil, nil
 end
 
---- Feed one animal the named food: it must be hungry at all, and carry an item of that food it eats.
+--- Feed one animal the named food: it must be hungry enough for the game's menu, and the player must
+-- carry an item of that food it takes.
 function AQ.canFeed(player, animal, food)
     if not AQ.wantsFood(animal) then return false, ZeD.tr("UI_ZeD_Animals_NotHungry") end
     local item = food and AQ.findFood(player, animal, food)
@@ -368,6 +434,19 @@ local function distTo(player, animal)
     return math.sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay))
 end
 
+-- Hold the animal still (true) or let it go (false). The game's menu holds it from the moment
+-- it is picked and its actions let go when they end; one that never started never lets go, so
+-- the run does. (A hold nobody lets go of wears off by itself after a while: the game counts
+-- 8000 of its time units, a few minutes at normal speed.)
+local function hold(a, still)
+    local b = a and ocall(a, "getBehavior")
+    if b then pcall(b.setBlockMovement, b, still) end
+end
+
+local function letGo(a)
+    hold(a, false)
+end
+
 --- Hand one verb for one animal to the game. Returns true, or false and the reason. A third
 -- return of "approach" says only the walk up was handed over: the animal is too far off for
 -- the game's handler, and the run hands the act over when the walk is done. The fourth is the
@@ -380,13 +459,16 @@ function AQ.act(verb, player, animal, food)
         if not luautils.walkAdj(player, animal:getSquare()) then
             return false, ZeD.tr("UI_ZeD_Animals_OutOfReach")
         end
+        -- (held from the press, as the game's own menu does: an animal left to graze while the
+        -- player walks up is squares off by the time they get there)
+        hold(animal, true)
         return true, nil, "approach", tool
     end
     if verb == "feed" then
         -- the game's own: hold the animal, walk beside it, the food to hand, ISFeedAnimalFromHand
         AnimalContextMenu.onFeedAnimalFood(player, animal, tool)
     elseif verb == "milk" then
-        -- (all = true: when the bucket fills, the game moves on to the next container that takes this milk)
+        -- (all = true: when the bucket fills, the game moves on to another of the same kind with room)
         AnimalContextMenu.onMilkAnimal(animal, player, tool, true)
     elseif verb == "shear" then
         AnimalContextMenu.onShearAnimal(animal, player, tool)
@@ -487,8 +569,10 @@ end
 --            that food was for when the run began), list, i (the animal under way), done,
 --            phase = "next" | "wait", seen (the queue was busy since the hand-over), ticks,
 --            before (feed: the hunger of the animal under way at the hand-over),
---            approach (only the walk up was handed over), near (the closest the player came
---            to the animal under way), stall (ticks the queue sat stuck), since (the hand-over's ms) }
+--            approach (only the walk up was handed over), walked (that walk reached its square),
+--            near (the closest the player came to the animal under way since the last walk ended),
+--            stall (ticks the queue sat stuck), spent (ms the game ran since the hand-over),
+--            lastT (the last tick's ms) }
 -- AQ.last = { verb, done, total, why } when a run has ended (the band says how it went)
 -- ============================================================================
 
@@ -505,9 +589,6 @@ local function wants(r, a)
     return has ~= nil and has(a)
 end
 
--- True when the action handed over for this animal did not happen. Milk and shear: it still
--- has something to give while the tool is there. Feed: its hunger did not go down (an
--- animal fed by hand may stay a little hungry, so "still hungry" is no test).
 -- True when the milk container handed over is full
 local function toolFull(r)
     local fc = r.verb == "milk" and r.tool and ocall(r.tool, "getFluidContainer")
@@ -515,24 +596,31 @@ local function toolFull(r)
 end
 
 -- "Bucket full: milked 1 of 2": the run ends because the last container that takes this milk
--- filled (the game's milking moves on to another one by itself, so it stopped only when none
--- was left). The container by its own name in the game's words.
+-- filled (the game's milking moves on by itself to another of the same kind, and the run to one
+-- of another kind, so it stopped only when none was left). The container by its own name in the
+-- game's words.
 local function fullWords(r)
     local name = ocall(r.tool, "getDisplayName") or getText("ContextMenu_Milk")
     return ZeD.tr("UI_ZeD_Animals_RunFull", name, r.done, #r.list)
 end
 
 -- Whether the action handed over for this animal was left undone: false (it was done), true
--- (stopped), or "full" (milk left in it, and no room left in anything carried)
+-- (stopped), "refill" (the container filled with milk left in the animal, and another carried
+-- has room) or "full" (milk left in it, and no room left in anything carried).
+-- Milk and shear: undone while the animal still has something to give. Feed: its hunger did
+-- not go down (an animal fed by hand may stay a little hungry, so "still hungry" is no test).
 local function leftUndone(r, a)
     if r.verb == "feed" then return (AD().getHunger(a) or 0) >= (r.before or 0) end
     if not HAS[r.verb](a) then return false end
-    -- something left to give: undone while the tool is still there for it, or when the tool
-    -- left the inventory (a stressed animal kicks the bucket out of the hands)
+    -- something left to give, and the tool left the inventory: a stressed animal kicks the
+    -- bucket out of the hands
     local inv = ocall(r.player, "getInventory")
     if r.tool and inv and ocall(inv, "contains", r.tool) == false then return true end
-    if AQ.can(r.verb, r.player, a) == true then return true end
-    if toolFull(r) then return "full" end
+    -- the container filled: the game's milking moves on by itself only to more of one kind (its
+    -- getFirstAvailableFluidContainer hands back a full container, and it looks for that type),
+    -- so with a pot left after the bucket the animal goes over again with the pot
+    local can = AQ.can(r.verb, r.player, a) == true
+    if toolFull(r) then return can and "refill" or "full" end
     return true
 end
 
@@ -550,6 +638,30 @@ local function queueBusy(player)
     return doingAction(player) or queued(player)
 end
 
+-- The game's walks: to a square (luautils.walkAdj, the walk up) and to a point on the
+-- animal's body (the game's handlers)
+local WALKS = { ISWalkToTimedAction = true, ISWalkToTimedActionF = true }
+
+-- True while the player's current action is one of the game's walks
+local function walking(player)
+    local q = ISTimedActionQueue and ISTimedActionQueue.queues and ISTimedActionQueue.queues[player]
+    local cur = q and q.queue and q.queue[1]
+    return type(cur) == "table" and WALKS[cur.Type] == true
+end
+
+-- The game calls this when the walk up reaches its square (not when a stick move, a cancel
+-- or a missing path ends it first)
+local function arrived(r)
+    r.walked = true
+end
+
+-- Ask the game to say when the walk up just handed over reaches its square
+local function onArrival(r)
+    local q = ISTimedActionQueue and ISTimedActionQueue.queues and ISTimedActionQueue.queues[r.player]
+    local w = q and q.queue and q.queue[#q.queue]
+    if type(w) == "table" and WALKS[w.Type] and w.setOnComplete then w:setOnComplete(arrived, r) end
+end
+
 -- (the hoisted slot: the tick hook and AQ.start both reach it)
 local onTick
 
@@ -561,13 +673,6 @@ local function finish(why, cause)
     AQ.last = { verb = r.verb, done = r.done, total = #r.list, why = why, cause = cause, t = now() }
     AQ.run = nil
     if Events and Events.OnTick then Events.OnTick.Remove(onTick) end
-end
-
--- the game's menu holds the animal still from the moment it is picked; an action that
--- never started never lets go, so let go here
-local function letGo(a)
-    local b = a and ocall(a, "getBehavior")
-    if b then pcall(b.setBlockMovement, b, false) end
 end
 
 -- Stop the run where it stands: the game's queue cleared (its own cancel, so nothing the run
@@ -585,24 +690,37 @@ local function handOver(r, i)
     r.before = AD().getHunger(a) or 0
     -- (feed: when the food has run out the act says so, and the run ends with that reason)
     local ok, why, how, tool = AQ.act(r.verb, r.player, a, r.food)
+    -- (the act's hand-over after the walk up failing: let go of the animal the walk held)
+    if not ok and r.approach then letGo(a) end
     -- (the container the last animal filled was the last with room: say so, not the bare reason)
     if not ok and toolFull(r) then finish(fullWords(r), "full") return end
     if not ok then finish(why, "refused") return end
     r.phase, r.seen, r.ticks, r.stall, r.tool = "wait", false, 0, 0, tool
-    r.approach = how == "approach"
-    r.near, r.since = distTo(r.player, a), now()
+    r.approach, r.walked = how == "approach", false
+    if r.approach then onArrival(r) end
+    r.near, r.spent, r.lastT = distTo(r.player, a), 0, now()
 end
 
 -- Why the run should give up on the animal under way, or nil: the player got well away from it
 -- (walked off with the stick cancels the queue on its own; a move by other means does not),
 -- the queue holds actions with none running, or it has all taken too long
 local function gaveUp(r, a)
-    local d = distTo(r.player, a)
-    if d then
-        if not r.near or d < r.near then r.near = d end
-        if d > math.max(r.near, 3) + AQ.AWAY then return "away" end
+    if walking(r.player) then
+        -- (a walk ends itself on a stick move or when no path is left, and its route may swing
+        -- wide of the animal, round a wall to the door: the distance counts from where it ends)
+        r.near = nil
+    else
+        local d = distTo(r.player, a)
+        if d then
+            if not r.near or d < r.near then r.near = d end
+            if d > math.max(r.near, 3) + AQ.AWAY then return "away" end
+        end
     end
-    if now() - (r.since or 0) > AQ.WAIT_MS then return "slow" end
+    local t = now()
+    local dt = t - (r.lastT or t)
+    r.lastT = t
+    if dt > 0 and dt <= AQ.PAUSE_MS then r.spent = (r.spent or 0) + dt end
+    if (r.spent or 0) > AQ.WAIT_MS then return "slow" end
     if queued(r.player) and not doingAction(r.player) then
         r.stall = (r.stall or 0) + 1
         if r.stall > AQ.STALL_TICKS then return "stuck" end
@@ -620,8 +738,9 @@ function AQ.start(player, verb, animals, food)
     if verb == "feed" and not food then return false, nil end
     local r = { player = player, verb = verb, food = food, suits = {}, i = 0, done = 0, phase = "next", seen = false, ticks = 0 }
     if verb == "feed" then
+        local items = foodItems(player, food)
         for _, a in ipairs(animals) do
-            if AQ.wantsFood(a) and AQ.findFood(player, a, food) then r.suits[a] = true end
+            if AQ.wantsFood(a) and firstTaken(items, a) then r.suits[a] = true end
         end
     end
     local list = {}
@@ -631,7 +750,10 @@ function AQ.start(player, verb, animals, food)
     if #list == 0 then return false, (verb == "feed") and ZeD.tr("UI_ZeD_Animals_NeedFood") or nil end
     local ok, why = AQ.can(verb, player, list[1], food)
     if not ok then return false, why end
-    if AQ.run then finish(nil, "replaced") end
+    -- (a run under way gives way to the new press: stopped where it stands, the game's queue
+    -- cleared and its animal let go, or the new act would queue behind a milking that empties
+    -- the whole queue when it ends)
+    if AQ.run then halt(AQ.run, "replaced") end
     r.list = list
     AQ.run = r
     AQ.last = nil
@@ -655,7 +777,7 @@ function AQ.tick()
     local r = AQ.run
     if not r then return end
     local p = r.player
-    if not p or (p.isDead and p:isDead()) then finish(nil, "dead") return end
+    if not p or (p.isDead and p:isDead()) then letGo(r.list[r.i]); finish(nil, "dead") return end
     if r.phase == "wait" then
         local a = r.list[r.i]
         local cause = gaveUp(r, a)
@@ -667,13 +789,15 @@ function AQ.tick()
             if r.ticks < AQ.START_GRACE then return end
         end
         if r.approach then
-            -- the walk up is over: beside the animal now, hand the act itself over (once);
-            -- still far off, the walk was cut short
+            -- the walk up is over: hand the act itself over (once). A walk that reached its square
+            -- hands it over wherever the animal stands now (the game's handler walks to its side
+            -- from there); one that ended far off before it got there was cut short
             local d = distTo(p, a)
-            if d and d > 4 then letGo(a); finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), "cut") return end
+            if not r.walked and d and d > 4 then letGo(a); finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), "cut") return end
             handOver(r, r.i)
             if AQ.run == r and r.approach then
                 ISTimedActionQueue.clear(p)
+                letGo(a)
                 finish(ZeD.tr("UI_ZeD_Animals_OutOfReach"), "reach")
             end
             return
@@ -681,6 +805,7 @@ function AQ.tick()
         -- the action is over (or never showed up). One left undone means the run was
         -- stopped: the player walked off, the animal ran, or the game turned it down
         local undone = leftUndone(r, a)
+        if undone == "refill" then handOver(r, r.i) return end
         if undone == "full" then
             letGo(a)
             finish(fullWords(r), "full")

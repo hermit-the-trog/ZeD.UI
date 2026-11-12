@@ -3394,7 +3394,8 @@ function AT.openFeedPicker(win, zoneName, sx, sy)
     local Q = QK()
     local selected = Q.prune(zoneSelection(win, zoneName), AP().getAnimalsInZone(zoneName))
     Q.forgetChecks()
-    local foods, _, hungry = Q.feedChoices(getSpecificPlayer(0), selected)
+    -- (kept: the band's next frame asks for the same animals and reuses this answer)
+    local foods, _, hungry = Q.checkFeed(getSpecificPlayer(0), selected)
     if #foods == 0 then return false end
     closeFeedMenu()
     local rows = {}
