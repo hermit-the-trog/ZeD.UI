@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Bovenarm",
     "UI_ZeD_Char_ContainersMany": "%1 containers",
     "UI_ZeD_Char_ContainersOne": "%1 container",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "%1 items",
     "UI_ZeD_Char_ItemsOne": "%1 item",
     "UI_ZeD_Char_JournalSearchEntries": "Zoek in notities...",

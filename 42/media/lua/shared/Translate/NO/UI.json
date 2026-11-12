@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Overarm",
     "UI_ZeD_Char_ContainersMany": "%1 beholdere",
     "UI_ZeD_Char_ContainersOne": "%1 beholder",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "%1 gjenstander",
     "UI_ZeD_Char_ItemsOne": "%1 gjenstand",
     "UI_ZeD_Char_JournalSearchEntries": "Søk i notater...",

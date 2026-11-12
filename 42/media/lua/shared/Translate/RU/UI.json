@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Плечо",
     "UI_ZeD_Char_ContainersMany": "Контейнеров: %1",
     "UI_ZeD_Char_ContainersOne": "%1 контейнер",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "Предметов: %1",
     "UI_ZeD_Char_ItemsOne": "%1 предмет",
     "UI_ZeD_Char_JournalSearchEntries": "Поиск записей...",

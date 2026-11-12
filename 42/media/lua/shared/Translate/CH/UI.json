@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "上臂",
     "UI_ZeD_Char_ContainersMany": "%1 個容器",
     "UI_ZeD_Char_ContainersOne": "%1 個容器",
+    "UI_ZeD_Char_HealthHelp": "%1：%2",
     "UI_ZeD_Char_ItemsMany": "%1 件物品",
     "UI_ZeD_Char_ItemsOne": "%1 件物品",
     "UI_ZeD_Char_JournalSearchEntries": "搜尋記錄...",

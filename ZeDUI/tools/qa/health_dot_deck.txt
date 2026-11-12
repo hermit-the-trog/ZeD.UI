@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/health_dot_deck.txt  (Nov 11 2026): the health status pixel beside the name, three pins, at the Deck
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_health_dot.lua | hdot | timeout=180

@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Ramię",
     "UI_ZeD_Char_ContainersMany": "Pojemniki: %1",
     "UI_ZeD_Char_ContainersOne": "Pojemniki: %1",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "Przedm.: %1",
     "UI_ZeD_Char_ItemsOne": "Przedm.: %1",
     "UI_ZeD_Char_JournalSearchEntries": "Szukaj we wpisach...",

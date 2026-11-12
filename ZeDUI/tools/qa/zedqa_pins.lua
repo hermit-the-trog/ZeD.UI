@@ -78,7 +78,7 @@ step(40, function()
     local ts = cw and cw.titleStats or {}
     local parts = {}
     for _, s in ipairs(ts) do parts[#parts + 1] = tostring(s.text) end
-    say("Character window title stats now: " .. #ts .. " (" .. table.concat(parts, " | ") .. "); window width " .. tostring(cw and cw:getWidth()) .. ", hideTitle " .. tostring(cw and cw._hideTitle))
+    say("Character window title stats now: " .. #ts .. " (" .. table.concat(parts, " | ") .. "); window width " .. tostring(cw and cw:getWidth()) .. ", name kept " .. tostring(cw and not cw._hideTitle) .. ", status pixel " .. tostring(cw and cw._titleMark ~= nil))
     shot("1_three_pins")
 end)
 -- 4 a fourth drops the oldest with a note

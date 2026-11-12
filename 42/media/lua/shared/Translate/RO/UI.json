@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Braț",
     "UI_ZeD_Char_ContainersMany": "Containere: %1",
     "UI_ZeD_Char_ContainersOne": "Container: %1",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "Obiecte: %1",
     "UI_ZeD_Char_ItemsOne": "Obiect: %1",
     "UI_ZeD_Char_JournalSearchEntries": "Caută în note...",

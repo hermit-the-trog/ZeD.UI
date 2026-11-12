@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "위팔",
     "UI_ZeD_Char_ContainersMany": "보관함 %1개",
     "UI_ZeD_Char_ContainersOne": "보관함 %1개",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "물건 %1개",
     "UI_ZeD_Char_ItemsOne": "물건 %1개",
     "UI_ZeD_Char_JournalSearchEntries": "항목 검색...",

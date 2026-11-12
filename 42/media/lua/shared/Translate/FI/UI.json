@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Olkavarsi",
     "UI_ZeD_Char_ContainersMany": "Säilöjä: %1",
     "UI_ZeD_Char_ContainersOne": "Säilö: %1",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "Esineitä: %1",
     "UI_ZeD_Char_ItemsOne": "Esineitä: %1",
     "UI_ZeD_Char_JournalSearchEntries": "Hae merkintöjä...",

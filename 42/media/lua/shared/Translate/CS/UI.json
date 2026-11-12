@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Nadloktí",
     "UI_ZeD_Char_ContainersMany": "Kontejnery: %1",
     "UI_ZeD_Char_ContainersOne": "Kontejnery: %1",
+    "UI_ZeD_Char_HealthHelp": "%1: %2",
     "UI_ZeD_Char_ItemsMany": "Předměty: %1",
     "UI_ZeD_Char_ItemsOne": "Předměty: %1",
     "UI_ZeD_Char_JournalSearchEntries": "Hledat záznamy...",

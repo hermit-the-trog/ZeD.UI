@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "上腕",
     "UI_ZeD_Char_ContainersMany": "コンテナ%1個",
     "UI_ZeD_Char_ContainersOne": "コンテナ%1個",
+    "UI_ZeD_Char_HealthHelp": "%1：%2",
     "UI_ZeD_Char_ItemsMany": "アイテム%1個",
     "UI_ZeD_Char_ItemsOne": "アイテム%1個",
     "UI_ZeD_Char_JournalSearchEntries": "記録を検索...",
