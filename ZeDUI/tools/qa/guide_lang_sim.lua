@@ -14,7 +14,7 @@ local function check(name, ok, detail)
     if not ok then failed = failed + 1; print("FAIL " .. name .. (detail ~= nil and (" (" .. tostring(detail) .. ")") or "")) end
 end
 
-local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_SurvivalGuide.lua", "rb"); local src = f:read("*a"); f:close()
+local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_SurvivalGuide.lua", "rb"); local src = f:read("*a"):gsub("\r\n", "\n"); f:close()   -- (the file may have CRLF line ends)
 local a = src:find("local NO_BOOK_LANGS", 1, true)
 local b = a and src:find("\nend\n", src:find("function W.useBook()", a, true), true)
 check("the language list and useBook are found in ZeD_SurvivalGuide.lua", a and b)
