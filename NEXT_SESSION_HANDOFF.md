@@ -16,6 +16,33 @@ The director moved Build to their other Claude account (this one at 99%). Same m
 - Merged Nov 11-12 and passed in game: footer picked count, health status pixel + "Blink the low-health pixel" option, single List/Grid view button, search magnifier, tags as square + word, LMB/RMB hints, Journal tags, saved window positions, tab fill, the director's picture-review fixes.
 - Open questions to bring the director (multiple choice): which headline item after the console and Summer Car (split-screen 107 with a Dec 1 target, run+sneak 121, drawn controller 108); sorting the Nov 11 audit's not-built list (ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md) into beta 12 / after release / drop.
 
+**QA's handoff (QA ZeD-GUI moves to the other account too, Nov 12 midday):**
+- **Check first, before any launch:**
+  - The old account's QA helper may have been cut off mid-run. Make sure ProjectZomboid64 isn't running; if it is, ask the director to close it.
+  - Make sure `Zomboid/Lua/zedqa.lock` reads free.
+  - Make sure options.ini is fullScreen=true, 3840x2160, fontSize=2.
+  - Make sure ModOptions.ini has see-through 90 and hint strip Always.
+  - Make sure `Zomboid/Lua/zedqa.autoload` reads 0.
+  - Delete the con0 drop-in `42/media/lua/client/zzz_zedqa_con0.lua` if it's still there (untracked; it must never be committed).
+- **con0 results:**
+  - Run 1 (-debug) is done. All lines went to Build; the report is ZeDUI/qa/QA_con0_run1_20261112.md (or run1_report.md if the helper didn't rename it).
+  - Its FAIL is only the probe's four deliberate exceptions (chunks `boom`, `con0_runtime`): widen console_probe.txt's expect=.
+  - Runs 2 and 3 (normal launch, then the reload in -debug, per ZeDUI/qa/CHECK_pl136_phase0.md) were running. If QA_con0_normal_20261112.txt and QA_con0_debug_reload_20261112.txt aren't in ZeDUI/qa, redo them. The answer Build wants most is `q1.reload`.
+- **Queue, in order:**
+  1. con0 runs 2-3, if missing.
+  2. conlog then console_scratch (-debug, ZEDQA_NOSTEAM=1). The four things only the game shows: Kahlua's error wording, whether print joins its arguments with a tab (otherwise rows show twice), Shift+Enter by hand in the scratchpad, the window at Deck size.
+  3. console_complete and console_commands, once Build merges Phases 3-4.
+  4. Summer Car: download 3790160840 and send Build the hook.
+  5. The Animals rerun: zedqa_animals_restore first, then zedqa_animals_quick + aq2 at 4K, Deck and German.
+  6. The Mods Files tab error cards (Bandits2 + BanditsWeekOne).
+  7. The split-screen probe: the director plugs in a pad and presses A.
+  8. The beta 12 gallery upload, on the director's go.
+- **QA rules worth repeating:**
+  - Every helper brief that runs zedqa_run.ps1 must set `$env:ZEDQA_NOSTEAM = "1"`. Without it the game sits at the main menu with no bridge, which looks like a code bug. The tell is "zomboid.steam=1" in the DebugLog.
+  - If the director is using the PC, ask before taking the screen (fullscreen runs stall behind other windows).
+  - Background waits get a time limit. On Nov 11, 14 stuck waits ran for 13 hours.
+  - Kills by PID only, for processes QA started; the safety check blocks killing some.
+
 **Habits that bit this cycle:** never merge into 42/ while the lock reads busy (a finished background wait is stale: gate in the same command); QA's runs need ZEDQA_NOSTEAM=1 or Steam's beta 11 copy shadows the dev mod; Bash heredocs eat double backslashes (write scripts with the Write tool).
 
 ## Where things stand
