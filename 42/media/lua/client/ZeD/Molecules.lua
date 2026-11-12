@@ -773,12 +773,8 @@ function ZeD_SearchField:prerender()
 end
 
 function ZeD_SearchField:render()
-    local T = ZeD.T
-    -- Search icon (/ character as a simple glyph)
-    local iconColor = T.textDim
-    local iconY = (self.height - ZeD.TM:MeasureStringY(T.fontF1, "/")) / 2
-    self:drawText("/", T.px(8), iconY,
-        iconColor.r, iconColor.g, iconColor.b, iconColor.a, T.fontF1)
+    -- The magnifier, from the one shared helper (the icon area is 24 units wide; it takes 9)
+    ZeD.Atoms.drawSearchIcon(self, ZeD.T.px(8), 0, self.height)
 end
 
 function ZeD_SearchField:getText()

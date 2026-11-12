@@ -164,6 +164,66 @@ local function _arrowOffsets(s)
 end
 
 -- ---------------------------------------------------------------------------
+-- SEARCH ICON — the magnifier every search box wears at its left. A plain
+-- 9 x 9 pixel map, one rect per run of pixels: no texture, so no smoothing
+-- and nothing to load. One helper for all the fields, so they match.
+-- ---------------------------------------------------------------------------
+local SEARCH_MAP = {
+    ".XXXX....",
+    "X....X...",
+    "X....X...",
+    "X....X...",
+    "X....X...",
+    ".XXXX....",
+    "......XX.",
+    ".......XX",
+    "........X",
+}
+local SEARCH_N = 9
+-- (each row's runs of set pixels, found once: {start, length, ...})
+local _searchRuns
+local function _searchRunsOf()
+    if _searchRuns then return _searchRuns end
+    _searchRuns = {}
+    for r = 1, SEARCH_N do
+        local row, runs, c = SEARCH_MAP[r], {}, 1
+        while c <= SEARCH_N do
+            if string.sub(row, c, c) == "X" then
+                local e = c
+                while e < SEARCH_N and string.sub(row, e + 1, e + 1) == "X" do e = e + 1 end
+                runs[#runs + 1] = c - 1
+                runs[#runs + 1] = e - c + 1
+                c = e + 1
+            else
+                c = c + 1
+            end
+        end
+        _searchRuns[r] = runs
+    end
+    return _searchRuns
+end
+
+--- The magnifier at x, centred in the height h starting at y, in `color`
+-- (default T.textDim, read fresh). Each map pixel is one design unit rounded
+-- to whole screen pixels, so it stays sharp at any UI scale. Returns its width.
+function ZeD.Atoms.drawSearchIcon(panel, x, y, h, color)
+    local T = ZeD.T
+    local c = color or T.textDim
+    local cell = math.max(1, math.floor(T.px(1) + 0.5))
+    local size = SEARCH_N * cell
+    local oy = y + math.floor((h - size) / 2)
+    local a = c.a or 1
+    local rows = _searchRunsOf()
+    for r = 1, SEARCH_N do
+        local runs = rows[r]
+        for i = 1, #runs, 2 do
+            panel:drawRect(x + runs[i] * cell, oy + (r - 1) * cell, runs[i + 1] * cell, cell, a, c.r, c.g, c.b)
+        end
+    end
+    return size
+end
+
+-- ---------------------------------------------------------------------------
 -- LINE TEXTURES — pixel lines drawn as one textured draw instead of one rect a
 -- dash or a row (media/textures/ZeD/lines, made by ZeDUI/tools/linetex/
 -- make_line_tex.py): white where the line is, clear elsewhere, tinted with the

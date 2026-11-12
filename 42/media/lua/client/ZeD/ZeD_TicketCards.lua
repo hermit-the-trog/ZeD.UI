@@ -718,6 +718,7 @@ function D.drawFind(panel, win, st, t, it, x, dy, cw)
         panel:drawRectBorder(fx, fy, fw, h, bc.a or 1, bc.r, bc.g, bc.b)
         local text = box:getText() or ""
         local tc = (text == "") and T.textDim or T.text
+        A.drawSearchIcon(panel, fx + px(8), fy, h)
         local s = A.truncateText((text == "") and it.hint or text, T.fontF2, fw - px(32))
         panel:drawText(s, fx + px(26), fy + math.floor((h - ZeD.TM:getFontHeight(T.fontF2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
     end
