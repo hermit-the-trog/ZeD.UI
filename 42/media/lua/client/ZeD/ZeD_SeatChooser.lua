@@ -323,14 +323,13 @@ function ZeD_SeatChooser:layout()
     local label = getText("UI_Cancel")
     local bw = ZeD.Molecules.buttonW(label)
     g.cancel = { x = w - T.px(U.BAND_EDGE) - bw, y = footY + T.px(5), w = bw, h = T.buttonH, label = label }
-    -- size and place: vanilla re-centres on the player's screen every frame
+    -- size and place: vanilla re-centers on the player's screen every frame; ZeD's stays where it is
+    -- moved to (a drag, its saved place)
     if self.width ~= w then self:setWidth(w) end
     if self.height ~= h then self:setHeight(h) end
     local pn = self.playerNum
-    local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
-    local y = getPlayerScreenTop(pn) + math.floor((getPlayerScreenHeight(pn) - h) / 2)
-    if self.x ~= x then self:setX(x) end
-    if self.y ~= y then self:setY(y) end
+    local sl, st, sw, sh = getPlayerScreenLeft(pn), getPlayerScreenTop(pn), getPlayerScreenWidth(pn), getPlayerScreenHeight(pn)
+    self:placeSelf(sl + math.floor((sw - w) / 2), st + math.floor((sh - h) / 2), sl, st, sw, sh)
     self._g = g
 end
 

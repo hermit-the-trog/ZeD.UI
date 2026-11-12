@@ -1465,12 +1465,33 @@ function ZeD_Window:pairKey()
     return nil
 end
 
+--- For a window that places itself every frame (the survival guide, the Messages window: the middle of
+--- the player's screen): puts it at x, y until something else moves it (the player's drag, Go to saved
+--- position); from then on it stays where it was put, kept wholly on the player's screen (l, t, sw, sh).
+--- Centering every frame outright would take the window back to the middle the frame after any move.
+--- Reset this window gives the window its own place again.
+function ZeD_Window:placeSelf(x, y, l, t, sw, sh)
+    local last = self._selfPlace
+    local nx, ny = self:getX(), self:getY()
+    if last and (nx ~= last.x or ny ~= last.y) then self._placeKept = true end
+    if self._placeKept then
+        x = math.max(l, math.min(nx, l + sw - self:getWidth()))
+        y = math.max(t, math.min(ny, t + sh - self:getHeight()))
+    end
+    if nx ~= x then self:setX(x) end
+    if ny ~= y then self:setY(y) end
+    if not last then last = {}; self._selfPlace = last end
+    last.x, last.y = self:getX(), self:getY()
+end
+
 -- "Reset this window": the Character or World window to its place in the default spread;
 -- any other window back to where it first opened, at the size it opened at
 function ZeD_Window:resetWindow()
     local k = self:pairKey()
     if k then ZeD_Window.resetLayout(k); return end
     if self.windowShaded then self:setWindowShaded(false) end
+    -- a window that places itself (placeSelf) takes its own place again
+    self._selfPlace, self._placeKept = nil, nil
     local home = self._zedHome
     if not home then return end
     if self.resizable then

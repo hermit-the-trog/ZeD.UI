@@ -1152,13 +1152,11 @@ function ZeD_GuideWindow:layout()
     end
     g.foot[2], g.foot[3] = right[1], right[2]
 
-    -- size and place: the middle of the player's screen
+    -- size and place: the middle of the player's screen, until it is moved (a drag, its saved place)
     if self.width ~= w then self:setWidth(w) end
     if self.height ~= h then self:setHeight(h) end
-    local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
-    local yy = getPlayerScreenTop(pn) + math.floor((getPlayerScreenHeight(pn) - h) / 2)
-    if self.x ~= x then self:setX(x) end
-    if self.y ~= yy then self:setY(yy) end
+    local sl, st, sw, sh = getPlayerScreenLeft(pn), getPlayerScreenTop(pn), getPlayerScreenWidth(pn), getPlayerScreenHeight(pn)
+    self:placeSelf(sl + math.floor((sw - w) / 2), st + math.floor((sh - h) / 2), sl, st, sw, sh)
     local f = self._findField
     if f then
         if f.x ~= g.find.x then f:setX(g.find.x) end

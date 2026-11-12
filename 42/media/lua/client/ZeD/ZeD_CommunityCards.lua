@@ -797,9 +797,8 @@ function P.classes()
         local h = math.min(px(JOIN_H), sh - px(16))
         if self.width ~= w then self:setWidth(w) end
         if self.height ~= h then self:setHeight(h) end
-        local x, y = math.floor((sw - w) / 2), math.floor((sh - h) / 2)
-        if self:getX() ~= x then self:setX(x) end
-        if self:getY() ~= y then self:setY(y) end
+        -- the middle of the screen, until it is moved (a drag, its saved place)
+        self:placeSelf(math.floor((sw - w) / 2), math.floor((sh - h) / 2), 0, 0, sw, sh)
     end
 
     function ZeD_JoinWindow:_body()

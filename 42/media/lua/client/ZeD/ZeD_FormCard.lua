@@ -118,6 +118,8 @@ function ZeD_FormCard:layout()
         if not dp then self:finish(); return false end
     end
     if dp then w = math.min(w, dw) end
+    -- (docked, its box places it every frame: it has no saved place of its own, ZeD_WindowPlaces.keyOf)
+    self.zedDocked = dp ~= nil
     local pad = px(U.PAD)
     local tb = self:titleBarHeight()
     local rows = spec.rows(self) or {}

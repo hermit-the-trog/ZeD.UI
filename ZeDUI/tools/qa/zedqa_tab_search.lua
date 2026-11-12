@@ -142,6 +142,9 @@ end)
 add(800, function()
     local el, z = ringEl("skills:find")
     check(el ~= nil, "the field is a stop in the tab's zone")
+    -- (the hand starts on the tab strip, as a player's would after LB: the landings below must
+    -- bring it into the tab on their own)
+    if Focus.claimFocus then Focus.claimFocus(W()) end
     if el then
         el.onActivate(W(), el)
     end
@@ -149,6 +152,8 @@ end)
 add(800, function()
     local KB = ZeD.Keyboard
     check(KB and KB.isVisible(), "A on the field: the pad keyboard opens")
+    local on = focusedEl()
+    check(on and on.findField, "under the keyboard: the hand on the field", on and on.id)
     shot("10_pad_keyboard")
     if KB and KB.instance then
         field("skills").input:setText("carp")

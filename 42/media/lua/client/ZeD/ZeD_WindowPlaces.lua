@@ -14,7 +14,9 @@
 -- so a place survives a UI scale change, and every restore is clamped onto
 -- the screen it lands on. The Character and World windows go back through
 -- their own restore (applyState), the one a fresh open uses, so the drawers,
--- the right-edge anchor and the controller's stops stay in step.
+-- the right-edge anchor and the controller's stops stay in step. A window that
+-- centers itself every frame (the survival guide, Messages) places through
+-- ZeD_Window:placeSelf, which keeps the place this module gives it.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -37,8 +39,9 @@ local function clean(s) return (string.gsub(tostring(s), "[^%w_%.%-]", "")) end
 --- The window's id in the file: "char" / "world" for the pair; otherwise the window's own
 --- zedPosKey, its ZeD label, or its class (with its kind where one class makes several windows,
 --- as the pause window and the prompts); a plain ZeD window with none of those goes by its title.
+--- A window docked to another (a form card on its drawer: win.zedDocked) has none: its box places it.
 function P.keyOf(win)
-    if not win then return nil end
+    if not win or win.zedDocked then return nil end
     local pk = win.pairKey and win:pairKey() or nil
     if pk then return pk end
     local k = win.zedPosKey or win._zedLabel

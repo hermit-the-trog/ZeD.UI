@@ -15,6 +15,9 @@
 --   RESET    Reset this window and Reset both windows do what they did, and leave the saved places alone
 --   STATE    the per-character layout (modData ZeD_WinState) is never read by Go to saved position
 --   NOTICE   Save position says so once in a Messages bubble (a repeat is the same line)
+--   SELF     the windows that center themselves every frame (the guide, Messages, the seat chooser, the join window)
+--            keep a move and their saved place frame after frame, clamped onto a smaller screen; Reset this window
+--            centers them again; a form card docked to its drawer has no saved place
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/window_saved_pos_sim.lua
 -- It prints FAIL lines and a last line "window_saved_pos_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -260,6 +263,70 @@ local md = { ZeD_WinState = { char = { x = 1, y = 1, w = 300, h = 300 } } }
 CW._playerObj = { getModData = function() return md end }
 P.goTo(CW)
 check("STATE: Go to saved position uses the saved place, not the modData layout", CW.x == 100 and CW.y == 40, CW.x .. "," .. CW.y)
+
+-- ---------------------------------------------------------------- SELF (windows that place themselves)
+-- QA, Nov 11: Go to saved position put the survival guide at 1281,498 at 4K and 365,150 on the Deck against its
+-- saved 200,150: the middle of the screen. The guide's layout centered it every frame and took it straight back.
+-- The windows that center themselves every frame now place through ZeD_Window:placeSelf, which keeps a place
+-- something else gave them (a drag, the saved place); each is run here frame by frame on the real placeSelf.
+SW, SH = 1280, 800
+local function selfWin(ty, w, h)
+    local win = giveMethods(newWin({ Type = ty, x = 0, y = 0, w = w, h = h, resizable = false }))
+    win.frame = function(self) self:placeSelf(math.floor((SW - self.w) / 2), math.floor((SH - self.h) / 2), 0, 0, SW, SH) end
+    return win
+end
+for _, kind in ipairs({ { "ZeD_GuideWindow", 548, 500 }, { "ZeD_MessagesWindow", 520, 420 }, { "ZeD_SeatChooser", 300, 260 },
+                        { "ZeD_JoinWindow", 640, 480 } }) do
+    local n = kind[1]
+    P.places = {}
+    local sw0 = selfWin(n, kind[2], kind[3])
+    sw0:frame()
+    local cx, cy = math.floor((SW - sw0.w) / 2), math.floor((SH - sw0.h) / 2)
+    check("SELF " .. n .. ": opens in the middle", sw0.x == cx and sw0.y == cy, sw0.x .. "," .. sw0.y)
+    sw0:setX(200); sw0:setY(150)   -- (QA's move: what a drag does)
+    sw0:frame()
+    check("SELF " .. n .. ": a move stays (the next frame does not center it)", sw0.x == 200 and sw0.y == 150, sw0.x .. "," .. sw0.y)
+    P.save(sw0)
+    sw0:setX(0); sw0:setY(0)
+    sw0:frame()
+    P.goTo(sw0)
+    for _ = 1, 3 do sw0:frame() end
+    check("SELF " .. n .. ": Go to saved position lands exactly on the saved place, frames after", sw0.x == 200 and sw0.y == 150,
+        sw0.x .. "," .. sw0.y)
+    -- a smaller screen: the place clamped onto it, and kept there
+    SW, SH = 640, 480
+    sw0:setX(500); sw0:setY(400)
+    for _ = 1, 2 do sw0:frame() end
+    check("SELF " .. n .. ": off a smaller screen, clamped onto it", sw0.x >= 0 and sw0.y >= 0 and sw0.x + sw0.w <= math.max(SW, sw0.w)
+        and sw0.y + sw0.h <= math.max(SH, sw0.h), sw0.x .. "," .. sw0.y)
+    SW, SH = 1280, 800
+    sw0._zedHome = { x = cx, y = cy, w = sw0.w, h = sw0.h }
+    sw0:resetWindow()
+    for _ = 1, 2 do sw0:frame() end
+    check("SELF " .. n .. ": Reset this window gives it the middle again", sw0.x == cx and sw0.y == cy, sw0.x .. "," .. sw0.y)
+end
+-- the files: each of those windows places itself through placeSelf, and sets no place of its own beside it
+local SELF_FILES = {
+    { "ZeD_SurvivalGuide.lua", "function ZeD_GuideWindow:layout()" },
+    { "ZeD_MessagesWindow.lua", "function ZeD_MessagesWindow:layout()" },
+    { "ZeD_SeatChooser.lua", "function ZeD_SeatChooser:layout()" },
+    { "ZeD_CommunityCards.lua", "function ZeD_JoinWindow:place()" },
+}
+for _, sf in ipairs(SELF_FILES) do
+    local src = string.gsub(readAll(CLIENT .. sf[1]), "\r", "")
+    local a = src:find(sf[2], 1, true)
+    -- (the function's body: up to its own closing "end" at its indent)
+    local ind = a and src:sub(1, a - 1):match("([ \t]*)$") or ""
+    local _, e = src:find("\n" .. ind .. "end\n", a or 1, true)
+    local body = (a and e) and src:sub(a, e) or ""
+    check("SELF " .. sf[1] .. ": its placing goes through placeSelf", body:find("self:placeSelf(", 1, true) ~= nil)
+    check("SELF " .. sf[1] .. ": no setX / setY of its own there", body ~= "" and not body:find("self:setX(", 1, true)
+        and not body:find("self:setY(", 1, true), #body)
+end
+-- a form card docked to its drawer has no saved place (its box places it every frame); loose, it has one
+check("SELF: a docked form card has no saved place", P.keyOf(giveMethods(newWin({ Type = "ZeD_FormCard", zedDocked = true }))) == nil)
+check("SELF: a loose form card has one", P.keyOf(giveMethods(newWin({ Type = "ZeD_FormCard" }))) == "ZeD_FormCard")
+check("SELF: ZeD_FormCard.lua marks a docked card", readAll(CLIENT .. "ZeD_FormCard.lua"):find("self.zedDocked = dp ~= nil", 1, true) ~= nil)
 
 print("window_saved_pos_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)
