@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "控制器",
     "UI_ZeD_Settings_Glyphs": "控制器按鍵圖示",
     "UI_ZeD_Settings_GlyphsTip": "顯示哪種控制器的按鍵圖片。自動跟隨遊戲的控制器按鍵樣式。鍵盤/滑鼠和關閉會把按鍵顯示為帶字母的方框。",
+    "UI_ZeD_Settings_HealthBlink": "低血量像素閃爍",
+    "UI_ZeD_Settings_HealthBlinkTip": "生命值在 20%% 以下時，名字旁的生命值像素每秒閃爍一次。關閉：保持紅色常亮。",
     "UI_ZeD_Settings_HiddenFacts": "隱藏資訊",
     "UI_ZeD_Settings_HiddenFactsTip": "生存指南中的電視節目表和感染機率。先找到：角色讀過 TV Monthly 或急救書後，各自才會打開。總是：兩者從一開始就打開，配方卡片會寫出教授它的雜誌。",
     "UI_ZeD_Settings_HighContrast": "高對比",

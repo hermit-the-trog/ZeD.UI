@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Controle",
     "UI_ZeD_Settings_Glyphs": "Exibição de ícones do controle",
     "UI_ZeD_Settings_GlyphsTip": "De qual controle mostrar as imagens dos botões. Auto segue o estilo de botões do jogo. Teclado/mouse e Desligado mostram os botões como caixas com letras.",
+    "UI_ZeD_Settings_HealthBlink": "Piscar o pixel de pouca saúde",
+    "UI_ZeD_Settings_HealthBlinkTip": "Com 20%% de saúde ou menos, o pixel de saúde ao lado do seu nome pisca uma vez por segundo. Desligado: fica vermelho fixo.",
     "UI_ZeD_Settings_HiddenFacts": "Fatos ocultos",
     "UI_ZeD_Settings_HiddenFactsTip": "A programação de TV e as chances de infecção do guia de sobrevivência. Encontrar primeiro: cada uma abre quando o personagem tiver lido TV Monthly ou um livro de primeiros socorros. Sempre: as duas ficam abertas desde o início, e o cartão de uma receita nomeia a revista que a ensina.",
     "UI_ZeD_Settings_HighContrast": "Alto contraste",

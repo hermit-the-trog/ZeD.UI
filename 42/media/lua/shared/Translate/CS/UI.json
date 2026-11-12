@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Gamepad",
     "UI_ZeD_Settings_Glyphs": "Zobrazení symbolů gamepadu",
     "UI_ZeD_Settings_GlyphsTip": "Obrázky tlačítek kterého ovladače se zobrazí. Auto sleduje styl tlačítek ovladače ve hře. Klávesnice/myš a Vyp ukazují tlačítka jako políčka s písmeny.",
+    "UI_ZeD_Settings_HealthBlink": "Blikání pixelu nízkého zdraví",
+    "UI_ZeD_Settings_HealthBlinkTip": "Při zdraví 20 %% nebo méně pixel zdraví vedle tvého jména jednou za sekundu blikne. Vypnuto: zůstane svítit červeně.",
     "UI_ZeD_Settings_HiddenFacts": "Skryté údaje",
     "UI_ZeD_Settings_HiddenFactsTip": "Televizní program a riziko nákazy v příručce přežití. Nejdřív najít: každá stránka se otevře, jakmile postava přečte TV Monthly nebo knihu o první pomoci. Vždy: obě jsou otevřené od začátku a karta receptu uvádí časopis, který ho učí.",
     "UI_ZeD_Settings_HighContrast": "Vysoký kontrast",

@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Gamepad",
     "UI_ZeD_Settings_Glyphs": "Gamepad glyph display",
     "UI_ZeD_Settings_GlyphsTip": "Which controller's button pictures to show. Auto follows the game's controller button style. Keyboard/mouse and Off show the buttons as lettered boxes.",
+    "UI_ZeD_Settings_HealthBlink": "Blink the low-health pixel",
+    "UI_ZeD_Settings_HealthBlinkTip": "At 20%% health or less the health pixel by your name blinks once a second. Off: it stays solid red.",
     "UI_ZeD_Settings_HiddenFacts": "Hidden facts",
     "UI_ZeD_Settings_HiddenFactsTip": "The survival guide's TV schedule and infection odds. Find first: each opens once the character has read TV Monthly or a First Aid book. Always: both are open from the start, and a recipe's card names the magazine that teaches it.",
     "UI_ZeD_Settings_HighContrast": "High contrast",

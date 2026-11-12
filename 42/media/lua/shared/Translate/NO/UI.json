@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Spillkontroller",
     "UI_ZeD_Settings_Glyphs": "Visning av kontrollersymboler",
     "UI_ZeD_Settings_GlyphsTip": "Hvilken kontrollers knappebilder som vises. Auto følger spillets kontrollerknappstil. Tastatur/mus og Av viser knappene som bokstavbokser.",
+    "UI_ZeD_Settings_HealthBlink": "La lavhelsepikselen blinke",
+    "UI_ZeD_Settings_HealthBlinkTip": "Ved 20 %% helse eller mindre blinker helsepikselen ved navnet ditt én gang i sekundet. Av: den holder seg rød uten å blinke.",
     "UI_ZeD_Settings_HiddenFacts": "Skjulte fakta",
     "UI_ZeD_Settings_HiddenFactsTip": "Overlevelsesguidens TV-program og smitterisiko. Finn først: hver åpner seg når figuren har lest TV Monthly eller en førstehjelpsbok. Alltid: begge er åpne fra starten, og kortet til en oppskrift nevner bladet som lærer den bort.",
     "UI_ZeD_Settings_HighContrast": "Høy kontrast",

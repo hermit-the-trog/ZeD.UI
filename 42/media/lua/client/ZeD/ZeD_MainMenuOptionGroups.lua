@@ -165,7 +165,7 @@ G.ZED_GROUPS = {
     -- beside it; Hidden actions closes Windows as a pop-up menu. No row for theme squares: the
     -- windows have none, and each window box's menu, ZeD_WindowMenu.lua, holds Theme, Accent
     -- and Text size.)
-    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "statusColors", "radio" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
+    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "statusColors", "radio" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "healthBlink", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
     -- (One row per family, each offering ZeD's full vision or a plainer one, with one phrase for
     -- the two forms: Immersive or simple, for the rows drawn as the thing itself or as a plain
     -- card, the Identity card (once in Look) among them. The Action bar (in HUD) and the Mods

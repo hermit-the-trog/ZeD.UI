@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Gamepad",
     "UI_ZeD_Settings_Glyphs": "Tampilan glyph gamepad",
     "UI_ZeD_Settings_GlyphsTip": "Gambar tombol kontroler mana yang ditampilkan. Otomatis mengikuti gaya tombol kontroler game. Keyboard/mouse dan Mati menampilkan tombol sebagai kotak berhuruf.",
+    "UI_ZeD_Settings_HealthBlink": "Kedipkan piksel kesehatan rendah",
+    "UI_ZeD_Settings_HealthBlinkTip": "Pada kesehatan 20%% atau kurang, piksel kesehatan di samping namamu berkedip sekali per detik. Mati: tetap merah menyala.",
     "UI_ZeD_Settings_HiddenFacts": "Fakta tersembunyi",
     "UI_ZeD_Settings_HiddenFactsTip": "Jadwal TV dan peluang infeksi di panduan bertahan hidup. Temukan dulu: masing-masing terbuka setelah karakter membaca TV Monthly atau buku pertolongan pertama. Selalu: keduanya terbuka sejak awal, dan kartu resep menyebut majalah yang mengajarkannya.",
     "UI_ZeD_Settings_HighContrast": "Kontras tinggi",
