@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "Obiect: %1",
     "UI_ZeD_Inv_OrderLine": "Ordine: %1, ca în listă",
     "UI_ZeD_Inv_OrderWt": "Greutate",
+    "UI_ZeD_Inv_PickedMany": "Alese: %1 din %2 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "Ales: %1 din %2 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Tutorial (al jocului, fără moduri)",
     "UI_ZeD_MMHelp_PadRow": "O parte a controlerului și ce face în joc. Dă clic ca să adaugi sau să scoți acțiuni.",
     "UI_ZeD_MMHelp_TermsAccept": "Acceptă: de acord cu Termenii serviciului și Politica de confidențialitate, și continuă.",

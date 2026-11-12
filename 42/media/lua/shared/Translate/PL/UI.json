@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "Przedm.: %1",
     "UI_ZeD_Inv_OrderLine": "Kolejność: %1, jak na liście",
     "UI_ZeD_Inv_OrderWt": "Waga",
+    "UI_ZeD_Inv_PickedMany": "Wybrano: %1 z %2 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "Wybrano: %1 z %2 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Samouczek (gry, bez modów)",
     "UI_ZeD_MMHelp_PadRow": "Część kontrolera i to, co robi w grze. Kliknij, aby dodać lub zdjąć akcje.",
     "UI_ZeD_MMHelp_TermsAccept": "Akceptuj: zgódź się na Warunki korzystania z usługi i Politykę prywatności, i przejdź dalej.",

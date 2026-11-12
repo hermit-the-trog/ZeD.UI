@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 objet",
     "UI_ZeD_Inv_OrderLine": "Ordre : %1, comme la liste",
     "UI_ZeD_Inv_OrderWt": "Poids",
+    "UI_ZeD_Inv_PickedMany": "%1 sur %2 choisis | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%1 sur %2 choisi | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Tutoriel (celui du jeu, sans mods)",
     "UI_ZeD_MMHelp_PadRow": "Une partie de la manette et ce qu'elle fait en jeu. Cliquez pour ajouter ou retirer des actions.",
     "UI_ZeD_MMHelp_TermsAccept": "Accepter : accepter les Conditions d'utilisation et la Politique de confidentialité, et continuer.",

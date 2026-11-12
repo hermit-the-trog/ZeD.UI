@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 objecte",
     "UI_ZeD_Inv_OrderLine": "Ordre: %1, com la llista",
     "UI_ZeD_Inv_OrderWt": "Pes",
+    "UI_ZeD_Inv_PickedMany": "%1 de %2 triats | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%1 de %2 triat | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Tutorial (el del joc, sense mods)",
     "UI_ZeD_MMHelp_PadRow": "Una part del comandament i el que fa al joc. Fes-hi clic per afegir o treure accions.",
     "UI_ZeD_MMHelp_TermsAccept": "Accepta: accepta les Condicions del servei i la Política de privadesa, i continua.",

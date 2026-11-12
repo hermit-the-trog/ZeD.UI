@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "Předměty: %1",
     "UI_ZeD_Inv_OrderLine": "Řazení: %1, jako v seznamu",
     "UI_ZeD_Inv_OrderWt": "Hmotnost",
+    "UI_ZeD_Inv_PickedMany": "Vybráno: %1 z %2 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "Vybráno: %1 z %2 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Výuka (vlastní hry, bez módů)",
     "UI_ZeD_MMHelp_PadRow": "Část ovladače a co ve hře dělá. Kliknutím přidáš nebo odebereš akce.",
     "UI_ZeD_MMHelp_TermsAccept": "Přijmout: souhlasit s Podmínkami služby a Zásadami ochrany soukromí a pokračovat.",

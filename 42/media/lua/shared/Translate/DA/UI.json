@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 genstand",
     "UI_ZeD_Inv_OrderLine": "Rækkefølge: %1, som listen",
     "UI_ZeD_Inv_OrderWt": "Vægt",
+    "UI_ZeD_Inv_PickedMany": "%1 af %2 valgt | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%1 af %2 valgt | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Tutorial (spillets egen, uden mods)",
     "UI_ZeD_MMHelp_PadRow": "En del af controlleren og hvad den gør i spillet. Klik for at tilføje eller fjerne handlinger.",
     "UI_ZeD_MMHelp_TermsAccept": "Acceptér: godkend servicevilkårene og privatlivspolitikken, og fortsæt.",

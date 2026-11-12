@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 item",
     "UI_ZeD_Inv_OrderLine": "Order: %1, as the list",
     "UI_ZeD_Inv_OrderWt": "Weight",
+    "UI_ZeD_Inv_PickedMany": "%1 of %2 picked | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%1 of %2 picked | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Tutorial (the game's own, without mods)",
     "UI_ZeD_MMHelp_PadRow": "A part of the pad and what it does in game. Click it to add or take off actions.",
     "UI_ZeD_MMHelp_TermsAccept": "Accept: agree to the Terms of Service and the Privacy Policy, and go on.",

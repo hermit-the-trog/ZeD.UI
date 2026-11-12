@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 tárgy",
     "UI_ZeD_Inv_OrderLine": "Sorrend: %1, mint a listán",
     "UI_ZeD_Inv_OrderWt": "Súly",
+    "UI_ZeD_Inv_PickedMany": "%1 / %2 kiválasztva | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%1 / %2 kiválasztva | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Oktatás (a játék saját, modok nélkül)",
     "UI_ZeD_MMHelp_PadRow": "A kontroller egy része és hogy mit csinál a játékban. Kattints műveletek hozzáadásához vagy levételéhez.",
     "UI_ZeD_MMHelp_TermsAccept": "Elfogadás: a Szolgáltatási feltételek és az Adatvédelmi szabályzat elfogadása, majd tovább.",

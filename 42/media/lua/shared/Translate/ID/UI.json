@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 item",
     "UI_ZeD_Inv_OrderLine": "Urutan: %1, seperti daftar",
     "UI_ZeD_Inv_OrderWt": "Berat",
+    "UI_ZeD_Inv_PickedMany": "%1 dari %2 dipilih | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "%1 dari %2 dipilih | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "Tutorial (milik game, tanpa mod)",
     "UI_ZeD_MMHelp_PadRow": "Bagian controller dan fungsinya di game. Klik untuk menambah atau melepas aksi.",
     "UI_ZeD_MMHelp_TermsAccept": "Terima: setujui Ketentuan Layanan dan Kebijakan Privasi, lalu lanjut.",

@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "%1 ไอเท็ม",
     "UI_ZeD_Inv_OrderLine": "เรียง: %1 เหมือนรายการ",
     "UI_ZeD_Inv_OrderWt": "น้ำหนัก",
+    "UI_ZeD_Inv_PickedMany": "เลือก %1 จาก %2 | %3 kg",
+    "UI_ZeD_Inv_PickedOne": "เลือก %1 จาก %2 | %3 kg",
     "UI_ZeD_MainMenu_TutorialVanilla": "บทฝึกสอน (ของเกมเอง ไม่มีม็อด)",
     "UI_ZeD_MMHelp_PadRow": "ส่วนหนึ่งของคอนโทรลเลอร์และหน้าที่ในเกม คลิกเพื่อเพิ่มหรือเอาการกระทำออก",
     "UI_ZeD_MMHelp_TermsAccept": "ยอมรับ: ยอมรับข้อกำหนดการให้บริการและนโยบายความเป็นส่วนตัว แล้วไปต่อ",

@@ -4725,9 +4725,13 @@ function ZeD_WorldWindow.toggle(playerNum)
             self._barH = 0
             self._activeCol = math.min(self._activeCol or #colSel, #colSel)
             win._titleBase = ZeD.tr(#colSel == 1 and "UI_ZeD_World_ContainersOne" or "UI_ZeD_World_ContainersMany", #colSel)
-            win._titleCount, win._statusLine = nil, nil
+            win._titleCount = nil
             self._ccEntry = nil
             r.renderMultiColumnContent(self)
+            -- (after the columns drew: they now hold this frame's picks) the help line's own words,
+            -- every shown column's things, and what is picked across them (InventoryPicked.lua)
+            win._statusLine = ZeD.InventoryPicked.line(self, self._colStates, nil,
+                "UI_ZeD_Inv_ItemsOne", "UI_ZeD_Inv_ItemsMany", win._playerObj)
         else
             -- Single container: determine which to show
             local viewIdx
@@ -4759,13 +4763,16 @@ function ZeD_WorldWindow.toggle(playerNum)
                 }
 
                 -- the title is the container's name (the open tab follows it, below); its
-                -- count is a title stat, and the help line's own status says count and weight
+                -- count is a title stat
                 win._titleBase = cnt.name
                 win._titleCount = self._containerInfo.count
-                win._statusLine = cnt.isFloor and self._containerInfo.count
-                    or (self._containerInfo.count .. "  |  " .. (ZeD.ContainerGates.status(cInv, win._playerObj)
-                        or ZeD.tr("UI_ZeD_World_WeightOf", string.format("%.1f", cWeight), string.format("%.0f", cMax))))
                 self._inventory = cInv
+                -- the help line's own words: "48 items", or "3 of 48 picked | 4.2 kg" while rows are
+                -- picked (InventoryPicked.lua); no weight at rest, the heading shows it. The one column
+                -- left of several keeps its picks in its column state, so that counts too.
+                win._statusLine = ZeD.InventoryPicked.line(self,
+                    (#mcSel > 0 and not win._mainVisible) and self._colStates or nil, cItems,
+                    "UI_ZeD_Inv_ItemsOne", "UI_ZeD_Inv_ItemsMany", win._playerObj)
             end
             self._ccEntry = cnt
             r.renderItemList(self)

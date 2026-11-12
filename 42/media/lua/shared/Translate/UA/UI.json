@@ -1252,6 +1252,8 @@
     "UI_ZeD_Inv_ItemsOne": "Предм.: %1",
     "UI_ZeD_Inv_OrderLine": "Порядок: %1, як у списку",
     "UI_ZeD_Inv_OrderWt": "Вага",
+    "UI_ZeD_Inv_PickedMany": "Вибрано: %1 з %2 | %3 кг",
+    "UI_ZeD_Inv_PickedOne": "Вибрано: %1 з %2 | %3 кг",
     "UI_ZeD_MainMenu_TutorialVanilla": "Навчання (вбудоване в гру, без модів)",
     "UI_ZeD_MMHelp_PadRow": "Частина контролера і що вона робить у грі. Натисни, щоб додати або зняти дії.",
     "UI_ZeD_MMHelp_TermsAccept": "Прийняти: погодитися з Умовами надання послуг і Політикою конфіденційності та продовжити.",
