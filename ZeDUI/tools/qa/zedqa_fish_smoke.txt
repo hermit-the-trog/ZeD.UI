@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/zedqa_fish_smoke.txt  (Nov 11 2026, QA): the fishing smoke test as a player plays it (zedqa_fish_smoke.lua),
+# with the real mouse helper (release_check_mouse.ps1) running beside the game for the cast click and the reel button.
+#   ZeD on:  zedqa_run.ps1 -Mode fullscreen4k -Manifest zedqa_fish_smoke.txt
+#   ZeD off: zedqa_mods_run.ps1 -ModList gallery_b11_van_mods.txt -NoZeD -Mode fullscreen4k -Manifest zedqa_fish_smoke.txt
+zedqa_fish_smoke.lua | fsm | timeout=1500
