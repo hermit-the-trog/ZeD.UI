@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/console_probe.txt: the console probe (punch list 136, Phase 0), the -debug half.
+# zedqa_run.ps1 always launches the game with -debug (the QA bridge only wakes in debug mode), so this manifest is the
+# debug run. The normal-game run and the save-reload pass are by hand, with the probe dropped into the mod's client
+# folder: ZeDUI/qa/CHECK_pl136_phase0.md. Take the drop-in out before running this manifest (both would start the probe).
+# The probe raises one Lua error on purpose and may make the game log Java exceptions from its pcall-ed tries: every
+# one of them carries the bridge's chunk name in its stack, hence expect=. Its answers are the "ZEDQA con0" lines, not
+# the runner's verdict.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_probe.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_console_probe.lua | con0 | timeout=180 | expect=zedqa[.]lua
