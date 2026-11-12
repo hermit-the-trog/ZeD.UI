@@ -176,9 +176,10 @@ end
 local function clamp(v, lo, hi) if v < lo then return lo end if v > hi then return hi end return v end
 
 -- a window outside the pair: the steps "Reset this window" takes, to the kept place, clamped onto this screen
+-- (the screen the window lives on, ZeD.screenOf: sl, st its left and top)
 local function goPlain(win, rec)
     local T = ZeD.T
-    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local sw, sh, sl, st = ZeD.screenOf(win)
     if win.windowShaded then win:setWindowShaded(false) end
     local w, h = win:getWidth(), win:getHeight()
     if win.resizable and rec.w and rec.h then
@@ -187,8 +188,8 @@ local function goPlain(win, rec)
         win:setWidth(w)
         win:setHeight(h)
     end
-    win:setX(clamp(T.px(rec.x), 0, math.max(0, sw - w)))
-    win:setY(clamp(T.px(rec.y), 0, math.max(0, sh - h)))
+    win:setX(clamp(T.px(rec.x), sl, math.max(sl, sl + sw - w)))
+    win:setY(clamp(T.px(rec.y), st, math.max(st, st + sh - h)))
 end
 
 -- the Character or World window: as "Reset this window" starts (a rolled side down, a folded half forgotten, the
@@ -201,7 +202,7 @@ local function goPair(win, k, rec, CW)
     win.minimumWidth = T.minWinW or 0   -- (an open drawer's minimum would hold the window wide through setWidth)
     -- the half-screen cap measured on this screen (the restore caps the width by it; one kept from a bigger
     -- screen let the window back at that screen's width)
-    win._maxWinW = math.floor(getCore():getScreenWidth() * 0.5)
+    win._maxWinW = math.floor(ZeD.screenOf(win) * 0.5)
     win._drawerCapPush, win._drawerCapLost, win._preDrawerW = 0, 0, nil
     win._drawerOpen, win._drawerEffW, win._prevEffW, win._drawerMode = false, 0, 0, nil
     local cs = {}

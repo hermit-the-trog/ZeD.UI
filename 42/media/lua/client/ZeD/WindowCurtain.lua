@@ -354,7 +354,9 @@ local function restore(win)
     end
     -- Width first, then x: setWidth / setX keep a top-level panel on screen
     -- against its current width, so the wider window must be in place first.
-    x = math.max(0, math.min(x, getCore():getScreenWidth() - fullW))
+    -- (on the screen the window lives on, ZeD.screenOf: scrL its left edge)
+    local scrW, _, scrL = ZeD.screenOf(win)
+    x = math.max(scrL, math.min(x, scrL + scrW - fullW))
     win:setWidth(fullW)
     win:setX(x)
     -- A window anchored on its right edge (the Character window: the drawer grows
@@ -396,10 +398,10 @@ function C.sync(win)
     if not spec.canRoll() then C.finishUnroll(win); return end
     -- A rolled window moves with its rod: keep both on screen, so the unroll
     -- finds room for the side at the window's own x (never shoved aside)
-    local scrW = getCore():getScreenWidth()
+    local scrW, _, scrL = ZeD.screenOf(win)
     local wx, ww = win:getX(), win:getWidth()
-    local minX, maxX = 0, scrW - ww
-    if spec.side == "right" then maxX = scrW - ww - win._rollW else minX = win._rollW end
+    local minX, maxX = scrL, scrL + scrW - ww
+    if spec.side == "right" then maxX = scrL + scrW - ww - win._rollW else minX = scrL + win._rollW end
     if maxX >= minX then
         local cx = math.max(minX, math.min(wx, maxX))
         if cx ~= wx then
