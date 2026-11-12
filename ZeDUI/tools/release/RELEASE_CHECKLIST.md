@@ -24,10 +24,10 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
    Check the summary: about 3,000 files and 37.3 MB (0.2.0-t6: 2,998 files, Oct 26 2026; the fonts carry extended Latin, Greek and Cyrillic since Oct 20 2026), the version, the preview passing, and the Workshop item id once there is one.
    
    Never delete `Zomboid/Workshop/ZeD-UI/workshop.txt`. After the first upload it holds the item's id. Without it, the next Upload creates a second item.
-6. **The preview picture** is the 1993 thumbnail (director, Nov 3 2026: "The year is 1993, and so is the user
+6. **The preview picture** is the dark 1993 thumbnail (director, Nov 11 2026: "The year is 1993. So is your user
    interface. All of it.", BETA on caution tape), in place as `ZeDUI/tools/release/preview.png` (512 x 512). Stage
-   without `-Preview` so that is the one that goes up. Its sources are in `ZeDUI/workshop/thumbnail/` (src_1993_*.py,
-   year_1993_*.png); when the beta ends, drop the tape (the last block of card() in src_1993_year2.py) and re-export.
+   without `-Preview` so that is the one that goes up. Its sources are in `ZeDUI/workshop/thumbnail/` (src_1993_dark.py, eagle_build.py,
+   year_1993_dark_*.png); when the beta ends, drop the tape (tape_draw() in src_1993_dark.py) and re-export.
    Don't run `make_preview.py` (the old desk picture) or `pixel_znix.py` (the old ZNIX USER cover): either would
    overwrite it. The animated version goes on after the Upload (step 16b).
 
@@ -45,7 +45,7 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 16. Remove `Zomboid/Workshop/ZeD-UI/Contents` after the upload and the check in step 15 (`workshop.txt` and `preview.png` stay). Then tag the staging commit (`git tag -a v<version> <commit> -m "Tester build <version>, uploaded <date>"`, `git push origin v<version>`) and refresh the backup: a new dated folder under `D:\ZeD-UI backup\` with `zed_backups`, the Workshop item folder and the QA save (standing rule, director, Oct 28 2026). Push main at the end of every session. The dev copy in `Zomboid/mods` wins over the staged copy (same mod id), so a normal game run tests the dev mod: test the stage from its own `-cachedir` (ZomboidStaged). Stage again right before the next upload.
 
 16b. **The animated thumbnail** (director, Nov 3 2026; punch list 81). The Upload put the still back as the
-    thumbnail; this sets the animated one (`ZeDUI/workshop/thumbnail/year_1993_animated.gif`, frame 1 is the still).
+    thumbnail; this sets the animated one (`ZeDUI/workshop/thumbnail/year_1993_dark_animated.gif`, frame 1 is the still).
     The director runs it, or build on his word, last thing, with nobody in the game: SteamCMD's login signs the
     Steam client out on this PC.
     - Once: install SteamCMD to `C:\steamcmd` and log in by hand (the script's header has the steps).

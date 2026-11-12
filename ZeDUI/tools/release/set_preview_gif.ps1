@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     The game's uploader only takes preview.png, and every Upload puts that still back as the item's thumbnail. This
-    step sets the animated GIF (ZeDUI/workshop/thumbnail/year_1993_animated.gif: frame 1 is the still) as the
+    step sets the animated GIF (ZeDUI/workshop/thumbnail/year_1993_dark_animated.gif: frame 1 is the still) as the
     item's preview through SteamCMD, Valve's command-line uploader. Run it after every Upload, as the release's last
     step (RELEASE_CHECKLIST.md, step 16b).
 
@@ -33,7 +33,7 @@
     The Workshop item to update. Default: the id= line of Zomboid/Workshop/ZeD-UI/workshop.txt.
 
 .PARAMETER Gif
-    The animated preview. Default: ZeDUI/workshop/thumbnail/year_1993_animated.gif. Steam takes up to 1 MB.
+    The animated preview. Default: ZeDUI/workshop/thumbnail/year_1993_dark_animated.gif. Steam takes up to 1 MB.
 
 .PARAMETER SteamCmd
     Path to steamcmd.exe. Default: C:\steamcmd\steamcmd.exe.
@@ -74,7 +74,7 @@ if (-not $ItemId) {
 if ($ItemId -notmatch '^\d+$') { Fail "the item id must be a number: '$ItemId'" }
 
 # the picture: a GIF, square, at most 1 MB
-$Gif = if ($Gif) { [IO.Path]::GetFullPath((Join-Path $ModRoot $Gif)) } else { Join-Path $ModRoot 'ZeDUI/workshop/thumbnail/year_1993_animated.gif' }
+$Gif = if ($Gif) { [IO.Path]::GetFullPath((Join-Path $ModRoot $Gif)) } else { Join-Path $ModRoot 'ZeDUI/workshop/thumbnail/year_1993_dark_animated.gif' }
 if (-not (Test-Path -LiteralPath $Gif)) { Fail "no preview at $Gif" }
 $bytes = [IO.File]::ReadAllBytes($Gif)
 if ($bytes.Length -gt 1MB) { Fail ("{0:N0} KB is over Steam's 1 MB for a preview" -f ($bytes.Length / 1KB)) }
