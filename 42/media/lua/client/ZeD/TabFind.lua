@@ -580,20 +580,26 @@ function F.accepted(win, tab)
 end
 
 --- A on the field: ZeD's pad keyboard on it (the text narrows the tab as each key goes in);
---- RT accepts, B puts the text back. With no controller, the field takes the caret.
+--- RT accepts, B puts the text back. Only the controller's A comes here (a click goes to the
+--- field itself), so the keyboard opens whether or not a pad is bound to the player (a press the
+--- QA bridge drives has none). Without the game's keyboard call, the field takes the caret.
 function F.edit(win, tab)
     local f = win._findFields and win._findFields[tab]
     if not (f and f.input) then return end
     local p = win._playerObj
     local pn = (p and p.getPlayerNum and p:getPlayerNum()) or win.playerNum or 0
     local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
-    if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
+    if OnScreenKeyboard and OnScreenKeyboard.Show then
         local ok, osk = pcall(OnScreenKeyboard.Show, pn, f.input, jd)
         if ok and osk then
-            osk.prevFocus = jd.focus
             osk.onAccept = function() F.accepted(win, tab) end
-            jd.focus = osk
-            if updateJoypadFocus then updateJoypadFocus(jd) end
+            if jd and jd.focus ~= osk then
+                osk.prevFocus = jd.focus
+                jd.focus = osk
+                if updateJoypadFocus then updateJoypadFocus(jd) end
+            end
+            -- the hand stays on the field under the keyboard (B puts it back there)
+            F.focusId(win, tab .. ":find", true)
             return
         end
     end
@@ -683,8 +689,23 @@ function F.land(win, tab, elements, isHit)
     if el.onFocus then el.onFocus(win, el) end
 end
 
--- the controller's focus onto the stop with this id in the tab's zone (as a D-pad move)
-function F.focusId(w, id)
+--- After a landing (F.land) is taken: the window's focus moves into the tab's zone too. Setting
+--- the tab's stop alone leaves the hand wherever the window's focus was (the tab strip's Loot key,
+--- say), since the keyboard held the controller meanwhile.
+function F.handIntoTab(w)
+    for zi, z in ipairs(w and w._focusRing or {}) do
+        if z.zone == "charTabContent" then
+            w._focusIdx = zi
+            w._navLast = nil
+            w._focusPendingEntry = nil
+            return true
+        end
+    end
+    return false
+end
+
+-- the controller's focus onto the stop with this id in the tab's zone (as a D-pad move; quiet = no sound)
+function F.focusId(w, id, quiet)
     for zi, z in ipairs(w._focusRing or {}) do
         if z.zone == "charTabContent" then
             for j, e in ipairs(z.elements or {}) do
@@ -692,7 +713,7 @@ function F.focusId(w, id)
                     w._focusIdx = zi
                     z.focusedElementIdx = j
                     if e.onFocus then e.onFocus(w, e) end
-                    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+                    if not quiet then pcall(function() getSoundManager():playUISound("UISelectListItem") end) end
                     return true
                 end
             end

@@ -15,6 +15,8 @@
 --   * pad stops: the eight picks walk left and right, an entry's tags sit between its date and the delete cross
 --     (right walks tags then the cross), X clears the search on every stop and shows only while there is one,
 --     the help line's words name the tag
+--   * QA's walk at the Deck's short view: entries under later months lie past the pad's reach (no tag stops, a
+--     click outside the log) until a search brings them up; then Right walks their tags to the delete cross
 --   * the pick row at the Deck's width, Normal and Large text, every language: at most two lines
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/journal_tags_sim.lua
 -- It prints FAIL lines and a last line "journal_tags_sim: N checks, M failed", and exits 1 if any failed.
@@ -548,6 +550,66 @@ local k1 = JT.padKey(win)
 win._killsExpanded = true
 draw(win)
 check("the stops' key changes when the kills fold out", JT.padKey(win) ~= k1)
+
+-- ===========================================================================
+section("QA's walk (Nov 11): tagged entries under later months, at the Deck's short view")
+-- In game the run's entries were dated this month while the save's log held later months, which
+-- sort first: on the Deck the run's entries lay past the pad's reach (no entry tag stops) and its
+-- Base click fell outside the log. The page was right; the script now searches for its entries.
+do
+    local L = {}
+    for i = 1, 12 do
+        L[#L + 1] = { month = 8, day = i, year = 1993, hour = 9, minute = 0, survivalDay = 80 + i, text = "september note " .. i }
+    end
+    L[#L + 1] = { month = 7, day = 2, year = 1993, hour = 9, minute = 30, survivalDay = 60, text = "[qa-tags] cleared the corner house", tags = { "danger", "loot" } }
+    L[#L + 1] = { month = 7, day = 3, year = 1993, hour = 9, minute = 30, survivalDay = 61, text = "[qa-tags] gas station", tags = { "danger", "loot", "food", "travel" } }
+    table.insert(L, 1, { month = 7, day = 29, year = 1993, hour = 9, minute = 30, survivalDay = 83, text = "[qa-tags] a generator in the barn", tags = { "loot", "base" } })
+    P.md = { ZeD_Journal = { entries = L } }
+    local qw = newWin()
+    local SH = 300   -- (the Deck's short drawer: the log's view about a hundred high)
+    local function drawShort() squares = {}; qw._journalCache = nil; JT.render(newPanel(), qw, 0, 0, W, SH) end
+    drawShort()
+    local function tagStops()
+        local n, row = 0, {}
+        for _, s in ipairs(JT.tagFocusables(qw)) do
+            if s.journalKind == "tag" then n = n + 1; if s.entryIdx == 1 then row[#row + 1] = s end end
+        end
+        return n, row
+    end
+    local n0 = tagStops()
+    check("later months first: the run's tag zones are drawn", #qw._journalTagZones == 8, #qw._journalTagZones)
+    check("later months first: none in the pad's reach (what QA saw: entry tags nil)", n0 == 0, n0)
+    local z0 = nil
+    for _, z in ipairs(qw._journalTagZones) do if z.k == "base" then z0 = z end end
+    check("later months first: a click on the Base tag falls outside the log", z0 and not JT.onBodyClick(qw, z0.x + 1, z0.y + 1))
+    -- the script's fix: a search for the run's mark
+    JT.setSearch(qw, "[qa-tags]")
+    drawShort()
+    local n1, row = tagStops()
+    check("searched: the run's entries' tags are stops", n1 >= 2 and #row == 2, n1 .. " / " .. #row)
+    local all = {}
+    for _, s in ipairs(JT.tagFocusables(qw)) do
+        all[#all + 1] = s
+        if row[1] and s.id == row[1].id then row[1] = s end   -- (the same stops the walk picks from)
+        if row[2] and s.id == row[2].id then row[2] = s end
+    end
+    for _, z in ipairs(qw._journalDeleteZones) do
+        if JT.inPadReach(qw, z) then all[#all + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = "journal:del:" .. z.entryIdx } end
+    end
+    local function go(from, dir)
+        local others = {}
+        for _, s in ipairs(all) do if s ~= from then others[#others + 1] = s end end
+        return (N.pick(from, others, dir))
+    end
+    local a = row[1] and go(row[1], "right")
+    local b = a and go(a, "right")
+    check("searched: Right walks Loot, Base, then the delete cross", a == row[2] and b and b.id == "journal:del:1", b and b.id)
+    check("searched: Left from the cross is Base", b and go(b, "left") == row[2])
+    local zb = nil
+    for _, z in ipairs(qw._journalTagZones) do if z.k == "base" and z.entryIdx == 1 then zb = z end end
+    check("searched: the Base click takes, its word in the search", zb and JT.onBodyClick(qw, zb.x + 1, zb.y + 1) and qw._journalSearchText == "Base",
+        qw._journalSearchText)
+end
 
 -- ===========================================================================
 section("the pick row at the Deck's size (480 wide drawer, Normal and Large text)")

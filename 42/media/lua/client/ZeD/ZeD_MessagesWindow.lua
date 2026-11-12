@@ -362,14 +362,12 @@ function ZeD_MessagesWindow:layout()
     end
     for _, b in ipairs(right) do g.foot[#g.foot + 1] = b end
 
-    -- size and place: the middle of the player's screen
+    -- size and place: the middle of the player's screen, until it is moved (a drag, its saved place)
     if self.width ~= w then self:setWidth(w) end
     if self.height ~= h then self:setHeight(h) end
     local pn = self.playerNum
-    local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
-    local yy = getPlayerScreenTop(pn) + math.floor((getPlayerScreenHeight(pn) - h) / 2)
-    if self.x ~= x then self:setX(x) end
-    if self.y ~= yy then self:setY(yy) end
+    local sl, st, sw, sh = getPlayerScreenLeft(pn), getPlayerScreenTop(pn), getPlayerScreenWidth(pn), getPlayerScreenHeight(pn)
+    self:placeSelf(sl + math.floor((sw - w) / 2), st + math.floor((sh - h) / 2), sl, st, sw, sh)
     self._g = g
 end
 

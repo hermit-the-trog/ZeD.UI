@@ -10,8 +10,9 @@
 --     with its Clear key and no row stops behind it;
 --   * the text: each tab its own, kept across tab switches (the field shows on its own tab only), gone with the
 --     window (a new window starts empty; the pad keyboard on a field is put away on close); Clear empties it;
---   * the controller: A on the field opens the pad keyboard holding the controller, RT (Accept) lands the hand on
---     the first match, a clear lands it on the field; the Skills tab's Up and Down order at its top: Up from the
+--   * the controller: A on the field opens the pad keyboard holding the controller (a pad bound to the player or
+--     not), the hand on the field under it; RT (Accept) lands the hand on the first match, a clear on the field,
+--     both taking the window's focus into the tab from wherever it was (the tab strip); the Skills tab's Up and Down order at its top: Up from the
 --     top skill rows lands on the Transcribe key (a mod's key line) before the heading, Up from the key on the
 --     Find field, Down from the field or the disclosure on the key; with no key everything moves as before.
 -- What it can't show is how it looks and the pad in the game: ZeDUI/tools/qa/zedqa_tab_search.lua.
@@ -470,6 +471,61 @@ do
     ZeD.Keyboard = nil
     OnScreenKeyboard = nil
     JoypadState.players[1] = nil
+end
+
+-- QA's walk in game (Nov 11): A on the field gave no keyboard, and after RT and after X the hand
+-- was on the tab strip's Loot key. A pad not bound to the player (QA drives the presses) must still
+-- get the keyboard, and a landing must take the window's focus into the tab, not only the tab's stop.
+do
+    local w = newWin()
+    drawSkills(w); F.onWindowFrame(w, 480)
+    local f = w._findFields.skills
+    JoypadState.players[1] = nil
+    local shown = nil
+    OnScreenKeyboard = { Show = function(pn, e, j)
+        shown = { pn = pn, e = e, jd = j }
+        return { textEntryBox = e }
+    end }
+    -- the window's focus ring: the tab strip (focused, on Loot) and the tab's zone
+    local tabEls = {}
+    F.stops(w, "skills", tabEls)
+    tabEls[#tabEls + 1] = { id = "skill:Aiming", skillName = "Aiming" }
+    w._focusRing = {
+        { zone = "tabBar", focusable = true, elements = { { id = "tab:loot" }, { id = "tab:skills" } }, focusedElementIdx = 1 },
+        { zone = "charTabContent", focusable = true, elements = tabEls, focusedElementIdx = 2 },
+    }
+    w._focusIdx = 1
+    local function handOn()
+        local z = w._focusRing[w._focusIdx]
+        return z.zone .. ":" .. tostring(z.elements[z.focusedElementIdx or 1].id)
+    end
+    tabEls[1].onActivate(w, tabEls[1])
+    check("A with no pad bound to the player: the pad keyboard still opens on the field", shown and shown.e == f.input and shown.jd == nil)
+    check("A on the field: the hand is on the field under the keyboard", handOn() == "charTabContent:skills:find", handOn())
+    -- (the hand put back on the strip, as QA found it after the keyboard)
+    w._focusIdx = 1
+    typeInto(f, "aim")
+    F.accepted(w, "skills")
+    local s3 = {}
+    F.stops(w, "skills", s3)
+    s3[#s3 + 1] = { id = "skill:Aiming", skillName = "Aiming" }
+    F.land(w, "skills", s3, function(el) return el.skillName ~= nil end)
+    w._focusRing[2].elements, w._focusRing[2].focusedElementIdx = s3, s3._focusIdx
+    if s3._findLand then F.handIntoTab(w) end   -- (as ZeD_CharacterWindow takes a landing)
+    check("RT with the window's focus on the tab strip: the hand lands on the first match in the tab",
+        handOn() == "charTabContent:skill:Aiming", handOn())
+    w._focusIdx = 1
+    F.clear(w, "skills")
+    local s4 = {}
+    drawSkills(w); F.onWindowFrame(w, 480)
+    F.stops(w, "skills", s4)
+    s4[#s4 + 1] = { id = "skill:Aiming", skillName = "Aiming" }
+    F.land(w, "skills", s4, function(el) return el.skillName ~= nil end)
+    w._focusRing[2].elements, w._focusRing[2].focusedElementIdx = s4, s4._focusIdx
+    if s4._findLand then F.handIntoTab(w) end
+    check("X with the window's focus on the tab strip: the hand lands on the field", handOn() == "charTabContent:skills:find", handOn())
+    check("with no tab zone in the ring the landing leaves the focus be", F.handIntoTab({ _focusRing = {} }) == false)
+    OnScreenKeyboard = nil
 end
 
 -- ===========================================================================

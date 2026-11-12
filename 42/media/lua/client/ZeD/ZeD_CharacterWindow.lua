@@ -6376,6 +6376,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 }
                 -- a builder may name where focus lands (the Equip card opening / closing)
                 Focus.setRingZoneElements(win, "charTabContent", newEls, newEls._focusIdx or preserveIdx)
+                -- a Find landing takes the hand into the tab as well: the pad keyboard held the
+                -- controller meanwhile, and the window's focus may be on another zone (the tab strip)
+                if newEls._findLand then ZeD.TabFind.handIntoTab(win) end
                 -- Stay focusable during equip card-mode transitions even
                 -- if newEls is momentarily empty (first frame of card entry —
                 -- back/action bounds stamped during render, AFTER this prerender

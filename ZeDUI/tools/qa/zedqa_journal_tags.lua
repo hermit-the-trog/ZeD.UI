@@ -2,11 +2,12 @@
 -- In game on the ZeD-QA save: the Journal page's entry tags. Opens the Character window on the
 -- Journal, adds four marked entries to the log (one old, with no tags; one with two; one with four,
 -- the squares alone; one with three long words), ticks Loot and Base under the write box, writes an
--- entry and presses Save (the entry keeps the two tags, the ticks clear), clicks the Base tag on an
--- entry (its word goes in the search), clears the search, then writes Into a carried notebook with
--- News ticked (the notebook gets the words only, the log entry keeps the tag). Prints the pad's
--- stops (eight picks, the entries' tags, the delete crosses) and their prompts. Takes the entries
--- and the notebook back. grep "ZEDQA jtag"; Screenshots/zqa_jtag_*.png.
+-- entry and presses Save (the entry keeps the two tags, the ticks clear), searches for the run's
+-- mark (its entries to the top of the log), prints the pad's stops (eight picks, the entries' tags,
+-- the delete crosses) and their prompts and walks the new entry's tags Right to its delete cross,
+-- clicks the Base tag on it (its word goes in the search), clears the search, then writes Into a
+-- carried notebook with News ticked (the notebook gets the words only, the log entry keeps the
+-- tag). Takes the entries and the notebook back. grep "ZEDQA jtag"; Screenshots/zqa_jtag_*.png.
 -- The write into the notebook needs light: the run sets noon for it and puts the time back at the end.
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -48,6 +49,11 @@ at(60, function()
     local four = 0
     for _, z in ipairs(x._journalTagZones or {}) do if z.entryIdx == 2 then four = four + 1 end end
     say("four-tag entry stops " .. four .. " (want 4, squares alone)")
+    -- (the pad's stops on the log are only those within a view's height of it: JournalTab.inPadReach)
+    local reach = 0
+    for _, z in ipairs(x._journalTagZones or {}) do if JT.inPadReach(x, z) then reach = reach + 1 end end
+    local v = x._journalView or {}
+    say("tag zones in the pad's reach " .. reach .. " of " .. #(x._journalTagZones or {}) .. " | view y " .. tostring(v.y) .. " h " .. tostring(v.h))
     shot("01_reading")
 end)
 at(65, function()
@@ -63,28 +69,61 @@ at(120, function()
     say((picked(w()) == "") and "ok ticks cleared" or ("FAIL ticks left " .. picked(w())))
     shot("03_saved")
 end)
-at(125, function()
+-- The run's entries are dated this month; the save's own log can hold later months, which sort
+-- first, and then the run's entries lie past the view and past the pad's reach (the first run, on
+-- the Deck: no entry tag stops, and the Base click fell outside the log). That was the script, not
+-- the page. A search for the run's mark brings its entries to the top, as a player would find them.
+at(122, function() JT.setSearch(w(), MARK:sub(1, -2)) end)
+at(140, function()
     local x = w()
-    for _, z in ipairs(x._journalTagZones or {}) do
-        if z.k == "base" then JT.onBodyClick(x, z.x + 1, z.y + 1); break end
-    end
-end)
-at(160, function()
-    local x = w()
-    say("search after the Base click: '" .. tostring(x._journalSearchText) .. "' field '" .. tostring(x._journalSearch:getText()) .. "'")
-    local n = 0
-    for _, g in ipairs(JT.groups(x, log(), x._journalSearchText or "")) do n = n + #g.entries end
-    say("entries kept " .. n)
-    shot("04_search_base")
-    -- the pad's stops on the page now
+    -- the pad's stops on the page now, and the walk along the newest entry: its tags, then its cross
     local stops = JT.tagFocusables(x)
     local kinds = {}
     for _, s in ipairs(stops) do kinds[s.journalKind] = (kinds[s.journalKind] or 0) + 1 end
     say("pad stops: picks " .. tostring(kinds.tagPick) .. " entry tags " .. tostring(kinds.tag)
         .. " | pick A '" .. tostring(stops[1] and stops[1].promptA(x, stops[1])) .. "' help '" .. tostring(stops[1] and stops[1].extraPrompts[1]) .. "'")
+    local all, row = {}, {}
+    for _, s in ipairs(stops) do
+        all[#all + 1] = s
+        if s.journalKind == "tag" and s.entryIdx == 1 then row[#row + 1] = s end
+    end
+    for _, z in ipairs(x._journalDeleteZones or {}) do
+        if JT.inPadReach(x, z) then all[#all + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = "journal:del:" .. z.entryIdx } end
+    end
+    local function go(from, dir)
+        local others = {}
+        for _, s in ipairs(all) do if s ~= from then others[#others + 1] = s end end
+        return (ZeD.SpatialNav.pick(from, others, dir))
+    end
+    if #row == 2 then
+        local a = go(row[1], "right")
+        local b = a and go(a, "right")
+        local back = b and go(b, "left")
+        say((a == row[2] and b and b.id == "journal:del:1" and back == row[2]) and "ok the walk: Loot, Base, the cross, and Left back to Base"
+            or ("FAIL the walk: " .. tostring(a and a.id) .. " then " .. tostring(b and b.id) .. " back " .. tostring(back and back.id)))
+    else
+        say("FAIL the newest entry's tag stops: " .. #row .. " (want 2)")
+    end
+    shot("04_qa_entries")
 end)
-at(165, function() JT.setSearch(w(), "") end)
-at(190, function() say("search cleared: '" .. tostring(w()._journalSearchText) .. "'"); shot("05_cleared") end)
+at(150, function()
+    local x = w()
+    local hit = false
+    for _, z in ipairs(x._journalTagZones or {}) do
+        if z.k == "base" then hit = JT.onBodyClick(x, z.x + 1, z.y + 1); break end
+    end
+    say(hit and "ok the Base tag took the click" or "FAIL the Base tag did not take the click (no zone, or outside the log's view)")
+end)
+at(170, function()
+    local x = w()
+    say("search after the Base click: '" .. tostring(x._journalSearchText) .. "' field '" .. tostring(x._journalSearch:getText()) .. "'")
+    local n = 0
+    for _, g in ipairs(JT.groups(x, log(), x._journalSearchText or "")) do n = n + #g.entries end
+    say("entries kept " .. n)
+    shot("05_search_base")
+end)
+at(175, function() JT.setSearch(w(), "") end)
+at(190, function() say("search cleared: '" .. tostring(w()._journalSearchText) .. "'"); shot("06_cleared") end)
 -- Into a notebook: News ticked; the notebook gets the words only
 at(195, function()
     local inv = p:getInventory()
@@ -98,7 +137,7 @@ at(260, function()
     x._jr.logInto = book:getID()
     JT.togglePick(x, "news")
     x._journalInput:setText(MARK .. "tv went to the emergency thing")
-    shot("06_into")
+    shot("07_into")
     local btn = x._journalSaveBtn; btn.onclick(btn.target, btn)
 end)
 at(700, function()
@@ -107,7 +146,7 @@ at(700, function()
     say((e and e.source and tagsOf(e) == "news") and "ok into: log keeps news" or ("FAIL into: entry " .. tostring(e and e.text) .. " tags " .. tagsOf(e) .. " msg " .. tostring(w()._jr.logMsg)))
     say((pg:find("emergency", 1, true) and not pg:find("News", 1, true)) and "ok notebook has the words only" or ("FAIL notebook page: " .. pg:gsub("\n", " / ")))
     say((picked(w()) == "") and "ok ticks cleared after the write" or ("FAIL ticks left " .. picked(w())))
-    shot("07_into_logged")
+    shot("08_into_logged")
 end)
 at(705, function()
     local L = log()
