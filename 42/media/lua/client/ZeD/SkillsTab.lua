@@ -501,10 +501,47 @@ end
 --   cardLines(playerObj, perk, skill)    (Clear Skill Sheet's support answers it)
 --           -> nil, or a list of lines as card's: added under any extra's card
 --              lines, and a card of their own when no extra has one
+--   A key or button in the head block (drawHead) registers itself as a stop with
+--   ZeD.SkillsTab.stampStop(win, id, x, y, w, h, onPress): the mouse press and the
+--   controller's A both run onPress, and the controller's focus walks to it.
 -- First used by ModSupport/SkillRecoveryJournal.lua; ExpRecovery.lua and
 -- Clear_SkillSheet.lua add theirs the same way.
 -- ============================================================================
 ZeD.SkillsTab.extras = ZeD.SkillsTab.extras or {}
+
+--- Register a stop in the head block for this frame (call it from drawHead). The
+--- tab clears the list at the start of each frame, so a stop the block stops
+--- drawing goes away. Returns the stop's controller mark options when it has the focus, else nil.
+function ZeD.SkillsTab.stampStop(win, id, x, y, w, h, onPress)
+    local list = win._skillsStops
+    if not list then list = { n = 0 }; win._skillsStops = list end
+    local n = list.n + 1
+    local s = list[n]
+    if not s then s = {}; list[n] = s end
+    s.id, s.x, s.y, s.w, s.h, s.onPress = id, x, y, w, h, onPress
+    list.n = n
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused and F.isFocused(win, nil, "skills:stop:" .. tostring(id)) then
+        return { win = win }
+    end
+    return nil
+end
+
+--- A press at (x, y) in the drawer: runs the stop under it. True when one took it.
+function ZeD.SkillsTab.onClick(win, x, y)
+    local list = win._skillsStops
+    if not list then return false end
+    local v = win._skillsHoverView
+    for i = 1, list.n do
+        local s = list[i]
+        if x >= s.x and x <= s.x + s.w and y >= s.y and y <= s.y + s.h
+           and (not v or (y >= v.y and y <= v.y + v.h)) then
+            if s.onPress then s.onPress(win) end
+            return true
+        end
+    end
+    return false
+end
 
 --- Add a mod's extra (the table above) under its id; adding the same id again replaces it in place.
 function ZeD.SkillsTab.addExtras(id, def)
@@ -1029,11 +1066,15 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- imperceptible (same trick HealthTab uses for injury scroll-follow).
     local lastSkillRowZones = win._skillRowZones or {}
     local lastTrainingZones = win._trainingGroupZones or {}
+    local lastStops = win._skillsStops
+    local lastStopN = lastStops and lastStops.n or 0
+    if lastStops then lastStops.n = 0 end   -- (the scroll-follow reads last frame's entries before the head draws over them)
 
     -- resolve the focused element once per frame for the scroll-follow
     -- below (the marks themselves are asked of the library per element: focusOf).
     local focusedSkillName = nil
     local focusedTrainingId = nil
+    local focusedStopId = nil
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
@@ -1042,6 +1083,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
             if el then
                 focusedSkillName   = el.skillName
                 focusedTrainingId  = el.trainingId
+                focusedStopId      = el.skillsStopId
             end
         end
     end
@@ -1153,10 +1195,15 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- the input detector oscillates kbm↔gamepad within consecutive frames;
     -- the delta gate fires exactly once per focus change regardless of mode,
     -- so a KBM mousewheel past the focused row doesn't snap it back.
-    local _focKey = focusedSkillName or focusedTrainingId
+    local _focKey = focusedSkillName or focusedTrainingId or focusedStopId
     if needsScroll and _focKey and _focKey ~= win._lastPinnedSkillsFoc then
         local focAbsY, focH = nil, nil
-        if focusedSkillName then
+        if focusedStopId then
+            for i = 1, lastStopN do
+                local z = lastStops[i]
+                if z.id == focusedStopId then focAbsY = z.y; focH = z.h; break end
+            end
+        elseif focusedSkillName then
             for i = 1, #lastSkillRowZones do
                 local z = lastSkillRowZones[i]
                 if z.name == focusedSkillName then

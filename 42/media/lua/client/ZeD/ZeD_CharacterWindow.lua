@@ -1491,6 +1491,17 @@ end
 local function _buildSkillsFocusables(win)
     if not win then return {} end
     local elements = _buildSkillsDisclosureFocusable(win)
+    -- the keys a mod's head block stamped (ZeD.SkillsTab.stampStop), right after the disclosure
+    local stops = win._skillsStops
+    for i = 1, stops and stops.n or 0 do
+        local s = stops[i]
+        elements[#elements + 1] = {
+            x = s.x, y = s.y, w = s.w, h = s.h,
+            id = "skills:stop:" .. tostring(s.id),
+            skillsStopId = s.id,
+            onActivate = function(w) if s.onPress then s.onPress(w) end end,
+        }
+    end
     local rows = _buildSkillRowFocusables(win)
     for i = 1, #rows do elements[#elements + 1] = rows[i] end
     local chevs = _buildTrainingChevronFocusables(win)
@@ -5196,6 +5207,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 return true
             end
             if ZeD_CharacterWindow.extClick(win, x, y) then return true end
+            -- Skills: a key a mod's head block stamped (ZeD.SkillsTab.stampStop)
+            if win._activeTab == "skills" and ZeD.SkillsTab.onClick(win, x, y) then return true end
             -- Identity: the Hair and beard section (ZeD_HairBeard.lua) and its strip
             if win._activeTab == "identity" and ZeD.IdentityTab.onClick and ZeD.IdentityTab.onClick(win, x, y) then return true end
             -- Equipment tab click routing
