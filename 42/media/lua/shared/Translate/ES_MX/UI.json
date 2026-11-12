@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Mando",
     "UI_ZeD_Settings_Glyphs": "Iconos del mando",
     "UI_ZeD_Settings_GlyphsTip": "Qué imágenes de botones de mando mostrar. Auto sigue el estilo de botones del mando del juego. Teclado/ratón y Desactivado muestran los botones como casillas con letras.",
+    "UI_ZeD_Settings_HealthBlink": "Parpadeo del píxel de salud baja",
+    "UI_ZeD_Settings_HealthBlinkTip": "Con 20%% de salud o menos, el píxel de salud junto a tu nombre parpadea una vez por segundo. Desactivado: queda rojo fijo.",
     "UI_ZeD_Settings_HiddenFacts": "Datos ocultos",
     "UI_ZeD_Settings_HiddenFactsTip": "La programación de TV y las probabilidades de infección de la guía de supervivencia. Primero encontrar: cada una se abre cuando el personaje ha leído TV Monthly o un libro de primeros auxilios. Siempre: ambas están abiertas desde el inicio, y la ficha de una receta nombra la revista que la enseña.",
     "UI_ZeD_Settings_HighContrast": "Alto contraste",

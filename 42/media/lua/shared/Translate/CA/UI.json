@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Controlador",
     "UI_ZeD_Settings_Glyphs": "Icones del controlador",
     "UI_ZeD_Settings_GlyphsTip": "Quins dibuixos de botons de controlador mostrar. Auto segueix l'estil de botons del joc. Teclat/ratolí i Desactivat mostren els botons com a caixes amb lletres.",
+    "UI_ZeD_Settings_HealthBlink": "Parpelleja el píxel de salut baixa",
+    "UI_ZeD_Settings_HealthBlinkTip": "Amb un 20%% de salut o menys, el píxel de salut al costat del teu nom parpelleja una vegada per segon. Desactivat: es queda vermell fix.",
     "UI_ZeD_Settings_HiddenFacts": "Fets amagats",
     "UI_ZeD_Settings_HiddenFactsTip": "La programació de TV i les probabilitats d'infecció de la guia de supervivència. Primer trobar: cadascuna s'obre quan el personatge ha llegit TV Monthly o un llibre de primers auxilis. Sempre: totes dues són obertes des del començament, i la fitxa d'una recepta anomena la revista que l'ensenya.",
     "UI_ZeD_Settings_HighContrast": "Alt contrast",

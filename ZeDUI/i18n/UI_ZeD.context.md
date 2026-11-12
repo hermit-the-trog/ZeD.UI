@@ -3573,6 +3573,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Settings_Gamepad` | `Gamepad` | Options > Mods > ZeD-GUI: choice of the Input mode lock setting | - |
 | `UI_ZeD_Settings_Glyphs` | `Gamepad glyph display` | Options > Mods > ZeD-GUI: name of the gamepad glyph setting | - |
 | `UI_ZeD_Settings_GlyphsTip` | `Which controller's button pictures to show. Auto follows the game's controller button style. Keyboard/mouse and Off show the buttons as lettered boxes.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_HealthBlink` | `Blink the low-health pixel` | Options > Mods > ZeD-GUI: name of the setting for the Character window's health pixel (an on / off choice) | - |
+| `UI_ZeD_Settings_HealthBlinkTip` | `At 20%% health or less the health pixel by your name blinks once a second. Off: it stays solid red.` | Options > Mods > ZeD-GUI: hover help of the Blink the low-health pixel setting (%% is a literal percent sign) | - |
 | `UI_ZeD_Settings_HighContrast` | `High contrast` | Options > Mods > ZeD-GUI: base theme choice | - |
 | `UI_ZeD_Settings_InputLock` | `Input mode lock` | Options > Mods > ZeD-GUI: name of the input mode setting | - |
 | `UI_ZeD_Settings_InputLockTip` | `Force a specific input mode. Auto lets the mod detect your active device.` | Options > Mods > ZeD-GUI: hover help | - |

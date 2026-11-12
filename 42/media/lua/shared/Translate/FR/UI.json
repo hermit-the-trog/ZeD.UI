@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Manette",
     "UI_ZeD_Settings_Glyphs": "Affichage des symboles de la manette",
     "UI_ZeD_Settings_GlyphsTip": "Quelles images de boutons de manette afficher. Auto suit le style de boutons du jeu. Clavier/souris et Désactivé montrent les boutons comme des cases à lettres.",
+    "UI_ZeD_Settings_HealthBlink": "Faire clignoter le pixel de santé faible",
+    "UI_ZeD_Settings_HealthBlinkTip": "À 20 %% de santé ou moins, le pixel de santé près du nom clignote une fois par seconde. Désactivé : il reste rouge fixe.",
     "UI_ZeD_Settings_HiddenFacts": "Faits cachés",
     "UI_ZeD_Settings_HiddenFactsTip": "Le programme TV et les risques d'infection du guide de survie. D'abord trouver : chacun s'ouvre une fois que le personnage a lu TV Monthly ou un livre de premiers secours. Toujours : les deux sont ouverts dès le début, et la fiche d'une recette nomme le magazine qui l'enseigne.",
     "UI_ZeD_Settings_HighContrast": "Contraste élevé",

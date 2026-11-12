@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Gamepad",
     "UI_ZeD_Settings_Glyphs": "Gamepad-symbolen",
     "UI_ZeD_Settings_GlyphsTip": "Welke afbeeldingen van controllerknoppen worden getoond. Auto volgt de knopstijl van het spel. Toetsenbord/muis en Uit tonen de knoppen als vakjes met letters.",
+    "UI_ZeD_Settings_HealthBlink": "Pixel voor lage gezondheid laten knipperen",
+    "UI_ZeD_Settings_HealthBlinkTip": "Bij 20 %% gezondheid of minder knippert de gezondheidspixel naast je naam één keer per seconde. Uit: hij blijft egaal rood.",
     "UI_ZeD_Settings_HiddenFacts": "Verborgen feiten",
     "UI_ZeD_Settings_HiddenFactsTip": "Het tv-schema en de infectiekansen in de overlevingsgids. Eerst vinden: elk gaat open zodra het personage TV Monthly of een EHBO-boek heeft gelezen. Altijd: beide zijn vanaf het begin open, en de kaart van een recept noemt het tijdschrift dat het leert.",
     "UI_ZeD_Settings_HighContrast": "Hoog contrast",

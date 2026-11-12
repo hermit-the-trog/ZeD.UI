@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Gamepad",
     "UI_ZeD_Settings_Glyphs": "Gamepad-Symbole",
     "UI_ZeD_Settings_GlyphsTip": "Welche Controller-Tastensymbole gezeigt werden. Auto folgt dem Tastenstil des Spiels. Tastatur/Maus und Aus zeigen die Tasten als beschriftete Kästchen.",
+    "UI_ZeD_Settings_HealthBlink": "Pixel bei niedriger Gesundheit blinken lassen",
+    "UI_ZeD_Settings_HealthBlinkTip": "Bei 20 %% Gesundheit oder weniger blinkt der Gesundheitspixel neben deinem Namen einmal pro Sekunde. Aus: Er bleibt durchgehend rot.",
     "UI_ZeD_Settings_HiddenFacts": "Verborgene Fakten",
     "UI_ZeD_Settings_HiddenFactsTip": "Das TV-Programm und die Infektionsrisiken im Überlebenshandbuch. Erst finden: Jede Seite öffnet sich, sobald die Figur TV Monthly oder ein Erste-Hilfe-Buch gelesen hat. Immer: Beide sind von Anfang an offen, und die Karte eines Rezepts nennt das Magazin, das es lehrt.",
     "UI_ZeD_Settings_HighContrast": "Hoher Kontrast",

@@ -8,6 +8,10 @@
 --   BLINK   on 500 ms, off 500 ms on the game's clock: one flash a second (under three); the same at a clock past
 --           2^31 ms (Kahlua's % trap: clockStep); a solid pixel never blinks; ZeD_Window.PIXEL_BLINK = false holds
 --           the blinking pixel solid (the off switch; ZeD has no reduce-motion option yet)
+--   OPTION  the setup option "Blink the low-health pixel" (the real Settings.lua on a stub of ModOptions): in the
+--           Look group, On for a new player, Off holds the pixel solid at once (also from an unapplied pick on
+--           the open options screen), survives a save and a fresh load, the code switch still wins, and its
+--           name and help are in all 28 UI.json files
 --   TITLE   no "%" stat in the title stats; the name drawn with three pins showing; the pixel at the title's left,
 --           the name after it, nothing over the name
 --   SHORT   as the window narrows: pins take their shorter forms first, then the name is cut with "...", then pins
@@ -181,6 +185,103 @@ check("a solid pixel never blinks", ZeD_Window.pixelLit(false, BIG + 600))
 ZeD_Window.PIXEL_BLINK = false
 check("the off switch holds it solid", ZeD_Window.pixelLit(true, BIG + 600) and ZeD_Window.pixelLit(true, BIG + 700))
 ZeD_Window.PIXEL_BLINK = true
+
+-- ---------------------------------------------------------------------------
+-- The setup option "Blink the low-health pixel": the REAL Settings.lua on a stub of the game's ModOptions.
+-- The stub keeps what a save wrote in STORE, and a second load of Settings.lua gets it back, as the next
+-- launch does from ModOptions.ini.
+-- ---------------------------------------------------------------------------
+local STORE = {}
+local OPTS
+local function loadSettings()
+    local dummy
+    dummy = setmetatable({}, {
+        __index = function(_, k) if type(k) == "number" then return nil end return dummy end,
+        __call = function() return dummy end,
+        __concat = function(a, b) return tostring(a == dummy and "" or a) .. tostring(b == dummy and "" or b) end,
+    })
+    local opts = { dict = {} }
+    local function newOption(id)
+        local o = { id = id, items = {}, element = false }
+        function o:addItem(text, selected)
+            self.items[#self.items + 1] = text
+            if selected then self.default = #self.items; self.value = STORE[id] or #self.items end
+        end
+        function o:getValue() return self.value end
+        function o:setValue(v) self.value = v end
+        return setmetatable(o, { __index = function() return function() return dummy end end })
+    end
+    setmetatable(opts, { __index = function(_, name)
+        return function(self, id)
+            local o = newOption(id)
+            if type(id) == "string" then self.dict[id] = o end
+            return o
+        end
+    end })
+    OPTS = opts
+    local env = setmetatable({
+        PZAPI = { ModOptions = { create = function() return opts end, save = function()
+            for id, o in pairs(opts.dict) do STORE[id] = o.value end
+        end } },
+        getFileReader = function() return nil end,
+        getTextOrNull = function(k) return k end,
+    }, { __index = function(_, k) local g = _G[k]; if g ~= nil then return g end return dummy end })
+    ZeD.Settings = nil
+    local sf, serr = loadfile(CLIENT .. "Settings.lua")
+    if not sf then error(serr) end
+    setfenv(sf, env)
+    local ok, e = pcall(sf)
+    if not ok then error("Settings.lua: " .. tostring(e)) end
+end
+
+loadSettings()
+local S = ZeD.Settings
+local hb = OPTS.dict.healthBlink
+check("OPTION: Settings.lua registers healthBlink", hb ~= nil)
+check("OPTION: Off then On, On the default", hb and #hb.items == 2 and hb.default == 2, hb and hb.default)
+check("OPTION: read through ZeD.Settings.healthBlink", S.healthBlink and S.healthBlink() == true)
+check("OPTION: ZeD setup names it for the Look group", hb and hb.zedNameKey == "UI_ZeD_Settings_HealthBlink", hb and hb.zedNameKey)
+do
+    local g = io.open(CLIENT .. "ZeD_MainMenuOptionGroups.lua", "rb"):read("*a")
+    local look = g:match('"UI_ZeD_Options_ZedLook",(.-)\n    %-%-')
+    check("OPTION: the Look group lists it as a check box", look ~= nil and look:find('{ "healthBlink", "onoff" }', 1, true) ~= nil)
+end
+check("DEFAULT: a new player's pixel blinks (lit then dark)", ZeD_Window.pixelLit(true, BIG) and not ZeD_Window.pixelLit(true, BIG + 600))
+S.setHealthBlink(false)
+check("OFF: the pick takes effect at once, solid in both halves of the second",
+    ZeD_Window.pixelLit(true, BIG) and ZeD_Window.pixelLit(true, BIG + 600) and ZeD_Window.pixelLit(true, BIG + 1600))
+check("OFF: a solid pixel is still drawn lit by the title bar's blink flag", ZeD_Window.pixelLit(true, BIG + 700))
+S.setHealthBlink(true)
+check("ON again: blinks again at once", ZeD_Window.pixelLit(true, BIG) and not ZeD_Window.pixelLit(true, BIG + 600))
+-- while the options screen is open the pick on the control (not yet applied) is what counts
+hb.element = { selected = 1 }
+check("LIVE: an unapplied pick on the open options screen already holds it solid", ZeD_Window.pixelLit(true, BIG + 600))
+hb.element = false
+S.setHealthBlink(false)
+loadSettings()
+S = ZeD.Settings
+check("ROUND TRIP: Off saved, then a fresh load of Settings.lua reads Off", S.healthBlink() == false and STORE.healthBlink == 1, STORE.healthBlink)
+check("ROUND TRIP: the reloaded pixel holds solid", ZeD_Window.pixelLit(true, BIG + 600))
+S.setHealthBlink(true)
+loadSettings()
+S = ZeD.Settings
+check("ROUND TRIP: On saved, reloads On and blinks", S.healthBlink() == true and not ZeD_Window.pixelLit(true, BIG + 600))
+-- the code switch still wins over the option
+ZeD_Window.PIXEL_BLINK = false
+check("SWITCH: the code switch holds it solid with the option On", ZeD_Window.pixelLit(true, BIG + 600))
+ZeD_Window.PIXEL_BLINK = true
+-- every language has the name and its help
+do
+    local missing = 0
+    local langs = { "AR","CA","CH","CN","CS","DA","DE","EN","ES","ES_CL","ES_MX","FI","FR","HU","ID","IT","JP","KO","NL","NO","PL","PT","PTBR","RO","RU","TH","TR","UA" }
+    for _, l in ipairs(langs) do
+        local fh = io.open(ROOT .. "42/media/lua/shared/Translate/" .. l .. "/UI.json", "rb")
+        local t = fh and fh:read("*a") or ""
+        if fh then fh:close() end
+        if not (t:find('"UI_ZeD_Settings_HealthBlink": "', 1, true) and t:find('"UI_ZeD_Settings_HealthBlinkTip": "', 1, true)) then missing = missing + 1 end
+    end
+    check("TEXT: the name and help are in all 28 UI.json files", missing == 0, missing)
+end
 
 -- ---------------------------------------------------------------------------
 -- The window and its draw

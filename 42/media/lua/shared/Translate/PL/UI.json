@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Kontroler",
     "UI_ZeD_Settings_Glyphs": "Wyświetlanie symboli kontrolera",
     "UI_ZeD_Settings_GlyphsTip": "Obrazki których kontrolera mają pokazywać przyciski. Auto idzie za stylem przycisków kontrolera w grze. Klawiatura/mysz i Wył. pokazują przyciski jako podpisane ramki.",
+    "UI_ZeD_Settings_HealthBlink": "Miganie piksela niskiego zdrowia",
+    "UI_ZeD_Settings_HealthBlinkTip": "Przy 20%% zdrowia lub mniej piksel zdrowia obok twojego imienia miga raz na sekundę. Wyłączone: świeci stałym czerwonym światłem.",
     "UI_ZeD_Settings_HiddenFacts": "Ukryte fakty",
     "UI_ZeD_Settings_HiddenFactsTip": "Program TV i ryzyko zakażenia w poradniku przetrwania. Najpierw znajdź: każda strona otwiera się, gdy postać przeczyta TV Monthly albo książkę o pierwszej pomocy. Zawsze: obie są otwarte od początku, a karta przepisu podaje czasopismo, które go uczy.",
     "UI_ZeD_Settings_HighContrast": "Wysoki kontrast",

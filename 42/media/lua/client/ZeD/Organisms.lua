@@ -551,8 +551,8 @@ end
 
 -- The status pixel's blink: on half a second, off half a second, one flash a second, well under the three a second
 -- that the photosensitivity guidelines warn about. Timed on the game's clock in ms, not by frames drawn, so it
--- keeps the same pace at any frame rate. ZeD has no reduce-motion or no-flashing option (Nov 11 2026); while
--- ZeD_Window.PIXEL_BLINK is false the pixel holds solid, and such an option would set it.
+-- keeps the same pace at any frame rate. Two things hold the pixel solid: ZeD_Window.PIXEL_BLINK false (a code
+-- switch) and the setup option "Blink the low-health pixel" off (ZeD.Settings.healthBlink, read each call).
 local BLINK_MS = 500
 ZeD_Window.PIXEL_BLINK = true
 
@@ -566,6 +566,8 @@ end
 --- Whether a blinking status pixel shows at this moment (ms: the game's clock, getTimestampMs()).
 function ZeD_Window.pixelLit(blink, ms)
     if not blink or not ZeD_Window.PIXEL_BLINK then return true end
+    local S = ZeD.Settings
+    if S and S.healthBlink and not S.healthBlink() then return true end
     return clockStep(ms or getTimestampMs(), BLINK_MS, 2) == 0
 end
 

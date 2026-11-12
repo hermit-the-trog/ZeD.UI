@@ -2411,6 +2411,8 @@
     "UI_ZeD_Settings_Gamepad": "Gamepad",
     "UI_ZeD_Settings_Glyphs": "Pictograme gamepad",
     "UI_ZeD_Settings_GlyphsTip": "Pictogramele cărui controler să se arate. Auto urmează stilul de butoane al jocului. Tastatură/mouse și Oprit arată butoanele ca niște căsuțe cu litere.",
+    "UI_ZeD_Settings_HealthBlink": "Clipirea pixelului de sănătate scăzută",
+    "UI_ZeD_Settings_HealthBlinkTip": "La 20%% sănătate sau mai puțin, pixelul de sănătate de lângă numele tău clipește o dată pe secundă. Dezactivat: rămâne roșu fix.",
     "UI_ZeD_Settings_HiddenFacts": "Fapte ascunse",
     "UI_ZeD_Settings_HiddenFactsTip": "Programul TV și șansele de infectare din ghidul de supraviețuire. Întâi găsește: fiecare se deschide după ce personajul a citit TV Monthly sau o carte de prim ajutor. Mereu: ambele sunt deschise de la început, iar fișa unei rețete numește revista care o învață.",
     "UI_ZeD_Settings_HighContrast": "Contrast mare",

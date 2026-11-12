@@ -462,6 +462,15 @@ solidInUse:addItem(getText("UI_Off"), true)   -- default
 solidInUse:addItem(getText("UI_On"), false)
 ZeD.Settings.solidInUseOption = solidInUse
 ZeD.Settings.solidInUse = function() return (liveIdx(solidInUse) or 1) == 2 end
+-- Blink the low-health pixel: the Character window's health pixel blinks at 20% health and under
+-- (ZeD_Window.pixelLit reads this every frame, so a pick holds at once). Off holds it solid red,
+-- for anyone who finds a blink hard to bear. On for a new player.
+local healthBlink = opts:addComboBox("healthBlink", ZeD.tr("UI_ZeD_Settings_HealthBlink"),
+    "UI_ZeD_Settings_HealthBlinkTip")   -- the key: its text has a % sign (see Test language)
+healthBlink:addItem(getText("UI_Off"), false)
+healthBlink:addItem(getText("UI_On"), true)   -- default
+ZeD.Settings.healthBlinkOption = healthBlink
+ZeD.Settings.healthBlink = function() return (liveIdx(healthBlink) or 2) == 2 end
 -- Controller highlight: how the element the controller is on is marked (ZeD.Focus draws it and
 -- reads ZeD.Settings.focusStyle() every frame). The pointing hand for a new player.
 local focusKeys   = { "hand", "corners", "wash", "ants" }
@@ -684,7 +693,7 @@ do
         glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
         putBack = "UI_ZeD_Settings_PutBack", seeThrough = "UI_ZeD_Settings_SeeThrough",
-        solidInUse = "UI_ZeD_Settings_SolidInUse", focusStyle = "UI_ZeD_Settings_FocusStyle",
+        solidInUse = "UI_ZeD_Settings_SolidInUse", healthBlink = "UI_ZeD_Settings_HealthBlink", focusStyle = "UI_ZeD_Settings_FocusStyle",
         hiddenActions = "UI_ZeD_Settings_HiddenActions",
         messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast", haloBubble = "UI_ZeD_Settings_HaloBubble", hintStrip = "UI_ZeD_Settings_HintStrip",
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
@@ -1022,6 +1031,10 @@ function ZeD.Settings.setSeeThrough(i)
 end
 function ZeD.Settings.setSolidInUse(on)
     solidInUse:setValue(on and 2 or 1)
+    saveModOptions()
+end
+function ZeD.Settings.setHealthBlink(on)
+    healthBlink:setValue(on and 2 or 1)
     saveModOptions()
 end
 function ZeD.Settings.setFocusStyle(key)
