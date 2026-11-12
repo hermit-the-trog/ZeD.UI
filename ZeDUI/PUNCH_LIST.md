@@ -4236,7 +4236,7 @@ to be proposed.
     The trophy wall (the director, Nov 11: "a button somewhere that is a trophy wall ... the top 10 largest catches
     or the largest fish of each type ... on like a plaque. And you just scroll"): mockup v2
     (ZeDUI/mockups/zed_fishing_tab_v2.html, 2ef6d95d; same link). A Trophy wall keycap in the catch log's header
-    opens a full-width card: a dark wood wall of pixel-art plaques (the fish, a brass plate with the game's catch
+    opens a full-width card: pixel-art plaques on the window's own surface, no background wall (director) (the fish, a brass plate with the game's catch
     name, weight, date, place and bait), Top 10 / Each kind (all 21 species, "8 of 21"), one scroll, the record band
     under it, D-pad between plaques, B back. Kept all game in the save (at most 10 + 21 records). The director's
     rulings: empty plaques stay a mystery ("Not caught yet", no name, as the game hides uncaught species); wall only,

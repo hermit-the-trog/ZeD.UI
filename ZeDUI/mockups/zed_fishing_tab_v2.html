@@ -225,8 +225,8 @@ dl { margin: 0; }
 .radio.on i::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .radio.pf { padding-left: 18px; } .radio.pf > .hand { left: 0; }
 .modes .r { margin-left: auto; font: 400 12px/1 var(--font-mono); color: var(--text-secondary); }
-.wall { padding: 18px 12px 22px; display: grid; grid-template-columns: 216px 216px; gap: 22px 24px; justify-content: center;
-  background: repeating-linear-gradient(to bottom, #2f1e11 0 39px, #23160b 39px 40px); }
+.wall { padding: 18px 12px 22px; display: grid; grid-template-columns: 216px 216px; gap: 22px 24px; justify-content: center; }
+/* (the director, Nov 11: no background wall; the plaques sit on the window's own surface) */
 .plq { position: relative; width: 216px; height: 156px; cursor: pointer; }
 .plq > svg { position: absolute; inset: 0; }
 .plq.sel::after { content: ""; position: absolute; inset: -4px; border: 1px solid var(--accent); pointer-events: none; }
@@ -808,7 +808,7 @@ function notes() {
     fight: "A fish is on. The tension block leads: the same 0 to 1 value the rod meter draws, marked where the line starts to wear (80%) and where it snaps, plus how long it has been held at the limit (the line breaks when that fills; the limit grows with Fishing and the rod). The fish stays unknown until landed, as in the game. The rod in hand above the belt stays the in-world display; this is the reading.",
     nobait: "No bait on the hook and none in the bags. The bait row goes red; the body lists what fish take, in the game's own bait groups and item names, and where to get it: Foraging's Fish Bait category, a Fishing Net, the kitchen. Search for bait (default) opens the Foraging tab with Fish Bait chosen. Cast stays: a bare hook still works, for junk only.",
     log: "After two hours on the bank. This trip's facts on top (landed, junk, got away, heaviest, total, bait used, line wear, species found from the game's own record), then the catch log, kept for the whole game: the newest 20 of 64, today's lines with the time, older days' with the date. Trophy wall sits in the log's header with its count (species mounted).",
-    trophy: "The trophy wall, a card pushed over the Fishing tab at the drawer's full width, with the back bar on top (as an item card is). Top 10 ranks the heaviest catches of the whole game, the first three with a gold, silver and bronze tab; Each kind hangs the best of each of the 21 species in the game's order, with empty outlines marked Not caught yet, so it is also the collection (8 of 21). Each plaque is a stained board with the fish in pixel art and a brass plate: the game's catch name, weight, date, place and bait. The wall scrolls as one; the record band under it gives the chosen plaque's full record (A or a click). D-pad moves between plaques, B or Back returns to the tab. The wall's wood stays the same in every theme, as the desk and props do; the chrome follows the theme."
+    trophy: "The trophy wall, a card pushed over the Fishing tab at the drawer's full width, with the back bar on top (as an item card is). Top 10 ranks the heaviest catches of the whole game, the first three with a gold, silver and bronze tab; Each kind hangs the best of each of the 21 species in the game's order, with empty outlines marked Not caught yet, so it is also the collection (8 of 21). No wall behind them (the director): the plaques hang on the window's own surface. Each plaque is a stained board with the fish in pixel art and a brass plate: the game's catch name, weight, date, place and bait. The wall scrolls as one; the record band under it gives the chosen plaque's full record (A or a click). D-pad moves between plaques, B or Back returns to the tab. The wall's wood stays the same in every theme, as the desk and props do; the chrome follows the theme."
   };
   return `<h2>This state</h2><p>${per[S.st]}</p>
   <h2>How it appears</h2>
