@@ -1,0 +1,52 @@
+{
+ "id": "car_radio",
+ "n": 42,
+ "seed": 35,
+ "pages": [104, 105],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["42", "The Car Radio"]},
+   {"p": "Each car's radio opens up close, above the dashboard. There it can be tuned, your stations stored and a CD played. Figure 42-1, on the facing page, shows the Premium Technologies CD receiver."},
+   {"p": "The display shows the band, the frequency, the name of the station and the signal. The controls are set out in Table 42-1."},
+   {"gap": 6},
+   {"table": {"label": "Table 42-1", "title": "The controls of the CD receiver", "cols": [0.3, 0.7], "head": ["Control", "What it does"],
+     "rows": [["Left knob", "Turn it to set the volume. Push it to turn the radio on or off."],
+              ["Right knob", "Turn it to tune the frequency."],
+              ["1 to 6", "Press a preset to listen to its station. Hold one to store the station tuned."],
+              ["SCAN", "Steps through the stations until it is pressed again."],
+              ["SEEK", "Goes to the next station."],
+              ["MUTE", "Cuts the sound."],
+              ["Play", "Starts and stops a CD."],
+              ["Eject", "Gives the CD back. It is above *MUTE*."]]}},
+   {"gap": 16},
+   {"note": "A car fitted with the plain ValuTech FM set shows that set instead. It has no CD player."}
+  ],
+  "marks": [
+   {"circle": {"word": "stored"}, "pen": "grn"}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "The Car Radio",
+  "blocks": [
+   {"h2": "The Radio Up Close"},
+   {"at": 792},
+   {"caption": ["Figure 42-1", "The Premium Technologies CD receiver, up close, with the radio on."]},
+   {"p": "To store a station, tune it with the right knob and hold a preset. Press the preset to listen to it again."}
+  ],
+  "prints": [
+   {"src": "g5_car_radio.png", "box": [1748, 1492, 2708, 1792], "scale": 0.75, "at": [968, 372], "tape": ["tl", "b"]}
+  ],
+  "marks": [
+   {"text": "The left knob sets the volume. Push it to turn the radio on or off.", "pen": "blu", "at": [976, 204], "maxw": 172, "bend": 0, "to": [0, 1846, 1576]},
+   {"text": "The display shows the band, the frequency, the station's name and the signal.", "pen": "blu", "at": [1176, 262], "maxw": 330, "to": [[0, 1962, 1570], [0, 2030, 1630], [0, 2462, 1590]]},
+   {"text": "The right knob tunes the frequency.", "pen": "blu", "at": [1714, 412], "maxw": 150, "to": [0, 2684, 1612]},
+   {"text": "The play button starts and stops a CD. The eject button above MUTE gives it back.", "pen": "blu", "at": [1714, 532], "maxw": 150, "bend": 0, "to": [[0, 2512, 1690], [0, 2684, 1730]]},
+   {"text": "Press a preset to listen. Hold one to store the tuned station.", "pen": "blu", "at": [1000, 654], "maxw": 250, "to": [0, 2213, 1736]},
+   {"text": "SCAN steps through the stations until pressed again. SEEK goes to the next one. MUTE cuts the sound.", "pen": "blu", "at": [1290, 654], "maxw": 300, "bend": 0, "to": [[0, 2289, 1738], [0, 2375, 1738], [0, 2469, 1738]]}
+  ],
+  "sticky": {"at": [1452, 870], "w": 270, "h": 140, "text": "Tune it, store your stations, play a CD."}
+ }
+}

@@ -1,0 +1,50 @@
+{
+ "id": "skills",
+ "n": 16,
+ "seed": 64,
+ "pages": [52, 53],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["16", "Skills"]},
+   {"p": "The *Skills* tab of the *Character* window lists every skill by group: *Combat - Firearms*, *Combat - Melee*, *Crafting*, *Farming*, *Physical* and *Survival*. Figure 16-1 shows the tab."},
+   {"at": 972},
+   {"caption": ["Figure 16-1", "The Skills tab."]}
+  ],
+  "prints": [
+   {"src": "story_00b_skills_tall.png", "box": [718, 60, 1650, 1260], "scale": 0.48, "at": [330, 330], "tape": ["tl", "br"]}
+  ],
+  "marks": [
+   {"text": "The level at the left, ten cells at the right.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [[0, 808, 192], [0, 1133, 192]]},
+   {"text": "A long name is cut short.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 900, 757]},
+   {"text": "Mechanics gains experience 125% faster.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 1030, 757]},
+   {"text": "Strength at 9, with +125% XP.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 1410, 1074]}
+  ],
+  "sticky": {"at": [62, 880], "w": 196, "text": "Every skill: its level and its bar."}
+ },
+ "right": {
+  "kind": "manual",
+  "head": "Skills",
+  "blocks": [
+   {"h2": "The Skill Row"},
+   {"p": "Each row of the tab gives one skill. Its parts are listed in Table 16-1. Point at a skill and the top of the window gives its name, its level and its experience: *Long Blade - Lv.0 - 0/75*."},
+   {"table": {"label": "Table 16-1", "title": "The parts of a skill row", "cols": [0.24, 0.76], "head": ["Part", "What it shows"],
+     "rows": [["Level", "The number at the left, from 0 to 10."],
+              ["Name", "The skill. A long name is cut short to fit."],
+              ["Bar", "Ten cells, one for each level."],
+              ["Boost", "A tag such as *+125% XP*: the skill learns faster."]]}},
+   {"h2": "Training Materials"},
+   {"p": "Below the skills, *Training Materials* lists the skill books, one cell for each volume, colored by the key above the list: *Read*, *Reading*, *Collected* or *Not found*."},
+   {"p": "A boost comes from your profession and your traits. The *Identity* tab lists your traits, positive and negative, as Figure 16-2 shows. Chapter 2 describes the tab."},
+   {"at": 972},
+   {"caption": ["Figure 16-2", "The traits on the Identity tab."]}
+  ],
+  "prints": [
+   {"src": "story_00a_identity_tall.png", "box": [975, 1180, 1840, 1600], "scale": 0.36, "at": [1030, 800], "printed": true}
+  ],
+  "marks": [
+   {"text": "Strong is one of them.", "pen": "blu", "at": [1376, 846], "maxw": 260, "bend": 0.04, "to": [1, 1560, 1370]}
+  ]
+ }
+}

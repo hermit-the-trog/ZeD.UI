@@ -1,0 +1,53 @@
+{
+ "id": "messages",
+ "n": 39,
+ "seed": 34,
+ "pages": [98, 99],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["39", "Messages"]},
+   {"p": "Some mods open a note when the game starts or when something changes. ZNIX keeps the notes in one window, *Messages*, instead of showing them over the game, and nothing pauses the game."},
+   {"p": "When a note comes in, a bubble out of the paper note on the belt names the mod for a few seconds (Figure 39-1); click it to open *Messages* at that mod. The paper note counts new notes."},
+   {"p": "A mod's errors wait here too, each with *Copy*; *Bug report* on the ZeD wheel copies them all, with the mods that are on."},
+   {"at": 654},
+   {"caption": ["Figure 39-1", "Notes from two mods have come in."]},
+   {"p": "To read the notes a mod has sent:"},
+   {"list": ["Click the paper note on the belt. On a controller, choose *Messages* on the ZeD wheel.",
+             "In the list at the left of the window, click the mod. Its notes are shown at the right, the newest first.",
+             "Click a note's own button to answer it."], "numbered": true},
+   {"note": "Questions are not kept. A question from a mod, such as one answered *Yes* or *No*, is asked at once, and a copy of the answer is kept in *Messages*."}
+  ],
+  "prints": [
+   {"src": "zqa_g4_belt_toast.png", "box": [2000, 1830, 2420, 2135], "scale": 0.38, "at": [360, 516], "printed": true}
+  ],
+  "marks": [
+   {"text": "A bubble names the mod for a few seconds. Click it to read.", "pen": "blu", "at": [62, null], "maxw": 184, "to": [0, 2190, 1870]},
+   {"circle": {"word": "newest"}, "pen": "grn"}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Messages",
+  "blocks": [
+   {"h2": "The Messages Window"},
+   {"p": "Figure 39-2 shows the window with notes from two mods. The list at the left names each mod that has sent something, with the number of its notes. The notes of the mod picked in the list are shown at the right, each with the time it came and the mod's own buttons."},
+   {"at": 702},
+   {"caption": ["Figure 39-2", "The Messages window, and the paper note on the belt that opens it."]},
+   {"p": "At the foot of the window, *Show this mod's notes as pop-ups* lets one mod show its notes over the game again; *Delete* and *Mark all read* are at the right."}
+  ],
+  "prints": [
+   {"src": "zqa_g4_window_radio.png", "box": [1250, 650, 2592, 1505], "scale": 0.45, "at": [1036, 262], "tape": ["tl", "tr"]},
+   {"src": "zqa_g4_guide_bubble.png", "box": [1960, 1880, 2600, 2150], "scale": 0.5, "at": [1320, 822], "tape": ["tl", "br"]}
+  ],
+  "marks": [
+   {"text": "Each mod that sent something, with a count.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0, "to": [1, 1641, 762]},
+   {"text": "The mod's own Ok button works here.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [1, 2470, 860]},
+   {"text": "A mod's notes can be shown as pop-ups again.", "pen": "blu", "at": [1676, 516], "maxw": 184, "bend": 0.3, "to": [1, 1281, 1431]},
+   {"text": "In a new game's first hour, the guide offers itself here.", "pen": "blu", "at": [1676, 640], "maxw": 184, "to": [2, 2200, 1940]},
+   {"text": "The paper note on the belt opens Messages, with the count of new notes.", "pen": "blu", "at": [1676, 900], "maxw": 184, "to": [[2, 2250, 2088], [2, 2277, 2055]]}
+  ],
+  "sticky": {"at": [1044, 860], "w": 270, "h": 146, "text": "Notes from other mods wait in one window."}
+ }
+}

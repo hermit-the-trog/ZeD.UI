@@ -15,6 +15,7 @@ How a spread is laid out, and the JSON that describes it: `SPREADS.md`. The dire
 | Title spread | `out_spread/00_title.png`, drawn by `title_spread.py` | copyright page left, title page right (Nov 1 2026) |
 | Spreads 1-60 | `spreads/NN_id.json`, drawn by `spread.py` into `out_spread/NN_id.png` | sample (21) approved Nov 1 2026 ("Nailed it!"); all 60 laid out Nov 1 2026 |
 | Upload set | `upload/`: `00_cover.jpg`, `00_title.jpg`, then `01_hero.jpg` to `60_machine_plates.jpg` | upload in file order; each under Steam's 1 MB |
+| Beta 12 set | `upload_b12/` by `make_b12.py`: the cover, Angel's opening break, the title, 63 chapters in Character / World pairs with a cinema break after each part, Angel's closing break, the end | plan v2 (`PLAN_ALTERNATE_20261111.md`); order and missing shots in `B12_ORDER.md` |
 
 ## Rebuilding
 

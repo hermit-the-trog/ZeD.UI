@@ -1,0 +1,49 @@
+{
+ "id": "moodles",
+ "n": 37,
+ "seed": 32,
+ "pages": [94, 95],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["37", "Moodles"]},
+   {"p": "The moodles are the game's own small round marks for the state your character is in. ZNIX does not change them: it places them where you choose, and draws the note that explains one."},
+   {"p": "There are three places for them, set out in Table 37-1. To choose one on a controller, hold *View* for the ZeD wheel and choose *Moodles*."},
+   {"table": {"label": "Table 37-1", "title": "Where the moodles are shown", "cols": [0.3, 0.7], "head": ["Choice", "Where"],
+     "rows": [["Right edge", "Down the right edge of the screen, where the game puts them."],
+              ["Left edge", "Down the left edge of the screen (Figure 37-1)."],
+              ["Bottom", "In a row above the belt, in the middle of the screen. ZNIX draws this copy."]]}},
+   {"at": 960},
+   {"caption": ["Figure 37-1", "The moodles on the left edge, with one balloon open."]}
+  ],
+  "prints": [
+   {"src": "zqa_mood_left_hover.png", "box": [0, 940, 620, 1210], "scale": 0.75, "at": [268, 726], "printed": true}
+  ],
+  "marks": [
+   {"text": "On the left edge, in the game's own column.", "pen": "blu", "at": [62, null], "maxw": 184, "to": [0, 33, 1103]},
+   {"circle": {"word": "copy"}, "pen": "grn"}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Moodles",
+  "blocks": [
+   {"h2": "Reading a Moodle"},
+   {"p": "To learn what a moodle means, point at it. A balloon opens beside it, its tail on the moodle, with the name of the moodle and a line that says what it means. Figure 37-2 shows the row above the belt with the balloon for one moodle open, and the same moodles on the right edge of the screen."},
+   {"at": 866},
+   {"caption": ["Figure 37-2", "Above the belt, top, and on the right edge, bottom."]},
+   {"p": "On the edges the moodles are the game's own; above the belt they are a copy drawn by ZNIX. The balloon is drawn by ZNIX in all three places."}
+  ],
+  "prints": [
+   {"src": "zqa_mood_bottom_hover.png", "box": [1620, 1780, 2334, 2160], "scale": 0.75, "at": [1046, 262], "tape": ["tl", "tr"]},
+   {"src": "zqa_mood_right_hover.png", "box": [3220, 940, 3840, 1210], "scale": 0.75, "at": [1176, 600], "tape": ["tl", "b"]}
+  ],
+  "marks": [
+   {"text": "Point at a moodle and a balloon names it and says what it means.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [1, 1990, 1900]},
+   {"text": "Or in a row above the belt, in the middle of the screen. ZeD draws this copy.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [1, 2013, 1990]},
+   {"text": "Or on the right edge, the game's own place for it.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [2, 3812, 1103]}
+  ],
+  "sticky": {"at": [1452, 868], "w": 270, "h": 146, "text": "Put the moodles where you want them."}
+ }
+}

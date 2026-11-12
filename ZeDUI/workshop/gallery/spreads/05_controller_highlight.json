@@ -1,0 +1,51 @@
+{
+ "id": "controller_highlight",
+ "n": 5,
+ "seed": 17,
+ "pages": [30, 31],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["5", "Controller Highlight"]},
+   {"p": "With a controller, a mark shows what the controller is on. There are four marks to choose from. Figure 5-1 shows each of them on the same row of the *Character* window, the row for the apples, with the inventory shown as a list. The four are described in Table 5-1 on the facing page."},
+   {"at": 772},
+   {"caption": ["Figure 5-1", "Pointing hand, Corner marks, One wash and Marching ants, from the top."]},
+   {"p": "The mark shows only while a controller is in use, and only in the window the controller is in. When you use the mouse, the mark clears; the next press on the controller brings it back where it was."}
+  ],
+  "prints": [
+   {"src": "zqa_cw_14_focus_hand_inventory_row.png", "box": [1150, 158, 1862, 228], "scale": 0.85, "at": [258, 306], "tape": ["t", "br"]},
+   {"src": "zqa_cw_16_focus_corners_inventory_row.png", "box": [1150, 158, 1862, 228], "scale": 0.85, "at": [258, 412], "tape": ["t", "b"]},
+   {"src": "zqa_cw_18_focus_wash_inventory_row.png", "box": [1150, 158, 1862, 228], "scale": 0.85, "at": [258, 518], "tape": ["tr", "b"]},
+   {"src": "zqa_cw_20_focus_ants_inventory_row.png", "box": [1150, 158, 1862, 228], "scale": 0.85, "at": [258, 624], "tape": ["tr", "br"]}
+  ],
+  "marks": [
+   {"text": "Pointing hand, the default: a hand at the left of the row.", "pen": "blu", "at": [62, 304], "maxw": 188, "to": [0, 1178, 186]},
+   {"text": "Corner marks: four brackets round the row.", "pen": "blu", "at": [62, 410], "maxw": 188, "to": [1, 1199, 165]},
+   {"text": "One wash: the whole row fills with the accent.", "pen": "blu", "at": [62, 516], "maxw": 188, "to": [2, 1214, 192]},
+   {"text": "Marching ants: a dashed outline round the row.", "pen": "blu", "at": [62, 622], "maxw": 188, "to": [3, 1195, 192]}
+  ],
+  "sticky": {"at": [540, 902], "w": 344, "h": 112, "text": "Four ways to mark what the controller is on."}
+ },
+ "right": {
+  "kind": "manual",
+  "head": "Controller Highlight",
+  "blocks": [
+   {"h2": "Choosing a Highlight"},
+   {"p": "The highlight is chosen in the window menu, under *Controller highlight*. It can also be chosen in *ZeD setup*, where a sample row beside the choice shows the mark, and on the ZeD wheel. The choice is saved with the other ZNIX settings."},
+   {"p": "To choose a highlight from the window menu:"},
+   {"list": ["Click the window box at the right end of the title bar.", "Choose *Controller highlight*.", "Choose one of the four marks described in Table 5-1."], "numbered": true},
+   {"table": {"label": "Table 5-1", "title": "The four highlights", "cols": [0.3, 0.7], "head": ["Highlight", "What it draws"],
+     "rows": [
+      ["Pointing hand", "The default. A pointing hand at the left of the element, its fingertip on the element's left edge, over a light wash."],
+      ["Corner marks", "Four L-shaped marks just outside the corners of the element, in the accent color, over a light wash."],
+      ["One wash", "The whole element fills with the accent, and its words change to stay readable."],
+      ["Marching ants", "A dashed outline just outside the element, the dashes moving round it, over a light wash."]
+     ]}},
+   {"note": "On an element that is already solid in the accent color, One wash draws a ring inside the element instead."}
+  ],
+  "marks": [
+   {"underline": "default", "pen": "grn"}
+  ]
+ }
+}

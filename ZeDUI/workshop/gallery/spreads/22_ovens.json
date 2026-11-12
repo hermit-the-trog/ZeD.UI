@@ -1,0 +1,46 @@
+{
+ "id": "ovens",
+ "n": 22,
+ "seed": 38,
+ "pages": [64, 65],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["22", "Ovens and Microwaves"]},
+   {"p": "An oven or a microwave shows its own controls in the *Crafting* tab of the *World* window, as in Figure 22-1."},
+   {"at": 690},
+   {"caption": ["Figure 22-1", "An oven in the Crafting tab."]},
+   {"p": "Above the panel are the name of the appliance, its size in tiles and whether it is on. Under the panel, a line gives the state and the heat set, here *Off* and *Set 390°F*; under that is a list of what is in the oven."},
+   {"h2": "Popping the Controls Out"},
+   {"p": "To give the controls a window of their own, click the button in the corner of the panel. While they are out, the *Crafting* tab shows *Bring it back*; click it to return them to the tab."}
+  ],
+  "prints": [
+   {"src": "zqa_ap_1_tab_stove.png", "box": [2660, 50, 3470, 620], "scale": 0.55, "at": [260, 344], "printed": true}
+  ],
+  "marks": [
+   {"text": "A button in the plate's corner pops the controls out into their own window.", "pen": "blu", "at": [742, 380], "maxw": 148, "bend": 0, "to": [0, 3448, 200]},
+   {"circle": {"word": "Bring"}, "pen": "grn"}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Ovens and Microwaves",
+  "blocks": [
+   {"h2": "In a Window of Their Own"},
+   {"p": "Figure 22-2 shows the controls of the oven in their own window, with the oven on and set to bake at 570°F, and the window of a microwave. A microwave has a face of its own, with its power level, time cook, number keys and start."},
+   {"at": 924},
+   {"caption": ["Figure 22-2", "An oven, top, and a microwave."]}
+  ],
+  "prints": [
+   {"src": "zqa_ap_2b_popout_stove_on.png", "box": [1060, 610, 2830, 1395], "scale": 0.335, "at": [1036, 262], "tape": ["tl", "tr"]},
+   {"src": "zqa_ap_4_popout_microwave.png", "box": [1060, 525, 2830, 1440], "scale": 0.335, "at": [1036, 566], "tape": ["t", "bl"]}
+  ],
+  "marks": [
+   {"text": "The same controls work in the window. The line at its foot shows on or off, and the heat.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [[1, 2610, 845], [1, 1975, 1372]]},
+   {"text": "The microwave has its own face: power level, time cook, number keys and start.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [[2, 2640, 985], [2, 2640, 1154], [2, 2655, 1324]]},
+   {"circle": {"print": 1, "box": [1850, 1360, 1995, 1384]}, "pen": "grn"}
+  ],
+  "sticky": {"at": [1502, 900], "w": 270, "h": 124, "text": "In the tab, or in their own window."}
+ }
+}
