@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/ts_plain.txt (Nov 11 2026, QA): Skills and Equipment search with no other mods (the TabFind.lua exception check, -debug log)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_tab_search.lua | ts | timeout=600

@@ -1,3 +1,4 @@
-# ZeDUI/tools/qa/animals_de.txt (Nov 11 2026, QA): Build's self-cleaning Animals scripts in German at 4K (zedqa_animals_de_run.ps1 with this manifest)
+# ZeDUI/tools/qa/animals_de.txt (Nov 11 2026, QA): the restore, then the Animals scripts in German at 4K (zedqa_animals_de_run.ps1)
+zedqa_animals_restore.lua | ares | timeout=180
 zedqa_animals_quick.lua | aq | timeout=1200
 zedqa_animals_quick_more.lua | aq2 | timeout=1200
