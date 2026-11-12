@@ -4270,3 +4270,16 @@ to be proposed.
     zed-roadmap-s65.html:249, so a mockup first (ZeDUI/mockups/zed_tab_search_v1.html) for the director: where the
     field sits, what it matches (skill names, perk groups; worn item names, slots, body parts), how a match shows, and
     the controller path (the pad keyboard). Then the build. Checks: a sim, controller parity, Deck size, 28 languages.
+
+172. **Skill Recovery Journal: a Transcribe button in the Skills tab's key line (the director, Nov 11 2026: "build it",
+    from QA's design audit; beta 12).** zed_skill_journal_v1.html's YOUR CALL item: when a Bound Journal is on the
+    character, a Transcribe keycap in the key line runs the mod's own Transcribe Into Journal (the same action as the
+    item's menu; the mod's own words and checks; ZeD writes nothing itself). Until now ModSupport/SkillRecoveryJournal.lua
+    left it on the item (line 24). Checks: a sim (shown only with the mod on and a journal carried; greyed with the mod's
+    reason when it can't run; calls the mod's action), controller parity, QA in game with the mod.
+
+173. **Dropped on purpose (the director, Nov 11 2026, from QA's design audit; recorded so they stop showing as gaps).**
+    The equipment doll's leader lines from slot to body (zed_equip_doll_v3 "Chosen", zed_equip_doll_v4_loadouts_r2;
+    EquipDoll.lua's header "No leader lines point at the body"; commit ee3aa381, the director Oct 30). The container's
+    own buttons stay in the bottom row (zed_loot_multicontainer_v4, zed_container_controls_v2; ContainerControls.lua
+    :4-6). Neither is to be built.
