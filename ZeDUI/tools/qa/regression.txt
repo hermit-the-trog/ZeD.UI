@@ -206,3 +206,10 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 # zedqa_death_sleep.lua (kills the character), zedqa_modapi_probe.lua, zedqa_modapi_probe2.lua,
 # zedqa_modapi_probe3.lua, zedqa_body.lua, zedqa_avatar.lua, zedqa_avatar_capture.lua,
 # zedqa_figure_tabs.lua (design captures)
+
+# -- beta 9 to 11 checks (QA, Nov 11 2026, from the design and coverage audit): in-game checks that were outside the unattended run
+zedqa_b10_tooltips.lua | b10tt | timeout=900       # every hover box a balloon with a tail; the requirement balloon's columns
+zedqa_ctx_overlap.lua | ctxov | timeout=300        # a submenu over its parent stays open under the pointer (Strip and List)
+b10_guide_open_frames.lua | gframes | timeout=90   # the guide opens without a long frame
+zedqa_guide_bubble.lua | gbub | timeout=240        # the guide offers itself from the Messages icon in a new game's first hour
+zedqa_b11_notes.lua | b11n | timeout=600          # beta 11: the belt's hand icons, the Loot drawer fold, Nothing here., Dark text steps, a stack's emptiest bar
