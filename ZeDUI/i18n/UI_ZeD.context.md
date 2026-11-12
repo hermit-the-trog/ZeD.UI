@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 3443.
+Total keys: 3604.
 
 ## Areas
 
@@ -37,6 +37,7 @@ Total keys: 3443.
 - [ETW](#etw) (7)
 - [Farm](#farm) (50)
 - [Fire](#fire) (60)
+- [Fish](#fish) (161)
 - [Fluid](#fluid) (31)
 - [Flyer](#flyer) (4)
 - [Focus](#focus) (1)
@@ -1289,6 +1290,172 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Fire_NeedsLighter` | `a lighter or matches in your bags` | Fire card: what Light needs when the fire has fuel, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 | `UI_ZeD_Fire_NeedsSpareTank` | `a propane tank in your bags` | Fire card (propane barbecue): what Insert tank needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 | `UI_ZeD_Fire_QTakeApart` | `Take the campfire apart? The fire is lost.` | Fire card: the question in the footer after Take apart is pressed; the footer then offers a yes and a no | - |
+
+## Fish
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Fish_AddBait` | `Add bait` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_AimFirst` | `Aim at the water first: hold the right mouse button or LT with the rod.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_AimHint` | `Aim at the water, 16 tiles at most.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_AtLevel` | `Fishing %1: %2` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_Average` | `Average` | World window, Fishing tab: a bait's rating for a species caught (the game's grades) | 14 |
+| `UI_ZeD_Fish_Back` | `Back` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_Bait` | `Bait` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_BaitCount` | `%1 kinds | %2` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_BaitHead` | `Bait in your bags` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_BaitLocked` | `Bait can change once the line is in.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_BareHook` | `Nothing in your bags works as bait. With a bare hook, only junk bites: %1.` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_BelowAvg` | `Below average` | World window, Fishing tab: a bait's rating for a species caught (the game's grades) | 14 |
+| `UI_ZeD_Fish_BobberAt` | `Bobber %1 tiles %2` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_ByWeight` | `By weight, all game` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_Cast` | `Cast` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_CastVal` | `%1 tiles of your aim` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_ChangeBait` | `Change bait` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_ChipKV` | `%1: %2` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_ClearAsk` | `Clear the catch log? The trophy wall stays.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_ClearLog` | `Clear log` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_Cm` | `%1cm` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_ColCatch` | `Catch` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_ColCount` | `Count` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_ColWhen` | `When` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_Date` | `%1 %2, %3` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_Day` | `%1 %2` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_Equip` | `Equip rod` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_FCast` | `Cast lands within` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_FJunk` | `Junk` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_FRatings` | `Bait ratings` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_FSizes` | `Sizes` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_FSpecies` | `Species you can hook` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_FTrophy` | `Trophy fish` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_FUsed` | `Bait used up` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_FishLab` | `Fish` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_FromTo` | `%1%% to %2%%` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_GFlesh` | `Flesh` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_GInsects` | `Insects` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_GLeeches` | `Leeches` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_GLures` | `Lures` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_GMinnows` | `Minnows` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_GPlants` | `Plants` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_GWorms` | `Worms` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_GameRecord` | `the game's own record` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_Good` | `Good` | World window, Fishing tab: a bait's rating for a species caught (the game's grades) | 14 |
+| `UI_ZeD_Fish_Great` | `Great` | World window, Fishing tab: a bait's rating for a species caught (the game's grades) | 14 |
+| `UI_ZeD_Fish_Held` | `Held at the limit` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_HelpBack` | `Back to the Fishing tab` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpBait` | `Puts the picked bait on the hook, or takes it off. A lure goes back in your bags; live bait is lost.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpCast` | `Casts where you aim, as the game's cast does. Aim at the water first.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpEquip` | `Puts the fishing rod from your bags in your hands.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpLetOut` | `Hold to let line out. The right mouse button, or turning the right stick back, does the same.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpMore` | `What your Fishing level gives: sizes, bait use, junk, cast spread.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpPick` | `Pick %1 for Add bait or Change bait` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpReel` | `Hold to reel in. The left mouse button anywhere, or turning the right stick, does the same.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpSearch` | `Opens the Foraging tab with Fish Bait chosen.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpStop` | `Stops fishing; the line wears a little, as with the game's stop keys.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HelpWall` | `The heaviest fish of the game and the best of each kind, on plaques.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_HoldRod` | `Hold a fishing rod in your main hand to fish.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_Hook` | `Hook` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_InBags` | `%1 in your bags` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_Junk` | `Junk` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_JunkL0` | `As it comes` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_JunkL5` | `A fifth less` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_JunkL7` | `Two fifths less` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_JunkL9` | `Four fifths less` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_JunkOnly` | `Only junk bites a bare hook.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_Lake` | `Lake` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_LetOut` | `Let out line` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_Line` | `Line` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_LineWear` | `%1%%, wearing while the tension is past the mark` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_LogEmpty` | `Nothing caught yet.` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_LogGame` | `%1 this game` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_LogHead` | `Catch log` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_LogOf` | `%1 of %2` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_Lure` | `Lure` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_LureVal` | `lures: 1 in %1` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_ModeEach` | `Each kind` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_ModeTop` | `Top 10` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_More` | `More detail` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_MoreLine` | `what Fishing %1 gives` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_NOf` | `%1 %2` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_NOfM` | `%1 of %2` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_NearShore` | `Near shore` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_NearShoreSub` | `near shore: %1` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_NoBaitBags` | `No bait in your bags. A lure or bait on the hook still works.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_NoHook` | `None` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_NoRod` | `No fishing rod` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_NoRodBags` | `No fishing rod in your bags.` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_None` | `None` | World window, Fishing tab: a bait's rating for a species caught (the game's grades) | 14 |
+| `UI_ZeD_Fish_NoneOnHook` | `None on the hook` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_NotCaught` | `Not caught yet` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_OfTen` | `of 10` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_OnHook` | `On the hook` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_PlaceAt` | `%1, %2 x %3` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_Poor` | `Poor` | World window, Fishing tab: a bait's rating for a species caught (the game's grades) | 14 |
+| `UI_ZeD_Fish_PromptPick` | `Pick` | World window, Fishing tab: controller prompt for A | 14 |
+| `UI_ZeD_Fish_PromptRecord` | `Show record` | World window, Fishing tab: controller prompt for A | 14 |
+| `UI_ZeD_Fish_PromptWall` | `Open` | World window, Fishing tab: controller prompt for A | 14 |
+| `UI_ZeD_Fish_RAt` | `At` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_RCaught` | `Caught` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_RLength` | `Length` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_RRank` | `Rank` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_RWeight` | `Weight` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_RankOf` | `%1 of %2` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_RarelyLost` | `rarely lost` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_RateCap` | `%1 for the %2 species you have caught` | World window, Fishing tab: a bait's rating for a species caught (the game's grades) | 14 |
+| `UI_ZeD_Fish_RatingsAt` | `From Fishing 6` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_RatingsYes` | `For the species you have caught` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_Reel` | `Reel in` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_Reeling` | `Reeling` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_RemoveBait` | `Remove bait` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_River` | `River` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_Rod` | `Rod` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_Search` | `Search for bait` | World window, Fishing tab: a button in the band at the foot | 16 |
+| `UI_ZeD_Fish_Sizes` | `%1 %2 | %3 %4` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_StFight` | `Fish on` | World window, Fishing tab, header strip: the line's state | 22 |
+| `UI_ZeD_Fish_StNoBait` | `No bait` | World window, Fishing tab, header strip: the line's state | 22 |
+| `UI_ZeD_Fish_StNoRod` | `No rod in hand` | World window, Fishing tab, header strip: the line's state | 22 |
+| `UI_ZeD_Fish_StReady` | `Ready to cast` | World window, Fishing tab, header strip: the line's state | 22 |
+| `UI_ZeD_Fish_StWait` | `Line in the water` | World window, Fishing tab, header strip: the line's state | 22 |
+| `UI_ZeD_Fish_StillToCatch` | `One of the %1 species still to catch.` | World window, Fishing tab, header strip: the line's state | 22 |
+| `UI_ZeD_Fish_Stop` | `Stop fishing` | World window, Fishing tab, header strip: the line's state | 22 |
+| `UI_ZeD_Fish_TSlack` | `Slack` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_TSnaps` | `Snaps` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_TTight` | `Tight` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_TWears` | `Line wears` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_TakeHead` | `What fish take` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_Tension` | `Tension` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_TipAdd` | `Add bait puts the %1 on the hook.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_TipChange` | `Change bait puts the %1 on the hook in place of the %2.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_TipFight` | `Too much tension and the line breaks. The rod in your hands shows the same tension above the belt.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_TipWait` | `Bass, walleye, musky and gar strike only a moving line: reel a little now and then.` | World window, Fishing tab: the help line at the window's foot | - |
+| `UI_ZeD_Fish_TooHeavy` | `Heavier than Fishing %1 can hook.` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_TripBait` | `Bait used` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripFish` | `%1 fish` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripHead` | `This trip` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripHeavy` | `Heaviest` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripLanded` | `Landed` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripOther` | `%1 junk | %2 got away` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripSince` | `since %1` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripSpecies` | `Species found` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TripTotal` | `Total weight` | World window, Fishing tab, This trip facts | - |
+| `UI_ZeD_Fish_TrophyAt` | `From Fishing 8` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_TrophyYes` | `One big fish in 20` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_Unknown` | `Unknown until landed` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_UpToKg` | `Up to %1 kg` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_UsedVal` | `%1 catches in 20` | World window, Fishing tab, More detail fold: what the Fishing level gives (label column 150u) | - |
+| `UI_ZeD_Fish_Waiting` | `Waiting for a bite` | World window, Fishing tab, Fish on: the tension block and the strip under the header | - |
+| `UI_ZeD_Fish_WallBtn` | `Trophy wall (%1)` | World window, Fishing tab, Catch log: header, column heads and rows | 20 |
+| `UI_ZeD_Fish_WallEmpty` | `Nothing landed yet. Fish you land hang here, the heaviest first.` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_WallKept` | `%1 fish landed. Kept all game, in your save.` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_WallTitle` | `Trophy wall` | World window, Fishing tab, Trophy wall card: plaques, the modes and the picked plaque's record | - |
+| `UI_ZeD_Fish_WaterAt` | `Water %1 tiles %2` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_WaterNear` | `Water beside you` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
+| `UI_ZeD_Fish_WhereFood` | `Bread, Cheese, Dough or an open can of dog food work, raw.` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_WhereFoodLab` | `Your food` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_WhereForage` | `The Fish Bait category: worms, insects, snails and slugs on the ground nearby.` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_WhereHead` | `Where to get it` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_WhereNet` | `Set in the water, it catches Little Bait Fish, Tadpoles and Crayfish.` | World window, Fishing tab, No bait state: the game's bait groups and where to get bait | - |
+| `UI_ZeD_Fish_XpTo` | `%1%% to %2` | World window, Fishing tab: the rod hero, chips, bait list and band | - |
 
 ## Fluid
 

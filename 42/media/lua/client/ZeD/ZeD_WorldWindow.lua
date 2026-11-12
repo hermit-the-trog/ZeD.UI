@@ -1419,6 +1419,14 @@ _syncWorldRingZones = function(win, content)
             if el.id == "forage:search" then contentIdx = i; break end
         end
     end
+    -- (a tab another file added names its own main action: def.landOn(win) gives the stop's id)
+    local extLand = ZeD_WorldWindow._extTabs[tabId]
+    if extLand and extLand.landOn then
+        local want = extLand.landOn(win)
+        for i, el in ipairs(newContentEls) do
+            if el.id == want then contentIdx = i; break end
+        end
+    end
     Focus.setRingZoneElements(win, "worldTabContent",     newContentEls, contentIdx)
     Focus.setZoneFocusable   (win, "worldTabContent",     #newContentEls > 0)
     -- containerEls are in [floor, non-floor display-order] layout
