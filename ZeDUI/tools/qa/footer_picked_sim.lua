@@ -153,7 +153,7 @@ do
     local h = { _selectedItems = cs3.selectedItems, _inventory = i3 }
     local t = lineNow(h, { cs1, cs2, cs3 })
     check("picks across columns against every column's things",
-        t == "5 of 35 picked | " .. string.format("%.1f", 0.5 + 0.3 + 1.25) .. " kg", t)
+        t == "5 of 35 picked | " .. string.format("%.1f", 2050 / 1000) .. " kg", t)   -- (summed in grams: one answer)
     cs1.selectedItems, cs2.selectedItems, cs3.selectedItems = {}, {}, {}
     h._selectedItems = cs3.selectedItems
     t = lineNow(h, { cs1, cs2, cs3 })
@@ -360,7 +360,8 @@ do
         local now, was = cut(srcOf(rel), from, to), cut(baseOf(rel), from, to)
         return now ~= nil and now == was, now == nil and "not found" or (was == nil and "not in BASE" or "changed")
     end
-    local ok, why = same("ZeD_CharacterWindow.lua", "        -- Title bar stats: [heart] hp%  [pack] weight / max", "noMark = true }")
+    -- (only the weight's own lines: the health percent beside it became the status pixel by the name, Nov 11 2026)
+    local ok, why = same("ZeD_CharacterWindow.lua", "        -- Weight (rightmost): a figure, no status mark", "noMark = true }")
     check("the title bar's weight is the code before", ok, why)
     ok, why = same("ZeD_CharacterWindow.lua", "                self._containerInfo = {", "                }")
     check("the Character heading's weight is the code before", ok, why)

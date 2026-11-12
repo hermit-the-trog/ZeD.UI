@@ -94,9 +94,11 @@ end
 function P.weigh(set)
     local w = 0
     local ok = pcall(function()
-        for it in pairs(set) do w = w + (it:getUnequippedWeight() or 0) end
+        -- (summed in whole grams: a sum of tenths such as 0.5 + 0.3 + 1.25 otherwise lands a hair either side of
+        -- 2.05 depending on the order pairs() hands the picks over, and the shown tenth flickered between runs)
+        for it in pairs(set) do w = w + math.floor((it:getUnequippedWeight() or 0) * 1000 + 0.5) end
     end)
-    return ok and w or 0
+    return ok and w / 1000 or 0
 end
 
 -- the same things in both sets
