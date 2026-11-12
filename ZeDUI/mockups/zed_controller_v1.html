@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Controller Figure</title>
+<!-- ZeD-GUI mockup: the drawn controller for Options > Controls > Button map and test, punch list 108, v1.
+     Director, Nov 7 2026: the Nov 8 build ships the map and live test with a plain System 7 box pad; design draws a proper
+     pad in ZeD's pixel art to replace it.
+     Starting points: the shipped page (ZeD_MainMenuOptionsSub.lua: drawPadDiagram, drawPadPage, padElements, padBound,
+     padToggle, openPadActions), the quick wheel's Controller map (ZeD_ControllerMap.lua, its texture
+     media/textures/ZeD/controller_map.png: 200 x 136 art pixels at 4x), the pad's generator
+     ZeDUI/workshop/controller_map/pixel_pad.py with the Nov 2 edits (tools/icons/bumpers_long.py: bumpers out to the body's
+     curve, triggers in 3 cells; tools/icons/pad_ki_logo.py: the KI maker's mark), ZeD_PadGlyphs.lua (the button pictures,
+     ported here 1:1), GAMEPAD_SPEC.md and UI_ZeD_CMap_* (the roles). The game's bindings and thresholds are 42.21's
+     defaults (gamepadBinding.lua, CharacterInputComponent: melee and precision aim -0.80, shoot 0.93).
+     Chrome, tokens, review bar, keycaps and the pointing hand copied from zed_console_v1.html.
+
+     For Build (not the director's): the drawing below is the generator in JS. Same 200 x 136 grid as controller_map.png,
+     so one sprite can serve both windows. Changes from the shipped texture: a 1 px ink outline round the silhouette, no
+     printed names on the art (the labels carry them), the face buttons per set, the plastic palette per choice. In game,
+     draw the resting sprite per set and layout (xbox house, xbox offset, ps) as one texture each at whole multiples
+     (k = floor(available px / 188) on the 188 x 106 crop); a lit part is the same part's pixels in the accent (ship each
+     part's three-tone mask: fill, dither and rims, as white textures tinted with accent, accent dark and accent light), a
+     pressed button draws 1 art px down and right with no shadow, the stick cap is its own sprite moved by
+     round(axis * (well radius - 9)), a trigger's fill is its mask clipped to the bottom rows (round(pull * 7) of the 7
+     showing). The labels replace the list: same specs (one stop per label), A or a click opens openPadActions for the
+     label's element (sticks and the D-pad first ask which element). Units: 1 CSS px = 1 ZeD unit. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #47a18c; --acc-text: var(--accent); --on-accent: #0c0c0c; --hover: rgba(71,161,140,0.22);
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --lead: #9a9aa0; --lead-case: rgba(0,0,0,0.6);
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --page: #0e0f10; --ground: #2c2f24;
+}
+:root[data-theme="light"] {
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84; --ground: #7d8068;
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48;
+  --lead: #3a3a3e; --lead-case: transparent;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: 15px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: center; padding: 8px 16px 4px;
+  font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; position: sticky; top: 0; z-index: 5; }
+.review b { color: #ddd; font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.review .sw { width: 18px; height: 18px; padding: 0; border: 1px solid #444; }
+.review .sw.on { outline: 1px solid #fff; outline-offset: 1px; }
+.keys { padding: 3px 16px 8px; background: #000; border-bottom: 1px solid #333; font: 400 12px/1.5 var(--font-mono); color: #8a8a8a; text-align: center; position: sticky; top: 0; }
+.keys b { color: #cfcfcf; font-weight: 500; }
+.stage { display: flex; justify-content: center; padding: 16px; overflow: hidden; }
+.zoomer { transform-origin: top left; }
+.notes { max-width: 980px; margin: 0 auto; padding: 4px 16px 48px; color: #c8c8c8; font-size: 15px; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; color: #8fc9b9; margin: 22px 0 8px; }
+.notes p { margin: 0 0 8px; max-width: 84ch; }
+.notes ol, .notes ul { margin: 0 0 8px; padding-left: 20px; max-width: 86ch; }
+.notes li { margin-bottom: 4px; }
+.notes .rec { color: #8fc9b9; }
+
+.scene { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; background: var(--ground); }
+.cap { font: 400 12px/1 var(--font-mono); color: rgba(255,255,255,0.6); align-self: flex-start; }
+.deck { width: 1707px; height: 1067px; position: relative; background: var(--ground); display: flex; align-items: center; justify-content: center; border: 1px solid #000; }
+.deck .cap { position: absolute; left: 12px; top: 10px; }
+.sprite { padding: 28px; background: var(--base); border: 1px solid var(--border-strong); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.sprite canvas { image-rendering: pixelated; display: block; touch-action: none; }
+.sprite .cap { color: var(--text-secondary); }
+
+/* ---------- ZeD window chrome */
+.win { position: relative; display: flex; flex-direction: column; background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px; position: relative;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); flex: 0 0 12px; }
+.titlechip { position: absolute; left: 50%; transform: translateX(-50%); background: var(--surface-2); padding: 0 8px; font: 700 13px/22px var(--font-mono); color: var(--acc-text); white-space: nowrap; }
+.titlebar .rt { margin-left: auto; background: var(--surface-2); padding: 0 6px; font: 400 12px/22px var(--font-mono); color: var(--acc-text); }
+.wb { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 12px 0; }
+.pick { position: relative; flex: 0 0 24px; height: 24px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.plab { font: 700 12px/1 var(--font-mono); color: var(--acc-text); }
+.popup { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 24px; min-width: 200px; padding: 0 8px; background: var(--surface-1); border: 1px solid var(--border-strong);
+  font: 400 14px/1 var(--font-sans); white-space: nowrap; cursor: pointer; justify-content: space-between; }
+.popup::after { content: ""; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-secondary); margin-left: 12px; }
+.popup.hot { border-color: var(--accent); }
+.testing { display: inline-flex; align-items: center; gap: 7px; font: 400 14px/1 var(--font-sans); color: var(--text); }
+.sq { width: 7px; height: 7px; flex: 0 0 7px; display: inline-block; }
+
+/* the figure */
+.fig { position: relative; flex: 1; min-height: 0; background: var(--base); border: 1px solid var(--border-strong); overflow: hidden; }
+.fig canvas.pad { position: absolute; image-rendering: pixelated; cursor: pointer; touch-action: none; }
+.fig svg.lead { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.lab { position: absolute; max-width: 184px; padding: 3px 6px 4px; cursor: pointer; }
+.lab .l1 { display: flex; align-items: center; gap: 6px; font: 400 15px/18px var(--font-sans); color: var(--text); white-space: nowrap; }
+.lab .l2 { font: 400 11px/14px var(--font-mono); color: var(--text-secondary); margin-top: 1px; white-space: pre-line; }
+.lab.ra { text-align: right; }
+.lab.ra .l1 { flex-direction: row-reverse; }
+.lab .gl { display: inline-flex; flex: 0 0 auto; }
+.lab.hot { background: var(--hover); }
+.lab.lit .rl { color: var(--acc-text); }
+.lab .pct { font: 400 11px/1 var(--font-mono); color: var(--text-secondary); font-variant-numeric: tabular-nums; min-width: 30px; }
+.lab.ra .pct { text-align: right; }
+.lab .pct.on { color: var(--acc-text); }
+.dial { position: relative; width: 13px; height: 13px; flex: 0 0 13px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.dial i { position: absolute; width: 3px; height: 3px; left: 4px; top: 4px; background: var(--text-secondary); }
+.dial.on i { background: var(--accent); }
+.dial::before, .dial::after { content: ""; position: absolute; background: var(--border); }
+.dial::before { left: 5px; top: 0; width: 1px; height: 11px; } .dial::after { top: 5px; left: 0; height: 1px; width: 11px; }
+
+/* keycaps, the strip and the foot */
+.strip { flex: 0 0 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+.strip .sp { flex: 1; }
+.foot { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 5px 10px; background: var(--surface-2); border-top: 1px solid var(--border-strong); min-height: 32px;
+  font: 400 14px/1.3 var(--font-sans); color: var(--text); }
+.foot .hint { flex: 1; min-width: 0; }
+.foot .hint .dim { color: var(--text-secondary); }
+.foot .pr { display: flex; gap: 12px; flex: 0 0 auto; font: 400 13px/1 var(--font-sans); }
+.foot .pr span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.btn { position: relative; padding: 4px 14px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/16px var(--font-mono); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn.off { opacity: .4; cursor: default; }
+.btn.hot:not(.off) { color: var(--acc-text); }
+
+/* ZeD pull-down menus */
+.menu { position: absolute; z-index: 8; min-width: 230px; max-height: 420px; overflow-y: auto; background: var(--surface-1); border: 1px solid var(--border-strong);
+  font: 400 14px/1 var(--font-sans); scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; padding: 2px 0; }
+.mi { position: relative; display: flex; align-items: center; gap: 6px; height: 21px; padding: 0 12px 0 4px; white-space: nowrap; cursor: pointer; }
+.mi .ck { width: 14px; flex: 0 0 14px; display: inline-flex; justify-content: center; }
+.mi .t { flex: 1; }
+.mi .r { color: var(--text-secondary); font: 400 11px/1 var(--font-mono); margin-left: 16px; }
+.mi.sel { background: var(--accent); color: var(--on-accent); }
+.mi.sel .r { color: var(--on-accent); }
+.mi.hdr { cursor: default; font: 700 11px/1 var(--font-mono); color: var(--text-secondary); height: 20px; padding-left: 8px; }
+.mi.sepr { height: 7px; cursor: default; } .mi.sepr::after { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 1px; background: var(--border); }
+.tri.r { width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid currentColor; display: inline-block; margin-left: 10px; }
+
+.hand { position: absolute; left: -16px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 7; }
+.lab > .hand { top: 12px; }
+.px { image-rendering: pixelated; shape-rendering: crispEdges; display: block; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="keys" id="keys"></div>
+<div class="stage" id="stage"><div class="zoomer" id="zoomer"></div></div>
+<div class="notes" id="notes"></div>
+
+<script>
+"use strict";
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ======================================================================
+   Tokens: the nine accents (Tokens.lua, dark and light), the plastics
+   ====================================================================== */
+const ACCENTS = [
+  ["red", "Red", "#CC4444", "#7A1A1A"], ["orange", "Orange", "#D4922A", "#7A5010"], ["yellow", "Yellow", "#CCAA22", "#6B5F0A"],
+  ["green", "Green", "#44AA44", "#125518"], ["blue", "Blue", "#4488CC", "#1A4477"], ["teal", "PZ Teal", "#47A18C", "#1A6655"],
+  ["purple", "Purple", "#8855BB", "#441888"], ["pink", "Pink", "#DD5588", "#882244"], ["mono", "None", "#888888", "#3A3A3A"]];
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const toHex = c => "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
+function accentHex() { const a = ACCENTS.find(x => x[0] === S.accent) || ACCENTS[5]; return S.theme === "light" ? a[3] : a[2]; }
+function accentPal() {
+  const a = hex(accentHex());
+  return { base: a, dark: mix(a, [0, 0, 0], .28), hi: mix(a, [255, 255, 255], .38), lo: mix(a, [0, 0, 0], .55), on: hex(S.theme === "light" ? "#F2F0EC" : "#0C0C0C") };
+}
+// the pad's plastics: b0 the light rim .. b5 the darkest trim (pixel_pad.py's beige computer plastics)
+const BEIGE = { b0: [250, 245, 232], b1: [228, 220, 200], b2: [206, 197, 174], b3: [172, 162, 138], b4: [124, 115, 96], b5: [84, 77, 63] };
+const PLASTICS = {
+  toned: Object.fromEntries(Object.entries(BEIGE).map(([k, v]) => [k, v.map(c => Math.round(c * 0.80))])),
+  beige: BEIGE,
+  graphite: { b0: [148, 148, 146], b1: [92, 92, 90], b2: [78, 78, 76], b3: [64, 64, 62], b4: [46, 46, 45], b5: [32, 32, 31] },
+};
+const INK = [20, 20, 20], BLACK = [0, 0, 0];
+const XCOL = { A: [[31, 122, 98], [18, 78, 62], [72, 170, 140], [255, 255, 255]], B: [[200, 32, 42], [132, 16, 24], [232, 84, 76], [255, 255, 255]],
+               X: [[68, 136, 204], [40, 88, 150], [130, 180, 230], [255, 255, 255]], Y: [[204, 170, 34], [150, 120, 20], [240, 214, 110], INK] };
+const PSDISC = { base: [43, 43, 46], dark: [30, 30, 32], hi: [92, 92, 96], lo: [12, 12, 12] };
+const PSSYM = { A: ["cross", "#7C9BF2"], B: ["circ", "#F0505E"], X: ["sq", "#EE8FD0"], Y: ["tri", "#2FBF8F"] };
+
+/* ======================================================================
+   The button pictures: ZeD_PadGlyphs.lua, ported 1:1 (13 px tall, k whole multiples)
+   ====================================================================== */
+const RING = ["....XXXXX....", "..XX.....XX..", ".X.........X.", ".X.........X.", "X...........X", "X...........X", "X...........X", "X...........X", "X...........X", ".X.........X.", ".X.........X.", "..XX.....XX..", "....XXXXX...."];
+const BUMP = ["..XXXXXXXXXXXXXXX..", ".X...............X.", "X.................X", "X.................X", "X.................X", "X.................X", "X.................X", "X.................X", "X.................X", "X.................X", "XXXXXXXXXXXXXXXXXXX"];
+const TRIG = ["...XXXXXXXXX...", ".XX.........XX.", "X.............X", "X.............X", "X.............X", "X.............X", "X.............X", "X.............X", "X.............X", "X.............X", "X.............X", "X.............X", "XXXXXXXXXXXXXXX"];
+const DPADG = ["....XXXXX....", "....X...X....", "....X...X....", "....X...X....", "XXXXX...XXXXX", "X...........X", "X...........X", "X...........X", "XXXXX...XXXXX", "....X...X....", "....X...X....", "....X...X....", "....XXXXX...."];
+const PILL = [".XXXXXXX.", "X.......X", "X.......X", "X.......X", "X.......X", "X.......X", "X.......X", "X.......X", "X.......X", "X.......X", ".XXXXXXX."];
+const SYM = { tri: ["...X...", "..X.X..", "..X.X..", ".X...X.", ".X...X.", "XXXXXXX"], circ: ["..XXX..", ".X...X.", "X.....X", "X.....X", "X.....X", ".X...X.", "..XXX.."],
+              cross: ["XX...XX", ".XX.XX.", "..XXX..", "...X...", "..XXX..", ".XX.XX.", "XX...XX"], sq: ["XXXXXXX", "X.....X", "X.....X", "X.....X", "X.....X", "X.....X", "XXXXXXX"] };
+const VIEWI = ["XXXX..", "X..X..", "X.XXXX", "XXX..X", "..X..X", "..XXXX"];
+const ARMG = { DU: [5, 1, 7, 4], DD: [5, 8, 7, 11], DL: [1, 5, 4, 7], DR: [8, 5, 11, 7] };
+const F35 = { A: ["010", "101", "111", "101", "101"], B: ["110", "101", "110", "101", "110"], L: ["100", "100", "100", "100", "111"], R: ["110", "101", "110", "101", "101"],
+  T: ["111", "010", "010", "010", "010"], X: ["101", "101", "010", "101", "101"], Y: ["101", "101", "010", "010", "010"], Z: ["111", "001", "010", "100", "111"],
+  "1": ["010", "110", "010", "010", "111"], "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "011", "001", "111"], "-": ["000", "000", "111", "000", "000"], "+": ["000", "010", "111", "010", "000"] };
+const F57 = { A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"], B: ["11110", "10001", "11110", "10001", "10001", "10001", "11110"],
+  X: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"], Y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+  L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"], R: ["11110", "10001", "10001", "11110", "10010", "10001", "10001"] };
+const XGLYPH = { A: ["#57B03A", "#101010"], B: ["#D7423A", "#F4F2EC"], X: ["#3C78D8", "#F4F2EC"], Y: ["#E4B320", "#101010"] };
+
+function gNew(w, h) { return { w, h, c: new Array(w * h).fill(null) }; }
+function gPut(g, x, y, s) { if (x >= 0 && y >= 0 && x < g.w && y < g.h) g.c[y * g.w + x] = s; }
+function gStamp(g, rows, x0, y0, s) { rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === "X" || r[x] === "1") gPut(g, x0 + x, y0 + y, s); }); }
+function gFill(g, rows, s) {
+  for (let y = 1; y < rows.length - 1; y++) {
+    const r = rows[y]; let a = -1, b = -1;
+    for (let x = 0; x < r.length; x++) if (r[x] === "X") { if (a < 0) a = x; b = x; }
+    if (a >= 0) for (let x = a + 1; x < b; x++) if (r[x] !== "X") gPut(g, x, y, s);
+  }
+}
+function gText(g, font, str, x0, y0, s) { let x = x0; for (const ch of str) { const rows = font[ch]; if (rows) { gStamp(g, rows, x, y0, s); x += rows[0].length + 1; } } }
+function gTextW(font, str) { let w = 0; for (const ch of str) { const rows = font[ch]; if (rows) w += rows[0].length + 1; } return Math.max(0, w - 1); }
+function gBuild(role, set) {
+  let g;
+  if ("ABXY".includes(role) && role.length === 1) {
+    g = gNew(13, 13);
+    if (set === "xbox") { const c = XGLYPH[role]; gFill(g, RING, c[0]); gStamp(g, RING, 0, 0, c[0]); gText(g, F57, role, 4, 3, c[1]); }
+    else { const c = PSSYM[role]; gFill(g, RING, "#1C1C1C"); gStamp(g, RING, 0, 0, "rim"); gStamp(g, SYM[c[0]], 3, 3, c[1]); }
+  } else if (role === "LB" || role === "RB") {
+    g = gNew(19, 11); gFill(g, BUMP, "paper"); gStamp(g, BUMP, 0, 0, "ink");
+    const s = set === "xbox" ? role : role[0] + "1"; gText(g, F35, s, Math.floor((19 - gTextW(F35, s)) / 2), 3, "ink");
+  } else if (role === "LT" || role === "RT") {
+    g = gNew(15, 13); gFill(g, TRIG, "paper"); gStamp(g, TRIG, 0, 0, "ink");
+    const s = set === "xbox" ? role : role[0] + "2"; gText(g, F35, s, Math.floor((15 - gTextW(F35, s)) / 2), 5, "ink");
+  } else if (role === "LS" || role === "RS") {
+    g = gNew(13, 13); gStamp(g, RING, 0, 0, "ink"); gText(g, F57, role[0], 4, 3, "ink");
+    gPut(g, 6, 1, "ink"); gPut(g, 6, 11, "ink"); gPut(g, 1, 6, "ink"); gPut(g, 11, 6, "ink");
+  } else if (role === "L3" || role === "R3") {
+    g = gNew(13, 13); gFill(g, RING, "ink"); gStamp(g, RING, 0, 0, "ink");
+    if (set === "xbox") gText(g, F57, role[0], 4, 3, "knock"); else gText(g, F35, role, 3, 4, "knock");
+  } else if (role[0] === "D") {
+    g = gNew(13, 13); gFill(g, DPADG, "paper"); gStamp(g, DPADG, 0, 0, "ink");
+    const arms = role === "DLR" ? ["DL", "DR"] : role === "DUD" ? ["DU", "DD"] : [role];
+    for (const a of arms) { const r = ARMG[a]; if (r) for (let y = r[1]; y <= r[3]; y++) for (let x = r[0]; x <= r[2]; x++) gPut(g, x, y, "ink"); }
+  } else if (role === "SEL" || role === "START") {
+    if (set === "ps") {
+      g = gNew(9, 11); gFill(g, PILL, "paper"); gStamp(g, PILL, 0, 0, "ink");
+      if (role === "SEL") { for (const x of [3, 5]) for (let y = 3; y <= 7; y++) gPut(g, x, y, "ink"); }
+      else for (const y of [3, 5, 7]) for (let x = 2; x <= 6; x++) gPut(g, x, y, "ink");
+    } else {
+      g = gNew(13, 13); gFill(g, RING, "paper"); gStamp(g, RING, 0, 0, "ink");
+      if (role === "SEL") gStamp(g, VIEWI, 4, 4, "ink"); else for (const y of [4, 6, 8]) for (let x = 4; x <= 8; x++) gPut(g, x, y, "ink");
+    }
+  } else return null;
+  return g;
+}
+function slotFill(s) {
+  if (s === "ink") return "var(--text)"; if (s === "paper") return "var(--surface-3)"; if (s === "knock") return "var(--surface-1)";
+  if (s === "rim") return S.theme === "light" ? "#101010" : "#6A6A6A"; return s;
+}
+// pictures side by side, each centered in a strip 13 px tall; scale in CSS px per picture pixel
+function glyphSVG(roles, set, scale = 1.15) {
+  const pics = roles.map(r => gBuild(r, set)).filter(Boolean);
+  const W = pics.reduce((a, p) => a + p.w, 0) + Math.max(0, pics.length - 1), H = 13;
+  let x0 = 0, r = "";
+  for (const p of pics) {
+    const y0 = Math.floor((H - p.h) / 2);
+    for (let y = 0; y < p.h; y++) { let x = 0; while (x < p.w) { const s = p.c[y * p.w + x]; if (!s) { x++; continue; } let x1 = x; while (x1 + 1 < p.w && p.c[y * p.w + x1 + 1] === s) x1++;
+      r += `<rect x="${x0 + x}" y="${y0 + y}" width="${x1 - x + 1}" height="1" style="fill:${slotFill(s)}"/>`; x = x1 + 1; } }
+    x0 += p.w + 1;
+  }
+  return `<svg class="px" width="${(W * scale).toFixed(2)}" height="${(H * scale).toFixed(2)}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${r}</svg>`;
+}
+
+/* small pixel icons: the pointing hand (the Controller highlight), the menu tick */
+const ICON = {
+  hand: ["....##########.", "...#WWWWWWWWWW#", "##.#WWW########", "#W#WWWW#WWWW#..", "#W#WWWW#####...", "#W#WWWW#WWWW#..", "#W#WWWW#####...", "#W#WWWWWWWW#...", "##.#WWWWWWW#...", "....#######...."],
+  tick: ["........x", ".......xx", "x.....xx.", "xx...xx..", ".xx.xx...", "..xxx....", "...x....."],
+};
+function px(name, scale) {
+  const m = ICON[name], h = m.length, w = m[0].length; let r = "";
+  const PAL = { "#": "#111", W: "#f4f4f4", x: "currentColor" };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const ch = m[y][x]; if (ch !== ".") r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`; }
+  return `<svg class="px" width="${w * scale}" height="${h * scale}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+const sq = c => `<span class="sq" style="background:${c}"></span>`;
+
+/* ======================================================================
+   The pad drawing: pixel_pad.py (Oct 23) + bumpers_long.py and pad_ki_logo.py (Nov 2), ported, in parts that light.
+   200 x 136 art pixels, the shipped texture's grid. Light from the top left: b0 rims up and left, b4 rims down and
+   right, ordered dither for the shading, a hard black shadow down and right, now a 1 px ink outline round it all.
+   ====================================================================== */
+const GW = 200, GH = 136, X0 = 8, Y0 = 21, CW = 188, CH = 106;   // CW x CH: the crop the window shows
+const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+let BUF = null;
+function put(x, y, c) { if (x < 0 || y < 0 || x >= GW || y >= GH) return; const i = (y * GW + x) * 4; BUF[i] = c[0]; BUF[i + 1] = c[1]; BUF[i + 2] = c[2]; BUF[i + 3] = 255; }
+function mk() { const m = new Uint8Array(GW * GH); m.bb = [GW, GH, -1, -1]; return m; }
+function mset(m, x, y) { if (x < 0 || y < 0 || x >= GW || y >= GH) return; m[y * GW + x] = 1; const b = m.bb; if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y; }
+const inM = (m, x, y) => x >= 0 && y >= 0 && x < GW && y < GH && m[y * GW + x] === 1;
+function mDisc(cx, cy, r) { const m = mk(), R = (r + .5) * (r + .5) - .3; for (let y = cy - r - 1; y <= cy + r + 1; y++) for (let x = cx - r - 1; x <= cx + r + 1; x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= R) mset(m, x, y); return m; }
+function mRing(cx, cy, r) { const m = mk(); for (let y = cy - r - 1; y <= cy + r + 1; y++) for (let x = cx - r - 1; x <= cx + r + 1; x++) { const d = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2); if (Math.abs(d - r) < .5) mset(m, x, y); } return m; }
+function mRects(rs) { const m = mk(); for (const [x0, y0, x1, y1] of rs) for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) mset(m, x, y); return m; }
+// shapes the analytic helpers can't do (rounded slabs, the lobes) go through a canvas, thresholded at half alpha (PIL's rule)
+const scratch = document.createElement("canvas"); scratch.width = GW; scratch.height = GH;
+const sctx = scratch.getContext("2d", { willReadFrequently: true });
+function mCanvas(fn) {
+  sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.clearRect(0, 0, GW, GH); sctx.fillStyle = "#fff"; fn(sctx);
+  const d = sctx.getImageData(0, 0, GW, GH).data, m = mk();
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) if (d[(y * GW + x) * 4 + 3] > 127) mset(m, x, y);
+  return m;
+}
+const rrect = (x0, y0, x1, y1, r) => c => { c.beginPath(); c.roundRect(x0, y0, x1 - x0 + 1, y1 - y0 + 1, r); c.fill(); };
+function polyPath(c, pts) { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x + .5, y + .5) : c.moveTo(x + .5, y + .5)); c.closePath(); c.fill(); }
+const MASKS = {};
+function staticMasks() {
+  if (MASKS.body) return MASKS;
+  // the body: one rounded slab across the top, two lobes a little squarer than circles, a bridge bowed up underneath
+  MASKS.body = mCanvas(c => {
+    const lx = 52, cy = 80, r = 41, rx = 148;
+    c.beginPath(); c.roundRect(lx - r, 38, (rx + r) - (lx - r) + 1, (cy + 1) - 38 + 1, [26, 26, 0, 0]); c.fill();
+    for (const cx of [lx, rx]) {
+      const pts = [];
+      for (let i = 0; i <= 180; i++) { const t = Math.PI * i / 180, co = Math.cos(t), sn = Math.sin(t);
+        pts.push([cx + r * Math.sign(co) * Math.pow(Math.abs(co), 2 / 2.4), cy + r * Math.pow(Math.abs(sn), 2 / 2.4)]); }
+      polyPath(c, pts);
+    }
+    const x0 = 52, x1 = 148, yl = 119, yc = 113, bot = [];
+    for (let x = x0; x <= x1; x++) bot.push([x, yl - (yl - yc) * Math.sin(Math.PI * (x - x0) / (x1 - x0))]);
+    polyPath(c, [[x0, cy], [x1, cy], ...bot.reverse()]);
+  });
+  // the shoulders: flat bars side by side, the bumper lapping the trigger, out to where the body's top curve starts
+  MASKS.trigL = mCanvas(rrect(34, 24, 59, 40, 6)); MASKS.trigR = mCanvas(rrect(141, 24, 166, 40, 6));
+  MASKS.bumpL = mCanvas(rrect(30, 31, 76, 40, 5)); MASKS.bumpR = mCanvas(rrect(124, 31, 170, 40, 5));
+  MASKS.SEL = mCanvas(rrect(79, 65, 89, 69, 2)); MASKS.START = mCanvas(rrect(111, 65, 121, 69, 2));
+  return MASKS;
+}
+// fill a mask: base dithered toward dark from t0 (top) to t1 (bottom); a light rim where the pixel above or to the left
+// is outside, a dark rim where the pixel below or to the right is (pixel_pad.py's shade). clip: only these pixels.
+function shade(m, base, dark, t0, t1, y0, y1, hi, lo, lo2, clip, dx = 0, dy = 0) {
+  const [bx0, by0, bx1, by1] = m.bb;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (!inM(m, x, y) || (clip && !clip(x, y))) continue;
+    const f = (y - y0) / Math.max(1, y1 - y0), t = t0 + (t1 - t0) * clamp(f, 0, 1);
+    let c = (BAYER[y & 3][x & 3] + .5) / 16 < t ? dark : base;
+    if (!inM(m, x, y - 1) || !inM(m, x - 1, y)) c = hi;
+    if (!inM(m, x, y + 1) || !inM(m, x + 1, y)) c = lo;
+    if (lo2 && (!inM(m, x, y + 2) || !inM(m, x + 2, y)) && c !== lo && c !== hi) c = lo2;
+    put(x + dx, y + dy, c);
+  }
+}
+function hardShadow(m, dx, dy) { const [bx0, by0, bx1, by1] = m.bb; for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (inM(m, x, y) && !inM(m, x + dx, y + dy)) put(x + dx, y + dy, BLACK); }
+// a recessed well: darker rim up and left (the shadow inside), a light lip down and right
+function well(m, base, C) {
+  const [bx0, by0, bx1, by1] = m.bb;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (!inM(m, x, y)) continue;
+    let c = base;
+    if (!inM(m, x, y - 1) || !inM(m, x - 1, y)) c = C.b4; else if (!inM(m, x, y - 2) || !inM(m, x - 2, y)) c = C.b3;
+    if (!inM(m, x, y + 1) || !inM(m, x + 1, y)) c = C.b0;
+    put(x, y, c);
+  }
+}
+function stampRows(rows, x0, y0, c) { rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === "1" || r[x] === "X" || r[x] === "#") put(x0 + x, y0 + y, c); }); }
+
+// where the parts sit. House layout (every set unless the Xbox layout is picked): the D-pad in the left lobe, both sticks
+// in the middle. Xbox, stick on top: the left stick in the lobe, the D-pad where the left stick was.
+function geo(set) {
+  const off = set === "xbox" && S.xlay === "offset";
+  return { off, dpad: off ? [84, 93] : [50, 71], ls: off ? [50, 71, 15] : [84, 92, 13], rs: [116, 92, 13], face: [150, 71],
+           btn: { Y: [150, 59], A: [150, 83], X: [138, 71], B: [162, 71] } };
+}
+const KY = ["........##..", "......#####.", "....#######.", "..##########", ".#########..", "##########.."];
+const KI_K = ["101", "101", "110", "101", "101"], KI_I = ["111", "010", "010", "010", "111"];
+
+// the whole drawing for one moment of input; st: { b: {role: held}, ls: [x, y], rs: [x, y], lt, rt }
+function drawPadBuffer(st, opt) {
+  BUF = new Uint8ClampedArray(GW * GH * 4);
+  const M = staticMasks(), C = PLASTICS[opt.plastic], AC = accentPal(), G = geo(opt.set);
+  // shoulders: the trigger, then the bumper over it
+  for (const side of ["L", "R"]) {
+    const T = M["trig" + side], B = M["bump" + side], pull = side === "L" ? st.lt : st.rt;
+    hardShadow(T, 2, 2);
+    shade(T, C.b4, C.b5, 0, .35, 24, 40, C.b3, INK);
+    if (pull > .02) { const n = Math.max(1, Math.round(pull * 7)); shade(T, AC.base, AC.dark, 0, .35, 24, 40, AC.hi, AC.lo, null, (x, y) => y >= 31 - n); }
+    hardShadow(B, 2, 2);
+    if (st.b[side + "B"]) shade(B, AC.base, AC.dark, 0, .45, 31, 40, AC.hi, AC.lo, AC.dark);
+    else shade(B, C.b2, C.b3, 0, .45, 31, 40, C.b0, C.b4, C.b3);
+  }
+  // the body
+  hardShadow(M.body, 3, 3);
+  shade(M.body, C.b1, C.b2, .05, .75, 38, 150, C.b0, C.b4, C.b3);
+  // the maker's mark: Kentucky Instruments, the state then KI, in the dark trim
+  stampRows(KY, 90, 49, C.b5); stampRows(KI_K, 104, 50, C.b5); stampRows(KI_I, 108, 50, C.b5);
+  // the D-pad: a well, the cross, each arm with a pressed-in arrow; a held arm in the accent
+  const [dx, dy] = G.dpad;
+  well(mDisc(dx, dy, 17), C.b2, C);
+  const cross = mRects([[dx - 4, dy - 13, dx + 4, dy + 13], [dx - 13, dy - 4, dx + 13, dy + 4]]);
+  hardShadow(cross, 1, 1);
+  shade(cross, C.b5, C.b5, 0, 0, 0, 1, C.b4, INK);
+  const ARMS = { DU: [dx - 4, dy - 13, dx + 4, dy - 5], DD: [dx - 4, dy + 5, dx + 4, dy + 13], DL: [dx - 13, dy - 4, dx - 5, dy + 4], DR: [dx + 5, dy - 4, dx + 13, dy + 4] };
+  for (const a in ARMS) if (st.b[a]) { const r = ARMS[a]; shade(cross, AC.base, AC.base, 0, 0, 0, 1, AC.hi, AC.lo, null, (x, y) => x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3]); }
+  for (const [a, ax, ay, vx, vy] of [["DU", 0, -10, 0, 1], ["DD", 0, 10, 0, -1], ["DL", -10, 0, 1, 0], ["DR", 10, 0, -1, 0]]) {
+    const tx = dx + ax, ty = dy + ay, c = st.b[a] ? AC.on : C.b3;
+    for (let k = 0; k < 3; k++) for (let s = -k; s <= k; s++) { if (vx === 0) put(tx + s, ty + k * vy, c); else put(tx + k * vx, ty + s, c); }
+  }
+  put(dx, dy, C.b4);
+  // the face buttons: Xbox colors with their letters, PlayStation dark discs with the colored symbols
+  well(mDisc(G.face[0], G.face[1], 21), C.b2, C);
+  for (const r of ["Y", "X", "B", "A"]) {
+    const [cx, cy] = G.btn[r], m = mDisc(cx, cy, 6), on = !!st.b[r], d = on ? 1 : 0;
+    if (!on) hardShadow(m, 1, 1);
+    if (on) shade(m, AC.base, AC.dark, 0, .5, cy - 6, cy + 6, AC.hi, AC.lo, null, null, 1, 1);
+    else if (opt.set === "xbox") { const c = XCOL[r]; shade(m, c[0], c[1], 0, .5, cy - 6, cy + 6, c[2], c[1]); }
+    else shade(m, PSDISC.base, PSDISC.dark, 0, .5, cy - 6, cy + 6, PSDISC.hi, PSDISC.lo);
+    if (opt.set === "xbox") stampRows(F57[r], cx - 2 + d, cy - 3 + d, on ? AC.on : XCOL[r][3]);
+    else stampRows(SYM[PSSYM[r][0]], cx - 3 + d, cy - 3 + d, on ? AC.on : hex(PSSYM[r][1]));
+  }
+  // View / Menu (Create / Options): small dark keys
+  for (const r of ["SEL", "START"]) {
+    const m = M[r], on = !!st.b[r];
+    if (!on) hardShadow(m, 1, 1);
+    if (on) shade(m, AC.base, AC.base, 0, 0, 0, 1, AC.hi, AC.lo, null, null, 1, 1); else shade(m, C.b4, C.b4, 0, 0, 0, 1, C.b3, C.b5);
+  }
+  // the sticks: a well, the cap where the stick points, a click lights the cap
+  for (const id of ["LS", "RS"]) {
+    const [cx, cy, wr] = id === "LS" ? G.ls : G.rs, v = st[id === "LS" ? "ls" : "rs"], on = !!st.b[id === "LS" ? "L3" : "R3"];
+    well(mDisc(cx, cy, wr), C.b3, C);
+    const maxo = wr - 9, ox = Math.round(v[0] * maxo), oy = Math.round(v[1] * maxo), x = cx + ox, y = cy + oy;
+    const cap = mDisc(x, y, 9);
+    hardShadow(cap, 1, 1);
+    if (on) shade(cap, AC.base, AC.dark, 0, .5, y - 9, y + 9, AC.hi, AC.lo); else shade(cap, C.b5, C.b5, 0, 0, y - 9, y + 9, C.b4, INK);
+    const ring = mRing(x, y, 5), [rx0, ry0, rx1, ry1] = ring.bb;
+    for (let yy = ry0; yy <= ry1; yy++) for (let xx = rx0; xx <= rx1; xx++) if (inM(ring, xx, yy)) put(xx, yy, ((xx + yy) % 2 === 0) ? (on ? AC.dark : C.b4) : (on ? AC.lo : C.b5));
+    for (const [gx, gy] of [[-4, -6], [-5, -5], [-6, -4]]) put(x + gx, y + gy, on ? AC.hi : C.b3);
+  }
+  // the outline: one ink pixel round everything
+  const ring = [];
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (BUF[(y * GW + x) * 4 + 3]) continue;
+    const a = (xx, yy) => xx >= 0 && yy >= 0 && xx < GW && yy < GH && BUF[(yy * GW + xx) * 4 + 3] > 0;
+    if (a(x - 1, y) || a(x + 1, y) || a(x, y - 1) || a(x, y + 1)) ring.push([x, y]);
+  }
+  for (const [x, y] of ring) put(x, y, INK);
+  return BUF;
+}
+const REST = { b: {}, ls: [0, 0], rs: [0, 0], lt: 0, rt: 0 };
+function padOpt() { return { set: curSet(), plastic: S.plastic }; }
+function paintCanvas(cv, st, crop) {
+  const buf = drawPadBuffer(st, padOpt());
+  const ctx = cv.getContext("2d");
+  const img = new ImageData(buf, GW, GH);
+  if (crop) { if (cv.width !== CW) { cv.width = CW; cv.height = CH; } ctx.clearRect(0, 0, CW, CH); ctx.putImageData(img, -X0, -Y0); }
+  else { if (cv.width !== GW) { cv.width = GW; cv.height = GH; } ctx.putImageData(img, 0, 0); }
+}
+function exportPNG(scale) {
+  const one = document.createElement("canvas"); paintCanvas(one, REST, false);
+  const out = document.createElement("canvas"); out.width = GW * scale; out.height = GH * scale;
+  const c = out.getContext("2d"); c.imageSmoothingEnabled = false; c.drawImage(one, 0, 0, GW * scale, GH * scale);
+  const set = curSet(), lay = set === "xbox" ? (S.xlay === "offset" ? "_stickup" : "_house") : "";
+  out.toBlob(b => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `zed_controller_${set}${lay}_${S.plastic}_${scale}x.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }, "image/png");
+}
+
+/* ======================================================================
+   The page's content: ZeD's roles (UI_ZeD_CMap_*), the game's elements and bindings (42.21 defaults)
+   ====================================================================== */
+const NAMES = {
+  xbox: { A: "A", B: "B", X: "X", Y: "Y", LB: "LB", RB: "RB", LT: "LT", RT: "RT", SEL: "View", START: "Menu" },
+  ps: { A: "Cross", B: "Circle", X: "Square", Y: "Triangle", LB: "L1", RB: "R1", LT: "L2", RT: "R2", SEL: "Create", START: "Options" },
+};
+// each label: the part, its picture, the game's elements it stands for, ZeD's words, the help line (the Controller map's)
+const PARTS = [
+  { id: "LT", glyph: ["LT"], els: ["LT"], role: () => "Map: zoom out", help: () => "The game's own: aim and attack. On the map, zoom." },
+  { id: "LB", glyph: ["LB"], els: ["LB"], role: () => "Character window", help: n => `The Character window. No window open: ${n.LB} + ${n.RB} zooms out. Quick actions: ${n.LB} + a button.` },
+  { id: "DPAD", glyph: ["DPAD"], els: ["DU", "DD", "DL", "DR"], role: () => "Move, or a wheel", help: () => "In a window, moves from control to control. With no window open, tap a direction for a wheel: Character, World, Social or Here and now." },
+  { id: "LS", glyph: ["LS"], els: ["LS", "L3"], role: () => "Walk | click: sort", help: () => "Walk. In a window, click it to sort the list." },
+  { id: "SEL", glyph: ["SEL"], els: ["SEL"], role: () => "Layout | ZeD wheel", help: () => "In a window: layout. No window open: tap for the ZeD wheel." },
+  { id: "START", glyph: ["START"], els: ["START"], role: () => "Pause menu", help: () => "The game's pause menu." },
+  { id: "RT", glyph: ["RT"], els: ["RT"], role: () => "Map: zoom in", help: () => "The game's own: aim and attack. On the map, zoom." },
+  { id: "RB", glyph: ["RB"], els: ["RB"], role: () => "World window", help: n => `The World window. No window open: ${n.RB} + ${n.LB} zooms in. Quick actions: ${n.RB} + a button.` },
+  { id: "Y", glyph: ["Y"], els: ["Y"], role: () => "Both windows", help: () => "Tap: open, hide or show both windows. Hold: close both." },
+  { id: "B", glyph: ["B"], els: ["B"], role: () => "Back", help: () => "Back: it closes or backs out." },
+  { id: "A", glyph: ["A"], els: ["A"], role: () => "Left click", help: () => "LMB: it opens, takes and presses. Hold it on a list row to mark rows, then move them together." },
+  { id: "RS", glyph: ["RS"], els: ["RS", "R3"], role: () => "Aim | click: List, Grid", help: () => "Aim; both windows hide. In a window, click it for List or Grid. In a wheel, point." },
+  { id: "X", glyph: ["X"], els: ["X"], role: () => "Right click", help: () => "RMB: it opens the context menu." },
+];
+const PART = Object.fromEntries(PARTS.map(p => [p.id, p]));
+// the game's elements (JoypadButton, JoypadAxis1d, JoypadAxis2d) and the names the game gives them
+const EL = {
+  A: ["button", "A"], B: ["button", "B"], X: ["button", "X"], Y: ["button", "Y"], L3: ["button", "Left Hat"], R3: ["button", "Right Hat"],
+  LB: ["button", "Left Bump"], RB: ["button", "Right Bump"], SEL: ["button", "Back"], START: ["button", "Start"],
+  DL: ["button", "DPad Left"], DR: ["button", "DPad Right"], DU: ["button", "DPad Up"], DD: ["button", "DPad Down"],
+  LT: ["axis1d", "Left Trigger"], RT: ["axis1d", "Right Trigger"], LS: ["axis2d", "Left Stick"], RS: ["axis2d", "Right Stick"],
+};
+const ACTIONS = ["Aim", "Precision Aim", "Melee", "Attack", "Run", "Interact", "WalkTo", "Crouch", "Reload Weapon", "Rack Firearm", "Sprint", "Cancel Action",
+  "Manual Floor Atk", "Zoom In", "Zoom Out", "Inventory", "Loot", "Close Panel", "Cycle Loot", "Cycle Inventory", "Cycle Tabs Left", "Cycle Tabs Right",
+  "Transfer Item", "Interact Options", "Climb Through", "Smash Window", "Brakes", "Cruise Control"];
+const AXES2 = ["Movement", "Aiming"];
+const DEFAULT_BIND = { A: ["Interact"], B: ["Cancel Action"], X: [], Y: [], L3: ["Crouch"], R3: ["Sprint"], LB: ["Rack Firearm"], RB: ["Reload Weapon"],
+  SEL: [], START: [], DL: [], DR: [], DU: [], DD: [], LT: ["Melee"], RT: ["Precision Aim", "Attack"], LS: ["Movement"], RS: ["Aiming"] };
+const THR = { Melee: "-0.80", "Precision Aim": "-0.80", Attack: "0.93" };
+let BIND = JSON.parse(JSON.stringify(DEFAULT_BIND));
+const nb = s => s.replace(/ /g, " ");
+function actText(el, a) { return nb(EL[el][0] === "axis1d" ? `${a} > ${THR[a] || "0.00"}` : a); }
+function actList(el, thr) { return BIND[el].map(a => thr ? actText(el, a) : nb(a)).join(", "); }   // (the labels leave the thresholds to the pull-down)
+function gameLine(p) {
+  if (p.id === "DPAD") {
+    const arms = [["DU", "up"], ["DD", "down"], ["DL", "left"], ["DR", "right"]].filter(([e]) => BIND[e].length);
+    return "Game: " + (arms.length ? arms.map(([e, n]) => `${n} ${actList(e)}`).join(" | ") : "nothing");
+  }
+  if (p.id === "LS" || p.id === "RS") { const ck = p.id === "LS" ? "L3" : "R3"; return `Game: ${BIND[p.id].length ? actList(p.id) : "nothing"}\nclick: ${BIND[ck].length ? actList(ck) : "nothing"}`; }
+  return "Game: " + (BIND[p.els[0]].length ? actList(p.els[0]) : "nothing");
+}
+// the controllers vanilla's test can hold (its pick), plus a real one plugged into this browser
+const TESTS = [{ name: "None" }, { name: "Xbox Wireless Controller", set: "xbox" }, { name: "DualSense Wireless Controller", set: "ps" }];
+
+/* ======================================================================
+   State
+   ====================================================================== */
+const S = { theme: "dark", accent: "teal", set: "auto", xlay: "offset", plastic: "toned", input: "mouse", view: "4k",
+            focus: "lab-LT", hot: null, test: 0, menu: null, changed: false, note: null };
+let GPID = null;   // a real controller's name, from the browser
+function curSet() {
+  if (S.set !== "auto") return S.set;
+  const t = TESTS[S.test]; if (t && t.set) return t.set;
+  if (GPID && /054c|dualsense|dualshock|playstation|wireless controller/i.test(GPID)) return "ps";
+  return "xbox";
+}
+// live input from three sources: the keyboard, the mouse on the drawing, a real controller
+const src = () => ({ b: {}, ls: [0, 0], rs: [0, 0], lt: 0, rt: 0 });
+const KB = src(), MS = src(), GP = src();
+let IN = src(), PREV = {};
+function merge() {
+  const o = src(), all = [KB, MS, GP];
+  for (const s of all) for (const k in s.b) if (s.b[k]) o.b[k] = true;
+  for (const k of ["ls", "rs"]) { let best = [0, 0]; for (const s of all) if (Math.hypot(...s[k]) > Math.hypot(...best)) best = s[k]; o[k] = best; }
+  o.lt = Math.max(KB.lt, MS.lt, GP.lt); o.rt = Math.max(KB.rt, MS.rt, GP.rt);
+  return o;
+}
+const DEAD = 0.25;
+function partLit(id, st) {
+  switch (id) {
+    case "DPAD": return st.b.DU || st.b.DD || st.b.DL || st.b.DR;
+    case "LS": return st.b.L3 || Math.hypot(...st.ls) > DEAD;
+    case "RS": return st.b.R3 || Math.hypot(...st.rs) > DEAD;
+    case "LT": return st.lt > .02; case "RT": return st.rt > .02;
+    default: return !!st.b[id];
+  }
+}
+
+/* ======================================================================
+   The window
+   ====================================================================== */
+const UI_SCALE = () => S.view === "deck" ? 0.75 : 1.75;
+// which side each label sits, and the art pixel its leader starts from
+function anchors(set) {
+  const g = geo(set), [dx, dy] = g.dpad, [lx, ly, lr] = g.ls, [rx, ry, rr] = g.rs;
+  return {
+    LT: { side: "L", a: [34, 27] }, LB: { side: "L", a: [30, 35] },
+    DPAD: { side: "L", a: [dx - 13, dy] }, LS: { side: "L", a: g.off ? [lx - lr, ly] : [lx - lr, ly + 2] },
+    SEL: { side: "T", a: [84, 64] }, START: { side: "T", a: [116, 64] },
+    RT: { side: "R", a: [166, 27] }, RB: { side: "R", a: [170, 35] },
+    Y: { side: "R", a: [156, 59] }, B: { side: "R", a: [168, 71] }, A: { side: "R", a: [156, 83] },
+    RS: { side: "B", a: [rx, ry + rr] }, X: { side: "B", a: [138, 77] },
+  };
+}
+const rightAligned = (id, side) => side === "L" || id === "SEL" || id === "RS";
+function labelHtml(p, set) {
+  const side = anchors(set)[p.id].side, ra = rightAligned(p.id, side);
+  let ro = "";
+  if (p.id === "LS" || p.id === "RS") ro = `<span class="dial" data-dial="${p.id}"><i></i></span>`;
+  if (p.id === "LT" || p.id === "RT") ro = `<span class="pct" data-pct="${p.id}">0%</span>`;
+  const hot = S.input === "mouse" && S.hot === p.id ? " hot" : "";
+  return `<div class="lab${ra ? " ra" : ""}${hot}" data-part="${p.id}" data-f="lab-${p.id}">
+    <div class="l1"><span class="gl" data-gl="${p.id}">${glyphSVG(p.glyph, set)}</span><span class="rl">${esc(p.role())}</span>${ro}</div>
+    <div class="l2">${esc(gameLine(p))}</div></div>`;
+}
+function footHtml() {
+  const set = curSet(), n = NAMES[set];
+  const id = S.input === "pad" ? (S.focus || "").replace(/^lab-/, "") : S.hot;
+  let hint;
+  if (S.note) hint = esc(S.note);
+  else if (S.menu && S.menu.kind !== "test") hint = "Ticked: on this part now. A pick adds the action or takes it off; Apply keeps it.";
+  else if (PART[id]) hint = `${esc(PART[id].help(n))} <span class="dim">${S.input === "pad" ? n.A : "Click"}: add or take off the game's actions on it.</span>`;
+  else if (id === "test") hint = "Pick a controller to test it: the page then leaves the buttons alone until you exit the test.";
+  else hint = S.input === "pad" ? "" : `<span class="dim">Press a button on your controller: it lights on the pad.</span>`;
+  let pr = "";
+  if (S.input === "pad") {
+    const g = r => glyphSVG([r], set, 1.15);
+    const items = S.test ? [[["A", "Y"], "Exit the test (hold both)"]] :
+      S.menu ? [[["DUD"], "Move"], [["A"], "Choose"], [["B"], "Back"]] :
+      [[["DPAD"], "Move"], [["A"], "Choose"], ...(S.changed ? [[["Y"], "Apply"]] : []), [["B"], "Back"]];
+    pr = `<span class="pr">${items.map(([rs, l]) => `<span>${glyphSVG(rs, set, 1.15)}${esc(l)}</span>`).join("")}</span>`;
+  }
+  return `<span class="hint">${hint}</span>${pr}`;
+}
+function windowHtml() {
+  const set = curSet();
+  const test = TESTS[S.test];
+  return `<div class="win" id="win" style="width:1000px;height:700px">
+    <div class="titlebar"><span class="close"></span><span class="titlechip">Button map and test</span>${S.changed ? `<span class="rt">Changed</span>` : ""}</div>
+    <div class="wb">
+      <div class="pick"><span class="plab">Test controller</span><span class="popup${S.input === "mouse" && S.hot === "test" ? " hot" : ""}" data-f="test" data-act="test">${esc(test.name)}</span>
+        ${S.test ? `<span class="testing">${sq("var(--warning)")}Press A and Y buttons for exit</span>` : ""}</div>
+      <div class="fig" id="fig"><canvas class="pad" id="pad"></canvas><svg class="lead" id="lead"></svg>${PARTS.map(p => labelHtml(p, set)).join("")}</div>
+    </div>
+    <div class="strip"><span class="btn" data-f="back" data-act="back">Back</span><span class="sp"></span><span class="btn default${S.changed ? "" : " off"}" data-f="apply" data-act="apply">Apply</span></div>
+    <div class="foot" id="foot">${footHtml()}</div>
+    ${menuHtml()}
+  </div>`;
+}
+
+/* ---------- the figure's layout: the pad at the largest whole multiple that leaves room for the labels */
+let FIG = null;
+function layoutFigure() {
+  const box = document.getElementById("fig"); if (!box) { FIG = null; return; }
+  const W = box.clientWidth, H = box.clientHeight, ui = UI_SCALE(), set = curSet();
+  const GAP = 22, MARG = 8;
+  const labs = {}; box.querySelectorAll(".lab").forEach(el => labs[el.dataset.part] = el);
+  const sz = id => ({ w: labs[id].offsetWidth, h: labs[id].offsetHeight });
+  const A0 = anchors(set), colW = side => Math.max(...Object.keys(A0).filter(id => A0[id].side === side).map(id => sz(id).w));
+  const lw = colW("L"), rw = colW("R"), room = W - lw - rw - 2 * (GAP + MARG);
+  // whole screen pixels per art pixel: the largest that leaves the label columns their room
+  let k = Math.floor(room * ui / CW);
+  k = Math.max(1, Math.min(k, Math.floor((H - 120) * ui / CH)));
+  const s = k / ui, pw = CW * s, ph = CH * s;
+  const topH = Math.max(sz("SEL").h, sz("START").h), botH = Math.max(sz("RS").h, sz("X").h);
+  // the pad sits between the columns, the top labels' row above it and the bottom labels' row below
+  const totH = topH + 8 + ph + 10 + botH;
+  const px0 = Math.round(MARG + lw + GAP + (room - pw) / 2), py0 = Math.round((H - totH) / 2 + topH + 8);
+  const U = (ax, ay) => [px0 + (ax - X0 + .5) * s, py0 + (ay - Y0 + .5) * s];
+  const cv = document.getElementById("pad");
+  Object.assign(cv.style, { left: px0 + "px", top: py0 + "px", width: pw + "px", height: ph + "px" });
+  const A = anchors(set), leads = {}, place = {};
+  // top and bottom rows: straight up or down from the part to the label's edge
+  const lx = id => U(A[id].a[0], 0)[0];
+  place.SEL = { left: lx("SEL") + 12 - sz("SEL").w, top: py0 - 8 - sz("SEL").h, ax: lx("SEL"), ay: py0 - 8 };
+  place.START = { left: lx("START") - 12, top: py0 - 8 - sz("START").h, ax: lx("START"), ay: py0 - 8 };
+  place.RS = { left: lx("RS") + 12 - sz("RS").w, top: py0 + ph + 10, ax: lx("RS"), ay: py0 + ph + 10 };
+  place.X = { left: lx("X") - 12, top: py0 + ph + 10, ax: lx("X"), ay: py0 + ph + 10 };
+  for (const id of ["SEL", "START", "RS", "X"]) { const a = U(...A[id].a); leads[id] = [a, [place[id].ax, place[id].ay]]; }
+  // the side columns: each label as near its part's height as the others allow, in the same order (no crossings)
+  const xLabel = place.X, xRight = xLabel.left + sz("X").w;
+  for (const side of ["L", "R"]) {
+    const ids = Object.keys(A).filter(id => A[id].side === side).sort((a, b) => A[a].a[1] - A[b].a[1]);
+    const colX = side === "L" ? px0 - GAP : px0 + pw + GAP;
+    let lo = 6, hi = H - 6;
+    if (side === "R" && xRight > colX - 4) hi = Math.min(hi, xLabel.top - 6);
+    const want = ids.map(id => U(...A[id].a)[1] - 12);
+    const tops = [], hs = ids.map(id => sz(id).h);
+    ids.forEach((id, i) => { tops[i] = Math.max(want[i], i ? tops[i - 1] + hs[i - 1] + 4 : lo); });
+    let over = tops[ids.length - 1] + hs[ids.length - 1] - hi;
+    if (over > 0) for (let i = ids.length - 1; i >= 0; i--) { const lim = i < ids.length - 1 ? tops[i + 1] - 4 - hs[i] : hi - hs[i]; tops[i] = Math.min(tops[i], lim); }
+    ids.forEach((id, i) => {
+      const w = sz(id).w, top = Math.max(lo, tops[i]);
+      place[id] = { left: side === "L" ? colX - w : colX, top };
+      const a = U(...A[id].a), knee = side === "L" ? px0 - 4 : px0 + pw + 4;
+      leads[id] = [a, [knee, a[1]], [colX, top + 12]];
+    });
+  }
+  for (const id in place) Object.assign(labs[id].style, { left: Math.round(place[id].left) + "px", top: Math.round(place[id].top) + "px" });
+  const svg = document.getElementById("lead");
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  const dark = S.theme !== "light";
+  svg.innerHTML = Object.entries(leads).map(([id, pts]) => {
+    const d = pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" "), [ax, ay] = pts[0];
+    return `<g data-ld="${id}">${dark ? `<polyline points="${d}" style="fill:none;stroke:var(--lead-case);stroke-width:3" shape-rendering="crispEdges"/>` : ""}
+      <polyline class="ln" points="${d}" style="fill:none;stroke:var(--lead);stroke-width:1" shape-rendering="crispEdges"/>
+      <rect x="${(ax - 2.5).toFixed(1)}" y="${(ay - 2.5).toFixed(1)}" width="5" height="5" style="fill:${dark ? "var(--lead-case)" : "var(--base)"}"/>
+      <rect class="dot" x="${(ax - 1.5).toFixed(1)}" y="${(ay - 1.5).toFixed(1)}" width="3" height="3" style="fill:var(--lead)"/></g>`;
+  }).join("");
+  FIG = { k, s, px0, py0, ui };
+}
+
+/* ---------- live: the drawing, the lit labels and leaders, the readouts */
+function updateLive() {
+  IN = merge();
+  const cv = document.getElementById("pad"); if (cv) paintCanvas(cv, IN, true);
+  const set = curSet();
+  for (const p of PARTS) {
+    const lit = !!partLit(p.id, IN), el = document.querySelector(`.lab[data-part="${p.id}"]`);
+    if (el) el.classList.toggle("lit", lit);
+    const g = document.querySelector(`[data-ld="${p.id}"]`);
+    if (g) {
+      const focus = S.input === "pad" ? S.focus === "lab-" + p.id : S.hot === p.id;
+      const col = lit ? "var(--accent)" : focus ? "var(--text)" : "var(--lead)";
+      g.querySelectorAll(".ln").forEach(n => n.style.stroke = col); g.querySelectorAll(".dot").forEach(n => n.style.fill = col);
+    }
+  }
+  // the D-pad's picture shows the arm held
+  const dg = document.querySelector('[data-gl="DPAD"]');
+  if (dg) { const arm = ["DU", "DD", "DL", "DR"].find(a => IN.b[a]) || "DPAD"; if (dg.dataset.arm !== arm) { dg.dataset.arm = arm; dg.innerHTML = glyphSVG([arm], set); } }
+  for (const id of ["LS", "RS"]) {
+    const d = document.querySelector(`[data-dial="${id}"]`); if (!d) continue;
+    const v = IN[id.toLowerCase()], on = Math.hypot(...v) > DEAD, i = d.querySelector("i");
+    d.classList.toggle("on", !!on); i.style.left = (4 + Math.round(v[0] * 4)) + "px"; i.style.top = (4 + Math.round(v[1] * 4)) + "px";
+  }
+  for (const id of ["LT", "RT"]) {
+    const e = document.querySelector(`[data-pct="${id}"]`); if (!e) continue;
+    const v = IN[id.toLowerCase()]; e.textContent = Math.round(v * 100) + "%"; e.classList.toggle("on", v > .02);
+  }
+  const sp = document.getElementById("spritecv"); if (sp) paintCanvas(sp, IN, false);
+  edges();
+}
+
+/* ---------- the pull-downs: the test pick, a part's elements, an element's actions (vanilla's lists) */
+function menuItems() {
+  const m = S.menu; if (!m) return [];
+  const set = curSet();
+  if (m.kind === "test") return TESTS.map((t, i) => ({ t: t.name, chk: i === S.test, fn: () => { S.test = i; closeMenu(); } }));
+  if (m.kind === "els") return PART[m.part].els.map(e => ({ gl: glyphSVG([e], set), t: elName(e), r: BIND[e].length ? actList(e, true) : "nothing", sub: true, fn: () => openActs(m.part, e, true) }));
+  const el = m.el, out = [{ hdr: true, t: elName(el) }];
+  if (EL[el][0] === "axis2d") { AXES2.forEach(a => out.push({ t: a, chk: BIND[el].includes(a), fn: () => toggle(el, a) })); out.push({ sep: true }); }
+  ACTIONS.forEach(a => out.push({ t: EL[el][0] === "axis1d" && BIND[el].includes(a) ? actText(el, a) : a, chk: BIND[el].includes(a), fn: () => toggle(el, a) }));
+  return out;
+}
+function elName(e) {
+  const n = NAMES[curSet()], k = EL[e][1];
+  if (e === "L3" || e === "R3") return `${k} (the stick's click)`;
+  if (e === "SEL" || e === "START" || e === "LB" || e === "RB" || e === "LT" || e === "RT" || "ABXY".includes(e) && e.length === 1) return n[e] && n[e] !== k ? `${k} (${n[e]})` : k;
+  return k;
+}
+function menuHtml() {
+  const m = S.menu; if (!m) return "";
+  const items = menuItems();
+  return `<div class="menu" id="menu" style="left:${m.x}px;top:${m.y}px">${items.map((it, i) => it.sep ? `<div class="mi sepr"></div>` :
+    it.hdr ? `<div class="mi hdr">${esc(it.t)}</div>` :
+    `<div class="mi${i === m.sel ? " sel" : ""}" data-mi="${i}"><span class="ck">${it.chk ? px("tick", 1) : ""}</span>${it.gl || ""}<span class="t">${esc(it.t)}</span>${it.r ? `<span class="r">${esc(it.r)}</span>` : ""}${it.sub ? `<span class="tri r"></span>` : ""}</div>`).join("")}</div>`;
+}
+function relRect(el) {
+  const w = document.getElementById("win"), wr = w.getBoundingClientRect(), r = el.getBoundingClientRect(), k = wr.width / w.offsetWidth || 1;
+  return { x: (r.left - wr.left) / k, y: (r.top - wr.top) / k, w: r.width / k, h: r.height / k };
+}
+function firstSel(kind) { const it = menuItems(); return Math.max(0, it.findIndex(x => !x.hdr && !x.sep)); }
+function openMenuAt(kind, el, extra) {
+  const r = relRect(el);
+  S.menu = Object.assign({ kind, x: Math.round(r.x), y: Math.round(r.y + r.h + 2), sel: 0 }, extra);
+  S.menu.sel = kind === "test" ? S.test : firstSel(kind);
+  S.note = null; render(); placeMenu();
+}
+function openActs(part, el, fromEls) {
+  const prev = S.menu;
+  S.menu = { kind: "acts", part, el, from: fromEls ? prev : null, x: prev ? prev.x + (fromEls ? 24 : 0) : 0, y: prev ? prev.y + (fromEls ? 10 : 0) : 0, sel: 0 };
+  S.menu.sel = firstSel("acts");
+  render(); placeMenu();
+}
+function placeMenu() {
+  const mn = document.getElementById("menu"), w = document.getElementById("win"); if (!mn || !w) return;
+  const x = clamp(S.menu.x, 4, w.offsetWidth - mn.offsetWidth - 4), y = clamp(S.menu.y, 26, w.offsetHeight - mn.offsetHeight - 4);
+  mn.style.left = x + "px"; mn.style.top = y + "px"; S.menu.x = x; S.menu.y = y;
+  const sel = mn.querySelector(".mi.sel"); if (sel) { if (sel.offsetTop < mn.scrollTop) mn.scrollTop = sel.offsetTop - 4; else if (sel.offsetTop + sel.offsetHeight > mn.scrollTop + mn.clientHeight) mn.scrollTop = sel.offsetTop - mn.clientHeight + sel.offsetHeight + 4; }
+}
+function closeMenu() { S.menu = null; render(); }
+function toggle(el, a) {
+  const b = BIND[el]; const i = b.indexOf(a); if (i >= 0) b.splice(i, 1); else b.push(a);
+  S.changed = JSON.stringify(BIND) !== JSON.stringify(DEFAULT_BIND) || S.changed;
+  closeMenu();
+}
+function openPart(id) {
+  const lab = document.querySelector(`.lab[data-part="${id}"]`); if (!lab) return;
+  const p = PART[id];
+  if (p.els.length > 1) openMenuAt("els", lab, { part: id }); else { const r = relRect(lab); S.menu = { kind: "acts", part: id, el: p.els[0], x: Math.round(r.x), y: Math.round(r.y + r.h + 2), sel: 0 }; S.menu.sel = firstSel("acts"); render(); placeMenu(); }
+}
+function activate(f) {
+  if (!f) return;
+  if (f === "test") { const el = document.querySelector('[data-act="test"]'); if (el) openMenuAt("test", el); return; }
+  if (f === "back") { S.note = "Back: to the Controls page (not part of this mockup)."; render(); return; }
+  if (f === "apply") { if (S.changed) { S.changed = false; S.note = "Applied: the game's actions saved."; render(); } return; }
+  if (f.startsWith("lab-")) openPart(f.slice(4));
+}
+
+/* ======================================================================
+   Review bar, render, fit
+   ====================================================================== */
+function review() {
+  const b = (k, v, l) => `<button class="${S[k] === v ? "on" : ""}" data-set="${k}:${v}">${l}</button>`;
+  const auto = curSet() === "ps" ? "PlayStation" : "Xbox";
+  return `<span class="grp"><b>Pad pictures</b>${b("set", "auto", `Auto (${auto})`)}${b("set", "xbox", "Xbox")}${b("set", "ps", "PlayStation")}</span>
+    <span class="grp"><b>Xbox layout</b>${b("xlay", "offset", "Stick on top")}${b("xlay", "house", "House pad")}</span>
+    <span class="grp"><b>Plastic</b>${b("plastic", "toned", "Toned beige")}${b("plastic", "beige", "Beige")}${b("plastic", "graphite", "Graphite")}</span>
+    <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}</span>
+    <span class="grp"><b>Accent</b>${ACCENTS.map(a => `<button class="sw${S.accent === a[0] ? " on" : ""}" title="${a[1]}" data-set="accent:${a[0]}" style="background:${S.theme === "light" ? a[3] : a[2]}"></button>`).join("")}</span>
+    <span class="grp"><b>Input</b>${b("input", "mouse", "Mouse")}${b("input", "pad", "Controller")}</span>
+    <span class="grp"><b>View</b>${b("view", "4k", "4K at 1.75x")}${b("view", "deck", "Deck 1280x800 Auto")}${b("view", "sprite", "Sprite 4x")}</span>`;
+}
+function keysHtml() {
+  return `Keys press the controller${GPID ? ` (or your <b>${esc(GPID.replace(/\s*\(.*$/, ""))}</b>)` : " (or plug one in)"}: <b>D-pad</b> arrows | <b>left stick</b> W A S D, click C | <b>right stick</b> T F G H, click N |
+    <b>Y X B A</b> I J L K | <b>LB</b> E, <b>RB</b> U | <b>LT</b> Q, <b>RT</b> O (hold to pull) | <b>View</b> [ <b>Menu</b> ] | mouse: press a part, drag a stick or a trigger`;
+}
+function render() {
+  const root = document.documentElement;
+  root.dataset.theme = S.theme;
+  root.style.setProperty("--accent", accentHex());
+  root.style.setProperty("--hover", toHex(hex(accentHex())).replace(/^#/, "#") + (S.theme === "light" ? "26" : "38"));
+  root.style.setProperty("--on-accent", S.theme === "light" ? "#F2F0EC" : "#0C0C0C");
+  document.getElementById("review").innerHTML = review();
+  document.getElementById("keys").innerHTML = keysHtml();
+  const z = document.getElementById("zoomer");
+  if (S.view === "sprite") {
+    z.innerHTML = `<div class="sprite"><canvas id="spritecv" width="${GW}" height="${GH}" style="width:${GW * 4}px;height:${GH * 4}px"></canvas>
+      <span class="cap">The sprite at 4x, true pixels: 200 x 136 art pixels, the same grid as the Controller map's picture. Press keys or parts: the lit states.</span></div>`;
+  } else {
+    const k = `<span id="kcap"></span> screen pixels to an art pixel`;
+    const cap = S.view === "deck" ? `Steam Deck, 1280 x 800, UI scale Auto (0.75): this frame is the whole screen. The pad: ${k}.`
+                                   : `4K, UI scale 1.75 (the director's play scale), the Options window in game. The pad: ${k}.`;
+    z.innerHTML = S.view === "deck" ? `<div class="deck"><span class="cap">${cap}</span>${windowHtml()}</div>` : `<div class="scene"><span class="cap">${cap}</span>${windowHtml()}</div>`;
+    layoutFigure();
+    if (FIG) document.getElementById("kcap").textContent = FIG.k;
+    placeHand();
+    placeMenu();
+  }
+  updateLive();
+  fit();
+  document.getElementById("notes").innerHTML = notes();
+}
+function stops() { return [...document.querySelectorAll("#zoomer .win [data-f]")]; }
+function placeHand() {
+  if (S.input !== "pad" || S.menu) return;
+  const list = stops(); if (!list.length) return;
+  let el = list.find(e => e.dataset.f === S.focus); if (!el) { el = list[0]; S.focus = el.dataset.f; }
+  if (getComputedStyle(el).position === "static") el.style.position = "relative";
+  el.insertAdjacentHTML("beforeend", `<span class="hand">${px("hand", 1)}</span>`);
+  if (el.classList.contains("btn")) el.style.marginLeft = "16px";
+  if (el.classList.contains("popup")) el.style.marginLeft = "16px";
+}
+function fit() {
+  const z = document.getElementById("zoomer"), stage = document.getElementById("stage");
+  const inner = z.firstElementChild; if (!inner) return;
+  const w = inner.offsetWidth, h = inner.offsetHeight;
+  const top = document.getElementById("review").offsetHeight + document.getElementById("keys").offsetHeight;
+  const k = Math.min(Math.max(200, window.innerWidth - 32) / w, Math.max(240, window.innerHeight - top - 32) / h, S.view === "sprite" ? 1 : 1.8);
+  z.style.transform = `scale(${k})`; z.style.width = w + "px"; z.style.height = h + "px";
+  stage.style.height = (h * k + 32) + "px"; z.style.marginRight = (w * k - w) + "px";
+}
+
+/* ======================================================================
+   Input: the keyboard, the mouse on the drawing, a real controller (the Gamepad API)
+   ====================================================================== */
+const KEYBTN = { ArrowUp: "DU", ArrowDown: "DD", ArrowLeft: "DL", ArrowRight: "DR", KeyI: "Y", KeyJ: "X", KeyL: "B", KeyK: "A",
+                 KeyE: "LB", KeyU: "RB", BracketLeft: "SEL", BracketRight: "START", KeyC: "L3", KeyN: "R3" };
+const KEYSTICK = { KeyW: ["ls", 0, -1], KeyS: ["ls", 0, 1], KeyA: ["ls", -1, 0], KeyD: ["ls", 1, 0], KeyT: ["rs", 0, -1], KeyG: ["rs", 0, 1], KeyF: ["rs", -1, 0], KeyH: ["rs", 1, 0] };
+const KEYTRIG = { KeyQ: "lt", KeyO: "rt" };
+const held = new Set();
+function kbSticks() {
+  for (const st of ["ls", "rs"]) { let x = 0, y = 0; for (const c of held) { const m = KEYSTICK[c]; if (m && m[0] === st) { x += m[1]; y += m[2]; } }
+    const l = Math.hypot(x, y) || 1; KB[st] = [x / l, y / l]; }
+}
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.code === "Escape" && S.menu) { closeMenu(); return; }
+  const known = KEYBTN[e.code] || KEYSTICK[e.code] || KEYTRIG[e.code];
+  if (!known) return;
+  e.preventDefault(); if (e.repeat) return;
+  held.add(e.code);
+  if (KEYBTN[e.code]) KB.b[KEYBTN[e.code]] = true;
+  if (KEYSTICK[e.code]) kbSticks();
+  if (KEYTRIG[e.code]) ramp();
+  updateLive();
+});
+document.addEventListener("keyup", e => {
+  if (!held.has(e.code)) return;
+  held.delete(e.code);
+  if (KEYBTN[e.code]) KB.b[KEYBTN[e.code]] = false;
+  if (KEYSTICK[e.code]) kbSticks();
+  if (KEYTRIG[e.code]) ramp();
+  updateLive();
+});
+window.addEventListener("blur", () => { held.clear(); Object.assign(KB, src()); updateLive(); });
+// the triggers on keys: held, the pull rises over half a second; let go, it springs back
+let rampT = null;
+function ramp() {
+  if (rampT) return;
+  let last = performance.now();
+  const step = now => {
+    const dt = Math.min(.1, (now - last) / 1000); last = now; let busy = false;
+    for (const [code, k] of Object.entries(KEYTRIG)) {
+      const on = held.has(code); KB[k] = clamp(KB[k] + (on ? dt / .5 : -dt / .12), 0, 1);
+      if (on || KB[k] > 0) busy = true;
+    }
+    updateLive();
+    rampT = busy ? requestAnimationFrame(step) : null;
+  };
+  rampT = requestAnimationFrame(step);
+}
+// rising edges drive the page as the controller does (Input: Controller), or end the test (A and Y together)
+function edges() {
+  const now = IN.b, fresh = [];
+  for (const k in now) if (now[k] && !PREV[k]) fresh.push(k);
+  PREV = Object.assign({}, now);
+  for (const r of fresh) onPad(r);
+}
+function onPad(r) {
+  if (S.test) { if ((r === "A" && IN.b.Y) || (r === "Y" && IN.b.A)) { S.test = 0; S.note = "The test is over: the controller works the page again."; render(); } return; }
+  if (S.input !== "pad") return;
+  if (S.menu) {
+    const items = menuItems(), ok = i => items[i] && !items[i].hdr && !items[i].sep;
+    if (r === "DU" || r === "DD") { const d = r === "DU" ? -1 : 1; let i = S.menu.sel; do { i += d; } while (i >= 0 && i < items.length && !ok(i)); if (ok(i)) { S.menu.sel = i; render(); } }
+    else if (r === "A") { const it = items[S.menu.sel]; if (it && it.fn) it.fn(); }
+    else if (r === "B") { if (S.menu.from) { S.menu = S.menu.from; render(); placeMenu(); } else closeMenu(); }
+    else if (r === "DR" && items[S.menu.sel] && items[S.menu.sel].sub) items[S.menu.sel].fn();
+    else if (r === "DL" && S.menu.from) { S.menu = S.menu.from; render(); placeMenu(); }
+    return;
+  }
+  if (r === "DU" || r === "DD" || r === "DL" || r === "DR") { moveFocus(r); return; }
+  if (r === "A") activate(S.focus);
+  else if (r === "Y" && S.changed) activate("apply");
+  else if (r === "B") activate("back");
+}
+// cone navigation: the nearest stop that way, off-axis distance counted double
+function moveFocus(dir) {
+  const list = stops(); const cur = list.find(e => e.dataset.f === S.focus); if (!cur) return;
+  const c = cur.getBoundingClientRect(), cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+  const v = { DU: [0, -1], DD: [0, 1], DL: [-1, 0], DR: [1, 0] }[dir];
+  let best = null, bc = Infinity;
+  for (const e of list) {
+    if (e === cur) continue;
+    const r = e.getBoundingClientRect(), dx = r.left + r.width / 2 - cx, dy = r.top + r.height / 2 - cy;
+    const on = dx * v[0] + dy * v[1], off = Math.abs(dx * v[1] - dy * v[0]);
+    if (on <= 4 || off > on * 1.6) continue;
+    const cost = on + off * 2; if (cost < bc) { bc = cost; best = e; }
+  }
+  if (best) { S.focus = best.dataset.f; S.note = null; render(); }
+}
+
+// the mouse on the drawing presses what it's over; a stick or a trigger follows a drag
+let drag = null;
+function artAt(cv, e) { const r = cv.getBoundingClientRect(), ox = cv.id === "spritecv" ? 0 : X0, oy = cv.id === "spritecv" ? 0 : Y0, w = cv.id === "spritecv" ? GW : CW, h = cv.id === "spritecv" ? GH : CH;
+  return [ox + (e.clientX - r.left) / r.width * w, oy + (e.clientY - r.top) / r.height * h]; }
+function hitPart(x, y) {
+  const g = geo(curSet()), d2 = (a, b) => (x - a - .5) ** 2 + (y - b - .5) ** 2;
+  for (const r of ["A", "B", "X", "Y"]) if (d2(...g.btn[r]) <= 56) return { k: "b", r };
+  if (x >= 78 && x <= 91 && y >= 63 && y <= 71) return { k: "b", r: "SEL" };
+  if (x >= 110 && x <= 123 && y >= 63 && y <= 71) return { k: "b", r: "START" };
+  for (const id of ["LS", "RS"]) { const [cx, cy, wr] = id === "LS" ? g.ls : g.rs; if (d2(cx, cy) <= (wr + 1) ** 2) return { k: "s", id, cx, cy, wr }; }
+  const [dx, dy] = g.dpad;
+  if (Math.abs(x - dx - .5) <= 14 && Math.abs(y - dy - .5) <= 14) { const ex = x - dx - .5, ey = y - dy - .5; return { k: "b", r: Math.abs(ex) > Math.abs(ey) ? (ex < 0 ? "DL" : "DR") : (ey < 0 ? "DU" : "DD") }; }
+  if (y >= 23 && y < 31) { if (x >= 33 && x <= 61) return { k: "t", t: "lt" }; if (x >= 140 && x <= 168) return { k: "t", t: "rt" }; }
+  if (y >= 30 && y <= 38) { if (x >= 29 && x <= 78) return { k: "b", r: "LB" }; if (x >= 123 && x <= 172) return { k: "b", r: "RB" }; }
+  return null;
+}
+document.addEventListener("pointerdown", e => {
+  const cv = e.target.closest && e.target.closest("canvas.pad, #spritecv"); if (!cv) return;
+  const [x, y] = artAt(cv, e), h = hitPart(x, y); if (!h) return;
+  e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* (a synthetic press) */ }
+  drag = { cv, h, x, y, moved: false };
+  if (h.k === "b") MS.b[h.r] = true;
+  if (h.k === "s") MS.b[h.id === "LS" ? "L3" : "R3"] = true;
+  if (h.k === "t") MS[h.t] = .6;
+  updateLive();
+});
+document.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const [x, y] = artAt(drag.cv, e), h = drag.h;
+  if (h.k === "s") {
+    const vx = x - drag.x, vy = y - drag.y;
+    if (!drag.moved && Math.hypot(vx, vy) > 2) { drag.moved = true; MS.b[h.id === "LS" ? "L3" : "R3"] = false; }
+    if (drag.moved) { const l = Math.hypot(vx, vy), m = Math.min(1, l / (h.wr - 4)); MS[h.id.toLowerCase()] = l ? [vx / l * m, vy / l * m] : [0, 0]; }
+    updateLive();
+  } else if (h.k === "t") { MS[h.t] = clamp(.6 + (y - drag.y) / 10, 0, 1); updateLive(); }
+});
+document.addEventListener("pointerup", () => { if (!drag) return; drag = null; Object.assign(MS, src()); updateLive(); });
+
+// a real controller: the browser's standard mapping
+const GPMAP = ["A", "B", "X", "Y", "LB", "RB", null, null, "SEL", "START", "L3", "R3", "DU", "DD", "DL", "DR"];
+let gpT = null;
+function gpPoll() {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  const p = pads[0];
+  if (!p) { if (GPID) { GPID = null; Object.assign(GP, src()); render(); } gpT = null; return; }
+  if (GPID !== p.id) { GPID = p.id; render(); }
+  const b = {}; GPMAP.forEach((r, i) => { if (r && p.buttons[i]) b[r] = p.buttons[i].pressed; });
+  const ax = i => { const v = p.axes[i] || 0; return Math.abs(v) < .08 ? 0 : v; };
+  const next = { b, ls: [ax(0), ax(1)], rs: [ax(2), ax(3)], lt: p.buttons[6] ? p.buttons[6].value : 0, rt: p.buttons[7] ? p.buttons[7].value : 0 };
+  const changed = JSON.stringify(next) !== JSON.stringify(GP);
+  Object.assign(GP, next);
+  if (changed) updateLive();
+  gpT = requestAnimationFrame(gpPoll);
+}
+window.addEventListener("gamepadconnected", () => { if (!gpT) gpT = requestAnimationFrame(gpPoll); });
+
+/* ---------- clicks and hover */
+document.addEventListener("click", e => {
+  const t = e.target;
+  const ex = t.closest("[data-export]"); if (ex) { exportPNG(+ex.dataset.export); return; }
+  const set = t.closest("[data-set]");
+  if (set) { const [k, v] = set.dataset.set.split(":"); S[k] = v; if (k === "input" || k === "view") S.menu = null; render(); return; }
+  if (!t.closest("#zoomer")) return;
+  const mi = t.closest("[data-mi]");
+  if (mi) { const it = menuItems()[+mi.dataset.mi]; if (it && it.fn) it.fn(); return; }
+  if (S.menu && !t.closest("#menu")) { closeMenu(); return; }
+  const act = t.closest("[data-act]"); if (act) { S.focus = act.dataset.f; activate(act.dataset.act); return; }
+  const lab = t.closest(".lab"); if (lab) { S.focus = lab.dataset.f; openPart(lab.dataset.part); }
+});
+document.addEventListener("mouseover", e => {
+  if (S.input !== "mouse") return;
+  const el = e.target.closest && e.target.closest(".lab, [data-act='test']");
+  const id = el ? (el.dataset.part || "test") : null;
+  if (id === S.hot) return;
+  S.hot = id;
+  document.querySelectorAll(".lab.hot").forEach(n => n.classList.remove("hot"));
+  if (el && el.classList.contains("lab")) el.classList.add("hot");
+  const pop = document.querySelector('[data-act="test"]'); if (pop) pop.classList.toggle("hot", id === "test");
+  const mi = e.target.closest && e.target.closest("[data-mi]");
+  const f = document.getElementById("foot"); if (f) f.innerHTML = footHtml();
+  updateLive();
+});
+document.addEventListener("mousemove", e => {
+  if (!S.menu || S.input !== "mouse") return;
+  const mi = e.target.closest && e.target.closest("[data-mi]"); if (!mi) return;
+  const i = +mi.dataset.mi; if (i === S.menu.sel) return;
+  S.menu.sel = i; document.querySelectorAll(".mi.sel").forEach(n => n.classList.remove("sel")); mi.classList.add("sel");
+});
+window.addEventListener("resize", fit);
+
+/* ======================================================================
+   Notes
+   ====================================================================== */
+function q(items) { return `<ol>${items.map(([qq, opts]) => `<li>${qq} ${opts.map((o, i) => (i ? " / " : "") + (i === 0 ? `<span class="rec">${o} (recommended)</span>` : o)).join("")}</li>`).join("")}</ol>`; }
+function notes() {
+  return `<h2>What's new</h2>
+  <ul>
+    <li><b>A drawn pad.</b> The plain boxes are gone: the page draws the Controller map's pad from the quick wheel, in ZeD's pixel art, now in parts that move. Beige plastic (toned down here for the dark scene) with the KI maker's mark, light from the top left, two-tone shading and a dark outline, like the belt and the dash. Whole pixels only: 5 screen pixels to an art pixel at 4K and 1.75, 2 on the Deck.</li>
+    <li><b>A label beside every part,</b> on a line, like a figure in a manual: the button's picture, what ZeD does with it, and under that the game's own actions on it. The pad and its labels take the whole page; the list that sat beside the old drawing is gone, and its job moved onto the labels.</li>
+    <li><b>The live test.</b> A held button fills with your accent and sits pressed in. The D-pad lights the arm you press. A stick's cap moves the way you push it (the dial in its label too) and lights when you click it. A trigger fills as far as you pull it, with the percent in its label. No glow, nothing animates.</li>
+    <li><b>Xbox and PlayStation.</b> The face buttons, their colors and every name (LB or L1, View or Create) follow the button pictures setting; Auto follows the controller (pick DualSense under Test controller, or plug in a PlayStation pad). On an Xbox pad the left stick sits up top and the D-pad lower down, as on the real thing.</li>
+    <li><b>Changing the game's actions:</b> click a label, or press A on it. The same pull-down as the old list, with the actions on that part ticked (the triggers' pull points show there, not on the labels). The sticks and the D-pad first ask which part (the stick or its click, one arm of the D-pad).</li>
+  </ul>
+  <h2>Try it</h2>
+  <ul>
+    <li>Press the keys in the bar under the switches, or plug a controller into this computer: the browser reads it and the pad follows it.</li>
+    <li>With the mouse: press a part of the drawing; drag a stick or a trigger.</li>
+    <li>Input: Controller puts the pointing hand on the labels. The arrow keys (the D-pad) move it, K (A) opens the actions, L (B) backs out.</li>
+    <li>Test controller: pick one and the page leaves the buttons to the test until A and Y are held together, as the game does.</li>
+  </ul>
+  <h2>Open questions</h2>
+  ${q([["The pad's plastic:", ["toned-down beige, here and on the Controller map", "the beige the Controller map ships with", "graphite"]],
+       ["Xbox pads:", ["the left stick up top, as on the real pad", "one house layout for every pad (the D-pad up top)"]],
+       ["The game's own actions:", ["on each label, and the list goes", "keep the list beside a smaller drawing (on the Deck the pad would then draw at 1 screen pixel to an art pixel, too small to read)"]],
+       ["One drawing everywhere:", ["the Controller map on the quick wheel uses this drawing too (outline, plastic, PlayStation buttons)", "keep the two pictures separate"]]])}`;
+}
+
+/* a link can open a state: #view=deck&set=ps&input=pad&theme=light */
+for (const [k, v] of new URLSearchParams(location.hash.slice(1))) { if (k === "test") S.test = +v || 0; else if (k in S && typeof S[k] === "string") S[k] = v; }
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+</script>
+</body>
+</html>
