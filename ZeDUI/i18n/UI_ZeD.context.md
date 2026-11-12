@@ -1883,7 +1883,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Inv_ItemsOne` | `%1 item` | Inventory lists (both windows), compact container header: how many items it holds (one) | - |
 | `UI_ZeD_Inv_OrderLine` | `Order: %1, as the list` | Inventory grid, column bar: names the list's sort order the grid follows; %1 is NAME, CATEGORY, CONDITION or WEIGHT | - |
 | `UI_ZeD_Inv_OrderWt` | `Weight` | Inventory grid, order line: name of the sort order (by weight) | 14 |
-| `UI_ZeD_Inv_RowHelp` | `%1: press for its card, drag it to move it, right-click for its menu` | Inventory list: help line over an item's row; %1 = the item's name | - |
+| `UI_ZeD_Inv_RowHelp` | `%1: LMB for its card, drag to move it, RMB for its menu` | Inventory list: help line over an item's row; %1 = the item's name. LMB / RMB: mouse button abbreviation, keep short | - |
 | `UI_ZeD_Inv_ColHelp` | `Sort by %1: press again to turn the order around` | Inventory list: help line over a column heading; %1 = the heading's text | - |
 | `UI_ZeD_Inv_CatFoldHelp` | `Press to fold this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is open | - |
 | `UI_ZeD_Inv_CatOpenHelp` | `Press to open this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is folded | - |
@@ -2245,7 +2245,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Map_HelpKey` | `Show or hide the map key: what the colors on the Survey map mean.` | Maps tab: help line over the button that shows or hides the map key | - |
 | `UI_ZeD_Map_HelpKeyClose` | `Close the map key.` | Maps tab: help line over the close button of the map key | - |
 | `UI_ZeD_Map_HelpMark` | `%1: pick this mark up, then click the map to put it down.` | Maps tab: help line over a mark on the toolbar; %1 = the mark's name | - |
-| `UI_ZeD_Map_HelpMarkGrid` | `%1: pick this mark up. A right-click pins it to the toolbar or takes it off.` | Maps tab: help line over a mark in the full set of marks; %1 = the mark's name | - |
+| `UI_ZeD_Map_HelpMarkGrid` | `%1: LMB to pick this mark up, RMB to pin it to the toolbar or take it off.` | Maps tab: help line over a mark in the full set of marks; %1 = the mark's name. LMB / RMB: mouse button abbreviation, keep short | - |
 | `UI_ZeD_Map_HelpMarksClose` | `Fold the full set of marks away.` | Maps tab: help line over the button that folds the full set of marks away | - |
 | `UI_ZeD_Map_HelpMarksOpen` | `Show every mark, to pick one or pin it to the toolbar.` | Maps tab: help line over the button that shows the full set of marks | - |
 | `UI_ZeD_Map_HelpNote` | `Note: type the words in the box under the toolbar, then click the map to write them.` | Maps tab: help line over the Note tool on the toolbar | - |
@@ -3656,7 +3656,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Skills_HelpBooksHide` | `Fold the books that train %1.` | Skills tab: help line over the button that folds the skill books of a skill away; %1 = the skill's name | - |
 | `UI_ZeD_Skills_HelpBooksShow` | `Show the books that train %1.` | Skills tab: help line over the button that shows the skill books of a skill; %1 = the skill's name | - |
 | `UI_ZeD_Skills_HelpHeader` | `Show or hide the skills.` | Skills tab: help line over the Skills header above the list | - |
-| `UI_ZeD_Skills_HelpPin` | `Pin %1 to the title bar.` | Skills tab: help line over the pin button of a skill that is not pinned; %1 = the skill's name | - |
+| `UI_ZeD_Skills_HelpPin` | `RMB: pin %1 to the title bar.` | Skills tab: help line over the pin button of a skill that is not pinned; %1 = the skill's name. LMB / RMB: mouse button abbreviation, keep short | - |
 | `UI_ZeD_Skills_HelpUnpin` | `Unpin %1 from the title bar.` | Skills tab: help line over the pin button of a skill that is pinned; %1 = the skill's name | - |
 | `UI_ZeD_Skills_CardLevel` | `Level %1 \| %2 / %3 XP to level %4` | Skills tab: a skill row's hover card, under the skill's name. %1 level, %2 XP so far in it, %3 XP the level takes, %4 the next level | - |
 | `UI_ZeD_Skills_CardMax` | `Level %1` | Skills tab: a skill row's hover card, under the name of a skill at the top level. %1 the level | - |
@@ -5219,7 +5219,7 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Cl_WarClaimed` | `Claimed` | Safehouse, faction and war cards on a multiplayer server | 14 |
 | `UI_ZeD_Cl_WarEndAsk` | `End this war now?` | Safehouse, faction and war cards on a multiplayer server | 27 |
 | `UI_ZeD_Cl_WarEnded` | `Ended` | Safehouse, faction and war cards on a multiplayer server | 14 |
-| `UI_ZeD_Cl_WarHow` | `To start one, right-click a safehouse that isn't yours: %1.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_WarHow` | `To start one, RMB a safehouse that isn't yours: %1.` | Safehouse, faction and war cards on a multiplayer server. LMB / RMB: mouse button abbreviation, keep short | - |
 | `UI_ZeD_Cl_WarOff` | `This server has no wars.` | Safehouse, faction and war cards on a multiplayer server | 34 |
 | `UI_ZeD_Cl_WarOn` | `Wars are on: a safehouse can be attacked if its owner accepts.` | Safehouse, faction and war cards on a multiplayer server | - |
 | `UI_ZeD_Cl_WarRefused` | `Refused` | Safehouse, faction and war cards on a multiplayer server | 14 |
