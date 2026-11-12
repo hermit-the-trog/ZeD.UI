@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Lua Console</title>
+<!-- ZeD-GUI mockup: the bigger Lua console, punch list 136 (phases 1-4), v1.
+     Rulings: debug mode only (no guarded mode for normal players); the server command list is in.
+     Source: docs/reference/RESEARCH_console_tooling_20261108.md. Starting point: the shipped ZeD_DebugConsole.lua
+     (beta 8/9: the game's console parked as the engine, its output box as one list with errors picked whole, the
+     line with ">" and Tab suggestion, the band Copy / Clear / Run, the controller zones list / line / band, B closes).
+     Chrome, tokens, review bar, keycaps, pad badges and the pointing hand copied from zed_tab_search_v1.html and
+     zed_journal_tags_v1.html. Log lines are the shapes 42.22 writes (ExceptionLogger, "function: X -- file: Y line # N
+     | MOD: Z", "Callframe at:", "| Vanilla"); server commands from the 42.x registry as the research lists them
+     (syntax to be checked in Phase 0 against /help on a 42.22 server).
+     Units: 1 CSS px here = 1 ZeD unit; the game draws 1 unit as 1.75 screen pixels at 4K and 0.75 at the Deck. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #47a18c; --acc-text: var(--accent); --on-accent: #0c0c0c;
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --page: #0e0f10; --ground: #3a3f2c;
+}
+:root[data-theme="light"] { --acc-text: color-mix(in srgb, var(--accent) 70%, #000); --on-accent: #fff;
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84; --ground: #7d8068;
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: 15px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: center; padding: 8px 16px;
+  font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 5; }
+.review b { color: #ddd; font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.stage { display: flex; justify-content: center; padding: 16px; overflow: hidden; }
+.zoomer { transform-origin: top left; }
+.notes { max-width: 980px; margin: 0 auto; padding: 4px 16px 48px; color: #c8c8c8; font-size: 15px; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; color: #8fc9b9; margin: 22px 0 8px; }
+.notes h3 { font: 500 13px/1 var(--font-mono); color: #ddd; margin: 14px 0 6px; }
+.notes p { margin: 0 0 8px; max-width: 84ch; }
+.notes ol, .notes ul { margin: 0 0 8px; padding-left: 20px; max-width: 86ch; }
+.notes li { margin-bottom: 4px; }
+.notes code { font-family: var(--font-mono); font-size: 13px; color: #e0e0e0; }
+.notes .rec { color: #8fc9b9; }
+
+.scene { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; background: var(--ground); }
+.deck { width: 1707px; height: 1067px; position: relative; background: var(--ground); display: flex; align-items: center; justify-content: center; border: 1px solid #000; }
+.deck .lab { position: absolute; left: 12px; top: 8px; font: 400 12px/1 var(--font-mono); color: rgba(255,255,255,0.55); }
+
+/* ---------- ZeD window chrome */
+.win { display: flex; flex-direction: column; background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px; position: relative;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); flex: 0 0 12px; }
+.titlechip { position: absolute; left: 50%; transform: translateX(-50%); background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: 13px; line-height: 22px; color: var(--acc-text); white-space: nowrap; }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.titlebar .rt { margin-left: auto; background: var(--surface-2); padding: 0 6px; font: 400 12px/22px var(--font-mono); color: var(--text-secondary); display: inline-flex; align-items: center; gap: 5px; }
+.wbody { display: flex; min-height: 0; flex: 1; }
+.strip { width: 34px; flex: 0 0 34px; display: flex; flex-direction: column; align-items: stretch; padding-top: 2px; border-right: 1px solid var(--border); }
+.strip .t { position: relative; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); cursor: pointer; }
+.strip .t.on { background: var(--accent); color: var(--on-accent); }
+.page { flex: 1; min-width: 0; display: flex; min-height: 0; }
+.col { display: flex; flex-direction: column; min-height: 0; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+
+/* fold headers: "v NAME (n)" */
+.fold { position: relative; display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; font: 700 12px/1 var(--font-mono); color: var(--text-heading); cursor: pointer; white-space: nowrap; }
+.fold .n { font-weight: 400; color: var(--text-secondary); }
+.fold .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-heading); display: inline-block; flex: 0 0 auto; }
+.tri.r { border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid var(--text-heading); border-right: 0; }
+
+/* the filter column */
+.filters { width: 168px; flex: 0 0 168px; border-right: 1px solid var(--border); }
+.filters .scroll { padding: 4px 0 8px; }
+.cbr { position: relative; display: flex; align-items: center; gap: 6px; height: 20px; padding: 0 8px 0 20px; font: 400 12px/1 var(--font-mono); color: var(--text); cursor: pointer; white-space: nowrap; }
+.cbr .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cbr .c { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.cbr.off .nm { color: var(--text-secondary); }
+.box { width: 11px; height: 11px; flex: 0 0 11px; border: 1px solid var(--border-strong); background: var(--surface-1); display: inline-flex; align-items: center; justify-content: center; }
+.sq { width: 7px; height: 7px; flex: 0 0 7px; display: inline-block; }
+.groove { height: 1px; background: var(--border); margin: 6px 8px; }
+
+/* Find field with the magnifier */
+.lhead { height: 34px; flex: 0 0 34px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-bottom: 1px solid var(--border); }
+.field { position: relative; flex: 1; min-width: 0; height: 24px; display: flex; align-items: center; gap: 6px; background: var(--base); border: 1px solid var(--border-strong); padding: 0 6px; }
+.field.focus { border-color: var(--accent); }
+.field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: 400 14px/22px var(--font-sans); padding: 0; }
+.field input::placeholder { color: var(--text-secondary); }
+.field .clr { width: 14px; height: 14px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-secondary); font: 700 10px/12px var(--font-mono); text-align: center; cursor: pointer; flex: 0 0 14px; }
+.fcount { font: 400 12px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fcount b { color: var(--acc-text); font-weight: 400; }
+.popup { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 6px; background: var(--surface-1); border: 1px solid var(--border-strong); font: 400 12px/1 var(--font-mono); white-space: nowrap; cursor: pointer; }
+.popup::after { content: ""; border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid var(--text-secondary); margin-left: 8px; }
+
+/* the log list */
+.list { font: 400 12px/18px var(--font-mono); padding: 2px 0 6px; }
+.lr { position: relative; display: flex; align-items: flex-start; gap: 8px; padding: 0 8px; min-height: 18px; cursor: default; }
+.lr:hover { background: color-mix(in srgb, var(--surface-2) 80%, transparent); }
+.lr .tm { width: 56px; flex: 0 0 56px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.lr .kd { width: 62px; flex: 0 0 62px; display: inline-flex; align-items: center; gap: 5px; height: 18px; color: var(--text-secondary); }
+.lr .ms { flex: 1; min-width: 0; color: var(--text); white-space: pre-wrap; word-break: break-word; display: flex; gap: 6px; }
+.lr .ms .tri { margin-top: 6px; }
+.lr .ms .tri.r { margin-top: 5px; }
+.lr .src { flex: 0 0 auto; max-width: 230px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.lr .rp { width: 34px; flex: 0 0 34px; color: var(--text-secondary); text-align: right; font-variant-numeric: tabular-nums; }
+.lr.sel, .stk.sel { background: var(--accent); }
+.lr.sel *, .stk.sel * { color: var(--on-accent) !important; }
+.lr.sel .tri { border-top-color: var(--on-accent); } .lr.sel .tri.r { border-left-color: var(--on-accent); border-top-color: transparent; }
+.lr.sel .sq { outline: 1px solid var(--on-accent); }
+.lr.ran .ms { color: var(--acc-text); }
+.stk { padding: 0 8px 4px 148px; font: 400 11px/16px var(--font-mono); color: var(--text-secondary); white-space: pre-wrap; word-break: break-word; }
+.stk .fn { color: var(--text); }
+.stk .md { color: var(--text-heading); }
+.hit { color: var(--acc-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.lr.sel .hit { color: var(--on-accent); }
+.empty { padding: 14px 12px 10px; font: 400 14px/1.4 var(--font-sans); }
+.empty .sub { display: block; color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.empty .acts { margin-top: 10px; display: flex; gap: 8px; }
+
+/* the line and the scratchpad */
+.inarea { position: relative; flex: 0 0 auto; border-top: 1px solid var(--border); padding: 6px 8px 8px; }
+.line { position: relative; display: flex; align-items: center; gap: 8px; }
+.lfield { position: relative; flex: 1; min-width: 0; height: 26px; display: flex; align-items: center; gap: 6px; background: var(--surface-1); border: 1px solid var(--border-strong); padding: 0 6px; }
+.lfield.focus { border-color: var(--accent); }
+.lfield .pm { font: 400 13px/1 var(--font-mono); color: var(--text-secondary); }
+.lfield input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: 400 13px/24px var(--font-mono); padding: 0; }
+.lfield input::placeholder { color: var(--text-secondary); }
+.lfield .len { font: 400 11px/1 var(--font-mono); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.padrow { display: flex; gap: 8px; min-height: 0; }
+.pbox { position: relative; flex: 1; min-width: 0; display: flex; background: var(--surface-1); border: 1px solid var(--border-strong); }
+.pbox.focus { border-color: var(--accent); }
+.pbox .gut { flex: 0 0 26px; padding: 4px 4px 4px 0; text-align: right; font: 400 13px/18px var(--font-mono); color: var(--text-secondary); border-right: 1px solid var(--border); user-select: none; white-space: pre; }
+.pbox textarea { flex: 1; min-width: 0; height: 134px; border: 0; outline: 0; resize: none; background: transparent; color: var(--text); font: 400 13px/18px var(--font-mono); padding: 4px 6px; white-space: pre; overflow: auto; tab-size: 2; }
+.pbox.off textarea, .pbox.off .gut { opacity: .4; }
+.pmeta { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; }
+.pmeta .r { margin-left: auto; display: flex; gap: 6px; }
+.side { width: 196px; flex: 0 0 196px; border: 1px solid var(--border); background: color-mix(in srgb, var(--surface-1) 60%, transparent); display: flex; flex-direction: column; min-height: 0; max-height: 156px; }
+.side .scroll { padding: 2px 0 4px; }
+.snip { position: relative; display: flex; align-items: center; gap: 6px; height: 19px; padding: 0 8px 0 20px; font: 400 13px/1 var(--font-sans); cursor: pointer; white-space: nowrap; }
+.snip .c { margin-left: auto; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); }
+.snip.h { font: 400 11px/1 var(--font-mono); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; display: block; line-height: 19px; }
+.snip.sel { background: var(--accent); color: var(--on-accent); } .snip.sel .c { color: var(--on-accent); }
+.notice { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; margin-bottom: 6px; background: var(--surface-2); border: 1px solid var(--border-strong); font: 400 13px/1.35 var(--font-sans); }
+.notice .sq { margin-top: 5px; }
+.notice b { font-weight: 600; }
+
+/* the autocomplete pull-down (a ZeD menu) */
+.ac { position: absolute; z-index: 6; min-width: 300px; max-width: 460px; background: var(--surface-1); border: 1px solid var(--border-strong); font: 400 12px/1 var(--font-mono); }
+.ac .it { position: relative; display: flex; align-items: center; gap: 8px; height: 20px; padding: 0 8px; white-space: nowrap; cursor: pointer; }
+.ac .it .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ac .it .nm b { font-weight: 700; }
+.ac .it .sg { color: var(--text-secondary); }
+.ac .it .kd { display: inline-flex; align-items: center; gap: 5px; color: var(--text-secondary); width: 92px; }
+.ac .it.sel { background: var(--accent); color: var(--on-accent); } .ac .it.sel * { color: var(--on-accent); }
+.ac .ft { border-top: 1px solid var(--border); padding: 4px 8px; color: var(--text-secondary); font-size: 11px; line-height: 14px; white-space: normal; }
+
+/* the command list */
+.cr { position: relative; display: flex; align-items: center; gap: 10px; height: 22px; padding: 0 10px 0 22px; cursor: pointer; white-space: nowrap; }
+.cr .cm { width: 168px; flex: 0 0 168px; font: 400 12px/1 var(--font-mono); overflow: hidden; text-overflow: ellipsis; }
+.cr .ds { flex: 1; min-width: 0; font: 400 14px/1 var(--font-sans); overflow: hidden; text-overflow: ellipsis; }
+.cr .ac2 { width: 96px; flex: 0 0 96px; display: inline-flex; align-items: center; gap: 5px; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); }
+.cr .sp { width: 200px; flex: 0 0 200px; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; }
+.cr.sel { background: var(--accent); color: var(--on-accent); } .cr.sel * { color: var(--on-accent) !important; }
+.cr.dim { opacity: .4; }
+.detail { flex: 0 0 auto; border-top: 1px solid var(--border); padding: 8px 12px 8px; display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; align-items: baseline; }
+.detail dt { font: 400 12px/18px var(--font-mono); color: var(--text-secondary); }
+.detail dd { margin: 0; font: 400 14px/18px var(--font-sans); }
+.detail dd.code { font: 400 12px/18px var(--font-mono); }
+.detail .hd { grid-column: 1 / 3; font: 700 13px/18px var(--font-mono); color: var(--text); display: flex; align-items: center; gap: 8px; }
+.detail .tg { display: inline-flex; align-items: center; gap: 5px; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); }
+
+/* help page */
+.help { padding: 6px 0 10px; }
+.hp { padding: 2px 14px 6px 24px; font: 400 14px/1.4 var(--font-sans); max-width: 72ch; }
+.kt { display: grid; grid-template-columns: 170px 1fr; gap: 2px 12px; padding: 2px 14px 8px 24px; }
+.kt dt { font: 400 12px/20px var(--font-mono); color: var(--text); }
+.kt dd { margin: 0; font: 400 14px/20px var(--font-sans); }
+
+.foot { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: var(--surface-2); border-top: 1px solid var(--border-strong); min-height: 34px;
+  font: 400 12px/1.3 var(--font-mono); color: var(--text-secondary); }
+.foot .hint { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot .hint.ok { color: var(--text); }
+.foot .pr { display: flex; gap: 10px; }
+.foot .pr span { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+.foot .pr span.badge { color: var(--base); }
+.foot .bts { display: flex; gap: 8px; }
+.btn { position: relative; padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/16px var(--font-mono); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn.sm { padding: 1px 9px; font-size: 12px; line-height: 15px; }
+.btn.off { opacity: .4; cursor: default; }
+.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 14px; padding: 0 3px; background: var(--text); color: var(--base); font: 700 10px/14px var(--font-mono); border-radius: 2px; }
+
+.hand { position: absolute; left: -15px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 7; }
+.btn.pf { margin-left: 14px; }
+.cbr.pf > .hand, .fold.pf > .hand, .snip.pf > .hand, .cr.pf > .hand { left: 2px; }
+.fold.pf { padding-left: 20px; }
+.lr.pf { padding-left: 22px; } .lr.pf > .hand { left: 3px; top: 9px; }
+.strip .t.pf > .hand { left: 1px; }
+.field.pf, .lfield.pf, .pbox.pf, .popup.pf { margin-left: 16px; }
+.pbox.pf > .hand { top: 14px; }
+.px { image-rendering: pixelated; shape-rendering: crispEdges; display: block; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="stage" id="stage"><div class="zoomer" id="zoomer"></div></div>
+<div class="notes" id="notes"></div>
+
+<script>
+/* ======================================================================
+   Pixel icons (10 x 10 unless noted): the page strip, the magnifier, the pointing hand
+   ====================================================================== */
+const PAL = { "#": "#111", W: "#f4f4f4", x: "currentColor" };
+const ICON = {
+  tLog:  ["..........","xxxxxxxxxx","..........","xxxxxx....","..........","xxxxxxxx..","..........","xxxx......","..........","xxxxxxx..."],
+  tCmd:  ["..........","........x.",".......x..","......x...",".....x....","....x.....","...x......","..x.......",".x........",".........."],
+  tHelp: ["...xxxx...","..x....x..","..x....x..",".......x..","......x...",".....x....",".....x....","..........",".....x....",".........."],
+  mag:   ["..xxxx....",".x....x...","x......x..","x......x..","x......x..","x......x..",".x....x...","..xxxxxx..","......xxx.",".......xxx"],
+  hand:  ["....##########.","...#WWWWWWWWWW#","##.#WWW########","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWWWWWW#...","##.#WWWWWWW#...","....#######...."]
+};
+function px(name, scale) {
+  const m = ICON[name]; const h = m.length, w = m[0].length; let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const ch = m[y][x]; if (ch === ".") continue; r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`; }
+  return `<svg class="px" width="${w * scale}" height="${h * scale}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+const XMARK = `<svg width="9" height="9" viewBox="0 0 9 9" class="px"><path d="M1 1L8 8M8 1L1 8" stroke="var(--acc-text)" stroke-width="1.6"/></svg>`;
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/* ======================================================================
+   The log: the game's box (prints, the console's own lines) and the F11 error list, as 42.22 writes them.
+   k: print | warning | error. mod: the "| MOD:" name (Vanilla shows as Game), Console for your own runs.
+   ====================================================================== */
+const KINDS = [["print", "Print", "var(--text-secondary)"], ["warning", "Warning", "var(--warning)"], ["error", "Error", "var(--danger)"]];
+const KCOL = { print: "var(--text-secondary)", warning: "var(--warning)", error: "var(--danger)", ran: "var(--accent)" };
+let LOG = [
+  { t: "08:12:38", k: "print", mod: "Game", file: "", msg: "Lua: loading 3 mods (ZeD_UI, Bandits, Ladders)" },
+  { t: "08:12:40", k: "print", mod: "ZeD-GUI", file: "ZeD.lua", msg: "[ZeD] 0.3.0-beta11 ready: 27 languages, PZ Teal, UI scale 1.75" },
+  { t: "08:12:40", k: "print", mod: "Bandits", file: "BanditCompatibility.lua", msg: "Bandits: Build 42 compatibility layer on (42.22.2)" },
+  { t: "08:12:41", k: "print", mod: "Ladders", file: "Ladders.lua", msg: "Ladders: 214 climbable sprites registered" },
+  { t: "08:12:41", k: "warning", mod: "Game", file: "", msg: "Translator.getText> missing key: UI_ServerOptionDesc_AddToSafehouse" },
+  { t: "08:12:44", k: "warning", mod: "Ladders", file: "Ladders.lua", msg: "ScriptManager.getItem> item not found: Base.RopeLadder" },
+  { t: "08:12:52", k: "print", mod: "ZeD-GUI", file: "FishingLog.lua", msg: "[ZeD] fishing log: 12 catches read" },
+  { t: "08:13:02", k: "error", mod: "Bandits", file: "BanditUpdate.lua", ln: 1203, rep: 37,
+    msg: "attempted index: getHealth of non-table: null",
+    stack: [
+      "ERROR: General      f:4821, t:1762935182311> ExceptionLogger.logException> Exception thrown",
+      "  java.lang.RuntimeException: attempted index: getHealth of non-table: null at KahluaThread.tableget(KahluaThread.java:1666).",
+      "-----------------------------------------",
+      "STACK TRACE",
+      "-----------------------------------------",
+      "Callframe at: getHealth",
+      "function: BanditUpdate.Health -- file: BanditUpdate.lua line # 1203 | MOD: Bandits",
+      "function: BanditUpdate.OnZombieUpdate -- file: BanditUpdate.lua line # 1488 | MOD: Bandits",
+      "  at se.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1666)",
+      "  at se.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:478)",
+      "  at zombie.Lua.Event.trigger(Event.java:81)"
+    ] },
+  { t: "08:13:10", k: "print", mod: "Console", file: "console", ran: 1, msg: "> getPlayer():getX()" },
+  { t: "08:13:10", k: "print", mod: "Console", file: "console", msg: "925.4931" },
+  { t: "08:13:31", k: "error", mod: "Ladders", file: "Ladders.lua", ln: 88, rep: 2,
+    msg: "Object tried to call nil in isClimbing",
+    stack: [
+      "ERROR: General      f:5307, t:1762935211478> ExceptionLogger.logException> Exception thrown",
+      "  java.lang.RuntimeException: Object tried to call nil in isClimbing at KahluaUtil.fail(KahluaUtil.java:82).",
+      "-----------------------------------------",
+      "STACK TRACE",
+      "-----------------------------------------",
+      "Callframe at: isClimbing",
+      "function: Ladders.climbLadder -- file: Ladders.lua line # 88 | MOD: Ladders",
+      "function: Ladders.onKeyPressed -- file: Ladders.lua line # 141 | MOD: Ladders",
+      "  at se.krka.kahlua.vm.KahluaUtil.fail(KahluaUtil.java:82)",
+      "  at zombie.Lua.Event.trigger(Event.java:81)"
+    ] },
+  { t: "08:13:40", k: "warning", mod: "Bandits", file: "BanditPrograms.lua", msg: "Bandits: program Looter has no target, idling (bandit 17)" },
+  { t: "08:13:58", k: "error", mod: "ZeD-GUI", file: "CraftingTab.lua", ln: 412,
+    msg: "__lt not defined for operand",
+    stack: [
+      "ERROR: General      f:6002, t:1762935238902> ExceptionLogger.logException> Exception thrown",
+      "  java.lang.RuntimeException: __lt not defined for operand at KahluaThread.luaMainloop(KahluaThread.java:532).",
+      "-----------------------------------------",
+      "STACK TRACE",
+      "-----------------------------------------",
+      "function: sortRecipes -- file: CraftingTab.lua line # 412 | MOD: ZeD-GUI",
+      "function: refresh -- file: CraftingTab.lua line # 377 | MOD: ZeD-GUI",
+      "function: onTabShown -- file: Organisms.lua line # 2290 | MOD: ZeD-GUI",
+      "  at se.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:532)"
+    ] },
+  { t: "08:14:01", k: "print", mod: "Console", file: "console", ran: 1, msg: "> for i=1,3 do print(i) end end" },
+  { t: "08:14:01", k: "error", mod: "Console", file: "console", ln: 1, msg: "console:1: '<eof>' expected near 'end'", stack: ["console:1: '<eof>' expected near 'end'", "(a line that does not compile: the game's console says so itself)"] },
+  { t: "08:14:08", k: "print", mod: "Game", file: "ISTimedActionQueue.lua", msg: "ISTimedActionQueue: queue cleared (12 actions)" },
+  { t: "08:14:15", k: "error", mod: "Game", file: "ISInventoryPane.lua", ln: 1045,
+    msg: "attempted index: getContainer of non-table: null",
+    stack: [
+      "ERROR: General      f:6440, t:1762935255120> ExceptionLogger.logException> Exception thrown",
+      "  java.lang.RuntimeException: attempted index: getContainer of non-table: null at KahluaThread.tableget(KahluaThread.java:1666).",
+      "-----------------------------------------",
+      "STACK TRACE",
+      "-----------------------------------------",
+      "Callframe at: getContainer",
+      "function: ISInventoryPane.doContextualDblClick -- file: ISInventoryPane.lua line # 1045 | Vanilla",
+      "function: ISInventoryPane.onMouseDoubleClick -- file: ISInventoryPane.lua line # 980 | Vanilla",
+      "  at se.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1666)"
+    ] },
+  { t: "08:14:20", k: "print", mod: "Bandits", file: "BanditScheduler.lua", msg: "Bandits: wave 3 in 2 hours (clan Raiders, 6 bandits)" },
+  { t: "08:14:31", k: "print", mod: "ZeD-GUI", file: "ItemCard.lua", msg: "[ZeD] card: Base.Axe (Axe), 2 actions" },
+  { t: "08:14:32", k: "warning", mod: "ZeD-GUI", file: "ContainerGroups.lua", msg: "[ZeD] container group 'Kitchen' lost its last square, dropped" },
+];
+LOG.forEach((e, i) => e.id = i);
+
+/* ======================================================================
+   The scratchpad: snippets (Zomboid/Lua/ZeD_console_snippets.txt) and the history (ZeD_console_history.txt)
+   ====================================================================== */
+const SNIPS = [
+  ["Where am I", "print(getPlayer():getX(), getPlayer():getY(), getPlayer():getZ())"],
+  ["Error count", "print(getLuaDebuggerErrorCount())"],
+  ["Give me an axe", "getPlayer():getInventory():AddItem(\"Base.Axe\")"],
+  ["Noon", "getGameTime():setTimeOfDay(12)"],
+  ["Show debug menus", "getDebugOptions():setBoolean(\"UI.HideDebugContextMenuOptions\", false)"],
+  ["List my mods", "local mods = getActivatedMods()\nfor i = 0, mods:size() - 1 do\n  print(mods:get(i))\nend"],
+];
+let HIST = ["getPlayer():getX()", "for i=1,3 do print(i) end end", "print(getGameTime():getHour())", "getPlayer():Say(\"testing\")"];
+
+/* ======================================================================
+   Discoverability: the environment walked (globals, a table's fields) and, if the game allows, a Java object's methods
+   ====================================================================== */
+const GLOBALS = [
+  ["getPlayer", "function", "()"], ["getSpecificPlayer", "function", "(n)"], ["getPlayerByOnlineID", "function", "(id)"],
+  ["getCell", "function", "()"], ["getWorld", "function", "()"], ["getGameTime", "function", "()"], ["getCore", "function", "()"],
+  ["getDebugOptions", "function", "()"], ["getLuaDebuggerErrors", "function", "()"], ["getLuaDebuggerErrorCount", "function", "()"],
+  ["getFileWriter", "function", "(name, create, append)"], ["getFileReader", "function", "(name, create)"], ["getActivatedMods", "function", "()"],
+  ["getSandboxOptions", "function", "()"], ["getText", "function", "(key, ...)"], ["getTimestampMs", "function", "()"],
+  ["instanceItem", "function", "(type)"], ["isDebugEnabled", "function", "()"], ["isClient", "function", "()"], ["isServer", "function", "()"],
+  ["sendClientCommand", "function", "(module, command, args)"], ["print", "function", "(...)"], ["pairs", "function", "(t)"], ["ipairs", "function", "(t)"],
+  ["loadstring", "function", "(s)"], ["tostring", "function", "(v)"], ["Events", "table", "47 fields"], ["ZeD", "table", "112 fields"],
+  ["ISInventoryPage", "table", "64 fields"], ["ISTimedActionQueue", "table", "21 fields"], ["SandboxVars", "table", "180 fields"], ["Bandit", "table", "38 fields"],
+];
+const FIELDS = {
+  ZeD: [["T", "table", "tokens"], ["tr", "function", "(key, ...)"], ["Atoms", "table", "48 fields"], ["Molecules", "table", "31 fields"], ["Organisms", "table", "12 fields"],
+        ["DebugConsole", "table", "26 fields"], ["Scale", "table", "9 fields"], ["Focus", "table", "14 fields"], ["btnCase", "function", "(s)"], ["logOnce", "function", "(tag, err)"]],
+  Events: [["OnTick", "table", "event"], ["OnGameStart", "table", "event"], ["OnPlayerUpdate", "table", "event"], ["OnKeyPressed", "table", "event"],
+           ["OnFillInventoryObjectContextMenu", "table", "event"], ["OnPreUIDraw", "table", "event"], ["OnZombieUpdate", "table", "event"], ["EveryOneMinute", "table", "event"]],
+  SandboxVars: [["Zombies", "number", "4"], ["DayLength", "number", "3"], ["StartMonth", "number", "7"], ["ZombieLore", "table", "14 fields"], ["Bandits", "table", "22 fields"]],
+};
+const JAVA = {
+  "getPlayer()": [["getInventory", "()"], ["getModData", "()"], ["getX", "()"], ["getY", "()"], ["getZ", "()"], ["getUsername", "()"], ["getDescriptor", "()"],
+                  ["getStats", "()"], ["getBodyDamage", "()"], ["getXp", "()"], ["getPerkLevel", "(perk)"], ["getPrimaryHandItem", "()"], ["getCurrentSquare", "()"],
+                  ["setGodMod", "(b)"], ["isGodMod", "()"], ["Say", "(text)"]],
+  "getGameTime()": [["getHour", "()"], ["getMinutes", "()"], ["getDay", "()"], ["getMonth", "()"], ["getYear", "()"], ["setTimeOfDay", "(hour)"], ["getWorldAgeHours", "()"]],
+};
+
+/* ======================================================================
+   The command list: server slash commands, their syntax, an example, the access level (and capability) they need,
+   and in single player the debug-menu equivalent. lv: 0 user, 1 observer, 2 gm, 3 overseer, 4 moderator, 5 admin.
+   ====================================================================== */
+const ROLES = [["user", "User", 0], ["observer", "Observer", 1], ["gm", "GM", 2], ["overseer", "Overseer", 3], ["moderator", "Moderator", 4], ["admin", "Admin", 5]];
+const LVNAME = ["User", "Observer", "GM", "Overseer", "Moderator", "Admin"];
+const LVCOL = ["var(--text-secondary)", "var(--text-secondary)", "var(--positive)", "var(--positive)", "var(--warning)", "var(--danger)"];
+const CMDS = [
+  // group, command, syntax, example, level, capability, what it does, single player, destructive
+  ["Players", "/teleport", "/teleport \"user\"", "/teleport \"rj\"", 2, "TeleportToPlayer", "Go to a player.", "Debug: right-click the world map > Teleport"],
+  ["Players", "/teleportplayer", "/teleportplayer \"user1\" \"user2\"", "/teleportplayer \"rj\" \"Kate\"", 4, "TeleportPlayerToPlayer", "Move one player to another.", ""],
+  ["Players", "/teleportto", "/teleportto x,y,z", "/teleportto 925,13040,0", 2, "TeleportToCoordinates", "Go to a map square.", "Debug: right-click the world map > Teleport"],
+  ["Players", "/godmode", "/godmode", "/godmode", 2, "ToggleGodModHimself", "God mode on or off for you.", "Cheats > God Mode (or N)"],
+  ["Players", "/godmodeplayer", "/godmodeplayer \"user\" -true", "/godmodeplayer \"rj\" -true", 4, "ToggleGodModEveryone", "God mode for another player.", ""],
+  ["Players", "/invisible", "/invisible", "/invisible", 2, "ToggleInvisibleHimself", "Zombies stop seeing you.", "Cheats > Invisible (or N)"],
+  ["Players", "/invisibleplayer", "/invisibleplayer \"user\" -true", "/invisibleplayer \"rj\" -true", 4, "ToggleInvisibleEveryone", "Invisible for another player.", ""],
+  ["Players", "/noclip", "/noclip \"user\" -true", "/noclip \"rj\" -true", 2, "ToggleNoclipHimself", "Walk through walls.", "Cheats > No Clip (or N)"],
+  ["Players", "/players", "/players", "/players", 1, "SeePlayersConnected", "List who is on.", ""],
+  ["Players", "/debugplayer", "/debugplayer \"user\"", "/debugplayer \"rj\"", 5, "ConnectWithDebug", "Let a player join with -debug.", ""],
+  ["Items and skills", "/additem", "/additem \"user\" module.item count", "/additem \"rj\" Base.Axe 1", 2, "AddItem", "Give an item (your own name, or no name, for you).", "Debug menu > Items List"],
+  ["Items and skills", "/removeitem", "/removeitem \"user\" module.item count", "/removeitem \"rj\" Base.Axe 1", 2, "AddItem", "Take an item away.", "The item's menu > Delete (debug)"],
+  ["Items and skills", "/addxp", "/addxp \"user\" perk=xp", "/addxp \"rj\" Woodwork=200", 2, "AddXP", "Give experience in a skill.", "Debug menu > Player's Stats"],
+  ["Items and skills", "/addvehicle", "/addvehicle module.vehicle \"user\"", "/addvehicle Base.PickUpTruck \"rj\"", 2, "SpawnVehicle", "Put a vehicle by a player.", "Debug: right-click > Vehicle > Spawn"],
+  ["World", "/createhorde", "/createhorde count \"user\"", "/createhorde 50 \"rj\"", 4, "CreateHorde", "Zombies round a player.", "Debug: right-click > Horde Manager"],
+  ["World", "/removezombies", "/removezombies -radius n", "/removezombies -radius 20", 5, "RemoveZombies", "Remove zombies round you. Can't be undone.", "Debug: right-click > Horde Manager > Remove", 1],
+  ["World", "/startrain", "/startrain intensity", "/startrain 60", 4, "StartStopWeather", "Start rain (1 to 100).", "Debug menu > Climate debuggers"],
+  ["World", "/stoprain", "/stoprain", "/stoprain", 4, "StartStopWeather", "Stop the rain.", "Debug menu > Climate debuggers"],
+  ["World", "/startstorm", "/startstorm hours", "/startstorm 12", 4, "StartStopWeather", "Start a storm.", "Debug menu > Climate debuggers"],
+  ["World", "/stopweather", "/stopweather", "/stopweather", 4, "StartStopWeather", "Clear the weather.", "Debug menu > Climate debuggers"],
+  ["World", "/lightning", "/lightning \"user\"", "/lightning \"rj\"", 4, "MakeEventsAlarmGunshot", "Lightning by a player.", "Debug menu > Climate debuggers"],
+  ["World", "/thunder", "/thunder \"user\"", "/thunder \"rj\"", 4, "MakeEventsAlarmGunshot", "Thunder by a player.", "Debug menu > Climate debuggers"],
+  ["World", "/alarm", "/alarm", "/alarm", 4, "MakeEventsAlarmGunshot", "Sound a building alarm where you stand.", ""],
+  ["World", "/chopper", "/chopper", "/chopper", 4, "MakeEventsAlarmGunshot", "Send the helicopter to a random player.", "Debug menu > General debuggers"],
+  ["World", "/gunshot", "/gunshot", "/gunshot", 4, "MakeEventsAlarmGunshot", "A gunshot near a random player.", ""],
+  ["Moderation", "/kick", "/kick \"user\" -r \"reason\"", "/kick \"rj\" -r \"griefing\"", 4, "KickUser", "Kick a player.", ""],
+  ["Moderation", "/banuser", "/banuser \"user\" -ip -r \"reason\"", "/banuser \"rj\" -r \"griefing\"", 5, "BanUnbanUser", "Ban a player (-ip bans the address too).", ""],
+  ["Moderation", "/unbanuser", "/unbanuser \"user\"", "/unbanuser \"rj\"", 5, "BanUnbanUser", "Lift a ban.", ""],
+  ["Moderation", "/voiceban", "/voiceban \"user\" -true", "/voiceban \"rj\" -true", 4, "BanUnbanUser", "Mute a player's voice chat.", ""],
+  ["Moderation", "/setaccesslevel", "/setaccesslevel \"user\" level", "/setaccesslevel \"rj\" moderator", 5, "ChangeAccessLevel", "Give a player a role (admin, moderator, overseer, gm, observer, none).", ""],
+  ["Moderation", "/grantadmin", "/grantadmin \"user\"", "/grantadmin \"rj\"", 5, "ChangeAccessLevel", "Make a player admin.", "", 1],
+  ["Moderation", "/removeadmin", "/removeadmin \"user\"", "/removeadmin \"rj\"", 5, "ChangeAccessLevel", "Take admin away.", "", 1],
+  ["Moderation", "/adduser", "/adduser \"user\" \"password\"", "/adduser \"Kate\" \"pick-one\"", 5, "ManipulateWhitelist", "Add a whitelist account.", ""],
+  ["Moderation", "/addusertowhitelist", "/addusertowhitelist \"user\"", "/addusertowhitelist \"Kate\"", 5, "ManipulateWhitelist", "Whitelist a connected player.", ""],
+  ["Moderation", "/connections", "/connections", "/connections", 5, "SeePlayersConnected", "Open connections (not listed by /help).", ""],
+  ["Server", "/servermsg", "/servermsg \"message\"", "/servermsg \"Restart in 10 minutes\"", 4, "AnswerTickets", "A message to everyone, across the screen.", ""],
+  ["Server", "/save", "/save", "/save", 5, "SaveWorld", "Save the world now.", "Pause menu > Save (the game also saves on quit)"],
+  ["Server", "/quit", "/quit", "/quit", 5, "QuitWorld", "Save and shut the server down.", ""],
+  ["Server", "/showoptions", "/showoptions", "/showoptions", 5, "SeeServerOptions", "List the server options.", "Debug menu > Sandbox Settings"],
+  ["Server", "/changeoption", "/changeoption option=\"value\"", "/changeoption PVP=\"false\"", 5, "ChangeServerOptions", "Change a server option mid-game.", "Debug menu > Sandbox Settings (stays after -debug)", 1],
+  ["Server", "/reloadoptions", "/reloadoptions", "/reloadoptions", 5, "ReloadServerOptions", "Read servertest.ini again.", ""],
+  ["Server", "/reloadlua", "/reloadlua \"file\"", "/reloadlua \"BanditUpdate.lua\"", 5, "ReloadLuaFiles", "Reload one Lua file on the server.", "F11 Lua Debugger > reload file"],
+  ["Server", "/log", "/log type severity", "/log General Warning", 5, "ChangeLogLevel", "Set a log category's level (/help still reads \"/log %1 %2\").", "debuglog.cfg or -debugcfg="],
+  ["Server", "/help", "/help command", "/help additem", 0, "", "What a command does; no name lists yours.", "This list"],
+  ["Server", "/releasesafehouse", "/releasesafehouse", "/releasesafehouse", 0, "", "Give up the safehouse you own.", ""],
+  ["Chat channels", "/all", "/all message", "/all anyone near the mall?", 0, "", "Everyone on the server.", ""],
+  ["Chat channels", "/say", "/say message", "/say over here", 0, "", "Those near you.", ""],
+  ["Chat channels", "/yell", "/yell message", "/yell RUN", 0, "", "Further than say (zombies hear it).", ""],
+  ["Chat channels", "/whisper", "/whisper \"user\" message", "/whisper \"Kate\" meet at the drag strip", 0, "", "One player.", ""],
+  ["Chat channels", "/faction", "/faction message", "/faction regroup", 0, "", "Your faction.", ""],
+  ["Chat channels", "/safehouse", "/safehouse message", "/safehouse door's open", 0, "", "Your safehouse members.", ""],
+  ["Chat channels", "/admin", "/admin message", "/admin someone's duping", 1, "AdminChat", "Staff only.", ""],
+].map(r => ({ grp: r[0], cmd: r[1], syn: r[2], ex: r[3], lv: r[4], cap: r[5], ds: r[6], sp: r[7], destr: !!r[8] }));
+const CGROUPS = ["Players", "Items and skills", "World", "Moderation", "Server", "Chat channels"];
+
+/* ======================================================================
+   State
+   ====================================================================== */
+const STATES = [["log", "1. Log"], ["expand", "2. Error opened"], ["scratch", "3. Scratchpad"], ["noload", "4. No loadstring"],
+  ["auto", "5. Autocomplete"], ["java", "6. Java methods"], ["help", "7. Help"], ["cmds", "8. Commands, server"], ["cmdsSP", "9. Commands, single player"]];
+const S = { st: "log", theme: "dark", input: "mouse", view: "fit", role: "admin",
+  page: "log", kinds: { print: 1, warning: 1, error: 1 }, mods: {}, files: {}, fold: {}, q: "", open: {}, pick: null,
+  mode: "line", line: "", pad: "", hi: null, ac: null, acI: 0, loadstring: true, cq: "", csel: null, sp: false, hint: null,
+  focus: null, kb: false };
+let typing = null;   // which input keeps the keyboard after a render: "q" | "line" | "pad" | "cq"
+let caret = null;
+
+function reset() {
+  Object.assign(S, { page: "log", kinds: { print: 1, warning: 1, error: 1 }, mods: {}, files: {}, fold: {}, q: "", open: {}, pick: null,
+    mode: "line", line: "", pad: "", hi: null, ac: null, acI: 0, loadstring: true, cq: "", csel: null, sp: false, hint: null, focus: null });
+  typing = null;
+  const st = S.st;
+  if (st === "expand") { S.open[7] = 1; S.pick = 7; S.kinds = { print: 0, warning: 1, error: 1 }; }
+  if (st === "scratch") { S.mode = "pad"; S.pad = SNIPS[5][1]; typing = "pad"; }
+  if (st === "noload") { S.mode = "pad"; S.pad = SNIPS[5][1]; S.loadstring = false; }
+  if (st === "auto") { S.line = "getP"; typing = "line"; acFor("line", S.line.length); }
+  if (st === "java") { S.line = "getPlayer():get"; typing = "line"; acFor("line", S.line.length); }
+  if (st === "help") S.page = "help";
+  if (st === "cmds") { S.page = "cmds"; S.csel = "/additem"; }
+  if (st === "cmdsSP") { S.page = "cmds"; S.sp = true; S.csel = "/godmode"; }
+}
+
+/* ======================================================================
+   Log filtering
+   ====================================================================== */
+const srcOf = e => e.file ? (e.ln ? `${e.file}:${e.ln}` : e.file) : "";
+const modOn = m => S.mods[m] !== 0, fileOn = f => S.files[f || "(no file)"] !== 0;
+function textHit(e, q) { if (!q) return true; q = q.toLowerCase(); return (e.msg + " " + e.mod + " " + srcOf(e) + " " + (e.stack || []).join(" ")).toLowerCase().includes(q); }
+function shownLog() { return LOG.filter(e => S.kinds[e.k] && modOn(e.mod) && fileOn(e.file) && textHit(e, S.q)); }
+function mark(s, q) {
+  if (!q) return esc(s); const i = s.toLowerCase().indexOf(q.toLowerCase()); if (i < 0) return esc(s);
+  return esc(s.slice(0, i)) + `<span class="hit">${esc(s.slice(i, i + q.length))}</span>` + esc(s.slice(i + q.length));
+}
+const f = id => `data-f="${id}"`;
+const badge = g => S.input === "pad" && g ? `<span class="badge">${g}</span>` : "";
+const sq = c => `<span class="sq" style="background:${c}"></span>`;
+const fold = (key, name, n, extra = "") => `<div class="fold" data-fold="${key}" ${f("fold-" + key)}><span class="tri ${S.fold[key] ? "r" : ""}"></span>${name} <span class="n">(${n})</span>${extra}</div>`;
+
+function filterCol() {
+  const base = LOG.filter(e => textHit(e, S.q));
+  const cnt = (pred) => base.filter(pred).length;
+  const mods = [...new Set(LOG.map(e => e.mod))];
+  const files = [...new Set(LOG.map(e => e.file || "(no file)"))];
+  const cb = (kind, key, label, on, n, col) => `<div class="cbr ${on ? "" : "off"}" data-cb="${kind}:${esc(key)}" ${f("cb-" + kind + "-" + key)}>
+     <span class="box">${on ? XMARK : ""}</span>${col ? sq(col) : ""}<span class="nm">${esc(label)}</span><span class="c">${n}</span></div>`;
+  let h = fold("kind", "KIND", KINDS.length);
+  if (!S.fold.kind) h += KINDS.map(([k, l, c]) => cb("k", k, l, S.kinds[k], cnt(e => e.k === k), c)).join("");
+  h += `<div class="groove"></div>` + fold("mod", "MOD", mods.length);
+  if (!S.fold.mod) h += mods.map(m => cb("m", m, m, modOn(m), cnt(e => e.mod === m))).join("");
+  h += `<div class="groove"></div>` + fold("file", "FILE", files.length);
+  if (!S.fold.file) h += files.map(fl => cb("f", fl, fl, S.files[fl] !== 0, cnt(e => (e.file || "(no file)") === fl))).join("");
+  return `<div class="col filters"><div class="scroll">${h}</div></div>`;
+}
+
+function logList() {
+  const rows = shownLog();
+  if (!rows.length) return `<div class="empty">Nothing in the log matches${S.q ? ` "${esc(S.q)}"` : ""}.<span class="sub">The search looks at the message, the mod, the file and every line of an error's stack. Some kinds, mods or files are switched off on the left.</span>
+    <div class="acts"><button class="btn sm default" data-act="showall" ${f("showall")}>Show all</button></div></div>`;
+  return rows.map(e => {
+    const isErr = e.k === "error", open = !!S.open[e.id], sel = S.pick === e.id;
+    const tag = e.ran ? `${sq(KCOL.ran)}ran` : `${sq(KCOL[e.k])}${e.k === "warning" ? "warn" : e.k}`;
+    const tri = isErr ? `<span class="tri ${open ? "" : "r"}"></span>` : "";
+    const src = e.mod === "Console" ? "Console" : `${e.mod}${srcOf(e) ? " | " + srcOf(e) : ""}`;
+    let h = `<div class="lr ${sel ? "sel" : ""} ${e.ran ? "ran" : ""}" data-row="${e.id}" ${f("row-" + e.id)}>
+      <span class="tm">${e.t}</span><span class="kd">${tag}</span><span class="ms">${tri}<span>${mark(e.msg, S.q)}</span></span>
+      <span class="src">${mark(src, S.q)}</span><span class="rp">${e.rep ? "x" + e.rep : ""}</span></div>`;
+    if (isErr && open) h += `<div class="stk ${sel ? "sel" : ""}" data-row="${e.id}">${e.stack.map(stackLine).join("\n")}</div>`;
+    return h;
+  }).join("");
+}
+function stackLine(s) {
+  const m = s.match(/^function: (.+?) -- file: (.+?) line # (\d+) \| (.+)$/);
+  if (m) return `function: <span class="fn">${mark(m[1], S.q)}</span> -- file: <span class="fn">${mark(m[2], S.q)}</span> line # ${m[3]} | <span class="md">${esc(m[4])}</span>`;
+  return mark(s, S.q);
+}
+
+/* ======================================================================
+   The line, the scratchpad, the autocomplete
+   ====================================================================== */
+function tokenAt(text, pos) {
+  const before = text.slice(0, pos);
+  const m = before.match(/[A-Za-z_][\w]*(?:\(\))?(?:[.:][A-Za-z_]?\w*(?:\(\))?)*$/);
+  if (!m) return null;
+  const tok = m[0], sep = Math.max(tok.lastIndexOf("."), tok.lastIndexOf(":"));
+  if (sep < 0) return tok.length >= 2 ? { start: pos - tok.length, base: null, pre: tok } : null;
+  return { start: pos - tok.length + sep + 1, base: tok.slice(0, sep), sepc: tok[sep], pre: tok.slice(sep + 1) };
+}
+function acFor(which, pos) {
+  const text = which === "line" ? S.line : S.pad;
+  const t = tokenAt(text, pos); S.ac = null; S.acI = 0;
+  if (!t) return;
+  let items = [];
+  const pl = t.pre.toLowerCase();
+  if (!t.base) items = GLOBALS.filter(g => g[0].toLowerCase().startsWith(pl) && g[0] !== t.pre).map(g => ({ n: g[0], k: g[1], s: g[2] }));
+  else if (JAVA[t.base] && t.sepc === ":") items = JAVA[t.base].filter(g => g[0].toLowerCase().startsWith(pl)).map(g => ({ n: g[0], k: "Java", s: g[1] }));
+  else if (FIELDS[t.base] && t.sepc === ".") items = FIELDS[t.base].filter(g => g[0].toLowerCase().startsWith(pl)).map(g => ({ n: g[0], k: g[1], s: g[2] }));
+  if (!items.length) return;
+  S.ac = { which, start: t.start, end: pos, pre: t.pre, items: items.slice(0, 9), more: Math.max(0, items.length - 9), java: !!(t.base && JAVA[t.base]), base: t.base };
+}
+function acTake() {
+  const a = S.ac; if (!a) return; const it = a.items[S.acI];
+  const fn = it.k === "function" || it.k === "Java";
+  const ins = it.n + (fn ? "(" + (it.s === "()" ? ")" : "") : "");
+  if (a.which === "line") { S.line = S.line.slice(0, a.start) + ins + S.line.slice(a.end); caret = a.start + ins.length; }
+  else { S.pad = S.pad.slice(0, a.start) + ins + S.pad.slice(a.end); caret = a.start + ins.length; }
+  S.ac = null; typing = a.which;
+}
+function acHtml() {
+  const a = S.ac; if (!a) return "";
+  const col = KCOL;
+  const rows = a.items.map((it, i) => `<div class="it ${i === S.acI ? "sel" : ""}" data-aci="${i}" ${f("ac-" + i)}>
+     <span class="nm"><b>${esc(it.n.slice(0, a.pre.length))}</b>${esc(it.n.slice(a.pre.length))}<span class="sg">${it.k === "function" || it.k === "Java" ? esc(it.s) : ""}</span></span>
+     <span class="kd">${sq(it.k === "Java" ? "var(--warning)" : it.k === "table" ? "var(--accent)" : "var(--text-secondary)")}${it.k === "Java" ? "Java" : it.k}</span></div>`).join("");
+  const ft = a.java ? `Java methods of ${esc(a.base)}, if the game allows: only when Phase 0 finds a helper that lists them. Tab or Enter takes one.`
+    : `${a.base ? "Fields of " + esc(a.base) : "Globals"}, walked from the game's environment${a.more ? `, ${a.more} more` : ""}. Tab or Enter takes one; Esc closes.`;
+  return `<div class="ac" id="ac">${rows}<div class="ft">${ft}</div></div>`;
+}
+
+function inputArea() {
+  if (S.mode === "line") {
+    const len = S.line.length;
+    return `<div class="inarea"><div class="line">
+      <span class="lfield ${typing === "line" ? "focus" : ""}" ${f("line")} data-act="typeline"><span class="pm">&gt;</span>
+        <input data-in="line" value="${esc(S.line)}" placeholder="Lua to run" spellcheck="false" autocomplete="off">
+        ${len > 200 ? `<span class="len">${len}/256</span>` : ""}</span>
+      <button class="btn sm" data-act="topad" ${f("topad")}>${badge("Y")}Scratchpad</button></div>${acHtml()}</div>`;
+  }
+  const lines = S.pad.split("\n").length;
+  const gut = Array.from({ length: Math.max(lines, 7) }, (_, i) => i + 1).join("\n");
+  const off = !S.loadstring;
+  const note = off ? `<div class="notice">${sq("var(--danger)")}<span><b>No loadstring in this build of the game.</b> The scratchpad needs it to run more than one line (42.20.4 took it out once; 42.21 put it back). The one-line command still runs through the game's own console, up to 256 characters. Your snippets and history stay on disk.</span></div>` : "";
+  const hist = HIST.slice().reverse();
+  return `<div class="inarea">${note}
+    <div class="pmeta"><span>Scratchpad</span><span>| ${lines} line${lines === 1 ? "" : "s"} | ${S.pad.length} characters</span>      <span class="r"><button class="btn sm" data-act="save" ${f("save")}>${badge("X")}Save snippet</button><button class="btn sm ${off ? "default" : ""}" data-act="toline" ${f("toline")}>${badge("Y")}One line</button></span></div>
+    <div class="padrow">
+      <div class="pbox ${typing === "pad" ? "focus" : ""} ${off ? "off" : ""}" ${f("pad")} data-act="typepad"><div class="gut">${gut}</div>
+        <textarea data-in="pad" spellcheck="false" ${off ? "disabled" : ""}>${esc(S.pad)}</textarea></div>
+      <div class="side"><div class="scroll">
+        ${fold("snips", "SNIPPETS", SNIPS.length)}${S.fold.snips ? "" : SNIPS.map(([n, c], i) => `<div class="snip" data-snip="${i}" ${f("snip-" + i)}>${esc(n)}<span class="c">${c.split("\n").length}</span></div>`).join("")}
+        ${fold("hist", "HISTORY", HIST.length)}${S.fold.hist ? "" : hist.map((c, i) => `<div class="snip h ${S.hi === HIST.length - 1 - i ? "sel" : ""}" data-hist="${HIST.length - 1 - i}" ${f("hist-" + i)}>${esc(c.split("\n")[0])}</div>`).join("")}
+      </div></div></div>${acHtml()}</div>`;
+}
+
+/* ======================================================================
+   The pages
+   ====================================================================== */
+function logPage() {
+  const rows = shownLog(), errs = rows.filter(e => e.k === "error").length;
+  const head = `<div class="lhead"><span class="field ${typing === "q" ? "focus" : ""}" ${f("q")} data-act="typeq">${px("mag", 1.3)}
+      <input data-in="q" value="${esc(S.q)}" placeholder="Search the log" spellcheck="false">${S.q ? `<span class="clr" data-act="clearq">x</span>` : ""}</span>
+    <span class="fcount"><b>${rows.length}</b> of ${LOG.length} | ${errs} error${errs === 1 ? "" : "s"}</span></div>`;
+  return `<div class="page">${filterCol()}<div class="col" style="flex:1;min-width:0">${head}<div class="scroll list" id="loglist">${logList()}</div>${inputArea()}</div></div>`;
+}
+
+function cmdPage() {
+  const rl = ROLES.find(r => r[0] === S.role)[2];
+  const q = S.cq.toLowerCase();
+  const hit = c => !q || (c.cmd + " " + c.syn + " " + c.ds + " " + c.cap).toLowerCase().includes(q);
+  const yours = c => S.sp || c.lv <= rl;
+  const shown = CMDS.filter(c => yours(c) && hit(c));
+  const head = `<div class="lhead"><span class="field ${typing === "cq" ? "focus" : ""}" ${f("cq")} data-act="typecq">${px("mag", 1.3)}
+      <input data-in="cq" value="${esc(S.cq)}" placeholder="Search the commands" spellcheck="false">${S.cq ? `<span class="clr" data-act="clearcq">x</span>` : ""}</span>
+    <span class="popup" ${f("role")} data-act="role">${S.sp ? "Single player" : "Your role: <b>&nbsp;" + LVNAME[rl] + "</b>"}</span>
+    <span class="fcount"><b>${shown.length}</b> of ${CMDS.length}</span></div>`;
+  let body = "";
+  for (const g of CGROUPS) {
+    const list = shown.filter(c => c.grp === g); if (!list.length) continue;
+    body += fold("c-" + g, g.toUpperCase(), list.length);
+    if (S.fold["c-" + g]) continue;
+    body += list.map(c => {
+      const right = S.sp ? `<span class="sp">${esc(c.sp || "Nothing like it alone")}</span>`
+        : `<span class="ac2">${sq(LVCOL[c.lv])}${LVNAME[c.lv]}</span>`;
+      return `<div class="cr ${S.csel === c.cmd ? "sel" : ""} ${S.sp && !c.sp ? "dim" : ""}" data-cmd="${c.cmd}" ${f("cmd-" + c.cmd)}>
+        <span class="cm">${mark(c.cmd, S.cq)}</span><span class="ds">${mark(c.ds, S.cq)}</span>${right}</div>`;
+    }).join("");
+  }
+  if (!shown.length) body = `<div class="empty">No command ${S.sp ? "" : "your role can use "}matches "${esc(S.cq)}".<span class="sub">The search looks at the name, the syntax, what it does and the capability.</span></div>`;
+  const c = CMDS.find(x => x.cmd === S.csel);
+  let det = "";
+  if (c) {
+    det = `<dl class="detail"><div class="hd">${esc(c.cmd)}<span class="tg">${sq(LVCOL[c.lv])}${LVNAME[c.lv]}${c.cap ? " | " + esc(c.cap) : ""}</span>${c.destr ? `<span class="tg">${sq("var(--danger)")}can't be undone</span>` : ""}</div>
+      <dt>Syntax</dt><dd class="code">${esc(c.syn)}</dd><dt>Example</dt><dd class="code">${esc(c.ex)}</dd>
+      ${S.sp ? `<dt>Single player</dt><dd>${c.sp ? esc(c.sp) : "Nothing like it in single player: server commands need a server (host a game from the main menu to use them)."}</dd>`
+             : `<dt>Does</dt><dd>${esc(c.ds)}</dd>${c.sp ? `<dt>Alone</dt><dd>${esc(c.sp)}</dd>` : ""}`}</dl>`;
+  }
+  const line = S.sp ? "" : `<div class="inarea"><div class="line"><span class="lfield" ${f("chat")}><span class="pm">chat</span>
+      <input data-in="line" value="${esc(S.line)}" placeholder="Pick a command to fill the line" spellcheck="false" autocomplete="off"></span></div></div>`;
+  return `<div class="page"><div class="col" style="flex:1;min-width:0">${head}<div class="scroll">${body}</div>${det}${line}</div></div>`;
+}
+
+function helpPage() {
+  const sec = (k, n, items, html) => fold("h-" + k, n, items) + (S.fold["h-" + k] ? "" : html);
+  const kt = rows => `<dl class="kt">${rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join("")}</dl>`;
+  return `<div class="page"><div class="col" style="flex:1;min-width:0"><div class="scroll help">
+    ${sec("where", "WHAT RUNS WHERE", 4, `<div class="hp">The line and the scratchpad run Lua on your own game, in the same place every mod's code runs, through the game's own console. On a server that is your client, not the server: the server lets you only with its Lua console capability, or if you are the host.</div>
+      <div class="hp">The log is everything the game's console box receives in debug mode (prints, warnings, the console's own lines) and the F11 Lua Debugger's error list, side by side. Lines the game writes only to console.txt do not reach it.</div>
+      <div class="hp">Server commands (the Commands page) run on the server, sent as chat sends them. In single player there is no server: each points at the debug menu's own way of doing it.</div>
+      <div class="hp">The console is part of debug mode: launch the game with -debug to have it.</div>`)}
+    <div class="groove"></div>
+    ${sec("keys", "KEYS", 10, kt([["` (Toggle Lua Console)", "Open and close the console (the game's own key, rebindable)"], ["Enter", "Run the line or the scratchpad"], ["Shift+Enter", "A new line in the scratchpad"],
+      ["Up / Down", "Older and newer runs (in the scratchpad, from the first or last line)"], ["Tab", "Take the suggestion"], ["Esc", "Close the suggestions; again, let go of the line"],
+      ["Ctrl+F", "Search the log"], ["Ctrl+E", "Export the log"], ["Ctrl+C", "Copy the picked line or error"], ["F11", "The game's Lua Debugger (break on error lives there)"]]))}
+    <div class="groove"></div>
+    ${sec("pad", "CONTROLLER", 7, kt([["D-pad", "Between the page strip, the filters, the log, the line and the band"], ["A", "Tick a filter, open or close an error, type (ZeD's pad keyboard), press a button"],
+      ["B", "Close the console"], ["X", "Export on the log; save a snippet in the scratchpad"], ["Y", "One line or scratchpad"], ["LB / RB", "Older and newer runs while on the line"], ["Select (ZeD wheel)", "Open the console"]]))}
+    <div class="groove"></div>
+    ${sec("files", "FILES", 3, kt([["Zomboid/Lua/ZeD_console_*.log", "Each Export, named for the time"], ["Zomboid/Lua/ZeD_console_snippets.txt", "Saved snippets"], ["Zomboid/Lua/ZeD_console_history.txt", "The last 200 runs"]]))}
+  </div></div></div>`;
+}
+
+/* ======================================================================
+   The window
+   ====================================================================== */
+function footHtml() {
+  const pad = S.input === "pad";
+  let hint, bts = "";
+  const errsAll = LOG.filter(e => e.k === "error").length;
+  if (S.page === "log") {
+    const ranOK = S.mode === "pad" ? S.loadstring : true;
+    hint = S.hint || (S.mode === "pad" ? (S.loadstring ? "Enter runs the box, Shift+Enter makes a new line, Up on the first line steps back." : "The scratchpad can't run without loadstring. One line still can.")
+      : S.pick != null ? "An error is picked whole. Copy takes it, stack and all." : "Pick a line to copy it. Click an error's triangle to see its stack.");
+    bts = `<button class="btn" data-act="export" ${f("export")}>${badge("X")}Export</button>
+      <button class="btn" data-act="copy" ${f("copy")}>${S.pick != null ? "Copy" : "Copy all"}</button>
+      <button class="btn" data-act="clear" ${f("clear")}>Clear</button>
+      <button class="btn default ${ranOK ? "" : "off"}" data-act="run" ${f("run")}>Run</button>`;
+  } else if (S.page === "cmds") {
+    const c = CMDS.find(x => x.cmd === S.csel);
+    if (S.sp) {
+      hint = "Single player: no server to send to. Each command points at the debug menu.";
+      bts = c && c.sp ? `<button class="btn default" data-act="opensp" ${f("opensp")}>Open ${esc(c.sp.split(">").pop().replace(/\(.*\)/, "").trim())}</button>` : `<button class="btn default off">Nothing to open</button>`;
+    } else {
+      hint = S.hint || (c ? (c.destr ? "This one can't be undone: Send asks first." : "A click fills the line with the example. Change the names, then Send.") : "Pick a command.");
+      bts = `<button class="btn" data-act="copycmd" ${f("copycmd")}>Copy</button><button class="btn default" data-act="send" ${f("send")}>Send</button>`;
+    }
+  } else { hint = "Help: what runs where, the keys, the files."; bts = `<button class="btn default" data-act="tolog" ${f("tolog")}>Back to the log</button>`; }
+  if (pad) {
+    const fz = S.focus || (S.page === "log" ? "row-" : S.page === "cmds" ? "cmd-" : "fold-");
+    const a = fz.startsWith("row-") ? "Open" : fz.startsWith("cmd-") ? (S.sp ? "Pick" : "Fill the line") : fz.startsWith("cb-") ? "Tick" : fz === "line" || fz === "pad" || fz === "q" || fz === "cq" ? "Type" : "Press";
+    hint = `<span class="pr"><span>${badge("A")}${a}</span><span>${badge("B")}Close</span>${fz === "line" ? `<span>${badge("LB")}${badge("RB")}Older / newer</span>` : ""}</span>`;
+  }
+  return `<div class="foot"><span class="hint ${S.hint ? "ok" : ""}">${hint}</span><span class="bts">${bts}</span></div>`;
+}
+function windowHtml(w, h) {
+  const errs = LOG.filter(e => e.k === "error").length;
+  const pages = [["log", "tLog"], ["cmds", "tCmd"], ["help", "tHelp"]];
+  const strip = `<div class="strip">${pages.map(([p, ic]) => `<div class="t ${S.page === p ? "on" : ""}" data-page="${p}" ${f("pg-" + p)}>${px(ic, 1.6)}</div>`).join("")}</div>`;
+  const body = S.page === "log" ? logPage() : S.page === "cmds" ? cmdPage() : helpPage();
+  const sub = S.page === "log" ? "" : `<span class="plus">+</span>${S.page === "cmds" ? "Server commands" : "Help"}`;
+  return `<div class="win" style="width:${w}px;height:${h}px"><div class="titlebar"><div class="close"></div><div class="titlechip">Lua console${sub}</div>
+    <span class="rt">${sq("var(--danger)")}Errors: ${errs}</span></div><div class="wbody">${strip}${body}</div>${footHtml()}</div>`;
+}
+
+/* ======================================================================
+   Review bar, render, fit
+   ====================================================================== */
+function review() {
+  const b = (k, v, l) => `<button class="${S[k] === v ? "on" : ""}" data-set="${k}:${v}">${l}</button>`;
+  return `<span class="grp"><b>State</b>${STATES.map(([v, l]) => b("st", v, l)).join("")}</span>
+    <span class="grp"><b>Role</b>${ROLES.map(([v, l]) => b("role", v, l)).join("")}</span>
+    <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}</span>
+    <span class="grp"><b>Input</b>${b("input", "mouse", "Mouse")}${b("input", "pad", "Controller")}</span>
+    <span class="grp"><b>View</b>${b("view", "fit", "Window, fit")}${b("view", "deck", "Deck 1280x800 Auto")}</span>`;
+}
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.getElementById("review").innerHTML = review();
+  const z = document.getElementById("zoomer");
+  const ls = document.getElementById("loglist"); const keepScroll = ls ? ls.scrollTop : null;
+  if (S.view === "deck") z.innerHTML = `<div class="deck"><span class="lab">Steam Deck, 1280 x 800, UI scale Auto (the root clamps to 0.75): this frame is the whole screen</span>${windowHtml(1240, 860)}</div>`;
+  else z.innerHTML = `<div class="scene">${windowHtml(1020, 640)}</div>`;
+  const nl = document.getElementById("loglist");
+  if (nl) { if (scrollToEnd) { nl.scrollTop = nl.scrollHeight; scrollToEnd = false; } else if (keepScroll != null) nl.scrollTop = keepScroll; }
+  placeAc(); placeHand(); fit();
+  if (typing && S.input !== "pad") {
+    const inp = z.querySelector(`[data-in="${typing === "cq" ? "cq" : typing}"]`);
+    if (inp && !inp.disabled) { inp.focus(); const p = caret != null ? caret : inp.value.length; inp.setSelectionRange(p, p); }
+  }
+  caret = null;
+  document.getElementById("notes").innerHTML = notes();
+}
+let scrollToEnd = false;
+function placeAc() {
+  const ac = document.getElementById("ac"); if (!ac || !S.ac) return;
+  const area = ac.parentElement;
+  const inp = area.querySelector(`[data-in="${S.ac.which}"]`); if (!inp) return;
+  const ch = 7.8;   // Fira Mono at 13: one character
+  const ar = area.getBoundingClientRect(), ir = inp.getBoundingClientRect(), k = ar.width / area.offsetWidth || 1;
+  let x = (ir.left - ar.left) / k, y = (ir.top - ar.top) / k;
+  if (S.ac.which === "line") x += S.ac.start * ch;
+  else { const before = S.pad.slice(0, S.ac.start).split("\n"); x += 6 + before[before.length - 1].length * ch; y += 4 + (before.length) * 18; ac.style.top = y + "px"; ac.style.left = Math.max(0, x - 4) + "px"; return; }
+  ac.style.left = Math.max(0, x - 8) + "px";
+  ac.style.bottom = (area.offsetHeight - y + 2) + "px";
+}
+function focusables() { return [...document.querySelectorAll("#zoomer .win [data-f]")]; }
+function placeHand() {
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let el = list.find(e => e.dataset.f === S.focus);
+  if (!el) { el = list.find(e => e.dataset.f.startsWith(S.page === "log" ? "row-" : S.page === "cmds" ? "cmd-" : "fold-")) || list[0]; S.focus = el.dataset.f; }
+  if (getComputedStyle(el).position === "static") el.style.position = "relative";
+  el.classList.add("pf");
+  el.insertAdjacentHTML("beforeend", `<span class="hand">${px("hand", 1)}</span>`);
+  const sc = el.closest(".scroll"); if (sc) { const r = el.offsetTop - sc.offsetTop; if (r < sc.scrollTop || r > sc.scrollTop + sc.clientHeight - 20) sc.scrollTop = r - 40; }
+}
+function fit() {
+  const z = document.getElementById("zoomer"), stage = document.getElementById("stage");
+  const inner = z.firstElementChild; if (!inner) return;
+  const w = inner.offsetWidth, h = inner.offsetHeight;
+  const k = Math.min(Math.max(200, window.innerWidth - 32) / w, Math.max(240, window.innerHeight - document.getElementById("review").offsetHeight - 32) / h, 1.8);
+  z.style.transform = `scale(${k})`; z.style.width = w + "px"; z.style.height = h + "px";
+  stage.style.height = (h * k + 32) + "px"; z.style.marginRight = (w * k - w) + "px";
+}
+
+/* ======================================================================
+   Running (simulated): the echo, then what the code would print
+   ====================================================================== */
+function now() { const d = new Date(); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, "0")).join(":"); }
+function addLog(e) { e.id = LOG.length; e.t = now(); LOG.push(e); }
+function run(code) {
+  code = code.replace(/\s+$/, ""); if (!code.trim()) return;
+  const multi = code.includes("\n");
+  if (multi && !S.loadstring) { S.hint = "No loadstring: the scratchpad can't run. Use One line."; return; }
+  HIST.push(code); S.hi = null;
+  const first = code.split("\n")[0];
+  addLog({ k: "print", mod: "Console", file: "console", ran: 1, msg: "> " + first + (multi ? `  (+${code.split("\n").length - 1} lines)` : "") });
+  const open = (code.match(/\(/g) || []).length, close = (code.match(/\)/g) || []).length;
+  const ends = (code.match(/\b(do|then|function)\b/g) || []).length, endc = (code.match(/\bend\b/g) || []).length;
+  if (open !== close || ends < endc) { addLog({ k: "error", mod: "Console", file: "console", ln: 1, msg: `console:${code.split("\n").length}: ${open > close ? "')' expected near <eof>" : "'<eof>' expected near 'end'"}`, stack: ["(a line that does not compile)"] }); }
+  else if (ends > endc) { addLog({ k: "error", mod: "Console", file: "console", ln: 1, msg: `console:${code.split("\n").length}: 'end' expected near <eof>`, stack: ["(a block left open)"] }); }
+  else if (/getActivatedMods/.test(code)) ["ZeD_UI", "Bandits", "Ladders"].forEach(m => addLog({ k: "print", mod: "Console", file: "console", msg: m }));
+  else if (/print\(getPlayer\(\):getX\(\), getPlayer/.test(code)) addLog({ k: "print", mod: "Console", file: "console", msg: "925.4931   13040.217   0" });
+  else if (/getLuaDebuggerErrorCount/.test(code)) addLog({ k: "print", mod: "Console", file: "console", msg: String(LOG.filter(e => e.k === "error" && e.mod !== "Console").length) });
+  else if (/getX\(\)/.test(code)) addLog({ k: "print", mod: "Console", file: "console", msg: "925.4931" });
+  else if (/getHour/.test(code)) addLog({ k: "print", mod: "Console", file: "console", msg: "14" });
+  else { const m = code.match(/print\(\s*"([^"]*)"\s*\)/); if (m) addLog({ k: "print", mod: "Console", file: "console", msg: m[1] }); else { const p = code.match(/print\((.*)\)/); if (p) addLog({ k: "print", mod: "Console", file: "console", msg: "nil" }); } }
+  if (S.mode === "line") S.line = ""; else S.pad = "";
+  S.kinds.print = 1; S.mods.Console = 1; S.hint = null; scrollToEnd = true;
+}
+
+/* ======================================================================
+   Input
+   ====================================================================== */
+function act(a, el) {
+  S.hint = null;
+  if (a === "run") { if (S.mode === "line") run(S.line); else run(S.pad); typing = S.mode === "line" ? "line" : "pad"; S.ac = null; }
+  else if (a === "topad") { S.mode = "pad"; S.pad = S.pad || S.line; S.line = ""; S.ac = null; typing = "pad"; }
+  else if (a === "toline") { S.mode = "line"; S.line = S.line || (S.pad.includes("\n") ? "" : S.pad); S.ac = null; typing = "line"; }
+  else if (a === "save") S.hint = `Saved as snippet ${SNIPS.length + 1} in Zomboid/Lua/ZeD_console_snippets.txt (name it there or with a right-click).`;
+  else if (a === "export") { const d = new Date(); const n = `ZeD_console_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}_${now().slice(0, 5).replace(":", "")}.log`;
+    S.hint = `Saved ${shownLog().length} lines (what the filters show) to Zomboid/Lua/${n}`; }
+  else if (a === "copy") S.hint = S.pick != null ? "Copied the error, stack and all." : `Copied ${shownLog().length} lines.`;
+  else if (a === "clear") { LOG = []; S.open = {}; S.pick = null; S.hint = "Cleared, as the game's own clear does. Errors stay in the F11 list."; }
+  else if (a === "clearq") { S.q = ""; typing = "q"; }
+  else if (a === "clearcq") { S.cq = ""; typing = "cq"; }
+  else if (a === "showall") { S.q = ""; S.kinds = { print: 1, warning: 1, error: 1 }; S.mods = {}; S.files = {}; }
+  else if (a === "typeq") typing = "q"; else if (a === "typecq") typing = "cq"; else if (a === "typeline") typing = "line"; else if (a === "typepad") typing = "pad";
+  else if (a === "send") { const c = CMDS.find(x => x.cmd === S.csel); S.hint = c && c.destr ? `Send ${c.cmd}? It can't be undone. Press Send again to send it.` : `Sent as chat: ${S.line || (c && c.ex)}`; }
+  else if (a === "copycmd") S.hint = "Copied the example.";
+  else if (a === "opensp") S.hint = "Opens that debug window (the mockup stops here).";
+  else if (a === "tolog") S.page = "log";
+  else if (a === "role") { const i = ROLES.findIndex(r => r[0] === S.role); S.role = ROLES[(i + 1) % ROLES.length][0]; }
+  render();
+}
+document.addEventListener("click", e => {
+  const set = e.target.closest("[data-set]");
+  if (set) { const [k, v] = set.dataset.set.split(":"); S[k] = v; if (k === "st") reset(); if (k === "role" && S.st === "cmdsSP") { S.st = "cmds"; S.sp = false; } render(); return; }
+  if (e.target.closest("textarea, input")) { const i = e.target.closest("[data-in]"); typing = i ? i.dataset.in : null; return; }
+  const aci = e.target.closest("[data-aci]"); if (aci) { S.acI = +aci.dataset.aci; acTake(); render(); return; }
+  const pg = e.target.closest("[data-page]"); if (pg) { S.page = pg.dataset.page; S.focus = pg.dataset.f; typing = null; S.hint = null; render(); return; }
+  const fd = e.target.closest("[data-fold]"); if (fd) { const k = fd.dataset.fold; S.fold[k] = !S.fold[k]; S.focus = fd.dataset.f; render(); return; }
+  const cb = e.target.closest("[data-cb]"); if (cb) { const [k, ...rest] = cb.dataset.cb.split(":"); const key = rest.join(":");
+    if (k === "k") S.kinds[key] = S.kinds[key] ? 0 : 1; else if (k === "m") S.mods[key] = modOn(key) ? 0 : 1; else S.files[key] = S.files[key] === 0 ? 1 : 0;
+    S.focus = cb.dataset.f; render(); return; }
+  const sn = e.target.closest("[data-snip]"); if (sn) { S.mode = "pad"; S.pad = SNIPS[+sn.dataset.snip][1]; typing = "pad"; S.focus = sn.dataset.f; render(); return; }
+  const hs = e.target.closest("[data-hist]"); if (hs) { S.hi = +hs.dataset.hist; S.pad = HIST[S.hi]; typing = "pad"; render(); return; }
+  const cm = e.target.closest("[data-cmd]"); if (cm) { S.csel = cm.dataset.cmd; const c = CMDS.find(x => x.cmd === S.csel); if (!S.sp) S.line = c.ex; S.focus = cm.dataset.f; S.hint = null; render(); return; }
+  const a = e.target.closest("[data-act]"); if (a) { if (a.classList.contains("off")) return; if (a.dataset.f) S.focus = a.dataset.f; act(a.dataset.act, a); return; }
+  const r = e.target.closest("[data-row]"); if (r) {
+    const id = +r.dataset.row, en = LOG[id];
+    if (e.target.closest(".tri") || (en && en.k === "error" && S.pick === id)) S.open[id] = !S.open[id];
+    else if (en && en.k === "error" && !S.open[id]) S.open[id] = 1;
+    S.pick = id; S.focus = "row-" + id; typing = null; S.ac = null; render();
+  }
+});
+document.addEventListener("input", e => {
+  const t = e.target.dataset.in; if (!t) return;
+  const pos = e.target.selectionStart;
+  if (t === "q") S.q = e.target.value; else if (t === "cq") S.cq = e.target.value;
+  else if (t === "line") { S.line = e.target.value; if (S.page === "log") acFor("line", pos); }
+  else if (t === "pad") { S.pad = e.target.value; acFor("pad", pos); }
+  typing = t; caret = pos; S.hint = null; render();
+});
+document.addEventListener("keydown", e => {
+  const t = e.target.dataset && e.target.dataset.in;
+  if (t === "line" || t === "pad") {
+    const el = e.target;
+    if (S.ac && S.ac.which === t) {
+      if (e.key === "ArrowDown") { e.preventDefault(); S.acI = Math.min(S.ac.items.length - 1, S.acI + 1); caret = el.selectionStart; render(); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); S.acI = Math.max(0, S.acI - 1); caret = el.selectionStart; render(); return; }
+      if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) { e.preventDefault(); acTake(); render(); return; }
+      if (e.key === "Escape") { e.preventDefault(); S.ac = null; caret = el.selectionStart; render(); return; }
+    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (S.page === "cmds") act("send"); else act("run"); return; }
+    if (e.key === "Tab") { e.preventDefault(); return; }
+    const histStep = d => { if (!HIST.length) return; let i = S.hi == null ? HIST.length : S.hi; i = Math.max(0, Math.min(HIST.length, i + d));
+      S.hi = i === HIST.length ? null : i; const v = S.hi == null ? "" : HIST[S.hi]; if (t === "line") S.line = v.split("\n").join(" "); else S.pad = v; typing = t; render(); };
+    if (t === "line" && (e.key === "ArrowUp" || e.key === "ArrowDown") && S.page === "log") { e.preventDefault(); histStep(e.key === "ArrowUp" ? -1 : 1); return; }
+    if (t === "pad" && e.key === "ArrowUp" && !el.value.slice(0, el.selectionStart).includes("\n")) { e.preventDefault(); histStep(-1); return; }
+    if (t === "pad" && e.key === "ArrowDown" && !el.value.slice(el.selectionStart).includes("\n")) { e.preventDefault(); histStep(1); return; }
+    return;
+  }
+  if (t) { if (e.key === "Escape") { if (t === "q") S.q = ""; else S.cq = ""; render(); } return; }
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let i = list.findIndex(el => el.dataset.f === S.focus);
+  if (["ArrowDown", "ArrowRight"].includes(e.key)) i = Math.min(list.length - 1, i + 1);
+  else if (["ArrowUp", "ArrowLeft"].includes(e.key)) i = Math.max(0, i - 1);
+  else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); list[i].click(); return; }
+  else return;
+  e.preventDefault(); S.focus = list[i].dataset.f; render();
+});
+window.addEventListener("resize", fit);
+
+/* ======================================================================
+   Notes
+   ====================================================================== */
+function q(items) { return `<ol>${items.map(([qq, opts]) => `<li>${qq} ${opts.map((o, i) => (i ? " / " : "") + (i === 0 ? `<span class="rec">${o} (recommended)</span>` : o)).join("")}</li>`).join("")}</ol>`; }
+function notes() {
+  const per = {
+    log: "Phase 1. The log page as it opens: everything in one list, newest at the foot, filters on the left. Untick a kind, a mod or a file; type in the search. Click an error to open its stack.",
+    expand: "Phase 1. Prints switched off, Bandits' error picked and opened to its whole stack (the game's own lines, as 42.22 writes them). x37: the same error 37 times, folded into one row.",
+    scratch: "Phase 2. The scratchpad open in place of the line, a snippet loaded. Type in it; Enter runs, Shift+Enter makes a new line, Up on the first line steps back through what you ran. Click a snippet or a history line to load it.",
+    noload: "Phase 2. The build has no loadstring (as 42.20.4 had none). The box grays, a notice says why, Run grays; One line becomes the default keycap.",
+    auto: "Phase 3. \"getP\" typed: the globals that start with it, from walking the game's environment. Keep typing, use Up/Down and Tab. Try \"ZeD.\", \"Events.\" or \"getGameTime():\" too.",
+    java: "Phase 3. \"getPlayer():get\" typed: the Java methods of the player object, marked Java, shown only if Phase 0 finds a way to list them.",
+    help: "Phase 3. The Help page: what runs where, the keys, the controller, the files. Each section folds.",
+    cmds: "Phase 4. The command list for an Admin. Switch Role in the review bar: the list narrows to what that role can use. A click fills the chat line with the example; Send sends it (a command that can't be undone asks first).",
+    cmdsSP: "Phase 4. Single player: every command shown with its debug-menu equivalent; commands with none are grayed. The default keycap opens the equivalent."
+  };
+  return `<h2>This state</h2><p>${per[S.st]}</p>
+  <p>One window, three pages on its strip (Log, Commands, Help). The log page keeps today's console underneath: the game's console parked as the engine, its box, its history, its line. Debug mode only. Strings here are English drafts; every new one goes through the translation keys.</p>
+
+  <h2>Phase 1, the log</h2>
+  <h3>What's new</h3>
+  <ul><li>The game's box and the F11 error list in one list. Each row: time, a status pixel and a word (print, warn, error, ran), the message, the mod and file:line, and a repeat count when an error comes back.</li>
+  <li>Filters on the left under fold headers: KIND, MOD, FILE, each a checkbox with its count. The counts follow the search.</li>
+  <li>Search looks at the message, mod, file and every stack line. The count reads "shown of total | errors".</li>
+  <li>An error opens to its whole stack in place; it is still picked and copied whole. Its stack sits indented under the red pixel: today's thin red line down the trace goes (no side bars).</li>
+  <li>Export writes what the filters show to Zomboid/Lua/ZeD_console_(date)_(time).log; the band says where.</li></ul>
+  <h3>Open questions</h3>
+  ${q([["A repeated error:", ["one row with a count (x37)", "every copy on its own row"]],
+       ["Errors when the log opens:", ["closed to their first line", "open, whole stack showing"]],
+       ["Export:", ["a new file each time, named for the time", "one file, written over each time"]]])}
+
+  <h2>Phase 2, the scratchpad</h2>
+  <h3>What's new</h3>
+  <ul><li>The Scratchpad keycap swaps the one line for a box, past 256 characters, with line numbers. One line swaps back.</li>
+  <li>Enter runs, Shift+Enter makes a new line. The run shows in the log as a "ran" row (the accent pixel) with its output under it; a compile error is an error row from Console.</li>
+  <li>Beside the box: SNIPPETS and HISTORY. Both are kept on disk in Zomboid/Lua (.txt), so they last between games.</li>
+  <li>No loadstring: a notice in the box, Run grayed, One line as the default.</li></ul>
+  <h3>Open questions</h3>
+  ${q([["Where the scratchpad opens:", ["in place of the line, under the log", "a column to the right of the log"]],
+       ["Enter in the scratchpad:", ["runs it, Shift+Enter for a new line", "a new line, Ctrl+Enter runs"]],
+       ["Naming a snippet:", ["Save snippet asks for a name in the band", "named from its first line, renamed later"]]])}
+
+  <h2>Phase 3, discoverability</h2>
+  <h3>What's new</h3>
+  <ul><li>A ZeD pull-down above the caret as you type: globals after two letters, a table's fields after "." and a Java object's methods after ":". Each has a status pixel and a word (function, table, Java). Tab or Enter takes one; Up/Down moves; Esc closes. It replaces the game's single "Tab:" suggestion.</li>
+  <li>Java methods only if the game allows it: Phase 0 checks for a helper that lists them. Without one, ":" shows nothing.</li>
+  <li>The Help page: what runs where, the keys, the controller, the files.</li></ul>
+  <h3>Open questions</h3>
+  ${q([["The pull-down opens:", ["by itself after two letters", "only when you press Tab"]],
+       ["Help:", ["a page on the strip", "the help band at the foot only"]]])}
+
+  <h2>Phase 4, the command list</h2>
+  <h3>What's new</h3>
+  <ul><li>Every server slash command (the bundled list will have all 78 under 92 names; this mockup shows 52) in six groups. Each row: the command, what it does, and the access level as a status pixel and a word. Picked: syntax, example, the level and capability, and its single-player equivalent.</li>
+  <li>Filtered to your role. A click fills the chat line with the example. Send sends it as chat does if Phase 0 finds that path; otherwise it fills the game's chat box.</li>
+  <li>Single player: every command shows its debug-menu equivalent; those with none gray out.</li></ul>
+  <h3>Open questions</h3>
+  ${q([["Commands above your role:", ["hidden", "shown grayed, with the role they need"]],
+       ["Commands that can't be undone (/removezombies, /grantadmin, /removeadmin, /changeoption):", ["Send asks first, in the band", "no extra step"]],
+       ["Single player, picking a command:", ["opens its debug window", "only says where it is"]]])}
+
+  <h2>Controller and the Deck</h2>
+  <ul><li>The hand moves through the page strip, the filters, the search, the log, the line (or the scratchpad and its lists) and the band, in that order (arrow keys here when Input is Controller; Enter presses).</li>
+  <li>A ticks a filter, opens or closes an error, types (ZeD's pad keyboard opens under the window), presses a button. B closes. X exports (on the log) or saves a snippet. Y swaps one line and the scratchpad. LB/RB step older and newer runs on the line, as today.</li>
+  <li>With the pad keyboard open, the autocomplete shows as a row of keys over the keyboard: D-pad up reaches it, A takes one.</li>
+  <li>Deck 1280 x 800 Auto: the window opens at nearly full screen (the root clamps to 0.75), and the filter column keeps its width.</li></ul>
+  <h3>Open questions</h3>
+  ${q([["Changing pages on a pad:", ["D-pad left to the page strip", "LT / RT step through the pages"]],
+       ["The filter column at the Deck:", ["kept", "folded away behind a Filters keycap"]]])}`;
+}
+// a link can open a state: #st=expand&view=deck&input=pad&theme=light&role=gm
+for (const [k, v] of new URLSearchParams(location.hash.slice(1))) if (["st", "view", "input", "theme", "role"].includes(k)) S[k] = v;
+reset();
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
+</body>
+</html>
