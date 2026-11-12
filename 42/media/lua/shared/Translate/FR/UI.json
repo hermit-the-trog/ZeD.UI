@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Traite %1 sur %2",
     "UI_ZeD_Animals_RunShearing": "Tonte %1 sur %2",
     "UI_ZeD_Animals_RunStopped": "Arrêté après %1 sur %2.",
+    "UI_ZeD_Animals_RunFull": "%1 plein : %2 sur %3 traites.",
     "UI_ZeD_Animals_SelNothing": "%1 sélectionnés : rien à traire ni à tondre",
     "UI_ZeD_Animals_Selected": "%1 sélectionnés",
     "UI_ZeD_Animals_Stop": "Arrêter",

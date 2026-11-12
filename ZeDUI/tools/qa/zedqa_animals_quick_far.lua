@@ -191,6 +191,36 @@ local function ringEl(id)
     end
 end
 local function focusId() local e = Focus.getFocusedElement(W()); return e and e.id end
+-- The zone's three animals back where they were made, as the steps need them. Cows wander and graze between steps:
+-- a cow that walked out of the zone is no longer in its roster or its picks, and a starving cow that grazed is no
+-- longer hungry (each made "All hungry" and "All milkable" fail with nothing wrong in ZeD).
+local AT0 = {}
+local function backHome(a)
+    local h = AT0[a]
+    if not (a and h) then return end
+    pcall(function() a:setX(h[1] + 0.5); a:setY(h[2] + 0.5); a:setLastX(h[1] + 0.5); a:setLastY(h[2] + 0.5) end)
+end
+local function inZone(a)
+    for _, z in ipairs(AP.getAnimalsInZone(ZONE) or {}) do if z == a then return true end end
+    return false
+end
+local function sayAnimals(when)
+    local parts = {}
+    for _, k in ipairs({ "milk", "wool", "hungry" }) do
+        local a = A[k]
+        local milk, hunger, wool = -1, -1, -1
+        pcall(function() milk = a:getData():getMilkQuantity() end)
+        pcall(function() wool = a:getData():getWoolQuantity() end)
+        pcall(function() hunger = ZeD.AnimalsData.getHunger(a) end)
+        parts[#parts + 1] = string.format("%s in zone %s at %d,%d milk %.1f wool %.1f hunger %.0f", k, tostring(inZone(a)),
+            math.floor(a:getX()), math.floor(a:getY()), milk, wool, hunger)
+    end
+    say(when .. ": " .. table.concat(parts, "; "))
+end
+-- wait until the band shows button id live (it re-counts its picks every half second), then go on
+local function waitLive(id, ms)
+    waitFor(ms or 5000, function() local b = bulk(id); return b ~= nil and not b.disabled end, id .. " live in the band")
+end
 
 -- 1  the animals, the zone, the tools and the cow food set aside
 add(300, function()
@@ -199,6 +229,9 @@ add(300, function()
     A.milk = spawn("cow", px + 3, py + 2)
     A.wool = spawn("ram", px - 3, py + 2)
     A.hungry = spawn("cow", px + 3, py - 3)
+    for _, a in ipairs({ A.milk, A.wool, A.hungry }) do
+        if a then AT0[a] = { math.floor(a:getX()), math.floor(a:getY()) } end
+    end
     pcall(function() A.milk:getData():setMaxMilkActual(6); A.milk:getData():setMilkQuantity(8) end)
     pcall(function() A.wool:getData():setWoolQuantity(5, true) end)
     pcall(function() A.hungry:getStats():set(CharacterStat.HUNGER, 0.9) end)
@@ -312,12 +345,22 @@ add(300, function()
     check(not ok2 and AQ.run == nil and queueNames() == "", "out of reach: no run, nothing queued", why2)
 end)
 
--- 5  the zone: picks, ticks, the band's run
+-- 5  the zone: picks, ticks, the band's run. The character back home from the far cow, the three animals back where
+--    they were made, the starving cow starving again (it grazed), the milk cow dry
 add(300, function()
+    pcall(function() ISTimedActionQueue.clear(p) end)
+    pcall(function() p:setX(HOME[1]); p:setY(HOME[2]); p:setLastX(HOME[1]); p:setLastY(HOME[2]) end)
+    for _, a in ipairs({ A.milk, A.wool, A.hungry }) do backHome(a); pcall(function() a:setDebugStress(0) end) end
+    pcall(function() A.hungry:getStats():set(CharacterStat.HUNGER, 0.9) end)
+    pcall(function() A.milk:getData():setMilkQuantity(0) end)
+end)
+add(1500, function()
     AP.refreshCache()
+    sayAnimals("before the zone view")
     AT.navigate(W(), "zone", ZONE, nil)
 end)
-add(1200, function()
+waitLive("hungry")
+add(300, function()
     local w = W()
     check(bulk("hungry") and not bulk("hungry").disabled, "All hungry is live (a starving cow)")
     AT.bulkPress(w, "hungry")
@@ -329,11 +372,15 @@ add(800, function()
     check(bulk("clear") ~= nil, "with ticks the band offers Clear")
     AT.bulkPress(W(), "clear")
 end)
+-- (the roster draws only the rows in view, two at 4K: scroll a row at a time until the ram's row is drawn)
+add(300, function() AT.getZoneViewState(W()).scrollY = 0 end)
+waitFor(6000, function()
+    for _, rz in ipairs(W()._animalsRosterZones or {}) do if rz.animal == A.wool then return true end end
+    local zs = AT.getZoneViewState(W())
+    zs.scrollY = (zs.scrollY or 0) + ZeD.T.px(12)
+    return false
+end, "the ram's row in view")
 add(300, function()
-    -- (the roster draws only the rows in view: the ram's row is scrolled to as the pad's focus would)
-    W()._gpFocusedAnimalRow = A.wool
-end)
-add(800, function()
     local w = W()
     local names = {}
     for k, rz in ipairs(w._animalsRosterZones or {}) do
@@ -370,11 +417,17 @@ add(500, function()
     shot("7_done")
 end)
 -- a run stopped by Stop: the milk cow again (it refills only slowly, so give it milk; the given bucket emptied,
--- it may be full from the first milking)
+-- it may be full from the first milking; the cow back in the zone)
 add(300, function()
     emptyGiven()
     AQ.forgetChecks()
+    backHome(A.milk)
     pcall(function() A.milk:getData():setMilkQuantity(6) end)
+    AT.bulkPress(W(), "clear")
+end)
+waitLive("milkable")
+add(300, function()
+    sayAnimals("before All milkable")
     AT.bulkPress(W(), "milkable")
 end)
 add(800, function()
@@ -490,10 +543,12 @@ end)
 
 -- 6  the controller: the stops and A
 add(800, function()
+    backHome(A.milk)
     pcall(function() A.milk:getData():setMilkQuantity(6) end)
     Det.setLockedMode(Det.MODE_GAMEPAD)
     Focus.claimFocus(W())
 end)
+waitLive("milkable")
 add(1200, function()
     -- (the pad's A presses the stop it is on: put the focus on All milkable first, as the player would)
     local z

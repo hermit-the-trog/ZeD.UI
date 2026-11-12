@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Melken %1 van %2",
     "UI_ZeD_Animals_RunShearing": "Scheren %1 van %2",
     "UI_ZeD_Animals_RunStopped": "Gestopt na %1 van %2.",
+    "UI_ZeD_Animals_RunFull": "%1 vol: %2 van %3 gemolken.",
     "UI_ZeD_Animals_SelNothing": "%1 geselecteerd: niets te melken of scheren",
     "UI_ZeD_Animals_Selected": "%1 geselecteerd",
     "UI_ZeD_Animals_Stop": "Stop",

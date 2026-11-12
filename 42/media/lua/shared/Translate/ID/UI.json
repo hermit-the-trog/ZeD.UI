@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Memerah %1 dari %2",
     "UI_ZeD_Animals_RunShearing": "Mencukur %1 dari %2",
     "UI_ZeD_Animals_RunStopped": "Berhenti setelah %1 dari %2.",
+    "UI_ZeD_Animals_RunFull": "%1 penuh: diperah %2 dari %3.",
     "UI_ZeD_Animals_SelNothing": "%1 dipilih: tidak ada yang bisa diperah atau dicukur",
     "UI_ZeD_Animals_Selected": "%1 dipilih",
     "UI_ZeD_Animals_Stop": "Berhenti",

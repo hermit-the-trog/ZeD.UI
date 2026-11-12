@@ -91,7 +91,10 @@ end
 -- radial menu takes the first, and milking with "all" moves on to the next when one fills.
 -- The game's rule (InventoryItem.isAvailableFluidContainer): any carried thing with a fluid
 -- container that is empty, or whose main fluid is this milk, a water bottle as much as a
--- bucket; only the main inventory counts, not the bags in it.
+-- bucket; only the main inventory counts, not the bags in it. The rule does not ask for room:
+-- a bucket full of this milk passes it, and the game's milking with it stops on its first
+-- pull (ISMilkAnimal.milk finds it full and no other). ZeD skips the full ones, so a full
+-- bucket greys Milk, and a run whose last container fills ends saying so ("Bucket full").
 local function milkBucket(player, animal)
     local inv = ocall(player, "getInventory")
     local d = ocall(animal, "getData")
@@ -99,7 +102,12 @@ local function milkBucket(player, animal)
     local mt = breed and ocall(breed, "getMilkType")
     if not (inv and mt) then return nil end
     local list = ocall(inv, "getAvailableFluidContainer", mt)
-    if list and not list:isEmpty() then return list:get(0) end
+    if not list then return nil end
+    for i = 0, list:size() - 1 do
+        local it = list:get(i)
+        local fc = ocall(it, "getFluidContainer")
+        if not (fc and ocall(fc, "isFull") == true) then return it end
+    end
     return nil
 end
 
@@ -500,15 +508,32 @@ end
 -- True when the action handed over for this animal did not happen. Milk and shear: it still
 -- has something to give while the tool is there. Feed: its hunger did not go down (an
 -- animal fed by hand may stay a little hungry, so "still hungry" is no test).
+-- True when the milk container handed over is full
+local function toolFull(r)
+    local fc = r.verb == "milk" and r.tool and ocall(r.tool, "getFluidContainer")
+    return fc ~= nil and fc ~= false and ocall(fc, "isFull") == true
+end
+
+-- "Bucket full: milked 1 of 2": the run ends because the last container that takes this milk
+-- filled (the game's milking moves on to another one by itself, so it stopped only when none
+-- was left). The container by its own name in the game's words.
+local function fullWords(r)
+    local name = ocall(r.tool, "getDisplayName") or getText("ContextMenu_Milk")
+    return ZeD.tr("UI_ZeD_Animals_RunFull", name, r.done, #r.list)
+end
+
+-- Whether the action handed over for this animal was left undone: false (it was done), true
+-- (stopped), or "full" (milk left in it, and no room left in anything carried)
 local function leftUndone(r, a)
     if r.verb == "feed" then return (AD().getHunger(a) or 0) >= (r.before or 0) end
     if not HAS[r.verb](a) then return false end
     -- something left to give: undone while the tool is still there for it, or when the tool
-    -- left the inventory (a stressed animal kicks the bucket out of the hands); a bucket filled
-    -- to the brim counts as done, and the next animal says there is no room
+    -- left the inventory (a stressed animal kicks the bucket out of the hands)
     local inv = ocall(r.player, "getInventory")
     if r.tool and inv and ocall(inv, "contains", r.tool) == false then return true end
-    return AQ.can(r.verb, r.player, a) == true
+    if AQ.can(r.verb, r.player, a) == true then return true end
+    if toolFull(r) then return "full" end
+    return true
 end
 
 local function doingAction(player)
@@ -529,7 +554,7 @@ end
 local onTick
 
 -- why: the words the band shows; cause: what ended it, for QA's logs ("done", "stop", "undone",
--- "away", "stuck", "slow", "cut", "reach", "refused", "dead", "replaced")
+-- "away", "stuck", "slow", "cut", "reach", "refused", "full", "dead", "replaced")
 local function finish(why, cause)
     local r = AQ.run
     if not r then return end
@@ -560,6 +585,8 @@ local function handOver(r, i)
     r.before = AD().getHunger(a) or 0
     -- (feed: when the food has run out the act says so, and the run ends with that reason)
     local ok, why, how, tool = AQ.act(r.verb, r.player, a, r.food)
+    -- (the container the last animal filled was the last with room: say so, not the bare reason)
+    if not ok and toolFull(r) then finish(fullWords(r), "full") return end
     if not ok then finish(why, "refused") return end
     r.phase, r.seen, r.ticks, r.stall, r.tool = "wait", false, 0, 0, tool
     r.approach = how == "approach"
@@ -653,7 +680,13 @@ function AQ.tick()
         end
         -- the action is over (or never showed up). One left undone means the run was
         -- stopped: the player walked off, the animal ran, or the game turned it down
-        if leftUndone(r, a) then
+        local undone = leftUndone(r, a)
+        if undone == "full" then
+            letGo(a)
+            finish(fullWords(r), "full")
+            return
+        end
+        if undone then
             letGo(a)
             finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), "undone")
             return

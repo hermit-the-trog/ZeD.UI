@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Доїння %1 з %2",
     "UI_ZeD_Animals_RunShearing": "Стрижка %1 з %2",
     "UI_ZeD_Animals_RunStopped": "Зупинено після %1 з %2.",
+    "UI_ZeD_Animals_RunFull": "%1: повно, подоєно %2 з %3.",
     "UI_ZeD_Animals_SelNothing": "Вибрано %1: нікого доїти чи стригти",
     "UI_ZeD_Animals_Selected": "Вибрано %1",
     "UI_ZeD_Animals_Stop": "Стоп",

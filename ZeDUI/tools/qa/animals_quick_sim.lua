@@ -27,6 +27,8 @@
 --            drawn, out of reach and nothing handed over
 --   AWAY     the run gives up cleanly (queue cleared, animal let go) when the player is moved well off, the queue
 --            is stuck, or one animal takes too long; walking up from afar is no walk-off
+--   FULL     a bucket full of this milk is passed over; the last container filling mid-run ends it "Bucket full:
+--            milked n of m"; with another container carried the run goes on with it
 --   CAUSE    what ended a run is kept (AQ.last.cause); a bucket kicked away is a stop, a full one counts
 --   LAND     a press's landing waits for its stop to be drawn (A on All milkable lands on Clear), then 1.5 s at most
 --   BAND     the zone band's fit as drawBand lays it out; short of room the margins close up before Rename leaves
@@ -410,15 +412,20 @@ check("RUN a cancelled step stops the run: Stopped after 1 of 3", AQ.run == nil 
 check("RUN D3 was never handed over", #CALLS == 2)
 check("RUN D2 lets go (it was held still for the milking)", d2._blocked == false)
 
--- the bucket runs out
+-- the bucket runs out (the only one fills on E1, milk left in it)
 ISTimedActionQueue.queues = {}
 local e1 = animal("E1", { milk = 9, milkable = true })
 local e2 = animal("E2", { milk = 9, milkable = true })
+local eb = bucket("EB")
+eb._full = false
+eb.getFluidContainer = function() return { isFull = function() return eb._full end } end
+eb.getDisplayName = function() return "Bucket" end
+p._buckets = { eb }
 CALLS = {}
 AQ.start(p, "milk", { e1, e2 })
-AQ.tick(); p._buckets = {}; finishAction(p); AQ.tick()   -- the bucket filled: E1 keeps some milk, no bucket left
-check("RUN the bucket full: E1 counts, E2 not handed over, the reason shown",
-    AQ.run == nil and #CALLS == 1 and AQ.last.why == "UI_ZeD_Animals_NeedMilkContainer", AQ.last.why .. " " .. #CALLS)
+AQ.tick(); eb._full = true; finishAction(p); AQ.tick()   -- the bucket filled: E1 keeps some milk, no room left
+check("RUN the bucket full: E2 not handed over, Bucket full: milked 0 of 2",
+    AQ.run == nil and #CALLS == 1 and AQ.last.why == "UI_ZeD_Animals_RunFull(Bucket,0,2)", AQ.last.why .. " " .. #CALLS)
 p._buckets = { bucket("Bucket1") }
 
 -- the game never takes the action up (it shows no action in the queue)
@@ -772,9 +779,8 @@ do
     CALLS = {}
     AQ.start(pc, "milk", { h1, h2 })
     AQ.tick(); pc._buckets = {}; finishAction(pc); AQ.tick()
-    check("CAUSE the bucket carried and full (milk left): H1 counts, the run ends with the container reason",
-        AQ.run == nil and AQ.last.done == 1 and AQ.last.cause == "refused" and AQ.last.why == "UI_ZeD_Animals_NeedMilkContainer",
-        AQ.last and tostring(AQ.last.cause) .. " " .. tostring(AQ.last.why))
+    check("CAUSE the container gone from the list but not full (milk left): a stop",
+        AQ.run == nil and AQ.last.done == 0 and AQ.last.cause == "undone", AQ.last and tostring(AQ.last.cause))
     pc._buckets = { bk2 }
     ISTimedActionQueue.queues = {}
     AQ.start(pc, "milk", { h1 })
@@ -785,6 +791,69 @@ do
     AQ.start(pc, "milk", { h1 })
     AQ.stop()
     check("CAUSE Stop", AQ.last.cause == "stop", AQ.last.cause)
+    ISTimedActionQueue.queues = {}
+end
+
+-- FULL ------------------------------------------------------------------------
+-- The game's rule passes a bucket full of this milk, and its milking then stops on the first pull: ZeD skips full
+-- ones. The last container filling partway through a run is no Done: the run ends "Bucket full: milked 1 of 2". With
+-- another container carried the run goes on with it.
+do
+    local function fluidBucket(name, full)
+        local b = bucket(name)
+        b._full = full
+        b.getFluidContainer = function() return { isFull = function() return b._full end } end
+        b.getDisplayName = function() return name end
+        return b
+    end
+    local pf = player()
+    local fullB, roomB = fluidBucket("Full", true), fluidBucket("Room", false)
+    pf._buckets = { fullB, roomB }
+    local cowF = animal("CowF", { milk = 4, milkable = true })
+    AQ.forgetChecks()
+    local okF, _, toolF = AQ.canMilk(pf, cowF)
+    check("FULL a full bucket is passed over for one with room", okF and toolF == roomB, toolF and toolF._name)
+    pf._buckets = { fullB }
+    local okN, whyN = AQ.canMilk(pf, cowF)
+    check("FULL only a full bucket: Milk greyed with the container reason", not okN and whyN == "UI_ZeD_Animals_NeedMilkContainer", whyN)
+    local k1 = animal("K1F", { milk = 8, milkable = true })
+    local k2 = animal("K2F", { milk = 8, milkable = true })
+    local b10 = fluidBucket("B10", false)
+    pf._buckets = { b10 }
+    ISTimedActionQueue.queues = {}
+    CALLS = {}
+    AQ.start(pf, "milk", { k1, k2 })
+    AQ.tick(); k1._milk = 0; finishAction(pf); AQ.tick()
+    check("FULL the first cow milked dry, the second handed over", #CALLS == 2, table.concat(CALLS, " "))
+    AQ.tick(); k2._milk = 6; b10._full = true; finishAction(pf); AQ.tick()
+    check("FULL the only bucket full on the second (milk left): Bucket full: milked 1 of 2, not Done",
+        AQ.run == nil and AQ.last.done == 1 and AQ.last.cause == "full" and AQ.last.why == "UI_ZeD_Animals_RunFull(B10,1,2)",
+        AQ.last and tostring(AQ.last.cause) .. " " .. tostring(AQ.last.why))
+    check("FULL K2 let go", k2._blocked == false)
+    -- the bucket fills exactly as the first cow runs dry: the second is not handed over, the same words
+    local m1 = animal("M1", { milk = 8, milkable = true })
+    local m2 = animal("M2", { milk = 8, milkable = true })
+    local bA = fluidBucket("BA", false)
+    pf._buckets = { bA }
+    ISTimedActionQueue.queues = {}
+    CALLS = {}
+    AQ.start(pf, "milk", { m1, m2 })
+    AQ.tick(); m1._milk = 0; bA._full = true; finishAction(pf); AQ.tick()
+    check("FULL the bucket full as the first runs dry: milked 1 of 2, the second never handed over",
+        AQ.run == nil and #CALLS == 1 and AQ.last.cause == "full" and AQ.last.why == "UI_ZeD_Animals_RunFull(BA,1,2)",
+        AQ.last and tostring(AQ.last.why))
+    -- a second container carried: the run moves on to it and milks both
+    local n1 = animal("N1", { milk = 8, milkable = true })
+    local n2 = animal("N2", { milk = 8, milkable = true })
+    local bB, bC = fluidBucket("BB", false), fluidBucket("BC", false)
+    pf._buckets = { bB, bC }
+    ISTimedActionQueue.queues = {}
+    CALLS = {}
+    AQ.start(pf, "milk", { n1, n2 })
+    AQ.tick(); n1._milk = 0; bB._full = true; finishAction(pf); AQ.tick()
+    check("FULL another container carried: the second cow is milked into it", CALLS[2] == "milk:N2:BC:true", table.concat(CALLS, " "))
+    AQ.tick(); n2._milk = 0; finishAction(pf); AQ.tick()
+    check("FULL then Done 2 of 2", AQ.run == nil and AQ.last.cause == "done" and AQ.last.done == 2, AQ.last and AQ.last.cause)
     ISTimedActionQueue.queues = {}
 end
 

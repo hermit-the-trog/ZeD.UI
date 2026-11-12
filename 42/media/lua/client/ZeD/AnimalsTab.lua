@@ -3355,7 +3355,7 @@ local function drawZoneBand(panel, win, x, y, w, state)
         elseif spec.id == "remove" then win._animalsZoneRemoveBtn = rect
         else
             -- (sx, sy: the button's foot on the screen, where Feed's food picker opens)
-            bulk[#bulk + 1] = { x = rect.x, y = rect.y, w = rect.w, h = rect.h, id = spec.id, disabled = spec.disabled,
+            bulk[#bulk + 1] = { x = rect.x, y = rect.y, w = rect.w, h = rect.h, id = spec.id, disabled = spec.disabled, why = spec.why,
                                 sx = panel:getAbsoluteX() + rect.x, sy = panel:getAbsoluteY() + rect.y + rect.h + T.px(1) }
             -- a greyed one says why: over it with the pointer, or on it with the controller
             if spec.disabled then
