@@ -2,6 +2,7 @@
 # the Character window on Radio (a walkie), the World window on Fishing, 4K, Rosa shot save (cin_lau_lake.png)
 #   cinema_run2.ps1 -Manifest cinema_laura4.txt -ShotSave ZeD-Shots-Rosa
 gallery_b11_look.lua | g14l | timeout=60
+gallery_solid.lua | gsol | timeout=60
 gallery_hidecon.lua | hcn | timeout=60
 gallery_cinema_lib.lua | cinlib | timeout=60
 gallery_cinema_laura3.lua | clau3 | timeout=1200

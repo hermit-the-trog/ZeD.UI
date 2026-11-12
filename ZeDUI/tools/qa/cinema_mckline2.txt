@@ -1,6 +1,7 @@
 # ZeDUI/tools/qa/cinema_mckline2.txt  (Nov 11 2026, the gallery plan v2 shot 3): McKline's kitchen, 4K, on his shot save
 #   cinema_run2.ps1 -Manifest cinema_mckline2.txt -ShotSave ZeD-Shots-McKline
 gallery_b11_look.lua | g14l | timeout=60
+gallery_solid.lua | gsol | timeout=60
 gallery_hidecon.lua | hcn | timeout=60
 gallery_cinema_lib.lua | cinlib | timeout=60
 gallery_cinema_mckline2.lua | cmck2 | timeout=900

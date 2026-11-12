@@ -1,4 +1,7 @@
 # Bring the fullscreen Project Zomboid window to the foreground.
+# (-ProcId, Nov 12 2026: that game's window, when more than one copy runs: the test server's clients)
+param([int]$ProcId = 0)
+if (-not $ProcId -and $env:ZEDQA_FRONT_PID) { $ProcId = [int]$env:ZEDQA_FRONT_PID }   # (the mouse helper's calls, when the test server's clients run beside the admin)
 Add-Type @"
 using System; using System.Runtime.InteropServices; using System.Text;
 public class PZF {
@@ -19,7 +22,7 @@ public class PZF {
 "@
 # Hide the "Windows Input Experience" window if it is around (it steals the foreground).
 $wie = [PZF]::FindWindow($null, "Windows Input Experience"); if ($wie -ne [IntPtr]::Zero) { [void][PZF]::ShowWindow($wie, 0) }
-$p = Get-Process ProjectZomboid64 | Select-Object -First 1; $h = $p.MainWindowHandle
+$p = $(if ($ProcId) { Get-Process -Id $ProcId } else { Get-Process ProjectZomboid64 | Select-Object -First 1 }); $h = $p.MainWindowHandle
 $fg = [PZF]::GetForegroundWindow(); $fgpid = [uint32]0; $fgt = [PZF]::GetWindowThreadProcessId($fg, [ref]$fgpid)
 $me = [PZF]::GetCurrentThreadId()
 [void][PZF]::AttachThreadInput($me, $fgt, $true)

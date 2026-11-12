@@ -4,6 +4,7 @@
 zedqa_prelude.lua | pre | timeout=120
 zedqa_pin_windows.lua | pnw | timeout=60
 gallery_b11_look.lua | g14l | timeout=60
+gallery_solid.lua | gsol | timeout=60
 gallery_hidecon.lua | hcn | timeout=60
 gallery_cinema_lib.lua | cinlib | timeout=60
 gallery_story_stage.lua | sts | timeout=600

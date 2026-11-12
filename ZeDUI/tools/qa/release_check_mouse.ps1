@@ -40,7 +40,7 @@ while ((Get-Date) -lt $until -and -not (Test-Path $stop)) {
             if (Test-Path $front) { & $front | Out-Null }
             Start-Sleep -Milliseconds 300
             # the game's pixels are its window's client area: in a windowed game they start at the client's corner
-            $pz = Get-Process -Name ProjectZomboid64 -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+            $pz = $(if ($env:ZEDQA_FRONT_PID) { Get-Process -Id ([int]$env:ZEDQA_FRONT_PID) -ErrorAction SilentlyContinue } else { Get-Process -Name ProjectZomboid64 -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1 })   # (ZEDQA_FRONT_PID, Nov 12 2026: that copy of the game when several run)
             if ($pz) {
                 $pt = New-Object ZedQA.Mouse+POINT
                 $pt.X = $x; $pt.Y = $y

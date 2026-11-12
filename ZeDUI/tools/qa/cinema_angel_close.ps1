@@ -13,7 +13,7 @@
     The real-mouse helper (C.pointerAway) runs for the admin's shot.
       pwsh -File ZeDUI/tools/qa/cinema_angel_close.ps1 [-Guests bob,carl,dave]
 #>
-param([string[]]$Guests = @("bob"))   # (Nov 11 2026: a new client folder stops at the game's terms of service, which a person must accept: bob's alone has)
+param([string[]]$Guests = @("bob", "carl", "dave"))   # (Nov 12 2026: the director accepted the terms of service in zedqa_p3 and zedqa_p4 too; a folder that still stops at the terms is stopped and reported, never accepted here)
 $Qa = $PSScriptRoot
 $Root = "$($env:USERPROFILE)\Zomboid\mods\ZeD-UI"
 $Z = "$($env:USERPROFILE)\Zomboid"
@@ -63,10 +63,13 @@ $MO = "$Lua\ModOptions.ini"; if (Test-Path $MO) { Copy-Item $MO "$Keep\ModOption
 $helper = $null
 $joined = @()
 try {
-    & "$Qa\mp_server.ps1" -Start -Mods "ZeD_UI;ZeDQAShim" -Set "DoLuaChecksum=false" | ForEach-Object { if ($_ -match "^set |ready|already|PID") { Note $_ } }
+    & "$Qa\mp_server.ps1" -Start -Mods "ZeD_UI;ZeDQAShim" -Set "DoLuaChecksum=false;ShowFirstAndLastName=true;DisplayUserName=false" | ForEach-Object { if ($_ -match "^set |ready|already|PID") { Note $_ } }
     Note "server up"
     $o = & pwsh -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\cinema_angel_close_admin.txt" -Mp -Mode windowed -Width 3840 -Height 2160 -KeepOpen -Report "$Root\ZeDUI\qa\regression\$(Get-Date -Format yyyy-MM-dd_HHmm)_cang_admin.md" 2>&1
     Note "admin in: $(($o | Select-Object -Last 2) -join ' / ')"
+    $adminPid = (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue | Select-Object -First 1).Id   # (the only copy so far: the guests start after)
+    Note "admin PID $adminPid"
+    $env:ZEDQA_FRONT_PID = "$adminPid"   # (pzfront.ps1 and the mouse helper bring THIS window forward, never a guest's: a guest in front iconified the fullscreen admin and the picture came out black)
     if (-not (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue)) { throw "the admin client is not running" }
     Set-Content $Lock "busy" -NoNewline
     for ($i = 0; $i -lt $Guests.Count; $i++) { try { if (Guest-Start $i) { $joined += $Guests[$i] } } catch { Note "[$($Guests[$i])] $($_.Exception.Message)" } }
@@ -85,11 +88,14 @@ try {
     Main "gallery_cinema_angel_gather.lua" "cangg" 60
     foreach ($j in $jobs) { Receive-Job -Job $j -Wait -AutoRemoveJob | ForEach-Object { Note "guest: $_" } }
     Main "gallery_cinema_angel_close_mode.lua" "cangm" 30
+    # (Nov 12 2026) the admin's window to the front before it goes fullscreen for the picture (the guests' windows took it)
+    if ($adminPid) { Note "front: $((& "$Qa\pzfront.ps1" -ProcId $adminPid) -join ' ')" }
     Main "gallery_cinema_angel.lua" "cang" 600
     Note "shot: $(Test-Path "$Z\Screenshots\cin_ang_close.png")"
 }
 catch { Note "STOPPED: $($_.Exception.Message)" }
 finally {
+    $env:ZEDQA_FRONT_PID = $null
     if ($helper) { Set-Content -Path "$Lua\zedqa_click_stop.txt" -Value "stop"; Start-Sleep -Milliseconds 800; if (-not $helper.HasExited) { Stop-Process -Id $helper.Id -Force } }
     for ($i = 0; $i -lt $Guests.Count; $i++) { & "$Qa\mp_client2.ps1" -Stop -Slot (Slot $i) | ForEach-Object { Note "[$($Guests[$i])] $_" } }
     # the admin: quit through the bridge (the game this run started), then the options back

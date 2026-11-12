@@ -105,6 +105,33 @@ function C.dusk(night, day)
     end)
 end
 
+-- (Nov 12 2026) real night for a picture: the clock at h and the climate's light floats as gallery_story_stage.lua's
+-- ST.night sets them (night strength 1, daylight 0, global light 0, a low ambient), with the sandbox's NightDarkness
+-- read for the report. C.nightBack() puts the floats back as they were.
+function C.night(h, ambient)
+    C.time(h or 23.5)
+    C.climWas = C.climWas or {}
+    local want = { NIGHT_STRENGTH = 1.0, DAYLIGHT_STRENGTH = 0.0, GLOBAL_LIGHT_INTENSITY = 0.0, AMBIENT = ambient or 0.08 }
+    pcall(function()
+        local cm = getClimateManager()
+        for i = 0, cm:getFloatMax() - 1 do
+            local v = cm:getClimateFloat(i)
+            local w = want[tostring(v:getName())]
+            if w ~= nil then
+                if not C.climWas[v] then C.climWas[v] = { en = v:isEnableAdmin(), val = v:getAdminValue() } end
+                v:setEnableAdmin(true); v:setAdminValue(w)
+            end
+        end
+    end)
+    local nd = nil
+    pcall(function() nd = getSandboxOptions():getOptionByName("NightDarkness"):getValue() end)
+    print(string.format("ZEDQA cinlib night at %.2f | sandbox NightDarkness %s (1 pitch black .. 4 bright)", getGameTime():getTimeOfDay(), tostring(nd)))
+end
+function C.nightBack()
+    for v, c in pairs(C.climWas or {}) do pcall(function() v:setAdminValue(c.val); v:setEnableAdmin(c.en) end) end
+    C.climWas = nil
+end
+
 -- clear skies (no fog, rain or cloud)
 function C.clearSky()
     pcall(function()

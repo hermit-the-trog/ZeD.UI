@@ -1,6 +1,7 @@
 # ZeDUI/tools/qa/cinema_kohners3.txt  (Nov 11 2026, the gallery plan v2 shot 5): Kohners driving at dusk alone (cin_koh_dusk.png),
 # 4K on her shot save: cinema_run2.ps1 -Manifest cinema_kohners3.txt -ShotSave ZeD-Shots-Kohners
 gallery_b11_look.lua | g14l | timeout=60
+gallery_solid.lua | gsol | timeout=60
 gallery_hidecon.lua | hcn | timeout=60
 gallery_cinema_lib.lua | cinlib | timeout=60
 gallery_cinema_kohners3.lua | ckoh3 | timeout=900

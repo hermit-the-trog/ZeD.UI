@@ -8,6 +8,7 @@ local me = p and p:getUsername() or "?"
 local SPOT = { bob = { -1, 2 }, carl = { 1, 2 }, dave = { 2, 0 }, erin = { -2, 1 } }
 local off = SPOT[me] or { 0, 2 }
 local admin, placed, n, t0 = nil, false, 0, getTimestampMs()
+A_SPOT = nil
 pcall(function() SendCommandToServer('/godmod "' .. me .. '" -true') end)
 local function find()
     local l = getOnlinePlayers()
@@ -35,8 +36,15 @@ local function tick()
             local x, y = math.floor(ax) + off[1] + 0.5, math.floor(ay) + off[2] + 0.5
             p:setX(x); p:setY(y); p:setLastX(x); p:setLastY(y)
             placed = true
+            A_SPOT = { x = x, y = y, t = getTimestampMs() }
             say(string.format("%s placed at %.1f,%.1f, the admin at %.1f,%.1f", me, x, y, ax, ay))
             say("DONE")
+        end
+        -- (Nov 12 2026) the server's teleport can land after the first placing (bob stood on Angel's square in the
+        -- first retake): the spot held for the first two minutes after placing
+        if placed and A_SPOT and getTimestampMs() - A_SPOT.t < 120000 and (math.abs(p:getX() - A_SPOT.x) > 0.6 or math.abs(p:getY() - A_SPOT.y) > 0.6) then
+            p:setX(A_SPOT.x); p:setY(A_SPOT.y); p:setLastX(A_SPOT.x); p:setLastY(A_SPOT.y)
+            say(string.format("%s put back on its spot %.1f,%.1f", me, A_SPOT.x, A_SPOT.y))
         end
         p:faceLocation(ax, ay)
     end)

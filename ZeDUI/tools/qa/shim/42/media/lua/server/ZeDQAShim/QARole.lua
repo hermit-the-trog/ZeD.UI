@@ -33,6 +33,27 @@ Events.OnClientCommand.Add(function(module, command, player, args)
         -- (Nov 6 2026, QA: E8) the 1 hour length made short on this server, so a timed ban runs out inside a test
         if ZeD and ZeD.Adm and ZeD.Adm.LENGTH then ZeD.Adm.LENGTH.h1.sec = tonumber(args and args.sec) or 45 end
         print("[ZeDQA] h1 is now " .. tostring(ZeD and ZeD.Adm and ZeD.Adm.LENGTH.h1.sec) .. " s")
+    elseif command == "time" then
+        -- (Nov 12 2026, QA: the gallery's closing break at night) the server keeps its own clock and there is no admin
+        -- command for the hour (/setTimeSpeed only sets the speed): the hour {h} set on the server's clock, which the
+        -- clients follow
+        local h = tonumber(args and args.h) or 23
+        pcall(function() getGameTime():setTimeOfDay(h) end)
+        print("[ZeDQA] time of day for " .. tostring(player:getUsername()) .. ": " .. tostring(getGameTime():getTimeOfDay()))
+        sendServerCommand(player, "ZeDQA", "time", { h = getGameTime():getTimeOfDay() })
+    elseif command == "fresh" then
+        -- (Nov 12 2026, QA: the closing break, god mode off so no admin tag) fed, watered and healed on the server, so no
+        -- hunger, thirst or pain moodle stands at the screen's edge in the picture
+        local function fresh(pl)
+            pcall(function() pl:getBodyDamage():RestoreToFullHealth() end)
+            local st = pl:getStats()
+            for _, k in ipairs({ "HUNGER", "THIRST", "FATIGUE", "PAIN", "STRESS", "BOREDOM", "UNHAPPINESS", "PANIC", "ENDURANCE" }) do
+                pcall(function() st:set(CharacterStat[k], (k == "ENDURANCE") and 1 or 0) end)
+            end
+            pcall(function() st:setHunger(0); st:setThirst(0) end)
+        end
+        fresh(player)
+        print("[ZeDQA] fresh: " .. tostring(player:getUsername()))
     elseif command == "nolimits" then
         if ZeD and ZeD.Srv and ZeD.Srv.mem then ZeD.Srv.mem[player:getUsername()] = nil end
         sendServerCommand(player, "ZeDQA", "nolimits", { ok = true })

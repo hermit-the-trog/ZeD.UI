@@ -118,9 +118,25 @@ S.step(10, function()
     C.moveTo(water[1], water[2], 0)
     p:setDir(IsoDirections[water[3]])
     local rod = nil
-    for _, ft in ipairs({ "Base.FishingRod", "Base.FishingRodTwineLure", "Base.FishingRod_Twine" }) do
-        local ok, it = pcall(function() return p:getInventory():AddItem(ft) end)
-        if ok and it then rod = it; S.say("rod " .. ft); break end
+    -- (Nov 12 2026) one rod in the save, reused: the first rod in her inventory kept, any others (earlier takes added one
+    -- each run) taken away; a new one only when she has none
+    local RODS = { ["Base.FishingRod"] = true, ["Base.FishingRodTwineLure"] = true, ["Base.FishingRod_Twine"] = true }
+    pcall(function()
+        local items, extra = p:getInventory():getItems(), {}
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            if RODS[it:getFullType()] or it:getFullType():find("FishingRod", 1, true) then
+                if rod then extra[#extra + 1] = it else rod = it end
+            end
+        end
+        for _, it in ipairs(extra) do p:getInventory():Remove(it) end
+        S.say("rods in her inventory: kept " .. tostring(rod and rod:getFullType()) .. ", took away " .. #extra)
+    end)
+    if not rod then
+        for _, ft in ipairs({ "Base.FishingRod", "Base.FishingRodTwineLure", "Base.FishingRod_Twine" }) do
+            local ok, it = pcall(function() return p:getInventory():AddItem(ft) end)
+            if ok and it then rod = it; S.say("rod " .. ft .. " (new: she had none)"); break end
+        end
     end
     if rod then
         pcall(function() p:setPrimaryHandItem(rod); p:setSecondaryHandItem(rod) end)

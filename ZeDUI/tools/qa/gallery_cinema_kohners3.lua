@@ -23,7 +23,7 @@ local function roadRun(x, y, dx, dy)
     return n
 end
 
-S.step(5, function() C.time(21.6); C.look("dark", "pink"); C.noWindows(); if getGameSpeed() <= 0 then setGameSpeed(1) end; pcall(function() p:setGodMod(true) end) end)
+S.step(5, function() C.time(23.5); C.look("dark", "pink"); C.noWindows(); if getGameSpeed() <= 0 then setGameSpeed(1) end; pcall(function() p:setGodMod(true) end) end)
 for k = 1, #SPOTS do
     S.step(5, function() if road then return end; C.moveTo(SPOTS[k][1], SPOTS[k][2], 0) end)
     S.step(150, function()
@@ -73,7 +73,9 @@ S.step(10, function()
     pcall(function() local b = car:getPartById("Battery"):getInventoryItem(); b:setCurrentUsesFloat(1.0) end)
     pcall(function() local b = car:getPartById("Battery"):getInventoryItem(); b:setUsedDelta(1.0) end)
     pcall(function() car:getPartById("Battery"):setCondition(100) end)
-    C.time(21.6)   -- (dusk: 19.1 and 20.6 still read as day: a summer evening on the save's date)
+    -- (Nov 12 2026, the director: "Try real night", the headlights doing the lighting; 19.1 to 21.6 read as day with a purple cast)
+    C.night(23.5)
+    pcall(function() local o = getSandboxOptions():getOptionByName("NightDarkness"); if o:getValue() > 2 then S.ndWas = o:getValue(); o:setValue(2); getSandboxOptions():toLua(); S.say("NightDarkness " .. S.ndWas .. " -> 2 for the run") end end)
     C.clearSky()
     C.dress({ "Base.Vest_DefaultTEXTURE_TINT", "Base.Trousers_CamoGreen", "Base.Shoes_ArmyBoots", "Base.Glasses_Aviators",
               "Base.WristWatch_Left_DigitalBlack", "Base.Bag_FannyPackFront" }, nil, { "Base.Shotgun", "Base.ShotgunShells", "Base.MuldraughMap", "Base.Lighter", "Base.WaterBottle" })
@@ -135,7 +137,7 @@ C.zoom(S, 0.75)
 -- climate panel sets them
 -- (C.dusk left out: the clock alone, later in the evening)
 -- (the light follows the clock slowly: the first take at 19.1 still read as day) time for dusk to come in
-S.step(900, function() S.say(string.format("time %.2f", getGameTime():getTimeOfDay())) end)
+S.step(900, function() C.night(23.5); S.say(string.format("time %.2f", getGameTime():getTimeOfDay())) end)
 S.step(60, function() if S.part then pcall(function() ISVehicleMenu.onSignalDevice(p, S.part) end) end end)
 S.step(60, function()
     local pr = CR and CR.props and CR.props[pn]
@@ -162,6 +164,8 @@ S.step(20, function()
     local d = ZeD.Dashboard and ZeD.Dashboard.getInstance()
     if d and d._st and d._st.radioOn then pcall(function() d:_fire("pwr", false) end) end
     pcall(function() if car:isEngineRunning() then car:shutOff() end end)
+    C.nightBack()
+    if S.ndWas then pcall(function() getSandboxOptions():getOptionByName("NightDarkness"):setValue(S.ndWas); getSandboxOptions():toLua() end) end
 end)
 S.step(30, function()
     local v = p:getVehicle()
