@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/srjt_manifest.txt  (Nov 11 2026): punch list 172, the Transcribe keycap with Skill Recovery Journal on.
+# zedqa_mods_run.ps1 -ModList srjt_mods.txt -Mode fullscreen4k -Manifest srjt_manifest.txt   (ZEDQA_NOSTEAM=1)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_srj_transcribe.lua | srjt | timeout=600
