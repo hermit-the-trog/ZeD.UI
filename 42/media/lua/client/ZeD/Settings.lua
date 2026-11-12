@@ -253,7 +253,7 @@ ZeD.Settings.restockOption = restock
 -- ----- THE OTHER VIEW CHOICES: all lists or all grids for the most used
 -- menus -----
 -- The inventory's view for every container that hasn't one of its own (each
--- column's List | Grid toggle still sets one container; InventoryRenderer).
+-- column's view button still sets one container; InventoryRenderer).
 local invView = opts:addComboBox("inventoryView", ZeD.tr("UI_ZeD_Settings_Inventory"),
     ZeD.tr("UI_ZeD_Settings_InventoryTip"))
 invView:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)   -- default: the list

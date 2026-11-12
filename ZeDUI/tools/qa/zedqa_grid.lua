@@ -1,7 +1,7 @@
 -- ZeDUI/tools/qa/zedqa_grid.lua  (Oct 19 2026)
 -- In game on the ZeD-QA save: the inventory grid. Switches the character's bag
 -- to grid, captures it, opens a cell's card, walks the cells with the
--- simulated pad, goes up to the List | Grid toggle and presses A on List.
+-- simulated pad, goes up to the view button and presses A on it (the grid flips to the list).
 -- Puts the view back. grep "ZEDQA grid". Screenshots zqa_grid_*.png.
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -34,7 +34,7 @@ at(60, function()
     say("first target: " .. tostring(e1 and e1.id) .. " at " .. tostring(e1 and e1.x) .. "," .. tostring(e1 and e1.y) .. " size " .. tostring(e1 and e1.w) .. "x" .. tostring(e1 and e1.h))
 end)
 at(70, function() pcall(function() getCore():TakeFullScreenshot("zqa_grid_1.png") end) end)
--- the pad: first cell, right, down, up, up (the toggle), A on List
+-- the pad: first cell, right, down, up, up (the view button), A on it
 at(80, function()
     local w = cw(); local zi, z = zone(w, "charMainInv")
     w._focusIdx = zi; z.focusedElementIdx = 1
@@ -44,7 +44,7 @@ end)
 at(90, function() Focus.dispatchJoypadDir(cw(), "right"); where("right (expect the next cell)") end)
 at(100, function() Focus.dispatchJoypadDir(cw(), "down"); where("down (expect the cell below)") end)
 at(110, function() Focus.dispatchJoypadDir(cw(), "up"); where("up") end)
-at(120, function() Focus.dispatchJoypadDir(cw(), "up"); where("up again (expect the toggle)") end)
+at(120, function() Focus.dispatchJoypadDir(cw(), "up"); where("up again (expect the view button)") end)
 at(125, function() pcall(function() getCore():TakeFullScreenshot("zqa_grid_2.png") end) end)
 -- a cell's card: A on a cell
 at(130, function()
@@ -61,9 +61,9 @@ at(170, function()
     local w = cw(); local c = w._mainContent
     local sel = c._selectedItems or {}; for k in pairs(sel) do sel[k] = nil end; c._lastClickedItem = nil; w._updateDrawer(c)
     local zi, z = zone(w, "charMainInv")
-    for i, e in ipairs(z.elements) do if e.isViewToggle and e.view == "list" then w._focusIdx = zi; z.focusedElementIdx = i; e.onActivate(w, e) end end
+    for i, e in ipairs(z.elements) do if e.isViewToggle and e.view == "flip" then w._focusIdx = zi; z.focusedElementIdx = i; e.onActivate(w, e); break end end
 end)
-at(190, function() say("after A on List: grid " .. tostring(IR.isGridKey("player")) .. " cell " .. tostring(cw()._mainContent._gridCell)) end)
+at(190, function() say("after A on the view button (expect false): grid " .. tostring(IR.isGridKey("player")) .. " cell " .. tostring(cw()._mainContent._gridCell)) end)
 at(200, function()
     IR.setGridKey("player", was)
     Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)

@@ -1230,7 +1230,7 @@ _buildWorldMCColumnFocusables = function(win, slot)
             end,
         }
     end
-    -- the column's List | Grid toggle
+    -- the column's view button
     for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(cs.viewToggleRects)) do elements[#elements + 1] = e end
     -- An empty column needs a placeholder so the zone stays focusable;
     -- the bumpers would otherwise skip empty containers, breaking the
@@ -1590,7 +1590,7 @@ _buildWorldInvRowFocusables = function(win)
         local cnt = win._mainContent
         if cnt then cnt._gpFocusedRowItem = elements[1].item end
     end
-    -- the column's List | Grid toggle (up from the first row reaches it)
+    -- the column's view button (up from the first row reaches it)
     for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)) do elements[#elements + 1] = e end
     return elements
 end
@@ -5085,7 +5085,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         dirty = true
                         win._lastMcActiveForMainInv = mcActive
                     end
-                    -- Rebuild on the rows' places too (scroll, List | Grid, width)
+                    -- Rebuild on the rows' places too (scroll, list or grid, width)
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {}) .. ":" .. ZeD.InventoryRenderer.filterGen(self)
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
@@ -5166,8 +5166,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                                             end
                                         end
                                     end
-                                    -- (the neighbouring ROW: the List | Grid
-                                    -- toggles come after the rows, never a stand-in for one)
+                                    -- (the neighbouring ROW: the view button
+                                    -- and the Filter come after the rows, never a stand-in for one)
                                     local nRows = 0
                                     for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
                                     preserveIdx = math.min(oldIdx, math.max(1, nRows))
@@ -5559,7 +5559,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             return true
         end
 
-        -- a column's List | Grid toggle (InventoryRenderer: "view:list:<container>" / "view:grid:<container>")
+        -- a column's view button (InventoryRenderer: "view:flip:<container>")
         if type(zid) == "string" and zid:sub(1, 5) == "view:" then
             ZeD.InventoryRenderer.onViewZone(zid, self)
             return true

@@ -327,7 +327,7 @@ local function ccMarked(self, item)
 end
 
 -- ============================================================================
--- GRID VIEW. A List | Grid toggle in each column's heading; the
+-- GRID VIEW. A view button in each column's heading; the
 -- list stays the default. The choice is remembered per container (the fridge
 -- set to grid opens as a grid next time), in the character's mod data. The
 -- grid shows the list's own order: no sorting of its own. Cells register the
@@ -367,7 +367,7 @@ local function gridStore()
     return md.ZeD_GridViews
 end
 
--- a container's own choice (its List | Grid toggle), else the ZeD option "Inventory"
+-- a container's own choice (its view button), else the ZeD option "Inventory"
 function ZeD.InventoryRenderer.isGridKey(key)
     local s = key and gridStore()
     if s and s[key] ~= nil then return s[key] == true end
@@ -379,6 +379,14 @@ end
 function ZeD.InventoryRenderer.setGridKey(key, on)
     local s = key and gridStore()
     if s then s[key] = on and true or false end   -- (false: this one a list, whatever the option says)
+end
+
+-- the heading's view button, R3 and A on the button: the container goes to the other view, saved as its own choice
+function ZeD.InventoryRenderer.flipGridKey(key)
+    if not key then return false end
+    ZeD.InventoryRenderer.setGridKey(key, not ZeD.InventoryRenderer.isGridKey(key))
+    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    return true
 end
 
 -- ---------------------------------------------------------------------------
@@ -416,7 +424,7 @@ function ZeD.InventoryRenderer.padSort(win)
     return true
 end
 
--- R3: the container on show between List and Grid (its own List | Grid toggle's choice)
+-- R3: the container on show between List and Grid (as its heading's view button does)
 function ZeD.InventoryRenderer.padView(win)
     local cnt, cs = padList(win)
     if not cnt then return false end
@@ -424,10 +432,7 @@ function ZeD.InventoryRenderer.padView(win)
     local c = idx and win._containers and win._containers[idx]
     local playerObj = win._playerObj or getSpecificPlayer(0)
     local key = c and c.inventory and containerKey(c.inventory, playerObj)
-    if not key then return false end
-    ZeD.InventoryRenderer.setGridKey(key, not ZeD.InventoryRenderer.isGridKey(key))
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
-    return true
+    return ZeD.InventoryRenderer.flipGridKey(key)
 end
 
 -- the footer's words for the two, where the pad is in a list: L3 sorts, R3 shows what it switches to
@@ -442,7 +447,7 @@ function ZeD.InventoryRenderer.padPrompts(win)
              { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
 end
 
--- a toggle zone was clicked: "view:list:<key>" / "view:grid:<key>"; the Filter's "view:filter:<key>" and its bar's
+-- a heading zone was clicked: the view button's "view:flip:<key>"; the Filter's "view:filter:<key>" and its bar's
 -- "view:fbar:field" / "clear" / "chip:<category>" / "bg" (content: the list panel the press was on)
 function ZeD.InventoryRenderer.onViewZone(zid, content)
     local view, key = tostring(zid):match("^view:(%a+):(.*)$")
@@ -458,8 +463,7 @@ function ZeD.InventoryRenderer.onViewZone(zid, content)
         else ZeD.InvFilter.act(S, key) end
         return
     end
-    ZeD.InventoryRenderer.setGridKey(key, view == "grid")
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    if view == "flip" then ZeD.InventoryRenderer.flipGridKey(key) end
 end
 
 -- Double-click a row: vanilla's quick use. In your main inventory the item's
@@ -625,8 +629,8 @@ function ZeD.InventoryRenderer.quickUse(item, playerNum)
     end
 end
 
--- The toggle's controller elements for a column (each builder appends them):
--- rects stamped by the renderer in panel coords; A picks the view.
+-- The heading's controller elements for a column (each builder appends them):
+-- rects stamped by the renderer in panel coords; A on the view button flips the view.
 -- The Filter's stops (its button, the bar's field, Clear and chips): A does what a click does (on the field it opens
 -- the controller's keyboard), X clears the filter wherever the pad is in the bar.
 local function filterOf(w)
@@ -658,7 +662,7 @@ function ZeD.InventoryRenderer.toggleElements(rects)
                 id = "view:" .. r.view .. ":" .. tostring(r.key),
                 isViewToggle = true, view = r.view, key = r.key,
                 onFocus = function(w, el) end,
-                onActivate = function(w, el) ZeD.InventoryRenderer.setGridKey(el.key, el.view == "grid") end,
+                onActivate = function(w, el) ZeD.InventoryRenderer.flipGridKey(el.key) end,
             }
             if r.view == "filter" or r.view == "fbar" then filterElement(el) end
             els[#els + 1] = el
@@ -867,23 +871,23 @@ local function gridH(GV, n)
     return GV.gap + math.ceil(n / GV.cols) * (GV.cell + GV.gap)
 end
 
--- List | Grid: two separate icon buttons 4u apart, the active one solid accent,
--- ending at column-local x `right`, in the column heading (top barH, height
--- areaH). Each names itself in a hint after the pause (the library's). Stamps
--- GV.toggles (panel coords). Returns the width taken (with its gap).
+-- The view button: one icon button showing the view on show (the list's picture in list view, the grid's in grid
+-- view), solid accent as the chosen view; a press flips to the other (the director, Nov 11: one button, not a List
+-- and a Grid side by side). Ends at column-local x `right`, in the column heading (top barH, height areaH); names
+-- its view in a hint after the pause (the library's). Stamps GV.toggles (panel coords). Returns the width taken
+-- (with its gap).
 local _viewOpts = {}
 local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     if not GV.key then return 0 end
     local T = ZeD.T
     local M = ZeD.Molecules
     local bw = math.max(T.px(16), math.min(T.buttonH, areaH - T.px(4)))
-    local sep = T.px(4)
-    -- Filter first, a little apart from List | Grid (they are one pair; Filter is not part of it), where the window
-    -- has a Filter (filterFrame: a heading)
+    -- Filter first, a little apart from the view button (Filter is not a view), where the window has a Filter
+    -- (filterFrame: a heading)
     local S = self._zedFilter
     local withF = S ~= nil and S.shown
     local fgap = T.px(6)
-    local tW = bw * 2 + sep + (withF and (bw + fgap) or 0)
+    local tW = bw + (withF and (bw + fgap) or 0)
     local tx = xOff + right - tW
     local ty = barH + math.floor((areaH - bw) / 2)
     if withF then
@@ -902,19 +906,17 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
             for _, r in ipairs(S.rects) do GV.toggles[#GV.toggles + 1] = r end
         end
     end
-    for i, v in ipairs({ "list", "grid" }) do
-        local zx = tx + (i - 1) * (bw + sep)
-        local on = (v == "grid") == (GV.on and true or false)
-        local id = "view:" .. v .. ":" .. GV.key
-        local name = (v == "list") and getText("IGUI_CraftingWindow_ListView") or ZeD.tr("UI_ZeD_Inv_GridView")
-        local o = _viewOpts
-        o.active, o.hover = on, ZeD.Atoms.mouseIn(self, zx, ty, bw, bw)
-        o.focus, o.hint, o.id = gpFocusedToggle(id), name, id
-        o.help = ZeD.tr(v == "list" and "UI_ZeD_Inv_ListHelp" or "UI_ZeD_Inv_GridHelp")
-        o.iconSize = math.min(T.px(16), bw - T.px(6))
-        M.drawIconButton(self, zx, ty, bw, v == "list" and "view_list" or "view_grid", o)   -- (ZeD pixel icons)
-        GV.toggles[#GV.toggles + 1] = { x = zx, y = ty, w = bw, h = bw, view = v, key = GV.key, id = id }
-    end
+    -- (one id whichever view is on show: the pad's stop keeps its place across the flip)
+    local grid = GV.on and true or false
+    local id = "view:flip:" .. GV.key
+    local o = _viewOpts
+    o.active, o.hover = true, ZeD.Atoms.mouseIn(self, tx, ty, bw, bw)
+    o.focus, o.id = gpFocusedToggle(id), id
+    o.hint = grid and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
+    o.help = ZeD.tr(grid and "UI_ZeD_Inv_GridHelp" or "UI_ZeD_Inv_ListHelp")
+    o.iconSize = math.min(T.px(16), bw - T.px(6))
+    M.drawIconButton(self, tx, ty, bw, grid and "view_grid" or "view_list", o)   -- (ZeD pixel icons)
+    GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = bw, h = bw, view = "flip", key = GV.key, id = id }
     return tW + padX
 end
 
@@ -1102,7 +1104,7 @@ local function drawGridList(self, GV, list, y)
 end
 
 -- The column's heading: the container's icon and name on the left; its
--- weight over its item count on the right, the List | Grid toggle left of them.
+-- weight over its item count on the right, the view button left of them.
 -- (Kept out of renderItemList: in -debug the game's compiler keeps every
 -- local a function declares, block or not, and stops at 200; renderItemList
 -- runs close to that limit.)
@@ -1160,7 +1162,7 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local ntc    = T.toneNorm
     if wtStr then self:drawText(wtStr, xOff + colW - wtW - padX, stackY, htc.r, htc.g, htc.b, htc.a, T.fontF1) end
     if cntStr then self:drawText(cntStr, xOff + colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5) end
-    -- List | Grid, left of the weight (the zones go in after the hit zones are cleared)
+    -- the view button, left of the weight (the zones go in after the hit zones are cleared)
     stackW = stackW + drawViewToggle(self, GV, xOff, colW - stackW - padX * 2, barH, infoAreaH, padX)
     -- Left: icon + name (F4 norm), vertically centred in info area
     local nameY = barH + math.floor((infoAreaH - f4FH) / 2)
@@ -1207,7 +1209,7 @@ local function drawGridGroups(self, GV, catOrder, groups, collapsed, stackedGrou
     return y
 end
 
--- the List | Grid toggle's hit zones (after the column clears its zones)
+-- the view button's hit zones (after the column clears its zones)
 local function addToggleZones(self, GV)
     for _, r in ipairs(GV.toggles) do self:addHitZone(r.id, r.x, r.y, r.w, r.h) end
 end
@@ -2074,7 +2076,7 @@ local function renderItemList(self)
         hZ("hdr:" .. def[2], def[4], hdrY, def[5], colHdrH)
     end
     if self._ccH > 0 then ZeD.ContainerControls.addZones(self) end
-    -- the List | Grid toggle (its rects are panel coords already)
+    -- the view button (its rects are panel coords already)
     addToggleZones(self, self._gv)
 
     self:setStencilRect(xOff, contentTop, scroll.visible and (colW - scrollW) or colW, visibleH)
@@ -2300,7 +2302,7 @@ local function renderItemList(self)
     -- an icon's hover hint (container buttons), over everything
     if self._ccH > 0 then ccHint(self) end
 
-    -- a grid cell (its item's name) or the List | Grid toggle names itself
+    -- a grid cell (its item's name) or the view button names itself
     drawGridHint(self, self._gv, xOff, colW, contentTop)
 end
 
@@ -2677,7 +2679,7 @@ local function renderMultiColumnContent(self)
             -- taken after each render keeps each column's stamps for the next
             -- frame's focusable builder.
             cs.itemRenderYMap  = self._itemRenderYMap
-            -- the grid: each cell's x, the cell size, the List | Grid toggle (focusables read them)
+            -- the grid: each cell's x, the cell size, the view button (focusables read them)
             cs.itemRenderXMap  = self._itemRenderXMap
             cs.gridCell        = self._gridCell
             cs.viewToggleRects = self._viewToggleRects

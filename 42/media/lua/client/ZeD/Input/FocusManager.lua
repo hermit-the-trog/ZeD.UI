@@ -38,7 +38,7 @@
 --                              (no shade-all fallback; purely contextual cancel)
 --   Y tap                    — toggle paired visibility (open both/hide both/unhide both)
 --   Y hold (>=400ms)         — close every registered window (full lifecycle teardown)
---   L3 / R3                  — the focused list's next sort / its List | Grid view, nothing else
+--   L3 / R3                  — the focused list's next sort / list or grid view, nothing else
 --   Right stick |v|² > 0.81  — roll up every registered window + release focus (aiming escape)
 --
 -- WINDOW-PAIR INVARIANT (gamepad mode):
@@ -694,7 +694,7 @@ function Focus.ensureEntry(w)
     local zone = zi and w._focusRing[zi]
     if zone and zone.focusable and zone.elements and #zone.elements > 0 then
         -- the remembered row when focus was last here, else the first row
-        -- (rows carry .item; the List | Grid toggle and placeholders do not)
+        -- (rows carry .item; the view button and placeholders do not)
         local ei = zone.focusedElementIdx or 1
         local el = zone.elements[ei]
         if not (el and el.item) or w._focusPendingEntry then
@@ -1406,7 +1406,7 @@ local function _handleSpatialNav(w, dir)
     -- Left / Right with nothing level in this panel go on to the next panel
     -- that way, never to a control above or below in the same panel. (A
     -- row's Left went to the container buttons under the list, not the tab
-    -- column; its Right to the List | Grid toggle over the list, not the
+    -- column; its Right to the view button over the list, not the
     -- container column.)
     if (dir == "left" or dir == "right") and pass == "half" then
         local fl, tl = locator[logFromIdx], locator[newFlatIdx]

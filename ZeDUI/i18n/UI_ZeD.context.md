@@ -1879,7 +1879,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Inv_ColName` | `Name` | Inventory list: column heading, and the name of the sort order in the grid's order line | 8 |
 | `UI_ZeD_Inv_ColWt` | `Wt` | Inventory list: column heading for item weight | 4 |
 | `UI_ZeD_Inv_Empty` | `Nothing here.` | Inventory list: centered message when a container, a floor tile or any list has no items | 24 |
-| `UI_ZeD_Inv_GridView` | `Grid view` | Inventory lists: hover hint on the grid button of the List/Grid toggle | - |
+| `UI_ZeD_Inv_GridView` | `Grid view` | Inventory lists: hover hint on the view button in a column heading while the grid is on show (one button flips between list and grid) | - |
 | `UI_ZeD_Inv_ItemsMany` | `%1 items` | Inventory lists (both windows), compact container header: how many items it holds (several or none) | 12 |
 | `UI_ZeD_Inv_ItemsOne` | `%1 item` | Inventory lists (both windows), compact container header: how many items it holds (one) | - |
 | `UI_ZeD_Inv_OrderLine` | `Order: %1, as the list` | Inventory grid, column bar: names the list's sort order the grid follows; %1 is NAME, CATEGORY, CONDITION or WEIGHT | - |
@@ -1888,8 +1888,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Inv_ColHelp` | `Sort by %1: press again to turn the order around` | Inventory list: help line over a column heading; %1 = the heading's text | - |
 | `UI_ZeD_Inv_CatFoldHelp` | `Press to fold this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is open | - |
 | `UI_ZeD_Inv_CatOpenHelp` | `Press to open this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is folded | - |
-| `UI_ZeD_Inv_ListHelp` | `List: this container's things as rows` | Inventory lists: help line over the List button of the List \| Grid toggle | - |
-| `UI_ZeD_Inv_GridHelp` | `Grid: this container's things as icons` | Inventory lists: help line over the Grid button of the List \| Grid toggle | - |
+| `UI_ZeD_Inv_ListHelp` | `List: this container's things as rows. Press for the grid` | Inventory lists: help line over the view button in a column heading while the list is on show (one button; a press switches to the grid) | - |
+| `UI_ZeD_Inv_GridHelp` | `Grid: this container's things as icons. Press for the list` | Inventory lists: help line over the view button in a column heading while the grid is on show (one button; a press switches to the list) | - |
 | `UI_ZeD_Inv_XferHelp` | `Move the selected things to column %1` | Inventory lists with several columns: help line over the button that moves the selected items to another column; %1 = the column's number | - |
 
 ## ItemAct
@@ -3574,7 +3574,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Settings_InputLock` | `Input mode lock` | Options > Mods > ZeD-GUI: name of the input mode setting | - |
 | `UI_ZeD_Settings_InputLockTip` | `Force a specific input mode. Auto lets the mod detect your active device.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_Inventory` | `Inventory` | Options > Mods > ZeD-GUI: name of the inventory view setting | - |
-| `UI_ZeD_Settings_InventoryTip` | `How containers show their items unless you set one with its List \| Grid toggle: a list with columns, or a grid of icons.` | Options > Mods > ZeD-GUI: hover help (List \| Grid is the name of a toggle in the inventory) | - |
+| `UI_ZeD_Settings_InventoryTip` | `How containers show their items unless you set one with the view button in its heading: a list with columns, or a grid of icons.` | Options > Mods > ZeD-GUI: hover help (the view button is the one button in each inventory column heading that flips between list and grid) | - |
 | `UI_ZeD_Settings_KeyboardMouse` | `Keyboard/mouse` | Options > Mods > ZeD-GUI: choice of the Gamepad glyph display and Input mode lock settings | - |
 | `UI_ZeD_Settings_Light` | `Light` | Options > Mods > ZeD-GUI: base theme choice | - |
 | `UI_ZeD_Settings_Moodles` | `Moodles` | Options > Mods > ZeD-GUI: name of the moodle placement setting (use the game's own word for moodles) | - |
