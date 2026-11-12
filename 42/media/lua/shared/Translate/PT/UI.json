@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Anda até %1 e tosquia-o",
     "UI_ZeD_Animals_HelpShearSel": "Tosquia os animais marcados um a seguir ao outro, andando até cada um",
     "UI_ZeD_Animals_HelpStopRun": "Parar: a ação em curso termina e o resto é descartado",
-    "UI_ZeD_Animals_NeedBucket": "Ordenhar precisa de um balde com espaço para este leite.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Ordenhar precisa de um recipiente vazio, ou com este leite, fora dos sacos.",
     "UI_ZeD_Animals_NeedShears": "Tosquiar precisa de uma tesoura de tosquia.",
     "UI_ZeD_Animals_NoMilkYet": "Ainda não há leite para tirar.",
     "UI_ZeD_Animals_NoWoolYet": "Ainda não há lã suficiente para tosquiar.",

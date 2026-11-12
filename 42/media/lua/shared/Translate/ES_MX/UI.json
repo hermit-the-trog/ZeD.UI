@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Camina hasta %1 y esquílalo",
     "UI_ZeD_Animals_HelpShearSel": "Esquila los animales marcados uno tras otro, caminando hasta cada uno",
     "UI_ZeD_Animals_HelpStopRun": "Detener: la acción en curso termina y el resto se descarta",
-    "UI_ZeD_Animals_NeedBucket": "Ordeñar necesita una cubeta con espacio para esta leche.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Ordeñar necesita un recipiente vacío, o uno con esta leche, fuera de tus bolsas.",
     "UI_ZeD_Animals_NeedShears": "Esquilar necesita tijeras de esquilar.",
     "UI_ZeD_Animals_NoMilkYet": "Aún no hay leche que sacar.",
     "UI_ZeD_Animals_NoWoolYet": "Aún no hay lana suficiente para esquilar.",

@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Marcher jusqu'à %1 et le tondre",
     "UI_ZeD_Animals_HelpShearSel": "Tondre les animaux cochés l'un après l'autre, en marchant jusqu'à chacun",
     "UI_ZeD_Animals_HelpStopRun": "Arrêter : l'action en cours se termine et le reste est abandonné",
-    "UI_ZeD_Animals_NeedBucket": "Traire demande un seau avec de la place pour ce lait.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Traire demande un récipient vide, ou contenant ce lait, hors de vos sacs.",
     "UI_ZeD_Animals_NeedShears": "Tondre demande des cisailles.",
     "UI_ZeD_Animals_NoMilkYet": "Pas encore de lait à prendre.",
     "UI_ZeD_Animals_NoWoolYet": "Pas encore assez de laine à tondre.",

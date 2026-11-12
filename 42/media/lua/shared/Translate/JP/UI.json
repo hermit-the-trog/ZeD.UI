@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "%1へ歩いて毛刈り",
     "UI_ZeD_Animals_HelpShearSel": "チェックした動物を1頭ずつ、歩いて回って毛刈り",
     "UI_ZeD_Animals_HelpStopRun": "停止：実行中の行動は終わり、残りは取り消し",
-    "UI_ZeD_Animals_NeedBucket": "搾乳にはこの乳が入るバケツが必要です。",
+    "UI_ZeD_Animals_NeedMilkContainer": "搾乳には空の容器か、この乳が入った容器が必要です（バッグの中は不可）。",
     "UI_ZeD_Animals_NeedShears": "毛刈りには毛刈りばさみが必要です。",
     "UI_ZeD_Animals_NoMilkYet": "まだ搾れる乳がありません。",
     "UI_ZeD_Animals_NoWoolYet": "まだ刈れるほど毛がありません。",

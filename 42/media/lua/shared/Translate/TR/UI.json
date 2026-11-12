@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "%1 yanına yürü ve kırk",
     "UI_ZeD_Animals_HelpShearSel": "İşaretli hayvanları sırayla kırk, her birinin yanına yürüyerek",
     "UI_ZeD_Animals_HelpStopRun": "Durdur: süren eylem biter, kalanlar bırakılır",
-    "UI_ZeD_Animals_NeedBucket": "Sağmak için bu süte yer olan bir kova gerekir.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Sağmak için boş bir kap ya da bu sütü içeren bir kap gerekir, çantada olmamalı.",
     "UI_ZeD_Animals_NeedShears": "Kırkmak için kırkma makası gerekir.",
     "UI_ZeD_Animals_NoMilkYet": "Henüz alınacak süt yok.",
     "UI_ZeD_Animals_NoWoolYet": "Henüz kırkacak kadar yün yok.",

@@ -4984,22 +4984,19 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- picks (e.g. sort btn at idx 4 for idx-4 zonecard sources).
             -- It may also be an element's id: a zone band button pressed
             -- lands on the one that takes its place (All hungry -> Clear).
-            if win._activeTab == "animals" and win._animalsNavFocusTarget then
-                local target = win._animalsNavFocusTarget
-                for i, e in ipairs(newEls) do
-                    if (target == "breadcrumb" and e.isBreadcrumb) or e.id == target then
-                        preserveIdx = i
-                        break
-                    end
-                end
-                win._animalsNavFocusTarget = nil
+            -- (a target not drawn yet is kept a moment: AT.navFocusIndex)
+            local navIdx = nil
+            if win._activeTab == "animals" and win._animalsNavFocusTarget and ZeD.AnimalsTab
+               and ZeD.AnimalsTab.navFocusIndex then
+                navIdx = ZeD.AnimalsTab.navFocusIndex(win, newEls, getTimestampMs())
+                if navIdx then preserveIdx = navIdx end
             end
 
             if win._activeTab == "vehicle" and win._mechFocusTarget and ZeD.MechanicsTab.focusTargetIndex then
                 local ti = ZeD.MechanicsTab.focusTargetIndex(win, newEls)
                 if ti then preserveIdx = ti; cardJumpIdx = ti end
             end
-            if dirty or alwaysRebuild or cardJumpIdx then
+            if dirty or alwaysRebuild or cardJumpIdx or navIdx then
                 win._lastTabContentSnapshot = {
                     tab     = win._activeTab,
                     scrollKey = scrollKey,

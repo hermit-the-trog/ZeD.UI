@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "เดินไปหา %1 แล้วตัดขน",
     "UI_ZeD_Animals_HelpShearSel": "ตัดขนสัตว์ที่ติ๊กไว้ทีละตัว โดยเดินไปหาแต่ละตัว",
     "UI_ZeD_Animals_HelpStopRun": "หยุด: การกระทำที่ทำอยู่จะจบ และที่เหลือจะถูกยกเลิก",
-    "UI_ZeD_Animals_NeedBucket": "การรีดนมต้องใช้ถังที่มีที่ว่างสำหรับนมนี้",
+    "UI_ZeD_Animals_NeedMilkContainer": "การรีดนมต้องใช้ภาชนะเปล่าหรือภาชนะที่มีนมชนิดนี้ ที่ไม่ได้อยู่ในกระเป๋า",
     "UI_ZeD_Animals_NeedShears": "การตัดขนต้องใช้กรรไกรตัดขน",
     "UI_ZeD_Animals_NoMilkYet": "ยังไม่มีนมให้รีด",
     "UI_ZeD_Animals_NoWoolYet": "ขนยังไม่พอให้ตัด",

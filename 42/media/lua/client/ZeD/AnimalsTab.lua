@@ -1196,7 +1196,10 @@ end
 function AT.alertAct(win, animal, verb)
     local player = getSpecificPlayer(0)
     if not (player and animal and verb) then return false end
-    return QK().act(verb, player, animal)
+    -- (milk and shear go as a run of one: the run walks up first to an animal further off,
+    -- and a walk-off or Stop clears what it handed the game)
+    if verb == "milk" or verb == "shear" then return QK().start(player, verb, { animal }) == true end
+    return QK().act(verb, player, animal) == true
 end
 -- ============================================================================
 -- M-ZRSUM — ZONE SUMMARY CARD
@@ -3260,6 +3263,22 @@ end
 -- the words a band button stands for in the ring ("animals:bulk:<id>")
 local function bulkId(id) return "animals:bulk:" .. tostring(id) end
 
+--- Whether the zone band's picks (lead) and its zone verbs (shown) fit in one row w wide, laid
+-- out as ZeD.Molecules.drawBand lays them: the margin each end, the buttons at their drawn
+-- widths (buttonW measures the label as drawButton draws it), 8u between neighbours. Short of
+-- room at the usual 8u margins, the band closes its margins up to 4u first (as the craft band
+-- does). Returns whether they fit, then the margin to draw with (nil: the usual one).
+function AT.bandFits(w, lead, shown)
+    local T, M = ZeD.T, ZeD.Molecules
+    local gap, sum, n = T.px(8), 0, 0
+    for _, b in ipairs(lead) do sum = sum + M.buttonW(b.label); n = n + 1 end
+    for _, v in ipairs(shown) do sum = sum + M.buttonW(v.label); n = n + 1 end
+    local between = (n > 0) and gap * (n - 1) or 0
+    if 2 * T.px(8) + sum + between <= w then return true, nil end
+    if 2 * T.px(4) + sum + between <= w then return true, T.px(4) end
+    return false, nil
+end
+
 -- How the run that ended went ("Done: 3 of 3."), for a few seconds after it ends
 local LAST_RUN_MS = 8000
 
@@ -3272,8 +3291,8 @@ local SEL_HELP = { milk = "UI_ZeD_Animals_HelpMilkSel", shear = "UI_ZeD_Animals_
 --                   each only when it applies to a ticked animal, greyed with the reason
 --                   when the tool (or, for Feed, any food they eat) is missing
 --   nothing ticked: All hungry and All milkable at the left (greyed when none is),
---                   Rename and Remove zone at the right (Rename leaves first when the
---                   band is short of room: pressing the zone's name renames it too)
+--                   Rename and Remove zone at the right (short of room the band's margins
+--                   close up to 4u, then Rename leaves: pressing the zone's name renames it too)
 -- Every button is a controller stop (animals:bulk:<id>); the ring reads win._animalsBulkBtns.
 local function drawZoneBand(panel, win, x, y, w, state)
     local T = ZeD.T
@@ -3285,7 +3304,7 @@ local function drawZoneBand(panel, win, x, y, w, state)
     local animals = AP().getAnimalsInZone(state.zoneName)
     local sel = zoneSelection(win, state.zoneName)
     local selected = Q.prune(sel, animals)
-    local lead, buttons, status = {}, {}, nil
+    local lead, buttons, status, edge = {}, {}, nil, nil
 
     local function add(list, id, label, helpText, disabled, why, variant)
         list[#list + 1] = { id = id, label = label, help = disabled and why or helpText, disabled = disabled,
@@ -3311,14 +3330,10 @@ local function drawZoneBand(panel, win, x, y, w, state)
             c.milkable == 0, ZeD.tr("UI_ZeD_Animals_NoneMilkable"))
         -- Rename and Remove zone, as many as fit beside the picks
         local shown = ZeD.Disclose.split(zoneVerbs(state))
-        local room = w - T.px(16)
-        for _, b in ipairs(lead) do room = room - M.buttonW(b.label) - T.px(8) end
-        local need = 0
-        for _, v in ipairs(shown) do need = need + M.buttonW(v.label) + T.px(8) end
+        local keepRename, closeUp = AT.bandFits(w, lead, shown)
+        if keepRename then edge = closeUp end
         for _, v in ipairs(shown) do
-            if v.id == "rename" and need > room then
-                need = need - M.buttonW(v.label) - T.px(8)
-            else
+            if v.id ~= "rename" or keepRename then
                 buttons[#buttons + 1] = { label = v.label, help = v.help, id = v.id }
             end
         end
@@ -3328,7 +3343,7 @@ local function drawZoneBand(panel, win, x, y, w, state)
     end
 
     local H, out = M.drawBand(panel, x, y, w, {
-        win = win, lead = lead, buttons = buttons, status = status and { text = status } or nil })
+        win = win, lead = lead, buttons = buttons, status = status and { text = status } or nil, edge = edge })
 
     -- the rects: the zone verbs keep their own click zones, the rest are bulk buttons
     local bulk = {}
@@ -3391,7 +3406,7 @@ function AT.openFeedPicker(win, zoneName, sx, sy)
                 local sel = zoneSelection(win, zoneName)
                 if Q.start(getSpecificPlayer(0), "feed", Q.prune(sel, AP().getAnimalsInZone(zoneName)), name) then
                     Q.clear(sel)
-                    win._animalsNavFocusTarget = bulkId("stop")
+                    win._animalsNavFocusTarget, win._animalsNavFocusSince = bulkId("stop"), nil
                 end
             end,
         }
@@ -3402,7 +3417,7 @@ function AT.openFeedPicker(win, zoneName, sx, sy)
     m:open()
     AT._feedMenu = m
     -- (B or a click outside closes the list; the controller is back on Feed)
-    win._animalsNavFocusTarget = bulkId("feed")
+    win._animalsNavFocusTarget, win._animalsNavFocusSince = bulkId("feed"), nil
     return true
 end
 
@@ -3445,8 +3460,33 @@ function AT.bulkPress(win, id)
     else
         return false
     end
-    if land then win._animalsNavFocusTarget = bulkId(land) end
+    if land then win._animalsNavFocusTarget, win._animalsNavFocusSince = bulkId(land), nil end
     return true
+end
+
+-- How long a landing named by a press waits for its stop to be drawn (ms)
+local NAV_FOCUS_MS = 1500
+
+--- Where the controller lands on the Animals tab after a press: the index among the ring's
+-- new stops (els) of the stop the press named (win._animalsNavFocusTarget: "breadcrumb" or a
+-- stop's id), or nil. The band is drawn a frame after the press and the ring can be built in
+-- between, from the band as it was; a target not among the stops yet is kept for NAV_FOCUS_MS
+-- so the focus still lands on it once it is drawn (A on All milkable lands on Clear).
+-- t: the time now (ms).
+function AT.navFocusIndex(win, els, t)
+    local target = win._animalsNavFocusTarget
+    if not target then return nil end
+    for i, e in ipairs(els) do
+        if (target == "breadcrumb" and e.isBreadcrumb) or e.id == target then
+            win._animalsNavFocusTarget, win._animalsNavFocusSince = nil, nil
+            return i
+        end
+    end
+    win._animalsNavFocusSince = win._animalsNavFocusSince or t
+    if t - win._animalsNavFocusSince > NAV_FOCUS_MS then
+        win._animalsNavFocusTarget, win._animalsNavFocusSince = nil, nil
+    end
+    return nil
 end
 
 --- Tick or clear one roster row (its box; X on the controller; a right-click on the row).

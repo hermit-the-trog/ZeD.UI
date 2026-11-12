@@ -8,6 +8,9 @@
 --   d  a milking run over two cows: the second is handed to the game only when the first is done
 --   e  a run with the player walked away mid-milking: it stops, nothing left queued, no animal held still
 --   f  the band at the zone view: All hungry, All milkable, Rename and Remove zone in one row, at the run's text size and at Large
+-- THE LEDGER: everything the script gives, takes or makes is written down and put back at the end, and at once on an error
+-- (given items taken away, set-aside items given back where they were, animals and zone removed, god mode and hands as they
+-- were). Its animals and items carry the mod-data mark ZeDQA_spawned, which zedqa_animals_restore.lua looks for.
 local function say(s) print("ZEDQA aq2 " .. tostring(s)) end
 local fails = 0
 local function check(ok, what, extra) if not ok then fails = fails + 1 end; say((ok and "PASS " or "FAIL ") .. what .. (extra ~= nil and (" | " .. tostring(extra)) or "")) end
@@ -19,10 +22,89 @@ local AT, AQ, AP = ZeD.AnimalsTab, ZeD.AnimalsQuick, ZeD.AnimalsAlertPoller
 local function W() return WWm.getWindow() end
 local ZONE = "QA Quick2"
 local A = {}
-local O = { opened = false }
-local _p0 = getPlayer()
-local HOME = { _p0:getX(), _p0:getY() }
+local O = {}
+local HOME = { p:getX(), p:getY() }
    -- (16 squares west on the strip, clear of the farm animals; back at the end)
+
+-- THE LEDGER ------------------------------------------------------------------------------------------------------
+local MARK = "ZeDQA_spawned"
+local LG = { added = {}, taken = {}, animals = {}, zones = {}, done = false, god = false,
+             primary = p:getPrimaryHandItem(), secondary = p:getSecondaryHandItem(), opened = false }
+pcall(function() LG.god = p:isGodMod() == true end)
+local function mark(o) pcall(function() o:getModData()[MARK] = true end) end
+local function give(full, cont)
+    local it = (cont or p:getInventory()):AddItem(full)
+    if it then mark(it); LG.added[#LG.added + 1] = it end
+    return it
+end
+local function takeOne(it)
+    local c = it and it:getContainer()
+    if not c then return end
+    pcall(function() p:removeFromHands(it) end)
+    c:Remove(it)
+    LG.taken[#LG.taken + 1] = { item = it, cont = c }
+end
+local function takeType(full)
+    local list = p:getInventory():getAllTypeRecurse(full)
+    for k = list:size() - 1, 0, -1 do takeOne(list:get(k)) end
+end
+-- everything carried that passes test(item), the bags too
+local function takeWhere(test)
+    local list = p:getInventory():getAllEvalRecurse(function(it) return test(it) == true end)
+    for k = list:size() - 1, 0, -1 do takeOne(list:get(k)) end
+    return list:size()
+end
+local function breedOf(kind)
+    local def = AnimalDefinitions.getDef(kind)
+    return def and def:getBreeds():get(0)
+end
+local function spawn(kind, x, y)
+    local a = addAnimal(getCell(), x, y, 0, kind, breedOf(kind))
+    if a then mark(a); LG.animals[#LG.animals + 1] = a; pcall(function() a:setDebugStress(0) end) end
+    return a
+end
+local function makeZone(name, x1, y1, x2, y2)
+    LG.zones[#LG.zones + 1] = name
+    return pcall(function() DesignationZoneAnimal.new(name, x1, y1, 0, x2, y2, true) end)
+end
+local function emptyGiven()
+    for _, it in ipairs(LG.added) do pcall(function() local fc = it:getFluidContainer(); if fc then fc:Empty() end end) end
+end
+local function restore(why)
+    if LG.done then return end
+    LG.done = true
+    pcall(function() AQ.stop() end)
+    pcall(function() ISTimedActionQueue.clear(p) end)
+    pcall(function() local m = AT._feedMenu; if m then m:close() end end)
+    pcall(function() Det.setLockedMode(nil) end)
+    local gone, back, freed, zones = 0, 0, 0, 0
+    -- (newest first: the carrot in the bag goes before the bag)
+    for k = #LG.added, 1, -1 do
+        local it = LG.added[k]
+        pcall(function()
+            local c = it:getContainer()
+            if c then pcall(function() p:removeFromHands(it) end); c:Remove(it); gone = gone + 1 end
+        end)
+    end
+    for _, t in ipairs(LG.taken) do
+        pcall(function() if not t.item:getContainer() then t.cont:AddItem(t.item); back = back + 1 end end)
+    end
+    for _, a in ipairs(LG.animals) do pcall(function() a:removeFromWorld(); a:removeFromSquare(); freed = freed + 1 end) end
+    for _, name in ipairs(LG.zones) do
+        for _ = 1, 4 do
+            pcall(function() local z = DesignationZoneAnimal.getZoneByName(name); if z then DesignationZoneAnimal.removeZone(z, true); zones = zones + 1 end end)
+        end
+    end
+    pcall(function() if LG.primary and p:getInventory():contains(LG.primary) then p:setPrimaryHandItem(LG.primary) end end)
+    pcall(function() if LG.secondary and p:getInventory():contains(LG.secondary) then p:setSecondaryHandItem(LG.secondary) end end)
+    pcall(function() p:setGodMod(LG.god) end)
+    pcall(function() p:setX(HOME[1]); p:setY(HOME[2]); p:setLastX(HOME[1]); p:setLastY(HOME[2]) end)
+    pcall(function() AP.refreshCache() end)
+    pcall(function() if LG.opened and CWm.isOpen() then CWm.toggleBothPaired(0) end end)
+    say("restored (" .. tostring(why) .. "): given and taken back " .. gone .. ", set aside and given back " .. back .. " of "
+        .. #LG.taken .. ", animals removed " .. freed .. " of " .. #LG.animals .. ", zones removed " .. zones)
+end
+
 
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
@@ -34,11 +116,6 @@ local function waitFor(maxMs, cond, what)
         if getTimestampMs() > tEnd then say("gave up waiting for " .. what); tEnd = nil; return true end
         return false
     end }
-end
-local function breedOf(kind) local def = AnimalDefinitions.getDef(kind); return def and def:getBreeds():get(0) end
-local function dropAll(full)
-    local list = p:getInventory():getAllTypeRecurse(full)
-    for k = list:size() - 1, 0, -1 do local it = list:get(k); local c = it:getContainer(); if c then c:Remove(it) end end
 end
 local function queueNames()
     local q = ISTimedActionQueue.queues[p]
@@ -112,34 +189,32 @@ end
 -- a  the animals
 add(4000, function()
     p:setGodMod(true)
-    for _, t in ipairs({ "Bucket", "BucketEmpty", "BucketForged", "BucketWood", "BucketLargeWood", "BucketCarved",
-                         "SheepShears", "SheepElectricShears", "SheepShearsForged" }) do pcall(dropAll, t) end
+    for _, t in ipairs({ "SheepShears", "SheepElectricShears", "SheepShearsForged" }) do pcall(takeType, "Base." .. t) end
     local px, py = math.floor(p:getX()) - 16, math.floor(p:getY())
-    A.c1 = addAnimal(getCell(), px + 3, py + 2, 0, "cow", breedOf("cow"))
-    A.c2 = addAnimal(getCell(), px + 4, py - 2, 0, "cow", breedOf("cow"))
-    A.ewe = addAnimal(getCell(), px - 3, py + 2, 0, "ewe", breedOf("ewe"))
-    A.hungry = addAnimal(getCell(), px - 4, py - 3, 0, "cow", breedOf("cow"))
+    A.c1 = spawn("cow", px + 3, py + 2)
+    A.c2 = spawn("cow", px + 4, py - 2)
+    A.ewe = spawn("ewe", px - 3, py + 2)
+    A.hungry = spawn("cow", px - 4, py - 3)
     for _, c in ipairs({ A.c1, A.c2 }) do pcall(function() c:getData():setMaxMilkActual(6); c:getData():setMilkQuantity(8) end) end
     pcall(function() A.ewe:getData():setWoolQuantity(5, true) end)
     pcall(function() A.hungry:getStats():set(CharacterStat.HUNGER, 0.9) end)
     pcall(function() A.hungry:getData():setMilkQuantity(0) end)
-    local ok, err = pcall(function() DesignationZoneAnimal.new(ZONE, px - 8, py - 8, 0, px + 8, py + 8, true) end)
-    -- (a milking container the script's list missed would keep Milk live: find what the game would use and put it aside for the run)
-    pcall(function()
-        local okM, whyM, toolM = ZeD.AnimalsQuick.can("milk", p, A.c1)
-        say("milk tool before: " .. tostring(okM) .. " " .. tostring(whyM) .. " " .. tostring(toolM and toolM.getFullType and toolM:getFullType()))
-        if okM and toolM and toolM.getContainer and toolM:getContainer() then
-            ASIDE = { item = toolM, cont = toolM:getContainer() }
-            ASIDE.cont:Remove(toolM)
-            ZeD.AnimalsQuick.forgetChecks()
-            local ok2, why2 = ZeD.AnimalsQuick.can("milk", p, A.c1)
-            say("milk tool put aside (" .. tostring(toolM:getFullType()) .. "); now " .. tostring(ok2) .. " " .. tostring(why2))
-        end
-    end)    say("animals " .. tostring(A.c1 ~= nil) .. tostring(A.c2 ~= nil) .. tostring(A.ewe ~= nil) .. tostring(A.hungry ~= nil) .. " zone ok=" .. tostring(ok) .. " " .. tostring(err or ""))
+    local ok, err = makeZone(ZONE, px - 8, py - 8, px + 8, py + 8)
+    -- (the game's milk rule takes any empty container or one holding this milk, in the main inventory: all set aside)
+    local mt = A.c1 and A.c1:getData():getBreed():getMilkType()
+    local nMilk = 0
+    for _ = 1, 40 do
+        local list = mt and p:getInventory():getAvailableFluidContainer(mt)
+        if not list or list:isEmpty() then break end
+        takeOne(list:get(0)); nMilk = nMilk + 1
+    end
+    AQ.forgetChecks()
+    say("milk containers set aside: " .. nMilk)
+    say("animals " .. tostring(A.c1 ~= nil) .. tostring(A.c2 ~= nil) .. tostring(A.ewe ~= nil) .. tostring(A.hungry ~= nil) .. " zone ok=" .. tostring(ok) .. " " .. tostring(err or ""))
 end)
 add(1500, function()
     AP.refreshCache()
-    if not CWm.isOpen() then O.opened = true; CWm.toggleBothPaired(0) end
+    if not CWm.isOpen() then LG.opened = true; CWm.toggleBothPaired(0) end
 end)
 add(1500, function()
     local w = W(); w._activeTab = "animals"; w._drawerMode = "tab"; w._drawerOpen = true
@@ -159,7 +234,7 @@ add(1200, function()
 end)
 add(1200, function()
     local r = reqFor("animals:bulk:milk", false)
-    local want = ZeD.tr("UI_ZeD_Animals_NeedBucket")
+    local want = ZeD.tr("UI_ZeD_Animals_NeedMilkContainer")
     check(r ~= nil and r.why == want, "b the pointer on greyed Milk: the balloon asks to show '" .. tostring(want) .. "'", r and r.why)
     shot("2_hover_why")
     Req.mouseOn = nil; Req.log = {}
@@ -170,7 +245,7 @@ add(900, function() focusOn("animals:bulk:milk") end)
 add(1200, function()
     local r = reqFor("animals:bulk:milk", true)
     check(focusId() == "animals:bulk:milk", "b the pad's focus is on greyed Milk", focusId())
-    check(r ~= nil and r.why == ZeD.tr("UI_ZeD_Animals_NeedBucket"), "b the pad's focus on greyed Milk: the balloon asks at once with the reason", r and r.why)
+    check(r ~= nil and r.why == ZeD.tr("UI_ZeD_Animals_NeedMilkContainer"), "b the pad's focus on greyed Milk: the balloon asks at once with the reason", r and r.why)
     shot("3_pad_why")
     local z, e = ringFind("animals:bulk:milk")
     check(e ~= nil and e.onActivate ~= nil, "b the greyed button is still a stop (A on it does nothing)")
@@ -196,7 +271,7 @@ end)
 add(1500, function()
     check(focusId() == "animals:bulk:clear", "c A on All milkable: the focus lands on Clear", focusId())
     shot("4_pad_after_milkable")
-    p:getInventory():AddItem("Base.Bucket"); p:getInventory():AddItem("Base.SheepShears")
+    give("Base.Bucket"); give("Base.SheepShears")
     AQ.forgetChecks()
 end)
 add(1200, function()
@@ -296,16 +371,10 @@ add(300, function()
     if o and O.size ~= nil then pcall(function() o:setValue(O.size); if o.onChangeApply then o:onChangeApply(O.size) else ZeD.Settings.reapplyFromOptions() end end) end
 end)
 
--- the end: everything made taken away
+-- the end: everything put back
 add(2000, function()
-    Det.setLockedMode(nil)
     pcall(O.undoReq); pcall(O.undoMouse)
-    for _, t in ipairs({ "Bucket", "SheepShears" }) do pcall(dropAll, t) end
-    for _, a in ipairs({ A.c1, A.c2, A.ewe, A.hungry }) do pcall(function() a:removeFromWorld(); a:removeFromSquare() end) end
-    pcall(function() local z = DesignationZoneAnimal.getZoneByName(ZONE); if z then DesignationZoneAnimal.removeZone(z, true) end end)
-    p:setGodMod(false)
-    pcall(function() if ASIDE then ASIDE.cont:AddItem(ASIDE.item) end end)
-    if O.opened then pcall(CWm.toggleBothPaired, 0) end
+    restore("the end")
     say("fails " .. fails)
     say("DONE")
 end)
@@ -322,7 +391,15 @@ local function drive()
     if getTimestampMs() - t0 < st.ms then return end
     t0 = getTimestampMs(); i = i + 1
     local ok, e = pcall(st.fn)
-    if not ok then say("ERR step " .. (i - 1) .. ": " .. tostring(e)) end
+    if not ok then
+        -- a failed step ends the run: put everything back first
+        say("ERR step " .. (i - 1) .. ": " .. tostring(e))
+        Events.OnTick.Remove(drive)
+        pcall(O.undoReq); pcall(O.undoMouse)
+        restore("an error")
+        say("fails " .. (fails + 1))
+        say("DONE")
+    end
 end
 Events.OnTick.Add(drive)
 say("start")

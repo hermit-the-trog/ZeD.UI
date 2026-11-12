@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Walk to %1 and shear it",
     "UI_ZeD_Animals_HelpShearSel": "Shear the ticked animals one after another, walking to each",
     "UI_ZeD_Animals_HelpStopRun": "Stop: the action under way ends and the rest are dropped",
-    "UI_ZeD_Animals_NeedBucket": "Milk needs a bucket with room for this milk.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Milk needs an empty container, or one with this milk, outside your bags.",
     "UI_ZeD_Animals_NeedShears": "Shear needs shears.",
     "UI_ZeD_Animals_NoMilkYet": "No milk to take yet.",
     "UI_ZeD_Animals_NoWoolYet": "Not enough wool to shear yet.",

@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Підійти до %1 і обстригти",
     "UI_ZeD_Animals_HelpShearSel": "Обстригти позначених тварин по черзі, підходячи до кожної",
     "UI_ZeD_Animals_HelpStopRun": "Стоп: поточна дія завершиться, решту скасовано",
-    "UI_ZeD_Animals_NeedBucket": "Для доїння потрібне відро з місцем для цього молока.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Для доїння потрібна порожня ємність або ємність із цим молоком, не в сумці.",
     "UI_ZeD_Animals_NeedShears": "Для стрижки потрібні ножиці для стрижки.",
     "UI_ZeD_Animals_NoMilkYet": "Молока поки немає.",
     "UI_ZeD_Animals_NoWoolYet": "Вовни поки замало для стрижки.",

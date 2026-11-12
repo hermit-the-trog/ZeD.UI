@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Podejdź do %1 i ostrzyż",
     "UI_ZeD_Animals_HelpShearSel": "Ostrzyż zaznaczone zwierzęta jedno po drugim, podchodząc do każdego",
     "UI_ZeD_Animals_HelpStopRun": "Zatrzymaj: trwająca czynność kończy się, reszta przepada",
-    "UI_ZeD_Animals_NeedBucket": "Dojenie wymaga wiadra z miejscem na to mleko.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Dojenie wymaga pustego pojemnika lub pojemnika z tym mlekiem, poza torbami.",
     "UI_ZeD_Animals_NeedShears": "Strzyżenie wymaga nożyc do strzyżenia.",
     "UI_ZeD_Animals_NoMilkYet": "Na razie brak mleka do wydojenia.",
     "UI_ZeD_Animals_NoWoolYet": "Na razie za mało wełny do strzyżenia.",

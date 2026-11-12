@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "走到%1並剪毛",
     "UI_ZeD_Animals_HelpShearSel": "逐一替勾選的動物剪毛，依次走過去",
     "UI_ZeD_Animals_HelpStopRun": "停止：進行中的動作結束，其餘取消",
-    "UI_ZeD_Animals_NeedBucket": "擠奶需要一個能裝下這種奶的桶。",
+    "UI_ZeD_Animals_NeedMilkContainer": "擠奶需要一個空容器，或裝著這種奶的容器，且不在包裡。",
     "UI_ZeD_Animals_NeedShears": "剪毛需要剪毛剪。",
     "UI_ZeD_Animals_NoMilkYet": "還沒有奶可擠。",
     "UI_ZeD_Animals_NoWoolYet": "羊毛還不夠剪。",

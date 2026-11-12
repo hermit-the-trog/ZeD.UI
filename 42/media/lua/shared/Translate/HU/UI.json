@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Sétálj oda: %1 és nyírd meg",
     "UI_ZeD_Animals_HelpShearSel": "A bejelölt állatok nyírása egymás után, mindegyikhez odasétálva",
     "UI_ZeD_Animals_HelpStopRun": "Leállítás: a folyamatban lévő művelet véget ér, a többi elmarad",
-    "UI_ZeD_Animals_NeedBucket": "A fejéshez vödör kell, amiben van hely ennek a tejnek.",
+    "UI_ZeD_Animals_NeedMilkContainer": "A fejéshez üres edény kell, vagy ilyen tejet tartalmazó, nem táskában.",
     "UI_ZeD_Animals_NeedShears": "A nyíráshoz birkanyíró olló kell.",
     "UI_ZeD_Animals_NoMilkYet": "Még nincs fejhető tej.",
     "UI_ZeD_Animals_NoWoolYet": "Még nincs elég gyapjú a nyíráshoz.",

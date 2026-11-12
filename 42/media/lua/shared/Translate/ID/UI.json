@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Jalan ke %1 dan cukur",
     "UI_ZeD_Animals_HelpShearSel": "Cukur hewan yang dicentang satu per satu, berjalan ke masing-masing",
     "UI_ZeD_Animals_HelpStopRun": "Berhenti: aksi yang berjalan selesai dan sisanya dibuang",
-    "UI_ZeD_Animals_NeedBucket": "Memerah butuh ember dengan ruang untuk susu ini.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Memerah butuh wadah kosong, atau wadah berisi susu ini, di luar tas.",
     "UI_ZeD_Animals_NeedShears": "Mencukur butuh gunting cukur.",
     "UI_ZeD_Animals_NoMilkYet": "Belum ada susu untuk diambil.",
     "UI_ZeD_Animals_NoWoolYet": "Bulu belum cukup untuk dicukur.",

@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Zu %1 gehen und scheren",
     "UI_ZeD_Animals_HelpShearSel": "Die abgehakten Tiere nacheinander scheren, zu jedem hingehend",
     "UI_ZeD_Animals_HelpStopRun": "Stopp: die laufende Aktion endet, der Rest entfällt",
-    "UI_ZeD_Animals_NeedBucket": "Melken braucht einen Eimer mit Platz für diese Milch.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Melken braucht einen leeren Behälter oder einen mit dieser Milch, nicht in einer Tasche.",
     "UI_ZeD_Animals_NeedShears": "Scheren braucht eine Schafschere.",
     "UI_ZeD_Animals_NoMilkYet": "Noch keine Milch zu holen.",
     "UI_ZeD_Animals_NoWoolYet": "Noch nicht genug Wolle zum Scheren.",

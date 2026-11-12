@@ -3337,7 +3337,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Mergi la %1 și tunde-l",
     "UI_ZeD_Animals_HelpShearSel": "Tunde animalele bifate unul după altul, mergând la fiecare",
     "UI_ZeD_Animals_HelpStopRun": "Oprește: acțiunea în curs se încheie, restul se renunță",
-    "UI_ZeD_Animals_NeedBucket": "Mulsul cere o găleată cu loc pentru acest lapte.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Mulsul cere un recipient gol sau unul cu acest lapte, nu într-o geantă.",
     "UI_ZeD_Animals_NeedShears": "Tunsul cere o foarfecă de tuns oi.",
     "UI_ZeD_Animals_NoMilkYet": "Încă nu e lapte de luat.",
     "UI_ZeD_Animals_NoWoolYet": "Încă nu e destulă lână de tuns.",
