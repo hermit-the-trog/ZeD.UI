@@ -11,7 +11,7 @@ try {
     [System.IO.File]::WriteAllText($ini, ($was -replace '(?m)^language=.*$', "language=DE"))
     $env:ZEDQA_NOSTEAM = "1"
     $out = Join-Path $Qa "animals_de_run.out"
-    $p = Start-Process pwsh -ArgumentList @("-NoProfile", "-File", "$Qa\zedqa_run.ps1", "-Mode", "fullscreen4k", "-Manifest", "$Qa\qa_pl_de.txt") -RedirectStandardOutput $out -RedirectStandardError "$out.err" -NoNewWindow -PassThru
+    $p = Start-Process pwsh -ArgumentList @("-NoProfile", "-File", "$Qa\zedqa_run.ps1", "-Mode", "fullscreen4k", "-Manifest", "$Qa\animals_de.txt") -RedirectStandardOutput $out -RedirectStandardError "$out.err" -NoNewWindow -PassThru
     $p.Id | Set-Content (Join-Path $Qa "animals_de_run.pid")
     $p.WaitForExit()
     Write-Output "run exit $($p.ExitCode)"

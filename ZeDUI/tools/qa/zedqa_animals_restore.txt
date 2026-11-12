@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/zedqa_animals_restore.txt (Nov 11 2026, QA): Build's one-time restore of the QA save's animals, zones and tools, alone
+zedqa_animals_restore.lua | ares | timeout=180

@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/qa_clean_check.txt (Nov 11 2026, QA): read-only check of the QA save after the Animals runs
+zedqa_qa_clean_check.lua | qcc | timeout=120

@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/animals_final.txt (Nov 11 2026, QA): Build's self-cleaning zedqa_animals_quick.lua and the extras after zedqa_animals_restore.lua
+zedqa_animals_quick.lua | aq | timeout=1200
+zedqa_animals_quick_more.lua | aq2 | timeout=1200
