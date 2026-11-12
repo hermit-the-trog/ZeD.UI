@@ -19,6 +19,8 @@
 --            onFeedAnimalFood with the first item of that food the animal eats; the run feeds one at a time, skips the
 --            animals not hungry, ends Done, stops when the player walks off (hunger did not go down) and lets the
 --            animal go, ends with the reason when the food runs out
+--   ZONES    the poller counts a zone's animals as the game's zone window does (getAnimalsConnected, getDZone the
+--            fallback, none twice); zone rows, totals, the bulk selection's list and an animal's zone name agree
 --   SOURCE   AnimalsTab and the World window's ring wire it up (alert A, roster X, the band's buttons, Feed's picker)
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/animals_quick_sim.lua
 -- It prints FAIL lines and a last line "animals_quick_sim: N checks, M failed"; exits 1 if any failed.
@@ -577,6 +579,98 @@ check("FEED food runs out: R1 counts, the run ends with the reason", AQ.run == n
 fp._food = {}
 ok, why = AQ.start(fp, "feed", { r2 }, "Carrot")
 check("FEED nothing of that food: no run, the reason", not ok and why == "UI_ZeD_Animals_NeedFood", why)
+
+-- ZONES -----------------------------------------------------------------------
+-- The poller's zone counts: the game's zone:getAnimalsConnected() first (a spawned hen can sit with no getDZone()
+-- for a long while), getDZone() the fallback, no animal counted twice; the zone rows, the totals, the bulk
+-- selection's list (getAnimalsInZone) and an animal's zone name all agree.
+do
+    local ADs = ZeD.AnimalsData
+    local function no() return false end
+    local function zero() return 0 end
+    ADs.isWild = function(a) return a._wild == true end
+    ADs.getAnimalType = function(a) return a._type or "cow" end
+    ADs.isUdderUrgent, ADs.canBeMilked, ADs.canBeSheared, ADs.needsMother, ADs.attacksOtherMales, ADs.isBaby = no, no, no, no, no, no
+    ADs.isFemale = function() return true end
+    ADs.getThirst, ADs.getStress, ADs.getEggsPerDay, ADs.getMaxMilk = zero, zero, zero, zero
+    Events.EveryOneMinute = { Add = function() end, Remove = function() end }
+    Events.OnGameStart = { Add = function() end }
+
+    local function placed(name, x, y, o)
+        local a = animal(name, o)
+        a._x, a._y = x, y
+        a.getX = function() return a._x end
+        a.getY = function() return a._y end
+        a.getZ = function() return 0 end
+        a.getDZone = function() return a._dz end
+        return a
+    end
+    local function zoneOf(name, connected)
+        local z = { _name = name, _conn = connected }
+        z.isStillStreamed = function() return true end
+        z.getName = function() return z._name end
+        if connected then z.getAnimalsConnected = function() return L(z._conn) end end
+        return z
+    end
+    local hen = placed("Hen", 10, 10, { type = "hen" })      -- spawned: no getDZone yet, connected to the pen
+    local cowP = placed("CowP", 12, 10)                       -- both: getDZone and connected (counted once)
+    local stray = placed("Stray", 15, 10)                     -- getDZone only (an older game, or not yet connected)
+    local wild = placed("Wild", 11, 11); wild._wild = true
+    local far = placed("Far", 500, 500)                       -- connected but past the scan's reach
+    hen._type = "hen"
+    local pen = zoneOf("QA Pen", { hen, cowP, far })
+    local field = zoneOf("Field", {})
+    local old = zoneOf("Old", nil)                            -- a zone with no getAnimalsConnected (guarded)
+    cowP._dz = pen
+    stray._dz = old
+    local cellList = { hen, cowP, stray, wild, far }
+    getCell = function()
+        return { getAnimals = function()
+            local i = 0
+            return { iterator = function() return {
+                hasNext = function() return i < #cellList end,
+                next = function() i = i + 1; return cellList[i] end } end }
+        end }
+    end
+    local me = { getCurrentSquare = function() return { getX = function() return 10 end, getY = function() return 10 end,
+                                                        getZ = function() return 0 end } end }
+    getSpecificPlayer = function() return me end
+    DesignationZoneAnimal = { getAllZones = function() return L({ pen, field, old }) end }
+    dofile(Z .. "AnimalsAlertPoller.lua")
+    local AP = ZeD.AnimalsAlertPoller
+    AP.refreshCache()
+    local function sumOf(n) local s = AP.getZoneSummary(n); return s and s.count or -1 end
+    check("ZONES the pen counts the spawned hen (connected, no getDZone), the cow once, the far one: 3",
+        sumOf("QA Pen") == 3, sumOf("QA Pen"))
+    check("ZONES an empty zone is listed with 0", sumOf("Field") == 0, sumOf("Field"))
+    check("ZONES getDZone is the fallback (a zone with no connected list)", sumOf("Old") == 1, sumOf("Old"))
+    local t = AP.getTotals()
+    check("ZONES the totals agree: 4 animals, 1 hen (the wild one left out)", t.totalAnimals == 4 and t.speciesCounts.hen == 1,
+        t.totalAnimals)
+    local penList = AP.getAnimalsInZone("QA Pen")
+    local hasHen = false
+    for _, a in ipairs(penList) do if a == hen then hasHen = true end end
+    check("ZONES the bulk selection's list holds the hen", #penList == 3 and hasHen, #penList)
+    local selP = AQ.newSelection()
+    hen._hunger = 60
+    check("ZONES All hungry in the pen finds the hen", AQ.selectWhere(selP, penList, "hungry") == 1 and AQ.isSelected(selP, hen))
+    check("ZONES the hen's zone name is the pen's (getDZone still empty)", AP.getZoneNameOf(hen) == "QA Pen", AP.getZoneNameOf(hen))
+    local ADsrc = readFile(Z .. "AnimalsData.lua")
+    check("ZONES AnimalsData.getZoneName asks the poller first, getDZone after",
+        ADsrc:find("AP.getZoneNameOf(animal)", 1, true) ~= nil and ADsrc:find("if kept then return kept end", 1, true) ~= nil)
+    -- the zone rows add up to the animals in zones; no animal in two zones
+    local inZones, twice = 0, false
+    local seenZ = {}
+    for _, z in ipairs(AP.getZoneList()) do
+        local s = AP.getZoneSummary(z._name)
+        for _, a in ipairs(s and s.animals or {}) do
+            if seenZ[a] then twice = true end
+            seenZ[a] = true
+            inZones = inZones + 1
+        end
+    end
+    check("ZONES no animal counted twice; the zone rows hold all 4", not twice and inZones == 4, inZones)
+end
 
 -- SOURCE ----------------------------------------------------------------------
 local TAB = readFile(Z .. "AnimalsTab.lua")

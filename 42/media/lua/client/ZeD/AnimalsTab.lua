@@ -3895,9 +3895,8 @@ AT.genomeAct        = genomeAct
 function AT.showAnimal(win, animal)
     local state = getState(win)
     state.submode = "ranch"
-    local zn = nil
-    local dz = ocall(animal, "getDZone")
-    if dz then zn = ocall(dz, "getName") end
+    -- (the zone the rows count it in, getDZone as the fallback: AnimalsData.getZoneName)
+    local zn = AD().getZoneName(animal)
     state.zoneName = zn
     state.view = zn and "zone" or "overview"
     navigate(win, "animal", nil, animal)
