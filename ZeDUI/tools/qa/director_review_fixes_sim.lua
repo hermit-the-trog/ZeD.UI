@@ -190,6 +190,51 @@ do
         check("the body starts at the edge", src:find("local bx0, bw0 = x + ep, w - ep * 2 - sbW", 1, true) ~= nil)
         check("the empty line draws at x, no box before it", src:find("ZeD.Molecules.drawEmptyLine(panel, x, y, w, msg)", 1, true) ~= nil)
         check("no dashed placeholder left", src:find("dashed(", 1, true) == nil)
+
+        -- the card is still drawn for a piece the cursor read (QA's retake showed only "Point at furniture.":
+        -- the shot never aimed the pointer at a piece; the old picture said the same). The real drawTarget, with
+        -- the module's constants, on a stand-in panel: a capture gives the picture, the name and the status.
+        local a = src:find("local DOT = ", 1, true)
+        local b = src:find("local function hit(", 1, true)
+        local parts = { "local FT = ...\n", a and b and src:sub(a, b - 1) or "",
+                        cutFn(src, "local function dotFor(") or "", cutFn(src, "local function drawTarget(") or "",
+                        "return drawTarget\n" }
+        local chunk, cerr = loadstring(table.concat(parts), "=FurnitureTab.lua (cut)")
+        check("drawTarget cuts and loads", chunk ~= nil, cerr)
+        if chunk then
+            local okC, drawTarget = pcall(chunk, FT)
+            check("drawTarget runs its chunk", okC, drawTarget)
+            local T = ZeD.T
+            for _, k in ipairs({ "surf1", "borderS", "positive", "danger", "textDim", "border" }) do T[k] = T[k] or { r = 1, g = 1, b = 1, a = 1 } end
+            T.fontF4 = "F4"
+            ZeD.tr = function(k) return k end
+            ZeD.CraftingCore = { truncText = function(s) return s end }
+            getTexture = function() return {} end
+            local texts, rects, empties = {}, 0, 0
+            local panel = {
+                drawRect = function() rects = rects + 1 end, drawRectBorder = function() rects = rects + 1 end,
+                drawTextureScaledAspect = function() rects = rects + 1 end,
+                drawText = function(_, s) texts[#texts + 1] = s end,
+            }
+            ZeD.Molecules.drawEmptyLine = function() empties = empties + 1; return BODY_H end
+            ZeD.Atoms.drawStatusDot = function() end
+            local cap = { mp = { name = "Outdoor Bench" }, tex = "furniture_seating_outdoor_01_0", canCreate = false }
+            local info = { name = "Outdoor Bench", facts = { { label = "Weight", value = "18.0", state = "plain" } }, notes = {} }
+            local okD, hD = pcall(drawTarget, panel, {}, 8, 100, 460, cap, "pickup", info)
+            check("a read piece draws its card", okD, hD)
+            local joined = table.concat(texts, "|")
+            check("the card shows the piece's name", joined:find("Outdoor Bench", 1, true) ~= nil, joined)
+            check("the card shows the mode's status (Cannot pick up)", joined:find("UI_ZeD_Furn_PickupNo", 1, true) ~= nil, joined)
+            check("the card draws its picture", rects >= 2, rects)
+            check("no 'Point at furniture.' over a read piece", empties == 0)
+            check("the card is as tall as the picture at least", okD and hD >= 104, hD)
+            texts, empties = {}, 0
+            local okE, hE = pcall(drawTarget, panel, {}, 8, 100, 460, nil, "pickup", { facts = {}, notes = {} })
+            check("nothing read: the one line, flush left", okE and empties == 1 and hE == FT.emptyTargetH(), hE)
+        end
+        local qa = readFile("ZeDUI/tools/qa/zedqa_director_review.lua") or ""
+        check("the retake rests the pointer on a piece before the shot", qa:find("restOn(function() if Z.sc.ok and FU.sx then return FU.sx, FU.sy end", 1, true) ~= nil)
+        check("the retake waits until the tab has read the piece", qa:find("return FU.capName() ~= nil", 1, true) ~= nil)
     end
 end
 

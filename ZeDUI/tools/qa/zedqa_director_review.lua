@@ -6,7 +6,7 @@
 --                    char_thermal_empty, char_identity_empty (trait icons), world_furniture_empty (no indent)
 --   2nd (tag drv2)   FULL : after gallery_v3_stage: char_health_full (injury rows centered), char_thermal_full (no black
 --                    cells), char_journal_notebooks_full (the page to the foot), world_radio_full (the full card),
---                    world_furniture_full
+--                    world_furniture_full (a piece under the pointer: the tab's card, flush left)
 -- The tab fill (zed_tab_fill_v1) in the same two passes: char_health_empty (Moodles, Fitness, Regularity under the
 -- figure with no injuries), char_health_full and char_thermal_* (the picked region's rows, Body Heat Generation),
 -- char_radio_full (the walkie's Channels, Heard, Power), world_radio_full (the set's Presets, Heard, Power at the
@@ -426,7 +426,142 @@ do
     S.step(2, function() Z.charTab("loot") end)
 
     -- ---- World ----
-    Z.T("furniture_" .. ST, "w", "furniture", 60)
+    if E then Z.T("furniture_" .. ST, "w", "furniture", 60) end
+    -- FULL: a piece of furniture under the pointer, so the tab shows its card (name, "Cannot pick up", the facts).
+    -- The tab reads the tile under the pointer, and the shots park the pointer in the corner, so a plain shot of
+    -- the tab only ever says "Point at furniture." (the tab review's picture too). As gallery_nov1_lot.lua's page 29:
+    -- a clear outdoor square beside the windows, a movable piece on it (one already there, else a bench placed as
+    -- vanilla places one), the pointer rested on it until the tab has read it; the piece goes again after.
+    if not E then
+        local FU = {}
+        function FU.screenOf(x, y)
+            local sx, sy = -1, -1
+            pcall(function() sx = isoToScreenX(pn, x + 0.5, y + 0.5, 0); sy = isoToScreenY(pn, x + 0.5, y + 0.5, 0) end)
+            return math.floor(sx), math.floor(sy)
+        end
+        function FU.inWin(win, x, y, m)
+            if not (win and win:isVisible()) then return false end
+            local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
+            return x >= ax - m and x < ax + win:getWidth() + m and y >= ay - m and y < ay + win:getHeight() + m
+        end
+        function FU.find()
+            local cx, cy = math.floor(p:getX()), math.floor(p:getY())
+            local sw, sh = core:getScreenWidth(), core:getScreenHeight()
+            local m = ZeD.T.px(40)
+            for r = 2, 26 do
+                for dy = -r, r do
+                    for dx = -r, r do
+                        if math.max(math.abs(dx), math.abs(dy)) == r then
+                            local x, y = cx + dx, cy + dy
+                            local sx, sy = FU.screenOf(x, y)
+                            if sx > m and sy > m * 2 and sx < sw - m and sy < sh - m * 3
+                                    and not FU.inWin(Z.CW(), sx, sy, m) and not FU.inWin(Z.WW(), sx, sy, m) then
+                                local sq = getCell():getGridSquare(x, y, 0)
+                                local free = false
+                                pcall(function() free = sq ~= nil and sq:isOutside() and sq:isFree(false) and not sq:getVehicleContainer() and not sq:HasTree() end)
+                                if free and sq:getObjects():size() <= 2 then return sq, sx, sy end
+                            end
+                        end
+                    end
+                end
+            end
+            return nil
+        end
+        function FU.props(spr)
+            local mp = nil
+            pcall(function() mp = ISMoveableSpriteProps.new(spr) end)
+            if not (mp and mp.isMoveable) then return nil end
+            return mp
+        end
+        function FU.onSquare(sq)
+            local objs = sq and sq:getObjects()
+            for i = 0, (objs and objs:size() or 0) - 1 do
+                local o = objs:get(i)
+                local spr = o and o:getSprite()
+                if spr and o ~= sq:getFloor() and FU.props(spr) then return o end
+            end
+            return nil
+        end
+        -- an outdoor bench first (the review's piece), else any seat the game moves
+        function FU.movableSprite()
+            for _, f in ipairs({ { "furniture_seating_outdoor_01_", 0, 23 }, { "furniture_seating_indoor_01_", 0, 15 } }) do
+                for i = f[2], f[3] do
+                    local spr = getSprite(f[1] .. i)
+                    if spr and FU.props(spr) then return f[1] .. i end
+                end
+            end
+            return nil
+        end
+        function FU.capName()
+            local FT = ZeD.FurnitureTab
+            local c = FT and FT.cap and FT.cap[0]
+            local mp = c and c.mp
+            local nm = nil
+            pcall(function() nm = mp and (mp.name or mp.customName or mp.spriteName) end)
+            return nm, c
+        end
+        local function pointAt(x, y) if Mouse and Mouse.setXY then pcall(function() Mouse.setXY(math.floor(x), math.floor(y)) end) end end
+        -- the pointer walks onto (x, y) for half of ms (the engine's UI tick sees only a move), then holds still
+        local function restOn(getXY, ms)
+            local R = {}
+            S.poll(1, math.floor(ms / 3) + 900, function()
+                local now = getTimestampMs()
+                if not R.t0 then R.t0, R.n = now, 0 end
+                local x, y = getXY()
+                if not x then return true end
+                R.n = R.n + 1
+                if now - R.t0 < ms / 2 then
+                    if R.n % 4 == 0 then pointAt(x + ((((R.n / 4) % 2) == 0) and 2 or 0), y) end
+                else
+                    pointAt(x, y)
+                end
+                return now - R.t0 >= ms
+            end)
+        end
+        S.step(2, function() Z.sc.ok, Z.sc.why = true, "" end)
+        S.poll(2, 120, function() return Z.worldTab("furniture") end, function() Z.sc.ok = false; Z.sc.why = "no furniture tab" end)
+        S.step(20, function() Z.unfold(); Z.tall() end)
+        S.step(20, function()
+            FU.sq, FU.sx, FU.sy = FU.find()
+            if not FU.sq then Z.sc.ok, Z.sc.why = false, "no clear square beside the windows for the piece" end
+        end)
+        restOn(function() if Z.sc.ok and FU.sx then return FU.sx, FU.sy end return nil end, 600)
+        S.step(20, function()
+            if not Z.sc.ok then return end
+            local FT = ZeD.FurnitureTab
+            local c = FT and FT.cap and FT.cap[0]
+            if c and c.sq then FU.sq = c.sq end      -- (the square the game reads under the pointer)
+            if FU.onSquare(FU.sq) then say("furniture: a movable piece is already there"); return end
+            local name = FU.movableSprite()
+            if not name then Z.sc.ok, Z.sc.why = false, "no movable furniture sprite"; return end
+            pcall(function()
+                local obj = IsoObject.new(getCell(), FU.sq, name)
+                FU.sq:AddTileObject(obj)
+                FU.obj = obj
+            end)
+            if not FU.obj then Z.sc.ok, Z.sc.why = false, "the piece could not be placed"; return end
+            local cur = FT and FT.cursorOf and FT.cursorOf(0)
+            if cur then cur.objectListCache = nil end
+            say(string.format("furniture: %s placed at %d,%d", name, FU.sq:getX(), FU.sq:getY()))
+        end)
+        -- off the tile and back (the tab holds a tile rested on for a quarter second), then the wait for its read
+        restOn(function() if Z.sc.ok and FU.sx then return FU.sx + ZeD.T.px(60), FU.sy + ZeD.T.px(30) end return nil end, 500)
+        restOn(function() if Z.sc.ok and FU.sx then return FU.sx, FU.sy end return nil end, 900)
+        S.poll(2, 300, function() if not Z.sc.ok then return true end return FU.capName() ~= nil end,
+            function() say("note: furniture: the tab read no piece under the pointer in 5 s") end)
+        S.step(30, function()
+            local nm = FU.capName()
+            say("furniture: the tab reads " .. tostring(nm))
+            if Z.sc.ok and not nm then Z.sc.ok, Z.sc.why = false, "the tab read no piece under the pointer" end
+            Z.finish("world_furniture_" .. ST)
+        end)
+        S.step(2, function() Z.park(); Z.worldTab("loot") end)
+        S.step(20, function()
+            if FU.obj then pcall(function() FU.sq:transmitRemoveItemFromSquare(FU.obj) end); say("furniture: the piece removed") end
+            FU.obj = nil
+            Z.tall()
+        end)
+    end
     if not E then
         Z.T("radio_" .. ST, "w", "radio", 60)
         S.step(2, function()
