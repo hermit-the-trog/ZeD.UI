@@ -256,6 +256,9 @@ function ISTextEntryBox:new(text, x, y, w, h)
 end
 function ISTextEntryBox:setPlaceholderText(s) self.placeholder = s end
 function ISTextEntryBox:setMaxTextLength(n) self.maxT = n end
+function ISTextEntryBox:setMultipleLine(b) self.multi = b end   -- (the scratchpad's box, Phase 2)
+function ISTextEntryBox:isMultipleLine() return self.multi == true end
+function ISTextEntryBox:setMaxLines(n) self.maxL = n end
 function ISTextEntryBox:setFont(f) self.font = f end
 function ISTextEntryBox:getText() return self.text end
 function ISTextEntryBox:setText(s) self.text = s end
@@ -853,7 +856,7 @@ do
     check("pad: Left from the line to the filters", win.zone == "filters" and win.fFocus == 1)
     MARKS = 0; draw(win)
     check("pad: the KIND header marked", MARKS >= 1 and #DRAW.outside == 0)
-    check("pad: prompts on a header: Fold, Export, Close", glyphs() == "A:Fold X:Export B:Close", glyphs())
+    check("pad: prompts on a header: Fold, Export, Scratchpad, Close", glyphs() == "A:Fold X:Export Y:Scratchpad B:Close", glyphs())
     win:onJoypadDown(Joypad.AButton, jd)
     check("pad: A folds KIND", win.fold.kind == true)
     win:onJoypadDown(Joypad.AButton, jd)

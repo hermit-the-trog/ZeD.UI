@@ -5557,6 +5557,28 @@ The game's own Lua console rebuilt as a ZeD window; only players who start the g
 | `UI_ZeD_Console_HelpRow` | `Pick a line to copy it. An error opens to its whole stack; click it again to shut it.` | Lua console, Log page: help line over the log's rows | - |
 | `UI_ZeD_Console_HelpFilter` | `Tick to show these lines, untick to hide them. The counts follow the search.` | Lua console, Log page: help line over a filter row | - |
 | `UI_ZeD_Console_PadTick` | `Tick` | Lua console, Log page: controller prompt on A over a filter row (tick or untick it) | 10 |
+| `UI_ZeD_Console_Scratchpad` | `Scratchpad` | Lua console: the keycap beside the one-line command that swaps it for the scratchpad (a box of many lines); also the box's label and the controller prompt on Y | 14 |
+| `UI_ZeD_Console_OneLine` | `One line` | Lua console, scratchpad: the keycap that swaps the box back for the one-line command; also the controller prompt on Y | 14 |
+| `UI_ZeD_Console_SaveSnippet` | `Save snippet` | Lua console, scratchpad: the keycap that saves the box as a snippet (a saved piece of code); also the controller prompt on X | 14 |
+| `UI_ZeD_Console_PadMeta` | `Lines: %1 | Characters: %2` | Lua console, scratchpad: the line over the box; %1 the number of lines, %2 the number of characters | - |
+| `UI_ZeD_Console_FoldSnippets` | `Snippets` | Lua console, scratchpad: the fold header over the saved snippets beside the box (a narrow column) | 12 |
+| `UI_ZeD_Console_FoldHistory` | `History` | Lua console, scratchpad: the fold header over the code run before, beside the box (a narrow column) | 12 |
+| `UI_ZeD_Console_NoLoad` | `No loadstring in this build of the game.` | Lua console, scratchpad: the notice's first sentence when the game has no loadstring (a Lua function name, keep it as is) | - |
+| `UI_ZeD_Console_NoLoadBody` | `The scratchpad needs it to run more than one line (42.20.4 took it out once; 42.21 put it back). The one-line command still runs through the game's own console, up to 256 characters. Your snippets and history stay on disk.` | Lua console, scratchpad: the rest of that notice; keep loadstring, 42.20.4, 42.21 and 256 as written | - |
+| `UI_ZeD_Console_HelpPad` | `Enter runs the box, Shift+Enter makes a new line, Up on the first line steps back.` | Lua console, scratchpad: the help line while typing in the box (Enter and Shift+Enter are key names) | - |
+| `UI_ZeD_Console_HelpNoLoad` | `The scratchpad can't run without loadstring. One line still can.` | Lua console, scratchpad: the help line and the band when the game has no loadstring | - |
+| `UI_ZeD_Console_HelpToPad` | `Swap the line for a box of many lines, past 256 characters` | Lua console: help line over the Scratchpad keycap | - |
+| `UI_ZeD_Console_HelpToLine` | `Swap the box back for the one line` | Lua console: help line over the One line keycap | - |
+| `UI_ZeD_Console_HelpSave` | `Save the box as a snippet, kept in Zomboid/Lua/ZeD_console_snippets.txt` | Lua console: help line over Save snippet (Zomboid/Lua/ZeD_console_snippets.txt is a file path, keep it) | - |
+| `UI_ZeD_Console_HelpSnippet` | `Load it into the box. Right-click to rename it.` | Lua console: help line over a snippet in the column | - |
+| `UI_ZeD_Console_HelpHistory` | `Load it into the box` | Lua console: help line over a past run in the column | - |
+| `UI_ZeD_Console_Name` | `Snippet name` | Lua console: the empty name field in the band when saving or renaming a snippet | 24 |
+| `UI_ZeD_Console_Save` | `Save` | Lua console: the band's button that saves the snippet under the name typed | 12 |
+| `UI_ZeD_Console_Saved` | `Saved snippet %1 to Zomboid/Lua/ZeD_console_snippets.txt` | Lua console: the band after saving; %1 the snippet's name (keep the file path) | - |
+| `UI_ZeD_Console_Renamed` | `Renamed the snippet to %1` | Lua console: the band after renaming; %1 the new name | - |
+| `UI_ZeD_Console_RanMore` | `(+%1 lines)` | Lua console log: after the first line of code run from the scratchpad; %1 how many more lines it had | 16 |
+| `UI_ZeD_Console_PadLoad` | `Load` | Lua console: controller prompt on A over a snippet or a past run (puts it in the box) | 10 |
+| `UI_ZeD_Console_PadRename` | `Rename` | Lua console: controller prompt on X over a snippet | 10 |
 ## Admin tools (C9 to C14)
 
 Staff-only cards that take over the game's admin windows. Button and tag lengths are estimates from the English.

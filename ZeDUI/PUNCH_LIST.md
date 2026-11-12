@@ -3428,6 +3428,26 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       257/0, debug_console_sim 892/0. **Check (QA, -debug):** `zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_log.txt`
       (tag conlog: prints, one error x3, filters, search, the stack opened, the export read back, pad zones), then by
       hand at 4K and Deck: the window at its new default size (900 x 480 units), a long session's log scrolling.
+    - **Build, Nov 12 2026: Phase 2, the scratchpad.** ZeD_ConsoleScratch.lua (logic, no drawing): runs with
+      loadstring(code, "console") and pcall, print swapped for the run (each line a print row from Console at once; the
+      box's late copy skipped once, ZeD_ConsoleLog L.output), a "ran" row first ("> first line  (+n lines)"), an error
+      row from Console with loadstring's or pcall's words; history (200 runs, FIFO, not twice in a row, the one line's
+      runs too) and snippets kept whole in Zomboid/Lua/ZeD_console_history.txt and ZeD_console_snippets.txt ("== name"
+      blocks, a code line starting "==" or a backslash escaped). ZeD_DebugConsole.lua: the Scratchpad keycap beside the
+      line swaps in the box (numbered lines, past 256 characters, the line's words carried), One line swaps back; the
+      meta line (lines | characters, Save snippet, One line); SNIPPETS and HISTORY fold headers in a column beside it
+      (click or A loads, right-click or X on a snippet renames); Save snippet asks for a name in the band (the first line
+      offered; name field, Cancel, Save; the same name saves over, a rename to a name in use waits). The game's
+      multi-line box never calls onCommandEntered (javap, 42.22: Enter puts a newline in): Enter is told from the text
+      (one newline more at the cursor, Shift up, not the pad keyboard) and runs; Shift+Enter keeps the newline; Up on
+      the first line / Down on the last step the runs (the box's own setCursorPos clamps to the line's length on many
+      lines, so cursors are placed with multi-line off). No loadstring: the notice (cut to fit a short window), Run
+      grayed, Enter does nothing, One line the default keycap. Controller: Y swaps, A types (pad keyboard; lands on Run)
+      or loads, X saves (renames on a snippet), the hand reaches the box, the column and the name band; LB / RB step the
+      runs; B cancels the name band. 22 strings in 28 UI.json (machine drafts). Sims: console_scratch_sim 298/0,
+      console_log_sim 257/0, debug_console_sim 892/0. **Check (QA, -debug):** `zedqa_run.ps1 -Manifest
+      ZeDUI/tools/qa/console_scratch.txt` (tag conscr: Enter and Up as real keys, Kahlua's error words noted, the files
+      read back and restored), then by hand at 4K and Deck: Shift+Enter, a long snippet scrolling in the box.
 
 137. **Responsive Context Menus [B42] support (the director via QA, Nov 9 2026; DONE for beta 11).** Workshop 3783387236,
     mod id ResponsiveUI. ZeD's menu (Strip and List) takes the mod's 250 ms rebuilds in place: same place, submenu path
