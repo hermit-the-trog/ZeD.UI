@@ -4249,6 +4249,9 @@ to be proposed.
     in InventoryRenderer with the Character and World windows' control rows. Checks: a sim (filter by name and by
     category; the count; clearing; list and grid; stacks; both windows), controller parity, Deck size, all 28 languages,
     QA at 4K and Deck.
+    The director's rulings on mockup v1 (https://claude.ai/artifact/TNHssvRqvFywtw9wBx65mW), Nov 11: ONE filter per
+    window (it narrows every column in that window), saved per container (as List | Grid is), category chips (pick
+    several), and items that don't match are DIMMED in place, not hidden. Build from v1 with those changes.
 
 169. **Animals quick actions and bulk select (the director, Nov 11 2026, from the audit; beta 12).** The design is in
     zed-animals-v2-fira.html: Frame 1 "Needs Attention" alerts get Milk, Shear and Go to (today an alert is a readout:
@@ -4257,6 +4260,9 @@ to be proposed.
     (which alerts offer which action, the selection rules, the queued actions), controller parity, QA in game with
     real animals (milkable cow or goat, shearable sheep) at 4K and Deck. The Hunt mode (AnimalsTab.lua:31) was not in
     the director's pick.
+    Built (d06c815b): Milk and Shear call the game's AnimalContextMenu.onMilkAnimal / onShearAnimal; Go to reads the
+    game's "Walk to" (luautils.walkAdj). The director, Nov 11: add a Feed button to the bulk band with a food picker
+    (the food you carry), feeding each selected animal with the game's own feed action.
 
 170. **The Mods screen's Files tab and the plain-words error cards (the director, Nov 11 2026, from the audit; beta 12).**
     The design is zed_mods_file_switches_v1.html (turn off a single file of a mod; RECOMMEND 2, 3, 5: "Used by N" before
@@ -4270,6 +4276,9 @@ to be proposed.
     zed-roadmap-s65.html:249, so a mockup first (ZeDUI/mockups/zed_tab_search_v1.html) for the director: where the
     field sits, what it matches (skill names, perk groups; worn item names, slots, body parts), how a match shows, and
     the controller path (the pad keyboard). Then the build. Checks: a sim, controller parity, Deck size, 28 languages.
+    The director's rulings on mockup v1 (https://claude.ai/artifact/QHVdDU5uCq6hD9sH4yDH76), Nov 11: rows that don't
+    match are DIMMED in place; a matching group name keeps its whole group; the search lasts until the window closes
+    (kept across tab switches); the Defense block hides while searching on Equipment. Build from v1 with those changes.
 
 172. **Skill Recovery Journal: a Transcribe button in the Skills tab's key line (the director, Nov 11 2026: "build it",
     from QA's design audit; beta 12).** zed_skill_journal_v1.html's YOUR CALL item: when a Bound Journal is on the
