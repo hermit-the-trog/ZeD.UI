@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/cinema_kohners2.txt  (Nov 11 2026, the gallery plan v2 shots 2 and 5): Kohners in a house with power (the
+# washer-dryer) and driving at dusk, 4K, on her shot save
+#   cinema_run2.ps1 -Manifest cinema_kohners2.txt -ShotSave ZeD-Shots-Kohners
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60
+gallery_cinema_kohners2.lua | ckoh2 | timeout=900
+gallery_cinema_kohners3.lua | ckoh3 | timeout=900
+gallery_t14_end.lua | g14e | timeout=60

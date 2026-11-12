@@ -8,11 +8,11 @@
       -Run <file>   run a Lua file on it, wait for "ZEDQA <Tag> DONE", print its ZEDQA lines
       -Stop         close it (quit through the bridge, then by the PID this script saved)
 #>
-param([switch]$Start, [switch]$Stop, [switch]$Main, [switch]$Click, [string]$Run = "", [string]$Tag = "", [string]$User = "bob", [int]$TimeoutSec = 180)   # (-Main: -Run on the first client, the admin, in Zomboid\; -Click: "click to start" on the second client's window)
+param([switch]$Start, [switch]$Stop, [switch]$Main, [switch]$Click, [string]$Run = "", [string]$Tag = "", [string]$User = "bob", [int]$TimeoutSec = 180, [int]$Slot = 2)   # (-Main: -Run on the first client, the admin, in Zomboid\; -Click: "click to start" on the second client's window)
 $ErrorActionPreference = "Stop"
 $U = New-Object System.Text.UTF8Encoding($false)
 $Z = "$($env:USERPROFILE)\Zomboid"
-$P2 = "$Z\zedqa_p2"
+$P2 = "$Z\zedqa_p$Slot"   # (-Slot 3, 4 ...: Nov 11 2026, the gallery's closing break: more players, each in its own folder zedqa_p<Slot>)
 $Lua = $(if ($Main) { "$Z\Lua" } else { "$P2\Lua" })
 $Con = $(if ($Main) { "$Z\console.txt" } else { "$P2\console.txt" })
 $PidFile = "$P2\client.pid"

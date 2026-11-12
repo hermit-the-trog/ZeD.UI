@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/cinema_angel_close_admin.txt  (Nov 11 2026, the gallery plan v2 shot 6): the admin client's set-up on the
+# local test server before cinema_angel_close.ps1 brings the others in (zedqa_run.ps1 -Mp -Mode windowed 3840x2160 -KeepOpen)
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60

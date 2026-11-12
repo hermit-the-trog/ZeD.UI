@@ -91,6 +91,19 @@ function C.tint(ft, r, g, b)
 end
 
 function C.time(h) pcall(function() C.gt:setTimeOfDay(h) end) end
+-- (Nov 11 2026) dusk at once: the climate floats NIGHT_STRENGTH and DAYLIGHT_STRENGTH set as the admin climate panel does
+function C.dusk(night, day)
+    pcall(function()
+        local cm = getClimateManager()
+        for i = 0, cm:getFloatMax() - 1 do
+            local v = cm:getClimateFloat(i)
+            local l = tostring(v:getName()):lower()
+            if l:find("night", 1, true) then v:setEnableAdmin(true); v:setAdminValue(night) end
+            if l:find("daylight", 1, true) then v:setEnableAdmin(true); v:setAdminValue(day) end
+            print("ZEDQA cinlib climate float " .. tostring(v:getName()))
+        end
+    end)
+end
 
 -- clear skies (no fog, rain or cloud)
 function C.clearSky()
@@ -293,6 +306,112 @@ function C.pointerAway(S)
         return l ~= nil and l:find("done", 1, true) ~= nil
     end)
     S.step(5, function() S.say("pointer away " .. getMouseX() .. "," .. getMouseY()) end)
+end
+
+-- ---- (Nov 11 2026, the gallery plan v2 shots) tabs pressed as a click on the strip does, windows settled, rooms, the
+-- grid, and a held key through the real-mouse helper
+function C.goTab(win, strip, tab)
+    for _, z in ipairs(strip and strip._hitZones or {}) do
+        if z.id == "tab:" .. tab then
+            if win._activeTab ~= tab or not win._drawerOpen then strip:onMouseDown(z.x + 2, z.y + 2) end
+            return true
+        end
+    end
+    return false
+end
+function C.charTab(id) local w = ZeD_CharacterWindow.getWindow(); return (w and C.goTab(w, w._tabStripPanel, id)) and true or false end
+function C.worldTab(id) local w = ZeD_WorldWindow.getWindow(); return (w and C.goTab(w, w._actionTabStrip, id)) and true or false end
+-- both windows the same shape for 30 frames (at most 900), then fn
+function C.whenStill(S, fn)
+    local last, same = nil, 0
+    local function shape()
+        if GAL_SHAPE then return GAL_SHAPE() end
+        local t = {}
+        for _, w in ipairs({ ZeD_CharacterWindow.getWindow() or false, ZeD_WorldWindow.getWindow() or false }) do
+            if w then t[#t + 1] = string.format("%d,%d,%d,%d,%s,%d", w:getX(), w:getY(), w:getWidth(), w:getHeight(), tostring(w:isVisible()), math.floor(w._drawerEffW or 0)) end
+        end
+        return table.concat(t, "|")
+    end
+    S.poll(1, 900, function()
+        local s = shape()
+        if s == last then same = same + 1 else last, same = s, 0 end
+        return same >= 30
+    end)
+    S.step(2, fn)
+end
+-- each window's rect, for the report
+function C.boxes(S, name)
+    for _, pr in ipairs({ { "char", ZeD_CharacterWindow.getWindow() }, { "world", ZeD_WorldWindow.getWindow() } }) do
+        local w = pr[2]
+        if w and w:isVisible() then S.say(string.format("box %s %s %d,%d-%d,%d", name, pr[1], w:getX(), w:getY(), w:getX() + w:getWidth(), w:getY() + w:getHeight())) end
+    end
+end
+-- the game's grid power and water on for the run (the shot saves are past the shut-off); C.grid(false) puts them back
+function C.grid(on)
+    local so = getSandboxOptions()
+    local e, w = so and so:getOptionByName("ElecShutModifier"), so and so:getOptionByName("WaterShutModifier")
+    if on then
+        if not C.gridWas then C.gridWas = { e = e and e:getValue(), w = w and w:getValue(), hydro = getWorld():isHydroPowerOn() } end
+        if e then e:setValue(99999) end
+        if w then w:setValue(99999) end
+        pcall(function() so:toLua() end)
+        getWorld():setHydroPowerOn(true)
+    elseif C.gridWas then
+        if e and C.gridWas.e then e:setValue(C.gridWas.e) end
+        if w and C.gridWas.w then w:setValue(C.gridWas.w) end
+        pcall(function() so:toLua() end)
+        getWorld():setHydroPowerOn(C.gridWas.hydro)
+        C.gridWas = nil
+    end
+end
+-- a free room square with at least three free room squares on its sides (gallery_t14_indoor.lua's search), or nil
+local RING = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } }
+local function freeSq(x, y, z)
+    local sq = getCell():getGridSquare(x, y, z)
+    local ok = false
+    if sq then pcall(function() ok = sq:isFree(false) and not sq:getVehicleContainer() end) end
+    return ok and sq or nil
+end
+function C.roomRing(x, y, z)
+    local here = freeSq(x, y, z)
+    local all, sides = {}, {}
+    if not (here and here:getRoom()) then return all, sides end
+    for i, d in ipairs(RING) do
+        local n = freeSq(x + d[1], y + d[2], z)
+        local reach = false
+        if n then pcall(function() reach = n:getRoom() ~= nil and here:canReachTo(n) end) end
+        if reach then all[#all + 1] = n; if i <= 4 then sides[#sides + 1] = n end end
+    end
+    return all, sides
+end
+function C.findRoomSpot(cx, cy, cz, rad, roomOk)
+    for r = 0, rad do
+        for dy = -r, r do for dx = -r, r do
+            if math.abs(dx) == r or math.abs(dy) == r then
+                local sq = getCell():getGridSquare(cx + dx, cy + dy, cz)
+                local room = sq and sq:getRoom()
+                if room and (not roomOk or roomOk(room)) then
+                    local all, sides = C.roomRing(cx + dx, cy + dy, cz)
+                    if #all >= 4 and #sides >= 3 then return { x = cx + dx, y = cy + dy, z = cz, all = all, sides = sides, room = room } end
+                end
+            end
+        end end
+    end
+    return nil
+end
+function C.roomName(room) local n = ""; pcall(function() n = tostring(room:getName()) end); return n end
+-- a key held or let go through the real-mouse helper (release_check_mouse.ps1: "keydown <vk> <scan>" / "keyup <vk> <scan>")
+function C.key(S, what, vk, scan)
+    S.step(2, function()
+        pcall(function() local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close() end)
+        pcall(function() local f = getFileWriter("zedqa_click.txt", true, false); f:write(what .. " " .. vk .. " " .. scan); f:close() end)
+    end)
+    S.poll(3, 120, function()
+        local r = getFileReader("zedqa_click_done.txt", false)
+        local l = r and r:readLine(); if r then r:close() end
+        return l ~= nil and l:find("done", 1, true) ~= nil
+    end)
+    S.step(2, function() S.say("key " .. what .. " " .. vk) end)
 end
 
 -- the character's profession (the director: one that fits the role), e.g. "VETERAN" (CharacterProfession's names)

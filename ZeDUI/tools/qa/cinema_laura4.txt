@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/cinema_laura4.txt  (Nov 11 2026, the gallery plan v2 shot 4): Laura at the lake in her look (Light + Teal),
+# the Character window on Radio (a walkie), the World window on Fishing, 4K, Rosa shot save (cin_lau_lake.png)
+#   cinema_run2.ps1 -Manifest cinema_laura4.txt -ShotSave ZeD-Shots-Rosa
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60
+gallery_cinema_laura3.lua | clau3 | timeout=1200
+gallery_t14_end.lua | g14e | timeout=60

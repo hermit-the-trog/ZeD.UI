@@ -16,6 +16,7 @@ Add-Type -Namespace ZedQA -Name Mouse -MemberDefinition @'
 [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, System.UIntPtr extra);
 [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }
 [DllImport("user32.dll")] public static extern bool ClientToScreen(System.IntPtr hWnd, ref POINT p);
+[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);
 '@
 [ZedQA.Mouse]::SetProcessDPIAware() | Out-Null
 $front = Join-Path $PSScriptRoot "pzfront.ps1"
@@ -26,7 +27,15 @@ while ((Get-Date) -lt $until -and -not (Test-Path $stop)) {
     if (Test-Path $req) {
         try { $line = ([string](Get-Content $req -Raw -ErrorAction Stop)).Trim(); Remove-Item $req -Force -ErrorAction Stop }
         catch { Start-Sleep -Milliseconds 100; continue }
-        if ($line -match '^(right|left|move|down|up)\s+(\d+)\s+(\d+)$') {   # (down, up: Nov 6 2026, the left button held for a real drag)
+        if ($line -match '^(keydown|keyup)\s+(\d+)\s+(\d+)$') {   # (Nov 11 2026, the cinema shots: a key held, e.g. W to drive; virtual key + scan code)
+            $kd, $vk, $sc = $Matches[1], [byte][int]$Matches[2], [byte][int]$Matches[3]
+            if (Test-Path $front) { & $front | Out-Null }
+            Start-Sleep -Milliseconds 200
+            [ZedQA.Mouse]::keybd_event($vk, $sc, $(if ($kd -eq "keyup") { 2 } else { 0 }), [UIntPtr]::Zero)
+            Set-Content -Path $done -Value "done $kd $vk" -NoNewline
+            Write-Output "release_check_mouse: $kd $vk"
+        }
+        elseif ($line -match '^(right|left|move|down|up)\s+(\d+)\s+(\d+)$') {   # (down, up: Nov 6 2026, the left button held for a real drag)
             $btn, $x, $y = $Matches[1], [int]$Matches[2], [int]$Matches[3]
             if (Test-Path $front) { & $front | Out-Null }
             Start-Sleep -Milliseconds 300

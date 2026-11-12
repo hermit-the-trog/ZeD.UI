@@ -2,11 +2,12 @@
 -- Run: cinema_run_laura2.ps1 (the Rosa shot save, ZeD-Shots-Rosa; cinema_laura2.txt). Light + Teal as her other shots.
 --   cin_lau_forage.png    Laura crouched (sneaking on) in the woods with the game's search mode on, the World window on the
 --                         Forage tab: More detail open (the tab's only disclosure), the finds listed, the window tall
---   cin_lau_fishing.png   Laura at the water with the fishing rod in hand, the rod's tension display (ZeD's rod and line
---                         meter, Fishing.ISTensionUI) showing "tight"; the windows closed so the rod reads clearly
--- The look and the dressing follow gallery_cinema_laura.lua (not changed). grep "ZEDQA clau2".
+--   cin_lau_lake.png      Laura at the water with the fishing rod in hand, the rod's tension display (ZeD's rod and line
+--                         meter, Fishing.ISTensionUI) showing "tight"; (Nov 11 2026, plan v2 shot 4) Light + Teal, both
+--                         windows in their default spread: the Character window on Radio (a walkie), the World on Fishing
+-- The look and the dressing follow gallery_cinema_laura.lua (not changed). grep "ZEDQA clau3".
 local C = CIN
-local S = C.seq("clau2")
+local S = C.seq("clau3")
 local p = getPlayer()
 local pn = 0
 local site, water = nil, nil
@@ -97,7 +98,8 @@ local function zoomIn(S, target)
     end)
     S.step(90, function() S.say("zoom " .. tostring(C.core:getZoom(0))) end)
 end
-S.step(5, function() C.look("dark", "teal"); C.noWindows(); pcall(function() p:setGodMod(true) end) end)
+-- (Nov 11 2026, plan v2 shot 4: her movie's look, Light + Teal; the walkie for the Radio tab; both windows on screen)
+S.step(5, function() C.look("light", "teal"); C.noWindows(); pcall(function() p:setGodMod(true) end) end)
 S.step(5, function() C.time(11.0); C.clearSky() end)
 -- ---------------------------------------------------------------------------------------------- 2: fishing
 local WSPOTS = { { 13933, 4563 }, { 6600, 5450 }, { 6150, 5550 }, { 7800, 5200 }, { 8500, 6000 }, { 10000, 6300 }, { 12000, 6900 } }
@@ -124,10 +126,17 @@ S.step(10, function()
         pcall(function() p:setPrimaryHandItem(rod); p:setSecondaryHandItem(rod) end)
         pcall(function() triggerEvent("OnEquipPrimary", p, rod) end)
     else S.say("ERR no fishing rod item") end
+    -- a walkie-talkie in her inventory, switched on (the Radio tab)
+    local wk = nil
+    pcall(function() wk = p:getInventory():AddItem("Base.WalkieTalkie3") end)
+    if wk then pcall(function() wk:getDeviceData():setIsTurnedOn(true) end) end
+    CLAU3_WALKIE = wk
+    S.say("walkie " .. tostring(wk and wk:getFullType()))
 end)
 S.step(40, function() p:setDir(IsoDirections[water[3] or "E"]) end)
 C.lookAround(S, "E")
 S.step(10, function() if water then p:setDir(IsoDirections[water[3]]) end end)
+-- (no pointerAway here: aiming pans the camera toward the pointer, and a pointer in the corner took Laura out of the picture)
 zoomIn(S, 0.25)
 -- the game's real fishing: the manager made for the rod runs its states (None -> Idle -> Cast -> Wait). The mouse aim is
 -- stood in for by the water square to the front and the cast click by a flag (QA-side wrappers, put back after); the
@@ -174,15 +183,25 @@ S.step(60, function()
     CLAU2_UI = mgr.tensionUI
     S.say("state " .. stateName() .. "; bobber " .. tostring(mgr.fishingRod and mgr.fishingRod.bobber ~= nil) .. "; tension shown " .. tostring(mgr.tensionUI.zedTension))
 end)
+-- both windows in their default spread: the Character window on Radio (the walkie, opened from her inventory as the
+-- game's Device Options does: ZeD.WorldRoutes.radio), the World window on Fishing
 S.step(30, function()
-    C.windows(nil, "fishing")
-    local ww = ZeD_WorldWindow.getWindow()
-    if ww then
-        pcall(function() ww:setWidth(math.floor(getCore():getScreenWidth() * 0.27)); ww:setHeight(math.floor(getCore():getScreenHeight() * 0.8)); ww:setY(24); ww:setX(-300); S.say("fishing window " .. ww:getWidth() .. "x" .. ww:getHeight() .. "; fishing tab showing " .. tostring(ZeD_WorldWindow.isTabShowing("fishing"))) end)
-    end
+    C.windows("loot", "fishing")
+    S.say("fishing tab showing " .. tostring(ZeD_WorldWindow.isTabShowing("fishing")))
 end)
-S.step(120, function() local w2 = ZeD_WorldWindow.getWindow(); if w2 then w2:setX(-300); S.say("window now " .. w2:getX() .. "," .. w2:getY() .. " " .. w2:getWidth() .. "x" .. w2:getHeight() .. " right edge " .. (w2:getX() + w2:getWidth())) end; S.say("state " .. stateName() .. "; tab " .. tostring(ZeD_WorldWindow.isTabShowing("fishing"))) end)
-S.step(30, function() C.shot(S, "lau_fishing") end)
+S.step(30, function()
+    local wk = CLAU3_WALKIE
+    local ok = wk and ZeD.WorldRoutes and ZeD.WorldRoutes.radio and ZeD.WorldRoutes.radio(p, wk)
+    S.say("walkie to the Radio tab " .. tostring(ok) .. " | char tab " .. tostring(ZeD_CharacterWindow.getWindow()._activeTab))
+end)
+S.step(30, function() C.worldTab("fishing") end)
+S.step(90, function() end)
+C.whenStill(S, function()
+    if getGameSpeed() ~= 1 then setGameSpeed(1) end
+    S.say("state " .. stateName() .. " | speed " .. tostring(getGameSpeed()) .. " | char tab " .. tostring(ZeD_CharacterWindow.getWindow()._activeTab) .. " | world tab " .. tostring(ZeD_WorldWindow.getWindow()._activeTab))
+    C.boxes(S, "lau_lake")
+    C.shot(S, "lau_lake")
+end)
 S.step(10, function()
     if origAim then Fishing.Utils.getAimCoords, Fishing.Utils.isCastButtonPressed = origAim, origCast end
     pcall(function() p:setIsAiming(false) end)
@@ -190,6 +209,8 @@ S.step(10, function()
     if CLAU2_UI then CLAU2_UI:setVisible(false) end
     CLAU2_UI = nil
     pcall(function() p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil) end)
+    if CLAU3_WALKIE and CLAU3_WALKIE:getContainer() then pcall(function() CLAU3_WALKIE:getContainer():Remove(CLAU3_WALKIE) end) end
+    CLAU3_WALKIE = nil
     C.noWindows()
 end)
 S.step(30, function() S.say("DONE") end)

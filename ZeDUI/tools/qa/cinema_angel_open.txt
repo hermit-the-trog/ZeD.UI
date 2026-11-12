@@ -1,0 +1,12 @@
+# ZeDUI/tools/qa/cinema_angel_open.txt  (Nov 11 2026, the gallery plan v2 shot 1): Angel's opening break, the Fossoil at
+# West Point in the morning (Light + Blue), 4K on the ZeD-QA save; the story stage is put up and taken down around it
+#   cinema_run2.ps1 -Manifest cinema_angel_open.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_cinema_angel.lua | cang | timeout=600
+gallery_story_teardown.lua | stt | timeout=600
+gallery_t14_end.lua | g14e | timeout=60

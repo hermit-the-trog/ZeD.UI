@@ -97,7 +97,8 @@ local function zoomIn(S, target)
     end)
     S.step(90, function() S.say("zoom " .. tostring(C.core:getZoom(0))) end)
 end
-S.step(5, function() C.look("dark", "teal"); C.noWindows(); pcall(function() p:setGodMod(true) end) end)
+-- (Nov 11 2026, plan v2 shot 7: her movie's look, Light + Teal; both windows, the World window on the left)
+S.step(5, function() C.look("light", "teal"); C.noWindows(); pcall(function() p:setGodMod(true) end) end)
 S.step(5, function() C.time(11.0); C.clearSky() end)
 
 -- ---------------------------------------------------------------------------------------------- 1: forage
@@ -114,6 +115,13 @@ S.step(10, function()
     if not site then S.say("ERR no woods clearing"); return end
     C.moveTo(site[1], site[2], 0)
     dress()
+    -- (plan v2) a fanny pack with a few finds in it: the Character window's one open source
+    pcall(function()
+        local fp = p:getInventory():AddItem("Base.Bag_FannyPackFront")
+        p:setWornItem(fp:getBodyLocation(), fp)
+        for _, ft in ipairs({ "Base.BerryBlack", "Base.MushroomGeneric1", "Base.Twigs" }) do fp:getInventory():AddItem(ft) end
+        CLAU2_PACK = fp
+    end)
     p:setDir(IsoDirections.S)     -- (facing front: the narrowest silhouette, clear of the window's left edge)
 end)
 C.lookAround(S, "S")
@@ -122,12 +130,9 @@ zoomIn(S, 0.25)
 S.step(10, function() pcall(function() p:setSneaking(true) end) end)
 S.step(60, function() pcall(function() p:setSneaking(true) end); S.say("sneaking " .. tostring(p:isSneaking())) end)
 S.step(30, function()
-    C.windows(nil, "forage")
+    C.windows("loot", "forage")
     local ww = ZeD_WorldWindow.getWindow()
-    if ww then
-        ww._moreDetailOpen = true
-        pcall(function() ww:setWidth(math.floor(getCore():getScreenWidth() * 0.27)); ww:setHeight(math.floor(getCore():getScreenHeight() * 0.8)); ww:setY(24); ww:setX(0); S.say("forage window " .. ww:getWidth() .. "x" .. ww:getHeight()) end)
-    end
+    if ww then ww._moreDetailOpen = true end
     local mgr = ISSearchManager.getManager(p)
     if mgr and not mgr.isSearchMode then pcall(function() ZeD.ForagingTab.toggleSearch(ww) end) end
     S.say("search mode " .. tostring(mgr and mgr.isSearchMode))
@@ -169,12 +174,50 @@ S.step(90, function()
 end)
 -- (Nov 11: the World window sits at the left edge; Laura stays centered, clear of it on the right)
 S.poll(10, 12, function() pcall(function() p:setSneaking(true) end); return false end)
-S.step(40, function() C.shot(S, "lau_forage") end)
+-- (plan v2) the World window on the left, the Character window beside it on the right (their places swapped), the
+-- fanny pack opened as the Character window's one source
+local function swap()
+    local c, w = ZeD_CharacterWindow.getWindow(), ZeD_WorldWindow.getWindow()
+    if not (c and w and c:isVisible() and w:isVisible()) then return end
+    if w:getX() < c:getX() then return end
+    local gap = w:getX() - (c:getX() + c:getWidth())
+    local x0 = c:getX()
+    w:setX(x0)
+    c:setX(x0 + w:getWidth() + gap)
+    c._anchorRightEdge = c:getX() + c:getWidth()
+end
+local function colOn(win, inv)
+    for i, cc in ipairs(win and win._containers or {}) do
+        if cc.inventory == inv then
+            for _, j in ipairs(win._mcSelected or {}) do if j == i then return true end end
+            return false
+        end
+    end
+    return false
+end
+S.step(10, function() swap() end)
+S.poll(10, 60, function()
+    local c = ZeD_CharacterWindow.getWindow()
+    local inv = CLAU2_PACK and CLAU2_PACK:getInventory()
+    if not inv then return true end
+    if colOn(c, inv) then return true end
+    ZeD_CharacterWindow.toggleColumn(inv)
+    return false
+end)
+S.step(30, function() swap(); pcall(function() p:setSneaking(true) end) end)
+C.whenStill(S, function()
+    swap()
+    S.say("pack column open " .. tostring(colOn(ZeD_CharacterWindow.getWindow(), CLAU2_PACK and CLAU2_PACK:getInventory())))
+    C.boxes(S, "lau_forage")
+end)
+S.step(5, function() pcall(function() p:setSneaking(true) end); C.shot(S, "lau_forage") end)
 S.step(10, function()
     local mgr = ISSearchManager.getManager(p)
     if mgr and mgr.isSearchMode then pcall(function() mgr:toggleSearchMode(false) end) end
     pcall(function() p:setSneaking(false) end)
     C.noWindows()
+    if CLAU2_PACK then pcall(function() p:removeWornItem(CLAU2_PACK, false); p:getInventory():Remove(CLAU2_PACK) end) end
+    CLAU2_PACK = nil
 end)
 
 -- CLAU2_ONLY = "forage" (gallery_cinema_laura2_forage.lua, run before this): the forage shot alone
