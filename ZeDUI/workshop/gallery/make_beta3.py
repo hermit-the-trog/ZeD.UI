@@ -27,8 +27,8 @@ BREAKS = [
     ("29b_break_laura_forage", CIN + "/cin_lau_forage.jpg"),     # foraging: a sneak in search mode, the Forage tab
     ("33b_break_laura_camp", CIN + "/cin_lau_wide.jpg"),         # on screen: the belt with its holsters
     ("37b_break_mckline_radio", CIN + "/cin_mck_radio.jpg"),     # the two-way radios: the walkie in the Radio tab
-    # ("40b_break_laura_fishing", CIN + "/cin_lau_fishing.jpg"), # fishing: rod in hand, the line-tension display
-    #   (waits for the World window's Fishing tab, punch list 167; QA reshoots it with the tab open)
+    ("40b_break_laura_fishing", CIN + "/cin_lau_fishing.jpg"),   # fishing: rod in hand, the Fishing tab open
+    #   (QA's Nov 11 2026 reshoot with the World window's Fishing tab, punch list 167)
     ("44b_break_plizken_stadium", CIN + "/cin_plz_wide.jpg"),    # the controller run ends: the stadium
     ("49b_break_laura_building", CIN + "/cin_lau_build.jpg"),    # looks: the Light theme, Skills and Building
     ("55b_break_plizken_vehicle", CIN + "/cin_plz_vehicle.jpg"), # mods: the ID card (Veteran) and a wreck
