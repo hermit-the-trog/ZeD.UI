@@ -227,6 +227,9 @@ function ISTextEntryBox:new(text, x, y, w, h)
 end
 function ISTextEntryBox:setPlaceholderText(s) self.placeholder = s end
 function ISTextEntryBox:setMaxTextLength(n) self.maxT = n end
+function ISTextEntryBox:setMultipleLine(b) self.multi = b end   -- (the scratchpad's box, Phase 2)
+function ISTextEntryBox:isMultipleLine() return self.multi == true end
+function ISTextEntryBox:setMaxLines(n) self.maxL = n end
 function ISTextEntryBox:setFont(f) self.font = f end
 function ISTextEntryBox:getText() return self.text end
 function ISTextEntryBox:setText(s) self.text = s end
@@ -665,7 +668,7 @@ check("pad: starts on the line", win.zone == "input")
 local pr = win:getFooterPrompts()
 local glyphs = {}
 for _, p in ipairs(pr) do if type(p) == "table" then glyphs[#glyphs + 1] = p.glyph end end
-check("pad prompts on the line: A LB RB B", table.concat(glyphs, " ") == "A LB RB B", table.concat(glyphs, " "))
+check("pad prompts on the line: A LB RB Y B", table.concat(glyphs, " ") == "A LB RB Y B", table.concat(glyphs, " "))
 MARKS = 0
 draw(win)
 check("pad: the line marked", MARKS >= 1)
@@ -681,7 +684,7 @@ win:update()
 check("pad: after typing, on Run", win.zone == "band" and win.bandFocus == 4)
 glyphs = {}
 for _, p in ipairs(win:getFooterPrompts()) do if type(p) == "table" then glyphs[#glyphs + 1] = p.glyph end end
-check("pad prompts on the band: A B", table.concat(glyphs, " ") == "A B", table.concat(glyphs, " "))
+check("pad prompts on the band: A Y B", table.concat(glyphs, " ") == "A Y B", table.concat(glyphs, " "))
 win:onJoypadDown(Joypad.AButton, jd)
 frame()
 check("pad: A on Run runs", JC.prev:get(JC.prev:size() - 1) == "say('pad')" and DC.text:find("pad", 1, true) ~= nil)

@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/console_scratch.txt: the Lua console's scratchpad (punch list 136 Phase 2), a -debug run.
+# The script runs a block left open and a nil index on purpose; if the game logs them they name "console", hence expect=.
+# It writes Zomboid/Lua/ZeD_console_snippets.txt and ZeD_console_history.txt, and puts back what they held at the end.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_scratch.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_console_scratch.lua | conscr | timeout=240 | expect=console

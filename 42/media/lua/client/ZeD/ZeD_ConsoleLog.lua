@@ -267,6 +267,7 @@ function L.reset()
     L._seen, L._part = nil, ""
     L._f11Seen = 0
     L._ran = {}
+    L._expect = {}
     L.q, L._ql = "", ""
     L.off = { kind = {}, mod = {}, file = {} }
 end
@@ -426,6 +427,41 @@ function L.ran(line, t)
     return add({ t = t or L.clock(), kind = "ran", msg = "> " .. line, mod = CONSOLE, file = "" })
 end
 
+--- Code run from the scratchpad ("ran"): its first line, and how many more it has.
+function L.ranCode(code, t)
+    code = tostring(code or "")
+    local first = code:match("^([^\n]*)") or ""
+    local more = 0
+    for _ in code:gmatch("\n") do more = more + 1 end
+    local msg = "> " .. first
+    if more > 0 then msg = msg .. "  " .. tr("UI_ZeD_Console_RanMore", more) end
+    return add({ t = t or L.clock(), kind = "ran", msg = msg, mod = CONSOLE, file = "", code = code })
+end
+
+L.EXPECT_MS = 10000    -- a line told ahead (L.output) waits this long for the box to print it
+--- A line a scratchpad run printed: a print row from Console now. The same words reach the game's box a frame
+--- later; the box's copy is skipped, once, as already told.
+function L.output(text, t, ms)
+    text = tostring(text or ""):gsub("\r", ""):gsub("\t", "    ")
+    ms = ms or (getTimestampMs and getTimestampMs()) or 0
+    L._expect = L._expect or {}
+    for line in (text .. "\n"):gmatch("([^\n]*)\n") do
+        add({ t = t or L.clock(), kind = "print", msg = line, mod = CONSOLE, file = "" })
+        L._expect[#L._expect + 1] = { s = line, at = ms }
+        if #L._expect > 64 then table.remove(L._expect, 1) end
+    end
+end
+
+-- a box line already told by L.output: taken off the waiting list
+local function expected(msg)
+    local e = L._expect
+    if not e then return false end
+    for i = 1, #e do
+        if e[i].s == msg then table.remove(e, i); return true end
+    end
+    return false
+end
+
 -- ---------------------------------------------------------------------------
 -- THE BOX: the game's console text, read for what is new since the last read
 -- ---------------------------------------------------------------------------
@@ -463,6 +499,7 @@ local function boxLine(s, t, ms)
     end
     local lvl, msg = splitPrefix(s)
     local kind = (lvl == "WARN") and "warn" or "print"
+    if kind == "print" and expected(msg) then return end
     add({ t = t, kind = kind, msg = msg, mod = L.modOfPrint(msg), file = "" })
 end
 
@@ -576,6 +613,8 @@ function L.tick(ms)
     ms = ms or 0
     if L._blk and ms - (L._blk.at or 0) >= L.FLUSH_MS then closeBlock() end
     if L._f11 and ms - (L._f11.at or 0) >= L.FLUSH_MS then closeF11() end
+    local e = L._expect
+    while e and e[1] and ms - (e[1].at or 0) >= L.EXPECT_MS do table.remove(e, 1) end
 end
 
 -- ---------------------------------------------------------------------------
