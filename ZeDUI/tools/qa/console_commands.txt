@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/console_commands.txt: the Lua console's Commands page, a -debug single-player run.
+# It opens the Cheats window once (a pick of /godmode) and shuts it; nothing is sent. The server check is by hand:
+# see the header of zedqa_console_commands.lua.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_commands.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_console_commands.lua | concmd | timeout=180

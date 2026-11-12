@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/console_complete.txt: the Lua console's suggestions and Help page, a -debug single-player run.
+# Nothing in the world changes; the line, the box and the page are put back at the end.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_complete.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_console_complete.lua | concmp | timeout=180

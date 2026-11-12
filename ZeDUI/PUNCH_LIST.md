@@ -3448,6 +3448,45 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       console_log_sim 257/0, debug_console_sim 892/0. **Check (QA, -debug):** `zedqa_run.ps1 -Manifest
       ZeDUI/tools/qa/console_scratch.txt` (tag conscr: Enter and Up as real keys, Kahlua's error words noted, the files
       read back and restored), then by hand at 4K and Deck: Shift+Enter, a long snippet scrolling in the box.
+    - **Build, Nov 12 2026: Phase 3, the suggestions and Help.** ZeD_ConsoleComplete.lua (logic, no drawing): globals
+      walked once per window open (sorted, a keystroke only looks them up), a table's fields after "." (its keys and
+      its metatable's __index chain), methods after ":" (a Java object's metatable __index names, kept per class;
+      parameter counts read once per class through getNumClassFunctions / getClassFunction / getMethodParameterCount,
+      the name from m:getName() or tostring(m)); the base before "." or ":" is worked out only from names and empty
+      get/is calls, never anything else; nothing inside a string or a comment. ZeD_DebugConsole.lua: the pull-down above
+      the caret (below near the top), in the line and the box, opening by itself after two letters (a row: name, the
+      brackets "(_, _)" when the count is known, status pixel and word function / table / Java / value; the foot
+      "Globals | n more"); Tab or Enter takes (the caret inside the brackets unless none), Up/Down move, Esc shuts
+      (until the words change), a click takes; no pull-down, Tab is still the game's suggestion. Controller: it shows
+      while the pad keyboard types, the hand lands on it when the keyboard goes, D-pad up reaches it, A takes, B shuts.
+      ZeD_ConsolePages.lua: the Help page (WHAT RUNS WHERE, KEYS, CONTROLLER, FILES fold headers, scrolling, Back to
+      the log); D-pad left from a page goes to the strip. 39 strings in 28 UI.json (machine drafts). Sims:
+      console_complete_sim 296/0 (new, on console_sim_harness.lua), debug_console_sim 893/0, console_log_sim 257/0,
+      console_scratch_sim 298/0. **Check (QA, -debug, single player):** `zedqa_run.ps1 -Manifest
+      ZeDUI/tools/qa/console_complete.txt` (tag concmp: the walk's size and time, the player's method count and how
+      many carry a parameter count, real Down/Up/Enter/Esc keys, the pad hand), then by hand at 4K and Deck: the
+      pull-down over a long log, in the box near its top, and Tab in the box (does the game's box put a tab in).
+    - **Build, Nov 12 2026: Phase 4, the Commands page.** ZeD_ConsoleCommands.lua (logic, no drawing): the game's
+      registry read from its class files (zombie.commands.serverCommands, 42.22.2): 64 enabled commands, their other
+      names and capabilities, the game's own help key each (UI_ServerOptionDesc_*, translated by the game; ZeD's words
+      for the 11 with none), syntax and examples as the game's help writes them; the 3 disabled classes
+      (addalltowhitelist, addusertowhitelist, connections) left out; plus the 7 chat channels, /roll and /card. Default
+      role levels from Roles.addStatic (42.22 has user, observer, gm, moderator, admin; no overseer). On a server only
+      what the role's capabilities allow (Role:hasCapability; the co-op host all); the level beside each the lowest
+      server role with it (ZeD.Admin.roles), else the defaults. Send: SendCommandToServer (chat channels through
+      ZeD.Chat.send; with no send call the line waits in ZeD's chat box); the server path is unproven in game until
+      the multiplayer run. Single player: every command with its debug-menu way; a pick opens Cheats, Items, Player,
+      Climate, General or Sandbox (the game's ISDebugMenu buttons) where there is one. ZeD_ConsolePages.lua: search,
+      your role, "n of N"; six group fold headers; rows (name, what it does, level pixel and word / the single-player
+      way); the detail (syntax, example, other names, does, alone, capabilities, "can't be undone"); the chat line;
+      the band Copy / Send, or the question Cancel / Send for removezombies, remove, grantadmin, removeadmin,
+      removemapsymbolsforuser, changeoption, quit; single player "Open <window>". Controller: search, list (moving
+      shows the detail), line, band; A fills (opens alone), X sends, B answers the question. 64 strings in 28 UI.json
+      (machine drafts). Sims: console_commands_sim 278/0 (the list against the registry's names), the other four as
+      above. **Check (QA, -debug, single player):** `zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_commands.txt`
+      (tag concmd: the game's help words found, the openers present, /godmode opens Cheats, search, pad); **server, by
+      hand** (the script's header): /players answered in chat (the proof the send works), a user role's list, the
+      question before /removezombies, /say as chat; then 4K and Deck: the page at the window's smallest.
 
 137. **Responsive Context Menus [B42] support (the director via QA, Nov 9 2026; DONE for beta 11).** Workshop 3783387236,
     mod id ResponsiveUI. ZeD's menu (Strip and List) takes the mod's 250 ms rebuilds in place: same place, submenu path
