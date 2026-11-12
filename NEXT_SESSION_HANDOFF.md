@@ -2,6 +2,12 @@
 
 Read this first, then STATE.md for what ships and ZeDUI/PUNCH_LIST.md for every open item with its check. The beta 12 plan is in this file (there is no separate plan document).
 
+## Nov 12, evening: the cloud Build session (this account) before the move to a local session
+
+- **PR #6** (console Phases 3-4, branch `console-phases-3-4`): opened from the pushed branch. It merges cleanly onto main, and the console sims match the numbers below (296, 278, 893, 257, 298). i18n and kahlua guards pass; DE's 2 mt.py errors are on main already. **Waiting on the director's merge.** After it merges, pull while the lock reads free.
+- **QA ZeD-GUI MAC** (the Mac session) wrote in. Build's answers are in `ZeDUI/qa/HANDOFF_Build_to_QA_20261112.md`: install main (beta 12); the Mac's B11 gallery shoot looks superseded by upload_b12 (ask the director); 159's notebook-over-World is the reader opening centred (by design).
+- **New bug, 158:** Chinese in the speech balloon drops 状态 ("搜刮状态" draws "搜刮") while 搜刮 / 剩余 draw. The Noto SC .fnt and atlas have both characters, so the cut is in the data or the draw. QA is asked for the probe values in that file. Not fixed yet.
+
 ## Handoff to the other account (Nov 12 2026, midday)
 
 The director moved Build to their other Claude account (this one at 99%). Same machine, same checkout; QA ZeD-GUI is its own session.
