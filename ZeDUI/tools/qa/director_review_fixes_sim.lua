@@ -146,7 +146,7 @@ end
 
 section("TRAITS: icon, dot, name")
 do
-    local ok, err = load("IdentityTab.lua", { "function ZeD.IdentityTab.traitRowLayout(" })
+    local ok, err = load("IdentityTab.lua", { "local _traitLay = {}" })
     check("traitRowLayout cuts and loads", ok, err)
     local L = ZeD.IdentityTab.traitRowLayout
     if ok and L then

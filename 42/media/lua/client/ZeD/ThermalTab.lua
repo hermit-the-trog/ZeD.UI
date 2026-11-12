@@ -2,8 +2,10 @@
 -- ============================================================================
 -- THERMAL TAB (client) — the Character window's per-body-part thermoregulation
 -- tab, with 7 switchable views.
--- Layout: body figure (top-left) + Core / Air / Wind readings (top-right) +
--- grid (below); the View pop-up lives in the footer band.
+-- Layout: body figure (top-left) + Core / Air / Wind readings and Body Heat
+-- Generation (top-right) + grid (below) + the picked region's eight rows under
+-- the grid (a cell press or A picks it; pointing at a cell or a figure part
+-- shows that one there until it is left); the View pop-up lives in the footer band.
 -- Reads vanilla's thermoregulator nodes (getNodeForType) and their *UI getters.
 -- The readings are gathered every 15 frames into win._thermalCache; the draw
 -- functions read only that table, never the thermoregulator.
@@ -14,6 +16,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/ZeD_BodyFigure"
+require "ZeD/ZeD_TabFill"
 
 ZeD = ZeD or {}
 ZeD.ThermalTab = {}
@@ -47,16 +50,29 @@ local VIEWS = {
 }
 
 -- Detail view: all metrics shown when hovering a body part
+-- (scale: vanilla's words for the bar's low end, middle and high end, as its
+-- clothing panel prints them; false where it has no middle word)
 local DETAIL_ROWS = {
-    { getter = "getSkinCelcius",    getterUI = "getSkinCelciusUI",    vkey = "IGUI_Temp_SkinTemperature" },
-    { getter = "getBodyResponse",   getterUI = "getBodyResponseUI",   vkey = "IGUI_Temp_BodyResponse" },
-    { getter = "getPrimaryDelta",   getterUI = "getPrimaryDeltaUI",   vkey = "IGUI_Temp_BloodVessels" },
-    { getter = "getSecondaryDelta", getterUI = "getSecondaryDeltaUI", key = "UI_ZeD_Thermal_RowShiver" },
-    { getter = "getInsulation",     getterUI = "getInsulationUI",     vkey = "IGUI_Temp_Insulation" },
-    { getter = "getWindresist",     getterUI = "getWindresistUI",     vkey = "IGUI_Temp_WindResistance" },
-    { getter = "getBodyWetness",    getterUI = "getBodyWetnessUI",    vkey = "IGUI_Temp_BodyWetness" },
-    { getter = "getClothingWetness",getterUI = "getClothingWetnessUI",vkey = "IGUI_Temp_ClothingWetness" },
+    { getter = "getSkinCelcius",    getterUI = "getSkinCelciusUI",    vkey = "IGUI_Temp_SkinTemperature",
+      scale = { "IGUI_Temp_Cold", "IGUI_Temp_Normal", "IGUI_Temp_Hot" } },
+    { getter = "getBodyResponse",   getterUI = "getBodyResponseUI",   vkey = "IGUI_Temp_BodyResponse",
+      scale = { "IGUI_Temp_FightCold", "IGUI_Temp_Normal", "IGUI_Temp_FightHot" } },
+    { getter = "getPrimaryDelta",   getterUI = "getPrimaryDeltaUI",   vkey = "IGUI_Temp_BloodVessels",
+      scale = { "IGUI_Temp_Vasoconstriction", "IGUI_Temp_Normal", "IGUI_Temp_Vasodilation" } },
+    { getter = "getSecondaryDelta", getterUI = "getSecondaryDeltaUI", key = "UI_ZeD_Thermal_RowShiver",
+      scale = { "IGUI_Temp_Shivering", "IGUI_Temp_Normal", "IGUI_Temp_Perspiring" } },
+    { getter = "getInsulation",     getterUI = "getInsulationUI",     vkey = "IGUI_Temp_Insulation",
+      scale = { "IGUI_Temp_Low", "IGUI_Temp_Med", "IGUI_Temp_High" } },
+    { getter = "getWindresist",     getterUI = "getWindresistUI",     vkey = "IGUI_Temp_WindResistance",
+      scale = { "IGUI_Temp_Low", "IGUI_Temp_Med", "IGUI_Temp_High" } },
+    { getter = "getBodyWetness",    getterUI = "getBodyWetnessUI",    vkey = "IGUI_Temp_BodyWetness",
+      scale = { "IGUI_Temp_Dry", false, "IGUI_Temp_Soaked" } },
+    { getter = "getClothingWetness",getterUI = "getClothingWetnessUI",vkey = "IGUI_Temp_ClothingWetness",
+      scale = { "IGUI_Temp_Dry", false, "IGUI_Temp_Soaked" } },
 }
+ZeD.ThermalTab.DETAIL_ROWS = DETAIL_ROWS
+-- the region picked until the player picks another
+local DEFAULT_PICK = "Upper Torso"
 
 -- The words for a view or a detail row: vanilla's own text when it has the same
 -- words (vkey), else ZeD's (key). Looked up where drawn, so the language applies.
@@ -181,10 +197,14 @@ function ZeD.ThermalTab.gatherData(playerObj)
         end
     end
 
+    -- Body Heat Generation, 0..1 (vanilla's clothing panel's second bar)
+    local okH, heat = pcall(thermoregulator.getHeatGenerationUI, thermoregulator)
+
     return {
         coreTemp  = coreTemp,
         airTemp   = airTemp,
         windTemp  = windTemp,
+        heatGen   = (okH and type(heat) == "number") and heat or nil,
         nodes     = nodes,
         partOrder = PART_ORDER,
         isFemale  = playerObj:isFemale(),
@@ -220,6 +240,8 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local data = win._thermalCache
     -- the temperature unit, read once this frame (every reading and row below shows it)
     win._thermalCelsiusNow = ZeD.ThermalTab.useCelsius()
+    ZeD.TabFill.begin(win, "thermal")
+    if not win._thermalPick then win._thermalPick = DEFAULT_PICK end
 
     -- Resolve the "active" body part: gamepad focus on a part overrides mouse
     -- hover, so the D-pad through the parts live-swaps the right-column detail
@@ -254,7 +276,9 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local scroll  = win._thermalScroll
     local scrollW = T.sp.scrollbarW
     local gridContentH = ZeD.ThermalTab._measureGridContent(data, w - pad * 2, scrollW)
-    local totalContentH = padTop + zoneAH + T.sp.afterLine + gridContentH
+    -- the picked region's block under the grid (measured with no panel: the code that draws it)
+    local pickedH = T.px(8) + ZeD.ThermalTab._renderPicked(nil, win, data, 0, 0, w - pad * 2 - scrollW)
+    local totalContentH = padTop + zoneAH + T.sp.afterLine + gridContentH + pickedH
 
     -- Scroll area runs from the pinned header to the footer band (the View pop-up's band)
     local scrollY = y + headerH
@@ -283,7 +307,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
         local Focus = ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
                    and Focus.getFocusedElement(win) or nil
-        local key = el and el.partName and el.id or nil
+        local key = el and (el.partName or el.fillStop) and el.id or nil
         if key and key ~= win._thermalPinned and type(el.y) == "number" then
             local span = math.max(1, totalContentH - scrollH)
             local oldOff = math.floor(scroll.scrollPos * span)
@@ -313,13 +337,9 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
         ZeD.ThermalTab._drawBodyFigure(panel, win, data,
             layout.figX, layout.figY, figW, figH)
 
-        if activePart and data.nodes[activePart] then
-            ZeD.ThermalTab._renderDetailView(panel, win, data, activePart,
-                layout.rightX, layout.rightY, layout.rightW, figH)
-        else
-            ZeD.ThermalTab._renderHeader(panel, win, data,
-                layout.rightX, layout.rightY, layout.rightW)
-        end
+        -- (the readings stay: a pointed part shows in the picked region's block under the grid)
+        ZeD.ThermalTab._renderHeader(panel, win, data,
+            layout.rightX, layout.rightY, layout.rightW)
 
     else
         ZeD.ThermalTab._renderHeader(panel, win, data, x + pad, curY, contentW - pad * 2)
@@ -331,39 +351,11 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     ZeD.ThermalTab._renderCardGrid(panel, win, data,
         x + pad, gridY, contentW - pad * 2, gridContentH)
 
-    -- The grid as one gamepad pseudo-zone: stat rows are read, not pressed, so
-    -- none is a stop and the whole grid is one scroll surface. D-pad up / down
-    -- scrolls the viewport while it has focus; cone nav from the pills or the
-    -- body parts lands on it spatially.
-    --
-    -- The zone is stamped whenever the content scrolls, even with the grid
-    -- off-screen: with the figure open, zone A can fill the viewport, and a
-    -- zone cut to the grid's visible part would then have no height — and the
-    -- pad no way down. Off-screen, the zone pins to the bottom quarter of the
-    -- viewport as a virtual handle, so cone nav from above can reach it and
-    -- D-pad DOWN scrolls the grid into view.
-    if needsScroll then
-        local intTop = math.max(gridY, scrollY)
-        local intBot = math.min(gridY + gridContentH, scrollY + scrollH)
-        if intBot > intTop then
-            -- Grid partially/fully visible — use actual intersection.
-            win._thermalGridScrollZone = {
-                x = x + pad, y = intTop,
-                w = contentW - pad * 2, h = intBot - intTop,
-            }
-        else
-            -- Grid off-viewport — pin to bottom 25% of viewport as a virtual
-            -- scroll handle. Has no visual, only a focus target.
-            local gzH = math.max(T.px(24), math.floor(scrollH * 0.25))
-            local gzY = scrollY + scrollH - gzH
-            win._thermalGridScrollZone = {
-                x = x + pad, y = gzY,
-                w = contentW - pad * 2, h = gzH,
-            }
-        end
-    else
-        win._thermalGridScrollZone = nil
-    end
+    -- The picked region's eight rows under the grid. The grid's cells and these rows are
+    -- the controller's stops (ZeD_TabFill zones): the D-pad walks the cells, A picks one,
+    -- the block follows the focused cell; the rows only read.
+    ZeD.ThermalTab._renderPicked(panel, win, data, x + pad, gridY + gridContentH + T.px(8), contentW - pad * 2)
+    win._thermalGridScrollZone = nil
 
     panel:clearStencilRect()
 
@@ -398,10 +390,18 @@ local function readingRowH()
     return m + math.max(T.px(2), math.floor(m * 0.15))
 end
 
--- the readings' height: three rows and the gauge
+-- the readings' height: three rows and the core meter, then Body Heat Generation and its meter
 function ZeD.ThermalTab._measureReadings()
     local T = ZeD.T
-    return 3 * (readingRowH() + T.sp.rowGap) + T.fillBarH
+    return 4 * (readingRowH() + T.sp.rowGap) + 2 * T.fillBarH + T.px(10)
+end
+
+-- a 0..1 reading as a stepped meter: ten flat segments in the thermal color of where it stands
+-- (the segmented meters' look; no running blend of colors)
+local function drawStepped(panel, x, y, w, h, v)
+    local A = ZeD.Atoms
+    v = math.max(0, math.min(1, v or 0))
+    A.drawSegFill(panel, x, y, w, h, A.FILL_SEGS, math.max(1, A.fillSegsLit(v)), getThermalColor(v))
 end
 
 function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
@@ -417,9 +417,14 @@ function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
         ZeD.ThermalTab.tempText(data.airTemp, celsius), T.toneNorm) + T.sp.rowGap
     curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("IGUI_Fishing_Wind"),
         ZeD.ThermalTab.tempText(data.windTemp, celsius), T.toneNorm) + T.sp.rowGap
-    -- Core temperature gauge: the chunky framed strip (the standard bar height), not a thin line;
-    -- 30 to 42 °C runs across it
-    ZeD.Atoms.drawGradientBar(panel, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
+    -- the core temperature's meter: the standard bar height, 30 to 42 C across it, in steps
+    drawStepped(panel, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
+    curY = curY + T.fillBarH + T.px(10)
+    -- Body Heat Generation: vanilla's word for where its bar stands (Low, Normal, High), its meter under it
+    local heat = data.heatGen or 0
+    local word = getText(ZeD.TabFill.scaleWord(heat, "IGUI_Temp_Low", "IGUI_Temp_Normal", "IGUI_Temp_High"))
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, getText("IGUI_Temp_BodyHeat"), word, T.toneNorm) + T.sp.rowGap
+    drawStepped(panel, rx, curY, rw, T.fillBarH, heat)
 end
 
 -- ============================================================================
@@ -463,6 +468,8 @@ function ZeD.ThermalTab.onClick(win, x, y)
         return true
     end
     local bz = win._thermalBand
+    -- a grid cell (picks it) or the block's head, inside the body's view
+    if not (bz and y >= bz.y) and inRect(win._thermalBodyRect, x, y) and ZeD.TabFill.onClick(win, "thermal", x, y) then return true end
     if not bz or y < bz.y or y >= bz.y + bz.h then return false end
     if inRect(bz.box, x, y) then ZeD.ThermalTab.openMenu(win) end
     return true
@@ -600,6 +607,12 @@ end
 -- Displays the active view's metric per body part.
 -- ============================================================================
 
+--- One grid cell's height (Molecules.drawStatBarRow's row: the larger of F3 / F2 + 8).
+function ZeD.ThermalTab.cellH()
+    local T, TM = ZeD.T, ZeD.TM
+    return math.max(TM:getFontHeight(T.fontF3), TM:getFontHeight(T.fontF2)) + T.px(8)
+end
+
 function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local T    = ZeD.T
     local A    = ZeD.Atoms
@@ -627,6 +640,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     drawY = drawY + T.sp.xs
 
     -- Two-column body part grid
+    win._thermalHoverCell = nil
     local colGap = T.sp.sm
     local colW = math.floor((listW - colGap) / 2)
     local leftY  = drawY
@@ -654,6 +668,34 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
             valStr = string.format("%.2f", uiVal)
         end
 
+        -- the cell: the picked one in the accent wash, the pointer's hover, the controller's mark; a press
+        -- (or A) picks it; pointed at, it shows in the block under the grid
+        local cellH = ZeD.ThermalTab.cellH()
+        local ids = win._thermalCellIds
+        if not ids then ids = {}; win._thermalCellIds = ids end
+        local cid = ids[partName]
+        if not cid then cid = "fill:thermal:cell:" .. partName; ids[partName] = cid end
+        if win._thermalPick == partName then
+            local ac = T.accent
+            panel:drawRect(cx, cy, colW, cellH, T.selectionA or 0.30, ac.r, ac.g, ac.b)
+        end
+        if A.mouseIn(panel, cx, cy, colW, cellH, win._thermalBodyRect) then
+            local hv = T.hover
+            panel:drawRect(cx, cy, colW, cellH, hv.a, hv.r, hv.g, hv.b)
+            win._thermalHoverCell = partName
+        end
+        local fo = ZeD.TabFill.focusOf(win, cid)
+        if fo then ZeD.Focus.mark(panel, cx, cy, colW, cellH, fo) end
+        local fns = win._thermalPickFns
+        if not fns then fns = {}; win._thermalPickFns = fns end
+        local fn = fns[partName]
+        if not fn then
+            local pick = partName
+            fn = function() win._thermalPick = pick end
+            fns[partName] = fn
+        end
+        local z = ZeD.TabFill.zone(win, "thermal", cid)
+        z.x, z.y, z.w, z.h, z.partName, z.fn, z.read = cx, cy, colW, cellH, partName, fn, false
         local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, ZeD.partLabel(partName), fillPct, fc, T.toneNorm, true)
 
         if isLeft then leftY = cy + rowH + rowGap
@@ -663,44 +705,57 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
 end
 
 -- ============================================================================
--- DETAIL VIEW (hover — shows all metrics for the hovered body part)
+-- THE PICKED REGION (under the grid)
+-- The eight readings of one region: the cell or figure part the pointer or the
+-- controller is on, else the picked one. Each row: vanilla's name, the value, a
+-- stepped bar and vanilla's word for where the bar stands (its clothing panel's
+-- scale words). A ZeD_TabFill block, so it folds and its rows are stops.
 -- ============================================================================
 
-function ZeD.ThermalTab._renderDetailView(panel, win, data, partName, rx, ry, rw, rh)
-    local T    = ZeD.T
-    local M    = ZeD.Molecules
+-- the region the block shows now: a cell or part pointed at, else the pick
+local function shownRegion(win, data)
+    local p = win._thermalHoverCell or win._thermalActivePart
+    if p and data.nodes[p] then return p end
+    return win._thermalPick or DEFAULT_PICK
+end
 
-    local nodeData = data.nodes[partName]
-    if not nodeData then return end
-
-    local curY = ry
-
-    -- All metric rows
-    local rowGap = T.sp.xs
-
-    for ri, row in ipairs(DETAIL_ROWS) do
-        -- Alternating row stripe
-        if ri % 2 == 0 then
-            local st = T.stripe
-            local estH = math.max(ZeD.TM:getFontHeight(T.fontF1), ZeD.TM:getFontHeight(T.fontF2)) + T.px(4)
-            panel:drawRect(rx, curY, rw, estH, st.a, st.r, st.g, st.b)
-        end
-        local uiVal = nodeData[row.getterUI] or 0
-        local rawVal = nodeData[row.getter] or 0
-        local fillPct = math.max(0, math.min(1, uiVal))
-        local fc = getThermalColor(fillPct)
-
-        -- Format: skin temperature in the player's unit, the others their 0-1 UI value
-        local valStr
-        if row.getter == "getSkinCelcius" then
-            valStr = ZeD.ThermalTab.tempText(rawVal)
-        else
-            valStr = string.format("%.2f", uiVal)
-        end
-
-        local rowH = M.drawStatBarRow(panel, rx, curY, rw, valStr, ZeD.ThermalTab.labelOf(row), fillPct, fc, nil, true)
-        curY = curY + rowH + rowGap
+local _pickedOpts = {}
+local _pickedRows = {}
+local _pickedKey = {}   -- what the rows' words were made from (the reading, the region, the unit, the theme)
+--- The picked region's block from (x, y), w wide; panel nil only measures. Returns its height.
+function ZeD.ThermalTab._renderPicked(panel, win, data, x, y, w)
+    local part = shownRegion(win, data)
+    local nodeData = data and data.nodes and data.nodes[part]
+    if not nodeData then return 0 end
+    local F = ZeD.TabFill
+    local celsius = win._thermalCelsiusNow
+    if celsius == nil then celsius = ZeD.ThermalTab.useCelsius() end
+    -- the rows' words are made when the reading, the region, the unit or the theme changes,
+    -- not every frame (the measure and the draw of one frame share them)
+    local c = _pickedKey
+    if c.data == data and c.part == part and c.celsius == celsius and c.T == ZeD.T then
+        _pickedOpts.view = win._thermalBodyRect
+        return F.block(panel, win, "thermal", "picked", x, y, w, c.title, nil, _pickedRows, _pickedOpts)
     end
+    c.data, c.part, c.celsius, c.T, c.title = data, part, celsius, ZeD.T, ZeD.partLabel(part)
+    -- the word column as wide as the longest of the words on show
+    local wordW = 0
+    for i, row in ipairs(DETAIL_ROWS) do
+        local uiVal = math.max(0, math.min(1, nodeData[row.getterUI] or 0))
+        local r = _pickedRows[i]
+        if not r then r = { read = true }; _pickedRows[i] = r end
+        if not r.id then r.id = "fill:thermal:row:" .. i end
+        r.label = ZeD.ThermalTab.labelOf(row)
+        if row.getter == "getSkinCelcius" then r.value = ZeD.ThermalTab.tempText(nodeData[row.getter] or 0, celsius)
+        else r.value = math.floor(uiVal * 100 + 0.5) .. "%" end
+        r.bar, r.barColor = uiVal, getThermalColor(uiVal)
+        local sc = row.scale
+        r.word = getText(F.scaleWord(uiVal, sc[1], sc[2], sc[3]))
+        wordW = math.max(wordW, ZeD.TM:MeasureStringX(ZeD.T.fontF1, r.word))
+    end
+    for i = 1, #DETAIL_ROWS do _pickedRows[i].wordW = wordW end
+    _pickedOpts.view = win._thermalBodyRect
+    return F.block(panel, win, "thermal", "picked", x, y, w, c.title, nil, _pickedRows, _pickedOpts)
 end
 
 -- ============================================================================

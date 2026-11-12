@@ -1416,13 +1416,19 @@ local _traitIds = {}   -- (a trait's controller id, "identity:trait:<name>", mad
 local WHITE = { r = 1, g = 1, b = 1 }   -- (the trait icons keep their own colors)
 
 --- A trait row's places across: the icon (18 units, the game's own size), the dot, the name.
+--- (one table, made again only when the row height or the theme changes)
+local _traitLay = {}
 function ZeD.IdentityTab.traitRowLayout(rh)
     local T = ZeD.T
+    local L = _traitLay
+    if L.rh == rh and L.T == T then return L end
     local icon = math.min(T.px(18), rh)
     local dot = T.px(8)
     local dotX = icon + T.px(6)
-    return { icon = icon, iconX = 0, iconY = math.floor((rh - icon) / 2),
-             dot = dot, dotX = dotX, nameX = dotX + dot + T.px(8) }
+    L.rh, L.T = rh, T
+    L.icon, L.iconX, L.iconY = icon, 0, math.floor((rh - icon) / 2)
+    L.dot, L.dotX, L.nameX = dot, dotX, dotX + dot + T.px(8)
+    return L
 end
 local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local T = ZeD.T

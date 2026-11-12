@@ -1732,6 +1732,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Health_GlassShards` | `Glass shards` | Health tab (Character window): condition badge on an injured body part (pill) | 18 |
 | `UI_ZeD_Health_Healthy` | `Healthy` | Health tab (Character window): hover detail for a body part with no conditions (beside a green dot) | 14 |
 | `UI_ZeD_Health_InjuredOf` | `%1 of %2 injured` | Health tab (Character window): summary line; %1 is how many body parts have a wound or condition, %2 how many body parts there are | 24 |
+| `UI_ZeD_Health_Moodles` | `Moodles` | Health tab (Character window): fold head of the block listing the moodles that are on (the game's word for the mood and status icons) | 20 |
 | `UI_ZeD_Health_NoInjuries` | `No injuries` | Health tab (Character window): summary line (with a green dot) when nothing is wounded and health is fine | 20 |
 | `UI_ZeD_Health_NoInjuriesLow` | `No injuries, low body health` | Health tab (Character window): summary line (with a yellow dot) when nothing is wounded but some body part has reduced health (hunger, illness, cold) | 32 |
 | `UI_ZeD_Health_Overall` | `Overall` | Health tab (Character window): stat row label at the top of the summary, before the overall body health percentage | 12 |
@@ -2752,14 +2753,18 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Notebook_AddLine` | `Add a line to page %1...` | Character window, Journal tab, Notebooks sub-tab: placeholder of the quick note box (%1 = page) | 36 |
+| `UI_ZeD_Notebook_BooksOn` | `Books on you` | Journal tab, Notebooks page with no notebook carried: fold head of the books, magazines and newspapers the character carries | 24 |
 | `UI_ZeD_Notebook_Find` | `Find in your notes...` | Character window, Journal tab, Notebooks sub-tab: placeholder in the search box | 30 |
+| `UI_ZeD_Notebook_HasTool` | `Pencil or pen at hand` | Journal tab, Notebooks page with no notebook carried, Writing block: the character carries something to write with (green square) | 30 |
 | `UI_ZeD_Notebook_Into` | `Into: %1` | Character window, Journal tab, Journal sub-tab: pill left of Save that picks a notebook (%1 = the notebook's name, or the log-only phrase) | 30 |
 | `UI_ZeD_Notebook_Kind` | `Notebook` | Notebooks sub-tab: kind of book shown when the game gives no item name (rare fallback) | 16 |
+| `UI_ZeD_Notebook_LightOk` | `Light enough` | Journal tab, Notebooks page with no notebook carried, Writing block: there is light enough to write by (green square) | 24 |
 | `UI_ZeD_Notebook_LogOnly` | `the log only` | Character window, Journal tab: value of the Into pill when no notebook is chosen (goes after 'Into: ') | 20 |
 | `UI_ZeD_Notebook_NoneCarried` | `No notebook on you` | Character window, Journal tab, Notebooks sub-tab: empty list, the character carries no notebook, journal or diary | 40 |
 | `UI_ZeD_Notebook_NoneMatch` | `None of your notebooks has that` | Character window, Journal tab, Notebooks sub-tab: empty list, nothing matches the search | 40 |
 | `UI_ZeD_Notebook_NoRoomIn` | `No room in %1` | Character window, Journal tab, Journal sub-tab: note beside the Into pill when the chosen notebook is full (%1 = its name) | 40 |
 | `UI_ZeD_Notebook_NoRoomPage` | `No room left on this page` | Character window, Journal tab, Notebooks sub-tab: status line after Write when the line does not fit the page | 40 |
+| `UI_ZeD_Notebook_PapersOn` | `Papers on you` | Journal tab, Notebooks page with no notebook carried: fold head of the fliers and brochures carried; "(0 read of 1 carried)" follows | 24 |
 | `UI_ZeD_Notebook_ReadyMany` | `Pencil or pen at hand \| light enough \| %1 lines left on this page` | Character window, Journal tab, Notebooks sub-tab: status line under the note box (%1 = lines left) | 70 |
 | `UI_ZeD_Notebook_ReadyOne` | `Pencil or pen at hand \| light enough \| 1 line left on this page` | Character window, Journal tab, Notebooks sub-tab: status line under the note box, one line left | 70 |
 | `UI_ZeD_Notebook_SubBlank` | `%1 \| blank \| %2 pages` | Character window, Journal tab, Notebooks sub-tab: second line of a book row with nothing written (%1 = kind of book, %2 = pages in it) | 36 |
@@ -3074,10 +3079,12 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Radio_Ch` | `CH` | Two-way radio's display (radio tab, full view; pixel face): small label over the memory channel's number | 3 |
 | `UI_ZeD_Radio_ChCleared` | `CH %1 CLEARED` | Two-way radio display flash after a channel is forgotten; %1 = the channel number, two digits | 16 |
 | `UI_ZeD_Radio_ChStored` | `CH %1 STORED` | Two-way radio display flash after MEM; %1 = the channel number, two digits | 16 |
+| `UI_ZeD_Radio_Channels` | `Channels` | Character window, Radio tab: fold head of the set's stored channels under its face (the World window says Presets) | 20 |
 | `UI_ZeD_Radio_CloseFullView` | `Close full view` | Character / World window, Radio tab: hover hint of the full view button while the radio is in full view (pressing it closes full view) | 24 |
 | `UI_ZeD_Radio_CompactDisc` | `COMPACT DISC` | CD receiver display line when a disc has no title | 16 |
 | `UI_ZeD_Radio_Empty` | `EMPTY` | Radio display flash when a preset button has no station | 8 |
 | `UI_ZeD_Radio_FullView` | `Full view` | Character / World window, Radio tab: hover hint of the icon button at the header's right end that shows a two-way radio's face on its own, over the world | 24 |
+| `UI_ZeD_Radio_Heard` | `Heard` | Character / World window, Radio tab: fold head of the last lines the set showed (broadcast text) | 16 |
 | `UI_ZeD_Radio_LocBack` | `Back` | Character / World window, Radio tab: header pill, radio carried on the back | 12 |
 | `UI_ZeD_Radio_LocPrimary` | `Primary` | Character / World window, Radio tab: header pill, radio held in the primary hand; also the belt's main-hand circle, where 9 letters is the most that fits (abbreviate with a period: Secund.) | 9 |
 | `UI_ZeD_Radio_LocSecondary` | `Secondary` | Character / World window, Radio tab: header pill, radio held in the secondary hand; also the belt's off-hand circle, the smaller one, where 8 letters is the most that fits (abbreviate with a period: Secund.) | 8 |

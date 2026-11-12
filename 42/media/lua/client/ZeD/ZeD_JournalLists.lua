@@ -10,11 +10,14 @@
 --     (each asks for a name: ZeD's prompt);
 --   * two panes: the lists (Loadouts (n), Outfits (n), each row its icon, its
 --     name and its line count, the chosen one in the selection wash) and the
---     chosen list: its name, "loadout | 9 lines", Rename, Add what I carry (an
---     outfit: Add what I wear) and Delete (asked first, in the band at the foot);
---     a loadout's lines in Gear (Any | This one) and Supplies (A day | Fixed and
---     the amount), an outfit's in Worn (Any | This one). Pressing an amount gives
---     a stepper; right-click (the pad's X) removes a line;
+--     chosen list: its name, "loadout | 9 lines | ready 4 of 5", Rename, Add what
+--     I carry (an outfit: Add what I wear) and Delete (asked first, in the band at
+--     the foot); a loadout's lines in Gear (radio buttons: Any, This one) and
+--     Supplies (A day, Fixed, and the amount), an outfit's in Worn (Any, This one).
+--     Each line's square: in its place, on the character elsewhere, or hollow, not
+--     on them. Pressing an amount gives a stepper; right-click (the pad's X)
+--     removes a line;
+--   * the page opens on a list: the one picked last, else the first loadout;
 --   * under about 560 units the panes stack, the lists above the lines. The page
 --     lives in the full card (the Journal's 480-unit drawer), so it reads
 --     stacked: side by side at 480, a narrowed list pane would leave the lines
@@ -430,32 +433,57 @@ end
 -- ---------------------------------------------------------------------------
 -- A LINE
 -- ---------------------------------------------------------------------------
--- a two-way switch ("Any | This one"): returns its width; one stop, A flips it
+-- a choice of two as System 7 radio buttons ("( ) Any  (o) This one"): returns its width; one stop,
+-- A flips it
+local _radioOpts = {}
 local function drawSwitch(panel, win, id, xr, y, h, a, b, onA, fn, disabledB)
     local T, A = ZeD.T, ZeD.Atoms
     local f1 = T.fontF1
-    local pad = T.px(7)
-    local wa, wb = tw(f1, a) + pad * 2, tw(f1, b) + pad * 2
-    local w = wa + wb
+    local rs = A.radioSize()
+    local gap, sep = T.px(4), T.px(10)
+    local wa, wb = rs + gap + tw(f1, a), rs + gap + tw(f1, b)
+    local w = wa + sep + wb
     local x = xr - w
     local hover = hoverRect(panel, win, x, y, w, h)
     local onFocus = markFocus(panel, win, id, x - T.px(2), y - T.px(2), w + T.px(4), h + T.px(4))
-    local ac, s2 = T.accent, T.surf2
     for i = 1, 2 do
-        local sx, sw, on, word = (i == 1) and x or (x + wa), (i == 1) and wa or wb, (i == 1) == onA, (i == 1) and a or b
-        local dim = (i == 2 and disabledB) and T.disabledAlpha or 1
-        if on then panel:drawRect(sx, y, sw, h, 1, ac.r, ac.g, ac.b)
-        else panel:drawRect(sx, y, sw, h, (s2.a or 1), s2.r, s2.g, s2.b) end
-        local tc = on and (T.textOnAccent or T.text) or T.textDim
-        panel:drawText(word, sx + pad, y + math.floor((h - fh(f1)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f1)
+        local sx, on, word = (i == 1) and x or (x + wa + sep), (i == 1) == onA, (i == 1) and a or b
+        local off = (i == 2 and disabledB) and true or false
+        _radioOpts.disabled = off
+        _radioOpts.hover = hover and not off
+        A.drawRadio(panel, sx, y + math.floor((h - rs) / 2), on, _radioOpts)
+        local tc = onFocus and T.textOnFocus or T.text
+        local al = off and T.disabledAlpha or 1
+        panel:drawText(word, sx + rs + gap, y + math.floor((h - fh(f1)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * al, f1)
     end
-    A.frame(panel, x, y, w, h, onFocus and T.textOnFocus or T.borderS)
     if hover then help(win, ZeD.tr("UI_ZeD_Lists_HelpSwitch", a, b)) end
     -- the mouse presses a half; the pad's A flips
     zone(win, { id = id, x = x, y = y, w = w, h = h, fn = fn, click = function(mx)
-        if mx < x + wa then fn(true) else fn(false) end
+        if mx < x + wa + math.floor(sep / 2) then fn(true) else fn(false) end
     end })
     return w
+end
+
+-- ---------------------------------------------------------------------------
+-- WHERE EACH LINE STANDS (L.resolve: in its place, on the character elsewhere, not on
+-- them), read twice a second for the picked list; the days are the Equip tab's plan's
+-- ---------------------------------------------------------------------------
+local function standing(win, list)
+    local s = st(win)
+    local now = getTimestampMs()
+    local c = s.res
+    if c and c.id == list.id and c.n == #list.lines and now >= c.at and now - c.at < 500 then return c end
+    local p = player(win)
+    local days = 1
+    pcall(function() local _, _, d = ZeD.Restock.current(p); days = d or 1 end)
+    c = { id = list.id, n = #list.lines, at = now, by = {}, ready = 0 }
+    for _, ln in ipairs(list.lines) do
+        local r = L.resolve(p, ln, days)
+        c.by[ln.id] = r
+        if r.ok then c.ready = c.ready + 1 end
+    end
+    s.res = c
+    return c
 end
 
 -- the amount: its words in a box; pressed, a stepper (- n +) in its place
@@ -557,17 +585,27 @@ local function drawLine(panel, win, list, ln, x, y, w)
         help(win, ZeD.tr("UI_ZeD_Lists_HelpLine"))
     end
     local onFocus = markFocus(panel, win, id, x, y, rw, h)
+    -- the line's square: in its place (go), on the character elsewhere (warning), hollow: not on them
+    local r = standing(win, list).by[ln.id]
+    local sq = T.px(7)
+    local sy = y + math.floor((h - sq) / 2)
+    if r and r.inPlace then A.drawStatusDot(panel, x + T.px(4), sy, T.positive, sq)
+    elseif r and r.haveOnYou > 0 then A.drawStatusDot(panel, x + T.px(4), sy, T.warningText or T.warning, sq)
+    else A.drawStatusHollow(panel, x + T.px(4), sy, T.textDim, sq) end
+    local ix = x + T.px(4) + sq + T.px(6)
     local isz = T.px(22)
     local tex = typeTex(ln.type)
-    if tex then panel:drawTextureScaledAspect(tex, x + T.px(4), y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1)
-    else A.drawPxIcon(panel, L.icon(list.kind), x + T.px(4), y + math.floor((h - isz) / 2), isz, 1, T.textDim) end
-    local nx = x + T.px(4) + isz + T.px(8)
+    if tex then panel:drawTextureScaledAspect(tex, ix, y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1)
+    else A.drawPxIcon(panel, L.icon(list.kind), ix, y + math.floor((h - isz) / 2), isz, 1, T.textDim) end
+    local nx = ix + isz + T.px(8)
     local f2, f3 = T.fontF2, T.fontF3
     local ty = y + math.floor((h - fh(f2) - fh(f3)) / 2)
     local hi = onFocus and T.textOnFocus or T.toneHi or T.text
     panel:drawText(trunc(ln.name or ln.type or "?", f2, right - nx - T.px(4)), nx, ty, hi.r, hi.g, hi.b, hi.a or 1, f2)
     local dc = onFocus and T.textOnFocus or T.textDim
-    panel:drawText(trunc(lineSub(ln), f3, right - nx - T.px(4)), nx, ty + fh(f2), dc.r, dc.g, dc.b, dc.a or 1, f3)
+    local sub = lineSub(ln)
+    if r and r.have < r.need and r.need > 1 then sub = sub .. " | " .. ZeD.tr("UI_ZeD_Todo_NOfMShort", math.floor(r.have), math.floor(r.need)) end
+    panel:drawText(trunc(sub, f3, right - nx - T.px(4)), nx, ty + fh(f2), dc.r, dc.g, dc.b, dc.a or 1, f3)
     A.drawDividerH(panel, x, y + h - T.hair, w)
     zone(win, { id = id, x = x, y = y, w = rw, h = h, menu = lineMenu(win, listId, lineId) })
     return h
@@ -585,6 +623,7 @@ local function drawDetailHead(panel, win, l, x, y, w)
     local name = trunc(l.name, f4, w - T.px(8))
     panel:drawText(name, x + T.px(4), cy, hi.r, hi.g, hi.b, hi.a or 1, f4)
     local count = L.countText(l)
+    if #l.lines > 0 then count = count .. " | " .. ZeD.tr("UI_ZeD_EqBar_Ready", standing(win, l).ready, #l.lines) end
     if s.msg and s.msg.id == l.id then count = count .. " | " .. s.msg.text end
     local nx = x + T.px(4) + tw(f4, name) + T.px(10)
     local dc = T.textDim
@@ -803,6 +842,12 @@ function JL.render(panel, win, x, y, w, h)
     win._jlZones = {}
     JL._fid = focusedId(win)
     if s.msg and s.msg.id ~= s.sel then s.msg = nil end
+    -- the page opens on a list: the one picked last (kept on the window), else the first loadout
+    if player(win) and not (s.sel and L.get(player(win), s.sel)) then
+        local p = player(win)
+        local first = L.all(p, "loadout")[1] or L.all(p)[1]
+        s.sel = first and first.id or nil
+    end
     -- the panes from the header strip down to the band (the search is in the header)
     local top = y
     local bandH = M.bandH()

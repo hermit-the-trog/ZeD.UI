@@ -7,6 +7,12 @@
 --   2nd (tag drv2)   FULL : after gallery_v3_stage: char_health_full (injury rows centered), char_thermal_full (no black
 --                    cells), char_journal_notebooks_full (the page to the foot), world_radio_full (the full card),
 --                    world_furniture_full
+-- The tab fill (zed_tab_fill_v1) in the same two passes: char_health_empty (Moodles, Fitness, Regularity under the
+-- figure with no injuries), char_health_full and char_thermal_* (the picked region's rows, Body Heat Generation),
+-- char_radio_full (the walkie's Channels, Heard, Power), world_radio_full (the set's Presets, Heard, Power at the
+-- full card), char_journal_notebooks_none_full (no notebook carried: Writing, Papers on you, Books on you; the
+-- notebooks are taken off the character for the picture and put back), char_journal_loadouts_full (opens on a list,
+-- ready X of Y, a square per line, the radio buttons).
 -- Everything spawned is removed again; the teardown script puts the rest back. grep "ZEDQA drv".
 local G = GAL
 DRV_N = (DRV_N or 0) + 1
@@ -349,11 +355,33 @@ do
         end)
         S.step(2, function() if Z.tmp.god ~= nil then pcall(function() p:setGodMod(Z.tmp.god) end) end end)
     end
+    -- (with no injuries the fill blocks sit right under the figure)
+    if E then Z.T("health_" .. ST, "c", "health", 45) end
     Z.T("thermal_" .. ST, "c", "thermal", 45)
     if E then Z.T("identity_" .. ST, "c", "identity", 45) end
     if not E then
         Z.T("journal_notebooks_" .. ST, "c", "journal", 45, function() Z.CW()._journalSubTab = 2 end)
+        -- no notebook on the character: every notebook, journal and diary off them for the picture
+        S.step(2, function()
+            Z.tmp.nb = {}
+            local items = inv:getItems()
+            for i = items:size() - 1, 0, -1 do
+                local it = items:get(i)
+                if it:getCategory() == "Literature" and it:canBeWrite() then Z.tmp.nb[#Z.tmp.nb + 1] = it end
+            end
+            for _, it in ipairs(Z.tmp.nb) do pcall(function() inv:Remove(it) end) end
+            pcall(function() ZeD.JournalReaders.refresh(Z.CW()) end)
+            say("notebooks off for the picture: " .. #Z.tmp.nb)
+        end)
+        Z.T("journal_notebooks_none_" .. ST, "c", "journal", 45, function() Z.CW()._journalSubTab = 2 end)
+        S.step(2, function()
+            for _, it in ipairs(Z.tmp.nb or {}) do pcall(function() inv:AddItem(it) end) end
+            Z.tmp.nb = nil
+            pcall(function() ZeD.JournalReaders.refresh(Z.CW()) end)
+        end)
+        Z.T("journal_loadouts_" .. ST, "c", "journal", 45, function() Z.CW()._journalSubTab = 5 end)
         S.step(2, function() Z.CW()._journalSubTab = 1 end)
+        Z.T("radio_" .. ST, "c", "radio", 45)
     end
     S.step(2, function() Z.charTab("loot") end)
 

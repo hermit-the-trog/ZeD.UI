@@ -69,6 +69,7 @@ local FILES = {
     "42/media/lua/client/ZeD/ProtectionTab.lua",
     "42/media/lua/client/ZeD/EquipDoll.lua",
     "42/media/lua/client/ZeD/EquipmentTab.lua",
+    "42/media/lua/client/ZeD/ZeD_TabFill.lua",   -- (the fill blocks under the Thermal grid)
     "42/media/lua/client/ZeD/ThermalTab.lua",
     "42/media/lua/client/ZeD/IdentityTab.lua",
     "42/media/lua/client/ZeD/SkillsTab.lua",
@@ -252,7 +253,7 @@ local function buildPlayer()
         return J("ThermalNode", m)
     end
     local thermo = J("Thermoregulator", {
-        getCoreCelcius = 37.1, getTemperatureAir = 21.5, getTemperatureAirAndWind = 18.2,
+        getCoreCelcius = 37.1, getTemperatureAir = 21.5, getTemperatureAirAndWind = 18.2, getHeatGenerationUI = 0.22,
         getNodeForType = function(_, bp)
             local k = tostring(bp)
             if not nodes[k] then nodes[k] = node(#k) end
