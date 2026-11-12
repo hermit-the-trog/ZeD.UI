@@ -1,236 +1,137 @@
-# The gallery as Character / World pairs (plan, Nov 11 2026)
+# The gallery as Character / World pairs (plan v2, Nov 11 2026)
 
 The director, Nov 11: "the book pages alternate between things that are in the character world and things that are
 in the world window. Character window, world window. That way the full screen shot shows what we were talking about
 in the character window and what was being talked about in the world window. In the world without any masking or
 cropping, other than our cool movie theater curtains and the small crowd."
 
-So: after Angel's story, the book goes one Character window chapter, then one World window chapter, then a cinema
-break showing both windows open in the world, each on the tab those two chapters were about. The cinema frame already
-shows the whole game picture (shrunk, not cut); only the curtains at the sides and the heads along the foot sit over it.
+Also settled (Nov 11): the gallery opens on the desk (the book and the discs), then a cinema break before the book's
+first page ("We're gonna lose people if we do too much book"). A break comes after every four feature pages (two
+Character / World pairs). Angel's story runs through the whole book, one story page at the head of each part, and
+ends on a server: Angel runs into a group of survivors. The breaks are a mix: **Angel's movie opens and closes the
+gallery**. The other casts' movies fill the middle (McKline, Kohners, Plizken and Laura), and the older breaks are
+reused where they fit. Each break wears its own movie's theme and accent, never one look for all.
 
 This is a plan only. Nothing is built or shot yet.
 
-## 1. Every chapter today, sorted
+## 1. The chapters, sorted
 
-The Character window's tabs: Loot (the inventory), Equipment (with the Loadouts fold), Health, Thermal, Cooking (only
-with a pot and food near), Identity, Journal, Skills, Radio (only with a radio on you), Server (only on a server).
-The World window's tabs: Loot, Crafting, Building, Furniture, Maps, Forage, Animals, Radio (a radio in reach),
-Vehicle (a car in reach), Fishing (rod in hand), Admin (admins on a server).
+**Character window (9):** Inventory and Loot (Loot), Item Cards (the card in the drawer), Equipment Tab, Skills (new),
+Health Tab, Thermal Tab, Cooking, Radios and the CD Player (Radio), Loadouts (the Loadouts fold on Equipment).
+**World window (9):** Foraging and Furniture, Washer and Dryer (the machine's card), Crafting, Building, The Farm
+(Farming and Ranching merged: the plot and pasture cards, Animals), Fishing, Ovens and Microwaves (the oven in
+Crafting), Two-Way Radios (Radio), The Vehicle Tab.
+**Both windows (5), one run:** Every Window, See-through, Controller Highlight, Hidden Actions, List or Grid.
+**Neither window (26), their own section:** context menus, the action bar, the belt, speech, moodles, watches,
+messages, questions, the car radio, dashboards, reading and writing, Immersive or Simple, the controller (3), themes,
+the guide, the desk, options, sandbox, mods (5) and Playing on a Server.
+**Angel's story (14):** Introduction, then Old Job through Night Shift, in their order, one per part.
 
-**Angel's story (1-14), kept as it is:** 1 Introduction, 2 Old Job, 3 The Plan, 4 The Route, 5 Driving In, 6 Fixing
-the Car, 7 Barricading, 8 Stocking Shelves, 9 Open for Business, 10 Pumping Gas, 11 Customers, 12 Smoke Break,
-13 Keeping Count, 14 Night Shift. (It touches both windows along the way: Identity, Skills, Journal, Maps, Vehicle,
-Loot.)
+## 2. The movies' looks (confirmed by QA and the director)
 
-**Character window (8):**
-| Today | Chapter | Tab |
+| Cast (name in game) | Theme | Accent |
 |---|---|---|
-| 19 | Inventory and Loot | Loot (the inventory; the World's Ground column beside it) |
-| 21 | Item Cards | the card in the drawer, from the inventory |
-| 22 | Equipment Tab | Equipment |
-| 23 | Health Tab | Health |
-| 24 | Thermal Tab | Thermal |
-| 56 | Loadouts | Equipment (the Loadouts fold) |
-| 57 | Radios and the CD Player | Radio |
-| 63 | Cooking | Cooking |
+| Angel | Light | Blue (the director's choice, Nov 11; both his breaks, the closer at night too) |
+| Kohners (Sara Kohners) | Dark | Pink (magenta) |
+| Laura (Laura Craft) | Light | Teal |
+| McKline (Jon McKline) | High Contrast | Red |
+| Plizken (Lizard Plizken) | High Contrast | Green |
 
-**World window (10):**
-| Today | Chapter | Tab |
-|---|---|---|
-| 27 | Crafting | Crafting |
-| 28 | Building | Building |
-| 29 | Foraging and Furniture | Forage and Furniture |
-| 37 | Two-Way Radios | Radio (the ham set; the walkie in the Character window too) |
-| 38 | Ovens and Microwaves | Crafting (the oven's panel) |
-| 40 | Fishing | Fishing |
-| 58 | Farming | the plot's card |
-| 59 | Ranching | Animals (the pasture's card) |
-| 60 | Washer and Dryer | the machine's card |
-| 62 | The Vehicle Tab | Vehicle |
+QA's two Laura retakes this week (foraging and fishing) came out Dark + Teal, which is off her look. Both are
+reshot in Light + Teal (shots 4 and 7). Until then, the fishing break in the live beta 11 gallery is off-brand.
 
-**Both windows (5):** 15 Every Window, 16 See-through, 17 Controller Highlight, 18 Hidden Actions (shown on the
-Character window but about every window), 20 List or Grid (the columns of both windows).
+## 3. The new order (80 pictures)
 
-**Neither window (26):** 25 Context Menus, 26 Action Bar, 30 The Belt, 31 Speech Thoughts and Hands, 32 Moodles,
-33 Watches, 34 Messages, 35 The Car Radio, 36 Dashboards, 39 Reading and Writing, 41 Questions, 42 Controller,
-43 On a Controller, 44 Quick Actions, 45 Themes and Accents, 46 The Survival Guide, 47 The Desk, 48 Options,
-49 Sandbox Options in Game, 50 Mods, 51 A Mod's Settings, 52 Playing on a Server (it has a Server tab in the Character
-window and an Admin tab in the World window, but it is about servers), 53 Turning a Mod Off, 54 Profiles and Load
-Order, 55 Uploading, 61 Immersive or Simple.
+Every part: one story page, then four feature pages, then the break. Three parts are exceptions, because the counts
+don't divide by four: the windows run (five pages, kept whole), the last pair (one pair) and the closing part
+(two pages).
 
-## 2. The pairing problem, and the fewest changes that fix it
-
-There are 8 Character chapters and 10 World chapters: two World chapters too many.
-
-- **Merge Farming and Ranching** into one chapter, "The Farm" (one World chapter fewer). They are already about the
-  same place: the plot, the henhouse and the trough show in both.
-- **Add one Character chapter: Skills.** It pairs with Building, and a cinema break of exactly that (Laura, Skills
-  and Building) already exists. Its pictures exist too (the story's Skills capture, retaken for beta 11).
-
-That gives 9 + 9: nine pairs, nine breaks, one new chapter, one merged chapter, no chapter dropped.
-
-The pairs, chosen so each pair is one moment you could stand in:
-| Pair | Character | World | Why they go together |
+| Pictures | Pages | Break: cast, look, what it shows | Break |
 |---|---|---|---|
-| A | Inventory and Loot | Foraging and Furniture | what you carry, and what you find or pick up |
-| B | Item Cards | Washer and Dryer | cards: an item's card and a machine's card |
-| C | Equipment Tab | Crafting | what you wear and hold, and what you make with it |
-| D | Skills (new) | Building | what you know, and what it lets you build |
-| E | Health Tab | The Farm (merged) | the body, and the animals and crops that feed it |
-| F | Thermal Tab | Fishing | cold and wet at the water's edge |
-| G | Cooking | Ovens and Microwaves | the dish, and the stove it goes on |
-| H | Radios and the CD Player | Two-Way Radios | the walkie in hand, the ham set in reach |
-| I | Loadouts | The Vehicle Tab | pack for the trip, check the car |
+| Cover | the desk: the book and the discs | | |
+| **Opening break** | | **Angel**, Light + Blue: the Fossoil in the morning, both windows on Loot (his bags, the shelves) | new |
+| Title, 1 | Introduction (story) | | |
+| 2-7 | *Old Job*; Every Window, See-through, Controller Highlight, Hidden Actions, List or Grid | **Plizken**, the stadium: Equipment and Maps | reuse |
+| 8-12 | *The Plan*; Inventory and Loot / Foraging and Furniture; Item Cards / Washer and Dryer | **Kohners**, a house with power: Loot with an item card open; the washer-dryer's card | new |
+| 13-17 | *The Route*; Equipment / Crafting; Skills / Building | **Laura**, the camp: Skills and Building | reuse |
+| 18-22 | *Driving In*; Health / The Farm; Cooking / Ovens and Microwaves | **McKline**, his kitchen: Cooking and the oven in Crafting | new |
+| 23-27 | *Fixing the Car*; Thermal / Fishing; Radios / Two-Way Radios | **Laura**, the lake: Radio (a walkie) and Fishing | reshoot |
+| 28-30 | *Barricading*; Loadouts / The Vehicle Tab | **Kohners**, the broken-down car: Equipment and Vehicle | reuse |
+| 31-35 | *Stocking Shelves*; Context Menus, Action Bar, The Belt, Speech Thoughts and Hands | **Laura**, the camp wide: the belt, no windows | reuse |
+| 36-40 | *Open for Business*; Moodles, Watches, Messages, Questions | **McKline**, the roof: a notice bubble, Radio and Maps | reuse |
+| 41-45 | *Pumping Gas*; The Car Radio, Dashboards, Reading and Writing, Immersive or Simple | **Kohners**, driving at dusk: the dashboard and the car radio, no windows | new |
+| 46-50 | *Customers*; Controller, On a Controller, Quick Actions, Themes and Accents | **Plizken**, the stadium wide | reuse |
+| 51-55 | *Smoke Break*; The Survival Guide, The Desk, Options, Sandbox Options in Game | **McKline**, the roof: Health and Maps | reuse |
+| 56-60 | *Keeping Count*; Mods, A Mod's Settings, Turning a Mod Off, Profiles and Load Order | **Plizken**, the ID card and a wreck: Identity and Vehicle | reuse |
+| 61-63 | *Night Shift*; Uploading, Playing on a Server | | |
+| **Closing break** | | **Angel**, Light + Blue, night: Angel runs into a group of survivors on a server, Server tab and Loot | new |
+| The End | | | |
 
-The five "both windows" chapters stay together as a short run of their own before the pairs (they explain the
-windows themselves), closed by the break that already shows both windows.
+Story pages are in italics. Pairs read Character / World.
 
-## 3. The new order (82 pictures)
+**Which tabs each pair break shows, and why:**
+- Kohners' house: the item card open on the Character window's Loot covers both Character pages; the World window
+  shows the washer-dryer's card. One picture covers three of the four pages.
+- Laura's camp: Skills and Building, the second pair. That break already exists, and Skills is the new chapter.
+  (Laura's Equipment and Crafting break stays spare.)
+- McKline's kitchen: Cooking and the oven, the second pair. One room, one moment. The farm can't share a frame with
+  a stove.
+- Laura at the lake: Radio from the second pair, Fishing from the first. Both pairs are pictured, and the fishing
+  scene is already staged.
+- Kohners' car: the one pair, Equipment (the Loadouts fold) and Vehicle.
 
-| # | Picture | Break shows (both windows unless said) | Break |
-|---|---|---|---|
-| | Cover, Title | | |
-| 1-14 | Angel's story | | |
-| 14b | break | Kohner on the road: Health and Maps | reuse |
-| 15-19 | Every Window, See-through, Controller Highlight, Hidden Actions, List or Grid | | |
-| 19b | break | Plizken at the stadium: Equipment and Maps | reuse |
-| 20, 21 | Inventory and Loot / Foraging and Furniture | | |
-| 21b | break | Laura in the woods: Loot and Forage | reshoot |
-| 22, 23 | Item Cards / Washer and Dryer | | |
-| 23b | break | Angel at home: an item card open, and the washer-dryer's card | new |
-| 24, 25 | Equipment Tab / Crafting | | |
-| 25b | break | Laura at camp: Equipment and Crafting | reuse |
-| 26, 27 | Skills (new) / Building | | |
-| 27b | break | Laura at camp: Skills and Building | reuse |
-| 28, 29 | Health Tab / The Farm (merged) | | |
-| 29b | break | at the farm: Health and Animals | new |
-| 30, 31 | Thermal Tab / Fishing | | |
-| 31b | break | Laura at the lake: Thermal and Fishing | reshoot |
-| 32, 33 | Cooking / Ovens and Microwaves | | |
-| 33b | break | McKline in his kitchen: Cooking and the oven in Crafting | new |
-| 34, 35 | Radios and the CD Player / Two-Way Radios | | |
-| 35b | break | McKline on the roof: Radio (walkie) and Radio (ham set) | reshoot |
-| 36, 37 | Loadouts / The Vehicle Tab | | |
-| 37b | break | Kohner's broken-down car: Equipment and Vehicle | reuse |
-| 38-44 | Context Menus, Action Bar, The Belt, Speech Thoughts and Hands, Moodles, Watches, Messages | | |
-| 44b | break | Laura's camp, no windows: the belt and the screen | reuse |
-| 45-48 | The Car Radio, Dashboards, Reading and Writing, Questions | | |
-| 48b | break | driving at night: the dashboard and the car radio, no windows | new |
-| 49-51 | Controller, On a Controller, Quick Actions | | |
-| 51b | break | Plizken at the stadium, wide | reuse |
-| 52-57 | Themes and Accents, Immersive or Simple, The Survival Guide, The Desk, Options, Sandbox Options in Game | | |
-| 57b | break | the main menu desk, full screen | new |
-| 58-63 | Mods, A Mod's Settings, Playing on a Server, Turning a Mod Off, Profiles and Load Order, Uploading | | |
-| 63b | break | on a server: Server and Admin | new |
-| | The End | | |
+In the "neither" section the tabs don't matter. Each break there is picked for what it shows (the belt, a notice
+bubble, the dash) and so the casts take turns.
 
-**The "neither" chapters: their own section after the pairs** (recommended). They don't live in either window, so a
-pair break could never show them. Grouped as today into five short runs (on screen, machines and media, the
-controller, looks and the desk, mods and servers), each closed by a full-screen break of that surface. Reading order:
-the story, the two windows, then everything around them.
-*The other way:* slot the five runs between the pairs (after pairs B, D, F, H and I), so the book never goes more than
-a few pages without a window. It breaks up the long final stretch, but the Character / World rhythm stops and starts.
+**Spare breaks** (not used, kept on file): Kohners on the road (Health and Maps), Laura's crafting, Laura's foraging
+(reshot anyway, shot 7, so the spare and the live gallery are on her look).
+**Dropped:** the five plain drag-strip pictures, and Laura's old fishing shot (replaced by the reshoot).
 
-**The five plain pictures at the drag strip** (the trailer, the sports car, the van's hood, stew for two, stir fry)
-are not in the cinema and their tabs don't match a pair: dropped in this plan (question 4).
+## 4. Shot list for QA (7 shots: 5 new, 2 reshoots)
 
-Chapter numbers, page numbers and figure numbers ("Figure 21-1", "Table 42-1") change with the new order. That is
-a mechanical renumbering on Build's side; every chapter is re-rendered anyway for beta 11.
+Every shot: 4K (3840 x 2160), UI scale 1.75x, the game's Font Size at 19px, list view, **the theme and accent of
+that cast's movie** (section 2). Both windows open and wholly on screen, unless the row says closed. Nothing else
+open over them, the belt in view, the character in the clear. No crop and no mask: Build only puts the picture in
+the cinema. Wait for the windows to settle. Nothing personal in view (names, server addresses).
 
-## 4. The breaks
-
-**Reuse as they are (7):** both windows open and unmasked on the right tabs, or (for the "neither" runs) the right
-surface: the story's (Kohner, Health and Maps), the windows run's (Plizken, Equipment and Maps), Laura's crafting
-(Equipment and Crafting), Laura's building (Skills and Building), Kohner's car (Equipment and Vehicle), Laura's wide
-camp (the belt) and Plizken's wide stadium.
-They were shot before PZ Teal and the beta 9-10 title bars, so the accent is older; question 6.
-
-**Reshoot (3):** Laura's foraging and Laura's fishing show only the World window; McKline's radio shows the World
-window on Maps, not Radio.
-
-**New (6):** pairs B, E and G, and the driving, desk and server breaks.
-
-**Retired (2 plus 5):** McKline's Health and Maps (Maps has no pair) and Plizken's ID card and wreck (its Identity tab
-has no pair; kept on file as a spare), and the five plain drag-strip pictures.
-
-### Shot list for QA (9 shots)
-
-Every shot: 4K (3840 x 2160), UI scale 1.75x, Dark theme and the PZ Teal accent, the game's Font Size at 19px, list
-view. Both windows open and fully on screen, nothing else open over them, the belt in view, the character in the
-clear part of the screen. No crop and no mask: Build only puts the picture in the cinema. Wait for the windows to stop
-moving before the shot. Nothing personal in view (names, server addresses).
-
-| # | Break | Cast | Character window | World window | Staging |
+| # | Break | Cast and look | Character window | World window | Staging |
 |---|---|---|---|---|---|
-| 1 | 21b (reshoot) | Laura | Loot, one source open, a few finds in the bag | Forage, finds listed | the woods by the camp, sneaking in search mode |
-| 2 | 23b (new) | Angel | Loot, with a shirt's item card open in the drawer | Loot, the washer-dryer's card (its face) | a house with power, the machine running |
-| 3 | 29b (new) | Kohner | Health | Animals, the pasture's card | the farm save: crops, henhouse and trough in view, hens about |
-| 4 | 31b (reshoot) | Laura | Thermal, the wetness view | Fishing, the line out | the lake, rod in hand (its bend shows over the belt); rain if it can be had |
-| 5 | 33b (new) | McKline | Cooking, a dish picked | Crafting, the oven's panel, on and set | his kitchen, pot on the stove, ingredients in the bags |
-| 6 | 35b (reshoot) | McKline | Radio, the walkie | Radio, the ham set | the roof, ham set in reach, walkie in the main hand |
-| 7 | 48b (new) | Plizken | closed | closed | driving at night, dashboard and car radio up |
-| 8 | 57b (new) | none | | | the main menu desk, full screen, Pasties at the top of the left column |
-| 9 | 63b (new) | Plizken (admin) | Server | Admin | the local test server, a second player in view |
+| 1 | Opening | Angel, Light + Blue (new scene script) | Loot, one source open | Loot, the store's shelves | the Fossoil station in the morning, Angel behind the counter |
+| 2 | after 12 | Kohners, Dark + Pink | Loot, a shirt's item card open in the drawer | Loot, the washer-dryer's card (its face) | a house with power, the machine running |
+| 3 | after 22 | McKline, High Contrast + Red | Cooking, a dish picked | Crafting, the oven's panel, on and set | his kitchen, a pot on the stove, ingredients in his bags |
+| 4 | after 27 (reshoot) | Laura, Light + Teal | Radio, a walkie-talkie | Fishing, the line out | the lake as before, rod in hand (its bend shows over the belt) |
+| 5 | after 45 | Kohners, Dark + Pink | closed | closed | driving at dusk, before the breakdown: dashboard and car radio up |
+| 6 | Closing | Angel, Light + Blue (the same new script) | Server | Loot | night, the local test server, Angel meeting three or more survivors face to face |
+| 7 | spare (reshoot) | Laura, Light + Teal | Loot, one source open | Forage, finds listed | the woods by the camp, sneaking in search mode (fixes the off-look retake) |
+
+Angel has no cinema scene script yet: both his shots need a new one, set to Light + Blue like the others' scripts.
 
 ## 5. Totals
 
 | | Today | After |
 |---|---|---|
-| Pictures | 83 | 82 |
-| Chapters | 63 | 63 (one merged, one new) |
-| Cinema breaks | 12 | 16 |
+| Pictures | 83 | 80 |
+| Chapters | 63 | 63 (Skills new, The Farm merged; 14 story pages spread through) |
+| Cinema breaks | 12 | 14 (8 reused, 1 reshot, 5 new) |
 | Plain pictures | 5 | 0 |
 
-- **QA shots:** 9 (3 reshoots, 6 new), on top of the beta 11 retakes already listed.
-- **Renders:** 2 chapters laid out fresh (Skills, The Farm), all 63 chapters renumbered and re-rendered (already
-  planned for beta 11), 9 new cinema frames, the cover and title as usual.
-- **Steam's limit:** I don't know of a hard cap on a Workshop item's pictures; 83 uploads today without trouble.
-  Unsure past about 100, so this plan stays under today's count.
+- **QA shots:** 7 (5 new, 2 Laura reshoots), on top of the beta 11 retakes. One new scene script (Angel).
+- **Renders:** 2 chapters laid out fresh (Skills, The Farm), all 63 renumbered and re-rendered (planned for beta 11
+  anyway), 6 new cinema frames, the cover and title as usual.
+- **Steam's limit:** no hard cap I know of; 83 goes up fine today, and 80 stays under it.
 
-## 6. Questions for the director
+## 6. New questions for the director
 
-**1. There is one World chapter too many. How do we even it up?**
-- a) Add a Skills chapter for the Character window, paired with Building (its break already exists). *Recommended:*
-  no new shot, its pictures exist.
-- b) Add an Identity chapter showing the new portrait studio, paired with Building. Shows a beta 11 feature, but needs
-  one more break shot.
-- c) Add nothing: Health pairs with both Farming and Ranching, one pair of three chapters.
+**1. Angel's story page in each part: on top of the four feature pages, or one of them?**
+- a) On top: a story page, four feature pages, then the break. *Recommended:* every pair stays whole, and the 14 story
+  pages fit the 13 parts exactly.
+- b) One of the four: a story page, one pair, one more page, then the break. Less book between breaks, but about 20
+  breaks and 6 more shots.
 
-**2. Farming and Ranching?**
-- a) Merge them into one chapter, "The Farm". *Recommended:* they show the same yard.
-- b) Keep them apart (then question 1 needs both a and b, or c).
-
-**3. Where do the 26 chapters that live in neither window go?**
-- a) Their own section after the pairs, in five runs, each with a full-screen break of that surface. *Recommended:*
-  the pairs read cleanly, and each break can show its own thing.
-- b) Between the pairs, one run after every second pair.
-
-**4. The five plain drag-strip pictures (trailer, sports car, van hood, two dishes)?**
-- a) Drop them. *Recommended:* they aren't in the cinema and don't match a pair's tabs.
-- b) Put them in the cinema and keep them after the Vehicle and Cooking pairs.
-- c) Keep them as they are.
-
-**5. The windows run (Every Window to List or Grid) before the pairs?**
-- a) Keep it as one run before the pairs, with its existing break. *Recommended.*
-- b) Fold its chapters into the pairs (List or Grid beside Inventory, and so on), which unbalances the pairs again.
-
-**6. The seven breaks we reuse show the older accent and title bars. Reshoot them?**
-- a) Reuse them as they are. *Recommended:* it's the game in the world, and seven fewer shots.
-- b) Reshoot all seven in PZ Teal (16 shots in all).
-
-## Appendix (for Build and QA)
-
-- Order and break table: `make_beta3.py` (BREAKS, MOVES); the plain pictures: `extras/` and MOVES; the frame:
-  `cinema_frame.py`; framed breaks in `cinema/`; upload set `upload_b11/` (file-name order = Workshop order).
-- Renumbering touches each `spreads/NN_id.json` (`n`, `pages`, `chapter`, figure and table labels, cross-references
-  such as Table 42-1 cited by chapter 43); `make_upload.py` still checks 01..63.
-- New layouts: `spreads/NN_skills.json` (Character Skills; captures `story_00b_skills_tall.png`), `NN_farm.json`
-  (from 58 and 59, `gfr_*`). Tabs from `ZeD_CharacterWindow.lua` (CHAR_TABS; Cooking and Server added by
-  `CookingTab.lua`, `ServerTab.lua`) and `ZeD_WorldWindow.lua` (WORLD_TABS; Fishing and Admin by `FishingTab.lua`,
-  `AdminTab.lua`).
-- Raw 4K break captures go in the cinema source folder under `cin_<cast>_<topic>.png`; Build frames them with
-  `cinema_frame.py`.
+**2. The ending: is the closing break enough to tell it?**
+- a) Yes: the last story page is Night Shift, then the break shows Angel meeting the survivors. *Recommended:* no new
+  page.
+- b) Add a short story chapter, "Survivors", before the break (one more page to write and render).
 
 ## The director's answers (Nov 11 2026)
 
@@ -238,3 +139,34 @@ All six as recommended: add a Skills chapter (pairs with Building, Laura's break
 into "The Farm" (pairs with Health); the 26 chapters of neither window go in their own section after the pairs; drop
 the 5 plain drag-strip pictures; the 5 both-window chapters stay one run before the pairs; reuse the 7 older breaks
 as they are (9 new shots for QA, not 16). The cast for each new break is Build's proposal, not asked.
+(v2 supersedes the shot count: 7 shots, with 8 older breaks reused.)
+
+## Appendix (for Build and QA)
+
+- **Order:** `make_beta3.py` BREAKS (and MOVES: drop the five extras) maps each break to `cinema/*.jpg`; the
+  Workshop order is the file-name order. The opening break must sort between the cover and the title. "00_title"
+  sorts before "00b_...", so rename to `00a_cover`, `00b_break_angel_open`, `00c_title`, and change `make_upload.py`'s
+  two fixed names to match. Breaks keep the `NNb_break_<cast>_<topic>` form.
+- **Numbering:** the new order is 01..63 with no gaps, so `make_upload.py`'s 01..63 check holds. Renumber each
+  `spreads/NN_id.json` (`n`, `pages`, `chapter`, figure and table labels, cross-references such as Table 42-1 cited by
+  On a Controller), and check the story pages for "next chapter" style references.
+- **Paper:** `spread.py` seeds the desk and paper art (`page_px.art_layer(n * 97)`) and the tape (`n * 13`) from the
+  chapter number, so renumbering gives every page new paper grain and tape. It's harmless, but every approved page
+  would change look. To keep each page's paper: add `"seed": <old n>` to each JSON and have `spread.py` use
+  `sp.get("seed", sp["n"])` in those two places (Build's change, two lines). Skills and The Farm take fresh seeds
+  (64, 65). `out_spread/` is committed: remove the old-name PNGs in the same commit, or they linger beside the new
+  names.
+- **New layouts:** `NN_skills.json` (`gallery_t14/story_00b_skills_tall.png`, `story_00a_identity_tall.png`),
+  `NN_farm.json` (from 58 and 59, `gfr_*`).
+- **Tabs:** `ZeD_CharacterWindow.lua` CHAR_TABS (Cooking and Server added by `CookingTab.lua`, `ServerTab.lua`);
+  `ZeD_WorldWindow.lua` WORLD_TABS (Fishing and Admin added by `FishingTab.lua`, `AdminTab.lua`).
+- **Captures:** raw 4K break PNGs named `cin_<cast>_<topic>.png`; Build frames them with `cinema_frame.py` into
+  `cinema/`. Looks are set in each scene script's header (`ZeDUI/tools/qa/gallery_cinema_*.lua`, `C.look()` in step
+  5); Angel needs a new `gallery_cinema_angel.lua` (Light + Blue). The Laura reshoots replace the `laura2` and `laura3`
+  takes (Dark + Teal).
+
+## The director's answers to v2 (Nov 11 2026)
+
+Approved to build and shoot. Angel's story page comes on top of the four feature pages; the closing break is enough
+to end the story (no Survivors page). Build's call: each page keeps its approved paper and tape (a "seed" field with
+the old chapter number), so renumbering changes no page's look.
