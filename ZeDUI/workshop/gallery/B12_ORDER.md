@@ -2,12 +2,12 @@
 
 Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload_b12/` in file-name order, one picture at a time. Every picture is 1920 x 1080, each under 1 MB. Contact sheet: `upload_contact_b12.jpg`.
 
-76 pictures now; 80 when every shot is in.
+79 pictures now; 80 when every shot is in.
 
 | # | Picture | What it is |
 |---|---|---|
 | 1 | `00a_cover.jpg` | the cover: the desk, the book and the discs |
-| 2 | `00b_break_angel_open.jpg` | break (`cinema/cin_ang_open.jpg`): Angel, Light + Blue: the Fossoil in the morning, both windows on Loot **(missing)** |
+| 2 | `00b_break_angel_open.jpg` | break (`cinema/cin_ang_open.jpg`): Angel, Light + Blue: the Fossoil in the morning, both windows on Loot |
 | 3 | `00c_title.jpg` | the title spread |
 | 4 | `01_hero.jpg` | chapter 1, Introduction (story) |
 | 5 | `02_old_job.jpg` | chapter 2, Old Job (story) |
@@ -34,13 +34,13 @@ Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload
 | 26 | `20_farm.jpg` | chapter 20, The Farm |
 | 27 | `21_cooking.jpg` | chapter 21, Cooking |
 | 28 | `22_ovens.jpg` | chapter 22, Ovens and Microwaves |
-| 29 | `22b_break_mckline_kitchen.jpg` | break (`cinema/cin_mck_kitchen.jpg`): McKline, High Contrast + Red: his kitchen, Cooking and the oven in Crafting **(missing)** |
+| 29 | `22b_break_mckline_kitchen.jpg` | break (`cinema/cin_mck_kitchen.jpg`): McKline, High Contrast + Red: his kitchen, Cooking and the oven in Crafting |
 | 30 | `23_fixing_the_car.jpg` | chapter 23, Fixing the Car (story) |
 | 31 | `24_thermal.jpg` | chapter 24, Thermal Tab |
 | 32 | `25_fishing.jpg` | chapter 25, Fishing |
 | 33 | `26_radios.jpg` | chapter 26, Radios and the CD Player |
 | 34 | `27_two_way_radios.jpg` | chapter 27, Two-Way Radios |
-| 35 | `27b_break_laura_lake.jpg` | break (`cinema/cin_lau_lake.jpg`): Laura, Light + Teal (reshoot): the lake, Radio (a walkie) and Fishing **(missing)** |
+| 35 | `27b_break_laura_lake.jpg` | break (`cinema/cin_lau_lake.jpg`): Laura, Light + Teal (reshoot): the lake, Radio (a walkie) and Fishing |
 | 36 | `28_barricading.jpg` | chapter 28, Barricading (story) |
 | 37 | `29_loadouts.jpg` | chapter 29, Loadouts |
 | 38 | `30_vehicle_tab.jpg` | chapter 30, The Vehicle Tab |
@@ -91,7 +91,4 @@ Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload
 
 Each is framed and placed when its raw 4K capture is in `~/Zomboid/Screenshots` under this name; then run `py make_b12.py` again.
 
-- `cin_ang_open.png` for `00b_break_angel_open.jpg`: Angel, Light + Blue: the Fossoil in the morning, both windows on Loot
-- `cin_mck_kitchen.png` for `22b_break_mckline_kitchen.jpg`: McKline, High Contrast + Red: his kitchen, Cooking and the oven in Crafting
-- `cin_lau_lake.png` for `27b_break_laura_lake.jpg`: Laura, Light + Teal (reshoot): the lake, Radio (a walkie) and Fishing
 - `cin_ang_close.png` for `63b_break_angel_close.jpg`: Angel, Light + Blue, night: Angel meets a group of survivors on a server, Server and Loot

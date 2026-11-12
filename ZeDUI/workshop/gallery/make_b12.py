@@ -49,11 +49,16 @@ BREAKS = [
 THE_END = ("69_the_end.jpg", os.path.join(HERE, "upload", "69_the_end.jpg"))   # the director's, placed by hand
 
 
+# captures held back from framing until the director decides on them (names, comma-separated, in ZED_B12_HOLD):
+# a held one keeps whatever framed picture it already has, or stays out of the set
+HOLD = set(n.strip() for n in os.environ.get("ZED_B12_HOLD", "").split(",") if n.strip())
+
+
 def frame_new(cin):
     """Frame QA's raw capture into cinema/ when it is there and newer than the framed one. Returns the framed path or None."""
     raw = os.path.join(RAW, cin + ".png")
     framed = os.path.join(CIN, cin + ".jpg")
-    if os.path.exists(raw) and (not os.path.exists(framed) or os.path.getmtime(raw) > os.path.getmtime(framed)):
+    if cin not in HOLD and os.path.exists(raw) and (not os.path.exists(framed) or os.path.getmtime(raw) > os.path.getmtime(framed)):
         cinema_frame.main(raw, framed)
     return framed if os.path.exists(framed) else None
 
