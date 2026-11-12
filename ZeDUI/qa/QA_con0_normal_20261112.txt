@@ -40,3 +40,89 @@ ZEDQA con0 FACT q4.reply chat messages in the next 3 s: 0
 ZEDQA con0 PASS q6.write getFileWriter wrote Lua/zedqa_con0_test.log and getFileReader read it back (Export can use a .log)
 ZEDQA con0 NOTE end debug=false id=1794509927345 (zedqa_con0_test.log now carries this run for the next)
 ZEDQA con0 DONE
+
+
+== Run 2, reload pass (Nov 12, launch of 14:34, -nosteam, no -debug; both passes of that one launch; pass 1 id=1794522913363, pass 2 after Quit to main menu and Continue id=1794524108252; the q1.reload line of pass 2 is the reload answer) ==
+LOG  : Lua          f:0> ZEDQA con0 NOTE load loaded as a game file; it runs when a game starts
+LOG  : Lua          f:30> ZEDQA con0 NOTE head debug=false game=42.22.2 3d39148846 id=1794522913363
+LOG  : Lua          f:31> ZEDQA con0 FACT q1.api getLuaDebuggerErrorCount=true getLuaDebuggerErrors=true getLuaStackTrace=true
+LOG  : Lua          f:31> ZEDQA con0 PASS q1.list the list is readable: count=0 size=0 java class=ArrayList
+LOG  : Lua          f:31> ZEDQA con0 FACT q1.reload the run before: 13237 s ago, debug=false, count then=25, its error seen then=yes; count now=0; its error listed now=false: the list was RESET since that run (a save reload or a new launch in between)
+LOG  : Lua          f:31> ZEDQA con0 FACT q1.caught a pcall-caught error: count 0 -> 0, listed=false
+LOG  : Lua          f:31> ZEDQA con0 NOTE q1.uncaught one uncaught error raised on the next tick on purpose ("con0 deliberate uncaught error 1794522913363")
+LOG  : Lua          f:32> ZEDQA con0 PASS q2.run loadstring compiles and runs: return 1 + 2 -> 3
+LOG  : Lua          f:32> ZEDQA con0 FACT q2.syntax the message for a syntax error: con0_syntax:1: unexpected symbol near `+`
+LOG  : Lua          f:32> ZEDQA con0 FACT q2.runtime a runtime error inside pcall: ok=false message: attempted index: x of non-table: null java.lang.RuntimeException
+LOG  : Lua          f:32> ZEDQA con0 PASS q2.long a 451-character, 42-line chunk -> 820
+LOG  : Lua          f:32> ZEDQA con0 FACT q2.globals setfenv=function getfenv=function load=nil loadstream=function dofile=nil require=function
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.console the game's console object exists: class UIDebugConsole, visible=false
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.methods callable from Lua: ProcessCommand, update, render, onOtherKey, levenshteinDistance, addOutput, setVisible, isVisible, getX, setX, onMouseDown; not: historyPrev, historyNext, ClearConsole, SpoolText, SuggestionEngine
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.reflect getNumClassFunctions on the console: nil
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.options UIDebugConsole.StartVisible=no such option UIDebugConsole.EchoCommand=no such option UIDebugConsole.DebugLog=no such option
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.box the output box is not readable from Lua here (debug=false)
+LOG  : Lua          f:63> ZEDQA con0 PASS q1.uncaught the uncaught error is listed: count 0 -> 13, at index 0 of 13
+LOG  : Lua          f:63> ZEDQA con0 FACT q1.shape type=string chars=1347 lines=22 stackish lines=1 first lines: se.krka.kahlua.vm.KahluaException: con0 deliberate uncaught error 1794522913363 /  at se.krka.kahlua.stdlib.BaseLib.error(BaseLib.java:307) /  at se.krka.kahlua.stdlib.BaseLib.call(BaseLib.java:127)
+LOG  : Lua          f:63> ZEDQA con0 FACT q1.stacktrace getLuaStackTrace() from a tick: a list of 6, first: Callframe at: getLuaStackTrace
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.where isClient=false isServer=false ISChat=table ISChat.instance=false ISChat.onCommandEntered=true
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.globals SendCommandToServer=true ProcessAdminChatMessage=false sendClientCommand=true (only SendCommandToServer is called)
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.send SendCommandToServer("/help"): ok=true returned nil nil
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.send SendCommandToServer("/con0nosuchcommand"): ok=true returned nil nil
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.globals getClassSimpleName=true getNumClassFunctions=true getClassFunction=true getMethodParameterCount=true getMethodParameter=true getNumClassFields=true getClassField=true getClassFieldVal=true instanceof=true getMethodName=false
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.simplename getClassSimpleName(player) = IsoPlayer
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.instanceof IsoPlayer=true IsoGameCharacter=true IsoZombie=false
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.getclass player:getClass() ok=true getSimpleName: no getSimpleName
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.methods getNumClassFunctions(player): nil
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.fields getNumClassFields(player): nil
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.metatable getmetatable(player)=table __index=table keys=2050 getPlayerNum among them=true
+LOG  : Lua          f:76> ZEDQA con0 FACT q6.read ../console.txt: no (nil); ..\console.txt: no (nil); ../coop-console.txt: no (nil); ../options.ini: no (nil); ../Logs/: no (nil); ModOptions.ini: OPENED (first line 27 chars)
+LOG  : Lua          f:76> ZEDQA con0 FACT q6.absolute <game folder>/console.txt by absolute path: no (nil)
+LOG  : Lua          f:77> ZEDQA con0 FACT q7.debugmenu ISDebugMenu=table addButtonInfo=true setupButtons=true (media/lua/client/DebugUIs/DebugMenu/ISDebugMenu.lua)
+LOG  : Lua          f:77> ZEDQA con0 PASS q7.printwrap a replaced global print sees print() calls: true
+LOG  : Lua          f:77> ZEDQA con0 FACT q7.events events named like error / log / console / debug: LogLevelPerk, OnClimateTickDebug, OnJoypadDebugRenderUIOptionSet, OnLoginState, OnLoginStateSuccess
+LOG  : Lua          f:77> ZEDQA con0 NOTE q7.byhand by hand: the game's own console (paste, select and copy, scrollback, UI scale, controller) and the debug menu and Admin Panel with a controller
+LOG  : Lua          f:167> ZEDQA con0 FACT q4.reply chat messages in the next 3 s: 0
+LOG  : Lua          f:168> ZEDQA con0 PASS q6.write getFileWriter wrote Lua/zedqa_con0_test.log and getFileReader read it back (Export can use a .log)
+LOG  : Lua          f:168> ZEDQA con0 NOTE end debug=false id=1794522913363 (zedqa_con0_test.log now carries this run for the next)
+LOG  : Lua          f:168> ZEDQA con0 DONE
+LOG  : Lua          f:0> ZEDQA con0 NOTE load loaded as a game file; it runs when a game starts
+LOG  : Lua          f:30> ZEDQA con0 NOTE head debug=false game=42.22.2 3d39148846 id=1794524108252
+LOG  : Lua          f:31> ZEDQA con0 FACT q1.api getLuaDebuggerErrorCount=true getLuaDebuggerErrors=true getLuaStackTrace=true
+LOG  : Lua          f:31> ZEDQA con0 PASS q1.list the list is readable: count=25 size=25 java class=ArrayList
+LOG  : Lua          f:31> ZEDQA con0 FACT q1.entry the first entry already there: type=string chars=1347 lines=22 stackish lines=1 first lines: se.krka.kahlua.vm.KahluaException: con0 deliberate uncaught error 1794522913363 /  at se.krka.kahlua.stdlib.BaseLib.error(BaseLib.java:307) /  at se.krka.kahlua.stdlib.BaseLib.call(BaseLib.java:127)
+LOG  : Lua          f:31> ZEDQA con0 FACT q1.reload the run before: 1230 s ago, debug=false, count then=25, its error seen then=yes; count now=25; its error listed now=true: the list SURVIVED since that run (same game launch, so it survives a save reload)
+LOG  : Lua          f:31> ZEDQA con0 FACT q1.caught a pcall-caught error: count 25 -> 25, listed=false
+LOG  : Lua          f:31> ZEDQA con0 NOTE q1.uncaught one uncaught error raised on the next tick on purpose ("con0 deliberate uncaught error 1794524108252")
+LOG  : Lua          f:32> ZEDQA con0 PASS q2.run loadstring compiles and runs: return 1 + 2 -> 3
+LOG  : Lua          f:32> ZEDQA con0 FACT q2.syntax the message for a syntax error: con0_syntax:1: unexpected symbol near `+`
+LOG  : Lua          f:32> ZEDQA con0 FACT q2.runtime a runtime error inside pcall: ok=false message: attempted index: x of non-table: null java.lang.RuntimeException
+LOG  : Lua          f:32> ZEDQA con0 PASS q2.long a 451-character, 42-line chunk -> 820
+LOG  : Lua          f:32> ZEDQA con0 FACT q2.globals setfenv=function getfenv=function load=nil loadstream=function dofile=nil require=function
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.console the game's console object exists: class UIDebugConsole, visible=false
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.methods callable from Lua: ProcessCommand, update, render, onOtherKey, levenshteinDistance, addOutput, setVisible, isVisible, getX, setX, onMouseDown; not: historyPrev, historyNext, ClearConsole, SpoolText, SuggestionEngine
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.reflect getNumClassFunctions on the console: nil
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.options UIDebugConsole.StartVisible=no such option UIDebugConsole.EchoCommand=no such option UIDebugConsole.DebugLog=no such option
+LOG  : Lua          f:33> ZEDQA con0 FACT q3.box the output box is not readable from Lua here (debug=false)
+LOG  : Lua          f:63> ZEDQA con0 PASS q1.uncaught the uncaught error is listed: count 25 -> 38, at index 25 of 38
+LOG  : Lua          f:63> ZEDQA con0 FACT q1.shape type=string chars=1347 lines=22 stackish lines=1 first lines: se.krka.kahlua.vm.KahluaException: con0 deliberate uncaught error 1794524108252 /  at se.krka.kahlua.stdlib.BaseLib.error(BaseLib.java:307) /  at se.krka.kahlua.stdlib.BaseLib.call(BaseLib.java:127)
+LOG  : Lua          f:63> ZEDQA con0 FACT q1.stacktrace getLuaStackTrace() from a tick: a list of 6, first: Callframe at: getLuaStackTrace
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.where isClient=false isServer=false ISChat=table ISChat.instance=false ISChat.onCommandEntered=true
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.globals SendCommandToServer=true ProcessAdminChatMessage=false sendClientCommand=true (only SendCommandToServer is called)
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.send SendCommandToServer("/help"): ok=true returned nil nil
+LOG  : Lua          f:74> ZEDQA con0 FACT q4.send SendCommandToServer("/con0nosuchcommand"): ok=true returned nil nil
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.globals getClassSimpleName=true getNumClassFunctions=true getClassFunction=true getMethodParameterCount=true getMethodParameter=true getNumClassFields=true getClassField=true getClassFieldVal=true instanceof=true getMethodName=false
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.simplename getClassSimpleName(player) = IsoPlayer
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.instanceof IsoPlayer=true IsoGameCharacter=true IsoZombie=false
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.getclass player:getClass() ok=true getSimpleName: no getSimpleName
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.methods getNumClassFunctions(player): nil
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.fields getNumClassFields(player): nil
+LOG  : Lua          f:75> ZEDQA con0 FACT q5.metatable getmetatable(player)=table __index=table keys=2050 getPlayerNum among them=true
+LOG  : Lua          f:76> ZEDQA con0 FACT q6.read ../console.txt: no (nil); ..\console.txt: no (nil); ../coop-console.txt: no (nil); ../options.ini: no (nil); ../Logs/: no (nil); ModOptions.ini: OPENED (first line 27 chars)
+LOG  : Lua          f:76> ZEDQA con0 FACT q6.absolute <game folder>/console.txt by absolute path: no (nil)
+LOG  : Lua          f:77> ZEDQA con0 FACT q7.debugmenu ISDebugMenu=table addButtonInfo=true setupButtons=true (media/lua/client/DebugUIs/DebugMenu/ISDebugMenu.lua)
+LOG  : Lua          f:77> ZEDQA con0 PASS q7.printwrap a replaced global print sees print() calls: true
+LOG  : Lua          f:77> ZEDQA con0 FACT q7.events events named like error / log / console / debug: LogLevelPerk, OnClimateTickDebug, OnJoypadDebugRenderUIOptionSet, OnLoginState, OnLoginStateSuccess
+LOG  : Lua          f:77> ZEDQA con0 NOTE q7.byhand by hand: the game's own console (paste, select and copy, scrollback, UI scale, controller) and the debug menu and Admin Panel with a controller
+LOG  : Lua          f:167> ZEDQA con0 FACT q4.reply chat messages in the next 3 s: 0
+LOG  : Lua          f:168> ZEDQA con0 PASS q6.write getFileWriter wrote Lua/zedqa_con0_test.log and getFileReader read it back (Export can use a .log)
+LOG  : Lua          f:168> ZEDQA con0 NOTE end debug=false id=1794524108252 (zedqa_con0_test.log now carries this run for the next)
+LOG  : Lua          f:168> ZEDQA con0 DONE
