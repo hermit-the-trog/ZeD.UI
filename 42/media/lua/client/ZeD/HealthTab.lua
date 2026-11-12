@@ -203,6 +203,25 @@ end
 ZeD.HealthTab.condTags = condTags
 ZeD.HealthTab.sevColor = sevColor
 
+-- One injury row's band: the name line and its tags sit in the middle, the same
+-- pad above and below, the groove on the band's foot. The tags start under the
+-- name, past the status square. Measuring and drawing share it.
+-- (the words once sat on the band's top with the whole gap below them)
+function ZeD.HealthTab.injuryRowLayout(bodyH, tagsH)
+    local T = ZeD.T
+    local padV = T.px(8)
+    local tagGap = T.px(4)
+    local contentH = bodyH + ((tagsH or 0) > 0 and (tagGap + tagsH) or 0)
+    local indent = T.px(2) + T.px(6) + T.px(6)   -- (the square's inset, the square, the gap to the name)
+    return {
+        padV = padV,
+        nameY = padV,
+        tagsY = padV + bodyH + tagGap,
+        h = padV + contentH + padV + T.px(1),
+        indent = indent,
+    }
+end
+
 -- ============================================================================
 -- CONDITION CLASSIFIER
 -- ============================================================================
@@ -1457,11 +1476,11 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local zoneBH = 0
     if data.injuredCount > 0 then
         zoneBH = zoneBH + T.px(1) + T.sp.afterLine
+        local tagIndent = ZeD.HealthTab.injuryRowLayout(bodyH, 0).indent
         for _, entry in ipairs(data.entries) do
-            zoneBH = zoneBH + bodyH + T.px(2)
-            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - pad * 2)   -- (the list's own width)
-            if tagsH > 0 then zoneBH = zoneBH + tagsH + T.sp.xs end
-            zoneBH = zoneBH + T.px(1) + T.sp.afterGroove
+            -- (the list's own width, less the tags' indent under the name)
+            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - pad * 2 - tagIndent)
+            zoneBH = zoneBH + ZeD.HealthTab.injuryRowLayout(bodyH, tagsH).h
         end
     end
 
@@ -1605,10 +1624,12 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         local st = T.stripe
         local sq = T.px(6)
         local tagsOpts = nil
+        local tagIndent = ZeD.HealthTab.injuryRowLayout(bodyH, 0).indent
         for ei, entry in ipairs(data.entries) do
             local entryStartY = curY
-            local tagsH = condTags(nil, entry.conditions, 0, 0, listW)
-            local entryH = bodyH + T.px(2) + (tagsH > 0 and (tagsH + T.sp.xs) or 0) + T.px(1) + T.sp.afterGroove
+            local tagsH = condTags(nil, entry.conditions, 0, 0, listW - tagIndent)
+            local row = ZeD.HealthTab.injuryRowLayout(bodyH, tagsH)
+            local entryH = row.h
 
             -- Alternating row stripe (drawn before content)
             if ei % 2 == 0 then
@@ -1625,19 +1646,19 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             -- Default text with the status square: the colour is the mark's
             local ink = onFocus and T.textOnFocus or T.text
             local mark = sevColor(entry.worstSev)
-            if mark then A.drawStatusDot(panel, listX + T.px(2), curY + math.floor((bodyH - sq) / 2), mark, sq) end
-            A.drawBody(panel, ZeD.partLabel(entry.name), listX + T.px(2) + sq + T.px(6), curY, ink)
+            local nameY = curY + row.nameY
+            if mark then A.drawStatusDot(panel, listX + T.px(2), nameY + math.floor((bodyH - sq) / 2), mark, sq) end
+            A.drawBody(panel, ZeD.partLabel(entry.name), listX + tagIndent, nameY, ink)
             local hpStr = math.floor(entry.health + 0.5) .. "%"
-            A.drawTextRight(panel, hpStr, listX + listW, curY, T.fontF2, ink)
-            curY = curY + bodyH + T.px(2)
+            A.drawTextRight(panel, hpStr, listX + listW - T.px(4), nameY, T.fontF2, ink)
 
             if tagsH > 0 then
-                condTags(panel, entry.conditions, listX, curY, listW)
-                curY = curY + tagsH + T.sp.xs
+                condTags(panel, entry.conditions, listX + tagIndent, curY + row.tagsY, listW - tagIndent)
             end
 
+            curY = curY + entryH - T.px(1)
             A.drawDividerH(panel, listX, curY, listW)
-            curY = curY + T.px(1) + T.sp.afterGroove
+            curY = curY + T.px(1)
 
             -- Stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
             -- and scroll-follow above). Height = actual drawn extent including wrapped

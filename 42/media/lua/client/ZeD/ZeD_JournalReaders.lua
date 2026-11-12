@@ -726,8 +726,9 @@ end
 -- the page small: ruled paper as the real sheet is ruled: the blue rules run edge to edge through the
 -- red margin, the margin runs the page's full height about a seventh in, and a blank band one rule tall
 -- sits above the first rule; the writing in ink sits on the rules. As tall as its writing and two more
--- rules (the quick note under it stays in view in a short drawer).
-local function miniPage(panel, b, page, x, y, w)
+-- rules (the quick note under it stays in view in a short drawer). A taller drawer gives the page
+-- more rules, down to minH (J.fillPageH); it never draws shorter than its own height.
+local function miniPage(panel, b, page, x, y, w, minH)
     local T = ZeD.T
     local f = T.fontF2
     local lh = fh(f) + T.px(6)
@@ -741,7 +742,8 @@ local function miniPage(panel, b, page, x, y, w)
     end
     if text == "" then lines = {} end
     local rows = math.max(4, math.min(N.LINES, #lines + 2), #lines)
-    local ph = T.px(10) + head + rows * lh + T.px(10)
+    if minH then rows = math.max(rows, math.floor((minH - T.px(20) - head) / lh)) end
+    local ph = math.max(T.px(10) + head + rows * lh + T.px(10), minH or 0)
     panel:drawRect(x, y, w, ph, 1, PAPER.r, PAPER.g, PAPER.b)
     -- the rules: the first closes the blank band, then one under each line of writing
     for i = 0, rows do
@@ -752,6 +754,16 @@ local function miniPage(panel, b, page, x, y, w)
         panel:drawText(l, x + margin + T.px(6), y + T.px(10) + head + lh * (i - 1) + (lh - fh(f)) - T.px(3), INK.r, INK.g, INK.b, 1, f)
     end
     return ph
+end
+
+--- The page's least height so the quick note and the line under it end at the view's foot:
+--- viewBottom is the view's last row (top + h, less framed's end gap), pageY where the page
+--- starts, tailH what sits under the page. Nil when the page's own height already reaches.
+--- (a page of one fixed height left the lower half of a tall drawer bare)
+function J.fillPageH(viewBottom, pageY, tailH)
+    local room = viewBottom - pageY - tailH
+    if room <= 0 then return nil end
+    return room
 end
 
 --- Draws the Notebooks sub-tab into (x, y, w, h) on the drawer: the carried books, the page
@@ -828,12 +840,14 @@ function J.renderNotebooks(panel, win, x, y, w, h)
             ISInventoryPaneContextMenu.onWriteSomething(b, editable, p:getPlayerNum())
         end, "default", { disabled = not canOpen or p:tooDarkToRead() })
         py = py + T.buttonH + T.sp.sm
-        py = py + miniPage(panel, b, page, px, py, pw) + T.sp.sm
+        local fh2 = T.px(40)
+        -- (the page takes what the drawer has left under the books, the note and its line)
+        local minH = J.fillPageH(top + h - T.sp.sm, py, T.sp.sm + fh2 + T.px(6) + fh(f3))
+        py = py + miniPage(panel, b, page, px, py, pw, minH) + T.sp.sm
         -- the quick note: a line onto this page
         local why = N.why(p, b)
         local wl = ZeD.tr("UI_ZeD_Notebook_Write")
         local ww = tw(f3, ZeD.btnCase(wl)) + T.sp.md * 2
-        local fh2 = T.px(40)
         local fr = { x = px, y = py, w = pw - ww - T.sp.sm, h = fh2 }
         field.placeholder = ZeD.tr("UI_ZeD_Notebook_AddLine", page)
         if fr.x ~= field.x or fr.y ~= field.y then field:setX(fr.x); field:setY(fr.y) end

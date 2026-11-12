@@ -263,6 +263,9 @@ local function getCharacterTraitsSorted(char)
                 name    = traitDef:getLabel() or traitId,
                 desc    = traitDef:getDescription() or "",
                 cost    = traitDef:getCost(),
+                -- the game's trait icon, as vanilla's character info draws it; a trait with
+                -- none (a mod's, say) keeps the icon's room empty (vanilla checks it too)
+                texture = traitDef:getTexture() or nil,
             }
             if entry.cost >= 0 then
                 table.insert(positive, entry)
@@ -1410,6 +1413,17 @@ local function focusedId(win)
 end
 
 local _traitIds = {}   -- (a trait's controller id, "identity:trait:<name>", made once)
+local WHITE = { r = 1, g = 1, b = 1 }   -- (the trait icons keep their own colors)
+
+--- A trait row's places across: the icon (18 units, the game's own size), the dot, the name.
+function ZeD.IdentityTab.traitRowLayout(rh)
+    local T = ZeD.T
+    local icon = math.min(T.px(18), rh)
+    local dot = T.px(8)
+    local dotX = icon + T.px(6)
+    return { icon = icon, iconX = 0, iconY = math.floor((rh - icon) / 2),
+             dot = dot, dotX = dotX, nameX = dotX + dot + T.px(8) }
+end
 local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -1442,10 +1456,14 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
         focused = ZeD.Focus.mark(panel, tx, ty, tw, rh, { win = win })
     end
 
-    -- the dot (good or bad), then the name
-    local sq = T.px(8)
-    panel:drawRect(tx, ty + math.floor((rh - sq) / 2), sq, sq, color.a or 1, color.r, color.g, color.b)
-    local nameX = tx + sq + T.px(8)
+    -- the trait's icon, the dot (good or bad), then the name
+    local lay = ZeD.IdentityTab.traitRowLayout(rh)
+    if trait.texture then
+        A.drawIcon(panel, trait.texture, tx + lay.iconX, ty + lay.iconY, lay.icon, 1, WHITE)
+    end
+    local sq = lay.dot
+    panel:drawRect(tx + lay.dotX, ty + math.floor((rh - sq) / 2), sq, sq, color.a or 1, color.r, color.g, color.b)
+    local nameX = tx + lay.nameX
     local nameY = ty + math.floor((rh - bodyH) / 2)
     local nc = focused and T.textOnFocus or T.text
     panel:drawText(A.truncateText(trait.name, T.fontF2, tx + tw - nameX), nameX, nameY,

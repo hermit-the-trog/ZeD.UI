@@ -2005,6 +2005,15 @@ local function drawWorldTabStrip(self, win)
     self:clearStencilRect()
 end
 
+--- A tab's card in the World window: the half card or the full card, never a width between
+--- (want: the tab's own width; heldIn: the window cannot hold the full card beside the
+--- inventory). The radio tab is the full card wherever it fits.
+function ZeD_WorldWindow.tabCardW(tabId, want, half, full, heldIn)
+    if heldIn then return half end
+    if tabId == "radio" then return full end
+    return (want <= half) and half or full
+end
+
 -- Drawer width dispatch — mode-driven. MC columns live in content, not drawer.
 local function getWorldTargetDrawerW(win)
     local T = ZeD.T
@@ -2033,11 +2042,11 @@ local function getWorldTargetDrawerW(win)
             -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits
             -- it, else the full card; a ham set's is the full card, or the card a walkie's width
             -- fits with the set's narrow face where the drawer is held in. Never a width between the two.
-            if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
-                local want = ZeD.RadioTab.wantW(win, base, heldIn and half or full)
-                if want then base = want end
-            end
-            base = (heldIn or base <= half) and half or full
+            -- The World window's radio tab is the full card whatever the set (the face centered
+            -- in it, RadioTab's renderTwoWay), the half card only where the drawer is held in.
+            -- (a table radio once asked for the half card and left the World window's side half
+            -- empty; the Character window's radio keeps the face's own width)
+            base = ZeD_WorldWindow.tabCardW(win._activeTab, base, half, full, heldIn)
         end
         -- the object card needs the full card, over a tab or on its own
         -- (a kind marked half, the recipe preview, is the half card over the tab's card like an item card)

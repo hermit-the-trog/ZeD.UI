@@ -654,7 +654,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
             valStr = string.format("%.2f", uiVal)
         end
 
-        local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, ZeD.partLabel(partName), fillPct, fc, T.toneNorm)
+        local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, ZeD.partLabel(partName), fillPct, fc, T.toneNorm, true)
 
         if isLeft then leftY = cy + rowH + rowGap
         else rightY = cy + rowH + rowGap end
@@ -698,7 +698,7 @@ function ZeD.ThermalTab._renderDetailView(panel, win, data, partName, rx, ry, rw
             valStr = string.format("%.2f", uiVal)
         end
 
-        local rowH = M.drawStatBarRow(panel, rx, curY, rw, valStr, ZeD.ThermalTab.labelOf(row), fillPct, fc)
+        local rowH = M.drawStatBarRow(panel, rx, curY, rw, valStr, ZeD.ThermalTab.labelOf(row), fillPct, fc, nil, true)
         curY = curY + rowH + rowGap
     end
 end

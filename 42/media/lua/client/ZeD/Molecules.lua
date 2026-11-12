@@ -1980,9 +1980,11 @@ end
 -- fillRatio:  0.0 to 1.0 — the share the bar lights (whole tenths).
 -- fillColor:  {r, g, b, a} — the lit segments' color (default the accent).
 -- valueColor: optional override for the value text color (default T.toneNorm).
+-- flat:       true draws no inset and no badge fill: the row sits on the card's own
+--             surface (the Thermal tab: a black cell under every region read as a hole in the card).
 -- ============================================================================
 
-function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, fillColor, valueColor)
+function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, fillColor, valueColor, flat)
     local T = ZeD.T
     local A = ZeD.Atoms
     local valFont = T.fontF3
@@ -1995,7 +1997,7 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
 
     -- 0. Dark inset background (always darker than surrounding surface)
     local base = T.base
-    panel:drawRect(x, y, w, rowH, base.a, base.r, base.g, base.b)
+    if not flat then panel:drawRect(x, y, w, rowH, base.a, base.r, base.g, base.b) end
 
     -- 1. The bar at the right: ten segments, a row's width (narrower in a narrow column, never under
     -- the ten-segment minimum), centred on the row
@@ -2011,7 +2013,7 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
     local bg = T.surf3
     local valW = ZeD.TM:MeasureStringX(valFont, value)
     local badgeW = valW + T.px(10)
-    panel:drawRect(x, y, badgeW, rowH, T.badgeBgA, bg.r, bg.g, bg.b)
+    if not flat then panel:drawRect(x, y, badgeW, rowH, T.badgeBgA, bg.r, bg.g, bg.b) end
     local valX = x + math.floor((badgeW - valW) / 2)
     local textY = y + math.floor((rowH - valH) / 2)
     panel:drawText(value, valX, textY,

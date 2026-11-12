@@ -432,7 +432,9 @@ local function newWorld(label, getSrc)
         getScriptManager = nil,
         CharacterTraitDefinition = { getCharacterTraitDefinition = function(id)
             return J("TraitDef", { getLabel = id, getDescription = "What " .. id .. " does, at some length to wrap.",
-                getCost = (#id % 3 == 0) and -2 or 4 })
+                getCost = (#id % 3 == 0) and -2 or 4,
+                -- (the trait icons: one in two traits has a texture, as a mod's may have none)
+                getTexture = (#id % 2 == 0) and J("Texture", { getWidth = 18, getHeight = 18 }) or false })
         end },
         CharacterProfessionDefinition = {
             getCharacterProfessionDefinition = function() return J("ProfDef", { getUIName = "carpenter" }) end,

@@ -45,7 +45,6 @@ local MODES = {
 local MODE_BY_ID = {}
 for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
 
-local PAD = 10
 local TAB_TOP_PAD = 13   -- the sub-tab strip's top pad, as Animals' (header = pad + T.tabH = 37u)
 local PREV_W, PREV_H = 84, 104
 local ROW_H, FACT_H, SEC_H = 28, 18, 20
@@ -318,21 +317,13 @@ local function gpFocusedId(win)
     return nil
 end
 
-local function dashed(panel, x, y, w, h, c)
-    local T = ZeD.T
-    local seg, one = T.px(4), T.px(1)
-    local sx = x
-    while sx < x + w do
-        local l = math.min(seg, x + w - sx)
-        panel:drawRect(sx, y, l, one, c.a or 1, col(c)); panel:drawRect(sx, y + h - one, l, one, c.a or 1, col(c))
-        sx = sx + seg * 2
-    end
-    local sy = y
-    while sy < y + h do
-        local l = math.min(seg, y + h - sy)
-        panel:drawRect(x, sy, one, l, c.a or 1, col(c)); panel:drawRect(x + w - one, sy, one, l, c.a or 1, col(c))
-        sy = sy + seg * 2
-    end
+-- The tab's left and right edge: the drawer's tab pad, as every other tab's
+-- (the strip and the body once began 10 units in, two more than the tabs beside them)
+function FT.edge() return ZeD.Molecules.getTabPad() end
+
+-- The target block's height with nothing pointed at: the one line and its gap
+function FT.emptyTargetH()
+    return ZeD.TM:getFontHeight(ZeD.T.fontF2) + ZeD.T.px(4)
 end
 
 local function dotFor(state)
@@ -351,31 +342,29 @@ local function drawTarget(panel, s, x, y, w, c, mode, info)
     local T, tm = ZeD.T, ZeD.TM
     local pw, ph = T.px(PREV_W), T.px(PREV_H)
     local ok = c and c.mp and c.canCreate
-    -- preview
-    if c and c.mp then
-        local s1 = T.surf1
-        panel:drawRect(x, y, pw, ph, 1, col(s1))
-        local tex = c.tex and getTexture(c.tex)
-        if tex then panel:drawTextureScaledAspect(tex, x + T.px(4), y + T.px(4), pw - 2 * T.px(4), ph - 2 * T.px(4), 1, 1, 1, 1) end
-        -- (whether it can be done is the status square under the name, not the frame)
-        panel:drawRectBorder(x, y, pw, ph, T.borderS.a or 1, col(T.borderS))
-    else
-        dashed(panel, x, y, pw, ph, T.border)
+    -- nothing pointed at: the one line at the tab's left edge, no empty preview box before it
+    -- (an empty dashed box there pushed the line in by a picture's width)
+    if not (c and c.mp) then
+        -- (vanilla repairs only what has health: things built or crafted, doors, walls, fences, stations)
+        local msg = (mode == "place") and ZeD.tr("UI_ZeD_Furn_NothingToPlace")
+            or (mode == "repair") and ZeD.tr("UI_ZeD_Furn_PointBuilt")
+            or ZeD.tr("UI_ZeD_Furn_PointFurniture")
+        ZeD.Molecules.drawEmptyLine(panel, x, y, w, msg)
+        return FT.emptyTargetH()
     end
+    -- preview
+    local s1 = T.surf1
+    panel:drawRect(x, y, pw, ph, 1, col(s1))
+    local tex = c.tex and getTexture(c.tex)
+    if tex then panel:drawTextureScaledAspect(tex, x + T.px(4), y + T.px(4), pw - 2 * T.px(4), ph - 2 * T.px(4), 1, 1, 1, 1) end
+    -- (whether it can be done is the status square under the name, not the frame)
+    panel:drawRectBorder(x, y, pw, ph, T.borderS.a or 1, col(T.borderS))
     -- name, status, facts
     local tx = x + pw + T.px(10)
     local tw = w - pw - T.px(10)
     local f1, f2, f3, f4 = T.fontF1, T.fontF2, T.fontF3, T.fontF4
     local cy = y
     local m = MODE_BY_ID[mode] or MODES[1]
-    if not (c and c.mp) then
-        -- vanilla repairs only what has health: things built or crafted (doors, walls, fences, stations)
-        local msg = (mode == "place") and ZeD.tr("UI_ZeD_Furn_NothingToPlace")
-            or (mode == "repair") and ZeD.tr("UI_ZeD_Furn_PointBuilt")
-            or ZeD.tr("UI_ZeD_Furn_PointFurniture")
-        ZeD.Molecules.drawEmptyLine(panel, tx, cy, tw, msg)
-        return ph
-    end
     local name = ZeD.CraftingCore.truncText(info.name or "?", f4, tw)
     panel:drawText(name, tx, cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f4)
     cy = cy + tm:getFontHeight(f4) + T.px(2)
@@ -612,7 +601,8 @@ local function drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
     local T, tm = ZeD.T, ZeD.TM
     local M, A = ZeD.Molecules, ZeD.Atoms
     local tH, gap, nM = T.tabH, T.sp.tabGap, #MODES
-    local avail = w - T.sp.sm * 2
+    local ep = FT.edge()
+    local avail = w - ep * 2
     local font, padX = T.fontF2, T.sp.tabPadX
     local textSum = 0
     for i = 1, nM do
@@ -633,7 +623,7 @@ local function drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
     end
     for i = 1, nM do _modeTws[i] = _modeTws[i] + padX * 2 end
     local scrolls = textSum + padX * 2 * nM + fixed > avail
-    local tabL = x + T.sp.sm
+    local tabL = x + ep
     local aw = tH
     local activeIdx, focusIdx
     for i = 1, nM do
@@ -642,7 +632,7 @@ local function drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
     end
     local first, last = 1, nM
     if scrolls then
-        tabL = x + T.sp.sm + aw + gap
+        tabL = x + ep + aw + gap
         s.stripView = avail - (aw + gap) * 2
         -- the last first tab that still fills the view to the end
         local maxFirst, used = nM, _modeTws[nM]
@@ -692,7 +682,7 @@ local function drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
     for k = 1, 2 do
         local dir = (k == 1) and -1 or 1
         local can = (k == 1 and first > 1) or (k == 2 and first < s.stripMaxFirst)
-        local axk = (k == 1) and (x + T.sp.sm) or (x + w - T.sp.sm - aw)
+        local axk = (k == 1) and (x + ep) or (x + w - ep - aw)
         if can then
             local id = (k == 1) and "fur:strip:left" or "fur:strip:right"
             local hov = A.mouseIn(panel, axk, tabY, aw, tH)
@@ -751,14 +741,16 @@ function FT.render(panel, win, x, y, w, h)
     s.bodyTop, s.bodyBottom = top, bottom
     -- the library scrollbar at the drawer's right edge when the body overflowed last frame
     local sbW = ((s.maxScroll or 0) > 0) and T.sp.scrollbarW or 0
-    local bx0, bw0 = x + T.px(PAD), w - T.px(PAD) * 2 - sbW
+    local ep = FT.edge()
+    local bx0, bw0 = x + ep, w - ep * 2 - sbW
     local off = s.scrollY or 0
     local cy = top - off
     local function vis(yy, hh2) return yy >= top - T.px(2) and yy + hh2 <= bottom + T.px(2) end
 
     local info = (c and c.mp) and readLines(c) or { facts = {}, notes = {} }
     -- TARGET
-    local tH = T.px(PREV_H)
+    -- (with nothing pointed at, the one line at the left edge: FT.emptyTargetH)
+    local tH = FT.emptyTargetH()
     if c and c.mp then
         local th0 = T.px(PREV_H)
         local facts = #info.facts * T.px(FACT_H) + tm:getFontHeight(T.fontF4) + tm:getFontHeight(T.fontF2) + T.px(8)
