@@ -370,6 +370,24 @@ ICONS = {
     "..kdd......ddk..",
     "................",
     "................"],
+# Fishing (World window, contextual): a fish side on, facing left, dorsal fin up, the tail forked
+"fishing": [
+    "................",
+    "................",
+    "......wll.......",
+    "....wlmmmld.....",
+    "...lmmmmmmmd..ld",
+    "..lmkmmmmmmmdlmd",
+    ".lmmmmmmmmmmmmmd",
+    ".mmmmmmmmmmmmdd.",
+    ".dmmmmmmmmmmmmmd",
+    "..dmmmmmmmmmdkmd",
+    "...ddmmmmmmd..kd",
+    "....kddddddk....",
+    "......dk........",
+    "................",
+    "................",
+    "................"],
 }
 
 TONES = "wlmdk"
