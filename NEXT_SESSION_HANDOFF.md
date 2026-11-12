@@ -20,7 +20,7 @@ The corkboard note (MenuNote.lua, approved by the director Nov 11): CONSOLE / SP
 | 107 | Split-screen: ZeD's own windows for every local player (the director: before Dec 1) | open (SPLIT VIEW) |
 | 108 | A drawn controller for Options > Controls | open (PAD MAP) |
 | 121 | Controller: run and sneak on one button, by how far the stick is pushed (modeled on a Skyrim mod; see the punch list entry) | open (RUN+SNEAK) |
-| 167 | The World window's Fishing tab with the trophy wall (director-approved mockup `ZeDUI/mockups/zed_fishing_tab_v2.html`; rulings in the punch list entry) | approved, build after the reset |
+| 167 | The World window's Fishing tab with the trophy wall (director-approved mockup `ZeDUI/mockups/zed_fishing_tab_v2.html`; rulings in the punch list entry) | approved; building now (Nov 11, the director) |
 | 165 | b11n's test timing: wait for the Character window to show before 156's tab-mode check; 155's off-ring peek read too early; 162's list reveal doesn't scroll (scroll the list explicitly) | open, test side (BUG FIXES) |
 | 139 | The pointer says what a click or a drop will do | parked by the director (research later) |
 

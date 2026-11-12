@@ -4240,4 +4240,4 @@ to be proposed.
     name, weight, date, place and bait), Top 10 / Each kind (all 21 species, "8 of 21"), one scroll, the record band
     under it, D-pad between plaques, B back. Kept all game in the save (at most 10 + 21 records). The director's
     rulings: empty plaques stay a mystery ("Not caught yet", no name, as the game hides uncaught species); wall only,
-    no placeable mounted-fish item; Top 10 by weight. Junk and No catch never reach the wall. APPROVED by the director Nov 11 (mockup v2, no background wall): build after the Nov 13 reset.
+    no placeable mounted-fish item; Top 10 by weight. Junk and No catch never reach the wall. APPROVED by the director Nov 11 (mockup v2, no background wall); the build starts at once (the director: "building starts now"), and QA first checks that fishing works with ZeD on today.
