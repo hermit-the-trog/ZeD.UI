@@ -30,3 +30,6 @@ License card labels are capitals without Ё; "№ ПРАВ" for DL NO, "СРОК
 Most doubtful: "Освободить/Распустить/Выйти" for Release/Disband/Leave/Quit; "Мёртвая зона стика"; "Заглушить/Вернуть речь" for mute/unmute.
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'used by %1' tag rendered 'нужен: %1' (short; literal 'используется' does not fit 12). 'Turn off with the %1' as 'Выключить вместе с %1' (the noun after the count is missing, may read oddly).
+'Mods' screen = 'Моды' per ZeD's file; chip tags use 'Выкл.: %1' for 14 chars.

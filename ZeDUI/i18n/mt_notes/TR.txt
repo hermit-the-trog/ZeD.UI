@@ -11,3 +11,6 @@ Griefing = Zorbalık; Stuck = Takıldım; Appeal = İtiraz; Kicks (300) = Atılm
 Turkish suffixes on %1 are avoided where possible (Gidiliyor: %1, Atıldın: %1).
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'Open in Mods' as 'Modlarda aç' (Mods screen = Modlar); 'Turn off with the %1' as '%1 ile birlikte kapat'.
+File-mentioned-in-card line (FileErrOne/Many) puts the function before the line number to fit Turkish word order.

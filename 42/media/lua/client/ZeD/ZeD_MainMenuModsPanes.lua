@@ -63,12 +63,18 @@ function ZeD_MMMods:detailTabs(d)
     if MS.isLoaded(d.modId) then nCf = #MS.forMod(d.modId) end
     -- (its settings files count too: the tab is greyed only when it has neither)
     local files = RS.find(d.modId)
-    return {
+    local list = {
         { id = "about", label = ZeD.tr("UI_ZeD_Mods_DTabAbout") },
         { id = "options", label = ZeD.tr("UI_ZeD_Mods_DTabOptions"), count = nOpt, none = (nOpt == 0 and not (files and files.any)) },
         { id = "sandbox", label = ZeD.tr("UI_ZeD_Mods_DTabSandbox"), count = nSb, none = (nSb == 0) },
         { id = "conflicts", label = ZeD.tr("UI_ZeD_Mods_DTabConflicts"), count = nCf, none = (nCf == 0) },
     }
+    -- the mod's code files, each with its switch (ZeD_MainMenuModsFiles.lua)
+    if self.filesCount then
+        local nF = self:filesCount(d)
+        list[#list + 1] = { id = "files", label = ZeD.tr("UI_ZeD_Mods_DTabFiles"), count = (nF > 0) and nF or nil, none = (nF == 0) }
+    end
+    return list
 end
 
 --- The tab strip at cy across the pane; returns the y under it.

@@ -31,3 +31,6 @@ Doubtful: 故障 for Bug, 惡意破壞 for Griefing, 拆零件 for take parts, �
 Lines 346 and the "%1 %2" shapes (252, 899, 1101) keep the English shape; what the slots hold is not visible.
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Used 模組/檔案/關閉 for off; Mods screen = 模組.
+'gone' tag = 已移除.

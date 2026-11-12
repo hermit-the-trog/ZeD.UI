@@ -26,3 +26,7 @@ Doubtful: 918 hotwired = "oikosulki"; 1101 "Aiheesta %1: " (unsure what it prece
 Casing: 790/791 offline/online = poissa / paikalla; 771 "Pelaajan %1 pitää olla paikalla." avoids a case ending on a name.
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Shortened chips (tied. pois) and 'Kaikki päälle' to fit the length limits.
+Used 'Modit' for the Mods screen (Modeissa in the button); 'käyttäjiä: %1' for used by %1.
+FileVerbOffWith is a loose 'Kytke pois, myös %1'.

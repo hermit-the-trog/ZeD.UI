@@ -26,3 +26,6 @@ Singular count lines (%1 wpis, %1 zasada) are singular-only variants; plurals us
 Most doubtful: "Odwołanie" for Appeal, "Newsy" for News, "Zwolnij" for Release (claim), "Utknięcie" for Stuck.
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Short tags 'Wył.: 1' and 'Wył.: %1' for 'N files off' to fit 14 chars; 'Turn all back on' shortened to 'Włącz wszystkie'.
+Files-off count lines put the count first (Pliki wyłączone w %2: %1) because Polish plural forms vary.

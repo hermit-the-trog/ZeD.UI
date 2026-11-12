@@ -110,7 +110,7 @@ function ZeD_MMMods:new()
     o.preset = nil           -- the profile last loaded or saved
     o.psel = nil             -- the Profiles page's picked profile (nil: "No mods")
     o.note = nil             -- { text, untilMs }: what a toggle or a preset did
-    o.dtab = "about"         -- the info pane's tab: "about" | "options" | "sandbox" | "conflicts" (ZeD_MainMenuModsPanes)
+    o.dtab = "about"         -- the info pane's tab: "about" | "options" | "sandbox" | "conflicts" (ZeD_MainMenuModsPanes) | "files" (ZeD_MainMenuModsFiles)
     return o
 end
 
@@ -158,6 +158,15 @@ function ZeD_MMMods:onShow()
     local wrote = 0
     pcall(function() wrote = ZeD.ModPicks.sync(jlist(getActivatedMods())) end)
     self._picksRefreshed = wrote > 0
+    -- the Files tab (ZeD_MainMenuModsFiles): read afresh; an error card's Open in Mods left its file
+    -- for this visit (ZeD_ModFiles.takeJump): that mod picked, on its Files tab, at that file
+    self.fileSel, self._filesSeen, self._filesChanged, self._fileJump = nil, {}, nil, nil
+    -- (the list's mods are read after the screen shows: the jump waits for them, resolveJump)
+    self._pendingJump = nil
+    if ZeD.ModFiles then
+        ZeD.ModFiles.forget()
+        self._pendingJump = ZeD.ModFiles.takeJump()
+    end
 end
 
 --- The mods the list shows: vanilla's sorted records, through the tab and Find (plain text).
@@ -263,9 +272,18 @@ function ZeD_MMMods:rowChips(d)
     if n > 0 then out[#out + 1] = { ZeD.tr(n == 1 and "UI_ZeD_Mods_ChipConflictOne" or "UI_ZeD_Mods_ChipConflictMany", n), "warning" } end
     if MS.pickedFor(d.modId) > 0 then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipPicked"), "positive" } end
     if n == 0 and MS.pickedFor(d.modId) == 0 and MS.sameFor(d.modId) > 0 then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipSameText"), "neutral" } end
+    -- (the Files tab: files switched off, and the last game's errors)
+    local MF = ZeD.ModFiles
+    if MF then
+        local off = #ZeD.ModPicks.offFor(d.modId)
+        if off > 0 then out[#out + 1] = { ZeD.tr(off == 1 and "UI_ZeD_Mods_ChipFileOff" or "UI_ZeD_Mods_ChipFilesOff", off), "neutral" } end
+        local ne = MF.errorCount(d.name)
+        if ne > 0 then out[#out + 1] = { ZeD.tr(ne == 1 and "UI_ZeD_Mods_ChipErrorOne" or "UI_ZeD_Mods_ChipErrors", ne), "danger" } end
+    end
     if d.modId == ZeD.ModPicks.HELPER then
         local k = 0
         for _ in pairs(ZeD.ModPicks.picks()) do k = k + 1 end
+        for _ in pairs(ZeD.ModPicks.offs()) do k = k + 1 end   -- (files switched off: an empty copy each)
         if k > 0 then out[#out + 1] = { ZeD.tr(k == 1 and "UI_ZeD_Mods_ChipFilesOne" or "UI_ZeD_Mods_ChipFilesMany", k), "positive" } end
     end
     local it = MS.wsFor(d.modInfo)
@@ -302,6 +320,8 @@ function ZeD_MMMods:pendingNow()
     pcall(function() reorder = ActiveMods.requiresResetLua(m:getActiveMods()) end)
     local updated = MS.updatedLoaded()
     if turnedOn == 0 and turnedOff == 0 and not reorder and #updated == 0 then
+        -- files switched on or off on the Files tab (ZeD_MainMenuModsFiles)
+        if self._filesChanged then return ZeD.tr("UI_ZeD_Mods_PendingFiles", self._filesChanged), false end
         if self._picksRefreshed then return ZeD.tr("UI_ZeD_Mods_PendingPicks"), false end
         -- a mod's settings reset (ZeD_ModReset): its code still holds the old values until a reload
         if self._resetPending then return ZeD.tr("UI_ZeD_Mods_PendingReset", self._resetPending), false end
@@ -1090,6 +1110,7 @@ end
 function ZeD_MMMods:prerender()
     local T = ZeD.T
     if self.page == "list" then MS.step(); MS.wsPoll(true) end
+    if self._pendingJump and self.resolveJump then self:resolveJump() end
     self:paletteWatch()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
@@ -1818,6 +1839,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     if tab == "options" then cy = self:drawOptionsTab(d, ix, iw, cy, vy, vh)
     elseif tab == "sandbox" then cy = self:drawSandboxTab(d, ix, iw, cy, vy, vh)
     elseif tab == "conflicts" then cy = self:drawConflicts(d, ix, iw, cy, vy, vh)
+    elseif tab == "files" and self.drawFilesTab then cy = self:drawFilesTab(d, ix, iw, cy, vy, vh)
     else cy = self:drawAbout(d, ix, iw, cy, vy, vh, prob, wid) end
     self:clearStencilRect()
     -- the pane scrolls as one unit when it runs long

@@ -23,3 +23,6 @@ Log lines are past-tense phrases after a name; 976 reads "o banimento de %1 acab
 Tight: 344 "Ver todas", 575/576 "Ir até um jogador / um local", 970 "deu voz a %1".
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first. European forms (A ordenhar, ordenha-o).
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Tu form as in ZeD's PT; 'ficheiro' and 'ecrã' (European). Button 'Turn off anyway' shortened to 'Desligar assim' (18 limit); 'Turn all back on' to 'Religar todos'.
+Chip tags 1 desligado / %1 desligados drop the word 'ficheiro' to fit 14.

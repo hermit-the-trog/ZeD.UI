@@ -26,3 +26,6 @@ Tight: 31 NR. PERM., 344 "Vezi toate" (limit 16), 598 "Schimbă vremea".
 Quote marks around role names use „ ”.
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'Open in Mods' shortened to 'Vezi în Moduri' (16 limit); plural chip tag 'Oprite: %1' for 14 chars.
+'Turn off with the %1' as 'Oprește cu cele %1' (feminine plural 'fișiere').

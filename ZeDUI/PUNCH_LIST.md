@@ -4271,6 +4271,17 @@ to be proposed.
     to "a mod broke my game". Build from those designs on the mod manager; how a single file is switched off must be
     safe and reversible and must survive a restart (verify the engine path first and report it). Checks: sims, QA with
     real Workshop mods (a mod with a broken file), controller parity, all 28 languages.
+    **Build (Nov 11 2026):** the engine path, from 42.22's code: there is no per-file skip; ZomboidFileSystem.loadMod
+    puts each loaded mod's files into activeFileMap by relative path, a later mod's replacing an earlier one's, and
+    LuaManager.LoadDirBase runs each path once from that map. So a file is switched off by ZeD picks (already shipped,
+    kept last) holding a one-comment copy at that path (ZeD_ModPicks: `off=<path>|<mod id>` in Lua/ZeD_picks.txt);
+    the mod's folder is never written; back on falls to load order (the mod's own copy). Never a path the game has too
+    (ZeD_VanillaLua.lua, made by ZeDUI/tools/mods/vanilla_lua_index.py: rerun after a game update), never a server's
+    list. ZeD_ModFiles.lua (files, used by, errors per file, the jump), ZeD_MainMenuModsFiles.lua (the tab, the card),
+    Messages: one card per place, plain words for two certain kinds, Open in Mods (pause window's Mods page, then the
+    Mods screen at the menu at that file; places in Lua/ZeD_error_places.txt). Not built: Find in the tab, Find the
+    file behind a problem (RECOMMEND 4), Bug report builder, What this usually means. mods_files_sim 75/0; QA:
+    ZeDUI/qa/CHECK_pl170_files_tab.md.
 
 171. **Search on the Skills and Equipment tabs (the director, Nov 11 2026, from the audit; beta 12).** Only a line on
     zed-roadmap-s65.html:249, so a mockup first (ZeDUI/mockups/zed_tab_search_v1.html) for the director: where the

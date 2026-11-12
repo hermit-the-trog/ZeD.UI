@@ -35,3 +35,6 @@ Guide intro (the book's own voice): canillas, bañadera, ahí afuera, toma el ag
 the rest of the ad. Backdrops: Revoque viejo (plaster, as REVOCANDO), Estuco negro. Check these first.
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first. Voseo as above (Marcá, Sacá, Caminá, ordeñalo, esquilalo); bucket = balde; "acá" for here.
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Used 'desactivar/activar' (as the Spain-derived AR file) and 'partida' for a save; voseo imperatives (Activalo, recargá).
+Chip tags drop the word 'archivo' to fit 14; 'Reactivar' for Turn back on.

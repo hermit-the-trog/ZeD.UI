@@ -11,3 +11,6 @@ Unmute button is "Reactivar" (14 limit). Capability = permiso, power = poder.
 Check first: "licencia" for the Kentucky license card, "reclamos", "Reactivar".
 
 Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first. Bucket = cubeta (the rest as Spain).
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Same text as ES (existing ZeD files are identical across Spanish variants).
+Shortened buttons/tags to fit limits.
