@@ -2,7 +2,7 @@
 -- ============================================================================
 -- THE INVENTORY FILTER. Client; the state, the matching and the bar drawn under
 -- a column's heading, shared by the Character and World windows through
--- InventoryRenderer (which owns the Filter button beside List | Grid).
+-- InventoryRenderer (which owns the Filter button beside the view button).
 --
 -- One filter per window: it narrows every column the window shows (the
 -- Character window's inventory and bags, the World window's containers). A name
@@ -10,7 +10,7 @@
 -- them). What does not match is dimmed in place, never hidden: the rows keep
 -- their places, their clicks, their drags and their menus.
 --
--- Saved per container, as List | Grid is: the window's filter is written to
+-- Saved per container, as the list or grid view is: the window's filter is written to
 -- every container it is narrowing (the character's mod data, by the container's
 -- key), and a window that starts showing other containers takes the filter the
 -- first of them saved (none saved: the filter empties). So the crate filtered

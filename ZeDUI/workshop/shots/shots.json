@@ -2054,9 +2054,9 @@
    "avoid": [],
    "balloons": [
     {
-     "text": "Press the list button for one row per item, with its category, condition and weight.",
+     "text": "In list view the view button shows the list: one row per item, with its category, condition and weight.",
      "anchor": [
-      1643,
+      1708,
       77
      ],
      "side": "top",
@@ -2064,7 +2064,7 @@
      "maxw": 430
     },
     {
-     "text": "Press the grid button for a picture of each item, with its weight and condition.",
+     "text": "In grid view the view button shows the grid: a picture of each item, with its weight and condition.",
      "anchor": [
       1708,
       77
