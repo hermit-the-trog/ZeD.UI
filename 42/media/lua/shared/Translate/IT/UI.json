@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Mungitura %1 di %2",
     "UI_ZeD_Animals_RunShearing": "Tosatura %1 di %2",
     "UI_ZeD_Animals_RunStopped": "Interrotto dopo %1 di %2.",
+    "UI_ZeD_Animals_RunFull": "%1 pieno: munti %2 di %3.",
     "UI_ZeD_Animals_SelNothing": "%1 selezionati: niente da mungere o tosare",
     "UI_ZeD_Animals_Selected": "%1 selezionati",
     "UI_ZeD_Animals_Stop": "Interrompi",

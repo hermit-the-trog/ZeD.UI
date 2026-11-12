@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Melker %1 av %2",
     "UI_ZeD_Animals_RunShearing": "Klipper %1 av %2",
     "UI_ZeD_Animals_RunStopped": "Stoppet etter %1 av %2.",
+    "UI_ZeD_Animals_RunFull": "%1 full: melket %2 av %3.",
     "UI_ZeD_Animals_SelNothing": "%1 valgt: ingenting å melke eller klippe",
     "UI_ZeD_Animals_Selected": "%1 valgt",
     "UI_ZeD_Animals_Stop": "Stopp",

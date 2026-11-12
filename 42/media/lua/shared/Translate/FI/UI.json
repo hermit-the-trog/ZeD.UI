@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Lypsetään %1/%2",
     "UI_ZeD_Animals_RunShearing": "Keritään %1/%2",
     "UI_ZeD_Animals_RunStopped": "Pysäytetty, tehty %1/%2.",
+    "UI_ZeD_Animals_RunFull": "%1 täynnä: lypsetty %2/%3.",
     "UI_ZeD_Animals_SelNothing": "%1 valittu: ei lypsettävää eikä kerittävää",
     "UI_ZeD_Animals_Selected": "%1 valittu",
     "UI_ZeD_Animals_Stop": "Lopeta",

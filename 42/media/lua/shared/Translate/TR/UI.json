@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Sağılıyor %1 / %2",
     "UI_ZeD_Animals_RunShearing": "Kırkılıyor %1 / %2",
     "UI_ZeD_Animals_RunStopped": "%1 / %2 sonra durduruldu.",
+    "UI_ZeD_Animals_RunFull": "%1 doldu: %3 hayvandan %2 sağıldı.",
     "UI_ZeD_Animals_SelNothing": "%1 seçili: sağılacak ya da kırkılacak bir şey yok",
     "UI_ZeD_Animals_Selected": "%1 seçili",
     "UI_ZeD_Animals_Stop": "Durdur",

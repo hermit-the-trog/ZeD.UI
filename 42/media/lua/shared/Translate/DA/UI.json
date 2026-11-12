@@ -3350,6 +3350,7 @@
     "UI_ZeD_Animals_RunMilking": "Malker %1 af %2",
     "UI_ZeD_Animals_RunShearing": "Klipper %1 af %2",
     "UI_ZeD_Animals_RunStopped": "Stoppet efter %1 af %2.",
+    "UI_ZeD_Animals_RunFull": "%1 fuld: malket %2 af %3.",
     "UI_ZeD_Animals_SelNothing": "%1 valgt: intet at malke eller klippe",
     "UI_ZeD_Animals_Selected": "%1 valgt",
     "UI_ZeD_Animals_Stop": "Stop",

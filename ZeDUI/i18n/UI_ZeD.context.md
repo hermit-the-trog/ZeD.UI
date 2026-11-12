@@ -614,6 +614,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_RunMilking` | `Milking %1 of %2` | Animals tab, zone view: status line while a milking run goes; %1 is the animal under way, %2 how many | 30 |
 | `UI_ZeD_Animals_RunShearing` | `Shearing %1 of %2` | Animals tab, zone view: status line while a shearing run goes; %1 is the animal under way, %2 how many | 30 |
 | `UI_ZeD_Animals_RunStopped` | `Stopped after %1 of %2.` | Animals tab, zone view: status line after a run was stopped; %1 done of %2 | 40 |
+| `UI_ZeD_Animals_RunFull` | `%1 full: milked %2 of %3.` | Animals tab band: a milking run over several animals ended because the last milk container carried filled; %1 is the container's own name from the game (Bucket), %2 the animals milked dry, %3 the animals picked | - |
 | `UI_ZeD_Animals_SelNothing` | `%1 selected: nothing to milk or shear` | Animals tab, zone view: status line when the ticked animals have nothing to milk or shear; %1 is how many | 40 |
 | `UI_ZeD_Animals_Selected` | `%1 selected` | Animals tab, zone view: status line with rows ticked; %1 is how many | 20 |
 | `UI_ZeD_Animals_Stop` | `Stop` | Animals tab, zone view: button that stops a milking or shearing run | 12 |
