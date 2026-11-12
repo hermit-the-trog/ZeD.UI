@@ -4640,9 +4640,9 @@ end
 -- NEEDS line, the empty-list line, and the detail card.
 -- ============================================================================
 
---- A tag: 16u, a 1u borderS outline, F1, sentence case, 5u side padding, and a
--- 6u square status mark inside before the word when statusColor is given.
--- opts as ZeD.Atoms.drawTag ({ font, h, minW, keepCase, alpha, hollow, textColor }).
+--- A tag: the status dot and the word, no box. 16u, F1, sentence case, and a
+-- 6u square status mark before the word when statusColor is given.
+-- opts as ZeD.Atoms.drawTag ({ font, h, minW, keepCase, alpha, hollow, textColor, markGap }).
 -- @return width, height
 function ZeD.Molecules.drawTag(panel, x, y, text, statusColor, opts)
     return ZeD.Atoms.drawTag(panel, x, y, text, statusColor, opts)

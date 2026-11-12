@@ -1271,8 +1271,7 @@ local TAG_MARK = { warning = "warning", positive = "positive", info = "info", da
 local function tagMark(variant) local T = ZeD.T; return TAG_MARK[variant] and T[TAG_MARK[variant]] or nil end
 -- a tag's width, as the library draws it
 local function tagW(text, variant)
-    local T = ZeD.T
-    return MM.textW(T.fontF1, ZeD.textCase(text)) + T.px(10) + (tagMark(variant) and T.px(10) or 0)
+    return ZeD.Atoms.tagW(text, tagMark(variant) ~= nil)
 end
 local function rowTag(p, text, x, y, variant)
     local T = ZeD.T

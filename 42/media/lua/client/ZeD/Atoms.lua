@@ -868,11 +868,14 @@ end
 
 -- ============================================================================
 -- 06. TAG (draw helper)
--- The one look for a small word that names a state: 16u tall,
--- a 1u borderS outline, F1, sentence case, 5u side padding, and when the state
--- has a status a 6u square mark in its colour before the word. No tinted fill,
--- no coloured words: the mark carries the colour. ZeD.Molecules.drawTag is the
--- public name; A.drawBadge and the card's flag chips draw through this.
+-- The one look for a small word that names a state: the status dot and the
+-- word, as the Zombies Killed rows (drawStatRowDot). 16u tall, F1, sentence case,
+-- and when the state has a status a 6u square mark in its colour, 4u before the
+-- word. No box, no padding, no tinted fill, no coloured words: the mark carries
+-- the colour. ZeD.Molecules.drawTag is the public name; A.drawBadge and the
+-- card's flag chips draw through this, so every caller has the one look.
+-- (until Nov 11 2026 each tag sat in a 1u borderS outline with 5u side padding:
+-- the director, "pills and bordered chips read as modern web design")
 -- ============================================================================
 
 -- the tag's size and parts, shared by drawTag and tagW: width, the words as drawn,
@@ -882,14 +885,14 @@ local function tagMeasure(T, text, marked, opts)
     local s = text and tostring(text) or ""
     if not opts.keepCase then s = textCase(s) end
     local sq = marked and T.px(6) or 0
-    local gap = marked and T.px(4) or 0
+    local gap = marked and (opts.markGap or T.px(4)) or 0
     local contentW = sq + gap + ZeD.TM:MeasureStringX(font, s)
-    return math.max(opts.minW or 0, contentW + T.px(5) * 2), s, font, sq, gap, contentW
+    return math.max(opts.minW or 0, contentW), s, font, sq, gap, contentW
 end
 
 --- The width drawTag draws for these words (marked = it carries a status mark;
--- opts as drawTag: font, minW, keepCase), so a layout can place a tag before
--- drawing it instead of copying its padding. Its height is 16u (opts.h).
+-- opts as drawTag: font, minW, keepCase, markGap), so a layout can place a tag
+-- before drawing it instead of copying its sizes. Its height is 16u (opts.h).
 function ZeD.Atoms.tagW(text, marked, opts)
     local w = tagMeasure(ZeD.T, text, marked, opts or NO_OPTS)
     return w
@@ -897,10 +900,12 @@ end
 
 --- Draw a tag.
 -- @param statusColor  nil (no mark) or the colour of the 6u square mark
--- @param opts  optional { font, h, minW, keepCase, alpha, hollow, textColor, frameColor }
---   h / minW give a box at least that size (drawBadge keeps the box it always had,
---   so callers that measure it themselves still line up); the content is centred.
---   hollow = the mark as a 1u outline (an "off" state).
+-- @param opts  optional { font, h, minW, keepCase, alpha, hollow, textColor, markGap }
+--   h / minW give a room at least that size (drawBadge keeps the room it always had,
+--   so callers that measure it themselves still line up); the mark and word are
+--   centred in a wider room, from x otherwise. markGap = the room between the mark
+--   and the word (4u). hollow = the mark as a 1u outline (an "off" state).
+--   (frameColor, the outline's colour, is no longer read: there is no outline)
 -- @return width, height
 function ZeD.Atoms.drawTag(panel, x, y, text, statusColor, opts)
     local T = ZeD.T
@@ -909,7 +914,6 @@ function ZeD.Atoms.drawTag(panel, x, y, text, statusColor, opts)
     local w, s, font, sq, gap, contentW = tagMeasure(T, text, statusColor ~= nil, opts)
     local h = opts.h or T.px(16)
     local a = opts.alpha or 1
-    ZeD.Atoms.frame(panel, x, y, w, h, opts.frameColor or T.borderS, a)
     local cx = x + math.floor((w - contentW) / 2)
     if statusColor then
         local sy = y + math.floor((h - sq) / 2)
@@ -934,7 +938,7 @@ local function badgeStatus(T, variant)
     return nil
 end
 
---- Draw a badge: now the tag look (drawTag), in the box the old badge took, so
+--- Draw a badge: now the tag look (drawTag), in the room the old badge took, so
 -- the callers that measure that box themselves (text + badgePadX / badgePadY in
 -- their font) still line up. The words read in sentence case whatever case they
 -- arrive in; the variant becomes the status mark (danger, warning, positive,

@@ -445,11 +445,11 @@ local function sevColor(T, sev)
     return nil
 end
 
--- A tag's width, as ZeD.Atoms.drawTag lays it out (5u side padding, a 6u mark and
--- 4u before the word when it has a mark), for rows that right-align their tags.
+-- A tag's width, as ZeD.Atoms.drawTag lays it out (a 6u mark and 4u before the
+-- word when it has a mark, no box), for rows that right-align their tags.
 local function tagWidth(text, marked)
     local T = ZeD.T
-    local w = ZeD.TM:MeasureStringX(T.fontF1, tc(text)) + T.px(10)
+    local w = ZeD.TM:MeasureStringX(T.fontF1, tc(text))
     if marked then w = w + T.px(10) end
     return w
 end

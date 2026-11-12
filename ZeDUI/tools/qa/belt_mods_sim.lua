@@ -392,6 +392,13 @@ end
 
 local NEW = readFile(ROOT .. BELT)
 local OLD = gitShow(BASE, BELT)
+-- (the In hand tag lost its box and its 5u padding on Nov 11 2026, the director's call; chip_dot_sim checks
+-- the tag: the old belt measures it as the new one does, so this compares everything else the belt draws)
+do
+    local was = "tm:MeasureStringX(f5, ZeD.textCase(text)) + T.px(10)"
+    local a = OLD:find(was, 1, true)
+    if a then OLD = OLD:sub(1, a - 1) .. "tm:MeasureStringX(f5, ZeD.textCase(text))" .. OLD:sub(a + #was) end
+end
 if OLD == "" then print("(git show " .. BASE .. " gave nothing: the SAME section is skipped)") end
 
 -- ---------------------------------------------------------------------------
