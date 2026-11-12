@@ -4414,6 +4414,11 @@ to be proposed.
       label format (C2: "Sort: Craftable", "Station Hand", "Category -- ALL --", "-- ALL --"); how many section
       heading styles (D6: four today); one way to pick a sub-page (C4: tab strip, pager, "Page:" dropdown); whether
       the item card's top block stays (D4: it repeats the facts below).
+      **Ruled (the director, via QA, Nov 12 2026 about 3:30 pm, multiple choice):** A2 "Unread" everywhere, no
+      period. C2 every dropdown reads "Label: Value" ("Sort: Craftable", "Station: Hand", "Category: All"). D6 one
+      section style, the small fold-open mono line (as on Moodles, Fitness, Presets), plus the tab's title. C4 a tab
+      strip for sub-pages everywhere (Radio, Vehicle and Journal move to it). D4 the item card's top block keeps Kind
+      and Weight only; everything else shows once, below. Build after the Nov 12 bug-hunt fixes land (same files).
    b. **Build, small.** A1 "Belt 2" tag gets the square. A3 one frequency format for walkie and radio set, the long
       channel name not wrapping to three lines, "Channels" or "Presets". A5 Furniture: "Target" readable on the
       selected row; the pointer label off the version text. A6 no "RMB" in player text (Loadouts). A7 narrow title bar:
