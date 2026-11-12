@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/zedqa_animals_quick.txt (Nov 11 2026, QA, punch list 169): the Animals quick actions
+zedqa_animals_quick.lua | aq | timeout=900
+zedqa_animals_quick_more.lua | aq2 | timeout=900

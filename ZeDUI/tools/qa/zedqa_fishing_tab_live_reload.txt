@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/zedqa_fishing_tab_live_reload.txt (Nov 11 2026, QA, punch list 167): the second run, after the first one's quit saved the game
+zedqa_fishing_tab_live_reload.lua | ftr | timeout=300

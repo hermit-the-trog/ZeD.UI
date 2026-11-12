@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/wsp_deck.txt (Nov 11 2026, QA): saved window positions at the Deck, the 4K places brought back
+zedqa_wsp_unpause.lua | wspu | timeout=60
+zedqa_wspx_b.lua | wspb | timeout=300
+zedqa_window_saved_pos.lua | wsp | timeout=300

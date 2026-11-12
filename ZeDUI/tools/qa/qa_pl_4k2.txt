@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/qa_pl_4k2.txt (Nov 11 2026, QA): the Animals scripts 35 squares from the farm, and the rechecks (fixed), at 4K
+zedqa_animals_quick_far.lua | aq | timeout=900
+zedqa_animals_quick_more.lua | aq2 | timeout=900
+zedqa_recheck_tabs.lua | rct | timeout=600

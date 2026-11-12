@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/qa_pl_de.txt (Nov 11 2026, QA): the Animals band in German at 4K (options.ini language=DE for the run; zedqa_animals_de_run.ps1)
+zedqa_inv_cleanup.lua | icl | timeout=60
+zedqa_animals_quick_more.lua | aq2 | timeout=900

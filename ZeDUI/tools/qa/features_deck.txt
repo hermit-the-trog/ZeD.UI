@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/features_deck.txt (Nov 11 2026, QA): the same at the Deck, Normal text (health_dot_deck.txt's three pins run is the hdot line)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_view_toggle.lua | vtg | timeout=600
+zedqa_footer_picked.lua | fpk | timeout=300
+zedqa_health_dot.lua | hdot | timeout=300
+zedqa_blink_option.lua | blk | timeout=120

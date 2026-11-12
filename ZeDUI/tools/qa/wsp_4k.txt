@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/wsp_4k.txt (Nov 11 2026, QA): saved window positions at 4K, then saved for the Deck launch
+zedqa_wsp_unpause.lua | wspu | timeout=60
+zedqa_window_saved_pos.lua | wsp | timeout=300
+zedqa_wspx_a.lua | wspa | timeout=300

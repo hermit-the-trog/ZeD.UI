@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/features_4k2.txt (Nov 11 2026, QA): the health pixel and the Blink option at 4K (the first features_4k run timed out in zedqa_grid.lua)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_health_dot.lua | hdot | timeout=300
+zedqa_blink_option.lua | blk | timeout=120

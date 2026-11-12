@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/cinema_laura3.txt  (Nov 11 2026): Laura Craft's two new cinema shots (forage, fishing), 4K, Rosa shot save
+#   cinema_run_laura3.ps1
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60
+gallery_cinema_laura3.lua | clau2 | timeout=900
+gallery_t14_end.lua | g14e | timeout=60

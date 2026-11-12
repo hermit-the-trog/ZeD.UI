@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/qa_pl_deck_large.txt (Nov 11 2026, QA): the Fishing tab and the inventory Filter at the Deck with Large text
+zedqa_large_text.lua | ltx | timeout=120
+zedqa_fishing_tab.lua | ft | timeout=600
+zedqa_inventory_filter.lua | flt | timeout=600

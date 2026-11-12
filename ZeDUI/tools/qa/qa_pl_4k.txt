@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/qa_pl_4k.txt (Nov 11 2026, QA): punch lists 167, 168, 169 and the tab review rechecks at 4K, one launch (ftr first: the live run's catch out, after a fresh start)
+zedqa_fishing_tab.lua | ft | timeout=600
+zedqa_animals_quick.lua | aq | timeout=900
+zedqa_animals_quick_more.lua | aq2 | timeout=900
+zedqa_inventory_filter.lua | flt | timeout=600
+zedqa_recheck_tabs.lua | rct | timeout=600

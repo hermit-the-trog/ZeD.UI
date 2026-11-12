@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/qa_pl_deck.txt (Nov 11 2026, QA): the same at the Deck (1280x800, Auto, Normal text)
+zedqa_fishing_tab.lua | ft | timeout=600
+zedqa_animals_quick_far.lua | aq | timeout=900
+zedqa_animals_quick_more.lua | aq2 | timeout=900
+zedqa_inventory_filter.lua | flt | timeout=600

@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/zedqa_fishing_tab_live.txt (Nov 11 2026, QA, punch list 167): the Fishing tab live at the shore; needs release_check_mouse.ps1 beside the game
+zedqa_fishing_tab_live.lua | ftl | timeout=1500

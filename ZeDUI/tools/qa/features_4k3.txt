@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/features_4k3.txt (Nov 11 2026, QA): the Filter bar's magnifier at 4K
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_inventory_filter.lua | flt | timeout=600

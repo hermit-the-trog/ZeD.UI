@@ -1,0 +1,5 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_ts_journal.lua | tsj1 | timeout=60
+zedqa_tab_search.lua | ts | timeout=600
+zedqa_ts_journal.lua | tsj2 | timeout=60
+zedqa_journal_tags.lua | jtag | timeout=600

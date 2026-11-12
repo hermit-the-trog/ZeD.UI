@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/features_4k.txt (Nov 11 2026, QA): the new features at 4K (search magnifier = the Filter bar; one view button; the footer count; the health pixel; the Blink option)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_view_toggle.lua | vtg | timeout=600
+zedqa_footer_picked.lua | fpk | timeout=300
+zedqa_grid.lua | grd | timeout=300
+zedqa_inventory_filter.lua | flt | timeout=600
+zedqa_health_dot.lua | hdot | timeout=300
+zedqa_blink_option.lua | blk | timeout=120
