@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Fishing Tab</title>
+<!-- ZeD-GUI mockup: the World window's contextual Fishing tab (punch list 167, beta 12), v1.
+     Chrome and tokens copied from zed_identity_v2.html (window, title chip, sections, help band) and
+     zed_tooltips_balloon_v1.html (keycaps, grooves); layout after ForagingTab.lua (pinned header strip,
+     hero band, More detail fold, list, band at the foot) and the shipped World window strip.
+     Game data: media/lua/shared/Fishing/{fishing_properties,FishingUtils,FishingRod,Fish,Bobber}.lua,
+     client/Fishing/FishingStates.lua, client/PZAPI/ui/organisms/FishWindow.lua,
+     client/ISUI/ISInventoryPaneContextMenu.lua (addFishRodOptions), shared/TimedActions/Fishing/*.
+     Units: 1 CSS px here = 1 ZeD unit; the game draws 1 unit as 1.75 screen pixels at 4K. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #47a18c; --acc-text: var(--accent); --on-accent: #0c0c0c;
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a; --gold: #d4a63a;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --page: #0e0f10; --grass: #3b4527; --grass2: #36401f; --water: #26414c; --water2: #2a4752;
+}
+:root[data-theme="light"] { --acc-text: color-mix(in srgb, var(--accent) 70%, #000); --on-accent: #fff;
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84;
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48; --gold: #8a6a10;
+}
+:root[data-theme="hc"] {
+  --base: #000; --surface-1: #0a0a0a; --surface-2: #141414; --surface-3: #262626;
+  --border: rgba(255,255,255,0.45); --border-strong: rgba(255,255,255,0.85);
+  --text: #fff; --text-secondary: rgba(255,255,255,0.80); --text-heading: #fff; --stripe-1: #444; --stripe-2: #111;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: 15px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: center; padding: 8px 16px;
+  font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 5; }
+.review b { color: #ddd; font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+
+.stage { display: flex; justify-content: center; padding: 16px; overflow: hidden; }
+.stage.actual { overflow: auto; justify-content: flex-start; }
+.zoomer { transform-origin: top left; }
+.notes { max-width: 980px; margin: 0 auto; padding: 4px 16px 48px; color: #c8c8c8; font-size: 15px; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: #8fc9b9; margin: 18px 0 8px; }
+.notes p { margin: 0 0 8px; max-width: 80ch; }
+.notes ol, .notes ul { margin: 0 0 8px; padding-left: 20px; max-width: 84ch; }
+.notes li { margin-bottom: 4px; }
+.notes code { font-family: var(--font-mono); font-size: 13px; color: #e6e6e6; }
+
+/* ---------- the screen (Screen view) */
+.screen { position: relative; width: 2194px; height: 1234px; background: var(--grass); overflow: hidden; }
+.screen .river { position: absolute; inset: 0; background: var(--water); clip-path: polygon(58% 0, 100% 0, 100% 100%, 34% 100%, 46% 62%, 52% 30%); }
+.screen .bank { position: absolute; inset: 0; background: var(--grass2); clip-path: polygon(54% 0, 58% 0, 52% 30%, 46% 62%, 34% 100%, 30% 100%, 42% 62%, 48% 30%); }
+.screen .who { position: absolute; left: 1020px; top: 620px; width: 14px; height: 30px; background: #6a6a70; border: 1px solid #000; }
+.screen .bob { position: absolute; left: 1210px; top: 470px; width: 8px; height: 8px; background: #c03a2a; border: 1px solid #000; }
+.screen .rodph { position: absolute; left: 50%; transform: translateX(-50%); bottom: 104px; width: 420px; height: 150px; border: 1px solid rgba(255,255,255,.35);
+  background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; text-align: center; font: 400 14px/1.4 var(--font-mono); color: #ddd; padding: 12px; }
+.screen .beltph { position: absolute; left: 50%; transform: translateX(-50%); bottom: 24px; width: 560px; height: 64px; border: 1px solid rgba(255,255,255,.35);
+  background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; font: 400 14px/1 var(--font-mono); color: #ddd; }
+.screen .winat { position: absolute; left: 24px; top: 24px; }
+
+/* ---------- ZeD window chrome (from zed_identity_v2.html) */
+.win { display: flex; flex-direction: column; background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); width: 518px; }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px; position: relative;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); flex: 0 0 12px; }
+.titlechip { position: absolute; left: 50%; transform: translateX(-50%); background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: 13px; line-height: 22px; color: var(--acc-text); white-space: nowrap; }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.wbody { display: flex; height: 664px; }
+.drawer { width: 480px; flex: 0 0 480px; display: flex; flex-direction: column; min-height: 0; position: relative; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+
+/* the tab strip on the window's side (as shipped: icons in a column, groups split by a groove) */
+.strip { width: 36px; flex: 0 0 36px; border-left: 1px solid var(--border); display: flex; flex-direction: column; align-items: stretch; padding-top: 2px; }
+.strip .t { height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); position: relative; }
+.strip .t.on { background: var(--accent); color: var(--on-accent); }
+.strip .t.ctx::after { content: ""; position: absolute; left: 3px; top: 3px; width: 3px; height: 3px; background: currentColor; opacity: .7; }
+.strip .gap { height: 0; border-top: 1px solid var(--border); margin: 4px 6px; }
+.strip svg { display: block; }
+
+/* ---------- drawer parts */
+.hdr { height: 30px; flex: 0 0 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--border); }
+.state { display: inline-flex; align-items: center; gap: 6px; font: 700 12px/1 var(--font-mono); color: var(--text); }
+.dot { width: 7px; height: 7px; flex: 0 0 7px; background: var(--text-secondary); display: inline-block; }
+.dot.pos { background: var(--positive); } .dot.acc { background: var(--accent); } .dot.warn { background: var(--warning); } .dot.bad { background: var(--danger); } .dot.dim { background: transparent; border: 1px solid var(--text-secondary); }
+.hdr .r { margin-left: auto; font: 400 12px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; }
+
+/* the progress band (item card scaffold: accent, danger by class flip) */
+.pband { display: flex; align-items: center; gap: 10px; height: 26px; padding: 0 12px; background: color-mix(in srgb, var(--accent) 22%, var(--surface-1)); border-bottom: 1px solid var(--border);
+  font: 700 12px/1 var(--font-mono); color: var(--acc-text); text-transform: uppercase; letter-spacing: .06em; }
+.pband.danger { background: color-mix(in srgb, var(--danger) 22%, var(--surface-1)); color: var(--danger); }
+.pband .r { margin-left: auto; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text); }
+
+.hero { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+.hero .pic { width: 64px; flex: 0 0 64px; display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; }
+.iconbox { width: 44px; height: 44px; background: var(--surface-3); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; }
+.hero .info { flex: 1; min-width: 0; padding: 8px 10px 10px 0; }
+.hero .name { font: 600 16px/1.2 var(--font-sans); color: var(--text); margin-bottom: 6px; }
+.kv { display: grid; grid-template-columns: 44px 1fr; gap: 3px 8px; align-items: center; }
+.kv dt { font: 400 12px/18px var(--font-mono); color: var(--text-secondary); }
+.kv dd { margin: 0; display: flex; align-items: center; gap: 6px; font: 400 14px/18px var(--font-sans); min-width: 0; }
+.kv dd .sub { color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; }
+.kv dd.bad { color: var(--danger); }
+.bar { width: 64px; height: 6px; background: var(--surface-3); position: relative; flex: 0 0 64px; }
+.bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); opacity: .85; }
+.bar.warn > i { background: var(--warning); }
+.num { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text); }
+.hero .skill { width: 112px; flex: 0 0 112px; border-left: 1px solid var(--border); padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
+.skill .lab { font: 700 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--text-heading); }
+.skill .lv { font: 600 16px/1 var(--font-sans); color: var(--acc-text); font-variant-numeric: tabular-nums; }
+.skill .lv span { font: 400 12px/1 var(--font-mono); color: var(--text-secondary); margin-left: 4px; }
+.pips { display: flex; gap: 2px; }
+.pips i { width: 7px; height: 7px; border: 1px solid var(--border-strong); }
+.pips i.f { background: var(--accent); border-color: var(--accent); }
+.pips i.p { background: linear-gradient(to right, var(--accent) 0 62%, transparent 62%); }
+.skill .xp { font: 400 11px/1.3 var(--font-mono); color: var(--text-secondary); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 12px 8px; border-bottom: 1px solid var(--border); }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 6px; background: var(--surface-2); border: 1px solid var(--border); font: 400 12px/16px var(--font-mono); color: var(--text); white-space: nowrap; }
+.chip .k { color: var(--text-secondary); }
+
+.sec { padding: 6px 12px 4px; background: var(--surface-1); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--text-heading); display: flex; align-items: center; gap: 6px; }
+.sec .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.sec.fold { cursor: pointer; }
+.tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-heading); display: inline-block; }
+.tri.shut { border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid var(--text-heading); border-right: 0; }
+
+.rows { display: flex; flex-direction: column; }
+.row { position: relative; display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 12px; font: 400 14px/1 var(--font-sans); cursor: default; }
+.row.sel { background: var(--accent); color: var(--on-accent); }
+.row.sel .dim, .row.sel .num { color: var(--on-accent); }
+.row .dim { color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; }
+.row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .w { width: 44px; text-align: right; }
+.row .tm { width: 40px; flex: 0 0 40px; }
+.row .bt { width: 70px; flex: 0 0 70px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; font: 400 11px/14px var(--font-mono); padding: 0 5px; border: 1px solid currentColor; white-space: nowrap; }
+.row.sel .tag { color: var(--on-accent); }
+.colhead { display: flex; gap: 8px; padding: 4px 12px 2px; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); }
+.colhead .grow { flex: 1; } .colhead .w { width: 44px; text-align: right; } .colhead .tm { width: 40px; } .colhead .bt { width: 70px; }
+.empty { padding: 8px 12px 10px; font: 400 14px/1.4 var(--font-sans); color: var(--text); }
+.empty.bad { color: var(--danger); }
+
+.facts { display: grid; grid-template-columns: 150px 1fr; gap: 4px 10px; padding: 8px 12px 10px; }
+.facts dt { font: 400 12px/18px var(--font-mono); color: var(--text-secondary); }
+.facts dd { margin: 0; font: 400 14px/18px var(--font-sans); }
+.facts dd .sub { color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; }
+
+.groups { display: grid; grid-template-columns: 84px 1fr; gap: 3px 10px; padding: 8px 12px 10px; }
+.groups dt { font: 700 12px/18px var(--font-mono); color: var(--text-heading); }
+.groups dd { margin: 0; font: 400 14px/18px var(--font-sans); }
+.where { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 10px; }
+.where .w1 { display: flex; gap: 8px; align-items: flex-start; font: 400 14px/1.35 var(--font-sans); }
+.where .w1 b { font: 700 12px/18px var(--font-mono); color: var(--acc-text); flex: 0 0 96px; font-weight: 700; }
+
+/* tension block */
+.tens { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--border); }
+.tens .lrow { display: flex; align-items: baseline; gap: 8px; }
+.tens .lab { font: 700 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--text-heading); }
+.tens .val { margin-left: auto; font: 700 14px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.tbar { position: relative; height: 14px; background: var(--surface-3); border: 1px solid var(--border-strong); }
+.tbar > i { position: absolute; left: 0; top: 0; bottom: 0; }
+.tbar .mk { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--text); }
+.tscale { position: relative; height: 12px; font: 400 11px/12px var(--font-mono); color: var(--text-secondary); }
+.tscale span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.tscale span.l { transform: none; } .tscale span.rt { transform: translateX(-100%); }
+.hbar { position: relative; height: 6px; background: var(--surface-3); }
+.hbar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--danger); }
+.tline { font: 400 14px/1.35 var(--font-sans); }
+.tline .k { font: 400 12px var(--font-mono); color: var(--text-secondary); margin-right: 6px; }
+
+.helpband { min-height: 28px; display: flex; align-items: center; padding: 5px 12px; background: var(--surface-2); border-top: 1px solid var(--border); font-size: 14px; line-height: 1.3; color: var(--text-secondary); }
+
+/* the band at the foot: status left, keycaps right, default rightmost */
+.foot { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 10px 7px 12px; background: var(--surface-2); border-top: 1px solid var(--border-strong); min-height: 38px; }
+.foot .st { flex: 1; min-width: 0; font: 400 12px/1.3 var(--font-mono); color: var(--text-secondary); }
+.btn { position: relative; padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/16px var(--font-mono); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn:disabled { cursor: default; color: color-mix(in srgb, var(--text) 40%, transparent); border-color: color-mix(in srgb, var(--border-strong) 50%, transparent); }
+.btn:disabled::before { border-color: color-mix(in srgb, var(--border-strong) 50%, transparent); }
+.btn:hover:not(:disabled) { color: var(--acc-text); }
+.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 14px; padding: 0 3px; background: var(--text); color: var(--base); font: 700 10px/14px var(--font-mono); border-radius: 2px; }
+
+/* controller highlight: the pointing hand at the left of the focused control */
+.hand { position: absolute; left: -9px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 3; }
+.foot .btn .hand { left: -14px; }
+.row.pf { padding-left: 22px; } .row.pf > .hand, .sec.pf > .hand { left: 3px; } .sec.pf { padding-left: 22px; }
+dl { margin: 0; }
+.btn.pf { margin-left: 14px; }
+.px { image-rendering: pixelated; shape-rendering: crispEdges; display: block; }
+</style>
+</head>
+<body>
+
+<div class="review" id="review"></div>
+<div class="stage" id="stage"><div class="zoomer" id="zoomer"></div></div>
+
+<div class="notes" id="notes"></div>
+
+<script>
+/* ======================================================================
+   Pixel icons (ZeD draws item and tab icons as pixel art; these stand in)
+   ====================================================================== */
+const PAL = {
+  k: "#c8b07a", g: "#7f858c", s: "#d0d4d8", b: "#8a5a2b", y: "#9aab62", d: "#6c7a3e", e: "#111", o: "#c98a3a",
+  p: "#cf8a86", q: "#9a5050", c: "#7a6a32", l: "#3a3020", j: "#b8c84a", h: "#bcbcbc", w: "#e2e2da", r: "#c03a2a",
+  m: "#4a7a3a", n: "#2f5a2a", t: "#9aa0a6", u: "#5a6066", "#": "#111", W: "#f4f4f4", v: "#8fa7b8", x: "currentColor"
+};
+const ICON = {
+  rod: ["...........k","..........k.",".........k..","........k...",".......k....","......k.....",".....k......","..ggk.......",".gsgb.......",".ggb........","..bb........",".bb........."],
+  line: ["............","..bbbbbbbb..","...wwwwww...","...wvwwvw...","...wwwwww...","...wvwwvw...","...wwwwww...","..bbbbbbbb..","............","............","............","............"],
+  hook: ["............",".....ss.....",".....s.s....",".....ss.....","......s.....","......s.....","......s.....","..s...s.....","..ss..s.....","...s.s......","....s.......","............"],
+  worm: ["............","............","............","........pp..",".......p..p.","..pp..p...q.",".p..pp......",".q..........","............","............","............","............"],
+  cricket: ["............","..l.....l...","...l...l....","....cccc....","...cccccc...","..ccccccccl.","...cccccc...","..l.l..l.l..",".l..l..l..l.","............","............","............"],
+  jig: ["............","..hh........",".hhhh.......",".hhhhjjjj...","..hhjjjjjjj.",".....jjjjj.j","..s.........","..ss........","...s........","............","............","............"],
+  fish: ["............","............","...yyyy.....","..yyyyyy..y.",".yeyyyyyyyy.",".yyyddyyyyy.","..dddddd..y.","...dddd.....","............","............","............","............"],
+  perch: ["............","............","...oooo.....","..oyoyoo..o.",".oeoyoyoooo.",".ooyoyoyooo.","..dddddd..o.","...dddd.....","............","............","............","............"],
+  bass: ["............","............","..yyyyy.....",".yyyyyyyy.y.","yeyyyyyyyyy.","ydddyyyyyyy.",".dddddddd.y.","..ddddd.....","............","............","............","............"],
+  cat: ["............","............","...tttt.....","..tttttt..t.","utettttttt..","u.tuuuuttt..","..uuuuuu..t.","...uuuu.....","............","............","............","............"],
+  weed: ["............","...m....m...","...m...m....","....m..m..m.","....m.m..m..","..m.mm..m...","...mn..m....","....nnm.....","....nn......","...nnnn.....","............","............"],
+  gone: ["............","............","............","............","............","...uuuuuu...","............","............","............","............","............","............"],
+  bobber: [".....u......",".....u......","....rrr.....","...rrrrr....","...wwwww....","....www.....",".....u......","............","............","............","............","............"],
+  /* tab strip glyphs, drawn in the strip's text color */
+  tLoot: ["..........",".xxxxxxxx.",".x......x.",".xxxxxxxx.",".x..xx..x.",".x......x.",".x......x.",".xxxxxxxx.","..........",".........."],
+  tCraft: ["..........",".xxxxx....",".xxxxxx...","...xx.....","...xx.....","...xx.....","...xx.....","...xx.....","..........",".........."],
+  tBuild: ["..........","xxxxxxxxxx","x...x....x","xxxxxxxxxx","x.....x..x","xxxxxxxxxx","x..x.....x","xxxxxxxxxx","..........",".........."],
+  tFurn: ["..........",".x........",".x........",".x........",".xxxxxxx..",".x.....x..",".x.....x..",".x.....x..","..........",".........."],
+  tMaps: ["..........","xx..xx..xx","x.xx..xx.x","x..x...x.x","x..x...x.x","x..x...x.x","x.xx..xx.x","xx..xx..xx","..........",".........."],
+  tForage: ["......xxx.","....xx..x.","...x...x..","..x...x...","..x..x.x..","..x.x..x..","...xxxx...","..x.......",".x........",".........."],
+  tAnimals: ["..........",".x..x..x..",".x..x..x..","..........","...xxxx...","..xxxxxx..","..xxxxxx..","...xxxx...","..........",".........."],
+  tFish: ["..........","..........","...xxxx...","..xxxxxx.x",".x.xxxxxx.",".xxxxxxxx.","..xxxxxx.x","...xxxx...","..........",".........."],
+  hand: ["....##########.","...#WWWWWWWWWW#","##.#WWW########","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWWWWWW#...","##.#WWWWWWW#...","....#######...."]
+};
+function px(name, scale) {
+  const m = ICON[name]; const h = m.length, w = m[0].length; let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const ch = m[y][x]; if (ch === ".") continue;
+    r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`;
+  }
+  return `<svg class="px" width="${w * scale}" height="${h * scale}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+
+/* ======================================================================
+   Game data (Build 42, 42.22): what the tab reads
+   ====================================================================== */
+const ROD = { name: "Fishing Rod", cond: 80, line: "Fishing Line", lineCond: 82, hook: "Fishing Hook" };
+const SKILL = { lv: 4, xp: 62 };   // Fishing 4: Time and Temperature readable (FishWindow gates 2/4/6/8)
+const BAITS = [
+  { id: "worm", icon: "worm", name: "Worm", n: 6, where: "Fishing Satchel" },
+  { id: "cricket", icon: "cricket", name: "Cricket", n: 2, where: "Fishing Satchel" },
+  { id: "jig", icon: "jig", name: "Jig Lure", n: 1, where: "Tacklebox", lure: true },
+];
+// The catch: the game's own names ("Medium Yellow Perch - 19cm", IGUI_Fish_<Size> + name + length),
+// weights as the game carries them (kg x 2.2), Fishing 4 near shore, species up to 2.3 kg.
+const LOG = [
+  { t: "05:12", icon: "fish", name: "Small Bluegill - 12cm", wt: "0.42", bait: "Worm" },
+  { t: "05:26", icon: "gone", name: "No catch", wt: "", bait: "Worm", gone: true },
+  { t: "05:41", icon: "perch", name: "Medium Yellow Perch - 19cm", wt: "0.71", bait: "Worm" },
+  { t: "05:58", icon: "weed", name: "Seaweed", wt: "0.10", bait: "Worm", junk: true },
+  { t: "06:15", icon: "bass", name: "Small Smallmouth Bass - 17cm", wt: "0.66", bait: "Worm" },
+  { t: "06:33", icon: "fish", name: "Small Bluegill - 11cm", wt: "0.31", bait: "Cricket" },
+  { t: "06:50", icon: "gone", name: "No catch", wt: "", bait: "Cricket", gone: true },
+  { t: "07:04", icon: "cat", name: "Small Channel Catfish - 14cm", wt: "0.48", bait: "Worm" },
+];
+
+const STATES = [
+  ["ready", "1. Ready to cast"], ["wait", "2. Line in the water"], ["fight", "3. Fish on"],
+  ["nobait", "4. No bait"], ["log", "5. Catch log"]
+];
+const S = { st: "ready", theme: "dark", input: "pad", view: "window", onHook: "worm", sel: "cricket", fold: false, focus: null, msg: "" };
+const DEFAULT_FOCUS = { ready: "bait-cricket", wait: "btn-reel", fight: "btn-reel", nobait: "btn-search", log: "btn-cast" };
+
+/* ======================================================================
+   Pieces
+   ====================================================================== */
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const f = id => `data-f="${id}"`;
+function badge(g) { return S.input === "pad" && g ? `<span class="badge">${g}</span>` : ""; }
+function btn(id, label, opts = {}) {
+  const cls = ["btn"]; if (opts.def) cls.push("default"); if (opts.danger) cls.push("danger");
+  return `<button class="${cls.join(" ")}" ${f(id)} data-act="${id}" ${opts.dis ? "disabled" : ""}>${badge(opts.pad)}${esc(label)}</button>`;
+}
+function baitName() {
+  if (S.st === "nobait") return null;
+  return BAITS.find(b => b.id === S.onHook).name;
+}
+
+function hero() {
+  const bait = baitName();
+  const b = BAITS.find(x => x.id === S.onHook);
+  const lineCond = S.st === "fight" ? 79 : ROD.lineCond;
+  const rodName = bait ? `${ROD.name} with ${bait}` : ROD.name;   // the game renames the rod: UI_AttachLure_With
+  const more = b ? (b.lure ? `not used up` : `${b.n} in your bags`) : "";
+  const pips = Array.from({ length: 10 }, (_, i) => `<i class="${i < SKILL.lv ? "f" : (i === SKILL.lv ? "p" : "")}"></i>`).join("");
+  return `<div class="hero">
+    <div class="pic"><div class="iconbox">${px("rod", 3)}</div></div>
+    <div class="info">
+      <div class="name">${esc(rodName)}</div>
+      <dl class="kv">
+        <dt>Rod</dt><dd><span class="bar"><i style="width:${ROD.cond}%"></i></span><span class="num">${ROD.cond}%</span></dd>
+        <dt>Line</dt><dd>${esc(ROD.line)} <span class="bar ${lineCond < 80 ? "warn" : ""}"><i style="width:${lineCond}%"></i></span><span class="num">${lineCond}%</span></dd>
+        <dt>Hook</dt><dd>${esc(ROD.hook)}</dd>
+        <dt>Bait</dt>${bait ? `<dd>${esc(bait)} <span class="sub">${more}</span></dd>` : `<dd class="bad"><span class="dot bad"></span>None on the hook <span class="sub">0 in your bags</span></dd>`}
+      </dl>
+    </div>
+    <div class="skill">
+      <div class="lab">Fishing</div>
+      <div class="lv">${SKILL.lv}<span>of 10</span></div>
+      <div class="pips">${pips}</div>
+      <div class="xp">${SKILL.xp}% to 5</div>
+    </div>
+  </div>`;
+}
+
+function chips() {
+  // the game's own words and gates (FishWindow): Time from Fishing 2, Temperature 4, Weather 6, Wind 8
+  return `<div class="chips">
+    <span class="chip"><span class="dot acc"></span>River</span>
+    <span class="chip"><span class="dot dim"></span>Near shore</span>
+    <span class="chip"><span class="k">Time</span><span class="dot pos"></span>Good</span>
+    <span class="chip"><span class="k">Temperature</span><span class="dot"></span>Normal</span>
+    <span class="chip"><span class="k">Weather</span><span class="dot dim"></span>Unknown</span>
+    <span class="chip"><span class="k">Wind</span><span class="dot dim"></span>Unknown</span>
+  </div>`;
+}
+
+function baitList(lock) {
+  const total = BAITS.reduce((a, b) => a + b.n, 0);
+  const rows = BAITS.map(b => {
+    const sel = !lock && S.sel === b.id;
+    const on = S.onHook === b.id;
+    return `<div class="row ${sel ? "sel" : ""}" ${lock ? "" : f("bait-" + b.id)} data-bait="${b.id}">
+      ${px(b.icon, 1.5)}<span class="grow">${esc(b.name)}</span>
+      ${on ? `<span class="tag">On the hook</span>` : ""}
+      ${b.lure ? `<span class="tag" style="color:var(--text-secondary)">Lure</span>` : ""}
+      <span class="dim">${esc(b.where)}</span><span class="num w">${b.n}</span></div>`;
+  }).join("");
+  return `<div class="sec">BAIT IN YOUR BAGS<span class="r">${BAITS.length} kinds | ${total}</span></div>
+    <div class="colhead"><span class="grow">Bait</span><span>In</span><span class="w">Count</span></div>
+    <div class="rows">${rows}</div>`;
+}
+
+function logRows(list, focusable) {
+  return list.map((c, i) => `<div class="row" ${focusable ? f("log-" + i) : ""}>
+      <span class="num tm dim">${c.t}</span>${px(c.icon, 1.5)}
+      <span class="grow" style="${c.gone ? "color:var(--text-secondary)" : ""}">${esc(c.name)}</span>
+      ${c.junk ? `<span class="tag" style="color:var(--text-secondary)">Junk</span>` : ""}
+      <span class="dim bt">${esc(c.bait)}</span><span class="num w">${c.wt || "-"}</span></div>`).join("");
+}
+function logSection(n, full) {
+  const list = LOG.slice(0, n);
+  const fish = list.filter(c => !c.gone && !c.junk).length;
+  return `<div class="sec">CATCH THIS TRIP<span class="r">${fish} fish</span></div>
+    <div class="colhead"><span class="tm">Time</span><span class="grow" style="padding-left:26px">Catch</span><span class="bt">Bait</span><span class="w">Wt</span></div>
+    <div class="rows">${logRows(list.slice().reverse(), full)}</div>`;
+}
+
+function detail() {
+  const head = `<div class="sec fold" ${f("fold")} data-act="fold"><span class="tri ${S.fold ? "" : "shut"}"></span>MORE DETAIL<span class="r">what Fishing ${SKILL.lv} gives</span></div>`;
+  if (!S.fold) return head;
+  // Fishing.Utils.skillSizeLimit, fishSizeChancesBySkillLevel (near shore halves Medium and Big),
+  // FishingRod:consumeLure, Fish:getFishByLure (cleanFactor), FishingRod:getSpawnBobberCoords, Fish:createFish (trophy)
+  return head + `<dl class="facts">
+    <dt>Species you can hook</dt><dd>Up to 2.3 kg <span class="sub">Fishing 5: 2.8 kg</span></dd>
+    <dt>Sizes</dt><dd>Small 60 | Medium 30 | Big 10 <span class="sub">near shore 80 | 15 | 5</span></dd>
+    <dt>Bait used up</dt><dd>3 catches in 4 <span class="sub">lures: 1 in 150</span></dd>
+    <dt>Junk</dt><dd>Full share <span class="sub">less from Fishing 5</span></dd>
+    <dt>Cast lands within</dt><dd>0.3 tiles of your aim</dd>
+    <dt>Trophy fish</dt><dd>From Fishing 8</dd>
+    <dt>You can read</dt><dd>Time, Temperature <span class="sub">Weather at 6, Wind at 8</span></dd>
+  </dl>`;
+}
+
+function tension() {
+  const v = 86;   // FishingRod:getTension, 0 to 1 (below 0 slack, past 1 it snaps)
+  const col = v >= 80 ? "var(--danger)" : v >= 50 ? "var(--gold)" : "var(--accent)";
+  return `<div class="tens">
+    <div class="lrow"><span class="lab">Tension</span><span class="val" style="color:${col}">${v}%</span></div>
+    <div class="tbar"><i style="width:${v}%;background:${col}"></i><span class="mk" style="left:80%"></span></div>
+    <div class="tscale"><span class="l" style="left:0">Slack</span><span style="left:50%">Tight</span><span style="left:80%">Line wears</span><span class="rt" style="left:100%">Snaps</span></div>
+    <div class="lrow" style="margin-top:2px"><span class="lab">Held at the limit</span><span class="val" style="color:var(--text);font-weight:400;font-size:12px">45%</span></div>
+    <div class="hbar"><i style="width:45%"></i></div>
+    <div class="tline"><span class="k">Fish</span>Unknown until landed</div>
+    <div class="tline"><span class="k">Line</span>Wearing while the tension is past 80%: 82% to 79% so far</div>
+  </div>`;
+}
+
+function drawer() {
+  const st = S.st;
+  let hdr, band = "", body = "", foot = "", help = "";
+  const where = `<span class="r">Water 5 tiles N</span>`;
+  if (st === "ready") {
+    hdr = `<span class="state"><span class="dot acc"></span>Ready to cast</span>${where}`;
+    body = hero() + chips() + baitList(false) + logSection(3, false) + detail();
+    const pick = BAITS.find(b => b.id === S.sel);
+    foot = `<span class="st">${S.msg || "Aim at the water, 16 tiles at most."}</span>
+      ${btn("btn-bait", "Change bait", { dis: S.sel === S.onHook, pad: "X" })}${btn("btn-cast", "Cast", { def: true, pad: "RT" })}`;
+    help = S.sel !== S.onHook ? `Change bait puts the ${pick.name} on the hook; the ${BAITS.find(b => b.id === S.onHook).name} goes back in the Fishing Satchel.` : "";
+  } else if (st === "wait") {
+    hdr = `<span class="state"><span class="dot acc"></span>Line in the water</span><span class="r">Bobber 7 tiles NE</span>`;
+    band = `<div class="pband">${px("bobber", 1.5)}Waiting for a bite<span class="r num">0:48 | slack</span></div>`;
+    body = hero() + chips() + baitList(true) + logSection(3, false) + detail();
+    help = "Bass, walleye, musky and gar strike only a moving line: reel a little now and then.";
+    foot = `<span class="st">Bait can change once the line is in.</span>
+      ${btn("btn-stop", "Stop fishing", { pad: "B" })}${btn("btn-reel", "Reel in", { def: true, pad: "RS" })}`;
+  } else if (st === "fight") {
+    hdr = `<span class="state" style="color:var(--danger)"><span class="dot bad"></span>Fish on</span><span class="r">Bobber 4 tiles NE</span>`;
+    band = `<div class="pband danger">Reeling<span class="r num">0:07</span></div>`;
+    body = tension() + hero() + logSection(3, false);
+    help = "Too much tension and the line breaks. The rod in your hands shows the same tension above the belt.";
+    foot = `<span class="st"></span>
+      ${btn("btn-stop", "Stop fishing", { pad: "B" })}${btn("btn-let", "Let out line", { pad: "RS" })}${btn("btn-reel", "Reel in", { def: true, pad: "RS" })}`;
+  } else if (st === "nobait") {
+    hdr = `<span class="state" style="color:var(--danger)"><span class="dot bad"></span>No bait</span>${where}`;
+    body = hero() + chips()
+      + `<div class="sec">BAIT IN YOUR BAGS<span class="r">0</span></div>
+         <div class="empty bad">Nothing in your bags works as bait. With a bare hook, only junk bites: Seaweed, Tin Can, Rag (Dirty).</div>
+         <div class="sec">WHAT FISH TAKE</div>
+         <dl class="groups">
+           <dt>Worms</dt><dd>Worm, Maggots</dd>
+           <dt>Insects</dt><dd>Cricket, Grasshopper, Cockroach, Pillbug, Termites, caterpillars</dd>
+           <dt>Leeches</dt><dd>Leech, Snail, Slug</dd>
+           <dt>Minnows</dt><dd>Little Bait Fish, Tadpole</dd>
+           <dt>Flesh</dt><dd>Crayfish, Shrimp, Fish Fillet, Canned Dog Food (Open), raw meat</dd>
+           <dt>Plants</dt><dd>Bread, Cheese, Dough, Canned Corn (Open)</dd>
+           <dt>Lures</dt><dd>Jig Lure, Minnow Lure: rarely lost</dd>
+         </dl>
+         <div class="sec">WHERE TO GET IT</div>
+         <div class="where">
+           <div class="w1"><b>Foraging</b><span>The Fish Bait category: worms, insects, snails and slugs on the ground nearby.</span></div>
+           <div class="w1"><b>Fishing Net</b><span>Set in the water, it catches Little Bait Fish, Tadpoles and Crayfish.</span></div>
+           <div class="w1"><b>Your food</b><span>Bread, Cheese, Dough or an open can of dog food work, raw.</span></div>
+         </div>`
+      + logSection(3, false);
+    foot = `<span class="st">${S.msg || "Only junk bites a bare hook."}</span>
+      ${btn("btn-cast", "Cast", { pad: "RT" })}${btn("btn-search", "Search for bait", { def: true, pad: "Y" })}`;
+  } else {
+    hdr = `<span class="state"><span class="dot acc"></span>Ready to cast</span>${where}`;
+    const fish = LOG.filter(c => !c.gone && !c.junk);
+    body = hero()
+      + `<div class="sec">THIS TRIP<span class="r">since 05:02</span></div>
+         <dl class="facts">
+           <dt>Landed</dt><dd>${fish.length} fish <span class="sub">1 junk | 2 got away</span></dd>
+           <dt>Heaviest</dt><dd>Medium Yellow Perch - 19cm <span class="sub">0.71</span></dd>
+           <dt>Total weight</dt><dd>2.68 <span class="sub">fish only</span></dd>
+           <dt>Bait used</dt><dd>4 Worm, 1 Cricket</dd>
+           <dt>Line</dt><dd>91% to 82%</dd>
+           <dt>Species found</dt><dd>6 of 21 <span class="sub">the game's own record</span></dd>
+         </dl>`
+      + logSection(LOG.length, true);
+    foot = `<span class="st">${S.msg || "The log keeps 20 catches, newest first."}</span>
+      ${btn("btn-clear", "Clear log", { pad: "X" })}${btn("btn-cast", "Cast", { def: true, pad: "RT" })}`;
+  }
+  return `<div class="drawer">
+    <div class="hdr">${hdr}</div>${band}
+    <div class="scroll">${body}</div>
+    ${help ? `<div class="helpband">${esc(help)}</div>` : ""}
+    <div class="foot">${foot}</div>
+  </div>`;
+}
+
+function strip() {
+  const t = (g, on, ctx) => `<div class="t ${on ? "on" : ""} ${ctx ? "ctx" : ""}">${px(g, 2)}</div>`;
+  return `<div class="strip">${t("tLoot")}${t("tCraft")}${t("tBuild")}${t("tFurn")}<div class="gap"></div>${t("tMaps")}${t("tForage")}${t("tAnimals")}${t("tFish", true, true)}</div>`;
+}
+
+function windowHtml() {
+  return `<div class="win" id="win">
+    <div class="titlebar"><div class="close"></div><div class="titlechip">World<span class="plus">+</span>Fishing</div></div>
+    <div class="wbody">${drawer()}${strip()}</div>
+  </div>`;
+}
+
+function screenHtml() {
+  const line = S.st === "wait" || S.st === "fight";
+  return `<div class="screen"><div class="river"></div><div class="bank"></div><div class="who"></div>${line ? `<div class="bob"></div>` : ""}
+    ${line ? `<div class="rodph">Rod in hand: ZeD's tension meter<br>(shipped, unchanged)</div>` : ""}
+    <div class="beltph">Character window belt</div>
+    <div class="winat">${windowHtml()}</div></div>`;
+}
+
+/* ======================================================================
+   Review bar, render, scale, input
+   ====================================================================== */
+function review() {
+  const b = (k, v, l) => `<button class="${S[k] === v ? "on" : ""}" data-set="${k}:${v}">${l}</button>`;
+  return `<span class="grp"><b>State</b>${STATES.map(([v, l]) => b("st", v, l)).join("")}</span>
+    <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}${b("theme", "hc", "High contrast")}</span>
+    <span class="grp"><b>Input</b>${b("input", "mouse", "Mouse")}${b("input", "pad", "Controller")}</span>
+    <span class="grp"><b>View</b>${b("view", "window", "Window, fit")}${b("view", "screen", "4K screen, fit")}${b("view", "actual", "4K at 1.75x, actual")}</span>`;
+}
+
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.getElementById("review").innerHTML = review();
+  const z = document.getElementById("zoomer");
+  z.innerHTML = S.view === "screen" ? screenHtml() : windowHtml();
+  placeHand();
+  fit();
+  document.getElementById("notes").innerHTML = notes();
+}
+
+function focusables() { return [...document.querySelectorAll("#zoomer [data-f]")].filter(el => !el.disabled); }
+function placeHand() {
+  if (S.input !== "pad") return;
+  const list = focusables();
+  if (!list.length) return;
+  let el = list.find(e => e.dataset.f === S.focus);
+  if (!el) { el = list.find(e => e.dataset.f === DEFAULT_FOCUS[S.st]) || list[0]; S.focus = el.dataset.f; }
+  el.style.position = "relative";
+  if (el.classList.contains("row") || el.classList.contains("sec") || el.classList.contains("btn")) el.classList.add("pf");
+  el.insertAdjacentHTML("beforeend", `<span class="hand">${px("hand", 1)}</span>`);
+}
+
+function fit() {
+  const z = document.getElementById("zoomer"), stage = document.getElementById("stage");
+  const inner = z.firstElementChild; if (!inner) return;
+  const w = inner.offsetWidth, h = inner.offsetHeight;
+  let k;
+  if (S.view === "actual") { k = 1.75 / (window.devicePixelRatio || 1); stage.classList.add("actual"); }
+  else {
+    stage.classList.remove("actual");
+    const availW = Math.max(200, window.innerWidth - 32);
+    const availH = Math.max(200, window.innerHeight - document.getElementById("review").offsetHeight - 32);
+    k = Math.min(availW / w, availH / h);
+    if (S.view === "window") k = Math.min(k, 2.2);
+  }
+  z.style.transform = `scale(${k})`;
+  z.style.width = w + "px"; z.style.height = h + "px";
+  stage.style.height = (h * k + 32) + "px";
+  z.style.marginRight = (w * k - w) + "px";
+}
+
+function act(id) {
+  S.msg = "";
+  if (id === "btn-cast") { if (S.st !== "nobait") { S.st = "wait"; S.focus = null; } else S.msg = "Cast with a bare hook: only junk bites."; }
+  else if (id === "btn-reel") { if (S.st === "wait") S.st = "fight"; else if (S.st === "fight") { S.st = "log"; S.msg = "Landed: Small Channel Catfish - 14cm."; } S.focus = null; }
+  else if (id === "btn-let") { S.msg = ""; }
+  else if (id === "btn-stop") { S.st = "ready"; S.focus = null; }
+  else if (id === "btn-bait") { if (S.sel !== S.onHook) { S.onHook = S.sel; S.msg = "Bait changed."; } }
+  else if (id === "btn-search") { S.msg = "Opens the Foraging tab, Fish Bait chosen."; }
+  else if (id === "btn-clear") { S.msg = "Clear log asks first, in this band."; }
+  else if (id === "fold") { S.fold = !S.fold; }
+  render();
+}
+
+document.addEventListener("click", e => {
+  const set = e.target.closest("[data-set]");
+  if (set) { const [k, v] = set.dataset.set.split(":"); S[k] = v; if (k === "st") { S.focus = null; S.msg = ""; } render(); return; }
+  const a = e.target.closest("[data-act]");
+  if (a && !a.disabled) { if (a.dataset.f) S.focus = a.dataset.f; act(a.dataset.act); return; }
+  const r = e.target.closest("[data-bait]");
+  if (r && S.st === "ready") { S.sel = r.dataset.bait; S.focus = "bait-" + r.dataset.bait; render(); }
+});
+document.addEventListener("keydown", e => {
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let i = list.findIndex(el => el.dataset.f === S.focus);
+  if (["ArrowDown", "ArrowRight"].includes(e.key)) i = Math.min(list.length - 1, i + 1);
+  else if (["ArrowUp", "ArrowLeft"].includes(e.key)) i = Math.max(0, i - 1);
+  else if (e.key === "Enter" || e.key === " ") {
+    const el = list[i]; e.preventDefault();
+    if (el.dataset.bait) { S.sel = el.dataset.bait; render(); } else if (el.dataset.act) act(el.dataset.act);
+    return;
+  } else return;
+  e.preventDefault(); S.focus = list[i].dataset.f; render();
+});
+window.addEventListener("resize", fit);
+
+/* ======================================================================
+   Notes under the stage: what each state shows, the data, the questions
+   ====================================================================== */
+function notes() {
+  const per = {
+    ready: "Rod in hand, worm on the hook. The hero names the rod as the game does once bait is on (\"Fishing Rod with Worm\"), then rod and line condition, the hook and the bait with how many are left in the bags; Fishing 4 with its pips on the right. The chips are the game's own Fishing panel words with its skill gates (Time from Fishing 2, Temperature 4, Weather 6, Wind 8), so nothing is shown that the character could not know. The bait list is every bait in the bags; pick a row, then Change bait. The pad's hand is on the Cricket row.",
+    wait: "The line is out. The header gives the bobber's distance and bearing; the progress band counts the wait. The bait list locks (the game only changes bait off the water). The help band carries the one real tactic the code has: predators bite only while the line moves (Fish:getFishByLure, isReel).",
+    fight: "A fish is on. The tension block leads: the same 0 to 1 value the rod meter draws, marked where the line starts to wear (80%) and where it snaps, plus how long it has been held at the limit (the line breaks when that fills; the limit grows with Fishing and the rod). The fish stays unknown until landed, as in the game. The rod in hand above the belt stays the in-world display; this is the reading.",
+    nobait: "No bait on the hook and none in the bags. The bait row goes red; the body lists what fish take, in the game's own bait groups and item names, and where to get it: Foraging's Fish Bait category, a Fishing Net, the kitchen. Search for bait (default) opens the Foraging tab with Fish Bait chosen. Cast stays: a bare hook still works, for junk only.",
+    log: "After two hours on the bank. A facts block for the trip (landed, junk, got away, heaviest, total, bait used, line wear, species found from the game's own record of caught species), then the whole log, newest first: time, the game's catch name with size and length, the bait, the weight."
+  };
+  return `<h2>This state</h2><p>${per[S.st]}</p>
+  <h2>How it appears</h2>
+  <p>A contextual tab on the World window's strip (the fish, last in the second group, as Radio and Vehicle are): it shows while a fishing rod is in the primary hand or water is within reach, and opens itself when the line goes out if the World window is open. The title reads World + Fishing. Everything sits in one scroll; the header strip and the band at the foot are pinned, as on Foraging.</p>
+  <h2>Game data used</h2>
+  <ul>
+    <li><code>shared/Fishing/fishing_properties.lua</code>: rods, lines, hooks, the bait groups and item lists, the 21 species, junk items, the rod's name with its bait.</li>
+    <li><code>shared/Fishing/FishingUtils.lua</code>: size odds and species weight limit per level, near shore, time, temperature and weather effects.</li>
+    <li><code>shared/Fishing/FishingRod.lua</code>, <code>Bobber.lua</code>, <code>Fish.lua</code>: tension, line wear past 80%, the hold limit, bait used up, cast spread, catch names, trophies, junk with a bare hook.</li>
+    <li><code>client/Fishing/FishingStates.lua</code>: Idle, Cast, Wait, Reel in, Reel out, Pick up fish; <code>client/PZAPI/ui/organisms/FishWindow.lua</code>: the game's Fishing panel and its skill gates; <code>ISInventoryPaneContextMenu.addFishRodOptions</code>: Add Bait, Remove Bait, Change hook, Change line.</li>
+    <li>ZeD: <code>ForagingTab.lua</code> and <code>AnimalsTab.lua</code> for the layout, <code>Overrides/Fishing.lua</code> for the rod meter, which stays.</li>
+  </ul>
+  <h2>Open questions for the director</h2>
+  <ol>
+    <li>Bait ratings: show how good each bait is (the game grades them per species) only for species already caught at Fishing 6, as the game does / never / always.</li>
+    <li>The catch log: this trip only, cleared when the rod goes away / kept for the whole game, newest 20.</li>
+    <li>Opening: the tab opens itself when the line goes out / only when picked on the strip.</li>
+    <li>Fish abundance (the game tracks it per spot, chum raises it): keep it hidden as the game does / show it as a word like the weather.</li>
+  </ol>`;
+}
+
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
+</body>
+</html>
