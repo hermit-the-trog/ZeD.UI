@@ -675,9 +675,10 @@ local autoLearn = onSwitch("autoLearn", "UI_ZeD_Settings_AutoLearn", "UI_ZeD_Set
 ZeD.Settings.autoLearnOption = autoLearn
 ZeD.Settings.autoLearnOn = function() return (autoLearn:getValue() or 1) == 2 end
 
--- ----- RUN BUTTON ALSO SNEAKS (a controller, the game's Original layout) -----
--- A hold of the game's Run button (RT) with the stick at rest crouches or stands; crouched and moving, it stands up
--- and the game's run carries on; a tap stays the game's. The Default layout has no Run button: there it does nothing
+-- ----- RUN BUTTON ALSO SNEAKS (a controller, with Run on a button) -----
+-- A hold of the game's Run button (RT in the Original layout, or wherever a player's own layout puts it, never a
+-- stick click) with the stick at rest crouches or stands; crouched and moving, it stands up and the game's run carries
+-- on; a tap stays the game's. Where Run is a full push of the stick (the Default layout) it does nothing
 -- (Input/RunSneak.lua reads this every frame, so a change applies at once). Off for a new player. A way of working
 -- the pad, like the wheels' options, not an addition: the presets leave it.
 local runSneak = opts:addComboBox("runSneak", ZeD.tr("UI_ZeD_Settings_RunSneak"), ZeD.tr("UI_ZeD_Settings_RunSneakTip"))

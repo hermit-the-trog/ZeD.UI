@@ -16,10 +16,12 @@
 -- The game's Original layout (its default) puts Run on the right trigger, RT;
 -- on a pad the game runs while the stick is past its dead zone AND Run is down
 -- (CharacterInputComponent.isRunButtonDown), so a hold while moving already
--- runs, and standing still Run did nothing before. The Default layout has no
--- Run button (Run is a full push of the stick): there this file does nothing
--- at all. Run bound to L3 or R3 is left alone too: nothing here ever changes
--- state on a stick click, and the game's L3 radial menu is never touched.
+-- runs, and standing still Run did nothing before. Any layout with Run on a
+-- real button or a trigger works the same, the Original one or a player's
+-- own. The Default layout has no Run button (Run is a full push of the
+-- stick): there this file does nothing at all. Run bound to L3 or R3 is left
+-- alone too: nothing here ever changes state on a stick click, and the game's
+-- L3 radial menu is never touched.
 --
 -- Public interface:
 --   ZeD.Input.RunSneak.HOLD_MS               how long a press must last to be a hold

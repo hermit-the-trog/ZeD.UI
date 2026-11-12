@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Dødsone for hjulspak",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Hvor langt høyre spak må flyttes før et felt lyser. En spak som driver trenger et høyere tall.",
     "UI_ZeD_Settings_RunSneak": "Løp-knappen huker også",
-    "UI_ZeD_Settings_RunSneakTip": "Bare med spillets kontrolleroppsett Original, der Løp er høyre avtrekker (RT); i Standard, som ikke har en Løp-knapp, gjør den ingenting. Når du står stille, hold RT for å sette deg på huk, og hold igjen for å reise deg. I bevegelse løper RT som alltid; på huk reiser holdet deg først. Et kort trykk gjør det det alltid har gjort.",
+    "UI_ZeD_Settings_RunSneakTip": "Virker når spillets Løp ligger på en knapp, som i kontrolleroppsettet Original (Løp på høyre avtrekker, RT); gjør ingenting når Løp er å skyve spaken helt ut (oppsettet Standard). Når du står stille, hold Løp for å sette deg på huk, og hold igjen for å reise deg. I bevegelse løper Løp som alltid; på huk reiser holdet deg først. Et kort trykk gjør det det alltid har gjort.",
     "UI_ZeD_Settings_FocusStyle": "Kontrollerutheving",
     "UI_ZeD_Settings_FocusStyleTip": "Hvordan kontrolleren markerer det den står på: en pekende hånd, hjørnemerker, ett lag med aksentfargen, eller marsjerende maur.",
     "UI_ZeD_Settings_FocusHand": "Pekende hånd",

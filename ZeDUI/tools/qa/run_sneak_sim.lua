@@ -22,11 +22,13 @@
 --   EVERYWHERE the run flag is never set, L3 is never read; the run is always the game's
 --   GATES     a window holding the pad, aiming, a car, a bumper (chords), a pause, a press already held when the switch
 --             turned on, a stick let go part way, a dead player, Safe mode: nothing
---   BINDINGS  Run on RT or a face button works; on the stick (Default) or on L3 / R3: nothing
+--   BINDINGS  any layout with Run on a real button works (RT in Original, or B in a player's own layout: crouch,
+--             stand, tap, stand-run); Run on the stick (Default), on L3 or on R3: refused, nothing of ZeD's
 --   PLAYERS   split screen: two players on two pads keep their own timing; a keyboard player 1 is left alone
 --   SOURCE    ASCII only, no next(), the only state it changes is setSneaking, OnPlayerUpdate, getTimestampMs, nothing of
 --             L3, the Crouch binding or the radial menu; one handler after a reload
---   WORDS     both keys in all 28 languages, the English exact (Original only, RT, nothing on Default), AR with voseo
+--   WORDS     both keys in all 28 languages, the English exact (Run on a button works, as in Original on RT; a full
+--             stick push, the Default layout, does nothing), AR with voseo
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/run_sneak_sim.lua
 -- It prints FAIL lines and a last line "run_sneak_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -131,26 +133,28 @@ local SAFE = false
 local PAD = {}
 local L3_READS = 0   -- every read of L3 by anyone but the game's own model below
 local function pad(id)
-    PAD[id] = PAD[id] or { run = false, l3 = false, x = 0, lb = false, rb = false, dz = 0.2 }
+    PAD[id] = PAD[id] or { run = false, l3 = false, r3 = false, x = 0, lb = false, rb = false, dz = 0.2 }
     return PAD[id]
 end
 local function enum(name, isDown) return { name = name, isDown = isDown or function() return false end } end
 JoypadButton = {
     A = enum("A"), B = enum("B"),
     LeftStick = enum("LeftStick", function(_, id) L3_READS = L3_READS + 1; return PAD[id] ~= nil and PAD[id].l3 end),
-    RightStick = enum("RightStick", function() L3_READS = L3_READS + 1; return false end),
+    RightStick = enum("RightStick", function(_, id) L3_READS = L3_READS + 1; return PAD[id] ~= nil and PAD[id].r3 end),
     LeftBump = enum("LeftBump", function(_, id) return PAD[id] ~= nil and PAD[id].lb end),
     RightBump = enum("RightBump", function(_, id) return PAD[id] ~= nil and PAD[id].rb end),
 }
 JoypadAxis1d = { LeftTrigger = enum("LeftTrigger"), RightTrigger = enum("RightTrigger"), LeftStickY = enum("LeftStickY") }
 JoypadAxis2d = { LeftStick = enum("LeftStick2d"), RightStick = enum("RightStick2d") }
--- what the game's Run is on: "trigger" (Original: RT), "stick" (Default: a full push, 0.975), "button" (B),
--- "stickclick" (L3), "stickaxis" (one axis of a stick)
+-- what the game's Run is on: "trigger" (Original: RT), "stick" (Default: a full push, 0.975), "button" (B, a
+-- player's own layout), "stickclick" (L3), "stickclickR" (R3), "stickaxis" (one axis of a stick)
 local KIND_RUN = "trigger"
 local function len2(p) return p.x * p.x end
 local Run = {}
 function Run:getJoypadButton()
-    if KIND_RUN == "button" then return JoypadButton.B elseif KIND_RUN == "stickclick" then return JoypadButton.LeftStick end
+    if KIND_RUN == "button" then return JoypadButton.B
+    elseif KIND_RUN == "stickclick" then return JoypadButton.LeftStick
+    elseif KIND_RUN == "stickclickR" then return JoypadButton.RightStick end
     return nil
 end
 function Run:getJoypadAxis1d()
@@ -163,11 +167,12 @@ local function runIsDown(id)
     if not p then return false end
     if KIND_RUN == "stick" then return len2(p) >= 0.975 * 0.975 end
     if KIND_RUN == "stickclick" then return p.l3 end
+    if KIND_RUN == "stickclickR" then return p.r3 end
     if KIND_RUN == "stickaxis" then return false end
     return p.run
 end
 function Run:isDown(id)
-    if KIND_RUN == "stickclick" then L3_READS = L3_READS + 1 end
+    if KIND_RUN == "stickclick" or KIND_RUN == "stickclickR" then L3_READS = L3_READS + 1 end
     return runIsDown(id)
 end
 -- the Crouch binding is the game's (L3); the module must never read it
@@ -337,7 +342,7 @@ PLAYERS[0] = P0
 pad(0); pad(1)
 local function reset()
     for _, p in pairs(PLAYERS) do p.sneaking = false; p.aiming = false; p.vehicle = nil; p.dead = false; p.allowRun = true end
-    for _, d in pairs(PAD) do d.run = false; d.l3 = false; d.x = 0; d.lb = false; d.rb = false; d.dz = 0.2 end
+    for _, d in pairs(PAD) do d.run = false; d.l3 = false; d.r3 = false; d.x = 0; d.lb = false; d.rb = false; d.dz = 0.2 end
     FOCUS = {}; PAUSED = false; SAFE = false
     play(64)   -- a few frames with everything up, so the next press is a fresh one
     for _, p in pairs(PLAYERS) do p.calls = {}; p.runFrames = 0; p.gameToggles = 0 end
@@ -552,18 +557,45 @@ play(800); pad(0).run = false; play(48)
 check("a new character in the seat mid-hold: nothing for either", #old.calls == 0 and #fresh.calls == 0)
 PLAYERS[0] = old
 
-section("Bindings: what the game's Run is on")
+section("Bindings: any layout with Run on a real button works; a stick or a stick click does not")
 reset()
 check("runBindingKind: trigger (Original, RT)", RS.runBindingKind() == "trigger", RS.runBindingKind())
 KIND_RUN = "button"
-check("runBindingKind: button", RS.runBindingKind() == "button", RS.runBindingKind())
+check("runBindingKind: button (a player's own layout, Run on B)", RS.runBindingKind() == "button", RS.runBindingKind())
+pad(0).run = true; play(352)
+check("Run on B: no crouch before 400 ms", #P0.calls == 0)
+play(96); pad(0).run = false; play(48)
+check("Run on B: a still hold crouches", #P0.calls == 1 and P0.sneaking == true, #P0.calls)
 pad(0).run = true; play(448); pad(0).run = false; play(48)
-check("Run on a face button (a player's own layout): the hold crouches", #P0.calls == 1, #P0.calls)
+check("Run on B: a second hold stands", #P0.calls == 2 and P0.sneaking == false, #P0.calls)
+pad(0).run = true; play(208); pad(0).run = false; play(48)
+check("Run on B: a tap passes", #P0.calls == 2)
+P0.sneaking = true
+pad(0).x = 0.6; play(32)
+pad(0).run = true; play(448)
+check("Run on B: crouched and moving, the hold stands and the game runs", P0.sneaking == false and P0.running == true
+      and #P0.calls == 3 and RS.lastAction(0) == "stand-run")
+pad(0).run = false; play(32)
+check("Run on B: let go, the game's run stops", P0.running == false)
+pad(0).x = 0
 reset()
 KIND_RUN = "stickclick"
-check("runBindingKind: stickclick (L3)", RS.runBindingKind() == "stickclick", RS.runBindingKind())
+check("runBindingKind: stickclick (Run on L3)", RS.runBindingKind() == "stickclick", RS.runBindingKind())
 pad(0).l3 = true; play(1000); pad(0).l3 = false; play(48)
-check("Run on L3: holding L3 changes nothing of ZeD's", #P0.calls == 0)
+check("Run on L3: refused, holding L3 changes nothing of ZeD's", #P0.calls == 0 and RS.getState(0) == "idle")
+pad(0).x = 0.6; P0.sneaking = true; play(32)
+pad(0).l3 = true; play(1000); pad(0).l3 = false; play(48)
+check("Run on L3: crouched and moving, a hold stays the game's", P0.sneaking == true and #P0.calls == 0)
+pad(0).x = 0
+reset()
+KIND_RUN = "stickclickR"
+check("runBindingKind: stickclick (Run on R3)", RS.runBindingKind() == "stickclick", RS.runBindingKind())
+pad(0).r3 = true; play(1000); pad(0).r3 = false; play(48)
+check("Run on R3: refused, holding R3 changes nothing of ZeD's", #P0.calls == 0 and RS.getState(0) == "idle")
+pad(0).x = 0.6; P0.sneaking = true; play(32)
+pad(0).r3 = true; play(1000); pad(0).r3 = false; play(48)
+check("Run on R3: crouched and moving, a hold stays the game's", P0.sneaking == true and #P0.calls == 0)
+pad(0).x = 0
 KIND_RUN = "stickaxis"
 check("runBindingKind: one axis of a stick is a stick", RS.runBindingKind() == "stick", RS.runBindingKind())
 KIND_RUN = "trigger"
@@ -641,9 +673,10 @@ check("timed with getTimestampMs", code:find("getTimestampMs()", 1, true) ~= nil
 section("Words")
 check("English name", EN.UI_ZeD_Settings_RunSneak == "Run button also sneaks", EN.UI_ZeD_Settings_RunSneak)
 local tip = EN.UI_ZeD_Settings_RunSneakTip or ""
-check("English help: Original only, RT, nothing on Default", tip:find("Original controller layout", 1, true) ~= nil
-      and tip:find("(RT)", 1, true) ~= nil and tip:find("on Default, which has no Run button, it does nothing", 1, true) ~= nil)
-check("English help: the hold and the tap", tip:find("hold RT to crouch", 1, true) ~= nil and tip:find("A quick tap", 1, true) ~= nil)
+check("English help: Run on a button works, as in Original (RT)", tip:find("Works when the game's Run is on a button", 1, true) ~= nil
+      and tip:find("as in the Original controller layout (Run on the right trigger, RT)", 1, true) ~= nil)
+check("English help: a full stick push (Default) does nothing", tip:find("does nothing when Run is a full push of the stick (the Default layout)", 1, true) ~= nil)
+check("English help: the hold and the tap", tip:find("hold Run to crouch", 1, true) ~= nil and tip:find("A quick tap", 1, true) ~= nil)
 for _, l in ipairs(LANGS) do
     local t = UI[l] or {}
     check(l .. ": both keys", t.UI_ZeD_Settings_RunSneak ~= nil and t.UI_ZeD_Settings_RunSneakTip ~= nil)

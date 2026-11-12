@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Zona morta do manípulo",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Quanto o manípulo direito tem de se mover para acender uma fatia. Um manípulo que desvia precisa de um número maior.",
     "UI_ZeD_Settings_RunSneak": "Botão Correr também agacha",
-    "UI_ZeD_Settings_RunSneakTip": "Só com a disposição de comando Original do jogo, onde Correr é o gatilho direito (RT); em Padrão, que não tem botão Correr, não faz nada. Parado, mantém RT para te agachares e volta a mantê-lo para te levantares. Em movimento, RT corre como sempre; agachado, mantê-lo primeiro levanta-te. Um toque rápido faz o que sempre fez.",
+    "UI_ZeD_Settings_RunSneakTip": "Funciona quando Correr do jogo está num botão, como na disposição de comando Original (Correr no gatilho direito, RT); não faz nada quando Correr é empurrar o manípulo até ao fim (a disposição Padrão). Parado, mantém Correr para te agachares e volta a mantê-lo para te levantares. Em movimento, Correr corre como sempre; agachado, mantê-lo primeiro levanta-te. Um toque rápido faz o que sempre fez.",
     "UI_ZeD_Settings_FocusStyle": "Realce do comando",
     "UI_ZeD_Settings_FocusStyleTip": "Como o comando marca onde está: uma mão a apontar, marcas de canto, uma pincelada da cor de destaque ou formigas em marcha.",
     "UI_ZeD_Settings_FocusHand": "Mão a apontar",

@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Wheel stick dead zone",
     "UI_ZeD_Settings_WheelDeadZoneTip": "How far the right stick has to move before a slice lights. A stick that drifts needs a higher number.",
     "UI_ZeD_Settings_RunSneak": "Run button also sneaks",
-    "UI_ZeD_Settings_RunSneakTip": "Only with the game's Original controller layout, where Run is the right trigger (RT); on Default, which has no Run button, it does nothing. Standing still, hold RT to crouch and hold it again to stand. Moving, RT runs as always; crouched, the hold stands you up first. A quick tap does what it always did.",
+    "UI_ZeD_Settings_RunSneakTip": "Works when the game's Run is on a button, as in the Original controller layout (Run on the right trigger, RT); does nothing when Run is a full push of the stick (the Default layout). Standing still, hold Run to crouch and hold it again to stand. Moving, Run runs as always; crouched, the hold stands you up first. A quick tap does what it always did.",
     "UI_ZeD_Settings_FocusStyle": "Controller highlight",
     "UI_ZeD_Settings_FocusStyleTip": "How the controller marks the thing it is on: a pointing hand, corner marks, one wash of the accent color, or marching ants.",
     "UI_ZeD_Settings_FocusHand": "Pointing hand",

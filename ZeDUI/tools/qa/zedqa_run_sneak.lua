@@ -1,6 +1,7 @@
 -- ZeDUI/tools/qa/zedqa_run_sneak.lua  (Nov 12 2026, punch list 121)
--- Run button also sneaks (42/media/lua/client/ZeD/Input/RunSneak.lua): the game's Original controller layout only
--- (Run on RT); on the Default layout (no Run button) it does nothing at all. Two parts.
+-- Run button also sneaks (42/media/lua/client/ZeD/Input/RunSneak.lua): any layout with Run on a real button (RT in
+-- the game's Original layout, or a player's own; never a stick click); where Run is a full push of the stick (the
+-- Default layout) it does nothing at all. Two parts.
 --   A, by itself, no controller needed: the module is driven through ZeD.Input.RunSneak.qaInput on the QA character,
 --      so its timing and its one call (setSneaking) are checked in the real game: switched off, a hold does nothing;
 --      standing still, a hold crouches (not before 400 ms) and a second hold stands; a tap changes nothing; crouched

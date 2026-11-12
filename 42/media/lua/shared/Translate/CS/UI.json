@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Mrtvá zóna páčky kola",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Jak daleko musí pravá páčka vybočit, aby se výsek rozsvítil. Páčka, která ujíždí, potřebuje vyšší číslo.",
     "UI_ZeD_Settings_RunSneak": "Tlačítko Běh i krčí",
-    "UI_ZeD_Settings_RunSneakTip": "Jen s rozložením ovladače Původní, kde je Běh na pravé spoušti (RT); v rozložení Výchozí, které tlačítko Běh nemá, nedělá nic. Když stojíš, podrž RT pro skrčení a znovu pro vstání. Za pohybu RT běží jako vždy; skrčený se podržením nejdřív postavíš. Krátké klepnutí dělá to, co vždy.",
+    "UI_ZeD_Settings_RunSneakTip": "Funguje, když je Běh hry na tlačítku, jako v rozložení ovladače Původní (Běh na pravé spoušti, RT); nedělá nic, když je Běh plné vychýlení páčky (rozložení Výchozí). Když stojíš, podrž Běh pro skrčení a znovu pro vstání. Za pohybu Běh běží jako vždy; skrčený se podržením nejdřív postavíš. Krátké klepnutí dělá to, co vždy.",
     "UI_ZeD_Settings_FocusStyle": "Zvýraznění ovladače",
     "UI_ZeD_Settings_FocusStyleTip": "Jak ovladač označuje to, na čem je: ukazující ruka, rohové značky, jedno zabarvení akcentem, nebo pochodující mravenci.",
     "UI_ZeD_Settings_FocusHand": "Ukazující ruka",

@@ -3110,8 +3110,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     the hold could only work there by keeping the game's menu shut.
     The director's final ruling (Nov 12 2026): ORIGINAL LAYOUT ONLY. On Default (no Run button; the crouch button is
     L3) the feature does nothing at all: no L3 hold, the game's radial menu untouched. Why: ZeD's rule that nothing
-    changes state on L3/R3, and the game's own L3 menu stays the game's. The help line says it works with the Original
-    layout (Run on the right trigger) and does nothing on Default.
+    changes state on L3/R3, and the game's own L3 menu stays the game's. Then (Nov 12 2026): not by layout name; the
+    rule is "Run is on a real button that isn't a stick click (L3/R3)", so any such layout works, Original or a
+    player's own. The help line says it works when Run is on a button, as in the Original layout (Run on the right
+    trigger), and does nothing when Run is a full stick push (the Default layout).
     BUILT (Nov 12 2026, beta 12): Input/RunSneak.lua, on OnPlayerUpdate for each local player on a controller (its own
     pad and timing, split-screen ready) with no window or menu holding the pad. It reads the game's own Run binding and
     the game's own dead-zone test. Run held 400 ms (the game's own tap limit, same clock) with the stick at rest
@@ -3129,8 +3131,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     OnPlayerUpdate fires, then the input is read, so a run flag set on OnTick never holds and one set on OnPlayerUpdate
     does (the dropped Default build used that).
     Switch "Run button also sneaks", ZeD setup > Controls, off (UI_ZeD_Settings_RunSneak / Tip, 28 languages, machine
-    drafts). Not an addition: the presets leave it. Sim: run_sneak_sim.lua (Original, and Default as no effect at all:
-    no stance change, L3 never read, the radial menu's code untouched; the game's frame order modeled); in game:
+    drafts). Not an addition: the presets leave it. Sim: run_sneak_sim.lua (Original; a player's own layout with Run
+    on B; Run on L3 or R3 refused; Default as no effect at all: no stance change, L3 never read, the radial menu's
+    code untouched; the game's frame order modeled); in game:
     zedqa_run_sneak.lua (part A by itself through RunSneak.qaInput, part B by hand with the director's pad, both
     layouts). Not proven in game yet: the real run, stand and crouch on a pad (part B).
 122. **The survival guide stops blasting players at game start (the director, Nov 8 2026; beta 10).** "I love the survival

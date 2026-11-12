@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Dode zone wielstick",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Hoe ver de rechterstick moet bewegen voordat een segment oplicht. Een stick die drijft heeft een hoger getal nodig.",
     "UI_ZeD_Settings_RunSneak": "Rennen-knop hurkt ook",
-    "UI_ZeD_Settings_RunSneakTip": "Alleen met de controllerindeling Origineel van het spel, waar Rennen de rechtertrigger is (RT); in Standaard, zonder Rennen-knop, doet het niets. Stilstaand houd je RT vast om te hurken, en nog eens om op te staan. In beweging rent RT zoals altijd; gehurkt sta je door vasthouden eerst op. Een korte tik doet wat hij altijd deed.",
+    "UI_ZeD_Settings_RunSneakTip": "Werkt als Rennen in het spel op een knop staat, zoals in de controllerindeling Origineel (Rennen op de rechtertrigger, RT); doet niets als Rennen de stick helemaal duwen is (de indeling Standaard). Stilstaand houd je Rennen vast om te hurken, en nog eens om op te staan. In beweging rent Rennen zoals altijd; gehurkt sta je door vasthouden eerst op. Een korte tik doet wat hij altijd deed.",
     "UI_ZeD_Settings_FocusStyle": "Controllermarkering",
     "UI_ZeD_Settings_FocusStyleTip": "Hoe de controller markeert waar hij op staat: een wijzende hand, hoekmarkeringen, één veeg van de accentkleur of marcherende mieren.",
     "UI_ZeD_Settings_FocusHand": "Wijzende hand",
