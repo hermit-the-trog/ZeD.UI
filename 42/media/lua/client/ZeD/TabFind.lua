@@ -172,15 +172,21 @@ local function infoOf(item)
     local inf = _info[item]
     if inf then return inf end
     inf = { name = "", parts = {} }
-    local ok, nm = pcall(function() return item:getDisplayName() end)
-    if ok and nm then inf.name = nm end
+    -- (types checked first, never a pcall around a call that may fail: a caught Java exception
+    -- is still raised, costs a stack trace and is logged in -debug every time)
+    if not instanceof(item, "InventoryItem") then return inf end
+    inf.name = item:getDisplayName() or ""
     -- the body parts in the game's own words (BloodBodyPartType's display names, as the
-    -- game's garment window lists them); a held tool covers nothing
-    local okp, cp = pcall(function() return item:getCoveredParts() end)
-    if okp and cp then
-        for i = 0, cp:size() - 1 do
-            local okn, pn = pcall(function() return cp:get(i):getDisplayName() end)
-            if okn and pn and pn ~= "" then inf.parts[#inf.parts + 1] = pn end
+    -- game's garment window lists them). Only Clothing has getCoveredParts: a held tool, a
+    -- bag or a weapon has no such method and covers nothing.
+    if instanceof(item, "Clothing") then
+        local cp = item:getCoveredParts()
+        if cp then
+            for i = 0, cp:size() - 1 do
+                local part = cp:get(i)
+                local pn = part and part:getDisplayName()
+                if pn and pn ~= "" then inf.parts[#inf.parts + 1] = pn end
+            end
         end
     end
     if _infoN > 256 then _info, _infoN = {}, 0 end
@@ -217,13 +223,83 @@ local function wordsOfSlot(s)
     return ET and ET.wordsOf(s) or ""
 end
 
+-- The tabs refresh their data four times a second (a new table each time) with the same names
+-- and the same worn things nearly always. The matches depend only on those, so a refresh with
+-- the same ones keeps them: what each tab matched over, in a list kept on the cache, compared
+-- one by one (no strings built). True when unchanged; the list is refilled when not.
+local function put(l, v)
+    local n = l.n + 1
+    l.n = n
+    if l[n] ~= v then l[n] = v; l.changed = true end
+end
+local function begin(l) l.n, l.changed = 0, false end
+local function finish(l)
+    if #l ~= l.n then l.changed = true; for i = #l, l.n + 1, -1 do l[i] = nil end end
+    return not l.changed
+end
+-- the Skills tab: its group and skill names and its book rows' ids, in order
+local function sigSkills(l, data, training)
+    begin(l)
+    for _, g in ipairs(data and data.categories or {}) do
+        put(l, g.name)
+        for _, s in ipairs(g.skills or {}) do put(l, s.name) end
+    end
+    put(l, "|")
+    for _, t in ipairs(training or {}) do put(l, t.label) end
+    return finish(l)
+end
+-- the Equipment list: the thing in each slot, in order (false for an empty one)
+local function sigList(l, data)
+    begin(l)
+    for _, g in ipairs(data and data.groups or {}) do
+        for _, s in ipairs(g.slots or {}) do put(l, s.item or false) end
+    end
+    return finish(l)
+end
+-- the doll: every layer of every box, each box closed with a marker
+local function sigDoll(l, data)
+    begin(l)
+    local D = ZeD.EquipDoll
+    if data and D then
+        for _, def in ipairs(D.SLOTS or {}) do
+            local s = data.slots and data.slots[def.id]
+            for _, it in ipairs(s and s.items or {}) do put(l, it) end
+            put(l, "|")
+        end
+        for _, sm in ipairs(D.SMALL or {}) do
+            local s = data.small and data.small[sm.id]
+            for _, it in ipairs(s and s.items or {}) do put(l, it) end
+            put(l, "|")
+        end
+        put(l, data.main or false)
+        put(l, data.off or false)
+        for _, bs in ipairs(data.belt or {}) do put(l, bs.item or false) end
+    end
+    return finish(l)
+end
+F._runs = { skills = 0, equip = 0, doll = 0 }   -- (how often the matching ran: the sims read it)
+
+-- The kept matches for a tab: c = { q, view, data, sig, res }. Worked out again only when the
+-- text changes, or a data refresh brings other names or other worn things (sigFn says).
+local function kept(c, q, view, data, extra, sigFn)
+    if c and c.q == q and c.view == view then
+        if c.data == data and c.extra == extra then return true end
+        if sigFn(c.sig, data, extra) then c.data, c.extra = data, extra; return true end
+    end
+    return false
+end
+
 --- The Skills tab's matches (F.matchSkills) for its data, or nil when nothing is typed.
+--- Worked out again only when the text or the names change.
 function F.skills(win, data, training)
     local q = query(win, "skills")
     if not q then win._findSkills = nil; return nil end
     local c = win._findSkills
-    if not (c and c.q == q and c.data == data and c.training == training) then
-        c = { q = q, data = data, training = training,
+    if not kept(c, q, "skills", data, training, sigSkills) then
+        F._runs.skills = F._runs.skills + 1
+        local sig = c and c.sig or { n = 0 }
+        sigSkills(sig, data, training)
+        c = { q = q, view = "skills", data = data, extra = training, sig = sig,
               res = F.matchSkills(data and data.categories, training, q) }
         win._findSkills = c
     end
@@ -237,8 +313,11 @@ function F.equip(win, data)
     local q = query(win, "equip")
     if not q then win._findEquip = nil; return nil end
     local c = win._findEquip
-    if not (c and c.q == q and c.data == data and c.view == "list") then
-        c = { q = q, data = data, view = "list",
+    if not kept(c, q, "list", data, nil, sigList) then
+        F._runs.equip = F._runs.equip + 1
+        local sig = c and c.view == "list" and c.sig or { n = 0 }
+        sigList(sig, data)
+        c = { q = q, view = "list", data = data, sig = sig,
               res = F.matchEquip(data and data.groups, q, wordsOfSlot, infoOf) }
         win._findEquip = c
     end
@@ -276,8 +355,11 @@ function F.doll(win, data)
     local q = query(win, "equip")
     if not q then win._findEquip = nil; return nil end
     local c = win._findEquip
-    if not (c and c.q == q and c.data == data and c.view == "doll") then
-        c = { q = q, data = data, view = "doll", res = F.matchBoxes(dollBoxes(data), q, infoOf) }
+    if not kept(c, q, "doll", data, nil, sigDoll) then
+        F._runs.doll = F._runs.doll + 1
+        local sig = c and c.view == "doll" and c.sig or { n = 0 }
+        sigDoll(sig, data)
+        c = { q = q, view = "doll", data = data, sig = sig, res = F.matchBoxes(dollBoxes(data), q, infoOf) }
         win._findEquip = c
     end
     win._findCount = win._findCount or {}
