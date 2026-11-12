@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/cov_input.txt (Nov 12 2026, QA; coverage audit ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md Table B, the
+# "input" group): the pad action map, the input mode detector, the bumper zoom chord, the game's hidden top-left buttons and
+# the text scale override, each with PASS / FAIL checks read from ZeD's own objects (see the script's header).
+# The prelude opens the window pair (the pad path and the chord's focused-window gate need both windows), unpauses, god mode.
+#   zedqa_run.ps1 -Manifest cov_input.txt -Mode fullscreen4k -Report cov_input_4k
+# (at 1x, T.px(1) is 1 and the border check reads the engine's one-pixel lines instead; run at 4K 1.75x for the thick ones)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_cov_input.lua | cov_input | timeout=240
