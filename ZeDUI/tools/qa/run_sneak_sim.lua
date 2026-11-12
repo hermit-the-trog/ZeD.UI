@@ -1,32 +1,32 @@
--- ZeDUI/tools/qa/run_sneak_sim.lua (Nov 12 2026, punch list 121): run and sneak on one button, with no game running.
--- ZeD's REAL Settings.lua and Input/RunSneak.lua on Lua 5.1 stubs of the game. The pad is a table per controller (the
--- trigger, L3, the movement stick, the bumpers, its dead zone). The game's frame is modeled from its 42.22 Java (javap):
---   1. the input step (CharacterInputComponent.frameStep): "Toggle to run" off clears the run flag (setForceRun false)
---      every frame; on, a click of Run toggles it; the Crouch button's click timer runs (TimedInputHandler, 400 ms)
---   2. the player update (IsoPlayer.updateInternal2): OnPlayerUpdate fires, then the Crouch click toggles the stance
+-- ZeDUI/tools/qa/run_sneak_sim.lua (Nov 12 2026, punch list 121): the Run button that also sneaks, with no game
+-- running. ZeD's REAL Settings.lua and Input/RunSneak.lua on Lua 5.1 stubs of the game. The pad is a table per
+-- controller (the trigger, L3, the movement stick, the bumpers, its dead zone). The game's frame is modeled from its
+-- 42.22 Java (javap):
+--   1. the input step (CharacterInputComponent.frameStep): "Toggle to run" off clears the run flag every frame; the
+--      Crouch button's click timer runs (TimedInputHandler: a release within 400 ms is a click)
+--   2. the player update (IsoPlayer.updateInternal2): OnPlayerUpdate fires, then a Crouch click toggles the stance
 --      (updateSneakKey), then the input is read (UpdateInputState): running = the stick past its dead zone with Run
---      down and Run allowed (isRunButtonDown), OR the run flag
---   3. the prompts' update: L3 held 250 ms opens the left joystick radial menu (ISJoystickButtonRadialMenu)
+--      down and Run allowed (isRunButtonDown), or the run flag
+--   3. the prompts' update: L3 held 250 ms opens the game's left joystick radial menu (ISJoystickButtonRadialMenu)
 --   4. OnTick, at the end of the frame
--- The bindings: Original (the game's default) has Run on RT; Default has Run on a full push of the stick (0.975);
--- both have Crouch on L3.
+-- The layouts: Original (the game's default) has Run on RT; Default has Run on a full push of the stick (0.975), no
+-- Run button; both have Crouch on L3.
 --   SETTING   "runSneak": Off and On, Off for a new player, read live; its name key; a checkbox in ZeD setup's Controls
 --             group; not an addition
---   ORIGINAL  the Run button: off does nothing; still hold crouches at 400 ms, again stands; moving runs (the game's
---             own) while held and stops on release; crouched and moving stands and runs; taps pass; the dead zone is
---             the controller's; never touches the run flag; L3's radial menu stays the game's
---   DEFAULT   the Crouch button (L3): still hold crouches / stands, no game toggle on release; a tap is the game's crouch
---             toggle; moving, the hold runs from 400 ms for as long as it is held, then stops; crouched and moving
---             stands and runs; a full push without L3 is the game's run; L3's radial menu stays shut while it's ours
---   NOT STUCK the run flag let go on release, on the switch turned off, Safe mode, a window, a car, a pause, aiming,
---             a climb, a new character, a pad unplugged, a reload, an error; with "Toggle to run" on too, where the
---             game keeps the flag (and the player's own toggled run is left on)
---   HOOK      the same flag set on OnTick never makes anyone run (the game clears it first); on OnPlayerUpdate it does
---   STAKES    Run not allowed: no run; the run is the game's (running only through the game's flag)
---   PLAYERS   two players on two pads keep their own timing and runs; a keyboard player 1 is left alone
---   SOURCE    ASCII only, no next(), only setSneaking and setForceRun change state, OnPlayerUpdate (not OnTick),
---             getTimestampMs; one handler and one radial wrap after a reload
---   WORDS     both keys in all 28 languages, the English exact, AR in Spanish letters with voseo
+--   ORIGINAL  off does nothing; still hold crouches at 400 ms (not before), once per hold, again stands; moving runs
+--             (the game's own run) while held and stops on release; crouched and moving stands and runs; taps pass;
+--             the dead zone is the controller's own
+--   DEFAULT   the switch on, nothing at all: no stance change from any hold of L3, RT or the stick, L3's tap stays the
+--             game's crouch toggle, L3's hold opens the game's radial menu at 250 ms, the stick's full push is the
+--             game's run, the module's state never leaves idle; the radial menu's code is never wrapped
+--   EVERYWHERE the run flag is never set, L3 is never read; the run is always the game's
+--   GATES     a window holding the pad, aiming, a car, a bumper (chords), a pause, a press already held when the switch
+--             turned on, a stick let go part way, a dead player, Safe mode: nothing
+--   BINDINGS  Run on RT or a face button works; on the stick (Default) or on L3 / R3: nothing
+--   PLAYERS   split screen: two players on two pads keep their own timing; a keyboard player 1 is left alone
+--   SOURCE    ASCII only, no next(), the only state it changes is setSneaking, OnPlayerUpdate, getTimestampMs, nothing of
+--             L3, the Crouch binding or the radial menu; one handler after a reload
+--   WORDS     both keys in all 28 languages, the English exact (Original only, RT, nothing on Default), AR with voseo
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/run_sneak_sim.lua
 -- It prints FAIL lines and a last line "run_sneak_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -129,24 +129,24 @@ local SAFE = false
 -- THE PAD AND THE GAME'S BINDINGS (one table per controller id)
 -- ---------------------------------------------------------------------------
 local PAD = {}
+local L3_READS = 0   -- every read of L3 by anyone but the game's own model below
 local function pad(id)
-    PAD[id] = PAD[id] or { run = false, l3 = false, y = false, x = 0, lb = false, rb = false, dz = 0.2 }
+    PAD[id] = PAD[id] or { run = false, l3 = false, x = 0, lb = false, rb = false, dz = 0.2 }
     return PAD[id]
 end
 local function enum(name, isDown) return { name = name, isDown = isDown or function() return false end } end
 JoypadButton = {
     A = enum("A"), B = enum("B"),
-    Y = enum("Y", function(_, id) return PAD[id] ~= nil and PAD[id].y end),
-    LeftStick = enum("LeftStick", function(_, id) return PAD[id] ~= nil and PAD[id].l3 end),
-    RightStick = enum("RightStick"),
+    LeftStick = enum("LeftStick", function(_, id) L3_READS = L3_READS + 1; return PAD[id] ~= nil and PAD[id].l3 end),
+    RightStick = enum("RightStick", function() L3_READS = L3_READS + 1; return false end),
     LeftBump = enum("LeftBump", function(_, id) return PAD[id] ~= nil and PAD[id].lb end),
     RightBump = enum("RightBump", function(_, id) return PAD[id] ~= nil and PAD[id].rb end),
 }
 JoypadAxis1d = { LeftTrigger = enum("LeftTrigger"), RightTrigger = enum("RightTrigger"), LeftStickY = enum("LeftStickY") }
 JoypadAxis2d = { LeftStick = enum("LeftStick2d"), RightStick = enum("RightStick2d") }
 -- what the game's Run is on: "trigger" (Original: RT), "stick" (Default: a full push, 0.975), "button" (B),
--- "stickclick" (L3), "stickaxis" (one axis of a stick); and Crouch: "stickclick" (L3, both layouts), "button" (Y)
-local KIND_RUN, KIND_CROUCH = "trigger", "stickclick"
+-- "stickclick" (L3), "stickaxis" (one axis of a stick)
+local KIND_RUN = "trigger"
 local function len2(p) return p.x * p.x end
 local Run = {}
 function Run:getJoypadButton()
@@ -158,7 +158,7 @@ function Run:getJoypadAxis1d()
     return nil
 end
 function Run:getJoypadAxis2d() if KIND_RUN == "stick" then return JoypadAxis2d.LeftStick end return nil end
-function Run:isDown(id)
+local function runIsDown(id)
     local p = PAD[id]
     if not p then return false end
     if KIND_RUN == "stick" then return len2(p) >= 0.975 * 0.975 end
@@ -166,20 +166,15 @@ function Run:isDown(id)
     if KIND_RUN == "stickaxis" then return false end
     return p.run
 end
+function Run:isDown(id)
+    if KIND_RUN == "stickclick" then L3_READS = L3_READS + 1 end
+    return runIsDown(id)
+end
+-- the Crouch binding is the game's (L3); the module must never read it
+local CROUCH_READS = 0
 local Crouch = {}
-function Crouch:getJoypadButton()
-    if KIND_CROUCH == "stickclick" then return JoypadButton.LeftStick elseif KIND_CROUCH == "button" then return JoypadButton.Y end
-    return nil
-end
-function Crouch:getJoypadAxis1d() return nil end
-function Crouch:getJoypadAxis2d() return nil end
-function Crouch:isDown(id)
-    local p = PAD[id]
-    if not p then return false end
-    if KIND_CROUCH == "stickclick" then return p.l3 end
-    if KIND_CROUCH == "button" then return p.y end
-    return false
-end
+function Crouch:getJoypadButton() CROUCH_READS = CROUCH_READS + 1; return JoypadButton.LeftStick end
+function Crouch:isDown() CROUCH_READS = CROUCH_READS + 1; return false end
 CharacterJoypadButtonBinding = { Run = Run, Crouch = Crouch }
 -- the game's dead zone test (JoypadManager$Joypad.isMovementInsideDeadZone): inside while x*x + y*y < dzX * dzY
 local Movement = {}
@@ -201,11 +196,11 @@ local function stepTimer(t, keyDown)
     t.clicked = released and (CLOCK - t.downMs) < 400
     if pressed then t.downMs = CLOCK elseif released then t.downMs = 0 end
 end
+local FORCE_SETS = 0   -- every setForceRun call, by anyone
 local function newPlayer(pn, bind)
     local p = { pn = pn, bind = bind, sneaking = false, dead = false, vehicle = nil, aiming = false, asleep = false,
-                sitting = false, climbing = false, ignoreMove = false, allowRun = true, climbStart = false,
-                forceRun = false, running = false, runFrames = 0, stillRunFrames = 0, calls = {}, forceSets = 0,
-                gameToggles = 0, tRun = newTimer(), tCrouch = newTimer() }
+                sitting = false, climbing = false, ignoreMove = false, allowRun = true, forceRun = false, running = false,
+                runFrames = 0, calls = {}, gameToggles = 0, tCrouch = newTimer() }
     function p:getPlayerNum() return self.pn end
     function p:getJoypadBind() return self.bind end
     function p:isSneaking() return self.sneaking end
@@ -219,11 +214,8 @@ local function newPlayer(pn, bind)
     function p:isAiming() return self.aiming end
     function p:isPlayerMoving() return false end
     function p:isAllowRun() return self.allowRun end
-    function p:getVariableBoolean(name)
-        return (name == "ClimbFenceStarted" or name == "ClimbWindowStarted") and self.climbStart or false
-    end
     function p:isForceRun() return self.forceRun end
-    function p:setForceRun(v) self.forceSets = self.forceSets + 1; self.forceRun = v end
+    function p:setForceRun(v) FORCE_SETS = FORCE_SETS + 1; self.forceRun = v end
     return p
 end
 local PLAYERS = {}
@@ -236,15 +228,13 @@ function getJoypadFocus(pn) return FOCUS[pn] end
 local PAUSED = false
 function isGamePaused() return PAUSED end
 JoypadState = { disableMovement = false }
-local TOGGLE_TO_RUN = false     -- the game's "Toggle to run" option (off by default)
-local RADIAL_OPTION = true      -- the game's "Enable left joystick radial menu" (on by default)
 
 -- the game's left joystick radial menu: L3 held 250 ms opens it (it takes the pad); let go closes it
 local RADIAL = {}
 ISJoystickButtonRadialMenu = {}
 function ISJoystickButtonRadialMenu.onRepeatLeftStickButton(joypadData)
     local r = RADIAL[joypadData.player]
-    if not RADIAL_OPTION or not r or not r.pressedMs or r.open then return end
+    if not r or not r.pressedMs or r.open then return end
     if CLOCK - r.pressedMs >= 250 then
         r.open, r.opens = true, r.opens + 1
         FOCUS[joypadData.player] = "radial"
@@ -252,7 +242,7 @@ function ISJoystickButtonRadialMenu.onRepeatLeftStickButton(joypadData)
 end
 local VANILLA_REPEAT = ISJoystickButtonRadialMenu.onRepeatLeftStickButton
 
--- one frame of the game, each local player in turn
+-- one frame of the game, each local player in turn (its own reads of the pad go straight to the table)
 local function frame(ms)
     CLOCK = CLOCK + (ms or 16)
     for pn = 0, NUM - 1 do
@@ -262,14 +252,11 @@ local function frame(ms)
             local onPad = b >= 0
             local d = onPad and pad(b) or nil
             local moving = onPad and Movement:isApplied(b) or false
-            local runDown = onPad and p.allowRun and moving and Run:isDown(b) or false
+            local runDown = onPad and p.allowRun and moving and runIsDown(b) or false
             -- 1. the input step
-            stepTimer(p.tRun, TOGGLE_TO_RUN and runDown)
-            if not TOGGLE_TO_RUN then p.forceRun = false
-            elseif p.climbStart then p.forceRun = false
-            elseif p.tRun.clicked then p.forceRun = not p.forceRun end
+            p.forceRun = false                  -- ("Toggle to run" off, the game's default)
             local active = FOCUS[pn] == nil and not JoypadState.disableMovement
-            stepTimer(p.tCrouch, onPad and active and Crouch:isDown(b) or false)
+            stepTimer(p.tCrouch, onPad and active and d.l3 or false)
             -- 2. the player update
             for _, f in ipairs(updFns) do f(p) end
             if p.tCrouch.clicked and active then p.sneaking = not p.sneaking; p.gameToggles = p.gameToggles + 1 end
@@ -340,26 +327,20 @@ local okLoad, loadErr = pcall(dofile, LUA .. "client/ZeD/Input/RunSneak.lua")
 check("RunSneak.lua loads", okLoad, loadErr)
 local RS = ZeD.Input and ZeD.Input.RunSneak or {}
 check("one OnPlayerUpdate handler, no OnTick handler", #updFns == 1 and #tickFns == 0, #updFns .. "/" .. #tickFns)
-local WRAPPED = ISJoystickButtonRadialMenu.onRepeatLeftStickButton
-check("the game's L3 radial step is wrapped, the original kept", WRAPPED ~= VANILLA_REPEAT and RS._zedOrigRepeatLeft == VANILLA_REPEAT)
+check("the game's radial menu code is untouched", ISJoystickButtonRadialMenu.onRepeatLeftStickButton == VANILLA_REPEAT)
 pcall(dofile, LUA .. "client/ZeD/Input/RunSneak.lua")
 check("a reload keeps one handler", #updFns == 1, #updFns)
-check("a reload never wraps the wrapper", ISJoystickButtonRadialMenu.onRepeatLeftStickButton == WRAPPED
-      and RS._zedOrigRepeatLeft == VANILLA_REPEAT)
 check("HOLD_MS is the game's 400 ms tap limit", RS.HOLD_MS == 400, RS.HOLD_MS)
 
 local P0, P1 = newPlayer(0, 0), newPlayer(1, 1)
 PLAYERS[0] = P0
 pad(0); pad(1)
 local function reset()
-    for _, p in pairs(PLAYERS) do
-        p.sneaking = false; p.aiming = false; p.vehicle = nil; p.dead = false; p.allowRun = true; p.climbStart = false
-        p.forceRun = false
-    end
-    for _, d in pairs(PAD) do d.run = false; d.l3 = false; d.y = false; d.x = 0; d.lb = false; d.rb = false; d.dz = 0.2 end
-    FOCUS = {}; PAUSED = false; SAFE = false; TOGGLE_TO_RUN = false; RADIAL_OPTION = true
+    for _, p in pairs(PLAYERS) do p.sneaking = false; p.aiming = false; p.vehicle = nil; p.dead = false; p.allowRun = true end
+    for _, d in pairs(PAD) do d.run = false; d.l3 = false; d.x = 0; d.lb = false; d.rb = false; d.dz = 0.2 end
+    FOCUS = {}; PAUSED = false; SAFE = false
     play(64)   -- a few frames with everything up, so the next press is a fresh one
-    for _, p in pairs(PLAYERS) do p.calls = {}; p.runFrames = 0; p.forceSets = 0; p.gameToggles = 0 end
+    for _, p in pairs(PLAYERS) do p.calls = {}; p.runFrames = 0; p.gameToggles = 0 end
     for _, r in pairs(RADIAL) do r.opens = 0 end
 end
 local function radialOpens(pn) return RADIAL[pn] and RADIAL[pn].opens or 0 end
@@ -368,7 +349,6 @@ local function radialOpens(pn) return RADIAL[pn] and RADIAL[pn].opens or 0 end
 section("Original layout (Run on RT): off by default does nothing")
 KIND_RUN = "trigger"
 reset()
-check("holdMode: run", RS.holdMode() == "run", RS.holdMode())
 pad(0).run = true
 play(1500)
 check("off: a long hold standing still never crouches", #P0.calls == 0 and P0.sneaking == false, #P0.calls)
@@ -412,12 +392,13 @@ play(32)
 pad(0).run = true
 play(48)
 check("running from the first frames (the game's own run)", P0.running == true)
-play(1500)
-check("still running after 1.5 s held", P0.running == true)
+local before = P0.runFrames
+play(1504)
+check("running on every frame of 1.5 s held", P0.runFrames - before == 94, P0.runFrames - before)
 check("no crouch, no setSneaking at all", #P0.calls == 0 and P0.sneaking == false, #P0.calls)
 pad(0).run = false
-play(32)
-check("let go: running stops", P0.running == false)
+frame(16)
+check("let go: running stops on the next frame", P0.running == false)
 pad(0).x = 0
 
 section("Original: crouched and moving, the hold stands and runs")
@@ -431,7 +412,9 @@ check("under 400 ms: still crouched (the game's sneak run)", P0.sneaking == true
 play(240)
 check("at 400 ms: stood up", P0.sneaking == false and #P0.calls == 1 and P0.calls[1] == false, #P0.calls)
 check("lastAction: stand-run", RS.lastAction(0) == "stand-run", RS.lastAction(0))
-check("and running, standing", P0.running == true)
+check("and running, standing, in the same frame", P0.running == true)
+play(800)
+check("one thing per hold", #P0.calls == 1, #P0.calls)
 pad(0).run = false
 play(32)
 check("let go: the run stops, the character stays standing", P0.running == false and P0.sneaking == false)
@@ -447,6 +430,9 @@ pad(0).run = true; play(208)
 check("a moving tap: the game's short run", P0.running == true)
 pad(0).run = false; play(48)
 check("a moving tap: stops, nothing changed", P0.running == false and #P0.calls == 0)
+P0.sneaking = true
+pad(0).run = true; play(208); pad(0).run = false; play(48)
+check("a crouched moving tap: still crouched", P0.sneaking == true and #P0.calls == 0)
 reset()
 pad(0).x = 0.15            -- inside 0.2
 pad(0).run = true; play(448); pad(0).run = false; play(48)
@@ -461,262 +447,152 @@ pad(0).dz = 0.4; pad(0).x = 0.3   -- the same push, a wider dead zone set for th
 pad(0).run = true; play(448); pad(0).run = false; play(48)
 check("the same push inside a wider dead zone is still: crouches", P0.sneaking == true and #P0.calls == 1)
 
-section("Original: the run flag and L3 stay the game's")
+section("Original: L3 stays the game's")
 reset()
-pad(0).x = 1.0; pad(0).run = true; play(1000); pad(0).run = false; pad(0).x = 0; play(48)
-pad(0).run = true; play(600); pad(0).run = false; play(48)
-check("the Run button never touches the run flag", P0.forceSets == 0, P0.forceSets)
+pad(0).l3 = true; play(208); pad(0).l3 = false; play(48)
+check("an L3 tap: the game's crouch toggle, nothing of ZeD's", P0.sneaking == true and P0.gameToggles == 1 and #P0.calls == 0)
 pad(0).l3 = true; play(400)
-check("L3 held: the game's radial menu opens (L3 is not this layout's hold)", radialOpens(0) == 1, radialOpens(0))
+check("an L3 hold: the game's radial menu opens at 250 ms", radialOpens(0) == 1, radialOpens(0))
 pad(0).l3 = false; play(48)
-check("ownsHold(L3) false on Original", RS.ownsHold(0, JoypadButton.LeftStick) == false)
+check("and nothing of ZeD's", #P0.calls == 0)
 
 -- =========================================================================
-section("Default layout (Run on a full stick push): the Crouch button, L3")
+section("Default layout (Run on a full stick push, no Run button): nothing at all")
 KIND_RUN = "stick"
 reset()
-check("holdMode: crouch", RS.holdMode() == "crouch", RS.holdMode())
-check("ownsHold(L3) true while the switch is on", RS.ownsHold(0, JoypadButton.LeftStick) == true)
-pad(0).l3 = true
-play(352)
-check("no crouch before 400 ms", #P0.calls == 0 and P0.sneaking == false)
-play(64)
-check("a still hold of L3 crouches at 400 ms", P0.sneaking == true and #P0.calls == 1, #P0.calls)
-play(1000)
-pad(0).l3 = false
-play(48)
-check("released after the hold: the game does not toggle it back", P0.sneaking == true and P0.gameToggles == 0, P0.gameToggles)
-check("the radial menu never opened", radialOpens(0) == 0, radialOpens(0))
-pad(0).l3 = true; play(448); pad(0).l3 = false; play(48)
-check("a second still hold stands up", P0.sneaking == false and #P0.calls == 2 and P0.gameToggles == 0)
-reset()
+check("the switch is on", S.runSneakOn() == true)
+check("runBindingKind: stick", RS.runBindingKind() == "stick", RS.runBindingKind())
+pad(0).l3 = true; play(1000)
+check("an L3 hold standing still: no stance change from ZeD", #P0.calls == 0 and P0.sneaking == false)
+check("an L3 hold: the game's radial menu opens at 250 ms, as always", radialOpens(0) == 1, radialOpens(0))
+pad(0).l3 = false; play(48)
 pad(0).l3 = true; play(208); pad(0).l3 = false; play(48)
-check("a tap of L3: the game's crouch toggle", P0.sneaking == true and P0.gameToggles == 1 and #P0.calls == 0)
-pad(0).l3 = true; play(208); pad(0).l3 = false; play(48)
-check("a second tap: the game stands", P0.sneaking == false and P0.gameToggles == 2 and #P0.calls == 0)
-check("taps never open the radial menu", radialOpens(0) == 0)
-
-section("Default: moving, the hold runs for as long as it is held")
+check("an L3 tap: the game's crouch toggle", P0.sneaking == true and P0.gameToggles == 1 and #P0.calls == 0)
 reset()
-pad(0).x = 0.5          -- a partial push: walking (the game's run needs a full push here)
-play(64)
-check("a partial push walks", P0.running == false)
-pad(0).l3 = true
-play(352)
-check("under 400 ms: still walking", P0.running == false and P0.runFrames == 0, P0.runFrames)
-play(64)
-check("at 400 ms: running", P0.running == true)
-check("lastAction: run", RS.lastAction(0) == "run", RS.lastAction(0))
-check("state: running", RS.getState(0) == "running", RS.getState(0))
-local before = P0.runFrames
-play(2400)
-check("running every frame of 2.4 s held", P0.runFrames - before == 150, P0.runFrames - before)
-check("on the game's own flag, set each frame", P0.forceRun == true and P0.forceSets >= 150, P0.forceSets)
-pad(0).l3 = false
-frame(16)
-check("let go: running stops on the next frame", P0.running == false and P0.forceRun == false)
-play(500)
-check("and stays stopped", P0.running == false and P0.runFrames - before == 150)
-check("no crouch toggle at the release (a hold is not a tap)", P0.sneaking == false and P0.gameToggles == 0)
-check("the radial menu never opened", radialOpens(0) == 0)
-pad(0).x = 0
-
-section("Default: crouched and moving, the hold stands and runs")
-reset()
-P0.sneaking = true
-pad(0).x = 0.5
-play(32)
-pad(0).l3 = true
-play(208)
-check("under 400 ms: still crouched, not running", P0.sneaking == true and P0.running == false)
-play(240)
-check("at 400 ms: stood up and running", P0.sneaking == false and P0.running == true and #P0.calls == 1)
-check("lastAction: stand-run", RS.lastAction(0) == "stand-run", RS.lastAction(0))
-pad(0).l3 = false
-play(32)
-check("let go: standing, not running", P0.sneaking == false and P0.running == false and P0.gameToggles == 0)
-
-section("Default: taps and the game's own run")
-reset()
-pad(0).x = 0.5
-pad(0).l3 = true; play(208); pad(0).l3 = false; play(48)
-check("a moving tap: the game's crouch toggle, no run", P0.sneaking == true and P0.gameToggles == 1 and P0.runFrames == 0)
+pad(0).x = 0.5; pad(0).l3 = true; play(1000); pad(0).l3 = false; play(48)
+check("moving with L3 held: no run, nothing of ZeD's", P0.runFrames == 0 and #P0.calls == 0)
 reset()
 pad(0).x = 1.0
-play(500)
-check("a full push without L3: the game's own run", P0.running == true and P0.forceSets == 0)
+play(1000)
+check("a full push: the game's own run", P0.running == true and #P0.calls == 0)
+P0.sneaking = true
+play(1000)
+check("crouched, a full push held 1 s: the game's sneak run, no stand-up", P0.sneaking == true and P0.running == true and #P0.calls == 0)
 pad(0).x = 0
-o:setValue(1)
 reset()
-pad(0).x = 0.5; pad(0).l3 = true; play(1000)
-check("switched off: an L3 hold while moving never runs", P0.runFrames == 0 and P0.forceSets == 0)
-check("switched off: the radial menu is the game's again (opens at 250 ms)", radialOpens(0) == 1, radialOpens(0))
-pad(0).l3 = false; play(48)
-o:setValue(2)
+pad(0).run = true; play(1000); pad(0).run = false; play(48)
+check("RT held standing still (not Run here): nothing", #P0.calls == 0 and P0.sneaking == false)
+check("the module's state never left idle", RS.getState(0) == "idle", RS.getState(0))
+KIND_RUN = "trigger"
 
 -- =========================================================================
-section("Never stuck: every way a run ends")
-local function startRun()
-    reset()
-    pad(0).x = 0.5
-    play(32)
-    pad(0).l3 = true
-    play(448)
-    return P0.running == true
-end
-local function stopsNow(name)
-    frame(16)
-    check(name .. ": not running on the next frame", P0.running == false and P0.forceRun == false,
-          tostring(P0.running) .. "/" .. tostring(P0.forceRun))
-    play(400)
-    check(name .. ": still not running, held or not", P0.running == false and P0.forceRun == false)
-end
-for _, ttr in ipairs({ false, true }) do
-    local tag = ttr and "Toggle to run on" or "Toggle to run off"
-    local function arm() local ok = startRun(); TOGGLE_TO_RUN = ttr; play(32); return ok end
-    check(tag .. ": a run starts", arm())
-    pad(0).l3 = false
-    stopsNow(tag .. ", release")
-    check(tag .. ": a run starts again", arm())
-    o:setValue(1)
-    stopsNow(tag .. ", the switch turned off mid-run")
-    o:setValue(2)
-    pad(0).l3 = false; play(48)
-    check(tag .. ": a run", arm())
-    SAFE = true
-    stopsNow(tag .. ", Safe mode mid-run")
-    SAFE = false
-    check(tag .. ": a run", arm())
-    FOCUS[0] = "a window"
-    stopsNow(tag .. ", a window takes the pad")
-    FOCUS[0] = nil
-    play(400)
-    check(tag .. ": the window gone, still held: no run until a new hold", P0.running == false)
-    check(tag .. ": a run", arm())
-    P0.vehicle = "a car"
-    stopsNow(tag .. ", in a car")
-    P0.vehicle = nil
-    check(tag .. ": a run", arm())
-    P0.aiming = true
-    stopsNow(tag .. ", aiming")
-    P0.aiming = false
-    check(tag .. ": a run", arm())
-    P0.climbStart = true
-    stopsNow(tag .. ", a climb starts")
-    P0.climbStart = false
-    check(tag .. ": a run", arm())
-    P0.allowRun = false
-    stopsNow(tag .. ", Run no longer allowed")
-    P0.allowRun = true
-    check(tag .. ": a run", arm())
-    P0.bind = -1
-    stopsNow(tag .. ", the pad unplugged")
-    P0.bind = 0
-    check(tag .. ": a run", arm())
-    frame(1500)                     -- a pause: the game stopped 1.5 s with L3 held
-    play(16)
-    check(tag .. ", a pause: not running after it", P0.running == false and P0.forceRun == false)
-    check(tag .. ": a run", arm())
-    local old = P0
-    local fresh = newPlayer(0, 0)
-    PLAYERS[0] = fresh
-    play(32)
-    check(tag .. ", a new character in the seat: the old one's flag let go", old.forceRun == false, old.forceRun)
-    check(tag .. ", a new character: not running", fresh.running == false and fresh.forceRun == false)
-    PLAYERS[0] = old
-    pad(0).l3 = false; play(48)
-    check(tag .. ": a run", arm())
-    -- (a throw from a call the step makes directly, every frame; the getters go through their own pcall)
-    local realFocus = getJoypadFocus
-    getJoypadFocus = function() error("a broken call") end
-    stopsNow(tag .. ", an error every frame")
-    getJoypadFocus = realFocus
-    pad(0).l3 = false; play(48)
-    check(tag .. ": a run", arm())
-    pcall(dofile, LUA .. "client/ZeD/Input/RunSneak.lua")
-    check(tag .. ", a reload mid-run: still running", P0.running == true)
-    pad(0).l3 = false
-    stopsNow(tag .. ", a reload, then release")
-    TOGGLE_TO_RUN = false
-end
+section("Gates (Original)")
 reset()
-TOGGLE_TO_RUN = true
-P0.forceRun = true              -- the player's own Toggle to run is on
-pad(0).x = 0.5; play(32)
-check("the player's own toggled run: running before the hold", P0.running == true)
-pad(0).l3 = true; play(448); pad(0).l3 = false; play(48)
-check("the player's own toggled run is still on after a hold", P0.forceRun == true and P0.running == true)
-TOGGLE_TO_RUN = false
-
-section("The hook: the game clears the flag before OnTick could matter")
+FOCUS[0] = { name = "a window" }
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("a window holding the pad: nothing", #P0.calls == 0)
+pad(0).run = true; play(160)
+FOCUS[0] = nil
+play(800)
+check("a press begun in a window, the window closed mid-hold: nothing", #P0.calls == 0)
+pad(0).run = false; play(48)
+pad(0).run = true; play(448); pad(0).run = false; play(48)
+check("the next press after it works", #P0.calls == 1)
 reset()
-local function setOnTick() P0:setForceRun(true) end
-tickFns[#tickFns + 1] = setOnTick
-pad(0).x = 0.5
-play(1000)
-check("the flag set on OnTick (end of frame) never makes the player run", P0.runFrames == 0, P0.runFrames)
-table.remove(tickFns, #tickFns)
-local function setOnUpdate(p) p:setForceRun(true) end
-updFns[#updFns + 1] = setOnUpdate
-play(160)
-check("the same flag set on OnPlayerUpdate does", P0.runFrames >= 9, P0.runFrames)
-table.remove(updFns, #updFns)
-pad(0).x = 0; play(32)
-
-section("Stakes and gates")
+P0.aiming = true
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("aiming (Run is the attack trigger then): nothing", #P0.calls == 0)
 reset()
-P0.allowRun = false
-pad(0).x = 0.5; pad(0).l3 = true; play(1000); pad(0).l3 = false; play(48)
-check("Run not allowed (the game's own check): an L3 hold never runs", P0.runFrames == 0 and P0.forceSets == 0)
+pad(0).run = true; play(160)
+P0.aiming = true; play(400); P0.aiming = false
+pad(0).run = false; play(48)
+check("aiming begun mid-hold: nothing", #P0.calls == 0)
+reset()
+P0.vehicle = { name = "car" }
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("in a car: nothing", #P0.calls == 0)
 reset()
 pad(0).lb = true
-pad(0).x = 0.5; pad(0).l3 = true; play(1000); pad(0).l3 = false; play(48)
-check("a bumper held (LB + L3 is a quick chord): nothing", P0.runFrames == 0 and #P0.calls == 0)
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("a bumper held (a quick chord): nothing", #P0.calls == 0)
 reset()
-pad(0).x = 1.0; pad(0).l3 = true; play(160)
-pad(0).x = 0; play(400); pad(0).l3 = false; play(48)
-check("moving, then the stick let go before 400 ms: nothing", #P0.calls == 0 and P0.forceSets == 0)
+pad(0).run = true; play(160)
+frame(1500)                -- the game paused 1.5 s with Run held (player updates stop while paused)
+play(400); pad(0).run = false; play(48)
+check("a press that spans a pause: nothing", #P0.calls == 0)
 reset()
-KIND_CROUCH = "button"
-check("Crouch rebound to Y: holdMode crouch on Y", RS.holdMode() == "crouch" and RS.ownsHold(0, JoypadButton.LeftStick) == false)
-pad(0).y = true; play(448); pad(0).y = false; play(48)
-check("Crouch on Y: a still hold crouches", P0.sneaking == true and #P0.calls == 1)
-pad(0).l3 = true; play(400); pad(0).l3 = false; play(48)
-check("Crouch on Y: L3's radial menu is the game's again", radialOpens(0) == 1, radialOpens(0))
-KIND_CROUCH = "none"
-check("no button for Run or Crouch: holdMode nil", RS.holdMode() == nil)
-KIND_CROUCH = "stickclick"
+o:setValue(1)
+pad(0).run = true; play(200)
+o:setValue(2)
+play(1000)
+check("a press already held when the switch turned on: nothing", #P0.calls == 0)
+pad(0).run = false; play(48)
+pad(0).run = true; play(448); pad(0).run = false; play(48)
+check("the next press works", #P0.calls == 1)
+reset()
+SAFE = true
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("Safe mode: nothing", #P0.calls == 0)
+SAFE = false
+reset()
+pad(0).x = 1.0; pad(0).run = true; play(160)
+pad(0).x = 0; play(400); pad(0).run = false; play(48)
+check("moving, then the stick let go before 400 ms: nothing", #P0.calls == 0)
+reset()
+P0.dead = true
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("a dead player: nothing", #P0.calls == 0)
+P0.dead = false
+reset()
+local old = P0
+local fresh = newPlayer(0, 0)
+pad(0).run = true; play(160)
+PLAYERS[0] = fresh
+play(800); pad(0).run = false; play(48)
+check("a new character in the seat mid-hold: nothing for either", #old.calls == 0 and #fresh.calls == 0)
+PLAYERS[0] = old
+
+section("Bindings: what the game's Run is on")
+reset()
+check("runBindingKind: trigger (Original, RT)", RS.runBindingKind() == "trigger", RS.runBindingKind())
+KIND_RUN = "button"
+check("runBindingKind: button", RS.runBindingKind() == "button", RS.runBindingKind())
+pad(0).run = true; play(448); pad(0).run = false; play(48)
+check("Run on a face button (a player's own layout): the hold crouches", #P0.calls == 1, #P0.calls)
+reset()
 KIND_RUN = "stickclick"
-check("Run on L3: no Run button, the hold is Crouch", RS.holdMode() == "crouch")
+check("runBindingKind: stickclick (L3)", RS.runBindingKind() == "stickclick", RS.runBindingKind())
+pad(0).l3 = true; play(1000); pad(0).l3 = false; play(48)
+check("Run on L3: holding L3 changes nothing of ZeD's", #P0.calls == 0)
 KIND_RUN = "stickaxis"
 check("runBindingKind: one axis of a stick is a stick", RS.runBindingKind() == "stick", RS.runBindingKind())
-KIND_RUN = "button"
-check("Run on a face button: holdMode run", RS.holdMode() == "run")
-KIND_RUN = "stick"
+KIND_RUN = "trigger"
 
-section("Players: split screen on the Default layout")
+section("Players: split screen")
 NUM = 2
 PLAYERS[1] = P1
 reset()
-pad(0).x = 0.5
-pad(0).l3 = true
+pad(0).run = true
 play(208)
-pad(1).l3 = true
+pad(1).x = 1.0; P1.sneaking = true
+pad(1).run = true
 play(208)
-check("at 416 ms: player 1 runs (its own hold)", P0.running == true and P0.forceRun == true)
-check("at 416 ms: player 2 untouched (its hold is 208 ms old)", P1.sneaking == false and #P1.calls == 0 and P1.forceRun == false)
+check("at 416 ms: player 1 crouched (its own hold)", P0.sneaking == true and #P0.calls == 1, #P0.calls)
+check("at 416 ms: player 2 untouched (its hold is 208 ms old)", P1.sneaking == true and #P1.calls == 0, #P1.calls)
 play(208)
-check("at 624 ms: player 2 crouched (standing still)", P1.sneaking == true and #P1.calls == 1)
-check("player 2 never runs", P1.runFrames == 0 and P1.forceSets == 0)
-pad(0).l3 = false; frame(16)
-check("player 1 let go: stops; player 2 still holding: spent", P0.running == false and RS.getState(1) == "spent")
-pad(1).l3 = false; play(48)
+check("at 624 ms: player 2 stood up and runs", P1.sneaking == false and #P1.calls == 1 and P1.running == true, #P1.calls)
+check("player 1 got one thing only", #P0.calls == 1, #P0.calls)
+pad(0).run = false; play(48)
+check("player 1 let go: idle; player 2 still holding: spent", RS.getState(0) == "idle" and RS.getState(1) == "spent")
+pad(1).run = false; pad(1).x = 0; play(48)
+reset()
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("player 1's pad never moves player 2", #P1.calls == 0 and #P0.calls == 1)
 reset()
 P0.bind = -1                 -- player 1 on keyboard and mouse, player 2 on pad 1
-pad(1).x = 0.5; pad(1).l3 = true; play(448)
-check("player 2 on pad 1 runs", P1.running == true)
-check("a keyboard player 1 is left alone", P0.forceSets == 0 and #P0.calls == 0)
-pad(1).l3 = false; play(48)
+pad(1).run = true; play(448); pad(1).run = false; play(48)
+check("a keyboard player 1 is left alone", #P0.calls == 0)
+check("player 2 on pad 1 still works", #P1.calls == 1)
 P0.bind = 0
 NUM = 1
 PLAYERS[1] = nil
@@ -724,16 +600,20 @@ PLAYERS[1] = nil
 section("QA stand-in")
 reset()
 P0.bind = -1
-RS.qaInput(0, { pad = true, held = true, moving = false, mode = "run" })
+RS.qaInput(0, { pad = true, held = true, moving = false })
 play(448)
-check("qaInput, Run mode: a still hold crouches a player with no controller", #P0.calls == 1 and P0.sneaking == true)
-RS.qaInput(0, { pad = true, held = false, moving = true, mode = "crouch" }); play(48)
-RS.qaInput(0, { pad = true, held = true, moving = true, mode = "crouch" }); play(448)
-check("qaInput, Crouch mode: crouched and moving stands and holds the run flag", P0.sneaking == false and P0.forceRun == true)
+check("qaInput drives a player with no controller", #P0.calls == 1 and P0.sneaking == true)
+RS.qaInput(0, { pad = true, held = false })
+play(48)
 RS.qaInput(0, nil)
 play(48)
-check("qaInput nil hands the player back: the flag let go", RS.getState(0) == "idle" and P0.forceRun == false)
+check("qaInput nil hands the player back (keyboard: idle)", RS.getState(0) == "idle")
 P0.bind = 0
+
+section("Everywhere")
+check("the run flag was never set, in any section", FORCE_SETS == 0, FORCE_SETS)
+check("the module never read L3, R3 or the Crouch binding", L3_READS == 0 and CROUCH_READS == 0, L3_READS .. "/" .. CROUCH_READS)
+check("the game's radial menu code still untouched", ISJoystickButtonRadialMenu.onRepeatLeftStickButton == VANILLA_REPEAT)
 
 -- ---------------------------------------------------------------------------
 -- SOURCE
@@ -744,36 +624,35 @@ check("the file is there", #src > 0)
 check("ASCII only (Kahlua drops high bytes in literals)", not src:find("[\128-\255]"))
 local code = src:gsub("%-%-[^\n]*", "")
 check("no next()", not code:find("[^%w_%.:]next%s*%("))
-check("the state it changes: the stance and the game's run flag only", code:find("setSneaking", 1, true) ~= nil
-      and code:find("setForceRun", 1, true) ~= nil
-      and not code:find("setRunning", 1, true) and not code:find("setSprinting", 1, true)
-      and not code:find("setForceSprint", 1, true) and not code:find("setAllowRun", 1, true)
-      and not code:find("setAllowSprint", 1, true) and not code:find("getStats", 1, true)
-      and not code:find("Endurance", 1, true) and not code:find("setVariable", 1, true))
+check("the only state it changes is setSneaking", code:find("setSneaking", 1, true) ~= nil
+      and not code:find("setForceRun", 1, true) and not code:find("setRunning", 1, true)
+      and not code:find("setSprinting", 1, true) and not code:find("setForceSprint", 1, true)
+      and not code:find("setAllowRun", 1, true) and not code:find("setAllowSprint", 1, true))
+check("nothing of L3: no Crouch binding, no radial menu", not code:find("Crouch", 1, true)
+      and not code:find("ISJoystickButtonRadialMenu", 1, true) and not code:find("LeftStick:isDown", 1, true)
+      and not code:find("RightStick:isDown", 1, true))
 check("the hook is OnPlayerUpdate, not OnTick", code:find("Events.OnPlayerUpdate.Add", 1, true) ~= nil
       and not code:find("Events.OnTick", 1, true))
 check("timed with getTimestampMs", code:find("getTimestampMs()", 1, true) ~= nil)
-check("never polls a stick click itself", not code:find("LeftStick:isDown", 1, true) and not code:find("RightStick:isDown", 1, true))
 
 -- ---------------------------------------------------------------------------
 -- WORDS
 -- ---------------------------------------------------------------------------
 section("Words")
-check("English name", EN.UI_ZeD_Settings_RunSneak == "Run and sneak on one button", EN.UI_ZeD_Settings_RunSneak)
+check("English name", EN.UI_ZeD_Settings_RunSneak == "Run button also sneaks", EN.UI_ZeD_Settings_RunSneak)
 local tip = EN.UI_ZeD_Settings_RunSneakTip or ""
-check("English help names each layout's button", tip:find("RT in Original", 1, true) ~= nil and tip:find("L3 in Default", 1, true) ~= nil)
-check("English help names the hold, the run and the tap", tip:find("hold it to crouch", 1, true) ~= nil
-      and tip:find("hold it to run", 1, true) ~= nil and tip:find("A tap", 1, true) ~= nil)
-check("English help says the L3 hold leaves the radial menu", tip:find("left joystick radial menu", 1, true) ~= nil)
+check("English help: Original only, RT, nothing on Default", tip:find("Original controller layout", 1, true) ~= nil
+      and tip:find("(RT)", 1, true) ~= nil and tip:find("on Default, which has no Run button, it does nothing", 1, true) ~= nil)
+check("English help: the hold and the tap", tip:find("hold RT to crouch", 1, true) ~= nil and tip:find("A quick tap", 1, true) ~= nil)
 for _, l in ipairs(LANGS) do
     local t = UI[l] or {}
     check(l .. ": both keys", t.UI_ZeD_Settings_RunSneak ~= nil and t.UI_ZeD_Settings_RunSneakTip ~= nil)
-    check(l .. ": names RT and L3", (t.UI_ZeD_Settings_RunSneakTip or ""):find("RT", 1, true) ~= nil
-          and (t.UI_ZeD_Settings_RunSneakTip or ""):find("L3", 1, true) ~= nil)
+    check(l .. ": names RT, never L3", (t.UI_ZeD_Settings_RunSneakTip or ""):find("RT", 1, true) ~= nil
+          and not (t.UI_ZeD_Settings_RunSneakTip or ""):find("L3", 1, true))
 end
 local ar = (UI.AR or {}).UI_ZeD_Settings_RunSneakTip or ""
 check("AR is Argentine Spanish (no Arabic letters)", not ar:find("\216[\128-\191]") and not ar:find("\217[\128-\191]"))
-check("AR: voseo (mantenelo)", ar:find("mantenelo", 1, true) ~= nil)
+check("AR: voseo (mantene with its accent)", ar:find("manten\195\169", 1, true) ~= nil)
 
 print(string.format("run_sneak_sim: %d checks, %d failed", checks, failed))
 os.exit(failed == 0 and 0 or 1)

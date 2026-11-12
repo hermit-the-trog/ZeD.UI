@@ -3104,40 +3104,35 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     The director's answers (Nov 12 2026): the button is the game's own Run button (the controller binding the game
     runs with); a hold while moving RUNS, not sprint (sprint stays where the game has it); "moving" is any clear push
     past the stick's dead zone; a switch in ZeD setup, off by default.
-    The director's ruling on the Default layout (Nov 12 2026; there Run is a full push of the stick, no Run button):
-    use the game's sneak button. Holding it while moving runs, for as long as it is held; standing still, a hold
-    crouches / stands as on Original; crouched and moving, a hold stands and runs; a tap stays the game's (the sneak
-    toggle). On Original nothing changes (the Run button). The run is the game's own run, never a speed or stamina
-    change of ZeD's. This overrides the earlier "nothing on L3/R3" for that layout: its Crouch button is L3.
-    BUILT (Nov 12 2026, beta 12): Input/RunSneak.lua, on OnPlayerUpdate for each local player on a controller (its
-    own pad and timing, split-screen ready) with no window or menu holding the pad. The button follows the game's
-    layout: Run where Run is a button or trigger (Original: RT); else the game's Crouch binding (Default: L3). A press
-    held 400 ms (the game's own tap limit, same clock) with the stick at rest crouches or stands; crouched and moving,
-    it stands up; moving on the Crouch button, it runs while held. A tap is never touched, no press is swallowed. The
-    only state it changes: the stance (setSneaking, as the game's crouch does) and, on the Crouch button, the game's
-    run flag (setForceRun, the flag "Toggle to run" drives; UpdateInputState runs on it exactly as on a full push), so
-    speed, stamina and Sprint stay the game's; it asks the game's own conditions first (Run allowed, not starting a
-    climb). Nothing while aiming, in a car, asleep, sitting, climbing, with a bumper held (quick chords) or across a
-    pause; Safe mode turns it off.
-    Found on 42.22 (javap): on a pad the game runs only while the stick is past its dead zone AND Run is down (or the
-    run flag is on). Each frame the game steps the player's input first (CharacterInputComponent.frameStep), which
-    CLEARS the run flag whenever "Toggle to run" is off (the default), then updates the player: OnPlayerUpdate fires,
-    then the stance click, then the input read. So a flag set on OnTick never runs anyone (cleared before the read);
-    set on OnPlayerUpdate it holds for that frame. The module sets it on every frame the button is held, so a run
-    can't outlast the hold: with Toggle to run off the game drops it the next frame by itself; with it on (the game
-    keeps the flag) the module puts back what it found on release, on the switch turned off, Safe mode, a window, a
-    car, aiming, a climb, a new character, a pad unplugged, an error or a reload (a run the player toggled on is left
-    on). The game's left joystick radial menu (on by default) opens after 250 ms of L3 held, before a 400 ms hold could
-    count: while the switch is on and L3 is the hold button it stays shut (its crouch, sit and auto-walk are on ZeD's
-    D-pad wheels); on Original, or with the switch off, it is the game's as before. Sprint on Default stays R3 with a
-    full push (the game's sprint needs its own run; with the flag alone it does not sprint, as with Toggle to run).
-    Switch "Run and sneak on one button", ZeD setup > Controls, off, the help naming each layout's button
-    (UI_ZeD_Settings_RunSneak / Tip, 28 languages, machine drafts). Not an addition: the presets leave it. Sim:
-    run_sneak_sim.lua (both layouts, the game's frame order modeled); in game: zedqa_run_sneak.lua (part A by itself
-    through RunSneak.qaInput, both layouts, the run flag checked in the real frame; part B by hand with the director's
-    pad, both layouts). Not proven in game yet: the real run, stand and crouch on a pad (part B).
-    For the director: on Default with the switch on, an L3 hold no longer opens the game's radial menu. If the menu
-    should win instead, the hold can't work there with that menu on (it opens first).
+    The director's ruling on the Default layout, first (Nov 12 2026; there Run is a full push of the stick, no Run
+    button): use the game's sneak button (L3). It was built (branch commit 5f41c2fd), and then the conflict showed: the
+    game's left joystick radial menu (on by default) opens after 250 ms of L3 held, before a 400 ms hold can count, so
+    the hold could only work there by keeping the game's menu shut.
+    The director's final ruling (Nov 12 2026): ORIGINAL LAYOUT ONLY. On Default (no Run button; the crouch button is
+    L3) the feature does nothing at all: no L3 hold, the game's radial menu untouched. Why: ZeD's rule that nothing
+    changes state on L3/R3, and the game's own L3 menu stays the game's. The help line says it works with the Original
+    layout (Run on the right trigger) and does nothing on Default.
+    BUILT (Nov 12 2026, beta 12): Input/RunSneak.lua, on OnPlayerUpdate for each local player on a controller (its own
+    pad and timing, split-screen ready) with no window or menu holding the pad. It reads the game's own Run binding and
+    the game's own dead-zone test. Run held 400 ms (the game's own tap limit, same clock) with the stick at rest
+    crouches, or stands when crouched; crouched and moving, it stands up and the game's run carries on while held;
+    standing and moving it does nothing, the game already runs. A tap is never touched and no press is swallowed: its
+    one call is setSneaking, so the run, its speed, stamina and Sprint stay the game's (no run flag: on Original the
+    game's RT already runs while held with the stick pushed). Nothing while aiming, in a car, asleep, sitting, climbing,
+    with a bumper held (quick chords) or across a pause; Safe mode turns it off. Where the game's Run is not on a button
+    or trigger (Default: a full stick push; or a player's layout with Run on L3 / R3) it does nothing and never reads
+    the button; a player's own layout with Run on a button or trigger works as on Original.
+    Found on 42.22 (javap): on a pad the game runs only while the stick is past its dead zone AND Run is down
+    (CharacterInputComponent.isRunButtonDown), so standing still Run did nothing before; the Original layout (the
+    game's default) puts Run on RT and Sprint on B, Default puts Run on a full push of the stick, Crouch on L3 in both.
+    Kept for later: each frame the game's input step clears its run flag while "Toggle to run" is off, then
+    OnPlayerUpdate fires, then the input is read, so a run flag set on OnTick never holds and one set on OnPlayerUpdate
+    does (the dropped Default build used that).
+    Switch "Run button also sneaks", ZeD setup > Controls, off (UI_ZeD_Settings_RunSneak / Tip, 28 languages, machine
+    drafts). Not an addition: the presets leave it. Sim: run_sneak_sim.lua (Original, and Default as no effect at all:
+    no stance change, L3 never read, the radial menu's code untouched; the game's frame order modeled); in game:
+    zedqa_run_sneak.lua (part A by itself through RunSneak.qaInput, part B by hand with the director's pad, both
+    layouts). Not proven in game yet: the real run, stand and crouch on a pad (part B).
 122. **The survival guide stops blasting players at game start (the director, Nov 8 2026; beta 10).** "I love the survival
     guide. I don't like blasting it." Players want to get in, take a breath and look around first. The guide no longer
     opens full screen when a game starts. Instead a speech bubble pops out of the Messages icon on the belt (wording to
