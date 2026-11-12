@@ -5,7 +5,8 @@
 -- right). Each page's own controls sit in a band at its foot; Notebooks has
 -- none.
 --   Journal:   survival logbook + BBS-style diary (full width); Save (the band)
---              can also write the entry into a carried notebook (Into)
+--              can also write the entry into a carried notebook (Into); the
+--              tags under the write box go with the entry (TAGS below)
 --   Notebooks: carried notebooks, the page small, a quick note (ZeD_JournalReaders)
 --   Papers:    carried newspapers, flyers, brochures; quick look (ZeD_JournalReaders)
 --   Recipes:   every craft + build recipe grouped by category, read-only
@@ -124,6 +125,280 @@ local function subTabShown(tab)
 end
 
 -- ============================================================================
+-- TAGS: the marks an entry can carry (the director, Nov 11 2026: "Add tags for
+-- common events one would track. Same as folder tag colors."). Eight, one for
+-- each folder label color (ZeD.LABELS), so no two share a color: the square in
+-- T.labels, the word in T.labelsText. The picks under the write box are
+-- checkboxes whose box is the tag's square (hollow off, filled on); an entry
+-- shows its tags between its date and its delete cross, a square and the word,
+-- as the kills rows draw theirs. Past three on one entry, the squares alone
+-- (the help line names each). An entry keeps the keys, never the words
+-- (entry.tags = { "loot", "base" }, in this order), so a save played in another
+-- language keeps its tags; an old entry has no tags field and draws as before.
+-- ============================================================================
+local TAGS = {
+    -- (lc: the label color's key in ZeD.LABELS)
+    { k = "danger",  lc = "red",    key = "UI_ZeD_Journal_Tag_Danger",  help = "UI_ZeD_Journal_Tag_DangerHelp" },
+    { k = "loot",    lc = "orange", key = "UI_ZeD_Journal_Tag_Loot",    help = "UI_ZeD_Journal_Tag_LootHelp" },
+    { k = "news",    lc = "yellow", key = "UI_ZeD_Journal_Tag_News",    help = "UI_ZeD_Journal_Tag_NewsHelp" },
+    { k = "food",    lc = "green",  key = "UI_ZeD_Journal_Tag_Food",    help = "UI_ZeD_Journal_Tag_FoodHelp" },
+    { k = "weather", lc = "blue",   key = "UI_ZeD_Journal_Tag_Weather", help = "UI_ZeD_Journal_Tag_WeatherHelp" },
+    { k = "base",    lc = "teal",   key = "UI_ZeD_Journal_Tag_Base",    help = "UI_ZeD_Journal_Tag_BaseHelp" },
+    { k = "travel",  lc = "purple", key = "UI_ZeD_Journal_Tag_Travel",  help = "UI_ZeD_Journal_Tag_TravelHelp" },
+    { k = "injury",  lc = "pink",   key = "UI_ZeD_Journal_Tag_Injury",  help = "UI_ZeD_Journal_Tag_InjuryHelp" },
+}
+local TAG_BY = {}
+for _, t in ipairs(TAGS) do TAG_BY[t.k] = t end
+ZeD.JournalTab.TAGS = TAGS
+
+local TAG_WORDS_MAX = 3   -- more tags than this on one entry: the squares alone
+local TAG_BOX   = 7       -- the square's room (the status square inside it is 6u, as the kills rows')
+local TAG_GAP   = 4       -- square to word
+local PICK_GAP  = 9       -- between two picks under the write box
+local TAG_SPACE = 10      -- between two tags on an entry, with their words
+local SQ_SPACE  = 6       -- between two squares, without
+local _noTags = {}
+
+-- a tag's color on this theme: for the square, or as text (asText)
+local function tagColor(t, asText)
+    local T = ZeD.T
+    local L = asText and T.labelsText or T.labels
+    return (L and L[t.lc]) or T.textSec
+end
+
+--- The tags an entry carries that this version knows, in the order kept (none on an old entry).
+local function entryTags(entry)
+    local tags = entry and entry.tags
+    if type(tags) ~= "table" or #tags == 0 then return _noTags end
+    for i = 1, #tags do
+        if not TAG_BY[tags[i]] then
+            -- (a key a later version added: left out, not drawn)
+            local known = {}
+            for j = 1, #tags do if TAG_BY[tags[j]] then known[#known + 1] = tags[j] end end
+            return known
+        end
+    end
+    return tags
+end
+ZeD.JournalTab.entryTags = entryTags
+
+-- the tags' words in lower case, for the search (the player's language; the test language changes them,
+-- so the first tag's word is the check)
+local _tagLow, _tagLowKey = {}, nil
+local function tagWordsLower()
+    local key = ZeD.tr(TAGS[1].key)
+    if _tagLowKey ~= key then
+        for _, t in ipairs(TAGS) do _tagLow[t.k] = string.lower(ZeD.tr(t.key)) end
+        _tagLowKey = key
+    end
+    return _tagLow
+end
+
+--- Whether an entry is kept by the search q (in lower case): its words hold q, or one of its tags' words
+--- does. low: the tags' words in lower case (tagWordsLower), when the caller has them.
+local function entryMatches(entry, q, low)
+    if string.lower(entry.text or ""):find(q, 1, true) then return true end
+    local tags = entryTags(entry)
+    if #tags == 0 then return false end
+    low = low or tagWordsLower()
+    for i = 1, #tags do
+        if low[tags[i]]:find(q, 1, true) then return true end
+    end
+    return false
+end
+ZeD.JournalTab.entryMatches = entryMatches
+
+--- Whether the pick for tag k is ticked under the write box.
+function ZeD.JournalTab.isPicked(win, k)
+    return win ~= nil and win._journalPicks ~= nil and win._journalPicks[k] == true
+end
+
+--- Tick or untick the pick for tag k.
+function ZeD.JournalTab.togglePick(win, k)
+    if not (win and TAG_BY[k]) then return end
+    win._journalPicks = win._journalPicks or {}
+    win._journalPicks[k] = (not win._journalPicks[k]) or nil
+end
+
+--- The ticked tags' keys in the row's order, or nil when none is ticked.
+function ZeD.JournalTab.pickedTags(win)
+    local p = win and win._journalPicks
+    if not p then return nil end
+    local out = nil
+    for _, t in ipairs(TAGS) do
+        if p[t.k] then
+            out = out or {}
+            out[#out + 1] = t.k
+        end
+    end
+    return out
+end
+
+--- Untick every pick (Save has written the entry).
+function ZeD.JournalTab.clearPicks(win)
+    if win then win._journalPicks = nil end
+end
+
+--- Put text in the Journal page's search (the field shows it and the log filters at once).
+function ZeD.JournalTab.setSearch(win, text)
+    if not win then return end
+    text = text or ""
+    local f = win._journalSearch
+    if f then
+        if f.input then f.input:setText(text) end
+        f._lastText = text   -- (so the field's own poll does not filter a second time)
+    end
+    win._journalSearchText = text
+    win._journalCache = nil
+    if win._journalScroll then win._journalScroll:setScrollPos(0) end
+end
+
+--- A tag on an entry pressed: its word goes in the search.
+function ZeD.JournalTab.searchTag(win, k)
+    local t = TAG_BY[k]
+    if t then ZeD.JournalTab.setSearch(win, ZeD.tr(t.key)) end
+end
+
+--- Save: the entry goes into the log with the ticked tags, the box and the ticks clear. Into a
+--- notebook, the character writes the words there first (the tags stay in the log only) and the
+--- box and ticks clear once it is written. True when it took the save.
+function ZeD.JournalTab.save(win, text)
+    if not win or not text or text == "" then return false end
+    local JR = ZeD.JournalReaders
+    local tags = ZeD.JournalTab.pickedTags(win)
+    if JR.saveLog(win, text, tags) then return true end
+    JR.addLogEntry(win, text, nil, tags)
+    if win._journalInput then win._journalInput:clear() end
+    ZeD.JournalTab.clearPicks(win)
+    return true
+end
+
+-- The picks' places under the write box, one row or more (they wrap at the width: the Deck's
+-- size with Large text takes two); kept per width, scale, font and language.
+local function pickLayout(win, w)
+    local T = ZeD.T
+    local lang = ZeD.trTestOn() and 1 or 0
+    local c = win._journalPickLay
+    if c and c.w == w and c.scale == T.scale and c.font == T.fontF3 and c.lang == lang then return c end
+    local f3 = T.fontF3
+    local box, gap, between = T.px(TAG_BOX), T.px(TAG_GAP), T.px(PICK_GAP)
+    local rowH = math.max(ZeD.TM:getFontHeight(f3), box) + T.px(4)
+    local items = {}
+    local cx, row = 0, 0
+    for i, t in ipairs(TAGS) do
+        local word = ZeD.tr(t.key)
+        local iw = box + gap + ZeD.TM:MeasureStringX(f3, word)
+        if cx > 0 and cx + iw > w then row = row + 1; cx = 0 end
+        items[i] = { t = t, word = word, dx = cx, dy = row * rowH, w = iw }
+        cx = cx + iw + between
+    end
+    c = { w = w, scale = T.scale, font = T.fontF3, lang = lang, items = items, rows = row + 1, rowH = rowH, h = (row + 1) * rowH }
+    win._journalPickLay = c
+    return c
+end
+ZeD.JournalTab.pickLayout = pickLayout
+
+-- the picks drawn at (x, y), w wide, inside the view vy0 .. vy1; their zones stamped. Returns their height.
+local function drawPicks(panel, win, x, y, w, vy0, vy1, rects)
+    local T, A = ZeD.T, ZeD.Atoms
+    local lay = pickLayout(win, w)
+    local f3 = T.fontF3
+    local fh3 = ZeD.TM:getFontHeight(f3)
+    local box, gap, rowH = T.px(TAG_BOX), T.px(TAG_GAP), lay.rowH
+    local zones = {}
+    for _, it in ipairs(lay.items) do
+        local t = it.t
+        local ix, iy = x + it.dx, y + it.dy
+        local id = "journal:tagpick:" .. t.k
+        local on = ZeD.JournalTab.isPicked(win, t.k)
+        local hov = hoverIn(panel, ix, iy, it.w, rowH, vy0, vy1)
+        if hov then help(win, ZeD.tr(t.help)) end
+        local fo = focusOf(win, id)
+        local washed = fo and ZeD.Focus.mark(panel, ix, iy, it.w, rowH, fo)
+        -- the checkbox: the tag's square, hollow off, filled on
+        local by = iy + math.floor((rowH - box) / 2)
+        if on then A.drawStatusDot(panel, ix, by, tagColor(t, false), box)
+        else A.drawStatusHollow(panel, ix, by, tagColor(t, false), box) end
+        local tc = (washed and T.textOnFocus) or (on and tagColor(t, true)) or (hov and T.text) or T.textSec
+        panel:drawText(it.word, ix + box + gap, iy + math.floor((rowH - fh3) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
+        local z = { k = t.k, id = id, x = ix, y = iy, w = it.w, h = rowH }
+        zones[#zones + 1] = z
+        rects[id] = z
+    end
+    win._journalPickZones = zones
+    return lay.h
+end
+
+-- An entry's tags in its head row: their places, kept on the entry's row (room: the row's width
+-- less the delete cross). The date keeps at least half the row; past three tags, or with no room
+-- for the words, the squares alone.
+local function tagLayout(wrapped, room)
+    local tags = entryTags(wrapped.entry)
+    if #tags == 0 then return nil end
+    local T = ZeD.T
+    local key = tostring(room) .. "|" .. tostring(T.scale) .. "|" .. tostring(T.fontF3) .. (ZeD.trTestOn() and "t" or "n")
+    local lay = wrapped.tagLay
+    if lay and lay.key == key and lay.src == wrapped.entry.tags then return lay end
+    local box, gap = T.px(TAG_BOX), T.px(TAG_GAP)
+    local items = {}
+    local words = #tags <= TAG_WORDS_MAX
+    local tw = 0
+    if words then
+        for i = 1, #tags do
+            local t = TAG_BY[tags[i]]
+            local word = ZeD.tr(t.key)
+            local iw = box + gap + ZeD.TM:MeasureStringX(T.fontF3, word)
+            items[i] = { t = t, word = word, w = iw }
+            tw = tw + iw + ((i > 1) and T.px(TAG_SPACE) or 0)
+        end
+        if tw > math.floor(room / 2) then words = false end
+    end
+    local between = T.px(TAG_SPACE)
+    if not words then
+        between, tw = T.px(SQ_SPACE), 0
+        for i = 1, #tags do
+            items[i] = { t = TAG_BY[tags[i]], word = nil, w = box }
+            tw = tw + box + ((i > 1) and between or 0)
+        end
+    end
+    local dx = 0
+    for _, it in ipairs(items) do it.dx = dx; dx = dx + it.w + between end
+    lay = { key = key, src = wrapped.entry.tags, words = words, w = tw, items = items }
+    wrapped.tagLay = lay
+    return lay
+end
+ZeD.JournalTab.tagLayout = tagLayout
+
+-- An entry's tags drawn in its head row, ending at `right`; their zones stamped. Returns the x
+-- they start at (the date ends short of it), or nil when the entry has none.
+local function drawEntryTags(panel, win, wrapped, right, rowY, rowH, room, vy0, vy1, zones, rects)
+    local lay = tagLayout(wrapped, room)
+    if not lay then return nil end
+    local T, A = ZeD.T, ZeD.Atoms
+    local f3 = T.fontF3
+    local fh3 = ZeD.TM:getFontHeight(f3)
+    local box, gap = T.px(TAG_BOX), T.px(TAG_GAP)
+    local x0 = right - lay.w
+    for _, it in ipairs(lay.items) do
+        local t = it.t
+        local ix = x0 + it.dx
+        local id = "journal:tag:" .. tostring(wrapped.idx) .. ":" .. t.k
+        if hoverIn(panel, ix, rowY, it.w, rowH, vy0, vy1) then help(win, ZeD.tr(t.help)) end
+        local fo = focusOf(win, id)
+        local washed = fo and ZeD.Focus.mark(panel, ix, rowY, it.w, rowH, fo)
+        A.drawStatusDot(panel, ix, rowY + math.floor((rowH - box) / 2), tagColor(t, false), box)
+        if it.word then
+            local tc = washed and T.textOnFocus or tagColor(t, true)
+            panel:drawText(it.word, ix + box + gap, rowY + math.floor((rowH - fh3) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
+        end
+        local z = { id = id, k = t.k, entryIdx = wrapped.idx, x = ix, y = rowY, w = it.w, h = rowH }
+        zones[#zones + 1] = z
+        rects[id] = z
+    end
+    return x0
+end
+
+-- ============================================================================
 -- JOURNAL ENTRY GROUPING — group entries by month_year, newest month first
 -- ============================================================================
 
@@ -205,7 +480,8 @@ local function wrappedLines(entry, font, width)
     return lines
 end
 
--- The month groups for the entries the search leaves, rebuilt only when the
+-- The month groups for the entries the search leaves (its words in what was
+-- written, or in a tag's word: entryMatches), rebuilt only when the
 -- entry list or the search text changes (the first and last entries and the
 -- count catch an add or a delete, as the list is the player's live data).
 local function journalGroups(win, entries, searchQ)
@@ -219,9 +495,10 @@ local function journalGroups(win, entries, searchQ)
     local filtered = entries
     if searchQ ~= "" then
         local q = string.lower(searchQ)
+        local low = tagWordsLower()
         filtered = {}
         for _, entry in ipairs(entries) do
-            if string.lower(entry.text or ""):find(q, 1, true) then
+            if entryMatches(entry, q, low) then
                 filtered[#filtered + 1] = entry
             end
         end
@@ -230,6 +507,7 @@ local function journalGroups(win, entries, searchQ)
     win._journalGroupCache = { src = entries, n = n, first = entries[1], last = entries[n], q = searchQ, lang = lang, groups = groups }
     return groups
 end
+ZeD.JournalTab.groups = journalGroups
 
 -- ============================================================================
 -- RECIPE CATALOG — combined craft + build, built once (module-level cache)
@@ -624,10 +902,12 @@ local function renderJournal(panel, win, x, y, w, h)
         local killRows = 3 + #data.weaponCats
         zoneAEstH = zoneAEstH + killRows * (statRowEstH + T.sp.rowGap)
     end
-    -- the write box, then Into (a carried notebook) on its own row when there is one
+    -- the write box, its tag picks, then Into (a carried notebook) on its own row when there is one
+    -- (the picks measured at the narrower width, with the scrollbar: one row more at most)
     local intoShown = ZeD.JournalReaders.intoShown(win)
     zoneAEstH = zoneAEstH + T.sp.xs + T.px(1) + T.sp.afterGroove
-        + T.px(ENTRY_INPUT_H) + T.sp.xs + (intoShown and (T.buttonH + T.sp.sm) or 0) + T.px(1) + T.sp.afterLine
+        + T.px(ENTRY_INPUT_H) + T.sp.xs + pickLayout(win, contentW - scrollW - T.px(2)).h + T.sp.xs
+        + (intoShown and (T.buttonH + T.sp.sm) or 0) + T.px(1) + T.sp.afterLine
 
     local entryGroups = journalGroups(win, data.journalEntries, win._journalSearchText or "")
     local entryContentH = ZeD.JournalTab._measureJournalContent(data, contentW - scrollW - T.px(2), win._journalGroupCollapsed, entryGroups)
@@ -671,6 +951,9 @@ local function renderJournal(panel, win, x, y, w, h)
                 end
             end
         end
+        -- a tag pick, or a tag on an entry
+        local tz = not ty and win._journalTagRects and win._journalTagRects[gpFocusedId]
+        if tz then ty, th = tz.y, tz.h end
         if ty and th then
             local prevScrollOff = math.floor(scroll.scrollPos * (totalContentH - h))
             local contentTy = ty - (y - prevScrollOff)  -- convert screen-space Y to content-space
@@ -694,6 +977,11 @@ local function renderJournal(panel, win, x, y, w, h)
 
     local stencilW = needsScroll and (outerW - scrollW) or outerW
     panel:setStencilRect(outerX, y, stencilW, h)
+    -- the log's view (a tag's click counts only inside it) and this frame's tag stops by id
+    local view = win._journalView or {}
+    win._journalView = view
+    view.x, view.y, view.w, view.h = outerX, y, stencilW, h
+    local tagRects = {}
 
     local scrollOff = 0
     if needsScroll then
@@ -749,6 +1037,8 @@ local function renderJournal(panel, win, x, y, w, h)
         entryBox:setHeight(T.px(ENTRY_INPUT_H))
         curY = curY + T.px(ENTRY_INPUT_H) + T.sp.xs
     end
+    -- the tag picks under it (ticked ones go with the entry on Save)
+    curY = curY + drawPicks(panel, win, x, curY, drawW, y, y + h, tagRects) + T.sp.xs
     if intoShown then
         -- Into: the log only, or a carried notebook the character writes it in too (it stays
         -- with the write box)
@@ -767,6 +1057,7 @@ local function renderJournal(panel, win, x, y, w, h)
     -- Journal entries — grouped by month, newest first
     local groupZones = {}
     local deleteZones = {}
+    local tagZones = {}
     local delSz = T.buttonH - T.px(4)   -- the delete icon button: a list row's button size
     local headH = entryHeadH()
 
@@ -824,12 +1115,15 @@ local function renderJournal(panel, win, x, y, w, h)
                         wrapped.stamp, wrapped.stampKey = dateStr, stampKey
                     end
 
-                    dateStr = truncText(dateStr, T.fontF3, drawW - delSz - T.px(8))
+                    -- its tags between the date and the delete cross (the date ends short of them)
+                    local delX = x + drawW - delSz
+                    local tagX = drawEntryTags(panel, win, wrapped, delX - T.px(8), curY, headH, drawW - delSz - T.px(8),
+                        y, y + h, tagZones, tagRects)
+                    dateStr = truncText(dateStr, T.fontF3, (tagX or delX) - x - T.px(8))
                     panel:drawText(dateStr, x, curY + math.floor((headH - ZeD.TM:getFontHeight(T.fontF3)) / 2),
                         T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF3)
 
                     -- Delete: an icon button that asks first (the question band at the foot)
-                    local delX = x + drawW - delSz
                     local delY = curY + math.floor((headH - delSz) / 2)
                     local dHover = hoverIn(panel, delX, delY, delSz, delSz, y, y + h)
                     M.drawIconButton(panel, delX, delY, delSz, drawCross, {
@@ -859,6 +1153,8 @@ local function renderJournal(panel, win, x, y, w, h)
     end
     win._journalGroupZones  = groupZones
     win._journalDeleteZones = deleteZones
+    win._journalTagZones    = tagZones
+    win._journalTagRects    = tagRects
 
     panel:clearStencilRect()
 
@@ -1255,6 +1551,92 @@ local function drawPageMenu(panel, win)
 end
 
 local function inside(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
+
+-- ============================================================================
+-- THE TAGS' CLICKS AND CONTROLLER STOPS (the Journal page)
+-- ============================================================================
+
+--- A click on the Journal page's log: a pick ticks or unticks, a tag on an entry puts its word
+--- in the search. Only inside the log's view, and not while the delete question is up. True
+--- when it took the click.
+function ZeD.JournalTab.onBodyClick(win, x, y)
+    if not win or (win._journalSubTab or 1) ~= 1 or win._journalAsk then return false end
+    if not inside(win._journalView, x, y) then return false end
+    for _, z in ipairs(win._journalPickZones or _noTags) do
+        if inside(z, x, y) then ZeD.JournalTab.togglePick(win, z.k); return true end
+    end
+    for _, z in ipairs(win._journalTagZones or _noTags) do
+        if inside(z, x, y) then ZeD.JournalTab.searchTag(win, z.k); return true end
+    end
+    return false
+end
+
+--- Whether a stop on the log lies within a view's height of the view (the rest are left out of
+--- the controller's stops, so a long log does not make hundreds a frame; the scroll-follow
+--- brings the next ones in).
+function ZeD.JournalTab.inPadReach(win, z)
+    local v = win and win._journalView
+    if not (v and z) then return true end
+    return z.y + z.h > v.y - v.h and z.y < v.y + v.h * 2
+end
+
+-- the pad's words and acts on the tag stops (one set of functions, shared by every stop)
+local function pickPromptA(w, el)
+    return ZeD.tr(ZeD.JournalTab.isPicked(w, el.tagKey) and "UI_ZeD_Journal_TagUntick" or "UI_ZeD_Journal_TagTick")
+end
+local function pickActivate(w, el) ZeD.JournalTab.togglePick(w, el.tagKey) end
+local function tagActivate(w, el) ZeD.JournalTab.searchTag(w, el.tagKey) end
+local function noFocus() end
+local _helpPrompt = {}   -- [tag key] = { help line }, the help band's words beside the prompts
+
+local function helpPrompt(t)
+    local p = _helpPrompt[t.k]
+    local s = ZeD.tr(t.help)
+    if not p or p[1] ~= s then p = { s }; _helpPrompt[t.k] = p end
+    return p
+end
+
+--- The controller's stops for the tags: the eight picks (left and right walk them, A ticks or
+--- unticks), then each tag on an entry near the view (A puts its word in the search). The help
+--- band names the tag and what it is for beside the prompts.
+function ZeD.JournalTab.tagFocusables(win)
+    local out = {}
+    if not win then return out end
+    for _, z in ipairs(win._journalPickZones or _noTags) do
+        local t = TAG_BY[z.k]
+        out[#out + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = z.id, journalKind = "tagPick", tagKey = z.k,
+            onFocus = noFocus, onActivate = pickActivate, promptA = pickPromptA, extraPrompts = helpPrompt(t) }
+    end
+    for _, z in ipairs(win._journalTagZones or _noTags) do
+        if ZeD.JournalTab.inPadReach(win, z) then
+            local t = TAG_BY[z.k]
+            out[#out + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = z.id, journalKind = "tag", tagKey = z.k,
+                entryIdx = z.entryIdx, onFocus = noFocus, onActivate = tagActivate,
+                promptA = ZeD.tr("UI_ZeD_Journal_TagShow", ZeD.tr(t.key)), extraPrompts = helpPrompt(t) }
+        end
+    end
+    return out
+end
+
+-- X on any of the Journal page's stops: the search clears (its prompt only while there is one)
+local function padClear(w) if (w._journalSearchText or "") ~= "" then ZeD.JournalTab.setSearch(w, "") end end
+local function padClearPrompt(w) return (w._journalSearchText or "") ~= "" and ZeD.tr("UI_ZeD_Inv_FilterClear") or false end
+
+--- Give the Journal page's stops X to clear the search (those with no X of their own).
+function ZeD.JournalTab.withClear(elements)
+    for _, el in ipairs(elements) do
+        if not el.onContextMenu then el.onContextMenu, el.promptX = padClear, padClearPrompt end
+    end
+    return elements
+end
+
+--- What moves the Journal page's stops besides its scroll (the kills folded or shown, an entry
+--- saved or deleted, the search, the picks wrapping): the Character window rebuilds them when it changes.
+function ZeD.JournalTab.padKey(win)
+    local pz, tz, gz = win._journalPickZones, win._journalTagZones, win._journalGroupZones
+    return tostring(pz and pz[1] and pz[1].y) .. ":" .. tostring(pz and pz[#pz] and pz[#pz].y) .. ":" .. tostring(tz and #tz)
+        .. ":" .. tostring(gz and gz[1] and gz[1].y) .. ":" .. tostring(win._journalSearchText)
+end
 
 --- A click on the header: the Page box opens its list; the open list takes every click
 -- (a page, or shut). The rest of the strip takes its clicks too (nothing under it), and

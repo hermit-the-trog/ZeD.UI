@@ -942,8 +942,9 @@ function J.drawLogInto(panel, win, x, y, maxW, h)
     return pw
 end
 
---- A log entry, as the Journal's Save makes it; `source` names where it was written too.
-function J.addLogEntry(win, text, source)
+--- A log entry, as the Journal's Save makes it; `source` names where it was written too, `tags`
+--- the ticked tags' keys (nil: none; JournalTab's TAGS).
+function J.addLogEntry(win, text, source, tags)
     local gt = getGameTime()
     local md = win._playerObj:getModData()
     md.ZeD_Journal = md.ZeD_Journal or { entries = {} }
@@ -958,13 +959,15 @@ function J.addLogEntry(win, text, source)
         survivalDay = survDay,
         text   = text,
         source = source,
+        tags   = tags,
     })
     win._journalCache = nil
 end
 
---- Save with a notebook picked: the character writes it there, then the log keeps it.
---- Returns true when it took the save (written, writing, or why not shown).
-function J.saveLog(win, text)
+--- Save with a notebook picked: the character writes the words there, then the log keeps them
+--- with the tags (the notebook's page gets the words only). Returns true when it took the save
+--- (written, writing, or why not shown); the box and the ticks clear once it is written.
+function J.saveLog(win, text, tags)
     local s = st(win)
     local b = logBook(win)
     if not b then return false end
@@ -977,8 +980,9 @@ function J.saveLog(win, text)
     s.logMsg = nil
     local name = b:getName()
     s.logPending = N.write(p, b, page, text, function(pg)
-        J.addLogEntry(win, text, { name = name, page = pg })
+        J.addLogEntry(win, text, { name = name, page = pg }, tags)
         if win._journalInput then win._journalInput:clear() end
+        if ZeD.JournalTab and ZeD.JournalTab.clearPicks then ZeD.JournalTab.clearPicks(win) end
     end)
     return true
 end

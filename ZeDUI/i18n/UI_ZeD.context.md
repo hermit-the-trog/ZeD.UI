@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5070.
+Total keys: 5089.
 
 ## Areas
 
@@ -55,7 +55,7 @@ Total keys: 5070.
 - [ItemAct](#itemact) (3)
 - [ItemMenu](#itemmenu) (1)
 - [Join](#join) (44)
-- [Journal](#journal) (32)
+- [Journal](#journal) (51)
 - [Keyboard](#keyboard) (12)
 - [Lock](#lock) (58)
 - [Looks](#looks) (11)
@@ -1990,6 +1990,25 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Journal_HelpKillsHide` | `Fold the kills by kind.` | Character window, Journal tab: help line over the kills heading while the list of kinds is open | - |
 | `UI_ZeD_Journal_HelpKillsShow` | `Show the kills by kind.` | Character window, Journal tab: help line over the kills heading while the list of kinds is folded | - |
 | `UI_ZeD_Journal_HelpSubTab` | `Open %1.` | Character window, Journal tab: help line over a sub-tab that is not the open one; %1 = its name | - |
+| `UI_ZeD_Journal_Tag_Danger` | `Danger` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_DangerHelp` | `Danger: hordes, close calls, a place to keep away from.` | Character window, Journal tab, Journal sub-tab: help line over the Danger tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_Tag_Loot` | `Loot` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_LootHelp` | `Loot: what was found or taken, and where.` | Character window, Journal tab, Journal sub-tab: help line over the Loot tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_Tag_News` | `News` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_NewsHelp` | `News: the radio and TV, the water and power going off, the helicopter.` | Character window, Journal tab, Journal sub-tab: help line over the News tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_Tag_Food` | `Food` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_FoodHelp` | `Food: meals, water, farming, fishing, foraging.` | Character window, Journal tab, Journal sub-tab: help line over the Food tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_Tag_Weather` | `Weather` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_WeatherHelp` | `Weather: rain, storms, fog, the cold coming in.` | Character window, Journal tab, Journal sub-tab: help line over the Weather tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_Tag_Base` | `Base` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_BaseHelp` | `Base: building, fences, barricades, the generator.` | Character window, Journal tab, Journal sub-tab: help line over the Base tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_Tag_Travel` | `Travel` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_TravelHelp` | `Travel: trips out, roads, cars, the map.` | Character window, Journal tab, Journal sub-tab: help line over the Travel tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_Tag_Injury` | `Injury` | Character window, Journal tab, Journal sub-tab: a tag's word, beside its colored square, in the row of tag checkboxes under the write box and in an entry's date line; also matched by the search | 10 |
+| `UI_ZeD_Journal_Tag_InjuryHelp` | `Injury: wounds, bites, sickness, how they mend.` | Character window, Journal tab, Journal sub-tab: help line over the Injury tag (a pick under the write box or a tag on an entry): the tag's word, then what it is for | - |
+| `UI_ZeD_Journal_TagTick` | `Tag` | Character window, Journal tab, Journal sub-tab: controller prompt beside A on a tag checkbox that is not ticked (ticks it) | 12 |
+| `UI_ZeD_Journal_TagUntick` | `Untag` | Character window, Journal tab, Journal sub-tab: controller prompt beside A on a tag checkbox that is ticked (unticks it) | 12 |
+| `UI_ZeD_Journal_TagShow` | `Show %1` | Character window, Journal tab, Journal sub-tab: controller prompt beside A on a tag on an entry: puts the tag's word in the search; %1 = the tag's word | 20 |
 
 ## Keyboard
 
