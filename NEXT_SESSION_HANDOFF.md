@@ -1,4 +1,4 @@
-# Next session handoff (written Nov 11 2026, after beta 11 shipped)
+# Next session handoff (written Nov 11 2026, after beta 11 shipped; refreshed late Nov 11)
 
 Read this first, then STATE.md for what ships and ZeDUI/PUNCH_LIST.md for every open item with its check. The beta 12 plan is in this file (there is no separate plan document).
 
@@ -20,11 +20,15 @@ The corkboard note (MenuNote.lua, approved by the director Nov 11): CONSOLE / SP
 | 107 | Split-screen: ZeD's own windows for every local player (the director: before Dec 1) | open (SPLIT VIEW) |
 | 108 | A drawn controller for Options > Controls | open (PAD MAP) |
 | 121 | Controller: run and sneak on one button, by how far the stick is pushed (modeled on a Skyrim mod; see the punch list entry) | open (RUN+SNEAK) |
-| 167 | The World window's Fishing tab with the trophy wall (director-approved mockup `ZeDUI/mockups/zed_fishing_tab_v2.html`; rulings in the punch list entry) | approved; building now (Nov 11, the director) |
+| 166-172 | Drag chip cascade (166), Fishing tab and trophy wall (167), inventory Filter (168), Animals quick actions and Feed picker (169), Mods Files tab (170), Skills/Equipment Find (171), SRJ Transcribe (172) | built and merged Nov 11. QA PASS in game: 167, 168, 171, 172. 169: three fix rounds, round three on main (296cfbc7), QA rerun pending (restore script first). 170: main menu PASS; in-game error cards need Bandits2 + BanditsWeekOne on |
+| Nov 11 extras | Journal entry tags; saved window positions; tab fill (Health, Thermal, Radios, Notebooks, Loadouts); the director's 50-picture review fixes; LMB/RMB in short hints; tags as square + word everywhere (Atoms.drawTag); search magnifier; one List/Grid view button; footer "3 of 48 picked / 4.2 kg"; health status pixel by the name + "Blink the low-health pixel" option | all merged; QA PASS in game except what is noted in the punch list |
 | 165 | b11n's test timing: wait for the Character window to show before 156's tab-mode check; 155's off-ring peek read too early; 162's list reveal doesn't scroll (scroll the list explicitly) | open, test side (BUG FIXES) |
 | 139 | The pointer says what a click or a drop will do | parked by the director (research later) |
 
 BUG FIXES is the umbrella for 165 and any player reports before the upload.
+
+**Next (late Nov 11):** the director asked which headline item to start next (split-screen, console, run and sneak, drawn controller) and went to bed before answering: ask again first thing (multiple choice). Gallery beta 12: plan v2 approved (`ZeDUI/workshop/gallery/PLAN_ALTERNATE_20261111.md`), `make_b12.py` builds `upload_b12/` (76 of 80 on main 68b54e5a); missing QA breaks: cin_ang_open, cin_ang_close (Light + Blue, new script), cin_mck_kitchen, cin_lau_lake (Light + Teal). The live beta 11 fishing break (40b) is off Laura's look until beta 12 replaces it.
+
 
 **Not mod changes, also after the reset:**
 - **129 and 128** The whole gallery retaken in PZ Teal by QA from `ZeDUI/workshop/gallery/B11_RECAPTURE.md` (19px game font, pinned by `zedqa_run.ps1`; the vanilla four at 19px with ZeD off; hero shots with one source open), then one full re-render of all pictures (the running head's hyphen is already in the spreads).
