@@ -4434,12 +4434,26 @@ to be proposed.
       and the item cards are mostly blank; Equipped hides its grade panel below the fold. Proposals in section 4.
    e. **QA.** Rerun the full catalog on today's main so the 36 tabs get an after picture; add Light, High contrast,
       Large text and the controller highlight for a few tabs.
-176. **Console Pro 93: the Lua console as its own mod (the director, Nov 12 2026, via QA: "I want to release this as a
+176. **Lua Console 93 Professional Edition: the Lua console as its own mod (the director, Nov 12 2026, via QA: "I want to release this as a
    separate mod. Just the console. Call it like Console Pro 93"; ships with beta 12, the same day, after QA passes
-   both).** Debug mode only, for mod makers. Built by ZeDUI/tools/products/build_consolepro93.py from ZeD's own console
-   files (one source: every console fix reaches both), into products/ConsolePro93/42 and, staged, Zomboid/mods/
-   ConsolePro93. No clash with ZeD-GUI: its own Lua, texture and font paths (ConsolePro93/), its own Translate keys
-   (UI_CP93_*) and globals (CP93); with ZeD-GUI on, every file returns early and ZeD-GUI's console is used. Name
-   "Console Pro 93" is the director's working name, in one place in the tool. QA: alone on vanilla, both installed
-   in each order, its own release check (ZeDUI/qa/CHECK_consolepro93.md). Its own Workshop item, gallery and update
+   both).** Debug mode only, for mod makers. Built by ZeDUI/tools/products/build_luaconsole93.py from ZeD's own console
+   files (one source: every console fix reaches both), into products/LuaConsole93/42 and, staged, Zomboid/mods/
+   LuaConsole93. No clash with ZeD-GUI: its own Lua, texture and font paths (LuaConsole93/), its own Translate keys
+   (UI_LC93_*) and globals (LC93); with ZeD-GUI on, every file returns early and ZeD-GUI's console is used. Name
+   "Lua Console 93 Professional Edition" (the director, Nov 12), id LuaConsole93, kept in one place in the tool. QA: alone on vanilla, both installed
+   in each order, its own release check (ZeDUI/qa/CHECK_luaconsole93.md). Its own Workshop item, gallery and update
    track: the upload is the director's go. Waits on the console fixes from the Nov 12 bug hunt.
+   The director, later Nov 12 (via QA): "a brand new workshop item ... our first real mod that's not in beta that
+   anyone can use, and you don't have to have our 0-day graphical user interface to use it." So: version 1.0.0, no
+   beta wording or BETA tape anywhere; no ZeD-GUI dependency (works on the plain game alone); every console bug from
+   the Nov 12 hunt fixed first; QA runs a full release pass on it standalone. Launch plan:
+   a. Build: the generator, the guard, the sim, CHECK_luaconsole93.md (in progress).
+   b. Art: products/LuaConsole93/workshop/preview.png (512x512, 1993 box art, no tape), poster.png, icon.
+   c. Page: workshop_description.bbcode (a 1.0 tool for mod makers, debug mode, works alone; with ZeD-GUI on,
+      ZeD-GUI's console is used), the director approves the text.
+   d. Gallery: QA shoots the log with filters, an error opened, the scratchpad, autocomplete, the Commands page and
+      the Deck size, standalone on the plain game; framed like ZeD's gallery only if the director wants.
+   e. QA: alone on vanilla, both installed in each order, the release check.
+   f. First upload: a new item (no publishedfileid yet). Build stages it and writes its .vdf; the director's SteamCMD
+      paste creates the id, which then goes into the generator and the .vdf for every later update. Same day as
+      ZeD-GUI beta 12.
