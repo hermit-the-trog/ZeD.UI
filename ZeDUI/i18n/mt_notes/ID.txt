@@ -21,3 +21,5 @@ Verb slots (441, 444, 445, 497-499): mengendarainya, mengambil bagian, menderek,
 Log lines use active verbs after a name (men-kick, mem-ban, memukul); 918 "me-hotwire" and 916 "melucuti" are guesses.
 Times: AM/PM kept as AM/PM; 240/241 use "mnt" / "j" abbreviations.
 Tight limits shortened: 127, 179, 185, 189, 280, 283, 323, 480, 521, 756, 1037, 1050, 1089 - check tone.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

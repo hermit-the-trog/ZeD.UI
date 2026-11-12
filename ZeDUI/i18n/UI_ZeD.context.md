@@ -8,14 +8,14 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 3604.
+Total keys: 3632.
 
 ## Areas
 
 - [Accent](#accent) (1)
 - [Act](#act) (284)
 - [ActionBar](#actionbar) (4)
-- [Animals](#animals) (163)
+- [Animals](#animals) (191)
 - [Appliance](#appliance) (21)
 - [Belt](#belt) (34)
 - [Card](#card) (95)
@@ -589,6 +589,34 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_NoEligibleYet` | `No animals can be butchered yet. Only adults that are not pregnant count.` | Animals tab, butcher view: line shown when no animal can be butchered | - |
 | `UI_ZeD_Animals_NoZonesYet` | `No animal zones yet.` | Animals tab, Ranch overview: line shown when there is no zone | - |
 | `UI_ZeD_Animals_RemoveZoneAsk` | `Remove the zone? Its animals stay where they are.` | Animals tab, zone view: the question in the band after Remove zone is pressed; the band then offers a yes and a no | - |
+| `UI_ZeD_Animals_AllHungry` | `All hungry` | Animals tab, zone view: button at the left of the band that ticks every hungry animal of the zone | 16 |
+| `UI_ZeD_Animals_AllMilkable` | `All milkable` | Animals tab, zone view: button at the left of the band that ticks every animal with milk | 16 |
+| `UI_ZeD_Animals_ClearSel` | `Clear` | Animals tab, zone view: button at the left of the band that clears the ticked rows | 12 |
+| `UI_ZeD_Animals_HelpAllHungry` | `Tick every animal here that is hungry or starving` | Animals tab, zone view: help line over All hungry | - |
+| `UI_ZeD_Animals_HelpAllMilkable` | `Tick every animal here with milk to give` | Animals tab, zone view: help line over All milkable | - |
+| `UI_ZeD_Animals_HelpClearSel` | `Clear the ticks: no animal selected` | Animals tab, zone view: help line over Clear | - |
+| `UI_ZeD_Animals_HelpGoTo` | `Walk over to %1` | Animals tab, alerts: help line over an alert's Walk to button; %1 is the animal's name | - |
+| `UI_ZeD_Animals_HelpMilkOne` | `Walk to %1 and milk it` | Animals tab, alerts: help line over an alert's Milk button; %1 is the animal's name | - |
+| `UI_ZeD_Animals_HelpMilkSel` | `Milk the ticked animals one after another, walking to each` | Animals tab, zone view: help line over Milk (n), which milks the ticked animals in turn | - |
+| `UI_ZeD_Animals_HelpRowCheck` | `Tick this animal for the band's Milk and Shear` | Animals tab, zone view: help line over the box at the left of an animal's row | - |
+| `UI_ZeD_Animals_HelpShearOne` | `Walk to %1 and shear it` | Animals tab, alerts: help line over an alert's Shear button; %1 is the animal's name | - |
+| `UI_ZeD_Animals_HelpShearSel` | `Shear the ticked animals one after another, walking to each` | Animals tab, zone view: help line over Shear (n), which shears the ticked animals in turn | - |
+| `UI_ZeD_Animals_HelpStopRun` | `Stop: the action under way ends and the rest are dropped` | Animals tab, zone view: help line over Stop while a milking or shearing run is going | - |
+| `UI_ZeD_Animals_NeedBucket` | `Milk needs a bucket with room for this milk.` | Animals tab: why Milk is greyed (a balloon over the button); the game's Milk word starts it | - |
+| `UI_ZeD_Animals_NeedShears` | `Shear needs shears.` | Animals tab: why Shear is greyed (a balloon over the button); the game's Shear word starts it | - |
+| `UI_ZeD_Animals_NoMilkYet` | `No milk to take yet.` | Animals tab: why Milk is greyed (a balloon over the button) | - |
+| `UI_ZeD_Animals_NoWoolYet` | `Not enough wool to shear yet.` | Animals tab: why Shear is greyed (a balloon over the button) | - |
+| `UI_ZeD_Animals_NoneHungry` | `No animal here is hungry.` | Animals tab, zone view: why All hungry is greyed (a balloon over the button) | - |
+| `UI_ZeD_Animals_NoneMilkable` | `No animal here has milk to give.` | Animals tab, zone view: why All milkable is greyed (a balloon over the button) | - |
+| `UI_ZeD_Animals_OutOfReach` | `This animal is out of reach.` | Animals tab, alerts: why Walk to is greyed (a balloon over the button) | - |
+| `UI_ZeD_Animals_RunDone` | `Done: %1 of %2.` | Animals tab, zone view: status line after a run ends; %1 animals done of %2 | 40 |
+| `UI_ZeD_Animals_RunMilking` | `Milking %1 of %2` | Animals tab, zone view: status line while a milking run goes; %1 is the animal under way, %2 how many | 30 |
+| `UI_ZeD_Animals_RunShearing` | `Shearing %1 of %2` | Animals tab, zone view: status line while a shearing run goes; %1 is the animal under way, %2 how many | 30 |
+| `UI_ZeD_Animals_RunStopped` | `Stopped after %1 of %2.` | Animals tab, zone view: status line after a run was stopped; %1 done of %2 | 40 |
+| `UI_ZeD_Animals_SelNothing` | `%1 selected: nothing to milk or shear` | Animals tab, zone view: status line when the ticked animals have nothing to milk or shear; %1 is how many | 40 |
+| `UI_ZeD_Animals_Selected` | `%1 selected` | Animals tab, zone view: status line with rows ticked; %1 is how many | 20 |
+| `UI_ZeD_Animals_Stop` | `Stop` | Animals tab, zone view: button that stops a milking or shearing run | 12 |
+| `UI_ZeD_Animals_VerbCount` | `%1 (%2)` | Animals tab, zone view: a verb button with its count: %1 is the game's Milk or Shear, %2 how many | 16 |
 
 ## Appliance
 

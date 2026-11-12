@@ -10,12 +10,12 @@
 -- Molecules defined here (Animals-specific, not general-purpose):
 --   M-SUBM   drawSubmodeStrip        — Ranch / Butcher tab strip
 --   M-SECH   drawAnimalSection       — Collapsible section header
---   M-ALERT  drawAlertRow            — Alert row (portrait + name + badge)
+--   M-ALERT  drawAlertRow            — Alert row (portrait + name + badge + its verb: Milk, Shear, Walk to)
 --   M-MINIM  drawMiniMeter           — Compact inline fill meter with label
 --   M-ZRSUM  drawZoneSummary         — Zone card with mini-meters
 --   M-TOT    drawTotals              — 2-column production totals
 --   M-ZINF   drawZoneInfoBand        — Zone name + count + wide meters + warnings
---   M-AROW   drawAnimalRow           — 48px roster row (portrait + dots + badges)
+--   M-AROW   drawAnimalRow           — 48px roster row (checkbox + portrait + dots + badges)
 --   M-AHEAD  drawAnimalHeader        — 48px portrait + name + breed + badges
 --   M-AVIT   drawVitalRow            — Fill bar + text/numeric (skill-gated)
 --   M-APROD  drawProductionSection   — Milk/wool/eggs (Lv5+)
@@ -28,6 +28,10 @@
 --   O-ANDTL  renderRanchAnimal       — Animal detail organism
 --   O-BOVW   renderButcherOverview   — Butcher overview organism
 --
+-- The quick actions (an alert's verb, the roster's selection and the band that runs
+-- Milk or Shear over it) are worked out in AnimalsQuick.lua, which hands every act
+-- to the game's own animal menu handlers.
+--
 -- A Hunt sub-mode is planned but not built yet.
 -- ============================================================================
 
@@ -39,6 +43,7 @@ require "ZeD/Molecules"
 require "ZeD/AnimalsData"
 require "ZeD/AnimalsAlertPoller"
 require "ZeD/AnimalsStressInference"
+require "ZeD/AnimalsQuick"
 require "ZeD/SafeMode"
 -- Zone creation uses DesignationZoneAnimal directly (no vanilla UI panels)
 
@@ -51,6 +56,7 @@ local AT = ZeD.AnimalsTab
 local function AD() return ZeD.AnimalsData end
 local function SI() return ZeD.AnimalsStressInference end
 local function AP() return ZeD.AnimalsAlertPoller end
+local function QK() return ZeD.AnimalsQuick end
 
 -- ============================================================================
 -- CONTROLLER FOCUS
@@ -225,6 +231,8 @@ local function navigateBack(win)
     elseif state.view == "zone" then
         state.view = "overview"
         state.zoneName = nil
+        -- the roster's ticked rows belong to the zone left behind
+        if win._animalsZoneState then win._animalsZoneState.sel = nil end
         -- Clear zone highlight
         local player = getSpecificPlayer(0)
         if player then
@@ -261,6 +269,19 @@ local function getZoneViewState(win)
         }
     end
     return win._animalsZoneState
+end
+
+-- The roster's selection (the ticked rows), for the zone on show: another zone starts
+-- with none ticked.
+local function zoneSelection(win, zoneName)
+    local zs = getZoneViewState(win)
+    local sel = zs.sel
+    if not sel or sel.zone ~= zoneName then
+        sel = QK().newSelection()
+        sel.zone = zoneName
+        zs.sel = sel
+    end
+    return sel
 end
 
 local function cycleSortMode(win)
@@ -1064,9 +1085,33 @@ end
 
 -- ============================================================================
 -- M-ALERT — ALERT ROW
--- Portrait icon + animal name + species + a tag for what is wrong.
--- Row height = 36px. A readout: an alert is not pressed.
+-- Portrait icon + animal name + species + a tag for what is wrong + one push
+-- button for what to do about it: Milk, Shear, or Walk to for the rest (the
+-- game's words). Row height = 36px. The button is greyed when the game would not
+-- let you (no bucket, no shears, a full inventory), and the reason shows in a
+-- balloon over it. On the controller the row is the stop and A presses its button.
 -- ============================================================================
+
+-- the game's word for each verb, and the help line over its button
+local VERB_LABEL = { milk = "ContextMenu_Milk", shear = "ContextMenu_Shear", ["goto"] = "ContextMenu_Walk_to" }
+local VERB_HELP  = { milk = "UI_ZeD_Animals_HelpMilkOne", shear = "UI_ZeD_Animals_HelpShearOne", ["goto"] = "UI_ZeD_Animals_HelpGoTo" }
+local function verbLabel(v) return getText(VERB_LABEL[v] or "ContextMenu_Walk_to") end
+
+-- A greyed button's reason, as a balloon over it: after the pause for the pointer, at
+-- once for the controller's focus. One card per button, rebuilt only when its words
+-- change (the balloon keeps showing the card it already has).
+local _whyCards = {}
+local _nowOpts = { now = true }
+local function whyBalloon(panel, win, key, label, why, rect, focused)
+    if not why or why == "" or not (ZeD.Atoms and ZeD.Atoms.requestDetailCard) then return end
+    local T = ZeD.T
+    local c = _whyCards[key]
+    if not c or c.title ~= label or c._why ~= why or c._col ~= T.dangerText then
+        c = { title = label, lines = { { text = why, color = T.dangerText } }, _why = why, _col = T.dangerText, key = key }
+        _whyCards[key] = c
+    end
+    ZeD.Atoms.requestDetailCard(win, key, c, panel, rect, focused and _nowOpts or nil)
+end
 
 local ALERT_ROW_H = 36
 local ALERT_ICON_SZ = 24
@@ -1083,13 +1128,15 @@ local ALERT_LABELS = {
     lost_mother  = "UI_ZeD_Animals_AlertOrphan",
 }
 
-local function drawAlertRow(panel, x, y, w, alert, win, idx)
+-- Returns the row's height and its button: { x, y, w, h, verb, ok, why }.
+local function drawAlertRow(panel, x, y, w, alert, win, idx, player)
     local T = ZeD.T
     local A = ZeD.Atoms
+    local M = ZeD.Molecules
     local ad = AD()
     local animal = alert.animal
     local rowH = T.px(ALERT_ROW_H)
-    -- (a stop for the controller, so a long list of alerts can be walked and read; nothing to press)
+    -- (the controller's stop: A presses the row's button)
     local onFocus = markId(panel, win, "animals:alert:" .. tostring(idx), x, y, w, rowH)
     local ink = onFocus and T.textOnFocus or T.text
     local inkDim = onFocus and T.textOnFocus or T.textDim
@@ -1115,15 +1162,40 @@ local function drawAlertRow(panel, x, y, w, alert, win, idx)
     panel:drawText(name, nameX, textY, ink.r, ink.g, ink.b, ink.a or 1, f2)
     panel:drawText(species, nameX, textY + fh, inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, f2)
 
-    -- What is wrong: a tag with its status square (right-aligned)
+    -- What to do: the verb's push button at the right (Milk and Shear are the default
+    -- button, Walk to a plain one), greyed when the game would not let you
+    local verb = QK().alertVerb(alert.alertType)
+    local ok, why = QK().check(verb, player, animal)
+    local vLabel = verbLabel(verb)
+    local bw = M.buttonW(vLabel)
+    local bx = x + w - T.px(ALERT_PAD) - bw
+    local bHover = A.mouseIn(panel, bx, y, bw, rowH)
+    local vHelp = ok and ZeD.tr(VERB_HELP[verb], name) or why
+    local rbx, rby, rbw, rbh = M.drawButton(panel, bx, y, bw, rowH, vLabel, (verb ~= "goto") and "primary" or "default",
+        false, nil, { compact = true, hover = bHover, disabled = not ok, win = win, help = vHelp })
+    local btn = { x = rbx, y = rby, w = rbw, h = rbh, verb = verb, ok = ok, why = why }
+    if not ok and (bHover or onFocus) then
+        whyBalloon(panel, win, "animals:alertwhy:" .. tostring(idx), vLabel, why, btn, onFocus)
+    end
+
+    -- What is wrong: a tag with its status square, left of the button
     local label = ZeD.tr(ALERT_LABELS[alert.alertType] or "UI_ZeD_Animals_AlertDefault")
     local tw = tagWidth(label, sevColor(T, alert.severity) ~= nil)
-    drawTag(panel, x + w - tw - T.px(ALERT_PAD), tagY(y, rowH), label, alert.severity)
+    drawTag(panel, bx - T.px(8) - tw, tagY(y, rowH), label, alert.severity)
 
     -- Bottom divider
     A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
 
-    return rowH
+    return rowH, btn
+end
+
+--- Press an alert's verb: the game's own milk, shear or walk for that animal. Does nothing
+-- when the game would not let you (the button is greyed then). The World window's
+-- controller ring calls this for A on an alert row.
+function AT.alertAct(win, animal, verb)
+    local player = getSpecificPlayer(0)
+    if not (player and animal and verb) then return false end
+    return QK().act(verb, player, animal)
 end
 -- ============================================================================
 -- M-ZRSUM — ZONE SUMMARY CARD
@@ -1424,9 +1496,11 @@ local function renderRanchOverview(panel, win, x, y, w, h)
         curY = curY + catH
 
         if ovState.alertsExpanded then
+            local player = getSpecificPlayer(0)
             for i, alert in ipairs(alerts) do
-                local rh = drawAlertRow(panel, x + pad, curY, w - pad * 2, alert, win, i)
-                table.insert(win._animalsAlertZones, { x = x + pad, y = curY, w = w - pad * 2, h = rh, i = i })
+                local rh, btn = drawAlertRow(panel, x + pad, curY, w - pad * 2, alert, win, i, player)
+                table.insert(win._animalsAlertZones, { x = x + pad, y = curY, w = w - pad * 2, h = rh, i = i,
+                    btn = btn, animal = alert.animal, verb = btn.verb })
                 rows["animals:alert:" .. tostring(i)] = { cy = curY - top, h = rh }
                 curY = curY + rh
             end
@@ -1658,7 +1732,9 @@ local function animalRowModel(zs, animal, player)
     return m
 end
 
-local function drawAnimalRow(panel, x, y, w, m, hovered, onFocus)
+-- checked: the row is in the selection (its box ticked); the box's rect comes back
+-- with the height, for the press that ticks it.
+local function drawAnimalRow(panel, x, y, w, m, hovered, onFocus, checked)
     local T = ZeD.T
     local A = ZeD.Atoms
     local tm = ZeD.TM
@@ -1672,16 +1748,24 @@ local function drawAnimalRow(panel, x, y, w, m, hovered, onFocus)
         panel:drawRect(x, y, w, rowH, hc.a or 0.08, hc.r, hc.g, hc.b)
     end
 
+    -- The selection box at the left (the band's Milk and Shear act on the ticked rows)
+    local cb = T.checkboxSz
+    local cbx, cby = x + T.px(AROW_PAD), y + math.floor((rowH - cb) / 2)
+    local cbHover = A.mouseIn(panel, cbx, cby, cb, cb)
+    A.drawCheckbox(panel, cbx, cby, checked and true or false, cbHover, false)
+    local cbRect = { x = cbx, y = cby, w = cb, h = cb, hover = cbHover }
+    local px0 = cbx + cb + T.px(AROW_PAD)
+
     -- Portrait icon (32px, vertically centered)
     local tex = m.tex
     local iconY = y + math.floor((rowH - T.px(AROW_ICON_SZ)) / 2)
     if tex then
-        panel:drawTextureScaledAspect(tex, x + T.px(AROW_PAD), iconY, T.px(AROW_ICON_SZ), T.px(AROW_ICON_SZ), 0.9, 1, 1, 1)
+        panel:drawTextureScaledAspect(tex, px0, iconY, T.px(AROW_ICON_SZ), T.px(AROW_ICON_SZ), 0.9, 1, 1, 1)
     end
 
     -- === TOP LINE (y + 4px) ===
     local topY = y + T.px(4)
-    local textX = x + T.px(AROW_PAD) + T.px(AROW_ICON_SZ) + T.px(AROW_PAD)
+    local textX = px0 + T.px(AROW_ICON_SZ) + T.px(AROW_PAD)
 
     -- Name
     local nameFont = T.fontF2
@@ -1733,7 +1817,7 @@ local function drawAnimalRow(panel, x, y, w, m, hovered, onFocus)
     -- Bottom divider
     A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
 
-    return rowH
+    return rowH, cbRect
 end
 
 -- ============================================================================
@@ -2325,20 +2409,22 @@ local function renderRanchZone(panel, win, x, y, w, h)
     local mx = panel:getMouseX()
     local my = panel:getMouseY()
     local rowY = rosterTop - zs.scrollY
+    local sel = zoneSelection(win, state.zoneName)
 
     for _, animal in ipairs(sortedAnimals) do
         if rowY + T.px(AROW_H) > rosterTop and rowY < rosterTop + rosterH then
             local isHovered = A.mouseIn(panel, x, rowY, contentW, T.px(AROW_H))
                 and my >= rosterTop and my < rosterTop + rosterH
-            if isHovered then help(panel, "UI_ZeD_Animals_HelpAnimalRow") end
             -- the controller's mark goes under the row's words
             local onFocus = false
             if animal == gpFocusAnimal then
                 onFocus = ZeD.Focus.mark(panel, x + pad, rowY, contentW - pad * 2, T.px(AROW_H), focusOpts(win))
             end
-            drawAnimalRow(panel, x + pad, rowY, contentW - pad * 2, animalRowModel(zs, animal, player), isHovered, onFocus)
+            local _, cbr = drawAnimalRow(panel, x + pad, rowY, contentW - pad * 2, animalRowModel(zs, animal, player),
+                isHovered, onFocus, QK().isSelected(sel, animal))
+            if isHovered then help(panel, cbr.hover and "UI_ZeD_Animals_HelpRowCheck" or "UI_ZeD_Animals_HelpAnimalRow") end
             table.insert(win._animalsRosterZones, {
-                x = x, y = rowY, w = contentW, h = T.px(AROW_H), animal = animal
+                x = x, y = rowY, w = contentW, h = T.px(AROW_H), animal = animal, cb = cbr
             })
         end
         rowY = rowY + T.px(AROW_H)
@@ -3142,6 +3228,7 @@ local function clearBandZones(win)
     win._animalsRenameSaveBtn = nil
     win._animalsRenameCancelBtn = nil
     win._animalsRenameResetBtn = nil
+    win._animalsBulkBtns = nil
 end
 
 -- The zone view's own actions. canDo: nothing here needs the character's things, so
@@ -3155,6 +3242,153 @@ local function zoneVerbs(state)
         { id = "remove", label = ZeD.tr("UI_ZeD_Animals_BtnRemoveZone"), canDo = true, sensible = has,
           help = ZeD.tr("UI_ZeD_Animals_HelpRemoveBtn") },
     }
+end
+
+-- How many animals of the zone All hungry and All milkable would pick, kept as the
+-- sort is (SORT_CACHE_MS): the band greys a pick that finds none.
+local function bulkCounts(zs, animals, zoneName)
+    local t = getTimestampMs and getTimestampMs() or 0
+    local c = zs._bulkCounts
+    if c and c.zone == zoneName and c.n == #animals and t - c.t < SORT_CACHE_MS then return c end
+    c = { t = t, zone = zoneName, n = #animals,
+          hungry = QK().countWhere(animals, "hungry"), milkable = QK().countWhere(animals, "milkable") }
+    zs._bulkCounts = c
+    return c
+end
+
+-- the words a band button stands for in the ring ("animals:bulk:<id>")
+local function bulkId(id) return "animals:bulk:" .. tostring(id) end
+
+-- How the run that ended went ("Done: 3 of 3."), for a few seconds after it ends
+local LAST_RUN_MS = 8000
+
+-- The zone view's band. Three states:
+--   a run going:    "Milking 2 of 5" and Stop
+--   rows ticked:    Clear at the left, "3 selected", then Shear (n) and Milk (n), each
+--                   only when it applies to a ticked animal, greyed with the reason when
+--                   the tool is missing
+--   nothing ticked: All hungry and All milkable at the left (greyed when none is),
+--                   Rename and Remove zone at the right (Rename leaves first when the
+--                   band is short of room: pressing the zone's name renames it too)
+-- Every button is a controller stop (animals:bulk:<id>); the ring reads win._animalsBulkBtns.
+local function drawZoneBand(panel, win, x, y, w, state)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local M = ZeD.Molecules
+    local Q = QK()
+    local player = getSpecificPlayer(0)
+    local zs = getZoneViewState(win)
+    local animals = AP().getAnimalsInZone(state.zoneName)
+    local sel = zoneSelection(win, state.zoneName)
+    local selected = Q.prune(sel, animals)
+    local lead, buttons, status = {}, {}, nil
+
+    local function add(list, id, label, helpText, disabled, why, variant)
+        list[#list + 1] = { id = id, label = label, help = disabled and why or helpText, disabled = disabled,
+                            why = why, variant = variant, focus = focusFor(win, bulkId(id)) }
+    end
+
+    if Q.run then
+        status = Q.runStatus()
+        add(buttons, "stop", ZeD.tr("UI_ZeD_Animals_Stop"), ZeD.tr("UI_ZeD_Animals_HelpStopRun"), false)
+    elseif #selected > 0 then
+        add(lead, "clear", ZeD.tr("UI_ZeD_Animals_ClearSel"), ZeD.tr("UI_ZeD_Animals_HelpClearSel"), false)
+        local verbs = Q.selectionVerbs(player, selected)
+        for i, v in ipairs(verbs) do
+            add(buttons, v.id, ZeD.tr("UI_ZeD_Animals_VerbCount", verbLabel(v.id), v.n),
+                ZeD.tr(v.id == "milk" and "UI_ZeD_Animals_HelpMilkSel" or "UI_ZeD_Animals_HelpShearSel"),
+                not v.ok, v.why, (i == #verbs) and "primary" or nil)
+        end
+        status = ZeD.tr(#verbs > 0 and "UI_ZeD_Animals_Selected" or "UI_ZeD_Animals_SelNothing", #selected)
+    else
+        local c = bulkCounts(zs, animals, state.zoneName)
+        add(lead, "hungry", ZeD.tr("UI_ZeD_Animals_AllHungry"), ZeD.tr("UI_ZeD_Animals_HelpAllHungry"),
+            c.hungry == 0, ZeD.tr("UI_ZeD_Animals_NoneHungry"))
+        add(lead, "milkable", ZeD.tr("UI_ZeD_Animals_AllMilkable"), ZeD.tr("UI_ZeD_Animals_HelpAllMilkable"),
+            c.milkable == 0, ZeD.tr("UI_ZeD_Animals_NoneMilkable"))
+        -- Rename and Remove zone, as many as fit beside the picks
+        local shown = ZeD.Disclose.split(zoneVerbs(state))
+        local room = w - T.px(16)
+        for _, b in ipairs(lead) do room = room - M.buttonW(b.label) - T.px(8) end
+        local need = 0
+        for _, v in ipairs(shown) do need = need + M.buttonW(v.label) + T.px(8) end
+        for _, v in ipairs(shown) do
+            if v.id == "rename" and need > room then
+                need = need - M.buttonW(v.label) - T.px(8)
+            else
+                buttons[#buttons + 1] = { label = v.label, help = v.help, id = v.id }
+            end
+        end
+        local last = Q.last
+        local now = getTimestampMs and getTimestampMs() or 0
+        if last and last.why and now - (last.t or 0) < LAST_RUN_MS then status = last.why end
+    end
+
+    local H, out = M.drawBand(panel, x, y, w, {
+        win = win, lead = lead, buttons = buttons, status = status and { text = status } or nil })
+
+    -- the rects: the zone verbs keep their own click zones, the rest are bulk buttons
+    local bulk = {}
+    local function keep(spec, rect)
+        if not (spec and rect) then return end
+        if spec.id == "rename" then win._animalsZoneRenameBtn = rect
+        elseif spec.id == "remove" then win._animalsZoneRemoveBtn = rect
+        else
+            bulk[#bulk + 1] = { x = rect.x, y = rect.y, w = rect.w, h = rect.h, id = spec.id, disabled = spec.disabled }
+            -- a greyed one says why: over it with the pointer, or on it with the controller
+            if spec.disabled then
+                local on = isOn(win, bulkId(spec.id))
+                if on or A.mouseIn(panel, rect.x, rect.y, rect.w, rect.h) then
+                    whyBalloon(panel, win, bulkId(spec.id), spec.label, spec.why, rect, on)
+                end
+            end
+        end
+    end
+    for i, b in ipairs(lead) do keep(b, out.lead[i]) end
+    for i, b in ipairs(buttons) do keep(b, out.buttons[i]) end
+    win._animalsBulkBtns = bulk
+    return H
+end
+
+--- Press one of the zone band's buttons by its id: hungry / milkable (tick those rows),
+-- clear, milk / shear (run the game's action over the ticked rows), stop. A greyed one does
+-- nothing. The controller lands on the button that takes the pressed one's place.
+function AT.bulkPress(win, id)
+    local state = getState(win)
+    if state.view ~= "zone" or not state.zoneName then return false end
+    for _, b in ipairs(win._animalsBulkBtns or {}) do
+        if b.id == id and b.disabled then return false end
+    end
+    local Q = QK()
+    local animals = AP().getAnimalsInZone(state.zoneName)
+    local sel = zoneSelection(win, state.zoneName)
+    local land
+    if id == "hungry" or id == "milkable" then
+        if Q.selectWhere(sel, animals, id) > 0 then land = "clear" end
+    elseif id == "clear" then
+        Q.clear(sel)
+        land = "hungry"
+    elseif id == "milk" or id == "shear" then
+        local ok = Q.start(getSpecificPlayer(0), id, Q.prune(sel, animals))
+        if not ok then return false end
+        Q.clear(sel)
+        land = "stop"
+    elseif id == "stop" then
+        Q.stop()
+        land = "hungry"
+    else
+        return false
+    end
+    if land then win._animalsNavFocusTarget = bulkId(land) end
+    return true
+end
+
+--- Tick or clear one roster row (its box; X on the controller; a right-click on the row).
+function AT.toggleSelected(win, animal)
+    local state = getState(win)
+    if state.view ~= "zone" or not animal then return false end
+    QK().toggle(zoneSelection(win, state.zoneName), animal)
+    return true
 end
 
 -- The band at the foot of the overview and the zone view: the screen's own actions,
@@ -3189,18 +3423,7 @@ local function drawTabBand(panel, win, x, y, w, view)
         win._animalsRemoveYes = verbR
         return H
     elseif view == "zone" then
-        -- Rename and Remove zone (the name also starts a rename)
-        local shown = ZeD.Disclose.split(zoneVerbs(state))
-        local buttons = {}
-        for i, v in ipairs(shown) do
-            buttons[i] = { label = v.label, help = v.help, id = v.id }
-        end
-        local H, out = M.drawBand(panel, x, y, w, { win = win, buttons = buttons })
-        for i, v in ipairs(shown) do
-            if v.id == "rename" then win._animalsZoneRenameBtn = out.buttons[i]
-            elseif v.id == "remove" then win._animalsZoneRemoveBtn = out.buttons[i] end
-        end
-        return H
+        return drawZoneBand(panel, win, x, y, w, state)
     end
     -- Overview: Create zone
     local H, out = M.drawBand(panel, x, y, w, {
@@ -3374,6 +3597,13 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         cancelRemoveZone(win)
         return true
     end
+    -- Zone band: the picks, Clear, Milk / Shear over the ticked rows, Stop
+    for _, b in ipairs(win._animalsBulkBtns or {}) do
+        if hitZone(b, x, y) then
+            AT.bulkPress(win, b.id)
+            return true
+        end
+    end
 
     -- Submode strip clicks
     if win._animalsSubmodeZones then
@@ -3447,6 +3677,15 @@ function ZeD.AnimalsTab.onClick(win, x, y)
     -- Section header collapse/expand clicks (overview). The page scrolls: rows out of its view take no click
     local ovClip = win._animalsOvClip
     local inOv = not ovClip or (y >= ovClip.y and y < ovClip.y + ovClip.h)
+    -- An alert's button: its verb (a greyed one takes the press and does nothing)
+    if inOv and win._animalsAlertZones then
+        for _, az in ipairs(win._animalsAlertZones) do
+            if az.btn and hitZone(az.btn, x, y) then
+                if az.btn.ok then AT.alertAct(win, az.animal, az.verb) end
+                return true
+            end
+        end
+    end
     if inOv and win._animalsSectionZones and win._animalsOverviewState then
         for _, sz in ipairs(win._animalsSectionZones) do
             if hitZone(sz, x, y) then
@@ -3466,12 +3705,18 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         end
     end
 
-    -- Animal roster row clicks → navigate to animal detail
+    -- Animal roster row clicks: the box ticks the row, the rest opens the animal
     if win._animalsRosterZones then
+        local rs = win._animalsRosterScroll
+        local inRoster = not rs or (y >= rs.top and y < rs.top + rs.h)
         for _, rz in ipairs(win._animalsRosterZones) do
-            if x >= rz.x and x < rz.x + rz.w
+            if inRoster and x >= rz.x and x < rz.x + rz.w
                and y >= rz.y and y < rz.y + rz.h then
-                navigate(win, "animal", nil, rz.animal)
+                if rz.cb and hitZone(rz.cb, x, y) then
+                    AT.toggleSelected(win, rz.animal)
+                else
+                    navigate(win, "animal", nil, rz.animal)
+                end
                 return true
             end
         end
@@ -3503,7 +3748,15 @@ function ZeD.AnimalsTab.onClick(win, x, y)
     return false
 end
 
+-- A right-click on a roster row ticks or clears it (X on the controller does the same).
 function ZeD.AnimalsTab.onRightClick(win, x, y)
+    local rs = win._animalsRosterScroll
+    if not win._animalsRosterZones or (rs and (y < rs.top or y >= rs.top + rs.h)) then return false end
+    for _, rz in ipairs(win._animalsRosterZones) do
+        if hitZone(rz, x, y) then
+            return AT.toggleSelected(win, rz.animal)
+        end
+    end
     return false
 end
 

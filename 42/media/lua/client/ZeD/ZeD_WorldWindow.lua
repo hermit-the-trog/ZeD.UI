@@ -897,13 +897,19 @@ local function _buildAnimalsFocusables(win)
                 end
             end
         end
-        -- The alerts' rows: stops to read them by (nothing to press; the page scrolls to them).
+        -- The alerts' rows (the page scrolls to them): A presses the row's
+        -- button, its verb (Milk, Shear, Walk to); a greyed one does nothing
+        -- and its reason shows in a balloon while the row has the focus.
         if win._animalsAlertZones then
             for _, az in ipairs(win._animalsAlertZones) do
                 elements[#elements + 1] = {
                     x = az.x, y = az.y, w = az.w, h = az.h,
                     id = "animals:alert:" .. tostring(az.i),
                     isAlertRow = true,
+                    animal = az.animal, verb = az.verb,
+                    onActivate = function(w, el)
+                        if AT.alertAct then AT.alertAct(w, el.animal, el.verb) end
+                    end,
                 }
             end
         end
@@ -983,8 +989,25 @@ local function _buildAnimalsFocusables(win)
                         end
                         w._animalsNavFocusTarget = "breadcrumb"
                     end,
+                    -- X (the right mouse): ticks or clears the row, as its box does
+                    onContextMenu = function(w, el)
+                        if AT.toggleSelected then AT.toggleSelected(w, el.animal) end
+                    end,
                 }
             end
+        end
+        -- The band: All hungry / All milkable, Clear, Milk / Shear over the
+        -- ticked rows, Stop. A greyed one does nothing; its reason shows in a
+        -- balloon while it has the focus.
+        for _, b in ipairs(win._animalsBulkBtns or {}) do
+            elements[#elements + 1] = {
+                x = b.x, y = b.y, w = b.w, h = b.h,
+                id = "animals:bulk:" .. tostring(b.id),
+                isBulk = true, bulkId = b.id,
+                onActivate = function(w, el)
+                    if AT.bulkPress then AT.bulkPress(w, el.bulkId) end
+                end,
+            }
         end
     elseif state.submode == "butcher" then
         -- Butcher roster rows (the overview); a row opens the animal view,
@@ -4932,10 +4955,12 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- onActivate sets this to "breadcrumb" so the user lands on the
             -- back-nav element in the new view, not whatever idx-clamp
             -- picks (e.g. sort btn at idx 4 for idx-4 zonecard sources).
+            -- It may also be an element's id: a zone band button pressed
+            -- lands on the one that takes its place (All hungry -> Clear).
             if win._activeTab == "animals" and win._animalsNavFocusTarget then
                 local target = win._animalsNavFocusTarget
                 for i, e in ipairs(newEls) do
-                    if target == "breadcrumb" and e.isBreadcrumb then
+                    if (target == "breadcrumb" and e.isBreadcrumb) or e.id == target then
                         preserveIdx = i
                         break
                     end

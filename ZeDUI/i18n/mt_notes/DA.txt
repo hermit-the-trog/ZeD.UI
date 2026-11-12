@@ -26,3 +26,5 @@ Identity card: KK NR, UDSTEDT, DRAB for KILLS, SKÆG for FACIAL, FAVORIT for FAV
 Vehicle-claim verbs (494-499) go inside sentences: "må så ikke køre den / tage dele", "kan ikke nedtage eller ødelægge det".
 Log lines follow a name in simple past: "dræbte %1", "fik afslag på at køre %1". Lines 976 and 996 read loosely.
 Dates 90-91 reordered to day before month (%2. %1).
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

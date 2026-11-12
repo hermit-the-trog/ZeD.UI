@@ -28,3 +28,5 @@ Log lines are bare verb phrases after a name (kills = ฆ่า, hotwired = ต�
 Dates written day, month, year (%2 %1 %3); AM / PM kept in English as in the main menu clock.
 Licence labels: KILLS = สังหาร, FAV = ชอบ, ISS = ออกเมื่อ, STYLE = ทรง (pixel face widths).
 Unsure: God Mode = โหมดพระเจ้า, No Clip = ทะลุสิ่งกีดขวาง, Invincible = อมตะ, News = ข่าว, LootZed kept in English.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

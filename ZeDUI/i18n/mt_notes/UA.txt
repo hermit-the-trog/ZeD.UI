@@ -28,3 +28,5 @@ God Mode, No Clip left in English; LootZed kept. Грифінг and Баг are l
 Singular count lines (%1 запис, %1 правило) are singular-only variants; plurals use "Записів: %1" patterns.
 License card labels in capitals: "№ ПОСВІД." for DL NO, "ДІЙСНЕ ДО" for EXP.
 Most doubtful: Повідомлення for tickets; "Закріпити" for vehicle Claim; "Заглушити / Повернути мову" for mute/unmute.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.

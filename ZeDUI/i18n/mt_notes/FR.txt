@@ -23,3 +23,5 @@ License card labels (24-41) use accents (OPÉRATEUR, DÉLIVRÉ, TUÉS): if that 
 Log lines are passé composé after a name (a tué %1, s'est vu refuser de ...). Gender of %1 car/part not known: "une %1", "(verrouillé)".
 Line 760 assumes %2 is the faction's name ("dans la faction %2"). "%1 ouvert(s)" avoids a plural guess.
 Line 95/255 and 498/488 "prendre (des) pièces" run a little over the estimate.
+
+Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All milkable, the band's Milk / Shear run, the greyed reasons) are machine drafts, not checked by a native speaker. Milk and Shear on the buttons are the game's own words; "tick" (a row's box) is the word to check first.
