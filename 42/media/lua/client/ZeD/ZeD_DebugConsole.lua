@@ -50,6 +50,13 @@
 -- The game's multi-line text box never calls onCommandEntered: Enter puts a newline in at the cursor. So Enter is
 -- told by the text: one newline more, where the cursor was, Shift up, and the box runs with that newline taken out.
 -- Its setCursorPos also clamps to the length of the cursor's line, so a cursor is placed with multi-line off.
+--
+-- The suggestions (ZeD_ConsoleComplete.lua) open by themselves as a pull-down above the caret, in the line and the
+-- box: globals after two letters, a table's fields after ".", an object's methods after ":" (Java ones marked
+-- Java). Tab or Enter takes one, Up and Down move through them, Escape shuts them (again, lets the line go); a
+-- click takes one. With no pull-down, Tab is still the game's own suggestion. Controller: the pull-down shows while
+-- the pad keyboard types; when it is put away the hand lands on the pull-down (D-pad up reaches it from the line),
+-- A takes one, B shuts it. The Help and Commands pages are drawn by ZeD_ConsolePages.lua.
 -- ============================================================================
 
 require "ISUI/ISTextEntryBox"
@@ -60,17 +67,20 @@ require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_ConsoleLog"
 require "ZeD/ZeD_ConsoleScratch"
+require "ZeD/ZeD_ConsoleComplete"
 
 ZeD = ZeD or {}
 ZeD.DebugConsole = ZeD.DebugConsole or {}
 local DC = ZeD.DebugConsole
 local L = ZeD.ConsoleLog
 local S = ZeD.ConsoleScratch
+local AC = ZeD.ConsoleComplete
 
 -- design units
 local U = { W = 900, H = 480, MIN_W = 520, MIN_H = 260, PAD = 8, GAP = 6, MARK = 6, BOTTOM = 140, LEFT = 20,
             STRIP = 34, FILTERS = 168, HEAD = 34, FOLD = 22, FROW = 20, ICON = 10,
-            PADBOX = 134, PADMIN = 60, META = 26, SIDE = 196, GUT = 26 }
+            PADBOX = 134, PADMIN = 60, META = 26, SIDE = 196, GUT = 26,
+            ACROW = 20, ACMIN = 300, ACMAX = 460, ACKIND = 92 }
 local PAD_MAX = 60000       -- the scratchpad takes this many characters (the game's line: 256)
 local PAD_LINES = 2000      -- and this many lines
 local F11_MS = 500          -- how often the F11 error list's count is read
@@ -449,6 +459,8 @@ function W:new(x, y, w, h)
     o._keyHits = {}
     o._bandOff = {}
     o._findSt = {}
+    o.ac = nil            -- the suggestions open (ZeD.ConsoleComplete.complete's answer), nil when shut
+    o.acI = 1             -- the one picked
     return o
 end
 
@@ -475,12 +487,16 @@ function W:createChildren()
     ZeD_Window.createChildren(self)
     local e = makeEntry(self, LINE_MAX)
     local win = self
-    e.onCommandEntered = function() win:runLine() end
-    e.onPressUp = function() win:historyStep(-1) end
-    e.onPressDown = function() win:historyStep(1) end
+    -- (with the suggestions open, Enter, Tab, Up, Down and Escape are theirs)
+    e.onCommandEntered = function() if not win:acTake() then win:runLine() end end
+    e.onPressUp = function() if win.ac then win:acMove(-1) else win:historyStep(-1) end end
+    e.onPressDown = function() if win.ac then win:acMove(1) else win:historyStep(1) end end
     e.onOtherKey = function(_, key)
-        if key == Keyboard.KEY_ESCAPE then e:unfocus()
-        elseif key == TAB_KEY then win:complete() end
+        if key == Keyboard.KEY_ESCAPE then
+            if win.ac then win:acShut() else e:unfocus() end
+        elseif key == TAB_KEY then
+            if not win:acTake() then win:complete() end
+        end
     end
     self.input = e
     -- the search: Enter and Escape let it go (the log follows each key, in prerender)
@@ -494,9 +510,16 @@ function W:createChildren()
     pcall(function() p:setMaxLines(PAD_LINES) end)
     pcall(function() p.javaObject:setWrapLines(false) end)
     pcall(function() p.javaObject:setCentreVertically(false) end)
-    p.onPressUp = function() win:padArrow(-1) end
-    p.onPressDown = function() win:padArrow(1) end
-    p.onOtherKey = function(_, key) if key == Keyboard.KEY_ESCAPE then p:unfocus() end end
+    -- (the box has moved its cursor before it calls these: with the suggestions open it goes back where it was)
+    p.onPressUp = function() if win.ac then win:_padHold(); win:acMove(-1) else win:padArrow(-1) end end
+    p.onPressDown = function() if win.ac then win:_padHold(); win:acMove(1) else win:padArrow(1) end end
+    p.onOtherKey = function(_, key)
+        if key == Keyboard.KEY_ESCAPE then
+            if win.ac then win:acShut() else p:unfocus() end
+        elseif key == TAB_KEY then
+            win:acTake()
+        end
+    end
     self.pad = p
     -- the name a snippet is saved under, asked in the band
     local n = makeEntry(self, S.NAME_MAX)
@@ -552,6 +575,7 @@ function W:complete()
     end
 end
 
+
 -- ---------------------------------------------------------------------------
 -- THE SCRATCHPAD: the box, its runs and its kept history, the swap, the snippets
 -- ---------------------------------------------------------------------------
@@ -604,19 +628,113 @@ end
 
 -- One newline more than last frame, where the cursor stood, with Shift up: that was Enter, which runs the box.
 -- (The pad keyboard's Enter makes a new line: the band's Run runs.)
+-- With the suggestions open, Enter takes one instead, and so does a Tab the box put in as a character.
 function W:_padKeys()
     local inp = self.pad
     if not inp or self.mode ~= "pad" then return end
     local text = self:padText()
     local prev, pc = self._padPrev, self._padCur
     if prev and pc and text ~= prev and #text == #prev + 1 and inp:isFocused()
-        and not (self._kbOpen and self._kbEntry == inp) and not shiftDown()
-        and text:sub(pc + 1, pc + 1) == "\n" and text:sub(1, pc) == prev:sub(1, pc) and text:sub(pc + 2) == prev:sub(pc + 1) then
-        self:_padSet(prev, pc)
-        self:runPad()
-        return
+        and not (self._kbOpen and self._kbEntry == inp)
+        and text:sub(1, pc) == prev:sub(1, pc) and text:sub(pc + 2) == prev:sub(pc + 1) then
+        local ch = text:sub(pc + 1, pc + 1)
+        if ch == "\n" and self.ac and not shiftDown() then
+            self:_padSet(prev, pc)
+            self:acTake()
+            return
+        elseif ch == "\t" and self.ac then
+            self:_padSet(prev, pc)
+            self:acTake()
+            return
+        elseif ch == "\n" and not shiftDown() then
+            self:_padSet(prev, pc)
+            self:runPad()
+            return
+        end
     end
     self._padPrev, self._padCur = text, cursorOf(inp, text)
+end
+
+-- the box's cursor back where it stood last frame (Up and Down moved it while the suggestions were open)
+function W:_padHold()
+    local text = self:padText()
+    if self._padPrev == text and self._padCur then setCursor(self.pad, text, self._padCur) end
+end
+
+-- ---------------------------------------------------------------------------
+-- THE SUGGESTIONS: worked out when the words or the cursor change, never on a frame where neither did
+-- ---------------------------------------------------------------------------
+-- the text box they follow: the line or the box, while it is typed in (on the keys or the pad keyboard) or the
+-- controller's hand is on the pull-down; nil on the other pages and while the band asks a name
+function W:_acSource()
+    if self.page ~= "log" or self.naming then return nil end
+    local inp = self.mode == "pad" and self.pad or self.input
+    if not inp then return nil end
+    if inp:isFocused() or (self._kbOpen and self._kbEntry == inp) or self.zone == "ac" then return inp end
+    return nil
+end
+
+function W:_acUpdate()
+    local inp = self:_acSource()
+    if not inp then
+        self.ac, self._acKey = nil, nil
+        if self.zone == "ac" then self.zone = "input" end
+        return
+    end
+    local text = tostring(inp:getText() or "")
+    local cur = cursorOf(inp, text)
+    local key = (inp == self.pad and "p" or "l") .. tostring(cur) .. "|" .. text
+    if key == self._acKey then return end
+    self._acKey = key
+    -- (shut with Escape: it stays shut until the words or the cursor move)
+    if key == self._acShutKey then self.ac = nil; return end
+    self._acShutKey = nil
+    local ok, ac = pcall(AC.complete, text, cur)
+    if not ok then ZeD.logOnce("lua console suggestions", ac); ac = nil end
+    -- (a list that only narrows keeps the same name picked)
+    local was = self.ac and self.ac.items[self.acI]
+    self.ac, self.acI = ac, 1
+    if ac and was then
+        for i, it in ipairs(ac.items) do if it.n == was.n then self.acI = i end end
+    end
+    if not ac and self.zone == "ac" then self.zone = "input" end
+end
+
+--- Up (-1) or Down (1) through the suggestions.
+function W:acMove(d)
+    local ac = self.ac
+    if not ac then return end
+    self.acI = math.max(1, math.min(#ac.items, self.acI + d))
+    sound()
+end
+
+--- Escape: the suggestions shut until the words or the cursor move.
+function W:acShut()
+    if not self.ac then return end
+    self._acShutKey = self._acKey
+    self.ac = nil
+    if self.zone == "ac" then self.zone = "input" end
+end
+
+--- Take suggestion i (default: the picked one) into the line or the box. False when none is open.
+function W:acTake(i)
+    local ac = self.ac
+    if not ac or not ac.items[i or self.acI] then return false end
+    local pad = self.mode == "pad"
+    local text = pad and self:padText() or self:lineText()
+    local t, cur = AC.take(text, ac, i or self.acI)
+    if pad then
+        self:_padSet(t, cur)
+    else
+        -- (the game's line takes 256 characters: a pick that would pass them is not taken)
+        if #t > LINE_MAX then return false end
+        self.input:setText(t)
+        pcall(function() self.input.javaObject:setCursorPos(cur) end)
+    end
+    self.ac, self._acKey = nil, nil
+    if self.zone == "ac" then self.zone = "input" end
+    sound()
+    return true
 end
 
 -- Up and Down in the box (the game has moved its cursor already): from the first line, or the last, the kept runs
@@ -772,6 +890,7 @@ end
 
 -- (each press tests afresh what the band grayed: the band was drawn a frame ago, a line typed since counts)
 function W:press(id)
+    if self.page ~= "log" and self._pagePress and self:_pagePress(id) then return end
     if id == "run" then
         if self.mode == "pad" then
             if blank(self:padText()) or not DC.allowed() then return end
@@ -819,9 +938,11 @@ function W:close(keepFlag)
     if self.find then self.find:unfocus() end
     if self.pad then self.pad:unfocus() end
     if self.naming then self:nameDone(false) end
+    self.ac = nil
+    local mine = self._pageClose and self:_pageClose() or {}
     local KB = ZeD.Keyboard
     local kbe = KB and KB.instance and KB.instance.textEntryBox
-    if kbe and (kbe == self.input or kbe == self.find or kbe == self.pad or kbe == self.nameE) then pcall(function() KB.instance:hide() end) end
+    if kbe and (kbe == self.input or kbe == self.find or kbe == self.pad or kbe == self.nameE or mine[kbe]) then pcall(function() KB.instance:hide() end) end
     self._kbOpen = nil
     DC.mirror("")
     DC.place = { x = self:getX(), y = self:getY(), w = self:getWidth(), h = self.windowShaded and (self.preShadeHeight or self:getHeight()) or self:getHeight() }
@@ -921,6 +1042,8 @@ function W:prerender()
     end
     -- Enter in the scratchpad runs it
     self:_padKeys()
+    -- the suggestions follow the words and the cursor
+    self:_acUpdate()
     ZeD_Window.prerender(self)
     if self.windowShaded or self.isCollapsed then return end
     local ok, err = pcall(self._drawBody, self)
@@ -939,6 +1062,20 @@ function W:_drawBody()
     local ih = T.inputH
     local joy = self.joyfocus ~= nil
     self._keyHits = {}
+    self._acRect, self._acHits = nil, nil
+    -- the Commands and Help pages: the strip, then the page and its own band (ZeD_ConsolePages.lua)
+    if self.page ~= "log" then
+        self._filterRect, self._headRect, self._findRect, self._fieldRect, self._padRect, self._sideRect = nil, nil, nil, nil, nil, nil
+        self._listRect, self._rowHits, self._bandRects = nil, {}, {}
+        local sw = px(U.STRIP)
+        self:_drawStrip(0, top, sw, bandY - top, joy)
+        if self._drawPage then
+            self:_drawPage(sw, top, w - sw, bandY - top, bandY, joy)
+        else
+            ZeD.Molecules.drawEmptyLine(self, sw + pad * 2, top + pad * 2, w - sw - pad * 4, tr("UI_ZeD_Console_Coming"))
+        end
+        return
+    end
     -- the input: the line, or the scratchpad in its place (its notice, its meta line, the box at most half the room)
     local areaH = ih
     local noteH, boxH = 0, 0
@@ -959,23 +1096,16 @@ function W:_drawBody()
     -- the page strip
     local sw = px(U.STRIP)
     self:_drawStrip(0, top, sw, bandY - top, joy)
-    local cx = sw
-    if self.page == "log" then
-        local fw = math.min(px(U.FILTERS), math.floor((w - sw) * 0.36))
-        self._filterRect = { x = sw, y = top, w = fw, h = bandY - top }
-        self:_drawFilters(sw, top, fw, bandY - top, joy)
-        cx = sw + fw
-        local hh = px(U.HEAD)
-        self:_drawHead(cx, top, w - cx, hh, joy)
-        local ly0, ly1 = top + hh + px(4), iy - gap
-        self._listRect = { x = cx + pad, y = ly0, w = w - cx - 2 * pad, h = math.max(0, ly1 - ly0) }
-        self:_drawList(cx + pad, ly0, w - cx - 2 * pad, math.max(0, ly1 - ly0))
-    else
-        self._filterRect, self._headRect, self._findRect = nil, nil, nil
-        self._listRect = { x = cx + pad, y = top + pad, w = w - cx - 2 * pad, h = math.max(0, iy - gap - top - pad) }
-        self._rowHits = {}
-        ZeD.Molecules.drawEmptyLine(self, cx + pad * 2, top + pad * 2, w - cx - pad * 4, tr("UI_ZeD_Console_Coming"))
-    end
+    local fw = math.min(px(U.FILTERS), math.floor((w - sw) * 0.36))
+    self._filterRect = { x = sw, y = top, w = fw, h = bandY - top }
+    self:_drawFilters(sw, top, fw, bandY - top, joy)
+    local cx = sw + fw
+    local hh = px(U.HEAD)
+    self:_drawHead(cx, top, w - cx, hh, joy)
+    local ly0, ly1 = top + hh + px(4), iy - gap
+    self._listRect = { x = cx + pad, y = ly0, w = w - cx - 2 * pad, h = math.max(0, ly1 - ly0) }
+    self:_drawList(cx + pad, ly0, w - cx - 2 * pad, math.max(0, ly1 - ly0))
+    self._caret = nil
     if self.mode == "pad" then
         self._fieldRect = nil
         self:_drawPad(cx + pad, iy, w - cx - 2 * pad, noteH, boxH, joy)
@@ -985,6 +1115,95 @@ function W:_drawBody()
     end
     -- the band: Export, Copy, Clear, Run (or, naming a snippet: the name, Cancel, Save)
     if self.naming then self:_drawNameBand(bandY, w, joy) else self:_drawBand(bandY, w, joy) end
+    -- the suggestions over everything, by the caret
+    if self.ac and self._caret then self:_drawAc(top, bandY, joy) end
+end
+
+-- ---------------------------------------------------------------------------
+-- THE SUGGESTIONS' PULL-DOWN: above the caret (below it when there is no room), a row each, the foot saying what
+-- they are; the picked row in the accent, a status pixel and a word at the right (function, table, Java, value)
+-- ---------------------------------------------------------------------------
+local AC_KIND = { ["function"] = "UI_ZeD_Console_AcFunction", table = "UI_ZeD_Console_AcTable", Java = "UI_ZeD_Console_AcJava", value = "UI_ZeD_Console_AcValue" }
+local function acColor(k)
+    local T = ZeD.T
+    if k == "Java" then return T.warning end
+    if k == "table" then return T.accent end
+    return T.textDim
+end
+
+-- what the foot says: "Globals", "Fields of ZeD", "Methods of x", "Java methods of getPlayer()", and how many more
+local function acFoot(ac)
+    local head
+    if not ac.base then head = tr("UI_ZeD_Console_AcGlobals")
+    elseif ac.java then head = tr("UI_ZeD_Console_AcJavaOf", ac.base)
+    elseif ac.sep == ":" then head = tr("UI_ZeD_Console_AcMethodsOf", ac.base)
+    else head = tr("UI_ZeD_Console_AcFieldsOf", ac.base) end
+    if (ac.more or 0) > 0 then head = head .. " | " .. tr("UI_ZeD_Console_AcMore", ac.more) end
+    return head
+end
+
+function W:_drawAc(top, bottom, joy)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local ac, cr = self.ac, self._caret
+    local f3 = T.fontF3
+    local rowH = math.max(px(U.ACROW), fh(f3) + px(4))
+    local footH = fh(f3) + px(6)
+    local kindW = px(U.ACKIND)
+    local nameW = 0
+    for _, it in ipairs(ac.items) do
+        nameW = math.max(nameW, ZeD.TM:MeasureStringX(f3, it.n .. (AC.signature(it) or "")))
+    end
+    local w = math.max(px(U.ACMIN), math.min(px(U.ACMAX), nameW + kindW + px(24)))
+    w = math.min(w, self.width - px(16))
+    local h = #ac.items * rowH + footH + px(2)
+    local x = math.max(px(8), math.min(cr.x - px(4), self.width - w - px(8)))
+    local y = cr.y - h - px(2)
+    if y < top then y = math.min(cr.y + cr.h + px(2), bottom - h) end
+    y = math.max(top, y)
+    local s1, bs = T.surf1, T.borderS
+    self:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
+    self:drawRectBorder(x, y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
+    local mx, my = self:getMouseX(), self:getMouseY()
+    if joy then mx, my = nil, nil end
+    self._acRect = { x = x, y = y, w = w, h = h }
+    self._acHits = {}
+    local sq = px(U.MARK)
+    for i, it in ipairs(ac.items) do
+        local ry = y + px(1) + (i - 1) * rowH
+        local rx, rw = x + px(1), w - px(2)
+        local picked = i == self.acI
+        local hover = mx ~= nil and mx >= rx and mx < rx + rw and my >= ry and my < ry + rowH
+        local onFocus = false
+        if picked then
+            local a = T.accent
+            self:drawRect(rx, ry, rw, rowH, a.a or 1, a.r, a.g, a.b)
+            if joy and self.zone == "ac" then onFocus = mark(self, rx, ry, rw, rowH) end
+        elseif hover then
+            local hv = T.hover
+            self:drawRect(rx, ry, rw, rowH, hv.a or 1, hv.r, hv.g, hv.b)
+        end
+        local tc = onFocus and T.textOnFocus or (picked and T.textOnAccent or T.text)
+        local dc = onFocus and T.textOnFocus or (picked and T.textOnAccent or T.textDim)
+        local ty = ry + math.floor((rowH - fh(f3)) / 2)
+        local word = tr(AC_KIND[it.k] or AC_KIND.value)
+        local kx = rx + rw - px(8) - kindW
+        A.drawStatusDot(self, kx, ry + math.floor((rowH - sq) / 2), picked and tc or acColor(it.k), sq)
+        self:drawText(A.truncateText(word, f3, kindW - sq - px(5)), kx + sq + px(5), ty, dc.r, dc.g, dc.b, dc.a or 1, f3)
+        local room = kx - px(8) - (rx + px(7))
+        local name = A.truncateText(it.n, f3, room)
+        self:drawText(name, rx + px(7), ty, tc.r, tc.g, tc.b, tc.a or 1, f3)
+        local sig = AC.signature(it)
+        local nw = ZeD.TM:MeasureStringX(f3, name)
+        if sig and name == it.n and nw + ZeD.TM:MeasureStringX(f3, sig) <= room then
+            self:drawText(sig, rx + px(7) + nw, ty, dc.r, dc.g, dc.b, dc.a or 1, f3)
+        end
+        self._acHits[i] = { x = rx, y = ry, w = rw, h = rowH }
+    end
+    local fy = y + px(1) + #ac.items * rowH
+    A.drawDividerH(self, x + px(1), fy, w - px(2))
+    local td = T.textDim
+    self:drawText(A.truncateText(acFoot(ac), f3, w - px(16)), x + px(8), fy + math.floor((footH - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
 end
 
 -- a keycap inside the window (Scratchpad, One line, Save snippet), right edge at xr, centered on a row y, h tall;
@@ -1028,6 +1247,9 @@ function W:_drawLine(fx, iy, fw, ih, joy)
         local ew = fx + fw - px(4) - ex
         parkEntry(inp, ew, iy, ih)
         self:_drawTyped(inp, ex, iy, ew, ih, f3, focused, tr("UI_ZeD_Console_Type"), self)
+        -- (where the caret stands, for the suggestions' pull-down)
+        local t = self:lineText()
+        self._caret = { x = ex + (cursorOf(inp, t) - (self._typeStart or 0)) * (self._typeCw or charW(f3)), y = iy, h = ih, top = iy }
     end
     if joy and self.zone == "input" then mark(self, fx, iy, fw, ih) end
     self._fieldRect = { x = fx, y = iy, w = fw, h = ih }
@@ -1145,6 +1367,7 @@ function W:_drawPadBox(x, y, w, h, joy, off)
         local a = T.accent
         self:drawRect(tx + (cc - left) * cw, y + px(4) + (cl - top) * lh, math.max(1, px(1)), fh(f), a.a or 1, a.r, a.g, a.b)
     end
+    self._caret = { x = tx + (cc - left) * cw, y = y + px(4) + (cl - top) * lh, h = lh, top = y }
     self:clearStencilRect()
     if joy and self.zone == "input" then mark(self, x, y, w, h) end
     self._padRect = { x = x, y = y, w = w, h = h }
@@ -1799,6 +2022,8 @@ function W:render() ZeD_Window.render(self) end
 
 -- the help line's words: the game's suggestion while there is one, else how the line works
 function W:getStatusLine()
+    if self.page ~= "log" and self._pageStatus then return self:_pageStatus() end
+    if self.ac then return tr("UI_ZeD_Console_AcKeys") end
     if not DC.allowed() then return tr("UI_ZeD_Console_NotAllowed") end
     if self.mode == "pad" then return S.canRun() and tr("UI_ZeD_Console_HelpPad") or tr("UI_ZeD_Console_HelpNoLoad") end
     local s = DC.suggestion()
@@ -1864,9 +2089,19 @@ end
 
 function W:setPage(id)
     if self.page == id then return end
+    -- (the log page's boxes let the keys go: they wait off the window and would still take them)
+    if self.page == "log" then
+        if self.naming then self:nameDone(false) end
+        if self.input then self.input:unfocus() end
+        if self.pad then self.pad:unfocus() end
+        if self.find then self.find:unfocus() end
+        self.ac, self._acKey = nil, nil
+    end
+    if self._pageLeave then self:_pageLeave(self.page) end
     self.page = id
     sound()
-    if id ~= "log" and (self.zone == "filters" or self.zone == "search" or self.zone == "list") then self.zone = "strip" end
+    if id ~= "log" and self.zone ~= "strip" then self.zone = "strip" end
+    if id == "log" and self.zone ~= "strip" then self.zone = "input" end
 end
 
 local function inBar(sb, x, y) return sb and sb.visible and x >= sb.x and x < sb.x + sb.width and y >= sb.y and y < sb.y + sb.height end
@@ -1876,6 +2111,19 @@ function W:onMouseDown(x, y)
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then return true end
     if inRect(self:windowBoxRect(), x, y) then return true end
+    -- a click on a suggestion takes it, and the keys stay where they were
+    if self.ac and inRect(self._acRect, x, y) then
+        for i, r in ipairs(self._acHits or {}) do
+            if inRect(r, x, y) then
+                local inp = self.mode == "pad" and self.pad or self.input
+                self.acI = i
+                self:acTake(i)
+                if not self.joyfocus then inp:focus() end
+                return true
+            end
+        end
+        return true
+    end
     local bars = self._zedBars
     -- (the scrollbars read the pointer themselves while they draw: a press on one is theirs alone)
     if bars and (inBar(bars.log, x, y) or inBar(bars.filters, x, y) or inBar(bars.side, x, y)) then return true end
@@ -1907,6 +2155,7 @@ function W:onMouseDown(x, y)
     for _, r in ipairs(self._stripHits or {}) do
         if inRect(r, x, y) then self:setPage(r.page); return true end
     end
+    if self.page ~= "log" and self._pageMouseDown and self:_pageMouseDown(x, y) then return true end
     if inRect(self._fieldRect, x, y) then
         self.zone = "input"
         self.input:focus()
@@ -1975,6 +2224,10 @@ function W:onRightMouseUp(x, y) return true end
 
 function W:onMouseWheel(del)
     local mx, my = self:getMouseX(), self:getMouseY()
+    if self.page ~= "log" then
+        if self._pageWheel then self:_pageWheel(del, mx, my) end
+        return true
+    end
     if inRect(self._filterRect, mx, my) then
         self.fScroll = math.max(0, math.min(self._fMax or 0, self.fScroll + del * px(U.FROW) * 3))
         return true
@@ -2001,15 +2254,20 @@ function W:update()
         local KB = ZeD.Keyboard
         if not (KB and KB.isVisible and KB.isVisible()) then
             self._kbOpen = nil
+            -- (suggestions open when it went away: the hand lands on them, A takes one)
             if self._kbEntry == self.input then
                 local t = self:lineText()
-                if t ~= self._kbFrom and not blank(t) then self.zone, self.bandFocus = "band", RUN_AT end
+                if self.ac then self.zone, self.acI = "ac", 1
+                elseif t ~= self._kbFrom and not blank(t) then self.zone, self.bandFocus = "band", RUN_AT end
             elseif self._kbEntry == self.pad then
                 local t = self:padText()
                 self._padPrev, self._padCur = t, cursorOf(self.pad, t)
-                if t ~= self._kbFrom and not blank(t) then self.zone, self.bandFocus = "band", RUN_AT end
+                if self.ac then self.zone, self.acI = "ac", 1
+                elseif t ~= self._kbFrom and not blank(t) then self.zone, self.bandFocus = "band", RUN_AT end
             elseif self._kbEntry == self.nameE and self.naming then
                 self.zone, self.bandFocus = "band", 3
+            elseif self._kbEntry and self._kbEntry ~= self.find and self._kbEntry ~= self.nameE and self._pageKbDone then
+                self:_pageKbDone(self._kbEntry)
             end
         end
     end
@@ -2065,9 +2323,27 @@ function W:padBandA(jd)
 end
 
 function W:onJoypadDown(button, jd)
+    -- the Commands and Help pages take the buttons first (the strip stays the window's)
+    if self.page ~= "log" and self.zone ~= "strip" and self._pageButton and self:_pageButton(button, jd) then return end
+    if self.zone == "ac" then
+        if button == Joypad.AButton then
+            self:acTake()
+            self.zone = "input"
+            return
+        elseif button == Joypad.BButton then
+            sound()
+            self:acShut()
+            self.zone = "input"
+            return
+        end
+    end
     if button == Joypad.BButton then
         if self.naming then sound("UIActivateButton"); self:nameDone(false); return end
         self:close()
+        return
+    end
+    if self.page ~= "log" then
+        if button == Joypad.AButton and self.zone == "strip" then local pg = PAGES[self.stripFocus]; if pg then self:setPage(pg.id) end end
         return
     end
     if button == Joypad.XButton then self:padX(); return end
@@ -2152,13 +2428,27 @@ function W:padDir(dir)
     local z = self.zone
     local log = self.page == "log"
     local bandN = self.naming and #NAME_BAND or #BAND
+    if not log and z ~= "strip" then
+        -- (left from a page's first column: the page strip)
+        local moved = self._pageDir and self:_pageDir(dir)
+        if not moved and dir == "left" then self.zone = "strip" end
+        sound()
+        return
+    end
+    -- the suggestions: up and down through them; left or right shuts them
+    if z == "ac" then
+        if dir == "up" or dir == "down" then self:acMove(dir == "up" and -1 or 1)
+        else self:acShut(); self.zone = "input"; sound() end
+        return
+    end
+    if z == "input" and dir == "up" and self.ac then self.zone = "ac"; sound(); return end
     if z == "side" then padSide(self, dir); sound(); return end
     if z == "input" and dir == "right" and self.mode == "pad" then self.zone = "side"; sound(); return end
     if z == "band" and dir == "right" and self.bandFocus >= bandN then sound(); return end
     if z == "strip" then
         if dir == "up" and self.stripFocus > 1 then self.stripFocus = self.stripFocus - 1
         elseif dir == "down" and self.stripFocus < #PAGES then self.stripFocus = self.stripFocus + 1
-        elseif dir == "right" then self.zone = log and "filters" or "input" end
+        elseif dir == "right" then self.zone = log and "filters" or "page" end
     elseif z == "filters" then padFilters(self, dir)
     elseif z == "search" then
         if dir == "down" then
@@ -2191,6 +2481,17 @@ function W:getFooterPrompts()
     local out = { (Pr and Pr.padNote) and Pr.padNote(move) or move }
     local z = self.zone
     local pad = self.mode == "pad"
+    if self.page ~= "log" then
+        if z == "strip" then out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Select") }
+        elseif self._pagePrompts then self:_pagePrompts(out) end
+        out[#out + 1] = { glyph = "B", label = (self._pageBLabel and self:_pageBLabel()) or getText("UI_Close") }
+        return out
+    end
+    if z == "ac" then
+        out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Console_PadTake") }
+        out[#out + 1] = { glyph = "B", label = tr("UI_ZeD_Console_PadShut") }
+        return out
+    end
     if z == "input" then
         out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Keyboard") }
         out[#out + 1] = { glyph = "LB", label = tr("UI_ZeD_Console_PadOlder") }
@@ -2270,6 +2571,9 @@ function DC.open(pn)
     DC.feed()
     -- (the snippets and the kept runs, read from Zomboid/Lua the first time)
     S.load()
+    -- (the globals walked again the first time a suggestion needs them: mods may have added some since)
+    AC.refresh()
+    win.ac, win._acKey, win._acShutKey = nil, nil, nil
     -- (as the game's console: the line waits for a click before it takes the keyboard, so a console shown at the
     -- start of a game, the debug option UIDebugConsole.StartVisible, never eats the player's keys)
     win.zone = "input"
@@ -2338,5 +2642,9 @@ if ZeD.Safe and ZeD.Safe.register then
         end,
     })
 end
+
+-- the window's drawing helpers, for the pages drawn in ZeD_ConsolePages.lua
+DC.ui = { U = U, PAGES = PAGES, makeEntry = makeEntry, parkEntry = parkEntry, placeCursor = placeCursor, mark = mark,
+          focusOpts = focusOpts, charW = charW, cursorOf = cursorOf, blank = blank }
 
 return DC

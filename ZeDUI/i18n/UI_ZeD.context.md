@@ -5579,6 +5579,45 @@ The game's own Lua console rebuilt as a ZeD window; only players who start the g
 | `UI_ZeD_Console_RanMore` | `(+%1 lines)` | Lua console log: after the first line of code run from the scratchpad; %1 how many more lines it had | 16 |
 | `UI_ZeD_Console_PadLoad` | `Load` | Lua console: controller prompt on A over a snippet or a past run (puts it in the box) | 10 |
 | `UI_ZeD_Console_PadRename` | `Rename` | Lua console: controller prompt on X over a snippet | 10 |
+| `UI_ZeD_Console_AcFunction` | `function` | Lua console, suggestions pull-down: the word at the right of a row that is a function (a Lua type name) | 9 |
+| `UI_ZeD_Console_AcTable` | `table` | Lua console, suggestions pull-down: the word at the right of a row that is a table (a Lua type name) | 9 |
+| `UI_ZeD_Console_AcJava` | `Java` | Lua console, suggestions pull-down: the word at the right of a row that is a method of a Java object (keep Java) | 9 |
+| `UI_ZeD_Console_AcValue` | `value` | Lua console, suggestions pull-down: the word at the right of a row that is a plain value (a number, a string, true or false) | 9 |
+| `UI_ZeD_Console_AcGlobals` | `Globals` | Lua console, suggestions pull-down: its foot line when it offers global names (the names every script sees) | 24 |
+| `UI_ZeD_Console_AcFieldsOf` | `Fields of %1` | Lua console, suggestions pull-down: its foot line after a dot; %1 the code before the dot, as typed (e.g. ZeD.T) | - |
+| `UI_ZeD_Console_AcMethodsOf` | `Methods of %1` | Lua console, suggestions pull-down: its foot line after a colon on a Lua table; %1 the code before the colon | - |
+| `UI_ZeD_Console_AcJavaOf` | `Java methods of %1` | Lua console, suggestions pull-down: its foot line after a colon on a Java object; %1 the code before the colon (e.g. getPlayer()) | - |
+| `UI_ZeD_Console_AcMore` | `%1 more` | Lua console, suggestions pull-down: after its foot line, how many more names match than it shows; %1 a number | 14 |
+| `UI_ZeD_Console_AcKeys` | `Tab or Enter takes the picked suggestion, Up and Down move through them, Esc shuts them.` | Lua console: the help line while the suggestions are open (Tab, Enter, Up, Down and Esc are key names) | - |
+| `UI_ZeD_Console_PadTake` | `Take` | Lua console: controller prompt on A over the suggestions (puts the picked one into the line) | 10 |
+| `UI_ZeD_Console_PadShut` | `Close` | Lua console: controller prompt on B over the suggestions (shuts the pull-down, not the console) | 10 |
+| `UI_ZeD_Console_BackToLog` | `Back to the log` | Lua console, Help page: the band's keycap that goes back to the Log page | 18 |
+| `UI_ZeD_Console_HelpPage` | `Help: what runs where, the keys, the controller, the files.` | Lua console, Help page: the help line at the foot of the window | - |
+| `UI_ZeD_Console_HelpFoldWhere` | `What runs where` | Lua console, Help page: fold header (drawn in capitals) over how the console runs code | 24 |
+| `UI_ZeD_Console_HelpFoldKeys` | `Keys` | Lua console, Help page: fold header over the keyboard keys | 24 |
+| `UI_ZeD_Console_HelpFoldPad` | `Controller` | Lua console, Help page: fold header over the controller buttons | 24 |
+| `UI_ZeD_Console_HelpFoldFiles` | `Files` | Lua console, Help page: fold header over the files the console writes | 24 |
+| `UI_ZeD_Console_HelpWhere1` | `The line and the scratchpad run Lua in your own game, where every mod's code runs, through the game's own console. On a server that is your client, not the server: it runs only for a role with the Lua console capability, or for the host.` | Lua console, Help page: a paragraph under What runs where | - |
+| `UI_ZeD_Console_HelpWhere2` | `The log is what the game's console box receives in debug mode (prints, warnings, the console's own lines) and the F11 Lua Debugger's error list, side by side. Lines the game writes only to console.txt do not reach it.` | Lua console, Help page: a paragraph under What runs where (F11 and console.txt stay as written) | - |
+| `UI_ZeD_Console_HelpWhere3` | `Server commands (the Commands page) run on the server, sent as chat sends them, and only the ones your role can use are listed. In single player there is no server: each points at the debug menu's own way of doing it.` | Lua console, Help page: a paragraph under What runs where | - |
+| `UI_ZeD_Console_HelpWhere4` | `Suggestions open by themselves: globals after two letters, a table's fields after a dot, an object's methods after a colon (Java methods marked Java).` | Lua console, Help page: a paragraph under What runs where | - |
+| `UI_ZeD_Console_HelpWhere5` | `The console is part of debug mode: start the game with -debug to have it.` | Lua console, Help page: a paragraph under What runs where (-debug is a launch option, keep it) | - |
+| `UI_ZeD_Console_HelpKeyToggle` | `Opens and closes the console (the game's own key, Toggle Lua Console in its key options).` | Lua console, Help page, Keys: beside the key's name (Toggle Lua Console is the game's own name for the key option) | - |
+| `UI_ZeD_Console_HelpKeyEnter` | `Runs the line or the scratchpad; with suggestions open, takes the picked one.` | Lua console, Help page, Keys: beside Enter | - |
+| `UI_ZeD_Console_HelpKeyShiftEnter` | `A new line in the scratchpad.` | Lua console, Help page, Keys: beside Shift+Enter | - |
+| `UI_ZeD_Console_HelpKeyUpDown` | `Older and newer runs; with suggestions open, moves through them.` | Lua console, Help page, Keys: beside Up / Down | - |
+| `UI_ZeD_Console_HelpKeyTab` | `Takes the picked suggestion (with none open, the game's own).` | Lua console, Help page, Keys: beside Tab | - |
+| `UI_ZeD_Console_HelpKeyEsc` | `Shuts the suggestions; again, lets go of the line.` | Lua console, Help page, Keys: beside Esc | - |
+| `UI_ZeD_Console_HelpKeyF11` | `The game's Lua Debugger, where break on error lives.` | Lua console, Help page, Keys: beside F11 | - |
+| `UI_ZeD_Console_HelpPadDpad` | `Moves between the page strip, the filters, the search, the log, the line and the band. Left from a page goes to the page strip.` | Lua console, Help page, Controller: beside D-pad | - |
+| `UI_ZeD_Console_HelpPadA` | `Ticks a filter, opens an error, types on ZeD's pad keyboard, takes a suggestion, presses a button.` | Lua console, Help page, Controller: beside A | - |
+| `UI_ZeD_Console_HelpPadB` | `Shuts the suggestions or the band's question; otherwise closes the console.` | Lua console, Help page, Controller: beside B | - |
+| `UI_ZeD_Console_HelpPadX` | `Exports the log; saves a snippet in the scratchpad; sends the line on Commands.` | Lua console, Help page, Controller: beside X | - |
+| `UI_ZeD_Console_HelpPadY` | `Swaps the one line and the scratchpad.` | Lua console, Help page, Controller: beside Y | - |
+| `UI_ZeD_Console_HelpPadBumpers` | `Older and newer runs, on the line or the scratchpad.` | Lua console, Help page, Controller: beside LB / RB | - |
+| `UI_ZeD_Console_HelpFileExport` | `Each Export, named for the date and time.` | Lua console, Help page, Files: beside the export file's path | - |
+| `UI_ZeD_Console_HelpFileSnippets` | `The saved snippets.` | Lua console, Help page, Files: beside the snippets file's path | - |
+| `UI_ZeD_Console_HelpFileHistory` | `The last %1 runs.` | Lua console, Help page, Files: beside the history file's path; %1 a number (200) | - |
 ## Admin tools (C9 to C14)
 
 Staff-only cards that take over the game's admin windows. Button and tag lengths are estimates from the English.

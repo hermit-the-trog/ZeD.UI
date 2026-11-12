@@ -3448,6 +3448,24 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       console_log_sim 257/0, debug_console_sim 892/0. **Check (QA, -debug):** `zedqa_run.ps1 -Manifest
       ZeDUI/tools/qa/console_scratch.txt` (tag conscr: Enter and Up as real keys, Kahlua's error words noted, the files
       read back and restored), then by hand at 4K and Deck: Shift+Enter, a long snippet scrolling in the box.
+    - **Build, Nov 12 2026: Phase 3, the suggestions and Help.** ZeD_ConsoleComplete.lua (logic, no drawing): globals
+      walked once per window open (sorted, a keystroke only looks them up), a table's fields after "." (its keys and
+      its metatable's __index chain), methods after ":" (a Java object's metatable __index names, kept per class;
+      parameter counts read once per class through getNumClassFunctions / getClassFunction / getMethodParameterCount,
+      the name from m:getName() or tostring(m)); the base before "." or ":" is worked out only from names and empty
+      get/is calls, never anything else; nothing inside a string or a comment. ZeD_DebugConsole.lua: the pull-down above
+      the caret (below near the top), in the line and the box, opening by itself after two letters (a row: name, the
+      brackets "(_, _)" when the count is known, status pixel and word function / table / Java / value; the foot
+      "Globals | n more"); Tab or Enter takes (the caret inside the brackets unless none), Up/Down move, Esc shuts
+      (until the words change), a click takes; no pull-down, Tab is still the game's suggestion. Controller: it shows
+      while the pad keyboard types, the hand lands on it when the keyboard goes, D-pad up reaches it, A takes, B shuts.
+      ZeD_ConsolePages.lua: the Help page (WHAT RUNS WHERE, KEYS, CONTROLLER, FILES fold headers, scrolling, Back to
+      the log); D-pad left from a page goes to the strip. 39 strings in 28 UI.json (machine drafts). Sims:
+      console_complete_sim 296/0 (new, on console_sim_harness.lua), debug_console_sim 893/0, console_log_sim 257/0,
+      console_scratch_sim 298/0. **Check (QA, -debug, single player):** `zedqa_run.ps1 -Manifest
+      ZeDUI/tools/qa/console_complete.txt` (tag concmp: the walk's size and time, the player's method count and how
+      many carry a parameter count, real Down/Up/Enter/Esc keys, the pad hand), then by hand at 4K and Deck: the
+      pull-down over a long log, in the box near its top, and Tab in the box (does the game's box put a tab in).
 
 137. **Responsive Context Menus [B42] support (the director via QA, Nov 9 2026; DONE for beta 11).** Workshop 3783387236,
     mod id ResponsiveUI. ZeD's menu (Strip and List) takes the mod's 250 ms rebuilds in place: same place, submenu path
