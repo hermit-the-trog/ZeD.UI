@@ -9,6 +9,9 @@
 --   4  Walk to: the game's walk is queued; Milk on the alert: the game's milking runs and the cow's milk goes down
 --   5  the zone: All hungry ticks the starving cow, Clear, All milkable, X on a row (the ring's onContextMenu), the
 --      band's Milk (n) starts a run ("Milking 1 of n"), it ends ("Done") or is stopped by Stop
+--   5b Feed: the starving cow ticked, Feed greyed with nothing to eat; carrots (one in a bag) and a steak given, the
+--      food picker lists Carrot only with "For 1 of 1 | 2 carried"; picking it runs the game's ISFeedAnimalFromHand
+--      and the cow's hunger goes down; B on the picker closes it with nothing fed
 --   6  the controller: the band's buttons and the alert rows are ring stops; A on a stop presses it
 local function say(s) print("ZEDQA aq " .. tostring(s)) end
 local fails = 0
@@ -197,6 +200,69 @@ add(2500, function()
     check(AQ.run ~= nil, "a milking run is going", AQ.runStatus())
     AT.bulkPress(W(), "stop")
     check(AQ.run == nil and AQ.last and AQ.last.why ~= nil, "Stop ends it", AQ.last and AQ.last.why)
+end)
+
+-- 5b Feed: the starving cow ticked, Feed greyed with no food; carrots (one in a bag) and a steak given: the picker
+--    offers Carrot only ("For 1 of 1 | 2 carried"); picking it runs the game's feeding and the cow's hunger goes down
+add(300, function()
+    pcall(dropAll, "Base.Carrots")
+    pcall(function() A.hungry:getStats():set(CharacterStat.HUNGER, 0.9) end)
+    AQ.forgetChecks()
+    AT.bulkPress(W(), "clear")
+end)
+add(500, function()
+    AQ.toggle(AT.getZoneViewState(W()).sel, A.hungry)
+end)
+add(1000, function()
+    local f = bulk("feed")
+    check(f ~= nil and f.disabled, "Feed (1) is in the band, greyed with no food carried")
+    shot("8b_feed_greyed")
+    p:getInventory():AddItem("Base.Carrots")
+    p:getInventory():AddItem("Base.Steak")
+    local bag = p:getInventory():AddItem("Base.Bag_Schoolbag")
+    pcall(function() bag:getItemContainer():AddItem("Base.Carrots") end)
+    AQ.forgetChecks()
+end)
+add(1000, function()
+    local f = bulk("feed")
+    check(f ~= nil and not f.disabled, "with carrots carried (one in a bag), Feed is live")
+    AT.bulkPress(W(), "feed")
+    local m = AT._feedMenu
+    local rows = m and m._ctx and m._ctx.actions or {}
+    local names = {}
+    for _, r in ipairs(rows) do names[#names + 1] = tostring(r.name) .. " [" .. tostring(r.note) .. "]" end
+    say("picker rows: " .. table.concat(names, "; "))
+    check(m ~= nil and m._ctx.open and #rows == 1, "the picker opens with one food (the steak is no cow food)", #rows)
+    check(rows[1] and rows[1].note == ZeD.tr("UI_ZeD_Animals_FeedNote", 1, 1, 2), "Carrot: for 1 of 1, 2 carried", rows[1] and rows[1].note)
+end)
+add(800, function()
+    shot("8c_feed_picker")
+    A.hunger0 = A.hungry:getStats():get(CharacterStat.HUNGER)
+    local m = AT._feedMenu
+    -- A on the list's row (the list's own confirm, as the pad's A does)
+    if m then m:confirm() end
+    check(AQ.run ~= nil and AQ.run.verb == "feed", "picking Carrot started a feeding run", AQ.runStatus())
+    say("queue after the pick: " .. queueNames())
+end)
+add(3000, function() shot("8d_feeding") end)
+waitFor(60000, function() return AQ.run == nil end, "the feeding run")
+add(500, function()
+    local h1 = A.hungry:getStats():get(CharacterStat.HUNGER)
+    check(AQ.last and AQ.last.why == ZeD.tr("UI_ZeD_Animals_RunDone", 1, 1), "the run ended Done 1 of 1", AQ.last and AQ.last.why)
+    check(h1 < (A.hunger0 or 0), "the cow ate", string.format("%.2f -> %.2f", A.hunger0 or -1, h1))
+end)
+-- the picker on the pad: B closes it and leaves the band as it was
+add(500, function()
+    pcall(function() A.hungry:getStats():set(CharacterStat.HUNGER, 0.9) end)
+    AQ.forgetChecks()
+    AQ.toggle(AT.getZoneViewState(W()).sel, A.hungry)
+end)
+add(1000, function()
+    AT.bulkPress(W(), "feed")
+    local m = AT._feedMenu
+    if m then m:onJoypadDown(Joypad.BButton) end
+    check(m and not m._ctx.open and AQ.run == nil, "B on the picker closes it, nothing fed")
+    AT.bulkPress(W(), "clear")
 end)
 
 -- 6  the controller: the stops and A

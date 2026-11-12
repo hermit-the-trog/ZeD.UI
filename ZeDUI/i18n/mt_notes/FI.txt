@@ -30,3 +30,5 @@ Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error ca
 Shortened chips (tied. pois) and 'Kaikki päälle' to fit the length limits.
 Used 'Modit' for the Mods screen (Modeissa in the button); 'käyttäjiä: %1' for used by %1.
 FileVerbOffWith is a loose 'Kytke pois, myös %1'.
+
+Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note "For %1 of %2 | %3 carried", the greyed reasons, the run status) are machine drafts, not checked by a native speaker. Feed on the button is the game's own word.

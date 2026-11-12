@@ -28,3 +28,5 @@ Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All m
 Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
 'file gioco' for the game-file tag (length 12); chips 'N disattivati' drop the word file.
 Used 'Mod' for the Mods screen; informal imperative (tu) as in the existing file.
+
+Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note "For %1 of %2 | %3 carried", the greyed reasons, the run status) are machine drafts, not checked by a native speaker. Feed on the button is the game's own word.

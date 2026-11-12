@@ -12,7 +12,14 @@
 --   RUN      a run goes one animal at a time, only after the last one's actions are over; skips animals with nothing
 --            to give; ends Done; stops when an animal is left undone (a move cancels) and lets that animal move again;
 --            stops with the reason when the bucket runs out; Stop clears the game's queue; the tick hook comes off
---   SOURCE   AnimalsTab and the World window's ring wire it up (alert A, roster X, the band's buttons)
+--   FEED     the food picker: the game's hand-feeding test per species (its eat list, milk of the animal's own kind,
+--            animal feed by its feed kind, fresh fruit and vegetables; rotten, spice, other fluids left out), only the
+--            hungry count, one line per name with how many it suits and how many are carried, sorted; Feed in the
+--            band first, greyed with the reason when nothing carried suits; kept 500 ms; the act is the game's
+--            onFeedAnimalFood with the first item of that food the animal eats; the run feeds one at a time, skips the
+--            animals not hungry, ends Done, stops when the player walks off (hunger did not go down) and lets the
+--            animal go, ends with the reason when the food runs out
+--   SOURCE   AnimalsTab and the World window's ring wire it up (alert A, roster X, the band's buttons, Feed's picker)
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/animals_quick_sim.lua
 -- It prints FAIL lines and a last line "animals_quick_sim: N checks, M failed"; exits 1 if any failed.
 
@@ -105,7 +112,15 @@ AnimalContextMenu = {
         local q = Q(chr).queue
         q[#q + 1] = "walkF"; q[#q + 1] = "ISShearAnimal"
     end,
+    onFeedAnimalFood = function(chr, animal, food)
+        rec("feed:" .. animal._name .. ":" .. tostring(food and food._name) .. "#" .. tostring(food and food._id))
+        animal._blocked = true
+        local q = Q(chr).queue
+        q[#q + 1] = "walk"; q[#q + 1] = "walkF"; q[#q + 1] = "ISFeedAnimalFromHand"
+    end,
 }
+-- the game's fluids: Fluid.Get by the milk's name, and any animal milk
+Fluid = { Get = function(name) return { _fluid = name } end, AnimalMilk = { _fluid = "AnimalMilk" } }
 local WALK_OK = true
 luautils = { walkAdj = function(p, sq) rec("walk:" .. tostring(sq and sq.id)); if WALK_OK then local q = Q(p).queue; q[#q + 1] = "walk" end return WALK_OK end }
 
@@ -125,6 +140,13 @@ local function animal(name, o)
     a.canBeSheared = function() return a._shearable == true end
     a.getSquare = function() return a._sq end
     a.getBehavior = function() return { setBlockMovement = function(_, v) a._blocked = v end } end
+    -- what it eats from the hand (the game's getEatTypePossibleFromHand), and its breed's milk
+    a._eats = o.eats
+    a.getEatTypePossibleFromHand = function()
+        if not a._eats then return nil end
+        return { contains = function(_, k) for _, e in ipairs(a._eats) do if e == k then return true end end return false end }
+    end
+    a.getBreed = function() return { getMilkType = function() return a._mt end } end
     return a
 end
 
@@ -144,7 +166,15 @@ local function player()
             for _, s in ipairs(p._shears) do list:add(s) end
             return list
         end,
+        -- the game's own walk over the inventory and its bags, with ZeD's broad first test
+        getAllEvalRecurse = function(_, fn)
+            invCalls = invCalls + 1
+            local out = {}
+            for _, it in ipairs(p._food) do if fn(it) then out[#out + 1] = it end end
+            return L(out)
+        end,
     }
+    p._food = {}
     p.getInventory = function() return inv end
     p.hasFullInventory = function() return p._full end
     p.isDead = function() return false end
@@ -290,20 +320,25 @@ check("SELECT Clear", #AQ.prune(sel, zone) == 0)
 p._shears = {}
 AQ.forgetChecks()
 local v = AQ.selectionVerbs(p, { cowA, goat, sheep, cowB })
-check("SELECT band: Shear then Milk", #v == 2 and v[1].id == "shear" and v[2].id == "milk", #v)
-check("SELECT band: Milk counts the two with milk (CowB has none)", v[2] and v[2].n == 2, v[2] and v[2].n)
-check("SELECT band: Milk can (a bucket for cow milk)", v[2] and v[2].ok == true and v[2].why == nil)
-check("SELECT band: Shear greyed, no shears", v[1] and v[1].ok == false and v[1].why == "UI_ZeD_Animals_NeedShears", v[1] and v[1].why)
-v = AQ.selectionVerbs(p, { cowB })
-check("SELECT band: nothing applies, no verbs", #v == 0, #v)
+check("SELECT band: Feed, Shear then Milk", #v == 3 and v[1].id == "feed" and v[2].id == "shear" and v[3].id == "milk", #v)
+check("SELECT band: Feed counts the four with any hunger, greyed: nothing carried", v[1] and v[1].n == 4 and v[1].ok == false
+    and v[1].why == "UI_ZeD_Animals_NeedFood", v[1] and v[1].why)
+check("SELECT band: Milk counts the two with milk (CowB has none)", v[3] and v[3].n == 2, v[3] and v[3].n)
+check("SELECT band: Milk can (a bucket for cow milk)", v[3] and v[3].ok == true and v[3].why == nil)
+check("SELECT band: Shear greyed, no shears", v[2] and v[2].ok == false and v[2].why == "UI_ZeD_Animals_NeedShears", v[2] and v[2].why)
+local fed = animal("Fed", { milk = 0, milkable = true, hunger = 0 })
+v = AQ.selectionVerbs(p, { fed })
+check("SELECT band: nothing applies (not hungry, nothing to give), no verbs", #v == 0, #v)
 p._buckets = { bucket("CowPail", "CowMilk") }
 AQ.forgetChecks()
 v = AQ.selectionVerbs(p, { goat })
-check("SELECT band: a goat with only a cow-milk bucket greys Milk", #v == 1 and v[1].ok == false and v[1].why == "UI_ZeD_Animals_NeedBucket",
-    v[1] and v[1].why)
+v = v[#v]
+check("SELECT band: a goat with only a cow-milk bucket greys Milk", v.id == "milk" and v.ok == false and v.why == "UI_ZeD_Animals_NeedBucket",
+    v.why)
 AQ.forgetChecks()
 v = AQ.selectionVerbs(p, { goat, cowA })
-check("SELECT band: one animal the bucket takes is enough to offer Milk", #v == 1 and v[1].ok == true and v[1].n == 2)
+v = v[#v]
+check("SELECT band: one animal the bucket takes is enough to offer Milk", v.id == "milk" and v.ok == true and v.n == 2)
 
 -- RUN -------------------------------------------------------------------------
 local function busy(pl) local q = ISTimedActionQueue.queues[pl]; return q and #q.queue > 0 end
@@ -390,6 +425,159 @@ check("RUN no shears: no run, the reason", not ok and why == "UI_ZeD_Animals_Nee
 ok = AQ.start(p, "goto", { s1 })
 check("RUN only milk and shear run", not ok)
 
+-- FEED ------------------------------------------------------------------------
+-- carried things: o.food (a Food: food type, hunger change, rotten, spice), o.feed (animal feed of a kind), o.fluid
+local nextId = 0
+local function item(name, full, o)
+    o = o or {}
+    nextId = nextId + 1
+    local it = { _name = name, _id = nextId, _class = o.food and "Food" or "Item" }
+    local fc = o.fluid and { _fluid = o.fluid,
+        isPureFluid = function(_, f) return f ~= nil and f._fluid == o.fluid end,
+        getUiName = function() return o.fluidName or name end } or nil
+    it.getFluidContainer = function() return fc end
+    it.isAnimalFeed = function() return o.feed ~= nil end
+    it.getAnimalFeedType = function() return o.feed end
+    it.getFullType = function() return full end
+    it.getFoodType = function() return o.food end
+    it.getMilkType = function() return o.milkType end
+    it.getHungerChange = function() return o.hunger or -10 end
+    it.isRotten = function() return o.rotten == true end
+    it.isSpice = function() return o.spice == true end
+    it.getDisplayName = function() return name end
+    it.getTex = function() return "tex:" .. name end
+    return it
+end
+local function carrot() return item("Carrot", "Base.Carrots", { food = "Vegetables" }) end
+
+ISTimedActionQueue.queues = {}
+AQ.forgetChecks()
+local fp = player()
+local cow = animal("Cow", { hunger = 60, eats = { "Vegetables", "Fruits", "Hay" } })
+local chick = animal("Chick", { hunger = 30, eats = { "Grain" } })
+local goatF = animal("GoatF", { hunger = 0, eats = { "Vegetables" } })
+local calf = animal("Calf", { hunger = 80, eats = { "CowMilk" }, mt = "CowMilk" })
+local herd = { cow, chick, goatF, calf }
+
+local fv = AQ.selectionVerbs(fp, herd)
+check("FEED greyed: nothing carried, the reason", fv[1] and fv[1].id == "feed" and fv[1].ok == false
+    and fv[1].why == "UI_ZeD_Animals_NeedFood" and fv[1].n == 3, fv[1] and tostring(fv[1].why) .. " n=" .. tostring(fv[1].n))
+fp._food = { item("Salt", "Base.Salt", { food = "Vegetables", spice = true }),
+             item("Rotten Carrot", "Base.Carrots", { food = "Vegetables", rotten = true }),
+             item("Beer", "Base.BeerBottle", { fluid = "Beer" }),
+             item("Steak", "Base.Steak", { food = "Meat" }) }
+AQ.forgetChecks()
+fv = AQ.selectionVerbs(fp, herd)
+check("FEED greyed: a spice, a rotten carrot, beer and meat are no food for them", fv[1] and fv[1].ok == false
+    and fv[1].why == "UI_ZeD_Animals_NeedFood", fv[1] and fv[1].why)
+
+local c1, c2 = carrot(), carrot()
+fp._food = { c1, item("Hay", "Base.HayTuft", { feed = "Hay" }), c2,
+             item("Bird Seed", "Base.BirdSeed", { feed = "Grain" }),
+             item("Milk bottle", "Base.WaterBottle", { fluid = "CowMilk", fluidName = "Cow Milk" }),
+             item("Rotten Carrot", "Base.Carrots", { food = "Vegetables", rotten = true }),
+             item("Salt", "Base.Salt", { food = "Vegetables", spice = true }),
+             item("Bird Seed", "Base.BirdSeed", { feed = "Grain" }) }
+AQ.forgetChecks()
+local foods, fwhy, nh = AQ.feedChoices(fp, herd)
+local names = {}
+for _, f in ipairs(foods) do names[#names + 1] = f.name .. "=" .. f.suits .. "/" .. f.have end
+local got = table.concat(names, " ")
+check("FEED picker: one line per name, sorted, the fluid by its name, rotten and spice left out",
+    got == "Bird Seed=1/2 Carrot=1/2 Cow Milk=1/1 Hay=1/1", got)
+check("FEED picker: three hungry (GoatF is not, though it eats carrots)", nh == 3 and fwhy == nil, nh)
+check("FEED picker: a food line carries the item's picture", foods[1] and foods[1].tex == "tex:Bird Seed")
+fv = AQ.selectionVerbs(fp, herd)
+check("FEED band: Feed (3), live", fv[1] and fv[1].id == "feed" and fv[1].ok and fv[1].n == 3)
+-- a calf drinks its own breed's milk and any animal milk; a goat-milk jug is not for a cow calf
+local gm = item("Goat jug", "Base.Jug", { fluid = "GoatMilk", fluidName = "Goat Milk" })
+local am = item("Animal jug", "Base.Jug", { fluid = "AnimalMilk", fluidName = "Animal Milk" })
+calf._eats = { "CowMilk", "AnimalMilk" }
+check("FEED species: a calf drinks cow milk, not goat milk; any animal milk is AnimalMilk",
+    not AQ.eats(calf, gm) and AQ.eats(calf, am) and not AQ.eats(chick, am))
+calf._eats = { "CowMilk" }
+-- the cache: a second ask within 500 ms does not look through the inventory
+AQ.forgetChecks()
+invCalls = 0
+AQ.checkFeed(fp, herd); AQ.checkFeed(fp, herd)
+check("FEED kept 500 ms: one look through the inventory", invCalls == 1, invCalls)
+AQ.checkFeed(fp, { cow, chick })
+check("FEED other animals: asked again", invCalls == 2, invCalls)
+fp._food = {}
+foods = AQ.checkFeed(fp, { cow, chick })
+check("FEED kept: still the old answer within 500 ms", #foods > 0)
+NOW = NOW + 500
+foods, fwhy = AQ.checkFeed(fp, { cow, chick })
+check("FEED kept: asked again at 500 ms, nothing carried now", #foods == 0 and fwhy == "UI_ZeD_Animals_NeedFood", fwhy)
+foods, fwhy, nh = AQ.feedChoices(fp, { goatF })
+check("FEED no hungry animal: no lines, n = 0", #foods == 0 and nh == 0)
+
+-- can, act
+fp._food = { c1, c2, item("Bird Seed", "Base.BirdSeed", { feed = "Grain" }) }
+ok, why = AQ.canFeed(fp, goatF, "Carrot")
+check("FEED can: not hungry", not ok and why == "UI_ZeD_Animals_NotHungry", why)
+ok, why = AQ.canFeed(fp, cow, "Bird Seed")
+check("FEED can: a cow does not eat bird seed", not ok and why == "UI_ZeD_Animals_NeedFood", why)
+CALLS = {}
+ok = AQ.act("feed", fp, cow, "Carrot")
+check("FEED act: the game's onFeedAnimalFood with the first carrot", ok and CALLS[1] == "feed:Cow:Carrot#" .. c1._id, CALLS[1])
+ok = AQ.start(fp, "feed", { cow })
+check("FEED run needs a food", not ok)
+
+-- the run: two hungry cows and a goat that is not, two carrots
+local function feedDone(pl, a)
+    a._hunger = math.max(0, a._hunger - 40)
+    local it = nil
+    for k, f in ipairs(pl._food) do if f._name == "Carrot" then it = k; break end end
+    if it then table.remove(pl._food, it) end
+    finishAction(pl)
+end
+ISTimedActionQueue.queues = {}
+AQ.forgetChecks()
+local k1 = animal("K1", { hunger = 70, eats = { "Vegetables" } })
+local k2 = animal("K2", { hunger = 50, eats = { "Vegetables" } })
+local k3 = animal("K3", { hunger = 0, eats = { "Vegetables" } })
+fp._food = { carrot(), carrot() }
+CALLS = {}
+ok = AQ.start(fp, "feed", { k1, k3, k2 }, "Carrot")
+check("FEED run starts: K1 handed over at once, the goat that is not hungry left out",
+    ok and #CALLS == 1 and CALLS[1]:find("feed:K1:Carrot", 1, true) == 1 and #AQ.run.list == 2, table.concat(CALLS, " "))
+check("FEED run status: Feeding 1 of 2", AQ.runStatus() == "UI_ZeD_Animals_RunFeeding(1,2)", AQ.runStatus())
+for _ = 1, 40 do AQ.tick() end
+check("FEED run waits while K1's actions are queued", #CALLS == 1)
+feedDone(fp, k1); AQ.tick()
+check("FEED run: K1 fed, K2 handed over", #CALLS == 2 and CALLS[2]:find("feed:K2:Carrot", 1, true) == 1, table.concat(CALLS, " "))
+AQ.tick(); feedDone(fp, k2); AQ.tick()
+check("FEED run ends Done 2 of 2, the hook off", AQ.run == nil and AQ.last.why == "UI_ZeD_Animals_RunDone(2,2)" and hookCount() == 0,
+    AQ.last and AQ.last.why)
+
+-- the player walks off: the queue empties, the hunger did not go down
+ISTimedActionQueue.queues = {}
+local w1 = animal("W1", { hunger = 70, eats = { "Vegetables" } })
+local w2 = animal("W2", { hunger = 70, eats = { "Vegetables" } })
+fp._food = { carrot(), carrot() }
+CALLS = {}
+AQ.start(fp, "feed", { w1, w2 }, "Carrot")
+AQ.tick(); w1._hunger = 70.01; finishAction(fp); AQ.tick()
+check("FEED walk away: Stopped after 0 of 2, W2 never handed over", AQ.run == nil and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,2)"
+    and #CALLS == 1, AQ.last and AQ.last.why)
+check("FEED walk away: W1 lets go", w1._blocked == false)
+
+-- the food runs out: three hungry, one carrot
+ISTimedActionQueue.queues = {}
+local r1 = animal("R1", { hunger = 70, eats = { "Vegetables" } })
+local r2 = animal("R2", { hunger = 70, eats = { "Vegetables" } })
+local r3 = animal("R3", { hunger = 70, eats = { "Vegetables" } })
+fp._food = { carrot() }
+CALLS = {}
+AQ.start(fp, "feed", { r1, r2, r3 }, "Carrot")
+AQ.tick(); feedDone(fp, r1); AQ.tick()
+check("FEED food runs out: R1 counts, the run ends with the reason", AQ.run == nil and #CALLS == 1
+    and AQ.last.why == "UI_ZeD_Animals_NeedFood" and AQ.last.done == 1, AQ.last and AQ.last.why)
+fp._food = {}
+ok, why = AQ.start(fp, "feed", { r2 }, "Carrot")
+check("FEED nothing of that food: no run, the reason", not ok and why == "UI_ZeD_Animals_NeedFood", why)
+
 -- SOURCE ----------------------------------------------------------------------
 local TAB = readFile(Z .. "AnimalsTab.lua")
 local WW = readFile(Z .. "ZeD_WorldWindow.lua")
@@ -401,6 +589,22 @@ check("SOURCE roster X toggles", WW:find("AT.toggleSelected(w, el.animal)", 1, t
 check("SOURCE band buttons are stops", WW:find('id = "animals:bulk:" .. tostring(b.id)', 1, true) ~= nil)
 check("SOURCE a focus target may be an id", WW:find('(target == "breadcrumb" and e.isBreadcrumb) or e.id == target', 1, true) ~= nil)
 check("SOURCE right-click on a row toggles", TAB:find("return AT.toggleSelected(win, rz.animal)", 1, true) ~= nil)
+check("SOURCE Feed is the game's word", TAB:find('feed = "ContextMenu_Feed"', 1, true) ~= nil)
+check("SOURCE Feed in the band opens the picker", TAB:find("return AT.openFeedPicker(win, state.zoneName, sx, sy)", 1, true) ~= nil)
+check("SOURCE the picker is ZeD's pull-down list (A picks, B cancels there), headed Feed",
+    TAB:find("ZeD_ContextList:new(0, \"cursor\", sx, sy, nil, rows, nil)", 1, true) ~= nil
+    and TAB:find('m.headText = getText("ContextMenu_Feed")', 1, true) ~= nil
+    and TAB:find("ISScrollingListBox", 1, true) == nil)
+check("SOURCE a food line: how many it suits, of how many hungry, how many carried",
+    TAB:find('ZeD.tr("UI_ZeD_Animals_FeedNote", c.suits, hungry, c.have)', 1, true) ~= nil)
+check("SOURCE a pick starts the feeding run with the food's name",
+    TAB:find('Q.start(getSpecificPlayer(0), "feed", Q.prune(sel, AP().getAnimalsInZone(zoneName)), name)', 1, true) ~= nil)
+local CL = readFile(Z .. "ZeD_ContextList.lua")
+check("SOURCE the list: A confirms, B cancels",
+    CL:find("if button == Joypad.AButton then self:confirm()", 1, true) ~= nil
+    and CL:find("elseif button == Joypad.BButton then self:cancel() end", 1, true) ~= nil)
+local AQS = readFile(Z .. "AnimalsQuick.lua")
+check("SOURCE the act is the game's onFeedAnimalFood", AQS:find("AnimalContextMenu.onFeedAnimalFood(player, animal, tool)", 1, true) ~= nil)
 
 print(string.format("animals_quick_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

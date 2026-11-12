@@ -33,3 +33,5 @@ Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All m
 Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
 'used by %1' tag rendered 'нужен: %1' (short; literal 'используется' does not fit 12). 'Turn off with the %1' as 'Выключить вместе с %1' (the noun after the count is missing, may read oddly).
 'Mods' screen = 'Моды' per ZeD's file; chip tags use 'Выкл.: %1' for 14 chars.
+
+Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note "For %1 of %2 | %3 carried", the greyed reasons, the run status) are machine drafts, not checked by a native speaker. Feed on the button is the game's own word.
