@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Inventory Filter</title>
+<!-- ZeD-GUI mockup: the Filter button beside List | Grid in the Character window (your inventory) and the
+     World window (loot), punch list 168, v1.
+     Chrome, tokens, review bar, keycaps and the pointing hand copied from zed_fishing_tab_v2.html; the column
+     (heading with container icon, name, List | Grid, weight over count; the Name / Cat / Cond / Wt bar sorted by a
+     click, the active one underlined; category rows; stacks "x4" with their total in brackets; the grid with weight
+     in the corner and the condition bar under) after InventoryRenderer.lua (drawColumnHeading, drawViewToggle,
+     drawCatRow) and gallery spreads 19 and 20. The pad keyboard after ZeD_Keyboard.lua (vanilla's keys and map).
+     Categories are the game's DisplayCategory words (IGUI_ItemCat_*). Early Filter: zed_two_windows_v1.html.
+     Units: 1 CSS px here = 1 ZeD unit; the game draws 1 unit as 1.75 screen pixels at 4K. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #47a18c; --acc-text: var(--accent); --on-accent: #0c0c0c;
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --page: #0e0f10; --ground: #3a3f2c;
+}
+:root[data-theme="light"] { --acc-text: color-mix(in srgb, var(--accent) 70%, #000); --on-accent: #fff;
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84; --ground: #7d8068;
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: 15px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: center; padding: 8px 16px;
+  font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 5; }
+.review b { color: #ddd; font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+
+.stage { display: flex; justify-content: center; padding: 16px; overflow: hidden; }
+.stage.actual { overflow: auto; justify-content: flex-start; }
+.zoomer { transform-origin: top left; }
+.notes { max-width: 980px; margin: 0 auto; padding: 4px 16px 48px; color: #c8c8c8; font-size: 15px; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: #8fc9b9; margin: 18px 0 8px; }
+.notes p { margin: 0 0 8px; max-width: 80ch; }
+.notes ol, .notes ul { margin: 0 0 8px; padding-left: 20px; max-width: 84ch; }
+.notes li { margin-bottom: 4px; }
+.notes code { font-family: var(--font-mono); font-size: 13px; color: #e6e6e6; }
+
+/* the scene: two windows on the ground, the keyboard under the one being typed in */
+.scene { display: flex; gap: 18px; align-items: flex-start; padding: 18px; background: var(--ground); }
+.wcol { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+/* ---------- ZeD window chrome (from zed_fishing_tab_v2.html) */
+.win { display: flex; flex-direction: column; background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px; position: relative;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); flex: 0 0 12px; }
+.titlechip { position: absolute; left: 50%; transform: translateX(-50%); background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: 13px; line-height: 22px; color: var(--acc-text); white-space: nowrap; }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.titlebar .rt { margin-left: auto; background: var(--surface-2); padding: 0 6px; font: 400 12px/22px var(--font-mono); color: var(--text-secondary); }
+.wbody { display: flex; height: 600px; }
+
+/* the tab strip (pixel icons in a column) and the container strip (bags / containers in reach) */
+.strip { width: 36px; flex: 0 0 36px; display: flex; flex-direction: column; align-items: stretch; padding-top: 2px; }
+.strip.l { border-right: 1px solid var(--border); } .strip.r { border-left: 1px solid var(--border); }
+.strip .t { height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); position: relative; }
+.strip .t.on { background: var(--accent); color: var(--on-accent); }
+.strip .lab { font: 400 10px/18px var(--font-mono); color: var(--text-secondary); text-align: center; }
+.strip .gap { height: 0; border-top: 1px solid var(--border); margin: 4px 6px; }
+
+/* ---------- the column */
+.col { width: 400px; flex: 0 0 400px; display: flex; flex-direction: column; min-height: 0; }
+.chead { height: 40px; flex: 0 0 40px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid var(--border); }
+.chead .nm { font: 500 15px/1 var(--font-sans); color: var(--text); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: 4px; }
+.ib { position: relative; width: 24px; height: 24px; flex: 0 0 24px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-secondary);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.ib.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.ib .dotf { position: absolute; right: 2px; top: 2px; width: 4px; height: 4px; background: var(--on-accent); }
+.ibgap { width: 6px; }
+.wstack { text-align: right; margin-left: 6px; }
+.wstack b { display: block; font: 700 12px/14px var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; }
+.wstack span { display: block; font: 400 11px/13px var(--font-mono); color: var(--text-secondary); }
+
+/* the filter bar: under the heading while Filter is on */
+.fbar { flex: 0 0 auto; padding: 6px 10px 6px; border-bottom: 1px solid var(--border); background: var(--surface-1); display: flex; flex-direction: column; gap: 6px; }
+.frow { display: flex; align-items: center; gap: 8px; }
+.field { position: relative; flex: 1; min-width: 0; height: 24px; display: flex; align-items: center; background: var(--base); border: 1px solid var(--border-strong); padding: 0 6px; }
+.field.focus { border-color: var(--accent); }
+.field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: 400 14px/22px var(--font-sans); padding: 0; }
+.field input::placeholder { color: var(--text-secondary); }
+.field .caret { width: 1px; height: 15px; background: var(--text); margin-left: 1px; }
+.field .ktext { font: 400 14px/22px var(--font-sans); color: var(--text); white-space: pre; }
+.fcount { font: 400 12px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fcount b { color: var(--acc-text); font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 1px 6px; background: var(--surface-2); border: 1px solid var(--border); font: 400 12px/17px var(--font-mono); color: var(--text); white-space: nowrap; cursor: pointer; }
+.chip .n { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.chip.zero { color: var(--text-secondary); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.chip.on .n { color: var(--on-accent); }
+.chip.pf { padding-left: 20px; } .chip.pf > .hand { left: 3px; }
+
+/* the sort bar (Name / Cat / Cond / Wt): the active one underlined, ascending */
+.cbar { height: 20px; flex: 0 0 20px; display: flex; align-items: center; gap: 0; padding: 0 10px 0 34px; background: var(--surface-2); border-bottom: 1px solid var(--border);
+  font: 400 11px/1 var(--font-mono); color: var(--text-heading); }
+.cbar span { cursor: pointer; } .cbar .act { text-decoration: underline; text-underline-offset: 3px; }
+.cn { flex: 1; min-width: 0; } .cc { width: 92px; flex: 0 0 92px; } .cd { width: 70px; flex: 0 0 70px; white-space: nowrap; } .cw { width: 38px; flex: 0 0 38px; text-align: right; }
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+.cat { position: relative; display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px; font: 400 12px/1 var(--font-mono); color: var(--text-heading); }
+.cat .n { color: var(--text-secondary); }
+.tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-heading); display: inline-block; }
+.tri.shut { border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid var(--text-heading); border-right: 0; }
+.row { position: relative; display: flex; align-items: center; height: 26px; padding: 0 10px; font: 400 14px/1 var(--font-sans); cursor: default; }
+.row .ic { width: 24px; flex: 0 0 24px; display: flex; align-items: center; }
+.row .chev { width: 10px; flex: 0 0 10px; display: inline-flex; }
+.row .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 6px; }
+.row .x { font: 400 12px/1 var(--font-mono); color: var(--text-secondary); margin-left: 4px; }
+.row .ct { width: 92px; flex: 0 0 92px; font: 400 12px/1 var(--font-mono); color: var(--acc-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 6px; }
+.row .cd { display: flex; align-items: center; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; }
+.row .wt { width: 38px; flex: 0 0 38px; text-align: right; font: 400 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.row.sel { background: var(--accent); color: var(--on-accent); }
+.row.sel .ct, .row.sel .wt, .row.sel .x, .row.sel .cd { color: var(--on-accent); }
+.hit { color: var(--acc-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.row.sel .hit { color: var(--on-accent); }
+.segs { display: flex; gap: 1px; }
+.segs i { width: 9px; height: 5px; background: var(--surface-3); }
+.segs i.f { background: var(--positive); }
+.segs.fill i { width: 4px; } .segs.fill i.f { background: #4a88b8; }
+.unread { display: inline-flex; align-items: center; gap: 4px; }
+.unread i { width: 7px; height: 7px; border: 1px solid var(--text-secondary); }
+
+/* the grid */
+.grid { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 10px 8px 26px; }
+.cell { position: relative; width: 48px; height: 48px; background: var(--surface-1); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+.cell .w { position: absolute; right: 2px; top: 1px; font: 400 9px/1 var(--font-mono); color: var(--text-secondary); }
+.cell .k { position: absolute; right: 2px; bottom: 8px; font: 700 10px/1 var(--font-mono); color: var(--text); }
+.cell .b { position: absolute; left: 3px; right: 3px; bottom: 3px; height: 4px; background: var(--surface-3); }
+.cell .b i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--positive); }
+.cell.hitc { border-color: var(--accent); }
+
+/* nothing matches */
+.empty { padding: 14px 12px 10px 34px; font: 400 14px/1.4 var(--font-sans); color: var(--text); }
+.empty .sub { display: block; color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.empty .acts { margin-top: 10px; display: flex; gap: 8px; }
+
+/* the column's foot: its buttons (Transfer all, Take selected, Stack) */
+.cfoot { height: 30px; flex: 0 0 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-top: 1px solid var(--border); }
+.cfoot .ib { width: 22px; height: 22px; flex-basis: 22px; }
+
+/* the window's foot line, and the pad's prompts when a controller holds it */
+.foot { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: var(--surface-2); border-top: 1px solid var(--border-strong); min-height: 28px;
+  font: 400 12px/1.3 var(--font-mono); color: var(--text-secondary); }
+.foot .pr { margin-left: auto; display: flex; gap: 10px; }
+.foot .pr span { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+
+.btn { position: relative; padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/16px var(--font-mono); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn:hover:not(:disabled) { color: var(--acc-text); }
+.btn.sm { padding: 1px 9px; font-size: 12px; line-height: 15px; }
+.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 14px; padding: 0 3px; background: var(--text); color: var(--base); font: 700 10px/14px var(--font-mono); border-radius: 2px; }
+
+/* the pad keyboard (ZeD_Keyboard.lua: 30 x 28 keys, 6 apart, 10 in) */
+.kbd { border: 1px solid var(--border-strong); background: color-mix(in srgb, var(--base) 96%, transparent); }
+.kbd .line { margin: 10px 10px 4px; height: 26px; display: flex; align-items: center; padding: 0 6px; background: var(--base); border: 1px solid var(--accent); font: 400 14px/1 var(--font-sans); }
+.kbd .line .lbl { font: 400 11px/1 var(--font-mono); color: var(--text-secondary); margin-right: 8px; }
+.krows { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.krow { display: flex; gap: 6px; justify-content: center; }
+.key { position: relative; min-width: 30px; height: 28px; padding: 0 6px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/1 var(--font-mono); display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
+.key::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.key.prim, .key.prim::before { border-color: var(--accent); } .key.prim { color: var(--acc-text); }
+.key.wide { min-width: 150px; }
+.key.on { background: var(--accent); color: var(--on-accent); }
+
+/* controller highlight: the pointing hand at the left of the focused control */
+.hand { position: absolute; left: -9px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 3; }
+.row.pf { padding-left: 24px; } .row.pf > .hand, .cat.pf > .hand { left: 3px; } .cat.pf { padding-left: 24px; }
+.ib.pf > .hand { left: -15px; } .field.pf > .hand { left: -15px; } .btn.pf { margin-left: 14px; } .btn.pf > .hand { left: -15px; }
+.key.pf > .hand { left: -9px; top: 70%; }
+.px { image-rendering: pixelated; shape-rendering: crispEdges; display: block; }
+</style>
+</head>
+<body>
+
+<div class="review" id="review"></div>
+<div class="stage" id="stage"><div class="zoomer" id="zoomer"></div></div>
+<div class="notes" id="notes"></div>
+
+<script>
+/* ======================================================================
+   Pixel icons (ZeD draws item and tab icons as pixel art; these stand in)
+   ====================================================================== */
+const PAL = { k: "#c8b07a", g: "#7f858c", s: "#d0d4d8", b: "#8a5a2b", y: "#c8b040", e: "#111", o: "#c98a3a", r: "#c03a2a",
+  w: "#e2e2da", m: "#4a7a3a", t: "#9aa0a6", u: "#5a6066", c: "#3a6aa0", l: "#6b7a3a", "#": "#111", W: "#f4f4f4", x: "currentColor" };
+const ICON = {
+  apple: ["..........",".....m....","....m.....","..rrrrrr..",".rrrwrrrr.",".rrwrrrrr.",".rrrrrrrr.",".rrrrrrrr.","..rrrrrr..","...r..r..."],
+  can:   ["..........","..gggggg..","..ssssss..","..yyyyyy..","..ywwwwy..","..ywwwwy..","..yyyyyy..","..ssssss..","..gggggg..",".........."],
+  aid:   ["..........",".wwwwwwww.",".wwwrrwww.",".wwwrrwww.",".wrrrrrrw.",".wrrrrrrw.",".wwwrrwww.",".wwwrrwww.",".wwwwwwww.",".........."],
+  bottle:["....ss....","....ss....","...cccc...","..cccccc..","..cwwwwc..","..cwwwwc..","..cccccc..","..cccccc..","..cccccc..",".........."],
+  bar:   ["..........","..........",".bbbbbbbb.",".bobobobb.",".bbbbbbbb.",".bobobobb.",".bbbbbbbb.","..........","..........",".........."],
+  bag:   ["...uuuu...","..u....u..",".llllllll.",".llllllll.",".lluuuull.",".llllllll.",".llllllll.",".llllllll.","..........",".........."],
+  radio: ["...u......","...u......","..uuuuuu..","..ueeeeu..","..uuuuuu..","..uyuuuu..","..uuuuuu..","..uuuuuu..","..........",".........."],
+  tool:  ["..........",".gggg.....",".ggggg....","..bb......","..bb......","..bb......","..bb......","..bb......","..........",".........."],
+  knife: ["........s.",".......ss.","......ss..",".....ss...","....ss....","...bb.....","..bb......",".bb.......","..........",".........."],
+  wood:  ["..........","..........","oooooooooo","bbbbbbbbbb","oooooooooo","bbbbbbbbbb","..........","..........","..........",".........."],
+  metal: ["..........","..........","tttttttt..","tssssssst.","tsssssssst","ttttttttt.","..........","..........","..........",".........."],
+  pipe:  ["..........","........tt",".......tt.","......tt..",".....tt...","....tt....","...tt.....","..tt......",".tt.......",".........."],
+  nails: ["..........",".s..s..s..",".s..s..s..",".s..s..s..",".s..s..s..",".s..s..s..","..........","..........","..........",".........."],
+  tape:  ["..........","..tttttt..",".tt....tt.",".t..uu..t.",".t..uu..t.",".tt....tt.","..tttttt..","..........","..........",".........."],
+  candle:["....o.....","....y.....","...www....","...www....","...www....","...www....","...www....","..uuuuu...","..........",".........."],
+  torch: ["..........","..........","uuuuuuu...","uuuuuuuyy.","uuuuuuuyyy","uuuuuuuyy.","uuuuuuu...","..........","..........",".........."],
+  book:  ["..........",".rrrrrrr..",".rwwwwwr..",".rrrrrrr..",".rrrrrrr..",".rryyyrr..",".rrrrrrr..",".rrrrrrr..","..........",".........."],
+  box:   ["..........","..........",".yyyyyyyy.",".yrrrrrry.",".yyyyyyyy.",".yyyyyyyy.","..........","..........","..........",".........."],
+  shirt: ["..........",".cc....cc.","cccc..cccc","cccccccccc","..cccccc..","..cccccc..","..cccccc..","..cccccc..","..........",".........."],
+  batt:  ["..........","...u..u...","..uuuuuu..","..ueeeeu..","..ueyyeu..","..ueeeeu..","..uuuuuu..","..........","..........",".........."],
+  gas:   ["..........","...rr.....","..rrrrrr..",".rrrrrrr..",".rrwwrrr..",".rrrrrrr..",".rrrrrrr..",".rrrrrrr..","..........",".........."],
+  mask:  ["..........","..uuuuuu..",".uuuuuuuu.",".ueeeeeeu.",".uuuuuuuu.",".uuuuuuuu.","..uuuuuu..","..........","..........",".........."],
+  rope:  ["..........","...kkkk...","..k....k..",".k..kk..k.",".k.k..k.k.",".k..kk..k.","..k....k..","...kkkk...","..........",".........."],
+  chip:  ["..........","..m.m.m...",".mmmmmmm..","mmmyymmmm.",".mmyymmm..","mmmmmmmmm.",".mmmmmmm..","..m.m.m...","..........",".........."],
+  /* window chrome glyphs, drawn in the text color */
+  funnel:["..........","xxxxxxxxxx",".xxxxxxxx.","..xxxxxx..","...xxxx...","....xx....","....xx....","....xx....","....xx....",".........."],
+  list:  ["..........","xx.xxxxxxx","..........","xx.xxxxxxx","..........","xx.xxxxxxx","..........","xx.xxxxxxx","..........",".........."],
+  gridi: ["..........","xxxx..xxxx","xxxx..xxxx","xxxx..xxxx","..........","..........","xxxx..xxxx","xxxx..xxxx","xxxx..xxxx",".........."],
+  xfer:  ["....xx....","...xxxx...","..xxxxxx..","....xx....","....xx....","....xx....","..........","xxxxxxxxxx","xxxxxxxxxx",".........."],
+  take:  ["..........","..xxxxxx..","..x....x..","xxxxxx.x..","x....x.x..","x....xxx..","x....x....","xxxxxx....","..........",".........."],
+  stack: ["....xx....","...xxxx...","....xx....","....xx....","xxxxxxxxxx","....xx....","....xx....","...xxxx...","....xx....",".........."],
+  tEquip:["..........","..xx..xx..",".xxxxxxxx.","xxxxxxxxxx","..xxxxxx..","..xxxxxx..","..xxxxxx..","..xxxxxx..","..........",".........."],
+  tHealth:["..........",".xx...xx..","xxxx.xxxx.","xxxxxxxxx.","xxxxxxxxx.",".xxxxxxx..","..xxxxx...","...xxx....","....x.....",".........."],
+  tTherm:["....xx....","...x..x...","...x..x...","...x..x...","...xxxx...","..xxxxxx..","..xxxxxx..","...xxxx...","..........",".........."],
+  tId:   ["..........","xxxxxxxxxx","x........x","x.xx.xxx.x","x.xx.....x","x....xxx.x","x........x","xxxxxxxxxx","..........",".........."],
+  tJour: ["..........",".xxxxxxx..",".x.....xx.",".x.xxx.x..",".x.....x..",".x.xxx.x..",".x.....x..",".xxxxxxx..","..........",".........."],
+  tSkill:["..........","........x.","........x.",".....x..x.",".....x..x.","..x..x..x.","..x..x..x.","xxxxxxxxxx","..........",".........."],
+  tLoot: ["..........",".xxxxxxxx.",".x......x.",".xxxxxxxx.",".x..xx..x.",".x......x.",".x......x.",".xxxxxxxx.","..........",".........."],
+  tCraft:["..........",".xxxxx....",".xxxxxx...","...xx.....","...xx.....","...xx.....","...xx.....","...xx.....","..........",".........."],
+  tBuild:["..........","xxxxxxxxxx","x...x....x","xxxxxxxxxx","x.....x..x","xxxxxxxxxx","x..x.....x","xxxxxxxxxx","..........",".........."],
+  tMaps: ["..........","xx..xx..xx","x.xx..xx.x","x..x...x.x","x..x...x.x","x..x...x.x","x.xx..xx.x","xx..xx..xx","..........",".........."],
+  tForage:["......xxx.","....xx..x.","...x...x..","..x...x...","..x..x.x..","..x.x..x..","...xxxx...","..x.......",".x........",".........."],
+  crate: ["..........","bbbbbbbbbb","bobobobobb","bbbbbbbbbb","bobobobobb","bbbbbbbbbb","bobobobobb","bbbbbbbbbb","..........",".........."],
+  ground:["..........","..........","..........","..........","...l..l...","..lml.ml..","llmmlmmlll","mmmmmmmmmm","..........",".........."],
+  shelf: ["uuuuuuuuuu","u........u","uuuuuuuuuu","u........u","uuuuuuuuuu","u........u","uuuuuuuuuu","u........u","..........",".........."],
+  hand: ["....##########.","...#WWWWWWWWWW#","##.#WWW########","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWWWWWW#...","##.#WWWWWWW#...","....#######...."]
+};
+function px(name, scale) {
+  const m = ICON[name]; const h = m.length, w = m[0].length; let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const ch = m[y][x]; if (ch === ".") continue;
+    r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`;
+  }
+  return `<svg class="px" width="${w * scale}" height="${h * scale}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+
+/* ======================================================================
+   Game data (Build 42): item names as the game gives them, DisplayCategory words (IGUI_ItemCat_*)
+   [name, category, count, meter kind ("c" condition, "f" fill, "u" unread, ""), meter %, weight each, icon]
+   ====================================================================== */
+const CHAR_ITEMS = [
+  ["Chest Rig", "Bag", 1, "c", 90, 2.6, "bag"],
+  ["ValuTech Walkie Talkie", "Communications", 1, "c", 100, 1.0, "radio"],
+  ["Can Opener", "Cooking", 1, "c", 80, 0.5, "tool"],
+  ["Bandage", "First Aid", 4, "", 0, 0.1, "aid"],
+  ["Disinfectant", "First Aid", 1, "f", 60, 0.3, "bottle"],
+  ["Painkillers", "First Aid", 1, "f", 70, 0.2, "box"],
+  ["Suture Needle", "First Aid", 2, "", 0, 0.1, "knife"],
+  ["Apple", "Food", 4, "", 0, 0.2, "apple"],
+  ["Canned Corn", "Food", 3, "", 0, 0.6, "can"],
+  ["Canned Chili", "Food", 2, "", 0, 0.6, "can"],
+  ["Chocolate", "Food", 1, "", 0, 0.2, "bar"],
+  ["Crisps", "Food", 2, "", 0, 0.1, "bag"],
+  ["Peanut Butter", "Food", 1, "f", 80, 0.6, "can"],
+  ["Matches", "Fire Source", 1, "f", 90, 0.1, "box"],
+  ["Candle", "Light Source", 2, "f", 100, 0.2, "candle"],
+  ["Flashlight", "Light Source", 1, "c", 100, 0.6, "torch"],
+  ["Duct Tape", "Material", 2, "f", 100, 0.2, "tape"],
+  ["Ripped Sheets", "Material", 8, "", 0, 0.1, "wood"],
+  ["Nails", "Material", 40, "", 0, 0.01, "nails"],
+  ["Carpentry for Beginners", "Skill Book", 1, "u", 0, 0.8, "book"],
+  ["Socks", "Clothing", 1, "c", 100, 0.1, "shirt"],
+  ["Hammer", "Tool / Weapon", 1, "c", 80, 1.0, "tool"],
+  ["Kitchen Knife", "Tool / Weapon", 1, "c", 60, 0.6, "knife"],
+  ["Screwdriver", "Tool", 1, "c", 100, 0.5, "tool"],
+  ["Water Bottle", "Water", 1, "f", 70, 1.0, "bottle"],
+];
+const WORLD_ITEMS = [
+  ["Welder Mask", "Clothing", 1, "c", 90, 1.5, "mask"],
+  ["Battery", "Electronics", 4, "f", 100, 0.1, "batt"],
+  ["Electronics Scrap", "Electronics", 5, "", 0, 0.2, "chip"],
+  ["Flashlight", "Light Source", 1, "c", 60, 0.6, "torch"],
+  ["Metal Bar", "Material", 1, "", 0, 1.2, "pipe"],
+  ["Rope", "Material", 1, "", 0, 0.5, "rope"],
+  ["Scrap Metal", "Material", 6, "", 0, 0.2, "metal"],
+  ["Screws", "Material", 40, "", 0, 0.01, "nails"],
+  ["Sheet Metal", "Material", 3, "", 0, 1.0, "metal"],
+  ["Small Metal Sheet", "Material", 2, "", 0, 0.3, "metal"],
+  ["Twine", "Material", 3, "f", 100, 0.1, "rope"],
+  ["Wood Glue", "Material", 1, "f", 40, 0.4, "bottle"],
+  ["Ball-peen Hammer", "Tool / Weapon", 1, "c", 70, 1.0, "tool"],
+  ["Propane Torch", "Tool", 1, "f", 55, 1.0, "gas"],
+  ["Screwdriver", "Tool", 1, "c", 90, 0.5, "tool"],
+  ["Tongs", "Tool", 1, "c", 100, 0.5, "tool"],
+  ["Wrench", "Tool", 1, "c", 80, 1.0, "tool"],
+  ["Car Battery", "Vehicle Maintenance", 1, "f", 82, 10.0, "batt"],
+  ["Gas Can", "Vehicle Maintenance", 1, "f", 40, 2.4, "gas"],
+  ["Jack", "Vehicle Maintenance", 1, "c", 90, 3.0, "tool"],
+  ["Lug Wrench", "Vehicle Maintenance", 1, "c", 70, 1.0, "tool"],
+  ["Metal Pipe", "Weapon", 2, "c", 80, 1.5, "pipe"],
+];
+const WIN = {
+  char: { title: "Angel Cross", name: "Inventory", icon: "bag", items: CHAR_ITEMS, cap: 14 },
+  world: { title: "Crate", name: "Crate", icon: "crate", items: WORLD_ITEMS, cap: 50 },
+};
+// The state presets: what each window's filter holds (the one the review bar names is filtered)
+const PRESET = {
+  off:      { char: {}, world: {} },
+  typing:   { char: { open: 1, q: "can" }, world: { open: 1, q: "metal" } },
+  category: { char: { open: 1, cats: ["Food"] }, world: { open: 1, cats: ["Material"] } },
+  both:     { char: { open: 1, q: "can", cats: ["Food"] }, world: { open: 1, q: "metal", cats: ["Material"] } },
+  nothing:  { char: { open: 1, q: "chainsaw" }, world: { open: 1, q: "chainsaw" } },
+  grid:     { char: { open: 1, q: "can", grid: 1 }, world: { open: 1, q: "metal", grid: 1 } },
+  pad:      { char: { open: 1, q: "ca", kb: 1 }, world: { open: 1, q: "me", kb: 1 } },
+};
+const STATES = [["off", "1. Off"], ["typing", "2. Typing"], ["category", "3. Category picked"], ["both", "4. Both"],
+  ["nothing", "5. Nothing matches"], ["grid", "6. Grid view"], ["pad", "7. Controller"]];
+
+const S = { st: "typing", theme: "dark", input: "mouse", view: "window", who: "world", focus: null, sel: null,
+  F: { char: blank(), world: blank() } };
+function blank() { return { open: false, q: "", cats: [], grid: false, kb: false }; }
+function applyPreset() {
+  for (const k of ["char", "world"]) {
+    const p = k === S.who ? PRESET[S.st][k] : {};
+    S.F[k] = { open: !!p.open, q: p.q || "", cats: (p.cats || []).slice(), grid: !!p.grid, kb: !!p.kb };
+  }
+  if (S.st === "pad") S.input = "pad";
+  S.focus = null; S.sel = null;
+}
+
+/* ======================================================================
+   The filter: a name holding the typed text (any case), and one of the picked categories (any of them)
+   ====================================================================== */
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const nameHit = (it, q) => !q || it[0].toLowerCase().includes(q.toLowerCase());
+const catHit = (it, cats) => !cats.length || cats.includes(it[1]);
+function matches(F, it) { return !F.open || (nameHit(it, F.q) && catHit(it, F.cats)); }
+function mark(name, q) {
+  if (!q) return esc(name);
+  const i = name.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return esc(name);
+  return esc(name.slice(0, i)) + `<span class="hit">${esc(name.slice(i, i + q.length))}</span>` + esc(name.slice(i + q.length));
+}
+const count = list => list.reduce((a, it) => a + it[2], 0);
+const f = id => `data-f="${id}"`;
+function badge(g) { return S.input === "pad" && g ? `<span class="badge">${g}</span>` : ""; }
+
+function meter(it, grid) {
+  const [, , n, kind, pct] = it;
+  if (kind === "u") return grid ? "" : `<span class="unread"><i></i>Unread</span>`;
+  if (!kind) return grid ? "" : "";
+  if (grid) return `<span class="b"><i style="width:${pct}%;${kind === "f" ? "background:#4a88b8" : ""}"></i></span>`;
+  const segs = kind === "f" ? 10 : 5, on = Math.round(pct / 100 * segs);
+  return `<span class="segs ${kind === "f" ? "fill" : ""}">${Array.from({ length: segs }, (_, i) => `<i class="${i < on ? "f" : ""}"></i>`).join("")}</span>`;
+}
+function wtText(it) { const t = it[5] * it[2]; return it[2] > 1 ? `(${t.toFixed(1)})` : t.toFixed(1); }
+
+/* ======================================================================
+   The column: heading (icon, name, Filter | List | Grid, weight over count), the filter bar, the sort bar, the items
+   ====================================================================== */
+function column(k) {
+  const W = WIN[k], F = S.F[k], items = W.items;
+  const total = count(items), wt = items.reduce((a, it) => a + it[5] * it[2], 0);
+  const shown = items.filter(it => matches(F, it));
+  const head = `<div class="chead">${px(W.icon, 1.6)}<span class="nm">${esc(W.name)}</span>
+    <span class="ib ${F.open ? "on" : ""}" ${f(k + "-filter")} data-act="${k}:filter">${px("funnel", 1.4)}</span><span class="ibgap"></span>
+    <span class="ib ${F.grid ? "" : "on"}" ${f(k + "-list")} data-act="${k}:list">${px("list", 1.4)}</span>
+    <span class="ib ${F.grid ? "on" : ""}" ${f(k + "-grid")} data-act="${k}:grid">${px("gridi", 1.4)}</span>
+    <span class="wstack"><b>${wt.toFixed(1)}/${W.cap}kg</b><span>${total} items</span></span></div>`;
+
+  let bar = "";
+  if (F.open) {
+    // chips: every category in this container, its count of items whose name holds the typed text
+    const cats = [...new Set(items.map(it => it[1]))];
+    const chips = cats.map(c => {
+      const n = count(items.filter(it => it[1] === c && nameHit(it, F.q)));
+      const on = F.cats.includes(c);
+      return `<span class="chip ${on ? "on" : ""} ${n ? "" : "zero"}" ${f(k + "-chip-" + c)} data-act="${k}:cat:${c}">${esc(c)} <span class="n">${n}</span></span>`;
+    }).join("");
+    const active = F.q || F.cats.length;
+    const fieldInner = F.kb
+      ? `<span class="ktext">${esc(F.q)}</span><span class="caret"></span>`
+      : `<input data-in="${k}" value="${esc(F.q)}" placeholder="Filter by name" spellcheck="false">`;
+    bar = `<div class="fbar">
+      <div class="frow"><span class="field ${F.kb ? "focus" : ""}" ${f(k + "-field")} data-act="${k}:field">${fieldInner}</span>
+        <span class="fcount">${active ? `<b>${count(shown)}</b> of ${total}` : `${total} items`}</span>
+        <button class="btn sm" ${f(k + "-clear")} data-act="${k}:clear" ${active ? "" : "disabled"}>${badge("X")}Clear</button></div>
+      <div class="chips">${chips}</div></div>`;
+  }
+  const sortbar = `<div class="cbar"><span class="cn">Name</span><span class="cc act">Cat</span><span class="cd">Cond / Amt</span><span class="cw">Wt</span></div>`;
+  const sortbarGrid = `<div class="cbar"><span class="cn">Name</span><span class="cc act">Cat</span><span class="cd">Cond / Amt</span><span class="cw">Wt</span></div>`;
+
+  let body;
+  if (!shown.length) {
+    const what = F.q && F.cats.length ? `"${esc(F.q)}" in ${F.cats.map(esc).join(", ")}` : F.q ? `"${esc(F.q)}"` : esc(F.cats.join(", "));
+    body = `<div class="empty">Nothing in ${esc(W.name)} matches ${what}.<span class="sub">Clear the filter to see all ${total} items.</span>
+      <div class="acts"><button class="btn sm default" ${f(k + "-clear2")} data-act="${k}:clear">${badge("X")}Clear filter</button></div></div>`;
+  } else {
+    // sorted by Category (the bar's Cat underlined): a row per category, then its items by name
+    const groups = [];
+    for (const it of shown) { let g = groups.find(x => x.c === it[1]); if (!g) groups.push(g = { c: it[1], list: [] }); g.list.push(it); }
+    body = groups.map(g => {
+      const hd = `<div class="cat" ${f(k + "-cat-" + g.c)}><span class="tri"></span>${esc(g.c)} <span class="n">(${g.list.length})</span></div>`;
+      if (F.grid) {
+        return hd + `<div class="grid">${g.list.map(it => `<div class="cell ${F.open && F.q ? "hitc" : ""}" ${f(k + "-it-" + it[0])}>
+          <span class="w">${wtText(it)}</span>${px(it[6], 2.6)}${it[2] > 1 ? `<span class="k">x${it[2]}</span>` : ""}${meter(it, true)}</div>`).join("")}</div>`;
+      }
+      return hd + g.list.map(it => {
+        const id = k + "-it-" + it[0];
+        return `<div class="row ${S.sel === id ? "sel" : ""}" ${f(id)} data-row="${id}">
+          <span class="ic">${px(it[6], 1.6)}</span><span class="chev">${it[2] > 1 ? `<span class="tri shut"></span>` : ""}</span>
+          <span class="nm">${mark(it[0], F.open ? F.q : "")}${it[2] > 1 ? `<span class="x">x${it[2]}</span>` : ""}</span>
+          <span class="ct">${esc(it[1])}</span><span class="cd" style="width:70px;flex:0 0 70px">${meter(it, false)}</span><span class="wt">${wtText(it)}</span></div>`;
+      }).join("");
+    }).join("");
+  }
+  const cfoot = `<div class="cfoot"><span class="ib">${px(k === "char" ? "xfer" : "take", 1.3)}</span><span class="ib">${px("take", 1.3)}</span><span class="ib">${px("stack", 1.3)}</span></div>`;
+  return `<div class="col">${head}${bar}${F.grid ? sortbarGrid : sortbar}<div class="scroll">${body}</div>${cfoot}</div>`;
+}
+
+function tabStrip(glyphs, on, side) {
+  return `<div class="strip ${side}">${glyphs.map((g, i) => g === "|" ? `<div class="gap"></div>` : `<div class="t ${g === on ? "on" : ""}">${px(g, 2)}</div>`).join("")}</div>`;
+}
+function containerStrip(list, side) {
+  return `<div class="strip ${side}"><div class="lab">Dist</div>${list.map((g, i) => `<div class="t ${i === 0 ? "on" : ""}">${px(g, 2)}</div>`).join("")}</div>`;
+}
+function footLine(k) {
+  const W = WIN[k], F = S.F[k], total = count(W.items);
+  const wt = W.items.reduce((a, it) => a + it[5] * it[2], 0).toFixed(1);
+  let pr = "";
+  if (S.input === "pad" && !F.kb) {
+    pr = F.open
+      ? `<span>${badge("A")}Type</span><span>${badge("X")}Clear</span><span>${badge("L3")}Sort</span><span>${badge("R3")}${F.grid ? "List" : "Grid"}</span>`
+      : `<span>${badge("L3")}Sort</span><span>${badge("R3")}${F.grid ? "List" : "Grid"}</span>`;
+  }
+  return `<div class="foot"><span>${total} items | ${wt}/${W.cap}kg</span><span class="pr">${pr}</span></div>`;
+}
+function charWindow() {
+  return `<div class="win" id="w-char"><div class="titlebar"><div class="close"></div><div class="titlechip">${WIN.char.title}</div><span class="rt">0 / 8</span></div>
+    <div class="wbody">${tabStrip(["tEquip", "tHealth", "tTherm", "tId", "tJour", "tSkill"], null, "l")}${column("char")}${containerStrip(["bag", "bag"], "r")}</div>${footLine("char")}</div>`;
+}
+function worldWindow() {
+  return `<div class="win" id="w-world"><div class="titlebar"><div class="close"></div><div class="titlechip">World<span class="plus">+</span>${WIN.world.title}</div><span class="rt">3 containers</span></div>
+    <div class="wbody">${containerStrip(["crate", "shelf", "ground"], "l")}${column("world")}${tabStrip(["tLoot", "tCraft", "tBuild", "|", "tMaps", "tForage"], "tLoot", "r")}</div>${footLine("world")}</div>`;
+}
+
+/* the pad keyboard, as ZeD_Keyboard.lua lays out vanilla's keys */
+const KROWS = [
+  [..."`1234567890-=", ["Delete", "X", "del"]],
+  [..."qwertyuiop[]\\"],
+  [["Caps", "L3", "caps"], ..."asdfghjkl;'", ["Accept", "RT", "ok", 1]],
+  [["Shift", "LT", "shift"], ..."zxcvbnm,./", ["Shift", "LT", "shift2"]],
+  [["Space", "Y", "space", 0, 1], ["<", "LB", "left"], [">", "RB", "right"], ["Cancel", "B", "cancel"]],
+];
+function keyboard(k) {
+  const F = S.F[k];
+  const rows = KROWS.map((r, ri) => `<div class="krow">${r.map((key, ci) => {
+    const id = `key-${ri}-${ci}`;
+    if (typeof key === "string") return `<span class="key" ${f(id)} data-key="${esc(key)}">${esc(key)}</span>`;
+    const [lab, g, act, prim, wide] = key;
+    return `<span class="key ${prim ? "prim" : ""} ${wide ? "wide" : ""}" ${f(id)} data-key="#${act}">${badge(g)}${esc(lab)}</span>`;
+  }).join("")}</div>`).join("");
+  return `<div class="kbd"><div class="titlebar"><div class="titlechip">Filter by name</div></div>
+    <div class="line"><span class="lbl">${esc(WIN[k].name)}</span>${esc(F.q)}<span class="caret" style="width:1px;height:15px;background:var(--text);margin-left:1px"></span></div>
+    <div class="krows">${rows}</div></div>`;
+}
+
+function scene() {
+  const kc = S.F.char.kb ? keyboard("char") : "", kw = S.F.world.kb ? keyboard("world") : "";
+  return `<div class="scene"><div class="wcol">${charWindow()}${kc}</div><div class="wcol">${worldWindow()}${kw}</div></div>`;
+}
+
+/* ======================================================================
+   Review bar, render, scale, input
+   ====================================================================== */
+function review() {
+  const b = (k, v, l) => `<button class="${S[k] === v ? "on" : ""}" data-set="${k}:${v}">${l}</button>`;
+  return `<span class="grp"><b>State</b>${STATES.map(([v, l]) => b("st", v, l)).join("")}</span>
+    <span class="grp"><b>Filter in</b>${b("who", "char", "Character")}${b("who", "world", "World")}</span>
+    <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}</span>
+    <span class="grp"><b>Input</b>${b("input", "mouse", "Mouse")}${b("input", "pad", "Controller")}</span>
+    <span class="grp"><b>View</b>${b("view", "window", "Windows, fit")}${b("view", "actual", "4K at 1.75x, actual")}</span>`;
+}
+
+let focusField = null;
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.getElementById("review").innerHTML = review();
+  const z = document.getElementById("zoomer");
+  const keep = [...z.querySelectorAll(".scroll")].map(s => s.scrollTop);
+  z.innerHTML = scene();
+  [...z.querySelectorAll(".scroll")].forEach((s, i) => s.scrollTop = keep[i] || 0);
+  placeHand();
+  fit();
+  if (focusField && S.input !== "pad") {
+    const inp = z.querySelector(`input[data-in="${focusField}"]`);
+    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); inp.parentElement.classList.add("focus"); }
+  }
+  document.getElementById("notes").innerHTML = notes();
+}
+
+function kbOwner() { return S.F.char.kb ? "char" : S.F.world.kb ? "world" : null; }
+function focusables() {
+  const kb = kbOwner();
+  const sel = kb ? "#zoomer .kbd [data-f]" : `#zoomer #w-${S.who} [data-f]`;
+  return [...document.querySelectorAll(sel)].filter(el => !el.disabled);
+}
+function defaultFocus() {
+  const k = S.who, F = S.F[k];
+  if (kbOwner()) return S.st === "pad" ? (k === "char" ? "key-3-6" : "key-1-4") : "key-2-1";   // the next letter: n (can) / t (met)
+  if (!F.open) return k + "-filter";
+  if (!F.q && F.cats.length) return k + "-chip-" + F.cats[0];
+  return k + "-field";
+}
+function placeHand() {
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let el = list.find(e => e.dataset.f === S.focus);
+  if (!el) { el = list.find(e => e.dataset.f === defaultFocus()) || list[0]; S.focus = el.dataset.f; }
+  el.style.position = "relative";
+  if (["row", "cat", "chip", "btn", "ib", "field", "key"].some(c => el.classList.contains(c))) el.classList.add("pf");
+  el.insertAdjacentHTML("beforeend", `<span class="hand">${px("hand", 1)}</span>`);
+  if (el.classList.contains("ib") || el.classList.contains("field")) el.style.marginLeft = "14px";
+}
+
+function fit() {
+  const z = document.getElementById("zoomer"), stage = document.getElementById("stage");
+  const inner = z.firstElementChild; if (!inner) return;
+  const w = inner.offsetWidth, h = inner.offsetHeight;
+  let k;
+  if (S.view === "actual") { k = 1.75 / (window.devicePixelRatio || 1); stage.classList.add("actual"); }
+  else {
+    stage.classList.remove("actual");
+    const availW = Math.max(200, window.innerWidth - 32);
+    const availH = Math.max(200, window.innerHeight - document.getElementById("review").offsetHeight - 32);
+    k = Math.min(availW / w, availH / h, 2);
+  }
+  z.style.transform = `scale(${k})`;
+  z.style.width = w + "px"; z.style.height = h + "px";
+  stage.style.height = (h * k + 32) + "px";
+  z.style.marginRight = (w * k - w) + "px";
+}
+
+function act(a) {
+  const [k, what, arg] = a.split(":"); const F = S.F[k];
+  if (what === "filter") {
+    // Filter toggles the bar; shutting it clears the filter, so nothing stays hidden behind a shut bar
+    if (F.open) { S.F[k] = Object.assign(blank(), { grid: F.grid }); focusField = null; }
+    else { F.open = true; focusField = k; S.focus = k + "-field"; }
+  } else if (what === "list") F.grid = false;
+  else if (what === "grid") F.grid = true;
+  else if (what === "clear") { F.q = ""; F.cats = []; F.kb = false; focusField = k; S.focus = k + "-field"; }
+  else if (what === "cat") { const i = F.cats.indexOf(arg); if (i < 0) F.cats.push(arg); else F.cats.splice(i, 1); focusField = null; }
+  else if (what === "field") { if (S.input === "pad") { F.kb = true; S.focus = null; } else focusField = k; }
+  S.who = k;
+  render();
+}
+function keyPress(key) {
+  const k = kbOwner(); if (!k) return; const F = S.F[k];
+  if (key === "#del") F.q = F.q.slice(0, -1);
+  else if (key === "#space") F.q += " ";
+  else if (key === "#ok") { F.kb = false; S.focus = k + "-field"; }
+  else if (key === "#cancel") { F.kb = false; S.focus = k + "-field"; }
+  else if (key[0] !== "#") F.q += key;
+  render();
+}
+
+document.addEventListener("click", e => {
+  const set = e.target.closest("[data-set]");
+  if (set) { const [k, v] = set.dataset.set.split(":"); S[k] = v; if (k === "st" || k === "who") { focusField = null; applyPreset(); } render(); return; }
+  const key = e.target.closest("[data-key]");
+  if (key) { S.focus = key.dataset.f; keyPress(key.dataset.key); return; }
+  if (e.target.closest("input")) { focusField = e.target.dataset.in; return; }
+  const a = e.target.closest("[data-act]");
+  if (a && !a.disabled) { if (a.dataset.f) S.focus = a.dataset.f; act(a.dataset.act); return; }
+  const r = e.target.closest("[data-row]");
+  if (r) { S.sel = r.dataset.row; S.focus = r.dataset.row; focusField = null; render(); }
+});
+document.addEventListener("input", e => {
+  const k = e.target.dataset.in; if (!k) return;
+  S.F[k].q = e.target.value; focusField = k; S.who = k; render();
+});
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") { if (e.key === "Escape") { const k = e.target.dataset.in; act(k + ":clear"); } return; }
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let i = list.findIndex(el => el.dataset.f === S.focus);
+  const kb = kbOwner();
+  if (kb && (e.key === "Escape" || e.key === "Backspace")) { e.preventDefault(); keyPress(e.key === "Escape" ? "#cancel" : "#del"); return; }
+  if (kb && (e.key === "ArrowUp" || e.key === "ArrowDown")) {   // the keys are a grid: up and down keep the column as near as can be
+    e.preventDefault();
+    const [, r, c] = S.focus.split("-").map(Number); const nr = Math.max(0, Math.min(KROWS.length - 1, r + (e.key === "ArrowDown" ? 1 : -1)));
+    S.focus = `key-${nr}-${Math.min(c, KROWS[nr].length - 1)}`; render(); return;
+  }
+  if (["ArrowDown", "ArrowRight"].includes(e.key)) i = Math.min(list.length - 1, i + 1);
+  else if (["ArrowUp", "ArrowLeft"].includes(e.key)) i = Math.max(0, i - 1);
+  else if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault(); const el = list[i];
+    if (el.dataset.key) keyPress(el.dataset.key);
+    else if (el.dataset.act) act(el.dataset.act);
+    else if (el.dataset.row) { S.sel = el.dataset.row; render(); }
+    return;
+  } else if (e.key === "x" || e.key === "X") { act(S.who + ":clear"); return; }
+  else return;
+  e.preventDefault(); S.focus = list[i].dataset.f; render();
+});
+window.addEventListener("resize", fit);
+
+/* ======================================================================
+   Notes under the stage
+   ====================================================================== */
+function notes() {
+  const who = S.who === "char" ? "the Character window's inventory" : "the World window's crate";
+  const per = {
+    off: "No filter. The Filter button sits in the column's heading, left of List | Grid and a little apart from them (they are one pair; Filter is not part of it). Same size, same pixel-icon button, so the heading reads as one control row: name, Filter, List, Grid, weight over count.",
+    typing: `Filter is on (its button solid in the accent, as the List or Grid in use is) and the bar opens under the heading. Typing filters as each letter lands: rows whose name holds the text stay, the rest are hidden, the matched letters underlined in the accent. The count beside the field gives items, not rows ("14 of 79": a stack of 6 counts 6). Category rows keep only what matched and count it. "can" in the inventory also finds Candle: a plain "holds these letters" match, as the game's own search fields do.`,
+    category: "No text, one category chip picked. The chips are the categories in this container, the game's own words (the Cat column's), each with how many items it holds; pick one or several. The column shows those categories only.",
+    both: "Text and category together: a name holding the text, in one of the picked categories. The chips' counts follow the text, so the bar shows where the matches are before you pick (a chip at 0 dims but can still be picked).",
+    nothing: "Nothing matches. In place of the rows: what was asked for and in which container, how many items the filter is hiding, and Clear filter as the default keycap. The chips stay, all at 0.",
+    grid: "Grid view. The same filter: cells that do not match are taken out and the rest close up, under their category rows. A matched cell takes an accent edge while text is typed (a picture has no letters to underline). The cell keeps its weight in the corner, its stack count and its condition bar.",
+    pad: "Controller. Filter is a stop in the heading row (D-pad up from the first row). A on the field opens ZeD's pad keyboard under the window, with its own line showing the text; the column filters behind it as each key is pressed. RT accepts (the hand goes back to the field, D-pad down reaches the chips and the rows), B cancels, X clears. L3 sorts and R3 switches List | Grid as today."
+  };
+  return `<h2>This state, in ${who}</h2><p>${per[S.st]}</p>
+  <h2>What it does</h2>
+  <ul>
+    <li><b>Where:</b> every column heading, in both windows: the inventory and each bag in the Character window, each container in reach in the World window. One Filter per column, beside that column's own List | Grid.</li>
+    <li><b>Matches:</b> the item's name as the game shows it (any case), and its category (the game's display category, the Cat column's words). Text and category together narrow; several categories widen.</li>
+    <li><b>Stacks:</b> a stack is one row and matches as one (its name). Opened, its rows all show. Weight keeps the stack's total in brackets.</li>
+    <li><b>Hidden, not removed:</b> moving, dropping and Transfer all act on what is shown; the heading's weight and count, and the window's foot line, always give the whole container.</li>
+    <li><b>Clearing:</b> Clear (or Escape in the field, X on a pad) empties the text and the chips and keeps the bar open. The Filter button shuts the bar and clears it too, so a filter can never hide items behind a shut bar.</li>
+    <li><b>Proposed scope:</b> per column, kept while the window is open, cleared when it closes; the List | Grid choice stays saved per container as today.</li>
+  </ul>
+  <h2>Open questions for the director</h2>
+  <ol>
+    <li>Scope: each column its own filter (proposed) / one filter per window across its columns.</li>
+    <li>How long it lasts: until the window closes (proposed) / saved with the container, as List | Grid is / until the bar is shut.</li>
+    <li>Categories: chips of what is in the container, pick several (proposed) / one category from a menu.</li>
+    <li>Items that do not match: hidden (proposed) / dimmed in place.</li>
+  </ol>`;
+}
+
+applyPreset();
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
+</body>
+</html>

@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Tab Search</title>
+<!-- ZeD-GUI mockup: a Find field on the Character window's Skills and Equipment tabs, punch list 171, v1.
+     The only earlier design is a line in zed-roadmap-s65.html ("Search/filter for Skills, Equipment tabs").
+     Chrome, tokens, review bar, keycaps and the pointing hand copied from zed_fishing_tab_v2.html; the Skills tab
+     after SkillsTab.lua (the 480 drawer, the two-column category-grouped grid, a ten-segment level bar per row, the
+     Training materials list) and the shipped capture (groups "Combat - Firearms", "Combat - Melee", "Crafting",
+     "Farming" ...); the Equipment tab after EquipmentTab.lua (EQUIP_GROUPS: the slot groups and their words, the
+     List | Doll pair in the tab's heading) and gallery spread 22. Body parts are the game's own words
+     (BodyPartType display names). The pad keyboard after ZeD_Keyboard.lua.
+     Units: 1 CSS px here = 1 ZeD unit; the game draws 1 unit as 1.75 screen pixels at 4K. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #47a18c; --acc-text: var(--accent); --on-accent: #0c0c0c;
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --page: #0e0f10; --ground: #3a3f2c;
+}
+:root[data-theme="light"] { --acc-text: color-mix(in srgb, var(--accent) 70%, #000); --on-accent: #fff;
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84; --ground: #7d8068;
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: 15px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: center; padding: 8px 16px;
+  font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 5; }
+.review b { color: #ddd; font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.stage { display: flex; justify-content: center; padding: 16px; overflow: hidden; }
+.stage.actual { overflow: auto; justify-content: flex-start; }
+.zoomer { transform-origin: top left; }
+.notes { max-width: 980px; margin: 0 auto; padding: 4px 16px 48px; color: #c8c8c8; font-size: 15px; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: #8fc9b9; margin: 18px 0 8px; }
+.notes p { margin: 0 0 8px; max-width: 80ch; }
+.notes ol, .notes ul { margin: 0 0 8px; padding-left: 20px; max-width: 84ch; }
+.notes li { margin-bottom: 4px; }
+
+.scene { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; background: var(--ground); }
+
+/* ---------- ZeD window chrome (from zed_fishing_tab_v2.html) */
+.win { display: flex; flex-direction: column; background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px; position: relative;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); flex: 0 0 12px; }
+.titlechip { position: absolute; left: 50%; transform: translateX(-50%); background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: 13px; line-height: 22px; color: var(--acc-text); white-space: nowrap; }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.titlebar .rt { margin-left: auto; background: var(--surface-2); padding: 0 6px; font: 400 12px/22px var(--font-mono); color: var(--text-secondary); }
+.wbody { display: flex; height: 600px; }
+.strip { width: 36px; flex: 0 0 36px; display: flex; flex-direction: column; align-items: stretch; padding-top: 2px; border-right: 1px solid var(--border); }
+.strip .t { height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); position: relative; cursor: pointer; }
+.strip .t.on { background: var(--accent); color: var(--on-accent); }
+.drawer { width: 480px; flex: 0 0 480px; display: flex; flex-direction: column; min-height: 0; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+
+/* the tab's heading: fold triangle, name, then the Find field (and on Equipment, List | Doll) */
+.thead { height: 40px; flex: 0 0 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--border); }
+.thead .nm { font: 500 16px/1 var(--font-sans); color: var(--text); }
+.tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-heading); display: inline-block; }
+.field { position: relative; margin-left: auto; width: 200px; height: 24px; display: flex; align-items: center; gap: 6px; background: var(--base); border: 1px solid var(--border-strong); padding: 0 6px; }
+.field.focus { border-color: var(--accent); }
+.field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: 400 14px/22px var(--font-sans); padding: 0; }
+.field input::placeholder { color: var(--text-secondary); }
+.field .ktext { flex: 1; font: 400 14px/22px var(--font-sans); color: var(--text); white-space: pre; display: flex; align-items: center; }
+.field .caret { width: 1px; height: 15px; background: var(--text); margin-left: 1px; display: inline-block; }
+.field .clr { width: 14px; height: 14px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-secondary); font: 700 10px/12px var(--font-mono); text-align: center; cursor: pointer; flex: 0 0 14px; }
+.fcount { font: 400 12px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fcount b { color: var(--acc-text); }
+.ib { position: relative; width: 24px; height: 24px; flex: 0 0 24px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-secondary); display: inline-flex; align-items: center; justify-content: center; }
+.ib.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* section rows (as the fishing tab's) */
+.sec { position: relative; padding: 6px 12px 4px; background: var(--surface-1); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--text-heading); display: flex; align-items: center; gap: 6px; }
+.sec .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+
+/* Skills: the two-column grid of groups */
+.sgrid { display: flex; gap: 10px; padding: 6px 10px 8px; align-items: flex-start; }
+.scol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sgrp { display: flex; flex-direction: column; }
+.ghd { position: relative; height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 6px; background: var(--surface-1); font: 700 12px/1 var(--font-mono); color: var(--text-heading); }
+.ghd .n { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.srow { position: relative; display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 6px; font: 400 14px/1 var(--font-sans); }
+.srow .lv { width: 14px; text-align: right; font: 400 12px/1 var(--font-mono); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.srow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.srow.sel { background: var(--accent); color: var(--on-accent); } .srow.sel .lv { color: var(--on-accent); }
+.lvbar { display: flex; gap: 1px; }
+.lvbar i { width: 5px; height: 7px; background: var(--surface-3); }
+.lvbar i.f { background: var(--accent); }
+.srow.sel .lvbar i.f { background: var(--on-accent); }
+.hit { color: var(--acc-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.srow.sel .hit, .erow.sel .hit { color: var(--on-accent); }
+.dimmed { opacity: .35; }
+
+/* Training materials */
+.trow { position: relative; display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 12px; font: 400 14px/1 var(--font-sans); }
+.trow .nm { width: 110px; flex: 0 0 110px; }
+.trow .vol { flex: 1; font: 400 12px/1 var(--font-mono); color: var(--text-secondary); }
+.vols { display: flex; gap: 2px; } .vols i { width: 9px; height: 9px; border: 1px solid var(--border-strong); } .vols i.r { background: var(--accent); border-color: var(--accent); } .vols i.h { background: var(--surface-3); }
+
+/* Equipment: the slot list */
+.ghead2 { position: relative; height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 12px; font: 400 12px/1 var(--font-mono); color: var(--text-heading); }
+.ghead2 .n { color: var(--text-secondary); }
+.erow { position: relative; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 12px 0 24px; font: 400 14px/1 var(--font-sans); }
+.erow .slot { width: 112px; flex: 0 0 112px; font: 400 12px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; }
+.erow .ic { width: 18px; flex: 0 0 18px; }
+.erow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.erow .nm.none { color: var(--text-secondary); font-style: normal; }
+.erow.sel { background: var(--accent); color: var(--on-accent); } .erow.sel .slot, .erow.sel .why { color: var(--on-accent); }
+.why { font: 400 11px/14px var(--font-mono); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+.erow2 { margin: -4px 0 2px; padding: 0 12px 0 170px; height: 16px; display: flex; align-items: center; }
+.why b { color: var(--acc-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.segs { display: flex; gap: 1px; width: 49px; flex: 0 0 49px; margin-left: auto; } .segs i { width: 9px; height: 5px; background: var(--surface-3); } .segs i.f { background: var(--positive); }
+.defense { display: grid; grid-template-columns: 90px 1fr 44px; gap: 4px 10px; padding: 8px 12px 10px; align-items: center; }
+.defense dt { font: 400 12px/18px var(--font-mono); color: var(--text-secondary); }
+.defense dd { margin: 0; }
+.dbar { display: block; height: 6px; background: var(--surface-3); position: relative; } .dbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.defense .v { font: 400 12px/1 var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+
+.empty { padding: 14px 14px 10px; font: 400 14px/1.4 var(--font-sans); }
+.empty .sub { display: block; color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.empty .acts { margin-top: 10px; display: flex; gap: 8px; }
+
+.foot { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: var(--surface-2); border-top: 1px solid var(--border-strong); min-height: 28px;
+  font: 400 12px/1.3 var(--font-mono); color: var(--text-secondary); }
+.foot .pr { margin-left: auto; display: flex; gap: 10px; }
+.foot .pr span { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+.btn { position: relative; padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/16px var(--font-mono); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn.sm { padding: 1px 9px; font-size: 12px; line-height: 15px; }
+.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 14px; padding: 0 3px; background: var(--text); color: var(--base); font: 700 10px/14px var(--font-mono); border-radius: 2px; }
+
+/* the pad keyboard (ZeD_Keyboard.lua) */
+.kbd { border: 1px solid var(--border-strong); background: color-mix(in srgb, var(--base) 96%, transparent); }
+.kbd .line { margin: 10px 10px 4px; height: 26px; display: flex; align-items: center; padding: 0 6px; background: var(--base); border: 1px solid var(--accent); font: 400 14px/1 var(--font-sans); }
+.kbd .line .lbl { font: 400 11px/1 var(--font-mono); color: var(--text-secondary); margin-right: 8px; }
+.krows { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.krow { display: flex; gap: 6px; justify-content: center; }
+.key { position: relative; min-width: 30px; height: 28px; padding: 0 6px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/1 var(--font-mono); display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
+.key::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.key.prim, .key.prim::before { border-color: var(--accent); } .key.prim { color: var(--acc-text); }
+.key.wide { min-width: 150px; }
+
+.hand { position: absolute; left: -9px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 3; }
+.srow.pf { padding-left: 22px; } .srow.pf > .hand, .ghd.pf > .hand, .trow.pf > .hand { left: 3px; } .ghd.pf { padding-left: 22px; } .trow.pf { padding-left: 24px; }
+.erow.pf > .hand { left: 4px; }
+.field.pf > .hand { left: -15px; } .ib.pf > .hand { left: -15px; } .btn.pf { margin-left: 14px; } .btn.pf > .hand { left: -15px; }
+.key.pf > .hand { left: -9px; top: 70%; }
+.px { image-rendering: pixelated; shape-rendering: crispEdges; display: block; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="stage" id="stage"><div class="zoomer" id="zoomer"></div></div>
+<div class="notes" id="notes"></div>
+
+<script>
+const PAL = { k: "#c8b07a", g: "#7f858c", s: "#d0d4d8", b: "#8a5a2b", y: "#c8b040", e: "#111", o: "#c98a3a", r: "#c03a2a",
+  w: "#e2e2da", m: "#4a7a3a", t: "#9aa0a6", u: "#5a6066", c: "#3a6aa0", l: "#6b7a3a", d: "#3c4a6a", "#": "#111", W: "#f4f4f4", x: "currentColor" };
+const ICON = {
+  cap:   ["..........","..........","...rrrr...","..rrwwrr..",".rrrrrrrr.",".rrrrrrrrrr","..........","..........","..........",".........."],
+  glass: ["..........","..........","..........","eeee..eeee","eeeeeeeeee",".eee..eee.","..........","..........","..........",".........."],
+  jacket:["..........",".ee....ee.","eeee..eeee","eeeeyyeeee","..eeyyee..","..eeyyee..","..eeyyee..","..eeeeee..","..........",".........."],
+  shirt: ["..........",".ww....ww.","wwww..wwww","wwwwwwwwww","..wwwwww..","..wwwwww..","..wwwwww..","..wwwwww..","..........",".........."],
+  glove: ["..........","..b.b.b...","..b.b.b.b.","..bbbbbbb.","..bbbbbbb.","..bbbbbb..","...bbbb...","...bbbb...","..........",".........."],
+  watch: ["...uu.....","...uu.....","..uuuu....",".uwwwwu...",".uwewwu...",".uwwwwu...","..uuuu....","...uu.....","...uu.....",".........."],
+  jeans: ["..........","..dddddd..","..dddddd..","..ddd.dd..","..dd..dd..","..dd..dd..","..dd..dd..","..dd..dd..","..........",".........."],
+  socks: ["..........","...ww.....","...ww.....","...ww.....","...ww.....","...wwww...","...wwwww..","..........","..........",".........."],
+  boots: ["..........","...ll.....","...ll.....","...ll.....","...lll....","...lllll..","..lllllll.","..eeeeeee.","..........",".........."],
+  bar:   ["........tt",".......tt.","......tt..",".....tt...","....tt....","...tt.....","..tt......",".tt.......","tt........","t........."],
+  torch: ["..........","..........","uuuuuuu...","uuuuuuuyy.","uuuuuuuyyy","uuuuuuuyy.","uuuuuuu...","..........","..........",".........."],
+  pack:  ["...llll...","..l....l..",".llllllll.",".llllllll.",".lluuuull.",".llllllll.",".llllllll.",".llllllll.","..........",".........."],
+  belt:  ["..........","..........","..........","bbbbbbbbbb","bbbbyybbbb","bbbbyybbbb","..........","..........","..........",".........."],
+  list:  ["..........","xx.xxxxxxx","..........","xx.xxxxxxx","..........","xx.xxxxxxx","..........","xx.xxxxxxx","..........",".........."],
+  doll:  ["....xx....","....xx....","..xxxxxx..",".x.xxxx.x.",".x.xxxx.x.","...xxxx...","...x..x...","...x..x...","..xx..xx..",".........."],
+  tEquip:["..........","..xx..xx..",".xxxxxxxx.","xxxxxxxxxx","..xxxxxx..","..xxxxxx..","..xxxxxx..","..xxxxxx..","..........",".........."],
+  tHealth:["..........",".xx...xx..","xxxx.xxxx.","xxxxxxxxx.","xxxxxxxxx.",".xxxxxxx..","..xxxxx...","...xxx....","....x.....",".........."],
+  tTherm:["....xx....","...x..x...","...x..x...","...x..x...","...xxxx...","..xxxxxx..","..xxxxxx..","...xxxx...","..........",".........."],
+  tId:   ["..........","xxxxxxxxxx","x........x","x.xx.xxx.x","x.xx.....x","x....xxx.x","x........x","xxxxxxxxxx","..........",".........."],
+  tJour: ["..........",".xxxxxxx..",".x.....xx.",".x.xxx.x..",".x.....x..",".x.xxx.x..",".x.....x..",".xxxxxxx..","..........",".........."],
+  tSkill:["..........","........x.","........x.",".....x..x.",".....x..x.","..x..x..x.","..x..x..x.","xxxxxxxxxx","..........",".........."],
+  hand: ["....##########.","...#WWWWWWWWWW#","##.#WWW########","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWWWWWW#...","##.#WWWWWWW#...","....#######...."]
+};
+function px(name, scale) {
+  const m = ICON[name]; const h = m.length, w = m[0].length; let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const ch = m[y][x]; if (ch === ".") continue; r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`; }
+  return `<svg class="px" width="${w * scale}" height="${h * scale}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+
+/* ======================================================================
+   Game data (Build 42): the skill groups as ZeD's Skills tab words them, levels of a character a few weeks in
+   ====================================================================== */
+const SKILLS = [
+  ["Combat - Firearms", [["Aiming", 2], ["Reloading", 1]]],
+  ["Combat - Melee", [["Axe", 1], ["Long Blade", 0], ["Long Blunt", 0], ["Maintenance", 2], ["Short Blade", 0], ["Short Blunt", 4], ["Spear", 0]]],
+  ["Crafting", [["Blacksmithing", 0], ["Carpentry", 5], ["Carving", 1], ["Cooking", 3], ["Electrical", 0], ["Glassmaking", 0], ["Knapping", 0], ["Masonry", 0], ["Mechanics", 1], ["Pottery", 0], ["Tailoring", 2], ["Welding", 0]]],
+  ["Farming", [["Agriculture", 0], ["Animal Care", 0], ["Butchering", 1]]],
+  ["Survival", [["First Aid", 1], ["Fishing", 2], ["Foraging", 1], ["Tracking", 0], ["Trapping", 0]]],
+  ["Agility", [["Lightfooted", 0], ["Nimble", 0], ["Running", 1], ["Sneaking", 1]]],
+  ["Passive", [["Fitness", 5], ["Strength", 5]]],
+];
+// Training materials: a skill's books, [skill, volumes read, volumes in your bags, of]
+const TRAINING = [["Blacksmithing", 0, 1, 5], ["Carpentry", 2, 1, 5], ["Cooking", 1, 0, 5], ["Mechanics", 0, 1, 5], ["Tailoring", 1, 0, 5], ["Fishing", 0, 0, 5]];
+
+/* The Equipment tab's slot groups (EquipmentTab.lua EQUIP_GROUPS, their words), what is worn, what it covers */
+const EQUIP = [
+  ["Head + face", [["Hat", "Baseball Cap", "cap", 90, ["Head"]], ["Eyewear", "Sunglasses", "glass", 100, []], ["Mask", null], ["Ears", null], ["Scarf", null]]],
+  ["Torso", [["Outer", "Leather Jacket", "jacket", 80, ["Upper Torso", "Lower Torso", "Left Upper Arm", "Right Upper Arm", "Left Forearm", "Right Forearm"]],
+             ["Inner", "T-Shirt", "shirt", 60, ["Upper Torso", "Lower Torso"]], ["Vest", null], ["Underwear", null], ["Neck", null]]],
+  ["Arms + hands", [["Hands", "Leather Gloves", "glove", 70, ["Left Hand", "Right Hand"]], ["Wrist", "Digital Watch", "watch", 100, []], ["Ring", null], ["Arms", null], ["Shoulder", null]]],
+  ["Legs + feet", [["Pants", "Jeans", "jeans", 80, ["Groin", "Left Thigh", "Right Thigh", "Left Shin", "Right Shin"]], ["Socks", "Socks", "socks", 100, ["Left Foot", "Right Foot"]],
+                   ["Shoes", "Military Boots", "boots", 90, ["Left Foot", "Right Foot", "Left Shin", "Right Shin"]], ["Knee + leg", null]]],
+  ["Held + carried", [["Primary Hand", "Crowbar", "bar", 80, []], ["Secondary Hand", "Flashlight", "torch", 100, []], ["Back", "Big Hiking Bag", "pack", 90, []], ["Belt", "Belt", "belt", 100, []]]],
+];
+
+const STATES = [["sidle", "1. Skills idle"], ["ssearch", "2. Skills searching"], ["esearch", "3. Equipment searching"], ["none", "4. Nothing matches"], ["pad", "5. Controller"]];
+const PRESET = { sidle: ["skills", ""], ssearch: ["skills", "bla"], esearch: ["equip", "hand"], none: ["skills", "piloting"], pad: ["skills", "bla"] };
+const S = { st: "ssearch", theme: "dark", input: "mouse", view: "window", how: "hide", tab: "skills", q: { skills: "", equip: "" }, kb: false, focus: null, sel: null };
+function applyPreset() {
+  const [tab, q] = PRESET[S.st]; S.tab = tab; S.q = { skills: "", equip: "" }; S.q[tab] = q;
+  S.kb = S.st === "pad"; if (S.st === "pad") S.input = "pad"; S.focus = null; S.sel = null;
+}
+
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const has = (s, q) => !!q && s.toLowerCase().includes(q.toLowerCase());
+function mark(s, q) {
+  if (!has(s, q)) return esc(s);
+  const i = s.toLowerCase().indexOf(q.toLowerCase());
+  return esc(s.slice(0, i)) + `<span class="hit">${esc(s.slice(i, i + q.length))}</span>` + esc(s.slice(i + q.length));
+}
+const f = id => `data-f="${id}"`;
+function badge(g) { return S.input === "pad" && g ? `<span class="badge">${g}</span>` : ""; }
+
+/* the Find field: a text field in mouse mode, the typed line with a caret while the pad keyboard has it */
+function findField(tab, ph) {
+  const q = S.q[tab];
+  const inner = S.kb ? `<span class="ktext">${esc(q)}<span class="caret"></span></span>`
+    : `<input data-in="${tab}" value="${esc(q)}" placeholder="${ph}" spellcheck="false">`;
+  return `<span class="field ${S.kb ? "focus" : ""}" ${f(tab + "-find")} data-act="find">${inner}${q && !S.kb ? `<span class="clr" data-act="clear" title="">x</span>` : ""}</span>`;
+}
+
+/* ======================================================================
+   Skills: a skill shows when its name or its group's name holds the text; a group that matches keeps all its skills
+   ====================================================================== */
+function skillsTab() {
+  const q = S.q.skills, total = SKILLS.reduce((a, g) => a + g[1].length, 0);
+  const groups = SKILLS.map(([g, list]) => {
+    const gHit = has(g, q);
+    const rows = list.map(([n, lv]) => ({ n, lv, hit: !q || gHit || has(n, q) }));
+    return { g, gHit, rows, any: rows.some(r => r.hit) };
+  });
+  const shown = groups.reduce((a, g) => a + g.rows.filter(r => r.hit).length, 0);
+  const dim = S.how === "dim";
+  const vis = q && !dim ? groups.filter(g => g.any) : groups;
+  const cols = [[], []];
+  // the groups flow into two columns, left then right (the shipped grid's order)
+  vis.forEach((g, i) => cols[i % 2].push(g));
+  const grpHtml = g => {
+    const rows = (q && !dim ? g.rows.filter(r => r.hit) : g.rows).map(r => {
+      const id = "sk-" + r.n;
+      return `<div class="srow ${S.sel === id ? "sel" : ""} ${q && dim && !r.hit ? "dimmed" : ""}" ${q && dim && !r.hit ? "" : f(id)} data-row="${id}">
+        <span class="lv">${r.lv}</span><span class="nm">${mark(r.n, g.gHit ? "" : q)}</span>
+        <span class="lvbar">${Array.from({ length: 10 }, (_, i) => `<i class="${i < r.lv ? "f" : ""}"></i>`).join("")}</span></div>`;
+    }).join("");
+    return `<div class="sgrp ${q && dim && !g.any ? "dimmed" : ""}"><div class="ghd">${mark(g.g, q)}${q ? `<span class="n">${g.rows.filter(r => r.hit).length}</span>` : ""}</div>${rows}</div>`;
+  };
+  const tr = TRAINING.filter(t => !q || dim || has(t[0], q) || groups.some(g => g.gHit && g.rows.some(r => r.n === t[0])));
+  const trHtml = tr.map(([n, read, bag, of]) => {
+    const id = "tr-" + n, off = q && dim && !has(n, q);
+    return `<div class="trow ${off ? "dimmed" : ""}" ${off ? "" : f(id)}><span class="nm">${mark(n, q)}</span>
+      <span class="vols">${Array.from({ length: of }, (_, i) => `<i class="${i < read ? "r" : i < read + bag ? "h" : ""}"></i>`).join("")}</span>
+      <span class="vol">${read} of ${of} read${bag ? ` | ${bag} in your bags` : ""}</span></div>`;
+  }).join("");
+  const head = `<div class="thead"><span class="tri"></span><span class="nm">Skills</span>
+    ${q ? `<span class="fcount"><b>${shown}</b> of ${total}</span>` : ""}${findField("skills", "Find a skill")}</div>`;
+  let body;
+  if (q && shown === 0) body = empty("Skills", q, "skills, their groups and the training books");
+  else body = `<div class="sgrid"><div class="scol">${cols[0].map(grpHtml).join("")}</div><div class="scol">${cols[1].map(grpHtml).join("")}</div></div>
+    ${trHtml ? `<div class="sec">TRAINING MATERIALS<span class="r">${q && !dim ? `${tr.length} of ${TRAINING.length}` : "Vol. 1 to 5"}</span></div>${trHtml}` : ""}`;
+  return { head, body, hint: q ? `${shown} of ${total} skills` : "Pick a skill to pin it to the title bar" };
+}
+
+/* ======================================================================
+   Equipment: a worn item shows when its name, its slot's words or a body part it covers holds the text
+   ====================================================================== */
+function equipTab() {
+  const q = S.q.equip, dim = S.how === "dim";
+  let worn = 0, shown = 0;
+  const groups = EQUIP.map(([g, slots]) => {
+    const rows = slots.map(([slot, item, icon, cond, covers]) => {
+      if (item) worn++;
+      const parts = (covers || []).filter(p => has(p, q));
+      const why = !q ? "" : has(item || "", q) ? "name" : has(slot, q) ? "slot" : parts.length ? "covers" : "";
+      const hit = !q || (item && why);
+      if (hit && item && q) shown++;
+      return { slot, item, icon, cond, parts, why, hit };
+    });
+    return { g, rows, any: rows.some(r => r.hit && r.item) };
+  });
+  const vis = q && !dim ? groups.filter(g => g.any) : groups;
+  const rowsHtml = vis.map(g => {
+    const list = q && !dim ? g.rows.filter(r => r.hit && r.item) : g.rows.filter(r => r.item || !q);
+    return `<div class="ghead2"><span class="tri"></span>${esc(g.g)} <span class="n">(${list.filter(r => r.item && (!q || r.hit)).length})</span></div>` + list.map(r => {
+      const id = "eq-" + r.slot, off = q && dim && !(r.hit && r.item);
+      if (!r.item) return `<div class="erow ${off ? "dimmed" : ""}"><span class="slot">${esc(r.slot)}</span><span class="ic"></span><span class="nm none">Empty</span></div>`;
+      // a body-part match gets a second line under the name: which parts it covers that hold the text
+      const why = q && r.parts.length ? `<div class="erow2"><span class="why">covers ${r.parts.map(p => `<b>${esc(p)}</b>`).join(", ")}</span></div>` : "";
+      return `<div class="erow ${S.sel === id ? "sel" : ""} ${off ? "dimmed" : ""}" ${off ? "" : f(id)} data-row="${id}">
+        <span class="slot">${r.why === "slot" ? mark(r.slot, q) : esc(r.slot)}</span><span class="ic">${px(r.icon, 1.6)}</span>
+        <span class="nm">${r.why === "name" ? mark(r.item, q) : esc(r.item)}</span>
+        <span class="segs">${Array.from({ length: 5 }, (_, i) => `<i class="${i < Math.round(r.cond / 20) ? "f" : ""}"></i>`).join("")}</span></div>${why}`;
+    }).join("");
+  }).join("");
+  const defense = `<div class="sec">DEFENSE<span class="r">all you wear</span></div><dl class="defense">
+    <dt>Bite</dt><dd><span class="dbar"><i style="width:34%"></i></span></dd><span class="v">34%</span>
+    <dt>Scratch</dt><dd><span class="dbar"><i style="width:61%"></i></span></dd><span class="v">61%</span>
+    <dt>Insulation</dt><dd><span class="dbar"><i style="width:42%"></i></span></dd><span class="v">42%</span></dl>`;
+  const head = `<div class="thead"><span class="tri"></span><span class="nm">Equipped</span>
+    ${q ? `<span class="fcount"><b>${shown}</b> of ${worn}</span>` : ""}${findField("equip", "Find worn, slot, body part")}
+    <span class="ib on">${px("list", 1.4)}</span><span class="ib">${px("doll", 1.4)}</span></div>`;
+  const body = q && shown === 0 ? empty("Equipment", q, "worn items, slots and the body parts they cover") : rowsHtml + (q && !dim ? "" : defense);
+  return { head, body, hint: q ? `${shown} of ${worn} worn` : `${worn} worn` };
+}
+
+function empty(tab, q, what) {
+  return `<div class="empty">Nothing on the ${tab} tab matches "${esc(q)}".<span class="sub">The Find field looks at ${what}.</span>
+    <div class="acts"><button class="btn sm default" ${f("clear2")} data-act="clear">${badge("X")}Clear</button></div></div>`;
+}
+
+/* the pad keyboard, as ZeD_Keyboard.lua lays out vanilla's keys */
+const KROWS = [
+  [..."`1234567890-=", ["Delete", "X", "del"]],
+  [..."qwertyuiop[]\\"],
+  [["Caps", "L3", "caps"], ..."asdfghjkl;'", ["Accept", "RT", "ok", 1]],
+  [["Shift", "LT", "shift"], ..."zxcvbnm,./", ["Shift", "LT", "shift2"]],
+  [["Space", "Y", "space", 0, 1], ["<", "LB", "left"], [">", "RB", "right"], ["Cancel", "B", "cancel"]],
+];
+function keyboard() {
+  const rows = KROWS.map((r, ri) => `<div class="krow">${r.map((key, ci) => {
+    const id = `key-${ri}-${ci}`;
+    if (typeof key === "string") return `<span class="key" ${f(id)} data-key="${esc(key)}">${esc(key)}</span>`;
+    const [lab, g, a, prim, wide] = key;
+    return `<span class="key ${prim ? "prim" : ""} ${wide ? "wide" : ""}" ${f(id)} data-key="#${a}">${badge(g)}${esc(lab)}</span>`;
+  }).join("")}</div>`).join("");
+  return `<div class="kbd"><div class="titlebar"><div class="titlechip">${S.tab === "skills" ? "Find a skill" : "Find worn, slot, body part"}</div></div>
+    <div class="line"><span class="lbl">${S.tab === "skills" ? "Skills" : "Equipment"}</span>${esc(S.q[S.tab])}<span class="caret" style="width:1px;height:15px;background:var(--text);margin-left:1px;display:inline-block"></span></div>
+    <div class="krows">${rows}</div></div>`;
+}
+
+function windowHtml() {
+  const T = S.tab === "skills" ? skillsTab() : equipTab();
+  const tabs = [["tEquip", "equip"], ["tHealth"], ["tTherm"], ["tId"], ["tJour"], ["tSkill", "skills"]];
+  const strip = `<div class="strip">${tabs.map(([g, id]) => `<div class="t ${id === S.tab ? "on" : ""}" ${id ? `data-tab="${id}"` : ""}>${px(g, 2)}</div>`).join("")}</div>`;
+  let pr = "";
+  if (S.input === "pad" && !S.kb) pr = `<span>${badge("A")}${S.focus && S.focus.endsWith("-find") ? "Type" : "Pin"}</span><span>${badge("X")}Clear</span><span>${badge("B")}Back</span>`;
+  return `<div class="win"><div class="titlebar"><div class="close"></div><div class="titlechip">Angel Cross<span class="plus">+</span>${S.tab === "skills" ? "Skills" : "Equipment"}</div><span class="rt">0 / 8</span></div>
+    <div class="wbody">${strip}<div class="drawer">${T.head}<div class="scroll">${T.body}</div></div></div>
+    <div class="foot"><span>${esc(T.hint)}</span><span class="pr">${pr}</span></div></div>`;
+}
+
+/* ======================================================================
+   Review bar, render, scale, input
+   ====================================================================== */
+function review() {
+  const b = (k, v, l) => `<button class="${S[k] === v ? "on" : ""}" data-set="${k}:${v}">${l}</button>`;
+  return `<span class="grp"><b>State</b>${STATES.map(([v, l]) => b("st", v, l)).join("")}</span>
+    <span class="grp"><b>Others</b>${b("how", "hide", "Hidden")}${b("how", "dim", "Dimmed")}</span>
+    <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}</span>
+    <span class="grp"><b>Input</b>${b("input", "mouse", "Mouse")}${b("input", "pad", "Controller")}</span>
+    <span class="grp"><b>View</b>${b("view", "window", "Window, fit")}${b("view", "actual", "4K at 1.75x, actual")}</span>`;
+}
+let typing = false;
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.getElementById("review").innerHTML = review();
+  const z = document.getElementById("zoomer");
+  z.innerHTML = `<div class="scene">${windowHtml()}${S.kb ? keyboard() : ""}</div>`;
+  placeHand(); fit();
+  if (typing && S.input !== "pad") { const inp = z.querySelector("input[data-in]"); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); inp.parentElement.classList.add("focus"); } }
+  document.getElementById("notes").innerHTML = notes();
+}
+function focusables() { return [...document.querySelectorAll(S.kb ? "#zoomer .kbd [data-f]" : "#zoomer .win [data-f]")].filter(el => !el.disabled); }
+function placeHand() {
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let el = list.find(e => e.dataset.f === S.focus);
+  if (!el) {
+    const want = S.kb ? "key-1-4" : (S.q[S.tab] ? (list.find(e => /^(sk|eq)-/.test(e.dataset.f)) || {}).dataset?.f : S.tab + "-find");   // keyboard: the hand on a letter key; searching: on the first match; else the field
+    el = list.find(e => e.dataset.f === want) || list[0]; S.focus = el.dataset.f;
+  }
+  el.style.position = "relative";
+  if (["srow", "erow", "trow", "btn", "field", "key", "ib"].some(c => el.classList.contains(c))) el.classList.add("pf");
+  if (el.classList.contains("field")) el.style.marginLeft = "18px";
+  el.insertAdjacentHTML("beforeend", `<span class="hand">${px("hand", 1)}</span>`);
+}
+function fit() {
+  const z = document.getElementById("zoomer"), stage = document.getElementById("stage");
+  const inner = z.firstElementChild; if (!inner) return;
+  const w = inner.offsetWidth, h = inner.offsetHeight; let k;
+  if (S.view === "actual") { k = 1.75 / (window.devicePixelRatio || 1); stage.classList.add("actual"); }
+  else { stage.classList.remove("actual");
+    k = Math.min(Math.max(200, window.innerWidth - 32) / w, Math.max(200, window.innerHeight - document.getElementById("review").offsetHeight - 32) / h, 2.2); }
+  z.style.transform = `scale(${k})`; z.style.width = w + "px"; z.style.height = h + "px";
+  stage.style.height = (h * k + 32) + "px"; z.style.marginRight = (w * k - w) + "px";
+}
+function act(a) {
+  if (a === "clear") { S.q[S.tab] = ""; S.kb = false; typing = true; S.focus = S.tab + "-find"; }
+  else if (a === "find") { if (S.input === "pad") { S.kb = true; S.focus = null; } else typing = true; }
+  render();
+}
+function keyPress(key) {
+  const t = S.tab;
+  if (key === "#del") S.q[t] = S.q[t].slice(0, -1);
+  else if (key === "#space") S.q[t] += " ";
+  else if (key === "#ok") { S.kb = false; S.focus = null; }   // the hand goes to the first match
+  else if (key === "#cancel") { S.kb = false; S.focus = t + "-find"; }
+  else if (key[0] !== "#") S.q[t] += key;
+  render();
+}
+document.addEventListener("click", e => {
+  const set = e.target.closest("[data-set]");
+  if (set) { const [k, v] = set.dataset.set.split(":"); S[k] = v; if (k === "st") { typing = false; applyPreset(); } render(); return; }
+  const key = e.target.closest("[data-key]"); if (key) { S.focus = key.dataset.f; keyPress(key.dataset.key); return; }
+  if (e.target.closest("input")) { typing = true; return; }
+  const tb = e.target.closest("[data-tab]"); if (tb) { S.tab = tb.dataset.tab; S.kb = false; S.focus = null; S.sel = null; render(); return; }
+  const a = e.target.closest("[data-act]"); if (a) { if (a.dataset.f) S.focus = a.dataset.f; act(a.dataset.act); return; }
+  const r = e.target.closest("[data-row]"); if (r) { S.sel = r.dataset.row; S.focus = r.dataset.row; typing = false; render(); }
+});
+document.addEventListener("input", e => { const t = e.target.dataset.in; if (!t) return; S.q[t] = e.target.value; typing = true; render(); });
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") { if (e.key === "Escape") act("clear"); return; }
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let i = list.findIndex(el => el.dataset.f === S.focus);
+  if (S.kb && (e.key === "Escape" || e.key === "Backspace")) { e.preventDefault(); keyPress(e.key === "Escape" ? "#cancel" : "#del"); return; }
+  if (S.kb && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+    e.preventDefault(); const [, r, c] = S.focus.split("-").map(Number);
+    const nr = Math.max(0, Math.min(KROWS.length - 1, r + (e.key === "ArrowDown" ? 1 : -1)));
+    S.focus = `key-${nr}-${Math.min(c, KROWS[nr].length - 1)}`; render(); return;
+  }
+  if (["ArrowDown", "ArrowRight"].includes(e.key)) i = Math.min(list.length - 1, i + 1);
+  else if (["ArrowUp", "ArrowLeft"].includes(e.key)) i = Math.max(0, i - 1);
+  else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); const el = list[i];
+    if (el.dataset.key) keyPress(el.dataset.key); else if (el.dataset.act) act(el.dataset.act); else if (el.dataset.row) { S.sel = el.dataset.row; render(); } return; }
+  else if (e.key === "x" || e.key === "X") { act("clear"); return; }
+  else return;
+  e.preventDefault(); S.focus = list[i].dataset.f; render();
+});
+window.addEventListener("resize", fit);
+
+function notes() {
+  const per = {
+    sidle: "The Skills tab as it ships, with one addition: a Find field at the right of the tab's heading, on the same line as \"Skills\" (no new row: the grid keeps its height). Nothing typed, nothing changes. The foot line says what a click on a row does.",
+    ssearch: "\"bla\" typed. Kept: Blacksmithing in Crafting, Long Blade and Short Blade in Combat - Melee. Groups with nothing in them go, and the rest flow into the two columns again from the top. The matched letters are underlined in the accent; each group heading gives how many it kept, the heading the total (3 of 35). Training materials narrows the same way (Blacksmithing's books). A group's name matches too: \"combat\" keeps both combat groups whole.",
+    esearch: "\"hand\" typed on the Equipment tab. It looks at three things and says which one matched: the worn item's name (underlined in the name), the slot's words (underlined in the slot column: Primary Hand holds the Crowbar, Secondary Hand the Flashlight, Hands the Leather Gloves), and the body parts an item covers (a \"covers\" line under the name: Leather Gloves cover Left Hand, Right Hand). Empty slots hide while searching; the Defense block hides too, as it is about the whole outfit, and comes back on Clear.",
+    none: "Nothing matches. In place of the rows: what was asked for, what the field looks at on this tab, and Clear as the default keycap.",
+    pad: "Controller. The Find field is the first stop on the tab (D-pad up from the top row reaches it). A opens ZeD's pad keyboard under the window, with its own line showing the text; the tab narrows behind it as each key is pressed. RT accepts and the hand lands on the first match; B cancels (the text goes back to what it was); X on the tab clears."
+  };
+  return `<h2>This state</h2><p>${per[S.st]}</p>
+  <h2>What it does</h2>
+  <ul>
+    <li><b>Where:</b> the tab's heading row, right side, on both tabs. On Equipment it sits left of the List | Doll pair. In Doll view the field stays and matching slots keep their picture while the rest dim (the doll cannot reflow).</li>
+    <li><b>Skills match:</b> skill names and their group names (Combat - Melee, Crafting, Survival ...), plus the Training materials rows by skill.</li>
+    <li><b>Equipment matches:</b> worn item names, slot words (Hat, Outer, Hands, Primary Hand ...) and the body parts each item covers, in the game's words (Left Hand, Upper Torso, Left Shin ...).</li>
+    <li><b>How matches show:</b> proposed, the rest are hidden and the lists close up (the review bar's Others switch shows the dimmed alternative). Hidden keeps the tab short at Deck and 720p sizes.</li>
+    <li><b>Lasts:</b> proposed, per tab and kept while the window is open (switching tabs and back keeps it), cleared when the window closes.</li>
+  </ul>
+  <h2>Open questions for the director</h2>
+  <ol>
+    <li>Rows that do not match: hidden (proposed) / dimmed in place.</li>
+    <li>A group name that matches: keeps its whole group (proposed) / matches skills only.</li>
+    <li>The search: kept until the window closes (proposed) / cleared when you leave the tab.</li>
+    <li>Equipment while searching: Defense block hidden (proposed) / kept at the foot.</li>
+  </ol>`;
+}
+applyPreset();
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
+</body>
+</html>
