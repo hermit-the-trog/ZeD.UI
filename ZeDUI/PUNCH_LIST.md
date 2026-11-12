@@ -3410,6 +3410,10 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     debug-menu equivalent. Sending from Lua only if Phase 0 finds the chat path; otherwise it fills the chat box.
     Each phase: mockup first for anything new on screen (System 7 window, ZeD atoms), sims, QA at 4K and Deck,
     controller parity, translations for every new string.
+    Mockup v1 (https://claude.ai/artifact/RXAWzEwPMo5Te6a5qaEMPZ, ZeDUI/mockups/zed_console_v1.html), the director, Nov 12:
+    a repeated error is one row with a count; the scratchpad opens in place of the line; autocomplete opens by itself
+    after two letters; commands above your role are hidden. The other open questions take the mockup's recommendations.
+    Phase 0 probe: ZeDUI/tools/qa/zedqa_console_probe.lua (tag con0), CHECK_pl136_phase0.md.
 
 137. **Responsive Context Menus [B42] support (the director via QA, Nov 9 2026; DONE for beta 11).** Workshop 3783387236,
     mod id ResponsiveUI. ZeD's menu (Strip and List) takes the mod's 250 ms rebuilds in place: same place, submenu path
@@ -4312,3 +4316,15 @@ to be proposed.
     EquipDoll.lua's header "No leader lines point at the body"; commit ee3aa381, the director Oct 30). The container's
     own buttons stay in the bottom row (zed_loot_multicontainer_v4, zed_container_controls_v2; ContainerControls.lua
     :4-6). Neither is to be built.
+
+174. **The dark thumbnail and the new poster, for the beta now in progress (design, the director, Nov 11 2026).**
+   The Workshop thumbnail is `ZeDUI/workshop/thumbnail/year_1993_dark_animated.gif` (809 KB; source
+   `src_1993_dark.py`, the eagle from `eagle_build.py`): the Dark window on a flag; THE YEAR IS 1993. SO IS YOUR USER
+   INTERFACE. ALL OF IT. (ALL OF IT. pulls away into italic as the fire rises); ALL-IN-ONE / SUPERCHARGED / VANILLA /
+   UI UPGRADE over the flames; the fire cools to smoke, ZeD-GUI rises from it, a bald eagle soars behind with
+   fireworks. Done (not committed): `make_vdf.py` and `set_preview_gif.ps1` point at it, `tools/release/preview.png`
+   and `workshop/thumbnail/preview.png` are its first frame, RELEASE_CHECKLIST steps 6 and 17 updated.
+   **Open (Build, once QA is clear of 42/):** copy `Zomboid/ZeD_design_refs/thumb/poster_zedgui_eagle.png` over
+   `42/poster.png` (the director: ZeD-GUI just after the eagle rises over the G; "Yep, that works."). The main
+   menu's boombox without its antenna (`ZeDUI/art/main_menu/v7/desk.png`, `desk_lampdim.png`) waits the same way for
+   `42/media/textures/ZeD/mainmenu/`.
