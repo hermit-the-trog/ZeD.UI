@@ -320,6 +320,20 @@ function AD.canBeSheared(animal)
     return ok and val
 end
 
+--- True when the game's animal menu would offer Milk now: more than 0.1 L in the animal and the breed
+-- allows milking (ISAnimalContextMenu doMilkMenu). The alerts, the roster tags and All milkable use this one test.
+function AD.hasMilk(animal)
+    if not AD.canBeMilked(animal) then return false end
+    return AD.getMilkQuantity(animal) > 0.1
+end
+
+--- True when the game's menu would offer Shear now: the breed shears and more than one unit of wool
+-- (ISAnimalContextMenu doShearMenu).
+function AD.hasWool(animal)
+    if not AD.canBeSheared(animal) then return false end
+    return AD.getWoolQuantity(animal) > 1
+end
+
 function AD.getEggsPerDay(animal)
     if not animal or not animal.getEggsPerDay then return 0 end
     local ok, val = pcall(animal.getEggsPerDay, animal)
@@ -473,13 +487,13 @@ end
 
 function AD.getConditionTags(animal, player)
     local tags = {}
-    if AD.isUdderUrgent(animal) then
+    if AD.isUdderUrgent(animal) and AD.hasMilk(animal) then
         table.insert(tags, { id = "udder_urgent", label = ZeD.tr("UI_ZeD_Animals_TagUdderUrgent"), sev = "danger" })
     end
-    if AD.canBeMilked(animal) then
+    if AD.hasMilk(animal) then
         table.insert(tags, { id = "milkable", label = ZeD.tr("UI_ZeD_Animals_TagMilkable"), sev = "good" })
     end
-    if AD.canBeSheared(animal) then
+    if AD.hasWool(animal) then
         table.insert(tags, { id = "shearable", label = ZeD.tr("UI_ZeD_Animals_TagWoolReady"), sev = "good" })
     end
     if AD.isLaying(animal) then
