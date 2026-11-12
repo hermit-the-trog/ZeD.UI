@@ -69,6 +69,7 @@ local FILES = {
     "42/media/lua/client/ZeD/ProtectionTab.lua",
     "42/media/lua/client/ZeD/EquipDoll.lua",
     "42/media/lua/client/ZeD/EquipmentTab.lua",
+    "42/media/lua/client/ZeD/ZeD_TabFill.lua",   -- (the fill blocks under the Thermal grid)
     "42/media/lua/client/ZeD/ThermalTab.lua",
     "42/media/lua/client/ZeD/IdentityTab.lua",
     "42/media/lua/client/ZeD/SkillsTab.lua",
@@ -252,7 +253,7 @@ local function buildPlayer()
         return J("ThermalNode", m)
     end
     local thermo = J("Thermoregulator", {
-        getCoreCelcius = 37.1, getTemperatureAir = 21.5, getTemperatureAirAndWind = 18.2,
+        getCoreCelcius = 37.1, getTemperatureAir = 21.5, getTemperatureAirAndWind = 18.2, getHeatGenerationUI = 0.22,
         getNodeForType = function(_, bp)
             local k = tostring(bp)
             if not nodes[k] then nodes[k] = node(#k) end
@@ -432,7 +433,9 @@ local function newWorld(label, getSrc)
         getScriptManager = nil,
         CharacterTraitDefinition = { getCharacterTraitDefinition = function(id)
             return J("TraitDef", { getLabel = id, getDescription = "What " .. id .. " does, at some length to wrap.",
-                getCost = (#id % 3 == 0) and -2 or 4 })
+                getCost = (#id % 3 == 0) and -2 or 4,
+                -- (the trait icons: one in two traits has a texture, as a mod's may have none)
+                getTexture = (#id % 2 == 0) and J("Texture", { getWidth = 18, getHeight = 18 }) or false })
         end },
         CharacterProfessionDefinition = {
             getCharacterProfessionDefinition = function() return J("ProfDef", { getUIName = "carpenter" }) end,

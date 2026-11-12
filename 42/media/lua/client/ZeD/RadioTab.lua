@@ -47,6 +47,7 @@ require "ZeD/TwoWayFull"
 require "ZeD/RtvFace"
 require "ZeD/PlainFace"
 require "ZeD/WorldRoutes"
+require "ZeD/ZeD_TabFill"
 
 ZeD = ZeD or {}
 ZeD.RadioTab = ZeD.RadioTab or {}
@@ -1168,6 +1169,98 @@ local function _hitById(tw, id)
 end
 ZeD.RadioTab._menuAt, ZeD.RadioTab._hitById = _menuAt, _hitById
 
+-- ============================================================================
+-- UNDER THE FACE: Channels (Presets in the World window), Heard, Power
+-- ZeD_TabFill blocks under any face: the set's stored channels (a row tunes to it,
+-- the one tuned in carries the wash), the last lines it showed (RtvFace keeps them
+-- per set, from vanilla's OnDeviceText) and its power: the battery or the mains,
+-- spare batteries on you, the headphones, the frequency range and, on a two-way
+-- set, its range and microphone. Read twice a second (tw.fill); drawn each frame.
+-- ============================================================================
+
+local function _fillGet(o, m, ...)
+    local f = o and o[m]
+    if not f then return nil end
+    local ok, v = pcall(f, o, ...)
+    if ok then return v end
+    return nil
+end
+
+-- the rows of the three blocks for this set, from the game
+local function _radioFillRead(win, dev)
+    local T, O = ZeD.T, ZeD.RadioOps
+    local st = ZeD.Rtv and ZeD.Rtv.read and ZeD.Rtv.read(dev)
+    if not (st and O) then return nil end
+    local dd = st.dd
+    local twoWay = _fillGet(dd, "getIsTwoWay") == true
+    local d = { presets = {}, heard = {}, power = {} }
+    for i, p in ipairs(st.presets or {}) do
+        local name = (p.name and p.name ~= "") and p.name or O.chanName(p.freq) or getText("IGUI_RadioUknownChannel")
+        local idx = i
+        d.presets[i] = { id = "fill:radio:ch:" .. i, label = ZeD.tr("UI_ZeD_Plain_ChannelName", i, name),
+                         value = O.freqText(p.freq, twoWay), sel = (i == st.presetIdx),
+                         fn = function() O.recall(win._playerObj, dev, idx) end }
+    end
+    local lines = ZeD.Rtv.heardLines and ZeD.Rtv.heardLines(st) or nil
+    for i, l in ipairs(lines or {}) do
+        d.heard[i] = { id = "fill:radio:heard:" .. i, label = l, read = true }
+    end
+    local pw = d.power
+    if st.battery then
+        if st.hasBattery then
+            pw[#pw + 1] = { id = "fill:radio:batt", label = getText("Tooltip_Dashboard_Battery"),
+                            value = math.floor((st.charge or 0) * 100 + 0.5) .. "%", bar = st.charge or 0,
+                            barColor = ZeD.Atoms.statusColor(st.charge or 0) }
+        else
+            pw[#pw + 1] = { id = "fill:radio:batt", dot = T.danger, label = ZeD.tr("UI_ZeD_Plain_NoBattery") }
+        end
+        local inv = win._playerObj and win._playerObj:getInventory()
+        local n = inv and _fillGet(inv, "getCountTypeRecurse", "Base.Battery") or 0
+        if n > 0 then
+            pw[#pw + 1] = { id = "fill:radio:spare", label = getItemNameFromFullType("Base.Battery"), value = "x" .. n }
+        else
+            pw[#pw + 1] = { id = "fill:radio:spare", dot = T.textDim, hollow = true, label = ZeD.tr("UI_ZeD_Radio_NoBatteries") }
+        end
+    else
+        pw[#pw + 1] = { id = "fill:radio:mains", dot = st.grid and T.positive or T.danger,
+                        label = getText(st.grid and "IGUI_RadioPowerNearby" or "IGUI_RadioRequiresPowerNearby") }
+    end
+    if not twoWay then
+        pw[#pw + 1] = { id = "fill:radio:phones", label = ZeD.tr("UI_ZeD_Plain_Headphones"),
+                        value = ZeD.tr(st.phones and "UI_ZeD_Plain_PhonesIn" or "UI_ZeD_Plain_PhonesOut") }
+    end
+    pw[#pw + 1] = { id = "fill:radio:range", label = getText("IGUI_RadioFreqRange"),
+                    value = ZeD.tr("UI_ZeD_Plain_MHz", O.freqText(st.min, false) .. "-" .. O.freqText(st.max, false)) }
+    if twoWay then
+        local tr = _fillGet(dd, "getTransmitRange") or 0
+        pw[#pw + 1] = { id = "fill:radio:tx", label = getText("IGUI_RadioStrength"), value = tostring(tr) .. " " .. getText("IGUI_RadioMeter") }
+        local muted = _fillGet(dd, "getMicIsMuted") == true
+        pw[#pw + 1] = { id = "fill:radio:mic", label = getText("IGUI_RadioMicrophone"), value = getText(muted and "IGUI_RadioNo" or "IGUI_RadioYes") }
+    end
+    for _, r in ipairs(pw) do r.read = true end
+    return d
+end
+
+local _radioFillOpts = {}
+--- The three blocks under a face from (x, y), w wide; panel nil only measures. Returns their height (0 with none).
+function ZeD.RadioTab.renderFill(panel, win, tw, x, y, w)
+    local F = ZeD.TabFill
+    if not (F and tw and tw.dev) then return 0 end
+    local now = getTimestampMs()
+    if not tw.fill or not tw.fillAt or now - tw.fillAt >= 500 or now < tw.fillAt then
+        tw.fill, tw.fillAt = _radioFillRead(win, tw.dev), now
+    end
+    local d = tw.fill
+    if not d then return 0 end
+    local world = win._actionTabStrip ~= nil
+    _radioFillOpts.view = tw.view
+    local h = F.block(panel, win, "radio", "channels", x, y, w,
+        ZeD.tr(world and "UI_ZeD_Plain_Presets" or "UI_ZeD_Radio_Channels"), #d.presets, d.presets, _radioFillOpts)
+    h = h + F.block(panel, win, "radio", "heard", x, y + h, w, ZeD.tr("UI_ZeD_Radio_Heard"), #d.heard, d.heard, _radioFillOpts)
+    h = h + F.block(panel, win, "radio", "power", x, y + h, w, getText("IGUI_RadioPower"), nil, d.power, _radioFillOpts)
+    return h
+end
+
 -- the face, its footer and the scrollbar under the header (y, h: the body). drv: the face's driver, ZeD.TwoWay or
 -- ZeD.Rtv (the ordinary radios and the TVs, which have no footer: the brand is on the face)
 local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
@@ -1182,7 +1275,12 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local pad = TW.PAD * k
     local footH = TW.footer and T.px(22) or 0
     local faceH = plain and TW.height(current.radioInstance, pid, w - sbW) or des.h * k
-    local contentH = pad + faceH + pad + footH
+    -- the fill blocks under the face and its footer (Channels, Heard, Power), measured with no panel
+    local tw0 = win._radioTw
+    local fillTw = (tw0 and tw0.dev == current.radioInstance) and tw0 or nil
+    local fillH = fillTw and ZeD.RadioTab.renderFill(nil, win, fillTw, 0, 0, w - sbW - T.px(16)) or 0
+    if fillH > 0 then fillH = fillH + T.px(6) end
+    local contentH = pad + faceH + pad + footH + fillH
     local scroll = win._radioScroll
     if not scroll then scroll = ZeD_ScrollbarState:new(); win._radioScroll = scroll end
     local needs = contentH > h
@@ -1222,6 +1320,13 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
             end
         end
     end
+    -- a fill row the controller is on, kept whole in view (last frame's zones)
+    if needs and fid and fid:sub(1, 10) == "fill:radio" and tw.fillFollow ~= fid then
+        tw.fillFollow = fid
+        local n = ZeD.TabFill.follow(win, "radio", fid, y, h, off, contentH - h)
+        if n then scroll:setScrollPos(n / (contentH - h)); off = n end
+    end
+    if not (fid and fid:sub(1, 10) == "fill:radio") then tw.fillFollow = nil end
     local fy = fy0 - off
     panel:setStencilRect(x, y, cw, h)
     -- a held key (the mouse): a short press acts on the release, a long one names / stores (MEM, the army set's 1..6)
@@ -1238,12 +1343,17 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local hov = TW.hitAt(tw.hits, panel:getMouseX(), panel:getMouseY())
     local hits = TW.drawFace(panel, fx, fy, k, { dev = dev, pid = pid, des = des, focusId = fctl,
         hoverId = (not fctl) and hov and hov.id or nil, pressId = tw.press and tw.press.id or nil,
-        w = faceW, minH = needs and 0 or h, win = win })
-    -- the footer: at the drawer's foot, or under the face when the body scrolls
+        w = faceW, minH = (needs or fillH > 0) and 0 or h, win = win })
+    -- the footer: at the drawer's foot, or under the face when the body scrolls or the fill blocks follow it
+    local footY = fy + faceH + pad
     if TW.footer then
-        local footY = math.max(fy + des.h * k + pad, y + h - footH)
+        if fillH == 0 then footY = math.max(fy + des.h * k + pad, y + h - footH) end
         TW.footer(panel, x, footY, cw, footH, pid, _safeGet(current.deviceData, "getIsHighTier", false))
     end
+    -- the fill blocks, under the footer
+    tw.view = { x = x, y = y, w = cw, h = h }
+    ZeD.TabFill.begin(win, "radio")
+    if fillH > 0 then ZeD.RadioTab.renderFill(panel, win, tw, x + T.px(8), footY + footH + T.px(6), cw - T.px(16)) end
     panel:clearStencilRect()
     if needs then scroll:draw(panel) end
     tw.pid, tw.des, tw.k, tw.hits, tw.fy = pid, des, k, hits, fy
@@ -1606,6 +1716,8 @@ function ZeD.RadioTab.onClick(win, x, y)
             sc:handleMouseDown(y - sc.y); return true
         end
         if not _hitZone(tw.view, x, y) then return true end
+        -- a fill block's head or row under the face
+        if ZeD.TabFill.onClick(win, "radio", x, y) then return true end
         local h = TW.hitAt(tw.hits, x, y)
         if h then
             -- (a key that opens a list, as a held one, acts on the release: RtvFace.onRelease)
@@ -1759,6 +1871,18 @@ end
 -- _radioSeekBtnZones, _radioPresetZones, etc.) populated by the chassis
 -- molecules each render — builder + render stay in lock-step.
 
+-- the fill blocks' heads and rows under a face (ZeD_TabFill): a channel row tunes to it on A, the rest read
+local function _addFillStops(win, elements)
+    local tw = win._radioTw
+    local F = ZeD.TabFill
+    if not (F and tw and tw.view) then return end
+    local onFocus = function(w, e) w._gpFocusedRadioCtl = e.id end
+    for _, el in ipairs(F.focusables(win, "radio", tw.view)) do
+        el.onFocus = onFocus
+        elements[#elements + 1] = el
+    end
+end
+
 -- An ordinary radio's or a TV's face: its controls first, power first (the pad rule: focus lands on
 -- the primary control), then the rest in reading order, then the header's
 -- browse keys. A presses (a list opens under the key, and the focus comes back to the key when it closes), held (or
@@ -1797,6 +1921,7 @@ local function _rtvFocusables(win, tw)
     end
     addHeader(win._radioBrowsePrevZone, "radio:browsePrev", function(w) _browsePrev(w); w._gpFocusedRadioCtl = nil end)
     addHeader(win._radioBrowseNextZone, "radio:browseNext", function(w) _browseNext(w); w._gpFocusedRadioCtl = nil end)
+    _addFillStops(win, elements)
     if elements[1] and win._gpFocusedRadioCtl == nil then win._gpFocusedRadioCtl = elements[1].id end
     return elements
 end
@@ -1838,6 +1963,7 @@ local function _plainFocusables(win, tw)
     end
     addHeader(win._radioBrowsePrevZone, "radio:browsePrev", function(w) _browsePrev(w); w._gpFocusedRadioCtl = nil end)
     addHeader(win._radioBrowseNextZone, "radio:browseNext", function(w) _browseNext(w); w._gpFocusedRadioCtl = nil end)
+    _addFillStops(win, elements)
     if elements[1] and win._gpFocusedRadioCtl == nil then win._gpFocusedRadioCtl = elements[1].id end
     return elements
 end
@@ -1921,6 +2047,7 @@ function ZeD.RadioTab.buildFocusables(win)
             end
             elements[#elements + 1] = el
         end
+        _addFillStops(win, elements)
         if elements[1] and win._gpFocusedRadioCtl == nil then win._gpFocusedRadioCtl = elements[1].id end
         return elements
     end

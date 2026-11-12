@@ -2560,6 +2560,10 @@ local function _buildHealthFocusables(win)
     for i = 1, #parts do elements[#elements + 1] = parts[i] end
     local injuries = _buildHealthInjuryFocusables(win)
     for i = 1, #injuries do elements[#elements + 1] = injuries[i] end
+    -- the fill blocks' heads and rows (ZeD_TabFill): a Regularity row picks that exercise
+    -- for the band; the moodle, Fitness and strain rows only read
+    local fill = ZeD.TabFill and ZeD.TabFill.focusables(win, "health", win._healthView) or {}
+    for i = 1, #fill do elements[#elements + 1] = fill[i] end
     for i = 1, #band do
         elements[#elements + 1] = band[i]
         if win._healthReturnToMenu and band[i].id == "health:exercise" then
@@ -2706,6 +2710,10 @@ local function _buildThermalFocusables(win)
     end
     local parts = _buildThermalBodyPartFocusables(win)
     for i = 1, #parts do elements[#elements + 1] = parts[i] end
+    -- the grid's cells (A picks the region) and the picked region's rows (they read), ZeD_TabFill's
+    -- stops; the old grid-scroll surface stays for a tab that stamps one
+    local fill = ZeD.TabFill and ZeD.TabFill.focusables(win, "thermal", win._thermalBodyRect) or {}
+    for i = 1, #fill do elements[#elements + 1] = fill[i] end
     local gridScroll = _buildThermalGridScrollFocusable(win)
     for i = 1, #gridScroll do elements[#elements + 1] = gridScroll[i] end
     -- the footer band's View pop-up last

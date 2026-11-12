@@ -5,6 +5,8 @@
 -- figure away, the body scrolls. Zone A: the body figure; beside it the health
 -- summary and the picked exercise's description, or the hovered or focused
 -- part's detail. Zone B: the injury list, worst first, with condition tags.
+-- Under it the fill blocks: the moodles that are on, Fitness and Strength,
+-- each exercise's regularity (a row picks it for the band) and muscle strain.
 -- The footer band is pinned: the exercise pop-up, the session time, Start.
 -- What the tab reveals follows vanilla's health panel at the viewer's First
 -- Aid level, and a part's treatment menu is vanilla's own. Other mods add
@@ -18,6 +20,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/ZeD_BodyFigure"
 require "XpSystem/ISUI/ISHealthPanel"
+require "ZeD/ZeD_TabFill"
 
 ZeD = ZeD or {}
 ZeD.HealthTab = {}
@@ -202,6 +205,25 @@ end
 -- (the same tags and marks on the medical check of another player: ObjectCardMedic.lua)
 ZeD.HealthTab.condTags = condTags
 ZeD.HealthTab.sevColor = sevColor
+
+-- One injury row's band: the name line and its tags sit in the middle, the same
+-- pad above and below, the groove on the band's foot. The tags start under the
+-- name, past the status square. Measuring and drawing share it.
+-- (the words once sat on the band's top with the whole gap below them)
+function ZeD.HealthTab.injuryRowLayout(bodyH, tagsH)
+    local T = ZeD.T
+    local padV = T.px(8)
+    local tagGap = T.px(4)
+    local contentH = bodyH + ((tagsH or 0) > 0 and (tagGap + tagsH) or 0)
+    local indent = T.px(2) + T.px(6) + T.px(6)   -- (the square's inset, the square, the gap to the name)
+    return {
+        padV = padV,
+        nameY = padV,
+        tagsY = padV + bodyH + tagGap,
+        h = padV + contentH + padV + T.px(1),
+        indent = indent,
+    }
+end
 
 -- ============================================================================
 -- CONDITION CLASSIFIER
@@ -1128,6 +1150,8 @@ function ZeD.HealthTab.onClick(win, x, y)
         return true
     end
     local bz = win._healthBand
+    -- a fill block's head or row, inside the body's view (not under the header or the band)
+    if not (bz and y >= bz.y) and inRect(win._healthView, x, y) and ZeD.TabFill.onClick(win, "health", x, y) then return true end
     if not bz or y < bz.y or y >= bz.y + bz.h then return false end
     if inRect(bz.box, x, y) then ZeD.HealthTab.openMenu(win)
     elseif inRect(bz.dec, x, y) then ZeD.HealthTab.stepMinutes(win, -EXERCISE_TIME_STEP)
@@ -1383,6 +1407,112 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
 end
 
 -- ============================================================================
+-- UNDER THE INJURIES: Moodles, Fitness, Regularity, Muscle Strain (ZeD_TabFill)
+-- The facts the game keeps that vanilla spreads over its moodles, its fitness
+-- window and its health panel, read twice a second into win._healthFill and
+-- drawn as fold blocks under the injury list (or under the figure with none).
+-- ============================================================================
+
+-- the moodles that are on, in vanilla's order: the game's own name, line and level
+local function fillMoodles(p, out)
+    local Mo = ZeD.Moodles
+    if not (Mo and Mo.active) then return end
+    local md = p:getMoodles()
+    for _, m in ipairs(Mo.active(p)) do
+        local okN, name = pcall(md.getMoodleDisplayString, md, m.type)
+        local okD, desc = pcall(md.getMoodleDescriptionString, md, m.type)
+        out[#out + 1] = { name = okN and name or m.key, desc = okD and desc or nil, level = m.level or 1, gbn = m.gbn or 0 }
+    end
+end
+
+-- the parts with muscle strain vanilla's health panel shows (5 and up; under 20 is minor)
+local function fillStrain(p, out)
+    local bd = p:getBodyDamage()
+    local parts = bd and bd:getBodyParts()
+    if not parts then return end
+    for i = 0, parts:size() - 1 do
+        local bp = parts:get(i)
+        local ok, s = pcall(bp.getStiffness, bp)
+        if ok and type(s) == "number" and s >= 5 then
+            out[#out + 1] = { name = getPartName(bp), minor = s < 20 }
+        end
+    end
+end
+
+--- What the blocks under the injuries show, read from the game (the tab reads it on a throttle).
+function ZeD.HealthTab.gatherFill(p)
+    local d = { moodles = {}, strain = {}, exercises = {} }
+    if not p then return d end
+    pcall(fillMoodles, p, d.moodles)
+    pcall(fillStrain, p, d.strain)
+    local okF, fit = pcall(p.getPerkLevel, p, Perks.Fitness)
+    local okS, str = pcall(p.getPerkLevel, p, Perks.Strength)
+    d.fitness = okF and fit or nil
+    d.strength = okS and str or nil
+    for _, id in ipairs(EXERCISES) do
+        local exeData = FitnessExercises and FitnessExercises.exercisesType and FitnessExercises.exercisesType[id]
+        if exeData then
+            local need = nil
+            if exeData.item then
+                local itemName = getItemDisplayName and getItemDisplayName(exeData.item) or exeData.item
+                need = getText("IGUI_FitnessNeedItem", itemName)
+            end
+            d.exercises[#d.exercises + 1] = { id = id, name = ZeD.HealthTab.exerciseLabel(id), need = need,
+                have = isExerciseAvailable(p, id), reg = readRegularity(p, id) or 0 }
+        end
+    end
+    return d
+end
+
+-- the rows of the four blocks, built once per read (kept on the data: the words do not change between reads)
+local function fillRows(win, d)
+    if d.rows then return d.rows end
+    local T = ZeD.T
+    local rows = { moodles = {}, fitness = {}, regularity = {}, strain = {} }
+    for i, m in ipairs(d.moodles) do
+        local c = (m.gbn == 1) and T.positive or ((m.gbn == 2) and T.danger or T.textDim)
+        rows.moodles[i] = { id = "fill:health:moodle:" .. i, dot = c, label = m.name, sub = m.desc,
+                            bar = m.level / 4, barN = 4, barColor = c, read = true }
+    end
+    local lvl = ZeD.tr("UI_ZeD_Skills_CardMax", d.fitness or 0)
+    rows.fitness[1] = { id = "fill:health:fit", label = getText("IGUI_perks_Fitness"), value = lvl, bar = (d.fitness or 0) / 10 }
+    lvl = ZeD.tr("UI_ZeD_Skills_CardMax", d.strength or 0)
+    rows.fitness[2] = { id = "fill:health:str", label = getText("IGUI_perks_Strength"), value = lvl, bar = (d.strength or 0) / 10 }
+    for i, e in ipairs(d.exercises) do
+        local eid = e.id
+        rows.regularity[i] = { id = "fill:health:exe:" .. eid, exeId = eid, label = e.name, sub = e.need, dim = not e.have,
+                               value = math.floor(e.reg * 100 + 0.5) .. "%", bar = e.reg, barColor = T.positive,
+                               fn = function() ZeD.HealthTab.closeMenu(win, eid); win._healthReturnToMenu = nil end }
+    end
+    for i, s in ipairs(d.strain) do
+        rows.strain[i] = { id = "fill:health:strain:" .. i, dot = T.warningText or T.warning, label = ZeD.partLabel(s.name),
+                           value = getText(s.minor and "IGUI_health_MinorStiffness" or "IGUI_health_Stiffness") }
+    end
+    d.rows = rows
+    return rows
+end
+
+--- The four blocks from (x, y), w wide; panel nil only measures. Returns their height.
+function ZeD.HealthTab.renderFill(panel, win, x, y, w)
+    local d = win._healthFill
+    if not d then return 0 end
+    local F = ZeD.TabFill
+    local rows = fillRows(win, d)
+    -- the picked exercise carries the selection (the band's pop-up picks the same)
+    local sel = ZeD.HealthTab.selectedExercise(win)
+    for _, r in ipairs(rows.regularity) do r.sel = (r.exeId == sel) end
+    local o = ZeD.HealthTab._fillOpts
+    o.view = win._healthView
+    local h = 0
+    h = h + F.block(panel, win, "health", "moodles", x, y + h, w, ZeD.tr("UI_ZeD_Health_Moodles"), #rows.moodles, rows.moodles, o)
+    h = h + F.block(panel, win, "health", "fitness", x, y + h, w, getText("IGUI_perks_Fitness"), nil, rows.fitness, o)
+    h = h + F.block(panel, win, "health", "regularity", x, y + h, w, getText("IGUI_FitnessRegularity"), #rows.regularity, rows.regularity, o)
+    h = h + F.block(panel, win, "health", "strain", x, y + h, w, getText("IGUI_health_Stiffness"), #rows.strain, rows.strain, o)
+    return h
+end
+ZeD.HealthTab._fillOpts = {}
+
+-- ============================================================================
 -- RENDERER (main entry point)
 -- ============================================================================
 
@@ -1401,6 +1531,10 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         win._healthCache = ZeD.HealthTab.gatherData(win._playerObj)
     end
     local data = win._healthCache
+    if dueMs(win, "_healthFillAt", 500, not win._healthFill) then
+        win._healthFill = ZeD.HealthTab.gatherFill(win._playerObj)
+    end
+    ZeD.TabFill.begin(win, "health")
 
     -- Font metrics
     local bodyH  = ZeD.TM:getFontHeight(T.fontF2)
@@ -1457,13 +1591,15 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local zoneBH = 0
     if data.injuredCount > 0 then
         zoneBH = zoneBH + T.px(1) + T.sp.afterLine
+        local tagIndent = ZeD.HealthTab.injuryRowLayout(bodyH, 0).indent
         for _, entry in ipairs(data.entries) do
-            zoneBH = zoneBH + bodyH + T.px(2)
-            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - pad * 2)   -- (the list's own width)
-            if tagsH > 0 then zoneBH = zoneBH + tagsH + T.sp.xs end
-            zoneBH = zoneBH + T.px(1) + T.sp.afterGroove
+            -- (the list's own width, less the tags' indent under the name)
+            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - pad * 2 - tagIndent)
+            zoneBH = zoneBH + ZeD.HealthTab.injuryRowLayout(bodyH, tagsH).h
         end
     end
+    -- the fill blocks under the list (measured with no panel: the same code that draws them)
+    zoneBH = zoneBH + T.px(8) + ZeD.HealthTab.renderFill(nil, win, 0, 0, w - scrollW - pad * 2)
 
     -- The scroll range covers what the last frame really drew too, so the
     -- bottom of the tab is always reachable (the right column's detail view
@@ -1506,7 +1642,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedElement
                    and Focus.getFocusedWindow() == win
                    and Focus.getFocusedElement(win) or nil
-        local focKey = el and (el.injuryKey or el.partName or el.isDisclosure) and el.id or nil
+        local focKey = el and (el.injuryKey or el.partName or el.isDisclosure or el.fillStop) and el.id or nil
         if focKey and focKey ~= win._lastPinnedInjuryKey then
             local span    = math.max(1, totalContentH - scrollH)
             local oldOff  = math.floor(scroll.scrollPos * span)
@@ -1605,10 +1741,12 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         local st = T.stripe
         local sq = T.px(6)
         local tagsOpts = nil
+        local tagIndent = ZeD.HealthTab.injuryRowLayout(bodyH, 0).indent
         for ei, entry in ipairs(data.entries) do
             local entryStartY = curY
-            local tagsH = condTags(nil, entry.conditions, 0, 0, listW)
-            local entryH = bodyH + T.px(2) + (tagsH > 0 and (tagsH + T.sp.xs) or 0) + T.px(1) + T.sp.afterGroove
+            local tagsH = condTags(nil, entry.conditions, 0, 0, listW - tagIndent)
+            local row = ZeD.HealthTab.injuryRowLayout(bodyH, tagsH)
+            local entryH = row.h
 
             -- Alternating row stripe (drawn before content)
             if ei % 2 == 0 then
@@ -1625,19 +1763,19 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             -- Default text with the status square: the colour is the mark's
             local ink = onFocus and T.textOnFocus or T.text
             local mark = sevColor(entry.worstSev)
-            if mark then A.drawStatusDot(panel, listX + T.px(2), curY + math.floor((bodyH - sq) / 2), mark, sq) end
-            A.drawBody(panel, ZeD.partLabel(entry.name), listX + T.px(2) + sq + T.px(6), curY, ink)
+            local nameY = curY + row.nameY
+            if mark then A.drawStatusDot(panel, listX + T.px(2), nameY + math.floor((bodyH - sq) / 2), mark, sq) end
+            A.drawBody(panel, ZeD.partLabel(entry.name), listX + tagIndent, nameY, ink)
             local hpStr = math.floor(entry.health + 0.5) .. "%"
-            A.drawTextRight(panel, hpStr, listX + listW, curY, T.fontF2, ink)
-            curY = curY + bodyH + T.px(2)
+            A.drawTextRight(panel, hpStr, listX + listW - T.px(4), nameY, T.fontF2, ink)
 
             if tagsH > 0 then
-                condTags(panel, entry.conditions, listX, curY, listW)
-                curY = curY + tagsH + T.sp.xs
+                condTags(panel, entry.conditions, listX + tagIndent, curY + row.tagsY, listW - tagIndent)
             end
 
+            curY = curY + entryH - T.px(1)
             A.drawDividerH(panel, listX, curY, listW)
-            curY = curY + T.px(1) + T.sp.afterGroove
+            curY = curY + T.px(1)
 
             -- Stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
             -- and scroll-follow above). Height = actual drawn extent including wrapped
@@ -1650,6 +1788,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             }
         end
     end
+    -- the fill blocks: Moodles, Fitness, Regularity, Muscle Strain
+    curY = curY + T.px(8)
+    curY = curY + ZeD.HealthTab.renderFill(panel, win, x + pad, curY, contentW - pad * 2)
     -- what this frame drew, top to bottom (next frame's scroll range covers it)
     win._healthDrawnH = curY - (scrollY - scrollOff)
 

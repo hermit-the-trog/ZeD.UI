@@ -14,6 +14,9 @@
 --     and a quick-note field under it. Write adds the line to the page as a
 --     short timed action (ZeD_WriteNoteAction: vanilla's light, pencil and lock
 --     rules). Open full is vanilla's Write / Read note (ZeD's full page).
+--     With no notebook on the character, the page shows what they could write
+--     with (a pencil or pen, the light), the papers on them (a row opens its
+--     quick look) and the books, magazines and newspapers, read or not.
 -- Also the log box's "Into": the Journal's Save can write the entry into a
 -- carried notebook too; the log keeps where it went ("Supply runs, page 3").
 --
@@ -28,6 +31,7 @@ require "ZeD/Molecules"
 require "ZeD/ZeD_PrintPage"
 require "ZeD/ZeD_Reader"
 require "ZeD/ZeD_WriteNoteAction"
+require "ZeD/ZeD_TabFill"
 
 ZeD = ZeD or {}
 ZeD.JournalReaders = ZeD.JournalReaders or {}
@@ -153,18 +157,27 @@ end
 -- ---------------------------------------------------------------------------
 -- WHAT THE CHARACTER CARRIES (every bag, scanned again about every half second)
 -- ---------------------------------------------------------------------------
-local function scan(inv, papers, seen, books)
+local function scan(inv, papers, seen, books, reads)
     local items = inv:getItems()
     for i = 0, items:size() - 1 do
         local it = items:get(i)
         local m = P.media(it)
         if m and m.id then
             if not seen[m.id] then seen[m.id] = true; papers[#papers + 1] = { item = it, m = m } end
-        elseif it:getCategory() == "Literature" and it:canBeWrite() then
-            books[#books + 1] = it
+        elseif it:getCategory() == "Literature" then
+            -- (a notebook, a journal, a diary: written in; a book, a magazine, a newspaper: read)
+            if it:canBeWrite() then books[#books + 1] = it else reads[#reads + 1] = it end
         end
-        if instanceof(it, "InventoryContainer") then scan(it:getInventory(), papers, seen, books) end
+        if instanceof(it, "InventoryContainer") then scan(it:getInventory(), papers, seen, books, reads) end
     end
+end
+
+-- a book, magazine or newspaper as the Notebooks page lists it: its name, read or not (vanilla's
+-- inventory test) and its pages
+local function readEntry(p, it)
+    local okR, read = pcall(ISInventoryPane.isLiteratureRead, nil, p, it)
+    local okP, pages = pcall(it.getNumberOfPages, it)
+    return { name = it:getDisplayName(), read = okR and read == true, pages = (okP and type(pages) == "number") and pages or 0 }
 end
 
 local function isRead(playerObj, m)
@@ -188,8 +201,11 @@ local function gather(win, force)
     if not force and s.carried and s.frame - (s.scanAt or 0) < 30 then return s.carried end
     s.scanAt = s.frame
     local p = win._playerObj
-    local papers, books = {}, {}
-    if p then scan(p:getInventory(), papers, {}, books) end
+    local papers, books, readItems = {}, {}, {}
+    if p then scan(p:getInventory(), papers, {}, books, readItems) end
+    local reads = {}
+    for i, it in ipairs(readItems) do reads[i] = readEntry(p, it) end
+    table.sort(reads, function(a, b) return a.name < b.name end)
     for _, e in ipairs(papers) do
         e.id = e.m.id
         e.title = P.title(e.m)
@@ -203,7 +219,7 @@ local function gather(win, force)
         if a.read ~= b.read then return a.read end
         return a.title < b.title
     end)
-    s.carried = { papers = papers, books = books }
+    s.carried = { papers = papers, books = books, reads = reads }
     return s.carried
 end
 
@@ -245,6 +261,10 @@ local function framed(panel, win, key, x, y, w, h, draw)
                 break
             end
         end
+    end
+    if needs and fid and fid ~= s.pinned and fid:sub(1, 5) == "fill:" and ZeD.TabFill then
+        local n = ZeD.TabFill.follow(win, "notebooks", fid, y, h, sc.scrollPos * (total - h), total - h)
+        if n then sc:setScrollPos(n / (total - h)) end
     end
     s.pinned = fid
     local off = needs and math.floor(sc.scrollPos * (total - h)) or 0
@@ -726,8 +746,9 @@ end
 -- the page small: ruled paper as the real sheet is ruled: the blue rules run edge to edge through the
 -- red margin, the margin runs the page's full height about a seventh in, and a blank band one rule tall
 -- sits above the first rule; the writing in ink sits on the rules. As tall as its writing and two more
--- rules (the quick note under it stays in view in a short drawer).
-local function miniPage(panel, b, page, x, y, w)
+-- rules (the quick note under it stays in view in a short drawer). A taller drawer gives the page
+-- more rules, down to minH (J.fillPageH); it never draws shorter than its own height.
+local function miniPage(panel, b, page, x, y, w, minH)
     local T = ZeD.T
     local f = T.fontF2
     local lh = fh(f) + T.px(6)
@@ -741,7 +762,8 @@ local function miniPage(panel, b, page, x, y, w)
     end
     if text == "" then lines = {} end
     local rows = math.max(4, math.min(N.LINES, #lines + 2), #lines)
-    local ph = T.px(10) + head + rows * lh + T.px(10)
+    if minH then rows = math.max(rows, math.floor((minH - T.px(20) - head) / lh)) end
+    local ph = math.max(T.px(10) + head + rows * lh + T.px(10), minH or 0)
     panel:drawRect(x, y, w, ph, 1, PAPER.r, PAPER.g, PAPER.b)
     -- the rules: the first closes the blank band, then one under each line of writing
     for i = 0, rows do
@@ -752,6 +774,71 @@ local function miniPage(panel, b, page, x, y, w)
         panel:drawText(l, x + margin + T.px(6), y + T.px(10) + head + lh * (i - 1) + (lh - fh(f)) - T.px(3), INK.r, INK.g, INK.b, 1, f)
     end
     return ph
+end
+
+--- The page's least height so the quick note and the line under it end at the view's foot:
+--- viewBottom is the view's last row (top + h, less framed's end gap), pageY where the page
+--- starts, tailH what sits under the page. Nil when the page's own height already reaches.
+--- (a page of one fixed height left the lower half of a tall drawer bare)
+function J.fillPageH(viewBottom, pageY, tailH)
+    local room = viewBottom - pageY - tailH
+    if room <= 0 then return nil end
+    return room
+end
+
+-- ---------------------------------------------------------------------------
+-- NO NOTEBOOK: what the character could write with, the papers and the books on them
+-- (ZeD_TabFill blocks; the rows kept with the carried scan, the light read each frame)
+-- ---------------------------------------------------------------------------
+local _fillOpts = {}
+local function noNotebookRows(win, carried)
+    local c = carried
+    if c.rows then return c.rows end
+    local T = ZeD.T
+    local rows = { papers = {}, reads = {} }
+    local nRead = 0
+    for i, e in ipairs(c.papers) do
+        if e.read then nRead = nRead + 1 end
+        local id = e.id
+        rows.papers[i] = { id = "fill:notebooks:paper:" .. i, dot = e.read and T.positive or T.textDim, hollow = not e.read,
+            label = e.title, sub = ZeD.tr(e.read and "UI_ZeD_Papers_StateRead" or "UI_ZeD_Papers_StateUnread"),
+            fn = function() ZeD.JournalTab.setPage(win, 3); openPaper(win, id) end }
+    end
+    rows.paperCount = ZeD.tr("UI_ZeD_Papers_Count", nRead, #c.papers)
+    for i, e in ipairs(c.reads) do
+        local sub = getText(e.read and "Tooltip_literature_HasBeenRead" or "Tooltip_literature_NotBeenRead")
+        if e.pages > 0 then sub = sub .. " | " .. getText("Tooltip_literature_Number_of_Pages") .. ": " .. e.pages end
+        rows.reads[i] = { id = "fill:notebooks:book:" .. i, dot = e.read and T.positive or T.textDim, hollow = not e.read,
+            label = e.name, sub = sub, read = true }
+    end
+    c.rows = rows
+    return rows
+end
+
+local _writeRows = { { id = "fill:notebooks:tool", read = true }, { id = "fill:notebooks:light", read = true } }
+--- The blocks under "No notebook on you", from (x, y), w wide; panel nil only measures. Returns their height.
+function J.renderNoNotebook(panel, win, carried, x, y, w)
+    local T, F = ZeD.T, ZeD.TabFill
+    local p = win._playerObj
+    if not (p and F) then return 0 end
+    local rows = noNotebookRows(win, carried)
+    local tool = N.hasWritingTool(p)
+    local dark = p:tooDarkToRead()
+    _writeRows[1].dot = tool and T.positive or T.danger
+    _writeRows[1].label = ZeD.tr(tool and "UI_ZeD_Notebook_HasTool" or "UI_ZeD_Notebook_WhyNoTool")
+    _writeRows[2].dot = dark and T.danger or T.positive
+    _writeRows[2].label = ZeD.tr(dark and "UI_ZeD_Notebook_WhyTooDark" or "UI_ZeD_Notebook_LightOk")
+    _fillOpts.view = st(win).clip
+    local h = F.block(panel, win, "notebooks", "writing", x, y, w, ZeD.tr("UI_ZeD_Reader_StatWriting"), nil, _writeRows, _fillOpts)
+    if #rows.papers == 0 and #rows.reads == 0 then
+        h = h + T.px(4)
+        if panel then h = h + ZeD.Molecules.drawEmptyLine(panel, x + T.px(6), y + h, w - T.px(12), ZeD.tr("UI_ZeD_Papers_NoneCarried"))
+        else h = h + ZeD.TM:getFontHeight(T.fontF2) end
+        return h
+    end
+    h = h + F.block(panel, win, "notebooks", "papers", x, y + h, w, ZeD.tr("UI_ZeD_Notebook_PapersOn"), rows.paperCount, rows.papers, _fillOpts)
+    h = h + F.block(panel, win, "notebooks", "books", x, y + h, w, ZeD.tr("UI_ZeD_Notebook_BooksOn"), #rows.reads, rows.reads, _fillOpts)
+    return h
 end
 
 --- Draws the Notebooks sub-tab into (x, y, w, h) on the drawer: the carried books, the page
@@ -773,7 +860,13 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         if #list == 0 then
             local msg = (#carried.books == 0) and ZeD.tr("UI_ZeD_Notebook_NoneCarried") or ZeD.tr("UI_ZeD_Notebook_NoneMatch")
             cy = cy + T.px(8)
-            return cy + ZeD.Molecules.drawEmptyLine(panel, lx, cy, lw, msg)
+            cy = cy + ZeD.Molecules.drawEmptyLine(panel, lx, cy, lw, msg)
+            -- none carried: what they could write with, and what there is to read on them
+            if #carried.books == 0 then
+                cy = cy + T.px(10)
+                cy = cy + J.renderNoNotebook(panel, win, carried, lx, cy, lw)
+            end
+            return cy
         end
         -- the books: side by side with the page when the drawer is wide, above it when not
         local split = dw >= T.px(560)
@@ -828,12 +921,14 @@ function J.renderNotebooks(panel, win, x, y, w, h)
             ISInventoryPaneContextMenu.onWriteSomething(b, editable, p:getPlayerNum())
         end, "default", { disabled = not canOpen or p:tooDarkToRead() })
         py = py + T.buttonH + T.sp.sm
-        py = py + miniPage(panel, b, page, px, py, pw) + T.sp.sm
+        local fh2 = T.px(40)
+        -- (the page takes what the drawer has left under the books, the note and its line)
+        local minH = J.fillPageH(top + h - T.sp.sm, py, T.sp.sm + fh2 + T.px(6) + fh(f3))
+        py = py + miniPage(panel, b, page, px, py, pw, minH) + T.sp.sm
         -- the quick note: a line onto this page
         local why = N.why(p, b)
         local wl = ZeD.tr("UI_ZeD_Notebook_Write")
         local ww = tw(f3, ZeD.btnCase(wl)) + T.sp.md * 2
-        local fh2 = T.px(40)
         local fr = { x = px, y = py, w = pw - ww - T.sp.sm, h = fh2 }
         field.placeholder = ZeD.tr("UI_ZeD_Notebook_AddLine", page)
         if fr.x ~= field.x or fr.y ~= field.y then field:setX(fr.x); field:setY(fr.y) end
@@ -1007,6 +1102,8 @@ function J.onClick(win, x, y)
         closeShow(s)
         return true
     end
+    if (win._journalSubTab or 1) == 2 and s.clip and inRect(s.clip, x, y) and ZeD.TabFill
+       and ZeD.TabFill.onClick(win, "notebooks", x, y) then return true end
     for i = #zs, 1, -1 do
         local z = zs[i]
         -- (the band's and Into's zones are outside the page's scrolling view)
@@ -1041,6 +1138,10 @@ function J.focusables(win)
             out[#out + 1] = el
         end
     end
+    -- the Notebooks page's fill blocks (no notebook carried): a paper row opens its quick look
+    if not rowsOnly and (win._journalSubTab or 1) == 2 and ZeD.TabFill then
+        for _, el in ipairs(ZeD.TabFill.focusables(win, "notebooks", s.clip)) do out[#out + 1] = el end
+    end
     -- where the focus lands: the current choice in the open list; back on the box after it
     local land = rowsOnly and ("jr:showRow:" .. tostring(s.filter)) or s.land
     if land then
@@ -1073,4 +1174,5 @@ function J.beginFrame(win)
     s.lastZones = win._jrZones
     win._jrZones = {}
     J._fid = focusedId(win)
+    if ZeD.TabFill then ZeD.TabFill.begin(win, "notebooks") end
 end
