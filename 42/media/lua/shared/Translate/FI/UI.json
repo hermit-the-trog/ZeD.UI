@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 tied. pois",
     "UI_ZeD_Mods_ChipErrorOne": "1 virhe",
     "UI_ZeD_Mods_ChipErrors": "%1 virhettä",
-    "UI_ZeD_Mods_PendingFiles": "Tiedostot vaihdettu modissa %1. Uudelleenlataus ottaa ne käyttöön, ei uudelleenkäynnistystä."
+    "UI_ZeD_Mods_PendingFiles": "Tiedostot vaihdettu modissa %1. Uudelleenlataus ottaa ne käyttöön, ei uudelleenkäynnistystä.",
+    "UI_ZeD_Find_SkillsHint": "Etsi taito",
+    "UI_ZeD_Find_EquipHint": "Puettu, paikka, ruumiinosa",
+    "UI_ZeD_Find_Count": "%1/%2",
+    "UI_ZeD_Find_SkillsNone": "Mikään Taidot-välilehdellä ei vastaa hakua \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Haku katsoo taitoja, niiden ryhmiä ja oppikirjoja.",
+    "UI_ZeD_Find_EquipNone": "Mikään Varusteet-välilehdellä ei vastaa hakua \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Haku katsoo päällä olevia, paikkoja ja niiden peittämiä ruumiinosia.",
+    "UI_ZeD_Find_Clear": "Tyhjennä",
+    "UI_ZeD_Find_Covers": "peittää %1",
+    "UI_ZeD_Find_HelpSkills": "Kirjoita osa taidon tai sen ryhmän nimestä: muut himmenevät",
+    "UI_ZeD_Find_HelpEquip": "Kirjoita osa vaatteen nimestä, paikasta tai ruumiinosasta: muut himmenevät",
+    "UI_ZeD_Find_HelpClear": "Tyhjennä haku: kaikki rivit näkyvät taas"
 }

@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 fájl ki",
     "UI_ZeD_Mods_ChipErrorOne": "1 hiba",
     "UI_ZeD_Mods_ChipErrors": "%1 hiba",
-    "UI_ZeD_Mods_PendingFiles": "Fájlok átkapcsolva itt: %1. Újratöltés a helyükre teszi, újraindítás nélkül."
+    "UI_ZeD_Mods_PendingFiles": "Fájlok átkapcsolva itt: %1. Újratöltés a helyükre teszi, újraindítás nélkül.",
+    "UI_ZeD_Find_SkillsHint": "Képesség keresése",
+    "UI_ZeD_Find_EquipHint": "Viselt, hely, testrész",
+    "UI_ZeD_Find_Count": "%1 / %2",
+    "UI_ZeD_Find_SkillsNone": "A Képességek fülön semmi sem egyezik ezzel: „%1”.",
+    "UI_ZeD_Find_SkillsLooks": "A keresés a képességeket, csoportjaikat és a tankönyveket nézi.",
+    "UI_ZeD_Find_EquipNone": "A Felszerelés fülön semmi sem egyezik ezzel: „%1”.",
+    "UI_ZeD_Find_EquipLooks": "A keresés a viselt tárgyakat, a helyeket és az általuk fedett testrészeket nézi.",
+    "UI_ZeD_Find_Clear": "Törlés",
+    "UI_ZeD_Find_Covers": "fedi: %1",
+    "UI_ZeD_Find_HelpSkills": "Írd be egy képesség vagy csoportja nevének részét: a többi elhalványul",
+    "UI_ZeD_Find_HelpEquip": "Írd be egy viselt tárgy, hely vagy testrész nevének részét: a többi elhalványul",
+    "UI_ZeD_Find_HelpClear": "Keresés törlése: minden sor újra látszik"
 }

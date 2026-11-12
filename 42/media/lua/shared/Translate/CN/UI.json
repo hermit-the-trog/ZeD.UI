@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 个文件已关闭",
     "UI_ZeD_Mods_ChipErrorOne": "1 条错误",
     "UI_ZeD_Mods_ChipErrors": "%1 条错误",
-    "UI_ZeD_Mods_PendingFiles": "%1 中的文件已切换。重新加载即可生效，无需重启。"
+    "UI_ZeD_Mods_PendingFiles": "%1 中的文件已切换。重新加载即可生效，无需重启。",
+    "UI_ZeD_Find_SkillsHint": "查找技能",
+    "UI_ZeD_Find_EquipHint": "穿戴、栏位、身体部位",
+    "UI_ZeD_Find_Count": "%1 / %2",
+    "UI_ZeD_Find_SkillsNone": "技能页中没有与“%1”匹配的内容。",
+    "UI_ZeD_Find_SkillsLooks": "查找范围：技能、技能组和技能书。",
+    "UI_ZeD_Find_EquipNone": "装备页中没有与“%1”匹配的内容。",
+    "UI_ZeD_Find_EquipLooks": "查找范围：穿戴的物品、栏位及其覆盖的身体部位。",
+    "UI_ZeD_Find_Clear": "清除",
+    "UI_ZeD_Find_Covers": "覆盖：%1",
+    "UI_ZeD_Find_HelpSkills": "输入技能名或技能组名的一部分：其余变暗",
+    "UI_ZeD_Find_HelpEquip": "输入穿戴物品名、栏位或身体部位的一部分：其余变暗",
+    "UI_ZeD_Find_HelpClear": "清除查找：所有行重新显示"
 }

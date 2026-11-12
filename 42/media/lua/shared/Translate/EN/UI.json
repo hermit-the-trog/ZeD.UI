@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 files off",
     "UI_ZeD_Mods_ChipErrorOne": "1 error",
     "UI_ZeD_Mods_ChipErrors": "%1 errors",
-    "UI_ZeD_Mods_PendingFiles": "Files switched in %1. A reload puts them in place, no restart."
+    "UI_ZeD_Mods_PendingFiles": "Files switched in %1. A reload puts them in place, no restart.",
+    "UI_ZeD_Find_SkillsHint": "Find a skill",
+    "UI_ZeD_Find_EquipHint": "Find worn, slot, body part",
+    "UI_ZeD_Find_Count": "%1 of %2",
+    "UI_ZeD_Find_SkillsNone": "Nothing on the Skills tab matches \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "The Find field looks at skills, their groups and the training books.",
+    "UI_ZeD_Find_EquipNone": "Nothing on the Equipment tab matches \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "The Find field looks at worn items, slots and the body parts they cover.",
+    "UI_ZeD_Find_Clear": "Clear",
+    "UI_ZeD_Find_Covers": "covers %1",
+    "UI_ZeD_Find_HelpSkills": "Type part of a skill's name or its group's name: the rest dim",
+    "UI_ZeD_Find_HelpEquip": "Type part of a worn item's name, a slot or a body part: the rest dim",
+    "UI_ZeD_Find_HelpClear": "Clear the Find field: every row shows again"
 }

@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 filer fra",
     "UI_ZeD_Mods_ChipErrorOne": "1 fejl",
     "UI_ZeD_Mods_ChipErrors": "%1 fejl",
-    "UI_ZeD_Mods_PendingFiles": "Filer skiftet i %1. En genindlæsning sætter dem på plads, ingen genstart."
+    "UI_ZeD_Mods_PendingFiles": "Filer skiftet i %1. En genindlæsning sætter dem på plads, ingen genstart.",
+    "UI_ZeD_Find_SkillsHint": "Find en evne",
+    "UI_ZeD_Find_EquipHint": "Båret, plads, kropsdel",
+    "UI_ZeD_Find_Count": "%1 af %2",
+    "UI_ZeD_Find_SkillsNone": "Intet på fanen Evner passer til \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Søgefeltet ser på evner, deres grupper og lærebøgerne.",
+    "UI_ZeD_Find_EquipNone": "Intet på fanen Udstyr passer til \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Søgefeltet ser på båret tøj, pladser og de kropsdele, de dækker.",
+    "UI_ZeD_Find_Clear": "Ryd",
+    "UI_ZeD_Find_Covers": "dækker %1",
+    "UI_ZeD_Find_HelpSkills": "Skriv en del af en evnes navn eller dens gruppes: resten dæmpes",
+    "UI_ZeD_Find_HelpEquip": "Skriv en del af et båret navn, en plads eller en kropsdel: resten dæmpes",
+    "UI_ZeD_Find_HelpClear": "Ryd søgefeltet: alle rækker vises igen"
 }

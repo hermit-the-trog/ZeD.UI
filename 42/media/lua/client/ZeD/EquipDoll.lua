@@ -613,6 +613,12 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         win._equipDollData = data
     end
     win._equipDollBands = bands
+    -- the Find text's matches (nil while it is empty): a box that doesn't match is dimmed with
+    -- its label; matching boxes keep their picture as they are. (Kept on the window, not
+    -- locals: the row-below closure would capture them, new memory each frame.)
+    local TF = ZeD.TabFind
+    local found = TF and TF.doll(win, data) or nil
+    win._findDollRes, win._findDollLabelH = found, T.px(3) + (T.fontF1H or tm:getFontHeight(T.fontF1))
     local nBelt = #data.belt
     local s = fit(w, viewH, nBelt)
     local k = s * ZeD.T.px(1000) / 1000
@@ -670,6 +676,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         if not label then label = ZeD.textCase(ZeD.tr(def.key)); wd.label[def] = label end
         local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
         if not item and ghosts and ghosts[def.id] then EL.drawGhost(panel, bx, by, b, ghosts[def.id]) end
+        if found and not found.hit[key] then TF.dim(panel, bx, by, b, b + win._findDollLabelH) end
         slotBox(rects, bx, by, b, b).id = def.id
         if item then
             local zb = slotBox(zones, bx, by, b, b); zb.type, zb.item = key, item
@@ -706,6 +713,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             if not place then place = ZeD.tr(sm.place); wd.place[sm] = place end
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
             if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
+            if found and not found.hit[key] then TF.dim(panel, sbx, sby, ss, ss) end
             slotBox(rects, sbx, sby, ss, ss).id = sm.id
             local ptext = wd.ptext[sm]
             if not ptext then ptext = ZeD.textCase(place); wd.ptext[sm] = ptext end
@@ -730,6 +738,8 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local over = drawBox(panel, win, bx, by, b, item, 1, key, beltKey, label, mx, my)
         local gid = beltSlot and ("belt" .. tostring(beltSlot.i)) or (key and key:sub(6))
         if not item and ghosts and gid and ghosts[gid] then EL.drawGhost(panel, bx, by, b, ghosts[gid]) end
+        local fd = win._findDollRes
+        if fd and not fd.hit[key] then ZeD.TabFind.dim(panel, bx, by, b, b + win._findDollLabelH) end
         win._equipSlotYMap[key] = by
         if item then
             local zb = slotBox(zones, bx, by, b, b); zb.type, zb.item = key, item
@@ -1091,12 +1101,20 @@ end
 --- the active one solid accent; each names itself in the library's hint after the
 --- pause. Stamps win._equipViewZones.
 local _toggleOpts = {}
+
+--- Where List | Doll begins in a heading at x, w wide, headerH tall (the Find field ends left of it).
+function D.toggleX(x, w, headerH)
+    local T = ZeD.T
+    local bw = math.min(T.buttonH, headerH - T.px(6))
+    return x + w - T.px(10) - bw * 2 - T.px(4)
+end
+
 function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
     local T = ZeD.T
     local bw = math.min(T.buttonH, headerH - T.px(6))
     local sep = T.px(4)
     local by = y + math.floor((headerH - bw) / 2)
-    local bx = x + w - T.px(10) - bw * 2 - sep
+    local bx = D.toggleX(x, w, headerH)
     local cur = D.view()
     local zones = {}
     for i, v in ipairs({ "list", "doll" }) do

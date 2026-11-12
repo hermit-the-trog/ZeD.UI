@@ -29,3 +29,5 @@ Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All m
 Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
 Short tags 'Wył.: 1' and 'Wył.: %1' for 'N files off' to fit 14 chars; 'Turn all back on' shortened to 'Włącz wszystkie'.
 Files-off count lines put the count first (Pliki wyłączone w %2: %1) because Polish plural forms vary.
+
+Find on the Skills and Equipment tabs (Nov 11 2026): 12 UI_ZeD_Find_ lines (the field's placeholders, the count, the "nothing matches" lines, Clear, "covers %1", the help lines) are machine drafts, not checked by a native speaker. The body parts in "covers %1" come from the game itself; "dim" (the rows that do not match) is the word to check first.

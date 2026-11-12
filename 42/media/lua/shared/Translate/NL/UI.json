@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 uit",
     "UI_ZeD_Mods_ChipErrorOne": "1 fout",
     "UI_ZeD_Mods_ChipErrors": "%1 fouten",
-    "UI_ZeD_Mods_PendingFiles": "Bestanden omgezet in %1. Een herlading zet ze op hun plaats, geen herstart."
+    "UI_ZeD_Mods_PendingFiles": "Bestanden omgezet in %1. Een herlading zet ze op hun plaats, geen herstart.",
+    "UI_ZeD_Find_SkillsHint": "Vaardigheid zoeken",
+    "UI_ZeD_Find_EquipHint": "Gedragen, plek, lichaamsdeel",
+    "UI_ZeD_Find_Count": "%1 van %2",
+    "UI_ZeD_Find_SkillsNone": "Niets op het tabblad Vaardigheden past bij \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Het zoekveld kijkt naar vaardigheden, hun groepen en de leerboeken.",
+    "UI_ZeD_Find_EquipNone": "Niets op het tabblad Uitrusting past bij \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Het zoekveld kijkt naar gedragen spullen, plekken en de lichaamsdelen die ze bedekken.",
+    "UI_ZeD_Find_Clear": "Wissen",
+    "UI_ZeD_Find_Covers": "bedekt %1",
+    "UI_ZeD_Find_HelpSkills": "Typ een deel van een vaardigheid of haar groep: de rest wordt gedimd",
+    "UI_ZeD_Find_HelpEquip": "Typ een deel van een gedragen ding, een plek of een lichaamsdeel: de rest wordt gedimd",
+    "UI_ZeD_Find_HelpClear": "Zoekveld wissen: alle rijen komen terug"
 }

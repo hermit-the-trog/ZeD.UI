@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 3632.
+Total keys: 3644.
 
 ## Areas
 
@@ -36,6 +36,7 @@ Total keys: 3632.
 - [Equip](#equip) (40)
 - [ETW](#etw) (7)
 - [Farm](#farm) (50)
+- [Find](#find) (12)
 - [Fire](#fire) (60)
 - [Fish](#fish) (161)
 - [Fluid](#fluid) (31)
@@ -1253,6 +1254,25 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Farm_NeedsSpray` | `a spray in your bags` | Farm plot card: what Treat needs when no particular spray is named, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 | `UI_ZeD_Farm_NeedsSprayNamed` | `%1 in your bags` | Farm plot card: what Treat needs when a particular spray is named, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2"; %1 = the spray's item name | - |
 | `UI_ZeD_Farm_NeedsWater` | `water in your hands or bags` | Farm plot card: what Water needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+
+## Find
+
+The Find field in the heading of the Character window's Skills and Equipment tabs: it dims the rows that do not match.
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Find_SkillsHint` | `Find a skill` | Skills tab heading: the Find field's placeholder, shown while it is empty | 22 |
+| `UI_ZeD_Find_EquipHint` | `Find worn, slot, body part` | Equipment tab heading: the Find field's placeholder, shown while it is empty | 30 |
+| `UI_ZeD_Find_Count` | `%1 of %2` | Skills and Equipment tab headings: the count left of the Find field; %1 rows that match, %2 in all | 12 |
+| `UI_ZeD_Find_SkillsNone` | `Nothing on the Skills tab matches "%1".` | Skills tab: the line in place of the rows when nothing matches; %1 is the text typed | - |
+| `UI_ZeD_Find_SkillsLooks` | `The Find field looks at skills, their groups and the training books.` | Skills tab: the line under it, what the Find field searches | - |
+| `UI_ZeD_Find_EquipNone` | `Nothing on the Equipment tab matches "%1".` | Equipment tab: the line in place of the rows when nothing matches; %1 is the text typed | - |
+| `UI_ZeD_Find_EquipLooks` | `The Find field looks at worn items, slots and the body parts they cover.` | Equipment tab: the line under it, what the Find field searches | - |
+| `UI_ZeD_Find_Clear` | `Clear` | Skills and Equipment tabs: the button under the "nothing matches" lines that empties the Find field | 12 |
+| `UI_ZeD_Find_Covers` | `covers %1` | Equipment tab: a small line under a worn item matched by a body part; %1 is the parts it covers, comma-separated, in the game's words | - |
+| `UI_ZeD_Find_HelpSkills` | `Type part of a skill's name or its group's name: the rest dim` | Skills tab: help line over the Find field | - |
+| `UI_ZeD_Find_HelpEquip` | `Type part of a worn item's name, a slot or a body part: the rest dim` | Equipment tab: help line over the Find field | - |
+| `UI_ZeD_Find_HelpClear` | `Clear the Find field: every row shows again` | Skills and Equipment tabs: help line over the field's clear box and the Clear button | - |
 
 ## Fire
 

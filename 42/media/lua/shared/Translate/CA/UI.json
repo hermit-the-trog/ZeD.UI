@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 inactius",
     "UI_ZeD_Mods_ChipErrorOne": "1 error",
     "UI_ZeD_Mods_ChipErrors": "%1 errors",
-    "UI_ZeD_Mods_PendingFiles": "Fitxers canviats a %1. Una recàrrega els posa al lloc, sense reiniciar."
+    "UI_ZeD_Mods_PendingFiles": "Fitxers canviats a %1. Una recàrrega els posa al lloc, sense reiniciar.",
+    "UI_ZeD_Find_SkillsHint": "Troba una habilitat",
+    "UI_ZeD_Find_EquipHint": "Posat, espai, part del cos",
+    "UI_ZeD_Find_Count": "%1 de %2",
+    "UI_ZeD_Find_SkillsNone": "Res de la pestanya Habilitats coincideix amb «%1».",
+    "UI_ZeD_Find_SkillsLooks": "La cerca mira les habilitats, els seus grups i els llibres d'aprenentatge.",
+    "UI_ZeD_Find_EquipNone": "Res de la pestanya Equip coincideix amb «%1».",
+    "UI_ZeD_Find_EquipLooks": "La cerca mira els objectes posats, els espais i les parts del cos que cobreixen.",
+    "UI_ZeD_Find_Clear": "Esborra",
+    "UI_ZeD_Find_Covers": "cobreix %1",
+    "UI_ZeD_Find_HelpSkills": "Escriu part del nom d'una habilitat o del seu grup: la resta s'enfosqueix",
+    "UI_ZeD_Find_HelpEquip": "Escriu part del nom d'un objecte posat, un espai o una part del cos: la resta s'enfosqueix",
+    "UI_ZeD_Find_HelpClear": "Esborra la cerca: totes les files tornen"
 }

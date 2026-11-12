@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 désactivés",
     "UI_ZeD_Mods_ChipErrorOne": "1 erreur",
     "UI_ZeD_Mods_ChipErrors": "%1 erreurs",
-    "UI_ZeD_Mods_PendingFiles": "Fichiers modifiés dans %1. Un rechargement les met en place, sans redémarrage."
+    "UI_ZeD_Mods_PendingFiles": "Fichiers modifiés dans %1. Un rechargement les met en place, sans redémarrage.",
+    "UI_ZeD_Find_SkillsHint": "Trouver une compétence",
+    "UI_ZeD_Find_EquipHint": "Porté, emplacement, partie du corps",
+    "UI_ZeD_Find_Count": "%1 sur %2",
+    "UI_ZeD_Find_SkillsNone": "Rien dans l'onglet Compétences ne correspond à « %1 ».",
+    "UI_ZeD_Find_SkillsLooks": "La recherche porte sur les compétences, leurs groupes et les livres d'apprentissage.",
+    "UI_ZeD_Find_EquipNone": "Rien dans l'onglet Équipement ne correspond à « %1 ».",
+    "UI_ZeD_Find_EquipLooks": "La recherche porte sur les objets portés, les emplacements et les parties du corps couvertes.",
+    "UI_ZeD_Find_Clear": "Effacer",
+    "UI_ZeD_Find_Covers": "couvre %1",
+    "UI_ZeD_Find_HelpSkills": "Tapez une partie du nom d'une compétence ou de son groupe : le reste s'estompe",
+    "UI_ZeD_Find_HelpEquip": "Tapez une partie du nom d'un objet porté, d'un emplacement ou d'une partie du corps : le reste s'estompe",
+    "UI_ZeD_Find_HelpClear": "Effacer la recherche : toutes les lignes réapparaissent"
 }

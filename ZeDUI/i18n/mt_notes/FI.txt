@@ -30,3 +30,5 @@ Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error ca
 Shortened chips (tied. pois) and 'Kaikki päälle' to fit the length limits.
 Used 'Modit' for the Mods screen (Modeissa in the button); 'käyttäjiä: %1' for used by %1.
 FileVerbOffWith is a loose 'Kytke pois, myös %1'.
+
+Find on the Skills and Equipment tabs (Nov 11 2026): 12 UI_ZeD_Find_ lines (the field's placeholders, the count, the "nothing matches" lines, Clear, "covers %1", the help lines) are machine drafts, not checked by a native speaker. The body parts in "covers %1" come from the game itself; "dim" (the rows that do not match) is the word to check first.

@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "Wył.: %1",
     "UI_ZeD_Mods_ChipErrorOne": "1 błąd",
     "UI_ZeD_Mods_ChipErrors": "Błędy: %1",
-    "UI_ZeD_Mods_PendingFiles": "Pliki przełączone w %1. Przeładowanie wprowadza je, bez restartu."
+    "UI_ZeD_Mods_PendingFiles": "Pliki przełączone w %1. Przeładowanie wprowadza je, bez restartu.",
+    "UI_ZeD_Find_SkillsHint": "Znajdź umiejętność",
+    "UI_ZeD_Find_EquipHint": "Noszone, miejsce, część ciała",
+    "UI_ZeD_Find_Count": "%1 z %2",
+    "UI_ZeD_Find_SkillsNone": "Nic w karcie Umiejętności nie pasuje do „%1”.",
+    "UI_ZeD_Find_SkillsLooks": "Wyszukiwanie obejmuje umiejętności, ich grupy i podręczniki.",
+    "UI_ZeD_Find_EquipNone": "Nic w karcie Ekwipunek nie pasuje do „%1”.",
+    "UI_ZeD_Find_EquipLooks": "Wyszukiwanie obejmuje noszone rzeczy, miejsca i części ciała, które zakrywają.",
+    "UI_ZeD_Find_Clear": "Wyczyść",
+    "UI_ZeD_Find_Covers": "zakrywa %1",
+    "UI_ZeD_Find_HelpSkills": "Wpisz część nazwy umiejętności lub jej grupy: reszta przygaśnie",
+    "UI_ZeD_Find_HelpEquip": "Wpisz część nazwy noszonej rzeczy, miejsca lub części ciała: reszta przygaśnie",
+    "UI_ZeD_Find_HelpClear": "Wyczyść wyszukiwanie: wszystkie wiersze wracają"
 }

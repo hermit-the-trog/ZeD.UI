@@ -33,3 +33,5 @@ Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All m
 Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
 Thai has no spaces between words, so spaces mark clause breaks; error tags shortened to 'ผิดพลาด %1' for the 12 limit.
 'Turn off with the %1' as 'ปิดพร้อมอีก %1 ไฟล์' (with %1 more files).
+
+Find on the Skills and Equipment tabs (Nov 11 2026): 12 UI_ZeD_Find_ lines (the field's placeholders, the count, the "nothing matches" lines, Clear, "covers %1", the help lines) are machine drafts, not checked by a native speaker. The body parts in "covers %1" come from the game itself; "dim" (the rows that do not match) is the word to check first.

@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "Oprite: %1",
     "UI_ZeD_Mods_ChipErrorOne": "1 eroare",
     "UI_ZeD_Mods_ChipErrors": "%1 erori",
-    "UI_ZeD_Mods_PendingFiles": "Fișiere comutate în %1. O reîncărcare le pune la loc, fără repornire."
+    "UI_ZeD_Mods_PendingFiles": "Fișiere comutate în %1. O reîncărcare le pune la loc, fără repornire.",
+    "UI_ZeD_Find_SkillsHint": "Găsește o abilitate",
+    "UI_ZeD_Find_EquipHint": "Purtat, loc, parte a corpului",
+    "UI_ZeD_Find_Count": "%1 din %2",
+    "UI_ZeD_Find_SkillsNone": "Nimic din fila Abilități nu se potrivește cu „%1”.",
+    "UI_ZeD_Find_SkillsLooks": "Căutarea se uită la abilități, grupurile lor și cărțile de învățat.",
+    "UI_ZeD_Find_EquipNone": "Nimic din fila Echipament nu se potrivește cu „%1”.",
+    "UI_ZeD_Find_EquipLooks": "Căutarea se uită la lucrurile purtate, locuri și părțile corpului pe care le acoperă.",
+    "UI_ZeD_Find_Clear": "Șterge",
+    "UI_ZeD_Find_Covers": "acoperă %1",
+    "UI_ZeD_Find_HelpSkills": "Scrie o parte din numele unei abilități sau al grupului ei: restul se estompează",
+    "UI_ZeD_Find_HelpEquip": "Scrie o parte din numele unui lucru purtat, a unui loc sau a unei părți a corpului: restul se estompează",
+    "UI_ZeD_Find_HelpClear": "Golește căutarea: toate rândurile reapar"
 }

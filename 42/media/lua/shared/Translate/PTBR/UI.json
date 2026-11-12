@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 desligados",
     "UI_ZeD_Mods_ChipErrorOne": "1 erro",
     "UI_ZeD_Mods_ChipErrors": "%1 erros",
-    "UI_ZeD_Mods_PendingFiles": "Arquivos alterados em %1. Uma recarga os coloca no lugar, sem reiniciar."
+    "UI_ZeD_Mods_PendingFiles": "Arquivos alterados em %1. Uma recarga os coloca no lugar, sem reiniciar.",
+    "UI_ZeD_Find_SkillsHint": "Buscar habilidade",
+    "UI_ZeD_Find_EquipHint": "Vestido, espaço, parte do corpo",
+    "UI_ZeD_Find_Count": "%1 de %2",
+    "UI_ZeD_Find_SkillsNone": "Nada na aba Habilidades corresponde a \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "A busca olha as habilidades, seus grupos e os livros de treino.",
+    "UI_ZeD_Find_EquipNone": "Nada na aba Equipamento corresponde a \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "A busca olha os itens vestidos, os espaços e as partes do corpo que cobrem.",
+    "UI_ZeD_Find_Clear": "Limpar",
+    "UI_ZeD_Find_Covers": "cobre %1",
+    "UI_ZeD_Find_HelpSkills": "Digite parte do nome de uma habilidade ou do grupo: o resto escurece",
+    "UI_ZeD_Find_HelpEquip": "Digite parte do nome de um item vestido, um espaço ou uma parte do corpo: o resto escurece",
+    "UI_ZeD_Find_HelpClear": "Limpar a busca: todas as linhas voltam"
 }

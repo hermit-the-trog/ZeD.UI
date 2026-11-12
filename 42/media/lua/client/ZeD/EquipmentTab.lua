@@ -753,7 +753,8 @@ local function _drawGroupHeader(panel, win, group, expanded, x, y, w)
     if hovered then ZeD.Help.set(panel, ZeD.tr(expanded and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp")) end
 end
 
-local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
+-- why / q: the Find text's match on this row ("name" or "slot" underlines those letters)
+local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win, why, q)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
@@ -813,6 +814,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
         name = A.truncateText(name, T.fontF2, c.nameW)
         panel:drawText(name, x + c.nameX, textY,
             nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, T.fontF2)
+        if why == "name" then ZeD.TabFind.underline(panel, name, T.fontF2, x + c.nameX, textY, q, x + c.nameX + c.nameW) end
     end
 
     -- Slot label (truncated to fit column)
@@ -826,6 +828,9 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     typeStr = A.truncateText(typeStr, T.fontF1, slotRoom)
     panel:drawText(typeStr, x + c.slotX + c.slotPad, secTextY,
         typeColor.r, typeColor.g, typeColor.b, typeColor.a or 0.9, T.fontF1)
+    if why == "slot" then
+        ZeD.TabFind.underline(panel, typeStr, T.fontF1, x + c.slotX + c.slotPad, secTextY, q, x + c.slotX + c.slotColW)
+    end
 
     -- The item's one bar, as the inventory lists' and the belt's (ZeD.ItemMeter, punch list 152): a worn item's
     -- condition, a held bottle's or lighter's how full (QA's Mac run on test 9, Nov 11 2026: the Held rows showed a
@@ -1449,12 +1454,25 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local totalH = 0
     local Doll = ZeD.EquipDoll
     local dollView = listExpanded and Doll.view() == "doll"
+    -- The Find text's matches, over the view showing (worked out again only when the text or
+    -- the data changes). While it holds text the Defense block hides (it is about the whole
+    -- outfit); with nothing matching, the empty result takes the list's or the doll's place.
+    local TF = ZeD.TabFind
+    if dollView and not win._equipDollData then win._equipDollData = Doll.gather(win._playerObj, win.playerNum or 0) end
+    local findRes = TF and (dollView and TF.doll(win, win._equipDollData) or TF.equip(win, data)) or nil
+    local findEmpty = listExpanded and findRes ~= nil and findRes.shown == 0
+    if findEmpty then dollView = false end
+    win._equipDefHidden = findRes ~= nil
+    if findRes then hasDefBody = false end
+    local covH = ZeD.TM:getFontHeight(T.fontF1) + T.px(4)   -- (a "covers ..." line under a row)
     -- the doll fits the viewport before any scrollbar; measured from last frame's data
     local dollH = 0
     if dollView then
         if not win._equipDollData then win._equipDollData = Doll.gather(win._playerObj, win.playerNum or 0) end
         dollH = Doll.measure(win, w - T.sp.scrollbarW, h - headerH)
         totalH = totalH + dollH
+    elseif findEmpty then
+        totalH = totalH + TF.emptyH(win, "equip", w - T.sp.scrollbarW)
     elseif listExpanded then
         totalH = totalH + T.px(EQUIP_HDR_H)
         for gi, g in ipairs(data.groups) do
@@ -1465,6 +1483,11 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
             else
                 for _, s in ipairs(g.slots) do
                     if s.item then totalH = totalH + slotRowH end
+                end
+            end
+            if findRes then
+                for _, s in ipairs(g.slots) do
+                    if s.item and findRes.covers[s.type] then totalH = totalH + covH end
                 end
             end
         end
@@ -1543,6 +1566,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         win._equipDollClip = { x = x, y = scrollY, w = contentW, h = scrollH }
         win._equipDollPanel = panel
         drawY = drawY + dh
+    elseif findEmpty then
+        -- nothing matches the Find text: what was asked for, what the field looks at, Clear
+        win._equipGroupZones = {}
+        drawY = drawY + TF.drawEmpty(panel, win, "equip", x, drawY, contentW, eqFocus(win, "__findclear"))
     elseif listExpanded then
         -- Column headers FIRST — equipped inventory list is the most-accessed
         -- region of this drawer.
@@ -1567,8 +1594,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
         for gi, g in ipairs(data.groups) do
             local expanded = win._equipExpanded[g.id]
-            -- Group header
+            -- Group header (dimmed when nothing in it matches the Find text)
             _drawGroupHeader(panel, win, g, expanded, x, drawY, contentW)
+            if findRes and (findRes.group[g.id] or 0) == 0 then TF.dim(panel, x, drawY, contentW, T.px(GROUP_H)) end
 
             -- Store group zone + stamp Y for scroll-follow (keyed by group focus id)
             gzi = gzi + 1
@@ -1586,7 +1614,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                 local showSlot = expanded or (s.item ~= nil)
                 if showSlot then
                     local isSelected = win._equipSelected == s.type
-                    _drawSlotRow(panel, s, isSelected, x, drawY, contentW, si, win)
+                    local why = findRes and s.item and findRes.hit[s.type] or nil
+                    _drawSlotRow(panel, s, isSelected, x, drawY, contentW, si, win, why, findRes and findRes.q)
+                    -- the Find text: a row that doesn't match is dimmed in place
+                    if findRes and not why then TF.dim(panel, x, drawY, contentW, T.rowH) end
 
                     -- Store slot zone + stamp Y for gamepad scroll-follow (only if item present)
                     if s.item then
@@ -1597,10 +1628,23 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                         win._equipSlotYMap[s.type] = drawY
                     end
                     drawY = drawY + T.rowH
+                    -- matched by a body part it covers: which ones, on a line under the row
+                    local cov = findRes and s.item and findRes.covers[s.type]
+                    if cov then
+                        local cc = calcEquipColumns(contentW, win)
+                        local ac = T.accent
+                        local line = ZeD.tr("UI_ZeD_Find_Covers", table.concat(cov, ", "))
+                        line = ZeD.Atoms.truncateText(line, T.fontF1, contentW - cc.nameX - T.px(8))
+                        panel:drawText(line, x + cc.nameX, drawY + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, T.fontF1)
+                        drawY = drawY + covH
+                    end
                 end
             end
             if g.id == "held" then
+                local by0 = drawY
                 drawY = _drawBeltRows(panel, win, _beltSlots(win, expanded), x, drawY, contentW, beltZones)
+                -- the belt's hooks are not worn: dimmed while the Find field holds text
+                if findRes and drawY > by0 then TF.dim(panel, x, by0, contentW, drawY - by0) end
             end
         end
     end
@@ -1640,18 +1684,25 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- (the defense body always shows at the bottom of the tab). The pointer's
     -- hover wash and the controller's focus mark are the header's own
     -- (drawTabHeader), under its words.
+    local title = ZeD.tr("UI_ZeD_Equip_Equipped")
     do
-        local hdrHover = ZeD.Atoms.mouseIn(panel, x, y, w, headerH)
-        ZeD.Molecules.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Equipped"), listExpanded, hdrHover, nil,
+        local hdrHover = ZeD.Atoms.mouseIn(panel, x, y, w, headerH) and not (TF and TF.overField(win, "equip", panel))
+        ZeD.Molecules.drawTabHeader(panel, x, y, w, title, listExpanded, hdrHover, nil,
             { focus = eqFocus(win, "__disclosure") })
         if hdrHover then ZeD.Help.set(panel, ZeD.tr(listExpanded and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp")) end
     end
     -- List | Doll, at the heading's right edge
     Doll.drawToggle(panel, win, x, y, w, headerH, panel:getMouseX(), panel:getMouseY())
+    -- the Find field left of List | Doll, the count left of it
+    local headEnd = x + w
+    if TF then
+        headEnd = TF.drawHead(panel, win, "equip", x, y, headerH, TF.titleRight(x, title),
+            Doll.toggleX(x, w, headerH) - T.px(8), eqFocus(win, "__find"))
+    end
     -- The old field name stays (_equipDefenseZone): CharacterWindow's click
-    -- and pad routing read it. It points at the "Equipped" disclosure; the
-    -- zone works as it always did.
-    win._equipDefenseZone = { x = x, y = y, w = w, h = headerH }
+    -- and pad routing read it. It points at the "Equipped" disclosure, which
+    -- stops short of the Find field.
+    win._equipDefenseZone = { x = x, y = y, w = math.max(T.px(40), math.min(w, headEnd - x)), h = headerH }
 
     if scroll.visible then
         scroll:draw(panel)

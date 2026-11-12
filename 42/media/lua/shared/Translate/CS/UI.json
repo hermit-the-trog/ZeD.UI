@@ -6538,5 +6538,17 @@
     "UI_ZeD_Mods_ChipFilesOff": "Vypnuto: %1",
     "UI_ZeD_Mods_ChipErrorOne": "1 chyba",
     "UI_ZeD_Mods_ChipErrors": "Chyby: %1",
-    "UI_ZeD_Mods_PendingFiles": "Soubory přepnuty v %1. Znovunačtení je nasadí, bez restartu."
+    "UI_ZeD_Mods_PendingFiles": "Soubory přepnuty v %1. Znovunačtení je nasadí, bez restartu.",
+    "UI_ZeD_Find_SkillsHint": "Najít dovednost",
+    "UI_ZeD_Find_EquipHint": "Nošené, místo, část těla",
+    "UI_ZeD_Find_Count": "%1 z %2",
+    "UI_ZeD_Find_SkillsNone": "Nic na kartě Dovednosti neodpovídá „%1“.",
+    "UI_ZeD_Find_SkillsLooks": "Hledání prochází dovednosti, jejich skupiny a učebnice.",
+    "UI_ZeD_Find_EquipNone": "Nic na kartě Výbava neodpovídá „%1“.",
+    "UI_ZeD_Find_EquipLooks": "Hledání prochází nošené věci, místa a části těla, které zakrývají.",
+    "UI_ZeD_Find_Clear": "Vymazat",
+    "UI_ZeD_Find_Covers": "zakrývá %1",
+    "UI_ZeD_Find_HelpSkills": "Napište část názvu dovednosti nebo její skupiny: zbytek ztmavne",
+    "UI_ZeD_Find_HelpEquip": "Napište část názvu nošené věci, místa nebo části těla: zbytek ztmavne",
+    "UI_ZeD_Find_HelpClear": "Vymazat hledání: všechny řádky se vrátí"
 }
