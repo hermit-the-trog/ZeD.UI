@@ -2,7 +2,7 @@
 
 Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload_b12/` in file-name order, one picture at a time. Every picture is 1920 x 1080, each under 1 MB. Contact sheet: `upload_contact_b12.jpg`.
 
-79 pictures now; 80 when every shot is in.
+80 pictures now; 80 when every shot is in.
 
 | # | Picture | What it is |
 |---|---|---|
@@ -84,11 +84,9 @@ Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload
 | 76 | `61_night_shift.jpg` | chapter 61, Night Shift (story) |
 | 77 | `62_uploader.jpg` | chapter 62, Uploading |
 | 78 | `63_multiplayer.jpg` | chapter 63, Playing on a Server |
-| 79 | `63b_break_angel_close.jpg` | break (`cinema/cin_ang_close.jpg`): Angel, Light + Blue, night: Angel meets a group of survivors on a server, Server and Loot **(missing)** |
+| 79 | `63b_break_angel_close.jpg` | break (`cinema/cin_ang_close.jpg`): Angel, Light + Blue, night: Angel meets a group of survivors on a server, Server and Loot |
 | 80 | `69_the_end.jpg` | the director's closing picture |
 
 ## Missing shots
 
-Each is framed and placed when its raw 4K capture is in `~/Zomboid/Screenshots` under this name; then run `py make_b12.py` again.
-
-- `cin_ang_close.png` for `63b_break_angel_close.jpg`: Angel, Light + Blue, night: Angel meets a group of survivors on a server, Server and Loot
+None.
