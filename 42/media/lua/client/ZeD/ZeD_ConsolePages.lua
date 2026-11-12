@@ -8,13 +8,22 @@
 -- one keycap, Back to the log. Controller: the hand walks the fold headers (A folds one), then the band; D-pad left
 -- from the page goes to the strip.
 --
+-- Commands (ZeD_ConsoleCommands.lua holds the list): the search and your role at the top, the commands under group
+-- fold headers (name, what it does, and the lowest role that may use it, or in single player the debug menu's way
+-- of doing it), the picked one's syntax, example and the rest under the list, then the chat line and the band. On a
+-- server a click fills the chat line with the example and Send sends it; one that can't be undone asks first, in the
+-- band. In single player a pick opens its debug window where there is one (the band's keycap does too).
+-- Controller: the hand walks the search, the list, the line and the band; A fills (or opens), X sends.
+--
 -- The one thing to know: the page draws inside the window's own prerender, so everything it measures is kept per
 -- width and text size and laid out again only when one of them, or a fold, changes.
 -- ============================================================================
 
 require "ZeD/ZeD_DebugConsole"
+require "ZeD/ZeD_ConsoleCommands"
 
 local DC = ZeD.DebugConsole
+local CC = ZeD.ConsoleCommands
 local W = ZeD_DebugConsoleWindow
 local UI = DC.ui
 local U = UI.U
@@ -177,6 +186,567 @@ function W:helpFold(id)
     self.hFold = self.hFold or {}
     if self.hFold[id] then self.hFold[id] = nil else self.hFold[id] = true end
     sound()
+end
+
+-- ---------------------------------------------------------------------------
+-- COMMANDS: the boxes (the search, the chat line), made with the window's own
+-- ---------------------------------------------------------------------------
+local baseChildren = W.createChildren
+function W:createChildren()
+    baseChildren(self)
+    local win = self
+    local q = UI.makeEntry(self, 100)
+    q.onCommandEntered = function() q:unfocus() end
+    q.onOtherKey = function(_, key) if key == Keyboard.KEY_ESCAPE then q:unfocus() end end
+    self.cq = q
+    local c = UI.makeEntry(self, 256)
+    c.onCommandEntered = function() win:cmdSend() end
+    c.onOtherKey = function(_, key) if key == Keyboard.KEY_ESCAPE then c:unfocus() end end
+    self.chat = c
+    self.cFold, self.cScroll, self.cFocus, self.cbFocus = {}, 0, 1, 2
+    self._cqSt, self._chatSt = {}, {}
+end
+
+local LEVEL_COLOR = { "textDim", "textDim", "positive", "warning", "danger" }
+local function levelColor(rank) return ZeD.T[LEVEL_COLOR[rank or 4] or "warning"] or ZeD.T.textDim end
+
+-- the flat rows: a fold header per group shown, then its commands (unless folded); made again when the search or a
+-- fold changes, and once a second for a role that changed under it
+function W:_cmdItems()
+    local q = self.cq and tostring(self.cq:getText() or "") or ""
+    local key = q .. "|" .. tostring(CC.server()) .. "|" .. tostring(math.floor(getTimestampMs() / 1000))
+    for _, g in ipairs(CC.GROUPS) do key = key .. (self.cFold[g.id] and "1" or "0") end
+    if self._cKey == key and self._cItems then return self._cItems, self._cShown end
+    local groups, n = CC.shown(q)
+    local items = {}
+    for _, gr in ipairs(groups) do
+        items[#items + 1] = { t = "fold", g = gr.group, n = #gr.cmds }
+        if not self.cFold[gr.group.id] then
+            for _, c in ipairs(gr.cmds) do items[#items + 1] = { t = "cmd", c = c } end
+        end
+    end
+    if self._cQ ~= q then self.cScroll, self._cQ = 0, q end
+    self._cKey, self._cItems, self._cShown = key, items, n
+    if self.cFocus > #items then self.cFocus = math.max(1, #items) end
+    return items, n
+end
+
+function W:_cmdSel()
+    return self.csel and CC.byName[string.lower(self.csel)] or nil
+end
+
+-- the single-player words for a command: "Debug menu > Cheats", the place said, or nothing like it
+local function aloneWords(c, long)
+    local a = CC.alone(c)
+    if a and a.open then return tr("UI_ZeD_Console_SpMenu", a.label), true end
+    if a and a.say then return a.say, true end
+    return tr(long and "UI_ZeD_Console_SpNoneLong" or "UI_ZeD_Console_SpNone"), false
+end
+
+--- A command picked (a click, A): on a server its example fills the chat line; in single player its debug window
+--- opens where there is one.
+function W:cmdPick(c)
+    if not c then return end
+    self.csel = c.name
+    self.cConfirm = nil
+    self._cStatus = nil
+    sound()
+    if CC.server() then
+        self.chat:setText(c.ex)
+    else
+        CC.openAlone(c)
+    end
+end
+
+--- Send the chat line (Enter in it, Send, X). One that can't be undone asks first, in the band.
+function W:cmdSend(confirmed)
+    if not CC.server() then return end
+    local text = tostring(self.chat:getText() or "")
+    if UI.blank(text) then return end
+    if not confirmed and CC.asks(text) then
+        self.cConfirm = text
+        if self.joyfocus then self.zone, self.cbFocus = "pband", 1 end
+        sound("UIActivateButton")
+        return
+    end
+    self.cConfirm = nil
+    local how = CC.send(text)
+    local T = ZeD.T
+    if how == "sent" or how == "chat" then
+        self._cStatus = { text = tr("UI_ZeD_Console_CmdSent", text), color = T.positive }
+        self.chat:setText("")
+    elseif how == "filled" then
+        self._cStatus = { text = tr("UI_ZeD_Console_CmdFilled", text), color = T.warning }
+    else
+        self._cStatus = { text = tr("UI_ZeD_Console_CmdNotSent"), color = T.danger }
+    end
+    sound("UIActivateButton")
+    DC.lastSent = text
+end
+
+-- a typed field: its box, the magnifier or the mark, the words over the hidden game box
+function W:_cmdField(inp, st, x, y, w, h, mark, placeholder, zone, joy)
+    local T = ZeD.T
+    local s1 = T.base or T.surf1
+    self:drawRect(x, y, w, h, s1.a or 1, s1.r, s1.g, s1.b)
+    local focused = inp:isFocused()
+    local bc = focused and T.accent or T.borderS
+    self:drawRectBorder(x, y, w, h, bc.a or 1, bc.r, bc.g, bc.b)
+    local ex
+    if mark then
+        local f3, td = T.fontF3, T.textDim
+        self:drawText(mark, x + px(6), y + math.floor((h - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
+        ex = x + px(6) + ZeD.TM:MeasureStringX(f3, mark) + px(6)
+    else
+        ex = x + px(6) + ZeD.Atoms.drawSearchIcon(self, x + px(6), y, h) + px(6)
+    end
+    local ew = math.max(px(10), x + w - px(4) - ex)
+    UI.parkEntry(inp, ew, y, h)
+    self:_drawTyped(inp, ex, y, ew, h, T.fontF3, focused, placeholder, st)
+    if joy and self.zone == zone then UI.mark(self, x, y, w, h) end
+    return { x = x, y = y, w = w, h = h }
+end
+
+-- the head: the search, your role (or single player), "shown of total"
+function W:_cmdHead(x, y, w, h, joy, shown)
+    local T = ZeD.T
+    local f3 = T.fontF3
+    local pad = px(U.PAD)
+    ZeD.Atoms.drawDividerH(self, x, y + h - px(1), w)
+    local role = CC.server() and tr("UI_ZeD_Console_CmdYourRole", CC.myRole() or "?") or tr("UI_ZeD_Console_CmdSingle")
+    local cs = tr("UI_ZeD_Console_CmdCount", shown, CC.total())
+    local rw, cw = ZeD.TM:MeasureStringX(f3, role), ZeD.TM:MeasureStringX(f3, cs)
+    local ih = T.inputH
+    local fy = y + math.floor((h - ih) / 2)
+    local fw = w - 2 * pad - cw - rw - px(20)
+    local showRole = fw >= px(120)
+    if not showRole then fw = w - 2 * pad - cw - px(10) end
+    fw = math.max(px(60), fw)
+    self._cqRect = self:_cmdField(self.cq, self._cqSt, x + pad, fy, fw, ih, nil, tr("UI_ZeD_Console_CmdSearch"), "csearch", joy)
+    local tc, td = T.text, T.textDim
+    local ty = y + math.floor((h - fh(f3)) / 2)
+    if showRole then self:drawText(role, x + pad + fw + px(10), ty, tc.r, tc.g, tc.b, tc.a or 1, f3) end
+    if x + pad + fw + px(10) + cw <= x + w then self:drawText(cs, x + w - pad - cw, ty, td.r, td.g, td.b, td.a or 1, f3) end
+end
+
+-- one command row: name, what it does, and its level (a server) or the debug menu's way (single player)
+function W:_cmdRow(c, x, y, w, h, hover, foc, cols)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local f2, f3 = T.fontF2, T.fontF3
+    local picked = self.csel == c.name
+    local onFocus = false
+    if picked then
+        local a = T.accent
+        self:drawRect(x, y, w, h, a.a or 1, a.r, a.g, a.b)
+    elseif hover then
+        local hv = T.hover
+        self:drawRect(x, y, w, h, hv.a or 1, hv.r, hv.g, hv.b)
+    end
+    if foc then onFocus = UI.mark(self, x, y, w, h) end
+    local sp = not CC.server()
+    local words, has = nil, true
+    if sp then words, has = aloneWords(c, false) end
+    local alpha = (sp and not has) and (T.disabledAlpha or 0.4) or 1
+    local tc = onFocus and T.textOnFocus or (picked and T.textOnAccent or T.text)
+    local dc = onFocus and T.textOnFocus or (picked and T.textOnAccent or T.textDim)
+    local ty3, ty2 = y + math.floor((h - fh(f3)) / 2), y + math.floor((h - fh(f2)) / 2)
+    local nx = x + px(22)
+    self:drawText(A.truncateText("/" .. c.name, f3, cols.cmdW - px(4)), nx, ty3, tc.r, tc.g, tc.b, (tc.a or 1) * alpha, f3)
+    local rx = x + w - px(10) - cols.rightW
+    local dx = nx + cols.cmdW + px(10)
+    if rx - px(10) > dx then
+        self:drawText(A.truncateText(CC.does(c), f2, rx - px(10) - dx), dx, ty2, tc.r, tc.g, tc.b, (tc.a or 1) * alpha, f2)
+    end
+    if sp then
+        self:drawText(A.truncateText(words, f3, cols.rightW), rx, ty3, dc.r, dc.g, dc.b, (dc.a or 1) * alpha, f3)
+    else
+        local word, rank = CC.level(c)
+        local sq = px(U.MARK)
+        A.drawStatusDot(self, rx, y + math.floor((h - sq) / 2), (picked or onFocus) and dc or levelColor(rank), sq)
+        self:drawText(A.truncateText(word, f3, cols.rightW - sq - px(5)), rx + sq + px(5), ty3, dc.r, dc.g, dc.b, dc.a or 1, f3)
+    end
+end
+
+function W:_cmdList(x, y, w, h, joy)
+    local T = ZeD.T
+    local M = ZeD.Molecules
+    local items, shown = self:_cmdItems()
+    local foldH, rowH = px(U.FOLD), math.max(px(22), fh(T.fontF2) + px(4))
+    local total = px(4)
+    for _, it in ipairs(items) do total = total + (it.t == "fold" and foldH or rowH) end
+    local sbW = T.sp.scrollbarW
+    local bar = total > h
+    local iw = w - (bar and sbW or 0)
+    if self.cSeek then
+        self.cSeek = nil
+        local yy = px(4)
+        for i, it in ipairs(items) do
+            local ih = it.t == "fold" and foldH or rowH
+            if i == self.cFocus then
+                if yy < self.cScroll then self.cScroll = yy elseif yy + ih > self.cScroll + h then self.cScroll = yy + ih - h end
+                break
+            end
+            yy = yy + ih
+        end
+    end
+    self.cScroll = math.max(0, math.min(math.max(0, total - h), self.cScroll))
+    self._cMax = math.max(0, total - h)
+    self._cHits = {}
+    self._cListRect = { x = x, y = y, w = iw, h = h }
+    if #items == 0 then
+        local q = tostring(self.cq:getText() or "")
+        local line = CC.server() and tr("UI_ZeD_Console_CmdNoMatch", q) or tr("UI_ZeD_Console_CmdNoMatchSP", q)
+        local hh = M.drawEmptyLine(self, x + px(12), y + px(12), w - px(24), line)
+        M.drawEmptyLine(self, x + px(12), y + px(16) + hh, w - px(24), tr("UI_ZeD_Console_CmdSearchHint"))
+        return
+    end
+    local cols = { cmdW = math.min(px(168), math.floor(iw * 0.28)) }
+    cols.rightW = CC.server() and px(96) or math.min(px(200), math.floor(iw * 0.32))
+    local mx, my = self:getMouseX(), self:getMouseY()
+    if joy then mx, my = nil, nil end
+    self:setStencilRect(x, y, iw, h)
+    local yy = y + px(4) - self.cScroll
+    for i, it in ipairs(items) do
+        local ih = it.t == "fold" and foldH or rowH
+        if yy + ih > y and yy < y + h then
+            local hover = mx ~= nil and mx >= x and mx < x + iw and my >= yy and my < yy + ih and my >= y and my < y + h
+            local foc = joy and self.zone == "page" and self.cFocus == i
+            if it.t == "fold" then
+                M.drawSectionHeader(self, x + px(8), yy, iw - px(8), tr(it.g.key), it.n, not self.cFold[it.g.id], hover, nil, true, px(8), ih, nil,
+                    foc and { focus = UI.focusOpts(self) } or nil)
+            else
+                self:_cmdRow(it.c, x, yy, iw, ih, hover, foc, cols)
+                if hover then ZeD.Help.set(self, tr(CC.server() and "UI_ZeD_Console_CmdHelpServer" or "UI_ZeD_Console_CmdHelpSP")) end
+            end
+            self._cHits[#self._cHits + 1] = { y = math.max(y, yy), h = math.min(yy + ih, y + h) - math.max(y, yy), i = i }
+        end
+        yy = yy + ih
+    end
+    self:clearStencilRect()
+    if bar then
+        local win = self
+        M.scrollBar(self, nil, "cmds", x + w - sbW, y, sbW, h, self.cScroll, total, function(v) win.cScroll = v end, { step = rowH })
+    end
+end
+
+-- the picked command's lines: { label, words, mono } after its head line
+function W:_cmdDetailRows(c)
+    local rows = { { "UI_ZeD_Console_CmdSyntax", c.syn, true }, { "UI_ZeD_Console_CmdExample", c.ex, true } }
+    if #c.also > 0 then rows[#rows + 1] = { "UI_ZeD_Console_CmdAlso", "/" .. table.concat(c.also, "  /"), true } end
+    if CC.server() then
+        rows[#rows + 1] = { "UI_ZeD_Console_CmdDoes", CC.does(c) }
+        local w, has = aloneWords(c, false)
+        if has then rows[#rows + 1] = { "UI_ZeD_Console_CmdAlone", w } end
+    else
+        rows[#rows + 1] = { "UI_ZeD_Console_CmdSP", (aloneWords(c, true)) }
+        rows[#rows + 1] = { "UI_ZeD_Console_CmdDoes", CC.does(c) }
+    end
+    return rows
+end
+
+-- the detail under the list: the name, its level and capabilities (and "can't be undone"), then its lines; each
+-- line cut to fit, so it never pushes the list off a small window
+function W:_cmdDetail(c, x, y, w, h)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local f2, f3 = T.fontF2, T.fontF3
+    A.drawDividerH(self, x, y, w)
+    local lh = math.max(fh(f2), fh(f3)) + px(3)
+    local yy = y + px(6)
+    local tc, td = T.text, T.textDim
+    self:setStencilRect(x, y, w, h)
+    local hx = x + px(12)
+    self:drawText("/" .. c.name, hx, yy, tc.r, tc.g, tc.b, tc.a or 1, f3)
+    hx = hx + ZeD.TM:MeasureStringX(f3, "/" .. c.name) + px(10)
+    local word, rank = CC.level(c)
+    local sq = px(U.MARK)
+    local tag = word .. " | " .. table.concat(c.caps, ", ")
+    A.drawStatusDot(self, hx, yy + math.floor((fh(f3) - sq) / 2), levelColor(rank), sq)
+    tag = A.truncateText(tag, f3, math.max(0, x + w - px(12) - hx - sq - px(5)))
+    self:drawText(tag, hx + sq + px(5), yy, td.r, td.g, td.b, td.a or 1, f3)
+    if c.undo == false then
+        local nx = hx + sq + px(5) + ZeD.TM:MeasureStringX(f3, tag) + px(12)
+        local s = tr("UI_ZeD_Console_CmdNoUndo")
+        if nx + sq + px(5) + ZeD.TM:MeasureStringX(f3, s) <= x + w - px(12) then
+            A.drawStatusDot(self, nx, yy + math.floor((fh(f3) - sq) / 2), T.danger, sq)
+            self:drawText(s, nx + sq + px(5), yy, td.r, td.g, td.b, td.a or 1, f3)
+        end
+    end
+    yy = yy + lh
+    local labW = math.min(px(116), math.floor(w * 0.25))
+    for _, r in ipairs(self:_cmdDetailRows(c)) do
+        if yy + lh > y + h then break end
+        local f = r[3] and f3 or f2
+        self:drawText(A.truncateText(tr(r[1]), f3, labW - px(4)), x + px(12), yy, td.r, td.g, td.b, td.a or 1, f3)
+        self:drawText(A.truncateText(tostring(r[2] or ""), f, math.max(0, w - labW - px(34))), x + px(12) + labW + px(10), yy, tc.r, tc.g, tc.b, tc.a or 1, f)
+        yy = yy + lh
+    end
+    self:clearStencilRect()
+end
+
+function W:_cmdDetailH(c)
+    if not c then return 0 end
+    local T = ZeD.T
+    local lh = math.max(fh(T.fontF2), fh(T.fontF3)) + px(3)
+    return px(12) + lh * (1 + #self:_cmdDetailRows(c))
+end
+
+local _cBtns = { { id = "ccopy" }, { id = "csend", variant = "primary" } }
+local _cSpec = { buttons = _cBtns }
+local _cOpen = { { id = "copen", variant = "primary" } }
+local _cOpenSpec = { buttons = _cOpen }
+
+function W:_cmdBand(bandY, joy)
+    local c = self:_cmdSel()
+    local out
+    if not CC.server() then
+        local b = _cOpen[1]
+        local a = c and CC.alone(c)
+        if a and a.open then b.label, b.disabled = btn(tr("UI_ZeD_Console_SpOpen", a.label)), false
+        else b.label, b.disabled = btn(tr("UI_ZeD_Console_SpNothing")), true end
+        b.focus = (joy and self.zone == "pband") and UI.focusOpts(self) or nil
+        b.pressed = self._down == b.id
+        if joy then b.hover = false else b.hover = nil end
+        _cOpenSpec.win = self
+        _cOpenSpec.status = self._cStatus
+        local _
+        _, out = ZeD.Molecules.drawBand(self, 0, bandY, self.width, _cOpenSpec)
+        self._bandRects = out and out.buttons or {}
+        return
+    end
+    if self.cConfirm then
+        local fo = UI.focusOpts
+        local _, cr, vr = ZeD.Molecules.drawQuestionBand(self, 0, bandY, self.width, tr("UI_ZeD_Console_CmdAsk", self.cConfirm), btn(tr("UI_ZeD_Console_CmdSend")),
+            { win = self, cancelFocus = (joy and self.zone == "pband" and self.cbFocus == 1) and fo(self) or nil,
+              verbFocus = (joy and self.zone == "pband" and self.cbFocus == 2) and fo(self) or nil })
+        if cr then cr.id = "cno" end
+        if vr then vr.id = "cyes" end
+        self._bandRects = { cr, vr }
+        return
+    end
+    local blankLine = UI.blank(tostring(self.chat:getText() or ""))
+    local b1, b2 = _cBtns[1], _cBtns[2]
+    if (self._copiedUntil or 0) > getTimestampMs() then b1.label = btn(tr("UI_ZeD_Msg_Copied")) else b1.label = btn(tr("UI_ZeD_Msg_CopyOne")) end
+    b1.disabled = blankLine
+    b2.label = btn(tr("UI_ZeD_Console_CmdSend"))
+    b2.disabled = blankLine
+    for i, b in ipairs(_cBtns) do
+        b.focus = (joy and self.zone == "pband" and self.cbFocus == i) and UI.focusOpts(self) or nil
+        b.pressed = self._down == b.id
+        if joy then b.hover = false else b.hover = nil end
+    end
+    _cSpec.win = self
+    _cSpec.status = self._cStatus
+    local _
+    _, out = ZeD.Molecules.drawBand(self, 0, bandY, self.width, _cSpec)
+    self._bandRects = out and out.buttons or {}
+end
+
+function W:_drawCmds(x, top, w, h, bandY, joy)
+    local T = ZeD.T
+    local pad = px(U.PAD)
+    local hh = px(U.HEAD)
+    local _, shown = self:_cmdItems()
+    self:_cmdHead(x, top, w, hh, joy, shown)
+    local server = CC.server()
+    local ih = T.inputH
+    local lineH = server and (ih + 2 * pad) or 0
+    local c = self:_cmdSel()
+    local room = h - hh - lineH
+    local dh = math.min(self:_cmdDetailH(c), math.floor(room * 0.45))
+    local ly = top + hh + px(2)
+    local lh = math.max(0, top + h - lineH - dh - ly)
+    self:_cmdList(x, ly, w, lh, joy)
+    if c and dh > 0 then self:_cmdDetail(c, x, ly + lh, w, dh) end
+    if server then
+        local fy = top + h - lineH + pad
+        ZeD.Atoms.drawDividerH(self, x, top + h - lineH, w)
+        self._chatRect = self:_cmdField(self.chat, self._chatSt, x + pad, fy, w - 2 * pad, ih, tr("UI_ZeD_Console_CmdChatMark"), tr("UI_ZeD_Console_CmdPickHint"), "cline", joy)
+    else
+        self._chatRect = nil
+        UI.parkEntry(self.chat, px(10), top, ih)
+    end
+    self:_cmdBand(bandY, joy)
+end
+
+-- the page's words for the help line
+function W:_cmdStatus()
+    if not CC.server() then return tr("UI_ZeD_Console_CmdHelpSP") end
+    local c = self:_cmdSel()
+    if self.cConfirm then return tr("UI_ZeD_Console_CmdHelpUndo") end
+    if c and c.undo == false then return tr("UI_ZeD_Console_CmdHelpUndo") end
+    if c then return tr("UI_ZeD_Console_CmdHelpServer") end
+    return tr("UI_ZeD_Console_CmdHelpPick")
+end
+
+function W:_cmdUse(it)
+    if not it then return end
+    if it.t == "fold" then
+        sound()
+        if self.cFold[it.g.id] then self.cFold[it.g.id] = nil else self.cFold[it.g.id] = true end
+    else
+        self:cmdPick(it.c)
+    end
+end
+
+function W:_cmdMouseDown(x, y)
+    if inRect(self._cqRect, x, y) then
+        self.zone = "csearch"
+        self.cq:focus()
+        UI.placeCursor(self.cq, self._cqSt, x)
+        return true
+    end
+    if inRect(self._chatRect, x, y) then
+        self.zone = "cline"
+        self.chat:focus()
+        UI.placeCursor(self.chat, self._chatSt, x)
+        return true
+    end
+    if inRect(self._cListRect, x, y) then
+        local items = self:_cmdItems()
+        for _, hit in ipairs(self._cHits or {}) do
+            if y >= hit.y and y < hit.y + hit.h then
+                self.cFocus = hit.i
+                self:_cmdUse(items[hit.i])
+                return true
+            end
+        end
+        return true
+    end
+    return false
+end
+
+function W:_cmdPress(id)
+    if id == "csend" then self:cmdSend(); return true end
+    if id == "cyes" then self:cmdSend(true); return true end
+    if id == "cno" then sound("UIActivateButton"); self.cConfirm = nil; if self.zone == "pband" then self.cbFocus = 2 end; return true end
+    if id == "ccopy" then
+        local text = tostring(self.chat:getText() or "")
+        if UI.blank(text) then return true end
+        sound("UIActivateButton")
+        pcall(function() Clipboard.setClipboard(text) end)
+        DC.lastCopy = text
+        self._copiedUntil = getTimestampMs() + 1500
+        return true
+    end
+    if id == "copen" then
+        local c = self:_cmdSel()
+        if c and CC.openAlone(c) then sound("UIActivateButton") end
+        return true
+    end
+    return false
+end
+
+function W:_cmdWheel(del)
+    self.cScroll = math.max(0, math.min(self._cMax or 0, (self.cScroll or 0) + del * px(U.FROW) * 3))
+end
+
+-- the controller: the search, the list, the line (a server), the band
+function W:_cmdDir(dir)
+    local z = self.zone
+    local server = CC.server()
+    local items = self:_cmdItems()
+    local bandN = server and 2 or 1
+    if z == "csearch" then
+        if dir == "down" then self.zone, self.cSeek = "page", true; return true end
+        return dir ~= "left"
+    elseif z == "cline" then
+        if dir == "up" then self.zone, self.cSeek = "page", true
+        elseif dir == "down" then self.zone, self.cbFocus = "pband", bandN end
+        return dir ~= "left"
+    elseif z == "pband" then
+        if dir == "up" then self.zone = server and "cline" or "page"; self.cSeek = true
+        elseif dir == "left" then
+            if self.cbFocus > 1 then self.cbFocus = self.cbFocus - 1 else return false end
+        elseif dir == "right" then self.cbFocus = math.min(bandN, self.cbFocus + 1) end
+        return true
+    end
+    -- the list (and the zone a page starts on from the strip)
+    if z ~= "page" then self.zone, self.cSeek = "page", true; return dir ~= "left" end
+    if dir == "up" then
+        if self.cFocus > 1 then self.cFocus = self.cFocus - 1 else self.zone = "csearch" end
+    elseif dir == "down" then
+        if self.cFocus < #items then self.cFocus = self.cFocus + 1
+        else self.zone, self.cbFocus = server and "cline" or "pband", bandN end
+    else
+        return dir ~= "left"
+    end
+    self.cSeek = true
+    -- (moving onto a command shows its detail; A picks it)
+    local it = items[self.cFocus]
+    if it and it.t == "cmd" and self.zone == "page" then self.csel = it.c.name end
+    return true
+end
+
+function W:_cmdButton(button, jd)
+    local z = self.zone
+    if button == Joypad.BButton then
+        if self.cConfirm then sound("UIActivateButton"); self.cConfirm = nil; self.cbFocus = 2; return true end
+        return false
+    end
+    if button == Joypad.XButton then
+        if CC.server() then
+            local it = z == "page" and self:_cmdItems()[self.cFocus] or nil
+            if it and it.t == "cmd" and UI.blank(tostring(self.chat:getText() or "")) then self:cmdPick(it.c) end
+            self:cmdSend()
+        end
+        return true
+    end
+    if button ~= Joypad.AButton then return true end
+    if z == "csearch" then sound("UIActivateButton"); self:openKeyboard(jd or self.joyfocus, self.cq)
+    elseif z == "cline" then sound("UIActivateButton"); self:openKeyboard(jd or self.joyfocus, self.chat)
+    elseif z == "pband" then
+        local id
+        if self.cConfirm then id = self.cbFocus == 1 and "cno" or "cyes"
+        elseif CC.server() then id = self.cbFocus == 1 and "ccopy" or "csend"
+        else id = "copen" end
+        self:press(id)
+    else
+        self:_cmdUse(self:_cmdItems()[self.cFocus])
+    end
+    return true
+end
+
+function W:_cmdPrompts(out)
+    local z = self.zone
+    local server = CC.server()
+    if z == "csearch" or z == "cline" then
+        out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Keyboard") }
+    elseif z == "pband" then
+        out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Press") }
+    else
+        local it = self:_cmdItems()[self.cFocus]
+        if it and it.t == "fold" then out[#out + 1] = { glyph = "A", label = self.cFold[it.g.id] and tr("UI_ZeD_Prompt_Unfold") or tr("UI_ZeD_Prompt_Fold") }
+        elseif it then out[#out + 1] = { glyph = "A", label = server and tr("UI_ZeD_Console_PadFill") or tr("UI_ZeD_Console_PadOpen") } end
+    end
+    if server and not self.cConfirm then out[#out + 1] = { glyph = "X", label = tr("UI_ZeD_Console_CmdSend") } end
+end
+
+function W:_cmdBLabel()
+    if self.cConfirm then return getText("UI_Cancel") end
+    return nil
+end
+
+-- the pad keyboard put away on the chat line: on Send, ready
+function W:_pageKbDone(entry)
+    if entry == self.chat and not UI.blank(tostring(self.chat:getText() or "")) then self.zone, self.cbFocus = "pband", 2 end
+end
+
+function W:_cmdLeave(old)
+    if old == "cmds" then
+        if self.cq then self.cq:unfocus() end
+        if self.chat then self.chat:unfocus() end
+        self.cConfirm = nil
+    end
+end
+
+function W:_cmdClose()
+    local mine = {}
+    if self.cq then self.cq:unfocus(); mine[self.cq] = true end
+    if self.chat then self.chat:unfocus(); mine[self.chat] = true end
+    self.cConfirm = nil
+    return mine
 end
 
 -- ---------------------------------------------------------------------------
