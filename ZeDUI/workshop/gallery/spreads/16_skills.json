@@ -2,6 +2,7 @@
  "id": "skills",
  "n": 16,
  "seed": 64,
+ "strict": true,
  "pages": [52, 53],
  "left": {
   "kind": "taped",
@@ -13,7 +14,7 @@
    {"caption": ["Figure 16-1", "The Skills tab."]}
   ],
   "prints": [
-   {"src": "story_00b_skills_tall.png", "box": [718, 60, 1650, 1260], "scale": 0.48, "at": [330, 330], "tape": ["tl", "br"]}
+   {"src": "story_00b_skills_tall.png", "box": [718, 60, 1650, 1260], "scale": 0.47, "at": [330, 354], "tape": ["t", "br"]}
   ],
   "marks": [
    {"text": "The level at the left, ten cells at the right.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [[0, 808, 192], [0, 1133, 192]]},
@@ -21,7 +22,7 @@
    {"text": "Mechanics gains experience 125% faster.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 1030, 757]},
    {"text": "Strength at 9, with +125% XP.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 1410, 1074]}
   ],
-  "sticky": {"at": [62, 880], "w": 196, "text": "Every skill: its level and its bar."}
+  "sticky": {"at": [62, 900], "w": 196, "size": 14, "text": "Every skill: its level and its bar."}
  },
  "right": {
   "kind": "manual",

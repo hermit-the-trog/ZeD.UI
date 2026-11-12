@@ -46,6 +46,7 @@ OUTER, INNER = 210, 70                     # the wide outer margin is where he w
 PRINT_PAPER, TAPE, STICKY = (241, 237, 226), (214, 198, 150), (238, 222, 118)
 
 _fc = {}
+STRICT = False   # --strict (or "strict": true on a spread): also check tape and print edges over printed words
 
 
 def F(path, size):
@@ -378,6 +379,21 @@ def render(sp, screens, out_path):
             pg0, pg1 = PAGES[side]
             if (pbox[0] < pg0 + 8 or pbox[2] > pg1 - 8) and not p.get("cross"):
                 checks.append("print %d (%s) runs off its page" % (len(pboxes) - 1, p["src"]))
+    for s_ in (("left", "right") if STRICT or sp.get("strict") else ()):   # tape or a print's edge across printed words
+        for w_, wb in boxes[s_]:
+            if any(pb[0] <= wb[0] and pb[1] <= wb[1] and wb[2] <= pb[2] and wb[3] <= pb[3] for pb in pboxes):
+                continue                                          # wholly under a print: the paragraph it replaces
+            if any(overlap(wb, pb) for pb in pboxes):
+                checks.append("a print cuts the printed word '%s' (%s page)" % (w_, s_))
+                continue
+            for tcx, tcy, tang in tapes:
+                ca, sa = math.cos(math.radians(tang)), math.sin(math.radians(tang))
+                cxw, cyw = (wb[0] + wb[2]) / 2, (wb[1] + wb[3]) / 2
+                hw, hh = (wb[2] - wb[0]) / 2, (wb[3] - wb[1]) / 2
+                if (abs((cxw - tcx) * ca + (cyw - tcy) * sa) < 52 + hw * abs(ca) + hh * abs(sa) and
+                        abs((cyw - tcy) * ca - (cxw - tcx) * sa) < 17 + hw * abs(sa) + hh * abs(ca)):
+                    checks.append("tape lies over the printed word '%s' (%s page)" % (w_, s_))
+                    break
     margin_y, notes = {}, []
     for side in ("left", "right"):
         pg = sp[side]
@@ -502,8 +518,11 @@ def main():
     ap.add_argument("spec", help="the spreads folder (or one json file)")
     ap.add_argument("out")
     ap.add_argument("--only", default="")
+    ap.add_argument("--strict", action="store_true", help="also flag tape or a print's edge over printed words")
     ap.add_argument("--jpg", default="", help="also write the upload copies here: JPEG under Steam's 1 MB")
     a = ap.parse_args()
+    global STRICT
+    STRICT = a.strict
     screens, sps = load_spreads(a.spec)
     os.makedirs(a.out, exist_ok=True)
     if a.jpg:

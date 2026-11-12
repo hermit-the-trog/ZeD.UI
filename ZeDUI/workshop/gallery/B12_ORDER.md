@@ -2,7 +2,7 @@
 
 Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload_b12/` in file-name order, one picture at a time. Every picture is 1920 x 1080, each under 1 MB. Contact sheet: `upload_contact_b12.jpg`.
 
-74 pictures now; 80 when every shot is in.
+76 pictures now; 80 when every shot is in.
 
 | # | Picture | What it is |
 |---|---|---|
@@ -22,7 +22,7 @@ Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload
 | 14 | `10_foraging_furniture.jpg` | chapter 10, Foraging and Furniture |
 | 15 | `11_item_cards.jpg` | chapter 11, Item Cards |
 | 16 | `12_laundry.jpg` | chapter 12, Washer and Dryer |
-| 17 | `12b_break_kohners_house.jpg` | break (`cinema/cin_koh_house.jpg`): Kohners, Dark + Pink: a house with power, an item card open, the washer-dryer's card **(missing)** |
+| 17 | `12b_break_kohners_house.jpg` | break (`cinema/cin_koh_house.jpg`): Kohners, Dark + Pink: a house with power, an item card open, the washer-dryer's card |
 | 18 | `13_the_route.jpg` | chapter 13, The Route (story) |
 | 19 | `14_equip_doll.jpg` | chapter 14, Equipment Tab |
 | 20 | `15_crafting.jpg` | chapter 15, Crafting |
@@ -62,7 +62,7 @@ Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload
 | 54 | `43_dashboards.jpg` | chapter 43, Dashboards |
 | 55 | `44_reading_writing.jpg` | chapter 44, Reading and Writing |
 | 56 | `45_full_or_simple.jpg` | chapter 45, Immersive or Simple |
-| 57 | `45b_break_kohners_dusk.jpg` | break (`cinema/cin_koh_dusk.jpg`): Kohners, Dark + Pink: driving at dusk, the dashboard and the car radio, no windows **(missing)** |
+| 57 | `45b_break_kohners_dusk.jpg` | break (`cinema/cin_koh_dusk.jpg`): Kohners, Dark + Pink: driving at dusk, the dashboard and the car radio, no windows |
 | 58 | `46_customers.jpg` | chapter 46, Customers (story) |
 | 59 | `47_controller_map.jpg` | chapter 47, Controller |
 | 60 | `48_controller.jpg` | chapter 48, On a Controller |
@@ -92,8 +92,6 @@ Written by `make_b12.py` (plan v2, `PLAN_ALTERNATE_20261111.md`). Upload `upload
 Each is framed and placed when its raw 4K capture is in `~/Zomboid/Screenshots` under this name; then run `py make_b12.py` again.
 
 - `cin_ang_open.png` for `00b_break_angel_open.jpg`: Angel, Light + Blue: the Fossoil in the morning, both windows on Loot
-- `cin_koh_house.png` for `12b_break_kohners_house.jpg`: Kohners, Dark + Pink: a house with power, an item card open, the washer-dryer's card
 - `cin_mck_kitchen.png` for `22b_break_mckline_kitchen.jpg`: McKline, High Contrast + Red: his kitchen, Cooking and the oven in Crafting
 - `cin_lau_lake.png` for `27b_break_laura_lake.jpg`: Laura, Light + Teal (reshoot): the lake, Radio (a walkie) and Fishing
-- `cin_koh_dusk.png` for `45b_break_kohners_dusk.jpg`: Kohners, Dark + Pink: driving at dusk, the dashboard and the car radio, no windows
 - `cin_ang_close.png` for `63b_break_angel_close.jpg`: Angel, Light + Blue, night: Angel meets a group of survivors on a server, Server and Loot

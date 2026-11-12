@@ -2,28 +2,29 @@
  "id": "farm",
  "n": 20,
  "seed": 65,
+ "strict": true,
  "pages": [60, 61],
  "left": {
   "kind": "taped",
   "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
   "blocks": [
    {"chapter": ["20", "The Farm"]},
-   {"p": "A farm has two parts: the plot, where crops grow, and the pasture, where animals are kept. Each has a card of its own. A crop grows through stages, and each stage shows on the ground. Figure 20-1 shows a row of crops at their stages and the card of a plot."},
+   {"p": "A farm has a plot, where crops grow, and a pasture, where animals are kept. Each stage of a crop shows on the ground, as Figure 20-1 shows."},
    {"at": 972},
    {"caption": ["Figure 20-1", "A row of crops, top, and the card of a plot, bottom."]}
   ],
   "prints": [
-   {"src": "gfr_yard.png", "box": [1050, 1150, 2350, 1800], "scale": 0.46, "at": [270, 300], "tape": ["tl", "br"]},
-   {"src": "gfr_crop_grown.png", "box": [2630, 40, 3520, 740], "scale": 0.42, "at": [496, 630], "tape": ["tl", "tr"]}
+   {"src": "gfr_yard.png", "box": [1050, 1150, 2350, 1800], "scale": 0.42, "at": [290, 348], "tape": ["l", "r"]},
+   {"src": "gfr_crop_grown.png", "box": [2630, 40, 3520, 740], "scale": 0.4, "at": [514, 654], "tape": ["tl", "tr"]}
   ],
   "marks": [
-   {"text": "Furrows with nothing up yet.", "pen": "blu", "at": [62, 330], "maxw": 186, "to": [0, 1225, 1409]},
-   {"text": "Young plants on stakes.", "pen": "blu", "at": [62, 440], "maxw": 186, "to": [0, 1757, 1450]},
-   {"text": "A tall vine.", "pen": "blu", "at": [62, 545], "maxw": 186, "to": [0, 1923, 1332]},
-   {"text": "The card names the crop and says it is ready.", "pen": "blu", "at": [62, 660], "maxw": 186, "to": [1, 2855, 266]},
-   {"text": "Harvest and Water are the buttons.", "pen": "blu", "at": [276, 650], "maxw": 180, "to": [[1, 2760, 140], [1, 2850, 140]]},
-   {"text": "The strip runs from Seedling to Rotten.", "pen": "blu", "at": [276, 760], "maxw": 180, "to": [1, 3140, 370]},
-   {"text": "Below: the next stage, the water, pests and disease.", "pen": "blu", "at": [276, 860], "maxw": 180, "to": [[1, 2700, 410], [1, 2760, 525]]}
+   {"text": "Furrows with nothing up yet.", "pen": "blu", "at": [62, 370], "maxw": 186, "to": [0, 1225, 1409]},
+   {"text": "Young plants on stakes.", "pen": "blu", "at": [62, 470], "maxw": 186, "to": [0, 1757, 1450]},
+   {"text": "A tall vine.", "pen": "blu", "at": [62, 560], "maxw": 186, "to": [0, 1923, 1332]},
+   {"text": "The card names the crop and says it is ready.", "pen": "blu", "at": [62, 676], "maxw": 186, "to": [1, 2855, 266]},
+   {"text": "Harvest and Water are the buttons.", "pen": "blu", "at": [290, 664], "maxw": 200, "to": [[1, 2760, 140], [1, 2850, 140]]},
+   {"text": "The strip runs from Seedling to Rotten.", "pen": "blu", "at": [290, 770], "maxw": 200, "to": [1, 3140, 370]},
+   {"text": "Below: the next stage, the water, pests and disease.", "pen": "blu", "at": [290, 866], "maxw": 200, "to": [[1, 2700, 410], [1, 2760, 525]]}
   ],
   "sticky": {"at": [62, 880], "w": 196, "h": 120, "text": "A crop, stage by stage."}
  },
