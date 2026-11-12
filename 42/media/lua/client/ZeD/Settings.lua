@@ -675,10 +675,11 @@ local autoLearn = onSwitch("autoLearn", "UI_ZeD_Settings_AutoLearn", "UI_ZeD_Set
 ZeD.Settings.autoLearnOption = autoLearn
 ZeD.Settings.autoLearnOn = function() return (autoLearn:getValue() or 1) == 2 end
 
--- ----- RUN BUTTON ALSO SNEAKS (a controller only) -----
--- A hold of the game's Run button with the stick at rest crouches or stands; crouched and moving, it stands up and
--- the game's run carries on; a tap stays the game's (Input/RunSneak.lua reads this every tick, so a change applies at
--- once). Off for a new player. A way of working the pad, like the wheels' options, not an addition: the presets leave it.
+-- ----- RUN AND SNEAK ON ONE BUTTON (a controller only) -----
+-- The game's Run button (Original layout) or its Crouch button (Default layout, where Run is a full push of the
+-- stick): a hold with the stick at rest crouches or stands; moving, it runs while held (crouched, it stands up first);
+-- a tap stays the game's (Input/RunSneak.lua reads this every frame, so a change applies at once). Off for a new
+-- player. A way of working the pad, like the wheels' options, not an addition: the presets leave it.
 local runSneak = opts:addComboBox("runSneak", ZeD.tr("UI_ZeD_Settings_RunSneak"), ZeD.tr("UI_ZeD_Settings_RunSneakTip"))
 runSneak:addItem(getText("UI_Off"), true)   -- default
 runSneak:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup's checkbox reads them so)
