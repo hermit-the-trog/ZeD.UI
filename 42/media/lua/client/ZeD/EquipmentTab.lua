@@ -900,15 +900,15 @@ local function _beltRowH()
     return math.floor(math.max(T.rowH, tm:getFontHeight(T.fontF2) + tm:getFontHeight(T.fontF1) + T.px(8)))
 end
 
--- the In hand tag: the library's tag (16u, outlined, F1, sentence case), as the
--- inventory lists' Belt n; its width first (it is laid out before it is drawn)
+-- the In hand tag: the library's tag (16u, no box, F1, sentence case) in the
+-- secondary ink, as the inventory lists' Belt n; its width first (it is laid out
+-- before it is drawn)
 local function _beltTagW(text)
-    local T = ZeD.T
-    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(text)) + T.px(10)
+    return ZeD.Atoms.tagW(text, false)
 end
 local _beltTagOpts = {}
 local function _beltTag(panel, text, x, y, ink)
-    _beltTagOpts.textColor = ink
+    _beltTagOpts.textColor = ink or ZeD.T.textDim
     return ZeD.Molecules.drawTag(panel, x, y, text, nil, _beltTagOpts)
 end
 

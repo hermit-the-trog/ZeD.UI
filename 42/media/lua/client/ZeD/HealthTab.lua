@@ -176,32 +176,48 @@ local function sevColor(sev)
     return k and ZeD.T[k] or nil
 end
 
--- A condition tag's width: its words in sentence case plus the tag's side padding
--- and, with a status, its square mark (the same box ZeD.Molecules.drawTag draws).
-local function tagW(label, hasMark)
+-- The condition tags: each the status square and the word (the library's tag, no
+-- box), the square 6u before the word as the part's own square sits before its name.
+-- Every tag keeps the square's room, marked or not, so the words of a wrapped
+-- line stay in step.
+local TAG_SQ, TAG_MARK_GAP, TAG_GAP = 6, 6, 12   -- (design units: the square, square to word, tag to tag)
+local _condTagOpts = {}
+
+-- the room before a tag's word: the square and its gap
+local function tagHang()
     local T = ZeD.T
-    local w = ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(label)) + T.px(10)
-    if hasMark then w = w + T.px(10) end
-    return w
+    return T.px(TAG_SQ) + T.px(TAG_MARK_GAP)
 end
 
--- The condition tags of one part, wrapped in maxW from (x, y); draws them when a
--- panel is given and returns the height they take (0 with none). Measuring and
--- drawing share this one wrap.
-local function condTags(panel, conds, x, y, maxW)
+-- The condition tags of one part, wrapped in maxW; draws them when a panel is given
+-- and returns the height they take (0 with none). Measuring and drawing share this
+-- one wrap. x is where the words start; hang = how far the squares sit out to the
+-- left of x (the Health list hangs them under the part's square, so the words start
+-- under its name), 0 for a list that starts at x.
+local function condTags(panel, conds, x, y, maxW, hang)
     local T = ZeD.T
-    local th, gap = T.px(16), T.sp.badgeGap
+    local th, gap = T.px(16), T.px(TAG_GAP)
+    local slot = tagHang()
+    hang = hang or 0
+    local left = x - hang
+    local room = maxW + hang
+    local opts = _condTagOpts
+    opts.markGap = T.px(TAG_MARK_GAP)
     local bx, by = 0, 0
     for _, c in ipairs(conds) do
         local col = sevColor(c.severity)
-        local bw = tagW(c.label, col ~= nil)
-        if bx > 0 and bx + bw > maxW then bx = 0; by = by + th + T.px(2) end
-        if panel then ZeD.Molecules.drawTag(panel, x + bx, y + by, c.label, col) end
+        local bw = slot + ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(c.label))
+        if bx > 0 and bx + bw > room then bx = 0; by = by + th + T.px(2) end
+        if panel then
+            if col then ZeD.Molecules.drawTag(panel, left + bx, y + by, c.label, col, opts)
+            else ZeD.Molecules.drawTag(panel, left + bx + slot, y + by, c.label, nil, opts) end
+        end
         bx = bx + bw + gap
     end
     if #conds == 0 then return 0 end
     return by + th
 end
+ZeD.HealthTab.tagHang = tagHang
 -- (the same tags and marks on the medical check of another player: ObjectCardMedic.lua)
 ZeD.HealthTab.condTags = condTags
 ZeD.HealthTab.sevColor = sevColor
@@ -1594,7 +1610,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         local tagIndent = ZeD.HealthTab.injuryRowLayout(bodyH, 0).indent
         for _, entry in ipairs(data.entries) do
             -- (the list's own width, less the tags' indent under the name)
-            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - pad * 2 - tagIndent)
+            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - pad * 2 - tagIndent, tagHang())
             zoneBH = zoneBH + ZeD.HealthTab.injuryRowLayout(bodyH, tagsH).h
         end
     end
@@ -1744,7 +1760,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         local tagIndent = ZeD.HealthTab.injuryRowLayout(bodyH, 0).indent
         for ei, entry in ipairs(data.entries) do
             local entryStartY = curY
-            local tagsH = condTags(nil, entry.conditions, 0, 0, listW - tagIndent)
+            local tagsH = condTags(nil, entry.conditions, 0, 0, listW - tagIndent, tagHang())
             local row = ZeD.HealthTab.injuryRowLayout(bodyH, tagsH)
             local entryH = row.h
 
@@ -1770,7 +1786,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             A.drawTextRight(panel, hpStr, listX + listW - T.px(4), nameY, T.fontF2, ink)
 
             if tagsH > 0 then
-                condTags(panel, entry.conditions, listX + tagIndent, curY + row.tagsY, listW - tagIndent)
+                condTags(panel, entry.conditions, listX + tagIndent, curY + row.tagsY, listW - tagIndent, tagHang())
             end
 
             curY = curY + entryH - T.px(1)
@@ -1817,8 +1833,8 @@ end
 -- BADGE ROW HEIGHT MEASUREMENT
 -- ============================================================================
 
-function ZeD.HealthTab._measureBadgeRows(conditions, maxW)
-    return condTags(nil, conditions, 0, 0, maxW)
+function ZeD.HealthTab._measureBadgeRows(conditions, maxW, hang)
+    return condTags(nil, conditions, 0, 0, maxW, hang)
 end
 
 -- ============================================================================

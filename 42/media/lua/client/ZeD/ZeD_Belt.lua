@@ -1706,7 +1706,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
     elseif o.inHand then
         local text = ZeD.tr("UI_ZeD_Belt_InHand")
         local f5, th = T.fontF5, T.px(14)
-        local tw = tm:MeasureStringX(f5, ZeD.textCase(text)) + T.px(10)
+        local tw = tm:MeasureStringX(f5, ZeD.textCase(text))
         local up = round and T.px(6) or 0                -- inside the circle's curve
         ZeD.Molecules.drawTag(self, b.x + math.max(0, math.floor((b.w - tw) / 2)), b.y + b.h - th - T.px(STRIP_INSET) - up, text, nil,
             { font = f5, h = th, textColor = onFocus and T.textOnFocus or nil })

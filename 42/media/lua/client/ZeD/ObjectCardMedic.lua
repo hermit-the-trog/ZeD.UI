@@ -269,7 +269,10 @@ local function injuryRow(card, t, x, y, w, en, stripe)
     local T, A = ZeD.T, ZeD.Atoms
     local HT = ZeD.HealthTab
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
-    local tagsH = HT.condTags(nil, en.conditions, 0, 0, w)
+    -- (the tags as the Health list: the words under the name, the squares under its square)
+    local ind = T.px(2) + T.px(6) + T.px(6)
+    local hang = HT.tagHang and HT.tagHang() or 0
+    local tagsH = HT.condTags(nil, en.conditions, 0, 0, w - ind, hang)
     local h = bodyH + T.px(2) + (tagsH > 0 and (tagsH + T.sp.xs) or 0) + T.px(1) + T.sp.afterGroove
     if stripe then
         local st = T.stripe
@@ -285,7 +288,7 @@ local function injuryRow(card, t, x, y, w, en, stripe)
     A.drawBody(card, ZeD.partLabel(en.name), x + T.px(2) + sq + T.px(6), y, ink)
     A.drawTextRight(card, math.floor(en.health + 0.5) .. "%", x + w, y, T.fontF2, ink)
     local ty = y + bodyH + T.px(2)
-    if tagsH > 0 then HT.condTags(card, en.conditions, x, ty, w); ty = ty + tagsH + T.sp.xs end
+    if tagsH > 0 then HT.condTags(card, en.conditions, x + ind, ty, w - ind, hang); ty = ty + tagsH + T.sp.xs end
     A.drawDividerH(card, x, ty, w)
     local bp = en.bodyPart
     card:zone({ fid = fid, x = x, y = y, w = w, h = h, body = true, help = getText("IGUI_health_JoypadTreatment"),

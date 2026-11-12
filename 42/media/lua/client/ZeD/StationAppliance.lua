@@ -1177,7 +1177,7 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
         local tagW = 0
         local tagTxt = rw.tag and ZeD.textCase(ZeD.tr(rw.tag)) or nil
         local tagMark = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or ((rw.mode == "warn") and T.warning or nil))
-        if tagTxt then tagW = tm:MeasureStringX(T.fontF1, tagTxt) + T.px(10) + (tagMark and T.px(10) or 0) + T.px(6) end
+        if tagTxt then tagW = ZeD.Atoms.tagW(tagTxt, tagMark ~= nil) + T.px(6) end
         local nstr = ZeD.CraftingCore.truncText(rw.name, T.fontF2, math.max(T.px(30), nameMax - tagW))
         local nx = lx + isz + T.px(6)
         panel:drawText(nstr, nx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)

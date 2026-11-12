@@ -732,10 +732,9 @@ local function queueMark(self, item, wordX, wordY, wordW, rx, ry, rw, rh)
     return true
 end
 
--- A tag's width as ZeD.Molecules.drawTag draws it (F1, sentence case, 5u each side)
+-- A tag's width as ZeD.Molecules.drawTag draws it (F1, sentence case, no box)
 local function tagW(text)
-    local T = ZeD.T
-    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(text)) + T.px(10)
+    return ZeD.Atoms.tagW(text, false)
 end
 
 -- a container's key, kept per container object (asked by every column every frame; a container's
@@ -1644,11 +1643,12 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
     return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false
 end
 
--- A tag after a row's name (Next level, Belt 2): the library's tag, centred in the row
+-- A tag after a row's name (Next level, Belt 2): the library's tag (no box), in the
+-- secondary ink, centred in the row
 local _rowTagOpts = {}
 local function rowTag(self, x, y, rowH, text, focusTxt)
     local T = ZeD.T
-    _rowTagOpts.textColor = focusTxt
+    _rowTagOpts.textColor = focusTxt or T.textDim
     ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, nil, _rowTagOpts)
 end
 

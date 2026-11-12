@@ -430,14 +430,14 @@ function W.drawUnder(menu, cx, y)
     local T, tm, A, M = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.Molecules
     local s1 = T.surf1
     if menu._zedCrumb then
-        -- the breadcrumb: an outlined tag in its own words, on the solid surface
+        -- the breadcrumb: a tag in its own words (no box), on the solid surface
         local font = T.fontF1
         local s = A.textCase(menu._zedCrumb)
         local h = T.px(16)
         local w = tm:MeasureStringX(font, s) + T.px(5) * 2
         local x = math.floor(cx - w / 2)
         menu:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
-        M.drawTag(menu, x, y, s, nil, { font = font, h = h, keepCase = true })
+        M.drawTag(menu, x, y, s, nil, { font = font, h = h, minW = w, keepCase = true })
         y = y + h + T.px(8)
     end
     if menu._zedPrompts then

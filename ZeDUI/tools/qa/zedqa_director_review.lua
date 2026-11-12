@@ -12,7 +12,9 @@
 -- char_radio_full (the walkie's Channels, Heard, Power), world_radio_full (the set's Presets, Heard, Power at the
 -- full card), char_journal_notebooks_none_full (no notebook carried: Writing, Papers on you, Books on you; the
 -- notebooks are taken off the character for the picture and put back), char_journal_loadouts_full (opens on a list,
--- ready X of Y, a square per line, the radio buttons).
+-- ready X of Y, a square per line, the radio buttons). The tags with no boxes, in the full pass: char_health_full
+-- (the injury tags: square under the part's square, word under its name), char_loot_full (Belt 2 after the M9's name,
+-- secondary ink), char_equip_list_full (the belt rows).
 -- Everything spawned is removed again; the teardown script puts the rest back. grep "ZEDQA drv".
 local G = GAL
 DRV_N = (DRV_N or 0) + 1
@@ -357,6 +359,12 @@ do
     end
     -- (with no injuries the fill blocks sit right under the figure)
     if E then Z.T("health_" .. ST, "c", "health", 45) end
+    -- the tags with no boxes (Nov 11 2026): the injury tags above (char_health_full), the inventory rows' Belt 2 by the
+    -- belt's items (char_loot_full: the M9 Pistol) and the Equipment list's belt rows and In hand (char_equip_list_full)
+    if not E then
+        Z.T("loot_" .. ST, "c", "loot", 45)
+        Z.T("equip_list_" .. ST, "c", "equip", 50, function() ZeD.EquipDoll.setView("list"); if ZeD.EquipLoadout.openFor then ZeD.EquipLoadout.openFor[pn] = true end end)
+    end
     Z.T("thermal_" .. ST, "c", "thermal", 45)
     if E then Z.T("identity_" .. ST, "c", "identity", 45) end
     if not E then
