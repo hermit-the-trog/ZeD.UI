@@ -117,7 +117,9 @@ local hits = 0
 if list then
     for path in list:lines() do
         local s = slurp(path)
-        if s and string.find(s, 'drawText%("/"') then hits = hits + 1; print("FAIL slash glyph drawn in " .. path) end
+        -- (the slash alone, drawText("/", ...): a slash command's name, drawText("/" .. name, ...), is text, not the
+        -- old search mark: the console's Commands page draws those on purpose)
+        if s and string.find(s, 'drawText%("/"%s*,') then hits = hits + 1; print("FAIL slash glyph drawn in " .. path) end
     end
     list:close()
 end
