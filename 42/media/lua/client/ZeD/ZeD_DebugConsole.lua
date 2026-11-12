@@ -149,7 +149,19 @@ local function onScreen(jc)
 end
 
 -- ZeD's console exists exactly when the game's does, and is not handed back
+-- (a file Zomboid/Lua/ZeD_console_off.txt hands the console back to the game for good, read once when this file
+-- loads: a switch for QA to rule ZeD's console in or out of a fault in one launch, Nov 12 2026)
+local OFF_BY_FILE = false
+do
+    local ok, r = pcall(getFileReader, "ZeD_console_off.txt", false)
+    if ok and r then
+        OFF_BY_FILE = true
+        pcall(function() r:close() end)
+        print("[ZeD] Lua console: handed back to the game (Zomboid/Lua/ZeD_console_off.txt)")
+    end
+end
 function DC.handedBack()
+    if OFF_BY_FILE then return true end
     return ZeD.Safe ~= nil and ZeD.Safe.on ~= nil and ZeD.Safe.on("console") == true
 end
 function DC.exists()
@@ -2298,8 +2310,11 @@ function DC.frame()
     elseif not want and DC.isOpen() then
         DC.win:close(true)
     end
-    if DC.isOpen() then DC.read() end
-    -- (the F11 list keeps only its last 40 entries: it is read while the window is shut too)
+    -- the log is fed only while the window is up (Nov 12 2026: debug launches stopped logging at the main menu once
+    -- the feed ran every frame with the window shut; until that is understood, nothing of the log's runs while the
+    -- window is shut, as before Phase 1. The F11 list's last 40 entries are read when the window opens.)
+    if not DC.isOpen() then return end
+    DC.read()
     local ok, err = pcall(DC.feed)
     if not ok then ZeD.logOnce("lua console log", err) end
 end
