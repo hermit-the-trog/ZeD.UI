@@ -3265,18 +3265,20 @@ local function bulkId(id) return "animals:bulk:" .. tostring(id) end
 
 --- Whether the zone band's picks (lead) and its zone verbs (shown) fit in one row w wide, laid
 -- out as ZeD.Molecules.drawBand lays them: the margin each end, the buttons at their drawn
--- widths (buttonW measures the label as drawButton draws it), 8u between neighbours. Short of
--- room at the usual 8u margins, the band closes its margins up to 4u first (as the craft band
--- does). Returns whether they fit, then the margin to draw with (nil: the usual one).
+-- widths (buttonW measures the label as drawButton draws it), a space between neighbours.
+-- Short of room at the usual 8u, the band closes its margins and spaces up to 4u, as the craft
+-- band does (German at 4K 1.75x: three 207 px buttons and a 162 px Umbenennen in 839 px fit
+-- only so). Returns whether they fit, then the margin and the space to draw with (nil, nil:
+-- the usual ones).
 function AT.bandFits(w, lead, shown)
     local T, M = ZeD.T, ZeD.Molecules
-    local gap, sum, n = T.px(8), 0, 0
+    local sum, n = 0, 0
     for _, b in ipairs(lead) do sum = sum + M.buttonW(b.label); n = n + 1 end
     for _, v in ipairs(shown) do sum = sum + M.buttonW(v.label); n = n + 1 end
-    local between = (n > 0) and gap * (n - 1) or 0
-    if 2 * T.px(8) + sum + between <= w then return true, nil end
-    if 2 * T.px(4) + sum + between <= w then return true, T.px(4) end
-    return false, nil
+    local spaces = math.max(n - 1, 0)
+    if 2 * T.px(8) + sum + spaces * T.px(8) <= w then return true, nil, nil end
+    if 2 * T.px(4) + sum + spaces * T.px(4) <= w then return true, T.px(4), T.px(4) end
+    return false, nil, nil
 end
 
 -- How the run that ended went ("Done: 3 of 3."), for a few seconds after it ends
@@ -3291,8 +3293,8 @@ local SEL_HELP = { milk = "UI_ZeD_Animals_HelpMilkSel", shear = "UI_ZeD_Animals_
 --                   each only when it applies to a ticked animal, greyed with the reason
 --                   when the tool (or, for Feed, any food they eat) is missing
 --   nothing ticked: All hungry and All milkable at the left (greyed when none is),
---                   Rename and Remove zone at the right (short of room the band's margins
---                   close up to 4u, then Rename leaves: pressing the zone's name renames it too)
+--                   Rename and Remove zone at the right (short of room the band's margins and
+--                   spaces close up to 4u, then Rename leaves: pressing the zone's name renames it too)
 -- Every button is a controller stop (animals:bulk:<id>); the ring reads win._animalsBulkBtns.
 local function drawZoneBand(panel, win, x, y, w, state)
     local T = ZeD.T
@@ -3304,7 +3306,7 @@ local function drawZoneBand(panel, win, x, y, w, state)
     local animals = AP().getAnimalsInZone(state.zoneName)
     local sel = zoneSelection(win, state.zoneName)
     local selected = Q.prune(sel, animals)
-    local lead, buttons, status, edge = {}, {}, nil, nil
+    local lead, buttons, status, edge, gap = {}, {}, nil, nil, nil
 
     local function add(list, id, label, helpText, disabled, why, variant)
         list[#list + 1] = { id = id, label = label, help = disabled and why or helpText, disabled = disabled,
@@ -3330,8 +3332,8 @@ local function drawZoneBand(panel, win, x, y, w, state)
             c.milkable == 0, ZeD.tr("UI_ZeD_Animals_NoneMilkable"))
         -- Rename and Remove zone, as many as fit beside the picks
         local shown = ZeD.Disclose.split(zoneVerbs(state))
-        local keepRename, closeUp = AT.bandFits(w, lead, shown)
-        if keepRename then edge = closeUp end
+        local keepRename, closeEdge, closeGap = AT.bandFits(w, lead, shown)
+        if keepRename then edge, gap = closeEdge, closeGap end
         for _, v in ipairs(shown) do
             if v.id ~= "rename" or keepRename then
                 buttons[#buttons + 1] = { label = v.label, help = v.help, id = v.id }
@@ -3343,7 +3345,7 @@ local function drawZoneBand(panel, win, x, y, w, state)
     end
 
     local H, out = M.drawBand(panel, x, y, w, {
-        win = win, lead = lead, buttons = buttons, status = status and { text = status } or nil, edge = edge })
+        win = win, lead = lead, buttons = buttons, status = status and { text = status } or nil, edge = edge, gap = gap })
 
     -- the rects: the zone verbs keep their own click zones, the rest are bulk buttons
     local bulk = {}

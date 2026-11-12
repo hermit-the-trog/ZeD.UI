@@ -27,6 +27,7 @@
 --            drawn, out of reach and nothing handed over
 --   AWAY     the run gives up cleanly (queue cleared, animal let go) when the player is moved well off, the queue
 --            is stuck, or one animal takes too long; walking up from afar is no walk-off
+--   CAUSE    what ended a run is kept (AQ.last.cause); a bucket kicked away is a stop, a full one counts
 --   LAND     a press's landing waits for its stop to be drawn (A on All milkable lands on Clear), then 1.5 s at most
 --   BAND     the zone band's fit as drawBand lays it out; short of room the margins close up before Rename leaves
 --   SOURCE   AnimalsTab and the World window's ring wire it up (alert A, roster X, the band's buttons, Feed's picker)
@@ -200,6 +201,9 @@ local function player()
         end,
     }
     p._food = {}
+    -- (p._dropped[item]: the item left the inventory, as a bucket a stressed animal kicks out of the hands)
+    p._dropped = {}
+    inv.contains = function(_, it) return not p._dropped[it] end
     p.getInventory = function() return inv end
     p.hasFullInventory = function() return p._full end
     p.isDead = function() return false end
@@ -746,6 +750,44 @@ do
     ISTimedActionQueue.queues = {}
 end
 
+-- CAUSE -----------------------------------------------------------------------
+-- What ended a run is kept for QA's logs (AQ.last.cause), and a milking that stopped with milk left counts as done
+-- only when the bucket is still carried and has no room; a bucket kicked out of the hands is a stop.
+do
+    local pc = player()
+    local bk = bucket("BK")
+    pc._buckets = { bk }
+    local h1 = animal("H1", { milk = 6, milkable = true })
+    local h2 = animal("H2", { milk = 6, milkable = true })
+    ISTimedActionQueue.queues = {}
+    AQ.forgetChecks()
+    CALLS = {}
+    AQ.start(pc, "milk", { h1, h2 })
+    AQ.tick(); pc._dropped[bk] = true; pc._buckets = {}; finishAction(pc); AQ.tick()
+    check("CAUSE the bucket kicked away mid-milking (milk left): a stop, not a done, H2 never handed over",
+        AQ.run == nil and AQ.last.done == 0 and AQ.last.cause == "undone" and #CALLS == 1, AQ.last and tostring(AQ.last.cause) .. " " .. AQ.last.done)
+    local bk2 = bucket("BK2")
+    pc._buckets = { bk2 }; pc._dropped = {}
+    ISTimedActionQueue.queues = {}
+    CALLS = {}
+    AQ.start(pc, "milk", { h1, h2 })
+    AQ.tick(); pc._buckets = {}; finishAction(pc); AQ.tick()
+    check("CAUSE the bucket carried and full (milk left): H1 counts, the run ends with the container reason",
+        AQ.run == nil and AQ.last.done == 1 and AQ.last.cause == "refused" and AQ.last.why == "UI_ZeD_Animals_NeedMilkContainer",
+        AQ.last and tostring(AQ.last.cause) .. " " .. tostring(AQ.last.why))
+    pc._buckets = { bk2 }
+    ISTimedActionQueue.queues = {}
+    AQ.start(pc, "milk", { h1 })
+    AQ.tick(); h1._milk = 0; finishAction(pc); AQ.tick()
+    check("CAUSE done", AQ.last.cause == "done", AQ.last.cause)
+    h1._milk = 6
+    ISTimedActionQueue.queues = {}
+    AQ.start(pc, "milk", { h1 })
+    AQ.stop()
+    check("CAUSE Stop", AQ.last.cause == "stop", AQ.last.cause)
+    ISTimedActionQueue.queues = {}
+end
+
 -- LAND and BAND ---------------------------------------------------------------
 -- Cut AT.navFocusIndex and AT.bandFits out of AnimalsTab.lua and run them as they are.
 do
@@ -780,23 +822,24 @@ do
     win._animalsNavFocusTarget = "breadcrumb"
     check("LAND the breadcrumb", ATs.navFocusIndex(win, { { id = "x" }, { id = "y", isBreadcrumb = true } }, 1) == 2)
 
-    -- BAND: the German band at 4K 1.75x, the drawn widths measured off QA's picture (Fira Mono, 8u = 14 px)
-    local W = { ["Alle hungrigen"] = 203, ["Alle melkbaren"] = 210, ["Umbenennen"] = 158, ["Zone entfernen"] = 206,
+    -- BAND: the German band at 4K 1.75x as QA's second run drew it (zqa_aq2 band log: hungry 14 207x46, milkable 235
+    -- 207x46, remove 618 207x46, so the band is 839 px), Umbenennen 162 px (Fira Mono 11.36 px a letter, 24 px pad)
+    local W = { ["Alle hungrigen"] = 207, ["Alle melkbaren"] = 207, ["Umbenennen"] = 162, ["Zone entfernen"] = 207,
                 ["All hungry"] = 150, ["All milkable"] = 180, ["Rename"] = 115, ["Remove zone"] = 170 }
     ZeD.T = { px = function(u) return math.floor(u * 1.75 + 0.5) end }
     ZeD.Molecules = { buttonW = function(l) return W[l] end }
     local leadDE = { { label = "Alle hungrigen" }, { label = "Alle melkbaren" } }
     local shownDE = { { label = "Umbenennen", id = "rename" }, { label = "Zone entfernen", id = "remove" } }
-    local fits, edge = ATs.bandFits(837, leadDE, shownDE)
-    check("BAND German, 837 px: Rename stays, the margins close up to 4u", fits == true and edge == 7, tostring(fits) .. " " .. tostring(edge))
-    -- (the old sum counted one 8u space too many and dropped Rename here)
-    local room = 837 - 14 - (203 + 14) - (210 + 14)
-    check("BAND the old sum would have dropped it", 158 + 14 + 206 + 14 > room)
-    fits, edge = ATs.bandFits(837, { { label = "All hungry" }, { label = "All milkable" } },
+    local fits, edge, gap = ATs.bandFits(839, leadDE, shownDE)
+    check("BAND German, 839 px: Rename stays, margins and spaces close up to 4u", fits == true and edge == 7 and gap == 7,
+        tostring(fits) .. " " .. tostring(edge) .. " " .. tostring(gap))
+    -- (4u margins with 8u spaces need 14 + 783 + 42 = 839: a rounding off losing Rename, as QA saw)
+    check("BAND 4u margins alone are no room to spare", 14 + 783 + 42 >= 839)
+    fits, edge, gap = ATs.bandFits(839, { { label = "All hungry" }, { label = "All milkable" } },
         { { label = "Rename" }, { label = "Remove zone" } })
-    check("BAND English: fits at the usual margins", fits == true and edge == nil)
-    fits = ATs.bandFits(800, leadDE, shownDE)
-    check("BAND German at 800 px: Rename leaves", fits == false)
+    check("BAND English: fits at the usual margins and spaces", fits == true and edge == nil and gap == nil)
+    fits = ATs.bandFits(810, leadDE, shownDE)
+    check("BAND German at 810 px: Rename leaves", fits == false)
     ZeD.T, ZeD.Molecules = nil, nil
 end
 
@@ -1002,9 +1045,10 @@ check("SOURCE the ring asks AT.navFocusIndex and applies a found landing even wh
     and WW:find("if dirty or alwaysRebuild or cardJumpIdx or navIdx then", 1, true) ~= nil
     and WW:find("win._animalsNavFocusTarget = nil", 1, true) == nil)
 check("SOURCE alert Milk and Shear go as a run of one", TAB:find('if verb == "milk" or verb == "shear" then return QK().start(player, verb, { animal }) == true end', 1, true) ~= nil)
-check("SOURCE the zone band asks AT.bandFits and draws with its margin",
-    TAB:find("local keepRename, closeUp = AT.bandFits(w, lead, shown)", 1, true) ~= nil
-    and TAB:find("status = status and { text = status } or nil, edge = edge })", 1, true) ~= nil)
+check("SOURCE the zone band asks AT.bandFits and draws with its margin and space",
+    TAB:find("local keepRename, closeEdge, closeGap = AT.bandFits(w, lead, shown)", 1, true) ~= nil
+    and readFile(Z .. "Molecules.lua"):find("spec.gap or T.px(8)", 1, true) ~= nil
+    and TAB:find("status = status and { text = status } or nil, edge = edge, gap = gap })", 1, true) ~= nil)
 check("SOURCE right-click on a row toggles", TAB:find("return AT.toggleSelected(win, rz.animal)", 1, true) ~= nil)
 check("SOURCE Feed is the game's word", TAB:find('feed = "ContextMenu_Feed"', 1, true) ~= nil)
 check("SOURCE Feed in the band opens the picker", TAB:find("return AT.openFeedPicker(win, state.zoneName, sx, sy)", 1, true) ~= nil)

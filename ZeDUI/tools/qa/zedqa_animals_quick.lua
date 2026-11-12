@@ -17,6 +17,7 @@
 --   5b Feed: the starving cow ticked, Feed greyed with nothing to eat; carrots (one in a bag) and a steak given, the
 --      food picker lists Carrots only with "For 1 of 1 | 2 carried"; picking it runs the game's ISFeedAnimalFromHand
 --      and the cow's hunger goes down; B on the picker closes it with nothing fed
+--   4f a cow 35 squares off: the run walks up first, then milks; a cow off its square is out of reach
 --   6  the controller: the band's buttons and the alert rows are ring stops; A on All milkable lands on Clear
 -- THE LEDGER: everything the script gives, takes or makes is written down and put back at the end, and at once on
 -- an error: given items taken away, set-aside items given back to the container they came from, the animals and
@@ -68,10 +69,47 @@ local function breedOf(kind)
     local def = AnimalDefinitions.getDef(kind)
     return def and def:getBreeds():get(0)
 end
+-- A square for an animal near (x, y): open floor with a free square beside it the character can walk to. The drag
+-- strip has rails, a trailer and fences; a cow made where nothing beside it is free can never be milked (the game's
+-- walk to its side fails and the milking ends at once).
+local function openSquare(x, y)
+    for r = 0, 5 do
+        for dy = -r, r do
+            for dx = -r, r do
+                if math.max(math.abs(dx), math.abs(dy)) == r then
+                    local ok, good = pcall(function()
+                        local sq = getCell():getGridSquare(x + dx, y + dy, 0)
+                        return sq ~= nil and sq:isFree(false) and AdjacentFreeTileFinder.Find(sq, p) ~= nil
+                    end)
+                    if ok and good then return x + dx, y + dy end
+                end
+            end
+        end
+    end
+    say("no open square near " .. x .. "," .. y .. ": the animal goes there anyway")
+    return x, y
+end
 local function spawn(kind, x, y)
-    local a = addAnimal(getCell(), x, y, 0, kind, breedOf(kind))
+    local sx, sy = openSquare(x, y)
+    local a = addAnimal(getCell(), sx, sy, 0, kind, breedOf(kind))
     if a then mark(a); LG.animals[#LG.animals + 1] = a; pcall(function() a:setDebugStress(0) end) end
+    say("made a " .. kind .. " at " .. sx .. "," .. sy .. (a and "" or " (failed)"))
     return a
+end
+-- the stops are read straight from w._focusRing: keep them fresh while the mouse is the input (put back at the end)
+LG.freshWas = ZEDQA_FRESH_STOPS
+ZEDQA_FRESH_STOPS = true
+-- How the last run ended, for the log: its words, what ended it (AQ.last.cause), whether it walked up first
+local RUNLOG = { approach = false }
+local function watchRun() if AQ.run and AQ.run.approach then RUNLOG.approach = true end end
+local function sayRun(what, animal)
+    local l = AQ.last
+    local d = nil
+    pcall(function() d = math.sqrt((p:getX() - animal:getX()) ^ 2 + (p:getY() - animal:getY()) ^ 2) end)
+    local st = nil
+    pcall(function() st = animal:getStress() end)
+    say(what .. " ended: " .. tostring(l and l.why) .. " | cause " .. tostring(l and l.cause) .. " | walked up first "
+        .. tostring(RUNLOG.approach) .. string.format(" | %.1f squares off, stress %s", d or -1, tostring(st)))
 end
 local function makeZone(name, x1, y1, x2, y2)
     LG.zones[#LG.zones + 1] = name
@@ -108,6 +146,7 @@ local function restore(why)
     pcall(function() if LG.primary and p:getInventory():contains(LG.primary) then p:setPrimaryHandItem(LG.primary) end end)
     pcall(function() if LG.secondary and p:getInventory():contains(LG.secondary) then p:setSecondaryHandItem(LG.secondary) end end)
     pcall(function() p:setGodMod(LG.god) end)
+    ZEDQA_FRESH_STOPS = LG.freshWas
     pcall(function() p:setX(HOME[1]); p:setY(HOME[2]); p:setLastX(HOME[1]); p:setLastY(HOME[2]) end)
     pcall(function() AP.refreshCache() end)
     pcall(function() if LG.opened and CWm.isOpen() then CWm.toggleBothPaired(0) end end)
@@ -226,10 +265,49 @@ add(300, function()
     check(queueNames():find("ISMilkAnimal") ~= nil or (AQ.run ~= nil and AQ.run.approach), "ISMilkAnimal is queued after the walk to its side (or the walk up comes first)")
 end)
 add(4000, function() shot("3_milking") end)
-waitFor(90000, function() return AQ.run == nil and idle() end, "the milking")
+waitFor(90000, function() watchRun(); return AQ.run == nil and idle() end, "the milking")
 add(300, function()
+    sayRun("the alert's milking", A.milk)
     local m1 = A.milk:getData():getMilkQuantity()
     check(m1 < A.milk0, "the cow gave milk", string.format("%.2f -> %.2f", A.milk0, m1))
+end)
+
+-- 4f the walk up: a cow 35 squares off, not drawn yet, so the game's milk handler cannot be called (its body points
+--    are nil); the run hands over only the walk, then the milking. Out of reach: a cow with no square.
+add(300, function()
+    emptyGiven()
+    AQ.forgetChecks()
+    A.far = spawn("cow", math.floor(p:getX()) - 35, math.floor(p:getY()))
+    pcall(function() A.far:getData():setMaxMilkActual(6); A.far:getData():setMilkQuantity(6) end)
+end)
+add(1000, function()
+    local known = nil
+    pcall(function() known = A.far:getAttachmentWorldPos("rightmilk") ~= nil end)
+    say("the far cow: body points known " .. tostring(known))
+    RUNLOG.approach = false
+    A.far0 = A.far:getData():getMilkQuantity()
+    local ok, why = AQ.start(p, "milk", { A.far })
+    watchRun()
+    say("far milk pressed: " .. tostring(ok) .. " " .. tostring(why) .. "; queue " .. queueNames())
+    check(ok == true, "far: the milking run starts", why)
+    check(known == true or (RUNLOG.approach and queueNames():find("ISMilkAnimal") == nil),
+        "far: with no body points only the walk up is handed over (no ISMilkAnimal yet)", queueNames())
+end)
+waitFor(120000, function() watchRun(); return AQ.run == nil and idle() end, "the far milking")
+add(300, function()
+    sayRun("the far milking", A.far)
+    local m1 = A.far:getData():getMilkQuantity()
+    check(m1 < (A.far0 or 0), "far: walked up and milked", string.format("%.2f -> %.2f", A.far0 or -1, m1))
+    -- out of reach: a cow taken off its square
+    A.gone = spawn("cow", math.floor(p:getX()) + 4, math.floor(p:getY()) + 4)
+    pcall(function() A.gone:getData():setMaxMilkActual(6); A.gone:getData():setMilkQuantity(6) end)
+    pcall(function() A.gone:removeFromWorld(); A.gone:removeFromSquare() end)
+    AQ.forgetChecks()
+    local ok, why = AQ.can("milk", p, A.gone)
+    say("the cow off its square: square " .. tostring(A.gone:getSquare()) .. "; can milk " .. tostring(ok) .. " " .. tostring(why))
+    check(not ok and why == ZeD.tr("UI_ZeD_Animals_OutOfReach"), "out of reach: a cow with no square says so", why)
+    local ok2, why2 = AQ.start(p, "milk", { A.gone })
+    check(not ok2 and AQ.run == nil and queueNames() == "", "out of reach: no run, nothing queued", why2)
 end)
 
 -- 5  the zone: picks, ticks, the band's run
@@ -249,8 +327,20 @@ add(800, function()
     check(bulk("clear") ~= nil, "with ticks the band offers Clear")
     AT.bulkPress(W(), "clear")
 end)
+add(300, function()
+    -- (the roster draws only the rows in view: the ram's row is scrolled to as the pad's focus would)
+    W()._gpFocusedAnimalRow = A.wool
+end)
 add(800, function()
     local w = W()
+    local names = {}
+    for k, rz in ipairs(w._animalsRosterZones or {}) do
+        names[#names + 1] = k .. "=" .. tostring(rz.animal == A.wool and "ram" or rz.animal == A.milk and "milk cow"
+            or rz.animal == A.hungry and "hungry cow" or "other")
+    end
+    local inZone = 0
+    for _, a in ipairs(AP.getAnimalsInZone(ZONE) or {}) do if a == A.wool then inZone = 1 end end
+    say("roster rows drawn: " .. table.concat(names, ", ") .. "; the ram in the zone's list: " .. inZone)
     -- the ram's row by the controller's X (the ring stop's onContextMenu)
     local idx
     for k, rz in ipairs(w._animalsRosterZones or {}) do if rz.animal == A.wool then idx = k end end
@@ -272,6 +362,7 @@ add(1500, function()
 end)
 waitFor(90000, function() return AQ.run == nil end, "the shearing run")
 add(500, function()
+    sayRun("the shearing", A.wool)
     check(AQ.last and AQ.last.why == ZeD.tr("UI_ZeD_Animals_RunDone", 1, 1), "the run ended Done 1 of 1", AQ.last and AQ.last.why)
     check(A.wool:getData():getWoolQuantity() <= 1, "the ram is shorn", A.wool:getData():getWoolQuantity())
     shot("7_done")
@@ -290,6 +381,7 @@ add(800, function()
     AT.bulkPress(W(), "milk")
 end)
 add(2500, function()
+    sayRun("the band's milking (when it is over already)", A.milk)
     shot("8_milking_run")
     check(AQ.run ~= nil, "a milking run is going", AQ.runStatus())
     AT.bulkPress(W(), "stop")
@@ -401,6 +493,15 @@ add(800, function()
     Focus.claimFocus(W())
 end)
 add(1200, function()
+    -- (the pad's A presses the stop it is on: put the focus on All milkable first, as the player would)
+    local z
+    for _, zz in ipairs(W()._focusRing or {}) do
+        for _, e in ipairs(zz.elements or {}) do if e.id == "animals:bulk:milkable" then z = zz end end
+    end
+    if z then Focus.focusWhere(W(), z.zone, function(e) return e.id == "animals:bulk:milkable" end) end
+end)
+add(600, function()
+    check(focusId() == "animals:bulk:milkable", "the pad's focus is on All milkable", focusId())
     local el = ringEl("animals:bulk:milkable")
     check(el and el.onActivate ~= nil, "All milkable is a ring stop with A")
     if el then el.onActivate(W(), el) end

@@ -362,7 +362,8 @@ end
 
 --- Hand one verb for one animal to the game. Returns true, or false and the reason. A third
 -- return of "approach" says only the walk up was handed over: the animal is too far off for
--- the game's handler, and the run hands the act over when the walk is done.
+-- the game's handler, and the run hands the act over when the walk is done. The fourth is the
+-- tool handed over (the bucket, the shears, the food).
 function AQ.act(verb, player, animal, food)
     local ok, why, tool = AQ.can(verb, player, animal, food)
     if not ok then return false, why end
@@ -371,7 +372,7 @@ function AQ.act(verb, player, animal, food)
         if not luautils.walkAdj(player, animal:getSquare()) then
             return false, ZeD.tr("UI_ZeD_Animals_OutOfReach")
         end
-        return true, nil, "approach"
+        return true, nil, "approach", tool
     end
     if verb == "feed" then
         -- the game's own: hold the animal, walk beside it, the food to hand, ISFeedAnimalFromHand
@@ -387,7 +388,7 @@ function AQ.act(verb, player, animal, food)
             return false, ZeD.tr("UI_ZeD_Animals_OutOfReach")
         end
     end
-    return true
+    return true, nil, nil, tool
 end
 
 -- ============================================================================
@@ -501,6 +502,12 @@ end
 -- animal fed by hand may stay a little hungry, so "still hungry" is no test).
 local function leftUndone(r, a)
     if r.verb == "feed" then return (AD().getHunger(a) or 0) >= (r.before or 0) end
+    if not HAS[r.verb](a) then return false end
+    -- something left to give: undone while the tool is still there for it, or when the tool
+    -- left the inventory (a stressed animal kicks the bucket out of the hands); a bucket filled
+    -- to the brim counts as done, and the next animal says there is no room
+    local inv = ocall(r.player, "getInventory")
+    if r.tool and inv and ocall(inv, "contains", r.tool) == false then return true end
     return AQ.can(r.verb, r.player, a) == true
 end
 
@@ -521,10 +528,12 @@ end
 -- (the hoisted slot: the tick hook and AQ.start both reach it)
 local onTick
 
-local function finish(why)
+-- why: the words the band shows; cause: what ended it, for QA's logs ("done", "stop", "undone",
+-- "away", "stuck", "slow", "cut", "reach", "refused", "dead", "replaced")
+local function finish(why, cause)
     local r = AQ.run
     if not r then return end
-    AQ.last = { verb = r.verb, done = r.done, total = #r.list, why = why, t = now() }
+    AQ.last = { verb = r.verb, done = r.done, total = #r.list, why = why, cause = cause, t = now() }
     AQ.run = nil
     if Events and Events.OnTick then Events.OnTick.Remove(onTick) end
 end
@@ -538,10 +547,10 @@ end
 
 -- Stop the run where it stands: the game's queue cleared (its own cancel, so nothing the run
 -- handed over is left waiting), the animal under way let go, "Stopped after n of m".
-local function halt(r)
+local function halt(r, cause)
     if ISTimedActionQueue and ISTimedActionQueue.clear then pcall(ISTimedActionQueue.clear, r.player) end
     letGo(r.list[r.i])
-    finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list))
+    finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), cause)
 end
 
 -- Hand the run's verb for animal i to the game and wait for it
@@ -550,30 +559,30 @@ local function handOver(r, i)
     r.i = i
     r.before = AD().getHunger(a) or 0
     -- (feed: when the food has run out the act says so, and the run ends with that reason)
-    local ok, why, how = AQ.act(r.verb, r.player, a, r.food)
-    if not ok then finish(why) return end
-    r.phase, r.seen, r.ticks, r.stall = "wait", false, 0, 0
+    local ok, why, how, tool = AQ.act(r.verb, r.player, a, r.food)
+    if not ok then finish(why, "refused") return end
+    r.phase, r.seen, r.ticks, r.stall, r.tool = "wait", false, 0, 0, tool
     r.approach = how == "approach"
     r.near, r.since = distTo(r.player, a), now()
 end
 
--- True when the run should give up on the animal under way: the player got well away from it
+-- Why the run should give up on the animal under way, or nil: the player got well away from it
 -- (walked off with the stick cancels the queue on its own; a move by other means does not),
 -- the queue holds actions with none running, or it has all taken too long
 local function gaveUp(r, a)
     local d = distTo(r.player, a)
     if d then
         if not r.near or d < r.near then r.near = d end
-        if d > math.max(r.near, 3) + AQ.AWAY then return true end
+        if d > math.max(r.near, 3) + AQ.AWAY then return "away" end
     end
-    if now() - (r.since or 0) > AQ.WAIT_MS then return true end
+    if now() - (r.since or 0) > AQ.WAIT_MS then return "slow" end
     if queued(r.player) and not doingAction(r.player) then
         r.stall = (r.stall or 0) + 1
-        if r.stall > AQ.STALL_TICKS then return true end
+        if r.stall > AQ.STALL_TICKS then return "stuck" end
     else
         r.stall = 0
     end
-    return false
+    return nil
 end
 
 --- Start a run of "milk", "shear" or "feed" over the animals (the ones with nothing to give,
@@ -595,7 +604,7 @@ function AQ.start(player, verb, animals, food)
     if #list == 0 then return false, (verb == "feed") and ZeD.tr("UI_ZeD_Animals_NeedFood") or nil end
     local ok, why = AQ.can(verb, player, list[1], food)
     if not ok then return false, why end
-    if AQ.run then finish(nil) end
+    if AQ.run then finish(nil, "replaced") end
     r.list = list
     AQ.run = r
     AQ.last = nil
@@ -611,7 +620,7 @@ end
 function AQ.stop()
     local r = AQ.run
     if not r then return end
-    halt(r)
+    halt(r, "stop")
 end
 
 --- One step of the run (every tick while one is going).
@@ -619,10 +628,11 @@ function AQ.tick()
     local r = AQ.run
     if not r then return end
     local p = r.player
-    if not p or (p.isDead and p:isDead()) then finish(nil) return end
+    if not p or (p.isDead and p:isDead()) then finish(nil, "dead") return end
     if r.phase == "wait" then
         local a = r.list[r.i]
-        if gaveUp(r, a) then halt(r) return end
+        local cause = gaveUp(r, a)
+        if cause then halt(r, cause) return end
         local busy = queueBusy(p)
         if busy then r.seen = true; return end
         if not r.seen then
@@ -633,11 +643,11 @@ function AQ.tick()
             -- the walk up is over: beside the animal now, hand the act itself over (once);
             -- still far off, the walk was cut short
             local d = distTo(p, a)
-            if d and d > 4 then letGo(a); finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list)) return end
+            if d and d > 4 then letGo(a); finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), "cut") return end
             handOver(r, r.i)
             if AQ.run == r and r.approach then
                 ISTimedActionQueue.clear(p)
-                finish(ZeD.tr("UI_ZeD_Animals_OutOfReach"))
+                finish(ZeD.tr("UI_ZeD_Animals_OutOfReach"), "reach")
             end
             return
         end
@@ -645,7 +655,7 @@ function AQ.tick()
         -- stopped: the player walked off, the animal ran, or the game turned it down
         if leftUndone(r, a) then
             letGo(a)
-            finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list))
+            finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), "undone")
             return
         end
         r.done = r.done + 1
@@ -656,7 +666,7 @@ function AQ.tick()
     while r.list[i] and not wants(r, r.list[i]) do i = i + 1 end
     local a = r.list[i]
     if not a then
-        finish(ZeD.tr("UI_ZeD_Animals_RunDone", r.done, #r.list))
+        finish(ZeD.tr("UI_ZeD_Animals_RunDone", r.done, #r.list), "done")
         return
     end
     handOver(r, i)
