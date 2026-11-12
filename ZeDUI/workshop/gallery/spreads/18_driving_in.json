@@ -1,0 +1,51 @@
+{
+ "id": "driving_in",
+ "n": 18,
+ "seed": 5,
+ "pages": [56, 57],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["18", "Driving In"]},
+   {"p": "Angel drives the station wagon back to the Fossoil. This chapter explains the dashboard and the *Enter Vehicle* window."},
+   {"p": "While you drive, the dashboard of the car sits at the foot of the screen. Each car has a dashboard drawn to match it; Figure 18-1 shows the station wagon's. The fuel gauge is at the left end, and its needle shows the fuel in the tank."},
+   {"at": 600},
+   {"caption": ["Figure 18-1", "The station wagon's dashboard."]},
+   {"p": "Angel's wagon comes in with its tank all but empty: the needle of the fuel gauge is on *E*. Chapter 41 shows how to refuel it."},
+   {"p": "The speedometer in the middle reads in miles per hour above and in kilometers per hour below, with the odometer under it. The temperature gauge is at the right of the speedometer."},
+   {"p": "Along the foot of the dashboard are the switches, each named on the panel: *LIGHTS*, *LOCK*, *TAILGATE*, *WIPER* and *CRUISE*. The key turns from *OFF* to *ON* and *START*."}
+  ],
+  "prints": [
+   {"src": "story_04a_dash_low_fuel.png", "box": [1125, 1800, 2115, 2160], "scale": 0.58, "at": [262, 336], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "The fuel gauge. The needle is on E.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.02, "to": [0, 1258, 1914]},
+   {"text": "The dashboard is drawn to match the car. This is the station wagon's.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.02, "to": [0, 1934, 1981]}
+  ],
+  "sticky": {"at": [600, 884], "w": 280, "h": 132, "text": "The dashboard, drawn to match the car."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Driving In",
+  "blocks": [
+   {"h2": "Choosing a Seat"},
+   {"p": "The *Enter Vehicle* window, in Figure 18-2, shows the seats of the car from above, each with its number. The heading names the seat under the pointer, and the help line at the foot of the window says what a click does: here, *Take this seat: Driver.* Seat 1 is the driver's seat."},
+   {"p": "Click a seat to take it. To drive, take the driver's seat. Seats 1 and 2 are the front seats and seats 3 and 4 the back seats."},
+   {"h2": "The Help Line"},
+   {"p": "Every window of ZNIX, the small ones too, ends in a help line. With the mouse, the help line gives the plain-words help for what the pointer is over; when the pointer is over nothing, it gives the window's own status. The help line holds one line; a longer help is cut short with an ellipsis."},
+   {"note": "On a controller, the help line shows the prompts for what has focus instead: the pad buttons and what each one does."},
+   {"at": 850},
+   {"caption": ["Figure 18-2", "The Enter Vehicle window."]},
+   {"p": "To close the window without taking a seat, click *Cancel*."}
+  ],
+  "prints": [
+   {"src": "story_04a_seat_chooser.png", "box": [1631, 622, 2209, 1538], "scale": 0.6, "at": [1295, 246], "tape": ["t", "bl"]}
+  ],
+  "marks": [
+   {"text": "Seat 1, lit, is the driver's. The heading names the seat under the pointer.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [[1, 1878, 1095], [1, 1710, 695]]},
+   {"text": "The help line at the foot says what the pointer is on.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [1, 1860, 1516]}
+  ],
+  "sticky": {"at": [1386, 884], "w": 270, "h": 132, "text": "Seat 1 is the driver's seat."}
+ }
+}

@@ -1,0 +1,49 @@
+{
+ "id": "pumping_gas",
+ "n": 41,
+ "seed": 10,
+ "pages": [102, 103],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["41", "Pumping Gas"]},
+   {"p": "Angel fills a gas can at the station's pump, then refuels the wagon. While he works, the card of the can stays open in the *Character* window."},
+   {"p": "The card of an item in your hands has *Unequip* in its top row, beside *More*. Under the name of the item are its marks, then its facts: here, *Kind* and *Weight*. To put the can away, click *Unequip*. To close the card, click its close box."},
+   {"at": 610},
+   {"caption": ["Figure 41-1", "The card of the gas can in Angel's hands."]},
+   {"p": "*More* lists the item's other actions. The marks under the name include *Favorite*, *No craft* and *Dispose*; click a mark's button to set it. Chapter 11 describes item cards in full."},
+   {"p": "The card opens in the drawer at the left of the *Character* window, on top of the panel that was there, and stays open until you click its close box or the action you started from it is done. The tabs down the left side of the window stay in view beside it."}
+  ],
+  "prints": [
+   {"src": "story_09b_gas_can_card.png", "box": [751, 40, 1200, 330], "scale": 0.75, "at": [300, 344], "tape": ["bl", "tr"]}
+  ],
+  "marks": [
+   {"text": "The card of the gas can in your hands. Unequip puts it away.", "pen": "blu", "at": [62, 226], "maxw": 186, "bend": 0.0, "to": [0, 1060, 68]}
+  ],
+  "sticky": {"at": [600, 884], "w": 280, "h": 132, "text": "Filling a gas can at the pump."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Pumping Gas",
+  "blocks": [
+   {"h2": "Taking Fuel"},
+   {"p": "While the can fills, the action bar over your character names the action, *TAKING FUEL*, and shows the percent. In Figure 41-2 the job is 35 percent done."},
+   {"p": "The style shown here names the action and gives the percent over a framed strip; the *Simple* style shows ten segments instead. Chapter 33 describes the styles of the action bar."},
+   {"at": 606},
+   {"caption": ["Figure 41-2", "Taking fuel at the pump."]},
+   {"at": 812},
+   {"caption": ["Figure 41-3", "The wagon's fuel gauge after refueling."]},
+   {"p": "After refueling, the needle of the wagon's fuel gauge stands near *F*. Compare Figure 18-1, where it was on *E*."}
+  ],
+  "prints": [
+   {"src": "story_09b_gas_can_card.png", "box": [1640, 860, 2140, 1250], "scale": 0.7, "at": [1100, 290], "tape": ["tl", "br"]},
+   {"src": "story_09c_dash_fuel_full.png", "box": [1150, 1840, 1400, 1960], "scale": 1.0, "at": [1100, 646], "tape": ["t"]}
+  ],
+  "marks": [
+   {"text": "The action bar names the action: taking fuel, 35 percent.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 1985, 926]},
+   {"text": "The wagon's fuel gauge after refueling. The needle is near F.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [2, 1297, 1918]}
+  ],
+  "sticky": {"at": [1520, 868], "w": 280, "h": 148, "text": "The wagon's tank after refueling: near F."}
+ }
+}

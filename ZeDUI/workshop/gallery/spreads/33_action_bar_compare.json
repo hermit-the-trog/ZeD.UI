@@ -1,0 +1,153 @@
+{
+ "id": "action_bar_compare",
+ "n": 33,
+ "seed": 26,
+ "pages": [
+  86,
+  87
+ ],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "33",
+     "Action Bar"
+    ]
+   },
+   {
+    "p": "While your character carries out a timed action, such as reading a book, a bar over the character shows how far the action has run. Figure 33-1 shows the bar as the game draws it."
+   },
+   {
+    "at": 838
+   },
+   {
+    "caption": [
+     "Figure 33-1",
+     "The action bar as the game draws it."
+    ]
+   },
+   {
+    "p": "The *Action bar* setting on the *ZeD setup* page of *Options* chooses how the bar is drawn: *Verbose*, in words, or *Simple*, as ten segments. Figure 33-2 shows *Verbose*."
+   }
+  ],
+  "prints": [
+   {
+    "src": "van_32_action_bar_reading.png",
+    "box": [
+     1790,
+     895,
+     2040,
+     1085
+    ],
+    "scale": 2.0,
+    "at": [
+     324,
+     430
+    ],
+    "printed": true
+   }
+  ],
+  "marks": [
+   {
+    "text": "Vanilla: the progress bar.",
+    "pen": "blu",
+    "at": [
+     470,
+     376
+    ],
+    "maxw": 300,
+    "to": [
+     0,
+     1919,
+     933
+    ]
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Action Bar",
+  "blocks": [
+   {
+    "h2": "The Verbose Bar"
+   },
+   {
+    "p": "In the verbose bar the action and the item are written out over the character, and a framed strip under them fills as the action runs."
+   },
+   {
+    "at": 838
+   },
+   {
+    "caption": [
+     "Figure 33-2",
+     "The verbose bar while reading a book."
+    ]
+   },
+   {
+    "p": "A long name is shortened, as the book's title is here."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_32_action_bar_reading.png",
+    "box": [
+     1790,
+     830,
+     2040,
+     1020
+    ],
+    "scale": 2.0,
+    "at": [
+     1060,
+     410
+    ],
+    "tape": [
+     "tl",
+     "br"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "ZeD: the action and the item in words, over the character.",
+    "pen": "blu",
+    "at": [
+     1180,
+     300
+    ],
+    "maxw": 340,
+    "to": [
+     1,
+     1900,
+     868
+    ]
+   },
+   {
+    "text": "The framed strip fills as the action runs.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     1,
+     2004,
+     898
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1470,
+    914
+   ],
+   "w": 330,
+   "h": 112,
+   "text": "Set the action bar in Options, ZeD setup."
+  }
+ }
+}

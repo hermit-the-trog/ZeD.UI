@@ -1,7 +1,7 @@
 # The gallery as a worked-through 1993 manual (spreads)
 
 Director's brief: `docs/handoffs/HANDOFF_gallery_manual_20261101.md`. Approved sample (Nov 1 2026, "Nailed it!"):
-`spreads/21_item_cards.json`, rendered `out_spread/21_item_cards.png`. Match it.
+`spreads/11_item_cards.json` (chapter 21 when approved), rendered `out_spread/11_item_cards.png`. Match it.
 
 ## The fiction
 
@@ -14,6 +14,8 @@ his four-colour Bic. He never types; the publisher never jokes.
 ## The picture
 
 One slide = one open spread, 1920 x 1080. Chapter number = the slide number n. Pages: left 2n+20, right 2n+21.
+`"seed"` (optional) seeds the desk, paper and tape instead of n: since the beta 12 renumbering it holds the chapter
+number each page was approved under, so its look never changes.
 
 | | x | notes |
 |---|---|---|
@@ -42,7 +44,7 @@ When words carry it (a long list, a table of buttons), both pages may be manual.
 ## The printed page (the publisher's)
 
 - Left page starts with `{"chapter": ["<n>", "<Title>"]}`. Title = the slide's title from shots.json, Title Case. The
-  three untitled photo slides: 1 "Introduction", 11 "Customers", 47 "The Desk".
+  three untitled photo slides: 1 "Introduction", 46 "Customers", 53 "The Desk".
 - Running heads: left `"Bitchin' znix Programs - Doidbros & Buzzlord"` (a hyphen, never a middle dot: punch list 128), right = the chapter title (short).
 - Voice: dry, plain, present tense, second person. "To open the card for an item, click the item." "The card
   opens in the drawer at the left of the window." No jokes, no hype, no exclamation marks, no "you'll love".
@@ -52,10 +54,10 @@ When words carry it (a long list, a table of buttons), both pages may be manual.
 - House style (settled in the Nov 1 review): the publisher calls the system **ZNIX** ("This book describes ZNIX and
   the windows it draws"); "ZeD" appears only inside screen names (*ZeD setup*, the ZeD wheel, ZeD picks, the *ZeD*
   menu) and in his notes. *Click* for anything on the screen, *press* for keys and pad buttons. The pad's buttons by
-  the names in Table 42-1 (*View*, not Select). American spelling: gray, color. Names exactly as the screen shows
+  the names in Table 47-1 (*View*, not Select). American spelling: gray, color. Names exactly as the screen shows
   them: the *Crafting* tab, *Zombies Killed*, *TAKING FUEL*, ValuTech. Captions are plain (no bold) and say where
   each picture is: top, bottom, left, right.
-- Story chapters (2-14) are a tutorial walkthrough: the chapter follows Angel Cross through the game (the shot's
+- Story chapters (1, 2, 8, 13, 18, 23, 28, 31, 36, 41, 46, 51, 56, 61: one at the head of each part, beta 12 plan v2) are a tutorial walkthrough: the chapter follows Angel Cross through the game (the shot's
   caption), and the printed text explains the windows and controls the step uses, still dry.
 - Every fact must come from: the slide's caption and callouts in `../shots/shots.json`, the corrections in
   `REVIEW_20261101.md`, the specs in the repo root (`*_SPEC.md`), or what the capture plainly shows. Never invent

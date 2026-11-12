@@ -1,0 +1,43 @@
+{
+ "id": "see_through",
+ "n": 4,
+ "seed": 16,
+ "pages": [28, 29],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["4", "See-through"]},
+   {"p": "*See-through* sets how much of the scene shows through the windows. It runs from 100, where a window is solid, down to 60, in steps of 10, and 90 is the default. It is set in *ZeD setup*, and from the window menu under *See-through*."},
+   {"p": "In the same list is *Solid while in use*. With it on, the window you are using is drawn solid while the other windows keep the see-through setting. A window is in use while the pointer is over it or the controller is in it; when the pointer or the controller leaves, the window goes back to the setting. Figure 4-1 shows the *Character* window in use by the controller at see-through 60."},
+   {"at": 900},
+   {"caption": ["Figure 4-1", "See-through 60 with Solid while in use on: the Character window, in use, stays solid."]}
+  ],
+  "prints": [
+   {"src": "zqa_cw_12b_solid_in_use.png", "box": [744, 14, 2712, 2146], "scale": 0.26, "at": [258, 300], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "Solid while in use makes the window in use solid: here the controller is in the Character window.", "pen": "blu", "at": [62, 560], "maxw": 188, "to": [0, 1000, 1300]}
+  ],
+  "sticky": {"at": [612, 940], "w": 268, "h": 84, "text": "Solid while in use."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "See-through",
+  "blocks": [
+   {"h2": "From 100 to 60"},
+   {"p": "Figure 4-2 shows the same *World* window at see-through 100 and at 60. Words, lines, pictures and controls stay solid at every setting; only the surface of the window lets the scene through."},
+   {"at": 906},
+   {"caption": ["Figure 4-2", "The World window at see-through 100, left, and 60, right."]}
+  ],
+  "prints": [
+   {"src": "zqa_cw_08_seethrough_100.png", "box": [1920, 14, 2712, 2146], "scale": 0.26, "at": [1196, 288], "tape": ["tl", "tr"]},
+   {"src": "zqa_cw_12_seethrough_60.png", "box": [1920, 14, 2712, 2146], "scale": 0.26, "at": [1436, 288], "tape": ["tr", "b"]}
+  ],
+  "marks": [
+   {"text": "At 100 the window is solid.", "pen": "blu", "at": [1040, 560], "maxw": 140, "to": [1, 2300, 1300]},
+   {"text": "At 60 the scene behind, here the lot and a car, shows through the window.", "pen": "blu", "at": [1676, 560], "maxw": 184, "to": [2, 2160, 1150]}
+  ],
+  "sticky": {"at": [1392, 936], "w": 268, "h": 94, "text": "See-through: 100 to 60."}
+ }
+}

@@ -1,0 +1,269 @@
+{
+ "id": "fixing_the_car",
+ "n": 23,
+ "seed": 6,
+ "pages": [
+  66,
+  67
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "23",
+     "Fixing the Car"
+    ]
+   },
+   {
+    "p": "The station wagon is short a tire. Angel fits one at the pumps, from the *Vehicle* tab of the *World* window."
+   },
+   {
+    "p": "The *Vehicle* tab opens when you are next to a car. The parts are listed on the left, by section; a part that has to come off before another is listed with the other part under it. Click a part and its card opens on the right: its condition, its type and where the work is done. Under the card, *From your bags and nearby* lists the parts that fit, with their condition and where they are. Pick one and click *Install*, at the foot of the tab."
+   },
+   {
+    "at": 790
+   },
+   {
+    "caption": [
+     "Figure 23-1",
+     "The Vehicle tab, at the front right tire."
+    ]
+   },
+   {
+    "p": "The front right tire of the wagon is missing. Angel has an old tire in his inventory, at 100 percent condition; the other two kinds of tire are not nearby."
+   }
+  ],
+  "prints": [
+   {
+    "src": "~/Zomboid/Screenshots/gallery_beta2/story_04b_vehicle_tab_tire.png",
+    "box": [
+     2578,
+     45,
+     3480,
+     705
+    ],
+    "scale": 0.65,
+    "at": [
+     264,
+     330
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Install fits the part picked in the list.",
+    "pen": "blu",
+    "at": [
+     62,
+     297
+    ],
+    "maxw": 186,
+    "bend": 0.0,
+    "to": [
+     0,
+     3340,
+     663
+    ]
+   },
+   {
+    "text": "The part card: this tire is missing.",
+    "pen": "blu",
+    "at": [
+     62,
+     410
+    ],
+    "maxw": 186,
+    "bend": 0.02,
+    "to": [
+     0,
+     3312,
+     226
+    ]
+   },
+   {
+    "text": "Parts you can fit, from your bags and nearby.",
+    "pen": "blu",
+    "at": [
+     62,
+     505
+    ],
+    "maxw": 186,
+    "bend": 0.02,
+    "to": [
+     0,
+     3160,
+     348
+    ]
+   },
+   {
+    "text": "Each part under the one that comes off first.",
+    "pen": "blu",
+    "at": [
+     62,
+     620
+    ],
+    "maxw": 186,
+    "bend": 0.02,
+    "to": [
+     0,
+     2682,
+     276
+    ]
+   },
+   {
+    "text": "The Vehicle tab opens when you are next to a car.",
+    "pen": "blu",
+    "at": [
+     62,
+     735
+    ],
+    "maxw": 186,
+    "bend": 0.0,
+    "to": [
+     0,
+     3455,
+     518
+    ]
+   },
+   {
+    "circle": {
+     "print": 0,
+     "box": [
+      3019,
+      374,
+      3374,
+      438
+     ]
+    },
+    "pen": "grn"
+   }
+  ],
+  "sticky": {
+   "at": [
+    600,
+    880
+   ],
+   "w": 280,
+   "h": 136,
+   "text": "Fixing the wagon: the Vehicle tab."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Fixing the Car",
+  "blocks": [
+   {
+    "h2": "While the Job Runs"
+   },
+   {
+    "p": "While a part is being fitted, a band at the top of the *Vehicle* tab names the job and the part and shows how far the job has got, in percent. *Install*, at the foot of the tab, is dimmed while the job runs."
+   },
+   {
+    "p": "The same job shows in the action bar over the car: the action, the part and the percent, with a bar that fills as the job goes on. Figure 23-2 shows both, a little over a third of the way through."
+   },
+   {
+    "p": "For work on a wheel, your character walks to the wheel first, then reaches for the tools the job needs."
+   },
+   {
+    "note": "With *Put things back after an action* on, the tools a job takes out of a bag go back to the same bag when the job is done, and what was in your hands goes back in your hands. Carry the jack and the wrench in a bag: tools left in the trunk are out of reach from the wheel."
+   },
+   {
+    "at": 862
+   },
+   {
+    "caption": [
+     "Figure 23-2",
+     "The band in the Vehicle tab, and the action bar over the car."
+    ]
+   },
+   {
+    "p": "With the tire on, the wagon is ready for fuel. Chapter 41 shows how to refuel it."
+   }
+  ],
+  "prints": [
+   {
+    "src": "~/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
+    "box": [
+     2595,
+     118,
+     3415,
+     182
+    ],
+    "scale": 0.64,
+    "at": [
+     1109,
+     296
+    ],
+    "tape": [
+     "t",
+     "bl"
+    ]
+   },
+   {
+    "src": "~/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar.png",
+    "box": [
+     1760,
+     870,
+     2175,
+     1200
+    ],
+    "scale": 0.9,
+    "at": [
+     1240,
+     440
+    ],
+    "tape": [
+     "t",
+     "bl"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "While the job runs, a band shows the part and the percent.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0.02,
+    "to": [
+     1,
+     3330,
+     138
+    ]
+   },
+   {
+    "text": "The action bar over the car: installing the tire, 35 percent.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0.02,
+    "to": [
+     2,
+     1945,
+     922
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1520,
+    868
+   ],
+   "w": 280,
+   "h": 148,
+   "text": "The job runs: the band and the action bar."
+  }
+ }
+}

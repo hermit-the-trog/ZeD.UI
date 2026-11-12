@@ -1,0 +1,45 @@
+{
+ "id": "fishing",
+ "n": 25,
+ "seed": 40,
+ "pages": [70, 71],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["25", "Fishing"]},
+   {"p": "While the line is out, the rod in your hands is drawn above the belt, and it shows the tension on the line. Figure 25-1 shows the line slack."},
+   {"at": 824},
+   {"caption": ["Figure 25-1", "The line slack."]},
+   {"p": "As the line is drawn tighter, the pointer comes up, the rod bows and the wraps on the rod turn gold, then red."}
+  ],
+  "prints": [
+   {"src": "zqa_fi_1_slack.png", "box": [1300, 1440, 2420, 2150], "scale": 0.55, "at": [256, 340], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "The dial on the reel is the tension meter. Slack, its pointer rests low on the left.", "pen": "blu", "at": [62, null], "maxw": 184, "to": [0, 1486, 1822]},
+   {"text": "The line sags while it is slack.", "pen": "blu", "at": [612, 766], "maxw": 276, "bend": 0, "to": [0, 2253, 1900]}
+  ],
+  "sticky": {"at": [612, 912], "w": 266, "h": 112, "text": "The rod shows the tension on the line."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Fishing",
+  "blocks": [
+   {"h2": "Tight, and at the Limit"},
+   {"p": "Figure 25-2 shows the same rod with the line tight, top, and at the limit, bottom. At the limit, *MAX* on the reel lights red, and past it the line snaps."},
+   {"at": 900},
+   {"caption": ["Figure 25-2", "Tight, top, and at the limit, bottom."]},
+   {"p": "Each state shows on the dial, in the bend of the rod and in the color of the wraps. The line turns pale red only at the limit."}
+  ],
+  "prints": [
+   {"src": "zqa_fi_3_tight.png", "box": [1300, 1610, 2420, 2150], "scale": 0.5, "at": [1036, 256], "tape": ["tl", "tr"]},
+   {"src": "zqa_fi_5_limit.png", "box": [1300, 1700, 2420, 2028], "scale": 0.5, "at": [1036, 618], "tape": ["t", "l"]}
+  ],
+  "marks": [
+   {"text": "Tight: the rod bows, the pointer comes up and the wraps start to turn gold.", "pen": "blu", "at": [1046, 556], "maxw": 580, "bend": 0, "from": "top", "to": [[1, 1510, 1778], [1, 1700, 1757], [1, 1940, 1668]]},
+   {"text": "At the limit MAX lights red, the wraps run to red and the line goes pale red. Past it, the line snaps.", "pen": "blu", "at": [1046, 808], "maxw": 580, "bend": 0, "from": "top", "to": [[2, 1585, 1744], [2, 2093, 1853], [2, 2250, 1986]]}
+  ],
+  "sticky": {"at": [1470, 918], "w": 266, "h": 104, "text": "Past the limit, the line snaps."}
+ }
+}

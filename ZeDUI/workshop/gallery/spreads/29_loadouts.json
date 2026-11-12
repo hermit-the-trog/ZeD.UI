@@ -1,0 +1,231 @@
+{
+ "id": "loadouts",
+ "n": 29,
+ "seed": 56,
+ "pages": [
+  78,
+  79
+ ],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "29",
+     "Loadouts"
+    ]
+   },
+   {
+    "p": "A loadout is a named list of what you carry. Save what you carry as a loadout, restock it before a trip, and unpack it at home. To put an item on a loadout, right-click the item and choose *Save to loadout* (Figure 29-1)."
+   },
+   {
+    "at": 784
+   },
+   {
+    "caption": [
+     "Figure 29-1",
+     "Save to loadout, in the menu for a machete."
+    ]
+   },
+   {
+    "p": "The loadout in use is shown in the *Loadouts* fold of the *Equipment* tab (Figure 29-2). *Restock* takes what is missing from the building you are in, by the game's own actions."
+   },
+   {
+    "note": "Loadouts are new. Please test them, and report what you find in Bug reports."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_70_loadout_save.png",
+    "box": [
+     1700,
+     990,
+     2360,
+     1815
+    ],
+    "scale": 0.45,
+    "at": [
+     426,
+     380
+    ],
+    "printed": true
+   }
+  ],
+  "marks": [
+   {
+    "text": "Right-click what you carry: Save to loadout.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1950,
+     1721
+    ]
+   },
+   {
+    "underline": "Bug",
+    "pen": "grn"
+   },
+   {
+    "underline": "reports",
+    "pen": "grn"
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Loadouts",
+  "blocks": [
+   {
+    "h2": "The Loadouts Fold"
+   },
+   {
+    "p": "The *Loadouts* fold gives the loadout in use, the days it is packed for, and how many of its lines are on you. Its to-do lists each supply and tool, what you need and have, and where it goes."
+   },
+   {
+    "at": 872
+   },
+   {
+    "caption": [
+     "Figure 29-2",
+     "The fold, and the to-do of the loadout Supply run."
+    ]
+   },
+   {
+    "p": "Above its lists the to-do gives the weights: what you wear and your gear, the supplies, and the room left for loot. When a loadout is more than you can carry, the to-do says so."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_71_loadout_fold.png",
+    "box": [
+     356,
+     44,
+     1197,
+     298
+    ],
+    "scale": 0.6,
+    "at": [
+     1036,
+     290
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   },
+   {
+    "src": "zed_73_loadout_todo_lines.png",
+    "box": [
+     356,
+     284,
+     1194,
+     668
+    ],
+    "scale": 0.62,
+    "at": [
+     1036,
+     574
+    ],
+    "tape": [
+     "t",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "The Loadouts fold: the loadout, the days, and ready 1 of 5, the lines already on you.",
+    "pen": "blu",
+    "at": [
+     1676,
+     300
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      1,
+      700,
+      207
+     ],
+     [
+      1,
+      1010,
+      205
+     ]
+    ],
+    "from": [
+     [
+      1664,
+      334
+     ],
+     [
+      1664,
+      352
+     ]
+    ]
+   },
+   {
+    "circle": {
+     "print": 1,
+     "box": [
+      366,
+      262,
+      502,
+      286
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "Restock takes the rest from the building you are in, by the game's own actions.",
+    "pen": "blu",
+    "at": [
+     1048,
+     476
+    ],
+    "maxw": 300,
+    "to": [
+     1,
+     930,
+     274
+    ]
+   },
+   {
+    "text": "The to-do: each supply and tool, how many you need and have, and where it goes.",
+    "pen": "blu",
+    "at": [
+     1676,
+     590
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      2,
+      1146,
+      342
+     ],
+     [
+      2,
+      1146,
+      573
+     ]
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1672,
+    864
+   ],
+   "w": 192,
+   "h": 152,
+   "text": "Restock a loadout before a trip."
+  }
+ }
+}

@@ -1,0 +1,232 @@
+{
+ "id": "laundry",
+ "n": 12,
+ "seed": 60,
+ "pages": [
+  44,
+  45
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "12",
+     "Washer and Dryer"
+    ]
+   },
+   {
+    "p": "The washer, the dryer and the washer-dryer each have a face of their own in the machine's card. The game's own actions run them."
+   },
+   {
+    "at": 730
+   },
+   {
+    "caption": [
+     "Figure 12-1",
+     "The washer-dryer."
+    ]
+   },
+   {
+    "p": "*WASH* and *DRY* set the washer-dryer's mode. The *WATER* meter reads the water in the machine, and *FILL* lights when a washer has none."
+   }
+  ],
+  "prints": [
+   {
+    "src": "g14_ldy_combo.png",
+    "box": [
+     2770,
+     112,
+     3312,
+     692
+    ],
+    "scale": 0.6,
+    "at": [
+     330,
+     330
+    ],
+    "tape": [
+     "t",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "WASH and DRY set the washer-dryer's mode.",
+    "pen": "blu",
+    "at": [
+     62,
+     356
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     2812,
+     188
+    ]
+   },
+   {
+    "circle": {
+     "print": 0,
+     "box": [
+      2806,
+      174,
+      2955,
+      202
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "The meter reads the water in the machine. FILL lights when a washer has none.",
+    "pen": "blu",
+    "at": [
+     700,
+     420
+    ],
+    "maxw": 170,
+    "bend": -0.04,
+    "to": [
+     0,
+     3140,
+     220
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    596,
+    880
+   ],
+   "w": 290,
+   "h": 140,
+   "text": "Washer, dryer and washer-dryer, each with its own face."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Washer and Dryer",
+  "blocks": [
+   {
+    "h2": "Running a Machine"
+   },
+   {
+    "p": "*POWER* starts and stops a machine; it needs grid or generator power. While a washer runs, its phase lamps step through wash, rinse and spin, and the drum turns. The door shows what is inside."
+   },
+   {
+    "at": 958
+   },
+   {
+    "caption": [
+     "Figure 12-2",
+     "The washer, top, and the dryer, bottom."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "g14_ldy_washer.png",
+    "box": [
+     2770,
+     112,
+     3312,
+     692
+    ],
+    "scale": 0.5,
+    "at": [
+     1036,
+     300
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   },
+   {
+    "src": "g14_ldy_dryer.png",
+    "box": [
+     2770,
+     112,
+     3312,
+     692
+    ],
+    "scale": 0.5,
+    "at": [
+     1240,
+     620
+    ],
+    "tape": [
+     "t",
+     "l"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "While it runs, the phase lamps step through wash, rinse and spin, and the drum turns.",
+    "pen": "blu",
+    "at": [
+     1476,
+     400
+    ],
+    "maxw": 180,
+    "to": [
+     1,
+     3150,
+     430
+    ]
+   },
+   {
+    "circle": {
+     "print": 1,
+     "box": [
+      2808,
+      204,
+      3002,
+      230
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "Power starts and stops it. It needs grid or generator power.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     2,
+     3270,
+     175
+    ]
+   },
+   {
+    "text": "The door shows what is inside.",
+    "pen": "blu",
+    "at": [
+     1040,
+     790
+    ],
+    "maxw": 180,
+    "to": [
+     2,
+     3000,
+     480
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1672,
+    862
+   ],
+   "w": 192,
+   "h": 152,
+   "text": "The game's own actions run them."
+  }
+ }
+}

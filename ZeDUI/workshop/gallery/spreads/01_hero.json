@@ -1,6 +1,7 @@
 {
  "id": "hero",
  "n": 1,
+ "seed": 1,
  "pages": [22, 23],
  "left": {
   "kind": "taped",
@@ -8,10 +9,10 @@
   "blocks": [
    {"chapter": ["1", "Introduction"]},
    {"p": "This book describes ZNIX and the windows it draws over the game: what each window shows, where its controls are and how they are used. It assumes that you have started a game and can move your character about the world."},
-   {"p": "Chapters 2 through 14 are a walkthrough. They follow one survivor, Angel Cross, who pumped gas at the Fossoil station in West Point, Kentucky, as he goes back to the station and opens it for business again. Each chapter takes one step of the story and explains the windows and controls that the step uses. The chapters after the walkthrough describe the windows one at a time."},
+   {"p": "A walkthrough runs through the book. It follows one survivor, Angel Cross, who pumped gas at the Fossoil station in West Point, Kentucky, as he goes back to the station and opens it for business again. Each part of the book opens with one step of the story, a chapter that explains the windows and controls the step uses. The chapters after it in the part describe the windows one at a time."},
    {"h2": "Conventions"},
    {"list": ["Names on the screen (buttons, tabs, menu items and window names) are set in bold: *Save*, *Install*, *Character*.", "Anything you type is set in `monospace`.", "Figures and tables are numbered by chapter: Figure 1-1 is the first figure in Chapter 1."]},
-   {"p": "Read the walkthrough in order the first time. Each chapter assumes the windows and controls of the chapters before it."}
+   {"p": "Read the book in order the first time. Each chapter assumes the windows and controls of the chapters before it."}
   ],
   "prints": [
    {"src": "zed_02_hero_close.png", "box": [0, 0, 3840, 2160], "scale": 0.28, "at": [412, 302], "tape": ["tl", "r"], "cross": true}
@@ -29,7 +30,7 @@
    {"p": "Figure 1-1 shows the screen in play. ZNIX draws two windows over the game and the belt along the foot of the screen. The *Character* window, at the left, holds everything about your character: what you carry and wear, health, temperature, ID, journal and skills. Its tabs run down the left side of the window."},
    {"p": "The *World* window, at the right, holds the world around you: containers, crafting, building, furniture, maps, foraging, animals and vehicles. Its tabs run down the right side of the window."},
    {"p": "Along the foot of each window runs its help line. It gives the plain-words help for what the pointer is over, or else the window's own status line."},
-   {"p": "At the right end of each title bar is the window box. Click it to pull down the window menu: *Theme*, *Accent*, *Text size*, *See-through* and more. Chapter 9 describes the window menu."},
+   {"p": "At the right end of each title bar is the window box. Click it to pull down the window menu: *Theme*, *Accent*, *Text size*, *See-through* and more. Chapter 3 describes the window menu."},
    {"p": "The belt holds your off hand and your main hand at its left end, then the numbered slots on a strap. The green ring round the main hand shows its condition."},
    {"at": 962},
    {"caption": ["Figure 1-1", "The screen in play: two windows and the belt."]}

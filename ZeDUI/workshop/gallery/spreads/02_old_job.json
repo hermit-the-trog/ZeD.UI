@@ -1,6 +1,7 @@
 {
  "id": "old_job",
  "n": 2,
+ "seed": 2,
  "pages": [24, 25],
  "left": {
   "kind": "taped",

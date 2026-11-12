@@ -335,7 +335,8 @@ def overlap(a, b, pad=0):
 def render(sp, screens, out_path):
     """Returns the CHECK lines: what a look at the picture should confirm or fix."""
     checks = []
-    art, geom = pp.art_layer(sp["n"] * 97)
+    seed = sp.get("seed", sp["n"])            # the paper and tape keep the chapter number they were approved under
+    art, geom = pp.art_layer(seed * 97)
     canvas = art.resize((OW, OH), Image.NEAREST).convert("RGB")
     d = ImageDraw.Draw(canvas)
     boxes = {"left": [], "right": []}
@@ -369,7 +370,7 @@ def render(sp, screens, out_path):
                                    "bl": (x0 + 8, y1 - 6, 36), "br": (x1 - 8, y1 - 6, -36),
                                    "t": ((x0 + x1) / 2, y0 + 2, 2), "b": ((x0 + x1) / 2, y1 - 2, -2),
                                    "l": (x0 + 2, (y0 + y1) / 2, 88), "r": (x1 - 2, (y0 + y1) / 2, 92)}[corner]
-                    tape(canvas, cx, cy, 104, 34, ang, sp["n"] * 13 + k * 5 + j)
+                    tape(canvas, cx, cy, 104, 34, ang, seed * 13 + k * 5 + j)
                     tapes.append((cx, cy, ang))
             pboxes.append(pbox)
             if pbox[0] < GUT < pbox[2] and not p.get("cross"):

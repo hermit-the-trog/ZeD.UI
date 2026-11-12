@@ -1,0 +1,249 @@
+{
+ "id": "load_order",
+ "n": 60,
+ "seed": 54,
+ "pages": [
+  140,
+  141
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "60",
+     "Profiles and Load Order"
+    ]
+   },
+   {
+    "p": "A profile keeps a mod list with its load order. The *Mod profiles* window holds your profiles: the list at the left gives each profile with how many mods it holds, and the pane at the right describes the profile picked."
+   },
+   {
+    "p": "Under *Loading it* the pane lists what loading the profile would change: the mods it turns off, and any mod it names that is not installed. Such a mod stays off. Under *Load order* the pane gives the order the profile keeps, numbered from the top."
+   },
+   {
+    "at": 744
+   },
+   {
+    "caption": [
+     "Figure 60-1",
+     "The profile Crafting run."
+    ]
+   },
+   {
+    "p": "*Load* loads the profile picked. *New...* saves the list in use as a new profile, and *Update...* saves it into the profile picked. Profiles are kept in Zomboid/Lua/ZeD_modprofiles.txt."
+   }
+  ],
+  "prints": [
+   {
+    "src": "mm4_08_profiles.png",
+    "box": [
+     1795,
+     360,
+     2330,
+     1000
+    ],
+    "scale": 0.55,
+    "at": [
+     264,
+     330
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Loading a profile says what it turns off.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1846,
+     540
+    ]
+   },
+   {
+    "text": "A mod it lists that you do not have is named, and stays off.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1846,
+     710
+    ]
+   },
+   {
+    "text": "Each profile keeps its own load order.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1840,
+     794
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    596,
+    890
+   ],
+   "w": 294,
+   "h": 124,
+   "text": "A profile keeps a mod list and its load order."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Profiles and Load Order",
+  "blocks": [
+   {
+    "h2": "The Load Order"
+   },
+   {
+    "p": "The *Load order* window lists the mods that are on, numbered in the order the game loads them: the top loads first. To move a mod, pick it and click *Move Up* or *Move Down*. A mod moves one place at a time."
+   },
+   {
+    "p": "The pane at the right of the window names what the picked mod needs; a mod it needs must load first. Each row carries a square mark for its place in the order (Table 60-1)."
+   },
+   {
+    "table": {
+     "label": "Table 60-1",
+     "title": "The marks in the load order",
+     "cols": [
+      0.22,
+      0.78
+     ],
+     "head": [
+      "Mark",
+      "Meaning"
+     ],
+     "rows": [
+      [
+       "Red",
+       "A mod it needs loads later, or is not in the list."
+      ],
+      [
+       "Yellow",
+       "One of its own wishes to load before or after a mod is not kept."
+      ],
+      [
+       "Green",
+       "Its place is right."
+      ]
+     ]
+    }
+   },
+   {
+    "p": "While a row is red, *Done* waits. *Auto* sets the order by the mods' own rules: each mod after the mods it needs."
+   },
+   {
+    "p": "On a controller, *Y* moves the picked mod up and *X* moves it down."
+   },
+   {
+    "p": "*Done* keeps the order. When the order is saved, every mod a mod needs is put in front of it, so the game never loads a mod before what it needs."
+   }
+  ],
+  "prints": [
+   {
+    "src": "mm4_09_load_order.png",
+    "box": [
+     994,
+     300,
+     1660,
+     765
+    ],
+    "scale": 0.5,
+    "at": [
+     1308,
+     160
+    ],
+    "tape": [
+     "tl",
+     "br"
+    ]
+   },
+   {
+    "src": "mm4_09_load_order.png",
+    "box": [
+     2440,
+     1996,
+     2870,
+     2072
+    ],
+    "scale": 0.7,
+    "at": [
+     1340,
+     930
+    ],
+    "tape": [
+     "l",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Crafting Pack loads before the Crafting Core it needs.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     1,
+     1339,
+     563
+    ]
+   },
+   {
+    "text": "Done waits until the order is fixed. Auto sets it.",
+    "pen": "blu",
+    "at": [
+     1676,
+     812
+    ],
+    "maxw": 184,
+    "bend": 0.12,
+    "to": [
+     [
+      2,
+      2778,
+      2036
+     ],
+     [
+      2,
+      2662,
+      2036
+     ]
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1036,
+    900
+   ],
+   "w": 290,
+   "h": 120,
+   "text": "A red row loads before what it needs."
+  }
+ }
+}

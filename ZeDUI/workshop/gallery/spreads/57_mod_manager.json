@@ -1,0 +1,50 @@
+{
+ "id": "mod_manager",
+ "n": 57,
+ "seed": 50,
+ "pages": [134, 135],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["57", "Mods"]},
+   {"p": "The *Mods* window lists the mods you have. The tabs along the top of the list choose what it shows: *All*, *On*, *Problems*, *Conflicts* and *Workshop*, each with its count. The mod chosen in the list is shown in its info pane, at the right of the window."},
+   {"at": 760},
+   {"caption": ["Figure 57-1", "The Conflicts tab of a mod's info pane."]},
+   {"p": "Two mods conflict when both hold the same file or define the same item. The info pane's *Conflicts* tab lists each conflict and says which mod's copy the game uses."}
+  ],
+  "prints": [
+   {"src": "mm4_03_mods_conflict.png", "box": [1888, 624, 2840, 1170], "scale": 0.55, "at": [330, 406], "tape": ["tr", "b"]}
+  ],
+  "marks": [
+   {"text": "Same file in two mods: the later mod's copy is the one used.", "pen": "blu", "at": [60, null], "maxw": 186, "to": [0, 1926, 744]},
+   {"text": "Choose file by file picks which mod's copy of a shared file runs.", "pen": "blu", "at": [60, null], "maxw": 186, "to": [0, 1970, 898]},
+   {"text": "Same item in both: the game reads by file name, so order changes nothing.", "pen": "blu", "at": [60, null], "maxw": 186, "to": [0, 1926, 956]}
+  ],
+  "sticky": {"at": [580, 912], "w": 290, "h": 100, "text": "Mods: problems and conflicts."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Mods",
+  "blocks": [
+   {"h2": "The List and the Info Pane"},
+   {"p": "A mod with a problem says so in its info pane, in a line under the pane's tabs, with a mark beside it."},
+   {"at": 934},
+   {"caption": ["Figure 57-2", "The list, part of an info pane, and two problems."]}
+  ],
+  "prints": [
+   {"src": "mm4_04_mods_conflicts_tab.png", "box": [1000, 372, 1905, 636], "scale": 0.6, "at": [1040, 300], "tape": ["tl", "l"]},
+   {"src": "mm4_04_mods_conflicts_tab.png", "box": [1890, 836, 2850, 1056], "scale": 0.55, "at": [1040, 492], "tape": ["l", "br"]},
+   {"src": "mm4_06_mods_problem_missing.png", "box": [1890, 690, 2560, 920], "scale": 0.55, "at": [1290, 650], "tape": ["tr", "br"]},
+   {"src": "mm4_07_mods_problem_version.png", "box": [1890, 690, 2560, 812], "scale": 0.55, "at": [1290, 808], "tape": ["r", "bl"]}
+  ],
+  "marks": [
+   {"text": "Tabs for problems, conflicts and the Workshop.", "pen": "blu", "at": [1200, 264], "maxw": 460, "to": [[1, 1330, 398], [1, 1500, 398], [1, 1675, 398]]},
+   {"text": "A mod in conflict says so in its row.", "pen": "blu", "at": [1676, null], "maxw": 186, "to": [[1, 1796, 520], [1, 1796, 594]]},
+   {"text": "Each mod says what turning it off would do.", "pen": "blu", "at": [1676, null], "maxw": 186, "bend": 0.03, "to": [2, 2114, 858]},
+   {"text": "A mod it needs that is not installed is marked.", "pen": "blu", "at": [1046, 710], "maxw": 220, "to": [3, 1927, 898]},
+   {"text": "A mod made for another game version says which.", "pen": "blu", "at": [1046, 808], "maxw": 220, "to": [4, 1929, 710]}
+  ],
+  "sticky": {"at": [1538, 906], "w": 326, "h": 106, "text": "What each mod needs and what turning it off does."}
+ }
+}

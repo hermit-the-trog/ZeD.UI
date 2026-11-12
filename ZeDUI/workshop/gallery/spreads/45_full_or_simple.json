@@ -1,0 +1,294 @@
+{
+ "id": "full_or_simple",
+ "n": 45,
+ "seed": 61,
+ "pages": [
+  110,
+  111
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "45",
+     "Immersive or Simple"
+    ]
+   },
+   {
+    "p": "The *Immersive or simple* section of *ZeD setup* sets how six parts of the screen are drawn: the belt, the devices, the watch, the dashboard, the Survival Guide and the identity card. *Immersive* draws the real thing and *Simple* draws a plain card with the same buttons and readings, in the same order."
+   },
+   {
+    "at": 690
+   },
+   {
+    "caption": [
+     "Figure 45-1",
+     "The Immersive or simple section of ZeD setup."
+    ]
+   },
+   {
+    "at": 900
+   },
+   {
+    "caption": [
+     "Figure 45-2",
+     "The watch, Simple, left; the belt, both looks, right."
+    ]
+   },
+   {
+    "p": "*Immersive* is the default. The *Access* preset, under *Additions*, picks *Simple* for the devices, the watch and the dashboard."
+   }
+  ],
+  "prints": [
+   {
+    "src": "gb_forms_setup.png",
+    "box": [
+     1450,
+     540,
+     2380,
+     935
+    ],
+    "scale": 0.492,
+    "at": [
+     310,
+     424
+    ],
+    "tape": [
+     "tl",
+     "br"
+    ]
+   },
+   {
+    "src": "gb_simple_watch.png",
+    "box": [
+     3346,
+     4,
+     3836,
+     230
+    ],
+    "scale": 0.5,
+    "at": [
+     286,
+     742
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   },
+   {
+    "src": "gb_simple_watch.png",
+    "box": [
+     1524,
+     2026,
+     2294,
+     2130
+    ],
+    "scale": 0.42,
+    "at": [
+     556,
+     742
+    ],
+    "tape": [
+     "t",
+     "r"
+    ]
+   },
+   {
+    "src": "gb_simple_belt.png",
+    "box": [
+     1636,
+     2026,
+     2204,
+     2132
+    ],
+    "scale": 0.42,
+    "at": [
+     596,
+     806
+    ],
+    "tape": [
+     "l",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Simple keeps every button and reading. Only the drawing changes.",
+    "pen": "blu",
+    "at": [
+     62,
+     470
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     2232,
+     733
+    ]
+   },
+   {
+    "circle": {
+     "print": 0,
+     "box": [
+      2215,
+      640,
+      2340,
+      805
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "The watch, plain: the time, the date, the temperature, the speed and the alarm, with the same buttons.",
+    "pen": "blu",
+    "at": [
+     62,
+     650
+    ],
+    "maxw": 184,
+    "to": [
+     1,
+     3420,
+     80
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    56,
+    880
+   ],
+   "w": 196,
+   "text": "The real thing, or a plain card."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Immersive or Simple",
+  "blocks": [
+   {
+    "h2": "Devices and the Dashboard"
+   },
+   {
+    "p": "With *Devices* set to *Simple*, every radio, CD player, TV and two-way radio in the *Radio* tab is a plain card: each reading on a row, each button beside it. The ovens, the generator, the grill and the washers and dryers get plain cards the same way. With *Dashboard* set to *Simple*, the dashboard is a plain strip with the speed, the gauges, the lamps as dots and every switch as a button."
+   },
+   {
+    "at": 786
+   },
+   {
+    "caption": [
+     "Figure 45-3",
+     "A radio, Simple, top; the dashboard, Simple, bottom."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "gb_plain_radio.png",
+    "box": [
+     748,
+     0,
+     1196,
+     1078
+    ],
+    "scale": 0.35,
+    "at": [
+     1040,
+     368
+    ],
+    "tape": [
+     "tr",
+     "l"
+    ]
+   },
+   {
+    "src": "gb_plain_dash.png",
+    "box": [
+     1214,
+     1636,
+     2626,
+     2118
+    ],
+    "scale": 0.39,
+    "at": [
+     1040,
+     822
+    ],
+    "tape": [
+     "l",
+     "br"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Every reading on a row, every button beside it.",
+    "pen": "blu",
+    "at": [
+     1290,
+     440
+    ],
+    "maxw": 250,
+    "to": [
+     4,
+     1100,
+     279
+    ]
+   },
+   {
+    "text": "Signal, presets, headphones and battery, in the face's own order.",
+    "pen": "blu",
+    "at": [
+     1290,
+     560
+    ],
+    "maxw": 250,
+    "to": [
+     [
+      4,
+      1151,
+      508
+     ],
+     [
+      4,
+      1055,
+      678
+     ]
+    ]
+   },
+   {
+    "text": "The lamps are dots. Every switch is a button.",
+    "pen": "blu",
+    "at": [
+     1676,
+     640
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      5,
+      2080,
+      1812
+     ],
+     [
+      5,
+      2277,
+      1862
+     ]
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1680,
+    846
+   ],
+   "w": 184,
+   "text": "Same buttons, plainer drawing."
+  }
+ }
+}

@@ -1,0 +1,235 @@
+{
+ "id": "mod_settings",
+ "n": 58,
+ "seed": 51,
+ "pages": [
+  136,
+  137
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "58",
+     "A Mod's Settings"
+    ]
+   },
+   {
+    "p": "The info pane at the right of the *Mods* window describes one mod: its picture and name, its buttons, and a row of tabs that divide what it holds: *About*, *Options*, *Sandbox* and *Conflicts*. The number on a tab gives how many entries it holds; a tab whose number is 0 is dimmed."
+   },
+   {
+    "p": "The *Options* tab lists the mod's own options. They are yours, for every game, and each is kept as you change it. A small square at the left of an option marks one you have changed."
+   },
+   {
+    "p": "Figure 58-1 shows the tab for Cone Vision Outline, a mod with eight options. Each option is set on a line of its own, its name at the left and its control at the right: a color box, a slider with its value, or a checkbox. Under *Settings files* the tab lists the files the mod keeps in Zomboid/Lua, each named after the mod, and a line under them says what *Reset settings* does with them."
+   },
+   {
+    "at": 920
+   },
+   {
+    "caption": [
+     "Figure 58-1",
+     "The Options tab."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "zqa_mp_r1_reset_files.png",
+    "box": [
+     1895,
+     372,
+     2835,
+     1310
+    ],
+    "scale": 0.47,
+    "at": [
+     264,
+     400
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "The info pane's tabs: About, Options, Sandbox and Conflicts.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1958,
+     660
+    ]
+   },
+   {
+    "text": "The mod's own options, kept as you change them. A square mark shows what you changed.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1925,
+     919
+    ]
+   },
+   {
+    "text": "The settings files the mod keeps in Zomboid/Lua. Reset settings copies each, then empties it.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1952,
+     1246
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    596,
+    890
+   ],
+   "w": 294,
+   "h": 140,
+   "text": "A mod's own options, kept as you change them."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "A Mod's Settings",
+  "blocks": [
+   {
+    "h2": "Sandbox Settings"
+   },
+   {
+    "p": "The *Sandbox* tab lists the sandbox settings the mod adds to each new game. They are chosen when you start a game: *New game*, *Sandbox*, on the mod's own page."
+   },
+   {
+    "p": "The tab reads the settings from the mod's own files and shows their defaults, so it can be read while the mod is turned off. Figure 58-2 shows the tab for a mod that is off: its first button reads *Turn on*. The line at the top of the list says where the settings are chosen; each setting follows on a line of its own."
+   },
+   {
+    "at": 676
+   },
+   {
+    "caption": [
+     "Figure 58-2",
+     "The Sandbox tab of a mod that is off."
+    ]
+   },
+   {
+    "h2": "Resetting a Mod"
+   },
+   {
+    "p": "*Reset settings* puts the mod's options back to their defaults and empties its settings files. It asks first, in the band at the foot of the window. Each file is copied to Zomboid/Lua/ZeD_reset before it is emptied: the game lets a mod empty a file, not delete it. The mod then starts from its own defaults."
+   },
+   {
+    "p": "To leave them as they are, click *Cancel*."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zqa_mp_5_srm_sandbox.png",
+    "box": [
+     1895,
+     372,
+     2835,
+     1000
+    ],
+    "scale": 0.47,
+    "at": [
+     1202,
+     314
+    ],
+    "tape": [
+     "t",
+     "bl"
+    ]
+   },
+   {
+    "src": "zqa_mp_r2_reset_confirm.png",
+    "box": [
+     1000,
+     1542,
+     2845,
+     1620
+    ],
+    "scale": 0.46,
+    "at": [
+     990,
+     776
+    ],
+    "tape": [
+     "l",
+     "b"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "The sandbox settings it adds to each new game, read from the mod's own files, also while it is off.",
+    "pen": "blu",
+    "at": [
+     1676,
+     380
+    ],
+    "maxw": 184,
+    "bend": 0.2,
+    "to": [
+     1,
+     2240,
+     832
+    ]
+   },
+   {
+    "circle": {
+     "print": 1,
+     "box": [
+      2150,
+      482,
+      2272,
+      518
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "Reset settings asks first: options back to their defaults, files emptied, copies kept in Zomboid/Lua/ ZeD_reset.",
+    "pen": "blu",
+    "at": [
+     1676,
+     570
+    ],
+    "maxw": 184,
+    "to": [
+     2,
+     2790,
+     1588
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1470,
+    892
+   ],
+   "w": 320,
+   "h": 120,
+   "text": "Sandbox settings, and a reset that asks first."
+  }
+ }
+}
