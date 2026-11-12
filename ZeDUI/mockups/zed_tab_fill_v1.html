@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Tab Fill</title>
+<!-- ZeD-GUI mockup: filling the blank space in six tabs "with real facts" (director's ruling, Nov 11 2026), v1.
+     Before = the QA tab review pictures of Nov 11 (1920x1080, ZeD 1x, Dark + PZ Teal); after = the same tab with
+     the new blocks in its blank space. Each tab keeps its content and design; new blocks use the System 7
+     section heading (fold triangle, words, count at the right) and no line rules inside the body.
+     Chrome, tokens, review bar, keycaps and the pointing hand copied from zed_fishing_tab_v2.html and
+     zed_tab_search_v1.html. Units: 1 CSS px = 1 ZeD unit (1x), so the windows are drawn at their real size.
+     Sources read: ZeD HealthTab.lua, ThermalTab.lua, RadioTab.lua, RtvFace.lua, ZeD_RadioOps.lua,
+     ZeD_JournalReaders.lua, ZeD_JournalLists.lua, ZeD_Lists.lua; vanilla ISFitnessUI.lua, ISClothingInsPanel.lua,
+     FitnessExercises.lua, scripts/generated/items/radio.txt, radio/RadioData.xml, Translate/EN *.json. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #47a18c; --acc-text: var(--accent); --on-accent: #0c0c0c;
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --page: #0e0f10; --world: #4a4d48;
+}
+:root[data-theme="light"] { --acc-text: color-mix(in srgb, var(--accent) 70%, #000); --on-accent: #fff;
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84; --world: #9a9a92;
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48;
+}
+:root[data-theme="hc"] {
+  --base: #000; --surface-1: #0a0a0a; --surface-2: #141414; --surface-3: #262626;
+  --border: rgba(255,255,255,0.45); --border-strong: rgba(255,255,255,0.85);
+  --text: #fff; --text-secondary: rgba(255,255,255,0.80); --text-heading: #fff; --stripe-1: #444; --stripe-2: #111;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: 14px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: center; padding: 8px 16px;
+  font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 5; }
+.review b { color: #ddd; font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+
+.stagewrap { padding: 14px 16px 6px; overflow-x: auto; }
+.stage { transform-origin: top left; display: flex; gap: 28px; width: max-content; margin: 0 auto; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.cap { font: 700 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: #9a9a9a; }
+.cap span { color: #8fc9b9; }
+.desk { background: var(--world); padding: 0; }
+
+.notes { max-width: 1000px; margin: 0 auto; padding: 4px 16px 48px; color: #c8c8c8; font-size: 15px; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: #8fc9b9; margin: 18px 0 8px; }
+.notes p { margin: 0 0 8px; max-width: 84ch; }
+.notes table { border-collapse: collapse; width: 100%; margin: 4px 0 10px; font-size: 14px; }
+.notes th { text-align: left; font: 700 11px/1.2 var(--font-mono); color: #9a9a9a; text-transform: uppercase; letter-spacing: .06em; padding: 4px 8px 4px 0; }
+.notes td { vertical-align: top; padding: 4px 10px 4px 0; border-top: 1px solid #2a2a2a; }
+.notes code { font-family: var(--font-mono); font-size: 12.5px; color: #e6e6e6; }
+.notes ul { margin: 0 0 8px; padding-left: 20px; max-width: 88ch; }
+.notes li { margin-bottom: 4px; }
+
+/* ---------- ZeD window chrome */
+.win { display: flex; flex-direction: column; background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); height: 1056px; }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 8px; padding: 0 8px;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 11px; height: 11px; border: 1px solid var(--border-strong); background: var(--surface-1); flex: 0 0 11px; }
+.titlechip { margin-left: auto; background: var(--surface-2); padding: 0 8px; font: 400 12px/22px var(--font-mono); color: var(--text); white-space: nowrap; }
+.titlechip.l { margin-left: 0; margin-right: auto; }
+.titlechip i { display: inline-block; width: 7px; height: 7px; background: var(--accent); margin-right: 5px; vertical-align: 0; }
+.wbody { flex: 1; min-height: 0; display: flex; }
+.status { height: 22px; flex: 0 0 22px; display: flex; align-items: center; padding: 0 10px; font: 400 13px/1 var(--font-sans); color: var(--text-secondary); border-top: 1px solid var(--border); }
+
+.strip { width: 36px; flex: 0 0 36px; display: flex; flex-direction: column; align-items: stretch; padding-top: 2px; border-right: 1px solid var(--border); }
+.strip.r { border-right: 0; border-left: 1px solid var(--border); }
+.strip .t { height: 36px; display: flex; align-items: center; justify-content: center; color: var(--acc-text); }
+.strip .t.on { background: var(--accent); color: var(--on-accent); }
+.strip svg { display: block; }
+.ghost { flex: 1; min-width: 0; border-left: 1px solid var(--border); display: flex; flex-direction: column; opacity: .45; }
+.ghost.lft { border-left: 0; border-right: 1px solid var(--border); }
+.ghost .gh { height: 34px; display: flex; align-items: center; padding: 0 10px; font: 600 15px/1 var(--font-sans); }
+.ghost .gr { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 10px; font: 400 13px/1 var(--font-sans); white-space: nowrap; overflow: hidden; }
+.ghost .gr i { width: 18px; height: 18px; background: var(--surface-3); flex: 0 0 18px; }
+.ghost .gr b { font-weight: 400; font-family: var(--font-mono); font-size: 11px; color: var(--acc-text); margin-left: auto; }
+
+.drawer { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; position: relative; }
+.dscroll { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+
+/* the tab header (fold triangle + tab name) */
+.thdr { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; font: 500 15px/1 var(--font-sans); color: var(--text); }
+.tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-heading); display: inline-block; flex: 0 0 auto; }
+.tri.shut { border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid var(--text-heading); border-right: 0; }
+
+/* zone A: figure + readings */
+.zoneA { display: flex; gap: 10px; padding: 4px 10px 0; }
+.fig { width: 220px; height: 260px; flex: 0 0 220px; border: 1px solid var(--border-strong);
+  background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent) 22%, transparent) 0 1px, transparent 1px 22px),
+              repeating-linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent) 0 1px, transparent 1px 22px), #15171a;
+  display: flex; align-items: center; justify-content: center; }
+.read { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.sr { display: flex; align-items: center; gap: 6px; font: 400 12px/18px var(--font-mono); }
+.sr .v { margin-left: auto; font-variant-numeric: tabular-nums; }
+.sq { width: 7px; height: 7px; flex: 0 0 7px; background: var(--positive); display: inline-block; }
+.seg { display: flex; gap: 1px; height: 12px; }
+.seg i { flex: 1; background: var(--surface-3); }
+.seg i.f { background: #7aa83a; }
+.grad { height: 12px; position: relative; background: linear-gradient(to right, #3a5ab8, #3a8ab8, #3aa88a, #7ab83a, #c8b83a, #c88a3a, #c85a3a); }
+.grad b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; }
+.ptitle { font: 500 14px/1.3 var(--font-sans); margin-top: 8px; }
+.ptext { font: 400 14px/1.3 var(--font-sans); color: var(--text-secondary); }
+.ptext.b { color: var(--text); }
+.lab { font: 400 12px/18px var(--font-mono); color: var(--text-secondary); }
+
+/* System 7 section heading inside a tab (surface band, no rules) */
+.sec { position: relative; display: flex; align-items: center; gap: 6px; height: 22px; margin: 10px 0 2px; padding: 0 10px; background: var(--surface-1);
+  font: 700 12px/1 var(--font-mono); color: var(--text-heading); }
+.sec .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.sec.new::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--warning); }
+.mark-new .sec.new::before { display: block; }
+body:not(.mark-new) .sec.new::before { display: none; }
+
+.rowl { position: relative; display: flex; align-items: center; gap: 8px; min-height: 24px; padding: 0 10px; font: 400 14px/1.2 var(--font-sans); }
+.rowl.tall { align-items: flex-start; padding-top: 4px; padding-bottom: 4px; }
+.rowl.sel { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.rowl .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rowl .grow.wrap { white-space: normal; }
+.rowl .dim { color: var(--text-secondary); }
+.rowl .mono { font: 400 12px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+.rowl .k { font: 400 12px/18px var(--font-mono); color: var(--text-secondary); flex: 0 0 auto; }
+.rowl .sub { display: block; font: 400 13px/1.25 var(--font-sans); color: var(--text-secondary); white-space: normal; }
+.rowl .v { margin-left: auto; font: 400 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bar { width: 70px; height: 6px; background: var(--surface-3); position: relative; flex: 0 0 70px; }
+.bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); opacity: .85; }
+.bar.w > i { background: var(--warning); }
+.pips { display: flex; gap: 2px; flex: 0 0 auto; }
+.pips i { width: 7px; height: 7px; border: 1px solid var(--border-strong); }
+.pips i.f { background: var(--accent); border-color: var(--accent); }
+.pips i.bad { background: var(--warning); border-color: var(--warning); }
+.dot { width: 7px; height: 7px; flex: 0 0 7px; display: inline-block; background: var(--text-secondary); }
+.dot.pos { background: var(--positive); } .dot.warn { background: var(--warning); } .dot.bad { background: var(--danger); } .dot.acc { background: var(--accent); }
+.dot.no { background: transparent; border: 1px solid var(--text-secondary); }
+.empty { padding: 6px 10px 8px; font: 400 14px/1.35 var(--font-sans); color: var(--text); }
+.empty.dim { color: var(--text-secondary); }
+
+/* thermal grid */
+.tgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; padding: 4px 10px 0; }
+.tc { position: relative; height: 28px; display: flex; align-items: center; gap: 8px; padding: 0 6px; background: var(--surface-1); font: 400 14px/1 var(--font-sans); }
+.tc .t { font: 400 12px/1 var(--font-mono); color: var(--text-secondary); width: 44px; }
+.tc .mini { margin-left: auto; display: flex; gap: 1px; }
+.tc .mini i { width: 4px; height: 8px; background: #7ab83a; }
+.tc .mini i.o { background: var(--surface-3); }
+.tc.sel { background: color-mix(in srgb, var(--accent) 34%, var(--surface-1)); }
+.scale { display: flex; flex-direction: column; gap: 2px; flex: 0 0 120px; }
+.scale .bar { width: 120px; flex-basis: auto; }
+.scale .ends { display: flex; justify-content: space-between; font: 400 10px/1 var(--font-mono); color: var(--text-secondary); }
+.mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--text-secondary); }
+
+/* journal header strip */
+.jhdr { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 8px; }
+.popup { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 6px; background: var(--surface-1); border: 1px solid var(--border-strong); font: 400 12px/1 var(--font-mono); white-space: nowrap; }
+.popup b { font-weight: 700; }
+.popup::after { content: ""; border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid var(--text-secondary); }
+.find { flex: 1; height: 22px; display: flex; align-items: center; gap: 8px; padding: 0 8px; background: var(--surface-1); border: 1px solid var(--border); font: 400 13px/1 var(--font-sans); color: var(--text-secondary); }
+.find::before { content: "/"; font-family: var(--font-mono); }
+
+/* list rows (Loadouts) */
+.lhead { display: flex; align-items: center; gap: 6px; height: 20px; padding: 0 8px; font: 700 12px/1 var(--font-mono); color: var(--text-heading); }
+.lrow { position: relative; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px 0 22px; font: 400 14px/1 var(--font-sans); }
+.lrow.sel { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.lrow .v { margin-left: auto; font: 400 12px/1 var(--font-mono); color: var(--text-secondary); }
+.lineRow { position: relative; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; }
+.lineRow .ic { width: 22px; height: 22px; background: var(--surface-3); flex: 0 0 22px; display: flex; align-items: center; justify-content: center; }
+.lineRow .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lineRow .nm b { font: 400 14px/1.1 var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lineRow .nm span { font: 400 12px/1.1 var(--font-sans); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw { display: inline-flex; border: 1px solid var(--border-strong); font: 400 11px/18px var(--font-mono); white-space: nowrap; }
+.sw span { padding: 0 6px; color: var(--text-secondary); }
+.sw span.on { background: var(--accent); color: var(--on-accent); }
+.amt { padding: 0 8px; }
+
+/* buttons: the System 7 keycap */
+.foot { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 8px 7px 8px; min-height: 38px; }
+.btn { position: relative; padding: 3px 10px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 12px/16px var(--font-mono); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn.sm { padding: 1px 7px; font-size: 11px; }
+.step { display: inline-flex; align-items: center; gap: 4px; font: 400 12px/1 var(--font-mono); }
+.step .bx { min-width: 26px; text-align: center; }
+
+/* controller highlight: pointing hand */
+.hand { position: absolute; left: -14px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 3; }
+.pf { padding-left: 24px !important; }
+.pf > .hand { left: 4px; }
+
+/* radio faces (sketches of the shipped faces; unchanged by this mockup) */
+.rhdr { height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 8px; }
+.ib { width: 22px; height: 22px; border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font: 400 12px/1 var(--font-mono); color: var(--text); }
+.chooser { flex: 1; height: 22px; display: flex; align-items: center; justify-content: center; background: var(--surface-1); border: 1px solid var(--border); font: 700 12px/1 var(--font-mono); }
+.walkie { margin: 8px auto 0; width: 182px; height: 360px; background: #2c2d2f; border: 2px solid #111; border-radius: 10px; position: relative; padding: 10px 10px; }
+.walkie .brand { text-align: center; font: 400 10px/1 var(--font-mono); color: #ccc; letter-spacing: .06em; }
+.walkie .knobs { display: flex; justify-content: space-between; padding: 6px 12px 0; }
+.walkie .knob { width: 24px; height: 24px; border-radius: 50%; background: #111; border: 2px solid #555; }
+.walkie .kl { display: flex; justify-content: space-between; padding: 2px 6px 0; font: 400 7px/1 var(--font-mono); color: #aaa; }
+.walkie .lcd { margin: 8px 2px 0; height: 98px; background: #e3c33a; border: 3px solid #b39a2a; border-radius: 4px; padding: 6px; position: relative; }
+.walkie .lcd .in { background: #c9b45a; height: 56px; padding: 4px 6px; font: 400 10px/1.1 var(--font-mono); color: #222; }
+.walkie .lcd .f { font: 400 19px/1 var(--font-mono); text-align: right; letter-spacing: .02em; }
+.walkie .lcd .btns { display: flex; justify-content: space-around; padding-top: 8px; }
+.walkie .lcd .btns i { width: 14px; height: 14px; border-radius: 50%; background: #333; }
+.walkie .spk { margin: 12px 14px 0; height: 52px; border-radius: 12px; background: repeating-linear-gradient(to bottom, #1a1a1a 0 3px, #2a2a2a 3px 6px); border: 2px solid #111; }
+.walkie .ptt { margin: 14px 10px 0; height: 24px; background: #c0302a; border: 2px solid #701a16; border-radius: 3px; font: 400 7px/20px var(--font-mono); color: #fdd; text-align: center; }
+.walkie .foot2 { text-align: center; font: 400 7px/1.4 var(--font-mono); color: #aaa; padding-top: 8px; }
+.table { margin: 8px auto 0; width: 182px; height: 126px; background: #d8d6cf; border: 2px solid #555; border-radius: 6px; padding: 6px; position: relative; }
+.table .dial { height: 12px; background: #c7b67a; border: 1px solid #555; }
+.table .grill { position: absolute; left: 8px; top: 24px; width: 64px; height: 58px; background: repeating-linear-gradient(to bottom, #333 0 3px, #ddd 3px 6px); border: 1px solid #333; }
+.table .disp { position: absolute; left: 78px; top: 24px; width: 94px; height: 30px; background: #111; border: 1px solid #333; font: 400 14px/1 var(--font-mono); color: #f0a030; text-align: right; padding: 4px 6px; }
+.table .disp small { display: block; font-size: 6px; color: #f0a030; text-align: left; }
+.table .keys { position: absolute; left: 8px; top: 88px; display: flex; gap: 3px; }
+.table .keys i { width: 16px; height: 10px; background: #444; font: 400 6px/10px var(--font-mono); color: #ddd; text-align: center; font-style: normal; }
+.table .batt { position: absolute; right: 8px; bottom: 8px; width: 60px; height: 12px; border: 1px solid #333; background: linear-gradient(to right, #4a9a3a 0 82%, #ddd 82%); }
+.table .vknob { position: absolute; right: 12px; top: 58px; width: 22px; height: 22px; border-radius: 50%; background: #222; }
+</style>
+</head>
+<body class="mark-new">
+<div class="review">
+  <span class="grp"><b>Tab</b><span id="tabs"></span></span>
+  <span class="grp"><b>View</b><button data-fit="fit" class="on">Fit</button><button data-fit="actual">Actual (1x)</button></span>
+  <span class="grp"><b>Theme</b><button data-theme="dark" class="on">Dark</button><button data-theme="light">Light</button><button data-theme="hc">High contrast</button></span>
+  <span class="grp"><b>Accent</b><button data-acc="#47a18c" class="on">PZ Teal</button><button data-acc="#d4922a">Orange</button><button data-acc="#4a7ac8">Blue</button></span>
+  <span class="grp"><b>Mark new blocks</b><button id="marknew" class="on">On</button></span>
+</div>
+<div class="stagewrap"><div class="stage" id="stage"></div></div>
+<div class="notes" id="notes"></div>
+
+<script>
+/* ======================================================================
+   Pixel icons (the strip's tab icons and the pointing hand, as zed_tab_search_v1.html)
+   ====================================================================== */
+const PAL = { "#": "#111", W: "#f4f4f4", x: "currentColor" };
+const ICON = {
+  loot:  ["..........",".xxxxxxxx.",".x......x.",".xxxxxxxx.",".x......x.",".x......x.",".x......x.",".xxxxxxxx.","..........",".........."],
+  equip: ["..........","..xx..xx..",".xxxxxxxx.","xxxxxxxxxx","..xxxxxx..","..xxxxxx..","..xxxxxx..","..xxxxxx..","..........",".........."],
+  health:["..........",".xx...xx..","xxxx.xxxx.","xxxxxxxxx.","xxxxxxxxx.",".xxxxxxx..","..xxxxx...","...xxx....","....x.....",".........."],
+  therm: ["....xx....","...x..x...","...x..x...","...x..x...","...xxxx...","..xxxxxx..","..xxxxxx..","...xxxx...","..........",".........."],
+  id:    ["..........","xxxxxxxxxx","x........x","x.xx.xxx.x","x.xx.....x","x....xxx.x","x........x","xxxxxxxxxx","..........",".........."],
+  jour:  ["..........",".xxxxxxx..",".x.....xx.",".x.xxx.x..",".x.....x..",".x.xxx.x..",".x.....x..",".xxxxxxx..","..........",".........."],
+  skill: ["..........","........x.","........x.",".....x..x.",".....x..x.","..x..x..x.","..x..x..x.","xxxxxxxxxx","..........",".........."],
+  radio: ["...x......","...x......","..xxxxxx..","..x....x..","..x.xx.x..","..x....x..","..x.xx.x..","..xxxxxx..","..........",".........."],
+  craft: ["..........","xx....xx..",".xx..xx...","..xxxx....","...xx.....","..xxxx....",".xx..xx...","xx....xx..","..........",".........."],
+  map:   ["..........","xxx.xxx.xx","x.xxx.xxx.","x..x..x..x","x..x..x..x","x..x..x..x","xxx.xxx.xx","..........","..........",".........."],
+  hand:  ["....##########.","...#WWWWWWWWWW#","##.#WWW########","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWWWWWW#...","##.#WWWWWWW#...","....#######...."]
+};
+function px(name, scale) {
+  const m = ICON[name]; const h = m.length, w = m[0].length; let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const ch = m[y][x]; if (ch === ".") continue; r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`; }
+  return `<svg width="${w * scale}" height="${h * scale}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+const HAND = `<span class="hand">${px("hand", 1.2)}</span>`;
+
+/* the body figure (a sketch of the shipped skeleton figure) */
+function figure(color) {
+  return `<div class="fig"><svg width="80" height="230" viewBox="0 0 80 230" aria-hidden="true" fill="${color}" stroke="#222" stroke-width="1">
+    <ellipse cx="40" cy="16" rx="12" ry="15"/><rect x="36" y="31" width="8" height="8"/>
+    <path d="M18 40 h44 l-4 52 h-36 z"/><rect x="26" y="92" width="28" height="18"/>
+    <rect x="9" y="42" width="8" height="46"/><rect x="63" y="42" width="8" height="46"/>
+    <rect x="7" y="88" width="8" height="40"/><rect x="65" y="88" width="8" height="40"/>
+    <rect x="5" y="128" width="10" height="14"/><rect x="65" y="128" width="10" height="14"/>
+    <rect x="26" y="110" width="12" height="56"/><rect x="42" y="110" width="12" height="56"/>
+    <rect x="27" y="166" width="10" height="48"/><rect x="43" y="166" width="10" height="48"/>
+    <rect x="23" y="214" width="14" height="10"/><rect x="43" y="214" width="14" height="10"/></svg></div>`;
+}
+
+/* ======================================================================
+   Building blocks
+   ====================================================================== */
+const STRIP_CHAR = ["loot", "equip", "health", "therm", "id", "jour", "skill", "radio"];
+const STRIP_WORLD = ["loot", "craft", "craft", "map", "map", "radio"];
+function strip(list, on, right) {
+  return `<div class="strip${right ? " r" : ""}">${list.map(n => `<div class="t${n === on ? " on" : ""}">${px(n, 1.6)}</div>`).join("")}</div>`;
+}
+function ghost(title, rows, left) {
+  return `<div class="ghost${left ? " lft" : ""}"><div class="gh">${title}</div>${rows.map(r => `<div class="gr"><i></i>${r[0]}<b>${r[1] || ""}</b></div>`).join("")}</div>`;
+}
+const INV_FULL = [["Apple (Fresh) x2", "Food"], ["Book: \"Walden\"", "Literature"], ["Bread (Fresh)", "Food"], ["Chest Rig", "Bag"], ["Claw Hammer", "Tool"],
+  ["Flier: Drag Racing", "Junk"], ["Hunting Knife", "Weapon"], ["M9 Pistol", "Weapon"], ["Machete", "Gardening"], ["Newton: November", "Literature"],
+  ["Old Newspaper", "Literature"], ["Pencil", "Tool"], ["ValuTech Walkie Talkie", "Communications"], ["Battery x2", "Electronics"], ["Water (Pot)", "Cooking"]];
+function sec(label, right, isNew, extra) {
+  return `<div class="sec${isNew ? " new" : ""}${extra || ""}"><span class="tri"></span>${label}${right != null ? `<span class="r">${right}</span>` : ""}</div>`;
+}
+function bar(pct, cls) { return `<span class="bar${cls ? " " + cls : ""}"><i style="width:${pct}%"></i></span>`; }
+function pips(n, of, cls) { let s = ""; for (let i = 0; i < of; i++) s += `<i class="${i < n ? (cls || "f") : ""}"></i>`; return `<span class="pips">${s}</span>`; }
+
+function windowChar(on, drawerW, drawerHTML, footHTML, statusText, inv) {
+  return `<div class="desk"><div class="win" style="width:${36 + drawerW + 300}px">
+    <div class="titlebar"><span class="close"></span><span class="titlechip"><i></i>Long Blade - Lv.6 - 0/4500 | 100% | 0 / 19</span></div>
+    <div class="wbody">${strip(STRIP_CHAR, on)}
+      <div class="drawer" style="width:${drawerW}px"><div class="dscroll">${drawerHTML}</div>${footHTML ? `<div class="foot">${footHTML}</div>` : ""}</div>
+      ${ghost("Inventory", inv || INV_FULL)}
+    </div>
+    <div class="status">${statusText || "48 items | 0.0/19kg"}</div></div></div>`;
+}
+function windowWorld(drawerW, drawerHTML) {
+  return `<div class="desk"><div class="win" style="width:${300 + drawerW + 36}px">
+    <div class="titlebar"><span class="close"></span><span class="titlechip l">Ground + Radio</span><span class="titlechip">4 items</span></div>
+    <div class="wbody">${ghost("Ground", [["Duffel Bag", "Bag"], ["Gasoline (Gas Can)", "Vehicle"], ["Plank", "Material"], ["Sledgehammer", "Tool"]], true)}
+      <div class="drawer" style="width:${drawerW}px"><div class="dscroll">${drawerHTML}</div></div>
+      ${strip(STRIP_WORLD, "radio", true)}
+    </div>
+    <div class="status">4 items</div></div></div>`;
+}
+
+/* ======================================================================
+   HEALTH (no injuries)
+   ====================================================================== */
+function healthTop() {
+  return `<div class="thdr"><span class="tri"></span>Health</div>
+  <div class="zoneA">${figure("#c8c060")}
+    <div class="read">
+      <div class="sr"><span class="sq"></span>Overall<span class="v">100%</span></div>
+      <div class="seg">${"<i class='f'></i>".repeat(5)}</div>
+      <div class="sr" style="font-family:var(--font-sans);font-size:14px"><span class="sq"></span>No injuries</div>
+      <div class="ptitle">Squats</div>
+      <div class="ptext">Improves fitness when performed regularly.</div>
+      <div class="ptext b">Muscle strain will be felt on legs, reducing movement speed.</div>
+      <div class="lab">Regularity</div>
+      <div class="seg">${"<i class='f'></i>".repeat(3)}${"<i></i>".repeat(7)}</div>
+    </div></div>`;
+}
+const healthFoot = `<span class="popup">Exercise: <b>Squats</b></span><span style="flex:1"></span>
+  <span class="step"><span class="lab">Time (minutes)</span><span class="btn sm">-</span><span class="bx">10</span><span class="btn sm">+</span></span>
+  <span class="btn default">Start</span>`;
+function healthAfter() {
+  const moods = [
+    ["Peckish", "Could do with a bite to eat.", 1],
+    ["Slightly Thirsty", "Dry mouth.", 1],
+    ["Drowsy", "Could do with a lie-down.", 1]];
+  const exe = [["Squats", 30, ""], ["Push-ups", 10, ""], ["Sit-ups", 0, ""], ["Burpees", 0, ""],
+    ["Barbell Curls", 0, "(Requires Barbell)"], ["Dumbbell Presses", 0, "(Requires Dumbbell)"], ["Bicep Curls", 0, "(Requires Dumbbell)"]];
+  return healthTop()
+  + sec("Moodles", "3", true)
+  + moods.map(m => `<div class="rowl tall"><span class="dot warn" style="margin-top:5px"></span><span class="grow wrap">${m[0]}<span class="sub">${m[1]}</span></span>${pips(m[2], 4, "bad")}</div>`).join("")
+  + sec("Fitness", null, true)
+  + `<div class="rowl"><span class="grow">Fitness</span><span class="v" style="margin:0 6px 0 0">Lv 5</span>${pips(5, 10)}</div>
+     <div class="rowl"><span class="grow">Strength</span><span class="v" style="margin:0 6px 0 0">Lv 5</span>${pips(5, 10)}</div>`
+  + sec("Regularity", "7 exercises", true)
+  + exe.map((e, i) => `<div class="rowl${i === 0 ? " sel pf" : ""}">${i === 0 ? HAND : ""}<span class="grow${e[2] ? " dim" : ""}">${e[0]} ${e[2] ? `<span class="mono">${e[2]}</span>` : ""}</span><span class="v" style="margin:0">${e[1]}%</span>${bar(e[1])}</div>`).join("")
+  + sec("Muscle Strain", "2 of 17", true)
+  + `<div class="rowl"><span class="dot warn"></span><span class="grow">Left Thigh</span><span class="v">Minor Muscle Strain</span></div>
+     <div class="rowl"><span class="dot warn"></span><span class="grow">Right Thigh</span><span class="v">Minor Muscle Strain</span></div>`;
+}
+
+/* ======================================================================
+   THERMAL
+   ====================================================================== */
+const REGIONS = ["Head", "Neck", "Upper Torso", "Lower Torso", "Groin", "Left Upper Arm", "Right Upper Arm", "Left Forearm", "Right Forearm", "Left Hand",
+  "Right Hand", "Left Upper Leg", "Right Upper Leg", "Left Lower Leg", "Right Lower Leg", "Left Foot", "Right Foot"];
+function thermal(after) {
+  const mini = `<span class="mini">${"<i></i>".repeat(4)}<i class="o"></i><i class="o"></i></span>`;
+  let h = `<div class="thdr"><span class="tri"></span>Thermal</div>
+  <div class="zoneA">${figure("#8ac860")}
+    <div class="read">
+      <div class="sr">Core<span class="v">98.6°F</span></div>
+      <div class="sr">Air<span class="v">71.6°F</span></div>
+      <div class="sr">Wind<span class="v">71.6°F</span></div>
+      <div class="grad"><b style="left:58%"></b></div>
+      ${after ? `<div class="sr" style="margin-top:10px">Body Heat Generation<span class="v">Normal</span></div>
+      <div class="scale" style="flex-basis:auto">${bar(22).replace('class="bar"', 'class="bar" style="width:100%"').replace("</span>", '<b class="mid"></b></span>')}<span class="ends"><span>Low</span><span>Normal</span><span>High</span></span></div>` : ""}
+    </div></div>
+  <div class="sec" style="margin-top:14px">Skin Temperature by region</div>
+  <div class="tgrid">${REGIONS.map((r, i) => `<div class="tc${after && i === 2 ? " sel pf" : ""}">${after && i === 2 ? HAND : ""}<span class="t">91.4°F</span>${r}${mini}</div>`).join("")}</div>`;
+  if (after) {
+    const rows = [
+      ["Skin Temperature", "91.4°F", 50, "Normal", true],
+      ["Body Response", "0%", 50, "Normal", true],
+      ["Blood Vessels", "0%", 50, "Normal", true],
+      ["Shiver / sweat", "0%", 50, "Normal", true],
+      ["Insulation", "64%", 64, "Medium", false],
+      ["Wind Resistance", "40%", 40, "Low", false],
+      ["Body Wetness", "0%", 0, "Dry", false],
+      ["Clothing Wetness", "0%", 0, "Dry", false]];
+    h += sec("Upper Torso", "picked region", true)
+      + rows.map(r => `<div class="rowl" style="min-height:26px"><span class="grow">${r[0]}</span><span class="v" style="margin:0 8px 0 0">${r[1]}</span>
+        <span class="bar" style="width:110px;flex-basis:110px"><i style="width:${r[2]}%"></i>${r[4] ? '<b class="mid"></b>' : ""}</span><span class="k" style="width:58px">${r[3]}</span></div>`).join("");
+  }
+  return h;
+}
+const thermalFoot = `<span class="popup">View: <b>Skin Temperature</b></span>`;
+
+/* ======================================================================
+   RADIO (Character: walkie; World: table radio)
+   ====================================================================== */
+const walkie = `<div class="walkie"><div class="brand">VALUTECH</div><div class="knobs"><span class="knob"></span><span class="knob"></span></div>
+  <div class="kl"><span>VOL - PWR</span><span>TUNE</span></div>
+  <div class="lcd"><div class="in">CH<div class="f">098.000</div>NNR RADIO<br>BAT ▮▮▮▯ VOL ▮▮</div><div class="btns"><i></i><i></i><i></i></div></div>
+  <div class="spk"></div><div class="ptt">PUSH TO TALK</div><div class="foot2">2-WAY - 50-200 MHZ<br>HOLD M TO NAME</div></div>`;
+const tableRadio = `<div class="table"><div class="dial"></div><div class="grill"></div><div class="disp"><small>FM NNR RADIO</small>98.0</div>
+  <div class="keys"><i>1</i><i>2</i><i>3</i><i>4</i></div><div class="vknob"></div><div class="batt"></div></div>`;
+const HEARD = ["Visit Knox Bank for low cost loans.", "Call 555-KNOXBANK and arrange an appointment today.", "Second only to Fort Knox in security, and peace of mind."];
+function radioFacts(rows) {
+  return rows.map(r => `<div class="rowl" style="padding-right:8px"><span class="k">${r[0]}</span><span class="v">${r[1]}</span>${r[2] != null ? bar(r[2]).replace("flex: 0 0 70px", "") : ""}</div>`).join("");
+}
+function charRadio(after) {
+  let h = `<div class="rhdr"><span class="ib">&lt;</span><span class="chooser">Secondary (1)</span><span class="ib">&gt;</span><span class="ib">[ ]</span></div>${walkie}`;
+  if (!after) return h;
+  h += `<div style="height:6px"></div>`
+    + sec("Channels", "2 of 10", true)
+    + `<div class="rowl sel pf">${HAND}<span class="mono">1</span><span class="mono">98.000</span><span class="grow">NNR Radio</span></div>
+       <div class="rowl"><span class="mono">2</span><span class="mono">91.200</span><span class="grow">Civilian Radio</span></div>`
+    + sec("Heard", "3", true)
+    + HEARD.map(l => `<div class="rowl tall"><span class="grow wrap" style="font-size:13px">${l}</span></div>`).join("")
+    + sec("Power", null, true)
+    + radioFacts([["Battery", "64%"], ["Spare", "Battery x2"], ["Freq. Range", "50-200 MHz"], ["Range", "2000 meters"], ["Microphone", "On"]]);
+  return h;
+}
+function worldRadio(after) {
+  let h = `<div class="rhdr"><span class="ib">&lt;</span><span class="chooser">Floor (1)</span><span class="ib">&gt;</span></div>${tableRadio}`;
+  if (!after) return h;
+  h += `<div style="height:6px"></div>`
+    + sec("Presets", "4 of 10", true)
+    + [["1", "89.4", "Hitz FM"], ["2", "93.2", "LBMW - Kentucky Radio"], ["3", "98.0", "NNR Radio"], ["4", "101.2", "KnoxTalk Radio"]]
+      .map((p, i) => `<div class="rowl${i === 2 ? " sel pf" : ""}">${i === 2 ? HAND : ""}<span class="mono">${p[0]}</span><span class="mono" style="width:38px;text-align:right">${p[1]}</span><span class="grow">${p[2]}</span></div>`).join("")
+    + sec("Heard", "3", true)
+    + HEARD.map(l => `<div class="rowl tall"><span class="grow wrap" style="font-size:13px">${l}</span></div>`).join("")
+    + sec("Power", null, true)
+    + radioFacts([["Battery", "82%"], ["Spare", "Battery x2"], ["Headphones", "None"], ["Freq. Range", "88-108 MHz"]]);
+  return h;
+}
+
+/* ======================================================================
+   NOTEBOOKS (none carried)
+   ====================================================================== */
+function notebooks(after) {
+  let h = `<div class="jhdr"><span class="popup">Page: <b>Notebooks</b></span><span class="find">Find in your notes...</span></div>
+    <div class="empty" style="padding-top:8px">No notebook on you</div>`;
+  if (!after) return h;
+  h += sec("Writing", null, true)
+    + `<div class="rowl"><span class="dot pos"></span><span class="grow">Pencil</span><span class="v dim">pencil or pen at hand</span></div>
+       <div class="rowl"><span class="dot pos"></span><span class="grow">Light</span><span class="v dim">light enough</span></div>`
+    + sec("Papers on you", "0 read of 1 carried", true)
+    + `<div class="rowl tall pf">${HAND}<span class="dot no" style="margin-top:5px"></span><span class="grow wrap">Flier: Drag Racing<span class="sub">Not read yet</span></span></div>`
+    + sec("Books on you", "3", true)
+    + `<div class="rowl tall"><span class="dot no" style="margin-top:5px"></span><span class="grow wrap">Book: "Walden"<span class="sub">Unread. | Number of Pages (the book's own count)</span></span></div>
+       <div class="rowl tall"><span class="dot no" style="margin-top:5px"></span><span class="grow wrap">Newton: November<span class="sub">Unread. | Teaches: (the magazine's recipes, when it has any)</span></span></div>
+       <div class="rowl tall"><span class="dot pos" style="margin-top:5px"></span><span class="grow wrap">Old Newspaper<span class="sub">Already read.</span></span></div>`;
+  return h;
+}
+
+/* ======================================================================
+   LOADOUTS
+   ====================================================================== */
+function loadouts(after) {
+  let h = `<div class="jhdr"><span class="popup">Page: <b>Loadouts</b></span><span class="find">Search lists...</span></div>
+    <div class="lhead"><span class="tri"></span>Loadouts (1)</div>
+    <div class="lrow${after ? " sel" : ""}">Loadout 1<span class="v">${after ? 5 : 1}</span></div>
+    <div class="lhead"><span class="tri"></span>Outfits (1)</div>
+    <div class="lrow">Outfit 1<span class="v">1</span></div>`;
+  if (!after) return h + `<div class="empty dim" style="padding-top:18px">Pick a list to see its lines.</div>`;
+  const gear = [["Machete", "Belt Left", "pos", "This one", true], ["Hunting Knife", "on you", "pos", "Any", false], ["M9 Pistol", "Belt Right, condition 60% or more", "pos", "This one", true],
+    ["Box of 9x19mm Rounds", "in the Chest Rig", "warn", "Any", false]];
+  h += `<div style="height:10px"></div>
+    <div style="padding:0 10px"><div style="font:600 17px/1.2 var(--font-sans)">Loadout 1</div>
+    <div class="lab">loadout | 5 lines | ready 4 of 5</div>
+    <div style="display:flex;gap:6px;margin-top:6px"><span class="btn">Rename</span><span class="btn">Add what I carry</span><span class="btn danger">Delete</span></div></div>`
+    + sec("Gear", "any, or this one", false)
+    + gear.map((g, i) => `<div class="lineRow${i === 0 ? " pf" : ""}">${i === 0 ? HAND : ""}<span class="dot ${g[2]}"></span><span class="ic"></span><span class="nm"><b>${g[0]}</b><span>${g[1]}</span></span>
+        ${g[4] ? "" : `<span class="btn sm amt">${g[2] === "warn" ? "1 of 2" : "1"}</span>`}<span class="sw"><span class="${g[3] === "Any" ? "on" : ""}">Any</span><span class="${g[3] === "This one" ? "on" : ""}">This one</span></span></div>`).join("")
+    + sec("Supplies", "a day, or fixed", false)
+    + `<div class="lineRow"><span class="dot pos"></span><span class="ic"></span><span class="nm"><b>Water</b><span>on you</span></span><span class="btn sm amt">1.5 L</span><span class="sw"><span class="on">A day</span><span>Fixed</span></span></div>`;
+  return h;
+}
+const loadoutsFoot = `<span class="popup">Show: <b>All</b></span><span style="flex:1"></span><span class="btn">Save loadout</span><span class="btn">Save outfit</span><span class="btn">New list</span>`;
+
+/* ======================================================================
+   The six tabs: before / after, and the notes
+   ====================================================================== */
+const TABS = [
+  { id: "health", name: "Health", blank: "~65% blank with no injuries",
+    before: () => windowChar("health", 480, healthTop(), healthFoot, "1 item | 0.0/8kg", [["Nothing here.", ""]]),
+    after: () => windowChar("health", 480, healthAfter(), healthFoot, "1 item | 0.0/8kg", [["Nothing here.", ""]]),
+    notes: `<p>The figure, Overall, the injury line and the picked exercise stay as they are. Under them, four blocks. They show with or without injuries; with injuries they sit under the injury list and the whole tab scrolls as one.</p>
+    <table><tr><th>New fact</th><th>Game source</th><th>Words</th></tr>
+    <tr><td>Moodles: each active moodle's name, its line and its level (1 to 4)</td><td><code>getMoodles()</code>: <code>getNumMoodles</code>, <code>getMoodleDisplayString(i)</code>, <code>getMoodleDescriptionString(i)</code>, <code>getMoodleLevel(i)</code>, <code>getGoodBadNeutral(i)</code></td><td>The game's own moodle text (Moodles.json, e.g. <code>Moodles_Hungry_lvl1</code> "Peckish", <code>Moodles_Hungry_desc_lvl1</code>). The moodles on screen stay vanilla; this reads them.</td></tr>
+    <tr><td>Fitness and Strength levels</td><td><code>getPerkLevel(Perks.Fitness / Perks.Strength)</code></td><td><code>IGUI_perks_Fitness</code>, <code>IGUI_perks_Strength</code></td></tr>
+    <tr><td>Regularity for all seven exercises; the ones that need a barbell or dumbbell say so</td><td><code>getFitness():getRegularity(type)</code>; <code>FitnessExercises.exercisesType</code> (name, item)</td><td><code>IGUI_FitnessRegularity</code>, <code>IGUI_Squats</code>...<code>IGUI_BicepsCurl</code>, <code>IGUI_FitnessNeedItem</code> "(Requires %1)"</td></tr>
+    <tr><td>Muscle strain by body part</td><td><code>BodyPart:getStiffness()</code> per part (as vanilla ISHealthPanel)</td><td><code>IGUI_health_Stiffness</code> "Muscle Strain", <code>IGUI_health_MinorStiffness</code>; part names <code>IGUI_health_Left_Thigh</code>...</td></tr></table>
+    <p>Controller: the rows join the D-pad order after the figure. A Regularity row picks that exercise in the band at the foot (the hand is on Squats, the picked one). Moodle, Fitness and strain rows are stops that only read.</p>`
+  },
+  { id: "thermal", name: "Thermal", blank: "~35% blank",
+    before: () => windowChar("therm", 480, thermal(false), thermalFoot),
+    after: () => windowChar("therm", 480, thermal(true), thermalFoot),
+    notes: `<p>Today the eight detail rows only show while the mouse is over a region, and they replace Core / Air / Wind. After: the picked region's rows stay on screen under the grid. Click a cell (or press A on it) to pick; hovering another cell previews it in the same block; Upper Torso is picked until the player picks another. Core / Air / Wind no longer swap out.</p>
+    <table><tr><th>New fact</th><th>Game source</th><th>Words</th></tr>
+    <tr><td>The picked region's eight rows: value, bar (two-sided bars marked at the middle) and the vanilla word for where the bar stands</td><td>Thermoregulator node: <code>getSkinCelciusUI</code>, <code>getBodyResponseUI</code>, <code>getPrimaryDeltaUI</code>, <code>getSecondaryDeltaUI</code>, <code>getInsulationUI</code>, <code>getWindresistUI</code>, <code>getBodyWetnessUI</code>, <code>getClothingWetnessUI</code> (ThermalTab's DETAIL_ROWS)</td><td><code>IGUI_Temp_SkinTemperature</code>, <code>IGUI_Temp_BodyResponse</code>, <code>IGUI_Temp_BloodVessels</code>, ZeD's "Shiver / sweat", <code>IGUI_Temp_Insulation</code>, <code>IGUI_Temp_WindResistance</code>, <code>IGUI_Temp_BodyWetness</code>, <code>IGUI_Temp_ClothingWetness</code>; scale ends <code>IGUI_Temp_Cold/Normal/Hot</code>, <code>FightCold/FightHot</code>, <code>Vasoconstriction/Vasodilation</code>, <code>Shivering/Perspiring</code>, <code>Dry/Soaked</code>, <code>Low/Med/High</code> (as vanilla ISClothingInsPanel)</td></tr>
+    <tr><td>Body Heat Generation, under the Core / Air / Wind readings</td><td><code>getThermoregulator():getHeatGenerationUI()</code> (vanilla ISClothingInsPanel's second bar)</td><td><code>IGUI_Temp_BodyHeat</code>, ends <code>IGUI_Temp_Low / Normal / High</code></td></tr></table>
+    <p>Controller: the D-pad already walks the grid; the picked cell carries the hand and the block follows it.</p>`
+  },
+  { id: "charradio", name: "Character Radio", blank: "~60% blank",
+    before: () => windowChar("radio", 220, charRadio(false), null),
+    after: () => windowChar("radio", 220, charRadio(true), null),
+    notes: `<p>The walkie's face stays as drawn. Under it, the narrow (220) column takes three blocks.</p>
+    <table><tr><th>New fact</th><th>Game source</th><th>Words</th></tr>
+    <tr><td>Channels: the set's stored channels, number, frequency and name; the one tuned in carries the wash</td><td><code>getDeviceData():getDevicePresets():getPresets()</code> (<code>getName</code>, <code>getFrequency</code>), <code>getMaxPresets</code>; ZeD_RadioOps <code>presetList</code></td><td>The names the player gave, or the station's name (<code>ZomboidRadio</code> channel name, e.g. "NNR Radio" at 98000)</td></tr>
+    <tr><td>Heard: the last lines this set showed</td><td>vanilla's <code>OnDeviceText</code> event, already kept per set by RtvFace (<code>R._heard</code>, cleared on a channel change)</td><td>The broadcast's own lines (RadioData.json)</td></tr>
+    <tr><td>Battery charge</td><td><code>getPower()</code> with <code>getIsBatteryPowered()</code></td><td><code>IGUI_RadioPower</code> section; ZeD "Battery"</td></tr>
+    <tr><td>Spare batteries on you</td><td>inventory count of Battery (as the face's "No batteries on you")</td><td><code>UI_ZeD_Radio_NoBatteries</code> when none</td></tr>
+    <tr><td>Freq. Range, Range, Microphone</td><td><code>getMinChannelRange / getMaxChannelRange</code>, <code>getTransmitRange</code> (2000 for this walkie, radio.txt), <code>getMicIsMuted</code></td><td><code>IGUI_RadioFreqRange</code>, <code>IGUI_RadioStrength</code> + <code>IGUI_RadioMeter</code>, <code>IGUI_RadioMicrophone</code></td></tr></table>
+    <p>Controller: a Channels row tunes to it on A (the face's own recall). Heard and Power read only.</p>`
+  },
+  { id: "worldradio", name: "World Radio", blank: "~80% blank",
+    before: () => windowWorld(220, worldRadio(false)),
+    after: () => windowWorld(220, worldRadio(true)),
+    notes: `<p>Same three blocks as the Character Radio, for the set in the World window. The face's 1 to 4 keys are the first four presets; the list names them all.</p>
+    <table><tr><th>New fact</th><th>Game source</th><th>Words</th></tr>
+    <tr><td>Presets with names</td><td><code>getDevicePresets():getPresets()</code></td><td>Station names from RadioData (Hitz FM 89400, LBMW - Kentucky Radio 93200, NNR Radio 98000, KnoxTalk Radio 101200)</td></tr>
+    <tr><td>Heard</td><td><code>OnDeviceText</code> (RtvFace <code>R._heard</code>)</td><td>The broadcast's own lines</td></tr>
+    <tr><td>Battery, or mains power for a set without batteries</td><td><code>getPower()</code>, <code>getIsBatteryPowered()</code>; mains: <code>canBePoweredHere</code> (grid or generator)</td><td>Mains sets: <code>IGUI_RadioPowerNearby</code> "Has power." / <code>IGUI_RadioRequiresPowerNearby</code> "No power."</td></tr>
+    <tr><td>Headphones</td><td><code>getHeadphoneType()</code> (-1 none)</td><td><code>UI_ZeD_Radio_NoHeadphones</code> when none on you</td></tr>
+    <tr><td>Freq. Range</td><td><code>getMinChannelRange / getMaxChannelRange</code></td><td><code>IGUI_RadioFreqRange</code></td></tr></table>`
+  },
+  { id: "notebooks", name: "Notebooks", blank: "~90% blank with no notebook",
+    before: () => windowChar("jour", 480, notebooks(false), null, "1 item | 0.0/8kg", [["Nothing here.", ""]]),
+    after: () => windowChar("jour", 480, notebooks(true), null),
+    notes: `<p>"No notebook on you" stays as the first line. Under it, what the character could write with and the readable papers and books carried. Drawn for a character who carries papers but no notebook; a bare character shows the Writing block and "Nothing to read on you" (<code>UI_ZeD_Papers_NoneCarried</code>).</p>
+    <table><tr><th>New fact</th><th>Game source</th><th>Words</th></tr>
+    <tr><td>Writing: a pencil or pen carried, and whether the light is enough</td><td>the same checks the Write button uses (ZeD_WriteNoteAction: vanilla's pencil and light rules)</td><td>ZeD's own "Pencil or pen at hand", "light enough", "No pencil or pen", "Too dark to write" (<code>UI_ZeD_Notebook_ReadyMany</code>, <code>WhyNoTool</code>, <code>WhyTooDark</code>)</td></tr>
+    <tr><td>Papers on you, read or not, and their places</td><td>the Papers page's scan (<code>ZeD.Print.media</code>, <code>isPrintMediaRead</code>, <code>ZeD.Print.places</code>)</td><td><code>UI_ZeD_Papers_Count</code>, <code>StateRead</code>, <code>StateUnread</code>, <code>PlaceMany</code></td></tr>
+    <tr><td>Books, magazines and newspapers on you (the Papers page leaves newspapers out): read or not, pages, what a magazine teaches</td><td><code>Literature</code> items: <code>getNumberOfPages()</code>, <code>getAlreadyReadPages(fullType)</code>, <code>getTeachedRecipes()</code>, <code>isRecipeKnown</code></td><td><code>Tooltip_literature_NotBeenRead</code> "Unread.", <code>Tooltip_literature_HasBeenRead</code>, <code>Tooltip_literature_Number_of_Pages</code>, <code>Tooltip_Literature_LearnedRecipes</code> "Teaches: %1"</td></tr></table>
+    <p>Controller: a paper row opens its quick look on the Papers page (A); a book row opens its item card. The two Writing rows read only.</p>`
+  },
+  { id: "loadouts", name: "Loadouts", blank: "~80% blank until a list is picked",
+    before: () => windowChar("jour", 480, loadouts(false), loadoutsFoot),
+    after: () => windowChar("jour", 480, loadouts(true), loadoutsFoot),
+    notes: `<p>The lines pane is already built; it only waits for a pick. After: the page opens on a list (the one last picked, else the first loadout), so its lines fill the space. Each line gains a status square: on you in its place, on you elsewhere, or not on you.</p>
+    <table><tr><th>New fact</th><th>Game source</th><th>Words</th></tr>
+    <tr><td>A list picked on open</td><td>ZeD_Lists (<code>L.all</code>, the page's <code>s.sel</code> kept per player)</td><td>The list's own name and "loadout | 5 lines" (<code>L.countText</code>)</td></tr>
+    <tr><td>Ready count in the head</td><td><code>L.ready(p, list, days)</code> (the Equip tab's Loadouts fold uses the same)</td><td><code>UI_ZeD_EqBar_Ready</code> "ready %1 of %2"</td></tr>
+    <tr><td>Each line's status and how many are on you</td><td><code>L.resolve(p, line, days)</code>: <code>have</code>, <code>need</code>, <code>inPlace</code>, <code>haveOnYou</code></td><td>Square: green in place, amber on you elsewhere, hollow not on you; the amount reads "1 of 2" when short</td></tr></table>
+    <p>Sample list drawn with five lines (QA's own Loadout 1 has one). Controller: unchanged; the hand lands on the first line when the page opens on a list.</p>`
+  }
+];
+
+const CANT = `<h2>What the game can't give (left out)</h2><ul>
+  <li><b>Exercise history.</b> The game keeps regularity per exercise and the current strain, not a log of past sessions. "Fitness history" is the Regularity block.</li>
+  <li><b>Calories and nutrients</b> on Health: hidden in vanilla unless the character is a Nutritionist, so not shown.</li>
+  <li><b>Recent broadcasts</b> are not stored by the game. ZeD only has the lines a set showed while in reach this session (OnDeviceText); after a reload the block starts empty.</li>
+  <li><b>Battery time left.</b> The game gives the charge (getPower) and a drain per use (UseDelta) without hours, so no time estimate.</li>
+  <li><b>Pages read of a flier or newspaper:</b> only read or not. Page counts exist for books.</li>
+  <li>Craft and Build empty states stay as they are (director: fine as empty states).</li></ul>`;
+
+/* ======================================================================
+   State and render
+   ====================================================================== */
+const S = { tab: "health", fit: "fit" };
+function render() {
+  const t = TABS.find(x => x.id === S.tab);
+  document.getElementById("tabs").innerHTML = TABS.map(x => `<button data-tab="${x.id}" class="${x.id === S.tab ? "on" : ""}">${x.name}</button>`).join("");
+  document.getElementById("stage").innerHTML =
+    `<div class="col"><div class="cap">Before <span>(as now: ${t.blank})</span></div>${t.before()}</div>
+     <div class="col"><div class="cap">After <span>(filled)</span></div>${t.after()}</div>`;
+  document.getElementById("notes").innerHTML = `<h2>${t.name}: new facts and their source</h2>${t.notes}${CANT}`;
+  fit();
+}
+function fit() {
+  const st = document.getElementById("stage");
+  st.style.transform = ""; st.parentElement.style.height = ""; st.style.margin = ""; st.parentElement.style.overflowX = "";
+  if (S.fit !== "fit") return;
+  st.style.margin = "0"; st.parentElement.style.overflowX = "hidden";
+  const avail = window.innerHeight - document.querySelector(".review").offsetHeight - 30;
+  const availW = st.parentElement.clientWidth - 32;
+  const s = Math.min(1, avail / st.offsetHeight, availW / st.offsetWidth);
+  st.style.transform = `scale(${s})`;
+  st.style.marginLeft = Math.max(0, (availW - st.offsetWidth * s) / 2) + "px";
+  st.parentElement.style.height = (st.offsetHeight * s + 20) + "px";
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.tab) { S.tab = b.dataset.tab; render(); }
+  if (b.dataset.fit) { S.fit = b.dataset.fit; document.querySelectorAll("[data-fit]").forEach(x => x.classList.toggle("on", x === b)); fit(); }
+  if (b.dataset.theme) { document.documentElement.dataset.theme = b.dataset.theme; document.querySelectorAll("[data-theme]").forEach(x => x.classList.toggle("on", x === b)); }
+  if (b.dataset.acc) { document.documentElement.style.setProperty("--accent", b.dataset.acc); document.querySelectorAll("[data-acc]").forEach(x => x.classList.toggle("on", x === b)); }
+  if (b.id === "marknew") { const on = document.body.classList.toggle("mark-new"); b.classList.toggle("on", on); b.textContent = on ? "On" : "Off"; }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+    const i = TABS.findIndex(x => x.id === S.tab), n = TABS.length;
+    S.tab = TABS[(i + (e.key === "ArrowRight" ? 1 : n - 1)) % n].id; render();
+  }
+});
+window.addEventListener("resize", fit);
+render();
+</script>
+</body>
+</html>
