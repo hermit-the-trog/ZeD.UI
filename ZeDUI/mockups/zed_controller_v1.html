@@ -782,8 +782,7 @@ function review() {
     <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}</span>
     <span class="grp"><b>Accent</b>${ACCENTS.map(a => `<button class="sw${S.accent === a[0] ? " on" : ""}" title="${a[1]}" data-set="accent:${a[0]}" style="background:${S.theme === "light" ? a[3] : a[2]}"></button>`).join("")}</span>
     <span class="grp"><b>Input</b>${b("input", "mouse", "Mouse")}${b("input", "pad", "Controller")}</span>
-    <span class="grp"><b>View</b>${b("view", "4k", "4K at 1.75x")}${b("view", "deck", "Deck 1280x800 Auto")}${b("view", "sprite", "Sprite 4x")}</span>
-    <span class="grp"><b>Pad PNG</b><button data-export="1">1x</button><button data-export="4">4x</button></span>`;
+    <span class="grp"><b>View</b>${b("view", "4k", "4K at 1.75x")}${b("view", "deck", "Deck 1280x800 Auto")}${b("view", "sprite", "Sprite 4x")}</span>`;
 }
 function keysHtml() {
   return `Keys press the controller${GPID ? ` (or your <b>${esc(GPID.replace(/\s*\(.*$/, ""))}</b>)` : " (or plug one in)"}: <b>D-pad</b> arrows | <b>left stick</b> W A S D, click C | <b>right stick</b> T F G H, click N |
@@ -1026,7 +1025,6 @@ function notes() {
     <li><b>The live test.</b> A held button fills with your accent and sits pressed in. The D-pad lights the arm you press. A stick's cap moves the way you push it (the dial in its label too) and lights when you click it. A trigger fills as far as you pull it, with the percent in its label. No glow, nothing animates.</li>
     <li><b>Xbox and PlayStation.</b> The face buttons, their colors and every name (LB or L1, View or Create) follow the button pictures setting; Auto follows the controller (pick DualSense under Test controller, or plug in a PlayStation pad). On an Xbox pad the left stick sits up top and the D-pad lower down, as on the real thing.</li>
     <li><b>Changing the game's actions:</b> click a label, or press A on it. The same pull-down as the old list, with the actions on that part ticked (the triggers' pull points show there, not on the labels). The sticks and the D-pad first ask which part (the stick or its click, one arm of the D-pad).</li>
-    <li><b>Download the pad picture</b> at 1x or 4x (4x is the size the Controller map's picture ships at).</li>
   </ul>
   <h2>Try it</h2>
   <ul>
