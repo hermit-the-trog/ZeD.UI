@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/cov_objcards.txt  (Nov 12 2026)
+# Coverage run for the object cards (ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md Table B: tracks, farm plot, fluid,
+# hutch, trough, campfire, placement): zedqa_run.ps1 -Mode fullscreen4k -Manifest .../cov_objcards.txt
+zedqa_prelude.lua | pre | timeout=120                          # opens both windows, unpauses, god mode, the drag strip
+zedqa_cov_objcards.lua | cov_objcards | timeout=600            # ~140 PASS/FAIL checks over the seven cards; stages and takes back a hammer, a campfire, a trough, a hen house with hens and eggs, two plots
