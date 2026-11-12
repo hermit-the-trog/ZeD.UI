@@ -219,9 +219,11 @@ add(4000, function()
     local px, py = math.floor(p:getX()) - 16, math.floor(p:getY())
     A.c1 = spawn("cow", px + 3, py + 2)
     A.c2 = spawn("cow", px + 4, py - 2)
-    A.ewe = spawn("ewe", px - 3, py + 2)
+    -- (a ram, not an ewe: an ewe gives milk too and would join All milkable)
+    A.ewe = spawn("ram", px - 3, py + 2)
     A.hungry = spawn("cow", px - 4, py - 3)
-    for _, c in ipairs({ A.c1, A.c2 }) do pcall(function() c:getData():setMaxMilkActual(6); c:getData():setMilkQuantity(8) end) end
+    -- (4 L each: both fit the one 10 L bucket, so the run can milk both dry)
+    for _, c in ipairs({ A.c1, A.c2 }) do pcall(function() c:getData():setMaxMilkActual(6); c:getData():setMilkQuantity(4) end) end
     pcall(function() A.ewe:getData():setWoolQuantity(5, true) end)
     pcall(function() A.hungry:getStats():set(CharacterStat.HUNGER, 0.9) end)
     pcall(function() A.hungry:getData():setMilkQuantity(0) end)
@@ -302,7 +304,7 @@ add(1500, function()
 end)
 add(1200, function()
     local b = bulk("milk")
-    check(b ~= nil and not b.disabled, "c with a bucket, Milk (2) is live", b and tostring(b.disabled))
+    check(b ~= nil and not b.disabled, "c with a bucket, Milk (2) is live", b and (tostring(b.disabled) .. " " .. tostring(b.why)))
     focusOn("animals:bulk:milk")
 end)
 add(500, function()
@@ -342,7 +344,8 @@ end)
 
 -- e  walking away mid-milking
 add(300, function()
-    for _, c in ipairs({ A.c1, A.c2 }) do pcall(function() c:getData():setMilkQuantity(8) end) end
+    emptyGiven()
+    for _, c in ipairs({ A.c1, A.c2 }) do pcall(function() c:getData():setMilkQuantity(4) end) end
     AQ.forgetChecks()
     AT.bulkPress(W(), "milkable")
 end)

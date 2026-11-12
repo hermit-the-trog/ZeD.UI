@@ -91,7 +91,10 @@ end
 -- radial menu takes the first, and milking with "all" moves on to the next when one fills.
 -- The game's rule (InventoryItem.isAvailableFluidContainer): any carried thing with a fluid
 -- container that is empty, or whose main fluid is this milk, a water bottle as much as a
--- bucket; only the main inventory counts, not the bags in it.
+-- bucket; only the main inventory counts, not the bags in it. The rule does not ask for room:
+-- a bucket full of this milk passes it, and the game's milking with it stops on its first
+-- pull (ISMilkAnimal.milk finds it full and no other). ZeD skips the full ones, so a full
+-- bucket greys Milk, and a run whose bucket fills counts that animal and ends at the next.
 local function milkBucket(player, animal)
     local inv = ocall(player, "getInventory")
     local d = ocall(animal, "getData")
@@ -99,7 +102,12 @@ local function milkBucket(player, animal)
     local mt = breed and ocall(breed, "getMilkType")
     if not (inv and mt) then return nil end
     local list = ocall(inv, "getAvailableFluidContainer", mt)
-    if list and not list:isEmpty() then return list:get(0) end
+    if not list then return nil end
+    for i = 0, list:size() - 1 do
+        local it = list:get(i)
+        local fc = ocall(it, "getFluidContainer")
+        if not (fc and ocall(fc, "isFull") == true) then return it end
+    end
     return nil
 end
 
