@@ -4241,3 +4241,32 @@ to be proposed.
     under it, D-pad between plaques, B back. Kept all game in the save (at most 10 + 21 records). The director's
     rulings: empty plaques stay a mystery ("Not caught yet", no name, as the game hides uncaught species); wall only,
     no placeable mounted-fish item; Top 10 by weight. Junk and No catch never reach the wall. APPROVED by the director Nov 11 (mockup v2, no background wall); the build starts at once (the director: "building starts now"), and QA first checks that fishing works with ZeD on today.
+
+168. **The inventory Filter button, both windows (the director, Nov 11 2026, from QA's design audit; beta 12).** On every
+    early inventory mockup (zed_two_windows_v1.html:660, :724; zed_inventory_equipped_v4, zed_loot_multicontainer_v4;
+    Visual Catalog v2.0 M12, O07) beside Sort and List/Grid, never built and never dropped. The old design predates
+    today's look, so: a fresh mockup first (ZeDUI/mockups/zed_inventory_filter_v1.html) for the director, then the build
+    in InventoryRenderer with the Character and World windows' control rows. Checks: a sim (filter by name and by
+    category; the count; clearing; list and grid; stacks; both windows), controller parity, Deck size, all 28 languages,
+    QA at 4K and Deck.
+
+169. **Animals quick actions and bulk select (the director, Nov 11 2026, from the audit; beta 12).** The design is in
+    zed-animals-v2-fira.html: Frame 1 "Needs Attention" alerts get Milk, Shear and Go to (today an alert is a readout:
+    AnimalsTab.lua:1066-1068); Frame 2 the roster's bulk select ("all hungry", "all milkable") with the game's own
+    actions run on the selection. Build straight from that design with the game's timed actions. Checks: a sim
+    (which alerts offer which action, the selection rules, the queued actions), controller parity, QA in game with
+    real animals (milkable cow or goat, shearable sheep) at 4K and Deck. The Hunt mode (AnimalsTab.lua:31) was not in
+    the director's pick.
+
+170. **The Mods screen's Files tab and the plain-words error cards (the director, Nov 11 2026, from the audit; beta 12).**
+    The design is zed_mods_file_switches_v1.html (turn off a single file of a mod; RECOMMEND 2, 3, 5: "Used by N" before
+    switching off, errors shown on their file, "1 file off" on the mod's row, "Turn all back on") and zed_errors_v1.html
+    (the error manager's plain-words cards; RECOMMEND 5 "Open in Mods" jumps to the Files tab at the file). The answer
+    to "a mod broke my game". Build from those designs on the mod manager; how a single file is switched off must be
+    safe and reversible and must survive a restart (verify the engine path first and report it). Checks: sims, QA with
+    real Workshop mods (a mod with a broken file), controller parity, all 28 languages.
+
+171. **Search on the Skills and Equipment tabs (the director, Nov 11 2026, from the audit; beta 12).** Only a line on
+    zed-roadmap-s65.html:249, so a mockup first (ZeDUI/mockups/zed_tab_search_v1.html) for the director: where the
+    field sits, what it matches (skill names, perk groups; worn item names, slots, body parts), how a match shows, and
+    the controller path (the pad keyboard). Then the build. Checks: a sim, controller parity, Deck size, 28 languages.
