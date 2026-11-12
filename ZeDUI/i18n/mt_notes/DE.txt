@@ -25,3 +25,7 @@ Vehicle-claim verbs (lines 494-499) end a sentence: "nicht fahren / Teile ausbau
 Log lines follow a name in simple past: "tötete %1", "durfte %1 nicht fahren". Lines 976 and 996 read loosely.
 Mute for staff = stummschalten; the player's own chat mute pairs the game's Stumm / Laut.
 Times 88-89 kept as AM/PM as in the English.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'abschalten/einschalten' for switch off/on; informal du.
+Tag 'Nutzer: %1' for 'used by %1' (length limit).

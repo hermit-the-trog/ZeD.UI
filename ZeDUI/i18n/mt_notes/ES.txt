@@ -24,3 +24,7 @@ Spawned "to %3" lines use a parenthesis "(%3)" because %3 can be "tú" or "el su
 Short labels cut to fit: Cualq. jugador, Reg. de botín, Mov. rápido, Todas las hab., TP por mapa (personal), Color etiqueta.
 License card caps: PORTE OCULTO, N.º CARNÉ, VENCE, EXPED., SOBREVIVIÓ; "BARBA" for FACIAL, "MUERTES" for KILLS.
 Griefing kept in English (players say it).
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Shortened buttons/tags to fit limits: 'Desactivar igual', 'usado: %1', 'del juego', '1 inactivo'.
+'sitio' kept to match ZeD's existing wording.

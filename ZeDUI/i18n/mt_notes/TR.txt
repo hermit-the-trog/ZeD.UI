@@ -9,3 +9,7 @@ Verb phrases in %1 slots (441, 444, 445) are verbal nouns (sürme, çekme, sökm
 Log lines name the vehicle with "aracı" and a person with "kişisini"; check suffix grammar when %1 is a name.
 Griefing = Zorbalık; Stuck = Takıldım; Appeal = İtiraz; Kicks (300) = Atılma.
 Turkish suffixes on %1 are avoided where possible (Gidiliyor: %1, Atıldın: %1).
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'Open in Mods' as 'Modlarda aç' (Mods screen = Modlar); 'Turn off with the %1' as '%1 ile birlikte kapat'.
+File-mentioned-in-card line (FileErrOne/Many) puts the function before the line number to fit Turkish word order.

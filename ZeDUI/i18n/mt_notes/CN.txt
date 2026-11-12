@@ -13,3 +13,7 @@ Log lines (853 on) start straight after a player's name, no space added: 杀死�
 Punctuation: full-width ，。：？ in prose; quotes “ ”; ASCII "..." kept.
 Doubtful: 故障 for Bug, 恶意破坏 for Griefing, 协管员, 拆零件 for take parts, 隐蔽携带 for Concealed carry.
 Lines 346 and the "%1 %2" shapes (252, 899, 1101) left as the English shape; the meaning of the slots is not visible.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Used 模组/文件/关闭 for off; Mods screen = 模组.
+'gone' tag = 已移除; 'used by %1' = 被 %1 个使用 (may need a native look).

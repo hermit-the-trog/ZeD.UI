@@ -21,3 +21,7 @@ Log lines are verb phrases after a name (kastet ut, la til, genererte ...); 910 
 Cheats named "juks" (Dyrkingsjuks, Byggjuksmodus); Warning points = advarselspoeng.
 Appeal = Anke; Griefing = Hærverk; Bug = Feil; Unmute (1012) "%1 uten demping" is clumsy.
 Kicks count (300) = "Utkast" - check.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Kept 'Mods' for the Mods screen; used 'modden' for a single mod.
+FileVerbOffWith is a loose 'Slå av sammen med %1'; 'Glem den' for Forget it.

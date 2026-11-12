@@ -1049,6 +1049,31 @@ MM.act = {
     saveQuit  = function() fire("exitOption") end,
 }
 
+--- An error card's Open in Mods, in a game (ZeD_Messages.openInMods): the pause window opens on its
+--- Mods page with a line saying the Mods screen opens at that file at the main menu (a mod's files
+--- change only before a save loads). The pause menu opens the way Escape opens it, then the page
+--- is set a few ticks later, once the menu has built its window (as ZeD_SandboxInGame does).
+function MM.openPauseMods(name, file)
+    MM.pauseJump = { name = tostring(name or ""), file = tostring(file or "") }
+    local function show()
+        local w = MM.pause
+        if w then w.page = "mods"; w.focusId = nil end
+    end
+    local m = MainScreen and MainScreen.instance
+    if m and m:isVisible() then show(); return true end
+    local ok = pcall(function() ToggleEscapeMenu(getCore():getKey(KeybindId.MAIN_MENU)) end)
+    if not ok then return false end
+    local n = 0
+    local function tick()
+        n = n + 1
+        if n < 3 then return end
+        Events.OnTick.Remove(tick)
+        show()
+    end
+    Events.OnTick.Add(tick)
+    return true
+end
+
 -- ---------------------------------------------------------------------------
 -- THE MENU BAR'S MENUS
 -- ---------------------------------------------------------------------------
@@ -2198,6 +2223,13 @@ function ZeD_MMWindow:build()
             local shown = math.max(1, math.min(#items, room))
             self._mods = { y = y, rh = rh, items = items, shown = shown }
             y = y + shown * rh + ((#items > shown) and rh or 0) + pad
+            -- an error card's Open in Mods (ZeD_Messages): where the Mods screen opens next, at the menu
+            local jp = MM.pauseJump
+            if jp then
+                local lines = ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_MainMenu_ModsJumpNote", jp.file, jp.name), T.fontF2, w - pad * 2 - T.px(14))
+                self._mods.note = { y = y, lines = lines }
+                y = y + #lines * (fontH(T.fontF2) + T.px(2)) + pad
+            end
         else
             local list = { { "resume", getText("UI_mainscreen_return"), A.resume, "primary" }, { "options", getText("UI_mainscreen_option"), A.options },
                            { "mods", ZeD.tr("UI_ZeD_MainMenu_ModsCount", MM.modCount()), A.modList } }
@@ -2459,6 +2491,15 @@ function ZeD_MMWindow:prerender()
         if #md.items > md.shown then
             local more = ZeD.tr("UI_ZeD_MainMenu_AndMore", #md.items - md.shown)
             self:drawText(more, pad, y + math.floor((md.rh - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
+        end
+        if md.note then
+            local dsz = T.px(7)
+            local ny = md.note.y
+            ZeD.Atoms.drawStatusDot(self, pad, ny + math.floor((fontH(f2) - dsz) / 2), T.accent, dsz)
+            for _, l in ipairs(md.note.lines) do
+                self:drawText(l, pad + T.px(14), ny, c.r, c.g, c.b, c.a or 1, f2)
+                ny = ny + fontH(f2) + T.px(2)
+            end
         end
     end
 

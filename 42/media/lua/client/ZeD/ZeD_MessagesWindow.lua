@@ -160,8 +160,14 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
         local textH = 0
         if it.k == "err" then
             lines[#lines + 1] = { text = tr("UI_ZeD_Msg_ErrorCount", it.count, cur.name), font = T.fontF4 }
-            for _, f in ipairs(it.firsts or {}) do
-                for _, l in ipairs(ZeD.Atoms.wrapText(f, T.fontF1, inner)) do lines[#lines + 1] = { text = l, font = T.fontF1, mono = true } end
+            local np = #(it.placeOrder or {})
+            if np > 0 then
+                -- (each place has its card below: here only how many places)
+                lines[#lines + 1] = { text = tr(np == 1 and "UI_ZeD_Msg_PlacesOne" or "UI_ZeD_Msg_PlacesMany", np), font = T.fontF2, dim = true }
+            else
+                for _, f in ipairs(it.firsts or {}) do
+                    for _, l in ipairs(ZeD.Atoms.wrapText(f, T.fontF1, inner)) do lines[#lines + 1] = { text = l, font = T.fontF1, mono = true } end
+                end
             end
         elseif it.k == "ticket" or it.k == "ticketnew" or it.k == "adminnote" or it.k == "adminmsg" or it.k == "server" or it.k == "invite" or it.k == "pad" then
             -- (a ticket's note carries a username: drawn plain, never read for markup)
@@ -229,8 +235,37 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             cy = cy + ch + px(U.CARD_GAP)
         end
         place(it, lines, btns, textH)
-        -- every kept error its own card, newest first, with its own Copy
-        if it.k == "err" then
+        -- one card per place the errors come from (punch list 170), newest first: the file and line, how
+        -- often and when, the game's message, the same in plain words where that is certain, what called
+        -- it; Copy, and Open in Mods for a mod's file
+        if it.k == "err" and #(it.placeOrder or {}) > 0 then
+            local isMod = cur.name ~= tr("UI_ZeD_Msg_TheGame")
+            for _, p in ipairs(it.placeOrder) do
+                local el, eh = {}, 0
+                local function add(text, font, opts)
+                    for _, l in ipairs(ZeD.Atoms.wrapText(text, font, inner)) do
+                        local e = { text = l, font = font }
+                        if opts then for k, v in pairs(opts) do e[k] = v end end
+                        el[#el + 1] = e
+                        eh = eh + fh(font) + px(3)
+                    end
+                end
+                local where = tr("UI_ZeD_Msg_PlaceAt", p.file, p.line)
+                if p.fn and p.fn ~= "" then where = tr("UI_ZeD_Msg_PlaceIn", where, p.fn) end
+                add(where, T.fontF4)
+                add((p.count > 1) and tr("UI_ZeD_Msg_PlaceWhenMany", p.count, p.first or "", p.last or "") or tr("UI_ZeD_Msg_PlaceWhenOne", p.first or ""), T.fontF2, { dim = true })
+                add(tostring(p.msg or ""), T.fontF1, { mono = true })
+                local plain = MS.plainWords(p.msg)
+                if plain then add(tr("UI_ZeD_Msg_PlainHead", plain), T.fontF2) end
+                local c = p.caller
+                if c then add(tr("UI_ZeD_Msg_CalledFrom", (c.fn and c.fn ~= "") and c.fn or "?", c.file, c.line), T.fontF2, { dim = true }) end
+                local pb = {}
+                if isMod then pb[#pb + 1] = { label = btnLabel(tr("UI_ZeD_Msg_OpenInMods")), openMods = true, place = p } end
+                pb[#pb + 1] = { label = btnLabel(tr("UI_ZeD_Msg_CopyOne")), copy = true, place = p, primary = true }
+                place({ k = "err", when = (p.count > 1) and tr("UI_ZeD_Msg_Times", p.count) or tr("UI_ZeD_Msg_Once") }, el, pb, eh)
+            end
+        -- every kept error its own card, newest first, with its own Copy (errors that name no Lua file)
+        elseif it.k == "err" then
             local n = #(it.texts or {})
             for i = n, 1, -1 do
                 local t = it.texts[i]
@@ -439,7 +474,7 @@ function ZeD_MessagesWindow:prerender()
                 local hov = (not joy) and self._hover and self._hover.btn == b
                 local o = _cardBtn
                 o.hover, o.focus, o.win = hov, focused and focusOpts(self) or nil, self
-                o.help = (b.ticket and tr("UI_ZeD_Tk_NoteOpenHelp")) or (b.bans and tr("UI_ZeD_Adm_NoteOpenHelp")) or (b.invite and tr("UI_ZeD_Cl_NoteOpenHelp")) or (b.copy and tr("UI_ZeD_Msg_HelpCopy")) or tr("UI_ZeD_Msg_HelpCardButton", b.label)
+                o.help = (b.ticket and tr("UI_ZeD_Tk_NoteOpenHelp")) or (b.bans and tr("UI_ZeD_Adm_NoteOpenHelp")) or (b.invite and tr("UI_ZeD_Cl_NoteOpenHelp")) or (b.copy and tr("UI_ZeD_Msg_HelpCopy")) or (b.openMods and tr("UI_ZeD_Msg_HelpOpenInMods")) or tr("UI_ZeD_Msg_HelpCardButton", b.label)
                 Mo.drawButton(self, b.x, b.y, b.w, b.h, b.label, b.primary and "primary" or "default", self._down == b, nil, o)
             end
         end
@@ -516,8 +551,15 @@ end
 function ZeD_MessagesWindow:pressCard(b)
     if not b then return end
     sound("UIActivateButton")
+    if b.openMods then
+        -- (the pause window opens on its Mods page, saying where the Mods screen will open: it takes the screen)
+        local name = self.sel
+        self:close()
+        MS.openInMods(name, b.place)
+        return
+    end
     if b.copy then
-        local text = b.idx and MS.reportOne(self.sel, b.idx) or MS.report(self.sel)
+        local text = (b.place and MS.reportPlace(self.sel, b.place)) or (b.idx and MS.reportOne(self.sel, b.idx)) or MS.report(self.sel)
         pcall(function() Clipboard.setClipboard(text) end)
         b.label = btnLabel(tr("UI_ZeD_Msg_Copied"))
         return

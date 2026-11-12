@@ -23,3 +23,7 @@ License card labels (24-41) use abbreviations: SCAD, RILASC, SOPRAV, PREF, PROF;
 Log lines are "ha + participle" after a name; "si è visto rifiutare di ..." for refusals. Teleport "da %1" = "to where X is".
 Gender of %1 car/part unknown: "un'%1", "(bloccata)". Line 760 assumes %2 is the faction's name.
 Line 627 "Mov. rapido" abbreviated; 797 "Prop.:"; 498 "prendere parti" is terse.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'file gioco' for the game-file tag (length 12); chips 'N disattivati' drop the word file.
+Used 'Mod' for the Mods screen; informal imperative (tu) as in the existing file.

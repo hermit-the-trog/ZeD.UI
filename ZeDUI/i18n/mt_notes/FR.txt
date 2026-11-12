@@ -23,3 +23,7 @@ License card labels (24-41) use accents (OPÉRATEUR, DÉLIVRÉ, TUÉS): if that 
 Log lines are passé composé after a name (a tué %1, s'est vu refuser de ...). Gender of %1 car/part not known: "une %1", "(verrouillé)".
 Line 760 assumes %2 is the faction's name ("dans la faction %2"). "%1 ouvert(s)" avoids a plural guess.
 Line 95/255 and 498/488 "prendre (des) pièces" run a little over the estimate.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Several labels shortened for the limits: 'fichier jeu', 'usage : %1', 'Désactiver, forcé' (for Turn off anyway), 'Désactiver avec %1'.
+Used 'fiche' for card; 'Mods' kept for the Mods screen.

@@ -29,3 +29,7 @@ Log lines (853 on) start straight after a player's name, no space added: 殺死�
 Log (card name, 853) = 日誌 as in the game's user logs; single records = 紀錄.
 Doubtful: 故障 for Bug, 惡意破壞 for Griefing, 拆零件 for take parts, 隱蔽攜帶 for Concealed carry, 垃圾 for Spam.
 Lines 346 and the "%1 %2" shapes (252, 899, 1101) keep the English shape; what the slots hold is not visible.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Used 模組/檔案/關閉 for off; Mods screen = 模組.
+'gone' tag = 已移除.

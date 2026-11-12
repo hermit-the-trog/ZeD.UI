@@ -5437,3 +5437,59 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Left_Kicked` | `You were kicked from the server.` | Kicked or disconnected screen: the heading for a kick (the game's own reason shows under it) | - |
 | `UI_ZeD_Left_Lost` | `The connection to the server ended.` | Kicked or disconnected screen: the heading for any other end of the connection (the game's own reason shows under it) | - |
 | `UI_ZeD_Left_HelpExit` | `Exit: back to the main menu's desk.` | Kicked or disconnected screen: help line over the game's Quit to menu button | - |
+| `UI_ZeD_Msg_PlacesOne` | `From 1 place, on the card below.` | Messages window, a mod's errors: the summary card's line under the count | - |
+| `UI_ZeD_Msg_PlacesMany` | `From %1 places, a card each below.` | Messages window, a mod's errors: the summary card's line under the count. %1 how many places (file and line) | - |
+| `UI_ZeD_Msg_PlaceAt` | `%1, line %2` | Messages window, an error card's title: %1 the Lua file's name, %2 the line number | - |
+| `UI_ZeD_Msg_PlaceIn` | `%1, in %2` | Messages window, an error card's title: %1 is the file and line, %2 the function's name in the code | - |
+| `UI_ZeD_Msg_PlaceWhenOne` | `Once, %1` | Messages window, an error card: when it happened. %1 the game time (Day 3, 7:01) | - |
+| `UI_ZeD_Msg_PlaceWhenMany` | `%1 times: first %2, last %3` | Messages window, an error card: how often and when. %1 a count, %2 and %3 game times (Day 3, 7:01) | - |
+| `UI_ZeD_Msg_PlainHead` | `In plain words: %1` | Messages window, an error card: the game's message read in plain words. %1 is one of the readings below | - |
+| `UI_ZeD_Msg_PlainIndex` | `the code looked up "%1" in something that is not there.` | Messages window, an error card: the plain reading of "attempted index: X of non-table: null". %1 the name the code looked up. Starts in lower case: it follows "In plain words:" | - |
+| `UI_ZeD_Msg_PlainCallNil` | `the code called a function that does not exist, often a game function this game version no longer has.` | Messages window, an error card: the plain reading of "Object tried to call nil". Starts in lower case: it follows "In plain words:" | - |
+| `UI_ZeD_Msg_CalledFrom` | `Called from %1 (%2, line %3)` | Messages window, an error card: the code that called the place. %1 a function's name, %2 a file's name, %3 a line number | - |
+| `UI_ZeD_Msg_OpenInMods` | `Open in Mods` | Messages window, an error card: button. Opens the Mods screen at the file the error names | 16 |
+| `UI_ZeD_Msg_Once` | `Once` | Messages window, an error card's head: it happened one time (beside "%1 times") | 10 |
+| `UI_ZeD_Msg_HelpOpenInMods` | `Shows the mods now; at the main menu, the Mods screen opens at this file, where it can be switched off.` | Messages window: help line for the Open in Mods button | - |
+| `UI_ZeD_MainMenu_ModsJumpNote` | `At the main menu, Mods opens at %1 in %2. A mod's files change only before a save loads.` | Pause window, Mods page: a line under the list after an error's Open in Mods. %1 a file's name, %2 a mod's name | - |
+| `UI_ZeD_Mods_DTabFiles` | `Files` | Mod manager, the info pane's tabs: the mod's code files (shown as "Files 108") | 10 |
+| `UI_ZeD_Mods_FilesTabLater` | `Its files show once a reload brings it in.` | Mod manager, Files tab: a mod that is on but not loaded yet | - |
+| `UI_ZeD_Mods_FilesTabTurnOn` | `Turn it on and reload to see its files.` | Mod manager, Files tab: a mod that is off | - |
+| `UI_ZeD_Mods_FilesTabNone` | `This mod has no code files.` | Mod manager, Files tab: a mod with no Lua files (a map, pictures) | - |
+| `UI_ZeD_Mods_FilesCount` | `%1 code files` | Mod manager, Files tab: how many Lua files the mod has (also per folder). %1 a count | - |
+| `UI_ZeD_Mods_FilesOffN` | `%1 off` | Mod manager, Files tab: after the count, how many files are switched off. %1 a count | - |
+| `UI_ZeD_Mods_FilesAllOn` | `all on` | Mod manager, Files tab: after the count, no file is switched off | - |
+| `UI_ZeD_Mods_FilesVerbAllOn` | `Turn all back on` | Mod manager, Files tab: button. Switches every file of this mod back on | 18 |
+| `UI_ZeD_Mods_FilesServer` | `A server's mods: files cannot be switched off here (a server checks that every player's code matches its own).` | Mod manager, Files tab: in a server's mod list | - |
+| `UI_ZeD_Mods_FilesNoHelper` | `ZeD picks is not installed, so files cannot be switched off. It comes with ZeD-GUI; install ZeD-GUI again.` | Mod manager, Files tab: the helper mod is missing | - |
+| `UI_ZeD_Mods_FilesHowWorks` | `Switching a file off puts an empty copy of it into ZeD picks, which loads last; the mod's own copy is untouched. A reload puts it in place, no restart. Kept until you switch it back on. Single player only.` | Mod manager, Files tab: how switching files off works, under the counts | - |
+| `UI_ZeD_Mods_FileTagErrorOne` | `1 error` | Mod manager, Files tab: tag on a file row | 12 |
+| `UI_ZeD_Mods_FileTagErrors` | `%1 errors` | Mod manager, Files tab: tag on a file row. %1 a count | 12 |
+| `UI_ZeD_Mods_FileTagGame` | `game file` | Mod manager, Files tab: tag on a file the game has too (it replaces one of the game's files) | 12 |
+| `UI_ZeD_Mods_FileTagGone` | `gone` | Mod manager, Files tab: tag on a file that is off but the mod no longer has (an update took it out) | 10 |
+| `UI_ZeD_Mods_FileTagUsedBy` | `used by %1` | Mod manager, Files tab: tag on a file row: how many of the mod's other files name it. %1 a count | 12 |
+| `UI_ZeD_Mods_FileUsedNone` | `used by no other file` | Mod manager, Files tab, a file's card: in its facts line | - |
+| `UI_ZeD_Mods_FileFirstLines` | `Its first lines` | Mod manager, Files tab, a file's card: title over the file's first lines of code | - |
+| `UI_ZeD_Mods_FileErrOne` | `1 error comes from this file, at line %2 in %3: %4` | Mod manager, Files tab, a file's card: an error from the last game. %1 is 1, %2 a line number, %3 a function's name, %4 the game's message as written | - |
+| `UI_ZeD_Mods_FileErrMany` | `%1 errors come from this file, at line %2 in %3: %4` | Mod manager, Files tab, a file's card: errors from the last game. %1 a count, %2 a line number, %3 a function's name, %4 the game's message as written | - |
+| `UI_ZeD_Mods_FileErrCleaner` | `%1 other files use it, so switching it off would likely move the errors, not end them. Turning the mod off for this save is the cleaner fix.` | Mod manager, Files tab, a file's card: under its errors when many files use it. %1 a count | - |
+| `UI_ZeD_Mods_FileGame` | `The game has a file of the same name in the same place, and this one replaces it. Switching it off would remove the game's own file too, so it cannot be switched off here. Turn the mod off instead.` | Mod manager, Files tab, a file's card: a file that replaces one of the game's own | - |
+| `UI_ZeD_Mods_FileGone` | `Switched off, but the mod's latest update no longer has this file. Nothing of it runs.` | Mod manager, Files tab, a file's card: a file that is off and was taken out of the mod | - |
+| `UI_ZeD_Mods_FileVerbForget` | `Forget it` | Mod manager, Files tab, a file's card: button. Drops a gone file from the list of files off | 16 |
+| `UI_ZeD_Mods_FileOffNow` | `Off: ZeD picks holds an empty copy of this file, and after a reload the empty copy is the one the game runs. %1's own copy is untouched.` | Mod manager, Files tab, a file's card: a file that is switched off. %1 the mod's name | - |
+| `UI_ZeD_Mods_FileVerbOn` | `Turn back on` | Mod manager, Files tab, a file's card: button | 16 |
+| `UI_ZeD_Mods_FileReading` | `Reading the mod's files...` | Mod manager, Files tab, a file's card: while ZeD reads the mod's files to see which use this one | - |
+| `UI_ZeD_Mods_FileUsedNoneWhy` | `No other file in this mod names it, so switching it off stops this file only. ZeD cannot tell what a file does; its first lines are shown above.` | Mod manager, Files tab, a file's card: a file no other file uses | - |
+| `UI_ZeD_Mods_FileVerbOff` | `Turn off` | Mod manager, Files tab, a file's card: button. Switches the file off | 16 |
+| `UI_ZeD_Mods_FileUsedOne` | `Used by 1 other file in this mod: %2. With this file off, it will likely error where it uses it. Found by reading the mod's files for its name; a use written another way can be missed.` | Mod manager, Files tab, a file's card: a file another file uses. %1 is 1, %2 that file's name | - |
+| `UI_ZeD_Mods_FileUsedMany` | `Used by %1 other files in this mod: %2. With this file off, they will likely error where they use it. Found by reading the mod's files for its name; a use written another way can be missed.` | Mod manager, Files tab, a file's card: a file other files use. %1 a count, %2 their names | - |
+| `UI_ZeD_Mods_FileVerbOffAnyway` | `Turn off anyway` | Mod manager, Files tab, a file's card: button. Switches the file off although other files use it | 18 |
+| `UI_ZeD_Mods_FileVerbOffWith` | `Turn off with the %1` | Mod manager, Files tab, a file's card: button. Switches this file off and the %1 files that use it | 22 |
+| `UI_ZeD_Mods_SayFileOff` | `%1 file off in %2. A reload puts it in place, no restart.` | Mod manager: note after a file is switched off. %1 is 1, %2 the mod's name | - |
+| `UI_ZeD_Mods_SayFilesOff` | `%1 files off in %2. A reload puts them in place, no restart.` | Mod manager: note after files are switched off. %1 a count, %2 the mod's name | - |
+| `UI_ZeD_Mods_SayFileOn` | `%1 file back on in %2. A reload puts it back.` | Mod manager: note after a file is switched back on. %1 is 1, %2 the mod's name | - |
+| `UI_ZeD_Mods_SayFilesOn` | `%1 files back on in %2. A reload puts them back.` | Mod manager: note after files are switched back on. %1 a count, %2 the mod's name | - |
+| `UI_ZeD_Mods_ChipFileOff` | `1 file off` | Mod manager, the mod list: tag on a mod's row | 14 |
+| `UI_ZeD_Mods_ChipFilesOff` | `%1 files off` | Mod manager, the mod list: tag on a mod's row. %1 a count | 14 |
+| `UI_ZeD_Mods_ChipErrorOne` | `1 error` | Mod manager, the mod list: tag on a mod's row (an error in the last game) | 12 |
+| `UI_ZeD_Mods_ChipErrors` | `%1 errors` | Mod manager, the mod list: tag on a mod's row (errors in the last game). %1 a count | 12 |
+| `UI_ZeD_Mods_PendingFiles` | `Files switched in %1. A reload puts them in place, no restart.` | Mod manager: the band's status line after files were switched. %1 the mod's name | - |

@@ -26,3 +26,7 @@ Identity card: KK NR, UDSTEDT, DRAB for KILLS, SKÆG for FACIAL, FAVORIT for FAV
 Vehicle-claim verbs (494-499) go inside sentences: "må så ikke køre den / tage dele", "kan ikke nedtage eller ødelægge det".
 Log lines follow a name in simple past: "dræbte %1", "fik afslag på at køre %1". Lines 976 and 996 read loosely.
 Dates 90-91 reordered to day before month (%2. %1).
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'Slå fra/til' for switch off/on; Mods kept as the screen name.
+Tag 'brugt af %1' fits 12 only with a 1-digit count.

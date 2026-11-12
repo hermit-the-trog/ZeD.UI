@@ -11,3 +11,7 @@ Log lines are past-tense phrases after a name ("matou %1", "bateu em %1"); line 
 Tiles = blocos; Sandbox kept in "Mudar opções Sandbox"; "Truque de ..." for cheat powers.
 Line 1101 "Sobre %1: " keeps the English trailing space.
 Tight spots: 344 "Ver todas" (16 limit), 970 "deu voz a %1" (unmute log), 1012 "%1 pode falar." (unmute toast).
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'save' used for a saved game; button 'Desligar assim' (18 limit) and 'Religar todos' are shortened.
+Chip tags drop the word 'arquivo' to fit 14.

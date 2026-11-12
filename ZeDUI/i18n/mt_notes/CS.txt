@@ -25,3 +25,7 @@ Line 90/91 date order set to "%2. %1 %3" assuming %1 = month, %2 = day.
 Action wheel: Tap = Klepnuti, Hold = Drzeni, Flick-release = Svih a pustit, Stick click = Stisk packy.
 Traits kept as "traity" (line 350). Immersive = Plna on the Identity card.
 Counts: where %1 can be 1, 2 or 5 I used "Label: %1" forms (Hracu: %1, Otevreno: %1); seconds as "%1 s".
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Mods screen kept as Mody (Open in Modech).
+Tags shortened to fit limits: 'vypnut: 1', 'použití: %1'.

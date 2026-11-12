@@ -24,3 +24,7 @@ Log lines are past-tense masculine verb phrases ("zabił: %1"); the actor's gend
 God Mode, No Clip left in English; LootZed kept. Grifing and Błąd (Bug) chosen as the player-facing words.
 Singular count lines (%1 wpis, %1 zasada) are singular-only variants; plurals use "Wpisów: %1" patterns.
 Most doubtful: "Odwołanie" for Appeal, "Newsy" for News, "Zwolnij" for Release (claim), "Utknięcie" for Stuck.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Short tags 'Wył.: 1' and 'Wył.: %1' for 'N files off' to fit 14 chars; 'Turn all back on' shortened to 'Włącz wszystkie'.
+Files-off count lines put the count first (Pliki wyłączone w %2: %1) because Polish plural forms vary.

@@ -486,6 +486,118 @@ local pending = nil        -- the next error's head and Lua stack, read before i
 -- one error is several entries in the game's list (a separator, the dump's head, the
 -- exception "java.lang.RuntimeException: ...", its stack dumps): the exception counts and
 -- opens a record, the others are added to the record before them
+-- ---------------------------------------------------------------------------
+-- WHERE AN ERROR COMES FROM (punch list 170): the file and line the game names, so a
+-- mod's errors make one card per place, not one per error. The game writes a Lua frame
+-- two ways: "Lua((MOD:Bandits Week One)).generateSchedule(BWOScheduler.lua:42)" (42.22;
+-- the game's own: "Lua(Vanilla).fn(file.lua:12)") and, in older logs,
+-- "function: generateSchedule -- file: BWOScheduler.lua line # 42 | MOD: Bandits Week One".
+-- ---------------------------------------------------------------------------
+-- every Lua frame in the text, top of the stack first: { mod (nil: the game's), fn, file, line }
+function M.frames(s)
+    local out = {}
+    for l in (tostring(s or "") .. "\n"):gmatch("([^\n]*)\n") do
+        local a = string.find(l, "Lua((MOD:", 1, true)
+        local fr = nil
+        if a then
+            -- (up to the "))." that closes the name: a name may hold a bracket, "Ladders!? (v0.0.13)")
+            local b = string.find(l, ")).", a + 9, true)
+            if b then
+                local fn, file, line = string.sub(l, b + 3):match("^([^%(]*)%(([^%(%):]+):(%d+)%)")
+                if file then fr = { mod = string.sub(l, a + 9, b - 1), fn = fn, file = file, line = tonumber(line) } end
+            end
+        elseif string.find(l, "Lua(Vanilla).", 1, true) then
+            local fn, file, line = l:match("Lua%(Vanilla%)%.([^%(]*)%(([^%(%):]+):(%d+)%)")
+            if file then fr = { fn = fn, file = file, line = tonumber(line) } end
+        else
+            local fn, file, line, rest = l:match("function:%s*(%S+)%s+%-%-%s+file:%s*(%S+)%s+line #%s*(%d+)%s*|%s*(.-)%.?%s*$")
+            if file then fr = { fn = fn, file = file, line = tonumber(line), mod = rest:match("^MOD:%s*(.-)$") } end
+        end
+        -- (the game prints the stack more than once per error: each frame once)
+        if fr then
+            local dup = false
+            for _, o in ipairs(out) do if o.file == fr.file and o.line == fr.line and o.fn == fr.fn then dup = true end end
+            if not dup then out[#out + 1] = fr end
+        end
+    end
+    return out
+end
+
+-- the game's message, without the Java class in front ("attempted index: x of non-table: null")
+function M.messageOf(s)
+    local first = tostring(s or ""):match("([^\n]*Exception[^\n]*)") or tostring(s or ""):match("([^\n]+)") or ""
+    first = first:gsub("^%s+", "")
+    local msg = first:match("Exception:%s*(.-)%s*$") or first
+    -- ("... at KahluaUtil.fail(KahluaUtil.java:100)." trails the 42.22 text)
+    msg = msg:gsub("%s+at%s+[%w%.]+%([%w%.]+:%d+%)%.?$", "")
+    return msg:sub(1, 300)
+end
+
+--- The place an error comes from for the source it is filed under: the first frame of that
+--- mod (the top frame can be the game's code it called), else the top frame. Its caller is the
+--- frame after it. nil when the text names no Lua frame.
+function M.placeOf(s, name)
+    local frames = M.frames(s)
+    local at = nil
+    for i, f in ipairs(frames) do if name and f.mod == name then at = i; break end end
+    at = at or (frames[1] and 1)
+    if not at then return nil end
+    local p = frames[at]
+    return { file = p.file, line = p.line, fn = p.fn, caller = frames[at + 1], msg = M.messageOf(s) }
+end
+
+--- The message in plain words, only for kinds whose wording is certain (nil for the rest).
+function M.plainWords(msg)
+    msg = tostring(msg or "")
+    local what = msg:match("attempted index:%s*(.-)%s+of non%-table")
+    if what then return ZeD.tr("UI_ZeD_Msg_PlainIndex", what) end
+    if msg:find("tried to call nil", 1, true) then return ZeD.tr("UI_ZeD_Msg_PlainCallNil") end
+    return nil
+end
+
+-- The places, kept for the Mods screen at the main menu (ZeD_ModFiles.lua reads them):
+-- Zomboid/Lua/ZeD_error_places.txt, a place a line, tab-separated. Written in the game
+-- only, at most every two seconds while something changed; a new game starts it empty.
+local PLACES_FILE = "ZeD_error_places.txt"
+local placesDirty = false
+local function clean(s) return (tostring(s or ""):gsub("[\t\r\n]", " ")) end
+function M.savePlaces()
+    placesDirty = false
+    local w = safe(function() return getFileWriter(PLACES_FILE, true, false) end)
+    if not w then return end
+    pcall(function()
+        for name, src in pairs(M.sources) do
+            local it = src.kind == "err" and src.items[1]
+            for _, p in ipairs(it and it.placeOrder or {}) do
+                w:write("place\t" .. clean(name) .. "\t" .. clean(p.file) .. "\t" .. tostring(p.line or "") .. "\t" .. clean(p.fn) .. "\t" .. tostring(p.count) .. "\t" .. clean(p.msg) .. "\n")
+            end
+        end
+    end)
+    pcall(function() w:close() end)
+end
+
+-- file one error under its place in the source's item (newest place first)
+local function filePlace(item, name, s)
+    local pl = M.placeOf(s, name)
+    if not pl then return end
+    item.places = item.places or {}
+    item.placeOrder = item.placeOrder or {}
+    local key = tostring(pl.file) .. ":" .. tostring(pl.line)
+    local p = item.places[key]
+    if not p then
+        p = pl
+        p.count, p.first = 0, when()
+        item.places[key] = p
+    else
+        for i, o in ipairs(item.placeOrder) do if o == p then table.remove(item.placeOrder, i); break end end
+    end
+    table.insert(item.placeOrder, 1, p)
+    p.count = p.count + 1
+    p.last = when()
+    p.text = s
+    placesDirty = true
+end
+
 local function fileError(s)
     -- (up to the closing "))": a mod name may hold a bracket of its own, "Ladders!? (v0.0.13)")
     local name = s:match("%(%(MOD:(.-%)*)%)%)") or ZeD.tr("UI_ZeD_Msg_TheGame")
@@ -507,6 +619,7 @@ local function fileError(s)
     item.whens = item.whens or {}
     item.whens[#item.texts] = when()   -- (each kept error's own time, for its card and its copy)
     if #item.texts > KEEP_ERRORS then table.remove(item.texts, 1); table.remove(item.whens, 1) end
+    filePlace(item, name, s)
     for _, t in ipairs(M.toasts) do if t.source == name and t.kind == "crit" then t.text = ZeD.tr("UI_ZeD_Msg_ToastErrors", item.count) end end
     bump()
 end
@@ -648,6 +761,27 @@ function M.reportOne(name, i)
     return M.scrub(M.reportHeader() .. "\n" .. name .. ": " .. tostring((it.whens and it.whens[i]) or "") .. "\n" .. t .. "\n")
 end
 
+-- one place's report (the error card's Copy): the header, the place with its count and times, its newest error in full
+function M.reportPlace(name, p)
+    if not (p and p.text) then return "" end
+    local head = name .. ": " .. tostring(p.file) .. ", line " .. tostring(p.line) .. (p.fn and p.fn ~= "" and (", in " .. p.fn) or "")
+        .. " | " .. tostring(p.count) .. "x | " .. tostring(p.first or "") .. " - " .. tostring(p.last or "")
+    return M.scrub(M.reportHeader() .. "\n" .. head .. "\n" .. p.text .. "\n")
+end
+
+--- Open in Mods (an error card): the Mods screen opens at this file next time it opens (at the
+--- main menu: a mod's files can only change before a save loads), and the pause window shows the
+--- mods now. ZeD_ModFiles keeps the target in a file, so it lasts through the trip to the menu.
+function M.openInMods(name, p)
+    require "ZeD/ZeD_ModFiles"
+    local F = ZeD.ModFiles
+    if not (F and p) then return false end
+    F.setJump(name, p.file)
+    local MM = ZeD.MainMenu
+    if MM and MM.openPauseMods then pcall(MM.openPauseMods, name, p.file) end
+    return true
+end
+
 -- every error source's report in one text, and how many errors it holds
 function M.reportAll()
     local names = {}
@@ -692,6 +826,8 @@ local function frame()
         nextErr = t + 2000
         local okE, errE = pcall(M.readErrors)
         if not okE then ZeD.logOnce("messages: reading the errors", errE) end
+        -- (the places for the Mods screen: in a game only, so the menu never empties the last game's)
+        if placesDirty and getPlayer and getPlayer() then pcall(M.savePlaces) end
     end
     for i = #M.toasts, 1, -1 do if M.toasts[i].untilMs <= t then table.remove(M.toasts, i) end end
     local spNow = safe(function() return getGameSpeed() end)
@@ -715,6 +851,7 @@ Events.OnGameStart.Add(function()
     roots = nil
     -- (errors from before the game started are left to the game's own log)
     errSeen = safe(getLuaDebuggerErrorCount) or 0
+    pcall(M.savePlaces)   -- (a new game: the last game's places go)
 end)
 Events.OnRenderTick.Add(frame)
 

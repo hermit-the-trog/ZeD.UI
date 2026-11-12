@@ -26,3 +26,7 @@ Vehicle-claim verbs (494-499) end a sentence: "niet rijden / onderdelen pakken /
 Log lines follow a name in simple past: "doodde %1", "mocht niet in %1 rijden". Lines 976 and 996 read loosely.
 Mute (admin) = dempen, as the game's Dempen. Tiles = tegels (not in the game's NL file, please check).
 Dates 90-91 reordered to day before month (%2 %1).
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Kept 'Mods' for the Mods screen; chip 'N uit' drops 'bestanden' for length.
+'Vergeet het' for Forget it; 'gebruik: %1' for used by %1.

@@ -28,3 +28,7 @@ God Mode, No Clip left in English (game's own debug terms); LootZed kept.
 Singular count lines (%1 запись, %1 правило) are singular-only variants; plural lines use "Записей: %1" patterns.
 License card labels are capitals without Ё; "№ ПРАВ" for DL NO, "СРОК" for EXP.
 Most doubtful: "Освободить/Распустить/Выйти" for Release/Disband/Leave/Quit; "Мёртвая зона стика"; "Заглушить/Вернуть речь" for mute/unmute.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'used by %1' tag rendered 'нужен: %1' (short; literal 'используется' does not fit 12). 'Turn off with the %1' as 'Выключить вместе с %1' (the noun after the count is missing, may read oddly).
+'Mods' screen = 'Моды' per ZeD's file; chip tags use 'Выкл.: %1' for 14 chars.

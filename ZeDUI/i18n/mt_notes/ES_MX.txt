@@ -9,3 +9,7 @@ Floor under the character = piso; "el suelo" kept for the ground where items lan
 D-pad kept as written. Ticket kept as "ticket" (game: Tickets). Griefing kept in English.
 Unmute button is "Reactivar" (14 limit). Capability = permiso, power = poder.
 Check first: "licencia" for the Kentucky license card, "reclamos", "Reactivar".
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+Same text as ES (existing ZeD files are identical across Spanish variants).
+Shortened buttons/tags to fit limits.

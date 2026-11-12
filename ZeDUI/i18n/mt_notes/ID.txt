@@ -21,3 +21,7 @@ Verb slots (441, 444, 445, 497-499): mengendarainya, mengambil bagian, menderek,
 Log lines use active verbs after a name (men-kick, mem-ban, memukul); 918 "me-hotwire" and 916 "melucuti" are guesses.
 Times: AM/PM kept as AM/PM; 240/241 use "mnt" / "j" abbreviations.
 Tight limits shortened: 127, 179, 185, 189, 280, 283, 323, 480, 521, 756, 1037, 1050, 1089 - check tone.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'Mod' used for the Mods screen (matches the file's 'mod' wording).
+FileVerbOffWith is a loose 'Matikan bersama %1'; 'Matikan saja' for Turn off anyway.

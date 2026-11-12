@@ -27,3 +27,7 @@ Log lines end in -습니다 past forms after a name (kills = 처치했습니다,
 Dates %3년 %1 %2일; clock written 오전 / 오후 first.
 Licence labels: FAV = 즐겨찾기, ISS = 발급, KILLS = 처치 (pixel face may lack Hangul).
 Unsure: 소식 for News, 오늘의 메시지 for message of the day, 갓 모드 / 노클립 for admin powers, LootZed kept in English.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'모드' used for the Mods screen; Forget it rendered as '목록에서 제거'.
+FileVerbOffWith is loose '%1 함께 끄기'; plain polite endings (-습니다) as in the existing file.

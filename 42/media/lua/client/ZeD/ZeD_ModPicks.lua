@@ -26,7 +26,16 @@
 -- Accept, so a picked mod's update reaches its copy (the next reload runs it) and
 -- a mod switched off takes its picks out of the list that runs next.
 --
--- The list: Zomboid/Lua/ZeD_picks.txt ("pick=<path>|<mod id>", "held=<path>").
+-- FILES SWITCHED OFF (the Files tab, punch list 170) ride the same helper: a file
+-- off is a held path whose copy is a line that does nothing, written while the
+-- mod that ships it is on and still ships it. Switched back on, the path falls
+-- to load order again (the mod's own copy), so nothing changes. The game makes
+-- the last mod to ship a path the one whose copy runs (ZomboidFileSystem.loadMod
+-- overwrites activeFileMap; LuaManager.LoadDirBase runs each path once from it),
+-- which is why a copy in the helper, loaded last, stands in for the mod's own.
+--
+-- The list: Zomboid/Lua/ZeD_picks.txt ("pick=<path>|<mod id>", "held=<path>",
+-- "off=<path>|<mod id>").
 -- ============================================================================
 ZeD = ZeD or {}
 ZeD.ModPicks = ZeD.ModPicks or {}
@@ -34,15 +43,16 @@ local P = ZeD.ModPicks
 P.HELPER = "ZeD_Picks"
 local FILE = "ZeD_picks.txt"
 local STUB = "-- ZeD picks: no mod that is on ships this file, so this copy does nothing."
+local OFF_STUB = "-- ZeD picks: this file is switched off in the Mods screen (Files tab). The mod's own copy is untouched."
 
 local function safe(fn, ...) local ok, r = pcall(fn, ...); if ok then return r end return nil end
 
 -- ----------------------------------------------------------------------------
 -- the list
 -- ----------------------------------------------------------------------------
-local picks, held = nil, nil
+local picks, held, offs = nil, nil, nil
 local function load()
-    picks, held = {}, {}
+    picks, held, offs = {}, {}, {}
     local r = safe(function() return getFileReader(FILE, false) end)
     if not r then return end
     local l = safe(function() return r:readLine() end)
@@ -51,6 +61,8 @@ local function load()
         if path then picks[path] = id; held[path] = true end
         local h = l:match("^held=(.+)$")
         if h then held[h] = true end
+        local op, oid = l:match("^off=(.-)|(.+)$")
+        if op then offs[op] = oid; held[op] = true end
         l = safe(function() return r:readLine() end)
     end
     pcall(function() r:close() end)
@@ -58,17 +70,47 @@ end
 local function save()
     local w = safe(function() return getFileWriter(FILE, true, false) end)
     if not w then return end
-    w:write("ZeD-UI file picks (the Mods screen): pick=<path>|<mod id>; held=<path> (a copy the helper keeps)\n")
+    w:write("ZeD-UI file picks (the Mods screen): pick=<path>|<mod id>; held=<path> (a copy the helper keeps); off=<path>|<mod id> (switched off)\n")
     local paths = {}
     for p in pairs(held) do paths[#paths + 1] = p end
     table.sort(paths)
     for _, p in ipairs(paths) do
-        if picks[p] then w:write("pick=" .. p .. "|" .. picks[p] .. "\n") else w:write("held=" .. p .. "\n") end
+        if offs[p] then w:write("off=" .. p .. "|" .. offs[p] .. "\n")
+        elseif picks[p] then w:write("pick=" .. p .. "|" .. picks[p] .. "\n")
+        else w:write("held=" .. p .. "\n") end
     end
     w:close()
 end
 
 function P.picks() if not picks then load() end; return picks end
+
+-- ----------------------------------------------------------------------------
+-- files switched off (the Files tab)
+-- ----------------------------------------------------------------------------
+--- The mod a path is switched off for, or nil.
+function P.offOf(path) if not picks then load() end; return offs[path] end
+--- path -> mod id, every file switched off.
+function P.offs() if not picks then load() end; return offs end
+
+--- Switch these paths of modId off (off = true) or back on, and keep the list. A path the
+--- helper never held before is held from now on (a copy can never be deleted from Lua).
+function P.setOff(modId, paths, off)
+    if not picks then load() end
+    for _, path in ipairs(paths) do
+        if off then offs[path] = modId; held[path] = true
+        elseif offs[path] == modId then offs[path] = nil end
+    end
+    save()
+end
+
+--- The paths switched off for modId, sorted.
+function P.offFor(modId)
+    if not picks then load() end
+    local out = {}
+    for path, id in pairs(offs) do if id == modId then out[#out + 1] = path end end
+    table.sort(out)
+    return out
+end
 function P.pickOf(path) if not picks then load() end; return picks[path] end
 
 -- the helper mod, when it is installed
@@ -175,9 +217,15 @@ function P.sync(order)
     local wrote = 0
     for path in pairs(held) do
         local want = nil
+        local text = nil
         local from = picks[path]
-        if from and on[from] then want = P.lines(from, path, true) end
-        if not want then
+        -- (switched off: the do-nothing line while its mod is on and still ships the path; never a
+        -- path the game has too, whose own copy it would replace: ZeD_ModFiles.isGameFile)
+        local offId = offs[path]
+        local gameFile = ZeD.ModFiles and ZeD.ModFiles.isGameFile and ZeD.ModFiles.isGameFile(path)
+        if offId and on[offId] and not gameFile and P.lines(offId, path, true) then text = OFF_STUB end
+        if not text and from and on[from] then want = P.lines(from, path, true) end
+        if not text and not want then
             for i = #(order or {}), 1, -1 do
                 local id = order[i]
                 if id ~= P.HELPER then
@@ -186,7 +234,7 @@ function P.sync(order)
                 end
             end
         end
-        local text = want and joined(want) or STUB
+        text = text or (want and joined(want)) or STUB
         local cur = P.lines(P.HELPER, path, true)
         if not cur or joined(cur) ~= text then
             local w = safe(function() return getModFileWriter(P.HELPER, path, true, false) end)
@@ -213,5 +261,6 @@ function P.activeCount(order)
     local on, n = {}, 0
     for _, id in ipairs(order or {}) do on[id] = true end
     for _, id in pairs(picks) do if on[id] then n = n + 1 end end
+    for _, id in pairs(offs) do if on[id] then n = n + 1 end end
     return n
 end

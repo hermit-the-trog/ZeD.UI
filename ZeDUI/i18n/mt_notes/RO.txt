@@ -24,3 +24,7 @@ Licence card: Permis de port, Port ascuns, NR. PERM., OMORÂRI, SUPRAVIEȚUIT (c
 Log lines read after a name; 976 "banul lui %1 a expirat". 1066/1067 use "Postări: %1" for the singular chips as well.
 Tight: 31 NR. PERM., 344 "Vezi toate" (limit 16), 598 "Schimbă vremea".
 Quote marks around role names use „ ”.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'Open in Mods' shortened to 'Vezi în Moduri' (16 limit); plural chip tag 'Oprite: %1' for 14 chars.
+'Turn off with the %1' as 'Oprește cu cele %1' (feminine plural 'fișiere').

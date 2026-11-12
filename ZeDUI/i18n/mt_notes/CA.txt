@@ -22,3 +22,7 @@ License card labels (24-41) use abbreviations: CAD, EXPED, SOBREV, PREF, PROF; c
 Log lines are perfect-tense phrases after a name; refusals "se li ha rebutjat conduir ...". Teleport "a %1" = to that player.
 Gender of %1 car/part unknown: "un %1", "(tancat)". Line 760 assumes %2 is the faction's name.
 Line 797 "Prop.:" and 498 "agafar peces" are terse; 1012 "%1 pot parlar." for unmute.
+
+Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
+'inactiu' used for chip tags (length limit); 'del joc' for the game-file tag.
+Open in Mods kept 'Mods' as the screen name.
