@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 inactius",
     "UI_ZeD_Mods_ChipErrorOne": "1 error",
     "UI_ZeD_Mods_ChipErrors": "%1 errors",
-    "UI_ZeD_Mods_PendingFiles": "Fitxers canviats a %1. Una recàrrega els posa al lloc, sense reiniciar."
+    "UI_ZeD_Mods_PendingFiles": "Fitxers canviats a %1. Una recàrrega els posa al lloc, sense reiniciar.",
+    "UI_ZeD_Inv_Filter": "Filtra",
+    "UI_ZeD_Inv_FilterHelp": "Filtra: enfosqueix el que no coincideix a cada llista d'aquesta finestra",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtra per nom",
+    "UI_ZeD_Inv_FilterCount": "%1 de %2",
+    "UI_ZeD_Inv_FilterNone": "Cap coincidència",
+    "UI_ZeD_Inv_FilterClear": "Esborra",
+    "UI_ZeD_Inv_FilterClearHelp": "Esborra: buida el nom i les categories; la barra queda oberta",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: només el que hi ha queda destacat; tria'n diverses per veure'n més",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: torna a prémer per desmarcar",
+    "UI_ZeD_Inv_PromptType": "Escriu"
 }

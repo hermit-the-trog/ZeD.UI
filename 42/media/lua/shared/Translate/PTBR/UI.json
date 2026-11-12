@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 desligados",
     "UI_ZeD_Mods_ChipErrorOne": "1 erro",
     "UI_ZeD_Mods_ChipErrors": "%1 erros",
-    "UI_ZeD_Mods_PendingFiles": "Arquivos alterados em %1. Uma recarga os coloca no lugar, sem reiniciar."
+    "UI_ZeD_Mods_PendingFiles": "Arquivos alterados em %1. Uma recarga os coloca no lugar, sem reiniciar.",
+    "UI_ZeD_Inv_Filter": "Filtrar",
+    "UI_ZeD_Inv_FilterHelp": "Filtrar: escurece o que não corresponde em cada lista desta janela",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtrar por nome",
+    "UI_ZeD_Inv_FilterCount": "%1 de %2",
+    "UI_ZeD_Inv_FilterNone": "Nenhum resultado",
+    "UI_ZeD_Inv_FilterClear": "Limpar",
+    "UI_ZeD_Inv_FilterClearHelp": "Limpar: esvazia o nome e as categorias; a barra continua aberta",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: só o que está nela fica destacado; escolha várias para ver mais",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: aperte de novo para desmarcar",
+    "UI_ZeD_Inv_PromptType": "Digitar"
 }

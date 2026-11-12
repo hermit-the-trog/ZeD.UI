@@ -40,3 +40,4 @@ Used 'desactivar/activar' (as the Spain-derived AR file) and 'partida' for a sav
 Chip tags drop the word 'archivo' to fit 14; 'Reactivar' for Turn back on.
 
 Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note, the greyed reasons, "Alimentando") are machine drafts, not checked by a native speaker. Voseo: Elegí, llevás, llevés. Feed on the button is the game's own word.
+Punch list 168 words (Nov 11 2026): the inventory Filter bar. Machine draft, not yet checked by a native speaker. Voseo: 'elegí', 'tocá'; 'atenúa' for dims (the rows fade, they are not hidden).

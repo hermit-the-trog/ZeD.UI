@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 Dateien aus",
     "UI_ZeD_Mods_ChipErrorOne": "1 Fehler",
     "UI_ZeD_Mods_ChipErrors": "%1 Fehler",
-    "UI_ZeD_Mods_PendingFiles": "Dateien in %1 umgeschaltet. Ein Neuladen setzt sie ein, kein Neustart nötig."
+    "UI_ZeD_Mods_PendingFiles": "Dateien in %1 umgeschaltet. Ein Neuladen setzt sie ein, kein Neustart nötig.",
+    "UI_ZeD_Inv_Filter": "Filter",
+    "UI_ZeD_Inv_FilterHelp": "Filter: dimmt in jeder Liste dieses Fensters ab, was nicht passt",
+    "UI_ZeD_Inv_FilterPlaceholder": "Nach Name filtern",
+    "UI_ZeD_Inv_FilterCount": "%1 von %2",
+    "UI_ZeD_Inv_FilterNone": "Keine Treffer",
+    "UI_ZeD_Inv_FilterClear": "Leeren",
+    "UI_ZeD_Inv_FilterClearHelp": "Leeren: leert Name und Kategorien; die Leiste bleibt offen",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: nur Dinge darin bleiben hell; wähle mehrere, um mehr zu sehen",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: erneut drücken zum Abwählen",
+    "UI_ZeD_Inv_PromptType": "Tippen"
 }

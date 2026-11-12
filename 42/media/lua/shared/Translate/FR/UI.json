@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 désactivés",
     "UI_ZeD_Mods_ChipErrorOne": "1 erreur",
     "UI_ZeD_Mods_ChipErrors": "%1 erreurs",
-    "UI_ZeD_Mods_PendingFiles": "Fichiers modifiés dans %1. Un rechargement les met en place, sans redémarrage."
+    "UI_ZeD_Mods_PendingFiles": "Fichiers modifiés dans %1. Un rechargement les met en place, sans redémarrage.",
+    "UI_ZeD_Inv_Filter": "Filtrer",
+    "UI_ZeD_Inv_FilterHelp": "Filtrer : assombrit ce qui ne correspond pas dans chaque liste de cette fenêtre",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtrer par nom",
+    "UI_ZeD_Inv_FilterCount": "%1 sur %2",
+    "UI_ZeD_Inv_FilterNone": "Aucun résultat",
+    "UI_ZeD_Inv_FilterClear": "Effacer",
+    "UI_ZeD_Inv_FilterClearHelp": "Effacer : vide le nom et les catégories ; la barre reste ouverte",
+    "UI_ZeD_Inv_FilterChipHelp": "%1 : seuls ses objets restent clairs ; choisissez-en plusieurs pour en voir plus",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1 : appuyez à nouveau pour désélectionner",
+    "UI_ZeD_Inv_PromptType": "Saisir"
 }

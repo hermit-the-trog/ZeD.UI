@@ -32,3 +32,4 @@ Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error ca
 FileVerbOffWith is a loose 'Kikapcsolás és %1'; 'Elfelejtés' for Forget it.
 
 Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note "For %1 of %2 | %3 carried", the greyed reasons, the run status) are machine drafts, not checked by a native speaker. Feed on the button is the game's own word.
+Punch list 168 words (Nov 11 2026): the inventory Filter bar (Filter, Filter by name, the count, Clear, the category chips' help). Machine draft, not yet checked by a native speaker. 'Dims' means the rows fade in place; they are never hidden.

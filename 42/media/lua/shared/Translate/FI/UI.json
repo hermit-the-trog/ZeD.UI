@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 tied. pois",
     "UI_ZeD_Mods_ChipErrorOne": "1 virhe",
     "UI_ZeD_Mods_ChipErrors": "%1 virhettä",
-    "UI_ZeD_Mods_PendingFiles": "Tiedostot vaihdettu modissa %1. Uudelleenlataus ottaa ne käyttöön, ei uudelleenkäynnistystä."
+    "UI_ZeD_Mods_PendingFiles": "Tiedostot vaihdettu modissa %1. Uudelleenlataus ottaa ne käyttöön, ei uudelleenkäynnistystä.",
+    "UI_ZeD_Inv_Filter": "Suodata",
+    "UI_ZeD_Inv_FilterHelp": "Suodata: himmentää kaiken, mikä ei täsmää, tämän ikkunan jokaisessa luettelossa",
+    "UI_ZeD_Inv_FilterPlaceholder": "Suodata nimellä",
+    "UI_ZeD_Inv_FilterCount": "%1 / %2",
+    "UI_ZeD_Inv_FilterNone": "Ei osumia",
+    "UI_ZeD_Inv_FilterClear": "Tyhjennä",
+    "UI_ZeD_Inv_FilterClearHelp": "Tyhjennä: tyhjentää nimen ja luokat; palkki pysyy auki",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: vain sen tavarat pysyvät kirkkaina; valitse useita nähdäksesi enemmän",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: paina uudelleen poistaaksesi valinnan",
+    "UI_ZeD_Inv_PromptType": "Kirjoita"
 }

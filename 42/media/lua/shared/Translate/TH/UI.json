@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "ปิด %1 ไฟล์",
     "UI_ZeD_Mods_ChipErrorOne": "ผิดพลาด 1",
     "UI_ZeD_Mods_ChipErrors": "ผิดพลาด %1",
-    "UI_ZeD_Mods_PendingFiles": "สลับไฟล์ใน %1 แล้ว โหลดใหม่เพื่อให้มีผล ไม่ต้องรีสตาร์ท"
+    "UI_ZeD_Mods_PendingFiles": "สลับไฟล์ใน %1 แล้ว โหลดใหม่เพื่อให้มีผล ไม่ต้องรีสตาร์ท",
+    "UI_ZeD_Inv_Filter": "กรอง",
+    "UI_ZeD_Inv_FilterHelp": "กรอง: ทำให้สิ่งที่ไม่ตรงจางลงในทุกรายการของหน้าต่างนี้",
+    "UI_ZeD_Inv_FilterPlaceholder": "กรองตามชื่อ",
+    "UI_ZeD_Inv_FilterCount": "%1 จาก %2",
+    "UI_ZeD_Inv_FilterNone": "ไม่มีที่ตรงกัน",
+    "UI_ZeD_Inv_FilterClear": "ล้าง",
+    "UI_ZeD_Inv_FilterClearHelp": "ล้าง: ล้างชื่อและหมวดหมู่ แถบยังเปิดอยู่",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: เฉพาะของในหมวดนี้ที่ยังสว่าง เลือกหลายหมวดเพื่อดูเพิ่ม",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: กดอีกครั้งเพื่อยกเลิกการเลือก",
+    "UI_ZeD_Inv_PromptType": "พิมพ์"
 }

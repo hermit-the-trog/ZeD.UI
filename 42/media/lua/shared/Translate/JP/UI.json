@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "ファイル%1個オフ",
     "UI_ZeD_Mods_ChipErrorOne": "エラー1件",
     "UI_ZeD_Mods_ChipErrors": "エラー%1件",
-    "UI_ZeD_Mods_PendingFiles": "%1のファイルを切り替えました。再読み込みで反映され、再起動は不要です。"
+    "UI_ZeD_Mods_PendingFiles": "%1のファイルを切り替えました。再読み込みで反映され、再起動は不要です。",
+    "UI_ZeD_Inv_Filter": "絞り込み",
+    "UI_ZeD_Inv_FilterHelp": "絞り込み：このウィンドウのすべてのリストで、一致しないものを暗く表示",
+    "UI_ZeD_Inv_FilterPlaceholder": "名前で絞り込み",
+    "UI_ZeD_Inv_FilterCount": "%1 / %2",
+    "UI_ZeD_Inv_FilterNone": "一致なし",
+    "UI_ZeD_Inv_FilterClear": "クリア",
+    "UI_ZeD_Inv_FilterClearHelp": "クリア：名前とカテゴリーを空にする（バーは開いたまま）",
+    "UI_ZeD_Inv_FilterChipHelp": "%1：このカテゴリーのものだけが明るく表示される。複数選ぶと増える",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1：もう一度押すと選択解除",
+    "UI_ZeD_Inv_PromptType": "入力"
 }

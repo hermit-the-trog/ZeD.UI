@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "Wył.: %1",
     "UI_ZeD_Mods_ChipErrorOne": "1 błąd",
     "UI_ZeD_Mods_ChipErrors": "Błędy: %1",
-    "UI_ZeD_Mods_PendingFiles": "Pliki przełączone w %1. Przeładowanie wprowadza je, bez restartu."
+    "UI_ZeD_Mods_PendingFiles": "Pliki przełączone w %1. Przeładowanie wprowadza je, bez restartu.",
+    "UI_ZeD_Inv_Filter": "Filtruj",
+    "UI_ZeD_Inv_FilterHelp": "Filtruj: przyciemnia to, co nie pasuje, na każdej liście tego okna",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtruj po nazwie",
+    "UI_ZeD_Inv_FilterCount": "%1 z %2",
+    "UI_ZeD_Inv_FilterNone": "Brak dopasowań",
+    "UI_ZeD_Inv_FilterClear": "Wyczyść",
+    "UI_ZeD_Inv_FilterClearHelp": "Wyczyść: czyści nazwę i kategorie; pasek zostaje otwarty",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: jasne zostają tylko rzeczy z niej; wybierz kilka, by zobaczyć więcej",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: naciśnij ponownie, by odznaczyć",
+    "UI_ZeD_Inv_PromptType": "Pisz"
 }

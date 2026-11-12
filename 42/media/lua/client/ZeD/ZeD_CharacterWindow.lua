@@ -1799,7 +1799,7 @@ local function _charMCColumnDirty(win, slot, cs)
     local scrollPos = cs.scroll and cs.scroll.scrollPos
     local yMap = cs.itemRenderYMap
     local y1 = yMap and n > 0 and yMap[items[1]] or nil
-    local nToggles = cs.viewToggleRects and #cs.viewToggleRects or 0
+    local nToggles = (cs.viewToggleRects and #cs.viewToggleRects or 0) + 4096 * ZeD.InventoryRenderer.filterGen(win._mainContent)   -- (the Filter's stops move)
     if snap and snap.n == n and snap.scrollPos == scrollPos and snap.y1 == y1
        and snap.gridCell == cs.gridCell and snap.renderX == cs.renderX
        and snap.renderW == cs.renderW and snap.rowH == ZeD.T.rowH
@@ -6359,7 +6359,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     -- List | Grid view and the column's width too; the targets
                     -- kept last build's places, so the pad picked by stale rows
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
-                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
+                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {}) .. ":" .. ZeD.InventoryRenderer.filterGen(self)
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
                     -- (the container shown is part of what these rows are, by the object)
                     if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
@@ -6689,7 +6689,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         if type(zid) == "string" and zid:sub(1, 5) == "view:" then
 
-            ZeD.InventoryRenderer.onViewZone(zid)
+            ZeD.InventoryRenderer.onViewZone(zid, self)
 
             return true
 

@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 filer fra",
     "UI_ZeD_Mods_ChipErrorOne": "1 fejl",
     "UI_ZeD_Mods_ChipErrors": "%1 fejl",
-    "UI_ZeD_Mods_PendingFiles": "Filer skiftet i %1. En genindlæsning sætter dem på plads, ingen genstart."
+    "UI_ZeD_Mods_PendingFiles": "Filer skiftet i %1. En genindlæsning sætter dem på plads, ingen genstart.",
+    "UI_ZeD_Inv_Filter": "Filtrer",
+    "UI_ZeD_Inv_FilterHelp": "Filtrer: dæmper det, der ikke passer, i hver liste i dette vindue",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtrer efter navn",
+    "UI_ZeD_Inv_FilterCount": "%1 af %2",
+    "UI_ZeD_Inv_FilterNone": "Intet passer",
+    "UI_ZeD_Inv_FilterClear": "Ryd",
+    "UI_ZeD_Inv_FilterClearHelp": "Ryd: tømmer navnet og kategorierne; bjælken forbliver åben",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: kun ting i den forbliver lyse; vælg flere for at se mere",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: tryk igen for at fravælge",
+    "UI_ZeD_Inv_PromptType": "Skriv"
 }

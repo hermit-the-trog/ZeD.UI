@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "Vypnuto: %1",
     "UI_ZeD_Mods_ChipErrorOne": "1 chyba",
     "UI_ZeD_Mods_ChipErrors": "Chyby: %1",
-    "UI_ZeD_Mods_PendingFiles": "Soubory přepnuty v %1. Znovunačtení je nasadí, bez restartu."
+    "UI_ZeD_Mods_PendingFiles": "Soubory přepnuty v %1. Znovunačtení je nasadí, bez restartu.",
+    "UI_ZeD_Inv_Filter": "Filtr",
+    "UI_ZeD_Inv_FilterHelp": "Filtr: ztlumí vše, co neodpovídá, v každém seznamu tohoto okna",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtrovat podle názvu",
+    "UI_ZeD_Inv_FilterCount": "%1 z %2",
+    "UI_ZeD_Inv_FilterNone": "Nic neodpovídá",
+    "UI_ZeD_Inv_FilterClear": "Vymazat",
+    "UI_ZeD_Inv_FilterClearHelp": "Vymazat: vyprázdní název i kategorie; lišta zůstane otevřená",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: světlé zůstanou jen věci v ní; vyberte více, abyste viděli víc",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: stiskněte znovu pro zrušení výběru",
+    "UI_ZeD_Inv_PromptType": "Psát"
 }

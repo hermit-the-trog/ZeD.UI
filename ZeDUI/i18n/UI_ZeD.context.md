@@ -5693,3 +5693,13 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Mods_ChipErrorOne` | `1 error` | Mod manager, the mod list: tag on a mod's row (an error in the last game) | 12 |
 | `UI_ZeD_Mods_ChipErrors` | `%1 errors` | Mod manager, the mod list: tag on a mod's row (errors in the last game). %1 a count | 12 |
 | `UI_ZeD_Mods_PendingFiles` | `Files switched in %1. A reload puts them in place, no restart.` | Mod manager: the band's status line after files were switched. %1 the mod's name | - |
+| `UI_ZeD_Inv_Filter` | `Filter` | Inventory lists: hover hint on the Filter button (a funnel) left of the List \| Grid toggle | 12 |
+| `UI_ZeD_Inv_FilterHelp` | `Filter: dims what does not match in every list in this window` | Inventory lists: help line over the Filter button. Things that do not match are shown faded, not hidden | - |
+| `UI_ZeD_Inv_FilterPlaceholder` | `Filter by name` | Inventory Filter bar: the grey words in the empty name field | 22 |
+| `UI_ZeD_Inv_FilterCount` | `%1 of %2` | Inventory Filter bar: the count beside the field. %1 things that match, %2 all things in the window's lists | 12 |
+| `UI_ZeD_Inv_FilterNone` | `Nothing matches` | Inventory Filter bar: the count's place when nothing matches | 18 |
+| `UI_ZeD_Inv_FilterClear` | `Clear` | Inventory Filter bar: button that empties the name and the category chips | 10 |
+| `UI_ZeD_Inv_FilterClearHelp` | `Clear: empties the name and the categories; the bar stays open` | Inventory Filter bar: help line over Clear | - |
+| `UI_ZeD_Inv_FilterChipHelp` | `%1: only things in it stay bright; pick several to see more` | Inventory Filter bar: help line over a category chip that is not picked. %1 the category's name (the game's word) | - |
+| `UI_ZeD_Inv_FilterChipOffHelp` | `%1: press again to unpick` | Inventory Filter bar: help line over a picked category chip. %1 the category's name | - |
+| `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field: A opens the on-screen keyboard | 10 |

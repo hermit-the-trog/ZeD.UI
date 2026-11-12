@@ -28,3 +28,4 @@ Tu form as in ZeD's PT; 'ficheiro' and 'ecrã' (European). Button 'Turn off anyw
 Chip tags 1 desligado / %1 desligados drop the word 'ficheiro' to fit 14.
 
 Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note "For %1 of %2 | %3 carried", the greyed reasons, the run status) are machine drafts, not checked by a native speaker. Feed on the button is the game's own word.
+Punch list 168 words (Nov 11 2026): the inventory Filter bar (Filter, Filter by name, the count, Clear, the category chips' help). Machine draft, not yet checked by a native speaker. 'Dims' means the rows fade in place; they are never hidden.

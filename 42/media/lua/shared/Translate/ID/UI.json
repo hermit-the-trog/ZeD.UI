@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 berkas mati",
     "UI_ZeD_Mods_ChipErrorOne": "1 error",
     "UI_ZeD_Mods_ChipErrors": "%1 error",
-    "UI_ZeD_Mods_PendingFiles": "Berkas diganti di %1. Muat ulang menempatkannya, tanpa restart."
+    "UI_ZeD_Mods_PendingFiles": "Berkas diganti di %1. Muat ulang menempatkannya, tanpa restart.",
+    "UI_ZeD_Inv_Filter": "Saring",
+    "UI_ZeD_Inv_FilterHelp": "Saring: meredupkan yang tidak cocok di setiap daftar jendela ini",
+    "UI_ZeD_Inv_FilterPlaceholder": "Saring menurut nama",
+    "UI_ZeD_Inv_FilterCount": "%1 dari %2",
+    "UI_ZeD_Inv_FilterNone": "Tak ada yang cocok",
+    "UI_ZeD_Inv_FilterClear": "Hapus",
+    "UI_ZeD_Inv_FilterClearHelp": "Hapus: mengosongkan nama dan kategori; bilah tetap terbuka",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: hanya barang di dalamnya yang tetap terang; pilih beberapa untuk melihat lebih banyak",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: tekan lagi untuk batal memilih",
+    "UI_ZeD_Inv_PromptType": "Ketik"
 }

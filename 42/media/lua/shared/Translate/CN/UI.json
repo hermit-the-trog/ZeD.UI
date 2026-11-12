@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 个文件已关闭",
     "UI_ZeD_Mods_ChipErrorOne": "1 条错误",
     "UI_ZeD_Mods_ChipErrors": "%1 条错误",
-    "UI_ZeD_Mods_PendingFiles": "%1 中的文件已切换。重新加载即可生效，无需重启。"
+    "UI_ZeD_Mods_PendingFiles": "%1 中的文件已切换。重新加载即可生效，无需重启。",
+    "UI_ZeD_Inv_Filter": "筛选",
+    "UI_ZeD_Inv_FilterHelp": "筛选：在此窗口的每个列表中调暗不匹配的物品",
+    "UI_ZeD_Inv_FilterPlaceholder": "按名称筛选",
+    "UI_ZeD_Inv_FilterCount": "%1 / %2",
+    "UI_ZeD_Inv_FilterNone": "无匹配",
+    "UI_ZeD_Inv_FilterClear": "清除",
+    "UI_ZeD_Inv_FilterClearHelp": "清除：清空名称和类别，筛选栏保持打开",
+    "UI_ZeD_Inv_FilterChipHelp": "%1：只有其中的物品保持高亮；多选可看到更多",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1：再按一次取消选择",
+    "UI_ZeD_Inv_PromptType": "输入"
 }

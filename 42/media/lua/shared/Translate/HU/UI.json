@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 fájl ki",
     "UI_ZeD_Mods_ChipErrorOne": "1 hiba",
     "UI_ZeD_Mods_ChipErrors": "%1 hiba",
-    "UI_ZeD_Mods_PendingFiles": "Fájlok átkapcsolva itt: %1. Újratöltés a helyükre teszi, újraindítás nélkül."
+    "UI_ZeD_Mods_PendingFiles": "Fájlok átkapcsolva itt: %1. Újratöltés a helyükre teszi, újraindítás nélkül.",
+    "UI_ZeD_Inv_Filter": "Szűrés",
+    "UI_ZeD_Inv_FilterHelp": "Szűrés: elhalványítja, ami nem egyezik, az ablak minden listájában",
+    "UI_ZeD_Inv_FilterPlaceholder": "Szűrés névre",
+    "UI_ZeD_Inv_FilterCount": "%1 / %2",
+    "UI_ZeD_Inv_FilterNone": "Nincs találat",
+    "UI_ZeD_Inv_FilterClear": "Törlés",
+    "UI_ZeD_Inv_FilterClearHelp": "Törlés: kiüríti a nevet és a kategóriákat; a sáv nyitva marad",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: csak a benne lévők maradnak világosak; válassz többet, hogy többet láss",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: nyomd meg újra a kijelölés törléséhez",
+    "UI_ZeD_Inv_PromptType": "Gépelés"
 }

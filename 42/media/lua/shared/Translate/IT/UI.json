@@ -6545,5 +6545,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 disattivati",
     "UI_ZeD_Mods_ChipErrorOne": "1 errore",
     "UI_ZeD_Mods_ChipErrors": "%1 errori",
-    "UI_ZeD_Mods_PendingFiles": "File cambiati in %1. Una ricarica li mette a posto, niente riavvio."
+    "UI_ZeD_Mods_PendingFiles": "File cambiati in %1. Una ricarica li mette a posto, niente riavvio.",
+    "UI_ZeD_Inv_Filter": "Filtra",
+    "UI_ZeD_Inv_FilterHelp": "Filtra: attenua ciò che non corrisponde in ogni lista di questa finestra",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtra per nome",
+    "UI_ZeD_Inv_FilterCount": "%1 di %2",
+    "UI_ZeD_Inv_FilterNone": "Nessun risultato",
+    "UI_ZeD_Inv_FilterClear": "Cancella",
+    "UI_ZeD_Inv_FilterClearHelp": "Cancella: svuota il nome e le categorie; la barra resta aperta",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: restano chiari solo gli oggetti al suo interno; scegline più di una per vederne di più",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: premi di nuovo per deselezionare",
+    "UI_ZeD_Inv_PromptType": "Scrivi"
 }
