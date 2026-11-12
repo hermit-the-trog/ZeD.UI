@@ -2,6 +2,22 @@
 
 Read this first, then STATE.md for what ships and ZeDUI/PUNCH_LIST.md for every open item with its check. The beta 12 plan is in this file (there is no separate plan document).
 
+## Handoff to the other account (Nov 12 2026, midday)
+
+The director moved Build to their other Claude account (this one at 99%). Same machine, same checkout; QA ZeD-GUI is its own session.
+
+**Not merged yet (do this first):** console Phases 3 and 4 sit on local branch `worktree-agent-a0ec8d3558eb05602` (1af9bfbe Phase 3 autocomplete + Help page, 58b4a064 Phase 4 Commands page). All sims pass on the branch (console_complete 296, console_commands 278, debug_console 893, console_log 257, console_scratch 298). Merge only in one command gated on the lock: `[ "$(cat ../../Lua/zedqa.lock)" = free ] && ! tasklist //FI "IMAGENAME eq ProjectZomboid64.exe" | grep -qi zomboid && git merge --no-edit worktree-agent-a0ec8d3558eb05602`; UI.json / mt_notes / UI_ZeD.context.md conflicts are add/add: keep both sides (JSON needs the comma), then set UI_ZeD.context.md's "Total keys" line to its count of `| \`` rows; check all 28 UI.json parse; rerun the five console sims, kahlua_guard.py, i18n_guard.py; push.
+
+**Where beta 12 stands:**
+- Console (136): Phases 1-2 on main (f8439e5b), 3-4 on the branch above. Phase 0 probe (con0) run 1 in -debug: loadstring works, reflection works (getNumClassFunctions etc.; getMethodName is not a global), SendCommandToServer exists (single player gives no reply), console.txt unreadable, .log export works. Runs 2-3 (normal launch, reload) were in progress at QA. Still to check in game: conlog, console_scratch, console_complete, console_commands (all -debug single player, ZEDQA_NOSTEAM=1); the server send by hand (steps in zedqa_console_commands.lua's header). Director rulings in PUNCH_LIST 136.
+- Next after the console, by the director: Summer Car support (Workshop 3790160840, reported by Hershtak): ZeD's Overrides/VehicleMechanics.lua never shows ISVehicleMechanics (the Vehicle tab instead), so the mod's engine-components window that lives beside it closes at once. QA is to download the mod (SteamCMD knocks Steam offline: after the console runs) and send the mod's hook (file and function). Fix choice: a ModSupport file keeping its window beside the Vehicle tab, or the game's mechanics window when such a mod is on.
+- Gallery beta 12: complete, 80 pictures in ZeDUI/workshop/gallery/upload_b12 (0ed90541), built by make_b12.py from plan v2 (PLAN_ALTERNATE_20261111.md, director-approved). Uploads with beta 12 on the director's go; Steam's image page appends, so clear and re-upload in order. Angel's closer has two small leftovers (time controls top right, three moodles at the right edge): director not asked yet.
+- Animals (169): round three on main (296cfbc7) plus the milk/shear alert fix (8ac9609d); QA's rerun after the console runs (zedqa_animals_restore.lua first).
+- Merged Nov 11-12 and passed in game: footer picked count, health status pixel + "Blink the low-health pixel" option, single List/Grid view button, search magnifier, tags as square + word, LMB/RMB hints, Journal tags, saved window positions, tab fill, the director's picture-review fixes.
+- Open questions to bring the director (multiple choice): which headline item after the console and Summer Car (split-screen 107 with a Dec 1 target, run+sneak 121, drawn controller 108); sorting the Nov 11 audit's not-built list (ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md) into beta 12 / after release / drop.
+
+**Habits that bit this cycle:** never merge into 42/ while the lock reads busy (a finished background wait is stale: gate in the same command); QA's runs need ZEDQA_NOSTEAM=1 or Steam's beta 11 copy shadows the dev mod; Bash heredocs eat double backslashes (write scripts with the Write tool).
+
 ## Where things stand
 
 - **Live:** 0.3.0-beta11, uploaded Nov 11 2026 12:27 pm, Workshop item 3824968485, tag `v0.3.0-beta11` (on 3de432df). Built for Project Zomboid 42.22.2, the public stable build.
