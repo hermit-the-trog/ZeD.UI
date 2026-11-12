@@ -58,10 +58,12 @@ do
     local fs = io.open(ROOT .. "42/media/lua/shared/ZeD/Scale.lua", "rb")
     local ss = fs:read("*a"); fs:close()
     local a3 = ss:find("S.INV_W_U, S.INV_MIN_U, S.FULL_CARD_U", 1, true)
-    local b3 = a3 and ss:find("\nend\n", ss:find("function S.fitInvW", a3, true), true)
+    -- (the file may have CRLF line ends, so the function's closing "end" line is found with a pattern)
+    local _, b3 = nil, nil
+    if a3 then _, b3 = ss:find("\r?\nend\r?\n", (ss:find("function S.fitInvW", a3, true))) end
     check("NARROW: fitInvW is found in Scale.lua", a3 and b3)
     if a3 and b3 then
-        rawset(ZeD, "Scale", loadstring("local S = ...\n" .. ss:sub(a3, b3 + 4) .. "\nreturn S")({}))
+        rawset(ZeD, "Scale", loadstring("local S = ...\n" .. ss:sub(a3, b3) .. "\nreturn S")({}))
         local okN, eN = pcall(ZeD_Window.resetLayout)
         check("NARROW: resetLayout runs", okN, eN)
         check("NARROW: the Character window at the narrow width, its right edge 4 px left of the middle", CW.w == 276 and CW.x + CW.w == 636, CW.w .. " at " .. CW.x)

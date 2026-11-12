@@ -29,7 +29,7 @@ local function check(name, ok, detail)
 end
 
 local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_CharacterWindow.lua", "rb")
-local src = f:read("*a"); f:close()
+local src = f:read("*a"):gsub("\r\n", "\n"); f:close()   -- (the file may have CRLF line ends)
 local a = src:find("        local prevEffW = win._prevEffW or effectiveW", 1, true)
 local bTag = "                win._baseInvW = invW / (T.scale or 1)\n            end\n        end\n"
 local b = src:find(bTag, a or 1, true)
@@ -153,7 +153,7 @@ end
 -- 10 2026, read this as "the second fold": the list came back 53 px left of where it was before the roll-up.
 do
     local f2 = io.open(ROOT .. "42/media/lua/client/ZeD/WindowHalves.lua", "rb")
-    local hs = f2:read("*a"); f2:close()
+    local hs = f2:read("*a"):gsub("\r\n", "\n"); f2:close()
     local a2 = hs:find("local function snapShut(win)", 1, true)
     local b2 = a2 and hs:find("\nend\n", a2, true)
     check("SNAP: snapShut is found in WindowHalves.lua", a2 and b2)
@@ -176,7 +176,7 @@ end
 -- edge, the list never moves, and the card closes back to the same place
 do
     local fs = io.open(ROOT .. "42/media/lua/shared/ZeD/Scale.lua", "rb")
-    local ss = fs:read("*a"); fs:close()
+    local ss = fs:read("*a"):gsub("\r\n", "\n"); fs:close()
     local a3 = ss:find("S.INV_W_U, S.INV_MIN_U, S.FULL_CARD_U", 1, true)
     local b3 = a3 and ss:find("\nend\n", ss:find("function S.fitInvW", a3, true), true)
     check("NARROW: fitInvW is found in Scale.lua", a3 and b3)
