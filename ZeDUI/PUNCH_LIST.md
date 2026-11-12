@@ -4401,3 +4401,27 @@ to be proposed.
    `42/poster.png` (the director: ZeD-GUI just after the eagle rises over the G; "Yep, that works."). The main
    menu's boombox without its antenna (`ZeDUI/art/main_menu/v7/desk.png`, `desk_lampdim.png`) waits the same way for
    `42/media/textures/ZeD/mainmenu/`.
+
+175. **Design review of the tab catalog (design, Nov 12 2026; the director: "Yes, punch plus handoff").** All 50
+   catalog pictures (4:50 PM Nov 11) and the 14 retakes (8:11 PM) read; the write-up with every finding is
+   `ZeDUI/REVIEW_design_tab_catalog_20261112.md`. Before and after: progressive, nothing went backwards. 36 of the 50
+   tabs have no picture after the fixes, so "catalog only" findings may already be fixed: check before building.
+   a. **Rulings wanted (the director).** One word for unread (A2: "Unread", "Not read yet", "Unread."); one dropdown
+      label format (C2: "Sort: Craftable", "Station Hand", "Category -- ALL --", "-- ALL --"); how many section
+      heading styles (D6: four today); one way to pick a sub-page (C4: tab strip, pager, "Page:" dropdown); whether
+      the item card's top block stays (D4: it repeats the facts below).
+   b. **Build, small.** A1 "Belt 2" tag gets the square. A3 one frequency format for walkie and radio set, the long
+      channel name not wrapping to three lines, "Channels" or "Presets". A5 Furniture: "Target" readable on the
+      selected row; the pointer label off the version text. A6 no "RMB" in player text (Loadouts). A7 narrow title bar:
+      "6 | 0/4500 0 / 19" needs a word. D1 the Category column truncates with room beside it. D2 disabled buttons
+      (Restock, Cut, Make, Craft, Build) drop the accent ring. D3 boxed tags left on recipe cards, Skills, Foraging.
+      D5 one weight format. D7 Equipped group headers cramped. D8 "unemployed" capitalized. C3 Crafting and Building
+      say something when the list is empty. C7 the bare character's "1 item" over "Nothing here.".
+   c. **Build, bugs.** Q1 container card "Capacity -1". Q2 Advanced Forge description over the first Required row.
+      Q5 Crafting card shows a recipe that is not in the list. Q6 "Worst zone: Head (uncovered)" in a Baseball Cap.
+      Q8 Identity: "Hair (24)", "Choose a row", no rows. Q10 Health "Overall 100%" with 6 of 17 injured and Severe
+      Bleeding. Also Q3 (hen count), Q4, Q9, Q11 to Q14 in the write-up.
+   d. **Density (design, after the rulings).** Papers, Cooking with nothing to cook, Furniture with nothing targeted
+      and the item cards are mostly blank; Equipped hides its grade panel below the fold. Proposals in section 4.
+   e. **QA.** Rerun the full catalog on today's main so the 36 tabs get an after picture; add Light, High contrast,
+      Large text and the controller highlight for a few tabs.
