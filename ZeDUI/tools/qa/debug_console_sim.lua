@@ -490,7 +490,7 @@ check("drawn: the title", win.title == "Lua console")
 check("drawn: the banner in the list", textHas("Lua Debug Console"))
 check("drawn: no error stat yet", #win.titleStats == 0)
 check("drawn: nothing outside", #DRAW.outside == 0, DRAW.outside[1])
-check("drawn: band rects", win._bandRects and #win._bandRects == 3)
+check("drawn: band rects (Export, Copy, Clear, Run)", win._bandRects and #win._bandRects == 4)
 check("help line: how the line works", win:getStatusLine() == TEXT.UI_ZeD_Console_Help)
 
 -- ============================================================================
@@ -517,11 +517,15 @@ check("error: counted", errs == 1, errs)
 local errStart
 for i, ln in ipairs(lines) do if ln.s:find("^ERROR") then errStart = i end end
 check("error: its first line found", errStart ~= nil)
-local f1, l1 = DC.blockOf(errStart)
-check("error: block covers the trace", f1 == errStart and l1 >= errStart + 6, tostring(f1) .. "-" .. tostring(l1))
-check("error: the trace's lines marked", lines[errStart + 1].err and lines[l1].err and lines[l1].s:find("function: console", 1, true) ~= nil)
-check("error: the blank line after ends it", lines[l1 + 1] == nil or not lines[l1 + 1].err)
-check("error: an inner line's block is the error's", DC.blockOf(errStart + 3) == errStart)
+check("error: the trace's lines marked as its block", lines[errStart + 1].err and lines[errStart + 1].b == errStart)
+-- the log (ZeD_ConsoleLog): the whole block is one error row, its stack the block's lines
+local CL = ZeD.ConsoleLog
+local errRow
+for i = 1, CL.counts() do local r = CL.shownAt(i); if r.kind == "error" then errRow = r end end
+check("error: one row in the log", errRow ~= nil and CL.errTotal == 1, CL.errTotal)
+check("error: its stack is the block, to the console frame", errRow and errRow.stack[1]:find("^ERROR") ~= nil and errRow.stack[#errRow.stack]:find("function: console", 1, true) ~= nil)
+check("error: its message without the Java class", errRow and errRow.msg:find("^java") == nil and errRow.msg:find("attempt to index", 1, true) ~= nil, errRow and errRow.msg)
+check("error: from the console", errRow and errRow.mod == CL.CONSOLE and errRow.file == "console" and errRow.line == 1)
 draw(win)
 check("error: title stat", #win.titleStats == 1 and win.titleStats[1].text == "Errors: 1" and win.titleStats[1].color == ZeD.T.danger)
 check("error: drawn inside", #DRAW.outside == 0, DRAW.outside[1])
@@ -563,13 +567,11 @@ win.input:setText("")
 -- ============================================================================
 -- 7. Copy (the picked block, or all) and Clear (the game's clear)
 -- ============================================================================
-win.pick = errStart
+win.pick = errRow
 draw(win)
 check("pick: Copy says Copy", textHas("Copy") and not textHas("Copy all"))
 win:press("copy")
-local want = {}
-for i = f1, l1 do want[#want + 1] = lines[i].s end
-check("copy: the whole error", CLIP == table.concat(want, "\n"), CLIP)
+check("copy: the whole error, stack and all", CLIP == table.concat(CL.rowText(errRow), "\n") and CLIP:find("function: console", 1, true) ~= nil, CLIP)
 draw(win)
 check("copy: says Copied", textHas("Copied"))
 nowMs = nowMs + 2000
@@ -577,15 +579,25 @@ win.pick = nil
 draw(win)
 check("no pick: Copy all", textHas("Copy all"))
 win:press("copy")
-check("copy all: the box", CLIP == DC.text)
--- the pointer picks a row: the error's block, then the same again lets it go
-local hitErr
-for _, h in ipairs(win._rowHits) do if h.li == errStart + 2 then hitErr = h end end
-check("rows hit-tested", hitErr ~= nil)
-if hitErr then
+check("copy all: what the filters show", CLIP == CL.shownText() and CLIP:find("hi there", 1, true) ~= nil)
+-- the pointer picks a row: an error opens to its stack, a click on it again shuts it, a plain row again lets go
+local hitErr, hitPlain
+for _, h in ipairs(win._rowHits) do
+    if h.row == errRow then hitErr = h elseif h.row.kind == "print" then hitPlain = h end
+end
+check("rows hit-tested", hitErr ~= nil and hitPlain ~= nil)
+if hitErr and hitPlain then
     win:pickAt(hitErr.y + 1)
-    check("pointer: picks the error's first line", win.pick == errStart)
+    check("pointer: picks the error and opens its stack", win.pick == errRow and win.opened[errRow.id] == errRow)
+    draw(win)
+    check("pointer: the stack drawn under it", textHas("function: console"))
     win:pickAt(hitErr.y + 1)
+    check("pointer: a click on the picked error shuts it", win.pick == errRow and win.opened[errRow.id] == nil)
+    draw(win)
+    for _, h in ipairs(win._rowHits) do if h.row == hitPlain.row then hitPlain = h end end
+    win:pickAt(hitPlain.y + 1)
+    check("pointer: a plain row picked", win.pick == hitPlain.row)
+    win:pickAt(hitPlain.y + 1)
     check("pointer: again lets it go", win.pick == nil)
 end
 win:press("clear")
@@ -666,7 +678,7 @@ win.input:setText("say('pad')")
 KB.visible = false
 jd.focus = win
 win:update()
-check("pad: after typing, on Run", win.zone == "band" and win.bandFocus == 3)
+check("pad: after typing, on Run", win.zone == "band" and win.bandFocus == 4)
 glyphs = {}
 for _, p in ipairs(win:getFooterPrompts()) do if type(p) == "table" then glyphs[#glyphs + 1] = p.glyph end end
 check("pad prompts on the band: A B", table.concat(glyphs, " ") == "A B", table.concat(glyphs, " "))
@@ -674,9 +686,9 @@ win:onJoypadDown(Joypad.AButton, jd)
 frame()
 check("pad: A on Run runs", JC.prev:get(JC.prev:size() - 1) == "say('pad')" and DC.text:find("pad", 1, true) ~= nil)
 win:onJoypadDirLeft()
-check("pad: Left to Clear", win.bandFocus == 2)
-win:onJoypadDirLeft(); win:onJoypadDirLeft()
-check("pad: stops at Copy", win.bandFocus == 1)
+check("pad: Left to Clear", win.bandFocus == 3)
+win:onJoypadDirLeft(); win:onJoypadDirLeft(); win:onJoypadDirLeft()
+check("pad: stops at Export", win.bandFocus == 1)
 win:onJoypadDirUp()
 check("pad: Up to the line", win.zone == "input")
 win:onJoypadDown(Joypad.LBumper, jd)
@@ -684,15 +696,18 @@ check("pad: LB, the line before", win.input:getText() == "say('pad')")
 win:onJoypadDown(Joypad.RBumper, jd)
 check("pad: RB, back to what was typed", win.input:getText() == "")
 win:onJoypadDirUp()
-local lines2 = DC.lines()
-check("pad: Up into the list, the newest line picked", win.zone == "list" and win.pick == DC.blockOf(#lines2))
+local nShown = ZeD.ConsoleLog.counts()
+check("pad: Up into the list, the newest row picked", win.zone == "list" and win.pick == ZeD.ConsoleLog.shownAt(nShown))
 draw(win)
 check("pad: the picked line marked, inside", #DRAW.outside == 0, DRAW.outside[1])
 local steps = 0
-while win.zone == "list" and steps < 200 do win:onJoypadDirUp(); steps = steps + 1; if win.pick == 1 then break end end
-check("pad: Up walks to the oldest line", win.pick == 1, win.pick)
+local oldest = ZeD.ConsoleLog.shownAt(1)
+while win.zone == "list" and steps < 200 do win:onJoypadDirUp(); steps = steps + 1; if win.pick == oldest then break end end
+check("pad: Up walks to the oldest row", win.pick == oldest, steps)
 win:onJoypadDirUp()
-check("pad: Up at the oldest stays", win.pick == 1 and win.zone == "list")
+check("pad: Up past the oldest, on the search", win.pick == nil and win.zone == "search")
+win:onJoypadDirDown()
+check("pad: Down from the search, the top row in view", win.zone == "list" and win.pick ~= nil)
 steps = 0
 while win.zone == "list" and steps < 200 do win:onJoypadDirDown(); steps = steps + 1 end
 check("pad: Down past the newest, back on the line", win.zone == "input" and win.pick == nil)

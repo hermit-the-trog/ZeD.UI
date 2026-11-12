@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5099.
+Total keys: 5128.
 
 ## Areas
 
@@ -5528,6 +5528,35 @@ The game's own Lua console rebuilt as a ZeD window; only players who start the g
 | `UI_ZeD_Console_PadOlder` | `Older` | Lua console: controller prompt on LB, the line run before | 10 |
 | `UI_ZeD_Console_PadNewer` | `Newer` | Lua console: controller prompt on RB, the line run after | 10 |
 | `UI_ZeD_Console_WheelDetail` | `Run Lua, read the output and errors` | ZeD wheel (Select): the Lua console slice's small line | 40 |
+| `UI_ZeD_Console_PageLog` | `Log` | Lua console: the page strip's first page (its picture's help line), the log | 16 |
+| `UI_ZeD_Console_PageCommands` | `Commands` | Lua console: the page strip's second page (help line), the server command list | 16 |
+| `UI_ZeD_Console_PageHelp` | `Help` | Lua console: the page strip's third page (help line), what runs where and the keys | 16 |
+| `UI_ZeD_Console_Coming` | `Coming in a later update. The log is on the first page of the strip.` | Lua console: the one line on the Commands and Help pages until they are built | - |
+| `UI_ZeD_Console_KindPrint` | `Print` | Lua console, Log page: KIND filter row for printed lines | 16 |
+| `UI_ZeD_Console_KindWarn` | `Warning` | Lua console, Log page: KIND filter row for the game's warnings | 16 |
+| `UI_ZeD_Console_KindError` | `Error` | Lua console, Log page: KIND filter row for errors | 16 |
+| `UI_ZeD_Console_KindRan` | `Ran here` | Lua console, Log page: KIND filter row for the lines you ran in the console | 16 |
+| `UI_ZeD_Console_WordPrint` | `print` | Lua console, Log page: the short kind word on a printed line's row, after a status square (print is the Lua function's name: keep it as is if it reads) | 7 |
+| `UI_ZeD_Console_WordWarn` | `warn` | Lua console, Log page: the short kind word on a warning's row | 7 |
+| `UI_ZeD_Console_WordError` | `error` | Lua console, Log page: the short kind word on an error's row | 7 |
+| `UI_ZeD_Console_WordRan` | `ran` | Lua console, Log page: the short kind word on the row of a line you ran | 7 |
+| `UI_ZeD_Console_FoldKind` | `Kind` | Lua console, Log page: fold header of the kind filters (drawn in capitals) | 12 |
+| `UI_ZeD_Console_FoldMod` | `Mod` | Lua console, Log page: fold header of the mod filters (drawn in capitals) | 12 |
+| `UI_ZeD_Console_FoldFile` | `File` | Lua console, Log page: fold header of the file filters (drawn in capitals) | 12 |
+| `UI_ZeD_Console_ModGame` | `Game` | Lua console, Log page: the mod a line belongs to when no mod can be told (the game's own) | 16 |
+| `UI_ZeD_Console_ModConsole` | `Console` | Lua console, Log page: the mod of the lines typed in the console and the errors they raised | 16 |
+| `UI_ZeD_Console_NoFile` | `No file` | Lua console, Log page: FILE filter row for lines that name no file | 16 |
+| `UI_ZeD_Console_Search` | `Search the log` | Lua console, Log page: the empty search field (placeholder) | 30 |
+| `UI_ZeD_Console_Count` | `%1 of %2 | Errors: %3` | Lua console, Log page: beside the search; %1 rows shown, %2 rows in the log, %3 errors shown | 30 |
+| `UI_ZeD_Console_NoMatch` | `Nothing in the log matches. The search looks at the message, the mod, the file and every line of an error's stack; some kinds, mods or files may be unticked on the left.` | Lua console, Log page: the list when the search and the filters leave nothing | - |
+| `UI_ZeD_Console_Export` | `Export` | Lua console: the band's button that writes the shown rows to a .log file; also the controller prompt on X | 14 |
+| `UI_ZeD_Console_HelpExport` | `Write what the filters show to a new .log file in Zomboid/Lua` | Lua console: help line over Export (Zomboid/Lua is a folder: keep it as is) | - |
+| `UI_ZeD_Console_Exported` | `Saved %1 lines to Zomboid/Lua/%2` | Lua console: the band after an Export; %1 the number of rows, %2 the file name | - |
+| `UI_ZeD_Console_ExportFailed` | `Could not write Zomboid/Lua/%1` | Lua console: the band when an Export could not write its file; %1 the file name | - |
+| `UI_ZeD_Console_HelpShown` | `Copy what the filters show` | Lua console: help line over Copy all (the rows the filters show) | - |
+| `UI_ZeD_Console_HelpRow` | `Pick a line to copy it. An error opens to its whole stack; click it again to shut it.` | Lua console, Log page: help line over the log's rows | - |
+| `UI_ZeD_Console_HelpFilter` | `Tick to show these lines, untick to hide them. The counts follow the search.` | Lua console, Log page: help line over a filter row | - |
+| `UI_ZeD_Console_PadTick` | `Tick` | Lua console, Log page: controller prompt on A over a filter row (tick or untick it) | 10 |
 ## Admin tools (C9 to C14)
 
 Staff-only cards that take over the game's admin windows. Button and tag lengths are estimates from the English.

@@ -27,15 +27,18 @@
 -- the list is the game's own text box; the history is the game's own list, the suggestion the game's own, Tab takes
 -- it through the game's own key handler.
 --
--- The window: the output and the errors in one list that scrolls as one (an error and its stack trace carry a red
--- mark and are picked whole), the line to type in, and the band: Copy (the picked lines, or all), Clear (the game's
--- clear), Run. Enter runs, Up and Down step through the history, Tab takes the suggestion; Escape lets the line go
--- and stays the pause menu's (the window takes none of the game's keys: it may sit open all game). As the
--- game's, the line waits for a click before it takes the keyboard. Controller: the list (Up / Down pick a line), the
--- line (A: ZeD's pad keyboard; LB / RB older and newer lines), the band (Left / Right, A presses); B closes. Opened
--- by the game's own key, and in game from the ZeD wheel (Select) for a controller. It exists exactly when the game's
--- does: debug mode, the console made and on the game's screen list. Safe mode (piece "console") puts the game's own
--- back where it was, open if ZeD's was.
+-- The window: a page strip down its left (Log; Commands and Help come later and say so), and the Log page: the
+-- filters (KIND, MOD, FILE, each a ticked row with its count), the search with its magnifier and the count "shown of
+-- total | errors", the log itself (ZeD_ConsoleLog.lua: the game's output and the F11 error list as one list, a row
+-- each, a repeated error one row with its count, an error opening in place to its whole stack), the line to type in,
+-- and the band: Export (what the filters show, to a new .log file in Zomboid/Lua), Copy (the picked row, or all that
+-- is shown), Clear (the game's clear), Run. Enter runs, Up and Down step through the history, Tab takes the
+-- suggestion; Escape lets the line go and stays the pause menu's (the window takes none of the game's keys: it may sit
+-- open all game). As the game's, the line waits for a click before it takes the keyboard. Controller: the hand walks
+-- the strip, the filters, the search, the log, the line and the band (A ticks, opens, types on ZeD's pad keyboard or
+-- presses; LB / RB older and newer lines on the line; X exports; B closes). Opened by the game's own key, and in game
+-- from the ZeD wheel (Select) for a controller. It exists exactly when the game's does: debug mode, the console made
+-- and on the game's screen list. Safe mode (piece "console") puts the game's own back where it was, open if ZeD's was.
 -- ============================================================================
 
 require "ISUI/ISTextEntryBox"
@@ -44,13 +47,17 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
+require "ZeD/ZeD_ConsoleLog"
 
 ZeD = ZeD or {}
 ZeD.DebugConsole = ZeD.DebugConsole or {}
 local DC = ZeD.DebugConsole
+local L = ZeD.ConsoleLog
 
 -- design units
-local U = { W = 640, H = 300, MIN_W = 360, MIN_H = 190, PAD = 8, GAP = 6, GUTTER = 14, MARK = 6, BOTTOM = 140, LEFT = 20 }
+local U = { W = 900, H = 480, MIN_W = 520, MIN_H = 260, PAD = 8, GAP = 6, MARK = 6, BOTTOM = 140, LEFT = 20,
+            STRIP = 34, FILTERS = 168, HEAD = 34, FOLD = 22, FROW = 20, ICON = 10 }
+local F11_MS = 500          -- how often the F11 error list's count is read
 local LINE_MAX = 256        -- the game's command line takes this many characters
 local PARK_X = -100000      -- where the game's console waits, off every screen
 local COPIED_MS = 1500      -- Copy says Copied this long
@@ -213,6 +220,8 @@ function DC.run(line)
     if not (jc and P.ok) then return false end
     if not DC.allowed() then return false end
     line = tostring(line or "")
+    -- (the log's "ran" row goes in first, so what the line prints lands under it)
+    L.ran(line)
     pcall(function() P.cmd:SetText(line) end)
     local ok, err = pcall(function() jc:ProcessCommand() end)
     -- (ProcessCommand leaves the line's words up and hands the keyboard to the game's hidden line: both put back)
@@ -278,34 +287,36 @@ function DC.complete(text)
     return t
 end
 
--- Clear: the box emptied, as the game's own "clear" does
+-- Clear: the box emptied, as the game's own "clear" does, and the log with it (the F11 list's errors stay read)
 function DC.clear()
+    L.clear()
     if not (P.ok and P.out) then return end
     pcall(function() P.out:clearInput() end)
     DC.read()
+    DC.feed()
+end
+
+-- the log fed: the box's new lines when its text changed, the F11 list's count every F11_MS, a waiting error flushed
+function DC.feed()
+    local ms = getTimestampMs()
+    if DC._fedRev ~= DC.rev then
+        DC._fedRev = DC.rev
+        L.feedText(DC.text, ms)
+    end
+    if ms - (DC._f11At or 0) >= F11_MS and getLuaDebuggerErrorCount and getLuaDebuggerErrors then
+        DC._f11At = ms
+        local okN, n = pcall(getLuaDebuggerErrorCount)
+        if okN and n and n ~= L._f11Seen then
+            local okL, list = pcall(getLuaDebuggerErrors)
+            if okL and list then L.feedErrors(list, n, ms) end
+        end
+    end
+    L.tick(ms)
 end
 
 -- ---------------------------------------------------------------------------
--- THE LIST: the box's text as lines, the errors marked, wrapped to a width
+-- THE BOX AS LINES: the errors marked (QA scripts count the box's own errors with it; the log is ZeD_ConsoleLog's)
 -- ---------------------------------------------------------------------------
--- a line that starts an error: the log's ERROR lines, a stack trace, a line that did not compile ("console:1: ...")
-local function startsError(s)
-    if s:find("^ERROR") or s:find("^SEVERE") or s:find("^%s*STACK TRACE") then return true end
-    if s:find("console[\"%]]*:%d+:") then return true end
-    if s:find("Exception") and not s:find("^LOG") then return true end
-    -- a runtime error typed into the console comes as bare stack frames after the [USER] line, with no header
-    if s:find("^%s*Lua%(") or s:find("^%s*se%.krka") or s:find("^%s*java%.") then return true end
-    return false
-end
--- a line that goes on with the error above it (its trace)
-local function continuesError(s)
-    if s == "" then return false end
-    if s:find("^%s") then return true end
-    if s:find("^STACK TRACE") or s:find("^%-%-%-%-") or s:find("%-%-%-%-%-%-%-%-%-%-$") then return true end
-    if s:find("^Lua%(") or s:find("^Callframe") or s:find("^function: ") or s:find("^Caused by") or s:find("^java%.") or s:find("^se%.krka") then return true end
-    return false
-end
-
 -- the lines of the text: { s, err, b (the block: the first line of its error, or itself) }
 function DC.parse(text)
     local lines = {}
@@ -326,11 +337,11 @@ function DC.parse(text)
     local block = nil
     local errors = 0
     for i, ln in ipairs(lines) do
-        if startsError(ln.s) and not (block and continuesError(ln.s)) then
+        if L.startsError(ln.s) and not (block and L.continuesError(ln.s)) then
             block = i
             errors = errors + 1
             ln.err, ln.b = true, i
-        elseif block and continuesError(ln.s) then
+        elseif block and L.continuesError(ln.s) then
             ln.err, ln.b = true, block
         else
             block = nil
@@ -340,7 +351,7 @@ function DC.parse(text)
     return lines, errors
 end
 
--- the lines and the error count, built again when the text changes
+-- the box's lines and its error count, worked out again when the text changes
 function DC.lines()
     if DC._linesRev ~= DC.rev then
         DC._linesRev = DC.rev
@@ -349,63 +360,35 @@ function DC.lines()
     return DC._lines, DC._errors or 0
 end
 
--- a line's block: the first and last lines of its error, or the line alone
-function DC.blockOf(li)
-    local lines = DC.lines()
-    local ln = lines[li]
-    if not ln then return nil, nil end
-    local first = ln.b or li
-    local last = first
-    while lines[last + 1] and lines[last + 1].err and lines[last + 1].b == first do last = last + 1 end
-    if not ln.err then last = li end
-    return first, last
-end
-
--- the rows drawn: each line cut every cpr characters (a fixed-pitch face: the cut is exact), kept per text and width
--- (both widths the list tries, with and without its scrollbar, stay kept; a few more while the window is resized)
-local ROWS_KEPT = 6
-function DC.rows(cpr)
-    local lines = DC.lines()
-    if DC._rowsRev ~= DC.rev or (DC._rowsN or 0) >= ROWS_KEPT then DC._rowsBy, DC._rowsN, DC._rowsRev = {}, 0, DC.rev end
-    DC._rowsCpr = cpr
-    local kept = DC._rowsBy[cpr]
-    if kept then return kept end
-    local rows = {}
-    for i, ln in ipairs(lines) do
-        local s = ln.s
-        if s == "" then
-            rows[#rows + 1] = { s = "", li = i, first = true }
-        else
-            local p = 1
-            while p <= #s do
-                rows[#rows + 1] = { s = s:sub(p, p + cpr - 1), li = i, first = p == 1 }
-                p = p + cpr
-            end
-        end
-    end
-    DC._rowsBy[cpr] = rows
-    DC._rowsN = DC._rowsN + 1
-    return rows
-end
-
--- the words for the clipboard: lines first to last, or everything
-function DC.copyText(first, last)
-    if not first then return DC.text end
-    local lines = DC.lines()
-    local out = {}
-    for i = first, last or first do
-        if lines[i] then out[#out + 1] = lines[i].s end
-    end
-    return table.concat(out, "\n")
-end
-
 -- ---------------------------------------------------------------------------
 -- THE WINDOW
 -- ---------------------------------------------------------------------------
 ZeD_DebugConsoleWindow = ZeD_Window:derive("ZeD_DebugConsoleWindow")
 local W = ZeD_DebugConsoleWindow
 
-local BAND = { "copy", "clear", "run" }   -- the band's buttons, left to right (Run, the main one, last)
+local BAND = { "export", "copy", "clear", "run" }   -- the band's buttons, left to right (Run, the main one, last)
+local RUN_AT = 4
+
+-- the page strip's pictures, 10 x 10: lines of text, a slash, a question mark
+local MAP_LOG = { "..........", "XXXXXXXXXX", "..........", "XXXXXX....", "..........", "XXXXXXXX..", "..........", "XXXX......", "..........", "XXXXXXX..." }
+local MAP_CMD = { "..........", "........X.", ".......X..", "......X...", ".....X....", "....X.....", "...X......", "..X.......", ".X........", ".........." }
+local MAP_HELP = { "...XXXX...", "..X....X..", "..X....X..", ".......X..", "......X...", ".....X....", ".....X....", "..........", ".....X....", ".........." }
+local PAGES = {
+    { id = "log", key = "UI_ZeD_Console_PageLog", map = MAP_LOG },
+    { id = "cmds", key = "UI_ZeD_Console_PageCommands", map = MAP_CMD },
+    { id = "help", key = "UI_ZeD_Console_PageHelp", map = MAP_HELP },
+}
+
+-- the KIND filter's rows: their words and status colors
+local KIND_LABEL = { print = "UI_ZeD_Console_KindPrint", warn = "UI_ZeD_Console_KindWarn", error = "UI_ZeD_Console_KindError", ran = "UI_ZeD_Console_KindRan" }
+local function kindColor(k)
+    local T = ZeD.T
+    if k == "error" then return T.danger end
+    if k == "warn" then return T.warning end
+    if k == "ran" then return T.accent end
+    return T.textDim
+end
+local GROUPS = { { g = "kind", key = "UI_ZeD_Console_FoldKind" }, { g = "mod", key = "UI_ZeD_Console_FoldMod" }, { g = "file", key = "UI_ZeD_Console_FoldFile" } }
 
 function W:new(x, y, w, h)
     local o = ZeD_Window.new(self, x, y, w, h, "")
@@ -413,18 +396,25 @@ function W:new(x, y, w, h)
     o.pin = true
     o.moveWithMouse = false
     o.playerNum = 0
+    o.page = "log"
     o.scroll = 0          -- px up from the newest row (0: the newest at the foot, following)
-    o.zone = "input"      -- controller: "list" | "input" | "band"
-    o.bandFocus = 3       -- controller: Run
-    o.pick = nil          -- the picked line (an error: its first line, the block picked whole)
+    o.fScroll = 0         -- the filter column's scroll, px from its top
+    o.zone = "input"      -- controller: "strip" | "filters" | "search" | "list" | "input" | "band"
+    o.bandFocus = RUN_AT  -- controller: Run
+    o.stripFocus = 1
+    o.fFocus = 1
+    o.pick = nil          -- the picked row (a row of the log)
+    o.opened = {}         -- the errors opened to their stacks: row id -> row
+    o.fold = {}           -- the filter groups folded shut: group -> true
     o.hi = nil            -- the history line shown (nil: what was being typed)
     o.draft = ""
     o._bandOff = {}
+    o._findSt = {}
     return o
 end
 
-function W:createChildren()
-    ZeD_Window.createChildren(self)
+-- a hidden game text box: it takes the keys and the cursor, the window draws its words (_drawTyped)
+local function makeEntry(win, maxLen)
     local T = ZeD.T
     local e = ISTextEntryBox:new("", 0, 0, 100, T.inputH)
     -- The game's text box takes the keys; its own text is hidden (fitEntry) and the window draws the
@@ -437,7 +427,14 @@ function W:createChildren()
     e:setPlaceholderText("")   -- (ZeD draws the placeholder, _drawTyped)
     e.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     e.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-    e:setMaxTextLength(LINE_MAX)
+    e:setMaxTextLength(maxLen)
+    win:addChild(e)
+    return e
+end
+
+function W:createChildren()
+    ZeD_Window.createChildren(self)
+    local e = makeEntry(self, LINE_MAX)
     local win = self
     e.onCommandEntered = function() win:runLine() end
     e.onPressUp = function() win:historyStep(-1) end
@@ -446,8 +443,12 @@ function W:createChildren()
         if key == Keyboard.KEY_ESCAPE then e:unfocus()
         elseif key == TAB_KEY then win:complete() end
     end
-    self:addChild(e)
     self.input = e
+    -- the search: Enter and Escape let it go (the log follows each key, in prerender)
+    local f = makeEntry(self, 100)
+    f.onCommandEntered = function() f:unfocus() end
+    f.onOtherKey = function(_, key) if key == Keyboard.KEY_ESCAPE then f:unfocus() end end
+    self.find = f
 end
 
 function W:lineText()
@@ -497,6 +498,26 @@ function W:complete()
     end
 end
 
+-- the words for the clipboard: the picked row (an error with its whole stack), or every row the filters show
+function W:copyText()
+    if self.pick then return table.concat(L.rowText(self.pick), "\n") end
+    return L.shownText()
+end
+
+-- Export: what the filters show, to a new file; the band says where
+function W:export()
+    local shown = L.counts()
+    if shown == 0 then return end
+    local name, n, tried = L.export()
+    local T = ZeD.T
+    if name then
+        self._status = { text = tr("UI_ZeD_Console_Exported", n, name), color = T.positive }
+        DC.lastExport = name
+    else
+        self._status = { text = tr("UI_ZeD_Console_ExportFailed", tried or ""), color = T.danger }
+    end
+end
+
 -- (each press tests afresh what the band grayed: the band was drawn a frame ago, a line typed since counts)
 function W:press(id)
     if id == "run" then
@@ -505,16 +526,23 @@ function W:press(id)
         self:runLine()
         return
     end
-    if DC.text == "" then return end
+    local shown, total = L.counts()
+    if id == "export" then
+        if shown == 0 then return end
+        sound("UIActivateButton")
+        self:export()
+        return
+    end
+    if total == 0 and DC.text == "" then return end
     sound("UIActivateButton")
+    self._status = nil
     if id == "clear" then
         DC.clear()
-        self.pick, self.scroll = nil, 0
+        self.pick, self.scroll, self.opened = nil, 0, {}
     elseif id == "copy" then
-        local first, last = nil, nil
-        if self.pick then first, last = DC.blockOf(self.pick) end
-        local text = DC.copyText(first, last)
+        local text = self:copyText()
         pcall(function() Clipboard.setClipboard(text) end)
+        DC.lastCopy = text
         self._copiedUntil = getTimestampMs() + COPIED_MS
     end
 end
@@ -525,8 +553,9 @@ function W:closeAction() sound("UIActivateButton"); self:close() end
 function W:close(keepFlag)
     if not keepFlag and P.jc then pcall(function() P.jc:setVisible(false) end) end
     if self.input then self.input:unfocus() end
+    if self.find then self.find:unfocus() end
     local KB = ZeD.Keyboard
-    if KB and KB.instance and KB.instance.textEntryBox == self.input then pcall(function() KB.instance:hide() end) end
+    if KB and KB.instance and (KB.instance.textEntryBox == self.input or KB.instance.textEntryBox == self.find) then pcall(function() KB.instance:hide() end) end
     self._kbOpen = nil
     DC.mirror("")
     DC.place = { x = self:getX(), y = self:getY(), w = self:getWidth(), h = self.windowShaded and (self.preShadeHeight or self:getHeight()) or self:getHeight() }
@@ -545,31 +574,37 @@ local function focusOpts(win)
     _fo.win, _fo.focused, _fo.pad = win, true, true
     return _fo
 end
+local function mark(win, x, y, w, h)
+    if ZeD.Focus and ZeD.Focus.mark then return ZeD.Focus.mark(win, x, y, w, h, focusOpts(win)) and true or false end
+    return false
+end
 
 -- the width of one character of the fixed-pitch face (F3, Fira Mono)
 local function charW(font)
     return math.max(1, ZeD.TM:MeasureStringX(font, "0000000000") / 10)
 end
 
--- The typed line, drawn in F3 over the game's hidden text box: the characters that fit, scrolled so
--- the cursor stays in view, the placeholder when empty, and a steady caret while focused.
-function W:_drawTyped(inp, x, y, w, h, f, focused)
+-- A typed line, drawn in F3 over the game's hidden text box: the characters that fit, scrolled so the cursor stays
+-- in view, the placeholder when empty, and a steady caret while focused. st keeps where it scrolled to (the line
+-- keeps it on the window, the search on its own table).
+function W:_drawTyped(inp, x, y, w, h, f, focused, placeholder, st)
     local T = ZeD.T
+    st = st or self
     local text = inp:getText() or ""
     local cur = #text
     pcall(function() cur = inp.javaObject:getCursorPos() end)
     cur = math.max(0, math.min(#text, cur or #text))
     local cw = charW(f)
     local n = math.max(1, math.floor((w - px(2)) / cw))
-    local start = self._typeStart or 0
+    local start = st._typeStart or 0
     if cur < start then start = cur end
     if cur > start + n then start = cur - n end
     start = math.max(0, math.min(start, math.max(0, #text - n)))
-    self._typeStart, self._typeX, self._typeCw = start, x, cw
+    st._typeStart, st._typeX, st._typeCw = start, x, cw
     local ty = y + math.floor((h - fh(f)) / 2)
     if text == "" then
         local d = T.textDim
-        if not focused then self:drawText(tr("UI_ZeD_Console_Type"), x, ty, d.r, d.g, d.b, d.a or 1, f) end
+        if not focused then self:drawText(placeholder, x, ty, d.r, d.g, d.b, d.a or 1, f) end
     else
         local c = T.text
         self:drawText(text:sub(start + 1, start + n), x, ty, c.r, c.g, c.b, c.a or 1, f)
@@ -580,13 +615,31 @@ function W:_drawTyped(inp, x, y, w, h, f, focused)
     end
 end
 
+-- the hidden box kept left of the window, where its clip is empty, sized and placed as the field it serves
+local function parkEntry(inp, ew, y, ih)
+    local offX = -(ew + px(60))
+    if inp:getX() ~= offX then inp:setX(offX) end
+    if inp:getY() ~= y then inp:setY(y) end
+    if inp:getWidth() ~= ew then inp:setWidth(ew) end
+    if inp:getHeight() ~= ih then inp:setHeight(ih) end
+end
+
+-- the click's column in a drawn line, given to the hidden box's cursor
+local function placeCursor(inp, st, x)
+    if not (st._typeCw and st._typeX) then return end
+    local col = (st._typeStart or 0) + math.floor((x - st._typeX) / st._typeCw + 0.5)
+    local len = #(inp:getText() or "")
+    col = math.max(0, math.min(len, col))
+    pcall(function() inp.javaObject:setCursorPos(col) end)
+end
+
 function W:prerender()
     local T = ZeD.T
     if not T then return end
     if not DC.exists() then self:close(true); return end
     self.minimumWidth, self.minimumHeight = px(U.MIN_W), px(U.MIN_H)
     self.title = tr("UI_ZeD_Console_Title")
-    local _, errs = DC.lines()
+    local errs = L.errTotal or 0
     if errs > 0 then
         self._stat = self._stat or { {} }
         local st = self._stat[1]
@@ -594,6 +647,11 @@ function W:prerender()
         self.titleStats = self._stat
     else
         self.titleStats = {}
+    end
+    -- the search follows each key typed (a new search walks the rows once)
+    if self.find then
+        local q = tostring(self.find:getText() or "")
+        if q ~= L.q then L.setQuery(q); self.scroll = 0 end
     end
     ZeD_Window.prerender(self)
     if self.windowShaded or self.isCollapsed then return end
@@ -616,203 +674,509 @@ function W:_drawBody()
     -- what is typed is the game's line too (its suggestion follows it)
     DC.mirror(self:lineText())
 
-    -- the line to type in: a field, the prompt mark, the game's text box inside it
+    -- the page strip
+    local sw = px(U.STRIP)
+    self:_drawStrip(0, top, sw, bandY - top, joy)
+    local cx = sw
+    if self.page == "log" then
+        local fw = math.min(px(U.FILTERS), math.floor((w - sw) * 0.36))
+        self._filterRect = { x = sw, y = top, w = fw, h = bandY - top }
+        self:_drawFilters(sw, top, fw, bandY - top, joy)
+        cx = sw + fw
+        local hh = px(U.HEAD)
+        self:_drawHead(cx, top, w - cx, hh, joy)
+        local ly0, ly1 = top + hh + px(4), iy - gap
+        self._listRect = { x = cx + pad, y = ly0, w = w - cx - 2 * pad, h = math.max(0, ly1 - ly0) }
+        self:_drawList(cx + pad, ly0, w - cx - 2 * pad, math.max(0, ly1 - ly0))
+    else
+        self._filterRect, self._headRect, self._findRect = nil, nil, nil
+        self._listRect = { x = cx + pad, y = top + pad, w = w - cx - 2 * pad, h = math.max(0, iy - gap - top - pad) }
+        self._rowHits = {}
+        ZeD.Molecules.drawEmptyLine(self, cx + pad * 2, top + pad * 2, w - cx - pad * 4, tr("UI_ZeD_Console_Coming"))
+    end
+    self:_drawLine(cx + pad, iy, w - cx - 2 * pad, ih, joy)
+    -- the band: Export, Copy, Clear, Run
+    self:_drawBand(bandY, w, joy)
+end
+
+-- the line to type in: a field, the prompt mark, the game's text box hidden behind it
+function W:_drawLine(fx, iy, fw, ih, joy)
+    local T = ZeD.T
     local inp = self.input
-    local fx, fw = pad, w - 2 * pad
     local s1, bs = T.surf1, T.borderS
     self:drawRect(fx, iy, fw, ih, s1.a or 1, s1.r, s1.g, s1.b)
     local focused = inp and inp:isFocused()
     local ib = focused and T.accent or bs
     self:drawRectBorder(fx, iy, fw, ih, ib.a or 1, ib.r, ib.g, ib.b)
     local f3 = T.fontF3
-    local mark = ">"
     local mx0 = fx + px(6)
     local td = T.textDim
-    self:drawText(mark, mx0, iy + math.floor((ih - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
-    local ex = mx0 + ZeD.TM:MeasureStringX(f3, mark) + px(4)
+    self:drawText(">", mx0, iy + math.floor((ih - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
+    local ex = mx0 + ZeD.TM:MeasureStringX(f3, ">") + px(4)
     if inp then
         -- The game's box draws its own text, its caret and its placeholder, always opaque (UITextBox2.render passes alpha 1
         -- for them whatever setTextRGBA says), inside a clip clamped to its parent. It keeps the keys and the cursor, so it
         -- stands left of the window, where that clip is empty; ZeD draws the line (_drawTyped) and takes the clicks.
         local ew = fx + fw - px(4) - ex
-        local offX = -(ew + px(60))
-        if inp:getX() ~= offX then inp:setX(offX) end
-        if inp:getY() ~= iy then inp:setY(iy) end
-        if inp:getWidth() ~= ew then inp:setWidth(ew) end
-        if inp:getHeight() ~= ih then inp:setHeight(ih) end
-        self:_drawTyped(inp, ex, iy, ew, ih, f3, focused)
+        parkEntry(inp, ew, iy, ih)
+        self:_drawTyped(inp, ex, iy, ew, ih, f3, focused, tr("UI_ZeD_Console_Type"), self)
     end
-    if joy and self.zone == "input" and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(self, fx, iy, fw, ih, focusOpts(self)) end
+    if joy and self.zone == "input" then mark(self, fx, iy, fw, ih) end
     self._fieldRect = { x = fx, y = iy, w = fw, h = ih }
+end
 
-    -- the list: the output and the errors, scrolling as one
-    local ly0, ly1 = top + pad, iy - gap
-    self._listRect = { x = pad, y = ly0, w = w - 2 * pad, h = math.max(0, ly1 - ly0) }
-    self:_drawList(pad, ly0, w - 2 * pad, math.max(0, ly1 - ly0))
+-- the page strip: a picture per page, the shown page in the accent
+function W:_drawStrip(x, y, w, h, joy)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    A.drawDividerV(self, x + w - px(1), y, h)
+    local cell = math.max(1, math.floor(px(1.6) + 0.5))
+    local size = U.ICON * cell
+    local th = px(32)
+    local mx, my = self:getMouseX(), self:getMouseY()
+    self._stripHits = {}
+    for i, pg in ipairs(PAGES) do
+        local ty = y + px(2) + (i - 1) * th
+        local on = self.page == pg.id
+        local hover = not joy and mx >= x and mx < x + w - px(1) and my >= ty and my < ty + th
+        if on then
+            local a = T.accent
+            self:drawRect(x, ty, w - px(1), th, a.a or 1, a.r, a.g, a.b)
+        elseif hover then
+            local hv = T.hover
+            self:drawRect(x, ty, w - px(1), th, hv.a or 1, hv.r, hv.g, hv.b)
+        end
+        local onFocus = joy and self.zone == "strip" and self.stripFocus == i and mark(self, x, ty, w - px(1), th)
+        local c = T.textDim
+        if onFocus then c = T.textOnFocus elseif on then c = T.textOnAccent end
+        A.drawPxMap(self, pg.map, x + math.floor((w - px(1) - size) / 2), ty + math.floor((th - size) / 2), cell, c)
+        self._stripHits[i] = { x = x, y = ty, w = w - px(1), h = th, page = pg.id }
+        if hover then ZeD.Help.set(self, tr(pg.key)) end
+    end
+end
 
-    -- the band: Copy, Clear, Run
-    self:_drawBand(bandY, w, joy)
+-- the filter column's rows, flat: a fold header per group, then its ticked rows (unless folded); made again only when
+-- a mod or file comes or goes, or a group folds
+local function sortedNames(list, nameOf)
+    local out = {}
+    for i = 1, #list do out[i] = list[i] end
+    table.sort(out, function(a, b)
+        if (a == "" or a == L.GAME or a == L.CONSOLE) ~= (b == "" or b == L.GAME or b == L.CONSOLE) then return b == "" or b == L.GAME or b == L.CONSOLE end
+        return string.lower(nameOf(a)) < string.lower(nameOf(b))
+    end)
+    return out
+end
+function W:_filterItems()
+    local key = tostring(L.namesRev) .. "|" .. tostring(self.fold.kind) .. tostring(self.fold.mod) .. tostring(self.fold.file)
+    if self._fKey == key and self._fItems then return self._fItems end
+    local items = {}
+    for _, gr in ipairs(GROUPS) do
+        local keys
+        if gr.g == "kind" then keys = L.KINDS
+        elseif gr.g == "mod" then keys = sortedNames(L.mods, L.modName)
+        else keys = sortedNames(L.files, L.fileName) end
+        items[#items + 1] = { t = "fold", g = gr.g, label = gr.key, n = #keys }
+        if not self.fold[gr.g] then
+            for _, k in ipairs(keys) do items[#items + 1] = { t = "cb", g = gr.g, key = k } end
+        end
+    end
+    self._fKey, self._fItems = key, items
+    if self.fFocus > #items then self.fFocus = #items end
+    return items
+end
+
+local function itemLabel(it)
+    if it.g == "kind" then return tr(KIND_LABEL[it.key]) end
+    if it.g == "mod" then return L.modName(it.key) end
+    return L.fileName(it.key)
+end
+
+function W:_drawFilters(x, y, w, h, joy)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local M = ZeD.Molecules
+    A.drawDividerV(self, x + w - px(1), y, h)
+    local items = self:_filterItems()
+    local foldH, rowH = px(U.FOLD), px(U.FROW)
+    local total = px(4)
+    for _, it in ipairs(items) do total = total + (it.t == "fold" and foldH or rowH) end
+    local bar = total > h
+    local sbW = T.sp.scrollbarW
+    local iw = w - px(1) - (bar and sbW or 0)
+    local maxS = math.max(0, total - h)
+    -- the controller's row brought into view
+    if self.fSeek then
+        self.fSeek = nil
+        local yy = px(4)
+        for i, it in ipairs(items) do
+            local ih = it.t == "fold" and foldH or rowH
+            if i == self.fFocus then
+                if yy < self.fScroll then self.fScroll = yy elseif yy + ih > self.fScroll + h then self.fScroll = yy + ih - h end
+                break
+            end
+            yy = yy + ih
+        end
+    end
+    self.fScroll = math.max(0, math.min(maxS, self.fScroll))
+    self._fMax = maxS
+    local mx, my = self:getMouseX(), self:getMouseY()
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if joy or (Fo and Fo.cuesVisible and Fo.cuesVisible()) then mx, my = nil, nil end
+    self._fHits = {}
+    self:setStencilRect(x, y, w - px(1), h)
+    local yy = y + px(4) - self.fScroll
+    local f2, f3 = T.fontF2, T.fontF3
+    for i, it in ipairs(items) do
+        local ih = it.t == "fold" and foldH or rowH
+        if yy + ih > y and yy < y + h then
+            local hover = mx ~= nil and mx >= x and mx < x + iw and my >= yy and my < yy + ih
+            local foc = joy and self.zone == "filters" and self.fFocus == i
+            if it.t == "fold" then
+                M.drawSectionHeader(self, x + px(8), yy, iw - px(8), tr(it.label), it.n, not self.fold[it.g], hover, nil, true, px(8), ih, nil, foc and { focus = focusOpts(self) } or nil)
+            else
+                self:_drawFilterRow(it, x, yy, iw, ih, hover, foc, f2, f3)
+            end
+            self._fHits[#self._fHits + 1] = { y = yy, h = ih, i = i }
+        end
+        yy = yy + ih
+    end
+    self:clearStencilRect()
+    if bar then
+        local win = self
+        M.scrollBar(self, nil, "filters", x + w - px(1) - sbW, y, sbW, h, self.fScroll, total, function(v) win.fScroll = v end, { step = rowH })
+    end
+end
+
+function W:_drawFilterRow(it, x, y, w, h, hover, foc, f2, f3)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local onFocus = false
+    if hover then
+        local hv = T.hover
+        self:drawRect(x, y, w, h, hv.a or 1, hv.r, hv.g, hv.b)
+        ZeD.Help.set(self, tr("UI_ZeD_Console_HelpFilter"))
+    end
+    if foc then onFocus = mark(self, x, y, w, h) end
+    local on = L.isOn(it.g, it.key)
+    local cb = T.checkboxSz
+    local bx = x + px(16)
+    A.drawCheckbox(self, bx, y + math.floor((h - cb) / 2), on, hover)
+    local tx = bx + cb + px(6)
+    if it.g == "kind" then
+        local sq = px(U.MARK)
+        A.drawStatusDot(self, tx, y + math.floor((h - sq) / 2), kindColor(it.key), sq)
+        tx = tx + sq + px(5)
+    end
+    local n = (L.cnt[it.g] and L.cnt[it.g][it.key]) or 0
+    local ns = tostring(n)
+    local nw = ZeD.TM:MeasureStringX(f3, ns)
+    local dc = onFocus and T.textOnFocus or T.textDim
+    self:drawText(ns, x + w - px(6) - nw, y + math.floor((h - fh(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
+    local c = onFocus and T.textOnFocus or (on and T.text or T.textDim)
+    local label = A.truncateText(itemLabel(it), f2, math.max(0, x + w - px(12) - nw - tx))
+    self:drawText(label, tx, y + math.floor((h - fh(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+end
+
+-- the head over the log: the search with its magnifier, then "shown of total | errors"
+function W:_drawHead(x, y, w, h, joy)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local pad = px(U.PAD)
+    A.drawDividerH(self, x, y + h - px(1), w)
+    local shown, total, errs = L.counts()
+    local cs = tr("UI_ZeD_Console_Count", shown, total, errs)
+    local f3 = T.fontF3
+    local cw = ZeD.TM:MeasureStringX(f3, cs)
+    local ih = T.inputH
+    local fx, fy = x + pad, y + math.floor((h - ih) / 2)
+    local fw = math.max(px(80), w - 2 * pad - cw - px(10))
+    local s1 = T.base or T.surf1
+    self:drawRect(fx, fy, fw, ih, s1.a or 1, s1.r, s1.g, s1.b)
+    local focused = self.find and self.find:isFocused()
+    local bc = focused and T.accent or T.borderS
+    self:drawRectBorder(fx, fy, fw, ih, bc.a or 1, bc.r, bc.g, bc.b)
+    local iw = A.drawSearchIcon(self, fx + px(6), fy, ih)
+    local ex = fx + px(6) + iw + px(6)
+    local ew = fx + fw - px(4) - ex
+    if self.find then
+        parkEntry(self.find, ew, fy, ih)
+        self:_drawTyped(self.find, ex, fy, ew, ih, f3, focused, tr("UI_ZeD_Console_Search"), self._findSt)
+    end
+    if joy and self.zone == "search" then mark(self, fx, fy, fw, ih) end
+    self._findRect = { x = fx, y = fy, w = fw, h = ih }
+    self._headRect = { x = x, y = y, w = w, h = h }
+    local tc = T.textDim
+    if fx + fw + px(10) + cw <= x + w then
+        self:drawText(cs, x + w - pad - cw, y + math.floor((h - fh(f3)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- THE LOG LIST: a row a line (time | status pixel and kind word | message | mod and file:line | count); the picked
+-- row shows its whole message, an opened error its whole stack under it
+-- ---------------------------------------------------------------------------
+-- a text cut every cpr characters (a fixed-pitch face: the cut is exact)
+local function cutInto(out, s, cpr)
+    if s == "" then out[#out + 1] = ""; return end
+    local p = 1
+    while p <= #s do
+        out[#out + 1] = s:sub(p, p + cpr - 1)
+        p = p + cpr
+    end
+end
+
+-- the lines a row's message and stack take at these widths (kept on the row until a width or its stack changes)
+local function wrapOf(row, cprMsg, cprStk)
+    local k = tostring(cprMsg) .. ":" .. tostring(cprStk) .. ":" .. tostring(row.stack and #row.stack or 0)
+    if row._wk ~= k then
+        row._wk = k
+        local m = {}
+        cutInto(m, tostring(row.msg or ""), cprMsg)
+        row._wm = m
+        local s = {}
+        if row.stack then for i = 1, #row.stack do cutInto(s, row.stack[i], cprStk) end end
+        row._ws = s
+    end
+    return row._wm, row._ws
+end
+
+function W:_rowLines(row, cprMsg, cprStk)
+    local isPick, isOpen = row == self.pick, row.kind == "error" and self.opened[row.id] ~= nil
+    if not isPick and not isOpen then return 1 end
+    local m, s = wrapOf(row, cprMsg, cprStk)
+    local n = isPick and #m or 1
+    if isOpen then n = n + #s end
+    return n
+end
+
+-- the columns of a row at this width: x of each, characters each takes
+function W:_cols(x, w)
+    local T = ZeD.T
+    local f = T.fontF3
+    local cw = charW(f)
+    local c = self._colsC or {}
+    self._colsC = c
+    c.cw = cw
+    c.timeX = x + px(4)
+    c.kindX = c.timeX + 8 * cw + px(8)
+    local kw = 0
+    for _, k in ipairs(L.KINDS) do kw = math.max(kw, ZeD.TM:MeasureStringX(f, L.kindWord(k))) end
+    kw = math.min(kw, 7 * cw)
+    c.dot = px(U.MARK)
+    c.msgX = c.kindX + c.dot + px(5) + kw + px(8)
+    c.right = x + w
+    c.repW = 5 * cw
+    local room = c.right - c.repW - px(8) - c.msgX
+    c.srcW = (room > 60 * cw) and math.min(36 * cw, math.floor(room * 0.4)) or 0
+    c.tri = math.max(px(6), math.floor(fh(f) * 0.45))
+    c.msgTX = c.msgX + c.tri + px(5)
+    c.msgEnd = c.right - c.repW - px(8) - (c.srcW > 0 and (c.srcW + px(8)) or 0)
+    c.cprMsg = math.max(8, math.floor((c.msgEnd - c.msgTX) / cw))
+    c.cprStk = math.max(8, math.floor((c.right - c.msgTX) / cw))
+    return c
+end
+
+-- the rows' heights from the foot: how far up the picked row's top and foot sit, for bringing it into view
+function W:_seekPick(c, lh, h)
+    local n = L.counts()
+    local foot = 0
+    for i = n, 1, -1 do
+        local row = L.shownAt(i)
+        local rh = self:_rowLines(row, c.cprMsg, c.cprStk) * lh
+        if row == self.pick then
+            local head = foot + rh
+            if foot < self.scroll then self.scroll = foot
+            elseif head > self.scroll + h then self.scroll = math.min(head - h, foot) end
+            return
+        end
+        foot = foot + rh
+    end
+end
+
+function W:_listHeight(c, lh)
+    local n = L.counts()
+    local total = n * lh
+    if self.pick and self.pick.vis then total = total + (self:_rowLines(self.pick, c.cprMsg, c.cprStk) - 1) * lh end
+    for _, row in pairs(self.opened) do
+        if row.vis and row ~= self.pick then total = total + (self:_rowLines(row, c.cprMsg, c.cprStk) - 1) * lh end
+    end
+    return total
 end
 
 function W:_drawList(x, y, w, h)
     local T = ZeD.T
-    local A = ZeD.Atoms
     local f = T.fontF3
-    local lh = fh(f) + px(1)
-    local gut = px(U.GUTTER)
+    local lh = fh(f) + px(2)
     local sbW = T.sp.scrollbarW
-    local cw = charW(f)
-    local function cprFor(tw) return math.max(8, math.floor(tw / cw)) end
-    local textW = w - gut
-    local rows = DC.rows(cprFor(textW))
-    local bar = #rows * lh > h
+    local c = self:_cols(x, w)
+    local total = self:_listHeight(c, lh)
+    local bar = total > h
     if bar then
-        textW = w - gut - sbW - px(2)
-        rows = DC.rows(cprFor(textW))
+        c = self:_cols(x, w - sbW - px(2))
+        total = self:_listHeight(c, lh)
     end
-    local total = #rows * lh
-    local maxS = math.max(0, total - h)
-    -- new output while scrolled up: the view stays where it was
-    if self._seenRev ~= DC.rev then
-        if self.scroll > 0 and self._seenRows and self._seenCpr == DC._rowsCpr and #rows > self._seenRows then
-            self.scroll = self.scroll + (#rows - self._seenRows) * lh
-        end
-        self._seenRev = DC.rev
-    end
-    self._seenRows, self._seenCpr = #rows, DC._rowsCpr
-    -- the picked block brought into view (the controller moved to it)
-    local pf, pl = nil, nil
-    if self.pick then pf, pl = DC.blockOf(self.pick) end
-    if not pf then self.pick = nil end
-    if self.seek and pf then
-        self.seek = nil
-        local firstRow, lastRow = nil, nil
-        for i, r in ipairs(rows) do
-            if r.li >= pf and r.li <= pl then
-                firstRow = firstRow or i
-                lastRow = i
+    if self.pick and not self.pick.vis then self.pick = nil end
+    -- new rows while scrolled up: the view stays where it was (the new rows' height added to the scroll)
+    local n = L.counts()
+    local newest = n > 0 and L.shownAt(n) or nil
+    local newestId = newest and newest.id or 0
+    if self._seenRev ~= L.viewRev then
+        if self.scroll > 0 and self._seenId and newestId > self._seenId and self._seenQ == L.q then
+            local add = 0
+            for i = n, 1, -1 do
+                local row = L.shownAt(i)
+                if row.id <= self._seenId then break end
+                add = add + self:_rowLines(row, c.cprMsg, c.cprStk) * lh
             end
+            self.scroll = self.scroll + add
         end
-        if firstRow then
-            local foot = (#rows - lastRow) * lh
-            local head = (#rows - firstRow) * lh + lh
-            if foot < self.scroll then self.scroll = foot
-            elseif head > self.scroll + h then self.scroll = math.min(head - h, foot) end
-        end
+        self._seenRev = L.viewRev
     end
+    self._seenId, self._seenQ = newestId, L.q
+    if self.seek and self.pick then
+        self.seek = nil
+        self:_seekPick(c, lh, h)
+    end
+    local maxS = math.max(0, total - h)
     if self.scroll > maxS then self.scroll = maxS end
     if self.scroll < 0 then self.scroll = 0 end
     self._maxS, self._lh = maxS, lh
-
-    -- the scrollbar (top-down; this list counts from its foot)
-    local sb = self._sb
-    if not sb then
-        sb = ZeD_ScrollbarState:new()
-        local win = self
-        sb.onScroll = function(pos) win.scroll = math.floor((1 - pos) * (win._maxS or 0) + 0.5) end
-        self._sb = sb
-    end
-    sb.visible = bar
-    sb.width, sb.arrowH = sbW, sbW
-    sb.x, sb.y, sb.height = x + w - sbW, y, h
-    sb:setBarSize(h / math.max(1, total))
-    if not sb.dragging then sb.scrollPos = maxS > 0 and math.min(1, (maxS - self.scroll) / maxS) or 1 end
-
     self._rowHits = {}
-    if #rows == 0 then
-        ZeD.Molecules.drawEmptyLine(self, x, y, w, tr("UI_ZeD_Console_Empty"))
+    -- the scrollbar (top-down; this list counts from its foot)
+    if bar then
+        local win = self
+        ZeD.Molecules.scrollBar(self, nil, "log", x + w - sbW, y, sbW, h, maxS - self.scroll, total,
+            function(v) win.scroll = math.max(0, (win._maxS or 0) - v) end, { step = lh })
+    end
+    if n == 0 then
+        local _, kept = L.counts()
+        ZeD.Molecules.drawEmptyLine(self, x, y, w, kept == 0 and tr("UI_ZeD_Console_Empty") or tr("UI_ZeD_Console_NoMatch"))
         return
     end
-    local lines = DC.lines()
+    self:_drawRows(c, x, y, h, lh, n)
+    -- scrolled up: a mark at the foot that newer rows are below
+    if self.scroll > 0 then
+        ZeD.Atoms.drawStatusDot(self, c.right - px(8), y + h - px(8), T.accent, px(6))
+    end
+end
+
+function W:_drawRows(c, x, y, h, lh, n)
     local joy = self.joyfocus ~= nil
     local mx, my = self:getMouseX(), self:getMouseY()
     local Fo = ZeD.Input and ZeD.Input.Focus
     if joy or (Fo and Fo.cuesVisible and Fo.cuesVisible()) then mx, my = nil, nil end
-    local hoverB = nil
-    if mx and inRect(self._listRect, mx, my) then
-        local by0 = y + h - lh + self.scroll
-        local i = #rows - math.floor((by0 + lh - 1 - my) / lh)
-        if i >= 1 and i <= #rows and my >= by0 - (#rows - i) * lh then hoverB = lines[rows[i].li] and lines[rows[i].li].b end
-    end
-    local textR = x + gut + textW
-    self:setStencilRect(x, y, w, h)
-    local by = y + h - lh + self.scroll
-    -- the picked block: the selection under it, the controller's mark on it
-    local onFocus = false
-    if pf then
-        local top, bottom = nil, nil
-        for i = #rows, 1, -1 do
-            local r = rows[i]
-            local ry = by - (#rows - i) * lh
-            if ry + lh < y then break end
-            if ry <= y + h and r.li >= pf and r.li <= pl then
-                bottom = bottom or (ry + lh)
-                top = ry
-            end
+    c.vy0, c.vy1, c.lh = y, y + h, lh
+    self:setStencilRect(x, y, c.right - x, h)
+    local ybot = y + h + self.scroll
+    local hovered = false
+    for i = n, 1, -1 do
+        if ybot <= y then break end
+        local row = L.shownAt(i)
+        local rh = self:_rowLines(row, c.cprMsg, c.cprStk) * lh
+        local ytop = ybot - rh
+        if ytop < y + h then
+            local hover = mx ~= nil and mx >= x and mx < c.right and my >= ytop and my < ybot and my >= y and my < y + h
+            hovered = hovered or hover
+            self:_drawRow(row, c, x, ytop, rh, hover)
+            self._rowHits[#self._rowHits + 1] = { y = ytop, h = rh, row = row, triX = c.msgX, triR = c.msgTX }
         end
-        if top then
-            local t0, t1 = math.max(y, top), math.min(y + h, bottom)
-            local ac = T.accent
-            self:drawRect(x, t0, textR - x, t1 - t0, T.selectionA or 0.25, ac.r, ac.g, ac.b)
-            if joy and self.zone == "list" and ZeD.Focus and ZeD.Focus.mark then
-                onFocus = ZeD.Focus.mark(self, x, t0, textR - x, t1 - t0, focusOpts(self)) and true or false
-            end
-        end
-    end
-    local tc = onFocus and T.textOnFocus or T.text
-    local dg, hv = T.danger, T.hover
-    local sq = px(U.MARK)
-    for i = #rows, 1, -1 do
-        local ry = by - (#rows - i) * lh
-        if ry + lh < y then break end
-        if ry <= y + h then
-            local r = rows[i]
-            local ln = lines[r.li]
-            local inPick = pf and r.li >= pf and r.li <= pl
-            if hoverB and ln and ln.b == hoverB and not inPick then
-                self:drawRect(x, ry, textR - x, lh, hv.a or 1, hv.r, hv.g, hv.b)
-            end
-            if ln and ln.err then
-                -- an error: a red mark at its first line, a red rule down its trace
-                local cx = x + math.floor((sq - T.hair) / 2)
-                if r.first and ln.b == r.li then
-                    A.drawStatusDot(self, x, ry + math.floor((lh - sq) / 2), dg, sq)
-                    -- (the rule runs on from under the mark while the error goes on: its own wrapped rows or its trace)
-                    local nx = rows[i + 1]
-                    local nl = nx and lines[nx.li]
-                    if nl and nl.err and nl.b == ln.b then
-                        self:drawRect(cx, ry + math.floor((lh + sq) / 2), T.hair, lh - math.floor((lh + sq) / 2), 0.6, dg.r, dg.g, dg.b)
-                    end
-                else
-                    self:drawRect(cx, ry, T.hair, lh, 0.6, dg.r, dg.g, dg.b)
-                end
-            end
-            local c = (inPick and onFocus) and tc or T.text
-            if r.s ~= "" then self:drawText(r.s, x + gut, ry, c.r, c.g, c.b, c.a or 1, f) end
-            self._rowHits[#self._rowHits + 1] = { y = ry, h = lh, li = r.li }
-        end
+        ybot = ytop
     end
     self:clearStencilRect()
-    if sb.visible then sb:draw(self) end
-    -- scrolled up: a mark at the foot that newer lines are below
-    if self.scroll > 0 then
-        A.drawStatusDot(self, textR - px(8), y + h - px(8), T.accent, px(6))
-    end
-    if hoverB then ZeD.Help.set(self, tr("UI_ZeD_Console_HelpPick")) end
+    if hovered then ZeD.Help.set(self, tr("UI_ZeD_Console_HelpRow")) end
 end
 
-local _btns = { { id = "copy" }, { id = "clear" }, { id = "run", variant = "primary" } }
+-- one line of a row, drawn only where the list shows it (a tall opened stack runs far past the view)
+local function inView(c, yy) return yy + c.lh > c.vy0 and yy < c.vy1 end
+
+-- the row's first line: time, status pixel and kind word, the triangle of an error, then its place and count
+function W:_drawRowHead(row, c, y, dc, onFocus, isOpen)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local f = T.fontF3
+    local lh = c.lh
+    local ty = y + math.floor((lh - fh(f)) / 2)
+    self:drawText(row.t or "", c.timeX, ty, dc.r, dc.g, dc.b, dc.a or 1, f)
+    A.drawStatusDot(self, c.kindX, y + math.floor((lh - c.dot) / 2), kindColor(row.kind), c.dot)
+    self:drawText(L.kindWord(row.kind), c.kindX + c.dot + px(5), ty, dc.r, dc.g, dc.b, dc.a or 1, f)
+    if row.kind == "error" then
+        local ar = onFocus and T.textOnFocus or T.arrow
+        local tyT = y + math.floor((lh - c.tri) / 2)
+        if isOpen then A.drawTriangleDown(self, c.msgX, tyT, c.tri, ar) else A.drawTriangleRight(self, c.msgX, tyT, c.tri, ar) end
+    end
+    if c.srcW > 0 then
+        local src = L.modName(row.mod)
+        local where = L.srcOf(row)
+        if where ~= "" then src = src .. " | " .. where end
+        src = A.truncateText(src, f, c.srcW)
+        local sw = ZeD.TM:MeasureStringX(f, src)
+        self:drawText(src, c.right - c.repW - px(8) - sw, ty, dc.r, dc.g, dc.b, dc.a or 1, f)
+    end
+    if (row.n or 1) > 1 then
+        local rs = "x" .. tostring(row.n)
+        local rw = ZeD.TM:MeasureStringX(f, rs)
+        self:drawText(rs, c.right - rw, ty, dc.r, dc.g, dc.b, dc.a or 1, f)
+    end
+end
+
+function W:_drawRow(row, c, x, y, rh, hover)
+    local T = ZeD.T
+    local f = T.fontF3
+    local lh = c.lh
+    local picked = row == self.pick
+    local onFocus = false
+    local by0, by1 = math.max(y, c.vy0), math.min(y + rh, c.vy1)
+    if picked then
+        local ac = T.accent
+        self:drawRect(x, by0, c.right - x, by1 - by0, T.selectionA or 0.25, ac.r, ac.g, ac.b)
+        if self.joyfocus and self.zone == "list" then onFocus = mark(self, x, by0, c.right - x, by1 - by0) end
+    elseif hover then
+        local hv = T.hover
+        self:drawRect(x, by0, c.right - x, by1 - by0, hv.a or 1, hv.r, hv.g, hv.b)
+    end
+    local tc = onFocus and T.textOnFocus or T.text
+    local dc = onFocus and T.textOnFocus or T.textDim
+    local isOpen = row.kind == "error" and self.opened[row.id] ~= nil
+    if inView(c, y) then self:_drawRowHead(row, c, y, dc, onFocus, isOpen) end
+    local mc = (row.kind == "ran" and not onFocus) and T.accent or tc
+    local m, s = nil, nil
+    if picked or isOpen then m, s = wrapOf(row, c.cprMsg, c.cprStk) end
+    local dy = math.floor((lh - fh(f)) / 2)
+    local yy = y
+    if picked then
+        for i = 1, #m do
+            if inView(c, yy) then self:drawText(m[i], c.msgTX, yy + dy, mc.r, mc.g, mc.b, mc.a or 1, f) end
+            yy = yy + lh
+        end
+    else
+        local msg = tostring(row.msg or "")
+        if #msg > c.cprMsg then msg = msg:sub(1, math.max(1, c.cprMsg - 3)) .. "..." end
+        if inView(c, yy) then self:drawText(msg, c.msgTX, yy + dy, mc.r, mc.g, mc.b, mc.a or 1, f) end
+        yy = yy + lh
+    end
+    if isOpen then
+        for i = 1, #s do
+            if yy >= c.vy1 then break end
+            if inView(c, yy) then self:drawText(s[i], c.msgTX, yy + dy, dc.r, dc.g, dc.b, dc.a or 1, f) end
+            yy = yy + lh
+        end
+    end
+end
+
+local _btns = { { id = "export" }, { id = "copy" }, { id = "clear" }, { id = "run", variant = "primary" } }
 local _spec = { buttons = _btns }
 function W:_drawBand(y, w, joy)
-    local T = ZeD.T
     local now = getTimestampMs()
-    local b1, b2, b3 = _btns[1], _btns[2], _btns[3]
+    local shown, total = L.counts()
+    local b0, b1, b2, b3 = _btns[1], _btns[2], _btns[3], _btns[4]
+    b0.label, b0.help = btn(tr("UI_ZeD_Console_Export")), tr("UI_ZeD_Console_HelpExport")
+    b0.disabled = shown == 0
     if (self._copiedUntil or 0) > now then b1.label = btn(tr("UI_ZeD_Msg_Copied"))
     else b1.label = btn(self.pick and tr("UI_ZeD_Msg_CopyOne") or tr("UI_ZeD_Console_CopyAll")) end
-    b1.help = self.pick and tr("UI_ZeD_Console_HelpCopy") or tr("UI_ZeD_Console_HelpCopyAll")
-    b1.disabled = DC.text == ""
+    b1.help = self.pick and tr("UI_ZeD_Console_HelpCopy") or tr("UI_ZeD_Console_HelpShown")
+    b1.disabled = shown == 0
     b2.label, b2.help = btn(tr("UI_ZeD_Console_Clear")), tr("UI_ZeD_Console_HelpClear")
-    b2.disabled = DC.text == ""
+    b2.disabled = total == 0 and DC.text == ""
     local allowed = DC.allowed()
     b3.label = btn(tr("UI_ZeD_Console_Run"))
     b3.help = allowed and tr("UI_ZeD_Console_HelpRun") or tr("UI_ZeD_Console_NotAllowed")
@@ -824,6 +1188,7 @@ function W:_drawBand(y, w, joy)
         if joy then b.hover = false else b.hover = nil end
     end
     _spec.win = self
+    _spec.status = self._status
     local _, out = ZeD.Molecules.drawBand(self, 0, y, w, _spec)
     self._bandRects = out and out.buttons or {}
 end
@@ -841,12 +1206,29 @@ end
 -- ---------------------------------------------------------------------------
 -- MOUSE
 -- ---------------------------------------------------------------------------
-function W:pickAt(y)
+-- an error opened to its stack, or shut again
+function W:toggleOpen(row)
+    if not row or row.kind ~= "error" then return end
+    if self.opened[row.id] then self.opened[row.id] = nil else self.opened[row.id] = row end
+    L.viewRev = L.viewRev + 1
+end
+
+-- A click on a row picks it (again lets it go). An error opens to its stack on its first click; a click on a picked
+-- error, or on its triangle, opens or shuts it.
+function W:pickAt(x, y)
+    if y == nil then x, y = nil, x end
     for _, hit in ipairs(self._rowHits or {}) do
         if y >= hit.y and y < hit.y + hit.h then
-            local first = DC.blockOf(hit.li)
-            self.pick = (self.pick ~= first) and first or nil
+            local row = hit.row
             sound()
+            if row.kind == "error" then
+                local onTri = x ~= nil and x >= hit.triX and x < hit.triR
+                if self.pick == row or onTri then self:toggleOpen(row)
+                elseif not self.opened[row.id] then self:toggleOpen(row) end
+                self.pick = row
+            else
+                self.pick = (self.pick ~= row) and row or nil
+            end
             return true
         end
     end
@@ -854,32 +1236,69 @@ function W:pickAt(y)
     return false
 end
 
+-- a press on the filter column: a fold header folds its group, a row ticks or unticks its filter
+function W:filterAt(y)
+    local items = self:_filterItems()
+    for _, hit in ipairs(self._fHits or {}) do
+        if y >= hit.y and y < hit.y + hit.h then
+            self:useFilter(items[hit.i])
+            self.fFocus = hit.i
+            return true
+        end
+    end
+    return false
+end
+function W:useFilter(it)
+    if not it then return end
+    sound()
+    if it.t == "fold" then
+        if self.fold[it.g] then self.fold[it.g] = nil else self.fold[it.g] = true end
+    else
+        L.toggle(it.g, it.key)
+        self.scroll = 0
+    end
+end
+
+function W:setPage(id)
+    if self.page == id then return end
+    self.page = id
+    sound()
+    if id ~= "log" and (self.zone == "filters" or self.zone == "search" or self.zone == "list") then self.zone = "strip" end
+end
+
+local function inBar(sb, x, y) return sb and sb.visible and x >= sb.x and x < sb.x + sb.width and y >= sb.y and y < sb.y + sb.height end
+
 function W:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then return true end
     if inRect(self:windowBoxRect(), x, y) then return true end
-    local sb = self._sb
-    if sb and sb.visible and x >= sb.x and x < sb.x + sb.width and y >= sb.y and y < sb.y + sb.height then
-        sb:handleMouseDown(y - sb.y)
-        return true
-    end
+    local bars = self._zedBars
+    -- (the scrollbars read the pointer themselves while they draw: a press on one is theirs alone)
+    if bars and (inBar(bars.log, x, y) or inBar(bars.filters, x, y)) then return true end
     for _, r in ipairs(self._bandRects or {}) do
         if inRect(r, x, y) then self._down = r.id; return true end
+    end
+    for _, r in ipairs(self._stripHits or {}) do
+        if inRect(r, x, y) then self:setPage(r.page); return true end
     end
     if inRect(self._fieldRect, x, y) then
         self.zone = "input"
         self.input:focus()
         -- the cursor goes where the click lands in ZeD's drawn line, not the hidden box's own face
-        if self._typeCw and self._typeX then
-            local col = (self._typeStart or 0) + math.floor((x - self._typeX) / self._typeCw + 0.5)
-            local len = #(self.input:getText() or "")
-            col = math.max(0, math.min(len, col))
-            pcall(function() self.input.javaObject:setCursorPos(col) end)
-        end
+        placeCursor(self.input, self, x)
         return true
     end
-    if inRect(self._listRect, x, y) then self:pickAt(y); return true end
+    if self.page == "log" then
+        if inRect(self._findRect, x, y) then
+            self.zone = "search"
+            self.find:focus()
+            placeCursor(self.find, self._findSt, x)
+            return true
+        end
+        if inRect(self._filterRect, x, y) then self:filterAt(y); return true end
+        if inRect(self._listRect, x, y) then self:pickAt(x, y); return true end
+    end
     -- the title bar (and the edges): ZeD_Window starts the drag or the resize. Whatever it answers, a press inside the window is ours.
     ZeD_Window.onMouseDown(self, x, y)
     return true
@@ -888,7 +1307,6 @@ end
 function W:onMouseUp(x, y)
     local down = self._down
     self._down = nil
-    if self._sb then self._sb:handleMouseUp() end
     if down then
         for _, r in ipairs(self._bandRects or {}) do
             if r.id == down and inRect(r, x, y) then self:press(down) end
@@ -901,22 +1319,17 @@ end
 
 function W:onMouseUpOutside(x, y)
     self._down = nil
-    if self._sb then self._sb:handleMouseUp() end
     ZeD_Window.onMouseUpOutside(self, x, y)
     return true
 end
 
--- A drag of the window and a drag on the scrollbar's thumb are separate: the window's drag (ZeD_Window, as every ZeD
--- window) always gets the move, in the window or outside it; the thumb follows the pointer as well.
+-- A drag of the window and a drag on a scrollbar's thumb are separate: the window's drag (ZeD_Window, as every ZeD
+-- window) always gets the move, in the window or outside it; the bars follow the pointer themselves as they draw.
 function W:onMouseMove(dx, dy)
-    local sb = self._sb
-    if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y) end
     ZeD_Window.onMouseMove(self, dx, dy)
     return true
 end
 function W:onMouseMoveOutside(dx, dy)
-    local sb = self._sb
-    if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y) end
     ZeD_Window.onMouseMoveOutside(self, dx, dy)
     return true
 end
@@ -925,6 +1338,11 @@ function W:onRightMouseDown(x, y) return true end
 function W:onRightMouseUp(x, y) return true end
 
 function W:onMouseWheel(del)
+    local mx, my = self:getMouseX(), self:getMouseY()
+    if inRect(self._filterRect, mx, my) then
+        self.fScroll = math.max(0, math.min(self._fMax or 0, self.fScroll + del * px(U.FROW) * 3))
+        return true
+    end
     local lh = self._lh or px(14)
     self.scroll = math.max(0, math.min(self._maxS or 0, self.scroll - del * lh * 3))
     return true
@@ -935,21 +1353,17 @@ function W:update()
     if not self:getIsVisible() then return end
     -- a drag whose release the engine missed (it ticks update every 100 ms) ends here, as the resize does
     if self.moving and not isMouseButtonDown(0) then self.moving = false end
-    local sb = self._sb
-    if sb and sb.visible then
-        local mx, my = self:getMouseX(), self:getMouseY()
-        if sb.dragging or (mx >= sb.x and mx < sb.x + sb.width) then sb:handleMouseMove(my - sb.y) end
-        if sb.dragging and not isMouseButtonDown(0) then sb:handleMouseUp() end
-    end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     self.joyfocus = (jd and jd.focus == self) and jd or (DC.qaJoy and self or nil)
-    -- the pad keyboard put away: a line typed lands the controller on Run (the main button)
+    -- the pad keyboard put away: a line typed lands the controller on Run (the main button); the search stays put
     if self._kbOpen then
         local KB = ZeD.Keyboard
         if not (KB and KB.isVisible and KB.isVisible()) then
             self._kbOpen = nil
-            local t = self:lineText()
-            if t ~= self._kbFrom and not blank(t) then self.zone, self.bandFocus = "band", 3 end
+            if self._kbEntry == self.input then
+                local t = self:lineText()
+                if t ~= self._kbFrom and not blank(t) then self.zone, self.bandFocus = "band", RUN_AT end
+            end
         end
     end
 end
@@ -958,69 +1372,121 @@ end
 -- may sit open all game long: the debug option UIDebugConsole.StartVisible. Escape in the typed line lets it go.)
 
 -- ---------------------------------------------------------------------------
--- CONTROLLER: the list, the line, the band
+-- CONTROLLER: the strip, the filters, the search, the log, the line, the band
 -- ---------------------------------------------------------------------------
 function W:onGainJoypadFocus(jd) self.joyfocus = jd end
 function W:onLoseJoypadFocus(jd) self.joyfocus = nil end
 
--- the pad keyboard on the line (ZeD's, through the game's OnScreenKeyboard.Show); it gives the controller back here
-function W:openKeyboard(jd)
+-- the pad keyboard on a line (ZeD's, through the game's OnScreenKeyboard.Show); it gives the controller back here
+function W:openKeyboard(jd, entry)
+    entry = entry or self.input
     if OnScreenKeyboard and OnScreenKeyboard.Show and jd then
-        local ok, osk = pcall(OnScreenKeyboard.Show, self.playerNum, self.input, jd)
+        local ok, osk = pcall(OnScreenKeyboard.Show, self.playerNum, entry, jd)
         if ok and osk then
             osk.prevFocus = self
             jd.focus = osk
             if updateJoypadFocus then updateJoypadFocus(jd) end
-            self._kbOpen, self._kbFrom = true, self:lineText()
+            self._kbOpen, self._kbEntry = true, entry
+            self._kbFrom = tostring(entry:getText() or "")
             return
         end
     end
-    self.input:focus()
+    entry:focus()
 end
 
 function W:onJoypadDown(button, jd)
     if button == Joypad.BButton then self:close(); return end
-    if self.zone == "input" then
-        if button == Joypad.AButton then sound("UIActivateButton"); self:openKeyboard(jd or self.joyfocus)
-        elseif button == Joypad.LBumper then self:historyStep(-1); sound()
-        elseif button == Joypad.RBumper then self:historyStep(1); sound() end
-    elseif self.zone == "band" and button == Joypad.AButton then
+    if button == Joypad.XButton and self.page == "log" then
+        if L.counts() > 0 then sound("UIActivateButton"); self:export() end
+        return
+    end
+    if button ~= Joypad.AButton then
+        if self.zone == "input" then
+            if button == Joypad.LBumper then self:historyStep(-1); sound()
+            elseif button == Joypad.RBumper then self:historyStep(1); sound() end
+        end
+        return
+    end
+    local z = self.zone
+    if z == "input" then sound("UIActivateButton"); self:openKeyboard(jd or self.joyfocus, self.input)
+    elseif z == "search" then sound("UIActivateButton"); self:openKeyboard(jd or self.joyfocus, self.find)
+    elseif z == "strip" then local pg = PAGES[self.stripFocus]; if pg then self:setPage(pg.id) end
+    elseif z == "filters" then self:useFilter(self:_filterItems()[self.fFocus])
+    elseif z == "list" then if self.pick and self.pick.kind == "error" then sound(); self:toggleOpen(self.pick); self.seek = true end
+    elseif z == "band" then
         local id = BAND[self.bandFocus]
         if id then self:press(id) end
     end
 end
 
--- the next or previous line in the list (an error is one step), false at either end
+-- the next or previous shown row (d -1: older, up), false at either end
 function W:pickStep(d)
-    local lines = DC.lines()
-    local n = #lines
+    local n = L.counts()
     if n == 0 then return false end
-    local li
+    local i
     if not self.pick then
-        li = (d < 0) and n or 1
+        i = (d < 0) and n or 1
     else
-        local first, last = DC.blockOf(self.pick)
-        if not first then first, last = n, n end
-        li = (d < 0) and (first - 1) or (last + 1)
+        local at = L.indexOf(self.pick)
+        if not at then at = (d < 0) and n + 1 or 0 end
+        i = at + d
     end
-    if li < 1 or li > n then return false end
-    self.pick = DC.blockOf(li)
+    if i < 1 or i > n then return false end
+    self.pick = L.shownAt(i)
     self.seek = true
     return true
 end
 
+-- the top row the list shows now (going down into the log from the search)
+function W:topRowInView()
+    local best = nil
+    for _, h in ipairs(self._rowHits or {}) do
+        if self._listRect and h.y + h.h > self._listRect.y and (not best or h.y < best.y) then best = h end
+    end
+    return best and best.row or nil
+end
+
+local function padFilters(win, dir)
+    local items = win:_filterItems()
+    if dir == "up" then if win.fFocus > 1 then win.fFocus = win.fFocus - 1; win.fSeek = true end
+    elseif dir == "down" then if win.fFocus < #items then win.fFocus = win.fFocus + 1; win.fSeek = true end
+    elseif dir == "left" then win.zone = "strip"
+    elseif dir == "right" then
+        win.pick = nil
+        if win:pickStep(-1) then win.zone = "list" else win.zone = "search" end
+    end
+end
+
+local function padList(win, dir)
+    if dir == "up" then
+        if not win:pickStep(-1) then win.zone, win.pick = "search", nil end
+    elseif dir == "down" then
+        if not win:pickStep(1) then win.zone, win.pick = "input", nil end
+    elseif dir == "left" then win.zone = "filters"
+    end
+end
+
 function W:padDir(dir)
-    if self.zone == "list" then
-        if dir == "up" then self:pickStep(-1)
-        elseif dir == "down" then
-            if not self:pickStep(1) then self.zone, self.pick = "input", nil end
-        end
-    elseif self.zone == "input" then
-        if dir == "up" then
+    local z = self.zone
+    local log = self.page == "log"
+    if z == "strip" then
+        if dir == "up" and self.stripFocus > 1 then self.stripFocus = self.stripFocus - 1
+        elseif dir == "down" and self.stripFocus < #PAGES then self.stripFocus = self.stripFocus + 1
+        elseif dir == "right" then self.zone = log and "filters" or "input" end
+    elseif z == "filters" then padFilters(self, dir)
+    elseif z == "search" then
+        if dir == "down" then
+            local top = self:topRowInView()
+            if top then self.pick, self.seek, self.zone = top, true, "list" else self.zone = "input" end
+        elseif dir == "left" then self.zone = "filters" end
+    elseif z == "list" then padList(self, dir)
+    elseif z == "input" then
+        if dir == "up" and log then
             self.pick = nil
-            if self:pickStep(-1) then self.zone = "list" end
-        elseif dir == "down" then self.zone = "band" end
-    elseif self.zone == "band" then
+            if self:pickStep(-1) then self.zone = "list" else self.zone = "search" end
+        elseif dir == "down" then self.zone = "band"
+        elseif dir == "left" then self.zone = log and "filters" or "strip" end
+    elseif z == "band" then
         if dir == "left" and self.bandFocus > 1 then self.bandFocus = self.bandFocus - 1
         elseif dir == "right" and self.bandFocus < #BAND then self.bandFocus = self.bandFocus + 1
         elseif dir == "up" then self.zone = "input" end
@@ -1037,12 +1503,26 @@ function W:getFooterPrompts()
     local Pr = ZeD.Prompt
     local move = tr("UI_ZeD_Prompt_DPadMove")
     local out = { (Pr and Pr.padNote) and Pr.padNote(move) or move }
-    if self.zone == "input" then
+    local z = self.zone
+    if z == "input" then
         out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Keyboard") }
         out[#out + 1] = { glyph = "LB", label = tr("UI_ZeD_Console_PadOlder") }
         out[#out + 1] = { glyph = "RB", label = tr("UI_ZeD_Console_PadNewer") }
-    elseif self.zone == "band" then
+    elseif z == "band" then
         out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Press") }
+    else
+        local a = nil
+        if z == "strip" then a = tr("UI_ZeD_Prompt_Select")
+        elseif z == "search" then a = tr("UI_ZeD_Prompt_Keyboard")
+        elseif z == "filters" then
+            local it = self:_filterItems()[self.fFocus]
+            if it and it.t == "fold" then a = self.fold[it.g] and tr("UI_ZeD_Prompt_Unfold") or tr("UI_ZeD_Prompt_Fold")
+            elseif it then a = tr("UI_ZeD_Console_PadTick") end
+        elseif z == "list" and self.pick and self.pick.kind == "error" then
+            a = self.opened[self.pick.id] and tr("UI_ZeD_Prompt_Fold") or tr("UI_ZeD_Prompt_Unfold")
+        end
+        if a then out[#out + 1] = { glyph = "A", label = a } end
+        if self.page == "log" then out[#out + 1] = { glyph = "X", label = tr("UI_ZeD_Console_Export") } end
     end
     out[#out + 1] = { glyph = "B", label = getText("UI_Close") }
     return out
@@ -1082,7 +1562,9 @@ function DC.open(pn)
         win:addToUIManager()
         win:setAlwaysOnTop(true)
     end
-    win.scroll, win.pick, win.hi = 0, nil, nil
+    -- (the log opens at its foot, every error shut to its first line)
+    win.scroll, win.pick, win.hi, win.opened = 0, nil, nil, {}
+    win._status = nil
     -- (the game's console up with it, parked: its flag says open, and it fills its box)
     local jc = P.jc
     if jc then
@@ -1090,6 +1572,7 @@ function DC.open(pn)
         if not DC.up(jc) then pcall(function() jc:setVisible(true) end) end
     end
     DC.read()
+    DC.feed()
     -- (as the game's console: the line waits for a click before it takes the keyboard, so a console shown at the
     -- start of a game, the debug option UIDebugConsole.StartVisible, never eats the player's keys)
     win.zone = "input"
@@ -1131,6 +1614,9 @@ function DC.frame()
         DC.win:close(true)
     end
     if DC.isOpen() then DC.read() end
+    -- (the F11 list keeps only its last 40 entries: it is read while the window is shut too)
+    local ok, err = pcall(DC.feed)
+    if not ok then ZeD.logOnce("lua console log", err) end
 end
 
 if Events and Events.OnPreUIDraw then Events.OnPreUIDraw.Add(DC.frame) end

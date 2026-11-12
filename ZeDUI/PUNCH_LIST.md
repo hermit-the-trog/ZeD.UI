@@ -3414,6 +3414,20 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     a repeated error is one row with a count; the scratchpad opens in place of the line; autocomplete opens by itself
     after two letters; commands above your role are hidden. The other open questions take the mockup's recommendations.
     Phase 0 probe: ZeDUI/tools/qa/zedqa_console_probe.lua (tag con0), CHECK_pl136_phase0.md.
+    - **Build, Nov 12 2026: Phase 1, the log.** ZeD_ConsoleLog.lua (logic, no drawing): the box's new lines and the F11
+      list's new entries become rows as they come (time | kind | message | mod file:line | count), a repeated error one
+      row with its count (the box and the F11 list telling one error count it once), the mod from "| MOD: X" /
+      "Lua((MOD:X))" frames or a print's "[Tag]" / "Tag:" naming an active mod, else Game; capped at 5000 rows (FIFO);
+      the filters and the search walk the rows only when they change. ZeD_DebugConsole.lua: the page strip (Log;
+      Commands and Help show a "coming" line until Phases 3-4), the filter column (KIND / MOD / FILE fold headers,
+      ticked rows with counts that follow the search), the search with the magnifier, "shown of total | Errors: n",
+      errors shut when the log opens and opening in place, Export (a new file each time, ZeD_console_<date>_<time>.log
+      in Zomboid/Lua, the user name scrubbed, the band says where), Copy / Copy all / Clear / Run; controller: the hand
+      walks strip, filters, search, log, line, band; A ticks / opens / types / presses, X exports, B closes. New atom
+      ZeD.Atoms.drawPxMap (the strip's pictures). 29 strings in 28 UI.json (machine drafts). Sims: console_log_sim
+      257/0, debug_console_sim 892/0. **Check (QA, -debug):** `zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_log.txt`
+      (tag conlog: prints, one error x3, filters, search, the stack opened, the export read back, pad zones), then by
+      hand at 4K and Deck: the window at its new default size (900 x 480 units), a long session's log scrolling.
 
 137. **Responsive Context Menus [B42] support (the director via QA, Nov 9 2026; DONE for beta 11).** Workshop 3783387236,
     mod id ResponsiveUI. ZeD's menu (Strip and List) takes the mod's 250 ms rebuilds in place: same place, submenu path

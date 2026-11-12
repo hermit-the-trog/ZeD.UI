@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/console_log.txt: the Lua console's Log page (punch list 136 Phase 1), a -debug run.
+# The script runs three bad lines on purpose (one error, three times); their logged errors name "console", hence expect=.
+# It writes one export, Zomboid/Lua/ZeD_console_<date>_<time>.log, and reads it back.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/console_log.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_console_log.lua | conlog | timeout=240 | expect=console

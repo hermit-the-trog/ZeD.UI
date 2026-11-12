@@ -224,6 +224,44 @@ function ZeD.Atoms.drawSearchIcon(panel, x, y, h, color)
 end
 
 -- ---------------------------------------------------------------------------
+-- PIXEL MAP — any small picture written as rows of "X" (set) and "." (clear),
+-- drawn one rect per run of set pixels, each pixel cell screen pixels square.
+-- The runs are found once per map table and kept on it, so a map drawn every
+-- frame costs only its rects. Returns the picture's width and height.
+-- ---------------------------------------------------------------------------
+function ZeD.Atoms.drawPxMap(panel, map, x, y, cell, color)
+    local runs = map._runs
+    if not runs then
+        runs = {}
+        for r = 1, #map do
+            local row, out, c, n = map[r], {}, 1, #map[r]
+            while c <= n do
+                if string.sub(row, c, c) == "X" then
+                    local e = c
+                    while e < n and string.sub(row, e + 1, e + 1) == "X" do e = e + 1 end
+                    out[#out + 1] = c - 1
+                    out[#out + 1] = e - c + 1
+                    c = e + 1
+                else
+                    c = c + 1
+                end
+            end
+            runs[r] = out
+        end
+        map._runs = runs
+    end
+    local c = color or ZeD.T.text
+    local a = c.a or 1
+    for r = 1, #runs do
+        local rr = runs[r]
+        for i = 1, #rr, 2 do
+            panel:drawRect(x + rr[i] * cell, y + (r - 1) * cell, rr[i + 1] * cell, cell, a, c.r, c.g, c.b)
+        end
+    end
+    return #(map[1] or "") * cell, #map * cell
+end
+
+-- ---------------------------------------------------------------------------
 -- LINE TEXTURES — pixel lines drawn as one textured draw instead of one rect a
 -- dash or a row (media/textures/ZeD/lines, made by ZeDUI/tools/linetex/
 -- make_line_tex.py): white where the line is, clear elsewhere, tinted with the
