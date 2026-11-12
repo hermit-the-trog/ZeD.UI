@@ -18,10 +18,14 @@
 --   * a key block at the top of the tab: the section head, whether a Bound Journal
 --     is on the character, who wrote it and where it is, the XP not yet written, and
 --     the four words with the library's legend swatches in the mod's colours;
---   * the numbers in the row's hover card (the shared detail card).
+--   * the numbers in the row's hover card (the shared detail card);
+--   * a Transcribe key at the right of the journal row, with a Bound Journal on the
+--     character: it runs the mod's own Transcribe Into Journal (the function the
+--     item's menu entry calls, with the same arguments), under the mod's own word;
+--     greyed with the mod's own reason when the menu entry would be.
 -- The numbers are the mod's own sums (its SRJ_getProgressAmounts, read through the
 -- mod's own functions). ZeD stores nothing and keeps no copy. Pinned skills in the
--- title bar stay text only; no Transcribe button (the mod keeps that on the item).
+-- title bar stay text only.
 --
 -- ModSupport/<mod id>.lua returns at once unless that mod is on.
 -- ============================================================================
@@ -142,6 +146,68 @@ local function journalName()
     return getItemNameFromFullType(JOURNAL_TYPE) or JOURNAL_TYPE
 end
 
+-- ---------------------------------------------------------------------------
+-- TRANSCRIBE (the mod's own: the item menu's Transcribe Into Journal)
+-- ---------------------------------------------------------------------------
+-- the mod's menu file ("Skill Recovery Journal Context"), nil if it failed to load
+local _ctx = nil
+local function CTX()
+    if _ctx == nil then
+        local ok, m = pcall(require, "Skill Recovery Journal Context")
+        _ctx = (ok and type(m) == "table" and type(m.writeItems) == "function") and m or false
+    end
+    return _ctx or nil
+end
+
+--- The mod's own reason the menu entry is greyed (its checks, in its order), as text; nil when
+--- it can be used. Returns the writing tool too: the menu hands it to the action.
+function S.transcribeWhy(char, item)
+    local sv = SandboxVars and SandboxVars.SkillRecoveryJournal or {}
+    local tool = char:getInventory():getFirstTagRecurse(ItemTag.WRITE)
+    local mismatch = false
+    local srj = item:getModData()["SRJ"]
+    local display = srj and srj.display
+    if display and display.author and char.getSteamID and char:getSteamID() ~= 0 then
+        local id = display.identity or {}
+        if id["steamID"] and id["steamID"] ~= char:getSteamID() then mismatch = true end
+    end
+    local why
+    if char:isAsleep() then why = getText("ContextMenu_NoOptionSleeping")
+    elseif char:hasTrait(CharacterTrait.ILLITERATE) and (sv.IlliterateSpeedMultiplier or 0) <= 0 then why = getText("IGUI_PlayerText_Illiterate2")
+    elseif mismatch then why = getText("IGUI_PlayerText_DoesntFeelRightToWrite")
+    elseif not tool then why = getText("Tooltip_Map_CantWrite")
+    elseif char.tooDarkToRead and char:tooDarkToRead() then why = getText("ContextMenu_TooDark")   -- (the action's own check)
+    end
+    return why, tool
+end
+
+-- the answer for the journal row, kept half a second (the tab asks every frame)
+local _tr = { t = -1 }
+local function transcribeState(char, j)
+    local now = getTimestampMs()
+    if _tr.who == char and _tr.item == j.item and now - _tr.t < 500 then return _tr end
+    local ok, why, tool = pcall(S.transcribeWhy, char, j.item)
+    _tr.who, _tr.item, _tr.t = char, j.item, now
+    _tr.why, _tr.tool = ok and why or nil, ok and tool or nil
+    _tr.ok = ok
+    return _tr
+end
+
+--- Run the mod's Transcribe Into Journal on the journal: the function its menu entry calls
+--- (contextSRJ.writeItems), with the menu's arguments (the items, the player, the writing tool).
+--- Returns true when it was called.
+function S.transcribe(char, j)
+    local C = CTX()
+    if not (C and char and j and j.item) then return false end
+    local why, tool = S.transcribeWhy(char, j.item)
+    if why then
+        if HaloTextHelper then HaloTextHelper.addBadText(char, why) end
+        return false
+    end
+    C.writeItems({ j.item }, char, tool)
+    return true
+end
+
 -- XP not yet written, all recorded skills together (what the red parts add up to)
 local _total = { t = -1 }
 local function notWrittenTotal(char)
@@ -204,7 +270,45 @@ end
 
 --- How tall the key block is at width w (the Skills tab reserves the space).
 function X.headHeight(win, w)
-    return ZeD.T.px(20) + lineH() * (1 + #wordRows(w)) + ZeD.T.px(10)
+    return ZeD.T.px(20) + X.journalRowH(win) + lineH() * #wordRows(w) + ZeD.T.px(10)
+end
+
+-- The Transcribe key's height, and whether it shows: a Bound Journal on the character, the mod's menu loaded
+local function keyH() return ZeD.T.buttonH - ZeD.T.px(4) end
+local function keyShows(win)
+    return win and win._playerObj and CTX() and S.journal(win._playerObj) ~= nil
+end
+
+--- The journal row's height: a text line, or the key's height (and a little air) when the key shows.
+function X.journalRowH(win)
+    local lh = lineH()
+    if keyShows(win) then return math.max(lh, keyH() + ZeD.T.px(2)) end
+    return lh
+end
+
+-- the pressed key's action (made once; the tab hands it the window)
+local function pressTranscribe(win)
+    local char = win and win._playerObj
+    local j = char and S.journal(char)
+    if j then S.transcribe(char, j) end
+end
+
+--- The Transcribe key at the right end of the journal row (a stop for the mouse and the
+--- controller): ZeD's button, greyed with the mod's own reason when its menu entry would be.
+--- Returns the key's left edge.
+function X.drawTranscribe(panel, win, char, j, x, y, w, rowH)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local label = ZeD.tr("IGUI_TranscribeIntoJournal")
+    local bw, bh = M.buttonW(label), keyH()
+    local bx, by = x + w - bw, y + math.floor((rowH - bh) / 2)
+    local st = transcribeState(char, j)
+    local why = st.why
+    local focus = ZeD.SkillsTab.stampStop(win, "srj-transcribe", bx, by, bw, bh, pressTranscribe)
+    local hover = A.mouseIn(panel, bx, by, bw, bh, win._skillsHoverView)
+    M.drawButton(panel, bx, by, bw, bh, label, "default", hover and isMouseButtonDown(0), nil,
+        { hover = hover, disabled = why ~= nil, focus = focus, win = win,
+          help = why and ZeD.tr("UI_ZeD_Map_HelpCant", ZeD.btnCase(label), why) or nil })
+    return bx
 end
 
 --- The key block at the top of the Skills tab: journal row, then the four words.
@@ -223,8 +327,9 @@ function X.drawHead(panel, win, x, y, w)
     y = y + hh
     -- row 1: the journal on the character, or none (a status square, as everywhere)
     local j = S.journal(char)
+    local r1 = X.journalRowH(win)
     local dot = T.px(6)
-    local dy = y + math.floor((lh - dot) / 2)
+    local dy = y + math.floor((r1 - dot) / 2)
     local cx = x
     if j then
         A.drawStatusDot(panel, cx, dy, T.positive, dot)
@@ -240,11 +345,14 @@ function X.drawHead(panel, win, x, y, w)
         main = ZeD.tr("UI_ZeD_SRJ_JournalNone", journalName())
         rest = " | " .. ZeD.tr("UI_ZeD_SRJ_StaysRecorded")
     end
-    local ty = y + math.floor((lh - tm:getFontHeight(f1)) / 2)
+    local ty = y + math.floor((r1 - tm:getFontHeight(f1)) / 2)
+    -- the Transcribe key at the right end of the row (the text gives way to it)
+    local right = x + w
+    if j and CTX() then right = X.drawTranscribe(panel, win, char, j, x, y, w, r1) - T.px(8) end
     panel:drawText(main, cx, ty, tx.r, tx.g, tx.b, tx.a or 1, f1)
     cx = cx + tm:MeasureStringX(f1, main) + T.px(4)
-    panel:drawText(A.truncateText(rest, f1, x + w - cx), cx, ty, ts.r, ts.g, ts.b, ts.a or 1, f1)
-    y = y + lh
+    panel:drawText(A.truncateText(rest, f1, right - cx), cx, ty, ts.r, ts.g, ts.b, ts.a or 1, f1)
+    y = y + r1
     -- the next rows: the four words with the library's legend swatches, in the mod's colours
     for _, row in ipairs(wordRows(w)) do
         for _, it in ipairs(row) do
