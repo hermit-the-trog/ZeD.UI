@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Effacer : vide le nom et les catégories ; la barre reste ouverte",
     "UI_ZeD_Inv_FilterChipHelp": "%1 : seuls ses objets restent clairs ; choisissez-en plusieurs pour en voir plus",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1 : appuyez à nouveau pour désélectionner",
-    "UI_ZeD_Inv_PromptType": "Saisir"
+    "UI_ZeD_Inv_PromptType": "Saisir",
+    "UI_ZeD_Find_SkillsHint": "Trouver une compétence",
+    "UI_ZeD_Find_EquipHint": "Porté, emplacement, partie du corps",
+    "UI_ZeD_Find_Count": "%1 sur %2",
+    "UI_ZeD_Find_SkillsNone": "Rien dans l'onglet Compétences ne correspond à « %1 ».",
+    "UI_ZeD_Find_SkillsLooks": "La recherche porte sur les compétences, leurs groupes et les livres d'apprentissage.",
+    "UI_ZeD_Find_EquipNone": "Rien dans l'onglet Équipement ne correspond à « %1 ».",
+    "UI_ZeD_Find_EquipLooks": "La recherche porte sur les objets portés, les emplacements et les parties du corps couvertes.",
+    "UI_ZeD_Find_Clear": "Effacer",
+    "UI_ZeD_Find_Covers": "couvre %1",
+    "UI_ZeD_Find_HelpSkills": "Tapez une partie du nom d'une compétence ou de son groupe : le reste s'estompe",
+    "UI_ZeD_Find_HelpEquip": "Tapez une partie du nom d'un objet porté, d'un emplacement ou d'une partie du corps : le reste s'estompe",
+    "UI_ZeD_Find_HelpClear": "Effacer la recherche : toutes les lignes réapparaissent"
 }

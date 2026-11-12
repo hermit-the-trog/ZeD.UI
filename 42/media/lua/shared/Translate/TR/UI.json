@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Temizle: adı ve kategorileri boşaltır; çubuk açık kalır",
     "UI_ZeD_Inv_FilterChipHelp": "%1: yalnızca içindekiler parlak kalır; daha fazlası için birkaç tane seç",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: seçimi kaldırmak için yine bas",
-    "UI_ZeD_Inv_PromptType": "Yaz"
+    "UI_ZeD_Inv_PromptType": "Yaz",
+    "UI_ZeD_Find_SkillsHint": "Beceri bul",
+    "UI_ZeD_Find_EquipHint": "Giyilen, yuva, vücut bölgesi",
+    "UI_ZeD_Find_Count": "%1 / %2",
+    "UI_ZeD_Find_SkillsNone": "Beceriler sekmesinde \"%1\" ile eşleşen bir şey yok.",
+    "UI_ZeD_Find_SkillsLooks": "Arama becerilere, gruplarına ve eğitim kitaplarına bakar.",
+    "UI_ZeD_Find_EquipNone": "Ekipman sekmesinde \"%1\" ile eşleşen bir şey yok.",
+    "UI_ZeD_Find_EquipLooks": "Arama giyilen eşyalara, yuvalara ve örttükleri vücut bölgelerine bakar.",
+    "UI_ZeD_Find_Clear": "Temizle",
+    "UI_ZeD_Find_Covers": "örttüğü: %1",
+    "UI_ZeD_Find_HelpSkills": "Bir becerinin ya da grubunun adından bir parça yazın: gerisi soluklaşır",
+    "UI_ZeD_Find_HelpEquip": "Giyilen bir eşyanın, yuvanın ya da vücut bölgesinin adından bir parça yazın: gerisi soluklaşır",
+    "UI_ZeD_Find_HelpClear": "Aramayı temizle: tüm satırlar yeniden görünür"
 }

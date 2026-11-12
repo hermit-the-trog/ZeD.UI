@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Borrar: vacía el nombre y las categorías; la barra sigue abierta",
     "UI_ZeD_Inv_FilterChipHelp": "%1: solo lo que hay en ella queda resaltado; elige varias para ver más",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: pulsa otra vez para quitarla",
-    "UI_ZeD_Inv_PromptType": "Escribir"
+    "UI_ZeD_Inv_PromptType": "Escribir",
+    "UI_ZeD_Find_SkillsHint": "Buscar habilidad",
+    "UI_ZeD_Find_EquipHint": "Puesto, ranura, parte del cuerpo",
+    "UI_ZeD_Find_Count": "%1 de %2",
+    "UI_ZeD_Find_SkillsNone": "Nada en la pestaña Habilidades coincide con «%1».",
+    "UI_ZeD_Find_SkillsLooks": "La búsqueda mira las habilidades, sus grupos y los libros de aprendizaje.",
+    "UI_ZeD_Find_EquipNone": "Nada en la pestaña Equipo coincide con «%1».",
+    "UI_ZeD_Find_EquipLooks": "La búsqueda mira los objetos puestos, las ranuras y las partes del cuerpo que cubren.",
+    "UI_ZeD_Find_Clear": "Borrar",
+    "UI_ZeD_Find_Covers": "cubre %1",
+    "UI_ZeD_Find_HelpSkills": "Escribe parte del nombre de una habilidad o de su grupo: el resto se atenúa",
+    "UI_ZeD_Find_HelpEquip": "Escribe parte del nombre de un objeto puesto, una ranura o una parte del cuerpo: el resto se atenúa",
+    "UI_ZeD_Find_HelpClear": "Borrar la búsqueda: todas las filas vuelven a verse"
 }

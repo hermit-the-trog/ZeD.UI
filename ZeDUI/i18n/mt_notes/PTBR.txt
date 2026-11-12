@@ -19,3 +19,4 @@ Chip tags drop the word 'arquivo' to fit 14.
 
 Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note "For %1 of %2 | %3 carried", the greyed reasons, the run status) are machine drafts, not checked by a native speaker. Feed on the button is the game's own word.
 Punch list 168 words (Nov 11 2026): the inventory Filter bar (Filter, Filter by name, the count, Clear, the category chips' help). Machine draft, not yet checked by a native speaker. 'Dims' means the rows fade in place; they are never hidden.
+Find on the Skills and Equipment tabs (Nov 11 2026): 12 UI_ZeD_Find_ lines (the field's placeholders, the count, the "nothing matches" lines, Clear, "covers %1", the help lines) are machine drafts, not checked by a native speaker. The body parts in "covers %1" come from the game itself; "dim" (the rows that do not match) is the word to check first.

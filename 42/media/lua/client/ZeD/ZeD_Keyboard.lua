@@ -144,6 +144,7 @@ function ZeD_Keyboard:show(playerNum, textEntryBox, joypadData)
     self.playerNum = playerNum
     self.textEntryBox = textEntryBox
     self.joypadData = joypadData
+    self.onAccept = nil   -- (a fresh opening: its opener sets its own after show)
     self._orig = textEntryBox and textEntryBox:getInternalText() or ""
     self._masked = textEntryBox and textEntryBox.javaObject and textEntryBox:isMasked() or false
     self._showPlain = false
@@ -180,16 +181,25 @@ function ZeD_Keyboard:getCurrentText()
     return e and e:getInternalText() or ""
 end
 
---- Done: the text stays, and the field hears that its text changed.
+--- Done: the text stays, and the field hears that its text changed. An opener that set
+--- self.onAccept (a function) after show hears it too, once the keyboard is put away (the Find
+--- fields move the controller's hand to the first match then).
 function ZeD_Keyboard:accept()
     local e = self.textEntryBox
+    local done = self.onAccept
+    self.onAccept = nil
     if e and e.javaObject then e.javaObject:onTextChange() end
     self:hide()
+    if done then
+        local ok, err = pcall(done, self)
+        if not ok then print("[ZeD] Keyboard: onAccept failed: " .. tostring(err)) end
+    end
 end
 
 --- Cancel: the field goes back to the text it opened with.
 function ZeD_Keyboard:cancel()
     local e = self.textEntryBox
+    self.onAccept = nil
     if e and self._orig ~= nil then e:setText(self._orig) end
     self:hide()
 end

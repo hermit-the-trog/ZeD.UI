@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "지우기: 이름과 분류를 비움. 막대는 열린 채 유지",
     "UI_ZeD_Inv_FilterChipHelp": "%1: 이 분류의 물건만 밝게 표시. 여러 개를 고르면 더 보임",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: 다시 누르면 선택 해제",
-    "UI_ZeD_Inv_PromptType": "입력"
+    "UI_ZeD_Inv_PromptType": "입력",
+    "UI_ZeD_Find_SkillsHint": "기술 찾기",
+    "UI_ZeD_Find_EquipHint": "착용품, 슬롯, 신체 부위",
+    "UI_ZeD_Find_Count": "%1 / %2",
+    "UI_ZeD_Find_SkillsNone": "기술 탭에 \"%1\"와(과) 맞는 것이 없습니다.",
+    "UI_ZeD_Find_SkillsLooks": "검색은 기술, 기술 그룹, 교본을 봅니다.",
+    "UI_ZeD_Find_EquipNone": "장비 탭에 \"%1\"와(과) 맞는 것이 없습니다.",
+    "UI_ZeD_Find_EquipLooks": "검색은 착용한 물건, 슬롯, 그것이 덮는 신체 부위를 봅니다.",
+    "UI_ZeD_Find_Clear": "지우기",
+    "UI_ZeD_Find_Covers": "덮는 부위: %1",
+    "UI_ZeD_Find_HelpSkills": "기술 이름이나 그룹 이름 일부를 입력: 나머지는 흐려집니다",
+    "UI_ZeD_Find_HelpEquip": "착용품 이름, 슬롯, 신체 부위 일부를 입력: 나머지는 흐려집니다",
+    "UI_ZeD_Find_HelpClear": "검색 지우기: 모든 줄이 다시 보입니다"
 }

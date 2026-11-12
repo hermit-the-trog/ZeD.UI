@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Vymazat: vyprázdní název i kategorie; lišta zůstane otevřená",
     "UI_ZeD_Inv_FilterChipHelp": "%1: světlé zůstanou jen věci v ní; vyberte více, abyste viděli víc",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: stiskněte znovu pro zrušení výběru",
-    "UI_ZeD_Inv_PromptType": "Psát"
+    "UI_ZeD_Inv_PromptType": "Psát",
+    "UI_ZeD_Find_SkillsHint": "Najít dovednost",
+    "UI_ZeD_Find_EquipHint": "Nošené, místo, část těla",
+    "UI_ZeD_Find_Count": "%1 z %2",
+    "UI_ZeD_Find_SkillsNone": "Nic na kartě Dovednosti neodpovídá „%1“.",
+    "UI_ZeD_Find_SkillsLooks": "Hledání prochází dovednosti, jejich skupiny a učebnice.",
+    "UI_ZeD_Find_EquipNone": "Nic na kartě Výbava neodpovídá „%1“.",
+    "UI_ZeD_Find_EquipLooks": "Hledání prochází nošené věci, místa a části těla, které zakrývají.",
+    "UI_ZeD_Find_Clear": "Vymazat",
+    "UI_ZeD_Find_Covers": "zakrývá %1",
+    "UI_ZeD_Find_HelpSkills": "Napište část názvu dovednosti nebo její skupiny: zbytek ztmavne",
+    "UI_ZeD_Find_HelpEquip": "Napište část názvu nošené věci, místa nebo části těla: zbytek ztmavne",
+    "UI_ZeD_Find_HelpClear": "Vymazat hledání: všechny řádky se vrátí"
 }

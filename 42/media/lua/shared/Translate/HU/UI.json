@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Törlés: kiüríti a nevet és a kategóriákat; a sáv nyitva marad",
     "UI_ZeD_Inv_FilterChipHelp": "%1: csak a benne lévők maradnak világosak; válassz többet, hogy többet láss",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: nyomd meg újra a kijelölés törléséhez",
-    "UI_ZeD_Inv_PromptType": "Gépelés"
+    "UI_ZeD_Inv_PromptType": "Gépelés",
+    "UI_ZeD_Find_SkillsHint": "Képesség keresése",
+    "UI_ZeD_Find_EquipHint": "Viselt, hely, testrész",
+    "UI_ZeD_Find_Count": "%1 / %2",
+    "UI_ZeD_Find_SkillsNone": "A Képességek fülön semmi sem egyezik ezzel: „%1”.",
+    "UI_ZeD_Find_SkillsLooks": "A keresés a képességeket, csoportjaikat és a tankönyveket nézi.",
+    "UI_ZeD_Find_EquipNone": "A Felszerelés fülön semmi sem egyezik ezzel: „%1”.",
+    "UI_ZeD_Find_EquipLooks": "A keresés a viselt tárgyakat, a helyeket és az általuk fedett testrészeket nézi.",
+    "UI_ZeD_Find_Clear": "Törlés",
+    "UI_ZeD_Find_Covers": "fedi: %1",
+    "UI_ZeD_Find_HelpSkills": "Írd be egy képesség vagy csoportja nevének részét: a többi elhalványul",
+    "UI_ZeD_Find_HelpEquip": "Írd be egy viselt tárgy, hely vagy testrész nevének részét: a többi elhalványul",
+    "UI_ZeD_Find_HelpClear": "Keresés törlése: minden sor újra látszik"
 }

@@ -876,7 +876,7 @@ end
 -- Draw training section. Returns click zones array.
 local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colGap,
                                     training, expandedMap, secH, bodyH, rowH, rowGap,
-                                    headerH, groupGap, font, win, view)
+                                    headerH, groupGap, font, win, view, find)
     local T = ZeD.T
     local A = ZeD.Atoms
     local zones = zoneList(win, "_trainingZoneList")
@@ -928,7 +928,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
     -- ── Draw a training materials column ──
     local keysByCol = _trainKeys   -- (the rows' expand keys, made once)
 
-    local function drawTMColumn(startX, colWidth, dataList, columnKey)
+    local function drawTMColumn(startX, colWidth, dataList, columnKey, find)   -- (find passed in: a captured one is a new upvalue a frame)
         local dy = colStartY
         local keys = keysByCol[columnKey]
         if not keys then keys = {}; keysByCol[columnKey] = keys end
@@ -988,11 +988,16 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             -- Row separator
             local bd = T.border
             panel:drawRect(startX, dy + collapsedRowH, colWidth, T.px(1), bd.a * 0.15, bd.r, bd.g, bd.b)
+            -- the Find text: a row that doesn't match is dimmed in place
+            if find and not find.train[skillGroup.label] then
+                ZeD.TabFind.dim(panel, startX, dy, colWidth, collapsedRowH)
+            end
             end -- vis
 
             -- Click zone
             local zn = nextZone(zones)
             zn.id, zn.x, zn.y, zn.w, zn.h = expandKey, startX, dy, colWidth, collapsedRowH
+            zn.label = skillGroup.label   -- (the skill id: the Find text's stops read it)
 
             dy = dy + collapsedRowH + T.px(1)
 
@@ -1025,6 +1030,9 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                     -- Detail row separator
                     local bd = T.border
                     panel:drawRect(startX, dy + detailRowH, colWidth, T.px(1), bd.a * 0.1, bd.r, bd.g, bd.b)
+                    if find and not find.train[skillGroup.label] then
+                        ZeD.TabFind.dim(panel, startX, dy, colWidth, detailRowH)
+                    end
                     end -- dvis
                     dy = dy + detailRowH + T.px(1)
                 end
@@ -1034,8 +1042,8 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
         return dy
     end
 
-    local y1 = drawTMColumn(col1X, colW, col1, "col1")
-    local y2 = drawTMColumn(col2X, colW, col2, "col2")
+    local y1 = drawTMColumn(col1X, colW, col1, "col1", find)
+    local y2 = drawTMColumn(col2X, colW, col2, "col2", find)
     endZones(zones)
 
     return zones, math.max(y1, y2) - startY
@@ -1112,6 +1120,12 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- the first skill row, and the disclosure-first entry point is missed.
     local gz = win._skillsGridZone or {}   -- (one table, refilled)
     gz.x, gz.y, gz.w, gz.h = x, y, w, tabHeaderH
+    -- (with the Find field in the heading the disclosure's zone stops short of it and its
+    -- count: last frame's place, as the field itself is placed a frame behind)
+    local TF = ZeD.TabFind
+    if TF and win._skillsHeadEnd and TF.rect(win, "skills") then
+        gz.w = math.max(T.px(40), math.min(w, win._skillsHeadEnd - x))
+    end
     win._skillsGridZone = gz
 
     -- ================================================================
@@ -1149,18 +1163,28 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local training = win._trainingCache
     win._trainingExpanded = win._trainingExpanded or {}
 
+    -- The Find text's matches (worked out again only when the text or the data changes);
+    -- nothing matching: the grid and the books give way to the empty result
+    local findRes = TF and TF.skills(win, data, training) or nil
+    local findEmpty = findRes ~= nil and findRes.shown == 0
+
     -- Measure content height (max of both columns + training section)
     local col1H = measureColumnHeight(columns[1], rowH, headerH, groupGap, rowGap)
     local col2H = measureColumnHeight(columns[2], rowH, headerH, groupGap, rowGap)
     local xpGridH = math.max(col1H, col2H)
-    local trainingH = measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap, headerH, groupGap, win._trainingExpanded)
-    -- the tab's last rows once sat past the end of the scroll:
-    -- the range covers what the last frame really drew too
-    trainingH = math.max(trainingH, (#(training or {}) > 0) and (win._skillsTrainDrawnH or 0) or 0)
+    local trainingH = 0
+    if not findEmpty then
+        trainingH = measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap, headerH, groupGap, win._trainingExpanded)
+        -- the tab's last rows once sat past the end of the scroll:
+        -- the range covers what the last frame really drew too
+        trainingH = math.max(trainingH, (#(training or {}) > 0) and (win._skillsTrainDrawnH or 0) or 0)
+    end
+    local emptyH = findEmpty and TF.emptyH(win, "skills", w - scrollW) or 0
     local gridExpanded = win._skillsGridExpanded
+    local gridShown = gridExpanded and not findEmpty
     -- the extras' block at the top of the scroll (width: the scroll's, less its bar)
     local extraHeadH = (gridExpanded and #ZeD.SkillsTab.extras > 0) and extrasHeadH(win, w - scrollW - pad * 2) or 0
-    local totalContentH = padTop + (gridExpanded and (xpGridH + extraHeadH) or 0) + trainingH
+    local totalContentH = padTop + (gridExpanded and extraHeadH or 0) + (gridShown and xpGridH or 0) + trainingH + emptyH
     local view = win._skillsHoverView or {}   -- (what the pointer may hover; one table, refilled)
     view.x, view.y, view.w, view.h = x, y + tabHeaderH, w, h - tabHeaderH
     win._skillsHoverView = view
@@ -1272,22 +1296,27 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     win._skillRowZones = rowZones
     local pins = win._pinnedSkills or {}
 
-    if gridExpanded then
+    if gridShown then
 
     -- (the drawing-cost fix again) rows wholly above or below the scroll view
     -- are laid out but not drawn: the stencil clipped them before, at the full cost of
     -- their draws (the Skills tab took 4.8 ms a frame at 4K on a well-stocked character)
     local bandTop, bandBot = scrollY, scrollY + scrollH
     local rowIds = _rowIds   -- (each row's controller id, "skill:<name>", made once)
-    local function drawColumn(startX, colWidth, colGroups)
+    local function drawColumn(startX, colWidth, colGroups, find)   -- (find: the Find matches, passed in, not captured: no new upvalue a frame)
         local cy = zoneABottom
         local skillRowIdx = 0
 
         for _, group in ipairs(colGroups) do
             -- Group header: the section head, the category's name in sentence case
             -- (the molecule draws its content line)
+            local hy = cy
             cy = cy + ZeD.Molecules.drawSectionHeader(panel, startX, cy, colWidth, group.name,
                 nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
+            -- the Find text: a group with nothing kept is dimmed with its rows
+            if find and (find.group[group.name] or 0) == 0 then
+                ZeD.TabFind.dim(panel, startX, hy, colWidth, cy - hy)
+            end
 
             for _, skill in ipairs(group.skills) do
                 local vis = (cy + rowH > bandTop) and (cy < bandBot)   -- the row reaches the view
@@ -1348,11 +1377,20 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
                     local nameY = cy + math.floor((baseRowH - bodyH) / 2)
                     local nc = onFocus and T.textOnFocus or T.toneNorm
-                    panel:drawText(A.truncateText(skill.name, font, nameR - fit.gap - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
+                    local shownName = A.truncateText(skill.name, font, nameR - fit.gap - nameX)
+                    panel:drawText(shownName, nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
+                    -- the Find text: the matched letters underlined in the accent; a row not
+                    -- kept dimmed in place (its group's name may keep it with no letters to mark)
+                    if find and find.skill[skill.name] then
+                        ZeD.TabFind.underline(panel, shownName, font, nameX, nameY, find.q, nameR - fit.gap)
+                    end
 
                     -- a row extra's strip in its own lane under the row
                     if laneH > 0 then
                         drawLane(panel, startX, cy + baseRowH + T.px(1), colWidth, win._playerObj, skill)
+                    end
+                    if find and not find.skill[skill.name] then
+                        ZeD.TabFind.dim(panel, startX, cy, colWidth, rowH)
                     end
                 end
 
@@ -1368,8 +1406,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         end
     end
 
-    drawColumn(col1X, colW, columns[1])
-    drawColumn(col2X, colW, columns[2])
+    drawColumn(col1X, colW, columns[1], findRes)
+    drawColumn(col2X, colW, columns[2], findRes)
 
     -- Column separator (XP grid only; none for the one column)
     if not win._skillsOneCol then
@@ -1389,7 +1427,14 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         colW = math.floor((cw - colGap) / 2)
         col2X = x + pad + colW + colGap
     end
-    local trainingStartY = zoneABottom + (gridExpanded and xpGridH or 0)
+    local trainingStartY = zoneABottom + (gridShown and xpGridH or 0)
+    if findEmpty then
+        -- nothing matches the Find text: what was asked for, what the field looks at, Clear
+        local cz = zoneList(win, "_trainingZoneList")
+        endZones(cz)
+        win._trainingGroupZones = cz
+        TF.drawEmpty(panel, win, "skills", x, trainingStartY, contentW, focusOf(win, "skills:findclear"))
+    else
     -- (the training refresh: due, and the section shows in the scroll view)
     if trainingStartY < scrollY + scrollH and trainingStartY + trainingH > scrollY
        and dueMs(win, "_trainingAt", 500) then
@@ -1399,11 +1444,12 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local tmZones, tmActualH = drawTrainingSection(
         panel, trainingStartY, col1X, cw, col1X, col2X, colW, colGap,
         training, win._trainingExpanded, secH, bodyH, rowH, rowGap,
-        headerH, groupGap, font, win, view
+        headerH, groupGap, font, win, view, findRes
     )
     win._trainingGroupZones = tmZones
     -- (plus the gap under the last row, as the measure leaves)
     win._skillsTrainDrawnH = (tmActualH or 0) + pad
+    end
 
     -- Training column separator
     if trainingH > 0 then
@@ -1422,10 +1468,16 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- Pinned tab header, drawn on top of the scroll content: the hover wash and the
     -- controller's mark on the disclosure come with the molecule
     -- (_skillsGridZone is stamped at the top of render, not here: see there why)
-    local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH)
+    local title = getText("IGUI_XP_Skills")
+    local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH) and not (TF and TF.overField(win, "skills", panel))
     if hdrHover then help(win, ZeD.tr("UI_ZeD_Skills_HelpHeader")) end
-    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Skills"), gridExpanded, hdrHover, nil,
+    M.drawTabHeader(panel, x, y, w, title, gridExpanded, hdrHover, nil,
         { focus = focusOf(win, "skills:__disclosure") })
+    -- the Find field at the heading's right, the count left of it
+    if TF then
+        win._skillsHeadEnd = TF.drawHead(panel, win, "skills", x, y, tabHeaderH, TF.titleRight(x, title),
+            x + w - T.px(10), focusOf(win, "skills:find"))
+    end
 
     -- Draw scrollbar on top (outside stencil)
     if needsScroll then

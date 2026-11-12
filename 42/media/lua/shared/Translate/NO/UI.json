@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Tøm: tømmer navnet og kategoriene; linjen forblir åpen",
     "UI_ZeD_Inv_FilterChipHelp": "%1: bare ting i den forblir lyse; velg flere for å se mer",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: trykk igjen for å velge bort",
-    "UI_ZeD_Inv_PromptType": "Skriv"
+    "UI_ZeD_Inv_PromptType": "Skriv",
+    "UI_ZeD_Find_SkillsHint": "Finn en ferdighet",
+    "UI_ZeD_Find_EquipHint": "Båret, plass, kroppsdel",
+    "UI_ZeD_Find_Count": "%1 av %2",
+    "UI_ZeD_Find_SkillsNone": "Ingenting på fanen Ferdigheter passer til \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Søkefeltet ser på ferdigheter, gruppene deres og lærebøkene.",
+    "UI_ZeD_Find_EquipNone": "Ingenting på fanen Utstyr passer til \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Søkefeltet ser på båret utstyr, plasser og kroppsdelene de dekker.",
+    "UI_ZeD_Find_Clear": "Tøm",
+    "UI_ZeD_Find_Covers": "dekker %1",
+    "UI_ZeD_Find_HelpSkills": "Skriv en del av navnet på en ferdighet eller gruppen: resten dempes",
+    "UI_ZeD_Find_HelpEquip": "Skriv en del av navnet på noe du har på, en plass eller en kroppsdel: resten dempes",
+    "UI_ZeD_Find_HelpClear": "Tøm søkefeltet: alle radene vises igjen"
 }

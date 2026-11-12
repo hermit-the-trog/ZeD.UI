@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Tyhjennä: tyhjentää nimen ja luokat; palkki pysyy auki",
     "UI_ZeD_Inv_FilterChipHelp": "%1: vain sen tavarat pysyvät kirkkaina; valitse useita nähdäksesi enemmän",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: paina uudelleen poistaaksesi valinnan",
-    "UI_ZeD_Inv_PromptType": "Kirjoita"
+    "UI_ZeD_Inv_PromptType": "Kirjoita",
+    "UI_ZeD_Find_SkillsHint": "Etsi taito",
+    "UI_ZeD_Find_EquipHint": "Puettu, paikka, ruumiinosa",
+    "UI_ZeD_Find_Count": "%1/%2",
+    "UI_ZeD_Find_SkillsNone": "Mikään Taidot-välilehdellä ei vastaa hakua \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Haku katsoo taitoja, niiden ryhmiä ja oppikirjoja.",
+    "UI_ZeD_Find_EquipNone": "Mikään Varusteet-välilehdellä ei vastaa hakua \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Haku katsoo päällä olevia, paikkoja ja niiden peittämiä ruumiinosia.",
+    "UI_ZeD_Find_Clear": "Tyhjennä",
+    "UI_ZeD_Find_Covers": "peittää %1",
+    "UI_ZeD_Find_HelpSkills": "Kirjoita osa taidon tai sen ryhmän nimestä: muut himmenevät",
+    "UI_ZeD_Find_HelpEquip": "Kirjoita osa vaatteen nimestä, paikasta tai ruumiinosasta: muut himmenevät",
+    "UI_ZeD_Find_HelpClear": "Tyhjennä haku: kaikki rivit näkyvät taas"
 }

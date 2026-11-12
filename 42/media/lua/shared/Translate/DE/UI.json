@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Leeren: leert Name und Kategorien; die Leiste bleibt offen",
     "UI_ZeD_Inv_FilterChipHelp": "%1: nur Dinge darin bleiben hell; wähle mehrere, um mehr zu sehen",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: erneut drücken zum Abwählen",
-    "UI_ZeD_Inv_PromptType": "Tippen"
+    "UI_ZeD_Inv_PromptType": "Tippen",
+    "UI_ZeD_Find_SkillsHint": "Fertigkeit finden",
+    "UI_ZeD_Find_EquipHint": "Getragenes, Platz, Körperteil",
+    "UI_ZeD_Find_Count": "%1 von %2",
+    "UI_ZeD_Find_SkillsNone": "Nichts im Reiter Fertigkeiten passt zu „%1“.",
+    "UI_ZeD_Find_SkillsLooks": "Die Suche durchsucht Fertigkeiten, ihre Gruppen und die Lehrbücher.",
+    "UI_ZeD_Find_EquipNone": "Nichts im Reiter Ausrüstung passt zu „%1“.",
+    "UI_ZeD_Find_EquipLooks": "Die Suche durchsucht getragene Dinge, Plätze und die Körperteile, die sie bedecken.",
+    "UI_ZeD_Find_Clear": "Leeren",
+    "UI_ZeD_Find_Covers": "bedeckt %1",
+    "UI_ZeD_Find_HelpSkills": "Teil eines Fertigkeits- oder Gruppennamens tippen: der Rest wird abgeblendet",
+    "UI_ZeD_Find_HelpEquip": "Teil eines Namens, eines Platzes oder Körperteils tippen: der Rest wird abgeblendet",
+    "UI_ZeD_Find_HelpClear": "Suchfeld leeren: alle Zeilen erscheinen wieder"
 }

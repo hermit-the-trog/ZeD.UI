@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Wyczyść: czyści nazwę i kategorie; pasek zostaje otwarty",
     "UI_ZeD_Inv_FilterChipHelp": "%1: jasne zostają tylko rzeczy z niej; wybierz kilka, by zobaczyć więcej",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: naciśnij ponownie, by odznaczyć",
-    "UI_ZeD_Inv_PromptType": "Pisz"
+    "UI_ZeD_Inv_PromptType": "Pisz",
+    "UI_ZeD_Find_SkillsHint": "Znajdź umiejętność",
+    "UI_ZeD_Find_EquipHint": "Noszone, miejsce, część ciała",
+    "UI_ZeD_Find_Count": "%1 z %2",
+    "UI_ZeD_Find_SkillsNone": "Nic w karcie Umiejętności nie pasuje do „%1”.",
+    "UI_ZeD_Find_SkillsLooks": "Wyszukiwanie obejmuje umiejętności, ich grupy i podręczniki.",
+    "UI_ZeD_Find_EquipNone": "Nic w karcie Ekwipunek nie pasuje do „%1”.",
+    "UI_ZeD_Find_EquipLooks": "Wyszukiwanie obejmuje noszone rzeczy, miejsca i części ciała, które zakrywają.",
+    "UI_ZeD_Find_Clear": "Wyczyść",
+    "UI_ZeD_Find_Covers": "zakrywa %1",
+    "UI_ZeD_Find_HelpSkills": "Wpisz część nazwy umiejętności lub jej grupy: reszta przygaśnie",
+    "UI_ZeD_Find_HelpEquip": "Wpisz część nazwy noszonej rzeczy, miejsca lub części ciała: reszta przygaśnie",
+    "UI_ZeD_Find_HelpClear": "Wyczyść wyszukiwanie: wszystkie wiersze wracają"
 }

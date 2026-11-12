@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Clear: empties the name and the categories; the bar stays open",
     "UI_ZeD_Inv_FilterChipHelp": "%1: only things in it stay bright; pick several to see more",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: press again to unpick",
-    "UI_ZeD_Inv_PromptType": "Type"
+    "UI_ZeD_Inv_PromptType": "Type",
+    "UI_ZeD_Find_SkillsHint": "Find a skill",
+    "UI_ZeD_Find_EquipHint": "Find worn, slot, body part",
+    "UI_ZeD_Find_Count": "%1 of %2",
+    "UI_ZeD_Find_SkillsNone": "Nothing on the Skills tab matches \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "The Find field looks at skills, their groups and the training books.",
+    "UI_ZeD_Find_EquipNone": "Nothing on the Equipment tab matches \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "The Find field looks at worn items, slots and the body parts they cover.",
+    "UI_ZeD_Find_Clear": "Clear",
+    "UI_ZeD_Find_Covers": "covers %1",
+    "UI_ZeD_Find_HelpSkills": "Type part of a skill's name or its group's name: the rest dim",
+    "UI_ZeD_Find_HelpEquip": "Type part of a worn item's name, a slot or a body part: the rest dim",
+    "UI_ZeD_Find_HelpClear": "Clear the Find field: every row shows again"
 }

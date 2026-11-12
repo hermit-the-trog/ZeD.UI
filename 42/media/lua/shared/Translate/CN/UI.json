@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "清除：清空名称和类别，筛选栏保持打开",
     "UI_ZeD_Inv_FilterChipHelp": "%1：只有其中的物品保持高亮；多选可看到更多",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1：再按一次取消选择",
-    "UI_ZeD_Inv_PromptType": "输入"
+    "UI_ZeD_Inv_PromptType": "输入",
+    "UI_ZeD_Find_SkillsHint": "查找技能",
+    "UI_ZeD_Find_EquipHint": "穿戴、栏位、身体部位",
+    "UI_ZeD_Find_Count": "%1 / %2",
+    "UI_ZeD_Find_SkillsNone": "技能页中没有与“%1”匹配的内容。",
+    "UI_ZeD_Find_SkillsLooks": "查找范围：技能、技能组和技能书。",
+    "UI_ZeD_Find_EquipNone": "装备页中没有与“%1”匹配的内容。",
+    "UI_ZeD_Find_EquipLooks": "查找范围：穿戴的物品、栏位及其覆盖的身体部位。",
+    "UI_ZeD_Find_Clear": "清除",
+    "UI_ZeD_Find_Covers": "覆盖：%1",
+    "UI_ZeD_Find_HelpSkills": "输入技能名或技能组名的一部分：其余变暗",
+    "UI_ZeD_Find_HelpEquip": "输入穿戴物品名、栏位或身体部位的一部分：其余变暗",
+    "UI_ZeD_Find_HelpClear": "清除查找：所有行重新显示"
 }

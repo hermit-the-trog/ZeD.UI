@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Ryd: tømmer navnet og kategorierne; bjælken forbliver åben",
     "UI_ZeD_Inv_FilterChipHelp": "%1: kun ting i den forbliver lyse; vælg flere for at se mere",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: tryk igen for at fravælge",
-    "UI_ZeD_Inv_PromptType": "Skriv"
+    "UI_ZeD_Inv_PromptType": "Skriv",
+    "UI_ZeD_Find_SkillsHint": "Find en evne",
+    "UI_ZeD_Find_EquipHint": "Båret, plads, kropsdel",
+    "UI_ZeD_Find_Count": "%1 af %2",
+    "UI_ZeD_Find_SkillsNone": "Intet på fanen Evner passer til \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Søgefeltet ser på evner, deres grupper og lærebøgerne.",
+    "UI_ZeD_Find_EquipNone": "Intet på fanen Udstyr passer til \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Søgefeltet ser på båret tøj, pladser og de kropsdele, de dækker.",
+    "UI_ZeD_Find_Clear": "Ryd",
+    "UI_ZeD_Find_Covers": "dækker %1",
+    "UI_ZeD_Find_HelpSkills": "Skriv en del af en evnes navn eller dens gruppes: resten dæmpes",
+    "UI_ZeD_Find_HelpEquip": "Skriv en del af et båret navn, en plads eller en kropsdel: resten dæmpes",
+    "UI_ZeD_Find_HelpClear": "Ryd søgefeltet: alle rækker vises igen"
 }

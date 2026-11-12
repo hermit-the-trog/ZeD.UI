@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Limpar: esvazia o nome e as categorias; a barra fica aberta",
     "UI_ZeD_Inv_FilterChipHelp": "%1: só o que está nela fica destacado; escolhe várias para ver mais",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: carrega outra vez para desmarcar",
-    "UI_ZeD_Inv_PromptType": "Escrever"
+    "UI_ZeD_Inv_PromptType": "Escrever",
+    "UI_ZeD_Find_SkillsHint": "Procurar perícia",
+    "UI_ZeD_Find_EquipHint": "Vestido, espaço, parte do corpo",
+    "UI_ZeD_Find_Count": "%1 de %2",
+    "UI_ZeD_Find_SkillsNone": "Nada no separador Perícias corresponde a \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "A pesquisa vê as perícias, os seus grupos e os livros de treino.",
+    "UI_ZeD_Find_EquipNone": "Nada no separador Equipamento corresponde a \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "A pesquisa vê os itens vestidos, os espaços e as partes do corpo que cobrem.",
+    "UI_ZeD_Find_Clear": "Limpar",
+    "UI_ZeD_Find_Covers": "cobre %1",
+    "UI_ZeD_Find_HelpSkills": "Escreva parte do nome de uma perícia ou do seu grupo: o resto escurece",
+    "UI_ZeD_Find_HelpEquip": "Escreva parte do nome de um item vestido, um espaço ou uma parte do corpo: o resto escurece",
+    "UI_ZeD_Find_HelpClear": "Limpar a pesquisa: todas as linhas voltam"
 }

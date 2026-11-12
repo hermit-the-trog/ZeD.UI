@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Cancella: svuota il nome e le categorie; la barra resta aperta",
     "UI_ZeD_Inv_FilterChipHelp": "%1: restano chiari solo gli oggetti al suo interno; scegline più di una per vederne di più",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: premi di nuovo per deselezionare",
-    "UI_ZeD_Inv_PromptType": "Scrivi"
+    "UI_ZeD_Inv_PromptType": "Scrivi",
+    "UI_ZeD_Find_SkillsHint": "Trova un'abilità",
+    "UI_ZeD_Find_EquipHint": "Indossato, slot, parte del corpo",
+    "UI_ZeD_Find_Count": "%1 di %2",
+    "UI_ZeD_Find_SkillsNone": "Nessun elemento della scheda Abilità corrisponde a \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "La ricerca guarda le abilità, i loro gruppi e i libri di addestramento.",
+    "UI_ZeD_Find_EquipNone": "Nessun elemento della scheda Equipaggiamento corrisponde a \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "La ricerca guarda gli oggetti indossati, gli slot e le parti del corpo coperte.",
+    "UI_ZeD_Find_Clear": "Cancella",
+    "UI_ZeD_Find_Covers": "copre %1",
+    "UI_ZeD_Find_HelpSkills": "Scrivi parte del nome di un'abilità o del suo gruppo: il resto si attenua",
+    "UI_ZeD_Find_HelpEquip": "Scrivi parte del nome di un oggetto indossato, uno slot o una parte del corpo: il resto si attenua",
+    "UI_ZeD_Find_HelpClear": "Svuota la ricerca: tutte le righe tornano visibili"
 }

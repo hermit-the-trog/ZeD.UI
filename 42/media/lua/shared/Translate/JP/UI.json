@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "クリア：名前とカテゴリーを空にする（バーは開いたまま）",
     "UI_ZeD_Inv_FilterChipHelp": "%1：このカテゴリーのものだけが明るく表示される。複数選ぶと増える",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1：もう一度押すと選択解除",
-    "UI_ZeD_Inv_PromptType": "入力"
+    "UI_ZeD_Inv_PromptType": "入力",
+    "UI_ZeD_Find_SkillsHint": "スキルを探す",
+    "UI_ZeD_Find_EquipHint": "装備品・枠・部位",
+    "UI_ZeD_Find_Count": "%1 / %2",
+    "UI_ZeD_Find_SkillsNone": "スキルタブに「%1」に合うものはありません。",
+    "UI_ZeD_Find_SkillsLooks": "検索はスキル、そのグループ、教本を見ます。",
+    "UI_ZeD_Find_EquipNone": "装備タブに「%1」に合うものはありません。",
+    "UI_ZeD_Find_EquipLooks": "検索は身に着けた物、枠、それが覆う部位を見ます。",
+    "UI_ZeD_Find_Clear": "クリア",
+    "UI_ZeD_Find_Covers": "覆う部位: %1",
+    "UI_ZeD_Find_HelpSkills": "スキル名かグループ名の一部を入力: ほかは暗くなります",
+    "UI_ZeD_Find_HelpEquip": "装備品の名前、枠、部位の一部を入力: ほかは暗くなります",
+    "UI_ZeD_Find_HelpClear": "検索をクリア: すべての行がまた表示されます"
 }

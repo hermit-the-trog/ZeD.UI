@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "ล้าง: ล้างชื่อและหมวดหมู่ แถบยังเปิดอยู่",
     "UI_ZeD_Inv_FilterChipHelp": "%1: เฉพาะของในหมวดนี้ที่ยังสว่าง เลือกหลายหมวดเพื่อดูเพิ่ม",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: กดอีกครั้งเพื่อยกเลิกการเลือก",
-    "UI_ZeD_Inv_PromptType": "พิมพ์"
+    "UI_ZeD_Inv_PromptType": "พิมพ์",
+    "UI_ZeD_Find_SkillsHint": "ค้นหาทักษะ",
+    "UI_ZeD_Find_EquipHint": "ที่สวม ช่อง ส่วนของร่างกาย",
+    "UI_ZeD_Find_Count": "%1 จาก %2",
+    "UI_ZeD_Find_SkillsNone": "ไม่มีสิ่งใดในแท็บทักษะที่ตรงกับ \"%1\"",
+    "UI_ZeD_Find_SkillsLooks": "ช่องค้นหาดูทักษะ กลุ่มของทักษะ และหนังสือฝึก",
+    "UI_ZeD_Find_EquipNone": "ไม่มีสิ่งใดในแท็บอุปกรณ์ที่ตรงกับ \"%1\"",
+    "UI_ZeD_Find_EquipLooks": "ช่องค้นหาดูของที่สวม ช่อง และส่วนของร่างกายที่ปกคลุม",
+    "UI_ZeD_Find_Clear": "ล้าง",
+    "UI_ZeD_Find_Covers": "ปกคลุม %1",
+    "UI_ZeD_Find_HelpSkills": "พิมพ์บางส่วนของชื่อทักษะหรือชื่อกลุ่ม: ที่เหลือจะจางลง",
+    "UI_ZeD_Find_HelpEquip": "พิมพ์บางส่วนของชื่อของที่สวม ช่อง หรือส่วนของร่างกาย: ที่เหลือจะจางลง",
+    "UI_ZeD_Find_HelpClear": "ล้างการค้นหา: ทุกแถวกลับมาแสดง"
 }

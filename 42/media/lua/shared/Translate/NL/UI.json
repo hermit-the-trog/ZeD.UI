@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Wissen: maakt de naam en de categorieën leeg; de balk blijft open",
     "UI_ZeD_Inv_FilterChipHelp": "%1: alleen dingen daarin blijven helder; kies er meerdere om meer te zien",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: druk nogmaals om te deselecteren",
-    "UI_ZeD_Inv_PromptType": "Typen"
+    "UI_ZeD_Inv_PromptType": "Typen",
+    "UI_ZeD_Find_SkillsHint": "Vaardigheid zoeken",
+    "UI_ZeD_Find_EquipHint": "Gedragen, plek, lichaamsdeel",
+    "UI_ZeD_Find_Count": "%1 van %2",
+    "UI_ZeD_Find_SkillsNone": "Niets op het tabblad Vaardigheden past bij \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Het zoekveld kijkt naar vaardigheden, hun groepen en de leerboeken.",
+    "UI_ZeD_Find_EquipNone": "Niets op het tabblad Uitrusting past bij \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Het zoekveld kijkt naar gedragen spullen, plekken en de lichaamsdelen die ze bedekken.",
+    "UI_ZeD_Find_Clear": "Wissen",
+    "UI_ZeD_Find_Covers": "bedekt %1",
+    "UI_ZeD_Find_HelpSkills": "Typ een deel van een vaardigheid of haar groep: de rest wordt gedimd",
+    "UI_ZeD_Find_HelpEquip": "Typ een deel van een gedragen ding, een plek of een lichaamsdeel: de rest wordt gedimd",
+    "UI_ZeD_Find_HelpClear": "Zoekveld wissen: alle rijen komen terug"
 }

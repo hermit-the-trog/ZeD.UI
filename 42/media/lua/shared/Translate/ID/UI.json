@@ -6555,5 +6555,17 @@
     "UI_ZeD_Inv_FilterClearHelp": "Hapus: mengosongkan nama dan kategori; bilah tetap terbuka",
     "UI_ZeD_Inv_FilterChipHelp": "%1: hanya barang di dalamnya yang tetap terang; pilih beberapa untuk melihat lebih banyak",
     "UI_ZeD_Inv_FilterChipOffHelp": "%1: tekan lagi untuk batal memilih",
-    "UI_ZeD_Inv_PromptType": "Ketik"
+    "UI_ZeD_Inv_PromptType": "Ketik",
+    "UI_ZeD_Find_SkillsHint": "Cari keahlian",
+    "UI_ZeD_Find_EquipHint": "Dipakai, slot, bagian tubuh",
+    "UI_ZeD_Find_Count": "%1 dari %2",
+    "UI_ZeD_Find_SkillsNone": "Tidak ada di tab Keahlian yang cocok dengan \"%1\".",
+    "UI_ZeD_Find_SkillsLooks": "Pencarian melihat keahlian, kelompoknya, dan buku latihan.",
+    "UI_ZeD_Find_EquipNone": "Tidak ada di tab Perlengkapan yang cocok dengan \"%1\".",
+    "UI_ZeD_Find_EquipLooks": "Pencarian melihat barang yang dipakai, slot, dan bagian tubuh yang ditutupinya.",
+    "UI_ZeD_Find_Clear": "Hapus",
+    "UI_ZeD_Find_Covers": "menutupi %1",
+    "UI_ZeD_Find_HelpSkills": "Ketik sebagian nama keahlian atau kelompoknya: sisanya meredup",
+    "UI_ZeD_Find_HelpEquip": "Ketik sebagian nama barang yang dipakai, slot, atau bagian tubuh: sisanya meredup",
+    "UI_ZeD_Find_HelpClear": "Hapus pencarian: semua baris tampil lagi"
 }

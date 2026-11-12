@@ -35,6 +35,7 @@ require "ZeD/KillTracker"
 require "ZeD/JournalTab"
 require "ZeD/IdentityTab"
 require "ZeD/EquipmentTab"
+require "ZeD/TabFind"
 require "ZeD/RadioTab"
 require "ZeD/ExtraContainers"
 require "ZeD/StripDecorators"
@@ -786,6 +787,11 @@ function ZeD_CharacterWindow.extFrame(win, drawerW)
         local ok, err = pcall(ZeD.HairBeard.onWindowFrame, win, drawerW)
         if not ok then ZeD.logOnce("hairbeard frame", err) end
     end
+    -- the Skills and Equipment tabs' Find fields: shown only while their heading draws them
+    if ZeD.TabFind then
+        local ok, err = pcall(ZeD.TabFind.onWindowFrame, win, drawerW)
+        if not ok then ZeD.logOnce("tab find frame", err) end
+    end
     for _, ext in pairs(ZeD_CharacterWindow._extTabs) do
         if ext.onWindowFrame then
             local ok, err = pcall(ext.onWindowFrame, win, drawerW)
@@ -1424,9 +1430,13 @@ local function _buildSkillRowFocusables(win)
     local zones = win._skillRowZones
     if not zones or #zones == 0 then return {} end
     local elements = {}
+    local TF = ZeD.TabFind
     for i = 1, #zones do
         local z = zones[i]
         local skillName = z.name
+        -- (a row the Find text dims is no stop: the hand skips it)
+        if TF and TF.skillOff(win, skillName) then skillName = nil end
+        if skillName then
         local id = skillName and _skillRowIds[skillName]
         if not id then
             id = "skill:" .. tostring(skillName or i)
@@ -1441,6 +1451,7 @@ local function _buildSkillRowFocusables(win)
             onContextMenu = _skillRowOnActivate,
             onDpadDir = _skillRowOnDpadDir,
         }
+        end
     end
     -- Seed only when unset (this builder runs every frame).
     if elements[1] and elements[1].skillName and win._gpFocusedSkill == nil then
@@ -1467,6 +1478,7 @@ local function _buildTrainingChevronFocusables(win)
     local zones = win and win._trainingGroupZones
     if not zones or #zones == 0 then return {} end
     local elements = {}
+    local TF = ZeD.TabFind
     for i = 1, #zones do
         local z = zones[i]
         local id = z.id and _trainingIds[z.id]
@@ -1474,13 +1486,16 @@ local function _buildTrainingChevronFocusables(win)
             id = "training:" .. tostring(z.id or i)
             if z.id then _trainingIds[z.id] = id end
         end
-        elements[#elements + 1] = {
-            x = z.x, y = z.y, w = z.w, h = z.h,
-            id = id,
-            trainingId = z.id,
-            onFocus = _trainingOnFocus,
-            onActivate = _trainingOnActivate,
-        }
+        -- (a row the Find text dims is no stop; z.label is the row's skill id)
+        if not (TF and TF.trainOff(win, z.label)) then
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = id,
+                trainingId = z.id,
+                onFocus = _trainingOnFocus,
+                onActivate = _trainingOnActivate,
+            }
+        end
     end
     return elements
 end
@@ -1488,9 +1503,15 @@ end
 -- Skills tab aggregator. Disclosure first (tree-nav), then skill rows
 -- (when grid expanded), then training chevrons (always). Cone-nav uses
 -- spatial bounds, so interleaving collapsed-state content is safe.
+-- the first match after the keyboard's Accept: a skill row (a dimmed row is no stop at all)
+local function _skillsFindHit(el) return el.skillName ~= nil end
+
 local function _buildSkillsFocusables(win)
     if not win then return {} end
     local elements = _buildSkillsDisclosureFocusable(win)
+    -- the Find field in the heading, at its right (and, with nothing matching, the Clear key)
+    local TF = ZeD.TabFind
+    if TF then TF.stops(win, "skills", elements) end
     -- the keys a mod's head block stamped (ZeD.SkillsTab.stampStop), right after the disclosure
     local stops = win._skillsStops
     for i = 1, stops and stops.n or 0 do
@@ -1506,6 +1527,12 @@ local function _buildSkillsFocusables(win)
     for i = 1, #rows do elements[#elements + 1] = rows[i] end
     local chevs = _buildTrainingChevronFocusables(win)
     for i = 1, #chevs do elements[#elements + 1] = chevs[i] end
+    if TF then
+        -- Up from the top rows reaches a mod's key line before the heading; the field is
+        -- above the key, the key above the rows (TabFind.skillsPadOrder)
+        TF.skillsPadOrder(elements)
+        TF.land(win, "skills", elements, _skillsFindHit)
+    end
     return elements
 end
 
@@ -2007,6 +2034,9 @@ end
 -- until the card has drawn). Entering and exiting card mode nils
 -- _gpFocusedEquipSlot so the seed path picks the first element of the new
 -- element set.
+-- the first match after the keyboard's Accept: a slot with a thing in it (dimmed slots are no stops)
+local function _equipFindHit(el) return el.item ~= nil end
+
 local function _buildEquipmentFocusables(win)
     -- the loadouts' to-do holds the drawer (ZeD_EquipLoadout): its stops alone
     if win and ZeD.EquipLoadout and ZeD.EquipLoadout.todoOpen(win) then return ZeD.EquipLoadout.focusables(win) end
@@ -2145,6 +2175,8 @@ local function _buildEquipmentFocusables(win)
         -- The defense body figure has no disclosure of its own (it shows at
         -- the bottom of the tab), so its parts are pickable whenever it is drawn.
         if not win then return end
+        -- (the Defense block hides while the Find field holds text: its parts are no stops then)
+        if win._equipDefHidden then return end
         local fig = win._equipDefBodyFigure
         if not fig or not fig.getPartRects then return end
         local rects = fig:getPartRects()
@@ -2184,6 +2216,10 @@ local function _buildEquipmentFocusables(win)
         }
     end
 
+    -- The Find field, between the heading's words and List | Doll (and the empty result's Clear)
+    local TF = ZeD.TabFind
+    if TF and win then TF.stops(win, "equip", elements) end
+
     -- The List | Doll toggle in the heading (EquipDoll.drawToggle). A picks the view.
     for _, z in ipairs(win and win._equipViewZones or {}) do
         elements[#elements + 1] = {
@@ -2208,6 +2244,8 @@ local function _buildEquipmentFocusables(win)
     if gzones then
         for i = 1, #gzones do
             local gz = gzones[i]
+            -- (a group the Find text dims, nothing in it matching, is no stop)
+            if not (TF and TF.equipGroupOff(win, gz.id)) then
             elements[#elements + 1] = {
                 x = gz.x, y = gz.y, w = gz.w, h = gz.h,
                 id = "equipgroup:" .. tostring(gz.id),
@@ -2216,8 +2254,11 @@ local function _buildEquipmentFocusables(win)
                 onFocus = _equipStopOnFocus,
                 onActivate = _equipGroupOnActivate,   -- (A toggles the group, = LMB on the header)
             }
+            end
         end
     end
+    -- while the Find field holds text, only the matching slots are stops (the rest are dimmed)
+    local finding = TF and win and TF.active(win, "equip")
 
     -- Equipment slots (only slots with equipped items get stamped).
     -- A matches mouse-click: enters inline card mode for the selected slot.
@@ -2226,6 +2267,7 @@ local function _buildEquipmentFocusables(win)
     if zones then
         for i = 1, #zones do
             local z = zones[i]
+            if not (finding and TF.equipOff(win, z.type)) then
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
                 id = "equipslot:" .. tostring(z.type or i),
@@ -2237,6 +2279,7 @@ local function _buildEquipmentFocusables(win)
                 onActivate = _equipSlotOnActivate,
                 onContextMenu = _equipSlotOnContextMenu,
             }
+            end
         end
     end
 
@@ -2245,7 +2288,7 @@ local function _buildEquipmentFocusables(win)
     -- list at the button); X opens the item's menu, or the slot's list when
     -- it is empty, at the row.
     local bzones = win and win._equipBeltZones
-    if bzones then
+    if bzones and not finding then
         for i = 1, #bzones do
             local z = bzones[i]
             elements[#elements + 1] = {
@@ -2262,7 +2305,7 @@ local function _buildEquipmentFocusables(win)
 
     -- The doll's empty slots: stops for the pad so moves keep to its columns
     -- and rows; nothing to open (no onActivate).
-    for _, z in ipairs(win and win._equipDollEmpty or {}) do
+    for _, z in ipairs((not finding) and win and win._equipDollEmpty or {}) do
         elements[#elements + 1] = {
             x = z.x, y = z.y, w = z.w, h = z.h,
             id = "equipslot:" .. z.type, slotType = z.type,
@@ -2286,6 +2329,8 @@ local function _buildEquipmentFocusables(win)
             end
         end
     end
+    -- after a Find clear or the keyboard's Accept: the field, or the first matching slot
+    if TF and win then TF.land(win, "equip", elements, _equipFindHit) end
 
     -- Seed only when unset — this builder runs every prerender frame and
     -- would otherwise stomp the D-pad's onFocus-written value each tick.
@@ -3920,6 +3965,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if ZeD and ZeD.Input and ZeD.Input.Focus then
             ZeD.Input.Focus.unregisterWindow(_charWin)
         end
+        if ZeD.TabFind then ZeD.TabFind.onClose(_charWin) end
         _charWin:removeFromUIManager()
         _charWin = nil
         _hideVanilla()
@@ -3985,6 +4031,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if ZeD and ZeD.Input and ZeD.Input.Focus then
             ZeD.Input.Focus.unregisterWindow(self)
         end
+        -- (the pad keyboard typing into a Find field goes with the window; the text does too)
+        if ZeD.TabFind then ZeD.TabFind.onClose(self) end
         self:removeFromUIManager()
         _charWin = nil
         _hideVanilla()
@@ -4968,6 +5016,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
             for _, c in ipairs({ win._journalInput, win._journalSaveBtn, win._journalSearch, win._jrecipeSearch, win._flyerSearch }) do
                 if c and c:isVisible() and c:getX() + c:getWidth() > coverWX then c:setVisible(false) end
             end
+            for _, c in pairs(win._findFields or {}) do
+                if c:isVisible() and c:getX() + c:getWidth() > coverWX then c:setVisible(false) end
+            end
         end
 
         -- ── Identity avatar positioning (window-parented: see the model's build) ──
@@ -5207,6 +5258,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 return true
             end
             if ZeD_CharacterWindow.extClick(win, x, y) then return true end
+            -- Skills and Equipment: the Find field's clear box, the empty result's Clear
+            if ZeD.TabFind and ZeD.TabFind.onClick(win, x, y) then return true end
             -- Skills: a key a mod's head block stamped (ZeD.SkillsTab.stampStop)
             if win._activeTab == "skills" and ZeD.SkillsTab.onClick(win, x, y) then return true end
             -- Identity: the Hair and beard section (ZeD_HairBeard.lua) and its strip
@@ -6253,6 +6306,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = ZeD_CharacterWindow.extScrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
+            -- a Find clear or Accept names where the hand lands (TabFind.land): taken at once
+            if newEls._findLand then dirty = true end
+            -- the Find text changes which rows are stops (a dimmed row is skipped)
+            local findKey = ZeD.TabFind and ZeD.TabFind.text(win, win._activeTab) or ""
+            if not dirty and snap and snap.findKey ~= findKey then dirty = true end
             local alwaysRebuild = false
             -- Identity-preserve focus by element id across rebuilds.
             -- Without this, scroll-driven array shifts (the Journal's Recipes
@@ -6276,6 +6334,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 win._lastTabContentSnapshot = {
                     tab     = win._activeTab,
                     scrollKey = scrollKey,
+                    findKey = findKey,
                     n       = newN,
                     firstId = newEls[1] and newEls[1].id or nil,
                     lastId  = newEls[newN] and newEls[newN].id or nil,
