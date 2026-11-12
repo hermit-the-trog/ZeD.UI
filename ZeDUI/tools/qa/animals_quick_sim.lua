@@ -21,6 +21,14 @@
 --            animal go, ends with the reason when the food runs out
 --   ZONES    the poller counts a zone's animals as the game's zone window does (getAnimalsConnected, getDZone the
 --            fallback, none twice); zone rows, totals, the bulk selection's list and an animal's zone name agree
+--   MILKRULE the game's milk rule: any container that is empty or holds this milk (a water bottle too), main
+--            inventory only; the greyed reason says so; an animal with no square is out of reach
+--   FAR      an animal not drawn near (no body points): the walk up first, the game's handler after it; still not
+--            drawn, out of reach and nothing handed over
+--   AWAY     the run gives up cleanly (queue cleared, animal let go) when the player is moved well off, the queue
+--            is stuck, or one animal takes too long; walking up from afar is no walk-off
+--   LAND     a press's landing waits for its stop to be drawn (A on All milkable lands on Clear), then 1.5 s at most
+--   BAND     the zone band's fit as drawBand lays it out; short of room the margins close up before Rename leaves
 --   SOURCE   AnimalsTab and the World window's ring wire it up (alert A, roster X, the band's buttons, Feed's picker)
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/animals_quick_sim.lua
 -- It prints FAIL lines and a last line "animals_quick_sim: N checks, M failed"; exits 1 if any failed.
@@ -93,7 +101,8 @@ local CALLS
 local function rec(s) CALLS[#CALLS + 1] = s end
 ISTimedActionQueue = {
     queues = {},
-    isPlayerDoingAction = function() return false end,
+    -- (an action is running while the queue holds any, unless the sim says the queue is stuck)
+    isPlayerDoingAction = function(p) local q = ISTimedActionQueue.queues[p]; return not STUCK and q ~= nil and #q.queue > 0 end,
     clear = function(p) rec("clear"); local q = ISTimedActionQueue.queues[p]; if q then q.queue = {} end end,
 }
 local function Q(p)
@@ -149,6 +158,8 @@ local function animal(name, o)
         return { contains = function(_, k) for _, e in ipairs(a._eats) do if e == k then return true end end return false end }
     end
     a.getBreed = function() return { getMilkType = function() return a._mt end } end
+    -- the points on its body the game's handlers read: known only while it is drawn near (a._far: not)
+    a.getAttachmentWorldPos = function(_, n) if a._far then return nil end return { _point = n } end
     return a
 end
 
@@ -216,10 +227,10 @@ check("GREY milk: 0.05 L is nothing to milk (the game's > 0.1)", not ok and why 
 ok, why = AQ.canMilk(p, bull)
 check("GREY milk: an animal the game says cannot be milked", not ok and why == "UI_ZeD_Animals_NoMilkYet", why)
 ok, why = AQ.canMilk(p, bessie)
-check("GREY milk: no bucket", not ok and why == "UI_ZeD_Animals_NeedBucket", why)
+check("GREY milk: no bucket", not ok and why == "UI_ZeD_Animals_NeedMilkContainer", why)
 p._buckets = { bucket("GoatPail", "GoatMilk") }
 ok, why = AQ.canMilk(p, bessie)
-check("GREY milk: a bucket that takes only another milk", not ok and why == "UI_ZeD_Animals_NeedBucket", why)
+check("GREY milk: a bucket that takes only another milk", not ok and why == "UI_ZeD_Animals_NeedMilkContainer", why)
 p._buckets = { bucket("Bucket1"), bucket("Bucket2") }
 p._full = true
 ok, why = AQ.canMilk(p, bessie)
@@ -286,7 +297,7 @@ ok2 = AQ.act("milk", p, bessie)
 check("CACHE the press itself checks again: no bucket, no act", ok2 == false)
 AQ.forgetChecks()
 local ok3, why3 = AQ.check("milk", p, bessie)
-check("CACHE forgotten: the fresh answer", ok3 == false and why3 == "UI_ZeD_Animals_NeedBucket", why3)
+check("CACHE forgotten: the fresh answer", ok3 == false and why3 == "UI_ZeD_Animals_NeedMilkContainer", why3)
 p._buckets = { bucket("Bucket1") }
 AQ.forgetChecks()
 
@@ -335,7 +346,7 @@ p._buckets = { bucket("CowPail", "CowMilk") }
 AQ.forgetChecks()
 v = AQ.selectionVerbs(p, { goat })
 v = v[#v]
-check("SELECT band: a goat with only a cow-milk bucket greys Milk", v.id == "milk" and v.ok == false and v.why == "UI_ZeD_Animals_NeedBucket",
+check("SELECT band: a goat with only a cow-milk bucket greys Milk", v.id == "milk" and v.ok == false and v.why == "UI_ZeD_Animals_NeedMilkContainer",
     v.why)
 AQ.forgetChecks()
 v = AQ.selectionVerbs(p, { goat, cowA })
@@ -391,7 +402,7 @@ CALLS = {}
 AQ.start(p, "milk", { e1, e2 })
 AQ.tick(); p._buckets = {}; finishAction(p); AQ.tick()   -- the bucket filled: E1 keeps some milk, no bucket left
 check("RUN the bucket full: E1 counts, E2 not handed over, the reason shown",
-    AQ.run == nil and #CALLS == 1 and AQ.last.why == "UI_ZeD_Animals_NeedBucket", AQ.last.why .. " " .. #CALLS)
+    AQ.run == nil and #CALLS == 1 and AQ.last.why == "UI_ZeD_Animals_NeedMilkContainer", AQ.last.why .. " " .. #CALLS)
 p._buckets = { bucket("Bucket1") }
 
 -- the game never takes the action up (it shows no action in the queue)
@@ -580,6 +591,203 @@ fp._food = {}
 ok, why = AQ.start(fp, "feed", { r2 }, "Carrot")
 check("FEED nothing of that food: no run, the reason", not ok and why == "UI_ZeD_Animals_NeedFood", why)
 
+-- MILKRULE --------------------------------------------------------------------
+-- The game's milk rule (InventoryItem.isAvailableFluidContainer, through getAvailableFluidContainer on the main
+-- inventory): any container that is empty or holds this milk, a water bottle as much as a bucket; the bags in the
+-- inventory are not looked in. The greyed reason says so.
+ISTimedActionQueue.queues = {}
+AQ.forgetChecks()
+do
+    local pm = player()
+    local cowM = animal("CowM", { milk = 4, milkable = true })
+    pm._buckets = { bucket("WaterBottle") }
+    local okM, whyM, toolM = AQ.canMilk(pm, cowM)
+    check("MILKRULE an empty water bottle is a milk container to the game: Milk is offered with it",
+        okM and toolM and toolM._name == "WaterBottle", whyM)
+    pm._buckets = {}
+    okM, whyM = AQ.canMilk(pm, cowM)
+    check("MILKRULE the reason names the game's rule, not a bucket", not okM and whyM == "UI_ZeD_Animals_NeedMilkContainer", whyM)
+    local AQsrc = readFile(Z .. "AnimalsQuick.lua")
+    check("MILKRULE the offer is the game's own list (main inventory, no bag walk)",
+        AQsrc:find('ocall(inv, "getAvailableFluidContainer", mt)', 1, true) ~= nil
+        and AQsrc:find("getAvailableFluidContainerRecurse", 1, true) == nil)
+    local EN = readFile(ROOT .. "42/media/lua/shared/Translate/EN/UI.json")
+    check("MILKRULE the old bucket wording is gone, the new key is there",
+        EN:find("UI_ZeD_Animals_NeedBucket", 1, true) == nil and EN:find('"UI_ZeD_Animals_NeedMilkContainer"', 1, true) ~= nil)
+    local noSq = animal("NoSq", { milk = 4, milkable = true, sq = false })
+    pm._buckets = { bucket("Bucket1") }
+    okM, whyM = AQ.canMilk(pm, noSq)
+    check("MILKRULE an animal with no square is out of reach (the game's milking reads its square)",
+        not okM and whyM == "UI_ZeD_Animals_OutOfReach", whyM)
+end
+
+-- FAR -------------------------------------------------------------------------
+-- An animal not drawn near the player has no body points; the game's handlers read them (vanilla throws "attempted
+-- index: x of non-table" in onMilkAnimal). ZeD walks up first and hands the act over when the walk is done.
+ISTimedActionQueue.queues = {}
+AQ.forgetChecks()
+WALK_OK = true
+do
+    p._buckets = { bucket("Bucket1") }
+    local far1 = animal("Far1", { milk = 5, milkable = true }); far1._far = true
+    CALLS = {}
+    local okF = AQ.start(p, "milk", { far1 })
+    check("FAR not drawn near: only the walk up is handed over, not the game's milk handler",
+        okF and #CALLS == 1 and CALLS[1] == "walk:Far1@sq" and AQ.run and AQ.run.approach == true, table.concat(CALLS, " "))
+    AQ.tick(); far1._far = false; finishAction(p); AQ.tick()
+    check("FAR the walk done, the animal drawn: the milk handed over", CALLS[2] == "milk:Far1:Bucket1:true"
+        and AQ.run ~= nil and not AQ.run.approach, table.concat(CALLS, " "))
+    AQ.tick(); far1._milk = 0; finishAction(p); AQ.tick()
+    check("FAR then Done 1 of 1", AQ.run == nil and AQ.last.why == "UI_ZeD_Animals_RunDone(1,1)", AQ.last and AQ.last.why)
+
+    local far2 = animal("Far2", { milk = 5, milkable = true }); far2._far = true
+    CALLS = {}
+    AQ.start(p, "milk", { far2 })
+    AQ.tick(); finishAction(p); AQ.tick()
+    local joined = table.concat(CALLS, " ")
+    check("FAR still not drawn after the walk: ends Out of reach, the handler never called, the queue cleared",
+        AQ.run == nil and AQ.last.why == "UI_ZeD_Animals_OutOfReach" and joined:find("milk:", 1, true) == nil
+        and #ISTimedActionQueue.queues[p].queue == 0, joined)
+
+    local farSheep = animal("FarSheep", { wool = 5, shearable = true }); farSheep._far = true
+    p._shears = { shears("Manual") }
+    CALLS = {}
+    local okS, _, howS = AQ.act("shear", p, farSheep)
+    check("FAR shear: the walk up only", okS and howS == "approach" and CALLS[1] == "walk:FarSheep@sq" and #CALLS == 1, table.concat(CALLS, " "))
+    local farCow = animal("FarCow", { hunger = 70, eats = { "Vegetables" } }); farCow._far = true
+    local fpF = player(); fpF._food = { carrot() }
+    CALLS = {}
+    local okD, _, howD = AQ.act("feed", fpF, farCow, "Carrot")
+    check("FAR feed: the walk up only (the game's feed reads the head point)", okD and howD == "approach" and #CALLS == 1, table.concat(CALLS, " "))
+    WALK_OK = false
+    CALLS = {}
+    local okW, whyW = AQ.act("milk", p, animal("Far3", { milk = 5, milkable = true, }))
+    check("FAR drawn: no walk needed, the handler at once", okW and CALLS[1] == "milk:Far3:Bucket1:true", table.concat(CALLS, " "))
+    local far4 = animal("Far4", { milk = 5, milkable = true }); far4._far = true
+    CALLS = {}
+    okW, whyW = AQ.act("milk", p, far4)
+    check("FAR no free square beside it: out of reach, nothing handed over", not okW and whyW == "UI_ZeD_Animals_OutOfReach" and #CALLS == 1, whyW)
+    WALK_OK = true
+    ISTimedActionQueue.queues = {}
+end
+
+-- AWAY ------------------------------------------------------------------------
+-- The run gives up cleanly: the player moved well away (by other means than the stick, which cancels on its own),
+-- a queue holding actions with none running, or one animal taking too long. Each clears the game's queue (nothing
+-- of the run's left waiting) and lets the animal go.
+do
+    local pa = player()
+    pa._x, pa._y = 0, 0
+    pa.getX = function() return pa._x end
+    pa.getY = function() return pa._y end
+    pa._buckets = { bucket("B") }
+    local function at(a, x, y) a.getX = function() return x end; a.getY = function() return y end; return a end
+    local g1 = at(animal("G1", { milk = 5, milkable = true }), 1, 0)
+    local g2 = at(animal("G2", { milk = 5, milkable = true }), 2, 0)
+    ISTimedActionQueue.queues = {}
+    CALLS = {}
+    AQ.start(pa, "milk", { g1, g2 })
+    for _ = 1, 10 do AQ.tick() end
+    check("AWAY the run waits while the player stands by", AQ.run ~= nil)
+    pa._x, pa._y = 16, 16
+    AQ.tick()
+    check("AWAY moved 16 squares off mid-milking: the run stops, Stopped after 0 of 2",
+        AQ.run == nil and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,2)", AQ.last and AQ.last.why)
+    check("AWAY nothing left queued, G1 let go", #ISTimedActionQueue.queues[pa].queue == 0 and g1._blocked == false
+        and table.concat(CALLS, " "):find("clear", 1, true) ~= nil, table.concat(CALLS, " "))
+    check("AWAY the tick hook is off", hookCount() == 0)
+
+    -- walking up from afar is no walk-off: the distance only shrinks
+    pa._x, pa._y = 20, 0
+    g1._milk = 5
+    ISTimedActionQueue.queues = {}
+    AQ.start(pa, "milk", { g1 })
+    for x = 19, 2, -1 do pa._x = x; AQ.tick() end
+    check("AWAY walking up 20 squares: the run goes on", AQ.run ~= nil)
+    pa._x = 9
+    AQ.tick()
+    check("AWAY 8 squares off after coming within 1: still within the margin", AQ.run ~= nil)
+    pa._x = 11
+    AQ.tick()
+    check("AWAY 10 squares off after coming within 1: stopped", AQ.run == nil)
+
+    -- a stuck queue: actions in it, none running
+    pa._x = 0
+    g1._milk = 5
+    ISTimedActionQueue.queues = {}
+    AQ.start(pa, "milk", { g1 })
+    STUCK = true
+    for _ = 1, AQ.STALL_TICKS do AQ.tick() end
+    check("AWAY a stuck queue is given STALL_TICKS ticks", AQ.run ~= nil)
+    AQ.tick()
+    check("AWAY then the run stops and clears it", AQ.run == nil and #ISTimedActionQueue.queues[pa].queue == 0 and g1._blocked == false)
+    STUCK = false
+
+    -- too long
+    g1._milk = 5
+    ISTimedActionQueue.queues = {}
+    AQ.start(pa, "milk", { g1 })
+    AQ.tick()
+    NOW = NOW + AQ.WAIT_MS + 1
+    AQ.tick()
+    check("AWAY one animal past WAIT_MS: stopped, cleared", AQ.run == nil and #ISTimedActionQueue.queues[pa].queue == 0)
+    ISTimedActionQueue.queues = {}
+end
+
+-- LAND and BAND ---------------------------------------------------------------
+-- Cut AT.navFocusIndex and AT.bandFits out of AnimalsTab.lua and run them as they are.
+do
+    local TABSRC = readFile(Z .. "AnimalsTab.lua")
+    local function cutTab(from)
+        local a = TABSRC:find(from, 1, true)
+        assert(a, "not in AnimalsTab.lua: " .. from)
+        local _, b = TABSRC:find("\nend\n", a, true)
+        return TABSRC:sub(a, b)
+    end
+    local navMs = TABSRC:match("\n(local NAV_FOCUS_MS = %d+)")
+    local env = setmetatable({ AT = {} }, { __index = _G })
+    local chunk = assert(loadstring(navMs .. "\n" .. cutTab("function AT.navFocusIndex(") .. cutTab("function AT.bandFits(")))
+    setfenv(chunk, env)
+    chunk()
+    local ATs = env.AT
+
+    -- LAND: A on All milkable names Clear; the ring is built once from the band as it was, then from the new one
+    local win = { _animalsNavFocusTarget = "animals:bulk:clear" }
+    local before = { { id = "animals:roster:1" }, { id = "animals:bulk:hungry" }, { id = "animals:bulk:milkable" } }
+    local after = { { id = "animals:roster:1" }, { id = "animals:bulk:clear" }, { id = "animals:bulk:feed" }, { id = "animals:bulk:milk" } }
+    check("LAND the band not redrawn yet: no landing, the target kept", ATs.navFocusIndex(win, before, 1000) == nil
+        and win._animalsNavFocusTarget == "animals:bulk:clear")
+    check("LAND the band redrawn: lands on Clear (not Milk or Feed), the target spent",
+        ATs.navFocusIndex(win, after, 1016) == 2 and win._animalsNavFocusTarget == nil and win._animalsNavFocusSince == nil)
+    win._animalsNavFocusTarget = "animals:bulk:gone"
+    ATs.navFocusIndex(win, before, 5000)
+    ATs.navFocusIndex(win, before, 6400)
+    check("LAND a target never drawn is kept 1.5 s", win._animalsNavFocusTarget == "animals:bulk:gone")
+    ATs.navFocusIndex(win, before, 6501)
+    check("LAND then dropped", win._animalsNavFocusTarget == nil)
+    win._animalsNavFocusTarget = "breadcrumb"
+    check("LAND the breadcrumb", ATs.navFocusIndex(win, { { id = "x" }, { id = "y", isBreadcrumb = true } }, 1) == 2)
+
+    -- BAND: the German band at 4K 1.75x, the drawn widths measured off QA's picture (Fira Mono, 8u = 14 px)
+    local W = { ["Alle hungrigen"] = 203, ["Alle melkbaren"] = 210, ["Umbenennen"] = 158, ["Zone entfernen"] = 206,
+                ["All hungry"] = 150, ["All milkable"] = 180, ["Rename"] = 115, ["Remove zone"] = 170 }
+    ZeD.T = { px = function(u) return math.floor(u * 1.75 + 0.5) end }
+    ZeD.Molecules = { buttonW = function(l) return W[l] end }
+    local leadDE = { { label = "Alle hungrigen" }, { label = "Alle melkbaren" } }
+    local shownDE = { { label = "Umbenennen", id = "rename" }, { label = "Zone entfernen", id = "remove" } }
+    local fits, edge = ATs.bandFits(837, leadDE, shownDE)
+    check("BAND German, 837 px: Rename stays, the margins close up to 4u", fits == true and edge == 7, tostring(fits) .. " " .. tostring(edge))
+    -- (the old sum counted one 8u space too many and dropped Rename here)
+    local room = 837 - 14 - (203 + 14) - (210 + 14)
+    check("BAND the old sum would have dropped it", 158 + 14 + 206 + 14 > room)
+    fits, edge = ATs.bandFits(837, { { label = "All hungry" }, { label = "All milkable" } },
+        { { label = "Rename" }, { label = "Remove zone" } })
+    check("BAND English: fits at the usual margins", fits == true and edge == nil)
+    fits = ATs.bandFits(800, leadDE, shownDE)
+    check("BAND German at 800 px: Rename leaves", fits == false)
+    ZeD.T, ZeD.Molecules = nil, nil
+end
+
 -- ZONES -----------------------------------------------------------------------
 -- The poller's zone counts: the game's zone:getAnimalsConnected() first (a spawned hen can sit with no getDZone()
 -- for a long while), getDZone() the fallback, no animal counted twice; the zone rows, the totals, the bulk
@@ -681,7 +889,15 @@ check("SOURCE the verbs are the game's words", TAB:find('milk = "ContextMenu_Mil
 check("SOURCE alert A calls AT.alertAct", WW:find("AT.alertAct(w, el.animal, el.verb)", 1, true) ~= nil)
 check("SOURCE roster X toggles", WW:find("AT.toggleSelected(w, el.animal)", 1, true) ~= nil)
 check("SOURCE band buttons are stops", WW:find('id = "animals:bulk:" .. tostring(b.id)', 1, true) ~= nil)
-check("SOURCE a focus target may be an id", WW:find('(target == "breadcrumb" and e.isBreadcrumb) or e.id == target', 1, true) ~= nil)
+check("SOURCE a focus target may be an id", TAB:find('(target == "breadcrumb" and e.isBreadcrumb) or e.id == target', 1, true) ~= nil)
+check("SOURCE the ring asks AT.navFocusIndex and applies a found landing even when the stops did not change",
+    WW:find("navIdx = ZeD.AnimalsTab.navFocusIndex(win, newEls, getTimestampMs())", 1, true) ~= nil
+    and WW:find("if dirty or alwaysRebuild or cardJumpIdx or navIdx then", 1, true) ~= nil
+    and WW:find("win._animalsNavFocusTarget = nil", 1, true) == nil)
+check("SOURCE alert Milk and Shear go as a run of one", TAB:find('if verb == "milk" or verb == "shear" then return QK().start(player, verb, { animal }) == true end', 1, true) ~= nil)
+check("SOURCE the zone band asks AT.bandFits and draws with its margin",
+    TAB:find("local keepRename, closeUp = AT.bandFits(w, lead, shown)", 1, true) ~= nil
+    and TAB:find("status = status and { text = status } or nil, edge = edge })", 1, true) ~= nil)
 check("SOURCE right-click on a row toggles", TAB:find("return AT.toggleSelected(win, rz.animal)", 1, true) ~= nil)
 check("SOURCE Feed is the game's word", TAB:find('feed = "ContextMenu_Feed"', 1, true) ~= nil)
 check("SOURCE Feed in the band opens the picker", TAB:find("return AT.openFeedPicker(win, state.zoneName, sx, sy)", 1, true) ~= nil)

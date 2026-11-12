@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Подойти к %1 и остричь",
     "UI_ZeD_Animals_HelpShearSel": "Остричь отмеченных животных по очереди, подходя к каждому",
     "UI_ZeD_Animals_HelpStopRun": "Стоп: текущее действие закончится, остальные отменятся",
-    "UI_ZeD_Animals_NeedBucket": "Для дойки нужно ведро с местом для этого молока.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Для дойки нужна пустая ёмкость или ёмкость с этим молоком, не в сумке.",
     "UI_ZeD_Animals_NeedShears": "Для стрижки нужны ножницы для стрижки.",
     "UI_ZeD_Animals_NoMilkYet": "Молока пока нет.",
     "UI_ZeD_Animals_NoWoolYet": "Шерсти пока мало для стрижки.",

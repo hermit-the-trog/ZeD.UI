@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "%1에게 걸어가서 털깎기",
     "UI_ZeD_Animals_HelpShearSel": "체크한 동물을 하나씩 걸어가며 털깎기",
     "UI_ZeD_Animals_HelpStopRun": "중지: 진행 중인 행동은 끝나고 나머지는 취소",
-    "UI_ZeD_Animals_NeedBucket": "착유하려면 이 젖을 담을 자리가 있는 양동이가 필요합니다.",
+    "UI_ZeD_Animals_NeedMilkContainer": "착유하려면 빈 용기나 이 젖이 담긴 용기가 가방 밖에 있어야 합니다.",
     "UI_ZeD_Animals_NeedShears": "털깎기에는 양털 가위가 필요합니다.",
     "UI_ZeD_Animals_NoMilkYet": "아직 짤 젖이 없습니다.",
     "UI_ZeD_Animals_NoWoolYet": "아직 깎을 털이 부족합니다.",

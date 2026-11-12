@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Loop naar %1 en scheer het",
     "UI_ZeD_Animals_HelpShearSel": "Scheer de aangevinkte dieren na elkaar, lopend naar elk",
     "UI_ZeD_Animals_HelpStopRun": "Stop: de lopende actie eindigt en de rest vervalt",
-    "UI_ZeD_Animals_NeedBucket": "Melken vraagt een emmer met ruimte voor deze melk.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Melken vraagt een lege bak, of een met deze melk, buiten je tassen.",
     "UI_ZeD_Animals_NeedShears": "Scheren vraagt een schapenschaar.",
     "UI_ZeD_Animals_NoMilkYet": "Nog geen melk om te halen.",
     "UI_ZeD_Animals_NoWoolYet": "Nog niet genoeg wol om te scheren.",

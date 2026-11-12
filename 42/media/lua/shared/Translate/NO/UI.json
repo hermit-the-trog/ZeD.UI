@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Gå til %1 og klipp det",
     "UI_ZeD_Animals_HelpShearSel": "Klipp de avhukede dyrene ett om gangen og gå til hvert",
     "UI_ZeD_Animals_HelpStopRun": "Stopp: handlingen som pågår slutter, og resten droppes",
-    "UI_ZeD_Animals_NeedBucket": "Melking krever en bøtte med plass til denne melken.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Melking krever en tom beholder, eller en med denne melken, utenfor veskene.",
     "UI_ZeD_Animals_NeedShears": "Klipping krever saueskjær.",
     "UI_ZeD_Animals_NoMilkYet": "Ingen melk å ta ennå.",
     "UI_ZeD_Animals_NoWoolYet": "Ikke nok ull å klippe ennå.",

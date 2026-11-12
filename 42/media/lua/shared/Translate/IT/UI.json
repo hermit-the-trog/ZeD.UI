@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Raggiungi %1 e tosalo",
     "UI_ZeD_Animals_HelpShearSel": "Tosa gli animali spuntati uno dopo l'altro, raggiungendo ciascuno",
     "UI_ZeD_Animals_HelpStopRun": "Interrompi: l'azione in corso finisce e il resto viene scartato",
-    "UI_ZeD_Animals_NeedBucket": "Mungere richiede un secchio con spazio per questo latte.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Mungere richiede un contenitore vuoto, o con questo latte, fuori dalle borse.",
     "UI_ZeD_Animals_NeedShears": "Tosare richiede delle cesoie.",
     "UI_ZeD_Animals_NoMilkYet": "Ancora niente latte da prendere.",
     "UI_ZeD_Animals_NoWoolYet": "Ancora poca lana da tosare.",

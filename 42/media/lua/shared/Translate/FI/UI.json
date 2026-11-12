@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Kävele luo: %1 ja keritse",
     "UI_ZeD_Animals_HelpShearSel": "Keritse merkityt eläimet yksi kerrallaan, kävellen kunkin luo",
     "UI_ZeD_Animals_HelpStopRun": "Lopeta: käynnissä oleva toiminto päättyy ja loput jätetään",
-    "UI_ZeD_Animals_NeedBucket": "Lypsäminen vaatii ämpärin, jossa on tilaa tälle maidolle.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Lypsäminen vaatii tyhjän astian tai astian, jossa on tätä maitoa, laukkujen ulkopuolella.",
     "UI_ZeD_Animals_NeedShears": "Keritseminen vaatii keritsimet.",
     "UI_ZeD_Animals_NoMilkYet": "Ei vielä maitoa otettavaksi.",
     "UI_ZeD_Animals_NoWoolYet": "Ei vielä tarpeeksi villaa kerittäväksi.",

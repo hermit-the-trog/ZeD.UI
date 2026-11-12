@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Camina fins a %1 i esquila'l",
     "UI_ZeD_Animals_HelpShearSel": "Esquila els animals marcats un rere l'altre, caminant fins a cadascun",
     "UI_ZeD_Animals_HelpStopRun": "Aturar: l'acció en curs acaba i la resta es descarta",
-    "UI_ZeD_Animals_NeedBucket": "Munyir necessita una galleda amb lloc per a aquesta llet.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Munyir necessita un recipient buit, o un amb aquesta llet, fora de les bosses.",
     "UI_ZeD_Animals_NeedShears": "Esquilar necessita tisores d'esquilar.",
     "UI_ZeD_Animals_NoMilkYet": "Encara no hi ha llet per treure.",
     "UI_ZeD_Animals_NoWoolYet": "Encara no hi ha prou llana per esquilar.",

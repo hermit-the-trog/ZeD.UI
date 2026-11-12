@@ -131,9 +131,10 @@ step(1, function()
     if okB and zB then zoneB = zB; zones[#zones + 1] = zB end
     check(zoneA ~= nil and zoneB ~= nil, "setup: two livestock zones made (" .. tostring(zA) .. ")")
     local okH, h1 = pcall(addAnimal, getCell(), px - 8 + 0.5, py + 0.5, 0, "hen", breedOf("hen"))
-    if okH and h1 then henIn = h1; animals[#animals + 1] = h1 end
+    -- (the mark zedqa_animals_restore.lua looks for, should this run be cut short before its cleanup)
+    if okH and h1 then henIn = h1; animals[#animals + 1] = h1; pcall(function() h1:getModData().ZeDQA_spawned = true end) end
     local okO, h2 = pcall(addAnimal, getCell(), px + 3 + 0.5, py + 3 + 0.5, 0, "hen", breedOf("hen"))
-    if okO and h2 then henOut = h2; animals[#animals + 1] = h2 end
+    if okO and h2 then henOut = h2; animals[#animals + 1] = h2; pcall(function() h2:getModData().ZeDQA_spawned = true end) end
     check(henIn ~= nil and henOut ~= nil, "setup: a hen inside zone A and a hen outside every zone")
     pcall(function() ZeD.AnimalsAlertPoller.refreshCache() end)
 end)

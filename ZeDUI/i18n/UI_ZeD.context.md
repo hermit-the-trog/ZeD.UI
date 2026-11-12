@@ -603,7 +603,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_HelpShearOne` | `Walk to %1 and shear it` | Animals tab, alerts: help line over an alert's Shear button; %1 is the animal's name | - |
 | `UI_ZeD_Animals_HelpShearSel` | `Shear the ticked animals one after another, walking to each` | Animals tab, zone view: help line over Shear (n), which shears the ticked animals in turn | - |
 | `UI_ZeD_Animals_HelpStopRun` | `Stop: the action under way ends and the rest are dropped` | Animals tab, zone view: help line over Stop while a milking or shearing run is going | - |
-| `UI_ZeD_Animals_NeedBucket` | `Milk needs a bucket with room for this milk.` | Animals tab: why Milk is greyed (a balloon over the button); the game's Milk word starts it | - |
+| `UI_ZeD_Animals_NeedMilkContainer` | `Milk needs an empty container, or one with this milk, outside your bags.` | Animals tab: why Milk is greyed (a balloon over the button); the game takes any carried container that is empty or holds this milk (a water bottle too), from the main inventory only, never from a bag | - |
 | `UI_ZeD_Animals_NeedShears` | `Shear needs shears.` | Animals tab: why Shear is greyed (a balloon over the button); the game's Shear word starts it | - |
 | `UI_ZeD_Animals_NoMilkYet` | `No milk to take yet.` | Animals tab: why Milk is greyed (a balloon over the button) | - |
 | `UI_ZeD_Animals_NoWoolYet` | `Not enough wool to shear yet.` | Animals tab: why Shear is greyed (a balloon over the button) | - |

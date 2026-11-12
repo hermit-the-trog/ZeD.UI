@@ -3339,7 +3339,7 @@
     "UI_ZeD_Animals_HelpShearOne": "Dojdi k %1 a ostříhej ho",
     "UI_ZeD_Animals_HelpShearSel": "Ostříhej zaškrtnutá zvířata jedno po druhém, s cestou ke každému",
     "UI_ZeD_Animals_HelpStopRun": "Zastavit: probíhající akce skončí a zbytek se zahodí",
-    "UI_ZeD_Animals_NeedBucket": "Dojení potřebuje kbelík s místem pro toto mléko.",
+    "UI_ZeD_Animals_NeedMilkContainer": "Dojení potřebuje prázdnou nádobu, nebo nádobu s tímto mlékem, mimo tašky.",
     "UI_ZeD_Animals_NeedShears": "Stříhání potřebuje nůžky na ovce.",
     "UI_ZeD_Animals_NoMilkYet": "Zatím žádné mléko k nadojení.",
     "UI_ZeD_Animals_NoWoolYet": "Zatím málo vlny ke stříhání.",
