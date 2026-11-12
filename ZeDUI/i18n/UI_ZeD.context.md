@@ -8,14 +8,14 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 3632.
+Total keys: 3637.
 
 ## Areas
 
 - [Accent](#accent) (1)
 - [Act](#act) (284)
 - [ActionBar](#actionbar) (4)
-- [Animals](#animals) (191)
+- [Animals](#animals) (196)
 - [Appliance](#appliance) (21)
 - [Belt](#belt) (34)
 - [Card](#card) (95)
@@ -617,6 +617,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_Selected` | `%1 selected` | Animals tab, zone view: status line with rows ticked; %1 is how many | 20 |
 | `UI_ZeD_Animals_Stop` | `Stop` | Animals tab, zone view: button that stops a milking or shearing run | 12 |
 | `UI_ZeD_Animals_VerbCount` | `%1 (%2)` | Animals tab, zone view: a verb button with its count: %1 is the game's Milk or Shear, %2 how many | 16 |
+| `UI_ZeD_Animals_FeedNote` | `For %1 of %2 \| %3 carried` | Animals tab, zone view: dim words at the right of a food in Feed's food picker; %1 how many of the hungry ticked animals eat it, %2 how many are hungry, %3 how many of it the player carries | 28 |
+| `UI_ZeD_Animals_HelpFeedSel` | `Pick a food you carry, then feed the ticked animals one after another, walking to each` | Animals tab, zone view: help line over Feed (n), which opens a list of the food the player carries | - |
+| `UI_ZeD_Animals_NeedFood` | `Feed needs food they eat: nothing you carry suits them.` | Animals tab: why Feed is greyed (a balloon over the button); the game's Feed word starts it | - |
+| `UI_ZeD_Animals_NotHungry` | `This animal is not hungry.` | Animals tab: why an animal is not fed (the game offers Feed only to a hungry animal) | - |
+| `UI_ZeD_Animals_RunFeeding` | `Feeding %1 of %2` | Animals tab, zone view: status line while a feeding run goes; %1 is the animal under way, %2 how many | 30 |
 
 ## Appliance
 

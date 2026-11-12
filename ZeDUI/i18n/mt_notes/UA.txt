@@ -33,3 +33,5 @@ Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All m
 Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
 'Turn all back on' shortened to 'Увімкнути всі' (18 limit); 'used by %1' as 'потрібен: %1'.
 'Turn off with the %1' as 'Вимкнути разом із %1' (noun after count missing). Mods screen = 'Моди' per ZeD's file.
+
+Feed picker (Nov 11 2026): 5 UI_ZeD_Animals_ lines (Feed (n) help, the food list note "For %1 of %2 | %3 carried", the greyed reasons, the run status) are machine drafts, not checked by a native speaker. Feed on the button is the game's own word.

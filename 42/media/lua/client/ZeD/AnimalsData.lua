@@ -201,8 +201,13 @@ function AD.isWild(animal)
     return ok and val
 end
 
+--- The animal's zone name: the zone the poller counted it in (the game's getAnimalsConnected, as the zone rows
+-- count), else its own getDZone(), which can stay empty for a while after the animal is placed.
 function AD.getZoneName(animal)
     if not animal then return nil end
+    local AP = ZeD.AnimalsAlertPoller
+    local kept = AP and AP.getZoneNameOf and AP.getZoneNameOf(animal)
+    if kept then return kept end
     local zone = animal.getDZone and animal:getDZone()
     if not zone then return nil end
     local ok, val = pcall(zone.getName, zone)

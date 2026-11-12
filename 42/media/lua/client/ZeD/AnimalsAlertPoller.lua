@@ -34,7 +34,8 @@ local CACHE = {
 AP.CACHE = CACHE
 
 -- ============================================================================
--- ZONE DISCOVERY — iterate loaded cell animals, group by getDZone()
+-- ZONE DISCOVERY — the cell's animals in reach, grouped by the zones the game
+-- connects them to (getAnimalsConnected), getDZone() as the fallback
 -- ============================================================================
 
 local function discoverPlayerAnimals(player)
@@ -53,6 +54,7 @@ local function discoverPlayerAnimals(player)
 
     local SCAN_RADIUS = 75  -- covers most ranch setups
     local cx, cy, cz = sq:getX(), sq:getY(), sq:getZ()
+    local seen, placed = {}, {}   -- [animal] = true: in the list; given a zone (no animal counts twice)
     local ok, list = pcall(cell.getAnimals, cell)
     -- (the list is a LinkedList, slow by index: walked once with its iterator)
     local it = ok and list and list:iterator()
@@ -61,29 +63,49 @@ local function discoverPlayerAnimals(player)
         if obj and math.floor(obj:getZ()) == cz and math.abs(obj:getX() - cx) <= SCAN_RADIUS
                 and math.abs(obj:getY() - cy) <= SCAN_RADIUS and not AD.isWild(obj) then
             table.insert(animals, obj)
-            local zone = obj.getDZone and obj:getDZone()
-            if zone then
-                if not zoneMap[zone] then
-                    zoneMap[zone] = {}
-                    table.insert(zoneList, zone)
-                end
-                table.insert(zoneMap[zone], obj)
-            end
+            seen[obj] = true
         end
     end
 
-    -- Also include empty zones from the designation system
-    -- (zones with no animals wouldn't be found by the radius scan)
+    local function put(zone, obj)
+        if not zoneMap[zone] then
+            zoneMap[zone] = {}
+            table.insert(zoneList, zone)
+        end
+        if obj and not placed[obj] then
+            placed[obj] = true
+            table.insert(zoneMap[zone], obj)
+            -- (connected to the zone but past the scan's reach: the totals count it too, as the zone row does)
+            if not seen[obj] then seen[obj] = true; table.insert(animals, obj) end
+        end
+    end
+
+    -- Every streamed zone, empty ones too, with the animals the game counts in it: the game's own zone window
+    -- counts zone:getAnimalsConnected(). An animal's getDZone() can stay empty long after it is placed (a
+    -- spawned hen still had none 200 ticks on), so it is only the fallback below.
     local allZonesJava = DesignationZoneAnimal and DesignationZoneAnimal.getAllZones and DesignationZoneAnimal.getAllZones()
     if allZonesJava then
         for i = 0, allZonesJava:size() - 1 do
             local zone = allZonesJava:get(i)
             if zone and zone.isStillStreamed and zone:isStillStreamed() then
-                if not zoneMap[zone] then
-                    zoneMap[zone] = {}
-                    table.insert(zoneList, zone)
+                put(zone, nil)
+                local okC, conn = false, nil
+                if zone.getAnimalsConnected then okC, conn = pcall(zone.getAnimalsConnected, zone) end
+                if okC and conn then
+                    for j = 0, conn:size() - 1 do
+                        local obj = conn:get(j)
+                        if obj then put(zone, obj) end
+                    end
                 end
             end
+        end
+    end
+
+    -- the fallback: an animal in reach that no zone listed, by its own zone
+    for _, obj in ipairs(animals) do
+        if not placed[obj] then
+            local zone = obj.getDZone and obj:getDZone()
+            if zone then put(zone, obj) end
         end
     end
 
@@ -272,10 +294,12 @@ function AP.refreshCache()
 
     -- Zone summaries (keyed by zone name for stable identity across cache refreshes)
     CACHE.zoneSummaries = {}
+    CACHE.zoneOf = {}
     for _, zone in ipairs(zoneList) do
         local summary = computeZoneSummary(zone, zoneMap[zone] or {})
         local key = summary.name or "?"
         CACHE.zoneSummaries[key] = summary
+        for _, a in ipairs(zoneMap[zone] or {}) do CACHE.zoneOf[a] = key end
     end
 
     CACHE.lastTick = getTimestampMs() or 0
@@ -295,6 +319,11 @@ function AP.isReady()         return CACHE.ready end
 --- Get zone summary by name (stable key).
 function AP.getZoneSummary(zoneName)
     return CACHE.zoneSummaries[zoneName]
+end
+
+--- The name of the zone the last refresh put this animal in (the zone rows' own count), or nil.
+function AP.getZoneNameOf(animal)
+    return CACHE.zoneOf and CACHE.zoneOf[animal] or nil
 end
 
 --- Get animals for a specific zone by name (from cache)

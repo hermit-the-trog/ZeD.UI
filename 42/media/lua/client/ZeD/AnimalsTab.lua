@@ -44,6 +44,7 @@ require "ZeD/AnimalsData"
 require "ZeD/AnimalsAlertPoller"
 require "ZeD/AnimalsStressInference"
 require "ZeD/AnimalsQuick"
+require "ZeD/ZeD_ContextList"
 require "ZeD/SafeMode"
 -- Zone creation uses DesignationZoneAnimal directly (no vanilla UI panels)
 
@@ -1093,7 +1094,7 @@ end
 -- ============================================================================
 
 -- the game's word for each verb, and the help line over its button
-local VERB_LABEL = { milk = "ContextMenu_Milk", shear = "ContextMenu_Shear", ["goto"] = "ContextMenu_Walk_to" }
+local VERB_LABEL = { milk = "ContextMenu_Milk", shear = "ContextMenu_Shear", ["goto"] = "ContextMenu_Walk_to", feed = "ContextMenu_Feed" }
 local VERB_HELP  = { milk = "UI_ZeD_Animals_HelpMilkOne", shear = "UI_ZeD_Animals_HelpShearOne", ["goto"] = "UI_ZeD_Animals_HelpGoTo" }
 local function verbLabel(v) return getText(VERB_LABEL[v] or "ContextMenu_Walk_to") end
 
@@ -3262,11 +3263,14 @@ local function bulkId(id) return "animals:bulk:" .. tostring(id) end
 -- How the run that ended went ("Done: 3 of 3."), for a few seconds after it ends
 local LAST_RUN_MS = 8000
 
+-- the help line over each of the band's verbs for the ticked rows
+local SEL_HELP = { milk = "UI_ZeD_Animals_HelpMilkSel", shear = "UI_ZeD_Animals_HelpShearSel", feed = "UI_ZeD_Animals_HelpFeedSel" }
+
 -- The zone view's band. Three states:
 --   a run going:    "Milking 2 of 5" and Stop
---   rows ticked:    Clear at the left, "3 selected", then Shear (n) and Milk (n), each
---                   only when it applies to a ticked animal, greyed with the reason when
---                   the tool is missing
+--   rows ticked:    Clear at the left, "3 selected", then Feed (n), Shear (n) and Milk (n),
+--                   each only when it applies to a ticked animal, greyed with the reason
+--                   when the tool (or, for Feed, any food they eat) is missing
 --   nothing ticked: All hungry and All milkable at the left (greyed when none is),
 --                   Rename and Remove zone at the right (Rename leaves first when the
 --                   band is short of room: pressing the zone's name renames it too)
@@ -3296,8 +3300,7 @@ local function drawZoneBand(panel, win, x, y, w, state)
         local verbs = Q.selectionVerbs(player, selected)
         for i, v in ipairs(verbs) do
             add(buttons, v.id, ZeD.tr("UI_ZeD_Animals_VerbCount", verbLabel(v.id), v.n),
-                ZeD.tr(v.id == "milk" and "UI_ZeD_Animals_HelpMilkSel" or "UI_ZeD_Animals_HelpShearSel"),
-                not v.ok, v.why, (i == #verbs) and "primary" or nil)
+                ZeD.tr(SEL_HELP[v.id] or SEL_HELP.milk), not v.ok, v.why, (i == #verbs) and "primary" or nil)
         end
         status = ZeD.tr(#verbs > 0 and "UI_ZeD_Animals_Selected" or "UI_ZeD_Animals_SelNothing", #selected)
     else
@@ -3334,7 +3337,9 @@ local function drawZoneBand(panel, win, x, y, w, state)
         if spec.id == "rename" then win._animalsZoneRenameBtn = rect
         elseif spec.id == "remove" then win._animalsZoneRemoveBtn = rect
         else
-            bulk[#bulk + 1] = { x = rect.x, y = rect.y, w = rect.w, h = rect.h, id = spec.id, disabled = spec.disabled }
+            -- (sx, sy: the button's foot on the screen, where Feed's food picker opens)
+            bulk[#bulk + 1] = { x = rect.x, y = rect.y, w = rect.w, h = rect.h, id = spec.id, disabled = spec.disabled,
+                                sx = panel:getAbsoluteX() + rect.x, sy = panel:getAbsoluteY() + rect.y + rect.h + T.px(1) }
             -- a greyed one says why: over it with the pointer, or on it with the controller
             if spec.disabled then
                 local on = isOn(win, bulkId(spec.id))
@@ -3350,14 +3355,75 @@ local function drawZoneBand(panel, win, x, y, w, state)
     return H
 end
 
+-- ============================================================================
+-- FEED'S FOOD PICKER — a pull-down of the food the player carries (the context
+-- list's look, ZeD_ContextList) under the band's Feed button. One row per food
+-- the hungry ticked animals eat, with how many of them it suits and how many
+-- are carried; picking one starts the feeding run. Rows are controller stops in
+-- the list itself: D-pad up and down, A picks, B cancels.
+-- ============================================================================
+
+AT._feedMenu = nil
+
+local function closeFeedMenu()
+    local m = AT._feedMenu
+    AT._feedMenu = nil
+    if m and m._ctx and m._ctx.open then pcall(m.close, m) end
+end
+
+--- Open the food picker for the zone's ticked animals at (sx, sy) on the screen.
+-- Returns false when nothing carried is food for them (the band has Feed greyed then).
+function AT.openFeedPicker(win, zoneName, sx, sy)
+    local Q = QK()
+    local selected = Q.prune(zoneSelection(win, zoneName), AP().getAnimalsInZone(zoneName))
+    Q.forgetChecks()
+    local foods, _, hungry = Q.feedChoices(getSpecificPlayer(0), selected)
+    if #foods == 0 then return false end
+    closeFeedMenu()
+    local rows = {}
+    for _, c in ipairs(foods) do
+        local name = c.name
+        rows[#rows + 1] = {
+            name = name, category = "food", iconTexture = c.tex,
+            note = ZeD.tr("UI_ZeD_Animals_FeedNote", c.suits, hungry, c.have),
+            onFire = function()
+                -- the ticks as they are now: an animal that left the zone meanwhile is dropped
+                local sel = zoneSelection(win, zoneName)
+                if Q.start(getSpecificPlayer(0), "feed", Q.prune(sel, AP().getAnimalsInZone(zoneName)), name) then
+                    Q.clear(sel)
+                    win._animalsNavFocusTarget = bulkId("stop")
+                end
+            end,
+        }
+    end
+    local m = ZeD_ContextList:new(0, "cursor", sx, sy, nil, rows, nil)
+    m.headText = getText("ContextMenu_Feed")
+    m:initialise()
+    m:open()
+    AT._feedMenu = m
+    -- (B or a click outside closes the list; the controller is back on Feed)
+    win._animalsNavFocusTarget = bulkId("feed")
+    return true
+end
+
 --- Press one of the zone band's buttons by its id: hungry / milkable (tick those rows),
--- clear, milk / shear (run the game's action over the ticked rows), stop. A greyed one does
--- nothing. The controller lands on the button that takes the pressed one's place.
+-- clear, milk / shear (run the game's action over the ticked rows), feed (open the food
+-- picker), stop. A greyed one does nothing. The controller lands on the button that takes
+-- the pressed one's place.
 function AT.bulkPress(win, id)
     local state = getState(win)
     if state.view ~= "zone" or not state.zoneName then return false end
+    local btn
     for _, b in ipairs(win._animalsBulkBtns or {}) do
-        if b.id == id and b.disabled then return false end
+        if b.id == id then
+            if b.disabled then return false end
+            btn = b
+        end
+    end
+    if id == "feed" then
+        local sx = btn and btn.sx or getMouseX()
+        local sy = btn and btn.sy or getMouseY()
+        return AT.openFeedPicker(win, state.zoneName, sx, sy)
     end
     local Q = QK()
     local animals = AP().getAnimalsInZone(state.zoneName)
@@ -3829,9 +3895,8 @@ AT.genomeAct        = genomeAct
 function AT.showAnimal(win, animal)
     local state = getState(win)
     state.submode = "ranch"
-    local zn = nil
-    local dz = ocall(animal, "getDZone")
-    if dz then zn = ocall(dz, "getName") end
+    -- (the zone the rows count it in, getDZone as the fallback: AnimalsData.getZoneName)
+    local zn = AD().getZoneName(animal)
     state.zoneName = zn
     state.view = zn and "zone" or "overview"
     navigate(win, "animal", nil, animal)
