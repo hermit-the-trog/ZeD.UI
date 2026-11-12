@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Journal Tags</title>
+<!-- ZeD-GUI mockup: tags on Journal entries, v1. The director's note (Nov 11 2026 tab review, tabs_char_journal_journal_*.png):
+     "Add tags for common events one would track. Same as folder tag colors."
+     Chrome, tokens, review bar, keycaps and the pointing hand copied from zed_tab_search_v1.html / zed_tab_fill_v1.html.
+     The Journal page after JournalTab.lua (header: Page pop-up + Search entries; Zombies Killed disclosure with
+     drawStatRowDot squares for Fire / Vehicle / Explosion in T.warning / T.info / T.danger; the Write box; Into; month
+     groups with entry head rows "Day N  Mon D, YYYY - HH:MM" and a delete cross; Save in the band at the foot).
+     Tag colors: ZeD.LABELS in shared/ZeD/Tokens.lua (the mod folder and separator labels), each the AccentColors
+     dark / light accent, named with the accent setting's own words.
+     Units: 1 CSS px here = 1 ZeD unit; the game draws 1 unit as 1.75 screen pixels at 4K. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #47a18c; --acc-text: var(--accent); --on-accent: #0c0c0c;
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a; --info: #4488cc;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --page: #0e0f10; --ground: #3a3f2c;
+}
+:root[data-theme="light"] { --acc-text: color-mix(in srgb, var(--accent) 70%, #000); --on-accent: #fff;
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84; --ground: #7d8068;
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48; --info: #1a4477;
+}
+:root[data-acc="orange"] { --accent: #d4922a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: 15px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: center; padding: 8px 16px;
+  font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 5; }
+.review b { color: #ddd; font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.stage { display: flex; justify-content: center; padding: 16px; overflow: hidden; }
+.stage.actual { overflow: auto; justify-content: flex-start; }
+.zoomer { transform-origin: top left; }
+.notes { max-width: 980px; margin: 0 auto; padding: 4px 16px 48px; color: #c8c8c8; font-size: 15px; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: #8fc9b9; margin: 18px 0 8px; }
+.notes p { margin: 0 0 8px; max-width: 80ch; }
+.notes ol, .notes ul { margin: 0 0 8px; padding-left: 20px; max-width: 84ch; }
+.notes li { margin-bottom: 4px; }
+.notes table { border-collapse: collapse; margin: 0 0 10px; font-size: 14px; }
+.notes td { padding: 2px 12px 2px 0; vertical-align: top; }
+.notes .sw { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+
+.scene { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; background: var(--ground); }
+
+/* ---------- ZeD window chrome (from zed_tab_search_v1.html) */
+.win { display: flex; flex-direction: column; background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px; position: relative;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); flex: 0 0 12px; }
+.titlechip { position: absolute; left: 50%; transform: translateX(-50%); background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: 13px; line-height: 22px; color: var(--acc-text); white-space: nowrap; }
+.titlebar .rt { margin-left: auto; background: var(--surface-2); padding: 0 6px; font: 400 12px/22px var(--font-mono); color: var(--text-secondary); }
+.wbody { display: flex; height: 640px; }
+.strip { width: 36px; flex: 0 0 36px; display: flex; flex-direction: column; align-items: stretch; padding-top: 2px; border-right: 1px solid var(--border); }
+.strip .t { height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+.strip .t.on { background: var(--accent); color: var(--on-accent); }
+.drawer { width: 480px; flex: 0 0 480px; display: flex; flex-direction: column; min-height: 0; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; padding: 0 10px 8px; }
+
+/* the Journal's header strip: Page pop-up, then the page's search */
+.jhdr { height: 36px; flex: 0 0 36px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--border); }
+.popup { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 6px; background: var(--surface-1); border: 1px solid var(--border-strong); font: 400 12px/1 var(--font-mono); white-space: nowrap; }
+.popup b { font-weight: 700; }
+.popup::after { content: ""; border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid var(--text-secondary); margin-left: 8px; }
+.field { position: relative; flex: 1; min-width: 0; height: 24px; display: flex; align-items: center; gap: 6px; background: var(--base); border: 1px solid var(--border-strong); padding: 0 6px; }
+.field.focus { border-color: var(--accent); }
+.field .sl { font: 400 13px/1 var(--font-mono); color: var(--text-secondary); }
+.field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: 400 14px/22px var(--font-sans); padding: 0; }
+.field input::placeholder { color: var(--text-secondary); }
+.field .clr { width: 14px; height: 14px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-secondary); font: 700 10px/12px var(--font-mono); text-align: center; cursor: pointer; flex: 0 0 14px; }
+
+/* Zombies Killed */
+.disc { position: relative; display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 4px; margin-top: 6px; background: var(--surface-1);
+  font: 700 12px/1 var(--font-mono); color: var(--text); cursor: pointer; }
+.disc .n { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-heading); display: inline-block; flex: 0 0 auto; }
+.tri.r { border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid var(--text-heading); border-right: 0; }
+.kr { display: flex; align-items: center; height: 21px; padding: 0 4px 0 14px; font: 400 12px/1 var(--font-mono); color: var(--text-heading); }
+.kr .d { width: 6px; height: 6px; margin-right: 5px; }
+.kr .c { margin-left: auto; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* the Write box and the tag picks under it */
+.write { position: relative; margin-top: 10px; min-height: 48px; background: var(--base); border: 1px solid var(--border-strong); padding: 6px 8px; }
+.write.focus { border-color: var(--accent); }
+.write textarea { width: 100%; min-height: 34px; border: 0; outline: 0; resize: none; background: transparent; color: var(--text); font: 400 14px/18px var(--font-sans); padding: 0; display: block; }
+.write textarea::placeholder { color: var(--text-secondary); }
+.chips { display: flex; flex-wrap: wrap; gap: 2px 9px; padding: 7px 0 0; }
+.chip { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 20px; font: 400 11px/1 var(--font-mono); color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+.chip .box { width: 10px; height: 10px; border: 1px solid var(--lc); flex: 0 0 10px; }
+.chip.on .box { background: var(--lc); }
+.chip.on { color: var(--lt); }
+.chip:hover { color: var(--text); } .chip.on:hover { color: var(--lt); }
+.intorow { margin-top: 8px; }
+.groove { height: 1px; background: var(--border); margin: 10px 0 4px; }
+
+/* month groups and entries */
+.mh { position: relative; display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 2px; font: 400 12px/1 var(--font-mono); color: var(--text-heading); cursor: pointer; margin-top: 4px; }
+.ent { padding: 3px 4px 7px; }
+.ent:nth-of-type(even) { background: color-mix(in srgb, var(--surface-1) 70%, transparent); }
+.ehd { display: flex; align-items: center; gap: 8px; min-height: 22px; font: 400 12px/1 var(--font-mono); color: var(--text-secondary); white-space: nowrap; }
+.ehd .dt { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.ehd .tags { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.tg { position: relative; display: inline-flex; align-items: center; gap: 4px; font: 400 11px/1 var(--font-mono); color: var(--lt); cursor: pointer; }
+.tg .sq { width: 7px; height: 7px; background: var(--lc); flex: 0 0 7px; }
+.tg.only { gap: 0; }
+.tg.only .sq { width: 8px; height: 8px; }
+.tg.hitt { text-decoration: underline; text-underline-offset: 2px; }
+.ehd .tags + .x { margin-left: 0; }
+.x { position: relative; width: 20px; height: 20px; flex: 0 0 20px; margin-left: auto; border: 1px solid var(--border-strong); background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; color: var(--text); font: 700 12px/1 var(--font-mono); }
+.etx { font: 400 14px/18px var(--font-sans); color: var(--text); margin-top: 3px; }
+.hit { color: var(--acc-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.empty { padding: 14px 4px 10px; font: 400 14px/1.4 var(--font-sans); }
+.empty .sub { display: block; color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.empty .acts { margin-top: 10px; display: flex; gap: 8px; }
+
+.foot { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: var(--surface-2); border-top: 1px solid var(--border-strong); min-height: 32px;
+  font: 400 12px/1.3 var(--font-mono); color: var(--text-secondary); }
+.foot .hint { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot .pr { display: flex; gap: 10px; }
+.foot .pr span { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+.btn { position: relative; padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/16px var(--font-mono); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn.sm { padding: 1px 9px; font-size: 12px; line-height: 15px; }
+.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 14px; padding: 0 3px; background: var(--text); color: var(--base); font: 700 10px/14px var(--font-mono); border-radius: 2px; }
+
+.hand { position: absolute; left: -15px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 3; }
+.pf { margin-left: 16px; }
+.disc.pf, .mh.pf { margin-left: 0; padding-left: 18px; } .disc.pf > .hand, .mh.pf > .hand { left: 1px; }
+.write.pf { margin-left: 0; } .write.pf > .hand { left: -14px; top: 14px; }
+.chip.pf, .tg.pf { margin-left: 0; } .chip.pf > .hand, .tg.pf > .hand { left: -9px; top: 85%; }
+.px { image-rendering: pixelated; shape-rendering: crispEdges; display: block; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="stage" id="stage"><div class="zoomer" id="zoomer"></div></div>
+<div class="notes" id="notes"></div>
+
+<script>
+const PAL = { e: "#111", "#": "#111", W: "#f4f4f4", x: "currentColor" };
+const ICON = {
+  tEquip:["..........","..xx..xx..",".xxxxxxxx.","xxxxxxxxxx","..xxxxxx..","..xxxxxx..","..xxxxxx..","..xxxxxx..","..........",".........."],
+  tHealth:["..........",".xx...xx..","xxxx.xxxx.","xxxxxxxxx.","xxxxxxxxx.",".xxxxxxx..","..xxxxx...","...xxx....","....x.....",".........."],
+  tTherm:["....xx....","...x..x...","...x..x...","...x..x...","...xxxx...","..xxxxxx..","..xxxxxx..","...xxxx...","..........",".........."],
+  tId:   ["..........","xxxxxxxxxx","x........x","x.xx.xxx.x","x.xx.....x","x....xxx.x","x........x","xxxxxxxxxx","..........",".........."],
+  tJour: ["..........",".xxxxxxx..",".x.....xx.",".x.xxx.x..",".x.....x..",".x.xxx.x..",".x.....x..",".xxxxxxx..","..........",".........."],
+  tSkill:["..........","........x.","........x.",".....x..x.",".....x..x.","..x..x..x.","..x..x..x.","xxxxxxxxxx","..........",".........."],
+  hand: ["....##########.","...#WWWWWWWWWW#","##.#WWW########","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWWWWWW#...","##.#WWWWWWW#...","....#######...."]
+};
+function px(name, scale) {
+  const m = ICON[name]; const h = m.length, w = m[0].length; let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const ch = m[y][x]; if (ch === ".") continue; r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`; }
+  return `<svg class="px" width="${w * scale}" height="${h * scale}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+
+/* ======================================================================
+   The tags. Colors are ZeD.LABELS (Tokens.lua): the mod folder labels, in their swatch order, each the accent
+   color's dark / light variant; "bright" stands in for labelsText (the label as text, moved to 4.6 : 1) on Dark.
+   One tag per label color, so no two tags share a color, and the word is always drawn beside the square.
+   ====================================================================== */
+const TAGS = [
+  { k: "danger",  w: "Danger",  label: "Red",     dark: "#CC4444", bright: "#EE6666", light: "#7A1A1A", why: "Hordes, close calls, a place to keep away from" },
+  { k: "loot",    w: "Loot",    label: "Orange",  dark: "#D4922A", bright: "#E8A830", light: "#7A5010", why: "What was found or taken, and where" },
+  { k: "news",    w: "News",    label: "Yellow",  dark: "#CCAA22", bright: "#EEDD44", light: "#6B5F0A", why: "The radio and TV, the power and water going off, the helicopter" },
+  { k: "food",    w: "Food",    label: "Green",   dark: "#44AA44", bright: "#66CC66", light: "#125518", why: "Meals, water, farming, fishing, foraging" },
+  { k: "weather", w: "Weather", label: "Blue",    dark: "#4488CC", bright: "#66AAEE", light: "#1A4477", why: "Rain, storms, fog, the cold coming in" },
+  { k: "base",    w: "Base",    label: "PZ Teal", dark: "#47A18C", bright: "#5CC4AA", light: "#1A6655", why: "Building, fences, barricades, the generator" },
+  { k: "travel",  w: "Travel",  label: "Purple",  dark: "#8855BB", bright: "#AA77DD", light: "#441888", why: "Trips out, roads, cars, the map" },
+  { k: "injury",  w: "Injury",  label: "Pink",    dark: "#DD5588", bright: "#FF77AA", light: "#882244", why: "Wounds, bites, sickness, how they mend" },
+];
+const TAG = Object.fromEntries(TAGS.map(t => [t.k, t]));
+function tagVars(t) {
+  return S.theme === "light" ? `--lc:${t.light};--lt:${t.light}` : `--lc:${t.dark};--lt:${t.bright}`;
+}
+
+/* The log: a character who started Jul 9, 1993 (Day 1). Newest first, as md.ZeD_Journal.entries keeps them. */
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONFULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const SEED = [
+  [8, 28, 82, "09:23", "traded nothing with nobody. talked to the cow", []],
+  [8, 26, 80, "15:05", "generator needs fuel every 3 days. 2 cans left", ["base"]],
+  [8, 13, 67, "00:44", "cleared the house on the corner. nothing but a crowbar", ["danger", "loot"]],
+  [8, 11, 65, "06:26", "rain all day. fixed the fence on the north side, ran out of nails", ["weather", "base"]],
+  [7, 23, 46, "06:10", "radio said nothing again", ["news"]],
+  [7, 21, 44, "12:52", "saw smoke to the east. not going", ["danger", "travel"]],
+  [7, 8, 31, "21:31", "my arm still hurts. changed the bandage", ["injury"]],
+  [7, 6, 29, "03:13", "found the gas station empty. took the map and two cans of beans", ["loot", "travel", "food"]],
+  [6, 28, 20, "18:40", "waters off. filled every pot in the house first thank god", ["news", "food"]],
+  [6, 21, 13, "11:02", "scratched going over the fence on Main. washed it with the whiskey. its fine. its fine", ["injury", "danger"]],
+  [6, 16, 8, "09:39", "tv went to the emergency thing. lights still on", ["news"]],
+  [6, 12, 4, "13:15", "big group came down the main road last night. stayed in the attic til noon", ["danger"]],
+  [6, 10, 2, "16:48", "planted the cabbage seeds from the garden store. dont know what im doing", ["food"]],
+];
+let ENTRIES = [];
+const DRAFT = "found a working generator in the barn past the farm. too heavy to move alone";
+
+const STATES = [["read", "1. Reading"], ["write", "2. Writing, tags picked"], ["filter", "3. Search finds a tag"], ["none", "4. Nothing matches"], ["pad", "5. Controller"]];
+const S = { st: "read", theme: "dark", acc: "teal", input: "mouse", view: "window", q: "", draft: "", picks: [], focus: null, kills: true, closed: {}, hint: "" };
+function applyPreset() {
+  ENTRIES = SEED.map(([m, d, sd, t, text, tags]) => ({ m, d, sd, t, text, tags: tags.slice() }));
+  S.q = ""; S.draft = ""; S.picks = []; S.focus = null; S.closed = {}; S.hint = ""; S.kills = true;
+  if (S.st === "write") { S.draft = DRAFT; S.picks = ["loot", "base"]; S.kills = false; }
+  if (S.st === "filter") { S.q = "loot"; }
+  if (S.st === "none") { S.q = "helicopter"; }
+  if (S.st === "pad") { S.input = "pad"; S.kills = false; S.draft = DRAFT; S.picks = ["loot"]; S.focus = "chip-base"; }
+}
+
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const has = (s, q) => !!q && s.toLowerCase().includes(q.toLowerCase());
+function mark(s, q) {
+  if (!has(s, q)) return esc(s);
+  const i = s.toLowerCase().indexOf(q.toLowerCase());
+  return esc(s.slice(0, i)) + `<span class="hit">${esc(s.slice(i, i + q.length))}</span>` + esc(s.slice(i + q.length));
+}
+const f = (id, row) => `data-f="${id}"`;
+function badge(g) { return S.input === "pad" && g ? `<span class="badge">${g}</span>` : ""; }
+
+/* an entry matches the search when its text holds the words, or one of its tags' words does (the tag word as the
+   player's language draws it) */
+function matches(e) {
+  if (!S.q) return true;
+  return has(e.text, S.q) || e.tags.some(k => has(TAG[k].w, S.q));
+}
+
+function header() {
+  return `<div class="jhdr"><span class="popup" ${f("page")}>Page: <b>Journal</b></span>
+    <span class="field" ${f("find")} data-act="find"><span class="sl">/</span><input data-in="q" value="${esc(S.q)}" placeholder="Search entries..." spellcheck="false">${S.q ? `<span class="clr" data-act="clear">x</span>` : ""}</span></div>`;
+}
+
+function kills() {
+  const rows = [["Fire", 14, "var(--warning)"], ["Vehicle", 23, "var(--info)"], ["Explosion", 0, "var(--danger)"],
+    ["Long Blunt", 0], ["Short Blunt", 0], ["Long Blade", 0], ["Short Blade", 0], ["Axe", 0], ["Spear", 0], ["Firearm", 0], ["Unarmed", 0], ["Other", 295]];
+  const body = S.kills ? rows.map(([n, c, col]) => `<div class="kr">${col ? `<span class="d" style="background:${col}"></span>` : ""}${n}<span class="c">${c}</span></div>`).join("") : "";
+  return `<div class="disc" ${f("kills")} data-act="kills"><span class="tri ${S.kills ? "" : "r"}"></span>Zombies Killed<span class="n">(332)</span></div>${body}`;
+}
+
+function writeBox() {
+  const chips = TAGS.map(t => `<span class="chip ${S.picks.includes(t.k) ? "on" : ""}" style="${tagVars(t)}" ${f("chip-" + t.k)} data-pick="${t.k}" data-help="${t.k}"><span class="box"></span>${t.w}</span>`).join("");
+  return `<div class="write" ${f("write")} data-act="write"><textarea data-in="draft" placeholder="Write something..." spellcheck="false">${esc(S.draft)}</textarea></div>
+    <div class="chips">${chips}</div>
+    <div class="intorow"><span class="btn sm" ${f("into")}>Into: the log only</span></div>`;
+}
+
+function entryHtml(e, i) {
+  const many = e.tags.length > 3;   // more than three: the squares alone, the words in the help band
+  const tags = e.tags.map(k => {
+    const t = TAG[k], hitt = S.q && has(t.w, S.q);
+    return `<span class="tg ${many ? "only" : ""} ${hitt ? "hitt" : ""}" style="${tagVars(t)}" ${f(`tg-${i}-${k}`)} data-tagq="${t.w}" data-help="${k}"><span class="sq"></span>${many ? "" : t.w}</span>`;
+  }).join("");
+  return `<div class="ent"><div class="ehd"><span class="dt">Day ${e.sd}&nbsp;&nbsp;${MON[e.m]} ${e.d}, 1993 - ${e.t}</span>
+    ${tags ? `<span class="tags">${tags}</span>` : ""}<span class="x" ${f("del-" + i)}>&#x2715;</span></div>
+    <div class="etx">${mark(e.text, S.q)}</div></div>`;
+}
+
+function list() {
+  const shown = ENTRIES.map((e, i) => [e, i]).filter(([e]) => matches(e));
+  if (S.q && !shown.length) return { html: `<div class="empty">No entry matches "${esc(S.q)}".<span class="sub">Search looks at what you wrote and at the tags' words.</span>
+    <div class="acts"><button class="btn sm default" ${f("clear2")} data-act="clear">${badge("X")}Clear</button></div></div>`, n: 0 };
+  const groups = [];
+  shown.forEach(([e, i]) => { let g = groups[groups.length - 1]; if (!g || g.m !== e.m) groups.push(g = { m: e.m, rows: [] }); g.rows.push([e, i]); });
+  const html = groups.map(g => {
+    const closed = S.closed[g.m];
+    return `<div class="mh" ${f("grp-" + g.m)} data-grp="${g.m}"><span class="tri ${closed ? "r" : ""}"></span>${MONFULL[g.m]}, Year 1993 (${g.rows.length})</div>
+      ${closed ? "" : `<div>${g.rows.map(([e, i]) => entryHtml(e, i)).join("")}</div>`}`;
+  }).join("");
+  return { html, n: shown.length };
+}
+
+function windowHtml() {
+  const L = list();
+  const tabs = ["tEquip", "tHealth", "tTherm", "tId", "tJour", "tSkill"];
+  const strip = `<div class="strip">${tabs.map(g => `<div class="t ${g === "tJour" ? "on" : ""}">${px(g, 2)}</div>`).join("")}</div>`;
+  let hint = S.hint;
+  if (!hint) hint = S.q ? `${L.n} of ${ENTRIES.length} entries` : `${ENTRIES.length} entries`;
+  let pr = "";
+  if (S.input === "pad") {
+    const fo = S.focus || "";
+    const a = fo.startsWith("chip-") ? (S.picks.includes(fo.slice(5)) ? "Untag" : "Tag")
+      : fo.startsWith("tg-") ? "Show " + TAG[fo.split("-")[2]].w : fo === "write" || fo === "find" ? "Type" : fo === "save" ? "Save" : "Select";
+    pr = `<span>${badge("A")}${a}</span>${S.q ? `<span>${badge("X")}Clear</span>` : ""}<span>${badge("B")}Back</span>`;
+  }
+  return `<div class="win"><div class="titlebar"><div class="close"></div><div class="titlechip">Long Blade - Lv.6 - 0/4500</div><span class="rt">0 / 8</span></div>
+    <div class="wbody">${strip}<div class="drawer">${header()}
+      <div class="scroll">${kills()}${writeBox()}<div class="groove"></div>${L.html}</div>
+      <div class="foot"><span class="hint">${esc(hint)}</span><span class="pr">${pr}</span><span class="btn" ${f("save")} data-act="save">Save</span></div>
+    </div></div></div>`;
+}
+
+/* ======================================================================
+   Review bar, render, scale, input
+   ====================================================================== */
+function review() {
+  const b = (k, v, l) => `<button class="${S[k] === v ? "on" : ""}" data-set="${k}:${v}">${l}</button>`;
+  return `<span class="grp"><b>State</b>${STATES.map(([v, l]) => b("st", v, l)).join("")}</span>
+    <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}</span>
+    <span class="grp"><b>Accent</b>${b("acc", "teal", "PZ Teal")}${b("acc", "orange", "Orange")}</span>
+    <span class="grp"><b>Input</b>${b("input", "mouse", "Mouse")}${b("input", "pad", "Controller")}</span>
+    <span class="grp"><b>View</b>${b("view", "window", "Window, fit")}${b("view", "actual", "4K at 1.75x, actual")}</span>`;
+}
+let typing = null, scrollTop = 0;
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.documentElement.dataset.acc = S.acc;
+  document.getElementById("review").innerHTML = review();
+  const z = document.getElementById("zoomer");
+  const old = z.querySelector(".scroll"); if (old) scrollTop = old.scrollTop;
+  z.innerHTML = `<div class="scene">${windowHtml()}</div>`;
+  const sc = z.querySelector(".scroll"); if (sc) sc.scrollTop = scrollTop;
+  placeHand(); fit();
+  if (typing) { const inp = z.querySelector(`[data-in="${typing}"]`); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); inp.closest(".field, .write").classList.add("focus"); } }
+  document.getElementById("notes").innerHTML = notes();
+}
+function focusables() { return [...document.querySelectorAll("#zoomer .win [data-f]")]; }
+function placeHand() {
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  let el = list.find(e => e.dataset.f === S.focus);
+  if (!el) { el = list.find(e => e.dataset.f === "write") || list[0]; S.focus = el.dataset.f; }
+  el.classList.add("pf");
+  el.insertAdjacentHTML("beforeend", `<span class="hand">${px("hand", 1)}</span>`);
+  if (S.focus.startsWith("chip-") || S.focus.startsWith("tg-")) { S.hint = helpFor(el.dataset.help); const h = document.querySelector("#zoomer .foot .hint"); if (h) h.textContent = S.hint; }
+  const sc = el.closest(".scroll"); if (sc) { const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect(); if (r.top < b.top || r.bottom > b.bottom) el.scrollIntoView({ block: "nearest" }); }
+}
+function helpFor(k) { const t = TAG[k]; return t ? `${t.w}: ${t.why}` : ""; }
+function fit() {
+  const z = document.getElementById("zoomer"), stage = document.getElementById("stage");
+  const inner = z.firstElementChild; if (!inner) return;
+  const w = inner.offsetWidth, h = inner.offsetHeight; let k;
+  if (S.view === "actual") { k = 1.75 / (window.devicePixelRatio || 1); stage.classList.add("actual"); }
+  else { stage.classList.remove("actual");
+    k = Math.min(Math.max(200, window.innerWidth - 32) / w, Math.max(200, window.innerHeight - document.getElementById("review").offsetHeight - 32) / h, 2.2); }
+  z.style.transform = `scale(${k})`; z.style.width = w + "px"; z.style.height = h + "px";
+  stage.style.height = (h * k + 32) + "px"; z.style.marginRight = (w * k - w) + "px";
+}
+function save() {
+  const text = S.draft.trim(); if (!text) return;
+  ENTRIES.unshift({ m: 8, d: 30, sd: 84, t: "14:12", text, tags: TAGS.map(t => t.k).filter(k => S.picks.includes(k)) });
+  S.draft = ""; S.picks = []; S.closed[8] = false;
+}
+function act(a) {
+  typing = null; S.hint = "";
+  if (a === "clear") { S.q = ""; if (S.input !== "pad") typing = "q"; else S.focus = "find"; }
+  else if (a === "find") { if (S.input !== "pad") typing = "q"; }
+  else if (a === "write") { if (S.input === "pad") { if (!S.draft) S.draft = DRAFT; } else typing = "draft"; }
+  else if (a === "kills") S.kills = !S.kills;
+  else if (a === "save") save();
+  render();
+}
+function pick(k) { S.picks = S.picks.includes(k) ? S.picks.filter(x => x !== k) : [...S.picks, k]; }
+function activate(el) {
+  if (el.dataset.pick) { pick(el.dataset.pick); S.hint = helpFor(el.dataset.pick); render(); }
+  else if (el.dataset.tagq) { S.q = el.dataset.tagq; typing = null; S.hint = ""; render(); }
+  else if (el.dataset.grp) { S.closed[el.dataset.grp] = !S.closed[el.dataset.grp]; render(); }
+  else if (el.dataset.act) act(el.dataset.act);
+}
+document.addEventListener("click", e => {
+  const set = e.target.closest("[data-set]");
+  if (set) { const [k, v] = set.dataset.set.split(":"); S[k] = v; if (k === "st") { typing = null; applyPreset(); } render(); return; }
+  if (e.target.closest("input, textarea")) return;
+  const el = e.target.closest("[data-pick], [data-tagq], [data-grp], [data-act]");
+  if (el) { if (el.dataset.f) S.focus = el.dataset.f; activate(el); }
+});
+document.addEventListener("mouseover", e => {
+  if (S.input === "pad") return;
+  const h = e.target.closest("[data-help]"); const t = h ? helpFor(h.dataset.help) : "";
+  const el = document.querySelector("#zoomer .foot .hint"); if (!el) return;
+  el.textContent = t || S.hint || (S.q ? `${list().n} of ${ENTRIES.length} entries` : `${ENTRIES.length} entries`);
+});
+document.addEventListener("input", e => { const t = e.target.dataset.in; if (!t) return; S[t] = e.target.value; typing = t; S.hint = ""; render(); });
+/* the D-pad: cone navigation by position (as ZeD's FocusManager), A = Enter / Space, X = clear the search */
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") { if (e.key === "Escape") { e.target.blur(); typing = null; render(); } return; }
+  if (S.input !== "pad") return;
+  const list = focusables(); if (!list.length) return;
+  const cur = list.find(el => el.dataset.f === S.focus) || list[0];
+  const dirs = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+  if (dirs[e.key]) {
+    e.preventDefault();
+    const [dx, dy] = dirs[e.key], r0 = cur.getBoundingClientRect(), c0 = [r0.left + r0.width / 2, r0.top + r0.height / 2];
+    let best = null, bs = Infinity;
+    for (const el of list) {
+      if (el === cur) continue;
+      const r = el.getBoundingClientRect();
+      // edge gaps: along the move, and across it (0 when the two overlap on that axis)
+      const gapX = Math.max(0, r.left - r0.right, r0.left - r.right), gapY = Math.max(0, r.top - r0.bottom, r0.top - r.bottom);
+      const ahead = dy ? (dy > 0 ? r.top >= r0.bottom - 2 : r.bottom <= r0.top + 2) : (dx > 0 ? r.left >= r0.right - 2 : r.right <= r0.left + 2);
+      if (!ahead) continue;
+      if (dx && gapY > 0) continue;                     // left / right stay on the line
+      const s = dy ? gapY * 4 + gapX : gapX;
+      if (s < bs) { bs = s; best = el; }
+    }
+    if (best) { S.focus = best.dataset.f; S.hint = ""; render(); }
+    return;
+  }
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(cur); return; }
+  if (e.key === "x" || e.key === "X") { act("clear"); }
+});
+window.addEventListener("resize", fit);
+
+function notes() {
+  const per = {
+    read: "The Journal page as it ships, plus tags. Each entry's head row keeps its date at the left and the delete cross at the right; its tags sit between them, a colored square and the word, as the Zombies Killed rows draw theirs. An entry with no tags (Day 82) looks as it does today. Click a tag on an entry to search for it. Point at a tag and the help band says what it is for.",
+    write: "Writing. Under the Write box, one row of the eight tags. Each is a checkbox whose box is the tag's colored square: hollow when off, filled and its word in the tag's color when on. Any number can be picked. Save writes the entry with its tags at the top of September and clears the picks. Try it: type, pick, Save.",
+    filter: "The search finds tag words. \"loot\" keeps the three entries tagged Loot (their Loot tag underlined), and would also keep an entry that says \"loot\" in its text. Month counts and the foot line (3 of 13 entries) follow. Clicking any tag on an entry puts its word in the search; the small x clears it.",
+    none: "Nothing matches: what was asked for, what the search looks at (now with the tags' words), and Clear as the default keycap.",
+    pad: "Controller. The tags are stops on the D-pad, found by position like every other stop: down from the Write box lands on the tag row, left and right walk it, A ticks or unticks. On an entry, right from the date walks its tags then the delete cross; A on a tag searches for it, X clears the search. Use the arrow keys, Enter for A and X for X."
+  };
+  const rows = TAGS.map(t => `<tr><td><span class="sw" style="background:${t.dark}"></span><b>${t.w}</b></td><td>${t.label}</td><td>${t.why}</td></tr>`).join("");
+  return `<h2>This state</h2><p>${per[S.st]}</p>
+  <h2>The tags and why</h2>
+  <table>${rows}</table>
+  <p>Eight, one for each folder label color, so no two tags share a color and the color always means the same thing. They are the things a Project Zomboid survivor keeps track of day to day: where the loot was and what was taken, the base and its generator, food and water, the danger (hordes, the house to avoid), injuries and how they mend (a scratch, a bite, a cold), trips out on the map, the weather (rain fills the barrels, the cold kills the crops), and the news: the radio and TV, the day the water and the power went off, the helicopter. Trade was left out: in single player there is no one to trade with, and on a server a trade can go under Loot. The color fits the word where it can (Danger red, Food green, Weather blue, Base in the game's own teal); the word is always beside the square, so the color is never the only thing said.</p>
+  <h2>Colors: the folder label colors</h2>
+  <p>ZeD.LABELS in shared/ZeD/Tokens.lua: the label colors for mod folders and separators (the Label swatches in the mod manager's folder pane, ZeD_MainMenuModsFolders.lua labelSwatches). None, then Red, Orange, Yellow, Green, Blue, PZ Teal, Purple, Pink, each ZeD's accent color of that name (dark variant on Dark and High contrast, light variant on Light), named with the accent setting's own words. The tags use ZeD.T.labels for the squares (moved only as far as 3 : 1 needs) and ZeD.T.labelsText for the words (4.6 : 1), the same pair the folder rows and separators use, so they follow the theme and the color blind sets with no new tokens. They do not change with the player's accent (the review bar's Accent switch). The tag row is in the swatch order. The Zombies Killed squares are a different set (T.warning, T.info, T.danger) and stay as they are.</p>
+  <h2>Storage</h2>
+  <ul>
+    <li>Entries live in the player's modData: <code>md.ZeD_Journal.entries</code>, newest first, written by the Save button in ZeD_CharacterWindow.lua (and by ZeD_JournalReaders.saveLog when Into is a notebook) as { month, day, year, hour, minute, survivalDay, text }.</li>
+    <li>Tags add one field: <code>tags = { "loot", "base" }</code>, the tag keys in tag-row order. Keys, not words, so a save played in another language keeps its tags; the words come from translation keys (UI_ZeD_Journal_Tag_Loot ...).</li>
+    <li>Old entries have no tags field and draw as they do now. modData saves with the character, so the tags survive a reload and go with the character on a server. The obituary (PostDeath.lua reads entries[1]) is not changed.</li>
+    <li>Search (journalGroups in JournalTab.lua) adds the tags' words to what it matches; its cache key does not change.</li>
+  </ul>
+  <h2>Search finds tags, rather than tag buttons by the Search field</h2>
+  <p>The header line is already full at the 480 width (Page pop-up and Search entries); eight chips there would need a new row and push the log down, at Deck and 720p sizes most of all. One search box that understands tag words keeps the layout as it is, works the same in every language, and needs no new control on the pad. A tag on any entry is a one-click (or one A press) shortcut into the search, so nobody has to type "danger" to see the dangers.</p>
+  <h2>Controller</h2>
+  <ul>
+    <li>New stops: the eight tag picks under the Write box (one row; D-pad left and right walk it, A ticks or unticks) and each tag on an entry line (between the date and the delete cross; A searches for that tag).</li>
+    <li>X clears the search, as on the tab search mockup. The Write box and Search open ZeD's pad keyboard as they do now.</li>
+    <li>The help band names the tag the hand is on and what it is for.</li>
+  </ul>
+  <h2>Open questions for the director</h2>
+  <ol>
+    <li>The eight tags: as here / swap one (Trade, Sickness, People, Car ...).</li>
+    <li>Picks after Save: cleared (proposed) / kept for the next entry.</li>
+    <li>Into a notebook: the tags stay in the log only (proposed) / are written on the notebook page too.</li>
+    <li>More than three tags on one entry: squares only, words in the help band (proposed) / at most three picks.</li>
+  </ol>`;
+}
+applyPreset();
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
+</body>
+</html>
