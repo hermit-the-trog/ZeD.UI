@@ -253,11 +253,19 @@ local SKILLS_DATA = skillsData()
 ZeD.SkillsTab.gatherData = function() return SKILLS_DATA end
 ZeD.SkillsTab.gatherTrainingData = function() return TRAINING end
 
+-- the game's type test, and a count of the Java exceptions a call on a missing method would raise
+-- (a caught one is still raised: -debug logs each, and it costs a stack trace)
+instanceof = function(o, cls)
+    if type(o) ~= "table" then return false end
+    if cls == "InventoryItem" then return rawget(o, "_class") ~= nil end
+    return rawget(o, "_class") == cls
+end
 local function part(name) return { getDisplayName = function() return name end } end
 local function item(name, parts)
     local ps = {}
     for _, p in ipairs(parts or {}) do ps[#ps + 1] = part(p) end
     return {
+        _class = "Clothing",
         getDisplayName = function() return name end, getName = function() return name end,
         getCoveredParts = function() return list(ps) end,
         getCondition = function() return 8 end, getConditionMax = function() return 10 end,
@@ -273,9 +281,15 @@ local GLOVES = item("Leather Gloves", { "Left Hand", "Right Hand" })
 local JEANS = item("Jeans", { "Groin", "Left Thigh", "Right Thigh", "Left Shin", "Right Shin" })
 local SOCKS = item("Socks", { "Left Foot", "Right Foot" })
 local BOOTS = item("Military Boots", { "Left Foot", "Right Foot", "Left Shin", "Right Shin" })
-local CROWBAR = { getDisplayName = function() return "Crowbar" end, getCondition = function() return 8 end,
-                  getConditionMax = function() return 10 end }   -- (a held tool: no getCoveredParts at all)
-local TORCH = item("Flashlight", {})
+-- held tools: not Clothing, so no getCoveredParts. As on a Java object, reading the missing
+-- method gives nil (ZeD.Atoms.safeGet reads it so, safely); calling it raises. ASKED counts the
+-- reads, so the sim can show the Find code never touches it.
+local ASKED = 0
+local NOT_CLOTHING = { __index = function(_, k) if k == "getCoveredParts" then ASKED = ASKED + 1 end return nil end }
+local CROWBAR = setmetatable({ _class = "HandWeapon", getDisplayName = function() return "Crowbar" end,
+                  getCondition = function() return 8 end, getConditionMax = function() return 10 end }, NOT_CLOTHING)
+local TORCH = setmetatable({ _class = "DrainableComboItem", getDisplayName = function() return "Flashlight" end,
+                getCondition = function() return 8 end, getConditionMax = function() return 10 end }, NOT_CLOTHING)
 local WORN = { { "Base:Hat", CAP }, { "Base:Jacket", JACKET }, { "Base:Tshirt", SHIRT }, { "Base:Hands", GLOVES },
                { "Base:Pants", JEANS }, { "Base:Socks", SOCKS }, { "Base:Shoes", BOOTS } }
 local PLAYER = {
@@ -336,8 +350,15 @@ do
     check("item by body part: only the matching parts listed", w2 == "covers" and #p2 == 2 and p2[1] == "Left Foot"
         and p2[2] == "Left Shin")
     check("item: no match", F.matchItem("Crowbar", "Primary Hand", {}, "sock") == nil)
+    local asked0 = ASKED
     local inf = F.infoOf(CROWBAR)
-    check("a held tool with no body parts reads as none (no error)", inf.name == "Crowbar" and #inf.parts == 0)
+    local inf2 = F.infoOf(TORCH)
+    check("a held tool with no body parts reads as none", inf.name == "Crowbar" and #inf.parts == 0
+        and inf2.name == "Flashlight" and #inf2.parts == 0)
+    check("a held tool is never asked for getCoveredParts (no Java exception raised, caught or not)", ASKED == asked0, ASKED - asked0)
+    local socks = F.infoOf(SOCKS)
+    check("clothing: its body parts in the game's words", #socks.parts == 2 and socks.parts[1] == "Left Foot")
+    check("not an item at all: an empty answer, no call made", F.infoOf({}).name == "")
 end
 
 -- ===========================================================================
@@ -687,6 +708,40 @@ typeInto(ef, "")
 drawEquip(ew)
 check("doll, nothing typed: nothing dimmed", dims() == 0)
 VIEW = 1
+
+-- ===========================================================================
+-- 6b. THE MATCHING RUNS ONCE PER TEXT, NOT PER FRAME OR DATA REFRESH
+-- ===========================================================================
+do
+    local w = newWin()
+    F.setText(w, "equip", "hand")
+    F.setText(w, "skills", "bla")
+    local R = F._runs
+    local e0, s0, d0 = R.equip, R.skills, R.doll
+    local data = ZeD.EquipmentTab.gatherData(PLAYER)
+    for _ = 1, 60 do F.equip(w, data) end
+    check("equip: 60 frames, one match run", R.equip == e0 + 1, R.equip - e0)
+    for _ = 1, 10 do F.equip(w, ZeD.EquipmentTab.gatherData(PLAYER)) end   -- (ten data refreshes, the same outfit)
+    check("equip: data refreshes with the same outfit keep the matches", R.equip == e0 + 1, R.equip - e0)
+    local held = WORN[4][2]
+    WORN[4][2] = SOCKS   -- (the gloves taken off, socks on the hands slot: the outfit changed)
+    F.equip(w, ZeD.EquipmentTab.gatherData(PLAYER))
+    check("equip: a changed outfit matches again, once", R.equip == e0 + 2, R.equip - e0)
+    WORN[4][2] = held
+    F.equip(w, ZeD.EquipmentTab.gatherData(PLAYER))
+    F.setText(w, "equip", "foot")
+    F.equip(w, ZeD.EquipmentTab.gatherData(PLAYER))
+    check("equip: a new text matches again, once", R.equip == e0 + 4, R.equip - e0)
+    for _ = 1, 30 do F.skills(w, skillsData(), TRAINING) end   -- (a new table every call, as each refresh)
+    check("skills: refreshes with the same names keep the matches (one run)", R.skills == s0 + 1, R.skills - s0)
+    F.setText(w, "skills", "combat")
+    F.skills(w, skillsData(), TRAINING)
+    check("skills: a new text matches again", R.skills == s0 + 2, R.skills - s0)
+    local dd = ZeD.EquipDoll.gather(PLAYER, 0, true)
+    for _ = 1, 20 do F.doll(w, ZeD.EquipDoll.gather(PLAYER, 0, true)) end
+    check("doll: refreshes with the same outfit keep the matches (one run)", R.doll == d0 + 1, R.doll - d0)
+    check("doll: the kept matches are right", w._findEquip.res.hit["doll:feet"] ~= nil, dd and "")
+end
 
 -- ===========================================================================
 -- 7. THE WINDOW CLOSING
