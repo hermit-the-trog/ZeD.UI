@@ -6538,5 +6538,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 uit",
     "UI_ZeD_Mods_ChipErrorOne": "1 fout",
     "UI_ZeD_Mods_ChipErrors": "%1 fouten",
-    "UI_ZeD_Mods_PendingFiles": "Bestanden omgezet in %1. Een herlading zet ze op hun plaats, geen herstart."
+    "UI_ZeD_Mods_PendingFiles": "Bestanden omgezet in %1. Een herlading zet ze op hun plaats, geen herstart.",
+    "UI_ZeD_Inv_Filter": "Filteren",
+    "UI_ZeD_Inv_FilterHelp": "Filteren: dimt wat niet overeenkomt in elke lijst van dit venster",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filteren op naam",
+    "UI_ZeD_Inv_FilterCount": "%1 van %2",
+    "UI_ZeD_Inv_FilterNone": "Geen resultaten",
+    "UI_ZeD_Inv_FilterClear": "Wissen",
+    "UI_ZeD_Inv_FilterClearHelp": "Wissen: maakt de naam en de categorieën leeg; de balk blijft open",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: alleen dingen daarin blijven helder; kies er meerdere om meer te zien",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: druk nogmaals om te deselecteren",
+    "UI_ZeD_Inv_PromptType": "Typen"
 }

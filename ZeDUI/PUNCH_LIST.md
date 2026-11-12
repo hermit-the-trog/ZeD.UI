@@ -4252,6 +4252,15 @@ to be proposed.
     The director's rulings on mockup v1 (https://claude.ai/artifact/TNHssvRqvFywtw9wBx65mW), Nov 11: ONE filter per
     window (it narrows every column in that window), saved per container (as List | Grid is), category chips (pick
     several), and items that don't match are DIMMED in place, not hidden. Build from v1 with those changes.
+    **Build (Nov 11 2026):** InventoryFilter.lua (state, matching, the bar) with InventoryRenderer (the funnel button
+    left of List | Grid in every column heading; the bar under the heading across the window's list side). One filter
+    per window, saved per container: the window's filter is written to every container it narrows (mod data
+    ZeD_Filters by container key, as ZeD_GridViews), and a window that starts showing other containers takes the
+    first one's saved filter (none: it empties; the bar stays open). Dimmed rows and cells keep their clicks, drags
+    and menus; the controller's row is never dimmed; a category row with no match dims; matched letters underlined,
+    matched cells edged while text is typed. Count in items ("5 of 79"), "Nothing matches", Clear (X on a pad), the
+    Filter button shuts and clears. Matches once per change (text, chips, a model rebuilt). Pad: Filter, field (A:
+    the pad keyboard), Clear and chips are stops. inventory_filter_sim 77/0; QA: zedqa_inventory_filter.lua.
 
 169. **Animals quick actions and bulk select (the director, Nov 11 2026, from the audit; beta 12).** The design is in
     zed-animals-v2-fira.html: Frame 1 "Needs Attention" alerts get Milk, Shear and Go to (today an alert is a readout:

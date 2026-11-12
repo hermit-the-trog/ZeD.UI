@@ -6538,5 +6538,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 dosya kapalı",
     "UI_ZeD_Mods_ChipErrorOne": "1 hata",
     "UI_ZeD_Mods_ChipErrors": "%1 hata",
-    "UI_ZeD_Mods_PendingFiles": "%1 içinde dosyalar değiştirildi. Yeniden yükleme onları yerine koyar, yeniden başlatma gerekmez."
+    "UI_ZeD_Mods_PendingFiles": "%1 içinde dosyalar değiştirildi. Yeniden yükleme onları yerine koyar, yeniden başlatma gerekmez.",
+    "UI_ZeD_Inv_Filter": "Filtre",
+    "UI_ZeD_Inv_FilterHelp": "Filtre: bu penceredeki her listede eşleşmeyenleri soluklaştırır",
+    "UI_ZeD_Inv_FilterPlaceholder": "Ada göre filtrele",
+    "UI_ZeD_Inv_FilterCount": "%1 / %2",
+    "UI_ZeD_Inv_FilterNone": "Eşleşme yok",
+    "UI_ZeD_Inv_FilterClear": "Temizle",
+    "UI_ZeD_Inv_FilterClearHelp": "Temizle: adı ve kategorileri boşaltır; çubuk açık kalır",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: yalnızca içindekiler parlak kalır; daha fazlası için birkaç tane seç",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: seçimi kaldırmak için yine bas",
+    "UI_ZeD_Inv_PromptType": "Yaz"
 }

@@ -6538,5 +6538,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 filer av",
     "UI_ZeD_Mods_ChipErrorOne": "1 feil",
     "UI_ZeD_Mods_ChipErrors": "%1 feil",
-    "UI_ZeD_Mods_PendingFiles": "Filer byttet i %1. En omlasting setter dem på plass, uten omstart."
+    "UI_ZeD_Mods_PendingFiles": "Filer byttet i %1. En omlasting setter dem på plass, uten omstart.",
+    "UI_ZeD_Inv_Filter": "Filtrer",
+    "UI_ZeD_Inv_FilterHelp": "Filtrer: demper det som ikke passer, i hver liste i dette vinduet",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtrer etter navn",
+    "UI_ZeD_Inv_FilterCount": "%1 av %2",
+    "UI_ZeD_Inv_FilterNone": "Ingen treff",
+    "UI_ZeD_Inv_FilterClear": "Tøm",
+    "UI_ZeD_Inv_FilterClearHelp": "Tøm: tømmer navnet og kategoriene; linjen forblir åpen",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: bare ting i den forblir lyse; velg flere for å se mer",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: trykk igjen for å velge bort",
+    "UI_ZeD_Inv_PromptType": "Skriv"
 }

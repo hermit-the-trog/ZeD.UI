@@ -6538,5 +6538,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "%1 files off",
     "UI_ZeD_Mods_ChipErrorOne": "1 error",
     "UI_ZeD_Mods_ChipErrors": "%1 errors",
-    "UI_ZeD_Mods_PendingFiles": "Files switched in %1. A reload puts them in place, no restart."
+    "UI_ZeD_Mods_PendingFiles": "Files switched in %1. A reload puts them in place, no restart.",
+    "UI_ZeD_Inv_Filter": "Filter",
+    "UI_ZeD_Inv_FilterHelp": "Filter: dims what does not match in every list in this window",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filter by name",
+    "UI_ZeD_Inv_FilterCount": "%1 of %2",
+    "UI_ZeD_Inv_FilterNone": "Nothing matches",
+    "UI_ZeD_Inv_FilterClear": "Clear",
+    "UI_ZeD_Inv_FilterClearHelp": "Clear: empties the name and the categories; the bar stays open",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: only things in it stay bright; pick several to see more",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: press again to unpick",
+    "UI_ZeD_Inv_PromptType": "Type"
 }

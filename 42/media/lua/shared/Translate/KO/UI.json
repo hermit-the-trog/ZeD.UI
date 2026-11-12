@@ -6538,5 +6538,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "파일 %1개 꺼짐",
     "UI_ZeD_Mods_ChipErrorOne": "오류 1개",
     "UI_ZeD_Mods_ChipErrors": "오류 %1개",
-    "UI_ZeD_Mods_PendingFiles": "%1의 파일을 전환했습니다. 다시 불러오면 적용되며 재시작은 필요 없습니다."
+    "UI_ZeD_Mods_PendingFiles": "%1의 파일을 전환했습니다. 다시 불러오면 적용되며 재시작은 필요 없습니다.",
+    "UI_ZeD_Inv_Filter": "필터",
+    "UI_ZeD_Inv_FilterHelp": "필터: 이 창의 모든 목록에서 일치하지 않는 항목을 흐리게 표시",
+    "UI_ZeD_Inv_FilterPlaceholder": "이름으로 필터",
+    "UI_ZeD_Inv_FilterCount": "%1 / %2",
+    "UI_ZeD_Inv_FilterNone": "일치 항목 없음",
+    "UI_ZeD_Inv_FilterClear": "지우기",
+    "UI_ZeD_Inv_FilterClearHelp": "지우기: 이름과 분류를 비움. 막대는 열린 채 유지",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: 이 분류의 물건만 밝게 표시. 여러 개를 고르면 더 보임",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: 다시 누르면 선택 해제",
+    "UI_ZeD_Inv_PromptType": "입력"
 }

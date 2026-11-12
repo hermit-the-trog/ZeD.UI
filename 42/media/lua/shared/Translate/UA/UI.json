@@ -6538,5 +6538,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "Вимк.: %1",
     "UI_ZeD_Mods_ChipErrorOne": "1 помилка",
     "UI_ZeD_Mods_ChipErrors": "Помилок: %1",
-    "UI_ZeD_Mods_PendingFiles": "Файли перемкнено в %1. Перезавантаження поставить їх на місце, перезапуск не потрібен."
+    "UI_ZeD_Mods_PendingFiles": "Файли перемкнено в %1. Перезавантаження поставить їх на місце, перезапуск не потрібен.",
+    "UI_ZeD_Inv_Filter": "Фільтр",
+    "UI_ZeD_Inv_FilterHelp": "Фільтр: затемнює все, що не підходить, у кожному списку цього вікна",
+    "UI_ZeD_Inv_FilterPlaceholder": "Фільтр за назвою",
+    "UI_ZeD_Inv_FilterCount": "%1 з %2",
+    "UI_ZeD_Inv_FilterNone": "Нічого немає",
+    "UI_ZeD_Inv_FilterClear": "Очистити",
+    "UI_ZeD_Inv_FilterClearHelp": "Очистити: стирає назву й категорії; панель лишається відкритою",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: яскравими лишаються тільки речі з неї; виберіть кілька, щоб побачити більше",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: натисніть знову, щоб зняти вибір",
+    "UI_ZeD_Inv_PromptType": "Ввід"
 }

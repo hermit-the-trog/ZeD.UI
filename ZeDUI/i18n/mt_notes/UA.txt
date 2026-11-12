@@ -33,3 +33,4 @@ Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All m
 Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
 'Turn all back on' shortened to 'Увімкнути всі' (18 limit); 'used by %1' as 'потрібен: %1'.
 'Turn off with the %1' as 'Вимкнути разом із %1' (noun after count missing). Mods screen = 'Моди' per ZeD's file.
+Punch list 168 words (Nov 11 2026): the inventory Filter bar (Filter, Filter by name, the count, Clear, the category chips' help). Machine draft, not yet checked by a native speaker. 'Dims' means the rows fade in place; they are never hidden.

@@ -21,6 +21,7 @@ require "ZeD/ZeD_Panel"
 require "ZeD/ReadMarks"
 require "ZeD/ContainerGates"   -- (a mod that hides a container's things until searched: ModSupport files)
 require "ZeD/ContainerGroups"  -- (a mod that files things into groups of its own: ModSupport files)
+require "ZeD/InventoryFilter"  -- (the window's Filter: its state, matching and bar)
 
 ZeD = ZeD or {}
 
@@ -441,10 +442,22 @@ function ZeD.InventoryRenderer.padPrompts(win)
              { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
 end
 
--- a toggle zone was clicked: "view:list:<key>" / "view:grid:<key>"
-function ZeD.InventoryRenderer.onViewZone(zid)
+-- a toggle zone was clicked: "view:list:<key>" / "view:grid:<key>"; the Filter's "view:filter:<key>" and its bar's
+-- "view:fbar:field" / "clear" / "chip:<category>" / "bg" (content: the list panel the press was on)
+function ZeD.InventoryRenderer.onViewZone(zid, content)
     local view, key = tostring(zid):match("^view:(%a+):(.*)$")
     if not (view and key) then return end
+    if view == "filter" or view == "fbar" then
+        local S = content and content._zedFilter
+        if not S then return end
+        if view == "filter" then ZeD.InvFilter.act(S, "filter")
+        elseif key == "field" then
+            -- (a click: the field's own box takes the keys; never the controller's keyboard)
+            local f = S.field
+            if f and f.input then pcall(function() f.input:focus() end) end
+        else ZeD.InvFilter.act(S, key) end
+        return
+    end
     ZeD.InventoryRenderer.setGridKey(key, view == "grid")
     pcall(function() getSoundManager():playUISound("UISelectListItem") end)
 end
@@ -614,18 +627,51 @@ end
 
 -- The toggle's controller elements for a column (each builder appends them):
 -- rects stamped by the renderer in panel coords; A picks the view.
+-- The Filter's stops (its button, the bar's field, Clear and chips): A does what a click does (on the field it opens
+-- the controller's keyboard), X clears the filter wherever the pad is in the bar.
+local function filterOf(w)
+    local c = w and w._mainContent
+    return c and c._zedFilter
+end
+local function filterPromptX(w)
+    return ZeD.InvFilter.active(filterOf(w)) and ZeD.tr("UI_ZeD_Inv_FilterClear") or false
+end
+local function filterElement(el)
+    el.onActivate = function(w, e)
+        local S = filterOf(w)
+        if S then ZeD.InvFilter.act(S, e.view == "filter" and "filter" or e.key, w) end
+    end
+    el.onContextMenu = function(w)
+        local S = filterOf(w)
+        if S then ZeD.InvFilter.clear(S) end
+    end
+    el.promptX = filterPromptX
+    if el.key == "field" then el.promptA = ZeD.tr("UI_ZeD_Inv_PromptType") end
+end
+
 function ZeD.InventoryRenderer.toggleElements(rects)
     local els = {}
     for _, r in ipairs(rects or {}) do
-        els[#els + 1] = {
-            x = r.x, y = r.y, w = r.w, h = r.h,
-            id = "view:" .. r.view .. ":" .. tostring(r.key),
-            isViewToggle = true, view = r.view, key = r.key,
-            onFocus = function(w, el) end,
-            onActivate = function(w, el) ZeD.InventoryRenderer.setGridKey(el.key, el.view == "grid") end,
-        }
+        if not (r.view == "fbar" and r.key == "bg") then   -- (the bar's ground is no stop)
+            local el = {
+                x = r.x, y = r.y, w = r.w, h = r.h,
+                id = "view:" .. r.view .. ":" .. tostring(r.key),
+                isViewToggle = true, view = r.view, key = r.key,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el) ZeD.InventoryRenderer.setGridKey(el.key, el.view == "grid") end,
+            }
+            if r.view == "filter" or r.view == "fbar" then filterElement(el) end
+            els[#els + 1] = el
+        end
     end
     return els
+end
+
+--- A number that changes whenever the Filter's stops move (opened, shut, laid out again): the windows' pad stops
+--- rebuild on it.
+function ZeD.InventoryRenderer.filterGen(content)
+    local S = content and content._zedFilter
+    return S and S.lgen or 0
 end
 
 
@@ -711,6 +757,94 @@ local function containerKeyOf(inv, playerObj)
     return k
 end
 
+-- ============================================================================
+-- THE FILTER (InventoryFilter.lua): one per window, across all its columns. A
+-- frame starts (filterFrame: which containers show, so their saved filter;
+-- where the bar sits and how tall), each column adds its matches
+-- (filterColumn), the frame ends with the bar drawn over the list side's full
+-- width (filterEnd). Kept out of renderItemList: it sits near the local limit.
+-- ============================================================================
+local IFL = ZeD.InvFilter
+local _fkeys = {}   -- (the shown containers' keys, refilled each frame: no table made per frame)
+
+-- multi: the side-by-side columns (renderMultiColumnContent), else the one list with its heading
+local function filterFrame(self, multi)
+    local S = IFL.of(self)
+    IFL.frameStart(S)
+    local hdr = multi and (self._defaultHdrYOffset or ZeD.T.px(37)) or self._hdrYOffset
+    if type(hdr) ~= "number" or hdr <= 0 then
+        -- (no heading, no Filter button: nothing narrows)
+        S.shown, self._fbarH = false, 0
+        IFL.hideField(S)
+        return
+    end
+    S.shown = true
+    local n, p = 0, self._playerObj
+    if multi then
+        for _, cs in ipairs(self._colStates or {}) do
+            n = n + 1
+            _fkeys[n] = containerKeyOf(cs.inventory, p) or false
+        end
+    else
+        n = 1
+        _fkeys[1] = containerKeyOf(self._inventory, p) or false
+    end
+    IFL.sync(S, _fkeys, n)
+    S.y = (self._barH or 0) + hdr
+    if S.open then
+        -- (the chips are last frame's: a change in them moves the rows one frame later)
+        IFL.layout(S, self:getWidth(), S.agg)
+        self._fbarH = S.barH
+    else
+        self._fbarH = 0
+    end
+end
+
+-- a column's model drew: its matches join the window's count; its rows dim by self._fres while something narrows
+local function filterColumn(self, M)
+    local S = self._zedFilter
+    if not (S and S.shown and S.open) then self._fres = nil; return end
+    local res = IFL.result(S, M)
+    IFL.frameAdd(S, res)
+    self._fres = res.active and res or nil
+end
+
+-- the frame's end: the bar, after the columns, so its count is this frame's
+local function filterEnd(self)
+    local S = self._zedFilter
+    if not (S and S.shown and S.open) then
+        if S then IFL.hideField(S) end
+        return
+    end
+    local agg = IFL.aggregate(S, ZeD.InventoryRenderer.catLabel)
+    IFL.layout(S, self:getWidth(), agg)
+    IFL.draw(self, S, agg, gpFocusedToggle)
+end
+
+-- a row or a cell that does not match: faded toward the window's base, in place. Its hit zone stays, so it is still
+-- picked, dragged and given its menu.
+local function filterDim(self, x, y, w, h)
+    local b = ZeD.T.base
+    self:drawRect(x, y, w, h, IFL.DIM_A, b.r, b.g, b.b)
+end
+
+-- a list row's marks: the letters that matched underlined in the accent (where the shown name still holds them),
+-- or the row dimmed. Never on the row the controller is on: its mark stays clear.
+local function filterRowMarks(self, fr, item, nx, ty, shown, x, y, w, h, onFocus)
+    if fr.match[item] then
+        local at = fr.hit[item]
+        if not at then return end
+        local seg = string.sub(shown, at, at + #fr.ql - 1)
+        if string.lower(seg) ~= fr.ql then return end
+        local T, tm = ZeD.T, ZeD.TM
+        local ux = nx + (at > 1 and tm:MeasureStringX(T.fontF2, string.sub(shown, 1, at - 1)) or 0)
+        local c = T.accentText or T.accent
+        self:drawRect(ux, ty + tm:getFontHeight(T.fontF2) - T.px(1), tm:MeasureStringX(T.fontF2, seg), T.px(1), c.a or 1, c.r, c.g, c.b)
+    elseif not onFocus then
+        filterDim(self, x, y, w, h)
+    end
+end
+
 -- The grid's state for one column (renderItemList keeps it in one table GV)
 local function gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
     local T = ZeD.T
@@ -745,9 +879,30 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     local M = ZeD.Molecules
     local bw = math.max(T.px(16), math.min(T.buttonH, areaH - T.px(4)))
     local sep = T.px(4)
-    local tW = bw * 2 + sep
+    -- Filter first, a little apart from List | Grid (they are one pair; Filter is not part of it), where the window
+    -- has a Filter (filterFrame: a heading)
+    local S = self._zedFilter
+    local withF = S ~= nil and S.shown
+    local fgap = T.px(6)
+    local tW = bw * 2 + sep + (withF and (bw + fgap) or 0)
     local tx = xOff + right - tW
     local ty = barH + math.floor((areaH - bw) / 2)
+    if withF then
+        local id = "view:filter:" .. GV.key
+        local o = _viewOpts
+        o.active, o.hover = S.open, ZeD.Atoms.mouseIn(self, tx, ty, bw, bw)
+        o.focus, o.hint, o.id = gpFocusedToggle(id), ZeD.tr("UI_ZeD_Inv_Filter"), id
+        o.help = ZeD.tr("UI_ZeD_Inv_FilterHelp")
+        o.iconSize = math.min(T.px(16), bw - T.px(6))
+        M.drawIconButton(self, tx, ty, bw, "filter", o)   -- (the ZeD pixel funnel)
+        GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = bw, h = bw, view = "filter", key = GV.key, id = id }
+        tx = tx + bw + fgap
+        -- the bar's stops ride with every column's toggles: the controller reaches them from any column, and their
+        -- zones go in before the rows' (a cell scrolled half under the bar never takes its press)
+        if S.open then
+            for _, r in ipairs(S.rects) do GV.toggles[#GV.toggles + 1] = r end
+        end
+    end
     for i, v in ipairs({ "list", "grid" }) do
         local zx = tx + (i - 1) * (bw + sep)
         local on = (v == "grid") == (GV.on and true or false)
@@ -920,6 +1075,16 @@ local function drawGridCell(self, GV, item, cx, cy)
         end
         if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", nm)) end   -- (on the strip: its condition)
     end
+    -- the Filter: a matched cell takes an accent edge while text is typed (a picture has no letters to underline);
+    -- one that does not match dims in place, unless the controller is on it
+    local fr = self._fres
+    if fr then
+        if fr.match[item] then
+            if fr.ql ~= "" then ZeD.Atoms.frame(self, ax, cy, cell, cell, T.accent) end
+        elseif not fo then
+            filterDim(self, ax, cy, cell, cell)
+        end
+    end
     self:addHitZone(item, ax, cy, cell, cell)
 end
 
@@ -946,7 +1111,7 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local ci = self._containerInfo
     if not ci then return end
     local T = ZeD.T
-    local infoAreaH = hdrY - barH
+    local infoAreaH = hdrY - barH - (self._fbarH or 0)   -- (the Filter bar, while open, sits under the heading)
     local wtStr  = ci.stats or ""
     local cntStr = ci.count  or ""
     local wtW    = ZeD.TM:MeasureStringX(T.fontF1, wtStr)
@@ -1021,6 +1186,9 @@ local function drawCatRow(self, x, y, w, h, cat, n, isClosed, hover, inset)
     local o = _catOpts
     o.hover, o.h, o.inset = hover, h, inset
     ZeD.Molecules.drawCategoryRow(self, x, y, w, ZeD.InventoryRenderer.catLabel(cat), n, not isClosed, o)
+    -- (while the Filter narrows, a category with nothing matching dims with its rows)
+    local fr = self._fres
+    if fr and (fr.catMatched[cat] or 0) == 0 then filterDim(self, x, y, w, h) end
     if hover then ZeD.Help.set(self, ZeD.tr(isClosed and "UI_ZeD_Inv_CatOpenHelp" or "UI_ZeD_Inv_CatFoldHelp")) end
 end
 
@@ -1504,6 +1672,8 @@ end
 local function renderItemList(self)
     local T  = ZeD.T
     local A  = ZeD.Atoms
+    -- one list with its heading: the frame's Filter starts here (side by side, renderMultiColumnContent starts it)
+    if not self._compactMode then filterFrame(self, false) end
 
     -- Multi-column: X offset and column width
     local xOff = self._renderXOffset or 0
@@ -1626,7 +1796,7 @@ local function renderItemList(self)
 
     -- Header Y offset — pushed down by bar + container info header
     local hdrYOff = self._hdrYOffset
-    local hdrY    = barH + ((type(hdrYOff) == "number") and hdrYOff or 0)
+    local hdrY    = barH + ((type(hdrYOff) == "number") and hdrYOff or 0) + (self._fbarH or 0)   -- (and the Filter bar)
 
     -- Container buttons: their row sits at the bottom; the list ends above it
     ccLayout(self, hdrY, barH, colW)
@@ -1650,6 +1820,7 @@ local function renderItemList(self)
     local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, self._expandedStacks)
     -- a container this list starts showing while on screen: a mod's pick hook (ContainerGates.seen)
     ZeD.ContainerGates.seen(self, inv, playerObj)
+    filterColumn(self, M)   -- (this list's matches, kept until the filter or the model changes)
     local groups, catOrder, flatItems = M.groups, M.catOrder, M.flatItems
     local useGroups, stackedGroups, catRowCount = M.useGroups, M.stackedGroups, M.catRowCount
     local childParent = M.childParent
@@ -2049,6 +2220,10 @@ local function renderItemList(self)
             hZ("stack:" .. stackInfo.key, 0, y, nameX + T.px(16), rowH)
         end
         hZ(item, 0, y, scrollX, rowH)
+        -- the Filter: the matched letters underlined, or the row dimmed (it keeps its zone above)
+        if self._fres then
+            filterRowMarks(self, self._fres, item, xOff + nameX + childIndent + chevW, textY, displayName, xOff, y, scrollX, rowH, onFocus)
+        end
         -- a readable row shows its read card after the pause (the library's detail card, its balloon
         -- above the row's icon and name)
         if rs and mouseInCol and my >= y and my < y + rowH and my >= contentTop and my < contentTop + visibleH and localMx < scrollX then
@@ -2103,6 +2278,9 @@ local function renderItemList(self)
     end
 
     self:clearStencilRect()
+
+    -- one list with its heading: the Filter bar, over the full width (side by side, after the last column)
+    if not self._compactMode then filterEnd(self) end
 
     -- --------------------------------------------------------
     -- EMPTY STATE
@@ -2432,6 +2610,9 @@ local function renderMultiColumnContent(self)
     -- Clear all hit zones once
     self:clearHitZones()
 
+    -- the window's one Filter across these columns: which containers show, where its bar sits
+    filterFrame(self, true)
+
     -- Render each column
     for i = 1, N do
         local cs    = colStates[i]
@@ -2512,6 +2693,10 @@ local function renderMultiColumnContent(self)
 
     -- Draw container bar AFTER columns so hit zones survive clearHitZones
     if showBar then renderContainerBar(self) end
+
+    -- the Filter bar over every column and the transfer strips between them
+    filterEnd(self)
+    self._fres = nil
 
     -- Reset transient fields
     self._renderXOffset     = 0

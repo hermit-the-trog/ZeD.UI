@@ -6538,5 +6538,15 @@
     "UI_ZeD_Mods_ChipFilesOff": "Oprite: %1",
     "UI_ZeD_Mods_ChipErrorOne": "1 eroare",
     "UI_ZeD_Mods_ChipErrors": "%1 erori",
-    "UI_ZeD_Mods_PendingFiles": "Fișiere comutate în %1. O reîncărcare le pune la loc, fără repornire."
+    "UI_ZeD_Mods_PendingFiles": "Fișiere comutate în %1. O reîncărcare le pune la loc, fără repornire.",
+    "UI_ZeD_Inv_Filter": "Filtrează",
+    "UI_ZeD_Inv_FilterHelp": "Filtrează: estompează ce nu se potrivește în fiecare listă a acestei ferestre",
+    "UI_ZeD_Inv_FilterPlaceholder": "Filtrează după nume",
+    "UI_ZeD_Inv_FilterCount": "%1 din %2",
+    "UI_ZeD_Inv_FilterNone": "Nicio potrivire",
+    "UI_ZeD_Inv_FilterClear": "Golește",
+    "UI_ZeD_Inv_FilterClearHelp": "Golește: golește numele și categoriile; bara rămâne deschisă",
+    "UI_ZeD_Inv_FilterChipHelp": "%1: doar obiectele din ea rămân luminoase; alege mai multe pentru a vedea mai mult",
+    "UI_ZeD_Inv_FilterChipOffHelp": "%1: apasă din nou pentru a deselecta",
+    "UI_ZeD_Inv_PromptType": "Scrie"
 }

@@ -38,3 +38,4 @@ Animals quick actions (Nov 11 2026): 28 UI_ZeD_Animals_ lines (All hungry, All m
 Punch list 170 words (Nov 11 2026): the Mods screen's Files tab and the error cards. Machine draft (Sonnet), not yet checked by a native speaker.
 Used 'desactivar/activar' (as the Spain-derived AR file) and 'partida' for a save; voseo imperatives (Activalo, recargá).
 Chip tags drop the word 'archivo' to fit 14; 'Reactivar' for Turn back on.
+Punch list 168 words (Nov 11 2026): the inventory Filter bar. Machine draft, not yet checked by a native speaker. Voseo: 'elegí', 'tocá'; 'atenúa' for dims (the rows fade, they are not hidden).
