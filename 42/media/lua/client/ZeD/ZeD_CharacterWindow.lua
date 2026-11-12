@@ -753,6 +753,25 @@ local function composeCharTitle(win)
     win.title = win._ttOut
 end
 
+-- The health status pixel before the name (the director, Nov 11 2026: it took the place of "100%" in the stats, so
+-- the name stays in the bar while pins show). Its color and blink are ZeD_Window.healthPixel's bands; resting the
+-- pointer on it or the name puts "Health: 63%" in the help line, the words kept until the whole percent changes.
+-- The name gives way to the stats (_titleYields): pins shorten, then the name is cut with "...", then pins drop.
+local function composeCharHealth(win)
+    local p = win._playerObj
+    local bd = p and p:getBodyDamage()
+    if not bd then win._titleMark, win._titleHelp = nil, nil; return end
+    local hp = math.floor(bd:getOverallBodyHealth() + 0.5)
+    win._titleMark, win._titleMarkBlink = ZeD_Window.healthPixel(hp)
+    win._titleYields = true
+    win._hideTitle = nil
+    if win._hpHelpV ~= hp then
+        win._hpHelpV = hp
+        win._hpHelpS = ZeD.tr("UI_ZeD_Char_HealthHelp", getText("IGUI_XP_Health"), ZeD.Atoms.pctText(hp / 100))
+    end
+    win._titleHelp = win._hpHelpS
+end
+
 --- A tab that another file adds: ZeD's own extras (CookingTab, ServerTab) and
 --- ZeD's support for other mods (ZeD/ModSupport/<mod id>.lua, loaded only when
 --- that mod is on). def: id, label(), group, iconName, after (a tab id),
@@ -6104,15 +6123,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
         end
 
-        -- Title bar stats: [heart] hp%  [pack] weight / max
+        -- Title bar stats: the pins, then weight / max. Health is the status pixel before the name
+        -- (composeCharHealth, the window's own prerender).
         local inv = self._inventory
         -- (the character's own load over their own max, never the viewed bag's weight)
         local weight = round(self._playerObj:getInventory():getCapacityWeight(), 2)
         local maxWt = self._playerObj:getMaxWeight()
-        local bd = self._playerObj:getBodyDamage()
-        local hp = math.floor(bd:getOverallBodyHealth() + 0.5)
-        local hpColor = ZeD.Atoms.statusColor(hp / 100)   -- (the status bars' rule, punch list 143)
-        -- Build title stats: pins | HP | weight (right-to-left rendering)
         win.titleStats = {}
 
         -- the pins (ZeD_Pins: skills, the book read, liquids, what is left, condition; leftmost). The mark is the
@@ -6120,11 +6136,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         win._pinnedSkills = ZeD.Pins.skillNames(self._playerObj)
         local pinStats = ZeD.Pins.stats(self._playerObj)
         for _, st in ipairs(pinStats) do win.titleStats[#win.titleStats + 1] = st end
-        -- (the character's name gives way while pins show: the tab says whose it is)
-        win._hideTitle = #pinStats > 0
 
-        -- HP (middle): its status square in the health colour
-        win.titleStats[#win.titleStats + 1] = { text = hp .. "%", color = hpColor }
         -- Weight (rightmost): a figure, no status mark
         win.titleStats[#win.titleStats + 1] = { text = weight .. " / " .. maxWt, noMark = true }
 
@@ -6562,6 +6574,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- a drawer still sliding could miss it; QA's b11n run, Nov 11 2026)
         lootDrawerFallback(self)
         composeCharTitle(self)
+        composeCharHealth(self)
         _baseWinPrerender(self)
     end
 

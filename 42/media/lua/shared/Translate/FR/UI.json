@@ -527,6 +527,7 @@
     "UI_ZeD_Card_ZoneUpperArm": "Haut du bras",
     "UI_ZeD_Char_ContainersMany": "%1 conteneurs",
     "UI_ZeD_Char_ContainersOne": "%1 conteneur",
+    "UI_ZeD_Char_HealthHelp": "%1 : %2",
     "UI_ZeD_Char_ItemsMany": "%1 objets",
     "UI_ZeD_Char_ItemsOne": "%1 objet",
     "UI_ZeD_Char_JournalSearchEntries": "Chercher une entrée...",

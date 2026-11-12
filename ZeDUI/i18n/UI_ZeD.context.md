@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5089.
+Total keys: 5090.
 
 ## Areas
 
@@ -19,7 +19,7 @@ Total keys: 5089.
 - [Appliance](#appliance) (21)
 - [Belt](#belt) (34)
 - [Card](#card) (95)
-- [Char](#char) (31)
+- [Char](#char) (32)
 - [Controls](#controls) (13)
 - [Craft](#craft) (29)
 - [Credits](#credits) (3)
@@ -796,6 +796,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Char_ContainersMany` | `%1 containers` | Character window: window title when the multi-column loot view shows several columns | 20 |
 | `UI_ZeD_Char_ContainersOne` | `%1 container` | Character window: window title when the multi-column loot view shows one column | 20 |
+| `UI_ZeD_Char_HealthHelp` | `%1: %2` | Character window: the help line while the pointer rests on the name or its health status pixel in the title bar; %1 is the game's own word Health, %2 the percent ("Health: 63%") | 40 |
 | `UI_ZeD_Char_ItemsMany` | `%1 items` | Character window, Loot tab: column header, small text under the weight; the container holds several items (0 or 2+) | 14 |
 | `UI_ZeD_Char_ItemsOne` | `%1 item` | Character window, Loot tab: column header, small text under the weight; the container holds one item | 14 |
 | `UI_ZeD_Char_JournalSearchEntries` | `Search entries...` | Character window, Journal tab: placeholder in the search box over the entries list | 24 |

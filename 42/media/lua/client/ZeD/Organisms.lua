@@ -549,10 +549,59 @@ function ZeD_Window.drawPinBox(p, r, on, hover)
     end
 end
 
+-- The status pixel's blink: on half a second, off half a second, one flash a second, well under the three a second
+-- that the photosensitivity guidelines warn about. Timed on the game's clock in ms, not by frames drawn, so it
+-- keeps the same pace at any frame rate. ZeD has no reduce-motion or no-flashing option (Nov 11 2026); while
+-- ZeD_Window.PIXEL_BLINK is false the pixel holds solid, and such an option would set it.
+local BLINK_MS = 500
+ZeD_Window.PIXEL_BLINK = true
+
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
+--- Whether a blinking status pixel shows at this moment (ms: the game's clock, getTimestampMs()).
+function ZeD_Window.pixelLit(blink, ms)
+    if not blink or not ZeD_Window.PIXEL_BLINK then return true end
+    return clockStep(ms or getTimestampMs(), BLINK_MS, 2) == 0
+end
+
+--- The health status pixel beside the Character window's name: its color and whether it blinks, from the overall
+--- body health in whole percent (the director, Nov 11 2026). 80 and over: good. 40 to 79: warning. 21 to 39: danger.
+--- 20 and under: danger, blinking. Each boundary value sits on the healthier side except 20, which blinks. The colors
+--- are read from ZeD.T each call, so a theme or a colorblind set takes over at once.
+function ZeD_Window.healthPixel(hp)
+    local T = ZeD.T
+    if hp >= 80 then return T.positive, false end
+    if hp >= 40 then return T.warning, false end
+    return T.danger, hp <= 20
+end
+
+-- A stat's text that fits between sx and edge: its own, else its longest shorter form that fits (st.alts, the
+-- Character window's pins), else nil. Returns the text, its width and the room it needs with its mark.
+local function fitStat(st, txt, sx, edge, markW, tm, f3)
+    local sw = tm:MeasureStringX(f3, txt)
+    if sx - sw - markW >= edge then return txt, sw, sw + markW end
+    local alts = st.alts
+    if not alts then return nil end
+    for k = 1, #alts do
+        local a = tostring(alts[k])
+        local aw = tm:MeasureStringX(f3, a)
+        if sx - aw - markW >= edge then return a, aw, aw + markW end
+    end
+    return nil
+end
+
 -- The title bar: surface 2 (one layer: ZeD.Surface), stripes broken behind the title and the
 -- stats (System 7's knockout, without a second fill), the close box, the title, the stats
 -- right-aligned left of the window box, the window box, and the structure line under it all.
 -- A stat: { text, color = its mark's colour (default textDim), noMark = true for none }.
+-- A window may put a status pixel before its title (self._titleMark: a color; _titleMarkBlink: it blinks; the
+-- Character window's health) and may let its title give way to its stats (self._titleYields): when the bar is short,
+-- the stats first take their shorter forms, then the title is cut short with "...", and only then do stats drop.
 function ZeD_Window:_drawTitleBar(w, tbH)
     local T = ZeD.T
     local sp = T.sp
@@ -568,45 +617,56 @@ function ZeD_Window:_drawTitleBar(w, tbH)
     -- (a window with halves has a pin after its close box: the title moves along)
     local titleX = sp.sm + T.closeBoxSz + sp.md + ((self._halves and ZeD.Halves) and ZeD.Halves.titleShift(self) or 0)
     local textY = math.floor((tbH - (T.fontF3H or tm:getFontHeight(f3))) / 2)
+    local mk, mkGap = T.px(6), T.px(4)
+    local my = math.floor((tbH - mk) / 2)
+    -- the status pixel before the title: the same square as a stat's mark, its room kept in the blink's dark half
+    local pix = self._titleMark
+    local pixW = pix and (mk + mkGap) or 0
+    local nameX = titleX + pixW
+    local reserve = self._titleReserve or 0
     local shown, tW = nil, 0
-    -- (a window may hide its title to give its stats the bar: the Character window while pins show)
+    -- (a window may hide its title to give its stats the bar)
     local title = (not self._hideTitle) and self.title or nil
-    -- (self._titleReserve: room kept after the title for a box drawn there, the curtain's roll
-    -- box: the title is cut short and the stats stop before it)
-    if title and title ~= "" then
-        shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - titleX - tbp - (self._titleReserve or 0)))
+    if title == "" then title = nil end
+    local yields = title and self._titleYields
+    -- the title's right edge for the stats: as drawn, or, for a title that gives way, its whole width (kept while
+    -- everything fits) and the least it is cut to (four letters and the dots)
+    local fullW, leastW
+    if yields then
+        title = tostring(title)
+        fullW = tm:MeasureStringX(f3, title)
+        leastW = math.min(fullW, tm:MeasureStringX(f3, "Mmmm..."))
+    elseif title then
+        -- (self._titleReserve: room kept after the title for a box drawn there, the curtain's roll
+        -- box: the title is cut short and the stats stop before it)
+        shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - nameX - tbp - reserve))
         tW = tm:MeasureStringX(f3, shown)
+        fullW, leastW = tW, tW
+    else
+        fullW, leastW = 0, 0
     end
-    self._titleShownW = tW   -- (the title as drawn: the roll box goes right after it)
 
     -- stats right to left from the window box; one that would reach the title is dropped
     local statL = nil
     local stats = self.titleStats
     if stats and #stats > 0 then
-        local mk, mkGap = T.px(6), T.px(4)
-        local minX = titleX + tW + tbp * 2 + sp.md + (self._titleReserve or 0)
+        local pad = tbp * 2 + sp.md + reserve
+        local edgeFull = nameX + fullW + pad
+        local edgeLeast = nameX + leastW + pad
         local sx = right
         local tc = T.text
-        local my = math.floor((tbH - mk) / 2)
         for i = #stats, 1, -1 do
             local st = stats[i]
             local txt = tostring(st.text or "")
-            local sw = tm:MeasureStringX(f3, txt)
             local dc = st.color or T.textDim
             -- (a colour at alpha 0 was the old way to say "no mark")
             local mark = not st.noMark and (dc.a == nil or dc.a > 0)
-            local need = sw + (mark and (mk + mkGap) or 0)
-            -- (a stat with shorter forms takes the longest that fits: the Character window's pins)
-            if sx - need < minX and st.alts then
-                for _, alt in ipairs(st.alts) do
-                    local aw = tm:MeasureStringX(f3, tostring(alt))
-                    local an = aw + (mark and (mk + mkGap) or 0)
-                    if sx - an >= minX then txt, sw, need = tostring(alt), aw, an; break end
-                end
-            end
-            if sx - need < minX then break end
+            local markW = mark and (mk + mkGap) or 0
+            local t2, sw = fitStat(st, txt, sx, edgeFull, markW, tm, f3)
+            if not t2 and edgeLeast < edgeFull then t2, sw = fitStat(st, txt, sx, edgeLeast, markW, tm, f3) end
+            if not t2 then break end
             sx = sx - sw
-            self:drawText(txt, sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
+            self:drawText(t2, sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
             if mark then
                 sx = sx - mkGap - mk
                 self:drawRect(sx, my, mk, mk, dc.a or 1, dc.r, dc.g, dc.b)
@@ -615,11 +675,22 @@ function ZeD_Window:_drawTitleBar(w, tbH)
             sx = sx - sp.md
         end
     end
+    -- a title that gives way takes what the stats left it
+    if yields then
+        local stop = statL and (statL - tbp * 2 - sp.md) or (right - tbp)
+        shown = ZeD.Atoms.truncateText(title, f3, math.max(0, stop - nameX - reserve))
+        tW = tm:MeasureStringX(f3, shown)
+    end
+    -- (the title as drawn, its status pixel too: the roll box goes right after it)
+    self._titleShownW = pixW + tW
+    -- the pointer's reach for the title's hover help (_watchBoxes)
+    self._titleHitL, self._titleHitR = titleX, nameX + tW
 
     -- the stripes, with a gap behind the title and behind the stats
     local st = T.stripe
     if st and st.a > 0 then
-        local k1L, k1R = shown and (titleX - tbp) or nil, shown and (titleX + tW + tbp) or nil
+        local head = shown or pix
+        local k1L, k1R = head and (titleX - tbp) or nil, head and (nameX + tW + tbp) or nil
         local k2L, k2R = statL and (statL - tbp) or nil, statL and (right + tbp) or nil
         local sh = T.px(1)
         for sy = T.px(2), tbH - T.px(2), T.px(4) do
@@ -636,9 +707,12 @@ function ZeD_Window:_drawTitleBar(w, tbH)
         end
     end
 
+    if pix and ZeD_Window.pixelLit(self._titleMarkBlink) then
+        self:drawRect(titleX, my, mk, mk, pix.a or 1, pix.r, pix.g, pix.b)
+    end
     if shown then
         local th = T.textHead
-        self:drawText(shown, titleX, textY, th.r, th.g, th.b, th.a or 1, f3)
+        self:drawText(shown, nameX, textY, th.r, th.g, th.b, th.a or 1, f3)
     end
     -- Close box (a rolled-up side: the close box is on its rod, WindowCurtain)
     if self._closeBtnRect and not self._closeOnRod then
@@ -1483,6 +1557,13 @@ function ZeD_Window:_watchBoxes()
         end
     else
         self._pinHover = false
+    end
+    -- the title's own words in the help line while the pointer rests on it or its status pixel
+    -- (self._titleHelp: the Character window's "Health: 63%")
+    local th = self._titleHelp
+    if th and self._titleHitR and my >= 0 and my < self:titleBarHeight() and mx >= self._titleHitL
+        and mx < self._titleHitR and self:pointerOn() then
+        self._updHelp = th
     end
 end
 
