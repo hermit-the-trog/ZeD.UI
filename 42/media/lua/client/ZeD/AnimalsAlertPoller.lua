@@ -120,18 +120,21 @@ local function computeAlerts(animals)
     local alerts = {}
 
     for _, animal in ipairs(animals) do
-        -- Udder urgent
-        if AD.isUdderUrgent(animal) then
+        -- The milk and wool alerts use the game's own menu tests (AD.hasMilk, AD.hasWool): an animal that
+        -- can be milked or sheared in principle but has nothing to give is no alert. All milkable and the
+        -- roster tags ask the same two functions, so the counts agree.
+        local urgent = AD.isUdderUrgent(animal) and AD.hasMilk(animal)
+        if urgent then
             table.insert(alerts, { animal = animal, alertType = "udder_urgent", severity = "danger" })
         end
 
         -- Ready to milk (non-urgent)
-        if AD.canBeMilked(animal) and not AD.isUdderUrgent(animal) then
+        if AD.hasMilk(animal) and not urgent then
             table.insert(alerts, { animal = animal, alertType = "ready_milk", severity = "info" })
         end
 
         -- Ready to shear
-        if AD.canBeSheared(animal) then
+        if AD.hasWool(animal) then
             table.insert(alerts, { animal = animal, alertType = "ready_shear", severity = "info" })
         end
 

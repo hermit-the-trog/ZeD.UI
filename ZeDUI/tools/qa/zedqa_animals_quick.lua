@@ -13,6 +13,7 @@
 --   4  Walk to: the game's walk is queued; Milk on the alert: the game's milking runs and the cow's milk goes down
 --   5  the zone: All hungry ticks the starving cow, Clear, All milkable, X on a row (the ring's onContextMenu), the
 --      band's Milk (n) starts a run ("Milking 1 of n"), it ends ("Done") or is stopped by Stop
+--   5a milked dry: with 0 L in her the cow has no milk alert and All milkable skips her; 0.5 wool, no shear alert
 --   5b Feed: the starving cow ticked, Feed greyed with nothing to eat; carrots (one in a bag) and a steak given, the
 --      food picker lists Carrots only with "For 1 of 1 | 2 carried"; picking it runs the game's ISFeedAnimalFromHand
 --      and the cow's hunger goes down; B on the picker closes it with nothing fed
@@ -294,6 +295,37 @@ add(2500, function()
     AT.bulkPress(W(), "stop")
     check(AQ.run == nil and AQ.last and AQ.last.why ~= nil, "Stop ends it", AQ.last and AQ.last.why)
     check(queueNames() == "", "Stop leaves nothing queued", queueNames())
+end)
+
+-- 5a Milked dry: the cow holds milk (the alert is up and All milkable counts it), is milked down to nothing, and the
+--    alert goes with it (the game's menu offers Milk only above 0.1 L); the ram's wool the same way (shear above 1).
+--    The animals are the script's own and leave at the end, so only their numbers change here.
+local function pollerHas(animal, kind)
+    for _, a in ipairs(AP.getAlerts()) do
+        if a.animal == animal and a.alertType == kind then return true end
+    end
+    return false
+end
+add(300, function()
+    emptyGiven()
+    AQ.forgetChecks()
+    pcall(function() A.milk:getData():setMilkQuantity(3) end)
+    pcall(function() A.wool:getData():setWoolQuantity(5, true) end)
+    AP.refreshCache()
+    check(pollerHas(A.milk, "ready_milk") or pollerHas(A.milk, "udder_urgent"), "with 3 L in her, the cow has a milk alert")
+    check(pollerHas(A.wool, "ready_shear"), "with 5 wool on him, the ram has a shear alert")
+    check(AQ.countWhere({ A.milk }, "milkable") == 1, "All milkable counts the cow with milk")
+    pcall(function() A.milk:getData():setMilkQuantity(0) end)
+    pcall(function() A.wool:getData():setWoolQuantity(0.5, true) end)
+    AP.refreshCache()
+end)
+add(1200, function()
+    check(not pollerHas(A.milk, "ready_milk") and not pollerHas(A.milk, "udder_urgent"), "milked dry: no milk alert",
+        A.milk:getData():getMilkQuantity())
+    check(not pollerHas(A.wool, "ready_shear"), "shorn: no shear alert", A.wool:getData():getWoolQuantity())
+    check(alertOf(A.milk, "milk") == nil and alertOf(A.wool, "shear") == nil, "the Ranch page lists neither row")
+    check(AQ.countWhere({ A.milk }, "milkable") == 0, "All milkable counts nothing: it agrees with the alerts")
+    shot("8a_dry")
 end)
 
 -- 5b Feed: the starving cow ticked, Feed greyed with no food (the cow food was set aside at 1); carrots (one in a

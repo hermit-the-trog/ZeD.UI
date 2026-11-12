@@ -55,16 +55,15 @@ end
 -- WHAT AN ANIMAL HAS TO GIVE — the game's own tests (ISAnimalContextMenu)
 -- ============================================================================
 
---- True when the game's menu would offer Milk for this animal (more than 0.1 L in it).
+--- True when the game's menu would offer Milk for this animal (more than 0.1 L in it). The test lives in
+-- AnimalsData, shared with the alerts, so All milkable and "Ready to milk" cannot disagree.
 function AQ.hasMilk(animal)
-    local d = ocall(animal, "getData")
-    return d ~= nil and (ocall(d, "getMilkQuantity") or 0) > 0.1 and ocall(animal, "canBeMilked") == true
+    return AD().hasMilk(animal) == true
 end
 
 --- True when the game's menu would offer Shear for this animal (more than one unit of wool).
 function AQ.hasWool(animal)
-    local d = ocall(animal, "getData")
-    return ocall(animal, "canBeSheared") == true and d ~= nil and (ocall(d, "getWoolQuantity") or 0) > 1
+    return AD().hasWool(animal) == true
 end
 
 --- True for an animal the detail view calls Hungry or Starving.

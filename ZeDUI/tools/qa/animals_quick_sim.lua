@@ -87,6 +87,18 @@ ZeD.tr = function(k, ...)
     return (#a > 0) and (k .. "(" .. table.concat(a, ",") .. ")") or k
 end
 ZeD.AnimalsData = { getHunger = function(a) return a._hunger or 0 end }
+-- The game's milk and wool tests are AnimalsData's (the alerts and All milkable share them): the real ones, loaded
+-- into a table of their own so the rest of the fake stays as it is.
+local REAL
+do
+    local keep = ZeD.AnimalsData
+    ZeD.AnimalsData = {}
+    dofile(Z .. "AnimalsData.lua")
+    REAL = ZeD.AnimalsData
+    ZeD.AnimalsData = keep
+    for _, k in ipairs({ "hasMilk", "hasWool", "canBeMilked", "canBeSheared", "getMilkQuantity", "getWoolQuantity",
+                         "getMaxMilk", "isUdderUrgent" }) do keep[k] = REAL[k] end
+end
 
 -- the tick hook
 local hooks = {}
@@ -878,6 +890,101 @@ do
         end
     end
     check("ZONES no animal counted twice; the zone rows hold all 4", not twice and inZones == 4, inZones)
+end
+
+-- ALERTS ----------------------------------------------------------------------
+-- "Ready to milk", "Udder" and "Ready to shear" are raised by the game's menu tests and no looser: milk above 0.1 L
+-- on a breed that can be milked; wool above 1 on a breed that can be sheared. All milkable and the roster tags agree.
+do
+    local ADs = ZeD.AnimalsData
+    for _, k in ipairs({ "canBeMilked", "canBeSheared", "getMaxMilk", "isUdderUrgent" }) do ADs[k] = REAL[k] end
+    local function mk(name, milkable, shearable, milk, wool, max)
+        local a = animal(name, { milk = milk, wool = wool, milkable = milkable, shearable = shearable })
+        a._x = 10
+        a.getX = function() return 10 end
+        a.getY = function() return 10 end
+        a.getZ = function() return 0 end
+        a.getDZone = function() return nil end
+        a.getData().getMaxMilk = function() return max or 10 end
+        return a
+    end
+    local cases = {
+        mk("CowDry", true, false, 0, 0),            -- cow, no milk
+        mk("CowTrace", true, false, 0.1, 0),        -- exactly 0.1: the game offers nothing
+        mk("CowMilk", true, false, 4, 0),           -- cow with milk
+        mk("CowFull", true, false, 12, 0),          -- past its udder's limit: the urgent alert, not both
+        mk("EweDry", true, true, 0, 0.5),           -- ewe: no milk, wool under one
+        mk("EweWool1", true, true, 0, 1),           -- exactly 1 wool: nothing
+        mk("EweWool", true, true, 0, 3),            -- ewe with wool and no milk: shear only
+        mk("EweBoth", true, true, 2, 4),            -- milk and wool: both
+        mk("GoatMilk", true, false, 0.5, 0),        -- goat with a little milk
+        mk("GoatDry", true, false, 0.05, 0),        -- goat with a trace of milk
+        mk("PigMilk", false, false, 5, 0),          -- a breed that cannot be milked, whatever it holds
+        mk("RamWool", false, true, 0, 6),           -- ram: shear, never milk
+    }
+    local list = L(cases)
+    local ctxCell = { getAnimals = function()
+        local i = 0
+        return { iterator = function() return {
+            hasNext = function() return i < #cases end,
+            next = function() i = i + 1; return cases[i] end } end }
+    end }
+    getCell = function() return ctxCell end
+    getSpecificPlayer = function() return { getCurrentSquare = function() return { getX = function() return 10 end,
+        getY = function() return 10 end, getZ = function() return 0 end } end } end
+    DesignationZoneAnimal = { getAllZones = function() return L({}) end }
+    ZeD.AnimalsAlertPoller = nil
+    dofile(Z .. "AnimalsAlertPoller.lua")
+    local AP2 = ZeD.AnimalsAlertPoller
+    AP2.refreshCache()
+    local by = {}
+    for _, al in ipairs(AP2.getAlerts()) do
+        local nm = al.animal._name
+        by[nm] = by[nm] or {}
+        by[nm][al.alertType] = true
+    end
+    local function has(nm, t) return by[nm] ~= nil and by[nm][t] == true end
+    local function none(nm) return by[nm] == nil end
+    check("ALERTS cow with no milk: no alert", none("CowDry"))
+    check("ALERTS cow at exactly 0.1 L: no alert", none("CowTrace"))
+    check("ALERTS cow with 4 L: Ready to milk", has("CowMilk", "ready_milk") and not has("CowMilk", "udder_urgent"))
+    check("ALERTS cow past its udder's limit: urgent only", has("CowFull", "udder_urgent") and not has("CowFull", "ready_milk"))
+    check("ALERTS ewe with wool under one: no alert", none("EweDry"))
+    check("ALERTS ewe with exactly 1 wool: no alert", none("EweWool1"))
+    check("ALERTS ewe with 3 wool and no milk: Ready to shear, no milk alert",
+        has("EweWool", "ready_shear") and not has("EweWool", "ready_milk"))
+    check("ALERTS ewe with both: milk and shear", has("EweBoth", "ready_milk") and has("EweBoth", "ready_shear"))
+    check("ALERTS goat with 0.5 L: Ready to milk", has("GoatMilk", "ready_milk"))
+    check("ALERTS goat with 0.05 L: no alert", none("GoatDry"))
+    check("ALERTS a breed that cannot be milked: no milk alert", none("PigMilk"))
+    check("ALERTS ram: shear only", has("RamWool", "ready_shear") and not has("RamWool", "ready_milk"))
+    -- All milkable and All shearable agree with the alerts, animal by animal
+    local agree, nMilk, nWool = true, 0, 0
+    for _, a in ipairs(cases) do
+        local alertMilk = has(a._name, "ready_milk") or has(a._name, "udder_urgent")
+        if alertMilk ~= AQ.hasMilk(a) then agree = false end
+        if has(a._name, "ready_shear") ~= AQ.hasWool(a) then agree = false end
+        if alertMilk then nMilk = nMilk + 1 end
+        if has(a._name, "ready_shear") then nWool = nWool + 1 end
+    end
+    check("ALERTS All milkable and the shear test say what the alerts say, animal by animal", agree)
+    check("ALERTS All milkable counts the alerts' milk animals: 4 (cow, full cow, ewe with both, goat)",
+        AQ.countWhere(cases, "milkable") == nMilk and nMilk == 4, nMilk)
+    check("ALERTS wool alerts: 3 (ewe, ewe with both, ram)", nWool == 3, nWool)
+    local sel = AQ.newSelection()
+    check("ALERTS All milkable picks 4", AQ.selectWhere(sel, cases, "milkable") == 4)
+    -- milk the cow dry: the alert clears and the pick drops her
+    cases[3]._milk = 0
+    AP2.refreshCache()
+    local still = false
+    for _, al in ipairs(AP2.getAlerts()) do if al.animal == cases[3] then still = true end end
+    check("ALERTS milked dry: the cow's alert clears and All milkable skips her",
+        not still and AQ.countWhere(cases, "milkable") == 3)
+    -- the roster tags use the same tests
+    ADs.getConditionTags = REAL.getConditionTags
+    check("ALERTS source: the tags use hasMilk and hasWool",
+        readFile(Z .. "AnimalsData.lua"):find("if AD.hasMilk(animal) then", 1, true) ~= nil
+        and readFile(Z .. "AnimalsData.lua"):find("if AD.hasWool(animal) then", 1, true) ~= nil)
 end
 
 -- SOURCE ----------------------------------------------------------------------
