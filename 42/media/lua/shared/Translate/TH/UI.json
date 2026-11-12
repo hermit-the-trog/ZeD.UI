@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "ต้องใช้ %1",
     "UI_ZeD_Craft_BadgeUnknown": "ยังไม่รู้",
     "UI_ZeD_Craft_Compatible": "ใช้แทนได้",
+    "UI_ZeD_Craft_EmptyNone": "ไม่มีสูตรให้แสดง",
+    "UI_ZeD_Craft_EmptyReady": "ไม่มีอะไรที่ทำได้จากของที่อยู่ใกล้มือ",
     "UI_ZeD_Craft_FilterAlts": "กรองตัวเลือกอื่น...",
     "UI_ZeD_Craft_FindNamed": "หา %1",
     "UI_ZeD_Craft_FindRecipe": "หานิตยสารสูตรหรือแผนผัง",

@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Needs %1",
     "UI_ZeD_Craft_BadgeUnknown": "Unknown",
     "UI_ZeD_Craft_Compatible": "Compatible",
+    "UI_ZeD_Craft_EmptyNone": "No recipes to list.",
+    "UI_ZeD_Craft_EmptyReady": "Nothing is ready to make with what is in reach.",
     "UI_ZeD_Craft_FilterAlts": "Filter alternatives...",
     "UI_ZeD_Craft_FindNamed": "Find %1",
     "UI_ZeD_Craft_FindRecipe": "Find recipe magazine or schematic",

@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Tarve: %1",
     "UI_ZeD_Craft_BadgeUnknown": "Tuntematon",
     "UI_ZeD_Craft_Compatible": "Yhteensopiva",
+    "UI_ZeD_Craft_EmptyNone": "Ei näytettäviä reseptejä.",
+    "UI_ZeD_Craft_EmptyReady": "Ulottuvilla olevista tavaroista ei voi tehdä mitään.",
     "UI_ZeD_Craft_FilterAlts": "Suodata vaihtoehtoja...",
     "UI_ZeD_Craft_FindNamed": "Löydä %1",
     "UI_ZeD_Craft_FindRecipe": "Etsi reseptilehti tai piirustus",

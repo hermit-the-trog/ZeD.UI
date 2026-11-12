@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Butuh %1",
     "UI_ZeD_Craft_BadgeUnknown": "Belum tahu",
     "UI_ZeD_Craft_Compatible": "Cocok",
+    "UI_ZeD_Craft_EmptyNone": "Tidak ada resep untuk ditampilkan.",
+    "UI_ZeD_Craft_EmptyReady": "Tidak ada yang bisa dibuat dengan barang yang terjangkau.",
     "UI_ZeD_Craft_FilterAlts": "Saring alternatif...",
     "UI_ZeD_Craft_FindNamed": "Temukan %1",
     "UI_ZeD_Craft_FindRecipe": "Cari majalah resep atau skema",

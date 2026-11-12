@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Потрібно: %1",
     "UI_ZeD_Craft_BadgeUnknown": "Невідомий",
     "UI_ZeD_Craft_Compatible": "Сумісні",
+    "UI_ZeD_Craft_EmptyNone": "Немає рецептів для показу.",
+    "UI_ZeD_Craft_EmptyReady": "З того, що під рукою, нічого не зробити.",
     "UI_ZeD_Craft_FilterAlts": "Фільтр варіантів...",
     "UI_ZeD_Craft_FindNamed": "Знайдіть %1",
     "UI_ZeD_Craft_FindRecipe": "Знайдіть журнал із рецептом або схему",

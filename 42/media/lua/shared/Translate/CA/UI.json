@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "Cal %1",
     "UI_ZeD_Craft_BadgeUnknown": "No apresa",
     "UI_ZeD_Craft_Compatible": "Compatibles",
+    "UI_ZeD_Craft_EmptyNone": "No hi ha receptes per mostrar.",
+    "UI_ZeD_Craft_EmptyReady": "No hi ha res a punt per fer amb el que tens a l'abast.",
     "UI_ZeD_Craft_FilterAlts": "Filtra alternatives...",
     "UI_ZeD_Craft_FindNamed": "Troba %1",
     "UI_ZeD_Craft_FindRecipe": "Cerca la revista de receptes o l'esquema",

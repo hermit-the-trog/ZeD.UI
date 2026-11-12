@@ -410,6 +410,22 @@ for _, f in ipairs(FILES) do
     if not o then haveBase = false end
     oldSrc[#oldSrc + 1] = { name = f.name, src = o }
 end
+-- (Nov 11 2026, tab review item 3) the Kind block's Capacity row now reads the bag's weight ("4.5 / 15 kg", as
+-- Container Facts), no longer getItemCapacity (-1 on a real bag): a change made on purpose, so the old card is
+-- given the new block and the comparison stays on the model
+if haveBase then
+    local o, n = oldSrc[2].src, newSrc[2].src
+    local OPEN, CLOSE = '    elseif cat == "Container" then\n        local cap = safeGet(item, "getItemCapacity")', "        if inner then\n"
+    local NOPEN = '    elseif cat == "Container" then\n        -- the weight it holds'
+    local oa = string.find(o, OPEN, 1, true)
+    local ob = oa and string.find(o, CLOSE, oa, true)
+    local na = string.find(n, NOPEN, 1, true)
+    local nb = na and string.find(n, CLOSE, na, true)
+    check("the Capacity row's new block carried into the old card", oa and ob and na and nb)
+    if oa and ob and na and nb then
+        oldSrc[2].src = string.sub(o, 1, oa - 1) .. string.sub(n, na, nb - 1) .. string.sub(o, ob)
+    end
+end
 local OLD
 if haveBase then
     section("OLD: the card files at " .. BASE .. " (before the change)")
@@ -423,6 +439,20 @@ local NEW = newEnv("NEW", newSrc, clock)
 check("the old files are not the new ones (the comparison means something)",
     not haveBase or oldSrc[2].src ~= newSrc[2].src)
 check("the new card keeps a model", type(NEW.ZeD_ItemCard._cardModel) == "function")
+-- (Nov 11 2026, tab review item 3) a real bag's getItemCapacity is -1: the Capacity row reads its weight
+do
+    local f = ITEMS.bag._f
+    local was = f.getItemCapacity
+    f.getItemCapacity = -1
+    local ok, rows = pcall(NEW.ZeD.ItemCard.topStatsForItem, ITEMS.bag)
+    f.getItemCapacity = was
+    local got = nil
+    for _, r in ipairs(ok and rows or {}) do
+        if r.label == "en:Tooltip_container_Capacity" then got = r.value end
+    end
+    check("a bag reading getItemCapacity -1: Capacity 4.5 / 15 kg, as its Container Facts", got == "4.5 / 15 kg",
+        ok and tostring(got) or rows)
+end
 
 local function frameOf(env)
     env.LOG = {}

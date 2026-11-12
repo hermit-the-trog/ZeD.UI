@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "필요: %1",
     "UI_ZeD_Craft_BadgeUnknown": "미습득",
     "UI_ZeD_Craft_Compatible": "호환",
+    "UI_ZeD_Craft_EmptyNone": "표시할 레시피가 없습니다.",
+    "UI_ZeD_Craft_EmptyReady": "손이 닿는 물건으로 만들 수 있는 것이 없습니다.",
     "UI_ZeD_Craft_FilterAlts": "대체 재료 거르기...",
     "UI_ZeD_Craft_FindNamed": "%1 찾기",
     "UI_ZeD_Craft_FindRecipe": "레시피 잡지나 설계도를 찾으십시오",

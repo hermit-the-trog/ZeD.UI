@@ -594,6 +594,8 @@
     "UI_ZeD_Craft_BadgeNeeds": "%1が必要",
     "UI_ZeD_Craft_BadgeUnknown": "未習得",
     "UI_ZeD_Craft_Compatible": "互換品",
+    "UI_ZeD_Craft_EmptyNone": "表示するレシピはありません。",
+    "UI_ZeD_Craft_EmptyReady": "手の届く物で作れるものはありません。",
     "UI_ZeD_Craft_FilterAlts": "代替品を絞り込み...",
     "UI_ZeD_Craft_FindNamed": "%1を見つける",
     "UI_ZeD_Craft_FindRecipe": "レシピ雑誌か設計図を探してください",
