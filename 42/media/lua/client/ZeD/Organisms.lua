@@ -1200,7 +1200,8 @@ function ZeD_Window:_resizeStep()
     local minH = self.minimumHeight or T.px(120)
     if mode == "s" or mode == "se" or mode == "sw" then
         -- (the screen's edge first, the minimum last: a window parked within its minimum of the bottom)
-        local newH = math.min(my - ay, getCore():getScreenHeight() - self:getY())
+        local _, screenH, _, screenT = ZeD.screenOf(self)
+        local newH = math.min(my - ay, screenT + screenH - self:getY())
         newH = math.max(newH, minH)
         if newH ~= self:getHeight() then self:setHeight(newH) end
     end
@@ -1342,21 +1343,31 @@ function ZeD_Window:onMouseUpOutside(x, y)
     self.moving = false
 end
 
+--- The screen a ZeD window opens, fits, drags and slides its drawers on: width, height, left, top (screen px; the
+--- size comes first, since most callers want only that). w: the window, or a player number while the window is still
+--- being built. Today every window has the whole screen. Split-screen windows will read their player's part here
+--- (ZeD.playerRect, by win.playerNum), so this is the one place that has to change for them.
+function ZeD.screenOf(w)
+    local core = getCore()
+    return core:getScreenWidth(), core:getScreenHeight(), 0, 0
+end
+
 -- ---------------------------------------------------------------------------
 -- Reset the windows to the default page-spread layout: "Reset this window"
 -- and "Reset both windows" in the window menu, the Select wheel's Reset
 -- windows (and the QA scripts). which: "char", "world", or nil for both. A
 -- rolled side (WindowCurtain) comes back down first, so the reset starts
--- from the whole window.
+-- from the whole window. The spread sits in the middle of the screen the
+-- windows live on (ZeD.screenOf: screenL, screenT its left and top).
 -- ---------------------------------------------------------------------------
-local function resetChar(charWin, defW, defH, gap, screenW)
+local function resetChar(charWin, defW, defH, gap, screenW, screenL, screenT)
     local S = ZeD.Settings
     local T = ZeD.T
     charWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
     charWin:setWidth(defW)
     charWin:setHeight(defH)
-    charWin:setX(math.floor(screenW / 2) - defW - gap)
-    charWin:setY(0)
+    charWin:setX(screenL + math.floor(screenW / 2) - defW - gap)
+    charWin:setY(screenT)
     charWin._anchorRightEdge = charWin:getX() + defW
     -- (what the half-screen cap pushed or took before the reset is not owed to the reset's place: punch list 125)
     charWin._drawerCapPush = 0
@@ -1388,14 +1399,14 @@ local function resetChar(charWin, defW, defH, gap, screenW)
     end
 end
 
-local function resetWorld(worldWin, defW, defH, gap, screenW)
+local function resetWorld(worldWin, defW, defH, gap, screenW, screenL, screenT)
     local S = ZeD.Settings
     local T = ZeD.T
     worldWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
     worldWin:setWidth(defW)
     worldWin:setHeight(defH)
-    worldWin:setX(math.floor(screenW / 2) + gap)
-    worldWin:setY(0)
+    worldWin:setX(screenL + math.floor(screenW / 2) + gap)
+    worldWin:setY(screenT)
     worldWin._anchorRightEdge = worldWin:getX() + defW
     -- (what the half-screen cap pushed or took before the reset is not owed to the reset's place: a push kept from
     -- before was saved on top of the new x and given back when the next drawer closed, 4 px right at Deck size,
@@ -1426,10 +1437,10 @@ local function resetWorld(worldWin, defW, defH, gap, screenW)
     end
 end
 
-function ZeD_Window.resetLayout(which)
+--- which: "char", "world" or nil for both; pn: whose pair (nil: the first player's).
+function ZeD_Window.resetLayout(which, pn)
     local T = ZeD.T
-    local screenW = getCore():getScreenWidth()
-    local screenH = getCore():getScreenHeight()
+    local screenW, screenH, screenL, screenT = ZeD.screenOf(pn or 0)
     local defW = math.min(T.px(444), math.floor(screenW * 0.5))   -- 36 + 372 + 36 design units, as a fresh open
     -- (narrower where a full card would shift the windows, as a fresh open: ZeD.Scale.fitInvW; the smaller of the
     -- two sides' room, so both fit)
@@ -1441,15 +1452,15 @@ function ZeD_Window.resetLayout(which)
     local gap = T.px(5)  -- 5px each side = 10px total gap
 
     -- Position as page spread: character left, world right
-    local charWin = (which ~= "world") and ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow() or nil
-    local worldWin = (which ~= "char") and ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or nil
+    local charWin = (which ~= "world") and ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn) or nil
+    local worldWin = (which ~= "char") and ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn) or nil
     for _, w in ipairs({ charWin or false, worldWin or false }) do
         if w and w._rolled and ZeD.Curtain and ZeD.Curtain.finishUnroll then ZeD.Curtain.finishUnroll(w) end
         -- (a drawer its half folded is forgotten: the reset's Loot is what gets saved, WindowHalves)
         if w and w._halves and ZeD.Halves then ZeD.Halves.forgetFold(w) end
     end
-    if charWin then resetChar(charWin, defW, defH, gap, screenW) end
-    if worldWin then resetWorld(worldWin, defW, defH, gap, screenW) end
+    if charWin then resetChar(charWin, defW, defH, gap, screenW, screenL, screenT) end
+    if worldWin then resetWorld(worldWin, defW, defH, gap, screenW, screenL, screenT) end
     -- the controller's stops follow the reset to Loot (the stops of the tab that was
     -- showing stayed registered, and a Right from the strip landed on one not drawn)
     if charWin and ZeD_CharacterWindow.syncRing then ZeD_CharacterWindow.syncRing(charWin) end

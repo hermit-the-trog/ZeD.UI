@@ -336,7 +336,7 @@ end
 local function snapShut(win)
     local effW = math.floor(win._drawerEffW or 0)
     if effW <= 0 then return end
-    local screenW = getCore():getScreenWidth()
+    local screenW = ZeD.screenOf(win)
     local maxW = win._maxWinW or math.floor(screenW * 0.5)
     local back = math.min(win._drawerCapLost or 0, effW)
     local newW = math.min(win:getWidth() - effW + back, maxW)

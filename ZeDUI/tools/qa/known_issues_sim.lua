@@ -8,6 +8,10 @@
 --           own, through every way in, the pad's Y and D-pad included); each local player has a belt of their own,
 --           placed and hidden on its own, a drop and the pad's leaving going to the right one; the server link sends
 --           as the player it is handed
+--   S0      split-screen's groundwork, the first player unchanged: ZeD.playerRect gives each player their part of the
+--           screen (a two-player split stubbed), the whole screen when the game cannot answer; ZeD.screenOf (what the
+--           windows fit, open, drag and slide on) is still the whole screen for everyone; the windows are kept one a
+--           player, getWindow() is getWindow(0), closing one player's leaves the other's; the gate is as it was
 --   MONTHS  the French and Hungarian month words are lower case in dates (Journal and main menu keys); English keeps
 --           its capitals
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/known_issues_sim.lua
@@ -290,6 +294,125 @@ do
         check("none handed: the first player, as before", sentBy[2] == first)
         check("never as a player who is not on this machine", sentBy[3] == first)
     end
+end
+
+-- ---------------------------------------------------------------------------
+section("S0")
+-- ---------------------------------------------------------------------------
+do
+    -- the files' own functions, cut out by name (the windows need the whole game to load)
+    local function src(file) return ((readFile(LUA .. "client/ZeD/" .. file) or ""):gsub("\r\n", "\n")) end
+    local function fnOf(s, head)   -- from "\n<head>(" to the function's own "end" at the start of a line
+        local a = s:find("\n" .. head .. "(", 1, true)
+        if not a then return nil end
+        local b = s:find("\nend\n", a + 1, true)
+        return b and s:sub(a + 1, b + 4) or nil
+    end
+    local atoms, orgs = src("Atoms.lua"), src("Organisms.lua")
+    local cw, ww = src("ZeD_CharacterWindow.lua"), src("ZeD_WorldWindow.lua")
+
+    -- a two-player split: the screen cut down the middle, the first player on the left
+    local SW, SH = 1920, 1080
+    getCore = function() return { getScreenWidth = function() return SW end, getScreenHeight = function() return SH end } end
+    local RECTS = { [0] = { 0, 0, 960, 1080 }, [1] = { 960, 0, 960, 1080 } }
+    local function part(i) return function(pn) local r = RECTS[pn]; return r and r[i] or 0 end end
+    getPlayerScreenLeft, getPlayerScreenTop = part(1), part(2)
+    getPlayerScreenWidth, getPlayerScreenHeight = part(3), part(4)
+
+    ZeD = {}
+    local prSrc = fnOf(atoms, "function ZeD.playerRect")
+    check("ZeD.playerRect is in Atoms.lua", prSrc ~= nil)
+    if prSrc then assert(loadstring(prSrc))() end
+    local function rect(pn) return table.concat({ ZeD.playerRect(pn) }, ",") end
+    if ZeD.playerRect then
+        check("the first player's part: the left half", rect(0) == "0,0,960,1080", rect(0))
+        check("the second player's part: the right half", rect(1) == "960,0,960,1080", rect(1))
+        check("no player named: the first player's", rect(nil) == rect(0), rect(nil))
+        check("a player with no part (none there): the whole screen", rect(2) == "0,0,1920,1080", rect(2))
+        RECTS = { [0] = { 0, 0, 1920, 1080 } }
+        check("one player: the whole screen", rect(0) == "0,0,1920,1080", rect(0))
+        local keepW = getPlayerScreenWidth
+        getPlayerScreenWidth = function() error("the Java side threw") end
+        check("the game throwing: the whole screen", rect(1) == "0,0,1920,1080", rect(1))
+        getPlayerScreenWidth = nil
+        check("no such function (another build): the whole screen", rect(0) == "0,0,1920,1080", rect(0))
+        getPlayerScreenWidth = keepW
+        RECTS = { [0] = { 0, 0, 960, 1080 }, [1] = { 960, 0, 960, 1080 } }
+    end
+
+    -- what the windows fit, open, drag and slide on: the whole screen for everyone, as before (split-screen windows
+    -- switch it to their player's part later)
+    local soSrc = fnOf(orgs, "function ZeD.screenOf")
+    check("ZeD.screenOf is in Organisms.lua", soSrc ~= nil)
+    if soSrc then assert(loadstring(soSrc))() end
+    local function scr(w) return table.concat({ ZeD.screenOf(w) }, ",") end
+    if ZeD.screenOf then
+        check("the first player's windows: the whole screen, as before", scr(0) == "1920,1080,0,0" and scr({ playerNum = 0 }) == "1920,1080,0,0", scr(0))
+        check("for now the second player's too (their windows do not open yet)", scr(1) == "1920,1080,0,0" and scr({ playerNum = 1 }) == "1920,1080,0,0", scr(1))
+    end
+    -- every screen size the window code reads comes through it (the pair, the reset, the saved places, the roll)
+    local direct = {}
+    for _, f in ipairs({ "ZeD_CharacterWindow.lua", "ZeD_WorldWindow.lua", "ZeD_WindowPlaces.lua", "WindowCurtain.lua", "WindowHalves.lua" }) do
+        if src(f):find("getCore():getScreen", 1, true) then direct[#direct + 1] = f end
+    end
+    local resetSrc = fnOf(orgs, "function ZeD_Window.resetLayout") or ""
+    local stepSrc = fnOf(orgs, "function ZeD_Window:_resizeStep") or ""
+    if (resetSrc .. stepSrc):find("getCore():getScreen", 1, true) or resetSrc == "" or stepSrc == "" then direct[#direct + 1] = "Organisms.lua" end
+    check("the window code reads the screen only through ZeD.screenOf", #direct == 0, table.concat(direct, " "))
+
+    -- the windows, one a player: the Character window's lookups on a map holding two players' windows
+    check("the Character windows are a map", cw:find("\nlocal _charWins = {}\n", 1, true) ~= nil and not cw:find("_charWin[^%w_]"))
+    check("the World windows are a map", ww:find("\nlocal _worldWins = {}\n", 1, true) ~= nil and not ww:find("_worldWin[^%w_]"))
+    local w0 = { playerNum = 0 }
+    local w1 = { playerNum = 1 }
+    local cwFns = ""
+    for _, n in ipairs({ "getInstance", "isOpen", "getWindow" }) do cwFns = cwFns .. (fnOf(cw, "function ZeD_CharacterWindow." .. n) or "") .. "\n" end
+    local cwChunk = loadstring("local _charWins = ...\nlocal ZeD_CharacterWindow = {}\n" .. cwFns .. "return ZeD_CharacterWindow")
+    check("the Character window's lookups load", cwChunk ~= nil)
+    if cwChunk then
+        local C = cwChunk({ [0] = w0, [1] = w1 })
+        check("Character: getWindow() is getWindow(0), the first player's", C.getWindow and C.getWindow() == w0 and C.getWindow(0) == w0)
+        check("Character: getInstance() too", C.getInstance and C.getInstance() == w0 and C.getInstance(1) == w1)
+        check("Character: the second player's by number", C.getWindow and C.getWindow(1) == w1)
+        check("Character: isOpen per player", C.isOpen and C.isOpen() and C.isOpen(1) and not C.isOpen(2))
+    end
+    -- the World window's, and its close: closing one player's window leaves the other's
+    local saved = {}
+    local wwFns = (fnOf(ww, "local function _closeWorldWindow") or "") .. "\n"
+    for _, n in ipairs({ "isOpen", "getWindow", "getObjectCard", "close" }) do wwFns = wwFns .. (fnOf(ww, "function ZeD_WorldWindow." .. n) or "") .. "\n" end
+    local wwChunk = loadstring("local _worldWins, saveWorldState = ...\nlocal _floorContainer = {}\n"
+        .. "ZeD_WorldWindow = { _endZoneDraw = function() end }\n" .. wwFns .. "return ZeD_WorldWindow")
+    check("the World window's lookups load", wwChunk ~= nil)
+    if wwChunk then
+        local function mk(pn)
+            return { playerNum = pn, _drawerObject = {}, _objectCard = "card" .. pn,
+                     removeFromUIManager = function(self) self.removed = true end }
+        end
+        local v0, v1 = mk(0), mk(1)
+        local map = { [0] = v0, [1] = v1 }
+        local Wm = wwChunk(map, function(w) saved[#saved + 1] = w end)
+        check("World: getWindow() is getWindow(0), the first player's", Wm.getWindow() == v0 and Wm.getWindow(0) == v0 and Wm.getWindow(1) == v1)
+        check("World: the object card per player", Wm.getObjectCard() == "card0" and Wm.getObjectCard(1) == "card1")
+        check("World: isOpen per player", Wm.isOpen() and Wm.isOpen(1) and not Wm.isOpen(3))
+        Wm.close(1)
+        check("World: closing the second player's window leaves the first player's", v1.removed and map[1] == nil and map[0] == v0 and not v0.removed)
+        check("World: and saves the one it closed", saved[1] == v1)
+        Wm.close()
+        check("World: close() closes the first player's, as before", v0.removed and map[0] == nil and saved[2] == v0)
+    end
+    -- a window opened for a player lands in that player's place in the map, and its own close clears only that place
+    -- (toggle needs the whole game; its lines are read from the source)
+    local cwToggle = fnOf(cw, "function ZeD_CharacterWindow.toggle") or ""
+    local wwToggle = fnOf(ww, "function ZeD_WorldWindow.toggle") or ""
+    check("Character: a new window is kept under its player's number", cwToggle:find("_charWins[playerNum] = win", 1, true) ~= nil)
+    check("Character: its close box clears only its own player's", cwToggle:find("_charWins[self.playerNum or 0] = nil", 1, true) ~= nil)
+    check("World: a new window is kept under its player's number", wwToggle:find("_worldWins[playerNum] = win", 1, true) ~= nil)
+    check("both open where the screen they live on says (ZeD.screenOf by the player's number)",
+        cwToggle:find("ZeD.screenOf(playerNum)", 1, true) ~= nil and wwToggle:find("ZeD.screenOf(playerNum)", 1, true) ~= nil)
+
+    -- the gate, word for word as it was: only the first player opens ZeD's windows
+    local gate = fnOf(atoms, "function ZeD.windowsFor")
+    check("the gate is unchanged", gate == "function ZeD.windowsFor(pn)\n    return pn == nil or pn == 0\nend\n", gate)
 end
 
 -- ---------------------------------------------------------------------------

@@ -1680,6 +1680,25 @@ function ZeD.playerNumOf(w)
     return p and p:getPlayerNum() or 0
 end
 
+--- The part of the screen a local player sees: left, top, width, height in screen px. One player: the whole
+--- screen. In split-screen the game gives each player a part (two players: halves, three or four: quarters), and
+--- the first player's part shrinks when another joins. pn nil: the first player. Anything the game cannot answer
+--- (no such player, a part with no size) is the whole screen.
+function ZeD.playerRect(pn)
+    pn = pn or 0
+    local core = getCore()
+    local sw, sh = core:getScreenWidth(), core:getScreenHeight()
+    -- (the game's Java side can throw; pcall turns a crash into a nil we can test)
+    local okW, w = pcall(getPlayerScreenWidth, pn)
+    local okH, h = pcall(getPlayerScreenHeight, pn)
+    if not (okW and okH and type(w) == "number" and type(h) == "number" and w > 0 and h > 0) then
+        return 0, 0, sw, sh
+    end
+    local okX, x = pcall(getPlayerScreenLeft, pn)
+    local okY, y = pcall(getPlayerScreenTop, pn)
+    return (okX and type(x) == "number") and x or 0, (okY and type(y) == "number") and y or 0, w, h
+end
+
 -- Split-screen (a known limit): ZeD's Character and World windows, and the focus that drives them by pad
 -- (Input/FocusManager.lua: one focused window, the first pad), are the first local player's. Another local player
 -- gets the game's own windows (inventory, loot, character info), their own, on their part of the screen and driven

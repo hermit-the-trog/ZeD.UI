@@ -1763,8 +1763,9 @@ local function resolveContainerIcon(containerType)
     return nil
 end
 
--- Module-level singleton ref
-local _worldWin = nil
+-- The open World windows, one a local player, by player number (0 is the first player). Only the first player's
+-- opens for now (ZeD.windowsFor); the map lets split-screen give each player one later.
+local _worldWins = {}
 
 -- An open item card lies over the tab drawer's LEFT part (the World window mirrors
 -- the Character window; up to coverL, drawer-local): while the tab draws, every
@@ -2036,7 +2037,7 @@ local function getWorldTargetDrawerW(win)
             -- edge and left it elsewhere and at another size after the unroll.)
             local heldIn = false
             if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
-                local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
+                local maxW = win._maxWinW or math.floor(ZeD.screenOf(win) * 0.5)
                 heldIn = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(INV_MIN_BESIDE_CARD) < full
             end
             -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits
@@ -2071,7 +2072,7 @@ end
 local function settleCapPush(win)
     local pushed = win._drawerCapPush or 0
     if pushed > 0 then
-        local room = getCore():getScreenWidth() - (win:getX() + win:getWidth())
+        local room = ZeD.screenOf(win) - (win:getX() + win:getWidth())
         local back = math.max(0, math.min(pushed, room))
         if back > 0 then win:setX(win:getX() + back) end
     end
@@ -2107,9 +2108,9 @@ local function getMcCapacity(win)
     local T = ZeD.T
     -- InventoryRenderer exports MIN_COL_W / COMFORT_COL_W / getXferW as design units
     local minColW = T.px(R.MIN_COL_W or 140)
-    local screenW = getCore():getScreenWidth()
-    -- Loot tab has no drawer, full space available
-    local availW = screenW - win:getX() - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W)
+    local screenW, _, screenL = ZeD.screenOf(win)
+    -- Loot tab has no drawer, full space available (to the right edge of the window's screen)
+    local availW = screenL + screenW - win:getX() - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W)
     local maxN = 1
     for n = 2, 20 do
         local xferW = T.px(R.getXferW and R.getXferW(n) or 32)
@@ -2130,8 +2131,8 @@ local function mcComputeTargetWidthWorld(win, totalCols)
     local effectiveDrawerW = math.floor(win._drawerEffW or 0)
     local idealInvW = totalCols * comfortW + xferTotal
     local idealWinW = T.px(CONTAINER_STRIP_W) + idealInvW + effectiveDrawerW + T.px(ACTION_TAB_STRIP_W)
-    local screenW = getCore():getScreenWidth()
-    local maxW = screenW - win:getX() - T.px(10)
+    local screenW, _, screenL = ZeD.screenOf(win)
+    local maxW = screenL + screenW - win:getX() - T.px(10)
     idealWinW = math.min(idealWinW, maxW)
     return idealWinW, idealInvW
 end
@@ -2328,7 +2329,8 @@ local function snapWorldColumns(win)
     if colCount >= 2 then
         local _, idealInvW = mcComputeTargetWidthWorld(win, colCount)
         local snapW = T.px(CONTAINER_STRIP_W) + idealInvW + drawerW + T.px(ACTION_TAB_STRIP_W)
-        local maxW = getCore():getScreenWidth() - win:getX() - T.px(10)
+        local screenW, _, screenL = ZeD.screenOf(win)
+        local maxW = screenL + screenW - win:getX() - T.px(10)
         snapW = math.min(snapW, maxW)
         win:setWidth(snapW)
     else
@@ -2509,17 +2511,18 @@ end
 -- wholly on it, the half-screen width cap measured again. Run after a restore and on a
 -- resolution change (a layout saved on a bigger screen, or a screen
 -- made smaller, left the window hanging off the bottom; a drag was clamped, these were not).
+-- The screen is the one the window lives on (ZeD.screenOf: sl, st its left and top).
 local function fitWorldToScreen(win)
     if not win then return end
     local T = ZeD.T
-    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local sw, sh, sl, st = ZeD.screenOf(win)
     win._maxWinW = math.floor(sw * 0.5)
     local w, h = win:getWidth(), win:getHeight()
     local maxH = math.max(win.minimumHeight or T.px(220), sh - T.px(20))
     if h > maxH then h = maxH; win:setHeight(h) end
     if w > sw then w = math.max(win.minimumWidth or 0, sw); win:setWidth(w) end
-    local x = math.max(0, math.min(win:getX(), sw - w))
-    local y = math.max(0, math.min(win:getY(), sh - h))
+    local x = math.max(sl, math.min(win:getX(), sl + sw - w))
+    local y = math.max(st, math.min(win:getY(), st + sh - h))
     if x ~= win:getX() then win:setX(x) end
     if y ~= win:getY() then win:setY(y) end
 end
@@ -2527,8 +2530,7 @@ ZeD_WorldWindow.fitToScreen = fitWorldToScreen
 
 local function applyWorldState(win, ws)
     local T = ZeD.T
-    local screenW = getCore():getScreenWidth()
-    local screenH = getCore():getScreenHeight()
+    local screenW, screenH, screenL, screenT = ZeD.screenOf(win)
     -- Stored values are design units (see saveWorldState). Scale to screen px,
     -- then clamp to the screen (a saved position can land off-screen after a root change).
     local xU = ws.x or 40
@@ -2541,12 +2543,12 @@ local function applyWorldState(win, ws)
     local y = T.px(yU)
     local w = T.px(wU)
     local h = math.max(win.minimumHeight or T.px(220), math.min(T.px(ws.h or 600), screenH - T.px(20)))
-    if y + h > screenH then y = math.max(0, screenH - h) end
-    x = math.max(0, math.min(x, screenW - w))
+    if y + h > screenT + screenH then y = math.max(screenT, screenT + screenH - h) end
+    x = math.max(screenL, math.min(x, screenL + screenW - w))
     -- a saved width wider than this screen lets a full card open beside it without shifting: the fitting width
     -- (ZeD.Scale.fitInvW; the director, Nov 11 2026; the window grows right, so its left edge stays)
     local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
-        ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), screenW - x), CONTAINER_STRIP_W + ACTION_TAB_STRIP_W)
+        ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), screenL + screenW - x), CONTAINER_STRIP_W + ACTION_TAB_STRIP_W)
     if type(fitU) == "number" and wU - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W > fitU then
         wU = CONTAINER_STRIP_W + fitU + ACTION_TAB_STRIP_W
         w = T.px(wU)
@@ -3313,9 +3315,9 @@ end
 -- handlers, the controller's ring).
 -- ============================================================================
 
---- True while the World window is open.
-function ZeD_WorldWindow.isOpen()
-    return _worldWin ~= nil
+--- True while the World window is open. pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.isOpen(pn)
+    return _worldWins[pn or 0] ~= nil
 end
 
 --- Rebuilds the controller's stops for the tab now showing (Reset windows calls
@@ -3325,9 +3327,9 @@ function ZeD_WorldWindow.syncRing(win)
     if win and win._mainContent and _syncWorldRingZones then _syncWorldRingZones(win, win._mainContent) end
 end
 
---- The open World window, or nil.
-function ZeD_WorldWindow.getWindow()
-    return _worldWin
+--- The open World window, or nil. pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.getWindow(pn)
+    return _worldWins[pn or 0]
 end
 
 --- Returns the virtual floor container (for identity checks from other modules).
@@ -3337,8 +3339,9 @@ end
 
 --- Is this container in reach now? The list rebuilds as the strip draws, so a rolled window's is as old as the roll-up, and
 --- the game's transfer checks no reach of its own. Read once per drop (InventoryRenderer.handleDrop), never per frame.
-function ZeD_WorldWindow.inReach(inv)
-    local win = _worldWin
+--- pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.inReach(inv, pn)
+    local win = _worldWins[pn or 0]
     if not (win and inv) then return false end
     for _, c in ipairs(buildWorldContainers(win._playerObj)) do
         if c.inventory == inv then return not c.locked end
@@ -3407,8 +3410,8 @@ local function _closeWorldWindow(w)
     -- unregisterWindow releases focus if this window holds it
     if ZeD and ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
     w:removeFromUIManager()
-    if _worldWin == w then
-        _worldWin = nil
+    if _worldWins[w.playerNum or 0] == w then
+        _worldWins[w.playerNum or 0] = nil
         _floorContainer = nil
     end
 end
@@ -3421,8 +3424,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- (split-screen: another player's press never opens or closes the first player's window, ZeD.windowsFor)
     if not ZeD.windowsFor(playerNum) then return end
 
-    if _worldWin then
-        _closeWorldWindow(_worldWin)
+    if _worldWins[playerNum] then
+        _closeWorldWindow(_worldWins[playerNum])
         return
     end
 
@@ -3434,8 +3437,8 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     local r = getR()
     local T = ZeD.T
-    local screenW = getCore():getScreenWidth()
-    local screenH = getCore():getScreenHeight()
+    -- (the screen the window lives on, ZeD.screenOf: screenL, screenT its left and top)
+    local screenW, screenH, screenL, screenT = ZeD.screenOf(playerNum)
     local maxWinW = math.floor(screenW * 0.5)
     local invW = 372                                     -- design units (default inventory width)
     -- (narrower where a full card beside it would shift the window: ZeD.Scale.fitInvW; it grows right from here)
@@ -3447,7 +3450,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     local winH = math.min(T.px(420), screenH - T.px(80))
 
     -- Position: right page of two-page spread, left edge 5px right of center
-    local win = ZeD_Window:new(math.floor(screenW / 2) + T.px(5), 0, winW, winH, ZeD.tr("UI_ZeD_World_Title"))
+    local win = ZeD_Window:new(screenL + math.floor(screenW / 2) + T.px(5), screenT, winW, winH, ZeD.tr("UI_ZeD_World_Title"))
     win:initialise()
     win:addToUIManager()
     -- the game's own roll-up when not in use, each half on its own (WindowHalves, attached with the
@@ -3457,7 +3460,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._maxWinW = maxWinW
     win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the roll-up and the cards)
 
-    _worldWin = win
+    _worldWins[playerNum] = win
 
     -- Stable label for FocusManager diagnostic logs. win.title gets replaced
     -- with the active container's name mid-session ("Ground  0", "Fridge",
@@ -3792,7 +3795,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         local drawerW = math.floor(win._drawerEffW or 0)
                         local baseInv = T.px(win._baseInvW or 372)
                         local snapW = T.px(CONTAINER_STRIP_W) + baseInv + drawerW + T.px(ACTION_TAB_STRIP_W)
-                        local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
+                        local maxW = win._maxWinW or math.floor(ZeD.screenOf(win) * 0.5)
                         win:setWidth(math.min(snapW, maxW))
                     else
                         -- Different container: switch to it
@@ -4041,7 +4044,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         win._prevEffW = effectiveW
 
         local mcActive = #(win._mcSelected or {}) > 0
-        local screenW = getCore():getScreenWidth()
+        local screenW = ZeD.screenOf(win)
         -- When MC + item card are both active, cap maxW at user's preferred
         -- inv width (_baseInvW) plus chrome — window expands enough to keep
         -- card visible alongside MC, but not to full screen, so the eviction
@@ -4087,7 +4090,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             if drawerDelta > 0 then
                 pushed = pushed + math.max(0, xBefore - win:getX())
             elseif pushed > 0 then
-                local room = getCore():getScreenWidth() - (win:getX() + win:getWidth())
+                local room = screenW - (win:getX() + win:getWidth())
                 local back = math.max(0, math.min(pushed, room))
                 if back > 0 then win:setX(win:getX() + back) end
                 pushed = pushed - back
@@ -5935,14 +5938,14 @@ function ZeD_WorldWindow.open(playerNum)
     local p = getSpecificPlayer(playerNum or 0)
     if p and p:isDead() then return end
     if ZeD.Safe.on("windows") then return end   -- safe mode: no ZeD window (SafeMode.lua)
-    if not _worldWin then
+    if not _worldWins[playerNum or 0] then
         ZeD_WorldWindow.toggle(playerNum)
     end
 end
 
---- True while tabId is the open tab and its drawer shows.
-function ZeD_WorldWindow.isTabShowing(tabId)
-    local win = _worldWin
+--- True while tabId is the open tab and its drawer shows. pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.isTabShowing(tabId, pn)
+    local win = _worldWins[pn or 0]
     return win ~= nil and win._activeTab == tabId and win._drawerMode == "tab" and win._drawerOpen == true
 end
 
@@ -5953,11 +5956,11 @@ end
 function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not entry then return false end
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
-    if not _worldWin then
+    if not _worldWins[playerNum or 0] then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
         if not ok then return false end
     end
-    local win = _worldWin
+    local win = _worldWins[playerNum or 0]
     if not (win and win._objectCard) then return false end
     local content = win._mainContent
     if content then
@@ -5975,9 +5978,9 @@ function ZeD_WorldWindow.openObjectCard(playerNum, entry)
 end
 
 --- Closes the object card, a pinned one too; the tab underneath (or the Loot
---- view) shows again.
-function ZeD_WorldWindow.closeObjectCard()
-    local win = _worldWin
+--- view) shows again. pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.closeObjectCard(pn)
+    local win = _worldWins[pn or 0]
     if not (win and win._drawerObject) then return end
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if win._focusRing and Focus then
@@ -6007,9 +6010,9 @@ function ZeD_WorldWindow.closeObjectCard()
     if not ok then print("[ZeD] WorldWindow: closing the card failed: " .. tostring(err)) end
 end
 
---- The object card organism while a card is open in the drawer, else nil.
-function ZeD_WorldWindow.getObjectCard()
-    local win = _worldWin
+--- The object card organism while a card is open in the drawer, else nil. pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.getObjectCard(pn)
+    local win = _worldWins[pn or 0]
     return win and win._drawerObject and win._objectCard or nil
 end
 
@@ -6018,12 +6021,13 @@ end
 --- holds what is in reach, so a container still being walked to is looked for
 --- again each tick (forcing a rebuild every 20) for up to `tries` ticks (60 by
 --- default). Returns true when it showed at once; otherwise it keeps looking.
-function ZeD_WorldWindow.selectContainer(inv, tries)
-    local win = _worldWin
+--- pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.selectContainer(inv, tries, pn)
+    local win = _worldWins[pn or 0]
     if not (win and inv) then return false end
     local n, paused = 0, 0
     local function attempt()
-        if win ~= _worldWin then return true end
+        if win ~= _worldWins[pn or 0] then return true end
         for i, c in ipairs(win._containers or {}) do
             if c.inventory == inv then
                 local content = win._mainContent
@@ -6048,7 +6052,7 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
             -- (a rolled window draws no strip, so the line above never reaches it and the list stays as old as the roll-up:
             -- a walk to a trailer (MechTrailer) with the pointer elsewhere would run out its tries. So it comes down once
             -- the container is in reach.)
-            if win.windowShaded and ZeD_WorldWindow.inReach(inv) then
+            if win.windowShaded and ZeD_WorldWindow.inReach(inv, pn) then
                 win._autoShaded = false
                 win:setWindowShaded(false)
                 win._outSince = getTimestampMs() + 500
@@ -6083,11 +6087,11 @@ end
 --- can't open.
 function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
-    if not _worldWin then
+    if not _worldWins[playerNum or 0] then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
         if not ok then return false end
     end
-    local win = _worldWin
+    local win = _worldWins[playerNum or 0]
     if not win then return false end
     -- (rolled up by the hover roll-up: down first, its roll-up counted again from now)
     if win.windowShaded then
@@ -6095,7 +6099,7 @@ function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
         win:setWindowShaded(false)
         win._outSince = getTimestampMs() + 500
     end
-    if ZeD_WorldWindow.isTabShowing(tabId) and not toggle then return true end
+    if ZeD_WorldWindow.isTabShowing(tabId, playerNum) and not toggle then return true end
     local wantClick = true
     local function attempt()
         if not wantClick then return true end
@@ -6129,23 +6133,23 @@ function ZeD_WorldWindow._endZoneDraw()
     if AT and AT.endZoneDraw then pcall(AT.endZoneDraw) end
 end
 
---- Closes the World window if it is open.
-function ZeD_WorldWindow.close()
+--- Closes the World window if it is open. pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.close(pn)
     -- (also reached when the Character window's close calls it for paired close)
-    if _worldWin then
-        _closeWorldWindow(_worldWin)
+    if _worldWins[pn or 0] then
+        _closeWorldWindow(_worldWins[pn or 0])
     end
 end
 
 --- Safe mode's hand-back (SafeMode.lua, through ZeD_CharacterWindow's "windows"
 --- hook): closes the window even when it broke halfway through opening and the
---- ordinary close fails on it
-function ZeD_WorldWindow.forceClose()
+--- ordinary close fails on it. pn: whose window (nil: the first player's).
+function ZeD_WorldWindow.forceClose(pn)
     ZeD_WorldWindow._endZoneDraw()
-    local ok = pcall(ZeD_WorldWindow.close)
-    if ok and not _worldWin then return end
-    local w = _worldWin
-    _worldWin = nil
+    local ok = pcall(ZeD_WorldWindow.close, pn)
+    if ok and not _worldWins[pn or 0] then return end
+    local w = _worldWins[pn or 0]
+    _worldWins[pn or 0] = nil
     _floorContainer = nil
     if not w then return end
     pcall(function()
@@ -6155,20 +6159,20 @@ function ZeD_WorldWindow.forceClose()
     pcall(w.removeFromUIManager, w)
 end
 
--- Save state on game save
+-- Save state on game save (each window into its own character's modData)
 Events.OnPostSave.Add(function()
-    if _worldWin then saveWorldState(_worldWin) end
+    for _, w in pairs(_worldWins) do saveWorldState(w) end
 end)
 
--- A resolution change keeps the open window on the new screen
+-- A resolution change keeps every open window on the new screen
 if Events.OnResolutionChange then
-    Events.OnResolutionChange.Add(function() if _worldWin then fitWorldToScreen(_worldWin) end end)
+    Events.OnResolutionChange.Add(function() for _, w in pairs(_worldWins) do fitWorldToScreen(w) end end)
 end
 
 -- A container changed (an item moved, a container opened or emptied): the container list reads afresh on the next
 -- frame the strip draws, WREF.soonMs after its last read at the soonest
 if Events.OnContainerUpdate then
-    Events.OnContainerUpdate.Add(function() if _worldWin then _worldWin._containersDirty = true end end)
+    Events.OnContainerUpdate.Add(function() for _, w in pairs(_worldWins) do w._containersDirty = true end end)
 end
 
 -- ----------------------------------------------------------------------------
@@ -6177,9 +6181,10 @@ end
 -- shows several containers open side by side, and the QA scripts drive it
 -- from here). The container list only holds what is in reach and rebuilds every
 -- 30 frames, so a fresh one may need a moment. Returns true when it was found.
+-- pn: whose window (nil: the first player's).
 -- ----------------------------------------------------------------------------
-function ZeD_WorldWindow.toggleColumn(inv)
-    local win = _worldWin
+function ZeD_WorldWindow.toggleColumn(inv, pn)
+    local win = _worldWins[pn or 0]
     if not (win and inv and win._mainContent) then return false end
     for i, c in ipairs(win._containers or {}) do
         if c.inventory == inv then
@@ -6209,7 +6214,7 @@ local function _lootGrace() _lootGraceUntil = getTimestampMs() + 3000 end
 local function _lootPadToWorld()
     local CW = ZeD_CharacterWindow
     if CW and CW.ensureBothOpenForGamepad then pcall(CW.ensureBothOpenForGamepad, 0) end
-    local win = _worldWin
+    local win = _worldWins[0]
     local F = ZeD.Input and ZeD.Input.Focus
     if not (win and F and F.claimFocus) then return end
     if win.windowShaded then win:setWindowShaded(false) end
@@ -6261,8 +6266,8 @@ local function _lootPageWatch()
     -- (a vehicle's trunk opened names its container this way: ISOpenVehicleDoor)
     local inv = vl.inventory
     if vl.forceSelectedContainer and (vl.forceSelectedContainerTime or 0) > now then inv = vl.forceSelectedContainer end
-    if not _worldWin then ZeD_WorldWindow.open(0) end
-    local win = _worldWin
+    if not _worldWins[0] then ZeD_WorldWindow.open(0) end
+    local win = _worldWins[0]
     if not win then return end
     if win.windowShaded then
         win._autoShaded = false

@@ -619,13 +619,14 @@ local NL = "\r?\n"
 local helperSrc   = block(ww, "local function _closeWorldWindow%(", NL .. "end" .. NL)
 local overrideSrc = block(ww, "    win%.close = function%(self%)", NL .. "    end" .. NL)
 local toggleSrc   = block(ww, "function ZeD_WorldWindow%.toggle%(", NL .. "end" .. NL)
-local closeSrc    = block(ww, "function ZeD_WorldWindow%.close%(%)", NL .. "end" .. NL)
-local forceSrc    = block(ww, "function ZeD_WorldWindow%.forceClose%(%)", NL .. "end" .. NL)
+local closeSrc    = block(ww, "function ZeD_WorldWindow%.close%(", NL .. "end" .. NL)
+local forceSrc    = block(ww, "function ZeD_WorldWindow%.forceClose%(", NL .. "end" .. NL)
 check("the World window's closes are found in the file", overrideSrc ~= "" and toggleSrc ~= "" and closeSrc ~= "" and forceSrc ~= "")
-local chunk, cerr = loadstring("local ZeD_WorldWindow, SAVE = ...\nlocal _worldWin, _floorContainer\n"
+-- (the open windows are kept one a player, _worldWins[pn]; the first player's is the one here)
+local chunk, cerr = loadstring("local ZeD_WorldWindow, SAVE = ...\nlocal _worldWins, _floorContainer = {}\n"
     .. "local function saveWorldState(w) SAVE(w) end\n" .. helperSrc .. toggleSrc .. closeSrc .. forceSrc
     .. "\nlocal function arm(win)\n" .. overrideSrc .. "\nend\n"
-    .. "return { set = function(w) _worldWin = w end, get = function() return _worldWin end, arm = arm }")
+    .. "return { set = function(w) _worldWins[0] = w end, get = function() return _worldWins[0] end, arm = arm }")
 check("and they compile", chunk ~= nil, cerr)
 
 local REG2 = {}

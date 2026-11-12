@@ -44,9 +44,17 @@ if not frame then print("fold_slide_sim: " .. checks .. " checks, " .. failed ..
 local SC = 0.75
 local T = { px = function(v) return math.floor(v * SC + 0.5) end, scale = SC }
 local SCREEN = 1280
-getCore = function() return { getScreenWidth = function() return SCREEN end } end
+getCore = function() return { getScreenWidth = function() return SCREEN end, getScreenHeight = function() return 800 end } end
 local FOLD = nil
 ZeD = { Halves = { foldedTab = function() return FOLD end }, Curtain = { sync = function() end } }
+-- the screen a window lives on (ZeD.screenOf, the real one cut from Organisms.lua: the width model and snapShut read it)
+do
+    local fo = io.open(ROOT .. "42/media/lua/client/ZeD/Organisms.lua", "rb")
+    local os2 = fo:read("*a"):gsub("\r\n", "\n"); fo:close()
+    local fnSrc = os2:match("(function ZeD%.screenOf%(w%).-\nend)")
+    check("ZeD.screenOf is found in Organisms.lua", fnSrc ~= nil)
+    if fnSrc then assert(loadstring(fnSrc))() end
+end
 
 local function newWin()
     local w = { x = 0, w = 0, _maxWinW = SCREEN / 2, _baseInvW = 372, _invDrawerOpen = true, _drawerOpen = false,
