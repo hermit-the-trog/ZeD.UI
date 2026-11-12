@@ -4227,3 +4227,9 @@ to be proposed.
     (ZeDUI/mockups/zed_fishing_tab_v1.html), the director's approval, then the build with sims, QA at 4K and Deck,
     controller parity and all 28 languages. The gallery's fishing cinema break (40b) waits for it: QA reshoots Laura
     with the tab open.
+    Mockup v1: ZeDUI/mockups/zed_fishing_tab_v1.html (3d6f7833; published for the director at
+    https://claude.ai/artifact/NCgVMXakMHwL682CSrAPXk). Five states: ready to cast, line in the water, fish on (tension
+    block), no bait (what fish take, where to get it, Search for bait opens Foraging on Fish Bait), the catch log.
+    The director's rulings, Nov 11: bait ratings like the game (only for species already caught, from Fishing 6); the
+    catch log kept for the whole game, newest 20 shown (the section reads as the log, this trip's summary on top); the
+    tab opens itself when the line goes out if the World window is open; fish abundance stays hidden.
