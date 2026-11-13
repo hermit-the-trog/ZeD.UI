@@ -47,6 +47,15 @@ local function focusRecipe(stateKey, searchKey, recipe, itemString)
             state.filterDirty = true
         end
         if name then
+            -- the card is the list's picked row: the list's category and an old search step aside, so the
+            -- recipe's row shows (Show never hides the open card's recipe); a list that left it out closes
+            -- the card (CraftingCore.refilter)
+            state.activeCat = "all"
+            if not text then
+                local f = win[searchKey]
+                if f and f.input then f.input:setText("") end
+                state.search = ""
+            end
             ZeD.CraftingCore.openCraft(state, name)
             state.filterDirty = true
         end

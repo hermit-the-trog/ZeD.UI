@@ -9,6 +9,9 @@
 --   COOK     the Cooking tab opens on a dish something in reach goes into (item 7): the real CookingTab.lua on a stub
 --            world holding an empty metal cup (Beverage, nothing for it) and a pot of water with vegetables (Soup,
 --            Stew). The old choice, the first by name, was Beverage: "Nothing in reach goes into this dish".
+--   CARD     (Nov 12 2026, design review Q5) the craft card is the list's picked row: Show never hides the open
+--            card's recipe, a category or search that leaves it out closes the card, a recipe opened from outside
+--            (an item card's Makes row, the game's craft entries) clears the category and an old search
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/tab_review_fixes_sim.lua
 -- It prints FAIL lines and a last line "tab_review_fixes_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -225,6 +228,103 @@ if okCK and CK then
     local src = readFile("42/media/lua/client/ZeD/CookingTab.lua") or ""
     check("the render picks the dish through CK.firstDish",
         string.find(src, "s.dish, s.baseIdx, s.plan, s.qty = CK.firstDish(s, chr), 1, {}, 1", 1, true) ~= nil)
+end
+
+-- (Nov 12 2026, design review Q5) The Crafting card showed "Add Cigarette to Pack" beside a list of six rows
+-- (Station Hand, Show: Ready) that did not hold it: the card reads its recipe from all the data, the list from the
+-- filtered rows, and nothing kept them together. An item card's Makes row (RecipeIndex.open, through the game's
+-- OpenHandcraftWindow) opened a recipe that was not ready under Show: Ready; a search or a category picked later
+-- left the open card's recipe out of the list too. Now the card is the list's picked row: Show never hides the open
+-- card's recipe, a list that leaves it out closes the card, and a recipe opened from outside clears the category
+-- and an old search so its row shows.
+section("CARD: the card is the list's picked row")
+do
+    local function rd(name, cat, status)
+        return { entry = { name = name, displayName = name, category = cat, inputDefs = {}, outputDefs = {} },
+                 learned = true, hasSkill = true, status = status }
+    end
+    local function scroll() return { setScrollPos = function() end } end
+    -- the list alone: Show never hides the open card's recipe
+    local C1 = { }
+    local okF, errF = pcall(cut, ROOT, C1, { "function CC.showMode(", "function CC.filterAndSort(" })
+    check("filterAndSort cuts and loads", okF, errF)
+    if okF then
+        local data = { recipes = { rd("Base.AddCigaretteToPack", "Miscellaneous", "missing"), rd("Base.OpenCan", "Cooking", "craftable") } }
+        local st = { show = "ready", activeCat = "all", search = "", pins = {}, selected = "Base.AddCigaretteToPack" }
+        local rows = C1.filterAndSort(data, st, nil)
+        local seen = false
+        for _, r in ipairs(rows) do if r.entry.name == "Base.AddCigaretteToPack" then seen = true end end
+        check("under Show: Ready the open card's recipe (not ready) still has its row", seen and #rows == 2, #rows)
+        st.selected = nil
+        check("with no card open it does not", #C1.filterAndSort(data, st, nil) == 1)
+    end
+    local C2 = { }
+    local okC, errC = pcall(cut, ROOT, C2, { "function CC.showMode(", "function CC.filterAndSort(", "function CC.openCraft(",
+        "function CC.closeCraft(", "function CC.refilter(" })
+    check("filterAndSort, openCraft, closeCraft and refilter cut and load", okC, errC)
+    if okC then
+        local data = { recipes = { rd("Base.AddCigaretteToPack", "Miscellaneous", "missing"), rd("Base.OpenCan", "Cooking", "craftable"),
+                                   rd("Base.RipSheets", "Miscellaneous", "craftable") } }
+        local state = { show = "ready", activeCat = "all", search = "", pins = {}, cardScroll = scroll(), picks = {} }
+        local function listed(name)
+            for _, r in ipairs(state.filteredCache or {}) do if r.entry.name == name then return true end end
+            return false
+        end
+        C2.refilter(data, state, nil)
+        check("Show: Ready holds back a recipe that is not ready", not listed("Base.AddCigaretteToPack") and listed("Base.OpenCan"))
+        -- opened from an item's card while it is not ready: its row shows, the card stays
+        C2.openCraft(state, "Base.AddCigaretteToPack")
+        C2.refilter(data, state, nil)
+        check("the open card's recipe keeps its row under Show: Ready", listed("Base.AddCigaretteToPack"))
+        check("and its card stays open", state.selected == "Base.AddCigaretteToPack")
+        -- a category that leaves it out closes the card
+        state.activeCat = "cooking"
+        C2.refilter(data, state, nil)
+        check("a category that leaves the open recipe out closes its card", state.selected == nil and state.splitTarget == 0,
+            tostring(state.selected))
+        check("closing the card filters the list again", state.filterDirty == true)
+        -- a search that leaves it out closes the card too
+        state.activeCat, state.search = "all", ""
+        C2.openCraft(state, "Base.RipSheets")
+        state.search = "can"
+        C2.refilter(data, state, nil)
+        check("a search that leaves the open recipe out closes its card", state.selected == nil)
+        -- a recipe that is no longer ready after a craft keeps its card
+        state.search = ""
+        C2.openCraft(state, "Base.RipSheets")
+        data.recipes[3].status = "missing"
+        C2.refilter(data, state, nil)
+        check("a craft that used the last ingredients keeps the card and its row", state.selected == "Base.RipSheets" and listed("Base.RipSheets"))
+        -- the card closed, the row Show held back for it goes
+        C2.closeCraft(state)
+        C2.refilter(data, state, nil)
+        check("the card closed: the row Show held back for it goes", not listed("Base.RipSheets"))
+    end
+    -- the way in from outside: the category and an old search step aside
+    local src = readFile("42/media/lua/client/ZeD/Overrides/Stations.lua") or ""
+    local a = src:find("local function focusRecipe(", 1, true)
+    local e = a and src:find("\nend\n", a, true)
+    check("focusRecipe found", a ~= nil and e ~= nil)
+    if a and e then
+        local W = { _craftState = { activeCat = "cooking", search = "old", filterDirty = false } }
+        local field = { input = { text = "old", setText = function(self, t) self.text = t end } }
+        W._craftSearch = field
+        local opened = nil
+        local saveZ, saveW = ZeD.CraftingCore, ZeD_WorldWindow
+        ZeD.CraftingCore = { openCraft = function(st, name) st.selected = name; opened = name end }
+        ZeD_WorldWindow = { getWindow = function() return W end }
+        local chunk, err = loadstring(src:sub(a, e + 4) .. "return focusRecipe\n", "=Overrides/Stations.lua (cut)")
+        check("it loads", chunk ~= nil, err)
+        if chunk then
+            local focusRecipe = chunk()
+            focusRecipe("_craftState", "_craftSearch", { getName = function() return "Base.AddCigaretteToPack" end }, nil)
+            local st = W._craftState
+            check("a recipe opened from outside: the card opens on it", opened == "Base.AddCigaretteToPack")
+            check("the category steps aside (All)", st.activeCat == "all", st.activeCat)
+            check("an old search is cleared, field and list", st.search == "" and field.input.text == "", st.search)
+        end
+        ZeD.CraftingCore, ZeD_WorldWindow = saveZ, saveW
+    end
 end
 
 print("tab_review_fixes_sim: " .. checks .. " checks, " .. failed .. " failed")
