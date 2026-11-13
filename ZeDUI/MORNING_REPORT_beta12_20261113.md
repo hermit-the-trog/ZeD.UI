@@ -27,7 +27,9 @@ QA ran the full release pass. It found one blocker and four smaller real bugs, a
 
 QA reran everything those bugs touched and all of it passed. There were no errors in the game's log. Summer Car works in full: the engine window opens beside the Vehicle tab and stays put.
 
-**Still open, but it doesn't hold the build:** one Vehicle tab check says hovering a parts row doesn't light the part on the diagram. It failed the same way before this week's changes. The likely cause is a controller left plugged in during the test, since ZeD ignores mouse hover while a controller is the last input. QA is checking it once.
+**No real bug is open against this build.** The last check, hovering a Vehicle tab parts row to light the part on the diagram, works. It only failed inside the long runs because an earlier test left the controller as the last input.
+
+**Needs your hands, not checked by QA:** the real controller on the drawn pad and run+sneak, Shift+Enter in the scratchpad on a real keyboard, and Lua Console 93's suggestions while typing. Chat dimming in Light needs a server. Animals are still parked.
 
 ## Your choices
 
