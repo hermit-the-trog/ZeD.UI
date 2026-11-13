@@ -871,6 +871,45 @@ do
     VIEW = 1
 end
 
+-- 8c2. How often the Doll view gathers the outfit: one second at 60 FPS. With Find text that matches, the doll draws
+-- and only its own timer gathers (as with no text); with nothing matching, the tab's 250 ms clock does.
+do
+    local realGather = ZeD.EquipDoll.gather
+    local n = 0
+    ZeD.EquipDoll.gather = function(...) n = n + 1; return realGather(...) end
+    local function second(text)
+        VIEW = 2
+        local w = newWin()
+        w._activeTab = "equip"
+        if text ~= "" then F.setText(w, "equip", text) end
+        drawEquip(w)          -- (the first frame gathers: no data yet)
+        n = 0
+        for _ = 1, 60 do NOW = NOW + 16; drawEquip(w) end
+        VIEW = 1
+        return n
+    end
+    local plain, jacket, none = second(""), second("jacket"), second("zzz")
+    ZeD.EquipDoll.gather = realGather
+    check("doll gathers with Find text that matches no more often than with no text",
+        jacket <= plain and plain <= 5, plain .. " / " .. jacket)
+    check("doll gathers with nothing matching: on the 250 ms clock (4 or 5 in a second)", none >= 3 and none <= 5, none)
+    -- the List view and back: the first Doll frame gathers once, and no more than that
+    VIEW = 2
+    local w = newWin()
+    w._activeTab = "equip"
+    F.setText(w, "equip", "jacket")
+    drawEquip(w)
+    VIEW = 1
+    drawEquip(w)
+    VIEW = 2
+    ZeD.EquipDoll.gather = function(...) n = n + 1; return realGather(...) end
+    n = 0
+    drawEquip(w); NOW = NOW + 16; drawEquip(w)
+    ZeD.EquipDoll.gather = realGather
+    check("doll after the List view: one gather on the way back", n == 1, n)
+    VIEW = 1
+end
+
 -- 8d. A tool on the belt's hook: the List and Doll views agree (the hooks are not worn, in either view)
 do
     local HAMMER = setmetatable({ _class = "HandWeapon", getDisplayName = function() return "Hammer" end,

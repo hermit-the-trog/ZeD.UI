@@ -903,7 +903,7 @@
     "UI_ZeD_Equip_WorstZone": "Pire zone",
     "UI_ZeD_Equip_Wrist": "Poignet",
     "UI_ZeD_Equip_ZonePct": "%1 (%2)",
-    "UI_ZeD_Equip_ZoneUncovered": "%1 (aucune protection)",
+    "UI_ZeD_Equip_ZoneUncovered": "%1 (sans protection)",
     "UI_ZeD_ETW_Broken": "Impossible de lire la progression du mod.",
     "UI_ZeD_ETW_HelpCatHide": "Replier %1.",
     "UI_ZeD_ETW_HelpCatShow": "Afficher %1.",

@@ -903,7 +903,7 @@
     "UI_ZeD_Equip_WorstZone": "Zona peggiore",
     "UI_ZeD_Equip_Wrist": "Polso",
     "UI_ZeD_Equip_ZonePct": "%1 (%2)",
-    "UI_ZeD_Equip_ZoneUncovered": "%1 (nessuna protezione)",
+    "UI_ZeD_Equip_ZoneUncovered": "%1 (senza difesa)",
     "UI_ZeD_ETW_Broken": "Non è stato possibile leggere i progressi del mod.",
     "UI_ZeD_ETW_HelpCatHide": "Comprimi %1.",
     "UI_ZeD_ETW_HelpCatShow": "Mostra %1.",

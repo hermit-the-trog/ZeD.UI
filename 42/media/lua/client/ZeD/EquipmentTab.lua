@@ -619,7 +619,7 @@ local function _drawDefenseDetailView(panel, win, protData, partName, rx, ry, rw
 end
 
 -- Stacked stat helper with status dot: label (secondary) on line 1, dot + value (body, neutral) on line 2
-local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, dotGap)
+local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, dotGap, colW)
     local T = ZeD.T
     local A = ZeD.Atoms
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
@@ -630,6 +630,9 @@ local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, d
     panel:drawText(ZeD.textCase(label), x, y, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
     local valY = y + secH + labelValueGap
     A.drawStatusDot(panel, x, valY + math.floor((bodyH - dotSz) / 2), dotColor, dotSz)
+    -- the value is one line: a long one ends in "..." at the column edge (the worst-zone line names
+    -- a body part, and the game's longest ones are wide)
+    if colW then value = A.truncateText(value, T.fontF2, colW - dotSz - dotGap) end
     A.drawBody(panel, value, x + dotSz + dotGap, valY)
 
     return secH + labelValueGap + bodyH + afterGap
@@ -717,16 +720,16 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         else
             worstValue = ZeD.tr("UI_ZeD_Equip_ZonePct", ZeD.partLabel(protData.worstPart.name), protData.worstPart.biteDef .. "%")
         end
-        local h1 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_WorstZone"), worstValue, T.danger, dotSz, dotGap)
+        local h1 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_WorstZone"), worstValue, T.danger, dotSz, dotGap, rightW)
         statY = statY + h1
 
         if protData.bestPart.biteDef >= 0 then
             local bestStr = ZeD.tr("UI_ZeD_Equip_ZonePct", ZeD.partLabel(protData.bestPart.name), protData.bestPart.biteDef .. "%")
-            local h2 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_BestZone"), bestStr, tierColor(protData.bestPart.biteDef), dotSz, dotGap)
+            local h2 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_BestZone"), bestStr, tierColor(protData.bestPart.biteDef), dotSz, dotGap, rightW)
             statY = statY + h2
         end
 
-        local h3 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_Garments"), ZeD.tr("UI_ZeD_Equip_GarmentsEquipped", protData.totalGarments), T.positive, dotSz, dotGap)
+        local h3 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_Garments"), ZeD.tr("UI_ZeD_Equip_GarmentsEquipped", protData.totalGarments), T.positive, dotSz, dotGap, rightW)
         statY = statY + h3
     end
 
@@ -1338,10 +1341,12 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         win._equipSlotZones, win._equipBeltZones, win._equipGroupZones = {}, {}, {}
         win._equipDefenseZone = nil
         if win._equipScroll then win._equipScroll.visible = false end
+        win._equipDollStale = true   -- (the doll gathers once when it shows again)
         EL.renderTodo(panel, win, x, y, w, h)
         return
     end
     if win._equipSelected then
+        win._equipDollStale = true   -- (the doll gathers once when it shows again)
         -- Find the selected slot data: a doll slot (its layers), or a list row
         local selSlot = nil
         local layerIdx, layerN = 1, 1
@@ -1454,17 +1459,24 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- outfit); with nothing matching, the empty result takes the list's or the doll's place.
     local TF = ZeD.TabFind
     -- The doll's data is gathered again on its own timer while the doll draws (EquipDoll.draw). With
-    -- Find text set the doll may not draw at all (nothing matched: the empty result is in its place),
-    -- and the data may be from before List view or another tab, so here it is gathered on the clock
-    -- too: a hat put on while "hat" matched nothing shows. (Doll.draw's count starts again: one gather.)
-    if dollView and (not win._equipDollData
-                     or (TF and TF.active(win, "equip") and dueMs(win, "_equipDollFindAt", 250))) then
+    -- Find text that matched nothing the doll does not draw (the empty result is in its place), so
+    -- that timer stops; here the data is gathered on a 250 ms clock instead, only on the frames after
+    -- one where the doll did not draw (a hat put on while "hat" matched nothing shows). While the doll
+    -- draws, only its own timer gathers: one gather every 15 frames, not two. The data goes stale
+    -- while the List view shows, so the first Doll frame after it gathers once (an outfit changed in
+    -- the List view is matched as it is now).
+    local dollWanted = dollView
+    if dollView and (not win._equipDollData or win._equipDollStale
+                     or (win._equipDollFindNone and TF and TF.active(win, "equip")
+                         and dueMs(win, "_equipDollFindAt", 250))) then
         win._equipDollData = Doll.gather(win._playerObj, win.playerNum or 0, win._equipDollBands)
         win._equipDollTimer = 0
     end
+    win._equipDollStale = not dollWanted
     local findRes = TF and (dollView and TF.doll(win, win._equipDollData) or TF.equip(win, data)) or nil
     local findEmpty = listExpanded and findRes ~= nil and findRes.shown == 0
     if findEmpty then dollView = false end
+    win._equipDollFindNone = dollWanted and findEmpty
     win._equipDefHidden = findRes ~= nil
     if findRes then hasDefBody = false end
     local covH = ZeD.TM:getFontHeight(T.fontF1) + T.px(4)   -- (a "covers ..." line under a row)

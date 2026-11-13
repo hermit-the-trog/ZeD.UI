@@ -903,7 +903,7 @@
     "UI_ZeD_Equip_WorstZone": "Dårligste zone",
     "UI_ZeD_Equip_Wrist": "Håndled",
     "UI_ZeD_Equip_ZonePct": "%1 (%2)",
-    "UI_ZeD_Equip_ZoneUncovered": "%1 (ingen beskyttelse)",
+    "UI_ZeD_Equip_ZoneUncovered": "%1 (ubeskyttet)",
     "UI_ZeD_ETW_Broken": "Modets fremskridt kunne ikke læses.",
     "UI_ZeD_ETW_HelpCatHide": "Fold %1 sammen.",
     "UI_ZeD_ETW_HelpCatShow": "Vis %1.",
