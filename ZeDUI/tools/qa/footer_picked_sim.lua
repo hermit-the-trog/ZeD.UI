@@ -15,14 +15,14 @@
 --   HELP     ZeD_Surface's H.take: an element's hover help still wins; the resting line only with nothing under it
 --   PERF     at 60 and 240 FPS over ten seconds, the picks are looked at every 100 ms and weighed only when they
 --            change, plus once a second; a new pick of the same size shows within 100 ms
---   KEPT     the title bar's weight (the character's load over their max) and the container heading's weight are
---            the code before the change (git show BASE)
+--   KEPT     the title bar's weight (the character's load over their max) and the container headings' weights stay
+--            where they were; since the weights were made one format (Nov 12 2026) they all write it through
+--            ZeD.Atoms.loadText, "7.0 / 19 kg"
 -- What it can't show: the line drawn in the game (zedqa_footer_picked.lua does that).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/footer_picked_sim.lua
 -- It prints FAIL lines and a last line "footer_picked_sim: N checks, M failed", and exits 1 if any failed.
 
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]footer_picked_sim%.lua$", "")
-local BASE = "d961609b"   -- main when this work started
 
 local checks, failed = 0, 0
 local function check(name, ok, detail)
@@ -42,12 +42,6 @@ local function readFile(rel)
     return (string.gsub(s, "\r\n", "\n"))
 end
 local function srcOf(rel) return readFile("42/media/lua/client/ZeD/" .. rel) or "" end
-local function baseOf(rel)
-    local p = io.popen('git -C "' .. (ROOT ~= "" and ROOT or ".") .. '" show ' .. BASE .. ':42/media/lua/client/ZeD/' .. rel .. ' 2>NUL')
-    local s = p and p:read("*a") or ""
-    if p then p:close() end
-    return (string.gsub(s, "\r\n", "\n"))
-end
 -- the text from the first `from` (plain, searched from init) to the end of the line where the first `to` after it is
 local function cut(src, from, to, init)
     local a = string.find(src, from, init or 1, true)
@@ -89,7 +83,23 @@ ZeD = {
         containerKey = function(i) return i end,
         isGridKey = function(k) return GRID[k] == true end,
     },
+    Atoms = {},
 }
+-- the one way a load over a capacity is written (the headings and the title bar): the real Atoms.loadText; and the
+-- count the headings and this line give, what the rows show (the real InventoryRenderer.shownCount: with no list
+-- drawn here, the container's own count)
+do
+    local at = readFile("42/media/lua/client/ZeD/Atoms.lua") or ""
+    local a1 = at:find("function ZeD.Atoms.loadText(load, cap)", 1, true)
+    local b1 = a1 and at:find("\nend\n", a1, true)
+    check("Atoms.lua has loadText", a1 ~= nil and b1 ~= nil)
+    if a1 and b1 then assert(loadstring(at:sub(a1, b1 + 4), "=loadText"))() end
+    local ir = readFile("42/media/lua/client/ZeD/InventoryRenderer.lua") or ""
+    local a2 = ir:find("function ZeD.InventoryRenderer.shownCount(panel, inv, playerObj)", 1, true)
+    local b2 = a2 and ir:find("\nend\n", a2, true)
+    check("InventoryRenderer.lua has shownCount", a2 ~= nil and b2 ~= nil)
+    if a2 and b2 then assert(loadstring(ir:sub(a2, b2 + 4), "=shownCount"))() end
+end
 
 local okM, eM = pcall(dofile, ROOT .. "42/media/lua/client/ZeD/InventoryPicked.lua")
 check("InventoryPicked.lua loads", okM, eM)
@@ -189,7 +199,7 @@ do
         CLOCK = CLOCK + 1000
         run("local self, win, viewIdx, round = ...\n" .. single .. "\nend", "char single", self, win, 1, round)
         check("at rest: 48 items, no weight", win._statusLine == "48 items", win._statusLine)
-        check("the heading keeps the container's weight", self._containerInfo and self._containerInfo.stats == "7.0/19kg",
+        check("the heading keeps the container's weight", self._containerInfo and self._containerInfo.stats == "7.0 / 19 kg",
             self._containerInfo and self._containerInfo.stats)
         self._selectedItems[a] = true; self._selectedItems[c] = true
         CLOCK = CLOCK + 1000
@@ -227,7 +237,7 @@ do
         local ok, e = run(head .. single .. "\nend", "world single", self, win, 1, round, {})
         check("it runs", ok, e)
         check("at rest: 20 items, no weight", win._statusLine == "20 items", win._statusLine)
-        check("the heading keeps the container's weight", self._containerInfo.stats == "12.3/50kg", self._containerInfo.stats)
+        check("the heading keeps the container's weight", self._containerInfo.stats == "12.3 / 50 kg", self._containerInfo.stats)
         self._selectedItems[b] = true
         CLOCK = CLOCK + 1000
         run(head .. single .. "\nend", "world single", self, win, 1, round, {})
@@ -356,19 +366,19 @@ end
 
 section("KEPT")
 do
-    local function same(rel, from, to)
-        local now, was = cut(srcOf(rel), from, to), cut(baseOf(rel), from, to)
-        return now ~= nil and now == was, now == nil and "not found" or (was == nil and "not in BASE" or "changed")
+    -- (the weights stay where they were and say what they said, one format since Nov 12 2026: ZeD.Atoms.loadText)
+    local function oneFormat(rel, from, to)
+        local now = cut(srcOf(rel), from, to)
+        return now ~= nil and now:find("ZeD.Atoms.loadText(", 1, true) ~= nil, now == nil and "not found" or "another format"
     end
-    -- (only the weight's own lines: the health percent beside it became the status pixel by the name, Nov 11 2026)
-    local ok, why = same("ZeD_CharacterWindow.lua", "        -- Weight (rightmost): a figure, no status mark", "noMark = true }")
-    check("the title bar's weight is the code before", ok, why)
-    ok, why = same("ZeD_CharacterWindow.lua", "                self._containerInfo = {", "                }")
-    check("the Character heading's weight is the code before", ok, why)
-    ok, why = same("ZeD_WorldWindow.lua", "                self._containerInfo = {", "                }")
-    check("the World heading's weight is the code before", ok, why)
-    ok, why = same("InventoryRenderer.lua", "            local weight   = inv and inv:getCapacityWeight() or 0", "local statsStr")
-    check("the column heading's weight is the code before", ok, why)
+    local ok, why = oneFormat("ZeD_CharacterWindow.lua", "        -- Weight (rightmost):", "noMark = true }")
+    check("the title bar's weight: the load over the max, in the one format", ok, why)
+    ok, why = oneFormat("ZeD_CharacterWindow.lua", "                self._containerInfo = {", "                }")
+    check("the Character heading's weight, in the one format", ok, why)
+    ok, why = oneFormat("ZeD_WorldWindow.lua", "                self._containerInfo = {", "                }")
+    check("the World heading's weight, in the one format", ok, why)
+    ok, why = oneFormat("InventoryRenderer.lua", "            local weight   = inv and inv:getCapacityWeight() or 0", "local statsStr")
+    check("the column heading's weight, in the one format", ok, why)
     -- every new string in every language
     for _, L in ipairs({ "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT",
                          "JP", "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }) do

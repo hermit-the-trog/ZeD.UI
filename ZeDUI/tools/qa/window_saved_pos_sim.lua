@@ -18,6 +18,10 @@
 --   SELF     the windows that center themselves every frame (the guide, Messages, the seat chooser, the join window)
 --            keep a move and their saved place frame after frame, clamped onto a smaller screen; Reset this window
 --            centers them again; a form card docked to its drawer has no saved place
+--   COLUMNS  Go to saved position closes the Loot columns first (each window's own exit, the tab strip's): a place
+--            saved on a tab opens its card beside the one list, never beside columns
+--   SHOWN    an inventory hidden from a tab is shown by the restore, and the window's flag says so (the container
+--            button lit, the half card picked where it should be)
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/window_saved_pos_sim.lua
 -- It prints FAIL lines and a last line "window_saved_pos_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -134,6 +138,26 @@ ZeD_CharacterWindow = { getWindow = function() return CW end, stateOf = cState, 
                         syncRing = function(w) rings[#rings + 1] = w end }
 ZeD_WorldWindow = { getWindow = function() return WW end, stateOf = wState, applyState = wApply, fitToScreen = wFit,
                     syncRing = function(w) rings[#rings + 1] = w end }
+
+-- each window's own way out of the Loot columns (the tab strip's), and the closeColumns that Go to saved position
+-- starts with, cut from the window files and run into the tables above
+local function cutFrom(src, from)
+    local a = src:find(from, 1, true)
+    local b = nil
+    if a then local _; _, b = src:find("\nend\r?\n", a) end
+    return (a and b) and (string.gsub(src:sub(a, b), "\r", "")) or nil
+end
+do
+    local cws, wws = readAll(CLIENT .. "ZeD_CharacterWindow.lua"), readAll(CLIENT .. "ZeD_WorldWindow.lua")
+    local cExit, cClose = cutFrom(cws, "local function exitMultiContainer(win, content)"), cutFrom(cws, "ZeD_CharacterWindow.closeColumns = function(win)")
+    local wExit, wClose = cutFrom(wws, "exitWorldMC = function(win, content)"), cutFrom(wws, "ZeD_WorldWindow.closeColumns = function(win)")
+    check("COLUMNS: both windows have their columns' exit", cExit ~= nil and wExit ~= nil)
+    check("COLUMNS: both windows export closeColumns for Go to saved position", cClose ~= nil and wClose ~= nil)
+    if cExit and cClose then assert(loadstring("local TAB_STRIP_W, CONTAINER_STRIP_W = 36, 36\n" .. cExit .. cClose))() end
+    if wExit and wClose then
+        assert(loadstring("local CONTAINER_STRIP_W, ACTION_TAB_STRIP_W = 36, 36\nlocal exitWorldMC\n" .. wExit .. wClose))()
+    end
+end
 
 local okP, eP = pcall(dofile, CLIENT .. "ZeD_WindowPlaces.lua")
 check("ZeD_WindowPlaces.lua loads", okP, eP)
@@ -263,6 +287,38 @@ local md = { ZeD_WinState = { char = { x = 1, y = 1, w = 300, h = 300 } } }
 CW._playerObj = { getModData = function() return md end }
 P.goTo(CW)
 check("STATE: Go to saved position uses the saved place, not the modData layout", CW.x == 100 and CW.y == 40, CW.x .. "," .. CW.y)
+
+-- ---------------------------------------------------------------- COLUMNS and SHOWN
+-- QA's case: on Loot a bag opened as a column beside the list, then Go to saved position with the place saved on
+-- Skills. The window showed the Skills card with the Loot columns beside it (no tab allows that), grew past its cap
+-- and the pad had no stops for the columns drawn. And a list hidden from a tab came back on screen still flagged
+-- hidden: its button unlit, the full card picked beside a squeezed list.
+CW._activeTab, CW._drawerOpen, CW._drawerMode = "loot", false, nil
+CW._mcSelected, CW._mcColStates, CW._mainVisible = { 3 }, { { scroll = 0 } }, true
+CW._mainContent = { _colStates = { {}, {} }, _selectedContainers = { 3, 1 } }
+CW._invDrawerOpen = false
+rings = {}
+P.goTo(CW)
+check("COLUMNS: the Character window's Loot columns are closed", #(CW._mcSelected or { 1 }) == 0 and CW._mainContent._colStates == nil
+    and CW._mainContent._selectedContainers == nil and CW._mainVisible == true, #(CW._mcSelected or {}))
+check("COLUMNS: the saved tab's card opens beside the one list", CW._activeTab == "skills" and CW._drawerOpen == true and CW._drawerMode == "tab")
+check("COLUMNS: the window back at its saved place and base width", CW.x == 100 and CW.y == 40 and CW.w == 333, CW.x .. "," .. CW.y .. " " .. CW.w)
+check("COLUMNS: the controller's stops synced after (no stops for columns gone)", rings[1] == CW)
+check("SHOWN: the Character window's list shown, and flagged shown", CW._invDrawerOpen == true)
+WW._activeTab, WW._drawerOpen, WW._drawerMode = "loot", false, nil
+WW._mcSelected, WW._mainVisible = { 2 }, false
+WW._mainContent = { _colStates = { {} }, _selectedContainers = { 2 } }
+WW._invDrawerOpen = false
+P.goTo(WW)
+check("COLUMNS: the World window's Loot columns are closed", #(WW._mcSelected or { 1 }) == 0 and WW._mainContent._colStates == nil
+    and WW._mainVisible == true, #(WW._mcSelected or {}))
+check("COLUMNS: its saved tab's card opens beside the one list", WW._activeTab == "build" and WW._drawerOpen == true)
+check("SHOWN: the World window's list shown, and flagged shown", WW._invDrawerOpen == true)
+-- a window with no columns open: nothing of its list is touched
+CW._mcSelected, CW._mainVisible, CW._activeContainer = {}, true, 4
+CW._mainContent = { _colStates = { { keep = true } } }
+P.goTo(CW)
+check("COLUMNS: with no columns open, the list is left as it was", CW._activeContainer == 4 and CW._mainContent._colStates[1].keep == true)
 
 -- ---------------------------------------------------------------- SELF (windows that place themselves)
 -- QA, Nov 11: Go to saved position put the survival guide at 1281,498 at 4K and 365,150 on the Deck against its

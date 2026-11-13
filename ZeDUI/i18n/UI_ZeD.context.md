@@ -813,7 +813,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Char_TabLoot` | `Loot` | Character window: tab name - appended to the window title while the tab's drawer is open ('Name  +  Tab') (the inventory and the containers around) | 14 |
 | `UI_ZeD_Char_TabRadio` | `Radio` | Character window: tab name - appended to the window title while the tab's drawer is open ('Name  +  Tab') (only shown while the character has a radio) | 14 |
 | `UI_ZeD_Char_TabThermal` | `Thermal` | Character window: tab name - appended to the window title while the tab's drawer is open ('Name  +  Tab'); also the pinned heading of the Thermal drawer | 14 |
-| `UI_ZeD_Char_WeightOfMax` | `%1/%2kg` | Character window, Loot tab: column header, weight carried over capacity, small text above the item count; %1 is the weight (one decimal), %2 the capacity | 16 |
+| `UI_ZeD_Char_WeightOfMax` | `%1 / %2 kg` | Every load over a capacity, one format: both windows' inventory headings (above the item count), the Character window's title bar (the character's load) and an item card's container capacity; %1 is the weight (one decimal), %2 the capacity (no ".0" when whole). Keep the spaces around the slash and before the unit | 16 |
 | `UI_ZeD_Char_Window` | `Character` | Character window: the title the window is created with, before it shows the character's name (barely seen) | 20 |
 | `UI_ZeD_Chord_BestPick` | `best pick` | ZeD setup, Quick actions: in the list of actions, after a slice that opens a list ("Eat: best pick"): the chord does the list's first pick at once | 20 |
 | `UI_ZeD_Chord_Gone` | `No %1 on you.` | Quick action chords (a bumper held with A, B, X, Y, L3 or R3): over the character's head when the chord's thing is not carried any more; %1 = its name ("Canned Corn") | - |
@@ -1888,6 +1888,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Inv_OrderWt` | `Weight` | Inventory grid, order line: name of the sort order (by weight) | 14 |
 | `UI_ZeD_Inv_PickedMany` | `%1 of %2 picked \| %3 kg` | Inventory side's help line (both windows, at rest): while several rows are picked, %1 how many things are picked, %2 how many the list or shown columns hold, %3 the picked things' weight (one decimal). Like a file browser's "3 of 48 selected" | 40 |
 | `UI_ZeD_Inv_PickedOne` | `%1 of %2 picked \| %3 kg` | Inventory side's help line (both windows, at rest): while one thing is picked (%1 is 1), %2 how many the list holds, %3 its weight | 40 |
+| `UI_ZeD_Inv_LoadKg` | `%1 kg` | Inventory headings (both windows): the weight a container with no capacity holds (the floor), where the others show `%1 / %2 kg`; %1 is the weight (one decimal). Use the same unit as UI_ZeD_Char_WeightOfMax | 10 |
 | `UI_ZeD_Inv_RowHelp` | `%1: LMB for its card, drag to move it, RMB for its menu` | Inventory list: help line over an item's row; %1 = the item's name. LMB / RMB: mouse button abbreviation, keep short | - |
 | `UI_ZeD_Inv_ColHelp` | `Sort by %1: press again to turn the order around` | Inventory list: help line over a column heading; %1 = the heading's text | - |
 | `UI_ZeD_Inv_CatFoldHelp` | `Press to fold this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is open | - |

@@ -290,7 +290,7 @@ function M.ContainerFacts(item)
 
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = ZeD.tr("Tooltip_container_Capacity"), value = (current and cap) and string.format("%.1f / %d kg", current, cap) or "-",
+            {label = ZeD.tr("Tooltip_container_Capacity"), value = (current and cap) and ZeD.Atoms.loadText(current, cap) or "-",
              valueClass = _condClass(fillRatio and (1 - fillRatio) or nil)},
             {label = ZeD.tr("UI_ZeD_Card_Items"), value = count and tostring(count) or "-"},
         },

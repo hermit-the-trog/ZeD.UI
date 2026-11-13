@@ -20,6 +20,10 @@
 --           pixel, part of the name and all three pins
 --   HOVER   the pointer on the pixel or the name puts "Health: 63%" in the help line; on the stripes, not
 --   OTHERS  a window with no pixel draws its title where it always did (the World window, the menus)
+--   ROW     the real pins (ZeD_Pins.lua, the English words from UI.json) and the real weight words (Atoms.loadText)
+--           on the real title tokens, every width from 250 to 1000: the name is cut only while every stat shows its
+--           shortest form; a stat drops only when its shortest form would not fit beside the name at its least;
+--           every stat keeps a word (the pin's name cut short, the weight's "kg"), never bare numbers
 -- What it can't show: the real fonts' widths (stand-in: 7 px a letter) and the look on screen (zedqa_health_dot.lua).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/health_dot_sim.lua
 -- It prints FAIL lines and a last line "health_dot_sim: N checks, M failed", and exits 1 if any failed.
@@ -438,6 +442,125 @@ check("Deck: the pixel shows", rk.pixel ~= nil)
 check("Deck: the name (or its start) shows", rk.name and #rk.name.s >= 4, rk.name and rk.name.s)
 check("Deck: three pins and the weight", #rk.stats == 4, #rk.stats)
 print("  (Deck 640: name '" .. tostring(rk.name and rk.name.s) .. "', stats " .. #rk.stats .. ")")
+
+-- ---------------------------------------------------------------------------
+-- ROW: the real pins' words on the real title tokens (Tokens.lua: sp.sm 10, sp.md 14, titleBoxPad 3, closeBoxSz 13;
+-- F3's letters are all 7 px, stat.fnt)
+-- ---------------------------------------------------------------------------
+do
+    local EN = io.open(ROOT .. "42/media/lua/shared/Translate/EN/UI.json", "rb"):read("*a")
+    local function enTr(key, ...)
+        local s = EN:match('"' .. key .. '": "(.-)",?\r?\n')
+        if not s then return key end
+        local a = { ... }
+        s = s:gsub("%%(%d)", function(d) local v = a[tonumber(d)]; return v ~= nil and tostring(v) or "" end)
+        return (s:gsub("%%%%", "%%"))
+    end
+    local oldTr, oldSp, oldBox = ZeD.tr, T.sp, T.closeBoxSz
+    ZeD.tr = enTr
+    T.sp, T.closeBoxSz = { sm = 10, md = 14, titleBoxPad = 3 }, 13
+    -- the real pins: a skill, a flashlight, a water bottle (the forms the title bar is handed)
+    Events = Events or setmetatable({}, { __index = function() return { Add = function() end } end })
+    _G._zedPinsHooked = true
+    local pinsFn = assert(loadfile(CLIENT .. "ZeD_Pins.lua"))
+    pinsFn()
+    local ITEMS = {
+        [1] = { getDisplayName = function() return "Flashlight" end, getCurrentUsesFloat = function() return 0.62 end },
+        [2] = { getDisplayName = function() return "Water Bottle" end, getFluidContainer = function()
+                    return { getAmount = function() return 0.6 end, getCapacity = function() return 1.0 end } end },
+    }
+    local PINS = {}
+    local PP = { getModData = function() return { ZeD_Pins = PINS } end,
+                 getInventory = function() return { getItemWithIDRecursiv = function(_, id) return ITEMS[id] end,
+                                                     getFirstTypeRecurse = function() return nil end } end }
+    ZeD.SkillsTab = { getPinData = function() return { name = "Carpentry", level = 5, xpInLevel = 120, xpForLevel = 300 } end }
+    -- the weight's words: the real Atoms.loadText (the old bare "12.5 / 18" where it is missing)
+    local AT = io.open(CLIENT .. "Atoms.lua", "rb"):read("*a")
+    local la = AT:find("function ZeD.Atoms.loadText(load, cap)", 1, true)
+    local lb = la and AT:find("\nend", la, true)
+    local loadText = la and lb and assert(loadstring("local ZeD = ...\n" .. AT:sub(la, lb + 3):gsub("function ZeD%.Atoms%.loadText",
+        "return function"), "loadText"))(ZeD)
+    check("ROW: Atoms.lua writes a load over a capacity (loadText)", loadText ~= nil)
+    local weightText = loadText and loadText(12.5, 18) or "12.5 / 18"
+    check("ROW: the weight reads 12.5 / 18 kg", weightText == "12.5 / 18 kg", weightText)
+
+    local TITLE = "Angel Cross  +  Skills"
+    local LEAST = #"Mmmm..." * LETTER
+    local function run(kinds)
+        for i = #PINS, 1, -1 do PINS[i] = nil end
+        for _, k in ipairs(kinds) do PINS[#PINS + 1] = k end
+        local st = ZeD.Pins.stats(PP)
+        st[#st + 1] = { text = weightText, noMark = true }
+        -- every form of every stat, and each stat's shortest
+        local formOf, shortest = {}, {}
+        for i, s in ipairs(st) do
+            local forms = { s.text }
+            for _, a in ipairs(s.alts or {}) do forms[#forms + 1] = a end
+            local sw = nil
+            for _, f in ipairs(forms) do
+                formOf[f] = i
+                if not sw or #f < #sw then sw = f end
+            end
+            shortest[i] = sw
+        end
+        local bad = { cut = nil, drop = nil, word = nil }
+        local whole, allShown = nil, nil
+        for w = 250, 1000 do
+            local win = ZeD_Window:new(100, 100, w, 420, TITLE)
+            win:createChildren()
+            win._playerObj = PLAYER
+            win.title = TITLE
+            win.titleStats = st
+            composeCharHealth(win)
+            local rec = draw(win)
+            local name, shown, first = nil, {}, #st + 1
+            for _, t in ipairs(rec.texts) do
+                local i = formOf[t.s]
+                if i then
+                    shown[#shown + 1] = { i = i, s = t.s, x = t.x }
+                    if i < first then first = i end
+                else
+                    name = t
+                end
+            end
+            local allShort, shortRow = true, 0
+            for _, s in ipairs(shown) do
+                if s.s ~= shortest[s.i] then allShort = false end
+                if not s.s:find("%a") and not bad.word then bad.word = w .. ": '" .. s.s .. "'" end
+                shortRow = shortRow + #shortest[s.i] * LETTER + (st[s.i].noMark and 0 or 10) + 14
+            end
+            local cut = not (name and name.s == TITLE)
+            if cut and not allShort and not bad.cut then bad.cut = w .. ": '" .. tostring(name and name.s) .. "' beside a longer form" end
+            if first > 1 then
+                -- the stat dropped next to the left would fit at its shortest, the shown ones at theirs, beside the
+                -- name at its least (Organisms: right is the window box's x less sp.md; the title's least, its pad)
+                local pinR, box = win:pinRect(), win:windowBoxRect()
+                local right = (pinR and pinR.x - 14) or (box and box.x - 14) or (w - 10)
+                local nameX = 10 + 13 + 14 + 10
+                local need = #shortest[first - 1] * LETTER + (st[first - 1].noMark and 0 or 10)
+                local edgeLeast = nameX + LEAST + 3 * 2 + 14
+                if right - shortRow - need >= edgeLeast and not bad.drop then
+                    bad.drop = w .. ": stat " .. (first - 1) .. " dropped with room for '" .. shortest[first - 1] .. "'"
+                end
+            end
+            if not cut and first == 1 and not whole then whole = w end
+            if first == 1 and not allShown then allShown = w end
+        end
+        return bad, whole, allShown
+    end
+    local SETS = {
+        { name = "three pins", pins = { { k = "skill", id = "Woodwork" }, { k = "uses", id = 1 }, { k = "fluid", id = 2 } } },
+        { name = "a skill and a flashlight", pins = { { k = "skill", id = "Woodwork" }, { k = "uses", id = 1 } } },
+    }
+    for _, set in ipairs(SETS) do
+        local bad, whole, allShown = run(set.pins)
+        check("ROW (" .. set.name .. "): the name is cut only while every stat shows its shortest form", bad.cut == nil, bad.cut)
+        check("ROW (" .. set.name .. "): a stat drops only when its shortest form would not fit", bad.drop == nil, bad.drop)
+        check("ROW (" .. set.name .. "): every stat keeps a word (no bare numbers)", bad.word == nil, bad.word)
+        print(string.format("  (%s: every stat shows from %s, with the whole name from %s)", set.name, tostring(allShown), tostring(whole)))
+    end
+    ZeD.tr, T.sp, T.closeBoxSz = oldTr, oldSp, oldBox
+end
 
 -- OTHERS: a window with no pixel keeps its title where it was
 local ow = ZeD_Window:new(100, 100, 600, 300, "Mods")

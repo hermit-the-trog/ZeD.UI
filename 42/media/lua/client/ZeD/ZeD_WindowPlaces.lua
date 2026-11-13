@@ -193,18 +193,24 @@ local function goPlain(win, rec)
 end
 
 -- the Character or World window: as "Reset this window" starts (a rolled side down, a folded half forgotten, the
--- drawers shut at once and the cap's push dropped), then the window's own restore, then the controller's stops
+-- Loot columns closed, the drawers shut at once, the inventory shown and the cap's push dropped), then the window's
+-- own restore, then the controller's stops
 local function goPair(win, k, rec, CW)
     local T = ZeD.T
     if win._rolled and ZeD.Curtain and ZeD.Curtain.finishUnroll then ZeD.Curtain.finishUnroll(win) end
     if win._halves and ZeD.Halves and ZeD.Halves.forgetFold then ZeD.Halves.forgetFold(win) end
     if win.windowShaded then win:setWindowShaded(false) end
+    -- (a place is kept without columns: left open, a place saved on a tab opened its card beside them, past the cap)
+    if CW.closeColumns then CW.closeColumns(win) end
     win.minimumWidth = T.minWinW or 0   -- (an open drawer's minimum would hold the window wide through setWidth)
     -- the half-screen cap measured on this screen (the restore caps the width by it; one kept from a bigger
     -- screen let the window back at that screen's width)
     win._maxWinW = math.floor(ZeD.screenOf(win) * 0.5)
     win._drawerCapPush, win._drawerCapLost, win._preDrawerW = 0, 0, nil
     win._drawerOpen, win._drawerEffW, win._prevEffW, win._drawerMode = false, 0, 0, nil
+    -- (the restore gives the window its width with the inventory in it: a list hidden from a tab shows again, and
+    -- the flag says so, or the window took the shown list for hidden)
+    win._invDrawerOpen = true
     local cs = {}
     for f, v in pairs(rec) do cs[f] = v end
     local accent = win._accentKey   -- (the restore would take the option's accent when the place has none)
