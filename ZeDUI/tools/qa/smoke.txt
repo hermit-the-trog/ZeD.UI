@@ -1,0 +1,45 @@
+# ZeDUI/tools/qa/smoke.txt  (Nov 12 2026, test cleanup plan section 5): the smoke run
+# Run after each build, beside the checks for what just changed. One game launch, about 6 to 7 minutes with
+# launch and quit, and every step can fail. With the real right-click (step 2 needs the real-mouse helper):
+#   pwsh -File ZeDUI/tools/qa/release_check.ps1 -Manifest smoke.txt -Report ZeDUI/qa/regression/<name>.md
+# Without the helper (zedqa_run.ps1 -Manifest smoke.txt) the real right-click reads "not run", never PASS.
+# The lines' format is regression.txt's: <script> | <tag> | timeout=<s> | expect=<regex>
+#
+# A step that could not run says "not run: ..." in its own lines; a script the run never reached is "not run" in
+# the report (the runner's SKIP). Neither reads PASS.
+
+# 1. the prelude: the drag strip in daylight, both windows at the default layout and pinned, the console closed,
+#    which ZeD copy is loaded (an ERR line when a window is missing or the layout could not be set)
+zedqa_prelude.lua | pre | timeout=120
+
+# 2. the release check's in-game part: windows open, a floor transfer there and back, pad A and B on a row,
+#    a real right-click (the helper), the watch time
+zedqa_release_check.lua | rel | timeout=240
+
+# 3. every tab of both windows opens (each press must make its tab the active one; any Lua error fails it)
+suite_tabs.lua | tabs
+
+# 4. the main item paths and verbs: Move to, Rename, double-click equip, Take all, the no-craft chip; then
+#    Unequip, Equip, Read, Eat, Drop, Take through the card's own dispatch (its book, bat and apple taken back)
+zedqa_onepath.lua | op
+suite_verbs.lua | verbs
+
+# 5. the pad into the World window and back (steps 1 to 6 and the focus-comes-back checks; step 7 is cut)
+zedqa_world_pad_take.lua | wpt | timeout=300
+
+# 6. the pad map of every tab: traps and islands. First run under the new rule: they are LISTED for triage and do
+#    not fail the run (plan amendment 7); set STRICT = true in the script once the list is triaged. It fails now on
+#    a Lua error, on no tab audited, or on a Loot tab with no controls.
+zedqa_navmap.lua | nav
+
+# 7. one car from the 19-car pass (the Nyala): spawned on the strip, the character gets in, key in, engine on,
+#    a dash of a known design drawn wholly on the screen
+zedqa_dash_one.lua | dashone | timeout=60
+zedqa_dashpx.lua | dpx | timeout=180
+
+# 8. notes arrive in Messages; safe mode trips and recovers
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError
+zedqa_safemode.lua | safe | timeout=240
+
+# 9. the soak, 2 rounds: no more UI elements at the end of round 2 than of round 1, no slowdown
+zedqa_soak.lua | soak | timeout=600

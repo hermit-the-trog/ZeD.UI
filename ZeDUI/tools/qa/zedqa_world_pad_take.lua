@@ -552,7 +552,7 @@ step(10, waitHold)
 step(30, function()
     local B = ZeD.Belt
     local hud = B and B._hud
-    if not (hud and hud._drawn) then say("8 the belt is not drawn: skipped"); return end
+    if not (hud and hud._drawn) then say("not run: 8 the belt checks (the belt is not drawn)"); return end
     local w = cw()
     Focus.claimFocus(w)
     -- a Left that reached the game while a window holds the pad (a prompt let the focus go)

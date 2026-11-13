@@ -11,9 +11,24 @@
 --              an edge; listed for review)
 --   * the full map of moves for the tabs named in DUMP
 -- grep "ZEDQA nav". Restores each window's focus afterwards.
+-- Nov 12 2026 (test cleanup, SHRINK; plan amendment 7): a trap or an island counts now. The first run under the new
+-- rule makes a LIST for triage, not failing lines: STRICT is false, each one prints as "LIST trap ..." or
+-- "LIST island ..." and the totals close the run. Once that list is triaged (each entry fixed in the mod or named
+-- in KNOWN below), set STRICT = true: from then on every trap or island not in KNOWN is a failing line. The full
+-- move dumps (the long part of every report) are off; name a tab in DUMP to get its map back.
+-- A tab with no controls at all is a failing line in both modes (the tab did not draw).
 local Focus, Det = ZeD.Input.Focus, ZeD.Input.Detector
-local DUMP = { maps = true, equip = true, loot = true }
+local STRICT = false
+local KNOWN = {}   -- e.g. ["world maps trap mapcanvas"] = true: accepted after triage, never counted
+local DUMP = {}
+local nTrap, nIsland, nTabs = 0, 0, 0
 local function say(s) print("ZEDQA nav " .. tostring(s)) end
+local function found(kind, label, tabId, id)
+    local key = label .. " " .. tabId .. " " .. kind .. " " .. id
+    if KNOWN[key] then return end
+    if kind == "trap" then nTrap = nTrap + 1 else nIsland = nIsland + 1 end
+    say((STRICT and "FAIL " or "LIST ") .. kind .. ": " .. key)
+end
 local cw = ZeD_CharacterWindow.getWindow(); local ww = ZeD_WorldWindow.getWindow()
 if not (cw and cw:isVisible()) then ZeD_CharacterWindow.toggleBothPaired(getPlayer():getPlayerNum()) end
 cw = ZeD_CharacterWindow.getWindow(); ww = ZeD_WorldWindow.getWindow()
@@ -59,6 +74,11 @@ local function audit(label, w, tabId)
     for _, a in ipairs(all) do if not incoming[a.zone .. "|" .. a.id] then islands[#islands + 1] = a.zone .. ":" .. a.id end end
     say(label .. " " .. tabId .. ": " .. #all .. " targets | TRAP " .. #traps .. " {" .. table.concat(traps, ",") .. "} | ISLAND " .. #islands .. " {" .. table.concat(islands, ",") .. "}")
     say(label .. " " .. tabId .. " STUCK: " .. table.concat(stuck, " "))
+    nTabs = nTabs + 1
+    for _, id in ipairs(traps) do found("trap", label, tabId, id) end
+    for _, id in ipairs(islands) do found("island", label, tabId, id) end
+    -- (Loot always has rows and buttons; another tab may be empty by design, so only Loot is held to it)
+    if #all == 0 and tabId == "loot" then say("FAIL " .. label .. " " .. tabId .. ": no controls at all (the tab did not draw)") end
     if DUMP[tabId] then for _, l in ipairs(lines) do say("  " .. label .. " " .. tabId .. " " .. l) end end
     w._focusIdx = savedIdx
     for zi, z in ipairs(w._focusRing or {}) do z.focusedElementIdx = savedEl[zi] end
@@ -79,7 +99,13 @@ end
 at(15, function()
     walk("char", cw, cw._tabStripPanel)
     walk("world", ww, ww._actionTabStrip)
-    at(n0, function() Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil); say("DONE") end)
+    at(n0, function()
+        Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)
+        if nTabs == 0 then say("FAIL no tab was audited") end
+        say(string.format("%d tabs audited: %d traps, %d islands (%s)", nTabs, nTrap, nIsland,
+            STRICT and "strict: each one is a failing line" or "first run under the new rule: a list for triage, not counted against the run"))
+        say("DONE")
+    end)
 end)
 local n, i = 0, 1
 local function tick() n = n + 1; while steps[i] and steps[i].n <= n do local ok, err = pcall(steps[i].f); if not ok then say("step error: " .. tostring(err)) end; i = i + 1 end; if not steps[i] then Events.OnTick.Remove(tick) end end

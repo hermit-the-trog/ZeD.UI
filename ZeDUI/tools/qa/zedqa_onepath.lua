@@ -9,6 +9,9 @@
 -- Screenshots zqa_op_*.png. grep "ZEDQA op".
 local p = getPlayer()
 local function say(s) print("ZEDQA op " .. tostring(s)) end
+-- (Nov 12 2026, test cleanup: the results it only printed are checks now; the values were the same in every run on record)
+local nPass, nFail = 0, 0
+local function check(ok, what) if ok then nPass = nPass + 1; say("PASS " .. what) else nFail = nFail + 1; say("FAIL " .. what) end end
 local opt = ZeD.Settings.contextStyleOption
 local was = opt:getValue()
 local steps, tick = {}, 0
@@ -75,7 +78,10 @@ at(110, function()
     local name = ZeD_WorldWindow.getWindow()._containers[ZeD_WorldWindow.getWindow()._activeContainer].name
     if m and pick(m, 2, name) then m:onJoypadDown(Joypad.AButton); say("picked " .. name) else say("no crate row " .. tostring(name)) end
 end)
-at(400, function() say("apple now in " .. tostring(apple:getContainer() == crateInv and "crate" or apple:getContainer() and apple:getContainer():getType())) end)
+at(400, function()
+    say("apple now in " .. tostring(apple:getContainer() == crateInv and "crate" or apple:getContainer() and apple:getContainer():getType()))
+    check(apple:getContainer() == crateInv, "Move to: the apple went to the crate")
+end)
 -- 2) Rename through the prompt
 at(410, function() ISInventoryPaneContextMenu.createMenu(0, true, { hammer }, 700, 300) end)
 at(430, function()
@@ -93,7 +99,10 @@ at(470, function()
     local top = ZeD.Prompt.top()
     if top then top:pressPrimary() end
 end)
-at(480, function() say("hammer name: " .. tostring(hammer:getName()) .. " custom " .. tostring(hammer:isCustomName())) end)
+at(480, function()
+    say("hammer name: " .. tostring(hammer:getName()) .. " custom " .. tostring(hammer:isCustomName()))
+    check(hammer:getName() == "Old Faithful" and hammer:isCustomName() == true, "Rename: the hammer took the name typed in the prompt")
+end)
 -- 3) the card's name row
 at(490, function() select(hammer) end)
 at(520, function()
@@ -109,7 +118,10 @@ at(530, function()
     local b = ZeD.InventoryRenderer.doubleClick(c, hammer, 0)
     say("dbl: first " .. tostring(a) .. " second " .. tostring(b))
 end)
-at(700, function() say("primary: " .. tostring(p:getPrimaryHandItem() == hammer)) end)
+at(700, function()
+    say("primary: " .. tostring(p:getPrimaryHandItem() == hammer))
+    check(p:getPrimaryHandItem() == hammer, "double-click: the hammer is in the hand")
+end)
 -- 5) the crate's world menu
 at(710, function() ISWorldObjectContextMenu.createMenu(0, { crate }, 700, 300, false) end)
 at(730, function()
@@ -121,13 +133,17 @@ at(750, function()
     local m = zm()
     if m and pick(m, 1, "Take all") then m:onJoypadDown(Joypad.AButton); say("take all pressed") end
 end)
-at(1100, function() say("crate left: " .. tostring(crateInv:getItems():size()) .. " apple home " .. tostring(apple:getContainer() == inv)) end)
+at(1100, function()
+    say("crate left: " .. tostring(crateInv:getItems():size()) .. " apple home " .. tostring(apple:getContainer() == inv))
+    check(crateInv:getItems():size() == 0 and apple:getContainer() == inv, "Take all: the crate is empty and the apple is back in the bag")
+end)
 -- 6) card verbs
 at(1110, function() select(bottle) end)
 at(1140, function()
     local hv = {}
     for _, v in ipairs(cw()._itemCard._lastHeaderVerbs or {}) do hv[#hv + 1] = v.label end
     say("bottle verbs: " .. table.concat(hv, ", "))
+    check(#hv >= 1, "the bottle's card has its header verbs (" .. #hv .. ")")
     shot(4)
 end)
 at(1150, function() select(knife) end)
@@ -142,6 +158,7 @@ at(1190, function()
     local a = knife:isNoRecipes(p)
     ZeD.ActionStrip.setState(knife, "protect", false, 0)
     say("nocraft on " .. tostring(a) .. " off " .. tostring(knife:isNoRecipes(p)))
+    check(a == true and knife:isNoRecipes(p) == false, "the no-craft chip sets and clears the game's own flag")
 end)
 at(1200, function()
     pcall(function() ISTimedActionQueue.clear(p) end)
@@ -154,6 +171,7 @@ at(1200, function()
     local c = cw()._mainContent
     c._selectedItems = {}; c._lastClickedItem = nil; cw()._updateDrawer(c)
     opt:setValue(was)
+    say(nPass .. " passed, " .. nFail .. " failed")
     say("DONE")
 end)
 local function onTick()

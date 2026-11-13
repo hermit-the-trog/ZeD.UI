@@ -19,6 +19,20 @@ local LIST = {
     { "24_lcpd", "Base.CarLightsLouisvilleCounty" },
 }
 local function say(s) print("ZEDQA dpx " .. tostring(s)) end
+-- (Nov 12 2026, test cleanup) This is the one 19-car pass: zedqa_dash19.lua ran the same 19 cars with fewer
+-- readings and is archived. Each car now has real checks (seated, the key in, the engine running, a dash of a
+-- known design drawn wholly on the screen), so a car can fail. The smoke run takes ONE car from it:
+-- zedqa_dash_one.lua, run right before, sets ZEDQA_DASH_ONE to a tag of LIST for the next run of this script only.
+local nPass, nFail = 0, 0
+local function check(ok, what) if ok then nPass = nPass + 1; say("PASS " .. what) else nFail = nFail + 1; say("FAIL " .. what) end end
+if type(ZEDQA_DASH_ONE) == "string" then
+    local one = {}
+    for _, e in ipairs(LIST) do if e[1] == ZEDQA_DASH_ONE then one[#one + 1] = e end end
+    say("one car only: " .. ZEDQA_DASH_ONE .. " (" .. #one .. " of " .. #LIST .. ")")
+    if #one == 0 then say("FAIL no car in the list is tagged " .. ZEDQA_DASH_ONE) end
+    LIST = one
+end
+ZEDQA_DASH_ONE = nil
 if getGameSpeed() == 0 then setGameSpeed(1) end
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
 local cur, curKey = nil, nil
@@ -116,7 +130,11 @@ for _, e in ipairs(LIST) do
         if lb then d:_fire("lbar", false) end
     end)
     at(t + 335, function()
-        if not entered then return end
+        if not entered then
+            -- (the wrecked Nyala cannot be entered by design; any other car that was not entered did not get its checks)
+            if tag ~= "22_wreckednyala" then check(false, tag .. ": the character got into the car") end
+            return
+        end
         local d = D.getInstance()
         pcall(function() getCore():TakeFullScreenshot("zqa_dashpx_" .. tag .. ".png") end)
         local x, y, w, h = -1, -1, -1, -1
@@ -128,11 +146,18 @@ for _, e in ipairs(LIST) do
             tostring(d and d._st and d._st.radio and d._st.radio.kind), tostring(d and d._st and d._st.heaterOn),
             tostring(d and d._st and d._st.lights), tostring(b.name), tostring(b.livery), tostring(b.make), tostring(b.model),
             tostring(b.unit), #(d and d._hit or {}), getCore():getScreenWidth(), getCore():getScreenHeight()))
+        local keyIn = false; pcall(function() keyIn = cur:isKeysInIgnition() end)
+        check(p:getVehicle() == cur, tag .. ": the character is in the car")
+        check(keyIn, tag .. ": the key is in the ignition")
+        check(run, tag .. ": the engine is running")
+        check(d ~= nil and d._designId ~= nil, tag .. ": the dash has a design (" .. tostring(d and d._designId) .. ")")
+        check(d ~= nil and w > 0 and h > 0 and x >= 0 and y >= 0 and x + w <= getCore():getScreenWidth() and y + h <= getCore():getScreenHeight(),
+            string.format("%s: the dash is drawn wholly on the screen (%d,%d %dx%d)", tag, x, y, w, h))
     end)
     at(t + 360, leave)
     t = t + 380
 end
-at(t, function() clean(); say("DONE") end)
+at(t, function() clean(); say(nPass .. " passed, " .. nFail .. " failed"); say("DONE") end)
 local n, i = 0, 1
 local function tick()
     n = n + 1
