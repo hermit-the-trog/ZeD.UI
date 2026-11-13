@@ -26,6 +26,25 @@ local O = {}
 local HOME = { p:getX(), p:getY() }
    -- (16 squares west on the strip, clear of the farm animals; back at the end)
 
+-- FAST-FORWARD (Nov 12 2026). The game's walk actions are valid only at speed 2 or below (WalkToTimedAction:isValid: getGameSpeed() <= 2),
+-- so a walk queued at speed 3 is cut at once, and the game's own option puts the speed back to 1 whenever an action ends. A fast wait
+-- therefore sets the speed again every tick: 3 while only a non-walk action runs, 2 while the queue is empty or holds a walk; and a
+-- hook on ISTimedActionQueue.add drops the speed to 2 at the moment a walk is queued (AQ hands the walk over between two ticks).
+-- Speed is 1 again when the wait ends, when the script ends and on an error (restore).
+local FF = { add = ISTimedActionQueue.add, on = false, c2 = 0, c3 = 0, t0 = 0 }
+ISTimedActionQueue.add = function(action, ...)
+    if FF.on and action and tostring(action.Type):find("Walk", 1, true) and getGameSpeed() > 2 then setGameSpeed(2) end
+    return FF.add(action, ...)
+end
+local function ffSpeed()
+    local q = ISTimedActionQueue.queues[getPlayer()]
+    local walk, n = false, 0
+    for _, a in ipairs(q and q.queue or {}) do n = n + 1; if tostring(a.Type):find("Walk", 1, true) then walk = true end end
+    local want = (n == 0 or walk) and 2 or 3
+    if getGameSpeed() ~= want then setGameSpeed(want) end
+    if want == 3 then FF.c3 = FF.c3 + 1 else FF.c2 = FF.c2 + 1 end
+end
+
 -- THE LEDGER ------------------------------------------------------------------------------------------------------
 local MARK = "ZeDQA_spawned"
 local LG = { added = {}, taken = {}, animals = {}, zones = {}, done = false, god = false,
@@ -98,6 +117,9 @@ end
 local function restore(why)
     if LG.done then return end
     LG.done = true
+    FF.on = false
+    pcall(function() ISTimedActionQueue.add = FF.add end)
+    pcall(function() if setGameSpeed then setGameSpeed(1) end end)   -- (fast-forward off, also on an error)
     pcall(function() AQ.stop() end)
     pcall(function() ISTimedActionQueue.clear(p) end)
     pcall(function() local m = AT._feedMenu; if m then m:close() end end)
@@ -134,12 +156,17 @@ end
 
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
-local function waitFor(maxMs, cond, what)
+-- Fast-forward (Nov 12 2026): a wait for a timed action runs at the game's speed 3 ("faster") while it waits and is back at 1
+-- when it ends (done, timed out, or the step failed: drive() and restore() also set 1). The cap maxMs stays real time and
+-- generous. Checks about real-time behavior (e: the player walked off mid-action) and the shots stay at speed 1.
+local function setSpeed(n) pcall(function() if setGameSpeed then setGameSpeed(n) end end) end
+local function waitFor(maxMs, cond, what, fast)
     local tEnd
     plan[#plan + 1] = { ms = 0, wait = true, fn = function()
-        tEnd = tEnd or (getTimestampMs() + maxMs)
-        if cond() then say("waited for " .. what); tEnd = nil; return true end
-        if getTimestampMs() > tEnd then say("gave up waiting for " .. what); tEnd = nil; return true end
+        if not tEnd then tEnd = getTimestampMs() + maxMs; FF.on = fast == true; FF.c2, FF.c3, FF.t0 = 0, 0, getTimestampMs() end
+        if cond() then say("waited for " .. what .. (fast and string.format(" (%d s; ticks at speed 2: %d, at 3: %d)", (getTimestampMs() - FF.t0) / 1000, FF.c2, FF.c3) or "")); tEnd = nil; FF.on = false; setSpeed(1); return true end
+        if getTimestampMs() > tEnd then say("gave up waiting for " .. what); tEnd = nil; FF.on = false; setSpeed(1); return true end
+        if FF.on then pcall(ffSpeed) end
         return false
     end }
 end
@@ -219,6 +246,7 @@ add(4000, function()
     local px, py = math.floor(p:getX()) - 16, math.floor(p:getY())
     A.c1 = spawn("cow", px + 3, py + 2)
     A.c2 = spawn("cow", px + 4, py - 2)
+    for _, c in ipairs({ A.c1, A.c2 }) do O[c] = { c:getX(), c:getY() } end
     -- (a ram, not an ewe: an ewe gives milk too and would join All milkable)
     A.ewe = spawn("ram", px - 3, py + 2)
     A.hungry = spawn("cow", px - 4, py - 3)
@@ -330,25 +358,38 @@ waitFor(120000, function()
         V.seen2 = true
         V.doneAtHandover = r.done
         V.c1Milk = AQ.hasMilk(A.c1)
+        -- (the game makes milk with game time: at speed 3 a cow just milked dry can read a hair above the 0.1 L the game
+        -- counts as "has milk" a tick later, so the first cow is judged by what is left in her, a quarter litre at most)
+        V.c1Q = A.c1:getData():getMilkQuantity()
     end
     return false
-end, "the two-cow milking run")
+end, "the two-cow milking run", true)
 add(500, function()
     check(V.seen2, "d the run reached the second cow")
-    check(V.seen2 and V.doneAtHandover == 1 and V.c1Milk == false, "d the second cow was handed over only when the first was done (done " .. tostring(V.doneAtHandover) .. ", first cow still has milk: " .. tostring(V.c1Milk) .. ")")
+    check(V.seen2 and V.doneAtHandover == 1 and (V.c1Milk == false or (V.c1Q or 9) < 0.25), "d the second cow was handed over only when the first was done (done " .. tostring(V.doneAtHandover) .. ", first cow still has milk: " .. tostring(V.c1Milk) .. ", " .. string.format("%.2f", V.c1Q or -1) .. " L left)")
     check(not V.multi, "d never two milkings queued at once")
     say("d the run ended: " .. tostring(AQ.last and AQ.last.why) .. " | cause " .. tostring(AQ.last and AQ.last.cause))
     check(AQ.last ~= nil and AQ.last.why == ZeD.tr("UI_ZeD_Animals_RunDone", 2, 2), "d the run ended Done 2 of 2", AQ.last and AQ.last.why)
     check(queueNames() == "", "d nothing left in the queue", queueNames())
 end)
 
--- e  walking away mid-milking
+-- (the cows graze and wander while the game runs fast: put them back on their squares before a run that needs them in the zone)
+local function cowsHome()
+    for _, c in ipairs({ A.c1, A.c2 }) do
+        local h = O[c]
+        if h then pcall(function() c:setX(h[1]); c:setY(h[2]); c:setLastX(h[1]); c:setLastY(h[2]) end) end
+    end
+end
+-- e  walking away mid-milking. Kept at speed 1 on purpose: it is about real-time behavior (the run's reaction to the player
+--    being moved off while the milking is under way).
 add(300, function()
     emptyGiven()
+    cowsHome()
     for _, c in ipairs({ A.c1, A.c2 }) do pcall(function() c:getData():setMilkQuantity(4) end) end
     AQ.forgetChecks()
-    AT.bulkPress(W(), "milkable")
+    if bulk("clear") then AT.bulkPress(W(), "clear") end
 end)
+add(900, function() AT.bulkPress(W(), "milkable") end)
 add(900, function() AT.bulkPress(W(), "milk") end)
 waitFor(30000, function() return AQ.run ~= nil and queueNames():find("ISMilkAnimal") ~= nil end, "the milking to start")
 add(1500, function()
@@ -389,6 +430,40 @@ add(1500, function()
     shot("6_after_walk_away")
 end)
 
+-- g  a full bucket (Build's request, Nov 12 2026): two milkable cows (4 L each) and the one bucket with room for 5 L: the first
+--    cow fits, the second only partly, so the run ends "Bucket full: milked 1 of 2." and not Done. The words by the translated key.
+--    (The bucket is the one this script gave, so zedqa_animals_restore.lua takes it away at the end: every given item carries
+--    the ZeDQA_spawned mark; the other milk containers were set aside at a.)
+local G = {}
+add(300, function() pcall(function() AQ.stop() end); if bulk("clear") then AT.bulkPress(W(), "clear") end end)
+add(900, function()
+    emptyGiven()
+    cowsHome()
+    for _, c in ipairs({ A.c1, A.c2 }) do pcall(function() c:getData():setMilkQuantity(4) end) end
+    AQ.forgetChecks()
+    for _, it in ipairs(LG.added) do if it:getFullType() == "Base.Bucket" then G.bk = it end end
+    local fc = G.bk and G.bk:getFluidContainer()
+    local ok, err = pcall(function()
+        local mt = A.c1:getData():getBreed():getMilkType()
+        fc:Empty(); fc:addFluid(mt, math.max(0, fc:getCapacity() - 5))
+    end)
+    say("g bucket filled to " .. tostring(fc and fc:getAmount()) .. " of " .. tostring(fc and fc:getCapacity()) .. " ok=" .. tostring(ok) .. " " .. tostring(err or ""))
+    AT.bulkPress(W(), "milkable")
+end)
+add(900, function() AT.bulkPress(W(), "milk") end)
+waitFor(120000, function() return AQ.run == nil end, "the bucket-full run", true)
+add(500, function()
+    local fc = G.bk and G.bk:getFluidContainer()
+    local want = ZeD.tr("UI_ZeD_Animals_RunFull", G.bk and G.bk:getDisplayName(), 1, 2)
+    local done = ZeD.tr("UI_ZeD_Animals_RunDone", 2, 2)
+    say("g the run ended: " .. tostring(AQ.last and AQ.last.why) .. " | cause " .. tostring(AQ.last and AQ.last.cause) .. " | want " .. tostring(want))
+    check(AQ.last ~= nil and AQ.last.why == want, "g the run ends Bucket full: milked 1 of 2 (the translated key)", AQ.last and AQ.last.why)
+    check(AQ.last ~= nil and AQ.last.why ~= done and AQ.last.cause ~= "done", "g it does not end Done", AQ.last and AQ.last.cause)
+    check(fc ~= nil and fc:isFull(), "g the bucket is full")
+    check(queueNames() == "", "g nothing left in the queue", queueNames())
+    if bulk("clear") then AT.bulkPress(W(), "clear") end
+end)
+
 -- f  the band at Large text
 add(800, function()
     pcall(function() AQ.stop() end)
@@ -425,7 +500,7 @@ local function drive()
     if not st then Events.OnTick.Remove(drive); return end
     if st.wait then
         local ok, done = pcall(st.fn)
-        if not ok then say("ERR wait " .. i .. ": " .. tostring(done)); done = true end
+        if not ok then say("ERR wait " .. i .. ": " .. tostring(done)); done = true; pcall(function() if setGameSpeed then setGameSpeed(1) end end) end
         if done then i = i + 1; t0 = getTimestampMs() end
         return
     end

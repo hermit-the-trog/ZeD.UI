@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/animals_ff.txt (Nov 12 2026, QA): the restore, then the Animals scripts with fast-forward (QA_fast_forward_animals_20261112.md)
+zedqa_animals_restore.lua | ares | timeout=180
+zedqa_animals_quick.lua | aq | timeout=1200
+zedqa_animals_quick_more.lua | aq2 | timeout=1200
