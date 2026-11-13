@@ -19,8 +19,8 @@
 #                                                 stages a piece and checks the five modes (restage: not done yet)
 #   zedqa_immersive_searching.lua                 only its "mod off" half ran here, a no-op; it stays in the compat run
 #   zedqa_b11_notes.lua                           a shipped beta's checklist that failed every run on its own timing
-#   zedqa_cov_objcards.lua                        stages a hen house, hens and a trough on the strip: no animal staging
-#                                                 until a farm is picked (amendment 1); its other cards wait for the split
+#   zedqa_cov_farmcards.lua                       the trough, hen house and farm plot cards, split out of cov_objcards: they wait for a farm
+#                                                 (amendment 1); header says so; in no run list
 #   every animal script, zedqa_b8_animals.lua     amendment 1: no farm yet
 #   zedqa_dash_odo.lua, zedqa_dash_odo_reload.lua  need a quit and a second launch: dash_odo_a.txt, then dash_odo_b.txt
 #   zedqa_fishing_tab_live*.lua                   run when fishing changes (the shore, their own manifest)
@@ -104,6 +104,7 @@ zedqa_pad_figure.lua | padfig | timeout=180      # the drawn controller: Button 
 zedqa_cov_equipfurn.lua | cov_equipfurn | timeout=300   # the Equip tab's defense summary, container buttons on a staged shelf and bag, the Furniture tab's five modes
 zedqa_cov_reading.lua | cov_reading | timeout=300       # the Journal's diary; Recipes; newspapers; the print and garment hooks
 zedqa_cov_b9to11.lua | cov_b9to11 | timeout=480         # the beta 9 to 11 fixes no check reached, at two UI scales
+zedqa_cov_objcards.lua | cov_objcards | timeout=300       # the track, placement, fluid and campfire cards on the strip (the trough, hen house and farm plot cards are zedqa_cov_farmcards.lua, which waits for a farm); one FAIL until setAxis stops trusting Kahlua's %: "placement: -15 from 5 degrees wraps to 350"
 
 # ---- in regression.txt and not judged by name in the plan: kept as they were (phase 1's rule)
 zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
