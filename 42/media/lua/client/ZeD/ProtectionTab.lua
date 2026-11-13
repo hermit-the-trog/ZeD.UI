@@ -159,48 +159,60 @@ ZeD.ProtectionTab.protectionColorForDef = protectionColorForDef
 -- ============================================================================
 
 --- Everything the defense dashboard shows for one player, in one table:
---- each worn garment's per-part defenses (worst first), per-part maxima
---- across layers, the overall average and grade, best and worst parts,
---- and the uncovered parts as abbreviated pill names.
+--- each worn garment's per-part defenses (worst first), per-part totals
+--- across layers (the game's rule, IsoGameCharacter.getBodyPartClothingDefense:
+--- every worn layer over a part with no hole there adds its defense, the
+--- total floored and at most 100), the overall average and grade, best and
+--- worst parts, and the uncovered parts as abbreviated pill names.
+--- Only worn garments count: a garment held in the hand is equipped, not worn.
 function ZeD.ProtectionTab.gatherData(playerObj)
-    local inv   = playerObj:getInventory()
-    local items = inv:getItems()
+    local worn = playerObj:getWornItems()
 
     local garments  = {}
-    local coveredSet = {}  -- partStr → true
+    local coveredSet = {}  -- partStr -> true
 
-    for i = 0, items:size() - 1 do
-        local item = items:get(i)
-        if instanceof(item, "Clothing") and item:isEquipped() then
+    for i = 0, (worn and worn:size() or 0) - 1 do
+        local wi = worn:get(i)
+        local item = wi and wi:getItem()
+        if item and instanceof(item, "Clothing") then
             local parts = item:getCoveredParts()
             if parts and parts:size() > 0 then
                 local zones   = {}
                 local biteSum = 0
+                local seen    = {}
 
                 for j = 0, parts:size() - 1 do
                     local part    = parts:get(j)
                     local partStr = tostring(part)
                     local name    = PART_NAMES[partStr] or partStr:gsub("_", " ")
 
-                    coveredSet[partStr] = true
+                    -- (a garment counts once per part, as in the game's loop)
+                    if not seen[partStr] then
+                        seen[partStr] = true
+                        coveredSet[partStr] = true
 
-                    local biteDef    = item:getDefForPart(part, true,  false) or 0
-                    local scratchDef = item:getDefForPart(part, false, false) or 0
-                    local bulletDef  = item:getDefForPart(part, false, true)  or 0
+                        local rawBite    = item:getDefForPart(part, true,  false) or 0
+                        local rawScratch = item:getDefForPart(part, false, false) or 0
+                        local rawBullet  = item:getDefForPart(part, false, true)  or 0
+                        -- the game skips a layer with a hole over the part
+                        local okH, hole = pcall(function() return item:getVisual():getHole(part) end)
+                        local holed = okH and type(hole) == "number" and hole > 0
 
-                    biteDef    = math.floor(biteDef)
-                    scratchDef = math.floor(scratchDef)
-                    bulletDef  = math.floor(bulletDef)
+                        local biteDef = math.floor(rawBite)
+                        biteSum = biteSum + biteDef
 
-                    biteSum = biteSum + biteDef
-
-                    zones[#zones + 1] = {
-                        name       = name,
-                        partStr    = partStr,
-                        biteDef    = biteDef,
-                        scratchDef = scratchDef,
-                        bulletDef  = bulletDef,
-                    }
+                        zones[#zones + 1] = {
+                            name       = name,
+                            partStr    = partStr,
+                            biteDef    = biteDef,
+                            scratchDef = math.floor(rawScratch),
+                            bulletDef  = math.floor(rawBullet),
+                            -- (what the layer adds to the part's total: nothing through a hole)
+                            addBite    = holed and 0 or rawBite,
+                            addScratch = holed and 0 or rawScratch,
+                            addBullet  = holed and 0 or rawBullet,
+                        }
+                    end
                 end
 
                 garments[#garments + 1] = {
@@ -219,23 +231,31 @@ function ZeD.ProtectionTab.gatherData(playerObj)
         return a.name < b.name
     end)
 
-    -- Build per-part defense maps: max bite/scratch/bullet defense across all garments
+    -- Build per-part defense maps: the layers' bite/scratch/bullet defenses added (the game's rule: no layer through
+    -- a hole, the total floored and at most 100); -1 for a part nothing covers
     local partDefense = {}
     local partStats   = {}
     for _, partStr in ipairs(ALL_PARTS) do
         partDefense[partStr] = -1
         partStats[partStr] = { bite = -1, scratch = -1, bullet = -1, layers = 0 }
     end
+    local sums = {}
     for _, garment in ipairs(garments) do
         for _, zone in ipairs(garment.parts) do
-            local cur = partDefense[zone.partStr] or -1
-            partDefense[zone.partStr] = math.max(cur, zone.biteDef)
+            local s = sums[zone.partStr]
+            if not s then s = { 0, 0, 0 }; sums[zone.partStr] = s end
+            s[1], s[2], s[3] = s[1] + zone.addBite, s[2] + zone.addScratch, s[3] + zone.addBullet
             local ps = partStats[zone.partStr]
-            ps.bite    = math.max(ps.bite,    zone.biteDef)
-            ps.scratch = math.max(ps.scratch, zone.scratchDef)
-            ps.bullet  = math.max(ps.bullet,  zone.bulletDef)
+            if not ps then ps = { bite = -1, scratch = -1, bullet = -1, layers = 0 }; partStats[zone.partStr] = ps end
             ps.layers  = ps.layers + 1
         end
+    end
+    for partStr, s in pairs(sums) do
+        local ps = partStats[partStr]
+        ps.bite    = math.floor(math.min(100, s[1]))
+        ps.scratch = math.floor(math.min(100, s[2]))
+        ps.bullet  = math.floor(math.min(100, s[3]))
+        partDefense[partStr] = ps.bite
     end
 
     -- Global average bite defense across all 18 parts
