@@ -1119,6 +1119,9 @@ function CT.syncFocus(win, content)
                  uiRange = function(w) return content:getX(), content:getWidth() end }
         win._focusRing[#win._focusRing + 1] = zone
     end
+    -- a ribbon: Left / Right walk its buttons first (FocusManager), so no list
+    -- row beside or under it comes between two of them
+    zone.walkLR = true
     local cc = content._cc
     local hits = (cc and cc.bottom and cc.hits) or {}
     local parts = {}

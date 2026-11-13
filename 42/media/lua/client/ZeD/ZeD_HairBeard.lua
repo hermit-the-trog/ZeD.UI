@@ -1836,6 +1836,7 @@ function HB.focusables(win)
         local e
         if it.kind == "parts" then
             e = { id = "hb:part",
+                dpadExits = true,   -- (its handler says false at either end and for Up / Down: the D-pad leaves)
                 onDpadDir = function(w, el, dir)
                     local parts = partsOf(st)
                     local at = 1

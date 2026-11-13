@@ -1230,6 +1230,8 @@ _buildWorldMCColumnFocusables = function(win, slot)
             end,
         }
     end
+    -- rows out of the column's view: for the column's own Up / Down only
+    ZeD.Input.Focus.markOffscreen(elements, cs.rowView)
     -- the column's view button
     for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(cs.viewToggleRects)) do elements[#elements + 1] = e end
     -- An empty column needs a placeholder so the zone stays focusable;
@@ -1302,7 +1304,8 @@ local function _worldMCColumnDirty(win, slot, cs)
     if snap and snap.n == n and snap.scrollPos == scrollPos and snap.y1 == y1
        and snap.gridCell == cs.gridCell and snap.renderX == cs.renderX
        and snap.renderW == cs.renderW and snap.rowH == ZeD.T.rowH
-       and snap.containerIdx == cs.containerIdx and snap.nToggles == nToggles then
+       and snap.containerIdx == cs.containerIdx and snap.nToggles == nToggles
+       and snap.vb == (cs.rowView and cs.rowView.bottom) then   -- (the view: which rows are out of it)
         local same = true
         local old = snap.items
         for i = 1, n do
@@ -1316,6 +1319,7 @@ local function _worldMCColumnDirty(win, slot, cs)
         n = n, items = copy, scrollPos = scrollPos, y1 = y1,
         gridCell = cs.gridCell, renderX = cs.renderX, renderW = cs.renderW,
         rowH = ZeD.T.rowH, containerIdx = cs.containerIdx, nToggles = nToggles,
+        vb = cs.rowView and cs.rowView.bottom,
     }
     return true
 end
@@ -1590,6 +1594,8 @@ _buildWorldInvRowFocusables = function(win)
         local cnt = win._mainContent
         if cnt then cnt._gpFocusedRowItem = elements[1].item end
     end
+    -- rows out of the list's view: for the list's own Up / Down only
+    ZeD.Input.Focus.markOffscreen(elements, c._rowView)
     -- the column's view button (up from the first row reaches it)
     for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)) do elements[#elements + 1] = e end
     return elements
@@ -5108,6 +5114,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     -- Rebuild on the rows' places too (scroll, list or grid, width)
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {}) .. ":" .. ZeD.InventoryRenderer.filterGen(self)
+                        .. ":" .. tostring(self._rowView and self._rowView.bottom)   -- (the list's view: which rows are out of it)
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
                     -- (the container shown is part of what these rows are, by the object)
                     if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end

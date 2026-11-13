@@ -2127,6 +2127,11 @@ local function renderItemList(self)
     addToggleZones(self, self._gv)
 
     self:setStencilRect(xOff, contentTop, scroll.visible and (colW - scrollW) or colW, visibleH)
+    -- the rows' view this frame, in the rows' own space: a row stop out of it
+    -- is for its own list only (Focus.markOffscreen; MC columns copy it)
+    local rv = self._rowView or {}
+    rv.top, rv.bottom = contentTop, contentTop + visibleH
+    self._rowView = rv
 
     local y      = contentTop - scrollOffset
     local rowIdx = 0
@@ -2731,6 +2736,12 @@ local function renderMultiColumnContent(self)
             -- taken after each render keeps each column's stamps for the next
             -- frame's focusable builder.
             cs.itemRenderYMap  = self._itemRenderYMap
+            -- (and its rows' view: values copied, the panel's table is the next column's)
+            local rv = self._rowView
+            if rv then
+                cs.rowView = cs.rowView or {}
+                cs.rowView.top, cs.rowView.bottom = rv.top, rv.bottom
+            end
             -- the grid: each cell's x, the cell size, the view button (focusables read them)
             cs.itemRenderXMap  = self._itemRenderXMap
             cs.gridCell        = self._gridCell
