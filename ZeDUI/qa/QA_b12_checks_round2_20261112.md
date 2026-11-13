@@ -174,3 +174,20 @@ ZEDQA nav LIST trap: char skills trap skill:Strength
 ```
 
 (navmap also printed: char equip TRAP 51, char identity TRAP 1 {hb:part}, char skills TRAP 35 {skill:...}; all other tabs 0 traps, 0 islands.)
+
+## Part 3. The shared row sizes (punch list 178)
+
+Ran: a short bridge script of my own (kept out of the repo) after the prelude, which sets the default layout with the console closed. For each of the text sizes ZeD has, it set the size, then put the Character and World windows side by side on four pairs of tabs and took a picture of each: Loot (Character) + Crafting (World); Health + (World on its own Loot); Skills + Crafting; Loot + Forage. At 4K fullscreen (UI scale 1.75x) and at 1280x800 windowed (UI scale 0.75x, the run's Auto). Reports: ZeDUI/qa/regression/2026-11-12_b12r2_p3_4k.md and ..._p3_deck.md (each 2/2 pass). Pictures: Zomboid/Screenshots/b12_round2_20261112/p3 (16 files, zqa_p3_<4k|deck>_<small|large>_<char tab>_<world tab>.png).
+
+Sizes: ZeD's own text size has only Small and Large (the Normal preset is gone from ZeD: Settings.lua lists small and large only; a saved Medium falls back to Small). So "Normal" was not a separate size; Small is ZeD's normal. Not run: a third size.
+
+Measured values printed by the script: 4K Small strip 65 px, sort bar 35 px; 4K Large 75 and 41. Deck Small 28 and 15; Deck Large 32 and 18. Both are one number for everything at a size; they grow from Small to Large and with the UI scale.
+
+What the pictures show:
+- Row 1 (the strip under the title bar): one height across both windows, and the container strips on both sides line up with it edge to edge: the "Inventory" and "Ground" headers, the Skills and Health headings, the Crafting Station / Category / Find row and the side strips' top cells all sit in the same band. Yes at Small and at Large, at 4K and at the Deck size.
+- Row 2 (the sorting bar): one height and one line across both windows on Loot and Crafting ("Name / Cat / Status / Wt" beside the Crafting list's "All Recipes" line) at both sizes and both screens. The Health and Skills tabs have no sort row of their own, so only the Inventory's sort row shows there.
+- Text fit: fits at every case except one, below.
+
+### List A (real mod bugs)
+- At Large on the 1280x800 screen the Character window's header word "Inventory" is cut to "Invent..." (the window is 276 px wide there). Picture: Zomboid/Screenshots/b12_round2_20261112/p3/zqa_p3_deck_large_loot_craft.png. Minor; the items' names also take ellipses at that width, as designed.
+### List B: none. Not run: Normal as a third size (does not exist); the Journal and Foraging sort rows were not pictured (Forage appears in the Loot + Forage pictures).
