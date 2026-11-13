@@ -83,6 +83,7 @@ W.TAB_ICONS = {
     ["build-tab-white"] = "bricks", ["move-tab-white"] = "chair", ["map-tab-white"] = "map",
     ["forage-tab-white"] = "magnifier", ["farm-tab-white"] = "cow", ["vehicle-tab-white"] = "car",
     ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits", ["cooking-tab-white"] = "pot",
+    ["fishing-tab-white"] = "rod",
     ["server-tab-white"] = "tower", ["admin-tab-white"] = "badge",   -- (multiplayer-only tabs)
 }
 
