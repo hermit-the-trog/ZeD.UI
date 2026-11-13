@@ -852,21 +852,21 @@ check("A5 the controller page's editor and test open as a ZeD page", ow.sub == "
 local els = MM.padElements()
 check("A5 every button but Guide, the triggers and both sticks", #els == 18, #els)
 draw(ow, "A5 button map")
-check("A5 each part and what it does", texts():find("A button", 1, true) and texts():find("Interact", 1, true))
+-- (the drawn pad, Nov 12 2026: a label beside each part, ZeD's words for it and under them the game's actions)
+check("A5 each part and what it does", texts():find(ZeD.tr("UI_ZeD_PadFig_RoleA"), 1, true) and texts():find(ZeD.tr("UI_ZeD_PadFig_Game", "Interact"), 1, true))
 local elLT
 for _, e in ipairs(els) do if e.name == "LeftTrigger" then elLT = e end end
 check("A5 a trigger's action with its threshold, as the game writes it", elLT and MM.padBound(elLT)[1] and MM.padBound(elLT)[1].text == "Aim > 0.50")
-check("A5 the controller lands on the first part", ow.focusId == els[1].id, ow.focusId)
-check("A5 an unbound part says Nothing", texts():find(ZeD.tr("UI_ZeD_PadMap_Nothing"), 1, true) ~= nil)
+check("A5 a label leaves the threshold to the pull-down", texts():find(ZeD.tr("UI_ZeD_PadFig_Game", "Aim"), 1, true) ~= nil)
+check("A5 the controller lands on the first label (the left trigger)", ow.focusId == "lab:LT", ow.focusId)
+check("A5 an unbound part says nothing", texts():find(ZeD.tr("UI_ZeD_PadFig_GameNothing"), 1, true) ~= nil)
 check("A5 the test pick is a controller stop", stop(ow, "padtest") ~= nil)
 -- live: the menu's own pad lights the drawing
 PAD = { id = 0 }
 PRESSED.A = true
 DRAWN = {}
 draw(ow, "A5 A held")
-local lit = 0
-for _, d in ipairs(DRAWN) do if d.kind == "rect" and d.p == ow and d.a == ZeD.T.selectionA then lit = lit + 1 end end
-check("A5 a held button lights on the drawing", lit >= 1, lit)
+check("A5 a held button lights on the drawing", ow._padFig and ow._padFig.st.b.A == true and ow._padFig.lit.A == true)
 PRESSED.A = nil
 -- pick the test controller: the game's own pick, which holds the pad for the test
 ow:openTestPick(combo, { x = 0, y = 0, w = 10, h = 10 })
@@ -896,7 +896,10 @@ check("A5 picking it again takes it off", called("removeBinding") and called("re
 local elLS
 for _, e in ipairs(els) do if e.kind == "axis2d" and e.name == "LeftStick" then elLS = e end end
 ow:openPadActions(elLS, { x = 0, y = 0, w = 10, h = 10 })
-check("A5 a stick lists Movement ticked", MM.popup.items[1].text == "Movement" and MM.popup.items[1].check == true)
+local move
+for _, it in ipairs(MM.popup.items) do if type(it) == "table" and it.text == "Movement" then move = it end end
+check("A5 a stick lists Movement ticked", move and move.check == true)
+check("A5 the pull-down starts with the element's name (a title row, never picked)", MM.popup.items[1].header == true and MM.popup.items[1].disabled == true)
 -- the pad: down walks the list, the band at the foot; B back to the Options page
 ow.focusId = nil
 ow:joyDir("down")

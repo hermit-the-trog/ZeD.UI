@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ControllerMap.lua
 -- ============================================================================
 -- THE CONTROLLER MAP — every pad button and what it does, on one page to read. Client organism (a ZeD_Window).
--- The ZeD pad in its pixel art (shipped as media/textures/ZeD/controller_map.png at 4x), then the table of buttons
--- and what each does, every button drawn in the player's own button pictures (ZeD_PadGlyphs: Xbox, PlayStation,
--- Steam Deck, Nintendo), or named in a box when the pictures are off.
+-- The ZeD pad in its pixel art (ZeD_PadFigure: the same drawing as Options > Controls > Button map and test, with
+-- the face buttons of the player's button pictures, at the largest whole multiple the window's width holds), then
+-- the table of buttons and what each does, every button drawn in the player's own button pictures (ZeD_PadGlyphs:
+-- Xbox, PlayStation, Steam Deck, Nintendo), or named in a box when the pictures are off.
 --
 -- Opened from the controller's quick wheel (Help, Controller map).
 -- A full-card-wide window centred on the screen; the body scrolls as one piece when the screen is short (the mouse
@@ -15,13 +16,13 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
+require "ZeD/ZeD_PadFigure"
 ZeD = ZeD or {}
 ZeD.ControllerMap = ZeD.ControllerMap or {}
 local CM = ZeD.ControllerMap
 CM.windows = CM.windows or {}
 
 local W_U = 480            -- the full card's width (design units), the widest a new surface goes
-local PAD_ASPECT = 544 / 800
 local ROW_GAP_U, PIC_U, NAME_COL_U = 6, 16, 92
 local STEP_U = 40          -- one D-pad press of scroll
 
@@ -114,7 +115,10 @@ function ZeD_ControllerMap:prerender()
     local fh2 = T.fontF2H or ZeD.TM:getFontHeight(f2)
     local nameW = T.px(NAME_COL_U)
     local textW = inner - nameW
-    local padH = math.floor(inner * PAD_ASPECT)
+    -- the pad: whole multiples only (k screen px to an art pixel), the largest the inner width holds
+    local PF = ZeD.PadFigure
+    local padK = PF.k(inner)
+    local padW, padH = PF.CW * padK, PF.CH * padK
     local rows = {}
     local total = margin + padH + T.px(10)
     for _, r in ipairs(CM.ROWS) do
@@ -144,8 +148,8 @@ function ZeD_ControllerMap:prerender()
     -- the body, clipped and scrolled as one piece
     self:setStencilRect(0, tbH, w, bodyH)
     local y = tbH + margin - self.scroll
-    local tex = getTexture("media/textures/ZeD/controller_map.png")
-    if tex then self:drawTextureScaledAspect(tex, margin, y, inner, padH, 1, 1, 1, 1) end
+    local PG = ZeD.PadGlyphs
+    PF.draw(self, margin + math.floor((inner - padW) / 2), y, padK, (PG and PG.set()) or "xbox", nil)
     y = y + padH + T.px(10)
     local A = ZeD.Atoms
     if A and A.drawDividerH then A.drawDividerH(self, margin, y - T.px(5), inner, false) end

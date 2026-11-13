@@ -10,18 +10,21 @@
 --
 -- BUTTON MAP AND TEST (Controls > Button map and test; in place of vanilla's
 --   controller page with ISControllerBindingsEditorPanel and
---   ISControllerTestPanel). On the left a pad drawn in ZeD's lines with ZeD's
---   own button pictures (ZeD_PadGlyphs, the pad set the glyph setting picks):
---   each button lights while it is held, the sticks' dots move, the triggers
---   fill. It follows the controller chosen to test (vanilla's own pick, which
---   holds the pad for the test until A and Y are held together, as vanilla),
---   else the controller driving the menu. On the right every button, trigger
---   and stick with what it does in game; A or a click opens the actions as a
---   pull-down with the bound ones ticked, and a pick adds or takes that action
---   off it. Edits run on vanilla's bindings and its editor's own hand-off
---   (onJoypadButtonBindingEdited: a fixed preset becomes a new one, Apply
---   saves). The preset, button style, dead zone and the controllers in use
---   stay rows on the Controls page.
+--   ISControllerTestPanel). The drawn pad (ZeD_PadFigure: the Controller
+--   map's pixel-art pad, the face buttons of the set the glyph setting picks)
+--   with a label on a line beside every part, like a figure in a manual: the
+--   button's picture, ZeD's job for it, and under that the game's own actions
+--   on it. The live test: a held button fills with the accent and sits pressed
+--   in, a stick's cap moves (and its label's dial), a trigger fills as far as
+--   it is pulled (its label says the percent). It follows the controller
+--   chosen to test (vanilla's own pick, which holds the pad for the test until
+--   A and Y are held together, as vanilla), else the controller driving the
+--   menu. A click or A on a label opens its actions as a pull-down with the
+--   bound ones ticked (a stick and the D-pad first ask which element), and a
+--   pick adds or takes that action off it. Edits run on vanilla's bindings and
+--   its editor's own hand-off (onJoypadButtonBindingEdited: a fixed preset
+--   becomes a new one, Apply saves). The preset, button style, dead zone and
+--   the controllers in use stay rows on the Controls page.
 -- ADVANCED GAME SOUNDS (Audio > Advanced, only when the game's advanced sound
 --   options are on; in place of ISGameSounds). The game's sound categories
 --   down the left, each sound with a volume slider (0 to 200 percent in steps
@@ -38,17 +41,18 @@ require "ZeD/ZeD_MainMenu"
 require "ZeD/ZeD_MainMenuSaves"
 require "ZeD/ZeD_MainMenuOptions"
 require "ZeD/ZeD_PadGlyphs"
+require "ZeD/ZeD_PadFigure"
 require "OptionScreens/MainOptions"
 
 local MM = ZeD.MainMenu
 local U  = MM.U
 local UI = MM.ui
 local O  = ZeD_MMOptions
+local PF = ZeD.PadFigure
 
 -- design units
-local PAD_ROW_H, SND_ROW_H, CAT_ROW_H, CATS_W = 44, 32, 30, 200
+local SND_ROW_H, CAT_ROW_H, CATS_W = 32, 30, 200
 local PICK_H, SLIDER_W, PLAY_W = 34, 220, 64
-local DIAGRAM_SHARE = 0.48
 
 local function ms() return MainScreen and MainScreen.instance end
 local function mo() local m = ms(); return m and m.mainOptions end
@@ -114,21 +118,24 @@ function MM.padElements()
     return out
 end
 
--- what an element does in game: vanilla's actions, an axis with its threshold as vanilla writes it
+-- what an element does in game: vanilla's actions, each { b = the binding, name = the action's name, text = the
+-- name with an axis's threshold as vanilla writes it }
 function MM.padBound(el)
     local t = {}
     pcall(function()
         for _, cb in ipairs(listOf(CharacterJoypadButtonBinding.findBindings(el.key))) do
-            local txt = getText(cb:getNameTranslationKey())
+            local name = getText(cb:getNameTranslationKey())
+            local txt = name
             if el.kind ~= "button" then
                 if cb:isAxisMaxThresholdInfinity() then txt = txt .. " > " .. string.format("%.2f", cb:getAxisMinThreshold())
                 else txt = string.format("%.2f", cb:getAxisMinThreshold()) .. " > " .. txt .. " < " .. string.format("%.2f", cb:getAxisMaxThreshold()) end
             end
-            t[#t + 1] = { b = cb, text = txt }
+            t[#t + 1] = { b = cb, name = name, text = txt }
         end
         if el.kind == "axis2d" then
             for _, ab in ipairs(listOf(CharacterJoypadAxis2dBinding.findBindings(el.key))) do
-                t[#t + 1] = { b = ab, two = true, text = getText(ab:getNameTranslationKey()) }
+                local name = getText(ab:getNameTranslationKey())
+                t[#t + 1] = { b = ab, two = true, name = name, text = name }
             end
         end
     end)
@@ -228,11 +235,12 @@ function O:prerender()
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     if self.sub == "pad" then self:drawPadPage(pad, bodyY, w - pad * 2, bodyH)
     else self:drawSoundsPage(pad, bodyY, w - pad * 2, bodyH) end
-    -- the controller starts on the list's first row (and comes back to it when its row went: a new category)
+    -- the controller starts on the list's first row or the first label (and comes back to it when its stop went:
+    -- a new category)
     local onSpec, first = false, nil
     for _, sp in ipairs(self._specs) do
         if sp.id == self.focusId then onSpec = true end
-        if not first and sp.listRow then first = sp end
+        if not first and (sp.listRow or sp.padLab) then first = sp end
     end
     if not onSpec and first then self.focusId = first.id end
     local rights = {}
@@ -242,117 +250,351 @@ function O:prerender()
     UI.stripSpecs(self, stripY, w, 1000, { { "back", getText("UI_btn_back"), function() self:closeSub(); MM.clickSound() end } }, rights)
 end
 
--- the pad drawn in lines: a body, two grips, the shoulders above; each part where the pad set puts it
-local function padLayout(x, y, w, h, set)
-    local L = {}
-    local bw, bh = math.floor(w * 0.86), math.floor(h * 0.50)
-    local bx, by = x + math.floor((w - bw) / 2), y + math.floor(h * 0.24)
-    L.body = { bx, by, bw, bh }
-    local gw, gh = math.floor(bw * 0.26), math.floor(h * 0.22)
-    L.gripL = { bx + math.floor(bw * 0.04), by + bh, gw, gh }
-    L.gripR = { bx + bw - math.floor(bw * 0.04) - gw, by + bh, gw, gh }
-    local function at(fx, fy) return { bx + math.floor(bw * fx), by + math.floor(bh * fy) } end
-    -- (PlayStation pads: the D-pad above the left stick; the others: the stick above)
-    local upper, lower = at(0.20, 0.32), at(0.36, 0.72)
-    L.pos = {
-        LB = at(0.16, -0.30), RB = at(0.84, -0.30), LT = at(0.16, -0.66), RT = at(0.84, -0.66),
-        SEL = at(0.42, 0.30), START = at(0.58, 0.30),
-        A = at(0.80, 0.52), B = at(0.89, 0.30), X = at(0.71, 0.30), Y = at(0.80, 0.08),
-        LS = (set == "ps") and lower or upper, DPAD = (set == "ps") and upper or lower, RS = at(0.64, 0.72),
-    }
-    return L
+-- ----------------------------------------------------------------------------
+-- THE BUTTON MAP: the drawn pad (ZeD_PadFigure) with a label on a line beside
+-- every part, like a figure in a manual
+-- ----------------------------------------------------------------------------
+-- The labels, one per part of the drawing. roles: the game's elements the label stands for (MM.padElements'
+-- roles, the ones a click edits); words: ZeD's job for the part; help: the help line's words (the Controller
+-- map's), names: the buttons its %1 and %2 name; dial: the stick's dial beside the words (and click: its click's
+-- role); pct: the trigger's pull in percent beside them.
+local PAD_PARTS = {
+    { id = "LT",    roles = { "LT" },                   words = "UI_ZeD_PadFig_RoleLT",   help = "UI_ZeD_CMap_Triggers", pct = "lt" },
+    { id = "LB",    roles = { "LB" },                   words = "UI_ZeD_PadFig_RoleLB",   help = "UI_ZeD_PadFig_HelpLB", names = { "LB", "RB" } },
+    { id = "DPAD",  roles = { "DU", "DD", "DL", "DR" }, words = "UI_ZeD_PadFig_RoleDPad", help = "UI_ZeD_CMap_DPad" },
+    { id = "LS",    roles = { "LS", "L3" },             words = "UI_ZeD_PadFig_RoleLS",   help = "UI_ZeD_CMap_LS", dial = "ls", click = "L3" },
+    { id = "SEL",   roles = { "SEL" },                  words = "UI_ZeD_PadFig_RoleView", help = "UI_ZeD_CMap_View" },
+    { id = "START", roles = { "START" },                words = "UI_ZeD_PadFig_RoleMenu", help = "UI_ZeD_CMap_Menu" },
+    { id = "RT",    roles = { "RT" },                   words = "UI_ZeD_PadFig_RoleRT",   help = "UI_ZeD_CMap_Triggers", pct = "rt" },
+    { id = "RB",    roles = { "RB" },                   words = "UI_ZeD_PadFig_RoleRB",   help = "UI_ZeD_PadFig_HelpRB", names = { "RB", "LB" } },
+    { id = "Y",     roles = { "Y" },                    words = "UI_ZeD_PadFig_RoleY",    help = "UI_ZeD_CMap_Y" },
+    { id = "B",     roles = { "B" },                    words = "UI_ZeD_PadFig_RoleB",    help = "UI_ZeD_CMap_B" },
+    { id = "A",     roles = { "A" },                    words = "UI_ZeD_PadFig_RoleA",    help = "UI_ZeD_CMap_A" },
+    { id = "RS",    roles = { "RS", "R3" },             words = "UI_ZeD_PadFig_RoleRS",   help = "UI_ZeD_CMap_RS", dial = "rs", click = "R3" },
+    { id = "X",     roles = { "X" },                    words = "UI_ZeD_PadFig_RoleX",    help = "UI_ZeD_CMap_X" },
+}
+MM.PAD_PARTS = PAD_PARTS
+
+-- design units: a label (its widest, padding, the gap between its pieces, its lines), its picture, the dial, the
+-- percent's room
+local LAB_MAX_W, LAB_PAD_X, LAB_PAD_T, LAB_PAD_B, LAB_GAP = 184, 6, 3, 4, 6
+local LAB_L1_H, LAB_L2_H, LAB_PIC_U, DIAL_U, PCT_U = 18, 14, 15, 13, 30
+local STICK_LIT, TRIG_LIT = 0.25, 0.02   -- a stick pushed this far lights its label; a trigger pulled this far
+local ARMS = { "DU", "DD", "DL", "DR" }
+local ARM_WORDS = { DU = "UI_ZeD_PadFig_ArmUp", DD = "UI_ZeD_PadFig_ArmDown", DL = "UI_ZeD_PadFig_ArmLeft", DR = "UI_ZeD_PadFig_ArmRight" }
+-- (the parts whose own name on this pad differs from the game's: "Left Bump (L1)", "Back (Create)")
+local SET_NAMED = { A = true, B = true, X = true, Y = true, LB = true, RB = true, LT = true, RT = true, SEL = true, START = true }
+local CASE = { r = 0, g = 0, b = 0 }   -- the dark case under a leader on a dark theme
+
+local function round(v) return math.floor(v + 0.5) end
+
+-- the game's elements by role (a stick's own axes join its role when something is bound to them)
+local function byRole(els)
+    local t = {}
+    for _, el in ipairs(els) do
+        local l = t[el.role]
+        if not l then l = {}; t[el.role] = l end
+        l[#l + 1] = el
+    end
+    return t
 end
 
-local DPAD_ARMS = { "DU", "DD", "DL", "DR" }
-local FACE = { "A", "B", "X", "Y", "LB", "RB", "SEL", "START" }
+-- a label's elements in its roles' order, a stick itself before its axes
+local function partEls(part, br)
+    local out = {}
+    for _, r in ipairs(part.roles) do
+        for _, el in ipairs(br[r] or {}) do if el.kind == "axis2d" then out[#out + 1] = el end end
+        for _, el in ipairs(br[r] or {}) do if el.kind ~= "axis2d" then out[#out + 1] = el end end
+    end
+    return out
+end
 
--- the pad in lines: the shell, then each part at its place, lit while held. focusEl: the list's
--- chosen element, framed in the accent on the drawing
-function O:drawPadDiagram(x, y, w, h, els, focusEl)
-    local T = ZeD.T
-    local G = ZeD.PadGlyphs
-    local set = G.set() or "xbox"
-    local L = padLayout(x, y, w, h, set)
-    local bs, s2, ac = T.borderS, T.surf2, T.accent
-    for _, r in ipairs({ L.gripL, L.gripR, L.body }) do
-        self:drawRect(r[1], r[2], r[3], r[4], s2.a or 1, s2.r, s2.g, s2.b)
-        ZeD.Atoms.frame(self, r[1], r[2], r[3], r[4], bs)
+--- The element's name for the pull-downs: the game's, with this pad's own where it differs ("Left Bump (L1)"),
+--- a stick's click said as one.
+function MM.padElName(el, set)
+    local nm = ""
+    pcall(function() nm = getText(el.key:getNameTranslationKey()) end)
+    if el.role == "L3" or el.role == "R3" then return ZeD.tr("UI_ZeD_PadFig_StickClick", nm) end
+    if SET_NAMED[el.role] and el.kind ~= "axis2d" then
+        local own = ZeD.PadGlyphs.name(el.role, set)
+        if own and own ~= nm then return nm .. " (" .. own .. ")" end
     end
-    local ctrl = MM.padLive()
-    local ph = math.max(T.px(14), math.min(T.px(26), math.floor(h / 12)))
-    local k = G.k(ph)
-    local byRole = {}
+    return nm
+end
+
+--- The controller's state this frame for the drawing: { b = held buttons by role, ls, rs = { x, y }, lt, rt = the
+--- triggers' pull 0..1 }. ctrl: the controller (MM.padLive), nil = all at rest.
+function MM.padState(els, ctrl)
+    local st = { b = {}, ls = { 0, 0 }, rs = { 0, 0 }, lt = 0, rt = 0 }
+    if not ctrl then return st end
     for _, el in ipairs(els) do
-        if el.kind == "button" or el.kind == "axis2d" or el.role == "LT" or el.role == "RT" then byRole[el.role] = el end
+        if el.kind == "button" then
+            local ok, v = pcall(function() return el.key:isDown(ctrl) end)
+            if ok and v == true then st.b[el.role] = true end
+        elseif el.kind == "axis1d" and (el.role == "LT" or el.role == "RT") then
+            -- (a trigger reads -1 at rest and 1 pulled all the way, as the game's own test draws it)
+            local ok, v = pcall(function() return el.key:getValue(ctrl) end)
+            if ok and type(v) == "number" then st[(el.role == "LT") and "lt" or "rt"] = math.max(0, math.min(1, (1 + v) / 2)) end
+        elseif el.kind == "axis2d" then
+            local ok, vx, vy = pcall(function() return el.key:getValueX(ctrl), el.key:getValueY(ctrl) end)
+            if ok and type(vx) == "number" and type(vy) == "number" then st[(el.role == "LS") and "ls" or "rs"] = { vx, vy } end
+        end
     end
-    local function held(el)
-        if not (el and ctrl) then return false end
-        local ok, v = pcall(function() return el.key:isDown(ctrl) end)
-        return ok and v == true
-    end
-    local function isFocus(roles)
-        if not focusEl then return false end
-        for _, r in ipairs(roles) do if focusEl.role == r then return true end end
+    return st
+end
+
+-- whether a label's part is in use now (its words and leader in the accent)
+local function partLit(part, st)
+    local b = st.b
+    if part.id == "DPAD" then
+        for _, a in ipairs(ARMS) do if b[a] then return true end end
         return false
     end
-    -- one picture centered on p; its box (lit, framed) around it
-    local function spot(role, p, lit, focus)
-        local gw = math.max(G.width({ role }, k, set), ph)
-        local bx0, by0, bw0, bh0 = p[1] - math.floor(gw / 2) - T.px(3), p[2] - math.floor(ph / 2) - T.px(3), gw + T.px(6), ph + T.px(6)
-        if lit then self:drawRect(bx0, by0, bw0, bh0, T.selectionA, ac.r, ac.g, ac.b) end
-        G.draw(self, { role }, p[1] - math.floor(G.width({ role }, k, set) / 2), by0 + T.px(3), ph, k, set)
-        if focus then ZeD.Atoms.frame(self, bx0 - T.px(2), by0 - T.px(2), bw0 + T.px(4), bh0 + T.px(4), ac) end
-        return bx0, by0, bw0, bh0
+    if part.dial then
+        if b[part.click] then return true end
+        local v = st[part.dial]
+        return v[1] * v[1] + v[2] * v[2] > STICK_LIT * STICK_LIT
     end
-    -- the face buttons, bumpers, View / Menu
-    for _, role in ipairs(FACE) do
-        if byRole[role] and L.pos[role] then spot(role, L.pos[role], held(byRole[role]), isFocus({ role })) end
+    if part.pct then return (st[part.pct] or 0) > TRIG_LIT end
+    return b[part.id] == true
+end
+
+local function boundNames(el, into)
+    for _, b in ipairs(MM.padBound(el)) do into[#into + 1] = b.name end
+    return into
+end
+
+-- the line(s) under a label's words: the game's actions on its part (the triggers' pull points stay in the pull-down)
+local function gameLines(part, br)
+    if part.id == "DPAD" then
+        local arms = {}
+        for _, a in ipairs(ARMS) do
+            local names = {}
+            for _, el in ipairs(br[a] or {}) do boundNames(el, names) end
+            if #names > 0 then arms[#arms + 1] = ZeD.tr(ARM_WORDS[a], table.concat(names, ", ")) end
+        end
+        if #arms == 0 then return { ZeD.tr("UI_ZeD_PadFig_GameNothing") } end
+        return { ZeD.tr("UI_ZeD_PadFig_Game", table.concat(arms, " | ")) }
     end
-    -- the D-pad: one cross; a held arm draws as that arm
-    local arm
-    for _, r in ipairs(DPAD_ARMS) do if held(byRole[r]) then arm = r end end
-    spot(arm or "DPAD", L.pos.DPAD, arm ~= nil, isFocus(DPAD_ARMS))
-    -- the triggers: their picture, a bar that fills as they are pulled
-    for _, role in ipairs({ "LT", "RT" }) do
-        local el = byRole[role]
-        if el then
-            local fill = 0
-            if ctrl then pcall(function() fill = (1 + el.key:getValue(ctrl)) / 2 end) end
-            local bx0, by0, bw0, bh0 = spot(role, L.pos[role], fill > 0.55, isFocus({ role }))
-            ZeD.Atoms.drawSmoothBar(self, bx0, by0 + bh0 + T.px(2), bw0, fill, false, nil, T.px(4))
+    local names = {}
+    for _, el in ipairs(br[part.id] or {}) do boundNames(el, names) end
+    local first = (#names > 0) and ZeD.tr("UI_ZeD_PadFig_Game", table.concat(names, ", ")) or ZeD.tr("UI_ZeD_PadFig_GameNothing")
+    if not part.click then return { first } end
+    local clicks = {}
+    for _, el in ipairs(br[part.click] or {}) do boundNames(el, clicks) end
+    return { first, (#clicks > 0) and ZeD.tr("UI_ZeD_PadFig_Click", table.concat(clicks, ", ")) or ZeD.tr("UI_ZeD_PadFig_ClickNothing") }
+end
+
+-- one label's pieces and size: the part's picture, ZeD's words, the readout; under them the game's actions,
+-- wrapped to the label's widest. ra: read from the right (the left column, View, the right stick), so the
+-- picture sits nearest the pad
+local function measureLabel(part, br, set, st, side)
+    local T = ZeD.T
+    local G = ZeD.PadGlyphs
+    local f2, f3 = T.fontF2, T.fontF3
+    local lab = { part = part, pic = { part.id } }
+    if part.id == "DPAD" then
+        for _, a in ipairs(ARMS) do if st.b[a] then lab.pic = { a } end end   -- (the arm held shows on its picture)
+    end
+    lab.gh = T.px(LAB_PIC_U)
+    lab.gk = G.k(lab.gh)
+    lab.gw = G.width(lab.pic, lab.gk, set)
+    lab.words = ZeD.tr(part.words)
+    lab.ro = 0
+    if part.dial then lab.ro = T.px(DIAL_U) elseif part.pct then lab.ro = math.max(T.px(PCT_U), MM.textW(f3, "100%")) end
+    local gap = T.px(LAB_GAP)
+    local room = T.px(LAB_MAX_W) - 2 * T.px(LAB_PAD_X)
+    local fixed = lab.gw + gap + ((lab.ro > 0) and (gap + lab.ro) or 0)
+    -- (words too long for the label's widest wrap to a second line, a longer translation keeps all its words)
+    local wordsRoom = math.max(T.px(24), room - fixed)
+    lab.wl = ZeD.Atoms.wrapText(lab.words, f2, wordsRoom)
+    if #lab.wl == 0 then lab.wl = { "" } end
+    if #lab.wl > 2 then
+        local rest = {}
+        for i = 2, #lab.wl do rest[#rest + 1] = lab.wl[i] end
+        lab.wl = { lab.wl[1], ZeD.Atoms.truncateText(table.concat(rest, " "), f2, wordsRoom) }
+    end
+    lab.ww = 0
+    for _, l in ipairs(lab.wl) do lab.ww = math.max(lab.ww, MM.textW(f2, l)) end
+    lab.lines = {}
+    for _, l in ipairs(gameLines(part, br)) do
+        for _, wl in ipairs(ZeD.Atoms.wrapText(l, f3, room)) do lab.lines[#lab.lines + 1] = wl end
+    end
+    local l2w = 0
+    for _, l in ipairs(lab.lines) do l2w = math.max(l2w, MM.textW(f3, l)) end
+    lab.w = math.min(T.px(LAB_MAX_W), 2 * T.px(LAB_PAD_X) + math.max(fixed + lab.ww, l2w))
+    lab.l1 = math.max(T.px(LAB_L1_H), lab.gh, MM.fontH(f2))
+    lab.l2 = math.max(T.px(LAB_L2_H), MM.fontH(f3))
+    lab.wrap = (#lab.wl - 1) * MM.fontH(f2)   -- (the words' second line, under the first)
+    lab.h = T.px(LAB_PAD_T) + lab.l1 + lab.wrap + T.px(1) + #lab.lines * lab.l2 + T.px(LAB_PAD_B)
+    lab.mid = T.px(LAB_PAD_T) + math.floor(lab.l1 / 2)
+    lab.ra = (side == "L") or part.id == "SEL" or part.id == "RS"
+    return lab
+end
+
+-- the dial beside a stick's words (where it points; the dot lit once it is pushed) or a trigger's pull in percent
+local function drawReadout(self, lab, st, x, midY, onFocus)
+    local T = ZeD.T
+    local part = lab.part
+    if part.dial then
+        local v = st[part.dial]
+        local s = T.px(DIAL_U)
+        local y = midY - math.floor(s / 2)
+        local s1, bd, hair = T.surf1, T.border, T.hair
+        self:drawRect(x, y, s, s, 1, s1.r, s1.g, s1.b)
+        ZeD.Atoms.frame(self, x, y, s, s, T.borderS)
+        local mid = math.floor(s / 2)
+        self:drawRect(x + mid, y + hair, hair, s - 2 * hair, bd.a or 1, bd.r, bd.g, bd.b)
+        self:drawRect(x + hair, y + mid, s - 2 * hair, hair, bd.a or 1, bd.r, bd.g, bd.b)
+        local vx, vy = v[1], v[2]
+        local len = math.sqrt(vx * vx + vy * vy)
+        if len > 1 then vx, vy = vx / len, vy / len end
+        local dc = (len > STICK_LIT) and T.accent or T.textDim
+        local ds, reach = T.px(3), T.px(4)
+        self:drawRect(x + mid - math.floor(ds / 2) + round(vx * reach), y + mid - math.floor(ds / 2) + round(vy * reach), ds, ds, 1, dc.r, dc.g, dc.b)
+        return
+    end
+    local p = st[part.pct] or 0
+    local txt = tostring(round(p * 100)) .. "%"
+    local f3 = T.fontF3
+    local c = onFocus and T.textOnFocus or ((p > TRIG_LIT) and (T.accentText or T.accent) or T.textDim)
+    local tx = lab.ra and (x + lab.ro - MM.textW(f3, txt)) or x   -- (read from the right: the number's right edge kept)
+    self:drawText(txt, tx, midY - math.floor(MM.fontH(f3) / 2), c.r, c.g, c.b, c.a or 1, f3)
+end
+
+-- a label at (lx, ly): the wash or the controller's mark, line 1 (picture, words, readout), the game's line(s)
+local function drawLabel(self, lab, lx, ly, set, st)
+    local T = ZeD.T
+    local f2, f3 = T.fontF2, T.fontF3
+    local onFocus = MM.rowLook(self, lx, ly, lab.w, lab.h, false, lab.hot, lab.focus)
+    local tc = onFocus and T.textOnFocus or (lab.lit and (T.accentText or T.accent) or T.text)
+    local dc = onFocus and T.textOnFocus or T.textDim
+    local padX, gap = T.px(LAB_PAD_X), T.px(LAB_GAP)
+    local top = ly + T.px(LAB_PAD_T)
+    local midY = top + math.floor(lab.l1 / 2)
+    local fh2 = MM.fontH(f2)
+    local wy = midY - math.floor(fh2 / 2)
+    -- the picture at the side nearest the pad, the words beside it (each of their lines against it), the readout
+    -- beyond the words' widest line
+    local gx = lab.ra and (lx + lab.w - padX - lab.gw) or (lx + padX)
+    ZeD.PadGlyphs.draw(self, lab.pic, gx, top, lab.l1, lab.gk, set)
+    for i, l in ipairs(lab.wl) do
+        local wx = lab.ra and (gx - gap - MM.textW(f2, l)) or (gx + lab.gw + gap)
+        self:drawText(l, wx, wy + (i - 1) * fh2, tc.r, tc.g, tc.b, tc.a or 1, f2)
+    end
+    if lab.ro > 0 then
+        drawReadout(self, lab, st, lab.ra and (gx - gap - lab.ww - gap - lab.ro) or (gx + lab.gw + gap + lab.ww + gap), midY, onFocus)
+    end
+    local y2 = top + lab.l1 + lab.wrap + T.px(1)
+    for _, l in ipairs(lab.lines) do
+        local tx = lab.ra and (lx + lab.w - padX - MM.textW(f3, l)) or (lx + padX)
+        self:drawText(l, tx, y2 + math.floor((lab.l2 - MM.fontH(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
+        y2 = y2 + lab.l2
+    end
+end
+
+-- A straight line t px thick from (x0, y0) to (x1, y1): one rect when it runs straight across or down, else one
+-- rect per t px along its shorter way (ZeD draws its lines as rects)
+local function seg(p, x0, y0, x1, y1, t, c, a)
+    local half = math.floor(t / 2)
+    local dx, dy = x1 - x0, y1 - y0
+    if math.abs(dy) < 1 then
+        p:drawRect(math.floor(math.min(x0, x1)) - half, math.floor(y0) - half, math.floor(math.abs(dx)) + t, t, a, c.r, c.g, c.b)
+        return
+    end
+    if math.abs(dx) < 1 then
+        p:drawRect(math.floor(x0) - half, math.floor(math.min(y0, y1)) - half, t, math.floor(math.abs(dy)) + t, a, c.r, c.g, c.b)
+        return
+    end
+    local steep = math.abs(dy) > math.abs(dx)
+    local n = math.max(1, math.ceil((steep and math.abs(dx) or math.abs(dy)) / t))
+    for i = 0, n - 1 do
+        local ax, ay = x0 + dx * i / n, y0 + dy * i / n
+        local bx, by = x0 + dx * (i + 1) / n, y0 + dy * (i + 1) / n
+        if steep then
+            p:drawRect(math.floor((ax + bx) / 2) - half, math.floor(math.min(ay, by)) - half, t, math.floor(math.abs(by - ay)) + t, a, c.r, c.g, c.b)
+        else
+            p:drawRect(math.floor(math.min(ax, bx)) - half, math.floor((ay + by) / 2) - half, math.floor(math.abs(bx - ax)) + t, t, a, c.r, c.g, c.b)
         end
     end
-    -- the sticks: a well with the stick's picture, a dot where the stick points; a click lights the well
-    for _, pair in ipairs({ { "LS", "L3" }, { "RS", "R3" } }) do
-        local el, click = byRole[pair[1]], byRole[pair[2]]
-        local p = L.pos[pair[1]]
-        if el and p then
-            local sx, sy = 0, 0
-            if ctrl then pcall(function() sx, sy = el.key:getValueX(ctrl), el.key:getValueY(ctrl) end) end
-            local ws = math.floor(ph * 2.4)
-            local wx, wy = p[1] - math.floor(ws / 2), p[2] - math.floor(ws / 2)
-            local b0 = T.base
-            self:drawRect(wx, wy, ws, ws, 1, b0.r, b0.g, b0.b)
-            if held(click) then self:drawRect(wx, wy, ws, ws, T.selectionA, ac.r, ac.g, ac.b) end
-            ZeD.Atoms.frame(self, wx, wy, ws, ws, bs)
-            local gw = G.width({ pair[1] }, k, set)
-            G.draw(self, { pair[1] }, p[1] - math.floor(gw / 2), p[2] - math.floor(ph / 2), ph, k, set)
-            local dsz = T.px(8)
-            local moved = math.abs(sx) > 0.25 or math.abs(sy) > 0.25
-            local dx = p[1] + math.floor(sx * (ws / 2 - dsz)) - math.floor(dsz / 2)
-            local dy = p[2] + math.floor(sy * (ws / 2 - dsz)) - math.floor(dsz / 2)
-            ZeD.Atoms.drawStatusDot(self, dx, dy, moved and ac or T.textDim, dsz)
-            if isFocus(pair) then ZeD.Atoms.frame(self, wx - T.px(2), wy - T.px(2), ws + T.px(4), ws + T.px(4), ac) end
-        end
+end
+MM.padSeg = seg
+
+-- a label's leader, (ox, oy) the figure's corner: on a dark theme a dark case under it; the line 1u; a 3u dot on
+-- the part in a 5u case. In the accent while the part is in use, the text color while the label has the pointer
+-- or the controller, else the dim text color.
+local function drawLeader(self, ox, oy, pts, lab)
+    local T = ZeD.T
+    local t = T.hair
+    local c = lab.lit and T.accent or ((lab.hot or lab.focus) and T.text or T.textDim)
+    local dark = ZeD.currentBase ~= "light"
+    local n = math.floor(#pts / 2)
+    if dark then
+        for i = 1, n - 1 do seg(self, ox + pts[2 * i - 1], oy + pts[2 * i], ox + pts[2 * i + 1], oy + pts[2 * i + 2], t * 3, CASE, 0.6) end
     end
-    return L
+    for i = 1, n - 1 do seg(self, ox + pts[2 * i - 1], oy + pts[2 * i], ox + pts[2 * i + 1], oy + pts[2 * i + 2], t, c, c.a or 1) end
+    local px, py = ox + pts[1], oy + pts[2]
+    local cs, ds = T.px(5), T.px(3)
+    local cc = dark and CASE or T.base
+    self:drawRect(math.floor(px - cs / 2), math.floor(py - cs / 2), cs, cs, dark and 0.6 or 1, cc.r, cc.g, cc.b)
+    self:drawRect(math.floor(px - ds / 2), math.floor(py - ds / 2), ds, ds, c.a or 1, c.r, c.g, c.b)
+end
+
+-- the help line for a label: the part's job (the buttons it names in this pad's own names), then how to edit it
+local function partHelp(part, set, gp)
+    local G = ZeD.PadGlyphs
+    local help = part.names and ZeD.tr(part.help, G.name(part.names[1], set), G.name(part.names[2], set)) or ZeD.tr(part.help)
+    local edit = gp and ZeD.tr("UI_ZeD_PadFig_EditPad", G.name("A", set)) or ZeD.tr("UI_ZeD_PadFig_EditClick")
+    return help .. " " .. edit
+end
+
+--- The figure in the box (x, y, w, h): the pad at the largest whole multiple that leaves the labels their room
+--- (ZeD_PadFigure.layout), the leaders, the labels; a stop for the controller and a click on each label.
+--- self._padFig keeps what was drawn (the sims and QA read it).
+function O:drawPadFigure(x, y, w, h)
+    local T = ZeD.T
+    local set = ZeD.PadGlyphs.set() or "xbox"
+    local els = MM.padElements()
+    local br = byRole(els)
+    local st = MM.padState(els, MM.padLive())
+    local A = PF.anchors(set)
+    local labs = {}
+    for _, part in ipairs(PAD_PARTS) do labs[part.id] = measureLabel(part, br, set, st, A[part.id].side) end
+    local L = PF.layout(w, h, labs, set, T.px)
+    local gp = MM.gamepad()
+    local hot = (not gp) and self:pctx().hot or nil
+    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+    PF.draw(self, x + L.x, y + L.y, L.k, set, st)
+    local fig = { k = L.k, set = set, st = st, x = x + L.x, y = y + L.y, w = L.w, h = L.h, lit = {}, labs = {},
+                  box = { x = x, y = y, w = w, h = h } }
+    for _, part in ipairs(PAD_PARTS) do
+        local lab = labs[part.id]
+        lab.lit = partLit(part, st)
+        lab.hot = hot == self.kind .. ":lab:" .. part.id
+        lab.focus = gp and self.focusId == "lab:" .. part.id
+        drawLeader(self, x, y, L.leads[part.id], lab)
+    end
+    for i, part in ipairs(PAD_PARTS) do
+        local lab, pl = labs[part.id], L.place[part.id]
+        local lx, ly = x + pl.x, y + pl.y
+        drawLabel(self, lab, lx, ly, set, st)
+        local anchor = { x = ax + lx, y = ay + ly, w = lab.w, h = lab.h }
+        local open = function() self:openPadPart(part, anchor) end
+        self._specs[#self._specs + 1] = { id = "lab:" .. part.id, padLab = true, row = i, col = 1, x = lx, y = ly, w = lab.w, h = lab.h, fn = open }
+        self._hits[#self._hits + 1] = { id = self.kind .. ":lab:" .. part.id, x = ax + lx, y = ay + ly, w = lab.w, h = lab.h, fn = open, sound = true }
+        if lab.hot or lab.focus then ZeD.Help.set(self, partHelp(part, set, gp)) end
+        fig.lit[part.id] = lab.lit
+        fig.labs[part.id] = { x = lx, y = ly, w = lab.w, h = lab.h, lead = L.leads[part.id], lines = lab.lines, words = lab.words }
+    end
+    if MM.ctx.open and MM.popup and MM.popup.padMenu then ZeD.Help.set(self, ZeD.tr("UI_ZeD_PadFig_HelpMenu")) end
+    self._padFig = fig
 end
 
 function O:drawPadPage(x, y, w, h)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    local ed, tab, tp = MM.padEditor()
-    local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
+    local _, _, tp = MM.padEditor()
+    local f1, f2 = T.fontF1, T.fontF2
     local gp = MM.gamepad()
     -- the test: vanilla's controller pick, as a pull-down box
     local cy = y
@@ -368,10 +610,12 @@ function O:drawPadPage(x, y, w, h)
         local hid = self.kind .. ":padtest"
         local anchor = { x = ax + lx, y = ay + cy, w = cw, h = T.px(24) }
         local focused = gp and self.focusId == "padtest"
-        MM.drawDropBox(self, lx, cy, cw, T.px(24), cur, (not gp) and self:pctx().hot == hid, false, focused)
+        local hot = (not gp) and self:pctx().hot == hid
+        MM.drawDropBox(self, lx, cy, cw, T.px(24), cur, hot, false, focused)
         local open = function() self:openTestPick(combo, anchor) end
         self._hits[#self._hits + 1] = { id = hid, x = anchor.x, y = anchor.y, w = cw, h = anchor.h, fn = open, sound = true }
         self._specs[#self._specs + 1] = { id = "padtest", noDraw = true, row = 0, col = 1, x = lx, y = cy, w = cw, h = T.px(24), fn = open }
+        if hot or focused then ZeD.Help.set(self, ZeD.tr("UI_ZeD_PadFig_HelpTest")) end
         -- testing: the pad is held for the test; vanilla's way out
         if JoypadState and JoypadState.controllerTest then
             local nx = lx + cw + T.px(14)
@@ -386,62 +630,10 @@ function O:drawPadPage(x, y, w, h)
         end
     end
     cy = cy + T.px(PICK_H)
-    local bodyH = y + h - cy
-    local dw = math.floor(w * DIAGRAM_SHARE)
-    local els = MM.padElements()
-    -- the list: every element and its actions
-    local lx0, lw = x + dw + T.px(12), w - dw - T.px(12)
-    UI.insetBox(self, lx0, cy, lw, bodyH)
-    local vy, vh = cy + T.px(1), bodyH - T.px(2)
-    local rh = T.px(PAD_ROW_H)
-    local total = #els * rh
-    local sbW = T.sp.scrollbarW
-    local over = total > vh
-    local rw = lw - T.px(2) - (over and sbW or 0)
-    self.scroll = math.max(0, math.min(self.scroll or 0, math.max(0, total - vh)))
-    self._list = { x = lx0, y = vy, w = lw, h = vh }
-    self._subList = self._list
-    local focusEl
-    self:setStencilRect(lx0 + T.px(1), vy, lw - T.px(2), vh)
-    local ry = vy - self.scroll
-    local G = ZeD.PadGlyphs
-    local set = G.set() or "xbox"
-    for i, el in ipairs(els) do
-        local anchorY = ay + math.max(vy, math.min(ry, vy + vh - rh))
-        local open = function() self:openPadActions(el, { x = ax + lx0 + T.px(40), y = anchorY, w = rw - T.px(40), h = rh }) end
-        self._specs[#self._specs + 1] = { id = el.id, listRow = true, row = i, col = 1, key = el.id, ry = ry + self.scroll - vy, rh = rh, fn = open, padEl = el }
-        local hid = self.kind .. ":" .. el.id
-        local hot = (not gp) and self:pctx().hot == hid
-        if (gp and self.focusId == el.id) or hot then focusEl = el end
-        if ry + rh > vy and ry < vy + vh then
-            local onFocus = MM.rowLook(self, lx0 + T.px(1), ry, rw, rh, false, hot, gp and self.focusId == el.id)
-            self:drawRect(lx0 + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
-            local gh = T.px(16)
-            G.draw(self, { el.role }, lx0 + T.px(10), ry + math.floor((rh - gh) / 2), gh, G.k(gh), set)
-            local tx = lx0 + T.px(44)
-            local tw = lx0 + rw - T.px(8) - tx
-            local nameC = onFocus and T.textOnFocus or T.textHead
-            local dimC = onFocus and T.textOnFocus or T.textDim
-            local nm = ""
-            pcall(function() nm = getText(el.key:getNameTranslationKey()) end)
-            self:drawText(ZeD.Atoms.truncateText(nm, f2, tw), tx, ry + T.px(5), nameC.r, nameC.g, nameC.b, nameC.a or 1, f2)
-            local names = {}
-            for _, b in ipairs(MM.padBound(el)) do names[#names + 1] = b.text end
-            local acts = (#names > 0) and table.concat(names, ", ") or ZeD.tr("UI_ZeD_PadMap_Nothing")
-            self:drawText(ZeD.Atoms.truncateText(acts, f3, tw), tx, ry + rh - T.px(5) - MM.fontH(f3), dimC.r, dimC.g, dimC.b, dimC.a or 1, f3)
-            local c0, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
-            self._hits[#self._hits + 1] = { id = hid, x = ax + lx0, y = ay + c0, w = rw, h = ch, fn = open }
-            if hot then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_PadRow")) end
-        end
-        ry = ry + rh
-    end
-    self:clearStencilRect()
-    if over then
-        MM.scrollBar(self, self.kind .. ":padtrack", lx0 + lw - T.px(1) - sbW, vy, sbW, vh, self.scroll, total, function(v) self.scroll = v end, { step = rh })
-    end
-    -- the drawing
-    UI.insetBox(self, x, cy, dw, bodyH)
-    self:drawPadDiagram(x + T.px(12), cy + T.px(12), dw - T.px(24), bodyH - T.px(24), els, focusEl)
+    local fh = y + h - cy
+    self._list, self._subList = nil, nil
+    UI.insetBox(self, x, cy, w, fh)
+    self:drawPadFigure(x, cy, w, fh)
 end
 
 -- the test's controller pick (vanilla's combo; its change starts or ends the test as vanilla's does)
@@ -459,21 +651,49 @@ function O:openTestPick(combo, anchor)
     MM.ctx.dropFocus = math.max(1, combo.selected or 1)
 end
 
--- an element's actions as a pull-down, the bound ones ticked; a pick adds it or takes it off
-function O:openPadActions(el, anchor)
+--- A label's pull-down: the actions of its one element, or first which element (a stick and its click, the
+--- D-pad's arms). anchor: the label in screen px.
+function O:openPadPart(part, anchor)
+    local els = partEls(part, byRole(MM.padElements()))
+    if #els == 0 then return end
+    if #els == 1 then self:openPadActions(els[1], anchor) else self:openPadWhich(part, els, anchor) end
+end
+
+-- which element: each with its picture and what it does in game now; a pick opens its actions, and B there
+-- comes back here
+function O:openPadWhich(part, els, anchor)
+    local set = ZeD.PadGlyphs.set() or "xbox"
     local items = {}
+    for _, el in ipairs(els) do
+        local names = boundNames(el, {})
+        items[#items + 1] = { text = MM.padElName(el, set), pad = { el.role },
+            right = (#names > 0) and table.concat(names, ", ") or ZeD.tr("UI_ZeD_PadMap_Nothing"),
+            fn = function() self:openPadActions(el, anchor, function() self:openPadWhich(part, els, anchor) end) end }
+    end
+    MM.openPopup("combo", items, anchor, false)
+    MM.popup.padMenu = true
+    MM.ctx.dropFocus = 1
+end
+
+-- an element's actions as a pull-down under its name, the bound ones ticked (a trigger's with its pull point, as
+-- the game writes it); a pick adds it or takes it off. back: what B opens instead of only closing
+function O:openPadActions(el, anchor, back)
+    local items = { { text = MM.padElName(el, ZeD.PadGlyphs.set() or "xbox"), header = true, disabled = true } }
     local bound = {}
-    for _, b in ipairs(MM.padBound(el)) do bound[b.b] = true end
+    for _, b in ipairs(MM.padBound(el)) do bound[b.b] = b end
     if el.kind == "axis2d" then
         for _, ab in ipairs(listOf(CharacterJoypadAxis2dBinding.allBindings())) do
-            items[#items + 1] = { text = getText(ab:getNameTranslationKey()), check = bound[ab] or false, fn = function() MM.padToggle(el, ab, true); MM.clickSound() end }
+            items[#items + 1] = { text = getText(ab:getNameTranslationKey()), check = bound[ab] ~= nil, fn = function() MM.padToggle(el, ab, true); MM.clickSound() end }
         end
         items[#items + 1] = "-"
     end
     for _, cb in ipairs(listOf(CharacterJoypadButtonBinding.allBindings())) do
-        items[#items + 1] = { text = getText(cb:getNameTranslationKey()), check = bound[cb] or false, fn = function() MM.padToggle(el, cb, false); MM.clickSound() end }
+        local bb = bound[cb]
+        items[#items + 1] = { text = bb and bb.text or getText(cb:getNameTranslationKey()), check = bb ~= nil, fn = function() MM.padToggle(el, cb, false); MM.clickSound() end }
     end
     MM.openPopup("combo", items, anchor, false)
+    MM.popup.padMenu = true
+    MM.popup.back = back
     MM.ctx.dropFocus = 1
 end
 
@@ -686,11 +906,22 @@ function O:getFooterPrompts()
         t[#t + 1] = { glyph = "LB", label = "" }
         t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Options_PromptPage") }
     else
+        -- (while a test runs the pad is the test's until A and Y are held together, as the game's own)
+        if JoypadState and JoypadState.controllerTest then
+            return { { pad = { "A", "Y" }, glyph = "A Y", label = ZeD.tr("UI_ZeD_PadFig_PromptExitTest") } }
+        end
+        local menu = MM.ctx.open ~= nil
+        t[#t + 1] = { pad = { menu and "DUD" or "DPAD" }, glyph = "D-PAD", label = ZeD.tr("UI_ZeD_Wheel_PromptMove") }
         t[#t + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }
-        if self:anyChanged() then t[#t + 1] = { glyph = "Y", label = ZeD.btnCase(getText("UI_btn_apply")) } end
+        if not menu and self:anyChanged() then t[#t + 1] = { glyph = "Y", label = ZeD.btnCase(getText("UI_btn_apply")) } end
     end
     t[#t + 1] = { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) }
     return t
+end
+-- the help line with nothing under the pointer: on the button map, how the live test works
+function O:getStatusLine()
+    if self.sub == "pad" then return ZeD.tr("UI_ZeD_PadFig_HelpIdle") end
+    return base.getStatusLine(self)
 end
 function O:keyEscape()
     if not self.sub then return base.keyEscape(self) end

@@ -5916,3 +5916,33 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Inv_FilterChipHelp` | `%1: only things in it stay bright; pick several to see more` | Inventory Filter bar: help line over a category chip that is not picked. %1 the category's name (the game's word) | - |
 | `UI_ZeD_Inv_FilterChipOffHelp` | `%1: press again to unpick` | Inventory Filter bar: help line over a picked category chip. %1 the category's name | - |
 | `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field: A opens the on-screen keyboard | 10 |
+| `UI_ZeD_PadFig_RoleLT` | `Map: zoom out` | Options > Controls > Button map and test: the left trigger's label, what ZeD does with it (zooms the map out) | 22 |
+| `UI_ZeD_PadFig_RoleLB` | `Character window` | Button map and test: the left bumper's label (it opens the Character window) | 22 |
+| `UI_ZeD_PadFig_RoleDPad` | `Move, or a wheel` | Button map and test: the D-pad's label (moves between controls in a window; with no window open a tap opens a wheel) | 22 |
+| `UI_ZeD_PadFig_RoleLS` | `Walk \| click: sort` | Button map and test: the left stick's label (walk; a click of the stick sorts a list). The \| is a separator | 22 |
+| `UI_ZeD_PadFig_RoleView` | `Layout \| ZeD wheel` | Button map and test: the View (Create) button's label (a window's layout; with no window open, the ZeD wheel) | 22 |
+| `UI_ZeD_PadFig_RoleMenu` | `Pause menu` | Button map and test: the Menu (Options) button's label (the game's pause menu) | 22 |
+| `UI_ZeD_PadFig_RoleRT` | `Map: zoom in` | Button map and test: the right trigger's label (zooms the map in) | 22 |
+| `UI_ZeD_PadFig_RoleRB` | `World window` | Button map and test: the right bumper's label (it opens the World window) | 22 |
+| `UI_ZeD_PadFig_RoleY` | `Both windows` | Button map and test: the Y (Triangle) button's label (opens, hides or shows both windows) | 22 |
+| `UI_ZeD_PadFig_RoleB` | `Back` | Button map and test: the B (Circle) button's label (backs out, closes) | 22 |
+| `UI_ZeD_PadFig_RoleA` | `Left click` | Button map and test: the A (Cross) button's label (acts as the left mouse button) | 22 |
+| `UI_ZeD_PadFig_RoleRS` | `Aim \| click: List, Grid` | Button map and test: the right stick's label (aim; a click of the stick switches a list between List and Grid) | 24 |
+| `UI_ZeD_PadFig_RoleX` | `Right click` | Button map and test: the X (Square) button's label (acts as the right mouse button) | 22 |
+| `UI_ZeD_PadFig_Game` | `Game: %1` | Button map and test: a label's second line, the game's own actions on the part. %1 the action names, comma separated | - |
+| `UI_ZeD_PadFig_GameNothing` | `Game: nothing` | Button map and test: a label's second line when the game puts no action on the part | - |
+| `UI_ZeD_PadFig_Click` | `click: %1` | Button map and test: a stick's label, its third line: the game's actions on a click of the stick. %1 the action names | - |
+| `UI_ZeD_PadFig_ClickNothing` | `click: nothing` | Button map and test: a stick's label, its third line when the game puts no action on the stick's click | - |
+| `UI_ZeD_PadFig_ArmUp` | `up %1` | Button map and test: the D-pad's label, the game's actions on its up arm. %1 the action names | - |
+| `UI_ZeD_PadFig_ArmDown` | `down %1` | Button map and test: the D-pad's label, the game's actions on its down arm. %1 the action names | - |
+| `UI_ZeD_PadFig_ArmLeft` | `left %1` | Button map and test: the D-pad's label, the game's actions on its left arm. %1 the action names | - |
+| `UI_ZeD_PadFig_ArmRight` | `right %1` | Button map and test: the D-pad's label, the game's actions on its right arm. %1 the action names | - |
+| `UI_ZeD_PadFig_HelpLB` | `The Character window. No window open: %1 + %2 zooms out. Quick actions: %1 + a button.` | Button map and test: the help line over the left bumper's label. %1 the left bumper's name on this pad (LB, L1), %2 the right bumper's | - |
+| `UI_ZeD_PadFig_HelpRB` | `The World window. No window open: %1 + %2 zooms in. Quick actions: %1 + a button.` | Button map and test: the help line over the right bumper's label. %1 the right bumper's name on this pad (RB, R1), %2 the left bumper's | - |
+| `UI_ZeD_PadFig_EditClick` | `Click: add or take off the game's actions on it.` | Button map and test: the help line's second sentence over a label, with the mouse | - |
+| `UI_ZeD_PadFig_EditPad` | `%1: add or take off the game's actions on it.` | Button map and test: the help line's second sentence over a label, on a controller. %1 the A button's name on this pad (A, Cross) | - |
+| `UI_ZeD_PadFig_HelpMenu` | `Ticked: on this part now. A pick adds the action or takes it off; Apply keeps it.` | Button map and test: the help line while a label's pull-down of actions is open. Apply is the band's Apply button | - |
+| `UI_ZeD_PadFig_HelpTest` | `Pick a controller to test it: the page then leaves the buttons alone until you exit the test.` | Button map and test: the help line over the Test controller pick | - |
+| `UI_ZeD_PadFig_HelpIdle` | `Press a button on your controller: it lights on the pad.` | Button map and test: the help line with nothing under the pointer (the drawn pad lights each part in use) | - |
+| `UI_ZeD_PadFig_PromptExitTest` | `Exit the test (hold both)` | Button map and test: the controller prompt while a test runs, beside the A and Y pictures | 28 |
+| `UI_ZeD_PadFig_StickClick` | `%1 (the stick's click)` | Button map and test: a stick's pull-down, the row for its click. %1 the game's name for it (Left Hat) | - |

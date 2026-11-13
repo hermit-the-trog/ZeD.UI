@@ -2959,6 +2959,18 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     up top; the game's actions on each label (the list beside the old drawing goes; a click opens the pull-down); one
     drawing everywhere (the Controller map uses it too). Approved the same day (the director: "controller approved");
     Build is drawing it in the game.
+    - **Built (build, Nov 12 2026), QA to confirm.** ZeDUI/workshop/controller_map/pixel_pad_v2.py is the mockup's
+      drawing in Python (pixel for pixel against the mockup in headless Edge, every set, layout, plastic and lit state)
+      and writes 42/media/textures/ZeD/pad/: the resting pad per button set (188 x 106) and its parts for the live
+      test. Xbox and Nintendo pads have the left stick up top, PlayStation and Steam Deck the D-pad (the Deck and
+      Nintendo face buttons are dark discs with light letters, as their button pictures; Nintendo's letters where its
+      pad has them). ZeD_PadFigure.lua draws it at whole multiples: Button map and test (5 at 4K and 1.75, 2 on the
+      Deck) with a label and leader per part (13 stops), the live test in the accent (pressed buttons sunk in, caps
+      moving, triggers filling with a percent, the sticks' dials), a click or A opening the actions pull-down (the
+      sticks and the D-pad ask which element first; B steps back); the Controller map draws the same pad (4 at 4K, 1
+      on the Deck) and controller_map.png is gone. 30 strings in 28 UI.json (machine drafts). Sims: pad_figure_sim
+      (new), mainmenu_vanilla_sim. QA: zedqa_run.ps1 -Manifest ZeDUI/tools/qa/pad_figure.txt at 4K and again with
+      -Mode windowed -Width 1280 -Height 800; the live test with a controller in hand (the MANUAL lines it prints).
 109. **What players leave the game to look up, and what ZeD still owes (the director, Nov 7 2026: "Put the gaps on the
     punch list. This is awesome.").** From the director's research report, RESEARCH_alt_tab_lookups_20261107.md: players
     alt-tab mostly for crafting and the map, then the exact numbers behind the character (moodles, XP, what a skill
