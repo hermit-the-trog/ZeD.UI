@@ -2833,8 +2833,9 @@ end
 --- @param valueClass One of nil/"warn"/"bad"/"dim"/"good" → the status square after the value
 --- @param dotColor   Optional {r,g,b,a} for the status square after the value (wins over the class's)
 --- @param fixedLabelW Optional pixel width for left-aligned label column (220w spec uses 80)
+--- @param wrapValue  Optional: a value too wide for the row goes on a second line (not cut)
 --- @return height
-function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass, dotColor, fixedLabelW)
+function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass, dotColor, fixedLabelW, wrapValue)
     local T = ZeD.T
     local A = ZeD.Atoms
     local lblFont = T.fontF1
@@ -2871,6 +2872,22 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     local valStr = value or ""
     local vc     = _resolveStatValColor(valueClass, T)
     local valW   = ZeD.TM:MeasureStringX(valFont, valStr)
+    -- wrapValue (the item card's top block, QA Nov 13: "Household / ..." at 1280x800): a value too wide beside its
+    -- label goes on its own line under it, right-aligned across the whole row, and the row is two lines tall
+    if wrapValue and valW > valSlotW then
+        local fullSlot = w - dotResW
+        if valW > fullSlot and fullSlot > 0 then
+            valStr = A.truncateText(valStr, valFont, fullSlot)
+            valW   = ZeD.TM:MeasureStringX(valFont, valStr)
+        end
+        local y2 = y + rowH
+        panel:drawText(valStr, x + w - dotResW - valW, y2 + math.floor((rowH - valueH) / 2),
+            vc.r, vc.g, vc.b, vc.a or 1, valFont)
+        if dotColor then
+            A.drawStatusDot(panel, x + w - dotSz, y2 + math.floor((rowH - dotSz) / 2), dotColor, dotSz)
+        end
+        return rowH * 2
+    end
     if valSlotW > 0 and valW > valSlotW then
         valStr = A.truncateText(valStr, valFont, valSlotW)
         valW   = ZeD.TM:MeasureStringX(valFont, valStr)
@@ -2902,7 +2919,7 @@ function ZeD.Molecules.drawTopStatsList(panel, x, y, w, statRows)
     local cy = y
     for i, r in ipairs(statRows) do
         local rowH = ZeD.Molecules.drawCardStatRow(panel, x, cy, w,
-            r.label, r.value, r.valueClass, r.dotColor, T.px(80))
+            r.label, r.value, r.valueClass, r.dotColor, T.px(80), true)
         cy = cy + rowH + (i < #statRows and rowGap or 0)
     end
     return cy - y
@@ -2952,13 +2969,13 @@ function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows, i
         if rows[lIdx] then
             local sr = rows[lIdx]
             rowH1 = ZeD.Molecules.drawCardStatRow(panel, gridX, cy, colW,
-                sr.label, sr.value, sr.valueClass, sr.dotColor)
+                sr.label, sr.value, sr.valueClass, sr.dotColor, nil, true)
         end
         if rows[rIdx] then
             local sr = rows[rIdx]
             rowH2 = ZeD.Molecules.drawCardStatRow(panel,
                 gridX + colW + colGap, cy, colW,
-                sr.label, sr.value, sr.valueClass, sr.dotColor)
+                sr.label, sr.value, sr.valueClass, sr.dotColor, nil, true)
         end
         cy = cy + math.max(rowH1, rowH2)
         if r < rowCount then cy = cy + rowGap end

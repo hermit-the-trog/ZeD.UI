@@ -592,6 +592,30 @@ local function closeBlock()
     if b then L.addError(table.concat(b.lines, "\n"), "box", b.t) end
 end
 
+-- One print reaches the box twice while the game's console has its print callback: once bare (UIDebugConsole.addOutput)
+-- and once through the log stream with its "LOG  : Lua  f:N> " in front, in either order. A bare line and a prefixed
+-- line of the same words within TWIN_MS are one print: the second is skipped. Two prints of the same words come both
+-- prefixed (or both bare), so they stay two rows. Returns true when this line is the twin of one already seen.
+L.TWIN_MS = 3000
+L.TWIN_CAP = 64
+local function twinOf(msg, prefixed, ms)
+    ms = tonumber(ms) or 0
+    local q = L._twins
+    if not q then q = {}; L._twins = q end
+    for i = 1, #q do
+        local x = q[i]
+        if x.msg == msg and x.pref ~= prefixed and math.abs(ms - x.at) <= L.TWIN_MS then
+            table.remove(q, i)
+            return true
+        end
+    end
+    q[#q + 1] = { msg = msg, pref = prefixed, at = ms }
+    -- (old lines leave from the front: too old to pair, or past the cap)
+    while #q > 0 and (#q > L.TWIN_CAP or ms - q[1].at > L.TWIN_MS) do table.remove(q, 1) end
+    return false
+end
+L._twinOf = twinOf   -- (for the sims)
+
 -- one whole line of the box
 local function boxLine(s, t, ms)
     s = s:gsub("\r", ""):gsub("\t", "    ")
@@ -612,6 +636,8 @@ local function boxLine(s, t, ms)
     -- the console's echo of a line run here: the "ran" row is already in
     local echo = s:match("^%[USER%]%s?(.*)$")
     if echo then
+        -- (42.22 writes it [USER] - "line".)
+        echo = echo:match('^%-%s"(.*)"%.?$') or echo
         for i, r in ipairs(L._ran or {}) do
             if r == echo then table.remove(L._ran, i); return end
         end
@@ -620,6 +646,7 @@ local function boxLine(s, t, ms)
     end
     local lvl, msg = splitPrefix(s)
     local kind = (lvl == "WARN") and "warn" or "print"
+    if kind == "print" and twinOf(msg, lvl ~= nil, ms) then return end
     if kind == "print" and expected(msg) then return end
     add({ t = t, kind = kind, msg = msg, mod = L.modOfPrint(msg), file = "" })
 end

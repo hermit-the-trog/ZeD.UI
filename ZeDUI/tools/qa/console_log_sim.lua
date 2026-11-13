@@ -513,6 +513,32 @@ do
     L.feedText(P("fresh start") .. "[USER] print(1)\n" .. P("1"), 1800)
     local ran = rowsOf("ran")
     check("ran: one row for a line run here", #ran == 1 and ran[1].msg == "> print(1)" and ran[1].mod == L.CONSOLE)
+    -- 42.22 (QA's beta 12 release pass): the echo reads [USER] - "line". and the print comes twice, bare (the console's
+    -- print callback) and through the log with its prefix; one "ran" row and one print row
+    L.reset(); L._twins = nil
+    L.ran('print("hello")')
+    local b2 = P("start") .. '[USER] - "print("hello")".\n' .. "hello\n" .. P("hello")
+    L.feedText(b2, 1900)
+    local ran2, pr = rowsOf("ran"), 0
+    for _, r in ipairs(rowsOf("print")) do if r.msg == "hello" then pr = pr + 1 end end
+    check("42.22 echo: one ran row", #ran2 == 1 and ran2[1].msg == '> print("hello")', #ran2 .. " " .. tostring(ran2[2] and ran2[2].msg))
+    check("42.22 print: bare and prefixed copies are one row", pr == 1, pr)
+    -- print(a, b): the tab the same in both copies
+    L.feedText(b2 .. "true\ttrue\n" .. P("true\ttrue"), 1950)
+    local ab = 0
+    for _, r in ipairs(rowsOf("print")) do if r.msg:find("^true%s+true$") then ab = ab + 1 end end
+    check("42.22 print(a, b): one row", ab == 1, ab)
+    -- the same words printed twice through the log are two prints, two rows
+    L.feedText(b2 .. "true\ttrue\n" .. P("true\ttrue") .. P("again") .. P("again"), 2000)
+    local ag = 0
+    for _, r in ipairs(rowsOf("print")) do if r.msg == "again" then ag = ag + 1 end end
+    check("two prints of the same words stay two rows", ag == 2, ag)
+    -- a scratchpad run: the row is told ahead, and both box copies are skipped
+    L.output("scr", nil, 2100)
+    L.feedText(b2 .. "true\ttrue\n" .. P("true\ttrue") .. P("again") .. P("again") .. "scr\n" .. P("scr"), 2100)
+    local sc = 0
+    for _, r in ipairs(rowsOf("print")) do if r.msg == "scr" then sc = sc + 1 end end
+    check("scratchpad print: one row", sc == 1, sc)
 end
 
 -- ============================================================================

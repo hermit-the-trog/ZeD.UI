@@ -916,13 +916,15 @@ local _stripOpts = { focusOf = function(i) local s = _stripFocus.s; return s and
 local _vehTabItems = {}
 --- The vehicles' tabs: each one's name (two of the same name carry their place in the list, "Chevalier Nyala (2)");
 --- the help line names it and its type.
+-- list is s.vehicles: entries { vehicle = v, id, dist } from MT.buildVehicles, not the vehicles themselves
 function MT.vehicleTabItems(list)
     local seen = {}
-    for i, v in ipairs(list or {}) do
-        local n = vehicleName(v)
+    for i, e in ipairs(list or {}) do
+        local n = vehicleName(e.vehicle)
         seen[n] = (seen[n] or 0) + 1
     end
-    for i, v in ipairs(list or {}) do
+    for i, e in ipairs(list or {}) do
+        local v = e.vehicle
         local n = vehicleName(v)
         local it = _vehTabItems[i] or {}
         _vehTabItems[i] = it

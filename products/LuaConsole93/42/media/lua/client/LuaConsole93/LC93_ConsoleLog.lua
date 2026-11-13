@@ -517,6 +517,25 @@ local function closeBlock()
     if b then L.addError(table.concat(b.lines, "\n"), "box", b.t) end
 end
 
+L.TWIN_MS = 3000
+L.TWIN_CAP = 64
+local function twinOf(msg, prefixed, ms)
+    ms = tonumber(ms) or 0
+    local q = L._twins
+    if not q then q = {}; L._twins = q end
+    for i = 1, #q do
+        local x = q[i]
+        if x.msg == msg and x.pref ~= prefixed and math.abs(ms - x.at) <= L.TWIN_MS then
+            table.remove(q, i)
+            return true
+        end
+    end
+    q[#q + 1] = { msg = msg, pref = prefixed, at = ms }
+    while #q > 0 and (#q > L.TWIN_CAP or ms - q[1].at > L.TWIN_MS) do table.remove(q, 1) end
+    return false
+end
+L._twinOf = twinOf
+
 local function boxLine(s, t, ms)
     s = s:gsub("\r", ""):gsub("\t", "    ")
     local b = L._blk
@@ -535,6 +554,7 @@ local function boxLine(s, t, ms)
     if s:find("^%s*$") then return end
     local echo = s:match("^%[USER%]%s?(.*)$")
     if echo then
+        echo = echo:match('^%-%s"(.*)"%.?$') or echo
         for i, r in ipairs(L._ran or {}) do
             if r == echo then table.remove(L._ran, i); return end
         end
@@ -543,6 +563,7 @@ local function boxLine(s, t, ms)
     end
     local lvl, msg = splitPrefix(s)
     local kind = (lvl == "WARN") and "warn" or "print"
+    if kind == "print" and twinOf(msg, lvl ~= nil, ms) then return end
     if kind == "print" and expected(msg) then return end
     add({ t = t, kind = kind, msg = msg, mod = L.modOfPrint(msg), file = "" })
 end
