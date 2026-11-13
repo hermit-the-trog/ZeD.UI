@@ -22,26 +22,37 @@
 --   * else the copy load order would pick (the last mod that is on and ships it),
 --     so an undone pick changes nothing;
 --   * else a line that does nothing (no mod that is on ships the file).
--- The copies are rebuilt when the Mods screen opens, when picks change and on
--- Accept, so a picked mod's update reaches its copy (the next reload runs it) and
--- a mod switched off takes its picks out of the list that runs next.
+-- The copies are rebuilt when the Mods screen opens, when picks change, on
+-- Accept, and on the main menu's first frame after the game loads the player's
+-- own list (at launch, and on the way back from a game). A copy is frozen text,
+-- so a mod Steam updated, or took away, would otherwise run its old text from
+-- the helper beside its new files: when a copy changes there while the helper
+-- is loaded, a reload puts it in place before Continue can run the old one.
 --
--- FILES SWITCHED OFF (the Files tab, punch list 170) ride the same helper: a file
--- off is a held path whose copy is a line that does nothing, written while the
--- mod that ships it is on and still ships it. Switched back on, the path falls
--- to load order again (the mod's own copy), so nothing changes. The game makes
--- the last mod to ship a path the one whose copy runs (ZomboidFileSystem.loadMod
--- overwrites activeFileMap; LuaManager.LoadDirBase runs each path once from it),
--- which is why a copy in the helper, loaded last, stands in for the mod's own.
+-- FILES SWITCHED OFF (the Files tab) ride the same helper: a file off is a held
+-- path whose copy is a line that does nothing, written while the copy that would
+-- run is that mod's own (it is on and still ships the file, and no pick or later
+-- mod's copy runs in its place). Another mod that ships the same path keeps its
+-- copy: the switch is one mod's copy only. Switched back on, the path falls to
+-- load order again (the mod's own copy), so nothing changes. ZeD-GUI's own files
+-- and the helper's are never switched off: the Mods screen runs on the first,
+-- and the second are the copies themselves. The game makes the last mod to ship
+-- a path the one whose copy runs (ZomboidFileSystem.loadMod overwrites
+-- activeFileMap; LuaManager.LoadDirBase runs each path once from it), which is
+-- why a copy in the helper, loaded last, stands in for the mod's own.
 --
 -- The list: Zomboid/Lua/ZeD_picks.txt ("pick=<path>|<mod id>", "held=<path>",
--- "off=<path>|<mod id>").
+-- "off=<path>|<mod id>"). A path can be picked and switched off at once; it then
+-- has both lines.
 -- ============================================================================
 ZeD = ZeD or {}
 ZeD.ModPicks = ZeD.ModPicks or {}
 local P = ZeD.ModPicks
 P.HELPER = "ZeD_Picks"
+local ZED_ID = "ZeD_UI"
 local FILE = "ZeD_picks.txt"
+-- the reason the main menu's reload gives OnResetLua (its own, so it is never taken for a load from the player's list)
+local RELOAD_WHY = "ZeDPicksRefreshed"
 local STUB = "-- ZeD picks: no mod that is on ships this file, so this copy does nothing."
 local OFF_STUB = "-- ZeD picks: this file is switched off in the Mods screen (Files tab). The mod's own copy is untouched."
 
@@ -75,9 +86,10 @@ local function save()
     for p in pairs(held) do paths[#paths + 1] = p end
     table.sort(paths)
     for _, p in ipairs(paths) do
-        if offs[p] then w:write("off=" .. p .. "|" .. offs[p] .. "\n")
-        elseif picks[p] then w:write("pick=" .. p .. "|" .. picks[p] .. "\n")
-        else w:write("held=" .. p .. "\n") end
+        -- (a pick and a switch-off on one path are both kept: one line each, so the next load has both)
+        if picks[p] then w:write("pick=" .. p .. "|" .. picks[p] .. "\n") end
+        if offs[p] then w:write("off=" .. p .. "|" .. offs[p] .. "\n") end
+        if not (picks[p] or offs[p]) then w:write("held=" .. p .. "\n") end
     end
     w:close()
 end
@@ -92,10 +104,16 @@ function P.offOf(path) if not picks then load() end; return offs[path] end
 --- path -> mod id, every file switched off.
 function P.offs() if not picks then load() end; return offs end
 
+--- Can this mod's files be switched off? Never ZeD-GUI's (the Mods screen runs on them: one off
+--- could leave no way back) or the helper's (its files are the copies themselves).
+function P.mayOff(modId) return modId ~= nil and modId ~= ZED_ID and modId ~= P.HELPER end
+
 --- Switch these paths of modId off (off = true) or back on, and keep the list. A path the
 --- helper never held before is held from now on (a copy can never be deleted from Lua).
+--- A mod whose files may not be switched off (P.mayOff) is only ever switched back on.
 function P.setOff(modId, paths, off)
     if not picks then load() end
+    if off and not P.mayOff(modId) then return end
     for _, path in ipairs(paths) do
         if off then offs[path] = modId; held[path] = true
         elseif offs[path] == modId then offs[path] = nil end
@@ -208,31 +226,42 @@ end
 -- ----------------------------------------------------------------------------
 -- the helper's copies
 -- ----------------------------------------------------------------------------
--- order: the mod ids that are (or will be, after the reload) on, in load order
+-- order: the mod ids that are (or will be, after the reload) on, in load order. Returns how many copies
+-- changed (a write counts once the copy reads back as written, so one that did not take asks no reload).
 function P.sync(order)
     if not P.helper() then return 0 end
     if not picks then load() end
+    order = order or {}
     local on = {}
-    for _, id in ipairs(order or {}) do on[id] = true end
+    for _, id in ipairs(order) do on[id] = true end
     local wrote = 0
     for path in pairs(held) do
-        local want = nil
-        local text = nil
+        -- the copy that runs without a switch: the pick while its mod is on and ships the file, else
+        -- load order's (the last mod that is on and ships it); runId is the mod it comes from
+        local want, runId = nil, nil
         local from = picks[path]
-        -- (switched off: the do-nothing line while its mod is on and still ships the path; never a
-        -- path the game has too, whose own copy it would replace: ZeD_ModFiles.isGameFile)
-        local offId = offs[path]
-        local gameFile = ZeD.ModFiles and ZeD.ModFiles.isGameFile and ZeD.ModFiles.isGameFile(path)
-        if offId and on[offId] and not gameFile and P.lines(offId, path, true) then text = OFF_STUB end
-        if not text and from and on[from] then want = P.lines(from, path, true) end
-        if not text and not want then
-            for i = #(order or {}), 1, -1 do
+        if from and on[from] then
+            want = P.lines(from, path, true)
+            if want then runId = from end
+        end
+        if not want then
+            for i = #order, 1, -1 do
                 local id = order[i]
                 if id ~= P.HELPER then
                     local l = P.lines(id, path, true)
-                    if l then want = l; break end
+                    if l then want, runId = l, id; break end
                 end
             end
+        end
+        -- switched off: the do-nothing line, only while the copy that would run is that mod's own. A pick
+        -- of another copy, or a mod later in the order that ships the same path, runs as it would (the
+        -- switch is one mod's copy, not every mod's). Never a path the game has too, whose own copy it
+        -- would replace (ZeD_ModFiles.isGameFile), never a file of ZeD-GUI or the helper (P.mayOff).
+        local text = nil
+        local offId = offs[path]
+        if offId and offId == runId and P.mayOff(offId)
+                and not (ZeD.ModFiles and ZeD.ModFiles.isGameFile and ZeD.ModFiles.isGameFile(path)) then
+            text = OFF_STUB
         end
         text = text or (want and joined(want)) or STUB
         local cur = P.lines(P.HELPER, path, true)
@@ -241,7 +270,8 @@ function P.sync(order)
             if w then
                 pcall(function() w:write(text .. "\n"); w:close() end)
                 texts[P.HELPER .. "|" .. path] = nil
-                wrote = wrote + 1
+                local now = P.lines(P.HELPER, path, true)
+                if now and joined(now) == text then wrote = wrote + 1 end
             end
         end
     end
@@ -263,4 +293,49 @@ function P.activeCount(order)
     for _, id in pairs(picks) do if on[id] then n = n + 1 end end
     for _, id in pairs(offs) do if on[id] then n = n + 1 end end
     return n
+end
+
+-- ----------------------------------------------------------------------------
+-- at the main menu: the copies made afresh before a game can start
+-- ----------------------------------------------------------------------------
+-- The game loads the player's own list ("default") at launch and on the way back from a game,
+-- and neither fires OnResetLua. Every other load is a reset that says why in OnResetLua, right
+-- after OnMainMenuEnter: a save's, a new game's or a server's list, Accept, Options, or this
+-- file's own reload. Those are left alone, so a game that is starting is never reset under it,
+-- and this reload never runs twice. The check waits for the menu's first frame, when OnResetLua
+-- has had its turn.
+
+--- The copies rebuilt for the list the game loaded; when one changed while the helper is loaded,
+--- the game's deferred reload is asked for (Core.DelayResetLua: the main menu's update runs it
+--- after the frame's Lua events; a reset from inside an event handler closed the game). Not on a
+--- QA autoload launch, which continues a save by itself a moment later. Returns how many copies
+--- changed and whether the reload was asked for.
+function P.refreshLoaded()
+    if not P.helper() then return 0, false end
+    local order, loaded = {}, false
+    local l = safe(getActivatedMods)
+    for i = 0, (l and l:size() or 0) - 1 do
+        local id = l:get(i)
+        order[#order + 1] = id
+        if id == P.HELPER then loaded = true end
+    end
+    if not loaded then return 0, false end
+    local wrote = 0
+    pcall(function() wrote = P.sync(order) end)
+    if wrote == 0 or ZeD.QAAutoload then return wrote, false end
+    local asked = pcall(function() getCore():DelayResetLua("default", RELOAD_WHY) end)
+    return wrote, asked
+end
+
+local fromReset = false     -- (this Lua load came from a reset: OnResetLua fired)
+local function atMenu()
+    Events.OnFETick.Remove(atMenu)
+    if not fromReset then P.refreshLoaded() end
+end
+if Events and Events.OnResetLua and Events.OnMainMenuEnter and Events.OnFETick then
+    Events.OnResetLua.Add(function() fromReset = true end)
+    Events.OnMainMenuEnter.Add(function()
+        Events.OnFETick.Remove(atMenu)
+        Events.OnFETick.Add(atMenu)
+    end)
 end

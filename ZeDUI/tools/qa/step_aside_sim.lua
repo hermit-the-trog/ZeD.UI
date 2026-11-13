@@ -21,7 +21,8 @@
 --   STICK    unticking the switch takes the screen back and it holds over the next start and when an unrelated mod is
 --            added; WO gone gives the screen back to ZeD; WO back asks again
 --   READ     the file reading on its own: wrapper shapes (local orig, field copy, "if orig then orig(self) end",
---            pcall(orig, ...), a helper's wrapped) are wrapping; a body with no call through is replacing
+--            pcall(orig, ...), a helper's wrapped) are wrapping; a body with no call through is replacing; a mod in a
+--            Steam library under a folder called Media is read like any other
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/step_aside_sim.lua
 -- It prints FAIL lines and a last line "step_aside_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -759,6 +760,14 @@ shape("a table-kept original", "local hooks = { render = ISHotbar.render }\nfunc
 shape("MyMod.vanilla.render", "MyMod = { vanilla = {} }\nMyMod.vanilla.render = ISHotbar.render\nfunction ISHotbar:render()\n    MyMod.vanilla.render(self)\nend\n", "ISHotbar", "render", false)
 shape("an original named og", "local a, b = 1, ISHotbar.render\nlocal function og(s) end\nfunction ISHotbar:render()\n    og(self)\nend\n", "ISHotbar", "render", false)
 shape("a hook library's wrapper", "HookLib = {}\nfunction HookLib.wrap(c, n, fn)\n    local old = c[n]\n    c[n] = function(self, ...) return fn(old, self, ...) end\nend\nHookLib.wrap(ISHotbar, \"render\", function(orig, self) orig(self) end)\n", "ISHotbar", "render", false)
+-- a Steam library in a folder called Media ("D:/Media/SteamLibrary/..."): the mod's own file is still read (its
+-- path under the mod's folder starts at the "/media/" after that folder, not the first one)
+do
+    local keepDir = MODS.FakeInventory.dir
+    MODS.FakeInventory.dir = "D:/Media/SteamLibrary/steamapps/workshop/content/108600/9/mods/FakeInventory"
+    shape("a mod in a Steam library under a folder called Media: replacing", "function ISHotbar:render()\nend\n", "ISHotbar", "render", true)
+    MODS.FakeInventory.dir = keepDir
+end
 
 QUIET = false
 print("step_aside_sim: " .. checks .. " checks, " .. failed .. " failed")
