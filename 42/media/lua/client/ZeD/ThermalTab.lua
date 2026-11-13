@@ -299,9 +299,11 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     end
 
     -- The body area between the header and the band: the window's _inBodyView
-    -- reads it (a figure part scrolled out of it is no controller stop), and a
-    -- part the controller focuses is kept whole in view by the least scroll,
-    -- once per focus change.
+    -- reads it (a figure part scrolled out of it is no controller stop). Once per
+    -- focus change the body follows the controller's focus by Health's rule
+    -- (ZeD_TabFill's followStop): the lowest stop shown scrolls it on, so Down from
+    -- the feet reaches the grid even where the open figure fills the view; Up onto
+    -- the highest one shown scrolls it back; any other stop is kept whole in view.
     win._thermalBodyRect = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (its own name: _thermalView is the chosen view, 1..7)
     if needsScroll then
         local Focus = ZeD.Input and ZeD.Input.Focus
@@ -312,9 +314,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
             local span = math.max(1, totalContentH - scrollH)
             local oldOff = math.floor(scroll.scrollPos * span)
             local ly, lh = (el.fullY or el.y) - scrollY + oldOff, el.fullH or el.h or 0
-            local target = oldOff
-            if ly < oldOff then target = ly elseif ly + lh > oldOff + scrollH then target = ly + lh - scrollH end
-            target = math.max(0, math.min(span, target))
+            local target = ZeD.TabFill.followStop(win, el, ly, lh, scrollH, oldOff, span)
             if target ~= oldOff then scroll:setScrollPos(target / span) end
         end
         win._thermalPinned = key

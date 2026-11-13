@@ -615,9 +615,8 @@ local function freeW(f, s, zoom)
     return v
 end
 
--- a free-size line's height, whole px
-local function freeLineH(f, px)
-    local zoom = freeZoom(px)
+-- a free-size line's height at a zoom, whole px
+local function zoomLineH(f, zoom)
     local fc = freeCache()
     local c = sub2(fc.lh, f, zoom)
     local v = c.h
@@ -626,6 +625,11 @@ local function freeLineH(f, px)
         c.h = v
     end
     return v
+end
+
+-- a free-size line's height, whole px
+local function freeLineH(f, px)
+    return zoomLineH(f, freeZoom(px))
 end
 
 local function fitRaw(f, s, room, zoom)
@@ -671,15 +675,26 @@ local function weightW(data, zoom)
     return w
 end
 
--- the weight at x, its sign after it (ink: the number's color, sign: the sign's)
-local function drawWeight(panel, data, x, y, zoom, ink, sign)
+-- where the weight and its sign were drawn this frame (the render's help line reads it)
+local _weightAt = { on = false }
+
+-- the weight at x, its sign after it (ink: the number's color, sign: the sign's; w: both together,
+-- weightW, as the caller measured them)
+local function drawWeight(panel, data, x, y, zoom, ink, sign, w)
     local X, f = ZeD.Text, ZeD.Font.sdf.head
     X.draw(panel, f, data.weightStr, x, y, zoom, ink.r, ink.g, ink.b, ink.a or 1, "l")
     if data.trend ~= "" then
         X.draw(panel, f, data.trend, x + freeW(f, data.weightStr, zoom) + ZeD.T.px(3), y, zoom,
             sign.r, sign.g, sign.b, 1, "l")
+        local a = _weightAt
+        a.on, a.x, a.y, a.w, a.zoom = true, x, y, w, zoom
     end
 end
+
+-- what the weight's sign means, for the help line: the game's own character screen shows the
+-- same three states as arrows beside the weight and has no words for them
+local TREND_HELP = { ["+"] = "UI_ZeD_Identity_WeightUp", ["++"] = "UI_ZeD_Identity_WeightUpFast",
+                     ["-"] = "UI_ZeD_Identity_WeightDown" }
 
 -- The name row: the weight at the right, as large and as heavy as the name, the name in the
 -- room left. The name is the card's: the weight gives way before the name keeps less than
@@ -692,7 +707,7 @@ local function drawNameRow(panel, data, name, x, y, w, px, ink, sign)
     if room < T.px(48) then
         room = w
     else
-        drawWeight(panel, data, x + w - wt, y, zoom, ink, sign)
+        drawWeight(panel, data, x + w - wt, y, zoom, ink, sign, wt)
     end
     local s = fitName(name, room, zoom)
     if s ~= "" then
@@ -1332,7 +1347,7 @@ local function drawSimpleBust(panel, win, data, x, y, w)
         X.draw(panel, head, fitName(data.nameFull, tw, zoom), tx, ty, zoom, tc.r, tc.g, tc.b, tc.a or 1, "l")
     end
     ty = ty + nameH
-    if wt <= tw then drawWeight(panel, data, tx, ty, zoom, tc, T.accentText) end
+    if wt <= tw then drawWeight(panel, data, tx, ty, zoom, tc, T.accentText, wt) end
     if profBeside then
         panel:drawText(data.profession, tx + tw - profW, ty + nameH - profH, sc.r, sc.g, sc.b, sc.a or 1, profF)
     else
@@ -1660,7 +1675,20 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     -- ================================================================
     -- ZONE A: the card
     -- ================================================================
+    _weightAt.on = false
     renderZoneA(panel, win, data, x, drawY, contentW, tall, simple, layoutW)
+
+    -- the weight's sign (+, ++, -) under the pointer: the help line says what it means (the
+    -- pointer's x is tested first, so a frame away from the weight measures nothing)
+    local wa = _weightAt
+    if wa.on and ZeD.Help then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        local key = TREND_HELP[data.trend]
+        if key and mx >= wa.x and mx < wa.x + wa.w and my >= wa.y
+           and A.mouseIn(panel, wa.x, wa.y, wa.w, zoomLineH(ZeD.Font.sdf.head, wa.zoom), win._idView) then
+            ZeD.Help.set(win, ZeD.tr(key))
+        end
+    end
 
     -- the help band over the photo (the model on it takes the click, the hover reads here)
     local pz = win._identityPhotoZone

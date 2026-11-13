@@ -5,7 +5,9 @@
 -- tab's picked region, the radio tabs' Channels / Heard / Power and the
 -- Notebooks page's Writing / Papers / Books. Each block is a fold head, the
 -- inventory's "v Name (n)" row, and its rows: a status square, the words
--- (wrapped, never cut), a value, a stepped bar and a word at the right.
+-- (wrapped, never cut; a row that asks for one line, a radio's channel name, is
+-- cut with "..." only where it does not fit), a value, a stepped bar and a word
+-- at the right.
 --
 -- A tab draws its blocks with F.head and F.row each frame, at its own place in
 -- its own scroll; with no panel they only measure (the same code, so a measure
@@ -132,6 +134,8 @@ end
 ---   id         controller / press id (nil: a row nothing presses and no stop)
 ---   dot        status square color (nil none); hollow = true draws it hollow
 ---   label      the words (F2, wrapped); sub = a second line under them (F3, dim, wrapped)
+---   cut        the label on one line, cut with "..." only where it does not fit (a
+---              radio's channel names: a list of names reads down one column)
 ---   value      short words at the right (F1); bar = 0..1 for a stepped bar beside it,
 ---              barN its steps (10), barColor (the accent)
 ---   word       a word at the far right (F1, dim); wordW its column's width
@@ -148,7 +152,15 @@ function F.row(panel, win, key, r, x, y, w, opts)
     local used, vw, bw, ww = rightParts(r, w)
     local textX = x + padX + dotW
     local textW = math.max(T.px(40), w - padX * 2 - dotW - used)
-    local lines = A.wrapText(r.label or "", f2, textW)
+    local lines
+    if r.cut then
+        -- (the one line kept on the row: no table made per frame; the cut is the atoms' memo)
+        lines = r._oneLine
+        if not lines then lines = {}; r._oneLine = lines end
+        lines[1] = A.truncateText(r.label or "", f2, textW)
+    else
+        lines = A.wrapText(r.label or "", f2, textW)
+    end
     local subs = (r.sub and r.sub ~= "") and A.wrapText(r.sub, f3, textW) or nil
     local ch = #lines * fh(f2) + (subs and (#subs * fh(f3) + T.px(1)) or 0)
     local h = math.max(T.px(ROW_MIN), padV * 2 + ch)
@@ -274,24 +286,70 @@ function F.focusables(win, key, view)
     return out
 end
 
+-- the zone with this id in a list of zones, or nil
+local function findZone(list, id)
+    for _, z in ipairs(list) do
+        if z.id == id then return z end
+    end
+    return nil
+end
+
 --- The scroll offset that brings the focused stop (id) whole into view, from last
 --- frame's zones: nil when it is in view or not one of the tab's. viewY / viewH: the
 --- view; off: the scroll now (px); span: the most it can scroll.
+-- Last frame's zones are this frame's list until the tab's F.begin runs, and the kept
+-- list after it: the radio tabs ask before their F.begin, the Notebooks page after its
+-- (the Journal starts every page's frame first), so both lists are looked in.
 function F.follow(win, key, id, viewY, viewH, off, span)
     local b = win and win._fill and win._fill[key]
     if not (b and id) then return nil end
-    for _, z in ipairs(b.zones) do
-        if z.id == id then
-            local m = ZeD.T.px(8)
-            local newOff = off
-            if z.y < viewY + m then newOff = off - (viewY + m - z.y)
-            elseif z.y + z.h > viewY + viewH - m then newOff = off + (z.y + z.h - (viewY + viewH - m)) end
-            newOff = math.max(0, math.min(span, newOff))
-            if newOff ~= off then return newOff end
-            return nil
+    local z = findZone(b.zones, id) or findZone(b.last, id)
+    if not z then return nil end
+    local m = ZeD.T.px(8)
+    local newOff = off
+    if z.y < viewY + m then newOff = off - (viewY + m - z.y)
+    elseif z.y + z.h > viewY + viewH - m then newOff = off + (z.y + z.h - (viewY + viewH - m)) end
+    newOff = math.max(0, math.min(span, newOff))
+    if newOff ~= off then return newOff end
+    return nil
+end
+
+--- Where a tab body's scroll goes when the controller's focus lands on el, one of the
+--- body's stops (clipped to the view; ly / lh its whole rect from the top of the
+--- scrolled content). The lowest stop shown scrolls the body on so the ones under it
+--- come into view, and Up onto the highest one shown scrolls back the same way: the
+--- stop goes a third of the view from the edge it came from, so the next ones that way
+--- show and the ones it came past stay in view. Any other stop takes the least scroll
+--- that shows it whole. The band's stops (bandStop) and the header's disclosure are
+--- pinned, so they never count as above or below a body stop. viewH: the view's
+--- height; off: the scroll now (px); span: the most it can scroll. Returns the new
+--- scroll, the stop whole in view whatever the rule.
+function F.followStop(win, el, ly, lh, viewH, off, span)
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    local up = win._navLast ~= nil and win._navLast.dir == "up"
+    local ey, eh = el.y or 0, el.h or 0
+    local lowest, highest = true, true
+    local z = Focus and Focus.getFocusedZone and Focus.getFocusedZone(win)
+    for _, o in ipairs(z and z.elements or {}) do
+        if o ~= el and not o.bandStop and not o.isDisclosure and type(o.y) == "number" then
+            if o.y + (o.h or 0) > ey + eh + 1 then lowest = false end
+            if o.y < ey - 1 then highest = false end
         end
     end
-    return nil
+    local third = math.floor(viewH / 3)
+    local target = off
+    if up and highest and off > 0 then
+        target = math.min(off, math.max(0, ly + lh - (viewH - third)))
+    elseif lowest and not up then
+        target = math.max(off, math.min(span, ly - third))
+    elseif ly < off then
+        target = ly
+    elseif ly + lh > off + viewH then
+        target = ly + lh - viewH
+    end
+    if ly + lh > target + viewH then target = ly + lh - viewH end
+    if ly < target then target = ly end
+    return math.max(0, math.min(span, target))
 end
 
 --- The rows of a stepped meter's place word: the vanilla scale's three words (low,

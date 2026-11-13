@@ -16,10 +16,11 @@
 --   3. scissors and a cap: the strip names the cap and the tool; Cut runs the game's action;
 --      the license follows (Folded)
 --   4. tie and untie by controller (A on the row), the rows follow
---   5. controller, no tools in the beard list. Folded: down from the Hair | Beard switch lands on
---      the hint row, A opens it, down walks the greyed rows (the strip follows focus), A on a greyed
---      row does nothing, A on the hint row shuts it. Show all: down lands on the first greyed row at
---      once, same checks. Then scissors: A trims
+--   5. controller, no tools in the beard list. Folded: nothing can be done, so the hint row has opened
+--      by itself over the grayed rows (Nov 12); down from the Hair | Beard switch lands on the hint
+--      row, A shuts it and it stays shut, A opens it again, down walks the grayed rows (the strip
+--      follows focus), A on a grayed row does nothing, A on the hint row shuts it. Show all: down
+--      lands on the first grayed row at once, same checks. Then scissors: A trims
 --   6. the hint row holds Out of reach (it is a stop, A opens it, an out-of-reach row can be focused);
 --      the Identity traits' descriptions on focus and hover
 --   7. Large text, Light; the hair mods (Spongie's tag; the picture mods' styles as rows) when on
@@ -769,7 +770,9 @@ local function greyedRowFocus(what)
     if e then e.onActivate(win(), e) end
     check(queueLen() == before and s.busy == nil, what .. ": A on a greyed row does nothing")
 end
--- Folded (the default): nothing in the beard list can be done, so down from the switch lands on the hint row and picks nothing
+-- Folded (the default): nothing in the beard list can be done, so the hint row opens by itself over the grayed rows
+-- (the design review, Nov 12: "Beard (n)" over an empty list read as rows gone missing); down from the switch lands on
+-- the hint row and picks nothing
 step(30, function()
     if female then return end
     local s = st()
@@ -778,13 +781,22 @@ step(30, function()
     check(focused() == "hb:more", "folded: down from the switch lands on the hint row (" .. tostring(focused()) .. ")")
     check(s.sel == nil, "folded: focus on the hint row picks nothing (" .. tostring(s.sel) .. ")")
     local o = lay()
-    check(o.rows == 0 and o.more ~= nil and o.more.key == "hb:more:beard", "folded: no beard row can be done, only the hint row shows (" .. o.rows .. " rows)")
+    check(o.canDo == 0 and o.greyed > 0 and o.more ~= nil and o.more.key == "hb:more:beard" and DS.isOpen("hb:more:beard"),
+        "folded: no beard row can be done, so the hint row opens by itself over the grayed rows (" .. o.greyed .. " rows)")
     shot("pad_beard_folded")
 end)
--- A on the hint row opens it; down walks the greyed rows
+-- A on the open hint row shuts it, and it stays shut (the player's choice); A again opens it; down walks the grayed rows
 step(20, function()
     if female then return end
     local e = F.getFocusedElement(win())
+    if e then e.onActivate(win(), e) end
+    check(not DS.isOpen("hb:more:beard"), "folded: A on the open hint row shuts it")
+end)
+until_(5, 60, function() if female then return true end; return lay().greyed == 0 end, "shut by A: the grayed beard rows go")
+step(20, function()
+    if female then return end
+    check(not DS.isOpen("hb:more:beard") and lay().greyed == 0, "shut by A, the hint row stays shut")
+    local e = focusId("hb:more")
     if e then e.onActivate(win(), e) end
     check(DS.isOpen("hb:more:beard"), "folded: A on the hint row opens it")
 end)

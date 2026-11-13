@@ -510,6 +510,93 @@ end
 
 local _typeToFigure, _typeToFigureFrom = nil, nil   -- BodyPartType -> figure name, per BODY_PART_TYPES
 
+-- The game's words for the overall health, the ones its own health panel shows under
+-- "Overall Body Status", at its thresholds: OK only at 100, then each word above its
+-- floor. The game works the overall out from the parts' health alone, so a fresh wound
+-- or a bleed reads OK until it has cost a part some health; a percent rounded up read
+-- 100% where the game already says Slight damage.
+local OVERALL_WORDS = {
+    { 90, "IGUI_health_Slight_damage" }, { 80, "IGUI_health_Very_Minor_damage" }, { 70, "IGUI_health_Minor_damage" },
+    { 60, "IGUI_health_Moderate_damage" }, { 50, "IGUI_health_Severe_damage" }, { 40, "IGUI_health_Very_Severe_damage" },
+    { 20, "IGUI_health_Crital_damage" }, { 10, "IGUI_health_Highly_Crital_damage" }, { 0, "IGUI_health_Terminal_damage" },
+}
+
+--- The game's word for an overall health of 0..100 (BodyDamage:getOverallBodyHealth).
+function ZeD.HealthTab.overallWord(health)
+    health = health or 100
+    if health >= 100 then return getText("IGUI_health_ok") end
+    for _, w in ipairs(OVERALL_WORDS) do
+        if health > w[1] then return getText(w[2]) end
+    end
+    return getText("IGUI_health_Deceased")
+end
+
+--- The word for a read of the body (gatherData's table), looked up once per read: the rows
+--- draw it every frame, the read comes a few times a second.
+function ZeD.HealthTab.overallWordOf(data)
+    local w = data.overallWord
+    if not w then
+        w = ZeD.HealthTab.overallWord(data.overall)
+        data.overallWord = w
+    end
+    return w
+end
+
+--- The overall block, the Health tab's and the medical check's: the Overall row with its
+--- percent (cut down, never up, so it reads 100% only at 100), the bar under it, then the
+--- game's word on a line of its own, wrapped to the column. The row's value slot holds
+--- about 11 letters at the 1.5 scale step, and "Highly Critical damage" or a German word
+--- in it read "Slight ..." or less. Returns the y under the word.
+-- A word with no spaces wider than the column (Thai writes "Highly Critical damage" as one
+-- run) breaks between letters, never before a Thai vowel or tone mark, nor inside a UTF-8
+-- letter where a string is bytes (the sims).
+local function isMark(b)
+    return (b >= 128 and b <= 191) or b == 0x0E31 or (b >= 0x0E34 and b <= 0x0E3A) or (b >= 0x0E47 and b <= 0x0E4E)
+end
+local function breakRun(out, line, font, w)
+    local TM = ZeD.TM
+    while TM:MeasureStringX(font, line) > w do
+        local cut = 0
+        for i = 2, #line do
+            if not isMark(string.byte(line, i)) then
+                if TM:MeasureStringX(font, string.sub(line, 1, i - 1)) > w then break end
+                cut = i - 1
+            end
+        end
+        if cut == 0 then break end
+        out[#out + 1] = string.sub(line, 1, cut)
+        line = string.sub(line, cut + 1)
+    end
+    out[#out + 1] = line
+end
+-- the word's lines at a width, kept on the read (a new read every few frames, a new width
+-- only while the drawer moves)
+local function overallLines(data, font, w)
+    if data.overallLines and data.overallLinesW == w and data.overallLinesF == font then return data.overallLines end
+    local out = {}
+    for _, line in ipairs(ZeD.Atoms.wrapText(ZeD.HealthTab.overallWordOf(data), font, w)) do
+        breakRun(out, line, font, w)
+    end
+    data.overallLines, data.overallLinesW, data.overallLinesF = out, w, font
+    return out
+end
+ZeD.HealthTab.overallLines = overallLines
+
+function ZeD.HealthTab.drawOverall(panel, x, y, w, data)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local frac = (data.overall or 0) / 100
+    local label = ZeD.tr("UI_ZeD_Health_Overall")
+    y = y + M.drawStatRowDot(panel, x, y, w, label, A.pctText(frac), A.statusColor(frac)) + T.sp.rowGap
+    y = y + M.drawFillBar(panel, x, y, w, frac, nil, label) + T.sp.xs
+    local lines = overallLines(data, T.fontF2, math.max(1, math.floor(w)))
+    local lh = ZeD.TM:getFontHeight(T.fontF2)
+    for i = 1, #lines do
+        A.drawBody(panel, lines[i], x, y)
+        y = y + lh
+    end
+    return y + T.sp.xs
+end
+
 -- opts (the medical check of another player; nil for your own Health tab):
 --   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
 --   bodyDamage   the body to read: on a server another player's is their remote copy
@@ -738,15 +825,9 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
 
     local curY = ry
 
-    -- Overall stat row: the status is the square mark, the figure stays default text
-    local pct = math.floor(data.overall + 0.5)
-    local pctColor = pctToStatusColor(pct)
-    local rowH = M.drawStatRowDot(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Health_Overall"), pct .. "%", pctColor)
-    curY = curY + rowH + T.sp.rowGap
-
-    -- Fill bar
-    local barH = M.drawFillBar(panel, rx, curY, rw, data.overall / 100, nil, ZeD.tr("UI_ZeD_Health_Overall"))
-    curY = curY + barH + T.sp.xs
+    -- Overall: the row and its bar, then the game's own word for it (its health panel's
+    -- Overall Body Status) on its own line
+    curY = ZeD.HealthTab.drawOverall(panel, rx, curY, rw, data)
 
     -- Summary line
     -- Count WOUNDS, not low health. A hungry character with every part
@@ -1468,13 +1549,16 @@ function ZeD.HealthTab.gatherFill(p)
     for _, id in ipairs(EXERCISES) do
         local exeData = FitnessExercises and FitnessExercises.exercisesType and FitnessExercises.exercisesType[id]
         if exeData then
+            -- "(Requires Barbell)" only while the item is missing, as vanilla's fitness window
+            -- and the info block above say it (the row is dimmed with it)
+            local have = isExerciseAvailable(p, id)
             local need = nil
-            if exeData.item then
+            if exeData.item and not have then
                 local itemName = getItemDisplayName and getItemDisplayName(exeData.item) or exeData.item
                 need = getText("IGUI_FitnessNeedItem", itemName)
             end
             d.exercises[#d.exercises + 1] = { id = id, name = ZeD.HealthTab.exerciseLabel(id), need = need,
-                have = isExerciseAvailable(p, id), reg = readRegularity(p, id) or 0 }
+                have = have, reg = readRegularity(p, id) or 0 }
         end
     end
     return d
@@ -1664,38 +1748,15 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             local oldOff  = math.floor(scroll.scrollPos * span)
             -- (the stops are clipped to the view, fullY / fullH keep the whole rect; the
             -- lowest stop SHOWN scrolls the body on so the ones under it come into view,
-            -- and Up onto the highest one shown scrolls back the same way)
+            -- and Up onto the highest one shown scrolls back the same way: ZeD_TabFill's
+            -- followStop, the rule the Thermal tab's body follows too)
             local elY, elH = el.fullY or el.y, el.fullH or el.h
             if el.injuryKey and lastInjuryYMap[el.injuryKey] then elY = lastInjuryYMap[el.injuryKey] end
             local target = oldOff
             if el.isDisclosure then
                 target = 0
             elseif type(elY) == "number" and type(elH) == "number" then
-                local logicalY = elY - scrollY + oldOff
-                local up = win._navLast and win._navLast.dir == "up"
-                local lowest, highest = true, true
-                local z = Focus.getFocusedZone(win)
-                for _, o in ipairs(z and z.elements or {}) do
-                    if o ~= el and not o.bandStop and not o.isDisclosure and type(o.y) == "number" then
-                        if o.y + (o.h or 0) > el.y + el.h + 1 then lowest = false end
-                        if o.y < el.y - 1 then highest = false end
-                    end
-                end
-                -- (the stop goes a third of the view from the edge it came from: the next
-                -- ones that way show, the ones it came past stay in view)
-                local third = math.floor(scrollH / 3)
-                if up and highest and oldOff > 0 then
-                    target = math.min(oldOff, math.max(0, logicalY + elH - (scrollH - third)))
-                elseif lowest and not up then
-                    target = math.max(oldOff, math.min(span, logicalY - third))
-                elseif logicalY < oldOff then
-                    target = logicalY
-                elseif logicalY + elH > oldOff + scrollH then
-                    target = logicalY + elH - scrollH
-                end
-                -- whatever the rule, the focused stop ends whole in view (never under the band)
-                if logicalY + elH > target + scrollH then target = logicalY + elH - scrollH end
-                if logicalY < target then target = logicalY end
+                target = ZeD.TabFill.followStop(win, el, elY - scrollY + oldOff, elH, scrollH, oldOff, span)
             end
             target = math.max(0, math.min(span, target))
             if target ~= oldOff then scroll:setScrollPos(target / span) end
