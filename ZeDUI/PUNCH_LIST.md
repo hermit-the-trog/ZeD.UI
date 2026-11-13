@@ -3106,6 +3106,41 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     choice: which pad button (the game's run/sprint button or sneak), run vs sprint on the hold, the stick-push
     threshold for 'moving', and an on/off switch in ZeD setup. Keep vanilla's stakes (no stamina cheat), nothing that
     changes state on L3/R3, and check the game's own joypad run/sneak handling on 42.21 first.
+    The director's answers (Nov 12 2026): the button is the game's own Run button (the controller binding the game
+    runs with); a hold while moving RUNS, not sprint (sprint stays where the game has it); "moving" is any clear push
+    past the stick's dead zone; a switch in ZeD setup, off by default.
+    The director's ruling on the Default layout, first (Nov 12 2026; there Run is a full push of the stick, no Run
+    button): use the game's sneak button (L3). It was built (branch commit 5f41c2fd), and then the conflict showed: the
+    game's left joystick radial menu (on by default) opens after 250 ms of L3 held, before a 400 ms hold can count, so
+    the hold could only work there by keeping the game's menu shut.
+    The director's final ruling (Nov 12 2026): ORIGINAL LAYOUT ONLY. On Default (no Run button; the crouch button is
+    L3) the feature does nothing at all: no L3 hold, the game's radial menu untouched. Why: ZeD's rule that nothing
+    changes state on L3/R3, and the game's own L3 menu stays the game's. Then (Nov 12 2026): not by layout name; the
+    rule is "Run is on a real button that isn't a stick click (L3/R3)", so any such layout works, Original or a
+    player's own. The help line says it works when Run is on a button, as in the Original layout (Run on the right
+    trigger), and does nothing when Run is a full stick push (the Default layout).
+    BUILT (Nov 12 2026, beta 12): Input/RunSneak.lua, on OnPlayerUpdate for each local player on a controller (its own
+    pad and timing, split-screen ready) with no window or menu holding the pad. It reads the game's own Run binding and
+    the game's own dead-zone test. Run held 400 ms (the game's own tap limit, same clock) with the stick at rest
+    crouches, or stands when crouched; crouched and moving, it stands up and the game's run carries on while held;
+    standing and moving it does nothing, the game already runs. A tap is never touched and no press is swallowed: its
+    one call is setSneaking, so the run, its speed, stamina and Sprint stay the game's (no run flag: on Original the
+    game's RT already runs while held with the stick pushed). Nothing while aiming, in a car, asleep, sitting, climbing,
+    with a bumper held (quick chords) or across a pause; Safe mode turns it off. Where the game's Run is not on a button
+    or trigger (Default: a full stick push; or a player's layout with Run on L3 / R3) it does nothing and never reads
+    the button; a player's own layout with Run on a button or trigger works as on Original.
+    Found on 42.22 (javap): on a pad the game runs only while the stick is past its dead zone AND Run is down
+    (CharacterInputComponent.isRunButtonDown), so standing still Run did nothing before; the Original layout (the
+    game's default) puts Run on RT and Sprint on B, Default puts Run on a full push of the stick, Crouch on L3 in both.
+    Kept for later: each frame the game's input step clears its run flag while "Toggle to run" is off, then
+    OnPlayerUpdate fires, then the input is read, so a run flag set on OnTick never holds and one set on OnPlayerUpdate
+    does (the dropped Default build used that).
+    Switch "Run button also sneaks", ZeD setup > Controls, off (UI_ZeD_Settings_RunSneak / Tip, 28 languages, machine
+    drafts). Not an addition: the presets leave it. Sim: run_sneak_sim.lua (Original; a player's own layout with Run
+    on B; Run on L3 or R3 refused; Default as no effect at all: no stance change, L3 never read, the radial menu's
+    code untouched; the game's frame order modeled); in game:
+    zedqa_run_sneak.lua (part A by itself through RunSneak.qaInput, part B by hand with the director's pad, both
+    layouts). Not proven in game yet: the real run, stand and crouch on a pad (part B).
 122. **The survival guide stops blasting players at game start (the director, Nov 8 2026; beta 10).** "I love the survival
     guide. I don't like blasting it." Players want to get in, take a breath and look around first. The guide no longer
     opens full screen when a game starts. Instead a speech bubble pops out of the Messages icon on the belt (wording to

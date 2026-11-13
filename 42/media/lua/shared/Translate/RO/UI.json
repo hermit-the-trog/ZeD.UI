@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Pentru un stick greu de folosit sau butoane greu de ținut. Atinge ca să deschizi, stick-ul drept sau D-pad-ul mută evidențierea, A alege, B închide, iar roata rămâne deschisă până o închizi.",
     "UI_ZeD_Settings_WheelDeadZone": "Zonă moartă stick",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Cât trebuie să se miște stick-ul drept ca să se aprindă o felie. Un stick care derivă are nevoie de un număr mai mare.",
+    "UI_ZeD_Settings_RunSneak": "Aleargă te și ghemuiește",
+    "UI_ZeD_Settings_RunSneakTip": "Funcționează când Aleargă din joc e pe un buton, ca în aranjamentul de controller Original (Aleargă pe trăgaciul drept, RT); nu face nimic când Aleargă înseamnă stick-ul împins până la capăt (aranjamentul Implicit). Pe loc, ține apăsat Aleargă ca să te ghemuiești și din nou ca să te ridici. În mișcare, Aleargă aleargă ca de obicei; ghemuit, ținerea te ridică mai întâi. O atingere scurtă face ce a făcut mereu.",
     "UI_ZeD_Settings_FocusStyle": "Evidențiere controler",
     "UI_ZeD_Settings_FocusStyleTip": "Cum marchează controlerul ce e pe el: o mână care arată, semne în colțuri, o singură pată de culoare accent sau furnici în marș.",
     "UI_ZeD_Settings_FocusHand": "Mână care arată",

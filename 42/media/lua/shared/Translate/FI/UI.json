@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Vaikeasti käytettävälle sauvalle tai painikkeille, joita on vaikea pitää. Napauta avataksesi, oikea sauva tai ristiohjain siirtää korostusta, A valitsee, B sulkee, ja pyörä pysyy auki kunnes suljet sen.",
     "UI_ZeD_Settings_WheelDeadZone": "Pyörän sauvan kuollut alue",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Kuinka pitkälle oikean sauvan täytyy liikkua, ennen kuin lohko syttyy. Ajelehtiva sauva tarvitsee suuremman luvun.",
+    "UI_ZeD_Settings_RunSneak": "Juoksu myös kyykistää",
+    "UI_ZeD_Settings_RunSneakTip": "Toimii, kun pelin Juoksu on painikkeessa, kuten ohjainasettelussa Original (Juoksu oikeassa liipaisimessa, RT); ei tee mitään, kun Juoksu on sauvan täysi painallus (asettelu Oletus). Paikallaan pidä Juoksu pohjassa kyykistyäksesi ja uudelleen noustaksesi. Liikkuessa Juoksu juoksee kuten aina; kyykyssä pitäminen nostaa sinut ensin ylös. Nopea napautus tekee mitä ennenkin.",
     "UI_ZeD_Settings_FocusStyle": "Ohjaimen korostus",
     "UI_ZeD_Settings_FocusStyleTip": "Miten ohjain merkitsee kohteen, jossa se on: osoittava käsi, kulmamerkit, yksi väripeitto tai marssivat muurahaiset.",
     "UI_ZeD_Settings_FocusHand": "Osoittava käsi",
