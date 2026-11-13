@@ -855,19 +855,21 @@ step(1, function()
     if S.fallback or not (T.fontPx and T.fontPx[F]) then
         skip("text scale: the tooltip text size option", "no role px registered (fallback fonts)")
     else
-        local base, face = T.fontPx[F], (T.fontFace[F] or 64)
-        local z0 = X.zoomOf(F)   -- (the kept value first, so this check can never leave a larger one kept)
-        S.pxSave = { f = F, v = base }
-        local ok, zBig = pcall(function() T.fontPx[F] = base * 1.3; return X.zoomOf(F) end)
-        T.fontPx[F] = base
-        S.pxSave = nil
-        local wantBig = base * 1.3 * ZeD.Scale.root() / face
-        check(ok and math.abs(zBig - wantBig) < 1e-6, "text scale: a raised role px (the tooltip's Large text, Overrides/Tooltip.lua) reaches the zoom",
-            zBig, wantBig)
-        local zAfter = X.zoomOf(F)
-        check(zAfter == z0, "text scale: F2's zoom is as it was after the raise", zAfter, z0)
-        -- (a zoom kept for the raised px would size every F2 text: the kept zooms start over)
-        if zAfter ~= z0 and X._zoom then X._zoom.T = false end
+        -- (Nov 12 2026, one fix from Build's triage) The tooltip's text size goes through ZeD.Text.withFontScale now,
+        -- not by raising T.fontPx: inside it the role's zoom is the multiple of what it was; after it the zoom is
+        -- as it was and no font is left marked (X._mulFont).
+        local z0 = X.zoomOf(F)   -- (the kept value first)
+        if not X.withFontScale then
+            skip("text scale: the tooltip text size option", "this build has no ZeD.Text.withFontScale")
+        else
+            local ok, zBig = pcall(X.withFontScale, F, 1.3, function() return X.zoomOf(F) end)
+            local wantBig = z0 * 1.3
+            check(ok and type(zBig) == "number" and math.abs(zBig - wantBig) < 1e-6, "text scale: inside withFontScale (the tooltip's Large text, Overrides/Tooltip.lua) the role's zoom is 1.3 times its own",
+                zBig, wantBig)
+            local zAfter = X.zoomOf(F)
+            check(zAfter == z0, "text scale: F2's zoom is as it was after withFontScale", zAfter, z0)
+            check(X._mulFont == nil, "text scale: no font is left marked for a multiple (X._mulFont)", tostring(X._mulFont), "nil")
+        end
     end
 end)
 step(4, function()
@@ -893,7 +895,8 @@ step(1, function()
     local f = X.entryFont()
     check(e.font == f and e._zedFont == f, "text scale: a ZeD text entry takes the entry face for this scale", tostring(e.font), tostring(f))
     local ph = e.javaObject:getPlaceholderText()
-    check(S.phGame == "QA game placeholder" and ph == "", "text scale: the game's own placeholder of a ZeD entry is emptied",
+    -- (Nov 12 2026, one fix from Build's triage: an emptied placeholder reads nil as well as "")
+    check(S.phGame == "QA game placeholder" and (ph == nil or ph == ""), "text scale: the game's own placeholder of a ZeD entry is emptied",
         tostring(S.phGame) .. " -> " .. tostring(ph), "QA game placeholder -> (empty)")
     local drawn = false
     for _, s in ipairs(S.phDrawn) do if s == "QA placeholder" then drawn = true end end

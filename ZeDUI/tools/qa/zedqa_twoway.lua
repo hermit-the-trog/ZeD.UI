@@ -227,6 +227,15 @@ step(10, function() shot("1a_valutech_default_height") end)
 step(5, function()
     local w, t = CW(), tw(CW())
     local need = (2 * TW.PAD + t.des.h) * t.k + ZeD.T.px(22)
+    -- (Nov 12 2026, one fix from Build's triage: the body also holds the fill blocks under the face (Channels, Heard,
+    -- Power); grow by their real height, measured as RadioTab does it, before checking for no scrollbar)
+    local fillH = 0
+    pcall(function()
+        local sbW = ZeD.T.sp.scrollbarW or 0
+        fillH = RT.renderFill(nil, w, t, 0, 0, t.view.w - sbW - ZeD.T.px(16)) or 0
+    end)
+    if fillH > 0 then need = need + fillH + ZeD.T.px(6) end
+    say(string.format("valutech: the face and footer need %d px with %d px of fill blocks (body %d)", need, fillH, t.view.h))
     if need > t.view.h then
         local add = need - t.view.h + 2
         CW():setHeight(CW():getHeight() + add); WW():setHeight(WW():getHeight() + add)

@@ -651,7 +651,10 @@ add(400, function()
     V.sleep.hourOfDay = 6 + 58 / 60
     V.sleep._zedAlarmAt = nil; V.clockRec = nil
 end, "sleep")
-add(300, function()
+-- (Nov 12 2026, one fix from Build's triage: not a fixed 300 ms; wait until the sleep panel has drawn a frame since
+-- the alarm was set, 5 s at most)
+waitUntil(5000, function() return V.clockRec ~= nil end, "sleep")
+add(20, function()
     local r = V.clockRec
     check(V.clock ~= nil and r ~= nil and r.alarm == true and near(r.hour, 6 + 58 / 60, 1e-6), "an alarm clock carried with its alarm set lights ALARM; the hour follows the panel",
         r and (tostring(r.alarm) .. " " .. tostring(r.hour)), "true 6.97")
@@ -1287,7 +1290,16 @@ add(400, function()
     else
         staged(false, "a seat out of reach from the wheel (every seat can be reached; the out-of-reach reason is not checked)", "none", "one")
     end
-    check(w._doors and w._doors[1] ~= nil, "presence: the driver's door is offered to get out by", w._doors and w._doors[1] ~= nil, true)
+    -- (Nov 12 2026, one fix from Build's triage: vanilla is asked first whether the driver's door is free, with the
+    -- game's own exit rule as the chooser uses it; a blocked door must not be offered, a free one must)
+    local doorFree = false
+    pcall(function()
+        v:updateHasExtendOffsetForExit(p)
+        doorFree = not v:isExitBlocked(p, 0)
+        v:updateHasExtendOffsetForExitEnd(p)
+    end)
+    local offered = (w._doors and w._doors[1] ~= nil) and true or false
+    check(offered == doorFree, "the driver's door is offered to get out by exactly when vanilla's exit rule leaves it free (free: " .. tostring(doorFree) .. ")", offered, doorFree)
     shot("9_seats")
     -- planks on a seat
     V.planks = {}
@@ -1296,7 +1308,15 @@ add(400, function()
         for k = 1, 8 do V.planks[k] = c:AddItem("Base.Plank") end
     end
 end, "car")
-add(400, function()
+-- (Nov 12 2026, one fix from Build's triage: not a fixed 400 ms; wait until the chooser shows the planks on the seat,
+-- 5 s at most. With no seat to load there is nothing to wait for.)
+waitUntil(5000, function()
+    if not V.itemSeat then return true end
+    local w = SE.get(pn)
+    local st = w and w._seats and w._seats[V.itemSeat + 1]
+    return st ~= nil and st.kind == "items"
+end, "seats")
+add(20, function()
     if not staged(V.itemSeat ~= nil, "a fitted seat besides the driver's to load", "none", "one") then return end
     local w, v = SE.get(pn), V.car
     local st = w._seats[V.itemSeat + 1]

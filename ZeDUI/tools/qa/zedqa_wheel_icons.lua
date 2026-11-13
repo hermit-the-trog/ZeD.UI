@@ -130,6 +130,7 @@ local TABS = {
     ["build-tab-white"] = "bricks", ["move-tab-white"] = "chair", ["map-tab-white"] = "map",
     ["forage-tab-white"] = "magnifier", ["farm-tab-white"] = "cow", ["vehicle-tab-white"] = "car",
     ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits",
+    ["fishing-tab-white"] = "rod",   -- (Nov 12 2026, one fix from Build's triage: the Fishing tab's entry was missing here; W.TAB_ICONS' own key)
 }
 -- ZeD's own wheels: { wheel, slice key(s), id(s) }
 local ZED = {

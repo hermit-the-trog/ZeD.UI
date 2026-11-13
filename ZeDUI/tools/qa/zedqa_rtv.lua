@@ -147,9 +147,21 @@ local function faceChecks(w, pid, tag)
         check(math.abs(dw - ZeD.T.px(480)) <= 1, tag .. ": the full card (" .. dw .. " px)")
     else
         local hid = R.halfFace(pid, K)
-        local want = hid and ZeD.T.px(220) or ZeD.T.px(480)
-        check(math.abs(dw - want) <= 1, tag .. ": the half card where a width fits, else the full (" .. dw .. " px, want " .. want .. ")")
-        if hid then check(t.pid == hid, tag .. ": the width that fills the half card (" .. tostring(hid) .. ", got " .. t.pid .. ")") end
+        -- (Nov 12 2026, one fix from Build's triage) In the World window a radio's card is the FULL card on purpose
+        -- (ZeD_WorldWindow: "the full card whatever the set ... the half card only where the drawer is held in");
+        -- the half card is expected only in the Character window, or in a World window held in (the mod's own
+        -- rule: the room left beside the strips and 180 units of inventory is less than the full card).
+        local TT = ZeD.T
+        local inWorld = (w == WW())
+        local heldIn = false
+        if inWorld then
+            local maxW = w._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
+            heldIn = maxW - TT.px(36) - TT.px(36) - TT.px(180) < TT.px(480)
+        end
+        local halfHere = hid and (not inWorld or heldIn)
+        local want = halfHere and TT.px(220) or TT.px(480)
+        check(math.abs(dw - want) <= 1, tag .. ": " .. (inWorld and "the World window's full card (the half card only held in)" or "the half card where a width fits, else the full") .. " (" .. dw .. " px, want " .. want .. ")")
+        if halfHere then check(t.pid == hid, tag .. ": the width that fills the half card (" .. tostring(hid) .. ", got " .. t.pid .. ")") end
         local x0 = math.floor((t.view.w - des.w * t.k) / 2)
         check(math.abs(t.face.x - x0) <= 1, tag .. ": centred, its margins its own (x " .. t.face.x .. ", want " .. x0 .. ")")
     end
