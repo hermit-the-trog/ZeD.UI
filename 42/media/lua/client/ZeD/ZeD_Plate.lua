@@ -56,8 +56,9 @@
 -- ctx — what the organism lends the parts: tex(name) -> texture (its own
 -- folder), sprites (the tab sprites' sizes), badge, scriptLow, logo, heads
 -- (the dash's radio faces), pending (the head unit adds its controls here),
--- now (ms, for the marquees) and light (the night light, below; only the
--- dashboards lend one).
+-- now (ms, for the marquees), light (the night light, below; only the
+-- dashboards lend one) and cabin (the dash's cabin color: a badge's "cabin"
+-- shadow takes its color's own).
 --
 -- Click areas (des.hits): { id, x, y, w, h, kind, needs } in plate pixels.
 -- kind "press" (a key or a switch: A presses it), "turn" (a knob: the wheel
@@ -690,12 +691,16 @@ function PL.drawParts(cv, parts, st, ctx)
                 if lx then x, align = p.x + lx, "l" end
                 local y = p.y + math.floor((p.h - P.fontHeight(font) * scale) / 2)
                 local m = L and lightMul(L, p.x + p.w / 2, p.y + p.h / 2) or nil
+                -- a shadow read off the cabin's vinyl differs by cabin color: "cabin" here, the color's own in ctx.cabin
+                local shd, tshd = p.shadow, p.tagShadow
+                if shd == "cabin" then shd = ctx.cabin and ctx.cabin.shadow end
+                if tshd == "cabin" then tshd = ctx.cabin and ctx.cabin.tagShadow end
                 if p.style == "emboss" then P.text(cv, s, x + 1, y + 1, P.mulColor(P.color("#f0f0ec"), m), font, scale, align) end
                 P.text(cv, s, x, y, P.mulColor(P.color(p.color or "#d8dade"), m), font, scale, align, p.style,
-                    (m and p.shadow) and P.mulColor(P.color(p.shadow), m) or p.shadow, m)
+                    (m and shd) and P.mulColor(P.color(shd), m) or shd, m)
                 if tx then
                     P.text(cv, tag, p.x + tx, y, P.mulColor(P.color(p.tag), m), font, scale, "l", "flat",
-                        (m and p.tagShadow) and P.mulColor(P.color(p.tagShadow), m) or p.tagShadow, m)
+                        (m and tshd) and P.mulColor(P.color(tshd), m) or tshd, m)
                 end
             end
         elseif t == "clock" then

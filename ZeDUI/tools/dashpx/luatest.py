@@ -4,7 +4,9 @@ frame, for each design in a given state. Also checks the hit areas against the p
 usage: python luatest.py [k] [state]
        python luatest.py night [k] [design ...] [--needles own|lit]   the dash at night, lights on and off
                                 (out/luatest/<design>_night_on_<k>x.png, _night_off_): the game's night light
-                                (ZeD_Plate.lua), with the tinted textures drawn in their tint"""
+                                (ZeD_Plate.lua), with the tinted textures drawn in their tint
+       python luatest.py cabins [k] [design ...]   every design in every cabin color, by day and at night
+                                (out/luatest/<design>__<cabin>_<k>x.png); exit 1 when a picture is missing"""
 import os
 import sys
 import numpy as np
@@ -412,6 +414,27 @@ if __name__ == "__main__":
                 rec.image().save(os.path.join(out, f"{did}_night_{'on' if lit else 'off'}_{k}x.png"))
             print(f"{did:10s} night k={k} missing={sorted(rec.missing)}")
         sys.exit(0)
+    if len(sys.argv) > 1 and sys.argv[1] == "cabins":
+        # every design in every cabin color (D.qaCabin), by day and at night with its lights on:
+        # out/luatest/<design>__<cabin>_<k>x.png and _night_; a picture the game would miss fails the run
+        args = sys.argv[2:]
+        k = int(args[0]) if args and args[0].isdigit() else 1
+        ids = [a for a in args if not a.isdigit()] or DZ.ORDER
+        out = os.path.join(HERE, "out", "luatest"); os.makedirs(out, exist_ok=True)
+        bad = 0
+        for did in ids:
+            for cab in DZ.cabins(did):
+                for night in (False, True):
+                    st = dict(STATE_DRIVE); st["radio"] = DZ.DESIGNS[did][6]
+                    st["hasLightbar"] = did in ("police", "fire", "ranger", "ambulance")
+                    st["ash"], st["meterOn"], st["riders"] = True, True, 2
+                    after = f'ZeD.Dashboard.qaCabin = "{cab}"\n' + (night_after(True) if night else "")
+                    if lj is None: rec = luacli.run(did, st, k=k, lua_after=after)[0]
+                    else: rec = run(did, st, k=k, lua_after=after)[0]
+                    rec.image().save(os.path.join(out, f"{did}__{cab}{'_night' if night else ''}_{k}x.png"))
+                    bad += len(rec.missing)
+                    print(f"{did:10s} {cab:9s} {'night' if night else 'day  '} missing={sorted(rec.missing)}")
+        sys.exit(1 if bad else 0)
     if len(sys.argv) > 1 and sys.argv[1] == "hints":
         import dashlib
         worst, bad = hint_check(dashlib.HINT_W)

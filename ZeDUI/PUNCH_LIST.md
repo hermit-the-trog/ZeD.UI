@@ -4592,6 +4592,16 @@ to be proposed.
    sheets `ZeDUI/art/dash_colors/`; ramps and table `ZeDUI/tools/dashpx/colors.py` (plates only). For Build: full
    builds per color (sprites and night pictures carry the cabin color), naming and loading, reading the paint color
    (not verified), storing the roll on the car, the plate checks per color. Nothing in `42/` yet.
+   **Build, Nov 12 2026:** every color goes through the whole build and the night bake, each passing the tab, mover,
+   legend and needle checks; the export stops unless a design's colors give one parts file (the only allowed
+   difference, a mark's model-line shadow read off the vinyl, is "cabin" in the parts and per color in the data). A
+   picture that differs by color ships as <name>__<cabin>; 626 pictures where there were 272, about 141 MiB if a
+   session loaded every color of every dash, at most 3.3 MiB for one car's dash (as before). The paint reads
+   (getColorHue / Saturation / Value, as vanilla's paint window does); the bucket and a roll from the key number pick
+   the color, the same on every machine, and the car keeps it as ZeD_cab (client its own copy, the server where it
+   writes the odometer or the tray), so a repaint never changes it. Unreadable paint takes the silver row. Fleet black,
+   plain names. Light brown and the darker beige print the dark legend ink (the 0.42 rule, as the old tan and beige
+   did) and get the cocoa key fob. Sims: dash_cabin (odds against this handoff), dash_odo CABIN, vskdash.
 180. **Radio and TV faces, round 4 (the director, Nov 12 2026, via design).** The ValuTech (black) radio, the Premium
    Technologies (red) radio, the makeshift radio and the antique television redrawn against the game's models and
    approved. The black radio lost its analog dial; both radios are 14 px taller (an aerial); the makeshift at 257 has a

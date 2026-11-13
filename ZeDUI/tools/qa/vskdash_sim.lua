@@ -399,7 +399,8 @@ end
 local nowSource = readFile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
 -- the dash before the mask's hook (Nov 7 2026), for the MASK section's proof
 local function gitShowDash()
-    local h = io.popen('git -C "' .. (ROOT == "" and "." or ROOT) .. '" show 6d1f46de:42/media/lua/client/ZeD/ZeD_Dashboard.lua')
+    -- (no trailing slash: on Windows "C:\repo\" ends in an escaped quote and git gets no folder)
+    local h = io.popen('git -C "' .. (ROOT == "" and "." or ROOT:gsub("[/\\]$", "")) .. '" show 6d1f46de:42/media/lua/client/ZeD/ZeD_Dashboard.lua')
     local t = h and h:read("*a") or ""
     if h then h:close() end
     return t
@@ -1107,6 +1108,9 @@ do
     -- a light top edge: the design's own ink, no shadow
     local lightId = nil
     for _, id in ipairs(DESIGNS) do if ZeD.DashPx.designs[id].passInk then lightId = id; break end end
+    -- (no dash ships one since the fleet went black, Nov 12 2026: the ambulance wears the dark ink here so the path
+    -- stays checked)
+    if not lightId then lightId = "ambulance"; ZeD.DashPx.designs.ambulance.passInk = "#1c1c1a" end
     check("the sim has a design with a light top edge", lightId ~= nil)
     if lightId then
         seat(running(scriptOf(lightId)))
