@@ -4561,16 +4561,6 @@ to be proposed.
    own file when it is on disk; a QA script with the mod on. QA: the bug with ZeD on and the mod's normal look with
    ZeD off first, then the after-check. Risk the director accepted: it leans on the mod's insides, so a Summer Car
    update can break it; the QA script is the early warning.
-178. **Two shared row sizes under the title bar (the director, Nov 12 2026, via QA).** "Everything below the toolbar no
-   matter what tab you're on or what container you have active, it's all generally in the same row ... one long row,
-   and then below it is a sorting row ... So all those sorting bars need to scale consistently." Ruled: "Shared sizes.
-   That sounds like the simple answer to an overly complicated question I was trying to ask." Row 1, the strip (text
-   and buttons), runs from the tab strip's top cell across the header to the container strip's top cell, in both
-   windows. Row 2, the secondary or sorting bar, runs the same full width. Each row has one shared size used by every
-   tab, both windows and both side strips, and follows text size and UI scale. Today row 1 is ZeD.Spacing.tabHeaderH = 37
-   (UI scale only, not text size: too tall at Small, pinched at Large). Row 2 is scattered: T.sp.colHdrH, T.px(20) in
-   CW 1218/3670 and WW 381/3129, Foraging 15/20, Journal 15, Skills 20, a Crafting 60 estimate. Its labels stay tiny at
-   Large. Check at Deck size with Large text. Ties to D6 and D7.
    - **Built (Nov 12 2026, branch worktree-wf_6e622d4f-33c-5):** `ModSupport/MaskaradsSummerCar.lua`: an anchor in place of
      the game's window, really visible while the Vehicle tab shows the inspected car; ZeD runs the mod's own auto-open
      against it (after the World window stands still 150 ms, only where the mod's update would keep the window) and
@@ -4584,3 +4574,13 @@ to be proposed.
      62/0 (the mod's own files); the touched sims unchanged. In the game: `batch_summercar.ps1` (zedqa_summercar.lua),
      not run yet. The Compatibility thread line is a draft for the director
      (`ZeDUI/workshop/steam_threads/supported_summer_car.txt`), not posted.
+178. **Two shared row sizes under the title bar (the director, Nov 12 2026, via QA).** "Everything below the toolbar no
+   matter what tab you're on or what container you have active, it's all generally in the same row ... one long row,
+   and then below it is a sorting row ... So all those sorting bars need to scale consistently." Ruled: "Shared sizes.
+   That sounds like the simple answer to an overly complicated question I was trying to ask." Row 1, the strip (text
+   and buttons), runs from the tab strip's top cell across the header to the container strip's top cell, in both
+   windows. Row 2, the secondary or sorting bar, runs the same full width. Each row has one shared size used by every
+   tab, both windows and both side strips, and follows text size and UI scale. Today row 1 is ZeD.Spacing.tabHeaderH = 37
+   (UI scale only, not text size: too tall at Small, pinched at Large). Row 2 is scattered: T.sp.colHdrH, T.px(20) in
+   CW 1218/3670 and WW 381/3129, Foraging 15/20, Journal 15, Skills 20, a Crafting 60 estimate. Its labels stay tiny at
+   Large. Check at Deck size with Large text. Ties to D6 and D7.
