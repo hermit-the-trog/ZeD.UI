@@ -80,7 +80,7 @@ function L.stamp() return dateText("yyyy-MM-dd_HHmmss") or "export" end
 --- A line that starts an error: the log's ERROR lines, a stack trace, a line that did not compile ("console:1: ..."),
 --- a bare stack frame (a runtime error typed into the console comes as frames after the [USER] line, no header).
 function L.startsError(s)
-    if s:find("^ERROR") or s:find("^SEVERE") or s:find("^%s*STACK TRACE") then return true end
+    if s:find("^ERROR") or s:find("^SEVERE") or s:find("^%s*STACK TRACE") or s:find("^DEBUG%-MODE STACK TRACE") then return true end
     if s:find("console[\"%]]*:%d+:") then return true end
     if s:find("Exception") and not s:find("^LOG") then return true end
     if s:find("^%s*Lua%(") or s:find("^%s*se%.krka") or s:find("^%s*java%.") then return true end
@@ -90,7 +90,7 @@ end
 function L.continuesError(s)
     if s == "" then return false end
     if s:find("^%s") then return true end
-    if s:find("^STACK TRACE") or s:find("^%-%-%-%-") or s:find("%-%-%-%-%-%-%-%-%-%-$") then return true end
+    if s:find("^STACK TRACE") or s:find("^DEBUG%-MODE STACK TRACE") or s:find("^%-%-%-%-") or s:find("%-%-%-%-%-%-%-%-%-%-$") then return true end
     if s:find("^Lua%(") or s:find("^Callframe") or s:find("^function: ") or s:find("^Caused by") or s:find("^java%.") or s:find("^se%.krka") then return true end
     return false
 end
@@ -616,20 +616,46 @@ local function twinOf(msg, prefixed, ms)
 end
 L._twinOf = twinOf   -- (for the sims)
 
+-- An error thrown in a mod's event handler reaches the box as several ERROR pieces in a row: a separator line
+-- ("ERROR: ... > -----") with the message on the next, bare line; "ERROR: ... > dumping Lua stack trace" with the Lua
+-- frames; "DEBUG-MODE STACK TRACE:" with the frames again; and "ERROR: ... > Lua((MOD:x)).fn> Exception thrown" with
+-- the exception and the Java frames, the exception before or after the dump. They are one error: one block. A new
+-- error starts at a separator, or at a second "Exception thrown" in the same block.
+local function errorPiece(s)
+    local lvl, rest = splitPrefix(s)
+    if lvl ~= "ERROR" then return nil end
+    if rest:find("^%-%-%-%-%-%-%-%-%-%-") then return "sep" end
+    if rest:find("^dumping Lua stack trace") then return "dump" end
+    if rest:find("Exception thrown%s*$") then return "exc" end
+    return nil
+end
+L._errorPiece = errorPiece   -- (for the sims)
+
+local function openBlock(s, t, ms)
+    local piece = errorPiece(s)
+    L._blk = { lines = { s }, t = t, at = ms, exc = piece == "exc", wantMsg = piece == "sep" }
+end
+
 -- one whole line of the box
 local function boxLine(s, t, ms)
     s = s:gsub("\r", ""):gsub("\t", "    ")
     local b = L._blk
     if b then
-        if L.continuesError(s) then
+        local piece = errorPiece(s)
+        local more = L.continuesError(s) or piece == "dump" or (piece == "exc" and not b.exc)
+        -- (the message line after a separator is bare: no prefix, no indent)
+        if not more and b.wantMsg and not piece and s ~= "" and not splitPrefix(s) then more = true end
+        if more then
             b.lines[#b.lines + 1] = s
             b.at = ms
+            if piece == "exc" then b.exc = true end
+            b.wantMsg = nil
             return
         end
         closeBlock()
     end
     if L.startsError(s) then
-        L._blk = { lines = { s }, t = t, at = ms }
+        openBlock(s, t, ms)
         return
     end
     if s:find("^%s*$") then return end

@@ -1139,6 +1139,54 @@ do
     L.reset()
 end
 
+-- an error thrown in a mod's event handler, as 42.22 writes it to the box (QA's gallery run, Nov 13 2026): the
+-- exception, the Lua dump and the debug-mode trace, then a second mod's separator, message, dump and exception. Each
+-- is ONE error row; nothing of it is a print row.
+do
+    L.reset(); L.forgetMods()
+    local E = "ERROR: General      f:570> "
+    local F = "ERROR: General      f:570 at KahluaThread.flushErrorMessage      > "
+    local trail = E .. "Lua((MOD:Trail Markers)).readMarker> Exception thrown\n"
+        .. "\tse.krka.kahlua.vm.KahluaException: could not load marker 15: no coordinates at BaseLib.error(BaseLib.java:307).\n"
+        .. "\tStack trace:\n\t\tse.krka.kahlua.stdlib.BaseLib.error(BaseLib.java:307)\n"
+        .. "\t\tLua((MOD:Trail Markers)).readMarker(TrailMarkers.lua:8)\n\t\tLua((MOD:Trail Markers)).onTick(TrailMarkers.lua:16)\n"
+        .. "\t\tzombie.Lua.Event.trigger(Event.java:55)\n"
+        .. F .. "dumping Lua stack trace\n-----------------------------------------\nSTACK TRACE\n-----------------------------------------\n"
+        .. "\tLua((MOD:Trail Markers)).readMarker(TrailMarkers.lua:8)\n\tLua((MOD:Trail Markers)).onTick(TrailMarkers.lua:16)\n"
+        .. "DEBUG-MODE STACK TRACE:\n"
+        .. "\tLua((MOD:Trail Markers)).readMarker(TrailMarkers.lua:8)\n\tLua((MOD:Trail Markers)).onTick(TrailMarkers.lua:16)\n"
+        .. "\tse.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:1108)\n\tjava.base/java.lang.Thread.run(Unknown Source)\n"
+    local stove = F .. "-------------------------------------------------------------\n"
+        .. "attempted index: minutes of non-table: null\n"
+        .. F .. "dumping Lua stack trace\n-----------------------------------------\nSTACK TRACE\n-----------------------------------------\n"
+        .. "\tLua((MOD:Camp Stove Plus)).fuelOf(CampStove.lua:6)\n\tLua((MOD:Camp Stove Plus)).onTick(CampStove.lua:14)\n"
+        .. E .. "Lua((MOD:Camp Stove Plus)).fuelOf> Exception thrown\n"
+        .. "\tjava.lang.RuntimeException: attempted index: minutes of non-table: null at KahluaThread.tableget(KahluaThread.java:1430).\n"
+        .. "\tStack trace:\n\t\tse.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1430)\n"
+    local box = ""
+    local ms = 5000
+    for i = 1, 3 do
+        box = box .. trail .. P("[Radio Logbook] tick " .. i) .. stove .. P("Kentucky time: 13:0" .. i)
+        L.feedText(box, ms); ms = ms + 4000; L.tick(ms)
+    end
+    local errs, prints = rowsOf("error"), rowsOf("print")
+    check("event handler errors: two error rows (one per mod)", #errs == 2, #errs)
+    local tr_ = findRow("could not load marker 15")
+    check("Trail Markers: one row, x3, its message, at TrailMarkers.lua:8",
+        tr_ and tr_.n == 3 and tr_.mod == "Trail Markers" and tr_.file == "TrailMarkers.lua" and tr_.line == 8,
+        tr_ and (tr_.n .. " " .. tostring(tr_.mod) .. " " .. tostring(tr_.file) .. ":" .. tostring(tr_.line)))
+    local st = findRow("minutes of non-table")
+    check("Camp Stove Plus: one row, x3, at CampStove.lua:6", st and st.kind == "error" and st.n == 3 and st.file == "CampStove.lua" and st.line == 6,
+        st and (st.kind .. " " .. st.n .. " " .. tostring(st.file) .. ":" .. tostring(st.line)))
+    check("no 'dumping Lua stack trace' row", findRow("dumping Lua stack trace") == nil)
+    check("no 'DEBUG-MODE STACK TRACE' row", findRow("DEBUG-MODE") == nil)
+    local stray = 0
+    for _, r in ipairs(prints) do if not (r.msg:find("Radio Logbook", 1, true) or r.msg:find("Kentucky time", 1, true)) then stray = stray + 1 end end
+    check("only the mods' real prints are print rows (6)", #prints == 6 and stray == 0, #prints .. " prints, " .. stray .. " stray")
+    check("the Trail Markers row keeps the whole stack", tr_ and #tr_.stack >= 10, tr_ and #tr_.stack)
+    L.reset()
+end
+
 -- the source keeps to the Kahlua rules this sim cannot see: no next(), no non-ASCII
 do
     for _, p in ipairs({ "42/media/lua/client/ZeD/ZeD_ConsoleLog.lua", "42/media/lua/client/ZeD/ZeD_DebugConsole.lua" }) do
