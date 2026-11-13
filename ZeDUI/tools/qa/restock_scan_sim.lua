@@ -539,7 +539,7 @@ local function zedFor(counter)
         for _, ln in ipairs(list.lines) do if onYou[ln.id] then n = n + 1 end end
         return n, #list.lines
     end
-    local T = { sp = { tabHeaderH = 37 }, px = function(v) return v end, fontF1 = 1, fontF4 = 4,
+    local T = { sp = { tabHeaderH = 37 }, stripH = 37, px = function(v) return v end, fontF1 = 1, fontF4 = 4,
                 textDim = { r = 1, g = 1, b = 1, a = 1 }, accent = {}, borderS = {} }
     return {
         Lists = Ls, Restock = Rs, T = T, logOnce = function() end,

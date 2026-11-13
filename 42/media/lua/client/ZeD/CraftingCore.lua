@@ -41,8 +41,8 @@ CC.DRAWER_W        = 480
 CC.PANE_W_SOLO     = 480
 CC.PANE_W_SPLIT    = 240
 CC.ROW_H           = 24
-CC.HEADER_H        = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- standard ZeD drawer-header strip
-CC.STRIP_H          = 20    -- a strip row's height (the alternatives strip is 20u)
+CC.HEADER_H        = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- design units, kept for add-ons; the header draws at ZeD.T.stripH (row 1)
+CC.STRIP_H          = 20    -- design units, kept for add-ons; the alternatives strip draws at ZeD.T.sortBarH (row 2)
 CC.MAX_PINS        = 8
 CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
 
@@ -1435,7 +1435,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     local zones = state.zones
     local pfx = (config and config.prefix) or "jrecipe"
     local ST = config and config.stations and ZeD.Stations or nil
-    local headerH = T.px(CC.HEADER_H)  -- the standard 37u strip
+    local headerH = T.stripH  -- row 1, the shared strip
     local pad, gap = T.px(6), T.px(6)
     local ddH = T.inputH  -- the selects match the search field
     local rowY = y + math.floor((headerH - ddH) / 2)

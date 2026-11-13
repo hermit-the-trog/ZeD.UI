@@ -792,7 +792,7 @@ local _fkeys = {}   -- (the shown containers' keys, refilled each frame: no tabl
 local function filterFrame(self, multi)
     local S = IFL.of(self)
     IFL.frameStart(S)
-    local hdr = multi and (self._defaultHdrYOffset or ZeD.T.px(37)) or self._hdrYOffset
+    local hdr = multi and (self._defaultHdrYOffset or ZeD.T.stripH) or self._hdrYOffset
     if type(hdr) ~= "number" or hdr <= 0 then
         -- (no heading, no Filter button: nothing narrows)
         S.shown, self._fbarH = false, 0
@@ -1247,7 +1247,7 @@ local function gridSortDefs(padX, colW)
     for i, k in ipairs(keys) do
         local label = ZeD.tr(k[1])
         local lead = (i == 1) and padX or math.floor(padX / 2)   -- Name lines up with the first cell
-        local w = ZeD.TM:MeasureStringX(T.fontF5, label) + lead + padX
+        local w = ZeD.TM:MeasureStringX(T.sortFont, label) + lead + padX   -- (row 2's font)
         if i > 1 and x + w > colW then break end
         defs[#defs + 1] = { label, k[2], x + lead, x, math.min(w, colW - x) }
         x = x + w
@@ -1769,7 +1769,7 @@ local function renderItemList(self)
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
             -- (and room for its heading, "Cond / Amt", whole: up to 90 units, past that it shortens)
             cond = math.max(readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
-                            math.min(math.ceil(ZeD.TM:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))),
+                            math.min(math.ceil(ZeD.TM:MeasureStringX(T.sortFont, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))),
             readOn = readOn,
             -- (a stack's row shows its total in brackets, "(2.5)"; wtU is an item's
             -- own, the width the bracket gives way to, see wtFit)
@@ -1941,7 +1941,8 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     ZeD.Surface.fill(self, xOff, hdrY, colW, colHdrH, "surf2")
 
-    local hdrTextY = hdrY + math.floor((colHdrH - f5FH) / 2)
+    -- (row 2: T.sortBarH high, its words in the sort font, F1, which grows with Large; punch list 178)
+    local hdrTextY = hdrY + math.floor((colHdrH - ZeD.TM:getFontHeight(T.sortFont)) / 2)
 
     local colDefs = {
         {ZeD.tr("UI_ZeD_Inv_ColName"), "name", nameX, 0, catX},
@@ -1976,14 +1977,14 @@ local function renderItemList(self)
         local color = T.toneNorm
         -- a header never runs past its own column: too long ends in "..."
         local rightX = def[6]
-        label = truncateText(label, T.fontF5, rightX and (rightX - hitX - T.px(2)) or (hitX + hitW - drawX - T.px(2)))
-        if rightX then drawX = rightX - ZeD.TM:MeasureStringX(T.fontF5, label) end
-        dT(label, drawX, hdrTextY, color.r, color.g, color.b, color.a, T.fontF5)
+        label = truncateText(label, T.sortFont, rightX and (rightX - hitX - T.px(2)) or (hitX + hitW - drawX - T.px(2)))
+        if rightX then drawX = rightX - ZeD.TM:MeasureStringX(T.sortFont, label) end
+        dT(label, drawX, hdrTextY, color.r, color.g, color.b, color.a, T.sortFont)
         -- Under/overline active sort column (System 7 style)
         if isActive then
-            local labelW = ZeD.TM:MeasureStringX(T.fontF5, label)
+            local labelW = ZeD.TM:MeasureStringX(T.sortFont, label)
             if sortAsc then
-                dR(drawX, hdrTextY + f5FH, labelW, T.px(1), color.a, color.r, color.g, color.b)
+                dR(drawX, hdrTextY + ZeD.TM:getFontHeight(T.sortFont), labelW, T.px(1), color.a, color.r, color.g, color.b)
             else
                 dR(drawX, hdrTextY - T.px(1), labelW, T.px(1), color.a, color.r, color.g, color.b)
             end
@@ -2685,7 +2686,7 @@ local function renderMultiColumnContent(self)
             self._renderW           = lw
             self._compactMode       = true
             self._skipClearHitZones = true
-            self._hdrYOffset        = self._defaultHdrYOffset or T.px(37)
+            self._hdrYOffset        = self._defaultHdrYOffset or T.stripH   -- (row 1)
             self._containerInfo     = {
                 name    = cData.name or "???",
                 stats   = statsStr,

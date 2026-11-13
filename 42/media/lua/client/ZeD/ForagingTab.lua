@@ -36,7 +36,6 @@ local GRID_PAD_X       = 12
 local GRID_DOT_SZ      = 6
 local GRID_DOT_GAP     = 7
 
-local FINDS_HEADER_H   = 20      -- a column head
 local FINDS_ROW_H      = 20
 local FINDS_ICON_SZ    = 14
 local FINDS_ICON_GAP   = 6
@@ -996,10 +995,10 @@ end
 local function drawFindsHeader(panel, x, y, w)
     local T = ZeD.T
     local tm = ZeD.TM
-    local h = T.px(FINDS_HEADER_H)
-    local f5 = T.fontF5
+    local h = T.sortBarH   -- row 2's height and font (punch list 178)
+    local f5 = T.sortFont
 
-    -- Column heads (20u, F5, sentence case): surface 2 drawn once over the body,
+    -- Column heads (row 2, the sort font, sentence case): surface 2 drawn once over the body,
     -- a content line above and under
     ZeD.Surface.fill(panel, x, y, w, h, "surf2")
     ZeD.Atoms.drawDividerH(panel, x, y, w, false)
@@ -1173,7 +1172,7 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
         totalContentH = totalContentH + T.px(SUB_HEADER_H) + catRows * T.px(GRID_ROW_H)
                                        + T.px(SUB_HEADER_H) + modRows * T.px(GRID_ROW_H)
     end
-    totalContentH = totalContentH + T.px(FINDS_HEADER_H)
+    totalContentH = totalContentH + T.sortBarH
     local finds = win._recentFinds or {}
     if #finds == 0 then
         totalContentH = totalContentH + T.px(8) * 2 + ZeD.TM:getFontHeight(T.fontF2)  -- the empty line (one line)

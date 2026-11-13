@@ -1757,10 +1757,9 @@ end
 -- Caller uses this to position scroll area: scrollY = y + headerH
 -- ============================================================================
 
--- Sourced from ZeD.Spacing.tabHeaderH so the value lives in one place. Read
--- at module load (ZeD.Spacing is the static table defined in Tokens.lua, not
--- the per-theme T.sp which only exists after applyTheme).
-local TAB_HEADER_H     = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- these four stay design units; every use wraps them in T.px
+-- The header's height is row 1, ZeD.T.stripH, read fresh at each draw (punch list 178: one size for
+-- both windows that follows the text size and the UI scale).
+-- These three stay design units; every use wraps them in T.px.
 local TAB_HEADER_PAD   = 8    -- outer left/right pad (drawer sides → content edge)
 local TAB_HEADER_PAD_T = 8    -- content inset from top of scroll area
 local TAB_COL_GAP      = 10   -- gap between figure column and content column in Zone A
@@ -1773,7 +1772,7 @@ local TAB_COL_GAP      = 10   -- gap between figure column and content column in
 -- @param expanded  boolean — disclosure state
 -- @param hovered   boolean — mouse over header: the T.hover wash across it
 -- @param opts      Optional { focus = the ZeD.Focus.mark opts }
--- @return headerH  the 37u strip height, in screen px
+-- @return headerH  row 1's height (T.stripH), in screen px
 function ZeD.Molecules.drawTabHeader(panel, x, y, w, text, expanded, hovered, noArrow, opts)
     -- Tab headers (Defense / Health / Thermal / Identity / Skills) inherit
     -- the parent drawer panel's background — same rule as the radio drawer
@@ -1781,7 +1780,7 @@ function ZeD.Molecules.drawTabHeader(panel, x, y, w, text, expanded, hovered, no
     -- (and the hover wash, the one look of anything that can be pressed).
     local T = ZeD.T
     local pad = T.px(TAB_HEADER_PAD)
-    local h   = T.px(TAB_HEADER_H)
+    local h   = T.stripH
     local font = T.fontF4
     local tm  = ZeD.TM
     local fullW = panel:getWidth() - x
@@ -1824,7 +1823,7 @@ end
 
 --- Return the standard tab header height (for measurement functions).
 function ZeD.Molecules.getTabHeaderH()
-    return ZeD.T.px(TAB_HEADER_H)  -- the getters return screen px
+    return ZeD.T.stripH  -- the getters return screen px
 end
 
 --- Return the standard tab content side padding.
@@ -2530,10 +2529,12 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
     local M    = ZeD.Molecules
 
     local h, btnH, padX, gap, btnPadX
+    -- (row 1's height either way, so a card's bar lines up with the strips beside it; compact keeps its
+    -- smaller keys and tighter gaps for the half card)
     if compact then
-        h, btnH, padX, gap, btnPadX = T.px(30), T.buttonH - T.px(4), T.px(4), T.px(4), T.px(8)
+        h, btnH, padX, gap, btnPadX = T.stripH, T.buttonH - T.px(4), T.px(4), T.px(4), T.px(8)
     else
-        h, btnH, padX, gap, btnPadX = T.px(37), T.buttonH, T.px(6), T.px(6), T.px(10)
+        h, btnH, padX, gap, btnPadX = T.stripH, T.buttonH, T.px(6), T.px(6), T.px(10)
     end
     local btnY = y + math.floor((h - btnH) / 2)
 
@@ -3256,8 +3257,8 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
     local A  = ZeD.Atoms
     local tm = ZeD.TM
     opts = opts or NO_OPTS
-    local h  = T.px(STRIP_H)
-    local font = T.fontF1
+    local h  = T.sortBarH   -- row 2 (punch list 178)
+    local font = T.sortFont
     local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
     local zones = {}
 
@@ -3403,8 +3404,8 @@ function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, to
     local A  = ZeD.Atoms
     local tm = ZeD.TM
     opts = opts or NO_OPTS
-    local h  = T.px(STRIP_H)
-    local font = T.fontF1
+    local h  = T.sortBarH   -- row 2 (punch list 178)
+    local font = T.sortFont
 
     -- Surface 2 (no stacking) and the structure line under it
     A.surfaceFill(panel, x, y, w, h, "surf2")
@@ -4520,10 +4521,8 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     local TM = ZeD.TM
     opts = opts or NO_OPTS
 
-    -- ZeD.Spacing.tabHeaderH is the canonical drawer-header strip height
-    -- shared across the mod (Health / Equipment-Defense / Thermal / Identity
-    -- / Skills / Maps toolbar / Radio drawer header).
-    local stripH    = T.px((ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37)
+    -- Row 1, ZeD.T.stripH: the one strip height both windows share (punch list 178)
+    local stripH    = T.stripH
     local btnSize   = math.min(T.buttonH, stripH - T.px(6))
     local btnGap    = T.px(6)
     local pad       = T.px(10)

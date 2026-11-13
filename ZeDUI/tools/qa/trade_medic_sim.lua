@@ -493,7 +493,7 @@ end
 local function col(r, g, b) return { r = r, g = g, b = b, a = 1 } end
 ZeD = ZeD or {}
 ZeD.T = {
-    px = function(v) return v end, buttonH = 22, hair = 1, fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF4 = "F4", fontF5 = "F5",
+    px = function(v) return v end, buttonH = 22, hair = 1, stripH = 37, sortBarH = 20, sortFont = "F1", fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF4 = "F4", fontF5 = "F5",
     text = col(1, 1, 1), textDim = col(.6, .6, .6), textHead = col(1, 1, 1), textOnFocus = col(0, 0, 0), accent = col(.4, .6, 1),
     positive = col(0, 1, 0), warning = col(1, 1, 0), danger = col(1, 0, 0), border = col(.3, .3, .3), borderS = col(.5, .5, .5),
     stripe = col(1, 1, 1), surf1 = col(0, 0, 0), surf2 = col(.1, .1, .1), iconWhite = col(1, 1, 1), selectionA = 0.3, fillBarH = 8,

@@ -54,9 +54,8 @@ end
 -- design units (the tool buttons are the library's icon buttons, T.buttonH square)
 local MAP_ICON_BTN_GAP  = 4
 local MAP_COLOR_SZ      = 14
--- Sourced from ZeD.Spacing.tabHeaderH so all drawer / toolbar headers stay
--- in lockstep when the token is tuned.
-local MAP_TOOLBAR_ROW_H = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37
+-- (the toolbar row is row 1, ZeD.T.stripH, read at each draw, so it stays level with every other header:
+-- punch list 178)
 local MAP_TEXT_INPUT_H   = 24
 
 local MAP_DEFAULT_PINS = { "house", "target", "skull", "star", "cross", "checkmark" }
@@ -1414,7 +1413,7 @@ local function renderMapToolbar(panel, win, x, y, w)
     local bs     = T.buttonH
     local btnGap = T.px(MAP_ICON_BTN_GAP)
     local colSz  = T.px(MAP_COLOR_SZ)
-    local rowH   = T.px(MAP_TOOLBAR_ROW_H)
+    local rowH   = T.stripH
 
     win._mapToolZones  = {}
     win._mapColorZones = {}

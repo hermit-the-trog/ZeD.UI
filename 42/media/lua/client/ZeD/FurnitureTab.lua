@@ -45,7 +45,6 @@ local MODES = {
 local MODE_BY_ID = {}
 for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
 
-local TAB_TOP_PAD = 13   -- the sub-tab strip's top pad, as Animals' (header = pad + T.tabH = 37u)
 local PREV_W, PREV_H = 84, 104
 local ROW_H, FACT_H, SEC_H = 28, 18, 20
 local SCROLL_STEP = 40
@@ -729,9 +728,9 @@ function FT.render(panel, win, x, y, w, h)
     if c and c.mode ~= mode then c = nil end
 
     -- header strip (the standard height): the five modes as sub-tabs, drawn as Animals' Ranch | Butcher
-    -- (13u top pad + the tab, the strip's line around the active one); no title line, no band
+    -- (the tab sits at the foot of row 1, T.stripH, the strip's line around the active one); no title line, no band
     local M = ZeD.Molecules
-    local tabY = y + T.px(TAB_TOP_PAD)
+    local tabY = y + T.stripH - T.tabH
     local sy = tabY + T.tabH
     drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
 

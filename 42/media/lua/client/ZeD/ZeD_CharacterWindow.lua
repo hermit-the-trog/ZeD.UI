@@ -141,7 +141,7 @@ end
 -- ============================================================================
 
 local TAB_STRIP_W  = 36
-local TAB_BTN_SZ   = 36
+-- (a tab's cell is row 1's height, ZeD.T.stripH, so the top tab's line runs on the header's: punch list 178)
 -- Group separator in the tab strip: off — the tabs already have borders
 -- between them, so the line read as noise. Zero height and margin keep
 -- layout, hit zones and drawing in step.
@@ -881,12 +881,12 @@ local function _buildTabBarElements(win)
                 lastGroup = tab.group
             end
             elements[#elements + 1] = {
-                x = 0, y = curY, w = T.px(TAB_BTN_SZ), h = T.px(TAB_BTN_SZ),
+                x = 0, y = curY, w = T.stripH, h = T.stripH,
                 id       = "tab:" .. tab.id,
                 tabId    = tab.id,
                 tabIndex = i,
             }
-            curY = curY + T.px(TAB_BTN_SZ)
+            curY = curY + T.stripH
         end
     end
     return elements
@@ -1210,14 +1210,13 @@ _buildLootFocusables = function(win)
     local stripX = 0
     local stripY = 0
     -- Match the visual layout of drawContainerStrip exactly. Zone 1
-    -- (main) at y=stripY. Zone 2 (sort row) at y=stripY+CONTAINER_BTN_SZ+1,
-    -- height 20. Zone 3 (non-main buttons) starts at stripY + CONTAINER_BTN_SZ
-    -- + 1 + 20 (colHdrH). A uniform (i-1)*W here made the stops' y-coords
+    -- (main) at y=stripY, row 1 (T.stripH, its line included). Zone 2 (sort row)
+    -- under it, row 2 (T.sortBarH). Zone 3 (non-main buttons) starts under
+    -- both. A uniform (i-1)*W here made the stops' y-coords
     -- mismatch the drawn buttons after containers were reordered by sort or
     -- by hand.
-    local colHdrH = T.px(20)
     local L = win._stripLay
-    local zone3Y = (L and L.listY) or (stripY + T.px(CONTAINER_BTN_SZ) + T.px(1) + colHdrH)
+    local zone3Y = (L and L.listY) or (stripY + T.stripH + T.sortBarH)
     zone3Y = zone3Y - ((L and L.scroll) or 0)
 
     local elements = {}
@@ -1232,7 +1231,7 @@ _buildLootFocusables = function(win)
     local mainCnt = win._containers[1]
     if mainCnt then
         elements[#elements + 1] = {
-            x = stripX, y = stripY, w = T.px(CONTAINER_STRIP_W), h = T.px(CONTAINER_BTN_SZ),
+            x = stripX, y = stripY, w = T.px(CONTAINER_STRIP_W), h = T.stripH - T.px(1),
             id = "container:1",
             containerIdx = 1,
             inventory = mainCnt.inventory,
@@ -3143,7 +3142,7 @@ local function measureTabStripH(win)
                 totalH = totalH + T.px(TAB_SEP_MAR) + T.px(TAB_SEP_H) + T.px(TAB_SEP_MAR)
                 lastGroup = tab.group
             end
-            totalH = totalH + T.px(TAB_BTN_SZ)
+            totalH = totalH + T.stripH
         end
     end
     return totalH
@@ -3162,7 +3161,7 @@ local function tabStripFollow(win, viewH, scrollOff, maxScroll, focusedId)
     if tgt == win._tabFollowId and isPad == win._tabFollowPad then return scrollOff end
     win._tabFollowId, win._tabFollowPad = tgt, isPad
     local T = ZeD.T
-    local y, lastGroup, btn = 0, 1, T.px(TAB_BTN_SZ)
+    local y, lastGroup, btn = 0, 1, T.stripH
     for _, tab in ipairs(CHAR_TABS) do
         if isTabVisible(tab, win) then
             if tab.group ~= lastGroup then
@@ -3319,7 +3318,7 @@ local function drawTabStrip(self, win)
         end
 
         local isActive = (tab.id == win._activeTab)
-        local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(TAB_BTN_SZ))
+        local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.stripH)
 
         -- The tabs are lit pixel art (ZeD_TabPx): the
         -- active tab a bevelled lit accent panel with its icon pressed in, every
@@ -3330,31 +3329,31 @@ local function drawTabStrip(self, win)
         if TPX and TPX.has(tab.id) then
             tabDrawOpts.focus = (gpFocusedTabId == tab.id) and tabFocusOpts or nil
             tabDrawOpts.help = isHover and ZeD.tr("UI_ZeD_CW_TabHelp", ZeD_CharacterWindow.tabLabel(tab)) or nil
-            TPX.drawTab(self, 0, curY, w - T.px(1), T.px(TAB_BTN_SZ) - T.px(1), tab.id, isActive,
+            TPX.drawTab(self, 0, curY, w - T.px(1), T.stripH - T.px(1), tab.id, isActive,
                 isHover and not cuesOn and not isActive, T.px(1), tabDrawOpts)
         end
 
         -- Bottom border between tabs
         local bd = T.border
-        self:drawRect(0, curY + T.px(TAB_BTN_SZ) - T.px(1), w, T.px(1), bd.a, bd.r, bd.g, bd.b)
+        self:drawRect(0, curY + T.stripH - T.px(1), w, T.px(1), bd.a, bd.r, bd.g, bd.b)
 
         -- Hit zone — always active, clicking exits mc mode if needed
-        if curY + T.px(TAB_BTN_SZ) > 0 and curY < tabAreaH then
-            self:addHitZone("tab:" .. tab.id, 0, curY, w, T.px(TAB_BTN_SZ))
+        if curY + T.stripH > 0 and curY < tabAreaH then
+            self:addHitZone("tab:" .. tab.id, 0, curY, w, T.stripH)
             -- the tab's name in a balloon beside it: after the pause for the mouse, at once for the
             -- controller's focus
             if isHover and my < tabAreaH and (not self.isMouseOver or self:isMouseOver()) then
                 win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_CharacterWindow.tabLabel(tab),
-                                     x = self:getX(), y = self:getY() + curY, w = w, h = T.px(TAB_BTN_SZ), side = "r" }
+                                     x = self:getX(), y = self:getY() + curY, w = w, h = T.stripH, side = "r" }
                 ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
             elseif cuesOn and gpFocusedTabId == tab.id and not win._tabHintCand then
                 win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_CharacterWindow.tabLabel(tab),
-                                     x = self:getX(), y = self:getY() + curY, w = w, h = T.px(TAB_BTN_SZ), side = "r", now = true }
+                                     x = self:getX(), y = self:getY() + curY, w = w, h = T.stripH, side = "r", now = true }
                 ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
             end
         end
 
-        curY = curY + T.px(TAB_BTN_SZ)
+        curY = curY + T.stripH
         end -- close visibility-skip if/else
     end
 
@@ -3604,8 +3603,10 @@ local function drawContainerStrip(self, win, content)
     -- --------------------------------------------------------
     local mainCnt = containers[1]  -- buildContainers guarantees main at index 1
     local curY = 0
+    -- the main cell and the line under it are row 1 (T.stripH), level with the tab's header
+    local mainH = T.stripH - T.px(1)
     if mainCnt then
-        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(CONTAINER_BTN_SZ)) and not cuesOn
+        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + mainH) and not cuesOn
         -- Zone 1 is "on" when: main visible (loot MC), or inventory open showing main (non-loot)
         local mainVis
         if win._activeTab == "loot" then
@@ -3617,32 +3618,32 @@ local function drawContainerStrip(self, win, content)
         -- the one selected look (the shown bag), the hover wash, then the controller's mark
         if mainVis then
             local ac = T.accent
-            self:drawRect(T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), selA, ac.r, ac.g, ac.b)
+            self:drawRect(T.px(1), curY, w - T.px(1), mainH, selA, ac.r, ac.g, ac.b)
         elseif isHover then
             local hv = T.hover
-            self:drawRect(T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), hv.a, hv.r, hv.g, hv.b)
+            self:drawRect(T.px(1), curY, w - T.px(1), mainH, hv.a, hv.r, hv.g, hv.b)
         end
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_MainHelp", mainCnt.name or "")) end
         local onFocusM = false
         if gpFocusedCI == 1 then
-            onFocusM = ZeD.Focus.mark(self, T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
+            onFocusM = ZeD.Focus.mark(self, T.px(1), curY, w - T.px(1), mainH, stripFocus)
         end
         local iconAlpha = mainVis and 1 or 0.5
         local tex = mainCnt.texture or (ZeD.genericContainerTex and ZeD.genericContainerTex())
         if tex then
             local ix = math.floor((w - iconSz) / 2)
-            local iy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
+            local iy = curY + math.floor((mainH - iconSz) / 2)
             self:drawTextureScaledAspect(tex, ix, iy, iconSz, iconSz, iconAlpha, 1, 1, 1)
         else
             local glyph = "I"
             local gw = ZeD.TM:MeasureStringX(font, glyph)
             local gx = math.floor((w - gw) / 2)
-            local gy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - fontH) / 2)
+            local gy = curY + math.floor((mainH - fontH) / 2)
             local color = onFocusM and T.textOnFocus or (mainVis and T.text or T.textDim)
             self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
         end
         -- other mods' marks on the button (StripDecorators.lua); before the badge below so the badge stays on top
-        ZeD.StripDecorators.run(self, win, "char", mainCnt, T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
+        ZeD.StripDecorators.run(self, win, "char", mainCnt, T.px(1), curY, w - T.px(1), mainH)
         -- MC badge for main (player inv) when MC active. Main is
         -- always at the last colSel position when mainVisible=true, so its
         -- badge = #_mcSelected + 1.
@@ -3650,13 +3651,13 @@ local function drawContainerStrip(self, win, content)
         if mainVis and mcCountM > 0 then
             local badge = tostring(mcCountM + 1)
             local bx = T.px(4)
-            local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
+            local by = curY + mainH - fontH - T.px(1)
             local bc = onFocusM and T.textOnFocus or T.text
             self:drawText(badge, bx, by, bc.r, bc.g, bc.b, bc.a, font)
         end
         -- Hit zone: clickable on all tabs
-        self:addHitZone("main_toggle", 0, curY, w, T.px(CONTAINER_BTN_SZ))
-        curY = curY + T.px(CONTAINER_BTN_SZ)
+        self:addHitZone("main_toggle", 0, curY, w, mainH)
+        curY = curY + mainH
     end
 
     -- Divider below the main container
@@ -3667,10 +3668,11 @@ local function drawContainerStrip(self, win, content)
     -- ZONE 2: Sort mode label — aligned with column header bar Y
     -- Cycles: dist → wt → type → dist
     -- --------------------------------------------------------
-    local colHdrH   = T.px(20)
+    -- row 2, the sort bar (T.sortBarH), its word in the sort font: level with the inventory's column header
+    local colHdrH   = T.sortBarH
     local sortRowY  = curY
     local sortRowH  = colHdrH
-    local f5Font    = T.fontF5
+    local f5Font    = T.sortFont
     local f5H       = ZeD.TM:getFontHeight(f5Font)
     local isActive  = sortMode ~= "dist"
     -- sortMode stays "dist" / "wt" / "type" (it is the saved choice and the cycle's key); the label is its word
@@ -4407,10 +4409,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local T = ZeD.T
         -- Tab scroll arrows
         if zid == "tab_scroll_up" then
-            win._tabScrollOffset = (win._tabScrollOffset or 0) - T.px(TAB_BTN_SZ)
+            win._tabScrollOffset = (win._tabScrollOffset or 0) - T.stripH
             return true
         elseif zid == "tab_scroll_down" then
-            win._tabScrollOffset = (win._tabScrollOffset or 0) + T.px(TAB_BTN_SZ)
+            win._tabScrollOffset = (win._tabScrollOffset or 0) + T.stripH
             return true
         end
         if type(zid) == "string" and zid:sub(1, 4) == "tab:" then
@@ -4517,7 +4519,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local T = ZeD.T
         local totalTabH = measureTabStripH(win)   -- (win: a tab shown only sometimes is counted right)
         if totalTabH > self:getHeight() then
-            win._tabScrollOffset = (win._tabScrollOffset or 0) + del * T.px(TAB_BTN_SZ)
+            win._tabScrollOffset = (win._tabScrollOffset or 0) + del * T.stripH
             return true
         end
         return false
@@ -6081,9 +6083,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
     content._sortCol = "name"
     content._sortAsc = true
 
-    -- Column header Y offset — aligns with the strip's sort row (below the main container)
-    content._hdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
-    content._defaultHdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
+    -- Column header Y offset: row 1 (T.stripH), so the column header sits in row 2 beside the strip's sort row
+    -- (set again before each draw, so a new text size or UI scale moves it with the strips)
+    content._hdrYOffset = T.stripH
+    content._defaultHdrYOffset = T.stripH
 
     -- Container buttons (ContainerControls): the row at the bottom of the list
     content._ccSide = "char"
@@ -6177,6 +6180,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             win._titleSub = (#colSel == 1) and ZeD.tr("UI_ZeD_Char_ContainersOne", #colSel) or ZeD.tr("UI_ZeD_Char_ContainersMany", #colSel)
             self._ccEntry = nil
 
+            self._defaultHdrYOffset = ZeD.T.stripH   -- (row 1, read fresh: punch list 178)
             r.renderMultiColumnContent(self)
             -- (after the columns drew: they now hold this frame's picks) the help line's own words,
             -- every shown column's things, and what is picked across them (InventoryPicked.lua)
@@ -6216,6 +6220,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     "UI_ZeD_Char_ItemsOne", "UI_ZeD_Char_ItemsMany", win._playerObj)
             end
             self._ccEntry = cnt
+            self._hdrYOffset = ZeD.T.stripH   -- (row 1, read fresh: punch list 178)
             r.renderItemList(self)
         end
         if ZeD.ContainerControls then
