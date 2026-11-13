@@ -182,9 +182,10 @@ for _, L in ipairs(LANGS) do
     local fh = io.open(ROOT .. "42/media/lua/shared/Translate/" .. L .. "/UI.json", "rb"); local t = fh and fh:read("*a") or ""; if fh then fh:close() end
     for _, key in ipairs({ "UI_ZeD_Card_FactsLiquid", "UI_ZeD_Card_Amount" }) do if not t:find('"' .. key .. '"', 1, true) then miss = miss .. L .. ":" .. key .. " " end end
     local h = t:match('"UI_ZeD_Inv_ColCond": "([^"]*)"')
-    if not (h and h:find("/", 1, true)) then miss = miss .. L .. ":heading " end
+    -- (the director, Nov 12: one word, "Status", in place of "Cond / Amt")
+    if not (h and h ~= "" and not h:find("/", 1, true)) then miss = miss .. L .. ":heading " end
 end
-check("COLUMN the heading reads condition / amount, and the card's words, in all 28 languages", miss == "", miss)
+check("COLUMN the heading is one word (Status), and the card's words, in all 28 languages", miss == "", miss)
 
 print("item_meter_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)
