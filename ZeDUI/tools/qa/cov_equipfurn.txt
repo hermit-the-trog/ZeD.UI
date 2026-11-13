@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/cov_equipfurn.txt (Nov 12 2026, QA coverage, audit Table B group "equipfurn"): the Equip tab's
+# defense summary, the World window's Furniture tab modes and the container buttons, checked against the game.
+# Run on the ZeD-QA save: zedqa_run.ps1 -Manifest ZeDUI/tools/qa/cov_equipfurn.txt
+zedqa_prelude.lua | pre | timeout=120                  # opens both windows, unpauses, god mode, the drag strip
+zedqa_pin_windows.lua | pnw | timeout=60               # pins both windows (an unpinned one rolls up when the pointer leaves)
+zedqa_cov_equipfurn.lua | cov_equipfurn | timeout=300  # parks the pointer on the World window during the furniture part
