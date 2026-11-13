@@ -244,7 +244,7 @@ end
 -- a prop (the radio, the siren) up close: above the dash, its right edge on the dash console's (or the screen's)
 local function onDash(panel, what)
     local d = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(pn)
-    if not (d and d:isVisible() and d._consoleRect) then say("note: no dash under the " .. what .. "; its place on the dash is not checked"); return end
+    if not (d and d:isVisible() and d._consoleRect) then staged(false, "a dash under the " .. what .. " to check its place against", "no dash", "a dash"); return end
     local cs = d._consoleRect
     local consoleRight = d:getX() + math.floor((cs.x + cs.w) * (d._s or 1))
     local right = panel:getX() + panel:getWidth()
@@ -756,7 +756,7 @@ end, "car")
 add(300, function()
     local on1 = dd():getIsTurnedOn()
     check(V.volPressed and on1 ~= V.on0, "a press where the plate draws VOL switches the set " .. (V.on0 and "off" or "on") .. " (its click area sits on the plate)",
-        V.volPressed and on1 or "no VOL on the plate to press", not V.on0)
+        (not V.volPressed) and "no VOL on the plate to press" or tostring(on1), not V.on0)
     if not on1 then click(prop(), "vol") end
 end, "radio")
 add(300, function()
@@ -797,12 +797,13 @@ add(950, function()   -- (held past O.HOLD_MS: the radio's update stores once)
     click(prop(), "tune", 0.8)
 end, "radio")
 add(250, function()
-    if rd().channel == V.chS then say("note: TUNE did not move off the stored station; the recall below proves less") end
+    V.tuneMoved = rd().channel ~= V.chS
+    staged(V.tuneMoved, "TUNE moves off the stored station, so the recall below tests a real recall", rd().channel, "not " .. tostring(V.chS))
     click(prop(), "p" .. V.storeIdx)
 end, "radio")
 add(250, function()
     local st = rd()
-    check(st.channel == V.chS, "a short press on P" .. V.storeIdx .. " tunes back to the station stored there", st.channel, V.chS)
+    if V.tuneMoved then check(st.channel == V.chS, "a short press on P" .. V.storeIdx .. " tunes back to the station stored there", st.channel, V.chS) end
     V.chE = st.channel
     if #st.presets < 6 then click(prop(), "p6") end
 end, "radio")
@@ -811,7 +812,7 @@ add(250, function()
     if #st.presets < 6 then
         check(st.flash == ZeD.tr("UI_ZeD_Radio_Empty") and st.channel == V.chE, "a press on an empty preset flashes EMPTY and keeps the station", tostring(st.flash) .. " " .. st.channel, ZeD.tr("UI_ZeD_Radio_Empty") .. " " .. V.chE)
     else
-        say("note: all six presets are stored; the empty-preset press is not checked")
+        staged(false, "an empty preset to press (all six are stored, so the empty-preset press is not checked)", #st.presets, "under 6")
     end
     V.vol0 = st.volume
     click(prop(), "mute")
@@ -906,17 +907,17 @@ add(200, function()
     V.discs0 = p:getInventory():getCountTypeRecurse("Base.Disc_Retail")
     V.cdsHad = #cdsCarried(V.mt)
     V.listOpened = not st.hasMedia
-    if V.listOpened then click(prop(), "slot") else say("note: the radio has a disc in already; the list before the CD is not opened") end
+    if V.listOpened then click(prop(), "slot") end   -- (a disc already in: one staging FAIL in the next step)
 end, "radio")
 add(400, function()
     local rows, noCds = listRows(V.listOpened and prop()._list or nil)
     V.rows0 = V.listOpened and #rows or nil
     if not V.listOpened then
-        say("note: no list before the CD (a disc was in); the empty list is not checked")
+        staged(false, "an empty CD slot to open the list before the CD (a disc was in; the empty list is not checked)", "a disc in", "no disc")
     elseif V.cdsHad == 0 then
         check(#rows == 0 and noCds, "with no CD carried (counted here), the slot's list says so, grayed", #rows .. " rows, No CDs " .. tostring(noCds), "0 rows, No CDs true")
     else
-        say("note: the character carries " .. V.cdsHad .. " CDs already; the empty list is not checked")
+        staged(false, "a character with no CDs, for the 'No CDs' list (carries " .. V.cdsHad .. "; the empty list is not checked)", V.cdsHad, 0)
     end
     closeList()
     local cd = give("Base.Disc_Retail")
@@ -1290,7 +1291,7 @@ add(400, function()
         local why = w:reason(w._seats[farN])
         check(why == getText("IGUI_VehicleSeat_ExitToSwitch"), "a seat out of reach gives vanilla's reason", why, getText("IGUI_VehicleSeat_ExitToSwitch"))
     else
-        say("note: every seat of this car can be reached from the wheel; the out-of-reach reason is not checked")
+        staged(false, "a seat out of reach from the wheel (every seat can be reached; the out-of-reach reason is not checked)", "none", "one")
     end
     check(w._doors and w._doors[1] ~= nil, "presence: the driver's door is offered to get out by", w._doors and w._doors[1] ~= nil, true)
     shot("9_seats")
@@ -1305,6 +1306,7 @@ add(400, function()
     if not staged(V.itemSeat ~= nil, "a fitted seat besides the driver's to load", "none", "one") then return end
     local w, v = SE.get(pn), V.car
     local st = w._seats[V.itemSeat + 1]
+    V.itemsRead = st ~= nil and st.kind == "items"
     if staged(v:isSeatOccupied(V.itemSeat), "eight planks make seat " .. (V.itemSeat + 1) .. " occupied for vanilla", false, true) then
         check(st ~= nil and st.kind == "items", "eight planks on seat " .. (V.itemSeat + 1) .. ": it reads as items", st and st.kind, "items")
         local mv = ISVehicleMenu.moveItemsFromSeat(p, v, V.itemSeat, false, false) and true or false
@@ -1316,7 +1318,7 @@ add(400, function()
     V.planks = {}
 end, "seats")
 add(300, function()
-    if V.itemSeat then
+    if V.itemSeat and V.itemsRead then
         local st = SE.get(pn)._seats[V.itemSeat + 1]
         check(st ~= nil and st.kind == "empty", "the planks off, seat " .. (V.itemSeat + 1) .. " reads empty again", st and st.kind, "empty")
     end
@@ -1373,9 +1375,9 @@ add(500, function()
     if not to then return end
     V.moved = V.car:getSeat(p) == to
     check(V.moved, "the character moved to seat " .. (to + 1) .. " (vanilla's switch)", V.car:getSeat(p), to)
-    if to > 1 then
+    if V.moved and to > 1 then
         check(V.radioUp and not visible(prop()), "the radio is put away: it can't be reached from the back", tostring(V.radioUp) .. "/" .. tostring(visible(prop())), "true/false")
-    else
+    elseif V.moved then
         check(V.radioUp and visible(prop()), "the radio stays up close from the seat beside the driver (vanilla: both front seats reach it)", tostring(V.radioUp) .. "/" .. tostring(visible(prop())), "true/true")
     end
     if not V.back then
