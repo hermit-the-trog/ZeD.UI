@@ -546,6 +546,46 @@ check("TAKEOVER: the scan is done, and ModT's Shared3 never runs", MS.res.done a
 -- Turn off with the 1 on ModT's XLib card: XLib only (ModT's Shared3 never runs)
 local with = W.offWith and W:offWith(MODS.ModT, tf[XL], xlUsed) or { XL, SH }
 check("TAKEOVER: Turn off with takes no file another mod's copy stands in for", #with == 1 and with[1] == XL, table.concat(with, ","))
+-- (G7, Nov 12 2026) the card offers "Turn off with the N" only when N > 0: XLib's card, its one user a shadowed copy
+do
+    local seen = nil
+    local T0, A0, fh0 = ZeD.T, ZeD.Atoms, ZeD.MainMenu.fontH
+    local col = { r = 1, g = 1, b = 1, a = 1 }
+    ZeD.T = setmetatable({ px = function(n) return n end }, { __index = function() return col end })
+    ZeD.Atoms = { truncateText = function(s) return s end, frame = noop }
+    ZeD.MainMenu.fontH = function() return 10 end
+    local C = setmetatable({ fileNote = function(_, _, _, _, _, y) return y end, paneText = function(_, _, _, y) return y end,
+                             paneVerbs = function(_, v) seen = v; return 0 end, drawText = noop, drawCode = noop,
+                             canSwitchBack = function() return true end }, { __index = W })
+    local function ids()
+        local out = {}
+        for _, v in ipairs(seen or {}) do out[#out + 1] = v[1] .. "=" .. tostring(v[2]) end
+        return table.concat(out, ",")
+    end
+    local ok, err = pcall(C.drawFileCard, C, MODS.ModT, tf[XL], 1, 0, 400, 0, 0, 2000, true)
+    check("G7 OFFWITH: XLib's card draws", ok, err)
+    local hasWith = ids():find("mf:offwith", 1, true) ~= nil
+    check("G7 OFFWITH: with no other file to take along, no 'Turn off with the 0'", ok and seen ~= nil and not hasWith, ids())
+    check("G7 OFFWITH: Turn off anyway is still offered", ids():find("mf:off=", 1, true) ~= nil, ids())
+    C.offWith = function() return { XL, "media/lua/client/Other.lua" } end
+    seen = nil
+    ok, err = pcall(C.drawFileCard, C, MODS.ModT, tf[XL], 1, 0, 400, 0, 0, 2000, true)
+    check("G7 OFFWITH: with one file to take along, 'Turn off with the 1' shows", ok and ids():find("mf:offwith", 1, true) ~= nil, ids())
+    ZeD.T, ZeD.Atoms, ZeD.MainMenu.fontH = T0, A0, fh0
+end
+-- (G7) a switch the list refuses (ModT's shadowed Shared3, ModU holds it off): no click, no band, no notice
+do
+    local clicks = 0
+    local cs0 = ZeD.MainMenu.clickSound
+    ZeD.MainMenu.clickSound = function() clicks = clicks + 1 end
+    W._filesChanged, said = nil, nil
+    W:switchFiles(MODS.ModT, { SH }, true)
+    check("G7 REFUSED: the switch is refused (ModU still holds it)", P.offOf(SH) == "ModU", P.offOf(SH))
+    check("G7 REFUSED: no click", clicks == 0, clicks)
+    check("G7 REFUSED: no files-changed band", W._filesChanged == nil, W._filesChanged)
+    check("G7 REFUSED: no notice", said == nil, said)
+    ZeD.MainMenu.clickSound = cs0
+end
 W:switchFiles(MODS.ModT, with, true)
 P.sync(TU)
 check("TAKEOVER: after it ModU's Shared3 is still off for ModU", P.offOf(SH) == "ModU", P.offOf(SH))

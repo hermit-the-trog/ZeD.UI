@@ -114,18 +114,26 @@ function P.mayOff(modId) return modId ~= nil and modId ~= ZED_ID and modId ~= P.
 --- A path another mod holds switched off is taken over only when modId's copy is the one that
 --- runs (P.runsFrom on order, the mods on in load order; the game's list when nil): a shadowed
 --- copy switched off must not hand the path back to the mod whose copy does run.
+--- Returns how many paths it changed: 0 when it refused or had nothing to do (the caller then
+--- says nothing and makes no click).
 function P.setOff(modId, paths, off, order)
     if not picks then load() end
-    if off and not P.mayOff(modId) then return end
+    if off and not P.mayOff(modId) then return 0 end
+    local n = 0
     for _, path in ipairs(paths) do
         if off then
             local holder = offs[path]
-            if not holder or holder == modId or P.runsFrom(path, order) == modId then
+            if holder ~= modId and (not holder or P.runsFrom(path, order) == modId) then
                 offs[path] = modId; held[path] = true
+                n = n + 1
             end
-        elseif offs[path] == modId then offs[path] = nil end
+        elseif offs[path] == modId then
+            offs[path] = nil
+            n = n + 1
+        end
     end
-    save()
+    if n > 0 then save() end
+    return n
 end
 
 --- The paths switched off for modId, sorted.

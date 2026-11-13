@@ -102,6 +102,36 @@ function M.DefenseFacts(item)
         groups        = {},
     }
 
+    -- Group 0: the garment itself (D4, Nov 12 2026: the card's top block keeps Kind and Weight only, so the
+    -- fabric, the condition and the speed changes show here, once). The condition row is zoneCond: the Zones
+    -- heading shows the same overall percent when the garment has zones, and the card then leaves this row out.
+    -- mirrorKey: the card colors it while a repair runs (ItemCardOrganism.lua, the state mirror).
+    do
+        local fab = safeGet(item, "getFabricType")
+        if not fab or fab == "" then fab = ZeD.tr("UI_ZeD_Card_Cotton") end
+        local condMax = safeGet(item, "getConditionMax") or 1
+        local cond    = safeGet(item, "getCondition") or condMax
+        local r       = math.max(0, math.min(1, cond / math.max(1, condMax)))
+        local rows = {
+            {label = ZeD.tr("UI_ZeD_Card_Fabric"), value = tostring(fab)},
+            {label = getText("IGUI_invpanel_Condition"), value = string.format("%d%%", math.floor(r * 100 + 0.5)),
+             valueClass = _condClass(r), mirrorKey = "condition", zoneCond = true},
+        }
+        local combat = safeGet(item, "getCombatSpeedModifier")
+        if combat and combat ~= 1.0 then
+            local pc = math.floor((combat - 1) * 100 + 0.5)
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Combat"), value = string.format("%+d%%", pc),
+                valueClass = pc < 0 and "warn" or (pc > 0 and "good" or nil)}
+        end
+        local run = safeGet(item, "getRunSpeedModifier")
+        if run and run ~= 1.0 then
+            local pr = math.floor((run - 1) * 100 + 0.5)
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Run"), value = string.format("%+d%%", pr),
+                valueClass = pr < 0 and "warn" or (pr > 0 and "good" or nil)}
+        end
+        panel.groups[#panel.groups + 1] = { rows = rows }
+    end
+
     -- Group 1: bite/scratch/bullet. No status mark on these rows - protection
     -- is good news and the number says it; a zero only dims.
     panel.groups[#panel.groups + 1] = {
@@ -200,6 +230,28 @@ function M.NutritionFacts(item)
         },
     }
 
+    -- Group 4: its state, cooked and fresh (D4: here, once, no longer in the card's top block). mirrorKey: the card
+    -- colors the Cooked row while it cooks (ItemCardOrganism.lua, the state mirror).
+    do
+        local cooked = safeGet(item, "isCooked")
+        local burnt  = safeGet(item, "isBurnt")
+        local raw    = safeGet(item, "isbDangerousUncooked")
+        local cookedStr, cookedClass
+        if burnt      then cookedStr, cookedClass = getText("Tooltip_food_Burnt"),  "bad"
+        elseif cooked then cookedStr, cookedClass = getText("Tooltip_food_Cooked"), "good"
+        elseif raw    then cookedStr, cookedClass = ZeD.tr("UI_ZeD_Card_Raw"),     "bad"
+        else               cookedStr, cookedClass = "-",                           "dim" end
+        local rows = {
+            {label = getText("Tooltip_food_Cooked"), value = cookedStr, valueClass = cookedClass, mirrorKey = "cooked"},
+        }
+        if safeGet(item, "isRotten") then
+            rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Rotten"), valueClass = "bad"}
+        elseif safeGet(item, "isFresh") then
+            rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Fresh"), valueClass = "good"}
+        end
+        panel.groups[#panel.groups + 1] = { rows = rows }
+    end
+
     return panel
 end
 
@@ -252,14 +304,21 @@ function M.CombatFacts(item)
         },
     }
 
-    -- Group 3: durability + ammo
+    -- Group 3: durability + ammo. A gun's rounds loaded follow its ammo's name ("9mm Rounds | 5 / 15"; D4: here,
+    -- once, no longer in the card's top block). mirrorKey: the card colors Condition while a repair runs.
     local ratio  = (cond and condMax and condMax > 0) and (cond / condMax) or nil
+    local hasAmmo = ammoType and ammoType ~= ""
+    local ammoStr = hasAmmo and tostring(ammoType) or "-"
+    if hasAmmo then
+        local cap = safeGet(item, "getMaxAmmo")
+        if cap then ammoStr = ammoStr .. " | " .. string.format("%d / %d", safeGet(item, "getCurrentAmmoCount") or 0, cap) end
+    end
     panel.groups[#panel.groups + 1] = {
         rows = {
             {label = getText("Tooltip_weapon_Condition"), value = (cond and condMax) and string.format("%d / %d", cond, condMax) or "-",
-             valueClass = _condClass(ratio)},
-            {label = getText("Tooltip_weapon_Ammo"),      value = (ammoType and ammoType ~= "") and tostring(ammoType) or "-",
-             valueClass = (not ammoType or ammoType == "") and "dim" or nil},
+             valueClass = _condClass(ratio), mirrorKey = "condition"},
+            {label = getText("Tooltip_weapon_Ammo"),      value = ammoStr,
+             valueClass = (not hasAmmo) and "dim" or nil},
         },
     }
 
@@ -417,7 +476,8 @@ function M.ReadingFacts(item)
     panel.groups[#panel.groups + 1] = {
         rows = {
             {label = ZeD.tr("UI_ZeD_Card_Progress"), value = pagesRead and string.format("%d / %d", pagesRead, pages) or "-",
-             valueClass = readRatio and (readRatio >= 1 and "good" or (readRatio > 0 and "warn" or "dim")) or nil},
+             valueClass = readRatio and (readRatio >= 1 and "good" or (readRatio > 0 and "warn" or "dim")) or nil,
+             mirrorKey = "progress"},   -- (the card colors it while the character reads)
             {label = ZeD.tr("UI_ZeD_Card_Read"),     value = alreadyRead and getText("IGUI_Yes") or getText("IGUI_No"),
              valueClass = alreadyRead and "dim" or nil},
         },
@@ -435,6 +495,30 @@ function M.ReadingFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
+-- UsesFacts - a drainable with no other panel (a battery, thread, a lighter):
+-- how much is left (D4, Nov 12 2026: the card's top block keeps Kind and
+-- Weight only, so Remaining shows here). Last in the registry: food, clothing,
+-- weapons and liquids that drain have their own panels.
+-- ---------------------------------------------------------------------------
+function M.UsesFacts(item)
+    if not item then return nil end
+    if not (instanceof and instanceof(item, "DrainableComboItem")) then return nil end
+    local used = safeGet(item, "getUsedDelta")
+    if not used then return nil end
+    local r = math.max(0, math.min(1, used))
+    return {
+        title         = ZeD.tr("UI_ZeD_Card_Facts"),
+        hasDisclosure = false,
+        groups        = {
+            { rows = {
+                {label = getText("IGUI_invpanel_Remaining"), value = string.format("%d%%", math.floor(r * 100 + 0.5)),
+                 valueClass = _condClass(r)},
+            } },
+        },
+    }
+end
+
+-- ---------------------------------------------------------------------------
 -- Registry + dispatch
 -- ---------------------------------------------------------------------------
 -- Priority order: most-specific first. ContainerFacts last so a bag-of-food
@@ -446,6 +530,7 @@ M._registry = {
     {key = "combat",    factory = M.CombatFacts},
     {key = "defense",   factory = M.DefenseFacts},
     {key = "container", factory = M.ContainerFacts},
+    {key = "uses",      factory = M.UsesFacts},     -- (last: only a drainable no panel above takes)
 }
 
 --- Dispatch: find the first factory that produces a non-nil panel.

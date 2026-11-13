@@ -92,7 +92,9 @@ do
     check("WEIGHT: the Character window's heading", CWS:find("or ZeD.Atoms.loadText(cWeight, cMax),", 1, true) ~= nil)
     check("WEIGHT: the World window's heading", WWS:find("or ZeD.Atoms.loadText(cWeight, cMax),", 1, true) ~= nil)
     check("WEIGHT: the columns' headings", IRS:find("or ZeD.Atoms.loadText(weight, capacity)", 1, true) ~= nil)
-    check("WEIGHT: the item card's capacity", ICO:find("held and ZeD.Atoms.loadText(held, cap)", 1, true) ~= nil)
+    -- (G7, D4 ruled Nov 12 2026: the card's top block keeps Kind and Weight only; its capacity is Container Facts')
+    check("WEIGHT: the item card's top block writes no capacity of its own (Container Facts has it)",
+        ICO:find("Tooltip_container_Capacity", 1, true) == nil)
     check("WEIGHT: Container Facts' capacity", IFP:find("ZeD.Atoms.loadText(current, cap)", 1, true) ~= nil)
     local stale = {}
     for name, src in pairs({ CharacterWindow = CWS, WorldWindow = WWS, InventoryRenderer = IRS, ItemCardOrganism = ICO,
