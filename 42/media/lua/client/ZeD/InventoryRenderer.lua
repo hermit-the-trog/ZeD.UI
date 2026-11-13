@@ -1677,7 +1677,7 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
 end
 
 -- A tag after a row's name (Next level, Belt 2): the library's tag (no box), its status square (mark) before the
--- word in the secondary ink, centred in the row. The square makes it read as a tag: bare, the word read as more of
+-- word in the secondary ink, centered in the row. The square makes it read as a tag: bare, the word read as more of
 -- the item's name.
 local _rowTagOpts = {}
 local function rowTag(self, x, y, rowH, text, focusTxt, mark)
@@ -2234,7 +2234,7 @@ local function renderItemList(self)
             drawReadCond(self, rs, xOff + condX + T.px(6), y, rowH, condColW - T.px(6), padX, focusTxt)
             condFree = false
         elseif showCond then
-            -- the framed condition strip (ZeD.Atoms.drawFillBar), compact, centred in the row
+            -- the framed condition strip (ZeD.Atoms.drawFillBar), compact, centered in the row
             condFree = not rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH, stackInfo)
         end
 

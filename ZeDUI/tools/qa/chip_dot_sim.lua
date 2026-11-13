@@ -6,7 +6,7 @@
 --   INJURY   a Health injury row's tags: each square under the part's square (x + 2), each word under the part's
 --            name (x + 14) on every line of the wrap, an unmarked tag's word in step; measuring and drawing agree
 --   ROW      the inventory row's Belt 2 / Next level: since the tab catalog's review (Nov 12 2026) its status square
---            (Belt n the info colour, Next level the accent), then the word in the secondary ink (textDim), the focus
+--            (Belt n the info color, Next level the accent), then the word in the secondary ink (textDim), the focus
 --            ink on the controller's row, no outline: bare, the word read as more of the item's name; the Equipment
 --            belt's In hand the same (info)
 --   CALLERS  the layouts that measured the old box (Health, Equipment, the inventory rows, the medic card, the
@@ -103,7 +103,7 @@ do
         local sq, tx = first("rect"), first("text")
         check("marked: the square at x", sq and sq.x == 100 and sq.w == 6 and sq.h == 6, sq and sq.x)
         check("marked: the square in the 16u row's middle", sq and sq.y == 55, sq and sq.y)
-        check("marked: the square in the status colour", sq and sq.r == 1)
+        check("marked: the square in the status color", sq and sq.r == 1)
         check("marked: the word 4u after the square", tx and tx.x == 110, tx and tx.x)
         check("marked: the word in the default ink", tx and tx.r == 1)
         check("marked: width = square + gap + word", w == 6 + 4 + 64, w)
@@ -125,7 +125,7 @@ do
         LOG = {}
         w = ZeD.Atoms.drawTag(panel, 0, 0, "Ok", T.positive, { minW = 60 })
         check("minW: the room kept", w == 60, w)
-        check("minW: square and word centred", first("rect") and first("rect").x == 17, first("rect") and first("rect").x)
+        check("minW: square and word centered", first("rect") and first("rect").x == 17, first("rect") and first("rect").x)
         check("minW: no outline round the room", count("frame") == 0)
 
         LOG = {}
@@ -215,7 +215,7 @@ do
     rowTag(panel, 200, 10, 30, "Belt 2", nil, T.info)
     local t, sq = first("text"), first("rect")
     check("Belt 2: its square, then the word", #LOG == 2 and t ~= nil and sq ~= nil, #LOG)
-    check("Belt 2: the square at x, in the info colour", sq and sq.x == 200 and sq.w == 6 and sq.r == T.info.r, sq and sq.x)
+    check("Belt 2: the square at x, in the info color", sq and sq.x == 200 and sq.w == 6 and sq.r == T.info.r, sq and sq.x)
     check("Belt 2: the word after the square, in the secondary ink", t and t.x == 210 and t.r == T.textDim.r, t and t.x)
     LOG = {}
     rowTag(panel, 200, 10, 30, "Belt 2", T.textOnFocus, T.info)

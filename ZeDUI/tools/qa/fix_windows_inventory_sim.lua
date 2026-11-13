@@ -9,7 +9,7 @@
 --             here."); the headings, the columns and the help line all read the list's own count (shownCount)
 --   CATEGORY  a row's category words run on into an empty Cond cell (no bar, no read mark): rowCondition says when
 --             it drew; a row with a bar keeps the cell; the card's Kind word is run in card_model_sim
---   GAP       the Character and World windows side by side: the crack between them is drawn in the frame's colour,
+--   GAP       the Character and World windows side by side: the crack between them is drawn in the frame's color,
 --             by the left one, where they overlap; apart, not overlapping, or one hidden, nothing is drawn
 --   VERSION   the version line at the lower right ("42.22.2 ... pzBullet") is the game's own watermark
 --             (ISVersionWaterMark): no ZeD file draws, moves or hides it, so it is left as the game has it

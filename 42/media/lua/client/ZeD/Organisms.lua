@@ -610,7 +610,7 @@ local function fitStats(self, stats, right, edgeFull, edgeLeast, markRoom, gap, 
             local aw = tm:MeasureStringX(f3, a)
             if aw < w then t, w = a, aw end
         end
-        -- (a colour at alpha 0 was the old way to say "no mark")
+        -- (a color at alpha 0 was the old way to say "no mark")
         local dc = st.color or dim
         mw[i] = (not st.noMark and (dc.a == nil or dc.a > 0)) and markRoom or 0
         tx[i], tw[i] = t, w
