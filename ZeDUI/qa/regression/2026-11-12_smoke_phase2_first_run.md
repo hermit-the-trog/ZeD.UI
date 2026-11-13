@@ -1,0 +1,596 @@
+# ZeD-UI regression - 2026-11-12 19:34 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-12 19:34:01 |
+| Finished | 2026-11-12 19:42:11 (8 min 10 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fontSize=2 fullScreen=true height=2160 width=3840 |
+| Game build | 42.22.2 3d39148846 |
+| Mod version | 0.3.0-beta12 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\smoke.txt (12 scripts) |
+| Result | **12/12 pass**, 0 warn, 0 fail, 0 timeout |
+| Go numbers | 25894 to 25907 |
+
+Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- font size: fontSize=2 for the run (was fontSize=2)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 25906, 25907)
+- font size: the director's line put back (fontSize=2)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 7 |  |  |
+| 2 | zedqa_release_check.lua | rel | PASS | 18 | zqa_rel_4_card.png, zqa_rel_3_menu.png, zqa_rel_5_watch.png |  |
+| 3 | suite_tabs.lua | tabs | PASS | 17 |  |  |
+| 4 | zedqa_onepath.lua | op | PASS | 30 | zqa_op_1.png, zqa_op_2.png, zqa_op_3.png, zqa_op_4.png |  |
+| 5 | suite_verbs.lua | verbs | PASS | 33 |  |  |
+| 6 | zedqa_world_pad_take.lua | wpt | PASS | 14 |  |  |
+| 7 | zedqa_navmap.lua | nav | PASS | 20 |  |  |
+| 8 | zedqa_dash_one.lua | dashone | PASS | 1 |  |  |
+| 9 | zedqa_dashpx.lua | dpx | PASS | 13 | zqa_dashpx_02_nyala_keyon.png, zqa_dashpx_02_nyala.png |  |
+| 10 | zedqa_messages.lua | msg | PASS | 14 | zqa_msg_belt_toast.png, zqa_msg_window_mod.png, zqa_msg_window_error.png | 1 expected exception(s) ignored (expect=) |
+| 11 | zedqa_safemode.lua | safe | PASS | 14 | zqa_safe_1.png, zqa_safe_2.png, zqa_safe_3.png |  |
+| 12 | zedqa_soak.lua | soak | PASS | 157 |  |  |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 7 s
+
+- go 25894 at 19:35:28
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=928,13044 grid=19 inCar=false vehicles=20 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre moved from 928,13044,0 to the drag strip
+ZEDQA pre clock 21.37 -> 11.00 (daylight)
+ZEDQA pre the Lua console was open: closed
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 299 frames 300
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA layout pre default
+ZEDQA pre layout char 1134,0 777x735 rolled false pinned true/true
+ZEDQA pre layout world 1929,0 777x735 rolled false pinned true/true
+ZEDQA pre ZeD version=0.3.0-beta12 dir=%USERPROFILE%\Zomboid\mods\ZeD-UI
+ZEDQA pre tabs: Character loot | World loot
+ZEDQA pre DONE
+```
+
+### 2. zedqa_release_check.lua (`ZEDQA rel`) - PASS, 18 s
+
+- go 25895 at 19:35:38
+- screenshots: zqa_rel_4_card.png, zqa_rel_3_menu.png, zqa_rel_5_watch.png
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA rel version=0.3.0-beta12 dir=%USERPROFILE%\Zomboid\mods\ZeD-UI
+ZEDQA rel start
+[ZeD.QA] run #2 ok=true
+ZEDQA rel PASS the windows start shut
+ZEDQA rel PASS 1: both windows open
+ZEDQA rel rolled up before the hold: Character false, World false
+ZEDQA rel the test item: Base.Spiffo
+ZEDQA rel PASS 2: the test item is in the Character window's list
+ZEDQA rel PASS 2: the test item went to the floor (the game's transfer)
+ZEDQA rel PASS 2: the World window lists it
+ZEDQA rel rolled up now: Character false, World false
+ZEDQA rel PASS 2: it came back to the inventory
+ZEDQA rel PASS 2: the Character window lists it again
+ZEDQA rel PASS 4: the controller's focus is on the test item's row
+ZEDQA rel 4: after A: charItemCard:hverb_1
+ZEDQA rel PASS 4: A on the row opens its card, focus on its primary action (charItemCard:hverb_1)
+ZEDQA rel 4: after B: invrow:27
+ZEDQA rel PASS 4: B goes back to the row
+ZEDQA rel PASS 3: the test item's row has a place on screen
+ZEDQA rel PASS 3: the row is in the list's view (y 533 of 650)
+ZEDQA rel 3: row invrow:27 at 0,533 350x53 in the window; the window at 1197,46
+ZEDQA rel asked the helper for a right-click at 1257,605
+ZEDQA rel PASS 3: the helper made the real right-click
+ZEDQA rel 3: menu open true (ZeD_ContextMenu)
+ZEDQA rel PASS 3: a real right-click on the row opens the item menu for that item (1 items)
+ZEDQA rel PASS 5: the worn watch shows (belt true, corner true)
+ZEDQA rel PASS 5: its face reads the game's time (11:6, the game 11:06)
+ZEDQA layout rel put back
+ZEDQA rel RESULT PASS: all 16 checks
+ZEDQA rel DONE
+```
+
+### 3. suite_tabs.lua (`ZEDQA tabs`) - PASS, 17 s
+
+- go 25896 at 19:36:00
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA char tabs: loot,equip,health,thermal,identity,journal,skills
+ZEDQA world tabs: loot,craft,build,furniture,maps,forage,animals
+ZEDQA tabs armed
+[ZeD.QA] run #3 ok=true
+ZEDQA char tab=loot active=loot w=777 focusables=0 {}
+ZEDQA char tab=equip active=equip w=1617 focusables=76 {el=1 equip=1 equipbelt=3 equippart=17 equipslot=52 equipview=2}
+ZEDQA char tab=health active=health w=1617 focusables=22 {bodypart=17 health=5}
+ZEDQA char tab=thermal active=thermal w=1617 focusables=19 {thermal=2 thermalpart=17}
+ZEDQA char tab=identity active=identity w=1617 focusables=68 {hb=39 identity=29}
+ZEDQA char tab=journal active=journal w=1617 focusables=21 {journal=20 jpage=1}
+ZEDQA char tab=skills active=skills w=1617 focusables=61 {skill=35 skills=2 training=24}
+ZEDQA world tab=loot active=loot w=777 focusables=0 {}
+ZEDQA world tab=craft active=craft w=1617 focusables=9 {craft=9}
+ZEDQA world tab=build active=build w=1617 focusables=4 {build=4}
+ZEDQA world tab=furniture active=furniture w=1617 focusables=5 {fur=5}
+ZEDQA world tab=maps active=maps w=1617 focusables=19 {map=19}
+ZEDQA world tab=forage active=forage w=1617 focusables=3 {forage=3}
+ZEDQA world tab=animals active=animals w=1617 focusables=3 {animals=3}
+ZEDQA tabs 14 tabs opened, 0 failed
+ZEDQA tabs done
+```
+
+### 4. zedqa_onepath.lua (`ZEDQA op`) - PASS, 30 s
+
+- go 25897 at 19:36:21
+- screenshots: zqa_op_1.png, zqa_op_2.png, zqa_op_3.png, zqa_op_4.png
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA op start
+[ZeD.QA] run #4 ok=true
+ZEDQA op crate ItemContainer:[type:crate, parent:null:carpentry_01_16:carpentry_01_16:zombie.iso.IsoObject@e16a9f6] type crate
+ZEDQA op world select crate true
+ZEDQA op apple menu: Eat, |, Place Item, Favorite, Set Unwanted, Move to, |, Set to be Unusable in Recipes, |, Drop, |, Save to loadout, |, Rename
+ZEDQA op move to: Crate, Floor
+ZEDQA op picked Crate
+ZEDQA op apple now in crate
+ZEDQA op PASS Move to: the apple went to the crate
+ZEDQA op hammer menu: Attach, Claw Hammer, Place Item, Put in Container (Crate), Favorite, Set Unwanted, Move to, Pin to title bar, |, Craft, Set to be Unusable in Recipes, Show Build Recipes Used In, |, Equip Primary, Equip Secondary, |, Drop, |, Save to loadout, |, Rename
+ZEDQA op prompt true entry Claw Hammer
+ZEDQA op hammer name: Old Faithful custom true
+ZEDQA op PASS Rename: the hammer took the name typed in the prompt
+ZEDQA op card els: hverb_1, hverb_2, name_row, toggle_fav, toggle_protect, toggle_unwanted, toggle_lists
+ZEDQA op dbl: first false second true
+ZEDQA op primary: true
+ZEDQA op PASS double-click: the hammer is in the hand
+ZEDQA op crate menu: Sit on ground, Walk to, |, Disassemble, |, Take All
+ZEDQA op take all pressed
+ZEDQA op crate left: 0 apple home true
+ZEDQA op PASS Take all: the crate is empty and the apple is back in the bag
+ZEDQA op bottle verbs: Drink, More
+ZEDQA op PASS the bottle's card has its header verbs (2)
+ZEDQA op knife maint: sharp 0.4000000059604645
+ZEDQA op nocraft on true off false
+ZEDQA op PASS the no-craft chip sets and clears the game's own flag
+ZEDQA op 6 passed, 0 failed
+ZEDQA op DONE
+```
+
+### 5. suite_verbs.lua (`ZEDQA verbs`) - PASS, 33 s
+
+- go 25898 at 19:36:54
+
+```text
+[ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA verbs armed
+[ZeD.QA] run #5 ok=true
+ZEDQA worn=Belt ctx=equipped
+ZEDQA fire UNEQUIP ok=true err=nil qhead=ISUnequipAction
+ZEDQA verbs PASS UNEQUIP dispatched without an error (nil)
+ZEDQA after UNEQUIP pEq=false ctx=inventory
+ZEDQA verbs PASS UNEQUIP took the worn thing off and its card reads inventory (inventory)
+ZEDQA fire EQUIP ok=true err=nil qhead=ISWearClothing
+ZEDQA verbs PASS EQUIP dispatched without an error (nil)
+ZEDQA after EQUIP pEq=true ctx=equipped
+ZEDQA verbs PASS EQUIP put it back on and its card reads equipped (equipped)
+ZEDQA fire READ ok=true err=nil qhead=ISReadABook
+ZEDQA verbs PASS READ dispatched without an error (nil)
+ZEDQA verbs PASS READ queued the game's read (ISReadABook)
+ZEDQA fire EQUIP ok=true err=nil qhead=ISEquipWeaponAction
+ZEDQA verbs PASS EQUIP dispatched without an error (nil)
+ZEDQA verbs PASS EQUIP put the bat in the hand and its card reads equipped (Baseball Bat, equipped)
+ZEDQA fire UNEQUIP ok=true err=nil qhead=ISUnequipAction
+ZEDQA verbs PASS UNEQUIP dispatched without an error (nil)
+ZEDQA verbs PASS UNEQUIP emptied the hand (nil)
+ZEDQA fire EAT ok=true err=nil qhead=ISEatFoodAction
+ZEDQA verbs PASS EAT dispatched without an error (nil)
+ZEDQA verbs PASS EAT queued the game's eat (ISEatFoodAction)
+ZEDQA fire DROP ok=true err=nil qhead=ISInventoryTransferAction
+ZEDQA verbs PASS DROP dispatched without an error (nil)
+ZEDQA verbs PASS DROP put the apple on the floor and its card reads ground (floor, ground)
+ZEDQA fire TAKE ok=true err=nil qhead=ISInventoryTransferAction
+ZEDQA verbs PASS TAKE dispatched without an error (nil)
+ZEDQA verbs PASS TAKE brought the apple back and its card reads inventory (inventory)
+ZEDQA verbs PASS the book, bat and apple are taken back (0 still in the bag)
+ZEDQA verbs 17 passed, 0 failed
+ZEDQA verbs done
+```
+
+### 6. zedqa_world_pad_take.lua (`ZEDQA wpt`) - PASS, 14 s
+
+- go 25899 at 19:37:30
+
+```text
+[ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA wpt not run: 7 every tab's bottom (cut Nov 12 2026)
+ZEDQA wpt start
+[ZeD.QA] run #6 ok=true
+ZEDQA wpt scene: 0 zombies removed, save ZeD-QA
+ZEDQA wpt PASS a crate was built beside the character
+ZEDQA wpt containers 1:Crate(ours), 2:Ground | stops container:2@0, container:1@100
+ZEDQA wpt PASS the crate has a stop in the World window's container strip (stops follow the list)
+ZEDQA wpt 1 after RB: World worldMainInv:invrow:1 (Baseball Bat)
+ZEDQA wpt PASS RB lands in the World window on a lit element
+ZEDQA wpt 1 on the Character window's strip: Char charContainerStrip:container:1
+ZEDQA wpt 1 Right from the Character window's right edge: World worldMainInv:invrow:1 (Baseball Bat)
+ZEDQA wpt PASS the D-pad across from the Character window lands in the World window, lit
+ZEDQA wpt 2 strip: World worldContainerStrip:container:2
+ZEDQA wpt PASS on the strip, focus is on the container on show (the ground)
+ZEDQA wpt 2 Down x1: World worldContainerStrip:container:1
+ZEDQA wpt PASS Down from the ground reaches the crate (1 presses)
+ZEDQA wpt 2 after A on the crate: World worldMainInv:invrow:1 (Apple (Fresh))
+ZEDQA wpt PASS A on the crate puts focus on its first item, lit
+ZEDQA wpt 2 Left: World worldContainerStrip:container:1
+ZEDQA wpt PASS Left from the list lands on the crate (the container on show)
+ZEDQA wpt 2 Right: World worldMainInv:invrow:1 (Apple (Fresh))
+ZEDQA wpt PASS Right goes back to the same row
+ZEDQA wpt 2 Left from a lower row: World worldContainerStrip:container:1
+ZEDQA wpt PASS Left from a lower row lands on the crate too
+ZEDQA wpt PASS and Right goes back to that row
+ZEDQA wpt 3 timing: card buttons ready after 7 ticks, 6 frames; focus in the card after 7 ticks, 6 frames (watched 7 ticks, 6 frames)
+ZEDQA wpt 3 A on the bandage: World worldItemCard:hverb_1
+ZEDQA wpt PASS 3 A on the bandage: focus is on the card's primary action (TAKE)
+ZEDQA wpt 3 Down in the card: World worldItemCard:name_row
+ZEDQA wpt PASS Down moves to the card's next control
+ZEDQA wpt 3 Up: World worldItemCard:hverb_1
+ZEDQA wpt PASS Up from inside the card is back on the primary action in one press
+ZEDQA wpt 3 after B: World worldMainInv:invrow:4 (Tweezers)
+ZEDQA wpt PASS B closes the card and focus is back on the bandage row, lit
+ZEDQA wpt 4 A on the nails: World worldItemCard:hverb_1
+ZEDQA wpt PASS 4 A on the nails: focus is on the card's primary action (TAKE)
+ZEDQA wpt PASS the nails' card offers Take as its primary action
+ZEDQA wpt PASS A on Take moved the nails into the bag (vanilla's transfer, 10 ticks)
+ZEDQA wpt 4 after the take: World worldMainInv:invrow:3 (Tweezers)
+ZEDQA wpt 5 before the padlock card: World worldMainInv:invrow:1 (Apple (Fresh))
+ZEDQA wpt 5 the padlock card: World worldItemCard:oc:verb:usecombo
+ZEDQA wpt PASS the object card opens with focus on its main live verb (oc:verb:usecombo)
+ZEDQA wpt PASS A on it ran the verb (the padlock's code wheel shows)
+ZEDQA wpt 5 after B: World worldMainInv:invrow:1 (Apple (Fresh))
+ZEDQA wpt PASS B closes the object card and focus is back in the list, lit
+ZEDQA wpt 6 Left from the World window's strip: Char charContainerStrip:container:1
+ZEDQA wpt PASS the D-pad across from the World window lands in the Character window, lit
+ZEDQA wpt 6 LB: Char charContainerStrip:container:1
+ZEDQA wpt PASS LB lands in the Character window on a lit element
+ZEDQA wpt 6 Right: Char charContainerStrip:container:1
+ZEDQA wpt PASS Right from a row lands on the bag on show
+ZEDQA wpt PASS Left goes back to the same row
+ZEDQA wpt 6 A on the nails: Char charItemCard:hverb_1
+ZEDQA wpt PASS 6 A on the nails: focus is on the card's primary action (DROP)
+ZEDQA wpt PASS Down then Up in the Character window's card is back on its primary action
+ZEDQA wpt 6 primary is DROP; A runs it
+ZEDQA wpt PASS A on the card's primary action (Drop) moved the nails out of the bag (10 ticks)
+ZEDQA wpt 6 A on a row: Char charItemCard:hverb_1
+ZEDQA wpt PASS 6 A on a row: focus is on the card's primary action (DROP)
+ZEDQA wpt 6 after B: Char charMainInv:invrow:1 (Angel Cross's Key Ring)
+ZEDQA wpt PASS B on the Character window's card goes back to the row
+ZEDQA wpt PASS 8 X on a row opens the context menu
+ZEDQA wpt 8 after the menu's B: World worldMainInv:invrow:2 (Corkscrew)
+ZEDQA wpt PASS 8 the menu closed: focus is back on the same row, lit
+ZEDQA wpt 8 after hold X: World worldMainInv:invrow:2 (Tweezers)
+ZEDQA wpt PASS 8 hold X moved the thing out of the crate
+ZEDQA wpt 8 a moment later: World worldMainInv:invrow:2 (Tweezers)
+ZEDQA wpt PASS 8 after the transfer focus is on a neighbour in the same panel, lit
+ZEDQA wpt PASS 8 a stray Left with a window open stays in the window (no way into the belt)
+ZEDQA wpt PASS 8 with the windows put away, Left opens the Character wheel (not the belt)
+ZEDQA wpt PASS 8 B leaves the belt in one press
+ZEDQA wpt PASS 8 Right past the belt's last box leaves it
+ZEDQA wpt PASS 8 Down (the screen's edge) leaves the belt
+ZEDQA wpt cleanup: crate gone true, size small
+ZEDQA layout wpt put back
+ZEDQA wpt 39 passed, 0 failed
+ZEDQA wpt DONE
+```
+
+### 7. zedqa_navmap.lua (`ZEDQA nav`) - PASS, 20 s
+
+- go 25900 at 19:37:47
+
+```text
+[ZeD.QA] state #7 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA nav start
+[ZeD.QA] run #7 ok=true
+ZEDQA nav char loot: 45 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char loot STUCK: tab:loot(L) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) invrow:29(D) view:filter:player(U) view:flip:player(U) container:2(D) halfpin:drawer(UL) halfpin:inv(U)
+ZEDQA nav LIST island: char loot island charCtl:charCtl:near
+ZEDQA nav char equip: 121 targets | TRAP 51 {equipslot:doll:torso,equipslot:doll:hands,equipslot:doll:belt,equipslot:doll:legs,equipslot:doll:feet,equipslot:doll:head,equipslot:doll:eyes,equipslot:doll:neck,equipslot:doll:outer,equipslot:doll:back,equipslot:doll:arms,equipslot:doll:ears,equipslot:doll:eartop,equipslot:doll:nose,equipslot:doll:necklace,equipslot:doll:necklacelong,equipslot:doll:gorget,equipslot:doll:padl,equipslot:doll:padr,equipslot:doll:padsport,equipslot:doll:elbowl,equipslot:doll:elbowr,equipslot:doll:wristl,equipslot:doll:wristr,equipslot:doll:forearml,equipslot:doll:forearmr,equipslot:doll:belly,equipslot:doll:holster,equipslot:doll:lmiddle,equipslot:doll:lring,equipslot:doll:rmiddle,equipslot:doll:rring,equipslot:doll:satchel,equipslot:doll:airtank,equipslot:doll:tail,equipslot:doll:fpfront,equipslot:doll:fpback,equipslot:doll:webbing,equipslot:doll:ammo,equipslot:doll:beltholster,equipslot:doll:kneel,equipslot:doll:kneer,equipslot:doll:thighl,equipslot:doll:thighr,equipslot:doll:shinl,equipslot:doll:shinr,equipslot:doll:gaiterl,equipslot:doll:gaiterr,equipslot:doll:ankleholster,equipslot:doll:main,equipslot:doll:off} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char equip STUCK: tab:loot(L) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) equipslot:__disclosure(U) equip:find(U) equipview:list(U) equipview:doll(U) equippart:Right Foot(D) equippart:Left Foot(D) invrow:29(D) view:filter:player(U) view:flip:player(U) container:2(D) halfpin:drawer(UL) halfpin:inv(U)
+ZEDQA nav LIST trap: char equip trap equipslot:doll:torso
+ZEDQA nav LIST trap: char equip trap equipslot:doll:hands
+ZEDQA nav LIST trap: char equip trap equipslot:doll:belt
+ZEDQA nav LIST trap: char equip trap equipslot:doll:legs
+ZEDQA nav LIST trap: char equip trap equipslot:doll:feet
+ZEDQA nav LIST trap: char equip trap equipslot:doll:head
+ZEDQA nav LIST trap: char equip trap equipslot:doll:eyes
+ZEDQA nav LIST trap: char equip trap equipslot:doll:neck
+ZEDQA nav LIST trap: char equip trap equipslot:doll:outer
+ZEDQA nav LIST trap: char equip trap equipslot:doll:back
+ZEDQA nav LIST trap: char equip trap equipslot:doll:arms
+ZEDQA nav LIST trap: char equip trap equipslot:doll:ears
+ZEDQA nav LIST trap: char equip trap equipslot:doll:eartop
+ZEDQA nav LIST trap: char equip trap equipslot:doll:nose
+ZEDQA nav LIST trap: char equip trap equipslot:doll:necklace
+ZEDQA nav LIST trap: char equip trap equipslot:doll:necklacelong
+ZEDQA nav LIST trap: char equip trap equipslot:doll:gorget
+ZEDQA nav LIST trap: char equip trap equipslot:doll:padl
+ZEDQA nav LIST trap: char equip trap equipslot:doll:padr
+ZEDQA nav LIST trap: char equip trap equipslot:doll:padsport
+ZEDQA nav LIST trap: char equip trap equipslot:doll:elbowl
+ZEDQA nav LIST trap: char equip trap equipslot:doll:elbowr
+ZEDQA nav LIST trap: char equip trap equipslot:doll:wristl
+ZEDQA nav LIST trap: char equip trap equipslot:doll:wristr
+ZEDQA nav LIST trap: char equip trap equipslot:doll:forearml
+ZEDQA nav LIST trap: char equip trap equipslot:doll:forearmr
+ZEDQA nav LIST trap: char equip trap equipslot:doll:belly
+ZEDQA nav LIST trap: char equip trap equipslot:doll:holster
+ZEDQA nav LIST trap: char equip trap equipslot:doll:lmiddle
+ZEDQA nav LIST trap: char equip trap equipslot:doll:lring
+ZEDQA nav LIST trap: char equip trap equipslot:doll:rmiddle
+ZEDQA nav LIST trap: char equip trap equipslot:doll:rring
+ZEDQA nav LIST trap: char equip trap equipslot:doll:satchel
+ZEDQA nav LIST trap: char equip trap equipslot:doll:airtank
+ZEDQA nav LIST trap: char equip trap equipslot:doll:tail
+ZEDQA nav LIST trap: char equip trap equipslot:doll:fpfront
+ZEDQA nav LIST trap: char equip trap equipslot:doll:fpback
+ZEDQA nav LIST trap: char equip trap equipslot:doll:webbing
+ZEDQA nav LIST trap: char equip trap equipslot:doll:ammo
+ZEDQA nav LIST trap: char equip trap equipslot:doll:beltholster
+ZEDQA nav LIST trap: char equip trap equipslot:doll:kneel
+ZEDQA nav LIST trap: char equip trap equipslot:doll:kneer
+ZEDQA nav LIST trap: char equip trap equipslot:doll:thighl
+ZEDQA nav LIST trap: char equip trap equipslot:doll:thighr
+ZEDQA nav LIST trap: char equip trap equipslot:doll:shinl
+ZEDQA nav LIST trap: char equip trap equipslot:doll:shinr
+ZEDQA nav LIST trap: char equip trap equipslot:doll:gaiterl
+ZEDQA nav LIST trap: char equip trap equipslot:doll:gaiterr
+ZEDQA nav LIST trap: char equip trap equipslot:doll:ankleholster
+ZEDQA nav LIST trap: char equip trap equipslot:doll:main
+ZEDQA nav LIST trap: char equip trap equipslot:doll:off
+ZEDQA nav LIST island: char equip island charCtl:charCtl:near
+ZEDQA nav char health: 67 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char health STUCK: tab:loot(L) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) health:__disclosure(U) health:exercise(D) health:time:dec(D) health:time:inc(D) health:start(D) invrow:29(D) view:filter:player(U) view:flip:player(U) container:2(D) halfpin:drawer(UL) halfpin:inv(U)
+ZEDQA nav LIST island: char health island charCtl:charCtl:near
+ZEDQA nav char thermal: 64 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char thermal STUCK: tab:loot(L) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) thermal:__disclosure(U) thermal:view(D) invrow:29(D) view:filter:player(U) view:flip:player(U) container:2(D) halfpin:drawer(UL) halfpin:inv(U)
+ZEDQA nav LIST island: char thermal island charCtl:charCtl:near
+ZEDQA nav char identity: 113 targets | TRAP 1 {hb:part} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char identity STUCK: tab:loot(L) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) identity:__disclosure(U) identity:trait:Weak Stomach(D) invrow:29(D) view:filter:player(U) view:flip:player(U) container:2(D) halfpin:drawer(UL) halfpin:inv(U)
+ZEDQA nav LIST trap: char identity trap hb:part
+ZEDQA nav LIST island: char identity island charCtl:charCtl:near
+ZEDQA nav char journal: 66 targets | TRAP 0 {} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char journal STUCK: tab:loot(L) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) jpage(U) journal:group:6_1993(D) invrow:29(D) view:filter:player(U) view:flip:player(U) container:2(D) halfpin:drawer(UL) halfpin:inv(U)
+ZEDQA nav LIST island: char journal island charCtl:charCtl:near
+ZEDQA nav char skills: 106 targets | TRAP 35 {skill:Aiming,skill:Reloading,skill:Blacksmithing,skill:Carpentry,skill:Carving,skill:Cooking,skill:Electrical,skill:Glassmaking,skill:Knapping,skill:Masonry,skill:Mechanics,skill:Pottery,skill:Tailoring,skill:Welding,skill:First Aid,skill:Fishing,skill:Foraging,skill:Tracking,skill:Trapping,skill:Axe,skill:Long Blade,skill:Long Blunt,skill:Maintenance,skill:Short Blade,skill:Short Blunt,skill:Spear,skill:Agriculture,skill:Animal Care,skill:Butchering,skill:Fitness,skill:Lightfooted,skill:Nimble,skill:Running,skill:Sneaking,skill:Strength} | ISLAND 1 {charCtl:charCtl:near}
+ZEDQA nav char skills STUCK: tab:loot(L) tab:equip(L) tab:health(L) tab:thermal(L) tab:identity(L) tab:journal(L) tab:skills(DL) skills:__disclosure(U) skills:find(U) training:col1_Foraging(D) training:col2_MetalWelding(D) invrow:29(D) view:filter:player(U) view:flip:player(U) container:2(D) halfpin:drawer(UL) halfpin:inv(U)
+ZEDQA nav LIST trap: char skills trap skill:Aiming
+ZEDQA nav LIST trap: char skills trap skill:Reloading
+ZEDQA nav LIST trap: char skills trap skill:Blacksmithing
+ZEDQA nav LIST trap: char skills trap skill:Carpentry
+ZEDQA nav LIST trap: char skills trap skill:Carving
+ZEDQA nav LIST trap: char skills trap skill:Cooking
+ZEDQA nav LIST trap: char skills trap skill:Electrical
+ZEDQA nav LIST trap: char skills trap skill:Glassmaking
+ZEDQA nav LIST trap: char skills trap skill:Knapping
+ZEDQA nav LIST trap: char skills trap skill:Masonry
+ZEDQA nav LIST trap: char skills trap skill:Mechanics
+ZEDQA nav LIST trap: char skills trap skill:Pottery
+ZEDQA nav LIST trap: char skills trap skill:Tailoring
+ZEDQA nav LIST trap: char skills trap skill:Welding
+ZEDQA nav LIST trap: char skills trap skill:First Aid
+ZEDQA nav LIST trap: char skills trap skill:Fishing
+ZEDQA nav LIST trap: char skills trap skill:Foraging
+ZEDQA nav LIST trap: char skills trap skill:Tracking
+ZEDQA nav LIST trap: char skills trap skill:Trapping
+ZEDQA nav LIST trap: char skills trap skill:Axe
+ZEDQA nav LIST trap: char skills trap skill:Long Blade
+ZEDQA nav LIST trap: char skills trap skill:Long Blunt
+ZEDQA nav LIST trap: char skills trap skill:Maintenance
+ZEDQA nav LIST trap: char skills trap skill:Short Blade
+ZEDQA nav LIST trap: char skills trap skill:Short Blunt
+ZEDQA nav LIST trap: char skills trap skill:Spear
+ZEDQA nav LIST trap: char skills trap skill:Agriculture
+ZEDQA nav LIST trap: char skills trap skill:Animal Care
+ZEDQA nav LIST trap: char skills trap skill:Butchering
+ZEDQA nav LIST trap: char skills trap skill:Fitness
+ZEDQA nav LIST trap: char skills trap skill:Lightfooted
+ZEDQA nav LIST trap: char skills trap skill:Nimble
+ZEDQA nav LIST trap: char skills trap skill:Running
+ZEDQA nav LIST trap: char skills trap skill:Sneaking
+ZEDQA nav LIST trap: char skills trap skill:Strength
+ZEDQA nav LIST island: char skills island charCtl:charCtl:near
+ZEDQA nav world loot: 18 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world loot STUCK: container:1(D) view:filter:type:floor(U) view:flip:type:floor(U) tab:loot(R) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(DR) worldCtl:take(D) worldCtl:same(D) halfpin:inv(U) halfpin:drawer(UR)
+ZEDQA nav world craft: 27 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world craft STUCK: container:1(D) view:filter:type:floor(U) view:flip:type:floor(U) craft:stDrop(U) craft:catDrop(U) craft:sortMenu(D) craft:showMenu(D) tab:loot(R) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(DR) worldCtl:take(D) worldCtl:same(D) halfpin:inv(U) halfpin:drawer(UR)
+ZEDQA nav world build: 22 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world build STUCK: container:1(D) view:filter:type:floor(U) view:flip:type:floor(U) build:catDrop(U) build:sortMenu(D) build:showMenu(D) tab:loot(R) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(DR) worldCtl:take(D) worldCtl:same(D) halfpin:inv(U) halfpin:drawer(UR)
+ZEDQA nav world furniture: 23 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world furniture STUCK: container:1(D) view:filter:type:floor(U) view:flip:type:floor(U) fur:mode:pickup(UD) fur:mode:place(UD) fur:mode:rotate(UD) fur:mode:scrap(UD) fur:mode:repair(UD) tab:loot(R) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(DR) worldCtl:take(D) worldCtl:same(D) halfpin:inv(U) halfpin:drawer(UR)
+ZEDQA nav world maps: 37 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world maps STUCK: container:1(D) view:filter:type:floor(U) view:flip:type:floor(U) map:disclosure(U) map:tool:house(U) map:tool:target(U) map:tool:skull(U) map:tool:star(U) map:tool:cross(U) map:tool:checkmark(U) map:tool:text(U) map:color:1(U) map:color:2(U) map:color:3(U) map:color:4(U) map:color:5(U) map:popout(U) map:style:survey(D) map:style:color(D) map:style:paper(D) map:ext:key(D) tab:loot(R) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(DR) worldCtl:take(D) worldCtl:same(D) halfpin:inv(U) halfpin:drawer(UR)
+ZEDQA nav world forage: 21 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world forage STUCK: container:1(D) view:filter:type:floor(U) view:flip:type:floor(U) forage:dropdown(U) forage:search(D) tab:loot(R) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(DR) worldCtl:take(D) worldCtl:same(D) halfpin:inv(U) halfpin:drawer(UR)
+ZEDQA nav world animals: 21 targets | TRAP 0 {} | ISLAND 0 {}
+ZEDQA nav world animals STUCK: container:1(D) view:filter:type:floor(U) view:flip:type:floor(U) animals:submode:ranch(U) animals:submode:butcher(U) animals:createzone(D) tab:loot(R) tab:craft(R) tab:build(R) tab:furniture(R) tab:maps(R) tab:forage(R) tab:animals(DR) worldCtl:take(D) worldCtl:same(D) halfpin:inv(U) halfpin:drawer(UR)
+ZEDQA nav 14 tabs audited: 87 traps, 7 islands (first run under the new rule: a list for triage, not counted against the run)
+ZEDQA nav DONE
+```
+
+### 8. zedqa_dash_one.lua (`ZEDQA dashone`) - PASS, 1 s
+
+- go 25901 at 19:38:11
+
+```text
+[ZeD.QA] state #8 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA dashone the next zedqa_dashpx.lua runs one car: 02_nyala
+[ZeD.QA] run #8 ok=true
+ZEDQA dashone DONE
+```
+
+### 9. zedqa_dashpx.lua (`ZEDQA dpx`) - PASS, 13 s
+
+- go 25902 at 19:38:15
+- screenshots: zqa_dashpx_02_nyala_keyon.png, zqa_dashpx_02_nyala.png
+
+```text
+[ZeD.QA] state #9 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=31 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA dpx one car only: 02_nyala (1 of 24)
+[ZeD.QA] run #9 ok=true
+ZEDQA vp dpx player=925,13040 grid=19 chunks (152 tiles) loaded x 848-1000 y 12968-13120 sq=930,13042 dist=4.7 chunk=true inMap=true car=Base.CarNormal at 930.0,13042.0 dist=4.7 vehicles=31
+ZEDQA car dpx Base.CarNormal spawned on spot 1 (930,13042)
+ZEDQA dpx 02_nyala design=nyala rect=1120,1804,1600,356 k=2 running=true radio=true/valutech heat=true lights=true name=CHEVALIER NYALA livery= make=CHEVALIER model=NYALA unit=CHEVALIER - UNIT 54 hits=23 screen=3840x2160
+ZEDQA dpx PASS 02_nyala: the character is in the car
+ZEDQA dpx PASS 02_nyala: the key is in the ignition
+ZEDQA dpx PASS 02_nyala: the engine is running
+ZEDQA dpx PASS 02_nyala: the dash has a design (nyala)
+ZEDQA dpx PASS 02_nyala: the dash is drawn wholly on the screen (1120,1804 1600x356)
+ZEDQA dpx 5 passed, 0 failed
+ZEDQA dpx DONE
+```
+
+### 10. zedqa_messages.lua (`ZEDQA msg`) - PASS, 14 s
+
+- go 25903 at 19:38:32
+- 1 expected exception(s) ignored (expect=)
+- screenshots: zqa_msg_belt_toast.png, zqa_msg_window_mod.png, zqa_msg_window_error.png
+
+```text
+[ZeD.QA] state #10 speed=1 paused=false player=928,13041 grid=19 inCar=false vehicles=20 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA msg start
+[ZeD.QA] run #10 ok=true
+ZEDQA msg PASS nothing kept: no envelope on the belt
+ZEDQA msg PASS the three notes are not on screen
+ZEDQA msg PASS the three notes are kept in Messages
+ZEDQA msg PASS the source has three messages (3)
+ZEDQA msg PASS three are new (3)
+ZEDQA msg PASS a toast names the mod
+ZEDQA msg PASS the game runs on after the mod paused it for its note (speed 1)
+ZEDQA msg PASS the envelope is on the belt
+ZEDQA msg PASS a question still asks at once
+ZEDQA msg PASS the mod got its answer (YES)
+ZEDQA msg PASS a copy of the question, already read, is in Messages
+ERROR: General f:9476 at KahluaThread.flushErrorMessage > -------------------------------------------------------------   (expected)
+    attempted index: qaMessagesError of non-table: null
+ERROR: General f:9476> Lua(Vanilla).boom> Exception thrown   (expected)
+    java.lang.RuntimeException: attempted index: qaMessagesError of non-table: null at KahluaThread.tableget(KahluaThread.java:1430).
+    Lua(Vanilla).boom(worldmap-annotations.lua:103)
+ZEDQA msg PASS the one error is filed in Messages, counted once (0 -> 1)
+ZEDQA msg PASS Messages opens on the mod
+ZEDQA msg PASS opening it marks the mod's messages read
+ZEDQA msg PASS four cards: three notes and the question (4)
+ZEDQA msg PASS three OK buttons, one per note (3)
+ZEDQA msg PASS OK ran that mod's callback once (1/0/0)
+ZEDQA msg PASS A on the next card's OK ran its callback
+ZEDQA msg PASS the controller is in the cards
+ZEDQA msg PASS the window lists an error source
+ZEDQA msg PASS the bug report text names the errors (1976 characters)
+ZEDQA msg PASS with the switch on, the mod's note shows as a pop-up
+ZEDQA msg PASS Clear removes the mod's messages
+ZEDQA msg PASS the last unanswered note got its OK as it left
+ZEDQA msg all checks passed
+ZEDQA msg DONE
+```
+
+### 11. zedqa_safemode.lua (`ZEDQA safe`) - PASS, 14 s
+
+- go 25904 at 19:38:49
+- screenshots: zqa_safe_1.png, zqa_safe_2.png, zqa_safe_3.png
+
+```text
+[ZeD.QA] state #11 speed=1 paused=false player=928,13041 grid=19 inCar=false vehicles=20 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA safe start
+[ZeD.QA] run #11 ok=true
+ZEDQA safe baseline: on false | pair true/true | vanilla inv false | hotbar replaced | clock y -4000 visible false | speed y -4000 | moodle layer true
+ZEDQA safe ok baseline
+ZEDQA safe tripped: on true | pair false/false | vanilla inv true | hotbar vanilla | clock y 10 visible false | speed y 10 | moodle layer false | note true
+ZEDQA safe ok tripped
+ZEDQA safe ok the note shows and closes
+ZEDQA safe inventory key (23): vanilla page true -> false -> true | pair false/false
+ZEDQA safe ok inventory key goes to vanilla
+ZEDQA safe before reset: vanilla inv true
+ZEDQA safe reset: on false | pair false/false | vanilla inv false | hotbar replaced | clock y -4000 visible false | speed y -4000 | moodle layer true
+ZEDQA safe ok reset
+ZEDQA safe ok reset hides vanilla's page again
+ZEDQA safe reopened: pair true/true | vanilla inv false
+ZEDQA safe ok reopened
+ZEDQA safe option On picked up by the poll: picked up after 191 ms
+ZEDQA safe ok option On picked up by the poll
+ZEDQA safe option on: on true | pair false/false | vanilla inv true | hotbar vanilla | clock y 10 visible false | speed y 10 | moodle layer false
+ZEDQA safe ok option on
+ZEDQA safe option Off picked up by the poll: picked up after 508 ms
+ZEDQA safe ok option Off picked up by the poll
+ZEDQA safe option off: on false | pair false/false | vanilla inv false | hotbar replaced | clock y -4000 visible false | speed y -4000 | moodle layer true
+ZEDQA safe ok option off
+ZEDQA safe burst: 5 ticks, still off after 2500 ms
+ZEDQA safe ok watchdog: a five-frame burst leaves ZeD on
+ZEDQA safe streak: tripped after 2014 ms, 241 frames, longest gap 19 ms
+ZEDQA safe ok watchdog: below two seconds of failures ZeD stays on
+ZEDQA safe ok watchdog: two seconds of failures every frame trip it
+ZEDQA safe ok watchdog note shows and closes
+ZEDQA safe restored: on false | pair true/true | vanilla inv false | hotbar replaced | clock y -4000 visible false | speed y -4000 | moodle layer true
+ZEDQA safe ok restored
+ZEDQA safe DONE
+```
+
+### 12. zedqa_soak.lua (`ZEDQA soak`) - PASS, 157 s
+
+- go 25905 at 19:39:07
+
+```text
+[ZeD.QA] state #12 speed=1 paused=false player=928,13041 grid=19 inCar=false vehicles=20 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA soak start ui 45, 2 rounds
+[ZeD.QA] run #12 ok=true
+ZEDQA soak round 1 avg 19.04 ms worst 243 ms ui 46 (start 45) hours 0.3
+ZEDQA soak round 2 avg 18.62 ms worst 47 ms ui 46 (start 45) hours 0.7
+ZEDQA soak PASS nothing piles up: 46 UI elements at the end of round 2, 46 at the end of round 1
+ZEDQA soak PASS no slowdown: round 2 averaged 18.62 ms a frame, round 1 19.04 ms
+ZEDQA soak PASS after the run, the reader shut: 45 UI elements (45 at the start; the reader's own window may stay as one)
+ZEDQA soak 3 passed, 0 failed (2 rounds)
+ZEDQA soak DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```
