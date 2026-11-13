@@ -53,5 +53,17 @@ local items = ZeD_MMNewGame.items({ challenges = true })
 check("ZeD's Challenges list has every challenge", #items == (env_ok and #ChallengeList or -1), #items)
 local first = items[1]
 check("each item carries its challenge, name and picture", first and first.challenge and first.title == first.challenge.name and first.thumb == first.challenge.image)
+-- Back from a challenge's character creation lands on the Challenges list with that challenge picked (QA, Nov 13)
+local show = src:match("(function ZeD_MMNewGame:onShow%(%).-\nend%s)")
+check("ZeD_MMNewGame:onShow() found", show ~= nil)
+local solo = { inChallengesView = true, selectedItem = { data = items[#items] } }
+ms = function() return { soloScreen = solo } end
+assert(loadstring(show or "", "@onShow"))()
+local w = setmetatable({}, { __index = ZeD_MMNewGame })
+ZeD_MMNewGame.onShow(w)
+check("back from a challenge: its list, that challenge picked", w.challenges == true and w.sel == #items and w.focusId == "icon:" .. #items, tostring(w.challenges) .. " " .. tostring(w.sel))
+solo.inChallengesView = false
+ZeD_MMNewGame.onShow(w)
+check("a fresh visit: the playstyles, the first picked", w.challenges == false and w.sel == 1)
 print(string.format("challenges_list_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

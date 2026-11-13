@@ -866,6 +866,17 @@ function ZeD_MMNewGame:onShow()
     self.challenges = false
     self.sel = 1
     self.focusId = "icon:1"
+    -- back from a challenge's character creation: vanilla's screen is still in its challenge list with that challenge
+    -- picked, and so is this one (QA, Nov 13 2026: it landed on the playstyles with Apocalypse picked)
+    local m = ms()
+    local ng = m and m.soloScreen
+    local cur = ng and ng.inChallengesView and ng.selectedItem and ng.selectedItem.data
+    if cur and cur.challenge then
+        self.challenges = true
+        self._challengeItems = nil
+        for i, d in ipairs(self:items()) do if d.challenge == cur.challenge then self.sel = i end end
+        self.focusId = "icon:" .. self.sel
+    end
 end
 
 function ZeD_MMNewGame:isChallengesItem(d)
@@ -905,6 +916,9 @@ function ZeD_MMNewGame:back()
         self.focusId = "icon:" .. self.sel
         return
     end
+    -- (leaving New game: the next visit starts at the playstyles, not a challenge picked earlier)
+    local m = ms()
+    if m and m.soloScreen then m.soloScreen.inChallengesView = false end
     MainScreen.resetLuaIfNeeded()   -- vanilla: mods chosen for a new game may need a Lua reset
     MM.showView("main")
 end
