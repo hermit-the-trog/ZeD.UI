@@ -382,8 +382,8 @@ function ZeD_Window:_inUse()
     if self:pointerOn() then return true end
     local I = ZeD.Input
     local F, Det = I and I.Focus, I and I.Detector
-    if F and F.getFocusedWindow and F.getFocusedWindow() == self
-       and Det and Det.getMode and Det.getMode() == "gamepad" then
+    if F and F.getFocusedWindow and F.getFocusedWindow(self.playerNum) == self
+       and Det and Det.getMode and Det.getMode(self.playerNum) == "gamepad" then
         return true
     end
     -- (the main menu's windows keep their own controller focus)
@@ -915,8 +915,8 @@ function ZeD_Window:_footerPrompts()
     end
     local I = ZeD.Input
     local Focus, Det = I and I.Focus, I and I.Detector
-    if not (Det and Det.getMode and Det.getMode() == "gamepad") then return nil end
-    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) then return nil end
+    if not (Det and Det.getMode and Det.getMode(self.playerNum) == "gamepad") then return nil end
+    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(self.playerNum) == self) then return nil end
     local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
     local prompts = _promptsFor(el, self)
     pcall(_addListPrompts, self, prompts)
@@ -1730,35 +1730,35 @@ end
 
 function ZeD_Window:onJoypadDown(button, joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDown(self, button, joypadData)
     end
 end
 
 function ZeD_Window:onJoypadDirUp(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "up", joypadData)
     end
 end
 
 function ZeD_Window:onJoypadDirDown(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "down", joypadData)
     end
 end
 
 function ZeD_Window:onJoypadDirLeft(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "left", joypadData)
     end
 end
 
 function ZeD_Window:onJoypadDirRight(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "right", joypadData)
     end
 end
