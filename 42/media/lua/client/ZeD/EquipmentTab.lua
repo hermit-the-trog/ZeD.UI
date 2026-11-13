@@ -237,7 +237,7 @@ end
 
 -- The protection and weight columns as narrow as what they hold: a protection column its
 -- dot or its head word ("Bite"), the weight its number ("00.0") or "Wt", each with 2u
--- either side; measured the same way
+-- either side; measured the same way (the heads in row 2's font, T.sortFont)
 local PROT_HEADS = { "IGUI_health_Bite", "UI_ZeD_Equip_ColScratch", "UI_ZeD_Equip_ColBullet" }
 local _narrowProtW, _narrowWtW, _narrowSig = nil, nil, nil
 local function getNarrowColW()
@@ -245,8 +245,8 @@ local function getNarrowColW()
     if _narrowProtW and _narrowSig == sig then return _narrowProtW, _narrowWtW end
     local tm, T = ZeD.TM, ZeD.T
     local p = T.px(6)   -- (the dot)
-    for _, k in ipairs(PROT_HEADS) do p = math.max(p, tm:MeasureStringX(T.fontF5, ZeD.tr(k))) end
-    local wt = math.max(tm:MeasureStringX(T.fontF1, "00.0"), tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Equip_ColWeight")))
+    for _, k in ipairs(PROT_HEADS) do p = math.max(p, tm:MeasureStringX(T.sortFont, ZeD.tr(k))) end
+    local wt = math.max(tm:MeasureStringX(T.fontF1, "00.0"), tm:MeasureStringX(T.sortFont, ZeD.tr("UI_ZeD_Equip_ColWeight")))
     _narrowProtW = math.ceil(p + T.px(4))
     _narrowWtW = math.ceil(wt + T.px(4))
     _narrowSig = sig
@@ -1051,7 +1051,7 @@ end
 -- COLUMN HEADER BAR — labels above the slot list
 -- ============================================================================
 
-local EQUIP_HDR_H = (ZeD.Spacing and ZeD.Spacing.colHdrH) or 20  -- design units: a copy of T.sp.colHdrH cached at load would miss a scale change; every use goes through T.px
+-- the column header bar is row 2's height, ZeD.T.sortBarH, read at each draw (punch list 178)
 
 local function _drawEquipHeader(panel, x, y, w, win)
     local T  = ZeD.T
@@ -1059,25 +1059,25 @@ local function _drawEquipHeader(panel, x, y, w, win)
     local tm = ZeD.TM
 
     -- Background: the column heads' surface, claimed over the body (one layer)
-    ZeD.Atoms.surfaceFill(panel, x, y, w, T.px(EQUIP_HDR_H), "surf2")
+    ZeD.Atoms.surfaceFill(panel, x, y, w, T.sortBarH, "surf2")
 
     -- Column layout (shared with _drawSlotRow)
     local cl = calcEquipColumns(w, win)
 
-    local secFH = tm:getFontHeight(T.fontF5)
-    local textY = y + math.floor((T.px(EQUIP_HDR_H) - secFH) / 2)
+    local secFH = tm:getFontHeight(T.sortFont)
+    local textY = y + math.floor((T.sortBarH - secFH) / 2)
     local c = T.toneNorm
 
     -- Center helper
     local function drawCentered(label, colStart, colW)
-        label = ZeD.Atoms.truncateText(label, T.fontF5, colW)   -- the game's column words can be long
-        local tw = tm:MeasureStringX(T.fontF5, label)
+        label = ZeD.Atoms.truncateText(label, T.sortFont, colW)   -- the game's column words can be long
+        local tw = tm:MeasureStringX(T.sortFont, label)
         local tx = x + colStart + math.floor((colW - tw) / 2)
-        panel:drawText(label, tx, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
+        panel:drawText(label, tx, textY, c.r, c.g, c.b, c.a or 0.92, T.sortFont)
     end
 
     -- Column order: NAME SLOT COND BITE SCR BUL WT
-    panel:drawText(ZeD.tr("IGUI_Name"), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
+    panel:drawText(ZeD.tr("IGUI_Name"), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.sortFont)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColSlot"), cl.slotX, cl.slotColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColCond"), cl.condX, cl.condColW)
     if cl.protOn then   -- (left out when the card is too narrow for them)
@@ -1086,13 +1086,13 @@ local function _drawEquipHeader(panel, x, y, w, win)
         drawCentered(ZeD.tr("UI_ZeD_Equip_ColBullet"), cl.bulX,  cl.protColW)
     end
     if cl.wtOn then
-        A.drawTextRight(panel, ZeD.tr("UI_ZeD_Equip_ColWeight"), x + cl.wtX + cl.wtColW - cl.wtPad, textY, T.fontF5, c)
+        A.drawTextRight(panel, ZeD.tr("UI_ZeD_Equip_ColWeight"), x + cl.wtX + cl.wtColW - cl.wtPad, textY, T.sortFont, c)
     end
 
     -- Divider hit zones for column resize (6px wide, centered on column edge)
     -- (the list and its three zones are the window's, refilled each frame)
     local divZones = (win and win._equipDivZones) or {}
-    local dw, dh = T.px(DIV_W), T.px(EQUIP_HDR_H)
+    local dw, dh = T.px(DIV_W), T.sortBarH
     local function divZone(i, col, cx)
         local z = divZones[i] or {}
         z.col, z.x, z.y, z.w, z.h = col, cx - dw / 2, y, dw, dh
@@ -1110,7 +1110,7 @@ local function _drawEquipHeader(panel, x, y, w, win)
         for _, dz in ipairs(divZones) do
             if mx >= dz.x and mx < dz.x + dz.w and my >= dz.y and my < dz.y + dz.h then
                 local ac = T.accent
-                panel:drawRect(dz.x + T.px(DIV_W) / 2 - T.px(1), y, T.px(2), T.px(EQUIP_HDR_H), ac.a, ac.r, ac.g, ac.b)
+                panel:drawRect(dz.x + T.px(DIV_W) / 2 - T.px(1), y, T.px(2), T.sortBarH, ac.a, ac.r, ac.g, ac.b)
                 break
             end
         end
@@ -1126,7 +1126,7 @@ local function _drawEquipHeader(panel, x, y, w, win)
         panel:drawRect(divX - T.px(1), y, T.px(2), panel:getHeight() - y, ac.a, ac.r, ac.g, ac.b)
     end
 
-    A.drawDividerH(panel, x, y + T.px(EQUIP_HDR_H) - T.px(1), w, true)
+    A.drawDividerH(panel, x, y + T.sortBarH - T.px(1), w, true)
 end
 
 -- ============================================================================
@@ -1429,7 +1429,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
     -- Pinned header: standard ZeD drawer-header strip (T.sp.tabHeaderH).
     -- Column headers (20px) always in scroll area
-    local headerH = T.sp.tabHeaderH or T.px(37)
+    local headerH = T.stripH   -- row 1
     local listExpanded = win._equipListExpanded
     -- the loadouts: a fold under the doll and the lists, shut until opened, in both views
     -- (ZeD_EquipLoadout.lua). It is measured and drawn at the doll's width, so its rows
@@ -1489,7 +1489,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     elseif findEmpty then
         totalH = totalH + TF.emptyH(win, "equip", w - T.sp.scrollbarW)
     elseif listExpanded then
-        totalH = totalH + T.px(EQUIP_HDR_H)
+        totalH = totalH + T.sortBarH
         for gi, g in ipairs(data.groups) do
             totalH = totalH + groupHeaderH_pre
             if g.id == "held" then totalH = totalH + groupHeaderH_pre + #_beltSlots(win, win._equipExpanded[g.id]) * _beltRowH() end
@@ -1605,7 +1605,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
             win._equipNameNeedData, win._equipNameNeedEp = data, needEp
         end
         _drawEquipHeader(panel, x, drawY, contentW, win)
-        drawY = drawY + T.px(EQUIP_HDR_H)
+        drawY = drawY + T.sortBarH
 
         for gi, g in ipairs(data.groups) do
             local expanded = win._equipExpanded[g.id]

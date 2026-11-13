@@ -3548,7 +3548,6 @@ end
 -- MAIN RENDER — routes to submode × view
 -- ============================================================================
 
-local TAB_TOP_PAD = 13  -- aligns sub-tab strip bottom with inventory column header (matches JournalTab)
 
 function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     local T = ZeD.T
@@ -3556,9 +3555,10 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     local state = getState(win)
     local zc = getZoneCreateState(win)
 
-    -- Top padding: 13px aligns sub-tab strip bottom with inventory column header
-    y = y + T.px(TAB_TOP_PAD)
-    h = h - T.px(TAB_TOP_PAD)
+    -- the sub-tab strip sits at the foot of row 1 (T.stripH), its line on the strips' line
+    local topPad = T.stripH - T.tabH
+    y = y + topPad
+    h = h - topPad
 
     -- zones of the views not drawn this frame must not answer clicks or focus
     win._animalsStructZones = {}

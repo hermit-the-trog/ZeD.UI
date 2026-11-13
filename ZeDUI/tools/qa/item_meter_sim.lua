@@ -116,7 +116,7 @@ check("COLUMN the heading has no right edge: left aligned (the director)", condD
 local wtDef = src:match('colDefs%[#colDefs %+ 1%] = {ZeD%.tr%("UI_ZeD_Inv_ColWt"%)[^\n]*')
 check("COLUMN Weight, a number, keeps its right edge", wtDef and wtDef:find("wtX + wtColW - padX}", 1, true), wtDef)
 check("COLUMN the column as wide as its heading needs, up to 90 units",
-      src:find('MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))', 1, true) ~= nil)
+      src:find('MeasureStringX(T.sortFont, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))', 1, true) ~= nil)   -- (the heading's font is row 2's since punch list 178)
 local rowFn = src:match("local function rowCondition%(.-\nend")
 local cellFn = src:match("local function drawCellCondition%(.-\nend")
 check("COLUMN a row draws ItemMeter's bar", rowFn and rowFn:find("IM.ofStack(item,", 1, true) and rowFn:find("IM.style(kind)", 1, true))

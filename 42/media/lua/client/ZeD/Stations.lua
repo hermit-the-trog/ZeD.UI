@@ -843,14 +843,16 @@ function ST.renderViewHeader(panel, win, x, y, w, state, st)
     local T = ZeD.T
     local pad = T.px(6)
     local h = T.inputH
-    local sx, sy, sw = x + pad, y + pad, w - pad * 2
+    -- (the select centered in row 1, the shared strip: punch list 178)
+    local rowH = T.stripH
+    local sx, sy, sw = x + pad, y + math.floor((rowH - h) / 2), w - pad * 2
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local hov = (not state.stDropdownOpen) and mx >= sx and mx < sx + sw and my >= sy and my < sy + h
     ST.drawSelect(panel, sx, sy, sw, h, ZeD.tr("UI_ZeD_Station_SelectLabel"), st.name, true, state._gpFocusedId == "craft:stDrop", hov)
     state.zones[#state.zones + 1] = { type = "stationDropdown", x = sx, y = sy, w = sw, h = h }
     state._stGeo = { x = sx, y = sy + h, w = math.floor(sw / 2) }
-    ZeD.Atoms.drawDividerH(panel, x, y + pad * 2 + h - T.px(1), w, true)
-    local used = pad * 2 + h
+    ZeD.Atoms.drawDividerH(panel, x, y + rowH - T.px(1), w, true)
+    local used = rowH
     used = used + ST.drawBand(panel, x, y + used, w, st, win._playerObj)
     return used
 end

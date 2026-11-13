@@ -1474,7 +1474,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     end
 
     -- Standard ZeD drawer-header strip height — sourced from the spacing token.
-    local headerH = (T.sp and T.sp.tabHeaderH) or T.px(37)
+    local headerH = T.stripH   -- row 1
     -- a radio with a face: its own face (renderTwoWay above); a two-way set's full view button in the header
     local fDrv, twPid, twDes = ZeD.RadioTab.faceFor(current)
     local isTw = fDrv == ZeD.TwoWay

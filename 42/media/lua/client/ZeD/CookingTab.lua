@@ -580,7 +580,7 @@ end
 local function renderHeader(panel, s, x, y, w, chr)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local CC = ZeD.CraftingCore
-    local h = T.px(CC.HEADER_H or 37)
+    local h = T.stripH   -- row 1, the shared strip
     A.surfaceFill(panel, x, y, w, h, "surf2")
     A.drawDividerH(panel, x, y + h - T.line(T.borderW), w, true)
     local C = catalog()
