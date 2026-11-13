@@ -933,7 +933,8 @@ function W:_pageButton(button, jd)
             else
                 local folds = helpFolds((self:_helpNow()))
                 local it = folds[self.hFocus or 1]
-                if it then self:helpFold(it.sec.id) end
+                -- (a down that read on through a tall section left its header above the view: the fold brings it back)
+                if it then self:helpFold(it.sec.id); self.hSeek = true end
             end
             return true
         end

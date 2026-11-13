@@ -569,6 +569,18 @@ do
             steps = steps + 1
         end
         check(name .. ": up again, each header in view on the way back to the top", okUp and w3.hFocus == 1 and w3.hScroll <= folds[1].y, w3.hFocus .. " " .. w3.hScroll)
+        -- a down that reads into a tall section leaves its header above the view; A folds that section and brings
+        -- the header back in, so the hand is never off the page
+        w3.hFold, w3.hScroll, w3.hFocus = {}, 0, 1
+        draw(w3)
+        w3:onJoypadDirDown()
+        draw(w3)
+        w3:onJoypadDown(Joypad.AButton, jd3)
+        draw(w3)
+        local fAfter = {}
+        for _, it in ipairs((w3:_helpLayout(layW))) do if it.t == "fold" then fAfter[#fAfter + 1] = it end end
+        local hd = fAfter[w3.hFocus]
+        check(name .. ": one down then A, the folded header in view", hd ~= nil and hd.y >= w3.hScroll and hd.y + hd.h <= w3.hScroll + view, (hd and hd.y or "?") .. " at " .. w3.hScroll)
         check(name .. ": drawn inside", #H.DRAW.outside == 0, H.DRAW.outside[1])
     end
     DC.close()
