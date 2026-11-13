@@ -68,7 +68,7 @@ ZEDQA car dgr Base.SportsCar spawned on spot 13 (917,13024)
 `ZEDQA nav` found 0 traps and 0 islands on all 14 tabs (no LIST line). It still reads FAIL: 52 Java exceptions in its window, all the one in List A below.
 
 ### List A (real mod bugs)
-1. The Vehicle tab throws on every frame once a car is in view: 108 exceptions (52 in navmap, 56 in mech79). Lines: `ERROR: General f:27184> Lua((MOD:ZeD-GUI)).vehicleName> Exception thrown`, `java.lang.RuntimeException: Object tried to call nil in vehicleName at KahluaUtil.fail(KahluaUtil.java:100).`, `Lua((MOD:ZeD-GUI)).vehicleName(MechanicsTab.lua:400)`, `Lua((MOD:ZeD-GUI)).vehicleTabItems(MechanicsTab.lua:922)`, `Lua((MOD:ZeD-GUI)).renderSplit(MechanicsTab.lua:2105)`. Line 400 is `local sc = v:getScript()`: the tab holds a car that is gone from the world (the helper's "took away a car" removal; the same would happen to a car that is destroyed or unloaded), so the tab should drop it. mech79 passed one check and then read nil (`zedqa_mechp79 ... FAIL` lines; 35 of its checks). Pictures: p2/zqa_m79_3840x2160_*.png.
+1. The Vehicle tab throws on every frame once a car is in view: 108 exceptions (52 in navmap, 56 in mech79). Lines: `ERROR: General f:27184> Lua((MOD:ZeD-GUI)).vehicleName> Exception thrown`, `java.lang.RuntimeException: Object tried to call nil in vehicleName at KahluaUtil.fail(KahluaUtil.java:100).`, `Lua((MOD:ZeD-GUI)).vehicleName(MechanicsTab.lua:400)`, `Lua((MOD:ZeD-GUI)).vehicleTabItems(MechanicsTab.lua:922)`, `Lua((MOD:ZeD-GUI)).renderSplit(MechanicsTab.lua:2105)`. Line 400 is `local sc = v:getScript()`: the tab holds a car that is gone from the world (the helper's "took away a car" removal; the same would happen to a car that is destroyed or unloaded), so the tab should drop it. mech79 passed one check and then read nil (`the rest of its checks read nil). Pictures: p2/zqa_m79_3840x2160_*.png.
 
 ### List B (test trouble)
 - cov_input: `ZEDQA cov_input FAIL input mode: a pad unplugged with none left goes back to mouse and keys (not checked: 1 real pad(s) connected ...)`: a real pad is plugged in.
@@ -81,3 +81,18 @@ ZEDQA car dgr Base.SportsCar spawned on spot 13 (917,13024)
 
 ### Not run
 Nothing is skipped by the runner now; the scripts the first run judged "not judged" above did run but their results are untrustworthy.
+
+## Part 3. 1280x800 windowed spot checks (Small and Large text)
+
+Ran: a short bridge script of my own (kept out of the repo) after the prelude, at 1280x800 windowed (UI scale 0.75, Auto): for Small and for Large, Loot + Crafting, Journal, an item card, Papers in the Light theme, Light and High Contrast pictures of both windows; plus a second small script for Radio and Vehicle (a walkie in the bag, a car spawned by the helper). Reports: 2026-11-13_b12rel_p3_deck.md and _p3b_deck.md (both WARN from my own "press" lines for the two tabs that were not on the strip). Pictures: Zomboid/Screenshots/b12_release_20261113/p3 (zqa_r3_*, zqa_r3b_*).
+One line per picture (S = Small, L = Large):
+- Loot + Crafting, S and L (zqa_r3_small_dark_loot_craft.png, zqa_r3_large_dark_loot_craft.png): text fits; names are cut with ellipses by design in the 276 px Character window ("Angel Cross's K...", "Baseball B... x6"); at L the Status column goes (Name and Wt only) and the last list row is cut by the scroll, as designed. Header rows line up across the windows.
+- Journal tab strip, S and L (zqa_r3_*_dark_journal.png): the five pages (Journal, Notebooks, Papers, Recipes, Loadouts) show as a tab strip under the heading, all five whole at S; at L the Papers picture shows the five whole too. No "Page:" pop-up. Text fits; the entry text at S is clipped only by the list's own scroll.
+- Item card, S and L (zqa_r3_*_dark_itemcard.png, a Broom): the top block reads Kind and Weight only ("Kind Household / ..." and "Weight 2.0 kg"), with the Marked row above it; the Kind value is cut ("Household / ...") at both sizes. Combat Facts follow below, cut by the card's scroll only.
+- Papers in Light, S and L (zqa_r3_*_light_papers.png): list, Show: All and the two papers read clearly; text fits; Read / Unread tags whole.
+- Light, both windows (zqa_r3_*_light_both.png, small only drawn Crafting; large Light is in the papers picture): solid, not see-through; the scene does not show through either window. Text fits.
+- High Contrast, both windows, S and L (zqa_r3_*_hicon_both.png, *_hicon_health.png): solid black, not see-through; text fits, bar and tab icons whole. High Contrast Health at S: the heading and the Exercise row fit.
+- Chat idle in Light: not checked: needs a multiplayer server (the chat is on a server only).
+- Radio, S and L: not checked: needs staging. A walkie in the bag did not put a Radio tab on the Character strip (`ZEDQA r3b ERR press radio=false loot=true`; the tab needs a radio in hand or in reach).
+- Vehicle, S and L: not checked: needs staging. A car spawned beside the character by the helper did not put a Vehicle tab on the World strip (`ZEDQA r3b ERR press loot=true vehicle=false`; the tab appears when you sit in or inspect a car).
+List A: none. List B: the two press lines above (staging).
