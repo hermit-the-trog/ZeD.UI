@@ -209,3 +209,30 @@ Run smoke.txt first, then main_run.txt.
    results are new information either way. uiscale's "wholly on the screen" check at 1.5x on a small screen. The
    seven "one fix applied" scripts. cov_vehicles: one green run lets the four car picture scripts go.
 10. **Rule 2.** A step that fails on its own staging gets one fix. If it fails the same way again, cut it.
+
+## 7. After the sim moves (Nov 12 2026)
+
+Build's sims replace a list of in-game scripts (`audit_20261112/MOVE_TO_SIM_map.md`). File work only: nothing was
+run in the game.
+
+**Archived (11 scripts, to `ZeDUI/tools/qa/archive/`).** zedqa_animals_list, zedqa_dash_keys_edge,
+zedqa_dash_brands, zedqa_dashnight, zedqa_ctx_overlap, zedqa_segbars, zedqa_sc_font, zedqa_button_case_game,
+zedqa_guide_ads, zedqa_kinsoku, zedqa_b11_notes (zedqa_dash_r6_keys was archived earlier). With them, the manifests
+that existed only for them: dash_keys_edge.txt, dash_brands.txt, kinsoku.txt, scf_manifest.txt, b11n_manifest.txt,
+and b11_notes_run.ps1. Their live lines are out of main_run.txt, regression.txt, regression_large.txt and
+regression_b4.txt, each with one "moved to sims" comment line. smoke.txt had none.
+
+**Stays by hand.** zedqa_console_complete and zedqa_files_after (not in any run list). The Mods-screen parts of
+zedqa_mods_order (1, 2, 4d to 4f), zedqa_mods_folders (4b to 4d) and zedqa_mods_separators (1g to 1i, 2b to 2e, 3,
+4f to 4k): one short Mods-screen pass, by hand or on demand; the scripts are not rewritten. The 158 balloon and the
+guide bubble are not in the map, so both stay on main_run.txt (158 keeps its one look by hand in Chinese).
+
+**Left in place and flagged.** zedqa_lang.lua and lang_check.txt (lang_run.ps1 still runs that manifest);
+zedqa_dash_r6_parts.lua and dash_r6.txt (zedqa_dash_r6_persist.lua reads the cars and the file the parts script
+leaves); zedqa_dke_only.lua (a helper named by diag2.txt); b9_ctxov.txt (not tracked in git). Old one-off
+batch files (batch_guide_ads.ps1, batch_m1.ps1, b11_reruns.ps1) and dated manifests still name some archived
+scripts: they are history, not run lists.
+
+**The main run's new estimate: about 47 minutes** (was about 57). Removed, with the median seconds from the Nov
+reports: dashnight 109, dash_keys_edge 260, dash_brands 164, button_case_game 16, ctx_overlap 11, sc_font 3,
+segbars 1: 564 s plus seven 3 s gaps, about 9 and a half minutes. main_run.txt is now 87 lines.

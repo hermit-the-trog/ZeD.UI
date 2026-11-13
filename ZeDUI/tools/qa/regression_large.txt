@@ -20,6 +20,7 @@
 # runner refuses the never-unattended names itself; see the end of this file).
 
 # ---- first: the pair open, unpaused, god mode
+# Nov 12 2026: moved to sims (see audit_20261112/MOVE_TO_SIM_map.md) and archived: zedqa_segbars.lua, zedqa_sc_font.lua, zedqa_button_case_game.lua, zedqa_dashnight.lua, zedqa_dash_keys_edge.lua, zedqa_dash_brands.lua
 zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
 zedqa_textlarge.lua | txl | timeout=60   # Large text for the rest of the run
 
@@ -40,7 +41,6 @@ zedqa_wt_bracket.lua | wtb | timeout=240         # a stack's total in brackets, 
 zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
 zedqa_doll_v4.lua | dollv4 | timeout=420        # the doll's 38 small slots: all there, no overlap, no crossing lines, worn things land, the pad into / out of both bands, a drop wears, the half card (220 units) folds the bands into layers; the full card (480) shows both bands; all taken off
 zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
-zedqa_segbars.lua | segb | timeout=60            # the segmented fill bars (Oct 30 2026): lit counts at 64 / 4 / 100 / 0 / 70 / 30 %, ten distinct at the narrowest, a skill at level 5, the help line's words under the pointer (a stand-in panel: nothing to put back)
 zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close while rolled, tabs while rolled
 zedqa_curtain2.lua | cv                          # Character window curtain, tab switches while rolled
 zedqa_navevents.lua | ev                         # where pad focus lands after cards, strips, tabs, LB / RB, the map
@@ -54,7 +54,6 @@ zedqa_win.lua | win                              # the pair at the natural root 
 zedqa_rootchange.lua | rc                        # a root change re-derives the geometry
 zedqa_scalewalk.lua | sw                         # main tabs of both windows at natural and 1.0
 zedqa_uiscale.lua | scale                        # UI scale steps, Auto, then back to the run's own step
-zedqa_sc_font.lua | scf                          # simplified Chinese face (Nov 1 2026, punch list 37): Cred1 holds Noto Sans SC, map / simplified Chinese / Cafe widths > 0, the count lands after the name, kana keep the game's face; shot zqa_scf_draw.png
 
 # ---- maps, journal, print
 zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
@@ -90,7 +89,6 @@ zedqa_watches2.lua | watches                     # the nine watch plates by day 
 zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
 zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
 zedqa_px_icons.lua | px | timeout=240           # ZeD's pixel icons outside the wheels: every id's drawings and the box rule, a test panel (each icon in every button state, the card's marks, the chevrons), the item card's marks and both rows live
-zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows; shirt taken back
 zedqa_immersive_searching.lua | iss | timeout=240   # punch list 40, Immersive Searching support: here (the mod off) nothing changes; with the mod on (isearch_manifest.txt, isearch_mods.txt) the ? chip, the pick starts its search, things turn up as it reveals them, the band's bar, Search all, Take all and moves held back
 
 # ---- wheels (the pickup within 20 tiles: after the container scripts)
@@ -125,10 +123,7 @@ zedqa_exinfo.lua | ex                            # Health tab exercise info: van
 zedqa_charinfo.lua | ci | timeout=180           # the game's Character window keys (Health, Skills, Info, Protection) land on ZeD's tabs; Mini Health Panel's click too when that mod is on
 zedqa_equipdrag.lua | eqd | timeout=240          # Equip rows and doll slots as drag sources: click, drag, cancel, bag, floor, same place (fake mouse; all put back)
 zedqa_cazio_light.lua | czl | timeout=240      # the CaZio LIGHT: bulb by day and at night, mini watch
-zedqa_dashnight.lua | dnt | timeout=480        # dash night lighting: hidden gauge bulbs, lamps, light level
 zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)
-zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON, the fob whole, the dash flush on the screen's edge (dash_keys_edge.txt)
-zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell   # the makers' marks: 13 civilian cars, the Step Van on the Valuline's dash, a modded name's plaque, two at night (dash_brands.txt)
 zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
 zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)
 

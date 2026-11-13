@@ -27,7 +27,14 @@
 #   the compat set (exinfo aside)                 capacity, dropnloot, nested, isearch, roadworthy, msc_run1/2, r3_D_cars,
 #                                                 b8_seven_menus, minsidebar, cml, responsiveui, modlist: with their mods
 
+# By hand (not run by this list; the map audit_20261112/MOVE_TO_SIM_map.md keeps them out of the sims):
+#   zedqa_console_complete.lua, zedqa_files_after.lua   the Kahlua pairs over _G, Java reflection and real text box keys;
+#                                                       the engine really running the helper's copy
+# One short Mods-screen pass, by hand or on demand (the parts the sim cannot reach; the scripts are not rewritten):
+#   zedqa_mods_order.lua (parts 1, 2, 4d-4f), zedqa_mods_folders.lua (4b-4d), zedqa_mods_separators.lua (1g-1i, 2b-2e, 3, 4f-4k)
+
 # ---- first: the drag strip, the default window layout, pinned, the console closed
+# Nov 12 2026: moved to sims (see audit_20261112/MOVE_TO_SIM_map.md) and archived: zedqa_dashnight.lua, zedqa_segbars.lua, zedqa_sc_font.lua, zedqa_button_case_game.lua, zedqa_ctx_overlap.lua, zedqa_dash_keys_edge.lua, zedqa_dash_brands.lua
 zedqa_prelude.lua | pre | timeout=120
 
 # ---- the suites
@@ -84,7 +91,6 @@ zedqa_cov_vehicles.lua | cov_vehicles | timeout=600 | expect=FBORenderCell   # c
 zedqa_dashpx.lua | dpx | timeout=720             # the 19-car pass (24 with the liveries): in, key, engine, dash drawn, each checked
 zedqa_mech79.lua | m79 | timeout=1200            # the Vehicle tab in two columns; a real uninstall and install
 zedqa_dash_lamps.lua | dl | timeout=300          # lamps by part condition, blink, hover chips, bulb check
-zedqa_dashnight.lua | dnt | timeout=480          # dash night lighting on three cars
 zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day; the green-lit late models at night (no push to speed)
 # (amendment 3: these four stay until zedqa_cov_vehicles.lua has one green run, then they go)
 zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # seat chooser and lightbar from vanilla's entry points (pictures)
@@ -128,16 +134,9 @@ zedqa_plates_336.lua | p336 | timeout=900        # the 336 px machine plates and
 zedqa_laundry.lua | ldy | timeout=600            # the washer, dryer and washer-dryer face cards (indoors for power)
 zedqa_cazio_light.lua | czl | timeout=240        # the CaZio LIGHT: bulb by day and at night, mini watch
 
-# ---- waiting for Build's script-to-sim mapping (plan: MOVE TO SIM). Kept as they are until the sims take them
-# ---- over; then these lines go. About 9 minutes of this run.
-zedqa_segbars.lua | segb | timeout=60            # the segmented fill bars' lit counts
-zedqa_sc_font.lua | scf                          # simplified Chinese face (the run is in English: it cannot fail on bug 158)
+# ---- not in the Build sim map as moved: kept (the 158 balloon keeps one look by hand in Chinese)
 zedqa_158_balloon.lua | b158 | timeout=120       # Chinese in the speech balloon (in English here; one look by hand in Chinese)
-zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows
-zedqa_ctx_overlap.lua | ctxov | timeout=300      # a submenu over its parent stays open
 zedqa_guide_bubble.lua | gbub | timeout=240      # the guide offers itself from the Messages icon
-zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON; the dash flush on the screen's edge (the key order moves to a sim; the rest joins the 19-car pass)
-zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell       # the makers' marks (the badge choice moves to a sim; the rest joins the 19-car pass)
 
 # ---- last
 zedqa_safemode.lua | safe | timeout=240          # safe mode trips, turns ZeD off, and recovers
