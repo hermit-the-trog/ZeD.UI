@@ -258,7 +258,8 @@ local function nextOn(c, i, dir, wrap)
     local n = #(c.options or {})
     for _ = 1, n do
         i = i + dir
-        if wrap then i = (i - 1) % n + 1 elseif i < 1 or i > n then return nil end
+        -- (wrapping down from the first step: Kahlua's % keeps a negative dividend's sign, so it is floored by hand)
+        if wrap then i = ((i - 1) % n + n) % n + 1 elseif i < 1 or i > n then return nil end
         if not stepOff(c, i) then return i end
     end
     return nil

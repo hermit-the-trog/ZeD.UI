@@ -690,20 +690,23 @@ these rules; any future PZ patch that regresses gameplay input must not cascade 
 ZeD-UI blocking the player.
 
 **Q84: `getCore():doZoomScroll(playerIdx, direction)` is the Lua-callable zoom API.**
-`direction` is an integer: positive = zoom-IN (closer to player), negative = zoom-OUT
-(further from player). One call = one zoom step of 0.25 units. Matches mouse wheel
+`direction` is an integer: positive = zoom-OUT (getZoom rises, wider view), negative =
+zoom-IN (closer). One call = one zoom step of 0.25 units. Matches mouse wheel
 semantics directly — in `DebugChunkStateUI.lua:298` the wheel delta is passed straight
 through without inversion. `playerIdx` is 0-based; pass `0` for single-player, or the
 actual player index for split-screen. Vanilla call sites:
 ```lua
 -- client/Tutorial/Steps.lua:1196-1198 (tutorial sneak step, hardcoded playerIdx=0)
-getCore():doZoomScroll(0, 1)   -- zoom in
-getCore():doZoomScroll(0, -1)  -- zoom out
+getCore():doZoomScroll(0, 1)   -- the unzoom branch: zoom out (target above the current zoom)
+getCore():doZoomScroll(0, -1)  -- zoom in
 
--- client/ISUI/ISBackButtonWheel.lua:160-162 (vanilla gamepad zoom in back-button wheel)
-getCore():doZoomScroll(self.playerNum, 1)
-getCore():doZoomScroll(self.playerNum, -1)
+-- client/ISUI/ISBackButtonWheel.lua:155-158 (vanilla gamepad zoom in back-button wheel)
+getCore():doZoomScroll(self.playerNum, 1)    -- "ZoomPlus", the ZoomOut.png slice
+getCore():doZoomScroll(self.playerNum, -1)   -- "ZoomMinus", the ZoomIn.png slice
 ```
+The tutorial agrees: TutorialTests.ZoomedIn (Steps.lua:94-102) offers only the ZoomIn
+slice (-1) and completes once getZoom falls to getMinZoom (to 1 on a pad); ZoomedOut
+(:111-114) offers the ZoomOut slice (+1) and completes once getZoom reaches the max.
 Current zoom level readable via `getCore():getZoom(playerIdx)` (returns float). No
 `setZoom()` on core — if you need absolute zoom, loop `doZoomScroll` against the
 current vs target delta. Respects `getCore():getAutoZoom(playerIdx)` flag (the vanilla

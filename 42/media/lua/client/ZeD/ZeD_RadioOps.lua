@@ -412,7 +412,9 @@ function O.chStep(chr, part, dir)
     local at = nil
     for i = 0, n - 1 do if l:get(i):getFrequency() == cur then at = i + 1; break end end
     local nxt
-    if at then nxt = ((at - 1 + dir) % n) + 1 else nxt = dir > 0 and 1 or n end
+    -- (CH down on 01 goes to the last channel. Kahlua's % keeps a negative dividend's sign, so -1 % n is -1
+    -- here: add n before taking it)
+    if at then nxt = ((at - 1 + dir + n) % n) + 1 else nxt = dir > 0 and 1 or n end
     return setChannel(chr, part, l:get(nxt - 1):getFrequency())
 end
 

@@ -22,7 +22,8 @@
 --
 -- Safe mode (SafeMode.lua, the "screen icons" hook): the buttons this hid come
 -- back with vanilla's whole hover list; taking over again hides them on the
--- next frame.
+-- next frame. The hook follows the belt's own ZeD setup switch too (its
+-- screen), as the hiding does: with the belt handed back, the buttons are back.
 -- ============================================================================
 
 require "ZeD/SafeMode"
@@ -76,6 +77,7 @@ local function showButtons(panel)
 end
 
 ZeD.Safe.register("screen icons", {
+    screen = "belt",   -- (the column's window buttons follow the belt's switch, as the prerender check above does)
     leave = function()
         local n = getNumActivePlayers and getNumActivePlayers() or 1
         for i = 0, math.max(n, 1) - 1 do

@@ -210,7 +210,9 @@ function ZeD_StationPopout:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
 function ZeD_StationPopout:move(d)
     local n = #self:controls()
     if n == 0 then return end
-    self.fi = ((math.max(1, math.min(n, self.fi)) - 1 + d) % n) + 1
+    -- (Up on the first control wraps to the last, as Down on the last wraps to the first: Kahlua's % keeps
+    -- a negative dividend's sign, so the count goes in first)
+    self.fi = ((math.max(1, math.min(n, self.fi)) - 1 + d + n) % n) + 1
     getSoundManager():playUISound("UISelectListItem")
 end
 

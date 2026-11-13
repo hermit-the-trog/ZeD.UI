@@ -157,10 +157,11 @@ function LEAN.drawRectBorder(self, x, y, w, h, a, r, g, b)
 end
 local Sc = ZeD.Scale
 function LEAN.drawText(self, str, x, y, r, g, b, a, font)
-    -- the zoom kept per font (X.zoomOf's own table, read inline while it is current)
+    -- the zoom kept per font (X.zoomOf's own table, read inline while it is current; a font drawn at a
+    -- multiple of its size for now, X.withFontScale, asks zoomOf)
     local z = nil
     local Zc = X._zoom
-    if font ~= nil and Zc and Zc.T == ZeD.T and Zc.root == Sc._root then z = Zc.z[font] end
+    if font ~= nil and font ~= X._mulFont and Zc and Zc.T == ZeD.T and Zc.root == Sc._root then z = Zc.z[font] end
     if z == nil then z = X.zoomOf(font) end
     local jo = self.javaObject
     if z == 1 then
