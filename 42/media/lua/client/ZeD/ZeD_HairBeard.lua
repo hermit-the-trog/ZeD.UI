@@ -20,8 +20,9 @@
 --     their picture window is not offered from here.
 -- What the character cannot do now (a row that needs a tool they lack, a style the
 -- hair is too short for) folds under one quiet row, by ZeD setup's Hidden actions
--- (ZeD.Disclose); opened, those rows show greyed with the reason. One press does
--- it (no confirm).
+-- (ZeD.Disclose); opened, those rows show grayed with the reason. While nothing at
+-- all can be done the row opens by itself, so the list is never empty under its
+-- count. One press does it (no confirm).
 -- Each row, and the Now and After heads, show the game's own 3D figure of the
 -- character wearing that style (AVATARS below).
 -- Make-up belongs with the hair, not in a window of its own: a third part, Make
@@ -1128,6 +1129,15 @@ end
 -- the key the folded row remembers its open / closed state under (one per part)
 local function moreKey(st) return "hb:more:" .. tostring(st.part) end
 
+-- The folded row opened or shut by the player (a press, or A on it): their choice holds from
+-- then on, over the fold's own opening below (HB.layout).
+local function toggleMore(st, key)
+    DS.toggle(key)
+    st.moreShut = st.moreShut or {}
+    st.moreShut[key] = (not DS.isOpen(key)) or nil
+    if st.moreAuto then st.moreAuto[key] = nil end
+end
+
 -- Which rows the list shows now and which the folded row keeps back, by ZeD setup's
 -- "Hidden actions": a row the character can do shows; one that needs a tool, and a
 -- style the hair is too short for, fold under one quiet row (or all show, greyed, or
@@ -1232,6 +1242,22 @@ function HB.layout(win, w)
     end
     if #hidden > 0 then
         local key = moreKey(st)
+        -- With nothing the character can do now (no scissors, razor, gel or spray carried), the
+        -- folded row would be the whole list: the switch counts the part's styles ("Hair (24)")
+        -- and the line above asks to choose a row, yet none shows. So the fold opens by itself
+        -- while nothing else shows (its rows grayed, each saying what it needs when picked) and
+        -- shuts again once a row can be done. Opened or shut by the player, it stays as they left it.
+        local auto = st.moreAuto
+        if not auto then auto = {}; st.moreAuto = auto end
+        if #shown == 0 then
+            if not DS.isOpen(key) and not (st.moreShut and st.moreShut[key]) then
+                DS.setOpen(key, true)
+                auto[key] = true
+            end
+        elseif auto[key] then
+            DS.setOpen(key, false)
+            auto[key] = nil
+        end
         local groups = moreGroups(st, hidden)
         -- the row alone (the styles it keeps back open as rows below it, not as its own block)
         local mh = ZeD.Molecules.measureMoreRow(cw, groups, key, { closedOnly = true, inset = T.px(8) })
@@ -1778,7 +1804,7 @@ function HB.onClick(win, x, y)
                 if st.sel == it.row.key then st.sel = nil else st.sel = it.row.key end   -- a second click un-picks (an and/or chain cannot yield nil, so the if/else)
                 st.done = nil
             elseif it.kind == "more" then
-                DS.toggle(it.key)
+                toggleMore(st, it.key)
             elseif it.kind == "parts" then
                 local parts = partsOf(st)
                 local i = math.floor((x - (it.x + st.x)) / (it.w / #parts)) + 1
@@ -1840,7 +1866,7 @@ function HB.focusables(win)
                 end }
         elseif it.kind == "more" then
             local key = it.key
-            e = { id = "hb:more", onActivate = function() DS.toggle(key) end }
+            e = { id = "hb:more", onActivate = function() toggleMore(st, key) end }
         end
         if e then
             e.x, e.y, e.w, e.h, e.cy, e.hbStop = x, y, it.w, it.h, it.y, true

@@ -68,8 +68,21 @@ ZeD.Atoms = {
         if line ~= "" or #out == 0 then out[#out + 1] = line end
         return out
     end,
+    truncateText = function(s, font, w)
+        s = tostring(s)
+        if #s * 7 <= w then return s end
+        local out = s
+        while #out > 0 and #(out .. "...") * 7 > w do out = out:sub(1, -2) end
+        return out .. "..."
+    end,
 }
-ZeD.Molecules = { drawCategoryRow = function(p) p.n = p.n + 1; return 20 end }
+-- (a fold head writes down its words: the radio's Channels head is checked by them)
+ZeD.Molecules = { drawCategoryRow = function(p, x, y, w, label)
+    p.n = p.n + 1
+    p.heads = p.heads or {}
+    p.heads[#p.heads + 1] = label
+    return 20
+end }
 local function panel()
     local p = { n = 0, texts = {} }
     function p:drawRect() self.n = self.n + 1 end
@@ -128,7 +141,26 @@ if okLoad then
     -- no new zone tables from frame to frame
     local first = F.zone(win, "t", "z1")
     F.begin(win, "t")
+    -- (review, Nov 12: the Notebooks page asks for the follow after its frame has begun, as the Journal begins every
+    -- page's frame first; the follow looked in this frame's empty list and the pad never scrolled the page)
+    check("the follow reads last frame's zones once the frame has begun", (F.follow(win, "t", "z6", 40, 80, 0, 200) or 0) > 0)
     check("a zone's table is kept by its id", F.zone(win, "t", "z1") == first)
+
+    -- a row that asks for one line (a radio's channel names): cut with "..." only where it does not fit
+    F.begin(win, "t")
+    local long = { id = "c1", cut = true, label = "1 | Automated Emergency Broadcast System", value = "98.4" }
+    local cmh = F.row(nil, win, "t", long, 0, 0, 200)
+    local cp = panel()
+    local cdh = F.row(cp, win, "t", long, 0, 0, 200)
+    check("a one-line row measures what it draws", cmh == cdh, cmh .. " vs " .. cdh)
+    check("a one-line row is one line tall", cdh == 4 * 2 + FH.F2, cdh)
+    check("a long name on one line is cut with ...", cp.texts[1] and cp.texts[1]:sub(-3) == "..." and #cp.texts == 2,
+        tostring(cp.texts[1]))
+    check("its words are kept whole on the row", long.label == "1 | Automated Emergency Broadcast System")
+    local short = { id = "c2", cut = true, label = "2 | KnoxTalk", value = "101.2" }
+    local sp = panel()
+    F.row(sp, win, "t", short, 0, 0, 200)
+    check("a name that fits is not cut", sp.texts[1] == "2 | KnoxTalk", tostring(sp.texts[1]))
 
     check("scale word: low", F.scaleWord(0.1, "lo", "mid", "hi") == "lo")
     check("scale word: middle", F.scaleWord(0.5, "lo", "mid", "hi") == "mid")
@@ -176,6 +208,37 @@ do
             check("a Regularity row picks the exercise, the focus stays", win._sel == "barbellcurl" and win._healthReturnToMenu == nil)
             check("an exercise that needs an item says so, dimmed", d.rows.regularity[2].sub == "(Requires Barbell)" and d.rows.regularity[2].dim)
             check("moodle and strain rows only read", ids["fill:health:moodle:1"].read and ids["fill:health:strain:1"].read)
+        end
+    end
+    -- the read itself (review, Nov 12): "(Requires Barbell)" only while the barbell is missing, as vanilla's fitness
+    -- window says it; a carried barbell's row had the note under it, undimmed
+    local ga = src:find("-- the moodles that are on, in vanilla's order", 1, true)
+    local gb = src:find("-- the rows of the four blocks, built once per read", 1, true)
+    check("the Health read is in the file", ga and gb)
+    if ga and gb and okLoad then
+        ZeD.HealthTab = ZeD.HealthTab or {}
+        ZeD.HealthTab.exerciseLabel = function(id) return id end
+        EXERCISES = { "squats", "barbellcurl", "bicepscurl" }
+        FitnessExercises = { exercisesType = { squats = {}, barbellcurl = { item = "Base.BarBell" }, bicepscurl = { item = "Base.DumbBell" } } }
+        local HAVE = { squats = true, barbellcurl = true, bicepscurl = false }
+        isExerciseAvailable = function(_, id) return HAVE[id] == true end
+        readRegularity = function() return 0.25 end
+        getItemDisplayName = function(ft) return ft == "Base.BarBell" and "Barbell" or "Dumbbell" end
+        Perks = { Fitness = "Fitness", Strength = "Strength" }
+        local chunk, err = loadstring(src:sub(ga, gb - 1), "=HealthTab.lua (the read)")
+        check("the Health read cuts and loads", chunk ~= nil, err)
+        if chunk then
+            chunk()
+            local p = { getPerkLevel = function() return 3 end, getMoodles = function() return nil end,
+                        getBodyDamage = function() return nil end }
+            local d = ZeD.HealthTab.gatherFill(p)
+            local ex = {}
+            for _, e in ipairs(d.exercises or {}) do ex[e.id] = e end
+            check("a carried item: no (Requires X) under its exercise", ex.barbellcurl and ex.barbellcurl.have == true
+                and ex.barbellcurl.need == nil, ex.barbellcurl and tostring(ex.barbellcurl.need))
+            check("a missing item: (Requires X) under its exercise", ex.bicepscurl and ex.bicepscurl.have == false
+                and ex.bicepscurl.need == "IGUI_FitnessNeedItem(Dumbbell)", ex.bicepscurl and tostring(ex.bicepscurl.need))
+            check("no item needed: no note", ex.squats and ex.squats.need == nil)
         end
     end
     check("the fill is read on a clock (500 ms), not every frame", src:find('dueMs(win, "_healthFillAt", 500', 1, true) ~= nil)
@@ -232,6 +295,48 @@ do
             SPARES = 0
             draw()
             check("Power: no spares says so", tw.fill.power[2].label == "UI_ZeD_Radio_NoBatteries")
+
+            -- the design review (Nov 12): one frequency format on every set (the game's own radio window lists every
+            -- set's presets with one decimal; the walkie listed "098.400", the radio "98.0"), a channel's name on one
+            -- line, one heading in both windows; and a TV (review finding): its channel numbers, no frequency range
+            ZeD.RadioOps.freqText = function(f, ham) return (ham and "ham:" or "fm:") .. tostring(f) end
+            local DD = { getIsTwoWay = function() return true end }
+            local PRESETS = { { name = "Automated Emergency Broadcast System", freq = 98400 }, { name = "KnoxTalk Radio", freq = 101200 } }
+            ZeD.Rtv.read = function()
+                return { dd = DD, presets = PRESETS, battery = true, hasBattery = true, charge = 0.8, min = 50000, max = 200000 }
+            end
+            local _, wp = draw()
+            local pr = tw.fill.presets
+            check("a walkie's channels in the one format", pr[1].value == "fm:98400" and pr[2].value == "fm:101200", tostring(pr[1].value))
+            check("a channel's name on one line", pr[1].cut == true and pr[2].cut == true)
+            check("Channels in the Character window", wp.heads and wp.heads[1] == "UI_ZeD_Radio_Channels", wp.heads and tostring(wp.heads[1]))
+            win._actionTabStrip = {}
+            _, wp = draw()
+            check("Channels in the World window too", wp.heads and wp.heads[1] == "UI_ZeD_Radio_Channels", wp.heads and tostring(wp.heads[1]))
+            win._actionTabStrip = nil
+            local function powerIds()
+                local out = {}
+                for _, r in ipairs(tw.fill.power) do out[r.id] = r end
+                return out
+            end
+            -- a TV: the numbers its dial shows, the headphones row kept (its PHONES jack works), no frequency range
+            DD = { getIsTwoWay = function() return false end, getIsTelevision = function() return true end }
+            PRESETS = { { name = "", freq = 200 }, { name = "", freq = 201 }, { name = "", freq = 5000 } }
+            ZeD.Rtv.stopOf = function(f)
+                if f == 200 then return { number = 2 } elseif f == 201 then return { number = 3 } end
+                return nil
+            end
+            draw()
+            pr = tw.fill.presets
+            local pw = powerIds()
+            check("a TV: no frequency range", pw["fill:radio:range"] == nil)
+            check("a TV: its headphones row kept", pw["fill:radio:phones"] ~= nil)
+            check("a TV: its channels by the dial's number", pr[1].value == "02" and pr[2].value == "03" and pr[3].value == nil,
+                tostring(pr[1].value) .. " " .. tostring(pr[2].value) .. " " .. tostring(pr[3].value))
+            -- a radio keeps its frequency range
+            DD = {}
+            draw()
+            check("a radio keeps its frequency range", powerIds()["fill:radio:range"] ~= nil)
         end
     end
     local en = readFile("42/media/lua/shared/Translate/EN/UI.json") or ""
@@ -263,7 +368,12 @@ do
         check("EN has " .. k, en:find('"' .. k .. '"', 1, true) ~= nil)
     end
     local fill = readFile("42/media/lua/client/ZeD/ZeD_TabFill.lua") or ""
-    check("the kit cuts no words with an ellipsis", fill:find("truncateText", 1, true) == nil)
+    -- (words wrap, never cut; the one exception the design review asked for: a row that asks for one line, the radio's
+    -- channel names, cut with "..." only where they do not fit)
+    local cutAt, truncAt = fill:find("if r.cut then", 1, true), fill:find("truncateText", 1, true)
+    local _, nTrunc = fill:gsub("truncateText", "")
+    check("the kit cuts words only on a row that asks for one line", cutAt and truncAt and nTrunc == 1 and truncAt > cutAt
+        and truncAt - cutAt < 400, tostring(nTrunc))
 end
 
 print(string.format("tab_fill_sim: %d checks, %d failed", checks, failed))

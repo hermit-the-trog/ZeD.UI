@@ -1170,12 +1170,13 @@ end
 ZeD.RadioTab._menuAt, ZeD.RadioTab._hitById = _menuAt, _hitById
 
 -- ============================================================================
--- UNDER THE FACE: Channels (Presets in the World window), Heard, Power
--- ZeD_TabFill blocks under any face: the set's stored channels (a row tunes to it,
--- the one tuned in carries the wash), the last lines it showed (RtvFace keeps them
--- per set, from vanilla's OnDeviceText) and its power: the battery or the mains,
--- spare batteries on you, the headphones, the frequency range and, on a two-way
--- set, its range and microphone. Read twice a second (tw.fill); drawn each frame.
+-- UNDER THE FACE: Channels, Heard, Power
+-- ZeD_TabFill blocks under any face, in both windows: the set's stored channels (a
+-- row tunes to it, the one tuned in carries the wash), the last lines it showed
+-- (RtvFace keeps them per set, from vanilla's OnDeviceText) and its power: the
+-- battery or the mains, spare batteries on you, the headphones, the frequency range
+-- (not on a TV) and, on a two-way set, its range and microphone. Read twice a
+-- second (tw.fill); drawn each frame.
 -- ============================================================================
 
 local function _fillGet(o, m, ...)
@@ -1186,6 +1187,16 @@ local function _fillGet(o, m, ...)
     return nil
 end
 
+-- a stored channel's value on its row: a radio's frequency the way the game's own radio
+-- window lists its presets, one decimal on every set (a walkie's face reads "098.400", its
+-- row "98.4"); a TV's channel number, as its dial and plain card show it ("03"), since a TV
+-- has no frequency to show
+local function _channelValue(freq, tv)
+    if not tv then return ZeD.RadioOps.freqText(freq, false) end
+    local s = ZeD.Rtv.stopOf and ZeD.Rtv.stopOf(freq)
+    return s and string.format("%02d", s.number) or nil
+end
+
 -- the rows of the three blocks for this set, from the game
 local function _radioFillRead(win, dev)
     local T, O = ZeD.T, ZeD.RadioOps
@@ -1193,12 +1204,13 @@ local function _radioFillRead(win, dev)
     if not (st and O) then return nil end
     local dd = st.dd
     local twoWay = _fillGet(dd, "getIsTwoWay") == true
+    local tv = _fillGet(dd, "getIsTelevision") == true
     local d = { presets = {}, heard = {}, power = {} }
     for i, p in ipairs(st.presets or {}) do
         local name = (p.name and p.name ~= "") and p.name or O.chanName(p.freq) or getText("IGUI_RadioUknownChannel")
         local idx = i
-        d.presets[i] = { id = "fill:radio:ch:" .. i, label = ZeD.tr("UI_ZeD_Plain_ChannelName", i, name),
-                         value = O.freqText(p.freq, twoWay), sel = (i == st.presetIdx),
+        d.presets[i] = { id = "fill:radio:ch:" .. i, label = ZeD.tr("UI_ZeD_Plain_ChannelName", i, name), cut = true,
+                         value = _channelValue(p.freq, tv), sel = (i == st.presetIdx),
                          fn = function() O.recall(win._playerObj, dev, idx) end }
     end
     local lines = ZeD.Rtv.heardLines and ZeD.Rtv.heardLines(st) or nil
@@ -1237,8 +1249,11 @@ local function _radioFillRead(win, dev)
         pw[#pw + 1] = { id = "fill:radio:phones", label = ZeD.tr("UI_ZeD_Plain_Headphones"),
                         value = ZeD.tr(st.phones and "UI_ZeD_Plain_PhonesIn" or "UI_ZeD_Plain_PhonesOut") }
     end
-    pw[#pw + 1] = { id = "fill:radio:range", label = getText("IGUI_RadioFreqRange"),
-                    value = ZeD.tr("UI_ZeD_Plain_MHz", O.freqText(st.min, false) .. "-" .. O.freqText(st.max, false)) }
+    -- (a TV has channels, not a frequency band: the game's own window shows it no range either)
+    if not tv then
+        pw[#pw + 1] = { id = "fill:radio:range", label = getText("IGUI_RadioFreqRange"),
+                        value = ZeD.tr("UI_ZeD_Plain_MHz", O.freqText(st.min, false) .. "-" .. O.freqText(st.max, false)) }
+    end
     if twoWay then
         local tr = _fillGet(dd, "getTransmitRange") or 0
         pw[#pw + 1] = { id = "fill:radio:tx", label = getText("IGUI_RadioStrength"), value = tostring(tr) .. " " .. getText("IGUI_RadioMeter") }
@@ -1260,10 +1275,10 @@ function ZeD.RadioTab.renderFill(panel, win, tw, x, y, w)
     end
     local d = tw.fill
     if not d then return 0 end
-    local world = win._actionTabStrip ~= nil
     _radioFillOpts.view = tw.view
+    -- (Channels in both windows: one word for the set's stored channels)
     local h = F.block(panel, win, "radio", "channels", x, y, w,
-        ZeD.tr(world and "UI_ZeD_Plain_Presets" or "UI_ZeD_Radio_Channels"), #d.presets, d.presets, _radioFillOpts)
+        ZeD.tr("UI_ZeD_Radio_Channels"), #d.presets, d.presets, _radioFillOpts)
     h = h + F.block(panel, win, "radio", "heard", x, y + h, w, ZeD.tr("UI_ZeD_Radio_Heard"), d.heardN or #d.heard, d.heard, _radioFillOpts)
     h = h + F.block(panel, win, "radio", "power", x, y + h, w, getText("IGUI_RadioPower"), nil, d.power, _radioFillOpts)
     return h

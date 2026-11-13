@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5128.
+Total keys: 5131.
 
 ## Areas
 
@@ -1869,7 +1869,10 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Identity_TraitsNegative` | `Negative (%1)` | Identity tab (Character window), driver's-license card: Traits section, small subheading over the bad traits; %1 is how many | 20 |
 | `UI_ZeD_Identity_TraitsPositive` | `Positive (%1)` | Identity tab (Character window), driver's-license card: Traits section, small subheading over the good traits; %1 is how many | 20 |
 | `UI_ZeD_Identity_Unknown` | `Unknown` | Identity tab (Character window), driver's-license card: surname / hair colour shown when the game gives none | 16 |
+| `UI_ZeD_Identity_WeightDown` | `Losing weight.` | Identity tab (Character window), driver's-license card: the help line while the pointer is on the weight and its sign; says what the sign beside the weight means (-). The game shows the same as an arrow beside the weight on its own character screen, with no words | - |
 | `UI_ZeD_Identity_WeightKg` | `%1 kg` | Identity tab (Character window), driver's-license card: weight pill at the top right of the card; %1 is the number (kilograms) | 10 |
+| `UI_ZeD_Identity_WeightUp` | `Gaining weight.` | Identity tab (Character window), driver's-license card: the help line while the pointer is on the weight and its sign; says what the sign beside the weight means (+). The game shows the same as an arrow beside the weight on its own character screen, with no words | - |
+| `UI_ZeD_Identity_WeightUpFast` | `Gaining weight fast.` | Identity tab (Character window), driver's-license card: the help line while the pointer is on the weight and its sign; says what the sign beside the weight means (++). The game shows the same as an arrow beside the weight on its own character screen, with no words | - |
 | `UI_ZeD_Identity_HelpHeader` | `Switch the license photo between the bust and the whole body.` | Identity tab (Character window): help line over the header above the license photo | - |
 
 ## Inv
@@ -3102,7 +3105,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Radio_Ch` | `CH` | Two-way radio's display (radio tab, full view; pixel face): small label over the memory channel's number | 3 |
 | `UI_ZeD_Radio_ChCleared` | `CH %1 CLEARED` | Two-way radio display flash after a channel is forgotten; %1 = the channel number, two digits | 16 |
 | `UI_ZeD_Radio_ChStored` | `CH %1 STORED` | Two-way radio display flash after MEM; %1 = the channel number, two digits | 16 |
-| `UI_ZeD_Radio_Channels` | `Channels` | Character window, Radio tab: fold head of the set's stored channels under its face (the World window says Presets) | 20 |
+| `UI_ZeD_Radio_Channels` | `Channels` | Character and World windows, Radio tab: fold head of the set's stored channels under its face | 20 |
 | `UI_ZeD_Radio_CloseFullView` | `Close full view` | Character / World window, Radio tab: hover hint of the full view button while the radio is in full view (pressing it closes full view) | 24 |
 | `UI_ZeD_Radio_CompactDisc` | `COMPACT DISC` | CD receiver display line when a disc has no title | 16 |
 | `UI_ZeD_Radio_Empty` | `EMPTY` | Radio display flash when a preset button has no station | 8 |
