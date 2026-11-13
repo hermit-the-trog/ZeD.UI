@@ -512,11 +512,14 @@ local function topStatsForItem(item)
     local cat = categoryOf(item)
     local rows = {}
 
-    -- Universal: KIND + WEIGHT
+    -- Universal: KIND + WEIGHT. The kind in the game's own words, as the inventory's Category column has it
+    -- (IGUI_ItemCat_<key>: "Gardening / Weapon", never the script's "GardeningWeapon")
     do
         local subtype = safeGet(item, "getDisplayCategory")
         if not subtype or subtype == "" then subtype = cat end
-        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Kind"),   value = tostring(subtype)}
+        local IR = ZeD.InventoryRenderer
+        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Kind"),
+                           value = (IR and IR.catLabel) and IR.catLabel(subtype) or tostring(subtype)}
         local wt = safeGet(item, "getActualWeight") or safeGet(item, "getWeight") or 0
         rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Weight"), value = string.format("%.1f kg", wt)}
     end
@@ -631,7 +634,7 @@ local function topStatsForItem(item)
         local held = inner and safeGet(inner, "getContentsWeight")
         if cap and cap > 0 then
             rows[#rows + 1] = {label = ZeD.tr("Tooltip_container_Capacity"),
-                value = held and string.format("%.1f / %d kg", held, math.floor(cap + 0.5))
+                value = held and ZeD.Atoms.loadText(held, cap)
                     or string.format("%d kg", math.floor(cap + 0.5))}
         end
         if inner then

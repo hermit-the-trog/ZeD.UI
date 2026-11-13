@@ -108,11 +108,11 @@ local function sameSet(a, an, b, bn)
     return true
 end
 
--- how many things the shown columns hold, as their headings count them
-local function colsTotal(cols, playerObj)
+-- how many things the shown columns hold, as their headings count them (what their rows show: InventoryRenderer)
+local function colsTotal(holder, cols, playerObj)
     local t = 0
     for _, cs in ipairs(cols) do
-        if cs.inventory then t = t + (ZeD.ContainerGates.count(cs.inventory, playerObj) or 0) end
+        if cs.inventory then t = t + (ZeD.InventoryRenderer.shownCount(holder, cs.inventory, playerObj) or 0) end
     end
     return t
 end
@@ -135,7 +135,7 @@ function P.line(holder, cols, total, oneKey, manyKey, playerObj)
             c.wAt = now
             c.text = nil
         end
-        if cols and total == nil then c.colsTotal = colsTotal(cols, playerObj) end
+        if cols and total == nil then c.colsTotal = colsTotal(holder, cols, playerObj) end
     end
     if total == nil then total = c.colsTotal or 0 end
     if c.text and c.total == total and c.oneKey == oneKey then return c.text end

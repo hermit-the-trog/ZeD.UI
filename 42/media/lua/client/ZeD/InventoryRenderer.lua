@@ -678,6 +678,24 @@ function ZeD.InventoryRenderer.filterGen(content)
     return S and S.lgen or 0
 end
 
+--- A column's stops built again (a Loot column's charMC / worldMC zone): the index in els of the stop the zone's
+--- focus is on when that is a view or Filter stop, else idx. Those stops carry no item for the rows' own match to
+--- find, and a press on the Filter bar builds the stops again: without this the focus fell back to a row.
+function ZeD.InventoryRenderer.keepToggleIdx(win, zoneName, els, idx)
+    local ring = win and win._focusRing
+    if not ring then return idx end
+    for _, z in ipairs(ring) do
+        if z.zone == zoneName then
+            local fe = z.elements and z.elements[z.focusedElementIdx or 1]
+            if fe and fe.isViewToggle then
+                for i, el in ipairs(els) do if el.id == fe.id then return i end end
+            end
+            return idx
+        end
+    end
+    return idx
+end
+
 
 -- is this item the controller's focused element in an inventory zone? (the
 -- rows' own test, shared with the grid's cells). Only in the focused window
@@ -736,9 +754,9 @@ local function queueMark(self, item, wordX, wordY, wordW, rx, ry, rw, rh)
     return true
 end
 
--- A tag's width as ZeD.Molecules.drawTag draws it (F1, sentence case, no box)
+-- A row tag's width as ZeD.Molecules.drawTag draws it (F1, sentence case, no box, its status square before the word)
 local function tagW(text)
-    return ZeD.Atoms.tagW(text, false)
+    return ZeD.Atoms.tagW(text, true)
 end
 
 -- a container's key, kept per container object (asked by every column every frame; a container's
@@ -1431,6 +1449,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     local gate = ZeD.ContainerGates.get(inv, playerObj)
     -- what the player wears and holds, once for the list (an item held elsewhere: asked item by item)
     local held = isPlayerInv and items and heldSet(playerObj, inv) or nil
+    local nShown = 0   -- (the things the rows show: the heading and the help line count these)
     if items then
         for i = 0, items:size() - 1 do
             local item = items:get(i)
@@ -1448,6 +1467,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
                     catOrder[#catOrder + 1] = cat
                 end
                 groups[cat][#groups[cat] + 1] = item
+                nShown = nShown + 1
             end
         end
     end
@@ -1547,7 +1567,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     return {
         groups = groups, catOrder = catOrder, flatItems = flatItems, useGroups = useGroups,
         stacks = stacks, childParent = childParent, stackedGroups = stackedGroups,
-        catRowCount = catRowCount, catOf = catOf,
+        catRowCount = catRowCount, catOf = catOf, nShown = nShown,
     }
 end
 
@@ -1606,6 +1626,17 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     return c.m
 end
 
+--- How many things panel's list of inv shows: the count its heading and its help line give, so they agree with the
+--- rows. What the player wears and holds leaves their own list (the Equip tab shows it), so a bare character's list
+--- is empty though the glasses on their face are in the container. From the list's last model (one frame behind at
+--- most); before the list has drawn, the container's own count (ContainerGates.count).
+function ZeD.InventoryRenderer.shownCount(panel, inv, playerObj)
+    local cache = panel and inv and panel._modelCache
+    local c = cache and cache[inv]
+    if c and c.m and c.m.nShown then return c.m.nShown end
+    return ZeD.ContainerGates.count(inv, playerObj)
+end
+
 -- ============================================================================
 -- ROW PARTS (kept out of renderItemList, which sits near Kahlua's local limit)
 -- ============================================================================
@@ -1645,13 +1676,14 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
     return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false
 end
 
--- A tag after a row's name (Next level, Belt 2): the library's tag (no box), in the
--- secondary ink, centred in the row
+-- A tag after a row's name (Next level, Belt 2): the library's tag (no box), its status square (mark) before the
+-- word in the secondary ink, centered in the row. The square makes it read as a tag: bare, the word read as more of
+-- the item's name.
 local _rowTagOpts = {}
-local function rowTag(self, x, y, rowH, text, focusTxt)
+local function rowTag(self, x, y, rowH, text, focusTxt, mark)
     local T = ZeD.T
     _rowTagOpts.textColor = focusTxt or T.textDim
-    ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, nil, _rowTagOpts)
+    ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, mark, _rowTagOpts)
 end
 
 -- A row's bar in the COND / AMT column: the framed strip (ZeD.Atoms.drawFillBar) at the list rows' compact height,
@@ -1659,16 +1691,18 @@ end
 -- how much is in something"; ItemMeter.lua, punch list 152): something that wears, its condition in the status
 -- bar's five segments and colours; something that holds a liquid or runs down, how full it is in the fill bar's ten
 -- (a liquid blue, the rest a light neutral); nothing for what neither wears nor holds.
+-- Returns true when it drew a bar (a row with none lends the cell's room to its category's words).
 local function rowCondition(self, item, x, y, w, rowH, stackInfo)
-    if w <= 0 then return end
+    if w <= 0 then return false end
     local IM = ZeD.ItemMeter
     -- (a stack's head: its emptiest item's bar, punch list 162)
     local kind, f = IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)
-    if kind == nil or kind == "hidden" then return end
+    if kind == nil or kind == "hidden" then return false end
     local A = ZeD.Atoms
     local fc, graduated = IM.style(kind)
     local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
     A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, f, graduated, fc, ch, IM.label(kind))
+    return true
 end
 
 local function renderItemList(self)
@@ -2174,7 +2208,8 @@ local function renderItemList(self)
         local afterName = nameX + childIndent + chevW + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
         if ZeD.InvTip then ZeD.InvTip.nameEnd(self, item, xOff + afterName) end   -- (the loot card's tail past the name)
         if nextTag then
-            rowTag(self, xOff + afterName, y, rowH, nextTag, focusTxt)
+            -- (the accent, as the grid's next-level arrow)
+            rowTag(self, xOff + afterName, y, rowH, nextTag, focusTxt, T.accentText or T.accent)
             afterName = afterName + nextW + T.px(6)
         end
         if dotW > 0 then
@@ -2187,27 +2222,32 @@ local function renderItemList(self)
         local okAS, aslot = pcall(item.getAttachedSlot, item)
         if okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.tagFor then
             local tag = ZeD.Belt.tagFor(aslot)
-            if afterName + tagW(tag) <= nameX + nameW then rowTag(self, xOff + afterName, y, rowH, tag, focusTxt) end
+            if afterName + tagW(tag) <= nameX + nameW then rowTag(self, xOff + afterName, y, rowH, tag, focusTxt, T.info) end
         end
 
         local secTextY = y + math.floor((rowH - secFH) / 2)
 
+        -- the COND cell first: a row with nothing in it (no bar, no read mark, most rows) lends its room to the
+        -- category's words, which otherwise were cut short beside an empty cell ("Gardeni...")
+        local condFree = showCond
+        if showCond and rs then
+            drawReadCond(self, rs, xOff + condX + T.px(6), y, rowH, condColW - T.px(6), padX, focusTxt)
+            condFree = false
+        elseif showCond then
+            -- the framed condition strip (ZeD.Atoms.drawFillBar), compact, centered in the row
+            condFree = not rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH, stackInfo)
+        end
+
         if showCat then
             -- (waiting to move: "Moving" in place of the category, a bar along the row's foot; punch list 146)
             if not queueMark(self, item, catX + padX, secTextY, catColW - padX * 2, xOff, y, scrollX, rowH) then
-                local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
+                local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1,
+                    catColW - padX * 2 + (condFree and condColW or 0))
                 local cc = focusTxt or T.toneHi
                 dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
             end
         else
             queueMark(self, item, nil, nil, 0, xOff, y, scrollX, rowH)
-        end
-
-        if showCond and rs then
-            drawReadCond(self, rs, xOff + condX + T.px(6), y, rowH, condColW - T.px(6), padX, focusTxt)
-        elseif showCond then
-            -- the framed condition strip (ZeD.Atoms.drawFillBar), compact, centred in the row
-            rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH, stackInfo)
         end
 
         -- Weight (F3, the data voice); a stack's head shows its total in brackets
@@ -2628,10 +2668,9 @@ local function renderMultiColumnContent(self)
             local inv = cs.inventory
             local weight   = inv and inv:getCapacityWeight() or 0
             local capacity = inv and inv:getMaxWeight() or 0
-            local capStr   = capacity > 0 and string.format("%.1f", capacity) or "---"
             -- (a mod's gate: its words for the weight, and only the things it lets show)
-            local statsStr = ZeD.ContainerGates.status(inv, self._playerObj) or string.format("%.1f/%skg", weight, capStr)
-            local itemCount = inv and ZeD.ContainerGates.count(inv, self._playerObj) or 0
+            local statsStr = ZeD.ContainerGates.status(inv, self._playerObj) or ZeD.Atoms.loadText(weight, capacity)
+            local itemCount = inv and ZeD.InventoryRenderer.shownCount(self, inv, self._playerObj) or 0   -- (as the rows)
             local countStr  = ZeD.tr(itemCount == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", itemCount)
 
             -- Bind column state onto self

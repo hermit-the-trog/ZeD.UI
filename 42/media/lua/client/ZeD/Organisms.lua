@@ -582,19 +582,64 @@ function ZeD_Window.healthPixel(hp)
     return T.danger, hp <= 20
 end
 
--- A stat's text that fits between sx and edge: its own, else its longest shorter form that fits (st.alts, the
--- Character window's pins), else nil. Returns the text, its width and the room it needs with its mark.
-local function fitStat(st, txt, sx, edge, markW, tm, f3)
-    local sw = tm:MeasureStringX(f3, txt)
-    if sx - sw - markW >= edge then return txt, sw, sw + markW end
-    local alts = st.alts
-    if not alts then return nil end
-    for k = 1, #alts do
-        local a = tostring(alts[k])
-        local aw = tm:MeasureStringX(f3, a)
-        if sx - aw - markW >= edge then return a, aw, aw + markW end
+-- The title stats' forms and which of them show, fitted as one row between right and the title (right-aligned, gap
+-- apart, a mark's room markRoom before each that has one). A stat's forms are its text, then st.alts, shorter in
+-- turn (the Character window's pins); one with no alts keeps its text. In order: every stat takes its shortest form;
+-- the most stats from the right that fit beside the title cut to its least (edgeLeast) show, the rest drop from the
+-- left; and while the whole title fits too (edgeFull) the newest stats take back their longest forms that fit. So
+-- the title is cut only once every stat is at its shortest, and a stat drops only once the title is at its least.
+-- (Fitted one stat at a time, the newest pin took its whole words and left the next one no room: the title was cut,
+-- or a pin dropped, where shorter forms let everything show.) The chosen texts and widths go in self._tsText and
+-- self._tsW, a mark's room in self._tsMark (kept on the window: a frame makes no table). Returns the first stat
+-- shown (#stats + 1: none).
+local function fitStats(self, stats, right, edgeFull, edgeLeast, markRoom, gap, tm, f3)
+    local tx, tw, mw = self._tsText, self._tsW, self._tsMark
+    if not tx then
+        tx, tw, mw = {}, {}, {}
+        self._tsText, self._tsW, self._tsMark = tx, tw, mw
     end
-    return nil
+    local dim = ZeD.T.textDim
+    local n = #stats
+    for i = 1, n do
+        local st = stats[i]
+        local t = tostring(st.text or "")
+        local w = tm:MeasureStringX(f3, t)
+        local alts = st.alts
+        for k = 1, (alts and #alts or 0) do
+            local a = tostring(alts[k])
+            local aw = tm:MeasureStringX(f3, a)
+            if aw < w then t, w = a, aw end
+        end
+        -- (a color at alpha 0 was the old way to say "no mark")
+        local dc = st.color or dim
+        mw[i] = (not st.noMark and (dc.a == nil or dc.a > 0)) and markRoom or 0
+        tx[i], tw[i] = t, w
+    end
+    local first, total = n + 1, 0
+    for i = n, 1, -1 do
+        local add = tw[i] + mw[i] + ((i < n) and gap or 0)
+        if right - (total + add) < edgeLeast then break end
+        total, first = total + add, i
+    end
+    if right - total >= edgeFull then
+        for i = n, first, -1 do
+            local st = stats[i]
+            local alts = st.alts
+            local t, k = tostring(st.text or ""), 0
+            while t ~= tx[i] do
+                local w = tm:MeasureStringX(f3, t)
+                if right - (total - tw[i] + w) >= edgeFull then
+                    total = total - tw[i] + w
+                    tx[i], tw[i] = t, w
+                    break
+                end
+                k = k + 1
+                if not (alts and alts[k]) then break end
+                t = tostring(alts[k])
+            end
+        end
+    end
+    return first
 end
 
 -- The title bar: surface 2 (one layer: ZeD.Surface), stripes broken behind the title and the
@@ -648,28 +693,20 @@ function ZeD_Window:_drawTitleBar(w, tbH)
         fullW, leastW = 0, 0
     end
 
-    -- stats right to left from the window box; one that would reach the title is dropped
+    -- stats right to left from the window box, in the forms fitStats picked; the ones it dropped are left out
     local statL = nil
     local stats = self.titleStats
     if stats and #stats > 0 then
         local pad = tbp * 2 + sp.md + reserve
-        local edgeFull = nameX + fullW + pad
-        local edgeLeast = nameX + leastW + pad
+        local first = fitStats(self, stats, right, nameX + fullW + pad, nameX + leastW + pad, mk + mkGap, sp.md, tm, f3)
+        local tx, tw, mw = self._tsText, self._tsW, self._tsMark
         local sx = right
         local tc = T.text
-        for i = #stats, 1, -1 do
-            local st = stats[i]
-            local txt = tostring(st.text or "")
-            local dc = st.color or T.textDim
-            -- (a colour at alpha 0 was the old way to say "no mark")
-            local mark = not st.noMark and (dc.a == nil or dc.a > 0)
-            local markW = mark and (mk + mkGap) or 0
-            local t2, sw = fitStat(st, txt, sx, edgeFull, markW, tm, f3)
-            if not t2 and edgeLeast < edgeFull then t2, sw = fitStat(st, txt, sx, edgeLeast, markW, tm, f3) end
-            if not t2 then break end
-            sx = sx - sw
-            self:drawText(t2, sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
-            if mark then
+        for i = #stats, first, -1 do
+            local dc = stats[i].color or T.textDim
+            sx = sx - tw[i]
+            self:drawText(tx[i], sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
+            if mw[i] > 0 then
                 sx = sx - mkGap - mk
                 self:drawRect(sx, my, mk, mk, dc.a or 1, dc.r, dc.g, dc.b)
             end
@@ -1089,6 +1126,29 @@ local function drawFrameRect(p, w, h, lit)
     p:drawRect(w - t, t, t, h - 2 * t, c.a or 1, c.r, c.g, c.b)
 end
 
+-- The Character and World windows side by side (the reset's page spread leaves a few px between them): the strip
+-- between them is drawn as one piece of their frames, so what the game draws behind the windows (a trunk's prompt
+-- at the middle of the screen) does not show through a crack between two pages. The left window draws it, from its
+-- right edge to the other's left, where the two overlap top to bottom; anywhere else the game's drawing stays seen.
+-- PAIR_GAP: the widest strip that is a spread's crack, not two windows apart (design units).
+local PAIR_GAP = 16
+local function drawPairGap(win, p, w, h)
+    local k = win:pairKey()
+    if not k then return end
+    local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
+    local other
+    if k == "char" then other = WWm and WWm.getWindow and WWm.getWindow() else other = CWm and CWm.getWindow and CWm.getWindow() end
+    if not (other and other:isVisible()) then return end
+    local gap = other:getX() - (win:getX() + w)
+    if gap <= 0 or gap > ZeD.T.px(PAIR_GAP) then return end
+    local y0 = win:getY()
+    local top = math.max(y0, other:getY())
+    local bot = math.min(y0 + h, other:getY() + other:shownHeight())
+    if bot <= top then return end
+    local bs = ZeD.T.borderS
+    p:drawRect(w, top - y0, gap, bot - top, bs.a or 1, bs.r, bs.g, bs.b)
+end
+
 -- The overlay's draw (ZeD_WindowOverlay:render), after every other child of the window: the
 -- help line, a resize handle, the frame, then the controller's focus mark from ZeD.Focus
 -- (which may reach past the window's edge: nothing here clips it)
@@ -1104,6 +1164,7 @@ function ZeD_Window._drawTop(win)
         if lit then drawHandle(win, p, w, h, lit) end
     end
     drawFrameRect(p, w, h, lit)
+    drawPairGap(win, p, w, h)
     local F = ZeD.Focus
     if F and F.drawOverlay then
         local ok, err = pcall(F.drawOverlay, p, win)

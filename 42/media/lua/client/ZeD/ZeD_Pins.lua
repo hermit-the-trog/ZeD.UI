@@ -123,17 +123,12 @@ local function shortName(n, max)
 end
 P.shortName = shortName
 
--- A pin's words with a name n (nil: the number alone): mode "max" (a skill at 10), "level" (a skill: pd the
--- skill's pin data) or "item" (key a1 a2: the item's line)
+-- A pin's words with its name n: mode "max" (a skill at 10), "level" (a skill: pd the skill's pin data) or "item"
+-- (key a1 a2: the item's line). Every form keeps the name: the title bar drops a pin before it is bare numbers.
 local function pinForm(mode, pd, key, a1, a2, n)
-    if mode == "max" then return n and ZeD.tr("UI_ZeD_Char_PinMax", n) or "10" end
-    if mode == "level" then
-        if n then return ZeD.tr("UI_ZeD_Char_PinLevel", n, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel) end
-        return ZeD.tr("UI_ZeD_Pin_Of", pd.level, pd.xpInLevel, pd.xpForLevel)
-    end
-    local t = ZeD.tr(key, n or "", a1, a2)
-    if not n then t = t:gsub("^%s*|%s*", "") end
-    return t
+    if mode == "max" then return ZeD.tr("UI_ZeD_Char_PinMax", n) end
+    if mode == "level" then return ZeD.tr("UI_ZeD_Char_PinLevel", n, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel) end
+    return ZeD.tr(key, n, a1, a2)
 end
 
 -- an item pin's numbers: key, a1, a2, color (key nil: a kind with none); run guarded, as an item may lack a part
@@ -167,8 +162,8 @@ function P.stats(p)
     local T = ZeD.T
     local out = {}
     for _, e in ipairs(list(p)) do
-        -- the pin's words with a name (nil: the number alone); the title bar takes the longest form that
-        -- fits, then shorter ones (otherwise pins drop where a shorter form would fit)
+        -- the pin's words with its name, then with the name cut shorter (alts): the title bar fits the whole row
+        -- in the longest forms it can, and drops a pin rather than show numbers with no word to them
         local mode, pd, key, a1, a2, color, full = nil, nil, nil, nil, nil, nil, nil
         if e.k == "skill" then
             pd = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and ZeD.SkillsTab.getPinData(p, e.id)
@@ -192,7 +187,7 @@ function P.stats(p)
         end
         if mode then
             local text = pinForm(mode, pd, key, a1, a2, shortName(full, SHORT))
-            local alts = { pinForm(mode, pd, key, a1, a2, shortName(full, 8)), pinForm(mode, pd, key, a1, a2, nil) }
+            local alts = { pinForm(mode, pd, key, a1, a2, shortName(full, 8)) }
             out[#out + 1] = { text = text, color = color, alts = alts }
         end
     end

@@ -21,6 +21,17 @@
 --             new count and lay nothing out again
 --   PAD       the Filter button, the field, Clear and each chip are stops; the bar's ground is not; A on a chip
 --             picks it, X clears, the field's A prompt is Type
+--   FLOOR KEY the floor (the game's one floor container: the real containerKey gives "type:floor" in every town) and
+--             a car not yet saved keep no filter: typed on the floor it is not saved, a new window on the floor opens
+--             unfiltered, a crate shown beside the floor is never given its filter, and one an old save kept is let go
+--   TIMED     the real itemModel builds each column's model again about once a second with nothing changed: the count
+--             stays the same table and the bar is not laid out again (no pad stops rebuilt) for ten seconds; a new
+--             thing in a crate changes the count without moving a stop; a narrower window moves them
+--   COLUMNS   the real Loot column refresh of both windows (charMC / worldMC, on the real FocusManager): the pad on
+--             the Filter button, Clear or a chip in a column's zone stays there when the bar is laid out again
+--   EDGE      the real press code of both windows on the real scrollbar: a press on Clear's right end (the strip
+--             beside the scrollbar under the heading) is the bar's, not the scrollbar's; the scrollbar reads a press
+--             and a drag on its own y
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/inventory_filter_sim.lua
 -- It prints FAIL lines and a last line "inventory_filter_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -57,7 +68,7 @@ ZeD = {}
 ZeD._trGen = 1
 ZeD.T = {
     px = function(n) return n end, scale = 1, inputH = 22, buttonH = 24, hair = 1,
-    sp = { sm = 10, buttonPadX = 12 },
+    sp = { sm = 10, buttonPadX = 12, scrollbarW = 14 },
     fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF5 = "F5",
     base = rgb(0.1, 0.1, 0.12), accent = rgb(0.28, 0.63, 0.55), accentText = rgb(0.3, 0.7, 0.6),
     text = rgb(0.8, 0.8, 0.8), textDim = rgb(0.5, 0.5, 0.5), toneNorm = rgb(0.8, 0.8, 0.8),
@@ -426,6 +437,274 @@ do
     local qs = readFile("ZeDUI/tools/qa/zedqa_inventory_filter.lua") or ""
     check("FLOOR: the script counts the floor's own names", qs:find("S.agg.matched >= want", 1, true) ~= nil
         and qs:find("S.agg.matched >= 7", 1, true) == nil)
+end
+
+section("FLOOR KEY (the floor and a car not yet saved keep no filter)")
+do
+    -- the real containerKey on the game's floor (vanilla's ItemContainer.new("floor", nil, nil): no parent, no bag,
+    -- no vehicle part) and on a part of a car not yet saved (its database id is still -1)
+    local ckey = cutChunk("local function containerKey(inv, playerObj)", "ZeD.InventoryRenderer.containerKey = containerKey",
+        "return containerKey", "containerKey")
+    local floorInv = { getContainingItem = function() return nil end, getType = function() return "floor" end,
+                       getParent = function() return nil end }
+    check("FLOOR KEY: the real key of the game's floor is the same in every town", ckey(floorInv) == "type:floor", ckey(floorInv))
+    local carInv = { getContainingItem = function() return nil end, getVehiclePart = function()
+        return { getVehicle = function() return { getSqlId = function() return -1 end } end, getId = function() return "TruckBed" end }
+    end }
+    check("FLOOR KEY: a car not yet saved has no id in its key yet", ckey(carInv) == "veh:-1:TruckBed", ckey(carInv))
+    check("FLOOR KEY: the floor, a car not yet saved and a part with no car have no place of their own",
+        IF.placed ~= nil and not IF.placed("type:floor") and not IF.placed("veh:-1:TruckBed") and not IF.placed("veh:?:TruckBed"))
+    check("FLOOR KEY: a crate, a saved car's trunk, a bag and the inventory have one",
+        IF.placed ~= nil and IF.placed("obj:1,2,0:crate") and IF.placed("veh:12:TruckBed") and IF.placed("item:55") and IF.placed("player"))
+    -- the floor in one town: "nails"
+    local FLOORI = mkInv("type:floor", { { "Nails", "Material", 10 }, { "Plank", "Material", 2 } })
+    local MF = model(FLOORI)
+    local fp = mkPanel(FLOORI)
+    local SF = IF.of(fp)
+    frame(fp, false, { MF })
+    IF.toggleOpen(SF)
+    IF.setQuery(SF, "nails")
+    frame(fp, false, { MF })
+    check("FLOOR KEY: the floor narrows while the window shows it", SF.agg and SF.agg.matched == 10, SF.agg and SF.agg.matched)
+    check("FLOOR KEY: its filter is not saved", STORE["type:floor"] == nil, STORE["type:floor"])
+    -- the window shut, opened again in another town: a new panel, the same floor key
+    local fp2 = mkPanel(FLOORI)
+    frame(fp2, false, { MF })
+    local SF2 = IF.of(fp2)
+    check("FLOOR KEY: a new window on the floor opens unfiltered, the bar shut", not SF2.open and not IF.active(SF2), SF2.q)
+    -- the floor beside a crate never filtered (side-by-side columns)
+    local NEWC = mkInv("obj:40,40,0:crate", { { "Nails", "Material", 3 }, { "Rope", "Material", 1 } })
+    local MN = model(NEWC)
+    local cp = mkPanel(nil, { NEWC, FLOORI })
+    frame(cp, true, { MN, MF })
+    check("FLOOR KEY: a crate shown beside the floor is not given a filter", STORE[NEWC.key] == nil and not IF.active(IF.of(cp)),
+        STORE[NEWC.key])
+    -- and a crate's filter beside the floor stays the crate's
+    local SC = IF.of(cp)
+    IF.toggleOpen(SC)
+    IF.setQuery(SC, "rope")
+    frame(cp, true, { MN, MF })
+    check("FLOOR KEY: a filter typed beside the floor is kept on the crate alone", STORE[NEWC.key] == "rope" and STORE["type:floor"] == nil,
+        tostring(STORE[NEWC.key]) .. " / " .. tostring(STORE["type:floor"]))
+    -- a save from before this kept the floor's filter (and an unsaved car's)
+    STORE["type:floor"], STORE["veh:-1:TruckBed"] = "nails", "gas"
+    local fp3 = mkPanel(FLOORI)
+    frame(fp3, false, { MF })
+    check("FLOOR KEY: a floor filter an old save kept is not applied", not IF.active(IF.of(fp3)) and not IF.of(fp3).open)
+    check("FLOOR KEY: it is let go from the save, with the unsaved car's", STORE["type:floor"] == nil and STORE["veh:-1:TruckBed"] == nil)
+    check("FLOOR KEY: the crates' own filters stay", STORE[NEWC.key] == "rope" and STORE["player"] ~= nil)
+end
+
+section("TIMED (each column's model built again about once a second)")
+do
+    -- the World window's two columns, the bar open on "sheet", the real itemModel on a clock moving 16 ms a frame
+    worldP._colStates = { { inventory = CRATE }, { inventory = SHELF } }
+    if not SW.open then IF.toggleOpen(SW) end
+    IF.setQuery(SW, "sheet")
+    local function timedFrame()
+        NOW = NOW + 16
+        local a = itemModel(worldP, CRATE, nil, false, "cat", true, {}, {})
+        local b = itemModel(worldP, SHELF, nil, false, "cat", true, {}, {})
+        frame(worldP, true, { a, b })
+        return a
+    end
+    for _ = 1, 3 do timedFrame() end
+    local agg0, lgen0, matched0 = SW.agg, SW.lgen, SW.agg.matched
+    local builds, last = 0, nil
+    for _ = 1, 600 do
+        local a = timedFrame()
+        if a ~= last then builds, last = builds + 1, a end
+    end
+    check("TIMED: ten seconds: the models were built again (the timer ran)", builds >= 8, builds)
+    check("TIMED: the count stays the same table", SW.agg == agg0)
+    check("TIMED: the bar is not laid out again, so no pad stop is rebuilt", SW.lgen == lgen0, SW.lgen - lgen0)
+    -- a new thing in the crate: a new count, its chip's number one up, no stop moved
+    local extra = mkInv("tmp", { { "Sheet Metal", "Material", 1 } }).things[1]
+    CRATE.things[#CRATE.things + 1] = extra
+    timedFrame()
+    check("TIMED: a new thing in the crate: the count follows", SW.agg.matched == matched0 + 1 and SW.agg ~= agg0, SW.agg.matched)
+    check("TIMED: no stop moved: the pad stops are not rebuilt", SW.lgen == lgen0, SW.lgen - lgen0)
+    local own = {}
+    for _, c in ipairs(SW.agg.chips) do own[c] = true end
+    local drawn = true
+    for _, rc in ipairs(SW.rects) do if rc.chip and not own[rc.chip] then drawn = false end end
+    check("TIMED: the chips drawn are the new count's", drawn)
+    CRATE.things[#CRATE.things] = nil
+    timedFrame()
+    -- a narrower window moves the stops: the pad stops are rebuilt
+    local lgen1 = SW.lgen
+    worldP.getWidth = function() return 300 end
+    timedFrame()
+    check("TIMED: a narrower window moves the stops: rebuilt once", SW.lgen == lgen1 + 1, SW.lgen - lgen1)
+    timedFrame()
+    check("TIMED: and once only", SW.lgen == lgen1 + 1, SW.lgen - lgen1)
+    worldP.getWidth = function() return 420 end
+    timedFrame()
+end
+
+section("COLUMNS (the pad on the Filter's stops in a Loot column)")
+do
+    -- the real FocusManager zone code, and both windows' real Loot column refresh
+    local FM = readFile("42/media/lua/client/ZeD/Input/FocusManager.lua")
+    local fa = FM:find("local function _resolveZoneIdx(w, zoneRef)", 1, true)
+    local fb = fa and FM:find("--- Toggle focusable flag on a zone", fa, true)
+    check("cut FocusManager's zone code", fa ~= nil and fb ~= nil)
+    local Focus = assert(loadstring("local Focus = {}\nlocal _focusedWindow, _cuesOn = nil, false\n" .. FM:sub(fa, fb - 1)
+        .. "\nreturn Focus", "focus"))()
+    Focus.setZoneFocusable = function() end
+    local CWS = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua")
+    local WWS = readFile("42/media/lua/client/ZeD/ZeD_WorldWindow.lua")
+    local function cutText(src, from, to)
+        local x = src:find(from, 1, true)
+        local y = x and src:find(to, x, true)
+        return (x and y) and src:sub(x, y - 1) or nil
+    end
+    local cwChunk = cutText(CWS, "local function _charMCColumnDirty(win, slot, cs)", "-- Item card action strip focusables")
+    local wwDirty = cutText(WWS, "local function _worldMCColumnDirty(win, slot, cs)", "-- Dynamic per-column MC ring zone restructuring.")
+    local wwLoop = cutText(WWS, '        if Focus and win._focusRing and win._activeTab == "loot" then',
+        "        -- the tab's stops (content._tabStopsRefresh, above). Rebuilt every")
+    check("cut both windows' Loot column refresh", cwChunk ~= nil and wwDirty ~= nil and wwLoop ~= nil)
+    -- a column's stops as the windows build them: a row per thing, then the heading's (the renderer's rects)
+    local function build(win, slot)
+        local cs = win._mainContent._colStates[slot]
+        local els = {}
+        for i, it in ipairs(cs.flatItems) do els[#els + 1] = { id = "row:" .. i, item = it, x = 0, y = 80 + i * 26, w = 200, h = 26 } end
+        for _, e in ipairs(toggleElements(cs.viewToggleRects)) do els[#els + 1] = e end
+        return els
+    end
+    local refreshChar = assert(loadstring("local _buildCharacterMCColumnFocusables = ...\n" .. (cwChunk or "")
+        .. "\nreturn _refreshCharMCZones", "charMC"))(build)
+    local refreshWorld = assert(loadstring("local _buildWorldMCColumnFocusables = ...\n" .. (wwDirty or "")
+        .. "\nreturn function(win, self, Focus)\n" .. (wwLoop or "") .. "\nend", "worldMC"))(build)
+    local sides = {
+        { zone = "charMC1", run = function(w) refreshChar(w, Focus) end },
+        { zone = "worldMC1", run = function(w) refreshWorld(w, w._mainContent, Focus) end },
+    }
+    for _, side in ipairs(sides) do
+        local zn = side.zone
+        STORE[CRATE.key], STORE[SHELF.key] = nil, nil   -- (the window opens with the bar shut)
+        local panel = mkPanel(nil, { CRATE, SHELF })
+        local S = IF.of(panel)
+        local MA, MB = model(CRATE), model(SHELF)
+        local cs = panel._colStates[1]
+        cs.flatItems, cs.scroll, cs.itemRenderYMap, cs.renderX, cs.renderW, cs.containerIdx = MA.flatItems, { scrollPos = 0 }, {}, 0, 200, 2
+        -- the column's heading: the Filter button, and the bar's stops while it is open (drawViewToggle's GV.toggles)
+        local function heading()
+            frame(panel, true, { MA, MB })
+            local t = { { x = 150, y = 8, w = 24, h = 24, view = "filter", key = CRATE.key, id = "view:filter:" .. CRATE.key } }
+            if S.open then for _, rc in ipairs(S.rects) do t[#t + 1] = rc end end
+            cs.viewToggleRects = t
+        end
+        heading()
+        local win = { _activeTab = "loot", _mcSelected = { 2 }, _mainContent = panel,
+                      _focusRing = { { zone = zn, elements = {}, focusedElementIdx = 1, focusable = true } } }
+        side.run(win)
+        local z = win._focusRing[1]
+        local function focusOn(id)
+            for i, e in ipairs(z.elements) do if e.id == id then z.focusedElementIdx = i; return true end end
+            return false
+        end
+        local function focusedId() local e = z.elements[z.focusedElementIdx or 1]; return e and e.id end
+        win._gpFocusedMCItem = cs.flatItems[#cs.flatItems]   -- (the last row the pad was on, before Up took it to the heading)
+        check(zn .. ": the Filter button is a stop in the column", focusOn("view:filter:" .. CRATE.key))
+        local fbEl = z.elements[z.focusedElementIdx]
+        fbEl.onActivate(win, fbEl)   -- (A: the bar opens, its stops join the column's)
+        heading()
+        side.run(win)
+        check(zn .. ": A on the Filter button: the pad stays on it", focusedId() == "view:filter:" .. CRATE.key, focusedId())
+        check(zn .. ": Clear is a stop in the column", focusOn("view:fbar:clear"))
+        IF.setQuery(S, "metal")
+        heading()
+        S.lgen = S.lgen + 1   -- (the bar laid out again: a chip's number grew a digit, a stop moved)
+        heading()
+        side.run(win)
+        check(zn .. ": the bar laid out again: the pad stays on Clear", focusedId() == "view:fbar:clear", focusedId())
+        check(zn .. ": a chip is a stop in the column", focusOn("view:fbar:chip:Material"))
+        local chipEl = z.elements[z.focusedElementIdx]
+        chipEl.onActivate(win, chipEl)
+        S.lgen = S.lgen + 1
+        heading()
+        side.run(win)
+        check(zn .. ": A on a chip picks it, and the pad stays on the chip", S.cats.Material == true and focusedId() == "view:fbar:chip:Material",
+            focusedId())
+        focusOn("row:2")
+        win._gpFocusedMCItem = cs.flatItems[2]
+        S.lgen = S.lgen + 1
+        heading()
+        side.run(win)
+        check(zn .. ": a row keeps its row", focusedId() == "row:2", focusedId())
+        IF.clear(S)
+    end
+end
+
+section("EDGE (Clear's right end, beside the scrollbar)")
+do
+    local MOL = readFile("42/media/lua/client/ZeD/Molecules.lua")
+    local ma = MOL:find("ZeD_ScrollbarState = {}", 1, true)
+    local mb = ma and MOL:find("ZeD.Molecules.ScrollbarState = ZeD_ScrollbarState", ma, true)
+    check("cut the scrollbar", ma ~= nil and mb ~= nil)
+    local SB = assert(loadstring(MOL:sub(ma, mb - 1) .. "\nreturn ZeD_ScrollbarState", "scrollbar"))()
+    local CWS = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua")
+    local WWS = readFile("42/media/lua/client/ZeD/ZeD_WorldWindow.lua")
+    -- each window's press on its list, from the scrollbar test to the zones: false when it goes on to the zones
+    local function pressCode(src, from, name)
+        local x = src:find(from, 1, true)
+        local y = x and src:find("        local zone = self:hitZoneAt(x, y)", x, true)
+        check("cut " .. name, x ~= nil and y ~= nil)
+        return assert(loadstring("return function(self, x, y, win, w, scrollW)\n" .. src:sub(x or 1, (y or 2) - 1)
+            .. "\nreturn false\nend", name))()
+    end
+    local pressChar = pressCode(CWS, "        -- Multi-container: column-aware scroll check", "the Character window's press")
+    local pressWorld = pressCode(WWS, "        -- MC column-aware scrollbar check", "the World window's press")
+    -- the Character window's one list (420 wide), the bar open, the list longer than its view
+    local p = mkPanel(CHAR)
+    local S = IF.of(p)
+    frame(p, false, { model(CHAR) })
+    if not S.open then IF.toggleOpen(S) end
+    frame(p, false, { model(CHAR) })
+    local clear = S.rects[2]
+    local sb = SB:new()
+    sb.x, sb.y, sb.width, sb.height, sb.arrowH = 420 - 14, 37 + S.barH + 20, 14, 300, 14
+    sb.visible = true
+    sb:setBarSize(0.4)
+    p._scroll = sb
+    local px, py = clear.x + clear.w - 2, clear.y + 4
+    check("EDGE: Clear's right end is in the scrollbar's strip (the case)", clear.key == "clear" and px >= sb.x, px)
+    local win = { _mcSelected = {} }
+    local function fresh() sb.scrollPos, sb.upPressed, sb.downPressed, sb.dragging = 0.5, false, false, false end
+    fresh()
+    local took = pressChar(p, px, py, win, 420, 14)
+    check("EDGE (Character): a press on Clear's right end goes on to Clear", took == false and sb.scrollPos == 0.5,
+        tostring(took) .. " " .. sb.scrollPos)
+    fresh()
+    sb.visible = false
+    took = pressChar(p, 415, 200, win, 420, 14)
+    check("EDGE (Character): a list that fits has no scrollbar to take the strip", took == false, took)
+    sb.visible = true
+    fresh()
+    took = pressChar(p, sb.x + 7, sb.y + 5, win, 420, 14)
+    check("EDGE (Character): the scrollbar reads a press on its own y (its up arrow: a line up)",
+        took == true and sb.upPressed and sb.scrollPos < 0.5, tostring(took) .. " " .. sb.scrollPos)
+    fresh()
+    took = pressWorld(p, px, py, win)
+    check("EDGE (World): a press on Clear's right end goes on to Clear (with the scrollbar showing)",
+        took == false and sb.scrollPos == 0.5, tostring(took) .. " " .. sb.scrollPos)
+    fresh()
+    took = pressWorld(p, sb.x + 7, sb.y + 5, win)
+    check("EDGE (World): the scrollbar's up arrow still a line up", took == true and sb.upPressed and sb.scrollPos < 0.5, sb.scrollPos)
+    -- side-by-side columns: a press under a column's scrollbar (the container buttons' row) is not the scrollbar's
+    local csb = SB:new()
+    csb.x, csb.y, csb.width, csb.height, csb.arrowH = 186, 80, 14, 200, 14
+    csb.visible = true
+    csb:setBarSize(0.4)
+    csb.scrollPos = 0.5
+    local mp = { _colStates = { { scroll = csb } }, _scroll = sb }
+    local mwin = { _mcSelected = { 2 } }
+    check("EDGE (columns): a press under a column's scrollbar is not the scrollbar's",
+        pressChar(mp, 190, 300, mwin, 420, 14) == false and pressWorld(mp, 190, 300, mwin) == false and csb.scrollPos == 0.5, csb.scrollPos)
+    check("EDGE: both windows hand the scrollbar a move on its own y, as they hand it a press",
+        CWS:find("self._scroll:handleMouseMove(my - self._scroll.y)", 1, true) ~= nil
+        and WWS:find("self._scroll:handleMouseMove(self:getMouseY() - self._scroll.y)", 1, true) ~= nil)
 end
 
 section("WIRED")
