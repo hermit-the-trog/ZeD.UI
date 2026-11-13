@@ -213,3 +213,4 @@ zedqa_ctx_overlap.lua | ctxov | timeout=300        # a submenu over its parent s
 b10_guide_open_frames.lua | gframes | timeout=90   # the guide opens without a long frame
 zedqa_guide_bubble.lua | gbub | timeout=240        # the guide offers itself from the Messages icon in a new game's first hour
 zedqa_b11_notes.lua | b11n | timeout=600          # beta 11: the belt's hand icons, the Loot drawer fold, Nothing here., Dark text steps, a stack's emptiest bar
+zedqa_cov_b9to11.lua | cov_b9to11 | timeout=480   # the fixes no check reached (Table B3): #159 windows, tab icons, belt strap and buckle, #147, #148, #140, #134, at two UI scales; all put back (a known FAIL: #134 Color, the director's call; at 1080p #150)

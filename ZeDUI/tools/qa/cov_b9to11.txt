@@ -1,0 +1,12 @@
+# ZeDUI/tools/qa/cov_b9to11.txt (Nov 12 2026): real checks for the beta 9 to 11 fixes no check reached
+# (qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md, Table B and B3): #159 windows jumping, the window tab-strip icons, the
+# belt's strap and buckles, #147 the permit stamp, #148 the Health percent, #140 the radio preset +, #134 Custom Map
+# Labels on ZeD's map. ZeD-QA save only. Each check runs at the starting UI scale and again at a second one.
+# Run it twice:
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest .../cov_b9to11.txt   (1.75x, then 1.0: no inventory is narrowed either way)
+#   zedqa_run.ps1 -Manifest .../cov_b9to11.txt                      (the 1920 x 1080 window: 1.0, then a bigger step)
+# Only the 1080p run can catch #150: the bigger step opens each inventory narrower, and the round trip's "each window's
+# inventory is as wide as it was" check FAILs while ZeD never widens it again (Scale.fitInvW, applyCharState).
+# Known FAIL until the director rules: #134 Color, a map mod's label (ZeD turns the game's PlaceNames off outside Survey).
+zedqa_prelude.lua | pre | timeout=120
+zedqa_cov_b9to11.lua | cov_b9to11 | timeout=480
