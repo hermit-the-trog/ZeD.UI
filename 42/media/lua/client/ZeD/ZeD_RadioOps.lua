@@ -578,9 +578,12 @@ local function dtext(p, f, str, x, y, px, c, a, align, sp, glow)
     local n = #str
     local w = (sp == 0) and X.width(f, str, z) or (n * cw + (n - 1) * sp)
     if align == "r" then x = x - w elseif align == "c" then x = x - w / 2 end
+    -- (a whole line with letters the face lacks, a Chinese station name, draws in the face X.width measured it in)
+    local sf, sz, sy = uf, z, 0
+    if sp == 0 and X.faceFor then sf, sz, sy = X.faceFor(f, str, z) end
     local function put(dx, dy, alpha)
         if sp == 0 then
-            p:drawTextZoomed(str, math.floor(x + dx), math.floor(yy + dy), z, c[1], c[2], c[3], alpha, uf)
+            p:drawTextZoomed(str, math.floor(x + dx), math.floor(yy + sy + dy), sz, c[1], c[2], c[3], alpha, sf)
         else
             for i = 1, n do
                 local ch = str:sub(i, i)

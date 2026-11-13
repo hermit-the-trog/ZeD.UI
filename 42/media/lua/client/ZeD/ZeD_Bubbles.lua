@@ -315,9 +315,11 @@ function B.clean(s)
 end
 
 -- The balloons' face: ZeD's Fira Mono Regular distance-field entry (ZeD.Font.sdf.stat; ZeD.Text.checkRoleFonts points
--- it at the game's stand-in under Chinese, Japanese, Korean, Thai or the Dyslexic font, and ZeD.Text.scriptSwap draws
--- a script the face lacks in the face that has it). Without ZeD.Text (a sim, or before it loads) the 5 x 7 face
--- measures and draws, as before.
+-- it at the game's stand-in under Chinese, Japanese, Korean, Thai or the Dyslexic font). A line with letters the face
+-- lacks measures and draws in the face that has them, whichever of the two it is (ZeD.Text.faceFor): Chinese said
+-- under Simplified Chinese draws in Noto Sans SC, since the game's Chinese stand-in has no simplified-only letters.
+-- A line is wrapped at its spaces only, so Chinese, written without them, stays one line however long. Without
+-- ZeD.Text (a sim, or before it loads) the 5 x 7 face measures and draws, as before.
 local function face()
     local X, F = ZeD.Text, ZeD.Font
     local f = F and F.sdf and F.sdf.stat

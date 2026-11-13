@@ -584,13 +584,21 @@ local function fbFont()
     local T = ZeD.T
     return T and T.fontF1 or nil
 end
--- a word's width and the face's line height at zoom 1, or nil when the text manager is not ready
+-- a word's width and the face's line height at zoom 1, or nil when the text manager is not ready. A word with
+-- letters the F1 face lacks (Chinese) measures and draws in the face that has them (ZeD.Text.faceFor): that face,
+-- its zoom and its y shift at the F1 face's zoom 1 come back too, else nil.
 local function fbMeasure(word)
     local X, f = ZeD.Text, fbFont()
     if not (X and X.realTM and f) then return nil end
-    local ok, w, lh = pcall(function() local tm = X.realTM(); return tm:MeasureStringX(f, word), tm:getFontHeight(f) end)
+    local ok, w, lh, sf, sz, sy = pcall(function()
+        local tm = X.realTM()
+        local df, dz, dy = f, 1, 0
+        if X.faceFor then df, dz, dy = X.faceFor(f, word, 1) end
+        return tm:MeasureStringX(df, word) * dz, tm:getFontHeight(f), df, dz, dy
+    end)
     if not ok or type(w) ~= "number" or type(lh) ~= "number" or lh <= 0 then return nil end
-    return w, lh
+    if sf == f then return w, lh end
+    return w, lh, sf, sz, sy
 end
 
 -- layouts: font -> string -> { cells = {...}, w = width in art pixels at scale 1 }, oldest dropped first
@@ -643,9 +651,10 @@ local function layoutBuild(str, font)
                 for k = 1, #keys do cells[#cells + 1] = glyph(font, keys[k]) end
             else
                 local word = ZeD.upper(table.concat(chars, "", i, j - 1))
-                local raw, lh = fbMeasure(word)
+                local raw, lh, sf, sz, sy = fbMeasure(word)
                 if raw then
-                    cells[#cells + 1] = { fb = true, text = word, raw = math.max(1, raw), lh = lh, w = math.max(1, math.floor(raw * h / FB_CAP / lh + 0.5)) }
+                    cells[#cells + 1] = { fb = true, text = word, raw = math.max(1, raw), lh = lh, w = math.max(1, math.floor(raw * h / FB_CAP / lh + 0.5)),
+                                          sf = sf, sz = sz, sy = sy }
                 else
                     complete = false                      -- the text manager is not up yet: spaces now, ask again next time
                     for _ = i, j - 1 do cells[#cells + 1] = glyph(font, " ") end
@@ -816,7 +825,13 @@ function P.text(cv, str, x, y, c, font, scale, align, style, shadow, mul)
                     local k = cv.k
                     local zoom = g.w * scale * k / g.raw
                     local top = cv.oy + (y + dy) * k + (faceH * k - g.lh * zoom) / 2
-                    cv.el:drawTextZoomed(g.text, math.floor(cv.ox + (cx + dx) * k), math.floor(top), zoom, cc.r, cc.g, cc.b, cv.el._zedAlpha or 1, f1)
+                    if g.sf then
+                        -- (letters the F1 face lacks: the face fbMeasure measured them in, at its zoom and shift)
+                        cv.el:drawTextZoomed(g.text, math.floor(cv.ox + (cx + dx) * k), math.floor(top + g.sy * zoom), zoom * g.sz,
+                            cc.r, cc.g, cc.b, cv.el._zedAlpha or 1, g.sf)
+                    else
+                        cv.el:drawTextZoomed(g.text, math.floor(cv.ox + (cx + dx) * k), math.floor(top), zoom, cc.r, cc.g, cc.b, cv.el._zedAlpha or 1, f1)
+                    end
                 end
             else
                 for _, r in ipairs(g.runs) do
