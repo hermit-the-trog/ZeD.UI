@@ -447,7 +447,8 @@ end
 -- distance-field font with the atlas's line height). If any is not, every role
 -- draws in the game's own Small / Medium / Large font nearest its height, at
 -- native size, and free-size text (headings, radio digits) zooms the tallest of
--- the three. Readable rather than the ZeD look.
+-- the three. Readable rather than the ZeD look. A string with letters those
+-- faces lack still draws whole: X.standInSwap, further down.
 -- ---------------------------------------------------------------------------
 X.fallback = X.fallback or false        -- true while the game's fonts stand in
 X.freeFace = X.freeFace or nil          -- the default face for zoomPx while they do
@@ -561,14 +562,30 @@ function X.roleFallbackFont(px)
     return gameFontNear(X.realTM(), (px or 13) * S.root() * 77 / 64)
 end
 
+--- The face, zoom and y shift (screen px) that draw `str` for f (a font entry or a UIFont) at `zoom`: when f's face
+--- lacks some of the string's letters, the face that has them (X.scriptSwap, X.standInSwap, below); otherwise f's
+--- own face at `zoom` with no shift. Every ZeD.Text measure and draw goes through it, so the two always agree.
+function X.faceFor(f, str, zoom)
+    zoom = zoom or 1
+    local sf, zz, dy
+    if X.fallback then
+        sf, zz, dy = X.standInSwap(str, uifont(f), zoom)
+    elseif type(f) == "table" then
+        if f.sdf then sf, zz, dy = X.scriptSwap(str, zoom, f.face) end
+    elseif X.zoomOf(f) ~= 1 then
+        -- (a role font named by its UIFont, as T.fontF1 .. F5 are)
+        local T = ZeD.T
+        sf, zz, dy = X.scriptSwap(str, zoom, (T and T.fontFace and T.fontFace[f]) or 64)
+    end
+    if sf then return sf, zz, dy end
+    return uifont(f), zoom, 0
+end
+
 --- Width / height in SCREEN px of `str` drawn at `zoom` (explicit zoom: measured on the raw manager).
 function X.width(f, str, zoom)
     str = tostring(str)
-    if type(f) == "table" and f.sdf then
-        local sf, zz = X.scriptSwap(str, zoom or 1, f.face)
-        if sf then return X.realTM():MeasureStringX(sf, str) * zz end
-    end
-    return X.realTM():MeasureStringX(uifont(f), str) * (zoom or 1)
+    local sf, zz = X.faceFor(f, str, zoom)
+    return X.realTM():MeasureStringX(sf, str) * zz
 end
 --- the font's line height in screen px at `zoom`
 function X.height(f, zoom)
@@ -578,17 +595,11 @@ end
 --- Draw `str` on element `el` at screen px (x, y) with `zoom`; align "l" | "c" | "r" around x.
 --- Returns the drawn width in screen px.
 function X.draw(el, f, str, x, y, zoom, r, g, b, a, align)
-    str = tostring(str); zoom = zoom or 1
-    local w = X.width(f, str, zoom)
+    str = tostring(str)
+    local sf, zz, dy = X.faceFor(f, str, zoom)
+    local w = X.realTM():MeasureStringX(sf, str) * zz
     if align == "r" then x = x - w elseif align == "c" then x = x - w / 2 end
-    if type(f) == "table" and f.sdf then
-        local sf, zz, dy = X.scriptSwap(str, zoom, f.face)
-        if sf then
-            el:drawTextZoomed(str, math.floor(x), math.floor(y + dy), zz, r or 1, g or 1, b or 1, a or 1, sf)
-            return w
-        end
-    end
-    el:drawTextZoomed(str, math.floor(x), math.floor(y), zoom, r or 1, g or 1, b or 1, a or 1, uifont(f))
+    el:drawTextZoomed(str, math.floor(x), math.floor(y + dy), zz, r or 1, g or 1, b or 1, a or 1, sf)
     return w
 end
 
@@ -632,33 +643,42 @@ function X.withFontScale(font, m, fn, a)
 end
 
 -- ---------------------------------------------------------------------------
--- Text in scripts ZeD's fonts do not carry (a folder named in Chinese would draw "??").
--- Fira covers Latin, Greek and Cyrillic. ZeD's font lists (EN, PL, RU fonts.txt) put the game's
--- own Chinese and Japanese faces (zomboidMediumChinese / zomboidMediumJapanese, 23 px bitmaps
--- from the game's media/fonts) on two slots nothing else draws with: Cred1 (ZeD's spare Chicago,
--- unused) and DebugConsole (the -debug console). A string with a letter the role font lacks
--- (the engine measures a missing glyph 0 wide; one past the font's table draws "?") is drawn and
--- measured in whichever of those faces draws the most of its letters, zoomed to the role's size
--- and set on the role's baseline. Decided once per string (kept, two generations), glyphs probed
--- once per face. With the game's own fonts on the roles (Chinese, Japanese, Korean, Thai
--- language; X.fallback) nothing changes: those already draw their language.
--- Not covered: Korean and Thai letters (no free slot).
--- Simplified Chinese: the game's Chinese face is a traditional set (U+56FE, the second letter of
--- "map", draws blank in it), so ZeD's lists put Noto Sans SC on Cred1 instead: a 32 px
--- distance-field face (42/media/fonts/sdf/notoSC.fnt, ZeDUI/tools/fonts/bake_sdf_sc.py) with ASCII,
--- Latin-1, the 3,755 GB2312 level-1 letters and CJK punctuation. One face draws a whole string, so
--- a letter outside that set (a rare or traditional one) draws blank unless the Japanese face draws
--- more of the string's letters. The second Cred1 row keeps the game's face working if a list
--- still names it there (one row per slot is taken).
+-- Text in scripts the face drawing it does not carry (a folder named in Chinese drew "??").
+-- The engine measures a letter its font lacks 0 wide and draws nothing for it, not even a gap (one
+-- past the font's table draws "?"). ZeD's font lists put two faces nothing else draws with on two
+-- slots: Noto Sans SC on Cred1 (ZeD's simplified Chinese face: a 32 px distance-field face,
+-- 42/media/fonts/sdf/notoSC.fnt, from ZeDUI/tools/fonts/bake_sdf_sc.py, with ASCII, Latin-1, the 3,755
+-- GB2312 level-1 letters, CJK punctuation and every other letter ZeD's and the game's Simplified Chinese
+-- strings use) and the game's Japanese face on DebugConsole. A string
+-- with a letter its face lacks is drawn and measured in whichever of those faces draws the most of its
+-- letters, at the face's letter size and on its baseline. Decided once per string (kept, two
+-- generations), glyphs probed once per face. One face draws a whole string, so a letter none of them
+-- has (a rare one) still draws blank. Not covered: Korean and Thai letters while ZeD's atlases hold the
+-- roles (no free slot for a face with them).
+-- Two cases:
+--   * ZeD's own atlases on the roles (Fira covers Latin, Greek and Cyrillic): X.scriptSwap, zoomed to
+--     the role's size and set on the role's baseline.
+--   * The game's own faces standing in for them (Chinese, Traditional Chinese, Japanese, Korean or
+--     Thai language, or the Dyslexic font; X.fallback): X.standInSwap tests the stand-in instead and sets
+--     the swapped face at the stand-in's letter size. Those faces carry their own language, mostly: the
+--     game's Chinese face is Noto Sans TC, a traditional set with no simplified-only letters (U+72B6
+--     U+6001 "status", U+56FE "map", U+4EEC, U+8FD9 ...), so under Simplified Chinese most lines lost
+--     letters, with no gap where they were, until they drew in Noto Sans SC this way.
+-- The game's own lists for Chinese, Traditional Chinese, Japanese and Korean reload Cred1 with its Latin-only
+-- credits face, so ZeD ships copies of them without that slot (42/media/fonts/CN, CH, JP, KO/fonts.txt, the
+-- game's lists as they were, minus Cred1): Noto Sans SC stays loaded in those languages. Thai keeps the game's
+-- list: its Cred1 is a Thai credits face (Niramit, 87 Thai letters) that the game's windows draw Thai in, and
+-- Noto Sans SC has no Thai. The second Cred1 row below keeps the game's
+-- Chinese face working if another mod's list names it there (one row per slot is taken).
 -- ---------------------------------------------------------------------------
 local SCRIPT_SLOTS = {
-    { name = "Cred1", em = 32, base = 38, probe = 0x56FE },          -- Noto Sans SC (ZeD's)
-    { name = "Cred1", em = 23, base = 19, probe = 0x5730 },          -- the game's Chinese face
-    { name = "DebugConsole", em = 23, base = 19, probe = 0x3042 },   -- the game's Japanese face
+    { name = "Cred1", em = 32, base = 38, probe = 0x56FE, own = true },   -- Noto Sans SC (ZeD's bake)
+    { name = "Cred1", em = 23, base = 19, probe = 0x5730 },               -- the game's Chinese face
+    { name = "DebugConsole", em = 23, base = 19, probe = 0x3042 },        -- the game's Japanese face
 }
 local ZED_BASE = 60 / 64      -- ZeD's distance-field atlases: baseline 60 px down a 64 px face
 local SF_MAX = 4000
-local SF = { ready = false, fonts = {}, zedFont = nil, has = {}, cur = {}, old = {}, n = 0 }
+local SF = { ready = false, fonts = {}, zedFont = nil, has = {}, cur = {}, old = {}, n = 0, met = {}, home = {} }
 X._scriptFonts = SF
 
 local function sfHas(font, c, str, i)
@@ -672,13 +692,25 @@ local function sfHas(font, c, str, i)
     return v
 end
 
+-- SF.zedFont is the face a string is tested against first. With ZeD's atlases on the roles it is the body
+-- atlas (the five share one set of letters); while the game's faces stand in it is the stand-in, and SF.home
+-- holds the game's Small, Medium and Large, the fonts the roles then draw in (a language's three share one
+-- set of letters too).
 local function sfSetup()
     SF.ready = true
-    SF.fonts, SF.has, SF.cur, SF.old, SF.n = {}, {}, {}, {}, 0
+    SF.fonts, SF.has, SF.cur, SF.old, SF.n, SF.met, SF.home = {}, {}, {}, {}, 0, {}, {}
     SF.zedFont = nil
-    if X.fallback or not UIFont then return end
+    if not UIFont then return end
     local body = ZeD.Font and ZeD.Font.sdf and ZeD.Font.sdf.body
-    SF.zedFont = body and (body.slot or body.font) or nil
+    if X.fallback then
+        SF.zedFont = body and body.font or nil
+        for _, name in ipairs(GAME_SLOTS) do
+            local f = UIFont[name]
+            if f then SF.home[f] = true end
+        end
+    else
+        SF.zedFont = body and (body.slot or body.font) or nil
+    end
     local tm = X.realTM()
     local taken = {}
     for _, e in ipairs(SCRIPT_SLOTS) do
@@ -686,43 +718,122 @@ local function sfSetup()
         -- (the slot must hold the face: a language's own list can put something else there)
         if f and not taken[e.name] and tm:MeasureStringX(f, string.char(e.probe)) > 0 then
             taken[e.name] = true
-            SF.fonts[#SF.fonts + 1] = { font = f, em = e.em, base = e.base }
+            SF.fonts[#SF.fonts + 1] = { font = f, em = e.em, base = e.base, own = e.own }
         end
     end
 end
 X._scriptReset = function() SF.ready = false end
+-- true once the faces have been looked up (not before the fonts have loaded)
+local function sfReady()
+    if SF.ready then return true end
+    if not X._fontsSettled then return false end
+    sfSetup()
+    return true
+end
 
+-- A face's letter size and baseline in screen px at zoom 1, for setting one face's letters on another's
+-- while the game's faces stand in. em: the advance of a full-width letter, which is an em in the game's
+-- Noto faces and in Noto Sans SC alike, so the two draw their letters the same size; a face with none (Thai,
+-- the Dyslexic font) is read off its capital H instead. base: the foot of H (the game's faces have no
+-- padding round a letter). Noto Sans SC's own numbers are known from its bake. Kept per face until the faces
+-- are looked up again.
+local FULL_WIDTH = { 0x4E2D, 0xAC00, 0x3042 }   -- a Chinese, a Korean and a Japanese letter
+local function sfMetrics(font, e)
+    local m = SF.met[font]
+    if m then return m end
+    if e and e.own then
+        m = { em = e.em, base = e.base }
+    else
+        local tm = X.realTM()
+        local em, top, ink = 0, 0, 0
+        for _, cp in ipairs(FULL_WIDTH) do
+            local one = string.char(cp)
+            local w1 = tm:MeasureStringX(font, one)
+            if w1 > 0 then
+                em = tm:MeasureStringX(font, one .. one) - w1   -- (the second letter adds its advance)
+                break
+            end
+        end
+        -- The game's Java side can throw; pcall turns a crash into a nil we can test.
+        pcall(function() top, ink = tm:MeasureStringYOffset(font, "H"), tm:MeasureStringYReal(font, "H") end)
+        if type(top) ~= "number" then top = 0 end
+        if type(ink) ~= "number" then ink = 0 end
+        if em <= 0 then em = (ink > 0) and (ink / 0.72) or 16 end   -- (a capital is about 0.72 em)
+        local base = top + ink
+        if base <= 0 then base = em * 1.16 end
+        m = { em = em, base = base }
+    end
+    SF.met[font] = m
+    return m
+end
+
+--- `str` cut at each line break: a list of its lines (an empty line is ""). A string drawn in a swapped face draws
+--- one line at a time, because the engine's zoomed draw steps down by the face's own unzoomed line height.
+function X.lines(str)
+    local out, i = {}, 1
+    while true do
+        local j = string.find(str, "\n", i, true)
+        if not j then
+            out[#out + 1] = string.sub(str, i)
+            return out
+        end
+        out[#out + 1] = string.sub(str, i, j - 1)
+        i = j + 1
+    end
+end
+
+-- Punctuation and symbols past ASCII: Latin-1's, General Punctuation (quote marks, the ellipsis, U+2027),
+-- CJK punctuation and the full-width forms' punctuation. Everything else past ASCII counts as a letter.
+local function sfPunct(c)
+    return (c >= 0xA0 and c <= 0xBF) or c == 0xD7 or c == 0xF7 or (c >= 0x2000 and c <= 0x206F)
+        or (c >= 0x3000 and c <= 0x303F) or (c >= 0xFF01 and c <= 0xFF0F) or (c >= 0xFF1A and c <= 0xFF20)
+        or (c >= 0xFF3B and c <= 0xFF40) or (c >= 0xFF5B and c <= 0xFF65)
+end
+
+-- Which face draws `str`: false for the face it is in (SF.zedFont), or the entry of the face with more of its
+-- letters. Letters count first and punctuation only breaks a tie. A line whose letters are all there but a quote
+-- mark is missing moves only to ZeD's own Noto Sans SC (sharp at any size, and the Chinese UI's own letterforms)
+-- and only when it has every letter: the game's Japanese face is a bitmap zoomed to the stand-in's size, soft and
+-- in Japanese letterforms, a poor trade for a quote mark.
 local function sfScan(str)
     local n = #str
     local zf = SF.zedFont
-    local wide, miss = 0, 0
+    local wide, miss, wideL, missL = 0, 0, 0, 0
     for i = 1, n do
         local c = string.byte(str, i)
         if c and c >= 128 then
+            local letter = not sfPunct(c)
             wide = wide + 1
-            if not sfHas(zf, c, str, i) then miss = miss + 1 end
+            if letter then wideL = wideL + 1 end
+            if not sfHas(zf, c, str, i) then
+                miss = miss + 1
+                if letter then missL = missL + 1 end
+            end
         end
     end
     if miss == 0 then return false end
-    local best, bestN = false, wide - miss
+    local best, bestL, bestN = false, wideL - missL, wide - miss
     for k = 1, #SF.fonts do
         local e = SF.fonts[k]
-        local got = 0
-        for i = 1, n do
-            local c = string.byte(str, i)
-            if c and c >= 128 and sfHas(e.font, c, str, i) then got = got + 1 end
+        if missL > 0 or e.own then
+            local got, gotL = 0, 0
+            for i = 1, n do
+                local c = string.byte(str, i)
+                if c and c >= 128 and sfHas(e.font, c, str, i) then
+                    got = got + 1
+                    if not sfPunct(c) then gotL = gotL + 1 end
+                end
+            end
+            if gotL > bestL or (gotL == bestL and got > bestN) then best, bestL, bestN = e, gotL, got end
         end
-        if got > bestN then best, bestN = e, got end
     end
     return best
 end
 
---- The face entry ({ font, em, base }) that draws `str` in place of ZeD's role fonts, or false.
+--- The face entry ({ font, em, base }) that draws `str` in place of ZeD's role fonts (or of the game's faces
+--- standing in for them), or false.
 function X.scriptFont(str)
-    if not SF.ready then
-        if not X._fontsSettled then return false end
-        sfSetup()
-    end
+    if not sfReady() then return false end
     if SF.zedFont == nil or #SF.fonts == 0 or type(str) ~= "string" then return false end
     local v = SF.cur[str]
     if v ~= nil then return v end
@@ -744,13 +855,40 @@ function X.scriptSwap(str, z, face)
     return e.font, zz, z * f * ZED_BASE - e.base * zz
 end
 
---- Width in screen px of `str` in role font `font` at zoom z, in the face that draws it.
+--- While the game's faces stand in (X.fallback): for text in `font`, one of the game's Small, Medium or
+--- Large, at zoom z, the face, its zoom and the y shift that draw `str` with all its letters, or nil when
+--- `font` draws them itself (or is another font). The swapped face draws its letters as large as the
+--- stand-in's and on the same baseline.
+function X.standInSwap(str, font, z)
+    if not (X.fallback and font ~= nil and sfReady() and SF.home[font]) then return nil end
+    local e = X.scriptFont(str)
+    if not e then return nil end
+    z = z or 1
+    local a, b = sfMetrics(font), sfMetrics(e.font, e)
+    local zz = z * a.em / b.em
+    return e.font, zz, z * a.base - b.base * zz
+end
+
+--- Width in screen px of `str` in role font `font` at zoom z, in the face that draws it. While the game's faces
+--- stand in, a string of several lines is as wide as its widest line, each line in the face that draws it (the
+--- lines draw one at a time: Overrides/TextScale.lua).
 function X.roleWidth(font, str, z)
-    if z ~= 1 then
-        local T = ZeD.T
-        local sf, zz = X.scriptSwap(str, z, (T and T.fontFace and T.fontFace[font]) or 64)
-        if sf then return X.realTM():MeasureStringX(sf, str) * zz end
+    local sf, zz
+    if X.fallback and string.find(str, "\n", 1, true) and X.standInSwap(str, font, z) then
+        local w, lines = 0, X.lines(str)
+        for k = 1, #lines do
+            local lw = X.roleWidth(font, lines[k], z)
+            if lw > w then w = lw end
+        end
+        return w
     end
+    if X.fallback then
+        sf, zz = X.standInSwap(str, font, z)
+    elseif z ~= 1 then
+        local T = ZeD.T
+        sf, zz = X.scriptSwap(str, z, (T and T.fontFace and T.fontFace[font]) or 64)
+    end
+    if sf then return X.realTM():MeasureStringX(sf, str) * zz end
     return X.realTM():MeasureStringX(font, str) * z
 end
 
@@ -880,6 +1018,84 @@ function TM:getFontFromEnum(font)
     S._fontProxy[font] = { z = z, real = real, proxy = proxy }
     return proxy
 end
+-- Java's String.split: pieces between each `sep` (plain), trailing empty pieces dropped.
+local function javaSplit(str, sep)
+    local out, i, n = {}, 1, #sep
+    while true do
+        local j = string.find(str, sep, i, true)
+        if not j then out[#out + 1] = string.sub(str, i); break end
+        out[#out + 1] = string.sub(str, i, j - 1)
+        i = j + n
+    end
+    if #out == 1 then return out end   -- (no separator: the string itself, even "")
+    while #out > 0 and out[#out] == "" do out[#out] = nil end
+    return out
+end
+--- WrapText(font, str, w, maxLines, suffix): `str` broken into lines no wider than w (at spaces; a word too wide
+--- for a line is cut into pieces ending "-"), cut to maxLines with `suffix` on the last when there are more.
+--- The engine's own does the work, except while the game's faces stand in and `str` draws in a swapped face:
+--- the engine would measure it in the stand-in, where a letter it lacks is 0 wide, and the line drawn in the
+--- swapped face would run past w by an em per such letter. Then this port of the engine's WrapText (42.22)
+--- measures through ZeD.TM, in the face each word draws in.
+function TM:WrapText(font, str, w, maxLines, suffix)
+    maxLines = maxLines or -1
+    suffix = suffix or ""
+    if not (X.fallback and type(str) == "string" and X.standInSwap(str, font, 1)) then
+        local real = X.realTM()
+        return real:WrapText(font, str, w, maxLines, suffix)
+    end
+    local out = {}
+    local space = TM:MeasureStringX(font, " ")
+    local paras = javaSplit((string.gsub(str, "\r\n", "\n")), "\n")
+    for p = 1, #paras do
+        local para = paras[p]
+        if TM:MeasureStringX(font, para) <= w then
+            out[#out + 1] = para
+        else
+            local words, cur, curW = javaSplit(para, " "), {}, 0
+            for i = 1, #words do
+                local word = words[i]
+                local ww = TM:MeasureStringX(font, word)
+                local t = curW + ww
+                if t > w then
+                    if #cur == 0 then
+                        local per = math.max(math.floor(w / t * #word) - 1, 5)
+                        local pieces = math.ceil(#word / per)
+                        for j = 0, pieces - 2 do
+                            out[#out + 1] = string.sub(word, j * per + 1, (j + 1) * per) .. "-"
+                        end
+                        local last = string.sub(word, (pieces - 1) * per + 1)
+                        cur[1] = last
+                        curW = TM:MeasureStringX(font, last) + space
+                    else
+                        out[#out + 1] = table.concat(cur, " ")
+                        cur = { word }
+                        curW = ww + space
+                    end
+                else
+                    cur[#cur + 1] = word
+                    curW = t + space
+                end
+                if i == #words then
+                    out[#out + 1] = table.concat(cur, " ")
+                    cur, curW = {}, 0
+                end
+            end
+        end
+    end
+    if maxLines > 0 and #out > maxLines then
+        local sw = TM:MeasureStringX(font, suffix)
+        local last = out[maxLines]
+        if w - TM:MeasureStringX(font, last) < sw then
+            out[maxLines] = string.sub(last, 1, math.max(#last - #suffix, 0)) .. suffix
+        else
+            out[maxLines] = last .. suffix
+        end
+        for k = #out, maxLines + 1, -1 do out[k] = nil end
+    end
+    return table.concat(out, "\n")
+end
+
 -- Any other method: wrapped once and cached on TM (the TextManager is a singleton; the wrapper
 -- re-fetches it per call so a Lua reload never holds a stale object). Plain values pass through.
 setmetatable(TM, { __index = function(t, k)

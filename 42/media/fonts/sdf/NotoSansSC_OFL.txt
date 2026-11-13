@@ -1,4 +1,4 @@
-Noto Sans SC Regular, version 2.004 (notoSC.fnt and notoSC1-5.png in this folder are
+Noto Sans SC Regular, version 2.002 (notoSC.fnt and notoSC1-6.png in this folder are
 bitmap distance-field atlases baked from it by ZeDUI/tools/fonts/bake_sdf_sc.py).
 Source: https://github.com/notofonts/noto-cjk (Sans/SubsetOTF/SC/NotoSansSC-Regular.otf)
 
