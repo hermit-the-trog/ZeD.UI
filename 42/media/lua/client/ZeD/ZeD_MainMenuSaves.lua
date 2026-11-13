@@ -846,10 +846,13 @@ function ZeD_MMNewGame:items()
         if not self._challengeItems then
             local t = {}
             local list = {}
-            for _, c in ipairs(LastStandChallenge or {}) do list[#list + 1] = c end
+            -- (42.22 keeps the challenges in ChallengeList; older builds called it LastStandChallenge. A player found
+            -- the list empty on beta 12, Nov 13 2026.)
+            for _, c in ipairs(ChallengeList or LastStandChallenge or {}) do list[#list + 1] = c end
             table.sort(list, function(a, b) return tostring(a.name) < tostring(b.name) end)
             for _, info in ipairs(list) do
-                t[#t + 1] = { mode = info.name, title = info.name, desc = info.description or "", thumb = info.image, internal = info.name, challenge = info }
+                t[#t + 1] = { mode = info.name, title = info.name, desc = info.description or "", thumb = info.image, video = info.video,
+                    internal = info.name, challenge = info }
             end
             self._challengeItems = t
         end
