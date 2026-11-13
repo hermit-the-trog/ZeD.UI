@@ -13,6 +13,8 @@
 --   HIT    a click on an arrow pages, though the carousel's hidden cell copies lie under it (QA's Mac run on test 4:
 --          the right arrow opened Move to's submenu, the left equipped the hammer); a hidden copy outside the strip
 --          takes nothing; a cell inside the strip still confirms
+--   DRILL  (from zedqa_ctx_overlap.lua) a submenu drilled into: the pointer over each cell keeps the drill-down and
+--          selects that cell
 -- What it can't show: the slide on screen (QA: click an overflowing strip's arrows at 1x and 1.75x).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/strip_page_sim.lua
 -- It prints FAIL lines and a last line "strip_page_sim: N checks, M failed", and exits 1 if any failed.
@@ -200,6 +202,35 @@ do
     local z = o:hitZoneAt(98, 20)
     check("HIT a hidden copy outside the strip, under no arrow, takes nothing", z == nil, z and z.id)
     check("HIT the hover over an arrow is the arrow, not the cell under it", (o:hitZoneAt(90, 20) or {}).id == "ctxchev_l")
+end
+
+-- DRILL (from zedqa_ctx_overlap.lua's STRIP part, Nov 12 2026): Eat drilled into, the pointer over each cell keeps
+-- the drill-down (no pop back to the top level) and selects the cell under it, in the frame's real update()
+do
+    local T = tokens(1)
+    ZeD.T = T
+    local kids = {}
+    for i = 1, 4 do kids[i] = { name = "Eat " .. i, id = "eat" .. i, category = "ACTION" } end
+    local acts = { { name = "Equip", id = "eq", category = "ACTION" }, { name = "Eat", id = "eat", category = "ACTION", children = kids },
+                   { name = "Drop", id = "drop", category = "ACTION" } }
+    local o = setmetatable({ width = 1200, height = 400, _hitZones = {},
+        _ctx = { open = true, actions = acts, path = {}, selected = 2, pos = 1, truncating = false, trackOriginX = 0 },
+        _animFromOriginX = 0, _animToOriginX = 0, _animStartMs = 0, _animFromLabelX = 0, _animToLabelX = 0,
+        _animFromStripW = 0, _animToStripW = 0, _currentOriginX = 0, _currentLabelX = 0, _currentStripW = 0,
+        _suppressFrames = 0, _layoutCache = { stripX = 100, stripY = 10, stripW = 200, stripH = 24 } }, { __index = CM })
+    o:_rebuildTrack()
+    o:confirm()
+    check("DRILL Eat drilled in: the path one deep, its back cell and four rows", #o._ctx.path == 1 and #o._ctx.items == 5, #o._ctx.path)
+    for k = 1, #o._ctx.items do o._hitZones[k] = { id = "ctxcell_" .. k, x = 100 + (k - 1) * 23, y = 11, w = 22, h = 22 } end
+    local mx, my = -1, -1
+    o.getMouseX = function() return mx end
+    o.getMouseY = function() return my end
+    for k = 1, 3 do
+        mx, my = 100 + (k - 1) * 23 + 11, 20
+        o:update()
+        check("DRILL hovering cell " .. k .. " keeps the drill-down", #o._ctx.path == 1, #o._ctx.path)
+        check("DRILL cell " .. k .. " is the selection", o._ctx.selected == k, o._ctx.selected)
+    end
 end
 
 print("strip_page_sim: " .. checks .. " checks, " .. failed .. " failed")

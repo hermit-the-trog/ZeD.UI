@@ -518,6 +518,14 @@ do
     bk:readTopics(1)
     local _, sig3 = dealt(bk)
     check("the same panel laid out again: the same deal", sig1 == sig3)
+    -- (from zedqa_guide_ads.lua: close and reopen, the same ads on the same pages) B.open keeps the player's panel and
+    -- lays it out again, which is the deal above
+    local fo = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua", "rb")
+    local bsrc = fo and fo:read("*a"):gsub("\r\n", "\n") or ""
+    if fo then fo:close() end
+    local openFn = bsrc:match("\nfunction B%.open%(pn, want%)\n(.-)\nend\n") or ""
+    check("close and reopen: B.open keeps the player's book and lays it out again",
+        openFn:find("local bk = B.books[pn]", 1, true) ~= nil and openFn:find("bk:readTopics(bk:unit())", 1, true) ~= nil)
     FORE = "Baldspot"
     local other = newBook()
     other:readTopics(1)

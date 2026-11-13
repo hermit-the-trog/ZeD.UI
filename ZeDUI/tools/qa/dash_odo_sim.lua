@@ -33,6 +33,18 @@
 --           option is read at most once a second
 --   DIGITAL the Lang 4000's and the Cossette's speed figures in the game's units, the KM/H or MPH legend lit; the
 --           needles stay in mph
+-- From the in-game dash scripts (Nov 12 2026):
+--   KEYS    (zedqa_dash_keys_edge.lua, archive/zedqa_dash_r6_keys.lua) the key reads ACC in, START while the starter
+--           turns, ON running; a start ACC-OFF-ON-START-ON, shut off ON-OFF-ACC, a dry start back to ACC, the key out
+--           none; each step 90 to 400 ms; the dash flush on the screen's bottom edge; the ash tray's click, none on
+--           the fleet dashes
+--   BRANDS  (zedqa_dash_brands.lua) each civilian car's dash and its maker's mark with its sprite; the Step Van on
+--           the Valuline's dash with the Chevalier mark and STEP VAN; a modded car's name gets the plaque
+--   NIGHT   (zedqa_dashnight.lua) the light to nightness in eighths, the dark plate or the lit one laid over, the dash
+--           lights brightening the plate, D.qaNight
+--   PARTS   (zedqa_dash_r6_parts.lua) the taxi's fare: flag drop by a click, a minute's wait, a fifth of a mile, the
+--           extras per rider, the sandbox read live, the key out clearing it; the hula girl at rest and both ways;
+--           the licence's unit line; the van's decal, NO SMOKING or ash tray
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/dash_odo_sim.lua
 -- It prints FAIL lines and a last line "dash_odo_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -1267,6 +1279,213 @@ do
         env.units = "Imperial"
         frame(1000)
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- From the in-game dash scripts (the QA cleanup, Nov 12 2026): KEYS (zedqa_dash_keys_edge.lua, zedqa_dash_r6_keys.lua),
+-- BRANDS (zedqa_dash_brands.lua), NIGHT (zedqa_dashnight.lua), PARTS (zedqa_dash_r6_parts.lua)
+-- ---------------------------------------------------------------------------
+function Car:getEngineState() return self.engState or (self.running and "Running" or "Idle") end
+function Car:getSquare() local lux = self.lux or 1; return { getLightLevel = function() return lux end, getX = function() return 0 end,
+    getY = function() return 0 end, getZ = function() return 0 end } end
+function Car:getX() return self.x or 0 end
+function Car:getY() return self.y or 0 end
+function Car:getAngleX() return 0 end
+function Car:getAngleZ() return 0 end
+function Car:getHeadlightsOn() return self.lights or false end
+function Car:getHeadlightCanEmmitLight() return self.lights or false end
+ISVehicleMenu = { onStartEngine = noop, onShutOff = noop, onToggleHeadlights = noop }
+
+section("KEYS")
+do
+    -- the key's place each 30 ms frame, written down as it changes, with the time of each change
+    local function watch(ms, n)
+        local last = tostring(st().keyPos)
+        local seq, at = { last }, { clock }
+        for _ = 1, n do
+            frame(ms)
+            local k = tostring(st().keyPos)
+            if k ~= last then seq[#seq + 1] = k; at[#at + 1] = clock; last = k end
+        end
+        return seq, at
+    end
+    local function steps(at)
+        local lo, hi = 1e9, 0
+        for i = 3, #at do lo = math.min(lo, at[i] - at[i - 1]); hi = math.max(hi, at[i] - at[i - 1]) end
+        return lo, hi
+    end
+    local car = drive("nyala", { keysIn = true })
+    frames(3, 30)
+    check("KEYS the key in, the engine off: ACC", st().keyPos == "acc", st().keyPos)
+    check("KEYS the dash flush on the screen's bottom edge", inst:getY() + inst:getHeight() == 1080, inst:getY() + inst:getHeight())
+    -- the click on the key with the engine off: the hand turns it to START; the engine cranks, then runs
+    inst:_fire("ignition", false)
+    local s1, at1 = watch(30, 8)
+    car.engState = "StartingSuccess"
+    local s2 = watch(30, 20)
+    car.engState, car.running = nil, true
+    local s3, at3 = watch(30, 20)
+    local all, ats = {}, {}
+    for _, t in ipairs({ { s1, at1 }, { s2, nil }, { s3, at3 } }) do
+        for i, k in ipairs(t[1]) do if all[#all] ~= k then all[#all + 1] = k; if t[2] then ats[#ats + 1] = t[2][i] end end end
+    end
+    check("KEYS a start: ACC - OFF - ON - START - ON", table.concat(all, "-") == "acc-off-on-start-on", table.concat(all, "-"))
+    check("KEYS running: ON", st().keyPos == "on", st().keyPos)
+    local lo, hi = steps(at1)
+    check("KEYS each step of the turn 90 to 400 ms", #at1 >= 3 and lo >= 90 and hi <= 400, #at1 .. ": " .. lo .. ".." .. hi)
+    -- shut off: ON held a step, then OFF, then ACC
+    car.running = false
+    local s4, at4 = watch(30, 20)
+    check("KEYS shut off: ON - OFF - ACC", table.concat(s4, "-") == "on-off-acc", table.concat(s4, "-"))
+    lo, hi = steps(at4)
+    check("KEYS the shut-off's steps 90 to 400 ms", lo >= 90 and hi <= 400, lo .. ".." .. hi)
+    -- a dry start: the key held at START while the hand turns it, then back to ACC
+    inst:_fire("ignition", false)
+    local s5 = watch(30, 50)
+    check("KEYS an empty-tank start falls back: ACC - OFF - ON - START - ON - OFF - ACC", table.concat(s5, "-") == "acc-off-on-start-on-off-acc", table.concat(s5, "-"))
+    car.keysIn = false
+    frame(30)
+    check("KEYS the key out: no key drawn", st().keyPos == nil, st().keyPos)
+    -- the ash tray: a click opens or shuts it, on the car; the fleet dashes have none
+    car.keysIn = true
+    frame(30)
+    local was = st().ashIsOpen
+    inst:_fire("ash", false)
+    frame(30)
+    check("KEYS a click on the ash tray opens or shuts it", st().ashIsOpen == not was and car.md.ZeD_ash == not was)
+    inst:_fire("ash", false)
+    frame(30)
+    check("KEYS and back", st().ashIsOpen == was)
+    for _, id in ipairs({ "police", "fire", "ambulance", "ranger" }) do
+        local des = ZeD.DashPx.designs[id]
+        local tray = false
+        for _, p in ipairs(des and des.parts or {}) do if p.src == "ashOpen" then tray = true end end
+        for _, h in ipairs(des and des.hits or {}) do if h.id == "ash" then tray = true end end
+        check("KEYS no ash tray on the " .. id .. " dash", des and not tray)
+    end
+    out()
+end
+
+section("BRANDS")
+do
+    -- the game's own English car names (IGUI_VehicleName<model>, the game's IG_UI.json)
+    local NAMES = { CarLuxury = "Mercia Lang 4000", CarNormal = "Chevalier Nyala", SportsCar = "Chevalier Cossette",
+        PickUpTruck = "Chevalier D6", ModernCar = "Dash Elite", ModernCar02 = "Chevalier Primani", SmallCar = "Chevalier Dart",
+        SmallCar02 = "Masterson Horizon", CarStationWagon = "Chevalier Cerise Wagon", SUV = "Franklin All-Terrain",
+        Van = "Franklin Valuline", PickUpVan = "Dash Bulldriver", OffRoad = "Dash Rancher", StepVan = "Chevalier Step Van" }
+    local keepText = getTextOrNull
+    getTextOrNull = function(k) return NAMES[(tostring(k):gsub("^IGUI_VehicleName", ""))] end
+    local CASES = {
+        { "Base.CarLuxury", "luxury", "mercia" }, { "Base.CarNormal", "nyala", "chevalier" }, { "Base.SportsCar", "cossette", "chevalier" },
+        { "Base.PickUpTruck", "d6", "chevalier" }, { "Base.ModernCar", "dashelite", "dash" }, { "Base.ModernCar02", "primani", "chevalier" },
+        { "Base.SmallCar", "dart", "chevalier" }, { "Base.SmallCar02", "horizon", "masterson" }, { "Base.CarStationWagon", "wagon", "chevalier" },
+        { "Base.SUV", "suv", "franklin" }, { "Base.Van", "van", "franklin" }, { "Base.PickUpVan", "bulldriver", "dash" },
+        { "Base.OffRoad", "rancher", "dash" }, { "Base.StepVan", "van", "chevalier" },
+    }
+    for _, c in ipairs(CASES) do
+        local car = newCar({ script = c[1], keysIn = true })
+        seat(car); newDash(); frame(30)
+        local des = ZeD.DashPx.designs[c[2]]
+        local sprite = false
+        for _, p in ipairs(des.parts) do
+            if p.t == "sprite" and p.src == "brand" and p.when == st().brand and des.sprites[p.sprite] then sprite = true end
+        end
+        check("BRANDS " .. c[1] .. ": the " .. c[2] .. " dash", inst._designId == c[2], inst._designId)
+        check("BRANDS " .. c[1] .. ": the " .. c[3] .. " mark", st().brand == c[3], st().brand)
+        check("BRANDS " .. c[1] .. ": the mark has its sprite", sprite)
+        if c[1] == "Base.StepVan" then
+            check("BRANDS the Step Van's model line: STEP VAN", inst._badge and inst._badge.model == "STEP VAN", inst._badge and inst._badge.model)
+        end
+        out()
+    end
+    -- a modded car's name on a game car: the plaque
+    getTextOrNull = function() return "Ford Bronco" end
+    local b = D._badges(ZeD.DashPx.designs.nyala, newCar({ script = "Base.FordBronco" }), "Base.FordBronco", false)
+    check("BRANDS a modded car (Ford Bronco) gets the plaque", b.brand == "plaque" and b.make == "FORD" and b.model == "BRONCO", b.brand)
+    getTextOrNull = keepText
+end
+
+section("NIGHT")
+do
+    local car = drive("dashelite", { keysIn = true, lux = 0.9 })
+    local nd = ZeD.DashPx.designs.dashelite.night
+    local function settle(lux) car.lux = lux; frames(60, 100); return inst._light end
+    local L = settle(0.9)
+    check("NIGHT day: nightness 0", L.n8 == 0, L.n8)
+    L = settle(0.42)
+    check("NIGHT dusk: nightness 4 eighths", L.n8 == 4, L.n8)
+    L = settle(0.1)
+    check("NIGHT night: nightness 8 eighths", L.n8 == 8, L.n8)
+    check("NIGHT the lights off: the dark plate laid over", nd and L.over == nd.dark and L.lit == false)
+    car.lights = true
+    frames(2, 100)
+    check("NIGHT the lights on: the night plate with its bulbs", nd and inst._light.over == nd.plate and inst._light.lit == true)
+    -- lit, the plate's parts read brighter than in the dark (the bulbs' light map)
+    local function sum(light)
+        PL.drawParts(canvas(), ZeD.DashPx.designs.dashelite.parts, st(), { light = light, sprites = ZeD.DashPx.designs.dashelite.sprites, tex = function() return nil end })
+        local s = 0
+        for _, r in ipairs(RECTS) do s = s + (r.r or 0) + (r.g or 0) + (r.b or 0) end
+        return s
+    end
+    local Llit = {}; for k, v in pairs(inst._light) do Llit[k] = v end
+    local Ldark = {}; for k, v in pairs(inst._light) do Ldark[k] = v end
+    Ldark.lit, Ldark.over = false, nd.dark
+    check("NIGHT the dash lights brighten the plate at night", sum(Llit) > sum(Ldark), sum(Llit) .. " vs " .. sum(Ldark))
+    D.qaNight = 0.5
+    frames(2, 100)
+    check("NIGHT D.qaNight stands in for the reading", inst._light.n8 == 4, inst._light.n8)
+    D.qaNight = nil
+    out()
+end
+
+section("PARTS")
+do
+    defaults["UI_ZeD_Dash_UnitCab"] = "%1 - CAB %2"
+    SandboxVars.ZeD = nil
+    local car = drive("taxi", { keysIn = true, running = true, kmh = 0 })
+    inst:_fire("meter", false)
+    frame(30)
+    check("PARTS the flag down by a click starts the meter at the flag drop (1.50)", st().meterOn == true and near(st().fare, 1.50), st().fare)
+    frames(601, 100)
+    check("PARTS a minute's wait adds its rate (1.75)", near(st().fare, 1.75), st().fare)
+    SandboxVars.ZeD = { TaxiFlagDrop = 2.00 }
+    frame(30)
+    check("PARTS the fare settings read live (flag drop 2.00)", near(st().fare, 2.25), st().fare)
+    SandboxVars.ZeD = nil
+    inst:_fire("meter", false); frame(30); inst:_fire("meter", false)
+    car.kmh = 100
+    frames(120, 100)                            -- 12 s at 62.14 mph: 0.207 miles, one fifth
+    check("PARTS a fifth of a mile adds its rate (1.75)", near(st().fare, 1.75), st().fare)
+    for _, c in ipairs({ { 2, 0.50 }, { 3, 1.00 }, { 1, 0 } }) do
+        D.qaRiders = c[1]
+        frame(30)
+        check(("PARTS %d riders: extras %.2f"):format(c[1], c[2]), near(st().fareExtra, c[2]), st().fareExtra)
+    end
+    D.qaRiders = nil
+    -- the hula girl: at rest standing still, both ways in turns
+    car.kmh = 0
+    frames(5, 200)
+    check("PARTS the hula girl at rest standing still", st().hula == 0, st().hula)
+    car.kmh = 40
+    D.qaHula = 1
+    frames(5, 200)
+    local left = st().hula
+    D.qaHula = -1
+    frames(5, 200)
+    local right = st().hula
+    D.qaHula = nil
+    check("PARTS she sways both ways in turns", left == 1 and right == 2, tostring(left) .. "/" .. tostring(right))
+    check("PARTS the licence's unit line: TAXI - CAB nn", inst._badge and tostring(inst._badge.unit):match("^TAXI %- CAB %d%d$") ~= nil, inst._badge and inst._badge.unit)
+    car.kmh, car.running, car.keysIn = 0, false, false
+    frame(30)
+    check("PARTS the key out clears the meter", st().meterOn == false and st().fare == 0, st().fare)
+    out()
+    -- the van's right side: a logo van its sticker, another company's van NO SMOKING, a private van the ash tray
+    local logoVan = next(ZeD.DashPx.vanLogos)
+    local vr, logo = D._vanRight(logoVan)
+    check("PARTS a logo van wears its decal", vr == nil and logo ~= nil, logoVan)
+    check("PARTS a private van has the ash tray", D._vanRight("Van") == "ash" and D._vanRight("VanSeats") == "ash" and D._vanRight("StepVan") == "ash")
+    check("PARTS another company's van: NO SMOKING", D._vanRight("VanKnoxDisti") == "nosmoke")
 end
 
 check("nothing logged", #env.errors == 0, env.errors[1])
