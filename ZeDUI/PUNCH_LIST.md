@@ -4469,6 +4469,9 @@ to be proposed.
       source; handoff `ZeDUI/HANDOFF_design_lua_console_93_box_20261112.md`. The director approved it ("Awesome.
       Wrap that up for build to use."). Publisher on the box: DOIDBRO & BUZZLORD SOFTWARE, DIVISION OF LANGUAGE
       PROTOCOLS LLC. Version 1.0, no beta wording, no ZeD-GUI named. Build: point the generator at these three files.
+      **The director to Build, Nov 12 2026 (multiple choice):** the icon ships ("Ship it"; it is the wheel slice's
+      picture too); the box's six middle dots become hyphens ("Hyphens, design re-exports"): design swaps them in
+      `lua_console_93_box.html` lines 126 and 128 and exports again (handoff, Open 4).
    c. Page: workshop_description.bbcode (a 1.0 tool for mod makers, debug mode, works alone; with ZeD-GUI on,
       ZeD-GUI's console is used), the director approves the text.
    d. Gallery: QA shoots the log with filters, an error opened, the scratchpad, autocomplete, the Commands page and

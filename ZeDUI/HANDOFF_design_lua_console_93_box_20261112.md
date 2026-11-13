@@ -56,3 +56,10 @@ filter (not nearest). The front and back panels and the transparent box are for 
 1. **The mark** beside the publisher is a boxed "D", a stand-in; there is no Doidbro & Buzzlord logo yet.
 2. If a number changes (commands, rows, runs), change it in the HTML and export again.
 3. The page text (176c) can borrow the back's lines: "Stop squinting at console.txt." and the four numbers.
+4. **The director, Nov 12 2026, to Build (multiple choice): "Hyphens, design re-exports."** The front still has six
+   middle dots, against the standing rule (no middle dots; printed things take a plain hyphen). They are all in
+   `lua_console_93_box.html`: line 126, "Log &middot; Scratchpad", "Suggestions &middot; Snippets", "Export &middot;
+   Controller"; line 128, "Version 1.0 &middot; Build 42 &middot; debug mode" and "3.5" HD &middot; ages 13 and up".
+   Design swaps each `&middot;` for " - " and exports every file again. The generator copies `preview.png`, `poster.png`
+   and `icon.png` straight from this folder at build time, so a re-export reaches the mod with no other step.
+5. **The icon is approved** (the director, Nov 12 2026: "Ship it"). Build also uses it for the controller wheel's slice.
