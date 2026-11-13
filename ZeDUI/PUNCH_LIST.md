@@ -4584,3 +4584,19 @@ to be proposed.
    (UI scale only, not text size: too tall at Small, pinched at Large). Row 2 is scattered: T.sp.colHdrH, T.px(20) in
    CW 1218/3670 and WW 381/3129, Foraging 15/20, Journal 15, Skills 20, a Crafting 60 estimate. Its labels stay tiny at
    Large. Check at Deck size with Large text. Ties to D6 and D7.
+179. **Dashboard interior colors (the director, Nov 12 2026, via design).** "We're not changing any looks. We're just
+   changing colors." Each civilian dashboard gets three cabin colors by group (station wagon; 70s; 80s; 90s late
+   models; sports and luxury leather), public service dashboards all become standard black, and a car's paint sets the
+   odds of its interior ("a different color exterior, you might get a chance of getting a different color interior").
+   Colors, decade lists and odds approved. Handoff: `ZeDUI/HANDOFF_design_dash_interior_colors_20261112.md`; review
+   sheets `ZeDUI/art/dash_colors/`; ramps and table `ZeDUI/tools/dashpx/colors.py` (plates only). For Build: full
+   builds per color (sprites and night pictures carry the cabin color), naming and loading, reading the paint color
+   (not verified), storing the roll on the car, the plate checks per color. Nothing in `42/` yet.
+180. **Radio and TV faces, round 4 (the director, Nov 12 2026, via design).** The ValuTech (black) radio, the Premium
+   Technologies (red) radio, the makeshift radio and the antique television redrawn against the game's models and
+   approved. The black radio lost its analog dial; both radios are 14 px taller (an aerial); the makeshift at 257 has a
+   wider board, a large speaker and two Spiffo Cell C batteries; the antique TV's control side is black in a chrome
+   frame. Control ids unchanged. Handoff: `ZeDUI/HANDOFF_design_radio_tv_faces_round4_20261112.md`; the 19 changed
+   plates and review sheets in `ZeDUI/art/rtv_faces_r4/`; designs edited in `ZeDUI/tools/physpx/`. For Build: copy
+   the plates, merge their PhysPx entries, fit the taller radios in the card, platesame. Open with the director: the
+   makeshift's big speaker exists at 257 only. Nothing in `42/` yet.
