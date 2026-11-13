@@ -4476,7 +4476,11 @@ to be proposed.
    ISVehicleMechanics:prerender, tiles beside it, closes when it is no longer really visible, and swaps the Engine
    part's "Take engine parts" / "Repair engine" for "Inspect engine components"); ZeD never shows that window, so the
    engine window dies at once. **Ruled (the director, Nov 12 2026, multiple choice): "ZeD's Vehicle tab"**: keep ZeD's
-   Vehicle tab and fit Summer Car's engine window beside it (not the game's window handed back). Build: a ModSupport
+   Vehicle tab and fit Summer Car's engine window beside it (not the game's window handed back). The director, later
+   that day: "it's a very popular automotive mod, just like Roadworthy. So I would like to support it because it's
+   actually a mod that I would like to try whenever I get to play the game." So every part of Summer Car that meets a
+   ZeD screen is in scope, checked with the mod on: the engine window, its wheel slices (ECU diagnostics, push), its
+   context-menu options (the engine lift and the rest), the animal-tow overlay and the push hotkey. Build: a ModSupport
    file that gives Summer Car what it reads from the mechanics window, from ZeD's Vehicle tab; the Engine part's menu
    in ZeD's tab follows the mod (Inspect engine components; no Take engine parts / Repair engine); the ECU radial and
    the engine lift paths checked; Summer Car in StepAside's supported list; a HOOK_MAP row; a sim that loads the mod's
