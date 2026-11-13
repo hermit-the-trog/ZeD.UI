@@ -114,3 +114,32 @@ List A: none for colors (no dash drawn wrongly, none cut). List B: the cars not 
 Ran: zedqa_mods_run.ps1 with summercar_mods.txt and summercar_manifest.txt once, 4K, ZeD last, real-mouse helper beside it (stopped after); the mod copied from SteamCMD's download for the run and removed after; the save restored (its mods.txt lists only ZeD_UI). Report: ZeDUI/qa/regression/2026-11-13_0004_mods_fullscreen4k.md (prelude pass; summercar FAIL, 216 s). Pictures: Zomboid/Screenshots/b12_release_20261113/p5 (zqa_sc_C..N, 8 files).
 Result: not judged. The script printed `ZEDQA sc cars true true` and then nothing; the engine window never opened, so there are no positions or sizes to report (the expected free side at about x=626, and open by itself on inspect, were not seen). In the same 216 s the log took 112 Java exceptions, all the Vehicle tab bug of Part 2: `ERROR: General f:1076> Lua((MOD:ZeD-GUI)).vehicleName> Exception thrown`, `java.lang.RuntimeException: Object tried to call nil in vehicleName at KahluaUtil.fail(KahluaUtil.java:100).`, `Lua((MOD:ZeD-GUI)).vehicleName(MechanicsTab.lua:400)`, `Lua((MOD:ZeD-GUI)).vehicleTabItems(MechanicsTab.lua:922)`, `Lua((MOD:ZeD-GUI)).renderSplit(MechanicsTab.lua:2105)`. It began on the first frame the Vehicle tab drew with a fresh car in a fresh game, so it is not the stale car of Part 2: a method vehicleName calls (the car script's `getCarModelName` or `getScript` on this build, 42.22.2) is nil. Pictures show the game's own windows (vanilla Inventory and "Vehicle Mechanics" in the pictures), which fits ZeD having stepped aside to safe mode after the exceptions.
 List A: the vehicleName exception above (the same bug as Part 2; it blocks Part 5). List B: none. Not run: every step of the script after "cars" (B to O).
+
+## Part 6. Lua Console 93 Professional Edition (CHECK_luaconsole93.md, products/LuaConsole93)
+
+Setup as in round 2: the ZeD-QA save only (zedqa_mods_run.ps1 writes its mod list for the run and restores it; its mods.txt lists only ZeD_UI now); the dev-only ZeDQAShim stood in for the alone pass (no ZeD-GUI); the main menu's default.txt was LuaConsole93 and the shim, then ZeD_UI and LuaConsole93 in each order, and was put back (reads ZeD_UI as before). The console opened through its own flag and lines went through its Run (the same ProcessCommand the box's Enter uses); no keys typed, so the sheet's key-driven steps are listed below as not checked. Reports: ZeDUI/qa/regression/2026-11-13_0011_ (alone), _0013_ (ZeD-GUI first), _0015_ (ZeD-GUI second) mods_fullscreen4k.md. Pictures and each run's console.txt: Zomboid/Screenshots/b12_release_20261113/p6 (run1, run2a, run2b). The staged mod in Zomboid/mods/LuaConsole93 is the rebuilt product (`--stage`; it changed no tracked file); it stays, as the sheet says.
+
+### Build and release list (Run 3)
+- `build_luaconsole93.py --check`: `CHECK: products/LuaConsole93 is what the sources build (61 files)`. PASS (round 2's 3-file difference is gone).
+- luaconsole93_sim: 272 checks, 0 failed. kahlua_guard on products/LuaConsole93: RESULT: PASS. (Both run on this same product earlier in the pass.)
+- mod.info: name Lua Console 93 Professional Edition, id LuaConsole93, modversion 1.0.0, versionMin 42.17.0, url empty; poster.png, icon.png and LICENSE.txt beside it. The workshop text file is skipped, as asked.
+
+### Run 1: alone (4K, -debug -nosteam): PASS on every item that ran
+- The window opens in -debug, titled "Lua Console 93", on the Log page.
+- `print(LC93 ~= nil, ZeD == nil)` gave `true true`.
+- Error row: PASS. `local x = nil; x.y = 1` three times gave ONE row: `ZEDQA lc errrow n=3 box=3 f11=3 mod=Lua Console 93 Professional Edition msg=attempted index of non-table stack=73`, `ZEDQA lc error rows=1 (expect 1, count 3)`; it opens to its stack (`stack opened=true`).
+- Print row: FAIL against the expected one row (List A): `ZEDQA lc print rows 'hello' = 2 (expect 1)`, `ZEDQA lc print(a,b) rows = 2 (expect 1)` (each row reads `a b` with whitespace collapsed; the scratchpad's prints: `scratch print rows a=2 b=2`).
+- Export: first line `Lua Console 93 | 2026-11-13_001231 | 42 of 42 | errors 1`, last line says the user name is taken out, 0 lines name a Users folder. PASS.
+- Scratchpad: a two-line snippet ran and Save snippet wrote the snippets file (ok=1). Commands and Help pages open (pictures p6/run1/zqa_lc_x_4k_commands.png, _help.png).
+- Nothing refers to ZeD-GUI: console.txt of the alone run has no `[ZeD]` line, no ZeD-GUI and no `ZeD_UI` load line; the only ZeD-named lines are the dev shim's `[ZeD.QA]` bridge lines (the test's bridge). No `[Lua Console 93]` failure line.
+- Not checked (needs keys, a pad or another screen): suggestions as you type, Tab and Esc; the filters and search by hand; Up recalling the line; the Deck-size look; the controller (Back wheel, on-screen keyboard); the hand-back switch file; Russian and Polish; picking /godmode; the Help folds; right-click snippet rename.
+
+### Run 2: both installed
+- ZeD-GUI first: ZeD-GUI's console opens (title "Lua console"), LC93 is nil and ZeD is there (`globals: LC93=false ZeD=true`); the export file is `ZeD-GUI Lua console | ...`; console.txt holds `[Lua Console 93] ZeD-GUI is on: its console is used` exactly twice and no other `[Lua Console 93]` line. PASS.
+- ZeD-GUI second (Lua Console 93 first): the same answers, the line twice. PASS.
+- In ZeD-GUI's console: one error row with count 3 (`ZEDQA lc errrow n=3 box=3 f11=3 mod=ZeD-GUI msg=attempted index of non-table stack=73`), PASS; but the print rows are doubled the same way (`print rows 'hello' = 2`, `print(a,b) rows = 2`), List A.
+- Not checked: the controller wheel (no pad); ZeD-GUI's snippets file.
+
+### List A (real mod bugs), Part 6
+1. A print shows as two rows in both consoles (Lua Console 93 and ZeD-GUI's), not one: `ZEDQA lc print rows 'hello' = 2 (expect 1)` and `ZEDQA lc print(a,b) rows = 2 (expect 1)` in all three runs. Pictures: p6/run1/zqa_lc_x_4k_prints.png and zqa_lc_x_4k_print_ab.png. Caveat: the lines went through the console's Run route, not typed keys; if a typed line gives one row the route is the difference, but it is the same call the box's Enter makes.
+### List B: none. Not run: see the "not checked" items.
