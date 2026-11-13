@@ -4435,6 +4435,17 @@ to be proposed.
       and the item cards are mostly blank; Equipped hides its grade panel below the fold. Proposals in section 4.
    e. **QA.** Rerun the full catalog on today's main so the 36 tabs get an after picture; add Light, High contrast,
       Large text and the controller highlight for a few tabs.
+      **Done (QA, Nov 12 2026, ZeDUI/qa/QA_175e_tab_catalog_rerun_20261112.md).** Gone: Q1, Q2, Q4, Q9, D3. Can't
+      tell: A3 (the walkie picture has no channel list), Q11 (91.4 F in all 17 regions while insulation moves). Still
+      there on 9186a50a, before the bug-hunt fixes merge: the rest; Q3's zone row says "0 animals" while Totals says
+      "1 Hen"; Q5's card shows "Add Timer to Bomb"; C2 and C3 are partly done.
+   f. **New from QA's rerun.** (1) Large text: the Unread tag shrinks to a bare square and the Cond / Amt column drops
+      out. (2) Light: the dimmed unread flier row in Papers is pale gray on pale gray; disabled Restock / Craft labels
+      are nearly invisible in Light and High Contrast (with D2). (3) Controller focus outside lists: Crafting and
+      Furniture show only the hand, no 0.55 accent fill. (4) A moodle hover note sits at the right edge over the World
+      window. (5) Window bodies show the scene through them in Light and High Contrast. **Ruled (the director, Nov 12
+      2026, multiple choice): "Solid in Light and HC"**: Light and High Contrast always draw window bodies solid;
+      See-through works in Dark only, and its help line says so.
 176. **Lua Console 93 Professional Edition: the Lua console as its own mod (the director, Nov 12 2026, via QA: "I want to release this as a
    separate mod. Just the console. Call it like Console Pro 93"; ships with beta 12, the same day, after QA passes
    both).** Debug mode only, for mod makers. Built by ZeDUI/tools/products/build_luaconsole93.py from ZeD's own console
@@ -4458,3 +4469,17 @@ to be proposed.
    f. First upload: a new item (no publishedfileid yet). Build stages it and writes its .vdf; the director's SteamCMD
       paste creates the id, which then goes into the generator and the .vdf for every later update. Same day as
       ZeD-GUI beta 12.
+177. **Maskarad's Summer Car works with ZeD's Vehicle tab (a Workshop player's report on beta 11, via QA, Nov 12 2026: "The
+   engine components window closes immediately after inspecting the engine. Its normal behavior is to open next to the
+   car parts window.").** Summer Car (id MaskaradsSummerCar, Workshop 3790160840, version 0.0.1) hangs its engine
+   components window off the game's mechanics window (MSC_EngineComponentsWindow.lua: it auto-opens from
+   ISVehicleMechanics:prerender, tiles beside it, closes when it is no longer really visible, and swaps the Engine
+   part's "Take engine parts" / "Repair engine" for "Inspect engine components"); ZeD never shows that window, so the
+   engine window dies at once. **Ruled (the director, Nov 12 2026, multiple choice): "ZeD's Vehicle tab"**: keep ZeD's
+   Vehicle tab and fit Summer Car's engine window beside it (not the game's window handed back). Build: a ModSupport
+   file that gives Summer Car what it reads from the mechanics window, from ZeD's Vehicle tab; the Engine part's menu
+   in ZeD's tab follows the mod (Inspect engine components; no Take engine parts / Repair engine); the ECU radial and
+   the engine lift paths checked; Summer Car in StepAside's supported list; a HOOK_MAP row; a sim that loads the mod's
+   own file when it is on disk; a QA script with the mod on. QA: the bug with ZeD on and the mod's normal look with
+   ZeD off first, then the after-check. Risk the director accepted: it leans on the mod's insides, so a Summer Car
+   update can break it; the QA script is the early warning.
