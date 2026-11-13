@@ -1,4 +1,5 @@
 # ZeDUI/tools/qa/b8_world_everyday.txt  (Nov 7 2026, QA): beta 8 in-game checks for the world devices, animals, paper maps, the everyday leftovers and the Lua console (CHECK_*_20261107.md). Run at 4K 1.75x, then again at Deck size for the shots.
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_b8_console.lua
 zedqa_prelude.lua | pre | timeout=120
 zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
 zedqa_b8_respawn_smoke.lua | b8rs | timeout=60            # respawn: only the pieces in place (the real respawn is manual: it ends the QA character)
@@ -8,4 +9,3 @@ zedqa_b8_paper_map.lua | b8pm | timeout=480              # Read Map on town, bac
 zedqa_b8_everyday_a.lua | b8ea | timeout=360             # heater to the dash, mini-map out of the wheels, CD label in the reader, make-up with the hair, dash note
 zedqa_b8_everyday_b.lua | b8eb | timeout=240             # controller unplug balloons out of the Messages note, paused look-only windows
 zedqa_b8_station.lua | b8sc | timeout=240                # the game's own butcher hook and log furniture still open the game's window, never ZeD's card
-zedqa_b8_console.lua | b8dc | timeout=240 | expect=console   # the Lua console window (runs two bad lines on purpose; their logged errors name "console")

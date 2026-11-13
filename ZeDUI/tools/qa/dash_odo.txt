@@ -1,9 +1,9 @@
 # dash_odo.txt  (Nov 6 2026, QA): the dash scripts over the Dash Elite odometer fix, Build's option B
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_dash_green_only.lua
 zedqa_prelude.lua | pre | timeout=120
 zedqa_pin_windows.lua | pnw | timeout=60
 zedqa_dashpx.lua | dpx | timeout=720
 zedqa_dashnight.lua | dnt | timeout=480
-zedqa_dash_green_only.lua | dgo
 zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell
 zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell
 zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell

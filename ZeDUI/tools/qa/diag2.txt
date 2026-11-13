@@ -1,10 +1,10 @@
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_b8_windows.lua
 zedqa_prelude.lua | pre | timeout=120
 zedqa_pin_windows.lua | pnw | timeout=60
 zedqa_b8_probe2.lua | b8p2 | timeout=60
 zedqa_dke_only.lua | dkeo | timeout=30
 zedqa_dash_keys_edge.lua | dke | timeout=300
 zedqa_b8_focus.lua | b8fo | timeout=120
-zedqa_b8_windows.lua | b8vw | timeout=240
 zedqa_dpad_wheels.lua | dw | timeout=300
 zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels
 zedqa_safemode.lua | safe | timeout=120

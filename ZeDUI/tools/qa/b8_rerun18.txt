@@ -1,4 +1,5 @@
 # b8_rerun18.txt (Nov 7 2026, QA): the 18 non-passing baseline scripts, run without the release check's mouse helper
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_testlang.lua
 zedqa_prelude.lua | pre | timeout=120
 zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows
 zedqa_wt_bracket.lua | wtb | timeout=240         # a stack's total in brackets, its open rows and a single their own; list + grid, Large, two columns, narrow WT; wt sort by total
@@ -16,5 +17,4 @@ zedqa_laundry.lua | ldy | timeout=600            # the washer, dryer and washer-
 zedqa_equipdrag.lua | eqd | timeout=240          # Equip rows and doll slots as drag sources: click, drag, cancel, bag, floor, same place (fake mouse; all put back)
 zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)
 zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON, the fob whole, the dash flush on the screen's edge (dash_keys_edge.txt)
-zedqa_testlang.lua | tlang | timeout=600      # every screen with the stretched test language (screenshots zqa_tl_*)
 zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers

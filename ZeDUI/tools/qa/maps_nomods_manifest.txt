@@ -1,4 +1,5 @@
 # ZeDUI/tools/qa/maps_nomods_manifest.txt  (Oct 26 2026)
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_tabicons.lua
 # The Maps and Skills tabs with no other mods (the map key built in; no mod pieces):
 # zedqa_run.ps1 -Mode fullscreen4k -Manifest .../maps_nomods_manifest.txt
 zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode
@@ -12,4 +13,3 @@ zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's 
 zedqa_navevents.lua | ev                         # where pad focus lands after cards, strips, tabs, LB / RB, the map
 zedqa_navmap.lua | nav                           # cone-nav audit of every tab
 suite_tabs.lua | tabs                            # every tab of both windows; focusable census
-zedqa_tabicons.lua | ti                          # both tab strips with Skills / Forage active

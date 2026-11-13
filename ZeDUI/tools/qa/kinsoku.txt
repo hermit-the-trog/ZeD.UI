@@ -1,5 +1,5 @@
 # ZeDUI/tools/qa/kinsoku.txt  (Nov 4 2026): Japanese and Chinese line breaks in the window (lang_run.ps1 -Manifest this)
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_guide82_measure.lua
 zedqa_prelude.lua | pre | timeout=120
 gallery_hidecon.lua | hcn | timeout=60
 zedqa_kinsoku.lua | kin | timeout=300
-zedqa_guide82_measure.lua | g8m | timeout=300

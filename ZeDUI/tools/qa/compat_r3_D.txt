@@ -1,4 +1,5 @@
 # ZeDUI/tools/qa/compat_r3_D.txt  (Oct 26 2026): compatibility round 3, group D
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_tm.lua
 # zedqa_mods_run.ps1 -ModList <group D ids> -Mode fullscreen4k -Manifest this
 zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
 zedqa_r3_D.lua | r3D | timeout=600       # survey with the group's mods: census, menus, tooltip, tabs, the mods' own windows
@@ -7,4 +8,3 @@ suite_tabs.lua | tabs                            # every tab of both windows via
 zedqa_seat_lightbar_vanilla.lua | sl             # seat chooser and lightbar from vanilla's entry points
 zedqa_car_radio_build.lua | rb                   # the car radio up close with each radio fitted; radios put back
 zedqa_car_radio_cd.lua | cd                      # CD deck: list, insert, play, eject; the ValuTech's tape
-zedqa_tm.lua | tm                                # tooltip frame, map labels, dash text after the measure fix

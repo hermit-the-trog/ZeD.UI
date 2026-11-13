@@ -1,7 +1,7 @@
 # ZeDUI/tools/qa/woundsov_manifest.txt  (Nov 7 2026): Wounds Overhaul (3775026731) with ZeD, a comment says it breaks; run in both orders
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_card_pad.lua
 zedqa_prelude.lua | pre
 suite_tabs.lua | tabs
 zedqa_health_padprobe.lua | hp | timeout=120
 zedqa_ctxlist.lua | cl
-zedqa_card_pad.lua | cp
 zedqa_exinfo.lua | ex

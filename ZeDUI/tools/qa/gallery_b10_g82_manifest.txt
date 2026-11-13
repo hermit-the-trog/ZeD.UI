@@ -1,8 +1,8 @@
 # Nov 9 2026: rerun of the guide window stills only (zedqa_guide82_stills.lua now sets the guide look to Simple itself)
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_guide82_stills.lua
 zedqa_prelude.lua | pre | timeout=120
 gallery_t14_look.lua | g14l | timeout=60
 gallery_daylight.lua | day | timeout=120
 gallery_b10_glasses.lua | gls | timeout=60
 gallery_hidecon.lua | hcn | timeout=60
-zedqa_guide82_stills.lua | g8s | timeout=600
 gallery_t14_end.lua | g14e | timeout=60

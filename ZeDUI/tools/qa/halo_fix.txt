@@ -1,6 +1,6 @@
 # ZeDUI/tools/qa/halo_fix.txt  (Nov 4 2026): fe7aa1d8, restock with Overhead notes off, wheel icons
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_halo_off.lua
 zedqa_prelude.lua | pre | timeout=120
 gallery_hidecon.lua | hcn | timeout=60
-zedqa_halo_off.lua | hof | timeout=30
 zedqa_restock.lua | rst | timeout=300
 zedqa_wheel_icons.lua | wi | timeout=300

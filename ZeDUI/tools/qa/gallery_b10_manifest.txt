@@ -1,4 +1,5 @@
 # Nov 9 2026: the beta 10 gallery recapture (workshop/gallery/B10_RECAPTURE.md), the default look (Dark, Orange), 4K.
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_guide82_stills.lua
 #   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_b10_manifest.txt -Report gallery_b10     (QA only)
 # Then gallery_t14_collect.ps1 -Since <start of the run> -Switch is NOT needed: the pictures are copied by hand into
 # Screenshots/gallery_t14 (old ones to _before_b10). Name notes:
@@ -36,7 +37,6 @@ zedqa_reader.lua | rd | timeout=180                      # zqa_rd_01_paper
 zedqa_notebook.lua | nb | timeout=180                    # zqa_nb_01_page1
 gallery_hidecon.lua | hcn | timeout=60
 zedqa_book83.lua | b83 | timeout=900                     # gb_1..gb_5
-zedqa_guide82_stills.lua | g8s | timeout=600             # gw_zqa_g82s_*
 zedqa_guide_bubble.lua | gbub | timeout=300              # zqa_g4_guide_bubble
 #
 gallery_t14_end.lua | g14e | timeout=60

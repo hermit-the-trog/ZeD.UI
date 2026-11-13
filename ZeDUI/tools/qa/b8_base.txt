@@ -1,14 +1,13 @@
 # ZeDUI/tools/qa/b8_base.txt (Nov 7 2026, QA): beta 8 baseline: the release check, then the full regression
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: suite_gamepad.lua, zedqa_card_pad.lua, zedqa_tabicons.lua, zedqa_tabs_lit.lua, zedqa_container_controls_captures.lua, zedqa_wheel_sizes.lua, zedqa_tm.lua, zedqa_tour3.lua, zedqa_testlang.lua
 zedqa_prelude.lua | pre | timeout=120
 zedqa_release_check.lua | rel | timeout=240
 zedqa_prelude2.lua | pre2 | timeout=120
 suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
 suite_verbs.lua | verbs                          # item card header verbs through the real dispatch (leaves its book, bat, apple)
-suite_gamepad.lua | gp                           # simulated D-pad, row callbacks, stale-zone check
 suite_band.lua | band                            # progress band: reading, cancel; cooking if a stove is near
 suite_perf.lua | perf                            # ms per tick on every tab + recipe builder cost
 zedqa_audit_fixes.lua | af | expect=QA: a tab that throws   # throwing tab logs once, equip card hides, card outlives item, weight
-zedqa_card_pad.lua | cp                          # pad into the item card and back, Health tab drawer reach
 zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
 zedqa_ctx_icons.lua | cx | timeout=300           # the right-click menu's pixel icons: every picture name has one, the lookup in the game's words, every icon in strip cells, the strip and the list on four things and the floor
 zedqa_onepath.lua | op                           # single-path fixes: Move To, Rename, double-click, Take all, card verbs
@@ -26,8 +25,6 @@ zedqa_navmap.lua | nav                           # cone-nav audit of every tab: 
 zedqa_loot_tabs.lua | lt | timeout=60          # both windows back on Loot (tab drawers shut): the state the pad test below starts from
 zedqa_world_pad_take.lua | wpt | timeout=900     # pad: into the World window lit, containers by Down, card on its primary, Take, B, object card, Char parity, focus back after menu / transfer, belt in and out, every tab's bottom (both sizes); crate and wounds taken away
 zedqa_furniture.lua | fu | end=ZEDQA fu after leaving tab   # Furniture tab cursor and modes (prints no DONE)
-zedqa_tabicons.lua | ti                          # both tab strips with Skills / Forage active
-zedqa_tabs_lit.lua | tl                          # lit window tabs, then put back (after tabicons: the pair is open)
 zedqa_win.lua | win                              # the pair at the natural root and at a forced 1.0
 zedqa_rootchange.lua | rc                        # a root change re-derives the geometry
 zedqa_scalewalk.lua | sw                         # main tabs of both windows at natural and 1.0
@@ -59,11 +56,9 @@ zedqa_hands_together.lua | ht | timeout=300           # the hands together at th
 zedqa_watches2.lua | watches                     # the nine watch plates by day and night; own watch and time back
 zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
 zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
-zedqa_container_controls_captures.lua | cc       # ZeD and vanilla windows on the truck bed (mockup backdrops)
 zedqa_px_icons.lua | px | timeout=240           # ZeD's pixel icons outside the wheels: every id's drawings and the box rule, a test panel (each icon in every button state, the card's marks, the chevrons), the item card's marks and both rows live
 zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows; shirt taken back
 zedqa_immersive_searching.lua | iss | timeout=240   # punch list 40, Immersive Searching support: here (the mod off) nothing changes; with the mod on (isearch_manifest.txt, isearch_mods.txt) the ? chip, the pick starts its search, things turn up as it reveals them, the band's bar, Search all, Take all and moves held back
-zedqa_wheel_sizes.lua | ws                       # the ZeD wheel at 3 to 11 slices
 zedqa_wheel_icons.lua | wi | timeout=600       # the wheels' icons: every icon, the box rule, vanilla's words and pictures, ZeD's wheels, the live radials; captures at the scale in use and at 1x
 zedqa_wheels.lua | wh                            # vanilla's wheels through vanilla's functions, routed slices
 zedqa_dpad_wheels.lua | dw | timeout=600       # the D-pad wheels and the Select ZeD wheel: slices on foot / in a car / by an animal, inner wheels, Back, takes, paused, L3 / R3; every theme at both sizes
@@ -85,8 +80,6 @@ zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # sea
 zedqa_car_radio_build.lua | rb                   # the car radio up close with each radio fitted; radios put back
 zedqa_car_radio_cd.lua | cd                      # CD deck: list, insert, play, eject; the ValuTech's tape
 zedqa_dash_props_smoke.lua | sm                  # v6 dash, radio up close, siren controller still draw
-zedqa_tm.lua | tm                                # tooltip frame, map labels, dash text after the measure fix
-zedqa_tour3.lua | t3                             # seven dash designs on spawned cars
 zedqa_dash19.lua | dash | timeout=480            # every dashboard design on a spawned car (19 cars)
 zedqa_dashpx.lua | dpx | timeout=720             # the pixel-art v6 dashboards (24 cars)
 zedqa_exinfo.lua | ex                            # Health tab exercise info: vanilla's description, stiffness, regularity, warnings
@@ -98,6 +91,5 @@ zedqa_dashnight.lua | dnt | timeout=480        # dash night lighting: hidden gau
 zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)
 zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON, the fob whole, the dash flush on the screen's edge (dash_keys_edge.txt)
 zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell   # the makers' marks: 13 civilian cars, the Step Van on the Valuline's dash, a modded name's plaque, two at night (dash_brands.txt)
-zedqa_testlang.lua | tlang | timeout=600      # every screen with the stretched test language (screenshots zqa_tl_*)
 zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
 zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)

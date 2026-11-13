@@ -1,7 +1,6 @@
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_b8a_sandbox.lua, zedqa_b8a_report.lua
 zedqa_prelude.lua | pre | timeout=120
 zedqa_pin_windows.lua | pnw | timeout=30
 zedqa_release_check.lua | rel | timeout=240
 zedqa_staged_ver.lua | sv | timeout=30
 zedqa_prelude2.lua | pre2 | timeout=120
-zedqa_b8a_sandbox.lua | b8asb | timeout=300
-zedqa_b8a_report.lua | b8arp | timeout=300 | expect=ZEDQA-b8arp-planted

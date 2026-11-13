@@ -1,4 +1,5 @@
 # punch list 47 (Nov 2 2026): the 720 vehicle bisect: prelude + full-pass scripts 42-80 + sl, with Build's ZEDQA vp probe lines
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_container_controls_captures.lua, zedqa_wheel_sizes.lua
 zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
 zedqa_reader.lua | rd                            # the reader through vanilla's Read: paper, words, zoom, flyer, map
 zedqa_reader_refs.lua | rr                       # reader reference captures; items taken back
@@ -17,11 +18,9 @@ zedqa_hands_together.lua | ht | timeout=300           # the hands together at th
 zedqa_watches2.lua | watches                     # the nine watch plates by day and night; own watch and time back
 zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
 zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
-zedqa_container_controls_captures.lua | cc       # ZeD and vanilla windows on the truck bed (mockup backdrops)
 zedqa_px_icons.lua | px | timeout=240           # ZeD's pixel icons outside the wheels: every id's drawings and the box rule, a test panel (each icon in every button state, the card's marks, the chevrons), the item card's marks and both rows live
 zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows; shirt taken back
 zedqa_immersive_searching.lua | iss | timeout=240   # punch list 40, Immersive Searching support: here (the mod off) nothing changes; with the mod on (isearch_manifest.txt, isearch_mods.txt) the ? chip, the pick starts its search, things turn up as it reveals them, the band's bar, Search all, Take all and moves held back
-zedqa_wheel_sizes.lua | ws                       # the ZeD wheel at 3 to 11 slices
 zedqa_wheel_icons.lua | wi | timeout=600       # the wheels' icons: every icon, the box rule, vanilla's words and pictures, ZeD's wheels, the live radials; captures at the scale in use and at 1x
 zedqa_wheels.lua | wh                            # vanilla's wheels through vanilla's functions, routed slices
 zedqa_dpad_wheels.lua | dw | timeout=600       # the D-pad wheels and the Select ZeD wheel: slices on foot / in a car / by an animal, inner wheels, Back, takes, paused, L3 / R3; every theme at both sizes

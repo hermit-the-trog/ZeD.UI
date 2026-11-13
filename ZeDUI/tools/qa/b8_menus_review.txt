@@ -1,10 +1,9 @@
 # ZeDUI/tools/qa/b8_menus_review.txt  (Nov 7 2026, QA): single player, in game on the ZeD-QA save. The outside review of beta 7 as Build fixed it
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_b8_cards.lua, zedqa_b8_windows.lua
 # (card band, Craft start check, the Simple dash in km/h, name prompts) and the in-game pass over the vanilla windows
 # (VANILLA_WINDOWS_20261107.md). Run: pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/b8_menus_review.txt
 # The main menu pieces are in b8_menus_review_mainmenu.txt and run LAST (they need the game started to the main menu); the
 # multiplayer pieces are in b8_menus_review_mp.txt.
 zedqa_prelude.lua | pre | timeout=120
 zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
-zedqa_b8_cards.lua | b8cd | timeout=240
-zedqa_b8_windows.lua | b8vw | timeout=240
 zedqa_b8_dash.lua | b8dk | timeout=240

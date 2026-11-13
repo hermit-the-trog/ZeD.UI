@@ -20,7 +20,7 @@ Scripts in this folder were all run and passed on stable 42.20.2 in S123 (see `Z
 |---|---|
 | `suite_verbs.lua` | ItemCard header verbs through `_dispatchHeaderVerb`: UNEQUIP/EQUIP clothing, READ, EQUIP 2H weapon, EAT, DROP, TAKE + `_effectiveContext` after each |
 | `suite_tabs.lua` | Walk every tab in both windows via the real strip click handlers; focusable census per tab |
-| `suite_gamepad.lua` | Simulated D-pad through `Focus.dispatchJoypadDir`, row callbacks (card open / live-swap / close, context menu, B), stale-zone check after a mouse Loot switch |
+| `archive/suite_gamepad.lua` (archived Nov 12 2026) | Simulated D-pad through `Focus.dispatchJoypadDir`, row callbacks (card open / live-swap / close, context menu, B), stale-zone check after a mouse Loot switch |
 | `suite_band.lua` | Progress Band: reading via the queue poll, cancel via the card, cooking on a real stove with the danger state |
 | `suite_perf.lua` | ms/tick per tab + builder cost of the recipe lists |
 

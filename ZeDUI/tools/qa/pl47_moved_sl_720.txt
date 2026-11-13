@@ -1,4 +1,4 @@
 # punch list 47 (Nov 2 2026): sl alone at 720 after a move to where the full pass leaves the character (964,13078)
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_move_to.lua
 zedqa_prelude.lua | pre | timeout=120
-zedqa_move_to.lua | mv | timeout=120
 zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels

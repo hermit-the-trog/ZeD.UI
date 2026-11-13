@@ -1,5 +1,5 @@
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_b8_console.lua
 zedqa_prelude.lua | pre | timeout=120
 zedqa_pin_windows.lua | pnw | timeout=60
-zedqa_b8_console.lua | b8dc | timeout=240 | expect=console
 zedqa_safemode.lua | safe | timeout=120
 zedqa_wheel_icons.lua | wi | timeout=300

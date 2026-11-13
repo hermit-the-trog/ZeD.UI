@@ -1,4 +1,5 @@
 # ZeDUI/tools/qa/dash_r6.txt  (Oct 24 2026)
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_dash_r6_keys.lua
 # Dashboards round 6 (HANDOFF_dashboards_r6_20261024.md), run with:
 #   zedqa_run.ps1 -Manifest .../dash_r6.txt          then, for the reload check, a second run:
 #   zedqa_run.ps1 -Manifest .../dash_r6_reload.txt
@@ -8,5 +9,4 @@
 # expect=: the engine's world drawing (FBORenderLevels.getNLevels, index -1) sometimes throws while cars are spawned
 # and removed beside the character; it is not the dash (zedqa_dashnight.lua's runs show it too).
 zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
-zedqa_dash_r6_keys.lua | r6k | timeout=1500 | expect=FBORenderCell             # 19 designs: the key's moves, k = 2 and k = 1, ash trays, shut off, a dry start, key out
 zedqa_dash_r6_parts.lua | r6p | timeout=900 | expect=FBORenderCell             # vans' right side, the taxi's meter and hula girl, night, two cars kept for the reload

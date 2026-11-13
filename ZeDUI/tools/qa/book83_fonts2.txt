@@ -1,7 +1,7 @@
 # ZeDUI/tools/qa/book83_fonts2.txt  (Nov 3 2026): punch list 83 after 2d39a599: the faces, the book, the print pages, a note, the map (4K)
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_book83_fonts.lua
 zedqa_prelude.lua | pre | timeout=120
 gallery_hidecon.lua | hcn | timeout=60
-zedqa_book83_fonts.lua | b8f | timeout=120
 gallery_t14_look.lua | g14l | timeout=60
 zedqa_book83.lua | b83 | timeout=900
 gallery_t14_end.lua | g14e | timeout=60

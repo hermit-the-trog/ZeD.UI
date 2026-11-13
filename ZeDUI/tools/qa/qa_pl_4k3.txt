@@ -1,4 +1,4 @@
 # ZeDUI/tools/qa/qa_pl_4k3.txt (Nov 11 2026, QA): clean up the first far try, then the Animals scripts 16 squares west of the QA home, and the rechecks, at 4K
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_animals_quick_far.lua
 zedqa_animals_cleanup_far.lua | acl | timeout=120
-zedqa_animals_quick_far.lua | aq | timeout=900
 zedqa_animals_quick_more.lua | aq2 | timeout=900

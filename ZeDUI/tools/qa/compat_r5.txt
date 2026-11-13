@@ -1,10 +1,10 @@
 # compat round 5 (Nov 2 2026, overnight): new popular B42 mods on ZeD's surfaces since Oct 29; the r4b set
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_card_pad.lua
 zedqa_prelude.lua | pre
 zedqa_small_probe.lua | sp | timeout=60
 suite_tabs.lua | tabs
 zedqa_grid.lua | grid
 zedqa_ctxlist.lua | cl
-zedqa_card_pad.lua | cp
 zedqa_navmap.lua | nav
 zedqa_exinfo.lua | ex
 zedqa_dash_props_smoke.lua | sm

@@ -1,8 +1,7 @@
 # ZeDUI/tools/qa/guide_rc_4k.txt  (Nov 4 2026): the guide RC at 4K: device, book, rules (release_check.ps1 -Manifest this)
+# Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: zedqa_guide_device.lua, zedqa_book83_atoms.lua
 zedqa_prelude.lua | pre | timeout=120
 gallery_t14_look.lua | g14l | timeout=60
 gallery_hidecon.lua | hcn | timeout=60
-zedqa_guide_device.lua | gdv | timeout=240
-zedqa_book83_atoms.lua | b8a | timeout=900
 zedqa_book83.lua | b83 | timeout=900
 gallery_t14_end.lua | g14e | timeout=60
