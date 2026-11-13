@@ -361,12 +361,14 @@ function H.hensOut()
     end
     return out
 end
--- a hen taken out of the game, once: vanilla's cheat removal (removeAnimal finds her by id and deletes her: off the
--- world and her square), and off the world as the animal scripts do only when that lookup missed her
+-- a hen taken out of the game, once: off the world and off her square, as the animal scripts do. No removeAnimal(id):
+-- in single player a hen made with addAnimal is never registered with AnimalInstanceManager and keeps the default
+-- online id 1, which can belong to a real animal of the save (one put down from the inventory or taken out of a
+-- trailer), so a lookup by id would delete that animal. No a:remove()/delete() either: removeFromUpdateLists would
+-- unregister whatever animal holds id 1.
 function H.takeAwayOut(a)
     if LG.gone[a] then return end
     LG.gone[a] = true
-    pcall(function() removeAnimal(a:getOnlineID()) end)
     local still = false
     pcall(function() still = getCell():getAnimals():contains(a) end)
     if still then pcall(function() a:removeFromWorld(); a:removeFromSquare() end) end
