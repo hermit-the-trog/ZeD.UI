@@ -649,6 +649,20 @@ function Focus.isFocused(w, zoneName, elementId)
     return true
 end
 
+--- Marks a list's rows (the stops that carry .item) that lie out of the
+--- list's view: el.offscreen = true when the row ends above view.top or
+--- starts at or below view.bottom (view = the renderer's _rowView, the same
+--- panel space as the rows' y), else nil. Such a row stays a stop for its own
+--- zone's moves, never for another zone's (_pickBestWithFallback).
+function Focus.markOffscreen(elements, view)
+    if not (elements and view and view.top and view.bottom) then return end
+    for _, el in ipairs(elements) do
+        if el.item and type(el.y) == "number" and type(el.h) == "number" then
+            el.offscreen = (el.y + el.h <= view.top or el.y >= view.bottom) or nil
+        end
+    end
+end
+
 --- Swap a zone's elements array (e.g. inventory row rebuild). Optionally
 --- preserve focusedElementIdx at a specific value (else clamp existing).
 function Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx)
@@ -916,6 +930,8 @@ local function _collectFlat(w)
                         x = el.x + ox, y = el.y + oy,
                         w = el.w, h = el.h,
                         id = el.id,
+                        zi = zi,                    -- (its zone: the picker's offscreen rule)
+                        offscreen = el.offscreen,   -- (a list row scrolled out of view: Focus.markOffscreen)
                         _origRef = el,  -- back-pointer for debugging if needed
                     }
                     elements[#elements + 1] = translated
@@ -994,8 +1010,12 @@ local function _pickBestWithFallback(elements, focusedIdx, dir, linedUpOnly)
     if not (from and N) then return nil, nil end
     local bestIdx, bestTier, bestCost = nil, nil, nil
     for i = 1, #elements do
-        if i ~= focusedIdx then
-            local tier, c = N.cost(from, elements[i], dir)
+        local e = elements[i]
+        -- A list row scrolled out of view keeps its place as a stop, for its own list's Up and Down (the list
+        -- scrolls to it). Another zone's move never picks it: under the list it lay on the container buttons'
+        -- line and took their Right (Same type, all nearby was out of reach), above it it took the Filter's Down.
+        if i ~= focusedIdx and not (e.offscreen and e.zi ~= from.zi) then
+            local tier, c = N.cost(from, e, dir)
             if tier and linedUpOnly and tier ~= 0 then tier = nil end
             if tier and (bestTier == nil or tier < bestTier or (tier == bestTier and c < bestCost)) then
                 bestIdx, bestTier, bestCost = i, tier, c
@@ -1059,7 +1079,23 @@ local function _refreshDebugPicks(w)
                 searchEls, searchFromIdx = filteredEls, newFromIdx
             end
         end
-        local pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir)
+        local pickIdx, pass
+        if dir == "left" or dir == "right" then   -- (a ribbon walks its own buttons first, as dispatch does)
+            local fromLoc = locator[fromIdx]
+            local fz = fromLoc and w._focusRing[fromLoc.zoneIdx]
+            if fz and fz.walkLR then
+                local zEls, zFrom = {}, 1
+                for i, loc in ipairs(locator) do
+                    if loc.zoneIdx == fromLoc.zoneIdx then
+                        zEls[#zEls + 1] = elements[i]
+                        if i == fromIdx then zFrom = #zEls end
+                    end
+                end
+                local pk, ps = _pickBestWithFallback(zEls, zFrom, dir, true)
+                if pk then searchEls, searchFromIdx, pickIdx, pass = zEls, zFrom, pk, ps end
+            end
+        end
+        if not pickIdx then pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir) end
         if not pickIdx and searchEls ~= elements then   -- nothing more in the panel: the next one over (Up / Down: lined up only)
             searchEls, searchFromIdx = elements, fromIdx
             pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir, dir == "up" or dir == "down")
@@ -1391,7 +1427,10 @@ local function _handleSpatialNav(w, dir)
     -- the spatial pick.
     local focEl = Focus.getFocusedElement(w)
     if focEl and focEl.onDpadDir then
-        if _preview then _preview.custom = true end   -- (a dry run reports it, then picks as if it fell through)
+        if _preview then   -- (a dry run reports it, then picks as if it fell through)
+            _preview.custom = true
+            _preview.dpadExits = focEl.dpadExits   -- (the stop says its handler hands the moves it does not hold back)
+        end
         if not _preview then
             local result = _fireCbR("element.onDpadDir", focEl.onDpadDir, w, focEl, dir)
             if result ~= false then return end
@@ -1458,7 +1497,28 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    local newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
+    -- A ribbon (zone.walkLR: the container buttons under a list) walks its own
+    -- buttons first with Left / Right, the next one lined up beside, before
+    -- anything else is weighed; past its last one the move goes on as below.
+    local newPickIdx, pass
+    if dir == "left" or dir == "right" then
+        local fromLoc = locator[fromIdx]
+        local fz = fromLoc and w._focusRing[fromLoc.zoneIdx]
+        if fz and fz.walkLR then
+            local zEls, zLoc, zFrom = {}, {}, 1
+            for i, loc in ipairs(locator) do
+                if loc.zoneIdx == fromLoc.zoneIdx then
+                    zEls[#zEls + 1] = elements[i]
+                    zLoc[#zLoc + 1] = loc
+                    if i == fromIdx then zFrom = #zEls end
+                end
+            end
+            local pk, ps = _pickBestWithFallback(zEls, zFrom, dir, true)
+            if pk then searchEls, searchLoc, fromIdx, newPickIdx, pass = zEls, zLoc, zFrom, pk, ps end
+        end
+    end
+
+    if not newPickIdx then newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir) end
     if not newPickIdx and searchEls ~= elements then
         -- then the rest of the same panel before any other (Down from a
         -- list's last row reaches the container buttons under it, not a
@@ -1981,8 +2041,10 @@ if Events and Events.OnTick then Events.OnTick.Add(_focusSoonTick) end
 --- A dry run for the QA nav scripts: where a D-pad press would go from the
 --- focused element, without moving focus or running any handler. Returns
 --- { zone, id, pass } (nil zone = nothing that way), custom = true when the
---- element has its own D-pad handler (which would run first), and err = true
---- when the dry run threw.
+--- element has its own D-pad handler (which would run first), dpadExits =
+--- true when that element says its handler returns false for the moves it
+--- does not hold (so the pick shown is where those go), and err = true when
+--- the dry run threw.
 function Focus.previewMove(w, dir)
     _preview = {}
     local ok = pcall(_handleSpatialNav, w, dir)
