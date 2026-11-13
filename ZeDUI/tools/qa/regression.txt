@@ -56,7 +56,6 @@ zedqa_win.lua | win                              # the pair at the natural root 
 zedqa_rootchange.lua | rc                        # a root change re-derives the geometry
 zedqa_scalewalk.lua | sw                         # main tabs of both windows at natural and 1.0
 zedqa_uiscale.lua | scale                        # UI scale steps, Auto, then back to the run's own step
-zedqa_158_balloon.lua | b158 | timeout=120       # Chinese whole in the speech balloon and the role fonts (Nov 12 2026, bug 158); the run is in English, so also by hand with the game in Simplified Chinese (language=CN); shots zqa_158_*.png
 
 # ---- maps, journal, print
 zedqa_mapshot.lua | ms                           # both windows, then the Maps tab

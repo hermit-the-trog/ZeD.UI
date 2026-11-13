@@ -30,6 +30,7 @@
 # By hand (not run by this list; the map audit_20261112/MOVE_TO_SIM_map.md keeps them out of the sims):
 #   zedqa_console_complete.lua, zedqa_files_after.lua   the Kahlua pairs over _G, Java reflection and real text box keys;
 #                                                       the engine really running the helper's copy
+#   One look by hand at a Chinese speech balloon (game language Simplified Chinese; the logic is balloon_cjk_sim)
 # One short Mods-screen pass, by hand or on demand (the parts the sim cannot reach; the scripts are not rewritten):
 #   zedqa_mods_order.lua (parts 1, 2, 4d-4f), zedqa_mods_folders.lua (4b-4d), zedqa_mods_separators.lua (1g-1i, 2b-2e, 3, 4f-4k)
 
@@ -134,8 +135,8 @@ zedqa_plates_336.lua | p336 | timeout=900        # the 336 px machine plates and
 zedqa_laundry.lua | ldy | timeout=600            # the washer, dryer and washer-dryer face cards (indoors for power)
 zedqa_cazio_light.lua | czl | timeout=240        # the CaZio LIGHT: bulb by day and at night, mini watch
 
-# ---- not in the Build sim map as moved: kept (the 158 balloon keeps one look by hand in Chinese)
-zedqa_158_balloon.lua | b158 | timeout=120       # Chinese in the speech balloon (in English here; one look by hand in Chinese)
+# ---- not in the Build sim map as moved: kept
+# zedqa_158_balloon.lua: moved to balloon_cjk_sim and archived (Nov 12 2026)
 zedqa_guide_bubble.lua | gbub | timeout=240      # the guide offers itself from the Messages icon
 
 # ---- last
