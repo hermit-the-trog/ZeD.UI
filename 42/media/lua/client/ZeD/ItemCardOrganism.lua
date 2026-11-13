@@ -502,11 +502,14 @@ local function maintenanceVerbsForItem(item)
 end
 
 -- ---------------------------------------------------------------------------
--- TOP STATS: per-type stat row composition for the grid (480w) / list (220w).
--- Each entry: {label, value, valueClass?, dotColor?, mirrorKey?}
--- mirrorKey = "cooked" | "progress" | "condition" - the state mirror below
--- recolors this row when ItemActionManager has a matching active action.
--- playerNum: whose card it is (a bag's capacity is that character's: Organized and Disorganized change it).
+-- TOP STATS: the grid (480w) / list (220w) beside the item's picture.
+-- D4 (the director, Nov 12 2026): the top block keeps Kind and Weight only;
+-- every other fact shows once, below, in the item's facts panel
+-- (ItemFactsPanel.lua: the fabric, condition, cooked, fresh, rounds loaded,
+-- pages read, capacity and what is left are there). Each entry:
+-- {label, value, valueClass?, dotColor?, mirrorKey?}; a facts row's mirrorKey
+-- ("cooked" | "progress" | "condition") is what the state mirror recolors.
+-- playerNum: whose card it is (kept for the callers; the two rows don't need it).
 -- ---------------------------------------------------------------------------
 local function topStatsForItem(item, playerNum)
     if not item then return {} end
@@ -525,167 +528,37 @@ local function topStatsForItem(item, playerNum)
         rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Weight"), value = string.format("%.1f kg", wt)}
     end
 
-    if cat == "Clothing" then
-        local fab = safeGet(item, "getFabricType")
-        if not fab or fab == "" then fab = ZeD.tr("UI_ZeD_Card_Cotton") end
-        local condMax = safeGet(item, "getConditionMax") or 1
-        local cond    = safeGet(item, "getCondition")    or condMax
-        local r       = math.max(0, math.min(1, cond / math.max(1, condMax)))
-        local pctStr  = string.format("%d%%", math.floor(r * 100 + 0.5))
-        local combat  = safeGet(item, "getCombatSpeedModifier")
-        local run     = safeGet(item, "getRunSpeedModifier")
-        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Fabric"), value = tostring(fab)}
-        rows[#rows + 1] = {label = getText("IGUI_invpanel_Condition"), value = pctStr,
-            valueClass = ratioClass(r), dotColor = ratioColor(r),
-            mirrorKey = "condition"}
-        if combat and combat ~= 1.0 then
-            local pc = math.floor((combat - 1) * 100 + 0.5)
-            local cls = pc < 0 and "warn" or (pc > 0 and "good" or nil)
-            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Combat"),
-                value = string.format("%+d%%", pc), valueClass = cls}
-        end
-        if run and run ~= 1.0 then
-            local pr = math.floor((run - 1) * 100 + 0.5)
-            local cls = pr < 0 and "warn" or (pr > 0 and "good" or nil)
-            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Run"),
-                value = string.format("%+d%%", pr), valueClass = cls}
-        end
-    elseif cat == "Food" then
-        local hung = safeGet(item, "getHungerChange")
-        local thst = safeGet(item, "getThirstChange")
-        if hung then
-            rows[#rows + 1] = {label = getText("Tooltip_food_Hunger"),
-                value = string.format("%+d", math.floor(-hung * 100 + 0.5))}
-        end
-        if thst then
-            rows[#rows + 1] = {label = getText("Tooltip_food_Thirst"),
-                value = string.format("%+d", math.floor(-thst * 100 + 0.5))}
-        end
-        local cooked = safeGet(item, "isCooked")
-        local burnt  = safeGet(item, "isBurnt")
-        local raw    = safeGet(item, "isbDangerousUncooked")
-        local cookedStr, cookedClass
-        if burnt          then cookedStr, cookedClass = getText("Tooltip_food_Burnt"),  "bad"
-        elseif cooked     then cookedStr, cookedClass = getText("Tooltip_food_Cooked"), "good"
-        elseif raw        then cookedStr, cookedClass = ZeD.tr("UI_ZeD_Card_Raw"),    "bad"
-        else                   cookedStr, cookedClass = "-",      "dim" end
-        rows[#rows + 1] = {label = getText("Tooltip_food_Cooked"), value = cookedStr,
-            valueClass = cookedClass, mirrorKey = "cooked"}
-        local rotten = safeGet(item, "isRotten")
-        local fresh  = safeGet(item, "isFresh")
-        if rotten then
-            rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Rotten"), valueClass = "bad"}
-        elseif fresh then
-            rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Fresh"), valueClass = "good"}
-        end
-    elseif cat == "Weapon" or cat == "Firearm" then
-        local condMax = safeGet(item, "getConditionMax") or 1
-        local cond    = safeGet(item, "getCondition")    or condMax
-        local r       = math.max(0, math.min(1, cond / math.max(1, condMax)))
-        rows[#rows + 1] = {label = getText("IGUI_invpanel_Condition"),
-            value = string.format("%d%%", math.floor(r * 100 + 0.5)),
-            valueClass = ratioClass(r), dotColor = ratioColor(r),
-            mirrorKey = "condition"}
-        local mn, mx = safeGet(item, "getMinDamage"), safeGet(item, "getMaxDamage")
-        if mn and mx then
-            rows[#rows + 1] = {label = getText("Tooltip_weapon_Damage"),
-                value = string.format("%.1f-%.1f", mn, mx)}
-        end
-        local reach = safeGet(item, "getMaxRange") or safeGet(item, "getMinRange")
-        if reach then
-            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Reach"), value = string.format("%.1f", reach)}
-        end
-        if cat == "Firearm" then
-            local ammo = safeGet(item, "getCurrentAmmoCount") or 0
-            local cap  = safeGet(item, "getMaxAmmo") or 0
-            rows[#rows + 1] = {label = getText("Tooltip_weapon_Ammo"),
-                value = string.format("%d/%d", ammo, cap)}
-        end
-    elseif cat == "Literature" then
-        local pages   = safeGet(item, "getNumberOfPages") or 0
-        -- Pages read live on the character, per book type (the game's tooltip and
-        -- Reading Facts read them there). The copy's own count is only that copy's,
-        -- so another copy of a half-read book would show 0. Fall back to it when the
-        -- character has no count to give.
-        local player   = getPlayer and getPlayer()
-        local fullType = safeGet(item, "getFullType")
-        local already  = player and fullType and safeGet(player, "getAlreadyReadPages", fullType)
-            or safeGet(item, "getAlreadyReadPages") or 0
-        if pages > 0 then
-            local r = math.max(0, math.min(1, already / pages))
-            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Progress"),
-                value = string.format("%d / %d", already, pages),
-                valueClass = ratioClass(r), mirrorKey = "progress"}
-        end
-        local skill = safeGet(item, "getSkillTrained")
-        if skill and skill ~= "" then
-            rows[#rows + 1] = {label = getText("IGUI_Skill"), value = tostring(skill)}
-        end
-        local lvlMin = safeGet(item, "getLvlSkillTrained") or 0
-        local lvlMax = safeGet(item, "getMaxLevelTrained") or lvlMin
-        if lvlMin > 0 or lvlMax > 0 then
-            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Level"),
-                value = string.format("%d - %d", lvlMin, lvlMax)}
-        end
-    elseif cat == "Container" then
-        -- the weight it holds, as Container Facts below shows it ("5.8 / 28 kg"). Not getItemCapacity:
-        -- that is not a bag's capacity (a Military Backpack reads -1). The capacity is the character's
-        -- (getEffectiveCapacity: Organized holds more, Disorganized less), what the game checks a transfer
-        -- into the bag against and what its own tooltip and inventory show; the bare getCapacity reads 28
-        -- on an ALICE pack an Organized character fills to 36
-        local inner = safeGet(item, "getInventory")
-        local chr = getSpecificPlayer and getSpecificPlayer(playerNum or 0) or nil
-        local cap = (inner and (safeGet(inner, "getEffectiveCapacity", chr) or safeGet(inner, "getCapacity")))
-            or safeGet(item, "getCapacity")
-        local held = inner and safeGet(inner, "getContentsWeight")
-        if cap and cap > 0 then
-            rows[#rows + 1] = {label = ZeD.tr("Tooltip_container_Capacity"),
-                value = held and ZeD.Atoms.loadText(held, cap)
-                    or string.format("%d kg", math.floor(cap + 0.5))}
-        end
-        if inner then
-            local count = safeGet(inner, "getItems")
-            local n = (count and count.size) and count:size() or 0
-            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Items"), value = tostring(n)}
-        end
-        local reduc = safeGet(item, "getWeightReduction")
-        if reduc and reduc > 0 then
-            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_WeightReduce"),
-                value = string.format("%d%%", math.floor(reduc + 0.5))}
-        end
-    elseif cat == "Drainable" then
-        local used = safeGet(item, "getUsedDelta")
-        if used then
-            local r = math.max(0, math.min(1, used))
-            rows[#rows + 1] = {label = getText("IGUI_invpanel_Remaining"),
-                value = string.format("%d%%", math.floor(r * 100 + 0.5)),
-                valueClass = ratioClass(r), dotColor = ratioColor(r)}
-        end
-    end
-
     return rows
 end
 
 -- ---------------------------------------------------------------------------
 -- B7: state mirror - apply ItemActionManager's active-action color to the
--- top-stat row whose mirrorKey matches. Returns the rows to draw: `rows`
--- itself when no row changes, else a new list where the matching rows are
--- copies (the card keeps `rows` in its model for a moment: never written to).
+-- row whose mirrorKey matches (a top-stat row, or a facts row: D4 moved the
+-- state rows into the facts panel). mirrorActiveStateOnRows returns the rows
+-- to draw: `rows` itself when no row changes, else a new list where the
+-- matching rows are copies (the card keeps `rows` in its model for a moment:
+-- never written to). The facts rows take the color as they are drawn.
 -- "cooking"   → COOKED row becomes warn (active) or bad (danger/burning)
 -- "reading"   → PROGRESS row becomes warn-ish during read
 -- "repairing" → CONDITION row becomes warn-ish during repair
 -- ---------------------------------------------------------------------------
-local function mirrorActiveStateOnRows(item, rows)
+-- the mirror key of the item's running action ("cooked" | "progress" | "condition"), and whether it is dangerous
+local function activeMirror(item)
     local mgr = ZeD.ItemActionManager
-    if not mgr or not item or not rows then return rows end
+    if not mgr or not item then return nil end
     local action = mgr.getActiveAction(item)
-    if not action then return rows end
+    if not action then return nil end
     local kind   = action.kind  or action.label  -- accept either field
-    local danger = action.mode == "danger"
     local mirror
     if kind and kind:lower():find("cook")    then mirror = "cooked"    end
     if kind and kind:lower():find("read")    then mirror = "progress"  end
     if kind and kind:lower():find("repair")  then mirror = "condition" end
+    return mirror, action.mode == "danger"
+end
+
+local function mirrorActiveStateOnRows(item, rows)
+    if not rows then return rows end
+    local mirror, danger = activeMirror(item)
     if not mirror then return rows end
     local out = nil
     for i, r in ipairs(rows) do
@@ -702,6 +575,39 @@ local function mirrorActiveStateOnRows(item, rows)
         end
     end
     return out or rows
+end
+
+-- The facts panel's groups, a thin rule between them, at (x, cy); returns the y under them. A row whose mirrorKey
+-- is the running action's takes its color (above). noZoneCond: the garment's zones heading already shows its overall
+-- condition, so the facts' own Condition row (zoneCond) is left out: each fact once (D4).
+local function drawFactsGroups(card, item, x, cy, w, panel, compact, noZoneCond)
+    local M, T = ZeD.Molecules, ZeD.T
+    local mirror, danger = activeMirror(item)
+    local drawn = 0
+    for _, group in ipairs(panel.groups or {}) do
+        local any = false
+        for _, row in ipairs(group.rows or {}) do
+            if not (noZoneCond and row.zoneCond) then
+                if not any then
+                    any = true
+                    drawn = drawn + 1
+                    if drawn > 1 then
+                        cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + T.px(2)
+                    end
+                end
+                local lbl = row.label
+                if compact and lbl and row.short then
+                    lbl = row.short
+                end
+                local vc = row.valueClass
+                if mirror and row.mirrorKey == mirror then vc = danger and "bad" or "warn" end
+                cy = cy + (M.drawFactsRow and
+                    M.drawFactsRow(card, x, cy, w,
+                        lbl, row.value, vc, row.isSub, row.needsProbe) or 0)
+            end
+        end
+    end
+    return cy
 end
 
 -- ---------------------------------------------------------------------------
@@ -794,7 +700,7 @@ local function buildModel(card, item, ctx, playerNum, now, g1, g2, g3, g4, g5, g
     local fk = m.facts and m.facts._key
     m.ft     = safeGet(item, "getFullType")
     m.pFood  = (m.cat == "Food" or fk == "nutrition") or nil
-    m.pUses  = (m.cat == "Drainable") or nil
+    m.pUses  = (m.cat == "Drainable" or fk == "uses") or nil
     m.pFluid = (m.cat == "Fluid") or nil
     m.pAmmo  = (m.cat == "Firearm") or nil
     m.pRead  = (m.cat == "Literature" or fk == "reading") or nil
@@ -1174,20 +1080,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or ZeD.tr("UI_ZeD_Card_Facts"), compact) or 0)
             end
             cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + T.px(2)
-            for gi, group in ipairs(panel.groups or {}) do
-                if gi > 1 then
-                    cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + T.px(2)
-                end
-                for _, row in ipairs(group.rows or {}) do
-                    local lbl = row.label
-                    if compact and lbl and row.short then
-                        lbl = row.short
-                    end
-                    cy = cy + (M.drawFactsRow and
-                        M.drawFactsRow(card, x, cy, w,
-                            lbl, row.value, row.valueClass, row.isSub, row.needsProbe) or 0)
-                end
-            end
+            cy = drawFactsGroups(card, item, x, cy, w, panel, compact, #zones > 0)
         end
     end
 
@@ -1222,20 +1115,7 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
     if panel then
         cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or ZeD.tr("UI_ZeD_Card_Facts"), compact) or 0)
         cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + T.px(2)
-        for gi, group in ipairs(panel.groups or {}) do
-            if gi > 1 then
-                cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + T.px(2)
-            end
-            for _, row in ipairs(group.rows or {}) do
-                local lbl = row.label
-                if compact and lbl and row.short then
-                    lbl = row.short
-                end
-                cy = cy + (M.drawFactsRow and
-                    M.drawFactsRow(card, x, cy, w,
-                        lbl, row.value, row.valueClass, row.isSub, row.needsProbe) or 0)
-            end
-        end
+        cy = drawFactsGroups(card, item, x, cy, w, panel, compact, false)
     end
 
     return cy - y
