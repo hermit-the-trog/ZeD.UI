@@ -10,10 +10,13 @@
 --             disclosure never count, the stop always ends whole in view.
 --   OVERALL   the Health tab's Overall row says the game's word for the overall health at the game's thresholds (its
 --             health panel's Overall Body Status: OK only at 100, Slight damage above 90 ...), not a percent rounded up
---             to 100% while the game already says Slight damage.
+--             to 100% while the game already says Slight damage. The row keeps a percent cut down (99%) and the word
+--             has its own line under the bar, wrapped: every word the game ships, in all 28 languages, shows whole at
+--             1x, 1.5x and 1.75x. The medical check's header tag and the Character window's help cut down too.
 --   HAIR      Identity's Hair and beard with nothing carried to cut or style with: every style folded under the quiet
 --             row, so "Hair (24)" and "Choose a row" stood over no rows. The fold opens by itself while nothing else
---             shows; shut by the player it stays shut; once a row can be done it shuts again.
+--             shows; shut by the player it stays shut while nothing can be done; once a row can be done it shuts
+--             again, and a shut made then does not keep it shut once every tool is lost.
 --   WEIGHT    the license's weight sign (+, ++, -): the help line says what it means while the pointer is on it.
 -- Every section checks what the old code could not do, so it fails on the code before this work.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/fix_tabfill_sim.lua
@@ -311,18 +314,101 @@ if okH and HT then
     else
         check("the game's words for the overall health", false, "no overallWord")
     end
-    -- the row itself: 99.6 (a bleed has cost the forearm a little) read "100%"; the game says Slight damage
+    -- the row itself: 99.6 (a bleed has cost the forearm a little) read "100%"; the game says Slight damage.
+    -- The row keeps its percent, cut down (99%), and the word has a line of its own under the bar: in the
+    -- row's value slot a long word was cut with "..." ("Slight ..." at the 1.5 step).
+    ZeD.Atoms.pctText = function(f) return tostring(math.floor(math.max(0, math.min(1, f)) * 100 + 1e-6)) .. "%" end
+    local realBody = ZeD.Atoms.drawBody
+    ZeD.Atoms.drawBody = function(panel, s) panel.body = panel.body or {}; panel.body[#panel.body + 1] = s end
     local p = newPanel()
     local win = { _playerObj = nil }
     HT._renderHeader(p, win, { overall = 99.6, woundedCount = 6, injuredCount = 6, totalParts = 17 }, 0, 0, 220)
     local shown = p.rows and p.rows["UI_ZeD_Health_Overall"]
-    check("the Overall row says the game's word, not 100%", shown == "IGUI_health_Slight_damage", shown)
+    check("99.6: the Overall row reads 99%, not 100%", shown == "99%", shown)
+    check("99.6: the game's word on its own line under the bar", p.body and p.body[1] == "IGUI_health_Slight_damage",
+        p.body and p.body[1])
     p = newPanel()
     HT._renderHeader(p, win, { overall = 100, woundedCount = 6, injuredCount = 6, totalParts = 17 }, 0, 0, 220)
-    shown = p.rows and p.rows["UI_ZeD_Health_Overall"]
-    check("fresh wounds the game has not counted yet: OK, as the game says", shown == "IGUI_health_ok", shown)
+    check("fresh wounds the game has not counted yet: OK, as the game says", p.body and p.body[1] == "IGUI_health_ok",
+        p.body and p.body[1])
+    ZeD.Atoms.drawBody = realBody
     local medic = readFile(CLIENT .. "ObjectCardMedic.lua") or ""
-    check("the medical check's Overall row says the same word", medic:find("ZeD.HealthTab.overallWordOf(d)", 1, true) ~= nil)
+    check("the medical check draws the same overall block", medic:find("ZeD.HealthTab.drawOverall(card, rx, y, rw, d)", 1, true) ~= nil
+        and medic:find("overallWordOf(d), pctColor", 1, true) == nil)
+    check("the medical check's header tag is cut down too (99.6 is 99%)",
+        medic:find("return ZeD.Atoms.pctText(frac), ZeD.Atoms.statusColor(frac)", 1, true) ~= nil
+        and medic:find("math.floor(t.d.overall + 0.5)", 1, true) == nil)
+    local cw = readFile(CLIENT .. "ZeD_CharacterWindow.lua") or ""
+    check("the Character window's health help is cut down too",
+        cw:find("local hp = math.floor(bd:getOverallBodyHealth())", 1, true) ~= nil)
+
+    -- Every one of the game's overall words, in every language it ships, shows whole at 1x, the 1.5 step and
+    -- 1.75x (the director's QA scale), Normal and Large text: wrapped to the Health tab's right column with the
+    -- scrollbar showing (layoutZoneA: the window's 480 less the 14 scrollbar, 8 + figure + 10 + 8, the figure 220
+    -- at its whole zoom: 220 wide at 1x and 1.5x, 330 at 1.75x). Widths are measured on the safe side: Fira's
+    -- letters at 0.6 em (mono, wider than the sans the line is drawn in), a CJK letter a whole em, a Thai mark none.
+    local GAMEDIR = "E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/shared/Translate/"
+    local WORDS = { "ok", "Slight_damage", "Very_Minor_damage", "Minor_damage", "Moderate_damage", "Severe_damage",
+        "Very_Severe_damage", "Crital_damage", "Highly_Crital_damage", "Terminal_damage", "Deceased" }
+    local VLANGS = { "EN", "AR", "CA", "CH", "CN", "CS", "DA", "DE", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT",
+        "JP", "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }
+    local EM = 0
+    local function cpW(s)
+        local wsum, i = 0, 1
+        while i <= #s do
+            local b = s:byte(i)
+            local n = (b >= 240 and 4) or (b >= 224 and 3) or (b >= 192 and 2) or 1
+            local cp = b
+            if n == 2 then cp = (b % 32) * 64 + (s:byte(i + 1) % 64)
+            elseif n == 3 then cp = (b % 16) * 4096 + (s:byte(i + 1) % 64) * 64 + (s:byte(i + 2) % 64)
+            elseif n == 4 then cp = 0x10000 end
+            local thaiMark = cp == 0x0E31 or (cp >= 0x0E34 and cp <= 0x0E3A) or (cp >= 0x0E47 and cp <= 0x0E4E)
+            local comb = cp >= 0x0300 and cp <= 0x036F
+            if not thaiMark and not comb then wsum = wsum + ((cp >= 0x2E80) and EM or EM * 0.6) end
+            i = i + n
+        end
+        return wsum
+    end
+    local function wrapModel(text, _, maxW)
+        local lines, line = {}, ""
+        for word in text:gmatch("%S+") do
+            local test = line == "" and word or (line .. " " .. word)
+            if cpW(test) > maxW and line ~= "" then lines[#lines + 1] = line; line = word else line = test end
+        end
+        if line ~= "" then lines[#lines + 1] = line end
+        return lines
+    end
+    local realWrap, realMeasure = ZeD.Atoms.wrapText, ZeD.TM.MeasureStringX
+    ZeD.Atoms.wrapText = wrapModel
+    ZeD.TM.MeasureStringX = function(_, _, s) return cpW(tostring(s)) end
+    local STEPS = { { 1, 220, 13 }, { 1.5, 220, 19.5 }, { 1.75, 330, 22.75 }, { 1, 220, 15 }, { 1.5, 220, 22.5 }, { 1.75, 330, 26.25 } }
+    local bad, seen, langsRead = {}, 0, 0
+    for _, l in ipairs(VLANGS) do
+        local j = readFile(GAMEDIR .. l .. "/IG_UI.json")
+        if j then
+            langsRead = langsRead + 1
+            for _, k in ipairs(WORDS) do
+                local word = j:match('"IGUI_health_' .. k .. '"%s*:%s*"([^"]*)"')
+                if word then
+                    for _, s in ipairs(STEPS) do
+                        EM = s[3]
+                        seen = seen + 1
+                        local lines = (HT.overallLines or function() return { "" } end)({ overall = 50, overallWord = word }, "F2", s[2])
+                        local whole = true
+                        for _, ln in ipairs(lines) do if cpW(ln) > s[2] then whole = false end end
+                        local joined = table.concat(lines, ""):gsub("%s", "")
+                        if not whole or joined ~= word:gsub("%s", "") then
+                            bad[#bad + 1] = l .. ":" .. k .. "@" .. s[1] .. "x/" .. s[3] .. "px"
+                        end
+                    end
+                end
+            end
+        end
+    end
+    ZeD.Atoms.wrapText, ZeD.TM.MeasureStringX = realWrap, realMeasure
+    check("the game's translations found", langsRead == #VLANGS, langsRead)
+    check("every overall word in every language shows whole at 1x, 1.5x and 1.75x (" .. seen .. " looks)",
+        #bad == 0 and seen > 0, table.concat(bad, " "))
     -- the word is looked up once per read of the body (a few times a second), not every frame
     local d = { overall = 85 }
     local calls = 0
@@ -432,6 +518,23 @@ if okB and HB and HB.layout then
     st.tick = 0
     n = rowsShown(HB.layout(win, 400))
     check("opened by the player, the fold stays open", n == 24, n)
+    -- shut by the player while rows could be done, then every tool lost: the fold opens by itself again (the
+    -- shut made with rows showing does not hold over a list with no rows)
+    st.top, st.x = 0, 0
+    for _, e in ipairs(HB.focusables(win)) do if e.id == "hb:more" then e.onActivate(win) end end
+    st.tick = 0
+    n = rowsShown(HB.layout(win, 400))
+    check("shut by the player with rows to do: the 3 rows, the fold shut", n == 3, n)
+    for i = 1, 3 do st.rows[i].ok = false end
+    st.tick = 0
+    n = rowsShown(HB.layout(win, 400))
+    check("then every tool lost: the fold opens by itself, the 24 styles show", n == 24, n)
+    -- a shut made while nothing can be done still holds while nothing can be done
+    st.top, st.x = 0, 0
+    for _, e in ipairs(HB.focusables(win)) do if e.id == "hb:more" then e.onActivate(win) end end
+    st.tick = 0
+    n = rowsShown(HB.layout(win, 400))
+    check("shut with nothing to do: it stays shut", n == 0, n)
 end
 
 -- ===========================================================================

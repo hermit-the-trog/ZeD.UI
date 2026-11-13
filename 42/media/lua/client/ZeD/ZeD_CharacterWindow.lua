@@ -763,7 +763,8 @@ local function composeCharHealth(win)
     local p = win._playerObj
     local bd = p and p:getBodyDamage()
     if not bd then win._titleMark, win._titleHelp = nil, nil; return end
-    local hp = math.floor(bd:getOverallBodyHealth() + 0.5)
+    -- (cut down, as the Health tab's Overall row: 99.6 is "Health: 99%", never 100% while the game says Slight damage)
+    local hp = math.floor(bd:getOverallBodyHealth())
     win._titleMark, win._titleMarkBlink = ZeD_Window.healthPixel(hp)
     win._titleYields = true
     win._hideTitle = nil

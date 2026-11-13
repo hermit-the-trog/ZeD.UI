@@ -164,12 +164,11 @@ function def.icon(t) return nil end
 function def.pxIcon(t) return "stethoscope" end
 
 -- (the status bars' rule: ZeD.Atoms.statusColor, punch list 143)
-local function pctColor(pct) return ZeD.Atoms.statusColor(pct / 100) end
-
 function def.pill(t)
     if t.blocking or not t.d then return nil end
-    local pct = math.floor(t.d.overall + 0.5)
-    return tostring(pct) .. "%", pctColor(pct)
+    -- (cut down, as the Overall row's percent: 99.6 is 99%, never 100% beside "Slight damage")
+    local frac = t.d.overall / 100
+    return ZeD.Atoms.pctText(frac), ZeD.Atoms.statusColor(frac)
 end
 
 function def.status(t)
@@ -244,11 +243,8 @@ local function summary(card, t, rx, ry, rw)
     local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
     local dotSz, dotGap = T.px(6), T.px(4)
     local y = ry
-    local pct = math.floor(d.overall + 0.5)
-    -- (the game's own word for the overall, as the Health tab's row and the game's health panel say it)
-    y = y + M.drawStatRowDot(card, rx, y, rw, ZeD.tr("UI_ZeD_Health_Overall"),
-        ZeD.HealthTab.overallWordOf(d), pctColor(pct)) + T.sp.rowGap
-    y = y + M.drawFillBar(card, rx, y, rw, d.overall / 100, nil, ZeD.tr("UI_ZeD_Health_Overall")) + T.sp.xs
+    -- (the Health tab's overall block: the row, the bar and the game's own word under them)
+    y = ZeD.HealthTab.drawOverall(card, rx, y, rw, d)
     local wounded = d.woundedCount or d.injuredCount
     if wounded == 0 then
         local c = (d.injuredCount > 0) and T.warning or T.positive

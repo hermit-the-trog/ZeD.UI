@@ -542,6 +542,61 @@ function ZeD.HealthTab.overallWordOf(data)
     return w
 end
 
+--- The overall block, the Health tab's and the medical check's: the Overall row with its
+--- percent (cut down, never up, so it reads 100% only at 100), the bar under it, then the
+--- game's word on a line of its own, wrapped to the column. The row's value slot holds
+--- about 11 letters at the 1.5 scale step, and "Highly Critical damage" or a German word
+--- in it read "Slight ..." or less. Returns the y under the word.
+-- A word with no spaces wider than the column (Thai writes "Highly Critical damage" as one
+-- run) breaks between letters, never before a Thai vowel or tone mark, nor inside a UTF-8
+-- letter where a string is bytes (the sims).
+local function isMark(b)
+    return (b >= 128 and b <= 191) or b == 0x0E31 or (b >= 0x0E34 and b <= 0x0E3A) or (b >= 0x0E47 and b <= 0x0E4E)
+end
+local function breakRun(out, line, font, w)
+    local TM = ZeD.TM
+    while TM:MeasureStringX(font, line) > w do
+        local cut = 0
+        for i = 2, #line do
+            if not isMark(string.byte(line, i)) then
+                if TM:MeasureStringX(font, string.sub(line, 1, i - 1)) > w then break end
+                cut = i - 1
+            end
+        end
+        if cut == 0 then break end
+        out[#out + 1] = string.sub(line, 1, cut)
+        line = string.sub(line, cut + 1)
+    end
+    out[#out + 1] = line
+end
+-- the word's lines at a width, kept on the read (a new read every few frames, a new width
+-- only while the drawer moves)
+local function overallLines(data, font, w)
+    if data.overallLines and data.overallLinesW == w and data.overallLinesF == font then return data.overallLines end
+    local out = {}
+    for _, line in ipairs(ZeD.Atoms.wrapText(ZeD.HealthTab.overallWordOf(data), font, w)) do
+        breakRun(out, line, font, w)
+    end
+    data.overallLines, data.overallLinesW, data.overallLinesF = out, w, font
+    return out
+end
+ZeD.HealthTab.overallLines = overallLines
+
+function ZeD.HealthTab.drawOverall(panel, x, y, w, data)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local frac = (data.overall or 0) / 100
+    local label = ZeD.tr("UI_ZeD_Health_Overall")
+    y = y + M.drawStatRowDot(panel, x, y, w, label, A.pctText(frac), A.statusColor(frac)) + T.sp.rowGap
+    y = y + M.drawFillBar(panel, x, y, w, frac, nil, label) + T.sp.xs
+    local lines = overallLines(data, T.fontF2, math.max(1, math.floor(w)))
+    local lh = ZeD.TM:getFontHeight(T.fontF2)
+    for i = 1, #lines do
+        A.drawBody(panel, lines[i], x, y)
+        y = y + lh
+    end
+    return y + T.sp.xs
+end
+
 -- opts (the medical check of another player; nil for your own Health tab):
 --   doctorLevel  the First Aid level of the one looking (the doctor), else the patient's own
 --   bodyDamage   the body to read: on a server another player's is their remote copy
@@ -770,17 +825,9 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
 
     local curY = ry
 
-    -- Overall stat row: the status is the square mark, the value the game's own word for it
-    -- (its health panel's Overall Body Status); the bar under it shows how much
-    local pct = math.floor(data.overall + 0.5)
-    local pctColor = pctToStatusColor(pct)
-    local rowH = M.drawStatRowDot(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Health_Overall"),
-        ZeD.HealthTab.overallWordOf(data), pctColor)
-    curY = curY + rowH + T.sp.rowGap
-
-    -- Fill bar
-    local barH = M.drawFillBar(panel, rx, curY, rw, data.overall / 100, nil, ZeD.tr("UI_ZeD_Health_Overall"))
-    curY = curY + barH + T.sp.xs
+    -- Overall: the row and its bar, then the game's own word for it (its health panel's
+    -- Overall Body Status) on its own line
+    curY = ZeD.HealthTab.drawOverall(panel, rx, curY, rw, data)
 
     -- Summary line
     -- Count WOUNDS, not low health. A hungry character with every part

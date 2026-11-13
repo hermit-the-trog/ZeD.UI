@@ -1246,7 +1246,10 @@ function HB.layout(win, w)
         -- folded row would be the whole list: the switch counts the part's styles ("Hair (24)")
         -- and the line above asks to choose a row, yet none shows. So the fold opens by itself
         -- while nothing else shows (its rows grayed, each saying what it needs when picked) and
-        -- shuts again once a row can be done. Opened or shut by the player, it stays as they left it.
+        -- shuts again once a row can be done. Opened or shut by the player, it stays as they left it;
+        -- a shut holds only while nothing can be done: one made with rows showing (or kept until a
+        -- row could be done) is let go, so losing every tool later opens the fold again instead of
+        -- leaving "Hair (24)" over no rows.
         local auto = st.moreAuto
         if not auto then auto = {}; st.moreAuto = auto end
         if #shown == 0 then
@@ -1254,9 +1257,12 @@ function HB.layout(win, w)
                 DS.setOpen(key, true)
                 auto[key] = true
             end
-        elseif auto[key] then
-            DS.setOpen(key, false)
-            auto[key] = nil
+        else
+            if st.moreShut then st.moreShut[key] = nil end
+            if auto[key] then
+                DS.setOpen(key, false)
+                auto[key] = nil
+            end
         end
         local groups = moreGroups(st, hidden)
         -- the row alone (the styles it keeps back open as rows below it, not as its own block)

@@ -372,8 +372,8 @@ MX, MY = -5000, -5000
 -- the words follow the health; the same health keeps the same string (no new string a frame)
 HP = 19.6
 composeCharHealth(win)
-check("20 (19.6 rounded) blinks red", win._titleMark == T.danger and win._titleMarkBlink == true)
-check("help follows: Health: 20%", win._titleHelp == "Health: 20%", win._titleHelp)
+check("19 (19.6 cut down, as the Health tab's Overall row) blinks red", win._titleMark == T.danger and win._titleMarkBlink == true)
+check("help follows: Health: 19% (never rounded up)", win._titleHelp == "Health: 19%", win._titleHelp)
 local s1h = win._titleHelp
 composeCharHealth(win)
 check("the same health keeps its string", rawequal(win._titleHelp, s1h))
