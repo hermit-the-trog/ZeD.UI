@@ -1482,6 +1482,12 @@ function D.extraCells(xs, items)
 end
 -- their marks on the plate's top edge from x (plate pixels); returns the x after the last
 local MARK_GAP = 6
+--- The dark strip the gamepad hint sits on (art pixels x0..x1 across the top edge, the 5-row letters at y 2 with two
+--- rows over and under): near-black like label tape, so the cream letters read on any cabin color.
+function D.hintTape(cv, x0, x1)
+    P.rect(cv, x0 - 3, 0, (x1 - x0) + 6, 9, P.color("#101010"), 0.9)
+end
+
 function D.extraMarks(cv, xs, x, y, ink, shadow)
     for _, e in ipairs(xs or {}) do
         if e.spec.mark then
@@ -2254,6 +2260,12 @@ function ZeD_Dashboard:prerender()
             if self._focEl.promptX then segs[#segs + 1] = { "X", self._focEl.promptX } end
             segs[#segs + 1] = { "B", ZeD.tr("UI_ZeD_Dash_PromptDrive") }
             local x = DP.hintRight
+            -- (a dark strip behind the hint, like a printed label's tape: it reads on every cabin color, the wood and tan
+            -- ones included; QA, beta 12 release pass)
+            local tw = 0
+            for i = 1, #segs do tw = tw + P.textWidth(ZeD.upper(segs[i][2]), "35", 1) + 3 + PG.miniWidth(segs[i][1], set) + 5 end
+            D.hintTape(cv, DP.hintRight - (tw - 5), DP.hintRight)
+            ink, shadow = P.color("#ece8dc"), nil
             for i = #segs, 1, -1 do
                 local word = ZeD.upper(segs[i][2])
                 x = x - P.textWidth(word, "35", 1)
@@ -2269,8 +2281,11 @@ function ZeD_Dashboard:prerender()
             else
                 hint = ZeD.tr("UI_ZeD_Dash_HintWheel")
             end
-            -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight)
-            P.text(cv, ZeD.upper(hint), DP.hintRight, 2, ink, "35", 1, "r", nil, shadow)
+            -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight), on its
+            -- dark strip
+            local up = ZeD.upper(hint)
+            D.hintTape(cv, DP.hintRight - P.textWidth(up, "35", 1), DP.hintRight)
+            P.text(cv, up, DP.hintRight, 2, P.color("#ece8dc"), "35", 1, "r", nil, nil)
         end
     end
     self:_lampHover(des, st, k)

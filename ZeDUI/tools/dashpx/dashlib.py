@@ -25,7 +25,7 @@ Z_TOP, Z_BROW, Z_FACE, Z_CL, Z_DIAL = 0.0, 11.0, 5.0, -6.0, -8.5
 # 3 x 5 letters, 124 px for the longest line, "A SHUT OFF  X REMOVE KEY  B DRIVE"); the art leaves it plain
 HINT_X1, HINT_W = 486, 126
 HINT_X0 = HINT_X1 - HINT_W
-PRINTED = {"paint_w", "paint_c", "paint_r", "paint_o", "paint_y", "paint_k", "paint_kd", "lampoff", "segoff", "vfdoff", "ledoff", "lens"}
+PRINTED = {"paint_w", "paint_wb", "paint_c", "paint_r", "paint_o", "paint_y", "paint_k", "paint_kd", "lampoff", "segoff", "vfdoff", "ledoff", "lens"}
 
 for nm, base in {"v_saddle": "#7a5636", "v_medic": "#8e908c", "v_taxi": "#262628", "v_race": "#202022", "v_forest": "#3c4a36",
                  "v_sand": "#8c7a5a"}.items():
@@ -34,7 +34,12 @@ for nm, base in {"v_saddle": "#7a5636", "v_medic": "#8e908c", "v_taxi": "#262628
 # would read under LEGEND_CONTRAST on its vinyl (the mid-light cabins v_beige_d and v_ltbrown: 2.9:1 with paint_k,
 # 3.9:1 with this). Every surface paint_k already clears keeps paint_k
 RAMPS["paint_kd"] = [hx(c) for c in ("#020202", "#040404", "#070706", "#0b0b0a", "#0e0e0d", "#141413", "#1c1b19", "#262522")]
+# the bright white ink (beta 13, darker ink): a near-white print for the mid-grey cabins, where paint_w's pale grey
+# reads at 3.2:1
+add_ramp("paint_wb", "#ecebe4")
 LEGEND_CONTRAST = 3.0   # the least contrast (WCAG ratio) a printed legend keeps against the surface it is printed on
+LEGEND_AIM = 4.5        # beta 13 (the director: darker ink): under this, a legend takes whichever ink reads best on its
+                        # vinyl. A mid-tone vinyl can't reach it with any ink (v_beige_d: 3.9:1 at best, l_brown 3.6:1)
 
 
 def rel_lum(c):
@@ -150,12 +155,14 @@ class Build:
         names = [d.names[m] for m in np.unique(reg).tolist() if m >= 0 and d.names[m] not in PRINTED]
         if not names: return mat
         ramp = RAMPS[names[0]]
-        r, g, b_ = ramp[4]
-        lum = (0.299 * r + 0.587 * g + 0.114 * b_) / 255.0
-        if lum > 0.42 and mat in ("paint_w", "paint_c"):
-            # a flat print renders at its ramp's step 4, as does the flat vinyl under it
-            return "paint_k" if contrast(RAMPS["paint_k"][4], ramp[4]) >= LEGEND_CONTRAST else "paint_kd"
-        return mat
+        if mat not in ("paint_w", "paint_c"):
+            return mat
+        # a flat print renders at its ramp's step 4, as does the flat vinyl under it. The light ink stays where it reads
+        # at LEGEND_CONTRAST; else the ink that reads best of it, the dark ink and the deeper dark ink (beta 13, the
+        # director: darker ink; QA found pale captions on the grey and tan cabins)
+        if contrast(RAMPS[mat][4], ramp[4]) >= LEGEND_AIM:
+            return mat
+        return max((mat, "paint_k", "paint_kd"), key=lambda m: contrast(RAMPS[m][4], ramp[4]))
 
     def label(s, t, x, y, mat="paint_w", align="l", font="35", scale=1, flatlight=False, check=True):
         w = text_w(t, font, 1, scale); hgt = len(FONTS[font]["A"]) * scale

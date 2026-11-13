@@ -120,7 +120,7 @@ def drop(mask, amount=0.5):
 
 def text(t, x, y, mat, align="l", shadow=0.45):
     before = d.mat.copy()
-    d.text(t, x, y, mat, font="35", align=align, flatlight=True)
+    d.text(t, x, y, mat, font="35", align=align, flatlight=True, keep_ink=True)
     if shadow: drop(d.mat != before, shadow)
 
 
@@ -327,7 +327,7 @@ def _line_colours(b, brand, mx, my, align, model, sub):
     full = (model + " " + sub).strip() if sub else model
     x0 = mx - text_w(full, "35") // 2 if align == "c" else mx
     before = d2.mat.copy()
-    d2.text(model, x0, my, SPEC[brand]["model_mat"], font="35", flatlight=True)
+    d2.text(model, x0, my, SPEC[brand]["model_mat"], font="35", flatlight=True, keep_ink=True)
     m_model = d2.mat != before
     m_tag = np.zeros_like(m_model)
     if sub:

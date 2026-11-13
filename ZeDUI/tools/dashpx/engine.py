@@ -19,6 +19,19 @@ except ImportError:          # no scipy here: the same calls in plain numpy (ndi
 from PIL import Image, ImageDraw
 
 SS = 4
+INK_AIM = 4.5   # a light printed word under this contrast on its surface takes the ink that reads best (Dash.best_ink)
+NOT_SURFACE = {"lampoff", "segoff", "vfdoff", "ledoff", "lens"}
+
+
+def _lum(c):
+    a = np.asarray(c, np.float64) / 255.0
+    a = np.where(a <= 0.04045, a / 12.92, ((a + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * a[..., 0] + 0.7152 * a[..., 1] + 0.0722 * a[..., 2]
+
+
+def _contrast(a, b):
+    la, lb = float(_lum(a)), float(_lum(b))
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 LEGACY_H = 172      # the plate's height before Oct 29 2026 (it is 178 since: the dash runs to the screen's edge)
 
 
@@ -297,7 +310,7 @@ class Dash:
         if flatlight: s.flatlight |= m
         return m
 
-    def text(s, t, x, y, mat, font="35", gap=1, raise_=0.0, align="l", flatlight=False, scale=1):
+    def text(s, t, x, y, mat, font="35", gap=1, raise_=0.0, align="l", flatlight=False, scale=1, keep_ink=False):
         f = FONTS[font]; w = text_w(t, font, gap, scale)
         if align == "c": x = x - w // 2
         elif align == "r": x = x - w
@@ -314,8 +327,26 @@ class Dash:
             s.h[m] += raise_
             s.mat[m] = s.mid(mat); s.solid |= m
         else:
+            if mat in ("paint_w", "paint_c") and not keep_ink:   # (a maker's mark keeps its own colors: brands.py)
+                mat = s.best_ink(x, y, w, len(f["A"]) * scale, mat)
             s.paint(m, mat, flatlight=flatlight)
         return m
+
+    def best_ink(s, x, y, w, h, mat):
+        """beta 13 (the director: darker ink on the dashboards): a light printed word keeps its ink where it reads at
+        INK_AIM against the surface under it (a flat print and flat vinyl both render at ramp step 4); else it takes
+        whichever of its ink, the dark ink and the deeper dark ink reads best there. Dark dial faces keep their white."""
+        x0, y0 = max(0, int(x)), max(0, int(y))
+        reg = s.mat[y0:y0 + max(1, int(h)), x0:x0 + max(1, int(w))]
+        ids, counts = np.unique(reg, return_counts=True)
+        under = [(c, s.names[i]) for i, c in zip(ids.tolist(), counts.tolist())
+                 if i >= 0 and not s.names[i].startswith("paint") and s.names[i] not in NOT_SURFACE]
+        if not under or "paint_k" not in RAMPS or "paint_kd" not in RAMPS:
+            return mat
+        surf = RAMPS[max(under)[1]][4]
+        if _contrast(RAMPS[mat][4], surf) >= INK_AIM:
+            return mat
+        return max([k for k in (mat, "paint_wb", "paint_k", "paint_kd") if k in RAMPS], key=lambda k: _contrast(RAMPS[k][4], surf))
 
     def seam(s, mask, amount=0.55):
         """a panel gap or groove: darken (and a hair deeper)"""
