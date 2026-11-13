@@ -17,6 +17,10 @@ What it checks
         ISModalDialog:new(...) string arguments, and addOption("..")
      A string counts as English when it is not a bare key (Prefix_Name) and has a lowercase word of 2+ letters (once %1..%4 and <TAGS> are
      removed). Anything found that is not in i18n_allowlist.txt fails.
+  5. Every other language (zedqa_lang.lua's counts, moved out of the game Nov 12 2026): keys in the English
+     but missing or empty in its UI.json (the game would fall back to the English), and keys whose text is
+     the same as the English (longer than 3 characters; names and numbers can be). Together under 8% of the
+     keys, or the language fails as not really translated.
 
 Allowlist: i18n_allowlist.txt next to this file. One entry per line, "file|exact string" (the file's base
 name, the string exactly as written between the quotes). Not line numbers, so edits do not break it.
@@ -345,6 +349,32 @@ def check_percent(ui):
         ok("no lone % in UI.json (a percent sign is written %%)")
 
 
+def check_languages(ui):
+    tdir = os.path.dirname(os.path.dirname(UI_JSON))
+    worst = ("", 0.0)
+    bad = 0
+    for code in sorted(os.listdir(tdir)):
+        f = os.path.join(tdir, code, "UI.json")
+        if code == "EN" or not os.path.isfile(f):
+            continue
+        try:
+            t = json.load(open(f, encoding="utf-8-sig"))
+        except Exception:
+            continue   # check_json already failed it
+        missing = [k for k in ui if not t.get(k)]
+        same = [k for k in ui if t.get(k) == ui[k] and len(ui[k]) > 3]
+        share = (len(missing) + len(same)) / float(len(ui))
+        if missing:
+            warns.append("%s: %d key(s) missing (the English shows), e.g. %s" % (code, len(missing), ", ".join(missing[:3])))
+        if share >= 0.08:
+            fail("%s: %d missing + %d the same as the English = %.1f%% of %d keys (8%% or more)" % (code, len(missing), len(same), share * 100, len(ui)))
+            bad += 1
+        if share >= worst[1]:
+            worst = (code, share)
+    if not bad:
+        ok("every language under 8%% untranslated (most: %s %.1f%%)" % (worst[0], worst[1] * 100))
+
+
 def main():
     show_list = "--list" in sys.argv
     seed = "--seed" in sys.argv
@@ -360,6 +390,7 @@ def main():
         check_keys(ui, sources)
         check_placeholders(ui, sources)
         check_percent(ui)
+        check_languages(ui)
 
     allow = load_allow()
     new = []

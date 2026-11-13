@@ -1383,6 +1383,34 @@ do
         end
     end
     check("ZONES no animal counted twice; the zone rows hold all 4", not twice and inZones == 4, inZones)
+
+    -- (from zedqa_animals_list.lua) the cell's list against the old walk of the squares: 75 squares around the
+    -- player on the player's floor (stairs give a fractional z), the wild left out; no zones; a refresh in 8 ms
+    local seed, herd = 7, {}
+    local function rnd(n) seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n end
+    for k = 1, 600 do
+        local a = placed("H" .. k, 1000 + rnd(241) - 120, 2000 + rnd(241) - 120)
+        local z = ({ 0, 0, 0, 1, 0.5, 2 })[rnd(6) + 1]
+        a.getZ = function() return z end
+        a._wild = rnd(9) == 0
+        herd[k] = a
+    end
+    local walk = 0
+    for x = 1000 - 75, 1000 + 75 do for y = 2000 - 75, 2000 + 75 do
+        for _, a in ipairs(herd) do
+            if a._x == x and a._y == y and math.floor(a.getZ()) == 0 and not a._wild then walk = walk + 1 end
+        end
+    end end
+    cellList = herd
+    me.getCurrentSquare = function() return { getX = function() return 1000 end, getY = function() return 2000 end,
+                                              getZ = function() return 0 end } end
+    DesignationZoneAnimal = { getAllZones = function() return L({}) end }
+    local c0 = os.clock()
+    AP.refreshCache()
+    local ms = (os.clock() - c0) * 1000
+    check("ZONES the poller's count matches a 75-square walk of the player's floor (" .. walk .. ")",
+        walk > 50 and #AP.getAllAnimals() == walk and AP.getTotals().totalAnimals == walk, #AP.getAllAnimals())
+    check("ZONES one refresh over 600 animals stays under 8 ms", ms < 8, string.format("%.2f ms", ms))
 end
 
 -- ALERTS ----------------------------------------------------------------------

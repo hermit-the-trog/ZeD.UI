@@ -156,6 +156,24 @@ check("STACK the list's row and the grid's cell read the stack's bar",
       irs:find("IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)", 1, true) ~= nil
       and select(2, irs:gsub("IM%.ofStack%(item, stackInfo", "")) == 2
       and irs:find("rowH, stackInfo)", 1, true) ~= nil and irs:find("cell, stackInfo) end", 1, true) ~= nil)
+-- (from zedqa_b11_notes.lua 162) four bottles, empty, 0.3, 0.6 and full, in both orders of the Cond sort: whichever
+-- item heads the stack, its bar is the empty one's; opened, a child row has no stack of its own (only the head is in
+-- the model's stacks) and so reads its own bottle
+local q = { bottle(0.0), bottle(0.3), bottle(0.6), bottle(1.0) }
+local asc, desc = { q[1], q[2], q[3], q[4] }, { q[4], q[3], q[2], q[1] }
+k, f = IM.ofStack(asc[1], asc)
+check("STACK sorted Cond ascending (the empty bottle heads it): the empty one's level", k == "fluid" and f == 0, f)
+k, f = IM.ofStack(desc[1], desc)
+check("STACK sorted Cond descending (the full bottle heads it): still the empty one's level", k == "fluid" and f == 0, f)
+local own = true
+for _, b in ipairs(desc) do
+    local kk, ff = IM.ofStack(b, nil)
+    if not (kk == "fluid" and math.abs(ff - select(2, IM.of(b))) < 1e-6) then own = false end
+end
+check("STACK opened: each row reads its own bottle (0, 0.3, 0.6, 1)", own)
+check("STACK opened: only the stack's head row gets the stack (its children none)",
+      irs:find("stacks[s.rep] = s", 1, true) ~= nil and select(2, irs:gsub("stacks%[[^%]]+%] = s%s", "")) == 1
+      and irs:find("childParent[s.items[ci]] = s", 1, true) ~= nil)
 -- every language has the heading, the panel's title and Amount
 local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT", "JP",
                 "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }

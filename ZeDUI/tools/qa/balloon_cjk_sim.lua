@@ -24,6 +24,8 @@
 --            Japanese face, which lacks U+6001 (so ZeD's CN list matters)
 --   DRAW     ISUIElement drawText / Right / Centre and the lean drawText in the roles' fonts draw the line in a face
 --            with all its letters, where ZeD.TM measures it (right edge at x, centre at x)
+--   COUNT    (from zedqa_sc_font.lua) "map" and "simplified Chinese" swap to ZeD's face, Cafe with e-acute and kana do
+--            not; a "(2)" count after each lands after it, drawn in the same face
 --   KEEP     a line the face draws whole (Latin, or letters both Chinese faces share) takes the original call, as before
 --   PROBE    the byte string draws in the face it always did (no swap): its Latin-1 characters, the 0x80-0x9F ones as
 --            nothing, which is the mojibake the PC probe saw
@@ -623,6 +625,32 @@ local function language(lang)
             check(tag .. "KEEP Latin stays on the role font", r and r.font == T.fontF2, r and NAME_OF[r.font])
         end
         check(tag .. "KEEP no swap for it", X.scriptFont(s) == false)
+    end
+
+    -- COUNT (from zedqa_sc_font.lua, Nov 12 2026): through ZeD.Text.width in the body role, "map" and "simplified
+    -- Chinese" swap to ZeD's face and "Cafe" with e-acute stays put; the two-letter word measures about twice its first
+    -- letter; a "(2)" count after each lands after it; kana keeps the Japanese face, not ZeD's
+    do
+        local body = ZeD.Font.sdf.body
+        local z = body.px * T.scale / (body.face or 64)
+        local SCW, CAFE, KANA = U(0x7B80, 0x4F53, 0x4E2D, 0x6587), "Caf" .. U(0xE9), U(0x3072, 0x3089, 0x304C, 0x306A)
+        local zf = X.scriptFont(MAP)
+        check(tag .. "COUNT map swaps to ZeD's face", zf ~= false and zf ~= nil and X.scriptFont(SCW) == zf)
+        check(tag .. "COUNT Cafe with e-acute stays on its face (no swap)", X.scriptFont(CAFE) == false)
+        local ek = X.scriptFont(KANA)
+        check(tag .. "COUNT kana keeps the game's Japanese face, not ZeD's", ek and ek ~= zf and ek.font ~= (zf and zf.font), ek and NAME_OF[ek.font])
+        local w1, w2 = X.width(body, U(0x5730), z), X.width(body, MAP, z)
+        check(tag .. "COUNT map's second letter is not blank (two letters about twice one)", w1 > 0 and w2 > w1 * 1.8, w2 .. " / " .. w1)
+        local wn = X.width(body, "(2)", z)
+        for _, s in ipairs({ { "map", MAP }, { "simplified Chinese", SCW }, { "Cafe", CAFE } }) do
+            local w, wc = X.width(body, s[2], z), X.width(body, s[2] .. "(2)", z)
+            check(tag .. "COUNT " .. s[1] .. " measures", w > 0, w)
+            check(tag .. "COUNT a (2) after " .. s[1] .. " lands after it", wc > w + wn * 0.5, wc .. " vs " .. w .. " + " .. wn)
+        end
+        local jo, rec = javaRecorder()
+        X.draw({ drawTextZoomed = function(_, str, x, y, zz, r, g, b, a, f) rec[#rec + 1] = { str = str, font = f } end },
+            body, MAP .. "(2)", 0, 0, z)
+        check(tag .. "COUNT map(2) draws in one face with all its letters", rec[1] and whole(rec[1].font, MAP .. "(2)"), rec[1] and NAME_OF[rec[1].font])
     end
 
     -- PROBE: the PC probe's twelve characters

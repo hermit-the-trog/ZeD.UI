@@ -3,6 +3,8 @@
 --   BUTTON   a grayed button is the plain keycap whatever its variant (Molecules drawButton): one line in borderS, the
 --            default ink, at the disabled alpha; no accent double line (it read as the focused default), no red, no
 --            pulse. An enabled default keeps its double accent line; a red default answer keeps its double red line.
+--   CASE     (from zedqa_button_case_game.lua) button words go through ZeD.btnCase (keepCase as given); the card's
+--            verbs, verb strip and flags, tabs and tags reach the case rule; no in-game tab opts out
 --   HEADING  a container's heading reads the game's capacity for the character (InventoryRenderer.capacityOf): the
 --            character's own inventory its carry limit, a bag its capacity with Organized / Disorganized applied;
 --            the Character and World windows' headings and the side-by-side columns all ask it
@@ -114,7 +116,46 @@ do
         end
         check("colors.border: the default's double line in the row's ink, its words too", ln and ln.k == "line2"
             and same(ln, T.text) and same(tx, T.text))
+        -- CASE (from zedqa_button_case_game.lua, Nov 12 2026): a button's words go through ZeD.btnCase, a key's name
+        -- passed with colors.keepCase as it is
+        ZeD.btnCase = function(s) return "bc(" .. tostring(s) .. ")" end
+        local function words(colors)
+            LOG = {}
+            ZeD.Molecules.drawButton(panel, 0, 0, 100, 24, "WASH", "default", false, colors, {})
+            for _, e in ipairs(LOG) do if e.k == "text" then return e.s end end
+        end
+        check("CASE a button's words go through ZeD.btnCase", words(nil) == "bc(WASH)", words(nil))
+        check("CASE a key's name (colors.keepCase) is drawn as given", words({ keepCase = true }) == "WASH", words({ keepCase = true }))
+        ZeD.btnCase = function(s) return s end
     end
+end
+
+-- ---------------------------------------------------------------------------
+section("CASE: the in-game windows' button words reach the case rule")
+-- ---------------------------------------------------------------------------
+-- (from zedqa_button_case_game.lua, which only took pictures) the item card's header verbs, its Wash / Repair / Pad
+-- verb strip and its flag chips, the tabs and tags (Health exercise and Thermal view pickers, Animals footer, Foraging
+-- strip, Craft and Vehicle tabs draw through these) put their words through ZeD.btnCase or ZeD.textCase; none of the
+-- in-game tabs' own button calls opts out with keepCase but the game's own words on Fishing's and Foraging's chips
+do
+    local M = srcOf("Molecules.lua")
+    local function inFn(open, needle)
+        local f = cutFn(M, open)
+        return f ~= nil and f:find(needle, 1, true) ~= nil
+    end
+    check("CASE the card header's verbs", M:find('local labelStr = ZeD.btnCase(v.label or "")   -- sentence case (draw only', 1, true) ~= nil)
+    check("CASE the card's verb strip (Wash, Repair, Pad)", inFn("function ZeD.Molecules.drawCardVerbStrip(", "ZeD.btnCase(v.label"))
+    check("CASE the card's flag strip", inFn("function ZeD.Molecules.drawCardFlagStrip(", "A.textCase("))
+    check("CASE a tab's words", inFn("function ZeD.Molecules.drawTab(", "text = A.textCase(text)"))
+    check("CASE a button's natural width measures the words as drawn", inFn("function ZeD.Molecules.buttonW(", "ZeD.btnCase(text"))
+    local atoms = srcOf("Atoms.lua")
+    check("CASE a tag's words (unless keepCase)", atoms:find("if not opts.keepCase then s = textCase(s) end", 1, true) ~= nil)
+    local opted = {}
+    for _, f in ipairs({ "HealthTab.lua", "ThermalTab.lua", "AnimalsTab.lua", "CraftingTab.lua", "CraftingCore.lua",
+                         "MechanicsTab.lua", "ItemCardOrganism.lua", "ZeD_WorldWindow.lua", "ZeD_CharacterWindow.lua" }) do
+        if srcOf(f):find("keepCase", 1, true) then opted[#opted + 1] = f end
+    end
+    check("CASE no in-game tab's button opts out of the case rule", #opted == 0, table.concat(opted, ", "))
 end
 
 -- ---------------------------------------------------------------------------

@@ -69,5 +69,87 @@ for i = 0, 1000 do
     local lit, col = A.statusSegsLit(f), A.statusColor(f)
     check("STATUS: color by cells at " .. f, (lit >= 4 and col == "G") or (lit >= 2 and lit <= 3 and col == "Y") or (lit <= 1 and col == "R"), lit .. " " .. col)
 end
+-- FILL (from zedqa_segbars.lua, Nov 12 2026): drawFillBar's ten cells lit by whole tenths (the floating-point ones
+-- too), at its narrowest still ten distinct cells inside the frame; drawSegFill one cell a skill level and the Skills
+-- tab's help words; the pointer on a bar puts its value in the help line (with and without a label, and the stat bar
+-- row's), off the bar nothing. SkillsTab.barHelp and Molecules.drawStatBarRow are cut from their real files.
+do
+    local T = ZeD.T
+    T.hair, T.fillBarH, T.surf3, T.base, T.accent = 1, 13, { r = 0.2, g = 0.2, b = 0.2 }, { r = 0.5, g = 0.5, b = 0.5, a = 1 }, { r = 0.9, g = 0, b = 0 }
+    T.fontF2, T.fontF3, T.toneNorm, T.text, T.badgeBgA = "F2", "F3", { r = 1, g = 1, b = 1 }, { r = 1, g = 1, b = 1 }, 1
+    A.truncateText = function(s) return s end
+    ZeD.TM = { getFontHeight = function() return 16 end, MeasureStringX = function(_, _, s) return #tostring(s) * 8 end }
+    ZeD.tr = function(k, ...) local t = { k }; for _, v in ipairs({ ... }) do t[#t + 1] = tostring(v) end; return table.concat(t, "|") end
+    local help
+    ZeD.Help = { set = function(_, s) help = s end }
+    local LIT = { r = 1, g = 0, b = 0 }
+    A.lineJo = nil
+    local fp = setmetatable({ mx = -1000, my = -1000 }, { __index = function() return function() end end })
+    fp.getMouseX = function(self) return self.mx end
+    fp.getMouseY = function(self) return self.my end
+    fp.drawRect = panel.drawRect
+    local function lay(mx, my) row, help, fp.mx, fp.my = {}, nil, mx or -1000, my or -1000 end
+    local function count(x0, x1)
+        local lit, dark, runs, cur = 0, 0, {}, nil
+        for xx = x0, x1 do
+            local c = row[xx]
+            if c ~= cur then
+                if cur == "L" or cur == "d" then runs[#runs + 1] = cur end
+                cur = c
+            end
+        end
+        if cur == "L" or cur == "d" then runs[#runs + 1] = cur end
+        for _, c in ipairs(runs) do if c == "L" then lit = lit + 1 else dark = dark + 1 end end
+        return lit, dark
+    end
+    for _, c in ipairs({ { 0.64, 6 }, { 0.04, 0 }, { 1.0, 10 }, { 0, 0 }, { 0.7, 7 }, { 0.3, 3 }, { 0.999, 9 } }) do
+        lay()
+        A.drawFillBar(fp, 0, 0, 200, c[1], false, LIT, T.fillBarH)
+        local lit, dark = count(0, 200)
+        check(("FILL: %.3f lights %d"):format(c[1], c[2]), lit == c[2] and A.fillSegsLit(c[1]) == c[2], lit)
+        check(("FILL: %.3f draws ten cells"):format(c[1]), lit + dark == 10, lit + dark)
+    end
+    local minW = A.fillBarMinW()
+    lay()
+    A.drawFillBar(fp, 0, 0, minW, 0.5, false, LIT, A.fillBarCompactH())
+    local lit, dark = count(0, minW - 1)
+    check("FILL: at its narrowest (" .. minW .. " px) ten distinct cells, five lit", lit == 5 and dark == 5, lit .. "/" .. dark)
+    check("FILL: at its narrowest the frame is at both ends", row[0] == "f" and row[minW - 1] == "f", tostring(row[0]) .. tostring(row[minW - 1]))
+    lay()
+    A.drawSegFill(fp, 0, 0, A.rowBarW(), A.fillBarCompactH(), 10, 5, LIT)
+    lit, dark = count(0, A.rowBarW())
+    check("FILL: a skill at level 5 lights 5 of 10", lit == 5 and dark == 5, lit .. "/" .. dark)
+    local function cut(file, head)
+        local fh = io.open(ROOT .. "42/media/lua/client/ZeD/" .. file, "rb"); local s = fh:read("*a"):gsub("\r\n", "\n"); fh:close()
+        local a = s:find(head, 1, true); local b = a and s:find("\nend\n", a, true)
+        check("FILL: " .. head .. " found in " .. file, a and b)
+        if a and b then assert(loadstring(s:sub(a, b + 4)))() end
+    end
+    ZeD.SkillsTab, ZeD.Molecules = {}, {}
+    cut("SkillsTab.lua", "function ZeD.SkillsTab.barHelp(skill)")
+    cut("Molecules.lua", "function ZeD.Molecules.drawStatBarRow(")
+    if ZeD.SkillsTab.barHelp then
+        check("FILL: skill help 'Fitness 5, 40% to level 6'", ZeD.SkillsTab.barHelp({ name = "Fitness", level = 5, xpProgress = 0.4 }) == "UI_ZeD_Skills_BarHelp|Fitness|5|40%|6")
+        check("FILL: skill help 'Fitness 10' at the top", ZeD.SkillsTab.barHelp({ name = "Fitness", level = 10, xpProgress = 1 }) == "UI_ZeD_Bar_Help|Fitness|10")
+    end
+    lay(100, 6)
+    check("FILL: the pointer on a bar is reported", A.drawFillBar(fp, 0, 0, 200, 0.64, true, nil, T.fillBarH, "Condition") == true)
+    check("FILL: the help line reads 'Condition 64%'", help == "UI_ZeD_Bar_Help|Condition|64%", help)
+    lay(100, 6)
+    A.drawFillBar(fp, 0, 0, 200, 0.64, true, nil, T.fillBarH)
+    check("FILL: no label, the help line reads '64%'", help == "64%", help)
+    lay(300, 6)
+    A.drawFillBar(fp, 0, 0, 200, 0.64, true, nil, T.fillBarH, "Condition")
+    check("FILL: the pointer off the bar sets nothing", help == nil, help)
+    if ZeD.Molecules.drawStatBarRow then
+        local w = 300
+        local barW = math.max(A.fillBarMinW(), math.min(A.rowBarW(), math.floor(w * 0.4)))
+        lay(w - 4 - math.floor(barW / 2), 12)
+        ZeD.Molecules.drawStatBarRow(fp, 0, 0, w, "64%", "Bite", 0.64, LIT)
+        lit = count(w - 4 - barW, w - 4)
+        check("FILL: the stat bar row at 64% lights 6", lit == 6, lit)
+        check("FILL: the stat bar row's help line reads 'Bite 64%'", help == "UI_ZeD_Bar_Help|Bite|64%", help)
+    end
+end
 print("seg_bar_spread_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)
