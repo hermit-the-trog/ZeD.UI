@@ -61,9 +61,9 @@ SA.SUPPORTED = SA.SUPPORTED or {}
 for _, id in ipairs({
     "AutoHideHotbar", "BB_WhereAmI", "BLTAnnotations", "BetterItemTransfer", "BetterModExperience", "Clear_SkillSheet",
     "ContainerCapacityIndicator", "DRAW_ON_MAP", "EvolvingTraitsWorld", "ExpRecovery", "ImmersiveMoodles",
-    "ImmersiveSearching", "ItemConditionRestored", "KADropnLoot", "MapSymbolSizeSlider", "MaskFilterIndicator", "POM",
-    "SPNCC", "SkillRecoveryJournal", "ThisIsYourLife", "VIF_DualRender_B42", "WoundExpansion", "moodle_quarters",
-    "nm_nested_containers", "traitsAsSkills",
+    "ImmersiveSearching", "ItemConditionRestored", "KADropnLoot", "MapSymbolSizeSlider", "MaskFilterIndicator",
+    "MaskaradsSummerCar", "POM", "SPNCC", "SkillRecoveryJournal", "ThisIsYourLife", "VIF_DualRender_B42",
+    "WoundExpansion", "moodle_quarters", "nm_nested_containers", "traitsAsSkills",
 }) do SA.SUPPORTED[id] = true end
 function SA.support(id) if id then SA.SUPPORTED[tostring(id):gsub("^\\", "")] = true end end
 

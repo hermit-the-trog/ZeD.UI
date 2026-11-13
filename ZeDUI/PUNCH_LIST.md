@@ -4498,3 +4498,16 @@ to be proposed.
    own file when it is on disk; a QA script with the mod on. QA: the bug with ZeD on and the mod's normal look with
    ZeD off first, then the after-check. Risk the director accepted: it leans on the mod's insides, so a Summer Car
    update can break it; the QA script is the early warning.
+   - **Built (Nov 12 2026, branch worktree-wf_6e622d4f-33c-5):** `ModSupport/MaskaradsSummerCar.lua`: an anchor in place of
+     the game's window, really visible while the Vehicle tab shows the inspected car; ZeD runs the mod's own auto-open
+     against it (after the World window stands still 150 ms, only where the mod's update would keep the window) and
+     closes the engine window with the tab. The player's close lasts through a fold, a roll, another tab or a card (it
+     ends with the World window closed, another car, the inspection over, access lost and back, or death); a fold's own
+     close comes back with the tab. ZeD's window never moves: with no free side the engine window takes the larger side
+     at the mod's widths, and moves again only if the World window grows into it undragged. The pointer on it holds
+     the roll-up; a pad handed back goes back. `MechanicsTab.lua` gets a general `addExtras` hook: the Engine's footer
+     has Inspect engine components (no Repair engine / Take engine parts), and the mod's own menu option points at
+     the anchor. StepAside lists the mod; HOOK_MAP row. Sims `summercar_sim.lua` 2197/0 and `summercar_contract_sim.lua`
+     62/0 (the mod's own files); the touched sims unchanged. In the game: `batch_summercar.ps1` (zedqa_summercar.lua),
+     not run yet. The Compatibility thread line is a draft for the director
+     (`ZeDUI/workshop/steam_threads/supported_summer_car.txt`), not posted.

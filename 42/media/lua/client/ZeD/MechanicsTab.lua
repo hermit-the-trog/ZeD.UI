@@ -15,7 +15,8 @@
 -- the same row again or B brings the diagram back; no back arrow, no second screen. The
 -- footer holds Sort and the chosen part's verbs (lit, or greyed with what they need in
 -- the card); destructive verbs confirm in it. X / right-click on a part opens vanilla's
--- own part menu, which ZeD's context-menu hook renders.
+-- own part menu, which ZeD's context-menu hook renders. Another mod's support file can
+-- add to a part's verbs and follow the part menu through MT.addExtras (EXTRAS below).
 --
 -- On a server with vehicle claims on (ZeD_ExtrasCards.lua): who holds the car in the
 -- summary, Claim or Release in the footer, Uninstall and Take Parts grayed on another's.
@@ -470,6 +471,46 @@ local DANGER = { smash = true, takeParts = true }
 local PRIMARY_ORDER = { "install", "fix", "repairEngine", "repairLightbar", "inflate", "uninstall",
                         "openWindow", "closeWindow", "deflate" }
 
+-- ----------------------------------------------------------------------------
+-- EXTRAS -- the general way for another mod's support file (ModSupport/<mod id>.lua)
+-- to follow that mod in this tab without touching this file. Nothing changes until an
+-- extra is registered. An extra is a table:
+--   verbs(part, chr, list)  -> the chosen part's verb ids (list: as built here): a new
+--                              list, or nil to keep it
+--   verb = { [id] = def }   the extra's own verbs: def.label, def.help, def.hint (text
+--                              keys, through ZeD.tr), def.primary (the accent fill when it
+--                              can be done), def.needs(part, chr, vehicle) -> { ok, rows,
+--                              line, short } (rows: the card's NEEDS rows; line: the NEEDS
+--                              line as it stands; short: the folded row's "With ..." words,
+--                              "" for none), def.run(part, chr, vehicle)
+--   partMenu(part, chr, ui) after the game's part menu is built from ui (X / right-click)
+-- Every call goes through pcall; an error leaves the tab as built here.
+-- Users today: ModSupport/MaskaradsSummerCar.lua (all three).
+-- ----------------------------------------------------------------------------
+MT.extras = MT.extras or {}
+local EXTRA_VERBS = MT._extraVerbs or {}      -- kept across a hot reload of this file
+MT._extraVerbs = EXTRA_VERBS
+-- an extra's verbs into this file's word and order tables (they are rebuilt on a reload)
+local function registerVerbs(def)
+    for vid, vd in pairs(def.verb or {}) do
+        EXTRA_VERBS[vid] = vd
+        VERB_LABEL[vid], VERB_HINT[vid], VERB_HELP[vid] = vd.label, vd.hint, vd.help
+        local have = false
+        for _, p in ipairs(PRIMARY_ORDER) do if p == vid then have = true end end
+        if vd.primary and not have then PRIMARY_ORDER[#PRIMARY_ORDER + 1] = vid end
+    end
+end
+function MT.addExtras(id, def)
+    for i, e in ipairs(MT.extras) do
+        if e.id == id then table.remove(MT.extras, i); break end
+    end
+    def.id = id
+    MT.extras[#MT.extras + 1] = def
+    registerVerbs(def)
+end
+-- (a hot reload of this file: the extras registered before it keep their words and order)
+for _, e in ipairs(MT.extras) do registerVerbs(e) end
+
 local function verbsFor(part, chr)
     local verbs = {}
     local function add(id) verbs[#verbs + 1] = id end
@@ -493,6 +534,12 @@ local function verbsFor(part, chr)
     if hasType and item and part:getTable("uninstall") then add("uninstall") end
     if window and (not hasType or item) and not window:isDestroyed() then add("smash") end
     if part:getId() == "Engine" then add("takeParts") end
+    for _, e in ipairs(MT.extras) do
+        if e.verbs then
+            local okE, out = pcall(e.verbs, part, chr, verbs)
+            if okE and type(out) == "table" then verbs = out end
+        end
+    end
     return verbs
 end
 
@@ -674,6 +721,7 @@ needsCompute = function(s, part, verb, chr, v)
     local rows, items = {}, itemsFor(s, chr)
     local success, failure = 100, 0
     local ok = true
+    local line, short = nil, nil   -- an extra's own NEEDS line and folded-row words
     local engLevel = v:getScript():getEngineRepairLevel()
     if verb == "install" or verb == "uninstall" then
         if verb == "install" then
@@ -743,6 +791,15 @@ needsCompute = function(s, part, verb, chr, v)
         for _, r in ipairs(fr) do if r.ok then any = true end end
         ok = any
         if not any then rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Veh_NoRecipeMaterials"), what = ZeD.tr("UI_ZeD_Veh_NeedFixWhat"), value = "" } end
+    elseif EXTRA_VERBS[verb] then
+        local okX, r = pcall(EXTRA_VERBS[verb].needs, part, chr, v)
+        if okX and type(r) == "table" then
+            if type(r.rows) == "table" then rows = r.rows end
+            ok, line, short = r.ok == true, r.line, r.short
+        else
+            rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Veh_RightConditions"), value = "" }
+            ok = false
+        end
     else
         rows[#rows + 1] = { ok = true, label = ZeD.tr("UI_ZeD_Veh_NothingNeeded"), value = "" }
     end
@@ -754,7 +811,7 @@ needsCompute = function(s, part, verb, chr, v)
     end
     local blocker = nil
     for _, r in ipairs(rows) do if not r.ok and not r.soft then blocker = r; break end end
-    return { rows = rows, chance = { success, failure }, ok = ok, blocker = blocker }
+    return { rows = rows, chance = { success, failure }, ok = ok, blocker = blocker, line = line, short = short }
 end
 
 -- ----------------------------------------------------------------------------
@@ -780,6 +837,9 @@ local function runVerb(s, verb, part, chr)
         if r and r.ok then
             ISInventoryPaneContextMenu.onFix(part:getInventoryItem(), chr:getPlayerNum(), r.fixingNum, r.fixerNum, part)
         end
+    elseif EXTRA_VERBS[verb] then
+        local okR, err = pcall(EXTRA_VERBS[verb].run, part, chr, part:getVehicle())
+        if not okR then print("[ZeD] Vehicle tab: verb " .. tostring(verb) .. ": " .. tostring(err)) end
     end
     s.items = nil   -- tools and parts move; re-read next frame
     s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
@@ -793,6 +853,10 @@ local function partContextMenu(part, chr)
     ui.chr = chr
     local ax, ay = getMouseX() - ui:getAbsoluteX(), getMouseY() - ui:getAbsoluteY()
     pcall(ui.doPartContextMenu, ui, part, ax, ay)
+    -- (a mod's support file follows that mod's own options in the menu just built: EXTRAS)
+    for _, e in ipairs(MT.extras) do
+        if e.partMenu then pcall(e.partMenu, part, chr, ui) end
+    end
 end
 
 -- ----------------------------------------------------------------------------
@@ -1353,9 +1417,9 @@ local function cardModel(s, part, chr, v)
         local label = vlabel(vb)
         list[#list + 1] = {
             id = vb, label = label, canDo = n.ok, sensible = verbSensible(part, vb), danger = DANGER[vb],
-            needs = (missing ~= "") and missing or ZeD.tr("UI_ZeD_Veh_RightConditions"),
+            needs = (n.short ~= nil) and n.short or ((missing ~= "") and missing or ZeD.tr("UI_ZeD_Veh_RightConditions")),
             hint = ZeD.tr(VERB_HINT[vb] or "UI_ZeD_Veh_HintDefault"),
-            needsLine = (missing == "") and ZeD.tr("UI_ZeD_Veh_NotNow", label) or nil,
+            needsLine = n.line or ((missing == "") and ZeD.tr("UI_ZeD_Veh_NotNow", label) or nil),
             help = ZeD.tr(VERB_HELP[vb] or "UI_ZeD_Veh_HelpDefault"),
         }
     end
@@ -2090,6 +2154,9 @@ MT._h = {
     vehicleName = vehicleName, overallCond = overallCond, now = now, progressBand = progressBand,
     miniBar = miniBar, cased = cased,
 }
+-- For the sims only (ZeDUI/tools/qa/summercar_sim.lua): these are file locals.
+MT._test = { verbsFor = verbsFor, needsFor = needsFor, runVerb = runVerb, partContextMenu = partContextMenu,
+             cardModel = cardModel }
 
 -- ----------------------------------------------------------------------------
 -- Entry: renderer registered in the World window's dispatch table
