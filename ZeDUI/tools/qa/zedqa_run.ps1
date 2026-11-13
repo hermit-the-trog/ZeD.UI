@@ -41,7 +41,7 @@
     ZeD's UI scale is set for the run in Zomboid/Lua/ModOptions.ini: 1.75x in
     fullscreen4k (director, Oct 22 2026: "for 4k, set scale to 1.75"), Auto in the
     1080p window. The director's own ModOptions.ini is copied aside first and put
-    back once the game has closed (kept beside the report as <report>.modoptions.ini
+    back once the game has closed (kept in the game's Lua folder as zedqa_modoptions_keep.ini
     if it could not be put back).
 
     Exit codes: 0 no FAIL / TIMEOUT / SKIP, 1 otherwise, 2 refused to start.
@@ -1067,7 +1067,13 @@ $started = Get-Date
 $ModeTag = $Mode
 if ($Mode -eq "windowed" -and ($Width -ne 1920 -or $Height -ne 1080)) { $ModeTag = "windowed${Width}x${Height}" }
 if (-not $Report) { $Report = Join-Path $ReportDir ("{0}_{1}.md" -f $started.ToString("yyyy-MM-dd_HHmm"), $ModeTag) }
+# (Nov 12 2026) a bare name (no folder) goes to the report folder, dated, as a .md: it used to land in the current folder
+# (the repo root, for the callers that passed "release_check") with no scrub. Every report is a .md in a folder.
+if ($Report -notlike "*.md") { $Report += ".md" }
+if (-not [System.IO.Path]::IsPathRooted($Report) -and -not ($Report.Contains("\") -or $Report.Contains("/"))) { $Report = Join-Path $ReportDir ("{0}_{1}" -f $started.ToString("yyyy-MM-dd"), $Report) }
 $Report = [System.IO.Path]::GetFullPath($Report)
+# the director's ModOptions.ini kept aside lives in the game's Lua folder, never beside the report (the repo tree)
+$KeepIni = Join-Path $LuaDir "zedqa_modoptions_keep.ini"
 $info = [pscustomobject]@{
     Started = $started; Finished = $null; Manifest = $Manifest
     ModeText = $(if ($Mode -eq "windowed") { "windowed (${Width}x${Height} window)" } else { "fullscreen4k (3840x2160 fullscreen)" })
@@ -1085,7 +1091,7 @@ foreach ($it in $items) {
 Write-Host "zedqa_run: $($items.Count) scripts, $Mode; report $Report"
 try {
     Set-Lock "busy"   # (inside the try: the finally below always writes "free")
-    Reset-ZeDSettings $Mode ($Report + ".modoptions.ini")
+    Reset-ZeDSettings $Mode $KeepIni
     Set-FontSize
     if ($Mode -eq "windowed") { Start-GameWindowed } else { Start-Game4K }
     $opt = Read-Text $OptionsIni
@@ -1131,8 +1137,8 @@ finally {
         }
         if (-not $KeepOpen) { Restore-FontSize }
         else { Add-Note "-KeepOpen: options.ini still has the run's fontSize=$PinFontSize" }
-        if (-not $KeepOpen) { Restore-ZeDSettings ($Report + ".modoptions.ini") }
-        else { Add-Note "-KeepOpen: ZeD settings are still the test's; the director's file is $Report.modoptions.ini" }
+        if (-not $KeepOpen) { Restore-ZeDSettings $KeepIni }
+        else { Add-Note "-KeepOpen: ZeD settings are still the test's; the director's file is $KeepIni" }
         $info.Finished = Get-Date
         Write-Report $results $Report $info
     }
