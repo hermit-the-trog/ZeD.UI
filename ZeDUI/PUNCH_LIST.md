@@ -2953,11 +2953,12 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     BumperChord and InputModeDetector per player, then one Character and World window per player placed with
     getPlayerScreen*(pn), then the ~105 no-argument getters; the player-1 map is in the known-issues branch report.
 108. **A drawn controller for Options > Controls (the director, Nov 7 2026).** The Nov 8 build ships the controller map and
+    live test with a plain System 7 box pad; design draws a proper pad in ZeD's pixel art to replace it.
     Mockup v1 (https://claude.ai/artifact/MuRp9cLozPDkPFvq6tczhs, ZeDUI/mockups/zed_controller_v1.html), the director,
     Nov 12 2026: toned-down beige plastic (here and on the quick wheel's Controller map); Xbox pads with the left stick
     up top; the game's actions on each label (the list beside the old drawing goes; a click opens the pull-down); one
-    drawing everywhere (the Controller map uses it too).
-    live test with a plain System 7 box pad; design draws a proper pad in ZeD's pixel art to replace it.
+    drawing everywhere (the Controller map uses it too). Approved the same day (the director: "controller approved");
+    Build is drawing it in the game.
 109. **What players leave the game to look up, and what ZeD still owes (the director, Nov 7 2026: "Put the gaps on the
     punch list. This is awesome.").** From the director's research report, RESEARCH_alt_tab_lookups_20261107.md: players
     alt-tab mostly for crafting and the map, then the exact numbers behind the character (moodles, XP, what a skill
