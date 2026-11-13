@@ -1,0 +1,3 @@
+# products/: what the tools in ZeDUI/tools/products write (build_luaconsole93.py: Lua Console 93), kept byte for byte
+# as written, so a checkout matches a fresh build (build_luaconsole93.py --check) whatever core.autocrlf says
+products/** -text

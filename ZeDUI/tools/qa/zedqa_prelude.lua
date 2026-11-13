@@ -78,6 +78,15 @@ local ok, e = pcall(function()
     local gt = getGameTime()
     local hour = gt:getTimeOfDay()
     if hour < 8 or hour > 17 then gt:setTimeOfDay(11.0); say(string.format("clock %.2f -> 11.00 (daylight)", hour)) end
+    -- (Nov 12 2026) ZeD's Lua console follows the game's console flag, and a saved position left it open at the bottom
+    -- left of every capture: close it. The console scripts (zedqa_console_*.lua, zedqa_b8_console.lua) set the flag themselves.
+    local okC = pcall(function()
+        local jc = UIManager.getDebugConsole()
+        if jc and jc:isVisible() then jc:setVisible(false); say("the Lua console was open: closed") end
+    end)
+    if not okC then say("no debug console to close") end
+    -- (and a speed left above 1 by an earlier script)
+    if getGameSpeed and getGameSpeed() > 1 and setGameSpeed then setGameSpeed(1); say("speed was above 1: set to 1") end
     local cw = ZeD_CharacterWindow.getWindow()
     if not (cw and cw:isVisible()) then ZeD_CharacterWindow.toggleBothPaired(0) end
 end)

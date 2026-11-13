@@ -37,6 +37,25 @@ local ZONE = "QA Quick"
 local A = {}   -- the animals: milk, wool, hungry
 local HOME = { p:getX(), p:getY() }
 
+-- FAST-FORWARD (Nov 12 2026). The game's walk actions are valid only at speed 2 or below (WalkToTimedAction:isValid: getGameSpeed() <= 2),
+-- so a walk queued at speed 3 is cut at once, and the game's own option puts the speed back to 1 whenever an action ends. A fast wait
+-- therefore sets the speed again every tick: 3 while only a non-walk action runs, 2 while the queue is empty or holds a walk; and a
+-- hook on ISTimedActionQueue.add drops the speed to 2 at the moment a walk is queued (AQ hands the walk over between two ticks).
+-- Speed is 1 again when the wait ends, when the script ends and on an error (restore).
+local FF = { add = ISTimedActionQueue.add, on = false, c2 = 0, c3 = 0, t0 = 0 }
+ISTimedActionQueue.add = function(action, ...)
+    if FF.on and action and tostring(action.Type):find("Walk", 1, true) and getGameSpeed() > 2 then setGameSpeed(2) end
+    return FF.add(action, ...)
+end
+local function ffSpeed()
+    local q = ISTimedActionQueue.queues[getPlayer()]
+    local walk, n = false, 0
+    for _, a in ipairs(q and q.queue or {}) do n = n + 1; if tostring(a.Type):find("Walk", 1, true) then walk = true end end
+    local want = (n == 0 or walk) and 2 or 3
+    if getGameSpeed() ~= want then setGameSpeed(want) end
+    if want == 3 then FF.c3 = FF.c3 + 1 else FF.c2 = FF.c2 + 1 end
+end
+
 -- THE LEDGER ------------------------------------------------------------------------------------------------------
 local MARK = "ZeDQA_spawned"
 local LG = { added = {}, taken = {}, animals = {}, zones = {}, done = false, god = false,
@@ -121,6 +140,9 @@ end
 local function restore(why)
     if LG.done then return end
     LG.done = true
+    FF.on = false
+    pcall(function() ISTimedActionQueue.add = FF.add end)
+    pcall(function() if setGameSpeed then setGameSpeed(1) end end)   -- (fast-forward off, also on an error)
     pcall(function() AQ.stop() end)
     pcall(function() ISTimedActionQueue.clear(p) end)
     pcall(function() local m = AT._feedMenu; if m then m:close() end end)
@@ -157,12 +179,17 @@ end
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
 -- wait (checking every tick) until cond() or the time runs out, then go on
-local function waitFor(maxMs, cond, what)
+-- Fast-forward (Nov 12 2026): a wait for a walk or a timed action runs at the game's speed 3 ("faster") while it waits and
+-- is back at 1 when it ends (done, timed out, or the step failed: drive() and restore() also set 1). The cap maxMs stays
+-- real time and generous. The screenshots and the steps that look at a run under way stay at speed 1.
+local function setSpeed(n) pcall(function() if setGameSpeed then setGameSpeed(n) end end) end
+local function waitFor(maxMs, cond, what, fast)
     local tEnd
     plan[#plan + 1] = { ms = 0, wait = true, fn = function()
-        tEnd = tEnd or (getTimestampMs() + maxMs)
-        if cond() then say("waited for " .. what); tEnd = nil; return true end
-        if getTimestampMs() > tEnd then say("gave up waiting for " .. what); tEnd = nil; return true end
+        if not tEnd then tEnd = getTimestampMs() + maxMs; FF.on = fast == true; FF.c2, FF.c3, FF.t0 = 0, 0, getTimestampMs() end
+        if cond() then say("waited for " .. what .. (fast and string.format(" (%d s; ticks at speed 2: %d, at 3: %d)", (getTimestampMs() - FF.t0) / 1000, FF.c2, FF.c3) or "")); tEnd = nil; FF.on = false; setSpeed(1); return true end
+        if getTimestampMs() > tEnd then say("gave up waiting for " .. what); tEnd = nil; FF.on = false; setSpeed(1); return true end
+        if FF.on then pcall(ffSpeed) end
         return false
     end }
 end
@@ -286,11 +313,13 @@ end)
 
 -- 4  Walk to, then Milk on the alert (the game's own actions; a far animal is walked up to first)
 add(300, function()
+    -- (the game does no walk to a square within 1.6 of the character: a cow that grazed up close made "no walk queued" with nothing wrong)
+    backHome(A.hungry)
     check(AT.alertAct(W(), A.hungry, "goto") == true, "Walk to pressed")
     say("queue after Walk to: " .. queueNames())
     check(queueNames():find("ISWalkToTimedAction") ~= nil, "the game's walk is queued")
 end)
-waitFor(30000, idle, "the walk")
+waitFor(30000, idle, "the walk", true)
 add(300, function()
     A.milk0 = A.milk:getData():getMilkQuantity()
     check(AT.alertAct(W(), A.milk, "milk") == true, "Milk pressed on the alert")
@@ -298,7 +327,7 @@ add(300, function()
     check(queueNames():find("ISMilkAnimal") ~= nil or (AQ.run ~= nil and AQ.run.approach), "ISMilkAnimal is queued after the walk to its side (or the walk up comes first)")
 end)
 add(4000, function() shot("3_milking") end)
-waitFor(90000, function() watchRun(); return AQ.run == nil and idle() end, "the milking")
+waitFor(90000, function() watchRun(); return AQ.run == nil and idle() end, "the milking", true)
 add(300, function()
     sayRun("the alert's milking", A.milk)
     local m1 = A.milk:getData():getMilkQuantity()
@@ -326,7 +355,7 @@ add(1000, function()
     check(known == true or (RUNLOG.approach and queueNames():find("ISMilkAnimal") == nil),
         "far: with no body points only the walk up is handed over (no ISMilkAnimal yet)", queueNames())
 end)
-waitFor(120000, function() watchRun(); return AQ.run == nil and idle() end, "the far milking")
+waitFor(120000, function() watchRun(); return AQ.run == nil and idle() end, "the far milking", true)
 add(300, function()
     sayRun("the far milking", A.far)
     local m1 = A.far:getData():getMilkQuantity()
@@ -370,10 +399,25 @@ add(800, function()
     check(bulk("clear") ~= nil, "with ticks the band offers Clear")
     AT.bulkPress(W(), "clear")
 end)
--- (the roster draws only the rows in view, two at 4K: scroll a row at a time until the ram's row is drawn)
+-- (Nov 12 2026) The roster draws only the rows in view (two at 4K and in German) and the controller's ring is built from the
+-- last frame, so a ring stop's number is not a row's number: the ram's stop is found by the animal itself (el.animal), after
+-- scrolling a row at a time until the ring holds a stop for the ram.
+local function ramStop()
+    for _, z in ipairs(W()._focusRing or {}) do
+        for _, e in ipairs(z.elements or {}) do if e.isRoster and e.animal == A.wool then return e end end
+    end
+end
 add(300, function() AT.getZoneViewState(W()).scrollY = 0 end)
-waitFor(6000, function()
-    for _, rz in ipairs(W()._animalsRosterZones or {}) do if rz.animal == A.wool then return true end end
+waitFor(8000, function()
+    for _, rz in ipairs(W()._animalsRosterZones or {}) do
+        if rz.animal == A.wool then
+            -- the ram's row is drawn: the ring re-lists its stops only when their count, first and last id or place changed, and a
+            -- scroll by whole rows changes none of them (the stops keep the animals of the old rows), so ask for a re-list
+            if ramStop() ~= nil then return true end
+            W()._lastTabContentSnapshot = nil
+            return false
+        end
+    end
     local zs = AT.getZoneViewState(W())
     zs.scrollY = (zs.scrollY or 0) + ZeD.T.px(12)
     return false
@@ -389,9 +433,19 @@ add(300, function()
     for _, a in ipairs(AP.getAnimalsInZone(ZONE) or {}) do if a == A.wool then inZone = 1 end end
     say("roster rows drawn: " .. table.concat(names, ", ") .. "; the ram in the zone's list: " .. inZone)
     -- the ram's row by the controller's X (the ring stop's onContextMenu)
-    local idx
-    for k, rz in ipairs(w._animalsRosterZones or {}) do if rz.animal == A.wool then idx = k end end
-    local el = idx and ringEl("animals:roster:" .. idx)
+    local el = ramStop()
+    if not el then
+        local parts = {}
+        for _, z in ipairs(w._focusRing or {}) do
+            for _, e in ipairs(z.elements or {}) do
+                if tostring(e.id):find("roster", 1, true) then
+                    parts[#parts + 1] = tostring(e.id) .. " animal " .. tostring(e.animal == A.wool and "ram" or e.animal) .. " roster " .. tostring(e.isRoster)
+                end
+            end
+        end
+        say("ring roster stops: " .. table.concat(parts, "; ") .. " | scrollY " .. tostring(AT.getZoneViewState(w).scrollY))
+    end
+
     check(el and el.onContextMenu ~= nil, "a roster row's stop has X")
     if el then el.onContextMenu(w, el) end
     check(AQ.isSelected(AT.getZoneViewState(w).sel, A.wool), "X ticked the ram")
@@ -407,7 +461,7 @@ add(1500, function()
     check(bulk("stop") ~= nil, "during the run the band offers Stop", AQ.runStatus())
     shot("6_shearing")
 end)
-waitFor(90000, function() return AQ.run == nil end, "the shearing run")
+waitFor(90000, function() return AQ.run == nil end, "the shearing run", true)
 add(500, function()
     sayRun("the shearing", A.wool)
     check(AQ.last and AQ.last.why == ZeD.tr("UI_ZeD_Animals_RunDone", 1, 1), "the run ended Done 1 of 1", AQ.last and AQ.last.why)
@@ -519,7 +573,7 @@ add(800, function()
     say("queue after the pick: " .. queueNames())
 end)
 add(3000, function() shot("8d_feeding") end)
-waitFor(60000, function() return AQ.run == nil end, "the feeding run")
+waitFor(60000, function() return AQ.run == nil end, "the feeding run", true)
 add(500, function()
     local h1 = A.hungry:getStats():get(CharacterStat.HUNGER)
     check(AQ.last and AQ.last.why == ZeD.tr("UI_ZeD_Animals_RunDone", 1, 1), "the run ended Done 1 of 1", AQ.last and AQ.last.why)
@@ -590,7 +644,7 @@ local function drive()
     if not st then Events.OnTick.Remove(drive); return end
     if st.wait then
         local ok, done = pcall(st.fn)
-        if not ok then say("ERR wait " .. i .. ": " .. tostring(done)); done = true end
+        if not ok then say("ERR wait " .. i .. ": " .. tostring(done)); done = true; pcall(function() if setGameSpeed then setGameSpeed(1) end end) end
         if done then i = i + 1; t0 = getTimestampMs() end
         return
     end
