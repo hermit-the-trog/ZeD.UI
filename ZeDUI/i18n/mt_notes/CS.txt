@@ -60,3 +60,4 @@ Lists empty lines (Nov 12 2026): UI_ZeD_Lists_EmptySec and UI_ZeD_Lists_EmptyWor
 Drawn controller (Nov 12 2026): 30 UI_ZeD_PadFig_ lines (Options > Controls > Button map and test: the short label beside each part of the drawn pad, the label's Game: and click: lines, the D-pad's up / down / left / right, the help lines, the test's prompt, a stick's click in its pull-down) are machine drafts, not checked by a native speaker. The short label words fit about 22 characters; check them first. %1 and %2 in the bumper help lines are the bumpers' names on the player's pad (LB / L1), %1 in the edit line the A button's (A / Cross); the | in a label separates two jobs.
 
 UI_ZeD_Inv_ColCond (Nov 12): "Status" in place of "Cond / Amt" (the director); machine draft.
+Maps icon buttons (Nov 12 2026, punch list 175 C6): UI_ZeD_Map_HelpNamed is "%1: %2", the button's name, then what it does; copied from UI_ZeD_Map_HelpCant's punctuation, nothing to translate.

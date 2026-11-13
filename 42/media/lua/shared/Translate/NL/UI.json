@@ -3912,6 +3912,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Alle fouten verwijderen? Ze komen niet terug.",
     "UI_ZeD_Msg_HelpAskNo": "Houd de berichten.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Toon of verberg de tekengereedschappen.",
     "UI_ZeD_Map_HelpDrawErase": "Uitwissen: druk op de kaart en beweeg over de markeringen om ze te verwijderen.",
     "UI_ZeD_Map_HelpDrawFree": "Tekenen uit de vrije hand: druk op de kaart en beweeg.",

@@ -49,6 +49,10 @@ local VROW_H      = 20     -- vital row on the card
 local VBAR_W      = 40
 local PICK_H      = 32     -- GIVE WATER / FEED row
 local SEC_H       = 20
+-- a section's head: the category row (the one section style, punch list 175 D6), no fold triangle (it does
+-- not fold), SEC_H tall, its words at the card's inset
+local _secO = { noArrow = true }
+local function _secOpts(pad) _secO.h, _secO.inset = ZeD.T.px(SEC_H), pad; return _secO end
 local LOAD_TTL_MS = 500    -- the 12x12 scan for animals near the back is cached this long
 local ITEMS_TTL_MS = 700   -- water and feed lists
 local THIRST_MIN  = 0.1    -- vanilla offers water / feed past these (ISVehicleAnimalUI)
@@ -1188,7 +1192,8 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
     cy = cy + math.max(ah, vy - cy) + T.px(12)
 
     local function section(text, aside)
-        local sh = M.drawSectionHeader(panel, x + pad, cy, cw - pad, text, nil, true, false, nil, nil, pad, T.px(SEC_H), true)
+        -- (punch list 175, D6: the one section style, the small mono line, as Moodles, Fitness and Presets)
+        local sh = M.drawCategoryRow(panel, x, cy, cw, text, nil, true, _secOpts(pad))
         if aside then A.drawTextRight(panel, cased(aside), x + cw - pad, cy + math.floor((T.px(SEC_H) - T.fontF1H) / 2), T.fontF1, T.textDim) end
         cy = cy + sh + T.px(4)
     end

@@ -3912,6 +3912,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Poistetaanko kaikki virheet? Niitä ei saa takaisin.",
     "UI_ZeD_Msg_HelpAskNo": "Säilytä viestit.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Näytä tai piilota piirtotyökalut.",
     "UI_ZeD_Map_HelpDrawErase": "Pyyhi: paina kartalla ja liiku merkkien yli poistaaksesi ne.",
     "UI_ZeD_Map_HelpDrawFree": "Piirrä vapaasti: paina kartalla ja liiku.",

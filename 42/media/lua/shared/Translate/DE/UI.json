@@ -3912,6 +3912,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Alle Fehler löschen? Sie lassen sich nicht wiederherstellen.",
     "UI_ZeD_Msg_HelpAskNo": "Die Nachrichten behalten.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Die Zeichenwerkzeuge zeigen oder ausblenden.",
     "UI_ZeD_Map_HelpDrawErase": "Radieren: auf die Karte drücken und über die Markierungen fahren, um sie zu entfernen.",
     "UI_ZeD_Map_HelpDrawFree": "Freihand zeichnen: auf die Karte drücken und bewegen.",

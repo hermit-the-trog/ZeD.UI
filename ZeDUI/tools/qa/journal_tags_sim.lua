@@ -69,8 +69,9 @@ local FONTH = { F1 = 14, F2 = 16, F3 = 13 }
 local function col(r, g, b) return { r = r, g = g, b = b, a = 1 } end
 ZeD.T = {
     scale = SCALE, hair = 1, buttonH = 20, inputH = 20, disabledAlpha = 0.4, checkboxSz = 12,
-    fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF5 = "F3",
-    sp = { sm = 6, xs = 3, md = 10, rowGap = 2, afterGroove = 4, afterLine = 4, scrollbarW = 8, inputPadX = 4 },
+    fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF4 = "F2", fontF5 = "F3", tabH = 22,
+    sp = { sm = 6, xs = 3, md = 10, rowGap = 2, afterGroove = 4, afterLine = 4, scrollbarW = 8, inputPadX = 4,
+           tabGap = 2, tabPadX = 12 },
     text = col(0.83, 0.83, 0.85), textSec = col(0.5, 0.5, 0.5), textDim = col(0.4, 0.4, 0.4),
     textOnFocus = col(0, 0, 0), toneNorm = col(0.6, 0.6, 0.6), stripe = col(0.2, 0.2, 0.2), borderS = col(0.3, 0.3, 0.3),
     labels = {}, labelsText = {},
@@ -122,6 +123,7 @@ end
 local squares = {}
 ZeD.Atoms = {
     wrapText = function(text) return { text } end,
+    textCase = function(s) return s end,
     truncateText = function(s, font, w)
         if strW(font, s) <= w then return s end
         local out = s
@@ -204,6 +206,7 @@ end
 local realRequire = require
 require = function() end
 dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_JournalReaders.lua")
+dofile(ROOT .. "42/media/lua/client/ZeD/RadioTab.lua")   -- (ZeD.SubTabs: the pages' tab strip)
 dofile(ROOT .. "42/media/lua/client/ZeD/JournalTab.lua")
 dofile(ROOT .. "42/media/lua/client/ZeD/Input/SpatialNav.lua")
 require = realRequire

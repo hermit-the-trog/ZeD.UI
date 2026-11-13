@@ -3912,6 +3912,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Ștergi toate erorile? Nu mai pot fi aduse înapoi.",
     "UI_ZeD_Msg_HelpAskNo": "Păstrează mesajele.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Arată sau ascunde uneltele de desen.",
     "UI_ZeD_Map_HelpDrawErase": "Șterge: apasă pe hartă și mută peste semne ca să le scoți.",
     "UI_ZeD_Map_HelpDrawFree": "Desenează liber: apasă pe hartă și mișcă.",

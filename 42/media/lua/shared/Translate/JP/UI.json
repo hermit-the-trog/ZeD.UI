@@ -3912,6 +3912,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "すべてのエラーを削除しますか? 元に戻せません。",
     "UI_ZeD_Msg_HelpAskNo": "メッセージを残します。",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "描画ツールを表示/非表示にします。",
     "UI_ZeD_Map_HelpDrawErase": "消去: 地図上で押し、印の上を動かして消します。",
     "UI_ZeD_Map_HelpDrawFree": "描く: 地図上で押したまま動かして描きます。",

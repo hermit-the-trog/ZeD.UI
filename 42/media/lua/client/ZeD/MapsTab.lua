@@ -1023,6 +1023,22 @@ end
 -- the controller's mark opts: the window the control is drawn in (ZeD.Focus.mark)
 local FOCUS = {}
 
+--- The help line's words for one of the toolbar's or the band's icon buttons (punch list 175, C6: they carry no
+--- words, so the help line names the one under the pointer or the controller): its help as it is when that already
+--- starts with its name ("Note: type the words..."), else "Name: help" ("Unfold: Open the map in a large window
+--- of its own.").
+function ZeD.MapsTab.namedHelp(name, help)
+    if not name or name == "" then return help end
+    if not help or help == "" then return name end
+    if string.sub(help, 1, string.len(name)) == name then return help end
+    return ZeD.tr("UI_ZeD_Map_HelpNamed", name, help)
+end
+
+-- the help line names an icon button the controller is on (the pointer's comes with drawIconButton)
+local function _focusHelp(panel, o)
+    if o.focus and o.help and ZeD.Help and ZeD.Help.set then ZeD.Help.set(panel, o.help) end
+end
+
 -- Survey / Color / Paper's open list: the library's pop-up list (the sort menu's,
 -- Molecules.drawSortMenuList: solid, framed, the hard shadow, the current choice
 -- selected), standing on the box the band drew (win._mapStyleMenuGeo, tab
@@ -1210,14 +1226,15 @@ local function _toolButton(panel, win, toolId, pic, nameKey, bx, by, bs, focusId
     o.focus = (focId == focusId) and FOCUS or nil
     o.id, o.iconSize, o.tint, o.win = focusId, nil, nil, nil
     o.hint, o.help = nil, nil
-    if o.hover then
+    if o.hover or o.focus then
         local name = ZeD.tr(nameKey)
-        o.hint = name
+        o.hint = o.hover and name or nil
         if why then o.help = ZeD.tr("UI_ZeD_Map_HelpCant", name, getText(why))
-        elseif toolId == "text" then o.help = ZeD.tr("UI_ZeD_Map_HelpNote")
+        elseif toolId == "text" then o.help = ZeD.MapsTab.namedHelp(name, ZeD.tr("UI_ZeD_Map_HelpNote"))
         else o.help = ZeD.tr(grid and "UI_ZeD_Map_HelpMarkGrid" or "UI_ZeD_Map_HelpMark", name) end
     end
     ZeD.Molecules.drawIconButton(panel, bx, by, bs, pic, o)
+    _focusHelp(panel, o)
     if pinned then
         local c = active and T.textOnAccent or T.accent
         panel:drawRect(bx + T.px(3), by + T.px(3), T.px(4), T.px(4), (c.a or 1) * (why and T.disabledAlpha or 1), c.r, c.g, c.b)
@@ -1245,7 +1262,12 @@ local function _swatch(panel, win, ci, sx, sy, sz, ink, focId, hov)
         _swR.x, _swR.y, _swR.w, _swR.h = rx, ry, rs, rs
         A.requestHint(A.windowOf(panel), COLOR_FIDS[ci], name, panel, _swR)
     end
-    if focId == COLOR_FIDS[ci] then ZeD.Focus.mark(panel, rx, ry, rs, rs, FOCUS) end
+    if focId == COLOR_FIDS[ci] then
+        ZeD.Focus.mark(panel, rx, ry, rs, rs, FOCUS)
+        local name = pen and (getItemNameFromFullType("Base." .. pen.item) or pen.item) or ""
+        ZeD.Help.set(panel, has and ZeD.tr("UI_ZeD_Map_HelpInk", name)
+            or ZeD.tr("UI_ZeD_Map_HelpCant", name, getText(pen and pen.need or "Tooltip_Map_CantWrite")))
+    end
     local a = has and 1 or T.disabledAlpha
     panel:drawRect(sx, sy, sz, sz, a, c.r, c.g, c.b)
     -- (vanilla's inks are dark: the edge keeps each swatch apart from the toolbar)
@@ -1270,6 +1292,7 @@ local function _disclosure(panel, win, x, y, rowH, focId, hov)
         ZeD.Help.set(panel, ZeD.tr(expanded and "UI_ZeD_Map_HelpMarksClose" or "UI_ZeD_Map_HelpMarksOpen"))
     end
     local onFocus = (focId == "map:disclosure") and ZeD.Focus.mark(panel, zx, y, zw, rowH, FOCUS)
+    if onFocus then ZeD.Help.set(panel, ZeD.tr(expanded and "UI_ZeD_Map_HelpMarksClose" or "UI_ZeD_Map_HelpMarksOpen")) end
     local c = onFocus and T.textOnFocus or T.arrow
     local cy = y + math.floor((rowH - chevSz) / 2)
     if expanded then A.drawTriangleDown(panel, x, cy, chevSz, c) else A.drawTriangleRight(panel, x, cy, chevSz, c) end
@@ -1285,9 +1308,12 @@ local function _unfoldButton(panel, win, bx, by, bs, focId, hov)
     o.active, o.disabled, o.pressed = false, false, false
     o.focus = (focId == "map:popout") and FOCUS or nil
     o.id, o.iconSize, o.tint, o.win = "map:popout", nil, nil, nil
-    o.hint = o.hover and ZeD.tr(open and "UI_ZeD_Map_PadFold" or "UI_ZeD_Map_Unfold") or nil
-    o.help = o.hover and ZeD.tr(open and "UI_ZeD_Map_HelpFold" or "UI_ZeD_Map_HelpUnfold") or nil
+    local named = o.hover or o.focus
+    local name = ZeD.tr(open and "UI_ZeD_Map_PadFold" or "UI_ZeD_Map_Unfold")
+    o.hint = o.hover and name or nil
+    o.help = named and ZeD.MapsTab.namedHelp(name, ZeD.tr(open and "UI_ZeD_Map_HelpFold" or "UI_ZeD_Map_HelpUnfold")) or nil
     ZeD.Molecules.drawIconButton(panel, bx, by, bs, open and FOLD_ICON or UNFOLD_ICON, o)
+    _focusHelp(panel, o)
     win._mapPopoutZone = { x = bx, y = by, w = bs, h = bs }
 end
 
@@ -1629,6 +1655,13 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     -- Only the drawer path (no pop-out) may clear the fold zone; the pop-out
     -- renders through this same function every frame and must not race it.
     if not win._mapPopout then win._mapFoldZone = nil end
+
+    -- the tab's title first, as every tab's body opens (punch list 175, C1 and D6); the pop-out's window
+    -- has its own title bar
+    if not Ext.isPopout(win, panel) then
+        local th = ZeD.Molecules.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_World_TabMaps"), false, false, true)
+        y, h = y + th, h - th
+    end
 
     if _mapBlocked(panel, win, x, y, w, h) then return end
     -- (the header strip inherits the drawer's background, as every tab's
