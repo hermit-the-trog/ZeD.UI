@@ -488,6 +488,7 @@ end
 local craftConfig = {
     stations    = true,   -- STATION select, band, station recipes (Stations.lua)
     prefix      = "craft",
+    titleVKey   = "IGUI_CraftingWindow_Title",   -- the tab's title, the World window's word for it
     pinKey      = "ZeD_CraftPins",
     countKey    = "ZeD_CraftCounts",
     buildLabel  = "IGUI_CraftingWindow_Craft",   -- a key (CraftingCore translates it where it draws)

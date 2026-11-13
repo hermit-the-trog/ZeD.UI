@@ -3762,6 +3762,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Station_NeedsAn` | `Needs an %1.` | Craft tab, recipe card: the station a recipe needs (name starts with a vowel) | - |
 | `UI_ZeD_Station_NoneInReach` | `Nothing within reach` | Craft tab, station dropdown: heading when no station is near | 24 |
 | `UI_ZeD_Station_SelectLabel` | `Station` | Craft tab: small label inside the station select box | 10 |
+| `UI_ZeD_Select_Label` | `%1:` | Every dropdown box (Craft, Build, Journal recipes): its label with the colon, drawn dim before the value, "Station: Hand", "Category: All". %1 the label (Station, Category). Keep your language's colon spacing (French "%1 :") | 12 |
 | `UI_ZeD_Station_ShortBarrel` | `Barrel` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
 | `UI_ZeD_Station_ShortBeam` | `Beam` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
 | `UI_ZeD_Station_ShortCharcoal` | `Charcoal` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |

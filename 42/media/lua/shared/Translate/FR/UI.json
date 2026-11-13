@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "Nécessite : %1.",
     "UI_ZeD_Station_NoneInReach": "Rien à portée",
     "UI_ZeD_Station_SelectLabel": "Poste",
+    "UI_ZeD_Select_Label": "%1 :",
     "UI_ZeD_Station_ShortBarrel": "Tonneau",
     "UI_ZeD_Station_ShortBeam": "Poutre",
     "UI_ZeD_Station_ShortCharcoal": "Charbon",

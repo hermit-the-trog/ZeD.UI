@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "需要%1。",
     "UI_ZeD_Station_NoneInReach": "范围内没有",
     "UI_ZeD_Station_SelectLabel": "工位",
+    "UI_ZeD_Select_Label": "%1：",
     "UI_ZeD_Station_ShortBarrel": "桶",
     "UI_ZeD_Station_ShortBeam": "梁",
     "UI_ZeD_Station_ShortCharcoal": "木炭",

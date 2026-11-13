@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "Requiere %1.",
     "UI_ZeD_Station_NoneInReach": "Nada al alcance",
     "UI_ZeD_Station_SelectLabel": "Estación",
+    "UI_ZeD_Select_Label": "%1:",
     "UI_ZeD_Station_ShortBarrel": "Barril",
     "UI_ZeD_Station_ShortBeam": "Viga",
     "UI_ZeD_Station_ShortCharcoal": "Carbón",

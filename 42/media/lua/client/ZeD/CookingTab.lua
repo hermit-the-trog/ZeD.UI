@@ -580,7 +580,11 @@ end
 local function renderHeader(panel, s, x, y, w, chr)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local CC = ZeD.CraftingCore
-    local h = T.stripH   -- row 1, the shared strip
+    -- the tab's title on row 1 (design review C1: every tab body opens with its title), the
+    -- boxes on the shared strip under it
+    local titleH = M.drawTabHeader(panel, x, y, w, getText("IGUI_perks_Cooking"), false, false, true)
+    y = y + titleH
+    local h = T.stripH   -- the boxes' row, the shared strip
     A.surfaceFill(panel, x, y, w, h, "surf2")
     A.drawDividerH(panel, x, y + h - T.line(T.borderW), w, true)
     local C = catalog()
@@ -593,7 +597,7 @@ local function renderHeader(panel, s, x, y, w, chr)
     local dl = s.dish and C.dishes[s.dish] and C.dishes[s.dish].label or "-"
     local dx = x + edge
     local hovD = not isGamepad() and mx >= dx and mx < dx + dishW and my >= by and my < by + bh
-    M.drawPopupMenu(panel, dx, by, dishW, bh, ZeD.tr("UI_ZeD_Cook_DishPick", dl), hovD or s.popup == "dish", focusFor(s, "cook:dish"), false, dl, false)
+    M.drawPopupMenu(panel, dx, by, dishW, bh, ZeD.tr("UI_ZeD_Cook_DishPick", dl), hovD or s.popup == "dish", focusFor(s, "cook:dish"), false, nil, false)
     stamp(s, "cook:dish", dx, by, dishW, bh, function() s.popup = (s.popup ~= "dish") and "dish" or nil end, { box = true })
     -- the dish list: your saved dishes first ("saved"), then every dish a base in reach makes
     local modes = {}
@@ -611,7 +615,7 @@ local function renderHeader(panel, s, x, y, w, chr)
     local bx = dx + dishW + gap
     local bl = b and b.name or "-"
     local hovB = not isGamepad() and mx >= bx and mx < bx + baseW and my >= by and my < by + bh
-    M.drawPopupMenu(panel, bx, by, baseW, bh, ZeD.tr("UI_ZeD_Cook_BasePick", bl), hovB or s.popup == "base", focusFor(s, "cook:base"), false, bl, false)
+    M.drawPopupMenu(panel, bx, by, baseW, bh, ZeD.tr("UI_ZeD_Cook_BasePick", bl), hovB or s.popup == "base", focusFor(s, "cook:base"), false, nil, false)
     stamp(s, "cook:base", bx, by, baseW, bh, function() s.popup = (s.popup ~= "base") and "base" or nil end, { box = true })
     local bmodes = {}
     for i, o in ipairs((s.dish and s.bases and s.bases[s.dish]) or {}) do
@@ -619,7 +623,7 @@ local function renderHeader(panel, s, x, y, w, chr)
                                 aside = o.ok and o.where or ZeD.tr("UI_ZeD_Cook_NeedsWater"), disabled = not o.ok }
     end
     s.baseGeo = { x = bx, y = by + bh, w = baseW, modes = bmodes, cur = "base:" .. tostring(s.baseIdx) }
-    return h
+    return titleH + h
 end
 
 -- ----------------------------------------------------------------------------
@@ -739,6 +743,7 @@ end
 -- ----------------------------------------------------------------------------
 -- Right: the dish as it grows
 -- ----------------------------------------------------------------------------
+local _secOpts = {}   -- the section heading's opts (drawCategoryRow)
 local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
     local T, A, M, TM = ZeD.T, ZeD.Atoms, ZeD.Molecules, ZeD.TM
     local scrollW = T.sp.scrollbarW
@@ -767,7 +772,9 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
     cy = cy + T.px(10)
 
     local function section(text)
-        local sh = M.drawSectionHeader(panel, x + pad, cy, cw - pad, text, nil, true, false, nil, nil, pad, T.px(SEC_H), true)
+        -- (the one section heading, the small mono line: design review D6)
+        _secOpts.noArrow, _secOpts.bleedLeft, _secOpts.h, _secOpts.inset = true, pad, T.px(SEC_H), 0
+        local sh = M.drawCategoryRow(panel, x + pad, cy, cw - pad, text, nil, true, _secOpts)
         cy = cy + sh + T.px(4)
     end
     -- one ingredient's row; a press takes it back out. A saved dish's ingredient not in reach reads so,
@@ -932,7 +939,8 @@ local function renderBand(panel, win, s, x, y, w, chr)
         end
         leftEnd = sx - gap
     end
-    -- Sort at the left: "Sort: Name", the choice alone when short of room
+    -- Sort at the left: "Sort: Name", its label kept when short of room (design review C2): the
+    -- pads close up, then the words are cut
     local modes = sortModes()
     local cur = (s.sort == "kind") and 2 or 1
     local full = ZeD.tr("UI_ZeD_Craft_SortPick", modes[cur].label)
@@ -940,14 +948,15 @@ local function renderBand(panel, win, s, x, y, w, chr)
     for _, m in ipairs(modes) do sw = math.max(sw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label))) end
     local label, tight = full, false
     if x + edge + sw > leftEnd then
-        label, tight, sw = modes[cur].label, true, 0
-        for _, m in ipairs(modes) do sw = math.max(sw, M.popupMenuW(m.label, true)) end
+        tight, sw = true, 0
+        for _, m in ipairs(modes) do sw = math.max(sw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label), true)) end
+        sw = math.min(sw, math.max(M.popupMenuW("", true), leftEnd - x - edge))
     end
     local sx = x + edge
     local by = y + T.px(5)
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local hov = not isGamepad() and mx >= sx and mx < sx + sw and my >= by and my < by + bh
-    M.drawPopupMenu(panel, sx, by, sw, bh, label, hov or s.popup == "sort", focusFor(s, "cook:sort"), false, modes[cur].label, tight)
+    M.drawPopupMenu(panel, sx, by, sw, bh, label, hov or s.popup == "sort", focusFor(s, "cook:sort"), false, nil, tight)
     if hov then help(panel, "UI_ZeD_Craft_SortHelp") end
     stamp(s, "cook:sort", sx, by, sw, bh, function() s.popup = (s.popup ~= "sort") and "sort" or nil end, { footer = true, box = true })
     s.sortGeo = { x = sx, y = by - M.popupListH(#modes), w = sw, modes = modes, cur = s.sort }

@@ -377,6 +377,7 @@ end
 
 local buildConfig = {
     prefix      = "build",
+    titleKey    = "UI_ZeD_World_TabBuilding",    -- the tab's title, the World window's word for it
     pinKey      = "ZeD_BuildPins",
     countKey    = "ZeD_BuildCounts",
     buildLabel  = "IGUI_CraftingWindow_Build",   -- a key (CraftingCore translates it where it draws)

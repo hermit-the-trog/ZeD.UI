@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "%1 필요.",
     "UI_ZeD_Station_NoneInReach": "닿는 범위에 없음",
     "UI_ZeD_Station_SelectLabel": "설비",
+    "UI_ZeD_Select_Label": "%1:",
     "UI_ZeD_Station_ShortBarrel": "통",
     "UI_ZeD_Station_ShortBeam": "들보",
     "UI_ZeD_Station_ShortCharcoal": "숯",
