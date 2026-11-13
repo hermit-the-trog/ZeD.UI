@@ -218,10 +218,11 @@ ok(not has(items, "bait"), "fight: no bait list")
 ok(ids(FT.band(s, st)) == "stop,release,reel", "fight band: Stop, Let out line, Reel in")
 ok(math.abs(s.held - 0.25) < 1e-9, "held at the limit: the rod's own timer over its limit")
 
--- no bait anywhere
+-- no bait anywhere (the sim swaps the bags at once: the half-second copy of what they hold is dropped each time)
 Fishing.ManagerInstances[0] = nil
 p.prim = rodItem(nil)
 p.inv = {}
+L._resetCarry()
 st = { fold = false }
 s = FT.snap(p, st)
 ok(s.state == "nobait", "nothing on the hook and none in the bags: nobait")
@@ -234,10 +235,12 @@ ok(ids(bnb) == "cast,search" and bnb.buttons[2].variant == "primary", "nobait ba
 -- no rod in hand
 p.prim = nil
 p.inv = { rodItem("Base.Worm") }
+L._resetCarry()
 s = FT.snap(p, st)
 ok(s.state == "norod", "no rod in hand: norod")
 ok(ids(FT.band(s, st)) == "equip", "norod band: Equip rod (one in the bags)")
 p.inv = {}
+L._resetCarry()
 ok(ids(FT.band(FT.snap(p, st), st)) == "", "norod, no rod at all: no keys")
 
 -- ---------------------------------------------------------------------------
@@ -313,6 +316,7 @@ ok(g[1].key == "UI_ZeD_Fish_BelowAvg" and g[2].key == "UI_ZeD_Fish_None", "the c
 ok(L.grade(0.8) == "UI_ZeD_Fish_Great" and L.grade(0.6) == "UI_ZeD_Fish_Good" and L.grade(0.4) == "UI_ZeD_Fish_Average"
    and L.grade(0.2) == "UI_ZeD_Fish_BelowAvg" and L.grade(0.1) == "UI_ZeD_Fish_Poor" and L.grade(0) == "UI_ZeD_Fish_None", "the game's grade bands")
 p.inv = { item("Base.Worm") }
+L._resetCarry()
 st = {}
 s = FT.snap(p, st)
 ok(has(FT.build(s, st), "rate"), "ready at Fishing 6: the picked bait's ratings show")
@@ -420,7 +424,7 @@ end
 for _, sc in ipairs({ 1.75, 0.74 }) do
     local tag = (sc > 1) and "4K" or "Deck"
     Fishing.ManagerInstances[0] = nil
-    p.prim = rodItem("Base.Worm"); p.inv = { item("Base.Worm"), item("Base.Cricket") }
+    p.prim = rodItem("Base.Worm"); p.inv = { item("Base.Worm"), item("Base.Cricket") }; L._resetCarry()
     win._fishTab = nil
     local stops = renderState(tag .. " ready", sc)
     local function hasId(id) for _, e in ipairs(stops) do if e.id == id then return e end end end
@@ -437,7 +441,7 @@ for _, sc in ipairs({ 1.75, 0.74 }) do
     mgr.fishingRod.getTension = function() return 0.86 end
     renderState(tag .. " fight", sc)
     Fishing.ManagerInstances[0] = nil
-    p.prim = rodItem(nil); p.inv = {}
+    p.prim = rodItem(nil); p.inv = {}; L._resetCarry()
     renderState(tag .. " nobait", sc)
     p.prim = nil
     renderState(tag .. " norod", sc)

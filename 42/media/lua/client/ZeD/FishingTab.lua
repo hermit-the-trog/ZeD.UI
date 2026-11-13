@@ -43,7 +43,17 @@ local function tr(k, ...) return ZeD.tr(k, ...) end
 local function px(n) return ZeD.T.px(n) end
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
 local function nowMs() return (getTimestampMs and getTimestampMs()) or 0 end
-local function itemName(ft) return safe(function() return getItemNameFromFullType(ft) end, ft or "") end
+-- an item type's name, looked up once (the tab names the same few dozen types every frame: bait, junk, the log's)
+local _names = {}
+local function itemName(ft)
+    if not ft then return "" end
+    local n = _names[ft]
+    if n == nil then
+        n = safe(function() return getItemNameFromFullType(ft) end, ft)
+        _names[ft] = n
+    end
+    return n
+end
 
 -- an item type's picture, looked up once (the game's own icon file, as its Fishing panel finds it)
 local _icons = {}
@@ -108,6 +118,25 @@ local function chipsOf(p, lv, wx, wy)
     return out
 end
 
+-- The chips, worked out twice a second per player and again as soon as the water square or the level changes.
+-- The shore test alone reads up to 225 squares (Fishing.Utils.isNearShore: 15 x 15 around the bobber); the game
+-- itself asks only when its bobber's timer fires, and the weather it reads moves slower than that.
+local CHIPS_MS = 500
+local _chips = {}
+local function chipsFor(p, lv, wx, wy)
+    local key = p:getPlayerNum()
+    local c = _chips[key]
+    local t = nowMs()
+    if c and t - c.at < CHIPS_MS and c.x == wx and c.y == wy and c.lv == lv then return c.list end
+    if not c then c = {}; _chips[key] = c end
+    c.at, c.x, c.y, c.lv, c.list = t, wx, wy, lv, chipsOf(p, lv, wx, wy)
+    return c.list
+end
+
+-- the name the Skills tab knows Fishing by: the perk's own name, which the game translates (PerkFactory names each
+-- perk with getText("IGUI_perks_" ..)), so the English word finds nothing in any other language
+local function fishingPerkName() return Perks.Fishing:getName() end
+
 --- What the tab shows for player p this frame, read from the game (st: the tab's own state, for the
 --- picked bait and the fight's start).
 function FT.snap(p, st)
@@ -118,22 +147,39 @@ function FT.snap(p, st)
     s.tackle = Log.tackle(s.rod)
     s.water = Log.water(p)
     s.data = Log.data(p)
+    local gt = getGameTime()
+    s.wa = gt and gt:getWorldAgeHours() or 0
     s.recent = Log.recent(p, (s.state == "wait" or s.state == "fight" or s.state == "nobait") and 3 or Log.LOG_SHOW)
-    local _, mounted = Log.wall(p, "top")
-    s.mounted = mounted
+    s.mounted = Log.mountedCount(p)
     s.caught = Log.caughtCount(p)
-    s.speciesN = #Log.species()
-    local pin = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and safe(function() return ZeD.SkillsTab.getPinData(p, "Fishing") end, nil)
-    s.xpPct = pin and pin.xpPct or 0
-    -- the bait picked in the list: the one on the hook, else the first
+    s.speciesN = Log.speciesCount()
+    -- (only with no rod in hand: Equip rod and the No rod line ask for it)
+    s.bagRod = (s.state == "norod") and Log.rodInBags(p) or nil
+    s.xpPct = 0
+    local SK = ZeD.SkillsTab
+    if SK and SK.getPinData then
+        local okN, perkName = pcall(fishingPerkName)
+        local okP, pin = false, nil
+        if okN and perkName then okP, pin = pcall(SK.getPinData, p, perkName) end
+        if okP and pin and pin.xpPct then s.xpPct = pin.xpPct end
+    end
+    -- the bait on the hook gets a row of its own when none of its kind is left in the bags (the game takes a lure
+    -- or the last worm out of the bags as it goes on the hook), so it can still be picked and taken off
+    if s.onHook then
+        local inBags = false
+        for _, b in ipairs(s.baits) do if b.type == s.onHook then inBags = true end end
+        if not inBags then
+            s.hookRow = { type = s.onHook, name = itemName(s.onHook), n = 0,
+                          lure = (Fishing and Fishing.IsArtificalLure and Fishing.IsArtificalLure(s.onHook)) or false }
+        end
+    end
+    -- the bait picked in the list: the one on the hook, else the first. The hook's bait is always a choice (picked,
+    -- the bait key takes it off), with or without more of its kind in the bags.
     if st then
-        local found = false
+        local found = st.sel ~= nil and st.sel == s.onHook
         for _, b in ipairs(s.baits) do if b.type == st.sel then found = true end end
         if not found then st.sel = nil end
-        if not st.sel then
-            for _, b in ipairs(s.baits) do if b.type == s.onHook then st.sel = b.type end end
-            if not st.sel and s.baits[1] then st.sel = s.baits[1].type end
-        end
+        if not st.sel then st.sel = s.onHook or (s.baits[1] and s.baits[1].type) end
         s.sel = st.sel
     end
     s.ratings, s.ratedN = Log.ratings(p, (s.state == "wait" or s.state == "fight") and s.onHook or s.sel)
@@ -150,7 +196,7 @@ function FT.snap(p, st)
     local wx, wy = nil, nil
     if s.bobber then wx, wy = math.floor(fr.bobber:getX()), math.floor(fr.bobber:getY())
     elseif s.water then wx, wy = s.water.x, s.water.y end
-    s.chips = chipsOf(p, s.lv, wx, wy)
+    s.chips = chipsFor(p, s.lv, wx, wy)
     return s
 end
 
@@ -175,7 +221,8 @@ local function logSection(L, s)
 end
 
 local function tripSection(L, s)
-    local tr0 = s.data.trip
+    -- (a trip that went quiet is over: the record stays until the next cast, but it is no longer this trip)
+    local tr0 = Log.liveTrip(s.data, s.wa)
     if not tr0 or (tr0.landed + tr0.junk + tr0.gone) == 0 then return end
     local wa0 = tr0.wa0 or 0
     add(L, { k = "head", text = tr("UI_ZeD_Fish_TripHead"), right = tr("UI_ZeD_Fish_TripSince", FT.hhmmAgo(wa0)) })
@@ -199,14 +246,17 @@ local function baitSection(L, s, locked)
     local total = 0
     for _, b in ipairs(s.baits) do total = total + b.n end
     add(L, { k = "head", text = tr("UI_ZeD_Fish_BaitHead"), right = tr("UI_ZeD_Fish_BaitCount", #s.baits, total) })
-    if #s.baits == 0 then
+    local hook = s.hookRow   -- (the bait on the hook, none of its kind left in the bags: first, its count 0)
+    if #s.baits == 0 and not hook then
         add(L, { k = "empty", text = tr("UI_ZeD_Fish_NoBaitBags") })
         return
     end
     add(L, { k = "col", cols = "bait" })
+    if hook then add(L, { k = "bait", r = hook, on = true, sel = (not locked) and (hook.type == s.sel), locked = locked }) end
     for _, b in ipairs(s.baits) do
         add(L, { k = "bait", r = b, on = (b.type == s.onHook), sel = (not locked) and (b.type == s.sel), locked = locked })
     end
+    if #s.baits == 0 then add(L, { k = "empty", text = tr("UI_ZeD_Fish_NoBaitBags") }) end
     if s.ratings and #s.ratings > 0 then
         local bt = locked and s.onHook or s.sel
         local lines = {}
@@ -226,12 +276,15 @@ local GROUPS = {
     { t = "Flesh", key = "UI_ZeD_Fish_GFlesh" }, { t = "Plant", key = "UI_ZeD_Fish_GPlants" },
     { t = "ArtificalLure", key = "UI_ZeD_Fish_GLures" },
 }
-local function noBaitSection(L)
-    add(L, { k = "head", text = tr("UI_ZeD_Fish_BaitHead"), right = "0" })
+-- The junk and the bait groups' item names, put together once: the game's tables do not change in a game, and
+-- the section names about fifty items and sorts seven lists. { junk = "..", groups = { { key, names }, .. } }
+local _noBait = nil
+local function noBaitNames()
+    if _noBait then return _noBait end
+    local nb = { groups = {} }
     local junk = {}
     for _, ft in ipairs((Fishing and Fishing.trashItems) or {}) do junk[#junk + 1] = itemName(ft) end
-    add(L, { k = "empty", bad = true, text = tr("UI_ZeD_Fish_BareHook", table.concat(junk, ", ")) })
-    add(L, { k = "head", text = tr("UI_ZeD_Fish_TakeHead") })
+    nb.junk = table.concat(junk, ", ")
     for _, g in ipairs(GROUPS) do
         local set = Fishing and Fishing.lure and Fishing.lure[g.t]
         if set then
@@ -241,9 +294,19 @@ local function noBaitSection(L)
                 if not seen[n] then seen[n] = true; names[#names + 1] = n end
             end
             table.sort(names)
-            add(L, { k = "fact", label = tr(g.key), value = table.concat(names, ", ") })
+            nb.groups[#nb.groups + 1] = { key = g.key, names = table.concat(names, ", ") }
         end
     end
+    if Fishing then _noBait = nb end   -- (kept only once the game's fishing tables are there)
+    return nb
+end
+
+local function noBaitSection(L)
+    local nb = noBaitNames()
+    add(L, { k = "head", text = tr("UI_ZeD_Fish_BaitHead"), right = "0" })
+    add(L, { k = "empty", bad = true, text = tr("UI_ZeD_Fish_BareHook", nb.junk) })
+    add(L, { k = "head", text = tr("UI_ZeD_Fish_TakeHead") })
+    for _, g in ipairs(nb.groups) do add(L, { k = "fact", label = tr(g.key), value = g.names }) end
     add(L, { k = "head", text = tr("UI_ZeD_Fish_WhereHead") })
     add(L, { k = "fact", label = getText("IGUI_ScavengeUI_Title"), value = tr("UI_ZeD_Fish_WhereForage") })
     add(L, { k = "fact", label = itemName("Base.FishingNet"), value = tr("UI_ZeD_Fish_WhereNet") })
@@ -311,7 +374,7 @@ function FT.build(s, st)
         logSection(L, s)
         detailSection(L, s, st)
     else
-        add(L, { k = "empty", text = tr(Log.rodInBags(s.p) and "UI_ZeD_Fish_HoldRod" or "UI_ZeD_Fish_NoRodBags") })
+        add(L, { k = "empty", text = tr(s.bagRod and "UI_ZeD_Fish_HoldRod" or "UI_ZeD_Fish_NoRodBags") })
         tripSection(L, s)
         logSection(L, s)
     end
@@ -356,7 +419,7 @@ function FT.band(s, st)
     else
         b.status = st.msg
         if canClear then btn(b.lead, "clear", "UI_ZeD_Fish_ClearLog") end
-        if Log.rodInBags(s.p) then btn(b.buttons, "equip", "UI_ZeD_Fish_Equip", "primary", false, "UI_ZeD_Fish_HelpEquip") end
+        if s.bagRod then btn(b.buttons, "equip", "UI_ZeD_Fish_Equip", "primary", false, "UI_ZeD_Fish_HelpEquip") end
     end
     return b
 end
@@ -395,8 +458,12 @@ function FT.hhmmAgo(wa)
     local nowWa = gt:getWorldAgeHours()
     local tod = gt:getTimeOfDay() - (nowWa - (wa or nowWa))
     while tod < 0 do tod = tod + 24 end
-    local h = math.floor(tod)
-    return two(h) .. ":" .. two((tod - h) * 60)
+    -- (in whole minutes, with a hair of slack: a start at 06:10 comes back from the sums a hair under it, 06:09.99)
+    local m = math.floor(tod * 60 + 0.001)
+    local h = math.floor(m / 60)
+    m = m - h * 60
+    while h >= 24 do h = h - 24 end
+    return two(h) .. ":" .. two(m)
 end
 local function mmss(ms)
     local sec = math.floor(math.max(0, ms) / 1000)
@@ -467,7 +534,10 @@ end
 -- DRAWING
 -- ---------------------------------------------------------------------------
 local _fo = {}
+-- the mark's options when the controller is on stop `id` in win, else nil. A row with no stop (a log row) has no id:
+-- isFocused with no id answers for the whole window, and every log row would wear the mark.
 local function focusOf(win, id)
+    if id == nil then return nil end
     local Fo = ZeD.Input and ZeD.Input.Focus
     if Fo and Fo.isFocused and Fo.isFocused(win, nil, id) then _fo.win = win; return _fo end
     return nil
@@ -493,7 +563,7 @@ local function drawHero(panel, s, x, y, w)
     local bx, by = x + math.floor((picW - box) / 2), y + px(10)
     ZeD.Surface.fill(panel, bx, by, box, box, "surf3")
     A.frame(panel, bx, by, box, box, T.borderS)
-    local rod = s.rod or Log.rodInBags(s.p)
+    local rod = s.rod or s.bagRod
     local tex = rod and safe(function() return rod:getTex() end, nil)
     if tex then panel:drawTextureScaledAspect(tex, bx + px(6), by + px(6), box - px(12), box - px(12), rod == s.rod and 1 or 0.45, 1, 1, 1) end
     -- the rod as the game names it ("Fishing Rod with Worm"), then its parts
@@ -864,6 +934,9 @@ function FT.render(panel, win, x, y, w, h)
     end
     local s = FT.snap(p, st)
     st.s = s
+    -- the Clear log question belongs to the state it was asked in: a cast made with the game's own keys moves the line
+    -- on, and the band's fishing keys come back (the question would hide Stop, Reel in and Let out line)
+    if st.ask and s.state ~= st.askIn then st.ask = nil end
     st._now = Log.clock()
     if s.state == "fight" then st.fishAt = st.fishAt or nowMs() else st.fishAt = nil end
     -- the state's standing help line (a pointed control's own help, set later this frame, wins)
@@ -883,14 +956,14 @@ function FT.render(panel, win, x, y, w, h)
     scroll.visible = needs
     local maxOff = math.max(0, listH - sh)
     if needs then
-        scroll.x, scroll.y, scroll.height = x + w - T.sp.scrollbarW, sy, sh
+        scroll.x, scroll.y, scroll.width, scroll.height = x + w - T.sp.scrollbarW, sy, T.sp.scrollbarW, sh
         scroll:setBarSize(sh / math.max(1, listH))
         follow(win, scroll, maxOff, sh)
     else
         scroll:setScrollPos(0)
     end
     local off = needs and math.floor(scroll.scrollPos * maxOff) or 0
-    st.off, st.sy, st.sh, st.x, st.w = off, sy, sh, x, w
+    st.off, st.sy, st.sh, st.x, st.w, st.maxOff = off, sy, sh, x, w, maxOff
     local Fo = ZeD.Input and ZeD.Input.Focus
     local mx, my = panel:getMouseX(), panel:getMouseY()
     if not (mx >= x and mx < x + w and my >= sy and my < sy + sh) or (Fo and Fo.cuesVisible and Fo.cuesVisible()) then mx, my = nil, nil end
@@ -910,7 +983,12 @@ function FT.render(panel, win, x, y, w, h)
     -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the whole tab is opened
     -- again for the scrollbar and the band, and that clip comes off at the end)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
-    if needs then scroll:draw(panel) end
+    if needs then
+        scroll:draw(panel)
+        -- the controller on the scroll bar (its stop scrolls the list a row a press): the mark goes on the bar
+        local f = focusOf(win, "fish:scroll")
+        if f and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(panel, scroll.x, scroll.y, scroll.width, scroll.height, f) end
+    end
     FT.drawBand(panel, win, st, s, x, y + h - bandH, w)
     panel:clearStencilRect()
 end
@@ -940,6 +1018,17 @@ function FT.drawBand(panel, win, st, s, x, y, w)
             if (r.b.id == "reel" or r.b.id == "release") and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h then
                 Log.pull(r.b.id, 250)
             end
+        end
+    end
+    -- the controller's A held on the same keys, the same way. FocusManager fires a hold once (onHoldActivate, which
+    -- set st.padHold); the pull goes on while A stays down and the focus stays on that key.
+    if st.padHold then
+        local Fo = ZeD.Input and ZeD.Input.Focus
+        local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
+        if fe and fe.id == st.padHoldId and Fo.holdingA and Fo.holdingA(win) then
+            Log.pull(st.padHold, 250)
+        else
+            st.padHold, st.padHoldId = nil, nil
         end
     end
 end
@@ -978,7 +1067,10 @@ function DO.bait(p, st, s)
     local rod, pn = s.rod, p:getPlayerNum()
     if not (rod and s.sel) then return end
     local want = nil
-    for _, b in ipairs(s.baits) do if b.type == s.sel then want = b end end
+    -- (the bags as they are now, not the list's half-second copy: the item handed to the game has to be there)
+    for _, b in ipairs(Log.baits(p, true)) do if b.type == s.sel then want = b end end
+    -- the picked bait left the bags since the list was read: the hook keeps what it has (live bait taken off is lost)
+    if s.sel ~= s.onHook and not want then return end
     -- the game's own Add Bait and Remove Bait (its rod menu's functions and timed actions)
     if s.onHook then ISInventoryPaneContextMenu.removeLure(pn, rod) end
     if want and s.sel ~= s.onHook then ISInventoryPaneContextMenu.addLure(pn, rod, want.item) end
@@ -997,12 +1089,15 @@ function DO.search(p)
     ZeD_WorldWindow.openTab(p:getPlayerNum(), "forage")
 end
 function DO.equip(p)
-    local rod = Log.rodInBags(p)
+    local rod = Log.rodInBags(p, true)
     if not rod then return end
     ISInventoryPaneContextMenu.transferIfNeeded(p, rod)
     ISInventoryPaneContextMenu.equipWeapon(rod, true, rod:isTwoHandWeapon(), p:getPlayerNum())
 end
-function DO.clear(p, st) st.ask = "clear" end
+function DO.clear(p, st, s)
+    st.ask = "clear"
+    st.askIn = s and s.state   -- (FT.render takes the question down once the state moves on)
+end
 function DO.cancel(p, st) st.ask = nil end
 function DO.clearyes(p, st)
     st.ask = nil
@@ -1052,15 +1147,91 @@ function FT.onClick(win, x, y)
     return true
 end
 
---- The controller's stops: the bait rows, the wall key, the fold, then the band, in reading order.
+-- THE CONTROLLER IN THE LIST. Up and Down walk the list's stops in the list's own order, and follow() scrolls
+-- each one in. A spatial pick would not do: a stop scrolled out of sight below the list sits under the band on
+-- screen, so Down from the stop above it landed on the band and the rest of the list was out of reach. Past the
+-- last stop Down goes on to the scroll bar while more of the list lies below; there Up and Down move the list a
+-- row a press. At the bar's bottom end Down is the window's own move (to the band); at its top end Up goes back
+-- to the lowest of the list's stops in view (the bar's rect sits below them all, so the window's move would find
+-- nothing above). Left and Right, and Up from the first stop, are always the window's.
+local FOCUS_ZONE = "worldTabContent"   -- (the World window's zone for a tab's stops)
+local function isScrollStop(e) return e.id == "fish:scroll" end
+-- the focus onto the first stop pred takes, with the tick a D-pad move makes (focusWhere itself is silent)
+local function focusStop(w, pred)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if not (Fo and Fo.focusWhere and Fo.focusWhere(w, FOCUS_ZONE, pred)) then return false end
+    sound("UISelectListItem")
+    return true
+end
+local function focusListStop(w, i) return focusStop(w, function(e) return e.listIdx == i end) end
+local function listDir(w, el, dir)
+    if dir ~= "up" and dir ~= "down" then return false end
+    local st = w._fishTab
+    if not (st and el.listIdx) then return false end
+    local want = el.listIdx + ((dir == "down") and 1 or -1)
+    if want < 1 then return false end
+    if want > (st.nList or 0) then
+        local sc = st.scroll
+        if not (dir == "down" and sc and sc.visible and (sc.scrollPos or 0) < 1) then return false end
+        return focusStop(w, isScrollStop)
+    end
+    return focusListStop(w, want)
+end
+local function scrollDir(w, el, dir)
+    local st = w._fishTab
+    local sc = st and st.scroll
+    if not (sc and sc.visible) or (dir ~= "up" and dir ~= "down") then return false end
+    local pos = sc.scrollPos or 0
+    if dir == "down" and pos >= 1 then return false end
+    if dir == "up" and pos <= 0 then
+        -- the top: the lowest list stop wholly in view, else the first (follow() brings it in)
+        local n, off, sh = st.nList or 0, st.off or 0, st.sh or 0
+        if n == 0 then return false end
+        local want = 1
+        for i = n, 1, -1 do
+            local cy, h = st.listCy[i], st.listH[i]
+            if cy and cy >= off and cy + h <= off + sh then want = i; break end
+        end
+        return focusListStop(w, want)
+    end
+    local maxOff = st.maxOff or 0
+    local step = (maxOff > 0) and (px(ROW_H) / maxOff) or 1
+    sc:setScrollPos(pos + ((dir == "down") and step or -step))
+    return true
+end
+-- A held on Reel in / Let out line: the first pull now, then FT.drawBand keeps it going while A stays down
+local function holdPull(w, id)
+    local st = state(w)
+    st.padHold, st.padHoldId = id, "fish:b:" .. id
+    FT.press(w, id)
+end
+-- the help line's words on the scroll bar ("D-pad Scroll", its glyph as the other help lines draw it), made once
+local _scrollPrompts = nil
+local function scrollPrompts()
+    if _scrollPrompts then return _scrollPrompts end
+    local Pr, words = ZeD.Prompt, tr("UI_ZeD_Prompt_DPadScroll")
+    if not (Pr and Pr.padNote) then return { words } end
+    _scrollPrompts = { Pr.padNote(words) }
+    return _scrollPrompts
+end
+
+--- The controller's stops: the bait rows, the wall key, the fold, the scroll bar, then the band, in reading order.
 function FT.buildFocusables(win)
     local st = win._fishTab
     if not st then return {} end
     if st.wall then return ZeD.FishingWall.stops(win, st) end
     local out = {}
     local sy, off, x0, cw = st.sy or 0, st.off or 0, st.x or 0, st.cw or 0
-    -- (every stop, in view or not: the D-pad walks on past the edge and follow() scrolls it in)
-    local function clip(e) out[#out + 1] = e end
+    -- (every stop, in view or not: Up and Down walk them in order and follow() scrolls each in. Where each one
+    -- sits in the list is kept for the scroll bar's top end, in two tables the tab keeps)
+    local n = 0
+    st.listCy, st.listH = st.listCy or {}, st.listH or {}
+    local function clip(e)
+        n = n + 1
+        e.listIdx, e.onDpadDir = n, listDir
+        st.listCy[n], st.listH[n] = e.cy, e.h
+        out[n] = e
+    end
     for _, it in ipairs(st.items or {}) do
         local dy = sy + (it.y or 0) - off
         if it.k == "bait" and not it.locked then
@@ -1077,12 +1248,23 @@ function FT.buildFocusables(win)
                    onFocus = function() end, onActivate = function() st.fold = not st.fold; sound() end })
         end
     end
+    st.nList = n
+    -- the scroll bar, while the list runs past its view (no `fish` mark: follow() leaves the list where it scrolled).
+    -- Its rect for the D-pad is the bar below the last stop, a sliver at the bar's foot when that stop is lower: no
+    -- stop of the list has the bar above it, so Up from the first stop never lands there. The mark covers the bar.
+    local sc = st.scroll
+    if sc and sc.visible then
+        local last = out[n]
+        local top = math.max(sc.y, math.min(last and (last.y + last.h) or sc.y, sc.y + sc.height - 2))
+        out[#out + 1] = { x = sc.x, y = top, w = sc.width, h = sc.y + sc.height - top, id = "fish:scroll", isGridScroll = true,
+                          extraPrompts = scrollPrompts(), onFocus = function() end, onDpadDir = scrollDir }
+    end
     for _, r in ipairs(st.band or {}) do
         local b = r.b
         out[#out + 1] = { x = r.x, y = r.y, w = r.w, h = r.h, id = "fish:b:" .. b.id, isPrimary = b.variant == "primary",
             help = b.help, promptA = b.label, onFocus = function() end,
             onActivate = function(w) if not b.disabled then FT.press(w, b.id) end end,
-            onHoldActivate = (b.id == "reel" or b.id == "release") and function(w) FT.press(w, b.id) end or nil }
+            onHoldActivate = (b.id == "reel" or b.id == "release") and function(w) holdPull(w, b.id) end or nil }
     end
     return out
 end
