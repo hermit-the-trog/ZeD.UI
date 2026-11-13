@@ -53,6 +53,8 @@
 -- each window as found (one the run opened is closed again, a rolled half or window rolled again), then the pad
 -- focus, the sort and the scroll L3 changed, the test text entry, the probe action, the role px and the zoom kept for
 -- it, the furniture cursor and the game's cursor globals it touched (mode, its cache, the cursor, the info box), the
+-- way the character faces (the game's cursor turns an idle character toward the pointer), what ZeD's Furniture tab
+-- read from the cursor (ZeD.FurnitureTab.cap[0], which its info box hook overwrites), the
 -- stand-in pointer and the spies, ZeD's Furniture tab timer, the game's flags for controller slot 15 and its
 -- controller test, the game speed (a paused game is unpaused for the run and paused again at the end).
 -- ASSUMES: no real controller connected or joined. The synthetic unplug (OnGamepadDisconnect for slot 15) reaches
@@ -411,6 +413,10 @@ local function furCursorUp(eq)
     F.mode0, F.cache0, F.cur0 = MC.mode[0], MC.cacheMode[0], MC.cursors and MC.cursors[0]
     F.panel0 = IW and IW.infoPanels and IW.infoPanels[0]
     F.globals = true
+    -- (the game's cursor turns an idle character toward the pointer; ZeD's info box hook records what the cursor read)
+    F.ang0 = p:getDirectionAngle()
+    F.capT = ZeD.FurnitureTab and ZeD.FurnitureTab.cap
+    if F.capT then F.cap0 = F.capT[0] end
     -- (pickup, already cached: nothing turned and hidden as rotate does, no info box text, no sound)
     MC.mode[0], MC.cacheMode[0] = "pickup", "pickup"
     F.cursor = MC:new(p)
@@ -435,12 +441,15 @@ local function furCursorDown()
             if made and made ~= F.panel0 then made:removeFromUIManager() end
             IW.infoPanels[0] = F.panel0
         end
+        if F.ang0 then p:setDirectionAngle(F.ang0); F.ang0 = nil end
+        if F.capT then F.capT[0] = F.cap0; F.capT, F.cap0 = nil, nil end
     end
     unspy(F.spyTip); F.spyTip = nil
     if F.ft then F.ft.openingMs = F.ftOpening; F.ft = nil end
 end
 local function furHoverUp(eq)
     local F = S.fur
+    S.popTried = true
     F.spyPop = spyVisible(eq.movablePopup, F.pop)
     F.overBtn, F.overOwn = eq.movableBtn, rawget(eq.movableBtn, "isMouseOver")
     eq.movableBtn.isMouseOver = function() return true end
@@ -625,7 +634,10 @@ untilDo(function() return S.fur == nil or sawRaise(S.fur.tip) end, 1500, functio
 end, 0)
 untilDo(function() return S.fur == nil or sawRaise(S.fur.pop) end, 1500, function(ok)
     local F, eq = S.fur, S.eq
-    if not F then return end
+    if not F then
+        if S.popTried then skip("top-left buttons: the furniture pop-up", "the stand-in pointer came down before a frame drew") end
+        return
+    end
     local pop = eq.movablePopup
     local last = F.pop[#F.pop]
     check(ok and last == false and not pop:getIsVisible(),
