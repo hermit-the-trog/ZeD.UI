@@ -46,6 +46,17 @@ The export is deterministic: the same sources give the same files on every run, 
 
 Director, Nov 12 2026 (handoff `ZeDUI/HANDOFF_design_dash_interior_colors_20261112.md`): "We're not changing any looks. We're just changing colors." Each civilian dash comes in its group's three cabin vinyls (`designs.CABINS`, lead first; the ramps in `engine.py`), the fleet dashes in standard black only, the race car as it was. The export builds every color in full, through `build_one` and `night.bake`, so every color passes the tab, mover, legend and needle checks on its own. It then stops unless the colors' parts files are the same: hits, meta, sprite names and sizes, the marks, the night data and the top edge's inks identical, and the parts identical but for a mark's model-line shadow (read off the vinyl under it), which the parts carry as `"cabin"` and `des.cabins` per color. A picture that differs between colors (the plate, the night pictures, most state sprites) ships as `<name>__<cabin>.png` and is listed in `des.cabinTex`; one the same in every color ships once by its plain name. The export removes any picture in the folder it no longer writes, and prints the texture memory (the game pads each picture to powers of two): about 141 MiB if every color of every dash were loaded in one session, at most 3.3 MiB for one car's dash.
 
+Two things besides the vinyl follow the cabin, both by rules older than the colors. A printed legend takes the dark
+ink on a light vinyl (`Build.ink_for`), and since Nov 12 2026 (punch list 179) a deeper dark ink, `paint_kd`, where
+`paint_k` would read under `dashlib.LEGEND_CONTRAST` (3:1) on that vinyl: the mid-light cabins `v_beige_d` and
+`v_ltbrown` (2.9:1 with `paint_k`, 3.9:1 with `paint_kd`); every other surface keeps `paint_k`. `build.contrast_check`
+measures every printed legend or mark that borders the cabin vinyl on the rendered plate, and one under 3:1 stops the
+export for that color (the cream ink on `v_grey` reads at 3.25:1). And the key fob is cocoa leather on a light cabin
+(`v6.LIGHT_CABINS`), tan on the rest, so within the 70s, 80s and 90s groups it differs between colors: no one leather
+reads on all three (the tan fob is 12 RGB from `v_beige_d` and `v_ltbrown`, the cocoa fob 25 from `v_moss`). A fob
+closer than `v6.FOB_APART` to its cabin is a placement warning. Both wait on design's written OK (the handoff's
+"Build's notes"); the export's parts-file check cannot see either, since both are baked into per-color pictures.
+
 The game picks a car's color in `ZeD_DashProto.lua` (shared): the paint (`getColorHue`, `getColorSaturation`, `getColorValue`) sets the row of the group's odds, a roll from the key number picks in it, and the car keeps the answer as `ZeD_cab` on its modData (the client stamps its own copy, the server its own where it writes the odometer or the tray). Same car, same dashboard, on every machine. `ZeD.Dashboard.qaCabin` forces a color for probes; `ZeDUI/tools/qa/dash_cabin_sim.lua` checks the odds against the handoff.
 
 ## At night

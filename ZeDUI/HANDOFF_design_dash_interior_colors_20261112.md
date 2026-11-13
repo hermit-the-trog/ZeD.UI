@@ -104,3 +104,19 @@ Public service: always black.
 4. Nothing here was run through `platesame` or the needle, legend and mover checks; run them per color (a darker or
    lighter cabin could change a printed legend's contrast).
 5. Nothing is in `42/`. Wait for QA to be clear before writing there.
+
+## Build's notes (Nov 12 2026, punch list 179): for design to confirm in writing
+
+Two things other than the cabin vinyl change between a design's colors. Build kept both and asks design to approve or
+choose otherwise:
+
+- **The key fob's leather.** The fob is cocoa leather on a light cabin and tan on the rest (a rule from before the
+  colors). On the 70s dashes (Nyala, D6, Bulldriver, Rancher) it is cocoa on light brown and tan on moss green and slate
+  blue; on the 80s (Horizon, Dart, Valuline) and 90s (Dash Elite, Primani, All-Terrain) cocoa on beige and tan on the
+  others. One leather per design does not work: the tan fob is nearly the light brown and the beige (12 RGB apart), the
+  cocoa fob nearly the moss green (25 apart). The alternative is a third leather for the fob in those groups, which is a
+  look change.
+- **The legend ink on beige and light brown.** Printed legends on these two cabins read at 2.9:1 with the usual dark
+  ink (the old beige gave 4.1:1); Build prints them in a deeper near-black there (3.9:1). Every other cabin keeps the
+  ink it had. The cream ink on gray reads at 3.25:1 and is kept. The build now stops any color whose legends on the
+  vinyl read under 3:1.

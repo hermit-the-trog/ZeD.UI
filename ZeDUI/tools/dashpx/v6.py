@@ -107,8 +107,12 @@ KEY_HALF_L, KEY_HALF_T = 8.5, 1.2       # 17 x about 3 px. At START it clears th
                                         # ST) by about a pixel: not longer without moving the labels out
 KEY_RING_R0, KEY_RING_R1 = 3.6, 4.6
 KEY_NICKEL = {"wagon", "luxury", "horizon"}
-# the fob is cocoa leather on these, tan on the rest (on v_ltbrown, nearly the tan fob's own colour, a tan fob would vanish)
+# the fob is cocoa leather on these, tan on the rest. So the fob follows the cabin within one design's colors (punch
+# list 179, Nov 12 2026): no one leather reads on all three of a group. Against the vinyl's flat shade, the tan fob is
+# 12 RGB apart from v_beige_d and v_ltbrown (1.05:1) and the cocoa fob 25 apart from v_moss (1.07:1), so one leather
+# per design would vanish on one of its colors. Waiting on design's written OK (the handoff's "Build's notes").
 LIGHT_CABINS = {"v_tan", "v_beige", "v_khaki", "v_ltbrown", "v_beige_d"}
+FOB_APART = 40          # the least RGB distance between the fob's leather and the cabin it hangs over (flat shades)
 FOB_W, FOB_BODY = 15, 20                # the fob: 15 px wide, its body 20 long under a 6 x 6 tab; shorter where the
                                         # plate's edge comes first (the Cossette's ignition sits 2 px lower: 18 there)
 
@@ -170,6 +174,8 @@ def key_turn_variants(b, cx, cy, style=None, angles=KEY_ANGLES):
     under them. style is no longer used (the key's material follows the car: KEY_NICKEL)"""
     nickel = b.id in KEY_NICKEL
     leather = "v_cocoa" if b.cabin in LIGHT_CABINS else "v_tan"
+    if math.dist(RAMPS[leather][4], RAMPS[b.cabin][4]) < FOB_APART:
+        b.warn(f"the key fob's {leather} is lost on the {b.cabin} cabin")
     c0x, c0y = cx + 0.5, cy + 0.5
     hx_, hy_ = key_hang_point(cx, cy); ox_, oy_ = hx_ - c0x, hy_ - c0y
     fx, fy, body = fob_place(cx, cy)

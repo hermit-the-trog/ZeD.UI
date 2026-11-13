@@ -25,11 +25,29 @@ Z_TOP, Z_BROW, Z_FACE, Z_CL, Z_DIAL = 0.0, 11.0, 5.0, -6.0, -8.5
 # 3 x 5 letters, 124 px for the longest line, "A SHUT OFF  X REMOVE KEY  B DRIVE"); the art leaves it plain
 HINT_X1, HINT_W = 486, 126
 HINT_X0 = HINT_X1 - HINT_W
-PRINTED = {"paint_w", "paint_c", "paint_r", "paint_o", "paint_y", "paint_k", "lampoff", "segoff", "vfdoff", "ledoff", "lens"}
+PRINTED = {"paint_w", "paint_c", "paint_r", "paint_o", "paint_y", "paint_k", "paint_kd", "lampoff", "segoff", "vfdoff", "ledoff", "lens"}
 
 for nm, base in {"v_saddle": "#7a5636", "v_medic": "#8e908c", "v_taxi": "#262628", "v_race": "#202022", "v_forest": "#3c4a36",
                  "v_sand": "#8c7a5a"}.items():
     add_ramp(nm, base)
+# the deeper dark ink (punch list 179, Nov 12 2026): paint_k three steps down, for a printed legend whose usual dark ink
+# would read under LEGEND_CONTRAST on its vinyl (the mid-light cabins v_beige_d and v_ltbrown: 2.9:1 with paint_k,
+# 3.9:1 with this). Every surface paint_k already clears keeps paint_k
+RAMPS["paint_kd"] = [hx(c) for c in ("#020202", "#040404", "#070706", "#0b0b0a", "#0e0e0d", "#141413", "#1c1b19", "#262522")]
+LEGEND_CONTRAST = 3.0   # the least contrast (WCAG ratio) a printed legend keeps against the surface it is printed on
+
+
+def rel_lum(c):
+    """WCAG relative luminance of an 8-bit RGB colour (or an array of them, last axis RGB)"""
+    a = np.asarray(c, np.float64) / 255.0
+    a = np.where(a <= 0.04045, a / 12.92, ((a + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * a[..., 0] + 0.7152 * a[..., 1] + 0.0722 * a[..., 2]
+
+
+def contrast(a, b):
+    """WCAG contrast ratio between two colours"""
+    la, lb = float(rel_lum(a)), float(rel_lum(b))
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 RAMPS["vfd"] = [hx(c) for c in ("#020607", "#04090b", "#060e10", "#0a1416", "#0e1b1e", "#132327", "#1a2d31", "#22393e")]
 RAMPS["vfdoff"] = [hx(c) for c in ("#030c0b", "#04100f", "#061413", "#081917", "#0a1e1c", "#0d2421", "#102b27", "#14322e")]
 RAMPS["ledglass"] = [hx(c) for c in ("#070202", "#0c0303", "#120505", "#190707", "#210909", "#2b0c0c", "#370f0f", "#451414")]
@@ -134,7 +152,9 @@ class Build:
         ramp = RAMPS[names[0]]
         r, g, b_ = ramp[4]
         lum = (0.299 * r + 0.587 * g + 0.114 * b_) / 255.0
-        if lum > 0.42 and mat in ("paint_w", "paint_c"): return "paint_k"
+        if lum > 0.42 and mat in ("paint_w", "paint_c"):
+            # a flat print renders at its ramp's step 4, as does the flat vinyl under it
+            return "paint_k" if contrast(RAMPS["paint_k"][4], ramp[4]) >= LEGEND_CONTRAST else "paint_kd"
         return mat
 
     def label(s, t, x, y, mat="paint_w", align="l", font="35", scale=1, flatlight=False, check=True):

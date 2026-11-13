@@ -152,6 +152,39 @@ def legend_check(b):
                 b.warn(f"{a} at {x},{y} and {c} at {X},{Y} run together ({gx} px apart)")
 
 
+def contrast_check(b, base):
+    """Nov 12 2026 (punch list 179: a lighter or darker cabin changes a printed legend's contrast): on the rendered
+    plate, each printed legend or mark (b.inks) printed on the cabin vinyl, against that vinyl. In the ink's rect
+    grown by a pixel, the surface is the cabin's pixels and each printed material there (dashlib.PRINTED) is an ink,
+    where it borders the cabin (print inside a plaque or card sits on that, not on the vinyl); each is taken at its
+    median luminance. An ink under dashlib.LEGEND_CONTRAST is a warning, so the export stops for
+    that color. Print on any other surface (a face, a plaque, the taxi license's card) is the same in every color"""
+    rgb = np.asarray(base.convert("RGB"))
+    names = b.d.names
+    for (x, y, w, h, what) in b.inks:
+        x0, y0 = max(0, x - 1), max(0, y - 1)
+        x1, y1 = min(dashlib.W, x + w + 1), min(dashlib.H, y + h + 1)
+        if x1 <= x0 or y1 <= y0: continue
+        mat = b.d.mat[y0:y1, x0:x1]
+        ids = np.unique(mat)
+        surf = b.d.names.index(b.cabin) if b.cabin in b.d.names else -2
+        if surf not in ids.tolist(): continue
+        lum = dashlib.rel_lum(rgb[y0:y1, x0:x1])
+        on = mat == surf
+        ls = float(np.median(lum[on]))
+        near = on.copy()                     # the cabin's pixels and their four neighbours
+        near[1:] |= on[:-1]; near[:-1] |= on[1:]; near[:, 1:] |= on[:, :-1]; near[:, :-1] |= on[:, 1:]
+        for m in ids.tolist():
+            if m == surf or m < 0 or names[m] not in dashlib.PRINTED: continue
+            sel = (mat == m) & near
+            if not sel.any(): continue
+            li = float(np.median(lum[sel]))
+            cr = (max(li, ls) + 0.05) / (min(li, ls) + 0.05)
+            if cr < dashlib.LEGEND_CONTRAST:
+                b.warn(f"{what} at {x},{y}: its {names[m]} reads at {cr:.2f}:1 on the {b.cabin} cabin "
+                       f"(under {dashlib.LEGEND_CONTRAST}:1)")
+
+
 def mover_check(b):
     """Oct 29 2026: the key in each position, its ring and its fob (b.movers) sit over no printed legend or mark; and
     the column's shroud (b.shroud) is clear of every printed mark, live part, click area and the key"""
@@ -208,6 +241,7 @@ def build_one(did, verbose=True, cabin=None):
     mover_check(b)
     legend_check(b)
     needle_check(b)
+    contrast_check(b, base)
     ddir = os.path.join(OUT, did) if cabin == lead else os.path.join(OUT, did, cabin)
     os.makedirs(ddir, exist_ok=True)
     base.save(os.path.join(ddir, f"dash_{did}.png"))
