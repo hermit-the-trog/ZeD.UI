@@ -46,6 +46,7 @@ local IDS = {
     -- (beta 11, punch list 140: the lists got their own icons, ZeD_Lists.lua L.ICON = { outfit = "outfit",
     -- loadout = "loadout" }, zw_loadout / zw_outfit drawn at 16/24/32/48 with _add / _remove versions)
     "loadout", "outfit", "loadout_add", "loadout_remove", "outfit_add", "outfit_remove",
+    "rod",   -- (Nov 12 2026: the Fishing tab's slice; the list was behind, so the first main run read it as "no icon")
 }
 -- vanilla's words: { key, picture or false, id }
 local TEXT = {

@@ -603,7 +603,9 @@ add(400, function()
     V.rodRec = nil
     ui:updateValue(-0.6)
 end, "rod")
-add(300, function()
+-- (Nov 12 2026: waits for the rod's next draw, up to 3 s; a fixed 300 ms read it before it drew at 4K)
+waitUntil(3000, function() return V.rodRec ~= nil end, "rod")
+add(50, function()
     local r = V.rodRec
     check(r ~= nil and near(r.t, -0.6, 1e-6) and near(V.tui.val, -70 + 20 * 0.4, 1e-6), "slack: the rod gets the slack tension, vanilla's dial its own angle",
         r and (tostring(r.t) .. " / " .. tostring(V.tui.val)), "-0.6 / -62")

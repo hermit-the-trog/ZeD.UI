@@ -370,10 +370,23 @@ local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local function until_(n, tries, fn, what) Q[#Q + 1] = { n = n, fn = fn, tries = tries, what = what } end
 
 -- 1. the look and no tools
+-- (Nov 12 2026: the windows open and Identity is clicked in steps of their own, once the tab strip has drawn its tabs;
+-- in one step the strip had no tabs yet and every later check read nil)
 step(30, function()
     park()
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     if not (CW.isOpen() and ZeD_WorldWindow.isOpen()) then CW.toggleBothPaired(0) end
+end)
+until_(10, 30, function()
+    local w = win()
+    if not w then return false end
+    if w._activeTab == "identity" then return true end
+    for _, z in ipairs(w._tabStripPanel._hitZones or {}) do
+        if z.id == "tab:identity" then w._tabStripPanel:onMouseDown(z.x + 2, z.y + 2) end
+    end
+    return false
+end, "the Identity tab")
+step(10, function()
     local w = win()
     for _, z in ipairs(w._tabStripPanel._hitZones or {}) do
         if z.id == "tab:identity" and w._activeTab ~= "identity" then w._tabStripPanel:onMouseDown(z.x + 2, z.y + 2) end

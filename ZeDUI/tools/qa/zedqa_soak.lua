@@ -78,7 +78,10 @@ local function finish()
         nFail = nFail + 1; say("FAIL fewer than 2 rounds finished")
     end
     local uiEnd = UIManager.getUI():size()
-    check(uiEnd <= uiStart + 1, string.format("after the run, the reader shut: %d UI elements (%d at the start; the reader's own window may stay as one)", uiEnd, uiStart))
+    -- (Nov 12 2026: held against the end of round 1, not the start: windows built once on first use are made in round 1
+    -- and stay, which is not piling up. The reader is open at the end of round 1 and shut here, so no allowance.)
+    local uiRef = roundUi[1] or (uiStart + 1)
+    check(uiEnd <= uiRef, string.format("after the run, the reader shut: %d UI elements (%d at the end of round 1, %d at the start)", uiEnd, uiRef, uiStart))
     say(nPass .. " passed, " .. nFail .. " failed (" .. ROUNDS .. " rounds)")
     say("DONE")
 end

@@ -123,7 +123,9 @@ add("A save and unpin", function()
     saved.x, saved.y = w:getX(), w:getY()
     local hs = w._halves
     saved.inv, saved.drawer, saved.both = hs and hs.inv.pinned, hs and hs.drawer.pinned, w.pinned
-    if hs then hs.inv.pinned, hs.drawer.pinned = false, false end
+    -- (Nov 12 2026: the drawer half stays pinned: unpinned it rolls up after 2 s and hides the engine window by design,
+    -- which read as "no engine window" in steps B, C and E)
+    if hs then hs.inv.pinned, hs.drawer.pinned = false, true end
     w.pinned = false
     pcall(ZeD_WorldWindow.openTab, 0, "vehicle")
     return true
