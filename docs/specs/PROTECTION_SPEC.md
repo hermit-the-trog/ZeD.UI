@@ -45,7 +45,9 @@ garment-level drill-down for the 10% of the time you need the deep data.
 ### Mini Body Figure (left column, ~90px wide)
 
 Reuses `BodyFigure.lua` from Thermal tab at reduced scale.
-Color-coded by **best bite defense** across all garments covering that part.
+Color-coded by **bite defense with the layers added** (every worn garment covering that part, at most 100, as
+the game counts it in IsoGameCharacter.getBodyPartClothingDefense). Only worn garments count: one held in a hand
+does not.
 
 | Defense      | Color          | Figure Treatment                   |
 |-------------|----------------|-------------------------------------|
@@ -198,19 +200,22 @@ Zone C scrolls independently using existing `_protectionScroll` (ZeD_ScrollbarSt
 
 ### Per-body-part defense aggregation (for figure + grade)
 
-Build a `partDefense` map: for each of the 18 body parts, find the
-**maximum** bite defense across all garments covering that part.
-Parts with no garment = -1 (uncovered).
+Build a `partDefense` map: for each of the 18 body parts, **add** the bite
+defense of every worn garment covering that part, capped at 100 (the game's own
+sum, which vanilla's Protection page shows and zombie attacks roll against;
+Nov 12 2026, was the best layer). Parts with no garment = -1 (uncovered). The
+garments come from `getWornItems()`, not the inventory's `isEquipped()` (which is
+also true for what the hands hold).
 
 ```lua
-partDefense = {}   -- partStr → max bite def (or -1)
+partDefense = {}   -- partStr -> bite def, layers added, at most 100 (or -1)
 for _, partStr in ipairs(ALL_PARTS) do
     partDefense[partStr] = -1
 end
 for _, garment in ipairs(garments) do
     for _, zone in ipairs(garment.parts) do
-        local cur = partDefense[zone.partStr] or -1
-        partDefense[zone.partStr] = math.max(cur, zone.biteDef)
+        local cur = math.max(0, partDefense[zone.partStr] or -1)
+        partDefense[zone.partStr] = math.min(100, cur + zone.biteDef)
     end
 end
 ```

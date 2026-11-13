@@ -546,7 +546,7 @@ local function zedFor(counter)
         TM = { getFontHeight = function() return 12 end, MeasureStringX = function(_, f, s) return #tostring(s) * 7 end },
         tr = function(k, ...) local a = { ... }; for i = 1, #a do a[i] = tostring(a[i]) end; return k .. "(" .. table.concat(a, ",") .. ")" end,
         Atoms = { mouseIn = function() return false end, truncateText = function(s) return s end, textCase = function(s) return s end },
-        Molecules = { drawTabHeader = function() end },
+        Molecules = { drawTabHeader = function() end, drawCategoryRow = function() end },   -- (the fold's head: the tab header, then the mono line, D6)
     }
 end
 base.ZeD_ScrollbarState = { new = function() return {} end }

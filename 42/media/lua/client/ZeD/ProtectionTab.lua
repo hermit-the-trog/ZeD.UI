@@ -143,7 +143,7 @@ local function gradeColor(grade)
 end
 ZeD.ProtectionTab.gradeColor = gradeColor
 
---- the colour for a part's best defense; below zero means uncovered
+--- the colour for a part's defense (its layers added, at most 100); below zero means uncovered
 local function protectionColorForDef(def)
     local T = ZeD.T
     if def < 0  then return T.danger   end  -- uncovered
@@ -159,19 +159,23 @@ ZeD.ProtectionTab.protectionColorForDef = protectionColorForDef
 -- ============================================================================
 
 --- Everything the defense dashboard shows for one player, in one table:
---- each worn garment's per-part defenses (worst first), per-part maxima
---- across layers, the overall average and grade, best and worst parts,
---- and the uncovered parts as abbreviated pill names.
+--- each worn garment's per-part defenses (worst first), per-part defense
+--- with the layers added (at most 100, as the game counts it), the overall
+--- average and grade, best and worst parts, and the uncovered parts as
+--- abbreviated names.
 function ZeD.ProtectionTab.gatherData(playerObj)
-    local inv   = playerObj:getInventory()
-    local items = inv:getItems()
+    -- the worn list, as the game's own defense sum reads it (getItemVisuals -> getWornItems);
+    -- item:isEquipped() is true for what the hands hold too, and a garment held in a hand
+    -- (a stowed sprayer, say) is not worn
+    local worn = playerObj:getWornItems()
 
     local garments  = {}
-    local coveredSet = {}  -- partStr → true
+    local coveredSet = {}  -- partStr -> true
 
-    for i = 0, items:size() - 1 do
-        local item = items:get(i)
-        if instanceof(item, "Clothing") and item:isEquipped() then
+    for i = 0, (worn and worn:size() or 0) - 1 do
+        local wi = worn:get(i)
+        local item = wi and wi:getItem()
+        if item and instanceof(item, "Clothing") then
             local parts = item:getCoveredParts()
             if parts and parts:size() > 0 then
                 local zones   = {}
@@ -219,7 +223,10 @@ function ZeD.ProtectionTab.gatherData(playerObj)
         return a.name < b.name
     end)
 
-    -- Build per-part defense maps: max bite/scratch/bullet defense across all garments
+    -- Per-part defense as the game counts it: every worn layer covering a part
+    -- adds its defense, capped at 100 (IsoGameCharacter.getBodyPartClothingDefense,
+    -- the number vanilla's Protection page shows and zombie attacks roll against).
+    -- A part no layer covers stays -1 (uncovered).
     local partDefense = {}
     local partStats   = {}
     for _, partStr in ipairs(ALL_PARTS) do
@@ -228,13 +235,14 @@ function ZeD.ProtectionTab.gatherData(playerObj)
     end
     for _, garment in ipairs(garments) do
         for _, zone in ipairs(garment.parts) do
-            local cur = partDefense[zone.partStr] or -1
-            partDefense[zone.partStr] = math.max(cur, zone.biteDef)
             local ps = partStats[zone.partStr]
-            ps.bite    = math.max(ps.bite,    zone.biteDef)
-            ps.scratch = math.max(ps.scratch, zone.scratchDef)
-            ps.bullet  = math.max(ps.bullet,  zone.bulletDef)
-            ps.layers  = ps.layers + 1
+            if ps then
+                ps.bite    = math.min(100, math.max(0, ps.bite)    + zone.biteDef)
+                ps.scratch = math.min(100, math.max(0, ps.scratch) + zone.scratchDef)
+                ps.bullet  = math.min(100, math.max(0, ps.bullet)  + zone.bulletDef)
+                ps.layers  = ps.layers + 1
+                partDefense[zone.partStr] = ps.bite
+            end
         end
     end
 

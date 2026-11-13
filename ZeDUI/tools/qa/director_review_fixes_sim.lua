@@ -6,7 +6,8 @@
 --            the ordinary row (Equipment) keeps both.
 --   NOTE     the notebook page takes what a taller drawer leaves under it, down to the view's foot, and never
 --            draws shorter than its own height in a short one.
---   TRAITS   a trait row is the icon, the dot, the name, left to right, the icon the game's 18 units.
+--   TRAITS   a trait row is the icon, then the name, left to right, the icon the game's 18 units (the colored
+--            square between them went with the design review's A4, Nov 12: the group heading says good or bad).
 --   RADIO    the World window's radio tab is the full card wherever it fits (480 at 1x), the half card held in.
 --   FURN     the Furniture tab's strip and its "Point at furniture." line start at the drawer's tab pad.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/director_review_fixes_sim.lua
@@ -144,7 +145,7 @@ do
     end
 end
 
-section("TRAITS: icon, dot, name")
+section("TRAITS: icon, name")
 do
     local ok, err = load("IdentityTab.lua", { "local _traitLay = {}" })
     check("traitRowLayout cuts and loads", ok, err)
@@ -152,7 +153,7 @@ do
     if ok and L then
         local r = L(23)
         check("the icon is the game's 18", r.icon == 18, r.icon)
-        check("icon, then dot, then name", r.iconX + r.icon <= r.dotX and r.dotX + r.dot <= r.nameX, r.dotX .. "," .. r.nameX)
+        check("icon, then name", r.iconX + r.icon <= r.nameX, r.nameX)
         check("the icon sits in the row's middle", r.iconY == 2, r.iconY)
         local src = readFile("42/media/lua/client/ZeD/IdentityTab.lua") or ""
         check("the trait's texture is read from its definition", src:find("texture = traitDef:getTexture() or nil", 1, true) ~= nil)
