@@ -138,7 +138,8 @@ function LC.facts(item, chr)
         end
     elseif isA(item, "InventoryContainer") then
         local inv = safe(item, "getInventory")
-        local cap = safe(item, "getCapacity") or (inv and safe(inv, "getCapacity")) or 0
+        -- (the character's capacity, as the game's own tooltip reads it: Organized holds more, Disorganized less)
+        local cap = safe(item, "getEffectiveCapacity", chr) or safe(item, "getCapacity") or (inv and safe(inv, "getCapacity")) or 0
         if cap > 0 then rows[#rows + 1] = { tr("UI_ZeD_Loot_Holds"), f1(inv and safe(inv, "getCapacityWeight") or 0) .. " / " .. tostring(math.floor(cap + 0.5)), nil, nil } end
         local red = safe(item, "getWeightReduction")
         if red and red > 0 then rows[#rows + 1] = { tr("UI_ZeD_Card_WeightReduce"), pct(red), nil, nil } end

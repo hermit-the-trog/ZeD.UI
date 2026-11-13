@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5269.
+Total keys: 5271.
 
 ## Areas
 
@@ -5927,3 +5927,10 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Settings_RunSneak` | `Run button also sneaks` | ZeD setup > Controls: a setting's name (a checkbox). "Run" is the game's controller binding (Options > Controller), in the game's word for it | 32 |
 | `UI_ZeD_Settings_RunSneakTip` | `Works when the game's Run is on a button, as in the Original controller layout (Run on the right trigger, RT); does nothing when Run is a full push of the stick (the Default layout) or on LB or RB, which ZeD keeps for its quick actions. Standing still, hold Run to crouch and hold it again to stand. Moving, Run runs as always; crouched, the hold stands you up first. A quick tap does what it always did.` | ZeD setup > Controls: the help line under it. Run is the game's controller-binding word, Original and Default its two controller layouts (Options > Controller), in the game's words; quick actions as UI_ZeD_Options_ZedChords has them; RT, LB and RB stay as written | - |
 | `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field and on the Skills and Equipment tabs' Find fields: A opens the on-screen keyboard | 10 |
+
+## Lists (the Journal's loadouts and outfits)
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Lists_EmptySec` | `Nothing here yet. Add what you carry, or open an item's menu: Save to loadout.` | Character window, Journal tab, Lists: the one dim line in a loadout's empty section. After the colon, the item menu's option as `UI_ZeD_Lists_SaveToLoadout` has it. No mouse words: a controller opens the item's menu too | - |
+| `UI_ZeD_Lists_EmptyWorn` | `Nothing here yet. Add what you wear, or open a piece's menu: Save to outfit.` | Character window, Journal tab, Lists: the one dim line in an outfit's empty section. After the colon, the menu's option as `UI_ZeD_Lists_SaveToOutfit` has it. No mouse words | - |

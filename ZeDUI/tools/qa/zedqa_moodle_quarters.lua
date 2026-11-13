@@ -170,6 +170,7 @@ for _, place in ipairs({ { 1, "right" }, { 2, "left" }, { 3, "bottom" } }) do
         if L._mode == "bottom" then lx, ly = s + 10 + s / 2, s / 2 end
         L.getMouseX = function() return lx end
         L.getMouseY = function() return ly end
+        L.isMouseOver = function() return true end   -- (nothing over the layer there: the engine's picking)
     end)
     step(10, function()
         local L = MO.getLayer(pn)
@@ -181,7 +182,7 @@ for _, place in ipairs({ { 1, "right" }, { 2, "left" }, { 3, "bottom" } }) do
     end)
     step(2, function()
         local L = MO.getLayer(pn)
-        L.getMouseX, L.getMouseY, L._drawRow = nil, nil, nil
+        L.getMouseX, L.getMouseY, L.isMouseOver, L._drawRow = nil, nil, nil, nil
     end)
 end
 
@@ -190,7 +191,7 @@ step(10, function()
     for k, v in pairs(kept) do pcall(function() st:set(CharacterStat[k], v) end) end
     p:setGodMod(god)
     local L = MO.getLayer(pn)
-    if L then L.getMouseX, L.getMouseY, L._drawRow = nil, nil, nil end
+    if L then L.getMouseX, L.getMouseY, L.isMouseOver, L._drawRow = nil, nil, nil, nil end
     if winsWere and not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     say(fails == 0 and "all checks passed" or (fails .. " failed"))
     say("DONE")

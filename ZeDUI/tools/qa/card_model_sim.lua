@@ -485,6 +485,27 @@ do
     check("the Kind row is the game's word for the item's display category", asked == "Bag" and kind == "IGUI_ItemCat_Bag (word)",
         ok and tostring(kind) or rows)
 end
+-- (Nov 12 2026, review) a bag's capacity is the card's character's: the game's getEffectiveCapacity (a Disorganized
+-- character's 15 is 10; Organized holds more), what it checks a transfer against and shows in its own tooltip and
+-- inventory. The bare getCapacity said 15 whatever the traits
+do
+    local f = BAG_INV._f
+    f.getEffectiveCapacity = function(_, chr) return chr == PLAYER and 10 or 15 end
+    local ok, rows = pcall(NEW.ZeD.ItemCard.topStatsForItem, ITEMS.bag, 0)
+    local okF, facts = pcall(NEW.ZeD.ItemFactsPanel.ContainerFacts, ITEMS.bag, 0)
+    f.getEffectiveCapacity = nil
+    local got = nil
+    for _, r in ipairs(ok and rows or {}) do
+        if r.label == "en:Tooltip_container_Capacity" then got = r.value end
+    end
+    check("a Disorganized character's bag: the card's Capacity reads 4.5 / 10 kg (the one load format)", got == "en:UI_ZeD_Char_WeightOfMax:4.5:10", ok and tostring(got) or rows)
+    local fv = okF and facts and facts.groups and facts.groups[1] and facts.groups[1].rows[1] and facts.groups[1].rows[1].value
+    check("and its Container Facts the same", fv == "en:UI_ZeD_Char_WeightOfMax:4.5:10", okF and tostring(fv) or facts)
+    local src = readFile("42/media/lua/client/ZeD/ItemCardOrganism.lua") or ""
+    check("the card's model reads the stats and the facts for its own player",
+        src:find("m.stats  = topStatsForItem(item, playerNum)", 1, true) ~= nil
+        and src:find("ZeD.ItemFactsPanel.factsFor(item, playerNum)", 1, true) ~= nil)
+end
 
 local function frameOf(env)
     env.LOG = {}

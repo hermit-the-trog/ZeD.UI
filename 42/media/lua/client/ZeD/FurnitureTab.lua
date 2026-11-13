@@ -420,7 +420,10 @@ local function drawNotes(panel, x, y, w, notes)
 end
 
 -- one list row: icon, name + sub, button (a push button at the list-row height);
--- the row the cursor carries wears the selected wash
+-- the row the cursor carries wears the selected wash, and its button (the default,
+-- Target) takes the row's own ink: an accent outline and accent words sank into
+-- the accent wash and read poorly (the controller's focus keeps its own ink)
+local _rowInk = {}
 local function drawRow(panel, s, x, y, w, id, tex, name, sub, label, primary, fn, enabled)
     local T, tm = ZeD.T, ZeD.TM
     local M = ZeD.Molecules
@@ -433,7 +436,12 @@ local function drawRow(panel, s, x, y, w, id, tex, name, sub, label, primary, fn
     local bx = x + w - T.px(2) - bw
     local by = y + math.floor((rh - bh) / 2)
     local dis = enabled == false
-    M.drawButton(panel, bx, by, bw, bh, label, primary and "primary" or "default", false, nil,
+    local ink = nil
+    if primary and not dis and s.gpId ~= id then
+        ink = _rowInk
+        ink.text, ink.border = T.text, T.text
+    end
+    M.drawButton(panel, bx, by, bw, bh, label, primary and "primary" or "default", false, ink,
         { disabled = dis, hover = not dis and ZeD.Atoms.mouseIn(panel, bx, by, bw, bh), focus = (s.gpId == id) or nil })
     stamp(s, id, bx, by, bw, bh, fn)
     local f2, f5 = T.fontF2, T.fontF5
@@ -975,10 +983,96 @@ function ZeD_FurnitureChip:prerender()
     local sq = c.sq
     local x = isoToScreenX(pn, sq:getX() + 1, sq:getY(), sq:getZ()) + T.px(6)
     local y = isoToScreenY(pn, sq:getX(), sq:getY(), sq:getZ()) - math.floor(h / 2)
-    -- the mouse sits on the tile: flip above when the chip would cover it
-    local mx, my = getMouseX(), getMouseY()
-    if mx >= x and mx < x + w and my >= y and my < y + h then y = y - h - T.px(16) end
+    local core = getCore()
+    local vw, vh = FT.versionReach(FT.versionLines())
+    x, y = FT.chipSpot(x, y, w, h, core:getScreenWidth(), core:getScreenHeight(), vw, vh, getMouseX(), getMouseY())
     self:setX(x); self:setY(y); self:setWidth(w + T.hair); self:setHeight(h + T.hair)
+end
+
+--- The room the game's version line takes in the screen's lower right corner, from the corner (ISVersionWaterMark:
+--- a button as wide as the version words in UIFont.Small, 100 at least, as tall as UIFont.NewSmall, 10 px in from
+--- the corner). Measured once: the words never change in a session. Returns width, height (0, 0 if unreadable).
+function FT.versionBox()
+    if not FT._verW then
+        FT._verW, FT._verH = 0, 0
+        pcall(function()
+            local tm, core = getTextManager(), getCore()
+            local s = core:getVersion() .. " pzBullet(" .. core:getBulletVersion() .. ")"
+            FT._verW = math.max(100, tm:MeasureStringX(UIFont.Small, s) + 10) + 10
+            FT._verH = tm:getFontHeight(UIFont.NewSmall) + 6 + 10
+        end)
+    end
+    return FT._verW, FT._verH
+end
+
+--- How many lines the game's version mark stacks above its version line (WaterMarkUI:render: the character's
+--- position under -debug, with the unstable script name spam option on alone or ShowCoordinates on a server; on a
+--- server the player cap notice, the server time and the connection; one line per cheat the character has on).
+--- Counted the way it counts them, with no table made, at most every half second.
+function FT.versionLines()
+    local now = getTimestampMs()
+    if FT._vlAt and now - FT._vlAt < 500 then return FT._vlN end
+    FT._vlAt, FT._vlN = now, 0
+    local chr = getSpecificPlayer(0)
+    if not chr then return 0 end
+    local n, mp = 0, isClient()
+    if isDebugEnabled() or (not mp and getSandboxOptions():isUnstableScriptNameSpam())
+        or (mp and getServerOptions():getBoolean("ShowCoordinates")) then n = n + 1 end
+    if mp then
+        if (tonumber(getMaxPlayers()) or 0) > 32 then n = n + 1 end
+        if isShowServerInfo() then n = n + 1 end
+        if isShowConnectionInfo() then n = n + 1 end
+    end
+    local cheats = getCheatTypes()
+    for i = 0, cheats:size() - 1 do
+        if chr:isCheatSet(cheats:get(i)) then n = n + 1 end
+    end
+    FT._vlN = n
+    return n
+end
+
+--- The widest of those lines, from the corner: the position line at its longest (five-digit x and y, a 4K screen,
+--- three-digit frame rate), each cheat's words, and on a server its time and connection lines. Measured once: none
+--- of them outgrows these in a session. 0 if unreadable.
+function FT.versionStackW()
+    if not FT._stackW then
+        FT._stackW = 0
+        pcall(function()
+            local tm = getTextManager()
+            local f = UIFont.NewSmall
+            local w = tm:MeasureStringX(f, "x: 00000 , y: 00000, z: -00 ; 0000x0000@000")
+            local cheats = getCheatTypes()
+            for i = 0, cheats:size() - 1 do
+                w = math.max(w, tm:MeasureStringX(f, getText("IGUI_CheatPanel_" .. cheats:get(i):getTooltip())))
+            end
+            if isClient() then
+                w = math.max(w, tm:MeasureStringX(f, getText("UI_ServerTime", "00:00:00", "0000")))
+                w = math.max(w, tm:MeasureStringX(f, "\"" .. getServerName() .. "\" (" .. getServerIP() .. ":" .. getServerPort() .. ")"))
+            end
+            FT._stackW = w + 10
+        end)
+    end
+    return FT._stackW
+end
+
+--- The room the version mark takes from the corner with n lines stacked above its version line: as wide as the
+--- widest of them, and each line its NewSmall height + 3 taller. Returns width, height.
+function FT.versionReach(n)
+    local vw, vh = FT.versionBox()
+    if not n or n <= 0 or vh <= 0 then return vw, vh end
+    local lineH = vh - 16 + 3
+    return math.max(vw, FT.versionStackW()), vh + n * lineH
+end
+
+--- Where the chip goes, from where it would sit (x, y; w x h, beside the cursor's tile): lifted clear of the game's
+--- version line when it would sit on it (vw x vh from the corner of the sw x sh screen), then above the pointer
+--- (mx, my) when it would cover it. Returns x, y.
+function FT.chipSpot(x, y, w, h, sw, sh, vw, vh, mx, my)
+    local T = ZeD.T
+    if vw > 0 and x + w > sw - vw and y + h > sh - vh then y = sh - vh - h - T.px(4) end
+    -- the mouse sits on the tile: flip above when the chip would cover it
+    if mx >= x and mx < x + w and my >= y and my < y + h then y = y - h - T.px(16) end
+    return x, y
 end
 
 function ZeD_FurnitureChip:render()
