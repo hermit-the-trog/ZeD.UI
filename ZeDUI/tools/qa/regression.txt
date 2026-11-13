@@ -126,6 +126,7 @@ zedqa_tm.lua | tm                                # tooltip frame, map labels, da
 zedqa_tour3.lua | t3                             # seven dash designs on spawned cars
 zedqa_dash19.lua | dash | timeout=480            # every dashboard design on a spawned car (19 cars)
 zedqa_dashpx.lua | dpx | timeout=720             # the pixel-art v6 dashboards (24 cars)
+zedqa_cov_vehicles.lua | cov_vehicles | timeout=600 | expect=FBORenderCell   # coverage (Nov 12 2026, cov_vehicles.txt): rod and clock plates, rod prop, sleep clock, car radio + CD + plain + ham, siren, seat chooser on its own police car (removed); "CH down on channel 01" FAILs until ZeD_RadioOps.chStep adds the count before the %
 
 # ---- last: the long one
 zedqa_exinfo.lua | ex                            # Health tab exercise info: vanilla's description, stiffness, regularity, warnings
