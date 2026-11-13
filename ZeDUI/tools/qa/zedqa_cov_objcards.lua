@@ -1,70 +1,102 @@
 -- ZeDUI/tools/qa/zedqa_cov_objcards.lua  (Nov 12 2026, QA coverage: ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md
 -- Table B, the object cards that were only photographed or never checked). In game on the ZeD-QA save only
--- (Saves/Sandbox/ZeD-QA), the character at the QA home (the drag strip, 925,13040; the prelude puts it there).
--- Copy to Zomboid/Lua/zedqa.lua, bump zedqa.go; grep console.txt for "ZEDQA cov_objcards". Manifest: cov_objcards.txt.
+-- (Saves/Sandbox/ZeD-QA: on any other save it stops before it moves, reads or stages anything), the character at the
+-- QA home (the drag strip, 925,13040; the prelude puts it there). Copy to Zomboid/Lua/zedqa.lua, bump zedqa.go; grep
+-- console.txt for "ZEDQA cov_objcards". Manifest: cov_objcards.txt (also in regression.txt).
 -- Every check prints "PASS <what>" or "FAIL <what> (<got> vs <want>)", read from ZeD's own objects: the open card's
 -- entry (its def and target t: t.d is the model the body draws, t.verbs the verb row), the def's own header calls
--- (title, pill, openFocus), the card's zones (a press here calls the zone's run, exactly what the mouse's release
--- over it (ZeD_ObjectCard:_pointer) and the pad's A (buildFocusables) call) and what a press changed in the world.
--- Each card is opened through the game's own entry point that ZeD hooks, not by ZeD's open call. Ends with
--- "RESULT", "fails <n>" and DONE. Screenshots/zqa_ocv_<card>.png, one "SHOT" line each.
+-- (title, pill), the card's zones (a press here calls the zone's run, exactly what the mouse's release over it
+-- (ZeD_ObjectCard:_pointer) and the pad's A (buildFocusables) call), the World window's controller ring (where the pad
+-- lands in the card) and what a press changed in the world. Each card is opened through the game's own entry point
+-- that ZeD hooks, not by ZeD's open call; a hook that is not in place stops its card with a FAIL, and safe mode stops
+-- the run (the game's own window would open instead, on the script's things). Ends with "RESULT", "fails <n>" and
+-- DONE. Screenshots/zqa_ocv_<card>.png, one "SHOT" line each.
+--
+-- HOW A PRESS IS JUDGED: a verb's button, the question's two buttons and the close key run the card's own press, which
+-- runs the verb inside a pcall of its own and returns early for a disabled verb (ZeD_ObjectCard:press, the band's
+-- buttons, close), so pressing one of them comes back ok whenever the button was drawn. Those checks read what the
+-- press did instead: the game's action queued (ISTimedActionQueue.hasActionType), the question opened or shut, the card
+-- closed, moved or jumped. A row's own button (Add, Light, Take, Sow, Into, a bird's Info) runs its code with nothing
+-- round it: a throw there fails its check. A check that a button or a row is absent is made only while the card is on
+-- screen and drawing (H.live): a card that does not draw keeps the zones of its last frame (or of the card before it,
+-- until its first frame). For the whole run both windows are held down (H.keepDown, as zedqa_b8_cards.lua does): an
+-- unpinned window rolls up 2 s after the pointer leaves it, the card in its drawer stops drawing, and with it the card's
+-- upkeep (data, leash, validity: OC.tick runs in the card's prerender).
 --
 -- WHAT IT CHECKS
 --   track      (ObjectCardTrack) the game's Inspect Track action (ISInspectAnimalTrackAction) opens the card; the
 --              title is the track's type, the direction, the Tracking level, vanilla's species rule (the species
 --              only from Tracking 5, else the track size; "???" for a type the game does not know), the tag is the
---              freshness, no verbs, no leash for a carried track, the close key closes it. (The drag strip has no
---              animal tracks and the game makes them only from a virtual herd: the track is a stand-in for the
---              game's track item, answering the five calls the card makes. The card itself is ZeD's, untouched.)
+--              freshness, no verbs, no leash for a carried track (open and drawing 9 squares off), the close key
+--              closes it. (The drag strip has no animal tracks and the game makes them only from a virtual herd: the
+--              track is a stand-in for the game's track item, answering the five calls the card makes. The card
+--              itself is ZeD's, untouched.)
 --   placement  (ObjectCardPlacement) the game's Extended placement on a hammer on the ground opens the card; it
---              starts from the item's place and turn; Done is the main verb; the pad lands on Movement X; +0.01 X,
---              +15 Z and the D-pad on the Y slider move the item by those steps (and the gizmo follows the group);
---              Z never goes under the floor; -15 from 5 degrees wraps to 350; Revert puts it all back; Done closes and
---              keeps the new place; the card closes past vanilla's 3 squares.
+--              starts from the item's place and turn; Done is the main verb; the pad lands on Movement X (the card
+--              zone's stop in the World window's controller ring); +0.01 X, +15 Z and the D-pad on the Y slider move
+--              the item by those steps (and the gizmo follows the group); Z never goes under the floor; -15 from 5
+--              degrees wraps to 350; Revert puts it all back; Done closes the card and keeps the new place; opened
+--              again, the card closes past vanilla's 3 squares.
 --   fluid      (ObjectCardFluid) a bottle's Pour (ISFluidContainerMenu.showUI) opens the card with it on the left;
 --              the rows: From on it, an empty bottle tagged Empty and taking the pour, a full one tagged Full and
---              refusing it (the engine's reason); the tag names the liquid; no Pour until the right side is set; Into
---              sets it; Max pour is the smaller of what is in and the room; 1/2 and the slider's D-pad set the share;
---              Pour (the game's action) moves that much; Switch swaps; Empty asks first with the litres, Cancel
---              keeps it, the question's Empty empties it.
+--              refusing it (the engine's reason); the tag names the liquid; the pad lands on an Into button; no Pour
+--              until the right side is set; Into sets it; Max pour is the smaller of what is in and the room; 1/2 and
+--              the slider's D-pad set the share; Pour (the game's action) moves that much; Switch swaps; Empty asks
+--              first with the litres, Cancel keeps it, the question's Empty queues the game's empty, which empties it.
 --   campfire   (ObjectCardFire) the campfire's Info opens the card; a new one reads no fuel and Out; no Put out on a
 --              dead fire; Light waits with nothing to light with; Take apart asks; carried planks and paper become
 --              rows; with a lighter Light is the main verb; Add fuel jumps to its list; a plank row adds its burn time;
---              the paper row lights it (the tag says Burning, Put out shows, Light goes); Put out puts it out; Take
---              apart asks (red), Cancel keeps it, yes takes it apart and the card closes with it.
+--              the paper row lights it (the tag says Burning, Put out shows, Light goes); Put out queues the game's
+--              action, which puts it out; Take apart asks (red), Cancel keeps it, yes queues the game's action, which
+--              takes it apart, and the card closes with it.
 --   trough     (ObjectCardTrough) Feeding Trough Info opens the card; a new trough is Empty; the zone line names the
 --              animal zone it stands in (one drawn over it for the run when it stands in none); water in it: the
---              litres, the tag Water, no Add food, Add water the main verb, Empty asks with the litres and empties it;
---              Add water opens the fluid card aimed at the trough; feed in it: the tag Food, the rows, no Add water or
---              Empty; Take moves the feed to the bags; carried feed is an Add row, Add food jumps there, Add moves it in.
+--              litres, the tag Water, no Add food, Add water the main verb, Empty asks with the litres, its Empty
+--              queues the game's empty, which empties it; Add water opens the fluid card aimed at the trough; feed in
+--              it: the tag Food, the rows, no Add water or Empty; Take moves the feed to the bags; carried feed is an
+--              Add row, Add food jumps there, Add moves it in.
 --   hutch      (ObjectCardHutch) the hen house's Info opens the card; both doors shut: the tag Shut, boxes and
 --              perches covered, Open door is the main verb, no Grab eggs; Open hatch (the game's action) uncovers the
---              boxes only; the egg count; Grab on the box with eggs, none under a sitting hen; Grab eggs is the main
---              verb and where the pad lands; Grab eggs takes the free box's eggs and leaves the sitting hen's; Open door
---              shows the perches, each bird with Grab and Info; Clean waits and names water and a mop, is live with
---              both, cleans the floor and goes; a bird's Info shows it in the Animals tab.
+--              boxes only. A hen is set on an egg in a box then (a sitting hen lays and leaves her box 350 to 600 game
+--              ticks after she sits, IsoHutch.addAnimalInNestBox: 7 to 12 s, so she sits down right before the boxes
+--              are read) and the card is opened again through the Info: the egg count; Grab on the box with eggs,
+--              none under the sitting hen; Grab eggs is the main verb and the pad lands on the box with eggs; Grab eggs
+--              (the game's action) takes the free box's eggs and leaves the sitting hen's; Open door shows the
+--              perches, each bird with Grab and Info (in daytime hens walk out of an open hen house one by one,
+--              IsoHutch.checkAnimalExitHutch: the list is read as a range); a bird's Info shows it in the Animals tab.
+--              Then the door is shut again, the hens that walked out are taken away, the World window goes back to
+--              its tab and the card opens again: Clean waits and names water and a mop, is live with both, queues the
+--              game's cleaning, which cleans the floor, and shows only while the floor is dirty.
 --   farm plot  (ObjectCardFarm) the plot's Info opens the card; plowed: the tag Empty, only Sow, waiting; the
 --              garden strip and the header arrows list both plots; carried seeds are a Sow row; Sow is the main verb
---              and jumps to it; the row sows (the game's action) and the card stays on the plot; water 20: Parched;
---              Water waits, is live with water carried, raises the water (the game's action); Dig up asks naming the
---              crop and Cancel keeps it; > steps to the next plot, a garden plot picks it, < on the first wraps to the
---              last; the plot dug up from under the card: it moves to one still in reach (keepOnLoss).
---   cleanup    everything staged is gone at the end.
--- THE LEDGER: everything the script gives, stages or changes is put back at the end, and also on a timeout: given
+--              and jumps to it; the row sows (the game's action) and the card stays on the plot; water set to 20:
+--              Parched (vanilla's band, 25 and under: the farming system's ten-minute tick moves the level, rain by up
+--              to 30); Water waits, is live with water carried, queues the game's watering, which raises the water;
+--              Dig up asks naming the crop and Cancel keeps it; > steps to the next plot, a garden plot picks it, < on
+--              the first wraps to the last; the plot dug up from under the card: it moves to one still in reach
+--              (keepOnLoss).
+--   cleanup    everything staged is gone at the end: the script's hens out of the hen house and the world, and
+--              nothing lies on the staged squares.
+-- THE LEDGER: everything the script gives, stages or changes is put back at the end, and also on a time-out: given
 -- items and anything new on the character (eggs, stones, feed) taken away; the character's own fire starters, planks,
 -- paper, seeds, feed bags, water and petrol containers and mops set aside first (so the game's actions use the
 -- script's things, never the character's) and given back to the container they came from; the hammer, the campfire,
--- the trough, the hen house, its hens and eggs, the plots and the zone removed; hands, god mode, instant actions,
--- body stiffness (sowing strains the back), the Animals tab's view, the World window's tab and the character's spot
--- as they were. The script's items and hens carry the mod-data mark ZeDQA_spawned.
+-- the trough, the hen house (its hens taken off the boxes and the perches first: the house's removal would release
+-- them into the world and drop its eggs), its hens and eggs, the plots and the zone removed; anything left lying on the
+-- staged squares (all clear at the start) swept up; hands, god mode, instant actions, body stiffness (sowing strains
+-- the back), the Animals tab's view (and its Back), the World window's tab (through its own tab strip), both windows'
+-- roll-up timers and the character's spot as they were. The script's items and hens carry the mod-data mark
+-- ZeDQA_spawned.
 -- Known leftover: Husbandry XP for the three eggs grabbed (the game's action gives it; there is no safe take-back).
 -- Two checks were written against bugs found while reading the code (Kahlua's % truncates: (-1) % 2 is -1), and FAIL
 -- until the build fixes them:
 --   "farm: < on the first plot wraps to the last": OC.browse (ObjectCards.lua) steps back from the first object to
---     index 0, e.t is nil, the press throws and the card closes (every kind with two or more in reach).
+--     index 0, e.t is nil, the press throws and the card closes (every kind with two or more in reach). -debug logs
+--     that caught error as a Java exception, so the manifests mark it expected (expect=\.browse\(ObjectCards\.lua:);
+--     the script closes the card in the same step, before its next frame would throw again in OC.tick.
 --   "placement: -15 from 5 degrees wraps to 350": setAxis (ObjectCardPlacement.lua) keeps -10; the readout says -10
 --     and the slider's block sits at 0.
--- Timed actions run with the instant cheat; walks still take their time. About two minutes.
+-- Timed actions run with the instant cheat; walks still take their time. About three minutes.
 
 local TAG = "cov_objcards"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
@@ -90,12 +122,13 @@ end
 local H = {}
 local S = { off = {}, res = {}, spots = {} }
 local LG = { added = {}, taken = {}, had = {}, plots = {}, plowDay = {}, fires = {}, zones = {}, hens = {},
-             worldItems = {}, stiff = {}, kept = {}, done = false }
+             worldItems = {}, stiff = {}, kept = {}, clearSqs = {}, gone = {}, done = false }
 
 -- ===============================================================================================================
 -- HELPERS (all on H, so every step reaches them by a table lookup at run time)
 -- ===============================================================================================================
 function H.W() return WWm and WWm.getWindow and WWm.getWindow() or nil end
+function H.CW() return CWm and CWm.getWindow and CWm.getWindow() or nil end
 function H.card() return WWm and WWm.getObjectCard and WWm.getObjectCard() or nil end
 function H.e() local c = H.card(); return c and c.entry or nil end
 function H.t() local e = H.e(); return e and e.t or nil end
@@ -114,7 +147,8 @@ function H.zonesLike(prefix)
     end
     return out
 end
--- A zone's action, as the mouse's release over it and the pad's A run it. Returns ok, error words.
+-- A zone's action, as the mouse's release over it and the pad's A run it. Returns ok, error words. (For a verb, the
+-- question's buttons and the close key, ok only says the button was drawn: see HOW A PRESS IS JUDGED.)
 function H.press(fid)
     local c, z = H.card(), H.zone(fid)
     if not (c and z) then return false, "no zone " .. tostring(fid) end
@@ -123,6 +157,32 @@ function H.press(fid)
     if not ok then return false, tostring(err) end
     return true, nil
 end
+-- The card is on screen and drawing (its prerender runs OC.tick and stamps the zones each frame): the World window
+-- up and not rolled to its title bar, its card drawer and the card shown.
+function H.live()
+    local w, c = H.W(), H.card()
+    if not (w and c) then return false end
+    local dr = w._itemDrawerPanel
+    return (w:getIsVisible() and not w.windowShaded and (dr == nil or dr:getIsVisible()) and c:getIsVisible()) and true or false
+end
+-- a button or row absent from a card that is drawing
+function H.gone(fid) return H.live() and H.zone(fid) == nil end
+-- Where the controller lands in the card: the card zone's stop held in the World window's controller ring (the window
+-- moves it to the card's opening focus, card._pendingFocus, once that stop is drawn, and clears the ask); with no ring,
+-- the card's ask.
+function H.landed()
+    local w = H.W()
+    for _, z in ipairs(w and w._focusRing or {}) do
+        if z.zone == "worldItemCard" then
+            local el = z.elements and z.elements[z.focusedElementIdx or 1]
+            return el and el.id or nil
+        end
+    end
+    local c = H.card()
+    return c and c._pendingFocus or nil
+end
+-- the game's own timed action of this type in the character's queue (a walk or an equip may come before it)
+function H.queued(typ) return ISTimedActionQueue.hasActionType(p, typ) == true end
 function H.verb(id)
     local t = H.t()
     for _, v in ipairs(t and t.verbs or {}) do if v.id == id then return v end end
@@ -146,9 +206,7 @@ function H.queue()
     return q and q.queue and #q.queue or 0
 end
 function H.idle()
-    local busy = false
-    pcall(function() busy = ISTimedActionQueue.isPlayerDoingAction(p) end)
-    return not busy and H.queue() == 0
+    return not ISTimedActionQueue.isPlayerDoingAction(p) and H.queue() == 0
 end
 function H.put(x, y)
     pcall(function() p:setX(x); p:setY(y); p:setLastX(x); p:setLastY(y) end)
@@ -233,23 +291,96 @@ function H.plantLua(sq)
     pcall(function() lo = CFarmingSystem.instance:getLuaObjectOnSquare(sq) end)
     return lo
 end
+-- the plot's water as the farming system holds it (the server's object: the game's watering writes there)
+function H.waterLvl()
+    local lo = S.plot1 and SFarmingSystem.instance:getLuaObjectOnSquare(S.plot1)
+    return lo and lo.waterLvl or nil
+end
+function H.setWater(v)
+    local lo = S.plot1 and SFarmingSystem.instance:getLuaObjectOnSquare(S.plot1)
+    if lo then lo.waterLvl = v; lo:saveData() end
+end
+-- a section that cannot be staged: a FAIL that says what was missing, and the rest of it is skipped
 function H.skip(sec, what)
     S.off[sec] = true
     check(false, sec .. ": " .. what, "none", "staged")
+end
+-- a check the rest of a section stands on: on a FAIL the section is turned off (its FAIL says why)
+function H.need(sec, ok, what, got, want)
+    check(ok, what, got, want)
+    if not ok then S.off[sec] = true end
+    return ok and true or false
+end
+-- ZeD's hook on the game's entry point is in place: else the game's own window would open on the script's things (a
+-- vanilla window the run cannot close; the track's stand-in would break it), so that card stops with a FAIL
+function H.hooked(sec, flag, entry)
+    return H.need(sec, flag == true, sec .. ": ZeD's hook on " .. entry .. " is in place", tostring(flag), "true")
+end
+
+-- ---- the windows held down for the run (see the header): unrolled, and the roll-up timers held while _outSince lies
+-- ahead (WindowHalves.update). Every tick: a page the game asks for sets _outSince only 500 ms ahead.
+function H.hold(w)
+    if not w then return end
+    w._autoShaded = false
+    if w.windowShaded then w:setWindowShaded(false) end
+    w._outSince = getTimestampMs() + 600000
+end
+function H.keepDown() H.hold(H.W()); H.hold(H.CW()) end
+
+-- ---- the Animals tab's view and the World window's tab as they were
+function H.atBack()
+    local w, a = H.W(), LG.atState
+    if not (w and a and ZeD.AnimalsTab and ZeD.AnimalsTab.getState) then return end
+    local st = ZeD.AnimalsTab.getState(w)
+    st.submode, st.view, st.zoneName, st.animalRef, st.prevView = a.submode, a.view, a.zoneName, a.animalRef, a.prevView
+end
+-- through the window's own tab strip (ZeD_WorldWindow.openTab replays the strip's click: the drawer, the window's width
+-- and the controller's stops follow, as a press does), then its controller ring re-synced
+function H.tabBack()
+    local w = H.W()
+    if not (w and LG.tab0) then return end
+    if w._activeTab ~= LG.tab0 then WWm.openTab(0, LG.tab0) end
+    if WWm.syncRing then WWm.syncRing(w) end
+end
+
+-- ---- the script's hens
+function H.perchCount()
+    local h, n = S.hutch, 0
+    if not h then return 0 end
+    for k = 0, h:getMaxAnimals() - 1 do if h:getAnimal(k) then n = n + 1 end end
+    return n
+end
+-- the script's hens out in the loaded world (a hen walks out of an open hen house in daytime; the house's removal
+-- releases what is left inside)
+function H.hensOut()
+    local out = {}
+    local list = getCell():getAnimals()
+    for k = 0, list:size() - 1 do
+        local a = list:get(k)
+        for _, mine in ipairs(LG.hens) do if a == mine then out[#out + 1] = a end end
+    end
+    return out
+end
+-- a hen taken out of the game, once: vanilla's cheat removal (removeAnimal finds her by id and deletes her: off the
+-- world and her square), and off the world as the animal scripts do only when that lookup missed her
+function H.takeAwayOut(a)
+    if LG.gone[a] then return end
+    LG.gone[a] = true
+    pcall(function() removeAnimal(a:getOnlineID()) end)
+    local still = false
+    pcall(function() still = getCell():getAnimals():contains(a) end)
+    if still then pcall(function() a:removeFromWorld(); a:removeFromSquare() end) end
 end
 
 -- ---- open ground: a square with nothing on it but its floor, outdoors, nobody on it
 function H.clear(x, y, z, strict)
     local sq = getCell():getGridSquare(x, y, z)
     if not sq then return false end
-    local ok, v = pcall(function()
-        if not sq:isFree(false) or sq:isSolid() or sq:isSolidTrans() then return false end
-        if sq:getVehicleContainer() or sq:getRoom() then return false end
-        if sq:getWorldObjects():size() > 0 or sq:getMovingObjects():size() > 0 then return false end
-        if sq:getSpecialObjects():size() > 0 then return false end
-        return sq:getObjects():size() <= (strict and 1 or 3)
-    end)
-    return ok and v == true
+    if not sq:isFree(false) or sq:isSolid() or sq:isSolidTrans() then return false end
+    if sq:getVehicleContainer() or sq:getRoom() then return false end
+    if sq:getWorldObjects():size() > 0 or sq:getMovingObjects():size() > 0 then return false end
+    if sq:getSpecialObjects():size() > 0 then return false end
+    return sq:getObjects():size() <= (strict and 1 or 3)
 end
 function H.reserve(x, y, margin)
     for dy = -margin, margin do
@@ -257,7 +388,8 @@ function H.reserve(x, y, margin)
     end
 end
 -- A spot for a footprint fp ({dx, dy} squares off the anchor) rmin..rmax squares from the QA home, all of it open
--- ground and clear of what was spotted before (a square's gap kept round each)
+-- ground and clear of what was spotted before (a square's gap kept round each). The footprint's squares are kept in
+-- LG.clearSqs: clear now, anything lying on them at the end is the run's.
 function H.spot(fp, rmin, rmax)
     local hx, hy, hz = math.floor(LG.home.x), math.floor(LG.home.y), math.floor(LG.home.z)
     for pass = 1, 2 do
@@ -272,7 +404,10 @@ function H.spot(fp, rmin, rmax)
                             end
                         end
                         if good then
-                            for _, o in ipairs(fp) do H.reserve(x + o[1], y + o[2], 1) end
+                            for _, o in ipairs(fp) do
+                                H.reserve(x + o[1], y + o[2], 1)
+                                LG.clearSqs[#LG.clearSqs + 1] = getCell():getGridSquare(x + o[1], y + o[2], hz)
+                            end
                             return getCell():getGridSquare(x, y, hz)
                         end
                     end
@@ -287,40 +422,33 @@ end
 S.ASIDE = { ["Base.Plank"] = true, ["Base.SheetPaper2"] = true, ["Base.CarrotSeed"] = true,
             ["Base.AnimalFeedBag"] = true, ["Base.Lighter"] = true, ["Base.Matches"] = true }
 function H.asideTest(it)
-    local hit = false
-    pcall(function()
-        if S.ASIDE[it:getFullType()] then hit = true; return end
-        if it:hasTag(ItemTag.START_FIRE) or it:hasTag(ItemTag.CLEAN_STAINS) then hit = true; return end
-        local fc = it:getFluidContainer()
-        if fc and not fc:isEmpty() and (fc:contains(Fluid.Water) or fc:contains(Fluid.TaintedWater) or fc:contains(Fluid.Petrol)) then
-            hit = true; return
-        end
-        if ISFarmingMenu and ISFarmingMenu.getWaterUsesInteger(it) > 0 then hit = true end
-    end)
-    return hit
+    if S.ASIDE[it:getFullType()] then return true end
+    if it:hasTag(ItemTag.START_FIRE) or it:hasTag(ItemTag.CLEAN_STAINS) then return true end
+    local fc = it:getFluidContainer()
+    if fc and not fc:isEmpty() and (fc:contains(Fluid.Water) or fc:contains(Fluid.TaintedWater) or fc:contains(Fluid.Petrol)) then
+        return true
+    end
+    return ISFarmingMenu ~= nil and ISFarmingMenu.getWaterUsesInteger(it) > 0
 end
 function H.setAside()
     -- (every crop's seeds too: the farm card's Sow list reads them all)
-    pcall(function()
-        for _, props in pairs(farming_vegetableconf.props) do
-            if type(props) == "table" then
-                if props.seedName then S.ASIDE[props.seedName] = true end
-                for _, s in ipairs(props.seedTypes or {}) do S.ASIDE[s] = true end
-            end
+    for _, props in pairs(farming_vegetableconf.props) do
+        if type(props) == "table" then
+            if props.seedName then S.ASIDE[props.seedName] = true end
+            for _, s in ipairs(props.seedTypes or {}) do S.ASIDE[s] = true end
         end
-    end)
+    end
     local list = p:getInventory():getAllEvalRecurse(function(it) return H.asideTest(it) == true end)
     local n = 0
     for k = list:size() - 1, 0, -1 do
         local it = list:get(k)
-        local keep = false
         -- (a worn piece or one hung on the belt stays: taking it off the body is a change of its own)
-        pcall(function() keep = (it:IsClothing() and it:isEquipped()) or (it:getAttachedSlot() > -1) end)
+        local keep = (it:IsClothing() and it:isEquipped()) or (it:getAttachedSlot() > -1)
         local c = it:getContainer()
         if keep or not c then
             LG.kept[#LG.kept + 1] = it:getDisplayName()
         else
-            pcall(function() p:removeFromHands(it) end)
+            p:removeFromHands(it)
             c:Remove(it)
             LG.taken[#LG.taken + 1] = { item = it, cont = c }
             n = n + 1
@@ -330,8 +458,47 @@ function H.setAside()
 end
 
 -- ---- the ledger: put everything back
+-- the hen house's hens out of the game: off the boxes (IsoHutch.tryFindAndRemoveAnimalFromNestBox), off the perches
+-- (removeAnimal reads her perch: a sitting hen who has laid moved to one), and every bird the house still holds, so its
+-- removal (removeHutch: releaseAllAnimals) has nobody to release into the world
+function H.undoHens()
+    local h, n = LG.hutch, 0
+    local all, seen = {}, {}
+    local function take(a)
+        if a and not seen[a] and not LG.gone[a] then seen[a] = true; all[#all + 1] = a end
+    end
+    for _, a in ipairs(LG.hens) do take(a) end
+    if h then
+        -- (every bird the house still holds: it is the script's house)
+        pcall(function()
+            for b = 0, h:getMaxNestBox() do take(h:getAnimalInNestBox(b)) end
+            for k = 0, h:getMaxAnimals() - 1 do take(h:getAnimal(k)) end
+        end)
+        for _, a in ipairs(all) do pcall(function() h:tryFindAndRemoveAnimalFromNestBox(a) end) end
+        for _, a in ipairs(all) do pcall(function() if a:getHutch() then h:removeAnimal(a) end end) end
+    end
+    for _, a in ipairs(all) do H.takeAwayOut(a); n = n + 1 end
+    return n
+end
+-- world items on the staged squares (each clear at the start): what a removal dropped (a hen house's eggs, a
+-- campfire's contents) or anything else left there
+function H.sweepSquares()
+    local n = 0
+    for _, sq in ipairs(LG.clearSqs) do
+        pcall(function()
+            local wos = sq:getWorldObjects()
+            for k = wos:size() - 1, 0, -1 do
+                local wo = wos:get(k)
+                sq:transmitRemoveItemFromSquare(wo)
+                wo:removeFromWorld(); wo:removeFromSquare()
+                n = n + 1
+            end
+        end)
+    end
+    return n
+end
 function H.undoWorld()
-    local n = { place = 0, fire = 0, trough = 0, hens = 0, hutch = 0, plots = 0, zones = 0 }
+    local n = { place = 0, fire = 0, trough = 0, hens = 0, hutch = 0, plots = 0, zones = 0, out = 0, swept = 0 }
     for _, it in ipairs(LG.worldItems) do
         pcall(function()
             local wi = it:getWorldItem()
@@ -360,13 +527,7 @@ function H.undoWorld()
             if iso then LG.troughSq:transmitRemoveItemFromSquare(iso); n.trough = n.trough + 1 end
         end)
     end
-    for _, a in ipairs(LG.hens) do
-        pcall(function() local h = a:getHutch(); if h then h:removeAnimal(a) end end)
-        pcall(function() if LG.hutch then LG.hutch:tryFindAndRemoveAnimalFromNestBox(a) end end)
-        pcall(function() removeAnimal(a:getOnlineID()) end)
-        pcall(function() a:removeFromWorld(); a:removeFromSquare() end)
-        n.hens = n.hens + 1
-    end
+    n.hens = H.undoHens()
     if LG.hutch then
         pcall(function()
             for b = 0, LG.hutch:getMaxNestBox() do
@@ -378,6 +539,11 @@ function H.undoWorld()
             end
         end)
         pcall(function() LG.hutch:removeHutch(); n.hutch = 1 end)
+    end
+    -- (a hen the house still released on its removal, or one that walked out and was missed)
+    local okO, out = pcall(H.hensOut)
+    for _, a in ipairs(okO and out or {}) do
+        if not LG.gone[a] then H.takeAwayOut(a); n.out = n.out + 1 end
     end
     for k, sq in ipairs(LG.plots) do
         pcall(function()
@@ -394,6 +560,7 @@ function H.undoWorld()
             end)
         end
     end
+    n.swept = H.sweepSquares()
     return n
 end
 function H.restore(why)
@@ -433,22 +600,17 @@ function H.restore(why)
         local parts = p:getBodyDamage():getBodyParts()
         for k = 0, parts:size() - 1 do if LG.stiff[k] then parts:get(k):setStiffness(LG.stiff[k]) end end
     end)
-    pcall(function()
-        local st = ZeD.AnimalsTab.getState(H.W())
-        if LG.atState then
-            st.submode, st.view, st.zoneName, st.animalRef = LG.atState.submode, LG.atState.view, LG.atState.zoneName, LG.atState.animalRef
-        end
-    end)
-    pcall(function()
-        local w = H.W()
-        if w and LG.tab0 then w._activeTab, w._drawerMode, w._drawerOpen = LG.tab0, LG.drawerMode0, LG.drawerOpen0 end
-    end)
+    pcall(H.atBack)
+    pcall(H.tabBack)
+    -- (the windows' roll-up timers run again: the hold of H.keepDown let go)
+    for _, w in ipairs({ H.W() or false, H.CW() or false }) do if w then w._outSince = nil end end
     H.home()
     pcall(function() if LG.opened and CWm.isOpen() then CWm.toggleBothPaired(0) end end)
     say("restored (" .. tostring(why) .. "): given taken back " .. gone .. ", new things swept " .. swept
         .. ", set aside and given back " .. back .. " of " .. #LG.taken .. "; hammer " .. tostring(n.place)
         .. ", campfire " .. tostring(n.fire) .. ", trough " .. tostring(n.trough) .. ", hens " .. tostring(n.hens)
-        .. ", hen house " .. tostring(n.hutch) .. ", plots " .. tostring(n.plots) .. ", zones " .. tostring(n.zones))
+        .. " (+" .. tostring(n.out) .. " out in the world), hen house " .. tostring(n.hutch) .. ", plots "
+        .. tostring(n.plots) .. ", zones " .. tostring(n.zones) .. ", things lying on the staged squares " .. tostring(n.swept))
 end
 -- what the script staged and is still there
 function H.leftovers()
@@ -456,15 +618,14 @@ function H.leftovers()
     for _, sq in ipairs(LG.fires) do if H.campLua(sq) then left[#left + 1] = "campfire" end end
     if LG.troughSq and H.objOn(LG.troughSq, "IsoFeedingTrough") then left[#left + 1] = "trough" end
     if LG.hutchSq and H.objOn(LG.hutchSq, "IsoHutch") then left[#left + 1] = "hen house" end
+    local okO, out = pcall(H.hensOut)
+    if not okO then left[#left + 1] = "the world's animals unread: " .. tostring(out)
+    elseif #out > 0 then left[#left + 1] = #out .. " of the script's hens in the world" end
     for _, sq in ipairs(LG.plots) do if H.plantLua(sq) then left[#left + 1] = "plot" end end
-    if LG.placeSq then
-        pcall(function()
-            local wos = LG.placeSq:getWorldObjects()
-            for k = 0, wos:size() - 1 do
-                local it = wos:get(k):getItem()
-                for _, mine in ipairs(LG.worldItems) do if it == mine then left[#left + 1] = "hammer" end end
-            end
-        end)
+    for _, sq in ipairs(LG.clearSqs) do
+        local nw = 0
+        pcall(function() nw = sq:getWorldObjects():size() end)
+        if nw > 0 then left[#left + 1] = nw .. " thing(s) lying at " .. sq:getX() .. "," .. sq:getY() end
     end
     for _, name in ipairs(LG.zones) do if H.zoneByName(name) then left[#left + 1] = "zone " .. name end end
     for _, it in ipairs(LG.added) do
@@ -507,20 +668,31 @@ end
 
 -- 0 SETUP ---------------------------------------------------------------------------------------------------------
 add(200, function()
+    -- the save first: on any other save nothing is moved, read or staged
+    local world = getWorld() and getWorld():getWorld()
+    if world ~= "ZeD-QA" then
+        S.dead = true
+        check(false, "the run is on the ZeD-QA save (the script stages things and moves the character)", world, "ZeD-QA")
+        return
+    end
     if not (OC and OC.kinds and WWm and CWm) then
         S.dead = true
         check(false, "the object cards are loaded", "missing", "ZeD.ObjectCards")
         return
     end
+    -- (safe mode hands every entry point back to the game's own windows)
+    if ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() then
+        S.dead = true
+        check(false, "ZeD is out of safe mode (the game's own windows would open on the script's things)", "safe mode", "off")
+        return
+    end
     if ZEDQA_HOME then pcall(ZEDQA_HOME, TAG) end
     LG.home = { x = p:getX(), y = p:getY(), z = p:getZ() }
     LG.primary, LG.secondary = p:getPrimaryHandItem(), p:getSecondaryHandItem()
-    pcall(function() LG.god = p:isGodMod() end)
-    pcall(function() LG.instant = p:isTimedActionInstantCheat() end)
-    pcall(function()
-        local parts = p:getBodyDamage():getBodyParts()
-        for k = 0, parts:size() - 1 do LG.stiff[k] = parts:get(k):getStiffness() end
-    end)
+    LG.god = p:isGodMod()
+    LG.instant = p:isTimedActionInstantCheat()
+    local parts = p:getBodyDamage():getBodyParts()
+    for k = 0, parts:size() - 1 do LG.stiff[k] = parts:get(k):getStiffness() end
     local all = p:getInventory():getAllEvalRecurse(function(it) return true end)
     for k = 0, all:size() - 1 do LG.had[all:get(k)] = true end
     p:setGodMod(true)
@@ -536,23 +708,25 @@ add(200, function()
     S.spots.trough = H.spot({ { 0, 0 } }, 2, 4)
     S.spots.hutch = H.spot({ { 0, 0 }, { 1, 0 }, { 0, -1 }, { 1, -1 }, { 0, 1 } }, 2, 3)
     S.spots.farm = H.spot({ { 0, 0 }, { 1, 0 } }, 2, 4)
-    local parts = {}
+    local sp = {}
     for _, k in ipairs({ "place", "fire", "trough", "hutch", "farm" }) do
         local sq = S.spots[k]
-        parts[#parts + 1] = k .. " " .. (sq and (sq:getX() .. "," .. sq:getY()) or "none")
+        sp[#sp + 1] = k .. " " .. (sq and (sq:getX() .. "," .. sq:getY()) or "none")
     end
-    say("home " .. hx .. "," .. hy .. "; spots: " .. table.concat(parts, ", "))
+    say("home " .. hx .. "," .. hy .. "; spots: " .. table.concat(sp, ", "))
     if not CWm.isOpen() then LG.opened = true; CWm.toggleBothPaired(0) end
+    H.keepDown()
 end)
 add(1500, function()
     if S.dead then return end
     local w = H.W()
-    if w then LG.tab0, LG.drawerMode0, LG.drawerOpen0 = w._activeTab, w._drawerMode, w._drawerOpen end
-    pcall(function()
+    if w then LG.tab0 = w._activeTab end
+    if w and ZeD.AnimalsTab and ZeD.AnimalsTab.getState then
         local st = ZeD.AnimalsTab.getState(w)
-        LG.atState = { submode = st.submode, view = st.view, zoneName = st.zoneName, animalRef = st.animalRef }
-    end)
-    check(w ~= nil and w:getIsVisible(), "the World window is open", w ~= nil, true)
+        LG.atState = { submode = st.submode, view = st.view, zoneName = st.zoneName, animalRef = st.animalRef, prevView = st.prevView }
+    end
+    check(w ~= nil and w:getIsVisible() and not w.windowShaded, "the World window is open and down", w ~= nil and tostring(w.windowShaded), "false")
+    say("World window on the tab " .. tostring(LG.tab0) .. ", pinned " .. tostring(w and w.pinned))
     H.close()
 end)
 
@@ -572,14 +746,15 @@ S.trkItem = {
 add(300, function()
     if S.dead then return end
     H.home()
+    if not H.hooked("track", ISInspectAnimalTrackAction and ISInspectAnimalTrackAction._zedCardHooked, "Inspect Track (ISInspectAnimalTrackAction)") then return end
     ISTimedActionQueue.add(ISInspectAnimalTrackAction:new(p, S.trkItem))
 end)
 waitFor(8000, function() return H.kind() == "track" end, "the track card", "track")
 add(500, function()
-    if S.dead then return end
-    check(H.kind() == "track", "track: Inspect Track (the game's action) opens the track card", H.kind(), "track")
+    if S.dead or S.off.track then return end
+    if not H.need("track", H.kind() == "track", "track: Inspect Track (the game's action) opens the track card", H.kind(), "track") then return end
     local t, d = H.t(), H.d()
-    if not (H.kind() == "track" and d) then S.off.track = true; return end
+    if not H.need("track", d ~= nil, "track: the card has its data (its refresh ran)", "nil", "t.d") then return end
     local want = H.txt("IGUI_AnimalTracks_footstep", "footstep")
     local title = H.e().def.title(t)
     check(d.type == want and title == want, "track: the title is the track's type", tostring(d.type) .. " / " .. tostring(title), want)
@@ -593,7 +768,8 @@ add(500, function()
         tostring(d.species) .. " known " .. tostring(d.speciesKnown), wantSp .. " known " .. tostring(lvl > 4))
     local pill = H.pill()
     check(pill == OC.cap("recent"), "track: the tag is the freshness", pill, OC.cap("recent"))
-    check(#(t.verbs or {}) == 0 and #H.zonesLike("oc:verb:") == 0, "track: no verbs drawn", #(t.verbs or {}), 0)
+    check(#(t.verbs or {}) == 0 and H.live() and #H.zonesLike("oc:verb:") == 0, "track: no verbs drawn",
+        #(t.verbs or {}) .. " verbs, live " .. tostring(H.live()), "0, live true")
     shot("track")
     S.trk.animal = "zedqa_nobody"
     H.fresh()
@@ -606,24 +782,22 @@ add(600, function()
 end)
 add(900, function()
     if S.dead or S.off.track then return end
-    check(H.kind() == "track", "track: a carried track's card has no leash (still open 9 squares off)", H.kind(), "track")
+    -- (open and drawing: the card's upkeep, leash included, runs every frame it draws)
+    check(H.kind() == "track" and H.live(), "track: a carried track's card has no leash (open and drawing 9 squares off)",
+        tostring(H.kind()) .. " live " .. tostring(H.live()), "track live true")
     H.home()
     local ok, err = H.press("oc:back")
-    check(ok, "track: the close key runs", err, "ok")
-end)
-add(500, function()
-    if S.dead or S.off.track then return end
-    check(H.card() == nil, "track: the close key closes the card", H.kind(), "nil")
+    check(ok and H.card() == nil, "track: the close key closes the card", err or H.kind(), "nil")
 end)
 
 -- 2 PLACEMENT -----------------------------------------------------------------------------------------------------
 add(300, function()
     if S.dead then return end
     H.home(); H.close()
+    if not H.hooked("placement", ISExtendedPlacementAction and ISExtendedPlacementAction._zedHooked, "Extended placement (ISExtendedPlacementAction)") then return end
     local sq = S.spots.place
     if not sq then H.skip("placement", "a free square beside the character"); return end
-    local it = nil
-    pcall(function() it = sq:AddWorldInventoryItem("Base.Hammer", 0.5, 0.5, 0) end)
+    local it = sq:AddWorldInventoryItem("Base.Hammer", 0.5, 0.5, 0)
     if not it then H.skip("placement", "a hammer on the ground"); return end
     H.mark(it)
     LG.worldItems[#LG.worldItems + 1] = it
@@ -635,9 +809,9 @@ end)
 waitFor(8000, function() return S.off.placement or H.kind() == "place3d" end, "the placement card", "placement")
 add(500, function()
     if S.dead or S.off.placement then return end
-    check(H.kind() == "place3d", "placement: Extended placement (the game's action) opens the placement card", H.kind(), "place3d")
+    if not H.need("placement", H.kind() == "place3d", "placement: Extended placement (the game's action) opens the placement card", H.kind(), "place3d") then return end
     local t = H.t()
-    if not (H.kind() == "place3d" and t and t.orig) then S.off.placement = true; return end
+    if not H.need("placement", t ~= nil and t.orig ~= nil and t.d ~= nil, "placement: the card has its start and its data", tostring(t and t.orig), "t.orig, t.d") then return end
     local wi, it, o = S.wi, S.placeItem, t.orig
     local same = math.abs(o.mx - wi:getOffX()) < 0.002 and math.abs(o.my - wi:getOffY()) < 0.002
         and math.abs(o.mz - wi:getOffZ()) < 0.002 and math.abs(o.rz - it:getWorldZRotation()) < 0.002
@@ -645,8 +819,9 @@ add(500, function()
     check(same, "placement: the card starts from the item's place and turn", H.f3(o.mx) .. "," .. H.f3(o.rz), H.f3(wi:getOffX()) .. "," .. H.f3(it:getWorldZRotation()))
     local done, rev = H.verb("done"), H.verb("revert")
     check(done ~= nil and done.primary == true and rev ~= nil, "placement: Done is the main verb, Revert beside it", H.verbIds(), "done,revert")
-    local of = H.e().def.openFocus(t)
-    check(of == "p3:move:x", "placement: the controller lands on Movement X", of, "p3:move:x")
+    -- (where the card's opening focus put the pad: the card zone's stop in the World window's controller ring)
+    local landed = H.landed()
+    check(landed == "p3:move:x", "placement: the controller lands on Movement X", landed, "p3:move:x")
     S.p0 = { x = wi:getOffX(), y = wi:getOffY(), z = wi:getOffZ(), rz = it:getWorldZRotation() }
     local ok, err = H.press("p3:move:x:+")
     local want = math.min(1, S.p0.x + 0.01)
@@ -655,7 +830,7 @@ end)
 add(300, function()
     if S.dead or S.off.placement then return end
     local wi, it, t = S.wi, S.placeItem, H.t()
-    if not t then return end
+    if not H.need("placement", t ~= nil, "placement: the card is still open", H.kind(), "place3d") then return end
     local ok, err = H.press("p3:turn:z:+")
     local want = S.p0.rz + 15
     if want >= 360 then want = want - 360 end
@@ -697,22 +872,25 @@ add(300, function()
     H.press("p3:move:x:+")
     S.p1x = S.wi:getOffX()
     local ok, err = H.press("oc:verb:done")
-    check(ok, "placement: Done runs", err, "ok")
+    S.doneErr = (not ok) and err or nil
 end)
 add(500, function()
     if S.dead or S.off.placement then return end
-    check(H.card() == nil, "placement: Done closes the card", H.kind(), "nil")
+    check(H.card() == nil, "placement: Done closes the card", tostring(H.kind()) .. (S.doneErr and (" " .. S.doneErr) or ""), "nil")
     check(math.abs(S.wi:getOffX() - S.p1x) < 0.001 and S.wi:isExtendedPlacement(), "placement: Done keeps the new place",
         H.f3(S.wi:getOffX()) .. " extended " .. tostring(S.wi:isExtendedPlacement()), H.f3(S.p1x) .. " extended true")
+    -- (the card again, through ZeD's own open, for the leash: the game's entry would walk to the hammer first)
     OC.open(p, "place3d", S.wi)
 end)
 add(500, function()
     if S.dead or S.off.placement then return end
-    if H.kind() ~= "place3d" then say("placement: the card did not reopen for the leash check"); return end
-    H.put(LG.home.x + 6, LG.home.y)
+    -- the leash is judged only on a card that opened again and draws (its upkeep runs in its frames)
+    S.leashOpen = H.kind() == "place3d" and H.live()
+    check(S.leashOpen, "placement: the card opens again on the hammer and draws (for the leash)", tostring(H.kind()) .. " live " .. tostring(H.live()), "place3d live true")
+    if S.leashOpen then H.put(LG.home.x + 6, LG.home.y) end
 end)
 add(900, function()
-    if S.dead or S.off.placement then return end
+    if S.dead or S.off.placement or not S.leashOpen then return end
     check(H.card() == nil, "placement: the card closes past the game's 3 squares", H.kind(), "nil")
     H.home()
 end)
@@ -721,6 +899,7 @@ end)
 add(300, function()
     if S.dead then return end
     H.home(); H.close()
+    if not H.hooked("fluid", ISFluidContainerMenu and ISFluidContainerMenu._zedHooked, "an item's Pour (ISFluidContainerMenu.showUI)") then return end
     S.fA, S.fB, S.fC = H.give("Base.WaterBottle"), H.give("Base.WaterBottle"), H.give("Base.WaterBottle")
     if not (S.fA and S.fB and S.fC) then H.skip("fluid", "three water bottles"); return end
     H.fill(S.fA, Fluid.Water); H.fill(S.fB, nil); H.fill(S.fC, Fluid.Water)
@@ -729,9 +908,9 @@ end)
 waitFor(5000, function() return S.off.fluid or H.kind() == "fluid" end, "the fluid card", "fluid")
 add(500, function()
     if S.dead or S.off.fluid then return end
-    check(H.kind() == "fluid", "fluid: a bottle's Pour (the game's menu) opens the fluid card", H.kind(), "fluid")
+    if not H.need("fluid", H.kind() == "fluid", "fluid: a bottle's Pour (the game's menu) opens the fluid card", H.kind(), "fluid") then return end
     local t, d = H.t(), H.d()
-    if not (H.kind() == "fluid" and d) then S.off.fluid = true; return end
+    if not H.need("fluid", d ~= nil, "fluid: the card has its data (its refresh ran)", "nil", "t.d") then return end
     local fa, fb = S.fA:getFluidContainer(), S.fB:getFluidContainer()
     check(t.from ~= nil and t.from:getFluidContainer() == fa and t.into == nil, "fluid: the bottle goes on the left, the right is empty",
         tostring(t.from ~= nil) .. " " .. tostring(t.into ~= nil), "true false")
@@ -744,15 +923,16 @@ add(500, function()
         rC and (tostring(rC.tag) .. " " .. tostring(rC.canInto)), ZeD.tr("UI_ZeD_Fluid_TagFull") .. " false")
     local wn = Fluid.Water:getTranslatedName()
     check(H.pill() == wn, "fluid: the tag names the liquid", H.pill(), wn)
-    local of = H.e().def.openFocus(t)
-    check(of ~= nil and string.sub(of, 1, 8) == "fl:into:", "fluid: with the right empty the controller lands on an Into button", of, "fl:into:...")
-    check(H.zone("oc:verb:pour") == nil, "fluid: no Pour until the right side is set", H.zone("oc:verb:pour") ~= nil, false)
+    local landed = H.landed()
+    check(landed ~= nil and string.sub(landed, 1, 8) == "fl:into:", "fluid: with the right empty the controller lands on an Into button", landed, "fl:into:...")
+    check(H.gone("oc:verb:pour"), "fluid: no Pour until the right side is set", "drawn " .. tostring(H.zone("oc:verb:pour") ~= nil) .. ", live " .. tostring(H.live()), "drawn false, live true")
     local ok, err = H.press("fl:into:i" .. tostring(S.fB:getID()))
     check(ok and t.into ~= nil and t.into:getFluidContainer() == fb, "fluid: Into on the empty bottle puts it on the right", err, "ok")
 end)
 add(500, function()
     if S.dead or S.off.fluid then return end
     local t, d = H.t(), H.d()
+    if not H.need("fluid", d ~= nil, "fluid: the card is still open", H.kind(), "fluid") then return end
     local fa, fb = S.fA:getFluidContainer(), S.fB:getFluidContainer()
     local want = FluidUtil.roundTransfer(math.min(fa:getAmount(), fb:getCapacity() - fb:getAmount()))
     check(d.can and math.abs(d.max - want) < 0.001, "fluid: Max pour is the smaller of what is in and the room", H.f3(d.max), H.f3(want))
@@ -766,7 +946,7 @@ add(500, function()
     S.fA0, S.fB0 = fa:getAmount(), fb:getAmount()
     S.fWant = FluidUtil.roundTransfer(d.max * 0.5)
     local ok, err = H.press("oc:verb:pour")
-    check(ok and t.action ~= nil, "fluid: Pour queues the game's pour", err or tostring(t.action ~= nil), "queued")
+    check(ok and t.action ~= nil and H.queued("ISFluidTransferAction"), "fluid: Pour queues the game's pour (ISFluidTransferAction)", err or tostring(t.action ~= nil), "queued")
 end)
 waitFor(15000, function() return H.idle() and math.abs(H.amt(S.fB) - (S.fB0 + S.fWant)) < 0.02 end, "the pour", "fluid")
 add(500, function()
@@ -777,7 +957,7 @@ add(500, function()
     shot("fluid")
     local ok, err = H.press("oc:verb:switch")
     local t = H.t()
-    check(ok and t.from ~= nil and t.into ~= nil and t.from:getFluidContainer() == S.fB:getFluidContainer() and t.into:getFluidContainer() == S.fA:getFluidContainer(),
+    check(ok and t ~= nil and t.from ~= nil and t.into ~= nil and t.from:getFluidContainer() == S.fB:getFluidContainer() and t.into:getFluidContainer() == S.fA:getFluidContainer(),
         "fluid: Switch swaps the two sides", err, "ok")
 end)
 add(500, function()
@@ -796,7 +976,9 @@ end)
 add(400, function()
     if S.dead or S.off.fluid then return end
     local ok, err = H.press("oc:confirm:yes")
-    check(ok, "fluid: the question's Empty runs", err, "ok")
+    local queued = H.queued("ISFluidEmptyAction")
+    check(ok and H.confirm() == nil and queued, "fluid: the question's Empty shuts the question and queues the game's empty (ISFluidEmptyAction)",
+        tostring(err or "pressed") .. ", question " .. tostring(H.confirm() ~= nil) .. ", queued " .. tostring(queued), "pressed, question false, queued true")
 end)
 waitFor(10000, function() return H.idle() and H.amt(S.fB) < 0.001 end, "the bottle emptied", "fluid")
 add(300, function()
@@ -813,6 +995,7 @@ end)
 add(300, function()
     if S.dead then return end
     H.home(); H.close()
+    if not H.hooked("fire", ISCampingMenu and ISCampingMenu._zed_onDisplayInfo, "the campfire's Info (ISCampingMenu.onDisplayInfo)") then return end
     local sq = S.spots.fire
     if not sq then H.skip("fire", "a free square for a campfire"); return end
     local ok = pcall(function() SCampfireSystem.instance:addCampfire(sq) end)
@@ -824,20 +1007,20 @@ add(800, function()
     if S.dead or S.off.fire then return end
     local clo = H.campLua(S.fireSq)
     local iso = clo and clo:getIsoObject()
-    check(clo ~= nil and iso ~= nil, "fire: a campfire staged", clo ~= nil, true)
-    if not iso then S.off.fire = true; return end
+    if not H.need("fire", clo ~= nil and iso ~= nil, "fire: a campfire staged", clo ~= nil, true) then return end
     ISCampingMenu.onDisplayInfo(nil, p, iso, clo)
 end)
 waitFor(4000, function() return S.off.fire or H.kind() == "fire" end, "the fire card", "fire")
 add(500, function()
     if S.dead or S.off.fire then return end
     local t, d = H.t(), H.d()
-    check(H.kind() == "fire" and t and t.kind == "campfire", "fire: the campfire's Info (the game's menu) opens the fire card", tostring(H.kind()) .. " " .. tostring(t and t.kind), "fire campfire")
-    if not (H.kind() == "fire" and d) then S.off.fire = true; return end
+    if not H.need("fire", H.kind() == "fire" and t ~= nil and t.kind == "campfire", "fire: the campfire's Info (the game's menu) opens the fire card",
+        tostring(H.kind()) .. " " .. tostring(t and t.kind), "fire campfire") then return end
+    if not H.need("fire", d ~= nil, "fire: the card has its data (its refresh ran)", "nil", "t.d") then return end
     check(d.fuel == 0 and not d.lit, "fire: a new campfire reads no fuel and not lit", tostring(d.fuel) .. " " .. tostring(d.lit), "0 false")
     check(H.pill() == ZeD.tr("UI_ZeD_Fire_PillOut"), "fire: the tag says Out", H.pill(), ZeD.tr("UI_ZeD_Fire_PillOut"))
     local light, out, take = H.verb("light"), H.verb("out"), H.verb("take")
-    check(out ~= nil and out.sensible == false and H.zone("oc:verb:out") == nil, "fire: no Put out on a dead fire", out and tostring(out.sensible), "false")
+    check(out ~= nil and out.sensible == false and H.gone("oc:verb:out"), "fire: no Put out on a dead fire", out and tostring(out.sensible), "false")
     check(light ~= nil and light.enabled == false and light.needs == ZeD.tr("UI_ZeD_Fire_NeedsFuelFirst"),
         "fire: Light waits with nothing to light with, and says what it needs", light and (tostring(light.enabled) .. " " .. tostring(light.needs)), "false " .. ZeD.tr("UI_ZeD_Fire_NeedsFuelFirst"))
     check(take ~= nil and take.confirm ~= nil and take.danger and H.zone("oc:verb:take") ~= nil, "fire: Take apart shows and asks first", take and tostring(take.confirm), "a question")
@@ -847,6 +1030,7 @@ end)
 add(600, function()
     if S.dead or S.off.fire then return end
     local d = H.d()
+    if not H.need("fire", d ~= nil, "fire: the card is still open", H.kind(), "fire") then return end
     local row, ri = H.rowWhere(d.fuelRows, function(r) return r.fullType == "Base.Plank" end)
     -- (the game's fuel list also reads the loot containers in reach: planks lying there add to the count)
     check(row ~= nil and row.count >= 2, "fire: the two planks carried are an Add fuel row", row and row.count, ">= 2")
@@ -864,7 +1048,7 @@ add(600, function()
     if not (row and lrow) then S.off.fire = true; return end
     S.fuel0, S.plankDur, S.lightFid = d.fuel, ISCampingMenu.getFuelDurationForItem(row.item), "fire:light:" .. li
     local ok, err = H.press("fire:fuel:" .. ri)
-    check(ok, "fire: the plank row's Add runs", err, "ok")
+    check(ok, "fire: the plank row's Add runs (its row's own code)", err, "ok")
 end)
 waitFor(10000, function() local c = H.campLua(S.fireSq); return H.idle() and c and (c.fuelAmt or 0) > (S.fuel0 or 0) end, "the fuel", "fire")
 add(600, function()
@@ -876,7 +1060,7 @@ add(600, function()
     check(row ~= nil and row.count == S.plankN0 - 1, "fire: one plank fewer on the list", row and row.count, S.plankN0 - 1)
     local _, li = H.rowWhere(d and d.lightRows, function(r) return r.method == "tinder" and r.tinderType == "Base.SheetPaper2" end)
     local ok, err = H.press(li and ("fire:light:" .. li) or S.lightFid)
-    check(ok, "fire: the paper row's Light runs", err, "ok")
+    check(ok, "fire: the paper row's Light runs (its row's own code)", err, "ok")
 end)
 waitFor(15000, function() local c = H.campLua(S.fireSq); return H.idle() and c and c.isLit == true end, "the fire to light", "fire")
 add(600, function()
@@ -884,11 +1068,12 @@ add(600, function()
     local d = H.d()
     local burning = OC.cap(ZeD.tr("IGUI_Fireplace_Burning"))
     check(d and d.lit and H.pill() == burning, "fire: lit with the paper (the game's action): the tag says Burning", H.pill(), burning)
-    check(H.zone("oc:verb:out") ~= nil and H.zone("oc:verb:light") == nil, "fire: lit: Put out shows, Light is gone",
-        tostring(H.zone("oc:verb:out") ~= nil) .. " " .. tostring(H.zone("oc:verb:light") ~= nil), "true false")
+    check(H.zone("oc:verb:out") ~= nil and H.gone("oc:verb:light"), "fire: lit: Put out shows, Light is gone",
+        tostring(H.zone("oc:verb:out") ~= nil) .. " " .. tostring(H.zone("oc:verb:light") ~= nil) .. ", live " .. tostring(H.live()), "true false, live true")
     shot("fire")
     local ok, err = H.press("oc:verb:out")
-    check(ok, "fire: Put out runs", err, "ok")
+    local queued = H.queued("ISPutOutCampfireAction")
+    check(ok and queued, "fire: Put out queues the game's action (ISPutOutCampfireAction)", tostring(err or "pressed") .. ", queued " .. tostring(queued), "pressed, queued true")
 end)
 waitFor(10000, function() local c = H.campLua(S.fireSq); return H.idle() and c and c.isLit ~= true end, "the fire to go out", "fire")
 add(600, function()
@@ -909,7 +1094,9 @@ end)
 add(400, function()
     if S.dead or S.off.fire then return end
     local ok, err = H.press("oc:confirm:yes")
-    check(ok, "fire: the question's Take apart runs", err, "ok")
+    local queued = H.queued("ISRemoveCampfireAction")
+    check(ok and H.confirm() == nil and queued, "fire: the question's Take apart shuts the question and queues the game's action (ISRemoveCampfireAction)",
+        tostring(err or "pressed") .. ", question " .. tostring(H.confirm() ~= nil) .. ", queued " .. tostring(queued), "pressed, question false, queued true")
 end)
 waitFor(10000, function() return H.idle() and H.campLua(S.fireSq) == nil end, "the campfire taken apart", "fire")
 add(600, function()
@@ -923,6 +1110,7 @@ end)
 add(300, function()
     if S.dead then return end
     H.home(); H.close()
+    if not H.hooked("trough", ISFeedingTroughMenu and ISFeedingTroughMenu._zedCardHooked, "Feeding Trough Info (ISFeedingTroughMenu.onInfo)") then return end
     local sq = S.spots.trough
     if not sq then H.skip("trough", "a free square for a trough"); return end
     LG.troughSq = sq
@@ -932,8 +1120,7 @@ end)
 add(800, function()
     if S.dead or S.off.trough then return end
     S.trough = H.objOn(LG.troughSq, "IsoFeedingTrough")
-    check(S.trough ~= nil, "trough: a feeding trough staged", S.trough ~= nil, true)
-    if not S.trough then S.off.trough = true; return end
+    if not H.need("trough", S.trough ~= nil, "trough: a feeding trough staged", S.trough ~= nil, true) then return end
     local x, y = LG.troughSq:getX(), LG.troughSq:getY()
     S.zone0 = DesignationZoneAnimal.getZone(x, y, LG.troughSq:getZ())
     ISFeedingTroughMenu.onInfo(S.trough, p)
@@ -941,9 +1128,9 @@ end)
 waitFor(5000, function() return S.off.trough or H.kind() == "trough" end, "the trough card", "trough")
 add(500, function()
     if S.dead or S.off.trough then return end
-    check(H.kind() == "trough", "trough: Feeding Trough Info (the game's menu) opens the trough card", H.kind(), "trough")
+    if not H.need("trough", H.kind() == "trough", "trough: Feeding Trough Info (the game's menu) opens the trough card", H.kind(), "trough") then return end
     local d = H.d()
-    if not (H.kind() == "trough" and d) then S.off.trough = true; return end
+    if not H.need("trough", d ~= nil, "trough: the card has its data (its refresh ran)", "nil", "t.d") then return end
     check(not d.hasFood and not d.hasWater and H.pill() == ZeD.tr("Fluid_Empty"), "trough: a new trough is tagged Empty", H.pill(), ZeD.tr("Fluid_Empty"))
     local zn0 = S.zone0 and S.zone0:getName() or nil
     check((d.zone ~= nil) == (S.zone0 ~= nil) and d.zoneName == zn0, "trough: the zone line names the animal zone it stands in (or none)", tostring(d.zoneName), tostring(zn0))
@@ -959,11 +1146,14 @@ end)
 add(600, function()
     if S.dead or S.off.trough then return end
     local d = H.d()
+    if not H.need("trough", d ~= nil, "trough: the card is still open", H.kind(), "trough") then return end
     if S.zoneName then check(d.zoneName == S.zoneName, "trough: a zone drawn over it is named on the card", d.zoneName, S.zoneName) end
-    check(d.hasWater and d.water > 0 and math.abs(d.water - S.trough:getWater()) < 0.01, "trough: reads the water in it", string.format("%.2f", d.water or -1), string.format("%.2f", S.trough:getWater()))
+    -- (the card's reading, up to a quarter second old, against the trough now: a margin, not an equality)
+    local tw = S.trough:getWater()
+    check(d.hasWater and d.water > 0 and math.abs(d.water - tw) < math.max(0.05, 0.01 * tw), "trough: reads the water in it", string.format("%.2f", d.water or -1), string.format("%.2f", tw))
     check(H.pill() == ZeD.tr("Fluid_Name_Water"), "trough: water in it: the tag says Water", H.pill(), ZeD.tr("Fluid_Name_Water"))
     local food, water, empty = H.verb("food"), H.verb("water"), H.verb("empty")
-    check(food ~= nil and food.sensible == false and H.zone("oc:verb:food") == nil, "trough: water in it: no Add food (one or the other)", food and tostring(food.sensible), "false")
+    check(food ~= nil and food.sensible == false and H.gone("oc:verb:food"), "trough: water in it: no Add food (one or the other)", food and tostring(food.sensible), "false")
     check(water ~= nil and water.primary and empty ~= nil and empty.confirm ~= nil, "trough: water in it: Add water is the main verb, Empty asks first", H.verbIds(), "food,water,empty")
     local ok, err = H.press("oc:verb:empty")
     local cf = H.confirm()
@@ -973,7 +1163,9 @@ end)
 add(400, function()
     if S.dead or S.off.trough then return end
     local ok, err = H.press("oc:confirm:yes")
-    check(ok, "trough: the question's Empty runs", err, "ok")
+    local queued = H.queued("ISFluidEmptyAction")
+    check(ok and H.confirm() == nil and queued, "trough: the question's Empty shuts the question and queues the game's empty (ISFluidEmptyAction)",
+        tostring(err or "pressed") .. ", question " .. tostring(H.confirm() ~= nil) .. ", queued " .. tostring(queued), "pressed, question false, queued true")
 end)
 waitFor(12000, function() return H.idle() and S.trough:getWater() < 0.01 end, "the trough emptied", "trough")
 add(600, function()
@@ -982,13 +1174,13 @@ add(600, function()
     check(S.trough:getWater() < 0.01 and d and not d.hasWater and H.pill() == ZeD.tr("Fluid_Empty"), "trough: Empty (the game's action) empties it: the tag says Empty",
         string.format("%.2f ", S.trough:getWater()) .. tostring(H.pill()), "0.00 " .. ZeD.tr("Fluid_Empty"))
     local ok, err = H.press("oc:verb:water")
-    check(ok, "trough: Add water runs", err, "ok")
+    S.waterErr = (not ok) and err or nil
 end)
 add(500, function()
     if S.dead or S.off.trough then return end
     local t, tfc = H.t(), S.trough:getFluidContainer()
     check(H.kind() == "fluid" and t and t.into ~= nil and tfc ~= nil and t.into:getFluidContainer() == tfc,
-        "trough: Add water opens the fluid card aimed at the trough", H.kind(), "fluid")
+        "trough: Add water opens the fluid card aimed at the trough", tostring(H.kind()) .. (S.waterErr and (" " .. S.waterErr) or ""), "fluid")
     H.close()
     ISFeedingTroughMenu.onAddFoodDebug(p, S.trough)
     ISFeedingTroughMenu.onInfo(S.trough, p)
@@ -996,15 +1188,15 @@ end)
 add(600, function()
     if S.dead or S.off.trough then return end
     local d = H.d()
-    if not (H.kind() == "trough" and d) then check(false, "trough: the card reopens", H.kind(), "trough"); S.off.trough = true; return end
+    if not H.need("trough", H.kind() == "trough" and d ~= nil, "trough: the card reopens", H.kind(), "trough") then return end
     check(d.hasFood and H.pill() == ZeD.tr("UI_ZeD_Trough_PillFood"), "trough: feed in it: the tag says Food", H.pill(), ZeD.tr("UI_ZeD_Trough_PillFood"))
     local g = d.inside[1]
     local n = S.trough:getContainer():getItems():size()
     check(#d.inside == 1 and g ~= nil and #g.items == n and n > 0, "trough: lists what lies in it", tostring(#d.inside) .. " rows, " .. tostring(g and #g.items), "1 row, " .. n)
-    check(H.zone("oc:verb:water") == nil and H.zone("oc:verb:empty") == nil, "trough: feed in it: no Add water, no Empty", H.verbIds(), "food (water not sensible)")
+    check(H.gone("oc:verb:water") and H.gone("oc:verb:empty"), "trough: feed in it: no Add water, no Empty", H.verbIds() .. ", live " .. tostring(H.live()), "food (water not sensible), live true")
     S.feedType = g and g.item:getFullType()
     local ok, err = H.press("trough:take:1")
-    check(ok, "trough: Take runs", err, "ok")
+    check(ok, "trough: Take runs (its row's own code)", err, "ok")
 end)
 waitFor(10000, function() return H.idle() and S.trough:getContainer():getItems():size() == 0 end, "the feed taken", "trough")
 add(600, function()
@@ -1022,7 +1214,7 @@ add(600, function()
     check(c and c._pendingFocus == "trough:feed:1", "trough: Add food jumps to the feed list", c and c._pendingFocus, "trough:feed:1")
     if ri then
         local ok, err = H.press("trough:feed:" .. ri)
-        check(ok, "trough: the feed row's Add runs", err, "ok")
+        check(ok, "trough: the feed row's Add runs (its row's own code)", err, "ok")
     end
 end)
 waitFor(10000, function() return H.idle() and S.trough:getContainer():getItems():size() > 0 end, "the feed put in", "trough")
@@ -1042,10 +1234,12 @@ end)
 add(300, function()
     if S.dead then return end
     H.home(); H.close()
+    if not H.hooked("hutch", ISHutchMenu and ISHutchMenu._zedCardHooked, "the hen house's Info (ISHutchMenu.onInfo)") then return end
     local sq = S.spots.hutch
     if not sq then H.skip("hutch", "free ground for a hen house"); return end
-    LG.hutchSq = sq
     local def = HutchDefinitions and HutchDefinitions.hutchs and HutchDefinitions.hutchs.hutchhen
+    if not def then H.skip("hutch", "the game's hen house (HutchDefinitions.hutchs.hutchhen)"); return end
+    LG.hutchSq = sq
     local ok, err = pcall(function()
         local h = IsoHutch.new(sq, true, def.baseSprite, def, nil)
         h:transmitCompleteItemToClients()
@@ -1057,88 +1251,155 @@ add(800, function()
     local h = H.objOn(LG.hutchSq, "IsoHutch")
     h = h and (h:getHutch() or h)
     S.hutch, LG.hutch = h, h
-    check(h ~= nil, "hutch: a hen house staged", h ~= nil, true)
-    if not h then S.off.hutch = true; return end
+    if not H.need("hutch", h ~= nil, "hutch: a hen house staged", h ~= nil, true) then return end
     if h:isOpen() then h:toggleDoor() end
     if h:isEggHatchDoorOpen() then h:toggleEggHatchDoor() end
-    -- two hens on the perches, one sitting in a box on an egg, three eggs in another box, a dirty floor
-    local breed = H.breedOf("hen")
+    -- two hens on the perches, three eggs in box 1, a dirty floor. The hen that sits on an egg comes later, right
+    -- before the boxes are read (see the header: she lays and leaves her box 7 to 12 s after she sits down)
+    S.breed = H.breedOf("hen")
     for k = 1, 2 do
-        local a = addAnimal(getCell(), 0, 0, 0, "hen", breed)
+        local a = addAnimal(getCell(), 0, 0, 0, "hen", S.breed)
         if a then H.mark(a); LG.hens[#LG.hens + 1] = a; a:getData():setPreferredHutchPosition(k - 1); h:addAnimalInside(a) end
     end
-    local sit = addAnimal(getCell(), 0, 0, 0, "hen", breed)
-    if sit then H.mark(sit); LG.hens[#LG.hens + 1] = sit; h:addAnimalInNestBox(sit) end
-    for b = 0, h:getMaxNestBox() do if h:getAnimalInNestBox(b) then S.sitBox = b end end
-    for b = 0, h:getMaxNestBox() do if S.eggBox == nil and b ~= S.sitBox and h:getNestBox(b) then S.eggBox = b end end
-    if S.eggBox == nil then S.off.hutch = true; check(false, "hutch: a free nest box", "none", "a box"); return end
+    S.eggBox = 1
     local nest = h:getNestBox(S.eggBox)
+    if not H.need("hutch", nest ~= nil, "hutch: the hen house has a second nest box", nest ~= nil, true) then return end
     for _ = 1, 3 do nest:addEgg(instanceItem("Base.Egg")) end
-    if S.sitBox ~= nil then h:getNestBox(S.sitBox):addEgg(instanceItem("Base.Egg")) end
+    S.eggBoxEggs0 = nest:getEggsNb()
     h:setHutchDirt(3)
-    say("hen house at " .. LG.hutchSq:getX() .. "," .. LG.hutchSq:getY() .. ": hens inside " .. h:getAnimalInside():size()
-        .. ", sitting in box " .. tostring(S.sitBox) .. ", eggs in box " .. tostring(S.eggBox))
+    say("hen house at " .. LG.hutchSq:getX() .. "," .. LG.hutchSq:getY() .. ": hens on the perches " .. H.perchCount()
+        .. ", eggs in box " .. S.eggBox .. ": " .. S.eggBoxEggs0)
     ISHutchMenu.onInfo(h, p)
 end)
 waitFor(8000, function() return S.off.hutch or H.kind() == "hutch" end, "the hen house card", "hutch")
 add(500, function()
     if S.dead or S.off.hutch then return end
-    check(H.kind() == "hutch", "hutch: the hen house's Info (the game's menu) opens the hutch card", H.kind(), "hutch")
+    if not H.need("hutch", H.kind() == "hutch", "hutch: the hen house's Info (the game's menu) opens the hutch card", H.kind(), "hutch") then return end
     local d = H.d()
-    if not (H.kind() == "hutch" and d) then S.off.hutch = true; return end
+    if not H.need("hutch", d ~= nil, "hutch: the card has its data (its refresh ran)", "nil", "t.d") then return end
     check(d.allClosed and H.pill() == ZeD.tr("UI_ZeD_Hutch_PillShut"), "hutch: both doors shut: the tag says Shut", H.pill(), ZeD.tr("UI_ZeD_Hutch_PillShut"))
-    check(not d.boxesShown and not d.roostShown and #H.zonesLike("hutch:") == 0, "hutch: both doors shut: boxes and perches covered, nothing to grab",
-        #H.zonesLike("hutch:"), 0)
+    check(not d.boxesShown and not d.roostShown and H.live() and #H.zonesLike("hutch:") == 0, "hutch: both doors shut: boxes and perches covered, nothing to grab",
+        #H.zonesLike("hutch:") .. ", live " .. tostring(H.live()), "0, live true")
     local door = H.verb("door")
     check(door ~= nil and door.primary and H.verb("eggs") == nil, "hutch: shut: Open door is the main verb, no Grab eggs", H.verbIds(), "door,hatch,clean")
     local ok, err = H.press("oc:verb:hatch")
-    check(ok, "hutch: Open hatch runs", err, "ok")
+    local queued = H.queued("ISToggleHutchEggHatchDoor")
+    check(ok and queued, "hutch: Open hatch queues the game's action (ISToggleHutchEggHatchDoor)", tostring(err or "pressed") .. ", queued " .. tostring(queued), "pressed, queued true")
 end)
 waitFor(10000, function() return H.idle() and S.hutch:isEggHatchDoorOpen() end, "the hatch to open", "hutch")
 add(600, function()
     if S.dead or S.off.hutch then return end
+    -- the hen on an egg, now (IsoHutch.addAnimalInNestBox: the first box with no hen and room, box 0)
+    local h = S.hutch
+    local sit = addAnimal(getCell(), 0, 0, 0, "hen", S.breed)
+    local seated = false
+    if sit then
+        H.mark(sit); LG.hens[#LG.hens + 1] = sit
+        seated = h:addAnimalInNestBox(sit) == true
+    end
+    S.sitBox = nil
+    for b = 0, h:getMaxNestBox() do if sit and h:getAnimalInNestBox(b) == sit then S.sitBox = b end end
+    if not H.need("hutch", seated and S.sitBox ~= nil and S.sitBox ~= S.eggBox, "hutch: a hen sits in a nest box (set there now)",
+        "seated " .. tostring(seated) .. ", box " .. tostring(S.sitBox), "seated true, a box but " .. S.eggBox) then return end
+    h:getNestBox(S.sitBox):addEgg(instanceItem("Base.Egg"))
+    S.under0 = h:getNestBox(S.sitBox):getEggsNb()
+    -- the card again through the game's Info: where the pad lands is picked as a card opens
+    ISHutchMenu.onInfo(h, p)
+end)
+add(600, function()
+    if S.dead or S.off.hutch then return end
+    if not H.need("hutch", H.kind() == "hutch", "hutch: the card opens again through the game's Info", H.kind(), "hutch") then return end
     local d, h = H.d(), S.hutch
+    if not H.need("hutch", d ~= nil, "hutch: the card has its data again", "nil", "t.d") then return end
     local want = 0
     for b = 0, h:getMaxNestBox() do local nb = h:getNestBox(b); if nb then want = want + nb:getEggsNb() end end
     check(d.boxesShown and not d.roostShown and H.pill() == ZeD.tr("IGUI_Open"), "hutch: hatch open (the game's action): the boxes show, the perches stay covered, the tag says Open",
         tostring(d.boxesShown) .. " " .. tostring(d.roostShown) .. " " .. tostring(H.pill()), "true false " .. ZeD.tr("IGUI_Open"))
-    check(d.eggs == want and want >= 3, "hutch: counts the eggs in the boxes", d.eggs, want)
-    check(H.zone("hutch:box:" .. S.eggBox) ~= nil and (S.sitBox == nil or H.zone("hutch:box:" .. S.sitBox) == nil),
-        "hutch: Grab on the box with eggs, none under the sitting hen", table.concat(H.zonesLike("hutch:box:"), ","), "hutch:box:" .. S.eggBox)
+    check(d.eggs == want and want >= S.eggBoxEggs0 + S.under0, "hutch: counts the eggs in the boxes (the sitting hen's too)", d.eggs, want)
+    local sitting = h:getAnimalInNestBox(S.sitBox) ~= nil
+    check(sitting and H.zone("hutch:box:" .. S.eggBox) ~= nil and H.gone("hutch:box:" .. S.sitBox),
+        "hutch: Grab on the box with eggs, none under the sitting hen",
+        table.concat(H.zonesLike("hutch:box:"), ",") .. ", sitting " .. tostring(sitting) .. ", live " .. tostring(H.live()),
+        "hutch:box:" .. S.eggBox .. ", sitting true, live true")
     local eggs = H.verb("eggs")
     check(eggs ~= nil and eggs.enabled ~= false and eggs.primary, "hutch: Grab eggs is live and the main verb", eggs and tostring(eggs.primary), "true")
-    local of = H.e().def.openFocus(H.t())
-    check(of == "hutch:box:" .. S.eggBox, "hutch: the controller lands on the box with eggs", of, "hutch:box:" .. S.eggBox)
+    local landed = H.landed()
+    check(landed == "hutch:box:" .. S.eggBox, "hutch: the controller lands on the box with eggs", landed, "hutch:box:" .. S.eggBox)
     S.eggs0 = H.count("Base.Egg")
     shot("hutch")
     local ok, err = H.press("oc:verb:eggs")
-    check(ok, "hutch: Grab eggs runs", err, "ok")
+    local queued = H.queued("ISHutchGrabEgg")
+    check(ok and queued, "hutch: Grab eggs queues the game's grab (ISHutchGrabEgg)", tostring(err or "pressed") .. ", queued " .. tostring(queued), "pressed, queued true")
 end)
 waitFor(15000, function() return H.idle() and S.hutch:getNestBox(S.eggBox):getEggsNb() == 0 end, "the eggs grabbed", "hutch")
 add(600, function()
     if S.dead or S.off.hutch then return end
     local h = S.hutch
     local got = H.count("Base.Egg") - (S.eggs0 or 0)
-    local under = S.sitBox ~= nil and h:getNestBox(S.sitBox):getEggsNb() or 1
-    check(h:getNestBox(S.eggBox):getEggsNb() == 0 and got == 3 and under == 1, "hutch: Grab eggs (the game's action) took the free box's 3 eggs, not the sitting hen's",
-        "box " .. h:getNestBox(S.eggBox):getEggsNb() .. ", carried +" .. got .. ", under the hen " .. under, "box 0, carried +3, under the hen 1")
-    check(H.zone("oc:verb:eggs") == nil, "hutch: no free eggs left: Grab eggs is gone", H.zone("oc:verb:eggs") ~= nil, false)
+    local left = h:getNestBox(S.eggBox):getEggsNb()
+    -- (the sitting hen's box keeps its egg; one more if she has laid since she sat down)
+    local under = h:getNestBox(S.sitBox):getEggsNb()
+    check(left == 0 and got == S.eggBoxEggs0 and under >= S.under0 and S.under0 >= 1,
+        "hutch: Grab eggs (the game's action) took the free box's " .. S.eggBoxEggs0 .. " eggs, not the sitting hen's",
+        "box " .. left .. ", carried +" .. got .. ", under the hen " .. under, "box 0, carried +" .. S.eggBoxEggs0 .. ", under the hen " .. S.under0 .. " or more")
+    check(H.gone("oc:verb:eggs"), "hutch: no free eggs left: Grab eggs is gone", "drawn " .. tostring(H.zone("oc:verb:eggs") ~= nil) .. ", live " .. tostring(H.live()), "drawn false, live true")
     local ok, err = H.press("oc:verb:door")
-    check(ok, "hutch: Open door runs", err, "ok")
+    local queued = H.queued("ISToggleHutchDoor")
+    check(ok and queued, "hutch: Open door queues the game's action (ISToggleHutchDoor)", tostring(err or "pressed") .. ", queued " .. tostring(queued), "pressed, queued true")
 end)
-waitFor(10000, function() return H.idle() and S.hutch:isOpen() end, "the door to open", "hutch")
+waitFor(10000, function()
+    if not (H.idle() and S.hutch:isOpen()) then return false end
+    S.birdsAtOpen = H.perchCount()
+    return true
+end, "the door to open", "hutch")
 add(600, function()
     if S.dead or S.off.hutch then return end
-    local d, h = H.d(), S.hutch
-    local want = 0
-    for k = 0, h:getMaxAnimals() - 1 do if h:getAnimal(k) then want = want + 1 end end
-    -- (with the door open a hen may step out for a walk: the card is held to the hen house as it is now)
-    check(d.roostShown and #d.birds == want and want >= 1, "hutch: door open (the game's action): the perches list the birds", #d.birds, want)
-    local okZ = #d.birds > 0
+    local d = H.d()
+    if not H.need("hutch", d ~= nil, "hutch: the card is still open", H.kind(), "hutch") then return end
+    -- (in daytime the hens walk out of an open hen house, one every 4 to 6 s: the perches only lose birds while the
+    -- door is open, so the card's list, read up to a quarter second ago, lies between the count now and the count
+    -- when the door opened)
+    local now, n = H.perchCount(), #d.birds
+    local was = S.birdsAtOpen or now
+    check(d.roostShown and n >= 1 and n >= now and n <= was, "hutch: door open (the game's action): the perches list the birds in the hen house",
+        n .. " listed", "1 or more, " .. now .. " to " .. was)
+    local okZ = n > 0 and H.live()
     for _, b in ipairs(d.birds) do
         if not (H.zone("hutch:bird:" .. b.i .. ":grab") and H.zone("hutch:bird:" .. b.i .. ":info")) then okZ = false end
     end
     check(okZ, "hutch: each bird has Grab and Info", table.concat(H.zonesLike("hutch:bird:"), ","), "grab and info per bird")
+    local b = d.birds[1]
+    S.infoBird = b and b.a
+    if not b then check(false, "hutch: a bird's Info shows that bird in the Animals tab", "no bird on the perches", "a bird"); return end
+    local ok, err = H.press("hutch:bird:" .. b.i .. ":info")
+    check(ok, "hutch: a bird's Info runs (its row's own code)", err, "ok")
+end)
+add(900, function()
+    if S.dead or S.off.hutch or not S.infoBird then return end
+    local w, st = H.W(), nil
+    if w and ZeD.AnimalsTab and ZeD.AnimalsTab.getState then st = ZeD.AnimalsTab.getState(w) end
+    check(H.card() == nil and w ~= nil and w._activeTab == "animals" and st ~= nil and st.view == "animal" and st.animalRef == S.infoBird,
+        "hutch: a bird's Info shows that bird in the Animals tab", tostring(w and w._activeTab) .. " " .. tostring(st and st.view), "animals animal")
+end)
+add(100, function()
+    if S.dead or S.off.hutch then return end
+    -- the door shut again (the hens left stay in), the hens that walked out taken away now (not left to wander the
+    -- strip and the plots), the Animals tab and the World window back as they were
+    local h = S.hutch
+    if h:isOpen() then h:toggleDoor() end
+    local out = H.hensOut()
+    for _, a in ipairs(out) do H.takeAwayOut(a) end
+    say("hutch: the door shut again; hens that had walked out, taken away: " .. #out)
+    H.atBack(); H.tabBack()
+end)
+add(400, function()
+    if S.dead or S.off.hutch then return end
+    -- (a step after the tab's own click: openTab can land a tick later, and its Loot press drops a card)
+    ISHutchMenu.onInfo(S.hutch, p)
+end)
+add(600, function()
+    if S.dead or S.off.hutch then return end
+    if not H.need("hutch", H.kind() == "hutch", "hutch: the card opens again for the floor", H.kind(), "hutch") then return end
     local clean = H.verb("clean")
     local need = ZeD.tr("UI_ZeD_Hutch_NeedsBoth", ZeD.tr("UI_ZeD_Hutch_NeedsWater"), ZeD.tr("UI_ZeD_Hutch_NeedsMop"))
     check(clean ~= nil and clean.enabled == false and clean.needs == need, "hutch: a dirty floor, no water or mop: Clean waits and names both",
@@ -1152,26 +1413,22 @@ add(600, function()
     if S.dead or S.off.hutch then return end
     local clean = H.verb("clean")
     check(clean ~= nil and clean.enabled ~= false, "hutch: with a bucket of water and a sponge, Clean is live", clean and tostring(clean.enabled), "true")
+    S.dirtAt = S.hutch:getHutchDirt()
     local ok, err = H.press("oc:verb:clean")
-    check(ok, "hutch: Clean runs", err, "ok")
+    local queued = H.queued("ISHutchCleanFloor")
+    check(ok and queued, "hutch: Clean queues the game's cleaning (ISHutchCleanFloor)", tostring(err or "pressed") .. ", queued " .. tostring(queued), "pressed, queued true")
 end)
-waitFor(15000, function() return H.idle() and S.hutch:getHutchDirt() <= 0 end, "the floor cleaned", "hutch")
+waitFor(15000, function() return H.idle() and S.hutch:getHutchDirt() < (S.dirtAt or 3) end, "the floor cleaned", "hutch")
 add(600, function()
     if S.dead or S.off.hutch then return end
-    check(S.hutch:getHutchDirt() <= 0, "hutch: Clean (the game's action) cleaned the floor", S.hutch:getHutchDirt(), 0)
-    check(H.zone("oc:verb:clean") == nil, "hutch: a clean floor: Clean is gone", H.zone("oc:verb:clean") ~= nil, false)
-    local b = H.d() and H.d().birds[1]
-    S.infoBird = b and b.a
-    if not b then return end
-    local ok, err = H.press("hutch:bird:" .. b.i .. ":info")
-    check(ok, "hutch: a bird's Info runs", err, "ok")
-end)
-add(900, function()
-    if S.dead or S.off.hutch or not S.infoBird then return end
-    local st = nil
-    pcall(function() st = ZeD.AnimalsTab.getState(H.W()) end)
-    check(H.card() == nil and H.W()._activeTab == "animals" and st ~= nil and st.view == "animal" and st.animalRef == S.infoBird,
-        "hutch: a bird's Info shows that bird in the Animals tab", tostring(H.W()._activeTab) .. " " .. tostring(st and st.view), "animals animal")
+    -- (a hen house with hens in it gains a point of dirt now and then, IsoHutch.update: a fresh point is allowed for)
+    local dirt = S.hutch:getHutchDirt()
+    check(dirt < (S.dirtAt or 3) and dirt <= 1, "hutch: Clean (the game's action) cleaned the floor", dirt, "0 (1 with a fresh point) from " .. tostring(S.dirtAt))
+    local d = H.d()
+    local shown = H.zone("oc:verb:clean") ~= nil
+    check(d ~= nil and H.live() and (d.dirt > 0) == shown, "hutch: Clean shows only while the floor is dirty (the card reads " .. tostring(d and d.dirt) .. ")",
+        "shown " .. tostring(shown) .. ", live " .. tostring(H.live()), "shown " .. tostring(d ~= nil and d.dirt > 0) .. ", live true")
+    H.close()
 end)
 add(100, function()
     -- (the bucket of water away before the plot's "no water carried")
@@ -1182,6 +1439,7 @@ end)
 add(300, function()
     if S.dead then return end
     H.home(); H.close()
+    if not H.hooked("farm", ISFarmingMenu and ISFarmingMenu._zed_onInfo, "the plot's Info (ISFarmingMenu.onInfo)") then return end
     local sq1 = S.spots.farm
     local sq2 = sq1 and getCell():getGridSquare(sq1:getX() + 1, sq1:getY(), sq1:getZ())
     if not (sq1 and sq2) then H.skip("farm", "free ground for two plots"); return end
@@ -1189,7 +1447,7 @@ add(300, function()
     for _, sq in ipairs({ sq1, sq2 }) do
         local k = #LG.plots + 1
         LG.plots[k] = sq
-        pcall(function() LG.plowDay[k] = sq:getModData().plowDay end)
+        LG.plowDay[k] = sq:getModData().plowDay
         local ok, err = pcall(function() SFarmingSystem.instance:plow(sq) end)
         if not ok then say("plow threw: " .. tostring(err)) end
     end
@@ -1197,16 +1455,15 @@ end)
 add(800, function()
     if S.dead or S.off.farm then return end
     local c1, c2 = H.plantLua(S.plot1), H.plantLua(S.plot2)
-    check(c1 ~= nil and c2 ~= nil and c1.state == "plow", "farm: two plowed plots staged", tostring(c1 and c1.state) .. " " .. tostring(c2 ~= nil), "plow true")
-    if not c1 then S.off.farm = true; return end
+    if not H.need("farm", c1 ~= nil and c2 ~= nil and c1.state == "plow", "farm: two plowed plots staged", tostring(c1 and c1.state) .. " " .. tostring(c2 ~= nil), "plow true") then return end
     ISFarmingMenu.onInfo(nil, c1, S.plot1, p)
 end)
 waitFor(4000, function() return S.off.farm or H.kind() == "plant" end, "the farm card", "farm")
 add(500, function()
     if S.dead or S.off.farm then return end
-    check(H.kind() == "plant", "farm: the plot's Info (the game's menu) opens the farm card", H.kind(), "plant")
+    if not H.need("farm", H.kind() == "plant", "farm: the plot's Info (the game's menu) opens the farm card", H.kind(), "plant") then return end
     local t, d, e = H.t(), H.d(), H.e()
-    if not (H.kind() == "plant" and d) then S.off.farm = true; return end
+    if not H.need("farm", d ~= nil, "farm: the card has its data (its refresh ran)", "nil", "t.d") then return end
     check(d.plowed and H.pill() == ZeD.tr("UI_ZeD_Farm_PillEmpty"), "farm: plowed: the tag says Empty", H.pill(), ZeD.tr("UI_ZeD_Farm_PillEmpty"))
     local sow = H.verb("sow")
     check(#t.verbs == 1 and sow ~= nil and sow.enabled == false, "farm: plowed with no seeds carried: only Sow, waiting",
@@ -1219,6 +1476,7 @@ end)
 add(600, function()
     if S.dead or S.off.farm then return end
     local t, d = H.t(), H.d()
+    if not H.need("farm", d ~= nil, "farm: the card is still open", H.kind(), "plant") then return end
     local row, ri = H.rowWhere(d.seeds, function(r) return r.seedName == "Base.CarrotSeed" end)
     check(row ~= nil and row.count == 2, "farm: the carrot seeds carried are a Sow row", row and row.count, 2)
     local sow = H.verb("sow")
@@ -1229,7 +1487,7 @@ add(600, function()
     if not row then S.off.farm = true; return end
     S.plotKey = t.key
     local ok, err = H.press("farm:sow:" .. ri)
-    check(ok, "farm: the seed row's Sow runs", err, "ok")
+    check(ok, "farm: the seed row's Sow runs (its row's own code)", err, "ok")
 end)
 waitFor(15000, function() local c = H.plantLua(S.plot1); return H.idle() and c and c.state == "seeded" end, "the sowing", "farm")
 add(600, function()
@@ -1237,33 +1495,40 @@ add(600, function()
     local t, c = H.t(), H.plantLua(S.plot1)
     check(c and c.state == "seeded" and c.typeOfSeed == "Carrots" and t and t.key == S.plotKey and t.d and not t.d.plowed,
         "farm: Sow (the game's action) planted carrots and the card stays on the plot", tostring(c and c.state) .. " " .. tostring(c and c.typeOfSeed), "seeded Carrots")
-    local lo = SFarmingSystem.instance:getLuaObjectOnSquare(S.plot1)
-    if lo then lo.waterLvl = 20; lo:saveData() end
+    H.setWater(20)
     H.fresh()
 end)
 add(600, function()
     if S.dead or S.off.farm then return end
     local d = H.d()
-    check(d and d.water == 20 and H.pill() == ZeD.tr("Farming_Parched"), "farm: water 20: the tag says Parched", tostring(d and d.water) .. " " .. tostring(H.pill()), "20 " .. ZeD.tr("Farming_Parched"))
+    -- (the farming system's ten-minute tick moves the level, SFarmingSystem.checkWater: -0.1 in the sun, rain up to
+    -- +30. The tag is read as vanilla's band for the level set, not the level itself)
+    check(d and d.water <= 25 and H.pill() == ZeD.tr("Farming_Parched"), "farm: a parched plot (water set to 20): the tag says Parched (25 and under)",
+        tostring(d and d.water) .. " " .. tostring(H.pill()), "<= 25 " .. ZeD.tr("Farming_Parched"))
     local w = H.verb("water")
     check(w ~= nil and w.sensible ~= false and w.enabled == false, "farm: thirsty with no water carried: Water waits", w and tostring(w.enabled), "false")
     local bottle = H.give("Base.WaterBottle")
     if bottle then H.fill(bottle, Fluid.Water) end
+    -- (the level set again, so rain since cannot carry it past thirsty, 60, where Water stops being the main verb)
+    H.setWater(20)
     H.fresh()
 end)
 add(600, function()
     if S.dead or S.off.farm then return end
     local w = H.verb("water")
     check(w ~= nil and w.enabled and w.primary, "farm: with water carried, Water is live and the main verb", w and (tostring(w.enabled) .. " " .. tostring(w.primary)), "true true")
+    S.water0 = H.waterLvl()
     local ok, err = H.press("oc:verb:water")
-    check(ok, "farm: Water runs", err, "ok")
+    local queued = H.queued("ISWaterPlantAction")
+    check(ok and queued, "farm: Water queues the game's watering (ISWaterPlantAction)", tostring(err or "pressed") .. ", queued " .. tostring(queued), "pressed, queued true")
 end)
-waitFor(15000, function() local c = H.plantLua(S.plot1); return H.idle() and c and (c.waterLvl or 0) > 20 end, "the watering", "farm")
+waitFor(15000, function() return H.idle() and (H.waterLvl() or 0) > (S.water0 or 20) + 1 end, "the watering", "farm")
 add(600, function()
     if S.dead or S.off.farm then return end
-    local c, d = H.plantLua(S.plot1), H.d()
-    check(c and (c.waterLvl or 0) > 20 and d and d.water == c.waterLvl, "farm: Water (the game's action) raised the water and the card reads it",
-        tostring(c and c.waterLvl) .. " / " .. tostring(d and d.water), "> 20, the same")
+    local lvl, d = H.waterLvl(), H.d()
+    -- (the card's reading, up to a quarter second old, against the farming system's: a margin, not an equality)
+    check(lvl ~= nil and lvl > (S.water0 or 20) + 1 and d ~= nil and math.abs(d.water - lvl) < 0.5, "farm: Water (the game's action) raised the water and the card reads it",
+        tostring(lvl) .. " / " .. tostring(d and d.water), "> " .. tostring((S.water0 or 20) + 1) .. ", within 0.5")
     if not ISFarmingMenu.getShovel(p) then H.give("Base.Shovel") end
     H.fresh()
 end)
@@ -1298,18 +1563,19 @@ add(400, function()
     local e2 = H.e()
     check(ok and e2 ~= nil and e2.idx == n and e2.t ~= nil and e2.t == e2.list[n], "farm: < on the first plot wraps to the last",
         ok and ("idx " .. tostring(e2 and e2.idx)) or err, "idx " .. n)
+    -- (the card shut in this same step: with the bug, the entry is left on index 0 and the card's next frame would throw
+    -- again in OC.tick; it opens again on the first plot below, whatever < did)
+    H.close()
 end)
 add(600, function()
     if S.dead or S.off.farm then return end
-    -- (the card again on the first plot, whatever < did)
-    H.close()
     local c1 = H.plantLua(S.plot1)
     if c1 then ISFarmingMenu.onInfo(nil, c1, S.plot1, p) end
 end)
 add(600, function()
     if S.dead or S.off.farm then return end
     local t = H.t()
-    if not (H.kind() == "plant" and t) then check(false, "farm: the card reopens on the plot", H.kind(), "plant"); return end
+    if not H.need("farm", H.kind() == "plant" and t ~= nil, "farm: the card reopens on the plot", H.kind(), "plant") then return end
     S.goneKey = t.key
     local lo = SFarmingSystem.instance:getLuaObjectOnSquare(t.sq)
     if lo then SFarmingSystem.instance:removePlant(lo) end
@@ -1317,8 +1583,8 @@ end)
 add(900, function()
     if S.dead or S.off.farm then return end
     local t = H.t()
-    check(H.kind() == "plant" and t ~= nil and t.key ~= S.goneKey, "farm: the plot dug up from under the card: it moves to one still in reach",
-        tostring(H.kind()) .. " " .. tostring(t and t.key), "plant, another plot")
+    check(H.kind() == "plant" and t ~= nil and t.key ~= S.goneKey and H.live(), "farm: the plot dug up from under the card: it moves to one still in reach",
+        tostring(H.kind()) .. " " .. tostring(t and t.key) .. ", live " .. tostring(H.live()), "plant, another plot, live true")
     H.close()
 end)
 
@@ -1327,7 +1593,8 @@ add(500, function()
     H.restore("the end")
 end)
 add(900, function()
-    if not S.dead then
+    -- (only when the setup ran: on another save, or with the cards missing, nothing was staged)
+    if LG.home then
         local left = H.leftovers()
         check(#left == 0, "cleanup: everything staged is gone", table.concat(left, ", "), "nothing")
     end
@@ -1346,6 +1613,11 @@ local function drive()
         say("DONE")
         Events.OnTick.Remove(drive)
         return
+    end
+    -- (both windows held down while the run stages and reads: H.keepDown)
+    if LG.home and not LG.done then
+        local okK, eK = pcall(H.keepDown)
+        if not okK and not S.keepErr then S.keepErr = true; R.err = R.err + 1; say("ERR holding the windows down: " .. tostring(eK)) end
     end
     if st.wait then
         local ok, done = pcall(st.fn)

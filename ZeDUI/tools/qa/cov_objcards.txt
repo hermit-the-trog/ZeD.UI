@@ -1,5 +1,10 @@
 # ZeDUI/tools/qa/cov_objcards.txt  (Nov 12 2026)
 # Coverage run for the object cards (ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md Table B: tracks, farm plot, fluid,
 # hutch, trough, campfire, placement): zedqa_run.ps1 -Mode fullscreen4k -Manifest .../cov_objcards.txt
+# The expect= is the error the farm card's "<" press raises on purpose inside OC.browse (ObjectCards.lua: Kahlua's %
+# keeps the sign, so "<" on the first plot steps to index 0). The script catches it and prints its FAIL line, but -debug
+# logs the caught error as a Java exception, which would turn the run from WARN to FAIL and hide any other exception.
+# Until the build fixes OC.browse and setAxis (ObjectCardPlacement.lua) the run reads WARN with exactly two FAIL lines:
+# "farm: < on the first plot wraps to the last" and "placement: -15 from 5 degrees wraps to 350".
 zedqa_prelude.lua | pre | timeout=120                          # opens both windows, unpauses, god mode, the drag strip
-zedqa_cov_objcards.lua | cov_objcards | timeout=600            # ~140 PASS/FAIL checks over the seven cards; stages and takes back a hammer, a campfire, a trough, a hen house with hens and eggs, two plots
+zedqa_cov_objcards.lua | cov_objcards | timeout=600 | expect=\.browse\(ObjectCards\.lua:   # ~170 PASS/FAIL checks over the seven cards; stages and takes back a hammer, a campfire, a trough, a hen house with hens and eggs, two plots (leaves ~3 Husbandry XP)
