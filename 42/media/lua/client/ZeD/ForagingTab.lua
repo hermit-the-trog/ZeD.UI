@@ -301,14 +301,16 @@ local function getModifiers(win)
         end
     end
 
-    -- Profession bonus
-    local profName = p:getDescriptor() and p:getDescriptor():getCharacterProfession()
-                     and p:getDescriptor():getCharacterProfession():getName()
+    -- Profession bonus: named as the game names the profession (its definition's getUIName, as the character screen
+    -- shows it: "Unemployed"); the forage table's own name is the profession's id ("unemployed")
+    local prof = p:getDescriptor() and p:getDescriptor():getCharacterProfession()
+    local profName = prof and prof:getName()
     if profName then
         local profDef = forageSystem.skillDefs.occupation[profName]
         if profDef and profDef.visionBonus and profDef.visionBonus > 0 then
+            local pdef = CharacterProfessionDefinition and CharacterProfessionDefinition.getCharacterProfessionDefinition(prof)
             mods[#mods + 1] = {
-                label = profDef.name or profName,
+                label = (pdef and pdef:getUIName()) or profDef.name or profName,
                 value = "+" .. string.format("%.1f", profDef.visionBonus),
                 dot   = "positive",
             }

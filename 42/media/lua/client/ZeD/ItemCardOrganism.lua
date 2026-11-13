@@ -506,8 +506,9 @@ end
 -- Each entry: {label, value, valueClass?, dotColor?, mirrorKey?}
 -- mirrorKey = "cooked" | "progress" | "condition" - the state mirror below
 -- recolors this row when ItemActionManager has a matching active action.
+-- playerNum: whose card it is (a bag's capacity is that character's: Organized and Disorganized change it).
 -- ---------------------------------------------------------------------------
-local function topStatsForItem(item)
+local function topStatsForItem(item, playerNum)
     if not item then return {} end
     local cat = categoryOf(item)
     local rows = {}
@@ -625,9 +626,14 @@ local function topStatsForItem(item)
         end
     elseif cat == "Container" then
         -- the weight it holds, as Container Facts below shows it ("5.8 / 28 kg"). Not getItemCapacity:
-        -- that is not a bag's capacity (a Military Backpack reads -1)
+        -- that is not a bag's capacity (a Military Backpack reads -1). The capacity is the character's
+        -- (getEffectiveCapacity: Organized holds more, Disorganized less), what the game checks a transfer
+        -- into the bag against and what its own tooltip and inventory show; the bare getCapacity reads 28
+        -- on an ALICE pack an Organized character fills to 36
         local inner = safeGet(item, "getInventory")
-        local cap = (inner and safeGet(inner, "getCapacity")) or safeGet(item, "getCapacity")
+        local chr = getSpecificPlayer and getSpecificPlayer(playerNum or 0) or nil
+        local cap = (inner and (safeGet(inner, "getEffectiveCapacity", chr) or safeGet(inner, "getCapacity")))
+            or safeGet(item, "getCapacity")
         local held = inner and safeGet(inner, "getContentsWeight")
         if cap and cap > 0 then
             rows[#rows + 1] = {label = ZeD.tr("Tooltip_container_Capacity"),
@@ -780,8 +786,8 @@ local function buildModel(card, item, ctx, playerNum, now, g1, g2, g3, g4, g5, g
     m.cat    = categoryOf(item)
     m.marks  = readMarks(item, playerNum)
     m.verbs  = headerVerbsForContext(ctx, item)
-    m.stats  = topStatsForItem(item)
-    m.facts  = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item) or nil
+    m.stats  = topStatsForItem(item, playerNum)
+    m.facts  = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item, playerNum) or nil
     local fk = m.facts and m.facts._key
     m.ft     = safeGet(item, "getFullType")
     m.pFood  = (m.cat == "Food" or fk == "nutrition") or nil
@@ -976,9 +982,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 ZeD.Atoms.drawStatusDot(card, x + w - sumW - T.px(4) - sq, textY + math.floor((fontH - sq) / 2), condColor, sq)
             else
                 -- Inline composition: [triangle+label][seg-bar fills][%][Dirty][Wet]
-                -- The soil as tags (the library's: outlined, a square mark in the
-                -- soil's colour), right side first, then % left of them, the
-                -- seg-bar fills the rest.
+                -- The soil as tags (the library's: a square mark in the soil's
+                -- color and the word, no box), right side first, measured as
+                -- drawTag draws them (tagW) so the last ends at the card's edge,
+                -- then % left of them, the seg-bar fills the rest.
                 local chipGap   = T.px(6)
                 local chips = {}
                 if soil and soil.dirt then
@@ -995,7 +1002,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 local chipRects = {}
                 for i = #chips, 1, -1 do
                     local c = chips[i]
-                    local cw = tm:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(c.label)) + T.px(10) + sq + T.px(4)
+                    local cw = ZeD.Atoms.tagW(c.label, true)
                     rightCursor = rightCursor - cw
                     chipRects[i] = {x = rightCursor, w = cw, y = cy + math.floor((hdrH - chipH) / 2), h = chipH}
                     if i > 1 then rightCursor = rightCursor - chipGap end

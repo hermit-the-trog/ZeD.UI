@@ -5916,3 +5916,10 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Inv_FilterChipHelp` | `%1: only things in it stay bright; pick several to see more` | Inventory Filter bar: help line over a category chip that is not picked. %1 the category's name (the game's word) | - |
 | `UI_ZeD_Inv_FilterChipOffHelp` | `%1: press again to unpick` | Inventory Filter bar: help line over a picked category chip. %1 the category's name | - |
 | `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field: A opens the on-screen keyboard | 10 |
+
+## Lists (the Journal's loadouts and outfits)
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Lists_EmptySec` | `Nothing here yet. Add what you carry, or open an item's menu: Save to loadout.` | Character window, Journal tab, Lists: the one dim line in a loadout's empty section. After the colon, the item menu's option as `UI_ZeD_Lists_SaveToLoadout` has it. No mouse words: a controller opens the item's menu too | - |
+| `UI_ZeD_Lists_EmptyWorn` | `Nothing here yet. Add what you wear, or open a piece's menu: Save to outfit.` | Character window, Journal tab, Lists: the one dim line in an outfit's empty section. After the colon, the menu's option as `UI_ZeD_Lists_SaveToOutfit` has it. No mouse words | - |

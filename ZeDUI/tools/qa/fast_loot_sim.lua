@@ -288,6 +288,13 @@ local bag = item({ is = { InventoryContainer = true }, getName = "Hiking Bag", g
 local FG = ZeD.LootCard.facts(bag, PLAYER)
 check("CARD: a bag: what it holds of what it can, its weight reduction", row(FG, "UI_ZeD_Loot_Holds") and row(FG, "UI_ZeD_Loot_Holds")[2] == "5.4 / 18"
       and row(FG, "UI_ZeD_Card_WeightReduce")[2] == "70%")
+-- (Nov 12 2026, review) what it can hold is the character's: the game's getEffectiveCapacity, as its own tooltip
+-- reads it (a Disorganized character's 18 is 12; Organized holds more), not the bare getCapacity
+bag.getEffectiveCapacity = function(_, chr) return chr == PLAYER and 12 or 18 end
+local FGD = ZeD.LootCard.facts(bag, PLAYER)
+bag.getEffectiveCapacity = nil
+check("CARD: a Disorganized character's bag holds 12, not the bag's bare 18", row(FGD, "UI_ZeD_Loot_Holds") and row(FGD, "UI_ZeD_Loot_Holds")[2] == "5.4 / 12",
+      row(FGD, "UI_ZeD_Loot_Holds") and row(FGD, "UI_ZeD_Loot_Holds")[2])
 BALLOONS = {}
 ALT = true
 IT.want(list, jacket, { x = 0, y = 20, w = 200, h = 16 })

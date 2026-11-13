@@ -267,14 +267,18 @@ function M.CombatFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- ContainerFacts - bags / boxes / cooking pots
+-- ContainerFacts - bags / boxes / cooking pots. The capacity is the card's
+-- character's (playerNum): getEffectiveCapacity, so Organized holds more and
+-- Disorganized less, as the game checks a transfer and shows it in its own
+-- tooltip and inventory (the bare getCapacity ignores both traits).
 -- ---------------------------------------------------------------------------
-function M.ContainerFacts(item)
+function M.ContainerFacts(item, playerNum)
     if not item then return nil end
     local inv = safeGet(item, "getInventory")
     if not inv then return nil end
 
-    local cap     = safeGet(inv, "getCapacity") or safeGet(item, "getCapacity")
+    local chr     = getSpecificPlayer and getSpecificPlayer(playerNum or 0) or nil
+    local cap     = safeGet(inv, "getEffectiveCapacity", chr) or safeGet(inv, "getCapacity") or safeGet(item, "getCapacity")
     local current = safeGet(inv, "getContentsWeight")
     local nItems  = safeGet(inv, "getItems")
     local count   = nItems and safeGet(nItems, "size") or nil
@@ -446,11 +450,12 @@ M._registry = {
 
 --- Dispatch: find the first factory that produces a non-nil panel.
 --- @param item PZ inventory item
+--- @param playerNum whose card it is (handed on to each factory; a factory that takes only the item ignores it)
 --- @return panel | nil
-function M.factsFor(item)
+function M.factsFor(item, playerNum)
     if not item then return nil end
     for _, entry in ipairs(M._registry) do
-        local panel = entry.factory(item)
+        local panel = entry.factory(item, playerNum)
         if panel then
             panel._key = entry.key
             return panel
@@ -463,7 +468,7 @@ end
 --- item types. Inserts at the given priority index (1 = first), or appends
 --- when priority is nil.
 --- @param key      string key for the panel type
---- @param factory  function(item) -> panel|nil
+--- @param factory  function(item, playerNum) -> panel|nil (playerNum: whose card; may be ignored)
 --- @param priority integer | nil
 function M.register(key, factory, priority)
     if not key or not factory then return end

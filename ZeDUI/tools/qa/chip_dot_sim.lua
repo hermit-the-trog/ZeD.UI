@@ -7,8 +7,10 @@
 --            name (x + 14) on every line of the wrap, an unmarked tag's word in step; measuring and drawing agree
 --   ROW      the inventory row's Belt 2 / Next level: the word in the secondary ink (textDim), the focus ink on the
 --            controller's row, no square, no outline; the Equipment belt's In hand the same
+--   SOIL     (Nov 12 2026) the item card's soil tags, 220w and 480w: the last tag ends at the right edge, each
+--            the tag gap before the next (the layouts cut from ItemCard.lua and ItemCardOrganism.lua)
 --   CALLERS  the layouts that measured the old box (Health, Equipment, the inventory rows, the medic card, the
---            Animals tab, the station rows, the mod list, the belt's In hand) measure the new one
+--            Animals tab, the station rows, the mod list, the belt's In hand, the item cards' soil) measure the new one
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/chip_dot_sim.lua
 -- It prints FAIL lines and a last line "chip_dot_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -228,6 +230,58 @@ do
     check("In hand: the secondary ink", eq:find("_beltTagOpts.textColor = ink or ZeD.T.textDim", 1, true) ~= nil)
 end
 
+-- (Nov 12 2026, review) The item card's soil tags still measured the old box (the word + 10u padding + the mark):
+-- each tag drew 10u narrower than its slot, so the last one stopped 10u short of the card's right edge and the % and
+-- the seg bar sat further left. Both cards' layouts run here on the real tag.
+section("SOIL: the item card's soil tags reach the right edge")
+do
+    local T = ZeD.T
+    T.sp.xs, T.iconSm = 4, 16
+    T.soiledWet, T.soiledDirt = col(0, 0.5, 1), col(0.6, 0.4, 0.2)
+    ZeD.tr = function(k, a) if k == "Tooltip_clothing_dirty" then return "Dirty" end return k end
+    ZeD.Atoms.textCase = function(s) return s end
+    ZeD.Molecules.drawTag = function(...) return ZeD.Atoms.drawTag(...) end
+    -- the 220w card: drawItemSoilRow (ItemCard.lua), cut whole
+    local piece = cutFn(srcOf("ItemCard.lua"), "local function drawItemSoilRow(")
+    local chunk, err = piece and loadstring(piece .. "return drawItemSoilRow\n", "=ItemCard.lua (cut)")
+    check("drawItemSoilRow cut and loads", chunk ~= nil, err)
+    if chunk then
+        local drawItemSoilRow = chunk()
+        LOG = {}
+        drawItemSoilRow(panel, 0, 0, 300, { dirt = true, wet = 40 })
+        local words = all("text")
+        local wet, dirt = words[1], words[2]
+        check("220: the wet tag's word ends at the row's right edge", wet and wet.s == "40%" and wet.x + 8 * #wet.s == 300,
+            wet and (wet.x + 8 * #wet.s))
+        local sqs = all("rect")
+        check("220: Dirty's word ends the row's small gap before Wet's square", dirt and sqs[1] and dirt.x + 8 * #dirt.s == sqs[1].x - 4,
+            dirt and sqs[1] and ((dirt.x + 8 * #dirt.s) .. " / " .. sqs[1].x))
+    end
+    -- the 480w card: the Zones header's tag layout (ItemCardOrganism.lua), cut from its first line to the gap before
+    -- the %, run in a function with the header's locals
+    local src = srcOf("ItemCardOrganism.lua")
+    local a = src:find("local chipH = T.px(16)", 1, true)
+    local endMark = "if #chips > 0 then rightCursor = rightCursor - chipGap end"
+    local b = a and src:find(endMark, a, true)
+    check("the Zones header's tag layout found", a ~= nil and b ~= nil)
+    if a and b then
+        local body = src:sub(a, b + #endMark - 1)
+        local lay, err2 = loadstring("local x, w, cy, hdrH, chips, chipGap, sq, tm, T = ...\n" .. body
+            .. "\nreturn chipRects, rightCursor\n", "=ItemCardOrganism.lua (cut)")
+        check("it loads", lay ~= nil, err2)
+        if lay then
+            local chips = { { label = "Dirty" }, { label = "Wet 40%" } }
+            local rects, cursor = lay(0, 460, 0, 24, chips, T.px(6), T.px(6), ZeD.TM, T)
+            local wetW, dirtW = ZeD.Atoms.tagW("Wet 40%", true), ZeD.Atoms.tagW("Dirty", true)
+            check("480: the Wet tag, drawn from its slot, ends at the card's right edge", rects[2] and rects[2].x + wetW == 460,
+                rects[2] and (rects[2].x + wetW))
+            check("480: Dirty ends the tag gap before Wet", rects[1] and rects[1].x + dirtW == rects[2].x - 6,
+                rects[1] and ((rects[1].x + dirtW) .. " / " .. rects[2].x))
+            check("480: the % stands a tag gap before Dirty", cursor == rects[1].x - 6, cursor)
+        end
+    end
+end
+
 section("CALLERS: no layout measures the old box")
 do
     local function has(rel, s) return srcOf(rel):find(s, 1, true) ~= nil end
@@ -239,6 +293,8 @@ do
     check("the Animals tab drops the padding", not has("AnimalsTab.lua", "tc(text)) + T.px(10)"))
     check("the wheel's breadcrumb centres in its fill", has("ZeD_Wheel.lua", "minW = w, keepCase = true"))
     check("the Health tab's own box width is gone", not has("HealthTab.lua", "ZeD.textCase(label)) + T.px(10)"))
+    check("the item cards' soil tags measure through tagW", has("ItemCardOrganism.lua", "local cw = ZeD.Atoms.tagW(c.label, true)")
+        and has("ItemCard.lua", "return ZeD.Atoms.tagW(lbl, true)"))
 end
 
 print(string.format("chip_dot_sim: %d checks, %d failed", checks, failed))

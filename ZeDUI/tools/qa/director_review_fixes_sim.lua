@@ -240,32 +240,122 @@ end
 
 -- ---- the second review (Nov 11 2026, director_review_20261111) ----
 
-section("MOODLE: the note over the windows")
+-- (Nov 12 2026, review) The note stands over the windows from its own see-through note layer (ZeD_MoodleNote),
+-- never by raising the moodle layer: a raised layer stayed above every window after its note went, took the
+-- windows' pointer in its strip, and a moodle under a window popped its balloon over that window. The whole file
+-- runs here in its own globals, on stubs that record what is asked of each panel.
+section("MOODLE: the note over the windows, from the note layer; the moodle layer in its place")
 do
     local src = readFile("42/media/lua/client/ZeD/ZeD_Moodles.lua") or ""
-    local raise, pre = cutFn(src, "function ZeD_MoodleLayer:_raise("), cutFn(src, "function ZeD_MoodleLayer:prerender(")
-    check("_raise and prerender cut", raise ~= nil and pre ~= nil)
-    if raise and pre then
-        ZeD_MoodleLayer = {}
-        local chunk, err = loadstring(raise .. pre, "=ZeD_Moodles.lua (cut)")
-        check("they load", chunk ~= nil, err)
-        if chunk then
-            chunk()
-            local L = setmetatable({ _mode = "right", on = nil, tops = 0, NOTE = false, HELD = false }, { __index = ZeD_MoodleLayer })
-            function L:_noticeTick() end
-            function L:_prerenderNotes() if self.NOTE then self._chip = { idx = 1 } end; if self.HELD then self._held = true end end
-            function L:setAlwaysOnTop(b) self.on = b end
-            function L:bringToTop() self.tops = self.tops + 1 end
-            L:prerender()
-            check("no note: the layer stays in its place", L.on == nil and L.tops == 0)
-            L.NOTE = true; L:prerender()
-            check("a note: the layer over every window", L.on == true and L.tops == 1 and L._raised)
-            L:prerender()
-            check("raised once, not every frame", L.tops == 1)
-            L.NOTE = false; L:prerender()
-            check("the note gone: the layer drops back", L.on == false and not L._raised)
-            L.HELD = true; L:prerender()
-            check("a balloon held by the pointer raises it too", L.on == true and L.tops == 2)
+    local W = { mx = -100, my = -100, over = false, notices = true, safe = false }
+    local env = setmetatable({}, { __index = _G })
+    env.Events = setmetatable({}, { __index = function(t, k)
+        local e = { fns = {} }
+        e.Add = function(fn) e.fns[#e.fns + 1] = fn end
+        e.Remove = function() end
+        rawset(t, k, e)
+        return e
+    end })
+    env.require, env.print = function() end, function() end
+    env.getTimestampMs = function() return 5000 end
+    env.UIManager = { getMoodleUI = function() return nil end }
+    local Base = {}
+    Base.__index = Base
+    for _, k in ipairs({ "X", "Y" }) do
+        Base["get" .. k] = function(self) return self[k:lower()] end
+        Base["set" .. k] = function(self, v) self[k:lower()] = v end
+    end
+    function Base:getWidth() return self.w end
+    function Base:getHeight() return self.h end
+    function Base:getAbsoluteX() return self.x end
+    function Base:getAbsoluteY() return self.y end
+    function Base:getMouseX() return W.mx - self.x end
+    function Base:getMouseY() return W.my - self.y end
+    function Base:isMouseOver() return W.over end
+    function Base:initialise() end
+    function Base:addToUIManager() self.added = true end
+    function Base:setVisible(v) self.visible = v end
+    function Base:getIsVisible() return self.visible ~= false end
+    function Base:setAlwaysOnTop(b) self.onTop = b end
+    function Base:bringToTop() self.tops = (self.tops or 0) + 1 end
+    function Base:drawText(s, x, y) self.texts = self.texts or {}; self.texts[#self.texts + 1] = { s = s, x = x, y = y } end
+    env.ZeD_Panel = {
+        derive = function() return setmetatable({}, { __index = Base }) end,
+        new = function(_, x, y, w, h) return setmetatable({ x = x, y = y, w = w, h = h }, Base) end,
+    }
+    local md = { getMoodleDisplayString = function() return "Hungry" end,
+                 getMoodleDescriptionString = function() return "Eat something" end }
+    local player = { getMoodles = function() return md end }
+    env.getSpecificPlayer = function() return player end
+    local canvases = {}
+    env.ZeD = {
+        T = { px = function(n) return n end, fontF2 = "F2", fontF4 = "F4", text = { r = 1, g = 1, b = 1 },
+              textDim = { r = 0.5, g = 0.5, b = 0.5 }, positive = { r = 0, g = 1, b = 0 }, warning = { r = 1, g = 1, b = 0 },
+              danger = { r = 1, g = 0, b = 0 } },
+        TM = { getFontHeight = function() return 12 end },
+        Safe = { on = function() return W.safe end, register = function(_, spec) W.safeSpec = spec end },
+        Settings = { moodleNoticesOn = function() return W.notices end },
+        Bubbles = { TRAIL_LEN = 3, syncColours = function() end, cloudShadow = function() end, drawTrail = function() end,
+                    cloudBody = function(cv) canvases[#canvases + 1] = cv end },
+        Px = { k = function() return 1 end, canvas = function(el, ox, oy, k) return { el = el, ox = ox, oy = oy, k = k } end },
+        Atoms = { wrapText = function(s) return { s } end, drawStatusDot = function() end },
+        Scale = { root = function() return 1 end },
+    }
+    local chunk, err = loadstring(src, "=ZeD_Moodles.lua")
+    check("ZeD_Moodles.lua loads on the stubs", chunk ~= nil, err)
+    local ok2, err2 = false, nil
+    if chunk then
+        setfenv(chunk, env)
+        ok2, err2 = pcall(chunk)
+        check("it runs", ok2, err2)
+    end
+    if ok2 then
+        local M = env.ZeD.Moodles
+        local L = M.install(0)
+        local N = L and L._note
+        check("installing the layer makes its note layer", N ~= nil and N.added == true)
+        check("the note layer stands over every window", N ~= nil and N.onTop == true)
+        check("the note layer takes no pointer", N ~= nil and N.wantMouseEvents == false and N.w == 1 and N.h == 1)
+        check("the moodle layer is never set over the windows", L.onTop == nil and (L.tops or 0) == 0)
+        -- the right column at 1800, 300: one moodle, 48 a side
+        L.x, L.y, L.w, L.h = 1800, 300, 48, 1080
+        L._mode, L._show, L._size = "right", true, 48
+        L._list = { { key = "HUNGRY", type = {}, level = 2, gbn = 2, art = "Status_Hunger" } }
+        L:prerender()                          -- (the first look at the player: the levels, no notice)
+        L._notices = { "HUNGRY" }
+        L:prerender()
+        check("a notice: the moodle layer still keeps its place", L.onTop == nil and (L.tops or 0) == 0)
+        if N then N:render() end
+        local cv = canvases[#canvases]
+        local c = L._chip
+        check("the note draws on the note layer", cv ~= nil and cv.el == N)
+        check("at the moodle's place: the layer's corner plus the note's own spot", cv and c
+            and cv.ox == 1800 + c.x and cv.oy == 300 + c.y, cv and c and (cv.ox .. "," .. cv.oy .. " / " .. c.x .. "," .. c.y))
+        check("the note left of the column (its place in the layer's own space)", c and c.x + c.w <= 0)
+        check("its words on the note layer, nothing on the moodle layer", N and N.texts and #N.texts > 0 and L.texts == nil)
+        -- the pointer on the moodle: a window over it there takes it
+        W.mx, W.my = 1800 + 10, 300 + 10
+        W.over = false
+        check("a moodle under a window is not pointed at", L:_hoverIndex() == nil)
+        W.over = true
+        check("an uncovered moodle is", L:_hoverIndex() == 1)
+        check("a press on the strip leaves the layer where it is", rawget(env.ZeD_MoodleLayer, "onFocus") ~= nil
+            and (function() L:onFocus(); return (L.tops or 0) == 0 end)())
+        -- a game started again: the old note layer draws nothing
+        local before = #canvases
+        M._layers[0] = nil
+        L:prerender()
+        if N then N:render() end
+        check("a note layer whose moodle layer is gone draws nothing", N ~= nil and #canvases == before)
+        M._layers[0] = L
+        -- safe mode hides both, taking over again shows both
+        if W.safeSpec then
+            W.safeSpec.leave()
+            check("safe mode hides the note layer with its moodle layer", L.visible == false and N and N.visible == false)
+            W.safeSpec.enter()
+            check("taking over again shows both", L.visible == true and N and N.visible == true)
+        else
+            check("safe mode registered", false)
         end
     end
 end

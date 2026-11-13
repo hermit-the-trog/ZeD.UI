@@ -92,14 +92,17 @@ local function panelBase(world)
     function B:getMouseX() return world.MX - self.x end
     function B:getMouseY() return world.MY - self.y end
     function B:getAbsoluteX() return self.x end
+    function B:getAbsoluteY() return self.y end
     function B:isMouseOver() return world.mouseOver == true end
     function B:initialise() end
     function B:addToUIManager() end
     function B:setVisible(v) self.visible = v end
     function B:getIsVisible() return self.visible ~= false end
     function B:setCapture() end
-    function B:drawTexture(t, x, y, a, r, g, b) world.log[#world.log + 1] = "tex " .. ser({ t, x, y, a, r, g, b }) end
-    function B:drawText(s, x, y, r, g, b, a, f) world.log[#world.log + 1] = "chip text " .. ser({ s, x, y, r, g, b, a, f }) end
+    -- (draws are logged where they land on the screen: the checkout draws the note from its note layer at the
+    -- screen's corner, the BASE copy from the moodle layer itself; the same picture logs the same)
+    function B:drawTexture(t, x, y, a, r, g, b) world.log[#world.log + 1] = "tex " .. ser({ t, self.x + x, self.y + y, a, r, g, b }) end
+    function B:drawText(s, x, y, r, g, b, a, f) world.log[#world.log + 1] = "chip text " .. ser({ s, self.x + x, self.y + y, r, g, b, a, f }) end
     function B:drawRectBorder(...) world.log[#world.log + 1] = "border " .. ser({ ... }) end
     return {
         derive = function(_, name) return setmetatable({}, { __index = B }) end,
@@ -202,8 +205,9 @@ local function moodleWorld(src, label)
         Bubbles = { TRAIL_LEN = 3, cloudBody = function(...) lg("chip cloud " .. ser({ ... })) end,
                     cloudShadow = function(...) lg("chip shadow " .. ser({ ... })) end,
                     drawTrail = function(...) lg("chip trail " .. ser({ ... })) end, syncColours = noop },
-        Px = { k = function() return 1 end, canvas = function(o, x, y, k) return { x = x, y = y, k = k } end },
-        Atoms = { wrapText = function(s) return { s } end, drawStatusDot = function(...) lg("chip dot " .. ser({ ... })) end },
+        Px = { k = function() return 1 end, canvas = function(o, x, y, k) return { x = o.x + x, y = o.y + y, k = k } end },
+        Atoms = { wrapText = function(s) return { s } end,
+                  drawStatusDot = function(p, x, y, c, s) lg("chip dot " .. ser({ p, p.x + x, p.y + y, c, s })) end },
         TM = { getFontHeight = function(_, f) return 10 + f end },
         Scale = { root = function() return 1 end },
     }
@@ -219,8 +223,9 @@ local MOODLE_EVENTS = {
     { 500, function(w) w.alive[1] = true; w.LV[1].WET = 2; w.LV[1].PANIC = 4; fire(w.env, "OnCreatePlayer", 1) end },
     { 1000, function(w) w.LV[0].THIRST = 1 end },
     { 1500, function(w) w.LV[0].HUNGRY = 2 end },
-    { 2000, function(w) local L = w.env.ZeD.Moodles.getLayer(0); w.MX, w.MY = L.x + 5, L.y + 48 + 10 + 5 end },
-    { 2500, function(w) w.MX, w.MY = -100, -100; w.LV[0].FOOD_EATEN = 2 end },
+    -- (the pointer on the layer, nothing over it there: the engine's isMouseOver says so)
+    { 2000, function(w) local L = w.env.ZeD.Moodles.getLayer(0); w.MX, w.MY = L.x + 5, L.y + 48 + 10 + 5; w.mouseOver = true end },
+    { 2500, function(w) w.MX, w.MY = -100, -100; w.mouseOver = false; w.LV[0].FOOD_EATEN = 2 end },
     { 3000, function(w) w.LV[0].FOOD_EATEN = 3; w.LV[1].PANIC = 3 end },
     { 3500, function(w) w.place = 2 end },
     { 4500, function(w) w.place = 3; w.belt = true end },
@@ -237,21 +242,28 @@ local MOODLE_EVENTS = {
     { 7000, function(w) w.LV[0].BORED = 1 end },
     { 7500, function(w) w.env.ZeD.Moodles.setStandIn({ id = "whole", whole = true, drawing = function() return true end }) end },
     { 8500, function(w) w.env.ZeD.Moodles.setStandIn(nil); w.place = 1; w.watch = true; w.belt = false end },
-    { 9000, function(w) w.notices = false; local L = w.env.ZeD.Moodles.getLayer(0); w.MX, w.MY = L.x + 5, L.y + 5 end },
+    { 9000, function(w) w.notices = false; local L = w.env.ZeD.Moodles.getLayer(0); w.MX, w.MY = L.x + 5, L.y + 5; w.mouseOver = true end },
     { 9600, function(w) w.LV[0].THIRST = 0; w.LV[0].PAIN = 2 end },
-    { 10000, function(w) w.MX, w.MY = -100, -100; w.notices = true; w.LV[0].DRUNK = 1; fire(w.env, "OnGameStart"); fire(w.env, "OnCreatePlayer", 1) end },
+    { 10000, function(w) w.MX, w.MY = -100, -100; w.mouseOver = false; w.notices = true; w.LV[0].DRUNK = 1; fire(w.env, "OnGameStart"); fire(w.env, "OnCreatePlayer", 1) end },
     { 10500, function(w) w.LV[0].DRUNK = 2; w.place = 2 end },
     { 11000, function(w) w.env.ISUIHandler.allUIVisible = false end },
     { 11500, function(w) w.env.ISUIHandler.allUIVisible = true; w.LV[1].WET = 0 end },
 }
 local MOODLE_END = 12500
 
--- one frame: OnPreUIDraw (placement), then each layer's prerender; what it left, as text
+-- one frame: OnPreUIDraw (placement), then each layer's prerender and its note layer's render (the checkout draws
+-- the note there; the BASE copy has none); what it left, as text
 local function moodleFrame(w, notices)
     w.log = {}
     fire(w.env, "OnPreUIDraw")
     local M = w.env.ZeD.Moodles
-    for pn = 0, 1 do local L = M.getLayer(pn); if L then L:prerender() end end
+    for pn = 0, 1 do
+        local L = M.getLayer(pn)
+        if L then
+            L:prerender()
+            if L._note then L._note:render() end
+        end
+    end
     local out = {}
     -- (beta 10: the note for the moodle under the pointer is the balloon, after the hover pause, not the cloud; while
     -- the pointer is on the layer the note is left out of the comparison, the notices that show by themselves stay in)
