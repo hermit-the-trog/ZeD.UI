@@ -19,11 +19,12 @@
 --      a row opens the card on its primary action, A drops the nails
 --      (vanilla's drop), B backs out of a card to its row, Left from the
 --      World window's strip crosses back
---   7. every tab of both windows at the run's text size and at Large: the
---      tab's lowest control is reached with Down and is fully in view, and
---      the mouse wheel scrolls far enough to show it; the Health tab with six
---      wounds also shows all it drew
--- Everything made is taken away (crate, nails, padlock, wounds, text size).
+--   7. (cut Nov 12 2026, test cleanup) every tab's bottom at two text sizes: it read the World Animals tab,
+--      which depends on other scripts' leftover animals, and repeated zedqa_navmap.lua
+--   8. focus comes back to the same row after a menu and after a transfer; the belt's ways in and out
+-- Everything made is taken away (crate, its things, padlock); the window layout is put back.
+-- The names "nails" and "hammer" in this file are from October: the crate holds an eraser, tweezers, a
+-- corkscrew and an apple now.
 -- Lines "PASS ..." / "FAIL ..."; grep "ZEDQA wpt".
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -35,6 +36,7 @@ local playerGridW = playerKeyW and IRw.isGridKey(playerKeyW) or false
 if playerGridW then IRw.setGridKey(playerKeyW, false) end
 local Focus, Det = ZeD.Input.Focus, ZeD.Input.Detector
 local function say(s) print("ZEDQA wpt " .. tostring(s)) end
+local SNAP = ZEDQA_LAYOUT_SNAP and ZEDQA_LAYOUT_SNAP()   -- (the window rule; nil when run without the prelude)
 local nPass, nFail = 0, 0
 local function check(ok, what)
     if ok then nPass = nPass + 1; say("PASS " .. what) else nFail = nFail + 1; say("FAIL " .. what) end
@@ -583,143 +585,13 @@ step(30, function()
     Focus.claimFocus(cw())
 end)
 
--- ---------------------------------------------------------------- 7. every tab: the bottom, by pad and by wheel
-local tabList, ti, sizes, si = {}, 0, { origSize, "large" }, 1
-local function woundsOn(on)
-    local bd = p:getBodyDamage()
-    for _, n in ipairs(wounds) do
-        local bp = bd:getBodyPart(BodyPartType.FromString(n))
-        if bp then
-            pcall(function() bp:setScratched(on, true) end)
-            pcall(function() bp:setCut(on) end)
-            if not on then pcall(function() bp:setScratchTime(0); bp:setCutTime(0); bp:setBleedingTime(0); bp:setBleeding(false) end) end
-        end
-    end
-end
-local function contentZone(w) return (w == cw()) and "charTabContent" or "worldTabContent" end
-local function bottomOf(e) return (e.y or 0) + (e.h or 0) end
-local function lowest(w)
-    local best
-    for _, z in ipairs(w._focusRing or {}) do
-        if z.zone == contentZone(w) and z.focusable then
-            for _, e in ipairs(z.elements or {}) do
-                if type(e.y) == "number" and (not best or bottomOf(e) > bottomOf(best)) then best = e end
-            end
-        end
-    end
-    return best
-end
--- the lowest control overlapping e across (its column)
-local function lowestInColumn(w, e)
-    local best
-    for _, z in ipairs(w._focusRing or {}) do
-        if z.zone == contentZone(w) and z.focusable then
-            for _, x in ipairs(z.elements or {}) do
-                if type(x.y) == "number" and (x.x or 0) < (e.x or 0) + (e.w or 0) and (x.x or 0) + (x.w or 0) > (e.x or 0)
-                   and (not best or bottomOf(x) > bottomOf(best)) then best = x end
-            end
-        end
-    end
-    return best
-end
--- the Ranch page keeps its stops at their place in the page (f59ffdc8): where a stop shows now is that less the scroll
-local function shownOffset(w, e)
-    local r = e and e.id and w._animalsOvRows and w._animalsOvRows[e.id]
-    local sb = w._animalsScroll
-    if not (r and sb and sb.visible and sb.barSizeRatio < 1) then return 0 end
-    return (e.y or 0) - ((w._animalsOvClip and w._animalsOvClip.y or 0) + r.cy - math.floor(sb.scrollPos * sb:scrollRange()))
-end
-local function auditTab(done)
-    local item = tabList[ti]
-    if not item then return end
-    local w, id = item.w, item.id
-    local tag = string.format("7 %s %s %s", wname(w), id, tostring(sizes[si]))
-    local zn = contentZone(w)
-    local low = lowest(w)
-    if not low then say(tag .. ": no controls in the tab"); insertNext(5, done); return end
-    -- the pad: from the tab's first control, Down until it leaves the tab
-    Focus.claimFocus(w)
-    local first = elIn(w, zn, function(e) return not e.isDisclosure end) or elIn(w, zn, function() return true end)
-    Focus.focusWhere(w, zn, function(e) return e == first end)
-    walk = { w = w, zn = zn, tag = tag, presses = 0, last = first and first.id, same = 0, done = done }
-    local function press()
-        local _, z, e = cur()
-        if walk.presses >= 90 or not z or z.zone ~= walk.zn or walk.same >= 2 then   -- (Nov 6 2026: 45 stopped short of a Ranch page with 44 alerts)
-            -- back on the last control reached in the tab, let the scroll follow it, then look
-            local lastId = walk.last
-            Focus.focusWhere(walk.w, walk.zn, function(x) return x.id == lastId end)
-            insertNext(15, function()
-                local ww2 = walk.w
-                local dp = ww2._drawerPanel
-                local e2 = elIn(ww2, walk.zn, function(x) return x.id == lastId end)
-                -- the lowest control of the column the walk ended in: Down stays in its
-                -- column, a two-column tab's other column is reached with Right (Health at
-                -- Large text: the exercise buttons end a few px below the figure's feet)
-                local lo = e2 and lowestInColumn(ww2, e2) or lowest(ww2)
-                local shift = shownOffset(ww2, e2)
-                local inView = e2 and e2.y - shift >= 0 and bottomOf(e2) - shift <= dp:getHeight() + 1
-                local isLowest = e2 and lo and bottomOf(e2) >= bottomOf(lo) - 2
-                check(inView and isLowest, string.format("%s pad: Down reaches the lowest control of its column %s and it is in view (bottom %s of %d)",
-                    walk.tag, tostring(lastId), tostring(e2 and math.floor(bottomOf(e2) - shift)), dp:getHeight()))
-                -- the wheel: all the way down
-                for _ = 1, 60 do pcall(dp.onMouseWheel, dp, 1) end
-                insertNext(15, function()
-                    local lo2 = lowest(ww2)
-                    local shift2 = shownOffset(ww2, lo2)
-                    check(lo2 and bottomOf(lo2) - shift2 <= dp:getHeight() + 1 and lo2.y - shift2 >= 0,
-                        string.format("%s wheel: the lowest control %s is in view at the bottom (bottom %s of %d)",
-                            walk.tag, tostring(lo2 and lo2.id), tostring(lo2 and math.floor(bottomOf(lo2) - shift2)), dp:getHeight()))
-                    if ww2 == cw() and ww2._activeTab == "health" then
-                        local sc = ww2._healthScroll
-                        -- at the end of the scroll, what was drawn ends inside the view
-                        local shown = sc and (not sc.visible or (sc.scrollPos >= 0.999))
-                        local span = (sc and sc.visible and sc.barSizeRatio and sc.barSizeRatio > 0) and (sc.height / sc.barSizeRatio) or 0
-                        check(shown and (ww2._healthDrawnH or 0) > 0 and (not sc.visible or span + 1 >= (ww2._healthDrawnH or 0)),
-                            string.format("%s Health: scrolled to the end, drawn %d px in a %d px view", walk.tag,
-                                math.floor(ww2._healthDrawnH or 0), math.floor(sc and sc.height or 0)))
-                    end
-                    for _ = 1, 60 do pcall(dp.onMouseWheel, dp, -1) end
-                    insertNext(5, walk.done)   -- (the next tab, once this one is done)
-                end)
-            end)
-            return
-        end
-        if e and e.id == walk.last then walk.same = walk.same + 1 else walk.same = 0 end
-        if e and z.zone == walk.zn then walk.last = e.id end
-        walk.presses = walk.presses + 1
-        dir("down")
-        insertNext(3, press)
-    end
-    insertNext(3, press)
-end
-local function nextTab()
-    ti = ti + 1
-    local item = tabList[ti]
-    if not item then
-        if si < #sizes then
-            si = si + 1
-            ZeD.applyTheme(nil, nil, sizes[si])
-            ti = 0
-            insertNext(40, nextTab)
-        end
-        return
-    end
-    local strip = (item.w == cw()) and cw()._tabStripPanel or ww()._actionTabStrip
-    stripTab(item.w, strip, item.id)
-    insertNext(90, function() auditTab(nextTab) end)   -- (the drawer's open animation done)
-end
-step(10, function()
-    woundsOn(true)
-    for _, id in ipairs(tabsOf(cw()._tabStripPanel)) do if id ~= "loot" then tabList[#tabList + 1] = { w = cw(), id = id } end end
-    for _, id in ipairs(tabsOf(ww()._actionTabStrip)) do if id ~= "loot" then tabList[#tabList + 1] = { w = ww(), id = id } end end
-    say("7 tabs: " .. #tabList .. " at " .. tostring(origSize) .. " and large")
-    nextTab()
-end)
+-- (Nov 12 2026, test cleanup: step 7, every tab's bottom at two text sizes, is cut from this script. It read the
+-- World Animals tab, which depends on whatever animals other scripts left near, and repeated zedqa_navmap.lua.)
+say("not run: 7 every tab's bottom (cut Nov 12 2026)")
 
 -- ---------------------------------------------------------------- put back
 step(10, function()
-    ZeD.applyTheme(nil, nil, origSize)
-    woundsOn(false)
+    if ZeD.currentSize ~= origSize then ZeD.applyTheme(nil, nil, origSize) end
     stripTab(cw(), cw()._tabStripPanel, "loot"); stripTab(ww(), ww()._actionTabStrip, "loot")
     -- the nails (dropped on the ground) and the crate
     if takenNails then
@@ -751,6 +623,8 @@ step(10, function()
     say("cleanup: " .. (deepCrate and "the deep run's crate kept, this run's things out" or ("crate gone " .. tostring(not still))) .. ", size " .. tostring(ZeD.currentSize))
     Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)
     if playerGridW then IRw.setGridKey(playerKeyW, true) end
+    -- (Nov 12 2026, the window rule) the layout back as the script found it; a failed step still reaches this
+    if ZEDQA_LAYOUT_BACK then ZEDQA_LAYOUT_BACK(SNAP, "wpt") end
     say(nPass .. " passed, " .. nFail .. " failed")
     say("DONE")
 end)

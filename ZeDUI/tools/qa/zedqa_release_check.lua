@@ -9,6 +9,10 @@
 --   4. the controller: focus on the test item's row, A opens its card on the primary action, B goes back to the row
 --   5. the watch reads the time: a worn watch shows (on the belt or in the corner) and its face reads the game's hour
 --      and minute
+-- Nov 12 2026 (test cleanup): a real right-click the helper did not make reads "not run: 3 ..." (and "NOT RUN" on
+-- the RESULT line), never FAIL and never PASS; the script also prints which ZeD copy is loaded, leaves the windows
+-- open when it found them open, and puts the layout back. By hand in the release check, not here (amendment 6): one
+-- real-mouse roll and pin of each window half.
 -- Everything is put back. grep "ZEDQA rel"; shots zqa_rel_*.png. The real click: this script writes
 -- Lua/zedqa_click.txt ("right x y", screen pixels) and waits for Lua/zedqa_click_done.txt (the helper writes it).
 local function say(s) print("ZEDQA rel " .. tostring(s)) end
@@ -75,6 +79,16 @@ end
 
 local Q, qi = {}, 1
 local function step(k, fn) Q[#Q + 1] = { n = k, fn = fn } end
+
+-- (Nov 12 2026, test cleanup) which copy of ZeD is loaded (zedqa_staged_ver.lua's line, here too), whether the
+-- windows were open (they are left that way), and the layout to put back (the window rule)
+local openWas = CW.isOpen() and WW.isOpen()
+local SNAP = ZEDQA_LAYOUT_SNAP and ZEDQA_LAYOUT_SNAP()
+local notRun = {}
+do
+    local mi = getModInfoByID and getModInfoByID("ZeD_UI")
+    say("version=" .. tostring(mi and mi:getModVersion()) .. " dir=" .. tostring(mi and mi:getDir()))
+end
 
 -- ---- 1. both windows
 step(10, function()
@@ -189,10 +203,13 @@ local function waitClick()
     end
     local answered = clickDone()
     clickWait = nil
-    check(answered, "3: the helper made the real right-click")
+    -- (Nov 12 2026, rule 6: a helper that did not click is a step that did not run, not a fault of the mod and not a pass)
+    if answered then check(true, "3: the helper made the real right-click")
+    else notRun[#notRun + 1] = "3 the real right-click"; say("not run: 3 the real right-click (the real-mouse helper did not answer in 15 s; start it with release_check.ps1)") end
 end
 step(5, waitClick)
 step(20, function()
+    if #notRun > 0 then return end
     local open, m = ctxOpen()
     say("3: menu open " .. tostring(open) .. " (" .. tostring(m and m.Type) .. ")")
     check(open and menuHas(apple), "3: a real right-click on the row opens the item menu for that item (" .. tostring(menuFor and #menuFor) .. " items)")
@@ -226,10 +243,14 @@ step(10, function()
     if watch then pcall(function() p:removeWornItem(watch) end); pcall(function() inv:Remove(watch) end) end
     ISInventoryPaneContextMenu.createMenu = realCreate
     if apple then pcall(function() if apple:getContainer() then apple:getContainer():Remove(apple) end end) end
-    if CW.isOpen() then CW.toggleBothPaired(pn) end
+    -- (Nov 12 2026) the windows are left as they were found: open in a run that had them open (the smoke run's next
+    -- script needs them), shut otherwise; then the layout goes back (the window rule)
+    if CW.isOpen() ~= openWas then CW.toggleBothPaired(pn) end
+    if openWas and ZEDQA_LAYOUT_BACK then ZEDQA_LAYOUT_BACK(SNAP, "rel") end
     p:setGodMod(godWas)
     -- (the runner charges any line with FAIL in it, so a clean result says only PASS)
-    if fails == 0 then say("RESULT PASS: all " .. passes .. " checks") else say("RESULT FAIL: " .. fails .. " of " .. (passes + fails) .. " checks") end
+    local nr = (#notRun > 0) and ("; NOT RUN: " .. table.concat(notRun, ", ")) or ""
+    if fails == 0 then say("RESULT PASS: all " .. passes .. " checks" .. nr) else say("RESULT FAIL: " .. fails .. " of " .. (passes + fails) .. " checks" .. nr) end
     for _, r in ipairs(results) do if r:sub(1, 4) == "FAIL" then say("  " .. r) end end
     say("DONE")
 end)

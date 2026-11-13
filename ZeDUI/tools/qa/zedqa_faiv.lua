@@ -630,6 +630,8 @@ add(500, function()
     if w then w:setWindowShaded(false) end
     standAt(homeX, homeY)
     if ZEDQA_HOME then ZEDQA_HOME("fav") end
+    -- (Nov 12 2026, the window rule) rolled, unpinned and moved windows back to the run's default layout
+    if ZEDQA_LAYOUT_BACK then ZEDQA_LAYOUT_BACK(ZEDQA_LAYOUT_DEF, "fav") end
     say(string.format("RESULT %d pass, %d fail", pass, fail))
     say("DONE")
 end)

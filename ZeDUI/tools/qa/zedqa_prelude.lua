@@ -6,6 +6,9 @@
 -- prints "ZEDQA pre DONE". If OnTick never ran (the game is still paused) it
 -- says so as an ERR line, so the run reads WARN instead of timing out.
 -- grep "ZEDQA pre".
+-- Nov 12 2026 (test cleanup, phase 2): it also puts every ZeD window at its default layout with the console
+-- closed, and defines the shared helpers the scripts call: ZEDQA_HOME, ZEDQA_LAYOUT_* (the window rule) and
+-- ZEDQA_CAR_* (one car spawn on the strip's marked stretch).
 local function say(s) print("ZEDQA pre " .. tostring(s)) end
 
 -- Nov 8 2026: the windows let their controller stops wait while the mouse is in use (Focus.stopsMayWait);
@@ -43,6 +46,122 @@ function ZEDQA_VPROBE(tag, sq, v)
     end)
     print(ok and line or ("ZEDQA vp " .. tostring(tag) .. " ERR " .. tostring(line)))
 end
+-- ============================================================================
+-- (Nov 12 2026, test cleanup plan rule 5 and amendment 8: the window rule) The run starts from the default window
+-- layout with the console closed, and a script that moves, folds, pins or resizes a window puts the layout back
+-- when it ends, on an error too. The helpers, used by this prelude and by the scripts:
+--   ZEDQA_LAYOUT_DEFAULT(tag)   the console, the guide, Messages and the studio closed; both windows at the default
+--                               spread through the mod's own ZeD_Window.resetLayout (unrolled, unfolded, on Loot,
+--                               drawers shut); both pinned (what zedqa_pin_windows.lua did); the bag as a list
+--   local snap = ZEDQA_LAYOUT_SNAP()        each window's place, size, rolled state and pins
+--   ZEDQA_LAYOUT_BACK(snap, tag)            puts that back; never throws; with no snap it is ZEDQA_LAYOUT_DEFAULT
+--   ZEDQA_LAYOUT_IS_DEFAULT()               true when both windows stand where this prelude left them
+-- A script run without the prelude finds them nil: call them as "if ZEDQA_LAYOUT_BACK then ... end".
+-- ============================================================================
+local QA_KEYS = { "char", "world" }
+local function qaWin(k)
+    if k == "char" then return ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow() or nil end
+    return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or nil
+end
+local function pinHalves(w, inv, drawer)
+    if not w then return end
+    if w._halves and ZeD.Halves and ZeD.Halves.setPin then
+        ZeD.Halves.setPin(w, "inv", inv); ZeD.Halves.setPin(w, "drawer", drawer)
+    elseif w.setPinned then w:setPinned(inv and drawer)
+    else w.pinned = (inv and drawer) and true or false end
+end
+
+function ZEDQA_LAYOUT_SNAP()
+    local snap = {}
+    for _, k in ipairs(QA_KEYS) do
+        local w = qaWin(k)
+        if w then
+            local h = w._halves
+            local pi, pd = w.pinned == true, w.pinned == true
+            if h then pi, pd = (h.inv and h.inv.pinned == true) or false, (h.drawer and h.drawer.pinned == true) or false end
+            snap[k] = { x = w:getX(), y = w:getY(), w = w:getWidth(), h = w:getHeight(), rolled = w._rolled and true or false,
+                        pinInv = pi, pinDrawer = pd }
+        end
+    end
+    return snap
+end
+
+function ZEDQA_LAYOUT_DEFAULT(tag)
+    local notes = {}
+    pcall(function()
+        if ZeD.DebugConsole and ZeD.DebugConsole.isOpen and ZeD.DebugConsole.isOpen() then ZeD.DebugConsole.close(); notes[#notes + 1] = "console closed" end
+    end)
+    pcall(function()
+        local jc = UIManager.getDebugConsole()
+        if jc and jc:isVisible() then jc:setVisible(false); notes[#notes + 1] = "game console closed" end
+    end)
+    pcall(function() if ZeD.GuideBook and ZeD.GuideBook.isOpen and ZeD.GuideBook.isOpen(0) then ZeD.GuideBook.close(0); notes[#notes + 1] = "guide book closed" end end)
+    pcall(function() if ZeD.Studio and ZeD.Studio.isOpen and ZeD.Studio.isOpen() then ZeD.Studio.close(); notes[#notes + 1] = "studio closed" end end)
+    for _, name in ipairs({ "Guide", "MessagesWindow" }) do
+        pcall(function()
+            local t = ZeD[name]
+            local win = t and t.windows and t.windows[0]
+            if win and win:isVisible() then win:close(); notes[#notes + 1] = name .. " closed" end
+        end)
+    end
+    local ok, e = pcall(function()
+        if not (ZeD_Window and ZeD_Window.resetLayout) then error("ZeD_Window.resetLayout is missing") end
+        ZeD_Window.resetLayout()
+    end)
+    if not ok then print("ZEDQA layout " .. tostring(tag) .. " ERR reset: " .. tostring(e)) end
+    pcall(function()
+        local md = getPlayer():getModData()
+        md.ZeD_WinPinned = md.ZeD_WinPinned or {}
+        md.ZeD_WinPinned.char, md.ZeD_WinPinned.world = true, true
+    end)
+    for _, k in ipairs(QA_KEYS) do
+        local w = qaWin(k)
+        if w then pcall(function() pinHalves(w, true, true); if w.windowShaded then w:setWindowShaded(false) end end) end
+    end
+    pcall(function()
+        local IR = ZeD.InventoryRenderer
+        local pl = getPlayer()
+        local key = IR and IR.containerKey and pl and IR.containerKey(pl:getInventory(), pl)
+        if key and IR.isGridKey(key) then IR.setGridKey(key, false); notes[#notes + 1] = "bag back to a list" end
+    end)
+    if tag then print("ZEDQA layout " .. tostring(tag) .. " default" .. (#notes > 0 and (" (" .. table.concat(notes, ", ") .. ")") or "")) end
+    return ok
+end
+
+function ZEDQA_LAYOUT_BACK(snap, tag)
+    local ok, e = pcall(function()
+        -- first the mod's own reset (unrolls, unfolds, Loot, drawers shut), then whatever the snapshot had that differs
+        ZEDQA_LAYOUT_DEFAULT(nil)
+        if type(snap) ~= "table" then return end
+        for _, k in ipairs(QA_KEYS) do
+            local w, s = qaWin(k), snap[k]
+            if w and s then
+                if not s.rolled then
+                    if w:getWidth() ~= s.w then w:setWidth(s.w) end
+                    if w:getHeight() ~= s.h then w:setHeight(s.h) end
+                end
+                if w:getX() ~= s.x then w:setX(s.x) end
+                if w:getY() ~= s.y then w:setY(s.y) end
+                pinHalves(w, s.pinInv, s.pinDrawer)
+                if s.rolled and ZeD.Curtain and ZeD.Curtain.roll then ZeD.Curtain.roll(w) end
+            end
+        end
+    end)
+    if tag then print("ZEDQA layout " .. tostring(tag) .. (ok and " put back" or (" ERR put back: " .. tostring(e)))) end
+    return ok
+end
+
+function ZEDQA_LAYOUT_IS_DEFAULT()
+    local d = ZEDQA_LAYOUT_DEF
+    if type(d) ~= "table" then return false end
+    for _, k in ipairs(QA_KEYS) do
+        local w, s = qaWin(k), d[k]
+        if not (w and s) then return false end
+        if w._rolled or w:getX() ~= s.x or w:getY() ~= s.y or w:getWidth() ~= s.w or w:getHeight() ~= s.h then return false end
+    end
+    return true
+end
+
 local p = getPlayer()
 -- (Oct 27 2026, the director: the QA character stood in thick woods, with no open ground to
 -- spawn things and the view often blocked, and runs drifted into night) every run starts on
@@ -116,6 +235,22 @@ local function onFrame()
         say(string.format("search overlay: enabled %s, override %s, manager %s", tostring(en), tostring(ov), tostring(sm and sm.isSearchMode)))
         if en or ov then pcall(function() eng:setOverride(pn, false); eng:setEnabled(pn, false) end); say("search overlay turned off") end
     end
+    -- (Nov 12 2026, the window rule) the pair is open by now: every window to its default layout, pinned, on Loot,
+    -- the console closed (zedqa_pin_windows.lua and zedqa_loot_tabs.lua are this step now). The layout this leaves
+    -- is kept as ZEDQA_LAYOUT_DEF for ZEDQA_LAYOUT_IS_DEFAULT.
+    if not ZEDQA_LAYOUT_DEFAULT("pre") then say("ERR the windows could not be put at their default layout") end
+    ZEDQA_LAYOUT_DEF = ZEDQA_LAYOUT_SNAP()
+    for _, k in ipairs(QA_KEYS) do
+        local s = ZEDQA_LAYOUT_DEF[k]
+        if s then say(string.format("layout %s %d,%d %dx%d rolled %s pinned %s/%s", k, s.x, s.y, s.w, s.h, tostring(s.rolled), tostring(s.pinInv), tostring(s.pinDrawer)))
+        else say("ERR layout: no " .. k .. " window to place") end
+    end
+    -- which copy of ZeD the game loaded (zedqa_staged_ver.lua's line): no ZeD_UI mod info is an ERR
+    local okV, mi = pcall(function() return getModInfoByID("ZeD_UI") end)
+    if okV and mi then say("ZeD version=" .. tostring(mi:getModVersion()) .. " dir=" .. tostring(mi:getDir()))
+    else say("ERR no mod info for ZeD_UI: which copy is loaded is not known") end
+    cw, ww = ZeD_CharacterWindow.getWindow(), ZeD_WorldWindow.getWindow()
+    say("tabs: Character " .. tostring(cw and cw._activeTab) .. " | World " .. tostring(ww and ww._activeTab))
     say("DONE")
 end
 Events.OnTick.Add(onTick)

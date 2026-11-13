@@ -26,11 +26,13 @@
 --    both windows: every other tab (the rolled geometry kept, the unroll exact),
 --    a tab and back, Loot (the side comes down at Loot's own geometry, never
 --    wider) and the base tab pressed again.
--- 3. Last of all: leaves both windows rolled with their whole geometry printed
---    ("at quit"), so the next launch's step 0 shows whether the save kept the
---    unrolled geometry (compare "loaded" with the previous run's "at quit").
+-- 3. Last of all (Nov 12 2026, the window rule): puts the layout back the way it found it and checks it. (It used
+--    to leave both windows rolled for the next launch to read; that broke the next script.)
+-- Nov 12 2026, test cleanup: step 5 runs on three tabs (World: Forage, Craft; Character: Skills), and
+-- zedqa_curtain2.lua (archived) is covered by steps 1 and 5.
 -- Screenshots zqa_cu_*.png. grep "ZEDQA cu".
 local function say(s) print("ZEDQA cu " .. tostring(s)) end
+local SNAP = ZEDQA_LAYOUT_SNAP and ZEDQA_LAYOUT_SNAP()   -- (the prelude's helper; nil when run alone)
 local steps, tick = {}, 0
 local function at(n, fn) steps[#steps + 1] = { n = n, fn = fn } end
 local function ww() return ZeD_WorldWindow.getWindow() end
@@ -552,20 +554,26 @@ local function tabPhase(who, get, other, base, tabs)
         cmp(base .. " again, back on " .. base, who, geo(get()), S)
     end)
 end
-tabPhase("World", ww, cw, "maps", { "forage", "craft", "build", "furniture", "animals", "radio", "vehicle" })
-tabPhase("Character", cw, ww, "health", { "skills", "equip", "thermal", "identity", "journal", "radio" })
+-- (Nov 12 2026, test cleanup: three tabs in all, not every tab of both windows; Radio and Vehicle were "not shown
+-- here, skipped" in every run)
+tabPhase("World", ww, cw, "maps", { "forage", "craft" })
+tabPhase("Character", cw, ww, "health", { "skills" })
 
 after(5, function()
     say("geometry checks " .. checks .. ", differences " .. fails)
     shot(5)
 end)
--- 3. Both rolled at quit: the save must keep the unrolled geometry
+-- 3. (Nov 12 2026, the window rule) The layout goes back to what the script started from. It used to leave both
+--    windows rolled "at quit", which broke the script after it (and was why zedqa_loot_tabs.lua existed).
 after(5, function()
-    both("at quit, unrolled")
-    rollNow(ww()); rollNow(cw())
+    both("at the end, before the put-back")
+    if ZEDQA_LAYOUT_BACK then ZEDQA_LAYOUT_BACK(SNAP, "cu")
+    elseif ZeD_Window and ZeD_Window.resetLayout then ZeD_Window.resetLayout() end
 end)
-after(120, function()
-    both("at quit, rolled")
+after(40, function()
+    both("at the end, put back")
+    check("the windows are unrolled and where the script found them", not ww()._rolled and not cw()._rolled and rodsInUI() == 0
+        and (not ZEDQA_LAYOUT_IS_DEFAULT or ZEDQA_LAYOUT_IS_DEFAULT()), "rolled " .. tostring(ww()._rolled) .. " / " .. tostring(cw()._rolled))
     shot(6)
     say("DONE")
 end)

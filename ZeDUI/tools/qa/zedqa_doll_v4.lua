@@ -555,6 +555,8 @@ step(20, function()
     Doll.setView(origView)
     Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)
     w._equipDollTimer = 99
+    -- (Nov 12 2026, the window rule) the Equip drawer shut and the windows back at the run's default layout
+    if ZEDQA_LAYOUT_BACK then ZEDQA_LAYOUT_BACK(ZEDQA_LAYOUT_DEF, "dollv4") end
 end)
 step(40, function() say("passed " .. passN .. ", failed " .. failN .. " | DONE") end)
 

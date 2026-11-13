@@ -149,15 +149,12 @@ local function moveTo(x, y, z)
     p:teleportTo(x, y, z)
     pcall(function() p:setX(x); p:setY(y); p:setZ(z); p:setLastX(x); p:setLastY(y); p:setLastZ(z) end)
 end
+-- (Nov 12 2026, test cleanup: no trip to the deep run's home in the woods; the run stays on the drag strip)
+local SNAP = ZEDQA_LAYOUT_SNAP and ZEDQA_LAYOUT_SNAP()   -- (the window rule; nil when run without the prelude)
 step(5, function()
-    local dr = p:getModData().ZeDDeepRun
-    local h = dr and dr.home
-    if h and (math.abs(h.x - p:getX()) > 2 or math.abs(h.y - p:getY()) > 2) then
-        moveTo(h.x + 0.5, h.y + 0.5, 0)
-        say(string.format("to the deep run's home, %d,%d", h.x, h.y))
-    else
-        say("no deep run home to go to (run zedqa_deep_run.lua first for every object card)")
-    end
+    if ZEDQA_HOME then ZEDQA_HOME("tww") end
+    walkHome = { x = p:getX(), y = p:getY(), z = p:getZ() }
+    say(string.format("on the drag strip, %d,%d", math.floor(p:getX()), math.floor(p:getY())))
 end)
 step(90, function() whenStill(function()
     base = bothGeo()
@@ -314,11 +311,11 @@ local function openCard(kind)
     if not t then return false end
     return ZeD_WorldWindow.openObjectCard(pn, { def = def, t = t })
 end
+-- (Nov 12 2026, test cleanup: the object-card leg is cut. It needed the deep run's objects in the woods, 2 km from
+-- the drag strip, and still skipped six or more cards in every run. zedqa_cov_objcards.lua checks the object cards
+-- on staged objects. The list stays empty, so the loop below adds no case.)
 local cardKinds = {}
-do
-    for k, _ in pairs(OC.kinds) do cardKinds[#cardKinds + 1] = k end
-    table.sort(cardKinds)
-end
+say("not run: the World object cards (cut Nov 12 2026; zedqa_cov_objcards.lua has them)")
 -- an object card needs its object near the character: a kind with none is skipped and named at the end.
 -- A kind whose def sets half (the lock card, the recipe preview) opens in the half card; the rest are full.
 for _, kind in ipairs(cardKinds) do
@@ -457,7 +454,6 @@ step(10, function()
     pcall(function() ST.unbind(p) end)
     pcall(function() if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end end)
     backToLoot()
-    moveTo(walkHome.x, walkHome.y, walkHome.z)
     p:setPrimaryHandItem(nil)
     for _, o in ipairs(placed) do
         pcall(function() local sq = o:getSquare(); if sq then sq:transmitRemoveItemFromSquare(o) end end)
@@ -471,7 +467,9 @@ end)
 step(60, function() whenStill(function()
     local now = bothGeo()
     check(same(now.c, base.c) and same(now.w, base.w), "after the whole run both windows are where and as big as they were (" .. gs(base.c) .. " / " .. gs(base.w) .. " -> " .. gs(now.c) .. " / " .. gs(now.w) .. ")")
-    say("skipped, the thing was not there to open: " .. (#skipped > 0 and table.concat(skipped, ", ") or "none"))
+    say("not run, the thing was not there to open: " .. (#skipped > 0 and table.concat(skipped, ", ") or "none"))
+    -- (the window rule: the layout back as the script found it, also after a failed step)
+    if ZEDQA_LAYOUT_BACK then ZEDQA_LAYOUT_BACK(SNAP, "tww") end
     say(fails == 0 and "ALL PASS" or (fails .. " FAILED"))
     if not winsWere and ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     say("DONE")
