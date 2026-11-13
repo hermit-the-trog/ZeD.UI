@@ -107,7 +107,8 @@ KEY_HALF_L, KEY_HALF_T = 8.5, 1.2       # 17 x about 3 px. At START it clears th
                                         # ST) by about a pixel: not longer without moving the labels out
 KEY_RING_R0, KEY_RING_R1 = 3.6, 4.6
 KEY_NICKEL = {"wagon", "luxury", "horizon"}
-LIGHT_CABINS = {"v_tan", "v_beige", "v_khaki"}     # the fob is cocoa leather on these, tan on the rest
+# the fob is cocoa leather on these, tan on the rest (on v_ltbrown, nearly the tan fob's own colour, a tan fob would vanish)
+LIGHT_CABINS = {"v_tan", "v_beige", "v_khaki", "v_ltbrown", "v_beige_d"}
 FOB_W, FOB_BODY = 15, 20                # the fob: 15 px wide, its body 20 long under a 6 x 6 tab; shorter where the
                                         # plate's edge comes first (the Cossette's ignition sits 2 px lower: 18 there)
 

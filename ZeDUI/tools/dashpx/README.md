@@ -13,7 +13,8 @@ Three more checks stop the export. Nothing that moves may travel over print: eve
 ## The pipeline
 
 ```
-python build.py [design ...]     plates, state sprites, parts, previews (out/<design>/)
+python build.py [design ...]     plates, state sprites, parts, previews (out/<design>/; design:cabin one color,
+                                 design:all every color, each but the lead in out/<design>/<cabin>/)
 python sheet.py                  a numbered contact sheet of the previews
 python export_lua.py <mod root>  the PNGs into 42/media/textures/ZeD/dashpx/, and the generated
                                  42/media/lua/client/ZeD/DashPx.lua and PixelFonts.lua
@@ -25,6 +26,9 @@ python luatest.py badges         the badge roles against the game's own car name
 python luatest.py night [k] [design ...] [--needles own|lit]
                                  the dash at full night, lights on and off (out/luatest/<design>_night_on_<k>x.png), tinted
                                  textures drawn in their tint: what nightsheet.py's previews must agree with
+python luatest.py cabins [k] [design ...]
+                                 every design in every cabin color, by day and at night
+                                 (out/luatest/<design>__<cabin>_<k>x.png); exit 1 when a picture is missing
 ```
 
 `luatest.py` runs the Lua inside Python through `lupa`. Where `lupa` is not installed it runs the same through a LuaJIT
@@ -37,6 +41,12 @@ python nightsheet.py <out.png> [k] [design ...] [--needles own|lit]
 ```
 
 The export is deterministic: the same sources give the same files on every run, and a PNG whose pixels have not changed is left alone. Without scipy the engine uses `ndi_np.py` (the same calls in plain numpy, pixel for pixel the same plates).
+
+## Cabin colors
+
+Director, Nov 12 2026 (handoff `ZeDUI/HANDOFF_design_dash_interior_colors_20261112.md`): "We're not changing any looks. We're just changing colors." Each civilian dash comes in its group's three cabin vinyls (`designs.CABINS`, lead first; the ramps in `engine.py`), the fleet dashes in standard black only, the race car as it was. The export builds every color in full, through `build_one` and `night.bake`, so every color passes the tab, mover, legend and needle checks on its own. It then stops unless the colors' parts files are the same: hits, meta, sprite names and sizes, the marks, the night data and the top edge's inks identical, and the parts identical but for a mark's model-line shadow (read off the vinyl under it), which the parts carry as `"cabin"` and `des.cabins` per color. A picture that differs between colors (the plate, the night pictures, most state sprites) ships as `<name>__<cabin>.png` and is listed in `des.cabinTex`; one the same in every color ships once by its plain name. The export removes any picture in the folder it no longer writes, and prints the texture memory (the game pads each picture to powers of two): about 141 MiB if every color of every dash were loaded in one session, at most 3.3 MiB for one car's dash.
+
+The game picks a car's color in `ZeD_DashProto.lua` (shared): the paint (`getColorHue`, `getColorSaturation`, `getColorValue`) sets the row of the group's odds, a roll from the key number picks in it, and the car keeps the answer as `ZeD_cab` on its modData (the client stamps its own copy, the server its own where it writes the odometer or the tray). Same car, same dashboard, on every machine. `ZeD.Dashboard.qaCabin` forces a color for probes; `ZeDUI/tools/qa/dash_cabin_sim.lua` checks the odds against the handoff.
 
 ## At night
 

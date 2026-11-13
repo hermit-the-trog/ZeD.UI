@@ -1488,6 +1488,79 @@ do
     check("PARTS another company's van: NO SMOKING", D._vanRight("VanKnoxDisti") == "nosmoke")
 end
 
+-- ---------------------------------------------------------------------------
+section("CABIN")
+-- ---------------------------------------------------------------------------
+-- (Nov 12 2026, punch list 179) the cabin color through the real dash: the car's paint and key pick the color, the
+-- dash draws that color's pictures, the car keeps it; the fleet black and plain; nothing ever sent
+do
+    SCRIPT.wagon, SCRIPT.police = "Base.CarStationWagon", "Base.CarLightsPolice"
+    function Car:getKeyId() return self.key end
+    function Car:getColorHue() return self.hue end
+    function Car:getColorSaturation() return self.sat end
+    function Car:getColorValue() return self.val end
+    local Pr = ZeD.DashProto
+    local function drew(log, pat)
+        for _, l in ipairs(log) do if l:find(pat) then return true end end
+        return false
+    end
+    local function plainOf(log, des)
+        for _, n in ipairs(des.cabinTex or {}) do
+            if drew(log, "/" .. n .. "%.png") then return n end
+        end
+        return nil
+    end
+    env.client = false
+    local key, des = 4815162, ZeD.DashPx.designs.nyala
+    local want = Pr.cabinFor("nyala", "BLUE", Pr.cabRoll(key))
+    local car = drive("nyala", { key = key, hue = 0.58, sat = 0.9, val = 0.7, keysIn = true })
+    local log = frame(100)
+    check("CABIN a blue Nyala draws its rolled color's plate", drew(log, "dash_nyala__" .. want .. "%.png"), want)
+    check("CABIN no picture by its plain name where the colors differ", plainOf(log, des) == nil, plainOf(log, des))
+    check("CABIN the car keeps it (single player stamps its modData)", car.md[Pr.CAB_KEY] == "BLUE:" .. Pr.cabRoll(key), car.md[Pr.CAB_KEY])
+    check("CABIN the model line's shadow is the color's own", inst._cabin and inst._cabin.id == want and inst._cabin.shadow ~= nil)
+    car.hue = 0.0                                                          -- repainted red
+    newDash()
+    log = frame(100)
+    check("CABIN a reload, repainted since: the same color", drew(log, "dash_nyala__" .. want .. "%.png"))
+    D.qaCabin = "v_navy70"
+    log = frame(100)
+    check("CABIN D.qaCabin forces a color", drew(log, "dash_nyala__v_navy70%.png"))
+    D.qaCabin = nil
+    log = frame(100)
+    check("CABIN and lets go of it", drew(log, "dash_nyala__" .. want .. "%.png"))
+    check("CABIN the dash never sends the car's modData", car.transmits == 0, car.transmits)
+    out()
+    -- multiplayer: another machine's copy of the same car (the server's key and paint), no stamp yet: the same color,
+    -- its own copy stamped, nothing sent
+    env.client = true
+    local s0 = #SENT
+    local twin = drive("nyala", { key = key, hue = 0.58, sat = 0.9, val = 0.7, keysIn = true, id = 31 })
+    log = frame(100)
+    check("CABIN multiplayer: another machine draws the same color", drew(log, "dash_nyala__" .. want .. "%.png"))
+    -- (the driver's first-mileage odometer send may go: it is the only command, and it carries no color)
+    local other = nil
+    for i = s0 + 1, #SENT do
+        if SENT[i].command ~= ZeD.DashProto.ODO or SENT[i].args.cab ~= nil then other = SENT[i].command end
+    end
+    check("CABIN multiplayer: no transmit, no command for the color", twin.transmits == 0 and other == nil, other)
+    out()
+    env.client = false
+    -- a wagon whose paint can't be read: the white/silver/gray/black row, unstamped
+    local bare = drive("wagon", { key = 99, keysIn = true, id = 32 })
+    log = frame(100)
+    local fb = Pr.cabinFor("wagon", nil, Pr.cabRoll(99))
+    check("CABIN unread paint: the neutral row's color", drew(log, "dash_wagon__" .. fb .. "%.png"), fb)
+    check("CABIN unread paint: not stamped", bare.md[Pr.CAB_KEY] == nil)
+    out()
+    -- public service: black, plain names, whatever the paint
+    local cop = drive("police", { key = 5, hue = 0.58, sat = 0.9, val = 0.7, keysIn = true, id = 33 })
+    log = frame(100)
+    check("CABIN the police dash draws its one black plate", drew(log, "/dash_police%.png") and not drew(log, "dash_police__"))
+    check("CABIN the police dash has no colors to pick", inst._cabin == nil and ZeD.DashPx.designs.police.cabins == nil)
+    out()
+end
+
 check("nothing logged", #env.errors == 0, env.errors[1])
 
 print("dash_odo_sim: " .. checks .. " checks, " .. failed .. " failed")

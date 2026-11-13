@@ -712,29 +712,56 @@ def ranger(b):
     con_fleet(b, top="siren")
 
 
-# id: (preview name, cabin vinyl, seed, builder, sub line, fleet unit line, radio fitted in the previews)
+# id: (preview name, lead cabin vinyl (CABINS below), seed, builder, sub line, fleet unit line, radio fitted in the previews)
 DESIGNS = {
-    "luxury":     ("Mercia Lang 4000", "v_saddle", 12, luxury, None, None, "premium"),
-    "nyala":      ("Chevalier Nyala", "v_slate", 41, nyala, None, None, "valutech"),
-    "cossette":   ("Chevalier Cossette", "v_red", 32, cossette, "5.0", None, "premium"),
-    "police":     ("Meade Sheriff", "v_patrol", 51, police, None, "MEADE - UNIT 26", "ham"),
-    "d6":         ("Chevalier D6", "v_cocoa", 42, d6, "D6", None, "valutech"),
-    "dashelite":  ("Dash Elite", "v_charcoal", 21, dashelite, "EFI", None, "premium"),
-    "primani":    ("Chevalier Primani", "v_beige", 22, primani, "EFI", None, "premium"),
-    "dart":       ("Chevalier Dart", "v_navy", 43, dart, None, None, "makeshift"),
-    "horizon":    ("Masterson Horizon", "v_burgundy", 13, horizon, None, None, "valutech"),
+    "luxury":     ("Mercia Lang 4000", "l_brown", 12, luxury, None, None, "premium"),
+    "nyala":      ("Chevalier Nyala", "v_moss", 41, nyala, None, None, "valutech"),
+    "cossette":   ("Chevalier Cossette", "l_brown", 32, cossette, "5.0", None, "premium"),
+    "police":     ("Meade Sheriff", "v_black", 51, police, None, "MEADE - UNIT 26", "ham"),
+    "d6":         ("Chevalier D6", "v_moss", 42, d6, "D6", None, "valutech"),
+    "dashelite":  ("Dash Elite", "v_beige_d", 21, dashelite, "EFI", None, "premium"),
+    "primani":    ("Chevalier Primani", "v_beige_d", 22, primani, "EFI", None, "premium"),
+    "dart":       ("Chevalier Dart", "v_maroon", 43, dart, None, None, "makeshift"),
+    "horizon":    ("Masterson Horizon", "v_maroon", 13, horizon, None, None, "valutech"),
     "wagon":      ("Chevalier Cerise Wagon", "v_walnut", 11, wagon, None, None, "valutech"),
-    "suv":        ("Franklin All-Terrain", "v_charcoal", 23, suv, "4X4", None, "premium"),
-    "van":        ("Franklin Valuline", "v_fleet", 44, van, None, None, "valutech"),
-    "bulldriver": ("Dash Bulldriver", "v_tan", 45, bulldriver, "V8", None, "valutech"),
-    "rancher":    ("Dash Rancher", "v_khaki", 46, rancher, "4X4", None, "army"),
-    "taxi":       ("Taxi", "v_taxi", 52, taxi, None, "TAXI - CAB 26", "valutech"),
-    "ambulance":  ("Ambulance", "v_medic", 53, ambulance, None, "AMBULANCE - UNIT 26", "ham"),
-    "fire":       ("Fire Department Chevalier D6", "v_firered", 54, fire, None, "FIRE - ENGINE 26", "ham"),
-    "ranger":     ("Ranger Chevalier Nyala", "v_forest", 55, ranger, None, "RANGER - UNIT 26", "ham"),
+    "suv":        ("Franklin All-Terrain", "v_beige_d", 23, suv, "4X4", None, "premium"),
+    "van":        ("Franklin Valuline", "v_maroon", 44, van, None, None, "valutech"),
+    "bulldriver": ("Dash Bulldriver", "v_moss", 45, bulldriver, "V8", None, "valutech"),
+    "rancher":    ("Dash Rancher", "v_moss", 46, rancher, "4X4", None, "army"),
+    "taxi":       ("Taxi", "v_black", 52, taxi, None, "TAXI - CAB 26", "valutech"),
+    "ambulance":  ("Ambulance", "v_black", 53, ambulance, None, "AMBULANCE - UNIT 26", "ham"),
+    "fire":       ("Fire Department Chevalier D6", "v_black", 54, fire, None, "FIRE - ENGINE 26", "ham"),
+    "ranger":     ("Ranger Chevalier Nyala", "v_black", 55, ranger, None, "RANGER - UNIT 26", "ham"),
     "race":       ("Race car", "v_race", 31, race, None, None, None),
 }
 ORDER = list(DESIGNS)
+
+# The cabin colors (director, Nov 12 2026: "We're not changing any looks. We're just changing colors."; handoff
+# ZeDUI/HANDOFF_design_dash_interior_colors_20261112.md). Each civilian dash ships in its group's three cabin vinyls,
+# lead first (the lead is DESIGNS' cabin: the previews' and the game's fallback); the fleet dashes in standard black
+# only; the race car keeps its own and is not in the round. Only the `cabin` vinyl changes: wood, faces, gauges, parts
+# and click areas are the same in every color (the export checks the parts file is). (name, ramp): the names are the
+# handoff's, for the review sheets. The game picks the color per car from its paint (ZeD_DashProto.lua's odds).
+S70 = [("moss green", "v_moss"), ("light brown", "v_ltbrown"), ("slate blue", "v_navy70")]
+S80 = [("maroon", "v_maroon"), ("navy", "v_navy"), ("beige", "v_beige_d")]
+S90 = [("beige", "v_beige_d"), ("gray", "v_grey"), ("black", "v_black")]
+LUX = [("brown leather", "l_brown"), ("red leather", "l_red"), ("black leather", "l_black")]
+BLK = [("black", "v_black")]
+CABINS = {
+    "wagon": [("brown", "v_walnut"), ("slate blue", "v_navy70"), ("army green", "v_army")],
+    "cossette": LUX, "luxury": LUX,
+    "dashelite": S90, "primani": S90, "suv": S90,
+    "nyala": S70, "d6": S70, "bulldriver": S70, "rancher": S70,
+    "horizon": S80, "dart": S80, "van": S80,
+    "police": BLK, "taxi": BLK, "ambulance": BLK, "fire": BLK, "ranger": BLK,
+}
+for _did, _cabs in CABINS.items():
+    assert DESIGNS[_did][1] == _cabs[0][1], f"{_did}: DESIGNS' cabin is not its lead color"
+
+
+def cabins(did):
+    """a design's cabin ramps, lead first (the race car: its own one)"""
+    return [r for _, r in CABINS[did]] if did in CABINS else [DESIGNS[did][1]]
 
 # The console's maker mark (brands.py; director, Oct 29 2026: "The whole idea is to replace the generic plaques with
 # branding"). Per civilian dash: its own maker, whether the console carries the model line (the Cerise Wagon and the

@@ -171,8 +171,11 @@ def mover_check(b):
             b.warn(f"the {p['t']} {p.get('src', '?')} lies on the column's shroud")
 
 
-def build_one(did, verbose=True):
-    title, cabin, seed, fn, sub, unit, radio = DZ.DESIGNS[did]
+def build_one(did, verbose=True, cabin=None):
+    """the design in one of its cabin colors (designs.cabins; None: the lead). The lead's files go to out/<did>/, each
+    other color's to out/<did>/<cabin>/, so the colors never overwrite each other"""
+    title, lead, seed, fn, sub, unit, radio = DZ.DESIGNS[did]
+    cabin = cabin or lead
     t0 = time.time()
     b = Build(did, cabin, seed=seed, title=title)
     fn(b)
@@ -205,7 +208,8 @@ def build_one(did, verbose=True):
     mover_check(b)
     legend_check(b)
     needle_check(b)
-    ddir = os.path.join(OUT, did); os.makedirs(ddir, exist_ok=True)
+    ddir = os.path.join(OUT, did) if cabin == lead else os.path.join(OUT, did, cabin)
+    os.makedirs(ddir, exist_ok=True)
     base.save(os.path.join(ddir, f"dash_{did}.png"))
     for k, im in sprites.items(): im.save(os.path.join(ddir, f"{k}.png"))
     meta = {kk: vv for kk, vv in b.meta.items() if kk != "face_mask"}
@@ -231,14 +235,20 @@ def preview(did, base, sprites, doc, heads=None, state="drive", k=1, extra=None,
 
 
 if __name__ == "__main__":
+    # a name is a design (its lead color), design:cabin (that color) or design:all (every color)
     names = sys.argv[1:] or DZ.ORDER
     heads = radios.build()
     blank = Image.open(os.path.join(radios.OUT, "hu_blank.png"))
-    for did in names:
-        b, base, sprites, doc, dt = build_one(did)
+    runs = []
+    for nm in names:
+        did, _, cab = nm.partition(":")
+        runs += [(did, c) for c in DZ.cabins(did)] if cab == "all" else [(did, cab or None)]
+    for did, cab in runs:
+        b, base, sprites, doc, dt = build_one(did, cabin=cab)
+        ddir = os.path.join(OUT, did) if doc["cabin"] == DZ.DESIGNS[did][1] else os.path.join(OUT, did, doc["cabin"])
         sprites["hu_blank"] = blank
         for stn in ("off", "keyon", "drive"):
             for k in (1, 2):
-                preview(did, base, sprites, doc, heads=heads, state=stn, k=k).save(os.path.join(OUT, did, f"live_{stn}_{k}x.png"))
-        print(f"{did:10s} {dt:5.1f}s parts={len(doc['parts']):3d} hits={len(doc['hits']):2d} sprites={len(sprites)}")
+                preview(did, base, sprites, doc, heads=heads, state=stn, k=k).save(os.path.join(ddir, f"live_{stn}_{k}x.png"))
+        print(f"{did:10s} {doc['cabin']:9s} {dt:5.1f}s parts={len(doc['parts']):3d} hits={len(doc['hits']):2d} sprites={len(sprites)}")
         for w in b.warnings: print("   !", w)

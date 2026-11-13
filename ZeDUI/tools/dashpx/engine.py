@@ -86,6 +86,12 @@ for nm, base in {"v_walnut": "#5c4130", "v_slate": "#4a4f57", "v_red": "#6e2a28"
                  "v_cocoa": "#4e3a2c", "v_charcoal": "#35363a", "v_beige": "#9a8a70", "v_tan": "#86704e", "v_khaki": "#6f6a4a",
                  "v_fleet": "#55585c", "v_black": "#26262a", "v_white": "#a9aaa6", "v_patrol": "#23283a", "v_firered": "#6a1e1a"}.items():
     add_ramp(nm, base)
+# the cabin colors by group (designs.CABINS; director, Nov 12 2026: the beige darker than v_beige, the 70s blue a
+# really dark slate, the 80s maroon a mauve-plum blend, the l_ leathers for the sports and luxury dashes)
+for nm, base in {"v_army": "#4d5030", "v_moss": "#38472e", "v_maroon": "#532131", "v_grey": "#5d6064", "v_ltbrown": "#8a6a44",
+                 "l_brown": "#7c4f2c", "l_red": "#7a2420", "l_black": "#242326",
+                 "v_beige_d": "#7c6e56", "v_navy70": "#2a3442"}.items():
+    add_ramp(nm, base)
 
 
 # ------------------------------------------------------------------ fonts (1 = ink)

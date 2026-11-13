@@ -2,7 +2,8 @@
 -- ============================================================================
 -- THE DASH'S ODOMETER, THE SERVER'S SIDE (ZeD_DashProto.lua has why). Server only (the first line); pure Lua, pure ASCII.
 -- The dashboard (client/ZeD/ZeD_Dashboard.lua) speaks on module DP.MOD: the odometer, as below, and the ash tray (DP.ASH,
--- at its handler).
+-- at its handler). Both also stamp the car's cabin color (ZeD_cab, DP.stampCabin) on the server's copy once, the
+-- same answer every client works out for itself, so a later repaint never changes it.
 --
 -- One command, from the driver's client about every tenth of a mile, at a press and as a
 -- drive ends: the server writes ZeD_odo, ZeD_trip and ZeD_odoTrip into its own copy of the car's mod data, and nothing
@@ -116,6 +117,8 @@ Srv.register(DP.MOD, DP.ODO, {}, function(p, a)
         r.u, r.at = u, now
         prune(now)
     end
+    -- the car's cabin color (DP.CAB_KEY): stamped once on the server's copy, so it goes out with the car's next send
+    if DP.stampCabin and DP.stampCabin(v) then r.dirty = true end
     local wasShow = vmd.ZeD_odoTrip == true
     -- a coarse moment: the client says so (a press, a first mileage, the engine off, the driver leaving), or the server
     -- sees one itself (a car with no figures yet, the trip down, the switch moved, the driver out of the seat, the engine off)
@@ -155,6 +158,7 @@ Srv.register(DP.MOD, DP.ASH, {}, function(p, a)
     local vmd = v:getModData()
     if vmd.ZeD_ash == a.open then return end
     vmd.ZeD_ash = a.open
+    if DP.stampCabin then DP.stampCabin(v) end      -- (the cabin color rides this send too)
     -- (the figures taken since the last send go with it: that send is this one)
     local r = M.by[a.veh]
     if r then r.dirty = nil end

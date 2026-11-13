@@ -1362,9 +1362,50 @@ end
 -- dash lends it its textures, the badge lines, the van's logo, the radio faces,
 -- and the list the head unit adds its controls to
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- the cabin color: a civilian dash comes in its group's three colors
+-- (des.cabins, lead first), the car's paint and key number pick one
+-- (ZeD_DashProto.lua), and the car keeps it. Each picture that differs by
+-- color (des.cabinTex) loads as <name>__<cabin>; the parts are the same in
+-- every color but for a mark's model-line shadow, read off the vinyl
+-- ("cabin" in the parts, the color's own in des.cabins). D.qaCabin (a ramp id)
+-- forces a color for QA probes.
+-- ---------------------------------------------------------------------------
+local function _cabinOf(vehicle, des, designId)
+    local list = des.cabins
+    if not list or #list == 0 then return nil, nil end
+    local Pr = ZeD.DashProto
+    local want = D.qaCabin
+    if not want and Pr and Pr.carCabin then
+        local b, r = Pr.carCabin(vehicle)
+        want = Pr.cabinFor(designId, b, r)
+        Pr.stampCabin(vehicle)       -- (this machine's copy only: the client never sends the car's modData)
+    end
+    local cab = list[1]
+    for i = 1, #list do if list[i].id == want then cab = list[i]; break end end
+    local all = des._texNames
+    if not all then all = {}; des._texNames = all end
+    local names = all[cab.id]
+    if not names then
+        names = {}
+        local sep = DP.cabinSep or "__"
+        for _, n in ipairs(des.cabinTex or {}) do names[n] = n .. sep .. cab.id end
+        all[cab.id] = names
+    end
+    return cab, names
+end
+D._cabinOf = _cabinOf   -- exposed for QA probes
+
 function ZeD_Dashboard:_ctx(des, pending)
     local ctx = self._plateCtx
-    if not ctx then ctx = { tex = tex }; self._plateCtx = ctx end
+    if not ctx then
+        ctx = {}
+        -- a picture by its plain name, or by its cabin color's name where the colors differ
+        ctx.tex = function(name) local m = ctx.texNames; return tex(m and m[name] or name) end
+        self._plateCtx = ctx
+    end
+    ctx.texNames  = self._texNames
+    ctx.cabin     = self._cabin
     ctx.sprites   = des.sprites
     ctx.badge     = self._badge
     ctx.scriptLow = self._scriptLow
@@ -2130,16 +2171,19 @@ function ZeD_Dashboard:prerender()
     local trs = ZeD._trState
     local trOn = (trs and trs.on) and true or false
     local des, designId, ownFamily
-    if bk and bk.v == vehicle and bk.s == scriptName and bk.gen == ZeD._trGen and bk.on == trOn then
+    if bk and bk.v == vehicle and bk.s == scriptName and bk.gen == ZeD._trGen and bk.on == trOn and bk.qa == D.qaCabin then
         des, designId, ownFamily = bk.des, bk.id, bk.own
     else
         des, designId, ownFamily = _designFor(scriptName)
+        self._cabin, self._texNames = _cabinOf(vehicle, des, designId)
         -- every state picture of the design asked for now, as the dash first shows the car: the game loads a picture
         -- in the background the first time it is asked for, and one first wanted mid-drive was missing for a frame
         -- (the hula girl's first sway was the one to show it)
-        for name in pairs(des.sprites or {}) do tex(name) end
+        local names = self._texNames
+        for name in pairs(des.sprites or {}) do tex(names and names[name] or name) end
         self._badge = _badges(des, vehicle, scriptName, ownFamily)
-        self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily }
+        self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily,
+                           qa = D.qaCabin }
     end
     self._designId = designId
     if st.pub then
