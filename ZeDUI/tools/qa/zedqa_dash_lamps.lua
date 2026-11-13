@@ -19,7 +19,10 @@ local function check(ok, what) if ok then say("PASS " .. what) else err("FAIL " 
 if not (D and D.lampText and D._lampZones) then say("ERR the new code is not loaded"); say("DONE"); return end
 
 local Q, qi = {}, 1
-local function step(f) Q[#Q + 1] = f end
+-- (Nov 13 2026: with no dash (the car not entered) the lamp steps are skipped and said so, not run on a nil dash)
+local skip = false
+local function step(f) Q[#Q + 1] = function() if skip then return true end; return f() end end
+local function flat(r) return type(r) == "table" and table.concat(r, " ") or tostring(r) end
 local function now() return getTimestampMs() end
 local function waitMs(ms) local t0 = nil; step(function() t0 = t0 or now(); if now() - t0 >= ms then t0 = nil; return true end end) end
 local function waitFor(cond, ms, onTimeout)
@@ -200,7 +203,7 @@ local function setCharge(f)
     end)
 end
 local function design() local d = dash(); return d and DP.designs[d._designId] end
-local function zoneOf(id) for _, z in ipairs(D._lampZones(design()) or {}) do if z.id == id then return z end end end
+local function zoneOf(id) local des = design(); if not des then return nil end; for _, z in ipairs(D._lampZones(des) or {}) do if z.id == id then return z end end end
 -- the pointer stood in over a lamp's hover place (nil: let go)
 local function pointAt(id)
     local d = dash(); if not d then return end
@@ -229,7 +232,7 @@ local function hover(id, case)
     act(function()
         local d = dash()
         local name, rest = D.lampText(id, st() or {})
-        check(d and d._lampHov == id, case .. ": the pointer over the " .. id .. " lamp shows its chip (" .. tostring(d and d._lampHov) .. ": " .. tostring(name) .. " | " .. tostring(rest) .. ")")
+        check(d and d._lampHov == id, case .. ": the pointer over the " .. id .. " lamp shows its chip (" .. tostring(d and d._lampHov) .. ": " .. tostring(name) .. " | " .. flat(rest) .. ")")
         shot(case .. "_" .. id)
     end)
 end
@@ -254,6 +257,13 @@ end)
 
 goSite()
 local ready = stage("elite", "Base.ModernCar")
+act(function()
+    if not (ready() and dash() and st()) then
+        say("not run: the lamp steps (the character is not in the car, so there is no dash)")
+        errs = errs + 1
+        skip = true
+    end
+end)
 startEngine("elite")
 act(function() if st() and not st().heaterOn then click("heat") end end)
 waitMs(1500)
@@ -291,9 +301,11 @@ hover("eng", "2_worn")
 hover("head", "2_worn")
 hover("heat", "2_worn")
 act(function()
-    local name, rest = D.lampText("head", st())
+    local name, rest = D.lampText("head", st() or {})
+    rest = flat(rest)
     check(rest:find("40%", 1, true) ~= nil and rest:find("85%", 1, true) ~= nil, "worn: the headlights' chip gives each one (" .. rest .. ")")
-    local n2, r2 = D.lampText("batt", st())
+    local n2, r2 = D.lampText("batt", st() or {})
+    r2 = flat(r2)
     check(r2:find("52%", 1, true) ~= nil and r2:find("18%", 1, true) ~= nil, "worn: the battery's chip gives its condition and charge (" .. r2 .. ")")
     pointAt(nil)
 end)
@@ -331,6 +343,7 @@ end)
 hover("eng", "3_check")
 act(function() pointAt(nil) end)
 
+Q[#Q + 1] = function() skip = false; return true end   -- (the clean-up below always runs)
 act(function() leave() end)
 goHome()
 act(function()
