@@ -182,6 +182,27 @@ check("ROOM: compact heading (a narrow column): one button's width", gotC == 210
 local gotCF = nameRoom(true, true, 210)
 check("ROOM: compact with the Filter", gotCF == 210 - (24 + 6 + 24 + 6) - 6 - 6, gotCF)
 
+-- (QA b12 round 2) a narrow single column at Large text: the Character window's "Inventory" was cut to "Invent..."
+-- because the weight and count stack took its room. The stack gives way (the count first, then the weight: the title
+-- bar shows the weight, the foot line the count) where it would cut the name; where the name fits it stays.
+local function narrow(colW, stats, cnt)
+    local p2 = mkPanel("Inventory", false, false)
+    p2._containerInfo.stats, p2._containerInfo.count = stats, cnt
+    local drawn = {}
+    function p2:drawText(s) drawn[s] = true end
+    heading(p2, CRATE, colW)
+    return NAME_ROOM, drawn
+end
+local NAME_W = #"Inventory" * 7
+local room, drawn = narrow(160, "0.0 / 8 kg", "63 items")
+check("ROOM narrow: the whole name fits", room and room >= NAME_W, room)
+check("ROOM narrow: the count and the weight give way", not drawn["63 items"] and not drawn["0.0 / 8 kg"])
+room, drawn = narrow(200, "0.0 / 8 kg", "1234567890 items")
+check("ROOM narrow: a long count goes first, the name fits", room and room >= NAME_W and not drawn["1234567890 items"], room)
+check("ROOM narrow: the weight stays where it leaves the name whole", drawn["0.0 / 8 kg"] == true)
+room, drawn = narrow(420, "0.0 / 8 kg", "63 items")
+check("ROOM wide: both stay where the name fits", drawn["0.0 / 8 kg"] and drawn["63 items"] and room == 420 - (70 + 30) - 6 - 12, room)
+
 section("WINDOWS")
 local CW = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua")
 local WW = readFile("42/media/lua/client/ZeD/ZeD_WorldWindow.lua")

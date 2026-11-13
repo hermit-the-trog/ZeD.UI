@@ -1185,6 +1185,18 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local stackH = secFH + gap + f5FH
     if stackH > infoAreaH then cntStr, cntW, stackH = nil, 0, secFH end
     if stackH > infoAreaH then wtStr, wtW, stackH = nil, 0, 0 end
+    -- and where the stack would cut the container's name (a narrow window at Large text: "Invent..."), the count
+    -- goes, then the weight; the title bar shows the weight and the foot line the count. The buttons' width is
+    -- drawViewToggle's, worked out ahead.
+    do
+        local bw = math.max(T.px(16), math.min(T.buttonH, infoAreaH - T.px(4)))
+        local fs = self._zedFilter
+        local togW = GV.key and (bw + ((fs ~= nil and fs.shown) and (bw + T.px(6)) or 0) + padX) or 0
+        local lead = padX + (ci.texture and (f4FH + T.sp.iconGap) or 0)
+        local need = lead + ZeD.TM:MeasureStringX(T.fontF4, ci.name or "") + padX * 2 + togW
+        if cntStr and need + math.max(wtW, cntW) > colW then cntStr, cntW = nil, 0 end
+        if wtStr and need + wtW > colW then wtStr, wtW = nil, 0 end
+    end
     local stackW = math.max(wtW, cntW)
     local stackY = barH + math.max(0, math.floor((infoAreaH - stackH) / 2))
     local htc    = T.toneHi
