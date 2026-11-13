@@ -3275,6 +3275,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Pour un stick difficile à manier, ou des boutons difficiles à maintenir. Appui bref pour ouvrir, le stick droit ou la croix déplace la sélection, A valide, B ferme, et la roue reste ouverte jusqu'à ce que vous la fermiez.",
     "UI_ZeD_Settings_WheelDeadZone": "Zone morte du stick de roue",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Jusqu'où le stick droit doit bouger avant qu'une part s'éclaire. Un stick qui dérive demande un nombre plus élevé.",
+    "UI_ZeD_Settings_RunSneak": "Courir sert aussi à s'accroupir",
+    "UI_ZeD_Settings_RunSneakTip": "Fonctionne quand Courir est sur un bouton, comme dans la disposition manette Original (Courir sur la gâchette droite, RT) ; ne fait rien quand Courir est une poussée à fond du stick (la disposition Par défaut) ou sur LB ou RB, que ZeD réserve à ses actions rapides. À l'arrêt, maintenez Courir pour vous accroupir, et maintenez à nouveau pour vous relever. En mouvement, Courir fait courir comme toujours ; accroupi, le maintien vous relève d'abord. Un appui bref fait ce qu'il a toujours fait.",
     "UI_ZeD_Settings_FocusStyle": "Surbrillance manette",
     "UI_ZeD_Settings_FocusStyleTip": "Comment la manette marque ce sur quoi elle se trouve : une main qui pointe, des marques de coin, une teinte d'accent, ou des fourmis en marche.",
     "UI_ZeD_Settings_FocusHand": "Main qui pointe",

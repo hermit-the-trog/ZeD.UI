@@ -675,6 +675,18 @@ local autoLearn = onSwitch("autoLearn", "UI_ZeD_Settings_AutoLearn", "UI_ZeD_Set
 ZeD.Settings.autoLearnOption = autoLearn
 ZeD.Settings.autoLearnOn = function() return (autoLearn:getValue() or 1) == 2 end
 
+-- ----- RUN BUTTON ALSO SNEAKS (a controller, with Run on a button) -----
+-- A hold of the game's Run button (RT in the Original layout, or wherever a player's own layout puts it, never a
+-- stick click or a bumper) standing still crouches or stands; crouched and moving, it stands up and the game's run
+-- carries on; a tap stays the game's. Where Run is a full push of the stick (the Default layout) it does nothing
+-- (Input/RunSneak.lua reads this every frame, so a change applies at once). Off for a new player. A way of working
+-- the pad, like the wheels' options, not an addition: the presets leave it.
+local runSneak = opts:addComboBox("runSneak", ZeD.tr("UI_ZeD_Settings_RunSneak"), ZeD.tr("UI_ZeD_Settings_RunSneakTip"))
+runSneak:addItem(getText("UI_Off"), true)   -- default
+runSneak:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup's checkbox reads them so)
+ZeD.Settings.runSneakOption = runSneak
+ZeD.Settings.runSneakOn = function() return (liveIdx(runSneak) or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -709,7 +721,7 @@ do
         hiddenFacts = "UI_ZeD_Settings_HiddenFacts",
         wheelOpen = "UI_ZeD_Settings_WheelOpen", wheelCommit = "UI_ZeD_Settings_WheelCommit",
         wheelToggle = "UI_ZeD_Settings_WheelToggle", wheelDeadZone = "UI_ZeD_Settings_WheelDeadZone",
-        autoLearn = "UI_ZeD_Settings_AutoLearn",
+        autoLearn = "UI_ZeD_Settings_AutoLearn", runSneak = "UI_ZeD_Settings_RunSneak",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
