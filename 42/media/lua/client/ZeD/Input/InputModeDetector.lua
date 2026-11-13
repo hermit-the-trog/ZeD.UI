@@ -15,8 +15,13 @@
 -- unreliable (returns stale values, doesn't distinguish click from move).
 -- Every detection rule in this file is implemented from scratch.
 --
+-- One mode, the first player's: only player 1 has the mouse and keyboard, so
+-- players 2-4 (split-screen) are always on a pad, and a pad another local
+-- player plays with never speaks for player 1.
+--
 -- Public interface:
---   ZeD.Input.Detector.getMode()             -> "kbm" | "gamepad" | "unknown"
+--   ZeD.Input.Detector.getMode(pn?)          -> "kbm" | "gamepad" | "unknown" (pn 1-3: always "gamepad")
+--   ZeD.Input.Detector.padOwner(i)           -> the local player (0-3) on controller i, or nil
 --   ZeD.Input.Detector.getControllerType(i)  -> "xbox" | "playstation" | "nintendo" | "unknown"
 --   ZeD.Input.Detector.setLockedMode(mode)   mode = nil (auto-detect) | "kbm" | "gamepad"
 --   ZeD.Input.Detector.msSinceMouseClick()   -> ms since a mouse button last went down
@@ -173,13 +178,43 @@ local function gamepadButtonActive(controllerIdx)
     return false
 end
 
+--- The local player (0-3) playing with controller i, or nil: nobody's (an
+--- unbound pad). A pad in character creation for a new player (split-screen's
+--- "Add new player") is that player's already: the game binds it only when the
+--- character is accepted, and until then it would read as nobody's and speak
+--- for player 1.
+function Detector.padOwner(i)
+    local P = JoypadState and JoypadState.players
+    if P then
+        for k = 1, 4 do
+            local jd = P[k]
+            if jd and jd.id == i then return k - 1 end
+        end
+    end
+    local cc = CoopCharacterCreation and CoopCharacterCreation.instance
+    local cjd = cc and cc.joypadData
+    if cjd and cjd.id == i and type(cc.playerIndex) == "number" and cc.playerIndex ~= 0 then
+        return cc.playerIndex
+    end
+    return nil
+end
+
+-- A pad another local player plays with speaks for them, never for player 1.
+-- An unbound pad still counts (the Deck's phantom slot), and so does a pad
+-- joining before it has a player: the join list puts it in slot 1 whether it
+-- becomes player 2 or takes player 1 over, so the two can't be told apart.
+local function othersPad(i)
+    local o = Detector.padOwner(i)
+    return o ~= nil and o ~= 0
+end
+
 -- True if ANY connected controller shows any kind of input activity.
 -- We iterate all slots because a Steam Deck controller could be in slot 2
 -- while a phantom in slot 0 sits idle.
 local function anyGamepadActive()
     local n = getControllerCount()
     for i = 0, n - 1 do
-        if isControllerConnected(i) then
+        if isControllerConnected(i) and not othersPad(i) then
             if stickActive(i) or triggerActive(i) or gamepadButtonActive(i) then
                 return true
             end
@@ -271,9 +306,11 @@ end
 -- PUBLIC API
 -- ---------------------------------------------------------------------------
 
---- Current effective mode. Respects manual lock if one is set.
+--- Current effective mode of local player pn (missing: player 1). Player 1's
+--- respects the manual lock if one is set; players 2-4 are always on a pad.
 --- Returns "kbm" | "gamepad" | "unknown".
-function Detector.getMode()
+function Detector.getMode(pn)
+    if type(pn) == "number" and pn ~= 0 then return Detector.MODE_GAMEPAD end
     return _lockedMode or _mode
 end
 
@@ -371,7 +408,8 @@ function Detector.msSinceMouseClick()
 end
 
 -- Controller disconnected: fall back to KBM IF no other controllers remain.
--- We don't force KBM if the user still has another controller plugged in.
+-- We don't force KBM if the user still has another controller plugged in,
+-- but another local player's pad doesn't count: it is theirs, not player 1's.
 -- Don't touch mode when a manual lock is active — the lock is the user's
 -- explicit choice.
 local function onGamepadDisconnect(_index)
@@ -379,7 +417,7 @@ local function onGamepadDisconnect(_index)
     if _mode ~= Detector.MODE_GAMEPAD then return end
     local n = getControllerCount()
     for i = 0, n - 1 do
-        if isControllerConnected(i) then
+        if isControllerConnected(i) and not othersPad(i) then
             return -- still have at least one gamepad; stay in gamepad mode
         end
     end

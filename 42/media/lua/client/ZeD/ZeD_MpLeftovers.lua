@@ -238,7 +238,7 @@ function L.openSharing(mp, sym, fromPad)
                 end } } }
         end,
         onFinish = function()
-            if fromPad and ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus then ZeD.Input.Focus.reclaimEngineFocus() end
+            if fromPad and ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus then ZeD.Input.Focus.reclaimEngineFocus(pn) end
         end,
     })
     return L.shareCard ~= nil

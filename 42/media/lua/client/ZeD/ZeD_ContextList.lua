@@ -170,7 +170,7 @@ function ZeD_ContextList:close()
     if self._joyfocus and setJoypadFocus then pcall(setJoypadFocus, self.player, nil) end
     self._joyfocus = false
     if ZeD and ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus then
-        ZeD.Input.Focus.reclaimEngineFocus()
+        ZeD.Input.Focus.reclaimEngineFocus(self.player)
     end
     -- the vanilla menu is a cached per-player singleton: hide it, never remove it
     if self.vanillaMenu then

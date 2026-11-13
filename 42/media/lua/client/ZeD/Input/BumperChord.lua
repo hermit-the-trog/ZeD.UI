@@ -30,19 +30,27 @@
 -- configs. A player's own bumper bindings will fight the chord and need
 -- clearing.
 --
+-- SPLIT-SCREEN: one chord a local player, each read from that player's own
+-- pad and zooming that player's view. Player 1's runs as it always did.
+-- Players 2-4 poll only while ZeD's windows are theirs (ZeD.windowsFor) and
+-- they are playing (their pad bound to them, their character alive); until
+-- then their bumpers stay the game's. A missing pn below means player 1.
+--
 -- Public interface:
---   ZeD.Input.Chord.setEnabled(bool)   FocusManager: off at claim, on at release
---   ZeD.Input.Chord.getState()         -> "IDLE" | "LB_HELD" | "RB_HELD" | "CONSUMED"
---   ZeD.Input.Chord.isActive()         true while a chord is in progress
+--   ZeD.Input.Chord.setEnabled(bool, pn?)   FocusManager: off at claim, on at release
+--   ZeD.Input.Chord.getState(pn?)          -> "IDLE" | "LB_HELD" | "RB_HELD" | "CONSUMED"
+--   ZeD.Input.Chord.isActive(pn?)          true while a chord is in progress
 --
 -- Events consumed:
---   Events.ZeD_InputModeChanged   resets state to IDLE on flip away from gamepad
+--   Events.ZeD_InputModeChanged   resets player 1's chord to IDLE on flip away from gamepad
+--   Events.OnCreatePlayer, Events.OnPlayerDeath   a player's chord starts over
 --
 -- Tokens consumed: none. The arming timeout read ZeD.T.gp.chordWindowMs; the
 -- token still sits in Tokens.lua with no reader and can go.
 --
--- PERF: zero per-tick allocation. All state lives in file-locals and the
--- dispatch is a plain if/elseif chain. Fine to run at 120fps indefinitely.
+-- PERF: zero per-tick allocation. All state lives in one small record a
+-- player and the dispatch is a plain if/elseif chain. Fine to run at 120fps
+-- indefinitely.
 -- ============================================================================
 
 -- Nothing here reads a token since the arming timeout left. The require is
@@ -70,32 +78,38 @@ Chord.STATE_CONSUMED = "CONSUMED"
 -- ---------------------------------------------------------------------------
 -- INTERNAL STATE (file-local, not part of public API)
 -- ---------------------------------------------------------------------------
--- Current state-machine position. Transitions always go through _transition()
--- so the debug log stays consistent.
-local _state = Chord.STATE_IDLE
+-- One record a local player (pn 0-3, 0 = player 1), made on first use; player
+-- 1's fields are the file locals this module had before split-screen:
+--   state    the state machine's position; changes go through _transition()
+--            so the debug log stays consistent
+--   primary  which bumper started the chord: "LB" zoom-in, "RB" zoom-out;
+--            read by CONSUMED re-entry for a multi-tap. Only meaningful when
+--            state is not IDLE
+--   lbLast, rbLast  both bumpers' levels last tick. B42.17 removed
+--            isJoypadPressed(id, const); its replacement,
+--            JoypadButton.<n>:isDown(id), is level-triggered (held), so the
+--            edges are diffed here: press = down now and not last tick
+--   enabled  the kill switch. FocusManager calls setEnabled(false, pn) when a
+--            window claims that player's focus (LB / RB swap windows there)
+--            and true when it releases. True by default
+-- Fresh on every load.
+local _rec = {}
+local function _C(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local c = _rec[pn]
+    if c == nil then
+        c = { pn = pn, state = Chord.STATE_IDLE, primary = nil, lbLast = false, rbLast = false, enabled = true }
+        _rec[pn] = c
+    end
+    return c
+end
+_C(0)
 
--- Which bumper started the currently-tracked chord. "LB" -> zoom-IN direction,
--- "RB" -> zoom-OUT direction. Read by CONSUMED re-entry so we know which way
--- to zoom on a multi-tap. Only meaningful when _state != IDLE.
-local _primary = nil
-
--- Last-tick held state for LB and RB. Edge detection is (down_now AND NOT
--- down_last) for press edges, (NOT down_now AND down_last) for release edges.
--- B42.17 removed isJoypadPressed(id, const); its replacement,
--- JoypadButton.<n>:isDown(id), returns level-triggered (held) state, so we
--- diff it ourselves.
-local _lbDownLast = false
-local _rbDownLast = false
-
--- Cached detector mode. Updated on ZeD_InputModeChanged event + snapshotted
--- at boot (in case the first event fired before we registered). We early-out
--- of onTick unless this is "gamepad" — no point polling bumpers in KBM mode.
+-- Cached detector mode (player 1's: players 2-4 are always on a pad). Updated
+-- on ZeD_InputModeChanged + snapshotted at boot (in case the first event fired
+-- before we registered). Player 1's chord early-outs unless this is
+-- "gamepad": no point polling bumpers in KBM mode.
 local _mode = "unknown"
-
--- The kill switch. FocusManager calls setEnabled(false) when a window claims
--- focus (LB / RB swap windows there) and true when focus releases. Defaults
--- to true — the chord is live unless something turns it off.
-local _enabled = true
 
 -- First-failure latch for the zoom dispatch pcall. If getCore():doZoomScroll
 -- ever throws (PZ patch signature drift), we log the error ONCE and keep
@@ -107,49 +121,79 @@ local _fireErroredOnce = false
 -- HELPERS
 -- ---------------------------------------------------------------------------
 
--- Resolve player 0's active controller slot. Returns -1 if no controller is
--- connected to player 0. Re-read EVERY TICK, never cache at boot — hot-swap
+-- "" for player 1, so player 1's log lines read word for word as before
+local function _who(pn)
+    if pn == 0 then return "" end
+    return " (player " .. tostring(pn + 1) .. ")"
+end
+
+-- Resolve a player's active controller slot. Returns -1 if no controller is
+-- connected to that player. Re-read EVERY TICK, never cache at boot — hot-swap
 -- (Steam Deck docking, USB reseat, pad swap) changes the .id mid-session and
 -- we'd poll a stale slot otherwise.
-local function _getJoypadIdx()
+local function _padIdx(pn)
     if not getJoypadData then return -1 end
-    local data = getJoypadData(0)
+    local data = getJoypadData(pn)
     if not data then return -1 end
     local id = data.id
     if id == nil then return -1 end
     return id
 end
 
+-- A fresh record starts from the bumpers' levels as they are, so a bumper
+-- already held (through a respawn, say) is no new press.
+local function _seed(c)
+    local id = _padIdx(c.pn)
+    if id >= 0 and JoypadButton then
+        c.lbLast = JoypadButton.LeftBump:isDown(id) and true or false
+        c.rbLast = JoypadButton.RightBump:isDown(id) and true or false
+    else
+        c.lbLast, c.rbLast = false, false
+    end
+end
+
+-- Whether player pn (1-3) is playing: their pad's slot is bound to them and
+-- their character is alive. The game keeps the slot through the post-death
+-- screen and binds it again before the new character exists, so the slot
+-- alone is not enough.
+local function _playing(pn)
+    local P = JoypadState and JoypadState.players
+    local jd = P and P[pn + 1]
+    if not (jd and jd.player == pn) then return false end
+    local p = getSpecificPlayer and getSpecificPlayer(pn)
+    return p ~= nil and not p:isDead()
+end
+
 -- Log + swap state. One source of truth so every transition shows up in
 -- console.txt in the same greppable format.
-local function _transition(newState)
-    if newState == _state then return end
-    local oldState = _state
-    _state = newState
-    print(string.format("[ZeD.Input] chord: %s -> %s", tostring(oldState), tostring(newState)))
+local function _transition(c, newState)
+    if newState == c.state then return end
+    local oldState = c.state
+    c.state = newState
+    print(string.format("[ZeD.Input] chord: %s -> %s", tostring(oldState), tostring(newState)) .. _who(c.pn))
 end
 
 -- Cancel any in-progress chord and clear the direction memory. Called on
 -- single-bumper release, mode flip away from gamepad, and both-bumpers-
 -- released-after-CONSUMED.
-local function _reset()
-    _primary = nil
-    _transition(Chord.STATE_IDLE)
+local function _reset(c)
+    c.primary = nil
+    _transition(c, Chord.STATE_IDLE)
 end
 
--- Fire one zoom step. direction is the engine's own: +1 = zoom-out (getZoom
--- rises, wider view), -1 = zoom-in. Vanilla precedent: ISBackButtonWheel's
--- ZoomOut.png slice sends +1 ("ZoomPlus") and its ZoomIn.png slice sends -1
--- ("ZoomMinus"); the ZoomedIn and ZoomedOut steps in Tutorial/Steps.lua check
--- getZoom against its min and max.
+-- Fire one zoom step for the chord's player. direction is the engine's own:
+-- +1 = zoom-out (getZoom rises, wider view), -1 = zoom-in. Vanilla precedent:
+-- ISBackButtonWheel's ZoomOut.png slice sends +1 ("ZoomPlus") and its
+-- ZoomIn.png slice sends -1 ("ZoomMinus"); the ZoomedIn and ZoomedOut steps in
+-- Tutorial/Steps.lua check getZoom against its min and max.
 -- The game's Java side can throw if a future PZ patch renames or removes the
 -- API; pcall turns that crash into a logged miss instead of a dead tick handler.
-local function _fire(direction)
+local function _fire(c, direction)
     local label = (direction > 0) and "zoom-out" or "zoom-in"
-    print(string.format("[ZeD.Input] chord fire: %s", label))
+    print(string.format("[ZeD.Input] chord fire: %s", label) .. _who(c.pn))
+    local pn = c.pn
     local ok, err = pcall(function()
-        -- Player 0 only. Split-screen zoom would need a chord per player.
-        getCore():doZoomScroll(0, direction)
+        getCore():doZoomScroll(pn, direction)
     end)
     if (not ok) and (not _fireErroredOnce) then
         _fireErroredOnce = true
@@ -158,7 +202,7 @@ local function _fire(direction)
 end
 
 -- ---------------------------------------------------------------------------
--- TICK DISPATCHER — called every tick by Events.OnTick
+-- TICK DISPATCHER — called every tick by Events.OnTick, once a playing player
 --
 -- Ordering inside each state branch matters:
 --   1. Fire-chord edge check (wins ties with release)
@@ -170,18 +214,19 @@ end
 -- LB_HELD / RB_HELD persist as long as the bumper is physically held —
 -- there is no arming timeout (see the header for why).
 -- ---------------------------------------------------------------------------
-local function onTick()
+local function _tickPad(c)
     -- Gate 1: the kill switch (a focused window owns the bumpers).
-    if not _enabled then return end
+    if not c.enabled then return end
 
-    -- Gate 2: Only run in gamepad mode. KBM players use mouse wheel to zoom;
-    -- running this dispatcher on their session wastes cycles and risks
-    -- accidentally firing if they happen to have a pad plugged in.
-    if _mode ~= "gamepad" then return end
+    -- Gate 2: player 1 only in gamepad mode. KBM players use mouse wheel to
+    -- zoom; running this dispatcher on their session wastes cycles and risks
+    -- accidentally firing if they happen to have a pad plugged in. Players
+    -- 2-4 are always on a pad.
+    if c.pn == 0 and _mode ~= "gamepad" then return end
 
-    -- Gate 3: Need a controller on slot 0. Re-read every tick — see
-    -- _getJoypadIdx() doc for hot-swap reasoning.
-    local joypadIdx = _getJoypadIdx()
+    -- Gate 3: Need a controller on the player's slot. Re-read every tick —
+    -- see _padIdx() doc for hot-swap reasoning.
+    local joypadIdx = _padIdx(c.pn)
     if joypadIdx < 0 then return end
 
     -- Read current level-triggered state for both bumpers (B42.17: poll via
@@ -192,112 +237,158 @@ local function onTick()
     local rbDown = JoypadButton.RightBump:isDown(joypadIdx)
 
     -- Edge detection: compare current vs last-tick state.
-    local lbPressEdge   = lbDown and (not _lbDownLast)
-    local rbPressEdge   = rbDown and (not _rbDownLast)
-    local lbReleaseEdge = (not lbDown) and _lbDownLast
-    local rbReleaseEdge = (not rbDown) and _rbDownLast
+    local lbPressEdge   = lbDown and (not c.lbLast)
+    local rbPressEdge   = rbDown and (not c.rbLast)
+    local lbReleaseEdge = (not lbDown) and c.lbLast
+    local rbReleaseEdge = (not rbDown) and c.rbLast
 
-    if _state == Chord.STATE_IDLE then
+    local state = c.state
+    if state == Chord.STATE_IDLE then
         -- Simultaneous LB+RB press on the same tick: resolve as LB-first,
         -- RB-arrived-same-frame -> fire zoom-in (LB primary). Matches the
         -- feel of "the chord fired" without a ghost tick in LB_HELD.
         -- Deterministic either way — direction just picked by rule.
         if lbPressEdge and rbPressEdge then
-            _primary = "LB"
-            _fire(-1) -- LB primary = zoom-in
-            _transition(Chord.STATE_CONSUMED)
+            c.primary = "LB"
+            _fire(c, -1) -- LB primary = zoom-in
+            _transition(c, Chord.STATE_CONSUMED)
         elseif lbPressEdge then
-            _primary = "LB"
-            _transition(Chord.STATE_LB_HELD)
+            c.primary = "LB"
+            _transition(c, Chord.STATE_LB_HELD)
         elseif rbPressEdge then
-            _primary = "RB"
-            _transition(Chord.STATE_RB_HELD)
+            c.primary = "RB"
+            _transition(c, Chord.STATE_RB_HELD)
         end
 
-    elseif _state == Chord.STATE_LB_HELD then
+    elseif state == Chord.STATE_LB_HELD then
         -- Order matters here (see function header): rbPressEdge first so
         -- thumb-roll-off doesn't lose the fire when LB release lands on the
         -- same tick as RB press.
         if rbPressEdge then
-            _fire(-1) -- LB-then-RB = zoom-in
-            _transition(Chord.STATE_CONSUMED)
+            _fire(c, -1) -- LB-then-RB = zoom-in
+            _transition(c, Chord.STATE_CONSUMED)
         elseif lbReleaseEdge then
-            _reset() -- LB released without an RB tap — unowned single-tap
+            _reset(c) -- LB released without an RB tap — unowned single-tap
         end
 
-    elseif _state == Chord.STATE_RB_HELD then
+    elseif state == Chord.STATE_RB_HELD then
         -- Mirror of LB_HELD.
         if lbPressEdge then
-            _fire(1) -- RB-then-LB = zoom-out
-            _transition(Chord.STATE_CONSUMED)
+            _fire(c, 1) -- RB-then-LB = zoom-out
+            _transition(c, Chord.STATE_CONSUMED)
         elseif rbReleaseEdge then
-            _reset()
+            _reset(c)
         end
 
-    elseif _state == Chord.STATE_CONSUMED then
+    elseif state == Chord.STATE_CONSUMED then
         -- CONSUMED re-entry for multi-tap: a fresh opposite-bumper edge fires
         -- another step while the first bumper remains held; stay in CONSUMED.
         -- Only exit when BOTH bumpers are fully released (clean slate).
-        if _primary == "LB" and lbDown and rbPressEdge then
-            _fire(-1) -- LB-primary = zoom-in
-        elseif _primary == "RB" and rbDown and lbPressEdge then
-            _fire(1)  -- RB-primary = zoom-out
+        if c.primary == "LB" and lbDown and rbPressEdge then
+            _fire(c, -1) -- LB-primary = zoom-in
+        elseif c.primary == "RB" and rbDown and lbPressEdge then
+            _fire(c, 1)  -- RB-primary = zoom-out
         elseif (not lbDown) and (not rbDown) then
-            _reset()
+            _reset(c)
         end
     end
 
     -- Save last-tick state for next tick's edge detection. Must be the LAST
     -- thing the dispatcher does so that early returns above don't poison the
     -- edge computation for the next tick they run.
-    _lbDownLast = lbDown
-    _rbDownLast = rbDown
+    c.lbLast = lbDown
+    c.rbLast = rbDown
+end
+
+-- Player 1 first, as always; then each other local player while ZeD's
+-- windows are theirs (the gate is read every tick, so a later stage can open
+-- it). A player who is not playing (dead, or the slot not theirs yet) loses
+-- the record: the next character starts over from the bumpers as they are.
+local function onTick()
+    _tickPad(_C(0))
+    local W = ZeD.windowsFor
+    if not W then return end
+    for pn = 1, 3 do
+        if W(pn) == true then
+            if _playing(pn) then
+                local c = _rec[pn]
+                if c == nil then
+                    c = _C(pn)
+                    _seed(c)
+                end
+                _tickPad(c)
+            else
+                _rec[pn] = nil
+            end
+        end
+    end
 end
 
 -- ---------------------------------------------------------------------------
 -- PUBLIC API
 -- ---------------------------------------------------------------------------
 
---- Enable / disable the chord dispatcher. FocusManager calls this with false
---- when a window claims focus (LB / RB become the window swap there) and true
---- when focus releases. Also callable from console for QA, e.g.
+--- Enable / disable a player's chord dispatcher (pn missing: player 1's).
+--- FocusManager calls this with false when a window claims that player's
+--- focus (LB / RB become the window swap there) and true when focus
+--- releases. Also callable from console for QA, e.g.
 ---   ZeD.Input.Chord.setEnabled(false)
-function Chord.setEnabled(flag)
-    -- Normalize truthy/falsy to strict bool for the gate check in onTick.
-    _enabled = flag and true or false
+function Chord.setEnabled(flag, pn)
+    local c = _C(pn)
+    -- Normalize truthy/falsy to strict bool for the gate check in the tick.
+    c.enabled = flag and true or false
     -- Cleanliness: if we're turning off mid-chord, reset so re-enable starts
     -- from a known-good IDLE state instead of an orphaned LB_HELD / RB_HELD.
-    if not _enabled and _state ~= Chord.STATE_IDLE then
-        _reset()
+    if not c.enabled and c.state ~= Chord.STATE_IDLE then
+        _reset(c)
     end
 end
 
---- Current state-machine position. Returns one of STATE_IDLE / STATE_LB_HELD
---- / STATE_RB_HELD / STATE_CONSUMED. Useful from console: "did we terminate
---- in IDLE after that rapid input?"
-function Chord.getState()
-    return _state
+--- A player's state-machine position (pn missing: player 1's). Returns one of
+--- STATE_IDLE / STATE_LB_HELD / STATE_RB_HELD / STATE_CONSUMED. Useful from
+--- console: "did we terminate in IDLE after that rapid input?"
+function Chord.getState(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local c = _rec[pn]
+    return c and c.state or Chord.STATE_IDLE
 end
 
---- True while a chord is in progress. Equivalent to getState() ~= "IDLE" but
---- reads nicer at call sites that don't care which phase the chord is in.
-function Chord.isActive()
-    return _state ~= Chord.STATE_IDLE
+--- True while a player's chord is in progress (pn missing: player 1's).
+--- Equivalent to getState(pn) ~= "IDLE" but reads nicer at call sites that
+--- don't care which phase the chord is in.
+function Chord.isActive(pn)
+    return Chord.getState(pn) ~= Chord.STATE_IDLE
 end
 
 -- ---------------------------------------------------------------------------
 -- EVENT HANDLERS
 -- ---------------------------------------------------------------------------
 
--- InputModeDetector flipped modes. Cache the new mode so onTick's gate check
--- runs against fresh data. If we're leaving gamepad mode mid-chord (user
--- grabbed the mouse), reset — otherwise the bumpers' level-triggered state
--- would leak into the next gamepad session.
+-- InputModeDetector flipped modes (player 1's mode). Cache the new mode so the
+-- tick's gate check runs against fresh data. If we're leaving gamepad mode
+-- mid-chord (user grabbed the mouse), reset — otherwise the bumpers'
+-- level-triggered state would leak into the next gamepad session.
 local function onModeChanged(newMode, _oldMode)
     _mode = newMode or "unknown"
-    if _mode ~= "gamepad" and _state ~= Chord.STATE_IDLE then
-        _reset()
+    local c = _C(0)
+    if _mode ~= "gamepad" and c.state ~= Chord.STATE_IDLE then
+        _reset(c)
     end
+end
+
+-- A player's number can come back with another pad and another character (a
+-- respawn, or a new player in a dead player's number). Players 2-4 start
+-- over; player 1 keeps the kill switch, as it always did, and drops only a
+-- chord in progress. Either way a bumper held through it is no new press.
+local function onSeatChanged(pn)
+    if type(pn) ~= "number" then return end
+    if pn ~= 0 then
+        _rec[pn] = nil
+        return
+    end
+    local c = _C(0)
+    _reset(c)
+    _seed(c)
 end
 
 -- ---------------------------------------------------------------------------
@@ -325,6 +416,16 @@ end
 
 Events.OnTick.Add(onTick)
 Events.ZeD_InputModeChanged.Add(onModeChanged)
+-- (guarded: a sim's stub game may not have these events)
+if Events.OnCreatePlayer then
+    Events.OnCreatePlayer.Add(function(pn) onSeatChanged(pn) end)
+end
+if Events.OnPlayerDeath then
+    Events.OnPlayerDeath.Add(function(p)
+        local ok, pn = pcall(function() return p:getPlayerNum() end)
+        if ok and pn ~= 0 then onSeatChanged(pn) end
+    end)
+end
 
 -- One greppable line so the console confirms the module loaded.
 print("[ZeD.Input] BumperChord loaded - no arming timeout, hold-and-tap model")

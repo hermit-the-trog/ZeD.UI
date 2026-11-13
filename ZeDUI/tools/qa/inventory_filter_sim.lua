@@ -549,7 +549,9 @@ do
     local fa = FM:find("local function _resolveZoneIdx(w, zoneRef)", 1, true)
     local fb = fa and FM:find("--- Toggle focusable flag on a zone", fa, true)
     check("cut FocusManager's zone code", fa ~= nil and fb ~= nil)
-    local Focus = assert(loadstring("local Focus = {}\nlocal _focusedWindow, _cuesOn = nil, false\n" .. FM:sub(fa, fb - 1)
+    -- (stand-ins for FocusManager's state the cut reads: player 1's record and the lookups liveZone uses)
+    local Focus = assert(loadstring("local Focus = {}\nlocal _st0 = { cues = false }\nlocal _st = { [0] = _st0 }\n"
+        .. "local function _S() return _st0 end\nlocal function _pnOf() return 0 end\n" .. FM:sub(fa, fb - 1)
         .. "\nreturn Focus", "focus"))()
     Focus.setZoneFocusable = function() end
     local CWS = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua")

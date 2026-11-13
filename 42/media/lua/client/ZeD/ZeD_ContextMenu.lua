@@ -161,7 +161,7 @@ function ZeD_ContextMenu:close()
     -- alphabetical order, so ZeD.Input.Focus may not exist yet on first load.
     if ZeD and ZeD.Input and ZeD.Input.Focus
        and ZeD.Input.Focus.reclaimEngineFocus then
-        ZeD.Input.Focus.reclaimEngineFocus()
+        ZeD.Input.Focus.reclaimEngineFocus(self.player)   -- (the menu's own player's pad)
     end
 
     -- CRITICAL: do NOT removeFromUIManager on the vanilla menu. It's a cached
