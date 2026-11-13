@@ -20,7 +20,7 @@ import shutil
 import subprocess
 import sys
 
-ITEM_ID = "0"          # set to the new item's id after the first upload
+ITEM_ID = "3839217454"   # created by the first upload, Nov 13 2026 (private until the director makes it public)
 APPID = "108600"
 MOD_ID = "LuaConsole93"
 TITLE = "Lua Console 93 Professional Edition"
