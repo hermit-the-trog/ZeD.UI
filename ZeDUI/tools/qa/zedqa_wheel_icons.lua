@@ -512,16 +512,15 @@ end
 local function show(m) m = m or menu; if m:isReallyVisible() then return end; m:center(); m:addToUIManager(); if m.setVisible then m:setVisible(true) end end
 
 -- the pickup and the gear the firearm and light wheels need
+-- (Nov 12 2026, test cleanup rule 7: its own pickup from the one shared spawn in zedqa_prelude.lua, on the strip's
+-- marked spots with the whole footprint checked; no longer whatever pickup another script left within 20 tiles)
 local car, spawnedCar
-do
-    local it = getCell():getVehicles():iterator()
-    while it:hasNext() do local v = it:next(); if v:getScript():getFullName() == "Base.PickUpTruck" and v:DistTo(p) < 20 then car = v end end
-end
-if not car then
-    local sq = getCell():getGridSquare(math.floor(p:getX()) - 4, math.floor(p:getY()), math.floor(p:getZ()))
-    local ok, v = pcall(function() return sq and addVehicleDebug("Base.PickUpTruck", IsoDirections.N, nil, sq) end)
-    if ok and v then car, spawnedCar = v, v end
-    say("no pickup within 20 tiles; spawned one beside the character: " .. tostring(spawnedCar ~= nil))
+if ZEDQA_CAR_SPAWN then
+    local v = ZEDQA_CAR_SPAWN("Base.PickUpTruck", "wi")
+    if v then car, spawnedCar = v, v end
+    say("its own pickup on the strip: " .. tostring(spawnedCar ~= nil))
+else
+    say("ERR needs zedqa_prelude.lua first (ZEDQA_CAR_SPAWN): no pickup, the car scenes are not run")
 end
 local inv = p:getInventory()
 local function find(full) local items = inv:getItems(); for i = 0, items:size() - 1 do local x = items:get(i); if x:getFullType() == full then return x end end end
@@ -587,7 +586,13 @@ local function scenes(sfx, all7)
         scene("vanilla_dright", function() D.orig.right({ player = pn, id = -1 }); show() end, 1, menu)
         scene("car_outside", function() ISVehicleMenu.showRadialMenu(p) end, 1, menu)
     end
-    step(10, function() if car then car:enter(0, p); triggerEvent("OnEnterVehicle", p) end end)
+    -- (Nov 12 2026: seated through the shared helper, which refuses a car that is far or not ready)
+    step(10, function()
+        if not car then say("not run: in the car" .. sfx .. " (no pickup)"); return end
+        local okE, whyE = false, "no ZEDQA_CAR_ENTER (run after zedqa_prelude.lua)"
+        if ZEDQA_CAR_ENTER then okE, whyE = ZEDQA_CAR_ENTER(car) end
+        if not okE then say("not run: in the car" .. sfx .. " (" .. tostring(whyE) .. ")") end
+    end)
     scene("car_inside" .. sfx, function()
         ISVehicleMenu.showRadialMenu(p)
         if D.H.dashSlice then D.H.dashSlice(p, pn) end
@@ -618,7 +623,10 @@ step(60, function()
     closeAll()
     for _, it in ipairs(gave) do pcall(function() if it:getContainer() then it:getContainer():Remove(it) end end) end
     p:setPrimaryHandItem(prim); p:setSecondaryHandItem(sec)
-    if spawnedCar then pcall(function() spawnedCar:permanentlyRemove() end); spawnedCar = nil end
+    if spawnedCar then
+        if ZEDQA_CAR_AWAY then ZEDQA_CAR_AWAY(spawnedCar) else pcall(function() spawnedCar:permanentlyRemove() end) end
+        spawnedCar = nil
+    end
     if pairWasOpen and not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     say(string.format("scale back to option %s: icon box %d", tostring(S and S.uiScaleOption and S.uiScaleOption:getValue()), ZeD.T.px(W.U.ICON)))
     say(fails .. " failed, " .. notes .. " notes")

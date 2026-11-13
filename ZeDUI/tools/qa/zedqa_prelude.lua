@@ -185,6 +185,194 @@ function ZEDQA_HOME(tag)
     pl:setX(HOME.x); pl:setY(HOME.y); pl:setZ(HOME.z); pl:setLastX(HOME.x); pl:setLastY(HOME.y); pl:setLastZ(HOME.z)
     return true
 end
+-- ============================================================================
+-- (Nov 12 2026, test cleanup plan rule 7) ONE copy of the car staging. Ten scripts each carried their own "find a
+-- free square, spawn, wait for the physics, seat the driver" block with a one-tile check, and every timing fix had to
+-- be made in each. The helper spawns on the marked stretch of the drag strip: seven fixed spots round the home square
+-- (925,13040), all on the open asphalt between the grandstands (x 875-893 and 964-977), never the grandstand.
+--   local v, why = ZEDQA_CAR_SPAWN(script, tag [, dir])   a car facing north on the next clear spot, or nil and why.
+--                                   The WHOLE footprint is checked (3 x 7 tiles: loaded, outdoors, free, no tree, no
+--                                   car on it or within 3 tiles), not one tile. Spots are taken in turn, because a
+--                                   square a car was just removed from gives the next car no physics.
+--   ZEDQA_CAR_READY(v)              true once the car has a square, a chunk and its physics was seen awake once
+--                                   (isPhysicsActive means "awake": it goes off again when the car rests), and it
+--                                   stands within 25 tiles of the character. Poll it every few ticks.
+--   ZEDQA_CAR_WAIT(script, tag, onReady, onFail [, capMs])   spawn and wait: onReady(v) when ready; a car not ready
+--                                   in capMs (default 4000) is taken away and the next spot tried; onFail(why) when
+--                                   no spot gave a ready car.
+--   local key = ZEDQA_CAR_PREP(v)   repaired, tank and battery full, its key in the character's inventory
+--   ZEDQA_CAR_ENTER(v [, seat])     seats the character; REFUSES (false, why) a car that is not ready or is more than
+--                                   25 tiles away: seating a far or sleeping car drops the game to the main menu
+--   ZEDQA_CAR_AWAY(v [, key])       the character out, the key out of the inventory, the car removed. The removal
+--                                   waits for a later tick with the character out of the car (42.22: removing it
+--                                   in the tick of the exit is a NullPointerException and the main menu).
+-- A script run without the prelude finds these nil and must say so as an ERR line.
+-- ============================================================================
+local CAR_SPOTS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 } }   -- from home; a car faces north
+local CAR_NEAR = 25
+local carNext, carSeen, carGone = 0, {}, {}
+local function carDist(v, pl)
+    local dx, dy = v:getX() - pl:getX(), v:getY() - pl:getY()
+    return math.sqrt(dx * dx + dy * dy)
+end
+local function carSpotClear(cx, cy)
+    local cell = getCell()
+    for dy = -3, 3 do
+        for dx = -1, 1 do
+            local sq = cell:getGridSquare(cx + dx, cy + dy, 0)
+            if not sq then return false, "a square of the footprint is not loaded" end
+            local ok, bad = pcall(function()
+                if sq:getChunk() == nil then return "no chunk" end
+                if not sq:isFree(false) then return "not free" end
+                if sq:HasTree() then return "a tree" end
+                if sq:getVehicleContainer() then return "a car on it" end
+                if sq:getRoom() ~= nil then return "indoors" end
+                return nil
+            end)
+            if not ok then return false, "the footprint could not be read" end
+            if bad then return false, bad .. " at " .. (cx + dx) .. "," .. (cy + dy) end
+        end
+    end
+    local busy = false
+    pcall(function()
+        local it = cell:getVehicles():iterator()
+        while it:hasNext() do
+            local o = it:next()
+            if math.abs(o:getX() - (cx + 0.5)) < 3.5 and math.abs(o:getY() - (cy + 0.5)) < 5.5 then busy = true end
+        end
+    end)
+    if busy then return false, "another car within 3 tiles" end
+    return true
+end
+
+function ZEDQA_CAR_SPAWN(script, tag, dir)
+    local pl = getPlayer()
+    if not pl then return nil, "no player" end
+    -- (the character on the strip first: a car spawned beside a character indoors never wakes)
+    if pl:getVehicle() == nil and (math.abs(pl:getX() - HOME.x) > 12 or math.abs(pl:getY() - HOME.y) > 12 or math.floor(pl:getZ()) ~= HOME.z) then
+        ZEDQA_HOME(tag)
+    end
+    local hx, hy = math.floor(HOME.x), math.floor(HOME.y)
+    local why = "no spot tried"
+    for _ = 1, #CAR_SPOTS do
+        carNext = carNext + 1
+        if carNext > #CAR_SPOTS then carNext = 1 end
+        local o = CAR_SPOTS[carNext]
+        local cx, cy = hx + o[1], hy + o[2]
+        local clear, w = carSpotClear(cx, cy)
+        if clear then
+            local sq = getCell():getGridSquare(cx, cy, 0)
+            local okV, v = pcall(addVehicleDebug, script, dir or IsoDirections.N, nil, sq)
+            if ZEDQA_VPROBE then ZEDQA_VPROBE(tag, sq, okV and v or nil) end
+            if okV and v then
+                carSeen[v] = false
+                print("ZEDQA car " .. tostring(tag) .. " " .. tostring(script) .. " spawned on spot " .. carNext .. " (" .. cx .. "," .. cy .. ")")
+                return v, sq
+            end
+            why = "addVehicleDebug gave no car for " .. tostring(script)
+        else
+            why = "spot " .. carNext .. " (" .. cx .. "," .. cy .. "): " .. tostring(w)
+        end
+    end
+    print("ZEDQA car " .. tostring(tag) .. " spawn failed " .. tostring(script) .. ": " .. why)
+    return nil, why
+end
+
+function ZEDQA_CAR_READY(v)
+    if not v then return false end
+    local pl = getPlayer()
+    local sq, chunk, phys = nil, nil, false
+    pcall(function() sq = v:getSquare() end)
+    local okC = pcall(function() chunk = v:getChunk() end)
+    if not okC and sq then pcall(function() chunk = sq:getChunk() end) end
+    pcall(function() phys = v:isPhysicsActive() end)
+    if phys == true then carSeen[v] = true end
+    return sq ~= nil and chunk ~= nil and carSeen[v] == true and pl ~= nil and carDist(v, pl) <= CAR_NEAR
+end
+
+function ZEDQA_CAR_PREP(v)
+    local key
+    pcall(function() v:repair() end)
+    pcall(function() local g = v:getPartById("GasTank"); g:setContainerContentAmount(g:getContainerCapacity()) end)
+    pcall(function()
+        local b = v:getPartById("Battery"); local it = b and b:getInventoryItem()
+        if it then pcall(function() it:setCurrentUsesFloat(1.0) end); pcall(function() it:setUsedDelta(1.0) end) end
+    end)
+    pcall(function() key = getPlayer():getInventory():AddItem(v:createVehicleKey()) end)
+    return key
+end
+
+function ZEDQA_CAR_ENTER(v, seat)
+    local pl = getPlayer()
+    if not (v and pl) then return false, "no car" end
+    if carDist(v, pl) > CAR_NEAR then return false, "the car is more than " .. CAR_NEAR .. " tiles away (never enter a far car)" end
+    if not ZEDQA_CAR_READY(v) then return false, "the car is not ready (no square, no chunk or its physics never woke)" end
+    v:enter(seat or 0, pl); triggerEvent("OnEnterVehicle", pl)
+    if pl:getVehicle() ~= v then return false, "the character is not in the car after enter" end
+    return true
+end
+
+local carSweepOn = false
+local function carSweep()
+    local pl = getPlayer()
+    local left = {}
+    for _, g in ipairs(carGone) do
+        g.ticks = g.ticks + 1
+        if g.ticks >= 2 and not (pl and pl:getVehicle() == g.v) then
+            pcall(function() g.v:permanentlyRemove() end)
+            carSeen[g.v] = nil
+        else
+            left[#left + 1] = g
+        end
+    end
+    carGone = left
+    if #carGone == 0 then Events.OnTick.Remove(carSweep); carSweepOn = false end
+end
+function ZEDQA_CAR_AWAY(v, key)
+    local pl = getPlayer()
+    if pl and v and pl:getVehicle() == v then pcall(function() v:exit(pl); triggerEvent("OnExitVehicle", pl) end) end
+    if key and pl then pcall(function() pl:getInventory():Remove(key) end) end
+    if not v then return end
+    carGone[#carGone + 1] = { v = v, ticks = 0 }
+    if not carSweepOn then carSweepOn = true; Events.OnTick.Add(carSweep) end
+end
+
+function ZEDQA_CAR_WAIT(script, tag, onReady, onFail, capMs)
+    capMs = capMs or 4000
+    local tries, v, t0, why = 0, nil, 0, nil
+    local started, nextTry = getTimestampMs(), 0
+    local function poll()
+        if not v then
+            if getTimestampMs() < nextTry then return end
+            -- (no clear spot yet: the strip may still be loading after a move; asked again for up to 10 s)
+            if tries >= #CAR_SPOTS or (why and getTimestampMs() - started > 10000 and tries == 0) then
+                Events.OnTick.Remove(poll)
+                if onFail then pcall(onFail, why or "no ready car on any spot") end
+                return
+            end
+            local nv, w = ZEDQA_CAR_SPAWN(script, tag)
+            if nv then v, tries, t0 = nv, tries + 1, getTimestampMs()
+            else
+                why = w
+                if tries > 0 then tries = #CAR_SPOTS else nextTry = getTimestampMs() + 500 end
+            end
+            return
+        end
+        if ZEDQA_CAR_READY(v) then
+            Events.OnTick.Remove(poll)
+            local okR, e = pcall(onReady, v)
+            if not okR then print("ZEDQA car " .. tostring(tag) .. " ERR in onReady: " .. tostring(e)) end
+            return
+        end
+        if getTimestampMs() - t0 > capMs then
+            why = "car not ready in " .. capMs .. " ms"
+            print("ZEDQA car " .. tostring(tag) .. " " .. why .. "; taken away, next spot")
+            ZEDQA_CAR_AWAY(v); v = nil
+        end
+    end
+    Events.OnTick.Add(poll)
+end
+
 local ok, e = pcall(function()
     if getGameSpeed and getGameSpeed() == 0 and setGameSpeed then setGameSpeed(1) end
     if p then p:setGodMod(true) end

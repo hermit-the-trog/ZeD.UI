@@ -69,20 +69,12 @@ for _, e in ipairs(LIST) do
     local tag, script = e[1], e[2]
     local entered, failed, tries, since = false, false, 0, 0
     local function attempt()
-        -- spawn on the next free loaded square beside the character
         since = 0
-        while tries < #OFFS do
-            tries = tries + 1
-            local o = OFFS[tries]
-            local sq = getCell():getGridSquare(math.floor(p:getX()) + o[1], math.floor(p:getY()) + o[2], math.floor(p:getZ()))
-            local free = false
-            if sq then pcall(function() free = sq:isFree(false) and not sq:HasTree() and not sq:getVehicleContainer() end) end
-            if sq and free then
-                local v = addVehicleDebug(script, IsoDirections.N, nil, sq)
-                if ZEDQA_VPROBE then ZEDQA_VPROBE("dnt", sq, v) end   -- (punch list 47: the 720 bisect)
-                if v then cur = v; return true end
-            end
-        end
+        -- (Nov 12 2026, test cleanup rule 7: the one shared car spawn in zedqa_prelude.lua; it checks the whole footprint
+        -- on the strip's marked spots and takes the spots in turn)
+        if not ZEDQA_CAR_SPAWN then say("ERR needs zedqa_prelude.lua first (ZEDQA_CAR_SPAWN)"); return false end
+        local v = ZEDQA_CAR_SPAWN(script, "dnt")
+        if v then cur = v; return true end
         return false
     end
     at(t, function()

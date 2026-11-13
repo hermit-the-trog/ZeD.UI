@@ -393,22 +393,16 @@ end
 local OFFS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 } }
 local function spawnCar()
     local S = V.stage
-    while S.tries < #OFFS do
-        S.tries = S.tries + 1
-        local o = OFFS[S.tries]
-        local sq = getCell():getGridSquare(math.floor(p:getX()) + o[1], math.floor(p:getY()) + o[2], math.floor(p:getZ()))
-        local free = false
-        if sq then pcall(function() free = sq:isFree(false) and not sq:HasTree() and not sq:getVehicleContainer() end) end
-        if sq and free then
-            local ok, v = pcall(addVehicleDebug, "Base.CarLightsPolice", IsoDirections.N, nil, sq)
-            if ZEDQA_VPROBE then ZEDQA_VPROBE(TAG, sq, ok and v or nil) end
-            if ok and v then
-                V.car = v
-                V.spawned[#V.spawned + 1] = v
-                S.phys, S.since = false, nil
-                return true
-            end
-        end
+    -- (Nov 12 2026, test cleanup rule 7: the one shared car spawn in zedqa_prelude.lua; the whole footprint is checked there)
+    if not ZEDQA_CAR_SPAWN then say("ERR needs zedqa_prelude.lua first (ZEDQA_CAR_SPAWN)"); return false end
+    if S.tries >= 3 then return false end
+    S.tries = S.tries + 1
+    local v = ZEDQA_CAR_SPAWN("Base.CarLightsPolice", TAG)
+    if v then
+        V.car = v
+        V.spawned[#V.spawned + 1] = v
+        S.phys, S.since = false, nil
+        return true
     end
     return false
 end

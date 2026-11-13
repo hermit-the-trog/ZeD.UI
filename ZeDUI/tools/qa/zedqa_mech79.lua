@@ -55,9 +55,9 @@ end
 
 -- ---- the car
 step(120, function()
-    local sq = freeSq({ { 3, 0 }, { -3, 0 }, { 0, 3 }, { 0, -3 }, { 4, 2 }, { -4, 2 } })
-    v = sq and addVehicleDebug("Base.CarNormal", IsoDirections.N, nil, sq) or nil
-    if not v then say("ERR no free square for the car"); return end
+    -- (Nov 12 2026, test cleanup rule 7: the one shared car spawn in zedqa_prelude.lua, the whole footprint checked)
+    v = ZEDQA_CAR_SPAWN and ZEDQA_CAR_SPAWN("Base.CarNormal", "m79") or nil
+    if not v then say("ERR no car (the shared spawn found no clear spot, or zedqa_prelude.lua did not run first)"); return end
     pcall(function() key = p:getInventory():AddItem(v:createVehicleKey()); made[#made + 1] = key end)
     for _, t in ipairs({ "Base.Jack", "Base.LugWrench", "Base.Wrench", "Base.Screwdriver" }) do
         local it = p:getInventory():AddItem(t); if it then made[#made + 1] = it end
@@ -296,9 +296,8 @@ step(20, function() check(S() and S().card == nil, "B closes the card") end)
 local tourV
 local function tour(script, offPart)
     step(10, function()
-        local sq = freeSq({ { 0, 5 }, { 0, -5 }, { 5, 3 }, { -5, 3 }, { 6, 0 }, { -6, 0 } })
-        tourV = sq and addVehicleDebug(script, IsoDirections.N, nil, sq) or nil
-        if not tourV then say("ERR " .. script .. ": no free square"); return end
+        tourV = ZEDQA_CAR_SPAWN and ZEDQA_CAR_SPAWN(script, "m79") or nil   -- (the shared spawn, as the sedan)
+        if not tourV then say("ERR " .. script .. ": no car (no clear spot)"); return end
         pcall(function() local it = p:getInventory():AddItem(tourV:createVehicleKey()); made[#made + 1] = it end)
     end)
     step(120, function()

@@ -44,12 +44,8 @@ end
 -- zedqa_dashnight.lua does)
 local OFFS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 } }
 local function carReady(v)
-    local sq, chunk, phys = nil, nil, false
-    pcall(function() sq = v:getSquare() end)
-    local okC = pcall(function() chunk = v:getChunk() end)
-    if not okC and sq then pcall(function() chunk = sq:getChunk() end) end
-    pcall(function() phys = v:isPhysicsActive() end)
-    return sq ~= nil and chunk ~= nil and phys == true
+    -- (Nov 12 2026: the shared rule, zedqa_prelude.lua: a square, a chunk, its physics seen awake once, near the character)
+    return ZEDQA_CAR_READY ~= nil and ZEDQA_CAR_READY(v)
 end
 local t = 10
 at(t, leave)
@@ -60,18 +56,11 @@ for _, e in ipairs(LIST) do
     local tries, since = 0, 0
     local function attempt()
         since = 0
-        while tries < #OFFS do
-            tries = tries + 1
-            local o = OFFS[tries]
-            local sq = getCell():getGridSquare(math.floor(p:getX()) + o[1], math.floor(p:getY()) + o[2], math.floor(p:getZ()))
-            local free = false
-            if sq then pcall(function() free = sq:isFree(false) and not sq:HasTree() and not sq:getVehicleContainer() end) end
-            if sq and free then
-                local v = addVehicleDebug(script, IsoDirections.N, nil, sq)
-                if ZEDQA_VPROBE then ZEDQA_VPROBE("dpx", sq, v) end   -- (punch list 47: the 720 bisect)
-                if v then cur = v; return true end
-            end
-        end
+        -- (Nov 12 2026, test cleanup rule 7: the one shared car spawn in zedqa_prelude.lua; it checks the whole footprint
+        -- on the strip's marked spots and takes the spots in turn)
+        if not ZEDQA_CAR_SPAWN then say("ERR needs zedqa_prelude.lua first (ZEDQA_CAR_SPAWN)"); return false end
+        local v = ZEDQA_CAR_SPAWN(script, "dpx")
+        if v then cur = v; return true end
         return false
     end
     at(t, function()
