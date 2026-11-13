@@ -36,6 +36,11 @@
 --   FULL     a bucket full of this milk is passed over; the last container filling mid-run ends it "Bucket full:
 --            milked n of m"; with another container carried the run goes on with it, one of another kind too (the
 --            same animal handed over again)
+--   SWITCH   the game's milking moves on by itself from a full bucket to the next of its kind: a cancel or an alert's
+--            Walk to after that, or just as the bucket filled, is a stop with no second hand-over (nobody walked
+--            back); the bucket it moved on to kicked away is a stop with a pot carried too; only a milking out of room
+--            hands the animal over again (its search starts at the first container for this milk); an alert's Walk
+--            to during the walk up to a far animal is a stop
 --   CAUSE    what ended a run is kept (AQ.last.cause); a bucket kicked away is a stop, a full one counts
 --   LAND     a press's landing waits for its stop to be drawn (A on All milkable lands on Clear), then 1.5 s at most
 --   BAND     the zone band's fit as drawBand lays it out; short of room the margins close up before Rename leaves
@@ -145,7 +150,10 @@ AnimalContextMenu = {
         rec("milk:" .. animal._name .. ":" .. tostring(bucket and bucket._name) .. ":" .. tostring(all))
         animal._blocked = true
         local q = Q(chr).queue
-        q[#q + 1] = action("ISWalkToTimedActionF"); q[#q + 1] = action("ISMilkAnimal")
+        -- (the game's milking keeps its animal and the container it is filling, as ISMilkAnimal does)
+        local m = action("ISMilkAnimal")
+        m.animal, m.bucket = animal, bucket
+        q[#q + 1] = action("ISWalkToTimedActionF"); q[#q + 1] = m
     end,
     onShearAnimal = function(animal, chr, shear)
         rec("shear:" .. animal._name .. ":" .. tostring(shear and shear._name))
@@ -214,6 +222,21 @@ local function player()
             for _, b in ipairs(p._buckets) do if b._mt == nil or b._mt == mt then out[#out + 1] = b end end
             return L(out)
         end,
+        -- the game's milking's own search when a container fills: the first that takes this milk (full or not),
+        -- then every carried item of that one's full type
+        getFirstAvailableFluidContainer = function(_, mt)
+            for _, b in ipairs(p._buckets) do
+                if not p._dropped[b] and (b._mt == nil or b._mt == mt) then return b end
+            end
+            return nil
+        end,
+        getItemsFromFullType = function(_, ft)
+            local out = {}
+            for _, b in ipairs(p._buckets) do
+                if not p._dropped[b] and b._ft == ft then out[#out + 1] = b end
+            end
+            return L(out)
+        end,
         getAllTagRecurse = function(_, tag, list)
             invCalls = invCalls + 1
             for _, s in ipairs(p._shears) do list:add(s) end
@@ -236,7 +259,12 @@ local function player()
     p.isDead = function() return false end
     return p
 end
-local function bucket(name, mt) return { _name = name, _mt = mt } end
+-- a carried container: the milk it takes (nil: any), its full type (its kind: "Base." .. name unless given)
+local function bucket(name, mt, ft)
+    local b = { _name = name, _mt = mt, _ft = ft or ("Base." .. name) }
+    b.getFullType = function() return b._ft end
+    return b
+end
 local function shears(name, flat)
     if flat ~= nil then
         return { _name = name, _class = "DrainableComboItem", getCurrentUsesFloat = function() return flat and 0 or 0.5 end }
@@ -1065,6 +1093,149 @@ do
     check("FULL the pot full in its turn, nothing left with room: Pot full: milked 1 of 2",
         AQ.run == nil and AQ.last.cause == "full" and AQ.last.why == "UI_ZeD_Animals_RunFull(Pot,1,2)", AQ.last and tostring(AQ.last.why))
     ISTimedActionQueue.queues = {}
+end
+
+-- SWITCH ----------------------------------------------------------------------
+-- The game's milking with "all" moves on by itself when a container fills (ISMilkAnimal.milk): the first carried
+-- container for this milk, full or not, then the first of that one's kind with room. A milking cut short after it
+-- moved on (a movement key, a cancel, an alert's Walk to) leaves the bucket handed over full, but the game had room to
+-- go on: a stop, never a second hand-over that walks the player back. Only a milking that ran out of room refills.
+do
+    local function kind(name, ft)
+        local b = bucket(name, nil, ft)
+        b._full = false
+        b.getFluidContainer = function() return { isFull = function() return b._full end } end
+        b.getDisplayName = function() return name end
+        return b
+    end
+    -- the game's milking (at the head of the queue once the walk is over) moves on to another container
+    local function movesOn(pl, b)
+        local m = ISTimedActionQueue.queues[pl].queue[1]
+        if m and m.Type == "ISMilkAnimal" then m.bucket = b end
+    end
+    local function placedAt(a, x, y) a.getX = function() return x end; a.getY = function() return y end; return a end
+    -- (each case starts with no run left from the one before, an empty queue and no calls)
+    local function fresh()
+        if AQ.run then AQ.stop() end
+        ISTimedActionQueue.queues = {}
+        AQ.forgetChecks()
+        CALLS = {}
+    end
+    local other = animal("Other", { hunger = 60 })
+
+    -- a movement key after the game moved on from bucket A (full) to bucket B, 10 L still in the cow
+    local ps = player()
+    local sA, sB = kind("Bucket A", "Base.Bucket"), kind("Bucket B", "Base.Bucket")
+    ps._buckets = { sA, sB }
+    local sw1 = animal("Sw1", { milk = 25, milkable = true })
+    local sw2 = animal("Sw2", { milk = 25, milkable = true })
+    fresh()
+    AQ.start(ps, "milk", { sw1, sw2 })
+    AQ.tick(); walkDone(ps); AQ.tick()
+    sA._full = true; movesOn(ps, sB); sw1._milk = 10
+    finishAction(ps)   -- (the game's own cancel empties the queue)
+    AQ.tick()
+    check("SWITCH cancel after the switch: Stopped after 0 of 2, no second hand-over",
+        AQ.run == nil and #CALLS == 1 and AQ.last.cause == "undone" and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,2)",
+        table.concat(CALLS, " ") .. " " .. tostring(AQ.last and AQ.last.why))
+    check("SWITCH cancel after the switch: the cow let go", sw1._blocked == false)
+
+    -- the cancel lands just as bucket A filled, before the game's next pull moved on to B
+    sA._full, sw1._milk = false, 25
+    fresh()
+    AQ.start(ps, "milk", { sw1 })
+    AQ.tick(); walkDone(ps); AQ.tick()
+    sA._full = true; sw1._milk = 15
+    finishAction(ps)
+    AQ.tick()
+    check("SWITCH cancel just as bucket A filled, the game not yet moved on: Stopped, no second hand-over",
+        AQ.run == nil and #CALLS == 1 and AQ.last.cause == "undone", table.concat(CALLS, " "))
+
+    -- an alert's Walk to after the switch: the game's walkAdj empties the queue (the milking stops) and walks off
+    local pw = player()
+    pw._x, pw._y = 1, 0
+    pw.getX = function() return pw._x end
+    pw.getY = function() return pw._y end
+    local wA, wB = kind("Bucket A", "Base.Bucket"), kind("Bucket B", "Base.Bucket")
+    pw._buckets = { wA, wB }
+    local cowT = placedAt(animal("WalkCow", { milk = 25, milkable = true }), 0, 0)
+    fresh()
+    AQ.start(pw, "milk", { cowT })
+    AQ.tick(); walkDone(pw); AQ.tick()
+    wA._full = true; movesOn(pw, wB); cowT._milk = 10
+    ISTimedActionQueue.queues[pw].queue = {}
+    AQ.act("goto", pw, other)
+    for x = 2, 15 do pw._x = x; AQ.tick() end
+    check("SWITCH the alert's walk under way: the run waits for it", AQ.run ~= nil)
+    walkDone(pw); AQ.tick()
+    local joinedW = table.concat(CALLS, " ")
+    check("SWITCH Walk to after the switch: Stopped after 0 of 1 where the walk ended, the cow not handed over again",
+        AQ.run == nil and AQ.last.cause == "undone" and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,1)"
+        and joinedW == "milk:WalkCow:Bucket A:true walk:Other@sq" and #ISTimedActionQueue.queues[pw].queue == 0,
+        joinedW .. " " .. tostring(AQ.last and AQ.last.cause))
+
+    -- the stressed cow kicks bucket B, the one the game moved on to, out of the hands; a pot is still carried
+    local pk = player()
+    local kA, kB, kPot = kind("Bucket A", "Base.Bucket"), kind("Bucket B", "Base.Bucket"), kind("Pot", "Base.Pot")
+    pk._buckets = { kA, kB, kPot }
+    local cowK = animal("KickCow", { milk = 25, milkable = true })
+    fresh()
+    AQ.start(pk, "milk", { cowK })
+    AQ.tick(); walkDone(pk); AQ.tick()
+    kA._full = true; movesOn(pk, kB); cowK._milk = 12
+    pk._dropped[kB] = true; pk._buckets = { kA, kPot }
+    finishAction(pk); AQ.tick()
+    check("SWITCH the bucket the game moved on to kicked away, a pot carried: Stopped, not handed over again with the pot",
+        AQ.run == nil and #CALLS == 1 and AQ.last.cause == "undone", table.concat(CALLS, " "))
+
+    -- out of room: both buckets full (the game's last search names bucket A and stops), a pot carried
+    local pd = player()
+    local dA, dB, dPot = kind("Bucket A", "Base.Bucket"), kind("Bucket B", "Base.Bucket"), kind("Pot", "Base.Pot")
+    pd._buckets = { dA, dB, dPot }
+    local cowD = animal("DoneCow", { milk = 25, milkable = true })
+    fresh()
+    AQ.start(pd, "milk", { cowD })
+    AQ.tick(); walkDone(pd); AQ.tick()
+    dA._full, dB._full, cowD._milk = true, true, 5
+    finishAction(pd); AQ.tick()
+    check("SWITCH both buckets of the kind full, the game out of room, a pot carried: the cow handed over again with the pot",
+        AQ.run ~= nil and CALLS[2] == "milk:DoneCow:Pot:true" and AQ.run.done == 0, table.concat(CALLS, " "))
+
+    -- the game's search starts at the first container for this milk: a full pot carried ahead of the buckets stops it
+    -- when bucket A fills though bucket B has room, and the run hands the cow over again with bucket B
+    local po = player()
+    local oPot, oA, oB = kind("Pot", "Base.Pot"), kind("Bucket A", "Base.Bucket"), kind("Bucket B", "Base.Bucket")
+    oPot._full = true
+    po._buckets = { oPot, oA, oB }
+    local cowO = animal("OrderCow", { milk = 25, milkable = true })
+    fresh()
+    AQ.start(po, "milk", { cowO })
+    AQ.tick(); walkDone(po); AQ.tick()
+    oA._full = true; movesOn(po, oPot); cowO._milk = 15
+    finishAction(po); AQ.tick()
+    check("SWITCH a full pot ahead of the buckets: the game stops when bucket A fills, the cow handed over again with bucket B",
+        CALLS[1] == "milk:OrderCow:Bucket A:true" and CALLS[2] == "milk:OrderCow:Bucket B:true" and AQ.run ~= nil,
+        table.concat(CALLS, " "))
+
+    -- an alert's Walk to during the walk up to a far cow: the walk up stops short, far off
+    local pu = player()
+    pu._x, pu._y = 0, 0
+    pu.getX = function() return pu._x end
+    pu.getY = function() return pu._y end
+    pu._buckets = { kind("Bucket U", "Base.Bucket") }
+    local farU = placedAt(animal("FarU", { milk = 8, milkable = true }), 20, 0)
+    farU._far = true
+    fresh()
+    AQ.start(pu, "milk", { farU })
+    AQ.tick()
+    ISTimedActionQueue.queues[pu].queue = {}
+    AQ.act("goto", pu, other)
+    pu._x = -5; walkDone(pu); AQ.tick()
+    local joinedU = table.concat(CALLS, " ")
+    check("SWITCH Walk to during the walk up to a far cow: Stopped after 0 of 1 (cut), nothing handed over, the cow let go",
+        AQ.run == nil and AQ.last.cause == "cut" and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,1)"
+        and joinedU == "walk:FarU@sq walk:Other@sq" and farU._blocked == false, joinedU .. " " .. tostring(AQ.last and AQ.last.cause))
+    fresh()
 end
 
 -- LAND and BAND ---------------------------------------------------------------

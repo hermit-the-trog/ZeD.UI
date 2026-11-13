@@ -98,8 +98,9 @@ end
 -- ============================================================================
 
 -- The milk containers the game offers (getAvailableFluidContainer for the breed's milk); the
--- radial menu takes the first, and milking with "all" moves on to another of the same kind
--- when one fills (a run hands the animal over again for a container of another kind).
+-- radial menu takes the first, and milking with "all" moves on by itself to more of one kind
+-- when one fills (roomToGoOn, below, has its exact search); a run hands the animal over again
+-- for a container of another kind.
 -- The game's rule (InventoryItem.isAvailableFluidContainer): any carried thing with a fluid
 -- container that is empty, or whose main fluid is this milk, a water bottle as much as a
 -- bucket; only the main inventory counts, not the bags in it. The rule does not ask for room:
@@ -120,6 +121,29 @@ local function milkBucket(player, animal)
         if not (fc and ocall(fc, "isFull") == true) then return it end
     end
     return nil
+end
+
+-- True when the game's own milking would go on past a full container. This is the search its
+-- milking with "all" runs (ISMilkAnimal.milk): the first carried container for this milk, full
+-- or not, then the first of that one's kind that is not full, whatever fluid is in it; a full
+-- inventory stops it. A milking that ended while this finds room was cut short (a move, a
+-- cancel, a Walk to), not out of room. (A container whose fullness cannot be read counts as
+-- room: a run that cannot tell stops, and never walks the player back.)
+local function roomToGoOn(player, animal)
+    if ocall(player, "hasFullInventory") == true then return false end
+    local inv = ocall(player, "getInventory")
+    local d = ocall(animal, "getData")
+    local breed = d and ocall(d, "getBreed")
+    local mt = breed and ocall(breed, "getMilkType")
+    local first = inv and mt and ocall(inv, "getFirstAvailableFluidContainer", mt)
+    local ft = first and ocall(first, "getFullType")
+    local list = ft and ocall(inv, "getItemsFromFullType", ft)
+    if not list then return false end
+    for i = 0, list:size() - 1 do
+        local fc = ocall(list:get(i), "getFluidContainer")
+        if fc and ocall(fc, "isFull") ~= true then return true end
+    end
+    return false
 end
 
 -- Shears in the inventory, the first with power (electric shears with an empty battery
@@ -572,7 +596,9 @@ end
 --            approach (only the walk up was handed over), walked (that walk reached its square),
 --            near (the closest the player came to the animal under way since the last walk ended),
 --            stall (ticks the queue sat stuck), spent (ms the game ran since the hand-over),
---            lastT (the last tick's ms) }
+--            lastT (the last tick's ms), tool (the bucket, shears or food handed over),
+--            milking (milk: the game's ISMilkAnimal handed over; its bucket is the container it
+--            is filling, which it changes by itself when one fills) }
 -- AQ.last = { verb, done, total, why } when a run has ended (the band says how it went)
 -- ============================================================================
 
@@ -605,23 +631,30 @@ local function fullWords(r)
 end
 
 -- Whether the action handed over for this animal was left undone: false (it was done), true
--- (stopped), "refill" (the container filled with milk left in the animal, and another carried
--- has room) or "full" (milk left in it, and no room left in anything carried).
+-- (stopped), "refill" (the game's milking stopped for want of room with milk left in the
+-- animal, and another container carried has room) or "full" (milk left in it, and no room left
+-- in anything carried).
 -- Milk and shear: undone while the animal still has something to give. Feed: its hunger did
 -- not go down (an animal fed by hand may stay a little hungry, so "still hungry" is no test).
 local function leftUndone(r, a)
     if r.verb == "feed" then return (AD().getHunger(a) or 0) >= (r.before or 0) end
     if not HAS[r.verb](a) then return false end
     -- something left to give, and the tool left the inventory: a stressed animal kicks the
-    -- bucket out of the hands
+    -- bucket out of the hands. After the game moved on, the one kicked is the one it was
+    -- filling, not the one handed over.
     local inv = ocall(r.player, "getInventory")
-    if r.tool and inv and ocall(inv, "contains", r.tool) == false then return true end
-    -- the container filled: the game's milking moves on by itself only to more of one kind (its
+    local filling = r.milking and r.milking.bucket
+    if inv and r.tool and ocall(inv, "contains", r.tool) == false then return true end
+    if inv and filling and filling ~= r.tool and ocall(inv, "contains", filling) == false then return true end
+    -- the container handed over has room, or the game's own search still finds some: the milking
+    -- was cut short (a move, a cancel, a Walk to), even after the game moved on by itself from a
+    -- full bucket to the next of its kind
+    if not toolFull(r) or roomToGoOn(r.player, a) then return true end
+    -- the game ran out of room: its milking moves on only to more of one kind (its
     -- getFirstAvailableFluidContainer hands back a full container, and it looks for that type),
     -- so with a pot left after the bucket the animal goes over again with the pot
-    local can = AQ.can(r.verb, r.player, a) == true
-    if toolFull(r) then return can and "refill" or "full" end
-    return true
+    if AQ.can(r.verb, r.player, a) == true then return "refill" end
+    return "full"
 end
 
 local function doingAction(player)
@@ -662,6 +695,20 @@ local function onArrival(r)
     if type(w) == "table" and WALKS[w.Type] and w.setOnComplete then w:setOnComplete(arrived, r) end
 end
 
+-- The game's milking just handed over for this animal (its ISMilkAnimal, queued last), or nil.
+-- Read once at the hand-over, so nothing is looked up while it runs. (In multiplayer the
+-- server does the filling, so the client's copy keeps naming the container handed over.)
+local function milkingOf(player, a)
+    local q = ISTimedActionQueue and ISTimedActionQueue.queues and ISTimedActionQueue.queues[player]
+    local list = q and q.queue
+    if not list then return nil end
+    for k = #list, 1, -1 do
+        local act = list[k]
+        if type(act) == "table" and act.Type == "ISMilkAnimal" and act.animal == a then return act end
+    end
+    return nil
+end
+
 -- (the hoisted slot: the tick hook and AQ.start both reach it)
 local onTick
 
@@ -696,8 +743,8 @@ local function handOver(r, i)
     if not ok and toolFull(r) then finish(fullWords(r), "full") return end
     if not ok then finish(why, "refused") return end
     r.phase, r.seen, r.ticks, r.stall, r.tool = "wait", false, 0, 0, tool
-    r.approach, r.walked = how == "approach", false
-    if r.approach then onArrival(r) end
+    r.approach, r.walked, r.milking = how == "approach", false, nil
+    if r.approach then onArrival(r) elseif r.verb == "milk" then r.milking = milkingOf(r.player, a) end
     r.near, r.spent, r.lastT = distTo(r.player, a), 0, now()
 end
 
