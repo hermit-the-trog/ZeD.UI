@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "%1 のJavaメソッド",
     "UI_ZeD_Console_AcMore": "他 %1 件",
     "UI_ZeD_Console_AcKeys": "TabかEnterで選んだ候補を採用、上キーと下キーで候補間を移動、Escで閉じます。",
+    "UI_ZeD_Console_LineFull": "その候補は入りきりません。1行は%1文字までです。",
     "UI_ZeD_Console_PadTake": "採用",
     "UI_ZeD_Console_PadShut": "閉じる",
     "UI_ZeD_Console_BackToLog": "ログに戻る",

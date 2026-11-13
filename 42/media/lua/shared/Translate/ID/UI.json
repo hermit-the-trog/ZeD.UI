@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "Metode Java dari %1",
     "UI_ZeD_Console_AcMore": "%1 lagi",
     "UI_ZeD_Console_AcKeys": "Tab atau Enter mengambil saran yang dipilih, Atas dan Bawah bergerak di antaranya, Esc menutupnya.",
+    "UI_ZeD_Console_LineFull": "Saran itu tidak muat: baris hanya memuat %1 karakter.",
     "UI_ZeD_Console_PadTake": "Ambil",
     "UI_ZeD_Console_PadShut": "Tutup",
     "UI_ZeD_Console_BackToLog": "Kembali ke log",

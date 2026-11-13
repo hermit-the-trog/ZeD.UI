@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "Métodos Java de %1",
     "UI_ZeD_Console_AcMore": "%1 más",
     "UI_ZeD_Console_AcKeys": "Tab o Enter toma la sugerencia elegida, Arriba y Abajo se mueven entre ellas, Esc las cierra.",
+    "UI_ZeD_Console_LineFull": "Esa sugerencia no entra: la línea admite %1 caracteres.",
     "UI_ZeD_Console_PadTake": "Tomar",
     "UI_ZeD_Console_PadShut": "Cerrar",
     "UI_ZeD_Console_BackToLog": "Volver al registro",

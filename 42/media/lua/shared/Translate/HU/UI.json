@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "%1 Java-metódusai",
     "UI_ZeD_Console_AcMore": "még %1",
     "UI_ZeD_Console_AcKeys": "A Tab vagy az Enter elfogadja a kijelölt javaslatot, a Fel és a Le lépked közöttük, az Esc bezárja őket.",
+    "UI_ZeD_Console_LineFull": "Ez a javaslat nem fér el: a sorba %1 karakter fér.",
     "UI_ZeD_Console_PadTake": "Elfogad",
     "UI_ZeD_Console_PadShut": "Bezár",
     "UI_ZeD_Console_BackToLog": "Vissza a naplóhoz",

@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "%1 Java yöntemleri",
     "UI_ZeD_Console_AcMore": "%1 tane daha",
     "UI_ZeD_Console_AcKeys": "Tab veya Enter seçili öneriyi alır, Yukarı ve Aşağı aralarında gezinir, Esc onları kapatır.",
+    "UI_ZeD_Console_LineFull": "Bu öneri sığmıyor: satır %1 karakter alır.",
     "UI_ZeD_Console_PadTake": "Al",
     "UI_ZeD_Console_PadShut": "Kapat",
     "UI_ZeD_Console_BackToLog": "Günlüğe dön",

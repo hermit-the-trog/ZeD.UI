@@ -49,7 +49,8 @@
 -- the band; A types or loads, X saves a snippet, Y swaps the line and the box.
 -- The game's multi-line text box never calls onCommandEntered: Enter puts a newline in at the cursor. So Enter is
 -- told by the text: one newline more, where the cursor was, Shift up, and the box runs with that newline taken out.
--- Its setCursorPos also clamps to the length of the cursor's line, so a cursor is placed with multi-line off.
+-- Its setCursorPos also clamps to the length of the cursor's line, so a cursor is placed with multi-line off. The
+-- box may hold 2000 lines: its text is split once per text (padInfo), and a frame reads only that.
 --
 -- The suggestions (ZeD_ConsoleComplete.lua) open by themselves as a pull-down above the caret, in the line and the
 -- box: globals after two letters, a table's fields after ".", an object's methods after ":" (Java ones marked
@@ -487,15 +488,16 @@ function W:createChildren()
     ZeD_Window.createChildren(self)
     local e = makeEntry(self, LINE_MAX)
     local win = self
-    -- (with the suggestions open, Enter, Tab, Up, Down and Escape are theirs)
-    e.onCommandEntered = function() if not win:acTake() then win:runLine() end end
+    -- (with the suggestions open, Enter, Tab, Up, Down and Escape are theirs, a pick too long for the line included:
+    -- the key is used up, never passed on to run the half-typed line or to the game's own suggestion)
+    e.onCommandEntered = function() if win.ac then win:acTake() else win:runLine() end end
     e.onPressUp = function() if win.ac then win:acMove(-1) else win:historyStep(-1) end end
     e.onPressDown = function() if win.ac then win:acMove(1) else win:historyStep(1) end end
     e.onOtherKey = function(_, key)
         if key == Keyboard.KEY_ESCAPE then
             if win.ac then win:acShut() else e:unfocus() end
         elseif key == TAB_KEY then
-            if not win:acTake() then win:complete() end
+            if win.ac then win:acTake() else win:complete() end
         end
     end
     self.input = e
@@ -531,7 +533,8 @@ end
 function W:lineText()
     return self.input and tostring(self.input:getText() or "") or ""
 end
-local function blank(s) return (s:gsub("%s", "")) == "" end
+-- (stops at the first character that is not a space: taking every space out copied the whole box)
+local function blank(s) return string.find(s, "%S") == nil end
 
 -- Enter, Run, A on Run
 function W:runLine()
@@ -539,6 +542,7 @@ function W:runLine()
     if blank(text) or not DC.allowed() then return end
     local typing = self.input:isFocused()
     DC.run(text)
+    if self._status and self._status.lineFull then self._status = nil end
     self.input:setText("")
     self.hi, self.draft = nil, ""
     self.scroll, self.pick = 0, nil
@@ -592,23 +596,70 @@ end
 DC.cursorOf = cursorOf
 
 -- the line (0-based) and column a cursor stands at
+-- (a walk from newline to newline with plain finds: the unanchored match for the cursor's column restarted at every
+-- character and cost about 300 ms over a 1500-line box)
 local function lineCol(text, cur)
-    local before = text:sub(1, cur)
-    local line = 0
-    for _ in before:gmatch("\n") do line = line + 1 end
-    local col = #(before:match("([^\n]*)$") or "")
-    return line, col
+    cur = math.max(0, math.min(#text, cur))
+    local line, at, p = 0, 0, 1
+    while true do
+        local e = string.find(text, "\n", p, true)
+        if not e or e > cur then break end
+        line, at, p = line + 1, e, e + 1
+    end
+    return line, cur - at
 end
 DC.lineCol = lineCol
 
+-- The box's text, worked out once per text and kept on the window: where each line starts (0-based, the character
+-- after a newline), how many lines, whether any line holds a "\r" (taken out when drawn, as S.lines does) and
+-- whether it is blank. Everything the box draws each frame reads from it.
+local function padInfo(win, text)
+    local c = win._padInfo
+    if c and c.text == text then return c end
+    local starts, p = { 0 }, 1
+    while true do
+        local e = string.find(text, "\n", p, true)
+        if not e then break end
+        starts[#starts + 1] = e
+        p = e + 1
+    end
+    c = { text = text, starts = starts, n = #starts, cr = string.find(text, "\r", 1, true) ~= nil, blank = blank(text) }
+    win._padInfo = c
+    return c
+end
+
+-- the line (0-based) a position stands on: the last line start at or before it
+local function lineAt(c, pos)
+    local s = c.starts
+    local lo, hi = 1, #s
+    while lo < hi do
+        local mid = math.floor((lo + hi + 1) / 2)
+        if s[mid] <= pos then lo = mid else hi = mid - 1 end
+    end
+    return lo - 1
+end
+
+-- line li (0-based) as drawn, its columns left + 1 to left + cols ("" when it ends before them; nil past the last)
+local function padSlice(c, li, left, cols)
+    local a = c.starts[li + 1]
+    if not a then return nil end
+    local nxt = c.starts[li + 2]
+    local e = nxt and (nxt - 1) or #c.text
+    if c.cr then
+        local s = string.gsub(string.sub(c.text, a + 1, e), "\r", "")
+        return string.sub(s, left + 1, left + cols)
+    end
+    return string.sub(c.text, a + 1 + left, math.min(e, a + left + cols))
+end
+
 -- (the game's setCursorPos clamps to the cursor line's length while the box is on many lines: placed with it off)
-local function setCursor(inp, text, cur)
+local function setCursor(inp, text, cur, line)
     pcall(function()
         local j = inp.javaObject
         j:setMultipleLine(false)
         j:setCursorPos(cur)
         j:setMultipleLine(true)
-        j:setCursorLine((lineCol(text, cur)))
+        j:setCursorLine(line or (lineCol(text, cur)))
     end)
 end
 
@@ -617,7 +668,7 @@ function W:_padSet(text, cur)
     text = tostring(text or "")
     cur = math.max(0, math.min(#text, cur or #text))
     self.pad:setText(text)
-    setCursor(self.pad, text, cur)
+    setCursor(self.pad, text, cur, lineAt(padInfo(self, text), cur))
     self._padPrev, self._padCur = text, cur
 end
 
@@ -658,7 +709,7 @@ end
 -- the box's cursor back where it stood last frame (Up and Down moved it while the suggestions were open)
 function W:_padHold()
     local text = self:padText()
-    if self._padPrev == text and self._padCur then setCursor(self.pad, text, self._padCur) end
+    if self._padPrev == text and self._padCur then setCursor(self.pad, text, self._padCur, lineAt(padInfo(self, text), self._padCur)) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -683,11 +734,15 @@ function W:_acUpdate()
     end
     local text = tostring(inp:getText() or "")
     local cur = cursorOf(inp, text)
-    local key = (inp == self.pad and "p" or "l") .. tostring(cur) .. "|" .. text
-    if key == self._acKey then return end
-    self._acKey = key
+    -- (the box, the cursor and the words as they were last worked out, compared as they are: joined into one key
+    -- string they made a copy of the whole box every frame)
+    local k = self._acKey
+    if k and k.inp == inp and k.cur == cur and k.text == text then return end
+    k = { inp = inp, cur = cur, text = text }
+    self._acKey = k
     -- (shut with Escape: it stays shut until the words or the cursor move)
-    if key == self._acShutKey then self.ac = nil; return end
+    local sk = self._acShutKey
+    if sk and sk.inp == inp and sk.cur == cur and sk.text == text then self.ac = nil; return end
     self._acShutKey = nil
     local ok, ac = pcall(AC.complete, text, cur)
     if not ok then ZeD.logOnce("lua console suggestions", ac); ac = nil end
@@ -716,7 +771,8 @@ function W:acShut()
     if self.zone == "ac" then self.zone = "input" end
 end
 
---- Take suggestion i (default: the picked one) into the line or the box. False when none is open.
+--- Take suggestion i (default: the picked one) into the line or the box. False when none is open, or when the
+--- pick would not fit the line (the pull-down stays and the band says why).
 function W:acTake(i)
     local ac = self.ac
     if not ac or not ac.items[i or self.acI] then return false end
@@ -727,10 +783,14 @@ function W:acTake(i)
         self:_padSet(t, cur)
     else
         -- (the game's line takes 256 characters: a pick that would pass them is not taken)
-        if #t > LINE_MAX then return false end
+        if #t > LINE_MAX then
+            self._status = { text = tr("UI_ZeD_Console_LineFull", LINE_MAX), color = ZeD.T.warning, lineFull = true }
+            return false
+        end
         self.input:setText(t)
         pcall(function() self.input.javaObject:setCursorPos(cur) end)
     end
+    if self._status and self._status.lineFull then self._status = nil end
     self.ac, self._acKey = nil, nil
     if self.zone == "ac" then self.zone = "input" end
     sound()
@@ -1309,7 +1369,7 @@ function W:_drawPad(x, y, w, noteH, boxH, joy)
     local text = self:padText()
     local f3 = T.fontF3
     local td = T.textDim
-    local meta = tr("UI_ZeD_Console_Scratchpad") .. " | " .. tr("UI_ZeD_Console_PadMeta", S.lineCount(text), #text)
+    local meta = tr("UI_ZeD_Console_Scratchpad") .. " | " .. tr("UI_ZeD_Console_PadMeta", padInfo(self, text).n, #text)
     local kx = self:_keycap("toline", x + w, y, mh - px(4), btn(tr("UI_ZeD_Console_OneLine")), off and "primary" or "default", tr("UI_ZeD_Console_HelpToLine"), joy)
     kx = self:_keycap("save", kx - px(U.GAP), y, mh - px(4), btn(tr("UI_ZeD_Console_SaveSnippet")), "default", tr("UI_ZeD_Console_HelpSave"), joy)
     meta = ZeD.Atoms.truncateText(meta, f3, math.max(0, kx - px(8) - x))
@@ -1335,9 +1395,10 @@ function W:_drawPadBox(x, y, w, h, joy, off)
     ZeD.Atoms.drawDividerV(self, x + gw, y + px(1), h - px(2))
     parkEntry(inp, w - gw, y, h)
     local text = self:padText()
-    local lines = S.lines(text)
+    local info = padInfo(self, text)
     local cur = cursorOf(inp, text)
-    local cl, cc = lineCol(text, cur)
+    local cl = lineAt(info, cur)
+    local cc = cur - info.starts[cl + 1]
     local lh = fh(f) + px(2)
     local rows = math.max(1, math.floor((h - px(8)) / lh))
     local cw = charW(f)
@@ -1346,7 +1407,7 @@ function W:_drawPadBox(x, y, w, h, joy, off)
     local st = self._padSt
     local top, left = st.top or 0, st.left or 0
     if cl < top then top = cl elseif cl >= top + rows then top = cl - rows + 1 end
-    top = math.max(0, math.min(top, math.max(0, #lines - rows), cl))
+    top = math.max(0, math.min(top, math.max(0, info.n - rows), cl))
     if cc < left then left = cc elseif cc > left + cols then left = cc - cols end
     st.top, st.left, st.tx, st.ty, st.lh, st.cw = top, left, tx, y + px(4), lh, cw
     local alpha = off and (T.disabledAlpha or 0.4) or 1
@@ -1357,8 +1418,8 @@ function W:_drawPadBox(x, y, w, h, joy, off)
         local ly = y + px(4) + r * lh
         local ns = tostring(li + 1)
         self:drawText(ns, x + gw - px(4) - ZeD.TM:MeasureStringX(f, ns), ly, dc.r, dc.g, dc.b, (dc.a or 1) * alpha, f)
-        local s = lines[li + 1]
-        if s and s ~= "" then self:drawText(s:sub(left + 1, left + cols), tx, ly, tc.r, tc.g, tc.b, (tc.a or 1) * alpha, f) end
+        local s = padSlice(info, li, left, cols)
+        if s and s ~= "" then self:drawText(s, tx, ly, tc.r, tc.g, tc.b, (tc.a or 1) * alpha, f) end
     end
     if text == "" and not focused then
         self:drawText(tr("UI_ZeD_Console_Type"), tx, y + px(4), dc.r, dc.g, dc.b, (dc.a or 1) * alpha, f)
@@ -1378,24 +1439,28 @@ function W:padClick(mx, my)
     local st = self._padSt
     if not (st.lh and st.cw) then return end
     local text = self:padText()
-    local lines = S.lines(text)
-    local li = math.max(0, math.min(#lines - 1, (st.top or 0) + math.floor((my - st.ty) / st.lh)))
+    local info = padInfo(self, text)
+    local li = math.max(0, math.min(info.n - 1, (st.top or 0) + math.floor((my - st.ty) / st.lh)))
     local col = math.max(0, (st.left or 0) + math.floor((mx - st.tx) / st.cw + 0.5))
-    local pos = 0
-    for i = 1, li do pos = pos + #lines[i] + 1 end
-    pos = pos + math.min(col, #lines[li + 1])
-    setCursor(self.pad, text, pos)
+    -- (the line's start in the text, then the column, no further than the line as drawn)
+    local pos = info.starts[li + 1] + math.min(col, #padSlice(info, li, 0, #text))
+    setCursor(self.pad, text, pos, li)
     self._padCur = pos
 end
 
--- the column's rows, flat: SNIPPETS and its rows, HISTORY and its rows (newest first); made again on a change
+-- the column's rows, flat: SNIPPETS and its rows, HISTORY and its rows (newest first); made again on a change, each
+-- with what it shows (a snippet's line count, a run's first line), so a frame counts no lines
 function W:_sideItems()
     local key = tostring(S.rev) .. "|" .. tostring(self.sFold.snips) .. tostring(self.sFold.hist)
     if self._sKey == key and self._sItems then return self._sItems end
     local items = { { t = "fold", g = "snips", label = "UI_ZeD_Console_FoldSnippets", n = #S.snippets } }
-    if not self.sFold.snips then for i = 1, #S.snippets do items[#items + 1] = { t = "snip", i = i } end end
+    if not self.sFold.snips then
+        for i = 1, #S.snippets do items[#items + 1] = { t = "snip", i = i, ns = tostring(S.lineCount(S.snippets[i].code)) } end
+    end
     items[#items + 1] = { t = "fold", g = "hist", label = "UI_ZeD_Console_FoldHistory", n = #S.history }
-    if not self.sFold.hist then for i = #S.history, 1, -1 do items[#items + 1] = { t = "hist", i = i } end end
+    if not self.sFold.hist then
+        for i = #S.history, 1, -1 do items[#items + 1] = { t = "hist", i = i, first = string.match(S.history[i] or "", "^([^\n]*)") or "" } end
+    end
     self._sKey, self._sItems = key, items
     if self.sFocus > #items then self.sFocus = #items end
     return items
@@ -1474,14 +1539,14 @@ function W:_drawSideRow(it, x, y, w, h, hover, foc)
     if it.t == "snip" then
         local s = S.snippets[it.i]
         local f2, f3 = T.fontF2, T.fontF3
-        local ns = tostring(S.lineCount(s.code))
+        local ns = it.ns or tostring(S.lineCount(s.code))
         local nw = ZeD.TM:MeasureStringX(f3, ns)
         self:drawText(ns, x + w - px(8) - nw, y + math.floor((h - fh(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
         local name = A.truncateText(s.name, f2, math.max(0, x + w - px(14) - nw - tx))
         self:drawText(name, tx, y + math.floor((h - fh(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     else
         local f3 = T.fontF3
-        local first = (S.history[it.i] or ""):match("^([^\n]*)") or ""
+        local first = it.first or (S.history[it.i] or ""):match("^([^\n]*)") or ""
         first = A.truncateText(first, f3, math.max(0, x + w - px(6) - tx))
         self:drawText(first, tx, y + math.floor((h - fh(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
     end
@@ -2001,7 +2066,7 @@ function W:_drawBand(y, w, joy)
     if self.mode == "pad" then
         local can = S.canRun()
         b3.help = (not allowed) and tr("UI_ZeD_Console_NotAllowed") or (can and tr("UI_ZeD_Console_HelpPad") or tr("UI_ZeD_Console_HelpNoLoad"))
-        b3.disabled = (not allowed) or (not can) or blank(self:padText())
+        b3.disabled = (not allowed) or (not can) or padInfo(self, self:padText()).blank
     else
         b3.help = allowed and tr("UI_ZeD_Console_HelpRun") or tr("UI_ZeD_Console_NotAllowed")
         b3.disabled = (not allowed) or blank(self:lineText())
@@ -2327,8 +2392,8 @@ function W:onJoypadDown(button, jd)
     if self.page ~= "log" and self.zone ~= "strip" and self._pageButton and self:_pageButton(button, jd) then return end
     if self.zone == "ac" then
         if button == Joypad.AButton then
-            self:acTake()
-            self.zone = "input"
+            -- (a pick too long for the line stays on the pull-down, for another one or B)
+            if self:acTake() or not self.ac then self.zone = "input" end
             return
         elseif button == Joypad.BButton then
             sound()

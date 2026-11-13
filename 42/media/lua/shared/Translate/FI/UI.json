@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "Java-metodit: %1",
     "UI_ZeD_Console_AcMore": "%1 lisää",
     "UI_ZeD_Console_AcKeys": "Tab tai Enter ottaa valitun ehdotuksen, Ylös ja Alas liikkuvat niiden läpi, Esc sulkee ne.",
+    "UI_ZeD_Console_LineFull": "Ehdotus ei mahdu: riville mahtuu %1 merkkiä.",
     "UI_ZeD_Console_PadTake": "Ota",
     "UI_ZeD_Console_PadShut": "Sulje",
     "UI_ZeD_Console_BackToLog": "Takaisin lokiin",

@@ -16,6 +16,9 @@
 --   * the cap (FIFO: the oldest rows go, the names that went with them too), and 6000 lines fed in chunks under the cap
 --   * the window: the page strip (Commands and Help say "coming"), the filter column, the search field, the pad walk
 --     (strip, filters, search, log, line, band; A ticks, opens, types, presses; X exports; B closes), Deck 1280 x 800 Auto
+--   * the log prefix in every shape 42.22.2 writes it (the frame alone, " t:", " st:", " at <caller>") and 42.21's;
+--     the lines a scratchpad run told ahead skipped once each in the box (past the 64th too), forgotten after
+--     EXPECT_MS or past EXPECT_CAP, and a box full of lines nobody told read fast
 -- What it cannot prove: the engine (real fonts, the text box's keys, what 42.22 really writes into the box and the list).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/console_log_sim.lua
 -- It prints FAIL lines and a last line "console_log_sim: N checks, M failed", and exits 1 if any failed.
@@ -966,6 +969,85 @@ end
 ZEDQA_ROOT, ZEDQA_LARGE = 1, false
 ZeD.applyTheme("dark", "orange", "small")
 SCREEN.w, SCREEN.h = 1920, 1080
+
+-- ============================================================================
+-- 10. the prefix as 42.22.2 writes it, and the lines a scratchpad run told ahead (each skipped once in the box)
+-- ============================================================================
+do
+    -- the shapes of DebugLog.formatLogStringForConsole: the frame alone (42.22.2), with its debug options' " t:",
+    -- " st:" or " at <caller>" padded to 36 (from this build's console.txt), and 42.21's ", t:"
+    local SHAPES = {
+        { "LOG  : Lua          f:30> hello", "LOG", "hello" },
+        { "LOG  : Lua          f:30>   two spaces kept", "LOG", "  two spaces kept" },
+        { "LOG  : Lua          f:12 t:1762935182311> timed", "LOG", "timed" },
+        { "LOG  : Lua          f:12 st:345> server time", "LOG", "server time" },
+        { "WARN : Lua          f:0 at Lua(Vanilla).ISCampingMenu          > require(\"Camping/CCampfireSystem\") failed", "WARN", "require(\"Camping/CCampfireSystem\") failed" },
+        { "WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require(\"x\") failed", "WARN", "require(\"x\") failed" },
+        { "ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0", "ERROR", "AngelCodeFont failed to load page 0" },
+        { "LOG  : General      f:4821, t:1762935182311> 42.21's shape", "LOG", "42.21's shape" },
+        { "LOG  : Lua          f:30> a -> b > c", "LOG", "a -> b > c" },
+        { "LOG  : Lua          f:30> ", "LOG", "" },
+        { "a bare line, f:1> not a prefix", nil, "a bare line, f:1> not a prefix" },
+    }
+    local bad = {}
+    for _, sh in ipairs(SHAPES) do
+        local lvl, rest = nil, sh[1]
+        if L.splitPrefix then lvl, rest = L.splitPrefix(sh[1]) end
+        if lvl ~= sh[2] or rest ~= sh[3] then bad[#bad + 1] = sh[1] .. " -> " .. tostring(lvl) .. " | " .. tostring(rest) end
+    end
+    check("prefix: every shape the game writes taken off", L.splitPrefix ~= nil and #bad == 0, bad[1])
+    -- the box in 42.22.2's shape: rows without the prefix, the warning a warning, [ZeD] ZeD-GUI's
+    L.reset(); L.forgetMods()
+    local P2 = function(s) return "LOG  : Lua          f:30> " .. s .. "\n" end
+    L.feedText(P2("Lua: loading 3 mods") .. P2("[ZeD] ready") .. "WARN : Lua          f:31 at Lua(Vanilla).ISCampingMenu          > item not found\n", 8000)
+    local r = rowsOf()
+    check("42.22.2 box: three rows, the prefix off", #r == 3 and r[1].msg == "Lua: loading 3 mods" and r[3].msg == "item not found", r[1] and r[1].msg)
+    check("42.22.2 box: the warning is a warning, [ZeD] is ZeD-GUI's", r[3] and r[3].kind == "warn" and r[2] and r[2].mod == "ZeD-GUI", r[2] and r[2].mod)
+    -- told ahead, then printed in the box: once each, 200 prints and one print of 200 lines
+    L.reset()
+    local ms = 9000
+    local box = {}
+    for i = 1, 200 do L.output("sep " .. i, nil, ms); box[#box + 1] = P2("sep " .. i) end
+    L.feedText(table.concat(box), ms + 16)
+    check("200 prints told ahead: 200 rows", select(2, L.counts()) == 200, select(2, L.counts()))
+    L.reset()
+    local many = {}
+    for i = 1, 200 do many[i] = "line " .. i end
+    L.output(table.concat(many, "\n"), nil, ms)
+    L.feedText("LOG  : Lua          f:30> " .. table.concat(many, "\n") .. "\n", ms + 16)
+    check("one print of 200 lines told ahead: 200 rows (none past the 64th twice)", select(2, L.counts()) == 200, select(2, L.counts()))
+    -- the same words from the game before the run's: each counted once, whichever came first
+    L.reset()
+    L.output("x", nil, ms); L.output("y", nil, ms)
+    L.feedText(P2("x") .. P2("y") .. P2("x"), ms + 16)
+    check("the game's x before the run's x and y: three rows for three prints", select(2, L.counts()) == 3, select(2, L.counts()))
+    -- a line the box never printed waits EXPECT_MS, then a print of its words is a row of its own
+    L.reset()
+    L.output("late", nil, ms)
+    L.tick(ms + L.EXPECT_MS)
+    L.feedText(P2("late"), ms + L.EXPECT_MS + 16)
+    check("told ahead, never printed: forgotten after EXPECT_MS", select(2, L.counts()) == 2, select(2, L.counts()))
+    -- past EXPECT_CAP the oldest told are forgotten (the box keeps no more lines than that)
+    L.reset()
+    local cap = L.EXPECT_CAP
+    L.EXPECT_CAP = 8
+    for i = 1, 20 do L.output("c" .. i, nil, ms) end
+    local cbox = {}
+    for i = 1, 20 do cbox[#cbox + 1] = P2("c" .. i) end
+    L.feedText(table.concat(cbox), ms + 16)
+    check("past EXPECT_CAP: the last 8 told skipped, the 12 before them rows again", select(2, L.counts()) == 32, select(2, L.counts()))
+    L.EXPECT_CAP = cap
+    -- 4000 lines told and never printed, then 3000 box lines nobody told: each box line one lookup, nothing walked
+    L.reset()
+    for i = 1, 4000 do L.output("pending " .. i, nil, ms) end
+    local spam = {}
+    for i = 1, 3000 do spam[#spam + 1] = P2("spam " .. i) end
+    local t0 = os.clock()
+    L.feedText(table.concat(spam):sub(-8192), ms + 16)
+    local took = os.clock() - t0
+    check("4000 waiting, a full box of lines nobody told: read fast (" .. string.format("%.3f", took) .. " s)", took < 0.5)
+    L.reset()
+end
 
 -- the source keeps to the Kahlua rules this sim cannot see: no next(), no non-ASCII
 do

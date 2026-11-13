@@ -7,9 +7,13 @@
 --     the level beside each from the server's roles, or the defaults
 --   * the search (names, other names, syntax, what it does, capability), its empty line
 --   * a click fills the chat line with the example; Send sends it (a stub SendCommandToServer); a command that can't
---     be undone asks first in the band (Cancel keeps it, Send sends); the band says what happened
+--     be undone asks first in the band (Cancel keeps it, Send sends); the band says what happened; a line edited
+--     under the question drops it, and the question's Send never sends the edited line unasked
+--   * a steady frame asks no command its capabilities, level or words (kept with the rows, made again once a second)
 --   * single player: each command's debug-menu way, a pick opens its window where there is one, the band's keycap
---   * the controller: strip, search, list, line, band; A fills or opens, X sends, B answers the question
+--   * the controller: strip, search, list, line, band; A fills or opens, X sends (on an empty line X fills it and
+--     the hand goes to Send, nothing sent), B answers the question; the line edited on the pad keyboard under the
+--     question asks again
 --   * every frame drawn inside the window at 720 / Deck / 1080p / 4K, Normal and Large text, mouse and pad
 -- What it cannot prove: that the server runs what SendCommandToServer hands it (QA's multiplayer run).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/console_commands_sim.lua
@@ -164,6 +168,38 @@ check("page: the head", textHas("Your role: Admin") and textHas("of " .. #CC.lis
 check("page: group headers and rows", (textHas("PLAYERS") or textHas("Players")) and textHas("/teleport"))
 check("page: the level beside a row", textHas("GM") and textHas("Moderator"))
 check("page: the chat line", win._chatRect ~= nil and textHas("Pick a command to fill the line"))
+-- a frame of the page asks no command anything: the count, each row's level and words and your role are kept with
+-- the rows (made again when the search or a fold changes, or once a second, for a role that changed)
+do
+    local calls, real = {}, {}
+    for _, name in ipairs({ "visible", "can", "level", "does", "alone", "myRole", "total", "server" }) do
+        local f = CC[name]
+        real[name] = f
+        CC[name] = function(...) calls[name] = (calls[name] or 0) + 1; return f(...) end
+    end
+    win.csel = "godmode"
+    win._cKey = nil
+    draw(win)
+    for k in pairs(calls) do calls[k] = 0 end
+    draw(win)
+    local per = 0
+    for _, name in ipairs({ "visible", "can", "level", "does", "alone", "myRole", "total" }) do per = per + (calls[name] or 0) end
+    check("a steady frame: no command's capabilities, level or words asked again", per == 0,
+        "visible " .. tostring(calls.visible) .. ", level " .. tostring(calls.level) .. ", does " .. tostring(calls.does) .. ", total " .. tostring(calls.total))
+    check("a steady frame: on a server or not asked once, not per row", (calls.server or 0) <= 2, calls.server)
+    check("a steady frame: the head's count and role still there", textHas("of " .. #CC.list) and textHas("Your role: Admin"))
+    local clock = getTimestampMs
+    local t0 = clock()
+    getTimestampMs = function() return t0 + 1000 end
+    for k in pairs(calls) do calls[k] = 0 end
+    draw(win)
+    check("a second on: the rows made again (a role that changed shows)", (calls.visible or 0) > 0 and (calls.myRole or 0) == 1, calls.visible)
+    getTimestampMs = clock
+    for name, f in pairs(real) do CC[name] = f end
+    win.csel = nil
+    win._cKey = nil
+    draw(win)
+end
 local function rowHit(name)
     local items = win:_cmdItems()
     for _, hit in ipairs(win._cHits or {}) do
@@ -204,6 +240,22 @@ draw(win)
 local yes = band("cyes")
 win:onMouseDown(yes.x + 2, yes.y + 2); win:onMouseUp(yes.x + 2, yes.y + 2)
 check("Send in the question: sent", SENT[2] == "/removezombies -radius 20" and win.cConfirm == nil)
+-- the line edited under the question: its Send never sends what it did not ask about, and the question goes
+win.chat:setText('/removeadmin "bob"')
+win:cmdSend()
+draw(win)
+yes = band("cyes")
+check("question: asks about the line", win.cConfirm == '/removeadmin "bob"' and yes ~= nil)
+local nSent = #SENT
+win.chat:setText('/grantadmin "bobby"')
+win:onMouseDown(yes.x + 2, yes.y + 2); win:onMouseUp(yes.x + 2, yes.y + 2)
+check("the line edited, then the question's Send: nothing sent, asked again about the line", #SENT == nSent and win.cConfirm == '/grantadmin "bobby"', SENT[#SENT])
+draw(win)
+check("the question names the line as it stands", textHas('Send /grantadmin "bobby"? It can\'t be undone.') and not textHas('/removeadmin "bob"?'))
+win.chat:setText("/save")
+draw(win)
+check("the line edited to another command: the question gone, the band's own Send back", win.cConfirm == nil and band("cyes") == nil and band("csend") ~= nil)
+win.chat:setText("")
 -- the search empty, Copy
 win.cq:setText("zzqqxx")
 draw(win)
@@ -314,6 +366,37 @@ win:onJoypadDown(Joypad.AButton, jd)
 check("pad: A fills the line", win.chat:getText() == '/teleport "rj"')
 win:onJoypadDown(Joypad.XButton, jd)
 check("pad: X sends", SENT[#SENT] == '/teleport "rj"')
+-- X on a command with the line empty: its example fills the line and the hand goes to Send; a second X sends it
+win.chat:setText("")
+local smsg = nil
+for i, it in ipairs(win:_cmdItems()) do if it.t == "cmd" and it.c.name == "servermsg" then smsg = i end end
+win.zone, win.cFocus = "page", smsg
+local nX = #SENT
+win:onJoypadDown(Joypad.XButton, jd)
+check("pad: X on a row with the line empty sends nothing", #SENT == nX, SENT[#SENT])
+check("pad: ...the example in the line, the hand on Send", win.chat:getText() == '/servermsg "Restart in 10 minutes"' and win.zone == "pband" and win.cbFocus == 2, win.zone)
+win:onJoypadDown(Joypad.XButton, jd)
+check("pad: a second X sends it", #SENT == nX + 1 and SENT[#SENT] == '/servermsg "Restart in 10 minutes"')
+-- the line edited on the pad keyboard under the question: A on Send asks about the new line, sends nothing
+win.chat:setText("/removezombies -radius 20")
+win.zone, win.cbFocus = "cline", 2
+win:onJoypadDown(Joypad.XButton, jd)
+check("pad: X on one that can't be undone asks, the hand on Cancel", win.cConfirm == "/removezombies -radius 20" and win.zone == "pband" and win.cbFocus == 1)
+win:onJoypadDirUp()
+win:onJoypadDown(Joypad.AButton, jd)
+check("pad: up to the line under the question, A types", win.zone == "cline" and KB.visible and KB.entry == win.chat)
+win.chat:setText("/removezombies -radius 2000")
+KB.visible = false
+jd.focus = win
+win:update()
+nX = #SENT
+win:onJoypadDown(Joypad.AButton, jd)
+check("pad: the edited line's A on Send sends nothing, asks about it", #SENT == nX and win.cConfirm == "/removezombies -radius 2000" and win.cbFocus == 1, SENT[#SENT])
+if win.cConfirm then win:onJoypadDown(Joypad.BButton, jd) end
+check("pad: B cancels it", win.cConfirm == nil and DC.isOpen())
+win.cConfirm = nil
+win.chat:setText("")
+win.zone, win.cFocus = "page", 2
 win:onJoypadDirUp(); win:onJoypadDirUp()
 check("pad: up past the first row, the search", win.zone == "csearch")
 win:onJoypadDown(Joypad.AButton, jd)

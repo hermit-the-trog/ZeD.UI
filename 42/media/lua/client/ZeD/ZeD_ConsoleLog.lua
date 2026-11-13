@@ -95,12 +95,15 @@ function L.continuesError(s)
     return false
 end
 
--- the game's log prefix, "LOG  : General      f:4821, t:1762935182311> ": its level and the words after it
+-- The game's log prefix: its level and the words after it. 42.22.2 writes "LOG  : Lua          f:4821> ", and with
+-- its debug options " t:<ms>", " st:<ms>" or " at <caller>" (padded to 36) before the ">"; 42.21 wrote
+-- "LOG  : General      f:4821, t:1762935182311> ". Anything up to the first ">" after the frame number is prefix.
 local function splitPrefix(s)
-    local lvl, rest = s:match("^(%u+)%s*:%s*%S+%s+f:%d+,%s*t:%d+>%s?(.*)$")
+    local lvl, rest = s:match("^(%u+)%s*:%s*%S+%s+f:%d+[^>]*>%s?(.*)$")
     if lvl then return lvl, rest end
     return nil, s
 end
+L.splitPrefix = splitPrefix   -- (for the sims)
 
 --- Every Lua frame in an error's text, top of the stack first: { mod (nil: the game's), fn, file, line }.
 --- The game writes a frame three ways: "Lua((MOD:Bandits)).fn(file.lua:12)", "Lua(Vanilla).fn(file.lua:12)" and
@@ -207,6 +210,11 @@ end
 -- ---------------------------------------------------------------------------
 local function lower(s) return string.lower(s) end
 
+-- The lines a scratchpad run told ahead (L.output): a queue, oldest first, read from its head (first .. last, each
+-- { s, at }), and the same lines queued by their words (by[s], h .. t), so a box line costs one lookup whether it
+-- was told or not, however many wait. (A list walked from its front, cut to 64, doubled a run's lines past the 64th.)
+local function newExpect() return { first = 1, last = 0, by = {} } end
+
 -- the words the search looks in: the message, the mod, the place and every stack line (made once, on first need)
 local function hayOf(r)
     if not r.hay then
@@ -267,7 +275,7 @@ function L.reset()
     L._seen, L._part = nil, ""
     L._f11Seen = 0
     L._ran = {}
-    L._expect = {}
+    L._expect = newExpect()
     L.q, L._ql = "", ""
     L.off = { kind = {}, mod = {}, file = {} }
 end
@@ -439,27 +447,61 @@ function L.ranCode(code, t)
 end
 
 L.EXPECT_MS = 10000    -- a line told ahead (L.output) waits this long for the box to print it
+L.EXPECT_CAP = 4096    -- and at most this many wait: the most lines the box's 8192 characters hold
+
+-- the oldest line told ahead off the queue, and off its words' queue unless the box already printed it
+local function dropExpect(e)
+    local x = e[e.first]
+    e[e.first] = nil
+    e.first = e.first + 1
+    if x and not x.done then
+        x.done = true
+        -- (the oldest line of the queue is the oldest of its words too)
+        local q = e.by[x.s]
+        if q and q[q.h] == x then
+            q[q.h] = nil
+            q.h = q.h + 1
+            if q.h > q.t then e.by[x.s] = nil end
+        end
+    end
+end
+
 --- A line a scratchpad run printed: a print row from Console now. The same words reach the game's box a frame
 --- later; the box's copy is skipped, once, as already told.
 function L.output(text, t, ms)
     text = tostring(text or ""):gsub("\r", ""):gsub("\t", "    ")
     ms = ms or (getTimestampMs and getTimestampMs()) or 0
-    L._expect = L._expect or {}
+    local e = L._expect
+    if not (e and e.by) then e = newExpect(); L._expect = e end
     for line in (text .. "\n"):gmatch("([^\n]*)\n") do
         add({ t = t or L.clock(), kind = "print", msg = line, mod = CONSOLE, file = "" })
-        L._expect[#L._expect + 1] = { s = line, at = ms }
-        if #L._expect > 64 then table.remove(L._expect, 1) end
+        local x = { s = line, at = ms }
+        e.last = e.last + 1
+        e[e.last] = x
+        local q = e.by[line]
+        if not q then q = { h = 1, t = 0 }; e.by[line] = q end
+        q.t = q.t + 1
+        q[q.t] = x
+        while e.last - e.first + 1 > L.EXPECT_CAP do dropExpect(e) end
     end
 end
 
--- a box line already told by L.output: taken off the waiting list
+-- a box line already told by L.output: the oldest line told with its words is taken off, once
 local function expected(msg)
     local e = L._expect
-    if not e then return false end
-    for i = 1, #e do
-        if e[i].s == msg then table.remove(e, i); return true end
+    local q = e and e.by and e.by[msg]
+    if not q then return false end
+    local x = q[q.h]
+    q[q.h] = nil
+    q.h = q.h + 1
+    if q.h > q.t then e.by[msg] = nil end
+    x.done = true
+    -- (the queue's head loses the lines the box has printed)
+    while e.first <= e.last and e[e.first].done do
+        e[e.first] = nil
+        e.first = e.first + 1
     end
-    return false
+    return true
 end
 
 -- ---------------------------------------------------------------------------
@@ -614,7 +656,7 @@ function L.tick(ms)
     if L._blk and ms - (L._blk.at or 0) >= L.FLUSH_MS then closeBlock() end
     if L._f11 and ms - (L._f11.at or 0) >= L.FLUSH_MS then closeF11() end
     local e = L._expect
-    while e and e[1] and ms - (e[1].at or 0) >= L.EXPECT_MS do table.remove(e, 1) end
+    while e and e.by and e.first <= e.last and ms - (e[e.first].at or 0) >= L.EXPECT_MS do dropExpect(e) end
 end
 
 -- ---------------------------------------------------------------------------

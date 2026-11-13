@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "Mètodes Java de %1",
     "UI_ZeD_Console_AcMore": "%1 més",
     "UI_ZeD_Console_AcKeys": "Tab o Enter pren el suggeriment triat, Amunt i Avall es mouen entre ells, Esc els tanca.",
+    "UI_ZeD_Console_LineFull": "Aquest suggeriment no hi cap: la línia admet %1 caràcters.",
     "UI_ZeD_Console_PadTake": "Pren",
     "UI_ZeD_Console_PadShut": "Tanca",
     "UI_ZeD_Console_BackToLog": "Torna al registre",

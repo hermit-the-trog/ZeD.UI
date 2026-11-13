@@ -2,15 +2,19 @@
 -- game running, on console_sim_harness.lua's stage (the real console files on Lua 5.1 stubs). It checks:
 --   * the globals walked once and kept (a global added later shows only after refresh, as the window's open does)
 --   * the word at the cursor: two letters for globals, none inside a string or a comment, numbers and bigger
---     expressions refused, fields after ".", methods after ":"; only empty get/is calls are ever run
+--     expressions refused, fields after ".", methods after ":"; only empty get/is calls are ever run; the scan that
+--     jumps and the word read from a tail give the old answers at every cursor of random code
 --   * Java methods through a stub object's metatable __index, kept per class, parameter counts read once per class
 --     from stub reflection helpers; the signature and where the caret lands on a pick
 --   * the keys in the line: Up/Down move, Tab and Enter take (Enter does not run), Esc shuts (and it stays shut
---     until the words change), no pull-down: Up/Down step the history and Tab is the game's own suggestion
+--     until the words change), no pull-down: Up/Down step the history and Tab is the game's own suggestion; a pick
+--     past the line's 256 characters: Enter and Tab used up (nothing runs, nothing else taken), the band says why
 --   * the keys in the scratchpad: Enter's newline and a Tab character turned into a take, Up/Down keep the cursor
 --   * a click on a row takes it; the pull-down drawn inside the window, above the caret or below it near the top
---   * the controller: the pull-down while the pad keyboard types, the hand on it after, A takes, B shuts, D-pad up
---   * the Help page: its fold headers and rows, folding, the wheel, the pad (strip, headers, band, Back to the log)
+--   * the controller: the pull-down while the pad keyboard types, the hand on it after, A takes (a pick too long
+--     for the line leaves the hand on it), B shuts, D-pad up
+--   * the Help page: its fold headers and rows, folding, the wheel, the pad (strip, headers, band, Back to the log);
+--     the pad's walk shows every line of the page at the window's size and the smallest, the band at its foot
 --   * every frame drawn inside the window at 720 / Deck / 1080p / 4K, Normal and Large text, mouse and pad
 -- What it cannot prove: Kahlua's own pairs over _G, the real Java metatables and reflection, the real box's keys.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/console_complete_sim.lua
@@ -111,6 +115,103 @@ ac = AC.complete("ConsoleSimObj.", 14)
 local names = {}
 for _, it in ipairs(ac and ac.items or {}) do names[#names + 1] = it.n end
 check("fields: inherited through __index too", table.concat(names, ",") == "__index,draw,mine,width", table.concat(names, ","))
+-- the string-and-comment scan now jumps with plain finds, and the word before the cursor comes from a short tail:
+-- the same answers as the old character-at-a-time scan and whole-text match (copied here) for every cursor in
+-- random code, words longer than the tail included
+do
+    local function oldIn(before)
+        local i, n = 1, #before
+        local q = nil
+        while i <= n do
+            local c = string.sub(before, i, i)
+            if q then
+                if c == "\\" then i = i + 1
+                elseif q == "]]" then
+                    if string.sub(before, i, i + 1) == "]]" then q = nil; i = i + 1 end
+                elseif c == q then q = nil end
+            elseif c == "\"" or c == "'" then q = c
+            elseif c == "[" and (string.sub(before, i, i + 1) == "[[" or string.sub(before, i, i + 1) == "[=") then q = "]]"
+            elseif c == "-" and string.sub(before, i, i + 1) == "--" then
+                local nl = string.find(before, "\n", i, true)
+                if not nl then return true end
+                i = nl
+            end
+            i = i + 1
+        end
+        return q ~= nil
+    end
+    local function oldSteps(base)
+        local steps, pos, n = {}, 1, #base
+        while pos <= n do
+            local sep = nil
+            if pos > 1 then
+                sep = string.sub(base, pos, pos)
+                if sep ~= "." and sep ~= ":" then return nil end
+                pos = pos + 1
+            end
+            local s, e = string.find(base, "^[%a_][%w_]*", pos)
+            if not s then return nil end
+            pos = e + 1
+            local call = false
+            if string.sub(base, pos, pos + 1) == "()" then call = true; pos = pos + 2 end
+            if sep == ":" and not call then return nil end
+            steps[#steps + 1] = true
+        end
+        return steps
+    end
+    local function oldToken(text, cur)
+        cur = math.max(0, math.min(#text, cur or #text))
+        local before = string.sub(text, 1, cur)
+        local pre = string.match(before, "[%w_]*$") or ""
+        local ps = cur - #pre
+        if pre ~= "" and string.find(pre, "^%d") then return nil end
+        local sep = ps > 0 and string.sub(text, ps, ps) or ""
+        if oldIn(before) then return nil end
+        if sep ~= "." and sep ~= ":" then
+            if #pre < AC.MIN_GLOBAL then return nil end
+            local prev = ps > 0 and string.sub(text, ps, ps) or ""
+            if prev == "]" or prev == ")" then return nil end
+            return { start = ps, pre = pre }
+        end
+        local b = ps - 1
+        while b >= 1 do
+            local c = string.sub(text, b, b)
+            if string.find(c, "[%w_%.:]") then b = b - 1
+            elseif c == ")" and b > 1 and string.sub(text, b - 1, b - 1) == "(" then b = b - 2
+            else break end
+        end
+        local base = string.sub(text, b + 1, ps - 1)
+        if base == "" or ".." == string.sub(text, ps - 1, ps) then return nil end
+        local prev = b >= 1 and string.sub(text, b, b) or ""
+        if prev == "]" or prev == ")" or prev == "\"" or prev == "'" then return nil end
+        if not oldSteps(base) then return nil end
+        return { start = ps, pre = pre, base = base, sep = sep }
+    end
+    local function same(a, b)
+        if a == nil or b == nil then return a == b end
+        return a.start == b.start and a.pre == b.pre and a.base == b.base and a.sep == b.sep
+    end
+    math.randomseed(1113)
+    local ALPHA = { "\"", "'", "[", "]", "=", "-", "\\", "\n", "a", " ", "g", "e", "t", "_", "1", ".", ":", "(", ")" }
+    local badIn, badTok = {}, {}
+    local newIn = AC.inStringOrComment
+    for _ = 1, 700 do
+        local parts = {}
+        for k = 1, math.random(0, 26) do parts[k] = ALPHA[math.random(#ALPHA)] end
+        local t = table.concat(parts)
+        for cur = 0, #t do
+            local before = string.sub(t, 1, cur)
+            if not newIn or oldIn(before) ~= newIn(before) then badIn[#badIn + 1] = string.format("%q", before) end
+            if not same(oldToken(t, cur), AC.token(t, cur)) then badTok[#badTok + 1] = string.format("%q", t) .. " @" .. cur end
+        end
+    end
+    for _, t in ipairs({ string.rep("a", 1000), "x = " .. string.rep("b", 63), "x = " .. string.rep("b", 64), "x = " .. string.rep("b", 65),
+                         string.rep("c", 300) .. "." .. string.rep("d", 70), "-- " .. string.rep("e", 200), "s = [[" .. string.rep("f", 100) }) do
+        if not same(oldToken(t, #t), AC.token(t, #t)) then badTok[#badTok + 1] = "long " .. #t end
+    end
+    check("the string-and-comment scan: the old one's answer at every cursor", #badIn == 0, badIn[1])
+    check("the word at the cursor: the old one's answer at every cursor, long words too", #badTok == 0, badTok[1])
+end
 
 -- ============================================================================
 -- 3. Java methods, kept per class, with parameter counts; nothing else ever runs
@@ -224,6 +325,31 @@ check("click: takes the row", win:lineText() == "ConsoleSimTable.alphabet" and C
 setLine(string.rep("x", 250) .. " getJ")
 draw(win)
 check("line: a pick past 256 characters is not taken", win.ac and not win:acTake() and #win:lineText() == 255)
+-- ...and Enter or Tab on it are used up: the half-typed line never runs, the game's own suggestion is not taken
+do
+    local long = string.rep("x", 250) .. " getJ"
+    setLine(long)
+    draw(win)
+    local hist0 = JC.prev:size()
+    win.input.onCommandEntered()
+    check("line: Enter on a pick past 256 characters runs nothing", JC.prev:size() == hist0 and win:lineText() == long and win.ac ~= nil, win:lineText())
+    check("line: ...the band says why", win._status ~= nil and tostring(win._status.text):find("256", 1, true) ~= nil, win._status and win._status.text)
+    -- (the game offering a suggestion that fits the word, as it would for a word it knows)
+    local was = JC.prevSuggestion
+    JC.sug.visible = true
+    JC.sug:SetText("IsoPlayer getJavaPlayer")
+    JC.prevSuggestion = "getJavaPlayer"
+    win.input.onOtherKey(win.input, Keyboard.KEY_TAB)
+    check("line: Tab on it takes nothing, the game's suggestion neither", win:lineText() == long and win.ac ~= nil, win:lineText())
+    JC.prevSuggestion = was
+    JC.sug.visible = false
+    setLine("getJ")
+    draw(win)
+    win.input.onCommandEntered()
+    check("line: a pick that fits is taken, and the band's word about the full line goes", win:lineText() == "getJavaPlayer()" and win._status == nil, win:lineText())
+    setLine("")
+    draw(win)
+end
 
 -- ============================================================================
 -- 5. the scratchpad's keys
@@ -313,6 +439,25 @@ win:onJoypadDown(Joypad.BButton, jd)
 check("pad: B shuts it, the window stays", win.ac == nil and win.zone == "input" and DC.isOpen())
 win:onJoypadDirUp()
 check("pad: shut, up goes on to the log", win.zone ~= "ac")
+-- A on a pick that would pass the line's 256 characters: nothing taken, the hand stays on the pull-down for another
+do
+    local long = string.rep("x", 250) .. " getJ"
+    win.input:setText(long)
+    win.input:focus()
+    draw(win)
+    win.input:unfocus()
+    win.zone = "input"
+    win:onJoypadDirUp()
+    check("pad: up to the pull-down over a long line", win.zone == "ac" and win.ac ~= nil)
+    win:onJoypadDown(Joypad.AButton, jd)
+    check("pad: A on a pick past 256 characters takes nothing, the hand stays on the pull-down", win.zone == "ac" and win.ac ~= nil and win:lineText() == long, win.zone)
+    if win.zone == "ac" then win:onJoypadDown(Joypad.BButton, jd) end
+    check("pad: B shuts it", win.ac == nil and win.zone == "input" and DC.isOpen())
+    win:acShut()
+    win.zone = "input"
+    win.input:setText("")
+    win._status = nil
+end
 
 -- ============================================================================
 -- 7. the Help page
@@ -377,6 +522,71 @@ win.input:focus()
 check("help: the log's line let go when the page changed", true)
 win:setPage("log")
 DC.close()
+-- the controller walk shows every line of the page, all sections open, at the window's size and the smallest: each
+-- header with its section under it, a section taller than the view read on, past the last header the band with the
+-- page at its foot (the Files rows were out of reach); then up brings each header back into view
+do
+    local jd3 = { id = 0, player = 0 }
+    JoypadState.players[1] = jd3
+    H.setMode("gamepad")
+    for _, size in ipairs({ { ZeD.T.px(900), ZeD.T.px(480) }, { ZeD.T.px(520), ZeD.T.px(260) } }) do
+        DC.close()
+        DC.open(0)
+        local w3 = DC.win
+        w3:update()
+        w3:setWidth(size[1]); w3:setHeight(size[2])
+        w3.hFold, w3.hScroll, w3.hFocus = {}, 0, 1
+        w3:setPage("help")
+        draw(w3)
+        w3:onJoypadDirRight()
+        draw(w3)
+        local view = w3._hRect.h
+        local layW = w3._hLayW or w3._hRect.w
+        local _, total = w3:_helpLayout(layW)
+        local covered, gap, presses = w3.hScroll + view, nil, 0
+        while w3.zone ~= "pband" and presses < 60 do
+            w3:onJoypadDirDown()
+            draw(w3)
+            presses = presses + 1
+            if w3.hScroll > covered and not gap then gap = covered .. ".." .. w3.hScroll end
+            covered = math.max(covered, w3.hScroll + view)
+        end
+        local name = "help " .. size[1] .. "x" .. size[2]
+        check(name .. ": the walk down reaches the band", w3.zone == "pband", presses)
+        check(name .. ": every line of the page shown on the way, down to its foot", gap == nil and covered >= total - ZeD.T.px(8), tostring(gap) .. " " .. covered .. " of " .. total)
+        check(name .. ": on the band, the page at its foot", w3.hScroll == math.max(0, total - view), w3.hScroll .. " of " .. (total - view))
+        local folds = {}
+        for _, it in ipairs((w3:_helpLayout(layW))) do if it.t == "fold" then folds[#folds + 1] = it end end
+        local okUp, steps = true, 0
+        w3:onJoypadDirUp()
+        draw(w3)
+        while steps < 30 do
+            local it = folds[w3.hFocus]
+            if not (it and it.y >= w3.hScroll and it.y + it.h <= w3.hScroll + view) then okUp = false end
+            if w3.hFocus == 1 and w3.hScroll <= folds[1].y then break end
+            w3:onJoypadDirUp()
+            draw(w3)
+            steps = steps + 1
+        end
+        check(name .. ": up again, each header in view on the way back to the top", okUp and w3.hFocus == 1 and w3.hScroll <= folds[1].y, w3.hFocus .. " " .. w3.hScroll)
+        -- a down that reads into a tall section leaves its header above the view; A folds that section and brings
+        -- the header back in, so the hand is never off the page
+        w3.hFold, w3.hScroll, w3.hFocus = {}, 0, 1
+        draw(w3)
+        w3:onJoypadDirDown()
+        draw(w3)
+        w3:onJoypadDown(Joypad.AButton, jd3)
+        draw(w3)
+        local fAfter = {}
+        for _, it in ipairs((w3:_helpLayout(layW))) do if it.t == "fold" then fAfter[#fAfter + 1] = it end end
+        local hd = fAfter[w3.hFocus]
+        check(name .. ": one down then A, the folded header in view", hd ~= nil and hd.y >= w3.hScroll and hd.y + hd.h <= w3.hScroll + view, (hd and hd.y or "?") .. " at " .. w3.hScroll)
+        check(name .. ": drawn inside", #H.DRAW.outside == 0, H.DRAW.outside[1])
+    end
+    DC.close()
+    JoypadState.players[1] = nil
+    H.setMode("kbm")
+end
 
 -- ============================================================================
 -- 8. every size, both text sizes, mouse and pad: the pull-down in the line and the box, and the Help page

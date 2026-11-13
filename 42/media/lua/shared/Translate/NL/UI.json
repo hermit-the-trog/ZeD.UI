@@ -6231,6 +6231,7 @@
     "UI_ZeD_Console_AcJavaOf": "Java-methoden van %1",
     "UI_ZeD_Console_AcMore": "nog %1",
     "UI_ZeD_Console_AcKeys": "Tab of Enter neemt de gekozen suggestie, Omhoog en Omlaag bewegen erdoorheen, Esc sluit ze.",
+    "UI_ZeD_Console_LineFull": "Die suggestie past niet: de regel heeft plaats voor %1 tekens.",
     "UI_ZeD_Console_PadTake": "Nemen",
     "UI_ZeD_Console_PadShut": "Sluiten",
     "UI_ZeD_Console_BackToLog": "Naar logboek",
