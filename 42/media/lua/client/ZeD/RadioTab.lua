@@ -1661,7 +1661,9 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- 1. The radios' tab strip (punch list 175, C4: a tab per radio, as Animals picks Ranch or Butcher), in row 1's
     -- height and at its foot so the face keeps its place; a two-way set's full view button at its right. A tab's
     -- press (or A on it) shows that radio; the pointer on it names the radio and where it is in the help line.
-    local fullW = isTw and (T.buttonH + T.px(8)) or 0
+    -- (the button sits 10 from the right edge (_drawFullButton): the strip keeps clear of all of it and 4 more, so a press
+    -- on the button's left edge is the button's, not the strip's; QA Nov 13, twoway)
+    local fullW = isTw and (T.buttonH + T.px(14)) or 0
     local items = ZeD.RadioTab.tabItems(radios)
     local hfid = _twFocusId(win)
     local fIdx = hfid and tonumber(hfid:match("^radio:tab:(%d+)$") or "") or nil

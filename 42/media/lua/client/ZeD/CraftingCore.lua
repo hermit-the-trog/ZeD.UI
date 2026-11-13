@@ -3199,8 +3199,15 @@ function CC.onClick(state, config, win, x, y, playerObj)
 
     -- Zones already store screen-space positions (scroll offset baked in at
     -- render time).  No additional adjustment needed — compare directly.
+    -- the list's rows are stamped for every row, the hidden ones too (the controller walks them): a press only counts
+    -- on a row inside the list's view, so a hidden row under the band's Category, Sort or Show does not take it
+    -- (QA Nov 13, cov_reading: Category opened a hidden recipe on a long list)
+    local lg = state._listGeo
     for _, zone in ipairs(zones) do
-        if x >= zone.x and x < zone.x + zone.w and y >= zone.y and y < zone.y + zone.h then
+        local zt = zone.type
+        local hidden = lg and (zt == "recipeRow" or zt == "recipeStar" or zt == "sectionHeader")
+            and (y < lg.viewY or y >= lg.viewY + lg.viewH)
+        if not hidden and x >= zone.x and x < zone.x + zone.w and y >= zone.y and y < zone.y + zone.h then
 
             if zone.type == "detailIcon" then
                 CC.openPreview(win, state, playerObj)

@@ -654,6 +654,7 @@ local LAMP_ZONE = { genLamp = "batt", engLamp = "eng", hiBeam = "head", heatOn =
 local ZONE_MIN_W, ZONE_MIN_H = 13, 11   -- a small lamp's hover place at least this big round its middle (plate pixels)
 -- the design's hover places in plate pixels (worked out once, kept on the design)
 local function _lampZones(des)
+    if not des then return {} end   -- (no dash drawn yet: no places)
     if des._lampZones then return des._lampZones end
     local z = {}
     local heatHit = nil
@@ -692,6 +693,7 @@ local function _pct(v) return tostring(math.floor((v or 0) + 0.5)) .. "%" end
 local function _condLine(v) return v and ZeD.tr("UI_ZeD_Dash_LampCondLine", _pct(v)) or getText("IGUI_Missing") end
 -- the hover card's two parts: the part's name (the game's word) and a line for what is known of it
 function D.lampText(id, st)
+    st = st or {}
     if id == "batt" then
         local lines = { _condLine(st.battCond) }
         if st.battCond then lines[2] = ZeD.tr("UI_ZeD_Dash_LampChargeLine", _pct((st.battRaw or 0) * 100)) end
