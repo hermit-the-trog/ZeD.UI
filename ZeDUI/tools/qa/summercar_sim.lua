@@ -367,6 +367,8 @@ local function setup(opts)
     P.chr = newPlayer()
     P.v = newVehicle(11, 102, 100)
     P.win = newWorldWin(P.chr, opts.wx or 1929, 0, opts.ww or 1617, 735)
+    if opts.dw then P.win._drawerEffW = opts.dw end
+    if opts.rollW then P.win._rolled, P.win._rollW = true, opts.rollW end
     -- the tab, real
     local src = opts.mtSource or readFile(CLIENT .. "ZeD/MechanicsTab.lua")
     local f, err = loadstring(src, "@MechanicsTab.lua")
@@ -568,9 +570,23 @@ check("PLACE: room on the right: the mod's own place", eng().x == 1727, eng().x)
 setup({ sw = 1920, sh = 1080, wx = 498, ww = 924 }); ms(300)
 check("PLACE: 1080 tile band: ZeD's window stays", P.win.x == 498)
 check("PLACE: 1080 tile band: the larger side, within the mod's widths", eng().x == 1432 and eng().w == 478, eng().x .. " " .. eng().w)
-setup({ sw = 1280, sh = 800, wx = 320, ww = 640 }); ms(300)
+-- (the 1280 windows: a half card in the drawer, the tab 384 into the window: 640 - 36 strip - 220)
+setup({ sw = 1280, sh = 800, wx = 320, ww = 640, dw = 220 }); ms(300)
 check("PLACE: 1280, no side holds 420: 420 wide at x 10", eng().x == 10 and eng().w == 420, eng().x .. " " .. eng().w)
 check("PLACE: 1280: clear of the drawer (384 into the window)", eng().x + eng().w <= 320 + 384)
+setup({ sw = 1280, sh = 800, wx = 380, ww = 640, dw = 220 }); ms(300)
+check("PLACE: 1280, more room on the left: the left edge", eng().x == 10 and eng().w == 420, eng().x .. " " .. eng().w)
+-- the inventory side rolled under the rod: the window body is the tab, on both sides; the edge that covers less of it
+setup({ sw = 1280, sh = 800, wx = 270, ww = 620, dw = 584, rollW = 20 }); ms(300)
+check("PLACE: 1280, rolled: the footprint as the finding's (250 + 640)", P.S.footprint(P.win) == 250)
+check("PLACE: 1280, rolled: the right edge covers 40 of the tab, not 160 at x 10", eng().x == 850 and eng().w == 420, eng().x .. " " .. eng().w)
+-- with the half card the tab starts 384 in: the left edge stays clear of it even when the right has more room
+setup({ sw = 1280, sh = 800, wx = 250, ww = 640, dw = 220 }); ms(300)
+check("PLACE: 1280, the half card: the left edge, clear of the tab", eng().x == 10 and eng().x + eng().w <= 250 + 384, eng().x .. " " .. eng().w)
+-- freeSide by itself
+check("PLACE: freeSide with no tab given: the side with more room", P.S.freeSide(250, 640, 1280, 420, 500) == 850)
+check("PLACE: freeSide: a tie in tab cover goes to the side with more room", P.S.freeSide(250, 640, 1280, 420, 500, 250, 890) == 850)
+check("PLACE: freeSide: the tab under the right edge only: the left", P.S.freeSide(250, 640, 1280, 420, 500, 634, 890) == 10)
 setup()
 P.win._rolled, P.win._rollW = true, 200
 ms(300)
@@ -579,7 +595,7 @@ check("PLACE: the rod counted", eng().x == 1219, eng().x)
 local bad = 0
 for _, cfg in ipairs({ { 1920, 1080, 924 }, { 1280, 800, 640 }, { 1280, 720, 640 }, { 3840, 2160, 1617 } }) do
     for x = 0, cfg[1] - cfg[3], 10 do
-        setup({ sw = cfg[1], sh = cfg[2], wx = x, ww = cfg[3] })
+        setup({ sw = cfg[1], sh = cfg[2], wx = x, ww = cfg[3], dw = cfg[3] - 36 - 384 })
         ms(250)
         local e = eng()
         local ok = e ~= nil and P.win.x == x and e.x >= 0 and e.x + e.w <= cfg[1] and e.w >= 420 and e.w <= 500
@@ -791,6 +807,16 @@ ms(500)
 check("FAIL: no MSC: nothing acts, no error", P.pollErr == nil and #Events.OnTickEvenPaused.list == 1)
 check("FAIL: no MSC: the startup line names it", P.S.check() == false and printed("not found (another version of the mod?)"))
 check("FAIL: no MSC: the footer as built", vlist() == "repairEngine,takeParts", vlist())
+-- the menu wrap still in place, but the window or the access test renamed or throwing: the game's verbs stay
+setup({ before = function() MSC.EngineComponentsWindow.openFromMechanics = nil end })
+check("FAIL: openFromMechanics renamed: the footer as built, not empty", vlist() == "repairEngine,takeParts", vlist())
+setup({ before = function() MSC.EngineComponentsWindow.instances = nil end })
+check("FAIL: instances renamed: the footer as built", vlist() == "repairEngine,takeParts", vlist())
+setup({ before = function() MSC.EngineComponents.getEngineAccessReason = nil end })
+check("FAIL: getEngineAccessReason renamed: the footer as built", vlist() == "repairEngine,takeParts", vlist())
+setup({ before = function() MSC.EngineComponents.getEngineAccessReason = function() error("access broke") end end })
+check("FAIL: getEngineAccessReason throws: the footer as built", vlist() == "repairEngine,takeParts", vlist())
+check("FAIL: and one line for it", noted("getEngineAccessReason"))
 setup()
 P.openThrows = true
 ms(800)

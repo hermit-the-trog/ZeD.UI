@@ -31,7 +31,9 @@
 --   placement    the mod places the engine window against the World window. Where
 --                the mod would slide the World window or lay its window over it,
 --                the engine window takes the side with more room instead, at the
---                mod's own widths. It moves again only when the World window grows
+--                mod's own widths. Where neither side holds the mod's minimum, it
+--                goes to the screen edge that covers less of the Vehicle tab, then
+--                less of the window. It moves again only when the World window grows
 --                into it and the player has not dragged it.
 --   the tab      through ZeD.MechanicsTab.addExtras: the Engine's footer drops
 --                Repair engine and Take engine parts for the mod's Inspect engine
@@ -76,6 +78,7 @@ local KEEP_TILES = 6        -- the mod's window closes itself past this
 local SETTLE_MS  = 150      -- the World window still this long before the engine window opens
 local HOLD_MS    = 500      -- ZeD's own roll-up hold
 local VERB       = "mscInspect"
+local TAB_STRIP_W = 36      -- the World window's action tab strip, design units (ACTION_TAB_STRIP_W there)
 
 ZeD = ZeD or {}
 ZeD.ModSupport = ZeD.ModSupport or {}
@@ -274,8 +277,16 @@ S.anchored = anchored
 -- PLACEMENT
 -- ----------------------------------------------------------------------------
 local function clamp(n, lo, hi) if n < lo then return lo end if n > hi then return hi end return n end
--- the side and width for the engine window when the mod found no free side
-local function freeSide(ax, aw, sw, minW, maxW)
+-- how much of a0..a1 the span x..x+w covers
+local function cover(x, w, a0, a1)
+    if a0 == nil then return 0 end
+    return math.max(0, math.min(x + w, a1) - math.max(x, a0))
+end
+-- The side and width for the engine window when the mod found no free side. tx0..tx1
+-- is the Vehicle tab (the drawer and its tab strip), or nil. With neither side wide
+-- enough, the window goes to a screen edge at the mod's minimum: the edge that covers
+-- less of the tab, then the side with more room (it covers less of the window).
+local function freeSide(ax, aw, sw, minW, maxW, tx0, tx1)
     local L = ax - GAP - MARGIN
     local R = sw - MARGIN - (ax + aw + GAP)
     if R >= minW and R >= L then
@@ -285,9 +296,28 @@ local function freeSide(ax, aw, sw, minW, maxW)
         local width = math.min(maxW, L)
         return ax - GAP - width, width
     end
-    return MARGIN, minW
+    local xl, xr = MARGIN, math.max(MARGIN, sw - MARGIN - minW)
+    local tl, tr = cover(xl, minW, tx0, tx1), cover(xr, minW, tx0, tx1)
+    if tr < tl or (tr == tl and R >= L) then return xr, minW end
+    return xl, minW
 end
 S.freeSide = freeSide
+
+-- The Vehicle tab's span on screen: the drawer and the action tab strip at the World
+-- window's right edge. Nil when it cannot be read.
+local function tabSpan(pn)
+    local ok, x0, x1 = pcall(function()
+        local win = ZeD_WorldWindow.getWindow(pn)
+        if not win then return nil end
+        local dw = math.floor(tonumber(win._drawerEffW) or 0)
+        local strip = (ZeD.T and ZeD.T.px) and ZeD.T.px(TAB_STRIP_W) or TAB_STRIP_W
+        local right = win:getX() + win:getWidth()
+        return right - strip - dw, right
+    end)
+    if not ok then note("tab span", x0); return nil end
+    return x0, x1
+end
+S.tabSpan = tabSpan
 
 --- Places an engine window opened against player pn's anchor. The mod's own place
 --- stands unless it asked to slide ZeD's window or lies over it; then the window takes
@@ -303,7 +333,8 @@ function S.place(eng, pn, again)
     if stand._askedX ~= nil or overlaps then
         local sw = getCore():getScreenWidth()
         local minW = tonumber(eng.minimumWidth) or MIN_W
-        local x, width = freeSide(ax, aw, sw, minW, math.max(st.chosenW or ew, minW))
+        local tx0, tx1 = tabSpan(pn)
+        local x, width = freeSide(ax, aw, sw, minW, math.max(st.chosenW or ew, minW), tx0, tx1)
         eng:setWidth(math.floor(width))   -- (width first: setX keeps a top-level panel on screen against its width)
         eng:setX(math.floor(x))
         if again then
@@ -515,18 +546,20 @@ end
 -- THE TAB'S HOOKS (ZeD.MechanicsTab.addExtras)
 -- ----------------------------------------------------------------------------
 -- The Engine's verbs: the mod's menu wrap drops the game's two engine verbs, and the
--- tab follows; Inspect engine components when there is an engine to look at.
+-- tab follows; Inspect engine components when there is an engine to look at. With the
+-- mod's window or its access test missing or failing, the footer stays as built: the
+-- game's two verbs still work, and there would be nothing to offer in their place.
 local function verbs(part, chr, list)
     if part:getId() ~= "Engine" or not signal("MSC_originalDoPartContextMenu") then return nil end
+    if not (windowClass() and components()) then return nil end
+    local r = accessReason(part:getVehicle())
+    if r == "missing" or r == "error" then return nil end
     local out = {}
     for _, id in ipairs(list) do
         if id ~= "repairEngine" and id ~= "takeParts" then out[#out + 1] = id end
     end
-    if windowClass() and not seatedOut(chr) then
-        local r = accessReason(part:getVehicle())
-        -- (no assembly, no car: nothing to inspect, so the verb is gone; the menu keeps the mod's greyed option)
-        if r == nil or r == "hoodClosed" then out[#out + 1] = VERB end
-    end
+    -- (no assembly, no car: nothing to inspect, so the verb is gone; the menu keeps the mod's greyed option)
+    if not seatedOut(chr) and (r == nil or r == "hoodClosed") then out[#out + 1] = VERB end
     return out
 end
 S.verbs = verbs
