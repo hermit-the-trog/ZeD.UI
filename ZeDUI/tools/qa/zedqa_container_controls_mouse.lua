@@ -52,7 +52,17 @@ elseif step == "ask" then
     local tick = 0
     local function t()
         tick = tick + 1
-        if tick == 10 then shot("02_ask_row"); local L = c._cc.layout; say("ask row " .. tostring(L and L.question) .. " buttons " .. tostring(L and #L.rects)) end
+        if tick == 10 then
+            shot("02_ask_row")
+            -- (the question band: cc.bottom.question, its two answers the hits marked ask)
+            local cc = c._cc
+            local B = cc and cc.bottom
+            local n = 0
+            for _, h in ipairs(cc and cc.hits or {}) do if h.ask then n = n + 1 end end
+            if not (B and B.question) then say("ERR no question band (_cc.bottom.question)")
+            elseif n ~= 2 then say("ERR the question band has " .. n .. " answers, not 2")
+            else say("ask row " .. tostring(B.question) .. " buttons " .. n) end
+        end
         if tick == 15 then CT.press(c, 1); say("after Cancel: ask " .. tostring(c._cc.ask ~= nil)) end
         if tick == 20 then c._cc.ask = { ask = "Delete all 3 items for good?", run = function() say("the yes ran") end } end
         if tick == 25 then CT.press(c, 2); say("after Delete all: ask " .. tostring(c._cc.ask ~= nil)); Events.OnTick.Remove(t) end

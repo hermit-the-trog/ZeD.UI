@@ -714,7 +714,8 @@ gamepad zoom wheel guards against calling when auto-zoom is on). Confirmed funct
 during ZeD-UI S92 BumperChord QA — 35 successful zoom dispatches, zero exceptions, no
 `pcall` failures. Works while game is paused (operates on `IsoCamera` directly). Not
 rate-limited at the call site; spam-safe per-frame. Used by BumperChord.lua wrapped
-in `pcall` for signature-drift safety.
+in `pcall` for signature-drift safety: hold LB + tap RB sends -1 (zoom in), hold RB +
+tap LB sends +1 (zoom out), as the GLOSSARY BumperChord row says.
 
 **Q85: Top-level `print()` at Lua file-load time is NOT captured in console.txt on B42.16.**
 Runtime event-callback prints (from `Events.OnTick`, `Events.OnGameStart`,

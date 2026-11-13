@@ -17,12 +17,20 @@ local function wc() return ww()._mainContent end
 local function camp()
     return getCell():getGridSquare(math.floor(p:getX()) + 1, math.floor(p:getY()), 0)
 end
+-- (ContainerControls keeps the band's row in cc.bottom, its scroll in cc.sx.bot and this
+-- frame's buttons in cc.hits; a hit's own label is its hover hint, so the word is the spec's)
 local function ribbon()
     local cc = wc()._cc
-    local L = cc and cc.layout
-    local S = L and L.scroll
-    return string.format("scroll %s x=%s of %s, view %s", tostring(S ~= nil), tostring(cc and cc.scrollX),
-        tostring(S and S.total), tostring(S and S.viewW))
+    local B = cc and cc.bottom
+    if not B then say("ERR no button band (_cc.bottom)"); return "no band" end
+    local words = {}
+    for _, h in ipairs(cc.hits or {}) do
+        if h.spec and h.spec.label then words[#words + 1] = tostring(h.spec.label) end
+    end
+    if #words == 0 then say("ERR no buttons in the band (_cc.hits)") end
+    local S = B.scroll
+    return string.format("scroll %s x=%s of %s, view %s; buttons %s", tostring(S ~= nil), tostring(cc.sx and cc.sx.bot),
+        tostring(S and S.total), tostring(S and S.viewW), table.concat(words, ", "))
 end
 
 if (ZEDQA_CR_STEP or "run") == "end" then

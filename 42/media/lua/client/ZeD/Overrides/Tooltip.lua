@@ -62,13 +62,37 @@ local function applyTooltipOverrides()
         local ok, v = pcall(function() return getCore():getOptionTooltipFont() end)
         return (ok and TIP_MUL[v]) or 1.0
     end
+    -- A description sets its columns in px measured outside the call, at the font's own size
+    -- (<SETX:n>, <INDENT:n>: ISInventoryPaneContextMenu's clothing tooltip lines its values up past
+    -- the widest label that way). Its labels draw m times as wide here, so for the call the rich-text
+    -- panel's processCommand moves a SETX and an INDENT m times as far, and is put back afterwards.
+    local function scaleColumns(panel, m)
+        local own = rawget(panel, "processCommand")
+        local base = panel.processCommand
+        panel.processCommand = function(p, command, x, y, lineImageHeight, lineHeight)
+            local nx, ny, nh = base(p, command, x, y, lineImageHeight, lineHeight)
+            if type(command) == "string" then
+                if string.find(command, "SETX:", 1, true) and type(nx) == "number" then nx = nx * m end
+                if string.find(command, "INDENT:", 1, true) and type(p.indent) == "number" then p.indent = p.indent * m end
+            end
+            return nx, ny, nh
+        end
+        return own
+    end
     local function withTipSize(fn, self)
         local T = ZeD.T
         local f = T and T.fontF2
         local X = ZeD.Text
         local m = tipMul()
         if m == 1.0 or not (f and T.fontPx and T.fontPx[f] and X and X.withFontScale) then return fn(self) end
-        return X.withFontScale(f, m, fn, self)
+        -- (only a description in the scaled font: the game's own font, ZeD.Text.fallback, keeps its size)
+        local panel = self.descriptionPanel
+        if not (panel and panel.font == f and panel.processCommand) then return X.withFontScale(f, m, fn, self) end
+        local own = scaleColumns(panel, m)
+        local ok, r = pcall(X.withFontScale, f, m, fn, self)
+        panel.processCommand = own
+        if not ok then error(r) end
+        return r
     end
 
     function ISToolTip.GetFont()

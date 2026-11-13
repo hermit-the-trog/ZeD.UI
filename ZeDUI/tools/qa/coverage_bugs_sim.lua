@@ -16,7 +16,8 @@
 --             bigger size never stays on the body text afterwards, with the kept zooms and measures full or empty
 --   HANDS     the hidden hand slots lose their hover zones (the held item's box popped up over nothing), the window
 --             buttons keep their places in the list, and safe mode gets vanilla's list back untouched
---   CHORD     hold LB + tap RB zooms out and hold RB + tap LB zooms in, as the controller map says (it was the reverse)
+--   CHORD     hold LB + tap RB zooms in (-1) and hold RB + tap LB zooms out (+1), as the GLOSSARY says, and the console
+--             line names each the same way (it named them backwards; a first pass flipped the directions instead)
 --   ICONS     with only the belt handed back, the column's window buttons and their labels come back (they stayed
 --             hidden for the session), and taking the belt again hides them again
 --   INSPECT   Inspect on a garment marked with the controller opens ZeD's card, the marks gone (vanilla's window opened)
@@ -64,8 +65,8 @@ local function readFile(path)
     f:close()
     return (s:gsub("\r\n", "\n"))   -- (the cuts below match LF line ends)
 end
-local function baseFile(rel)
-    local p = io.popen('git -C "' .. (ROOT ~= "" and ROOT or ".") .. '" show ' .. BASE .. ':' .. rel .. ' 2>NUL')
+local function baseFile(rel, ref)
+    local p = io.popen('git -C "' .. (ROOT ~= "" and ROOT or ".") .. '" show ' .. (ref or BASE) .. ':' .. rel .. ' 2>NUL')
     local s = p and p:read("*a") or ""
     if p then p:close() end
     return s ~= "" and (s:gsub("\r\n", "\n")) or nil
@@ -571,7 +572,7 @@ do
                      DrawText = function(_, font, str, x, y, ...)
                          local z = 1
                          if select("#", ...) == 5 then z = (...) end   -- (font, str, x, y, zoom, r, g, b, a): the zoom path
-                         draws[#draws + 1] = { font = font, str = str, z = z }
+                         draws[#draws + 1] = { font = font, str = str, z = z, x = x }
                      end }
         end
         local E = {}
@@ -659,7 +660,39 @@ do
             return { z = X.zoomOf(F[2]), h = W.ZeD.TM:getFontHeight(F[2]), w = W.ZeD.TM:MeasureStringX(F[2], TITLE) }
         end
         local function emptyKept() X._zoom.T = false; X._measureCache.T = false end
-        return { tip = tip, body = body, emptyKept = emptyKept }
+        -- a description that sets its columns as the game's clothing tooltip does: "Weight:" measured here, at the
+        -- font's own size, and the value put 10 px past it with SETX; then a line indented 40 with INDENT
+        local LABEL = "Weight:"
+        local function columns(option, failLayout)
+            W.tipOption = option
+            local labelW = W.getTextManager():MeasureStringX(F[2], LABEL)
+            local t = W.ISToolTip:new()
+            t:initialise(); t:instantiate()
+            t:setName(TITLE)
+            t:setDescription(" " .. LABEL .. " <SETX:" .. math.floor(labelW + 10) .. "> 12 <LINE> Head <LINE> <INDENT:40> Item <LINE> <INDENT:0> ")
+            for k in pairs(draws) do draws[k] = nil end
+            local res = { labelW = labelW }
+            if failLayout then
+                -- (a measure that throws inside the call: the panel must still get its own processCommand back)
+                local tm = W.ZeD.TM
+                local was = tm.MeasureStringX
+                tm.MeasureStringX = function() error("measure failed") end
+                res.threw = not pcall(t.doLayout, t)
+                tm.MeasureStringX = was
+            else
+                t:doLayout(); t:prerender(); t:render()
+            end
+            res.ownAfter = t.descriptionPanel and rawget(t.descriptionPanel, "processCommand")
+            for _, d in ipairs(draws) do
+                local s = tostring(d.str)
+                if s:find(LABEL, 1, true) then res.labelX, res.labelZ = d.x, d.z
+                elseif s:find("^%s*12") then res.valueX = d.x
+                elseif s:find("^%s*Head") then res.headX = d.x
+                elseif s:find("^%s*Item") then res.itemX = d.x end
+            end
+            return res
+        end
+        return { tip = tip, body = body, emptyKept = emptyKept, columns = columns }
     end
 
     local function probe(scaleSrc, textSrc, tipSrc)
@@ -674,6 +707,8 @@ do
             w.emptyKept()                         -- (as after a resolution change, before the theme is applied again)
             res.cold = w.tip("Large")
             res.afterCold = w.body()
+            res.colSmall, res.colLarge = w.columns("Small"), w.columns("Large")
+            res.colThrow = w.columns("Large", true)
         end)
         if not ok then return nil, perr end
         return res
@@ -707,6 +742,41 @@ do
         ro and (ro.small.w .. "x" .. ro.small.h .. " / " .. ro.medium.w .. "x" .. ro.medium.h))
     control("TOOLTIP with them empty, the bigger size stays off the body text", ro and sameBody(ro.afterCold, ro.base),
         ro and bodyText(ro.afterCold))
+
+    -- the columns a description sets with SETX and INDENT, measured outside the tooltip at the font's own size
+    local function gap(c) return c and c.valueX and c.labelX and (c.valueX - c.labelX) end
+    local function ind(c) return c and c.itemX and c.headX and (c.itemX - c.headX) end
+    local function clear(c) return c ~= nil and c.labelW ~= nil and gap(c) ~= nil and gap(c) >= c.labelW * 1.3 end
+    local function colText(c)
+        return c and string.format("label %s wide drawn at x %s, value at x %s, indent %s", tostring(c.labelW and c.labelW * 1.3),
+                                   tostring(c.labelX), tostring(c.valueX), tostring(ind(c))) or "nil"
+    end
+    if r then
+        local cs, cl, ct = r.colSmall, r.colLarge, r.colThrow
+        note("columns: Small " .. colText(cs) .. "; Large " .. colText(cl))
+        check("TOOLTIP Small puts a SETX value where the description says", cs and near(gap(cs), math.floor(cs.labelW + 10)), colText(cs))
+        check("TOOLTIP Small indents an INDENT line as far as the description says", cs and near(ind(cs), 40), colText(cs))
+        check("TOOLTIP Large puts a SETX value past its label, drawn 1.3 times as wide", clear(cl), colText(cl))
+        check("TOOLTIP Large moves a SETX value 1.3 times as far", cl and near(gap(cl), math.floor(cl.labelW + 10) * 1.3), colText(cl))
+        check("TOOLTIP Large indents an INDENT line 1.3 times as far", cl and near(ind(cl), 40 * 1.3), colText(cl))
+        check("TOOLTIP the description panel gets its own processCommand back", cl and cl.ownAfter == nil and cs.ownAfter == nil)
+        check("TOOLTIP a layout that throws still puts processCommand back", ct and ct.threw and ct.ownAfter == nil,
+            ct and tostring(ct.threw) .. " " .. tostring(ct.ownAfter))
+    end
+    -- the first pass at the Tooltip Font option (BRANCH): its own Scale.lua and TextScale.lua are the ones here now
+    local tipFirst = baseFile("42/media/lua/client/ZeD/Overrides/Tooltip.lua", "0aeec7b7d")
+    if not tipFirst then
+        note("CONTROL TOOLTIP columns: no first pass to try (git show 0aeec7b7d)")
+    else
+        local rf = probe(scaleNow, textNow, tipFirst)
+        checks = checks + 1
+        if rf and clear(rf.colLarge) then
+            failed = failed + 1
+            print("FAIL CONTROL TOOLTIP Large puts a SETX value past its label: the first pass passes it too")
+        else
+            note("first pass: TOOLTIP Large puts a SETX value past its label - no (" .. colText(rf and rf.colLarge) .. ")")
+        end
+    end
 end
 
 -- ===========================================================================
@@ -829,11 +899,15 @@ do
 end
 
 -- ===========================================================================
--- CHORD: Input/BumperChord.lua, against the game's zoom steps and ZeD's controller map
+-- CHORD: Input/BumperChord.lua, against the game's zoom steps and the GLOSSARY's BumperChord row
+-- ("Hold LB + tap RB = zoom in. Hold RB + tap LB = zoom out."). The directions BASE sent were right and its console
+-- line named them backwards; the first pass at this fix (BRANCH) flipped the directions instead. Both must fail.
 -- ===========================================================================
 section("CHORD")
 do
+    local BRANCH = "0aeec7b7d"   -- the first pass: the console line matched its own directions, which were flipped
     local now, old = both("42/media/lua/client/ZeD/Input/BumperChord.lua")
+    local flipped = baseFile("42/media/lua/client/ZeD/Input/BumperChord.lua", BRANCH)
     check("CHORD BumperChord.lua reads", now ~= nil)
     local wheel = readFile(PZ .. "client/ISUI/ISBackButtonWheel.lua")
     check("CHORD the game's ZoomOut slice sends ZoomPlus, which is doZoomScroll +1", wheel
@@ -843,8 +917,10 @@ do
         and wheel:find('getTexture("media/ui/ZoomIn.png"), self.onCommand, self, "ZoomMinus")', 1, true)
         and wheel:find('command == "ZoomMinus"[^\n]*\n%s*getCore%(%):doZoomScroll%(self%.playerNum, %-1%)'))
     local ui = readFile(ROOT .. "42/media/lua/shared/Translate/EN/UI.json") or ""
-    check("CHORD the controller map says LB + RB zooms out and RB + LB zooms in",
-        ui:find('"UI_ZeD_CMap_LB": "[^"]*LB %+ RB zooms out') and ui:find('"UI_ZeD_CMap_RB": "[^"]*RB %+ LB zooms in'))
+    -- (the controller map's words are the director's to settle: a note, not a check)
+    if ui:find('"UI_ZeD_CMap_LB": "[^"]*LB %+ RB zooms out') then
+        note("the controller map (UI_ZeD_CMap_LB / _RB) still says LB + RB zooms out, against the GLOSSARY")
+    end
     local function probe(src)
         local onTick
         local zooms, said = {}, {}
@@ -869,23 +945,52 @@ do
         tick(false, false)
         tick(true, true)                          -- both on one tick (LB counts first)
         tick(false, false)
-        local first
-        for _, s in ipairs(said) do if not first and s:find("chord fire: ", 1, true) then first = s end end
-        return { lbrb = zooms[1], lbrb2 = zooms[2], rblb = zooms[3], both = zooms[4], n = #zooms, said = first }
+        -- (the console line each step printed, in step order: _fire prints before it zooms)
+        local fires = {}
+        for _, s in ipairs(said) do
+            local w = s:match("chord fire: (%S+)")
+            if w then fires[#fires + 1] = w end
+        end
+        return { lbrb = zooms[1], lbrb2 = zooms[2], rblb = zooms[3], both = zooms[4], n = #zooms,
+                 sLbrb = fires[1], sLbrb2 = fires[2], sRblb = fires[3], sBoth = fires[4] }
+    end
+    -- LB then RB sends -1 and says zoom-in; RB then LB sends +1 and says zoom-out
+    local function right(x)
+        return x ~= nil and x.lbrb == -1 and x.sLbrb == "zoom-in" and x.rblb == 1 and x.sRblb == "zoom-out"
+    end
+    local function show(x)
+        return x and string.format("LB+RB %s %s, RB+LB %s %s", tostring(x.lbrb), tostring(x.sLbrb),
+                                   tostring(x.rblb), tostring(x.sRblb))
     end
     local r, err = probe(now)
     check("CHORD the chord runs on the stubs", r ~= nil, err)
     if r then
-        check("CHORD hold LB + tap RB sends +1 (zoom out)", r.lbrb == 1, r.lbrb)
-        check("CHORD a second tap with LB held zooms out again", r.lbrb2 == 1, r.lbrb2)
-        check("CHORD hold RB + tap LB sends -1 (zoom in)", r.rblb == -1, r.rblb)
-        check("CHORD both on one tick zooms out (LB first)", r.both == 1, r.both)
+        check("CHORD hold LB + tap RB sends -1 (zoom in)", r.lbrb == -1, r.lbrb)
+        check("CHORD hold LB + tap RB logs zoom-in", r.sLbrb == "zoom-in", r.sLbrb)
+        check("CHORD a second tap with LB held zooms in again", r.lbrb2 == -1 and r.sLbrb2 == "zoom-in", r.lbrb2)
+        check("CHORD hold RB + tap LB sends +1 (zoom out)", r.rblb == 1, r.rblb)
+        check("CHORD hold RB + tap LB logs zoom-out", r.sRblb == "zoom-out", r.sRblb)
+        check("CHORD both on one tick zooms in (LB first)", r.both == -1 and r.sBoth == "zoom-in", r.both)
         check("CHORD four steps, no more", r.n == 4, r.n)
-        check("CHORD the console line names a zoom-out", r.said == "[ZeD.Input] chord fire: zoom-out", r.said)
     end
     local ro = old and probe(old)
-    control("CHORD hold LB + tap RB sends +1 (zoom out)", ro and ro.lbrb == 1, ro and ro.lbrb)
-    control("CHORD hold RB + tap LB sends -1 (zoom in)", ro and ro.rblb == -1, ro and ro.rblb)
+    local okOld = nil
+    if old then okOld = right(ro) end
+    control("CHORD the GLOSSARY's chord, sent and logged (BASE: right directions, console line backwards)",
+        okOld, show(ro))
+    -- the same check on the first pass must fail too
+    if not flipped then
+        note("CONTROL CHORD: no first pass to try (git show " .. BRANCH .. ")")
+    else
+        local rf = probe(flipped)
+        checks = checks + 1
+        if right(rf) then
+            failed = failed + 1
+            print("FAIL CONTROL CHORD the first pass's flipped directions pass it too (" .. tostring(show(rf)) .. ")")
+        else
+            note("first pass: CHORD the GLOSSARY's chord - no (" .. tostring(show(rf)) .. ")")
+        end
+    end
 end
 
 -- ===========================================================================
