@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/summercar_manifest.txt  (Nov 12 2026): Summer Car's engine window beside the Vehicle tab (batch_summercar.ps1)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_summercar.lua | sc | timeout=600

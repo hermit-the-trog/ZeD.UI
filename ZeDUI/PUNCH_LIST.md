@@ -4559,3 +4559,16 @@ to be proposed.
    (UI scale only, not text size: too tall at Small, pinched at Large). Row 2 is scattered: T.sp.colHdrH, T.px(20) in
    CW 1218/3670 and WW 381/3129, Foraging 15/20, Journal 15, Skills 20, a Crafting 60 estimate. Its labels stay tiny at
    Large. Check at Deck size with Large text. Ties to D6 and D7.
+   - **Built (Nov 12 2026, branch worktree-wf_6e622d4f-33c-5):** `ModSupport/MaskaradsSummerCar.lua`: an anchor in place of
+     the game's window, really visible while the Vehicle tab shows the inspected car; ZeD runs the mod's own auto-open
+     against it (after the World window stands still 150 ms, only where the mod's update would keep the window) and
+     closes the engine window with the tab. The player's close lasts through a fold, a roll, another tab or a card (it
+     ends with the World window closed, another car, the inspection over, access lost and back, or death); a fold's own
+     close comes back with the tab. ZeD's window never moves: with no free side the engine window takes the larger side
+     at the mod's widths, and moves again only if the World window grows into it undragged. The pointer on it holds
+     the roll-up; a pad handed back goes back. `MechanicsTab.lua` gets a general `addExtras` hook: the Engine's footer
+     has Inspect engine components (no Repair engine / Take engine parts), and the mod's own menu option points at
+     the anchor. StepAside lists the mod; HOOK_MAP row. Sims `summercar_sim.lua` 2197/0 and `summercar_contract_sim.lua`
+     62/0 (the mod's own files); the touched sims unchanged. In the game: `batch_summercar.ps1` (zedqa_summercar.lua),
+     not run yet. The Compatibility thread line is a draft for the director
+     (`ZeDUI/workshop/steam_threads/supported_summer_car.txt`), not posted.
