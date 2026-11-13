@@ -4461,6 +4461,8 @@ to be proposed.
    the Nov 12 hunt fixed first; QA runs a full release pass on it standalone. Launch plan:
    a. Build: the generator, the guard, the sim, CHECK_luaconsole93.md (in progress).
    b. Art: products/LuaConsole93/workshop/preview.png (512x512, 1993 box art, no tape), poster.png, icon.
+      **The director, Nov 12 2026: the box art is being made with design, not Build.** The generator's own
+      preview.png and poster.png are stand-ins until design's art arrives; then the generator copies design's files.
    c. Page: workshop_description.bbcode (a 1.0 tool for mod makers, debug mode, works alone; with ZeD-GUI on,
       ZeD-GUI's console is used), the director approves the text.
    d. Gallery: QA shoots the log with filters, an error opened, the scratchpad, autocomplete, the Commands page and
