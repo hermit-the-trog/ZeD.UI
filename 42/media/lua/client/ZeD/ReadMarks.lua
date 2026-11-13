@@ -11,7 +11,8 @@
 --     them); where the column is hidden, the mark alone at the end of the name;
 --   * grid view: the mark in the cell's free corner (bottom left);
 --   * a "Next level" tag on a skill book that suits the character's next level (in the grid, a small arrow);
---   * a hover card (the library's detail card) in the game's own words.
+--   * a hover card (the library's detail card) in the game's own words, but "Unread" (no period) for an unread one,
+--     the one word for that state everywhere (punch list 175a, A2).
 -- Shape carries the meaning, colour backs it up: the 6u status square, hollow for unread, its left half filled
 -- for part read (or some recipes known), full for read; the accent for unread and part read, the green "good"
 -- colour for read. A skill book below the character's level counts as read (the game teaches nothing more
@@ -94,7 +95,7 @@ local function skillBook(p, item, s)
         s.lines = { pagesLine }
     else
         s.st, s.word = "u", ZeD.tr("UI_ZeD_Read_Unread")
-        s.lines = { getText("Tooltip_literature_NotBeenRead"), pagesLine }
+        s.lines = { ZeD.tr("UI_ZeD_Read_Unread"), pagesLine }
     end
     if s.st ~= "r" and lo <= lvl + 1 and lvl + 1 <= hi then
         s.next = pname .. " " .. tostring(lvl + 1)
@@ -125,14 +126,14 @@ local function recipeBook(p, item, s)
             ZeD.tr("UI_ZeD_Read_KnownList", table.concat(yes, ", ")) .. " | " .. ZeD.tr("UI_ZeD_Read_NotKnownList", table.concat(no, ", ")) }
     else
         s.st, s.word = "u", ZeD.tr("UI_ZeD_Read_Unread")
-        s.lines = { getText("Tooltip_literature_NotBeenRead"), getText("Tooltip_Literature_LearnedRecipes", table.concat(no, ", ")) }
+        s.lines = { ZeD.tr("UI_ZeD_Read_Unread"), getText("Tooltip_Literature_LearnedRecipes", table.concat(no, ", ")) }
     end
     return s
 end
 
 local function readOrNot(s, read)
     if read then s.st, s.word, s.lines = "r", ZeD.tr("UI_ZeD_Read_Read"), { getText("Tooltip_literature_HasBeenRead") }
-    else s.st, s.word, s.lines = "u", ZeD.tr("UI_ZeD_Read_Unread"), { getText("Tooltip_literature_NotBeenRead") } end
+    else s.st, s.word, s.lines = "u", ZeD.tr("UI_ZeD_Read_Unread"), { ZeD.tr("UI_ZeD_Read_Unread") } end
     return s
 end
 
