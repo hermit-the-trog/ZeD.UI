@@ -1246,7 +1246,7 @@
     "UI_ZeD_Identity_WeightUp": "น้ำหนักเพิ่มขึ้น",
     "UI_ZeD_Identity_WeightUpFast": "น้ำหนักเพิ่มขึ้นเร็ว",
     "UI_ZeD_Inv_ColCat": "ประเภท",
-    "UI_ZeD_Inv_ColCond": "สภาพ/ปริมาณ",
+    "UI_ZeD_Inv_ColCond": "สถานะ",
     "UI_ZeD_Inv_ColName": "ชื่อ",
     "UI_ZeD_Inv_ColWt": "หนัก",
     "UI_ZeD_Inv_Empty": "ไม่มีอะไรข้างใน",

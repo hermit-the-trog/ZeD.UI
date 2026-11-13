@@ -1246,7 +1246,7 @@
     "UI_ZeD_Identity_WeightUp": "Gaining weight.",
     "UI_ZeD_Identity_WeightUpFast": "Gaining weight fast.",
     "UI_ZeD_Inv_ColCat": "Cat",
-    "UI_ZeD_Inv_ColCond": "Cond / Amt",
+    "UI_ZeD_Inv_ColCond": "Status",
     "UI_ZeD_Inv_ColName": "Name",
     "UI_ZeD_Inv_ColWt": "Wt",
     "UI_ZeD_Inv_Empty": "Nothing here.",
