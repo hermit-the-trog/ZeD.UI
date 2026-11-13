@@ -45,7 +45,8 @@ def main():
     for s in sims:
         name = os.path.basename(s)[:-len('_sim.lua')]
         try:
-            p = subprocess.run([lua, s], cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=600)
+            # relative, forward slashes: the sims see the same arg[0] as a by-hand run from the repo root
+            p = subprocess.run([lua, os.path.relpath(s, ROOT).replace(os.sep, '/')], cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=600)
             out = (p.stdout or '') + (p.stderr or '')
         except subprocess.TimeoutExpired:
             print(f'TIMEOUT  {name}')
@@ -55,7 +56,9 @@ def main():
         for m in COUNT.finditer(out):
             pass
         if m is None:
-            print(f'NO COUNT {name} (exit {p.returncode}): {out.strip().splitlines()[-1][:120] if out.strip() else ""}')
+            lines = out.strip().splitlines()
+            why = next((l for l in lines if 'lua:' in l or 'error' in l.lower()), lines[-1] if lines else '')
+            print(f'NO COUNT {name} (exit {p.returncode}): {why.strip()[:120]}')
             bad += 1
         elif int(m.group(2)) > 0 or p.returncode not in (0, None):
             print(f'FAIL     {name}: {m.group(1)} checks, {m.group(2)} failed')

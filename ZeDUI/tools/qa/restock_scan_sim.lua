@@ -39,7 +39,7 @@ local function readFile(p)
     return s
 end
 local function gitShowAt(rev, rel)
-    local cmd = 'git -C "' .. (ROOT == "" and "." or ROOT) .. '" show ' .. rev .. ":" .. rel
+    local cmd = 'git -C "' .. (ROOT == "" and "." or (ROOT:gsub("[/\\]+$", ""))) .. '" show ' .. rev .. ":" .. rel
     local h = io.popen(cmd)
     if not h then return nil end
     local s = h:read("*a")

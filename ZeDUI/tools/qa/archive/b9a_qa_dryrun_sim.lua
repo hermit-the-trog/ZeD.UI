@@ -19,7 +19,7 @@ local function check(name, ok, detail)
     checks = checks + 1
     if not ok then
         failed = failed + 1
-        print("FAIL " .. name .. (detail ~= nil and (" (" .. tostring(detail) .. ")") or ""))
+        io.write("FAIL " .. name .. (detail ~= nil and (" (" .. tostring(detail) .. ")") or ""), "\n")   -- io.write: run() rebinds print to LOG
     end
 end
 

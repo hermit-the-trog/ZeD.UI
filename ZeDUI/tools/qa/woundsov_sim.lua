@@ -378,7 +378,7 @@ section("THE FILES")
 local nowSource = readFile(CLIENT .. "ZeD/HealthTab.lua")
 local oldSource
 do
-    local p = io.popen('git -C "' .. (ROOT ~= "" and ROOT or ".") .. '" show ' .. BASE .. ':42/media/lua/client/ZeD/HealthTab.lua 2>NUL')
+    local p = io.popen('git -C "' .. (ROOT ~= "" and (ROOT:gsub("[/\\]+$", "")) or ".") .. '" show ' .. BASE .. ':42/media/lua/client/ZeD/HealthTab.lua 2>NUL')
     if p then oldSource = p:read("*a"); p:close() end
 end
 check("HealthTab.lua is readable", nowSource and #nowSource > 10000)

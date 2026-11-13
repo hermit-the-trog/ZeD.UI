@@ -33,7 +33,7 @@ local function readFile(path)
     local s = f:read("*a"); f:close(); return s
 end
 local function gitShow(path)
-    local h = io.popen("git " .. (ROOT ~= "" and ('-C "' .. ROOT .. '" ') or "") .. "show " .. BASE .. ":" .. path)
+    local h = io.popen("git " .. (ROOT ~= "" and ('-C "' .. (ROOT:gsub("[/\\]+$", "")) .. '" ') or "") .. "show " .. BASE .. ":" .. path)
     if not h then return nil end
     local s = h:read("*a"); h:close()
     if s == "" then return nil end
